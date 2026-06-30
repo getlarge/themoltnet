@@ -106,7 +106,7 @@ describe('createSubmitOutputTool', () => {
     expect(tool.promptGuidelines?.join('\n')).toContain('task prompt');
   });
 
-  it('captures a valid payload and returns terminate:true on success', async () => {
+  it('captures a valid payload without terminating the session', async () => {
     const handle = createSubmitOutputTool('fulfill_brief');
     expect(handle.getCaptured()).toBeNull();
     expect(handle.getCallCount()).toBe(0);
@@ -114,10 +114,10 @@ describe('createSubmitOutputTool', () => {
     const result = await callExecute(handle)(validFulfillBriefOutput);
 
     expect(result.isError).toBeFalsy();
-    // terminate:true is the property that distinguishes the preferred
-    // path from the fallback — it ends the session immediately on
-    // capture and prevents wasted post-call LLM tokens.
-    expect(result.terminate).toBe(true);
+    // Submit-output capture is runtime state, not Pi session-control
+    // flow. The executor reads getCaptured() after session.prompt()
+    // resolves.
+    expect(result.terminate).not.toBe(true);
     expect(handle.getCaptured()).toEqual(validFulfillBriefOutput);
     expect(handle.getCallCount()).toBe(1);
     expect(result.content[0].text).toContain('captured');
@@ -157,12 +157,12 @@ describe('createSubmitOutputTool', () => {
 
     const good = await exec(validFulfillBriefOutput);
     expect(good.isError).toBeFalsy();
-    expect(good.terminate).toBe(true);
+    expect(good.terminate).not.toBe(true);
     expect(handle.getCaptured()).toEqual(validFulfillBriefOutput);
     expect(handle.getCallCount()).toBe(1);
   });
 
-  it('reports all issue-style validation errors before execute terminates on retry budget exhaustion', async () => {
+  it('reports all issue-style validation errors when retry budget is exhausted', async () => {
     const handle = createSubmitOutputTool('judge_eval_attempt', {
       maxSubmitValidationRetries: 1,
     });
@@ -191,7 +191,7 @@ describe('createSubmitOutputTool', () => {
 
     const second = await exec(invalidJudgeOutput);
     expect(second.isError).toBe(true);
-    expect(second.terminate).toBe(true);
+    expect(second.terminate).not.toBe(true);
     expect(second.content[0].text).toContain('retry budget exhausted');
     expect(second.content[0].text).toContain('output/variantLabel');
     expect(second.content[0].text).toContain('output/scores/0/evidence');
@@ -243,7 +243,7 @@ describe('createSubmitOutputTool', () => {
     });
 
     expect(result.isError).toBeFalsy();
-    expect(result.terminate).toBe(true);
+    expect(result.terminate).not.toBe(true);
     expect(handle.getCaptured()).toEqual({
       response: 'done',
       totalTokens: 10,
@@ -407,7 +407,7 @@ describe('resolveSubmitTools', () => {
     });
 
     expect(result.isError).toBe(true);
-    expect(result.terminate).toBe(true);
+    expect(result.terminate).not.toBe(true);
     expect(result.content[0].text).toContain('(1/1)');
     expect(r.handle!.getExhaustedValidationFailure()).toMatchObject({
       code: 'output_validation_failed',

@@ -12,16 +12,13 @@
  *      mid-session, not session-ending.
  *
  *   2. On a valid call, the validated args are stored in the captured
- *      reference exposed via `getCaptured()` and the tool result returns
- *      `terminate: true`. pi-coding-agent's agent-loop reads that flag
- *      (see `@earendil-works/pi-agent-core` `agent-loop.ts:208,512`) and
- *      ends the session immediately — no follow-up LLM turn, no extra
- *      tokens spent narrating "ok, done."
+ *      reference exposed via `getCaptured()`. The executor reads that
+ *      captured state after `session.prompt()` resolves instead of using
+ *      Pi's `terminate` flag as task-completion control flow.
  *
- *   3. If the model somehow calls the tool more than once before
- *      termination resolves, the latest valid call wins. This matches
- *      "submit exactly once" semantics from the prompt while staying
- *      defensive against retries.
+ *   3. If the model somehow calls the tool more than once, the latest
+ *      valid call wins. This matches "submit exactly once" semantics
+ *      from the prompt while staying defensive against retries.
  *
  * The model still has to *decide* to call the tool — pi-coding-agent's
  * `AgentLoopConfig` does not expose `toolChoice`, so we cannot force the
@@ -58,14 +55,15 @@ export interface CreateSubmitOutputToolOptions {
   /**
    * Original task input, threaded into output validation so task types
    * with cross-field rules (for example "verification required iff
-   * input.successCriteria exists") are enforced before the session can
-   * terminate.
+   * input.successCriteria exists") are enforced before output is
+   * captured.
    */
   input?: unknown;
   /**
    * Number of correction turns allowed after the first invalid submit call.
-   * A value of 2 permits three invalid submissions total, then terminates the
-   * session so the attempt can fail with output_validation_failed.
+   * A value of 2 permits three invalid submissions total, then records an
+   * exhausted validation failure so the attempt can fail with
+   * output_validation_failed after the session ends.
    */
   maxSubmitValidationRetries?: number;
 }
@@ -206,7 +204,6 @@ export function createSubmitOutputTool(
           ],
           details,
           isError: true,
-          terminate: exhausted,
         };
       }
 
@@ -227,7 +224,6 @@ export function createSubmitOutputTool(
           },
         ],
         details,
-        terminate: true,
       };
     },
   }) as ToolDefinition<any, any>;

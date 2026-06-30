@@ -272,7 +272,7 @@ export function createSubagentTool(
             if (exhausted) {
               innerValidationExhausted = true;
             }
-            return toolError(innerValidationFailure, exhausted, {
+            return toolError(innerValidationFailure, {
               captured: false,
               error: 'output_validation_failed',
               invalidCallCount: innerInvalidSubmitCount,
@@ -286,12 +286,11 @@ export function createSubagentTool(
               {
                 type: 'text' as const,
                 text:
-                  'Output captured. Subagent session will terminate; ' +
-                  'no further action needed.',
+                  'Output captured. No further action needed for ' +
+                  'subagent output reporting.',
               },
             ],
             details: { captured: true },
-            terminate: true,
           };
         },
       });
@@ -400,7 +399,7 @@ export function createSubagentTool(
       if (captured === null) {
         const exhaustedFailure = innerValidationFailure as string | null;
         if (innerValidationExhausted && exhaustedFailure) {
-          return toolError(`subagent: ${exhaustedFailure}`, false, {
+          return toolError(`subagent: ${exhaustedFailure}`, {
             captured: false,
             error: 'output_validation_failed',
             invalidCallCount: innerInvalidSubmitCount,
@@ -471,8 +470,7 @@ function buildSubagentInstructor(args: {
     'Rules for this session:',
     '',
     `- You MUST call \`${SUBAGENT_SUBMIT_TOOL_NAME}\` exactly once with a `,
-    '  payload matching the contract above. Your session terminates on ',
-    '  the valid call.',
+    '  payload matching the contract above as your final task action.',
     "- The parent's message above is your task. Do not invent additional ",
     '  steps the parent did not request.',
     '- All MoltNet runtime invariants from the parent runtime instructor ',
@@ -486,13 +484,11 @@ function buildSubagentInstructor(args: {
 
 function toolError(
   text: string,
-  terminate = false,
   details: Record<string, unknown> = { captured: false },
 ) {
   return {
     content: [{ type: 'text' as const, text }],
     details,
     isError: true,
-    ...(terminate ? { terminate: true } : {}),
   };
 }

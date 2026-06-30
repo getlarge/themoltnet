@@ -5,8 +5,8 @@
  *
  *   1. Call `submit_<task_type>_output` exactly once with the structured
  *      payload. This is the preferred path. The runtime captures the
- *      validated args and ends the session via pi-coding-agent's
- *      `terminate: true`.
+ *      validated args and the executor reads that captured state after
+ *      the session ends.
  *
  * The wording is intentionally absolute ("MUST", "even if the work
  * succeeded") because the failure mode the issue tracks (#986) is models
@@ -45,7 +45,7 @@ export function buildFinalOutputBlock(opts: FinalOutputBlockOptions): string {
     `output matching \`${outputSchemaName}\`.`,
     '',
     `Call \`${submitTool}\` exactly once with the payload.`,
-    `The runtime captures the validated arguments and ends the session.`,
+    `The runtime captures the validated arguments for attempt completion.`,
     `Do NOT emit the output as plain assistant text. Do NOT rely on a`,
     `JSON-in-message fallback. If you do not call \`${submitTool}\`, the`,
     `attempt is recorded as failing the promised submit-output criterion`,
