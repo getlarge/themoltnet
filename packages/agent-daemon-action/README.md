@@ -338,13 +338,18 @@ package and fails if the result differs from the committed
 `dist/main.js`. To update the action:
 
 ```bash
-pnpm --filter @themoltnet/agent-daemon-action run build
+pnpm exec nx run @themoltnet/agent-daemon-action:build
 git add packages/agent-daemon-action/dist/main.js
 git commit -m "..."
 ```
 
 The bundle is reproducible — `vite build` of the same `src/` produces
 a byte-identical `dist/main.js`.
+
+The action is semvered by Nx release in the `github-actions` group.
+Consumers can pin the immutable `agent-daemon-action-vX.Y.Z` tag or the
+moving major tag (`v0`, later `v1`) that the action release publish target
+updates after the semver tag is created.
 
 ## License
 

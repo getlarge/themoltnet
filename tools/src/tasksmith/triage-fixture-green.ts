@@ -61,7 +61,7 @@ const { values } = parseArgs({
 
 if (values.help) {
   console.log(`
-Usage: pnpm --filter @moltnet/tools tasksmith:triage-fixture-green [options]
+Usage: pnpm exec nx run @moltnet/tools:tasksmith:triage-fixture-green -- [options]
 
 Builds a fixture_already_green triage report from tasksmith candidate/status files.
 

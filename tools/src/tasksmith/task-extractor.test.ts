@@ -43,7 +43,7 @@ describe('assembleTasksmithTask', () => {
     expect(task.source_commit_ref).toBe('def');
     // vitest run → test normalization applies
     expect(task.fail_to_pass).toEqual([
-      'pnpm --filter @moltnet/auth test src/jwt.test.ts',
+      'pnpm exec nx run @moltnet/auth:test -- src/jwt.test.ts',
     ]);
     expect(task.problem_statement).toBe(extraction.problemStatement);
     expect(task.family).toBe('bugfix');
@@ -57,7 +57,9 @@ describe('normalizeTestCommand', () => {
       normalizeTestCommand(
         "pnpm --filter @moltnet/diary-service test --testPathPattern='diary-service.test'",
       ),
-    ).toBe('pnpm --filter @moltnet/diary-service test diary-service.test');
+    ).toBe(
+      'pnpm exec nx run @moltnet/diary-service:test -- diary-service.test',
+    );
   });
 
   it('strips repo-root path prefixes', () => {
@@ -66,7 +68,7 @@ describe('normalizeTestCommand', () => {
         'pnpm --filter @moltnet/auth test libs/auth/__tests__/relationship-reader.test.ts',
       ),
     ).toBe(
-      'pnpm --filter @moltnet/auth test __tests__/relationship-reader.test.ts',
+      'pnpm exec nx run @moltnet/auth:test -- __tests__/relationship-reader.test.ts',
     );
   });
 
@@ -76,7 +78,7 @@ describe('normalizeTestCommand', () => {
         'pnpm --filter @moltnet/mcp-server exec vitest run __tests__/diary-tools.test.ts',
       ),
     ).toBe(
-      'pnpm --filter @moltnet/mcp-server test __tests__/diary-tools.test.ts',
+      'pnpm exec nx run @moltnet/mcp-server:test -- __tests__/diary-tools.test.ts',
     );
   });
 
@@ -85,7 +87,9 @@ describe('normalizeTestCommand', () => {
       normalizeTestCommand(
         'pnpm --filter @moltnet/api-client vitest run __tests__/retry.test.ts',
       ),
-    ).toBe('pnpm --filter @moltnet/api-client test __tests__/retry.test.ts');
+    ).toBe(
+      'pnpm exec nx run @moltnet/api-client:test -- __tests__/retry.test.ts',
+    );
   });
 
   it('removes extra -- after test script before file args', () => {
@@ -94,7 +98,7 @@ describe('normalizeTestCommand', () => {
         'pnpm --filter @moltnet/rest-api run test -- __tests__/signing-requests.test.ts',
       ),
     ).toBe(
-      'pnpm --filter @moltnet/rest-api run test __tests__/signing-requests.test.ts',
+      'pnpm exec nx run @moltnet/rest-api:test -- __tests__/signing-requests.test.ts',
     );
   });
 
@@ -103,7 +107,9 @@ describe('normalizeTestCommand', () => {
       normalizeTestCommand(
         'pnpm --filter @themoltnet/sdk test --run __tests__/sign-bytes.test.ts',
       ),
-    ).toBe('pnpm --filter @themoltnet/sdk test __tests__/sign-bytes.test.ts');
+    ).toBe(
+      'pnpm exec nx run @themoltnet/sdk:test -- __tests__/sign-bytes.test.ts',
+    );
   });
 
   it('removes --reporter=verbose', () => {
@@ -111,7 +117,7 @@ describe('normalizeTestCommand', () => {
       normalizeTestCommand(
         'pnpm --filter @moltnet/crypto-service run test --reporter=verbose',
       ),
-    ).toBe('pnpm --filter @moltnet/crypto-service run test');
+    ).toBe('pnpm exec nx run @moltnet/crypto-service:test');
   });
 
   it('prefixes Go test commands with cd when missing', () => {
@@ -140,13 +146,19 @@ describe('normalizeTestCommand', () => {
       normalizeTestCommand(
         'pnpm --filter @themoltnet/rest-api test -- diary-distill',
       ),
-    ).toBe('pnpm --filter @moltnet/rest-api test diary-distill');
+    ).toBe('pnpm exec nx run @moltnet/rest-api:test -- diary-distill');
   });
 
   it('fixes @themoltnet/landing → @moltnet/landing', () => {
     expect(normalizeTestCommand('pnpm --filter @themoltnet/landing test')).toBe(
-      'pnpm --filter @moltnet/landing test',
+      'pnpm exec nx run @moltnet/landing:test',
     );
+  });
+
+  it('fixes aliases in already-Nx commands', () => {
+    expect(
+      normalizeTestCommand('pnpm exec nx run @themoltnet/landing:test'),
+    ).toBe('pnpm exec nx run @moltnet/landing:test');
   });
 
   it('fixes legreffier-cli → @themoltnet/legreffier', () => {
@@ -155,7 +167,7 @@ describe('normalizeTestCommand', () => {
         'pnpm --filter legreffier-cli run test -- src/adapters/codex.test.ts',
       ),
     ).toBe(
-      'pnpm --filter @themoltnet/legreffier run test src/adapters/codex.test.ts',
+      'pnpm exec nx run @themoltnet/legreffier:test -- src/adapters/codex.test.ts',
     );
   });
 
@@ -164,7 +176,7 @@ describe('normalizeTestCommand', () => {
       normalizeTestCommand(
         'pnpm --filter @moltnet/legreffier-cli run test -- src/api.test.ts',
       ),
-    ).toBe('pnpm --filter @themoltnet/legreffier run test src/api.test.ts');
+    ).toBe('pnpm exec nx run @themoltnet/legreffier:test -- src/api.test.ts');
   });
 
   it('fixes bare package names by adding scope', () => {
@@ -172,7 +184,9 @@ describe('normalizeTestCommand', () => {
       normalizeTestCommand(
         'pnpm --filter rest-api test __tests__/config.test.ts',
       ),
-    ).toBe('pnpm --filter @moltnet/rest-api test __tests__/config.test.ts');
+    ).toBe(
+      'pnpm exec nx run @moltnet/rest-api:test -- __tests__/config.test.ts',
+    );
   });
 
   // ── Shell pipe fix ──
@@ -183,7 +197,7 @@ describe('normalizeTestCommand', () => {
         'pnpm --filter @moltnet/crypto-service run test pack-cid|provenance-lifecycle',
       ),
     ).toBe(
-      "pnpm --filter @moltnet/crypto-service run test 'pack-cid|provenance-lifecycle'",
+      "pnpm exec nx run @moltnet/crypto-service:test -- 'pack-cid|provenance-lifecycle'",
     );
   });
 
@@ -194,7 +208,7 @@ describe('normalizeTestCommand', () => {
       normalizeTestCommand(
         'pnpm --filter @themoltnet/legreffier test packages/legreffier-cli/src/setup.test.ts',
       ),
-    ).toBe('pnpm --filter @themoltnet/legreffier test src/setup.test.ts');
+    ).toBe('pnpm exec nx run @themoltnet/legreffier:test -- src/setup.test.ts');
   });
 
   // ── regex escaping in -t patterns ──
@@ -204,7 +218,7 @@ describe('normalizeTestCommand', () => {
       normalizeTestCommand(
         'pnpm --filter @themoltnet/legreffier test -t "Bash(echo"',
       ),
-    ).toBe('pnpm --filter @themoltnet/legreffier test -t "Bash\\(echo"');
+    ).toBe('pnpm exec nx run @themoltnet/legreffier:test -- -t "Bash\\(echo"');
   });
 
   it('escapes square brackets in -t test name patterns', () => {
@@ -212,7 +226,9 @@ describe('normalizeTestCommand', () => {
       normalizeTestCommand(
         "pnpm --filter @moltnet/rest-api test -t 'handles [NEW] files'",
       ),
-    ).toBe('pnpm --filter @moltnet/rest-api test -t "handles \\[NEW\\] files"');
+    ).toBe(
+      'pnpm exec nx run @moltnet/rest-api:test -- -t "handles \\[NEW\\] files"',
+    );
   });
 
   it('leaves -t patterns without regex chars unchanged', () => {
@@ -220,7 +236,7 @@ describe('normalizeTestCommand', () => {
       normalizeTestCommand(
         'pnpm --filter @moltnet/auth test -t "validates JWT tokens"',
       ),
-    ).toBe('pnpm --filter @moltnet/auth test -t "validates JWT tokens"');
+    ).toBe('pnpm exec nx run @moltnet/auth:test -- -t "validates JWT tokens"');
   });
 });
 

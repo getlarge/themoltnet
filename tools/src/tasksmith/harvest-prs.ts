@@ -44,7 +44,7 @@ const { values } = parseArgs({
 
 if (values.help) {
   console.log(`
-Usage: pnpm --filter @moltnet/tools tasksmith:harvest [options]
+Usage: pnpm exec nx run @moltnet/tools:tasksmith:harvest -- [options]
 
 Options:
   --prs, -p <numbers>       Comma-separated PR numbers to process

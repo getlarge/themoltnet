@@ -89,20 +89,20 @@ TEST FILE LABELS
 ═══════════════════════════════════════════════
 TEST COMMANDS — CRITICAL RULES
 ═══════════════════════════════════════════════
-FORMAT: pnpm --filter <package-name> vitest run <relative-path-to-test-file>
+FORMAT: pnpm exec nx run <project-name>:test -- <relative-path-to-test-file>
 
-NEVER use bare "pnpm --filter <pkg> test" or "pnpm --filter <pkg> run test" — these run the full suite which passes on fixture because existing tests still pass.
+NEVER use bare "pnpm exec nx run <project>:test" — this runs the full suite which passes on fixture because existing tests still pass.
 
 Path calculation:
 - Find the test file path in changed_files (e.g., "libs/api-client/__tests__/retry-fetch.test.ts")
-- Find the package root (e.g., libs/api-client/ for @moltnet/api-client)
+- Find the Nx project root (e.g., libs/api-client/ for @moltnet/api-client)
 - Strip the package root prefix to get the relative path (e.g., "__tests__/retry-fetch.test.ts")
 
 For [NEW] files — target the exact file:
-  pnpm --filter @moltnet/api-client vitest run __tests__/retry-fetch.test.ts
+  pnpm exec nx run @moltnet/api-client:test -- __tests__/retry-fetch.test.ts
 
 For [MODIFIED] files — target the file AND specific new test names using --testNamePattern:
-  pnpm --filter @moltnet/rest-api vitest run __tests__/config.test.ts --testNamePattern "new test name here"
+  pnpm exec nx run @moltnet/rest-api:test -- __tests__/config.test.ts --testNamePattern "new test name here"
 
 The --testNamePattern value must match the EXACT describe/it string from the new test cases.
 Do NOT add --testNamePattern for [NEW] files (the whole file is new).
@@ -190,7 +190,7 @@ const PACKAGE_ALIASES: Record<string, string> = {
  * - Ensure `run` subcommand is present for vitest
  * - Strip repo-root path prefixes from test file paths
  * - Fix wrong package names in --filter (scope confusion, missing scope)
- * - Rewrite `vitest run` to `test` when packages don't have a vitest script
+ * - Rewrite package-manager project test commands to Nx test target commands
  * - Escape shell pipe `|` inside test name patterns
  * - Fix Go test commands missing `cd` prefix
  */
@@ -220,16 +220,23 @@ export function normalizeTestCommand(cmd: string): string {
 
   let normalized = cmd;
 
-  // Fix: wrong package names in --filter
-  const filterMatch = normalized.match(/pnpm --filter (\S+)/);
-  if (filterMatch) {
-    const pkg = filterMatch[1];
+  // Fix: wrong package/project names.
+  const projectMatch = normalized.match(
+    /(?:pnpm --filter |pnpm exec nx run )(\S+?)(?::test)?(?:\s|$)/,
+  );
+  if (projectMatch) {
+    const pkg = projectMatch[1];
     const corrected = PACKAGE_ALIASES[pkg];
     if (corrected) {
-      normalized = normalized.replace(
-        `pnpm --filter ${pkg}`,
-        `pnpm --filter ${corrected}`,
-      );
+      normalized = normalized.startsWith('pnpm exec nx run ')
+        ? normalized.replace(
+            `pnpm exec nx run ${pkg}:test`,
+            `pnpm exec nx run ${corrected}:test`,
+          )
+        : normalized.replace(
+            `pnpm --filter ${pkg}`,
+            `pnpm --filter ${corrected}`,
+          );
     }
   }
 
@@ -308,6 +315,21 @@ export function normalizeTestCommand(cmd: string): string {
 
   // Collapse multiple spaces
   normalized = normalized.replace(/\s{2,}/g, ' ').trim();
+
+  // Project tests should run through Nx, not pnpm filters.
+  normalized = normalized.replace(
+    /^pnpm --filter (\S+) (?:run )?test(?:\s+(.+))?$/,
+    (_, project, args = '') =>
+      `pnpm exec nx run ${project}:test${args ? ` -- ${args}` : ''}`,
+  );
+
+  normalized = normalized
+    .replace(/^(pnpm exec nx run \S+:test -- )--\s+/, '$1')
+    .replace(
+      /^(pnpm exec nx run \S+:test -- )--run\s+((?:__tests__|src|test)\/\S+)/,
+      '$1$2',
+    )
+    .replace(/\s+$/g, '');
 
   return normalized;
 }
@@ -389,30 +411,33 @@ async function repairCommandForCandidate(
     return repaired;
   }
 
-  const filterMatch = repaired.match(/pnpm --filter (\S+)/);
-  if (!filterMatch) return repaired;
-  const pkg = filterMatch[1];
+  const projectMatch = repaired.match(/^pnpm exec nx run (\S+):test\b/);
+  if (!projectMatch) return repaired;
+  const projectName = projectMatch[1];
 
   const packageTests = candidate.changedTestFiles
     .filter((file) => {
       const root = getPackageRoot(file);
       if (!root) return false;
 
-      if (root.startsWith('apps/')) return pkg === `@moltnet/${root.slice(5)}`;
+      if (root.startsWith('apps/')) {
+        return projectName === `@moltnet/${root.slice(5)}`;
+      }
       if (root.startsWith('libs/')) {
         const name = root.slice(5);
         return (
-          pkg === `@moltnet/${name}` ||
-          pkg === `@themoltnet/${name}` ||
-          (name === 'sdk' && pkg === '@themoltnet/sdk') ||
-          (name === 'design-system' && pkg === '@themoltnet/design-system')
+          projectName === `@moltnet/${name}` ||
+          projectName === `@themoltnet/${name}` ||
+          (name === 'sdk' && projectName === '@themoltnet/sdk') ||
+          (name === 'design-system' &&
+            projectName === '@themoltnet/design-system')
         );
       }
       if (root === 'packages/legreffier-cli')
-        return pkg === '@themoltnet/legreffier';
+        return projectName === '@themoltnet/legreffier';
       if (root === 'packages/github-agent')
-        return pkg === '@themoltnet/github-agent';
-      if (root === 'packages/cli') return pkg === '@themoltnet/cli';
+        return projectName === '@themoltnet/github-agent';
+      if (root === 'packages/cli') return projectName === '@themoltnet/cli';
       return false;
     })
     .map((file) => ({
@@ -446,10 +471,15 @@ async function repairCommandForCandidate(
           matchedTarget.relativePath,
         );
       } else {
-        repaired = repaired.replace(
-          /(\bpnpm --filter \S+(?: run)? test\b)/,
-          `$1 ${matchedTarget.relativePath}`,
-        );
+        repaired = repaired.includes(' -- ')
+          ? repaired.replace(
+              /^(pnpm exec nx run \S+:test --)/,
+              `$1 ${matchedTarget.relativePath}`,
+            )
+          : repaired.replace(
+              /^(pnpm exec nx run \S+:test\b)/,
+              `$1 -- ${matchedTarget.relativePath}`,
+            );
       }
     }
 

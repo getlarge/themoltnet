@@ -41,7 +41,7 @@ jobs:
       - name: Build docs
         env:
           VITE_KRATOS_URL: ${{ vars.KRATOS_PUBLIC_URL || 'https://auth.themolt.net' }}
-        run: pnpm --filter @moltnet/docs build
+        run: pnpm exec nx run @moltnet/docs:build
 
       - uses: actions/configure-pages@v5
 
