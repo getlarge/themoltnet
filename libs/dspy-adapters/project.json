@@ -10,6 +10,12 @@
       },
       "parallelism": false
     },
+    "nx-release-publish": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node --import tsx tools/src/release/go-module-publisher.cli.ts --project-root libs/dspy-adapters --tag-prefix libs/dspy-adapters/v"
+      }
+    },
     "test-ci": {
       "dependsOn": ["test"],
       "executor": "nx:noop",

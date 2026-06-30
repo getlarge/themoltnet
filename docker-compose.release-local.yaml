@@ -13,6 +13,7 @@ services:
     ports:
       - '4873:4873'
     volumes:
+      - ./tools/release/verdaccio-local/config.yaml:/verdaccio/conf/config.yaml:ro
       - npm-registry-data:/verdaccio/storage
 
   docker-registry:

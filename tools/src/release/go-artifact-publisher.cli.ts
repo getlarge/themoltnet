@@ -67,6 +67,9 @@ export function createCliRunOptions(argv = process.argv, env = process.env) {
       otp: {
         type: 'string',
       },
+      userconfig: {
+        type: 'string',
+      },
       yes: {
         type: 'boolean',
       },
@@ -81,6 +84,7 @@ export function createCliRunOptions(argv = process.argv, env = process.env) {
       env.NX_DRY_RUN === 'true',
     verbose: values.verbose === true,
     skipUpload: values['skip-upload'] === true || values.skipUpload === true,
+    useLocalReplaces: env.GO_RELEASE_USE_LOCAL_REPLACES === 'true',
   };
 }
 
@@ -104,10 +108,8 @@ export async function main(
   env = process.env,
   cwd = process.cwd(),
 ) {
-  const { configPath, dryRun, verbose, skipUpload } = createCliRunOptions(
-    argv,
-    env,
-  );
+  const { configPath, dryRun, verbose, skipUpload, useLocalReplaces } =
+    createCliRunOptions(argv, env);
   if (!configPath) {
     throw new Error('Usage: go-artifact-publisher.cli.ts --config <path>');
   }
@@ -119,6 +121,7 @@ export async function main(
   return runGoArtifactPublisher(applyCliOverrides(config, { skipUpload }), {
     cwd,
     dryRun,
+    useLocalReplaces,
     verbose,
   });
 }

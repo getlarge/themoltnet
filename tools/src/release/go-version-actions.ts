@@ -558,6 +558,52 @@ export async function readLatestVersionFromGoProxy(
   throw new Error(`Go proxy lookup failed for ${modulePath}: no response`);
 }
 
+export async function readVersionFromGoProxy(
+  modulePath: string,
+  version: string,
+  proxyUrl: string,
+  options: GoProxyLookupOptions = {},
+) {
+  const goVersion = version.startsWith('v') ? version : `v${version}`;
+  const url = `${proxyUrl}/${escapeGoProxyPath(modulePath)}/@v/${goVersion}.info`;
+  const fetchImpl = options.fetchImpl ?? fetch;
+  const retryDelaysMs = options.retryDelaysMs ?? [250, 1_000];
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt <= retryDelaysMs.length; attempt += 1) {
+    let response: Response;
+    try {
+      response = await fetchImpl(url);
+    } catch (error) {
+      lastError = error;
+      await waitForGoProxyRetry(retryDelaysMs, attempt);
+      continue;
+    }
+
+    if (response.status === 404 || response.status === 410) {
+      return null;
+    }
+    if (!response.ok) {
+      const error = createGoProxyLookupError(modulePath, response);
+      if (!shouldRetryGoProxyResponse(response.status)) {
+        throw error;
+      }
+      lastError = error;
+      await waitForGoProxyRetry(retryDelaysMs, attempt);
+      continue;
+    }
+
+    const payload = (await response.json()) as { Version?: string };
+    return payload.Version ? normalizeGoModuleVersion(payload.Version) : null;
+  }
+
+  if (lastError) {
+    throw lastError;
+  }
+
+  throw new Error(`Go proxy lookup failed for ${modulePath}: no response`);
+}
+
 export async function afterAllProjectsVersioned(
   cwd: string,
   {

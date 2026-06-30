@@ -14,6 +14,7 @@ import {
   normalizeGoModuleVersion,
   parseGoWorkUseDirs,
   readLatestVersionFromGoProxy,
+  readVersionFromGoProxy,
   resolveGoProxyUrl,
   shouldRunGoReleaseValidation,
   updateGoRequireVersions,
@@ -438,6 +439,33 @@ go 1.25
       ),
     ).resolves.toBeNull();
     expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it('verifies exact Go proxy versions with retries', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(goProxyResponse(503, 'Service Unavailable'))
+      .mockResolvedValueOnce(
+        goProxyResponse(200, 'OK', {
+          Version: 'v1.2.3',
+        }),
+      );
+
+    await expect(
+      readVersionFromGoProxy(
+        'github.com/getlarge/themoltnet/libs/moltnet-api-client',
+        '1.2.3',
+        'https://proxy.example.test',
+        {
+          fetchImpl,
+          retryDelaysMs: [0],
+        },
+      ),
+    ).resolves.toBe('1.2.3');
+    expect(fetchImpl).toHaveBeenCalledWith(
+      'https://proxy.example.test/github.com/getlarge/themoltnet/libs/moltnet-api-client/@v/v1.2.3.info',
+    );
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 
   it('does not run Go release validation during dry-run', async () => {

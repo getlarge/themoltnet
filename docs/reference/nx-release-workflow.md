@@ -104,24 +104,53 @@ export NPM_CONFIG_CACHE="$PWD/tmp/npm-cache"
 export GOPROXY="http://localhost:3000,direct"
 ```
 
-Run the Nx phases explicitly. Top-level `nx release patch` does not expose the
-npm `--registry` option, but `nx release publish` does. Nx forwards publish
-options to every `nx-release-publish` target, so custom publishers must tolerate
-generic publish flags such as `--registry`, `--tag`, `--access`, and `--dryRun`.
+Run the top-level release command for versioning and changelog generation, then
+run publish separately. Top-level `nx release patch` does not expose the npm
+`--registry` option, but `nx release publish` does. Nx forwards publish options
+to every `nx-release-publish` target, so custom publishers must tolerate generic
+publish flags such as `--registry`, `--tag`, `--access`, and `--dryRun`.
 
 ```bash
-pnpm exec nx release version patch --verbose
-pnpm exec nx release changelog --verbose
-pnpm exec nx release publish --verbose --registry http://localhost:4873
+pnpm exec nx release patch --skip-publish --verbose
+GO_RELEASE_SKIP_PROXY=true GO_RELEASE_USE_LOCAL_REPLACES=true GITHUB_ACTION_RELEASE_SKIP_PUSH=true pnpm exec nx release publish --verbose --registry http://localhost:4873
 ```
 
 This publishes npm packages to Verdaccio and Docker images to the local Docker
-registry. It still creates local release commits and local tags. It may also
-attempt GitHub release operations depending on the release changelog/artifact
-configuration. For the safest local rehearsal, temporarily set the Go CLI
-artifact store to `provider: "none"` in
+registry. It still creates local release commits and local tags.
+
+The local Go module publish targets verify that the release tags exist at
+`HEAD`, but `GO_RELEASE_SKIP_PROXY=true` skips the GOPROXY lookup because the
+local tags have not been pushed to a Git remote visible to Athens. In the real
+release, do not set `GO_RELEASE_SKIP_PROXY`; the Go publish targets must verify
+the tagged modules through GOPROXY after the release commit and tags are pushed.
+`GO_RELEASE_USE_LOCAL_REPLACES=true` is also local-only; it lets the Go CLI
+artifact build resolve sibling Go modules from the worktree while the rehearsal
+tags are still local-only.
+`GITHUB_ACTION_RELEASE_SKIP_PUSH=true` is local-only and prevents the GitHub
+Action publisher from moving the stable major tag such as `v0`.
+
+If Verdaccio requires an npm token, create a throwaway local user and write a
+root `.npmrc` in the disposable worktree. Nx forwards `--userconfig` to custom
+targets, but the inferred npm publish targets do not reliably pass it through to
+`pnpm publish`, so use a root `.npmrc` for the rehearsal.
+
+```bash
+curl -X PUT http://localhost:4873/-/user/org.couchdb.user:local-release \
+  -H 'content-type: application/json' \
+  --data '{"name":"local-release","password":"local-release-pass","email":"local-release@example.test","type":"user","roles":[]}'
+npm config set //localhost:4873/:_authToken '<token-from-verdaccio>' --userconfig .npmrc
+GO_RELEASE_SKIP_PROXY=true GO_RELEASE_USE_LOCAL_REPLACES=true GITHUB_ACTION_RELEASE_SKIP_PUSH=true pnpm exec nx release publish --verbose --registry http://localhost:4873
+```
+
+The publish phase may also attempt GitHub release operations depending on the
+release changelog/artifact configuration. For the safest local rehearsal,
+temporarily set the Go CLI artifact store to `provider: "none"` in
 `apps/moltnet-cli/nx-release-artifacts.json`; this still builds archives and
 stages npm platform binaries, but skips GitHub release asset upload.
+
+Do not run `nx release changelog patch` as a substitute for the top-level
+release command. The direct `changelog` command requires an exact target version
+and treats `patch` literally as the version.
 
 Inspect local npm publishes:
 
