@@ -2516,6 +2516,158 @@ func (s *BatchDeleteResponse) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode implements json.Marshaler.
+func (s *BatchDeleteTasksAcceptedResponse) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *BatchDeleteTasksAcceptedResponse) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("accepted")
+		e.ArrStart()
+		for _, elem := range s.Accepted {
+			json.EncodeUUID(e, elem)
+		}
+		e.ArrEnd()
+	}
+	{
+		e.FieldStart("skipped")
+		e.ArrStart()
+		for _, elem := range s.Skipped {
+			json.EncodeUUID(e, elem)
+		}
+		e.ArrEnd()
+	}
+	{
+		e.FieldStart("workflowId")
+		s.WorkflowId.Encode(e)
+	}
+}
+
+var jsonFieldsNameOfBatchDeleteTasksAcceptedResponse = [3]string{
+	0: "accepted",
+	1: "skipped",
+	2: "workflowId",
+}
+
+// Decode decodes BatchDeleteTasksAcceptedResponse from json.
+func (s *BatchDeleteTasksAcceptedResponse) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode BatchDeleteTasksAcceptedResponse to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "accepted":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				s.Accepted = make([]uuid.UUID, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem uuid.UUID
+					v, err := json.DecodeUUID(d)
+					elem = v
+					if err != nil {
+						return err
+					}
+					s.Accepted = append(s.Accepted, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"accepted\"")
+			}
+		case "skipped":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				s.Skipped = make([]uuid.UUID, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem uuid.UUID
+					v, err := json.DecodeUUID(d)
+					elem = v
+					if err != nil {
+						return err
+					}
+					s.Skipped = append(s.Skipped, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"skipped\"")
+			}
+		case "workflowId":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				if err := s.WorkflowId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"workflowId\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode BatchDeleteTasksAcceptedResponse")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfBatchDeleteTasksAcceptedResponse) {
+					name = jsonFieldsNameOfBatchDeleteTasksAcceptedResponse[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *BatchDeleteTasksAcceptedResponse) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *BatchDeleteTasksAcceptedResponse) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes BatchDeleteTasksForbidden as json.
 func (s *BatchDeleteTasksForbidden) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
@@ -2602,18 +2754,18 @@ func (s *BatchDeleteTasksReq) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *BatchDeleteTasksReq) encodeFields(e *jx.Encoder) {
 	{
+		if s.Force.Set {
+			e.FieldStart("force")
+			s.Force.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("ids")
 		e.ArrStart()
 		for _, elem := range s.Ids {
 			json.EncodeUUID(e, elem)
 		}
 		e.ArrEnd()
-	}
-	{
-		if s.Mode.Set {
-			e.FieldStart("mode")
-			s.Mode.Encode(e)
-		}
 	}
 	{
 		if s.Reason.Set {
@@ -2624,8 +2776,8 @@ func (s *BatchDeleteTasksReq) encodeFields(e *jx.Encoder) {
 }
 
 var jsonFieldsNameOfBatchDeleteTasksReq = [3]string{
-	0: "ids",
-	1: "mode",
+	0: "force",
+	1: "ids",
 	2: "reason",
 }
 
@@ -2639,8 +2791,18 @@ func (s *BatchDeleteTasksReq) Decode(d *jx.Decoder) error {
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
+		case "force":
+			if err := func() error {
+				s.Force.Reset()
+				if err := s.Force.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"force\"")
+			}
 		case "ids":
-			requiredBitSet[0] |= 1 << 0
+			requiredBitSet[0] |= 1 << 1
 			if err := func() error {
 				s.Ids = make([]uuid.UUID, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -2658,16 +2820,6 @@ func (s *BatchDeleteTasksReq) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"ids\"")
-			}
-		case "mode":
-			if err := func() error {
-				s.Mode.Reset()
-				if err := s.Mode.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"mode\"")
 			}
 		case "reason":
 			if err := func() error {
@@ -2689,7 +2841,7 @@ func (s *BatchDeleteTasksReq) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000001,
+		0b00000010,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -2731,46 +2883,6 @@ func (s *BatchDeleteTasksReq) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *BatchDeleteTasksReq) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes BatchDeleteTasksReqMode as json.
-func (s BatchDeleteTasksReqMode) Encode(e *jx.Encoder) {
-	e.Str(string(s))
-}
-
-// Decode decodes BatchDeleteTasksReqMode from json.
-func (s *BatchDeleteTasksReqMode) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode BatchDeleteTasksReqMode to nil")
-	}
-	v, err := d.StrBytes()
-	if err != nil {
-		return err
-	}
-	// Try to use constant string.
-	switch BatchDeleteTasksReqMode(v) {
-	case BatchDeleteTasksReqModeSafe:
-		*s = BatchDeleteTasksReqModeSafe
-	case BatchDeleteTasksReqModeAcceptRisk:
-		*s = BatchDeleteTasksReqModeAcceptRisk
-	default:
-		*s = BatchDeleteTasksReqMode(v)
-	}
-
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s BatchDeleteTasksReqMode) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *BatchDeleteTasksReqMode) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -58344,39 +58456,6 @@ func (s OptAddGroupMemberReqSubjectNs) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *OptAddGroupMemberReqSubjectNs) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes BatchDeleteTasksReqMode as json.
-func (o OptBatchDeleteTasksReqMode) Encode(e *jx.Encoder) {
-	if !o.Set {
-		return
-	}
-	e.Str(string(o.Value))
-}
-
-// Decode decodes BatchDeleteTasksReqMode from json.
-func (o *OptBatchDeleteTasksReqMode) Decode(d *jx.Decoder) error {
-	if o == nil {
-		return errors.New("invalid: unable to decode OptBatchDeleteTasksReqMode to nil")
-	}
-	o.Set = true
-	if err := o.Value.Decode(d); err != nil {
-		return err
-	}
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s OptBatchDeleteTasksReqMode) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *OptBatchDeleteTasksReqMode) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

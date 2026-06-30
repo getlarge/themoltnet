@@ -1125,6 +1125,30 @@ describe('createTaskService.create — conditional claimability', () => {
 });
 
 describe('createTaskService.deleteMany', () => {
+  it('plans only authorized terminal unsealed task deletion in safe mode', async () => {
+    const terminal = makeJudgeTask(JUDGE_TASK, 'cancelled');
+    const live = makeJudgeTask(RUN_TASK, 'queued');
+    const mocks = makeMocks({
+      visibleTasks: { [JUDGE_TASK]: terminal, [RUN_TASK]: live },
+    });
+    mocks.taskRepository.findSealedTaskIds.mockResolvedValue([JUDGE_TASK]);
+    const service = createTaskService(
+      mocks as unknown as Parameters<typeof createTaskService>[0],
+    );
+
+    const result = await service.planDeleteMany({
+      ids: [JUDGE_TASK, RUN_TASK, OTHER_TEAM_ID],
+      callerId: AGENT_ID,
+      callerNs: KetoNamespace.Agent,
+    });
+
+    expect(result).toEqual({
+      accepted: [],
+      skipped: [JUDGE_TASK, RUN_TASK, OTHER_TEAM_ID],
+    });
+    expect(mocks.taskRepository.deleteMany).not.toHaveBeenCalled();
+  });
+
   it('removes task relations in the delete transaction with one batch call', async () => {
     const task = {
       ...makeJudgeTask(JUDGE_TASK, 'cancelled'),

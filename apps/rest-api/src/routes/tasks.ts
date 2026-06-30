@@ -1,5 +1,8 @@
+import { createHash, randomUUID } from 'node:crypto';
+
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { KetoNamespace, requireAuth } from '@moltnet/auth';
+import { DBOSErrors } from '@moltnet/database';
 import {
   ConflictProblemDetailsSchema,
   ProblemDetailsSchema,
@@ -15,14 +18,14 @@ import {
   TaskMessage,
 } from '@moltnet/tasks';
 import type { FastifyInstance } from 'fastify';
-import { Type } from 'typebox';
+import { type Static, Type } from 'typebox';
 
 import { createProblem, createValidationProblem } from '../problems/index.js';
 import {
   AbortTaskBodySchema,
   AppendMessagesBodySchema,
   AppendMessagesResponseSchema,
-  BatchDeleteResponseSchema,
+  BatchDeleteTasksAcceptedResponseSchema,
   BatchDeleteTasksBodySchema,
   CancelTaskBodySchema,
   ClaimTaskBodySchema,
@@ -43,6 +46,15 @@ import {
 import { TaskServiceError } from '../services/task.service.js';
 import { authContextToCreator } from '../utils/auth-principal.js';
 import { requireCurrentTeamId } from '../utils/require-current-team-id.js';
+import { startTaskDeletionWorkflow } from '../workflows/index.js';
+
+type BatchDeleteTasksBody = Static<typeof BatchDeleteTasksBodySchema>;
+
+function taskDeletionDeduplicationId(ids: string[], force: boolean): string {
+  const payload = JSON.stringify({ force, ids: [...ids].sort() });
+  const digest = createHash('sha256').update(payload).digest('hex');
+  return `task-delete:${digest}`;
+}
 
 function toTaskProblem(error: TaskServiceError) {
   switch (error.code) {
@@ -262,18 +274,18 @@ export function taskRoutes(fastify: FastifyInstance) {
   );
 
   // DELETE /tasks
-  server.delete(
+  server.delete<{ Body: BatchDeleteTasksBody }>(
     '/tasks',
     {
       schema: {
         operationId: 'batchDeleteTasks',
         tags: ['tasks'],
         description:
-          'Delete terminal tasks in bulk. Safe mode skips live, unauthorized, missing, and protected tasks.',
+          'Queue asynchronous deletion of terminal tasks in bulk. By default, live, unauthorized, missing, and protected tasks are skipped. Set force: true with a reason to delete protected terminal tasks.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         body: BatchDeleteTasksBodySchema,
         response: {
-          200: Type.Ref(BatchDeleteResponseSchema.$id),
+          202: Type.Ref(BatchDeleteTasksAcceptedResponseSchema.$id),
           400: Type.Ref(ValidationProblemDetailsSchema.$id),
           401: Type.Ref(ProblemDetailsSchema.$id),
           403: Type.Ref(ProblemDetailsSchema.$id),
@@ -281,17 +293,57 @@ export function taskRoutes(fastify: FastifyInstance) {
         },
       },
     },
-    async (request) => {
+    async (request, reply) => {
       const { identityId, subjectType } = getAuthContext(request);
       const callerNs =
         subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
       try {
-        return await fastify.taskService.deleteMany({
+        const force = request.body.force ?? false;
+        const plan = await fastify.taskService.planDeleteMany({
           ids: request.body.ids,
           callerId: identityId,
           callerNs,
-          mode: request.body.mode,
+          force,
           reason: request.body.reason,
+        });
+        if (plan.accepted.length === 0) {
+          return await reply.status(202).send({
+            workflowId: null,
+            accepted: [],
+            skipped: plan.skipped,
+          });
+        }
+
+        let workflowId: string | null = null;
+        try {
+          const handle = await startTaskDeletionWorkflow(
+            {
+              ids: plan.accepted,
+              force,
+              reason: request.body.reason,
+              requestedBy: {
+                id: identityId,
+                ns: subjectType,
+              },
+            },
+            `task-delete:${randomUUID()}`,
+            taskDeletionDeduplicationId(plan.accepted, force),
+          );
+          workflowId = handle.workflowID;
+        } catch (error) {
+          if (!(error instanceof DBOSErrors.DBOSQueueDuplicatedError)) {
+            throw error;
+          }
+          request.log.debug(
+            { err: error, taskIds: plan.accepted, force },
+            'task.delete-many.already_queued',
+          );
+        }
+
+        return await reply.status(202).send({
+          workflowId,
+          accepted: plan.accepted,
+          skipped: plan.skipped,
         });
       } catch (error) {
         if (error instanceof TaskServiceError) throw toTaskProblem(error);

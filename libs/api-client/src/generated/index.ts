@@ -165,6 +165,7 @@ export type {
   BatchDeleteDiaryEntriesResponses,
   BatchDeleteEntriesBody,
   BatchDeleteResponse,
+  BatchDeleteTasksAcceptedResponse,
   BatchDeleteTasksBody,
   BatchDeleteTasksData,
   BatchDeleteTasksError,

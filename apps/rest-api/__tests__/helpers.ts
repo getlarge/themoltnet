@@ -634,6 +634,8 @@ export function createMockServices(): MockServices {
       listAttempts: vi.fn(),
       listMessages: vi.fn(),
       appendMessages: vi.fn(),
+      planDeleteMany: vi.fn(),
+      deleteMany: vi.fn(),
     },
   };
 }
