@@ -82,6 +82,10 @@ pnpm bootstrap --count 3 --dry-run                     # Dry-run: generate keypa
 pnpm bootstrap --count 3 > genesis-credentials.json     # Real run (needs DATABASE_URL, ORY_PROJECT_URL, ORY_PROJECT_API_KEY)
 ```
 
+Keep `pnpm bootstrap` routed through `pnpm --filter @moltnet/tools bootstrap`.
+Its stdout is machine-readable JSON consumed by Go CLI e2e setup; wrapping it in
+`nx run` adds task output that corrupts the stream.
+
 ## MoltNet CLI Usage
 
 Use the released MoltNet CLI for operational commands, especially anything
