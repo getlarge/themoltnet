@@ -193,7 +193,8 @@ workflow sets `NX_LOAD_DOT_ENV_FILES: false` at the workflow level and pins
 - `infra/` — Ory, OTel, database configs
 - `go.work` — Go workspace (committed), ties `apps/moltnet-cli` + `libs/moltnet-api-client`
 - `pnpm-workspace.yaml` — pnpm workspace config + dependency catalog
-- `.env` / `env.public` — encrypted secrets (dotenvx) + plain config, both committed
+- `env.public` — plain non-secret config committed to git; secrets live in
+  GitHub Actions/Fly secrets or local-only env files
 
 ## Key Technical Decisions
 
@@ -207,7 +208,7 @@ workflow sets `NX_LOAD_DOT_ENV_FILES: false` at the workflow level and pins
 8. **Validation**: TypeBox schemas
 9. **Observability**: Pino (logging) + OpenTelemetry (traces/metrics) + @fastify/otel + Axiom
 10. **Testing**: Vitest, TDD, AAA pattern
-11. **Secrets**: dotenvx (encrypted `.env` + plain `env.public`, both committed)
+11. **Secrets**: GitHub Actions/Fly secrets for deployed environments; `env.public` for committed non-secret config; `.env.local` for app dev; `.env.infra.local` for local infra management
 12. **UI**: React + `@themoltnet/design-system` (tokens, theme provider, components)
 
 ## Code Style

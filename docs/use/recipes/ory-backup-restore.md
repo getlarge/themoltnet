@@ -51,7 +51,7 @@ rollback mechanism.
 ```bash
 ORY_JWK_SET_IDS='hydra.jwt.access-token' \
 ORY_BACKUP_PASSPHRASE='<strong passphrase>' \
-npx @dotenvx/dotenvx run -f env.public -f .env -- \
+npx @dotenvx/dotenvx run -f env.public -f .env.infra.local -- \
   node infra/ory/backup.mjs \
   --output-dir .ory-backups/manual
 ```
@@ -75,7 +75,6 @@ Required GitHub Actions secrets:
 - `ORY_PROJECT_API_KEY`
 - `ORY_BACKUP_PASSPHRASE`
 - `ORY_JWK_SET_IDS`
-- `DOTENV_PRIVATE_KEY`
 
 The workflow uploads only the encrypted artifact. It is still the operator's
 job to copy that artifact into durable encrypted storage with retention outside

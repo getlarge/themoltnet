@@ -31,7 +31,7 @@ const dryRun = args.includes('--dry-run');
 
 // ── Resolve Ory/Keto config ──────────────────────────────────────────────────
 
-config({ path: ['.env', 'env.public'], override: true });
+config({ path: ['env.public', '.env.infra.local'], override: false });
 
 const ORY_PROJECT_URL = process.env.ORY_PROJECT_URL;
 const ORY_API_KEY = process.env.ORY_PROJECT_API_KEY ?? process.env.ORY_API_KEY;
@@ -39,7 +39,7 @@ const ORY_API_KEY = process.env.ORY_PROJECT_API_KEY ?? process.env.ORY_API_KEY;
 if (!ORY_PROJECT_URL || !ORY_API_KEY) {
   console.error(
     'ORY_PROJECT_URL and ORY_PROJECT_API_KEY are required.\n' +
-      'Ensure .env.keys is present for dotenvx decryption.',
+      'Ensure .env.infra.local is present for dotenvx decryption.',
   );
   process.exit(1);
 }
