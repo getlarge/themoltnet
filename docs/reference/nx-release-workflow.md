@@ -75,23 +75,33 @@ was atomic.
 
 ## Local Registry Rehearsal
 
-Start local registries:
+Start the local release rehearsal services:
 
 ```bash
-docker run --rm --name nx-release-verdaccio -p 4873:4873 verdaccio/verdaccio
-docker run --rm --name nx-release-registry -p 5001:5000 registry:2
+COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.release-local.yaml up -d
 ```
 
+This starts:
+
+- Verdaccio at `http://localhost:4873` for npm publishes.
+- A local Docker registry at `localhost:5001` for Docker image pushes.
+- Athens at `http://localhost:3000` for GOPROXY-compatible Go module lookups.
+
+Go modules are not uploaded to Athens like npm packages are uploaded to
+Verdaccio. The release surface is still the git tag; the proxy is primed and
+verified by resolving the tagged module through `GOPROXY`.
+
 Use a disposable worktree and patch only that worktree so Docker release refs
-point to the local registry:
+point to the local registry and Go validation resolves through the local proxy:
 
 ```bash
 git worktree add --detach .worktrees/nx-release-local-registry origin/main
 cd .worktrees/nx-release-local-registry
 pnpm install --frozen-lockfile
-node -e "const fs=require('node:fs'); const nx=JSON.parse(fs.readFileSync('nx.json','utf8')); nx.release.docker.registryUrl='localhost:5001'; fs.writeFileSync('nx.json', JSON.stringify(nx, null, 2) + '\n')"
+node -e "const fs=require('node:fs'); const nx=JSON.parse(fs.readFileSync('nx.json','utf8')); nx.release.docker.registryUrl='localhost:5001'; nx.release.version.versionActionsOptions.goReleaseGoproxy='http://localhost:3000,direct'; fs.writeFileSync('nx.json', JSON.stringify(nx, null, 2) + '\n')"
 mkdir -p tmp/npm-cache
 export NPM_CONFIG_CACHE="$PWD/tmp/npm-cache"
+export GOPROXY="http://localhost:3000,direct"
 ```
 
 Run the Nx phases explicitly. Top-level `nx release patch` does not expose the
@@ -127,10 +137,17 @@ curl http://localhost:5001/v2/_catalog
 curl http://localhost:5001/v2/getlarge/themoltnet/rest-api/tags/list
 ```
 
-Cleanup local registries:
+Prime or inspect local Go proxy resolution after release tags exist:
 
 ```bash
-docker rm -f nx-release-verdaccio nx-release-registry
+GOPROXY=http://localhost:3000,direct GONOSUMDB=github.com/getlarge/themoltnet go list -m github.com/getlarge/themoltnet/libs/moltnet-api-client@vX.Y.Z
+GOPROXY=http://localhost:3000,direct GONOSUMDB=github.com/getlarge/themoltnet go list -m github.com/getlarge/themoltnet/libs/dspy-adapters@vX.Y.Z
+```
+
+Cleanup local release services:
+
+```bash
+COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.release-local.yaml down -v
 git worktree remove --force .worktrees/nx-release-local-registry
 ```
 
