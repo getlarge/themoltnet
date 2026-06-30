@@ -224,6 +224,44 @@ go 1.25
     ]);
   });
 
+  it('does not create validation replaces for modules already replaced in a block', () => {
+    const cwd = mkdtempSync(join(tmpdir(), 'go-release-validation-'));
+    mkdirSync(join(cwd, 'apps/cli'), { recursive: true });
+    mkdirSync(join(cwd, 'libs/api'), { recursive: true });
+    writeFileSync(
+      join(cwd, 'go.work'),
+      `go 1.25.0
+
+use (
+\t./apps/cli
+\t./libs/api
+)
+`,
+    );
+    writeFileSync(
+      join(cwd, 'apps/cli/go.mod'),
+      `module example.com/repo/apps/cli
+
+go 1.25
+
+require example.com/repo/libs/api v1.2.3
+
+replace (
+\texample.com/repo/libs/api v1.2.3 => ../../libs/api
+)
+`,
+    );
+    writeFileSync(
+      join(cwd, 'libs/api/go.mod'),
+      `module example.com/repo/libs/api
+
+go 1.25
+`,
+    );
+
+    expect(createGoReleaseValidationLocalReplaces(cwd, 'apps/cli')).toEqual([]);
+  });
+
   it('does not infer repository-specific validation roots by default', () => {
     expect(
       shouldRunGoReleaseValidation({}, [

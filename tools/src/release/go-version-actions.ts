@@ -288,9 +288,39 @@ export function discoverGoWorkspaceModules(cwd: string): GoWorkspaceModule[] {
 }
 
 function hasReplaceDirective(goMod: string, modulePath: string) {
-  return goMod
-    .split('\n')
-    .some((line) => line.trim().startsWith(`replace ${modulePath} =>`));
+  let inReplaceBlock = false;
+  const replacePattern = new RegExp(
+    `^${modulePath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:\\s+v\\S+)?\\s+=>`,
+  );
+
+  for (const line of goMod.split('\n')) {
+    const trimmed = line.trim();
+
+    if (/^replace\s*\(\s*$/.test(trimmed)) {
+      inReplaceBlock = true;
+      continue;
+    }
+    if (inReplaceBlock && trimmed === ')') {
+      inReplaceBlock = false;
+      continue;
+    }
+
+    if (inReplaceBlock) {
+      if (replacePattern.test(trimmed)) {
+        return true;
+      }
+      continue;
+    }
+
+    if (
+      trimmed.startsWith('replace ') &&
+      replacePattern.test(trimmed.slice(8))
+    ) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 export function createGoReleaseValidationLocalReplaces(
