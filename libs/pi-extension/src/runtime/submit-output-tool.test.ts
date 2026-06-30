@@ -70,6 +70,22 @@ const verification = {
   passed: true,
 };
 
+const submitOutputOnlyFreeformInput = {
+  brief: 'do the thing',
+  successCriteria: {
+    version: 1 as const,
+    gates: [
+      {
+        id: 'submit-output',
+        kind: 'submit-tool-call' as const,
+        description:
+          'Call `submit_freeform_output` exactly once with valid structured output.',
+        required: true,
+      },
+    ],
+  },
+};
+
 describe('createSubmitOutputTool', () => {
   it('throws UnknownTaskTypeForSubmitToolError on unknown task types', () => {
     expect(() => createSubmitOutputTool('not_a_real_type')).toThrow(
@@ -160,6 +176,92 @@ describe('createSubmitOutputTool', () => {
     expect(good.terminate).not.toBe(true);
     expect(handle.getCaptured()).toEqual(validFulfillBriefOutput);
     expect(handle.getCallCount()).toBe(1);
+  });
+
+  it('adds repair guidance for invalid freeform artifacts and verification', async () => {
+    const handle = createSubmitOutputTool('freeform');
+    const result = await callExecute(handle)({
+      summary: 'done',
+      artifacts: { kind: 'note', title: 'Result' },
+      verification: 'submit-output passed',
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.terminate).not.toBe(true);
+    expect(result.content[0].text).toContain(
+      'Tool args must be the output object directly',
+    );
+    expect(result.content[0].text).toContain('`artifacts` must be an array');
+    expect(result.content[0].text).toContain(
+      '`verification` must be an object',
+    );
+    expect(result.content[0].text).toContain('Minimal valid freeform retry');
+    expect(handle.getCaptured()).toBeNull();
+  });
+
+  it('repairs freeform submit-output-only verification and optional field shapes', async () => {
+    const handle = createSubmitOutputTool('freeform', {
+      input: submitOutputOnlyFreeformInput,
+      inputCid: 'bafy-input',
+    });
+    const result = await callExecute(handle)({
+      summary: 'done',
+      artifacts: { kind: 'note', title: 'Result', body: 'done' },
+      proposedTaskType: 'freeform_followup',
+      verification: 'submit-output passed',
+    });
+
+    expect(result.isError).toBeFalsy();
+    expect(result.terminate).not.toBe(true);
+    expect(handle.getCaptured()).toEqual({
+      summary: 'done',
+      artifacts: [{ kind: 'note', title: 'Result', body: 'done' }],
+      proposedTaskType: {
+        name: 'freeform_followup',
+        rationale: 'Suggested by the model during freeform execution.',
+      },
+      verification: {
+        inputCid: 'bafy-input',
+        results: [
+          {
+            id: 'submit-output',
+            kind: 'gate',
+            status: 'pass',
+            detail: 'submit_freeform_output accepted valid args',
+          },
+        ],
+        passed: true,
+      },
+    });
+  });
+
+  it('does not synthesize freeform verification when non-submit criteria exist', async () => {
+    const handle = createSubmitOutputTool('freeform', {
+      input: {
+        ...submitOutputOnlyFreeformInput,
+        successCriteria: {
+          ...submitOutputOnlyFreeformInput.successCriteria,
+          assertions: [
+            {
+              id: 'has-summary',
+              path: 'summary',
+              op: 'exists' as const,
+            },
+          ],
+        },
+      },
+      inputCid: 'bafy-input',
+    });
+    const result = await callExecute(handle)({
+      summary: 'done',
+      verification: 'submit-output passed',
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain(
+      '`verification` must be an object',
+    );
+    expect(handle.getCaptured()).toBeNull();
   });
 
   it('reports all issue-style validation errors when retry budget is exhausted', async () => {

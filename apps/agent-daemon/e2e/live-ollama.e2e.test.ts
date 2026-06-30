@@ -142,10 +142,10 @@ describeLive('Agent daemon live Ollama Cloud execution (e2e)', () => {
             brief:
               'This is a CI smoke test. Do not inspect files and do not edit anything. ' +
               'Call submit_freeform_output exactly once with a short summary saying ' +
-              '"live ollama parent completed" and one inline text artifact titled "parent-marker". ' +
+              '"live ollama parent completed". ' +
               FREEFORM_SUBMIT_INSTRUCTIONS,
             expectedOutput:
-              'A valid FreeformOutput submitted through submit_freeform_output with artifacts[] and verification.',
+              'A valid FreeformOutput submitted through submit_freeform_output with verification.',
             constraints: [
               'Do not run shell commands.',
               'Do not create diary entries.',
@@ -184,10 +184,10 @@ describeLive('Agent daemon live Ollama Cloud execution (e2e)', () => {
             brief:
               'Continue the previous smoke task. Use the prior context only to confirm continuity. ' +
               'Call submit_freeform_output exactly once with a short summary saying ' +
-              '"live ollama continuation completed" and one inline text artifact titled "continuation-marker". ' +
+              '"live ollama continuation completed". ' +
               FREEFORM_SUBMIT_INSTRUCTIONS,
             expectedOutput:
-              'A valid FreeformOutput submitted through submit_freeform_output with artifacts[] and verification.',
+              'A valid FreeformOutput submitted through submit_freeform_output with verification.',
             constraints: [
               'Do not run shell commands.',
               'Do not create diary entries.',

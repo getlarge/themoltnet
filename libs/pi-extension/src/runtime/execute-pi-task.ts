@@ -758,6 +758,7 @@ export async function executePiTask(
       resolveSubmitTools(task.taskType, {
         model: opts.model,
         input: task.input,
+        inputCid: task.inputCid,
         maxSubmitValidationRetries: opts.maxSubmitValidationRetries,
       });
     const submitTools: ToolDefinition[] =

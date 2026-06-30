@@ -29,6 +29,7 @@ import type { ToolDefinition } from '@earendil-works/pi-coding-agent';
 import { defineTool } from '@earendil-works/pi-coding-agent';
 import {
   getSubmitOutputContract,
+  SUBMIT_OUTPUT_GATE_ID,
   validateTaskOutput,
 } from '@themoltnet/agent-runtime';
 import { Type } from 'typebox';
@@ -59,6 +60,12 @@ export interface CreateSubmitOutputToolOptions {
    * captured.
    */
   input?: unknown;
+  /**
+   * CID for `input`, used only for runtime-owned verification facts. In
+   * particular, the submit-output tool can prove the built-in
+   * submit-output gate once it accepts valid args.
+   */
+  inputCid?: string;
   /**
    * Number of correction turns allowed after the first invalid submit call.
    * A value of 2 permits three invalid submissions total, then records an
@@ -119,6 +126,129 @@ function formatValidationErrors(
   errors: ReturnType<typeof validateTaskOutput>,
 ): string {
   return errors.map((err) => `${err.field}: ${err.message}`).join('; ');
+}
+
+function submitOutputRepairHint(
+  taskType: string,
+  errors: ReturnType<typeof validateTaskOutput>,
+): string {
+  const fields = new Set(errors.map((err) => err.field));
+  const hints: string[] = [
+    'Tool args must be the output object directly, not wrapped in { output: ... }.',
+  ];
+
+  if (fields.has('output/artifacts')) {
+    hints.push(
+      '`artifacts` must be an array; omit it when there are no artifacts, use [], or use objects like { "kind": "note", "title": "Result", "body": "..." }.',
+    );
+  }
+
+  if (fields.has('output/verification')) {
+    hints.push(
+      '`verification` must be an object with inputCid, results[], and passed; do not send it as text or an array.',
+    );
+  }
+
+  if (
+    taskType === 'freeform' &&
+    (fields.has('output/artifacts') || fields.has('output/verification'))
+  ) {
+    hints.push(
+      'Minimal valid freeform retry: { "summary": "completed", "artifacts": [], "verification": { "inputCid": "<task inputCid>", "results": [{ "id": "submit-output", "kind": "gate", "status": "pass", "detail": "submit_freeform_output accepted valid args" }], "passed": true } }.',
+    );
+  }
+
+  if (hints.length === 1) {
+    hints.push('Fix every listed field before re-calling this same tool.');
+  }
+
+  return hints.join(' ');
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function onlySubmitOutputGate(input: unknown): boolean {
+  if (!isRecord(input) || !isRecord(input.successCriteria)) return false;
+  const criteria = input.successCriteria;
+  const gates = criteria.gates;
+  if (!Array.isArray(gates) || gates.length !== 1) return false;
+  const [gate] = gates;
+  if (!isRecord(gate) || gate.id !== SUBMIT_OUTPUT_GATE_ID) return false;
+
+  const assertions = criteria.assertions;
+  if (Array.isArray(assertions) && assertions.length > 0) return false;
+  return (
+    criteria.rubric === undefined &&
+    criteria.sideEffects === undefined &&
+    criteria.minComposite === undefined
+  );
+}
+
+function repairFreeformSubmitOutput(
+  params: unknown,
+  opts: CreateSubmitOutputToolOptions,
+): Record<string, unknown> | null {
+  if (
+    !isRecord(params) ||
+    !opts.inputCid ||
+    !onlySubmitOutputGate(opts.input)
+  ) {
+    return null;
+  }
+
+  const repaired: Record<string, unknown> = { ...params };
+
+  if ('artifacts' in repaired && !Array.isArray(repaired.artifacts)) {
+    if (isRecord(repaired.artifacts)) {
+      repaired.artifacts = [repaired.artifacts];
+    } else {
+      delete repaired.artifacts;
+    }
+  }
+
+  if ('proposedTaskType' in repaired && !isRecord(repaired.proposedTaskType)) {
+    if (
+      typeof repaired.proposedTaskType === 'string' &&
+      repaired.proposedTaskType.length > 0
+    ) {
+      repaired.proposedTaskType = {
+        name: repaired.proposedTaskType,
+        rationale: 'Suggested by the model during freeform execution.',
+      };
+    } else {
+      delete repaired.proposedTaskType;
+    }
+  }
+
+  repaired.verification = {
+    inputCid: opts.inputCid,
+    results: [
+      {
+        id: SUBMIT_OUTPUT_GATE_ID,
+        kind: 'gate',
+        status: 'pass',
+        detail: 'submit_freeform_output accepted valid args',
+      },
+    ],
+    passed: true,
+  };
+
+  return repaired;
+}
+
+function maybeRepairSubmitOutput(
+  taskType: string,
+  params: unknown,
+  opts: CreateSubmitOutputToolOptions,
+): Record<string, unknown> | null {
+  if (taskType !== 'freeform') return null;
+  const repaired = repairFreeformSubmitOutput(params, opts);
+  if (!repaired) return null;
+  return validateTaskOutput(taskType, repaired, opts.input).length === 0
+    ? repaired
+    : null;
 }
 
 export function createSubmitOutputTool(
@@ -186,7 +316,9 @@ export function createSubmitOutputTool(
       // pollutes attestations. Returning isError:true lets the agent
       // re-call with a corrected payload mid-session — same recovery
       // affordance as a plain schema miss.
-      const errors = validateTaskOutput(taskType, params, opts.input);
+      const repairedParams = maybeRepairSubmitOutput(taskType, params, opts);
+      const candidateParams = repairedParams ?? params;
+      const errors = validateTaskOutput(taskType, candidateParams, opts.input);
       if (errors.length > 0) {
         invalidCallCount += 1;
         const detailMsg = formatValidationErrors(errors);
@@ -195,6 +327,7 @@ export function createSubmitOutputTool(
         const message =
           `Output failed validation (${invalidCallCount}/${maxInvalidCalls}): ` +
           `${detailMsg}. ` +
+          `${submitOutputRepairHint(taskType, errors)} ` +
           (exhausted
             ? 'Submit-output validation retry budget exhausted; the attempt will fail.'
             : 'Re-call this tool with a corrected output.');
@@ -229,7 +362,7 @@ export function createSubmitOutputTool(
         };
       }
 
-      captured = params as Record<string, unknown>;
+      captured = candidateParams as Record<string, unknown>;
       callCount += 1;
       const details: SubmitOutputDetails = {
         captured: true,
