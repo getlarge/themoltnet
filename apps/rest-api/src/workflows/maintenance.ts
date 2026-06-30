@@ -906,11 +906,13 @@ export function initMaintenanceWorkflows(
       logger.info(
         {
           requested: input.ids.length,
+          deletedTaskIds: deletedManifest.tasks.map((task) => task.id),
           deletedTaskCount: deletedManifest.tasks.length,
           deletedObjectCount,
           skipped: manifest.skipped.length,
           skippedProtected: manifest.skippedProtected,
           force: input.force,
+          reason: input.force ? input.reason?.trim() : undefined,
           requestedBy: input.requestedBy,
         },
         'maintenance: task deletion complete',

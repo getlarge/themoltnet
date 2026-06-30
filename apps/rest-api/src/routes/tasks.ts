@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { KetoNamespace, requireAuth } from '@moltnet/auth';
+import { DBOSErrors } from '@moltnet/database';
 import {
   ConflictProblemDetailsSchema,
   ProblemDetailsSchema,
@@ -313,22 +314,34 @@ export function taskRoutes(fastify: FastifyInstance) {
           });
         }
 
-        const handle = await startTaskDeletionWorkflow(
-          {
-            ids: plan.accepted,
-            force,
-            reason: request.body.reason,
-            requestedBy: {
-              id: identityId,
-              ns: subjectType,
+        let workflowId: string | null = null;
+        try {
+          const handle = await startTaskDeletionWorkflow(
+            {
+              ids: plan.accepted,
+              force,
+              reason: request.body.reason,
+              requestedBy: {
+                id: identityId,
+                ns: subjectType,
+              },
             },
-          },
-          `task-delete:${randomUUID()}`,
-          taskDeletionDeduplicationId(plan.accepted, force),
-        );
+            `task-delete:${randomUUID()}`,
+            taskDeletionDeduplicationId(plan.accepted, force),
+          );
+          workflowId = handle.workflowID;
+        } catch (error) {
+          if (!(error instanceof DBOSErrors.DBOSQueueDuplicatedError)) {
+            throw error;
+          }
+          request.log.debug(
+            { err: error, taskIds: plan.accepted, force },
+            'task.delete-many.already_queued',
+          );
+        }
 
         return await reply.status(202).send({
-          workflowId: handle.workflowID,
+          workflowId,
           accepted: plan.accepted,
           skipped: plan.skipped,
         });
