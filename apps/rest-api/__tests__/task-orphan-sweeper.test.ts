@@ -101,6 +101,9 @@ function makeDeps(orphans: Array<{ task: Task; attempt: TaskAttempt }>): {
     listOrphanedTasks: vi.fn().mockResolvedValue(orphans),
     listExpiredNonTerminalTasks: vi.fn().mockResolvedValue([]),
     expireIfStillNonTerminal: vi.fn().mockResolvedValue(null),
+    listTerminalTasksPastRetention: vi.fn().mockResolvedValue([]),
+    findSealedTaskIds: vi.fn().mockResolvedValue([]),
+    deleteMany: vi.fn().mockResolvedValue([]),
     countAttempts: vi.fn().mockResolvedValue(1),
     getMaxAttempts: vi.fn().mockResolvedValue(1),
     findById: vi
@@ -119,6 +122,7 @@ function makeDeps(orphans: Array<{ task: Task; attempt: TaskAttempt }>): {
   };
   const relationshipWriter = {
     removeTaskClaimant: vi.fn().mockResolvedValue(undefined),
+    removeTaskRelationsBatch: vi.fn().mockResolvedValue(undefined),
   };
   const deps = {
     nonceRepository: {} as unknown,
@@ -165,6 +169,28 @@ async function runExpirySweep(): Promise<{
   };
 }
 
+async function runRetentionSweep(): Promise<{
+  examined: number;
+  deleted: number;
+  skippedProtected: number;
+}> {
+  const sweeper = registeredWorkflows['maintenance.taskRetentionSweeper'];
+  if (!sweeper) throw new Error('retention sweeper workflow not registered');
+  return (await sweeper({
+    batchSize: BATCH_SIZE,
+    policyDays: {
+      completed: 180,
+      failed: 90,
+      cancelled: 90,
+      expired: 90,
+    },
+  })) as {
+    examined: number;
+    deleted: number;
+    skippedProtected: number;
+  };
+}
+
 describe('taskOrphanSweeperWorkflow — backstop (#1077)', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -192,6 +218,12 @@ describe('taskOrphanSweeperWorkflow — backstop (#1077)', () => {
         TASK_ORPHAN_SWEEPER_BATCH_SIZE: BATCH_SIZE,
         TASK_DEFAULT_EXPIRES_IN_SEC: 90 * 24 * 60 * 60,
         TASK_MAX_EXPIRES_IN_SEC: 90 * 24 * 60 * 60,
+        TASK_RETENTION_SWEEPER_CRON: '0 * * * *',
+        TASK_RETENTION_SWEEPER_BATCH_SIZE: BATCH_SIZE,
+        TASK_COMPLETED_RETENTION_DAYS: 180,
+        TASK_FAILED_RETENTION_DAYS: 90,
+        TASK_CANCELLED_RETENTION_DAYS: 90,
+        TASK_EXPIRED_RETENTION_DAYS: 90,
       },
     );
     return DBOS;
@@ -337,6 +369,68 @@ describe('taskOrphanSweeperWorkflow — backstop (#1077)', () => {
     );
     expect(deps.notifyTaskStatusChanged).toHaveBeenCalledWith(EXPIRED_TASK_ID);
     expect(result).toEqual({ examined: 1, expired: 1 });
+  });
+
+  it('task retention sweeper deletes old terminal tasks and skips sealed tasks', async () => {
+    await init();
+    const { deps } = makeDeps([]);
+    const retained = [
+      {
+        id: 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1',
+        status: 'completed',
+        diaryId: 'ffffffff-ffff-ffff-ffff-fffffffffff1',
+        claimAgentId: null,
+      },
+      {
+        id: 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee2',
+        status: 'failed',
+        diaryId: null,
+        claimAgentId: AGENT_ID,
+      },
+    ] as unknown as Task[];
+    vi.mocked(
+      deps.taskRepository.listTerminalTasksPastRetention,
+    ).mockResolvedValue(retained);
+    vi.mocked(deps.taskRepository.findSealedTaskIds).mockResolvedValue([
+      retained[1].id,
+    ]);
+    vi.mocked(deps.taskRepository.deleteMany).mockResolvedValue([
+      retained[0].id,
+    ]);
+    const { setMaintenanceDeps: setDeps } =
+      await import('../src/workflows/maintenance.js');
+    setDeps(deps);
+
+    const result = await runRetentionSweep();
+
+    expect(
+      deps.taskRepository.listTerminalTasksPastRetention,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        completedBefore: expect.any(Date),
+        failedBefore: expect.any(Date),
+        cancelledBefore: expect.any(Date),
+        expiredBefore: expect.any(Date),
+      }),
+      BATCH_SIZE,
+    );
+    expect(deps.taskRepository.deleteMany).toHaveBeenCalledWith([
+      retained[0].id,
+    ]);
+    expect(
+      deps.relationshipWriter.removeTaskRelationsBatch,
+    ).toHaveBeenCalledWith([
+      {
+        id: retained[0].id,
+        diaryId: retained[0].diaryId,
+        claimAgentId: retained[0].claimAgentId,
+      },
+    ]);
+    expect(result).toEqual({
+      examined: 2,
+      deleted: 1,
+      skippedProtected: 1,
+    });
   });
 
   // Suppress unused-variable warning on imports we use only via dynamic re-import.

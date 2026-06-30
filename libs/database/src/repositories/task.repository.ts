@@ -65,6 +65,13 @@ export interface TaskListFilterOpts {
   completedBefore?: Date;
 }
 
+export interface TaskRetentionCutoffs {
+  completedBefore: Date;
+  failedBefore: Date;
+  cancelledBefore: Date;
+  expiredBefore: Date;
+}
+
 export function createTaskRepository(db: Database) {
   const claimedManifest = alias(executorManifests, 'claimed_executor_manifest');
   const completedManifest = alias(
@@ -256,6 +263,37 @@ export function createTaskRepository(db: Database) {
         )
         .returning();
       return row ?? null;
+    },
+
+    async listTerminalTasksPastRetention(
+      cutoffs: TaskRetentionCutoffs,
+      limit: number,
+    ): Promise<Task[]> {
+      return getExecutor(db)
+        .select()
+        .from(tasks)
+        .where(
+          or(
+            and(
+              eq(tasks.status, 'completed'),
+              lt(tasks.completedAt, cutoffs.completedBefore),
+            ),
+            and(
+              eq(tasks.status, 'failed'),
+              lt(tasks.completedAt, cutoffs.failedBefore),
+            ),
+            and(
+              eq(tasks.status, 'cancelled'),
+              lt(tasks.completedAt, cutoffs.cancelledBefore),
+            ),
+            and(
+              eq(tasks.status, 'expired'),
+              lt(tasks.completedAt, cutoffs.expiredBefore),
+            ),
+          ),
+        )
+        .orderBy(asc(tasks.completedAt))
+        .limit(limit);
     },
 
     async updateMetadata(

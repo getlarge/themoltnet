@@ -110,6 +110,18 @@ export const TaskOrphanSweeperConfigSchema = Type.Object({
   TASK_MAX_EXPIRES_IN_SEC: Type.Number({
     default: 90 * 24 * 60 * 60,
   }),
+  /** How often terminal task retention is applied. */
+  TASK_RETENTION_SWEEPER_CRON: Type.String({ default: '0 * * * *' }),
+  /** Max terminal tasks deleted per retention sweep run. */
+  TASK_RETENTION_SWEEPER_BATCH_SIZE: Type.Number({ default: 50 }),
+  /** Retention window for completed terminal tasks. */
+  TASK_COMPLETED_RETENTION_DAYS: Type.Number({ default: 180 }),
+  /** Retention window for failed terminal tasks. */
+  TASK_FAILED_RETENTION_DAYS: Type.Number({ default: 90 }),
+  /** Retention window for cancelled terminal tasks. */
+  TASK_CANCELLED_RETENTION_DAYS: Type.Number({ default: 90 }),
+  /** Retention window for expired terminal tasks. */
+  TASK_EXPIRED_RETENTION_DAYS: Type.Number({ default: 90 }),
 });
 
 export const RuntimeSessionStorageConfigSchema = Type.Object({

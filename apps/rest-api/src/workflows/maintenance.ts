@@ -225,6 +225,15 @@ export function initMaintenanceWorkflows(
   const expiredTaskBatchSize =
     orphanSweeperConfig.TASK_ORPHAN_SWEEPER_BATCH_SIZE;
   const expiredTaskCron = orphanSweeperConfig.TASK_ORPHAN_SWEEPER_CRON;
+  const retentionBatchSize =
+    orphanSweeperConfig.TASK_RETENTION_SWEEPER_BATCH_SIZE;
+  const retentionCron = orphanSweeperConfig.TASK_RETENTION_SWEEPER_CRON;
+  const retentionDays = {
+    completed: orphanSweeperConfig.TASK_COMPLETED_RETENTION_DAYS,
+    failed: orphanSweeperConfig.TASK_FAILED_RETENTION_DAYS,
+    cancelled: orphanSweeperConfig.TASK_CANCELLED_RETENTION_DAYS,
+    expired: orphanSweeperConfig.TASK_EXPIRED_RETENTION_DAYS,
+  };
 
   const listOrphansStep = DBOS.registerStep(
     async (now: Date, gracePeriodSec: number, batchSize: number) => {
@@ -543,5 +552,137 @@ export function initMaintenanceWorkflows(
   DBOS.registerScheduled(taskExpirySweeperSchedulerWorkflow, {
     name: 'maintenance.taskExpirySweeperScheduler',
     crontab: expiredTaskCron,
+  });
+
+  // ── Task Retention Sweeper ───────────────────────────────────
+  // Applies operator-owned retention policy to terminal task rows.
+  // This is deliberately separate from the non-terminal expiry sweeper:
+  // expiry terminalizes idle work, retention deletes old terminal rows.
+  const listRetainedTasksStep = DBOS.registerStep(
+    async (now: Date, policyDays: typeof retentionDays, batchSize: number) => {
+      const { taskRepository } = getDeps();
+      const cutoff = (days: number) =>
+        new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+      return taskRepository.listTerminalTasksPastRetention(
+        {
+          completedBefore: cutoff(policyDays.completed),
+          failedBefore: cutoff(policyDays.failed),
+          cancelledBefore: cutoff(policyDays.cancelled),
+          expiredBefore: cutoff(policyDays.expired),
+        },
+        batchSize,
+      );
+    },
+    { name: 'maintenance.taskRetentionSweeper.listRetained' },
+  );
+
+  const deleteRetainedTasksStep = DBOS.registerStep(
+    async (
+      retainedTasks: Array<{
+        id: string;
+        diaryId: string | null;
+        claimAgentId: string | null;
+      }>,
+    ): Promise<{ deleted: number; skippedProtected: number }> => {
+      const { taskRepository, relationshipWriter, transactionRunner, logger } =
+        getDeps();
+      const ids = retainedTasks.map((task) => task.id);
+      const sealedIds = new Set(await taskRepository.findSealedTaskIds(ids));
+      const deletableTasks = retainedTasks.filter(
+        (task) => !sealedIds.has(task.id),
+      );
+      if (deletableTasks.length === 0) {
+        return { deleted: 0, skippedProtected: sealedIds.size };
+      }
+
+      const deletedIds = await transactionRunner.runInTransaction(
+        async () => {
+          const deletedTaskIds = await taskRepository.deleteMany(
+            deletableTasks.map((task) => task.id),
+          );
+          const deletedSet = new Set(deletedTaskIds);
+          const deletedRows = deletableTasks.filter((task) =>
+            deletedSet.has(task.id),
+          );
+          try {
+            await relationshipWriter.removeTaskRelationsBatch(
+              deletedRows.map((task) => ({
+                id: task.id,
+                diaryId: task.diaryId,
+                claimAgentId: task.claimAgentId,
+              })),
+            );
+          } catch (err) {
+            logger.error(
+              { err, taskIds: deletedTaskIds },
+              'maintenance: task retention — Keto cleanup failed',
+            );
+            throw err;
+          }
+          return deletedTaskIds;
+        },
+        { name: 'maintenance.taskRetentionSweeper.delete' },
+      );
+
+      return {
+        deleted: deletedIds.length,
+        skippedProtected: sealedIds.size,
+      };
+    },
+    {
+      name: 'maintenance.taskRetentionSweeper.deleteRetained',
+      retriesAllowed: true,
+      maxAttempts: 3,
+      intervalSeconds: 2,
+      backoffRate: 2,
+    },
+  );
+
+  const taskRetentionSweeperWorkflow = DBOS.registerWorkflow(
+    async (input: {
+      batchSize: number;
+      policyDays: typeof retentionDays;
+    }): Promise<{
+      examined: number;
+      deleted: number;
+      skippedProtected: number;
+    }> => {
+      const { logger } = getDeps();
+      const retainedTasks = await listRetainedTasksStep(
+        new Date(),
+        input.policyDays,
+        input.batchSize,
+      );
+      if (retainedTasks.length === 0) {
+        return { examined: 0, deleted: 0, skippedProtected: 0 };
+      }
+
+      const result = await deleteRetainedTasksStep(retainedTasks);
+      logger.info(
+        {
+          examined: retainedTasks.length,
+          deleted: result.deleted,
+          skippedProtected: result.skippedProtected,
+        },
+        'maintenance: task retention complete',
+      );
+      return { examined: retainedTasks.length, ...result };
+    },
+    { name: 'maintenance.taskRetentionSweeper' },
+  );
+
+  const taskRetentionSweeperSchedulerWorkflow = DBOS.registerWorkflow(
+    async (_scheduledTime: Date, _actualTime: Date): Promise<void> => {
+      await DBOS.startWorkflow(taskRetentionSweeperWorkflow)({
+        batchSize: retentionBatchSize,
+        policyDays: retentionDays,
+      });
+    },
+    { name: 'maintenance.taskRetentionSweeperScheduler' },
+  );
+
+  DBOS.registerScheduled(taskRetentionSweeperSchedulerWorkflow, {
+    name: 'maintenance.taskRetentionSweeperScheduler',
+    crontab: retentionCron,
   });
 }

@@ -92,9 +92,11 @@ describe('TaskRepository maintenance sweeper queries (integration)', () => {
       | 'running'
       | 'completed'
       | 'failed'
+      | 'cancelled'
       | 'expired';
     claimExpiresAt: Date | null;
     expiresAt?: Date | null;
+    completedAt?: Date | null;
     createAttempt?: boolean;
     attemptStatus?: 'claimed' | 'running' | 'timed_out' | 'completed';
   }): Promise<void> {
@@ -115,6 +117,10 @@ describe('TaskRepository maintenance sweeper queries (integration)', () => {
           : null,
       claimExpiresAt: opts.claimExpiresAt,
       expiresAt: opts.expiresAt ?? null,
+      completedAt: opts.completedAt ?? null,
+      cancelledByAgentId: opts.status === 'cancelled' ? AGENT_ID : null,
+      cancelReason:
+        opts.status === 'cancelled' ? 'retention integration fixture' : null,
       maxAttempts: 1,
     });
     if (opts.createAttempt) {
@@ -365,6 +371,84 @@ describe('TaskRepository maintenance sweeper queries (integration)', () => {
 
     const expired = await repo.findById(EXPIRED_QUEUED);
     expect(expired?.status).toBe('queued');
+
+    await db.delete(taskAttempts);
+    await db.delete(tasks);
+  });
+
+  it('lists terminal tasks whose status-specific retention window elapsed', async () => {
+    const NOW = new Date('2026-04-26T10:00:00Z');
+    const OLD_COMPLETED = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb01';
+    const FRESH_COMPLETED = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb02';
+    const OLD_FAILED = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb03';
+    const FRESH_FAILED = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb04';
+    const OLD_CANCELLED = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb05';
+    const OLD_EXPIRED = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb06';
+    const OLD_QUEUED = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb07';
+
+    await seedTask({
+      id: OLD_COMPLETED,
+      status: 'completed',
+      claimExpiresAt: null,
+      completedAt: new Date(NOW.getTime() - 181 * 24 * 60 * 60 * 1000),
+    });
+    await seedTask({
+      id: FRESH_COMPLETED,
+      status: 'completed',
+      claimExpiresAt: null,
+      completedAt: new Date(NOW.getTime() - 179 * 24 * 60 * 60 * 1000),
+    });
+    await seedTask({
+      id: OLD_FAILED,
+      status: 'failed',
+      claimExpiresAt: null,
+      completedAt: new Date(NOW.getTime() - 91 * 24 * 60 * 60 * 1000),
+    });
+    await seedTask({
+      id: FRESH_FAILED,
+      status: 'failed',
+      claimExpiresAt: null,
+      completedAt: new Date(NOW.getTime() - 89 * 24 * 60 * 60 * 1000),
+    });
+    await seedTask({
+      id: OLD_CANCELLED,
+      status: 'cancelled',
+      claimExpiresAt: null,
+      completedAt: new Date(NOW.getTime() - 91 * 24 * 60 * 60 * 1000),
+    });
+    await seedTask({
+      id: OLD_EXPIRED,
+      status: 'expired',
+      claimExpiresAt: null,
+      completedAt: new Date(NOW.getTime() - 91 * 24 * 60 * 60 * 1000),
+    });
+    await seedTask({
+      id: OLD_QUEUED,
+      status: 'queued',
+      claimExpiresAt: null,
+      completedAt: new Date(NOW.getTime() - 181 * 24 * 60 * 60 * 1000),
+    });
+
+    const result = await repo.listTerminalTasksPastRetention(
+      {
+        completedBefore: new Date(NOW.getTime() - 180 * 24 * 60 * 60 * 1000),
+        failedBefore: new Date(NOW.getTime() - 90 * 24 * 60 * 60 * 1000),
+        cancelledBefore: new Date(NOW.getTime() - 90 * 24 * 60 * 60 * 1000),
+        expiredBefore: new Date(NOW.getTime() - 90 * 24 * 60 * 60 * 1000),
+      },
+      100,
+    );
+    const ids = result.map((task) => task.id);
+
+    expect(ids).toEqual([
+      OLD_COMPLETED,
+      OLD_FAILED,
+      OLD_CANCELLED,
+      OLD_EXPIRED,
+    ]);
+    expect(ids).not.toContain(FRESH_COMPLETED);
+    expect(ids).not.toContain(FRESH_FAILED);
+    expect(ids).not.toContain(OLD_QUEUED);
 
     await db.delete(taskAttempts);
     await db.delete(tasks);
