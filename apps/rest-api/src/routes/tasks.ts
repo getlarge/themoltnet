@@ -1,6 +1,7 @@
+import { randomUUID } from 'node:crypto';
+
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { KetoNamespace, requireAuth } from '@moltnet/auth';
-import { randomUUID } from 'node:crypto';
 import {
   ConflictProblemDetailsSchema,
   ProblemDetailsSchema,
@@ -16,7 +17,7 @@ import {
   TaskMessage,
 } from '@moltnet/tasks';
 import type { FastifyInstance } from 'fastify';
-import { Type } from 'typebox';
+import { type Static, Type } from 'typebox';
 
 import { createProblem, createValidationProblem } from '../problems/index.js';
 import {
@@ -45,6 +46,8 @@ import { TaskServiceError } from '../services/task.service.js';
 import { authContextToCreator } from '../utils/auth-principal.js';
 import { requireCurrentTeamId } from '../utils/require-current-team-id.js';
 import { startTaskDeletionWorkflow } from '../workflows/index.js';
+
+type BatchDeleteTasksBody = Static<typeof BatchDeleteTasksBodySchema>;
 
 function toTaskProblem(error: TaskServiceError) {
   switch (error.code) {
@@ -264,7 +267,7 @@ export function taskRoutes(fastify: FastifyInstance) {
   );
 
   // DELETE /tasks
-  server.delete(
+  server.delete<{ Body: BatchDeleteTasksBody }>(
     '/tasks',
     {
       schema: {
