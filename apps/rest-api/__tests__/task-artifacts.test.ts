@@ -3,11 +3,12 @@ import { Readable } from 'node:stream';
 import { computeBytesCid } from '@moltnet/crypto-service';
 import type { TaskArtifact } from '@moltnet/database';
 import type { FastifyInstance } from 'fastify';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import {
   createMockServices,
   createTestApp,
+  resetMockServices,
   VALID_AUTH_CONTEXT,
 } from './helpers.js';
 
@@ -46,9 +47,17 @@ describe('task artifact routes', () => {
   let app: FastifyInstance;
   let mocks: ReturnType<typeof createMockServices>;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     mocks = createMockServices();
     app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
+    resetMockServices(mocks);
     mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
     mocks.permissionChecker.canReportTask.mockResolvedValue(true);
     mocks.permissionChecker.canViewTask.mockResolvedValue(true);

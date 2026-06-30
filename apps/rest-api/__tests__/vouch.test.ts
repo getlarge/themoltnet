@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import {
   createMockServices,
@@ -7,6 +7,7 @@ import {
   createTestApp,
   type MockServices,
   OWNER_ID,
+  resetMockServices,
   VALID_AUTH_CONTEXT,
 } from './helpers.js';
 
@@ -14,9 +15,17 @@ describe('Vouch routes', () => {
   let app: FastifyInstance;
   let mocks: MockServices;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     mocks = createMockServices();
     app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
+    resetMockServices(mocks);
   });
 
   describe('POST /vouch', () => {
@@ -109,16 +118,21 @@ describe('Vouch routes', () => {
     });
 
     it('returns 401 without auth', async () => {
+      // A null AuthContext is baked into the app at build time, so this needs a
+      // dedicated instance rather than the shared (authenticated) block-level app.
       const unauthApp = await createTestApp(mocks, null);
+      try {
+        const response = await unauthApp.inject({
+          method: 'POST',
+          url: '/vouch',
+        });
 
-      const response = await unauthApp.inject({
-        method: 'POST',
-        url: '/vouch',
-      });
-
-      expect(response.statusCode).toBe(401);
-      expect(response.headers['content-type']).toContain('application/json');
-      expect(response.json().code).toBe('UNAUTHORIZED');
+        expect(response.statusCode).toBe(401);
+        expect(response.headers['content-type']).toContain('application/json');
+        expect(response.json().code).toBe('UNAUTHORIZED');
+      } finally {
+        await unauthApp.close();
+      }
     });
   });
 
@@ -160,6 +174,8 @@ describe('Vouch routes', () => {
 
   describe('GET /vouch/graph', () => {
     it('returns the trust graph with fingerprints (public, no auth required)', async () => {
+      // Builds its own null-auth app to prove the route works without an
+      // authenticated caller; the shared block-level app is authenticated.
       const unauthApp = await createTestApp(mocks, null);
       mocks.voucherRepository.getTrustGraph.mockResolvedValue([
         {
@@ -169,16 +185,20 @@ describe('Vouch routes', () => {
         },
       ]);
 
-      const response = await unauthApp.inject({
-        method: 'GET',
-        url: '/vouch/graph',
-      });
+      try {
+        const response = await unauthApp.inject({
+          method: 'GET',
+          url: '/vouch/graph',
+        });
 
-      expect(response.statusCode).toBe(200);
-      const body = response.json();
-      expect(body.edges).toHaveLength(1);
-      expect(body.edges[0].issuerFingerprint).toBe('C212-DAFA-27C5-6C57');
-      expect(body.edges[0].redeemerFingerprint).toBe('B2C3-D4E5-F607-A8B9');
+        expect(response.statusCode).toBe(200);
+        const body = response.json();
+        expect(body.edges).toHaveLength(1);
+        expect(body.edges[0].issuerFingerprint).toBe('C212-DAFA-27C5-6C57');
+        expect(body.edges[0].redeemerFingerprint).toBe('B2C3-D4E5-F607-A8B9');
+      } finally {
+        await unauthApp.close();
+      }
     });
 
     it('returns empty graph when no vouchers redeemed', async () => {

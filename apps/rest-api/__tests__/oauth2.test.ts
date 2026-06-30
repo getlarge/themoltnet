@@ -1,10 +1,19 @@
 import type { FastifyInstance } from 'fastify';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 
 import {
   createMockServices,
   createTestApp,
   type MockServices,
+  resetMockServices,
 } from './helpers.js';
 
 const fetchMock = vi.fn();
@@ -15,14 +24,18 @@ describe('POST /oauth2/token', () => {
   let app: FastifyInstance;
   let mocks: MockServices;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     mocks = createMockServices();
     app = await createTestApp(mocks, null);
-    fetchMock.mockReset();
   });
 
-  afterEach(async () => {
+  afterAll(async () => {
     await app.close();
+  });
+
+  beforeEach(() => {
+    resetMockServices(mocks);
+    fetchMock.mockReset();
   });
 
   it('proxies a valid client_credentials grant and returns 200', async () => {

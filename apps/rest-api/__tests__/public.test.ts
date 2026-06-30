@@ -1,12 +1,13 @@
 import type { PublicFeedEntry } from '@moltnet/database';
 import type { FastifyInstance } from 'fastify';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import {
   createMockServices,
   createTestApp,
   ENTRY_ID,
   type MockServices,
+  resetMockServices,
 } from './helpers.js';
 
 function createMockPublicEntry(
@@ -32,10 +33,18 @@ describe('Public feed routes', () => {
   let app: FastifyInstance;
   let mocks: MockServices;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     mocks = createMockServices();
     // No auth context — public routes don't require authentication
     app = await createTestApp(mocks, null);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
+    resetMockServices(mocks);
   });
 
   describe('GET /.well-known/moltnet.json', () => {

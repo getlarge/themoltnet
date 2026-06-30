@@ -637,6 +637,55 @@ export function createMockServices(): MockServices {
 }
 
 /**
+ * Resets a `MockServices` object IN PLACE to its factory-default state.
+ *
+ * Why in place: `createTestApp` -> `buildApp` decorates the Fastify instance
+ * with each sub-service object (e.g. `fastify.taskService = mocks.taskService`)
+ * once, at build time. Route handlers call methods through that decorated
+ * reference. So the app holds a live reference to each sub-object — NOT to the
+ * top-level `mocks` container. To reset between tests without rebuilding the app
+ * (the expensive part — `ready()` recompiles every route schema, ≈1.3s; see
+ * #1512), we must mutate each sub-object's methods in place, leaving the object
+ * identity intact so the app's references stay valid.
+ *
+ * How it stays DRY: it re-invokes `createMockServices()` and `Object.assign`s
+ * the fresh `vi.fn()`s (factory defaults and all — including the
+ * `.mockResolvedValue([])` / `.mockImplementation(...)` baked-in behaviors) onto
+ * the existing sub-objects. There is no second copy of the defaults to maintain.
+ *
+ * Usage pattern (build once per describe block, reset per test):
+ *
+ *   beforeAll(async () => {
+ *     mocks = createMockServices();
+ *     app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
+ *   });
+ *   afterAll(async () => { await app.close(); });
+ *   beforeEach(() => {
+ *     resetMockServices(mocks);
+ *     // re-apply this block's per-test defaults here
+ *   });
+ *
+ * Scope caveat: this resets only the sub-services in `mocks`. The auth/Ory
+ * mocks `createTestApp` bakes into the app itself (`tokenValidator`,
+ * `oryClients`) are NOT in `mocks`, so their call history accumulates for the
+ * life of a shared app. That is harmless as long as nothing asserts on them; a
+ * test that needs e.g. `expect(tokenValidator.resolveAuthContext)
+ * .toHaveBeenCalledTimes(1)` must build its own app rather than share the
+ * block-level one. Module-level `vi.mock()` spies are likewise out of scope —
+ * clear them yourself in beforeEach (see team-governance.test.ts and the DBOS
+ * mock).
+ */
+export function resetMockServices(mocks: MockServices): void {
+  const fresh = createMockServices();
+  for (const key of Object.keys(mocks) as Array<keyof MockServices>) {
+    Object.assign(
+      mocks[key] as Record<string, unknown>,
+      fresh[key] as Record<string, unknown>,
+    );
+  }
+}
+
+/**
  * Creates a test Fastify app with mocked services and optional
  * auth context injection.
  */

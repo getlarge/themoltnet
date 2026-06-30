@@ -1,10 +1,11 @@
 import type { RuntimeSlot, RuntimeWorkspace } from '@moltnet/database';
 import type { FastifyInstance } from 'fastify';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import {
   createMockServices,
   createTestApp,
+  resetMockServices,
   VALID_AUTH_CONTEXT,
 } from './helpers.js';
 
@@ -66,9 +67,17 @@ describe('runtime slot routes', () => {
   let app: FastifyInstance;
   let mocks: ReturnType<typeof createMockServices>;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     mocks = createMockServices();
     app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
+    resetMockServices(mocks);
     mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
     mocks.taskRepository.findById.mockResolvedValue({
       id: TASK_ID,

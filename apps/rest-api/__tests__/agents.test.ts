@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import {
   createMockAgent,
@@ -8,6 +8,7 @@ import {
   type MockServices,
   OTHER_AGENT_ID,
   OWNER_ID,
+  resetMockServices,
   TEST_BEARER_TOKEN,
   VALID_AUTH_CONTEXT,
 } from './helpers.js';
@@ -18,9 +19,17 @@ describe('Agent routes', () => {
   let app: FastifyInstance;
   let mocks: MockServices;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     mocks = createMockServices();
     app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
+    resetMockServices(mocks);
   });
 
   describe('GET /agents/:fingerprint', () => {

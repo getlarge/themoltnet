@@ -10,7 +10,15 @@ import {
   signChallenge,
 } from '@moltnet/crypto-service';
 import type { FastifyInstance } from 'fastify';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 
 import {
   createMockAgent,
@@ -18,6 +26,7 @@ import {
   createTestApp,
   type MockServices,
   OWNER_ID,
+  resetMockServices,
   TEST_RECOVERY_SECRET,
   TEST_SECURITY_OPTIONS,
 } from './helpers.js';
@@ -26,9 +35,17 @@ describe('Recovery routes', () => {
   let app: FastifyInstance;
   let mocks: MockServices;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     mocks = createMockServices();
     app = await createTestApp(mocks);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
+    resetMockServices(mocks);
   });
 
   describe('POST /recovery/challenge', () => {
@@ -155,26 +172,30 @@ describe('Recovery routes', () => {
         security: TEST_SECURITY_OPTIONS,
       });
 
-      const response = await testApp.inject({
-        method: 'POST',
-        url: '/recovery/verify',
-        payload: payload,
-      });
+      try {
+        const response = await testApp.inject({
+          method: 'POST',
+          url: '/recovery/verify',
+          payload: payload,
+        });
 
-      expect(response.statusCode).toBe(200);
-      const body = response.json();
-      expect(body.recoveryCode).toBe('76453943');
-      expect(body.recoveryFlowUrl).toBe(
-        'https://ory.example.com/self-service/recovery?flow=abc123',
-      );
-      expect(
-        mockIdentityClient.createRecoveryCodeForIdentity,
-      ).toHaveBeenCalledWith({
-        createRecoveryCodeForIdentityBody: {
-          identity_id: OWNER_ID,
-          flow_type: 'api',
-        },
-      });
+        expect(response.statusCode).toBe(200);
+        const body = response.json();
+        expect(body.recoveryCode).toBe('76453943');
+        expect(body.recoveryFlowUrl).toBe(
+          'https://ory.example.com/self-service/recovery?flow=abc123',
+        );
+        expect(
+          mockIdentityClient.createRecoveryCodeForIdentity,
+        ).toHaveBeenCalledWith({
+          createRecoveryCodeForIdentityBody: {
+            identity_id: OWNER_ID,
+            flow_type: 'api',
+          },
+        });
+      } finally {
+        await testApp.close();
+      }
     });
 
     it('returns 400 for tampered HMAC', async () => {
@@ -291,15 +312,19 @@ describe('Recovery routes', () => {
         security: TEST_SECURITY_OPTIONS,
       });
 
-      const response = await testApp.inject({
-        method: 'POST',
-        url: '/recovery/verify',
-        payload,
-      });
+      try {
+        const response = await testApp.inject({
+          method: 'POST',
+          url: '/recovery/verify',
+          payload,
+        });
 
-      expect(response.statusCode).toBe(502);
-      expect(response.headers['content-type']).toContain('application/json');
-      expect(response.json().code).toBe('UPSTREAM_ERROR');
+        expect(response.statusCode).toBe(502);
+        expect(response.headers['content-type']).toContain('application/json');
+        expect(response.json().code).toBe('UPSTREAM_ERROR');
+      } finally {
+        await testApp.close();
+      }
     });
 
     it('returns 400 when replaying a consumed nonce', async () => {

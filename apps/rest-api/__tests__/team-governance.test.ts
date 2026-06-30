@@ -3,7 +3,15 @@
  */
 
 import type { FastifyInstance } from 'fastify';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 
 import {
   createMockServices,
@@ -11,6 +19,7 @@ import {
   type MockServices,
   OTHER_AGENT_ID,
   OWNER_ID,
+  resetMockServices,
   TEST_BEARER_TOKEN,
   VALID_AUTH_CONTEXT,
 } from './helpers.js';
@@ -45,6 +54,15 @@ vi.mock('../src/workflows/diary-transfer-workflow.js', () => ({
 
 // Need to import DBOS after mock to get the mocked version
 import { DBOS } from '@moltnet/database';
+
+// DBOS is a module-level mock, not part of `mocks`, so `resetMockServices`
+// does not touch it. Clear its spies' call history before each test so
+// `toHaveBeenCalled` / `not.toHaveBeenCalled` assertions don't see calls
+// that leaked in from a previously-run test sharing the same app instance.
+beforeEach(() => {
+  vi.mocked(DBOS.startWorkflow).mockClear();
+  vi.mocked(DBOS.send).mockClear();
+});
 
 const authHeaders = { authorization: `Bearer ${TEST_BEARER_TOKEN}` };
 
@@ -101,10 +119,17 @@ describe('POST /teams — founding flow', () => {
   let app: FastifyInstance;
   let mocks: MockServices;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     mocks = createMockServices();
     app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
+  });
 
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
+    resetMockServices(mocks);
     mocks.transactionRunner.runInTransaction.mockImplementation(
       async (fn: () => Promise<unknown>) => fn(),
     );
@@ -188,9 +213,17 @@ describe('POST /teams/:id/accept', () => {
   let app: FastifyInstance;
   let mocks: MockServices;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     mocks = createMockServices();
     app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
+    resetMockServices(mocks);
   });
 
   it('returns 404 when team does not exist', async () => {
@@ -345,9 +378,17 @@ describe('PATCH /teams/:id/members/:subjectId', () => {
   let app: FastifyInstance;
   let mocks: MockServices;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     mocks = createMockServices();
     app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
+    resetMockServices(mocks);
     mocks.permissionChecker.canManageTeamMembers.mockResolvedValue(true);
   });
 
@@ -479,9 +520,17 @@ describe('POST /teams/join role promotion', () => {
   let app: FastifyInstance;
   let mocks: MockServices;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     mocks = createMockServices();
     app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
+    resetMockServices(mocks);
     mocks.teamRepository.findInviteByCode.mockResolvedValue({
       id: 'invite-1',
       teamId: TEAM_ID,
@@ -619,10 +668,17 @@ describe('POST /diaries/:id/transfer', () => {
   let app: FastifyInstance;
   let mocks: MockServices;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     mocks = createMockServices();
     app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
+  });
 
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
+    resetMockServices(mocks);
     mocks.permissionChecker.canManageDiary.mockResolvedValue(true);
     mocks.permissionChecker.canManageTeam.mockResolvedValue(true);
     mocks.diaryService.findDiary.mockResolvedValue(MOCK_DIARY);
@@ -725,9 +781,17 @@ describe('GET /transfers', () => {
   let app: FastifyInstance;
   let mocks: MockServices;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     mocks = createMockServices();
     app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
+    resetMockServices(mocks);
   });
 
   it('returns empty list when caller owns no teams', async () => {
@@ -782,10 +846,17 @@ describe('POST /transfers/:transferId/accept', () => {
   let app: FastifyInstance;
   let mocks: MockServices;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     mocks = createMockServices();
     app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
+  });
 
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
+    resetMockServices(mocks);
     mocks.diaryTransferRepository.findById.mockResolvedValue(MOCK_TRANSFER);
     mocks.permissionChecker.canManageTeam.mockResolvedValue(true);
     mocks.diaryTransferRepository.updateStatus.mockResolvedValue({
@@ -866,10 +937,17 @@ describe('POST /transfers/:transferId/reject', () => {
   let app: FastifyInstance;
   let mocks: MockServices;
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     mocks = createMockServices();
     app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
+  });
 
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
+    resetMockServices(mocks);
     mocks.diaryTransferRepository.findById.mockResolvedValue(MOCK_TRANSFER);
     mocks.permissionChecker.canManageTeam.mockResolvedValue(true);
     mocks.diaryTransferRepository.updateStatus.mockResolvedValue({
