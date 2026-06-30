@@ -31,36 +31,54 @@ should derive project ordering and dependent updates.
 ## Production Workflow
 
 Production releases run from `.github/workflows/release.yml` on every push to
-`main` when `.nx/version-plans/*.md` files exist. The workflow scopes commands
-to the release groups named by those version plans:
+`main`, except for release commits created by the workflow itself. The workflow
+uses conventional commits and the affected project graph to decide which release
+groups need to run. A manual dispatch can also pass a comma-separated `groups`
+override.
 
 ```bash
-pnpm exec nx release --groups <plan-groups> --verbose --skip-publish
+pnpm exec nx release --groups <release-groups> --verbose --skip-publish
 git push origin HEAD:main --follow-tags --no-verify --atomic
-pnpm exec nx release publish --groups <plan-groups> --verbose
+pnpm exec nx release publish --groups <release-groups> --verbose
 ```
 
-The workflow also supports a manual `dry-run` dispatch:
+The workflow also supports a manual `dry-run` dispatch. Dry-runs use the same
+group detection or manual group override, but skip release commits, tags,
+GitHub Releases, Docker pushes, and package publishes:
 
 ```bash
-pnpm exec nx release --groups <plan-groups> --dry-run --verbose --skip-publish
+pnpm exec nx release --groups <release-groups> --dry-run --verbose --skip-publish
 ```
 
 Important production details:
 
 - The explicit git push happens between versioning and publishing so Go module
   tags are visible to GOPROXY before publish targets run.
+- Go library modules and the Go CLI release in the same workflow job when a Go
+  library module changes. This keeps Nx's dependency propagation in one
+  versioning pass, so `apps/moltnet-cli/go.mod` consumes the just-released
+  `moltnet-api-client` and `dspy-adapters` versions.
 - The Go CLI artifact publisher creates the draft `cli-v{version}` GitHub
   Release, uploads archives and checksums, then undrafts it.
 - Go module publish targets verify the pushed module tags through
   `GOPROXY=https://proxy.golang.org,direct` with `GOWORK=off`.
+- Project changelogs are enabled, but the workspace changelog is disabled.
+  `automaticFromRef` stays enabled because Nx 22.7 still resolves a workspace
+  changelog range internally before it skips writing the workspace changelog.
+- Current versions resolve from git tags, with a temporary disk fallback for
+  projects that do not yet have Nx-shaped release tags. After their first Nx
+  release, the generated tags become the source of truth.
 - npm packages publish with public access and provenance through npm config
   environment variables plus GitHub Actions OIDC/trusted publishing. The
   workflow must keep `permissions.id-token: write`.
 - Docker image publish targets push to GHCR. The workflow must keep
   `permissions.packages: write` and the GHCR login step.
-- The workflow passes `--groups` from version plans so a CLI-only release does
-  not run Docker image release logic.
+- Docker release dry-runs still need a working Docker daemon. Nx Docker retags
+  local images during versioning even when `--dry-run` is set, so the Docker
+  pre-version hook builds local images before Nx applies release tags.
+- Release groups run in separate GitHub Actions jobs connected with `needs`.
+  This keeps push/publish side effects serialized while still letting each group
+  skip independently when it has no affected release projects.
 - The GitHub Action release target moves the stable major tag, for example
   `v0`, after its bundled `dist/main.js` has been committed by the release.
 

@@ -10,6 +10,11 @@ on:
         required: false
         type: boolean
         default: false
+      groups:
+        description: 'Optional comma-separated Nx release groups. Empty means affected groups.'
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: write
@@ -24,20 +29,22 @@ env:
   NX_LOAD_DOT_ENV_FILES: 'false'
 
 jobs:
-  nx-release:
-    name: Nx Release
+  prepare:
+    name: Prepare release groups
+    if: "${{ github.event_name != 'push' || !startsWith(github.event.head_commit.message, 'chore(release): publish') }}"
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 15
+    outputs:
+      go-cli-groups: ${{ steps.release-groups.outputs.go-cli-groups }}
+      release-go-cli: ${{ steps.release-groups.outputs.release-go-cli }}
+      release-npm: ${{ steps.release-groups.outputs.release-npm }}
+      release-github-actions: ${{ steps.release-groups.outputs.release-github-actions }}
+      release-docker: ${{ steps.release-groups.outputs.release-docker }}
     steps:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Configure git
-        run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
 
       - uses: pnpm/action-setup@v5
 
@@ -45,95 +52,143 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-          registry-url: https://registry.npmjs.org
-
-      - uses: actions/setup-go@v6
-        with:
-          go-version-file: apps/moltnet-cli/go.mod
-          cache: true
-
-      - uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GHCR
-        if: ${{ !inputs['dry-run'] }}
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Detect version plans
-        id: version-plans
-        shell: bash
+      - name: Guard production ref
+        if: ${{ !inputs.dry-run && github.ref_name != 'main' }}
         run: |
-          GROUPS=$(node <<'NODE'
-          const { readdirSync, readFileSync } = require('node:fs');
-          const { join } = require('node:path');
+          echo 'Non-dry-run releases must run from main.'
+          exit 1
+
+      - name: Detect release groups
+        id: release-groups
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.before || '' }}
+          MANUAL_GROUPS: ${{ inputs.groups || '' }}
+          PNPM_CONFIG_LOGLEVEL: error
+        run: |
+          set -euo pipefail
+
+          if [ -n "$MANUAL_GROUPS" ]; then
+            AFFECTED_JSON='[]'
+          else
+            BASE="$BASE_SHA"
+            if [ -z "$BASE" ] || [ "$BASE" = '0000000000000000000000000000000000000000' ]; then
+              BASE="$(git rev-parse HEAD~1)"
+            fi
+            AFFECTED_JSON="$(pnpm --silent exec nx show projects --affected --base="$BASE" --head=HEAD --json)"
+          fi
+
+          node - "$AFFECTED_JSON" "$MANUAL_GROUPS" >> "$GITHUB_OUTPUT" <<'NODE'
+          const { readFileSync } = require('node:fs');
 
           const nx = JSON.parse(readFileSync('nx.json', 'utf8'));
-          const groupNames = new Set(Object.keys(nx.release?.groups ?? {}));
+          const releaseGroups = nx.release?.groups ?? {};
+          const knownGroups = new Set(Object.keys(releaseGroups));
           const projectToGroup = new Map();
-          for (const [groupName, group] of Object.entries(nx.release?.groups ?? {})) {
+          for (const [groupName, group] of Object.entries(releaseGroups)) {
             for (const project of group.projects ?? []) {
               projectToGroup.set(project, groupName);
             }
           }
 
-          function listMarkdownFiles(dir) {
-            try {
-              return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-                const path = join(dir, entry.name);
-                if (entry.isDirectory()) return listMarkdownFiles(path);
-                return entry.isFile() && entry.name.endsWith('.md') ? [path] : [];
-              });
-            } catch {
-              return [];
-            }
-          }
+          const affected = JSON.parse(process.argv[2] || '[]');
+          const manualGroups = process.argv[3]
+            .split(',')
+            .map((group) => group.trim())
+            .filter(Boolean);
 
           const groups = new Set();
-          for (const file of listMarkdownFiles('.nx/version-plans')) {
-            const match = /^---\n([\s\S]*?)\n---/m.exec(readFileSync(file, 'utf8'));
-            if (!match) continue;
-            for (const line of match[1].split('\n')) {
-              const key = /^([^:#]+):/.exec(line.trim())?.[1]?.trim();
-              if (!key) continue;
-              if (groupNames.has(key)) groups.add(key);
-              const groupName = projectToGroup.get(key);
-              if (groupName) groups.add(groupName);
+          for (const group of manualGroups) {
+            if (!knownGroups.has(group)) {
+              throw new Error(`Unknown Nx release group: ${group}`);
+            }
+            groups.add(group);
+          }
+
+          if (manualGroups.length === 0) {
+            for (const project of affected) {
+              const group = projectToGroup.get(project);
+              if (group) groups.add(group);
             }
           }
 
-          process.stdout.write([...groups].sort().join(','));
+          const goCliGroups = [];
+          if (groups.has('go-modules')) {
+            goCliGroups.push('go-modules');
+            groups.add('cli');
+          }
+          if (groups.has('cli')) {
+            goCliGroups.push('cli');
+          }
+
+          const output = {
+            'go-cli-groups': goCliGroups.join(','),
+            'release-go-cli': goCliGroups.length > 0,
+            'release-npm': groups.has('npm-packages'),
+            'release-github-actions': groups.has('github-actions'),
+            'release-docker': groups.has('docker-images'),
+          };
+
+          for (const [key, value] of Object.entries(output)) {
+            console.log(`${key}=${value}`);
+          }
+
+          const selected = [
+            output['go-cli-groups'],
+            output['release-npm'] ? 'npm-packages' : '',
+            output['release-github-actions'] ? 'github-actions' : '',
+            output['release-docker'] ? 'docker-images' : '',
+          ].filter(Boolean);
+          console.error(
+            selected.length > 0
+              ? `Releasing Nx groups: ${selected.join('; ')}`
+              : 'No affected Nx release groups; skipping release.',
+          );
           NODE
-          )
 
-          if [ -n "$GROUPS" ]; then
-            echo 'has-plans=true' >> "$GITHUB_OUTPUT"
-            echo "groups=$GROUPS" >> "$GITHUB_OUTPUT"
-            echo "Releasing Nx groups: $GROUPS"
-          else
-            echo 'has-plans=false' >> "$GITHUB_OUTPUT"
-            echo 'No Nx release groups found in version plans; skipping release.'
-          fi
+  release-go-cli:
+    name: Release Go modules and CLI
+    needs: prepare
+    if: ${{ needs.prepare.outputs.release-go-cli == 'true' }}
+    uses: ./.github/workflows/release-group.yml
+    with:
+      checkout-ref: ${{ github.event_name == 'push' && 'main' || github.ref_name }}
+      groups: ${{ needs.prepare.outputs.go-cli-groups }}
+      dry-run: ${{ inputs.dry-run || false }}
+    secrets: inherit
 
-      - name: Run Nx release
-        if: ${{ steps.version-plans.outputs.has-plans == 'true' }}
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_CONFIG_ACCESS: public
-          NPM_CONFIG_PROVENANCE: 'true'
-          GOPROXY: https://proxy.golang.org,direct
-          GONOSUMDB: github.com/getlarge/themoltnet
-        run: |
-          GROUPS='${{ steps.version-plans.outputs.groups }}'
-          if [ '${{ inputs['dry-run'] }}' = 'true' ]; then
-            pnpm exec nx release --groups "$GROUPS" --dry-run --verbose --skip-publish
-          else
-            pnpm exec nx release --groups "$GROUPS" --verbose --skip-publish
-            git push origin HEAD:main --follow-tags --no-verify --atomic
-            pnpm exec nx release publish --groups "$GROUPS" --verbose
-          fi
+  release-npm:
+    name: Release npm packages
+    needs: [prepare, release-go-cli]
+    if: ${{ always() && needs.prepare.outputs.release-npm == 'true' && (needs.release-go-cli.result == 'success' || needs.release-go-cli.result == 'skipped') }}
+    uses: ./.github/workflows/release-group.yml
+    with:
+      checkout-ref: ${{ github.event_name == 'push' && 'main' || github.ref_name }}
+      groups: npm-packages
+      dry-run: ${{ inputs.dry-run || false }}
+    secrets: inherit
+
+  release-github-actions:
+    name: Release GitHub Actions
+    needs: [prepare, release-npm]
+    if: ${{ always() && needs.prepare.outputs.release-github-actions == 'true' && (needs.release-npm.result == 'success' || needs.release-npm.result == 'skipped') }}
+    uses: ./.github/workflows/release-group.yml
+    with:
+      checkout-ref: ${{ github.event_name == 'push' && 'main' || github.ref_name }}
+      groups: github-actions
+      dry-run: ${{ inputs.dry-run || false }}
+    secrets: inherit
+
+  release-docker:
+    name: Release Docker images
+    needs: [prepare, release-github-actions]
+    if: ${{ always() && needs.prepare.outputs.release-docker == 'true' && (needs.release-github-actions.result == 'success' || needs.release-github-actions.result == 'skipped') }}
+    uses: ./.github/workflows/release-group.yml
+    with:
+      checkout-ref: ${{ github.event_name == 'push' && 'main' || github.ref_name }}
+      groups: docker-images
+      dry-run: ${{ inputs.dry-run || false }}
+    secrets: inherit

@@ -352,16 +352,19 @@ The e5-small-v2 ONNX model (~33MB) is lazy-loaded on first embedding request. Fi
 ## Release Pipeline
 
 Releases are automated via Nx Release + GitHub Actions
-(`.github/workflows/release.yml`). A push to `main` with Nx version plans runs
-Nx release for the plan groups, pushes the release commit and tags, then runs
-`nx release publish` for the same groups. Nx uses the project graph and release
-groups in `nx.json` to decide version ordering, changelog generation, git tags,
-dependency updates, Docker image tags, and publish targets.
+(`.github/workflows/release.yml`). A push to `main` uses conventional commits
+and Nx affected projects to select release groups, pushes each release commit
+and its tags, then runs `nx release publish` for the same groups. Nx uses the
+project graph and release groups in `nx.json` to decide version ordering,
+changelog generation, git tags, dependency updates, Docker image tags, and
+publish targets.
 
 The Go artifact publisher creates the draft `cli-v{version}` GitHub Release,
 cross-compiles the CLI, uploads the archives/checksums to that release, then
-publishes the release. Go library module releases are git tags and are verified
-through the public Go proxy during publish.
+publishes the release. Go library module releases are git tags and run in the
+same release job as the Go CLI when a Go module changes, so the CLI's `go.mod`
+is updated to the latest module tags before CLI artifacts are built. Go modules
+are verified through the public Go proxy during publish.
 
 ### Release configuration files
 
