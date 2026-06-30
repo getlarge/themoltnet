@@ -1,15 +1,13 @@
 name: Release
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
     inputs:
       dry-run:
         description: 'Plan the release without committing, tagging, creating releases, or publishing.'
         required: false
         type: boolean
-        default: false
+        default: true
       first-release:
         description: 'Bootstrap projects with no previous release tag.'
         required: false
@@ -31,7 +29,6 @@ env:
 jobs:
   nx-release:
     name: Nx Release
-    if: "${{ github.event_name != 'push' || !startsWith(github.event.head_commit.message, 'chore(release): publish') }}"
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:

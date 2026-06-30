@@ -30,12 +30,16 @@ should derive project ordering and dependent updates.
 
 ## Production Workflow
 
-Production releases run from `.github/workflows/release.yml` on every push to
-`main`, except for release commits created by the workflow itself. The workflow
-does not preselect release groups with `nx affected`. Nx release reads
-conventional commits since each project's previous release tag and decides which
-projects need a new version. This avoids missing unreleased changes from earlier
-pushes when a previous release run failed or was skipped.
+Production releases run from `.github/workflows/release.yml` by manual
+`workflow_dispatch` only. This preserves the operator gate we had with
+release-please PR merges: a release is deliberate, reviewed, and triggered by a
+human.
+
+The workflow does not preselect release groups with `nx affected`. Nx release
+reads conventional commits since each project's previous release tag and decides
+which projects need a new version. This avoids tying release selection to the
+latest push range, which can miss unreleased changes from earlier failed or
+skipped release attempts.
 
 ```bash
 pnpm exec nx release --verbose --skip-publish
@@ -43,11 +47,11 @@ git push origin HEAD:main --follow-tags --no-verify --atomic
 pnpm exec nx release publish --verbose
 ```
 
-The workflow also supports manual `dry-run` and `first-release` dispatch
-inputs. Dry-runs use the same Nx release detection, but skip release commits,
-tags, GitHub Releases, Docker pushes, and package publishes. `first-release`
-passes Nx's `--first-release` flag for bootstrap cases where selected projects
-do not yet have release tags.
+The workflow exposes `dry-run` and `first-release` inputs. `dry-run` defaults to
+`true` so the safest manual trigger only plans the release. Dry-runs use the same
+Nx release detection, but skip release commits, tags, GitHub Releases, Docker
+pushes, and package publishes. `first-release` passes Nx's `--first-release`
+flag for bootstrap cases where selected projects do not yet have release tags.
 
 ```bash
 pnpm exec nx release --dry-run --verbose --skip-publish
@@ -82,10 +86,8 @@ Important production details:
 - Docker release dry-runs still need a working Docker daemon. Nx Docker retags
   local images during versioning even when `--dry-run` is set, so the Docker
   pre-version hook builds local images before Nx applies release tags.
-- Nx release commits include `[skip ci]` and the release workflow also skips
-  commits whose message starts with `chore(release): publish`. Keep both guards:
-  the skip token suppresses unrelated CI workflows, and the release workflow
-  guard prevents recursive release attempts.
+- Nx release commits include `[skip ci]` so the generated release commit does
+  not fan out into unrelated CI workflows.
 - The GitHub Action release target moves the stable major tag, for example
   `v0`, after its bundled `dist/main.js` has been committed by the release.
 
@@ -458,12 +460,16 @@ NX_RELEASE_DOCKER_PROJECTS=@moltnet/rest-api pnpm exec nx release version patch 
 ## Expected Operator Flow
 
 1. Confirm release groups and tag patterns in `nx.json`.
-2. Run a top-level dry-run and let Nx release decide the changed projects.
-3. Inspect planned file changes, tags, and Go validation commands.
-4. Run focused tests for any changed release helpers.
-5. Prepare the rehearsal cleanup values and permissions.
-6. Run the full non-dry release rehearsal from a disposable worktree.
-7. Clean up rehearsal side effects before merging release automation.
+2. Trigger the `Release` workflow manually on `main` with `dry-run: true`.
+3. Inspect planned file changes, tags, artifact operations, and Go validation
+   commands.
+4. Run focused tests for any changed release helpers if the dry-run exposes a
+   release-helper change.
+5. Trigger the `Release` workflow manually on `main` with `dry-run: false` when
+   the plan is acceptable.
+
+For release automation changes, also run the full non-dry rehearsal from a
+disposable worktree and clean up rehearsal side effects before merging.
 
 Do not manually edit generated changelogs, release tags, or dependent version
 bumps unless Nx release output is wrong and the release helper/config is being
