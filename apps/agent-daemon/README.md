@@ -169,9 +169,10 @@ That's only a starting point. `vfs.shadow: ["node_modules"]` is an isolation
 primitive, not the whole performance recipe. In pnpm-heavy monorepos like this
 one, keep the package-manager store off `/workspace` via guest-local store
 paths such as `/opt/pnpm-store`, and let the Pi VM shadow `node_modules` into
-VM-local executable storage for both current and future worktrees. Warm the
-store with `pnpm fetch` from the mounted repo lockfile when later task worktrees
-need fast installs.
+VM-local executable storage for both current and future worktrees. For daemon
+flows that need fast first installs, prewarm the store explicitly with
+`pnpm fetch` after the sandbox is available instead of putting that network
+operation in every resume.
 
 If a resume step assumes `/workspace` is a repo checkout, gate it on
 `resumeCommands[].when.workspaceMode` rather than on task type. Use:

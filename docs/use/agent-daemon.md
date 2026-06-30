@@ -754,9 +754,12 @@ The current themoltnet pattern is:
   `env.NPM_CONFIG_STORE_DIR=/opt/pnpm-store`
 - let the Pi VM shadow any `node_modules` path into VM-local executable
   storage, including worktrees created after resume
-- warm the store from the mounted repo lockfile with `pnpm fetch`
+- warm the store explicitly with `pnpm fetch` when a daemon/provisioning flow
+  wants fast first installs
 - avoid full `pnpm install` during resume for interactive sessions because the
   install output is intentionally VM-local
+- keep network-heavy fetches out of the default TUI resume path so Pi can reach
+  the prompt even when the package registry is slow or unavailable
 
 Current repo example:
 
@@ -772,17 +775,16 @@ Current repo example:
       "when": {
         "workspaceMode": ["shared_mount", "dedicated_worktree"]
       }
-    },
-    {
-      "retries": 3,
-      "retryBackoffMs": 5000,
-      "run": "cd \"${MOLTNET_GUEST_WORKSPACE}\" && pnpm fetch --frozen-lockfile",
-      "when": {
-        "workspaceMode": ["shared_mount", "dedicated_worktree"]
-      }
     }
   ]
 }
+```
+
+After the sandbox is running, a daemon/provisioning step can prewarm the
+guest-local store with:
+
+```bash
+cd "$MOLTNET_GUEST_WORKSPACE" && pnpm fetch --frozen-lockfile
 ```
 
 This is deliberately repo-specific. `libs/pi-extension` stays generic: it

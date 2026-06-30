@@ -216,8 +216,9 @@ Shell commands that run on every VM resume, after platform setup and before the
 agent session starts.
 
 Use this for per-session bootstrap that should not invalidate the snapshot
-cache: mounting tmpfs, warming package-manager state, lightweight repo-local
-setup.
+cache: enabling package-manager shims or lightweight repo-local setup. Keep
+network-heavy dependency fetches out of the default TUI startup path; run them
+explicitly when a daemon/provisioning flow wants to prewarm a store.
 
 Important properties:
 
@@ -289,9 +290,10 @@ executable storage. That is VFS policy rather than a resume command, so it also
 covers worktrees the live agent creates after resume. Package-manager stores
 are different: pnpm's content-addressed store should remain a reusable
 guest-local directory, e.g. `NPM_CONFIG_STORE_DIR=/opt/pnpm-store`, not tmpfs.
-Runtime profiles or `sandbox.json` can warm that store with `pnpm fetch` from
-the mounted repo lockfile; avoid full `pnpm install` during resume for
-interactive sessions because install outputs are intentionally VM-local.
+Runtime profiles or `sandbox.json` should avoid network-heavy fetch/install
+steps during the default TUI resume path. If a daemon/provisioning flow needs
+fast first installs, prewarm the store explicitly with `pnpm fetch` after the
+sandbox is available.
 
 Run the real VM integration check locally with:
 

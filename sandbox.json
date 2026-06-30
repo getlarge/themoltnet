@@ -45,14 +45,6 @@
       "when": {
         "workspaceMode": ["shared_mount", "dedicated_worktree"]
       }
-    },
-    {
-      "retries": 3,
-      "retryBackoffMs": 5000,
-      "run": "cd \"${MOLTNET_GUEST_WORKSPACE}\" && pnpm fetch --frozen-lockfile --fetch-retries=8 --fetch-retry-mintimeout=2000 --fetch-retry-maxtimeout=30000 --network-concurrency=8",
-      "when": {
-        "workspaceMode": ["shared_mount", "dedicated_worktree"]
-      }
     }
   ],
   "snapshot": {
