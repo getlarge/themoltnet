@@ -16,15 +16,18 @@ import {
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
+import { RealFSProvider, ShadowProvider } from '@earendil-works/gondolin';
 import { describe, expect, it } from 'vitest';
 
 import { prepareTaskWorkspace } from './runtime/task-workspace.js';
 import {
+  AutoParentMemoryProvider,
   loadCredentials,
   resolveVmAgentDir,
   rewriteGitconfigPaths,
   rewriteMoltnetJsonPaths,
   shouldRunResumeCommand,
+  shouldShadowNodeModulesPath,
 } from './vm-manager.js';
 
 // ---------------------------------------------------------------------------
@@ -310,6 +313,80 @@ describe('shouldRunResumeCommand', () => {
         { workspaceMode: 'scratch_mount' },
       ),
     ).toBe(false);
+  });
+});
+
+describe('node_modules VM-local shadowing', () => {
+  it('matches any current or future node_modules segment', () => {
+    expect(shouldShadowNodeModulesPath('/node_modules')).toBe(true);
+    expect(shouldShadowNodeModulesPath('/apps/api/node_modules')).toBe(true);
+    expect(
+      shouldShadowNodeModulesPath(
+        '/.worktrees/task-1/packages/web/node_modules/.bin/vite',
+      ),
+    ).toBe(true);
+    expect(shouldShadowNodeModulesPath('/src/node_modules_fixture')).toBe(
+      false,
+    );
+    expect(shouldShadowNodeModulesPath('/packages/node_modules-old')).toBe(
+      false,
+    );
+  });
+
+  it('routes future node_modules writes to memory with executable .bin shims', () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'pi-node-modules-vfs-'));
+    try {
+      mkdirSync(path.join(root, 'node_modules', 'host-only'), {
+        recursive: true,
+      });
+      writeFileSync(
+        path.join(root, 'node_modules', 'host-only', 'index.js'),
+        'host dependency',
+      );
+
+      const provider = new ShadowProvider(new RealFSProvider(root), {
+        shouldShadow: ({ path: shadowPath }) =>
+          shouldShadowNodeModulesPath(shadowPath),
+        tmpfs: new AutoParentMemoryProvider(),
+        writeMode: 'tmpfs',
+      });
+
+      expect(() =>
+        provider.statSync('/node_modules/host-only/index.js'),
+      ).toThrow();
+
+      const guestTool = '/.worktrees/later/packages/web/node_modules/.bin/vite';
+      const nodeModulesHandle = provider.openSync(guestTool, 'w');
+      nodeModulesHandle.writeFileSync('guest tool');
+      nodeModulesHandle.closeSync();
+
+      expect(
+        existsSync(
+          path.join(root, '.worktrees/later/packages/web/node_modules'),
+        ),
+      ).toBe(false);
+      expect(provider.openSync(guestTool, 'r').readFileSync('utf8')).toBe(
+        'guest tool',
+      );
+      expect(provider.statSync(guestTool).mode & 0o111).not.toBe(0);
+
+      mkdirSync(path.join(root, '.worktrees/later/packages/web/src'), {
+        recursive: true,
+      });
+      const sourceFile = '/.worktrees/later/packages/web/src/index.ts';
+      const sourceHandle = provider.openSync(sourceFile, 'w');
+      sourceHandle.writeFileSync('export const ok = true;');
+      sourceHandle.closeSync();
+
+      expect(
+        readFileSync(
+          path.join(root, '.worktrees/later/packages/web/src/index.ts'),
+          'utf8',
+        ),
+      ).toBe('export const ok = true;');
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });
 

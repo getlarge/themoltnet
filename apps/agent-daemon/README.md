@@ -166,9 +166,13 @@ For `themoltnet`, prefer a profile sandbox equivalent to this minimal policy:
 ```
 
 That's only a starting point. `vfs.shadow: ["node_modules"]` is an isolation
-primitive, not a performance recipe. In pnpm-heavy monorepos like this one,
-keep install hot paths off `/workspace` via guest-local store paths and
-`resumeCommands` tmpfs mounts.
+primitive, not the whole performance recipe. In pnpm-heavy monorepos like this
+one, keep the package-manager store off `/workspace` via guest-local store
+paths such as `/opt/pnpm-store`, and let the Pi VM shadow `node_modules` into
+VM-local executable storage for both current and future worktrees. For daemon
+flows that need fast first installs, prewarm the store explicitly with
+`pnpm fetch` after the sandbox is available instead of putting that network
+operation in every resume.
 
 If a resume step assumes `/workspace` is a repo checkout, gate it on
 `resumeCommands[].when.workspaceMode` rather than on task type. Use:

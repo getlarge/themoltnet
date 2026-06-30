@@ -94,6 +94,9 @@ describe('resumeVm task-context mount', () => {
     expect(Object.keys(resumeOptions.vfs.mounts).sort()).toEqual(
       [workspace, GUEST_TASK_CONTEXT_MOUNT].sort(),
     );
+    expect(resumeOptions.vfs.mounts[workspace]).toBeInstanceOf(
+      gondolinMock.ShadowProvider,
+    );
     expect(resumeOptions.vfs.mounts[GUEST_TASK_CONTEXT_MOUNT]).toBeInstanceOf(
       gondolinMock.MemoryProvider,
     );
@@ -138,5 +141,102 @@ describe('resumeVm task-context mount', () => {
     expect(resumeOptions.env.MOLTNET_TEST_FORWARD_ME).toBe('forwarded');
     expect(resumeOptions.env.MOLTNET_TEST_DO_NOT_FORWARD).toBeUndefined();
     expect(resumeOptions.env.NODE_OPTIONS).toBe('--dns-result-order=ipv4first');
+  });
+
+  it('shadows future node_modules paths before resume commands run', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-node-modules-'));
+    tempRoots.push(root);
+    const workspace = path.join(root, 'workspace');
+    const agentDir = path.join(root, '.moltnet', 'legreffier');
+    mkdirSync(workspace, { recursive: true });
+    mkdirSync(agentDir, { recursive: true });
+    writeFileSync(
+      path.join(agentDir, 'moltnet.json'),
+      JSON.stringify({
+        endpoints: { api: 'https://api.themolt.net' },
+      }),
+      'utf8',
+    );
+    writeFileSync(path.join(agentDir, 'env'), '', 'utf8');
+
+    await resumeVm({
+      checkpointPath: path.join(root, 'checkpoint.qcow2'),
+      agentName: 'legreffier',
+      agentRootDir: root,
+      mountPath: workspace,
+      workspaceMode: 'dedicated_worktree',
+      sandboxConfig: {
+        resumeCommands: [
+          {
+            run: 'cd "$MOLTNET_GUEST_WORKSPACE" && pnpm fetch --frozen-lockfile',
+            when: { workspaceMode: ['dedicated_worktree'] },
+          },
+        ],
+      },
+    });
+
+    const resumeOptions = gondolinMock.resumeCalls[0] as {
+      vfs: { mounts: Record<string, unknown> };
+    };
+    const workspaceProvider = resumeOptions.vfs.mounts[workspace] as {
+      options: {
+        denySymlinkBypass: boolean;
+        shouldShadow: (ctx: { path: string }) => boolean;
+      };
+    };
+    expect(workspaceProvider).toBeInstanceOf(gondolinMock.ShadowProvider);
+    expect(workspaceProvider.options.denySymlinkBypass).toBe(false);
+    expect(
+      workspaceProvider.options.shouldShadow({
+        path: '/.worktrees/later/packages/web/node_modules/.bin/vite',
+      }),
+    ).toBe(true);
+    expect(
+      workspaceProvider.options.shouldShadow({
+        path: '/.worktrees/later/packages/web/src/index.ts',
+      }),
+    ).toBe(false);
+  });
+
+  it('keeps caller-provided deny shadows authoritative over built-in node_modules memory', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-shadow-order-'));
+    tempRoots.push(root);
+    const workspace = path.join(root, 'workspace');
+    const agentDir = path.join(root, '.moltnet', 'legreffier');
+    mkdirSync(workspace, { recursive: true });
+    mkdirSync(agentDir, { recursive: true });
+    writeFileSync(
+      path.join(agentDir, 'moltnet.json'),
+      JSON.stringify({
+        endpoints: { api: 'https://api.themolt.net' },
+      }),
+      'utf8',
+    );
+    writeFileSync(path.join(agentDir, 'env'), '', 'utf8');
+
+    await resumeVm({
+      checkpointPath: path.join(root, 'checkpoint.qcow2'),
+      agentName: 'legreffier',
+      agentRootDir: root,
+      mountPath: workspace,
+      sandboxConfig: {
+        vfs: { shadow: ['**'], shadowMode: 'deny' },
+      },
+    });
+
+    const resumeOptions = gondolinMock.resumeCalls[0] as {
+      vfs: { mounts: Record<string, unknown> };
+    };
+    const outerProvider = resumeOptions.vfs.mounts[workspace] as {
+      provider: unknown;
+      options: { writeMode: string };
+    };
+    expect(outerProvider).toBeInstanceOf(gondolinMock.ShadowProvider);
+    expect(outerProvider.options.writeMode).toBe('deny');
+    expect(outerProvider.provider).toBeInstanceOf(gondolinMock.ShadowProvider);
+    expect(
+      (outerProvider.provider as { options: { writeMode: string } }).options
+        .writeMode,
+    ).toBe('tmpfs');
   });
 });
