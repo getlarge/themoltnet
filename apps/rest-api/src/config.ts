@@ -94,6 +94,34 @@ export const TaskOrphanSweeperConfigSchema = Type.Object({
   TASK_ORPHAN_SWEEPER_GRACE_SEC: Type.Number({ default: 300 }),
   /** Max tasks force-released per sweep run. */
   TASK_ORPHAN_SWEEPER_BATCH_SIZE: Type.Number({ default: 50 }),
+  /**
+   * Default task lifetime in seconds when callers omit expiresInSec.
+   * Retention cleanup applies only after terminalization, so this bounds
+   * how long non-terminal waiting/queued work can bypass terminal retention.
+   */
+  TASK_DEFAULT_EXPIRES_IN_SEC: Type.Number({
+    default: 90 * 24 * 60 * 60,
+  }),
+  /**
+   * Maximum caller-requested task lifetime in seconds. Hosted deployments
+   * should keep this below their longest acceptable non-terminal storage
+   * window so expiresAt cannot be used as a retention bypass.
+   */
+  TASK_MAX_EXPIRES_IN_SEC: Type.Number({
+    default: 90 * 24 * 60 * 60,
+  }),
+  /** How often terminal task retention is applied. */
+  TASK_RETENTION_SWEEPER_CRON: Type.String({ default: '0 * * * *' }),
+  /** Max terminal tasks deleted per retention sweep run. */
+  TASK_RETENTION_SWEEPER_BATCH_SIZE: Type.Number({ default: 50 }),
+  /** Retention window for completed terminal tasks. */
+  TASK_COMPLETED_RETENTION_DAYS: Type.Number({ default: 180 }),
+  /** Retention window for failed terminal tasks. */
+  TASK_FAILED_RETENTION_DAYS: Type.Number({ default: 90 }),
+  /** Retention window for cancelled terminal tasks. */
+  TASK_CANCELLED_RETENTION_DAYS: Type.Number({ default: 90 }),
+  /** Retention window for expired terminal tasks. */
+  TASK_EXPIRED_RETENTION_DAYS: Type.Number({ default: 90 }),
 });
 
 export const RuntimeSessionStorageConfigSchema = Type.Object({

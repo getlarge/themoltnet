@@ -158,13 +158,40 @@ A periodic **orphan sweeper** (DBOS scheduled workflow, default `*/2 * * * *`) c
 
 Configuration (env vars):
 
-| Var                              | Default       | Means                                                                     |
-| -------------------------------- | ------------- | ------------------------------------------------------------------------- |
-| `TASK_ORPHAN_SWEEPER_CRON`       | `*/2 * * * *` | How often the sweeper runs.                                               |
-| `TASK_ORPHAN_SWEEPER_GRACE_SEC`  | `300`         | Seconds added to `claim_expires_at` before a task is considered orphaned. |
-| `TASK_ORPHAN_SWEEPER_BATCH_SIZE` | `50`          | Max tasks force-released per sweep run.                                   |
+| Var                                 | Default       | Means                                                                     |
+| ----------------------------------- | ------------- | ------------------------------------------------------------------------- |
+| `TASK_ORPHAN_SWEEPER_CRON`          | `*/2 * * * *` | How often the sweeper runs.                                               |
+| `TASK_ORPHAN_SWEEPER_GRACE_SEC`     | `300`         | Seconds added to `claim_expires_at` before a task is considered orphaned. |
+| `TASK_ORPHAN_SWEEPER_BATCH_SIZE`    | `50`          | Max tasks force-released per sweep run.                                   |
+| `TASK_DEFAULT_EXPIRES_IN_SEC`       | `7776000`     | Default task lifetime when create omits `expiresInSec` (90 days).         |
+| `TASK_MAX_EXPIRES_IN_SEC`           | `7776000`     | Maximum caller-requested task lifetime (90 days).                         |
+| `TASK_RETENTION_SWEEPER_CRON`       | `0 * * * *`   | How often terminal task retention is applied.                             |
+| `TASK_RETENTION_SWEEPER_BATCH_SIZE` | `50`          | Max terminal tasks deleted per retention sweep run.                       |
+| `TASK_COMPLETED_RETENTION_DAYS`     | `180`         | Retention window for completed terminal tasks.                            |
+| `TASK_FAILED_RETENTION_DAYS`        | `90`          | Retention window for failed terminal tasks.                               |
+| `TASK_CANCELLED_RETENTION_DAYS`     | `90`          | Retention window for cancelled terminal tasks.                            |
+| `TASK_EXPIRED_RETENTION_DAYS`       | `90`          | Retention window for expired terminal tasks.                              |
 
 This is the only place that reads `claim_expires_at` for enforcement. During normal operation, the workflow's recv loop is the source of truth and the column is purely advisory observability.
+
+Task-level `expires_at` is separate from the claim lease. It bounds how long
+idle `waiting` / `queued` tasks can remain non-terminal; elapsed tasks are
+marked `expired` by the maintenance sweeper, and claim paths refuse to start
+work whose lifetime has already elapsed.
+
+Terminal retention is operator-owned deployment policy. The retention sweeper
+selects `completed` / `failed` / `cancelled` / `expired` tasks whose
+status-specific retention window has elapsed, skips sealed correlation tasks,
+and enqueues a DBOS `task-retention-cleanup` workflow. The queue has global
+concurrency `1` and uses the `task-retention-cleanup` deduplication ID so
+maintenance ticks cannot pile up overlapping cleanup batches. The cleanup
+workflow is split into immutable steps: build the manifest of task artifact
+objects and runtime session objects, delete those objects, delete task rows in
+one database transaction, and remove Keto task relations. DBOS workflow state
+and logs are the operational cleanup record; MoltNet does not keep a separate
+application cleanup-job table. No public cleanup API is exposed; operators
+control the policy through deployment configuration and the maintenance
+schedules trigger the workflow automatically.
 
 ### Task types
 

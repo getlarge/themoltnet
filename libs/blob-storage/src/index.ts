@@ -10,6 +10,7 @@ import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
 import {
   CreateBucketCommand,
   DeleteObjectCommand,
+  DeleteObjectsCommand,
   GetObjectCommand,
   HeadBucketCommand,
   HeadObjectCommand,
@@ -71,6 +72,8 @@ export interface BlobObjectStorage {
   headObject(key: string): Promise<BlobObjectHead | null>;
 
   deleteObject(key: string): Promise<void>;
+
+  deleteObjects(keys: string[]): Promise<void>;
 }
 
 export interface CreateS3CompatibleObjectStorageOptions {
@@ -88,6 +91,13 @@ export class BlobBodyNotReadableError extends Error {
   constructor() {
     super('Blob body must be a readable stream');
     this.name = 'BlobBodyNotReadableError';
+  }
+}
+
+export class BlobBulkDeleteError extends Error {
+  constructor(readonly errors: Array<{ key?: string; code?: string }>) {
+    super(`Failed to delete ${errors.length} blob object(s)`);
+    this.name = 'BlobBulkDeleteError';
   }
 }
 
@@ -179,6 +189,31 @@ export function createS3CompatibleObjectStorage(
       await client.send(
         new DeleteObjectCommand({ Bucket: config.bucket, Key: key }),
       );
+    },
+
+    async deleteObjects(keys) {
+      const uniqueKeys = [...new Set(keys)];
+      if (uniqueKeys.length === 0) return;
+      await requireBucketReady();
+      for (let i = 0; i < uniqueKeys.length; i += 1000) {
+        const result = await client.send(
+          new DeleteObjectsCommand({
+            Bucket: config.bucket,
+            Delete: {
+              Objects: uniqueKeys.slice(i, i + 1000).map((Key) => ({ Key })),
+              Quiet: true,
+            },
+          }),
+        );
+        if (result.Errors && result.Errors.length > 0) {
+          throw new BlobBulkDeleteError(
+            result.Errors.map((err) => ({
+              key: err.Key,
+              code: err.Code,
+            })),
+          );
+        }
+      }
     },
   };
 }

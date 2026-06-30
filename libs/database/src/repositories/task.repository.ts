@@ -6,8 +6,11 @@ import {
   gt,
   gte,
   inArray,
+  isNull,
   lt,
+  lte,
   notInArray,
+  or,
   type SQL,
   sql,
 } from 'drizzle-orm';
@@ -61,6 +64,13 @@ export interface TaskListFilterOpts {
   queuedBefore?: Date;
   completedAfter?: Date;
   completedBefore?: Date;
+}
+
+export interface TaskRetentionCutoffs {
+  completedBefore: Date;
+  failedBefore: Date;
+  cancelledBefore: Date;
+  expiredBefore: Date;
 }
 
 export function createTaskRepository(db: Database) {
@@ -222,6 +232,94 @@ export function createTaskRepository(db: Database) {
         .where(inArray(tasks.id, ids))
         .returning({ id: tasks.id });
       return deleted.map((row) => row.id);
+    },
+
+    async listExpiredNonTerminalTasks(
+      now: Date,
+      limit: number,
+    ): Promise<Task[]> {
+      return getExecutor(db)
+        .select()
+        .from(tasks)
+        .where(
+          and(
+            notInArray(tasks.status, [
+              'dispatched',
+              'running',
+              'completed',
+              'failed',
+              'cancelled',
+              'expired',
+            ]),
+            lte(tasks.expiresAt, now),
+          ),
+        )
+        .orderBy(asc(tasks.expiresAt))
+        .limit(limit);
+    },
+
+    async expireIfStillNonTerminal(id: string): Promise<Task | null> {
+      const [row] = await getExecutor(db)
+        .update(tasks)
+        .set({
+          status: 'expired',
+          completedAt: sql`now()`,
+          updatedAt: sql`now()`,
+        })
+        .where(
+          and(eq(tasks.id, id), inArray(tasks.status, ['waiting', 'queued'])),
+        )
+        .returning();
+      return row ?? null;
+    },
+
+    async expireManyIfStillNonTerminal(ids: string[]): Promise<Task[]> {
+      if (ids.length === 0) return [];
+      return getExecutor(db)
+        .update(tasks)
+        .set({
+          status: 'expired',
+          completedAt: sql`now()`,
+          updatedAt: sql`now()`,
+        })
+        .where(
+          and(
+            inArray(tasks.id, [...new Set(ids)]),
+            inArray(tasks.status, ['waiting', 'queued']),
+          ),
+        )
+        .returning();
+    },
+
+    async listTerminalTasksPastRetention(
+      cutoffs: TaskRetentionCutoffs,
+      limit: number,
+    ): Promise<Task[]> {
+      return getExecutor(db)
+        .select()
+        .from(tasks)
+        .where(
+          or(
+            and(
+              eq(tasks.status, 'completed'),
+              lte(tasks.completedAt, cutoffs.completedBefore),
+            ),
+            and(
+              eq(tasks.status, 'failed'),
+              lte(tasks.completedAt, cutoffs.failedBefore),
+            ),
+            and(
+              eq(tasks.status, 'cancelled'),
+              lte(tasks.completedAt, cutoffs.cancelledBefore),
+            ),
+            and(
+              eq(tasks.status, 'expired'),
+              lte(tasks.completedAt, cutoffs.expiredBefore),
+            ),
+          ),
+        )
+        .orderBy(asc(tasks.completedAt))
+        .limit(limit);
     },
 
     async updateMetadata(
@@ -391,7 +489,13 @@ export function createTaskRepository(db: Database) {
       const [row] = await getExecutor(db)
         .update(tasks)
         .set({ status: 'dispatched', updatedAt: sql`now()` })
-        .where(and(eq(tasks.id, id), eq(tasks.status, 'queued')))
+        .where(
+          and(
+            eq(tasks.id, id),
+            eq(tasks.status, 'queued'),
+            or(isNull(tasks.expiresAt), gt(tasks.expiresAt, sql`now()`)),
+          ),
+        )
         .returning();
       return row ?? null;
     },

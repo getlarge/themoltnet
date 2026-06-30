@@ -141,6 +141,7 @@ type TaskRepositoryMocks = {
   findSealedTaskIds: Mock<(ids: string[]) => Promise<string[]>>;
   deleteCorrelationSealsForTasks: Mock<(ids: string[]) => Promise<void>>;
   deleteMany: Mock<(ids: string[]) => Promise<string[]>>;
+  expireIfStillNonTerminal: Mock<(id: string) => Promise<DbTask | null>>;
   updateStatus: Mock<
     (
       id: string,
@@ -337,6 +338,23 @@ function makeMocks(
     deleteMany: vi
       .fn<(ids: string[]) => Promise<string[]>>()
       .mockImplementation((ids) => Promise.resolve(ids)),
+    expireIfStillNonTerminal: vi
+      .fn<(id: string) => Promise<DbTask | null>>()
+      .mockImplementation((id) => {
+        const task = opts.visibleTasks?.[id];
+        if (!task || (task.status !== 'waiting' && task.status !== 'queued')) {
+          return Promise.resolve(null);
+        }
+        const expired = {
+          ...task,
+          status: 'expired',
+          completedAt: new Date(),
+        } as DbTask;
+        if (opts.visibleTasks) {
+          opts.visibleTasks[id] = expired;
+        }
+        return Promise.resolve(expired);
+      }),
     updateStatus: vi
       .fn<
         (
@@ -616,6 +634,63 @@ describe('createTaskService.claim — runtime profile attestation', () => {
 
     expect(mocks.taskRepository.claimIfQueued).not.toHaveBeenCalled();
   });
+
+  it('expires an elapsed queued task before claiming it', async () => {
+    const expiredQueued = {
+      ...makeJudgeTask(JUDGE_TASK, 'queued'),
+      expiresAt: new Date('2020-01-01T00:00:00Z'),
+    };
+    mocks = makeMocks({
+      visibleTasks: {
+        [JUDGE_TASK]: expiredQueued,
+      },
+    });
+    service = createTaskService(
+      mocks as unknown as Parameters<typeof createTaskService>[0],
+    );
+
+    await expect(
+      service.claim(JUDGE_TASK, AGENT_ID, KetoNamespace.Agent),
+    ).rejects.toMatchObject({
+      code: 'conflict',
+      message: 'Task is already in terminal state: expired',
+    });
+
+    expect(mocks.taskRepository.expireIfStillNonTerminal).toHaveBeenCalledWith(
+      JUDGE_TASK,
+    );
+    expect(mocks.taskRepository.claimIfQueued).not.toHaveBeenCalled();
+  });
+
+  it('expires an elapsed waiting task before promoting it during claim', async () => {
+    const expiredWaiting = {
+      ...makeJudgeTask(JUDGE_TASK, 'waiting'),
+      claimCondition: { op: 'task_accepted' as const, taskId: RUN_TASK },
+      expiresAt: new Date('2020-01-01T00:00:00Z'),
+    };
+    mocks = makeMocks({
+      visibleTasks: {
+        [RUN_TASK]: makeRunEvalTask(RUN_TASK),
+        [JUDGE_TASK]: expiredWaiting,
+      },
+    });
+    service = createTaskService(
+      mocks as unknown as Parameters<typeof createTaskService>[0],
+    );
+
+    await expect(
+      service.claim(JUDGE_TASK, AGENT_ID, KetoNamespace.Agent),
+    ).rejects.toMatchObject({
+      code: 'conflict',
+      message: 'Task is already in terminal state: expired',
+    });
+
+    expect(mocks.taskRepository.expireIfStillNonTerminal).toHaveBeenCalledWith(
+      JUDGE_TASK,
+    );
+    expect(mocks.taskRepository.promoteWaitingTasks).not.toHaveBeenCalled();
+    expect(mocks.taskRepository.claimIfQueued).not.toHaveBeenCalled();
+  });
 });
 
 describe('createTaskService.create — judge_eval_attempt flow', () => {
@@ -810,6 +885,55 @@ describe('createTaskService.create — producer input normalization', () => {
     expect(newTask.proposedByAgentId).toBe(AGENT_ID);
     expect(newTask.proposedByHumanId).toBeNull();
   });
+
+  it('applies the configured default task lifetime when expiresInSec is omitted', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-30T12:00:00Z'));
+    try {
+      service = createTaskService({
+        ...(mocks as unknown as Parameters<typeof createTaskService>[0]),
+        taskLifetime: {
+          defaultExpiresInSec: 3600,
+          maxExpiresInSec: 7200,
+        },
+      });
+
+      await service.create(fulfillCreateInput() as never);
+
+      const newTask = mocks.taskRepository.create.mock.calls[0][0] as {
+        expiresAt: Date | null;
+      };
+      expect(newTask.expiresAt?.toISOString()).toBe('2026-06-30T13:00:00.000Z');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('rejects caller-requested task lifetimes above the configured cap', async () => {
+    service = createTaskService({
+      ...(mocks as unknown as Parameters<typeof createTaskService>[0]),
+      taskLifetime: {
+        defaultExpiresInSec: 3600,
+        maxExpiresInSec: 7200,
+      },
+    });
+
+    await expect(
+      service.create({
+        ...fulfillCreateInput(),
+        expiresInSec: 7201,
+      } as never),
+    ).rejects.toMatchObject({
+      code: 'invalid',
+      validationErrors: [
+        {
+          field: 'expiresInSec',
+          message: 'expiresInSec must be <= 7200',
+        },
+      ],
+    });
+    expect(mocks.taskRepository.create).not.toHaveBeenCalled();
+  });
 });
 
 describe('createTaskService.updateMetadata', () => {
@@ -967,22 +1091,22 @@ describe('createTaskService.create — conditional claimability', () => {
       claimCondition: { op: 'task_accepted' as const, taskId: RUN_TASK },
     };
     mocks.taskRepository.listWaitingTasksReferencingTask.mockImplementation(
-      async () => {
+      () => {
         events.push('list');
-        return [waitingJudge];
+        return Promise.resolve([waitingJudge]);
       },
     );
-    mocks.taskRepository.findByIds.mockImplementation(async () => {
+    mocks.taskRepository.findByIds.mockImplementation(() => {
       events.push('load-refs');
-      return [makeRunEvalTask(RUN_TASK)];
+      return Promise.resolve([makeRunEvalTask(RUN_TASK)]);
     });
-    mocks.permissionChecker.canViewTask.mockImplementation(async () => {
+    mocks.permissionChecker.canViewTask.mockImplementation(() => {
       events.push('validate-keto');
-      return true;
+      return Promise.resolve(true);
     });
-    mocks.taskRepository.promoteWaitingTasks.mockImplementation(async () => {
+    mocks.taskRepository.promoteWaitingTasks.mockImplementation(() => {
       events.push('promote');
-      return [{ ...waitingJudge, status: 'queued' }];
+      return Promise.resolve([{ ...waitingJudge, status: 'queued' }]);
     });
     service = createTaskService(
       mocks as unknown as Parameters<typeof createTaskService>[0],

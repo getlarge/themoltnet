@@ -17,9 +17,17 @@ import {
   DBOSErrors,
   type NonceRepository,
   type RenderedPackRepository,
+  type RuntimeSessionCleanupRef,
+  type RuntimeSessionRepository,
+  type Task,
+  type TaskArtifactCleanupRef,
+  type TaskArtifactRepository,
   type TaskRepository,
   type TransactionRunner,
+  WorkflowQueue,
 } from '@moltnet/database';
+import type { RuntimeSessionStorage } from '@moltnet/runtime-session-service';
+import type { TaskArtifactStorage } from '@moltnet/task-artifact-service';
 import type { FastifyBaseLogger } from 'fastify';
 
 import type { PackGcConfig, TaskOrphanSweeperConfig } from '../config.js';
@@ -31,11 +39,31 @@ export interface MaintenanceDeps {
   contextPackRepository: ContextPackRepository;
   renderedPackRepository: RenderedPackRepository;
   taskRepository: TaskRepository;
+  runtimeSessionRepository: RuntimeSessionRepository;
+  taskArtifactRepository: TaskArtifactRepository;
+  runtimeSessionStorage: RuntimeSessionStorage;
+  taskArtifactStorage: TaskArtifactStorage;
   dataSource: DataSource;
   transactionRunner: TransactionRunner;
   relationshipWriter: RelationshipWriter;
   logger: FastifyBaseLogger;
   notifyTaskStatusChanged?: (taskId: string) => Promise<void>;
+}
+
+interface TaskCleanupManifestTask {
+  id: string;
+  teamId: string;
+  diaryId: string | null;
+  claimAgentId: string | null;
+}
+
+interface TaskCleanupManifest {
+  tasks: TaskCleanupManifestTask[];
+  taskArtifacts: TaskArtifactCleanupRef[];
+  runtimeSessions: RuntimeSessionCleanupRef[];
+  skippedProtected: number;
+  batchFull: boolean;
+  createdAt: string;
 }
 
 // ── Dependency Injection ───────────────────────────────────────
@@ -45,6 +73,34 @@ let _deps: MaintenanceDeps | null = null;
 function getDeps(): MaintenanceDeps {
   if (!_deps) throw new Error('Maintenance deps not set');
   return _deps;
+}
+
+function toCleanupManifestTask(
+  task: Pick<Task, 'id' | 'teamId' | 'diaryId' | 'claimAgentId'>,
+): TaskCleanupManifestTask {
+  return {
+    id: task.id,
+    teamId: task.teamId,
+    diaryId: task.diaryId,
+    claimAgentId: task.claimAgentId,
+  };
+}
+
+function filterCleanupManifestByTaskIds(
+  manifest: TaskCleanupManifest,
+  taskIds: string[],
+): TaskCleanupManifest {
+  const taskIdSet = new Set(taskIds);
+  return {
+    ...manifest,
+    tasks: manifest.tasks.filter((task) => taskIdSet.has(task.id)),
+    taskArtifacts: manifest.taskArtifacts.filter((artifact) =>
+      taskIdSet.has(artifact.taskId),
+    ),
+    runtimeSessions: manifest.runtimeSessions.filter((session) =>
+      taskIdSet.has(session.taskId),
+    ),
+  };
 }
 
 export function setMaintenanceDeps(deps: MaintenanceDeps): void {
@@ -222,6 +278,18 @@ export function initMaintenanceWorkflows(
     orphanSweeperConfig.TASK_ORPHAN_SWEEPER_GRACE_SEC;
   const orphanBatchSize = orphanSweeperConfig.TASK_ORPHAN_SWEEPER_BATCH_SIZE;
   const orphanCron = orphanSweeperConfig.TASK_ORPHAN_SWEEPER_CRON;
+  const expiredTaskBatchSize =
+    orphanSweeperConfig.TASK_ORPHAN_SWEEPER_BATCH_SIZE;
+  const expiredTaskCron = orphanSweeperConfig.TASK_ORPHAN_SWEEPER_CRON;
+  const retentionBatchSize =
+    orphanSweeperConfig.TASK_RETENTION_SWEEPER_BATCH_SIZE;
+  const retentionCron = orphanSweeperConfig.TASK_RETENTION_SWEEPER_CRON;
+  const retentionDays = {
+    completed: orphanSweeperConfig.TASK_COMPLETED_RETENTION_DAYS,
+    failed: orphanSweeperConfig.TASK_FAILED_RETENTION_DAYS,
+    cancelled: orphanSweeperConfig.TASK_CANCELLED_RETENTION_DAYS,
+    expired: orphanSweeperConfig.TASK_EXPIRED_RETENTION_DAYS,
+  };
 
   const listOrphansStep = DBOS.registerStep(
     async (now: Date, gracePeriodSec: number, batchSize: number) => {
@@ -461,5 +529,352 @@ export function initMaintenanceWorkflows(
   DBOS.registerScheduled(taskOrphanSweeperSchedulerWorkflow, {
     name: 'maintenance.taskOrphanSweeperScheduler',
     crontab: orphanCron,
+  });
+
+  // ── Task Expiry Sweeper ──────────────────────────────────────
+  // Retention cleanup applies only to terminal tasks. This sweeper
+  // terminalizes waiting/queued tasks whose task-level lifetime elapsed,
+  // so expiresAt cannot be used as a long-term retention bypass.
+  const listExpiredTasksStep = DBOS.registerStep(
+    async (now: Date, batchSize: number) => {
+      const { taskRepository } = getDeps();
+      return taskRepository.listExpiredNonTerminalTasks(now, batchSize);
+    },
+    { name: 'maintenance.taskExpirySweeper.listExpired' },
+  );
+
+  const expireTasksStep = DBOS.registerStep(
+    async (taskIds: string[]) => {
+      const { taskRepository } = getDeps();
+      return taskRepository.expireManyIfStillNonTerminal(taskIds);
+    },
+    {
+      name: 'maintenance.taskExpirySweeper.expireTasks',
+      retriesAllowed: true,
+      maxAttempts: 3,
+      intervalSeconds: 2,
+      backoffRate: 2,
+    },
+  );
+
+  const notifyExpiredTasksStep = DBOS.registerStep(
+    async (
+      taskIds: string[],
+    ): Promise<{ notified: number; failed: number }> => {
+      const { logger, notifyTaskStatusChanged } = getDeps();
+      if (!notifyTaskStatusChanged || taskIds.length === 0) {
+        return { notified: 0, failed: 0 };
+      }
+      const notifyResults = await Promise.allSettled(
+        taskIds.map((taskId) => notifyTaskStatusChanged(taskId)),
+      );
+      let failed = 0;
+      notifyResults.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          failed += 1;
+          logger.error(
+            { taskId: taskIds[index], err: result.reason },
+            'maintenance: task expiry — notification failed',
+          );
+        }
+      });
+      return { notified: taskIds.length - failed, failed };
+    },
+    {
+      name: 'maintenance.taskExpirySweeper.notifyExpiredTasks',
+      retriesAllowed: true,
+      maxAttempts: 3,
+      intervalSeconds: 2,
+      backoffRate: 2,
+    },
+  );
+
+  const taskExpirySweeperWorkflow = DBOS.registerWorkflow(
+    async (input: {
+      batchSize: number;
+    }): Promise<{ examined: number; expired: number }> => {
+      const { logger } = getDeps();
+      const expiredCandidates = await listExpiredTasksStep(
+        new Date(),
+        input.batchSize,
+      );
+
+      const expiredTasks = await expireTasksStep(
+        expiredCandidates.map((task) => task.id),
+      );
+      await notifyExpiredTasksStep(expiredTasks.map((task) => task.id));
+      const expired = expiredTasks.length;
+
+      if (expiredCandidates.length > 0) {
+        logger.info(
+          { examined: expiredCandidates.length, expired },
+          'maintenance: task expiry complete',
+        );
+      }
+
+      return { examined: expiredCandidates.length, expired };
+    },
+    { name: 'maintenance.taskExpirySweeper' },
+  );
+
+  const taskExpirySweeperSchedulerWorkflow = DBOS.registerWorkflow(
+    async (_scheduledTime: Date, _actualTime: Date): Promise<void> => {
+      await DBOS.startWorkflow(taskExpirySweeperWorkflow)({
+        batchSize: expiredTaskBatchSize,
+      });
+    },
+    { name: 'maintenance.taskExpirySweeperScheduler' },
+  );
+
+  DBOS.registerScheduled(taskExpirySweeperSchedulerWorkflow, {
+    name: 'maintenance.taskExpirySweeperScheduler',
+    crontab: expiredTaskCron,
+  });
+
+  // ── Task Retention Sweeper ───────────────────────────────────
+  // Applies operator-owned retention policy to terminal task rows.
+  // This is deliberately separate from the non-terminal expiry sweeper:
+  // expiry terminalizes idle work, retention deletes old terminal rows.
+  const taskRetentionCleanupQueue = new WorkflowQueue(
+    'task-retention-cleanup',
+    { concurrency: 1 },
+  );
+
+  const buildRetentionCleanupManifestStep = DBOS.registerStep(
+    async (
+      now: Date,
+      policyDays: typeof retentionDays,
+      batchSize: number,
+    ): Promise<TaskCleanupManifest> => {
+      const {
+        taskRepository,
+        taskArtifactRepository,
+        runtimeSessionRepository,
+      } = getDeps();
+      const cutoff = (days: number) =>
+        new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+      const retainedTasks = await taskRepository.listTerminalTasksPastRetention(
+        {
+          completedBefore: cutoff(policyDays.completed),
+          failedBefore: cutoff(policyDays.failed),
+          cancelledBefore: cutoff(policyDays.cancelled),
+          expiredBefore: cutoff(policyDays.expired),
+        },
+        batchSize,
+      );
+      if (retainedTasks.length === 0) {
+        return {
+          tasks: [],
+          taskArtifacts: [],
+          runtimeSessions: [],
+          skippedProtected: 0,
+          batchFull: false,
+          createdAt: now.toISOString(),
+        };
+      }
+
+      const sealedIds = new Set(
+        await taskRepository.findSealedTaskIds(
+          retainedTasks.map((task) => task.id),
+        ),
+      );
+      const tasksForCleanup = retainedTasks
+        .filter((task) => !sealedIds.has(task.id))
+        .map(toCleanupManifestTask);
+      const taskIds = tasksForCleanup.map((task) => task.id);
+      const [taskArtifacts, runtimeSessions] = await Promise.all([
+        taskArtifactRepository.listCleanupRefsForTasks(taskIds),
+        runtimeSessionRepository.listCleanupRefsForTasks(taskIds),
+      ]);
+
+      return {
+        tasks: tasksForCleanup,
+        taskArtifacts,
+        runtimeSessions,
+        skippedProtected: sealedIds.size,
+        batchFull: retainedTasks.length >= batchSize,
+        createdAt: now.toISOString(),
+      };
+    },
+    {
+      name: 'maintenance.taskRetentionCleanup.buildManifest',
+      retriesAllowed: true,
+      maxAttempts: 3,
+      intervalSeconds: 2,
+      backoffRate: 2,
+    },
+  );
+
+  const deleteTaskArtifactObjectsStep = DBOS.registerStep(
+    async (manifest: TaskCleanupManifest): Promise<number> => {
+      const { taskArtifactStorage } = getDeps();
+      await taskArtifactStorage.deleteObjects(
+        manifest.taskArtifacts.map((artifact) => artifact.objectKey),
+      );
+      return manifest.taskArtifacts.length;
+    },
+    {
+      name: 'maintenance.taskRetentionCleanup.deleteTaskArtifactObjects',
+      retriesAllowed: true,
+      maxAttempts: 3,
+      intervalSeconds: 2,
+      backoffRate: 2,
+    },
+  );
+
+  const deleteRuntimeSessionObjectsStep = DBOS.registerStep(
+    async (manifest: TaskCleanupManifest): Promise<number> => {
+      const { runtimeSessionStorage } = getDeps();
+      await runtimeSessionStorage.deleteObjects(
+        manifest.runtimeSessions.map((session) => session.objectKey),
+      );
+      return manifest.runtimeSessions.length;
+    },
+    {
+      name: 'maintenance.taskRetentionCleanup.deleteRuntimeSessionObjects',
+      retriesAllowed: true,
+      maxAttempts: 3,
+      intervalSeconds: 2,
+      backoffRate: 2,
+    },
+  );
+
+  const deleteTaskRowsStep = DBOS.registerStep(
+    async (manifest: TaskCleanupManifest): Promise<TaskCleanupManifest> => {
+      const {
+        relationshipWriter,
+        runtimeSessionRepository,
+        taskRepository,
+        transactionRunner,
+      } = getDeps();
+      const sessionIds = manifest.runtimeSessions.map((session) => session.id);
+      const taskIds = manifest.tasks.map((task) => task.id);
+      const deletedIds = await transactionRunner.runInTransaction(async () => {
+        await runtimeSessionRepository.detachChildren(sessionIds);
+        const deletedTaskIds = await taskRepository.deleteMany(taskIds);
+        const deletedTaskIdSet = new Set(deletedTaskIds);
+        const deletedTasks = manifest.tasks.filter((task) =>
+          deletedTaskIdSet.has(task.id),
+        );
+        await relationshipWriter.removeTaskRelationsBatch(
+          deletedTasks.map((task) => ({
+            id: task.id,
+            diaryId: task.diaryId,
+            claimAgentId: task.claimAgentId,
+          })),
+        );
+        return deletedTaskIds;
+      });
+      return filterCleanupManifestByTaskIds(manifest, deletedIds);
+    },
+    {
+      name: 'maintenance.taskRetentionCleanup.deleteTaskRows',
+      retriesAllowed: true,
+      maxAttempts: 3,
+      intervalSeconds: 2,
+      backoffRate: 2,
+    },
+  );
+
+  const taskRetentionCleanupWorkflow = DBOS.registerWorkflow(
+    async (input: {
+      batchSize: number;
+      policyDays: typeof retentionDays;
+    }): Promise<{
+      examined: number;
+      deletedTaskCount: number;
+      deletedObjectCount: number;
+      skippedProtected: number;
+      batchFull: boolean;
+    }> => {
+      const { logger } = getDeps();
+      const manifest = await buildRetentionCleanupManifestStep(
+        new Date(),
+        input.policyDays,
+        input.batchSize,
+      );
+      const examined = manifest.tasks.length + manifest.skippedProtected;
+      if (manifest.tasks.length === 0) {
+        return {
+          examined,
+          deletedTaskCount: 0,
+          deletedObjectCount: 0,
+          skippedProtected: manifest.skippedProtected,
+          batchFull: manifest.batchFull,
+        };
+      }
+
+      const deletedManifest = await deleteTaskRowsStep(manifest);
+      const deletedArtifactObjects =
+        await deleteTaskArtifactObjectsStep(deletedManifest);
+      const deletedRuntimeSessionObjects =
+        await deleteRuntimeSessionObjectsStep(deletedManifest);
+      const deletedTaskCount = deletedManifest.tasks.length;
+
+      const deletedObjectCount =
+        deletedArtifactObjects + deletedRuntimeSessionObjects;
+      logger.info(
+        {
+          examined,
+          deletedTaskCount,
+          deletedObjectCount,
+          skippedProtected: manifest.skippedProtected,
+          batchFull: manifest.batchFull,
+        },
+        'maintenance: task retention cleanup complete',
+      );
+      return {
+        examined,
+        deletedTaskCount,
+        deletedObjectCount,
+        skippedProtected: manifest.skippedProtected,
+        batchFull: manifest.batchFull,
+      };
+    },
+    { name: 'maintenance.taskRetentionCleanup' },
+  );
+
+  const taskRetentionSweeperWorkflow = DBOS.registerWorkflow(
+    async (input: {
+      batchSize: number;
+      policyDays: typeof retentionDays;
+    }): Promise<{ enqueued: boolean }> => {
+      const { logger } = getDeps();
+      try {
+        await DBOS.startWorkflow(taskRetentionCleanupWorkflow, {
+          queueName: taskRetentionCleanupQueue.name,
+          enqueueOptions: {
+            deduplicationID: 'task-retention-cleanup',
+          },
+        })(input);
+        logger.info('maintenance: task retention cleanup queued');
+        return { enqueued: true };
+      } catch (err) {
+        if (err instanceof DBOSErrors.DBOSQueueDuplicatedError) {
+          logger.debug(
+            { err },
+            'maintenance: task retention cleanup already queued',
+          );
+          return { enqueued: false };
+        }
+        throw err;
+      }
+    },
+    { name: 'maintenance.taskRetentionSweeper' },
+  );
+
+  const taskRetentionSweeperSchedulerWorkflow = DBOS.registerWorkflow(
+    async (_scheduledTime: Date, _actualTime: Date): Promise<void> => {
+      await DBOS.startWorkflow(taskRetentionSweeperWorkflow)({
+        batchSize: retentionBatchSize,
+        policyDays: retentionDays,
+      });
+    },
+    { name: 'maintenance.taskRetentionSweeperScheduler' },
+  );
+
+  DBOS.registerScheduled(taskRetentionSweeperSchedulerWorkflow, {
+    name: 'maintenance.taskRetentionSweeperScheduler',
+    crontab: retentionCron,
   });
 }

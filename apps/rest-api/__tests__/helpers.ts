@@ -571,6 +571,7 @@ export function createMockServices(): MockServices {
       putObject: vi.fn(),
       getObject: vi.fn(),
       deleteObject: vi.fn(),
+      deleteObjects: vi.fn(),
     },
     taskArtifactRepository: {
       createForAttempt: vi.fn(),
@@ -586,6 +587,7 @@ export function createMockServices(): MockServices {
       getObject: vi.fn(),
       headObject: vi.fn(),
       deleteObject: vi.fn(),
+      deleteObjects: vi.fn(),
     },
     runtimeModelRepository: {
       create: vi.fn(),

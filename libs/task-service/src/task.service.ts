@@ -242,6 +242,10 @@ interface TaskServiceDeps {
    */
   transactionRunner: TransactionRunner;
   logger: Logger;
+  taskLifetime?: {
+    defaultExpiresInSec: number;
+    maxExpiresInSec: number;
+  };
 }
 
 function normalizeTaskTitle(title: string | null | undefined): string | null {
@@ -274,7 +278,10 @@ export function createTaskService(deps: TaskServiceDeps) {
     relationshipWriter,
     transactionRunner,
     logger,
+    taskLifetime,
   } = deps;
+  const defaultExpiresInSec = taskLifetime?.defaultExpiresInSec ?? null;
+  const maxExpiresInSec = taskLifetime?.maxExpiresInSec ?? null;
 
   /**
    * Build the async validation context (#1096) for one create call.
@@ -447,6 +454,21 @@ export function createTaskService(deps: TaskServiceDeps) {
     return evaluateClaimConditionFromTasks(condition, tasksById);
   }
 
+  function isTaskLifetimeExpired(row: DbTask): boolean {
+    return (
+      (row.status === 'waiting' || row.status === 'queued') &&
+      row.expiresAt !== null &&
+      row.expiresAt.getTime() <= Date.now()
+    );
+  }
+
+  async function expireIfLifetimeElapsed(row: DbTask): Promise<DbTask> {
+    if (!isTaskLifetimeExpired(row)) return row;
+    const expired = await taskRepository.expireIfStillNonTerminal(row.id);
+    if (expired) return expired;
+    return (await taskRepository.findById(row.id)) ?? row;
+  }
+
   async function promoteSatisfiedWaitingTasks(
     opts: { triggerTaskId?: string } = {},
   ): Promise<DbTask[]> {
@@ -476,6 +498,10 @@ export function createTaskService(deps: TaskServiceDeps) {
 
     const promotableIds: string[] = [];
     for (const { task } of satisfied) {
+      if (isTaskLifetimeExpired(task)) {
+        await expireIfLifetimeElapsed(task);
+        continue;
+      }
       const proposerId = task.proposedByAgentId ?? task.proposedByHumanId;
       const proposerNs = task.proposedByAgentId
         ? KetoNamespace.Agent
@@ -512,6 +538,7 @@ export function createTaskService(deps: TaskServiceDeps) {
   }
 
   async function promoteWaitingTaskIfSatisfied(row: DbTask): Promise<DbTask> {
+    row = await expireIfLifetimeElapsed(row);
     const condition = row.claimCondition as ClaimCondition | null;
     if (row.status !== 'waiting' || !condition) return row;
     const tasksById = await loadConditionTaskMap(condition);
@@ -670,9 +697,29 @@ export function createTaskService(deps: TaskServiceDeps) {
       }
       const inputCid = await computeJsonCid(normalizedInput);
 
-      const expiresAt = input.expiresInSec
-        ? new Date(Date.now() + input.expiresInSec * 1000)
-        : null;
+      if (
+        input.expiresInSec !== undefined &&
+        maxExpiresInSec !== null &&
+        input.expiresInSec > maxExpiresInSec
+      ) {
+        throw new TaskServiceError(
+          'invalid',
+          `expiresInSec exceeds maximum task lifetime (${maxExpiresInSec}s)`,
+          [
+            {
+              field: 'expiresInSec',
+              message: `expiresInSec must be <= ${maxExpiresInSec}`,
+            },
+          ],
+        );
+      }
+
+      const effectiveExpiresInSec =
+        input.expiresInSec ?? defaultExpiresInSec ?? null;
+      const expiresAt =
+        effectiveExpiresInSec !== null
+          ? new Date(Date.now() + effectiveExpiresInSec * 1000)
+          : null;
       const conditionSatisfied = input.claimCondition
         ? await isClaimConditionSatisfied(input.claimCondition)
         : true;
@@ -1063,10 +1110,19 @@ export function createTaskService(deps: TaskServiceDeps) {
             'Not authorized to claim this task',
           );
       }
-      const row =
+      let row =
         initialRow?.status === 'waiting'
           ? await promoteWaitingTaskIfSatisfied(initialRow)
           : initialRow;
+      if (row) {
+        row = await expireIfLifetimeElapsed(row);
+        if (TERMINAL_STATUSES.has(row.status)) {
+          throw new TaskServiceError(
+            'conflict',
+            `Task is already in terminal state: ${row.status}`,
+          );
+        }
+      }
       if (!row || row.status !== 'queued') {
         throw new TaskServiceError(
           'conflict',

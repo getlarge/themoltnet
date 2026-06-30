@@ -203,6 +203,13 @@
       "when": 1782588427241,
       "tag": "0028_fat_northstar",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1782812442847,
+      "tag": "0029_typical_expediter",
+      "breakpoints": true
     }
   ],
   "version": "7"

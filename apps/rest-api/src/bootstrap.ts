@@ -281,6 +281,12 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     oryClients.relationshipRead,
   );
   const relationshipWriter = createRelationshipWriter(oryClients.relationship);
+  const runtimeSessionStorage = createRuntimeSessionStorage(
+    config.runtimeSessionStorage,
+  );
+  const taskArtifactStorage = createTaskArtifactStorage(
+    config.taskArtifactStorage,
+  );
 
   // EMBEDDING_CACHE_DIR is resolved to an absolute path here because pnpm sets
   // the process cwd to apps/rest-api/ when running the dev script, so a relative
@@ -319,6 +325,10 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     relationshipWriter,
     transactionRunner,
     logger: app.log,
+    taskLifetime: {
+      defaultExpiresInSec: config.taskOrphanSweeper.TASK_DEFAULT_EXPIRES_IN_SEC,
+      maxExpiresInSec: config.taskOrphanSweeper.TASK_MAX_EXPIRES_IN_SEC,
+    },
   });
   const notifyTaskStatusChanged = async (taskId: string): Promise<void> => {
     try {
@@ -405,6 +415,10 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
           contextPackRepository,
           renderedPackRepository,
           taskRepository,
+          runtimeSessionRepository,
+          taskArtifactRepository,
+          runtimeSessionStorage,
+          taskArtifactStorage,
           dataSource: getDataSource(),
           transactionRunner: createDrizzleTransactionRunner(dbConnection.db),
           relationshipWriter,
@@ -515,11 +529,9 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     diaryTransferRepository,
     runtimeProfileRepository,
     runtimeSessionRepository,
-    runtimeSessionStorage: createRuntimeSessionStorage(
-      config.runtimeSessionStorage,
-    ),
+    runtimeSessionStorage,
     taskArtifactRepository,
-    taskArtifactStorage: createTaskArtifactStorage(config.taskArtifactStorage),
+    taskArtifactStorage,
     runtimeSessionMaxBytes:
       config.runtimeSessionStorage.RUNTIME_SESSION_MAX_BYTES,
     taskArtifactMaxBytes: config.taskArtifactStorage.TASK_ARTIFACT_MAX_BYTES,

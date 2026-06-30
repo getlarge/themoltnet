@@ -1,5 +1,10 @@
 import type * as DatabaseModule from '@moltnet/database';
-import { DBOS, type Task, type TaskAttempt } from '@moltnet/database';
+import {
+  DBOS,
+  DBOSErrors,
+  type Task,
+  type TaskAttempt,
+} from '@moltnet/database';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock DBOS BEFORE importing the module under test. We capture each
@@ -44,6 +49,13 @@ vi.mock('@moltnet/database', async () => {
       ),
       resumeWorkflow: vi.fn(),
     },
+    WorkflowQueue: class {
+      readonly name: string;
+
+      constructor(name: string) {
+        this.name = name;
+      }
+    },
   };
 });
 
@@ -59,6 +71,7 @@ const WORKFLOW_ID = `task:${TASK_ID}:1`;
 const AGENT_ID = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
 const GRACE_PERIOD_SEC = 300;
 const BATCH_SIZE = 50;
+const EXPIRED_TASK_ID = 'dddddddd-dddd-dddd-dddd-dddddddddddd';
 
 function makeOrphan(claimExpiresAt: Date): {
   task: Task;
@@ -98,6 +111,12 @@ function makeDeps(orphans: Array<{ task: Task; attempt: TaskAttempt }>): {
   };
   const taskRepository = {
     listOrphanedTasks: vi.fn().mockResolvedValue(orphans),
+    listExpiredNonTerminalTasks: vi.fn().mockResolvedValue([]),
+    expireIfStillNonTerminal: vi.fn().mockResolvedValue(null),
+    expireManyIfStillNonTerminal: vi.fn().mockResolvedValue([]),
+    listTerminalTasksPastRetention: vi.fn().mockResolvedValue([]),
+    findSealedTaskIds: vi.fn().mockResolvedValue([]),
+    deleteMany: vi.fn().mockResolvedValue([]),
     countAttempts: vi.fn().mockResolvedValue(1),
     getMaxAttempts: vi.fn().mockResolvedValue(1),
     findById: vi
@@ -116,16 +135,37 @@ function makeDeps(orphans: Array<{ task: Task; attempt: TaskAttempt }>): {
   };
   const relationshipWriter = {
     removeTaskClaimant: vi.fn().mockResolvedValue(undefined),
+    removeTaskRelationsBatch: vi.fn().mockResolvedValue(undefined),
+  };
+  const taskArtifactRepository = {
+    listCleanupRefsForTasks: vi.fn().mockResolvedValue([]),
+  };
+  const runtimeSessionRepository = {
+    listCleanupRefsForTasks: vi.fn().mockResolvedValue([]),
+    detachChildren: vi.fn().mockResolvedValue(undefined),
+  };
+  const taskArtifactStorage = {
+    deleteObject: vi.fn().mockResolvedValue(undefined),
+    deleteObjects: vi.fn().mockResolvedValue(undefined),
+  };
+  const runtimeSessionStorage = {
+    deleteObject: vi.fn().mockResolvedValue(undefined),
+    deleteObjects: vi.fn().mockResolvedValue(undefined),
   };
   const deps = {
     nonceRepository: {} as unknown,
     contextPackRepository: {} as unknown,
     renderedPackRepository: {} as unknown,
     taskRepository,
+    taskArtifactRepository,
+    runtimeSessionRepository,
+    taskArtifactStorage,
+    runtimeSessionStorage,
     dataSource,
     transactionRunner,
     relationshipWriter,
     logger,
+    notifyTaskStatusChanged: vi.fn().mockResolvedValue(undefined),
   } as unknown as MaintenanceDeps;
   return { deps, logger };
 }
@@ -144,6 +184,38 @@ async function runSweep(): Promise<{
     examined: number;
     resumed: number;
     forceReleased: number;
+  };
+}
+
+async function runExpirySweep(): Promise<{
+  examined: number;
+  expired: number;
+}> {
+  const sweeper = registeredWorkflows['maintenance.taskExpirySweeper'];
+  if (!sweeper) throw new Error('expiry sweeper workflow not registered');
+  return (await sweeper({
+    batchSize: BATCH_SIZE,
+  })) as {
+    examined: number;
+    expired: number;
+  };
+}
+
+async function runRetentionSweep(): Promise<{
+  enqueued: boolean;
+}> {
+  const sweeper = registeredWorkflows['maintenance.taskRetentionSweeper'];
+  if (!sweeper) throw new Error('retention sweeper workflow not registered');
+  return (await sweeper({
+    batchSize: BATCH_SIZE,
+    policyDays: {
+      completed: 180,
+      failed: 90,
+      cancelled: 90,
+      expired: 90,
+    },
+  })) as {
+    enqueued: boolean;
   };
 }
 
@@ -172,6 +244,14 @@ describe('taskOrphanSweeperWorkflow — backstop (#1077)', () => {
         TASK_ORPHAN_SWEEPER_CRON: '*/2 * * * *',
         TASK_ORPHAN_SWEEPER_GRACE_SEC: GRACE_PERIOD_SEC,
         TASK_ORPHAN_SWEEPER_BATCH_SIZE: BATCH_SIZE,
+        TASK_DEFAULT_EXPIRES_IN_SEC: 90 * 24 * 60 * 60,
+        TASK_MAX_EXPIRES_IN_SEC: 90 * 24 * 60 * 60,
+        TASK_RETENTION_SWEEPER_CRON: '0 * * * *',
+        TASK_RETENTION_SWEEPER_BATCH_SIZE: BATCH_SIZE,
+        TASK_COMPLETED_RETENTION_DAYS: 180,
+        TASK_FAILED_RETENTION_DAYS: 90,
+        TASK_CANCELLED_RETENTION_DAYS: 90,
+        TASK_EXPIRED_RETENTION_DAYS: 90,
       },
     );
     return DBOS;
@@ -285,6 +365,305 @@ describe('taskOrphanSweeperWorkflow — backstop (#1077)', () => {
 
     await expect(runSweep()).rejects.toThrow('ECONNREFUSED');
     expect(deps.taskRepository.updateAttempt).not.toHaveBeenCalled();
+  });
+
+  it('task expiry sweeper marks expired waiting or queued tasks as expired', async () => {
+    await init();
+    const { deps } = makeDeps([]);
+    const candidate = {
+      id: EXPIRED_TASK_ID,
+      status: 'waiting',
+      expiresAt: new Date('2026-06-30T00:00:00Z'),
+    } as unknown as Task;
+    vi.mocked(
+      deps.taskRepository.listExpiredNonTerminalTasks,
+    ).mockResolvedValue([candidate]);
+    vi.mocked(
+      deps.taskRepository.expireManyIfStillNonTerminal,
+    ).mockResolvedValue([
+      {
+        ...candidate,
+        status: 'expired',
+        completedAt: new Date('2026-07-01T00:00:00Z'),
+      } as unknown as Task,
+    ]);
+    const { setMaintenanceDeps: setDeps } =
+      await import('../src/workflows/maintenance.js');
+    setDeps(deps);
+
+    const result = await runExpirySweep();
+
+    expect(
+      deps.taskRepository.listExpiredNonTerminalTasks,
+    ).toHaveBeenCalledWith(expect.any(Date), BATCH_SIZE);
+    expect(
+      deps.taskRepository.expireManyIfStillNonTerminal,
+    ).toHaveBeenCalledWith([EXPIRED_TASK_ID]);
+    expect(deps.taskRepository.expireIfStillNonTerminal).not.toHaveBeenCalled();
+    expect(
+      registeredSteps['maintenance.taskExpirySweeper.notifyExpiredTasks'],
+    ).toBeDefined();
+    expect(deps.notifyTaskStatusChanged).toHaveBeenCalledWith(EXPIRED_TASK_ID);
+    expect(result).toEqual({ examined: 1, expired: 1 });
+  });
+
+  it('task retention sweeper enqueues cleanup through a deduped DBOS queue', async () => {
+    await init();
+    const { deps } = makeDeps([]);
+    const { setMaintenanceDeps: setDeps } =
+      await import('../src/workflows/maintenance.js');
+    setDeps(deps);
+
+    const result = await runRetentionSweep();
+
+    expect(DBOS.startWorkflow).toHaveBeenCalledWith(
+      registeredWorkflows['maintenance.taskRetentionCleanup'],
+      expect.objectContaining({
+        queueName: 'task-retention-cleanup',
+        enqueueOptions: {
+          deduplicationID: 'task-retention-cleanup',
+        },
+      }),
+    );
+    expect(result).toEqual({ enqueued: true });
+  });
+
+  it('task retention sweeper treats duplicate queue submissions as already enqueued', async () => {
+    await init();
+    const { deps } = makeDeps([]);
+    const { setMaintenanceDeps: setDeps } =
+      await import('../src/workflows/maintenance.js');
+    setDeps(deps);
+    vi.mocked(DBOS.startWorkflow).mockImplementationOnce(() => async () => {
+      throw new DBOSErrors.DBOSQueueDuplicatedError(
+        'existing-workflow',
+        'task-retention-cleanup',
+        'task-retention-cleanup',
+      );
+    });
+
+    const result = await runRetentionSweep();
+
+    expect(result).toEqual({ enqueued: false });
+  });
+
+  it('task retention cleanup workflow builds a manifest, deletes objects, rows, and relations', async () => {
+    await init();
+    const { deps } = makeDeps([]);
+    const retained = [
+      {
+        id: 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1',
+        status: 'completed',
+        teamId: '99999999-9999-9999-9999-999999999999',
+        diaryId: 'ffffffff-ffff-ffff-ffff-fffffffffff1',
+        claimAgentId: null,
+      },
+      {
+        id: 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee2',
+        status: 'failed',
+        teamId: '99999999-9999-9999-9999-999999999999',
+        diaryId: null,
+        claimAgentId: null,
+      },
+    ] as unknown as Task[];
+    vi.mocked(
+      deps.taskRepository.listTerminalTasksPastRetention,
+    ).mockResolvedValue(retained);
+    vi.mocked(deps.taskRepository.findSealedTaskIds).mockResolvedValue([
+      retained[1].id,
+    ]);
+    vi.mocked(
+      deps.taskArtifactRepository.listCleanupRefsForTasks,
+    ).mockResolvedValue([
+      {
+        id: '22222222-2222-2222-2222-222222222222',
+        taskId: retained[0].id,
+        objectKey: 'teams/t/artifacts/a',
+        sizeBytes: 123,
+      },
+    ]);
+    vi.mocked(
+      deps.runtimeSessionRepository.listCleanupRefsForTasks,
+    ).mockResolvedValue([
+      {
+        id: '33333333-3333-3333-3333-333333333333',
+        taskId: retained[0].id,
+        objectKey: 'teams/t/sessions/s',
+        sizeBytes: 456,
+      },
+    ]);
+    vi.mocked(deps.taskRepository.deleteMany).mockResolvedValue([
+      retained[0].id,
+    ]);
+    const { setMaintenanceDeps: setDeps } =
+      await import('../src/workflows/maintenance.js');
+    setDeps(deps);
+
+    const workflow = registeredWorkflows['maintenance.taskRetentionCleanup'];
+    if (!workflow) {
+      throw new Error('task retention cleanup workflow not registered');
+    }
+    const result = await workflow({
+      batchSize: BATCH_SIZE,
+      policyDays: {
+        completed: 180,
+        failed: 90,
+        cancelled: 90,
+        expired: 90,
+      },
+    });
+
+    expect(
+      deps.taskRepository.listTerminalTasksPastRetention,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        completedBefore: expect.any(Date),
+        failedBefore: expect.any(Date),
+        cancelledBefore: expect.any(Date),
+        expiredBefore: expect.any(Date),
+      }),
+      BATCH_SIZE,
+    );
+    expect(
+      deps.taskArtifactRepository.listCleanupRefsForTasks,
+    ).toHaveBeenCalledWith([retained[0].id]);
+    expect(
+      deps.runtimeSessionRepository.listCleanupRefsForTasks,
+    ).toHaveBeenCalledWith([retained[0].id]);
+    expect(deps.taskArtifactStorage.deleteObjects).toHaveBeenCalledWith([
+      'teams/t/artifacts/a',
+    ]);
+    expect(deps.runtimeSessionStorage.deleteObjects).toHaveBeenCalledWith([
+      'teams/t/sessions/s',
+    ]);
+    expect(deps.taskArtifactStorage.deleteObject).not.toHaveBeenCalled();
+    expect(deps.runtimeSessionStorage.deleteObject).not.toHaveBeenCalled();
+    expect(deps.runtimeSessionRepository.detachChildren).toHaveBeenCalledWith([
+      '33333333-3333-3333-3333-333333333333',
+    ]);
+    expect(deps.taskRepository.deleteMany).toHaveBeenCalledWith([
+      retained[0].id,
+    ]);
+    expect(
+      deps.relationshipWriter.removeTaskRelationsBatch,
+    ).toHaveBeenCalledWith([
+      {
+        id: retained[0].id,
+        diaryId: retained[0].diaryId,
+        claimAgentId: retained[0].claimAgentId,
+      },
+    ]);
+    expect(result).toEqual({
+      examined: 2,
+      deletedTaskCount: 1,
+      deletedObjectCount: 2,
+      skippedProtected: 1,
+      batchFull: false,
+    });
+  });
+
+  it('task retention cleanup only removes objects and relations for deleted task rows', async () => {
+    await init();
+    const { deps } = makeDeps([]);
+    const retained = [
+      {
+        id: 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee3',
+        status: 'completed',
+        teamId: '99999999-9999-9999-9999-999999999999',
+        diaryId: 'ffffffff-ffff-ffff-ffff-fffffffffff3',
+        claimAgentId: null,
+      },
+      {
+        id: 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee4',
+        status: 'completed',
+        teamId: '99999999-9999-9999-9999-999999999999',
+        diaryId: 'ffffffff-ffff-ffff-ffff-fffffffffff4',
+        claimAgentId: null,
+      },
+    ] as unknown as Task[];
+    vi.mocked(
+      deps.taskRepository.listTerminalTasksPastRetention,
+    ).mockResolvedValue(retained);
+    vi.mocked(deps.taskRepository.findSealedTaskIds).mockResolvedValue([]);
+    vi.mocked(
+      deps.taskArtifactRepository.listCleanupRefsForTasks,
+    ).mockResolvedValue([
+      {
+        id: '22222222-2222-2222-2222-222222222223',
+        taskId: retained[0].id,
+        objectKey: 'teams/t/artifacts/deleted',
+        sizeBytes: 123,
+      },
+      {
+        id: '22222222-2222-2222-2222-222222222224',
+        taskId: retained[1].id,
+        objectKey: 'teams/t/artifacts/kept',
+        sizeBytes: 456,
+      },
+    ]);
+    vi.mocked(
+      deps.runtimeSessionRepository.listCleanupRefsForTasks,
+    ).mockResolvedValue([
+      {
+        id: '33333333-3333-3333-3333-333333333334',
+        taskId: retained[0].id,
+        objectKey: 'teams/t/sessions/deleted',
+        sizeBytes: 456,
+      },
+      {
+        id: '33333333-3333-3333-3333-333333333335',
+        taskId: retained[1].id,
+        objectKey: 'teams/t/sessions/kept',
+        sizeBytes: 789,
+      },
+    ]);
+    vi.mocked(deps.taskRepository.deleteMany).mockResolvedValue([
+      retained[0].id,
+    ]);
+    const { setMaintenanceDeps: setDeps } =
+      await import('../src/workflows/maintenance.js');
+    setDeps(deps);
+
+    const workflow = registeredWorkflows['maintenance.taskRetentionCleanup'];
+    if (!workflow) {
+      throw new Error('task retention cleanup workflow not registered');
+    }
+    const result = await workflow({
+      batchSize: BATCH_SIZE,
+      policyDays: {
+        completed: 180,
+        failed: 90,
+        cancelled: 90,
+        expired: 90,
+      },
+    });
+
+    expect(deps.taskArtifactStorage.deleteObjects).toHaveBeenCalledTimes(1);
+    expect(deps.taskArtifactStorage.deleteObjects).toHaveBeenCalledWith([
+      'teams/t/artifacts/deleted',
+    ]);
+    expect(deps.runtimeSessionStorage.deleteObjects).toHaveBeenCalledTimes(1);
+    expect(deps.runtimeSessionStorage.deleteObjects).toHaveBeenCalledWith([
+      'teams/t/sessions/deleted',
+    ]);
+    expect(deps.taskArtifactStorage.deleteObject).not.toHaveBeenCalled();
+    expect(deps.runtimeSessionStorage.deleteObject).not.toHaveBeenCalled();
+    expect(
+      deps.relationshipWriter.removeTaskRelationsBatch,
+    ).toHaveBeenCalledWith([
+      {
+        id: retained[0].id,
+        diaryId: retained[0].diaryId,
+        claimAgentId: retained[0].claimAgentId,
+      },
+    ]);
+    expect(result).toEqual({
+      examined: 2,
+      deletedTaskCount: 1,
+      deletedObjectCount: 2,
+      skippedProtected: 0,
+      batchFull: false,
+    });
   });
 
   // Suppress unused-variable warning on imports we use only via dynamic re-import.

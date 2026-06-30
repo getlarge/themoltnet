@@ -1,0 +1,2 @@
+CREATE INDEX "tasks_non_terminal_expires_idx" ON "tasks" USING btree ("expires_at") WHERE expires_at IS NOT NULL AND status NOT IN ('dispatched', 'running', 'completed', 'failed', 'cancelled', 'expired');--> statement-breakpoint
+CREATE INDEX "tasks_terminal_retention_idx" ON "tasks" USING btree ("completed_at") WHERE completed_at IS NOT NULL AND status IN ('completed', 'failed', 'cancelled', 'expired');
