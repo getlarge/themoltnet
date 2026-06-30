@@ -2,6 +2,9 @@
 .eval-env.json
 .moltnet/eval-agent/
 .pi/auth.json
+.pi/bin/
+.pi/sessions/
+.pi/trust.json
 
 # Logs
 logs
@@ -198,6 +201,7 @@ packages/cli/npm/*/bin/
 .scratch/
 
 # Moltnet session data (contains agent credentials and state)
+.moltnet
 .moltnet/
 
 # TypeScript build output
