@@ -104,6 +104,50 @@ export type ConflictProblemDetails = Static<
   typeof ConflictProblemDetailsSchema
 >;
 
+// A single prompt-injection threat detected on a diary entry, as stored on
+// diary_entries.injection_threats and surfaced in the pack-create 409 below.
+// Embedded by value into InjectionConflictProblemDetailsSchema (same convention
+// as ConflictTargetSchema → ConflictErrorSchema). No $id: it is an inline leaf,
+// not a standalone component, so it does not emit a dangling named schema.
+export const InjectionThreatSchema = Type.Object(
+  {
+    type: Type.String(),
+    severity: Type.Number(),
+    match: Type.String(),
+  },
+  { additionalProperties: false },
+);
+
+export type InjectionThreat = Static<typeof InjectionThreatSchema>;
+
+// 409 returned by POST /diaries/:id/packs (create) when one or more selected
+// entries are flagged as a prompt-injection risk and `force` was not set. The
+// `flagged` list lets callers see exactly which entries (and why) before
+// deciding to re-run with force=true.
+export const InjectionConflictProblemDetailsSchema = Type.Intersect(
+  [
+    ConflictProblemDetailsSchema,
+    Type.Object({
+      flagged: Type.Optional(
+        Type.Array(
+          Type.Object(
+            {
+              id: Type.String({ format: 'uuid' }),
+              threats: Type.Array(InjectionThreatSchema),
+            },
+            { additionalProperties: false },
+          ),
+        ),
+      ),
+    }),
+  ],
+  { $id: 'InjectionConflictProblemDetails' },
+);
+
+export type InjectionConflictProblemDetails = Static<
+  typeof InjectionConflictProblemDetailsSchema
+>;
+
 export const ValidationProblemDetailsSchema = Type.Intersect(
   [
     ProblemDetailsSchema,

@@ -925,6 +925,9 @@ func TestPackCreateHelp(t *testing.T) {
 	if !strings.Contains(stdout, "entryId") {
 		t.Errorf("expected help to show JSON format with 'entryId', got: %s", stdout)
 	}
+	if !strings.Contains(stdout, "--force") {
+		t.Errorf("expected help to contain '--force', got: %s", stdout)
+	}
 }
 
 func TestPackUpdateRequiresPackID(t *testing.T) {

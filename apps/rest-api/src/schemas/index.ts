@@ -22,6 +22,7 @@ import {
   ConflictErrorSchema,
   ConflictProblemDetailsSchema,
   ConflictTargetSchema,
+  InjectionConflictProblemDetailsSchema,
   ProblemDetailsSchema,
   ProvenanceGraphSchema,
   ValidationProblemDetailsSchema,
@@ -112,6 +113,10 @@ export const sharedSchemas = [
   ConflictErrorSchema,
   ProblemDetailsSchema,
   ConflictProblemDetailsSchema,
+  // InjectionConflictProblemDetails extends ConflictProblemDetails (above) and
+  // embeds the threat shape by object — same as ConflictError/ConflictTarget,
+  // which are also inlined rather than registered as standalone components.
+  InjectionConflictProblemDetailsSchema,
   ValidationProblemDetailsSchema,
   // Register the principal variants BEFORE PrincipalIdentitySchema so the
   // union's Type.Ref(...) entries can resolve at addSchema() time. Anything

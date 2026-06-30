@@ -3685,7 +3685,6 @@ func (*ConflictProblemDetails) acceptTransferRes()         {}
 func (*ConflictProblemDetails) cancelTaskRes()             {}
 func (*ConflictProblemDetails) claimTaskRes()              {}
 func (*ConflictProblemDetails) completeTaskRes()           {}
-func (*ConflictProblemDetails) createDiaryCustomPackRes()  {}
 func (*ConflictProblemDetails) createDiaryEntryRes()       {}
 func (*ConflictProblemDetails) createDiaryGrantRes()       {}
 func (*ConflictProblemDetails) createGroupRes()            {}
@@ -22143,6 +22142,479 @@ type InitiateTransferUnauthorized ProblemDetails
 
 func (*InitiateTransferUnauthorized) initiateTransferRes() {}
 
+// Merged schema.
+// Ref: #/components/schemas/InjectionConflictProblemDetails
+type InjectionConflictProblemDetails struct {
+	Code            InjectionConflictProblemDetailsCode          `json:"code"`
+	Detail          OptString                                    `json:"detail"`
+	Instance        OptString                                    `json:"instance"`
+	Status          int                                          `json:"status"`
+	Title           string                                       `json:"title"`
+	Type            url.URL                                      `json:"type"`
+	Conflict        InjectionConflictProblemDetailsConflict      `json:"conflict"`
+	Flagged         []InjectionConflictProblemDetailsFlaggedItem `json:"flagged"`
+	AdditionalProps InjectionConflictProblemDetailsAdditional
+}
+
+// GetCode returns the value of Code.
+func (s *InjectionConflictProblemDetails) GetCode() InjectionConflictProblemDetailsCode {
+	return s.Code
+}
+
+// GetDetail returns the value of Detail.
+func (s *InjectionConflictProblemDetails) GetDetail() OptString {
+	return s.Detail
+}
+
+// GetInstance returns the value of Instance.
+func (s *InjectionConflictProblemDetails) GetInstance() OptString {
+	return s.Instance
+}
+
+// GetStatus returns the value of Status.
+func (s *InjectionConflictProblemDetails) GetStatus() int {
+	return s.Status
+}
+
+// GetTitle returns the value of Title.
+func (s *InjectionConflictProblemDetails) GetTitle() string {
+	return s.Title
+}
+
+// GetType returns the value of Type.
+func (s *InjectionConflictProblemDetails) GetType() url.URL {
+	return s.Type
+}
+
+// GetConflict returns the value of Conflict.
+func (s *InjectionConflictProblemDetails) GetConflict() InjectionConflictProblemDetailsConflict {
+	return s.Conflict
+}
+
+// GetFlagged returns the value of Flagged.
+func (s *InjectionConflictProblemDetails) GetFlagged() []InjectionConflictProblemDetailsFlaggedItem {
+	return s.Flagged
+}
+
+// GetAdditionalProps returns the value of AdditionalProps.
+func (s *InjectionConflictProblemDetails) GetAdditionalProps() InjectionConflictProblemDetailsAdditional {
+	return s.AdditionalProps
+}
+
+// SetCode sets the value of Code.
+func (s *InjectionConflictProblemDetails) SetCode(val InjectionConflictProblemDetailsCode) {
+	s.Code = val
+}
+
+// SetDetail sets the value of Detail.
+func (s *InjectionConflictProblemDetails) SetDetail(val OptString) {
+	s.Detail = val
+}
+
+// SetInstance sets the value of Instance.
+func (s *InjectionConflictProblemDetails) SetInstance(val OptString) {
+	s.Instance = val
+}
+
+// SetStatus sets the value of Status.
+func (s *InjectionConflictProblemDetails) SetStatus(val int) {
+	s.Status = val
+}
+
+// SetTitle sets the value of Title.
+func (s *InjectionConflictProblemDetails) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetType sets the value of Type.
+func (s *InjectionConflictProblemDetails) SetType(val url.URL) {
+	s.Type = val
+}
+
+// SetConflict sets the value of Conflict.
+func (s *InjectionConflictProblemDetails) SetConflict(val InjectionConflictProblemDetailsConflict) {
+	s.Conflict = val
+}
+
+// SetFlagged sets the value of Flagged.
+func (s *InjectionConflictProblemDetails) SetFlagged(val []InjectionConflictProblemDetailsFlaggedItem) {
+	s.Flagged = val
+}
+
+// SetAdditionalProps sets the value of AdditionalProps.
+func (s *InjectionConflictProblemDetails) SetAdditionalProps(val InjectionConflictProblemDetailsAdditional) {
+	s.AdditionalProps = val
+}
+
+func (*InjectionConflictProblemDetails) createDiaryCustomPackRes() {}
+
+type InjectionConflictProblemDetailsAdditional map[string]jx.Raw
+
+func (s *InjectionConflictProblemDetailsAdditional) init() InjectionConflictProblemDetailsAdditional {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type InjectionConflictProblemDetailsCode string
+
+const (
+	InjectionConflictProblemDetailsCodeUNAUTHORIZED                   InjectionConflictProblemDetailsCode = "UNAUTHORIZED"
+	InjectionConflictProblemDetailsCodeFORBIDDEN                      InjectionConflictProblemDetailsCode = "FORBIDDEN"
+	InjectionConflictProblemDetailsCodeNOTFOUND                       InjectionConflictProblemDetailsCode = "NOT_FOUND"
+	InjectionConflictProblemDetailsCodeCONFLICT                       InjectionConflictProblemDetailsCode = "CONFLICT"
+	InjectionConflictProblemDetailsCodeUNSUPPORTEDMEDIATYPE           InjectionConflictProblemDetailsCode = "UNSUPPORTED_MEDIA_TYPE"
+	InjectionConflictProblemDetailsCodeVALIDATIONFAILED               InjectionConflictProblemDetailsCode = "VALIDATION_FAILED"
+	InjectionConflictProblemDetailsCodeINVALIDCHALLENGE               InjectionConflictProblemDetailsCode = "INVALID_CHALLENGE"
+	InjectionConflictProblemDetailsCodeINVALIDSIGNATURE               InjectionConflictProblemDetailsCode = "INVALID_SIGNATURE"
+	InjectionConflictProblemDetailsCodeVOUCHERLIMIT                   InjectionConflictProblemDetailsCode = "VOUCHER_LIMIT"
+	InjectionConflictProblemDetailsCodeRATELIMITEXCEEDED              InjectionConflictProblemDetailsCode = "RATE_LIMIT_EXCEEDED"
+	InjectionConflictProblemDetailsCodeSERIALIZATIONEXHAUSTED         InjectionConflictProblemDetailsCode = "SERIALIZATION_EXHAUSTED"
+	InjectionConflictProblemDetailsCodeSIGNINGREQUESTEXPIRED          InjectionConflictProblemDetailsCode = "SIGNING_REQUEST_EXPIRED"
+	InjectionConflictProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED InjectionConflictProblemDetailsCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	InjectionConflictProblemDetailsCodeREGISTRATIONFAILED             InjectionConflictProblemDetailsCode = "REGISTRATION_FAILED"
+	InjectionConflictProblemDetailsCodeUPSTREAMERROR                  InjectionConflictProblemDetailsCode = "UPSTREAM_ERROR"
+	InjectionConflictProblemDetailsCodeSERVICEUNAVAILABLE             InjectionConflictProblemDetailsCode = "SERVICE_UNAVAILABLE"
+	InjectionConflictProblemDetailsCodeINTERNALSERVERERROR            InjectionConflictProblemDetailsCode = "INTERNAL_SERVER_ERROR"
+	InjectionConflictProblemDetailsCodeTEAMPERSONALIMMUTABLE          InjectionConflictProblemDetailsCode = "TEAM_PERSONAL_IMMUTABLE"
+	InjectionConflictProblemDetailsCodeTEAMNOTACTIVE                  InjectionConflictProblemDetailsCode = "TEAM_NOT_ACTIVE"
+	InjectionConflictProblemDetailsCodeINVITEEXPIRED                  InjectionConflictProblemDetailsCode = "INVITE_EXPIRED"
+	InjectionConflictProblemDetailsCodeINVITEEXHAUSTED                InjectionConflictProblemDetailsCode = "INVITE_EXHAUSTED"
+	InjectionConflictProblemDetailsCodeTEAMLASTOWNER                  InjectionConflictProblemDetailsCode = "TEAM_LAST_OWNER"
+	InjectionConflictProblemDetailsCodeTEAMALREADYACTIVE              InjectionConflictProblemDetailsCode = "TEAM_ALREADY_ACTIVE"
+	InjectionConflictProblemDetailsCodeTEAMNOTFOUNDING                InjectionConflictProblemDetailsCode = "TEAM_NOT_FOUNDING"
+	InjectionConflictProblemDetailsCodeFOUNDINGALREADYACCEPTED        InjectionConflictProblemDetailsCode = "FOUNDING_ALREADY_ACCEPTED"
+	InjectionConflictProblemDetailsCodeDIARYTRANSFERPENDING           InjectionConflictProblemDetailsCode = "DIARY_TRANSFER_PENDING"
+	InjectionConflictProblemDetailsCodeDIARYTRANSFERNOTFOUND          InjectionConflictProblemDetailsCode = "DIARY_TRANSFER_NOT_FOUND"
+	InjectionConflictProblemDetailsCodeDIARYTRANSFERALREADYRESOLVED   InjectionConflictProblemDetailsCode = "DIARY_TRANSFER_ALREADY_RESOLVED"
+)
+
+// AllValues returns all InjectionConflictProblemDetailsCode values.
+func (InjectionConflictProblemDetailsCode) AllValues() []InjectionConflictProblemDetailsCode {
+	return []InjectionConflictProblemDetailsCode{
+		InjectionConflictProblemDetailsCodeUNAUTHORIZED,
+		InjectionConflictProblemDetailsCodeFORBIDDEN,
+		InjectionConflictProblemDetailsCodeNOTFOUND,
+		InjectionConflictProblemDetailsCodeCONFLICT,
+		InjectionConflictProblemDetailsCodeUNSUPPORTEDMEDIATYPE,
+		InjectionConflictProblemDetailsCodeVALIDATIONFAILED,
+		InjectionConflictProblemDetailsCodeINVALIDCHALLENGE,
+		InjectionConflictProblemDetailsCodeINVALIDSIGNATURE,
+		InjectionConflictProblemDetailsCodeVOUCHERLIMIT,
+		InjectionConflictProblemDetailsCodeRATELIMITEXCEEDED,
+		InjectionConflictProblemDetailsCodeSERIALIZATIONEXHAUSTED,
+		InjectionConflictProblemDetailsCodeSIGNINGREQUESTEXPIRED,
+		InjectionConflictProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED,
+		InjectionConflictProblemDetailsCodeREGISTRATIONFAILED,
+		InjectionConflictProblemDetailsCodeUPSTREAMERROR,
+		InjectionConflictProblemDetailsCodeSERVICEUNAVAILABLE,
+		InjectionConflictProblemDetailsCodeINTERNALSERVERERROR,
+		InjectionConflictProblemDetailsCodeTEAMPERSONALIMMUTABLE,
+		InjectionConflictProblemDetailsCodeTEAMNOTACTIVE,
+		InjectionConflictProblemDetailsCodeINVITEEXPIRED,
+		InjectionConflictProblemDetailsCodeINVITEEXHAUSTED,
+		InjectionConflictProblemDetailsCodeTEAMLASTOWNER,
+		InjectionConflictProblemDetailsCodeTEAMALREADYACTIVE,
+		InjectionConflictProblemDetailsCodeTEAMNOTFOUNDING,
+		InjectionConflictProblemDetailsCodeFOUNDINGALREADYACCEPTED,
+		InjectionConflictProblemDetailsCodeDIARYTRANSFERPENDING,
+		InjectionConflictProblemDetailsCodeDIARYTRANSFERNOTFOUND,
+		InjectionConflictProblemDetailsCodeDIARYTRANSFERALREADYRESOLVED,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s InjectionConflictProblemDetailsCode) MarshalText() ([]byte, error) {
+	switch s {
+	case InjectionConflictProblemDetailsCodeUNAUTHORIZED:
+		return []byte(s), nil
+	case InjectionConflictProblemDetailsCodeFORBIDDEN:
+		return []byte(s), nil
+	case InjectionConflictProblemDetailsCodeNOTFOUND:
+		return []byte(s), nil
+	case InjectionConflictProblemDetailsCodeCONFLICT:
+		return []byte(s), nil
+	case InjectionConflictProblemDetailsCodeUNSUPPORTEDMEDIATYPE:
+		return []byte(s), nil
+	case InjectionConflictProblemDetailsCodeVALIDATIONFAILED:
+		return []byte(s), nil
+	case InjectionConflictProblemDetailsCodeINVALIDCHALLENGE:
+		return []byte(s), nil
+	case InjectionConflictProblemDetailsCodeINVALIDSIGNATURE:
+		return []byte(s), nil
+	case InjectionConflictProblemDetailsCodeVOUCHERLIMIT:
+		return []byte(s), nil
+	case InjectionConflictProblemDetailsCodeRATELIMITEXCEEDED:
+		return []byte(s), nil
+	case InjectionConflictProblemDetailsCodeSERIALIZATIONEXHAUSTED:
+		return []byte(s), nil
+	case InjectionConflictProblemDetailsCodeSIGNINGREQUESTEXPIRED:
+		return []byte(s), nil
+	case InjectionConflictProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case InjectionConflictProblemDetailsCodeREGISTRATIONFAILED:
+		return []byte(s), nil
+	case InjectionConflictProblemDetailsCodeUPSTREAMERROR:
+		return []byte(s), nil
+	case InjectionConflictProblemDetailsCodeSERVICEUNAVAILABLE:
+		return []byte(s), nil
+	case InjectionConflictProblemDetailsCodeINTERNALSERVERERROR:
+		return []byte(s), nil
+	case InjectionConflictProblemDetailsCodeTEAMPERSONALIMMUTABLE:
+		return []byte(s), nil
+	case InjectionConflictProblemDetailsCodeTEAMNOTACTIVE:
+		return []byte(s), nil
+	case InjectionConflictProblemDetailsCodeINVITEEXPIRED:
+		return []byte(s), nil
+	case InjectionConflictProblemDetailsCodeINVITEEXHAUSTED:
+		return []byte(s), nil
+	case InjectionConflictProblemDetailsCodeTEAMLASTOWNER:
+		return []byte(s), nil
+	case InjectionConflictProblemDetailsCodeTEAMALREADYACTIVE:
+		return []byte(s), nil
+	case InjectionConflictProblemDetailsCodeTEAMNOTFOUNDING:
+		return []byte(s), nil
+	case InjectionConflictProblemDetailsCodeFOUNDINGALREADYACCEPTED:
+		return []byte(s), nil
+	case InjectionConflictProblemDetailsCodeDIARYTRANSFERPENDING:
+		return []byte(s), nil
+	case InjectionConflictProblemDetailsCodeDIARYTRANSFERNOTFOUND:
+		return []byte(s), nil
+	case InjectionConflictProblemDetailsCodeDIARYTRANSFERALREADYRESOLVED:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *InjectionConflictProblemDetailsCode) UnmarshalText(data []byte) error {
+	switch InjectionConflictProblemDetailsCode(data) {
+	case InjectionConflictProblemDetailsCodeUNAUTHORIZED:
+		*s = InjectionConflictProblemDetailsCodeUNAUTHORIZED
+		return nil
+	case InjectionConflictProblemDetailsCodeFORBIDDEN:
+		*s = InjectionConflictProblemDetailsCodeFORBIDDEN
+		return nil
+	case InjectionConflictProblemDetailsCodeNOTFOUND:
+		*s = InjectionConflictProblemDetailsCodeNOTFOUND
+		return nil
+	case InjectionConflictProblemDetailsCodeCONFLICT:
+		*s = InjectionConflictProblemDetailsCodeCONFLICT
+		return nil
+	case InjectionConflictProblemDetailsCodeUNSUPPORTEDMEDIATYPE:
+		*s = InjectionConflictProblemDetailsCodeUNSUPPORTEDMEDIATYPE
+		return nil
+	case InjectionConflictProblemDetailsCodeVALIDATIONFAILED:
+		*s = InjectionConflictProblemDetailsCodeVALIDATIONFAILED
+		return nil
+	case InjectionConflictProblemDetailsCodeINVALIDCHALLENGE:
+		*s = InjectionConflictProblemDetailsCodeINVALIDCHALLENGE
+		return nil
+	case InjectionConflictProblemDetailsCodeINVALIDSIGNATURE:
+		*s = InjectionConflictProblemDetailsCodeINVALIDSIGNATURE
+		return nil
+	case InjectionConflictProblemDetailsCodeVOUCHERLIMIT:
+		*s = InjectionConflictProblemDetailsCodeVOUCHERLIMIT
+		return nil
+	case InjectionConflictProblemDetailsCodeRATELIMITEXCEEDED:
+		*s = InjectionConflictProblemDetailsCodeRATELIMITEXCEEDED
+		return nil
+	case InjectionConflictProblemDetailsCodeSERIALIZATIONEXHAUSTED:
+		*s = InjectionConflictProblemDetailsCodeSERIALIZATIONEXHAUSTED
+		return nil
+	case InjectionConflictProblemDetailsCodeSIGNINGREQUESTEXPIRED:
+		*s = InjectionConflictProblemDetailsCodeSIGNINGREQUESTEXPIRED
+		return nil
+	case InjectionConflictProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = InjectionConflictProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case InjectionConflictProblemDetailsCodeREGISTRATIONFAILED:
+		*s = InjectionConflictProblemDetailsCodeREGISTRATIONFAILED
+		return nil
+	case InjectionConflictProblemDetailsCodeUPSTREAMERROR:
+		*s = InjectionConflictProblemDetailsCodeUPSTREAMERROR
+		return nil
+	case InjectionConflictProblemDetailsCodeSERVICEUNAVAILABLE:
+		*s = InjectionConflictProblemDetailsCodeSERVICEUNAVAILABLE
+		return nil
+	case InjectionConflictProblemDetailsCodeINTERNALSERVERERROR:
+		*s = InjectionConflictProblemDetailsCodeINTERNALSERVERERROR
+		return nil
+	case InjectionConflictProblemDetailsCodeTEAMPERSONALIMMUTABLE:
+		*s = InjectionConflictProblemDetailsCodeTEAMPERSONALIMMUTABLE
+		return nil
+	case InjectionConflictProblemDetailsCodeTEAMNOTACTIVE:
+		*s = InjectionConflictProblemDetailsCodeTEAMNOTACTIVE
+		return nil
+	case InjectionConflictProblemDetailsCodeINVITEEXPIRED:
+		*s = InjectionConflictProblemDetailsCodeINVITEEXPIRED
+		return nil
+	case InjectionConflictProblemDetailsCodeINVITEEXHAUSTED:
+		*s = InjectionConflictProblemDetailsCodeINVITEEXHAUSTED
+		return nil
+	case InjectionConflictProblemDetailsCodeTEAMLASTOWNER:
+		*s = InjectionConflictProblemDetailsCodeTEAMLASTOWNER
+		return nil
+	case InjectionConflictProblemDetailsCodeTEAMALREADYACTIVE:
+		*s = InjectionConflictProblemDetailsCodeTEAMALREADYACTIVE
+		return nil
+	case InjectionConflictProblemDetailsCodeTEAMNOTFOUNDING:
+		*s = InjectionConflictProblemDetailsCodeTEAMNOTFOUNDING
+		return nil
+	case InjectionConflictProblemDetailsCodeFOUNDINGALREADYACCEPTED:
+		*s = InjectionConflictProblemDetailsCodeFOUNDINGALREADYACCEPTED
+		return nil
+	case InjectionConflictProblemDetailsCodeDIARYTRANSFERPENDING:
+		*s = InjectionConflictProblemDetailsCodeDIARYTRANSFERPENDING
+		return nil
+	case InjectionConflictProblemDetailsCodeDIARYTRANSFERNOTFOUND:
+		*s = InjectionConflictProblemDetailsCodeDIARYTRANSFERNOTFOUND
+		return nil
+	case InjectionConflictProblemDetailsCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = InjectionConflictProblemDetailsCodeDIARYTRANSFERALREADYRESOLVED
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type InjectionConflictProblemDetailsConflict struct {
+	Constraint OptString                                        `json:"constraint"`
+	Target     OptInjectionConflictProblemDetailsConflictTarget `json:"target"`
+}
+
+// GetConstraint returns the value of Constraint.
+func (s *InjectionConflictProblemDetailsConflict) GetConstraint() OptString {
+	return s.Constraint
+}
+
+// GetTarget returns the value of Target.
+func (s *InjectionConflictProblemDetailsConflict) GetTarget() OptInjectionConflictProblemDetailsConflictTarget {
+	return s.Target
+}
+
+// SetConstraint sets the value of Constraint.
+func (s *InjectionConflictProblemDetailsConflict) SetConstraint(val OptString) {
+	s.Constraint = val
+}
+
+// SetTarget sets the value of Target.
+func (s *InjectionConflictProblemDetailsConflict) SetTarget(val OptInjectionConflictProblemDetailsConflictTarget) {
+	s.Target = val
+}
+
+type InjectionConflictProblemDetailsConflictTarget struct {
+	ID       OptUUID                                              `json:"id"`
+	Keys     OptInjectionConflictProblemDetailsConflictTargetKeys `json:"keys"`
+	Resource string                                               `json:"resource"`
+}
+
+// GetID returns the value of ID.
+func (s *InjectionConflictProblemDetailsConflictTarget) GetID() OptUUID {
+	return s.ID
+}
+
+// GetKeys returns the value of Keys.
+func (s *InjectionConflictProblemDetailsConflictTarget) GetKeys() OptInjectionConflictProblemDetailsConflictTargetKeys {
+	return s.Keys
+}
+
+// GetResource returns the value of Resource.
+func (s *InjectionConflictProblemDetailsConflictTarget) GetResource() string {
+	return s.Resource
+}
+
+// SetID sets the value of ID.
+func (s *InjectionConflictProblemDetailsConflictTarget) SetID(val OptUUID) {
+	s.ID = val
+}
+
+// SetKeys sets the value of Keys.
+func (s *InjectionConflictProblemDetailsConflictTarget) SetKeys(val OptInjectionConflictProblemDetailsConflictTargetKeys) {
+	s.Keys = val
+}
+
+// SetResource sets the value of Resource.
+func (s *InjectionConflictProblemDetailsConflictTarget) SetResource(val string) {
+	s.Resource = val
+}
+
+type InjectionConflictProblemDetailsConflictTargetKeys map[string]string
+
+func (s *InjectionConflictProblemDetailsConflictTargetKeys) init() InjectionConflictProblemDetailsConflictTargetKeys {
+	m := *s
+	if m == nil {
+		m = map[string]string{}
+		*s = m
+	}
+	return m
+}
+
+type InjectionConflictProblemDetailsFlaggedItem struct {
+	ID      uuid.UUID                                               `json:"id"`
+	Threats []InjectionConflictProblemDetailsFlaggedItemThreatsItem `json:"threats"`
+}
+
+// GetID returns the value of ID.
+func (s *InjectionConflictProblemDetailsFlaggedItem) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetThreats returns the value of Threats.
+func (s *InjectionConflictProblemDetailsFlaggedItem) GetThreats() []InjectionConflictProblemDetailsFlaggedItemThreatsItem {
+	return s.Threats
+}
+
+// SetID sets the value of ID.
+func (s *InjectionConflictProblemDetailsFlaggedItem) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetThreats sets the value of Threats.
+func (s *InjectionConflictProblemDetailsFlaggedItem) SetThreats(val []InjectionConflictProblemDetailsFlaggedItemThreatsItem) {
+	s.Threats = val
+}
+
+type InjectionConflictProblemDetailsFlaggedItemThreatsItem struct {
+	Match    string  `json:"match"`
+	Severity float64 `json:"severity"`
+	Type     string  `json:"type"`
+}
+
+// GetMatch returns the value of Match.
+func (s *InjectionConflictProblemDetailsFlaggedItemThreatsItem) GetMatch() string {
+	return s.Match
+}
+
+// GetSeverity returns the value of Severity.
+func (s *InjectionConflictProblemDetailsFlaggedItemThreatsItem) GetSeverity() float64 {
+	return s.Severity
+}
+
+// GetType returns the value of Type.
+func (s *InjectionConflictProblemDetailsFlaggedItemThreatsItem) GetType() string {
+	return s.Type
+}
+
+// SetMatch sets the value of Match.
+func (s *InjectionConflictProblemDetailsFlaggedItemThreatsItem) SetMatch(val string) {
+	s.Match = val
+}
+
+// SetSeverity sets the value of Severity.
+func (s *InjectionConflictProblemDetailsFlaggedItemThreatsItem) SetSeverity(val float64) {
+	s.Severity = val
+}
+
+// SetType sets the value of Type.
+func (s *InjectionConflictProblemDetailsFlaggedItemThreatsItem) SetType(val string) {
+	s.Type = val
+}
+
 type IssueVoucherBadRequest ProblemDetails
 
 func (*IssueVoucherBadRequest) issueVoucherRes() {}
@@ -31002,6 +31474,98 @@ func (o OptGetDiaryEntryByIdExpand) Get() (v GetDiaryEntryByIdExpand, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptGetDiaryEntryByIdExpand) Or(d GetDiaryEntryByIdExpand) GetDiaryEntryByIdExpand {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptInjectionConflictProblemDetailsConflictTarget returns new OptInjectionConflictProblemDetailsConflictTarget with value set to v.
+func NewOptInjectionConflictProblemDetailsConflictTarget(v InjectionConflictProblemDetailsConflictTarget) OptInjectionConflictProblemDetailsConflictTarget {
+	return OptInjectionConflictProblemDetailsConflictTarget{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptInjectionConflictProblemDetailsConflictTarget is optional InjectionConflictProblemDetailsConflictTarget.
+type OptInjectionConflictProblemDetailsConflictTarget struct {
+	Value InjectionConflictProblemDetailsConflictTarget
+	Set   bool
+}
+
+// IsSet returns true if OptInjectionConflictProblemDetailsConflictTarget was set.
+func (o OptInjectionConflictProblemDetailsConflictTarget) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptInjectionConflictProblemDetailsConflictTarget) Reset() {
+	var v InjectionConflictProblemDetailsConflictTarget
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptInjectionConflictProblemDetailsConflictTarget) SetTo(v InjectionConflictProblemDetailsConflictTarget) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptInjectionConflictProblemDetailsConflictTarget) Get() (v InjectionConflictProblemDetailsConflictTarget, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptInjectionConflictProblemDetailsConflictTarget) Or(d InjectionConflictProblemDetailsConflictTarget) InjectionConflictProblemDetailsConflictTarget {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptInjectionConflictProblemDetailsConflictTargetKeys returns new OptInjectionConflictProblemDetailsConflictTargetKeys with value set to v.
+func NewOptInjectionConflictProblemDetailsConflictTargetKeys(v InjectionConflictProblemDetailsConflictTargetKeys) OptInjectionConflictProblemDetailsConflictTargetKeys {
+	return OptInjectionConflictProblemDetailsConflictTargetKeys{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptInjectionConflictProblemDetailsConflictTargetKeys is optional InjectionConflictProblemDetailsConflictTargetKeys.
+type OptInjectionConflictProblemDetailsConflictTargetKeys struct {
+	Value InjectionConflictProblemDetailsConflictTargetKeys
+	Set   bool
+}
+
+// IsSet returns true if OptInjectionConflictProblemDetailsConflictTargetKeys was set.
+func (o OptInjectionConflictProblemDetailsConflictTargetKeys) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptInjectionConflictProblemDetailsConflictTargetKeys) Reset() {
+	var v InjectionConflictProblemDetailsConflictTargetKeys
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptInjectionConflictProblemDetailsConflictTargetKeys) SetTo(v InjectionConflictProblemDetailsConflictTargetKeys) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptInjectionConflictProblemDetailsConflictTargetKeys) Get() (v InjectionConflictProblemDetailsConflictTargetKeys, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptInjectionConflictProblemDetailsConflictTargetKeys) Or(d InjectionConflictProblemDetailsConflictTargetKeys) InjectionConflictProblemDetailsConflictTargetKeys {
 	if v, ok := o.Get(); ok {
 		return v
 	}

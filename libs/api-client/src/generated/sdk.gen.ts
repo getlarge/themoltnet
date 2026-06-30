@@ -980,7 +980,7 @@ export const listDiaryPacks = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * Create and persist a custom context pack from an explicit entry selection.
+ * Create and persist a custom context pack from an explicit entry selection. Returns 409 if any selected entry is flagged as a prompt-injection risk; the response lists the flagged entries. Set `force: true` to override and persist anyway.
  */
 export const createDiaryCustomPack = <ThrowOnError extends boolean = false>(
   options: Options<CreateDiaryCustomPackData, ThrowOnError>,

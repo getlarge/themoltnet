@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -375,7 +376,7 @@ func renderPackMarkdown(id string, pack *moltnetapi.ContextPackResponse) string 
 }
 
 // runPackCreateCmd is the flag-free business logic for pack create.
-func runPackCreateCmd(apiURL, credPath, diaryID, entriesJSON string, tokenBudget int, pinned *bool) error {
+func runPackCreateCmd(apiURL, credPath, diaryID, entriesJSON string, tokenBudget int, pinned *bool, force bool) error {
 	diaryUUID, err := uuid.Parse(diaryID)
 	if err != nil {
 		return fmt.Errorf("invalid diary ID %q: %w", diaryID, err)
@@ -420,6 +421,9 @@ func runPackCreateCmd(apiURL, credPath, diaryID, entriesJSON string, tokenBudget
 	if pinned != nil {
 		req.Pinned = moltnetapi.NewOptBool(*pinned)
 	}
+	if force {
+		req.Force = moltnetapi.NewOptBool(true)
+	}
 
 	res, err := client.CreateDiaryCustomPack(
 		context.Background(),
@@ -430,12 +434,40 @@ func runPackCreateCmd(apiURL, credPath, diaryID, entriesJSON string, tokenBudget
 		return fmt.Errorf("pack create: %w", formatTransportError(err))
 	}
 
-	pack, ok := res.(*moltnetapi.CustomPackResult)
-	if !ok {
-		return formatAPIError(res)
+	if pack, ok := res.(*moltnetapi.CustomPackResult); ok {
+		return printJSON(pack)
 	}
 
-	return printJSON(pack)
+	// A 409 carries the prompt-injection-flagged entries; surface them so the
+	// caller knows exactly what to review before re-running with --force.
+	if conflict, ok := res.(*moltnetapi.InjectionConflictProblemDetails); ok {
+		return formatInjectionConflict(conflict)
+	}
+
+	return formatAPIError(res)
+}
+
+// formatInjectionConflict renders the 409 from a flagged pack-create, listing
+// each flagged entry and its detected threats, with a hint to use --force.
+func formatInjectionConflict(
+	conflict *moltnetapi.InjectionConflictProblemDetails,
+) error {
+	var b strings.Builder
+	detail := conflict.Detail.Or(conflict.Title)
+	fmt.Fprintf(&b, "%s\n", detail)
+	for _, entry := range conflict.Flagged {
+		types := make([]string, len(entry.Threats))
+		for i, t := range entry.Threats {
+			types[i] = t.Type
+		}
+		if len(types) > 0 {
+			fmt.Fprintf(&b, "  - %s (%s)\n", entry.ID, strings.Join(types, ", "))
+		} else {
+			fmt.Fprintf(&b, "  - %s\n", entry.ID)
+		}
+	}
+	fmt.Fprint(&b, "Re-run with --force to create the pack anyway.")
+	return errors.New(b.String())
 }
 
 // runPackUpdateCmd is the flag-free business logic for pack update.

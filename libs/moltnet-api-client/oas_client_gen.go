@@ -105,7 +105,9 @@ type Invoker interface {
 	CreateDiary(ctx context.Context, request *CreateDiaryReq, params CreateDiaryParams) (CreateDiaryRes, error)
 	// CreateDiaryCustomPack invokes createDiaryCustomPack operation.
 	//
-	// Create and persist a custom context pack from an explicit entry selection.
+	// Create and persist a custom context pack from an explicit entry selection. Returns 409 if any
+	// selected entry is flagged as a prompt-injection risk; the response lists the flagged entries. Set
+	// `force: true` to override and persist anyway.
 	//
 	// POST /diaries/{id}/packs
 	CreateDiaryCustomPack(ctx context.Context, request *CreateDiaryCustomPackReq, params CreateDiaryCustomPackParams) (CreateDiaryCustomPackRes, error)
@@ -2754,7 +2756,9 @@ func (c *Client) sendCreateDiary(ctx context.Context, request *CreateDiaryReq, p
 
 // CreateDiaryCustomPack invokes createDiaryCustomPack operation.
 //
-// Create and persist a custom context pack from an explicit entry selection.
+// Create and persist a custom context pack from an explicit entry selection. Returns 409 if any
+// selected entry is flagged as a prompt-injection risk; the response lists the flagged entries. Set
+// `force: true` to override and persist anyway.
 //
 // POST /diaries/{id}/packs
 func (c *Client) CreateDiaryCustomPack(ctx context.Context, request *CreateDiaryCustomPackReq, params CreateDiaryCustomPackParams) (CreateDiaryCustomPackRes, error) {

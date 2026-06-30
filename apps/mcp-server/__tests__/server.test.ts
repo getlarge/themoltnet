@@ -519,7 +519,7 @@ describe('buildApp', () => {
           "name": "moltnet_whoami",
         },
         {
-          "inputSchema": "7203f9c2b5fda0c2",
+          "inputSchema": "ea23e208e1cec3f2",
           "name": "packs_create",
         },
         {

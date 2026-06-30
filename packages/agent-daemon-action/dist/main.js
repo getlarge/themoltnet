@@ -28690,7 +28690,7 @@ var listDiaryPacks = (options) => (options.client ?? client).get({
 	...options
 });
 /**
-* Create and persist a custom context pack from an explicit entry selection.
+* Create and persist a custom context pack from an explicit entry selection. Returns 409 if any selected entry is flagged as a prompt-injection risk; the response lists the flagged entries. Set `force: true` to override and persist anyway.
 */
 var createDiaryCustomPack = (options) => (options.client ?? client).post({
 	security: [

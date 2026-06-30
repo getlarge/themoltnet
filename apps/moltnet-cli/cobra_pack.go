@@ -139,17 +139,24 @@ func newPackCreateCmd() *cobra.Command {
 		Use:   "create",
 		Short: "Create a custom context pack for a diary",
 		Long: `Create a custom context pack by specifying diary entries and their ranks.
-The --entries flag takes a JSON array of objects with entryId and rank fields.`,
+The --entries flag takes a JSON array of objects with entryId and rank fields.
+
+If any selected entry is flagged as a prompt-injection risk, the command fails
+and lists the flagged entries. Re-run with --force to override and create the
+pack anyway.`,
 		Example: fmt.Sprintf(`  moltnet pack create --diary-id <uuid> --entries '%s'
-  moltnet pack create --diary-id <uuid> --entries '%s' --token-budget 4096 --pinned`,
+  moltnet pack create --diary-id <uuid> --entries '%s' --token-budget 4096 --pinned
+  moltnet pack create --diary-id <uuid> --entries '%s' --force`,
 			`[{"entryId":"<uuid>","rank":1}]`,
-			`[{"entryId":"<uuid>","rank":1},{"entryId":"<uuid>","rank":2}]`),
+			`[{"entryId":"<uuid>","rank":1},{"entryId":"<uuid>","rank":2}]`,
+			`[{"entryId":"<uuid>","rank":1}]`),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			credPath, _ := cmd.Flags().GetString("credentials")
 			apiURL := resolveAPIURL(cmd, credPath)
 			diaryID, _ := cmd.Flags().GetString("diary-id")
 			entries, _ := cmd.Flags().GetString("entries")
 			tokenBudget, _ := cmd.Flags().GetInt("token-budget")
+			force, _ := cmd.Flags().GetBool("force")
 
 			var pinned *bool
 			if cmd.Flags().Changed("pinned") {
@@ -157,13 +164,14 @@ The --entries flag takes a JSON array of objects with entryId and rank fields.`,
 				pinned = &v
 			}
 
-			return runPackCreateCmd(apiURL, credPath, diaryID, entries, tokenBudget, pinned)
+			return runPackCreateCmd(apiURL, credPath, diaryID, entries, tokenBudget, pinned, force)
 		},
 	}
 	cmd.Flags().String("diary-id", "", "Diary UUID (required)")
 	cmd.Flags().String("entries", "", `JSON array of entries: [{"entryId":"<uuid>","rank":1}]`)
 	cmd.Flags().Int("token-budget", 0, "Token budget for the pack")
 	cmd.Flags().Bool("pinned", false, "Pin the pack")
+	cmd.Flags().Bool("force", false, "Override the prompt-injection guard and create the pack even if entries are flagged")
 	_ = cmd.MarkFlagRequired("diary-id")
 	_ = cmd.MarkFlagRequired("entries")
 	return cmd
