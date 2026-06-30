@@ -202,7 +202,7 @@ function buildNativeTmpfsMountCommand(mounts: string[]): string {
       return [
         `mkdir -p ${quoted}`,
         `if ! awk '{print $2}' /proc/mounts | grep -Fx ${quoted} >/dev/null; then`,
-        `  mount -t tmpfs -o mode=0755 tmpfs ${quoted}`,
+        `  mount -t tmpfs -o mode=0755,uid=501,gid=501 tmpfs ${quoted}`,
         'fi',
       ].join('\n');
     })

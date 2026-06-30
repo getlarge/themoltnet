@@ -91,10 +91,12 @@ mkdir .worktrees/testing/node_modules
 mkdir .worktrees/testing/node_modules/probe
 echo ok > .worktrees/testing/node_modules/probe/file.txt
 test -f .worktrees/testing/node_modules/probe/file.txt
+su agent -c 'touch /opt/pnpm-store/agent-write'
 python3 - <<'PY'
 import json
 import os
 import shutil
+import statistics
 import time
 
 workspace = os.environ["MOLTNET_GUEST_WORKSPACE"]
@@ -119,10 +121,13 @@ def bench(directory):
             f.write("x\\n")
     return int((time.perf_counter() - start) * 1000)
 
+def median_bench(directory):
+    return statistics.median(bench(directory) for _ in range(3))
+
 print(json.dumps({
     "mountType": mount_type(store),
-    "workspaceMs": bench(workspace_dir),
-    "tmpfsMs": bench(tmpfs_dir),
+    "workspaceMs": median_bench(workspace_dir),
+    "tmpfsMs": median_bench(tmpfs_dir),
 }, sort_keys=True))
 PY
 `,
@@ -134,7 +139,13 @@ PY
         workspaceMs: number;
       };
       expect(benchmark.mountType).toBe('tmpfs');
-      expect(benchmark.tmpfsMs * 2).toBeLessThan(benchmark.workspaceMs);
+      if (!(benchmark.tmpfsMs * 2 < benchmark.workspaceMs)) {
+        throw new Error(
+          `expected tmpfs writes to be at least 2x faster than workspace writes: ${JSON.stringify(
+            benchmark,
+          )}`,
+        );
+      }
       expect(
         existsSync(path.join(workspace, '.worktrees/testing/node_modules')),
       ).toBe(false);

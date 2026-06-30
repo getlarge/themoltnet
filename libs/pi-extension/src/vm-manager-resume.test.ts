@@ -164,7 +164,7 @@ describe('resumeVm task-context mount', () => {
     );
     expect(tmpfsCommand).toContain("mkdir -p '/opt/npm-cache'");
     expect(tmpfsCommand).toContain(
-      "mount -t tmpfs -o mode=0755 tmpfs '/opt/npm-cache'",
+      "mount -t tmpfs -o mode=0755,uid=501,gid=501 tmpfs '/opt/npm-cache'",
     );
     expect(tmpfsCommand).toContain("mkdir -p '/opt/pnpm-store'");
     expect(tmpfsCommand).toContain("mkdir -p '/opt/yarn-cache'");
