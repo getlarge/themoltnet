@@ -13,6 +13,7 @@ import type {
   RuntimeSession,
   RuntimeSessionRepository,
   RuntimeSlotRepository,
+  Task,
   TaskAttempt,
   TaskRepository,
 } from '@moltnet/database';
@@ -95,7 +96,11 @@ export function createRuntimeSessionService(deps: RuntimeSessionServiceDeps) {
       await requireTeamAccess(deps, input);
       const attempt = await assertTaskAttemptInTeam(deps, input);
       assertAttemptUploader(attempt, input.identityId);
-      await requireUploadAccess(deps, input, attempt);
+      if (!ATTEMPT_TERMINAL_STATUSES.has(attempt.status)) {
+        const task = await assertTaskInTeam(deps, input);
+        assertActiveTaskLease(task, input.identityId);
+      }
+      await requireTerminalRepairUploadAccess(deps, input, attempt);
       const sourceSlot = await assertSourceSlotInTeam(
         deps,
         input.query.sourceSlotId,
@@ -136,6 +141,12 @@ export function createRuntimeSessionService(deps: RuntimeSessionServiceDeps) {
           taskId: input.taskId,
           teamId: input.teamId,
         });
+        const latestAttempt = await assertTaskAttemptInTeam(deps, input);
+        assertAttemptUploader(latestAttempt, input.identityId);
+        if (!ATTEMPT_TERMINAL_STATUSES.has(latestAttempt.status)) {
+          const latestTask = await assertTaskInTeam(deps, input);
+          assertActiveTaskLease(latestTask, input.identityId);
+        }
         await deps.runtimeSessionStorage.putObject({
           body: createReadStream(staged.path),
           contentEncoding: 'gzip',
@@ -261,34 +272,10 @@ async function requireTaskReadAccess(
   if (!canView) throw createProblem('not-found');
 }
 
-async function requireTaskReportAccess(
+async function assertTaskInTeam(
   deps: RuntimeSessionServiceDeps,
-  input: RuntimeSessionSubject & { taskId: string },
+  input: { taskId: string; teamId: string },
 ) {
-  const canReport = await deps.permissionChecker.canReportTask(
-    input.taskId,
-    input.identityId,
-    input.subjectNs,
-  );
-  if (!canReport) throw createProblem('forbidden');
-}
-
-async function requireUploadAccess(
-  deps: RuntimeSessionServiceDeps,
-  input: RuntimeSessionSubject & { taskId: string },
-  attempt: TaskAttempt,
-) {
-  if (ATTEMPT_TERMINAL_STATUSES.has(attempt.status)) {
-    await requireTaskReadAccess(deps, input);
-    return;
-  }
-  await requireTaskReportAccess(deps, input);
-}
-
-async function assertTaskAttemptInTeam(
-  deps: RuntimeSessionServiceDeps,
-  input: { attemptN: number; taskId: string; teamId: string },
-): Promise<TaskAttempt> {
   const task = await deps.taskRepository.findById(input.taskId);
   if (!task || task.teamId !== input.teamId) {
     throw createValidationProblem(
@@ -301,6 +288,37 @@ async function assertTaskAttemptInTeam(
       'runtime session task does not resolve in team',
     );
   }
+  return task;
+}
+
+async function requireTerminalRepairUploadAccess(
+  deps: RuntimeSessionServiceDeps,
+  input: RuntimeSessionSubject & { taskId: string },
+  attempt: TaskAttempt,
+) {
+  if (ATTEMPT_TERMINAL_STATUSES.has(attempt.status)) {
+    await requireTaskReadAccess(deps, input);
+    return;
+  }
+}
+
+function assertActiveTaskLease(task: Task, identityId: string): void {
+  if (task.claimAgentId !== identityId) {
+    throw createProblem(
+      'forbidden',
+      'Only the active claiming agent may upload this runtime session',
+    );
+  }
+  if (!task.claimExpiresAt || task.claimExpiresAt.getTime() <= Date.now()) {
+    throw createProblem('conflict', 'Task claim lease has expired');
+  }
+}
+
+async function assertTaskAttemptInTeam(
+  deps: RuntimeSessionServiceDeps,
+  input: { attemptN: number; taskId: string; teamId: string },
+): Promise<TaskAttempt> {
+  await assertTaskInTeam(deps, input);
   const attempt = await deps.taskRepository.findAttempt(
     input.taskId,
     input.attemptN,

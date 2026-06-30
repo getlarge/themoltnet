@@ -155,6 +155,19 @@ function taskWorkflowId(taskId: string, attemptN: number): string {
   return `task:${taskId}:attempt:${attemptN}`;
 }
 
+function assertActiveTaskLease(
+  task: DbTask,
+  callerId: string,
+  message: string,
+): void {
+  if (task.claimAgentId !== callerId) {
+    throw new TaskServiceError('forbidden', message);
+  }
+  if (!task.claimExpiresAt || task.claimExpiresAt.getTime() <= Date.now()) {
+    throw new TaskServiceError('conflict', 'Task claim lease has expired');
+  }
+}
+
 export interface CreateTaskInput {
   taskType: string;
   title?: string;
@@ -1223,17 +1236,6 @@ export function createTaskService(deps: TaskServiceDeps) {
       cancelled: boolean;
       cancelReason: string | null;
     }> {
-      const canReport = await permissionChecker.canReportTask(
-        taskId,
-        callerId,
-        callerNs,
-      );
-      if (!canReport)
-        throw new TaskServiceError(
-          'forbidden',
-          'Not authorized to report on this task',
-        );
-
       const task = await taskRepository.findById(taskId);
       if (!task) throw new TaskServiceError('not_found', 'Task not found');
 
@@ -1268,6 +1270,11 @@ export function createTaskService(deps: TaskServiceDeps) {
           `Task is already in terminal state: ${task.status}`,
         );
       }
+      assertActiveTaskLease(
+        task,
+        callerId,
+        'Only the active claiming agent may send heartbeats',
+      );
 
       const workflowId = taskWorkflowId(taskId, attemptN);
       // Multiplexed `progress` topic (#936): the workflow's running-phase
@@ -1356,17 +1363,6 @@ export function createTaskService(deps: TaskServiceDeps) {
         daemonState?: DaemonState | null;
       },
     ): Promise<Task> {
-      const canReport = await permissionChecker.canReportTask(
-        taskId,
-        callerId,
-        callerNs,
-      );
-      if (!canReport)
-        throw new TaskServiceError(
-          'forbidden',
-          'Not authorized to report on this task',
-        );
-
       const task = await taskRepository.findById(taskId);
       if (!task) throw new TaskServiceError('not_found', 'Task not found');
       if (TERMINAL_STATUSES.has(task.status)) {
@@ -1389,6 +1385,11 @@ export function createTaskService(deps: TaskServiceDeps) {
           'Only the claiming agent may complete this attempt',
         );
       }
+      assertActiveTaskLease(
+        task,
+        callerId,
+        'Only the active claiming agent may complete this attempt',
+      );
       if (attempt.status === 'claimed') {
         // The DBOS workflow blocks on recv('started') before it will accept
         // a result. Without a prior /heartbeat the workflow has not crossed
@@ -1512,17 +1513,6 @@ export function createTaskService(deps: TaskServiceDeps) {
       callerNs: KetoNamespace,
       error: TaskError,
     ): Promise<Task> {
-      const canReport = await permissionChecker.canReportTask(
-        taskId,
-        callerId,
-        callerNs,
-      );
-      if (!canReport)
-        throw new TaskServiceError(
-          'forbidden',
-          'Not authorized to report on this task',
-        );
-
       const task = await taskRepository.findById(taskId);
       if (!task) throw new TaskServiceError('not_found', 'Task not found');
       if (TERMINAL_STATUSES.has(task.status)) {
@@ -1543,6 +1533,11 @@ export function createTaskService(deps: TaskServiceDeps) {
           'Only the claiming agent may fail this attempt',
         );
       }
+      assertActiveTaskLease(
+        task,
+        callerId,
+        'Only the active claiming agent may fail this attempt',
+      );
       if (attempt.status === 'claimed') {
         throw new TaskServiceError(
           'conflict',
@@ -1619,17 +1614,6 @@ export function createTaskService(deps: TaskServiceDeps) {
       // abandons this attempt (e.g. daemon SIGINT/SIGTERM) without
       // cancelling the whole task. The task requeues for another claim
       // when retry policy allows, or settles `failed` when exhausted.
-      const canReport = await permissionChecker.canReportTask(
-        taskId,
-        callerId,
-        callerNs,
-      );
-      if (!canReport)
-        throw new TaskServiceError(
-          'forbidden',
-          'Not authorized to report on this task',
-        );
-
       const task = await taskRepository.findById(taskId);
       if (!task) throw new TaskServiceError('not_found', 'Task not found');
       if (TERMINAL_STATUSES.has(task.status)) {
@@ -1650,6 +1634,11 @@ export function createTaskService(deps: TaskServiceDeps) {
           'Only the claiming agent may abort this attempt',
         );
       }
+      assertActiveTaskLease(
+        task,
+        callerId,
+        'Only the active claiming agent may abort this attempt',
+      );
       if (attempt.status === 'claimed') {
         throw new TaskServiceError(
           'conflict',
@@ -1961,16 +1950,19 @@ export function createTaskService(deps: TaskServiceDeps) {
         timestamp?: string;
       }>,
     ): Promise<{ count: number }> {
-      const canReport = await permissionChecker.canReportTask(
-        taskId,
-        callerId,
-        callerNs,
-      );
-      if (!canReport)
+      const task = await taskRepository.findById(taskId);
+      if (!task) throw new TaskServiceError('not_found', 'Task not found');
+      if (TERMINAL_STATUSES.has(task.status)) {
         throw new TaskServiceError(
-          'forbidden',
-          'Not authorized to append messages',
+          'conflict',
+          `Task is already in terminal state: ${task.status}`,
         );
+      }
+      assertActiveTaskLease(
+        task,
+        callerId,
+        'Only the active claiming agent may append messages',
+      );
 
       const attempt = await taskRepository.findAttempt(taskId, attemptN);
       if (!attempt)
@@ -1979,6 +1971,12 @@ export function createTaskService(deps: TaskServiceDeps) {
         throw new TaskServiceError(
           'forbidden',
           'Only the claiming agent may append messages',
+        );
+      }
+      if (ATTEMPT_TERMINAL_STATUSES.has(attempt.status)) {
+        throw new TaskServiceError(
+          'conflict',
+          `Attempt ${attemptN} is already in terminal state: ${attempt.status}`,
         );
       }
 

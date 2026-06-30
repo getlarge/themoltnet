@@ -14,6 +14,7 @@ import {
 const TEAM_ID = 'bbbbbbbb-0000-0000-0000-000000000002';
 const TASK_ID = 'aaaaaaaa-0000-0000-0000-000000000001';
 const ARTIFACT_ID = '99999999-0000-0000-0000-000000000006';
+const ACTIVE_CLAIM_EXPIRES_AT = new Date(Date.now() + 300_000);
 const TEAM_HEADERS = {
   authorization: 'Bearer test-token',
   'x-moltnet-team-id': TEAM_ID,
@@ -52,6 +53,8 @@ describe('task artifact routes', () => {
     mocks.permissionChecker.canReportTask.mockResolvedValue(true);
     mocks.permissionChecker.canViewTask.mockResolvedValue(true);
     mocks.taskRepository.findById.mockResolvedValue({
+      claimAgentId: VALID_AUTH_CONTEXT.identityId,
+      claimExpiresAt: ACTIVE_CLAIM_EXPIRES_AT,
       id: TASK_ID,
       teamId: TEAM_ID,
     });

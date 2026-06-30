@@ -19,6 +19,7 @@ const TASK_ID = 'aaaaaaaa-0000-0000-0000-000000000001';
 const PROFILE_ID = 'dddddddd-0000-0000-0000-000000000004';
 const SLOT_ID = 'eeeeeeee-0000-0000-0000-000000000005';
 const SESSION_ID = '99999999-0000-0000-0000-000000000006';
+const ACTIVE_CLAIM_EXPIRES_AT = new Date(Date.now() + 300_000);
 const TEAM_HEADERS = {
   authorization: 'Bearer test-token',
   'x-moltnet-team-id': TEAM_ID,
@@ -62,6 +63,8 @@ describe('runtime session routes', () => {
     mocks.permissionChecker.canReportTask.mockResolvedValue(true);
     mocks.permissionChecker.canViewTask.mockResolvedValue(true);
     mocks.taskRepository.findById.mockResolvedValue({
+      claimAgentId: VALID_AUTH_CONTEXT.identityId,
+      claimExpiresAt: ACTIVE_CLAIM_EXPIRES_AT,
       id: TASK_ID,
       teamId: TEAM_ID,
     });
@@ -126,6 +129,8 @@ describe('runtime session routes', () => {
 
   it('rejects uploads when the task belongs to another team', async () => {
     mocks.taskRepository.findById.mockResolvedValue({
+      claimAgentId: VALID_AUTH_CONTEXT.identityId,
+      claimExpiresAt: ACTIVE_CLAIM_EXPIRES_AT,
       id: TASK_ID,
       teamId: OTHER_TEAM_ID,
     });
@@ -145,8 +150,13 @@ describe('runtime session routes', () => {
     expect(mocks.runtimeSessionRepository.upsertActive).not.toHaveBeenCalled();
   });
 
-  it('requires task report permission for upload', async () => {
-    mocks.permissionChecker.canReportTask.mockResolvedValue(false);
+  it('rejects upload after the task claim lease expires', async () => {
+    mocks.taskRepository.findById.mockResolvedValue({
+      claimAgentId: VALID_AUTH_CONTEXT.identityId,
+      claimExpiresAt: new Date(Date.now() - 1_000),
+      id: TASK_ID,
+      teamId: TEAM_ID,
+    });
 
     const response = await app.inject({
       method: 'PUT',
@@ -158,7 +168,7 @@ describe('runtime session routes', () => {
       payload: Readable.from(['{"session":"one"}\n']),
     });
 
-    expect(response.statusCode).toBe(403);
+    expect(response.statusCode).toBe(409);
     expect(mocks.runtimeSessionStorage.putObject).not.toHaveBeenCalled();
   });
 

@@ -38,6 +38,10 @@ import {
   updateTaskMetadata,
 } from '@moltnet/api-client';
 import {
+  createRelationshipWriter,
+  type RelationshipWriter,
+} from '@moltnet/auth';
+import {
   buildExecutorClaimAttestationPayload,
   buildExecutorCompleteAttestationPayload,
   computeExecutorManifestCid,
@@ -54,12 +58,16 @@ import { createTestHarness, type TestHarness } from './setup.js';
 describe('Tasks API', () => {
   let harness: TestHarness;
   let client: Client;
+  let relationshipWriter: RelationshipWriter;
   let proposer: TestAgent;
   let claimer: TestAgent;
 
   beforeAll(async () => {
     harness = await createTestHarness();
     client = createClient({ baseUrl: harness.baseUrl });
+    relationshipWriter = createRelationshipWriter(
+      harness.oryClients.relationship,
+    );
 
     [proposer, claimer] = await Promise.all([
       createAgent({
@@ -894,6 +902,55 @@ describe('Tasks API', () => {
         },
       );
       expect(final.status).toBe('completed');
+    });
+
+    it('allows active DB claimant to heartbeat and complete when Keto claimant tuple is missing', async () => {
+      const { data: task } = await propose({
+        taskPrompt: 'active lease survives missing Keto claimant tuple',
+      });
+      const taskId = task!.id;
+      const { data: claimed } = await claim(taskId);
+      const attemptN = claimed!.attempt.attemptN;
+
+      await relationshipWriter.removeTaskClaimant(taskId, claimer.identityId);
+
+      const heartbeat = await taskHeartbeat({
+        client,
+        auth: () => claimer.accessToken,
+        path: { id: taskId, n: attemptN },
+        body: { leaseTtlSec: 30 },
+      });
+      expect(heartbeat.response.status).toBe(200);
+      expect(heartbeat.error).toBeUndefined();
+
+      const output = {
+        packId: '77777777-7777-4777-8777-777777777777',
+        packCid: 'bafymissingketoclaimant',
+        entries: [
+          {
+            entryId: '88888888-8888-4888-8888-888888888888',
+            rank: 1,
+            rationale: 'active DB lease remains authoritative for reporting.',
+          },
+        ],
+        recipeParams: { recipe: 'topic-focused-v1' },
+        summary: 'missing Keto claimant tuple should not block report upload',
+        verification: buildProducerVerification(),
+      };
+      const outputCid = await computeJsonCid(output);
+
+      const complete = await completeTask({
+        client,
+        auth: () => claimer.accessToken,
+        path: { id: taskId, n: attemptN },
+        body: {
+          output,
+          outputCid,
+          usage: { model: 'test-model', inputTokens: 1, outputTokens: 1 },
+        },
+      });
+      expect(complete.response.status).toBe(200);
+      expect(complete.error).toBeUndefined();
     });
   });
 
@@ -1961,6 +2018,30 @@ describe('Tasks API', () => {
       throw new Error(
         `claimant still 403'd after 5 retries; last status=${lastStatus}, body=${JSON.stringify(lastBody)}`,
       );
+    });
+
+    it('allows active DB claimant to append when Keto claimant tuple is missing', async () => {
+      const { data: task } = await propose({
+        taskPrompt: 'append with missing Keto claimant tuple',
+      });
+      const taskId = task!.id;
+      const { data: claimed } = await claim(taskId);
+      const attemptN = claimed!.attempt.attemptN;
+
+      await relationshipWriter.removeTaskClaimant(taskId, claimer.identityId);
+
+      const { data, error, response } = await appendTaskMessages({
+        client,
+        auth: () => claimer.accessToken,
+        path: { id: taskId, n: attemptN },
+        body: {
+          messages: [{ kind: 'info', payload: { event: 'task_started' } }],
+        },
+      });
+
+      expect(response.status).toBe(200);
+      expect(error).toBeUndefined();
+      expect(data!.count).toBe(1);
     });
   });
 

@@ -91,7 +91,12 @@ function createDeps() {
       }),
     },
     taskRepository: {
-      findById: vi.fn().mockResolvedValue({ id: TASK_ID, teamId: TEAM_ID }),
+      findById: vi.fn().mockResolvedValue({
+        claimAgentId: AGENT_ID,
+        claimExpiresAt: new Date(Date.now() + 60_000),
+        id: TASK_ID,
+        teamId: TEAM_ID,
+      }),
       findAttempt: vi.fn().mockResolvedValue({
         attemptN: 1,
         claimedByAgentId: AGENT_ID,
@@ -179,6 +184,56 @@ describe('createRuntimeSessionService', () => {
     expect(storage.putObject).not.toHaveBeenCalled();
   });
 
+  it('rejects running upload when the task claim moved to another agent', async () => {
+    vi.mocked(deps.taskRepository.findById).mockResolvedValue({
+      claimAgentId: '00000000-0000-4000-8000-000000000000',
+      claimExpiresAt: new Date(Date.now() + 60_000),
+      id: TASK_ID,
+      teamId: TEAM_ID,
+    } as never);
+
+    await expect(
+      subject.upload({
+        attemptN: 1,
+        body: Readable.from(['{"session":"one"}\n']),
+        identityId: AGENT_ID,
+        query: { sessionKind: 'root' },
+        subjectNs: KetoNamespace.Agent,
+        taskId: TASK_ID,
+        teamId: TEAM_ID,
+      }),
+    ).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+      statusCode: 403,
+    });
+    expect(storage.putObject).not.toHaveBeenCalled();
+  });
+
+  it('rejects running upload when the task claim lease has expired', async () => {
+    vi.mocked(deps.taskRepository.findById).mockResolvedValue({
+      claimAgentId: AGENT_ID,
+      claimExpiresAt: new Date(Date.now() - 1_000),
+      id: TASK_ID,
+      teamId: TEAM_ID,
+    } as never);
+
+    await expect(
+      subject.upload({
+        attemptN: 1,
+        body: Readable.from(['{"session":"one"}\n']),
+        identityId: AGENT_ID,
+        query: { sessionKind: 'root' },
+        subjectNs: KetoNamespace.Agent,
+        taskId: TASK_ID,
+        teamId: TEAM_ID,
+      }),
+    ).rejects.toMatchObject({
+      code: 'CONFLICT',
+      statusCode: 409,
+    });
+    expect(storage.putObject).not.toHaveBeenCalled();
+  });
+
   it('allows the claiming agent to repair-upload after terminal finalization without report access', async () => {
     vi.mocked(deps.taskRepository.findAttempt).mockResolvedValue({
       attemptN: 1,
@@ -209,13 +264,48 @@ describe('createRuntimeSessionService', () => {
     );
   });
 
-  it('rejects running upload when the claiming agent lacks report access', async () => {
+  it('allows running upload by the active DB claimant without report access', async () => {
     vi.mocked(deps.permissionChecker.canReportTask).mockResolvedValue(false);
+    vi.mocked(storage.putObject).mockImplementation(async (input) => {
+      await readStream(input.body);
+    });
+
+    await subject.upload({
+      attemptN: 1,
+      body: Readable.from(['{"session":"running"}\n']),
+      identityId: AGENT_ID,
+      query: { sessionKind: 'root' },
+      subjectNs: KetoNamespace.Agent,
+      taskId: TASK_ID,
+      teamId: TEAM_ID,
+    });
+
+    expect(deps.permissionChecker.canReportTask).not.toHaveBeenCalled();
+    expect(storage.putObject).toHaveBeenCalledOnce();
+  });
+
+  it('rejects running upload when the active task claim changes after staging', async () => {
+    const activeTask = {
+      claimAgentId: AGENT_ID,
+      claimExpiresAt: new Date(Date.now() + 60_000),
+      id: TASK_ID,
+      teamId: TEAM_ID,
+    };
+    vi.mocked(deps.taskRepository.findById)
+      .mockResolvedValueOnce(activeTask as never)
+      .mockResolvedValueOnce(activeTask as never)
+      .mockResolvedValueOnce(activeTask as never)
+      .mockResolvedValueOnce({
+        claimAgentId: '00000000-0000-4000-8000-000000000000',
+        claimExpiresAt: new Date(Date.now() + 60_000),
+        id: TASK_ID,
+        teamId: TEAM_ID,
+      } as never);
 
     await expect(
       subject.upload({
         attemptN: 1,
-        body: Readable.from(['{"session":"running"}\n']),
+        body: Readable.from(['{"session":"stale"}\n']),
         identityId: AGENT_ID,
         query: { sessionKind: 'root' },
         subjectNs: KetoNamespace.Agent,
@@ -227,6 +317,7 @@ describe('createRuntimeSessionService', () => {
       statusCode: 403,
     });
     expect(storage.putObject).not.toHaveBeenCalled();
+    expect(deps.runtimeSessionRepository.upsertActive).not.toHaveBeenCalled();
   });
 
   it('decompresses stored gzip content when downloading', async () => {

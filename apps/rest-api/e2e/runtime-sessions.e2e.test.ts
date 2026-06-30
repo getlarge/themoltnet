@@ -23,6 +23,10 @@ import {
   taskHeartbeat,
   uploadRuntimeSession,
 } from '@moltnet/api-client';
+import {
+  createRelationshipWriter,
+  type RelationshipWriter,
+} from '@moltnet/auth';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createAgent, type TestAgent } from './helpers.js';
@@ -31,6 +35,7 @@ import { createTestHarness, type TestHarness } from './setup.js';
 describe('Runtime sessions API', () => {
   let harness: TestHarness;
   let client: Client;
+  let relationshipWriter: RelationshipWriter;
   let owner: TestAgent;
   let teammate: TestAgent;
   let outsider: TestAgent;
@@ -41,6 +46,9 @@ describe('Runtime sessions API', () => {
   beforeAll(async () => {
     harness = await createTestHarness();
     client = createClient({ baseUrl: harness.baseUrl });
+    relationshipWriter = createRelationshipWriter(
+      harness.oryClients.relationship,
+    );
 
     [owner, teammate, outsider] = await Promise.all([
       createAgent({
@@ -258,6 +266,24 @@ describe('Runtime sessions API', () => {
     });
 
     expect(upload.response.status).toBe(403);
+  });
+
+  it('allows active DB claimant upload when Keto claimant tuple is missing', async () => {
+    const { attemptN, taskId } = await createClaimedTask(
+      'runtime session upload with missing Keto claimant tuple',
+    );
+
+    await relationshipWriter.removeTaskClaimant(taskId, teammate.identityId);
+
+    const upload = await uploadRuntimeSessionContent({
+      accessToken: teammate.accessToken,
+      attemptN,
+      content: '{"role":"system","content":"claim lease wins"}\n',
+      taskId,
+    });
+
+    expect(upload.response.status).toBe(200);
+    expect(upload.error).toBeUndefined();
   });
 
   it('rejects runtime session upload when the team header does not own the task', async () => {
