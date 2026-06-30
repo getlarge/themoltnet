@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.24.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.23.0...rest-api-v0.24.0) (2026-06-30)
+
+
+### Features
+
+* add task expiry and DBOS retention cleanup ([cfb3ff1](https://github.com/getlarge/themoltnet/commit/cfb3ff1e3a43a254c907e76341d5a18177c04ff3))
+* **tasks:** apply terminal retention policy ([6e1af20](https://github.com/getlarge/themoltnet/commit/6e1af20e744339f5b5b931b67ae466772c8a3dc4))
+* **tasks:** clean retained task storage ([9fa190a](https://github.com/getlarge/themoltnet/commit/9fa190a7620a56b09681508837cc965f5c0defb3))
+* **tasks:** expire stale queued tasks ([817ab08](https://github.com/getlarge/themoltnet/commit/817ab08afef22088b70528879fbb80626b2b091a))
+
+
+### Bug Fixes
+
+* **database:** harden task retention cleanup ([b631cbf](https://github.com/getlarge/themoltnet/commit/b631cbf14da6c6071fc760818ad2cf761177eff6))
+* **e2e:** drop stale docker-compose.e2e.ci.yaml reference in rest-api setup ([a186d74](https://github.com/getlarge/themoltnet/commit/a186d74e641050fb41f0e4f2dcc2d6d1fe5d7a22))
+* **e2e:** drop stale docker-compose.e2e.ci.yaml reference in rest-api setup ([a92bd32](https://github.com/getlarge/themoltnet/commit/a92bd321fb561ca27b5e859e59b22e82fa87d1e8))
+
 ## [0.23.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.22.0...rest-api-v0.23.0) (2026-06-30)
 
 

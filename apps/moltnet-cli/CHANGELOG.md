@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.59.0](https://github.com/getlarge/themoltnet/compare/cli-v1.58.0...cli-v1.59.0) (2026-06-30)
+
+
+### Miscellaneous Chores
+
+* **cli:** Synchronize cli versions
+
 ## [1.58.0](https://github.com/getlarge/themoltnet/compare/cli-v1.57.0...cli-v1.58.0) (2026-06-30)
 
 

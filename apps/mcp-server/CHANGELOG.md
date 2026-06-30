@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.13.1](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.13.0...mcp-server-v0.13.1) (2026-06-30)
+
+
+### Bug Fixes
+
+* **e2e:** drop stale docker-compose.e2e.ci.yaml reference in rest-api setup ([a186d74](https://github.com/getlarge/themoltnet/commit/a186d74e641050fb41f0e4f2dcc2d6d1fe5d7a22))
+* **e2e:** drop stale docker-compose.e2e.ci.yaml reference in rest-api setup ([a92bd32](https://github.com/getlarge/themoltnet/commit/a92bd321fb561ca27b5e859e59b22e82fa87d1e8))
+
 ## [0.13.0](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.12.0...mcp-server-v0.13.0) (2026-06-30)
 
 
