@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.117.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.116.0...sdk-v0.117.0) (2026-06-30)
+
+
+### Features
+
+* agent-side task attempt retry triage ([d9929cd](https://github.com/getlarge/themoltnet/commit/d9929cdc3531eedbfaa051a4318277187aad9395))
+
+
+### Bug Fixes
+
+* **api-client:** preserve fail task operation ([6ffef29](https://github.com/getlarge/themoltnet/commit/6ffef29263a1c56b88155296cc018d1bb843cfd7))
+
 ## [0.116.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.115.0...sdk-v0.116.0) (2026-06-29)
 
 

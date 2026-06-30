@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.58.0](https://github.com/getlarge/themoltnet/compare/cli-v1.57.0...cli-v1.58.0) (2026-06-30)
+
+
+### Features
+
+* **packs:** expose pack-create force override in CLI + MCP ([cd0e16b](https://github.com/getlarge/themoltnet/commit/cd0e16b0a4d5a0f459ba55adf8390a3db2be2f53))
+* **packs:** expose pack-create force override in CLI + MCP ([6f4c307](https://github.com/getlarge/themoltnet/commit/6f4c307df6046a71c45733844923d25b21cf70f8))
+
+
+### Bug Fixes
+
+* **runtime:** allow managers to administer runtime config ([734d3c3](https://github.com/getlarge/themoltnet/commit/734d3c3ad5049588934cee160e7fd147bb9145be))
+* **runtime:** allow managers to administer runtime config ([2c17ce5](https://github.com/getlarge/themoltnet/commit/2c17ce5acaad986f7c5c2f267370d12177129c34))
+
 ## [1.57.0](https://github.com/getlarge/themoltnet/compare/cli-v1.56.0...cli-v1.57.0) (2026-06-29)
 
 

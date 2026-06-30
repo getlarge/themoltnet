@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.13.0](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.12.0...mcp-server-v0.13.0) (2026-06-30)
+
+
+### Features
+
+* **docker:** Nx-owned image builds for local e2e stack ([6d4c550](https://github.com/getlarge/themoltnet/commit/6d4c550b03537eb47932130c7acd3801e1be1d13))
+* **packs:** expose pack-create force override in CLI + MCP ([cd0e16b](https://github.com/getlarge/themoltnet/commit/cd0e16b0a4d5a0f459ba55adf8390a3db2be2f53))
+* **packs:** expose pack-create force override in CLI + MCP ([6f4c307](https://github.com/getlarge/themoltnet/commit/6f4c307df6046a71c45733844923d25b21cf70f8))
+
 ## [0.12.0](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.11.0...mcp-server-v0.12.0) (2026-06-28)
 
 
