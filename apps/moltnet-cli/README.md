@@ -95,13 +95,13 @@ All API commands accept `--api-url` to override the default (`https://api.themol
 
 ## Versioning & Release Coupling
 
-The CLI depends on the generated Go API client (`libs/moltnet-api-client`, module `github.com/getlarge/themoltnet/libs/moltnet-api-client`). Both are versioned independently via release-please.
+The CLI depends on the generated Go API client (`libs/moltnet-api-client`, module `github.com/getlarge/themoltnet/libs/moltnet-api-client`). Both are versioned through Nx release groups.
 
 **Local dev:** `go.work` at the repo root ties both modules together — `go.work` supersedes the `replace` directive during development. Run `go test ./apps/moltnet-cli/...` from the repo root.
 
-**Release:** goreleaser runs with `GOWORK=off`. The `before.hooks` step in `.goreleaser.yml` drops the `replace` directive and pins the proxy version before building. **Do not remove the `replace` directive from `go.mod`** — it is the anchor that goreleaser strips at release time. Removing it will make the hook a no-op and break releases.
+**Release:** Nx release runs the Go artifact publisher with `GOWORK=off`. During release validation, the publisher can use local `replace` directives only for local rehearsals; production releases verify tagged Go modules through GOPROXY.
 
-**Updating the api-client pin:** after a new `libs/moltnet-api-client` tag is published, update the `require github.com/getlarge/themoltnet/libs/moltnet-api-client vX.Y.Z` line in `go.mod` and run `go mod tidy`. The `replace` directive remains; goreleaser drops it transiently at build time.
+**Updating the api-client pin:** prefer Nx release versioning so `tools/src/release/go-version-actions.ts` updates Go module dependencies consistently. For manual maintenance, update the `require github.com/getlarge/themoltnet/libs/moltnet-api-client vX.Y.Z` line in `go.mod`, keep the local `replace` directive for development, and run `go mod tidy`.
 
 ## See Also
 

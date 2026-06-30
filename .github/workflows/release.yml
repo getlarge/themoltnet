@@ -3,956 +3,192 @@ name: Release
 on:
   push:
     branches: [main]
-    paths-ignore:
-      - 'docs/**'
-      - '.claude/**'
-      - '**.md'
   workflow_dispatch:
     inputs:
-      republish:
-        description: >
-          Comma-separated packages to re-publish from existing draft releases.
-          Valid values: sdk, github-agent, legreffier, cli, api-client, dspy-adapters, skill, design-system, pi-extension, agent-runtime, node-red-theme, agent-daemon
+      dry-run:
+        description: 'Plan the release without committing, tagging, creating releases, or publishing.'
+        required: false
+        type: boolean
+        default: false
+      groups:
+        description: 'Optional comma-separated Nx release groups. Empty means affected groups.'
         required: false
         type: string
+        default: ''
 
 permissions:
   contents: write
-  pull-requests: write
   id-token: write
+  packages: write
 
-# nx@22 unconditionally loads workspace-root .env at bin startup via plain
-# dotenv. Our .env is dotenvx-encrypted, so plain-dotenv pulls ciphertext
-# into every variable it defines, which then leaks into every process Nx
-# spawns. This flag is the documented opt-out (honored by per-task and
-# per-executor env loading); we set it workflow-wide as a defense even
-# though nx@22.7.0's bin-level load currently ignores it. When the bin
-# eventually honors it (or on a future major version), this guards us.
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
 env:
   NX_LOAD_DOT_ENV_FILES: 'false'
 
 jobs:
-  release-please:
-    name: Release Please
-    if: github.event_name == 'push'
+  prepare:
+    name: Prepare release groups
+    if: "${{ github.event_name != 'push' || !startsWith(github.event.head_commit.message, 'chore(release): publish') }}"
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     outputs:
-      sdk-release-created: ${{ steps.release.outputs['libs/sdk--release_created'] }}
-      sdk-tag-name: ${{ steps.release.outputs['libs/sdk--tag_name'] }}
-      api-client-release-created: ${{ steps.release.outputs['libs/moltnet-api-client--release_created'] }}
-      api-client-tag-name: ${{ steps.release.outputs['libs/moltnet-api-client--tag_name'] }}
-      api-client-version: ${{ steps.release.outputs['libs/moltnet-api-client--version'] }}
-      dspy-adapters-release-created: ${{ steps.release.outputs['libs/dspy-adapters--release_created'] }}
-      dspy-adapters-tag-name: ${{ steps.release.outputs['libs/dspy-adapters--tag_name'] }}
-      dspy-adapters-version: ${{ steps.release.outputs['libs/dspy-adapters--version'] }}
-      cli-release-created: ${{ steps.release.outputs['apps/moltnet-cli--release_created'] }}
-      cli-tag-name: ${{ steps.release.outputs['apps/moltnet-cli--tag_name'] }}
-      github-agent-release-created: ${{ steps.release.outputs['packages/github-agent--release_created'] }}
-      github-agent-tag-name: ${{ steps.release.outputs['packages/github-agent--tag_name'] }}
-      skill-release-created: ${{ steps.release.outputs['packages/openclaw-skill--release_created'] }}
-      skill-tag-name: ${{ steps.release.outputs['packages/openclaw-skill--tag_name'] }}
-      skill-version: ${{ steps.release.outputs['packages/openclaw-skill--version'] }}
-      legreffier-release-created: ${{ steps.release.outputs['packages/legreffier-cli--release_created'] }}
-      legreffier-tag-name: ${{ steps.release.outputs['packages/legreffier-cli--tag_name'] }}
-      agent-runtime-release-created: ${{ steps.release.outputs['libs/agent-runtime--release_created'] }}
-      agent-runtime-tag-name: ${{ steps.release.outputs['libs/agent-runtime--tag_name'] }}
-      pi-extension-release-created: ${{ steps.release.outputs['libs/pi-extension--release_created'] }}
-      pi-extension-tag-name: ${{ steps.release.outputs['libs/pi-extension--tag_name'] }}
-      node-red-release-created: ${{ steps.release.outputs['libs/node-red-contrib-core--release_created'] }}
-      node-red-tag-name: ${{ steps.release.outputs['libs/node-red-contrib-core--tag_name'] }}
-      node-red-theme-release-created: ${{ steps.release.outputs['libs/node-red-theme--release_created'] }}
-      node-red-theme-tag-name: ${{ steps.release.outputs['libs/node-red-theme--tag_name'] }}
-      design-system-release-created: ${{ steps.release.outputs['libs/design-system--release_created'] }}
-      design-system-tag-name: ${{ steps.release.outputs['libs/design-system--tag_name'] }}
-      agent-daemon-release-created: ${{ steps.release.outputs['apps/agent-daemon--release_created'] }}
-      agent-daemon-tag-name: ${{ steps.release.outputs['apps/agent-daemon--tag_name'] }}
+      go-cli-groups: ${{ steps.release-groups.outputs.go-cli-groups }}
+      release-go-cli: ${{ steps.release-groups.outputs.release-go-cli }}
+      release-npm: ${{ steps.release-groups.outputs.release-npm }}
+      release-github-actions: ${{ steps.release-groups.outputs.release-github-actions }}
+      release-docker: ${{ steps.release-groups.outputs.release-docker }}
     steps:
-      - uses: googleapis/release-please-action@v4
-        id: release
+      - uses: actions/checkout@v6
         with:
+          fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
-          config-file: release-please-config.json
-          manifest-file: .release-please-manifest.json
 
-  # Unified resolution: merges release-please outputs with manual republish
-  # inputs so downstream jobs use a single set of outputs regardless of trigger.
-  resolve-publish:
-    name: Resolve packages to publish
-    needs: release-please
-    if: always() && !cancelled()
-    runs-on: ubuntu-latest
-    outputs:
-      sdk: ${{ steps.resolve.outputs.sdk }}
-      sdk-tag: ${{ steps.resolve.outputs.sdk-tag }}
-      github-agent: ${{ steps.resolve.outputs.github-agent }}
-      github-agent-tag: ${{ steps.resolve.outputs.github-agent-tag }}
-      cli: ${{ steps.resolve.outputs.cli }}
-      cli-tag: ${{ steps.resolve.outputs.cli-tag }}
-      api-client: ${{ steps.resolve.outputs.api-client }}
-      api-client-tag: ${{ steps.resolve.outputs.api-client-tag }}
-      api-client-version: ${{ steps.resolve.outputs.api-client-version }}
-      dspy-adapters: ${{ steps.resolve.outputs.dspy-adapters }}
-      dspy-adapters-tag: ${{ steps.resolve.outputs.dspy-adapters-tag }}
-      dspy-adapters-version: ${{ steps.resolve.outputs.dspy-adapters-version }}
-      skill: ${{ steps.resolve.outputs.skill }}
-      skill-tag: ${{ steps.resolve.outputs.skill-tag }}
-      skill-version: ${{ steps.resolve.outputs.skill-version }}
-      legreffier: ${{ steps.resolve.outputs.legreffier }}
-      legreffier-tag: ${{ steps.resolve.outputs.legreffier-tag }}
-      agent-runtime: ${{ steps.resolve.outputs.agent-runtime }}
-      agent-runtime-tag: ${{ steps.resolve.outputs.agent-runtime-tag }}
-      pi-extension: ${{ steps.resolve.outputs.pi-extension }}
-      pi-extension-tag: ${{ steps.resolve.outputs.pi-extension-tag }}
-      node-red: ${{ steps.resolve.outputs.node-red }}
-      node-red-tag: ${{ steps.resolve.outputs.node-red-tag }}
-      node-red-theme: ${{ steps.resolve.outputs.node-red-theme }}
-      node-red-theme-tag: ${{ steps.resolve.outputs.node-red-theme-tag }}
-      design-system: ${{ steps.resolve.outputs.design-system }}
-      design-system-tag: ${{ steps.resolve.outputs.design-system-tag }}
-      agent-daemon: ${{ steps.resolve.outputs.agent-daemon }}
-      agent-daemon-tag: ${{ steps.resolve.outputs.agent-daemon-tag }}
-    steps:
-      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v5
 
-      - name: Resolve publish targets
-        id: resolve
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RP_SDK_CREATED: ${{ needs.release-please.outputs.sdk-release-created }}
-          RP_SDK_TAG: ${{ needs.release-please.outputs.sdk-tag-name }}
-          RP_AGENT_CREATED: ${{ needs.release-please.outputs.github-agent-release-created }}
-          RP_AGENT_TAG: ${{ needs.release-please.outputs.github-agent-tag-name }}
-          RP_CLI_CREATED: ${{ needs.release-please.outputs.cli-release-created }}
-          RP_CLI_TAG: ${{ needs.release-please.outputs.cli-tag-name }}
-          RP_API_CREATED: ${{ needs.release-please.outputs.api-client-release-created }}
-          RP_API_TAG: ${{ needs.release-please.outputs.api-client-tag-name }}
-          RP_API_VERSION: ${{ needs.release-please.outputs.api-client-version }}
-          RP_DSPY_CREATED: ${{ needs.release-please.outputs.dspy-adapters-release-created }}
-          RP_DSPY_TAG: ${{ needs.release-please.outputs.dspy-adapters-tag-name }}
-          RP_DSPY_VERSION: ${{ needs.release-please.outputs.dspy-adapters-version }}
-          RP_SKILL_CREATED: ${{ needs.release-please.outputs.skill-release-created }}
-          RP_SKILL_TAG: ${{ needs.release-please.outputs.skill-tag-name }}
-          RP_SKILL_VERSION: ${{ needs.release-please.outputs.skill-version }}
-          RP_LEGREFFIER_CREATED: ${{ needs.release-please.outputs.legreffier-release-created }}
-          RP_LEGREFFIER_TAG: ${{ needs.release-please.outputs.legreffier-tag-name }}
-          RP_AGENT_RUNTIME_CREATED: ${{ needs.release-please.outputs.agent-runtime-release-created }}
-          RP_AGENT_RUNTIME_TAG: ${{ needs.release-please.outputs.agent-runtime-tag-name }}
-          RP_PI_EXTENSION_CREATED: ${{ needs.release-please.outputs.pi-extension-release-created }}
-          RP_PI_EXTENSION_TAG: ${{ needs.release-please.outputs.pi-extension-tag-name }}
-          RP_NODE_RED_CREATED: ${{ needs.release-please.outputs.node-red-release-created }}
-          RP_NODE_RED_TAG: ${{ needs.release-please.outputs.node-red-tag-name }}
-          RP_NODE_RED_THEME_CREATED: ${{ needs.release-please.outputs.node-red-theme-release-created }}
-          RP_NODE_RED_THEME_TAG: ${{ needs.release-please.outputs.node-red-theme-tag-name }}
-          RP_DESIGN_SYSTEM_CREATED: ${{ needs.release-please.outputs.design-system-release-created }}
-          RP_DESIGN_SYSTEM_TAG: ${{ needs.release-please.outputs.design-system-tag-name }}
-          RP_AGENT_DAEMON_CREATED: ${{ needs.release-please.outputs.agent-daemon-release-created }}
-          RP_AGENT_DAEMON_TAG: ${{ needs.release-please.outputs.agent-daemon-tag-name }}
-          REPUBLISH: ${{ github.event.inputs.republish || '' }}
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Guard production ref
+        if: ${{ !inputs.dry-run && github.ref_name != 'main' }}
         run: |
-          find_draft_tag() {
-            local component="$1"
-            gh release list --repo "$GITHUB_REPOSITORY" --limit 20 --json tagName,isDraft \
-              --jq "[.[] | select(.isDraft == true and (.tagName | startswith(\"${component}-v\")))][0].tagName // empty"
-          }
+          echo 'Non-dry-run releases must run from main.'
+          exit 1
 
-          version_from_tag() {
-            local tag="$1" component="$2"
-            echo "${tag}" | sed "s/^${component}-v//"
-          }
+      - name: Detect release groups
+        id: release-groups
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.before || '' }}
+          MANUAL_GROUPS: ${{ inputs.groups || '' }}
+          PNPM_CONFIG_LOGLEVEL: error
+        run: |
+          set -euo pipefail
 
-          wants_republish() {
-            echo "$REPUBLISH" | tr ',' '\n' | tr -d ' ' | grep -qx "$1"
-          }
-
-          resolve() {
-            local name="$1" rp_created="$2" rp_tag="$3" component="$4"
-
-            if [ "$rp_created" = "true" ]; then
-              echo "${name}=true" >> "$GITHUB_OUTPUT"
-              echo "${name}-tag=${rp_tag}" >> "$GITHUB_OUTPUT"
-              echo "  ✓ ${name}: release-please → ${rp_tag}"
-              return
+          if [ -n "$MANUAL_GROUPS" ]; then
+            AFFECTED_JSON='[]'
+          else
+            BASE="$BASE_SHA"
+            if [ -z "$BASE" ] || [ "$BASE" = '0000000000000000000000000000000000000000' ]; then
+              BASE="$(git rev-parse HEAD~1)"
             fi
+            AFFECTED_JSON="$(pnpm --silent exec nx show projects --affected --base="$BASE" --head=HEAD --json)"
+          fi
 
-            if wants_republish "$name"; then
-              local tag
-              tag=$(find_draft_tag "$component")
-              if [ -n "$tag" ]; then
-                echo "${name}=true" >> "$GITHUB_OUTPUT"
-                echo "${name}-tag=${tag}" >> "$GITHUB_OUTPUT"
-                echo "  ✓ ${name}: republish draft → ${tag}"
-                return
-              fi
-              echo "  ✗ ${name}: requested but no draft release found for '${component}'"
-            fi
+          node - "$AFFECTED_JSON" "$MANUAL_GROUPS" >> "$GITHUB_OUTPUT" <<'NODE'
+          const { readFileSync } = require('node:fs');
 
-            echo "${name}=false" >> "$GITHUB_OUTPUT"
-            echo "  - ${name}: skip"
+          const nx = JSON.parse(readFileSync('nx.json', 'utf8'));
+          const releaseGroups = nx.release?.groups ?? {};
+          const knownGroups = new Set(Object.keys(releaseGroups));
+          const projectToGroup = new Map();
+          for (const [groupName, group] of Object.entries(releaseGroups)) {
+            for (const project of group.projects ?? []) {
+              projectToGroup.set(project, groupName);
+            }
           }
 
-          echo "Resolving publish targets..."
-          resolve "sdk"          "$RP_SDK_CREATED"       "$RP_SDK_TAG"       "sdk"
-          resolve "github-agent" "$RP_AGENT_CREATED"     "$RP_AGENT_TAG"     "github-agent"
-          resolve "cli"          "$RP_CLI_CREATED"       "$RP_CLI_TAG"       "cli"
-          resolve "api-client"   "$RP_API_CREATED"       "$RP_API_TAG"       "moltnet-api-client"
-          resolve "dspy-adapters" "$RP_DSPY_CREATED"     "$RP_DSPY_TAG"      "dspy-adapters"
-          resolve "skill"        "$RP_SKILL_CREATED"     "$RP_SKILL_TAG"     "openclaw-skill"
-          resolve "legreffier"   "$RP_LEGREFFIER_CREATED" "$RP_LEGREFFIER_TAG" "legreffier"
-          resolve "design-system" "$RP_DESIGN_SYSTEM_CREATED" "$RP_DESIGN_SYSTEM_TAG" "design-system"
-          resolve "agent-runtime" "$RP_AGENT_RUNTIME_CREATED" "$RP_AGENT_RUNTIME_TAG" "agent-runtime"
-          resolve "pi-extension" "$RP_PI_EXTENSION_CREATED" "$RP_PI_EXTENSION_TAG" "pi-extension"
-          resolve "node-red"     "$RP_NODE_RED_CREATED"  "$RP_NODE_RED_TAG"  "node-red-contrib-core"
-          resolve "node-red-theme" "$RP_NODE_RED_THEME_CREATED" "$RP_NODE_RED_THEME_TAG" "node-red-theme"
-          resolve "agent-daemon" "$RP_AGENT_DAEMON_CREATED" "$RP_AGENT_DAEMON_TAG" "agent-daemon"
-
-          # Forward version outputs
-          if [ -n "$RP_API_VERSION" ]; then
-            echo "api-client-version=${RP_API_VERSION}" >> "$GITHUB_OUTPUT"
-          elif wants_republish "api-client"; then
-            tag=$(find_draft_tag "moltnet-api-client")
-            [ -n "$tag" ] && echo "api-client-version=$(version_from_tag "$tag" "moltnet-api-client")" >> "$GITHUB_OUTPUT"
-          fi
-
-          if [ -n "$RP_DSPY_VERSION" ]; then
-            echo "dspy-adapters-version=${RP_DSPY_VERSION}" >> "$GITHUB_OUTPUT"
-          elif wants_republish "dspy-adapters"; then
-            tag=$(find_draft_tag "dspy-adapters")
-            [ -n "$tag" ] && echo "dspy-adapters-version=$(version_from_tag "$tag" "dspy-adapters")" >> "$GITHUB_OUTPUT"
-          fi
-
-          if [ -n "$RP_SKILL_VERSION" ]; then
-            echo "skill-version=${RP_SKILL_VERSION}" >> "$GITHUB_OUTPUT"
-          elif wants_republish "skill"; then
-            tag=$(find_draft_tag "openclaw-skill")
-            [ -n "$tag" ] && echo "skill-version=$(version_from_tag "$tag" "openclaw-skill")" >> "$GITHUB_OUTPUT"
-          fi
-
-  publish-sdk:
-    name: Publish SDK to npm
-    needs: resolve-publish
-    if: ${{ always() && needs.resolve-publish.outputs.sdk == 'true' && !failure() && !cancelled() }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      id-token: write
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: pnpm/action-setup@v5
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          cache: pnpm
-          registry-url: https://registry.npmjs.org
-
-      - run: pnpm install --frozen-lockfile
-
-      # Nx walks the dep graph (build dependsOn ^build in nx.json), builds
-      # @moltnet/api-client + @moltnet/crypto-service first, then the SDK,
-      # all with remote-cache hits when unchanged.
-      - run: pnpm exec nx run @themoltnet/sdk:build
-
-      - run: pnpm exec nx run @themoltnet/sdk:test
-
-      - run: pnpm exec nx run @themoltnet/sdk:check:pack
-
-      - name: Check SDK type isolation
-        run: pnpm exec nx run @themoltnet/sdk:check:types-isolation
-
-      - name: Publish @themoltnet/sdk
-        uses: nick-fields/retry@v4.0.0
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          retry_wait_seconds: 30
-          command: pnpm --filter @themoltnet/sdk publish --no-git-checks --access public --provenance
-
-      - name: Publish SDK release
-        run: gh release edit "${{ needs.resolve-publish.outputs.sdk-tag }}" --draft=false
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  publish-node-red:
-    name: Publish Node-RED nodes to npm
-    needs: resolve-publish
-    if: ${{ always() && needs.resolve-publish.outputs.node-red == 'true' && !failure() && !cancelled() }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      id-token: write
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: pnpm/action-setup@v5
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          cache: pnpm
-          registry-url: https://registry.npmjs.org
-
-      - run: pnpm install --frozen-lockfile
-
-      # The package externalizes @themoltnet/sdk; the build only bundles the
-      # node runtime + copies editor HTML (no SDK inlining).
-      - run: pnpm exec nx run @themoltnet/node-red-contrib-core:build
-
-      - run: pnpm exec nx run @themoltnet/node-red-contrib-core:test
-
-      # Project-level pack check: every node-red.nodes path + sibling .html ships.
-      - run: pnpm --filter @themoltnet/node-red-contrib-core run check:pack
-
-      - name: Publish @themoltnet/node-red-contrib-core
-        uses: nick-fields/retry@v4.0.0
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          retry_wait_seconds: 30
-          command: pnpm --filter @themoltnet/node-red-contrib-core publish --no-git-checks --access public --provenance
-
-      - name: Publish Node-RED release
-        run: gh release edit "${{ needs.resolve-publish.outputs.node-red-tag }}" --draft=false
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  publish-node-red-theme:
-    name: Publish Node-RED theme to npm
-    needs: resolve-publish
-    if: ${{ always() && needs.resolve-publish.outputs.node-red-theme == 'true' && !failure() && !cancelled() }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      id-token: write
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: pnpm/action-setup@v5
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          cache: pnpm
-          registry-url: https://registry.npmjs.org
-
-      - run: pnpm install --frozen-lockfile
-
-      - run: pnpm exec nx run @themoltnet/node-red-theme:build
-
-      - run: pnpm exec nx run @themoltnet/node-red-theme:test
-
-      - run: pnpm exec nx run @themoltnet/node-red-theme:check:pack
-
-      - name: Publish @themoltnet/node-red-theme
-        uses: nick-fields/retry@v4.0.0
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          retry_wait_seconds: 30
-          command: pnpm --filter @themoltnet/node-red-theme publish --no-git-checks --access public --provenance
-
-      - name: Publish Node-RED theme release
-        run: gh release edit "${{ needs.resolve-publish.outputs.node-red-theme-tag }}" --draft=false
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  publish-github-agent:
-    name: Publish GitHub Agent to npm
-    needs: resolve-publish
-    if: ${{ always() && needs.resolve-publish.outputs.github-agent == 'true' && !failure() && !cancelled() }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      id-token: write
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: pnpm/action-setup@v5
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          cache: pnpm
-          registry-url: https://registry.npmjs.org
-
-      - run: pnpm install --frozen-lockfile
-
-      - run: pnpm exec nx run @themoltnet/github-agent:build
-
-      - run: pnpm exec nx run @themoltnet/github-agent:test
-
-      - run: pnpm exec nx run @themoltnet/github-agent:check:pack
-
-      - name: Publish @themoltnet/github-agent
-        uses: nick-fields/retry@v4.0.0
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          retry_wait_seconds: 30
-          command: pnpm --filter @themoltnet/github-agent publish --no-git-checks --access public --provenance
-
-      - name: Publish GitHub Agent release
-        run: gh release edit "${{ needs.resolve-publish.outputs.github-agent-tag }}" --draft=false
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  release-api-client:
-    name: Tag Go module for moltnet-api-client
-    needs: resolve-publish
-    if: ${{ needs.resolve-publish.outputs.api-client == 'true' }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-
-      - name: Push Go module proxy tag
-        # The Go module proxy resolves github.com/getlarge/themoltnet/libs/moltnet-api-client@vX.Y.Z
-        # by looking for a git tag of the form "libs/moltnet-api-client/vX.Y.Z".
-        # release-please creates the component tag "moltnet-api-client-vX.Y.Z"; we push the
-        # additional tag that the Go toolchain needs.
-        run: |
-          TAG="libs/moltnet-api-client/v${{ needs.resolve-publish.outputs.api-client-version }}"
-          if git rev-parse "$TAG" >/dev/null 2>&1; then
-            echo "Tag $TAG already exists, skipping"
-          else
-            git tag "$TAG"
-            git push origin "$TAG"
-          fi
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Publish API client release
-        run: gh release edit "${{ needs.resolve-publish.outputs.api-client-tag }}" --draft=false
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  release-dspy-adapters:
-    name: Tag Go module for dspy-adapters
-    needs: resolve-publish
-    if: ${{ needs.resolve-publish.outputs.dspy-adapters == 'true' }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-
-      - name: Push Go module proxy tag
-        # The Go module proxy resolves github.com/getlarge/themoltnet/libs/dspy-adapters@vX.Y.Z
-        # by looking for a git tag of the form "libs/dspy-adapters/vX.Y.Z".
-        run: |
-          TAG="libs/dspy-adapters/v${{ needs.resolve-publish.outputs.dspy-adapters-version }}"
-          if git rev-parse "$TAG" >/dev/null 2>&1; then
-            echo "Tag $TAG already exists, skipping"
-          else
-            git tag "$TAG"
-            git push origin "$TAG"
-          fi
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Publish dspy-adapters release
-        run: gh release edit "${{ needs.resolve-publish.outputs.dspy-adapters-tag }}" --draft=false
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  release-cli:
-    name: Release CLI binaries
-    needs: resolve-publish
-    if: ${{ always() && needs.resolve-publish.outputs.cli == 'true' && !failure() && !cancelled() }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-
-      - uses: actions/setup-go@v6
-        with:
-          go-version: '1.25'
-
-      - name: Extract semver from tag
-        id: tag
-        run: |
-          TAG="${{ needs.resolve-publish.outputs.cli-tag }}"
-          SEMVER="${TAG#cli-}"
-          echo "semver=$SEMVER" >> "$GITHUB_OUTPUT"
-
-      - name: Generate GitHub App token for Homebrew tap
-        uses: actions/create-github-app-token@v3
-        id: app-token
-        with:
-          app-id: ${{ secrets.MOLTNET_RELEASE_APP_ID }}
-          private-key: ${{ secrets.MOLTNET_RELEASE_APP_KEY }}
-          owner: getlarge
-          repositories: homebrew-moltnet
-
-      - uses: goreleaser/goreleaser-action@v6
-        with:
-          version: '~> v2'
-          args: release --clean --skip=validate
-          workdir: apps/moltnet-cli
-        env:
-          GOWORK: off
-          GORELEASER_CURRENT_TAG: ${{ steps.tag.outputs.semver }}
-          HOMEBREW_TAP_TOKEN: ${{ steps.app-token.outputs.token }}
-
-      - name: Upload binaries to GitHub Release
-        run: |
-          gh release upload "${{ needs.resolve-publish.outputs.cli-tag }}" \
-            apps/moltnet-cli/dist/*.tar.gz \
-            apps/moltnet-cli/dist/*.zip \
-            apps/moltnet-cli/dist/checksums.txt
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Publish CLI release
-        run: gh release edit "${{ needs.resolve-publish.outputs.cli-tag }}" --draft=false
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  publish-cli-platforms:
-    name: Publish @themoltnet/cli-${{ matrix.npm_dir }} to npm
-    needs: [resolve-publish, release-cli]
-    if: >-
-      ${{
-        always() &&
-        needs.resolve-publish.outputs.cli == 'true' &&
-        needs.release-cli.result == 'success' &&
-        !failure() &&
-        !cancelled()
-      }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - npm_dir: linux-x64
-            archive_suffix: linux_amd64.tar.gz
-            binary: moltnet
-          - npm_dir: linux-arm64
-            archive_suffix: linux_arm64.tar.gz
-            binary: moltnet
-          - npm_dir: darwin-x64
-            archive_suffix: darwin_amd64.tar.gz
-            binary: moltnet
-          - npm_dir: darwin-arm64
-            archive_suffix: darwin_arm64.tar.gz
-            binary: moltnet
-          - npm_dir: win32-x64
-            archive_suffix: windows_amd64.zip
-            binary: moltnet.exe
-          - npm_dir: win32-arm64
-            archive_suffix: windows_arm64.zip
-            binary: moltnet.exe
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          registry-url: https://registry.npmjs.org
-
-      - name: Download release binary
-        uses: nick-fields/retry@v4.0.0
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ needs.resolve-publish.outputs.cli-tag }}
-          ARCHIVE_SUFFIX: ${{ matrix.archive_suffix }}
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          retry_wait_seconds: 15
-          command: |
-            SEMVER="${TAG#cli-v}"
-            ARCHIVE="moltnet_${SEMVER}_${ARCHIVE_SUFFIX}"
-            mkdir -p /tmp/cli-binaries
-            # Stay in the repo checkout so gh can infer the repo from git;
-            # --dir places the archive where the Extract step expects it.
-            gh release download "$TAG" --pattern "$ARCHIVE" --dir /tmp/cli-binaries
-
-      - name: Extract binary
-        env:
-          TAG: ${{ needs.resolve-publish.outputs.cli-tag }}
-          ARCHIVE_SUFFIX: ${{ matrix.archive_suffix }}
-          NPM_DIR: ${{ matrix.npm_dir }}
-          BINARY: ${{ matrix.binary }}
-        run: |
-          SEMVER="${TAG#cli-v}"
-          ARCHIVE="moltnet_${SEMVER}_${ARCHIVE_SUFFIX}"
-          PKG_DIR="packages/cli/npm/${NPM_DIR}"
-
-          mkdir -p "${PKG_DIR}/bin"
-          if [[ "${ARCHIVE}" == *.zip ]]; then
-            unzip -o "/tmp/cli-binaries/${ARCHIVE}" "${BINARY}" -d "${PKG_DIR}/bin/"
-          else
-            tar xzf "/tmp/cli-binaries/${ARCHIVE}" -C "${PKG_DIR}/bin/" "${BINARY}"
-          fi
-          chmod +x "${PKG_DIR}/bin/${BINARY}" 2>/dev/null || true
-
-      - name: Publish platform package
-        uses: nick-fields/retry@v4.0.0
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          retry_wait_seconds: 30
-          command: |
-            cd "packages/cli/npm/${{ matrix.npm_dir }}"
-            npm publish --access public --provenance
-
-  publish-cli-wrapper:
-    name: Publish @themoltnet/cli to npm
-    needs: [resolve-publish, publish-cli-platforms]
-    if: >-
-      ${{
-        always() &&
-        needs.resolve-publish.outputs.cli == 'true' &&
-        needs.publish-cli-platforms.result == 'success' &&
-        !failure() &&
-        !cancelled()
-      }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: pnpm/action-setup@v5
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          cache: pnpm
-          registry-url: https://registry.npmjs.org
-
-      - run: pnpm install --frozen-lockfile
-
-      # pnpm publish rewrites workspace:* in optionalDependencies to the
-      # concrete version so the published tarball resolves on npm.
-      - name: Publish @themoltnet/cli
-        uses: nick-fields/retry@v4.0.0
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          retry_wait_seconds: 30
-          command: pnpm --filter @themoltnet/cli publish --no-git-checks --access public --provenance
-
-  # The cli is an 8-component linked-versions group. Only apps/moltnet-cli
-  # gets a real GitHub release (cli-v<x>); the other 7 siblings use
-  # `skip-github-release: true`. release-please still needs a git tag per
-  # component to track state — without them its next run logs "Expected
-  # 15 releases, only found 8 / Missing 7 paths" and skips cutting the
-  # next release.
-  #
-  # This job is decoupled from npm publishing so a transient tag-creation
-  # failure can be retried without hitting "version already exists" on
-  # npm. It only needs release-cli (which flips the cli-v<x> GitHub
-  # release to non-draft) to have succeeded.
-  tag-cli-siblings:
-    name: Create linked-versions sibling tags
-    needs: [resolve-publish, release-cli]
-    if: >-
-      ${{
-        always() &&
-        needs.resolve-publish.outputs.cli == 'true' &&
-        needs.release-cli.result == 'success' &&
-        !cancelled()
-      }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Create sibling tags
-        uses: nick-fields/retry@v4.0.0
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CLI_TAG: ${{ needs.resolve-publish.outputs.cli-tag }}
-        with:
-          timeout_minutes: 5
-          max_attempts: 3
-          retry_wait_seconds: 15
-          command: |
-            set -euo pipefail
-            SEMVER="${CLI_TAG#cli-v}"
-            COMMIT_SHA=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${CLI_TAG}" --jq '.sha')
-            echo "${CLI_TAG} -> ${COMMIT_SHA}"
-            for COMPONENT in cli-wrapper cli-darwin-arm64 cli-darwin-x64 cli-linux-arm64 cli-linux-x64 cli-win32-arm64 cli-win32-x64; do
-              SIB_TAG="${COMPONENT}-v${SEMVER}"
-              if gh api "repos/${GITHUB_REPOSITORY}/git/refs/tags/${SIB_TAG}" >/dev/null 2>&1; then
-                echo "  = ${SIB_TAG} already exists"
-                continue
-              fi
-              gh api -X POST "repos/${GITHUB_REPOSITORY}/git/refs" \
-                -f ref="refs/tags/${SIB_TAG}" \
-                -f sha="${COMMIT_SHA}"
-              echo "  + ${SIB_TAG}"
-            done
-
-  release-skill:
-    name: Release OpenClaw Skill
-    needs: resolve-publish
-    if: ${{ needs.resolve-publish.outputs.skill == 'true' }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Package skill tarball
-        run: packages/openclaw-skill/scripts/package.sh /tmp
-
-      - name: Upload tarball to GitHub Release
-        run: |
-          gh release upload "${{ needs.resolve-publish.outputs.skill-tag }}" \
-            "/tmp/moltnet-skill-v${{ needs.resolve-publish.outputs.skill-version }}.tar.gz"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Publish release
-        run: gh release edit "${{ needs.resolve-publish.outputs.skill-tag }}" --draft=false
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  publish-skill-clawhub:
-    name: Publish Skill to ClawHub
-    needs: [resolve-publish, release-skill]
-    if: ${{ always() && needs.resolve-publish.outputs.skill == 'true' && !failure() && !cancelled() }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22.19.0
-
-      - name: Authenticate with ClawHub
-        env:
-          CLAWHUB_TOKEN: ${{ secrets.CLAWHUB_TOKEN }}
-        run: npx clawhub auth login --token "$CLAWHUB_TOKEN" --no-browser
-
-      - name: Publish to ClawHub
-        env:
-          CLAWHUB_TOKEN: ${{ secrets.CLAWHUB_TOKEN }}
-        run: |
-          packages/openclaw-skill/scripts/publish-clawhub.sh \
-            --changelog "Release ${{ needs.resolve-publish.outputs.skill-tag }}"
-
-  publish-legreffier:
-    name: Publish LeGreffier to npm
-    needs: resolve-publish
-    if: ${{ always() && needs.resolve-publish.outputs.legreffier == 'true' && !failure() && !cancelled() }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      id-token: write
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: pnpm/action-setup@v5
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          cache: pnpm
-          registry-url: https://registry.npmjs.org
-
-      - run: pnpm install --frozen-lockfile
-
-      - run: pnpm exec nx run @themoltnet/legreffier:build
-
-      - run: pnpm exec nx run @themoltnet/legreffier:test
-
-      - run: pnpm exec nx run @themoltnet/legreffier:check:pack
-
-      - name: Publish @themoltnet/legreffier
-        uses: nick-fields/retry@v4.0.0
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          retry_wait_seconds: 30
-          command: pnpm --filter @themoltnet/legreffier publish --no-git-checks --access public --provenance
-
-      - name: Publish LeGreffier release
-        run: gh release edit "${{ needs.resolve-publish.outputs.legreffier-tag }}" --draft=false
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  publish-agent-runtime:
-    name: Publish Agent Runtime to npm
-    needs: resolve-publish
-    if: ${{ always() && needs.resolve-publish.outputs.agent-runtime == 'true' && !failure() && !cancelled() }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      id-token: write
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: pnpm/action-setup@v5
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          cache: pnpm
-          registry-url: https://registry.npmjs.org
-
-      - run: pnpm install --frozen-lockfile
-
-      - run: pnpm exec nx run @themoltnet/agent-runtime:build
-
-      - run: pnpm exec nx run @themoltnet/agent-runtime:test
-
-      - run: pnpm exec nx run @themoltnet/agent-runtime:check:pack
-
-      - name: Publish @themoltnet/agent-runtime
-        uses: nick-fields/retry@v4.0.0
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          retry_wait_seconds: 30
-          command: pnpm --filter @themoltnet/agent-runtime publish --no-git-checks --access public --provenance
-
-      - name: Publish Agent Runtime release
-        run: gh release edit "${{ needs.resolve-publish.outputs.agent-runtime-tag }}" --draft=false
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  publish-pi-extension:
-    name: Publish Pi Extension to npm
-    needs: [resolve-publish, publish-agent-runtime]
-    if: ${{ always() && needs.resolve-publish.outputs.pi-extension == 'true' && !failure() && !cancelled() }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      id-token: write
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: pnpm/action-setup@v5
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          cache: pnpm
-          registry-url: https://registry.npmjs.org
-
-      - run: pnpm install --frozen-lockfile
-
-      - run: pnpm exec nx run @themoltnet/pi-extension:build
-
-      - run: pnpm exec nx run @themoltnet/pi-extension:test
-
-      - name: Install Pi for extension loader smoke
-        run: |
-          npm install -g @earendil-works/pi-coding-agent
-          echo "MOLTNET_PI_BIN=$(npm prefix -g)/bin/pi" >> "$GITHUB_ENV"
-
-      - run: pnpm exec nx run @themoltnet/pi-extension:check:pack
-        env:
-          MOLTNET_PI_LOADER_SMOKE: required
-
-      - name: Publish @themoltnet/pi-extension
-        uses: nick-fields/retry@v4.0.0
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          retry_wait_seconds: 30
-          command: pnpm --filter @themoltnet/pi-extension publish --no-git-checks --access public --provenance
-
-      - name: Publish Pi Extension release
-        run: gh release edit "${{ needs.resolve-publish.outputs.pi-extension-tag }}" --draft=false
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  publish-agent-daemon:
-    name: Publish Agent Daemon to npm
-    needs: [resolve-publish, publish-agent-runtime, publish-pi-extension]
-    # Always run (even if upstream publish jobs were skipped because they
-    # had no release this run); only publish if release-please cut a tag
-    # for the daemon itself.
-    if: ${{ always() && needs.resolve-publish.outputs.agent-daemon == 'true' && !failure() && !cancelled() }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      id-token: write
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: pnpm/action-setup@v5
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          cache: pnpm
-          registry-url: https://registry.npmjs.org
-
-      - run: pnpm install --frozen-lockfile
-
-      # Nx walks the dep graph (build dependsOn ^build in nx.json) and
-      # builds @themoltnet/{sdk,agent-runtime,pi-extension} before the
-      # daemon, all with remote-cache hits when unchanged.
-      - run: pnpm exec nx run @themoltnet/agent-daemon:build
-
-      - run: pnpm exec nx run @themoltnet/agent-daemon:check:pack
-
-      - name: Publish @themoltnet/agent-daemon
-        uses: nick-fields/retry@v4.0.0
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          retry_wait_seconds: 30
-          command: pnpm --filter @themoltnet/agent-daemon publish --no-git-checks --access public --provenance
-
-      - name: Publish Agent Daemon release
-        run: gh release edit "${{ needs.resolve-publish.outputs.agent-daemon-tag }}" --draft=false
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  publish-design-system:
-    name: Publish Design System to npm
-    needs: resolve-publish
-    if: ${{ always() && needs.resolve-publish.outputs.design-system == 'true' && !failure() && !cancelled() }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      id-token: write
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: pnpm/action-setup@v5
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          cache: pnpm
-          registry-url: https://registry.npmjs.org
-
-      - run: pnpm install --frozen-lockfile
-
-      - run: pnpm exec nx run @themoltnet/design-system:build
-
-      - run: pnpm exec nx run @themoltnet/design-system:check:pack
-
-      - name: Publish @themoltnet/design-system
-        uses: nick-fields/retry@v4.0.0
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          retry_wait_seconds: 30
-          command: pnpm --filter @themoltnet/design-system publish --no-git-checks --access public --provenance
-
-      - name: Publish Design System release
-        run: gh release edit "${{ needs.resolve-publish.outputs.design-system-tag }}" --draft=false
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          const affected = JSON.parse(process.argv[2] || '[]');
+          const manualGroups = process.argv[3]
+            .split(',')
+            .map((group) => group.trim())
+            .filter(Boolean);
+
+          const groups = new Set();
+          for (const group of manualGroups) {
+            if (!knownGroups.has(group)) {
+              throw new Error(`Unknown Nx release group: ${group}`);
+            }
+            groups.add(group);
+          }
+
+          if (manualGroups.length === 0) {
+            for (const project of affected) {
+              const group = projectToGroup.get(project);
+              if (group) groups.add(group);
+            }
+          }
+
+          const goCliGroups = [];
+          if (groups.has('go-modules')) {
+            goCliGroups.push('go-modules');
+            groups.add('cli');
+          }
+          if (groups.has('cli')) {
+            goCliGroups.push('cli');
+          }
+
+          const output = {
+            'go-cli-groups': goCliGroups.join(','),
+            'release-go-cli': goCliGroups.length > 0,
+            'release-npm': groups.has('npm-packages'),
+            'release-github-actions': groups.has('github-actions'),
+            'release-docker': groups.has('docker-images'),
+          };
+
+          for (const [key, value] of Object.entries(output)) {
+            console.log(`${key}=${value}`);
+          }
+
+          const selected = [
+            output['go-cli-groups'],
+            output['release-npm'] ? 'npm-packages' : '',
+            output['release-github-actions'] ? 'github-actions' : '',
+            output['release-docker'] ? 'docker-images' : '',
+          ].filter(Boolean);
+          console.error(
+            selected.length > 0
+              ? `Releasing Nx groups: ${selected.join('; ')}`
+              : 'No affected Nx release groups; skipping release.',
+          );
+          NODE
+
+  release-go-cli:
+    name: Release Go modules and CLI
+    needs: prepare
+    if: ${{ needs.prepare.outputs.release-go-cli == 'true' }}
+    uses: ./.github/workflows/release-group.yml
+    with:
+      checkout-ref: ${{ github.event_name == 'push' && 'main' || github.ref_name }}
+      groups: ${{ needs.prepare.outputs.go-cli-groups }}
+      dry-run: ${{ inputs.dry-run || false }}
+    secrets: inherit
+
+  release-npm:
+    name: Release npm packages
+    needs: [prepare, release-go-cli]
+    if: ${{ always() && needs.prepare.outputs.release-npm == 'true' && (needs.release-go-cli.result == 'success' || needs.release-go-cli.result == 'skipped') }}
+    uses: ./.github/workflows/release-group.yml
+    with:
+      checkout-ref: ${{ github.event_name == 'push' && 'main' || github.ref_name }}
+      groups: npm-packages
+      dry-run: ${{ inputs.dry-run || false }}
+    secrets: inherit
+
+  release-github-actions:
+    name: Release GitHub Actions
+    needs: [prepare, release-npm]
+    if: ${{ always() && needs.prepare.outputs.release-github-actions == 'true' && (needs.release-npm.result == 'success' || needs.release-npm.result == 'skipped') }}
+    uses: ./.github/workflows/release-group.yml
+    with:
+      checkout-ref: ${{ github.event_name == 'push' && 'main' || github.ref_name }}
+      groups: github-actions
+      dry-run: ${{ inputs.dry-run || false }}
+    secrets: inherit
+
+  release-docker:
+    name: Release Docker images
+    needs: [prepare, release-github-actions]
+    if: ${{ always() && needs.prepare.outputs.release-docker == 'true' && (needs.release-github-actions.result == 'success' || needs.release-github-actions.result == 'skipped') }}
+    uses: ./.github/workflows/release-group.yml
+    with:
+      checkout-ref: ${{ github.event_name == 'push' && 'main' || github.ref_name }}
+      groups: docker-images
+      dry-run: ${{ inputs.dry-run || false }}
+    secrets: inherit

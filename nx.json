@@ -104,13 +104,9 @@
   ],
   "release": {
     "changelog": {
+      "automaticFromRef": true,
       "projectChangelogs": true,
-      "workspaceChangelog": {
-        "createRelease": false,
-        "renderOptions": {
-          "applyUsernameToAuthors": true
-        }
-      }
+      "workspaceChangelog": false
     },
     "conventionalCommits": {
       "types": {
@@ -243,8 +239,8 @@
       }
     },
     "version": {
-      "currentVersionResolver": "disk",
-      "deleteVersionPlans": true,
+      "currentVersionResolver": "git-tag",
+      "fallbackCurrentVersionResolver": "disk",
       "specifierSource": "conventional-commits",
       "updateDependents": "auto",
       "versionActionsOptions": {
@@ -257,8 +253,7 @@
         ],
         "goReleaseValidationRoots": ["apps/moltnet-cli"]
       }
-    },
-    "versionPlans": true
+    }
   },
   "sync": {
     "applyChanges": true
