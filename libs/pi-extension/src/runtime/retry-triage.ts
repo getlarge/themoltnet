@@ -176,6 +176,7 @@ function buildTriagePrompt(input: PiRetryTriageInput): string {
     '',
     'Retry only when a fresh attempt can plausibly recover without changing the task input.',
     'Do not retry for policy, validation, credentials, cancellation, model/config, or task-contract failures.',
+    'Submit-output validation errors should have been corrected inside the active Pi session; if one reaches retry triage, treat it as exhausted and choose do_not_retry.',
     'Use confidence=low when evidence is weak; low confidence must choose do_not_retry.',
     'Call submit_retry_triage exactly once.',
     '',

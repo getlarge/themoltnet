@@ -37,6 +37,7 @@ import {
   createMoltNetTools,
   HOST_EXEC_DEFAULT_BASE_ENV,
 } from './moltnet/tools.js';
+import type { ProviderErrorRetryUi } from './runtime/execute-pi-task.js';
 import { buildWorkspaceMountInstructions } from './runtime/runtime-instructor.js';
 import { ensureSnapshot, type SandboxConfig } from './snapshot.js';
 import {
@@ -51,6 +52,22 @@ import {
 import { activateAgentEnv, findMainWorktree, resumeVm } from './vm-manager.js';
 
 export { createPiOtelExtension, type PiOtelOptions } from './otel/index.js';
+
+export function createPiProviderErrorRetryUi(
+  ctx: ExtensionContext,
+): ProviderErrorRetryUi | undefined {
+  const hasUI = Boolean((ctx as { hasUI?: boolean }).hasUI);
+  if (!hasUI) return undefined;
+  return {
+    hasUI,
+    setStatus: (key, message) => {
+      ctx.ui.setStatus(key, ctx.ui.theme.fg('muted', message));
+    },
+    notify: (message, level) => {
+      ctx.ui.notify?.(message, level);
+    },
+  };
+}
 
 export default function moltnetExtension(pi: ExtensionAPI) {
   // -- Flags ------------------------------------------------------------------
@@ -522,6 +539,9 @@ export {
   type PiSessionPersistencePlan,
   type PiTaskExecutionPlan,
   type PiTaskExecutionPlanFactory,
+  type ProviderErrorRetryEvent,
+  type ProviderErrorRetryLevel,
+  type ProviderErrorRetryUi,
   resolveTaskWorktreePath,
   type TurnEventHandler,
   type TurnEventHandlerFactory,

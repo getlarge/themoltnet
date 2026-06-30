@@ -12,16 +12,13 @@
  *      mid-session, not session-ending.
  *
  *   2. On a valid call, the validated args are stored in the captured
- *      reference exposed via `getCaptured()` and the tool result returns
- *      `terminate: true`. pi-coding-agent's agent-loop reads that flag
- *      (see `@earendil-works/pi-agent-core` `agent-loop.ts:208,512`) and
- *      ends the session immediately — no follow-up LLM turn, no extra
- *      tokens spent narrating "ok, done."
+ *      reference exposed via `getCaptured()`. The executor reads that
+ *      captured state after `session.prompt()` resolves instead of using
+ *      Pi's `terminate` flag as task-completion control flow.
  *
- *   3. If the model somehow calls the tool more than once before
- *      termination resolves, the latest valid call wins. This matches
- *      "submit exactly once" semantics from the prompt while staying
- *      defensive against retries.
+ *   3. If the model somehow calls the tool more than once, the latest
+ *      valid call wins. This matches "submit exactly once" semantics
+ *      from the prompt while staying defensive against retries.
  *
  * The model still has to *decide* to call the tool — pi-coding-agent's
  * `AgentLoopConfig` does not expose `toolChoice`, so we cannot force the
@@ -32,9 +29,10 @@ import type { ToolDefinition } from '@earendil-works/pi-coding-agent';
 import { defineTool } from '@earendil-works/pi-coding-agent';
 import {
   getSubmitOutputContract,
+  SUBMIT_OUTPUT_GATE_ID,
   validateTaskOutput,
 } from '@themoltnet/agent-runtime';
-import type { TObject } from 'typebox';
+import { Type } from 'typebox';
 
 import { recordTaskOutputParseResult } from './task-output.js';
 
@@ -42,6 +40,8 @@ interface SubmitOutputDetails {
   captured: boolean;
   callCount: number;
   error: string | null;
+  invalidCallCount?: number;
+  maxSubmitValidationRetries?: number;
 }
 
 export interface CreateSubmitOutputToolOptions {
@@ -56,10 +56,23 @@ export interface CreateSubmitOutputToolOptions {
   /**
    * Original task input, threaded into output validation so task types
    * with cross-field rules (for example "verification required iff
-   * input.successCriteria exists") are enforced before the session can
-   * terminate.
+   * input.successCriteria exists") are enforced before output is
+   * captured.
    */
   input?: unknown;
+  /**
+   * CID for `input`, used only for runtime-owned verification facts. In
+   * particular, the submit-output tool can prove the built-in
+   * submit-output gate once it accepts valid args.
+   */
+  inputCid?: string;
+  /**
+   * Number of correction turns allowed after the first invalid submit call.
+   * A value of 2 permits three invalid submissions total, then records an
+   * exhausted validation failure so the attempt can fail with
+   * output_validation_failed after the session ends.
+   */
+  maxSubmitValidationRetries?: number;
 }
 
 export interface SubmitOutputToolHandle {
@@ -73,6 +86,15 @@ export interface SubmitOutputToolHandle {
   getCaptured: () => Record<string, unknown> | null;
   /** Number of times the model called the tool with valid args. */
   getCallCount: () => number;
+  /** Number of invalid submit calls observed in this session. */
+  getInvalidCallCount: () => number;
+  /** Last validation failure, if the model submitted invalid args. */
+  getLastValidationFailure: () => { code: string; message: string } | null;
+  /** Validation failure that exhausted the correction budget. */
+  getExhaustedValidationFailure: () => {
+    code: string;
+    message: string;
+  } | null;
 }
 
 /**
@@ -90,6 +112,145 @@ export class UnknownTaskTypeForSubmitToolError extends Error {
   }
 }
 
+const DEFAULT_MAX_SUBMIT_VALIDATION_RETRIES = 2;
+
+// Pi validates tool arguments before execute() runs. Register a permissive
+// top-level object so malformed submit payloads reach our strict validator and
+// can be returned as recoverable tool errors inside the same session.
+const RecoverableSubmitToolParameters = Type.Object(
+  {},
+  { additionalProperties: Type.Unknown() },
+);
+
+function formatValidationErrors(
+  errors: ReturnType<typeof validateTaskOutput>,
+): string {
+  return errors.map((err) => `${err.field}: ${err.message}`).join('; ');
+}
+
+function submitOutputRepairHint(
+  taskType: string,
+  errors: ReturnType<typeof validateTaskOutput>,
+): string {
+  const fields = new Set(errors.map((err) => err.field));
+  const hints: string[] = [
+    'Tool args must be the output object directly, not wrapped in { output: ... }.',
+  ];
+
+  if (fields.has('output/artifacts')) {
+    hints.push(
+      '`artifacts` must be an array; omit it when there are no artifacts, use [], or use objects like { "kind": "note", "title": "Result", "body": "..." }.',
+    );
+  }
+
+  if (fields.has('output/verification')) {
+    hints.push(
+      '`verification` must be an object with inputCid, results[], and passed; do not send it as text or an array.',
+    );
+  }
+
+  if (
+    taskType === 'freeform' &&
+    (fields.has('output/artifacts') || fields.has('output/verification'))
+  ) {
+    hints.push(
+      'Minimal valid freeform retry: { "summary": "completed", "artifacts": [], "verification": { "inputCid": "<task inputCid>", "results": [{ "id": "submit-output", "kind": "gate", "status": "pass", "detail": "submit_freeform_output accepted valid args" }], "passed": true } }.',
+    );
+  }
+
+  if (hints.length === 1) {
+    hints.push('Fix every listed field before re-calling this same tool.');
+  }
+
+  return hints.join(' ');
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function onlySubmitOutputGate(input: unknown): boolean {
+  if (!isRecord(input) || !isRecord(input.successCriteria)) return false;
+  const criteria = input.successCriteria;
+  const gates = criteria.gates;
+  if (!Array.isArray(gates) || gates.length !== 1) return false;
+  const [gate] = gates;
+  if (!isRecord(gate) || gate.id !== SUBMIT_OUTPUT_GATE_ID) return false;
+
+  const assertions = criteria.assertions;
+  if (Array.isArray(assertions) && assertions.length > 0) return false;
+  return (
+    criteria.rubric === undefined &&
+    criteria.sideEffects === undefined &&
+    criteria.minComposite === undefined
+  );
+}
+
+function repairFreeformSubmitOutput(
+  params: unknown,
+  opts: CreateSubmitOutputToolOptions,
+): Record<string, unknown> | null {
+  if (
+    !isRecord(params) ||
+    !opts.inputCid ||
+    !onlySubmitOutputGate(opts.input)
+  ) {
+    return null;
+  }
+
+  const repaired: Record<string, unknown> = { ...params };
+
+  if ('artifacts' in repaired && !Array.isArray(repaired.artifacts)) {
+    if (isRecord(repaired.artifacts)) {
+      repaired.artifacts = [repaired.artifacts];
+    } else {
+      delete repaired.artifacts;
+    }
+  }
+
+  if ('proposedTaskType' in repaired && !isRecord(repaired.proposedTaskType)) {
+    if (
+      typeof repaired.proposedTaskType === 'string' &&
+      repaired.proposedTaskType.length > 0
+    ) {
+      repaired.proposedTaskType = {
+        name: repaired.proposedTaskType,
+        rationale: 'Suggested by the model during freeform execution.',
+      };
+    } else {
+      delete repaired.proposedTaskType;
+    }
+  }
+
+  repaired.verification = {
+    inputCid: opts.inputCid,
+    results: [
+      {
+        id: SUBMIT_OUTPUT_GATE_ID,
+        kind: 'gate',
+        status: 'pass',
+        detail: 'submit_freeform_output accepted valid args',
+      },
+    ],
+    passed: true,
+  };
+
+  return repaired;
+}
+
+function maybeRepairSubmitOutput(
+  taskType: string,
+  params: unknown,
+  opts: CreateSubmitOutputToolOptions,
+): Record<string, unknown> | null {
+  if (taskType !== 'freeform') return null;
+  const repaired = repairFreeformSubmitOutput(params, opts);
+  if (!repaired) return null;
+  return validateTaskOutput(taskType, repaired, opts.input).length === 0
+    ? repaired
+    : null;
+}
+
 export function createSubmitOutputTool(
   taskType: string,
   opts: CreateSubmitOutputToolOptions = {},
@@ -102,23 +263,51 @@ export function createSubmitOutputTool(
   if (!contract) {
     throw new UnknownTaskTypeForSubmitToolError(taskType);
   }
-  // Every built-in *Output schema is `Type.Object`. Cast to TObject so
-  // it can ride straight through as the tool's `parameters` schema —
-  // pi/TypeBox tool parameters require an object at the top level. If a
-  // future task type registers a non-object output schema this cast
-  // will surface as a runtime error in `defineTool`, which is the
-  // correct failure mode (loud, not silent).
-  const schema = contract.parametersSchema as TObject;
+  const maxSubmitValidationRetries =
+    opts.maxSubmitValidationRetries ?? DEFAULT_MAX_SUBMIT_VALIDATION_RETRIES;
 
   let captured: Record<string, unknown> | null = null;
   let callCount = 0;
+  let invalidCallCount = 0;
+  let lastValidationFailure: { code: string; message: string } | null = null;
+  let exhaustedValidationFailure: { code: string; message: string } | null =
+    null;
 
   const tool = defineTool({
     name: contract.toolName,
     label: `Submit ${taskType} output`,
     description: contract.description,
-    parameters: schema,
+    promptSnippet:
+      `${contract.toolName}: submit the final structured ${taskType} ` +
+      'output using the schema shown in the task prompt.',
+    promptGuidelines: [
+      `Call \`${contract.toolName}\` with the exact ${taskType} output shape shown in the task prompt.`,
+      'If the submit tool returns a validation error, fix every listed field and call the same tool again.',
+    ],
+    parameters: RecoverableSubmitToolParameters,
     async execute(_id, params) {
+      if (exhaustedValidationFailure) {
+        const details: SubmitOutputDetails = {
+          captured: false,
+          callCount,
+          invalidCallCount,
+          maxSubmitValidationRetries,
+          error: 'output_validation_failed',
+        };
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text:
+                'Submit-output validation retry budget is already exhausted; ' +
+                'the attempt will fail.',
+            },
+          ],
+          details,
+          isError: true,
+        };
+      }
+
       // Use the registry-aware validator: runs the TypeBox schema check
       // AND any task-type-specific cross-field rule (e.g. judge_pack's
       // `llm_checklist` score↔assertions consistency from #999). Without
@@ -127,15 +316,33 @@ export function createSubmitOutputTool(
       // pollutes attestations. Returning isError:true lets the agent
       // re-call with a corrected payload mid-session — same recovery
       // affordance as a plain schema miss.
-      const errors = validateTaskOutput(taskType, params, opts.input);
+      const repairedParams = maybeRepairSubmitOutput(taskType, params, opts);
+      const candidateParams = repairedParams ?? params;
+      const errors = validateTaskOutput(taskType, candidateParams, opts.input);
       if (errors.length > 0) {
-        const detailMsg = errors
-          .slice(0, 3)
-          .map((err) => `${err.field}: ${err.message}`)
-          .join('; ');
+        invalidCallCount += 1;
+        const detailMsg = formatValidationErrors(errors);
+        const maxInvalidCalls = maxSubmitValidationRetries + 1;
+        const exhausted = invalidCallCount >= maxInvalidCalls;
+        const message =
+          `Output failed validation (${invalidCallCount}/${maxInvalidCalls}): ` +
+          `${detailMsg}. ` +
+          `${submitOutputRepairHint(taskType, errors)} ` +
+          (exhausted
+            ? 'Submit-output validation retry budget exhausted; the attempt will fail.'
+            : 'Re-call this tool with a corrected output.');
+        lastValidationFailure = {
+          code: 'output_validation_failed',
+          message,
+        };
+        if (exhausted) {
+          exhaustedValidationFailure = lastValidationFailure;
+        }
         const details: SubmitOutputDetails = {
           captured: false,
           callCount,
+          invalidCallCount,
+          maxSubmitValidationRetries,
           error: 'output_validation_failed',
         };
         recordTaskOutputParseResult({
@@ -147,9 +354,7 @@ export function createSubmitOutputTool(
           content: [
             {
               type: 'text' as const,
-              text:
-                `Output failed validation: ${detailMsg}. ` +
-                'Re-call this tool with a corrected output.',
+              text: message,
             },
           ],
           details,
@@ -157,7 +362,7 @@ export function createSubmitOutputTool(
         };
       }
 
-      captured = params as Record<string, unknown>;
+      captured = candidateParams as Record<string, unknown>;
       callCount += 1;
       const details: SubmitOutputDetails = {
         captured: true,
@@ -174,7 +379,6 @@ export function createSubmitOutputTool(
           },
         ],
         details,
-        terminate: true,
       };
     },
   }) as ToolDefinition<any, any>;
@@ -183,6 +387,9 @@ export function createSubmitOutputTool(
     tool,
     getCaptured: () => captured,
     getCallCount: () => callCount,
+    getInvalidCallCount: () => invalidCallCount,
+    getLastValidationFailure: () => lastValidationFailure,
+    getExhaustedValidationFailure: () => exhaustedValidationFailure,
   };
 }
 

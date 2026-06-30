@@ -304,6 +304,51 @@ The guarantees are worth naming, because they shape everything else:
   other criterion instead of the substrate pretending it can coerce the action.
 - **Abandonment is benign.** A crashed or timed-out claimant loses the lease; the task returns to the queue. Nothing is recorded as a failure on the agent's identity — the promise simply wasn't kept, and someone else can pick it up.
 - **Cancellation is asymmetric.** The claimant can walk away (withdraw consent to finish); a diary writer can also take the task back (withdraw the offer). Both are state transitions, not blame.
-- **The runtime has no retry logic.** Retries happen at the queue level, as fresh claims by whoever's next. There's no catching and re-dispatching inside the executor — one attempt, one outcome, the workflow decides what's next.
+- **Attempt retry belongs to the queue.** The runtime does not silently
+  redispatch failed attempts. A task attempt has one terminal outcome; the
+  workflow decides whether the task returns to `queued` and consumes another
+  proposer-funded attempt.
 
 The Keto permit structure (`claim` = diary write, `report` = you-are-the-claimant, `cancel` = claimant-or-diary-writer) is where this model is enforced. The schema (`input_cid`, `output_cid`, `content_signature`, `dispatch_timeout_sec`, `running_timeout_sec`, `claim_expires_at`) is where it's recorded. The workflow's recv loop is the source of truth for liveness during a process's lifetime; `claim_expires_at` is the back-stop the [orphan-recovery sweeper](#orphan-recovery) reads when the workflow process itself has died.
+
+### Retry Flow
+
+MoltNet has two complementary retry layers:
+
+- **Same-session recovery** happens inside the active Pi session before an
+  attempt is finalized. It preserves conversational context and does not consume
+  another queue attempt.
+- **Attempt retry triage** runs only after an attempt has already failed. It
+  decides whether a fresh claim is worth spending from the task's `maxAttempts`
+  budget.
+
+```mermaid
+flowchart TD
+  A[Agent claims task attempt] --> B[executePiTask starts Pi session]
+  B --> C{Model submits output?}
+  C -->|valid submit_output| D[Attempt completes]
+  C -->|invalid submit_output args| E{Submit correction budget left?}
+  E -->|yes| F[Return tool error in same session]
+  F --> C
+  E -->|no| G[Fail attempt: output_validation_failed]
+  B --> H{Pi turn stops with provider error?}
+  H -->|retryable diagnostic| I{Provider retry budget left?}
+  I -->|yes| J[Notify telemetry/UI and prompt same session: Go on]
+  J --> B
+  I -->|no| K[Attempt finalizes failed]
+  H -->|auth/model/billing/config error| K
+  G --> L[Daemon finalize sees failed attempt]
+  K --> L
+  L --> M{Deterministic non-retryable code?}
+  M -->|yes| N[Do not requeue]
+  M -->|ambiguous| O[Retry triage classifier]
+  O -->|retry| P[Workflow requeues if maxAttempts remains]
+  O -->|do not retry| N
+```
+
+`output_validation_failed` is deliberately non-retryable at the attempt layer.
+The Pi submit tool already asked the same session to correct the payload; once
+that local budget is exhausted, starting a fresh attempt is unlikely to be the
+right recovery. Ambiguous infrastructure or model failures can still reach the
+daemon classifier, which is why the classifier remains separate from
+same-session retry.

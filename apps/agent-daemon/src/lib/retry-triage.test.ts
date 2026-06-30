@@ -38,13 +38,17 @@ describe('retry triage classification', () => {
     });
   });
 
-  it('marks credentials and validation failures non-retryable', () => {
+  it('keeps submit validation failures non-retryable after in-session retries are exhausted', () => {
     expect(
       classifyDeterministically({
         code: 'output_validation_failed',
-        message: 'validation failed',
+        message:
+          'Submit-output validation retry budget exhausted; validation failed',
       }),
     ).toBe('non_retryable');
+  });
+
+  it('marks credentials failures non-retryable', () => {
     expect(
       classifyDeterministically({
         code: 'executor_error',

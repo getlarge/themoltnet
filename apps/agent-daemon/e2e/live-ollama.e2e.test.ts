@@ -24,6 +24,12 @@ const LIVE_PROVIDER = 'ollama-cloud';
 const LIVE_MODEL = 'qwen3-coder:480b-cloud';
 const LIVE_TRIAGE_MODEL =
   process.env.MOLTNET_AGENT_DAEMON_LIVE_TRIAGE_MODEL ?? 'minimax-m2.1:cloud';
+const FREEFORM_SUBMIT_INSTRUCTIONS =
+  'Before submitting, call moltnet_get_task for this task id and read inputCid. ' +
+  'The submit_freeform_output args must be the FreeformOutput object directly, not wrapped. ' +
+  'Use artifacts as an array. Include verification as an object with inputCid, ' +
+  'results [{ id: "submit-output", kind: "gate", status: "pass", detail: "submit_freeform_output called with valid args" }], ' +
+  'and passed true.';
 
 const describeLive = describe.skipIf(process.env[LIVE_LLM_FLAG] !== '1');
 const repoRoot = join(import.meta.dirname, '../../..');
@@ -136,9 +142,10 @@ describeLive('Agent daemon live Ollama Cloud execution (e2e)', () => {
             brief:
               'This is a CI smoke test. Do not inspect files and do not edit anything. ' +
               'Call submit_freeform_output exactly once with a short summary saying ' +
-              '"live ollama parent completed" and one inline text artifact titled "parent-marker".',
+              '"live ollama parent completed". ' +
+              FREEFORM_SUBMIT_INSTRUCTIONS,
             expectedOutput:
-              'A valid FreeformOutput submitted through submit_freeform_output.',
+              'A valid FreeformOutput submitted through submit_freeform_output with verification.',
             constraints: [
               'Do not run shell commands.',
               'Do not create diary entries.',
@@ -177,9 +184,10 @@ describeLive('Agent daemon live Ollama Cloud execution (e2e)', () => {
             brief:
               'Continue the previous smoke task. Use the prior context only to confirm continuity. ' +
               'Call submit_freeform_output exactly once with a short summary saying ' +
-              '"live ollama continuation completed" and one inline text artifact titled "continuation-marker".',
+              '"live ollama continuation completed". ' +
+              FREEFORM_SUBMIT_INSTRUCTIONS,
             expectedOutput:
-              'A valid FreeformOutput submitted through submit_freeform_output.',
+              'A valid FreeformOutput submitted through submit_freeform_output with verification.',
             constraints: [
               'Do not run shell commands.',
               'Do not create diary entries.',
@@ -225,9 +233,10 @@ describeLive('Agent daemon live Ollama Cloud execution (e2e)', () => {
               'filePath "live-artifact.txt", kind "report", title "live-artifact.txt", ' +
               'and contentType "text/plain". Finally call submit_freeform_output exactly once ' +
               'with a short summary saying "live ollama artifact completed" and include one ' +
-              'artifact entry titled "live-artifact.txt" that includes the returned cid.',
+              'artifact entry titled "live-artifact.txt" that includes the returned cid. ' +
+              FREEFORM_SUBMIT_INSTRUCTIONS,
             expectedOutput:
-              'A valid FreeformOutput submitted through submit_freeform_output with the uploaded artifact CID.',
+              'A valid FreeformOutput submitted through submit_freeform_output with the uploaded artifact CID and verification.',
             constraints: [
               'Do not run shell commands.',
               'Do not create diary entries.',
@@ -443,7 +452,7 @@ async function runLiveTask(input: {
       '--warm-session-ttl-sec',
       '600',
       '--max-turns',
-      String(input.maxTurns ?? 6),
+      String(input.maxTurns ?? 14),
       '--max-bash-timeouts',
       '1',
     ]);
