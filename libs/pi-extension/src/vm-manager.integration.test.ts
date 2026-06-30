@@ -91,6 +91,12 @@ mkdir .worktrees/testing/node_modules
 mkdir .worktrees/testing/node_modules/probe
 echo ok > .worktrees/testing/node_modules/probe/file.txt
 test -f .worktrees/testing/node_modules/probe/file.txt
+mkdir .worktrees/testing/node_modules/.bin
+cat > .worktrees/testing/node_modules/.bin/probe <<'SH'
+#!/bin/sh
+echo probe-ok
+SH
+test "$(.worktrees/testing/node_modules/.bin/probe)" = probe-ok
 su agent -c 'touch /opt/pnpm-store/agent-write'
 python3 - <<'PY'
 import json

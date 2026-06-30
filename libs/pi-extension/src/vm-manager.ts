@@ -143,6 +143,14 @@ export function shouldShadowNodeModulesPath(pathname: string): boolean {
   );
 }
 
+function isNodeModulesBinPath(pathname: string): boolean {
+  const normalized = path.posix.normalize(pathname);
+  return (
+    normalized.includes('/node_modules/.bin/') ||
+    normalized.startsWith('/node_modules/.bin/')
+  );
+}
+
 export class AutoParentMemoryProvider extends MemoryProvider {
   private ensureParentDir(pathname: string): void {
     const parent = path.posix.dirname(path.posix.normalize(pathname));
@@ -165,12 +173,24 @@ export class AutoParentMemoryProvider extends MemoryProvider {
 
   override async open(pathname: string, flags: string, mode?: number) {
     if (isWriteFlag(flags)) this.ensureParentDir(pathname);
-    return super.open(pathname, flags, mode);
+    return super.open(
+      pathname,
+      flags,
+      isWriteFlag(flags) && isNodeModulesBinPath(pathname)
+        ? (mode ?? 0o755) | 0o111
+        : mode,
+    );
   }
 
   override openSync(pathname: string, flags: string, mode?: number) {
     if (isWriteFlag(flags)) this.ensureParentDir(pathname);
-    return super.openSync(pathname, flags, mode);
+    return super.openSync(
+      pathname,
+      flags,
+      isWriteFlag(flags) && isNodeModulesBinPath(pathname)
+        ? (mode ?? 0o755) | 0o111
+        : mode,
+    );
   }
 }
 

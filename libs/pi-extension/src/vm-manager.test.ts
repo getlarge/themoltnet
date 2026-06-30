@@ -372,6 +372,7 @@ describe('shouldShadowNodeModulesPath', () => {
       expect(provider.openSync(guestTool, 'r').readFileSync('utf8')).toBe(
         'guest tool',
       );
+      expect(provider.statSync(guestTool).mode & 0o111).not.toBe(0);
 
       const sourceDir = '/.worktrees/later/packages/web/src';
       const sourceFile = `${sourceDir}/index.ts`;
