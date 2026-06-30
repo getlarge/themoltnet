@@ -473,7 +473,7 @@ export async function runOnce(argv: string[]): Promise<number> {
             cwd: ctx.agentRootDir,
           }),
           writeCorrelationAnchors,
-          log: (msg, err) => rootLogger.warn({ err }, msg),
+          log: (msg, fields) => rootLogger.warn(fields ?? {}, msg),
         });
       },
       executeTask,

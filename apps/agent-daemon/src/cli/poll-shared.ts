@@ -438,7 +438,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
               runtimeProfileName: selected.profile.name,
             }),
           }),
-          log: (msg, err) => rootLogger.warn({ err }, msg),
+          log: (msg, fields) => rootLogger.warn(fields ?? {}, msg),
         });
       },
       executeTask: async (claimedTask, reporter) => {

@@ -250,6 +250,124 @@ describe('finalizeTask', () => {
     expect(error.message).toContain('output.verification');
   });
 
+  it('logs the classification verdict (code, retryability, triage decision) as structured fields', async () => {
+    const failed = makeOutput('failed', null);
+    failed.error = { code: 'executor_unexpected_error', message: 'unclear' };
+    const task = {
+      id: 't1',
+      taskType: 'freeform',
+      teamId: 'team-1',
+      input: { brief: 'do it' },
+      maxAttempts: 2,
+    } as unknown as Task;
+    const log = vi.fn();
+
+    await finalizeTask(stub.agent, failed, {
+      task,
+      log,
+      retryTriage: () =>
+        Promise.resolve({
+          decision: 'retry',
+          confidence: 'high',
+          reason: 'Runtime-local crash after recoverable work.',
+        }),
+    });
+
+    expect(log).toHaveBeenCalledWith('attempt-failure-classified', {
+      taskId: 't1',
+      attemptN: 1,
+      source: 'triage',
+      code: 'executor_unexpected_error',
+      retryable: true,
+      decision: 'retry',
+      confidence: 'high',
+      reason: 'Runtime-local crash after recoverable work.',
+    });
+  });
+
+  it('includes correlationId in the classification log when the task carries one', async () => {
+    const failed = makeOutput('failed', null);
+    failed.error = { code: 'executor_unexpected_error', message: 'unclear' };
+    const task = {
+      id: 't1',
+      taskType: 'run_eval',
+      teamId: 'team-1',
+      input: { brief: 'do it' },
+      maxAttempts: 2,
+      correlationId: 'corr-123',
+    } as unknown as Task;
+    const log = vi.fn();
+
+    await finalizeTask(stub.agent, failed, {
+      task,
+      log,
+      retryTriage: () =>
+        Promise.resolve({
+          decision: 'do_not_retry',
+          confidence: 'high',
+          reason: 'Deterministic non-recovery.',
+        }),
+    });
+
+    expect(log).toHaveBeenCalledWith(
+      'attempt-failure-classified',
+      expect.objectContaining({ correlationId: 'corr-123' }),
+    );
+  });
+
+  it('redacts secret-looking tokens from the logged triage reason', async () => {
+    const failed = makeOutput('failed', null);
+    failed.error = { code: 'executor_unexpected_error', message: 'unclear' };
+    const task = {
+      id: 't1',
+      taskType: 'freeform',
+      teamId: 'team-1',
+      input: { brief: 'do it' },
+      maxAttempts: 2,
+    } as unknown as Task;
+    const log = vi.fn();
+
+    await finalizeTask(stub.agent, failed, {
+      task,
+      log,
+      retryTriage: () =>
+        Promise.resolve({
+          decision: 'retry',
+          confidence: 'high',
+          reason: 'Saw token sk-abcdef0123456789abcdef in the env dump.',
+        }),
+    });
+
+    const fields = log.mock.calls.find(
+      (c) => c[0] === 'attempt-failure-classified',
+    )?.[1] as { reason?: string };
+    expect(fields.reason).not.toContain('sk-abcdef0123456789abcdef');
+    expect(fields.reason).toContain('[redacted]');
+  });
+
+  it('omits decision/confidence from the log when the verdict has none', async () => {
+    const failed = makeOutput('failed', null);
+    failed.error = { code: 'executor_unexpected_error', message: 'unclear' };
+    const task = {
+      id: 't1',
+      taskType: 'freeform',
+      teamId: 'team-1',
+      input: { brief: 'do it' },
+      maxAttempts: 1,
+    } as unknown as Task;
+    const log = vi.fn();
+
+    await finalizeTask(stub.agent, failed, { task, log });
+
+    const fields = log.mock.calls.find(
+      (c) => c[0] === 'attempt-failure-classified',
+    )?.[1] as Record<string, unknown>;
+    expect(fields.source).toBe('attempts_exhausted');
+    expect(fields).not.toHaveProperty('decision');
+    expect(fields).not.toHaveProperty('confidence');
+    expect(fields.reason).toBeDefined();
+  });
+
   it('does not call /failAttempt when the startup heartbeat observes cancellation', async () => {
     stub.heartbeat.mockResolvedValueOnce({
       claimExpiresAt: new Date(0).toISOString(),
@@ -386,10 +504,9 @@ describe('finalizeTask — fulfill_brief correlation hook', () => {
     ).resolves.toBeUndefined();
 
     expect(m.complete).toHaveBeenCalled();
-    expect(log).toHaveBeenCalledWith(
-      'correlation-anchor-write-failed',
-      expect.any(Error),
-    );
+    expect(log).toHaveBeenCalledWith('correlation-anchor-write-failed', {
+      err: expect.any(Error) as unknown,
+    });
   });
 
   it('cancelled output short-circuits before complete/fail/writer', async () => {
