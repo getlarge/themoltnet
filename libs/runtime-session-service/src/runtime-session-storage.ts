@@ -29,6 +29,8 @@ export interface RuntimeSessionStorage {
   getObject(key: string): Promise<RuntimeSessionObject>;
 
   deleteObject(key: string): Promise<void>;
+
+  deleteObjects(keys: string[]): Promise<void>;
 }
 
 export class RuntimeSessionStorageNotConfiguredError extends Error {
@@ -74,6 +76,7 @@ export function createRuntimeSessionStorage(
     putObject: (input) => storage.putObject(input),
     getObject: (key) => storage.getObject(key),
     deleteObject: (key) => storage.deleteObject(key),
+    deleteObjects: (keys) => storage.deleteObjects(keys),
   };
 }
 
@@ -86,6 +89,9 @@ function createDisabledRuntimeSessionStorage(): RuntimeSessionStorage {
       return Promise.reject(new RuntimeSessionStorageNotConfiguredError());
     },
     deleteObject() {
+      return Promise.reject(new RuntimeSessionStorageNotConfiguredError());
+    },
+    deleteObjects() {
       return Promise.reject(new RuntimeSessionStorageNotConfiguredError());
     },
   };

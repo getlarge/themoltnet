@@ -38,6 +38,8 @@ export interface TaskArtifactStorage {
   headObject(key: string): Promise<TaskArtifactObjectHead | null>;
 
   deleteObject(key: string): Promise<void>;
+
+  deleteObjects(keys: string[]): Promise<void>;
 }
 
 export class TaskArtifactStorageNotConfiguredError extends Error {
@@ -92,6 +94,9 @@ function createDisabledTaskArtifactStorage(): TaskArtifactStorage {
       return Promise.reject(new TaskArtifactStorageNotConfiguredError());
     },
     deleteObject() {
+      return Promise.reject(new TaskArtifactStorageNotConfiguredError());
+    },
+    deleteObjects() {
       return Promise.reject(new TaskArtifactStorageNotConfiguredError());
     },
   };

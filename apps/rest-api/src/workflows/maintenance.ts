@@ -86,6 +86,23 @@ function toCleanupManifestTask(
   };
 }
 
+function filterCleanupManifestByTaskIds(
+  manifest: TaskCleanupManifest,
+  taskIds: string[],
+): TaskCleanupManifest {
+  const taskIdSet = new Set(taskIds);
+  return {
+    ...manifest,
+    tasks: manifest.tasks.filter((task) => taskIdSet.has(task.id)),
+    taskArtifacts: manifest.taskArtifacts.filter((artifact) =>
+      taskIdSet.has(artifact.taskId),
+    ),
+    runtimeSessions: manifest.runtimeSessions.filter((session) =>
+      taskIdSet.has(session.taskId),
+    ),
+  };
+}
+
 export function setMaintenanceDeps(deps: MaintenanceDeps): void {
   _deps = deps;
 }
@@ -526,13 +543,45 @@ export function initMaintenanceWorkflows(
     { name: 'maintenance.taskExpirySweeper.listExpired' },
   );
 
-  const expireTaskStep = DBOS.registerStep(
-    async (taskId: string) => {
+  const expireTasksStep = DBOS.registerStep(
+    async (taskIds: string[]) => {
       const { taskRepository } = getDeps();
-      return taskRepository.expireIfStillNonTerminal(taskId);
+      return taskRepository.expireManyIfStillNonTerminal(taskIds);
     },
     {
-      name: 'maintenance.taskExpirySweeper.expireTask',
+      name: 'maintenance.taskExpirySweeper.expireTasks',
+      retriesAllowed: true,
+      maxAttempts: 3,
+      intervalSeconds: 2,
+      backoffRate: 2,
+    },
+  );
+
+  const notifyExpiredTasksStep = DBOS.registerStep(
+    async (
+      taskIds: string[],
+    ): Promise<{ notified: number; failed: number }> => {
+      const { logger, notifyTaskStatusChanged } = getDeps();
+      if (!notifyTaskStatusChanged || taskIds.length === 0) {
+        return { notified: 0, failed: 0 };
+      }
+      const notifyResults = await Promise.allSettled(
+        taskIds.map((taskId) => notifyTaskStatusChanged(taskId)),
+      );
+      let failed = 0;
+      notifyResults.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          failed += 1;
+          logger.error(
+            { taskId: taskIds[index], err: result.reason },
+            'maintenance: task expiry — notification failed',
+          );
+        }
+      });
+      return { notified: taskIds.length - failed, failed };
+    },
+    {
+      name: 'maintenance.taskExpirySweeper.notifyExpiredTasks',
       retriesAllowed: true,
       maxAttempts: 3,
       intervalSeconds: 2,
@@ -544,28 +593,17 @@ export function initMaintenanceWorkflows(
     async (input: {
       batchSize: number;
     }): Promise<{ examined: number; expired: number }> => {
-      const { logger, notifyTaskStatusChanged } = getDeps();
+      const { logger } = getDeps();
       const expiredCandidates = await listExpiredTasksStep(
         new Date(),
         input.batchSize,
       );
 
-      let expired = 0;
-      for (const task of expiredCandidates) {
-        try {
-          const updated = await expireTaskStep(task.id);
-          if (!updated) continue;
-          expired += 1;
-          if (notifyTaskStatusChanged) {
-            await notifyTaskStatusChanged(task.id);
-          }
-        } catch (err) {
-          logger.error(
-            { taskId: task.id, err },
-            'maintenance: task expiry — expire failed',
-          );
-        }
-      }
+      const expiredTasks = await expireTasksStep(
+        expiredCandidates.map((task) => task.id),
+      );
+      await notifyExpiredTasksStep(expiredTasks.map((task) => task.id));
+      const expired = expiredTasks.length;
 
       if (expiredCandidates.length > 0) {
         logger.info(
@@ -670,9 +708,9 @@ export function initMaintenanceWorkflows(
   const deleteTaskArtifactObjectsStep = DBOS.registerStep(
     async (manifest: TaskCleanupManifest): Promise<number> => {
       const { taskArtifactStorage } = getDeps();
-      for (const artifact of manifest.taskArtifacts) {
-        await taskArtifactStorage.deleteObject(artifact.objectKey);
-      }
+      await taskArtifactStorage.deleteObjects(
+        manifest.taskArtifacts.map((artifact) => artifact.objectKey),
+      );
       return manifest.taskArtifacts.length;
     },
     {
@@ -687,9 +725,9 @@ export function initMaintenanceWorkflows(
   const deleteRuntimeSessionObjectsStep = DBOS.registerStep(
     async (manifest: TaskCleanupManifest): Promise<number> => {
       const { runtimeSessionStorage } = getDeps();
-      for (const session of manifest.runtimeSessions) {
-        await runtimeSessionStorage.deleteObject(session.objectKey);
-      }
+      await runtimeSessionStorage.deleteObjects(
+        manifest.runtimeSessions.map((session) => session.objectKey),
+      );
       return manifest.runtimeSessions.length;
     },
     {
@@ -702,39 +740,35 @@ export function initMaintenanceWorkflows(
   );
 
   const deleteTaskRowsStep = DBOS.registerStep(
-    async (manifest: TaskCleanupManifest): Promise<number> => {
-      const { runtimeSessionRepository, taskRepository, transactionRunner } =
-        getDeps();
+    async (manifest: TaskCleanupManifest): Promise<TaskCleanupManifest> => {
+      const {
+        relationshipWriter,
+        runtimeSessionRepository,
+        taskRepository,
+        transactionRunner,
+      } = getDeps();
       const sessionIds = manifest.runtimeSessions.map((session) => session.id);
       const taskIds = manifest.tasks.map((task) => task.id);
       const deletedIds = await transactionRunner.runInTransaction(async () => {
         await runtimeSessionRepository.detachChildren(sessionIds);
-        return taskRepository.deleteMany(taskIds);
+        const deletedTaskIds = await taskRepository.deleteMany(taskIds);
+        const deletedTaskIdSet = new Set(deletedTaskIds);
+        const deletedTasks = manifest.tasks.filter((task) =>
+          deletedTaskIdSet.has(task.id),
+        );
+        await relationshipWriter.removeTaskRelationsBatch(
+          deletedTasks.map((task) => ({
+            id: task.id,
+            diaryId: task.diaryId,
+            claimAgentId: task.claimAgentId,
+          })),
+        );
+        return deletedTaskIds;
       });
-      return deletedIds.length;
+      return filterCleanupManifestByTaskIds(manifest, deletedIds);
     },
     {
       name: 'maintenance.taskRetentionCleanup.deleteTaskRows',
-      retriesAllowed: true,
-      maxAttempts: 3,
-      intervalSeconds: 2,
-      backoffRate: 2,
-    },
-  );
-
-  const removeTaskRelationsStep = DBOS.registerStep(
-    async (manifest: TaskCleanupManifest): Promise<void> => {
-      const { relationshipWriter } = getDeps();
-      await relationshipWriter.removeTaskRelationsBatch(
-        manifest.tasks.map((task) => ({
-          id: task.id,
-          diaryId: task.diaryId,
-          claimAgentId: task.claimAgentId,
-        })),
-      );
-    },
-    {
-      name: 'maintenance.taskRetentionCleanup.removeTaskRelations',
       retriesAllowed: true,
       maxAttempts: 3,
       intervalSeconds: 2,
@@ -770,12 +804,12 @@ export function initMaintenanceWorkflows(
         };
       }
 
+      const deletedManifest = await deleteTaskRowsStep(manifest);
       const deletedArtifactObjects =
-        await deleteTaskArtifactObjectsStep(manifest);
+        await deleteTaskArtifactObjectsStep(deletedManifest);
       const deletedRuntimeSessionObjects =
-        await deleteRuntimeSessionObjectsStep(manifest);
-      const deletedTaskCount = await deleteTaskRowsStep(manifest);
-      await removeTaskRelationsStep(manifest);
+        await deleteRuntimeSessionObjectsStep(deletedManifest);
+      const deletedTaskCount = deletedManifest.tasks.length;
 
       const deletedObjectCount =
         deletedArtifactObjects + deletedRuntimeSessionObjects;

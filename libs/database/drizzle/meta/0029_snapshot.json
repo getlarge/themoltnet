@@ -4840,7 +4840,23 @@
             }
           ],
           "isUnique": false,
-          "where": "expires_at IS NOT NULL",
+          "where": "expires_at IS NOT NULL AND status NOT IN ('dispatched', 'running', 'completed', 'failed', 'cancelled', 'expired')",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "tasks_terminal_retention_idx": {
+          "name": "tasks_terminal_retention_idx",
+          "columns": [
+            {
+              "expression": "completed_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "completed_at IS NOT NULL AND status IN ('completed', 'failed', 'cancelled', 'expired')",
           "concurrently": false,
           "method": "btree",
           "with": {}

@@ -8,6 +8,7 @@ import {
   inArray,
   isNull,
   lt,
+  lte,
   notInArray,
   or,
   type SQL,
@@ -242,8 +243,15 @@ export function createTaskRepository(db: Database) {
         .from(tasks)
         .where(
           and(
-            inArray(tasks.status, ['waiting', 'queued']),
-            lt(tasks.expiresAt, now),
+            notInArray(tasks.status, [
+              'dispatched',
+              'running',
+              'completed',
+              'failed',
+              'cancelled',
+              'expired',
+            ]),
+            lte(tasks.expiresAt, now),
           ),
         )
         .orderBy(asc(tasks.expiresAt))
@@ -265,6 +273,24 @@ export function createTaskRepository(db: Database) {
       return row ?? null;
     },
 
+    async expireManyIfStillNonTerminal(ids: string[]): Promise<Task[]> {
+      if (ids.length === 0) return [];
+      return getExecutor(db)
+        .update(tasks)
+        .set({
+          status: 'expired',
+          completedAt: sql`now()`,
+          updatedAt: sql`now()`,
+        })
+        .where(
+          and(
+            inArray(tasks.id, [...new Set(ids)]),
+            inArray(tasks.status, ['waiting', 'queued']),
+          ),
+        )
+        .returning();
+    },
+
     async listTerminalTasksPastRetention(
       cutoffs: TaskRetentionCutoffs,
       limit: number,
@@ -276,19 +302,19 @@ export function createTaskRepository(db: Database) {
           or(
             and(
               eq(tasks.status, 'completed'),
-              lt(tasks.completedAt, cutoffs.completedBefore),
+              lte(tasks.completedAt, cutoffs.completedBefore),
             ),
             and(
               eq(tasks.status, 'failed'),
-              lt(tasks.completedAt, cutoffs.failedBefore),
+              lte(tasks.completedAt, cutoffs.failedBefore),
             ),
             and(
               eq(tasks.status, 'cancelled'),
-              lt(tasks.completedAt, cutoffs.cancelledBefore),
+              lte(tasks.completedAt, cutoffs.cancelledBefore),
             ),
             and(
               eq(tasks.status, 'expired'),
-              lt(tasks.completedAt, cutoffs.expiredBefore),
+              lte(tasks.completedAt, cutoffs.expiredBefore),
             ),
           ),
         )

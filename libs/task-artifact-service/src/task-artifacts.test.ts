@@ -57,6 +57,7 @@ function createDeps() {
     getObject: vi.fn(),
     headObject: vi.fn().mockResolvedValue(null),
     deleteObject: vi.fn(),
+    deleteObjects: vi.fn(),
   };
   const deps = {
     logger: {

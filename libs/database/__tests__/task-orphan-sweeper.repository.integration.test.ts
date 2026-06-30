@@ -284,6 +284,7 @@ describe('TaskRepository maintenance sweeper queries (integration)', () => {
     const FUTURE_WAITING = '88888888-8888-4888-8888-888888888803';
     const EXPIRED_RUNNING = '88888888-8888-4888-8888-888888888804';
     const TERMINAL_EXPIRED = '88888888-8888-4888-8888-888888888805';
+    const BOUNDARY_WAITING = '88888888-8888-4888-8888-888888888806';
 
     await seedTask({
       id: EXPIRED_WAITING,
@@ -317,10 +318,16 @@ describe('TaskRepository maintenance sweeper queries (integration)', () => {
       claimExpiresAt: null,
       expiresAt: new Date(NOW.getTime() - 60_000),
     });
+    await seedTask({
+      id: BOUNDARY_WAITING,
+      status: 'waiting',
+      claimExpiresAt: null,
+      expiresAt: NOW,
+    });
 
     const result = await repo.listExpiredNonTerminalTasks(NOW, 100);
     const ids = result.map((task) => task.id);
-    expect(ids).toEqual([EXPIRED_WAITING, EXPIRED_QUEUED]);
+    expect(ids).toEqual([EXPIRED_WAITING, EXPIRED_QUEUED, BOUNDARY_WAITING]);
     expect(ids).not.toContain(FUTURE_WAITING);
     expect(ids).not.toContain(EXPIRED_RUNNING);
     expect(ids).not.toContain(TERMINAL_EXPIRED);
@@ -358,6 +365,56 @@ describe('TaskRepository maintenance sweeper queries (integration)', () => {
 
     const running = await repo.findById(RUNNING_TASK);
     expect(running?.status).toBe('running');
+
+    await db.delete(taskAttempts);
+    await db.delete(tasks);
+  });
+
+  it('expires a batch of waiting or queued tasks with one conditional update', async () => {
+    const NOW = new Date('2026-04-26T10:00:00Z');
+    const WAITING_TASK = '99999999-9999-4999-8999-999999999903';
+    const QUEUED_TASK = '99999999-9999-4999-8999-999999999904';
+    const RUNNING_TASK = '99999999-9999-4999-8999-999999999905';
+
+    await seedTask({
+      id: WAITING_TASK,
+      status: 'waiting',
+      claimExpiresAt: null,
+      expiresAt: new Date(NOW.getTime() - 60_000),
+    });
+    await seedTask({
+      id: QUEUED_TASK,
+      status: 'queued',
+      claimExpiresAt: null,
+      expiresAt: new Date(NOW.getTime() - 60_000),
+    });
+    await seedTask({
+      id: RUNNING_TASK,
+      status: 'running',
+      claimExpiresAt: null,
+      expiresAt: new Date(NOW.getTime() - 60_000),
+      createAttempt: true,
+      attemptStatus: 'running',
+    });
+
+    const expired = await repo.expireManyIfStillNonTerminal([
+      WAITING_TASK,
+      QUEUED_TASK,
+      RUNNING_TASK,
+      WAITING_TASK,
+    ]);
+    const expiredIds = expired.map((task) => task.id).sort();
+
+    expect(expiredIds).toEqual([QUEUED_TASK, WAITING_TASK].sort());
+    await expect(repo.findById(WAITING_TASK)).resolves.toMatchObject({
+      status: 'expired',
+    });
+    await expect(repo.findById(QUEUED_TASK)).resolves.toMatchObject({
+      status: 'expired',
+    });
+    await expect(repo.findById(RUNNING_TASK)).resolves.toMatchObject({
+      status: 'running',
+    });
 
     await db.delete(taskAttempts);
     await db.delete(tasks);
@@ -402,6 +459,8 @@ describe('TaskRepository maintenance sweeper queries (integration)', () => {
     const OLD_CANCELLED = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb05';
     const OLD_EXPIRED = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb06';
     const OLD_QUEUED = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb07';
+    const BOUNDARY_COMPLETED = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb08';
+    const BOUNDARY_FAILED = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb09';
 
     await seedTask({
       id: OLD_COMPLETED,
@@ -426,6 +485,18 @@ describe('TaskRepository maintenance sweeper queries (integration)', () => {
       status: 'failed',
       claimExpiresAt: null,
       completedAt: new Date(NOW.getTime() - 89 * 24 * 60 * 60 * 1000),
+    });
+    await seedTask({
+      id: BOUNDARY_COMPLETED,
+      status: 'completed',
+      claimExpiresAt: null,
+      completedAt: new Date(NOW.getTime() - 180 * 24 * 60 * 60 * 1000),
+    });
+    await seedTask({
+      id: BOUNDARY_FAILED,
+      status: 'failed',
+      claimExpiresAt: null,
+      completedAt: new Date(NOW.getTime() - 90 * 24 * 60 * 60 * 1000),
     });
     await seedTask({
       id: OLD_CANCELLED,
@@ -459,9 +530,11 @@ describe('TaskRepository maintenance sweeper queries (integration)', () => {
 
     expect(ids).toEqual([
       OLD_COMPLETED,
+      BOUNDARY_COMPLETED,
       OLD_FAILED,
       OLD_CANCELLED,
       OLD_EXPIRED,
+      BOUNDARY_FAILED,
     ]);
     expect(ids).not.toContain(FRESH_COMPLETED);
     expect(ids).not.toContain(FRESH_FAILED);

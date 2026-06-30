@@ -63,6 +63,7 @@ function createDeps() {
     putObject: vi.fn(),
     getObject: vi.fn(),
     deleteObject: vi.fn(),
+    deleteObjects: vi.fn(),
   };
   const deps = {
     logger: {
