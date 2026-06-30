@@ -118,6 +118,29 @@ export type TurnEventHandlerFactory = (
 
 const noopTurnEventHandler: TurnEventHandler = () => {};
 
+export type ProviderErrorRetryLevel = 'info' | 'warning' | 'error';
+
+export interface ProviderErrorRetryEvent extends Record<string, unknown> {
+  event: 'provider_error_retry';
+  retry: number;
+  maxRetries: number;
+  delayMs: number;
+  reason: string;
+}
+
+export interface ProviderErrorRetryUi {
+  /**
+   * Mirrors pi's `ctx.hasUI`. Undefined means "UI adapter is present"; false
+   * lets callers pass a stable adapter from both TUI and headless contexts.
+   */
+  hasUI?: boolean;
+  setStatus?: (key: string, message: string) => void | Promise<void>;
+  notify?: (
+    message: string,
+    level: ProviderErrorRetryLevel,
+  ) => void | Promise<void>;
+}
+
 export async function openVmWorkspaceFileForRead(config: {
   vm: VM;
   cwdPath: string;
@@ -311,6 +334,12 @@ export interface ExecutePiTaskOptions {
   providerErrorRetryMaxDelayMs?: number;
   /** Continuation prompt sent after a retryable provider error. Default `Go on`. */
   providerErrorRetryPrompt?: string;
+  /**
+   * Optional UI adapter for interactive pi/TUI callers. The daemon normally
+   * leaves this unset and consumes the structured `provider_error_retry` task
+   * message instead.
+   */
+  providerErrorRetryUi?: ProviderErrorRetryUi;
   /**
    * Skip per-call UI approval for matching `moltnet_host_exec` commands.
    * Keep false/undefined for interactive consumers. `true` skips every dialog
@@ -1076,7 +1105,10 @@ export async function executePiTask(
       baseDelayMs: opts.providerErrorRetryBaseDelayMs ?? 2_000,
       maxDelayMs: opts.providerErrorRetryMaxDelayMs ?? 30_000,
       retryPrompt: opts.providerErrorRetryPrompt ?? 'Go on',
-      onRetry: (event) => emit('info', event),
+      onRetry: async (event) => {
+        await emit('info', event);
+        await notifyProviderErrorRetryUi(opts.providerErrorRetryUi, event);
+      },
       onPromptError: (message) =>
         emit('error', { message, phase: 'session_prompt' }),
     });
@@ -1531,6 +1563,28 @@ export function computeProviderErrorRetryDelay(
   );
 }
 
+export function formatProviderErrorRetryStatus(
+  event: ProviderErrorRetryEvent,
+): string {
+  const seconds = Math.ceil(event.delayMs / 1_000);
+  return `Provider retry ${event.retry}/${event.maxRetries} in ${seconds}s`;
+}
+
+export function formatProviderErrorRetryNotification(
+  event: ProviderErrorRetryEvent,
+): string {
+  return `Provider error; retrying same Pi session (${event.retry}/${event.maxRetries}).`;
+}
+
+export async function notifyProviderErrorRetryUi(
+  ui: ProviderErrorRetryUi | undefined,
+  event: ProviderErrorRetryEvent,
+): Promise<void> {
+  if (!ui || ui.hasUI === false) return;
+  await ui.setStatus?.('provider_retry', formatProviderErrorRetryStatus(event));
+  await ui.notify?.(formatProviderErrorRetryNotification(event), 'warning');
+}
+
 export interface PromptWithProviderErrorRetriesArgs {
   session: Pick<AgentSession, 'prompt'>;
   initialPrompt: string;
@@ -1544,13 +1598,7 @@ export interface PromptWithProviderErrorRetriesArgs {
   baseDelayMs: number;
   maxDelayMs: number;
   retryPrompt: string;
-  onRetry?: (event: {
-    event: 'provider_error_retry';
-    retry: number;
-    maxRetries: number;
-    delayMs: number;
-    reason: string;
-  }) => Promise<void>;
+  onRetry?: (event: ProviderErrorRetryEvent) => Promise<void>;
   onPromptError?: (message: string) => Promise<void>;
 }
 

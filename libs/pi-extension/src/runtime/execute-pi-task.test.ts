@@ -20,7 +20,10 @@ import {
   computeProviderErrorRetryDelay,
   createGondolinToolDefinitions,
   describeToolErrorMessage,
+  formatProviderErrorRetryNotification,
+  formatProviderErrorRetryStatus,
   isBashTimeoutResult,
+  notifyProviderErrorRetryUi,
   openVmWorkspaceFileForRead,
   promptWithProviderErrorRetries,
   sanitizeProviderErrorRetryReason,
@@ -141,6 +144,67 @@ describe('provider error same-session retry helpers', () => {
     expect(computeProviderErrorRetryDelay(1, 2_000, 30_000)).toBe(2_000);
     expect(computeProviderErrorRetryDelay(2, 2_000, 30_000)).toBe(4_000);
     expect(computeProviderErrorRetryDelay(10, 2_000, 30_000)).toBe(30_000);
+  });
+
+  it('formats provider retry UI status and notifications', () => {
+    const event = {
+      event: 'provider_error_retry' as const,
+      retry: 1,
+      maxRetries: 2,
+      delayMs: 1_500,
+      reason: 'provider returned 503',
+    };
+
+    expect(formatProviderErrorRetryStatus(event)).toBe(
+      'Provider retry 1/2 in 2s',
+    );
+    expect(formatProviderErrorRetryNotification(event)).toBe(
+      'Provider error; retrying same Pi session (1/2).',
+    );
+  });
+
+  it('notifies interactive UI adapters about provider retries', async () => {
+    const setStatus = vi.fn();
+    const notify = vi.fn();
+
+    await notifyProviderErrorRetryUi(
+      { hasUI: true, setStatus, notify },
+      {
+        event: 'provider_error_retry',
+        retry: 1,
+        maxRetries: 2,
+        delayMs: 0,
+        reason: 'provider returned 503',
+      },
+    );
+
+    expect(setStatus).toHaveBeenCalledWith(
+      'provider_retry',
+      'Provider retry 1/2 in 0s',
+    );
+    expect(notify).toHaveBeenCalledWith(
+      'Provider error; retrying same Pi session (1/2).',
+      'warning',
+    );
+  });
+
+  it('skips provider retry UI work for headless contexts', async () => {
+    const setStatus = vi.fn();
+    const notify = vi.fn();
+
+    await notifyProviderErrorRetryUi(
+      { hasUI: false, setStatus, notify },
+      {
+        event: 'provider_error_retry',
+        retry: 1,
+        maxRetries: 2,
+        delayMs: 0,
+        reason: 'provider returned 503',
+      },
+    );
+
+    expect(setStatus).not.toHaveBeenCalled();
+    expect(notify).not.toHaveBeenCalled();
   });
 
   it('re-prompts the same session with a continuation after retryable provider metadata', async () => {
