@@ -128,7 +128,7 @@ export function buildJudgeEvalAttemptUserPrompt(
           `  "targetTaskId": "${input.targetTaskId}",`,
           `  "targetAttemptN": ${input.targetAttemptN},`,
           '  "variantLabel": "<from producer input>",',
-          '  "scores": [ { "criterionId": "...", "score": 0..1, "rationale": "...", "assertions": [...]? } ],',
+          '  "scores": [ { "criterionId": "...", "score": 0..1, "rationale": "...", "assertions": [...]?, "evidence": { "text": "..." } } ],',
           '  "composite": <Σ(weight × score), 0..1>,',
           '  "verdict": "<1-3 sentences>",',
           '  "judgeModel": "<id>",  // optional',

@@ -69,4 +69,19 @@ describe('pi retry triage prompt', () => {
     expect(prompt.length).toBeLessThan(13_000);
     expect(prompt).toContain('[truncated');
   });
+
+  it('keeps output validation as an exhausted in-session correction, not attempt retry', () => {
+    const prompt = buildPiRetryTriagePromptForTest({
+      ...BASE_INPUT,
+      error: {
+        code: 'output_validation_failed',
+        message:
+          'Submit-output validation retry budget exhausted; output/variantLabel is required',
+      },
+    });
+
+    expect(prompt).toContain('corrected inside the active Pi session');
+    expect(prompt).toContain('choose do_not_retry');
+    expect(prompt).toContain('output_validation_failed');
+  });
 });

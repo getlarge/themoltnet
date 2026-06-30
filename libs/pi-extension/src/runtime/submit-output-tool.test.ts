@@ -84,26 +84,26 @@ describe('createSubmitOutputTool', () => {
     );
   });
 
-  it("registers the task type's *Output schema as the tool parameters (no opaque blob)", () => {
-    const handle = createSubmitOutputTool('fulfill_brief');
+  it('registers permissive Pi parameters while keeping submit guidance visible', () => {
+    const handle = createSubmitOutputTool('judge_eval_attempt');
     const tool = handle.tool as unknown as {
-      parameters: { type?: string; properties?: Record<string, unknown> };
+      parameters: {
+        type?: string;
+        properties?: Record<string, unknown>;
+        additionalProperties?: unknown;
+      };
+      promptSnippet?: string;
+      promptGuidelines?: string[];
     };
-    // The schema is the FulfillBriefOutput TObject — top-level type is
-    // 'object' and the model sees the actual field names at planning
-    // time. This is the bug fix in this commit: the previous wrapper
-    // (Type.Object({ output: Type.Unknown() })) advertised no field
-    // shape and made tool calls effectively un-guided.
+    // Pi validates tool arguments before execute() runs. The executable
+    // parameter schema must therefore be permissive so invalid submit
+    // payloads reach our strict in-handler validator and become
+    // recoverable tool errors in the same session.
     expect(tool.parameters.type).toBe('object');
-    expect(Object.keys(tool.parameters.properties ?? {})).toEqual(
-      expect.arrayContaining([
-        'branch',
-        'commits',
-        'pullRequestUrl',
-        'diaryEntryIds',
-        'summary',
-      ]),
-    );
+    expect(tool.parameters.properties ?? {}).toEqual({});
+    expect(tool.parameters.additionalProperties).toBeTruthy();
+    expect(tool.promptSnippet).toContain('submit_judge_eval_attempt_output');
+    expect(tool.promptGuidelines?.join('\n')).toContain('task prompt');
   });
 
   it('captures a valid payload and returns terminate:true on success', async () => {
@@ -140,6 +140,11 @@ describe('createSubmitOutputTool', () => {
     expect(result.content[0].text).toMatch(/validation/i);
     expect(handle.getCaptured()).toBeNull();
     expect(handle.getCallCount()).toBe(0);
+    expect(handle.getInvalidCallCount()).toBe(1);
+    expect(handle.getLastValidationFailure()?.code).toBe(
+      'output_validation_failed',
+    );
+    expect(handle.getExhaustedValidationFailure()).toBeNull();
   });
 
   it('lets the model recover after a schema-invalid first call', async () => {
@@ -155,6 +160,45 @@ describe('createSubmitOutputTool', () => {
     expect(good.terminate).toBe(true);
     expect(handle.getCaptured()).toEqual(validFulfillBriefOutput);
     expect(handle.getCallCount()).toBe(1);
+  });
+
+  it('reports all issue-style validation errors before execute terminates on retry budget exhaustion', async () => {
+    const handle = createSubmitOutputTool('judge_eval_attempt', {
+      maxSubmitValidationRetries: 1,
+    });
+    const exec = callExecute(handle);
+    const invalidJudgeOutput = {
+      targetTaskId: '11111111-1111-4111-8111-111111111111',
+      targetAttemptN: 1,
+      scores: [
+        {
+          criterionId: 'json-validity',
+          score: 0,
+          rationale: 'wrong shape',
+          evidence: 'Line 10 shows the invalid shape.',
+        },
+      ],
+      composite: 0,
+      verdict: 'Invalid output shape.',
+      traceparent: '00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01',
+    };
+
+    const first = await exec(invalidJudgeOutput);
+    expect(first.isError).toBe(true);
+    expect(first.terminate).not.toBe(true);
+    expect(first.content[0].text).toContain('output/variantLabel');
+    expect(first.content[0].text).toContain('output/scores/0/evidence');
+
+    const second = await exec(invalidJudgeOutput);
+    expect(second.isError).toBe(true);
+    expect(second.terminate).toBe(true);
+    expect(second.content[0].text).toContain('retry budget exhausted');
+    expect(second.content[0].text).toContain('output/variantLabel');
+    expect(second.content[0].text).toContain('output/scores/0/evidence');
+    expect(handle.getExhaustedValidationFailure()).toMatchObject({
+      code: 'output_validation_failed',
+      message: expect.stringContaining('output/scores/0/evidence'),
+    });
   });
 
   it('rejects producer output missing verification when input.successCriteria is set', async () => {
@@ -346,6 +390,28 @@ describe('resolveSubmitTools', () => {
     const r = resolveSubmitTools('fulfill_brief');
     expect(r.handle).not.toBeNull();
     expect(r.tools).toHaveLength(1);
+  });
+
+  it('passes submit validation retry budget into the resolved handle', async () => {
+    const r = resolveSubmitTools('fulfill_brief', {
+      maxSubmitValidationRetries: 0,
+    });
+    expect(r.handle).not.toBeNull();
+
+    const result = await callExecute(r.handle!)({
+      branch: 123,
+      commits: [],
+      pullRequestUrl: null,
+      diaryEntryIds: [],
+      summary: 's',
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.terminate).toBe(true);
+    expect(result.content[0].text).toContain('(1/1)');
+    expect(r.handle!.getExhaustedValidationFailure()).toMatchObject({
+      code: 'output_validation_failed',
+    });
   });
 
   it('returns null handle + empty tools for unknown task types', () => {

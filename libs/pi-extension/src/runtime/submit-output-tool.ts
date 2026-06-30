@@ -34,7 +34,7 @@ import {
   getSubmitOutputContract,
   validateTaskOutput,
 } from '@themoltnet/agent-runtime';
-import type { TObject } from 'typebox';
+import { Type } from 'typebox';
 
 import { recordTaskOutputParseResult } from './task-output.js';
 
@@ -42,6 +42,8 @@ interface SubmitOutputDetails {
   captured: boolean;
   callCount: number;
   error: string | null;
+  invalidCallCount?: number;
+  maxSubmitValidationRetries?: number;
 }
 
 export interface CreateSubmitOutputToolOptions {
@@ -60,6 +62,12 @@ export interface CreateSubmitOutputToolOptions {
    * terminate.
    */
   input?: unknown;
+  /**
+   * Number of correction turns allowed after the first invalid submit call.
+   * A value of 2 permits three invalid submissions total, then terminates the
+   * session so the attempt can fail with output_validation_failed.
+   */
+  maxSubmitValidationRetries?: number;
 }
 
 export interface SubmitOutputToolHandle {
@@ -73,6 +81,15 @@ export interface SubmitOutputToolHandle {
   getCaptured: () => Record<string, unknown> | null;
   /** Number of times the model called the tool with valid args. */
   getCallCount: () => number;
+  /** Number of invalid submit calls observed in this session. */
+  getInvalidCallCount: () => number;
+  /** Last validation failure, if the model submitted invalid args. */
+  getLastValidationFailure: () => { code: string; message: string } | null;
+  /** Validation failure that exhausted the correction budget. */
+  getExhaustedValidationFailure: () => {
+    code: string;
+    message: string;
+  } | null;
 }
 
 /**
@@ -90,6 +107,22 @@ export class UnknownTaskTypeForSubmitToolError extends Error {
   }
 }
 
+const DEFAULT_MAX_SUBMIT_VALIDATION_RETRIES = 2;
+
+// Pi validates tool arguments before execute() runs. Register a permissive
+// top-level object so malformed submit payloads reach our strict validator and
+// can be returned as recoverable tool errors inside the same session.
+const RecoverableSubmitToolParameters = Type.Object(
+  {},
+  { additionalProperties: Type.Unknown() },
+);
+
+function formatValidationErrors(
+  errors: ReturnType<typeof validateTaskOutput>,
+): string {
+  return errors.map((err) => `${err.field}: ${err.message}`).join('; ');
+}
+
 export function createSubmitOutputTool(
   taskType: string,
   opts: CreateSubmitOutputToolOptions = {},
@@ -102,22 +135,28 @@ export function createSubmitOutputTool(
   if (!contract) {
     throw new UnknownTaskTypeForSubmitToolError(taskType);
   }
-  // Every built-in *Output schema is `Type.Object`. Cast to TObject so
-  // it can ride straight through as the tool's `parameters` schema —
-  // pi/TypeBox tool parameters require an object at the top level. If a
-  // future task type registers a non-object output schema this cast
-  // will surface as a runtime error in `defineTool`, which is the
-  // correct failure mode (loud, not silent).
-  const schema = contract.parametersSchema as TObject;
+  const maxSubmitValidationRetries =
+    opts.maxSubmitValidationRetries ?? DEFAULT_MAX_SUBMIT_VALIDATION_RETRIES;
 
   let captured: Record<string, unknown> | null = null;
   let callCount = 0;
+  let invalidCallCount = 0;
+  let lastValidationFailure: { code: string; message: string } | null = null;
+  let exhaustedValidationFailure: { code: string; message: string } | null =
+    null;
 
   const tool = defineTool({
     name: contract.toolName,
     label: `Submit ${taskType} output`,
     description: contract.description,
-    parameters: schema,
+    promptSnippet:
+      `${contract.toolName}: submit the final structured ${taskType} ` +
+      'output using the schema shown in the task prompt.',
+    promptGuidelines: [
+      `Call \`${contract.toolName}\` with the exact ${taskType} output shape shown in the task prompt.`,
+      'If the submit tool returns a validation error, fix every listed field and call the same tool again.',
+    ],
+    parameters: RecoverableSubmitToolParameters,
     async execute(_id, params) {
       // Use the registry-aware validator: runs the TypeBox schema check
       // AND any task-type-specific cross-field rule (e.g. judge_pack's
@@ -129,13 +168,28 @@ export function createSubmitOutputTool(
       // affordance as a plain schema miss.
       const errors = validateTaskOutput(taskType, params, opts.input);
       if (errors.length > 0) {
-        const detailMsg = errors
-          .slice(0, 3)
-          .map((err) => `${err.field}: ${err.message}`)
-          .join('; ');
+        invalidCallCount += 1;
+        const detailMsg = formatValidationErrors(errors);
+        const maxInvalidCalls = maxSubmitValidationRetries + 1;
+        const exhausted = invalidCallCount >= maxInvalidCalls;
+        const message =
+          `Output failed validation (${invalidCallCount}/${maxInvalidCalls}): ` +
+          `${detailMsg}. ` +
+          (exhausted
+            ? 'Submit-output validation retry budget exhausted; the attempt will fail.'
+            : 'Re-call this tool with a corrected output.');
+        lastValidationFailure = {
+          code: 'output_validation_failed',
+          message,
+        };
+        if (exhausted) {
+          exhaustedValidationFailure = lastValidationFailure;
+        }
         const details: SubmitOutputDetails = {
           captured: false,
           callCount,
+          invalidCallCount,
+          maxSubmitValidationRetries,
           error: 'output_validation_failed',
         };
         recordTaskOutputParseResult({
@@ -147,13 +201,12 @@ export function createSubmitOutputTool(
           content: [
             {
               type: 'text' as const,
-              text:
-                `Output failed validation: ${detailMsg}. ` +
-                'Re-call this tool with a corrected output.',
+              text: message,
             },
           ],
           details,
           isError: true,
+          terminate: exhausted,
         };
       }
 
@@ -183,6 +236,9 @@ export function createSubmitOutputTool(
     tool,
     getCaptured: () => captured,
     getCallCount: () => callCount,
+    getInvalidCallCount: () => invalidCallCount,
+    getLastValidationFailure: () => lastValidationFailure,
+    getExhaustedValidationFailure: () => exhaustedValidationFailure,
   };
 }
 

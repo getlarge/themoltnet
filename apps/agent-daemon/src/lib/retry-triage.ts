@@ -51,6 +51,9 @@ const NON_RETRYABLE_CODES = new Set([
   'invalid_api_key',
   'invalid_model',
   'output_rejected_by_server',
+  // Submit-output validation is first handled as same-session correction by
+  // the Pi submit tool. If it reaches daemon retry triage, that correction
+  // budget is exhausted and a fresh attempt is not the right recovery.
   'output_validation_failed',
   'producer_context_missing',
   'running_max_bash_timeouts_exceeded',

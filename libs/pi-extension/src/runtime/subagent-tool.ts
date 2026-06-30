@@ -49,6 +49,11 @@ import {
 import type { PiThinkingLevel } from './pi-thinking-level.js';
 
 const SUBAGENT_SUBMIT_TOOL_NAME = 'submit_subagent_output';
+const DEFAULT_SUBAGENT_SUBMIT_VALIDATION_RETRIES = 2;
+const RecoverableSubagentSubmitParameters = Type.Object(
+  {},
+  { additionalProperties: Type.Unknown() },
+);
 
 /**
  * Parameters shape the parent LLM sees when calling the subagent tool.
@@ -228,6 +233,9 @@ export function createSubagentTool(
       // closure validated against the resolved contract. Mirrors the
       // submit-output-tool pattern used for parent sessions.
       let captured: Record<string, unknown> | null = null;
+      let innerInvalidSubmitCount = 0;
+      let innerValidationFailure: string | null = null;
+      let innerValidationExhausted = false;
       const submitTool = defineTool({
         name: SUBAGENT_SUBMIT_TOOL_NAME,
         label: `Submit ${output_schema}`,
@@ -236,19 +244,41 @@ export function createSubagentTool(
           `Call exactly once when done. Args MUST match the ` +
           `${output_schema} contract; mismatches return a tool error ` +
           'you can recover from in the same session.',
-        parameters: contract.parametersSchema as TObject,
+        promptSnippet:
+          `${SUBAGENT_SUBMIT_TOOL_NAME}: submit the final structured ` +
+          `${output_schema} payload.`,
+        promptGuidelines: [
+          `Call \`${SUBAGENT_SUBMIT_TOOL_NAME}\` with the exact \`${output_schema}\` contract shape.`,
+          'If the submit tool returns a validation error, fix every listed field and call the same tool again.',
+        ],
+        parameters: RecoverableSubagentSubmitParameters as TObject,
         async execute(_innerId, innerParams) {
           if (!Value.Check(contract.parametersSchema, innerParams)) {
+            innerInvalidSubmitCount += 1;
+            const maxInvalidCalls =
+              DEFAULT_SUBAGENT_SUBMIT_VALIDATION_RETRIES + 1;
+            const exhausted = innerInvalidSubmitCount >= maxInvalidCalls;
             const errs = [
               ...Value.Errors(contract.parametersSchema, innerParams),
             ]
-              .slice(0, 3)
               .map((e) => `${e.instancePath}: ${e.message}`)
               .join('; ');
-            return toolError(
-              `submit_subagent_output: schema validation failed: ${errs}. ` +
-                'Re-call with a corrected payload.',
-            );
+            innerValidationFailure =
+              `submit_subagent_output validation failed ` +
+              `(${innerInvalidSubmitCount}/${maxInvalidCalls}): ${errs}. ` +
+              (exhausted
+                ? 'Validation retry budget exhausted.'
+                : 'Re-call with a corrected payload.');
+            if (exhausted) {
+              innerValidationExhausted = true;
+            }
+            return toolError(innerValidationFailure, exhausted, {
+              captured: false,
+              error: 'output_validation_failed',
+              invalidCallCount: innerInvalidSubmitCount,
+              maxSubmitValidationRetries:
+                DEFAULT_SUBAGENT_SUBMIT_VALIDATION_RETRIES,
+            });
           }
           captured = innerParams as Record<string, unknown>;
           return {
@@ -368,6 +398,16 @@ export function createSubagentTool(
       }
 
       if (captured === null) {
+        const exhaustedFailure = innerValidationFailure as string | null;
+        if (innerValidationExhausted && exhaustedFailure) {
+          return toolError(`subagent: ${exhaustedFailure}`, false, {
+            captured: false,
+            error: 'output_validation_failed',
+            invalidCallCount: innerInvalidSubmitCount,
+            maxSubmitValidationRetries:
+              DEFAULT_SUBAGENT_SUBMIT_VALIDATION_RETRIES,
+          });
+        }
         return toolError(
           `subagent: inner session ended without calling ${SUBAGENT_SUBMIT_TOOL_NAME}. ` +
             'The parent should retry with clearer instructions or ' +
@@ -444,10 +484,15 @@ function buildSubagentInstructor(args: {
   ].join('\n');
 }
 
-function toolError(text: string) {
+function toolError(
+  text: string,
+  terminate = false,
+  details: Record<string, unknown> = { captured: false },
+) {
   return {
     content: [{ type: 'text' as const, text }],
-    details: { captured: false },
+    details,
     isError: true,
+    ...(terminate ? { terminate: true } : {}),
   };
 }

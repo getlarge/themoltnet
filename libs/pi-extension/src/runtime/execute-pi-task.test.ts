@@ -17,11 +17,15 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  computeProviderErrorRetryDelay,
   createGondolinToolDefinitions,
   describeToolErrorMessage,
   isBashTimeoutResult,
   openVmWorkspaceFileForRead,
+  promptWithProviderErrorRetries,
+  sanitizeProviderErrorRetryReason,
   shouldEmitToolCallError,
+  shouldRetryProviderErrorMessage,
   wireSessionAbort,
 } from './execute-pi-task.js';
 import {
@@ -110,6 +114,174 @@ describe('createGondolinToolDefinitions', () => {
       'find',
       'grep',
     ]);
+  });
+});
+
+describe('provider error same-session retry helpers', () => {
+  it('retries generic and transient provider diagnostics', () => {
+    expect(shouldRetryProviderErrorMessage(null)).toBe(true);
+    expect(shouldRetryProviderErrorMessage('provider returned 503')).toBe(true);
+    expect(shouldRetryProviderErrorMessage('request timed out')).toBe(true);
+    expect(shouldRetryProviderErrorMessage('EAI_AGAIN DNS lookup failed')).toBe(
+      true,
+    );
+  });
+
+  it('does not retry credential, billing, or model configuration failures', () => {
+    expect(
+      shouldRetryProviderErrorMessage('401 unauthorized: invalid api key'),
+    ).toBe(false);
+    expect(
+      shouldRetryProviderErrorMessage('model pi-large is not available'),
+    ).toBe(false);
+    expect(shouldRetryProviderErrorMessage('insufficient_quota')).toBe(false);
+  });
+
+  it('computes capped exponential retry delays', () => {
+    expect(computeProviderErrorRetryDelay(1, 2_000, 30_000)).toBe(2_000);
+    expect(computeProviderErrorRetryDelay(2, 2_000, 30_000)).toBe(4_000);
+    expect(computeProviderErrorRetryDelay(10, 2_000, 30_000)).toBe(30_000);
+  });
+
+  it('re-prompts the same session with a continuation after retryable provider metadata', async () => {
+    const controller = new AbortController();
+    const prompts: string[] = [];
+    const retryEvents: unknown[] = [];
+    let state: { llmAbort: boolean; llmErrorMessage: string | null } = {
+      llmAbort: false,
+      llmErrorMessage: null as string | null,
+    };
+    const session = {
+      async prompt(text: string) {
+        prompts.push(text);
+        state =
+          prompts.length === 1
+            ? {
+                llmAbort: true,
+                llmErrorMessage: 'provider returned 503 unavailable',
+              }
+            : { llmAbort: false, llmErrorMessage: null };
+      },
+    };
+
+    const result = await promptWithProviderErrorRetries({
+      session,
+      initialPrompt: 'do the task',
+      cancelSignal: controller.signal,
+      getProviderErrorState: () => state,
+      maxRetries: 2,
+      baseDelayMs: 0,
+      maxDelayMs: 0,
+      retryPrompt: 'Go on',
+      onRetry: async (event) => {
+        retryEvents.push(event);
+      },
+    });
+
+    expect(result).toEqual({ runError: null, retryCount: 1 });
+    expect(prompts).toEqual(['do the task', 'Go on']);
+    expect(retryEvents).toHaveLength(1);
+  });
+
+  it('does not re-prompt for non-retryable provider configuration errors', async () => {
+    const controller = new AbortController();
+    const prompt = vi.fn(async () => {});
+
+    const result = await promptWithProviderErrorRetries({
+      session: { prompt },
+      initialPrompt: 'do the task',
+      cancelSignal: controller.signal,
+      getProviderErrorState: () => ({
+        llmAbort: true,
+        llmErrorMessage: 'model pi-large is not available',
+      }),
+      maxRetries: 2,
+      baseDelayMs: 0,
+      maxDelayMs: 0,
+      retryPrompt: 'Go on',
+    });
+
+    expect(result).toEqual({ runError: null, retryCount: 0 });
+    expect(prompt).toHaveBeenCalledTimes(1);
+  });
+
+  it('surfaces thrown session.prompt failures without retrying', async () => {
+    const controller = new AbortController();
+    const promptErrors: string[] = [];
+
+    const result = await promptWithProviderErrorRetries({
+      session: {
+        prompt: async () => {
+          throw new Error('provider exploded before a turn');
+        },
+      },
+      initialPrompt: 'do the task',
+      cancelSignal: controller.signal,
+      getProviderErrorState: () => ({
+        llmAbort: false,
+        llmErrorMessage: null,
+      }),
+      maxRetries: 2,
+      baseDelayMs: 0,
+      maxDelayMs: 0,
+      retryPrompt: 'Go on',
+      onPromptError: async (message) => {
+        promptErrors.push(message);
+      },
+    });
+
+    expect(result).toEqual({
+      runError: {
+        code: 'session_prompt_failed',
+        message: 'provider exploded before a turn',
+      },
+      retryCount: 0,
+    });
+    expect(promptErrors).toEqual(['provider exploded before a turn']);
+  });
+
+  it('redacts and bounds provider retry reasons before task-message emission', async () => {
+    const controller = new AbortController();
+    const retryEvents: Array<{ reason: string }> = [];
+    let state: { llmAbort: boolean; llmErrorMessage: string | null } = {
+      llmAbort: true,
+      llmErrorMessage:
+        'provider 503 with token ghp_abcdefghijklmnopqrstuvwxyz ' +
+        'x'.repeat(1_000),
+    };
+    const session = {
+      async prompt() {
+        if (retryEvents.length > 0) {
+          state = { llmAbort: false, llmErrorMessage: null };
+        }
+      },
+    };
+
+    await promptWithProviderErrorRetries({
+      session,
+      initialPrompt: 'do the task',
+      cancelSignal: controller.signal,
+      getProviderErrorState: () => state,
+      maxRetries: 1,
+      baseDelayMs: 0,
+      maxDelayMs: 0,
+      retryPrompt: 'Go on',
+      onRetry: async (event) => {
+        retryEvents.push({ reason: event.reason });
+      },
+    });
+
+    expect(retryEvents[0].reason).toContain('[redacted]');
+    expect(retryEvents[0].reason).not.toContain(
+      'ghp_abcdefghijklmnopqrstuvwxyz',
+    );
+    expect(retryEvents[0].reason.length).toBeLessThanOrEqual(500);
+  });
+
+  it('uses a generic provider retry reason when Pi omitted the diagnostic', () => {
+    expect(sanitizeProviderErrorRetryReason(null)).toBe(
+      'Pi turn ended with stopReason=error',
+    );
   });
 });
 

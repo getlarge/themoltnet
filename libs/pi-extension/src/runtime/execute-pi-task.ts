@@ -73,6 +73,7 @@ import {
   type ContinueFromPointer,
   resolvePriorContext,
 } from './resolve-prior-context.js';
+import { redactRetryTriageSecrets } from './retry-triage.js';
 import { buildRuntimeInstructor } from './runtime-instructor.js';
 import {
   createSubagentTool,
@@ -288,6 +289,28 @@ export interface ExecutePiTaskOptions {
    * Default `3`. Set to `0` to disable. Closes part of #1094.
    */
   maxBashTimeouts?: number;
+  /**
+   * Number of correction turns allowed after the first invalid submit-output
+   * tool call. A value of 2 permits three invalid submit calls total before
+   * the attempt fails with output_validation_failed.
+   */
+  maxSubmitValidationRetries?: number;
+  /**
+   * Cap provider-error retries inside the same Pi session. A retry is attempted
+   * only after a Pi assistant turn ends with `stopReason: "error"` and the
+   * provider diagnostic is not a known credential/model/config failure. This is
+   * distinct from daemon attempt retry: the active session keeps its context and
+   * receives a short continuation prompt.
+   *
+   * Default `2`. Set to `0` to disable.
+   */
+  maxProviderErrorRetries?: number;
+  /** Base delay for same-session provider-error retries. Default `2000`. */
+  providerErrorRetryBaseDelayMs?: number;
+  /** Maximum delay for same-session provider-error retries. Default `30000`. */
+  providerErrorRetryMaxDelayMs?: number;
+  /** Continuation prompt sent after a retryable provider error. Default `Go on`. */
+  providerErrorRetryPrompt?: string;
   /**
    * Skip per-call UI approval for matching `moltnet_host_exec` commands.
    * Keep false/undefined for interactive consumers. `true` skips every dialog
@@ -706,6 +729,7 @@ export async function executePiTask(
       resolveSubmitTools(task.taskType, {
         model: opts.model,
         input: task.input,
+        maxSubmitValidationRetries: opts.maxSubmitValidationRetries,
       });
     const submitTools: ToolDefinition[] =
       submitToolDefs as unknown as ToolDefinition[];
@@ -1042,13 +1066,21 @@ export async function executePiTask(
     });
 
     let runError: { code: string; message: string } | null = null;
-    try {
-      await session.prompt(taskPrompt);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      runError = { code: 'session_prompt_failed', message };
-      await emit('error', { message, phase: 'session_prompt' });
-    }
+    const promptResult = await promptWithProviderErrorRetries({
+      session,
+      initialPrompt: taskPrompt,
+      cancelSignal: reporter.cancelSignal,
+      isCapAborted: () => capAbort !== null,
+      getProviderErrorState: () => ({ llmAbort, llmErrorMessage }),
+      maxRetries: opts.maxProviderErrorRetries ?? 2,
+      baseDelayMs: opts.providerErrorRetryBaseDelayMs ?? 2_000,
+      maxDelayMs: opts.providerErrorRetryMaxDelayMs ?? 30_000,
+      retryPrompt: opts.providerErrorRetryPrompt ?? 'Go on',
+      onRetry: (event) => emit('info', event),
+      onPromptError: (message) =>
+        emit('error', { message, phase: 'session_prompt' }),
+    });
+    runError = promptResult.runError;
 
     // Emit a single summary line per task attempt that used the
     // subagent tool. Useful for spotting parents that delegate
@@ -1113,7 +1145,7 @@ export async function executePiTask(
           });
         }
       } else if (submitToolHandle) {
-        parseError = {
+        parseError = submitToolHandle.getExhaustedValidationFailure() ?? {
           code: 'submit_output_missing',
           message:
             'Agent did not satisfy the promised submit-output criterion: ' +
@@ -1434,6 +1466,168 @@ export function shouldEmitToolCallError(event: {
   if (!event.isError) return false;
   if (event.toolName === 'bash') return false;
   return true;
+}
+
+const PROVIDER_ERROR_NON_RETRYABLE_PATTERNS = [
+  /\b401\b/i,
+  /\b403\b/i,
+  /\bunauthori[sz]ed\b/i,
+  /\bforbidden\b/i,
+  /\binvalid (?:api )?key\b/i,
+  /\bmissing credentials?\b/i,
+  /\binsufficient[_\s-]?quota\b/i,
+  /\bbilling\b/i,
+  /\bmodel .*not (?:found|registered|available)\b/i,
+  /\bunknown model\b/i,
+];
+
+const PROVIDER_ERROR_RETRYABLE_PATTERNS = [
+  /\b429\b/i,
+  /\b5(?:02|03|04)\b/i,
+  /\btimeout\b/i,
+  /\btimed out\b/i,
+  /\brate limit/i,
+  /\btemporar(?:y|ily)\b/i,
+  /\bunavailable\b/i,
+  /\boverloaded\b/i,
+  /\bECONNRESET\b/i,
+  /\bECONNREFUSED\b/i,
+  /\bETIMEDOUT\b/i,
+  /\bENOTFOUND\b/i,
+  /\bEAI_AGAIN\b/i,
+  /\bDNS\b/i,
+];
+
+export function shouldRetryProviderErrorMessage(
+  message: string | null | undefined,
+): boolean {
+  if (!message || !message.trim()) return true;
+  if (
+    PROVIDER_ERROR_NON_RETRYABLE_PATTERNS.some((pattern) =>
+      pattern.test(message),
+    )
+  ) {
+    return false;
+  }
+  if (
+    PROVIDER_ERROR_RETRYABLE_PATTERNS.some((pattern) => pattern.test(message))
+  ) {
+    return true;
+  }
+  // Pi's `stopReason: "error"` is itself provider-error metadata. If the
+  // diagnostic is unfamiliar but not a known config/auth failure, prefer one
+  // same-session continuation over failing the whole attempt immediately.
+  return true;
+}
+
+export function computeProviderErrorRetryDelay(
+  attempt: number,
+  baseDelayMs: number,
+  maxDelayMs: number,
+): number {
+  return Math.min(
+    Math.max(0, baseDelayMs) * 2 ** (attempt - 1),
+    Math.max(0, maxDelayMs),
+  );
+}
+
+export interface PromptWithProviderErrorRetriesArgs {
+  session: Pick<AgentSession, 'prompt'>;
+  initialPrompt: string;
+  cancelSignal: AbortSignal;
+  isCapAborted?: () => boolean;
+  getProviderErrorState: () => {
+    llmAbort: boolean;
+    llmErrorMessage: string | null;
+  };
+  maxRetries: number;
+  baseDelayMs: number;
+  maxDelayMs: number;
+  retryPrompt: string;
+  onRetry?: (event: {
+    event: 'provider_error_retry';
+    retry: number;
+    maxRetries: number;
+    delayMs: number;
+    reason: string;
+  }) => Promise<void>;
+  onPromptError?: (message: string) => Promise<void>;
+}
+
+export async function promptWithProviderErrorRetries(
+  args: PromptWithProviderErrorRetriesArgs,
+): Promise<{
+  runError: { code: string; message: string } | null;
+  retryCount: number;
+}> {
+  let retryCount = 0;
+  let promptText = args.initialPrompt;
+  while (true) {
+    try {
+      await args.session.prompt(promptText);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      await args.onPromptError?.(message);
+      return {
+        runError: { code: 'session_prompt_failed', message },
+        retryCount,
+      };
+    }
+
+    const { llmAbort, llmErrorMessage } = args.getProviderErrorState();
+    if (
+      !llmAbort ||
+      args.cancelSignal.aborted ||
+      args.isCapAborted?.() ||
+      retryCount >= args.maxRetries ||
+      !shouldRetryProviderErrorMessage(llmErrorMessage)
+    ) {
+      return { runError: null, retryCount };
+    }
+
+    retryCount += 1;
+    const delayMs = computeProviderErrorRetryDelay(
+      retryCount,
+      args.baseDelayMs,
+      args.maxDelayMs,
+    );
+    await args.onRetry?.({
+      event: 'provider_error_retry',
+      retry: retryCount,
+      maxRetries: args.maxRetries,
+      delayMs,
+      reason: sanitizeProviderErrorRetryReason(llmErrorMessage),
+    });
+    await sleepUnlessAborted(delayMs, args.cancelSignal);
+    if (args.cancelSignal.aborted || args.isCapAborted?.()) {
+      return { runError: null, retryCount };
+    }
+    promptText = args.retryPrompt;
+  }
+}
+
+export function sanitizeProviderErrorRetryReason(
+  value: string | null | undefined,
+): string {
+  const raw = value ?? 'Pi turn ended with stopReason=error';
+  return redactRetryTriageSecrets(raw).slice(0, 500);
+}
+
+async function sleepUnlessAborted(
+  delayMs: number,
+  signal: AbortSignal,
+): Promise<void> {
+  if (delayMs <= 0 || signal.aborted) return;
+  await new Promise<void>((resolve) => {
+    const timeout = setTimeout(done, delayMs);
+    const onAbort = () => done();
+    function done() {
+      clearTimeout(timeout);
+      signal.removeEventListener('abort', onAbort);
+      resolve();
+    }
+    signal.addEventListener('abort', onAbort, { once: true });
+  });
 }
 
 /**
