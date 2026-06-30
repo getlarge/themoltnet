@@ -84,6 +84,7 @@ import {
   type SubmitOutputToolHandle,
 } from './submit-output-tool.js';
 import {
+  type ParsedTaskOutputResult,
   parseStructuredTaskOutput,
   recordTaskOutputParseResult,
 } from './task-output.js';
@@ -633,11 +634,9 @@ export interface CaptureAttemptOutputDeps {
   ) => Promise<void>;
 }
 
-export interface CapturedAttemptOutput {
-  output: Record<string, unknown> | null;
-  outputCid: string | null;
-  error: { code: string; message: string } | null;
-}
+// Same shape the parser path already returns; alias it so the submit-tool
+// and parser branches can't drift.
+export type CapturedAttemptOutput = ParsedTaskOutputResult;
 
 /**
  * Resolve the attempt's structured output once the session has finished
@@ -729,7 +728,7 @@ export async function captureAttemptOutput(
   };
 }
 
-export interface BuildAttemptResultInput {
+export interface BuildAttemptResultArgs {
   taskId: string;
   attemptN: number;
   output: Record<string, unknown> | null;
@@ -751,7 +750,7 @@ export interface BuildAttemptResultInput {
  * orchestrator. A provider abort with no captured diagnostic falls back to a
  * generic message.
  */
-export function buildAttemptResult(input: BuildAttemptResultInput): TaskOutput {
+export function buildAttemptResult(input: BuildAttemptResultArgs): TaskOutput {
   const status: TaskOutput['status'] =
     input.runError || input.llmAbort || input.parseError || input.reporterError
       ? 'failed'

@@ -1,8 +1,16 @@
 /**
- * Focused tests for the final-output parsing helpers and the
- * cancellation-wiring helper. The full `executePiTask` flow needs a
- * booted Gondolin VM and is covered by the integration demo / a future
- * e2e once we have one that exercises pi against a real task type.
+ * Focused tests for the executor's extracted phase helpers
+ * (`makeSessionEventHandler`, `captureAttemptOutput`, `buildAttemptResult`,
+ * the provider/submit-retry helpers, …) and the parsing/cancellation
+ * utilities.
+ *
+ * KNOWN GAP: `executePiTask` itself — the orchestration shell that *wires*
+ * these helpers together — needs a booted Gondolin VM and is not unit-tested
+ * here. The helpers are pinned in isolation, so a mis-wire (passing a helper
+ * the wrong dep, or running output capture outside the cancel/cap guard)
+ * would NOT fail these tests; it is caught by the daemon e2e / live smoke
+ * runs instead. Treat that integration seam accordingly when changing the
+ * shell.
  */
 import { Readable } from 'node:stream';
 
@@ -34,6 +42,7 @@ import {
   promptWithProviderErrorRetries,
   resolveSubmitMissingConfig,
   sanitizeProviderErrorRetryReason,
+  type SessionSubscribeEvent,
   shouldEmitToolCallError,
   shouldRetryProviderErrorMessage,
   submitRepromptStopped,
@@ -410,6 +419,28 @@ describe('buildAttemptResult (result-construction characterization)', () => {
     expect(out.error?.code).toBe('submit_output_missing');
   });
 
+  it('ranks parseError above reporterError above the provider abort', () => {
+    // parse beats reporter
+    expect(
+      buildAttemptResult({
+        ...base,
+        parseError: { code: 'submit_output_missing', message: 'no submit' },
+        reporterError: { code: 'reporter_failed', message: 'buffer lost' },
+        llmAbort: true,
+        llmErrorMessage: '401',
+      }).error?.code,
+    ).toBe('submit_output_missing');
+    // with no parse error, reporter beats the provider abort
+    expect(
+      buildAttemptResult({
+        ...base,
+        reporterError: { code: 'reporter_failed', message: 'buffer lost' },
+        llmAbort: true,
+        llmErrorMessage: '401',
+      }).error?.code,
+    ).toBe('reporter_failed');
+  });
+
   it('maps a provider abort to llm_api_error with the captured diagnostic', () => {
     const out = buildAttemptResult({
       ...base,
@@ -558,7 +589,9 @@ describe('captureAttemptOutput (output-capture characterization)', () => {
 });
 
 describe('makeSessionEventHandler (subscribe-handler characterization)', () => {
-  type Ev = Parameters<ReturnType<typeof makeSessionEventHandler>>[0];
+  // The real exported event type — a renamed pi field (toolName, stopReason,
+  // assistantMessageEvent) then fails these fakes at compile time.
+  type Ev = SessionSubscribeEvent;
 
   function makeDeps(overrides?: {
     maxTurns?: number;
@@ -606,8 +639,8 @@ describe('makeSessionEventHandler (subscribe-handler characterization)', () => {
     } as unknown as Ev;
   }
 
-  it('accumulates streamed assistant text', () => {
-    const { deps, state } = makeDeps();
+  it('accumulates streamed assistant text and emits each delta', () => {
+    const { deps, state, emitted } = makeDeps();
     const handler = makeSessionEventHandler(deps);
     handler({
       type: 'message_update',
@@ -618,6 +651,85 @@ describe('makeSessionEventHandler (subscribe-handler characterization)', () => {
       assistantMessageEvent: { type: 'text_delta', delta: 'world' },
     } as unknown as Ev);
     expect(state.assistantText).toBe('Hello world');
+    expect(emitted).toEqual([
+      { kind: 'text_delta', payload: { delta: 'Hello ' } },
+      { kind: 'text_delta', payload: { delta: 'world' } },
+    ]);
+  });
+
+  it('bridges tool-execution events to the reporter, including the error branch', () => {
+    const { deps, emitted } = makeDeps();
+    const handler = makeSessionEventHandler(deps);
+    handler({
+      type: 'tool_execution_start',
+      toolName: 'bash',
+    } as unknown as Ev);
+    // A successful tool call: no truncated result, no tool_call_error.
+    handler({
+      type: 'tool_execution_end',
+      toolName: 'read',
+      isError: false,
+      result: { content: [{ type: 'text', text: 'ok' }] },
+    } as unknown as Ev);
+    // A failing non-bash tool call: surfaces tool_call_end (with result) +
+    // tool_call_error. (bash errors are routed through the timeout path, not
+    // tool_call_error — see shouldEmitToolCallError.)
+    handler({
+      type: 'tool_execution_end',
+      toolName: 'edit',
+      isError: true,
+      result: { content: [{ type: 'text', text: 'boom' }] },
+    } as unknown as Ev);
+
+    expect(emitted[0]).toEqual({
+      kind: 'tool_call_start',
+      payload: { tool_name: 'bash' },
+    });
+    expect(emitted[1]).toEqual({
+      kind: 'tool_call_end',
+      payload: { tool_name: 'read', is_error: false, result: undefined },
+    });
+    expect(emitted[2]).toMatchObject({
+      kind: 'tool_call_end',
+      payload: { tool_name: 'edit', is_error: true },
+    });
+    expect(emitted[3]).toMatchObject({
+      kind: 'error',
+      payload: { phase: 'tool_call_error', tool: 'edit' },
+    });
+  });
+
+  it('emits turn_end with the stop reason and skips usage for non-assistant turns', () => {
+    const { deps, usage, emitted } = makeDeps();
+    const handler = makeSessionEventHandler(deps);
+    handler({
+      type: 'turn_end',
+      message: { role: 'user', stopReason: 'end_turn', usage: { input: 9 } },
+    } as unknown as Ev);
+    expect(usage.inputTokens).toBe(0); // role !== 'assistant' → not accumulated
+    expect(emitted).toEqual([
+      { kind: 'turn_end', payload: { stop_reason: 'end_turn' } },
+    ]);
+  });
+
+  it('does not count turns or timeouts when the caps are disabled (0)', () => {
+    const { deps, caps, state } = makeDeps({
+      maxTurns: 0,
+      maxBashTimeouts: 0,
+    });
+    const handler = makeSessionEventHandler(deps);
+    handler(turnEnd('tool_use'));
+    handler({
+      type: 'tool_execution_end',
+      toolName: 'bash',
+      isError: true,
+      result: {
+        content: [{ type: 'text', text: 'Command timed out after 9 seconds' }],
+      },
+    } as unknown as Ev);
+    expect(state.toolUseTurnCount).toBe(0);
+    expect(state.bashTimeoutCount).toBe(0);
+    expect(caps).toHaveLength(0);
   });
 
   it('accumulates token usage from assistant turn_end events', () => {
