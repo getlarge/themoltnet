@@ -30,9 +30,129 @@ Configured in `nx.json` under `release.groups`:
 Use groups when invoking release commands. Avoid hand-ordering projects; Nx
 should derive project ordering and dependent updates.
 
+## Full Rehearsal
+
+A dry-run is useful for a quick config sanity check, but it is not enough to
+prove that Nx can replace release-please. The migration needs at least one full
+release rehearsal with cleanup prepared before running the command.
+
+Run the rehearsal from a disposable worktree on a dedicated branch. Do not run
+it from the main development worktree:
+
+```bash
+git worktree add --detach .worktrees/nx-release-rehearsal origin/main
+cd .worktrees/nx-release-rehearsal
+pnpm install --frozen-lockfile
+pnpm exec nx release patch --verbose --yes
+```
+
+This command intentionally exercises real side effects:
+
+- version file writes and Go dependency propagation
+- Go validation with `GOWORK=off`
+- Docker image build, retag, and push
+- project changelog generation
+- release commit creation
+- annotated git tag creation
+- GitHub release creation
+- Go CLI archive build and GitHub release asset upload
+- npm package publish
+- GitHub Action stable major tag movement
+
+Before running it, prepare cleanup for every surface below. If any publish step
+gets far enough to create immutable public state, do not pretend the rehearsal
+was atomic.
+
+## Rehearsal Cleanup
+
+Capture these values from the rehearsal output:
+
+```bash
+RELEASE_COMMIT=<commit-created-by-nx-release>
+TAGS='<space-separated-tags-created-by-nx-release>'
+DOCKER_TAGS='<space-separated-docker-image-tags>'
+NPM_PACKAGES='<space-separated-package@version-values>'
+```
+
+Delete local test tags:
+
+```bash
+git tag -d $TAGS
+```
+
+Delete remote test tags if they were pushed:
+
+```bash
+for tag in $TAGS; do
+  git push origin ":refs/tags/$tag"
+done
+```
+
+Delete GitHub releases created for those tags:
+
+```bash
+for tag in $TAGS; do
+  gh release delete "$tag" --cleanup-tag --yes || true
+done
+```
+
+Delete GitHub Action stable major tags only if the rehearsal moved them:
+
+```bash
+git push origin :refs/tags/v0
+```
+
+Remove the rehearsal release commit from the rehearsal branch or discard the
+worktree. If it was pushed to a branch, delete the branch instead of reverting
+unless a reviewer needs the release commit for audit:
+
+```bash
+git worktree remove --force .worktrees/nx-release-rehearsal
+git push origin :refs/heads/<rehearsal-branch>
+```
+
+Delete local Docker tags:
+
+```bash
+for image in \
+  ghcr.io/getlarge/themoltnet/console \
+  ghcr.io/getlarge/themoltnet/db-migrate \
+  ghcr.io/getlarge/themoltnet/landing \
+  ghcr.io/getlarge/themoltnet/mcp-host \
+  ghcr.io/getlarge/themoltnet/mcp-server \
+  ghcr.io/getlarge/themoltnet/rest-api
+do
+  for tag in $DOCKER_TAGS; do
+    docker image rm "$image:$tag" || true
+  done
+done
+```
+
+Delete pushed GHCR package versions from GitHub Packages. There is no simple
+`gh release` equivalent for container package cleanup; use the GitHub Packages
+UI or API and delete only versions created by the rehearsal.
+
+Unpublish npm packages only if the rehearsal published throwaway versions and
+npm still allows unpublish for those package versions. Otherwise deprecate them
+as rehearsal artifacts:
+
+```bash
+for package_version in $NPM_PACKAGES; do
+  npm deprecate "$package_version" "Nx release rehearsal artifact; do not use"
+done
+```
+
+Remove generated local artifacts if the worktree is kept for inspection:
+
+```bash
+rm -rf apps/moltnet-cli/dist/nx-release
+git restore .
+git clean -fd
+```
+
 ## Dry Runs
 
-Use dry-runs before changing release config:
+Use dry-runs only as a fast preflight before the full rehearsal:
 
 ```bash
 pnpm exec nx release version patch --groups npm-packages --dry-run --verbose
@@ -43,23 +163,6 @@ NX_DRY_RUN=true pnpm exec nx release version patch --groups docker-images --dry-
 
 The Docker dry-run sets `NX_DRY_RUN=true` because `docker.preVersionCommand`
 would otherwise build images before Nx retags them.
-
-The `Nx Release Candidate` GitHub Actions workflow runs these checks in CI
-against a full checkout with tags. Pull requests that change release wiring run
-a dry-run matrix for every release group. The manual dispatch path lets an
-operator re-run one selected group before replacing release-please or enabling
-any non-dry-run Nx release automation:
-
-```text
-workflow: Nx Release Candidate
-groups: github-actions | go-modules,cli | npm-packages | docker-images | all
-specifier: patch | minor | major
-```
-
-The candidate workflow is intentionally dry-run-only. It validates selected Nx
-release groups and, when requested or when the PR matrix covers `cli` or
-`github-actions`, runs custom `nx-release-publish` dry-runs for the Go CLI
-artifact publisher and the GitHub Action stable-tag publisher.
 
 ## Go Modules
 
@@ -182,7 +285,9 @@ NX_RELEASE_DOCKER_PROJECTS=@moltnet/rest-api pnpm exec nx release version patch 
 2. Run a dry-run for the affected group or groups.
 3. Inspect planned file changes, tags, and Go validation commands.
 4. Run focused tests for any changed release helpers.
-5. Only then run the non-dry release command.
+5. Prepare the rehearsal cleanup values and permissions.
+6. Run the full non-dry release rehearsal from a disposable worktree.
+7. Clean up rehearsal side effects before merging release automation.
 
 Do not manually edit generated changelogs, release tags, or dependent version
 bumps unless Nx release output is wrong and the release helper/config is being
