@@ -46,7 +46,12 @@ const gondolinMock = vi.hoisted(() => {
 
 vi.mock('@earendil-works/gondolin', () => gondolinMock);
 
-import { GUEST_TASK_CONTEXT_MOUNT, resumeVm } from './vm-manager.js';
+import {
+  GUEST_TASK_CONTEXT_MOUNT,
+  PACKAGE_MANAGER_TMPFS_ENV_KEYS,
+  resolvePackageManagerTmpfsMounts,
+  resumeVm,
+} from './vm-manager.js';
 
 describe('resumeVm task-context mount', () => {
   const tempRoots: string[] = [];
@@ -100,6 +105,64 @@ describe('resumeVm task-context mount', () => {
     expect(resumeOptions.vfs.mounts).not.toHaveProperty(
       `${workspace}/context-pack.md`,
     );
+  });
+
+  it('mounts configured package-manager stores and caches as tmpfs', async () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-pm-cache-'));
+    tempRoots.push(root);
+    const workspace = path.join(root, 'workspace');
+    const agentDir = path.join(root, '.moltnet', 'legreffier');
+    mkdirSync(workspace, { recursive: true });
+    mkdirSync(agentDir, { recursive: true });
+    writeFileSync(
+      path.join(agentDir, 'moltnet.json'),
+      JSON.stringify({
+        endpoints: { api: 'https://api.themolt.net' },
+      }),
+      'utf8',
+    );
+    writeFileSync(path.join(agentDir, 'env'), '', 'utf8');
+
+    await resumeVm({
+      checkpointPath: path.join(root, 'checkpoint.qcow2'),
+      agentName: 'legreffier',
+      agentRootDir: root,
+      mountPath: workspace,
+      sandboxConfig: {
+        env: {
+          NPM_CONFIG_STORE_DIR: '/opt/pnpm-store',
+          NPM_CONFIG_CACHE: '/opt/npm-cache',
+          YARN_CACHE_FOLDER: '/opt/yarn-cache',
+        },
+      },
+    });
+
+    const resumeOptions = gondolinMock.resumeCalls[0] as {
+      env: Record<string, string>;
+      vfs: { mounts: Record<string, unknown> };
+    };
+    for (const key of PACKAGE_MANAGER_TMPFS_ENV_KEYS) {
+      expect(resumeOptions.env[key]).toBeDefined();
+    }
+    for (const mountPath of [
+      '/opt/npm-cache',
+      '/opt/pnpm-store',
+      '/opt/yarn-cache',
+    ]) {
+      expect(resumeOptions.vfs.mounts[mountPath]).toBeInstanceOf(
+        gondolinMock.MemoryProvider,
+      );
+    }
+  });
+
+  it('ignores relative and interpolated package-manager paths', () => {
+    expect(
+      resolvePackageManagerTmpfsMounts({
+        NPM_CONFIG_STORE_DIR: '.pnpm-store',
+        NPM_CONFIG_CACHE: '${MOLTNET_GUEST_CWD}/.npm-cache',
+        YARN_CACHE_FOLDER: '/opt/yarn-cache',
+      }),
+    ).toEqual(['/opt/yarn-cache']);
   });
 
   it('forwards only explicitly allowlisted host env vars into the VM', async () => {

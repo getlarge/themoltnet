@@ -40,6 +40,12 @@ export const GUEST_TASK_CONTEXT_MOUNT = '/moltnet-task-context';
 /** @deprecated Use GUEST_TASK_CONTEXT_MOUNT. */
 export const GUEST_TASK_SKILLS_MOUNT = GUEST_TASK_CONTEXT_MOUNT;
 
+export const PACKAGE_MANAGER_TMPFS_ENV_KEYS = [
+  'NPM_CONFIG_STORE_DIR',
+  'NPM_CONFIG_CACHE',
+  'YARN_CACHE_FOLDER',
+] as const;
+
 export interface VmConfig {
   /** Absolute path to the qcow2 checkpoint. */
   checkpointPath: string;
@@ -134,6 +140,22 @@ export function shouldShadowNodeModulesPath(pathname: string): boolean {
     pathname.endsWith('/node_modules') ||
     pathname.includes('/node_modules/')
   );
+}
+
+export function resolvePackageManagerTmpfsMounts(
+  env: Record<string, string>,
+): string[] {
+  const mounts = new Set<string>();
+  for (const key of PACKAGE_MANAGER_TMPFS_ENV_KEYS) {
+    const value = env[key];
+    if (!value || !path.posix.isAbsolute(value) || value.includes('$')) {
+      continue;
+    }
+    const normalized = path.posix.normalize(value);
+    if (normalized === '/') continue;
+    mounts.add(normalized);
+  }
+  return [...mounts].sort();
 }
 
 /**
@@ -397,7 +419,7 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     forwardedEnv[name] = value;
   }
 
-  // Merge env: defaults < forwarded host env < sandbox config overrides
+  // Merge env: defaults < forwarded host env < sandbox config overrides.
   const envOverrides = config.sandboxConfig?.env ?? {};
   const vmEnv = {
     ...secretEnv,
@@ -411,6 +433,8 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     MOLTNET_GUEST_WORKSPACE: guestWorkspace,
     MOLTNET_GUEST_CWD: guestCwd,
   };
+  const packageManagerTmpfsMounts =
+    resolvePackageManagerTmpfsMounts(envOverrides);
 
   const resources = config.sandboxConfig?.resources;
   const workspaceMode = config.workspaceMode ?? 'shared_mount';
@@ -424,6 +448,12 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
       vfs: {
         mounts: {
           [guestWorkspace]: workspaceProvider,
+          ...Object.fromEntries(
+            packageManagerTmpfsMounts.map((mountPath) => [
+              mountPath,
+              new MemoryProvider(),
+            ]),
+          ),
           // Memory-backed mount for task-context injection (#943).
           // Per-VM-instance, never persisted, never shared.
           [GUEST_TASK_CONTEXT_MOUNT]: new MemoryProvider(),

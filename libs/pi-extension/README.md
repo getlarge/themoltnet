@@ -308,18 +308,29 @@ Dogfood trail:
 - `2e4e25a9-ef4b-46bf-a55d-6c2b1159ee61` — follow-up fix for per-workspace `node_modules`
 
 `vfs.shadow: ["node_modules"]` is still useful to hide host-built artifacts,
-but it does not solve the hot-path problem by itself. For fast pnpm setup, move
-both endpoints off the FUSE bridge:
+but it does not solve the hot-path problem by itself. Fast package-manager
+setup needs both endpoints off the FUSE bridge:
 
-- package store on guest-local disk, e.g. `NPM_CONFIG_STORE_DIR=/opt/pnpm-store`
+- package store/cache on VM-managed tmpfs
 - install target on VM-managed `node_modules` tmpfs
 
-`vm-manager` always shadows any `node_modules` path with VM-local tmpfs for the
-lifetime of the resumed VM. This is VFS policy, not a resume command, so it also
-covers `node_modules` paths created later by the live agent session, including
-inside worktrees the agent creates after resume. Caller-provided `vfs.shadow`
-rules wrap this built-in layer, so stricter policies such as read-only
-`shadowMode: "deny"` remain authoritative.
+`vm-manager` backs configured absolute package-manager store/cache paths with
+tmpfs for the lifetime of the resumed VM. Runtime profiles or `sandbox.json`
+can point common managers at those paths:
+
+| Env var                | Typical tmpfs-backed value |
+| ---------------------- | -------------------------- |
+| `NPM_CONFIG_STORE_DIR` | `/opt/pnpm-store`          |
+| `NPM_CONFIG_CACHE`     | `/opt/npm-cache`           |
+| `YARN_CACHE_FOLDER`    | `/opt/yarn-cache`          |
+
+The extension does not invent those env vars when they are absent; the sandbox
+or runtime profile remains the package-manager policy owner. It does always
+shadow any `node_modules` path with VM-local tmpfs. This is VFS policy, not a
+resume command, so it covers `node_modules` paths created later by the live
+agent session, including inside worktrees the agent creates after resume.
+Caller-provided `vfs.shadow` rules wrap this built-in layer, so stricter
+policies such as read-only `shadowMode: "deny"` remain authoritative.
 
 ### `env`
 
