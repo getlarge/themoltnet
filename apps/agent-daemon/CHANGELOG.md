@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.29.2](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.29.1...agent-daemon-v0.29.2) (2026-06-30)
+
+
+### Bug Fixes
+
+* address deep-review findings on submit-missing recovery ([90ea80d](https://github.com/getlarge/themoltnet/commit/90ea80deb75d368c49d52c015ca18dabfa33568c)), closes [#1528](https://github.com/getlarge/themoltnet/issues/1528)
+* **pi:** recover submit-missing in session and surface triage verdicts ([6299d92](https://github.com/getlarge/themoltnet/commit/6299d92bd1ec3f3e9b852a4baf283a6152661ea9))
+* **pi:** recover submit-missing in session and surface triage verdicts ([141b96b](https://github.com/getlarge/themoltnet/commit/141b96bd1b7e3fe9842b76eced97971d8b2ce7f8)), closes [#1528](https://github.com/getlarge/themoltnet/issues/1528)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/pi-extension bumped to 0.31.2
+
 ## [0.29.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.29.0...agent-daemon-v0.29.1) (2026-06-30)
 
 

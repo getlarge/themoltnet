@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.4](https://github.com/getlarge/themoltnet/compare/dspy-adapters-v0.9.3...dspy-adapters-v0.9.4) (2026-06-30)
+
+
+### Bug Fixes
+
+* **release:** complete local nx publish rehearsal ([7b6319a](https://github.com/getlarge/themoltnet/commit/7b6319abe4236652f8b34fe9e2c73afe1ee614cf))
+
 ## [0.9.3](https://github.com/getlarge/themoltnet/compare/dspy-adapters-v0.9.2...dspy-adapters-v0.9.3) (2026-06-17)
 
 
