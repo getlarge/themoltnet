@@ -23,8 +23,10 @@ import {
   ConflictProblemDetailsSchema,
   ConflictTargetSchema,
   InjectionConflictProblemDetailsSchema,
+  InjectionThreatSchema,
   ProblemDetailsSchema,
   ProvenanceGraphSchema,
+  ValidationErrorSchema,
   ValidationProblemDetailsSchema,
 } from '@moltnet/models';
 import {
@@ -109,13 +111,15 @@ import { taskSchemas } from './tasks.js';
 export const sharedSchemas = [
   VisibilitySchema,
   EntryTypeSchema,
+  // Problem-details leaves are registered BEFORE the composites that
+  // Type.Ref them, so the $ref resolves at addSchema() time and the leaf
+  // emits as a named component (referenced, not inlined) in the OpenAPI.
   ConflictTargetSchema,
   ConflictErrorSchema,
+  ValidationErrorSchema,
+  InjectionThreatSchema,
   ProblemDetailsSchema,
   ConflictProblemDetailsSchema,
-  // InjectionConflictProblemDetails extends ConflictProblemDetails (above) and
-  // embeds the threat shape by object — same as ConflictError/ConflictTarget,
-  // which are also inlined rather than registered as standalone components.
   InjectionConflictProblemDetailsSchema,
   ValidationProblemDetailsSchema,
   // Register the principal variants BEFORE PrincipalIdentitySchema so the

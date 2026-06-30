@@ -13602,7 +13602,7 @@ func (s *InjectionConflictProblemDetailsFlaggedItem) Validate() error {
 	return nil
 }
 
-func (s *InjectionConflictProblemDetailsFlaggedItemThreatsItem) Validate() error {
+func (s *InjectionThreat) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
 	}

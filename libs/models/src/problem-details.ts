@@ -83,7 +83,7 @@ export type ConflictTarget = Static<typeof ConflictTargetSchema>;
 export const ConflictErrorSchema = Type.Object(
   {
     constraint: Type.Optional(Type.String()),
-    target: Type.Optional(ConflictTargetSchema),
+    target: Type.Optional(Type.Ref('ConflictTarget')),
   },
   { $id: 'ConflictError', additionalProperties: false },
 );
@@ -94,7 +94,7 @@ export const ConflictProblemDetailsSchema = Type.Intersect(
   [
     ProblemDetailsSchema,
     Type.Object({
-      conflict: ConflictErrorSchema,
+      conflict: Type.Ref('ConflictError'),
     }),
   ],
   { $id: 'ConflictProblemDetails' },
@@ -106,16 +106,15 @@ export type ConflictProblemDetails = Static<
 
 // A single prompt-injection threat detected on a diary entry, as stored on
 // diary_entries.injection_threats and surfaced in the pack-create 409 below.
-// Embedded by value into InjectionConflictProblemDetailsSchema (same convention
-// as ConflictTargetSchema → ConflictErrorSchema). No $id: it is an inline leaf,
-// not a standalone component, so it does not emit a dangling named schema.
+// Registered as a shared schema and referenced via Type.Ref so it emits as a
+// named component (like ConflictTarget/ConflictError/ValidationError).
 export const InjectionThreatSchema = Type.Object(
   {
     type: Type.String(),
     severity: Type.Number(),
     match: Type.String(),
   },
-  { additionalProperties: false },
+  { $id: 'InjectionThreat', additionalProperties: false },
 );
 
 export type InjectionThreat = Static<typeof InjectionThreatSchema>;
@@ -133,7 +132,7 @@ export const InjectionConflictProblemDetailsSchema = Type.Intersect(
           Type.Object(
             {
               id: Type.String({ format: 'uuid' }),
-              threats: Type.Array(InjectionThreatSchema),
+              threats: Type.Array(Type.Ref('InjectionThreat')),
             },
             { additionalProperties: false },
           ),
@@ -152,7 +151,7 @@ export const ValidationProblemDetailsSchema = Type.Intersect(
   [
     ProblemDetailsSchema,
     Type.Object({
-      errors: Type.Array(ValidationErrorSchema),
+      errors: Type.Array(Type.Ref('ValidationError')),
     }),
   ],
   { $id: 'ValidationProblemDetails' },

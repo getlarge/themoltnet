@@ -151,13 +151,7 @@ export type CompleteTaskBody = {
 
 export type ConflictError = {
   constraint?: string;
-  target?: {
-    id?: string;
-    keys?: {
-      [key: string]: string;
-    };
-    resource: string;
-  };
+  target?: ConflictTarget;
 };
 
 export type ConflictProblemDetails = {
@@ -229,16 +223,7 @@ export type ConflictProblemDetails = {
     | number
     | undefined;
 } & {
-  conflict: {
-    constraint?: string;
-    target?: {
-      id?: string;
-      keys?: {
-        [key: string]: string;
-      };
-      resource: string;
-    };
-  };
+  conflict: ConflictError;
 };
 
 export type ConflictTarget = {
@@ -944,25 +929,18 @@ export type InjectionConflictProblemDetails = {
     | number
     | undefined;
 } & {
-  conflict: {
-    constraint?: string;
-    target?: {
-      id?: string;
-      keys?: {
-        [key: string]: string;
-      };
-      resource: string;
-    };
-  };
+  conflict: ConflictError;
 } & {
   flagged?: Array<{
     id: string;
-    threats: Array<{
-      match: string;
-      severity: number;
-      type: string;
-    }>;
+    threats: Array<InjectionThreat>;
   }>;
+};
+
+export type InjectionThreat = {
+  match: string;
+  severity: number;
+  type: string;
 };
 
 export type ListMessagesQuery = {
@@ -2556,11 +2534,7 @@ export type ValidationProblemDetails = {
     | number
     | undefined;
 } & {
-  errors: Array<{
-    code?: string;
-    field: string;
-    message: string;
-  }>;
+  errors: Array<ValidationError>;
 };
 
 export type VerifyResult = {
@@ -6598,11 +6572,7 @@ export type GetRuntimeSessionErrors = {
       | number
       | undefined;
   } & {
-    errors: Array<{
-      code?: string;
-      field: string;
-      message: string;
-    }>;
+    errors: Array<ValidationError>;
   };
   /**
    * Default Response
@@ -6940,11 +6910,7 @@ export type DownloadRuntimeSessionErrors = {
       | number
       | undefined;
   } & {
-    errors: Array<{
-      code?: string;
-      field: string;
-      message: string;
-    }>;
+    errors: Array<ValidationError>;
   };
   /**
    * Default Response
@@ -7346,11 +7312,7 @@ export type UploadRuntimeSessionErrors = {
       | number
       | undefined;
   } & {
-    errors: Array<{
-      code?: string;
-      field: string;
-      message: string;
-    }>;
+    errors: Array<ValidationError>;
   };
   /**
    * Default Response
@@ -7834,11 +7796,7 @@ export type ListRuntimeSlotsErrors = {
       | number
       | undefined;
   } & {
-    errors: Array<{
-      code?: string;
-      field: string;
-      message: string;
-    }>;
+    errors: Array<ValidationError>;
   };
   /**
    * Default Response
@@ -8204,11 +8162,7 @@ export type BeginRuntimeSlotErrors = {
       | number
       | undefined;
   } & {
-    errors: Array<{
-      code?: string;
-      field: string;
-      message: string;
-    }>;
+    errors: Array<ValidationError>;
   };
   /**
    * Default Response
@@ -8498,16 +8452,7 @@ export type BeginRuntimeSlotErrors = {
       | number
       | undefined;
   } & {
-    conflict: {
-      constraint?: string;
-      target?: {
-        id?: string;
-        keys?: {
-          [key: string]: string;
-        };
-        resource: string;
-      };
-    };
+    conflict: ConflictError;
   };
 };
 
@@ -8637,11 +8582,7 @@ export type FinishRuntimeSlotErrors = {
       | number
       | undefined;
   } & {
-    errors: Array<{
-      code?: string;
-      field: string;
-      message: string;
-    }>;
+    errors: Array<ValidationError>;
   };
   /**
    * Default Response
@@ -8931,16 +8872,7 @@ export type FinishRuntimeSlotErrors = {
       | number
       | undefined;
   } & {
-    conflict: {
-      constraint?: string;
-      target?: {
-        id?: string;
-        keys?: {
-          [key: string]: string;
-        };
-        resource: string;
-      };
-    };
+    conflict: ConflictError;
   };
 };
 
@@ -9064,11 +8996,7 @@ export type FindLatestRuntimeSlotForAttemptErrors = {
       | number
       | undefined;
   } & {
-    errors: Array<{
-      code?: string;
-      field: string;
-      message: string;
-    }>;
+    errors: Array<ValidationError>;
   };
   /**
    * Default Response
@@ -10115,11 +10043,7 @@ export type ListTaskArtifactsErrors = {
       | number
       | undefined;
   } & {
-    errors: Array<{
-      code?: string;
-      field: string;
-      message: string;
-    }>;
+    errors: Array<ValidationError>;
   };
   /**
    * Default Response
@@ -10466,11 +10390,7 @@ export type UploadTaskArtifactErrors = {
       | number
       | undefined;
   } & {
-    errors: Array<{
-      code?: string;
-      field: string;
-      message: string;
-    }>;
+    errors: Array<ValidationError>;
   };
   /**
    * Default Response
@@ -10883,11 +10803,7 @@ export type DownloadTaskArtifactErrors = {
       | number
       | undefined;
   } & {
-    errors: Array<{
-      code?: string;
-      field: string;
-      message: string;
-    }>;
+    errors: Array<ValidationError>;
   };
   /**
    * Default Response
