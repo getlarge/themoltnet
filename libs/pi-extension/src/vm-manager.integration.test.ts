@@ -90,12 +90,51 @@ mkdir -p .worktrees/testing
 mkdir .worktrees/testing/node_modules
 mkdir .worktrees/testing/node_modules/probe
 echo ok > .worktrees/testing/node_modules/probe/file.txt
-awk '$2 == "/opt/pnpm-store" { print $3 }' /proc/mounts
 test -f .worktrees/testing/node_modules/probe/file.txt
+python3 - <<'PY'
+import json
+import os
+import shutil
+import time
+
+workspace = os.environ["MOLTNET_GUEST_WORKSPACE"]
+store = os.environ["NPM_CONFIG_STORE_DIR"]
+workspace_dir = os.path.join(workspace, ".worktrees/testing/.bench-workspace")
+tmpfs_dir = os.path.join(store, "bench")
+
+def mount_type(mount_path):
+    with open("/proc/mounts", "r", encoding="utf8") as f:
+        for line in f:
+            parts = line.split()
+            if len(parts) >= 3 and parts[1] == mount_path:
+                return parts[2]
+    return None
+
+def bench(directory):
+    shutil.rmtree(directory, ignore_errors=True)
+    os.makedirs(directory, exist_ok=True)
+    start = time.perf_counter()
+    for i in range(500):
+        with open(os.path.join(directory, f"file-{i}.txt"), "w", encoding="utf8") as f:
+            f.write("x\\n")
+    return int((time.perf_counter() - start) * 1000)
+
+print(json.dumps({
+    "mountType": mount_type(store),
+    "workspaceMs": bench(workspace_dir),
+    "tmpfsMs": bench(tmpfs_dir),
+}, sort_keys=True))
+PY
 `,
       );
 
-      expect(output.trim()).toBe('tmpfs');
+      const benchmark = JSON.parse(output.trim()) as {
+        mountType: string | null;
+        tmpfsMs: number;
+        workspaceMs: number;
+      };
+      expect(benchmark.mountType).toBe('tmpfs');
+      expect(benchmark.tmpfsMs * 2).toBeLessThan(benchmark.workspaceMs);
       expect(
         existsSync(path.join(workspace, '.worktrees/testing/node_modules')),
       ).toBe(false);
