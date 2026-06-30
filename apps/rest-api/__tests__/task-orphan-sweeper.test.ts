@@ -774,6 +774,38 @@ describe('taskOrphanSweeperWorkflow — backstop (#1077)', () => {
     });
   });
 
+  it('starts task deletion cleanup on the DBOS queue with exact-batch dedupe', async () => {
+    await init();
+    const { deps } = makeDeps([]);
+    const {
+      setMaintenanceDeps: setDeps,
+      startTaskDeletionWorkflow: startDeletion,
+    } =
+      await import('../src/workflows/maintenance.js');
+    setDeps(deps);
+
+    await startDeletion(
+      {
+        ids: ['eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee5'],
+        force: false,
+        requestedBy: { id: AGENT_ID, ns: 'agent' },
+      },
+      'task-delete:test-workflow',
+      'task-delete:test-dedupe',
+    );
+
+    expect(DBOS.startWorkflow).toHaveBeenCalledWith(
+      registeredWorkflows['maintenance.taskDeletion'],
+      {
+        workflowID: 'task-delete:test-workflow',
+        queueName: 'task-deletion-cleanup',
+        enqueueOptions: {
+          deduplicationID: 'task-delete:test-dedupe',
+        },
+      },
+    );
+  });
+
   // Suppress unused-variable warning on imports we use only via dynamic re-import.
   void initMaintenanceWorkflows;
   void setMaintenanceDeps;

@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { KetoNamespace, requireAuth } from '@moltnet/auth';
@@ -48,6 +48,12 @@ import { requireCurrentTeamId } from '../utils/require-current-team-id.js';
 import { startTaskDeletionWorkflow } from '../workflows/index.js';
 
 type BatchDeleteTasksBody = Static<typeof BatchDeleteTasksBodySchema>;
+
+function taskDeletionDeduplicationId(ids: string[], force: boolean): string {
+  const payload = JSON.stringify({ force, ids: [...ids].sort() });
+  const digest = createHash('sha256').update(payload).digest('hex');
+  return `task-delete:${digest}`;
+}
 
 function toTaskProblem(error: TaskServiceError) {
   switch (error.code) {
@@ -318,6 +324,7 @@ export function taskRoutes(fastify: FastifyInstance) {
             },
           },
           `task-delete:${randomUUID()}`,
+          taskDeletionDeduplicationId(plan.accepted, force),
         );
 
         return await reply.status(202).send({

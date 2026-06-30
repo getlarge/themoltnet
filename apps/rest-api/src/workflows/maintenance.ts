@@ -139,6 +139,7 @@ const TASK_DELETION_QUEUE_NAME = 'task-deletion-cleanup';
 export async function startTaskDeletionWorkflow(
   input: TaskDeletionWorkflowInput,
   workflowId: string,
+  deduplicationID?: string,
 ): Promise<WorkflowHandle<TaskDeletionWorkflowResult>> {
   if (!_taskDeletionWorkflow) {
     throw new Error('Task deletion workflow not registered');
@@ -146,6 +147,9 @@ export async function startTaskDeletionWorkflow(
   return DBOS.startWorkflow(_taskDeletionWorkflow, {
     workflowID: workflowId,
     queueName: TASK_DELETION_QUEUE_NAME,
+    ...(deduplicationID
+      ? { enqueueOptions: { deduplicationID } }
+      : undefined),
   })(input);
 }
 

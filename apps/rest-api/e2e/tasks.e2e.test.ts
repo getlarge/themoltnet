@@ -2365,6 +2365,7 @@ describe('Tasks API', () => {
         body: { ids: [taskId] },
       });
       expect(ownerCleanup.error).toBeUndefined();
+      expect(ownerCleanup.response.status).toBe(202);
       expect(ownerCleanup.data?.workflowId).toEqual(expect.any(String));
       expect(ownerCleanup.data?.accepted).toEqual([taskId]);
       expect(ownerCleanup.data?.skipped).toEqual([]);
@@ -2447,6 +2448,7 @@ describe('Tasks API', () => {
         },
       });
       expect(safe.error).toBeUndefined();
+      expect(safe.response.status).toBe(202);
       expect(safe.data?.workflowId).toEqual(expect.any(String));
       expect(safe.data?.accepted).toEqual([terminal.data!.id]);
       expect(safe.data?.skipped).toEqual([
@@ -2482,6 +2484,7 @@ describe('Tasks API', () => {
         },
       });
       expect(accepted.error).toBeUndefined();
+      expect(accepted.response.status).toBe(202);
       expect(accepted.data?.workflowId).toEqual(expect.any(String));
       expect(accepted.data?.accepted).toEqual([sealed.data!.id]);
       expect(accepted.data?.skipped).toEqual([live.data!.id]);
