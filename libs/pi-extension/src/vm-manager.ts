@@ -41,12 +41,6 @@ export const GUEST_TASK_CONTEXT_MOUNT = '/moltnet-task-context';
 /** @deprecated Use GUEST_TASK_CONTEXT_MOUNT. */
 export const GUEST_TASK_SKILLS_MOUNT = GUEST_TASK_CONTEXT_MOUNT;
 
-export const PACKAGE_MANAGER_STORE_ENV_KEYS = [
-  'NPM_CONFIG_STORE_DIR',
-  'NPM_CONFIG_CACHE',
-  'YARN_CACHE_FOLDER',
-] as const;
-
 export interface VmConfig {
   /** Absolute path to the qcow2 checkpoint. */
   checkpointPath: string;
@@ -184,40 +178,6 @@ export class AutoParentMemoryProvider extends MemoryProvider {
         : mode,
     );
   }
-}
-
-export function resolvePackageManagerStoreDirs(
-  env: Record<string, string>,
-): string[] {
-  const dirs = new Set<string>();
-  for (const key of PACKAGE_MANAGER_STORE_ENV_KEYS) {
-    const value = env[key];
-    if (!value || !path.posix.isAbsolute(value) || value.includes('$')) {
-      continue;
-    }
-    const normalized = path.posix.normalize(value);
-    if (normalized === '/') continue;
-    dirs.add(normalized);
-  }
-  return [...dirs].sort();
-}
-
-function shQuote(value: string): string {
-  return `'${value.replace(/'/g, `'\\''`)}'`;
-}
-
-function buildPackageManagerStoreCommand(dirs: string[]): string {
-  if (dirs.length === 0) return '';
-  return dirs
-    .map((storePath) => {
-      const quoted = shQuote(storePath);
-      return [
-        `mkdir -p ${quoted}`,
-        `chown 501:501 ${quoted}`,
-        `chmod 0755 ${quoted}`,
-      ].join('\n');
-    })
-    .join('\n');
 }
 
 /**
@@ -494,7 +454,6 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     ...envOverrides,
     MOLTNET_GUEST_WORKSPACE: guestWorkspace,
   };
-  const packageManagerStoreDirs = resolvePackageManagerStoreDirs(envOverrides);
 
   const resources = config.sandboxConfig?.resources;
   const workspaceMode = config.workspaceMode ?? 'shared_mount';
@@ -582,18 +541,6 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
       `git config --system --add safe.directory '*'`,
       config.signal,
     );
-
-    const packageManagerStoreCommand = buildPackageManagerStoreCommand(
-      packageManagerStoreDirs,
-    );
-    if (packageManagerStoreCommand) {
-      await vmRun(
-        vm,
-        'package-manager store directories',
-        packageManagerStoreCommand,
-        config.signal,
-      );
-    }
 
     // Consumer-provided per-resume commands. Repo-specific bootstrap
     // (corepack-install a pinned pnpm, `pnpm fetch`, lightweight repo-local

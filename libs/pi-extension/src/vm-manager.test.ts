@@ -23,7 +23,6 @@ import { prepareTaskWorkspace } from './runtime/task-workspace.js';
 import {
   AutoParentMemoryProvider,
   loadCredentials,
-  resolvePackageManagerStoreDirs,
   resolveVmAgentDir,
   rewriteGitconfigPaths,
   rewriteMoltnetJsonPaths,
@@ -388,18 +387,6 @@ describe('node_modules VM-local shadowing', () => {
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
-  });
-});
-
-describe('resolvePackageManagerStoreDirs', () => {
-  it('keeps absolute package-manager store/cache dirs and ignores relative or interpolated paths', () => {
-    expect(
-      resolvePackageManagerStoreDirs({
-        NPM_CONFIG_STORE_DIR: '/opt/pnpm-store',
-        NPM_CONFIG_CACHE: '${MOLTNET_GUEST_CWD}/.npm-cache',
-        YARN_CACHE_FOLDER: '.yarn-cache',
-      }),
-    ).toEqual(['/opt/pnpm-store']);
   });
 });
 

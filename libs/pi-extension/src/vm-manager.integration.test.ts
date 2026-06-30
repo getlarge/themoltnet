@@ -66,6 +66,9 @@ describeVm('resumeVm real Gondolin VM integration', () => {
       },
       snapshot: {
         overlaySize: '3G',
+        setupCommands: [
+          'mkdir -p /opt/pnpm-store && chown 501:501 /opt/pnpm-store && chmod 0755 /opt/pnpm-store',
+        ],
       },
     };
 

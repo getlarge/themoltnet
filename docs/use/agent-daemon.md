@@ -788,9 +788,8 @@ cd "$MOLTNET_GUEST_WORKSPACE" && pnpm fetch --frozen-lockfile
 ```
 
 This is deliberately repo-specific. `libs/pi-extension` stays generic: it
-prepares explicit store/cache env paths and shadows `node_modules`; the
-consumer repo owns package-manager bootstrap in the runtime profile's sandbox
-policy.
+shadows `node_modules`; the consumer repo owns package-manager bootstrap and
+store preparation in the runtime profile's sandbox policy.
 
 The important layering rule is that profile sandbox policy should not branch on
 task types. If a bootstrap step assumes a repo exists under `/workspace`, gate it
