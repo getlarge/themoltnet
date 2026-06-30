@@ -170,9 +170,9 @@ primitive, not the whole performance recipe. In pnpm-heavy monorepos like this
 one, both the package-manager store and install target must avoid the mounted
 workspace FUSE bridge. Runtime profiles or `sandbox.json` should point
 pnpm/npm/yarn store and cache paths at absolute guest paths such as
-`/opt/pnpm-store`; the Pi VM backs those configured paths with VM-lifetime
-tmpfs and always shadows `node_modules` into guest-local tmpfs, including
-worktrees created after resume.
+`/opt/pnpm-store`; the Pi VM backs those configured paths with native
+VM-lifetime tmpfs and always shadows `node_modules` into guest-local tmpfs,
+including worktrees created after resume.
 
 If a resume step assumes `/workspace` is a repo checkout, gate it on
 `resumeCommands[].when.workspaceMode` rather than on task type. Use:

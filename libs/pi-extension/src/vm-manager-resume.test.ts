@@ -107,7 +107,7 @@ describe('resumeVm task-context mount', () => {
     );
   });
 
-  it('mounts configured package-manager stores and caches as tmpfs', async () => {
+  it('mounts configured package-manager stores and caches as native guest tmpfs', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-pm-cache-'));
     tempRoots.push(root);
     const workspace = path.join(root, 'workspace');
@@ -149,10 +149,25 @@ describe('resumeVm task-context mount', () => {
       '/opt/pnpm-store',
       '/opt/yarn-cache',
     ]) {
-      expect(resumeOptions.vfs.mounts[mountPath]).toBeInstanceOf(
-        gondolinMock.MemoryProvider,
-      );
+      expect(resumeOptions.vfs.mounts).not.toHaveProperty(mountPath);
     }
+
+    const execCalls = gondolinMock.vm.exec.mock.calls as unknown as [
+      unknown,
+      unknown?,
+    ][];
+    const shellCommands = execCalls
+      .map(([argv]) => (Array.isArray(argv) ? argv[2] : argv))
+      .filter((command): command is string => typeof command === 'string');
+    const tmpfsCommand = shellCommands.find((command) =>
+      command.includes('mount -t tmpfs'),
+    );
+    expect(tmpfsCommand).toContain("mkdir -p '/opt/npm-cache'");
+    expect(tmpfsCommand).toContain(
+      "mount -t tmpfs -o mode=0755 tmpfs '/opt/npm-cache'",
+    );
+    expect(tmpfsCommand).toContain("mkdir -p '/opt/pnpm-store'");
+    expect(tmpfsCommand).toContain("mkdir -p '/opt/yarn-cache'");
   });
 
   it('ignores relative and interpolated package-manager paths', () => {

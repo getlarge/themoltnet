@@ -315,8 +315,8 @@ setup needs both endpoints off the FUSE bridge:
 - install target on VM-managed `node_modules` tmpfs
 
 `vm-manager` backs configured absolute package-manager store/cache paths with
-tmpfs for the lifetime of the resumed VM. Runtime profiles or `sandbox.json`
-can point common managers at those paths:
+native guest tmpfs for the lifetime of the resumed VM. Runtime profiles or
+`sandbox.json` can point common managers at those paths:
 
 | Env var                | Typical tmpfs-backed value |
 | ---------------------- | -------------------------- |
@@ -325,12 +325,22 @@ can point common managers at those paths:
 | `YARN_CACHE_FOLDER`    | `/opt/yarn-cache`          |
 
 The extension does not invent those env vars when they are absent; the sandbox
-or runtime profile remains the package-manager policy owner. It does always
-shadow any `node_modules` path with VM-local tmpfs. This is VFS policy, not a
-resume command, so it covers `node_modules` paths created later by the live
-agent session, including inside worktrees the agent creates after resume.
+or runtime profile remains the package-manager policy owner. When those paths
+are configured, they are mounted inside the guest with Linux `tmpfs`, not
+Gondolin's host-served `MemoryProvider`, because package managers need the
+kernel-local fast path for high file counts. The extension also always shadows
+any `node_modules` path with VM-local tmpfs. This is VFS policy, not a resume
+command, so it covers `node_modules` paths created later by the live agent
+session, including inside worktrees the agent creates after resume.
 Caller-provided `vfs.shadow` rules wrap this built-in layer, so stricter
 policies such as read-only `shadowMode: "deny"` remain authoritative.
+
+Run the real VM integration check locally with:
+
+```bash
+MOLTNET_PI_VM_INTEGRATION=1 \
+  pnpm exec nx run @themoltnet/pi-extension:test-ci--src/vm-manager.integration.test.ts
+```
 
 ### `env`
 

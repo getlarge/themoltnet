@@ -190,6 +190,25 @@ export function resolvePackageManagerTmpfsMounts(
   return [...mounts].sort();
 }
 
+function shQuote(value: string): string {
+  return `'${value.replace(/'/g, `'\\''`)}'`;
+}
+
+function buildNativeTmpfsMountCommand(mounts: string[]): string {
+  if (mounts.length === 0) return '';
+  return mounts
+    .map((mountPath) => {
+      const quoted = shQuote(mountPath);
+      return [
+        `mkdir -p ${quoted}`,
+        `if ! awk '{print $2}' /proc/mounts | grep -Fx ${quoted} >/dev/null; then`,
+        `  mount -t tmpfs -o mode=0755 tmpfs ${quoted}`,
+        'fi',
+      ].join('\n');
+    })
+    .join('\n');
+}
+
 /**
  * Resolve the main worktree root (where .moltnet/ lives — it's untracked,
  * only exists in the main worktree, not in git worktrees).
@@ -481,12 +500,6 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
       vfs: {
         mounts: {
           [guestWorkspace]: workspaceProvider,
-          ...Object.fromEntries(
-            packageManagerTmpfsMounts.map((mountPath) => [
-              mountPath,
-              new MemoryProvider(),
-            ]),
-          ),
           // Memory-backed mount for task-context injection (#943).
           // Per-VM-instance, never persisted, never shared.
           [GUEST_TASK_CONTEXT_MOUNT]: new MemoryProvider(),
@@ -561,6 +574,18 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
       `git config --system --add safe.directory '*'`,
       config.signal,
     );
+
+    const packageManagerTmpfsCommand = buildNativeTmpfsMountCommand(
+      packageManagerTmpfsMounts,
+    );
+    if (packageManagerTmpfsCommand) {
+      await vmRun(
+        vm,
+        'package-manager tmpfs mounts',
+        packageManagerTmpfsCommand,
+        config.signal,
+      );
+    }
 
     // Consumer-provided per-resume commands. Repo-specific bootstrap
     // (corepack-install a pinned pnpm, `pnpm fetch`, lightweight repo-local
