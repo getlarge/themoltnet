@@ -100,6 +100,14 @@ describe('setLegreffierOnboardingDeps', () => {
 });
 
 describe('legreffierOnboardingWorkflow accessor', () => {
+  // startOnboarding is only populated once the workflow is initialized. Don't
+  // rely on the `initLegreffierOnboardingWorkflow` describe block running first
+  // (test order is randomized — see vitest.config.ts `sequence.shuffle`); init
+  // here too. It's idempotent, so this is safe regardless of execution order.
+  beforeAll(() => {
+    initLegreffierOnboardingWorkflow();
+  });
+
   it('exposes startOnboarding after initialization', () => {
     expect(legreffierOnboardingWorkflow.startOnboarding).toBeDefined();
     expect(typeof legreffierOnboardingWorkflow.startOnboarding).toBe(

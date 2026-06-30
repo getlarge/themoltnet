@@ -664,6 +664,16 @@ export function createMockServices(): MockServices {
  *     resetMockServices(mocks);
  *     // re-apply this block's per-test defaults here
  *   });
+ *
+ * Scope caveat: this resets only the sub-services in `mocks`. The auth/Ory
+ * mocks `createTestApp` bakes into the app itself (`tokenValidator`,
+ * `oryClients`) are NOT in `mocks`, so their call history accumulates for the
+ * life of a shared app. That is harmless as long as nothing asserts on them; a
+ * test that needs e.g. `expect(tokenValidator.resolveAuthContext)
+ * .toHaveBeenCalledTimes(1)` must build its own app rather than share the
+ * block-level one. Module-level `vi.mock()` spies are likewise out of scope —
+ * clear them yourself in beforeEach (see team-governance.test.ts and the DBOS
+ * mock).
  */
 export function resetMockServices(mocks: MockServices): void {
   const fresh = createMockServices();
