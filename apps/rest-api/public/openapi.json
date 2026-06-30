@@ -543,26 +543,7 @@
             "type": "string"
           },
           "target": {
-            "additionalProperties": false,
-            "properties": {
-              "id": {
-                "format": "uuid",
-                "type": "string"
-              },
-              "keys": {
-                "additionalProperties": {
-                  "type": "string"
-                },
-                "type": "object"
-              },
-              "resource": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "resource"
-            ],
-            "type": "object"
+            "$ref": "#/components/schemas/ConflictTarget"
           }
         },
         "type": "object"
@@ -774,35 +755,7 @@
           {
             "properties": {
               "conflict": {
-                "additionalProperties": false,
-                "properties": {
-                  "constraint": {
-                    "type": "string"
-                  },
-                  "target": {
-                    "additionalProperties": false,
-                    "properties": {
-                      "id": {
-                        "format": "uuid",
-                        "type": "string"
-                      },
-                      "keys": {
-                        "additionalProperties": {
-                          "type": "string"
-                        },
-                        "type": "object"
-                      },
-                      "resource": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "resource"
-                    ],
-                    "type": "object"
-                  }
-                },
-                "type": "object"
+                "$ref": "#/components/schemas/ConflictError"
               }
             },
             "required": [
@@ -3896,35 +3849,7 @@
               {
                 "properties": {
                   "conflict": {
-                    "additionalProperties": false,
-                    "properties": {
-                      "constraint": {
-                        "type": "string"
-                      },
-                      "target": {
-                        "additionalProperties": false,
-                        "properties": {
-                          "id": {
-                            "format": "uuid",
-                            "type": "string"
-                          },
-                          "keys": {
-                            "additionalProperties": {
-                              "type": "string"
-                            },
-                            "type": "object"
-                          },
-                          "resource": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "resource"
-                        ],
-                        "type": "object"
-                      }
-                    },
-                    "type": "object"
+                    "$ref": "#/components/schemas/ConflictError"
                   }
                 },
                 "required": [
@@ -3946,24 +3871,7 @@
                     },
                     "threats": {
                       "items": {
-                        "additionalProperties": false,
-                        "properties": {
-                          "match": {
-                            "type": "string"
-                          },
-                          "severity": {
-                            "type": "number"
-                          },
-                          "type": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "type",
-                          "severity",
-                          "match"
-                        ],
-                        "type": "object"
+                        "$ref": "#/components/schemas/InjectionThreat"
                       },
                       "type": "array"
                     }
@@ -3980,6 +3888,26 @@
             "type": "object"
           }
         ]
+      },
+      "InjectionThreat": {
+        "additionalProperties": false,
+        "properties": {
+          "match": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "number"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "severity",
+          "match"
+        ],
+        "type": "object"
       },
       "ListMessagesQuery": {
         "properties": {
@@ -11859,23 +11787,7 @@
             "properties": {
               "errors": {
                 "items": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "code": {
-                      "type": "string"
-                    },
-                    "field": {
-                      "type": "string"
-                    },
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "field",
-                    "message"
-                  ],
-                  "type": "object"
+                  "$ref": "#/components/schemas/ValidationError"
                 },
                 "type": "array"
               }
@@ -22180,23 +22092,7 @@
                       "properties": {
                         "errors": {
                           "items": {
-                            "additionalProperties": false,
-                            "properties": {
-                              "code": {
-                                "type": "string"
-                              },
-                              "field": {
-                                "type": "string"
-                              },
-                              "message": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "field",
-                              "message"
-                            ],
-                            "type": "object"
+                            "$ref": "#/components/schemas/ValidationError"
                           },
                           "type": "array"
                         }
@@ -23114,23 +23010,7 @@
                       "properties": {
                         "errors": {
                           "items": {
-                            "additionalProperties": false,
-                            "properties": {
-                              "code": {
-                                "type": "string"
-                              },
-                              "field": {
-                                "type": "string"
-                              },
-                              "message": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "field",
-                              "message"
-                            ],
-                            "type": "object"
+                            "$ref": "#/components/schemas/ValidationError"
                           },
                           "type": "array"
                         }
@@ -24454,23 +24334,7 @@
                       "properties": {
                         "errors": {
                           "items": {
-                            "additionalProperties": false,
-                            "properties": {
-                              "code": {
-                                "type": "string"
-                              },
-                              "field": {
-                                "type": "string"
-                              },
-                              "message": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "field",
-                              "message"
-                            ],
-                            "type": "object"
+                            "$ref": "#/components/schemas/ValidationError"
                           },
                           "type": "array"
                         }
@@ -26068,23 +25932,7 @@
                       "properties": {
                         "errors": {
                           "items": {
-                            "additionalProperties": false,
-                            "properties": {
-                              "code": {
-                                "type": "string"
-                              },
-                              "field": {
-                                "type": "string"
-                              },
-                              "message": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "field",
-                              "message"
-                            ],
-                            "type": "object"
+                            "$ref": "#/components/schemas/ValidationError"
                           },
                           "type": "array"
                         }
@@ -27216,23 +27064,7 @@
                       "properties": {
                         "errors": {
                           "items": {
-                            "additionalProperties": false,
-                            "properties": {
-                              "code": {
-                                "type": "string"
-                              },
-                              "field": {
-                                "type": "string"
-                              },
-                              "message": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "field",
-                              "message"
-                            ],
-                            "type": "object"
+                            "$ref": "#/components/schemas/ValidationError"
                           },
                           "type": "array"
                         }
@@ -28085,35 +27917,7 @@
                     {
                       "properties": {
                         "conflict": {
-                          "additionalProperties": false,
-                          "properties": {
-                            "constraint": {
-                              "type": "string"
-                            },
-                            "target": {
-                              "additionalProperties": false,
-                              "properties": {
-                                "id": {
-                                  "format": "uuid",
-                                  "type": "string"
-                                },
-                                "keys": {
-                                  "additionalProperties": {
-                                    "type": "string"
-                                  },
-                                  "type": "object"
-                                },
-                                "resource": {
-                                  "type": "string"
-                                }
-                              },
-                              "required": [
-                                "resource"
-                              ],
-                              "type": "object"
-                            }
-                          },
-                          "type": "object"
+                          "$ref": "#/components/schemas/ConflictError"
                         }
                       },
                       "required": [
@@ -28572,23 +28376,7 @@
                       "properties": {
                         "errors": {
                           "items": {
-                            "additionalProperties": false,
-                            "properties": {
-                              "code": {
-                                "type": "string"
-                              },
-                              "field": {
-                                "type": "string"
-                              },
-                              "message": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "field",
-                              "message"
-                            ],
-                            "type": "object"
+                            "$ref": "#/components/schemas/ValidationError"
                           },
                           "type": "array"
                         }
@@ -29441,35 +29229,7 @@
                     {
                       "properties": {
                         "conflict": {
-                          "additionalProperties": false,
-                          "properties": {
-                            "constraint": {
-                              "type": "string"
-                            },
-                            "target": {
-                              "additionalProperties": false,
-                              "properties": {
-                                "id": {
-                                  "format": "uuid",
-                                  "type": "string"
-                                },
-                                "keys": {
-                                  "additionalProperties": {
-                                    "type": "string"
-                                  },
-                                  "type": "object"
-                                },
-                                "resource": {
-                                  "type": "string"
-                                }
-                              },
-                              "required": [
-                                "resource"
-                              ],
-                              "type": "object"
-                            }
-                          },
-                          "type": "object"
+                          "$ref": "#/components/schemas/ConflictError"
                         }
                       },
                       "required": [
@@ -29977,23 +29737,7 @@
                       "properties": {
                         "errors": {
                           "items": {
-                            "additionalProperties": false,
-                            "properties": {
-                              "code": {
-                                "type": "string"
-                              },
-                              "field": {
-                                "type": "string"
-                              },
-                              "message": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "field",
-                              "message"
-                            ],
-                            "type": "object"
+                            "$ref": "#/components/schemas/ValidationError"
                           },
                           "type": "array"
                         }
@@ -32853,23 +32597,7 @@
                       "properties": {
                         "errors": {
                           "items": {
-                            "additionalProperties": false,
-                            "properties": {
-                              "code": {
-                                "type": "string"
-                              },
-                              "field": {
-                                "type": "string"
-                              },
-                              "message": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "field",
-                              "message"
-                            ],
-                            "type": "object"
+                            "$ref": "#/components/schemas/ValidationError"
                           },
                           "type": "array"
                         }
@@ -33925,23 +33653,7 @@
                       "properties": {
                         "errors": {
                           "items": {
-                            "additionalProperties": false,
-                            "properties": {
-                              "code": {
-                                "type": "string"
-                              },
-                              "field": {
-                                "type": "string"
-                              },
-                              "message": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "field",
-                              "message"
-                            ],
-                            "type": "object"
+                            "$ref": "#/components/schemas/ValidationError"
                           },
                           "type": "array"
                         }
@@ -35114,23 +34826,7 @@
                       "properties": {
                         "errors": {
                           "items": {
-                            "additionalProperties": false,
-                            "properties": {
-                              "code": {
-                                "type": "string"
-                              },
-                              "field": {
-                                "type": "string"
-                              },
-                              "message": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "field",
-                              "message"
-                            ],
-                            "type": "object"
+                            "$ref": "#/components/schemas/ValidationError"
                           },
                           "type": "array"
                         }

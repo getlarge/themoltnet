@@ -506,6 +506,7 @@ export type {
   InitiateTransferResponse,
   InitiateTransferResponses,
   InjectionConflictProblemDetails,
+  InjectionThreat,
   IssueVoucherData,
   IssueVoucherError,
   IssueVoucherErrors,

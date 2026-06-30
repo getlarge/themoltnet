@@ -690,13 +690,13 @@ func (s *BearerAuth) SetRoles(val []string) {
 
 // Merged schema.
 type BeginRuntimeSlotBadRequest struct {
-	Code            BeginRuntimeSlotBadRequestCode         `json:"code"`
-	Detail          OptString                              `json:"detail"`
-	Instance        OptString                              `json:"instance"`
-	Status          int                                    `json:"status"`
-	Title           string                                 `json:"title"`
-	Type            url.URL                                `json:"type"`
-	Errors          []BeginRuntimeSlotBadRequestErrorsItem `json:"errors"`
+	Code            BeginRuntimeSlotBadRequestCode `json:"code"`
+	Detail          OptString                      `json:"detail"`
+	Instance        OptString                      `json:"instance"`
+	Status          int                            `json:"status"`
+	Title           string                         `json:"title"`
+	Type            url.URL                        `json:"type"`
+	Errors          []ValidationError              `json:"errors"`
 	AdditionalProps BeginRuntimeSlotBadRequestAdditional
 }
 
@@ -731,7 +731,7 @@ func (s *BeginRuntimeSlotBadRequest) GetType() url.URL {
 }
 
 // GetErrors returns the value of Errors.
-func (s *BeginRuntimeSlotBadRequest) GetErrors() []BeginRuntimeSlotBadRequestErrorsItem {
+func (s *BeginRuntimeSlotBadRequest) GetErrors() []ValidationError {
 	return s.Errors
 }
 
@@ -771,7 +771,7 @@ func (s *BeginRuntimeSlotBadRequest) SetType(val url.URL) {
 }
 
 // SetErrors sets the value of Errors.
-func (s *BeginRuntimeSlotBadRequest) SetErrors(val []BeginRuntimeSlotBadRequestErrorsItem) {
+func (s *BeginRuntimeSlotBadRequest) SetErrors(val []ValidationError) {
 	s.Errors = val
 }
 
@@ -1016,51 +1016,15 @@ func (s *BeginRuntimeSlotBadRequestCode) UnmarshalText(data []byte) error {
 	}
 }
 
-type BeginRuntimeSlotBadRequestErrorsItem struct {
-	Code    OptString `json:"code"`
-	Field   string    `json:"field"`
-	Message string    `json:"message"`
-}
-
-// GetCode returns the value of Code.
-func (s *BeginRuntimeSlotBadRequestErrorsItem) GetCode() OptString {
-	return s.Code
-}
-
-// GetField returns the value of Field.
-func (s *BeginRuntimeSlotBadRequestErrorsItem) GetField() string {
-	return s.Field
-}
-
-// GetMessage returns the value of Message.
-func (s *BeginRuntimeSlotBadRequestErrorsItem) GetMessage() string {
-	return s.Message
-}
-
-// SetCode sets the value of Code.
-func (s *BeginRuntimeSlotBadRequestErrorsItem) SetCode(val OptString) {
-	s.Code = val
-}
-
-// SetField sets the value of Field.
-func (s *BeginRuntimeSlotBadRequestErrorsItem) SetField(val string) {
-	s.Field = val
-}
-
-// SetMessage sets the value of Message.
-func (s *BeginRuntimeSlotBadRequestErrorsItem) SetMessage(val string) {
-	s.Message = val
-}
-
 // Merged schema.
 type BeginRuntimeSlotConflict struct {
-	Code            BeginRuntimeSlotConflictCode     `json:"code"`
-	Detail          OptString                        `json:"detail"`
-	Instance        OptString                        `json:"instance"`
-	Status          int                              `json:"status"`
-	Title           string                           `json:"title"`
-	Type            url.URL                          `json:"type"`
-	Conflict        BeginRuntimeSlotConflictConflict `json:"conflict"`
+	Code            BeginRuntimeSlotConflictCode `json:"code"`
+	Detail          OptString                    `json:"detail"`
+	Instance        OptString                    `json:"instance"`
+	Status          int                          `json:"status"`
+	Title           string                       `json:"title"`
+	Type            url.URL                      `json:"type"`
+	Conflict        ConflictError                `json:"conflict"`
 	AdditionalProps BeginRuntimeSlotConflictAdditional
 }
 
@@ -1095,7 +1059,7 @@ func (s *BeginRuntimeSlotConflict) GetType() url.URL {
 }
 
 // GetConflict returns the value of Conflict.
-func (s *BeginRuntimeSlotConflict) GetConflict() BeginRuntimeSlotConflictConflict {
+func (s *BeginRuntimeSlotConflict) GetConflict() ConflictError {
 	return s.Conflict
 }
 
@@ -1135,7 +1099,7 @@ func (s *BeginRuntimeSlotConflict) SetType(val url.URL) {
 }
 
 // SetConflict sets the value of Conflict.
-func (s *BeginRuntimeSlotConflict) SetConflict(val BeginRuntimeSlotConflictConflict) {
+func (s *BeginRuntimeSlotConflict) SetConflict(val ConflictError) {
 	s.Conflict = val
 }
 
@@ -1378,78 +1342,6 @@ func (s *BeginRuntimeSlotConflictCode) UnmarshalText(data []byte) error {
 	default:
 		return errors.Errorf("invalid value: %q", data)
 	}
-}
-
-type BeginRuntimeSlotConflictConflict struct {
-	Constraint OptString                                 `json:"constraint"`
-	Target     OptBeginRuntimeSlotConflictConflictTarget `json:"target"`
-}
-
-// GetConstraint returns the value of Constraint.
-func (s *BeginRuntimeSlotConflictConflict) GetConstraint() OptString {
-	return s.Constraint
-}
-
-// GetTarget returns the value of Target.
-func (s *BeginRuntimeSlotConflictConflict) GetTarget() OptBeginRuntimeSlotConflictConflictTarget {
-	return s.Target
-}
-
-// SetConstraint sets the value of Constraint.
-func (s *BeginRuntimeSlotConflictConflict) SetConstraint(val OptString) {
-	s.Constraint = val
-}
-
-// SetTarget sets the value of Target.
-func (s *BeginRuntimeSlotConflictConflict) SetTarget(val OptBeginRuntimeSlotConflictConflictTarget) {
-	s.Target = val
-}
-
-type BeginRuntimeSlotConflictConflictTarget struct {
-	ID       OptUUID                                       `json:"id"`
-	Keys     OptBeginRuntimeSlotConflictConflictTargetKeys `json:"keys"`
-	Resource string                                        `json:"resource"`
-}
-
-// GetID returns the value of ID.
-func (s *BeginRuntimeSlotConflictConflictTarget) GetID() OptUUID {
-	return s.ID
-}
-
-// GetKeys returns the value of Keys.
-func (s *BeginRuntimeSlotConflictConflictTarget) GetKeys() OptBeginRuntimeSlotConflictConflictTargetKeys {
-	return s.Keys
-}
-
-// GetResource returns the value of Resource.
-func (s *BeginRuntimeSlotConflictConflictTarget) GetResource() string {
-	return s.Resource
-}
-
-// SetID sets the value of ID.
-func (s *BeginRuntimeSlotConflictConflictTarget) SetID(val OptUUID) {
-	s.ID = val
-}
-
-// SetKeys sets the value of Keys.
-func (s *BeginRuntimeSlotConflictConflictTarget) SetKeys(val OptBeginRuntimeSlotConflictConflictTargetKeys) {
-	s.Keys = val
-}
-
-// SetResource sets the value of Resource.
-func (s *BeginRuntimeSlotConflictConflictTarget) SetResource(val string) {
-	s.Resource = val
-}
-
-type BeginRuntimeSlotConflictConflictTargetKeys map[string]string
-
-func (s *BeginRuntimeSlotConflictConflictTargetKeys) init() BeginRuntimeSlotConflictConflictTargetKeys {
-	m := *s
-	if m == nil {
-		m = map[string]string{}
-		*s = m
-	}
-	return m
 }
 
 type BeginRuntimeSlotForbidden struct {
@@ -3586,16 +3478,42 @@ type CompleteTaskUnauthorized ProblemDetails
 
 func (*CompleteTaskUnauthorized) completeTaskRes() {}
 
+// Ref: #/components/schemas/ConflictError
+type ConflictError struct {
+	Constraint OptString         `json:"constraint"`
+	Target     OptConflictTarget `json:"target"`
+}
+
+// GetConstraint returns the value of Constraint.
+func (s *ConflictError) GetConstraint() OptString {
+	return s.Constraint
+}
+
+// GetTarget returns the value of Target.
+func (s *ConflictError) GetTarget() OptConflictTarget {
+	return s.Target
+}
+
+// SetConstraint sets the value of Constraint.
+func (s *ConflictError) SetConstraint(val OptString) {
+	s.Constraint = val
+}
+
+// SetTarget sets the value of Target.
+func (s *ConflictError) SetTarget(val OptConflictTarget) {
+	s.Target = val
+}
+
 // Merged schema.
 // Ref: #/components/schemas/ConflictProblemDetails
 type ConflictProblemDetails struct {
-	Code            ConflictProblemDetailsCode     `json:"code"`
-	Detail          OptString                      `json:"detail"`
-	Instance        OptString                      `json:"instance"`
-	Status          int                            `json:"status"`
-	Title           string                         `json:"title"`
-	Type            url.URL                        `json:"type"`
-	Conflict        ConflictProblemDetailsConflict `json:"conflict"`
+	Code            ConflictProblemDetailsCode `json:"code"`
+	Detail          OptString                  `json:"detail"`
+	Instance        OptString                  `json:"instance"`
+	Status          int                        `json:"status"`
+	Title           string                     `json:"title"`
+	Type            url.URL                    `json:"type"`
+	Conflict        ConflictError              `json:"conflict"`
 	AdditionalProps ConflictProblemDetailsAdditional
 }
 
@@ -3630,7 +3548,7 @@ func (s *ConflictProblemDetails) GetType() url.URL {
 }
 
 // GetConflict returns the value of Conflict.
-func (s *ConflictProblemDetails) GetConflict() ConflictProblemDetailsConflict {
+func (s *ConflictProblemDetails) GetConflict() ConflictError {
 	return s.Conflict
 }
 
@@ -3670,7 +3588,7 @@ func (s *ConflictProblemDetails) SetType(val url.URL) {
 }
 
 // SetConflict sets the value of Conflict.
-func (s *ConflictProblemDetails) SetConflict(val ConflictProblemDetailsConflict) {
+func (s *ConflictProblemDetails) SetConflict(val ConflictError) {
 	s.Conflict = val
 }
 
@@ -3939,70 +3857,46 @@ func (s *ConflictProblemDetailsCode) UnmarshalText(data []byte) error {
 	}
 }
 
-type ConflictProblemDetailsConflict struct {
-	Constraint OptString                               `json:"constraint"`
-	Target     OptConflictProblemDetailsConflictTarget `json:"target"`
-}
-
-// GetConstraint returns the value of Constraint.
-func (s *ConflictProblemDetailsConflict) GetConstraint() OptString {
-	return s.Constraint
-}
-
-// GetTarget returns the value of Target.
-func (s *ConflictProblemDetailsConflict) GetTarget() OptConflictProblemDetailsConflictTarget {
-	return s.Target
-}
-
-// SetConstraint sets the value of Constraint.
-func (s *ConflictProblemDetailsConflict) SetConstraint(val OptString) {
-	s.Constraint = val
-}
-
-// SetTarget sets the value of Target.
-func (s *ConflictProblemDetailsConflict) SetTarget(val OptConflictProblemDetailsConflictTarget) {
-	s.Target = val
-}
-
-type ConflictProblemDetailsConflictTarget struct {
-	ID       OptUUID                                     `json:"id"`
-	Keys     OptConflictProblemDetailsConflictTargetKeys `json:"keys"`
-	Resource string                                      `json:"resource"`
+// Ref: #/components/schemas/ConflictTarget
+type ConflictTarget struct {
+	ID       OptUUID               `json:"id"`
+	Keys     OptConflictTargetKeys `json:"keys"`
+	Resource string                `json:"resource"`
 }
 
 // GetID returns the value of ID.
-func (s *ConflictProblemDetailsConflictTarget) GetID() OptUUID {
+func (s *ConflictTarget) GetID() OptUUID {
 	return s.ID
 }
 
 // GetKeys returns the value of Keys.
-func (s *ConflictProblemDetailsConflictTarget) GetKeys() OptConflictProblemDetailsConflictTargetKeys {
+func (s *ConflictTarget) GetKeys() OptConflictTargetKeys {
 	return s.Keys
 }
 
 // GetResource returns the value of Resource.
-func (s *ConflictProblemDetailsConflictTarget) GetResource() string {
+func (s *ConflictTarget) GetResource() string {
 	return s.Resource
 }
 
 // SetID sets the value of ID.
-func (s *ConflictProblemDetailsConflictTarget) SetID(val OptUUID) {
+func (s *ConflictTarget) SetID(val OptUUID) {
 	s.ID = val
 }
 
 // SetKeys sets the value of Keys.
-func (s *ConflictProblemDetailsConflictTarget) SetKeys(val OptConflictProblemDetailsConflictTargetKeys) {
+func (s *ConflictTarget) SetKeys(val OptConflictTargetKeys) {
 	s.Keys = val
 }
 
 // SetResource sets the value of Resource.
-func (s *ConflictProblemDetailsConflictTarget) SetResource(val string) {
+func (s *ConflictTarget) SetResource(val string) {
 	s.Resource = val
 }
 
-type ConflictProblemDetailsConflictTargetKeys map[string]string
+type ConflictTargetKeys map[string]string
 
-func (s *ConflictProblemDetailsConflictTargetKeys) init() ConflictProblemDetailsConflictTargetKeys {
+func (s *ConflictTargetKeys) init() ConflictTargetKeys {
 	m := *s
 	if m == nil {
 		m = map[string]string{}
@@ -10804,13 +10698,13 @@ func (*DiffContextPacksByIdUnauthorized) diffContextPacksByIdRes() {}
 
 // Merged schema.
 type DownloadRuntimeSessionBadRequest struct {
-	Code            DownloadRuntimeSessionBadRequestCode         `json:"code"`
-	Detail          OptString                                    `json:"detail"`
-	Instance        OptString                                    `json:"instance"`
-	Status          int                                          `json:"status"`
-	Title           string                                       `json:"title"`
-	Type            url.URL                                      `json:"type"`
-	Errors          []DownloadRuntimeSessionBadRequestErrorsItem `json:"errors"`
+	Code            DownloadRuntimeSessionBadRequestCode `json:"code"`
+	Detail          OptString                            `json:"detail"`
+	Instance        OptString                            `json:"instance"`
+	Status          int                                  `json:"status"`
+	Title           string                               `json:"title"`
+	Type            url.URL                              `json:"type"`
+	Errors          []ValidationError                    `json:"errors"`
 	AdditionalProps DownloadRuntimeSessionBadRequestAdditional
 }
 
@@ -10845,7 +10739,7 @@ func (s *DownloadRuntimeSessionBadRequest) GetType() url.URL {
 }
 
 // GetErrors returns the value of Errors.
-func (s *DownloadRuntimeSessionBadRequest) GetErrors() []DownloadRuntimeSessionBadRequestErrorsItem {
+func (s *DownloadRuntimeSessionBadRequest) GetErrors() []ValidationError {
 	return s.Errors
 }
 
@@ -10885,7 +10779,7 @@ func (s *DownloadRuntimeSessionBadRequest) SetType(val url.URL) {
 }
 
 // SetErrors sets the value of Errors.
-func (s *DownloadRuntimeSessionBadRequest) SetErrors(val []DownloadRuntimeSessionBadRequestErrorsItem) {
+func (s *DownloadRuntimeSessionBadRequest) SetErrors(val []ValidationError) {
 	s.Errors = val
 }
 
@@ -11128,42 +11022,6 @@ func (s *DownloadRuntimeSessionBadRequestCode) UnmarshalText(data []byte) error 
 	default:
 		return errors.Errorf("invalid value: %q", data)
 	}
-}
-
-type DownloadRuntimeSessionBadRequestErrorsItem struct {
-	Code    OptString `json:"code"`
-	Field   string    `json:"field"`
-	Message string    `json:"message"`
-}
-
-// GetCode returns the value of Code.
-func (s *DownloadRuntimeSessionBadRequestErrorsItem) GetCode() OptString {
-	return s.Code
-}
-
-// GetField returns the value of Field.
-func (s *DownloadRuntimeSessionBadRequestErrorsItem) GetField() string {
-	return s.Field
-}
-
-// GetMessage returns the value of Message.
-func (s *DownloadRuntimeSessionBadRequestErrorsItem) GetMessage() string {
-	return s.Message
-}
-
-// SetCode sets the value of Code.
-func (s *DownloadRuntimeSessionBadRequestErrorsItem) SetCode(val OptString) {
-	s.Code = val
-}
-
-// SetField sets the value of Field.
-func (s *DownloadRuntimeSessionBadRequestErrorsItem) SetField(val string) {
-	s.Field = val
-}
-
-// SetMessage sets the value of Message.
-func (s *DownloadRuntimeSessionBadRequestErrorsItem) SetMessage(val string) {
-	s.Message = val
 }
 
 type DownloadRuntimeSessionForbidden struct {
@@ -12449,13 +12307,13 @@ func (s *DownloadRuntimeSessionUnauthorizedCode) UnmarshalText(data []byte) erro
 
 // Merged schema.
 type DownloadTaskArtifactBadRequest struct {
-	Code            DownloadTaskArtifactBadRequestCode         `json:"code"`
-	Detail          OptString                                  `json:"detail"`
-	Instance        OptString                                  `json:"instance"`
-	Status          int                                        `json:"status"`
-	Title           string                                     `json:"title"`
-	Type            url.URL                                    `json:"type"`
-	Errors          []DownloadTaskArtifactBadRequestErrorsItem `json:"errors"`
+	Code            DownloadTaskArtifactBadRequestCode `json:"code"`
+	Detail          OptString                          `json:"detail"`
+	Instance        OptString                          `json:"instance"`
+	Status          int                                `json:"status"`
+	Title           string                             `json:"title"`
+	Type            url.URL                            `json:"type"`
+	Errors          []ValidationError                  `json:"errors"`
 	AdditionalProps DownloadTaskArtifactBadRequestAdditional
 }
 
@@ -12490,7 +12348,7 @@ func (s *DownloadTaskArtifactBadRequest) GetType() url.URL {
 }
 
 // GetErrors returns the value of Errors.
-func (s *DownloadTaskArtifactBadRequest) GetErrors() []DownloadTaskArtifactBadRequestErrorsItem {
+func (s *DownloadTaskArtifactBadRequest) GetErrors() []ValidationError {
 	return s.Errors
 }
 
@@ -12530,7 +12388,7 @@ func (s *DownloadTaskArtifactBadRequest) SetType(val url.URL) {
 }
 
 // SetErrors sets the value of Errors.
-func (s *DownloadTaskArtifactBadRequest) SetErrors(val []DownloadTaskArtifactBadRequestErrorsItem) {
+func (s *DownloadTaskArtifactBadRequest) SetErrors(val []ValidationError) {
 	s.Errors = val
 }
 
@@ -12773,42 +12631,6 @@ func (s *DownloadTaskArtifactBadRequestCode) UnmarshalText(data []byte) error {
 	default:
 		return errors.Errorf("invalid value: %q", data)
 	}
-}
-
-type DownloadTaskArtifactBadRequestErrorsItem struct {
-	Code    OptString `json:"code"`
-	Field   string    `json:"field"`
-	Message string    `json:"message"`
-}
-
-// GetCode returns the value of Code.
-func (s *DownloadTaskArtifactBadRequestErrorsItem) GetCode() OptString {
-	return s.Code
-}
-
-// GetField returns the value of Field.
-func (s *DownloadTaskArtifactBadRequestErrorsItem) GetField() string {
-	return s.Field
-}
-
-// GetMessage returns the value of Message.
-func (s *DownloadTaskArtifactBadRequestErrorsItem) GetMessage() string {
-	return s.Message
-}
-
-// SetCode sets the value of Code.
-func (s *DownloadTaskArtifactBadRequestErrorsItem) SetCode(val OptString) {
-	s.Code = val
-}
-
-// SetField sets the value of Field.
-func (s *DownloadTaskArtifactBadRequestErrorsItem) SetField(val string) {
-	s.Field = val
-}
-
-// SetMessage sets the value of Message.
-func (s *DownloadTaskArtifactBadRequestErrorsItem) SetMessage(val string) {
-	s.Message = val
 }
 
 type DownloadTaskArtifactForbidden struct {
@@ -14863,13 +14685,13 @@ func (*FailTaskAttemptUnauthorized) failTaskAttemptRes() {}
 
 // Merged schema.
 type FindLatestRuntimeSlotForAttemptBadRequest struct {
-	Code            FindLatestRuntimeSlotForAttemptBadRequestCode         `json:"code"`
-	Detail          OptString                                             `json:"detail"`
-	Instance        OptString                                             `json:"instance"`
-	Status          int                                                   `json:"status"`
-	Title           string                                                `json:"title"`
-	Type            url.URL                                               `json:"type"`
-	Errors          []FindLatestRuntimeSlotForAttemptBadRequestErrorsItem `json:"errors"`
+	Code            FindLatestRuntimeSlotForAttemptBadRequestCode `json:"code"`
+	Detail          OptString                                     `json:"detail"`
+	Instance        OptString                                     `json:"instance"`
+	Status          int                                           `json:"status"`
+	Title           string                                        `json:"title"`
+	Type            url.URL                                       `json:"type"`
+	Errors          []ValidationError                             `json:"errors"`
 	AdditionalProps FindLatestRuntimeSlotForAttemptBadRequestAdditional
 }
 
@@ -14904,7 +14726,7 @@ func (s *FindLatestRuntimeSlotForAttemptBadRequest) GetType() url.URL {
 }
 
 // GetErrors returns the value of Errors.
-func (s *FindLatestRuntimeSlotForAttemptBadRequest) GetErrors() []FindLatestRuntimeSlotForAttemptBadRequestErrorsItem {
+func (s *FindLatestRuntimeSlotForAttemptBadRequest) GetErrors() []ValidationError {
 	return s.Errors
 }
 
@@ -14944,7 +14766,7 @@ func (s *FindLatestRuntimeSlotForAttemptBadRequest) SetType(val url.URL) {
 }
 
 // SetErrors sets the value of Errors.
-func (s *FindLatestRuntimeSlotForAttemptBadRequest) SetErrors(val []FindLatestRuntimeSlotForAttemptBadRequestErrorsItem) {
+func (s *FindLatestRuntimeSlotForAttemptBadRequest) SetErrors(val []ValidationError) {
 	s.Errors = val
 }
 
@@ -15187,42 +15009,6 @@ func (s *FindLatestRuntimeSlotForAttemptBadRequestCode) UnmarshalText(data []byt
 	default:
 		return errors.Errorf("invalid value: %q", data)
 	}
-}
-
-type FindLatestRuntimeSlotForAttemptBadRequestErrorsItem struct {
-	Code    OptString `json:"code"`
-	Field   string    `json:"field"`
-	Message string    `json:"message"`
-}
-
-// GetCode returns the value of Code.
-func (s *FindLatestRuntimeSlotForAttemptBadRequestErrorsItem) GetCode() OptString {
-	return s.Code
-}
-
-// GetField returns the value of Field.
-func (s *FindLatestRuntimeSlotForAttemptBadRequestErrorsItem) GetField() string {
-	return s.Field
-}
-
-// GetMessage returns the value of Message.
-func (s *FindLatestRuntimeSlotForAttemptBadRequestErrorsItem) GetMessage() string {
-	return s.Message
-}
-
-// SetCode sets the value of Code.
-func (s *FindLatestRuntimeSlotForAttemptBadRequestErrorsItem) SetCode(val OptString) {
-	s.Code = val
-}
-
-// SetField sets the value of Field.
-func (s *FindLatestRuntimeSlotForAttemptBadRequestErrorsItem) SetField(val string) {
-	s.Field = val
-}
-
-// SetMessage sets the value of Message.
-func (s *FindLatestRuntimeSlotForAttemptBadRequestErrorsItem) SetMessage(val string) {
-	s.Message = val
 }
 
 type FindLatestRuntimeSlotForAttemptForbidden struct {
@@ -16572,13 +16358,13 @@ func (s *FindLatestRuntimeSlotForAttemptUnauthorizedCode) UnmarshalText(data []b
 
 // Merged schema.
 type FinishRuntimeSlotBadRequest struct {
-	Code            FinishRuntimeSlotBadRequestCode         `json:"code"`
-	Detail          OptString                               `json:"detail"`
-	Instance        OptString                               `json:"instance"`
-	Status          int                                     `json:"status"`
-	Title           string                                  `json:"title"`
-	Type            url.URL                                 `json:"type"`
-	Errors          []FinishRuntimeSlotBadRequestErrorsItem `json:"errors"`
+	Code            FinishRuntimeSlotBadRequestCode `json:"code"`
+	Detail          OptString                       `json:"detail"`
+	Instance        OptString                       `json:"instance"`
+	Status          int                             `json:"status"`
+	Title           string                          `json:"title"`
+	Type            url.URL                         `json:"type"`
+	Errors          []ValidationError               `json:"errors"`
 	AdditionalProps FinishRuntimeSlotBadRequestAdditional
 }
 
@@ -16613,7 +16399,7 @@ func (s *FinishRuntimeSlotBadRequest) GetType() url.URL {
 }
 
 // GetErrors returns the value of Errors.
-func (s *FinishRuntimeSlotBadRequest) GetErrors() []FinishRuntimeSlotBadRequestErrorsItem {
+func (s *FinishRuntimeSlotBadRequest) GetErrors() []ValidationError {
 	return s.Errors
 }
 
@@ -16653,7 +16439,7 @@ func (s *FinishRuntimeSlotBadRequest) SetType(val url.URL) {
 }
 
 // SetErrors sets the value of Errors.
-func (s *FinishRuntimeSlotBadRequest) SetErrors(val []FinishRuntimeSlotBadRequestErrorsItem) {
+func (s *FinishRuntimeSlotBadRequest) SetErrors(val []ValidationError) {
 	s.Errors = val
 }
 
@@ -16898,51 +16684,15 @@ func (s *FinishRuntimeSlotBadRequestCode) UnmarshalText(data []byte) error {
 	}
 }
 
-type FinishRuntimeSlotBadRequestErrorsItem struct {
-	Code    OptString `json:"code"`
-	Field   string    `json:"field"`
-	Message string    `json:"message"`
-}
-
-// GetCode returns the value of Code.
-func (s *FinishRuntimeSlotBadRequestErrorsItem) GetCode() OptString {
-	return s.Code
-}
-
-// GetField returns the value of Field.
-func (s *FinishRuntimeSlotBadRequestErrorsItem) GetField() string {
-	return s.Field
-}
-
-// GetMessage returns the value of Message.
-func (s *FinishRuntimeSlotBadRequestErrorsItem) GetMessage() string {
-	return s.Message
-}
-
-// SetCode sets the value of Code.
-func (s *FinishRuntimeSlotBadRequestErrorsItem) SetCode(val OptString) {
-	s.Code = val
-}
-
-// SetField sets the value of Field.
-func (s *FinishRuntimeSlotBadRequestErrorsItem) SetField(val string) {
-	s.Field = val
-}
-
-// SetMessage sets the value of Message.
-func (s *FinishRuntimeSlotBadRequestErrorsItem) SetMessage(val string) {
-	s.Message = val
-}
-
 // Merged schema.
 type FinishRuntimeSlotConflict struct {
-	Code            FinishRuntimeSlotConflictCode     `json:"code"`
-	Detail          OptString                         `json:"detail"`
-	Instance        OptString                         `json:"instance"`
-	Status          int                               `json:"status"`
-	Title           string                            `json:"title"`
-	Type            url.URL                           `json:"type"`
-	Conflict        FinishRuntimeSlotConflictConflict `json:"conflict"`
+	Code            FinishRuntimeSlotConflictCode `json:"code"`
+	Detail          OptString                     `json:"detail"`
+	Instance        OptString                     `json:"instance"`
+	Status          int                           `json:"status"`
+	Title           string                        `json:"title"`
+	Type            url.URL                       `json:"type"`
+	Conflict        ConflictError                 `json:"conflict"`
 	AdditionalProps FinishRuntimeSlotConflictAdditional
 }
 
@@ -16977,7 +16727,7 @@ func (s *FinishRuntimeSlotConflict) GetType() url.URL {
 }
 
 // GetConflict returns the value of Conflict.
-func (s *FinishRuntimeSlotConflict) GetConflict() FinishRuntimeSlotConflictConflict {
+func (s *FinishRuntimeSlotConflict) GetConflict() ConflictError {
 	return s.Conflict
 }
 
@@ -17017,7 +16767,7 @@ func (s *FinishRuntimeSlotConflict) SetType(val url.URL) {
 }
 
 // SetConflict sets the value of Conflict.
-func (s *FinishRuntimeSlotConflict) SetConflict(val FinishRuntimeSlotConflictConflict) {
+func (s *FinishRuntimeSlotConflict) SetConflict(val ConflictError) {
 	s.Conflict = val
 }
 
@@ -17260,78 +17010,6 @@ func (s *FinishRuntimeSlotConflictCode) UnmarshalText(data []byte) error {
 	default:
 		return errors.Errorf("invalid value: %q", data)
 	}
-}
-
-type FinishRuntimeSlotConflictConflict struct {
-	Constraint OptString                                  `json:"constraint"`
-	Target     OptFinishRuntimeSlotConflictConflictTarget `json:"target"`
-}
-
-// GetConstraint returns the value of Constraint.
-func (s *FinishRuntimeSlotConflictConflict) GetConstraint() OptString {
-	return s.Constraint
-}
-
-// GetTarget returns the value of Target.
-func (s *FinishRuntimeSlotConflictConflict) GetTarget() OptFinishRuntimeSlotConflictConflictTarget {
-	return s.Target
-}
-
-// SetConstraint sets the value of Constraint.
-func (s *FinishRuntimeSlotConflictConflict) SetConstraint(val OptString) {
-	s.Constraint = val
-}
-
-// SetTarget sets the value of Target.
-func (s *FinishRuntimeSlotConflictConflict) SetTarget(val OptFinishRuntimeSlotConflictConflictTarget) {
-	s.Target = val
-}
-
-type FinishRuntimeSlotConflictConflictTarget struct {
-	ID       OptUUID                                        `json:"id"`
-	Keys     OptFinishRuntimeSlotConflictConflictTargetKeys `json:"keys"`
-	Resource string                                         `json:"resource"`
-}
-
-// GetID returns the value of ID.
-func (s *FinishRuntimeSlotConflictConflictTarget) GetID() OptUUID {
-	return s.ID
-}
-
-// GetKeys returns the value of Keys.
-func (s *FinishRuntimeSlotConflictConflictTarget) GetKeys() OptFinishRuntimeSlotConflictConflictTargetKeys {
-	return s.Keys
-}
-
-// GetResource returns the value of Resource.
-func (s *FinishRuntimeSlotConflictConflictTarget) GetResource() string {
-	return s.Resource
-}
-
-// SetID sets the value of ID.
-func (s *FinishRuntimeSlotConflictConflictTarget) SetID(val OptUUID) {
-	s.ID = val
-}
-
-// SetKeys sets the value of Keys.
-func (s *FinishRuntimeSlotConflictConflictTarget) SetKeys(val OptFinishRuntimeSlotConflictConflictTargetKeys) {
-	s.Keys = val
-}
-
-// SetResource sets the value of Resource.
-func (s *FinishRuntimeSlotConflictConflictTarget) SetResource(val string) {
-	s.Resource = val
-}
-
-type FinishRuntimeSlotConflictConflictTargetKeys map[string]string
-
-func (s *FinishRuntimeSlotConflictConflictTargetKeys) init() FinishRuntimeSlotConflictConflictTargetKeys {
-	m := *s
-	if m == nil {
-		m = map[string]string{}
-		*s = m
-	}
-	return m
 }
 
 type FinishRuntimeSlotForbidden struct {
@@ -19924,13 +19602,13 @@ func (*GetRuntimeProfileUnauthorized) getRuntimeProfileRes() {}
 
 // Merged schema.
 type GetRuntimeSessionBadRequest struct {
-	Code            GetRuntimeSessionBadRequestCode         `json:"code"`
-	Detail          OptString                               `json:"detail"`
-	Instance        OptString                               `json:"instance"`
-	Status          int                                     `json:"status"`
-	Title           string                                  `json:"title"`
-	Type            url.URL                                 `json:"type"`
-	Errors          []GetRuntimeSessionBadRequestErrorsItem `json:"errors"`
+	Code            GetRuntimeSessionBadRequestCode `json:"code"`
+	Detail          OptString                       `json:"detail"`
+	Instance        OptString                       `json:"instance"`
+	Status          int                             `json:"status"`
+	Title           string                          `json:"title"`
+	Type            url.URL                         `json:"type"`
+	Errors          []ValidationError               `json:"errors"`
 	AdditionalProps GetRuntimeSessionBadRequestAdditional
 }
 
@@ -19965,7 +19643,7 @@ func (s *GetRuntimeSessionBadRequest) GetType() url.URL {
 }
 
 // GetErrors returns the value of Errors.
-func (s *GetRuntimeSessionBadRequest) GetErrors() []GetRuntimeSessionBadRequestErrorsItem {
+func (s *GetRuntimeSessionBadRequest) GetErrors() []ValidationError {
 	return s.Errors
 }
 
@@ -20005,7 +19683,7 @@ func (s *GetRuntimeSessionBadRequest) SetType(val url.URL) {
 }
 
 // SetErrors sets the value of Errors.
-func (s *GetRuntimeSessionBadRequest) SetErrors(val []GetRuntimeSessionBadRequestErrorsItem) {
+func (s *GetRuntimeSessionBadRequest) SetErrors(val []ValidationError) {
 	s.Errors = val
 }
 
@@ -20248,42 +19926,6 @@ func (s *GetRuntimeSessionBadRequestCode) UnmarshalText(data []byte) error {
 	default:
 		return errors.Errorf("invalid value: %q", data)
 	}
-}
-
-type GetRuntimeSessionBadRequestErrorsItem struct {
-	Code    OptString `json:"code"`
-	Field   string    `json:"field"`
-	Message string    `json:"message"`
-}
-
-// GetCode returns the value of Code.
-func (s *GetRuntimeSessionBadRequestErrorsItem) GetCode() OptString {
-	return s.Code
-}
-
-// GetField returns the value of Field.
-func (s *GetRuntimeSessionBadRequestErrorsItem) GetField() string {
-	return s.Field
-}
-
-// GetMessage returns the value of Message.
-func (s *GetRuntimeSessionBadRequestErrorsItem) GetMessage() string {
-	return s.Message
-}
-
-// SetCode sets the value of Code.
-func (s *GetRuntimeSessionBadRequestErrorsItem) SetCode(val OptString) {
-	s.Code = val
-}
-
-// SetField sets the value of Field.
-func (s *GetRuntimeSessionBadRequestErrorsItem) SetField(val string) {
-	s.Field = val
-}
-
-// SetMessage sets the value of Message.
-func (s *GetRuntimeSessionBadRequestErrorsItem) SetMessage(val string) {
-	s.Message = val
 }
 
 type GetRuntimeSessionForbidden struct {
@@ -22151,7 +21793,7 @@ type InjectionConflictProblemDetails struct {
 	Status          int                                          `json:"status"`
 	Title           string                                       `json:"title"`
 	Type            url.URL                                      `json:"type"`
-	Conflict        InjectionConflictProblemDetailsConflict      `json:"conflict"`
+	Conflict        ConflictError                                `json:"conflict"`
 	Flagged         []InjectionConflictProblemDetailsFlaggedItem `json:"flagged"`
 	AdditionalProps InjectionConflictProblemDetailsAdditional
 }
@@ -22187,7 +21829,7 @@ func (s *InjectionConflictProblemDetails) GetType() url.URL {
 }
 
 // GetConflict returns the value of Conflict.
-func (s *InjectionConflictProblemDetails) GetConflict() InjectionConflictProblemDetailsConflict {
+func (s *InjectionConflictProblemDetails) GetConflict() ConflictError {
 	return s.Conflict
 }
 
@@ -22232,7 +21874,7 @@ func (s *InjectionConflictProblemDetails) SetType(val url.URL) {
 }
 
 // SetConflict sets the value of Conflict.
-func (s *InjectionConflictProblemDetails) SetConflict(val InjectionConflictProblemDetailsConflict) {
+func (s *InjectionConflictProblemDetails) SetConflict(val ConflictError) {
 	s.Conflict = val
 }
 
@@ -22482,81 +22124,9 @@ func (s *InjectionConflictProblemDetailsCode) UnmarshalText(data []byte) error {
 	}
 }
 
-type InjectionConflictProblemDetailsConflict struct {
-	Constraint OptString                                        `json:"constraint"`
-	Target     OptInjectionConflictProblemDetailsConflictTarget `json:"target"`
-}
-
-// GetConstraint returns the value of Constraint.
-func (s *InjectionConflictProblemDetailsConflict) GetConstraint() OptString {
-	return s.Constraint
-}
-
-// GetTarget returns the value of Target.
-func (s *InjectionConflictProblemDetailsConflict) GetTarget() OptInjectionConflictProblemDetailsConflictTarget {
-	return s.Target
-}
-
-// SetConstraint sets the value of Constraint.
-func (s *InjectionConflictProblemDetailsConflict) SetConstraint(val OptString) {
-	s.Constraint = val
-}
-
-// SetTarget sets the value of Target.
-func (s *InjectionConflictProblemDetailsConflict) SetTarget(val OptInjectionConflictProblemDetailsConflictTarget) {
-	s.Target = val
-}
-
-type InjectionConflictProblemDetailsConflictTarget struct {
-	ID       OptUUID                                              `json:"id"`
-	Keys     OptInjectionConflictProblemDetailsConflictTargetKeys `json:"keys"`
-	Resource string                                               `json:"resource"`
-}
-
-// GetID returns the value of ID.
-func (s *InjectionConflictProblemDetailsConflictTarget) GetID() OptUUID {
-	return s.ID
-}
-
-// GetKeys returns the value of Keys.
-func (s *InjectionConflictProblemDetailsConflictTarget) GetKeys() OptInjectionConflictProblemDetailsConflictTargetKeys {
-	return s.Keys
-}
-
-// GetResource returns the value of Resource.
-func (s *InjectionConflictProblemDetailsConflictTarget) GetResource() string {
-	return s.Resource
-}
-
-// SetID sets the value of ID.
-func (s *InjectionConflictProblemDetailsConflictTarget) SetID(val OptUUID) {
-	s.ID = val
-}
-
-// SetKeys sets the value of Keys.
-func (s *InjectionConflictProblemDetailsConflictTarget) SetKeys(val OptInjectionConflictProblemDetailsConflictTargetKeys) {
-	s.Keys = val
-}
-
-// SetResource sets the value of Resource.
-func (s *InjectionConflictProblemDetailsConflictTarget) SetResource(val string) {
-	s.Resource = val
-}
-
-type InjectionConflictProblemDetailsConflictTargetKeys map[string]string
-
-func (s *InjectionConflictProblemDetailsConflictTargetKeys) init() InjectionConflictProblemDetailsConflictTargetKeys {
-	m := *s
-	if m == nil {
-		m = map[string]string{}
-		*s = m
-	}
-	return m
-}
-
 type InjectionConflictProblemDetailsFlaggedItem struct {
-	ID      uuid.UUID                                               `json:"id"`
-	Threats []InjectionConflictProblemDetailsFlaggedItemThreatsItem `json:"threats"`
+	ID      uuid.UUID         `json:"id"`
+	Threats []InjectionThreat `json:"threats"`
 }
 
 // GetID returns the value of ID.
@@ -22565,7 +22135,7 @@ func (s *InjectionConflictProblemDetailsFlaggedItem) GetID() uuid.UUID {
 }
 
 // GetThreats returns the value of Threats.
-func (s *InjectionConflictProblemDetailsFlaggedItem) GetThreats() []InjectionConflictProblemDetailsFlaggedItemThreatsItem {
+func (s *InjectionConflictProblemDetailsFlaggedItem) GetThreats() []InjectionThreat {
 	return s.Threats
 }
 
@@ -22575,43 +22145,44 @@ func (s *InjectionConflictProblemDetailsFlaggedItem) SetID(val uuid.UUID) {
 }
 
 // SetThreats sets the value of Threats.
-func (s *InjectionConflictProblemDetailsFlaggedItem) SetThreats(val []InjectionConflictProblemDetailsFlaggedItemThreatsItem) {
+func (s *InjectionConflictProblemDetailsFlaggedItem) SetThreats(val []InjectionThreat) {
 	s.Threats = val
 }
 
-type InjectionConflictProblemDetailsFlaggedItemThreatsItem struct {
+// Ref: #/components/schemas/InjectionThreat
+type InjectionThreat struct {
 	Match    string  `json:"match"`
 	Severity float64 `json:"severity"`
 	Type     string  `json:"type"`
 }
 
 // GetMatch returns the value of Match.
-func (s *InjectionConflictProblemDetailsFlaggedItemThreatsItem) GetMatch() string {
+func (s *InjectionThreat) GetMatch() string {
 	return s.Match
 }
 
 // GetSeverity returns the value of Severity.
-func (s *InjectionConflictProblemDetailsFlaggedItemThreatsItem) GetSeverity() float64 {
+func (s *InjectionThreat) GetSeverity() float64 {
 	return s.Severity
 }
 
 // GetType returns the value of Type.
-func (s *InjectionConflictProblemDetailsFlaggedItemThreatsItem) GetType() string {
+func (s *InjectionThreat) GetType() string {
 	return s.Type
 }
 
 // SetMatch sets the value of Match.
-func (s *InjectionConflictProblemDetailsFlaggedItemThreatsItem) SetMatch(val string) {
+func (s *InjectionThreat) SetMatch(val string) {
 	s.Match = val
 }
 
 // SetSeverity sets the value of Severity.
-func (s *InjectionConflictProblemDetailsFlaggedItemThreatsItem) SetSeverity(val float64) {
+func (s *InjectionThreat) SetSeverity(val float64) {
 	s.Severity = val
 }
 
 // SetType sets the value of Type.
-func (s *InjectionConflictProblemDetailsFlaggedItemThreatsItem) SetType(val string) {
+func (s *InjectionThreat) SetType(val string) {
 	s.Type = val
 }
 
@@ -23589,13 +23160,13 @@ func (*ListRuntimeProfilesUnauthorized) listRuntimeProfilesRes() {}
 
 // Merged schema.
 type ListRuntimeSlotsBadRequest struct {
-	Code            ListRuntimeSlotsBadRequestCode         `json:"code"`
-	Detail          OptString                              `json:"detail"`
-	Instance        OptString                              `json:"instance"`
-	Status          int                                    `json:"status"`
-	Title           string                                 `json:"title"`
-	Type            url.URL                                `json:"type"`
-	Errors          []ListRuntimeSlotsBadRequestErrorsItem `json:"errors"`
+	Code            ListRuntimeSlotsBadRequestCode `json:"code"`
+	Detail          OptString                      `json:"detail"`
+	Instance        OptString                      `json:"instance"`
+	Status          int                            `json:"status"`
+	Title           string                         `json:"title"`
+	Type            url.URL                        `json:"type"`
+	Errors          []ValidationError              `json:"errors"`
 	AdditionalProps ListRuntimeSlotsBadRequestAdditional
 }
 
@@ -23630,7 +23201,7 @@ func (s *ListRuntimeSlotsBadRequest) GetType() url.URL {
 }
 
 // GetErrors returns the value of Errors.
-func (s *ListRuntimeSlotsBadRequest) GetErrors() []ListRuntimeSlotsBadRequestErrorsItem {
+func (s *ListRuntimeSlotsBadRequest) GetErrors() []ValidationError {
 	return s.Errors
 }
 
@@ -23670,7 +23241,7 @@ func (s *ListRuntimeSlotsBadRequest) SetType(val url.URL) {
 }
 
 // SetErrors sets the value of Errors.
-func (s *ListRuntimeSlotsBadRequest) SetErrors(val []ListRuntimeSlotsBadRequestErrorsItem) {
+func (s *ListRuntimeSlotsBadRequest) SetErrors(val []ValidationError) {
 	s.Errors = val
 }
 
@@ -23913,42 +23484,6 @@ func (s *ListRuntimeSlotsBadRequestCode) UnmarshalText(data []byte) error {
 	default:
 		return errors.Errorf("invalid value: %q", data)
 	}
-}
-
-type ListRuntimeSlotsBadRequestErrorsItem struct {
-	Code    OptString `json:"code"`
-	Field   string    `json:"field"`
-	Message string    `json:"message"`
-}
-
-// GetCode returns the value of Code.
-func (s *ListRuntimeSlotsBadRequestErrorsItem) GetCode() OptString {
-	return s.Code
-}
-
-// GetField returns the value of Field.
-func (s *ListRuntimeSlotsBadRequestErrorsItem) GetField() string {
-	return s.Field
-}
-
-// GetMessage returns the value of Message.
-func (s *ListRuntimeSlotsBadRequestErrorsItem) GetMessage() string {
-	return s.Message
-}
-
-// SetCode sets the value of Code.
-func (s *ListRuntimeSlotsBadRequestErrorsItem) SetCode(val OptString) {
-	s.Code = val
-}
-
-// SetField sets the value of Field.
-func (s *ListRuntimeSlotsBadRequestErrorsItem) SetField(val string) {
-	s.Field = val
-}
-
-// SetMessage sets the value of Message.
-func (s *ListRuntimeSlotsBadRequestErrorsItem) SetMessage(val string) {
-	s.Message = val
 }
 
 type ListRuntimeSlotsForbidden struct {
@@ -25413,13 +24948,13 @@ func (*ListSigningRequestsUnauthorized) listSigningRequestsRes() {}
 
 // Merged schema.
 type ListTaskArtifactsBadRequest struct {
-	Code            ListTaskArtifactsBadRequestCode         `json:"code"`
-	Detail          OptString                               `json:"detail"`
-	Instance        OptString                               `json:"instance"`
-	Status          int                                     `json:"status"`
-	Title           string                                  `json:"title"`
-	Type            url.URL                                 `json:"type"`
-	Errors          []ListTaskArtifactsBadRequestErrorsItem `json:"errors"`
+	Code            ListTaskArtifactsBadRequestCode `json:"code"`
+	Detail          OptString                       `json:"detail"`
+	Instance        OptString                       `json:"instance"`
+	Status          int                             `json:"status"`
+	Title           string                          `json:"title"`
+	Type            url.URL                         `json:"type"`
+	Errors          []ValidationError               `json:"errors"`
 	AdditionalProps ListTaskArtifactsBadRequestAdditional
 }
 
@@ -25454,7 +24989,7 @@ func (s *ListTaskArtifactsBadRequest) GetType() url.URL {
 }
 
 // GetErrors returns the value of Errors.
-func (s *ListTaskArtifactsBadRequest) GetErrors() []ListTaskArtifactsBadRequestErrorsItem {
+func (s *ListTaskArtifactsBadRequest) GetErrors() []ValidationError {
 	return s.Errors
 }
 
@@ -25494,7 +25029,7 @@ func (s *ListTaskArtifactsBadRequest) SetType(val url.URL) {
 }
 
 // SetErrors sets the value of Errors.
-func (s *ListTaskArtifactsBadRequest) SetErrors(val []ListTaskArtifactsBadRequestErrorsItem) {
+func (s *ListTaskArtifactsBadRequest) SetErrors(val []ValidationError) {
 	s.Errors = val
 }
 
@@ -25737,42 +25272,6 @@ func (s *ListTaskArtifactsBadRequestCode) UnmarshalText(data []byte) error {
 	default:
 		return errors.Errorf("invalid value: %q", data)
 	}
-}
-
-type ListTaskArtifactsBadRequestErrorsItem struct {
-	Code    OptString `json:"code"`
-	Field   string    `json:"field"`
-	Message string    `json:"message"`
-}
-
-// GetCode returns the value of Code.
-func (s *ListTaskArtifactsBadRequestErrorsItem) GetCode() OptString {
-	return s.Code
-}
-
-// GetField returns the value of Field.
-func (s *ListTaskArtifactsBadRequestErrorsItem) GetField() string {
-	return s.Field
-}
-
-// GetMessage returns the value of Message.
-func (s *ListTaskArtifactsBadRequestErrorsItem) GetMessage() string {
-	return s.Message
-}
-
-// SetCode sets the value of Code.
-func (s *ListTaskArtifactsBadRequestErrorsItem) SetCode(val OptString) {
-	s.Code = val
-}
-
-// SetField sets the value of Field.
-func (s *ListTaskArtifactsBadRequestErrorsItem) SetField(val string) {
-	s.Field = val
-}
-
-// SetMessage sets the value of Message.
-func (s *ListTaskArtifactsBadRequestErrorsItem) SetMessage(val string) {
-	s.Message = val
 }
 
 type ListTaskArtifactsForbidden struct {
@@ -29732,98 +29231,6 @@ func (o OptBatchDeleteTasksReqMode) Or(d BatchDeleteTasksReqMode) BatchDeleteTas
 	return d
 }
 
-// NewOptBeginRuntimeSlotConflictConflictTarget returns new OptBeginRuntimeSlotConflictConflictTarget with value set to v.
-func NewOptBeginRuntimeSlotConflictConflictTarget(v BeginRuntimeSlotConflictConflictTarget) OptBeginRuntimeSlotConflictConflictTarget {
-	return OptBeginRuntimeSlotConflictConflictTarget{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptBeginRuntimeSlotConflictConflictTarget is optional BeginRuntimeSlotConflictConflictTarget.
-type OptBeginRuntimeSlotConflictConflictTarget struct {
-	Value BeginRuntimeSlotConflictConflictTarget
-	Set   bool
-}
-
-// IsSet returns true if OptBeginRuntimeSlotConflictConflictTarget was set.
-func (o OptBeginRuntimeSlotConflictConflictTarget) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptBeginRuntimeSlotConflictConflictTarget) Reset() {
-	var v BeginRuntimeSlotConflictConflictTarget
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptBeginRuntimeSlotConflictConflictTarget) SetTo(v BeginRuntimeSlotConflictConflictTarget) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptBeginRuntimeSlotConflictConflictTarget) Get() (v BeginRuntimeSlotConflictConflictTarget, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptBeginRuntimeSlotConflictConflictTarget) Or(d BeginRuntimeSlotConflictConflictTarget) BeginRuntimeSlotConflictConflictTarget {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptBeginRuntimeSlotConflictConflictTargetKeys returns new OptBeginRuntimeSlotConflictConflictTargetKeys with value set to v.
-func NewOptBeginRuntimeSlotConflictConflictTargetKeys(v BeginRuntimeSlotConflictConflictTargetKeys) OptBeginRuntimeSlotConflictConflictTargetKeys {
-	return OptBeginRuntimeSlotConflictConflictTargetKeys{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptBeginRuntimeSlotConflictConflictTargetKeys is optional BeginRuntimeSlotConflictConflictTargetKeys.
-type OptBeginRuntimeSlotConflictConflictTargetKeys struct {
-	Value BeginRuntimeSlotConflictConflictTargetKeys
-	Set   bool
-}
-
-// IsSet returns true if OptBeginRuntimeSlotConflictConflictTargetKeys was set.
-func (o OptBeginRuntimeSlotConflictConflictTargetKeys) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptBeginRuntimeSlotConflictConflictTargetKeys) Reset() {
-	var v BeginRuntimeSlotConflictConflictTargetKeys
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptBeginRuntimeSlotConflictConflictTargetKeys) SetTo(v BeginRuntimeSlotConflictConflictTargetKeys) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptBeginRuntimeSlotConflictConflictTargetKeys) Get() (v BeginRuntimeSlotConflictConflictTargetKeys, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptBeginRuntimeSlotConflictConflictTargetKeys) Or(d BeginRuntimeSlotConflictConflictTargetKeys) BeginRuntimeSlotConflictConflictTargetKeys {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
 // NewOptBeginRuntimeSlotReqWorkspaceKind returns new OptBeginRuntimeSlotReqWorkspaceKind with value set to v.
 func NewOptBeginRuntimeSlotReqWorkspaceKind(v BeginRuntimeSlotReqWorkspaceKind) OptBeginRuntimeSlotReqWorkspaceKind {
 	return OptBeginRuntimeSlotReqWorkspaceKind{
@@ -30100,38 +29507,38 @@ func (o OptCompleteTaskReqExecutorManifest) Or(d CompleteTaskReqExecutorManifest
 	return d
 }
 
-// NewOptConflictProblemDetailsConflictTarget returns new OptConflictProblemDetailsConflictTarget with value set to v.
-func NewOptConflictProblemDetailsConflictTarget(v ConflictProblemDetailsConflictTarget) OptConflictProblemDetailsConflictTarget {
-	return OptConflictProblemDetailsConflictTarget{
+// NewOptConflictTarget returns new OptConflictTarget with value set to v.
+func NewOptConflictTarget(v ConflictTarget) OptConflictTarget {
+	return OptConflictTarget{
 		Value: v,
 		Set:   true,
 	}
 }
 
-// OptConflictProblemDetailsConflictTarget is optional ConflictProblemDetailsConflictTarget.
-type OptConflictProblemDetailsConflictTarget struct {
-	Value ConflictProblemDetailsConflictTarget
+// OptConflictTarget is optional ConflictTarget.
+type OptConflictTarget struct {
+	Value ConflictTarget
 	Set   bool
 }
 
-// IsSet returns true if OptConflictProblemDetailsConflictTarget was set.
-func (o OptConflictProblemDetailsConflictTarget) IsSet() bool { return o.Set }
+// IsSet returns true if OptConflictTarget was set.
+func (o OptConflictTarget) IsSet() bool { return o.Set }
 
 // Reset unsets value.
-func (o *OptConflictProblemDetailsConflictTarget) Reset() {
-	var v ConflictProblemDetailsConflictTarget
+func (o *OptConflictTarget) Reset() {
+	var v ConflictTarget
 	o.Value = v
 	o.Set = false
 }
 
 // SetTo sets value to v.
-func (o *OptConflictProblemDetailsConflictTarget) SetTo(v ConflictProblemDetailsConflictTarget) {
+func (o *OptConflictTarget) SetTo(v ConflictTarget) {
 	o.Set = true
 	o.Value = v
 }
 
 // Get returns value and boolean that denotes whether value was set.
-func (o OptConflictProblemDetailsConflictTarget) Get() (v ConflictProblemDetailsConflictTarget, ok bool) {
+func (o OptConflictTarget) Get() (v ConflictTarget, ok bool) {
 	if !o.Set {
 		return v, false
 	}
@@ -30139,45 +29546,45 @@ func (o OptConflictProblemDetailsConflictTarget) Get() (v ConflictProblemDetails
 }
 
 // Or returns value if set, or given parameter if does not.
-func (o OptConflictProblemDetailsConflictTarget) Or(d ConflictProblemDetailsConflictTarget) ConflictProblemDetailsConflictTarget {
+func (o OptConflictTarget) Or(d ConflictTarget) ConflictTarget {
 	if v, ok := o.Get(); ok {
 		return v
 	}
 	return d
 }
 
-// NewOptConflictProblemDetailsConflictTargetKeys returns new OptConflictProblemDetailsConflictTargetKeys with value set to v.
-func NewOptConflictProblemDetailsConflictTargetKeys(v ConflictProblemDetailsConflictTargetKeys) OptConflictProblemDetailsConflictTargetKeys {
-	return OptConflictProblemDetailsConflictTargetKeys{
+// NewOptConflictTargetKeys returns new OptConflictTargetKeys with value set to v.
+func NewOptConflictTargetKeys(v ConflictTargetKeys) OptConflictTargetKeys {
+	return OptConflictTargetKeys{
 		Value: v,
 		Set:   true,
 	}
 }
 
-// OptConflictProblemDetailsConflictTargetKeys is optional ConflictProblemDetailsConflictTargetKeys.
-type OptConflictProblemDetailsConflictTargetKeys struct {
-	Value ConflictProblemDetailsConflictTargetKeys
+// OptConflictTargetKeys is optional ConflictTargetKeys.
+type OptConflictTargetKeys struct {
+	Value ConflictTargetKeys
 	Set   bool
 }
 
-// IsSet returns true if OptConflictProblemDetailsConflictTargetKeys was set.
-func (o OptConflictProblemDetailsConflictTargetKeys) IsSet() bool { return o.Set }
+// IsSet returns true if OptConflictTargetKeys was set.
+func (o OptConflictTargetKeys) IsSet() bool { return o.Set }
 
 // Reset unsets value.
-func (o *OptConflictProblemDetailsConflictTargetKeys) Reset() {
-	var v ConflictProblemDetailsConflictTargetKeys
+func (o *OptConflictTargetKeys) Reset() {
+	var v ConflictTargetKeys
 	o.Value = v
 	o.Set = false
 }
 
 // SetTo sets value to v.
-func (o *OptConflictProblemDetailsConflictTargetKeys) SetTo(v ConflictProblemDetailsConflictTargetKeys) {
+func (o *OptConflictTargetKeys) SetTo(v ConflictTargetKeys) {
 	o.Set = true
 	o.Value = v
 }
 
 // Get returns value and boolean that denotes whether value was set.
-func (o OptConflictProblemDetailsConflictTargetKeys) Get() (v ConflictProblemDetailsConflictTargetKeys, ok bool) {
+func (o OptConflictTargetKeys) Get() (v ConflictTargetKeys, ok bool) {
 	if !o.Set {
 		return v, false
 	}
@@ -30185,7 +29592,7 @@ func (o OptConflictProblemDetailsConflictTargetKeys) Get() (v ConflictProblemDet
 }
 
 // Or returns value if set, or given parameter if does not.
-func (o OptConflictProblemDetailsConflictTargetKeys) Or(d ConflictProblemDetailsConflictTargetKeys) ConflictProblemDetailsConflictTargetKeys {
+func (o OptConflictTargetKeys) Or(d ConflictTargetKeys) ConflictTargetKeys {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -31204,98 +30611,6 @@ func (o OptExpandedRelations) Or(d ExpandedRelations) ExpandedRelations {
 	return d
 }
 
-// NewOptFinishRuntimeSlotConflictConflictTarget returns new OptFinishRuntimeSlotConflictConflictTarget with value set to v.
-func NewOptFinishRuntimeSlotConflictConflictTarget(v FinishRuntimeSlotConflictConflictTarget) OptFinishRuntimeSlotConflictConflictTarget {
-	return OptFinishRuntimeSlotConflictConflictTarget{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptFinishRuntimeSlotConflictConflictTarget is optional FinishRuntimeSlotConflictConflictTarget.
-type OptFinishRuntimeSlotConflictConflictTarget struct {
-	Value FinishRuntimeSlotConflictConflictTarget
-	Set   bool
-}
-
-// IsSet returns true if OptFinishRuntimeSlotConflictConflictTarget was set.
-func (o OptFinishRuntimeSlotConflictConflictTarget) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptFinishRuntimeSlotConflictConflictTarget) Reset() {
-	var v FinishRuntimeSlotConflictConflictTarget
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptFinishRuntimeSlotConflictConflictTarget) SetTo(v FinishRuntimeSlotConflictConflictTarget) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptFinishRuntimeSlotConflictConflictTarget) Get() (v FinishRuntimeSlotConflictConflictTarget, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptFinishRuntimeSlotConflictConflictTarget) Or(d FinishRuntimeSlotConflictConflictTarget) FinishRuntimeSlotConflictConflictTarget {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptFinishRuntimeSlotConflictConflictTargetKeys returns new OptFinishRuntimeSlotConflictConflictTargetKeys with value set to v.
-func NewOptFinishRuntimeSlotConflictConflictTargetKeys(v FinishRuntimeSlotConflictConflictTargetKeys) OptFinishRuntimeSlotConflictConflictTargetKeys {
-	return OptFinishRuntimeSlotConflictConflictTargetKeys{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptFinishRuntimeSlotConflictConflictTargetKeys is optional FinishRuntimeSlotConflictConflictTargetKeys.
-type OptFinishRuntimeSlotConflictConflictTargetKeys struct {
-	Value FinishRuntimeSlotConflictConflictTargetKeys
-	Set   bool
-}
-
-// IsSet returns true if OptFinishRuntimeSlotConflictConflictTargetKeys was set.
-func (o OptFinishRuntimeSlotConflictConflictTargetKeys) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptFinishRuntimeSlotConflictConflictTargetKeys) Reset() {
-	var v FinishRuntimeSlotConflictConflictTargetKeys
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptFinishRuntimeSlotConflictConflictTargetKeys) SetTo(v FinishRuntimeSlotConflictConflictTargetKeys) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptFinishRuntimeSlotConflictConflictTargetKeys) Get() (v FinishRuntimeSlotConflictConflictTargetKeys, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptFinishRuntimeSlotConflictConflictTargetKeys) Or(d FinishRuntimeSlotConflictConflictTargetKeys) FinishRuntimeSlotConflictConflictTargetKeys {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
 // NewOptFloat64 returns new OptFloat64 with value set to v.
 func NewOptFloat64(v float64) OptFloat64 {
 	return OptFloat64{
@@ -31474,98 +30789,6 @@ func (o OptGetDiaryEntryByIdExpand) Get() (v GetDiaryEntryByIdExpand, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptGetDiaryEntryByIdExpand) Or(d GetDiaryEntryByIdExpand) GetDiaryEntryByIdExpand {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptInjectionConflictProblemDetailsConflictTarget returns new OptInjectionConflictProblemDetailsConflictTarget with value set to v.
-func NewOptInjectionConflictProblemDetailsConflictTarget(v InjectionConflictProblemDetailsConflictTarget) OptInjectionConflictProblemDetailsConflictTarget {
-	return OptInjectionConflictProblemDetailsConflictTarget{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptInjectionConflictProblemDetailsConflictTarget is optional InjectionConflictProblemDetailsConflictTarget.
-type OptInjectionConflictProblemDetailsConflictTarget struct {
-	Value InjectionConflictProblemDetailsConflictTarget
-	Set   bool
-}
-
-// IsSet returns true if OptInjectionConflictProblemDetailsConflictTarget was set.
-func (o OptInjectionConflictProblemDetailsConflictTarget) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptInjectionConflictProblemDetailsConflictTarget) Reset() {
-	var v InjectionConflictProblemDetailsConflictTarget
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptInjectionConflictProblemDetailsConflictTarget) SetTo(v InjectionConflictProblemDetailsConflictTarget) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptInjectionConflictProblemDetailsConflictTarget) Get() (v InjectionConflictProblemDetailsConflictTarget, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptInjectionConflictProblemDetailsConflictTarget) Or(d InjectionConflictProblemDetailsConflictTarget) InjectionConflictProblemDetailsConflictTarget {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptInjectionConflictProblemDetailsConflictTargetKeys returns new OptInjectionConflictProblemDetailsConflictTargetKeys with value set to v.
-func NewOptInjectionConflictProblemDetailsConflictTargetKeys(v InjectionConflictProblemDetailsConflictTargetKeys) OptInjectionConflictProblemDetailsConflictTargetKeys {
-	return OptInjectionConflictProblemDetailsConflictTargetKeys{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptInjectionConflictProblemDetailsConflictTargetKeys is optional InjectionConflictProblemDetailsConflictTargetKeys.
-type OptInjectionConflictProblemDetailsConflictTargetKeys struct {
-	Value InjectionConflictProblemDetailsConflictTargetKeys
-	Set   bool
-}
-
-// IsSet returns true if OptInjectionConflictProblemDetailsConflictTargetKeys was set.
-func (o OptInjectionConflictProblemDetailsConflictTargetKeys) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptInjectionConflictProblemDetailsConflictTargetKeys) Reset() {
-	var v InjectionConflictProblemDetailsConflictTargetKeys
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptInjectionConflictProblemDetailsConflictTargetKeys) SetTo(v InjectionConflictProblemDetailsConflictTargetKeys) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptInjectionConflictProblemDetailsConflictTargetKeys) Get() (v InjectionConflictProblemDetailsConflictTargetKeys, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptInjectionConflictProblemDetailsConflictTargetKeys) Or(d InjectionConflictProblemDetailsConflictTargetKeys) InjectionConflictProblemDetailsConflictTargetKeys {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -46702,13 +45925,13 @@ func (*UpdateTeamMemberRoleUnauthorized) updateTeamMemberRoleRes() {}
 
 // Merged schema.
 type UploadRuntimeSessionBadRequest struct {
-	Code            UploadRuntimeSessionBadRequestCode         `json:"code"`
-	Detail          OptString                                  `json:"detail"`
-	Instance        OptString                                  `json:"instance"`
-	Status          int                                        `json:"status"`
-	Title           string                                     `json:"title"`
-	Type            url.URL                                    `json:"type"`
-	Errors          []UploadRuntimeSessionBadRequestErrorsItem `json:"errors"`
+	Code            UploadRuntimeSessionBadRequestCode `json:"code"`
+	Detail          OptString                          `json:"detail"`
+	Instance        OptString                          `json:"instance"`
+	Status          int                                `json:"status"`
+	Title           string                             `json:"title"`
+	Type            url.URL                            `json:"type"`
+	Errors          []ValidationError                  `json:"errors"`
 	AdditionalProps UploadRuntimeSessionBadRequestAdditional
 }
 
@@ -46743,7 +45966,7 @@ func (s *UploadRuntimeSessionBadRequest) GetType() url.URL {
 }
 
 // GetErrors returns the value of Errors.
-func (s *UploadRuntimeSessionBadRequest) GetErrors() []UploadRuntimeSessionBadRequestErrorsItem {
+func (s *UploadRuntimeSessionBadRequest) GetErrors() []ValidationError {
 	return s.Errors
 }
 
@@ -46783,7 +46006,7 @@ func (s *UploadRuntimeSessionBadRequest) SetType(val url.URL) {
 }
 
 // SetErrors sets the value of Errors.
-func (s *UploadRuntimeSessionBadRequest) SetErrors(val []UploadRuntimeSessionBadRequestErrorsItem) {
+func (s *UploadRuntimeSessionBadRequest) SetErrors(val []ValidationError) {
 	s.Errors = val
 }
 
@@ -47026,42 +46249,6 @@ func (s *UploadRuntimeSessionBadRequestCode) UnmarshalText(data []byte) error {
 	default:
 		return errors.Errorf("invalid value: %q", data)
 	}
-}
-
-type UploadRuntimeSessionBadRequestErrorsItem struct {
-	Code    OptString `json:"code"`
-	Field   string    `json:"field"`
-	Message string    `json:"message"`
-}
-
-// GetCode returns the value of Code.
-func (s *UploadRuntimeSessionBadRequestErrorsItem) GetCode() OptString {
-	return s.Code
-}
-
-// GetField returns the value of Field.
-func (s *UploadRuntimeSessionBadRequestErrorsItem) GetField() string {
-	return s.Field
-}
-
-// GetMessage returns the value of Message.
-func (s *UploadRuntimeSessionBadRequestErrorsItem) GetMessage() string {
-	return s.Message
-}
-
-// SetCode sets the value of Code.
-func (s *UploadRuntimeSessionBadRequestErrorsItem) SetCode(val OptString) {
-	s.Code = val
-}
-
-// SetField sets the value of Field.
-func (s *UploadRuntimeSessionBadRequestErrorsItem) SetField(val string) {
-	s.Field = val
-}
-
-// SetMessage sets the value of Message.
-func (s *UploadRuntimeSessionBadRequestErrorsItem) SetMessage(val string) {
-	s.Message = val
 }
 
 type UploadRuntimeSessionConflict struct {
@@ -49002,13 +48189,13 @@ func (s *UploadRuntimeSessionUnauthorizedCode) UnmarshalText(data []byte) error 
 
 // Merged schema.
 type UploadTaskArtifactBadRequest struct {
-	Code            UploadTaskArtifactBadRequestCode         `json:"code"`
-	Detail          OptString                                `json:"detail"`
-	Instance        OptString                                `json:"instance"`
-	Status          int                                      `json:"status"`
-	Title           string                                   `json:"title"`
-	Type            url.URL                                  `json:"type"`
-	Errors          []UploadTaskArtifactBadRequestErrorsItem `json:"errors"`
+	Code            UploadTaskArtifactBadRequestCode `json:"code"`
+	Detail          OptString                        `json:"detail"`
+	Instance        OptString                        `json:"instance"`
+	Status          int                              `json:"status"`
+	Title           string                           `json:"title"`
+	Type            url.URL                          `json:"type"`
+	Errors          []ValidationError                `json:"errors"`
 	AdditionalProps UploadTaskArtifactBadRequestAdditional
 }
 
@@ -49043,7 +48230,7 @@ func (s *UploadTaskArtifactBadRequest) GetType() url.URL {
 }
 
 // GetErrors returns the value of Errors.
-func (s *UploadTaskArtifactBadRequest) GetErrors() []UploadTaskArtifactBadRequestErrorsItem {
+func (s *UploadTaskArtifactBadRequest) GetErrors() []ValidationError {
 	return s.Errors
 }
 
@@ -49083,7 +48270,7 @@ func (s *UploadTaskArtifactBadRequest) SetType(val url.URL) {
 }
 
 // SetErrors sets the value of Errors.
-func (s *UploadTaskArtifactBadRequest) SetErrors(val []UploadTaskArtifactBadRequestErrorsItem) {
+func (s *UploadTaskArtifactBadRequest) SetErrors(val []ValidationError) {
 	s.Errors = val
 }
 
@@ -49326,42 +48513,6 @@ func (s *UploadTaskArtifactBadRequestCode) UnmarshalText(data []byte) error {
 	default:
 		return errors.Errorf("invalid value: %q", data)
 	}
-}
-
-type UploadTaskArtifactBadRequestErrorsItem struct {
-	Code    OptString `json:"code"`
-	Field   string    `json:"field"`
-	Message string    `json:"message"`
-}
-
-// GetCode returns the value of Code.
-func (s *UploadTaskArtifactBadRequestErrorsItem) GetCode() OptString {
-	return s.Code
-}
-
-// GetField returns the value of Field.
-func (s *UploadTaskArtifactBadRequestErrorsItem) GetField() string {
-	return s.Field
-}
-
-// GetMessage returns the value of Message.
-func (s *UploadTaskArtifactBadRequestErrorsItem) GetMessage() string {
-	return s.Message
-}
-
-// SetCode sets the value of Code.
-func (s *UploadTaskArtifactBadRequestErrorsItem) SetCode(val OptString) {
-	s.Code = val
-}
-
-// SetField sets the value of Field.
-func (s *UploadTaskArtifactBadRequestErrorsItem) SetField(val string) {
-	s.Field = val
-}
-
-// SetMessage sets the value of Message.
-func (s *UploadTaskArtifactBadRequestErrorsItem) SetMessage(val string) {
-	s.Message = val
 }
 
 type UploadTaskArtifactForbidden struct {
@@ -50791,16 +49942,53 @@ func (s *UploadTaskArtifactUnauthorizedCode) UnmarshalText(data []byte) error {
 	}
 }
 
+// Ref: #/components/schemas/ValidationError
+type ValidationError struct {
+	Code    OptString `json:"code"`
+	Field   string    `json:"field"`
+	Message string    `json:"message"`
+}
+
+// GetCode returns the value of Code.
+func (s *ValidationError) GetCode() OptString {
+	return s.Code
+}
+
+// GetField returns the value of Field.
+func (s *ValidationError) GetField() string {
+	return s.Field
+}
+
+// GetMessage returns the value of Message.
+func (s *ValidationError) GetMessage() string {
+	return s.Message
+}
+
+// SetCode sets the value of Code.
+func (s *ValidationError) SetCode(val OptString) {
+	s.Code = val
+}
+
+// SetField sets the value of Field.
+func (s *ValidationError) SetField(val string) {
+	s.Field = val
+}
+
+// SetMessage sets the value of Message.
+func (s *ValidationError) SetMessage(val string) {
+	s.Message = val
+}
+
 // Merged schema.
 // Ref: #/components/schemas/ValidationProblemDetails
 type ValidationProblemDetails struct {
-	Code            ValidationProblemDetailsCode         `json:"code"`
-	Detail          OptString                            `json:"detail"`
-	Instance        OptString                            `json:"instance"`
-	Status          int                                  `json:"status"`
-	Title           string                               `json:"title"`
-	Type            url.URL                              `json:"type"`
-	Errors          []ValidationProblemDetailsErrorsItem `json:"errors"`
+	Code            ValidationProblemDetailsCode `json:"code"`
+	Detail          OptString                    `json:"detail"`
+	Instance        OptString                    `json:"instance"`
+	Status          int                          `json:"status"`
+	Title           string                       `json:"title"`
+	Type            url.URL                      `json:"type"`
+	Errors          []ValidationError            `json:"errors"`
 	AdditionalProps ValidationProblemDetailsAdditional
 }
 
@@ -50835,7 +50023,7 @@ func (s *ValidationProblemDetails) GetType() url.URL {
 }
 
 // GetErrors returns the value of Errors.
-func (s *ValidationProblemDetails) GetErrors() []ValidationProblemDetailsErrorsItem {
+func (s *ValidationProblemDetails) GetErrors() []ValidationError {
 	return s.Errors
 }
 
@@ -50875,7 +50063,7 @@ func (s *ValidationProblemDetails) SetType(val url.URL) {
 }
 
 // SetErrors sets the value of Errors.
-func (s *ValidationProblemDetails) SetErrors(val []ValidationProblemDetailsErrorsItem) {
+func (s *ValidationProblemDetails) SetErrors(val []ValidationError) {
 	s.Errors = val
 }
 
@@ -51122,42 +50310,6 @@ func (s *ValidationProblemDetailsCode) UnmarshalText(data []byte) error {
 	default:
 		return errors.Errorf("invalid value: %q", data)
 	}
-}
-
-type ValidationProblemDetailsErrorsItem struct {
-	Code    OptString `json:"code"`
-	Field   string    `json:"field"`
-	Message string    `json:"message"`
-}
-
-// GetCode returns the value of Code.
-func (s *ValidationProblemDetailsErrorsItem) GetCode() OptString {
-	return s.Code
-}
-
-// GetField returns the value of Field.
-func (s *ValidationProblemDetailsErrorsItem) GetField() string {
-	return s.Field
-}
-
-// GetMessage returns the value of Message.
-func (s *ValidationProblemDetailsErrorsItem) GetMessage() string {
-	return s.Message
-}
-
-// SetCode sets the value of Code.
-func (s *ValidationProblemDetailsErrorsItem) SetCode(val OptString) {
-	s.Code = val
-}
-
-// SetField sets the value of Field.
-func (s *ValidationProblemDetailsErrorsItem) SetField(val string) {
-	s.Field = val
-}
-
-// SetMessage sets the value of Message.
-func (s *ValidationProblemDetailsErrorsItem) SetMessage(val string) {
-	s.Message = val
 }
 
 type VerifyAgentSignatureBadRequest ProblemDetails

@@ -89,7 +89,7 @@ func TestFormatInjectionConflict(t *testing.T) {
 		Flagged: []moltnetapi.InjectionConflictProblemDetailsFlaggedItem{
 			{
 				ID: id1,
-				Threats: []moltnetapi.InjectionConflictProblemDetailsFlaggedItemThreatsItem{
+				Threats: []moltnetapi.InjectionThreat{
 					{Type: "instruction_override", Severity: 0.9, Match: "ignore previous"},
 					{Type: "role_hijack", Severity: 0.7, Match: "you are now"},
 				},
