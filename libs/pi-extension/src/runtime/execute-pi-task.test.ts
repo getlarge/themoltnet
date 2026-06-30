@@ -17,6 +17,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  buildAttemptResult,
   buildSubmitMissingPrompt,
   captureAttemptOutput,
   computeProviderErrorRetryDelay,
@@ -353,6 +354,95 @@ describe('provider error same-session retry helpers', () => {
     expect(sanitizeProviderErrorRetryReason(null)).toBe(
       'Pi turn ended with stopReason=error',
     );
+  });
+});
+
+describe('buildAttemptResult (result-construction characterization)', () => {
+  const base = {
+    taskId: 't1',
+    attemptN: 1,
+    output: { ok: true } as Record<string, unknown> | null,
+    outputCid: 'cid:abc',
+    usage: {
+      provider: 'p',
+      model: 'm',
+      inputTokens: 1,
+      outputTokens: 2,
+    } as never,
+    durationMs: 42,
+    runError: null as { code: string; message: string } | null,
+    parseError: null as { code: string; message: string } | null,
+    reporterError: null as { code: string; message: string } | null,
+    llmAbort: false,
+    llmErrorMessage: null as string | null,
+  };
+
+  it('completes cleanly with no error field when nothing failed', () => {
+    const out = buildAttemptResult({ ...base });
+    expect(out.status).toBe('completed');
+    expect(out.output).toEqual({ ok: true });
+    expect(out.outputCid).toBe('cid:abc');
+    expect(out.error).toBeUndefined();
+  });
+
+  it('fails with the runError, which wins over parse/llm errors', () => {
+    const out = buildAttemptResult({
+      ...base,
+      runError: { code: 'session_prompt_failed', message: 'boom' },
+      parseError: { code: 'output_validation_failed', message: 'bad' },
+      llmAbort: true,
+      llmErrorMessage: '401',
+    });
+    expect(out.status).toBe('failed');
+    expect(out.error).toEqual({
+      code: 'session_prompt_failed',
+      message: 'boom',
+      retryable: false,
+    });
+  });
+
+  it('surfaces a parse error when there is no run error', () => {
+    const out = buildAttemptResult({
+      ...base,
+      parseError: { code: 'submit_output_missing', message: 'no submit' },
+    });
+    expect(out.status).toBe('failed');
+    expect(out.error?.code).toBe('submit_output_missing');
+  });
+
+  it('maps a provider abort to llm_api_error with the captured diagnostic', () => {
+    const out = buildAttemptResult({
+      ...base,
+      llmAbort: true,
+      llmErrorMessage: "Model 'x' not found in registry",
+    });
+    expect(out.error).toEqual({
+      code: 'llm_api_error',
+      message: "Model 'x' not found in registry",
+      retryable: false,
+    });
+  });
+
+  it('uses a generic provider message when no diagnostic was captured', () => {
+    const out = buildAttemptResult({ ...base, llmAbort: true });
+    expect(out.error).toEqual({
+      code: 'llm_api_error',
+      message: 'LLM API error during turn',
+      retryable: false,
+    });
+  });
+
+  it('surfaces a reporter error when it is the only failure', () => {
+    const out = buildAttemptResult({
+      ...base,
+      reporterError: { code: 'reporter_failed', message: 'buffer lost' },
+    });
+    expect(out.status).toBe('failed');
+    expect(out.error).toEqual({
+      code: 'reporter_failed',
+      message: 'buffer lost',
+      retryable: false,
+    });
   });
 });
 

@@ -729,6 +729,66 @@ export async function captureAttemptOutput(
   };
 }
 
+export interface BuildAttemptResultInput {
+  taskId: string;
+  attemptN: number;
+  output: Record<string, unknown> | null;
+  outputCid: string | null;
+  usage: TaskUsage;
+  durationMs: number;
+  runError: { code: string; message: string } | null;
+  parseError: { code: string; message: string } | null;
+  reporterError: { code: string; message: string } | null;
+  llmAbort: boolean;
+  llmErrorMessage: string | null;
+}
+
+/**
+ * Assemble the terminal `TaskOutput` for a clean-or-failed finish (cancel and
+ * cap aborts are handled by the caller's earlier returns). Encapsulates the
+ * failure-precedence ladder — runError → parseError → reporterError →
+ * provider abort — so the ordering is unit-tested rather than buried in the
+ * orchestrator. A provider abort with no captured diagnostic falls back to a
+ * generic message.
+ */
+export function buildAttemptResult(input: BuildAttemptResultInput): TaskOutput {
+  const status: TaskOutput['status'] =
+    input.runError || input.llmAbort || input.parseError || input.reporterError
+      ? 'failed'
+      : 'completed';
+  const errorCode =
+    input.runError?.code ??
+    input.parseError?.code ??
+    input.reporterError?.code ??
+    (input.llmAbort ? 'llm_api_error' : undefined);
+  const errorMessage =
+    input.runError?.message ??
+    input.parseError?.message ??
+    input.reporterError?.message ??
+    (input.llmAbort
+      ? // Prefer the diagnostic pi captured on the assistant message
+        // over the generic fallback. Most provider failures (model
+        // not in registry, auth errors, rate limits, …) surface here
+        // with the exact reason; without it operators have no way
+        // to distinguish "wrong model id" from "expired token" from
+        // "rate limited" without re-running locally.
+        (input.llmErrorMessage ?? 'LLM API error during turn')
+      : undefined);
+
+  return {
+    taskId: input.taskId,
+    attemptN: input.attemptN,
+    status,
+    output: input.output,
+    outputCid: input.outputCid,
+    usage: input.usage,
+    durationMs: input.durationMs,
+    ...(errorCode && errorMessage
+      ? { error: { code: errorCode, message: errorMessage, retryable: false } }
+      : {}),
+  };
+}
+
 /**
  * Run one attempt of `task` in a freshly-resumed Gondolin VM. Owns the full
  * lifecycle: resume VM → wire tools → pi session → close VM. Always returns
@@ -1465,43 +1525,19 @@ export async function executePiTask(
       };
     }
 
-    const status: TaskOutput['status'] =
-      runError || turnState.llmAbort || parseError || reporterError
-        ? 'failed'
-        : 'completed';
-    const errorCode =
-      runError?.code ??
-      parseError?.code ??
-      (reporterError as { code: string } | null)?.code ??
-      (turnState.llmAbort ? 'llm_api_error' : undefined);
-    const errorMessage =
-      runError?.message ??
-      parseError?.message ??
-      (reporterError as { message: string } | null)?.message ??
-      (turnState.llmAbort
-        ? // Prefer the diagnostic pi captured on the assistant message
-          // over the generic fallback. Most provider failures (model
-          // not in registry, auth errors, rate limits, …) surface here
-          // with the exact reason; without it operators have no way
-          // to distinguish "wrong model id" from "expired token" from
-          // "rate limited" without re-running locally.
-          (turnState.llmErrorMessage ?? 'LLM API error during turn')
-        : undefined);
-
-    return {
+    return buildAttemptResult({
       taskId: task.id,
-      attemptN: attemptN,
-      status,
+      attemptN,
       output: parsedOutput,
       outputCid: parsedOutputCid,
       usage,
       durationMs: Date.now() - startTime,
-      ...(errorCode && errorMessage
-        ? {
-            error: { code: errorCode, message: errorMessage, retryable: false },
-          }
-        : {}),
-    };
+      runError,
+      parseError,
+      reporterError,
+      llmAbort: turnState.llmAbort,
+      llmErrorMessage: turnState.llmErrorMessage,
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return makeFailedOutput('executor_unexpected_error', message);
