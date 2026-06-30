@@ -28,9 +28,11 @@ import {
   openVmWorkspaceFileForRead,
   promptUntilSubmitted,
   promptWithProviderErrorRetries,
+  resolveSubmitMissingConfig,
   sanitizeProviderErrorRetryReason,
   shouldEmitToolCallError,
   shouldRetryProviderErrorMessage,
+  submitRepromptStopped,
   wireSessionAbort,
 } from './execute-pi-task.js';
 import {
@@ -348,6 +350,118 @@ describe('provider error same-session retry helpers', () => {
     expect(sanitizeProviderErrorRetryReason(null)).toBe(
       'Pi turn ended with stopReason=error',
     );
+  });
+});
+
+describe('submitRepromptStopped', () => {
+  it('does not stop on a clean turn (all flags false)', () => {
+    expect(
+      submitRepromptStopped({
+        cancelled: false,
+        capAborted: false,
+        llmAbort: false,
+      }),
+    ).toBe(false);
+  });
+
+  it('stops on cancel', () => {
+    expect(
+      submitRepromptStopped({
+        cancelled: true,
+        capAborted: false,
+        llmAbort: false,
+      }),
+    ).toBe(true);
+  });
+
+  it('stops on cap-abort', () => {
+    expect(
+      submitRepromptStopped({
+        cancelled: false,
+        capAborted: true,
+        llmAbort: false,
+      }),
+    ).toBe(true);
+  });
+
+  it('stops on a persisted provider error so it does not re-prompt a broken provider', () => {
+    // A spent or non-retryable provider error leaves llmAbort set even though
+    // promptWithProviderErrorRetries returns runError:null. Without this the
+    // submit-missing loop would nudge a dead provider N more times.
+    expect(
+      submitRepromptStopped({
+        cancelled: false,
+        capAborted: false,
+        llmAbort: true,
+      }),
+    ).toBe(true);
+  });
+});
+
+describe('resolveSubmitMissingConfig', () => {
+  function fakeHandle(opts: {
+    captured?: Record<string, unknown> | null;
+    exhausted?: { code: string; message: string } | null;
+    toolName?: string;
+  }) {
+    return {
+      toolName: opts.toolName ?? 'submit_freeform_output',
+      getCaptured: () => opts.captured ?? null,
+      getExhaustedValidationFailure: () => opts.exhausted ?? null,
+    };
+  }
+
+  it('disables recovery when no submit tool is registered', () => {
+    const config = resolveSubmitMissingConfig({ submitToolHandle: null });
+    expect(config.maxSubmitMissingReprompts).toBe(0);
+    expect(config.submitMissingPrompt).toBe('');
+    expect(config.getSubmitState()).toBeNull();
+  });
+
+  it('defaults to 3 re-prompts and a tool-named prompt when a handle is present', () => {
+    const config = resolveSubmitMissingConfig({
+      submitToolHandle: fakeHandle({ toolName: 'submit_run_eval_output' }),
+    });
+    expect(config.maxSubmitMissingReprompts).toBe(3);
+    expect(config.submitMissingPrompt).toContain('submit_run_eval_output');
+  });
+
+  it('honors explicit overrides for budget and prompt', () => {
+    const config = resolveSubmitMissingConfig({
+      submitToolHandle: fakeHandle({}),
+      maxSubmitMissingReprompts: 1,
+      submitMissingPrompt: 'custom nudge',
+    });
+    expect(config.maxSubmitMissingReprompts).toBe(1);
+    expect(config.submitMissingPrompt).toBe('custom nudge');
+  });
+
+  it('maps captured/exhausted gate state off the handle', () => {
+    const missing = resolveSubmitMissingConfig({
+      submitToolHandle: fakeHandle({ captured: null, exhausted: null }),
+    });
+    expect(missing.getSubmitState()).toEqual({
+      captured: false,
+      exhausted: false,
+    });
+
+    const captured = resolveSubmitMissingConfig({
+      submitToolHandle: fakeHandle({ captured: { summary: 'done' } }),
+    });
+    expect(captured.getSubmitState()).toEqual({
+      captured: true,
+      exhausted: false,
+    });
+
+    const exhausted = resolveSubmitMissingConfig({
+      submitToolHandle: fakeHandle({
+        exhausted: { code: 'output_validation_failed', message: 'spent' },
+      }),
+    });
+    expect(exhausted.getSubmitState()).toEqual({
+      captured: false,
+      exhausted: true,
+    });
   });
 });
 

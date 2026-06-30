@@ -79,7 +79,10 @@ import {
   createSubagentTool,
   type SubagentToolHandle,
 } from './subagent-tool.js';
-import { resolveSubmitTools } from './submit-output-tool.js';
+import {
+  resolveSubmitTools,
+  type SubmitOutputToolHandle,
+} from './submit-output-tool.js';
 import {
   parseStructuredTaskOutput,
   recordTaskOutputParseResult,
@@ -1133,31 +1136,40 @@ export async function executePiTask(
         onPromptError: (message) =>
           emit('error', { message, phase: 'session_prompt' }),
       });
+    const submitMissingConfig = resolveSubmitMissingConfig({
+      submitToolHandle,
+      maxSubmitMissingReprompts: opts.maxSubmitMissingReprompts,
+      submitMissingPrompt: opts.submitMissingPrompt,
+    });
     const promptResult = await promptUntilSubmitted({
       runPrompt,
       initialPrompt: taskPrompt,
-      submitMissingPrompt:
-        opts.submitMissingPrompt ??
-        (submitToolHandle
-          ? buildSubmitMissingPrompt(submitToolHandle.toolName)
-          : 'Go on'),
-      maxSubmitMissingReprompts: submitToolHandle
-        ? (opts.maxSubmitMissingReprompts ?? 3)
-        : 0,
-      getSubmitState: () =>
-        submitToolHandle
-          ? {
-              captured: submitToolHandle.getCaptured() !== null,
-              exhausted:
-                submitToolHandle.getExhaustedValidationFailure() !== null,
-            }
-          : null,
-      isStopped: () => reporter.cancelSignal.aborted || capAbort !== null,
+      submitMissingPrompt: submitMissingConfig.submitMissingPrompt,
+      maxSubmitMissingReprompts: submitMissingConfig.maxSubmitMissingReprompts,
+      getSubmitState: submitMissingConfig.getSubmitState,
+      isStopped: () =>
+        submitRepromptStopped({
+          cancelled: reporter.cancelSignal.aborted,
+          capAborted: capAbort !== null,
+          llmAbort,
+        }),
       onSubmitReprompt: async (event) => {
         await emit('info', event);
       },
     });
     runError = promptResult.runError;
+    // Surface how many submit-missing nudges this attempt needed (0 when the
+    // model submitted on the first pass). Stream-visible counterpart to the
+    // `output_missing` OTel counter recorded below when recovery fails.
+    if (promptResult.submitReprompts > 0) {
+      await emit('info', {
+        event: 'submit_missing_summary',
+        submitReprompts: promptResult.submitReprompts,
+        captured: submitToolHandle
+          ? submitToolHandle.getCaptured() !== null
+          : false,
+      });
+    }
 
     // Emit a single summary line per task attempt that used the
     // subagent tool. Useful for spotting parents that delegate
@@ -1222,12 +1234,24 @@ export async function executePiTask(
           });
         }
       } else if (submitToolHandle) {
-        parseError = submitToolHandle.getExhaustedValidationFailure() ?? {
+        const exhausted = submitToolHandle.getExhaustedValidationFailure();
+        parseError = exhausted ?? {
           code: 'submit_output_missing',
           message:
             'Agent did not satisfy the promised submit-output criterion: ' +
             'no valid task submit tool call was captured before the session ended.',
         };
+        // The invalid-args path already records `output_validation_failed`
+        // from inside the submit tool. The pure never-called path has no such
+        // record, so count it here (dimensioned by model) — otherwise
+        // submit-missing failures are invisible to the parse-result counter.
+        if (!exhausted) {
+          recordTaskOutputParseResult({
+            taskType: task.taskType,
+            model: opts.model,
+            code: 'output_missing',
+          });
+        }
         await emit('error', {
           message: parseError.message,
           phase: 'output_validation',
@@ -1720,6 +1744,70 @@ export interface SubmitGateState {
   captured: boolean;
   /** The invalid-args correction budget was exhausted. */
   exhausted: boolean;
+}
+
+/**
+ * Whether the submit-missing re-prompt loop must stop before the next nudge.
+ *
+ * `llmAbort` matters as much as cancel/cap: when a turn ended with
+ * `stopReason: 'error'` and the provider-error retry budget is spent (or the
+ * error is non-retryable), `promptWithProviderErrorRetries` returns
+ * `runError: null` yet leaves `llmAbort` set. Re-prompting then would nudge a
+ * dead provider N more times (extra prompts + backoff) and emit misleading
+ * `submit_missing_reprompt` events. We only re-prompt after a genuinely clean
+ * `end_turn`.
+ */
+export function submitRepromptStopped(state: {
+  cancelled: boolean;
+  capAborted: boolean;
+  llmAbort: boolean;
+}): boolean {
+  return state.cancelled || state.capAborted || state.llmAbort;
+}
+
+/**
+ * Resolve the submit-missing recovery config from the registered submit tool
+ * (if any) plus caller overrides. Extracted as a pure function so the
+ * default-budget / disable-when-no-tool / gate-mapping logic is unit-tested —
+ * `executePiTask` itself needs a booted VM and can't cover this seam.
+ *
+ * The default budget (3) is deliberately one higher than the invalid-args
+ * correction budget (`maxSubmitValidationRetries`, default 2): a model that
+ * never called the tool just needs a clear nudge, which converts more cheaply
+ * and more often than fixing a malformed payload, so the extra attempt is
+ * worth it.
+ */
+export function resolveSubmitMissingConfig(args: {
+  submitToolHandle: Pick<
+    SubmitOutputToolHandle,
+    'toolName' | 'getCaptured' | 'getExhaustedValidationFailure'
+  > | null;
+  maxSubmitMissingReprompts?: number;
+  submitMissingPrompt?: string;
+}): {
+  maxSubmitMissingReprompts: number;
+  submitMissingPrompt: string;
+  getSubmitState: () => SubmitGateState | null;
+} {
+  const handle = args.submitToolHandle;
+  if (!handle) {
+    // No submit tool (legacy parser path): recovery is meaningless. The empty
+    // prompt is never sent because the budget is 0.
+    return {
+      maxSubmitMissingReprompts: 0,
+      submitMissingPrompt: '',
+      getSubmitState: () => null,
+    };
+  }
+  return {
+    maxSubmitMissingReprompts: args.maxSubmitMissingReprompts ?? 3,
+    submitMissingPrompt:
+      args.submitMissingPrompt ?? buildSubmitMissingPrompt(handle.toolName),
+    getSubmitState: () => ({
+      captured: handle.getCaptured() !== null,
+      exhausted: handle.getExhaustedValidationFailure() !== null,
+    }),
+  };
 }
 
 export interface SubmitMissingRepromptEvent extends Record<string, unknown> {

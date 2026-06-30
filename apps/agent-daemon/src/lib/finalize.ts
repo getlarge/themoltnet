@@ -1,4 +1,5 @@
 import type { Task, TaskOutput } from '@moltnet/tasks';
+import { redactRetryTriageSecrets } from '@themoltnet/pi-extension';
 import type { Agent, TasksNamespace } from '@themoltnet/sdk';
 import { MoltNetError } from '@themoltnet/sdk';
 
@@ -59,19 +60,31 @@ export interface FinalizeContext {
  * Flatten a classified attempt failure into the structured fields logged
  * alongside `attempt-failure-classified`. Surfaces the triage verdict that
  * was previously buried in `error.retry` so operators can see WHAT was
- * decided and WHY without decoding the attempt row. See #1528.
+ * decided and WHY without decoding the attempt row, and binds the task
+ * identifiers so a verdict can be pivoted back to the abandoned task/attempt
+ * (the daemon log child carries agent/team/profile but not these). See #1528.
+ *
+ * `reason` is model-authored on the LLM-triage path, so it is run through
+ * `redactRetryTriageSecrets` before it reaches the (wide-access) log sink —
+ * parity with the `triage_failed` path, which already sanitizes.
  */
 function classificationLogFields(
   classified: ClassifiedAttemptFailure,
+  ids: { taskId: string; attemptN: number; correlationId?: string | null },
 ): Record<string, unknown> {
   const retry = classified.error.retry;
   return {
+    taskId: ids.taskId,
+    attemptN: ids.attemptN,
+    ...(ids.correlationId ? { correlationId: ids.correlationId } : {}),
     source: classified.source,
     code: classified.error.code,
     retryable: classified.error.retryable,
     ...(retry?.decision ? { decision: retry.decision } : {}),
     ...(retry?.confidence ? { confidence: retry.confidence } : {}),
-    ...(retry?.reason ? { reason: retry.reason } : {}),
+    ...(retry?.reason
+      ? { reason: redactRetryTriageSecrets(retry.reason) }
+      : {}),
   };
 }
 
@@ -143,7 +156,11 @@ export async function finalizeTask(
       ctx.log?.('complete-rejected-falling-back-to-fail', { err });
       ctx.log?.(
         'attempt-failure-classified',
-        classificationLogFields(classified),
+        classificationLogFields(classified, {
+          taskId: output.taskId,
+          attemptN: output.attemptN,
+          correlationId: ctx.task?.correlationId,
+        }),
       );
       await agent.tasks.failAttempt(output.taskId, output.attemptN, {
         error: classified.error,
@@ -168,7 +185,14 @@ export async function finalizeTask(
   );
   if (heartbeat.cancelled) return;
   const classified = await prepareAttemptFailure(agent, output, error, ctx);
-  ctx.log?.('attempt-failure-classified', classificationLogFields(classified));
+  ctx.log?.(
+    'attempt-failure-classified',
+    classificationLogFields(classified, {
+      taskId: output.taskId,
+      attemptN: output.attemptN,
+      correlationId: ctx.task?.correlationId,
+    }),
+  );
   await agent.tasks.failAttempt(output.taskId, output.attemptN, {
     error: classified.error,
   });
