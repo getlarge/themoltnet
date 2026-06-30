@@ -163,8 +163,15 @@ Configuration (env vars):
 | `TASK_ORPHAN_SWEEPER_CRON`       | `*/2 * * * *` | How often the sweeper runs.                                               |
 | `TASK_ORPHAN_SWEEPER_GRACE_SEC`  | `300`         | Seconds added to `claim_expires_at` before a task is considered orphaned. |
 | `TASK_ORPHAN_SWEEPER_BATCH_SIZE` | `50`          | Max tasks force-released per sweep run.                                   |
+| `TASK_DEFAULT_EXPIRES_IN_SEC`    | `7776000`     | Default task lifetime when create omits `expiresInSec` (90 days).         |
+| `TASK_MAX_EXPIRES_IN_SEC`        | `7776000`     | Maximum caller-requested task lifetime (90 days).                         |
 
 This is the only place that reads `claim_expires_at` for enforcement. During normal operation, the workflow's recv loop is the source of truth and the column is purely advisory observability.
+
+Task-level `expires_at` is separate from the claim lease. It bounds how long
+idle `waiting` / `queued` tasks can remain non-terminal; elapsed tasks are
+marked `expired` by the maintenance sweeper, and claim paths refuse to start
+work whose lifetime has already elapsed.
 
 ### Task types
 

@@ -339,4 +339,34 @@ describe('TaskRepository maintenance sweeper queries (integration)', () => {
     await db.delete(taskAttempts);
     await db.delete(tasks);
   });
+
+  it('does not claim queued tasks whose task lifetime elapsed', async () => {
+    const EXPIRED_QUEUED = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa01';
+    const FRESH_QUEUED = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa02';
+
+    await seedTask({
+      id: EXPIRED_QUEUED,
+      status: 'queued',
+      claimExpiresAt: null,
+      expiresAt: new Date(Date.now() - 60_000),
+    });
+    await seedTask({
+      id: FRESH_QUEUED,
+      status: 'queued',
+      claimExpiresAt: null,
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+
+    const expiredClaim = await repo.claimIfQueued(EXPIRED_QUEUED);
+    const freshClaim = await repo.claimIfQueued(FRESH_QUEUED);
+
+    expect(expiredClaim).toBeNull();
+    expect(freshClaim?.status).toBe('dispatched');
+
+    const expired = await repo.findById(EXPIRED_QUEUED);
+    expect(expired?.status).toBe('queued');
+
+    await db.delete(taskAttempts);
+    await db.delete(tasks);
+  });
 });

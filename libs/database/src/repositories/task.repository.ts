@@ -6,8 +6,10 @@ import {
   gt,
   gte,
   inArray,
+  isNull,
   lt,
   notInArray,
+  or,
   type SQL,
   sql,
 } from 'drizzle-orm';
@@ -423,7 +425,13 @@ export function createTaskRepository(db: Database) {
       const [row] = await getExecutor(db)
         .update(tasks)
         .set({ status: 'dispatched', updatedAt: sql`now()` })
-        .where(and(eq(tasks.id, id), eq(tasks.status, 'queued')))
+        .where(
+          and(
+            eq(tasks.id, id),
+            eq(tasks.status, 'queued'),
+            or(isNull(tasks.expiresAt), gt(tasks.expiresAt, sql`now()`)),
+          ),
+        )
         .returning();
       return row ?? null;
     },
