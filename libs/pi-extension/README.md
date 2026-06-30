@@ -226,6 +226,9 @@ agent session starts.
 
 Use this for per-session bootstrap that should not invalidate the snapshot
 cache: warming package-manager state and lightweight repo-local setup.
+Do not run full monorepo dependency installs here for interactive sessions:
+`node_modules` is VM-local tmpfs, so those installs are intentionally not
+persisted across resumes and will delay every sandbox startup.
 
 Important properties:
 
