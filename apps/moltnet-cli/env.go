@@ -36,6 +36,28 @@ func resolveMoltnetDir(cwd string) (string, error) {
 	return moltnetDir, err
 }
 
+func missingMoltnetCredentialsError(cwd, mainRoot, context string) error {
+	looked := []string{filepath.Join(cwd, ".moltnet")}
+	if mainRoot != "" && mainRoot != cwd {
+		looked = append(looked, filepath.Join(mainRoot, ".moltnet"))
+	}
+
+	message := fmt.Sprintf(
+		"MoltNet agent credentials were not found.\n"+
+			"Looked for .moltnet at:\n"+
+			"- %s\n\n"+
+			"Create local credentials with:\n"+
+			"  legreffier init --name <agent>\n\n"+
+			"For CI, web, or other env-based setup, reconstruct them with:\n"+
+			"  moltnet config init-from-env --agent <agent>",
+		strings.Join(looked, "\n- "),
+	)
+	if context != "" {
+		message += "\n\nContext: " + context
+	}
+	return fmt.Errorf("%s", message)
+}
+
 // resolveMoltnetDirAndRoot returns both the .moltnet/ directory and the main
 // worktree root. When called from a linked worktree, the returned root is the
 // main worktree (parent of git-common-dir), not the linked worktree path. This
@@ -54,11 +76,11 @@ func resolveMoltnetDirAndRoot(cwd string) (moltnetDir, mainRoot string, err erro
 	cmd.Dir = cwd
 	out, runErr := cmd.Output()
 	if runErr != nil {
-		return "", "", fmt.Errorf(".moltnet/ not found in %s and not in a git repo", cwd)
+		return "", "", missingMoltnetCredentialsError(cwd, "", "not in a git repo")
 	}
 	gitCommonDir := strings.TrimSpace(string(out))
 	if gitCommonDir == "" || gitCommonDir == ".git" {
-		return "", "", fmt.Errorf(".moltnet/ not found in %s", cwd)
+		return "", "", missingMoltnetCredentialsError(cwd, "", "")
 	}
 
 	// gitCommonDir is relative or absolute — resolve it
@@ -74,7 +96,7 @@ func resolveMoltnetDirAndRoot(cwd string) (moltnetDir, mainRoot string, err erro
 		// .moltnet so identity files are shared across worktrees).
 		return canonicalizeRoot(candidate), mainRoot, nil
 	}
-	return "", "", fmt.Errorf(".moltnet/ not found in %s or main worktree %s", cwd, mainRoot)
+	return "", "", missingMoltnetCredentialsError(cwd, mainRoot, "")
 }
 
 // canonicalizeRoot returns a stable absolute path for use as the activation
