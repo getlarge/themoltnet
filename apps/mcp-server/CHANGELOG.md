@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.14.0](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.13.1...mcp-server-v0.14.0) (2026-07-01)
+
+
+### Features
+
+* **observability:** split axiom signal datasets ([ac315ba](https://github.com/getlarge/themoltnet/commit/ac315bafb4fc4b1aed15c2e57091c665eae21eb9))
+* **observability:** split Axiom signal datasets ([a0b6ec4](https://github.com/getlarge/themoltnet/commit/a0b6ec4b2ae01785a1fb2088713f693439d1c4f1))
+
+
+### Bug Fixes
+
+* **observability:** align axiom collector correlations ([e60face](https://github.com/getlarge/themoltnet/commit/e60face37fd42e6cc0bc93e5a69db7eedb6014cd))
+
 ## [0.13.1](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.13.0...mcp-server-v0.13.1) (2026-06-30)
 
 
