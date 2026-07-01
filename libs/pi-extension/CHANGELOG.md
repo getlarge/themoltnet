@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.32.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.31.2...pi-extension-v0.32.0) (2026-07-01)
+
+
+### Features
+
+* **node-red:** add eval workflow runner ([db89f27](https://github.com/getlarge/themoltnet/commit/db89f270704f71b770538e61b36fe700beba01c6))
+* **node-red:** add eval workflow runner ([34672a8](https://github.com/getlarge/themoltnet/commit/34672a89b4734ca51e08c9ab1d5c593d5a22ef77))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.34.0
+    * @themoltnet/sdk bumped to 0.118.0
+
 ## [0.31.2](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.31.1...pi-extension-v0.31.2) (2026-06-30)
 
 

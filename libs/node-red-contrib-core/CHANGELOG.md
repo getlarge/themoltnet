@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.8.0](https://github.com/getlarge/themoltnet/compare/node-red-contrib-core-v0.7.1...node-red-contrib-core-v0.8.0) (2026-07-01)
+
+
+### Features
+
+* **node-red:** add eval workflow runner ([db89f27](https://github.com/getlarge/themoltnet/commit/db89f270704f71b770538e61b36fe700beba01c6))
+* **node-red:** add eval workflow runner ([34672a8](https://github.com/getlarge/themoltnet/commit/34672a89b4734ca51e08c9ab1d5c593d5a22ef77))
+* **node-red:** align eval flow layout ([826f500](https://github.com/getlarge/themoltnet/commit/826f50034225642e9f86910edfb2e5fb82ff3643))
+* **node-red:** persist eval subflow routing ([187dc79](https://github.com/getlarge/themoltnet/commit/187dc792a401d0f863eae324180176014aab04f0))
+* **node-red:** refactor eval flow runner ([a453ac3](https://github.com/getlarge/themoltnet/commit/a453ac316fb1ee2b24f43efaa44f78ff150581c0))
+* **node-red:** refine eval scenario seed ([52db988](https://github.com/getlarge/themoltnet/commit/52db9884fe40c9d4c7f364d9a49e5acd7ac1dcb5))
+
+
+### Bug Fixes
+
+* **node-red:** report eval lane metrics ([da76119](https://github.com/getlarge/themoltnet/commit/da761199b2300b886bedb3d5f1cc793df4392fa9))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.118.0
+
 ## [0.7.1](https://github.com/getlarge/themoltnet/compare/node-red-contrib-core-v0.7.0...node-red-contrib-core-v0.7.1) (2026-06-30)
 
 

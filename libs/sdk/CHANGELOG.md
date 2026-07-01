@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.118.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.117.0...sdk-v0.118.0) (2026-07-01)
+
+
+### Features
+
+* **node-red:** add eval workflow runner ([db89f27](https://github.com/getlarge/themoltnet/commit/db89f270704f71b770538e61b36fe700beba01c6))
+* **node-red:** add eval workflow runner ([34672a8](https://github.com/getlarge/themoltnet/commit/34672a89b4734ca51e08c9ab1d5c593d5a22ef77))
+
+
+### Bug Fixes
+
+* **node-red:** report eval lane metrics ([da76119](https://github.com/getlarge/themoltnet/commit/da761199b2300b886bedb3d5f1cc793df4392fa9))
+
 ## [0.117.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.116.0...sdk-v0.117.0) (2026-06-30)
 
 

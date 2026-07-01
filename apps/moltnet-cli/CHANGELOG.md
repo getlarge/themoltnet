@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.59.1](https://github.com/getlarge/themoltnet/compare/cli-v1.59.0...cli-v1.59.1) (2026-07-01)
+
+
+### Bug Fixes
+
+* **cli:** clarify missing MoltNet credentials ([5372f0e](https://github.com/getlarge/themoltnet/commit/5372f0e21a8e74b440fec043f9208b86ddda2ea0))
+
 ## [1.59.0](https://github.com/getlarge/themoltnet/compare/cli-v1.58.0...cli-v1.59.0) (2026-06-30)
 
 
