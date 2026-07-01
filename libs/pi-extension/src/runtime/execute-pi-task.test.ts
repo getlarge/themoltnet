@@ -474,6 +474,22 @@ describe('cleanupAttempt (teardown characterization)', () => {
     );
   });
 
+  it('logs a reporter.close() failure instead of propagating it', async () => {
+    const { deps, logged } = makeDeps({
+      reporter: {
+        finalize: vi.fn(async () => {}),
+        close: async () => {
+          throw new Error('close boom');
+        },
+      },
+    });
+    // close() failure is non-fatal (unlike vm.close): swallowed + logged.
+    await expect(cleanupAttempt(deps)).resolves.toBeUndefined();
+    expect(logged.some((m) => m.includes('reporter.close() failed'))).toBe(
+      true,
+    );
+  });
+
   it('logs a workspace cleanup failure instead of throwing', async () => {
     const { deps, logged } = makeDeps({
       workspace: {
@@ -736,8 +752,10 @@ describe('captureAttemptOutput (output-capture characterization)', () => {
 });
 
 describe('makeSessionEventHandler (subscribe-handler characterization)', () => {
-  // The real exported event type — a renamed pi field (toolName, stopReason,
-  // assistantMessageEvent) then fails these fakes at compile time.
+  // The real exported event type. The `as unknown as Ev` casts below mean a
+  // renamed pi field won't fail these fakes directly — the true guard is the
+  // SOURCE handler's `event.toolName` / `event.message.stopReason` accesses
+  // failing to compile against the renamed union.
   type Ev = SessionSubscribeEvent;
 
   function makeDeps(overrides?: {
