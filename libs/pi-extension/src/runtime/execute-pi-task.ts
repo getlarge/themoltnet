@@ -84,6 +84,7 @@ import {
   type SubmitOutputToolHandle,
 } from './submit-output-tool.js';
 import {
+  type ParsedTaskOutputResult,
   parseStructuredTaskOutput,
   recordTaskOutputParseResult,
 } from './task-output.js';
@@ -939,14 +940,15 @@ export async function executePiTask(
       return makeFailedOutput('session_setup_failed', message);
     }
 
-    let llmAbort = false;
-    // The diagnostic pi attaches to the final assistant message when
-    // stopReason === 'error'. Captured below in the `turn_end` handler;
-    // forwarded to the task's `error.message` so operators see things
-    // like "Model 'gpt-5.4-codex' not found in registry" instead of
-    // the generic 'LLM API error during turn'.
-    let llmErrorMessage: string | null = null;
-    let assistantText = '';
+    // Per-attempt scalars accumulated by the session event handler
+    // (assistantText, llmAbort, llmErrorMessage, turn/bash-timeout counters).
+    // The diagnostic pi attaches to the final error turn flows into
+    // `turnState.llmErrorMessage` so operators see things like
+    // "Model 'gpt-5.4-codex' not found in registry" instead of the generic
+    // 'LLM API error during turn'.
+    const turnState = createSessionTurnState();
+    // reporterError carries a `retryable` flag (a reporter buffer/heartbeat
+    // failure is transient, #1538) that flows through to the attempt result.
     let reporterError: {
       code: string;
       message: string;
@@ -956,8 +958,6 @@ export async function executePiTask(
 
     // Cap-driven abort state. See `triggerCapAbort` below.
     let capAbort: { code: string; message: string } | null = null;
-    let toolUseTurnCount = 0;
-    let bashTimeoutCount = 0;
     const maxTurns = opts.maxTurns ?? 0;
     const maxBashTimeouts = opts.maxBashTimeouts ?? 3;
 
@@ -1004,123 +1004,18 @@ export async function executePiTask(
       track(emit('info', { event: 'cap_abort', code, message }));
     };
 
-    session.subscribe((event) => {
-      if (event.type === 'message_update') {
-        const ae = event.assistantMessageEvent;
-        if (ae.type === 'text_delta') {
-          assistantText += ae.delta;
-          track(emit('text_delta', { delta: ae.delta }));
-        }
-      } else if (event.type === 'tool_execution_start') {
-        track(emit('tool_call_start', { tool_name: event.toolName }));
-      } else if (event.type === 'tool_execution_end') {
-        track(
-          emit('tool_call_end', {
-            tool_name: event.toolName,
-            is_error: event.isError,
-            result: event.isError ? truncateForWire(event.result) : undefined,
-          }),
-        );
-        if (shouldEmitToolCallError(event)) {
-          track(
-            emitError(
-              'tool_call_error',
-              describeToolErrorMessage(event.result),
-              {
-                tool: event.toolName,
-                result: truncateForWire(event.result),
-              },
-            ),
-          );
-        }
-        // Bash-timeout cap. pi's bash tool wraps timeout errors with the
-        // text "Command timed out after <N> seconds" (see
-        // @earendil-works/pi-coding-agent's bash.js error path). We
-        // detect the substring in the structured tool result content.
-        // Total across the attempt (not consecutive) — different
-        // commands timing out is still a death-spiral pattern.
-        if (
-          maxBashTimeouts > 0 &&
-          event.toolName === 'bash' &&
-          event.isError &&
-          isBashTimeoutResult(event.result)
-        ) {
-          bashTimeoutCount += 1;
-          if (bashTimeoutCount >= maxBashTimeouts) {
-            triggerCapAbort(
-              'max_bash_timeouts_exceeded',
-              `Aborted after ${bashTimeoutCount} bash timeouts in this attempt (cap ${maxBashTimeouts}).`,
-            );
-          }
-        }
-      } else if (event.type === 'turn_end') {
-        const msg = event.message as {
-          role?: string;
-          stopReason?: string;
-          // pi-coding-agent attaches a human-readable diagnostic to the
-          // final assistant message when stopReason === 'error'. See
-          // @earendil-works/pi-coding-agent's `AssistantMessage`.
-          // Capturing it here is the only way to propagate the
-          // underlying provider error (model-not-registered, 401, rate
-          // limit, …) up to the task's `error.message` instead of the
-          // generic 'LLM API error during turn'.
-          errorMessage?: string;
-          usage?: {
-            input?: number;
-            output?: number;
-            cacheRead?: number;
-            cacheWrite?: number;
-          };
-        };
-        if (msg?.role === 'assistant' && msg.usage) {
-          usage.inputTokens += Math.max(0, msg.usage.input ?? 0);
-          usage.outputTokens += Math.max(0, msg.usage.output ?? 0);
-          const cr = Math.max(0, msg.usage.cacheRead ?? 0);
-          const cw = Math.max(0, msg.usage.cacheWrite ?? 0);
-          if (cr) usage.cacheReadTokens = (usage.cacheReadTokens ?? 0) + cr;
-          if (cw) usage.cacheWriteTokens = (usage.cacheWriteTokens ?? 0) + cw;
-        }
-        const stopReason = msg?.stopReason ?? 'end_turn';
-        track(emit('turn_end', { stop_reason: stopReason }));
-        // Tool-use turn counter for the max-turns cap. Anthropic SDK
-        // semantics: count only tool-use turns (any turn whose
-        // stopReason !== 'end_turn'). The final text-only response
-        // does not consume a turn. 'aborted' turns (from our own
-        // session.abort, or proposer cancel) are also excluded; they
-        // don't represent forward progress against the cap.
-        if (
-          maxTurns > 0 &&
-          stopReason !== 'end_turn' &&
-          stopReason !== 'aborted' &&
-          stopReason !== 'error'
-        ) {
-          toolUseTurnCount += 1;
-          if (toolUseTurnCount >= maxTurns) {
-            triggerCapAbort(
-              'max_turns_exceeded',
-              `Aborted after ${toolUseTurnCount} tool-use turns (cap ${maxTurns}).`,
-            );
-          }
-        }
-        // Reflect ONLY the final turn's stop reason. pi emits turn_end per
-        // assistant turn; a transient error in an earlier turn that pi then
-        // recovers from (next turn completes cleanly) must not fail the task.
-        // session.prompt() resolves after the final turn, so by the time we
-        // read llmAbort below it holds the terminal state.
-        llmAbort = msg?.stopReason === 'error';
-        // Mirror the same "last-turn wins" rule for the error message:
-        // overwrite on each error turn, clear on a recovered turn so a
-        // transient earlier failure doesn't bleed into the final result.
-        if (msg?.stopReason === 'error') {
-          llmErrorMessage =
-            typeof msg.errorMessage === 'string' && msg.errorMessage.length > 0
-              ? msg.errorMessage
-              : null;
-        } else {
-          llmErrorMessage = null;
-        }
-      }
-    });
+    session.subscribe(
+      makeSessionEventHandler({
+        state: turnState,
+        usage,
+        maxTurns,
+        maxBashTimeouts,
+        emit,
+        emitError,
+        track,
+        triggerCapAbort,
+      }),
+    );
 
     let runError: { code: string; message: string } | null = null;
     // One provider-error-tolerant prompt pass. Reused for both the initial
@@ -1132,7 +1027,10 @@ export async function executePiTask(
         initialPrompt: promptText,
         cancelSignal: reporter.cancelSignal,
         isCapAborted: () => capAbort !== null,
-        getProviderErrorState: () => ({ llmAbort, llmErrorMessage }),
+        getProviderErrorState: () => ({
+          llmAbort: turnState.llmAbort,
+          llmErrorMessage: turnState.llmErrorMessage,
+        }),
         maxRetries: opts.maxProviderErrorRetries ?? 2,
         baseDelayMs: opts.providerErrorRetryBaseDelayMs ?? 2_000,
         maxDelayMs: opts.providerErrorRetryMaxDelayMs ?? 30_000,
@@ -1159,7 +1057,7 @@ export async function executePiTask(
         submitRepromptStopped({
           cancelled: reporter.cancelSignal.aborted,
           capAborted: capAbort !== null,
-          llmAbort,
+          llmAbort: turnState.llmAbort,
         }),
       onSubmitReprompt: async (event) => {
         await emit('info', event);
@@ -1208,78 +1106,18 @@ export async function executePiTask(
     let parsedOutput: Record<string, unknown> | null = null;
     let parsedOutputCid: string | null = null;
     let parseError: { code: string; message: string } | null = null;
-    if (!runError && !llmAbort && !cancelled && !capAbort) {
-      // Prefer the submit-tool's captured payload over the parser path.
-      // The submit-tool already validated args against the task type's
-      // output schema; if the model called it successfully we trust the
-      // captured value and skip parsing the trailing assistant text.
-      const captured = submitToolHandle?.getCaptured() ?? null;
-      if (captured) {
-        try {
-          parsedOutput = captured;
-          parsedOutputCid = await computeJsonCid(captured);
-          recordTaskOutputParseResult({
-            taskType: task.taskType,
-            model: opts.model,
-            code: 'captured_via_tool',
-          });
-        } catch (err) {
-          const message = err instanceof Error ? err.message : String(err);
-          parsedOutput = null;
-          parsedOutputCid = null;
-          parseError = {
-            code: 'output_cid_compute_failed',
-            message: `Captured submit-tool output could not be canonicalized: ${message}`,
-          };
-          recordTaskOutputParseResult({
-            taskType: task.taskType,
-            model: opts.model,
-            code: 'output_cid_compute_failed',
-          });
-          await emit('error', {
-            message: parseError.message,
-            phase: 'output_validation',
-          });
-        }
-      } else if (submitToolHandle) {
-        const exhausted = submitToolHandle.getExhaustedValidationFailure();
-        parseError = exhausted ?? {
-          code: 'submit_output_missing',
-          message:
-            'Agent did not satisfy the promised submit-output criterion: ' +
-            'no valid task submit tool call was captured before the session ended.',
-        };
-        // The invalid-args path already records `output_validation_failed`
-        // from inside the submit tool. The pure never-called path has no such
-        // record, so count it here (dimensioned by model) — otherwise
-        // submit-missing failures are invisible to the parse-result counter.
-        if (!exhausted) {
-          recordTaskOutputParseResult({
-            taskType: task.taskType,
-            model: opts.model,
-            code: 'output_missing',
-          });
-        }
-        await emit('error', {
-          message: parseError.message,
-          phase: 'output_validation',
-        });
-      } else {
-        const parsed = await parseStructuredTaskOutput(
-          assistantText,
-          task.taskType,
-          { model: opts.model, input: task.input },
-        );
-        parsedOutput = parsed.output;
-        parsedOutputCid = parsed.outputCid;
-        parseError = parsed.error;
-        if (parseError) {
-          await emit('error', {
-            message: parseError.message,
-            phase: 'output_validation',
-          });
-        }
-      }
+    if (!runError && !turnState.llmAbort && !cancelled && !capAbort) {
+      const captured = await captureAttemptOutput({
+        taskType: task.taskType,
+        model: opts.model,
+        input: task.input,
+        assistantText: turnState.assistantText,
+        submitToolHandle,
+        emit,
+      });
+      parsedOutput = captured.output;
+      parsedOutputCid = captured.outputCid;
+      parseError = captured.error;
     }
 
     if (cancelled) {
@@ -1329,114 +1167,515 @@ export async function executePiTask(
       };
     }
 
-    const reporterErrorSnapshot = reporterError as {
-      code: string;
-      message: string;
-      retryable?: boolean;
-    } | null;
-    const status: TaskOutput['status'] =
-      runError || llmAbort || parseError || reporterErrorSnapshot
-        ? 'failed'
-        : 'completed';
-    const errorCode =
-      runError?.code ??
-      parseError?.code ??
-      reporterErrorSnapshot?.code ??
-      (llmAbort ? 'llm_api_error' : undefined);
-    const errorMessage =
-      runError?.message ??
-      parseError?.message ??
-      reporterErrorSnapshot?.message ??
-      (llmAbort
-        ? // Prefer the diagnostic pi captured on the assistant message
-          // over the generic fallback. Most provider failures (model
-          // not in registry, auth errors, rate limits, …) surface here
-          // with the exact reason; without it operators have no way
-          // to distinguish "wrong model id" from "expired token" from
-          // "rate limited" without re-running locally.
-          (llmErrorMessage ?? 'LLM API error during turn')
-        : undefined);
-    const errorRetryable =
-      reporterErrorSnapshot &&
-      errorCode === reporterErrorSnapshot.code &&
-      errorMessage === reporterErrorSnapshot.message
-        ? (reporterErrorSnapshot.retryable ?? false)
-        : false;
-
-    return {
+    return buildAttemptResult({
       taskId: task.id,
-      attemptN: attemptN,
-      status,
+      attemptN,
       output: parsedOutput,
       outputCid: parsedOutputCid,
       usage,
       durationMs: Date.now() - startTime,
-      ...(errorCode && errorMessage
-        ? {
-            error: {
-              code: errorCode,
-              message: errorMessage,
-              retryable: errorRetryable,
-            },
-          }
-        : {}),
-    };
+      runError,
+      parseError,
+      reporterError,
+      llmAbort: turnState.llmAbort,
+      llmErrorMessage: turnState.llmErrorMessage,
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return makeFailedOutput('executor_unexpected_error', message);
   } finally {
-    // Remove the cancel listener before disposing the session so it
-    // can't fire after `dispose()` has torn the session down. `once`
-    // makes this redundant when the listener has already fired, but
-    // removeEventListener is a no-op in that case.
-    if (cancelListener) {
-      reporter.cancelSignal.removeEventListener('abort', cancelListener);
-    }
-    if (session) {
-      try {
-        session.dispose();
-      } catch {
-        /* swallow */
+    await cleanupAttempt({
+      cancelSignal: reporter.cancelSignal,
+      cancelListener,
+      session,
+      reporterOpen,
+      reporter,
+      finalUsage,
+      managed,
+      workspace,
+      taskId: task.id,
+      attemptN,
+    });
+  }
+}
+
+/** Event delivered to an `AgentSession` subscriber. */
+export type SessionSubscribeEvent = Parameters<
+  Parameters<AgentSession['subscribe']>[0]
+>[0];
+
+/**
+ * Mutable per-attempt scalars accumulated by the session event handler. Held
+ * in an object (not bare `let`s) so the handler can be extracted from
+ * `executePiTask` and unit-tested while still mutating shared attempt state.
+ */
+export interface SessionTurnState {
+  /** Streamed assistant text, concatenated across `text_delta` events. */
+  assistantText: string;
+  /** Final turn ended with `stopReason: 'error'` (last-turn-wins). */
+  llmAbort: boolean;
+  /** Provider diagnostic from the final error turn, else null. */
+  llmErrorMessage: string | null;
+  /** Tool-use turns seen (drives the max-turns cap). */
+  toolUseTurnCount: number;
+  /** Bash timeouts seen this attempt (drives the max-bash-timeouts cap). */
+  bashTimeoutCount: number;
+}
+
+export function createSessionTurnState(): SessionTurnState {
+  return {
+    assistantText: '',
+    llmAbort: false,
+    llmErrorMessage: null,
+    toolUseTurnCount: 0,
+    bashTimeoutCount: 0,
+  };
+}
+
+export interface SessionEventHandlerDeps {
+  state: SessionTurnState;
+  /** Accumulated token usage, mutated in place across turn_end events. */
+  usage: TaskUsage;
+  /** Tool-use-turn cap (0 = disabled). */
+  maxTurns: number;
+  /** Bash-timeout cap (0 = disabled). */
+  maxBashTimeouts: number;
+  emit: (
+    kind: TurnEventKind,
+    payload: Record<string, unknown>,
+  ) => Promise<void>;
+  emitError: (
+    phase: string,
+    message: string,
+    extra?: Record<string, unknown>,
+  ) => Promise<void>;
+  /** Fire-and-forget tracker for reporter writes (collects rejections). */
+  track: (p: Promise<void>) => void;
+  /** Idempotent cap-abort trigger (aborts the live session). */
+  triggerCapAbort: (code: string, message: string) => void;
+}
+
+/**
+ * Build the `AgentSession.subscribe` handler for one attempt: bridges pi
+ * events to the reporter, accumulates token usage and assistant text, and
+ * enforces the bash-timeout and tool-use-turn caps. Extracted from
+ * `executePiTask` so this dense, branch-heavy logic is unit-tested against a
+ * scripted event stream instead of only through a booted VM.
+ *
+ * The handler mutates `deps.state` and `deps.usage` in place; the caller reads
+ * them after `session.prompt()` resolves (by which point `state.llmAbort`
+ * holds the terminal turn's outcome — see the "last-turn wins" note below).
+ *
+ * @internal Exported for unit testing; not part of the package's public API.
+ */
+export function makeSessionEventHandler(
+  deps: SessionEventHandlerDeps,
+): (event: SessionSubscribeEvent) => void {
+  const {
+    state,
+    usage,
+    maxTurns,
+    maxBashTimeouts,
+    emit,
+    emitError,
+    track,
+    triggerCapAbort,
+  } = deps;
+  return (event) => {
+    if (event.type === 'message_update') {
+      const ae = event.assistantMessageEvent;
+      if (ae.type === 'text_delta') {
+        state.assistantText += ae.delta;
+        track(emit('text_delta', { delta: ae.delta }));
       }
-    }
-    if (reporterOpen) {
-      try {
-        await reporter.finalize(finalUsage);
-      } catch (err) {
-        // finalize() drains the reporter's buffer, so a failure here means
-        // buffered messages were lost or a retry restored them to the
-        // buffer — either way the task is about to be marked complete.
-        // Log to stderr so the loss is visible in the worker log instead
-        // of hidden inside an empty catch.
-        const detail = err instanceof Error ? err.message : String(err);
-        console.error(
-          `executePiTask: reporter.finalize() failed for task ${task.id} ` +
-            `attempt ${attemptN}: ${detail}`,
+    } else if (event.type === 'tool_execution_start') {
+      track(emit('tool_call_start', { tool_name: event.toolName }));
+    } else if (event.type === 'tool_execution_end') {
+      track(
+        emit('tool_call_end', {
+          tool_name: event.toolName,
+          is_error: event.isError,
+          result: event.isError ? truncateForWire(event.result) : undefined,
+        }),
+      );
+      if (shouldEmitToolCallError(event)) {
+        track(
+          emitError('tool_call_error', describeToolErrorMessage(event.result), {
+            tool: event.toolName,
+            result: truncateForWire(event.result),
+          }),
         );
       }
-      try {
-        await reporter.close();
-      } catch (err) {
-        const detail = err instanceof Error ? err.message : String(err);
-        console.error(
-          `executePiTask: reporter.close() failed for task ${task.id} ` +
-            `attempt ${attemptN}: ${detail}`,
-        );
+      // Bash-timeout cap. pi's bash tool wraps timeout errors with the
+      // text "Command timed out after <N> seconds" (see
+      // @earendil-works/pi-coding-agent's bash.js error path). We
+      // detect the substring in the structured tool result content.
+      // Total across the attempt (not consecutive) — different
+      // commands timing out is still a death-spiral pattern.
+      if (
+        maxBashTimeouts > 0 &&
+        event.toolName === 'bash' &&
+        event.isError &&
+        isBashTimeoutResult(event.result)
+      ) {
+        state.bashTimeoutCount += 1;
+        if (state.bashTimeoutCount >= maxBashTimeouts) {
+          triggerCapAbort(
+            'max_bash_timeouts_exceeded',
+            `Aborted after ${state.bashTimeoutCount} bash timeouts in this attempt (cap ${maxBashTimeouts}).`,
+          );
+        }
+      }
+    } else if (event.type === 'turn_end') {
+      const msg = event.message as {
+        role?: string;
+        stopReason?: string;
+        // pi-coding-agent attaches a human-readable diagnostic to the
+        // final assistant message when stopReason === 'error'. See
+        // @earendil-works/pi-coding-agent's `AssistantMessage`.
+        // Capturing it here is the only way to propagate the
+        // underlying provider error (model-not-registered, 401, rate
+        // limit, …) up to the task's `error.message` instead of the
+        // generic 'LLM API error during turn'.
+        errorMessage?: string;
+        usage?: {
+          input?: number;
+          output?: number;
+          cacheRead?: number;
+          cacheWrite?: number;
+        };
+      };
+      if (msg?.role === 'assistant' && msg.usage) {
+        usage.inputTokens += Math.max(0, msg.usage.input ?? 0);
+        usage.outputTokens += Math.max(0, msg.usage.output ?? 0);
+        const cr = Math.max(0, msg.usage.cacheRead ?? 0);
+        const cw = Math.max(0, msg.usage.cacheWrite ?? 0);
+        if (cr) usage.cacheReadTokens = (usage.cacheReadTokens ?? 0) + cr;
+        if (cw) usage.cacheWriteTokens = (usage.cacheWriteTokens ?? 0) + cw;
+      }
+      const stopReason = msg?.stopReason ?? 'end_turn';
+      track(emit('turn_end', { stop_reason: stopReason }));
+      // Tool-use turn counter for the max-turns cap. Anthropic SDK
+      // semantics: count only tool-use turns (any turn whose
+      // stopReason !== 'end_turn'). The final text-only response
+      // does not consume a turn. 'aborted' turns (from our own
+      // session.abort, or proposer cancel) are also excluded; they
+      // don't represent forward progress against the cap.
+      if (
+        maxTurns > 0 &&
+        stopReason !== 'end_turn' &&
+        stopReason !== 'aborted' &&
+        stopReason !== 'error'
+      ) {
+        state.toolUseTurnCount += 1;
+        if (state.toolUseTurnCount >= maxTurns) {
+          triggerCapAbort(
+            'max_turns_exceeded',
+            `Aborted after ${state.toolUseTurnCount} tool-use turns (cap ${maxTurns}).`,
+          );
+        }
+      }
+      // Reflect ONLY the final turn's stop reason. pi emits turn_end per
+      // assistant turn; a transient error in an earlier turn that pi then
+      // recovers from (next turn completes cleanly) must not fail the task.
+      // session.prompt() resolves after the final turn, so by the time we
+      // read llmAbort below it holds the terminal state.
+      state.llmAbort = msg?.stopReason === 'error';
+      // Mirror the same "last-turn wins" rule for the error message:
+      // overwrite on each error turn, clear on a recovered turn so a
+      // transient earlier failure doesn't bleed into the final result.
+      if (msg?.stopReason === 'error') {
+        state.llmErrorMessage =
+          typeof msg.errorMessage === 'string' && msg.errorMessage.length > 0
+            ? msg.errorMessage
+            : null;
+      } else {
+        state.llmErrorMessage = null;
       }
     }
-    if (managed) {
-      await managed.vm.close();
+  };
+}
+
+export interface CaptureAttemptOutputDeps {
+  taskType: string;
+  model?: string;
+  /** Original task input, threaded to the parser path for cross-field rules. */
+  input: unknown;
+  /** Streamed assistant text, used only by the legacy parser fallback. */
+  assistantText: string;
+  /** Submit-output handle, or null for task types with no registered schema. */
+  submitToolHandle: Pick<
+    SubmitOutputToolHandle,
+    'getCaptured' | 'getExhaustedValidationFailure'
+  > | null;
+  emit: (
+    kind: TurnEventKind,
+    payload: Record<string, unknown>,
+  ) => Promise<void>;
+}
+
+// Same shape the parser path already returns; alias it so the submit-tool
+// and parser branches can't drift.
+export type CapturedAttemptOutput = ParsedTaskOutputResult;
+
+/**
+ * Resolve the attempt's structured output once the session has finished
+ * cleanly (no run error / provider abort / cancel / cap). Three mutually
+ * exclusive paths, in precedence order:
+ *
+ *   1. Submit tool captured a payload → trust it, compute its CID. A
+ *      canonicalization failure becomes `output_cid_compute_failed`.
+ *   2. Submit tool registered but nothing captured → the exhausted-validation
+ *      failure wins if present, else `submit_output_missing` (recording the
+ *      `output_missing` counter so the never-called path is observable).
+ *   3. No submit tool (legacy task type) → parse the trailing assistant text.
+ *
+ * Extracted from `executePiTask` so this precedence — the part a refactor is
+ * most likely to silently reorder — is unit-tested directly. The caller
+ * still owns the guard deciding whether output capture runs at all.
+ *
+ * @internal Exported for unit testing; not part of the package's public API.
+ */
+export async function captureAttemptOutput(
+  deps: CaptureAttemptOutputDeps,
+): Promise<CapturedAttemptOutput> {
+  const { taskType, model, input, assistantText, submitToolHandle, emit } =
+    deps;
+  // Prefer the submit-tool's captured payload over the parser path.
+  // The submit-tool already validated args against the task type's
+  // output schema; if the model called it successfully we trust the
+  // captured value and skip parsing the trailing assistant text.
+  const captured = submitToolHandle?.getCaptured() ?? null;
+  if (captured) {
+    try {
+      const outputCid = await computeJsonCid(captured);
+      recordTaskOutputParseResult({
+        taskType,
+        model,
+        code: 'captured_via_tool',
+      });
+      return { output: captured, outputCid, error: null };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      const error = {
+        code: 'output_cid_compute_failed',
+        message: `Captured submit-tool output could not be canonicalized: ${message}`,
+      };
+      recordTaskOutputParseResult({
+        taskType,
+        model,
+        code: 'output_cid_compute_failed',
+      });
+      await emit('error', {
+        message: error.message,
+        phase: 'output_validation',
+      });
+      return { output: null, outputCid: null, error };
     }
-    if (workspace) {
-      try {
-        workspace.cleanup();
-      } catch (err) {
-        const detail = err instanceof Error ? err.message : String(err);
-        console.error(
-          `executePiTask: workspace cleanup failed for task ${task.id} ` +
-            `attempt ${attemptN}: ${detail}`,
-        );
-      }
+  }
+
+  if (submitToolHandle) {
+    const exhausted = submitToolHandle.getExhaustedValidationFailure();
+    const error = exhausted ?? {
+      code: 'submit_output_missing',
+      message:
+        'Agent did not satisfy the promised submit-output criterion: ' +
+        'no valid task submit tool call was captured before the session ended.',
+    };
+    // The invalid-args path already records `output_validation_failed`
+    // from inside the submit tool. The pure never-called path has no such
+    // record, so count it here (dimensioned by model) — otherwise
+    // submit-missing failures are invisible to the parse-result counter.
+    if (!exhausted) {
+      recordTaskOutputParseResult({ taskType, model, code: 'output_missing' });
+    }
+    await emit('error', { message: error.message, phase: 'output_validation' });
+    return { output: null, outputCid: null, error };
+  }
+
+  const parsed = await parseStructuredTaskOutput(assistantText, taskType, {
+    model,
+    input,
+  });
+  if (parsed.error) {
+    await emit('error', {
+      message: parsed.error.message,
+      phase: 'output_validation',
+    });
+  }
+  return {
+    output: parsed.output,
+    outputCid: parsed.outputCid,
+    error: parsed.error,
+  };
+}
+
+export interface BuildAttemptResultArgs {
+  taskId: string;
+  attemptN: number;
+  output: Record<string, unknown> | null;
+  outputCid: string | null;
+  usage: TaskUsage;
+  durationMs: number;
+  runError: { code: string; message: string } | null;
+  parseError: { code: string; message: string } | null;
+  // A reporter (buffer/heartbeat) failure is transient, so it carries a
+  // `retryable` flag that survives to the surfaced error (#1538).
+  reporterError: { code: string; message: string; retryable?: boolean } | null;
+  llmAbort: boolean;
+  llmErrorMessage: string | null;
+}
+
+/**
+ * Assemble the terminal `TaskOutput` for a clean-or-failed finish (cancel and
+ * cap aborts are handled by the caller's earlier returns). Encapsulates the
+ * failure-precedence ladder — runError → parseError → reporterError →
+ * provider abort — so the ordering is unit-tested rather than buried in the
+ * orchestrator. A provider abort with no captured diagnostic falls back to a
+ * generic message.
+ *
+ * Errors are non-retryable EXCEPT a reporterError that both wins the ladder
+ * and set `retryable: true` (a transient reporter failure, #1538).
+ *
+ * @internal Exported for unit testing; not part of the package's public API.
+ */
+export function buildAttemptResult(args: BuildAttemptResultArgs): TaskOutput {
+  const status: TaskOutput['status'] =
+    args.runError || args.llmAbort || args.parseError || args.reporterError
+      ? 'failed'
+      : 'completed';
+  const errorCode =
+    args.runError?.code ??
+    args.parseError?.code ??
+    args.reporterError?.code ??
+    (args.llmAbort ? 'llm_api_error' : undefined);
+  const errorMessage =
+    args.runError?.message ??
+    args.parseError?.message ??
+    args.reporterError?.message ??
+    (args.llmAbort
+      ? // Prefer the diagnostic pi captured on the assistant message
+        // over the generic fallback. Most provider failures (model
+        // not in registry, auth errors, rate limits, …) surface here
+        // with the exact reason; without it operators have no way
+        // to distinguish "wrong model id" from "expired token" from
+        // "rate limited" without re-running locally.
+        (args.llmErrorMessage ?? 'LLM API error during turn')
+      : undefined);
+  // Only the reporterError propagates retryability, and only when it is the
+  // error actually surfaced (runError/parseError take precedence above).
+  const errorRetryable =
+    args.reporterError &&
+    errorCode === args.reporterError.code &&
+    errorMessage === args.reporterError.message
+      ? (args.reporterError.retryable ?? false)
+      : false;
+
+  return {
+    taskId: args.taskId,
+    attemptN: args.attemptN,
+    status,
+    output: args.output,
+    outputCid: args.outputCid,
+    usage: args.usage,
+    durationMs: args.durationMs,
+    ...(errorCode && errorMessage
+      ? {
+          error: {
+            code: errorCode,
+            message: errorMessage,
+            retryable: errorRetryable,
+          },
+        }
+      : {}),
+  };
+}
+
+export interface CleanupAttemptDeps {
+  cancelSignal: AbortSignal;
+  cancelListener: (() => void) | null;
+  session: Pick<AgentSession, 'dispose'> | null;
+  /** Whether the reporter was opened (finalize/close only run if so). */
+  reporterOpen: boolean;
+  reporter: Pick<TaskReporter, 'finalize' | 'close'>;
+  finalUsage: TaskUsage;
+  // `managed`/`workspace` are the inferred returns of resumeVm /
+  // prepareTaskWorkspace, which carry more than teardown needs and have no
+  // named alias to `Pick` from — so an inline subset is used for them.
+  managed: { vm: { close: () => Promise<void> } } | null;
+  workspace: { cleanup: () => void } | null;
+  taskId: string;
+  attemptN: number;
+  /** Sink for swallowed-failure diagnostics. Defaults to `console.error`. */
+  logError?: (message: string) => void;
+}
+
+/**
+ * Tear down one attempt's resources, in order: detach the cancel listener →
+ * dispose the pi session → finalize+close the reporter → close the VM →
+ * clean the workspace. Extracted from `executePiTask`'s `finally` so the
+ * swallow-vs-log-vs-propagate policy is pinned by tests.
+ *
+ * Failure handling is deliberately asymmetric and preserved exactly:
+ * `session.dispose()` throws are silently swallowed; reporter finalize/close
+ * and workspace cleanup failures are logged but non-fatal (the task is about
+ * to be reported anyway). `vm.close()` is the one teardown error allowed to
+ * propagate: a leaked VM means a live microVM the host never reclaims, so its
+ * failure must surface loudly rather than be logged and forgotten.
+ *
+ * @internal Exported for unit testing; not part of the package's public API.
+ */
+export async function cleanupAttempt(deps: CleanupAttemptDeps): Promise<void> {
+  const log = deps.logError ?? ((m: string) => console.error(m));
+  // Remove the cancel listener before disposing the session so it can't fire
+  // after `dispose()` has torn the session down. `once` makes this redundant
+  // when the listener already fired, but removeEventListener is a no-op then.
+  if (deps.cancelListener) {
+    deps.cancelSignal.removeEventListener('abort', deps.cancelListener);
+  }
+  if (deps.session) {
+    try {
+      deps.session.dispose();
+    } catch {
+      /* swallow */
+    }
+  }
+  if (deps.reporterOpen) {
+    try {
+      await deps.reporter.finalize(deps.finalUsage);
+    } catch (err) {
+      // finalize() drains the reporter's buffer, so a failure here means
+      // buffered messages were lost or a retry restored them to the buffer —
+      // either way the task is about to be marked complete. Log so the loss
+      // is visible in the worker log instead of hidden inside an empty catch.
+      const detail = err instanceof Error ? err.message : String(err);
+      log(
+        `executePiTask: reporter.finalize() failed for task ${deps.taskId} ` +
+          `attempt ${deps.attemptN}: ${detail}`,
+      );
+    }
+    try {
+      await deps.reporter.close();
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err);
+      log(
+        `executePiTask: reporter.close() failed for task ${deps.taskId} ` +
+          `attempt ${deps.attemptN}: ${detail}`,
+      );
+    }
+  }
+  if (deps.managed) {
+    await deps.managed.vm.close();
+  }
+  if (deps.workspace) {
+    try {
+      deps.workspace.cleanup();
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err);
+      log(
+        `executePiTask: workspace cleanup failed for task ${deps.taskId} ` +
+          `attempt ${deps.attemptN}: ${detail}`,
+      );
     }
   }
 }

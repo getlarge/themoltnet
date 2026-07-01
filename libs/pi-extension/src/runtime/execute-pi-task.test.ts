@@ -1,8 +1,16 @@
 /**
- * Focused tests for the final-output parsing helpers and the
- * cancellation-wiring helper. The full `executePiTask` flow needs a
- * booted Gondolin VM and is covered by the integration demo / a future
- * e2e once we have one that exercises pi against a real task type.
+ * Focused tests for the executor's extracted phase helpers
+ * (`makeSessionEventHandler`, `captureAttemptOutput`, `buildAttemptResult`,
+ * the provider/submit-retry helpers, …) and the parsing/cancellation
+ * utilities.
+ *
+ * KNOWN GAP: `executePiTask` itself — the orchestration shell that *wires*
+ * these helpers together — needs a booted Gondolin VM and is not unit-tested
+ * here. The helpers are pinned in isolation, so a mis-wire (passing a helper
+ * the wrong dep, or running output capture outside the cancel/cap guard)
+ * would NOT fail these tests; it is caught by the daemon e2e / live smoke
+ * runs instead. Treat that integration seam accordingly when changing the
+ * shell.
  */
 import { Readable } from 'node:stream';
 
@@ -17,19 +25,25 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  buildAttemptResult,
   buildSubmitMissingPrompt,
+  captureAttemptOutput,
+  cleanupAttempt,
   computeProviderErrorRetryDelay,
   createGondolinToolDefinitions,
+  createSessionTurnState,
   describeToolErrorMessage,
   formatProviderErrorRetryNotification,
   formatProviderErrorRetryStatus,
   isBashTimeoutResult,
+  makeSessionEventHandler,
   notifyProviderErrorRetryUi,
   openVmWorkspaceFileForRead,
   promptUntilSubmitted,
   promptWithProviderErrorRetries,
   resolveSubmitMissingConfig,
   sanitizeProviderErrorRetryReason,
+  type SessionSubscribeEvent,
   shouldEmitToolCallError,
   shouldRetryProviderErrorMessage,
   submitRepromptStopped,
@@ -350,6 +364,634 @@ describe('provider error same-session retry helpers', () => {
     expect(sanitizeProviderErrorRetryReason(null)).toBe(
       'Pi turn ended with stopReason=error',
     );
+  });
+});
+
+describe('cleanupAttempt (teardown characterization)', () => {
+  function makeDeps(overrides?: Partial<Parameters<typeof cleanupAttempt>[0]>) {
+    const order: string[] = [];
+    const logged: string[] = [];
+    const signal = new AbortController().signal;
+    const cancelListener = vi.fn();
+    const removeSpy = vi
+      .spyOn(signal, 'removeEventListener')
+      .mockImplementation(() => {
+        order.push('removeListener');
+      });
+    const deps = {
+      cancelSignal: signal,
+      cancelListener,
+      session: {
+        dispose: vi.fn(() => {
+          order.push('dispose');
+        }),
+      },
+      reporterOpen: true,
+      reporter: {
+        finalize: vi.fn(async () => {
+          order.push('finalize');
+        }),
+        close: vi.fn(async () => {
+          order.push('close');
+        }),
+      },
+      finalUsage: {
+        provider: 'p',
+        model: 'm',
+        inputTokens: 0,
+        outputTokens: 0,
+      },
+      managed: {
+        vm: {
+          close: vi.fn(async () => {
+            order.push('vmClose');
+          }),
+        },
+      },
+      workspace: {
+        cleanup: vi.fn(() => {
+          order.push('cleanup');
+        }),
+      },
+      taskId: 't1',
+      attemptN: 1,
+      logError: (m: string) => {
+        logged.push(m);
+      },
+      ...overrides,
+    } as Parameters<typeof cleanupAttempt>[0];
+    return { deps, order, logged, removeSpy };
+  }
+
+  it('tears down in order: listener → session → reporter → vm → workspace', async () => {
+    const { deps, order } = makeDeps();
+    await cleanupAttempt(deps);
+    expect(order).toEqual([
+      'removeListener',
+      'dispose',
+      'finalize',
+      'close',
+      'vmClose',
+      'cleanup',
+    ]);
+  });
+
+  it('skips reporter finalize/close when the reporter was never opened', async () => {
+    const { deps, order } = makeDeps({ reporterOpen: false });
+    await cleanupAttempt(deps);
+    expect(order).not.toContain('finalize');
+    expect(order).not.toContain('close');
+    expect(order).toContain('vmClose');
+  });
+
+  it('swallows a session.dispose() throw and continues teardown', async () => {
+    const { deps, order } = makeDeps({
+      session: {
+        dispose: () => {
+          throw new Error('dispose boom');
+        },
+      },
+    });
+    await expect(cleanupAttempt(deps)).resolves.toBeUndefined();
+    expect(order).toContain('finalize'); // continued past dispose
+  });
+
+  it('logs a reporter.finalize() failure but still closes the reporter', async () => {
+    const { deps, order, logged } = makeDeps({
+      reporter: {
+        finalize: async () => {
+          throw new Error('finalize boom');
+        },
+        close: vi.fn(async () => {
+          order.push('close');
+        }),
+      },
+    });
+    await cleanupAttempt(deps);
+    expect(order).toContain('close');
+    expect(logged.some((m) => m.includes('reporter.finalize() failed'))).toBe(
+      true,
+    );
+  });
+
+  it('logs a reporter.close() failure instead of propagating it', async () => {
+    const { deps, logged } = makeDeps({
+      reporter: {
+        finalize: vi.fn(async () => {}),
+        close: async () => {
+          throw new Error('close boom');
+        },
+      },
+    });
+    // close() failure is non-fatal (unlike vm.close): swallowed + logged.
+    await expect(cleanupAttempt(deps)).resolves.toBeUndefined();
+    expect(logged.some((m) => m.includes('reporter.close() failed'))).toBe(
+      true,
+    );
+  });
+
+  it('logs a workspace cleanup failure instead of throwing', async () => {
+    const { deps, logged } = makeDeps({
+      workspace: {
+        cleanup: () => {
+          throw new Error('cleanup boom');
+        },
+      },
+    });
+    await expect(cleanupAttempt(deps)).resolves.toBeUndefined();
+    expect(logged.some((m) => m.includes('workspace cleanup failed'))).toBe(
+      true,
+    );
+  });
+
+  it('lets a vm.close() failure propagate (not swallowed)', async () => {
+    const { deps } = makeDeps({
+      managed: {
+        vm: {
+          close: async () => {
+            throw new Error('vm boom');
+          },
+        },
+      },
+    });
+    await expect(cleanupAttempt(deps)).rejects.toThrow('vm boom');
+  });
+
+  it('no-ops on null session / managed / workspace / listener', async () => {
+    const { deps } = makeDeps({
+      cancelListener: null,
+      session: null,
+      reporterOpen: false,
+      managed: null,
+      workspace: null,
+    });
+    await expect(cleanupAttempt(deps)).resolves.toBeUndefined();
+  });
+});
+
+describe('buildAttemptResult (result-construction characterization)', () => {
+  const base = {
+    taskId: 't1',
+    attemptN: 1,
+    output: { ok: true } as Record<string, unknown> | null,
+    outputCid: 'cid:abc',
+    usage: {
+      provider: 'p',
+      model: 'm',
+      inputTokens: 1,
+      outputTokens: 2,
+    } as never,
+    durationMs: 42,
+    runError: null as { code: string; message: string } | null,
+    parseError: null as { code: string; message: string } | null,
+    reporterError: null as { code: string; message: string } | null,
+    llmAbort: false,
+    llmErrorMessage: null as string | null,
+  };
+
+  it('completes cleanly with no error field when nothing failed', () => {
+    const out = buildAttemptResult({ ...base });
+    expect(out.status).toBe('completed');
+    expect(out.output).toEqual({ ok: true });
+    expect(out.outputCid).toBe('cid:abc');
+    expect(out.error).toBeUndefined();
+  });
+
+  it('fails with the runError, which wins over parse/llm errors', () => {
+    const out = buildAttemptResult({
+      ...base,
+      runError: { code: 'session_prompt_failed', message: 'boom' },
+      parseError: { code: 'output_validation_failed', message: 'bad' },
+      llmAbort: true,
+      llmErrorMessage: '401',
+    });
+    expect(out.status).toBe('failed');
+    expect(out.error).toEqual({
+      code: 'session_prompt_failed',
+      message: 'boom',
+      retryable: false,
+    });
+  });
+
+  it('surfaces a parse error when there is no run error', () => {
+    const out = buildAttemptResult({
+      ...base,
+      parseError: { code: 'submit_output_missing', message: 'no submit' },
+    });
+    expect(out.status).toBe('failed');
+    expect(out.error?.code).toBe('submit_output_missing');
+  });
+
+  it('ranks parseError above reporterError above the provider abort', () => {
+    // parse beats reporter
+    expect(
+      buildAttemptResult({
+        ...base,
+        parseError: { code: 'submit_output_missing', message: 'no submit' },
+        reporterError: { code: 'reporter_failed', message: 'buffer lost' },
+        llmAbort: true,
+        llmErrorMessage: '401',
+      }).error?.code,
+    ).toBe('submit_output_missing');
+    // with no parse error, reporter beats the provider abort
+    expect(
+      buildAttemptResult({
+        ...base,
+        reporterError: { code: 'reporter_failed', message: 'buffer lost' },
+        llmAbort: true,
+        llmErrorMessage: '401',
+      }).error?.code,
+    ).toBe('reporter_failed');
+  });
+
+  it('maps a provider abort to llm_api_error with the captured diagnostic', () => {
+    const out = buildAttemptResult({
+      ...base,
+      llmAbort: true,
+      llmErrorMessage: "Model 'x' not found in registry",
+    });
+    expect(out.error).toEqual({
+      code: 'llm_api_error',
+      message: "Model 'x' not found in registry",
+      retryable: false,
+    });
+  });
+
+  it('uses a generic provider message when no diagnostic was captured', () => {
+    const out = buildAttemptResult({ ...base, llmAbort: true });
+    expect(out.error).toEqual({
+      code: 'llm_api_error',
+      message: 'LLM API error during turn',
+      retryable: false,
+    });
+  });
+
+  it('surfaces a reporter error when it is the only failure', () => {
+    const out = buildAttemptResult({
+      ...base,
+      reporterError: { code: 'reporter_failed', message: 'buffer lost' },
+    });
+    expect(out.status).toBe('failed');
+    expect(out.error).toEqual({
+      code: 'reporter_failed',
+      message: 'buffer lost',
+      retryable: false,
+    });
+  });
+
+  it('propagates a retryable reporter failure only when it is the surfaced error', () => {
+    const reporterError = {
+      code: 'reporter_failed',
+      message: 'buffer lost',
+      retryable: true,
+    };
+    // reporterError wins the ladder → its retryable flag surfaces (#1538).
+    expect(buildAttemptResult({ ...base, reporterError }).error).toEqual({
+      code: 'reporter_failed',
+      message: 'buffer lost',
+      retryable: true,
+    });
+    // a runError takes precedence → surfaced error is non-retryable; the
+    // reporter's retryable flag must NOT bleed onto it.
+    expect(
+      buildAttemptResult({
+        ...base,
+        runError: { code: 'session_prompt_failed', message: 'boom' },
+        reporterError,
+      }).error,
+    ).toEqual({
+      code: 'session_prompt_failed',
+      message: 'boom',
+      retryable: false,
+    });
+  });
+});
+
+describe('captureAttemptOutput (output-capture characterization)', () => {
+  function fakeHandle(opts: {
+    captured?: Record<string, unknown> | null;
+    exhausted?: { code: string; message: string } | null;
+  }) {
+    return {
+      getCaptured: () => opts.captured ?? null,
+      getExhaustedValidationFailure: () => opts.exhausted ?? null,
+    };
+  }
+  function makeEmit() {
+    const emitted: Array<{ kind: string; payload: Record<string, unknown> }> =
+      [];
+    const emit = (kind: string, payload: Record<string, unknown>) => {
+      emitted.push({ kind, payload });
+      return Promise.resolve();
+    };
+    return { emit, emitted };
+  }
+
+  it('prefers the submit-tool captured payload and computes its CID', async () => {
+    const { emit, emitted } = makeEmit();
+    const payload = { summary: 'done', artifacts: [] };
+    const result = await captureAttemptOutput({
+      taskType: 'freeform',
+      model: 'm',
+      input: {},
+      assistantText: 'ignored prose',
+      submitToolHandle: fakeHandle({ captured: payload }),
+      emit: emit as never,
+    });
+    expect(result.output).toEqual(payload);
+    expect(typeof result.outputCid).toBe('string');
+    expect(result.outputCid).not.toBeNull();
+    expect(result.error).toBeNull();
+    expect(emitted).toHaveLength(0);
+  });
+
+  it('fails with output_cid_compute_failed when the captured payload cannot be canonicalized', async () => {
+    const { emit, emitted } = makeEmit();
+    // BigInt is not JSON/canonicalization-serializable → CID compute throws.
+    const result = await captureAttemptOutput({
+      taskType: 'freeform',
+      model: 'm',
+      input: {},
+      assistantText: '',
+      submitToolHandle: fakeHandle({ captured: { n: 1n } as never }),
+      emit: emit as never,
+    });
+    expect(result.output).toBeNull();
+    expect(result.outputCid).toBeNull();
+    expect(result.error?.code).toBe('output_cid_compute_failed');
+    expect(emitted).toEqual([
+      {
+        kind: 'error',
+        payload: {
+          message: expect.stringContaining('could not be canonicalized'),
+          phase: 'output_validation',
+        },
+      },
+    ]);
+  });
+
+  it('reports submit_output_missing when the tool was never called', async () => {
+    const { emit, emitted } = makeEmit();
+    const result = await captureAttemptOutput({
+      taskType: 'freeform',
+      model: 'm',
+      input: {},
+      assistantText: 'just prose, no tool call',
+      submitToolHandle: fakeHandle({ captured: null, exhausted: null }),
+      emit: emit as never,
+    });
+    expect(result.output).toBeNull();
+    expect(result.error?.code).toBe('submit_output_missing');
+    expect(emitted[0].payload.phase).toBe('output_validation');
+  });
+
+  it('surfaces the exhausted-validation failure verbatim (no submit_output_missing)', async () => {
+    const { emit } = makeEmit();
+    const exhausted = {
+      code: 'output_validation_failed',
+      message: 'budget spent',
+    };
+    const result = await captureAttemptOutput({
+      taskType: 'freeform',
+      model: 'm',
+      input: {},
+      assistantText: '',
+      submitToolHandle: fakeHandle({ captured: null, exhausted }),
+      emit: emit as never,
+    });
+    expect(result.error).toEqual(exhausted);
+  });
+
+  it('falls back to parsing assistant text when no submit tool is registered', async () => {
+    const { emit } = makeEmit();
+    const result = await captureAttemptOutput({
+      taskType: 'freeform',
+      model: 'm',
+      input: {},
+      assistantText: 'no structured output here',
+      submitToolHandle: null,
+      emit: emit as never,
+    });
+    // Routed to the parser path, which rejects unparseable prose.
+    expect(result.output).toBeNull();
+    expect(result.error).not.toBeNull();
+  });
+});
+
+describe('makeSessionEventHandler (subscribe-handler characterization)', () => {
+  // The real exported event type. The `as unknown as Ev` casts below mean a
+  // renamed pi field won't fail these fakes directly — the true guard is the
+  // SOURCE handler's `event.toolName` / `event.message.stopReason` accesses
+  // failing to compile against the renamed union.
+  type Ev = SessionSubscribeEvent;
+
+  function makeDeps(overrides?: {
+    maxTurns?: number;
+    maxBashTimeouts?: number;
+  }) {
+    const emitted: Array<{ kind: string; payload: Record<string, unknown> }> =
+      [];
+    const caps: Array<{ code: string; message: string }> = [];
+    const state = createSessionTurnState();
+    const usage = {
+      provider: 'p',
+      model: 'm',
+      inputTokens: 0,
+      outputTokens: 0,
+    } as Parameters<typeof makeSessionEventHandler>[0]['usage'];
+    const deps = {
+      state,
+      usage,
+      maxTurns: overrides?.maxTurns ?? 0,
+      maxBashTimeouts: overrides?.maxBashTimeouts ?? 3,
+      emit: (kind: string, payload: Record<string, unknown>) => {
+        emitted.push({ kind, payload });
+        return Promise.resolve();
+      },
+      emitError: (
+        phase: string,
+        message: string,
+        extra: Record<string, unknown> = {},
+      ) => {
+        emitted.push({ kind: 'error', payload: { phase, message, ...extra } });
+        return Promise.resolve();
+      },
+      track: () => {},
+      triggerCapAbort: (code: string, message: string) => {
+        caps.push({ code, message });
+      },
+    } as Parameters<typeof makeSessionEventHandler>[0];
+    return { deps, emitted, caps, state, usage };
+  }
+
+  function turnEnd(stopReason: string, extra?: Record<string, unknown>): Ev {
+    return {
+      type: 'turn_end',
+      message: { role: 'assistant', stopReason, ...extra },
+    } as unknown as Ev;
+  }
+
+  it('accumulates streamed assistant text and emits each delta', () => {
+    const { deps, state, emitted } = makeDeps();
+    const handler = makeSessionEventHandler(deps);
+    handler({
+      type: 'message_update',
+      assistantMessageEvent: { type: 'text_delta', delta: 'Hello ' },
+    } as unknown as Ev);
+    handler({
+      type: 'message_update',
+      assistantMessageEvent: { type: 'text_delta', delta: 'world' },
+    } as unknown as Ev);
+    expect(state.assistantText).toBe('Hello world');
+    expect(emitted).toEqual([
+      { kind: 'text_delta', payload: { delta: 'Hello ' } },
+      { kind: 'text_delta', payload: { delta: 'world' } },
+    ]);
+  });
+
+  it('bridges tool-execution events to the reporter, including the error branch', () => {
+    const { deps, emitted } = makeDeps();
+    const handler = makeSessionEventHandler(deps);
+    handler({
+      type: 'tool_execution_start',
+      toolName: 'bash',
+    } as unknown as Ev);
+    // A successful tool call: no truncated result, no tool_call_error.
+    handler({
+      type: 'tool_execution_end',
+      toolName: 'read',
+      isError: false,
+      result: { content: [{ type: 'text', text: 'ok' }] },
+    } as unknown as Ev);
+    // A failing non-bash tool call: surfaces tool_call_end (with result) +
+    // tool_call_error. (bash errors are routed through the timeout path, not
+    // tool_call_error — see shouldEmitToolCallError.)
+    handler({
+      type: 'tool_execution_end',
+      toolName: 'edit',
+      isError: true,
+      result: { content: [{ type: 'text', text: 'boom' }] },
+    } as unknown as Ev);
+
+    expect(emitted[0]).toEqual({
+      kind: 'tool_call_start',
+      payload: { tool_name: 'bash' },
+    });
+    expect(emitted[1]).toEqual({
+      kind: 'tool_call_end',
+      payload: { tool_name: 'read', is_error: false, result: undefined },
+    });
+    expect(emitted[2]).toMatchObject({
+      kind: 'tool_call_end',
+      payload: { tool_name: 'edit', is_error: true },
+    });
+    expect(emitted[3]).toMatchObject({
+      kind: 'error',
+      payload: { phase: 'tool_call_error', tool: 'edit' },
+    });
+  });
+
+  it('emits turn_end with the stop reason and skips usage for non-assistant turns', () => {
+    const { deps, usage, emitted } = makeDeps();
+    const handler = makeSessionEventHandler(deps);
+    handler({
+      type: 'turn_end',
+      message: { role: 'user', stopReason: 'end_turn', usage: { input: 9 } },
+    } as unknown as Ev);
+    expect(usage.inputTokens).toBe(0); // role !== 'assistant' → not accumulated
+    expect(emitted).toEqual([
+      { kind: 'turn_end', payload: { stop_reason: 'end_turn' } },
+    ]);
+  });
+
+  it('does not count turns or timeouts when the caps are disabled (0)', () => {
+    const { deps, caps, state } = makeDeps({
+      maxTurns: 0,
+      maxBashTimeouts: 0,
+    });
+    const handler = makeSessionEventHandler(deps);
+    handler(turnEnd('tool_use'));
+    handler({
+      type: 'tool_execution_end',
+      toolName: 'bash',
+      isError: true,
+      result: {
+        content: [{ type: 'text', text: 'Command timed out after 9 seconds' }],
+      },
+    } as unknown as Ev);
+    expect(state.toolUseTurnCount).toBe(0);
+    expect(state.bashTimeoutCount).toBe(0);
+    expect(caps).toHaveLength(0);
+  });
+
+  it('accumulates token usage from assistant turn_end events', () => {
+    const { deps, usage } = makeDeps();
+    const handler = makeSessionEventHandler(deps);
+    handler(
+      turnEnd('end_turn', {
+        usage: { input: 10, output: 5, cacheRead: 3, cacheWrite: 2 },
+      }),
+    );
+    handler(turnEnd('end_turn', { usage: { input: 1, output: 1 } }));
+    expect(usage.inputTokens).toBe(11);
+    expect(usage.outputTokens).toBe(6);
+    expect(usage.cacheReadTokens).toBe(3);
+    expect(usage.cacheWriteTokens).toBe(2);
+  });
+
+  it('applies last-turn-wins for the provider-error stop reason', () => {
+    const { deps, state } = makeDeps();
+    const handler = makeSessionEventHandler(deps);
+    // An error turn sets the abort + diagnostic...
+    handler(turnEnd('error', { errorMessage: 'model not found' }));
+    expect(state.llmAbort).toBe(true);
+    expect(state.llmErrorMessage).toBe('model not found');
+    // ...a later clean turn (pi recovered) clears both.
+    handler(turnEnd('end_turn'));
+    expect(state.llmAbort).toBe(false);
+    expect(state.llmErrorMessage).toBeNull();
+  });
+
+  it('counts only tool-use turns toward the max-turns cap', () => {
+    const { deps, caps, state } = makeDeps({ maxTurns: 2 });
+    const handler = makeSessionEventHandler(deps);
+    handler(turnEnd('end_turn')); // text-only: not counted
+    handler(turnEnd('aborted')); // not counted
+    handler(turnEnd('error')); // not counted
+    expect(state.toolUseTurnCount).toBe(0);
+    handler(turnEnd('tool_use'));
+    handler(turnEnd('tool_use'));
+    expect(state.toolUseTurnCount).toBe(2);
+    expect(caps).toEqual([
+      {
+        code: 'max_turns_exceeded',
+        message: 'Aborted after 2 tool-use turns (cap 2).',
+      },
+    ]);
+  });
+
+  it('triggers the bash-timeout cap on repeated bash timeouts', () => {
+    const { deps, caps, state } = makeDeps({ maxBashTimeouts: 2 });
+    const handler = makeSessionEventHandler(deps);
+    const timeout = {
+      type: 'tool_execution_end',
+      toolName: 'bash',
+      isError: true,
+      result: {
+        content: [{ type: 'text', text: 'Command timed out after 30 seconds' }],
+      },
+    } as unknown as Ev;
+    handler(timeout);
+    expect(state.bashTimeoutCount).toBe(1);
+    expect(caps).toHaveLength(0);
+    handler(timeout);
+    expect(state.bashTimeoutCount).toBe(2);
+    expect(caps).toEqual([
+      {
+        code: 'max_bash_timeouts_exceeded',
+        message: 'Aborted after 2 bash timeouts in this attempt (cap 2).',
+      },
+    ]);
   });
 });
 
