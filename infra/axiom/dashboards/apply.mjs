@@ -34,7 +34,7 @@ function assertNoApiUnsupportedMetricFilters({ defs }) {
       for (const filter of chart.filters ?? []) {
         if (filter?.selectType === 'query') {
           unsupported.push(
-            `${file}: filter "${filter.name ?? filter.id ?? '(unnamed)'}"`
+            `${file}: filter "${filter.name ?? filter.id ?? '(unnamed)'}"`,
           );
         }
       }
@@ -50,7 +50,7 @@ function assertNoApiUnsupportedMetricFilters({ defs }) {
       'must not be applied through the public API until Axiom supports that',
       'filter type on writes:',
       ...unsupported.map((item) => `- ${item}`),
-    ].join('\n')
+    ].join('\n'),
   );
 }
 
@@ -67,7 +67,7 @@ run(
       // output. A failed list (bad token, 5xx) throws and aborts before any write.
       const existing = await api.getJson('/v2/dashboards');
       const uidsInOrg = new Set(
-        existing.map((d) => d?.dashboard?.uid).filter(Boolean)
+        existing.map((d) => d?.dashboard?.uid).filter(Boolean),
       );
 
       return defs.map(({ def, file }) => {
@@ -90,5 +90,5 @@ run(
       });
     },
   },
-  { scriptUrl: import.meta.url }
+  { scriptUrl: import.meta.url },
 );

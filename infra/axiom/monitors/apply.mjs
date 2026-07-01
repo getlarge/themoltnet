@@ -66,5 +66,5 @@ run(
       });
     },
   },
-  { scriptUrl: import.meta.url }
+  { scriptUrl: import.meta.url },
 );

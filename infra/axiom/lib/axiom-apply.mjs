@@ -81,7 +81,7 @@ async function loadDefinitions(scriptDir) {
       } catch (err) {
         throw new Error(`Failed to parse ${full}: ${err.message}`);
       }
-    })
+    }),
   );
 }
 
@@ -92,7 +92,7 @@ async function loadDefinitions(scriptDir) {
  */
 export async function run(
   config,
-  { scriptUrl, argv = process.argv.slice(2), env = process.env }
+  { scriptUrl, argv = process.argv.slice(2), env = process.env },
 ) {
   const dryRun = argv.includes('--dry-run');
   const apiUrl = env.AXIOM_API_URL || 'https://api.axiom.co';
@@ -145,7 +145,7 @@ export async function run(
       await api.send(item.method, item.path, item.body);
     } catch (err) {
       console.error(
-        `FATAL: failed to ${item.action} ${config.label} '${item.name}': ${err.message}`
+        `FATAL: failed to ${item.action} ${config.label} '${item.name}': ${err.message}`,
       );
       process.exitCode = 1;
       return;
