@@ -470,15 +470,14 @@ describe('ApiTaskReporter', () => {
           payload: { event: 'task_started' },
         })
         .catch((err: unknown) => err);
-      // Drain the 2 backoffs between 3 attempts: 100 + 200 ms.
-      await vi.advanceTimersByTimeAsync(500);
+      // Drain the 4 backoffs between 5 attempts: 100 + 200 + 300 + 400 ms.
+      await vi.advanceTimersByTimeAsync(1_000);
       const result = await recordPromise;
       expect(result).toBeInstanceOf(Error);
       expect((result as Error).message).toMatch(/append messages failed/);
-      // 3 attempts max, then surface (down from 5 — see appendWithFirstCallRetry
-      // comment: realistic Keto window is "tens of milliseconds", 100+200ms
-      // covers it with margin without prolonging permanent-failure paths).
-      expect(appendMock).toHaveBeenCalledTimes(3);
+      // Matches sendInitialHeartbeat and the REST e2e claimant-consistency
+      // regression: 5 attempts max, then surface.
+      expect(appendMock).toHaveBeenCalledTimes(5);
     });
 
     it('after re-open, the first-append retry budget is restored', async () => {

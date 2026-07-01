@@ -163,7 +163,9 @@ import { createTasksNamespace } from './namespaces/tasks.js';
 import { createTeamsNamespace } from './namespaces/teams.js';
 import { createVouchNamespace } from './namespaces/vouch.js';
 import type {
+  BuildRubricSuccessCriteriaOptions,
   BuiltTask,
+  JudgeEvalAttemptTarget,
   TaskBuilder,
   TaskResultReader,
 } from './tasks/index.js';
@@ -581,6 +583,11 @@ export interface TasksNamespace {
       'targetTaskId' | 'targetAttemptN' | 'successCriteria'
     > &
       Partial<JudgeEvalAttemptInput>,
+  ): TaskBuilder<JudgeEvalAttemptInput>;
+  /** Build a `judge_eval_attempt` from an accepted `run_eval` target and eval/checklist criteria. */
+  buildJudgeEvalAttemptForRunEval(
+    target: JudgeEvalAttemptTarget,
+    options: BuildRubricSuccessCriteriaOptions,
   ): TaskBuilder<JudgeEvalAttemptInput>;
   /** Typed builder for a `pr_review` task (subject + successCriteria required). */
   buildPrReview(

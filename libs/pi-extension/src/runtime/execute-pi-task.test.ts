@@ -638,6 +638,33 @@ describe('buildAttemptResult (result-construction characterization)', () => {
       retryable: false,
     });
   });
+
+  it('propagates a retryable reporter failure only when it is the surfaced error', () => {
+    const reporterError = {
+      code: 'reporter_failed',
+      message: 'buffer lost',
+      retryable: true,
+    };
+    // reporterError wins the ladder → its retryable flag surfaces (#1538).
+    expect(buildAttemptResult({ ...base, reporterError }).error).toEqual({
+      code: 'reporter_failed',
+      message: 'buffer lost',
+      retryable: true,
+    });
+    // a runError takes precedence → surfaced error is non-retryable; the
+    // reporter's retryable flag must NOT bleed onto it.
+    expect(
+      buildAttemptResult({
+        ...base,
+        runError: { code: 'session_prompt_failed', message: 'boom' },
+        reporterError,
+      }).error,
+    ).toEqual({
+      code: 'session_prompt_failed',
+      message: 'boom',
+      retryable: false,
+    });
+  });
 });
 
 describe('captureAttemptOutput (output-capture characterization)', () => {

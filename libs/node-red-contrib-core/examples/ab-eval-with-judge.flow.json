@@ -12,12 +12,16 @@
             "id": "sf_ab_build_run_eval"
           }
         ],
-        "x": 40,
-        "y": 120
+        "x": 90,
+        "y": 40
       }
     ],
-    "info": "Generic run_eval -> local score -> judge_eval_attempt pipeline. Parent flow supplies msg.evalScenario, msg.evalVariantLabel, msg.evalSkillContext, msg.evalJudgeCriteria, and msg.correlationId. Configure the agent/runtime-profile nodes after import, then run matching agent daemons.",
-    "meta": {},
+    "info": "Generic run_eval -> local score -> judge_eval_attempt lane. Parent flow supplies msg.evalScenario, one msg.evalVariant, msg.evalSkillContext, msg.evalJudgeCriteria, and msg.correlationId. The subflow emits one lane result; parent flows own fan-out/fan-in and group completion.",
+    "inputLabels": ["eval config"],
+    "meta": {
+      "author": "ed@getlarge.eu",
+      "license": "Apache-2.0"
+    },
     "name": "A/B eval with judge",
     "out": [
       {
@@ -25,21 +29,50 @@
           {
             "id": "sf_ab_store_delta",
             "port": 0
+          },
+          {
+            "id": "sf_ab_pack_lane_failure",
+            "port": 0
+          },
+          {
+            "id": "sf_ab_pack_node_error",
+            "port": 0
           }
         ],
-        "x": 1280,
-        "y": 280
+        "x": 1320,
+        "y": 360
+      },
+      {
+        "wires": [
+          {
+            "id": "1f190a60c144f6ec",
+            "port": 0
+          }
+        ],
+        "x": 1320,
+        "y": 80
       }
     ],
+    "outputLabels": ["workflow state", "task tail events"],
+    "status": {
+      "wires": [
+        {
+          "id": "a72acb578ef0ea20",
+          "port": 0
+        }
+      ],
+      "x": 1280,
+      "y": 720
+    },
     "type": "subflow"
   },
   {
-    "func": "const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;\nconst scenario = msg.evalScenario;\nif (!scenario || typeof scenario !== 'object') {\n  node.error('Missing msg.evalScenario', msg);\n  return null;\n}\nconst variantLabel = msg.evalVariantLabel || msg.payload?.variantLabel || 'skill-rubric-v1';\nconst correlationId = msg.correlationId || msg.evalGroupCorrelationId || msg.payload?.correlationId;\nif (!uuidRe.test(String(correlationId || ''))) {\n  node.error('Missing valid correlationId for eval group', msg);\n  return null;\n}\nconst evidence = scenario.evidence || {};\nconst expected = scenario.expected || {};\nconst basePrompt = scenario.prompt || [\n  'Run this eval scenario.',\n  '',\n  'Return ONLY one valid JSON object. Do not use Markdown, headings, prose, tables, or code fences.',\n  'Use only the supplied evidence. Do not browse. Do not invent facts. Mark unknowns explicitly.',\n  '',\n  'Scenario: ' + (scenario.title || scenario.id || 'unknown'),\n  'Variant: ' + variantLabel,\n  '',\n  'Evidence JSON:',\n  JSON.stringify(evidence, null, 2)\n].join('\\n');\nconst taskContexts = [\n  { slug: 'eval-evidence', binding: 'context_inline', content: JSON.stringify(evidence, null, 2) },\n  { slug: 'eval-expectations', binding: 'context_inline', content: JSON.stringify(expected, null, 2) }\n];\nif (variantLabel !== 'baseline-no-skill' && msg.evalSkillContext?.content) {\n  taskContexts.unshift({\n    slug: msg.evalSkillContext.slug || 'eval-skill-context',\n    binding: msg.evalSkillContext.binding || 'skill',\n    content: msg.evalSkillContext.content\n  });\n}\nmsg.correlationId = correlationId;\nmsg.evalGroupCorrelationId = correlationId;\nmsg.evalScenario = scenario;\nmsg.evalVariantLabel = variantLabel;\nmsg.payload = {\n  taskType: 'run_eval',\n  title: 'Eval: ' + (scenario.id || 'scenario') + ' / ' + variantLabel,\n  tags: ['eval', scenario.id || 'scenario', variantLabel],\n  correlationId,\n  input: {\n    scenario: { prompt: basePrompt },\n    variantLabel,\n    execution: { mode: 'vitro', workspace: 'none' },\n    context: taskContexts\n  }\n};\nreturn msg;",
+    "func": "function allowedProfilesFrom(value) {\n  if (!value) return undefined;\n  if (Array.isArray(value)) return value;\n  if (typeof value === 'string') return [{ profileId: value }];\n  if (typeof value === 'object') {\n    if (Array.isArray(value.allowedProfiles)) return value.allowedProfiles;\n    if (typeof value.profileId === 'string' && value.profileId) return [{ profileId: value.profileId }];\n  }\n  return undefined;\n}\nconst uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;\nconst scenario = msg.evalScenario;\nif (!scenario || typeof scenario !== 'object') {\n  node.error('Missing msg.evalScenario', msg);\n  return null;\n}\nconst variant = msg.evalVariant && typeof msg.evalVariant === 'object'\n  ? msg.evalVariant\n  : { label: msg.evalVariantLabel || msg.payload?.variantLabel || 'with-context' };\nconst variantLabel = variant.label || msg.evalVariantLabel || 'with-context';\nconst correlationId = msg.correlationId || msg.evalGroupCorrelationId || msg.payload?.correlationId;\nif (!uuidRe.test(String(correlationId || ''))) {\n  node.error('Missing valid correlationId for eval group', msg);\n  return null;\n}\nconst evidence = scenario.evidence || {};\nconst expected = scenario.expected || {};\nconst basePrompt = variant.prompt || scenario.prompt || [\n  'Run this eval scenario.',\n  '',\n  'Return ONLY one valid JSON object. Do not use Markdown, headings, prose, tables, or code fences.',\n  'Use only the supplied evidence. Do not browse. Do not invent facts. Mark unknowns explicitly.',\n  '',\n  'Scenario: ' + (scenario.title || scenario.id || 'unknown'),\n  'Variant: ' + variantLabel,\n  '',\n  'Evidence JSON:',\n  JSON.stringify(evidence, null, 2)\n].join('\\n');\nconst taskContexts = [];\nif (Array.isArray(variant.context)) {\n  taskContexts.push(...variant.context);\n} else if (variant.includeSkill !== false && msg.evalSkillContext?.content) {\n  taskContexts.push({\n    slug: msg.evalSkillContext.slug || 'eval-skill-context',\n    binding: msg.evalSkillContext.binding || 'skill',\n    content: msg.evalSkillContext.content\n  });\n}\ntaskContexts.push(\n  { slug: 'eval-evidence', binding: 'context_inline', content: JSON.stringify(evidence, null, 2) },\n  { slug: 'eval-expectations', binding: 'context_inline', content: JSON.stringify(expected, null, 2) }\n);\nconst producerAllowedProfiles = allowedProfilesFrom(\n  variant.allowedProfiles ||\n  variant.producerAllowedProfiles ||\n  variant.producerRuntimeProfile ||\n  variant.runtimeProfile ||\n  scenario.runtimeProfiles?.producer ||\n  scenario.producerRuntimeProfile ||\n  msg.evalProducerAllowedProfiles ||\n  msg.evalRuntimeProfiles?.producer\n);\nmsg.correlationId = correlationId;\nmsg.evalGroupCorrelationId = correlationId;\nmsg.evalScenario = scenario;\nmsg.evalVariant = variant;\nmsg.evalVariantLabel = variantLabel;\nmsg.payload = {\n  taskType: 'run_eval',\n  title: 'Eval: ' + (scenario.id || 'scenario') + ' / ' + variantLabel,\n  tags: ['eval', scenario.id || 'scenario', variantLabel],\n  correlationId,\n  maxAttempts: msg.evalMaxAttempts || msg.payload?.maxAttempts || 2,\n  input: {\n    scenario: { prompt: basePrompt },\n    variantLabel,\n    execution: variant.execution || msg.evalExecution || { mode: 'vitro', workspace: 'none' },\n    context: taskContexts\n  }\n};\nif (producerAllowedProfiles) msg.payload.allowedProfiles = producerAllowedProfiles;\nnode.status({ fill: 'blue', shape: 'dot', text: variantLabel });\nreturn msg;",
     "id": "sf_ab_build_run_eval",
     "name": "build run_eval",
     "outputs": 1,
     "type": "function",
-    "wires": [["sf_ab_create_run_eval"]],
+    "wires": [["sf_ab_task_builder_run_eval"]],
     "x": 170,
     "y": 120,
     "z": "subflow_ab_eval_with_judge"
@@ -48,12 +81,12 @@
     "agent": "eval_agent_cfg",
     "generateCorrelationId": false,
     "id": "sf_ab_create_run_eval",
-    "maxAttempts": 1,
+    "maxAttempts": 2,
     "name": "RUN EVAL producer",
     "runtimeProfile": "eval_profile_producer",
     "type": "moltnet-tasks-create",
     "wires": [["sf_ab_wait_run_eval"]],
-    "x": 390,
+    "x": 600,
     "y": 120,
     "z": "subflow_ab_eval_with_judge"
   },
@@ -67,20 +100,36 @@
     "taskId": "",
     "timeoutSec": 1800,
     "type": "moltnet-task-wait",
-    "wires": [[], ["sf_ab_stash_run_eval"]],
-    "x": 600,
+    "wires": [["sf_ab_count_run_eval_tail"], ["sf_ab_gate_run_eval"]],
+    "x": 830,
     "y": 120,
     "z": "subflow_ab_eval_with_judge"
   },
   {
-    "func": "msg.evalTaskId = msg.payload?.taskId || msg.payload?.task?.id || msg.payload?.id || msg.taskId || null;\nmsg.evalAcceptedAttemptN = msg.payload?.acceptedAttemptN || msg.payload?.task?.acceptedAttemptN || 1;\nreturn msg;",
+    "finalize": "",
+    "func": "const correlationId = msg.correlationId || msg.evalGroupCorrelationId || msg.payload?.correlationId || 'unknown';\nconst scenarioId = msg.evalScenario?.id || 'unknown';\nconst variantLabel = msg.evalVariantLabel || msg.evalVariant?.label || 'unknown';\nconst groups = flow.get('abEvalTailMetrics') || {};\nconst group = groups[correlationId] || {};\nconst scenario = group[scenarioId] || {};\nconst lane = scenario[variantLabel] || {};\nconst metrics = lane.producer || { messages: 0, turns: 0, toolCalls: 0 };\nmetrics.messages += 1;\nconst kind = msg.payload?.kind;\nif (kind === 'turn_end') metrics.turns += 1;\nif (kind === 'tool_call_start') metrics.toolCalls += 1;\nmetrics.lastSeq = msg.payload?.seq ?? metrics.lastSeq ?? null;\nmetrics.lastKind = kind || metrics.lastKind || null;\nmetrics.lastAt = msg.payload?.timestamp || new Date().toISOString();\nlane.producer = metrics;\nscenario[variantLabel] = lane;\ngroup[scenarioId] = scenario;\ngroups[correlationId] = group;\nflow.set('abEvalTailMetrics', groups);\nreturn msg;",
+    "id": "sf_ab_count_run_eval_tail",
+    "initialize": "",
+    "libs": [],
+    "name": "count RUN EVAL tail",
+    "noerr": 0,
+    "outputs": 1,
+    "timeout": "",
+    "type": "function",
+    "wires": [["sf_ab_tail_out"]],
+    "x": 620,
+    "y": 80,
+    "z": "subflow_ab_eval_with_judge"
+  },
+  {
+    "func": "msg.evalRunEvalSnapshot = msg.payload;\nmsg.evalTaskId = msg.payload?.taskId || msg.payload?.task?.id || msg.payload?.id || msg.taskId || null;\nmsg.evalAcceptedAttemptN = msg.payload?.acceptedAttemptN || msg.payload?.task?.acceptedAttemptN || 1;\nreturn msg;",
     "id": "sf_ab_stash_run_eval",
     "name": "stash producer task id",
     "outputs": 1,
     "type": "function",
     "wires": [["sf_ab_read_run_eval"]],
-    "x": 820,
-    "y": 120,
+    "x": 210,
+    "y": 240,
     "z": "subflow_ab_eval_with_judge"
   },
   {
@@ -92,43 +141,43 @@
     "source": "payload",
     "type": "moltnet-task-reader",
     "wires": [["sf_ab_score_run_eval"]],
-    "x": 1040,
-    "y": 120,
+    "x": 460,
+    "y": 240,
     "z": "subflow_ab_eval_with_judge"
   },
   {
-    "func": "function extractJsonObject(text) {\n  if (!text || typeof text !== 'string') return null;\n  const fenced = text.match(/```json\\s*([\\s\\S]*?)```/i) || text.match(/```\\s*([\\s\\S]*?)```/);\n  const candidates = [];\n  if (fenced) candidates.push(fenced[1]);\n  const first = text.indexOf('{');\n  const last = text.lastIndexOf('}');\n  if (first >= 0 && last > first) candidates.push(text.slice(first, last + 1));\n  for (const candidate of candidates) {\n    try { return JSON.parse(candidate); } catch (_) {}\n  }\n  return null;\n}\nconst output = msg.payload || {};\nconst response = output.response || msg.result?.summary || '';\nconst analysis = extractJsonObject(response);\nconst expected = msg.evalScenario?.expected || {};\nconst requiredFields = msg.evalRequiredFields || ['decision', 'readinessScore0to100', 'decisionRationale', 'topActions', 'unknowns'];\nconst missingFields = analysis ? requiredFields.filter((field) => analysis[field] === undefined) : requiredFields;\nconst responseLower = response.toLowerCase();\nconst requiredFindings = expected.requiredFindings || [];\nconst missingFindings = requiredFindings.filter((item) => !responseLower.includes(String(item).toLowerCase()));\nconst forbiddenHits = (expected.forbidden || []).filter((item) => responseLower.includes(String(item).toLowerCase()));\nconst decision = analysis?.decision || null;\nconst decisionOk = decision ? (expected.acceptableDecisions || []).includes(decision) : false;\nconst checks = {\n  parsedAnalysis: Boolean(analysis),\n  requiredFields: missingFields.length === 0,\n  decisionOk,\n  noForbiddenHits: forbiddenHits.length === 0,\n  requiredFindingsPresent: missingFindings.length === 0\n};\nconst score0to100 = Math.round((Object.values(checks).filter(Boolean).length / Object.keys(checks).length) * 100);\nmsg.evalProducerScore = {\n  scenarioId: msg.evalScenario?.id,\n  variantLabel: msg.evalVariantLabel,\n  correlationId: msg.correlationId,\n  taskId: msg.evalTaskId || null,\n  score0to100,\n  checks,\n  decision,\n  missingFields,\n  missingFindings,\n  forbiddenHits,\n  analysis,\n  responseRef: msg.result?.outputRef || null\n};\nreturn msg;",
+    "func": "function extractJsonObject(text) {\n  if (!text || typeof text !== 'string') return null;\n  const fenced = text.match(/```json\\s*([\\s\\S]*?)```/i) || text.match(/```\\s*([\\s\\S]*?)```/);\n  const candidates = [];\n  if (fenced) candidates.push(fenced[1]);\n  const first = text.indexOf('{');\n  const last = text.lastIndexOf('}');\n  if (first >= 0 && last > first) candidates.push(text.slice(first, last + 1));\n  for (const candidate of candidates) {\n    try { return JSON.parse(candidate); } catch (_) {}\n  }\n  return null;\n}\nfunction durationMs(attempt) {\n  const started = Date.parse(attempt?.startedAt || attempt?.claimedAt || '');\n  const completed = Date.parse(attempt?.completedAt || '');\n  return Number.isFinite(started) && Number.isFinite(completed) ? completed - started : null;\n}\nfunction tailMetrics(msg, stage) {\n  const groups = flow.get('abEvalTailMetrics') || {};\n  const correlationId = msg.correlationId || msg.evalGroupCorrelationId || 'unknown';\n  const scenarioId = msg.evalScenario?.id || 'unknown';\n  const variantLabel = msg.evalVariantLabel || msg.evalVariant?.label || 'unknown';\n  return groups[correlationId]?.[scenarioId]?.[variantLabel]?.[stage] || null;\n}\nfunction taskMetrics(result, snapshot, tail) {\n  const attempt = snapshot?.attempt || {};\n  const usage = result?.usage || attempt.usage || {};\n  const inputTokens = usage.inputTokens ?? null;\n  const outputTokens = usage.outputTokens ?? null;\n  return {\n    taskId: snapshot?.taskId || result?.outputRef?.taskId || null,\n    attemptN: result?.accepted?.attemptN || snapshot?.acceptedAttemptN || attempt.attemptN || null,\n    status: snapshot?.status || attempt.status || null,\n    startedAt: attempt.startedAt || attempt.claimedAt || null,\n    completedAt: result?.accepted?.completedAt || attempt.completedAt || null,\n    durationMs: durationMs(attempt),\n    inputTokens,\n    outputTokens,\n    totalTokens: inputTokens === null || outputTokens === null ? null : inputTokens + outputTokens,\n    cacheReadTokens: usage.cacheReadTokens ?? null,\n    cacheWriteTokens: usage.cacheWriteTokens ?? null,\n    provider: usage.provider ?? null,\n    model: usage.model ?? null,\n    toolCalls: usage.toolCalls ?? tail?.toolCalls ?? null,\n    turns: tail?.turns ?? null,\n    tailMessages: tail?.messages ?? null\n  };\n}\nconst output = msg.payload || {};\nconst response = output.response || msg.result?.summary || '';\nconst analysis = extractJsonObject(response);\nmsg.evalProducerResult = msg.result;\nmsg.evalProducerMetrics = taskMetrics(msg.result, msg.evalRunEvalSnapshot, tailMetrics(msg, 'producer'));\nmsg.evalProducerScore = {\n  scenarioId: msg.evalScenario?.id,\n  variantLabel: msg.evalVariantLabel,\n  correlationId: msg.correlationId,\n  taskId: msg.evalTaskId || null,\n  score0to100: null,\n  checks: {},\n  parsedJson: Boolean(analysis),\n  responseChars: response.length,\n  analysis,\n  responseRef: msg.result?.outputRef || null,\n  metrics: msg.evalProducerMetrics\n};\nreturn msg;",
     "id": "sf_ab_score_run_eval",
     "name": "local score",
     "outputs": 1,
     "type": "function",
     "wires": [["sf_ab_build_judge_eval"]],
-    "x": 200,
-    "y": 210,
+    "x": 670,
+    "y": 240,
     "z": "subflow_ab_eval_with_judge"
   },
   {
-    "func": "const targetTaskId = msg.evalTaskId || msg.payload?.taskId;\nconst targetAttemptN = msg.evalAcceptedAttemptN || msg.payload?.acceptedAttemptN || 1;\nif (!targetTaskId) {\n  node.error('Missing target run_eval task id for judge_eval_attempt', msg);\n  return null;\n}\nconst criteria = msg.evalJudgeCriteria || [];\nif (!Array.isArray(criteria) || criteria.length === 0) {\n  node.error('Missing msg.evalJudgeCriteria', msg);\n  return null;\n}\nmsg.evalJudgeTargetTaskId = targetTaskId;\nmsg.evalJudgeTargetAttemptN = targetAttemptN;\nmsg.payload = {\n  taskType: 'judge_eval_attempt',\n  title: 'Judge eval: ' + (msg.evalScenario?.id || 'unknown') + ' / ' + (msg.evalVariantLabel || 'unknown'),\n  tags: ['eval-judge', msg.evalScenario?.id || 'unknown', msg.evalVariantLabel || 'unknown'],\n  correlationId: msg.correlationId,\n  input: {\n    targetTaskId,\n    targetAttemptN,\n    successCriteria: {\n      version: 1,\n      rubric: {\n        rubricId: msg.evalJudgeRubricId || 'ab-eval-rubric',\n        version: msg.evalJudgeRubricVersion || '1',\n        contentHash: msg.evalJudgeRubricHash || 'node-red-rubric',\n        criteria\n      }\n    }\n  }\n};\nreturn msg;",
+    "func": "function allowedProfilesFrom(value) {\n  if (!value) return undefined;\n  if (Array.isArray(value)) return value;\n  if (typeof value === 'string') return [{ profileId: value }];\n  if (typeof value === 'object') {\n    if (Array.isArray(value.allowedProfiles)) return value.allowedProfiles;\n    if (typeof value.profileId === 'string' && value.profileId) return [{ profileId: value.profileId }];\n  }\n  return undefined;\n}\nconst targetTaskId = msg.evalTaskId || msg.payload?.taskId;\nconst targetAttemptN = msg.evalAcceptedAttemptN || msg.payload?.acceptedAttemptN || 1;\nif (!targetTaskId) {\n  node.error('Missing target run_eval task id for judge_eval_attempt', msg);\n  return null;\n}\nconst criteria = msg.evalJudgeCriteria || [];\nif (!Array.isArray(criteria) || criteria.length === 0) {\n  node.error('Missing msg.evalJudgeCriteria', msg);\n  return null;\n}\nconst judgeAllowedProfiles = allowedProfilesFrom(\n  msg.evalVariant?.judgeAllowedProfiles ||\n  msg.evalVariant?.judgeRuntimeProfile ||\n  msg.evalScenario?.runtimeProfiles?.judge ||\n  msg.evalScenario?.judgeRuntimeProfile ||\n  msg.evalJudgeAllowedProfiles ||\n  msg.evalRuntimeProfiles?.judge\n);\nmsg.evalJudgeTargetTaskId = targetTaskId;\nmsg.evalJudgeTargetAttemptN = targetAttemptN;\nmsg.payload = {\n  taskType: 'judge_eval_attempt',\n  title: 'Judge eval: ' + (msg.evalScenario?.id || 'unknown') + ' / ' + (msg.evalVariantLabel || 'unknown'),\n  tags: ['eval-judge', msg.evalScenario?.id || 'unknown', msg.evalVariantLabel || 'unknown'],\n  correlationId: msg.correlationId,\n  maxAttempts: msg.evalMaxAttempts || 2,\n  input: {\n    targetTaskId,\n    targetAttemptN\n  },\n  judgeRubric: {\n    rubricId: msg.evalJudgeRubricId || 'ab-eval-rubric',\n    version: msg.evalJudgeRubricVersion || 'v1',\n    contentHash: msg.evalJudgeRubricHash || 'node-red-rubric',\n    criteria\n  }\n};\nif (judgeAllowedProfiles) msg.payload.allowedProfiles = judgeAllowedProfiles;\nreturn msg;",
     "id": "sf_ab_build_judge_eval",
     "name": "build judge_eval_attempt",
     "outputs": 1,
     "type": "function",
-    "wires": [["sf_ab_create_judge_eval"]],
-    "x": 460,
-    "y": 210,
+    "wires": [["sf_ab_task_builder_judge_eval"]],
+    "x": 910,
+    "y": 240,
     "z": "subflow_ab_eval_with_judge"
   },
   {
     "agent": "eval_agent_cfg",
     "generateCorrelationId": false,
     "id": "sf_ab_create_judge_eval",
-    "maxAttempts": 1,
+    "maxAttempts": 2,
     "name": "JUDGE EVAL",
     "runtimeProfile": "eval_profile_judge",
     "type": "moltnet-tasks-create",
     "wires": [["sf_ab_wait_judge_eval"]],
     "x": 220,
-    "y": 290,
+    "y": 360,
     "z": "subflow_ab_eval_with_judge"
   },
   {
@@ -141,20 +190,36 @@
     "taskId": "",
     "timeoutSec": 1800,
     "type": "moltnet-task-wait",
-    "wires": [[], ["sf_ab_stash_judge_eval"]],
+    "wires": [["sf_ab_count_judge_eval_tail"], ["sf_ab_gate_judge_eval"]],
     "x": 430,
-    "y": 290,
+    "y": 360,
     "z": "subflow_ab_eval_with_judge"
   },
   {
-    "func": "msg.evalJudgeTaskId = msg.payload?.taskId || msg.payload?.task?.id || msg.payload?.id || msg.taskId || null;\nreturn msg;",
+    "finalize": "",
+    "func": "const correlationId = msg.correlationId || msg.evalGroupCorrelationId || msg.payload?.correlationId || 'unknown';\nconst scenarioId = msg.evalScenario?.id || 'unknown';\nconst variantLabel = msg.evalVariantLabel || msg.evalVariant?.label || 'unknown';\nconst groups = flow.get('abEvalTailMetrics') || {};\nconst group = groups[correlationId] || {};\nconst scenario = group[scenarioId] || {};\nconst lane = scenario[variantLabel] || {};\nconst metrics = lane.judge || { messages: 0, turns: 0, toolCalls: 0 };\nmetrics.messages += 1;\nconst kind = msg.payload?.kind;\nif (kind === 'turn_end') metrics.turns += 1;\nif (kind === 'tool_call_start') metrics.toolCalls += 1;\nmetrics.lastSeq = msg.payload?.seq ?? metrics.lastSeq ?? null;\nmetrics.lastKind = kind || metrics.lastKind || null;\nmetrics.lastAt = msg.payload?.timestamp || new Date().toISOString();\nlane.judge = metrics;\nscenario[variantLabel] = lane;\ngroup[scenarioId] = scenario;\ngroups[correlationId] = group;\nflow.set('abEvalTailMetrics', groups);\nreturn msg;",
+    "id": "sf_ab_count_judge_eval_tail",
+    "initialize": "",
+    "libs": [],
+    "name": "count JUDGE tail",
+    "noerr": 0,
+    "outputs": 1,
+    "timeout": "",
+    "type": "function",
+    "wires": [["0f5c72247640f952"]],
+    "x": 600,
+    "y": 320,
+    "z": "subflow_ab_eval_with_judge"
+  },
+  {
+    "func": "msg.evalJudgeSnapshot = msg.payload;\nmsg.evalJudgeTaskId = msg.payload?.taskId || msg.payload?.task?.id || msg.payload?.id || msg.taskId || null;\nreturn msg;",
     "id": "sf_ab_stash_judge_eval",
     "name": "stash judge task id",
     "outputs": 1,
     "type": "function",
     "wires": [["sf_ab_read_judge_eval"]],
-    "x": 660,
-    "y": 290,
+    "x": 210,
+    "y": 500,
     "z": "subflow_ab_eval_with_judge"
   },
   {
@@ -166,19 +231,19 @@
     "source": "payload",
     "type": "moltnet-task-reader",
     "wires": [["sf_ab_store_delta"]],
-    "x": 880,
-    "y": 290,
+    "x": 470,
+    "y": 500,
     "z": "subflow_ab_eval_with_judge"
   },
   {
-    "func": "function scoreFromComposite(judgment) {\n  return typeof judgment.composite === 'number' ? Math.round(judgment.composite * 100) : null;\n}\n\nfunction buildVariantRecord(msg, judgment, judgeScore0to100) {\n  return {\n    correlationId: msg.correlationId || msg.evalGroupCorrelationId || null,\n    scenarioId: msg.evalScenario?.id || 'unknown',\n    variantLabel: msg.evalVariantLabel || judgment.variantLabel || 'unknown',\n    runEvalTaskId: msg.evalJudgeTargetTaskId || msg.evalTaskId || null,\n    runEvalAttemptN: msg.evalJudgeTargetAttemptN || msg.evalAcceptedAttemptN || null,\n    judgeTaskId: msg.evalJudgeTaskId || null,\n    producerScore0to100: msg.evalProducerScore?.score0to100 ?? null,\n    judgeScore0to100,\n    judgeComposite: typeof judgment.composite === 'number' ? judgment.composite : null,\n    verdict: judgment.verdict || null,\n    scores: judgment.scores || [],\n    updatedAt: new Date().toISOString()\n  };\n}\n\nfunction upsertScenarioResult(record) {\n  const groups = flow.get('abEvalResults') || {};\n  const group = groups[record.correlationId] || {\n    correlationId: record.correlationId,\n    scenarios: {},\n    createdAt: new Date().toISOString()\n  };\n  const scenario = group.scenarios[record.scenarioId] || {};\n  scenario[record.variantLabel] = record;\n  group.scenarios[record.scenarioId] = scenario;\n  group.updatedAt = new Date().toISOString();\n  groups[record.correlationId] = group;\n  flow.set('abEvalResults', groups);\n  return scenario;\n}\n\nfunction rankedVariants(scenario) {\n  return Object.values(scenario)\n    .filter((item) => typeof item.judgeScore0to100 === 'number')\n    .sort((a, b) => b.judgeScore0to100 - a.judgeScore0to100);\n}\n\nfunction buildDelta(correlationId, scenarioId, scenario) {\n  const baseline = scenario['baseline-no-skill'];\n  const skill = scenario['skill-rubric-v1'];\n  if (!baseline || !skill) return null;\n  return {\n    correlationId,\n    scenarioId,\n    baselineScore0to100: baseline.judgeScore0to100,\n    skillScore0to100: skill.judgeScore0to100,\n    judgeDelta0to100: baseline.judgeScore0to100 === null || skill.judgeScore0to100 === null ? null : skill.judgeScore0to100 - baseline.judgeScore0to100,\n    baselineProducerScore0to100: baseline.producerScore0to100,\n    skillProducerScore0to100: skill.producerScore0to100,\n    producerDelta0to100: baseline.producerScore0to100 === null || skill.producerScore0to100 === null ? null : skill.producerScore0to100 - baseline.producerScore0to100\n  };\n}\n\nconst judgment = msg.payload || {};\nconst judgeScore0to100 = scoreFromComposite(judgment);\nconst record = buildVariantRecord(msg, judgment, judgeScore0to100);\nconst scenario = upsertScenarioResult(record);\nconst winner = rankedVariants(scenario)[0] || null;\n\nmsg.payload = {\n  correlationId: record.correlationId,\n  scenarioId: record.scenarioId,\n  variantLabel: record.variantLabel,\n  producerScore0to100: record.producerScore0to100,\n  judgeScore0to100,\n  verdict: judgment.verdict || null,\n  scores: judgment.scores || [],\n  winner,\n  delta: buildDelta(record.correlationId, record.scenarioId, scenario),\n  variants: scenario\n};\nreturn msg;",
+    "func": "function scoreFromComposite(judgment) {\n  return typeof judgment.composite === 'number' ? Math.round(judgment.composite * 100) : null;\n}\nfunction durationMs(attempt) {\n  const started = Date.parse(attempt?.startedAt || attempt?.claimedAt || '');\n  const completed = Date.parse(attempt?.completedAt || '');\n  return Number.isFinite(started) && Number.isFinite(completed) ? completed - started : null;\n}\nfunction tailMetrics(msg, stage) {\n  const groups = flow.get('abEvalTailMetrics') || {};\n  const correlationId = msg.correlationId || msg.evalGroupCorrelationId || 'unknown';\n  const scenarioId = msg.evalScenario?.id || 'unknown';\n  const variantLabel = msg.evalVariantLabel || msg.evalVariant?.label || 'unknown';\n  return groups[correlationId]?.[scenarioId]?.[variantLabel]?.[stage] || null;\n}\nfunction taskMetrics(result, snapshot, tail) {\n  const attempt = snapshot?.attempt || {};\n  const usage = result?.usage || attempt.usage || {};\n  const inputTokens = usage.inputTokens ?? null;\n  const outputTokens = usage.outputTokens ?? null;\n  return {\n    taskId: snapshot?.taskId || result?.outputRef?.taskId || null,\n    attemptN: result?.accepted?.attemptN || snapshot?.acceptedAttemptN || attempt.attemptN || null,\n    status: snapshot?.status || attempt.status || null,\n    startedAt: attempt.startedAt || attempt.claimedAt || null,\n    completedAt: result?.accepted?.completedAt || attempt.completedAt || null,\n    durationMs: durationMs(attempt),\n    inputTokens,\n    outputTokens,\n    totalTokens: inputTokens === null || outputTokens === null ? null : inputTokens + outputTokens,\n    cacheReadTokens: usage.cacheReadTokens ?? null,\n    cacheWriteTokens: usage.cacheWriteTokens ?? null,\n    provider: usage.provider ?? null,\n    model: usage.model ?? null,\n    toolCalls: usage.toolCalls ?? tail?.toolCalls ?? null,\n    turns: tail?.turns ?? null,\n    tailMessages: tail?.messages ?? null\n  };\n}\nfunction metricDelta(baseline, candidate) {\n  const keys = ['durationMs', 'inputTokens', 'outputTokens', 'totalTokens', 'turns', 'toolCalls', 'tailMessages'];\n  const delta = {};\n  for (const key of keys) {\n    const base = baseline?.[key];\n    const cand = candidate?.[key];\n    delta[key] = typeof base === 'number' && typeof cand === 'number' ? cand - base : null;\n  }\n  return delta;\n}\n\nfunction buildVariantRecord(msg, judgment, judgeScore0to100) {\n  const judgeMetrics = taskMetrics(msg.result, msg.evalJudgeSnapshot, tailMetrics(msg, 'judge'));\n  return {\n    correlationId: msg.correlationId || msg.evalGroupCorrelationId || null,\n    scenarioId: msg.evalScenario?.id || 'unknown',\n    variantLabel: msg.evalVariantLabel || judgment.variantLabel || 'unknown',\n    isBaseline: msg.evalVariant?.baseline === true,\n    runEvalTaskId: msg.evalJudgeTargetTaskId || msg.evalTaskId || null,\n    runEvalAttemptN: msg.evalJudgeTargetAttemptN || msg.evalAcceptedAttemptN || null,\n    judgeTaskId: msg.evalJudgeTaskId || null,\n    producerScore0to100: msg.evalProducerScore?.score0to100 ?? null,\n    producerMetrics: msg.evalProducerMetrics || null,\n    judgeScore0to100,\n    judgeComposite: typeof judgment.composite === 'number' ? judgment.composite : null,\n    judgeMetrics,\n    verdict: judgment.verdict || null,\n    scores: judgment.scores || [],\n    updatedAt: new Date().toISOString()\n  };\n}\n\nfunction expectedFromMessage(msg, scenarioId) {\n  const direct = Number(msg.evalExpectedVariants || msg.evalGroup?.expectedVariants || msg.payload?.expectedVariants || 0);\n  if (Number.isFinite(direct) && direct > 0) return direct;\n  const byScenario = Number(msg.evalGroup?.expectedVariants?.[scenarioId] || 0);\n  return Number.isFinite(byScenario) && byScenario > 0 ? byScenario : 0;\n}\nfunction store(record, msg) {\n  const groups = flow.get('abEvalResults') || {};\n  const group = groups[record.correlationId] || { correlationId: record.correlationId, expectedVariants: {}, scenarios: {}, createdAt: new Date().toISOString() };\n  group.expectedVariants = group.expectedVariants || {};\n  const expected = expectedFromMessage(msg, record.scenarioId);\n  if (expected > 0 && !group.expectedVariants[record.scenarioId]) {\n    group.expectedVariants[record.scenarioId] = expected;\n  }\n  const scenario = group.scenarios[record.scenarioId] || {};\n  scenario[record.variantLabel] = record;\n  group.scenarios[record.scenarioId] = scenario;\n  group.updatedAt = new Date().toISOString();\n  groups[record.correlationId] = group;\n  flow.set('abEvalResults', groups);\n  return { group, scenario };\n}\nfunction expectedFor(group, scenarioId, msg) {\n  const expected = Number(group.expectedVariants?.[scenarioId] || expectedFromMessage(msg, scenarioId) || 0);\n  return Number.isFinite(expected) ? expected : 0;\n}\n\nfunction rankedVariants(scenario) {\n  return Object.values(scenario)\n    .filter((item) => typeof item.judgeScore0to100 === 'number')\n    .sort((a, b) => b.judgeScore0to100 - a.judgeScore0to100);\n}\n\nfunction buildDelta(scenario) {\n  const records = Object.values(scenario);\n  const baseline = records.find((item) => item.isBaseline || item.variantLabel === 'baseline-no-skill' || item.variantLabel === 'baseline');\n  const candidate = records\n    .filter((item) => item !== baseline && typeof item.judgeScore0to100 === 'number')\n    .sort((a, b) => b.judgeScore0to100 - a.judgeScore0to100)[0] || null;\n  if (!baseline || !candidate) return null;\n  return {\n    baselineVariant: baseline.variantLabel,\n    candidateVariant: candidate.variantLabel,\n    baselineScore0to100: baseline.judgeScore0to100,\n    candidateScore0to100: candidate.judgeScore0to100,\n    judgeDelta0to100: baseline.judgeScore0to100 === null || candidate.judgeScore0to100 === null ? null : candidate.judgeScore0to100 - baseline.judgeScore0to100,\n    baselineProducerScore0to100: baseline.producerScore0to100,\n    candidateProducerScore0to100: candidate.producerScore0to100,\n    producerDelta0to100: baseline.producerScore0to100 === null || candidate.producerScore0to100 === null ? null : candidate.producerScore0to100 - baseline.producerScore0to100,\n    producerMetricsDelta: metricDelta(baseline.producerMetrics, candidate.producerMetrics),\n    judgeMetricsDelta: metricDelta(baseline.judgeMetrics, candidate.judgeMetrics)\n  };\n}\n\nconst judgment = msg.payload || {};\nconst judgeScore0to100 = scoreFromComposite(judgment);\nconst record = buildVariantRecord(msg, judgment, judgeScore0to100);\nconst stored = store(record, msg);\nconst group = stored.group;\nconst scenario = stored.scenario;\nconst expected = expectedFor(group, record.scenarioId, msg);\nconst completed = Object.keys(scenario).length;\nconst winner = rankedVariants(scenario)[0] || null;\nconst delta = buildDelta(scenario);\n\nmsg.payload = {\n  laneStatus: 'completed',\n  groupComplete: expected > 0 && completed >= expected,\n  expectedVariants: expected,\n  completedVariants: completed,\n  correlationId: record.correlationId,\n  scenarioId: record.scenarioId,\n  variantLabel: record.variantLabel,\n  producerScore0to100: record.producerScore0to100,\n  producerMetrics: record.producerMetrics,\n  judgeScore0to100,\n  judgeMetrics: record.judgeMetrics,\n  verdict: judgment.verdict || null,\n  scores: judgment.scores || [],\n  winner,\n  delta,\n  metricsDelta: delta ? { producer: delta.producerMetricsDelta, judge: delta.judgeMetricsDelta } : null,\n  variants: scenario\n};\nnode.status({ fill: msg.payload.groupComplete ? 'green' : 'blue', shape: 'dot', text: completed + '/' + (expected || '?') + ' variants' });\nreturn msg;",
     "id": "sf_ab_store_delta",
     "name": "store judgment + delta",
     "outputs": 1,
     "type": "function",
     "wires": [[]],
-    "x": 1110,
-    "y": 290,
+    "x": 730,
+    "y": 500,
     "z": "subflow_ab_eval_with_judge"
   },
   {
@@ -190,32 +255,32 @@
   },
   {
     "apiUrl": "https://api.themolt.net",
-    "clientId": "",
-    "diaryId": "",
+    "clientId": "b46d59c1-0b14-453c-a57b-8be1ced93141",
+    "diaryId": "6e4d9948-8ec5-4f59-b82a-3acbc4bbc396",
     "id": "eval_agent_cfg",
     "name": "eval-agent",
-    "teamId": "",
+    "teamId": "6743b4b1-6b93-46e2-a048-19490f04f91a",
     "type": "moltnet-agent"
   },
   {
     "agent": "eval_agent_cfg",
     "id": "eval_profile_producer",
     "name": "eval-producer",
-    "profileId": "",
-    "profileName": "",
+    "profileId": "50c5ed63-19b9-47a9-aabd-6a3ae3bc68f1",
+    "profileName": "il1395-gemma (ollama-cloud/gemma4:31b-cloud)",
     "type": "moltnet-runtime-profile"
   },
   {
     "agent": "eval_agent_cfg",
     "id": "eval_profile_judge",
     "name": "eval-judge",
-    "profileId": "",
-    "profileName": "",
+    "profileId": "50c5ed63-19b9-47a9-aabd-6a3ae3bc68f1",
+    "profileName": "il1395-gemma (ollama-cloud/gemma4:31b-cloud)",
     "type": "moltnet-runtime-profile"
   },
   {
     "id": "ab_eval_note",
-    "info": "Run at least one agent daemon that can claim run_eval and judge_eval_attempt tasks. If you set runtime profile IDs above, run one daemon per profile. Leave profile IDs blank to let any eligible daemon claim both tasks.",
+    "info": "Run at least one agent daemon that can claim run_eval and judge_eval_attempt tasks. The demo seeds both variants under one correlation id and fans them out in parallel. If you set runtime profile IDs above, run one daemon per profile. Leave profile IDs blank to let any eligible daemon claim both tasks.",
     "name": "Daemon setup",
     "type": "comment",
     "wires": [],
@@ -224,12 +289,12 @@
     "z": "ab_eval_demo_tab"
   },
   {
-    "func": "function uuid() {\n  return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, (c) =>\n    (Number(c) ^ Math.floor(Math.random() * 16) >> Number(c) / 4).toString(16)\n  );\n}\nmsg.correlationId = uuid();\nmsg.evalVariantLabel = 'skill-rubric-v1';\nmsg.evalSkillContext = {\n  slug: 'example-skill-context',\n  binding: 'skill',\n  content: 'Prefer concise structured analysis. Ground every recommendation in supplied evidence.'\n};\nmsg.evalScenario = {\n  id: 'demo-readiness',\n  title: 'Demo traffic-fit readiness scenario',\n  evidence: {\n    offer: 'Trial subscription for a niche productivity tool',\n    landingPage: 'Mentions benefits but lacks pricing and proof',\n    tracking: ['page_view'],\n    constraints: ['No browsing', 'Use evidence only']\n  },\n  expected: {\n    acceptableDecisions: ['needs_work', 'not_ready'],\n    requiredFindings: ['pricing', 'proof', 'tracking'],\n    forbidden: ['ready to scale']\n  }\n};\nmsg.evalJudgeCriteria = [\n  { id: 'json-validity', title: 'Valid structured output', weight: 0.2, description: 'Response is parseable and includes the required fields.' },\n  { id: 'evidence-grounding', title: 'Evidence grounding', weight: 0.4, description: 'Findings use only supplied evidence and mark unknowns.' },\n  { id: 'decision-quality', title: 'Decision quality', weight: 0.4, description: 'Decision and actions match the scenario expectations.' }\n];\nreturn msg;",
+    "func": "function uuid() {\n  return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, (c) =>\n    (Number(c) ^ Math.floor(Math.random() * 16) >> Number(c) / 4).toString(16)\n  );\n}\nmsg.correlationId = uuid();\nmsg.evalScenario = {\n  id: 'moltnet-practices/dbos-after-commit',\n  title: 'DBOS workflow after Drizzle transaction commits',\n  prompt: \"# Wire a Keto permission grant to a diary creation\\n\\n## Context\\n\\nMoltNet is a TypeScript backend. When a new diary is created, two\\nthings need to happen atomically from the user's point of view:\\n\\n1. A row is inserted into the `diaries` table via Drizzle ORM.\\n2. A Keto permission tuple is written that grants the creating agent\\n   the `owner` relation on the new diary. The Keto write is implemented\\n   as a durable workflow called `grantDiaryOwner` (DBOS-backed), and\\n   you start it by calling `startGrantDiaryOwnerWorkflow(diaryId,\\nagentId)`.\\n\\nThe existing HTTP handler looks roughly like this:\\n\\n```typescript\\nexport async function createDiaryHandler(request, reply) {\\n  const { name, visibility } = request.body;\\n  const agentId = request.principal.id;\\n\\n  const diary = await runTransaction(async () => {\\n    // TODO: insert the diary row here\\n    // TODO: trigger the Keto owner grant here\\n    return /* the created diary */;\\n  });\\n\\n  return reply.code(201).send(diary);\\n}\\n```\\n\\n## Task\\n\\nFill in the handler so the diary row is inserted and the owner grant\\nworkflow is started. Follow the existing repository conventions.\\n\\nProduce two files:\\n\\n1. `create-diary-handler.ts` — the completed handler.\\n2. `notes.md` — a short note explaining the implementation choices\\n   you made and the reasoning behind them.\\n\\nAssume the following are already imported and available:\\n\\n- `runTransaction` (wraps a Drizzle transaction)\\n- `createDiaryRepository(db)` with a `create(input)` method\\n- `startGrantDiaryOwnerWorkflow(diaryId, agentId)`\",\n  source: {\n    suite: 'moltnet-practices',\n    path: 'evals/moltnet-practices/dbos-after-commit',\n    mode: 'vitro'\n  },\n  runtimeProfiles: {\n    producer: '',\n    judge: ''\n  }\n};\nmsg.evalJudgeCriteria = [\n  {\n    \"id\": \"workflow-started-after-transaction-commits\",\n    \"title\": \"Workflow started after transaction commits\",\n    \"weight\": 0.35,\n    \"description\": \"`startGrantDiaryOwnerWorkflow(...)` is called AFTER `runTransaction(...)` resolves, NOT inside the transaction callback. The transaction callback returns the created diary, and the workflow is started on the next line using the returned diary id. Any call site where the workflow is started inside the `runTransaction` callback fails this criterion, even if the code otherwise compiles and looks correct.\"\n  },\n  {\n    \"id\": \"notes-name-both-systems-as-separate-backends\",\n    \"title\": \"Notes name both systems as separate backends\",\n    \"weight\": 0.25,\n    \"description\": \"`notes.md` explicitly names the two systems that do not share a transaction — it must mention BOTH DBOS/workflows AND Drizzle/Postgres/runTransaction (or Keto vs Postgres) as separate backends/connections. Generic 'non-atomic' or 'durable' language without naming the two specific systems fails this criterion.\"\n  },\n  {\n    \"id\": \"notes-describe-the-rollback-failure-mode\",\n    \"title\": \"Notes describe the rollback failure mode\",\n    \"weight\": 0.2,\n    \"description\": \"`notes.md` explicitly describes the failure mode if the workflow were started inside the transaction: a rolled-back Postgres transaction would leave a dangling Keto tuple (or equivalent: orphaned grant, inconsistent Keto state). Notes that only say 'the workflow must run after' without explaining the rollback failure mode fail this criterion.\"\n  },\n  {\n    \"id\": \"diary-insert-uses-the-repository\",\n    \"title\": \"Diary insert uses the repository\",\n    \"weight\": 0.15,\n    \"description\": \"The diary insert is performed through the Drizzle repository (e.g. `createDiaryRepository(tx).create(...)` or the equivalent) and the created diary is returned from the transaction callback so the outer scope can read its id.\"\n  },\n  {\n    \"id\": \"grant-not-started-on-rollback-path\",\n    \"title\": \"Grant not started on rollback path\",\n    \"weight\": 0.05,\n    \"description\": \"The handler is structured so that if the diary insert throws, the Keto grant is never started. Starting the workflow BEFORE `runTransaction` resolves (e.g. in a `.then` or before the insert) fails this criterion.\"\n  }\n];\nmsg.evalRuntimeProfiles = {\n  producer: '',\n  judge: ''\n};\nmsg.evalVariants = [\n  { label: 'baseline-no-context', baseline: true, includeSkill: false },\n  {\n    label: 'rendered-pack-dbos-rule',\n    context: [\n      {\n        slug: 'moltnet-rendered-pack-dbos-drizzle',\n        binding: 'context_inline',\n        content: [\n          '# MoltNet DBOS / Drizzle Practice',\n          '',\n          'When a code path needs both a Drizzle/Postgres transaction and a DBOS-backed workflow side effect, do not start the DBOS workflow inside the runTransaction callback.',\n          '',\n          'Drizzle/Postgres and DBOS/workflows use separate backends/connections and do not share one atomic transaction. Starting the workflow inside the transaction can leave an orphaned or dangling Keto tuple if Postgres later rolls back.',\n          '',\n          'Preferred shape: create the diary row through createDiaryRepository(tx).create(...) inside runTransaction, return the created diary, then call startGrantDiaryOwnerWorkflow(diary.id, agentId) after runTransaction resolves.'\n        ].join('\\n')\n      }\n    ]\n  }\n];\nreturn msg;",
     "id": "ab_eval_seed",
-    "name": "seed sample eval",
+    "name": "seed eval group",
     "outputs": 1,
     "type": "function",
-    "wires": [["ab_eval_subflow"]],
+    "wires": [["ab_eval_init_group"]],
     "x": 170,
     "y": 120,
     "z": "ab_eval_demo_tab"
@@ -237,7 +302,7 @@
   {
     "crontab": "",
     "id": "ab_eval_inject",
-    "name": "run sample",
+    "name": "run eval group",
     "once": false,
     "onceDelay": 0.1,
     "payload": "",
@@ -259,8 +324,8 @@
     "id": "ab_eval_subflow",
     "name": "A/B eval with judge",
     "type": "subflow:subflow_ab_eval_with_judge",
-    "wires": [["ab_eval_debug"]],
-    "x": 410,
+    "wires": [["ab_eval_gate_group"], ["ab_eval_tail_debug"]],
+    "x": 670,
     "y": 120,
     "z": "ab_eval_demo_tab"
   },
@@ -269,7 +334,7 @@
     "complete": "payload",
     "console": false,
     "id": "ab_eval_debug",
-    "name": "eval result",
+    "name": "eval group result",
     "statusType": "auto",
     "statusVal": "",
     "targetType": "msg",
@@ -277,7 +342,7 @@
     "tostatus": false,
     "type": "debug",
     "wires": [],
-    "x": 650,
+    "x": 1150,
     "y": 120,
     "z": "ab_eval_demo_tab"
   },
@@ -285,8 +350,236 @@
     "env": [],
     "id": "ab_eval_modules",
     "modules": {
-      "@themoltnet/node-red-contrib-core": "0.2.0"
+      "@themoltnet/node-red-contrib-core": "0.6.0"
     },
     "type": "global-config"
+  },
+  {
+    "func": "const variants = Array.isArray(msg.evalVariants) && msg.evalVariants.length > 0\n  ? msg.evalVariants\n  : [{ label: msg.evalVariantLabel || 'with-context', includeSkill: true }];\nconst correlationId = msg.correlationId;\nconst scenarioId = msg.evalScenario?.id || 'unknown';\nconst expectedVariants = variants.length;\nconst groups = flow.get('abEvalResults') || {};\ngroups[correlationId] = {\n  correlationId,\n  expectedVariants: { [scenarioId]: expectedVariants },\n  scenarios: {},\n  createdAt: new Date().toISOString(),\n  updatedAt: new Date().toISOString()\n};\nflow.set('abEvalResults', groups);\nnode.status({ fill: 'blue', shape: 'dot', text: 'fan out ' + expectedVariants });\nconst messages = variants.map((variant) => ({\n  ...msg,\n  evalVariant: variant,\n  evalVariantLabel: variant.label,\n  evalExpectedVariants: expectedVariants,\n  evalGroup: { correlationId, scenarioId, expectedVariants },\n  payload: { variantLabel: variant.label, correlationId, expectedVariants }\n}));\n// Function nodes use the outer array for outputs. Wrap the message array so\n// every variant is sent through output 1 instead of dropping all but the first.\nreturn [messages];",
+    "id": "ab_eval_init_group",
+    "name": "init eval group",
+    "outputs": 1,
+    "type": "function",
+    "wires": [["ab_eval_subflow"]],
+    "x": 410,
+    "y": 120,
+    "z": "ab_eval_demo_tab"
+  },
+  {
+    "func": "if (!msg.payload?.groupComplete) {\n  node.status({ fill: 'blue', shape: 'dot', text: (msg.payload?.completedVariants || 0) + '/' + (msg.payload?.expectedVariants || '?') + ' variants' });\n  return null;\n}\nnode.status({ fill: 'green', shape: 'dot', text: msg.payload.completedVariants + '/' + msg.payload.expectedVariants + ' complete' });\nreturn msg;",
+    "id": "ab_eval_gate_group",
+    "name": "emit when group complete",
+    "outputs": 1,
+    "type": "function",
+    "wires": [["ab_eval_debug"]],
+    "x": 910,
+    "y": 120,
+    "z": "ab_eval_demo_tab"
+  },
+  {
+    "checkall": "true",
+    "id": "sf_ab_gate_run_eval",
+    "name": "RUN EVAL accepted?",
+    "outputs": 2,
+    "property": "payload.accepted",
+    "propertyType": "msg",
+    "repair": false,
+    "rules": [
+      {
+        "t": "true"
+      },
+      {
+        "t": "else"
+      }
+    ],
+    "type": "switch",
+    "wires": [["sf_ab_stash_run_eval"], ["sf_ab_pack_lane_failure"]],
+    "x": 1070,
+    "y": 120,
+    "z": "subflow_ab_eval_with_judge"
+  },
+  {
+    "checkall": "true",
+    "id": "sf_ab_gate_judge_eval",
+    "name": "JUDGE accepted?",
+    "outputs": 2,
+    "property": "payload.accepted",
+    "propertyType": "msg",
+    "repair": false,
+    "rules": [
+      {
+        "t": "true"
+      },
+      {
+        "t": "else"
+      }
+    ],
+    "type": "switch",
+    "wires": [["sf_ab_stash_judge_eval"], ["sf_ab_pack_lane_failure"]],
+    "x": 650,
+    "y": 360,
+    "z": "subflow_ab_eval_with_judge"
+  },
+  {
+    "id": "sf_ab_tail_out",
+    "links": ["1f190a60c144f6ec"],
+    "mode": "link",
+    "name": "tail events",
+    "type": "link out",
+    "wires": [],
+    "x": 805,
+    "y": 80,
+    "z": "subflow_ab_eval_with_judge"
+  },
+  {
+    "func": "function expectedFromMessage(msg, scenarioId) {\n  const direct = Number(msg.evalExpectedVariants || msg.evalGroup?.expectedVariants || msg.payload?.expectedVariants || 0);\n  if (Number.isFinite(direct) && direct > 0) return direct;\n  const byScenario = Number(msg.evalGroup?.expectedVariants?.[scenarioId] || 0);\n  return Number.isFinite(byScenario) && byScenario > 0 ? byScenario : 0;\n}\nfunction store(record, msg) {\n  const groups = flow.get('abEvalResults') || {};\n  const group = groups[record.correlationId] || { correlationId: record.correlationId, expectedVariants: {}, scenarios: {}, createdAt: new Date().toISOString() };\n  group.expectedVariants = group.expectedVariants || {};\n  const expected = expectedFromMessage(msg, record.scenarioId);\n  if (expected > 0 && !group.expectedVariants[record.scenarioId]) {\n    group.expectedVariants[record.scenarioId] = expected;\n  }\n  const scenario = group.scenarios[record.scenarioId] || {};\n  scenario[record.variantLabel] = record;\n  group.scenarios[record.scenarioId] = scenario;\n  group.updatedAt = new Date().toISOString();\n  groups[record.correlationId] = group;\n  flow.set('abEvalResults', groups);\n  return { group, scenario };\n}\nfunction expectedFor(group, scenarioId, msg) {\n  const expected = Number(group.expectedVariants?.[scenarioId] || expectedFromMessage(msg, scenarioId) || 0);\n  return Number.isFinite(expected) ? expected : 0;\n}\nconst snapshot = msg.payload && typeof msg.payload === 'object' ? msg.payload : {};\nconst task = snapshot.task || {};\nconst attempt = snapshot.attempt || {};\nconst stage = task.taskType === 'judge_eval_attempt' ? 'judge_eval_attempt' : 'run_eval';\nconst record = {\n  status: 'failed',\n  stage,\n  correlationId: msg.correlationId || msg.evalGroupCorrelationId || snapshot.correlationId || null,\n  scenarioId: msg.evalScenario?.id || 'unknown',\n  variantLabel: msg.evalVariantLabel || msg.evalVariant?.label || 'unknown',\n  isBaseline: msg.evalVariant?.baseline === true,\n  runEvalTaskId: msg.evalTaskId || (stage === 'run_eval' ? task.id : null),\n  runEvalAttemptN: msg.evalAcceptedAttemptN || attempt.attemptN || null,\n  judgeTaskId: msg.evalJudgeTaskId || (stage === 'judge_eval_attempt' ? task.id : null),\n  producerScore0to100: msg.evalProducerScore?.score0to100 ?? null,\n  judgeScore0to100: null,\n  judgeComposite: null,\n  verdict: null,\n  scores: [],\n  error: snapshot.error || attempt.error || msg.error || { message: stage + ' failed' },\n  updatedAt: new Date().toISOString()\n};\nconst stored = store(record, msg);\nconst expected = expectedFor(stored.group, record.scenarioId, msg);\nconst completed = Object.keys(stored.scenario).length;\nmsg.payload = {\n  laneStatus: 'failed',\n  groupComplete: expected > 0 && completed >= expected,\n  expectedVariants: expected,\n  completedVariants: completed,\n  correlationId: record.correlationId,\n  scenarioId: record.scenarioId,\n  variantLabel: record.variantLabel,\n  error: record.error,\n  variants: stored.scenario\n};\nnode.status({ fill: 'yellow', shape: 'ring', text: record.variantLabel + ' failed' });\nreturn msg;",
+    "id": "sf_ab_pack_lane_failure",
+    "name": "pack lane failure",
+    "outputs": 1,
+    "type": "function",
+    "wires": [[]],
+    "x": 930,
+    "y": 360,
+    "z": "subflow_ab_eval_with_judge"
+  },
+  {
+    "id": "sf_ab_error_catch",
+    "name": "eval lane errors",
+    "scope": [
+      "sf_ab_create_run_eval",
+      "sf_ab_wait_run_eval",
+      "sf_ab_read_run_eval",
+      "sf_ab_create_judge_eval",
+      "sf_ab_wait_judge_eval",
+      "sf_ab_read_judge_eval",
+      "sf_ab_task_builder_run_eval",
+      "sf_ab_task_builder_judge_eval"
+    ],
+    "type": "catch",
+    "uncaught": false,
+    "wires": [["sf_ab_pack_node_error"]],
+    "x": 640,
+    "y": 600,
+    "z": "subflow_ab_eval_with_judge"
+  },
+  {
+    "func": "function expectedFromMessage(msg, scenarioId) {\n  const direct = Number(msg.evalExpectedVariants || msg.evalGroup?.expectedVariants || msg.payload?.expectedVariants || 0);\n  if (Number.isFinite(direct) && direct > 0) return direct;\n  const byScenario = Number(msg.evalGroup?.expectedVariants?.[scenarioId] || 0);\n  return Number.isFinite(byScenario) && byScenario > 0 ? byScenario : 0;\n}\nfunction store(record, msg) {\n  const groups = flow.get('abEvalResults') || {};\n  const group = groups[record.correlationId] || { correlationId: record.correlationId, expectedVariants: {}, scenarios: {}, createdAt: new Date().toISOString() };\n  group.expectedVariants = group.expectedVariants || {};\n  const expected = expectedFromMessage(msg, record.scenarioId);\n  if (expected > 0 && !group.expectedVariants[record.scenarioId]) {\n    group.expectedVariants[record.scenarioId] = expected;\n  }\n  const scenario = group.scenarios[record.scenarioId] || {};\n  scenario[record.variantLabel] = record;\n  group.scenarios[record.scenarioId] = scenario;\n  group.updatedAt = new Date().toISOString();\n  groups[record.correlationId] = group;\n  flow.set('abEvalResults', groups);\n  return { group, scenario };\n}\nfunction expectedFor(group, scenarioId, msg) {\n  const expected = Number(group.expectedVariants?.[scenarioId] || expectedFromMessage(msg, scenarioId) || 0);\n  return Number.isFinite(expected) ? expected : 0;\n}\nconst error = msg.error || {};\nconst record = {\n  status: 'failed',\n  stage: error.source?.name || 'node-error',\n  correlationId: msg.correlationId || msg.evalGroupCorrelationId || null,\n  scenarioId: msg.evalScenario?.id || 'unknown',\n  variantLabel: msg.evalVariantLabel || msg.evalVariant?.label || 'unknown',\n  isBaseline: msg.evalVariant?.baseline === true,\n  runEvalTaskId: msg.evalTaskId || null,\n  runEvalAttemptN: msg.evalAcceptedAttemptN || null,\n  judgeTaskId: msg.evalJudgeTaskId || null,\n  producerScore0to100: msg.evalProducerScore?.score0to100 ?? null,\n  judgeScore0to100: null,\n  judgeComposite: null,\n  verdict: null,\n  scores: [],\n  error: { message: String(error.message || 'eval lane node error'), source: error.source || null },\n  updatedAt: new Date().toISOString()\n};\nconst stored = store(record, msg);\nconst expected = expectedFor(stored.group, record.scenarioId, msg);\nconst completed = Object.keys(stored.scenario).length;\nmsg.payload = {\n  laneStatus: 'failed',\n  groupComplete: expected > 0 && completed >= expected,\n  expectedVariants: expected,\n  completedVariants: completed,\n  correlationId: record.correlationId,\n  scenarioId: record.scenarioId,\n  variantLabel: record.variantLabel,\n  error: record.error,\n  variants: stored.scenario\n};\nnode.status({ fill: 'red', shape: 'ring', text: record.variantLabel + ' error' });\nreturn msg;",
+    "id": "sf_ab_pack_node_error",
+    "name": "pack node error",
+    "outputs": 1,
+    "type": "function",
+    "wires": [[]],
+    "x": 920,
+    "y": 600,
+    "z": "subflow_ab_eval_with_judge"
+  },
+  {
+    "active": true,
+    "complete": "payload",
+    "console": false,
+    "id": "ab_eval_tail_debug",
+    "name": "eval task tail",
+    "statusType": "auto",
+    "statusVal": "",
+    "targetType": "msg",
+    "tosidebar": true,
+    "tostatus": false,
+    "type": "debug",
+    "wires": [],
+    "x": 900,
+    "y": 180,
+    "z": "ab_eval_demo_tab"
+  },
+  {
+    "id": "a72acb578ef0ea20",
+    "name": "",
+    "scope": [
+      "sf_ab_wait_judge_eval",
+      "sf_ab_wait_run_eval",
+      "sf_ab_create_run_eval",
+      "sf_ab_read_run_eval",
+      "sf_ab_read_judge_eval",
+      "sf_ab_create_judge_eval",
+      "sf_ab_task_builder_run_eval",
+      "sf_ab_task_builder_judge_eval"
+    ],
+    "type": "status",
+    "wires": [[]],
+    "x": 920,
+    "y": 720,
+    "z": "subflow_ab_eval_with_judge"
+  },
+  {
+    "id": "0f5c72247640f952",
+    "links": ["1f190a60c144f6ec"],
+    "mode": "link",
+    "name": "tail events",
+    "type": "link out",
+    "wires": [],
+    "x": 795,
+    "y": 320,
+    "z": "subflow_ab_eval_with_judge"
+  },
+  {
+    "id": "1f190a60c144f6ec",
+    "links": ["0f5c72247640f952", "sf_ab_tail_out"],
+    "name": "tail events",
+    "type": "link in",
+    "wires": [[]],
+    "x": 1125,
+    "y": 80,
+    "z": "subflow_ab_eval_with_judge"
+  },
+  {
+    "agent": "eval_agent_cfg",
+    "brief": "",
+    "constraints": [],
+    "contexts": [],
+    "diaryId": "",
+    "diaryIdType": "str",
+    "expectedOutput": "",
+    "id": "sf_ab_task_builder_run_eval",
+    "name": "build RUN EVAL body",
+    "referencesFrom": "",
+    "referencesRole": "context",
+    "schemaCid": "",
+    "submitOutputGate": false,
+    "tags": "",
+    "taskType": "run_eval",
+    "teamId": "",
+    "teamIdType": "str",
+    "title": "",
+    "type": "moltnet-task-builder",
+    "wires": [["sf_ab_create_run_eval"]],
+    "workspace": "",
+    "x": 390,
+    "y": 120,
+    "z": "subflow_ab_eval_with_judge"
+  },
+  {
+    "agent": "eval_agent_cfg",
+    "brief": "",
+    "constraints": [],
+    "contexts": [],
+    "diaryId": "",
+    "diaryIdType": "str",
+    "expectedOutput": "",
+    "id": "sf_ab_task_builder_judge_eval",
+    "name": "build JUDGE body",
+    "referencesFrom": "",
+    "referencesRole": "context",
+    "schemaCid": "",
+    "submitOutputGate": false,
+    "tags": "",
+    "taskType": "judge_eval_attempt",
+    "teamId": "",
+    "teamIdType": "str",
+    "title": "",
+    "type": "moltnet-task-builder",
+    "wires": [["sf_ab_create_judge_eval"]],
+    "workspace": "",
+    "x": 1120,
+    "y": 240,
+    "z": "subflow_ab_eval_with_judge"
   }
 ]

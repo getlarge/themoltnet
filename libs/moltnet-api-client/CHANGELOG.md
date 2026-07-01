@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.42.1](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.42.0...moltnet-api-client-v1.42.1) (2026-06-30)
+
+
+### Bug Fixes
+
+* **release:** complete local nx publish rehearsal ([7b6319a](https://github.com/getlarge/themoltnet/commit/7b6319abe4236652f8b34fe9e2c73afe1ee614cf))
+
 ## [1.42.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.41.0...moltnet-api-client-v1.42.0) (2026-06-30)
 
 

@@ -1,4 +1,9 @@
-import { buildTask, TaskBuildError } from '@themoltnet/sdk';
+import {
+  buildJudgeEvalAttemptForRunEval,
+  type BuildRubricSuccessCriteriaOptions,
+  buildTask,
+  TaskBuildError,
+} from '@themoltnet/sdk';
 import type {
   Node,
   NodeDef,
@@ -69,6 +74,14 @@ function parseCsv(raw: string | undefined): string[] {
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean);
+}
+
+function isRuntimeProfileRef(value: unknown): value is { profileId: string } {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as { profileId?: unknown }).profileId === 'string'
+  );
 }
 
 /** Resolve a context mapping's raw value from the message / context stores / literal. */
@@ -143,18 +156,31 @@ const init: NodeInitializer = (RED): void => {
             ? (msg.payload as Record<string, unknown>)
             : {};
 
-        // msg wins, config fills the gaps.
-        const brief =
-          typeof (payloadInput.input as { brief?: unknown } | undefined)
-            ?.brief === 'string'
-            ? (payloadInput.input as { brief: string }).brief
-            : (def.brief ?? '');
-
-        // Generic builder keyed on the configured task type (default freeform).
-        // buildFreeform delegates to buildTask('freeform', ...) anyway, so the
-        // gate/normalize behavior is identical for freeform.
-        const taskType = def.taskType?.trim() || 'freeform';
-        const builder = buildTask(taskType, { brief });
+        // msg wins, config fills the gaps. When msg.payload.input is present,
+        // treat it as the typed task input body. The legacy brief field remains
+        // the fallback for simple freeform-builder use.
+        const taskType =
+          typeof payloadInput.taskType === 'string' && payloadInput.taskType
+            ? payloadInput.taskType
+            : def.taskType?.trim() || 'freeform';
+        const inputData =
+          payloadInput.input && typeof payloadInput.input === 'object'
+            ? (payloadInput.input as Record<string, unknown>)
+            : taskType === 'freeform' || taskType === 'fulfill_brief'
+              ? { brief: def.brief ?? '' }
+              : {};
+        const builder =
+          taskType === 'judge_eval_attempt' &&
+          payloadInput.judgeRubric &&
+          typeof payloadInput.judgeRubric === 'object'
+            ? buildJudgeEvalAttemptForRunEval(
+                {
+                  targetTaskId: inputData.targetTaskId as string,
+                  targetAttemptN: inputData.targetAttemptN as number,
+                },
+                payloadInput.judgeRubric as unknown as BuildRubricSuccessCriteriaOptions,
+              )
+            : buildTask(taskType, inputData);
 
         // Team/diary: explicit override (node typedInput, or msg.payload) →
         // agent default. The override fields make precedence visible in the
@@ -220,6 +246,22 @@ const init: NodeInitializer = (RED): void => {
           ? (payloadInput.tags as string[])
           : parseCsv(def.tags);
         if (tags.length > 0) builder.tags(...tags);
+
+        if (
+          typeof payloadInput.correlationId === 'string' &&
+          payloadInput.correlationId
+        ) {
+          builder.correlationId(payloadInput.correlationId);
+        }
+        if (typeof payloadInput.maxAttempts === 'number') {
+          builder.maxAttempts(payloadInput.maxAttempts);
+        }
+        if (Array.isArray(payloadInput.allowedProfiles)) {
+          const allowedProfiles =
+            payloadInput.allowedProfiles.filter(isRuntimeProfileRef);
+          if (allowedProfiles.length > 0)
+            builder.allowProfiles(...allowedProfiles);
+        }
 
         const built = builder.build();
 

@@ -947,7 +947,13 @@ export async function executePiTask(
     // "Model 'gpt-5.4-codex' not found in registry" instead of the generic
     // 'LLM API error during turn'.
     const turnState = createSessionTurnState();
-    let reporterError: { code: string; message: string } | null = null;
+    // reporterError carries a `retryable` flag (a reporter buffer/heartbeat
+    // failure is transient, #1538) that flows through to the attempt result.
+    let reporterError: {
+      code: string;
+      message: string;
+      retryable?: boolean;
+    } | null = null;
     const usage: TaskUsage = finalUsage;
 
     // Cap-driven abort state. See `triggerCapAbort` below.
@@ -966,7 +972,11 @@ export async function executePiTask(
         p.catch((err: unknown) => {
           if (!reporterError) {
             const message = err instanceof Error ? err.message : String(err);
-            reporterError = { code: 'reporter_failed', message };
+            reporterError = {
+              code: 'reporter_failed',
+              message,
+              retryable: true,
+            };
             process.stderr.write(`[reporter] ${message}\n`);
           }
         }),
@@ -1509,7 +1519,9 @@ export interface BuildAttemptResultArgs {
   durationMs: number;
   runError: { code: string; message: string } | null;
   parseError: { code: string; message: string } | null;
-  reporterError: { code: string; message: string } | null;
+  // A reporter (buffer/heartbeat) failure is transient, so it carries a
+  // `retryable` flag that survives to the surfaced error (#1538).
+  reporterError: { code: string; message: string; retryable?: boolean } | null;
   llmAbort: boolean;
   llmErrorMessage: string | null;
 }
@@ -1521,6 +1533,9 @@ export interface BuildAttemptResultArgs {
  * provider abort — so the ordering is unit-tested rather than buried in the
  * orchestrator. A provider abort with no captured diagnostic falls back to a
  * generic message.
+ *
+ * Errors are non-retryable EXCEPT a reporterError that both wins the ladder
+ * and set `retryable: true` (a transient reporter failure, #1538).
  *
  * @internal Exported for unit testing; not part of the package's public API.
  */
@@ -1547,6 +1562,14 @@ export function buildAttemptResult(args: BuildAttemptResultArgs): TaskOutput {
         // "rate limited" without re-running locally.
         (args.llmErrorMessage ?? 'LLM API error during turn')
       : undefined);
+  // Only the reporterError propagates retryability, and only when it is the
+  // error actually surfaced (runError/parseError take precedence above).
+  const errorRetryable =
+    args.reporterError &&
+    errorCode === args.reporterError.code &&
+    errorMessage === args.reporterError.message
+      ? (args.reporterError.retryable ?? false)
+      : false;
 
   return {
     taskId: args.taskId,
@@ -1557,7 +1580,13 @@ export function buildAttemptResult(args: BuildAttemptResultArgs): TaskOutput {
     usage: args.usage,
     durationMs: args.durationMs,
     ...(errorCode && errorMessage
-      ? { error: { code: errorCode, message: errorMessage, retryable: false } }
+      ? {
+          error: {
+            code: errorCode,
+            message: errorMessage,
+            retryable: errorRetryable,
+          },
+        }
       : {}),
   };
 }

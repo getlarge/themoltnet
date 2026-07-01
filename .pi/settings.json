@@ -28,7 +28,9 @@
     "ollama-cloud/qwen3.5:cloud",
     "ollama-cloud/qwen3.5:397b-cloud"
   ],
+  "lastChangelogVersion": "0.80.2",
   "packages": ["npm:@ollama/pi-web-search", "npm:@themoltnet/pi-extension"],
+  "theme": "dark",
   "transport": "sse",
   "treeFilterMode": "default"
 }
