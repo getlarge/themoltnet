@@ -23,9 +23,7 @@ import type {
   OtlpConfig,
 } from './types.js';
 
-export function resolveOtlpSignalHeaders(
-  otlp: ObservabilityConfig['otlp'],
-): {
+export function resolveOtlpSignalHeaders(otlp: ObservabilityConfig['otlp']): {
   logsHeaders?: Record<string, string>;
   tracesHeaders?: Record<string, string>;
   metricsHeaders?: Record<string, string>;
@@ -37,9 +35,7 @@ export function resolveOtlpSignalHeaders(
   };
 }
 
-export function createAxiomOtlpConfig(
-  input: AxiomOtlpConfigInput,
-): OtlpConfig {
+export function createAxiomOtlpConfig(input: AxiomOtlpConfigInput): OtlpConfig {
   const authHeaders: Record<string, string> = {
     ...(input.apiToken ? { Authorization: `Bearer ${input.apiToken}` } : {}),
   };
