@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.34.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.33.2...agent-runtime-v0.34.0) (2026-07-01)
+
+
+### Features
+
+* **node-red:** add eval workflow runner ([db89f27](https://github.com/getlarge/themoltnet/commit/db89f270704f71b770538e61b36fe700beba01c6))
+* **node-red:** add eval workflow runner ([34672a8](https://github.com/getlarge/themoltnet/commit/34672a89b4734ca51e08c9ab1d5c593d5a22ef77))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.118.0
+
 ## [0.33.2](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.33.1...agent-runtime-v0.33.2) (2026-06-30)
 
 
