@@ -18,6 +18,20 @@ import { createMeterProvider } from './metrics.js';
 import { createTraceProvider } from './tracing.js';
 import type { ObservabilityConfig, ObservabilityContext } from './types.js';
 
+export function resolveOtlpSignalHeaders(
+  otlp: ObservabilityConfig['otlp'],
+): {
+  logsHeaders?: Record<string, string>;
+  tracesHeaders?: Record<string, string>;
+  metricsHeaders?: Record<string, string>;
+} {
+  return {
+    logsHeaders: otlp?.logsHeaders ?? otlp?.headers,
+    tracesHeaders: otlp?.tracesHeaders ?? otlp?.headers,
+    metricsHeaders: otlp?.metricsHeaders ?? otlp?.headers,
+  };
+}
+
 /**
  * Initialize the full observability stack.
  *
@@ -73,6 +87,8 @@ export function initObservability(
   let meterProvider: MeterProvider | undefined;
   let fastifyInstrumentation: FastifyOtelInstrumentation | undefined;
   let hasShutdown = false;
+  const { logsHeaders, tracesHeaders, metricsHeaders } =
+    resolveOtlpSignalHeaders(otlp);
 
   // Initialize tracing if enabled
   if (tracingConfig?.enabled) {
@@ -83,7 +99,7 @@ export function initObservability(
       exporter: otlp
         ? new OTLPTraceExporter({
             url: `${otlp.endpoint}/v1/traces`,
-            headers: otlp.headers,
+            headers: tracesHeaders,
           })
         : undefined,
     });
@@ -103,8 +119,7 @@ export function initObservability(
       ? new PeriodicExportingMetricReader({
           exporter: new OTLPMetricExporter({
             url: `${otlp.endpoint}/v1/metrics`,
-            // Use metricsHeaders when provided (separate Axiom dataset for metrics)
-            headers: otlp.metricsHeaders ?? otlp.headers,
+            headers: metricsHeaders,
           }),
           exportIntervalMillis: metricsConfig.exportIntervalMs ?? 60_000,
         })
@@ -141,7 +156,7 @@ export function initObservability(
           protocol: 'http/protobuf',
           protobufExporterOptions: {
             url: `${otlp.endpoint}/v1/logs`,
-            headers: otlp.headers ?? {},
+            headers: logsHeaders ?? {},
           },
         },
       },

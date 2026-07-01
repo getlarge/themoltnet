@@ -7,7 +7,7 @@ import {
 } from '@opentelemetry/api';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { initObservability } from '../src/sdk.js';
+import { initObservability, resolveOtlpSignalHeaders } from '../src/sdk.js';
 
 describe('initObservability', () => {
   afterEach(async () => {
@@ -177,5 +177,43 @@ describe('initObservability', () => {
 
     const providerAfter = metricsApi.getMeterProvider();
     expect(providerAfter).toBe(providerBefore);
+  });
+
+  it('resolves per-signal OTLP headers with common header fallback', () => {
+    const common = { Authorization: 'Bearer token', 'X-Axiom-Dataset': 'all' };
+    const logs = { Authorization: 'Bearer token', 'X-Axiom-Dataset': 'logs' };
+    const traces = {
+      Authorization: 'Bearer token',
+      'X-Axiom-Dataset': 'traces',
+    };
+    const metrics = {
+      Authorization: 'Bearer token',
+      'X-Axiom-Dataset': 'metrics',
+    };
+
+    expect(
+      resolveOtlpSignalHeaders({
+        endpoint: 'https://api.axiom.co',
+        headers: common,
+        logsHeaders: logs,
+        tracesHeaders: traces,
+        metricsHeaders: metrics,
+      }),
+    ).toEqual({
+      logsHeaders: logs,
+      tracesHeaders: traces,
+      metricsHeaders: metrics,
+    });
+
+    expect(
+      resolveOtlpSignalHeaders({
+        endpoint: 'https://api.axiom.co',
+        headers: common,
+      }),
+    ).toEqual({
+      logsHeaders: common,
+      tracesHeaders: common,
+      metricsHeaders: common,
+    });
   });
 });

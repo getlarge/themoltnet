@@ -25,6 +25,8 @@ const validEnv = {
   AXIOM_API_TOKEN: 'xaat-xxx',
   OTLP_ENDPOINT: 'https://api.axiom.co',
   AXIOM_DATASET: 'moltnet',
+  AXIOM_LOGS_DATASET: 'moltnet-logs',
+  AXIOM_TRACES_DATASET: 'moltnet-traces',
   AXIOM_METRICS_DATASET: 'moltnet-metrics',
   RECOVERY_CHALLENGE_SECRET: 'test-recovery-secret-at-least-16',
 };
@@ -152,11 +154,16 @@ describe('loadObservabilityConfig', () => {
     const config = loadObservabilityConfig({
       AXIOM_API_TOKEN: 'xaat-xxx',
       OTLP_ENDPOINT: 'https://api.axiom.co',
-      AXIOM_DATASET: 'logs',
+      AXIOM_DATASET: 'legacy',
+      AXIOM_LOGS_DATASET: 'logs',
+      AXIOM_TRACES_DATASET: 'traces',
       AXIOM_METRICS_DATASET: 'metrics',
     });
     expect(config.AXIOM_API_TOKEN).toBe('xaat-xxx');
-    expect(config.AXIOM_DATASET).toBe('logs');
+    expect(config.AXIOM_DATASET).toBe('legacy');
+    expect(config.AXIOM_LOGS_DATASET).toBe('logs');
+    expect(config.AXIOM_TRACES_DATASET).toBe('traces');
+    expect(config.AXIOM_METRICS_DATASET).toBe('metrics');
     expect(config.OTLP_ENDPOINT).toBe('https://api.axiom.co');
   });
 

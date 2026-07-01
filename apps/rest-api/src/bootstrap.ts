@@ -115,21 +115,30 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     AXIOM_API_TOKEN,
     OTLP_ENDPOINT,
     AXIOM_DATASET,
+    AXIOM_LOGS_DATASET,
+    AXIOM_TRACES_DATASET,
     AXIOM_METRICS_DATASET,
   } = config.observability;
 
   if (OTLP_ENDPOINT) {
-    const traceAndLogHeaders: Record<string, string> = {
+    const authHeaders: Record<string, string> = {
       ...(AXIOM_API_TOKEN
         ? { Authorization: `Bearer ${AXIOM_API_TOKEN}` }
         : {}),
-      ...(AXIOM_DATASET ? { 'X-Axiom-Dataset': AXIOM_DATASET } : {}),
     };
+    const logsDataset = AXIOM_LOGS_DATASET ?? AXIOM_DATASET;
+    const tracesDataset = AXIOM_TRACES_DATASET ?? AXIOM_DATASET;
     const metricsDataset = AXIOM_METRICS_DATASET ?? AXIOM_DATASET;
+    const logsHeaders: Record<string, string> = {
+      ...authHeaders,
+      ...(logsDataset ? { 'X-Axiom-Dataset': logsDataset } : {}),
+    };
+    const tracesHeaders: Record<string, string> = {
+      ...authHeaders,
+      ...(tracesDataset ? { 'X-Axiom-Dataset': tracesDataset } : {}),
+    };
     const metricsHeaders: Record<string, string> = {
-      ...(AXIOM_API_TOKEN
-        ? { Authorization: `Bearer ${AXIOM_API_TOKEN}` }
-        : {}),
+      ...authHeaders,
       ...(metricsDataset ? { 'X-Axiom-Dataset': metricsDataset } : {}),
     };
 
@@ -139,7 +148,8 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       environment: config.server.NODE_ENV,
       otlp: {
         endpoint: OTLP_ENDPOINT,
-        headers: traceAndLogHeaders,
+        logsHeaders,
+        tracesHeaders,
         metricsHeaders,
       },
       logger: {

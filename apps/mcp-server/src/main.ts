@@ -18,19 +18,24 @@ async function main(): Promise<void> {
   // Init observability before building the app (sets global OTel providers)
   let observability: ObservabilityContext | undefined;
   if (config.OTLP_ENDPOINT) {
-    const headers: Record<string, string> = {
+    const authHeaders: Record<string, string> = {
       ...(config.AXIOM_API_TOKEN
         ? { Authorization: `Bearer ${config.AXIOM_API_TOKEN}` }
-        : {}),
-      ...(config.AXIOM_DATASET
-        ? { 'X-Axiom-Dataset': config.AXIOM_DATASET }
         : {}),
     };
+    const logsDataset = config.AXIOM_LOGS_DATASET ?? config.AXIOM_DATASET;
+    const tracesDataset = config.AXIOM_TRACES_DATASET ?? config.AXIOM_DATASET;
     const metricsDataset = config.AXIOM_METRICS_DATASET ?? config.AXIOM_DATASET;
+    const logsHeaders: Record<string, string> = {
+      ...authHeaders,
+      ...(logsDataset ? { 'X-Axiom-Dataset': logsDataset } : {}),
+    };
+    const tracesHeaders: Record<string, string> = {
+      ...authHeaders,
+      ...(tracesDataset ? { 'X-Axiom-Dataset': tracesDataset } : {}),
+    };
     const metricsHeaders: Record<string, string> = {
-      ...(config.AXIOM_API_TOKEN
-        ? { Authorization: `Bearer ${config.AXIOM_API_TOKEN}` }
-        : {}),
+      ...authHeaders,
       ...(metricsDataset ? { 'X-Axiom-Dataset': metricsDataset } : {}),
     };
     observability = initObservability({
@@ -39,7 +44,8 @@ async function main(): Promise<void> {
       environment: config.NODE_ENV,
       otlp: {
         endpoint: config.OTLP_ENDPOINT,
-        headers,
+        logsHeaders,
+        tracesHeaders,
         metricsHeaders,
       },
       logger: {

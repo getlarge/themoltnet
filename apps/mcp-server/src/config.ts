@@ -17,8 +17,12 @@ export const McpServerConfigSchema = Type.Object({
   AXIOM_API_TOKEN: Type.Optional(Type.String({ minLength: 1 })),
   /** Full OTLP HTTP base URL, e.g. https://api.axiom.co */
   OTLP_ENDPOINT: Type.Optional(Type.String({ minLength: 1 })),
-  /** Axiom dataset for logs + traces */
+  /** Legacy/common Axiom dataset fallback for logs, traces, and metrics */
   AXIOM_DATASET: Type.Optional(Type.String({ minLength: 1 })),
+  /** Axiom dataset for logs (falls back to AXIOM_DATASET) */
+  AXIOM_LOGS_DATASET: Type.Optional(Type.String({ minLength: 1 })),
+  /** Axiom dataset for traces (falls back to AXIOM_DATASET) */
+  AXIOM_TRACES_DATASET: Type.Optional(Type.String({ minLength: 1 })),
   /** Axiom dataset for metrics (falls back to AXIOM_DATASET) */
   AXIOM_METRICS_DATASET: Type.Optional(Type.String({ minLength: 1 })),
   AUTH_ENABLED: Type.Optional(
