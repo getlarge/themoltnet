@@ -1,0 +1,16 @@
+{
+  "alertOnNoData": false,
+  "aplQuery": "['moltnet']\n| extend service = tostring(['service.name'])\n| extend route = tostring(['attributes.route'])\n| extend status = toint(['attributes.http.response.status_code'])\n| where service == 'moltnet-mcp-server'\n| where status >= 500\n| summarize server_errors = count() by bin(_time, 5m), service, route, status",
+  "description": "Actionable server-side MCP failures. Inspect moltnet traces/logs by grouped route/service and correlate with MCP tool/task context before creating follow-up work.",
+  "intervalMinutes": 5,
+  "name": "MoltNet MCP server 5xx by route",
+  "notifierIds": [],
+  "notifyByGroup": true,
+  "operator": "Above",
+  "rangeMinutes": 5,
+  "resolvable": true,
+  "threshold": 3,
+  "triggerAfterNPositiveResults": 2,
+  "triggerFromNRuns": 3,
+  "type": "Threshold"
+}

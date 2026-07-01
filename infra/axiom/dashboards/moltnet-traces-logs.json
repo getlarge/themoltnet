@@ -1,0 +1,170 @@
+{
+  "charts": [
+    {
+      "id": "overview",
+      "name": "How to use this dashboard",
+      "text": "Start with server errors and slow routes. Drill into service, route, status, trace_id, taskId, teamId, and diaryId. Metrics live in the separate MoltNet Metrics dashboard.",
+      "type": "Note"
+    },
+    {
+      "colorScheme": "Red",
+      "id": "server-errors",
+      "name": "5xx spans",
+      "query": {
+        "apl": "['moltnet']\n| extend status = toint(['attributes.http.response.status_code'])\n| where status >= 500\n| summarize Value = count() by bin_auto(_time)"
+      },
+      "showChart": true,
+      "type": "Statistic"
+    },
+    {
+      "colorScheme": "Blue",
+      "id": "span-volume",
+      "name": "Span volume",
+      "query": {
+        "apl": "['moltnet']\n| summarize Value = count() by bin_auto(_time)"
+      },
+      "showChart": true,
+      "type": "Statistic"
+    },
+    {
+      "id": "errors-by-route",
+      "name": "5xx by service / route",
+      "query": {
+        "apl": "['moltnet']\n| extend service = tostring(['service.name'])\n| extend route = tostring(['attributes.route'])\n| extend status = toint(['attributes.http.response.status_code'])\n| where status >= 500\n| summarize errors = count() by service, route, status\n| top 20 by errors"
+      },
+      "type": "Table"
+    },
+    {
+      "id": "server-errors-over-time",
+      "name": "5xx over time",
+      "query": {
+        "apl": "['moltnet']\n| extend service = tostring(['service.name'])\n| extend status = toint(['attributes.http.response.status_code'])\n| where status >= 500\n| summarize errors = count() by service, bin_auto(_time)"
+      },
+      "type": "TimeSeries"
+    },
+    {
+      "id": "slow-operations",
+      "name": "Slow operations",
+      "query": {
+        "apl": "['moltnet']\n| extend service = tostring(['service.name'])\n| extend route = tostring(['attributes.route'])\n| summarize p95 = percentile(todouble(['duration']), 95), count = count() by service, route\n| top 20 by p95"
+      },
+      "type": "Table"
+    },
+    {
+      "id": "task-linked-events",
+      "name": "Task-linked recent events",
+      "query": {
+        "apl": "['moltnet']\n| where isnotempty(['attributes.taskId'])\n| project _time, ['service.name'], ['attributes.route'], ['attributes.taskId'], ['attributes.teamId'], trace_id, severity_text, body\n| take 100"
+      },
+      "type": "LogStream"
+    },
+    {
+      "id": "client-auth-noise",
+      "name": "401 / 403 / 404 by service / route",
+      "query": {
+        "apl": "['moltnet']\n| extend service = tostring(['service.name'])\n| extend route = tostring(['attributes.route'])\n| extend status = toint(['attributes.http.response.status_code'])\n| where status in (401, 403, 404)\n| summarize count = count() by service, route, status\n| top 20 by count"
+      },
+      "type": "Table"
+    }
+  ],
+  "datasets": ["moltnet"],
+  "description": "Operational drilldown over the moltnet traces/logs dataset.",
+  "layout": [
+    {
+      "h": 2,
+      "i": "overview",
+      "minH": 1,
+      "minW": 1,
+      "moved": false,
+      "static": false,
+      "w": 12,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "h": 3,
+      "i": "server-errors",
+      "minH": 1,
+      "minW": 1,
+      "moved": false,
+      "static": false,
+      "w": 3,
+      "x": 0,
+      "y": 2
+    },
+    {
+      "h": 3,
+      "i": "span-volume",
+      "minH": 1,
+      "minW": 1,
+      "moved": false,
+      "static": false,
+      "w": 3,
+      "x": 3,
+      "y": 2
+    },
+    {
+      "h": 5,
+      "i": "errors-by-route",
+      "minH": 1,
+      "minW": 1,
+      "moved": false,
+      "static": false,
+      "w": 6,
+      "x": 6,
+      "y": 2
+    },
+    {
+      "h": 5,
+      "i": "server-errors-over-time",
+      "minH": 1,
+      "minW": 1,
+      "moved": false,
+      "static": false,
+      "w": 6,
+      "x": 0,
+      "y": 5
+    },
+    {
+      "h": 5,
+      "i": "slow-operations",
+      "minH": 1,
+      "minW": 1,
+      "moved": false,
+      "static": false,
+      "w": 6,
+      "x": 6,
+      "y": 7
+    },
+    {
+      "h": 6,
+      "i": "task-linked-events",
+      "minH": 1,
+      "minW": 1,
+      "moved": false,
+      "static": false,
+      "w": 6,
+      "x": 0,
+      "y": 10
+    },
+    {
+      "h": 5,
+      "i": "client-auth-noise",
+      "minH": 1,
+      "minW": 1,
+      "moved": false,
+      "static": false,
+      "w": 6,
+      "x": 6,
+      "y": 12
+    }
+  ],
+  "name": "MoltNet Traces and Logs",
+  "overrides": {},
+  "owner": "X-AXIOM-EVERYONE",
+  "refreshTime": 60,
+  "schemaVersion": 2,
+  "timeWindowEnd": "qr-now",
+  "timeWindowStart": "qr-now-30m",
+  "uid": "2cf1addf-e611-46c3-9a9d-5315dcdc0e94"
+}

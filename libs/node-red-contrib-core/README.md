@@ -329,6 +329,75 @@ in the Node-RED instance) to get a live workflow cockpit without any custom Vue
 widget. A starter flow is in [`examples/cockpit.flow.json`](./examples/cockpit.flow.json)
 (inject → `moltnet-workflow-status` → debug; add a `ui-table` to visualize).
 
+## Axiom alert triage workflow
+
+[`examples/axiom-alert-triage.flow.json`](./examples/axiom-alert-triage.flow.json)
+is an observability triage experiment with two trigger modes:
+
+`Axiom monitor history polling` → **parser/enricher task** →
+**codebase triage task** → **judge task**.
+
+When Axiom custom webhook notifiers are available, the same triage chain can also
+start from `POST /axiom/monitor`.
+
+The polling path calls Axiom monitor history with `AXIOM_MONITORING_TOKEN`
+(`AXIOM_API_TOKEN` is accepted as a fallback for local experiments), dedupes
+events by monitor/state/timestamp in flow context, starts work only for
+trigger-like events, builds task bodies through `task: build`, and chains tasks
+through `task: read` `artifactRef` values so large telemetry artifacts stay in
+MoltNet. Resolution/no-op events go to a debug lane instead of starting codebase
+triage.
+
+Polling environment:
+
+- `AXIOM_MONITORING_TOKEN`: Axiom token with monitor history/read access and,
+  for the current single-token experiment, telemetry query read access.
+- `AXIOM_MONITOR_IDS`: optional comma-separated monitor ids. Defaults to the
+  MoltNet monitors created by `infra/axiom/monitors/apply.mjs`.
+- `AXIOM_POLL_WINDOW_MINUTES`: optional lookback window, default `15`.
+
+To test the flow without a real Axiom trigger, use the **inject synthetic
+alert** node in the example. It builds the same normalized `msg.axiom` shape as
+the polling/webhook paths, marks it with `synthetic: true`, and routes it through
+the common monitor-events link so the parser, triage, artifact chaining, and
+judge stages all run.
+
+Optional Axiom custom webhook setup:
+
+- URL: `https://<node-red-host>/axiom/monitor`
+- Method: `POST`
+- Optional secret header: `x-axiom-webhook-secret: <secret>`
+- Node-RED env: `AXIOM_WEBHOOK_SECRET=<secret>` when that header is used
+
+Suggested custom webhook body:
+
+```json
+{
+  "action": "{{.Action}}",
+  "body": "{{.Body}}",
+  "endTime": "now",
+  "monitorId": "{{.MonitorID}}",
+  "monitorName": "{{.Title}}",
+  "service": "moltnet-rest-api",
+  "severity": "warning",
+  "startTime": "now-30m",
+  "value": "{{.Value}}"
+}
+```
+
+The parser/enricher task prompt asks the agent to use the repo-local
+`axiom-alert-triage` skill and produce a JSON artifact titled
+`telemetry-evidence`. The next task consumes that artifact, compares findings
+against the `getlarge/themoltnet` codebase, GitHub issues, and MoltNet entries,
+then writes `triage-report`. The final judge task writes `triage-judgment`.
+
+Before enabling live webhooks, refine Axiom monitors so broad auth/client noise
+(401/404) is separated from actionable alerts such as 5xx errors, latency
+regression, event loop pressure, and memory pressure. The companion repo-local
+`axiom-observability` skill and [`infra/axiom`](../../infra/axiom) document the
+monitor/dashboard maintenance conventions and provide idempotent apply scripts
+for the committed Axiom config.
+
 ## Build
 
 ```bash
@@ -389,7 +458,9 @@ export default {
 Open the editor, drag in `agent` + the task nodes, or import
 [`examples/issue-lifecycle.flow.json`](./examples/issue-lifecycle.flow.json) or
 [`examples/cockpit.flow.json`](./examples/cockpit.flow.json) or
-[`examples/deep-review-freeform.flow.json`](./examples/deep-review-freeform.flow.json),
+[`examples/deep-review-freeform.flow.json`](./examples/deep-review-freeform.flow.json)
+or
+[`examples/axiom-alert-triage.flow.json`](./examples/axiom-alert-triage.flow.json),
 then fill the agent's `clientId`/`clientSecret`.
 
 If Node-RED crashes in `@node-red/editor-api/lib/auth/tokens.js` with

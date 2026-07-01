@@ -1,0 +1,17 @@
+{
+  "alertOnNoData": false,
+  "description": "Runtime saturation signal over moltnet-metrics. Start with service.name, then inspect recent traces/logs for long-running handlers, embedding/model calls, or workflow bursts. Values are seconds.",
+  "intervalMinutes": 5,
+  "mplQuery": "`moltnet-metrics`:`nodejs.eventloop.delay.p99`\n| align to 1m using max\n| group by `service.name` using max",
+  "name": "MoltNet event loop pressure by service",
+  "notifierIds": [],
+  "notifyByGroup": true,
+  "operator": "AboveOrEqual",
+  "previousNames": ["Event Loop blocked"],
+  "rangeMinutes": 10,
+  "resolvable": true,
+  "threshold": 0.5,
+  "triggerAfterNPositiveResults": 2,
+  "triggerFromNRuns": 3,
+  "type": "Threshold"
+}
