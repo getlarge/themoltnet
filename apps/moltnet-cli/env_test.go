@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -100,6 +101,47 @@ func TestResolveMoltnetDir_Missing(t *testing.T) {
 	_, err := resolveMoltnetDir(dir)
 	if err == nil {
 		t.Fatal("expected error for missing .moltnet")
+	}
+	assertMissingMoltnetCredentialsError(t, err, dir, "not in a git repo")
+}
+
+func TestResolveMoltnetDir_MissingInLinkedWorktree(t *testing.T) {
+	t.Parallel()
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git not available")
+	}
+
+	mainRoot := filepath.Join(t.TempDir(), "main")
+	if err := os.Mkdir(mainRoot, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	mustGit(t, mainRoot, "init", "-q", "-b", "main")
+	mustGit(t, mainRoot, "-c", "user.email=t@e", "-c", "user.name=t", "commit", "--allow-empty", "-q", "-m", "init")
+
+	worktreeRoot := filepath.Join(t.TempDir(), "wt")
+	mustGit(t, mainRoot, "worktree", "add", "-q", worktreeRoot, "-b", "feature")
+	t.Cleanup(func() { _ = exec.Command("git", "-C", mainRoot, "worktree", "remove", "-f", worktreeRoot).Run() })
+
+	_, err := resolveMoltnetDir(worktreeRoot)
+	if err == nil {
+		t.Fatal("expected error for missing .moltnet")
+	}
+	assertMissingMoltnetCredentialsError(t, err, worktreeRoot, mainRoot)
+}
+
+func assertMissingMoltnetCredentialsError(t *testing.T, err error, want ...string) {
+	t.Helper()
+	message := err.Error()
+	required := append([]string{
+		"MoltNet agent credentials",
+		".moltnet",
+		"legreffier init --name <agent>",
+		"moltnet config init-from-env --agent <agent>",
+	}, want...)
+	for _, text := range required {
+		if !strings.Contains(message, text) {
+			t.Fatalf("expected error to contain %q, got:\n%s", text, message)
+		}
 	}
 }
 
