@@ -83,6 +83,14 @@ describe('createResultReader (freeform)', () => {
     });
   });
 
+  it('judgeEvalTarget() carries the accepted attempt tuple', () => {
+    const r = createResultReader(freeformTask(), freeformAttempt(output));
+    expect(r.judgeEvalTarget()).toEqual({
+      targetTaskId: 'task-1',
+      targetAttemptN: 1,
+    });
+  });
+
   it('artifactRef(role) carries outputCid and artifact CID metadata', () => {
     const r = createResultReader(freeformTask(), freeformAttempt(output));
     expect(r.artifactRef('patch', 'context')).toEqual({

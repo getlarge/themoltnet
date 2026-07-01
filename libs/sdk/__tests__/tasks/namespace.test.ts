@@ -27,4 +27,30 @@ describe('TasksNamespace builder factories', () => {
       .build();
     expect(body.taskType).toBe('freeform');
   });
+
+  it('exposes buildJudgeEvalAttemptForRunEval', () => {
+    const ns = createTasksNamespace({ client: {} as Client });
+    const { body } = ns
+      .buildJudgeEvalAttemptForRunEval(
+        {
+          targetTaskId: '11111111-1111-1111-1111-111111111111',
+          targetAttemptN: 1,
+        },
+        {
+          rubricId: 'eval-rubric',
+          criteria: [
+            {
+              id: 'grounded',
+              title: 'Grounded',
+              description: 'Response is grounded in supplied evidence',
+              weight: 1,
+            },
+          ],
+        },
+      )
+      .team(TEAM)
+      .diary(DIARY)
+      .build();
+    expect(body.taskType).toBe('judge_eval_attempt');
+  });
 });

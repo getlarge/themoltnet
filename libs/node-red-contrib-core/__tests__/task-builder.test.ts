@@ -251,4 +251,83 @@ describe('moltnet-task-builder taskType + title + tags', () => {
     expect(payload.title).toBeUndefined();
     expect(payload.tags).toBeUndefined();
   });
+
+  it('builds a run_eval body from msg.payload.input', async () => {
+    const { red, node } = setup({ taskType: 'freeform' });
+    const { outputs } = await red.input(node, {
+      payload: {
+        taskType: 'run_eval',
+        title: 'Eval run',
+        tags: ['eval'],
+        correlationId: '99999999-9999-4999-8999-999999999999',
+        maxAttempts: 2,
+        input: {
+          scenario: { prompt: 'Run the scenario' },
+          variantLabel: 'baseline',
+          execution: { mode: 'vitro', workspace: 'none' },
+          context: [],
+        },
+      },
+    });
+    const payload = outputs[0].payload as Record<string, unknown>;
+    expect(payload.taskType).toBe('run_eval');
+    expect(payload.title).toBe('Eval run');
+    expect(payload.tags).toEqual(['eval']);
+    expect(payload.correlationId).toBe('99999999-9999-4999-8999-999999999999');
+    expect(payload.maxAttempts).toBe(2);
+    expect((payload.input as { variantLabel: string }).variantLabel).toBe(
+      'baseline',
+    );
+  });
+
+  it('does not synthesize brief for non-brief task types', async () => {
+    const { red, node } = setup({ taskType: 'run_eval' });
+    await expect(red.input(node, { payload: {} })).rejects.toMatchObject({
+      message: expect.stringContaining(
+        'input/scenario: must have required property scenario',
+      ),
+    });
+    await expect(red.input(node, { payload: {} })).rejects.not.toMatchObject({
+      message: expect.stringContaining('input/brief'),
+    });
+  });
+
+  it('builds judge_eval_attempt from msg.payload.judgeRubric', async () => {
+    const { red, node } = setup({ taskType: 'freeform' });
+    const { outputs } = await red.input(node, {
+      payload: {
+        taskType: 'judge_eval_attempt',
+        input: {
+          targetTaskId: '11111111-1111-4111-8111-111111111111',
+          targetAttemptN: 1,
+        },
+        judgeRubric: {
+          rubricId: 'eval-rubric',
+          criteria: [
+            {
+              id: 'grounded',
+              title: 'Grounded',
+              description: 'Response is grounded in supplied evidence',
+              weight: 1,
+            },
+          ],
+        },
+      },
+    });
+    const payload = outputs[0].payload as Record<string, unknown>;
+    const input = payload.input as {
+      successCriteria: {
+        rubric: { criteria: Array<Record<string, unknown>> };
+      };
+    };
+    expect(payload.taskType).toBe('judge_eval_attempt');
+    expect(input.successCriteria.rubric.criteria).toEqual([
+      {
+        id: 'grounded',
+        description: 'Response is grounded in supplied evidence',
+        weight: 1,
+        scoring: 'llm_score',
+      },
+    ]);
+  });
 });
