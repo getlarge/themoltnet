@@ -173,7 +173,7 @@
       }
     },
     "git": {
-      "commitMessage": "chore(release): publish [skip ci] {version}"
+      "commitMessage": "chore(release): publish {version} [skip ci]"
     },
     "groups": {
       "cli": {

@@ -88,6 +88,9 @@ Important production details:
   pre-version hook builds local images before Nx applies release tags.
 - Nx release commits include `[skip ci]` so the generated release commit does
   not fan out into unrelated CI workflows.
+  Keep the skip token at the end of the subject. Nx appends fixed release group
+  and independent project versions to the commit body for top-level multi-group
+  releases.
 - The GitHub Action release target moves the stable major tag, for example
   `v0`, after its bundled `dist/main.js` has been committed by the release.
 
