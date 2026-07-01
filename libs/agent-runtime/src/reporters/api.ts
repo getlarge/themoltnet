@@ -375,13 +375,11 @@ export class ApiTaskReporter implements TaskReporter {
    * this task and any subsequent 403 is a real authorization failure
    * (e.g. another agent stole the claim) that must surface immediately.
    *
-   * Retry budget is intentionally tight: the documented Keto
-   * consistency window is "tens of milliseconds," so 100 ms + 200 ms
-   * (3 attempts total) covers the realistic window with margin without
-   * adding meaningful latency to the permanent-failure path (wrong
-   * task ID, claim revoked, etc.). We also string-match the server's
-   * `Not authorized` message to avoid retrying 403s that mean
-   * something else (Fastify routes can 403 for non-auth reasons too).
+   * Retry budget matches `sendInitialHeartbeat` and the REST e2e
+   * claimant-consistency regression: 5 attempts with 100/200/300/400 ms
+   * backoff. We also string-match the server's `Not authorized` message
+   * to avoid retrying 403s that mean something else (Fastify routes can
+   * 403 for non-auth reasons too).
    */
   private async appendWithFirstCallRetry(
     batch: BufferedMessage[],
@@ -392,7 +390,7 @@ export class ApiTaskReporter implements TaskReporter {
       });
       return;
     }
-    const maxAttempts = 3;
+    const maxAttempts = 5;
     const baseDelayMs = 100;
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
       try {

@@ -928,7 +928,11 @@ export async function executePiTask(
     // the generic 'LLM API error during turn'.
     let llmErrorMessage: string | null = null;
     let assistantText = '';
-    let reporterError: { code: string; message: string } | null = null;
+    let reporterError: {
+      code: string;
+      message: string;
+      retryable?: boolean;
+    } | null = null;
     const usage: TaskUsage = finalUsage;
 
     // Cap-driven abort state. See `triggerCapAbort` below.
@@ -949,7 +953,11 @@ export async function executePiTask(
         p.catch((err: unknown) => {
           if (!reporterError) {
             const message = err instanceof Error ? err.message : String(err);
-            reporterError = { code: 'reporter_failed', message };
+            reporterError = {
+              code: 'reporter_failed',
+              message,
+              retryable: true,
+            };
             process.stderr.write(`[reporter] ${message}\n`);
           }
         }),
@@ -1253,19 +1261,24 @@ export async function executePiTask(
       };
     }
 
+    const reporterErrorSnapshot = reporterError as {
+      code: string;
+      message: string;
+      retryable?: boolean;
+    } | null;
     const status: TaskOutput['status'] =
-      runError || llmAbort || parseError || reporterError
+      runError || llmAbort || parseError || reporterErrorSnapshot
         ? 'failed'
         : 'completed';
     const errorCode =
       runError?.code ??
       parseError?.code ??
-      (reporterError as { code: string } | null)?.code ??
+      reporterErrorSnapshot?.code ??
       (llmAbort ? 'llm_api_error' : undefined);
     const errorMessage =
       runError?.message ??
       parseError?.message ??
-      (reporterError as { message: string } | null)?.message ??
+      reporterErrorSnapshot?.message ??
       (llmAbort
         ? // Prefer the diagnostic pi captured on the assistant message
           // over the generic fallback. Most provider failures (model
@@ -1275,6 +1288,12 @@ export async function executePiTask(
           // "rate limited" without re-running locally.
           (llmErrorMessage ?? 'LLM API error during turn')
         : undefined);
+    const errorRetryable =
+      reporterErrorSnapshot &&
+      errorCode === reporterErrorSnapshot.code &&
+      errorMessage === reporterErrorSnapshot.message
+        ? (reporterErrorSnapshot.retryable ?? false)
+        : false;
 
     return {
       taskId: task.id,
@@ -1286,7 +1305,11 @@ export async function executePiTask(
       durationMs: Date.now() - startTime,
       ...(errorCode && errorMessage
         ? {
-            error: { code: errorCode, message: errorMessage, retryable: false },
+            error: {
+              code: errorCode,
+              message: errorMessage,
+              retryable: errorRetryable,
+            },
           }
         : {}),
     };

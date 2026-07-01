@@ -65,9 +65,10 @@ export class TaskResultReader<TOutput = Record<string, unknown>> {
   readonly accepted: AcceptedMeta;
   /** Token / cost usage for the accepted attempt, if reported. */
   readonly usage: TaskAttempt['usage'];
-
-  private readonly taskId: string;
-  private readonly outputCid: string;
+  /** Task id for the task whose accepted attempt is being read. */
+  readonly taskId: string;
+  /** CID of the accepted attempt output. */
+  readonly outputCid: string;
 
   constructor(task: Task, attempt: TaskAttempt) {
     const errors = [];
@@ -173,6 +174,20 @@ export class TaskResultReader<TOutput = Record<string, unknown>> {
    */
   outputRef(role: ReferenceRole): TaskRef {
     return { taskId: this.taskId, outputCid: this.outputCid, role };
+  }
+
+  /**
+   * Return the target tuple required by `judge_eval_attempt`.
+   *
+   * This intentionally uses the accepted attempt number, not merely the
+   * attempt object passed to the reader, so a downstream judge is pinned to
+   * the producer output that the task accepted.
+   */
+  judgeEvalTarget(): { targetTaskId: string; targetAttemptN: number } {
+    return {
+      targetTaskId: this.taskId,
+      targetAttemptN: this.accepted.attemptN,
+    };
   }
 
   /**

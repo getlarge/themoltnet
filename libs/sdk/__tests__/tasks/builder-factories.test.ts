@@ -7,10 +7,13 @@ import {
   buildFreeform,
   buildFulfillBrief,
   buildJudgeEvalAttempt,
+  buildJudgeEvalAttemptForRunEval,
+  buildRubricSuccessCriteria,
   buildJudgePack,
   buildPrReview,
   buildRenderPack,
   buildRunEval,
+  normalizeRubricCriteria,
 } from '../../src/tasks/builder.js';
 
 const TEAM = '6743b4b1-6b93-46e2-a048-19490f04f91a';
@@ -141,6 +144,94 @@ describe('typed per-type factories produce validator-passing bodies', () => {
           targetAttemptN: 1,
           successCriteria: { version: 1, rubric: llmRubric },
         })
+          .team(TEAM)
+          .diary(DIARY)
+          .build(),
+      ),
+    ).toEqual([]);
+  });
+
+  it('buildRubricSuccessCriteria normalizes rubric criteria', () => {
+    expect(
+      buildRubricSuccessCriteria({
+        rubricId: 'eval-rubric',
+        criteria: [
+          {
+            id: 'workflow-started-after-transaction-commits',
+            title: 'Workflow started after transaction commits',
+            weight: 0.35,
+            description: 'Workflow starts after runTransaction resolves',
+          },
+          {
+            id: 'notes-name-both-systems',
+            title: 'Notes name both systems',
+            weight: 0.65,
+            description: 'Notes mention DBOS and Drizzle/Postgres',
+          },
+        ],
+      }),
+    ).toEqual({
+      version: 1,
+      rubric: {
+        rubricId: 'eval-rubric',
+        version: 'v1',
+        criteria: [
+          {
+            id: 'workflow-started-after-transaction-commits',
+            description: 'Workflow starts after runTransaction resolves',
+            weight: 0.35,
+            scoring: 'llm_score',
+          },
+          {
+            id: 'notes-name-both-systems',
+            description: 'Notes mention DBOS and Drizzle/Postgres',
+            weight: 0.65,
+            scoring: 'llm_score',
+          },
+        ],
+      },
+    });
+  });
+
+  it('normalizes criteria.json style max_score values', () => {
+    expect(
+      normalizeRubricCriteria([
+        { name: 'Does X', description: 'Agent does X', max_score: 60 },
+        { name: 'Does Y', description: 'Agent does Y', max_score: 40 },
+      ]),
+    ).toEqual([
+      {
+        id: 'Does X',
+        description: 'Agent does X',
+        weight: 0.6,
+        scoring: 'llm_score',
+      },
+      {
+        id: 'Does Y',
+        description: 'Agent does Y',
+        weight: 0.4,
+        scoring: 'llm_score',
+      },
+    ]);
+  });
+
+  it('buildJudgeEvalAttemptForRunEval derives target and normalized rubric', () => {
+    expect(
+      ok(
+        buildJudgeEvalAttemptForRunEval(
+          { targetTaskId: UUID_A, targetAttemptN: 1 },
+          {
+            rubricId: 'eval-rubric',
+            criteria: [
+              {
+                id: 'workflow-started-after-transaction-commits',
+                title: 'Workflow started after transaction commits',
+                weight: 1,
+                description: 'Workflow starts after runTransaction resolves',
+              },
+            ],
+          },
+        )
           .team(TEAM)
           .diary(DIARY)
           .build(),

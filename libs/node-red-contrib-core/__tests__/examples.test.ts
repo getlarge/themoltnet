@@ -47,7 +47,20 @@ describe('example flows', () => {
       'requiredFindings',
     );
     expect(nodes.get('ab_eval_init_group')?.func).toContain('expectedVariants');
+    expect(nodes.get('ab_eval_init_group')?.func).toContain(
+      'return [messages]',
+    );
+    expect(nodes.get('ab_eval_init_group')?.func).toContain(
+      'evalExpectedVariants',
+    );
+    expect(nodes.get('ab_eval_init_group')?.func).toContain('evalGroup');
     expect(nodes.get('ab_eval_gate_group')?.func).toContain('groupComplete');
+    expect(nodes.get('sf_ab_store_delta')?.func).toContain(
+      'expectedFromMessage',
+    );
+    expect(nodes.get('sf_ab_store_delta')?.func).not.toContain(
+      'Object.keys(scenario).length || 0',
+    );
     expect(nodes.get('sf_ab_pack_lane_failure')?.func).toContain(
       "laneStatus: 'failed'",
     );
@@ -64,8 +77,39 @@ describe('example flows', () => {
     expect(nodes.get('sf_ab_build_judge_eval')?.func).toContain(
       'judgeAllowedProfiles',
     );
+    expect(nodes.get('sf_ab_build_judge_eval')?.func).toContain('judgeRubric');
     expect(nodes.get('sf_ab_build_judge_eval')?.func).toContain(
       'msg.evalScenario?.runtimeProfiles?.judge',
+    );
+    expect(nodes.get('sf_ab_build_run_eval')?.wires).toEqual([
+      ['sf_ab_task_builder_run_eval'],
+    ]);
+    expect(nodes.get('sf_ab_task_builder_run_eval')?.type).toBe(
+      'moltnet-task-builder',
+    );
+    expect(nodes.get('sf_ab_task_builder_run_eval')?.wires).toEqual([
+      ['sf_ab_create_run_eval'],
+    ]);
+    expect(nodes.get('sf_ab_build_judge_eval')?.wires).toEqual([
+      ['sf_ab_task_builder_judge_eval'],
+    ]);
+    expect(nodes.get('sf_ab_task_builder_judge_eval')?.type).toBe(
+      'moltnet-task-builder',
+    );
+    expect(nodes.get('sf_ab_task_builder_judge_eval')?.wires).toEqual([
+      ['sf_ab_create_judge_eval'],
+    ]);
+    expect(nodes.get('a72acb578ef0ea20')?.scope).toEqual(
+      expect.arrayContaining([
+        'sf_ab_task_builder_run_eval',
+        'sf_ab_task_builder_judge_eval',
+      ]),
+    );
+    expect(nodes.get('sf_ab_error_catch')?.scope).toEqual(
+      expect.arrayContaining([
+        'sf_ab_task_builder_run_eval',
+        'sf_ab_task_builder_judge_eval',
+      ]),
     );
     expect(nodes.get('sf_ab_wait_run_eval')?.wires).toEqual([
       ['sf_ab_tail_out'],

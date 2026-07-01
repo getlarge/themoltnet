@@ -30,6 +30,7 @@ import {
   buildFreeform,
   buildFulfillBrief,
   buildJudgeEvalAttempt,
+  buildJudgeEvalAttemptForRunEval,
   buildJudgePack,
   buildPrReview,
   buildRenderPack,
@@ -172,6 +173,7 @@ export function createTasksNamespace(context: AgentContext): TasksNamespace {
     buildAssessBrief,
     buildJudgePack,
     buildJudgeEvalAttempt,
+    buildJudgeEvalAttemptForRunEval,
     buildPrReview,
 
     async readResult(taskOrId: string | Task) {

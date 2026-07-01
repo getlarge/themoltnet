@@ -10,8 +10,14 @@ import {
   normalizeTaskInputForCreate,
   type PrReviewInput,
   type RenderPackInput,
+  type Rubric,
+  type RubricCriterion,
+  type RubricScoringMode,
   type RunEvalInput,
+  type SuccessCriteria,
   type TaskRef,
+  type TaskValidationError,
+  validateRubricWeights,
   validateTaskCreateRequest,
 } from '@moltnet/tasks';
 
@@ -53,6 +59,37 @@ export type ArtifactReferenceSource =
   | { artifactRef(role: ReferenceRole): TaskRef };
 
 /**
+ * Human-friendly criterion shape used by rubric authors, eval scenarios, and
+ * checklist files. The SDK normalizes it to MoltNet's canonical rubric
+ * criterion schema before task creation.
+ */
+export interface RubricCriterionInput {
+  id?: string;
+  name?: string;
+  title?: string;
+  description?: string;
+  weight?: number;
+  max_score?: number;
+  maxScore?: number;
+  scoring?: RubricScoringMode;
+}
+
+export interface BuildRubricSuccessCriteriaOptions {
+  rubricId: string;
+  criteria: readonly RubricCriterionInput[];
+  version?: string;
+  contentHash?: string;
+  preamble?: string;
+  scope?: string;
+  scoring?: RubricScoringMode;
+}
+
+export type JudgeEvalAttemptTarget =
+  | { targetTaskId: string; targetAttemptN: number }
+  | { taskId: string; accepted?: { attemptN?: number }; attemptN?: number }
+  | { judgeEvalTarget(): { targetTaskId: string; targetAttemptN: number } };
+
+/**
  * Task types that receive the auto-injected `submit-output` gate at create
  * time. Mirrors `PRODUCER_TASK_TYPES_WITH_SUBMIT_GATE` in
  * `@moltnet/tasks`'s `normalizeTaskInputForCreate`.
@@ -64,6 +101,119 @@ export const PRODUCER_TASK_TYPES: ReadonlySet<string> = new Set([
   'render_pack',
   'run_eval',
 ]);
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value.length > 0;
+}
+
+function criterionWeight(
+  criterion: RubricCriterionInput,
+  index: number,
+): number {
+  if (typeof criterion.weight === 'number') return criterion.weight;
+  if (typeof criterion.max_score === 'number') return criterion.max_score / 100;
+  if (typeof criterion.maxScore === 'number') return criterion.maxScore / 100;
+  throw new TaskBuildError([
+    {
+      field: `successCriteria/rubric/criteria/${index}/weight`,
+      message: 'criterion is missing weight or max_score',
+    },
+  ]);
+}
+
+/**
+ * Normalize authoring-time rubric criteria to canonical MoltNet rubric
+ * criteria. Accepts `{id,title,description,weight}` and
+ * `{name,description,max_score}` style inputs, strips authoring-only fields,
+ * and fills a default scoring mode.
+ */
+export function normalizeRubricCriteria(
+  criteria: readonly RubricCriterionInput[],
+  options?: { scoring?: RubricScoringMode },
+): RubricCriterion[] {
+  const errors: TaskValidationError[] = [];
+  const normalized = criteria.map((criterion, index) => {
+    const id = criterion.id ?? criterion.name;
+    const description = criterion.description ?? criterion.title;
+    if (!isNonEmptyString(id)) {
+      errors.push({
+        field: `successCriteria/rubric/criteria/${index}/id`,
+        message: 'criterion is missing id or name',
+      });
+    }
+    if (!isNonEmptyString(description)) {
+      errors.push({
+        field: `successCriteria/rubric/criteria/${index}/description`,
+        message: 'criterion is missing description or title',
+      });
+    }
+    return {
+      id: id ?? '',
+      description: description ?? '',
+      weight: criterionWeight(criterion, index),
+      scoring: criterion.scoring ?? options?.scoring ?? 'llm_score',
+    };
+  });
+  if (errors.length > 0) throw new TaskBuildError(errors);
+  return normalized;
+}
+
+/**
+ * Build a canonical `SuccessCriteria` envelope from rubric/checklist-style
+ * criteria. This keeps rubrics readable at the authoring boundary while
+ * preserving the strict task schema on the wire.
+ */
+export function buildRubricSuccessCriteria(
+  options: BuildRubricSuccessCriteriaOptions,
+): SuccessCriteria {
+  const rubric: Rubric = {
+    rubricId: options.rubricId,
+    version: options.version ?? 'v1',
+    criteria: normalizeRubricCriteria(options.criteria, {
+      scoring: options.scoring,
+    }),
+    ...(options.contentHash ? { contentHash: options.contentHash } : {}),
+    ...(options.preamble ? { preamble: options.preamble } : {}),
+    ...(options.scope ? { scope: options.scope } : {}),
+  };
+  const weightError = validateRubricWeights(rubric);
+  if (weightError) {
+    throw new TaskBuildError([
+      { field: 'successCriteria/rubric/criteria', message: weightError },
+    ]);
+  }
+  return { version: 1, rubric };
+}
+
+function resolveJudgeEvalAttemptTarget(target: JudgeEvalAttemptTarget): {
+  targetTaskId: string;
+  targetAttemptN: number;
+} {
+  if (
+    'judgeEvalTarget' in target &&
+    typeof target.judgeEvalTarget === 'function'
+  ) {
+    return target.judgeEvalTarget();
+  }
+  if ('targetTaskId' in target) {
+    return {
+      targetTaskId: target.targetTaskId,
+      targetAttemptN: target.targetAttemptN,
+    };
+  }
+  if ('taskId' in target) {
+    return {
+      targetTaskId: target.taskId,
+      targetAttemptN: target.accepted?.attemptN ?? target.attemptN ?? 1,
+    };
+  }
+  throw new TaskBuildError([
+    {
+      field: 'target',
+      message: 'judge_eval_attempt target is missing task id',
+    },
+  ]);
+}
 
 interface Gate {
   id: string;
@@ -624,6 +774,24 @@ export function buildJudgeEvalAttempt(
   >,
 ): TaskBuilder<JudgeEvalAttemptInput> {
   return buildTask('judge_eval_attempt', input as JudgeEvalAttemptInput);
+}
+
+/**
+ * Build a `judge_eval_attempt` task from an accepted `run_eval` result (or a
+ * small target tuple) plus human-friendly rubric criteria.
+ *
+ * @param target - A `TaskResultReader` or `{targetTaskId,targetAttemptN}` tuple.
+ * @param options - Rubric metadata and eval/checklist-style criteria.
+ * @returns A typed {@link TaskBuilder}.
+ */
+export function buildJudgeEvalAttemptForRunEval(
+  target: JudgeEvalAttemptTarget,
+  options: BuildRubricSuccessCriteriaOptions,
+): TaskBuilder<JudgeEvalAttemptInput> {
+  return buildJudgeEvalAttempt({
+    ...resolveJudgeEvalAttemptTarget(target),
+    successCriteria: buildRubricSuccessCriteria(options),
+  });
 }
 
 /**
