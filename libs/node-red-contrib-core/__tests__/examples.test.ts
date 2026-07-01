@@ -12,6 +12,7 @@ type FlowNode = {
   maxAttempts?: number;
   out?: unknown;
   outputLabels?: unknown;
+  scope?: unknown;
   wires?: unknown;
 };
 
@@ -43,6 +44,9 @@ describe('example flows', () => {
     expect(nodes.get('sf_ab_score_run_eval')?.func).toContain(
       'responseChars: response.length',
     );
+    expect(nodes.get('sf_ab_score_run_eval')?.func).toContain(
+      'evalProducerMetrics',
+    );
     expect(nodes.get('sf_ab_score_run_eval')?.func).not.toContain(
       'requiredFindings',
     );
@@ -58,6 +62,8 @@ describe('example flows', () => {
     expect(nodes.get('sf_ab_store_delta')?.func).toContain(
       'expectedFromMessage',
     );
+    expect(nodes.get('sf_ab_store_delta')?.func).toContain('judgeMetrics');
+    expect(nodes.get('sf_ab_store_delta')?.func).toContain('metricsDelta');
     expect(nodes.get('sf_ab_store_delta')?.func).not.toContain(
       'Object.keys(scenario).length || 0',
     );
@@ -99,6 +105,12 @@ describe('example flows', () => {
     expect(nodes.get('sf_ab_task_builder_judge_eval')?.wires).toEqual([
       ['sf_ab_create_judge_eval'],
     ]);
+    expect(nodes.get('sf_ab_count_run_eval_tail')?.func).toContain(
+      'lane.producer',
+    );
+    expect(nodes.get('sf_ab_count_judge_eval_tail')?.func).toContain(
+      'lane.judge',
+    );
     expect(nodes.get('a72acb578ef0ea20')?.scope).toEqual(
       expect.arrayContaining([
         'sf_ab_task_builder_run_eval',
@@ -112,12 +124,18 @@ describe('example flows', () => {
       ]),
     );
     expect(nodes.get('sf_ab_wait_run_eval')?.wires).toEqual([
-      ['sf_ab_tail_out'],
+      ['sf_ab_count_run_eval_tail'],
       ['sf_ab_gate_run_eval'],
     ]);
+    expect(nodes.get('sf_ab_count_run_eval_tail')?.wires).toEqual([
+      ['sf_ab_tail_out'],
+    ]);
     expect(nodes.get('sf_ab_wait_judge_eval')?.wires).toEqual([
-      ['0f5c72247640f952'],
+      ['sf_ab_count_judge_eval_tail'],
       ['sf_ab_gate_judge_eval'],
+    ]);
+    expect(nodes.get('sf_ab_count_judge_eval_tail')?.wires).toEqual([
+      ['0f5c72247640f952'],
     ]);
     expect(nodes.get('subflow_ab_eval_with_judge')?.out).toEqual([
       {
