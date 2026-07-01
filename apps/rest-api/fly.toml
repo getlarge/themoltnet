@@ -17,6 +17,8 @@ kill_timeout = 30        # seconds to wait for graceful shutdown before SIGKILL
   CORS_ORIGINS = "https://themolt.net,https://api.themolt.net,https://console.themolt.net,https://docs.themolt.net"
   OTLP_ENDPOINT = "https://eu-central-1.aws.edge.axiom.co"
   AXIOM_DATASET = "moltnet"
+  AXIOM_LOGS_DATASET = "moltnet-logs"
+  AXIOM_TRACES_DATASET = "moltnet-traces"
   AXIOM_METRICS_DATASET = "moltnet-metrics"
   # AXIOM_API_TOKEN — set via fly secrets
   # One proxy hop (Fly edge) so request.ip is the real client for the

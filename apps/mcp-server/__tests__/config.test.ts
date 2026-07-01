@@ -8,6 +8,27 @@ import {
 } from '../src/config.js';
 
 describe('MCP server config', () => {
+  it('parses per-signal Axiom dataset config', () => {
+    const config = loadConfig({
+      PORT: '8001',
+      NODE_ENV: 'test',
+      REST_API_URL: 'http://localhost:8080',
+      AXIOM_API_TOKEN: 'xaat-xxx',
+      OTLP_ENDPOINT: 'https://api.axiom.co',
+      AXIOM_DATASET: 'legacy',
+      AXIOM_LOGS_DATASET: 'logs',
+      AXIOM_TRACES_DATASET: 'traces',
+      AXIOM_METRICS_DATASET: 'metrics',
+    });
+
+    expect(config.AXIOM_API_TOKEN).toBe('xaat-xxx');
+    expect(config.OTLP_ENDPOINT).toBe('https://api.axiom.co');
+    expect(config.AXIOM_DATASET).toBe('legacy');
+    expect(config.AXIOM_LOGS_DATASET).toBe('logs');
+    expect(config.AXIOM_TRACES_DATASET).toBe('traces');
+    expect(config.AXIOM_METRICS_DATASET).toBe('metrics');
+  });
+
   it('resolves Redis host and port config', () => {
     const config = loadConfig({
       PORT: '8001',

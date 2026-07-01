@@ -7,7 +7,11 @@ import {
 } from '@opentelemetry/api';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { initObservability } from '../src/sdk.js';
+import {
+  createAxiomOtlpConfig,
+  initObservability,
+  resolveOtlpSignalHeaders,
+} from '../src/sdk.js';
 
 describe('initObservability', () => {
   afterEach(async () => {
@@ -177,5 +181,84 @@ describe('initObservability', () => {
 
     const providerAfter = metricsApi.getMeterProvider();
     expect(providerAfter).toBe(providerBefore);
+  });
+
+  it('resolves per-signal OTLP headers with common header fallback', () => {
+    const common = { Authorization: 'Bearer token', 'X-Axiom-Dataset': 'all' };
+    const logs = { Authorization: 'Bearer token', 'X-Axiom-Dataset': 'logs' };
+    const traces = {
+      Authorization: 'Bearer token',
+      'X-Axiom-Dataset': 'traces',
+    };
+    const metrics = {
+      Authorization: 'Bearer token',
+      'X-Axiom-Dataset': 'metrics',
+    };
+
+    expect(
+      resolveOtlpSignalHeaders({
+        endpoint: 'https://api.axiom.co',
+        headers: common,
+        logsHeaders: logs,
+        tracesHeaders: traces,
+        metricsHeaders: metrics,
+      }),
+    ).toEqual({
+      logsHeaders: logs,
+      tracesHeaders: traces,
+      metricsHeaders: metrics,
+    });
+
+    expect(
+      resolveOtlpSignalHeaders({
+        endpoint: 'https://api.axiom.co',
+        headers: common,
+      }),
+    ).toEqual({
+      logsHeaders: common,
+      tracesHeaders: common,
+      metricsHeaders: common,
+    });
+  });
+
+  it('creates Axiom OTLP config with per-signal dataset headers', () => {
+    expect(
+      createAxiomOtlpConfig({
+        endpoint: 'https://api.axiom.co',
+        apiToken: 'xaat-token',
+        dataset: 'legacy',
+        logsDataset: 'logs',
+        tracesDataset: 'traces',
+        metricsDataset: 'metrics',
+      }),
+    ).toEqual({
+      endpoint: 'https://api.axiom.co',
+      logsHeaders: {
+        Authorization: 'Bearer xaat-token',
+        'X-Axiom-Dataset': 'logs',
+      },
+      tracesHeaders: {
+        Authorization: 'Bearer xaat-token',
+        'X-Axiom-Dataset': 'traces',
+      },
+      metricsHeaders: {
+        Authorization: 'Bearer xaat-token',
+        'X-Axiom-Dataset': 'metrics',
+      },
+    });
+  });
+
+  it('creates Axiom OTLP config with legacy dataset fallback', () => {
+    expect(
+      createAxiomOtlpConfig({
+        endpoint: 'https://api.axiom.co',
+        dataset: 'legacy',
+      }),
+    ).toEqual({
+      endpoint: 'https://api.axiom.co',
+      logsHeaders: { 'X-Axiom-Dataset': 'legacy' },
+      tracesHeaders: { 'X-Axiom-Dataset': 'legacy' },
+      metricsHeaders: { 'X-Axiom-Dataset': 'legacy' },
+    });
   });
 });

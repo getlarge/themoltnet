@@ -4,8 +4,10 @@
 # processes with batching and resource detection, and exports to Axiom.
 #
 # Environment variables required:
-#   AXIOM_API_TOKEN  - Axiom API token (Bearer auth)
-#   AXIOM_DATASET    - Axiom dataset name (e.g. "moltnet")
+#   AXIOM_API_TOKEN       - Axiom API token (Bearer auth)
+#   AXIOM_LOGS_DATASET    - Axiom logs dataset name (e.g. "moltnet-logs")
+#   AXIOM_TRACES_DATASET  - Axiom traces dataset name (e.g. "moltnet-traces")
+#   AXIOM_METRICS_DATASET - Axiom metrics dataset name (e.g. "moltnet-metrics")
 #
 # Usage with Docker:
 #   docker compose -f infra/otel/docker-compose.yaml up
@@ -79,12 +81,25 @@ processors:
           - replace_pattern(attributes["private_key"], ".*", "[REDACTED]")
 
 exporters:
-  # Axiom via OTLP HTTP - handles traces, metrics, and logs
-  otlphttp/axiom:
+  otlphttp/axiom_traces:
     endpoint: 'https://api.axiom.co'
     headers:
       authorization: 'Bearer ${env:AXIOM_API_TOKEN}'
-      x-axiom-dataset: '${env:AXIOM_DATASET}'
+      x-axiom-dataset: '${env:AXIOM_TRACES_DATASET}'
+    compression: gzip
+
+  otlphttp/axiom_metrics:
+    endpoint: 'https://api.axiom.co'
+    headers:
+      authorization: 'Bearer ${env:AXIOM_API_TOKEN}'
+      x-axiom-dataset: '${env:AXIOM_METRICS_DATASET}'
+    compression: gzip
+
+  otlphttp/axiom_logs:
+    endpoint: 'https://api.axiom.co'
+    headers:
+      authorization: 'Bearer ${env:AXIOM_API_TOKEN}'
+      x-axiom-dataset: '${env:AXIOM_LOGS_DATASET}'
     compression: gzip
 
   # Debug exporter for local development (stdout)
@@ -102,17 +117,17 @@ service:
     traces:
       receivers: [otlp]
       processors: [filter/health, transform/redact, resource, batch]
-      exporters: [otlphttp/axiom]
+      exporters: [otlphttp/axiom_traces]
 
     metrics:
       receivers: [otlp]
       processors: [resource, batch]
-      exporters: [otlphttp/axiom]
+      exporters: [otlphttp/axiom_metrics]
 
     logs:
       receivers: [otlp]
       processors: [transform/redact, resource, batch]
-      exporters: [otlphttp/axiom]
+      exporters: [otlphttp/axiom_logs]
 
   telemetry:
     logs:

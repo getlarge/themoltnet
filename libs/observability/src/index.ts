@@ -16,10 +16,11 @@ export {
   runWithRequestContext,
   setRequestContextField,
 } from './request-context.js';
-export { initObservability } from './sdk.js';
+export { createAxiomOtlpConfig, initObservability } from './sdk.js';
 export type { CreateTraceProviderOptions } from './tracing.js';
 export { createTraceProvider } from './tracing.js';
 export type {
+  AxiomOtlpConfigInput,
   LoggerConfig,
   MetricsConfig,
   ObservabilityConfig,

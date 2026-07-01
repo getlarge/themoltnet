@@ -63,6 +63,7 @@ import {
 } from '@moltnet/diary-service/workflows';
 import { createEmbeddingService } from '@moltnet/embedding-service';
 import {
+  createAxiomOtlpConfig,
   initObservability,
   type ObservabilityContext,
   observabilityPlugin,
@@ -115,33 +116,24 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     AXIOM_API_TOKEN,
     OTLP_ENDPOINT,
     AXIOM_DATASET,
+    AXIOM_LOGS_DATASET,
+    AXIOM_TRACES_DATASET,
     AXIOM_METRICS_DATASET,
   } = config.observability;
 
   if (OTLP_ENDPOINT) {
-    const traceAndLogHeaders: Record<string, string> = {
-      ...(AXIOM_API_TOKEN
-        ? { Authorization: `Bearer ${AXIOM_API_TOKEN}` }
-        : {}),
-      ...(AXIOM_DATASET ? { 'X-Axiom-Dataset': AXIOM_DATASET } : {}),
-    };
-    const metricsDataset = AXIOM_METRICS_DATASET ?? AXIOM_DATASET;
-    const metricsHeaders: Record<string, string> = {
-      ...(AXIOM_API_TOKEN
-        ? { Authorization: `Bearer ${AXIOM_API_TOKEN}` }
-        : {}),
-      ...(metricsDataset ? { 'X-Axiom-Dataset': metricsDataset } : {}),
-    };
-
     observability = initObservability({
       serviceName: 'moltnet-rest-api',
       serviceVersion: pkg.version,
       environment: config.server.NODE_ENV,
-      otlp: {
+      otlp: createAxiomOtlpConfig({
         endpoint: OTLP_ENDPOINT,
-        headers: traceAndLogHeaders,
-        metricsHeaders,
-      },
+        apiToken: AXIOM_API_TOKEN,
+        dataset: AXIOM_DATASET,
+        logsDataset: AXIOM_LOGS_DATASET,
+        tracesDataset: AXIOM_TRACES_DATASET,
+        metricsDataset: AXIOM_METRICS_DATASET,
+      }),
       logger: {
         level: config.server.NODE_ENV === 'production' ? 'info' : 'debug',
         pretty: config.server.NODE_ENV !== 'production',

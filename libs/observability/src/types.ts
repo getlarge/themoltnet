@@ -10,14 +10,34 @@ export interface OtlpConfig {
    * For local Collector: 'http://localhost:4318'
    */
   endpoint: string;
-  /** Headers for trace and log exporters (e.g. Authorization + X-Axiom-Dataset) */
+  /**
+   * Legacy/common headers for all signal exporters.
+   * Signal-specific headers below take precedence when provided.
+   */
   headers?: Record<string, string>;
+  /** Headers override for the trace exporter. */
+  tracesHeaders?: Record<string, string>;
+  /** Headers override for the log exporter. */
+  logsHeaders?: Record<string, string>;
   /**
    * Headers override for the metrics exporter.
    * When set, the metrics exporter uses these headers instead of `headers`.
-   * Use when traces and metrics go to different Axiom datasets.
+   * Use when signals go to different Axiom datasets.
    */
   metricsHeaders?: Record<string, string>;
+}
+
+export interface AxiomOtlpConfigInput {
+  endpoint: string;
+  apiToken?: string;
+  /** Legacy/common Axiom dataset fallback for logs, traces, and metrics */
+  dataset?: string;
+  /** Axiom dataset for logs (falls back to dataset) */
+  logsDataset?: string;
+  /** Axiom dataset for traces (falls back to dataset) */
+  tracesDataset?: string;
+  /** Axiom dataset for metrics (falls back to dataset) */
+  metricsDataset?: string;
 }
 
 export interface LoggerConfig {
