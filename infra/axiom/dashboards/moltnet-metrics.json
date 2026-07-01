@@ -1,0 +1,231 @@
+{
+  "charts": [
+    {
+      "id": "overview",
+      "name": "How to use this dashboard",
+      "text": "Use this dashboard for request rate, latency, event loop pressure, and heap pressure. Logs and traces live in the MoltNet Traces and Logs dashboard.",
+      "type": "Note"
+    },
+    {
+      "colorScheme": "Blue",
+      "id": "request-rate",
+      "name": "Request rate",
+      "query": {
+        "mpl": "`moltnet-metrics`:`http.server.request.total`\n| align to 1m using prom::rate\n| group using sum"
+      },
+      "showChart": true,
+      "type": "Statistic"
+    },
+    {
+      "colorScheme": "Purple",
+      "id": "active-requests",
+      "name": "Active requests",
+      "query": {
+        "mpl": "`moltnet-metrics`:`http.server.active_requests`\n| align to 1m using avg\n| group using sum"
+      },
+      "showChart": true,
+      "type": "Statistic"
+    },
+    {
+      "colorScheme": "Orange",
+      "id": "event-loop-p99",
+      "name": "Event loop p99 delay (s)",
+      "query": {
+        "mpl": "`moltnet-metrics`:`nodejs.eventloop.delay.p99`\n| align to 1m using max\n| group using max"
+      },
+      "showChart": true,
+      "type": "Statistic"
+    },
+    {
+      "colorScheme": "Green",
+      "id": "heap-used",
+      "name": "Heap used (MiB)",
+      "query": {
+        "mpl": "`moltnet-metrics`:`v8js.memory.heap.used`\n| align to 1m using max\n| group using max\n| map / 1048576"
+      },
+      "showChart": true,
+      "type": "Statistic"
+    },
+    {
+      "id": "request-rate-by-service",
+      "name": "Request rate by service",
+      "query": {
+        "mpl": "`moltnet-metrics`:`http.server.request.total`\n| align to 1m using prom::rate\n| group by `service.name` using sum"
+      },
+      "type": "TimeSeries"
+    },
+    {
+      "id": "active-requests-by-service",
+      "name": "Active requests by service",
+      "query": {
+        "mpl": "`moltnet-metrics`:`http.server.active_requests`\n| align to 1m using avg\n| group by `service.name` using avg"
+      },
+      "type": "TimeSeries"
+    },
+    {
+      "id": "event-loop-p99-by-service",
+      "name": "Event loop p99 by service (s)",
+      "query": {
+        "mpl": "`moltnet-metrics`:`nodejs.eventloop.delay.p99`\n| align to 1m using max\n| group by `service.name` using max"
+      },
+      "type": "TimeSeries"
+    },
+    {
+      "id": "event-loop-utilization",
+      "name": "Event loop utilization",
+      "query": {
+        "mpl": "`moltnet-metrics`:`nodejs.eventloop.utilization`\n| align to 1m using avg\n| group by `service.name` using avg"
+      },
+      "type": "TimeSeries"
+    },
+    {
+      "id": "heap-used-by-service",
+      "name": "Heap used by service (MiB)",
+      "query": {
+        "mpl": "`moltnet-metrics`:`v8js.memory.heap.used`\n| align to 1m using max\n| group by `service.name` using max\n| map / 1048576"
+      },
+      "type": "TimeSeries"
+    },
+    {
+      "id": "gc-duration",
+      "name": "GC duration",
+      "query": {
+        "mpl": "`moltnet-metrics`:`v8js.gc.duration`\n| bucket by `service.name` to 5m using interpolate_cumulative_histogram(rate, 0.90, 0.99)"
+      },
+      "type": "TimeSeries"
+    }
+  ],
+  "datasets": ["moltnet-metrics"],
+  "description": "Golden signals and Node.js runtime metrics over moltnet-metrics.",
+  "layout": [
+    {
+      "h": 2,
+      "i": "overview",
+      "minH": 1,
+      "minW": 1,
+      "moved": false,
+      "static": false,
+      "w": 12,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "h": 3,
+      "i": "request-rate",
+      "minH": 1,
+      "minW": 1,
+      "moved": false,
+      "static": false,
+      "w": 3,
+      "x": 0,
+      "y": 2
+    },
+    {
+      "h": 3,
+      "i": "active-requests",
+      "minH": 1,
+      "minW": 1,
+      "moved": false,
+      "static": false,
+      "w": 3,
+      "x": 3,
+      "y": 2
+    },
+    {
+      "h": 3,
+      "i": "event-loop-p99",
+      "minH": 1,
+      "minW": 1,
+      "moved": false,
+      "static": false,
+      "w": 3,
+      "x": 6,
+      "y": 2
+    },
+    {
+      "h": 3,
+      "i": "heap-used",
+      "minH": 1,
+      "minW": 1,
+      "moved": false,
+      "static": false,
+      "w": 3,
+      "x": 9,
+      "y": 2
+    },
+    {
+      "h": 5,
+      "i": "request-rate-by-service",
+      "minH": 1,
+      "minW": 1,
+      "moved": false,
+      "static": false,
+      "w": 6,
+      "x": 0,
+      "y": 5
+    },
+    {
+      "h": 5,
+      "i": "active-requests-by-service",
+      "minH": 1,
+      "minW": 1,
+      "moved": false,
+      "static": false,
+      "w": 6,
+      "x": 6,
+      "y": 5
+    },
+    {
+      "h": 5,
+      "i": "event-loop-p99-by-service",
+      "minH": 1,
+      "minW": 1,
+      "moved": false,
+      "static": false,
+      "w": 6,
+      "x": 0,
+      "y": 10
+    },
+    {
+      "h": 5,
+      "i": "event-loop-utilization",
+      "minH": 1,
+      "minW": 1,
+      "moved": false,
+      "static": false,
+      "w": 6,
+      "x": 6,
+      "y": 10
+    },
+    {
+      "h": 5,
+      "i": "heap-used-by-service",
+      "minH": 1,
+      "minW": 1,
+      "moved": false,
+      "static": false,
+      "w": 6,
+      "x": 0,
+      "y": 15
+    },
+    {
+      "h": 5,
+      "i": "gc-duration",
+      "minH": 1,
+      "minW": 1,
+      "moved": false,
+      "static": false,
+      "w": 6,
+      "x": 6,
+      "y": 15
+    }
+  ],
+  "name": "MoltNet Metrics",
+  "overrides": {},
+  "owner": "X-AXIOM-EVERYONE",
+  "refreshTime": 60,
+  "schemaVersion": 2,
+  "timeWindowEnd": "qr-now",
+  "timeWindowStart": "qr-now-30m",
+  "uid": "1de39335-0d0c-4441-b27b-41e2c491eea0"
+}

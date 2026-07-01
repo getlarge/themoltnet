@@ -1,0 +1,17 @@
+{
+  "alertOnNoData": false,
+  "aplQuery": "['moltnet']\n| extend service = tostring(['service.name'])\n| extend route = tostring(['attributes.route'])\n| extend status = toint(['attributes.http.response.status_code'])\n| where service == 'moltnet-rest-api'\n| where status >= 500\n| summarize server_errors = count() by bin(_time, 5m), service, route, status",
+  "description": "Actionable server-side REST API failures. Investigate the grouped route/service in the moltnet traces/logs dataset, then run the Node-RED Axiom alert triage flow if the alert is not immediately explained. This intentionally excludes routine 401/404 client/auth noise.",
+  "intervalMinutes": 5,
+  "name": "MoltNet REST API 5xx by route",
+  "notifierIds": [],
+  "notifyByGroup": true,
+  "operator": "Above",
+  "previousNames": ["Error log spike"],
+  "rangeMinutes": 5,
+  "resolvable": true,
+  "threshold": 3,
+  "triggerAfterNPositiveResults": 2,
+  "triggerFromNRuns": 3,
+  "type": "Threshold"
+}

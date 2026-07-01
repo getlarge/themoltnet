@@ -1,0 +1,16 @@
+{
+  "alertOnNoData": false,
+  "aplQuery": "['moltnet']\n| extend service = tostring(['service.name'])\n| extend route = tostring(['attributes.route'])\n| extend status = toint(['attributes.http.response.status_code'])\n| where service in ('moltnet-rest-api', 'moltnet-mcp-server')\n| where status in (401, 403, 404)\n| summarize client_noise = count() by bin(_time, 5m), service, route, status",
+  "description": "Low-severity visibility monitor for auth/client noise. Do not page on this signal. Use it to keep 401/404 spikes out of the server-error monitors while preserving a place to notice unexpected client behavior.",
+  "intervalMinutes": 10,
+  "name": "MoltNet auth/client noise by status",
+  "notifierIds": [],
+  "notifyByGroup": true,
+  "operator": "Above",
+  "rangeMinutes": 10,
+  "resolvable": true,
+  "threshold": 1000,
+  "triggerAfterNPositiveResults": 2,
+  "triggerFromNRuns": 3,
+  "type": "Threshold"
+}

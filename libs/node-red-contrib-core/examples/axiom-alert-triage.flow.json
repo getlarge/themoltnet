@@ -1,0 +1,663 @@
+[
+  {
+    "disabled": false,
+    "id": "moltnet_axiom_triage_tab",
+    "info": "Axiom monitor event -> parser/enricher task -> codebase triage task -> judge task.\n\nPrimary path for plans without custom webhooks: poll Axiom monitor history through the Axiom API, dedupe open events, normalize them into msg.axiom, then start the same triage chain.\n\nOptional future path: configure an Axiom custom webhook notifier to POST to /axiom/monitor on this Node-RED instance. The flow acknowledges the webhook immediately, starts work only for trigger-like events, and chains MoltNet tasks through task: build + task: read artifactRef values so large evidence artifacts stay in MoltNet instead of Node-RED messages.\n\nRequired environment/config:\n- AXIOM_MONITORING_TOKEN available to Node-RED for polling and to the agent runtime for deeper Axiom queries. AXIOM_API_TOKEN is accepted as a fallback for local experiments.\n- Optional AXIOM_MONITOR_IDS comma-separated monitor ids. Defaults to the committed MoltNet monitor ids created by infra/axiom/monitors/apply.mjs.\n- Axiom datasets: moltnet and moltnet-metrics.\n- Optional AXIOM_WEBHOOK_SECRET header value; the validation function checks x-axiom-webhook-secret when the env var is set. This is a shared-secret convention for the custom webhook, not a native Axiom signature scheme.\n\nThe tasks are expected to use .agents/skills/axiom-alert-triage and produce JSON artifacts titled telemetry-evidence, triage-report, and triage-judgment.",
+    "label": "Axiom Alert Triage (example)",
+    "type": "tab"
+  },
+  {
+    "apiUrl": "https://api.themolt.net",
+    "clientId": "",
+    "diaryId": "",
+    "id": "moltnet_agent_cfg",
+    "name": "triage-agent",
+    "teamId": "",
+    "type": "moltnet-agent"
+  },
+  {
+    "id": "axiom_notifier_setup_comment",
+    "info": "Axiom notifier setup:\n1. Create a Custom Webhook notifier in Axiom.\n2. Set the URL to the public Node-RED endpoint, for example https://node-red.example.net/axiom/monitor.\n3. Use a JSON body based on Axiom's documented template variables: {\"action\":\"{{.Action}}\",\"monitorId\":\"{{.MonitorID}}\",\"monitorName\":\"{{.Title}}\",\"body\":\"{{.Body}}\",\"value\":\"{{.Value}}\",\"severity\":\"{{.Severity}}\"}. The flow accepts both camelCase and Axiom-style names.\n4. If your Axiom webhook configuration supports custom headers, add x-axiom-webhook-secret and set the same value as AXIOM_WEBHOOK_SECRET in Node-RED. If headers are not available, leave AXIOM_WEBHOOK_SECRET unset and rely on the unguessable public URL plus network controls.\n\nNode-RED exposure:\n- With the default httpRoot, this flow exposes POST /axiom/monitor on the same host/port as the Node-RED HTTP API, typically http://localhost:1880/axiom/monitor.\n- Behind a reverse proxy, publish only that path where possible and keep the editor/admin UI private.\n\nTailscale Funnel option:\n- Run Node-RED bound locally, for example 127.0.0.1:1880.\n- Enable funnel for the Node-RED service with Tailscale, for example: tailscale serve --bg --http=1880 http://127.0.0.1:1880 && tailscale funnel 1880.\n- Use the resulting https://<machine>.<tailnet>.ts.net/axiom/monitor URL in Axiom. Verify with a manual POST before attaching production monitors.",
+    "name": "configure Axiom webhook + exposure",
+    "type": "comment",
+    "x": 260,
+    "y": 140,
+    "z": "moltnet_axiom_triage_tab"
+  },
+  {
+    "id": "axiom_polling_comment",
+    "info": "Polling fallback for Axiom plans without Custom Webhook notifiers:\n- Set AXIOM_MONITORING_TOKEN in the Node-RED environment. The token needs monitor read/history permission and query read permission if agents reuse it for telemetry analysis.\n- AXIOM_API_TOKEN is accepted as a fallback for local experiments.\n- Optional: set AXIOM_MONITOR_IDS to a comma-separated list of monitor ids. If unset, the function uses the current MoltNet monitor ids created by infra/axiom/monitors/apply.mjs.\n- The inject node polls every 5 minutes and looks back 15 minutes by default. Set AXIOM_POLL_WINDOW_MINUTES to adjust.\n- The parser dedupes events in flow context by monitor id + state + timestamp, so repeated polling does not create duplicate triage tasks.\n- Only open/triggered events enter the triage chain. Closed/resolved events go to the no-op debug lane.",
+    "name": "polling fallback without webhooks",
+    "type": "comment",
+    "x": 260,
+    "y": 240,
+    "z": "moltnet_axiom_triage_tab"
+  },
+  {
+    "crontab": "",
+    "id": "poll_axiom_history",
+    "name": "poll Axiom history",
+    "once": false,
+    "onceDelay": 0.1,
+    "payload": "",
+    "payloadType": "date",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "300",
+    "topic": "",
+    "type": "inject",
+    "wires": [["build_history_requests"]],
+    "x": 150,
+    "y": 320,
+    "z": "moltnet_axiom_triage_tab"
+  },
+  {
+    "func": "const token = env.get('AXIOM_MONITORING_TOKEN') || env.get('AXIOM_API_TOKEN');\nif (!token) {\n  node.error('AXIOM_MONITORING_TOKEN is required for Axiom monitor polling', msg);\n  return null;\n}\n\nconst defaultIds = [\n  'nqTSos0T5yFVk5ddpg', // MoltNet auth/client noise by status\n  'lmBV3iwC8xKRBFnDCi', // MoltNet event loop pressure by service\n  'DaoHjCgByMCE6JLTm8', // MoltNet MCP server 5xx by route\n  'mc6I3pddWkPzIHG1gb', // MoltNet heap pressure by service\n  'ULZWyXD6wmvVbwFmMY', // MoltNet request latency p95 by service\n  'a15YiYDnMct15XeAVJ'  // MoltNet REST API 5xx by route\n];\nconst ids = String(env.get('AXIOM_MONITOR_IDS') || '')\n  .split(',')\n  .map((id) => id.trim())\n  .filter(Boolean);\nconst monitorIds = ids.length ? ids : defaultIds;\nconst lookbackMinutes = Number(env.get('AXIOM_POLL_WINDOW_MINUTES') || 15);\nconst end = new Date();\nconst start = new Date(end.getTime() - lookbackMinutes * 60 * 1000);\n\nfor (const monitorId of monitorIds) {\n  const out = { ...msg };\n  out.method = 'GET';\n  out.url = 'https://api.axiom.co/v2/monitors/' + encodeURIComponent(monitorId) + '/history?startTime=' + encodeURIComponent(start.toISOString()) + '&endTime=' + encodeURIComponent(end.toISOString());\n  out.headers = { Authorization: 'Bearer ' + token };\n  out.axiomPoll = {\n    monitorId,\n    window: { start: start.toISOString(), end: end.toISOString() }\n  };\n  node.send(out);\n}\nreturn null;",
+    "id": "build_history_requests",
+    "name": "build history requests",
+    "outputs": 1,
+    "type": "function",
+    "wires": [["fetch_monitor_history"]],
+    "x": 390,
+    "y": 320,
+    "z": "moltnet_axiom_triage_tab"
+  },
+  {
+    "id": "fetch_monitor_history",
+    "method": "use",
+    "name": "Axiom monitor history",
+    "persist": false,
+    "ret": "obj",
+    "tls": "",
+    "type": "http request",
+    "url": "",
+    "wires": [["normalize_history_events"]],
+    "x": 630,
+    "y": 320,
+    "z": "moltnet_axiom_triage_tab"
+  },
+  {
+    "func": "const events = Array.isArray(msg.payload) ? msg.payload : [];\nconst seen = flow.get('axiomSeenMonitorEvents') || {};\nconst now = Date.now();\nconst maxAgeMs = 24 * 60 * 60 * 1000;\nfor (const [key, value] of Object.entries(seen)) {\n  if (now - Number(value) > maxAgeMs) delete seen[key];\n}\n\nfor (const event of events) {\n  const monitorId = event.checkId || msg.axiomPoll?.monitorId || 'unknown-monitor';\n  const state = String(event.state || '').toLowerCase();\n  const timestamp = event.timestamp || new Date().toISOString();\n  const dedupeKey = [monitorId, state || 'unknown', timestamp].join('|');\n  if (seen[dedupeKey]) continue;\n  seen[dedupeKey] = now;\n\n  const name = String(event.name || 'Axiom monitor alert');\n  const action = state === 'open' || /^triggered:/i.test(name) ? 'triggered' : state === 'closed' || /^resolved:/i.test(name) ? 'resolved' : state || 'unknown';\n  const monitorName = name.replace(/^(Triggered|Resolved):\\s*/i, '') || 'Axiom monitor alert';\n  const triggerLike = action === 'triggered' || action === 'open' || action === 'firing';\n\n  const out = { ...msg };\n  out.axiom = {\n    raw: event,\n    action,\n    triggerLike,\n    monitorId,\n    monitorName,\n    service: null,\n    route: null,\n    severity: 'unknown',\n    startedAt: timestamp,\n    window: msg.axiomPoll?.window || { start: 'now-15m', end: 'now' },\n    datasets: { traces: 'moltnet', metrics: 'moltnet-metrics' },\n    repo: { owner: 'getlarge', name: 'themoltnet' },\n    source: 'axiom-monitor-history'\n  };\n  node.send(out);\n}\nflow.set('axiomSeenMonitorEvents', seen);\nreturn null;",
+    "id": "normalize_history_events",
+    "name": "normalize + dedupe history",
+    "outputs": 1,
+    "type": "function",
+    "wires": [["history_alerts_out"]],
+    "x": 880,
+    "y": 320,
+    "z": "moltnet_axiom_triage_tab"
+  },
+  {
+    "id": "axiom_webhook_in",
+    "method": "post",
+    "name": "Axiom monitor webhook",
+    "swaggerDoc": "",
+    "type": "http in",
+    "url": "/axiom/monitor",
+    "wires": [["parse_axiom_webhook"]],
+    "x": 150,
+    "y": 60,
+    "z": "moltnet_axiom_triage_tab"
+  },
+  {
+    "func": "function respond(statusCode, payload) {\n  msg.statusCode = statusCode;\n  msg.payload = payload;\n  return [msg, null];\n}\n\nconst headerSecret = msg.req?.headers?.['x-axiom-webhook-secret'];\nconst expectedSecret = env.get('AXIOM_WEBHOOK_SECRET');\nif (expectedSecret && headerSecret !== expectedSecret) {\n  return respond(401, { ok: false, error: 'invalid webhook secret' });\n}\n\nlet payload = msg.payload;\nif (typeof payload === 'string') {\n  try {\n    payload = JSON.parse(payload);\n  } catch (err) {\n    return respond(400, { ok: false, error: 'invalid JSON payload' });\n  }\n}\n\nconst action = String(payload?.action || payload?.Action || payload?.state || payload?.State || '').toLowerCase();\nconst monitorId = payload?.monitorId || payload?.MonitorID || payload?.monitor_id || payload?.id || payload?.ID || 'unknown-monitor';\nconst monitorName = payload?.monitorName || payload?.MonitorName || payload?.name || payload?.Title || 'Axiom monitor alert';\nconst service = payload?.service || payload?.serviceName || payload?.['service.name'] || payload?.Service || null;\nconst route = payload?.route || payload?.httpRoute || payload?.['attributes.route'] || null;\nconst severity = payload?.severity || payload?.Severity || payload?.priority || 'unknown';\nconst startedAt = payload?.startedAt || payload?.timestamp || payload?.Timestamp || new Date().toISOString();\nconst start = payload?.startTime || payload?.StartTime || 'now-30m';\nconst end = payload?.endTime || payload?.EndTime || 'now';\n\nconst triggerLike = !action || ['trigger', 'triggered', 'open', 'alert', 'firing'].includes(action);\nmsg.axiom = {\n  raw: payload,\n  action: action || 'unknown',\n  triggerLike,\n  monitorId,\n  monitorName,\n  service,\n  route,\n  severity,\n  startedAt,\n  window: { start, end },\n  datasets: { traces: 'moltnet', metrics: 'moltnet-metrics' },\n  repo: { owner: 'getlarge', name: 'themoltnet' }\n};\n\nconst ack = {\n  ...msg,\n  statusCode: 202,\n  payload: {\n    ok: true,\n    accepted: triggerLike,\n    monitorId,\n    monitorName,\n    action: msg.axiom.action\n  }\n};\nreturn [ack, msg];",
+    "id": "parse_axiom_webhook",
+    "name": "validate + normalize webhook",
+    "outputs": 2,
+    "type": "function",
+    "wires": [["axiom_webhook_response"], ["webhook_alerts_out"]],
+    "x": 390,
+    "y": 60,
+    "z": "moltnet_axiom_triage_tab"
+  },
+  {
+    "id": "axiom_webhook_response",
+    "name": "ack",
+    "type": "http response",
+    "wires": [],
+    "x": 620,
+    "y": 25,
+    "z": "moltnet_axiom_triage_tab"
+  },
+  {
+    "checkall": "true",
+    "id": "only_trigger_events",
+    "name": "trigger event?",
+    "outputs": 2,
+    "property": "axiom.triggerLike",
+    "propertyType": "msg",
+    "rules": [
+      {
+        "t": "true"
+      },
+      {
+        "t": "else"
+      }
+    ],
+    "type": "switch",
+    "wires": [["build_parser_task"], ["debug_resolution"]],
+    "x": 330,
+    "y": 470,
+    "z": "moltnet_axiom_triage_tab"
+  },
+  {
+    "func": "const alert = msg.axiom;\nconst brief = [\n  'Use the axiom-alert-triage skill.',\n  'You are the parser/enricher for an Axiom monitor alert.',\n  'Classify the alert family, choose the relevant Axiom API surfaces, query correlated logs/traces/metrics, and produce a JSON artifact titled telemetry-evidence.',\n  'Use the alert context attached to this task. Do not inspect the codebase yet unless needed to choose query dimensions. Do not mutate Axiom config.',\n  '',\n  'Artifact requirements:',\n  '- title: telemetry-evidence',\n  '- kind: json',\n  '- include monitor id/name/action/severity/window',\n  '- include exact APL/MPL query text and result summaries',\n  '- include correlated traceIds/taskIds/teamIds/diaryIds when present',\n  '- include gaps and confidence'\n].join('\\n');\n\nmsg.payload = {\n  taskType: 'freeform',\n  title: 'Axiom alert evidence: ' + alert.monitorName,\n  tags: ['axiom-alert', 'telemetry-evidence', alert.monitorId],\n  input: { brief }\n};\nreturn msg;",
+    "id": "build_parser_task",
+    "name": "build parser/enricher task",
+    "outputs": 1,
+    "type": "function",
+    "wires": [["builder_parser_task"]],
+    "x": 560,
+    "y": 450,
+    "z": "moltnet_axiom_triage_tab"
+  },
+  {
+    "agent": "moltnet_agent_cfg",
+    "brief": "",
+    "constraints": [
+      "Do not mutate Axiom configuration.",
+      "Do not inspect the codebase unless query dimensions require it."
+    ],
+    "contexts": [
+      {
+        "binding": "skill",
+        "slug": "axiom-alert-triage",
+        "value": "axiom-alert-triage",
+        "valueType": "str"
+      },
+      {
+        "binding": "context_inline",
+        "slug": "alert",
+        "value": "axiom",
+        "valueType": "msg"
+      }
+    ],
+    "diaryId": "",
+    "diaryIdType": "str",
+    "expectedOutput": "A concise summary plus a JSON artifact titled telemetry-evidence.",
+    "id": "builder_parser_task",
+    "name": "task: build parser/enricher",
+    "referencesFrom": "",
+    "referencesRole": "context",
+    "schemaCid": "",
+    "submitOutputGate": false,
+    "tags": "",
+    "taskType": "freeform",
+    "teamId": "",
+    "teamIdType": "str",
+    "title": "",
+    "type": "moltnet-task-builder",
+    "wires": [["create_parser_task"]],
+    "workspace": "none",
+    "x": 790,
+    "y": 450,
+    "z": "moltnet_axiom_triage_tab"
+  },
+  {
+    "agent": "moltnet_agent_cfg",
+    "generateCorrelationId": true,
+    "id": "create_parser_task",
+    "name": "parser/enricher",
+    "taskType": "freeform",
+    "type": "moltnet-tasks-create",
+    "wires": [["wait_parser_task"]],
+    "x": 1030,
+    "y": 450,
+    "z": "moltnet_axiom_triage_tab"
+  },
+  {
+    "agent": "moltnet_agent_cfg",
+    "id": "wait_parser_task",
+    "kinds": "",
+    "name": "wait parser/enricher",
+    "pollIntervalSec": 10,
+    "tail": true,
+    "taskId": "",
+    "timeoutSec": 1800,
+    "type": "moltnet-task-wait",
+    "wires": [["parser_tail_out"], ["read_evidence_artifact"]],
+    "x": 1260,
+    "y": 450,
+    "z": "moltnet_axiom_triage_tab"
+  },
+  {
+    "artifactKind": "json",
+    "artifactTitle": "telemetry-evidence",
+    "id": "read_evidence_artifact",
+    "name": "read telemetry evidence",
+    "role": "context",
+    "source": "payload",
+    "type": "moltnet-task-reader",
+    "wires": [["evidence_ready_out"]],
+    "x": 1490,
+    "y": 450,
+    "z": "moltnet_axiom_triage_tab"
+  },
+  {
+    "func": "const evidence = msg.result?.artifactBody || null;\nconst artifactRef = msg.result?.artifactRef;\nconst outputRef = msg.result?.outputRef;\nif (!artifactRef && !outputRef) {\n  node.error('Parser task did not produce an artifactRef or outputRef', msg);\n  return null;\n}\nconst alert = msg.axiom || {};\nmsg.telemetryEvidence = evidence;\nmsg.telemetryEvidenceRef = artifactRef || outputRef;\nconst brief = [\n  'Use the axiom-alert-triage skill.',\n  'You are the codebase triage agent for an Axiom alert in getlarge/themoltnet.',\n  'Consume the referenced telemetry-evidence artifact. Query Axiom again only if the evidence has gaps that block a concrete conclusion.',\n  'Compare findings with the MoltNet codebase, open GitHub issues, and MoltNet diary entries. Do not patch code and do not mutate Axiom config.',\n  '',\n  'Produce a JSON artifact titled triage-report with verdict, evidence, suspectedSubsystems, codeReferences, relatedIssues, relatedEntries, recommendedAction, confidence, and gaps.'\n].join('\\n');\n\nmsg.payload = {\n  taskType: 'freeform',\n  title: 'Axiom alert codebase triage: ' + (alert.monitorName || 'unknown monitor'),\n  tags: ['axiom-alert', 'codebase-triage', alert.monitorId || 'unknown-monitor'],\n  input: { brief }\n};\nreturn msg;",
+    "id": "build_triage_task",
+    "name": "build codebase triage task",
+    "outputs": 1,
+    "type": "function",
+    "wires": [["builder_triage_task"]],
+    "x": 380,
+    "y": 620,
+    "z": "moltnet_axiom_triage_tab"
+  },
+  {
+    "agent": "moltnet_agent_cfg",
+    "brief": "",
+    "constraints": [
+      "Do not patch code.",
+      "Do not mutate Axiom configuration.",
+      "Query Axiom again only when evidence gaps block a concrete conclusion."
+    ],
+    "contexts": [
+      {
+        "binding": "skill",
+        "slug": "axiom-alert-triage",
+        "value": "axiom-alert-triage",
+        "valueType": "str"
+      },
+      {
+        "binding": "context_inline",
+        "slug": "alert",
+        "value": "axiom",
+        "valueType": "msg"
+      },
+      {
+        "binding": "context_inline",
+        "slug": "telemetry-evidence-preview",
+        "value": "telemetryEvidence",
+        "valueType": "msg"
+      },
+      {
+        "binding": "context_inline",
+        "slug": "telemetry-evidence-ref",
+        "value": "telemetryEvidenceRef",
+        "valueType": "msg"
+      }
+    ],
+    "diaryId": "",
+    "diaryIdType": "str",
+    "expectedOutput": "A concise triage summary plus a JSON artifact titled triage-report.",
+    "id": "builder_triage_task",
+    "name": "task: build codebase triage",
+    "referencesFrom": "telemetryEvidenceRef",
+    "referencesRole": "context",
+    "schemaCid": "",
+    "submitOutputGate": false,
+    "tags": "",
+    "taskType": "freeform",
+    "teamId": "",
+    "teamIdType": "str",
+    "title": "",
+    "type": "moltnet-task-builder",
+    "wires": [["create_triage_task"]],
+    "workspace": "shared_mount",
+    "x": 630,
+    "y": 620,
+    "z": "moltnet_axiom_triage_tab"
+  },
+  {
+    "agent": "moltnet_agent_cfg",
+    "generateCorrelationId": false,
+    "id": "create_triage_task",
+    "name": "codebase triage",
+    "taskType": "freeform",
+    "type": "moltnet-tasks-create",
+    "wires": [["wait_triage_task"]],
+    "x": 880,
+    "y": 620,
+    "z": "moltnet_axiom_triage_tab"
+  },
+  {
+    "agent": "moltnet_agent_cfg",
+    "id": "wait_triage_task",
+    "kinds": "",
+    "name": "wait codebase triage",
+    "pollIntervalSec": 10,
+    "tail": true,
+    "taskId": "",
+    "timeoutSec": 3600,
+    "type": "moltnet-task-wait",
+    "wires": [["triage_tail_out"], ["read_triage_artifact"]],
+    "x": 1110,
+    "y": 620,
+    "z": "moltnet_axiom_triage_tab"
+  },
+  {
+    "artifactKind": "json",
+    "artifactTitle": "triage-report",
+    "id": "read_triage_artifact",
+    "name": "read triage report",
+    "role": "judged_work",
+    "source": "payload",
+    "type": "moltnet-task-reader",
+    "wires": [["triage_ready_out"]],
+    "x": 1340,
+    "y": 620,
+    "z": "moltnet_axiom_triage_tab"
+  },
+  {
+    "func": "const report = msg.result?.artifactBody || null;\nconst artifactRef = msg.result?.artifactRef;\nconst outputRef = msg.result?.outputRef;\nif (!artifactRef && !outputRef) {\n  node.error('Triage task did not produce an artifactRef or outputRef', msg);\n  return null;\n}\nconst alert = msg.axiom || {};\nmsg.triageReport = report;\nmsg.triageReportRef = artifactRef || outputRef;\nconst brief = [\n  'Use the axiom-alert-triage skill.',\n  'You are the judge for an Axiom alert triage report.',\n  'Review the referenced triage-report artifact and decide whether the analysis is actionable, needs revision, or should be treated as monitor noise.',\n  'Do not patch code, mutate Axiom config, or create GitHub issues.',\n  '',\n  'Judge rubric:',\n  '- report cites telemetry evidence',\n  '- code references exist for actionable code hypotheses',\n  '- severity uses monitor threshold/value/window context',\n  '- related GitHub issues and MoltNet entries were checked when tooling was available',\n  '- recommended action is concrete',\n  '',\n  'Produce a JSON artifact titled triage-judgment with verdict pass|revise|noise, reasons, missingEvidence, and nextAction.'\n].join('\\n');\n\nmsg.payload = {\n  taskType: 'freeform',\n  title: 'Judge Axiom alert triage: ' + (alert.monitorName || 'unknown monitor'),\n  tags: ['axiom-alert', 'triage-judge', alert.monitorId || 'unknown-monitor'],\n  input: { brief }\n};\nreturn msg;",
+    "id": "build_judge_task",
+    "name": "build judge task",
+    "outputs": 1,
+    "type": "function",
+    "wires": [["builder_judge_task"]],
+    "x": 380,
+    "y": 770,
+    "z": "moltnet_axiom_triage_tab"
+  },
+  {
+    "agent": "moltnet_agent_cfg",
+    "brief": "",
+    "constraints": [
+      "Do not patch code.",
+      "Do not mutate Axiom configuration.",
+      "Do not create GitHub issues."
+    ],
+    "contexts": [
+      {
+        "binding": "skill",
+        "slug": "axiom-alert-triage",
+        "value": "axiom-alert-triage",
+        "valueType": "str"
+      },
+      {
+        "binding": "context_inline",
+        "slug": "alert",
+        "value": "axiom",
+        "valueType": "msg"
+      },
+      {
+        "binding": "context_inline",
+        "slug": "triage-report-preview",
+        "value": "triageReport",
+        "valueType": "msg"
+      },
+      {
+        "binding": "context_inline",
+        "slug": "triage-report-ref",
+        "value": "triageReportRef",
+        "valueType": "msg"
+      }
+    ],
+    "diaryId": "",
+    "diaryIdType": "str",
+    "expectedOutput": "A concise judgment plus a JSON artifact titled triage-judgment.",
+    "id": "builder_judge_task",
+    "name": "task: build judge",
+    "referencesFrom": "triageReportRef",
+    "referencesRole": "judged_work",
+    "schemaCid": "",
+    "submitOutputGate": false,
+    "tags": "",
+    "taskType": "freeform",
+    "teamId": "",
+    "teamIdType": "str",
+    "title": "",
+    "type": "moltnet-task-builder",
+    "wires": [["create_judge_task"]],
+    "workspace": "none",
+    "x": 620,
+    "y": 770,
+    "z": "moltnet_axiom_triage_tab"
+  },
+  {
+    "agent": "moltnet_agent_cfg",
+    "generateCorrelationId": false,
+    "id": "create_judge_task",
+    "name": "judge",
+    "taskType": "freeform",
+    "type": "moltnet-tasks-create",
+    "wires": [["wait_judge_task"]],
+    "x": 850,
+    "y": 770,
+    "z": "moltnet_axiom_triage_tab"
+  },
+  {
+    "agent": "moltnet_agent_cfg",
+    "id": "wait_judge_task",
+    "kinds": "",
+    "name": "wait judge",
+    "pollIntervalSec": 10,
+    "tail": true,
+    "taskId": "",
+    "timeoutSec": 1800,
+    "type": "moltnet-task-wait",
+    "wires": [["judge_tail_out"], ["read_judge_artifact"]],
+    "x": 1060,
+    "y": 770,
+    "z": "moltnet_axiom_triage_tab"
+  },
+  {
+    "artifactKind": "json",
+    "artifactTitle": "triage-judgment",
+    "id": "read_judge_artifact",
+    "name": "read judgment",
+    "role": "context",
+    "source": "payload",
+    "type": "moltnet-task-reader",
+    "wires": [["debug_done"]],
+    "x": 1270,
+    "y": 770,
+    "z": "moltnet_axiom_triage_tab"
+  },
+  {
+    "active": true,
+    "complete": "payload",
+    "console": false,
+    "id": "debug_tail",
+    "name": "task tail",
+    "tosidebar": true,
+    "type": "debug",
+    "wires": [],
+    "x": 1490,
+    "y": 925,
+    "z": "moltnet_axiom_triage_tab"
+  },
+  {
+    "active": true,
+    "complete": "axiom",
+    "console": false,
+    "id": "debug_resolution",
+    "name": "resolution/no-op",
+    "tosidebar": true,
+    "type": "debug",
+    "wires": [],
+    "x": 590,
+    "y": 515,
+    "z": "moltnet_axiom_triage_tab"
+  },
+  {
+    "active": true,
+    "complete": "result",
+    "console": false,
+    "id": "debug_done",
+    "name": "triage judgment",
+    "tosidebar": true,
+    "type": "debug",
+    "wires": [],
+    "x": 1490,
+    "y": 770,
+    "z": "moltnet_axiom_triage_tab"
+  },
+  {
+    "id": "history_alerts_out",
+    "links": ["alert_events_in"],
+    "mode": "link",
+    "name": "monitor events",
+    "type": "link out",
+    "wires": [],
+    "x": 1090,
+    "y": 320,
+    "z": "moltnet_axiom_triage_tab"
+  },
+  {
+    "id": "webhook_alerts_out",
+    "links": ["alert_events_in"],
+    "mode": "link",
+    "name": "monitor events",
+    "type": "link out",
+    "wires": [],
+    "x": 625,
+    "y": 75,
+    "z": "moltnet_axiom_triage_tab"
+  },
+  {
+    "id": "alert_events_in",
+    "links": [
+      "history_alerts_out",
+      "webhook_alerts_out",
+      "synthetic_alerts_out"
+    ],
+    "name": "monitor events",
+    "type": "link in",
+    "wires": [["only_trigger_events"]],
+    "x": 145,
+    "y": 470,
+    "z": "moltnet_axiom_triage_tab"
+  },
+  {
+    "id": "evidence_ready_out",
+    "links": ["evidence_ready_in"],
+    "mode": "link",
+    "name": "telemetry evidence",
+    "type": "link out",
+    "wires": [],
+    "x": 1685,
+    "y": 450,
+    "z": "moltnet_axiom_triage_tab"
+  },
+  {
+    "id": "evidence_ready_in",
+    "links": ["evidence_ready_out"],
+    "name": "telemetry evidence",
+    "type": "link in",
+    "wires": [["build_triage_task"]],
+    "x": 145,
+    "y": 620,
+    "z": "moltnet_axiom_triage_tab"
+  },
+  {
+    "id": "triage_ready_out",
+    "links": ["triage_ready_in"],
+    "mode": "link",
+    "name": "triage report",
+    "type": "link out",
+    "wires": [],
+    "x": 1535,
+    "y": 620,
+    "z": "moltnet_axiom_triage_tab"
+  },
+  {
+    "id": "triage_ready_in",
+    "links": ["triage_ready_out"],
+    "name": "triage report",
+    "type": "link in",
+    "wires": [["build_judge_task"]],
+    "x": 145,
+    "y": 770,
+    "z": "moltnet_axiom_triage_tab"
+  },
+  {
+    "id": "parser_tail_out",
+    "links": ["tail_events_in"],
+    "mode": "link",
+    "name": "tail events",
+    "type": "link out",
+    "wires": [],
+    "x": 1455,
+    "y": 415,
+    "z": "moltnet_axiom_triage_tab"
+  },
+  {
+    "id": "triage_tail_out",
+    "links": ["tail_events_in"],
+    "mode": "link",
+    "name": "tail events",
+    "type": "link out",
+    "wires": [],
+    "x": 1305,
+    "y": 585,
+    "z": "moltnet_axiom_triage_tab"
+  },
+  {
+    "id": "judge_tail_out",
+    "links": ["tail_events_in"],
+    "mode": "link",
+    "name": "tail events",
+    "type": "link out",
+    "wires": [],
+    "x": 1255,
+    "y": 735,
+    "z": "moltnet_axiom_triage_tab"
+  },
+  {
+    "id": "tail_events_in",
+    "links": ["parser_tail_out", "triage_tail_out", "judge_tail_out"],
+    "name": "tail events",
+    "type": "link in",
+    "wires": [["debug_tail"]],
+    "x": 1270,
+    "y": 925,
+    "z": "moltnet_axiom_triage_tab"
+  },
+  {
+    "id": "synthetic_alert_comment",
+    "info": "Manual smoke test path:\n- Click the inject node below to create a synthetic Axiom monitor trigger.\n- It uses the same normalized msg.axiom contract as polling/webhook events and enters through the common monitor-events link.\n- Keep msg.axiom.synthetic=true in downstream artifacts so humans and agents know this was not a real Axiom alert.\n- Use this to verify Node-RED wiring, MoltNet task creation, artifact chaining, and judge behavior without waiting for a real monitor transition.",
+    "name": "manual synthetic alert test",
+    "type": "comment",
+    "x": 260,
+    "y": 390,
+    "z": "moltnet_axiom_triage_tab"
+  },
+  {
+    "crontab": "",
+    "id": "inject_synthetic_alert",
+    "name": "inject synthetic alert",
+    "once": false,
+    "onceDelay": 0.1,
+    "payload": "",
+    "payloadType": "date",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "topic": "",
+    "type": "inject",
+    "wires": [["build_synthetic_alert"]],
+    "x": 150,
+    "y": 430,
+    "z": "moltnet_axiom_triage_tab"
+  },
+  {
+    "func": "const now = new Date();\nconst start = new Date(now.getTime() - 15 * 60 * 1000);\nmsg.axiom = {\n  raw: {\n    synthetic: true,\n    reason: 'manual Node-RED smoke test',\n    generatedAt: now.toISOString()\n  },\n  action: 'triggered',\n  triggerLike: true,\n  monitorId: 'synthetic-node-red-smoke-test',\n  monitorName: 'Synthetic Node-RED triage smoke test',\n  service: 'moltnet-rest-api',\n  route: '/synthetic/node-red-smoke-test',\n  severity: 'test',\n  startedAt: now.toISOString(),\n  window: { start: start.toISOString(), end: now.toISOString() },\n  datasets: { traces: 'moltnet', metrics: 'moltnet-metrics' },\n  repo: { owner: 'getlarge', name: 'themoltnet' },\n  source: 'synthetic-node-red-inject',\n  synthetic: true\n};\nreturn msg;",
+    "id": "build_synthetic_alert",
+    "name": "build synthetic alert",
+    "outputs": 1,
+    "type": "function",
+    "wires": [["synthetic_alerts_out"]],
+    "x": 390,
+    "y": 430,
+    "z": "moltnet_axiom_triage_tab"
+  },
+  {
+    "id": "synthetic_alerts_out",
+    "links": ["alert_events_in"],
+    "mode": "link",
+    "name": "monitor events",
+    "type": "link out",
+    "wires": [],
+    "x": 610,
+    "y": 430,
+    "z": "moltnet_axiom_triage_tab"
+  }
+]

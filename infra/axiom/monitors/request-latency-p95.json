@@ -1,0 +1,16 @@
+{
+  "alertOnNoData": false,
+  "description": "Latency regression signal over moltnet-metrics. The source metric is milliseconds. Inspect service.name first, then use moltnet traces/logs to identify slow routes or task-driven bursts. Initial threshold is above the current REST API p95 baseline (~2.2s on 2026-07-01).",
+  "intervalMinutes": 5,
+  "mplQuery": "`moltnet-metrics`:`http.server.request.duration`\n| bucket by `service.name` to 5m using interpolate_cumulative_histogram(rate, 0.95)",
+  "name": "MoltNet request latency p95 by service",
+  "notifierIds": [],
+  "notifyByGroup": true,
+  "operator": "AboveOrEqual",
+  "rangeMinutes": 10,
+  "resolvable": true,
+  "threshold": 3000,
+  "triggerAfterNPositiveResults": 2,
+  "triggerFromNRuns": 3,
+  "type": "Threshold"
+}

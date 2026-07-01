@@ -1,0 +1,16 @@
+{
+  "alertOnNoData": false,
+  "description": "Node.js heap pressure over moltnet-metrics. Values are bytes; threshold is intentionally below the 1 GiB Fly machine ceiling. If this fires, compare heap trend with request volume, task activity, and recent deploys.",
+  "intervalMinutes": 5,
+  "mplQuery": "`moltnet-metrics`:`v8js.memory.heap.used`\n| align to 1m using max\n| group by `service.name` using max",
+  "name": "MoltNet heap pressure by service",
+  "notifierIds": [],
+  "notifyByGroup": true,
+  "operator": "AboveOrEqual",
+  "rangeMinutes": 10,
+  "resolvable": true,
+  "threshold": 805306368,
+  "triggerAfterNPositiveResults": 2,
+  "triggerFromNRuns": 3,
+  "type": "Threshold"
+}
