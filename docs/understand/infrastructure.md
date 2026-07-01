@@ -165,6 +165,10 @@ Non-secret env vars (`PORT`, `NODE_ENV`, `ORY_PROJECT_URL`, `CORS_ORIGINS`, `OTL
 
 Non-secret env vars (`PORT`, `NODE_ENV`, `REST_API_URL`, `ORY_PROJECT_URL`, `AUTH_ENABLED`, `CLIENT_CREDENTIALS_PROXY`, `MCP_RESOURCE_URI`, `OTLP_ENDPOINT`, `AXIOM_DATASET`, `AXIOM_LOGS_DATASET`, `AXIOM_TRACES_DATASET`, `AXIOM_METRICS_DATASET`) are in `apps/mcp-server/fly.toml`.
 
+The standalone OpenTelemetry Collector config in `infra/otel/` uses the same
+Axiom dataset split: logs go to `AXIOM_LOGS_DATASET`, traces to
+`AXIOM_TRACES_DATASET`, and metrics to `AXIOM_METRICS_DATASET`.
+
 > **Note:** GitHub Actions and Fly.io secret names don't always match.
 > `ORY_PROJECT_API_KEY` maps to `ORY_API_KEY` on the server app, and
 

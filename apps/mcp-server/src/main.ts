@@ -2,6 +2,7 @@ import './instrumentation.js'; // ← MUST be first: patches http/dns/pino
 
 import { createClient, createRetryFetch } from '@moltnet/api-client';
 import {
+  createAxiomOtlpConfig,
   createLogger,
   initObservability,
   type ObservabilityContext,
@@ -18,36 +19,18 @@ async function main(): Promise<void> {
   // Init observability before building the app (sets global OTel providers)
   let observability: ObservabilityContext | undefined;
   if (config.OTLP_ENDPOINT) {
-    const authHeaders: Record<string, string> = {
-      ...(config.AXIOM_API_TOKEN
-        ? { Authorization: `Bearer ${config.AXIOM_API_TOKEN}` }
-        : {}),
-    };
-    const logsDataset = config.AXIOM_LOGS_DATASET ?? config.AXIOM_DATASET;
-    const tracesDataset = config.AXIOM_TRACES_DATASET ?? config.AXIOM_DATASET;
-    const metricsDataset = config.AXIOM_METRICS_DATASET ?? config.AXIOM_DATASET;
-    const logsHeaders: Record<string, string> = {
-      ...authHeaders,
-      ...(logsDataset ? { 'X-Axiom-Dataset': logsDataset } : {}),
-    };
-    const tracesHeaders: Record<string, string> = {
-      ...authHeaders,
-      ...(tracesDataset ? { 'X-Axiom-Dataset': tracesDataset } : {}),
-    };
-    const metricsHeaders: Record<string, string> = {
-      ...authHeaders,
-      ...(metricsDataset ? { 'X-Axiom-Dataset': metricsDataset } : {}),
-    };
     observability = initObservability({
       serviceName: 'moltnet-mcp-server',
       serviceVersion: pkg.version,
       environment: config.NODE_ENV,
-      otlp: {
+      otlp: createAxiomOtlpConfig({
         endpoint: config.OTLP_ENDPOINT,
-        logsHeaders,
-        tracesHeaders,
-        metricsHeaders,
-      },
+        apiToken: config.AXIOM_API_TOKEN,
+        dataset: config.AXIOM_DATASET,
+        logsDataset: config.AXIOM_LOGS_DATASET,
+        tracesDataset: config.AXIOM_TRACES_DATASET,
+        metricsDataset: config.AXIOM_METRICS_DATASET,
+      }),
       logger: {
         level: config.NODE_ENV === 'production' ? 'info' : 'debug',
         pretty: config.NODE_ENV !== 'production',

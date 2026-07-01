@@ -27,6 +27,19 @@ export interface OtlpConfig {
   metricsHeaders?: Record<string, string>;
 }
 
+export interface AxiomOtlpConfigInput {
+  endpoint: string;
+  apiToken?: string;
+  /** Legacy/common Axiom dataset fallback for logs, traces, and metrics */
+  dataset?: string;
+  /** Axiom dataset for logs (falls back to dataset) */
+  logsDataset?: string;
+  /** Axiom dataset for traces (falls back to dataset) */
+  tracesDataset?: string;
+  /** Axiom dataset for metrics (falls back to dataset) */
+  metricsDataset?: string;
+}
+
 export interface LoggerConfig {
   /** Pino log level */
   level?: 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal' | 'silent';

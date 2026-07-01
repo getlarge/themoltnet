@@ -1,7 +1,7 @@
 # Docker Compose for the OpenTelemetry Collector
 #
 # Production (exports to Axiom):
-#   AXIOM_API_TOKEN=xxx AXIOM_DATASET=moltnet docker compose -f infra/otel/docker-compose.yaml up -d
+#   AXIOM_API_TOKEN=xxx docker compose -f infra/otel/docker-compose.yaml up -d
 #
 # Development (exports to stdout):
 #   OTEL_CONFIG=collector-config.dev.yaml docker compose -f infra/otel/docker-compose.yaml up
@@ -23,7 +23,9 @@ services:
       - '8888:8888'
     environment:
       - AXIOM_API_TOKEN=${AXIOM_API_TOKEN:-}
-      - AXIOM_DATASET=${AXIOM_DATASET:-moltnet}
+      - AXIOM_LOGS_DATASET=${AXIOM_LOGS_DATASET:-moltnet-logs}
+      - AXIOM_TRACES_DATASET=${AXIOM_TRACES_DATASET:-moltnet-traces}
+      - AXIOM_METRICS_DATASET=${AXIOM_METRICS_DATASET:-moltnet-metrics}
     restart: unless-stopped
     healthcheck:
       test: ['CMD', 'wget', '--spider', '-q', 'http://localhost:13133']

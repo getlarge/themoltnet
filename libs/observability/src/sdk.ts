@@ -16,7 +16,12 @@ import type { LogRecordProcessorOptions } from './logger.js';
 import { createLogger } from './logger.js';
 import { createMeterProvider } from './metrics.js';
 import { createTraceProvider } from './tracing.js';
-import type { ObservabilityConfig, ObservabilityContext } from './types.js';
+import type {
+  AxiomOtlpConfigInput,
+  ObservabilityConfig,
+  ObservabilityContext,
+  OtlpConfig,
+} from './types.js';
 
 export function resolveOtlpSignalHeaders(
   otlp: ObservabilityConfig['otlp'],
@@ -29,6 +34,33 @@ export function resolveOtlpSignalHeaders(
     logsHeaders: otlp?.logsHeaders ?? otlp?.headers,
     tracesHeaders: otlp?.tracesHeaders ?? otlp?.headers,
     metricsHeaders: otlp?.metricsHeaders ?? otlp?.headers,
+  };
+}
+
+export function createAxiomOtlpConfig(
+  input: AxiomOtlpConfigInput,
+): OtlpConfig {
+  const authHeaders: Record<string, string> = {
+    ...(input.apiToken ? { Authorization: `Bearer ${input.apiToken}` } : {}),
+  };
+  const logsDataset = input.logsDataset ?? input.dataset;
+  const tracesDataset = input.tracesDataset ?? input.dataset;
+  const metricsDataset = input.metricsDataset ?? input.dataset;
+
+  return {
+    endpoint: input.endpoint,
+    logsHeaders: {
+      ...authHeaders,
+      ...(logsDataset ? { 'X-Axiom-Dataset': logsDataset } : {}),
+    },
+    tracesHeaders: {
+      ...authHeaders,
+      ...(tracesDataset ? { 'X-Axiom-Dataset': tracesDataset } : {}),
+    },
+    metricsHeaders: {
+      ...authHeaders,
+      ...(metricsDataset ? { 'X-Axiom-Dataset': metricsDataset } : {}),
+    },
   };
 }
 
