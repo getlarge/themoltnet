@@ -73,18 +73,6 @@
           }
         },
         {
-          "id": "gemini-3-flash-preview:cloud",
-          "reasoning": true,
-          "thinkingLevelMap": {
-            "high": "high",
-            "low": "low",
-            "medium": "medium",
-            "minimal": "low",
-            "off": "none",
-            "xhigh": "max"
-          }
-        },
-        {
           "id": "gemma4:cloud",
           "reasoning": true,
           "thinkingLevelMap": {
@@ -98,30 +86,6 @@
         },
         {
           "id": "gemma4:31b-cloud",
-          "reasoning": true,
-          "thinkingLevelMap": {
-            "high": "high",
-            "low": "low",
-            "medium": "medium",
-            "minimal": "low",
-            "off": "none",
-            "xhigh": "max"
-          }
-        },
-        {
-          "id": "glm-4.7:cloud",
-          "reasoning": true,
-          "thinkingLevelMap": {
-            "high": "high",
-            "low": "low",
-            "medium": "medium",
-            "minimal": "low",
-            "off": "none",
-            "xhigh": "max"
-          }
-        },
-        {
-          "id": "glm-5:cloud",
           "reasoning": true,
           "thinkingLevelMap": {
             "high": "high",
@@ -215,9 +179,6 @@
           }
         },
         {
-          "id": "minimax-m2.1:cloud"
-        },
-        {
           "id": "minimax-m2.5:cloud",
           "reasoning": true,
           "thinkingLevelMap": {
@@ -276,9 +237,6 @@
             "off": "none",
             "xhigh": "max"
           }
-        },
-        {
-          "id": "qwen3-coder:480b-cloud"
         },
         {
           "id": "qwen3.5:cloud",
