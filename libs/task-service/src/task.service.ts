@@ -597,7 +597,7 @@ export function createTaskService(deps: TaskServiceDeps) {
     }
   }
 
-  async function planDeleteMany(input: {
+  async function buildDeleteManyPlan(input: {
     ids: string[];
     callerId: string;
     callerNs: KetoNamespace;
@@ -1906,7 +1906,7 @@ export function createTaskService(deps: TaskServiceDeps) {
       force?: boolean;
       reason?: string;
     }): Promise<{ accepted: string[]; skipped: string[] }> {
-      return planDeleteMany(input);
+      return buildDeleteManyPlan(input);
     },
 
     async deleteMany(input: {
@@ -1917,7 +1917,7 @@ export function createTaskService(deps: TaskServiceDeps) {
       reason?: string;
     }): Promise<{ deleted: string[]; skipped: string[] }> {
       const force = input.force ?? false;
-      const plan = await planDeleteMany(input);
+      const plan = await buildDeleteManyPlan(input);
       const deletableIds = plan.accepted;
       if (deletableIds.length === 0) {
         return { deleted: [], skipped: plan.skipped };
