@@ -307,19 +307,28 @@ export function taskRoutes(fastify: FastifyInstance) {
           reason: request.body.reason,
         });
         if (plan.accepted.length === 0) {
+          const operationId = taskDeletionDeduplicationId(
+            request.body.ids,
+            force,
+          );
           return await reply.status(202).send({
             workflowId: null,
+            operationId,
+            status: 'noop',
             accepted: [],
             skipped: plan.skipped,
           });
         }
 
+        const operationId = taskDeletionDeduplicationId(plan.accepted, force);
         let workflowId: string | null = null;
+        let status: 'queued' | 'duplicate' = 'queued';
         try {
           const handle = await startTaskDeletionWorkflow(
             {
               ids: plan.accepted,
               force,
+              operationId,
               reason: request.body.reason,
               requestedBy: {
                 id: identityId,
@@ -327,21 +336,30 @@ export function taskRoutes(fastify: FastifyInstance) {
               },
             },
             `task-delete:${randomUUID()}`,
-            taskDeletionDeduplicationId(plan.accepted, force),
+            operationId,
           );
           workflowId = handle.workflowID;
         } catch (error) {
           if (!(error instanceof DBOSErrors.DBOSQueueDuplicatedError)) {
             throw error;
           }
-          request.log.debug(
-            { err: error, taskIds: plan.accepted, force },
+          status = 'duplicate';
+          request.log.info(
+            {
+              err: error,
+              operationId,
+              accepted: plan.accepted.length,
+              force,
+              requestedBy: { id: identityId, ns: subjectType },
+            },
             'task.delete-many.already_queued',
           );
         }
 
         return await reply.status(202).send({
           workflowId,
+          operationId,
+          status,
           accepted: plan.accepted,
           skipped: plan.skipped,
         });

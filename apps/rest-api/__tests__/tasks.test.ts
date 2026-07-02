@@ -949,6 +949,8 @@ describe('DELETE /tasks', () => {
     expect(response.statusCode).toBe(202);
     expect(response.json()).toEqual({
       workflowId: 'task-delete:queued',
+      operationId: expect.stringMatching(/^task-delete:[a-f0-9]{64}$/),
+      status: 'queued',
       accepted: [TASK_ID],
       skipped: [],
     });
@@ -973,6 +975,8 @@ describe('DELETE /tasks', () => {
     expect(response.statusCode).toBe(202);
     expect(response.json()).toEqual({
       workflowId: null,
+      operationId: expect.stringMatching(/^task-delete:[a-f0-9]{64}$/),
+      status: 'duplicate',
       accepted: [TASK_ID],
       skipped: [],
     });

@@ -2356,6 +2356,8 @@ describe('Tasks API', () => {
       expect(claimantCleanup.error).toBeUndefined();
       expect(claimantCleanup.data).toEqual({
         workflowId: null,
+        operationId: expect.stringMatching(/^task-delete:[a-f0-9]{64}$/),
+        status: 'noop',
         accepted: [],
         skipped: [taskId],
       });
@@ -2583,6 +2585,18 @@ describe('Tasks API', () => {
         {
           ...TASK_DELETION_POLL_OPTIONS,
           label: 'force cleanup deletes sealed terminal task',
+        },
+      );
+      await pollUntil(
+        () =>
+          harness.db
+            .select()
+            .from(correlationSeals)
+            .where(eq(correlationSeals.sealedByTaskId, sealed.data!.id)),
+        (rows) => rows.length === 0,
+        {
+          ...TASK_DELETION_POLL_OPTIONS,
+          label: 'force cleanup removes correlation seal',
         },
       );
 

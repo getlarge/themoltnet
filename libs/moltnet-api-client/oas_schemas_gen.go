@@ -575,9 +575,11 @@ func (*BatchDeleteResponse) batchDeleteDiaryEntriesRes() {}
 
 // Ref: #/components/schemas/BatchDeleteTasksAcceptedResponse
 type BatchDeleteTasksAcceptedResponse struct {
-	Accepted   []uuid.UUID `json:"accepted"`
-	Skipped    []uuid.UUID `json:"skipped"`
-	WorkflowId NilString   `json:"workflowId"`
+	Accepted    []uuid.UUID                            `json:"accepted"`
+	OperationId string                                 `json:"operationId"`
+	Skipped     []uuid.UUID                            `json:"skipped"`
+	Status      BatchDeleteTasksAcceptedResponseStatus `json:"status"`
+	WorkflowId  NilString                              `json:"workflowId"`
 }
 
 // GetAccepted returns the value of Accepted.
@@ -585,9 +587,19 @@ func (s *BatchDeleteTasksAcceptedResponse) GetAccepted() []uuid.UUID {
 	return s.Accepted
 }
 
+// GetOperationId returns the value of OperationId.
+func (s *BatchDeleteTasksAcceptedResponse) GetOperationId() string {
+	return s.OperationId
+}
+
 // GetSkipped returns the value of Skipped.
 func (s *BatchDeleteTasksAcceptedResponse) GetSkipped() []uuid.UUID {
 	return s.Skipped
+}
+
+// GetStatus returns the value of Status.
+func (s *BatchDeleteTasksAcceptedResponse) GetStatus() BatchDeleteTasksAcceptedResponseStatus {
+	return s.Status
 }
 
 // GetWorkflowId returns the value of WorkflowId.
@@ -600,9 +612,19 @@ func (s *BatchDeleteTasksAcceptedResponse) SetAccepted(val []uuid.UUID) {
 	s.Accepted = val
 }
 
+// SetOperationId sets the value of OperationId.
+func (s *BatchDeleteTasksAcceptedResponse) SetOperationId(val string) {
+	s.OperationId = val
+}
+
 // SetSkipped sets the value of Skipped.
 func (s *BatchDeleteTasksAcceptedResponse) SetSkipped(val []uuid.UUID) {
 	s.Skipped = val
+}
+
+// SetStatus sets the value of Status.
+func (s *BatchDeleteTasksAcceptedResponse) SetStatus(val BatchDeleteTasksAcceptedResponseStatus) {
+	s.Status = val
 }
 
 // SetWorkflowId sets the value of WorkflowId.
@@ -611,6 +633,54 @@ func (s *BatchDeleteTasksAcceptedResponse) SetWorkflowId(val NilString) {
 }
 
 func (*BatchDeleteTasksAcceptedResponse) batchDeleteTasksRes() {}
+
+type BatchDeleteTasksAcceptedResponseStatus string
+
+const (
+	BatchDeleteTasksAcceptedResponseStatusQueued    BatchDeleteTasksAcceptedResponseStatus = "queued"
+	BatchDeleteTasksAcceptedResponseStatusDuplicate BatchDeleteTasksAcceptedResponseStatus = "duplicate"
+	BatchDeleteTasksAcceptedResponseStatusNoop      BatchDeleteTasksAcceptedResponseStatus = "noop"
+)
+
+// AllValues returns all BatchDeleteTasksAcceptedResponseStatus values.
+func (BatchDeleteTasksAcceptedResponseStatus) AllValues() []BatchDeleteTasksAcceptedResponseStatus {
+	return []BatchDeleteTasksAcceptedResponseStatus{
+		BatchDeleteTasksAcceptedResponseStatusQueued,
+		BatchDeleteTasksAcceptedResponseStatusDuplicate,
+		BatchDeleteTasksAcceptedResponseStatusNoop,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s BatchDeleteTasksAcceptedResponseStatus) MarshalText() ([]byte, error) {
+	switch s {
+	case BatchDeleteTasksAcceptedResponseStatusQueued:
+		return []byte(s), nil
+	case BatchDeleteTasksAcceptedResponseStatusDuplicate:
+		return []byte(s), nil
+	case BatchDeleteTasksAcceptedResponseStatusNoop:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *BatchDeleteTasksAcceptedResponseStatus) UnmarshalText(data []byte) error {
+	switch BatchDeleteTasksAcceptedResponseStatus(data) {
+	case BatchDeleteTasksAcceptedResponseStatusQueued:
+		*s = BatchDeleteTasksAcceptedResponseStatusQueued
+		return nil
+	case BatchDeleteTasksAcceptedResponseStatusDuplicate:
+		*s = BatchDeleteTasksAcceptedResponseStatusDuplicate
+		return nil
+	case BatchDeleteTasksAcceptedResponseStatusNoop:
+		*s = BatchDeleteTasksAcceptedResponseStatusNoop
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
 
 type BatchDeleteTasksForbidden ProblemDetails
 

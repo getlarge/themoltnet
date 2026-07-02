@@ -119,6 +119,12 @@ export const BatchDeleteTasksBodySchema = Type.Object(
 export const BatchDeleteTasksAcceptedResponseSchema = Type.Object(
   {
     workflowId: Type.Union([Type.String(), Type.Null()]),
+    operationId: Type.String(),
+    status: Type.Union([
+      Type.Literal('queued'),
+      Type.Literal('duplicate'),
+      Type.Literal('noop'),
+    ]),
     accepted: Type.Array(Type.String({ format: 'uuid' })),
     skipped: Type.Array(Type.String({ format: 'uuid' })),
   },

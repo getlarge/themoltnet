@@ -630,9 +630,17 @@ export function createTaskService(deps: TaskServiceDeps) {
     const sealedIds = new Set(
       await taskRepository.findSealedTaskIds(terminalIds),
     );
-    const accepted = force
-      ? terminalIds
-      : terminalIds.filter((id) => !sealedIds.has(id));
+    const forceAllowedMap =
+      force && terminalIds.length > 0
+        ? await permissionChecker.canForceDeleteTasks(
+            terminalIds,
+            input.callerId,
+            input.callerNs,
+          )
+        : new Map<string, boolean>();
+    const accepted = terminalIds.filter(
+      (id) => !sealedIds.has(id) || Boolean(forceAllowedMap.get(id)),
+    );
     const acceptedSet = new Set(accepted);
 
     return {

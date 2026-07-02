@@ -178,12 +178,37 @@
             },
             "type": "array"
           },
+          "operationId": {
+            "type": "string"
+          },
           "skipped": {
             "items": {
               "format": "uuid",
               "type": "string"
             },
             "type": "array"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "queued"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "duplicate"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "noop"
+                ],
+                "type": "string"
+              }
+            ]
           },
           "workflowId": {
             "anyOf": [
@@ -198,6 +223,8 @@
         },
         "required": [
           "workflowId",
+          "operationId",
+          "status",
           "accepted",
           "skipped"
         ],

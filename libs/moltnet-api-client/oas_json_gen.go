@@ -2534,6 +2534,10 @@ func (s *BatchDeleteTasksAcceptedResponse) encodeFields(e *jx.Encoder) {
 		e.ArrEnd()
 	}
 	{
+		e.FieldStart("operationId")
+		e.Str(s.OperationId)
+	}
+	{
 		e.FieldStart("skipped")
 		e.ArrStart()
 		for _, elem := range s.Skipped {
@@ -2542,15 +2546,21 @@ func (s *BatchDeleteTasksAcceptedResponse) encodeFields(e *jx.Encoder) {
 		e.ArrEnd()
 	}
 	{
+		e.FieldStart("status")
+		s.Status.Encode(e)
+	}
+	{
 		e.FieldStart("workflowId")
 		s.WorkflowId.Encode(e)
 	}
 }
 
-var jsonFieldsNameOfBatchDeleteTasksAcceptedResponse = [3]string{
+var jsonFieldsNameOfBatchDeleteTasksAcceptedResponse = [5]string{
 	0: "accepted",
-	1: "skipped",
-	2: "workflowId",
+	1: "operationId",
+	2: "skipped",
+	3: "status",
+	4: "workflowId",
 }
 
 // Decode decodes BatchDeleteTasksAcceptedResponse from json.
@@ -2582,8 +2592,20 @@ func (s *BatchDeleteTasksAcceptedResponse) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"accepted\"")
 			}
-		case "skipped":
+		case "operationId":
 			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.OperationId = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"operationId\"")
+			}
+		case "skipped":
+			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				s.Skipped = make([]uuid.UUID, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -2602,8 +2624,18 @@ func (s *BatchDeleteTasksAcceptedResponse) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"skipped\"")
 			}
+		case "status":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.Status.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"status\"")
+			}
 		case "workflowId":
-			requiredBitSet[0] |= 1 << 2
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				if err := s.WorkflowId.Decode(d); err != nil {
 					return err
@@ -2622,7 +2654,7 @@ func (s *BatchDeleteTasksAcceptedResponse) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000111,
+		0b00011111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -2664,6 +2696,48 @@ func (s *BatchDeleteTasksAcceptedResponse) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *BatchDeleteTasksAcceptedResponse) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes BatchDeleteTasksAcceptedResponseStatus as json.
+func (s BatchDeleteTasksAcceptedResponseStatus) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes BatchDeleteTasksAcceptedResponseStatus from json.
+func (s *BatchDeleteTasksAcceptedResponseStatus) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode BatchDeleteTasksAcceptedResponseStatus to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch BatchDeleteTasksAcceptedResponseStatus(v) {
+	case BatchDeleteTasksAcceptedResponseStatusQueued:
+		*s = BatchDeleteTasksAcceptedResponseStatusQueued
+	case BatchDeleteTasksAcceptedResponseStatusDuplicate:
+		*s = BatchDeleteTasksAcceptedResponseStatusDuplicate
+	case BatchDeleteTasksAcceptedResponseStatusNoop:
+		*s = BatchDeleteTasksAcceptedResponseStatusNoop
+	default:
+		*s = BatchDeleteTasksAcceptedResponseStatus(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s BatchDeleteTasksAcceptedResponseStatus) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *BatchDeleteTasksAcceptedResponseStatus) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

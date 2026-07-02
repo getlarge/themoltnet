@@ -389,6 +389,51 @@ describe('PermissionChecker', () => {
         },
       });
     });
+
+    it('checks canForceDeleteTasks against Task force_delete permission in one batch request', async () => {
+      mockPermissionApi.batchCheckPermission.mockResolvedValue({
+        results: [{ allowed: false }, { allowed: true }],
+      });
+
+      const result = await checker.canForceDeleteTasks(
+        [TASK_ID, ENTRY_ID],
+        AGENT_ID,
+        KetoNamespace.Agent,
+      );
+
+      expect(result).toEqual(
+        new Map([
+          [TASK_ID, false],
+          [ENTRY_ID, true],
+        ]),
+      );
+      expect(mockPermissionApi.batchCheckPermission).toHaveBeenCalledWith({
+        batchCheckPermissionBody: {
+          tuples: [
+            {
+              namespace: 'Task',
+              object: TASK_ID,
+              relation: 'force_delete',
+              subject_set: {
+                namespace: 'Agent',
+                object: AGENT_ID,
+                relation: '',
+              },
+            },
+            {
+              namespace: 'Task',
+              object: ENTRY_ID,
+              relation: 'force_delete',
+              subject_set: {
+                namespace: 'Agent',
+                object: AGENT_ID,
+                relation: '',
+              },
+            },
+          ],
+        },
+      });
+    });
   });
 
   describe('team runtime permissions', () => {

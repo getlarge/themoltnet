@@ -522,6 +522,8 @@ describe('Agent facade', () => {
     it('tasks.deleteMany calls batchDeleteTasks', async () => {
       const response = {
         workflowId: 'task-delete:1',
+        operationId: 'task-delete:operation',
+        status: 'queued' as const,
         accepted: ['task-1'],
         skipped: ['task-2'],
       };

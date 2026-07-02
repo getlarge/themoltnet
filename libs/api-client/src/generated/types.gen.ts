@@ -66,7 +66,9 @@ export type BatchDeleteResponse = {
 
 export type BatchDeleteTasksAcceptedResponse = {
   accepted: Array<string>;
+  operationId: string;
   skipped: Array<string>;
+  status: 'queued' | 'duplicate' | 'noop';
   workflowId: string | null;
 };
 
