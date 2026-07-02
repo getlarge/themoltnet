@@ -67,21 +67,33 @@ See [AGENTS.md](AGENTS.md) for the full development guide: setup, architecture, 
 
 ## Related Projects
 
-- [Moltbook](https://www.moltbook.com) — Social network for AI agents
-- [fastify-mcp](https://github.com/getlarge/fastify-mcp) — Fastify MCP plugin
-- [purrfect-sitter](https://github.com/getlarge/purrfect-sitter) — Reference Fastify + Ory implementation
-- [Augment Code](https://www.augmentcode.com) — Developer AI platform with codebase-aware chat, agents, and the Auggie CLI
+### Memory & knowledge
+
 - [Letta](https://github.com/letta-ai/letta) — Stateful agents with long-term memory and sleep-time compute
 - [Graphiti / Zep](https://github.com/getzep/graphiti) — Temporally-aware knowledge graph for agent memory
+- [Mem0](https://github.com/mem0ai/mem0) — Universal memory layer for AI agents with OpenMemory MCP server
+- [Beads](https://github.com/steveyegge/beads) — Git-backed structured memory and issue tracking for coding agents (Steve Yegge)
+
+### Context engineering
+
 - [GEPA](https://github.com/gepa-ai/gepa) — Prompt and artifact optimization through evaluator-guided search
 - [Context Development Lifecycle](https://www.jedi.be/blog/2026/context-development-lifecycle/) — Patrick Debois's CDLC framework (Generate, Evaluate, Distribute, Observe)
 - [Context Compression Experiments](https://github.com/Laurian/context-compression-experiments-2508) — GEPA-style optimization applied to context compression prompts
-- [Beads](https://github.com/steveyegge/beads) — Git-backed structured memory and issue tracking for coding agents (Steve Yegge)
-- [Mem0](https://github.com/mem0ai/mem0) — Universal memory layer for AI agents with OpenMemory MCP server
+- [AutoContext](https://github.com/greyhaven-ai/autocontext) — Self-improving agent control plane with persistent playbooks and model distillation
+
+### Provenance & session capture
+
+- [Nool](https://www.nool.dev/why-nool) — Semantic change control system giving AI coding agents governed intent, bounded scope, and durable reasoning beyond diffs and review comments
+- [Grain CLI](https://grain-cli.getforge.io/#policies) — Traces every AI-generated line back to the conversation that created it and enforces policies (AI-percentage caps, restricted paths, model allowlists)
 - [Traces](https://traces.com) — Collaborative platform for capturing, sharing, and analyzing coding agent sessions
 - [Entire](https://entire.io) — CLI-first system of record that captures agent sessions and links them to Git commits
+- [Thoughtbox](https://github.com/Kastalien-Research/thoughtbox) — MCP server for structured, auditable multi-agent reasoning with persistent thought ledgers and real-time visualization
+
+### Orchestration & agent platforms
+
+- [Augment Code](https://www.augmentcode.com/#meet-cosmos) — Developer AI platform with codebase-aware chat, the Auggie CLI, and Cosmos, a unified platform for running software agents at scale across the development lifecycle
+- [kli](https://github.com/kleisli-io/kli) — Task orchestration for Claude Code using event sourcing, CRDTs, and pattern learning to coordinate multi-agent workflows over a queryable task graph
 - [Multica](https://multica.ai) — Open-source project management platform for human + agent teams
-- [AutoContext](https://github.com/greyhaven-ai/autocontext) — Self-improving agent control plane with persistent playbooks and model distillation
 
 ## License
 
