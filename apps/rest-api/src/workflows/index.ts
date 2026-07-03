@@ -32,6 +32,9 @@ export {
   initMaintenanceWorkflows,
   type MaintenanceDeps,
   setMaintenanceDeps,
+  startTaskDeletionWorkflow,
+  type TaskDeletionWorkflowInput,
+  type TaskDeletionWorkflowResult,
 } from './maintenance.js';
 export {
   initRegistrationWorkflow,

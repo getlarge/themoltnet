@@ -81,7 +81,7 @@ export function TasksPage() {
     () => new Set(),
   );
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
-  const [deleteMode, setDeleteMode] = useState<'safe' | 'accept-risk'>('safe');
+  const [deleteForce, setDeleteForce] = useState(false);
   const [deleteReason, setDeleteReason] = useState('');
   const [deleteResult, setDeleteResult] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -107,7 +107,7 @@ export function TasksPage() {
   useEffect(() => {
     setSelectedTaskIds(new Set());
     setConfirmDeleteOpen(false);
-    setDeleteMode('safe');
+    setDeleteForce(false);
     setDeleteReason('');
     setDeleteError(null);
     setDeleteResult(null);
@@ -290,10 +290,8 @@ export function TasksPage() {
         client: getApiClient(),
         body: {
           ids,
-          mode: deleteMode,
-          ...(deleteMode === 'accept-risk'
-            ? { reason: deleteReason.trim() }
-            : {}),
+          force: deleteForce,
+          ...(deleteForce ? { reason: deleteReason.trim() } : {}),
         },
       });
       if (apiError || !data) {
@@ -301,10 +299,10 @@ export function TasksPage() {
       }
       setSelectedTaskIds(new Set());
       setConfirmDeleteOpen(false);
-      setDeleteMode('safe');
+      setDeleteForce(false);
       setDeleteReason('');
       setDeleteResult(
-        `${data.deleted.length} deleted, ${data.skipped.length} skipped`,
+        `${data.accepted.length} queued for deletion, ${data.skipped.length} skipped`,
       );
       if (view === 'board') refetchLanes();
       else void query.refetch();
@@ -656,14 +654,12 @@ export function TasksPage() {
           <label style={{ display: 'flex', gap: theme.spacing[2] }}>
             <input
               type="checkbox"
-              checked={deleteMode === 'accept-risk'}
-              onChange={(event) =>
-                setDeleteMode(event.target.checked ? 'accept-risk' : 'safe')
-              }
+              checked={deleteForce}
+              onChange={(event) => setDeleteForce(event.target.checked)}
             />
-            <span>Use accept-risk mode for terminal protected tasks</span>
+            <span>Force delete terminal protected tasks</span>
           </label>
-          {deleteMode === 'accept-risk' ? (
+          {deleteForce ? (
             <textarea
               aria-label="Task deletion reason"
               placeholder="Reason"
@@ -693,7 +689,7 @@ export function TasksPage() {
               disabled={
                 isDeleting ||
                 selectedTaskIds.size === 0 ||
-                (deleteMode === 'accept-risk' && deleteReason.trim() === '')
+                (deleteForce && deleteReason.trim() === '')
               }
             >
               {isDeleting ? 'Deleting…' : 'Delete'}

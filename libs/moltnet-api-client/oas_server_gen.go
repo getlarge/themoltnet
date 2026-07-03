@@ -48,7 +48,8 @@ type Handler interface {
 	BatchDeleteDiaryEntries(ctx context.Context, req *BatchDeleteDiaryEntriesReq) (BatchDeleteDiaryEntriesRes, error)
 	// BatchDeleteTasks implements batchDeleteTasks operation.
 	//
-	// Delete terminal tasks in bulk. Safe mode skips live, unauthorized, missing, and protected tasks.
+	// Queue asynchronous deletion of terminal tasks in bulk. By default, live, unauthorized, missing,
+	// and protected tasks are skipped. Set force: true with a reason to delete protected terminal tasks.
 	//
 	// DELETE /tasks
 	BatchDeleteTasks(ctx context.Context, req *BatchDeleteTasksReq) (BatchDeleteTasksRes, error)

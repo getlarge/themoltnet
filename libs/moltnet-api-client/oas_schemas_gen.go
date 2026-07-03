@@ -572,7 +572,115 @@ func (s *BatchDeleteResponse) SetSkipped(val []uuid.UUID) {
 }
 
 func (*BatchDeleteResponse) batchDeleteDiaryEntriesRes() {}
-func (*BatchDeleteResponse) batchDeleteTasksRes()        {}
+
+// Ref: #/components/schemas/BatchDeleteTasksAcceptedResponse
+type BatchDeleteTasksAcceptedResponse struct {
+	Accepted    []uuid.UUID                            `json:"accepted"`
+	OperationId string                                 `json:"operationId"`
+	Skipped     []uuid.UUID                            `json:"skipped"`
+	Status      BatchDeleteTasksAcceptedResponseStatus `json:"status"`
+	WorkflowId  NilString                              `json:"workflowId"`
+}
+
+// GetAccepted returns the value of Accepted.
+func (s *BatchDeleteTasksAcceptedResponse) GetAccepted() []uuid.UUID {
+	return s.Accepted
+}
+
+// GetOperationId returns the value of OperationId.
+func (s *BatchDeleteTasksAcceptedResponse) GetOperationId() string {
+	return s.OperationId
+}
+
+// GetSkipped returns the value of Skipped.
+func (s *BatchDeleteTasksAcceptedResponse) GetSkipped() []uuid.UUID {
+	return s.Skipped
+}
+
+// GetStatus returns the value of Status.
+func (s *BatchDeleteTasksAcceptedResponse) GetStatus() BatchDeleteTasksAcceptedResponseStatus {
+	return s.Status
+}
+
+// GetWorkflowId returns the value of WorkflowId.
+func (s *BatchDeleteTasksAcceptedResponse) GetWorkflowId() NilString {
+	return s.WorkflowId
+}
+
+// SetAccepted sets the value of Accepted.
+func (s *BatchDeleteTasksAcceptedResponse) SetAccepted(val []uuid.UUID) {
+	s.Accepted = val
+}
+
+// SetOperationId sets the value of OperationId.
+func (s *BatchDeleteTasksAcceptedResponse) SetOperationId(val string) {
+	s.OperationId = val
+}
+
+// SetSkipped sets the value of Skipped.
+func (s *BatchDeleteTasksAcceptedResponse) SetSkipped(val []uuid.UUID) {
+	s.Skipped = val
+}
+
+// SetStatus sets the value of Status.
+func (s *BatchDeleteTasksAcceptedResponse) SetStatus(val BatchDeleteTasksAcceptedResponseStatus) {
+	s.Status = val
+}
+
+// SetWorkflowId sets the value of WorkflowId.
+func (s *BatchDeleteTasksAcceptedResponse) SetWorkflowId(val NilString) {
+	s.WorkflowId = val
+}
+
+func (*BatchDeleteTasksAcceptedResponse) batchDeleteTasksRes() {}
+
+type BatchDeleteTasksAcceptedResponseStatus string
+
+const (
+	BatchDeleteTasksAcceptedResponseStatusQueued    BatchDeleteTasksAcceptedResponseStatus = "queued"
+	BatchDeleteTasksAcceptedResponseStatusDuplicate BatchDeleteTasksAcceptedResponseStatus = "duplicate"
+	BatchDeleteTasksAcceptedResponseStatusNoop      BatchDeleteTasksAcceptedResponseStatus = "noop"
+)
+
+// AllValues returns all BatchDeleteTasksAcceptedResponseStatus values.
+func (BatchDeleteTasksAcceptedResponseStatus) AllValues() []BatchDeleteTasksAcceptedResponseStatus {
+	return []BatchDeleteTasksAcceptedResponseStatus{
+		BatchDeleteTasksAcceptedResponseStatusQueued,
+		BatchDeleteTasksAcceptedResponseStatusDuplicate,
+		BatchDeleteTasksAcceptedResponseStatusNoop,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s BatchDeleteTasksAcceptedResponseStatus) MarshalText() ([]byte, error) {
+	switch s {
+	case BatchDeleteTasksAcceptedResponseStatusQueued:
+		return []byte(s), nil
+	case BatchDeleteTasksAcceptedResponseStatusDuplicate:
+		return []byte(s), nil
+	case BatchDeleteTasksAcceptedResponseStatusNoop:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *BatchDeleteTasksAcceptedResponseStatus) UnmarshalText(data []byte) error {
+	switch BatchDeleteTasksAcceptedResponseStatus(data) {
+	case BatchDeleteTasksAcceptedResponseStatusQueued:
+		*s = BatchDeleteTasksAcceptedResponseStatusQueued
+		return nil
+	case BatchDeleteTasksAcceptedResponseStatusDuplicate:
+		*s = BatchDeleteTasksAcceptedResponseStatusDuplicate
+		return nil
+	case BatchDeleteTasksAcceptedResponseStatusNoop:
+		*s = BatchDeleteTasksAcceptedResponseStatusNoop
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
 
 type BatchDeleteTasksForbidden ProblemDetails
 
@@ -583,9 +691,14 @@ type BatchDeleteTasksInternalServerError ProblemDetails
 func (*BatchDeleteTasksInternalServerError) batchDeleteTasksRes() {}
 
 type BatchDeleteTasksReq struct {
-	Ids    []uuid.UUID                `json:"ids"`
-	Mode   OptBatchDeleteTasksReqMode `json:"mode"`
-	Reason OptString                  `json:"reason"`
+	Force  OptBool     `json:"force"`
+	Ids    []uuid.UUID `json:"ids"`
+	Reason OptString   `json:"reason"`
+}
+
+// GetForce returns the value of Force.
+func (s *BatchDeleteTasksReq) GetForce() OptBool {
+	return s.Force
 }
 
 // GetIds returns the value of Ids.
@@ -593,14 +706,14 @@ func (s *BatchDeleteTasksReq) GetIds() []uuid.UUID {
 	return s.Ids
 }
 
-// GetMode returns the value of Mode.
-func (s *BatchDeleteTasksReq) GetMode() OptBatchDeleteTasksReqMode {
-	return s.Mode
-}
-
 // GetReason returns the value of Reason.
 func (s *BatchDeleteTasksReq) GetReason() OptString {
 	return s.Reason
+}
+
+// SetForce sets the value of Force.
+func (s *BatchDeleteTasksReq) SetForce(val OptBool) {
+	s.Force = val
 }
 
 // SetIds sets the value of Ids.
@@ -608,55 +721,9 @@ func (s *BatchDeleteTasksReq) SetIds(val []uuid.UUID) {
 	s.Ids = val
 }
 
-// SetMode sets the value of Mode.
-func (s *BatchDeleteTasksReq) SetMode(val OptBatchDeleteTasksReqMode) {
-	s.Mode = val
-}
-
 // SetReason sets the value of Reason.
 func (s *BatchDeleteTasksReq) SetReason(val OptString) {
 	s.Reason = val
-}
-
-type BatchDeleteTasksReqMode string
-
-const (
-	BatchDeleteTasksReqModeSafe       BatchDeleteTasksReqMode = "safe"
-	BatchDeleteTasksReqModeAcceptRisk BatchDeleteTasksReqMode = "accept-risk"
-)
-
-// AllValues returns all BatchDeleteTasksReqMode values.
-func (BatchDeleteTasksReqMode) AllValues() []BatchDeleteTasksReqMode {
-	return []BatchDeleteTasksReqMode{
-		BatchDeleteTasksReqModeSafe,
-		BatchDeleteTasksReqModeAcceptRisk,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s BatchDeleteTasksReqMode) MarshalText() ([]byte, error) {
-	switch s {
-	case BatchDeleteTasksReqModeSafe:
-		return []byte(s), nil
-	case BatchDeleteTasksReqModeAcceptRisk:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *BatchDeleteTasksReqMode) UnmarshalText(data []byte) error {
-	switch BatchDeleteTasksReqMode(data) {
-	case BatchDeleteTasksReqModeSafe:
-		*s = BatchDeleteTasksReqModeSafe
-		return nil
-	case BatchDeleteTasksReqModeAcceptRisk:
-		*s = BatchDeleteTasksReqModeAcceptRisk
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
 }
 
 type BatchDeleteTasksUnauthorized ProblemDetails
@@ -29179,52 +29246,6 @@ func (o OptAddGroupMemberReqSubjectNs) Get() (v AddGroupMemberReqSubjectNs, ok b
 
 // Or returns value if set, or given parameter if does not.
 func (o OptAddGroupMemberReqSubjectNs) Or(d AddGroupMemberReqSubjectNs) AddGroupMemberReqSubjectNs {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptBatchDeleteTasksReqMode returns new OptBatchDeleteTasksReqMode with value set to v.
-func NewOptBatchDeleteTasksReqMode(v BatchDeleteTasksReqMode) OptBatchDeleteTasksReqMode {
-	return OptBatchDeleteTasksReqMode{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptBatchDeleteTasksReqMode is optional BatchDeleteTasksReqMode.
-type OptBatchDeleteTasksReqMode struct {
-	Value BatchDeleteTasksReqMode
-	Set   bool
-}
-
-// IsSet returns true if OptBatchDeleteTasksReqMode was set.
-func (o OptBatchDeleteTasksReqMode) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptBatchDeleteTasksReqMode) Reset() {
-	var v BatchDeleteTasksReqMode
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptBatchDeleteTasksReqMode) SetTo(v BatchDeleteTasksReqMode) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptBatchDeleteTasksReqMode) Get() (v BatchDeleteTasksReqMode, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptBatchDeleteTasksReqMode) Or(d BatchDeleteTasksReqMode) BatchDeleteTasksReqMode {
 	if v, ok := o.Get(); ok {
 		return v
 	}

@@ -5,6 +5,7 @@ import type {
   AppendTaskMessagesData,
   BatchDeleteDiaryEntriesData,
   BatchDeleteResponse,
+  BatchDeleteTasksAcceptedResponse,
   BatchDeleteTasksData,
   BeginRuntimeSlotData,
   CancelTaskData,
@@ -636,7 +637,7 @@ export interface TasksNamespace {
 
   deleteMany(
     body: NonNullable<BatchDeleteTasksData['body']>,
-  ): Promise<BatchDeleteResponse>;
+  ): Promise<BatchDeleteTasksAcceptedResponse>;
 
   listAttempts(id: string): Promise<TaskAttempt[]>;
 

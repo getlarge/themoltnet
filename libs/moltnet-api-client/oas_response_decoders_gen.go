@@ -1435,8 +1435,8 @@ func decodeBatchDeleteDiaryEntriesResponse(resp *http.Response) (res BatchDelete
 
 func decodeBatchDeleteTasksResponse(resp *http.Response) (res BatchDeleteTasksRes, _ error) {
 	switch resp.StatusCode {
-	case 200:
-		// Code 200.
+	case 202:
+		// Code 202.
 		ct, _, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
 		if err != nil {
 			return res, errors.Wrap(err, "parse media type")
@@ -1449,7 +1449,7 @@ func decodeBatchDeleteTasksResponse(resp *http.Response) (res BatchDeleteTasksRe
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response BatchDeleteResponse
+			var response BatchDeleteTasksAcceptedResponse
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err

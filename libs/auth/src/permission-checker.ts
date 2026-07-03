@@ -167,6 +167,11 @@ export interface PermissionChecker {
     subjectId: string,
     subjectNs: KetoNamespace,
   ): Promise<Map<string, boolean>>;
+  canForceDeleteTasks(
+    taskIds: string[],
+    subjectId: string,
+    subjectNs: KetoNamespace,
+  ): Promise<Map<string, boolean>>;
   canReportTask(
     taskId: string,
     subjectId: string,
@@ -719,6 +724,29 @@ export function createPermissionChecker(
           namespace: KetoNamespace.Task,
           object: taskId,
           relation: TaskPermission.Delete,
+          subject_set: {
+            namespace: subjectNs,
+            object: subjectId,
+            relation: '',
+          },
+        })),
+      );
+      return new Map(
+        taskIds.map((taskId, index) => [taskId, results[index] ?? false]),
+      );
+    },
+
+    async canForceDeleteTasks(
+      taskIds: string[],
+      subjectId: string,
+      subjectNs: KetoNamespace,
+    ): Promise<Map<string, boolean>> {
+      const results = await batchCheckPermissions(
+        permissionApi,
+        taskIds.map((taskId) => ({
+          namespace: KetoNamespace.Task,
+          object: taskId,
+          relation: TaskPermission.ForceDelete,
           subject_set: {
             namespace: subjectNs,
             object: subjectId,

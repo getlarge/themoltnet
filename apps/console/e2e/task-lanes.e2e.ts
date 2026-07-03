@@ -203,7 +203,9 @@ test.describe.serial('Task lanes board', () => {
     ).toBeVisible();
     await page.getByRole('button', { name: 'Delete', exact: true }).click();
 
-    await expect(page.getByText('1 deleted, 1 skipped')).toBeVisible();
+    await expect(
+      page.getByText('1 queued for deletion, 1 skipped'),
+    ).toBeVisible();
     await expect(page.getByText(terminal.id.slice(0, 8))).not.toBeVisible();
     await expect(page.getByText(live.id.slice(0, 8))).toBeVisible();
   });

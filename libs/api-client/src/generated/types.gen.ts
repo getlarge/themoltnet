@@ -64,9 +64,17 @@ export type BatchDeleteResponse = {
   skipped: Array<string>;
 };
 
+export type BatchDeleteTasksAcceptedResponse = {
+  accepted: Array<string>;
+  operationId: string;
+  skipped: Array<string>;
+  status: 'queued' | 'duplicate' | 'noop';
+  workflowId: string | null;
+};
+
 export type BatchDeleteTasksBody = {
+  force?: boolean;
   ids: Array<string>;
-  mode?: 'safe' | 'accept-risk';
   reason?: string;
 };
 
@@ -9261,8 +9269,8 @@ export type FindLatestRuntimeSlotForAttemptResponse =
 
 export type BatchDeleteTasksData = {
   body: {
+    force?: boolean;
     ids: Array<string>;
-    mode?: 'safe' | 'accept-risk';
     reason?: string;
   };
   path?: never;
@@ -9296,7 +9304,7 @@ export type BatchDeleteTasksResponses = {
   /**
    * Default Response
    */
-  200: BatchDeleteResponse;
+  202: BatchDeleteTasksAcceptedResponse;
 };
 
 export type BatchDeleteTasksResponse =

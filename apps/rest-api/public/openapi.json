@@ -169,9 +169,74 @@
         ],
         "type": "object"
       },
+      "BatchDeleteTasksAcceptedResponse": {
+        "properties": {
+          "accepted": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "operationId": {
+            "type": "string"
+          },
+          "skipped": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "queued"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "duplicate"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "noop"
+                ],
+                "type": "string"
+              }
+            ]
+          },
+          "workflowId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "workflowId",
+          "operationId",
+          "status",
+          "accepted",
+          "skipped"
+        ],
+        "type": "object"
+      },
       "BatchDeleteTasksBody": {
         "additionalProperties": false,
         "properties": {
+          "force": {
+            "default": false,
+            "type": "boolean"
+          },
           "ids": {
             "items": {
               "format": "uuid",
@@ -181,23 +246,6 @@
             "minItems": 1,
             "type": "array",
             "uniqueItems": true
-          },
-          "mode": {
-            "anyOf": [
-              {
-                "enum": [
-                  "safe"
-                ],
-                "type": "string"
-              },
-              {
-                "enum": [
-                  "accept-risk"
-                ],
-                "type": "string"
-              }
-            ],
-            "default": "safe"
           },
           "reason": {
             "maxLength": 1000,
@@ -30399,7 +30447,7 @@
     },
     "/tasks": {
       "delete": {
-        "description": "Delete terminal tasks in bulk. Safe mode skips live, unauthorized, missing, and protected tasks.",
+        "description": "Queue asynchronous deletion of terminal tasks in bulk. By default, live, unauthorized, missing, and protected tasks are skipped. Set force: true with a reason to delete protected terminal tasks.",
         "operationId": "batchDeleteTasks",
         "requestBody": {
           "content": {
@@ -30407,6 +30455,10 @@
               "schema": {
                 "additionalProperties": false,
                 "properties": {
+                  "force": {
+                    "default": false,
+                    "type": "boolean"
+                  },
                   "ids": {
                     "items": {
                       "format": "uuid",
@@ -30416,23 +30468,6 @@
                     "minItems": 1,
                     "type": "array",
                     "uniqueItems": true
-                  },
-                  "mode": {
-                    "anyOf": [
-                      {
-                        "enum": [
-                          "safe"
-                        ],
-                        "type": "string"
-                      },
-                      {
-                        "enum": [
-                          "accept-risk"
-                        ],
-                        "type": "string"
-                      }
-                    ],
-                    "default": "safe"
                   },
                   "reason": {
                     "maxLength": 1000,
@@ -30450,11 +30485,11 @@
           "required": true
         },
         "responses": {
-          "200": {
+          "202": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/BatchDeleteResponse"
+                  "$ref": "#/components/schemas/BatchDeleteTasksAcceptedResponse"
                 }
               }
             },

@@ -443,9 +443,9 @@ func encodeBatchDeleteDiaryEntriesResponse(response BatchDeleteDiaryEntriesRes, 
 
 func encodeBatchDeleteTasksResponse(response BatchDeleteTasksRes, w http.ResponseWriter, span trace.Span) error {
 	switch response := response.(type) {
-	case *BatchDeleteResponse:
+	case *BatchDeleteTasksAcceptedResponse:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		w.WriteHeader(200)
+		w.WriteHeader(202)
 
 		e := new(jx.Encoder)
 		response.Encode(e)

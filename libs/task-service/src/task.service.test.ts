@@ -194,6 +194,13 @@ type PermissionCheckerMocks = {
       callerNs: string,
     ) => Promise<Map<string, boolean>>
   >;
+  canForceDeleteTasks: Mock<
+    (
+      taskIds: string[],
+      callerId: string,
+      callerNs: string,
+    ) => Promise<Map<string, boolean>>
+  >;
   canReadPack: Mock<
     (packId: string, callerId: string, callerNs: string) => Promise<boolean>
   >;
@@ -493,6 +500,24 @@ function makeMocks(
           ),
         ),
       canDeleteTasks: vi
+        .fn<
+          (
+            taskIds: string[],
+            callerId: string,
+            callerNs: string,
+          ) => Promise<Map<string, boolean>>
+        >()
+        .mockImplementation((taskIds) =>
+          Promise.resolve(
+            new Map(
+              taskIds.map((taskId) => [
+                taskId,
+                Boolean(opts.visibleTasks?.[taskId]),
+              ]),
+            ),
+          ),
+        ),
+      canForceDeleteTasks: vi
         .fn<
           (
             taskIds: string[],
@@ -1125,6 +1150,86 @@ describe('createTaskService.create — conditional claimability', () => {
 });
 
 describe('createTaskService.deleteMany', () => {
+  it('plans only authorized terminal unsealed task deletion in safe mode', async () => {
+    const terminal = makeJudgeTask(JUDGE_TASK, 'cancelled');
+    const live = makeJudgeTask(RUN_TASK, 'queued');
+    const mocks = makeMocks({
+      visibleTasks: { [JUDGE_TASK]: terminal, [RUN_TASK]: live },
+    });
+    mocks.taskRepository.findSealedTaskIds.mockResolvedValue([JUDGE_TASK]);
+    const service = createTaskService(
+      mocks as unknown as Parameters<typeof createTaskService>[0],
+    );
+
+    const result = await service.planDeleteMany({
+      ids: [JUDGE_TASK, RUN_TASK, OTHER_TEAM_ID],
+      callerId: AGENT_ID,
+      callerNs: KetoNamespace.Agent,
+    });
+
+    expect(result).toEqual({
+      accepted: [],
+      skipped: [JUDGE_TASK, RUN_TASK, OTHER_TEAM_ID],
+    });
+    expect(mocks.taskRepository.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it('skips sealed task deletion in force mode without force_delete permission', async () => {
+    const sealed = makeJudgeTask(JUDGE_TASK, 'cancelled');
+    const unsealed = makeJudgeTask(RUN_TASK, 'cancelled');
+    const mocks = makeMocks({
+      visibleTasks: { [JUDGE_TASK]: sealed, [RUN_TASK]: unsealed },
+    });
+    mocks.taskRepository.findSealedTaskIds.mockResolvedValue([JUDGE_TASK]);
+    mocks.permissionChecker.canForceDeleteTasks.mockResolvedValue(
+      new Map([
+        [JUDGE_TASK, false],
+        [RUN_TASK, false],
+      ]),
+    );
+    const service = createTaskService(
+      mocks as unknown as Parameters<typeof createTaskService>[0],
+    );
+
+    const result = await service.planDeleteMany({
+      ids: [JUDGE_TASK, RUN_TASK],
+      callerId: AGENT_ID,
+      callerNs: KetoNamespace.Agent,
+      force: true,
+      reason: 'operator cleanup',
+    });
+
+    expect(result).toEqual({
+      accepted: [RUN_TASK],
+      skipped: [JUDGE_TASK],
+    });
+  });
+
+  it('accepts sealed task deletion in force mode with force_delete permission', async () => {
+    const sealed = makeJudgeTask(JUDGE_TASK, 'cancelled');
+    const mocks = makeMocks({ visibleTasks: { [JUDGE_TASK]: sealed } });
+    mocks.taskRepository.findSealedTaskIds.mockResolvedValue([JUDGE_TASK]);
+    mocks.permissionChecker.canForceDeleteTasks.mockResolvedValue(
+      new Map([[JUDGE_TASK, true]]),
+    );
+    const service = createTaskService(
+      mocks as unknown as Parameters<typeof createTaskService>[0],
+    );
+
+    const result = await service.planDeleteMany({
+      ids: [JUDGE_TASK],
+      callerId: AGENT_ID,
+      callerNs: KetoNamespace.Agent,
+      force: true,
+      reason: 'operator cleanup',
+    });
+
+    expect(result).toEqual({
+      accepted: [JUDGE_TASK],
+      skipped: [],
+    });
+  });
+
   it('removes task relations in the delete transaction with one batch call', async () => {
     const task = {
       ...makeJudgeTask(JUDGE_TASK, 'cancelled'),

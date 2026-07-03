@@ -1,8 +1,19 @@
 import { KetoNamespace } from '@moltnet/auth';
+import { DBOSErrors } from '@moltnet/database';
 import type { FastifyInstance } from 'fastify';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 
 import { TaskServiceError } from '../src/services/task.service.js';
+import type * as WorkflowExports from '../src/workflows/index.js';
+import { startTaskDeletionWorkflow } from '../src/workflows/index.js';
 import {
   createMockServices,
   createTestApp,
@@ -10,6 +21,14 @@ import {
   resetMockServices,
   VALID_AUTH_CONTEXT,
 } from './helpers.js';
+
+vi.mock('../src/workflows/index.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof WorkflowExports>();
+  return {
+    ...actual,
+    startTaskDeletionWorkflow: vi.fn(),
+  };
+});
 
 const TASK_ID = 'aaaaaaaa-0000-0000-0000-000000000001';
 const TEAM_ID = 'bbbbbbbb-0000-0000-0000-000000000002';
@@ -890,6 +909,77 @@ describe('POST /tasks/:id/cancel', () => {
       payload: {},
     });
     expect(response.statusCode).toBe(400);
+  });
+});
+
+describe('DELETE /tasks', () => {
+  let app: FastifyInstance;
+  let mocks: ReturnType<typeof createMockServices>;
+
+  beforeAll(async () => {
+    mocks = createMockServices();
+    app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
+    resetMockServices(mocks);
+    vi.mocked(startTaskDeletionWorkflow).mockReset();
+    mocks.taskService.planDeleteMany.mockResolvedValue({
+      accepted: [TASK_ID],
+      skipped: [],
+    });
+  });
+
+  it('returns 202 and a workflow id when deletion cleanup is queued', async () => {
+    vi.mocked(startTaskDeletionWorkflow).mockResolvedValue({
+      workflowID: 'task-delete:queued',
+    } as never);
+
+    const response = await app.inject({
+      method: 'DELETE',
+      url: '/tasks',
+      headers: { authorization: 'Bearer test-token' },
+      payload: { ids: [TASK_ID] },
+    });
+
+    expect(response.statusCode).toBe(202);
+    expect(response.json()).toEqual({
+      workflowId: 'task-delete:queued',
+      operationId: expect.stringMatching(/^task-delete:[a-f0-9]{64}$/),
+      status: 'queued',
+      accepted: [TASK_ID],
+      skipped: [],
+    });
+  });
+
+  it('returns 202 when the exact deletion batch is already queued', async () => {
+    vi.mocked(startTaskDeletionWorkflow).mockRejectedValue(
+      new DBOSErrors.DBOSQueueDuplicatedError(
+        'existing-workflow',
+        'task-deletion-cleanup',
+        'task-delete:duplicate',
+      ),
+    );
+
+    const response = await app.inject({
+      method: 'DELETE',
+      url: '/tasks',
+      headers: { authorization: 'Bearer test-token' },
+      payload: { ids: [TASK_ID] },
+    });
+
+    expect(response.statusCode).toBe(202);
+    expect(response.json()).toEqual({
+      workflowId: null,
+      operationId: expect.stringMatching(/^task-delete:[a-f0-9]{64}$/),
+      status: 'duplicate',
+      accepted: [TASK_ID],
+      skipped: [],
+    });
   });
 });
 

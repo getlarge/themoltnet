@@ -178,6 +178,8 @@ class Task implements Namespace {
       this.related.parent.traverse((d) => d.permits.write(ctx)),
     delete: (ctx: Context) =>
       this.related.parent.traverse((d) => d.permits.write(ctx)),
+    force_delete: (ctx: Context) =>
+      this.related.parent.traverse((d) => d.permits.manage(ctx)),
     claim: (ctx: Context) =>
       this.related.parent.traverse((d) => d.permits.write(ctx)),
     // Covers all claimant-only operations: heartbeat, complete, fail,

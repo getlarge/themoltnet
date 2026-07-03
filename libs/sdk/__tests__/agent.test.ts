@@ -520,7 +520,13 @@ describe('Agent facade', () => {
     });
 
     it('tasks.deleteMany calls batchDeleteTasks', async () => {
-      const response = { deleted: ['task-1'], skipped: ['task-2'] };
+      const response = {
+        workflowId: 'task-delete:1',
+        operationId: 'task-delete:operation',
+        status: 'queued' as const,
+        accepted: ['task-1'],
+        skipped: ['task-2'],
+      };
       vi.mocked(batchDeleteTasks).mockResolvedValueOnce({
         data: response,
         error: undefined,
@@ -529,7 +535,7 @@ describe('Agent facade', () => {
       const agent = makeAgent();
       const result = await agent.tasks.deleteMany({
         ids: ['task-1', 'task-2'],
-        mode: 'accept-risk',
+        force: true,
         reason: 'cleanup duplicate terminal tasks',
       });
 
@@ -540,7 +546,7 @@ describe('Agent facade', () => {
           auth: mockAuth,
           body: {
             ids: ['task-1', 'task-2'],
-            mode: 'accept-risk',
+            force: true,
             reason: 'cleanup duplicate terminal tasks',
           },
         }),

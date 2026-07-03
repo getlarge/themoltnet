@@ -110,14 +110,25 @@ export const BatchDeleteTasksBodySchema = Type.Object(
       maxItems: 100,
       uniqueItems: true,
     }),
-    mode: Type.Optional(
-      Type.Union([Type.Literal('safe'), Type.Literal('accept-risk')], {
-        default: 'safe',
-      }),
-    ),
+    force: Type.Optional(Type.Boolean({ default: false })),
     reason: Type.Optional(Type.String({ minLength: 1, maxLength: 1000 })),
   },
   { $id: 'BatchDeleteTasksBody', additionalProperties: false },
+);
+
+export const BatchDeleteTasksAcceptedResponseSchema = Type.Object(
+  {
+    workflowId: Type.Union([Type.String(), Type.Null()]),
+    operationId: Type.String(),
+    status: Type.Union([
+      Type.Literal('queued'),
+      Type.Literal('duplicate'),
+      Type.Literal('noop'),
+    ]),
+    accepted: Type.Array(Type.String({ format: 'uuid' })),
+    skipped: Type.Array(Type.String({ format: 'uuid' })),
+  },
+  { $id: 'BatchDeleteTasksAcceptedResponse' },
 );
 
 export const ListTasksQuerySchema = Type.Object(
@@ -346,6 +357,7 @@ export const taskSchemas = [
   CreateTaskBodySchema,
   UpdateTaskMetadataBodySchema,
   BatchDeleteTasksBodySchema,
+  BatchDeleteTasksAcceptedResponseSchema,
   ListTasksQuerySchema,
   ClaimTaskBodySchema,
   HeartbeatBodySchema,
