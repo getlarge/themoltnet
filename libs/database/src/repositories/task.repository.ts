@@ -1422,15 +1422,16 @@ function summarizeActivityRows(
     const first = taskRows[0];
     if (!first) continue;
     const acceptedAttemptN = first.acceptedAttemptN;
-    if (acceptedAttemptN !== null) {
+    const acceptedRow =
+      acceptedAttemptN === null
+        ? undefined
+        : taskRows.find((row) => row.attemptN === acceptedAttemptN);
+    if (acceptedAttemptN !== null && acceptedRow) {
       bucket.acceptedTaskCount += 1;
       if (acceptedAttemptN === 1) bucket.firstAttemptAcceptedTaskCount += 1;
       if (acceptedAttemptN > 1) bucket.retryRecoveredTaskCount += 1;
-      const acceptedRow = taskRows.find(
-        (row) => row.attemptN === acceptedAttemptN,
-      );
       const completedAt =
-        acceptedRow?.attemptCompletedAt ?? first.taskCompletedAt ?? null;
+        acceptedRow.attemptCompletedAt ?? first.taskCompletedAt ?? null;
       if (completedAt) {
         timeToAcceptedMs.push(
           Math.max(0, completedAt.getTime() - first.taskQueuedAt.getTime()),
