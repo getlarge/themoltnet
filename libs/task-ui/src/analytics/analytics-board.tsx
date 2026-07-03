@@ -24,7 +24,7 @@ export interface AnalyticsBoardProps {
   filterOptions?: AnalyticsFilterOptions;
   onRetry?: () => void;
   /** Drilldown from a comparison-table row. */
-  onGroupClick?: (group: TaskActivityAnalyticsGroup) => void;
+  onSelectGroup?: (group: TaskActivityAnalyticsGroup) => void;
 }
 
 /**
@@ -41,7 +41,7 @@ export function AnalyticsBoard({
   onFiltersChange,
   filterOptions,
   onRetry,
-  onGroupClick,
+  onSelectGroup,
 }: AnalyticsBoardProps) {
   const theme = useTheme();
 
@@ -70,9 +70,11 @@ export function AnalyticsBoard({
     return frame(
       <Card variant="outlined" padding="md">
         <Stack gap={3} align="flex-start">
-          <Text color="error">
-            {error ?? 'Could not load analytics for this cohort.'}
-          </Text>
+          <div role="alert">
+            <Text color="error">
+              {error ?? 'Could not load analytics for this cohort.'}
+            </Text>
+          </div>
           {onRetry ? (
             <Button variant="secondary" size="sm" onClick={onRetry}>
               Retry
@@ -109,19 +111,24 @@ export function AnalyticsBoard({
   return frame(
     <Stack gap={5}>
       {!statsComplete ? (
-        <Card
-          variant="outlined"
-          padding="sm"
-          style={{
-            borderColor: theme.color.warning.DEFAULT,
-            background: theme.color.warning.muted,
-          }}
-        >
-          <Text variant="caption" style={{ color: theme.color.warning.DEFAULT }}>
-            Stats are still catching up — some recent attempts may not be
-            counted yet. Numbers may undercount.
-          </Text>
-        </Card>
+        <div role="status">
+          <Card
+            variant="outlined"
+            padding="sm"
+            style={{
+              borderColor: theme.color.warning.DEFAULT,
+              background: theme.color.warning.muted,
+            }}
+          >
+            <Text
+              variant="caption"
+              style={{ color: theme.color.warning.DEFAULT }}
+            >
+              Stats are still catching up — some recent attempts may not be
+              counted yet. Numbers may undercount.
+            </Text>
+          </Card>
+        </div>
       ) : null}
 
       <MetricKpiGrid metrics={overall} />
@@ -157,7 +164,7 @@ export function AnalyticsBoard({
         </div>
       </Stack>
 
-      <MetricsTable groups={groups} onRowClick={onGroupClick} />
+      <MetricsTable groups={groups} onSelectGroup={onSelectGroup} />
     </Stack>,
   );
 }

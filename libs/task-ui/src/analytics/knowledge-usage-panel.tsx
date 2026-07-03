@@ -1,6 +1,7 @@
 import { Card, Stack, Text, useTheme } from '@themoltnet/design-system';
 
 import { formatInteger, formatRatio } from './format.js';
+import { StatValue } from './stat-value.js';
 import type { TaskActivityProductMetrics } from './types.js';
 
 export interface KnowledgeUsagePanelProps {
@@ -32,16 +33,9 @@ export function KnowledgeUsagePanel({ knowledge }: KnowledgeUsagePanelProps) {
           <Text variant="caption" color="muted">
             Knowledge calls per accepted task
           </Text>
-          <span
-            style={{
-              fontSize: theme.font.size['2xl'],
-              fontWeight: theme.font.weight.semibold,
-              color: theme.color.text.DEFAULT,
-              fontVariantNumeric: 'tabular-nums',
-            }}
-          >
+          <StatValue size="2xl">
             {formatRatio(knowledge.knowledgeCallsPerAcceptedTask)}
-          </span>
+          </StatValue>
         </Stack>
 
         <Stack direction="row" gap={5} wrap>
@@ -50,16 +44,7 @@ export function KnowledgeUsagePanel({ knowledge }: KnowledgeUsagePanelProps) {
               <Text variant="caption" color="muted">
                 {c.label}
               </Text>
-              <span
-                style={{
-                  fontSize: theme.font.size.lg,
-                  fontWeight: theme.font.weight.medium,
-                  color: theme.color.text.DEFAULT,
-                  fontVariantNumeric: 'tabular-nums',
-                }}
-              >
-                {formatInteger(c.value)}
-              </span>
+              <StatValue weight="medium">{formatInteger(c.value)}</StatValue>
             </Stack>
           ))}
         </Stack>

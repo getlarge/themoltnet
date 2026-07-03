@@ -76,4 +76,18 @@ describe('Sparkline', () => {
     );
     expect(screen.getByText(/no trend data/i)).toBeInTheDocument();
   });
+
+  it('draws a dot (not a line) for an isolated single known point', () => {
+    const { container } = renderWithTheme(
+      <Sparkline
+        points={[
+          { label: 'd1', value: null },
+          { label: 'd2', value: 0.5 },
+          { label: 'd3', value: null },
+        ]}
+      />,
+    );
+    expect(container.querySelectorAll('circle')).toHaveLength(1);
+    expect(container.querySelectorAll('polyline')).toHaveLength(0);
+  });
 });

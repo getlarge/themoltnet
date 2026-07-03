@@ -43,6 +43,7 @@ export {
   MultiSelectFacet,
   type MultiSelectFacetProps,
 } from './multi-select-facet.js';
+export { StatValue, type StatValueProps } from './stat-value.js';
 export type {
   AnalyticsFilterOption,
   AnalyticsFilterOptions,

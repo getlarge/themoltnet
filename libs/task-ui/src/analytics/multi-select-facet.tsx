@@ -8,6 +8,8 @@ export interface MultiSelectFacetProps {
   options: AnalyticsFilterOption[];
   selected: string[];
   onChange: (next: string[]) => void;
+  /** Optional overline heading rendered above the options list. */
+  heading?: string;
 }
 
 /**
@@ -20,6 +22,7 @@ export function MultiSelectFacet({
   options,
   selected,
   onChange,
+  heading,
 }: MultiSelectFacetProps) {
   const theme = useTheme();
   const [open, setOpen] = useState(false);
@@ -105,6 +108,11 @@ export function MultiSelectFacet({
           }}
         >
           <Stack gap={2}>
+            {heading ? (
+              <Text variant="overline" color="muted">
+                {heading}
+              </Text>
+            ) : null}
             {options.length === 0 ? (
               <Text variant="caption" color="muted">
                 No options

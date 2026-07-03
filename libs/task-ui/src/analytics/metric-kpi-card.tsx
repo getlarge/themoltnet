@@ -2,6 +2,7 @@ import { Card, Text, Tooltip, useTheme } from '@themoltnet/design-system';
 import type { ReactNode } from 'react';
 
 import { UNKNOWN } from './format.js';
+import { StatValue } from './stat-value.js';
 
 export type MetricTone = 'neutral' | 'positive' | 'caution' | 'negative';
 
@@ -79,18 +80,13 @@ export function MetricKpiCard({
     >
       {hint ? <Tooltip content={hint}>{labelEl}</Tooltip> : labelEl}
 
-      <span
+      <StatValue
+        size="2xl"
+        color={valueColor}
         aria-label={isUnknown ? `${label}: unknown` : undefined}
-        style={{
-          fontSize: theme.font.size['2xl'],
-          fontWeight: theme.font.weight.semibold,
-          color: valueColor,
-          fontVariantNumeric: 'tabular-nums',
-          lineHeight: 1.1,
-        }}
       >
         {value}
-      </span>
+      </StatValue>
 
       {caption ? (
         <Text

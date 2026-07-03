@@ -1,7 +1,9 @@
 import { Card, Stack, Text, useTheme } from '@themoltnet/design-system';
 
 import { RatioBar } from './charts/ratio-bar.js';
+import { HIGH_FRICTION_CAPTION } from './constants.js';
 import { formatInteger, formatRateWithCount } from './format.js';
+import { StatValue } from './stat-value.js';
 import type { TaskActivityProductMetrics } from './types.js';
 
 export interface HurdlesPanelProps {
@@ -88,7 +90,7 @@ export function HurdlesPanel({ hurdles, toolCallCount }: HurdlesPanelProps) {
         </Stack>
 
         <Text variant="caption" color="muted">
-          High friction = attempts with ≥ 8 turns or ≥ 3 failed tool calls.
+          High friction = attempts with {HIGH_FRICTION_CAPTION}.
         </Text>
       </Stack>
     </Card>
@@ -96,22 +98,12 @@ export function HurdlesPanel({ hurdles, toolCallCount }: HurdlesPanelProps) {
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
-  const theme = useTheme();
   return (
     <Stack gap={1} style={{ minWidth: 0 }}>
       <Text variant="caption" color="muted">
         {label}
       </Text>
-      <span
-        style={{
-          fontSize: theme.font.size.lg,
-          fontWeight: theme.font.weight.semibold,
-          color: theme.color.text.DEFAULT,
-          fontVariantNumeric: 'tabular-nums',
-        }}
-      >
-        {value}
-      </span>
+      <StatValue>{value}</StatValue>
     </Stack>
   );
 }

@@ -1,5 +1,6 @@
 import { Stack, Text, useTheme } from '@themoltnet/design-system';
 
+import { HIGH_FRICTION_CAPTION, RATE_TONE } from './constants.js';
 import {
   formatCount,
   formatDurationMs,
@@ -29,15 +30,15 @@ interface Pillar {
 
 /** Higher rate is better → positive; used for success metrics. */
 function goodRateTone(rate: number): MetricTone {
-  if (rate >= 0.8) return 'positive';
-  if (rate >= 0.5) return 'caution';
+  if (rate >= RATE_TONE.goodPositiveAt) return 'positive';
+  if (rate >= RATE_TONE.goodCautionAt) return 'caution';
   return 'negative';
 }
 
 /** Higher rate is worse → for failure/friction metrics. */
 function badRateTone(rate: number): MetricTone {
-  if (rate <= 0.05) return 'positive';
-  if (rate <= 0.2) return 'caution';
+  if (rate <= RATE_TONE.badPositiveAt) return 'positive';
+  if (rate <= RATE_TONE.badCautionAt) return 'caution';
   return 'negative';
 }
 
@@ -125,7 +126,7 @@ export function buildPillars(m: TaskActivityProductMetrics): Pillar[] {
         {
           label: 'High-friction attempts',
           value: formatInteger(h.highFrictionAttemptCount),
-          caption: 'turns ≥ 8 or ≥ 3 failed tool calls',
+          caption: HIGH_FRICTION_CAPTION,
           hint: 'Attempts showing friction: many turns or repeated tool failures.',
         },
         {

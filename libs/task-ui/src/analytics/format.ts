@@ -10,6 +10,9 @@ export const UNKNOWN = '—';
 
 /** Format a [0, 1] rate as a percent. Keeps one decimal only when it matters. */
 export function formatPercent(rate: number): string {
+  // Rates are contractually finite; guard anyway so a bad/absent aggregate
+  // renders the unknown marker instead of "NaN%"/"∞%".
+  if (!Number.isFinite(rate)) return UNKNOWN;
   const pct = rate * 100;
   const rounded = Math.round(pct * 10) / 10;
   // Show a decimal only when the value isn't a whole percent.
@@ -31,8 +34,9 @@ export function formatRateWithCount(
   return `${formatPercent(rate)} (${formatCount(numerator, denominator)})`;
 }
 
-/** Integer with thousands separators. */
+/** Integer with thousands separators. Non-finite input renders as the unknown marker. */
 export function formatInteger(value: number): string {
+  if (!Number.isFinite(value)) return UNKNOWN;
   return Math.round(value).toLocaleString('en-US');
 }
 

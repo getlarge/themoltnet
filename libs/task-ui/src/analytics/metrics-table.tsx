@@ -7,7 +7,7 @@ import type { TaskActivityAnalyticsGroup } from './types.js';
 export interface MetricsTableProps {
   groups: TaskActivityAnalyticsGroup[];
   /** Called when a row is activated, for drilldown. */
-  onRowClick?: (group: TaskActivityAnalyticsGroup) => void;
+  onSelectGroup?: (group: TaskActivityAnalyticsGroup) => void;
 }
 
 type SortKey =
@@ -101,7 +101,7 @@ const columns: Column[] = [
  * click drills down. Renders an empty note when there are no groups (e.g.
  * `groupBy='none'`).
  */
-export function MetricsTable({ groups, onRowClick }: MetricsTableProps) {
+export function MetricsTable({ groups, onSelectGroup }: MetricsTableProps) {
   const theme = useTheme();
   const [sortKey, setSortKey] = useState<SortKey>('acceptedOutputRate');
   const [asc, setAsc] = useState(false);
@@ -197,9 +197,9 @@ export function MetricsTable({ groups, onRowClick }: MetricsTableProps) {
             {sorted.map((g) => (
               <tr
                 key={g.key}
-                onClick={onRowClick ? () => onRowClick(g) : undefined}
+                onClick={onSelectGroup ? () => onSelectGroup(g) : undefined}
                 style={{
-                  cursor: onRowClick ? 'pointer' : 'default',
+                  cursor: onSelectGroup ? 'pointer' : 'default',
                   borderBottom: `1px solid ${theme.color.border.DEFAULT}`,
                 }}
               >

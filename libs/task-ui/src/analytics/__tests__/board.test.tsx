@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MoltThemeProvider } from '@themoltnet/design-system';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -26,6 +26,33 @@ describe('AnalyticsFilters', () => {
     expect(onChange).toHaveBeenCalledWith({
       completedAfter: '2026-06-01T00:00:00.000Z',
     });
+  });
+
+  it('emits an end-of-day completedBefore when an end date is picked', () => {
+    const onChange = vi.fn();
+    renderWithTheme(
+      <AnalyticsFilters filters={{}} onFiltersChange={onChange} />,
+    );
+    fireEvent.change(screen.getByLabelText('Completed before'), {
+      target: { value: '2026-06-30' },
+    });
+    expect(onChange).toHaveBeenCalledWith({
+      completedBefore: '2026-06-30T23:59:59.999Z',
+    });
+  });
+
+  it('pre-populates the date inputs from existing ISO filters', () => {
+    renderWithTheme(
+      <AnalyticsFilters
+        filters={{
+          completedAfter: '2026-06-01T00:00:00.000Z',
+          completedBefore: '2026-06-30T23:59:59.999Z',
+        }}
+        onFiltersChange={noop}
+      />,
+    );
+    expect(screen.getByLabelText('Completed after')).toHaveValue('2026-06-01');
+    expect(screen.getByLabelText('Completed before')).toHaveValue('2026-06-30');
   });
 
   it('emits groupBy on select change', () => {
@@ -59,32 +86,83 @@ describe('AnalyticsFilters', () => {
 });
 
 describe('MetricsTable', () => {
-  const groups: TaskActivityAnalyticsGroup[] = [
-    { key: 'a', label: 'model-a', metrics: makeMetrics() },
-    {
-      key: 'b',
-      label: 'model-b',
+  /** Build a group whose accepted-output rate is `rate` (0..1). */
+  function groupWithRate(
+    key: string,
+    label: string,
+    rate: number,
+  ): TaskActivityAnalyticsGroup {
+    const base = makeMetrics();
+    return {
+      key,
+      label,
       metrics: makeMetrics({
-        success: {
-          ...makeMetrics().success,
-          acceptedOutputRate: 0.5,
-        },
+        success: { ...base.success, acceptedOutputRate: rate },
       }),
-    },
+    };
+  }
+
+  const groups: TaskActivityAnalyticsGroup[] = [
+    groupWithRate('a', 'model-a', 0.6),
+    groupWithRate('b', 'model-b', 0.9),
+    groupWithRate('c', 'model-c', 0.3),
   ];
+
+  /** The cohort labels in rendered row order. */
+  function renderedOrder(): string[] {
+    const rows = screen.getAllByRole('row').slice(1); // skip header
+    return rows.map((row) => within(row).getAllByRole('cell')[0].textContent);
+  }
 
   it('renders an empty note with no groups', () => {
     renderWithTheme(<MetricsTable groups={[]} />);
     expect(screen.getByText(/compare by/i)).toBeInTheDocument();
   });
 
-  it('renders a row per group and fires onRowClick', () => {
-    const onRowClick = vi.fn();
-    renderWithTheme(<MetricsTable groups={groups} onRowClick={onRowClick} />);
+  it('renders a row per group and fires onSelectGroup', () => {
+    const onSelectGroup = vi.fn();
+    renderWithTheme(
+      <MetricsTable groups={groups} onSelectGroup={onSelectGroup} />,
+    );
     fireEvent.click(screen.getByText('model-a'));
-    expect(onRowClick).toHaveBeenCalledWith(
+    expect(onSelectGroup).toHaveBeenCalledWith(
       expect.objectContaining({ key: 'a' }),
     );
+  });
+
+  it('defaults to accepted-output rate, descending (best cohort first)', () => {
+    renderWithTheme(<MetricsTable groups={groups} />);
+    expect(renderedOrder()).toEqual(['model-b', 'model-a', 'model-c']);
+  });
+
+  it('toggles to ascending when the active column header is clicked', () => {
+    renderWithTheme(<MetricsTable groups={groups} />);
+    fireEvent.click(screen.getByRole('button', { name: /Accepted/i }));
+    expect(renderedOrder()).toEqual(['model-c', 'model-a', 'model-b']);
+  });
+
+  it('sorts by a different column (descending) when its header is clicked', () => {
+    renderWithTheme(<MetricsTable groups={groups} />);
+    // Cohort column is a string sort; descending → reverse alphabetical.
+    fireEvent.click(screen.getByRole('button', { name: /Cohort/i }));
+    expect(renderedOrder()).toEqual(['model-c', 'model-b', 'model-a']);
+  });
+
+  it('sorts null ratios last under the default descending order', () => {
+    const base = makeMetrics();
+    const withNull: TaskActivityAnalyticsGroup = {
+      key: 'n',
+      label: 'model-null',
+      metrics: makeMetrics({
+        roi: { ...base.roi, acceptedTasksPerThousandTokens: null },
+      }),
+    };
+    renderWithTheme(
+      <MetricsTable groups={[...groups, withNull]} />,
+    );
+    // Sort by the ROI "Acc./1k tok" column; the null cohort ranks last.
+    fireEvent.click(screen.getByRole('button', { name: /Acc\.\/1k tok/i }));
+    expect(renderedOrder().at(-1)).toBe('model-null');
   });
 });
 

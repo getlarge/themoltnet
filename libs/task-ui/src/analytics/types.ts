@@ -1,11 +1,19 @@
 // Analytics data-boundary contract.
 //
-// These types mirror the API on the `codex/agent-roi-analytics` branch 1:1
+// These types mirror the API in PR #1550 1:1
 // (`GET /tasks/analytics/activity` → `TaskActivityAnalyticsResponse`). Keeping
 // the UI shape identical to the wire shape means that, once the API merges, the
 // generated `@moltnet/api-client` type drops in with no adapter. The backend
 // pre-aggregates `task_messages` into a materialized stats table, so the UI
 // never touches raw messages.
+//
+// DELETE AT MERGE (#1550): once `@moltnet/api-client` exports the generated
+// `TaskActivityAnalyticsResponse` / `TaskActivityProductMetrics`, delete the
+// hand-written copies below and re-export the generated types instead. Nothing
+// here structurally forces these to stay identical to the wire shape, so a
+// silent drift (a nullable/renamed field) would compile fine but break the
+// "no adapter" promise at runtime. `__tests__/types-contract.test.ts` documents
+// the assignability check to enable at merge time as the enforcement.
 
 /** Pivot dimension for the comparison table + daily trend bucketing. */
 export type AnalyticsGroupBy =

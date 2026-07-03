@@ -20,14 +20,20 @@ const DEFAULT_FILTERS: AnalyticsFiltersValue = {
  * through a data adapter, then hands both into the shared <AnalyticsBoard>.
  *
  * Data fetching is isolated to this one file. Today it calls the mock adapter;
- * when the analytics endpoint ships (see #1373 / codex/agent-roi-analytics),
- * replace `getMockAnalytics` with the generated react-query option:
+ * when the analytics endpoint ships (see #1373 / PR #1550), replace
+ * `getMockAnalytics` with the generated react-query option and map its states
+ * to the board's `status` EXPLICITLY — TanStack Query's status is
+ * `pending | error | success`, not the board's `loading | error | empty | ready`,
+ * and "empty" is a data-shape decision (no attempts in the window), not a query
+ * status. For example:
  *
- *   const { data, status, refetch } = useQuery(
- *     getTaskActivityAnalyticsOptions({ query: filters }),
- *   );
- *
- * The board props map 1:1 to that query's states, so nothing else changes.
+ *   const query = useQuery(getTaskActivityAnalyticsOptions({ query: filters }));
+ *   const status: AnalyticsStatus =
+ *     query.isPending ? 'loading'
+ *     : query.isError ? 'error'
+ *     : (query.data?.overall.success.taskCount ?? 0) === 0 ? 'empty'
+ *     : 'ready';
+ *   // <AnalyticsBoard status={status} response={query.data} onRetry={query.refetch} ... />
  */
 export function TaskAnalyticsPage() {
   const [filters, setFilters] = useState<AnalyticsFiltersValue>(DEFAULT_FILTERS);
@@ -35,13 +41,15 @@ export function TaskAnalyticsPage() {
 
   const response = useMemo(() => getMockAnalytics(filters), [filters]);
 
-  function onGroupClick(group: TaskActivityAnalyticsGroup) {
-    // Drilldown placeholder: a real implementation could push the cohort into
-    // the task list filter. For now, log the intent via navigation to tasks.
-    if (filters.groupBy === 'agent') {
-      navigate(`/tasks?claimedByAgentId=${encodeURIComponent(group.key)}`);
-    }
-  }
+  // Drilldown is only meaningful for dimensions the task list can filter on.
+  // Today that's the agent cohort; other groupings have no drilldown target yet,
+  // so we don't pass a handler for them (keeping rows non-interactive rather than
+  // clickable-but-inert).
+  const onSelectGroup =
+    filters.groupBy === 'agent'
+      ? (group: TaskActivityAnalyticsGroup) =>
+          navigate(`/tasks?claimedByAgentId=${encodeURIComponent(group.key)}`)
+      : undefined;
 
   return (
     <Stack gap={6}>
@@ -58,7 +66,7 @@ export function TaskAnalyticsPage() {
         response={response}
         filters={filters}
         onFiltersChange={setFilters}
-        onGroupClick={onGroupClick}
+        onSelectGroup={onSelectGroup}
       />
     </Stack>
   );
