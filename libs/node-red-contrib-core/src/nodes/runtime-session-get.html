@@ -1,0 +1,73 @@
+<script type="text/javascript">
+  RED.nodes.registerType('moltnet-runtime-session-get', {
+    category: 'moltnet',
+    color: '#00d4c8',
+    paletteLabel: 'runtime session: get',
+    defaults: {
+      name: { value: '' },
+      agent: { value: '', type: 'moltnet-agent', required: true },
+      taskId: { value: '' },
+      teamId: { value: '' },
+      allowMsgTeamOverride: { value: false },
+      attemptN: { value: '', validate: RED.validators.number() },
+    },
+    inputs: 1,
+    outputs: 1,
+    icon: 'font-awesome/fa-info-circle',
+    label: function () {
+      return this.name || 'runtime session: get';
+    },
+  });
+</script>
+
+<script type="text/html" data-template-name="moltnet-runtime-session-get">
+  <div class="form-row">
+    <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+    <input type="text" id="node-input-name" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-agent"><i class="fa fa-user"></i> Agent</label>
+    <input type="text" id="node-input-agent" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-taskId"><i class="fa fa-hashtag"></i> Task ID</label>
+    <input
+      type="text"
+      id="node-input-taskId"
+      placeholder="msg.payload.taskId"
+    />
+  </div>
+  <div class="form-row">
+    <label for="node-input-teamId"><i class="fa fa-users"></i> Team ID</label>
+    <input type="text" id="node-input-teamId" placeholder="agent teamId" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-allowMsgTeamOverride"
+      ><i class="fa fa-random"></i> Team override</label
+    >
+    <input
+      type="checkbox"
+      id="node-input-allowMsgTeamOverride"
+      style="display: inline-block; width: auto; vertical-align: top"
+    />
+    <span>Allow <code>msg.teamId</code></span>
+  </div>
+  <div class="form-row">
+    <label for="node-input-attemptN"
+      ><i class="fa fa-history"></i> Attempt</label
+    >
+    <input type="number" id="node-input-attemptN" placeholder="msg.attemptN" />
+  </div>
+</script>
+
+<script type="text/html" data-help-name="moltnet-runtime-session-get">
+  <p>
+    Fetches durable runtime session metadata for a task attempt. Team ID is
+    taken from this node or the configured agent unless Team override is
+    enabled.
+  </p>
+  <p>
+    Emits the metadata or <code>null</code> on <code>msg.payload</code> and a
+    context envelope on <code>msg.runtimeSession</code>.
+  </p>
+</script>

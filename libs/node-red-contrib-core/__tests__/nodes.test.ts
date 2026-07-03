@@ -5,6 +5,9 @@ import { describe, expect, it } from 'vitest';
 
 import entriesSearch from '../src/nodes/entries-search.js';
 import runtimeProfile from '../src/nodes/runtime-profile.js';
+import runtimeSessionDownload from '../src/nodes/runtime-session-download.js';
+import runtimeSessionGet from '../src/nodes/runtime-session-get.js';
+import runtimeSessionUpload from '../src/nodes/runtime-session-upload.js';
 import taskArtifactDownload from '../src/nodes/task-artifact-download.js';
 import taskArtifactUpload from '../src/nodes/task-artifact-upload.js';
 import taskArtifactsList from '../src/nodes/task-artifacts-list.js';
@@ -919,6 +922,208 @@ describe('moltnet-task-artifact-download', () => {
     await expect(red.input(node, { payload: {} })).rejects.toThrow(
       /cid is required/,
     );
+  });
+});
+
+describe('moltnet-runtime-session-get', () => {
+  it('gets runtime session metadata with team context', async () => {
+    const seen: Array<Record<string, unknown>> = [];
+    const agent = {
+      runtimeSessions: {
+        getForAttempt: (
+          ref: Record<string, unknown>,
+          options: Record<string, unknown>,
+        ) => {
+          seen.push({ ref, options });
+          return Promise.resolve({ id: 'session-1', sha256: 'sha' });
+        },
+      },
+    };
+    const red = new FakeRed();
+    red.load(agentStub(agent));
+    red.load(runtimeSessionGet);
+    const a = red.create('moltnet-agent', 'a1');
+    (a as Record<string, unknown>).teamId = 'team-1';
+    const node = red.create('moltnet-runtime-session-get', 'n1', {
+      agent: 'a1',
+      taskId: 'task-1',
+      attemptN: 2,
+    });
+
+    const { outputs } = await red.input(node, {});
+
+    expect(seen).toEqual([
+      {
+        ref: { taskId: 'task-1', attemptN: 2 },
+        options: { teamId: 'team-1' },
+      },
+    ]);
+    expect(outputs[0].payload).toEqual({ id: 'session-1', sha256: 'sha' });
+    expect(outputs[0].runtimeSession).toEqual({
+      taskId: 'task-1',
+      teamId: 'team-1',
+      attemptN: 2,
+      session: { id: 'session-1', sha256: 'sha' },
+    });
+  });
+});
+
+describe('moltnet-runtime-session-upload', () => {
+  it('uploads runtime session bytes with lineage metadata', async () => {
+    const seen: Array<Record<string, unknown>> = [];
+    const agent = {
+      runtimeSessions: {
+        upload: (
+          ref: Record<string, unknown>,
+          body: Uint8Array,
+          query: Record<string, unknown>,
+          options: Record<string, unknown>,
+        ) => {
+          seen.push({
+            ref,
+            body: Buffer.from(body).toString('utf8'),
+            query,
+            options,
+          });
+          return Promise.resolve({ id: 'session-1', sha256: 'sha' });
+        },
+      },
+    };
+    const red = new FakeRed();
+    red.load(agentStub(agent));
+    red.load(runtimeSessionUpload);
+    const a = red.create('moltnet-agent', 'a1');
+    (a as Record<string, unknown>).teamId = 'team-1';
+    const node = red.create('moltnet-runtime-session-upload', 'n1', {
+      agent: 'a1',
+      taskId: 'task-1',
+      attemptN: 3,
+      sessionKind: 'root',
+    });
+
+    const { outputs } = await red.input(node, {
+      payload: {
+        contentBase64: Buffer.from('session bytes').toString('base64'),
+        sessionKind: 'extend',
+        parentSessionId: 'parent-1',
+        sourceSlotId: 'slot-1',
+        sourceRuntimeProfileId: 'profile-1',
+      },
+    });
+
+    expect(seen).toEqual([
+      {
+        ref: { taskId: 'task-1', attemptN: 3 },
+        body: 'session bytes',
+        query: {
+          sessionKind: 'extend',
+          parentSessionId: 'parent-1',
+          sourceSlotId: 'slot-1',
+          sourceRuntimeProfileId: 'profile-1',
+        },
+        options: { teamId: 'team-1' },
+      },
+    ]);
+    expect(outputs[0].payload).toEqual({ id: 'session-1', sha256: 'sha' });
+    expect(outputs[0].runtimeSession).toBe(outputs[0].payload);
+  });
+
+  it('defaults session kind to root', async () => {
+    const seen: Array<Record<string, unknown>> = [];
+    const agent = {
+      runtimeSessions: {
+        upload: (
+          _ref: Record<string, unknown>,
+          _body: Uint8Array,
+          query: Record<string, unknown>,
+        ) => {
+          seen.push(query);
+          return Promise.resolve({ id: 'session-1' });
+        },
+      },
+    };
+    const red = new FakeRed();
+    red.load(agentStub(agent));
+    red.load(runtimeSessionUpload);
+    const a = red.create('moltnet-agent', 'a1');
+    (a as Record<string, unknown>).teamId = 'team-1';
+    const node = red.create('moltnet-runtime-session-upload', 'n1', {
+      agent: 'a1',
+      taskId: 'task-1',
+      attemptN: 1,
+    });
+
+    await red.input(node, { payload: Buffer.from('session') });
+
+    expect(seen).toEqual([{ sessionKind: 'root' }]);
+  });
+});
+
+describe('moltnet-runtime-session-download', () => {
+  it('downloads runtime session bytes as a Buffer', async () => {
+    const seen: Array<Record<string, unknown>> = [];
+    const agent = {
+      runtimeSessions: {
+        download: (
+          ref: Record<string, unknown>,
+          options: Record<string, unknown>,
+        ) => {
+          seen.push({ ref, options });
+          return Promise.resolve(readableChunks(['session ', 'bytes']));
+        },
+      },
+    };
+    const red = new FakeRed();
+    red.load(agentStub(agent));
+    red.load(runtimeSessionDownload);
+    const a = red.create('moltnet-agent', 'a1');
+    (a as Record<string, unknown>).teamId = 'team-1';
+    const node = red.create('moltnet-runtime-session-download', 'n1', {
+      agent: 'a1',
+      taskId: 'task-1',
+      attemptN: 4,
+    });
+
+    const { outputs } = await red.input(node, {});
+
+    expect(seen).toEqual([
+      {
+        ref: { taskId: 'task-1', attemptN: 4 },
+        options: { teamId: 'team-1' },
+      },
+    ]);
+    expect(Buffer.isBuffer(outputs[0].payload)).toBe(true);
+    expect((outputs[0].payload as Buffer).toString('utf8')).toBe(
+      'session bytes',
+    );
+    expect(outputs[0].runtimeSession).toEqual({
+      taskId: 'task-1',
+      teamId: 'team-1',
+      attemptN: 4,
+      sizeBytes: 13,
+    });
+  });
+
+  it('rejects downloads over the local byte limit', async () => {
+    const red = new FakeRed();
+    red.load(
+      agentStub({
+        runtimeSessions: {
+          download: () => Promise.resolve(readableChunks(['too-large'])),
+        },
+      }),
+    );
+    red.load(runtimeSessionDownload);
+    const a = red.create('moltnet-agent', 'a1');
+    (a as Record<string, unknown>).teamId = 'team-1';
+    const node = red.create('moltnet-runtime-session-download', 'n1', {
+      agent: 'a1',
+      taskId: 'task-1',
+      attemptN: 1,
+      maxBytes: 4,
+    });
+
+    await expect(red.input(node, {})).rejects.toThrow(/exceeds 4 bytes/);
   });
 });
 
