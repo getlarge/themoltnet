@@ -11,12 +11,15 @@
  * dependsOn pipeline. After editing a node, stop (Ctrl-C) and re-run to
  * rebuild + reload — Node-RED does not hot-reload custom nodes.
  */
-import { execSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import {
+  copyFileSync,
   existsSync,
   mkdirSync,
+  readFileSync,
   rmSync,
   symlinkSync,
+  watch,
   writeFileSync,
 } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -25,6 +28,12 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const pkgDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const themePkgDir = resolve(pkgDir, '../node-red-theme');
 const userDir = resolve(pkgDir, '.node-red-dev');
+const exampleFlowFile = resolve(
+  pkgDir,
+  'examples/deep-review-freeform.flow.json',
+);
+const devFlowFile = resolve(userDir, 'flows.json');
+const exampleTabId = 'deep_review_tab';
 const port = process.env.PORT ?? '1880';
 
 const themeEntry = resolve(themePkgDir, 'dist/index.js');
@@ -44,6 +53,9 @@ const editorTheme = moltnetEditorTheme({
 // 1. Mark the userDir as CommonJS so Node-RED's settings.js loads
 //    (this package is "type":"module", which would otherwise leak in).
 mkdirSync(userDir, { recursive: true });
+if (!existsSync(devFlowFile)) {
+  copyFileSync(exampleFlowFile, devFlowFile);
+}
 writeFileSync(
   resolve(userDir, 'package.json'),
   JSON.stringify(
@@ -54,8 +66,50 @@ writeFileSync(
 );
 writeFileSync(
   resolve(userDir, 'settings.js'),
-  `module.exports = ${JSON.stringify({ editorTheme }, null, 2)};\n`,
+  `module.exports = ${JSON.stringify(
+    { editorTheme, flowFile: 'flows.json', flowFilePretty: true },
+    null,
+    2,
+  )};\n`,
 );
+
+let syncTimer;
+const extractExampleFlow = (flow) => {
+  if (!Array.isArray(flow)) {
+    throw new Error('Node-RED flow file must contain an array');
+  }
+
+  const extracted = flow.filter(
+    (node) =>
+      node.id === exampleTabId ||
+      node.z === exampleTabId ||
+      (typeof node.id === 'string' && node.id.startsWith('deep_review_')),
+  );
+  if (!extracted.some((node) => node.id === exampleTabId)) {
+    throw new Error(`Cannot find ${exampleTabId} in Node-RED flow file`);
+  }
+  return extracted;
+};
+
+const syncFlowToExample = () => {
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(() => {
+    try {
+      const devFlow = JSON.parse(readFileSync(devFlowFile, 'utf8'));
+      const exampleFlow = extractExampleFlow(devFlow);
+      writeFileSync(
+        exampleFlowFile,
+        `${JSON.stringify(exampleFlow, null, 2)}\n`,
+      );
+      console.log(
+        `▸ synced ${exampleTabId} from Node-RED → ${exampleFlowFile}`,
+      );
+    } catch (error) {
+      console.warn(`⚠ failed to sync Node-RED flow: ${error.message}`);
+    }
+  }, 200);
+};
+const watcher = watch(devFlowFile, syncFlowToExample);
 
 // 2. Link this package into the userDir so Node-RED discovers it
 const scope = resolve(userDir, 'node_modules', '@themoltnet');
@@ -70,7 +124,19 @@ console.log(
 
 // 3. Run Node-RED 5 (downloaded on first run via npx, then cached)
 console.log(`▸ starting Node-RED on http://localhost:${port} …`);
-execSync(`npx -y node-red@5 --userDir "${userDir}" -p ${port}`, {
-  cwd: pkgDir,
-  stdio: 'inherit',
+const child = spawn(
+  'npx',
+  ['-y', 'node-red@5', '--userDir', userDir, '-p', port],
+  {
+    cwd: pkgDir,
+    stdio: 'inherit',
+  },
+);
+
+child.on('exit', (code, signal) => {
+  watcher.close();
+  syncFlowToExample();
+  setTimeout(() => {
+    process.exit(code ?? (signal ? 1 : 0));
+  }, 250);
 });

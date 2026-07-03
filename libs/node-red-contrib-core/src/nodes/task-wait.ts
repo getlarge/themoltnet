@@ -29,6 +29,7 @@ interface TaskWaitDef extends NodeDef {
   agent?: string; // id of the referenced moltnet-agent config node
   taskId?: string;
   pollIntervalSec?: number;
+  intervalMs?: number; // legacy field from older flows
   timeoutSec?: number;
   tail?: boolean;
   kinds?: string; // comma-separated message kinds to forward on the tail output
@@ -49,7 +50,10 @@ const init: NodeInitializer = (RED): void => {
       ? (RED.nodes.getNode(def.agent) as MoltnetAgentNode | null)
       : null;
 
-    const pollMs = Math.max(1, def.pollIntervalSec || DEFAULT_POLL_SEC) * 1000;
+    const pollSec =
+      def.pollIntervalSec ??
+      (typeof def.intervalMs === 'number' ? def.intervalMs / 1000 : undefined);
+    const pollMs = Math.max(1, pollSec || DEFAULT_POLL_SEC) * 1000;
     const timeoutMs =
       (def.timeoutSec ?? DEFAULT_TIMEOUT_SEC) > 0
         ? (def.timeoutSec ?? DEFAULT_TIMEOUT_SEC) * 1000

@@ -1,7 +1,7 @@
 import { Buffer } from 'node:buffer';
 
 import type { NodeInitializer } from 'node-red';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import entriesSearch from '../src/nodes/entries-search.js';
 import runtimeProfile from '../src/nodes/runtime-profile.js';
@@ -1537,6 +1537,58 @@ describe('moltnet-task-wait', () => {
       status: 'failed',
       error: { code: 'boom', message: 'kaboom', retryable: true },
     });
+  });
+
+  it('accepts legacy intervalMs wait-node configs', async () => {
+    vi.useFakeTimers();
+    try {
+      let calls = 0;
+      const agent = {
+        tasks: {
+          get: () => {
+            calls += 1;
+            return Promise.resolve({
+              id: 't1',
+              status: calls === 1 ? 'running' : 'completed',
+              acceptedAttemptN: calls === 1 ? null : 1,
+            });
+          },
+          listAttempts: () =>
+            Promise.resolve([
+              {
+                attemptN: 1,
+                status: 'completed',
+                output: { ok: true },
+                error: null,
+              },
+            ]),
+        },
+      };
+      const red = new FakeRed();
+      red.load(agentStub(agent));
+      red.load(taskWait);
+      red.create('moltnet-agent', 'a1');
+      const node = red.create('moltnet-task-wait', 'n1', {
+        agent: 'a1',
+        taskId: 't1',
+        intervalMs: 1000,
+      });
+
+      const waiting = red.input(node, {});
+      await vi.advanceTimersByTimeAsync(1000);
+      const { outputs } = await waiting;
+
+      expect(calls).toBe(2);
+      const result = (
+        outputs[0] as unknown as [null, { payload: Record<string, unknown> }]
+      )[1];
+      expect(result.payload).toMatchObject({
+        accepted: true,
+        state: { ok: true },
+      });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

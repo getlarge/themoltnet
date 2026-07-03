@@ -16,6 +16,9 @@
       agent: { value: '', type: 'moltnet-agent', required: true },
       taskId: { value: '' },
       pollIntervalSec: { value: 5, validate: RED.validators.number() },
+      // Legacy field used by older example flows. Keeping it in defaults lets
+      // the editor migrate existing nodes instead of showing them as broken.
+      intervalMs: { value: undefined, required: false },
       timeoutSec: { value: 1800, validate: RED.validators.number() },
       tail: { value: false },
       kinds: { value: '' },
@@ -28,6 +31,14 @@
       return this.name || 'task: wait';
     },
     oneditprepare: function () {
+      if (
+        (this.pollIntervalSec === undefined ||
+          this.pollIntervalSec === null ||
+          this.pollIntervalSec === '') &&
+        typeof this.intervalMs === 'number'
+      ) {
+        $('#node-input-pollIntervalSec').val(this.intervalMs / 1000);
+      }
       // Render one checkbox per message kind. `kinds` is stored as a
       // comma-separated string (the runtime contract); empty = all kinds.
       const selected = (this.kinds || '')
@@ -56,6 +67,7 @@
       toggle();
     },
     oneditsave: function () {
+      this.intervalMs = undefined;
       const all = $('.mn-kind').length;
       const checked = $('.mn-kind:checked')
         .map(function () {

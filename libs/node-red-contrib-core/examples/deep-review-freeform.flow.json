@@ -8,11 +8,11 @@
   },
   {
     "apiUrl": "",
-    "clientId": "",
-    "diaryId": "",
+    "clientId": "b46d59c1-0b14-453c-a57b-8be1ced93141",
+    "diaryId": "6e4d9948-8ec5-4f59-b82a-3acbc4bbc396",
     "id": "deep_review_agent_cfg",
     "name": "deep-review-agent",
-    "teamId": "",
+    "teamId": "6743b4b1-6b93-46e2-a048-19490f04f91a",
     "type": "moltnet-agent"
   },
   {
@@ -49,11 +49,11 @@
   },
   {
     "id": "deep_review_note",
-    "info": "This example keeps MoltNet generic: every agent step is taskType=freeform. Node-RED owns orchestration, correlationId threading, gates, profile routing, specialist fan-out/fan-in, and aggregation. Agents own the judgment and produce structured freeform artifacts. The FREEZE branch parses compact inline JSON for control flow, then lists and downloads any persistent review bundle artifact uploaded by the agent during the attempt. Runtime-profile config nodes pin each stage to an Ollama Cloud profile: FREEZE/PREFLIGHT/SPECIALIST use qwen3-coder:480b-cloud for reliable tool calls, and AGGREGATE uses kimi-k2.7-code:cloud.",
+    "info": "This example keeps MoltNet generic: every agent step is taskType=freeform. Node-RED owns orchestration, correlationId threading, accepted gates, profile routing, specialist fan-out/fan-in, and aggregation. Task bodies pass through moltnet-task-builder before creation so the example follows the same validated envelope pattern as newer flows. Non-accepted task attempts and node errors are packed into explicit failure payloads; specialist failures become coverage gaps while terminal stage failures route to the final debug output. The FREEZE branch parses compact inline JSON for control flow, then lists and downloads any persistent review bundle artifact uploaded by the agent during the attempt. Runtime-profile config nodes pin each stage to an Ollama Cloud profile: FREEZE/PREFLIGHT/SPECIALIST use qwen3-coder:480b-cloud for reliable tool calls, and AGGREGATE uses kimi-k2.7-code:cloud.",
     "name": "Freeform-only deep review workflow",
     "type": "comment",
     "wires": [],
-    "x": 260,
+    "x": 270,
     "y": 40,
     "z": "deep_review_tab"
   },
@@ -74,8 +74,8 @@
     "topic": "",
     "type": "inject",
     "wires": [["deep_review_seed"]],
-    "x": 130,
-    "y": 100,
+    "x": 120,
+    "y": 120,
     "z": "deep_review_tab"
   },
   {
@@ -90,8 +90,8 @@
     "timeout": 0,
     "type": "function",
     "wires": [["deep_review_entries_search"]],
-    "x": 350,
-    "y": 100,
+    "x": 330,
+    "y": 120,
     "z": "deep_review_tab"
   },
   {
@@ -111,8 +111,8 @@
     "wRecency": "",
     "wRelevance": "",
     "wires": [["deep_review_stash_memory"]],
-    "x": 610,
-    "y": 100,
+    "x": 590,
+    "y": 120,
     "z": "deep_review_tab"
   },
   {
@@ -128,12 +128,12 @@
     "type": "function",
     "wires": [["deep_review_build_freeze"]],
     "x": 850,
-    "y": 100,
+    "y": 120,
     "z": "deep_review_tab"
   },
   {
     "finalize": "",
-    "func": "const target = msg.review.target;\nmsg.payload = {\n  taskType: 'freeform',\n  title: 'Deep review: freeze scope',\n  tags: ['deep-review', 'deep-review:freeze', msg.review.workflow],\n  correlationId: msg.correlationId,\n  input: {\n    brief: [\n      'Freeze the review scope for a deep code review workflow.',\n      '',\n      'Target JSON:',\n      JSON.stringify(target, null, 2),\n      '',\n      'Create an immutable review bundle. Always return a compact inline freeform artifact. If task artifact upload tools are available, also upload large patch/file-list content after writing the local files successfully.',\n      '',\n      'Before calling moltnet_upload_task_artifact for a workspace file, create the file first and verify it exists. Never call artifact upload with a guessed path such as review.patch if the file was not written.',\n      '',\n      'The bundle should include: target metadata, base/head refs or PR number, changed files, diff stats, and either a patch artifact CID or enough precise instructions for downstream agents to fetch the same diff.',\n      '',\n      'Return a freeform artifact with kind \"json\" and title \"review-bundle\". The artifact body must be JSON with fields: target, changedFiles, stats, diffArtifactCid, patchArtifactCid, notes, memoryEntryIds.',\n      '',\n      'If the submit tool requires a verification block, every verification.results[].kind must be one of: gate, assertion, rubric, sideEffect. For a submit-tool-call success criterion, report it as kind \"gate\"; never use \"submit-tool-call\" as a verification result kind.'\n    ].join('\\n'),\n    expectedOutput: 'Summary plus artifact kind=json title=review-bundle. Use task artifact CIDs for large patch/file-list content only after the local files exist.',\n    constraints: [\n      'Do not review findings in this task.',\n      'Do not modify code.',\n      'If the target cannot be resolved, explain the blocker in the output.',\n      'When self-verifying a submit-tool-call gate, use verification result kind \"gate\".'\n    ],\n    context: [\n      { slug: 'review-config', binding: 'context_inline', content: JSON.stringify(msg.review, null, 2) },\n      { slug: 'memory-hits', binding: 'context_inline', content: JSON.stringify(msg.reviewMemory || [], null, 2) }\n    ],\n    execution: { workspace: 'dedicated_worktree' }\n  }\n};\nreturn msg;",
+    "func": "const target = msg.review.target;\nmsg.payload = {\n  taskType: 'freeform',\n  title: 'Deep review: freeze scope',\n  tags: ['deep-review', 'deep-review:freeze', msg.review.workflow],\n  correlationId: msg.correlationId,\n  input: {\n    brief: [\n      'Freeze the review scope for a deep code review workflow.',\n      '',\n      'Target JSON:',\n      JSON.stringify(target, null, 2),\n      '',\n      'Create an immutable review bundle. Always return a compact inline freeform artifact, and when artifact upload tools are available, upload the patch and file list as task artifacts before submitting the accepted output.',\n      '',\n      'Task artifact CIDs are the durable contract for downstream agents. Local files are only staging inputs for upload; never return a local filesystem path as a bundle reference.',\n      '',\n      'Before calling moltnet_upload_task_artifact for a workspace file, write the file, stat the exact guest path you will pass to the upload tool, and only then upload it. Never call artifact upload with a guessed path such as review.patch, an absolute host/worktree path, a URI-encoded session path, or any path that was not verified inside the guest workspace.',\n      '',\n      'If patch upload fails or artifact tools are unavailable, set patchArtifactCid and diffArtifactCid to null and explain the fallback in notes. Do not put local paths in patchArtifactCid, diffArtifactCid, or notes.',\n      '',\n      'The bundle should include: target metadata, base/head refs or PR number, changed files, diff stats, task artifact CIDs for uploaded patch/file-list content, and enough precise instructions for downstream agents to fetch the same diff if no CID is available.',\n      '',\n      'Return a freeform artifact with kind \"json\" and title \"review-bundle\". The artifact body must be JSON with fields: target, changedFiles, stats, diffArtifactCid, patchArtifactCid, notes, memoryEntryIds.',\n      '',\n      'If the submit tool requires a verification block, every verification.results[].kind must be one of: gate, assertion, rubric, sideEffect. For a submit-tool-call success criterion, report it as kind \"gate\"; never use \"submit-tool-call\" as a verification result kind.'\n    ].join('\\n'),\n    expectedOutput: 'Summary plus artifact kind=json title=review-bundle. Use task artifact CIDs, or null plus notes when upload is unavailable; never use local paths as durable bundle references.',\n    constraints: [\n      'Do not review findings in this task.',\n      'Do not modify code.',\n      'If the target cannot be resolved, explain the blocker in the output.',\n      'Do not return host, worktree, session, or guest-local filesystem paths as artifact references.',\n      'When self-verifying a submit-tool-call gate, use verification result kind \"gate\".'\n    ],\n    context: [\n      { slug: 'review-config', binding: 'context_inline', content: JSON.stringify(msg.review, null, 2) },\n      { slug: 'memory-hits', binding: 'context_inline', content: JSON.stringify(msg.reviewMemory || [], null, 2) }\n    ],\n    execution: { workspace: 'dedicated_worktree' }\n  }\n};\nreturn msg;",
     "id": "deep_review_build_freeze",
     "initialize": "",
     "libs": [],
@@ -142,9 +142,9 @@
     "outputs": 1,
     "timeout": 0,
     "type": "function",
-    "wires": [["deep_review_create_freeze"]],
-    "x": 170,
-    "y": 180,
+    "wires": [["deep_review_builder_freeze"]],
+    "x": 130,
+    "y": 260,
     "z": "deep_review_tab"
   },
   {
@@ -156,22 +156,22 @@
     "runtimeProfile": "deep_review_profile_freeze",
     "type": "moltnet-tasks-create",
     "wires": [["deep_review_wait_freeze"]],
-    "x": 400,
-    "y": 180,
+    "x": 570,
+    "y": 260,
     "z": "deep_review_tab"
   },
   {
     "agent": "deep_review_agent_cfg",
     "id": "deep_review_wait_freeze",
-    "intervalMs": 2500,
     "kinds": "",
     "name": "wait FREEZE",
+    "pollIntervalSec": 2.5,
     "tail": true,
     "timeoutSec": 7200,
     "type": "moltnet-task-wait",
-    "wires": [["1d29dc178889e4a5"], ["deep_review_stash_freeze_snapshot"]],
-    "x": 620,
-    "y": 180,
+    "wires": [["1d29dc178889e4a5"], ["deep_review_gate_freeze"]],
+    "x": 800,
+    "y": 260,
     "z": "deep_review_tab"
   },
   {
@@ -186,8 +186,8 @@
     "timeout": 0,
     "type": "function",
     "wires": [["deep_review_read_freeze"]],
-    "x": 850,
-    "y": 200,
+    "x": 1260,
+    "y": 260,
     "z": "deep_review_tab"
   },
   {
@@ -201,8 +201,8 @@
     "teamId": "",
     "type": "moltnet-task-artifacts-list",
     "wires": [["deep_review_select_bundle_artifact"]],
-    "x": 740,
-    "y": 300,
+    "x": 1120,
+    "y": 340,
     "z": "deep_review_tab"
   },
   {
@@ -217,8 +217,8 @@
     "timeout": 0,
     "type": "function",
     "wires": [["deep_review_download_bundle_artifact"]],
-    "x": 980,
-    "y": 300,
+    "x": 1360,
+    "y": 340,
     "z": "deep_review_tab"
   },
   {
@@ -233,8 +233,8 @@
     "teamId": "",
     "type": "moltnet-task-artifact-download",
     "wires": [["deep_review_debug_bundle_artifact"]],
-    "x": 1230,
-    "y": 300,
+    "x": 1610,
+    "y": 340,
     "z": "deep_review_tab"
   },
   {
@@ -246,8 +246,8 @@
     "source": "payload",
     "type": "moltnet-task-reader",
     "wires": [["deep_review_stash_bundle"]],
-    "x": 1090,
-    "y": 200,
+    "x": 1490,
+    "y": 260,
     "z": "deep_review_tab"
   },
   {
@@ -263,8 +263,8 @@
     "tostatus": false,
     "type": "debug",
     "wires": [],
-    "x": 1500,
-    "y": 300,
+    "x": 1870,
+    "y": 340,
     "z": "deep_review_tab"
   },
   {
@@ -279,15 +279,15 @@
     "timeout": 0,
     "type": "function",
     "wires": [
-      ["deep_review_build_preflight", "deep_review_list_freeze_artifacts"]
+      ["deep_review_bundle_ready_link_out", "deep_review_list_freeze_artifacts"]
     ],
-    "x": 1320,
-    "y": 200,
+    "x": 1720,
+    "y": 260,
     "z": "deep_review_tab"
   },
   {
     "finalize": "",
-    "func": "msg.payload = {\n  taskType: 'freeform',\n  title: 'Deep review: preflight',\n  tags: ['deep-review', 'deep-review:preflight', msg.review.workflow],\n  correlationId: msg.correlationId,\n  input: {\n    brief: [\n      'Run the design preflight for this deep review.',\n      '',\n      'Decide whether the approach is sound before line-level review.',\n      'Return a freeform artifact with kind \"json\" and title \"preflight\".',\n      '',\n      'The artifact body must be JSON:',\n      '{ \"verdict\": \"PROCEED|PIVOT|ASK\", \"summary\": \"...\", \"questions\": [], \"pivotSize\": \"small|medium|large|null\", \"recommendedNextStep\": \"...\" }',\n      '',\n      'PIVOT only when the approach is materially wrong, not when you merely prefer another implementation.',\n      '',\n      'If the submit tool requires a verification block, every verification.results[].kind must be one of: gate, assertion, rubric, sideEffect. For a submit-tool-call success criterion, report it as kind \"gate\"; never use \"submit-tool-call\" as a verification result kind.'\n    ].join('\\n'),\n    expectedOutput: 'Summary plus artifact kind=json title=preflight.',\n    constraints: ['Do not produce line-level findings.', 'Do not modify code.', 'When self-verifying a submit-tool-call gate, use verification result kind \"gate\".'],\n    context: [\n      { slug: 'review-config', binding: 'context_inline', content: JSON.stringify(msg.review, null, 2) },\n      { slug: 'review-bundle', binding: 'context_inline', content: JSON.stringify(msg.reviewBundle, null, 2) },\n      { slug: 'review-bundle-ref', binding: 'context_inline', content: JSON.stringify(msg.reviewBundleRef, null, 2) }\n    ],\n    execution: { workspace: 'shared_mount' }\n  }\n};\nreturn msg;",
+    "func": "msg.payload = {\n  taskType: 'freeform',\n  title: 'Deep review: preflight',\n  tags: ['deep-review', 'deep-review:preflight', msg.review.workflow],\n  correlationId: msg.correlationId,\n  input: {\n    brief: [\n      'Run the design preflight for this deep review.',\n      '',\n      'Decide whether the approach is sound before line-level review.',\n      'Return a freeform artifact with kind \"json\" and title \"preflight\".',\n      '',\n      'The artifact body must be JSON:',\n      '{ \"verdict\": \"PROCEED|PIVOT\", \"summary\": \"...\", \"questions\": [], \"pivotSize\": \"small|medium|large|null\", \"recommendedNextStep\": \"...\" }',\n      '',\n      'Use PROCEED when line-level specialist review should continue, even if the scope is large. Use PIVOT only when the approach is materially wrong, not when you merely prefer another implementation.',\n      '',\n      'If the submit tool requires a verification block, every verification.results[].kind must be one of: gate, assertion, rubric, sideEffect. For a submit-tool-call success criterion, report it as kind \"gate\"; never use \"submit-tool-call\" as a verification result kind.'\n    ].join('\\n'),\n    expectedOutput: 'Summary plus artifact kind=json title=preflight with verdict PROCEED or PIVOT.',\n    constraints: ['Do not produce line-level findings.', 'Do not modify code.', 'Choose PROCEED or PIVOT.', 'When self-verifying a submit-tool-call gate, use verification result kind \"gate\".'],\n    context: [\n      { slug: 'review-config', binding: 'context_inline', content: JSON.stringify(msg.review, null, 2) },\n      { slug: 'review-bundle', binding: 'context_inline', content: JSON.stringify(msg.reviewBundle, null, 2) },\n      { slug: 'review-bundle-ref', binding: 'context_inline', content: JSON.stringify(msg.reviewBundleRef, null, 2) }\n    ],\n    execution: { workspace: 'shared_mount' }\n  }\n};\nreturn msg;",
     "id": "deep_review_build_preflight",
     "initialize": "",
     "libs": [],
@@ -296,8 +296,8 @@
     "outputs": 1,
     "timeout": 0,
     "type": "function",
-    "wires": [["deep_review_create_preflight"]],
-    "x": 200,
+    "wires": [["deep_review_builder_preflight"]],
+    "x": 130,
     "y": 500,
     "z": "deep_review_tab"
   },
@@ -310,21 +310,21 @@
     "runtimeProfile": "deep_review_profile_preflight",
     "type": "moltnet-tasks-create",
     "wires": [["deep_review_wait_preflight"]],
-    "x": 440,
+    "x": 610,
     "y": 500,
     "z": "deep_review_tab"
   },
   {
     "agent": "deep_review_agent_cfg",
     "id": "deep_review_wait_preflight",
-    "intervalMs": 2500,
     "kinds": "",
     "name": "wait PREFLIGHT",
+    "pollIntervalSec": 2.5,
     "tail": true,
     "timeoutSec": 7200,
     "type": "moltnet-task-wait",
-    "wires": [["deep_review_tail_link_out"], ["deep_review_read_preflight"]],
-    "x": 680,
+    "wires": [["deep_review_tail_link_out"], ["deep_review_gate_preflight"]],
+    "x": 850,
     "y": 500,
     "z": "deep_review_tab"
   },
@@ -337,13 +337,13 @@
     "source": "payload",
     "type": "moltnet-task-reader",
     "wires": [["deep_review_stash_preflight"]],
-    "x": 920,
+    "x": 1300,
     "y": 500,
     "z": "deep_review_tab"
   },
   {
     "finalize": "",
-    "func": "const key = 'deepReview:' + msg.correlationId;\nconst state = flow.get(key) || {};\nmsg.preflight = msg.result?.artifactBody || msg.payload || {};\nmsg.preflight.verdict = String(msg.preflight.verdict || 'ASK').toUpperCase();\nstate.correlationId = msg.correlationId;\nstate.review = state.review || msg.review;\nstate.reviewBundle = state.reviewBundle || msg.reviewBundle;\nstate.reviewBundleRef = state.reviewBundleRef || msg.reviewBundleRef;\nstate.preflight = msg.preflight;\nstate.preflightRef = msg.result?.artifactRef || msg.result?.outputRef || null;\nstate.tasks = state.tasks || {};\nstate.tasks.preflight = { taskId: msg.result?.outputRef?.taskId || msg.payload?.taskId || null };\nflow.set(key, state);\nmsg.reviewState = state;\nreturn msg;",
+    "func": "const key = 'deepReview:' + msg.correlationId;\nconst state = flow.get(key) || {};\nmsg.preflight = msg.result?.artifactBody || msg.payload || {};\nmsg.preflight.verdict = String(msg.preflight.verdict || 'PROCEED').toUpperCase();\nstate.correlationId = msg.correlationId;\nstate.review = state.review || msg.review;\nstate.reviewBundle = state.reviewBundle || msg.reviewBundle;\nstate.reviewBundleRef = state.reviewBundleRef || msg.reviewBundleRef;\nstate.preflight = msg.preflight;\nstate.preflightRef = msg.result?.artifactRef || msg.result?.outputRef || null;\nstate.tasks = state.tasks || {};\nstate.tasks.preflight = { taskId: msg.result?.outputRef?.taskId || msg.payload?.taskId || null };\nflow.set(key, state);\nmsg.reviewState = state;\nreturn msg;",
     "id": "deep_review_stash_preflight",
     "initialize": "",
     "libs": [],
@@ -353,7 +353,7 @@
     "timeout": 0,
     "type": "function",
     "wires": [["deep_review_switch_preflight"]],
-    "x": 1140,
+    "x": 1520,
     "y": 500,
     "z": "deep_review_tab"
   },
@@ -361,16 +361,11 @@
     "checkall": "true",
     "id": "deep_review_switch_preflight",
     "name": "preflight verdict",
-    "outputs": 4,
+    "outputs": 3,
     "property": "preflight.verdict",
     "propertyType": "msg",
     "repair": false,
     "rules": [
-      {
-        "t": "eq",
-        "v": "ASK",
-        "vt": "str"
-      },
       {
         "t": "eq",
         "v": "PIVOT",
@@ -387,13 +382,12 @@
     ],
     "type": "switch",
     "wires": [
-      ["deep_review_debug_ask"],
       ["deep_review_build_pivot_publish"],
       ["deep_review_dimensions_payload"],
-      ["deep_review_debug_ask"]
+      ["deep_review_dimensions_payload"]
     ],
-    "x": 200,
-    "y": 660,
+    "x": 1740,
+    "y": 500,
     "z": "deep_review_tab"
   },
   {
@@ -407,8 +401,8 @@
     "outputs": 1,
     "timeout": 0,
     "type": "function",
-    "wires": [["deep_review_create_pivot_publish"]],
-    "x": 460,
+    "wires": [["deep_review_builder_pivot_publish"]],
+    "x": 130,
     "y": 640,
     "z": "deep_review_tab"
   },
@@ -421,21 +415,21 @@
     "runtimeProfile": "deep_review_profile_aggregate",
     "type": "moltnet-tasks-create",
     "wires": [["deep_review_wait_pivot_publish"]],
-    "x": 740,
+    "x": 620,
     "y": 640,
     "z": "deep_review_tab"
   },
   {
     "agent": "deep_review_agent_cfg",
     "id": "deep_review_wait_pivot_publish",
-    "intervalMs": 2500,
     "kinds": "",
     "name": "wait PIVOT",
+    "pollIntervalSec": 2.5,
     "tail": true,
     "timeoutSec": 7200,
     "type": "moltnet-task-wait",
-    "wires": [["d673ff9b232453fe"], ["deep_review_pivot_done_link_out"]],
-    "x": 1000,
+    "wires": [["d673ff9b232453fe"], ["deep_review_gate_pivot_publish"]],
+    "x": 870,
     "y": 640,
     "z": "deep_review_tab"
   },
@@ -454,8 +448,8 @@
       ["deep_review_build_specialist"],
       ["deep_review_build_aggregate"]
     ],
-    "x": 440,
-    "y": 720,
+    "x": 130,
+    "y": 760,
     "z": "deep_review_tab"
   },
   {
@@ -470,8 +464,8 @@
     "timeout": 0,
     "type": "function",
     "wires": [["deep_review_build_aggregate"]],
-    "x": 540,
-    "y": 820,
+    "x": 130,
+    "y": 900,
     "z": "deep_review_tab"
   },
   {
@@ -485,9 +479,9 @@
     "outputs": 1,
     "timeout": 0,
     "type": "function",
-    "wires": [["deep_review_create_specialist"]],
-    "x": 770,
-    "y": 720,
+    "wires": [["deep_review_builder_specialist"]],
+    "x": 370,
+    "y": 760,
     "z": "deep_review_tab"
   },
   {
@@ -499,22 +493,22 @@
     "runtimeProfile": "deep_review_profile_specialist",
     "type": "moltnet-tasks-create",
     "wires": [["deep_review_wait_specialist"]],
-    "x": 1010,
-    "y": 720,
+    "x": 850,
+    "y": 760,
     "z": "deep_review_tab"
   },
   {
     "agent": "deep_review_agent_cfg",
     "id": "deep_review_wait_specialist",
-    "intervalMs": 2500,
     "kinds": "",
     "name": "wait SPECIALIST",
+    "pollIntervalSec": 2.5,
     "tail": true,
     "timeoutSec": 7200,
     "type": "moltnet-task-wait",
-    "wires": [["cceba4a8c3d9aafd"], ["deep_review_read_specialist"]],
-    "x": 1250,
-    "y": 720,
+    "wires": [["cceba4a8c3d9aafd"], ["deep_review_gate_specialist"]],
+    "x": 1090,
+    "y": 760,
     "z": "deep_review_tab"
   },
   {
@@ -526,8 +520,8 @@
     "source": "payload",
     "type": "moltnet-task-reader",
     "wires": [["deep_review_pack_specialist"]],
-    "x": 1480,
-    "y": 720,
+    "x": 1550,
+    "y": 760,
     "z": "deep_review_tab"
   },
   {
@@ -541,15 +535,16 @@
     "outputs": 1,
     "timeout": 0,
     "type": "function",
-    "wires": [["deep_review_next_dimension"]],
-    "x": 1710,
-    "y": 720,
+    "wires": [["deep_review_specialist_result_link_out"]],
+    "x": 1780,
+    "y": 760,
     "z": "deep_review_tab"
   },
   {
     "id": "deep_review_specialist_error_catch",
     "name": "SPECIALIST errors",
     "scope": [
+      "deep_review_builder_specialist",
       "deep_review_create_specialist",
       "deep_review_wait_specialist",
       "deep_review_read_specialist"
@@ -557,8 +552,8 @@
     "type": "catch",
     "uncaught": false,
     "wires": [["deep_review_pack_specialist_error"]],
-    "x": 1490,
-    "y": 780,
+    "x": 1550,
+    "y": 840,
     "z": "deep_review_tab"
   },
   {
@@ -572,9 +567,9 @@
     "outputs": 1,
     "timeout": 0,
     "type": "function",
-    "wires": [["deep_review_next_dimension"]],
-    "x": 1750,
-    "y": 780,
+    "wires": [["deep_review_specialist_result_link_out"]],
+    "x": 1800,
+    "y": 840,
     "z": "deep_review_tab"
   },
   {
@@ -588,9 +583,9 @@
     "outputs": 1,
     "timeout": 0,
     "type": "function",
-    "wires": [["deep_review_create_aggregate"]],
-    "x": 840,
-    "y": 820,
+    "wires": [["deep_review_builder_aggregate"]],
+    "x": 370,
+    "y": 900,
     "z": "deep_review_tab"
   },
   {
@@ -602,39 +597,22 @@
     "runtimeProfile": "deep_review_profile_aggregate",
     "type": "moltnet-tasks-create",
     "wires": [["deep_review_wait_aggregate"]],
-    "x": 1100,
-    "y": 820,
+    "x": 850,
+    "y": 900,
     "z": "deep_review_tab"
   },
   {
     "agent": "deep_review_agent_cfg",
     "id": "deep_review_wait_aggregate",
-    "intervalMs": 2500,
     "kinds": "",
     "name": "wait AGGREGATE",
+    "pollIntervalSec": 2.5,
     "tail": true,
     "timeoutSec": 7200,
     "type": "moltnet-task-wait",
-    "wires": [["3ac746883d75229d"], ["deep_review_aggregate_done_link_out"]],
-    "x": 1340,
-    "y": 820,
-    "z": "deep_review_tab"
-  },
-  {
-    "active": true,
-    "complete": "preflight",
-    "console": false,
-    "id": "deep_review_debug_ask",
-    "name": "needs human input",
-    "statusType": "auto",
-    "statusVal": "",
-    "targetType": "msg",
-    "tosidebar": true,
-    "tostatus": false,
-    "type": "debug",
-    "wires": [],
-    "x": 460,
-    "y": 580,
+    "wires": [["3ac746883d75229d"], ["deep_review_gate_aggregate"]],
+    "x": 1090,
+    "y": 900,
     "z": "deep_review_tab"
   },
   {
@@ -644,8 +622,8 @@
     "name": "tail events",
     "type": "link out",
     "wires": [],
-    "x": 855,
-    "y": 440,
+    "x": 1000,
+    "y": 460,
     "z": "deep_review_tab"
   },
   {
@@ -660,8 +638,8 @@
     "name": "tail events",
     "type": "link in",
     "wires": [["deep_review_tail"]],
-    "x": 215,
-    "y": 960,
+    "x": 130,
+    "y": 1100,
     "z": "deep_review_tab"
   },
   {
@@ -677,8 +655,8 @@
     "tostatus": false,
     "type": "debug",
     "wires": [],
-    "x": 360,
-    "y": 960,
+    "x": 300,
+    "y": 1100,
     "z": "deep_review_tab"
   },
   {
@@ -694,8 +672,8 @@
     "tostatus": false,
     "type": "debug",
     "wires": [],
-    "x": 370,
-    "y": 1080,
+    "x": 310,
+    "y": 1200,
     "z": "deep_review_tab"
   },
   {
@@ -705,8 +683,8 @@
     "name": "tail events",
     "type": "link out",
     "wires": [],
-    "x": 755,
-    "y": 140,
+    "x": 940,
+    "y": 220,
     "z": "deep_review_tab"
   },
   {
@@ -716,8 +694,8 @@
     "name": "tail events",
     "type": "link out",
     "wires": [],
-    "x": 1575,
-    "y": 780,
+    "x": 1240,
+    "y": 860,
     "z": "deep_review_tab"
   },
   {
@@ -727,8 +705,8 @@
     "name": "tail events",
     "type": "link out",
     "wires": [],
-    "x": 1435,
-    "y": 680,
+    "x": 1240,
+    "y": 720,
     "z": "deep_review_tab"
   },
   {
@@ -738,7 +716,7 @@
     "name": "tail events",
     "type": "link out",
     "wires": [],
-    "x": 1145,
+    "x": 1020,
     "y": 600,
     "z": "deep_review_tab"
   },
@@ -746,13 +724,14 @@
     "id": "deep_review_done_link_in",
     "links": [
       "deep_review_pivot_done_link_out",
-      "deep_review_aggregate_done_link_out"
+      "deep_review_aggregate_done_link_out",
+      "deep_review_failure_done_link_out"
     ],
     "name": "review done in",
     "type": "link in",
     "wires": [["deep_review_done"]],
-    "x": 215,
-    "y": 1080,
+    "x": 130,
+    "y": 1200,
     "z": "deep_review_tab"
   },
   {
@@ -762,8 +741,8 @@
     "name": "review done out",
     "type": "link out",
     "wires": [],
-    "x": 1145,
-    "y": 660,
+    "x": 1340,
+    "y": 640,
     "z": "deep_review_tab"
   },
   {
@@ -773,8 +752,552 @@
     "name": "review done out",
     "type": "link out",
     "wires": [],
-    "x": 1575,
-    "y": 840,
+    "x": 1560,
+    "y": 900,
+    "z": "deep_review_tab"
+  },
+  {
+    "agent": "deep_review_agent_cfg",
+    "brief": "",
+    "constraints": [],
+    "contexts": [],
+    "diaryId": "",
+    "diaryIdType": "str",
+    "expectedOutput": "",
+    "id": "deep_review_builder_freeze",
+    "name": "build FREEZE body",
+    "referencesFrom": "",
+    "referencesRole": "context",
+    "schemaCid": "",
+    "submitOutputGate": false,
+    "tags": "",
+    "taskType": "freeform",
+    "teamId": "",
+    "teamIdType": "str",
+    "title": "",
+    "type": "moltnet-task-builder",
+    "wires": [["deep_review_create_freeze"]],
+    "workspace": "",
+    "x": 350,
+    "y": 260,
+    "z": "deep_review_tab"
+  },
+  {
+    "checkall": "true",
+    "id": "deep_review_gate_freeze",
+    "name": "FREEZE accepted?",
+    "outputs": 2,
+    "property": "payload.accepted",
+    "propertyType": "msg",
+    "repair": false,
+    "rules": [
+      {
+        "t": "true"
+      },
+      {
+        "t": "else"
+      }
+    ],
+    "type": "switch",
+    "wires": [
+      ["deep_review_stash_freeze_snapshot"],
+      ["deep_review_freeze_failure_link_out"]
+    ],
+    "x": 1030,
+    "y": 260,
+    "z": "deep_review_tab"
+  },
+  {
+    "agent": "deep_review_agent_cfg",
+    "brief": "",
+    "constraints": [],
+    "contexts": [],
+    "diaryId": "",
+    "diaryIdType": "str",
+    "expectedOutput": "",
+    "id": "deep_review_builder_preflight",
+    "name": "build PREFLIGHT body",
+    "referencesFrom": "",
+    "referencesRole": "context",
+    "schemaCid": "",
+    "submitOutputGate": false,
+    "tags": "",
+    "taskType": "freeform",
+    "teamId": "",
+    "teamIdType": "str",
+    "title": "",
+    "type": "moltnet-task-builder",
+    "wires": [["deep_review_create_preflight"]],
+    "workspace": "",
+    "x": 370,
+    "y": 500,
+    "z": "deep_review_tab"
+  },
+  {
+    "checkall": "true",
+    "id": "deep_review_gate_preflight",
+    "name": "PREFLIGHT accepted?",
+    "outputs": 2,
+    "property": "payload.accepted",
+    "propertyType": "msg",
+    "repair": false,
+    "rules": [
+      {
+        "t": "true"
+      },
+      {
+        "t": "else"
+      }
+    ],
+    "type": "switch",
+    "wires": [
+      ["deep_review_read_preflight"],
+      ["deep_review_preflight_failure_link_out"]
+    ],
+    "x": 1080,
+    "y": 500,
+    "z": "deep_review_tab"
+  },
+  {
+    "agent": "deep_review_agent_cfg",
+    "brief": "",
+    "constraints": [],
+    "contexts": [],
+    "diaryId": "",
+    "diaryIdType": "str",
+    "expectedOutput": "",
+    "id": "deep_review_builder_pivot_publish",
+    "name": "build PIVOT body",
+    "referencesFrom": "",
+    "referencesRole": "context",
+    "schemaCid": "",
+    "submitOutputGate": false,
+    "tags": "",
+    "taskType": "freeform",
+    "teamId": "",
+    "teamIdType": "str",
+    "title": "",
+    "type": "moltnet-task-builder",
+    "wires": [["deep_review_create_pivot_publish"]],
+    "workspace": "",
+    "x": 370,
+    "y": 640,
+    "z": "deep_review_tab"
+  },
+  {
+    "checkall": "true",
+    "id": "deep_review_gate_pivot_publish",
+    "name": "PIVOT accepted?",
+    "outputs": 2,
+    "property": "payload.accepted",
+    "propertyType": "msg",
+    "repair": false,
+    "rules": [
+      {
+        "t": "true"
+      },
+      {
+        "t": "else"
+      }
+    ],
+    "type": "switch",
+    "wires": [
+      ["deep_review_pivot_done_link_out"],
+      ["deep_review_pivot_failure_link_out"]
+    ],
+    "x": 1110,
+    "y": 640,
+    "z": "deep_review_tab"
+  },
+  {
+    "agent": "deep_review_agent_cfg",
+    "brief": "",
+    "constraints": [],
+    "contexts": [],
+    "diaryId": "",
+    "diaryIdType": "str",
+    "expectedOutput": "",
+    "id": "deep_review_builder_specialist",
+    "name": "build SPECIALIST body",
+    "referencesFrom": "",
+    "referencesRole": "context",
+    "schemaCid": "",
+    "submitOutputGate": false,
+    "tags": "",
+    "taskType": "freeform",
+    "teamId": "",
+    "teamIdType": "str",
+    "title": "",
+    "type": "moltnet-task-builder",
+    "wires": [["deep_review_create_specialist"]],
+    "workspace": "",
+    "x": 610,
+    "y": 760,
+    "z": "deep_review_tab"
+  },
+  {
+    "checkall": "true",
+    "id": "deep_review_gate_specialist",
+    "name": "SPECIALIST accepted?",
+    "outputs": 2,
+    "property": "payload.accepted",
+    "propertyType": "msg",
+    "repair": false,
+    "rules": [
+      {
+        "t": "true"
+      },
+      {
+        "t": "else"
+      }
+    ],
+    "type": "switch",
+    "wires": [
+      ["deep_review_read_specialist"],
+      ["deep_review_pack_specialist_error"]
+    ],
+    "x": 1330,
+    "y": 760,
+    "z": "deep_review_tab"
+  },
+  {
+    "agent": "deep_review_agent_cfg",
+    "brief": "",
+    "constraints": [],
+    "contexts": [],
+    "diaryId": "",
+    "diaryIdType": "str",
+    "expectedOutput": "",
+    "id": "deep_review_builder_aggregate",
+    "name": "build AGGREGATE body",
+    "referencesFrom": "",
+    "referencesRole": "context",
+    "schemaCid": "",
+    "submitOutputGate": false,
+    "tags": "",
+    "taskType": "freeform",
+    "teamId": "",
+    "teamIdType": "str",
+    "title": "",
+    "type": "moltnet-task-builder",
+    "wires": [["deep_review_create_aggregate"]],
+    "workspace": "",
+    "x": 610,
+    "y": 900,
+    "z": "deep_review_tab"
+  },
+  {
+    "checkall": "true",
+    "id": "deep_review_gate_aggregate",
+    "name": "AGGREGATE accepted?",
+    "outputs": 2,
+    "property": "payload.accepted",
+    "propertyType": "msg",
+    "repair": false,
+    "rules": [
+      {
+        "t": "true"
+      },
+      {
+        "t": "else"
+      }
+    ],
+    "type": "switch",
+    "wires": [
+      ["deep_review_aggregate_done_link_out"],
+      ["deep_review_aggregate_failure_link_out"]
+    ],
+    "x": 1330,
+    "y": 900,
+    "z": "deep_review_tab"
+  },
+  {
+    "finalize": "",
+    "func": "const key = 'deepReview:' + (msg.correlationId || 'unknown');\nconst state = flow.get(key) || msg.reviewState || {};\nconst snapshot = msg.payload && typeof msg.payload === 'object' ? msg.payload : {};\nconst task = snapshot.task || {};\nconst attempt = snapshot.attempt || {};\nconst stage = msg.reviewStage || task.title || task.taskType || msg.error?.source?.name || 'deep-review';\nconst error = snapshot.error || attempt.error || msg.error || { message: stage + ' failed' };\nstate.correlationId = msg.correlationId || state.correlationId || null;\nstate.review = state.review || msg.review || null;\nstate.failed = true;\nstate.failure = {\n  stage,\n  taskId: snapshot.taskId || task.id || msg.taskId || null,\n  attemptN: snapshot.acceptedAttemptN || attempt.attemptN || msg.attemptN || null,\n  error: {\n    message: String(error.message || error.detail || error || 'deep review stage failed'),\n    source: error.source || null\n  },\n  failedAt: new Date().toISOString()\n};\nflow.set(key, state);\nmsg.reviewState = state;\nmsg.payload = {\n  workflowStatus: 'failed',\n  correlationId: state.correlationId,\n  stage,\n  failure: state.failure\n};\nnode.status({ fill: 'red', shape: 'ring', text: stage + ' failed' });\nreturn msg;",
+    "id": "deep_review_pack_terminal_failure",
+    "initialize": "",
+    "libs": [],
+    "name": "pack terminal failure",
+    "noerr": 0,
+    "outputs": 1,
+    "timeout": 0,
+    "type": "function",
+    "wires": [["deep_review_failure_done_link_out"]],
+    "x": 1330,
+    "y": 1020,
+    "z": "deep_review_tab"
+  },
+  {
+    "finalize": "",
+    "func": "const key = 'deepReview:' + (msg.correlationId || 'unknown');\nconst state = flow.get(key) || msg.reviewState || {};\nconst snapshot = msg.payload && typeof msg.payload === 'object' ? msg.payload : {};\nconst task = snapshot.task || {};\nconst attempt = snapshot.attempt || {};\nconst stage = msg.reviewStage || task.title || task.taskType || msg.error?.source?.name || 'deep-review';\nconst error = snapshot.error || attempt.error || msg.error || { message: stage + ' failed' };\nstate.correlationId = msg.correlationId || state.correlationId || null;\nstate.review = state.review || msg.review || null;\nstate.failed = true;\nstate.failure = {\n  stage,\n  taskId: snapshot.taskId || task.id || msg.taskId || null,\n  attemptN: snapshot.acceptedAttemptN || attempt.attemptN || msg.attemptN || null,\n  error: {\n    message: String(error.message || error.detail || error || 'deep review stage failed'),\n    source: error.source || null\n  },\n  failedAt: new Date().toISOString()\n};\nflow.set(key, state);\nmsg.reviewState = state;\nmsg.payload = {\n  workflowStatus: 'failed',\n  correlationId: state.correlationId,\n  stage,\n  failure: state.failure\n};\nnode.status({ fill: 'red', shape: 'ring', text: stage + ' failed' });\nreturn msg;",
+    "id": "deep_review_pack_terminal_error",
+    "initialize": "",
+    "libs": [],
+    "name": "pack node error",
+    "noerr": 0,
+    "outputs": 1,
+    "timeout": 0,
+    "type": "function",
+    "wires": [["deep_review_failure_done_link_out"]],
+    "x": 1330,
+    "y": 1100,
+    "z": "deep_review_tab"
+  },
+  {
+    "id": "deep_review_failure_done_link_out",
+    "links": ["deep_review_done_link_in"],
+    "mode": "link",
+    "name": "review done out",
+    "type": "link out",
+    "wires": [],
+    "x": 1560,
+    "y": 1060,
+    "z": "deep_review_tab"
+  },
+  {
+    "id": "deep_review_task_error_catch",
+    "name": "deep review task errors",
+    "scope": [
+      "deep_review_builder_freeze",
+      "deep_review_create_freeze",
+      "deep_review_wait_freeze",
+      "deep_review_read_freeze",
+      "deep_review_builder_preflight",
+      "deep_review_create_preflight",
+      "deep_review_wait_preflight",
+      "deep_review_read_preflight",
+      "deep_review_builder_pivot_publish",
+      "deep_review_create_pivot_publish",
+      "deep_review_wait_pivot_publish",
+      "deep_review_builder_aggregate",
+      "deep_review_create_aggregate",
+      "deep_review_wait_aggregate"
+    ],
+    "type": "catch",
+    "uncaught": false,
+    "wires": [["deep_review_pack_terminal_error"]],
+    "x": 1110,
+    "y": 1100,
+    "z": "deep_review_tab"
+  },
+  {
+    "id": "deep_review_task_status",
+    "name": "",
+    "scope": [
+      "deep_review_builder_freeze",
+      "deep_review_create_freeze",
+      "deep_review_wait_freeze",
+      "deep_review_read_freeze",
+      "deep_review_builder_preflight",
+      "deep_review_create_preflight",
+      "deep_review_wait_preflight",
+      "deep_review_read_preflight",
+      "deep_review_builder_pivot_publish",
+      "deep_review_create_pivot_publish",
+      "deep_review_wait_pivot_publish",
+      "deep_review_builder_specialist",
+      "deep_review_create_specialist",
+      "deep_review_wait_specialist",
+      "deep_review_read_specialist",
+      "deep_review_builder_aggregate",
+      "deep_review_create_aggregate",
+      "deep_review_wait_aggregate"
+    ],
+    "type": "status",
+    "wires": [[]],
+    "x": 1100,
+    "y": 1160,
+    "z": "deep_review_tab"
+  },
+  {
+    "id": "deep_review_lane_setup",
+    "info": "Edit the seed node for the PR, branch, or local diff. Optional memory search enriches the review context before tasks start.",
+    "name": "1. Configure target and memory",
+    "type": "comment",
+    "wires": [],
+    "x": 250,
+    "y": 80,
+    "z": "deep_review_tab"
+  },
+  {
+    "id": "deep_review_lane_freeze",
+    "info": "Creates the immutable review bundle. Patch and file-list handoff should use task artifact CIDs, not local paths. The accepted gate prevents failed attempts from being read as review input.",
+    "name": "2. FREEZE scope bundle",
+    "type": "comment",
+    "wires": [],
+    "x": 260,
+    "y": 210,
+    "z": "deep_review_tab"
+  },
+  {
+    "id": "deep_review_lane_bundle_artifacts",
+    "info": "Optional side lane: list/download any persistent bundle artifacts uploaded by the FREEZE task.",
+    "name": "Review bundle artifacts",
+    "type": "comment",
+    "wires": [],
+    "x": 1210,
+    "y": 305,
+    "z": "deep_review_tab"
+  },
+  {
+    "id": "deep_review_lane_preflight",
+    "info": "Reads the preflight JSON artifact and branches to PIVOT or specialist review.",
+    "name": "3. PREFLIGHT decision",
+    "type": "comment",
+    "wires": [],
+    "x": 260,
+    "y": 450,
+    "z": "deep_review_tab"
+  },
+  {
+    "id": "deep_review_lane_pivot",
+    "info": "Only runs when preflight returns PIVOT. It produces the final design-review artifact.",
+    "name": "PIVOT publish lane",
+    "type": "comment",
+    "wires": [],
+    "x": 250,
+    "y": 590,
+    "z": "deep_review_tab"
+  },
+  {
+    "id": "deep_review_lane_specialists",
+    "info": "One task per review dimension. Specialist failures are packed as coverage gaps and still count toward fan-in.",
+    "name": "4. Specialist fan-out",
+    "type": "comment",
+    "wires": [],
+    "x": 260,
+    "y": 710,
+    "z": "deep_review_tab"
+  },
+  {
+    "id": "deep_review_lane_aggregate",
+    "info": "Starts once every specialist dimension has either findings or a packed failure record.",
+    "name": "5. Aggregate final review",
+    "type": "comment",
+    "wires": [],
+    "x": 260,
+    "y": 850,
+    "z": "deep_review_tab"
+  },
+  {
+    "id": "deep_review_lane_failure",
+    "info": "Terminal stage failures and node errors converge here, then route to the same done output as successful endings.",
+    "name": "Failure handling",
+    "type": "comment",
+    "wires": [],
+    "x": 1220,
+    "y": 970,
+    "z": "deep_review_tab"
+  },
+  {
+    "id": "deep_review_lane_outputs",
+    "info": "Tail events and final workflow results are collected through links to keep the main lanes readable.",
+    "name": "Tail and final outputs",
+    "type": "comment",
+    "wires": [],
+    "x": 250,
+    "y": 1040,
+    "z": "deep_review_tab"
+  },
+  {
+    "id": "deep_review_bundle_ready_link_out",
+    "links": ["deep_review_bundle_ready_link_in"],
+    "mode": "link",
+    "name": "bundle ready",
+    "type": "link out",
+    "wires": [],
+    "x": 1880,
+    "y": 260,
+    "z": "deep_review_tab"
+  },
+  {
+    "id": "deep_review_bundle_ready_link_in",
+    "links": ["deep_review_bundle_ready_link_out"],
+    "name": "bundle ready",
+    "type": "link in",
+    "wires": [["deep_review_build_preflight"]],
+    "x": 80,
+    "y": 500,
+    "z": "deep_review_tab"
+  },
+  {
+    "id": "deep_review_specialist_result_link_out",
+    "links": ["deep_review_specialist_result_link_in"],
+    "mode": "link",
+    "name": "specialist result",
+    "type": "link out",
+    "wires": [],
+    "x": 2000,
+    "y": 800,
+    "z": "deep_review_tab"
+  },
+  {
+    "id": "deep_review_specialist_result_link_in",
+    "links": ["deep_review_specialist_result_link_out"],
+    "name": "specialist result",
+    "type": "link in",
+    "wires": [["deep_review_next_dimension"]],
+    "x": 80,
+    "y": 900,
+    "z": "deep_review_tab"
+  },
+  {
+    "id": "deep_review_freeze_failure_link_out",
+    "links": ["deep_review_terminal_failure_link_in"],
+    "mode": "link",
+    "name": "terminal failure",
+    "type": "link out",
+    "wires": [],
+    "x": 1180,
+    "y": 300,
+    "z": "deep_review_tab"
+  },
+  {
+    "id": "deep_review_preflight_failure_link_out",
+    "links": ["deep_review_terminal_failure_link_in"],
+    "mode": "link",
+    "name": "terminal failure",
+    "type": "link out",
+    "wires": [],
+    "x": 1230,
+    "y": 540,
+    "z": "deep_review_tab"
+  },
+  {
+    "id": "deep_review_pivot_failure_link_out",
+    "links": ["deep_review_terminal_failure_link_in"],
+    "mode": "link",
+    "name": "terminal failure",
+    "type": "link out",
+    "wires": [],
+    "x": 1280,
+    "y": 680,
+    "z": "deep_review_tab"
+  },
+  {
+    "id": "deep_review_aggregate_failure_link_out",
+    "links": ["deep_review_terminal_failure_link_in"],
+    "mode": "link",
+    "name": "terminal failure",
+    "type": "link out",
+    "wires": [],
+    "x": 1490,
+    "y": 940,
+    "z": "deep_review_tab"
+  },
+  {
+    "id": "deep_review_terminal_failure_link_in",
+    "links": [
+      "deep_review_freeze_failure_link_out",
+      "deep_review_preflight_failure_link_out",
+      "deep_review_pivot_failure_link_out",
+      "deep_review_aggregate_failure_link_out"
+    ],
+    "name": "terminal failure",
+    "type": "link in",
+    "wires": [["deep_review_pack_terminal_failure"]],
+    "x": 1110,
+    "y": 1020,
     "z": "deep_review_tab"
   }
 ]
