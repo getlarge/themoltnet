@@ -9662,6 +9662,518 @@
         ],
         "type": "object"
       },
+      "TaskActivityAnalyticsGroupBy": {
+        "anyOf": [
+          {
+            "enum": [
+              "none"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "day"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "tag"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "taskType"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "profile"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "diary"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "agent"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "providerModel"
+            ],
+            "type": "string"
+          }
+        ]
+      },
+      "TaskActivityAnalyticsQuery": {
+        "properties": {
+          "claimedByAgentIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "completedAfter": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "completedBefore": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "diaryIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "groupBy": {
+            "anyOf": [
+              {
+                "enum": [
+                  "none"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "day"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "tag"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "taskType"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "profile"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "diary"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "agent"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "providerModel"
+                ],
+                "type": "string"
+              }
+            ]
+          },
+          "profileIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "tags": {
+            "description": "Repeated tags filter. Task must include all tags.",
+            "items": {
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "taskTypes": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 20,
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "TaskActivityAnalyticsResponse": {
+        "properties": {
+          "groups": {
+            "items": {
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "metrics": {
+                  "$ref": "#/components/schemas/TaskActivityProductMetrics"
+                }
+              },
+              "required": [
+                "key",
+                "label",
+                "metrics"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "overall": {
+            "$ref": "#/components/schemas/TaskActivityProductMetrics"
+          },
+          "range": {
+            "properties": {
+              "completedAfter": {
+                "format": "date-time",
+                "type": "string"
+              },
+              "completedBefore": {
+                "format": "date-time",
+                "type": "string"
+              }
+            },
+            "required": [
+              "completedAfter",
+              "completedBefore"
+            ],
+            "type": "object"
+          },
+          "statsComplete": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "range",
+          "statsComplete",
+          "overall",
+          "groups"
+        ],
+        "type": "object"
+      },
+      "TaskActivityProductMetrics": {
+        "properties": {
+          "hurdles": {
+            "properties": {
+              "abortedAttemptCount": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "cancelledAttemptCount": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "failedAttemptCount": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "failedToolCallCount": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "failedToolCallRate": {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number"
+              },
+              "highFrictionAttemptCount": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "retryAttemptCount": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "timeoutAttemptCount": {
+                "minimum": 0,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "failedAttemptCount",
+              "timeoutAttemptCount",
+              "abortedAttemptCount",
+              "cancelledAttemptCount",
+              "retryAttemptCount",
+              "highFrictionAttemptCount",
+              "failedToolCallCount",
+              "failedToolCallRate"
+            ],
+            "type": "object"
+          },
+          "knowledge": {
+            "properties": {
+              "entryGetCount": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "entrySearchCount": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "knowledgeCallsPerAcceptedTask": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "knowledgeToolCallCount": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "packGetCount": {
+                "minimum": 0,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "knowledgeToolCallCount",
+              "entrySearchCount",
+              "entryGetCount",
+              "packGetCount",
+              "knowledgeCallsPerAcceptedTask"
+            ],
+            "type": "object"
+          },
+          "productivity": {
+            "properties": {
+              "acceptedTasksPerDay": {
+                "minimum": 0,
+                "type": "number"
+              },
+              "attemptCount": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "averageAttemptsPerAcceptedTask": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "medianTimeToAcceptedMs": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "medianToolCallsPerAttempt": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "medianTurnsPerAttempt": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "attemptCount",
+              "acceptedTasksPerDay",
+              "averageAttemptsPerAcceptedTask",
+              "medianTimeToAcceptedMs",
+              "medianTurnsPerAttempt",
+              "medianToolCallsPerAttempt"
+            ],
+            "type": "object"
+          },
+          "raw": {
+            "properties": {
+              "failedToolCallCount": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "messageCount": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "toolCallCount": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "turnCount": {
+                "minimum": 0,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "messageCount",
+              "turnCount",
+              "toolCallCount",
+              "failedToolCallCount"
+            ],
+            "type": "object"
+          },
+          "roi": {
+            "properties": {
+              "acceptedTasksPerThousandTokens": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "extraAttemptCount": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "extraTokensBeforeAcceptance": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "tokensPerAcceptedTask": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "totalInputTokens": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "totalOutputTokens": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "totalTokens": {
+                "minimum": 0,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "totalInputTokens",
+              "totalOutputTokens",
+              "totalTokens",
+              "acceptedTasksPerThousandTokens",
+              "tokensPerAcceptedTask",
+              "extraAttemptCount",
+              "extraTokensBeforeAcceptance"
+            ],
+            "type": "object"
+          },
+          "success": {
+            "properties": {
+              "acceptedOutputRate": {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number"
+              },
+              "acceptedTaskCount": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "firstAttemptAcceptedRate": {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number"
+              },
+              "firstAttemptAcceptedTaskCount": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "retryRecoveredTaskCount": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "retryRecoveryRate": {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number"
+              },
+              "taskCount": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "terminalFailureRate": {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number"
+              },
+              "terminalFailureTaskCount": {
+                "minimum": 0,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "taskCount",
+              "acceptedTaskCount",
+              "acceptedOutputRate",
+              "firstAttemptAcceptedTaskCount",
+              "firstAttemptAcceptedRate",
+              "retryRecoveredTaskCount",
+              "retryRecoveryRate",
+              "terminalFailureTaskCount",
+              "terminalFailureRate"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "success",
+          "productivity",
+          "hurdles",
+          "knowledge",
+          "roi",
+          "raw"
+        ],
+        "type": "object"
+      },
       "TaskArtifact": {
         "properties": {
           "attemptN": {
@@ -30919,6 +31431,222 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Task"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "tasks"
+        ]
+      }
+    },
+    "/tasks/analytics/activity": {
+      "get": {
+        "description": "Return bounded product analytics for task attempts: success, productivity, hurdles, knowledge leverage, and token-efficiency ROI proxies.",
+        "operationId": "getTaskActivityAnalytics",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "completedAfter",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "completedBefore",
+            "required": false,
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Repeated tags filter. Task must include all tags.",
+            "in": "query",
+            "name": "tags",
+            "required": false,
+            "schema": {
+              "items": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 20,
+              "type": "array"
+            }
+          },
+          {
+            "in": "query",
+            "name": "taskTypes",
+            "required": false,
+            "schema": {
+              "items": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 20,
+              "type": "array"
+            }
+          },
+          {
+            "in": "query",
+            "name": "profileIds",
+            "required": false,
+            "schema": {
+              "items": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "maxItems": 20,
+              "type": "array"
+            }
+          },
+          {
+            "in": "query",
+            "name": "diaryIds",
+            "required": false,
+            "schema": {
+              "items": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "maxItems": 20,
+              "type": "array"
+            }
+          },
+          {
+            "in": "query",
+            "name": "claimedByAgentIds",
+            "required": false,
+            "schema": {
+              "items": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "maxItems": 20,
+              "type": "array"
+            }
+          },
+          {
+            "in": "query",
+            "name": "groupBy",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "none"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "day"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "tag"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "taskType"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "profile"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "diary"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "agent"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "providerModel"
+                  ],
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          {
+            "description": "Team ID (UUID) that will own the resource. Required.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskActivityAnalyticsResponse"
                 }
               }
             },

@@ -72,6 +72,7 @@ import {
   getRuntimeSession,
   getSigningRequest,
   getTask,
+  getTaskActivityAnalytics,
   getTeam,
   getTrustGraph,
   getWhoami,
@@ -314,6 +315,9 @@ import type {
   GetSigningRequestData,
   GetSigningRequestError,
   GetSigningRequestResponse,
+  GetTaskActivityAnalyticsData,
+  GetTaskActivityAnalyticsError,
+  GetTaskActivityAnalyticsResponse,
   GetTaskData,
   GetTaskError,
   GetTaskResponse,
@@ -3344,6 +3348,34 @@ export const createTaskMutation = (
   };
   return mutationOptions;
 };
+
+export const getTaskActivityAnalyticsQueryKey = (
+  options: Options<GetTaskActivityAnalyticsData>,
+) => createQueryKey('getTaskActivityAnalytics', options);
+
+/**
+ * Return bounded product analytics for task attempts: success, productivity, hurdles, knowledge leverage, and token-efficiency ROI proxies.
+ */
+export const getTaskActivityAnalyticsOptions = (
+  options: Options<GetTaskActivityAnalyticsData>,
+) =>
+  queryOptions<
+    GetTaskActivityAnalyticsResponse,
+    GetTaskActivityAnalyticsError,
+    GetTaskActivityAnalyticsResponse,
+    ReturnType<typeof getTaskActivityAnalyticsQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getTaskActivityAnalytics({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getTaskActivityAnalyticsQueryKey(options),
+  });
 
 export const listTaskSchemasQueryKey = (
   options?: Options<ListTaskSchemasData>,

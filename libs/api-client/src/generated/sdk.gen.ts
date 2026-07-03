@@ -182,6 +182,9 @@ import type {
   GetSigningRequestData,
   GetSigningRequestErrors,
   GetSigningRequestResponses,
+  GetTaskActivityAnalyticsData,
+  GetTaskActivityAnalyticsErrors,
+  GetTaskActivityAnalyticsResponses,
   GetTaskData,
   GetTaskErrors,
   GetTaskResponses,
@@ -2445,6 +2448,30 @@ export const createTask = <ThrowOnError extends boolean = false>(
       'Content-Type': 'application/json',
       ...options.headers,
     },
+  });
+
+/**
+ * Return bounded product analytics for task attempts: success, productivity, hurdles, knowledge leverage, and token-efficiency ROI proxies.
+ */
+export const getTaskActivityAnalytics = <ThrowOnError extends boolean = false>(
+  options: Options<GetTaskActivityAnalyticsData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetTaskActivityAnalyticsResponses,
+    GetTaskActivityAnalyticsErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/tasks/analytics/activity',
+    ...options,
   });
 
 /**

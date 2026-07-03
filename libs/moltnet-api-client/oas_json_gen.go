@@ -40699,6 +40699,82 @@ func (s *GetSigningRequestUnauthorized) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes GetTaskActivityAnalyticsForbidden as json.
+func (s *GetTaskActivityAnalyticsForbidden) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes GetTaskActivityAnalyticsForbidden from json.
+func (s *GetTaskActivityAnalyticsForbidden) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetTaskActivityAnalyticsForbidden to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = GetTaskActivityAnalyticsForbidden(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *GetTaskActivityAnalyticsForbidden) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetTaskActivityAnalyticsForbidden) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes GetTaskActivityAnalyticsUnauthorized as json.
+func (s *GetTaskActivityAnalyticsUnauthorized) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes GetTaskActivityAnalyticsUnauthorized from json.
+func (s *GetTaskActivityAnalyticsUnauthorized) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetTaskActivityAnalyticsUnauthorized to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = GetTaskActivityAnalyticsUnauthorized(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *GetTaskActivityAnalyticsUnauthorized) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetTaskActivityAnalyticsUnauthorized) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes GetTaskForbidden as json.
 func (s *GetTaskForbidden) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
@@ -78709,6 +78785,1693 @@ func (s *Task) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *Task) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *TaskActivityAnalyticsResponse) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *TaskActivityAnalyticsResponse) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("groups")
+		e.ArrStart()
+		for _, elem := range s.Groups {
+			elem.Encode(e)
+		}
+		e.ArrEnd()
+	}
+	{
+		e.FieldStart("overall")
+		s.Overall.Encode(e)
+	}
+	{
+		e.FieldStart("range")
+		s.Range.Encode(e)
+	}
+	{
+		e.FieldStart("statsComplete")
+		e.Bool(s.StatsComplete)
+	}
+}
+
+var jsonFieldsNameOfTaskActivityAnalyticsResponse = [4]string{
+	0: "groups",
+	1: "overall",
+	2: "range",
+	3: "statsComplete",
+}
+
+// Decode decodes TaskActivityAnalyticsResponse from json.
+func (s *TaskActivityAnalyticsResponse) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode TaskActivityAnalyticsResponse to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "groups":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				s.Groups = make([]TaskActivityAnalyticsResponseGroupsItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem TaskActivityAnalyticsResponseGroupsItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.Groups = append(s.Groups, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"groups\"")
+			}
+		case "overall":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				if err := s.Overall.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"overall\"")
+			}
+		case "range":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				if err := s.Range.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"range\"")
+			}
+		case "statsComplete":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Bool()
+				s.StatsComplete = bool(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"statsComplete\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode TaskActivityAnalyticsResponse")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00001111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfTaskActivityAnalyticsResponse) {
+					name = jsonFieldsNameOfTaskActivityAnalyticsResponse[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *TaskActivityAnalyticsResponse) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *TaskActivityAnalyticsResponse) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *TaskActivityAnalyticsResponseGroupsItem) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *TaskActivityAnalyticsResponseGroupsItem) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("key")
+		e.Str(s.Key)
+	}
+	{
+		e.FieldStart("label")
+		e.Str(s.Label)
+	}
+	{
+		e.FieldStart("metrics")
+		s.Metrics.Encode(e)
+	}
+}
+
+var jsonFieldsNameOfTaskActivityAnalyticsResponseGroupsItem = [3]string{
+	0: "key",
+	1: "label",
+	2: "metrics",
+}
+
+// Decode decodes TaskActivityAnalyticsResponseGroupsItem from json.
+func (s *TaskActivityAnalyticsResponseGroupsItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode TaskActivityAnalyticsResponseGroupsItem to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "key":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Str()
+				s.Key = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"key\"")
+			}
+		case "label":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.Label = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"label\"")
+			}
+		case "metrics":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				if err := s.Metrics.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"metrics\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode TaskActivityAnalyticsResponseGroupsItem")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfTaskActivityAnalyticsResponseGroupsItem) {
+					name = jsonFieldsNameOfTaskActivityAnalyticsResponseGroupsItem[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *TaskActivityAnalyticsResponseGroupsItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *TaskActivityAnalyticsResponseGroupsItem) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *TaskActivityAnalyticsResponseRange) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *TaskActivityAnalyticsResponseRange) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("completedAfter")
+		json.EncodeDateTime(e, s.CompletedAfter)
+	}
+	{
+		e.FieldStart("completedBefore")
+		json.EncodeDateTime(e, s.CompletedBefore)
+	}
+}
+
+var jsonFieldsNameOfTaskActivityAnalyticsResponseRange = [2]string{
+	0: "completedAfter",
+	1: "completedBefore",
+}
+
+// Decode decodes TaskActivityAnalyticsResponseRange from json.
+func (s *TaskActivityAnalyticsResponseRange) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode TaskActivityAnalyticsResponseRange to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "completedAfter":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := json.DecodeDateTime(d)
+				s.CompletedAfter = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"completedAfter\"")
+			}
+		case "completedBefore":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := json.DecodeDateTime(d)
+				s.CompletedBefore = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"completedBefore\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode TaskActivityAnalyticsResponseRange")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000011,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfTaskActivityAnalyticsResponseRange) {
+					name = jsonFieldsNameOfTaskActivityAnalyticsResponseRange[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *TaskActivityAnalyticsResponseRange) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *TaskActivityAnalyticsResponseRange) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *TaskActivityProductMetrics) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *TaskActivityProductMetrics) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("hurdles")
+		s.Hurdles.Encode(e)
+	}
+	{
+		e.FieldStart("knowledge")
+		s.Knowledge.Encode(e)
+	}
+	{
+		e.FieldStart("productivity")
+		s.Productivity.Encode(e)
+	}
+	{
+		e.FieldStart("raw")
+		s.Raw.Encode(e)
+	}
+	{
+		e.FieldStart("roi")
+		s.Roi.Encode(e)
+	}
+	{
+		e.FieldStart("success")
+		s.Success.Encode(e)
+	}
+}
+
+var jsonFieldsNameOfTaskActivityProductMetrics = [6]string{
+	0: "hurdles",
+	1: "knowledge",
+	2: "productivity",
+	3: "raw",
+	4: "roi",
+	5: "success",
+}
+
+// Decode decodes TaskActivityProductMetrics from json.
+func (s *TaskActivityProductMetrics) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode TaskActivityProductMetrics to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "hurdles":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Hurdles.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"hurdles\"")
+			}
+		case "knowledge":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				if err := s.Knowledge.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"knowledge\"")
+			}
+		case "productivity":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				if err := s.Productivity.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"productivity\"")
+			}
+		case "raw":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.Raw.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"raw\"")
+			}
+		case "roi":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				if err := s.Roi.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"roi\"")
+			}
+		case "success":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				if err := s.Success.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"success\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode TaskActivityProductMetrics")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00111111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfTaskActivityProductMetrics) {
+					name = jsonFieldsNameOfTaskActivityProductMetrics[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *TaskActivityProductMetrics) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *TaskActivityProductMetrics) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *TaskActivityProductMetricsHurdles) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *TaskActivityProductMetricsHurdles) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("abortedAttemptCount")
+		e.Int(s.AbortedAttemptCount)
+	}
+	{
+		e.FieldStart("cancelledAttemptCount")
+		e.Int(s.CancelledAttemptCount)
+	}
+	{
+		e.FieldStart("failedAttemptCount")
+		e.Int(s.FailedAttemptCount)
+	}
+	{
+		e.FieldStart("failedToolCallCount")
+		e.Int(s.FailedToolCallCount)
+	}
+	{
+		e.FieldStart("failedToolCallRate")
+		e.Float64(s.FailedToolCallRate)
+	}
+	{
+		e.FieldStart("highFrictionAttemptCount")
+		e.Int(s.HighFrictionAttemptCount)
+	}
+	{
+		e.FieldStart("retryAttemptCount")
+		e.Int(s.RetryAttemptCount)
+	}
+	{
+		e.FieldStart("timeoutAttemptCount")
+		e.Int(s.TimeoutAttemptCount)
+	}
+}
+
+var jsonFieldsNameOfTaskActivityProductMetricsHurdles = [8]string{
+	0: "abortedAttemptCount",
+	1: "cancelledAttemptCount",
+	2: "failedAttemptCount",
+	3: "failedToolCallCount",
+	4: "failedToolCallRate",
+	5: "highFrictionAttemptCount",
+	6: "retryAttemptCount",
+	7: "timeoutAttemptCount",
+}
+
+// Decode decodes TaskActivityProductMetricsHurdles from json.
+func (s *TaskActivityProductMetricsHurdles) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode TaskActivityProductMetricsHurdles to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "abortedAttemptCount":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Int()
+				s.AbortedAttemptCount = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"abortedAttemptCount\"")
+			}
+		case "cancelledAttemptCount":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Int()
+				s.CancelledAttemptCount = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"cancelledAttemptCount\"")
+			}
+		case "failedAttemptCount":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Int()
+				s.FailedAttemptCount = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"failedAttemptCount\"")
+			}
+		case "failedToolCallCount":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.FailedToolCallCount = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"failedToolCallCount\"")
+			}
+		case "failedToolCallRate":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Float64()
+				s.FailedToolCallRate = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"failedToolCallRate\"")
+			}
+		case "highFrictionAttemptCount":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := d.Int()
+				s.HighFrictionAttemptCount = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"highFrictionAttemptCount\"")
+			}
+		case "retryAttemptCount":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				v, err := d.Int()
+				s.RetryAttemptCount = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAttemptCount\"")
+			}
+		case "timeoutAttemptCount":
+			requiredBitSet[0] |= 1 << 7
+			if err := func() error {
+				v, err := d.Int()
+				s.TimeoutAttemptCount = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"timeoutAttemptCount\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode TaskActivityProductMetricsHurdles")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b11111111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfTaskActivityProductMetricsHurdles) {
+					name = jsonFieldsNameOfTaskActivityProductMetricsHurdles[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *TaskActivityProductMetricsHurdles) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *TaskActivityProductMetricsHurdles) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *TaskActivityProductMetricsKnowledge) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *TaskActivityProductMetricsKnowledge) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("entryGetCount")
+		e.Int(s.EntryGetCount)
+	}
+	{
+		e.FieldStart("entrySearchCount")
+		e.Int(s.EntrySearchCount)
+	}
+	{
+		e.FieldStart("knowledgeCallsPerAcceptedTask")
+		s.KnowledgeCallsPerAcceptedTask.Encode(e)
+	}
+	{
+		e.FieldStart("knowledgeToolCallCount")
+		e.Int(s.KnowledgeToolCallCount)
+	}
+	{
+		e.FieldStart("packGetCount")
+		e.Int(s.PackGetCount)
+	}
+}
+
+var jsonFieldsNameOfTaskActivityProductMetricsKnowledge = [5]string{
+	0: "entryGetCount",
+	1: "entrySearchCount",
+	2: "knowledgeCallsPerAcceptedTask",
+	3: "knowledgeToolCallCount",
+	4: "packGetCount",
+}
+
+// Decode decodes TaskActivityProductMetricsKnowledge from json.
+func (s *TaskActivityProductMetricsKnowledge) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode TaskActivityProductMetricsKnowledge to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "entryGetCount":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Int()
+				s.EntryGetCount = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"entryGetCount\"")
+			}
+		case "entrySearchCount":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Int()
+				s.EntrySearchCount = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"entrySearchCount\"")
+			}
+		case "knowledgeCallsPerAcceptedTask":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				if err := s.KnowledgeCallsPerAcceptedTask.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"knowledgeCallsPerAcceptedTask\"")
+			}
+		case "knowledgeToolCallCount":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.KnowledgeToolCallCount = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"knowledgeToolCallCount\"")
+			}
+		case "packGetCount":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Int()
+				s.PackGetCount = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"packGetCount\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode TaskActivityProductMetricsKnowledge")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00011111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfTaskActivityProductMetricsKnowledge) {
+					name = jsonFieldsNameOfTaskActivityProductMetricsKnowledge[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *TaskActivityProductMetricsKnowledge) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *TaskActivityProductMetricsKnowledge) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *TaskActivityProductMetricsProductivity) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *TaskActivityProductMetricsProductivity) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("acceptedTasksPerDay")
+		e.Float64(s.AcceptedTasksPerDay)
+	}
+	{
+		e.FieldStart("attemptCount")
+		e.Int(s.AttemptCount)
+	}
+	{
+		e.FieldStart("averageAttemptsPerAcceptedTask")
+		s.AverageAttemptsPerAcceptedTask.Encode(e)
+	}
+	{
+		e.FieldStart("medianTimeToAcceptedMs")
+		s.MedianTimeToAcceptedMs.Encode(e)
+	}
+	{
+		e.FieldStart("medianToolCallsPerAttempt")
+		s.MedianToolCallsPerAttempt.Encode(e)
+	}
+	{
+		e.FieldStart("medianTurnsPerAttempt")
+		s.MedianTurnsPerAttempt.Encode(e)
+	}
+}
+
+var jsonFieldsNameOfTaskActivityProductMetricsProductivity = [6]string{
+	0: "acceptedTasksPerDay",
+	1: "attemptCount",
+	2: "averageAttemptsPerAcceptedTask",
+	3: "medianTimeToAcceptedMs",
+	4: "medianToolCallsPerAttempt",
+	5: "medianTurnsPerAttempt",
+}
+
+// Decode decodes TaskActivityProductMetricsProductivity from json.
+func (s *TaskActivityProductMetricsProductivity) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode TaskActivityProductMetricsProductivity to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "acceptedTasksPerDay":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Float64()
+				s.AcceptedTasksPerDay = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"acceptedTasksPerDay\"")
+			}
+		case "attemptCount":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Int()
+				s.AttemptCount = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"attemptCount\"")
+			}
+		case "averageAttemptsPerAcceptedTask":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				if err := s.AverageAttemptsPerAcceptedTask.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"averageAttemptsPerAcceptedTask\"")
+			}
+		case "medianTimeToAcceptedMs":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.MedianTimeToAcceptedMs.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"medianTimeToAcceptedMs\"")
+			}
+		case "medianToolCallsPerAttempt":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				if err := s.MedianToolCallsPerAttempt.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"medianToolCallsPerAttempt\"")
+			}
+		case "medianTurnsPerAttempt":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				if err := s.MedianTurnsPerAttempt.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"medianTurnsPerAttempt\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode TaskActivityProductMetricsProductivity")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00111111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfTaskActivityProductMetricsProductivity) {
+					name = jsonFieldsNameOfTaskActivityProductMetricsProductivity[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *TaskActivityProductMetricsProductivity) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *TaskActivityProductMetricsProductivity) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *TaskActivityProductMetricsRaw) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *TaskActivityProductMetricsRaw) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("failedToolCallCount")
+		e.Int(s.FailedToolCallCount)
+	}
+	{
+		e.FieldStart("messageCount")
+		e.Int(s.MessageCount)
+	}
+	{
+		e.FieldStart("toolCallCount")
+		e.Int(s.ToolCallCount)
+	}
+	{
+		e.FieldStart("turnCount")
+		e.Int(s.TurnCount)
+	}
+}
+
+var jsonFieldsNameOfTaskActivityProductMetricsRaw = [4]string{
+	0: "failedToolCallCount",
+	1: "messageCount",
+	2: "toolCallCount",
+	3: "turnCount",
+}
+
+// Decode decodes TaskActivityProductMetricsRaw from json.
+func (s *TaskActivityProductMetricsRaw) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode TaskActivityProductMetricsRaw to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "failedToolCallCount":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Int()
+				s.FailedToolCallCount = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"failedToolCallCount\"")
+			}
+		case "messageCount":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Int()
+				s.MessageCount = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"messageCount\"")
+			}
+		case "toolCallCount":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Int()
+				s.ToolCallCount = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"toolCallCount\"")
+			}
+		case "turnCount":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.TurnCount = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"turnCount\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode TaskActivityProductMetricsRaw")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00001111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfTaskActivityProductMetricsRaw) {
+					name = jsonFieldsNameOfTaskActivityProductMetricsRaw[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *TaskActivityProductMetricsRaw) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *TaskActivityProductMetricsRaw) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *TaskActivityProductMetricsRoi) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *TaskActivityProductMetricsRoi) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("acceptedTasksPerThousandTokens")
+		s.AcceptedTasksPerThousandTokens.Encode(e)
+	}
+	{
+		e.FieldStart("extraAttemptCount")
+		e.Int(s.ExtraAttemptCount)
+	}
+	{
+		e.FieldStart("extraTokensBeforeAcceptance")
+		e.Int(s.ExtraTokensBeforeAcceptance)
+	}
+	{
+		e.FieldStart("tokensPerAcceptedTask")
+		s.TokensPerAcceptedTask.Encode(e)
+	}
+	{
+		e.FieldStart("totalInputTokens")
+		e.Int(s.TotalInputTokens)
+	}
+	{
+		e.FieldStart("totalOutputTokens")
+		e.Int(s.TotalOutputTokens)
+	}
+	{
+		e.FieldStart("totalTokens")
+		e.Int(s.TotalTokens)
+	}
+}
+
+var jsonFieldsNameOfTaskActivityProductMetricsRoi = [7]string{
+	0: "acceptedTasksPerThousandTokens",
+	1: "extraAttemptCount",
+	2: "extraTokensBeforeAcceptance",
+	3: "tokensPerAcceptedTask",
+	4: "totalInputTokens",
+	5: "totalOutputTokens",
+	6: "totalTokens",
+}
+
+// Decode decodes TaskActivityProductMetricsRoi from json.
+func (s *TaskActivityProductMetricsRoi) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode TaskActivityProductMetricsRoi to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "acceptedTasksPerThousandTokens":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.AcceptedTasksPerThousandTokens.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"acceptedTasksPerThousandTokens\"")
+			}
+		case "extraAttemptCount":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Int()
+				s.ExtraAttemptCount = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"extraAttemptCount\"")
+			}
+		case "extraTokensBeforeAcceptance":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Int()
+				s.ExtraTokensBeforeAcceptance = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"extraTokensBeforeAcceptance\"")
+			}
+		case "tokensPerAcceptedTask":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.TokensPerAcceptedTask.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"tokensPerAcceptedTask\"")
+			}
+		case "totalInputTokens":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Int()
+				s.TotalInputTokens = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"totalInputTokens\"")
+			}
+		case "totalOutputTokens":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := d.Int()
+				s.TotalOutputTokens = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"totalOutputTokens\"")
+			}
+		case "totalTokens":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				v, err := d.Int()
+				s.TotalTokens = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"totalTokens\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode TaskActivityProductMetricsRoi")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b01111111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfTaskActivityProductMetricsRoi) {
+					name = jsonFieldsNameOfTaskActivityProductMetricsRoi[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *TaskActivityProductMetricsRoi) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *TaskActivityProductMetricsRoi) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *TaskActivityProductMetricsSuccess) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *TaskActivityProductMetricsSuccess) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("acceptedOutputRate")
+		e.Float64(s.AcceptedOutputRate)
+	}
+	{
+		e.FieldStart("acceptedTaskCount")
+		e.Int(s.AcceptedTaskCount)
+	}
+	{
+		e.FieldStart("firstAttemptAcceptedRate")
+		e.Float64(s.FirstAttemptAcceptedRate)
+	}
+	{
+		e.FieldStart("firstAttemptAcceptedTaskCount")
+		e.Int(s.FirstAttemptAcceptedTaskCount)
+	}
+	{
+		e.FieldStart("retryRecoveredTaskCount")
+		e.Int(s.RetryRecoveredTaskCount)
+	}
+	{
+		e.FieldStart("retryRecoveryRate")
+		e.Float64(s.RetryRecoveryRate)
+	}
+	{
+		e.FieldStart("taskCount")
+		e.Int(s.TaskCount)
+	}
+	{
+		e.FieldStart("terminalFailureRate")
+		e.Float64(s.TerminalFailureRate)
+	}
+	{
+		e.FieldStart("terminalFailureTaskCount")
+		e.Int(s.TerminalFailureTaskCount)
+	}
+}
+
+var jsonFieldsNameOfTaskActivityProductMetricsSuccess = [9]string{
+	0: "acceptedOutputRate",
+	1: "acceptedTaskCount",
+	2: "firstAttemptAcceptedRate",
+	3: "firstAttemptAcceptedTaskCount",
+	4: "retryRecoveredTaskCount",
+	5: "retryRecoveryRate",
+	6: "taskCount",
+	7: "terminalFailureRate",
+	8: "terminalFailureTaskCount",
+}
+
+// Decode decodes TaskActivityProductMetricsSuccess from json.
+func (s *TaskActivityProductMetricsSuccess) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode TaskActivityProductMetricsSuccess to nil")
+	}
+	var requiredBitSet [2]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "acceptedOutputRate":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Float64()
+				s.AcceptedOutputRate = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"acceptedOutputRate\"")
+			}
+		case "acceptedTaskCount":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Int()
+				s.AcceptedTaskCount = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"acceptedTaskCount\"")
+			}
+		case "firstAttemptAcceptedRate":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Float64()
+				s.FirstAttemptAcceptedRate = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"firstAttemptAcceptedRate\"")
+			}
+		case "firstAttemptAcceptedTaskCount":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.FirstAttemptAcceptedTaskCount = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"firstAttemptAcceptedTaskCount\"")
+			}
+		case "retryRecoveredTaskCount":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Int()
+				s.RetryRecoveredTaskCount = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryRecoveredTaskCount\"")
+			}
+		case "retryRecoveryRate":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := d.Float64()
+				s.RetryRecoveryRate = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryRecoveryRate\"")
+			}
+		case "taskCount":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				v, err := d.Int()
+				s.TaskCount = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"taskCount\"")
+			}
+		case "terminalFailureRate":
+			requiredBitSet[0] |= 1 << 7
+			if err := func() error {
+				v, err := d.Float64()
+				s.TerminalFailureRate = float64(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"terminalFailureRate\"")
+			}
+		case "terminalFailureTaskCount":
+			requiredBitSet[1] |= 1 << 0
+			if err := func() error {
+				v, err := d.Int()
+				s.TerminalFailureTaskCount = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"terminalFailureTaskCount\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode TaskActivityProductMetricsSuccess")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [2]uint8{
+		0b11111111,
+		0b00000001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfTaskActivityProductMetricsSuccess) {
+					name = jsonFieldsNameOfTaskActivityProductMetricsSuccess[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *TaskActivityProductMetricsSuccess) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *TaskActivityProductMetricsSuccess) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

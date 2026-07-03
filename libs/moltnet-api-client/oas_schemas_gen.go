@@ -21252,6 +21252,97 @@ type GetSigningRequestUnauthorized ProblemDetails
 
 func (*GetSigningRequestUnauthorized) getSigningRequestRes() {}
 
+type GetTaskActivityAnalyticsForbidden ProblemDetails
+
+func (*GetTaskActivityAnalyticsForbidden) getTaskActivityAnalyticsRes() {}
+
+type GetTaskActivityAnalyticsGroupBy string
+
+const (
+	GetTaskActivityAnalyticsGroupByNone          GetTaskActivityAnalyticsGroupBy = "none"
+	GetTaskActivityAnalyticsGroupByDay           GetTaskActivityAnalyticsGroupBy = "day"
+	GetTaskActivityAnalyticsGroupByTag           GetTaskActivityAnalyticsGroupBy = "tag"
+	GetTaskActivityAnalyticsGroupByTaskType      GetTaskActivityAnalyticsGroupBy = "taskType"
+	GetTaskActivityAnalyticsGroupByProfile       GetTaskActivityAnalyticsGroupBy = "profile"
+	GetTaskActivityAnalyticsGroupByDiary         GetTaskActivityAnalyticsGroupBy = "diary"
+	GetTaskActivityAnalyticsGroupByAgent         GetTaskActivityAnalyticsGroupBy = "agent"
+	GetTaskActivityAnalyticsGroupByProviderModel GetTaskActivityAnalyticsGroupBy = "providerModel"
+)
+
+// AllValues returns all GetTaskActivityAnalyticsGroupBy values.
+func (GetTaskActivityAnalyticsGroupBy) AllValues() []GetTaskActivityAnalyticsGroupBy {
+	return []GetTaskActivityAnalyticsGroupBy{
+		GetTaskActivityAnalyticsGroupByNone,
+		GetTaskActivityAnalyticsGroupByDay,
+		GetTaskActivityAnalyticsGroupByTag,
+		GetTaskActivityAnalyticsGroupByTaskType,
+		GetTaskActivityAnalyticsGroupByProfile,
+		GetTaskActivityAnalyticsGroupByDiary,
+		GetTaskActivityAnalyticsGroupByAgent,
+		GetTaskActivityAnalyticsGroupByProviderModel,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s GetTaskActivityAnalyticsGroupBy) MarshalText() ([]byte, error) {
+	switch s {
+	case GetTaskActivityAnalyticsGroupByNone:
+		return []byte(s), nil
+	case GetTaskActivityAnalyticsGroupByDay:
+		return []byte(s), nil
+	case GetTaskActivityAnalyticsGroupByTag:
+		return []byte(s), nil
+	case GetTaskActivityAnalyticsGroupByTaskType:
+		return []byte(s), nil
+	case GetTaskActivityAnalyticsGroupByProfile:
+		return []byte(s), nil
+	case GetTaskActivityAnalyticsGroupByDiary:
+		return []byte(s), nil
+	case GetTaskActivityAnalyticsGroupByAgent:
+		return []byte(s), nil
+	case GetTaskActivityAnalyticsGroupByProviderModel:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *GetTaskActivityAnalyticsGroupBy) UnmarshalText(data []byte) error {
+	switch GetTaskActivityAnalyticsGroupBy(data) {
+	case GetTaskActivityAnalyticsGroupByNone:
+		*s = GetTaskActivityAnalyticsGroupByNone
+		return nil
+	case GetTaskActivityAnalyticsGroupByDay:
+		*s = GetTaskActivityAnalyticsGroupByDay
+		return nil
+	case GetTaskActivityAnalyticsGroupByTag:
+		*s = GetTaskActivityAnalyticsGroupByTag
+		return nil
+	case GetTaskActivityAnalyticsGroupByTaskType:
+		*s = GetTaskActivityAnalyticsGroupByTaskType
+		return nil
+	case GetTaskActivityAnalyticsGroupByProfile:
+		*s = GetTaskActivityAnalyticsGroupByProfile
+		return nil
+	case GetTaskActivityAnalyticsGroupByDiary:
+		*s = GetTaskActivityAnalyticsGroupByDiary
+		return nil
+	case GetTaskActivityAnalyticsGroupByAgent:
+		*s = GetTaskActivityAnalyticsGroupByAgent
+		return nil
+	case GetTaskActivityAnalyticsGroupByProviderModel:
+		*s = GetTaskActivityAnalyticsGroupByProviderModel
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type GetTaskActivityAnalyticsUnauthorized ProblemDetails
+
+func (*GetTaskActivityAnalyticsUnauthorized) getTaskActivityAnalyticsRes() {}
+
 type GetTaskForbidden ProblemDetails
 
 func (*GetTaskForbidden) getTaskRes() {}
@@ -30810,6 +30901,52 @@ func (o OptGetDiaryEntryByIdExpand) Get() (v GetDiaryEntryByIdExpand, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptGetDiaryEntryByIdExpand) Or(d GetDiaryEntryByIdExpand) GetDiaryEntryByIdExpand {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptGetTaskActivityAnalyticsGroupBy returns new OptGetTaskActivityAnalyticsGroupBy with value set to v.
+func NewOptGetTaskActivityAnalyticsGroupBy(v GetTaskActivityAnalyticsGroupBy) OptGetTaskActivityAnalyticsGroupBy {
+	return OptGetTaskActivityAnalyticsGroupBy{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptGetTaskActivityAnalyticsGroupBy is optional GetTaskActivityAnalyticsGroupBy.
+type OptGetTaskActivityAnalyticsGroupBy struct {
+	Value GetTaskActivityAnalyticsGroupBy
+	Set   bool
+}
+
+// IsSet returns true if OptGetTaskActivityAnalyticsGroupBy was set.
+func (o OptGetTaskActivityAnalyticsGroupBy) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptGetTaskActivityAnalyticsGroupBy) Reset() {
+	var v GetTaskActivityAnalyticsGroupBy
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptGetTaskActivityAnalyticsGroupBy) SetTo(v GetTaskActivityAnalyticsGroupBy) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptGetTaskActivityAnalyticsGroupBy) Get() (v GetTaskActivityAnalyticsGroupBy, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptGetTaskActivityAnalyticsGroupBy) Or(d GetTaskActivityAnalyticsGroupBy) GetTaskActivityAnalyticsGroupBy {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -42007,6 +42144,634 @@ func (*Task) failTaskAttemptRes()    {}
 func (*Task) getTaskRes()            {}
 func (*Task) updateTaskMetadataRes() {}
 
+// Ref: #/components/schemas/TaskActivityAnalyticsResponse
+type TaskActivityAnalyticsResponse struct {
+	Groups        []TaskActivityAnalyticsResponseGroupsItem `json:"groups"`
+	Overall       TaskActivityProductMetrics                `json:"overall"`
+	Range         TaskActivityAnalyticsResponseRange        `json:"range"`
+	StatsComplete bool                                      `json:"statsComplete"`
+}
+
+// GetGroups returns the value of Groups.
+func (s *TaskActivityAnalyticsResponse) GetGroups() []TaskActivityAnalyticsResponseGroupsItem {
+	return s.Groups
+}
+
+// GetOverall returns the value of Overall.
+func (s *TaskActivityAnalyticsResponse) GetOverall() TaskActivityProductMetrics {
+	return s.Overall
+}
+
+// GetRange returns the value of Range.
+func (s *TaskActivityAnalyticsResponse) GetRange() TaskActivityAnalyticsResponseRange {
+	return s.Range
+}
+
+// GetStatsComplete returns the value of StatsComplete.
+func (s *TaskActivityAnalyticsResponse) GetStatsComplete() bool {
+	return s.StatsComplete
+}
+
+// SetGroups sets the value of Groups.
+func (s *TaskActivityAnalyticsResponse) SetGroups(val []TaskActivityAnalyticsResponseGroupsItem) {
+	s.Groups = val
+}
+
+// SetOverall sets the value of Overall.
+func (s *TaskActivityAnalyticsResponse) SetOverall(val TaskActivityProductMetrics) {
+	s.Overall = val
+}
+
+// SetRange sets the value of Range.
+func (s *TaskActivityAnalyticsResponse) SetRange(val TaskActivityAnalyticsResponseRange) {
+	s.Range = val
+}
+
+// SetStatsComplete sets the value of StatsComplete.
+func (s *TaskActivityAnalyticsResponse) SetStatsComplete(val bool) {
+	s.StatsComplete = val
+}
+
+func (*TaskActivityAnalyticsResponse) getTaskActivityAnalyticsRes() {}
+
+type TaskActivityAnalyticsResponseGroupsItem struct {
+	Key     string                     `json:"key"`
+	Label   string                     `json:"label"`
+	Metrics TaskActivityProductMetrics `json:"metrics"`
+}
+
+// GetKey returns the value of Key.
+func (s *TaskActivityAnalyticsResponseGroupsItem) GetKey() string {
+	return s.Key
+}
+
+// GetLabel returns the value of Label.
+func (s *TaskActivityAnalyticsResponseGroupsItem) GetLabel() string {
+	return s.Label
+}
+
+// GetMetrics returns the value of Metrics.
+func (s *TaskActivityAnalyticsResponseGroupsItem) GetMetrics() TaskActivityProductMetrics {
+	return s.Metrics
+}
+
+// SetKey sets the value of Key.
+func (s *TaskActivityAnalyticsResponseGroupsItem) SetKey(val string) {
+	s.Key = val
+}
+
+// SetLabel sets the value of Label.
+func (s *TaskActivityAnalyticsResponseGroupsItem) SetLabel(val string) {
+	s.Label = val
+}
+
+// SetMetrics sets the value of Metrics.
+func (s *TaskActivityAnalyticsResponseGroupsItem) SetMetrics(val TaskActivityProductMetrics) {
+	s.Metrics = val
+}
+
+type TaskActivityAnalyticsResponseRange struct {
+	CompletedAfter  time.Time `json:"completedAfter"`
+	CompletedBefore time.Time `json:"completedBefore"`
+}
+
+// GetCompletedAfter returns the value of CompletedAfter.
+func (s *TaskActivityAnalyticsResponseRange) GetCompletedAfter() time.Time {
+	return s.CompletedAfter
+}
+
+// GetCompletedBefore returns the value of CompletedBefore.
+func (s *TaskActivityAnalyticsResponseRange) GetCompletedBefore() time.Time {
+	return s.CompletedBefore
+}
+
+// SetCompletedAfter sets the value of CompletedAfter.
+func (s *TaskActivityAnalyticsResponseRange) SetCompletedAfter(val time.Time) {
+	s.CompletedAfter = val
+}
+
+// SetCompletedBefore sets the value of CompletedBefore.
+func (s *TaskActivityAnalyticsResponseRange) SetCompletedBefore(val time.Time) {
+	s.CompletedBefore = val
+}
+
+// Ref: #/components/schemas/TaskActivityProductMetrics
+type TaskActivityProductMetrics struct {
+	Hurdles      TaskActivityProductMetricsHurdles      `json:"hurdles"`
+	Knowledge    TaskActivityProductMetricsKnowledge    `json:"knowledge"`
+	Productivity TaskActivityProductMetricsProductivity `json:"productivity"`
+	Raw          TaskActivityProductMetricsRaw          `json:"raw"`
+	Roi          TaskActivityProductMetricsRoi          `json:"roi"`
+	Success      TaskActivityProductMetricsSuccess      `json:"success"`
+}
+
+// GetHurdles returns the value of Hurdles.
+func (s *TaskActivityProductMetrics) GetHurdles() TaskActivityProductMetricsHurdles {
+	return s.Hurdles
+}
+
+// GetKnowledge returns the value of Knowledge.
+func (s *TaskActivityProductMetrics) GetKnowledge() TaskActivityProductMetricsKnowledge {
+	return s.Knowledge
+}
+
+// GetProductivity returns the value of Productivity.
+func (s *TaskActivityProductMetrics) GetProductivity() TaskActivityProductMetricsProductivity {
+	return s.Productivity
+}
+
+// GetRaw returns the value of Raw.
+func (s *TaskActivityProductMetrics) GetRaw() TaskActivityProductMetricsRaw {
+	return s.Raw
+}
+
+// GetRoi returns the value of Roi.
+func (s *TaskActivityProductMetrics) GetRoi() TaskActivityProductMetricsRoi {
+	return s.Roi
+}
+
+// GetSuccess returns the value of Success.
+func (s *TaskActivityProductMetrics) GetSuccess() TaskActivityProductMetricsSuccess {
+	return s.Success
+}
+
+// SetHurdles sets the value of Hurdles.
+func (s *TaskActivityProductMetrics) SetHurdles(val TaskActivityProductMetricsHurdles) {
+	s.Hurdles = val
+}
+
+// SetKnowledge sets the value of Knowledge.
+func (s *TaskActivityProductMetrics) SetKnowledge(val TaskActivityProductMetricsKnowledge) {
+	s.Knowledge = val
+}
+
+// SetProductivity sets the value of Productivity.
+func (s *TaskActivityProductMetrics) SetProductivity(val TaskActivityProductMetricsProductivity) {
+	s.Productivity = val
+}
+
+// SetRaw sets the value of Raw.
+func (s *TaskActivityProductMetrics) SetRaw(val TaskActivityProductMetricsRaw) {
+	s.Raw = val
+}
+
+// SetRoi sets the value of Roi.
+func (s *TaskActivityProductMetrics) SetRoi(val TaskActivityProductMetricsRoi) {
+	s.Roi = val
+}
+
+// SetSuccess sets the value of Success.
+func (s *TaskActivityProductMetrics) SetSuccess(val TaskActivityProductMetricsSuccess) {
+	s.Success = val
+}
+
+type TaskActivityProductMetricsHurdles struct {
+	AbortedAttemptCount      int     `json:"abortedAttemptCount"`
+	CancelledAttemptCount    int     `json:"cancelledAttemptCount"`
+	FailedAttemptCount       int     `json:"failedAttemptCount"`
+	FailedToolCallCount      int     `json:"failedToolCallCount"`
+	FailedToolCallRate       float64 `json:"failedToolCallRate"`
+	HighFrictionAttemptCount int     `json:"highFrictionAttemptCount"`
+	RetryAttemptCount        int     `json:"retryAttemptCount"`
+	TimeoutAttemptCount      int     `json:"timeoutAttemptCount"`
+}
+
+// GetAbortedAttemptCount returns the value of AbortedAttemptCount.
+func (s *TaskActivityProductMetricsHurdles) GetAbortedAttemptCount() int {
+	return s.AbortedAttemptCount
+}
+
+// GetCancelledAttemptCount returns the value of CancelledAttemptCount.
+func (s *TaskActivityProductMetricsHurdles) GetCancelledAttemptCount() int {
+	return s.CancelledAttemptCount
+}
+
+// GetFailedAttemptCount returns the value of FailedAttemptCount.
+func (s *TaskActivityProductMetricsHurdles) GetFailedAttemptCount() int {
+	return s.FailedAttemptCount
+}
+
+// GetFailedToolCallCount returns the value of FailedToolCallCount.
+func (s *TaskActivityProductMetricsHurdles) GetFailedToolCallCount() int {
+	return s.FailedToolCallCount
+}
+
+// GetFailedToolCallRate returns the value of FailedToolCallRate.
+func (s *TaskActivityProductMetricsHurdles) GetFailedToolCallRate() float64 {
+	return s.FailedToolCallRate
+}
+
+// GetHighFrictionAttemptCount returns the value of HighFrictionAttemptCount.
+func (s *TaskActivityProductMetricsHurdles) GetHighFrictionAttemptCount() int {
+	return s.HighFrictionAttemptCount
+}
+
+// GetRetryAttemptCount returns the value of RetryAttemptCount.
+func (s *TaskActivityProductMetricsHurdles) GetRetryAttemptCount() int {
+	return s.RetryAttemptCount
+}
+
+// GetTimeoutAttemptCount returns the value of TimeoutAttemptCount.
+func (s *TaskActivityProductMetricsHurdles) GetTimeoutAttemptCount() int {
+	return s.TimeoutAttemptCount
+}
+
+// SetAbortedAttemptCount sets the value of AbortedAttemptCount.
+func (s *TaskActivityProductMetricsHurdles) SetAbortedAttemptCount(val int) {
+	s.AbortedAttemptCount = val
+}
+
+// SetCancelledAttemptCount sets the value of CancelledAttemptCount.
+func (s *TaskActivityProductMetricsHurdles) SetCancelledAttemptCount(val int) {
+	s.CancelledAttemptCount = val
+}
+
+// SetFailedAttemptCount sets the value of FailedAttemptCount.
+func (s *TaskActivityProductMetricsHurdles) SetFailedAttemptCount(val int) {
+	s.FailedAttemptCount = val
+}
+
+// SetFailedToolCallCount sets the value of FailedToolCallCount.
+func (s *TaskActivityProductMetricsHurdles) SetFailedToolCallCount(val int) {
+	s.FailedToolCallCount = val
+}
+
+// SetFailedToolCallRate sets the value of FailedToolCallRate.
+func (s *TaskActivityProductMetricsHurdles) SetFailedToolCallRate(val float64) {
+	s.FailedToolCallRate = val
+}
+
+// SetHighFrictionAttemptCount sets the value of HighFrictionAttemptCount.
+func (s *TaskActivityProductMetricsHurdles) SetHighFrictionAttemptCount(val int) {
+	s.HighFrictionAttemptCount = val
+}
+
+// SetRetryAttemptCount sets the value of RetryAttemptCount.
+func (s *TaskActivityProductMetricsHurdles) SetRetryAttemptCount(val int) {
+	s.RetryAttemptCount = val
+}
+
+// SetTimeoutAttemptCount sets the value of TimeoutAttemptCount.
+func (s *TaskActivityProductMetricsHurdles) SetTimeoutAttemptCount(val int) {
+	s.TimeoutAttemptCount = val
+}
+
+type TaskActivityProductMetricsKnowledge struct {
+	EntryGetCount                 int        `json:"entryGetCount"`
+	EntrySearchCount              int        `json:"entrySearchCount"`
+	KnowledgeCallsPerAcceptedTask NilFloat64 `json:"knowledgeCallsPerAcceptedTask"`
+	KnowledgeToolCallCount        int        `json:"knowledgeToolCallCount"`
+	PackGetCount                  int        `json:"packGetCount"`
+}
+
+// GetEntryGetCount returns the value of EntryGetCount.
+func (s *TaskActivityProductMetricsKnowledge) GetEntryGetCount() int {
+	return s.EntryGetCount
+}
+
+// GetEntrySearchCount returns the value of EntrySearchCount.
+func (s *TaskActivityProductMetricsKnowledge) GetEntrySearchCount() int {
+	return s.EntrySearchCount
+}
+
+// GetKnowledgeCallsPerAcceptedTask returns the value of KnowledgeCallsPerAcceptedTask.
+func (s *TaskActivityProductMetricsKnowledge) GetKnowledgeCallsPerAcceptedTask() NilFloat64 {
+	return s.KnowledgeCallsPerAcceptedTask
+}
+
+// GetKnowledgeToolCallCount returns the value of KnowledgeToolCallCount.
+func (s *TaskActivityProductMetricsKnowledge) GetKnowledgeToolCallCount() int {
+	return s.KnowledgeToolCallCount
+}
+
+// GetPackGetCount returns the value of PackGetCount.
+func (s *TaskActivityProductMetricsKnowledge) GetPackGetCount() int {
+	return s.PackGetCount
+}
+
+// SetEntryGetCount sets the value of EntryGetCount.
+func (s *TaskActivityProductMetricsKnowledge) SetEntryGetCount(val int) {
+	s.EntryGetCount = val
+}
+
+// SetEntrySearchCount sets the value of EntrySearchCount.
+func (s *TaskActivityProductMetricsKnowledge) SetEntrySearchCount(val int) {
+	s.EntrySearchCount = val
+}
+
+// SetKnowledgeCallsPerAcceptedTask sets the value of KnowledgeCallsPerAcceptedTask.
+func (s *TaskActivityProductMetricsKnowledge) SetKnowledgeCallsPerAcceptedTask(val NilFloat64) {
+	s.KnowledgeCallsPerAcceptedTask = val
+}
+
+// SetKnowledgeToolCallCount sets the value of KnowledgeToolCallCount.
+func (s *TaskActivityProductMetricsKnowledge) SetKnowledgeToolCallCount(val int) {
+	s.KnowledgeToolCallCount = val
+}
+
+// SetPackGetCount sets the value of PackGetCount.
+func (s *TaskActivityProductMetricsKnowledge) SetPackGetCount(val int) {
+	s.PackGetCount = val
+}
+
+type TaskActivityProductMetricsProductivity struct {
+	AcceptedTasksPerDay            float64    `json:"acceptedTasksPerDay"`
+	AttemptCount                   int        `json:"attemptCount"`
+	AverageAttemptsPerAcceptedTask NilFloat64 `json:"averageAttemptsPerAcceptedTask"`
+	MedianTimeToAcceptedMs         NilFloat64 `json:"medianTimeToAcceptedMs"`
+	MedianToolCallsPerAttempt      NilFloat64 `json:"medianToolCallsPerAttempt"`
+	MedianTurnsPerAttempt          NilFloat64 `json:"medianTurnsPerAttempt"`
+}
+
+// GetAcceptedTasksPerDay returns the value of AcceptedTasksPerDay.
+func (s *TaskActivityProductMetricsProductivity) GetAcceptedTasksPerDay() float64 {
+	return s.AcceptedTasksPerDay
+}
+
+// GetAttemptCount returns the value of AttemptCount.
+func (s *TaskActivityProductMetricsProductivity) GetAttemptCount() int {
+	return s.AttemptCount
+}
+
+// GetAverageAttemptsPerAcceptedTask returns the value of AverageAttemptsPerAcceptedTask.
+func (s *TaskActivityProductMetricsProductivity) GetAverageAttemptsPerAcceptedTask() NilFloat64 {
+	return s.AverageAttemptsPerAcceptedTask
+}
+
+// GetMedianTimeToAcceptedMs returns the value of MedianTimeToAcceptedMs.
+func (s *TaskActivityProductMetricsProductivity) GetMedianTimeToAcceptedMs() NilFloat64 {
+	return s.MedianTimeToAcceptedMs
+}
+
+// GetMedianToolCallsPerAttempt returns the value of MedianToolCallsPerAttempt.
+func (s *TaskActivityProductMetricsProductivity) GetMedianToolCallsPerAttempt() NilFloat64 {
+	return s.MedianToolCallsPerAttempt
+}
+
+// GetMedianTurnsPerAttempt returns the value of MedianTurnsPerAttempt.
+func (s *TaskActivityProductMetricsProductivity) GetMedianTurnsPerAttempt() NilFloat64 {
+	return s.MedianTurnsPerAttempt
+}
+
+// SetAcceptedTasksPerDay sets the value of AcceptedTasksPerDay.
+func (s *TaskActivityProductMetricsProductivity) SetAcceptedTasksPerDay(val float64) {
+	s.AcceptedTasksPerDay = val
+}
+
+// SetAttemptCount sets the value of AttemptCount.
+func (s *TaskActivityProductMetricsProductivity) SetAttemptCount(val int) {
+	s.AttemptCount = val
+}
+
+// SetAverageAttemptsPerAcceptedTask sets the value of AverageAttemptsPerAcceptedTask.
+func (s *TaskActivityProductMetricsProductivity) SetAverageAttemptsPerAcceptedTask(val NilFloat64) {
+	s.AverageAttemptsPerAcceptedTask = val
+}
+
+// SetMedianTimeToAcceptedMs sets the value of MedianTimeToAcceptedMs.
+func (s *TaskActivityProductMetricsProductivity) SetMedianTimeToAcceptedMs(val NilFloat64) {
+	s.MedianTimeToAcceptedMs = val
+}
+
+// SetMedianToolCallsPerAttempt sets the value of MedianToolCallsPerAttempt.
+func (s *TaskActivityProductMetricsProductivity) SetMedianToolCallsPerAttempt(val NilFloat64) {
+	s.MedianToolCallsPerAttempt = val
+}
+
+// SetMedianTurnsPerAttempt sets the value of MedianTurnsPerAttempt.
+func (s *TaskActivityProductMetricsProductivity) SetMedianTurnsPerAttempt(val NilFloat64) {
+	s.MedianTurnsPerAttempt = val
+}
+
+type TaskActivityProductMetricsRaw struct {
+	FailedToolCallCount int `json:"failedToolCallCount"`
+	MessageCount        int `json:"messageCount"`
+	ToolCallCount       int `json:"toolCallCount"`
+	TurnCount           int `json:"turnCount"`
+}
+
+// GetFailedToolCallCount returns the value of FailedToolCallCount.
+func (s *TaskActivityProductMetricsRaw) GetFailedToolCallCount() int {
+	return s.FailedToolCallCount
+}
+
+// GetMessageCount returns the value of MessageCount.
+func (s *TaskActivityProductMetricsRaw) GetMessageCount() int {
+	return s.MessageCount
+}
+
+// GetToolCallCount returns the value of ToolCallCount.
+func (s *TaskActivityProductMetricsRaw) GetToolCallCount() int {
+	return s.ToolCallCount
+}
+
+// GetTurnCount returns the value of TurnCount.
+func (s *TaskActivityProductMetricsRaw) GetTurnCount() int {
+	return s.TurnCount
+}
+
+// SetFailedToolCallCount sets the value of FailedToolCallCount.
+func (s *TaskActivityProductMetricsRaw) SetFailedToolCallCount(val int) {
+	s.FailedToolCallCount = val
+}
+
+// SetMessageCount sets the value of MessageCount.
+func (s *TaskActivityProductMetricsRaw) SetMessageCount(val int) {
+	s.MessageCount = val
+}
+
+// SetToolCallCount sets the value of ToolCallCount.
+func (s *TaskActivityProductMetricsRaw) SetToolCallCount(val int) {
+	s.ToolCallCount = val
+}
+
+// SetTurnCount sets the value of TurnCount.
+func (s *TaskActivityProductMetricsRaw) SetTurnCount(val int) {
+	s.TurnCount = val
+}
+
+type TaskActivityProductMetricsRoi struct {
+	AcceptedTasksPerThousandTokens NilFloat64 `json:"acceptedTasksPerThousandTokens"`
+	ExtraAttemptCount              int        `json:"extraAttemptCount"`
+	ExtraTokensBeforeAcceptance    int        `json:"extraTokensBeforeAcceptance"`
+	TokensPerAcceptedTask          NilFloat64 `json:"tokensPerAcceptedTask"`
+	TotalInputTokens               int        `json:"totalInputTokens"`
+	TotalOutputTokens              int        `json:"totalOutputTokens"`
+	TotalTokens                    int        `json:"totalTokens"`
+}
+
+// GetAcceptedTasksPerThousandTokens returns the value of AcceptedTasksPerThousandTokens.
+func (s *TaskActivityProductMetricsRoi) GetAcceptedTasksPerThousandTokens() NilFloat64 {
+	return s.AcceptedTasksPerThousandTokens
+}
+
+// GetExtraAttemptCount returns the value of ExtraAttemptCount.
+func (s *TaskActivityProductMetricsRoi) GetExtraAttemptCount() int {
+	return s.ExtraAttemptCount
+}
+
+// GetExtraTokensBeforeAcceptance returns the value of ExtraTokensBeforeAcceptance.
+func (s *TaskActivityProductMetricsRoi) GetExtraTokensBeforeAcceptance() int {
+	return s.ExtraTokensBeforeAcceptance
+}
+
+// GetTokensPerAcceptedTask returns the value of TokensPerAcceptedTask.
+func (s *TaskActivityProductMetricsRoi) GetTokensPerAcceptedTask() NilFloat64 {
+	return s.TokensPerAcceptedTask
+}
+
+// GetTotalInputTokens returns the value of TotalInputTokens.
+func (s *TaskActivityProductMetricsRoi) GetTotalInputTokens() int {
+	return s.TotalInputTokens
+}
+
+// GetTotalOutputTokens returns the value of TotalOutputTokens.
+func (s *TaskActivityProductMetricsRoi) GetTotalOutputTokens() int {
+	return s.TotalOutputTokens
+}
+
+// GetTotalTokens returns the value of TotalTokens.
+func (s *TaskActivityProductMetricsRoi) GetTotalTokens() int {
+	return s.TotalTokens
+}
+
+// SetAcceptedTasksPerThousandTokens sets the value of AcceptedTasksPerThousandTokens.
+func (s *TaskActivityProductMetricsRoi) SetAcceptedTasksPerThousandTokens(val NilFloat64) {
+	s.AcceptedTasksPerThousandTokens = val
+}
+
+// SetExtraAttemptCount sets the value of ExtraAttemptCount.
+func (s *TaskActivityProductMetricsRoi) SetExtraAttemptCount(val int) {
+	s.ExtraAttemptCount = val
+}
+
+// SetExtraTokensBeforeAcceptance sets the value of ExtraTokensBeforeAcceptance.
+func (s *TaskActivityProductMetricsRoi) SetExtraTokensBeforeAcceptance(val int) {
+	s.ExtraTokensBeforeAcceptance = val
+}
+
+// SetTokensPerAcceptedTask sets the value of TokensPerAcceptedTask.
+func (s *TaskActivityProductMetricsRoi) SetTokensPerAcceptedTask(val NilFloat64) {
+	s.TokensPerAcceptedTask = val
+}
+
+// SetTotalInputTokens sets the value of TotalInputTokens.
+func (s *TaskActivityProductMetricsRoi) SetTotalInputTokens(val int) {
+	s.TotalInputTokens = val
+}
+
+// SetTotalOutputTokens sets the value of TotalOutputTokens.
+func (s *TaskActivityProductMetricsRoi) SetTotalOutputTokens(val int) {
+	s.TotalOutputTokens = val
+}
+
+// SetTotalTokens sets the value of TotalTokens.
+func (s *TaskActivityProductMetricsRoi) SetTotalTokens(val int) {
+	s.TotalTokens = val
+}
+
+type TaskActivityProductMetricsSuccess struct {
+	AcceptedOutputRate            float64 `json:"acceptedOutputRate"`
+	AcceptedTaskCount             int     `json:"acceptedTaskCount"`
+	FirstAttemptAcceptedRate      float64 `json:"firstAttemptAcceptedRate"`
+	FirstAttemptAcceptedTaskCount int     `json:"firstAttemptAcceptedTaskCount"`
+	RetryRecoveredTaskCount       int     `json:"retryRecoveredTaskCount"`
+	RetryRecoveryRate             float64 `json:"retryRecoveryRate"`
+	TaskCount                     int     `json:"taskCount"`
+	TerminalFailureRate           float64 `json:"terminalFailureRate"`
+	TerminalFailureTaskCount      int     `json:"terminalFailureTaskCount"`
+}
+
+// GetAcceptedOutputRate returns the value of AcceptedOutputRate.
+func (s *TaskActivityProductMetricsSuccess) GetAcceptedOutputRate() float64 {
+	return s.AcceptedOutputRate
+}
+
+// GetAcceptedTaskCount returns the value of AcceptedTaskCount.
+func (s *TaskActivityProductMetricsSuccess) GetAcceptedTaskCount() int {
+	return s.AcceptedTaskCount
+}
+
+// GetFirstAttemptAcceptedRate returns the value of FirstAttemptAcceptedRate.
+func (s *TaskActivityProductMetricsSuccess) GetFirstAttemptAcceptedRate() float64 {
+	return s.FirstAttemptAcceptedRate
+}
+
+// GetFirstAttemptAcceptedTaskCount returns the value of FirstAttemptAcceptedTaskCount.
+func (s *TaskActivityProductMetricsSuccess) GetFirstAttemptAcceptedTaskCount() int {
+	return s.FirstAttemptAcceptedTaskCount
+}
+
+// GetRetryRecoveredTaskCount returns the value of RetryRecoveredTaskCount.
+func (s *TaskActivityProductMetricsSuccess) GetRetryRecoveredTaskCount() int {
+	return s.RetryRecoveredTaskCount
+}
+
+// GetRetryRecoveryRate returns the value of RetryRecoveryRate.
+func (s *TaskActivityProductMetricsSuccess) GetRetryRecoveryRate() float64 {
+	return s.RetryRecoveryRate
+}
+
+// GetTaskCount returns the value of TaskCount.
+func (s *TaskActivityProductMetricsSuccess) GetTaskCount() int {
+	return s.TaskCount
+}
+
+// GetTerminalFailureRate returns the value of TerminalFailureRate.
+func (s *TaskActivityProductMetricsSuccess) GetTerminalFailureRate() float64 {
+	return s.TerminalFailureRate
+}
+
+// GetTerminalFailureTaskCount returns the value of TerminalFailureTaskCount.
+func (s *TaskActivityProductMetricsSuccess) GetTerminalFailureTaskCount() int {
+	return s.TerminalFailureTaskCount
+}
+
+// SetAcceptedOutputRate sets the value of AcceptedOutputRate.
+func (s *TaskActivityProductMetricsSuccess) SetAcceptedOutputRate(val float64) {
+	s.AcceptedOutputRate = val
+}
+
+// SetAcceptedTaskCount sets the value of AcceptedTaskCount.
+func (s *TaskActivityProductMetricsSuccess) SetAcceptedTaskCount(val int) {
+	s.AcceptedTaskCount = val
+}
+
+// SetFirstAttemptAcceptedRate sets the value of FirstAttemptAcceptedRate.
+func (s *TaskActivityProductMetricsSuccess) SetFirstAttemptAcceptedRate(val float64) {
+	s.FirstAttemptAcceptedRate = val
+}
+
+// SetFirstAttemptAcceptedTaskCount sets the value of FirstAttemptAcceptedTaskCount.
+func (s *TaskActivityProductMetricsSuccess) SetFirstAttemptAcceptedTaskCount(val int) {
+	s.FirstAttemptAcceptedTaskCount = val
+}
+
+// SetRetryRecoveredTaskCount sets the value of RetryRecoveredTaskCount.
+func (s *TaskActivityProductMetricsSuccess) SetRetryRecoveredTaskCount(val int) {
+	s.RetryRecoveredTaskCount = val
+}
+
+// SetRetryRecoveryRate sets the value of RetryRecoveryRate.
+func (s *TaskActivityProductMetricsSuccess) SetRetryRecoveryRate(val float64) {
+	s.RetryRecoveryRate = val
+}
+
+// SetTaskCount sets the value of TaskCount.
+func (s *TaskActivityProductMetricsSuccess) SetTaskCount(val int) {
+	s.TaskCount = val
+}
+
+// SetTerminalFailureRate sets the value of TerminalFailureRate.
+func (s *TaskActivityProductMetricsSuccess) SetTerminalFailureRate(val float64) {
+	s.TerminalFailureRate = val
+}
+
+// SetTerminalFailureTaskCount sets the value of TerminalFailureTaskCount.
+func (s *TaskActivityProductMetricsSuccess) SetTerminalFailureTaskCount(val int) {
+	s.TerminalFailureTaskCount = val
+}
+
 type TaskAllowedProfilesItem struct {
 	ProfileId uuid.UUID `json:"profileId"`
 }
@@ -50093,11 +50858,12 @@ func (s *ValidationProblemDetails) SetAdditionalProps(val ValidationProblemDetai
 	s.AdditionalProps = val
 }
 
-func (*ValidationProblemDetails) batchDeleteTasksRes()   {}
-func (*ValidationProblemDetails) completeTaskRes()       {}
-func (*ValidationProblemDetails) createTaskRes()         {}
-func (*ValidationProblemDetails) listTasksRes()          {}
-func (*ValidationProblemDetails) updateTaskMetadataRes() {}
+func (*ValidationProblemDetails) batchDeleteTasksRes()         {}
+func (*ValidationProblemDetails) completeTaskRes()             {}
+func (*ValidationProblemDetails) createTaskRes()               {}
+func (*ValidationProblemDetails) getTaskActivityAnalyticsRes() {}
+func (*ValidationProblemDetails) listTasksRes()                {}
+func (*ValidationProblemDetails) updateTaskMetadataRes()       {}
 
 type ValidationProblemDetailsAdditional map[string]jx.Raw
 

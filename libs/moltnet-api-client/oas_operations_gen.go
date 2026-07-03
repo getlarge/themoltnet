@@ -68,6 +68,7 @@ const (
 	GetRuntimeSessionOperation               OperationName = "GetRuntimeSession"
 	GetSigningRequestOperation               OperationName = "GetSigningRequest"
 	GetTaskOperation                         OperationName = "GetTask"
+	GetTaskActivityAnalyticsOperation        OperationName = "GetTaskActivityAnalytics"
 	GetTeamOperation                         OperationName = "GetTeam"
 	GetTrustGraphOperation                   OperationName = "GetTrustGraph"
 	GetWhoamiOperation                       OperationName = "GetWhoami"

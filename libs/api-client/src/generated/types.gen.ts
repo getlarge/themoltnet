@@ -2116,6 +2116,106 @@ export type Task = {
   title: string | null;
 };
 
+export type TaskActivityAnalyticsGroupBy =
+  | 'none'
+  | 'day'
+  | 'tag'
+  | 'taskType'
+  | 'profile'
+  | 'diary'
+  | 'agent'
+  | 'providerModel';
+
+export type TaskActivityAnalyticsQuery = {
+  claimedByAgentIds?: Array<string>;
+  completedAfter?: string;
+  completedBefore?: string;
+  diaryIds?: Array<string>;
+  groupBy?:
+    | 'none'
+    | 'day'
+    | 'tag'
+    | 'taskType'
+    | 'profile'
+    | 'diary'
+    | 'agent'
+    | 'providerModel';
+  profileIds?: Array<string>;
+  /**
+   * Repeated tags filter. Task must include all tags.
+   */
+  tags?: Array<string>;
+  taskTypes?: Array<string>;
+};
+
+export type TaskActivityAnalyticsResponse = {
+  groups: Array<{
+    key: string;
+    label: string;
+    metrics: TaskActivityProductMetrics;
+  }>;
+  overall: TaskActivityProductMetrics;
+  range: {
+    completedAfter: string;
+    completedBefore: string;
+  };
+  statsComplete: boolean;
+};
+
+export type TaskActivityProductMetrics = {
+  hurdles: {
+    abortedAttemptCount: number;
+    cancelledAttemptCount: number;
+    failedAttemptCount: number;
+    failedToolCallCount: number;
+    failedToolCallRate: number;
+    highFrictionAttemptCount: number;
+    retryAttemptCount: number;
+    timeoutAttemptCount: number;
+  };
+  knowledge: {
+    entryGetCount: number;
+    entrySearchCount: number;
+    knowledgeCallsPerAcceptedTask: number | null;
+    knowledgeToolCallCount: number;
+    packGetCount: number;
+  };
+  productivity: {
+    acceptedTasksPerDay: number;
+    attemptCount: number;
+    averageAttemptsPerAcceptedTask: number | null;
+    medianTimeToAcceptedMs: number | null;
+    medianToolCallsPerAttempt: number | null;
+    medianTurnsPerAttempt: number | null;
+  };
+  raw: {
+    failedToolCallCount: number;
+    messageCount: number;
+    toolCallCount: number;
+    turnCount: number;
+  };
+  roi: {
+    acceptedTasksPerThousandTokens: number | null;
+    extraAttemptCount: number;
+    extraTokensBeforeAcceptance: number;
+    tokensPerAcceptedTask: number | null;
+    totalInputTokens: number;
+    totalOutputTokens: number;
+    totalTokens: number;
+  };
+  success: {
+    acceptedOutputRate: number;
+    acceptedTaskCount: number;
+    firstAttemptAcceptedRate: number;
+    firstAttemptAcceptedTaskCount: number;
+    retryRecoveredTaskCount: number;
+    retryRecoveryRate: number;
+    taskCount: number;
+    terminalFailureRate: number;
+    terminalFailureTaskCount: number;
+  };
+};
+
 export type TaskArtifact = {
   attemptN: number;
   cid: string;
@@ -9433,6 +9533,67 @@ export type CreateTaskResponses = {
 };
 
 export type CreateTaskResponse = CreateTaskResponses[keyof CreateTaskResponses];
+
+export type GetTaskActivityAnalyticsData = {
+  body?: never;
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path?: never;
+  query?: {
+    completedAfter?: string;
+    completedBefore?: string;
+    /**
+     * Repeated tags filter. Task must include all tags.
+     */
+    tags?: Array<string>;
+    taskTypes?: Array<string>;
+    profileIds?: Array<string>;
+    diaryIds?: Array<string>;
+    claimedByAgentIds?: Array<string>;
+    groupBy?:
+      | 'none'
+      | 'day'
+      | 'tag'
+      | 'taskType'
+      | 'profile'
+      | 'diary'
+      | 'agent'
+      | 'providerModel';
+  };
+  url: '/tasks/analytics/activity';
+};
+
+export type GetTaskActivityAnalyticsErrors = {
+  /**
+   * Default Response
+   */
+  400: ValidationProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+};
+
+export type GetTaskActivityAnalyticsError =
+  GetTaskActivityAnalyticsErrors[keyof GetTaskActivityAnalyticsErrors];
+
+export type GetTaskActivityAnalyticsResponses = {
+  /**
+   * Default Response
+   */
+  200: TaskActivityAnalyticsResponse;
+};
+
+export type GetTaskActivityAnalyticsResponse =
+  GetTaskActivityAnalyticsResponses[keyof GetTaskActivityAnalyticsResponses];
 
 export type ListTaskSchemasData = {
   body?: never;

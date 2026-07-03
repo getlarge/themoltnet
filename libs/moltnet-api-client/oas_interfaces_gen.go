@@ -229,6 +229,10 @@ type GetSigningRequestRes interface {
 	getSigningRequestRes()
 }
 
+type GetTaskActivityAnalyticsRes interface {
+	getTaskActivityAnalyticsRes()
+}
+
 type GetTaskRes interface {
 	getTaskRes()
 }

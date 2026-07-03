@@ -584,6 +584,16 @@ func (UnimplementedHandler) GetTask(ctx context.Context, params GetTaskParams) (
 	return r, ht.ErrNotImplemented
 }
 
+// GetTaskActivityAnalytics implements getTaskActivityAnalytics operation.
+//
+// Return bounded product analytics for task attempts: success, productivity, hurdles, knowledge
+// leverage, and token-efficiency ROI proxies.
+//
+// GET /tasks/analytics/activity
+func (UnimplementedHandler) GetTaskActivityAnalytics(ctx context.Context, params GetTaskActivityAnalyticsParams) (r GetTaskActivityAnalyticsRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // GetTeam implements getTeam operation.
 //
 // Get team details. Requires team access.

@@ -393,6 +393,13 @@ type Handler interface {
 	//
 	// GET /tasks/{id}
 	GetTask(ctx context.Context, params GetTaskParams) (GetTaskRes, error)
+	// GetTaskActivityAnalytics implements getTaskActivityAnalytics operation.
+	//
+	// Return bounded product analytics for task attempts: success, productivity, hurdles, knowledge
+	// leverage, and token-efficiency ROI proxies.
+	//
+	// GET /tasks/analytics/activity
+	GetTaskActivityAnalytics(ctx context.Context, params GetTaskActivityAnalyticsParams) (GetTaskActivityAnalyticsRes, error)
 	// GetTeam implements getTeam operation.
 	//
 	// Get team details. Requires team access.
