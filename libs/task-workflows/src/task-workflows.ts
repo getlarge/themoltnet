@@ -231,6 +231,20 @@ export function initTaskWorkflows(): void {
     { name: 'task.step.removeClaimantTuple', ...stepConfig },
   );
 
+  const recomputeAttemptActivityStatsStep = DBOS.registerStep(
+    async (taskId: string, attemptN: number): Promise<void> => {
+      await getDeps().recomputeAttemptActivityStats(taskId, attemptN);
+    },
+    { name: 'task.step.recomputeAttemptActivityStats', ...stepConfig },
+  );
+
+  const findTaskByIdStep = DBOS.registerStep(
+    async (taskId: string): Promise<Task | null> => {
+      return getDeps().findTaskById(taskId);
+    },
+    { name: 'task.step.findTaskById', ...stepConfig },
+  );
+
   // Returns wall-clock now() as a recorded value. DBOS replays the
   // workflow body on recovery; bare Date.now() reads recovery time, not
   // original start time, which would silently extend the running budget
@@ -299,7 +313,7 @@ export function initTaskWorkflows(): void {
         // running-timeout branches both call this, then preserve task
         // status while still recording the attempt outcome.
         const checkExternalTerminal = async () => {
-          const taskNow = await getDeps().findTaskById(taskId);
+          const taskNow = await findTaskByIdStep(taskId);
           const isTerminal =
             taskNow !== null &&
             (taskNow.status === 'cancelled' ||
@@ -370,7 +384,7 @@ export function initTaskWorkflows(): void {
           // checkExternalTerminal snapshot and the tx commit (#949). The
           // updateTaskStatusIfNotIn above already preserved a cancelled
           // row; the workflow's reported finalStatus needs to match.
-          const postTask = await getDeps().findTaskById(taskId);
+          const postTask = await findTaskByIdStep(taskId);
           const finalStatus: TaskAttemptFinalEvent['status'] =
             firstEvent?.kind === 'cancelled'
               ? 'cancelled'
@@ -383,7 +397,7 @@ export function initTaskWorkflows(): void {
           if (finalStatus !== 'cancelled') {
             await removeClaimantTupleStep(taskId, agentId);
           }
-          await getDeps().recomputeAttemptActivityStats(taskId, attemptN);
+          await recomputeAttemptActivityStatsStep(taskId, attemptN);
           const event: TaskAttemptFinalEvent = {
             status: finalStatus,
             taskId,
@@ -554,7 +568,7 @@ export function initTaskWorkflows(): void {
           if (evt.kind !== 'cancelled') {
             await removeClaimantTupleStep(taskId, agentId);
           }
-          await getDeps().recomputeAttemptActivityStats(taskId, attemptN);
+          await recomputeAttemptActivityStatsStep(taskId, attemptN);
           const event: TaskAttemptFinalEvent =
             evt.kind === 'completed'
               ? { status: 'completed', taskId, attemptN, output: evt.output }
@@ -602,13 +616,13 @@ export function initTaskWorkflows(): void {
           // timed_out. The orphan-recovery sweeper (#937) cleans up the
           // tuple later for the cancelled case; we only remove it on a
           // confirmed timeout.
-          const postTask = await getDeps().findTaskById(taskId);
+          const postTask = await findTaskByIdStep(taskId);
           const finalStatus: TaskAttemptFinalEvent['status'] =
             postTask?.status === 'cancelled' ? 'cancelled' : 'timed_out';
           if (finalStatus !== 'cancelled') {
             await removeClaimantTupleStep(taskId, agentId);
           }
-          await getDeps().recomputeAttemptActivityStats(taskId, attemptN);
+          await recomputeAttemptActivityStatsStep(taskId, attemptN);
           const event: TaskAttemptFinalEvent = {
             status: finalStatus,
             taskId,
