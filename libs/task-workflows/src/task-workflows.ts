@@ -1,7 +1,10 @@
 import { DBOS } from '@dbos-inc/dbos-sdk';
-
-import type { DataSource } from '../dbos.js';
-import type { NewTaskAttempt, Task, TaskAttempt } from '../schema.js';
+import type {
+  DataSource,
+  NewTaskAttempt,
+  Task,
+  TaskAttempt,
+} from '@moltnet/database';
 
 /**
  * Discriminated event sent from the HTTP layer (heartbeat / complete /
@@ -77,6 +80,10 @@ export interface TaskWorkflowDeps {
       >
     >,
   ): Promise<TaskAttempt | null>;
+  recomputeAttemptActivityStats(
+    taskId: string,
+    attemptN: number,
+  ): Promise<void>;
   updateTaskStatus(
     taskId: string,
     status: Task['status'],
@@ -376,6 +383,7 @@ export function initTaskWorkflows(): void {
           if (finalStatus !== 'cancelled') {
             await removeClaimantTupleStep(taskId, agentId);
           }
+          await getDeps().recomputeAttemptActivityStats(taskId, attemptN);
           const event: TaskAttemptFinalEvent = {
             status: finalStatus,
             taskId,
@@ -546,6 +554,7 @@ export function initTaskWorkflows(): void {
           if (evt.kind !== 'cancelled') {
             await removeClaimantTupleStep(taskId, agentId);
           }
+          await getDeps().recomputeAttemptActivityStats(taskId, attemptN);
           const event: TaskAttemptFinalEvent =
             evt.kind === 'completed'
               ? { status: 'completed', taskId, attemptN, output: evt.output }
@@ -599,6 +608,7 @@ export function initTaskWorkflows(): void {
           if (finalStatus !== 'cancelled') {
             await removeClaimantTupleStep(taskId, agentId);
           }
+          await getDeps().recomputeAttemptActivityStats(taskId, attemptN);
           const event: TaskAttemptFinalEvent = {
             status: finalStatus,
             taskId,

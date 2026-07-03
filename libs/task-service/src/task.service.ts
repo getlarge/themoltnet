@@ -22,9 +22,9 @@ import {
   type RuntimeProfileRepository,
   type Task as DbTask,
   type TaskRepository,
-  taskWorkflows,
   type TransactionRunner,
 } from '@moltnet/database';
+import { taskWorkflows } from '@moltnet/task-workflows';
 import {
   type AsyncTaskValidationContext,
   BUILT_IN_TASK_TYPES,
@@ -186,7 +186,7 @@ export interface CreateTaskInput {
   // Proposer-set timeout overrides (seconds). Undefined → server
   // defaults (DEFAULT_DISPATCH_TIMEOUT_SECONDS /
   // DEFAULT_RUNNING_TIMEOUT_SECONDS in
-  // libs/database/src/workflows/task-workflows.ts).
+  // libs/task-workflows/src/task-workflows.ts).
   dispatchTimeoutSec?: number;
   runningTimeoutSec?: number;
   callerId: string;

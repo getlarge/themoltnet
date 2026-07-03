@@ -21,6 +21,9 @@
   "include": ["src/**/*.ts"],
   "references": [
     {
+      "path": "../task-workflows/tsconfig.lib.json"
+    },
+    {
       "path": "../tasks/tsconfig.lib.json"
     },
     {
