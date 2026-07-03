@@ -25,18 +25,25 @@ import (
 type stubTasksHandler struct {
 	moltnetapi.UnimplementedHandler
 
-	listCalls                  int
-	listParams                 moltnetapi.ListTasksParams
-	getCalls                   int
-	getParams                  moltnetapi.GetTaskParams
-	listTaskArtifactsCalls     int
-	listTaskArtifactsParams    moltnetapi.ListTaskArtifactsParams
-	uploadTaskArtifactCalls    int
-	uploadTaskArtifactParams   moltnetapi.UploadTaskArtifactParams
-	uploadTaskArtifactBody     string
-	downloadTaskArtifactCalls  int
-	downloadTaskArtifactParams moltnetapi.DownloadTaskArtifactParams
-	responseTaskID             uuid.UUID
+	listCalls                    int
+	listParams                   moltnetapi.ListTasksParams
+	getCalls                     int
+	getParams                    moltnetapi.GetTaskParams
+	listTaskArtifactsCalls       int
+	listTaskArtifactsParams      moltnetapi.ListTaskArtifactsParams
+	uploadTaskArtifactCalls      int
+	uploadTaskArtifactParams     moltnetapi.UploadTaskArtifactParams
+	uploadTaskArtifactBody       string
+	downloadTaskArtifactCalls    int
+	downloadTaskArtifactParams   moltnetapi.DownloadTaskArtifactParams
+	getRuntimeSessionCalls       int
+	getRuntimeSessionParams      moltnetapi.GetRuntimeSessionParams
+	uploadRuntimeSessionCalls    int
+	uploadRuntimeSessionParams   moltnetapi.UploadRuntimeSessionParams
+	uploadRuntimeSessionBody     string
+	downloadRuntimeSessionCalls  int
+	downloadRuntimeSessionParams moltnetapi.DownloadRuntimeSessionParams
+	responseTaskID               uuid.UUID
 }
 
 func (h *stubTasksHandler) ListTasks(_ context.Context, params moltnetapi.ListTasksParams) (moltnetapi.ListTasksRes, error) {
@@ -90,6 +97,31 @@ func (h *stubTasksHandler) DownloadTaskArtifact(_ context.Context, params moltne
 	}, nil
 }
 
+func (h *stubTasksHandler) GetRuntimeSession(_ context.Context, params moltnetapi.GetRuntimeSessionParams) (moltnetapi.GetRuntimeSessionRes, error) {
+	h.getRuntimeSessionCalls++
+	h.getRuntimeSessionParams = params
+	return newGetRuntimeSessionFixture(params.TaskId, params.XMoltnetTeamID, params.AttemptN), nil
+}
+
+func (h *stubTasksHandler) UploadRuntimeSession(_ context.Context, req moltnetapi.UploadRuntimeSessionReq, params moltnetapi.UploadRuntimeSessionParams) (moltnetapi.UploadRuntimeSessionRes, error) {
+	h.uploadRuntimeSessionCalls++
+	h.uploadRuntimeSessionParams = params
+	body, err := io.ReadAll(req.Data)
+	if err != nil {
+		return nil, err
+	}
+	h.uploadRuntimeSessionBody = string(body)
+	return newUploadRuntimeSessionFixture(params.TaskId, params.XMoltnetTeamID, params.AttemptN, params.SessionKind), nil
+}
+
+func (h *stubTasksHandler) DownloadRuntimeSession(_ context.Context, params moltnetapi.DownloadRuntimeSessionParams) (moltnetapi.DownloadRuntimeSessionRes, error) {
+	h.downloadRuntimeSessionCalls++
+	h.downloadRuntimeSessionParams = params
+	return &moltnetapi.DownloadRuntimeSessionOK{
+		Data: strings.NewReader(`{"type":"session"}` + "\n"),
+	}, nil
+}
+
 func newTaskFixture(taskID, teamID uuid.UUID) *moltnetapi.Task {
 	if taskID == uuid.Nil {
 		taskID = uuid.MustParse("11111111-1111-4111-8111-111111111111")
@@ -125,6 +157,50 @@ func newTaskFixture(taskID, teamID uuid.UUID) *moltnetapi.Task {
 	t.ProposedByHumanId.SetToNull()
 	t.RunningTimeoutSec.SetToNull()
 	return t
+}
+
+func newGetRuntimeSessionFixture(taskID, teamID uuid.UUID, attemptN int) *moltnetapi.GetRuntimeSessionOK {
+	return &moltnetapi.GetRuntimeSessionOK{
+		ID:             uuid.MustParse("77777777-7777-4777-8777-777777777777"),
+		TeamId:         teamID,
+		TaskId:         taskID,
+		AttemptN:       attemptN,
+		CheckpointKind: moltnetapi.NewGetRuntimeSessionOKCheckpointKind0GetRuntimeSessionOKCheckpointKind(moltnetapi.GetRuntimeSessionOKCheckpointKind0AttemptFinal),
+		ContentEncoding: moltnetapi.NilString{
+			Null: true,
+		},
+		ContentType:            "application/x-ndjson",
+		ParentSessionId:        moltnetapi.NilUUID{Null: true},
+		SessionKind:            moltnetapi.GetRuntimeSessionOKSessionKindRoot,
+		SHA256:                 "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+		SizeBytes:              19,
+		SourceRuntimeProfileId: moltnetapi.NilUUID{Null: true},
+		SourceSlotId:           moltnetapi.NilUUID{Null: true},
+		StorageClass:           "local",
+		UploadedAt:             time.Date(2026, 5, 11, 12, 2, 0, 0, time.UTC),
+	}
+}
+
+func newUploadRuntimeSessionFixture(taskID, teamID uuid.UUID, attemptN int, sessionKind moltnetapi.UploadRuntimeSessionSessionKind) *moltnetapi.UploadRuntimeSessionOK {
+	return &moltnetapi.UploadRuntimeSessionOK{
+		ID:             uuid.MustParse("77777777-7777-4777-8777-777777777777"),
+		TeamId:         teamID,
+		TaskId:         taskID,
+		AttemptN:       attemptN,
+		CheckpointKind: moltnetapi.NewUploadRuntimeSessionOKCheckpointKind0UploadRuntimeSessionOKCheckpointKind(moltnetapi.UploadRuntimeSessionOKCheckpointKind0AttemptFinal),
+		ContentEncoding: moltnetapi.NilString{
+			Null: true,
+		},
+		ContentType:            "application/x-ndjson",
+		ParentSessionId:        moltnetapi.NilUUID{Null: true},
+		SessionKind:            moltnetapi.UploadRuntimeSessionOKSessionKind(sessionKind),
+		SHA256:                 "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+		SizeBytes:              19,
+		SourceRuntimeProfileId: moltnetapi.NilUUID{Null: true},
+		SourceSlotId:           moltnetapi.NilUUID{Null: true},
+		StorageClass:           "local",
+		UploadedAt:             time.Date(2026, 5, 11, 12, 2, 0, 0, time.UTC),
+	}
 }
 
 func newTaskArtifactFixture(taskID, teamID uuid.UUID, attemptN int, cid string) moltnetapi.ListTaskArtifactsOKArtifactsItem {
@@ -605,6 +681,138 @@ func TestRunTaskArtifactsUploadRejectsInvalidAttempt(t *testing.T) {
 	}
 	if h.uploadTaskArtifactCalls != 0 {
 		t.Errorf("request should not be made on validation failure, got %d calls", h.uploadTaskArtifactCalls)
+	}
+}
+
+func TestRunTaskRuntimeSessionGet(t *testing.T) {
+	h := &stubTasksHandler{}
+	_, _, client := newTestServer(t, h)
+	var out bytes.Buffer
+
+	err := runTaskRuntimeSessionGetWithClient(context.Background(), client, taskRuntimeSessionGetOpts{
+		taskID:   "11111111-1111-4111-8111-111111111111",
+		teamID:   "22222222-2222-4222-8222-222222222222",
+		attemptN: 4,
+		out:      &out,
+	})
+	if err != nil {
+		t.Fatalf("runTaskRuntimeSessionGetWithClient: %v", err)
+	}
+
+	if h.getRuntimeSessionCalls != 1 {
+		t.Fatalf("expected one get runtime session call, got %d", h.getRuntimeSessionCalls)
+	}
+	if h.getRuntimeSessionParams.TaskId.String() != "11111111-1111-4111-8111-111111111111" {
+		t.Errorf("TaskId = %s", h.getRuntimeSessionParams.TaskId)
+	}
+	if h.getRuntimeSessionParams.XMoltnetTeamID.String() != "22222222-2222-4222-8222-222222222222" {
+		t.Errorf("XMoltnetTeamID = %s", h.getRuntimeSessionParams.XMoltnetTeamID)
+	}
+	if h.getRuntimeSessionParams.AttemptN != 4 {
+		t.Errorf("AttemptN = %d, want 4", h.getRuntimeSessionParams.AttemptN)
+	}
+	if !strings.Contains(out.String(), `"sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"`) {
+		t.Errorf("output should contain runtime session metadata, got: %s", out.String())
+	}
+}
+
+func TestRunTaskRuntimeSessionUploadStreamsFile(t *testing.T) {
+	h := &stubTasksHandler{}
+	_, _, client := newTestServer(t, h)
+	dir := t.TempDir()
+	path := filepath.Join(dir, "session.jsonl")
+	if err := os.WriteFile(path, []byte(`{"type":"session"}`+"\n"), 0o600); err != nil {
+		t.Fatalf("write session fixture: %v", err)
+	}
+	var out bytes.Buffer
+
+	err := runTaskRuntimeSessionUploadWithClient(context.Background(), client, taskRuntimeSessionUploadOpts{
+		taskID:                 "11111111-1111-4111-8111-111111111111",
+		teamID:                 "22222222-2222-4222-8222-222222222222",
+		attemptN:               5,
+		sessionKind:            "extend",
+		file:                   path,
+		parentSessionID:        "33333333-3333-4333-8333-333333333333",
+		sourceSlotID:           "44444444-4444-4444-8444-444444444444",
+		sourceRuntimeProfileID: "55555555-5555-4555-8555-555555555555",
+		out:                    &out,
+	})
+	if err != nil {
+		t.Fatalf("runTaskRuntimeSessionUploadWithClient: %v", err)
+	}
+
+	if h.uploadRuntimeSessionCalls != 1 {
+		t.Fatalf("expected one upload runtime session call, got %d", h.uploadRuntimeSessionCalls)
+	}
+	if h.uploadRuntimeSessionBody != "{\"type\":\"session\"}\n" {
+		t.Errorf("uploaded body = %q", h.uploadRuntimeSessionBody)
+	}
+	if h.uploadRuntimeSessionParams.AttemptN != 5 {
+		t.Errorf("AttemptN = %d, want 5", h.uploadRuntimeSessionParams.AttemptN)
+	}
+	if h.uploadRuntimeSessionParams.SessionKind != moltnetapi.UploadRuntimeSessionSessionKindExtend {
+		t.Errorf("SessionKind = %q", h.uploadRuntimeSessionParams.SessionKind)
+	}
+	if got, ok := h.uploadRuntimeSessionParams.ParentSessionId.Get(); !ok || got.String() != "33333333-3333-4333-8333-333333333333" {
+		t.Errorf("ParentSessionId = (%s,%v)", got, ok)
+	}
+	if got, ok := h.uploadRuntimeSessionParams.SourceSlotId.Get(); !ok || got.String() != "44444444-4444-4444-8444-444444444444" {
+		t.Errorf("SourceSlotId = (%s,%v)", got, ok)
+	}
+	if got, ok := h.uploadRuntimeSessionParams.SourceRuntimeProfileId.Get(); !ok || got.String() != "55555555-5555-4555-8555-555555555555" {
+		t.Errorf("SourceRuntimeProfileId = (%s,%v)", got, ok)
+	}
+	if !strings.Contains(out.String(), `"sessionKind": "extend"`) {
+		t.Errorf("output should contain uploaded session metadata, got: %s", out.String())
+	}
+}
+
+func TestRunTaskRuntimeSessionDownloadWritesBytes(t *testing.T) {
+	h := &stubTasksHandler{}
+	_, _, client := newTestServer(t, h)
+	var out bytes.Buffer
+
+	err := runTaskRuntimeSessionDownloadWithClient(context.Background(), client, taskRuntimeSessionDownloadOpts{
+		taskID:   "11111111-1111-4111-8111-111111111111",
+		teamID:   "22222222-2222-4222-8222-222222222222",
+		attemptN: 6,
+		outFile:  "-",
+		out:      &out,
+	})
+	if err != nil {
+		t.Fatalf("runTaskRuntimeSessionDownloadWithClient: %v", err)
+	}
+
+	if h.downloadRuntimeSessionCalls != 1 {
+		t.Fatalf("expected one download runtime session call, got %d", h.downloadRuntimeSessionCalls)
+	}
+	if h.downloadRuntimeSessionParams.AttemptN != 6 {
+		t.Errorf("AttemptN = %d, want 6", h.downloadRuntimeSessionParams.AttemptN)
+	}
+	if out.String() != "{\"type\":\"session\"}\n" {
+		t.Errorf("downloaded bytes = %q", out.String())
+	}
+}
+
+func TestRunTaskRuntimeSessionUploadRejectsInvalidSessionKind(t *testing.T) {
+	h := &stubTasksHandler{}
+	_, _, client := newTestServer(t, h)
+
+	err := runTaskRuntimeSessionUploadWithClient(context.Background(), client, taskRuntimeSessionUploadOpts{
+		taskID:      "11111111-1111-4111-8111-111111111111",
+		teamID:      "22222222-2222-4222-8222-222222222222",
+		attemptN:    1,
+		sessionKind: "sideways",
+		file:        "-",
+	})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "--session-kind must be one of root, extend, fork") {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if h.uploadRuntimeSessionCalls != 0 {
+		t.Errorf("request should not be made on validation failure, got %d calls", h.uploadRuntimeSessionCalls)
 	}
 }
 
