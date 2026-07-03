@@ -13,7 +13,6 @@
  */
 import { spawn } from 'node:child_process';
 import {
-  copyFileSync,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -34,6 +33,7 @@ const exampleFlowFile = resolve(
 );
 const devFlowFile = resolve(userDir, 'flows.json');
 const exampleTabId = 'deep_review_tab';
+const refreshExampleFlow = process.env.MOLTNET_NODE_RED_REFRESH_EXAMPLE === '1';
 const port = process.env.PORT ?? '1880';
 
 const themeEntry = resolve(themePkgDir, 'dist/index.js');
@@ -53,9 +53,6 @@ const editorTheme = moltnetEditorTheme({
 // 1. Mark the userDir as CommonJS so Node-RED's settings.js loads
 //    (this package is "type":"module", which would otherwise leak in).
 mkdirSync(userDir, { recursive: true });
-if (!existsSync(devFlowFile)) {
-  copyFileSync(exampleFlowFile, devFlowFile);
-}
 writeFileSync(
   resolve(userDir, 'package.json'),
   JSON.stringify(
@@ -67,29 +64,94 @@ writeFileSync(
 writeFileSync(
   resolve(userDir, 'settings.js'),
   `module.exports = ${JSON.stringify(
-    { editorTheme, flowFile: 'flows.json', flowFilePretty: true },
+    {
+      editorTheme,
+      flowFile: 'flows.json',
+      flowFilePretty: true,
+      contextStorage: {
+        default: {
+          module: 'localfilesystem',
+        },
+      },
+    },
     null,
     2,
   )};\n`,
 );
 
 let syncTimer;
+const isExampleNode = (node) =>
+  node.id === exampleTabId ||
+  node.z === exampleTabId ||
+  (typeof node.id === 'string' && node.id.startsWith('deep_review_'));
+
 const extractExampleFlow = (flow) => {
   if (!Array.isArray(flow)) {
     throw new Error('Node-RED flow file must contain an array');
   }
 
-  const extracted = flow.filter(
-    (node) =>
-      node.id === exampleTabId ||
-      node.z === exampleTabId ||
-      (typeof node.id === 'string' && node.id.startsWith('deep_review_')),
-  );
+  const extracted = flow.filter(isExampleNode);
   if (!extracted.some((node) => node.id === exampleTabId)) {
     throw new Error(`Cannot find ${exampleTabId} in Node-RED flow file`);
   }
   return extracted;
 };
+
+const syncExampleToDevFlow = (reason) => {
+  const exampleFlow = extractExampleFlow(
+    JSON.parse(readFileSync(exampleFlowFile, 'utf8')),
+  );
+  const devFlow = existsSync(devFlowFile)
+    ? JSON.parse(readFileSync(devFlowFile, 'utf8'))
+    : [];
+  if (!Array.isArray(devFlow)) {
+    throw new Error('Node-RED dev flow file must contain an array');
+  }
+
+  const nextDevFlow = [
+    ...devFlow.filter((node) => !isExampleNode(node)),
+    ...exampleFlow,
+  ];
+  writeFileSync(devFlowFile, `${JSON.stringify(nextDevFlow, null, 2)}\n`);
+  console.log(
+    `▸ refreshed ${exampleTabId} from ${exampleFlowFile} (${reason})`,
+  );
+};
+
+const warnIfDevFlowIsBehindExample = () => {
+  try {
+    const exampleFlow = extractExampleFlow(
+      JSON.parse(readFileSync(exampleFlowFile, 'utf8')),
+    );
+    const devFlow = extractExampleFlow(
+      JSON.parse(readFileSync(devFlowFile, 'utf8')),
+    );
+    const devIds = new Set(devFlow.map((node) => node.id));
+    const missingIds = exampleFlow
+      .map((node) => node.id)
+      .filter((id) => !devIds.has(id));
+
+    if (missingIds.length > 0) {
+      console.warn(
+        `⚠ ${exampleTabId} in ${devFlowFile} is missing ` +
+          `${missingIds.length} example node(s): ` +
+          `${missingIds.slice(0, 8).join(', ')}. ` +
+          'Preserving the live Node-RED canvas. Restart with ' +
+          'MOLTNET_NODE_RED_REFRESH_EXAMPLE=1 to replace it from the example.',
+      );
+    }
+  } catch (error) {
+    console.warn(`⚠ failed to compare Node-RED flow: ${error.message}`);
+  }
+};
+
+if (!existsSync(devFlowFile)) {
+  syncExampleToDevFlow('missing dev flow');
+} else if (refreshExampleFlow) {
+  syncExampleToDevFlow('MOLTNET_NODE_RED_REFRESH_EXAMPLE=1');
+} else {
+  warnIfDevFlowIsBehindExample();
+}
 
 const syncFlowToExample = () => {
   clearTimeout(syncTimer);

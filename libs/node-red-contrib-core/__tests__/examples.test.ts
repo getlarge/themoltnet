@@ -35,6 +35,34 @@ function byId(flow: FlowNode[]): Map<string, FlowNode> {
 }
 
 describe('example flows', () => {
+  it('configures the Node-RED dev runner with filesystem flow context', () => {
+    const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+    const devRunner = readFileSync(resolve(root, 'scripts/dev.mjs'), 'utf8');
+
+    expect(devRunner).toContain('contextStorage');
+    expect(devRunner).toContain('localfilesystem');
+    expect(devRunner).toContain('syncExampleToDevFlow');
+    expect(devRunner).toContain('MOLTNET_NODE_RED_REFRESH_EXAMPLE');
+    expect(devRunner).toContain('Preserving the live Node-RED canvas');
+  });
+
+  it('does not prescribe arbitrary deep-review runtime tuning values', () => {
+    const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+    const readme = readFileSync(resolve(root, 'README.md'), 'utf8');
+    const deepReviewSection = readme.slice(
+      readme.indexOf('## Freeform deep review workflow'),
+      readme.indexOf('## Development with Node-RED 5'),
+    );
+
+    expect(deepReviewSection).toContain(
+      'intentionally avoids prescribing `maxTurns`',
+    );
+    expect(deepReviewSection).not.toContain('maxOutputTokens=');
+    expect(deepReviewSection).not.toContain('temperature=');
+    expect(deepReviewSection).not.toContain('thinkingLevel=');
+    expect(deepReviewSection).not.toContain('maxBashTimeouts=');
+  });
+
   it('keeps the deep-review flow on builder/gate/error-handling patterns', () => {
     const flow = loadExample('deep-review-freeform.flow.json');
     const nodes = byId(flow);
@@ -60,6 +88,18 @@ describe('example flows', () => {
     expect(nodes.get('deep_review_lane_specialists')?.name).toBe(
       '4. Specialist fan-out',
     );
+    expect(nodes.get('deep_review_profile_freeze')?.profileName).toBe(
+      'deep-review-freeze-v1',
+    );
+    expect(nodes.get('deep_review_profile_preflight')?.profileName).toBe(
+      'deep-review-preflight-v1',
+    );
+    expect(nodes.get('deep_review_profile_specialist')?.profileName).toBe(
+      'deep-review-specialist-v1',
+    );
+    expect(nodes.get('deep_review_profile_aggregate')?.profileName).toBe(
+      'deep-review-aggregate-v1',
+    );
     expect(nodes.get('deep_review_lane_outputs')?.info).toContain(
       'collected through links',
     );
@@ -67,7 +107,7 @@ describe('example flows', () => {
     expect(nodes.has('deep_review_debug_ask')).toBe(false);
     expect(nodes.get('deep_review_switch_preflight')?.outputs).toBe(3);
     expect(nodes.get('deep_review_switch_preflight')?.wires).toEqual([
-      ['deep_review_build_pivot_publish'],
+      ['0e5bc273a0b26717'],
       ['deep_review_dimensions_payload'],
       ['deep_review_dimensions_payload'],
     ]);
@@ -80,7 +120,7 @@ describe('example flows', () => {
       ],
       [
         'preflight',
-        'deep_review_read_preflight',
+        'deep_review_stash_preflight_snapshot',
         'deep_review_preflight_failure_link_out',
       ],
       [
@@ -135,13 +175,64 @@ describe('example flows', () => {
       [
         'deep_review_bundle_ready_link_out',
         'deep_review_list_freeze_artifacts',
+        'deep_review_get_freeze_session',
       ],
     ]);
+    expect(nodes.get('deep_review_lane_bundle_artifacts')?.name).toBe(
+      'Review bundle and runtime sessions',
+    );
+    expect(nodes.get('deep_review_lane_bundle_artifacts')?.info).toContain(
+      'runtime-session metadata',
+    );
+    expect(nodes.get('deep_review_get_freeze_session')?.type).toBe(
+      'moltnet-runtime-session-get',
+    );
+    expect(nodes.get('deep_review_get_freeze_session')?.wires).toEqual([
+      ['deep_review_debug_runtime_session'],
+    ]);
+    expect(nodes.get('deep_review_stash_preflight_snapshot')?.wires).toEqual([
+      ['deep_review_read_preflight'],
+    ]);
+    expect(nodes.get('deep_review_stash_preflight')?.func).toContain(
+      'preflightAttemptN',
+    );
+    expect(nodes.get('deep_review_stash_preflight')?.wires).toEqual([
+      ['deep_review_switch_preflight', 'deep_review_get_preflight_session'],
+    ]);
+    expect(nodes.get('deep_review_get_preflight_session')?.type).toBe(
+      'moltnet-runtime-session-get',
+    );
+    expect(nodes.get('deep_review_get_preflight_session')?.wires).toEqual([
+      ['deep_review_debug_runtime_session'],
+    ]);
+    expect(nodes.get('deep_review_debug_runtime_session')?.type).toBe('debug');
     expect(nodes.get('deep_review_bundle_ready_link_out')?.links).toEqual([
       'deep_review_bundle_ready_link_in',
     ]);
+    expect(nodes.get('deep_review_bundle_ready_link_in')?.links).toEqual(
+      expect.arrayContaining([
+        'deep_review_bundle_ready_link_out',
+        '18a480760520ba5a',
+      ]),
+    );
     expect(nodes.get('deep_review_bundle_ready_link_in')?.wires).toEqual([
       ['deep_review_build_preflight'],
+    ]);
+    expect(nodes.get('16faf32e4fc42dce')?.wires).toEqual([
+      ['deep_review_build_pivot_publish'],
+    ]);
+    expect(nodes.get('16faf32e4fc42dce')?.links).toEqual(
+      expect.arrayContaining(['0e5bc273a0b26717', 'edcc698660d82265']),
+    );
+    expect(nodes.get('deep_review_dimensions_payload')?.wires).toEqual([
+      ['85888005a9fb88bc'],
+      ['791ab27471c4788e'],
+    ]);
+    expect(nodes.get('0bb7739dbe669278')?.wires).toEqual([
+      ['deep_review_build_specialist'],
+    ]);
+    expect(nodes.get('b3bb0fc6441c8e1c')?.wires).toEqual([
+      ['deep_review_build_aggregate'],
     ]);
     expect(nodes.get('deep_review_pack_specialist')?.wires).toEqual([
       ['deep_review_specialist_result_link_out'],
@@ -151,6 +242,9 @@ describe('example flows', () => {
     ]);
     expect(nodes.get('deep_review_specialist_result_link_in')?.wires).toEqual([
       ['deep_review_next_dimension'],
+    ]);
+    expect(nodes.get('deep_review_next_dimension')?.wires).toEqual([
+      ['121f5380eb3e3a9f'],
     ]);
     expect(nodes.get('deep_review_terminal_failure_link_in')?.links).toEqual(
       expect.arrayContaining([
@@ -193,6 +287,57 @@ describe('example flows', () => {
     expect(nodes.get('deep_review_done_link_in')?.links).toEqual(
       expect.arrayContaining(['deep_review_failure_done_link_out']),
     );
+    expect(nodes.get('deep_review_lane_retry')?.info).toContain(
+      'Filesystem-backed flow context',
+    );
+    expect(nodes.get('deep_review_retry_failed')?.wires).toEqual([
+      ['deep_review_load_retry_state'],
+    ]);
+    expect(nodes.get('deep_review_load_retry_state')?.outputs).toBe(4);
+    expect(nodes.get('deep_review_load_retry_state')?.outputLabels).toEqual([
+      'AGGREGATE',
+      'SPECIALIST',
+      'PREFLIGHT',
+      'PIVOT',
+    ]);
+    expect(nodes.get('deep_review_load_retry_state')?.func).toContain(
+      "flow.get('deepReview:lastCorrelationId')",
+    );
+    expect(nodes.get('deep_review_lane_retry')?.info).toContain(
+      'Retry creates a fresh task',
+    );
+    expect(nodes.get('deep_review_load_retry_state')?.wires).toEqual([
+      ['f25f51b3e15378ba'],
+      ['fac3b7976571600e'],
+      ['18a480760520ba5a'],
+      ['edcc698660d82265'],
+    ]);
+    for (const createId of [
+      'deep_review_create_freeze',
+      'deep_review_create_preflight',
+      'deep_review_create_pivot_publish',
+      'deep_review_create_specialist',
+      'deep_review_create_aggregate',
+    ]) {
+      expect(nodes.get(createId)?.maxAttempts).toBe(2);
+    }
+    expect(nodes.get('deep_review_pack_terminal_failure')?.func).toContain(
+      'deepReview:lastCorrelationId',
+    );
+
+    const positionedNodes = flow.filter(
+      (node) => node.id === 'deep_review_tab' || node.type !== undefined,
+    );
+    const positions = new Map<string, string[]>();
+    for (const node of positionedNodes) {
+      if (node.x === undefined || node.y === undefined) continue;
+      const key = `${node.x},${node.y}`;
+      positions.set(key, [...(positions.get(key) ?? []), node.id]);
+    }
+    const overlappingPositions = [...positions.values()].filter(
+      (ids) => ids.length > 1,
+    );
+    expect(overlappingPositions).toEqual([]);
   });
 
   it('keeps the A/B eval flow as a fan-out/fan-in workflow runner', () => {

@@ -20,7 +20,7 @@
     "id": "deep_review_profile_freeze",
     "name": "FREEZE profile",
     "profileId": "1a653eb9-7bfa-475f-b517-c070c9c25b5e",
-    "profileName": "deep-review-freeze-ollama-qwen-coder-v1",
+    "profileName": "deep-review-freeze-v1",
     "type": "moltnet-runtime-profile"
   },
   {
@@ -28,7 +28,7 @@
     "id": "deep_review_profile_preflight",
     "name": "PREFLIGHT profile",
     "profileId": "f4bb1d9b-6281-4158-ad88-cbcb1198c3dc",
-    "profileName": "deep-review-preflight-ollama-qwen-coder-v1",
+    "profileName": "deep-review-preflight-v1",
     "type": "moltnet-runtime-profile"
   },
   {
@@ -36,7 +36,7 @@
     "id": "deep_review_profile_specialist",
     "name": "SPECIALIST profile",
     "profileId": "f50e9c58-4180-4e07-b120-08b6097c13d5",
-    "profileName": "deep-review-specialist-ollama-qwen-coder-v1",
+    "profileName": "deep-review-specialist-v1",
     "type": "moltnet-runtime-profile"
   },
   {
@@ -44,16 +44,16 @@
     "id": "deep_review_profile_aggregate",
     "name": "AGGREGATE profile",
     "profileId": "29db793d-3ad9-420b-96e7-df5356b3d19b",
-    "profileName": "deep-review-aggregate-ollama-kimi-v1",
+    "profileName": "deep-review-aggregate-v1",
     "type": "moltnet-runtime-profile"
   },
   {
     "id": "deep_review_note",
-    "info": "This example keeps MoltNet generic: every agent step is taskType=freeform. Node-RED owns orchestration, correlationId threading, accepted gates, profile routing, specialist fan-out/fan-in, and aggregation. Task bodies pass through moltnet-task-builder before creation so the example follows the same validated envelope pattern as newer flows. Non-accepted task attempts and node errors are packed into explicit failure payloads; specialist failures become coverage gaps while terminal stage failures route to the final debug output. The FREEZE branch parses compact inline JSON for control flow, then lists and downloads any persistent review bundle artifact uploaded by the agent during the attempt. Runtime-profile config nodes pin each stage to an Ollama Cloud profile: FREEZE/PREFLIGHT/SPECIALIST use qwen3-coder:480b-cloud for reliable tool calls, and AGGREGATE uses kimi-k2.7-code:cloud.",
+    "info": "This example keeps MoltNet generic: every agent step is taskType=freeform. Node-RED owns orchestration, correlationId threading, accepted gates, profile routing, specialist fan-out/fan-in, and aggregation. Task bodies pass through moltnet-task-builder before creation so the example follows the same validated envelope pattern as newer flows. Non-accepted task attempts and node errors are packed into explicit failure payloads; specialist failures become coverage gaps while terminal stage failures route to the final debug output. The FREEZE branch parses compact inline JSON for control flow, then lists and downloads any persistent review bundle artifact uploaded by the agent during the attempt. Runtime-profile config nodes pin each stage to an Ollama Cloud profile: FREEZE/PREFLIGHT/SPECIALIST use qwen3-coder:480b-cloud for reliable tool calls, and AGGREGATE uses kimi-k2.7-code:cloud. Runtime session metadata side lanes show the durable transcript record for completed FREEZE and PREFLIGHT attempts without feeding raw transcript content into downstream review tasks.",
     "name": "Freeform-only deep review workflow",
     "type": "comment",
     "wires": [],
-    "x": 270,
+    "x": 300,
     "y": 40,
     "z": "deep_review_tab"
   },
@@ -75,7 +75,7 @@
     "type": "inject",
     "wires": [["deep_review_seed"]],
     "x": 120,
-    "y": 120,
+    "y": 125,
     "z": "deep_review_tab"
   },
   {
@@ -90,8 +90,8 @@
     "timeout": 0,
     "type": "function",
     "wires": [["deep_review_entries_search"]],
-    "x": 330,
-    "y": 120,
+    "x": 350,
+    "y": 125,
     "z": "deep_review_tab"
   },
   {
@@ -111,8 +111,8 @@
     "wRecency": "",
     "wRelevance": "",
     "wires": [["deep_review_stash_memory"]],
-    "x": 590,
-    "y": 120,
+    "x": 620,
+    "y": 125,
     "z": "deep_review_tab"
   },
   {
@@ -127,8 +127,8 @@
     "timeout": 0,
     "type": "function",
     "wires": [["deep_review_build_freeze"]],
-    "x": 850,
-    "y": 120,
+    "x": 900,
+    "y": 125,
     "z": "deep_review_tab"
   },
   {
@@ -143,8 +143,8 @@
     "timeout": 0,
     "type": "function",
     "wires": [["deep_review_builder_freeze"]],
-    "x": 130,
-    "y": 260,
+    "x": 150,
+    "y": 265,
     "z": "deep_review_tab"
   },
   {
@@ -156,8 +156,8 @@
     "runtimeProfile": "deep_review_profile_freeze",
     "type": "moltnet-tasks-create",
     "wires": [["deep_review_wait_freeze"]],
-    "x": 570,
-    "y": 260,
+    "x": 640,
+    "y": 265,
     "z": "deep_review_tab"
   },
   {
@@ -170,8 +170,8 @@
     "timeoutSec": 7200,
     "type": "moltnet-task-wait",
     "wires": [["1d29dc178889e4a5"], ["deep_review_gate_freeze"]],
-    "x": 800,
-    "y": 260,
+    "x": 900,
+    "y": 265,
     "z": "deep_review_tab"
   },
   {
@@ -186,8 +186,8 @@
     "timeout": 0,
     "type": "function",
     "wires": [["deep_review_read_freeze"]],
-    "x": 1260,
-    "y": 260,
+    "x": 1400,
+    "y": 265,
     "z": "deep_review_tab"
   },
   {
@@ -201,8 +201,8 @@
     "teamId": "",
     "type": "moltnet-task-artifacts-list",
     "wires": [["deep_review_select_bundle_artifact"]],
-    "x": 1120,
-    "y": 340,
+    "x": 950,
+    "y": 365,
     "z": "deep_review_tab"
   },
   {
@@ -217,8 +217,8 @@
     "timeout": 0,
     "type": "function",
     "wires": [["deep_review_download_bundle_artifact"]],
-    "x": 1360,
-    "y": 340,
+    "x": 1210,
+    "y": 365,
     "z": "deep_review_tab"
   },
   {
@@ -233,8 +233,8 @@
     "teamId": "",
     "type": "moltnet-task-artifact-download",
     "wires": [["deep_review_debug_bundle_artifact"]],
-    "x": 1610,
-    "y": 340,
+    "x": 1490,
+    "y": 365,
     "z": "deep_review_tab"
   },
   {
@@ -246,8 +246,8 @@
     "source": "payload",
     "type": "moltnet-task-reader",
     "wires": [["deep_review_stash_bundle"]],
-    "x": 1490,
-    "y": 260,
+    "x": 1650,
+    "y": 265,
     "z": "deep_review_tab"
   },
   {
@@ -263,13 +263,13 @@
     "tostatus": false,
     "type": "debug",
     "wires": [],
-    "x": 1870,
-    "y": 340,
+    "x": 1780,
+    "y": 365,
     "z": "deep_review_tab"
   },
   {
     "finalize": "",
-    "func": "const key = 'deepReview:' + msg.correlationId;\nconst state = flow.get(key) || {};\nmsg.reviewBundle = msg.result?.artifactBody || msg.payload || {};\nmsg.reviewBundleRef = msg.result?.artifactRef || msg.result?.outputRef || null;\nmsg.review.freezeTaskId = msg.freezeSnapshot?.taskId || msg.result?.outputRef?.taskId || null;\nmsg.review.freezeAttemptN = msg.freezeSnapshot?.acceptedAttemptN || msg.freezeSnapshot?.attempt?.attemptN || null;\nmsg.taskId = msg.review.freezeTaskId;\nmsg.attemptN = msg.review.freezeAttemptN;\nstate.correlationId = msg.correlationId;\nstate.review = msg.review;\nstate.reviewBundle = msg.reviewBundle;\nstate.reviewBundleRef = msg.reviewBundleRef;\nstate.freezeSnapshot = msg.freezeSnapshot || null;\nstate.tasks = state.tasks || {};\nstate.tasks.freeze = { taskId: msg.review.freezeTaskId, attemptN: msg.review.freezeAttemptN };\nstate.specialistResults = state.specialistResults || [];\nflow.set(key, state);\nmsg.reviewState = state;\nreturn msg;",
+    "func": "const key = 'deepReview:' + msg.correlationId;\nconst state = flow.get(key) || {};\nmsg.reviewBundle = msg.result?.artifactBody || msg.payload || {};\nmsg.reviewBundleRef = msg.result?.artifactRef || msg.result?.outputRef || null;\nmsg.review.freezeTaskId = msg.freezeSnapshot?.taskId || msg.result?.outputRef?.taskId || null;\nmsg.review.freezeAttemptN = msg.freezeSnapshot?.acceptedAttemptN || msg.freezeSnapshot?.attempt?.attemptN || null;\nmsg.taskId = msg.review.freezeTaskId;\nmsg.attemptN = msg.review.freezeAttemptN;\nstate.correlationId = msg.correlationId;\nstate.review = msg.review;\nstate.reviewBundle = msg.reviewBundle;\nstate.reviewBundleRef = msg.reviewBundleRef;\nstate.freezeSnapshot = msg.freezeSnapshot || null;\nstate.tasks = state.tasks || {};\nstate.tasks.freeze = { taskId: msg.review.freezeTaskId, attemptN: msg.review.freezeAttemptN };\nstate.specialistResults = state.specialistResults || [];\nif (state.correlationId) flow.set('deepReview:lastCorrelationId', state.correlationId);\nflow.set(key, state);\nmsg.reviewState = state;\nreturn msg;",
     "id": "deep_review_stash_bundle",
     "initialize": "",
     "libs": [],
@@ -279,10 +279,14 @@
     "timeout": 0,
     "type": "function",
     "wires": [
-      ["deep_review_bundle_ready_link_out", "deep_review_list_freeze_artifacts"]
+      [
+        "deep_review_bundle_ready_link_out",
+        "deep_review_list_freeze_artifacts",
+        "deep_review_get_freeze_session"
+      ]
     ],
-    "x": 1720,
-    "y": 260,
+    "x": 1900,
+    "y": 265,
     "z": "deep_review_tab"
   },
   {
@@ -297,8 +301,8 @@
     "timeout": 0,
     "type": "function",
     "wires": [["deep_review_builder_preflight"]],
-    "x": 130,
-    "y": 500,
+    "x": 250,
+    "y": 555,
     "z": "deep_review_tab"
   },
   {
@@ -310,8 +314,8 @@
     "runtimeProfile": "deep_review_profile_preflight",
     "type": "moltnet-tasks-create",
     "wires": [["deep_review_wait_preflight"]],
-    "x": 610,
-    "y": 500,
+    "x": 780,
+    "y": 555,
     "z": "deep_review_tab"
   },
   {
@@ -324,8 +328,8 @@
     "timeoutSec": 7200,
     "type": "moltnet-task-wait",
     "wires": [["deep_review_tail_link_out"], ["deep_review_gate_preflight"]],
-    "x": 850,
-    "y": 500,
+    "x": 1040,
+    "y": 555,
     "z": "deep_review_tab"
   },
   {
@@ -337,13 +341,13 @@
     "source": "payload",
     "type": "moltnet-task-reader",
     "wires": [["deep_review_stash_preflight"]],
-    "x": 1300,
-    "y": 500,
+    "x": 1790,
+    "y": 555,
     "z": "deep_review_tab"
   },
   {
     "finalize": "",
-    "func": "const key = 'deepReview:' + msg.correlationId;\nconst state = flow.get(key) || {};\nmsg.preflight = msg.result?.artifactBody || msg.payload || {};\nmsg.preflight.verdict = String(msg.preflight.verdict || 'PROCEED').toUpperCase();\nstate.correlationId = msg.correlationId;\nstate.review = state.review || msg.review;\nstate.reviewBundle = state.reviewBundle || msg.reviewBundle;\nstate.reviewBundleRef = state.reviewBundleRef || msg.reviewBundleRef;\nstate.preflight = msg.preflight;\nstate.preflightRef = msg.result?.artifactRef || msg.result?.outputRef || null;\nstate.tasks = state.tasks || {};\nstate.tasks.preflight = { taskId: msg.result?.outputRef?.taskId || msg.payload?.taskId || null };\nflow.set(key, state);\nmsg.reviewState = state;\nreturn msg;",
+    "func": "const key = 'deepReview:' + msg.correlationId;\nconst state = flow.get(key) || {};\nmsg.preflight = msg.result?.artifactBody || msg.payload || {};\nmsg.preflight.verdict = String(msg.preflight.verdict || 'PROCEED').toUpperCase();\nstate.correlationId = msg.correlationId;\nstate.review = state.review || msg.review;\nstate.reviewBundle = state.reviewBundle || msg.reviewBundle;\nstate.reviewBundleRef = state.reviewBundleRef || msg.reviewBundleRef;\nstate.preflight = msg.preflight;\nstate.preflightRef = msg.result?.artifactRef || msg.result?.outputRef || null;\nmsg.review = state.review || msg.review;\nmsg.review.preflightTaskId = msg.preflightSnapshot?.taskId || msg.result?.outputRef?.taskId || null;\nmsg.review.preflightAttemptN = msg.preflightSnapshot?.acceptedAttemptN || msg.preflightSnapshot?.attempt?.attemptN || null;\nmsg.taskId = msg.review.preflightTaskId;\nmsg.attemptN = msg.review.preflightAttemptN;\nstate.tasks = state.tasks || {};\nstate.tasks.preflight = { taskId: msg.review.preflightTaskId, attemptN: msg.review.preflightAttemptN };\nif (state.correlationId) flow.set('deepReview:lastCorrelationId', state.correlationId);\nflow.set(key, state);\nmsg.reviewState = state;\nreturn msg;",
     "id": "deep_review_stash_preflight",
     "initialize": "",
     "libs": [],
@@ -352,9 +356,11 @@
     "outputs": 1,
     "timeout": 0,
     "type": "function",
-    "wires": [["deep_review_switch_preflight"]],
-    "x": 1520,
-    "y": 500,
+    "wires": [
+      ["deep_review_switch_preflight", "deep_review_get_preflight_session"]
+    ],
+    "x": 2030,
+    "y": 555,
     "z": "deep_review_tab"
   },
   {
@@ -382,12 +388,12 @@
     ],
     "type": "switch",
     "wires": [
-      ["deep_review_build_pivot_publish"],
+      ["0e5bc273a0b26717"],
       ["deep_review_dimensions_payload"],
       ["deep_review_dimensions_payload"]
     ],
-    "x": 1740,
-    "y": 500,
+    "x": 2240,
+    "y": 555,
     "z": "deep_review_tab"
   },
   {
@@ -402,8 +408,8 @@
     "timeout": 0,
     "type": "function",
     "wires": [["deep_review_builder_pivot_publish"]],
-    "x": 130,
-    "y": 640,
+    "x": 270,
+    "y": 705,
     "z": "deep_review_tab"
   },
   {
@@ -415,8 +421,8 @@
     "runtimeProfile": "deep_review_profile_aggregate",
     "type": "moltnet-tasks-create",
     "wires": [["deep_review_wait_pivot_publish"]],
-    "x": 620,
-    "y": 640,
+    "x": 840,
+    "y": 705,
     "z": "deep_review_tab"
   },
   {
@@ -429,8 +435,8 @@
     "timeoutSec": 7200,
     "type": "moltnet-task-wait",
     "wires": [["d673ff9b232453fe"], ["deep_review_gate_pivot_publish"]],
-    "x": 870,
-    "y": 640,
+    "x": 1110,
+    "y": 705,
     "z": "deep_review_tab"
   },
   {
@@ -444,17 +450,14 @@
     "outputs": 2,
     "timeout": 0,
     "type": "function",
-    "wires": [
-      ["deep_review_build_specialist"],
-      ["deep_review_build_aggregate"]
-    ],
-    "x": 130,
-    "y": 760,
+    "wires": [["85888005a9fb88bc"], ["791ab27471c4788e"]],
+    "x": 150,
+    "y": 865,
     "z": "deep_review_tab"
   },
   {
     "finalize": "",
-    "func": "const key = 'deepReview:' + msg.correlationId;\nconst state = flow.get(key) || msg.reviewState || {};\nconst expected = Number(state.expectedSpecialists || state.dimensions?.length || 0);\nconst completed = Array.isArray(state.specialistResults) ? state.specialistResults.length : 0;\nstate.completedSpecialists = completed;\nflow.set(key, state);\nmsg.reviewState = state;\nmsg.review = state.review || msg.review;\nmsg.reviewBundle = state.reviewBundle || msg.reviewBundle;\nmsg.reviewBundleRef = state.reviewBundleRef || msg.reviewBundleRef;\nmsg.preflight = state.preflight || msg.preflight;\nmsg.specialistResults = state.specialistResults || [];\nmsg.pendingDimensions = [];\nif (expected === 0) {\n  node.status({ fill: 'yellow', shape: 'ring', text: 'no specialist dimensions' });\n  return msg;\n}\nif (completed < expected) {\n  node.status({ fill: 'blue', shape: 'dot', text: `${completed}/${expected} specialist(s)` });\n  return null;\n}\nif (state.aggregateStarted) {\n  node.status({ fill: 'grey', shape: 'ring', text: 'aggregate already started' });\n  return null;\n}\nstate.aggregateStarted = true;\nstate.aggregateReadyAt = new Date().toISOString();\nflow.set(key, state);\nmsg.reviewState = state;\nnode.status({ fill: 'green', shape: 'dot', text: `${completed}/${expected} complete` });\nreturn msg;",
+    "func": "const key = 'deepReview:' + msg.correlationId;\nconst state = flow.get(key) || msg.reviewState || {};\nconst expected = Number(state.expectedSpecialists || state.dimensions?.length || 0);\nconst completed = Array.isArray(state.specialistResults) ? state.specialistResults.length : 0;\nstate.completedSpecialists = completed;\nif (state.correlationId) flow.set('deepReview:lastCorrelationId', state.correlationId);\nflow.set(key, state);\nmsg.reviewState = state;\nmsg.review = state.review || msg.review;\nmsg.reviewBundle = state.reviewBundle || msg.reviewBundle;\nmsg.reviewBundleRef = state.reviewBundleRef || msg.reviewBundleRef;\nmsg.preflight = state.preflight || msg.preflight;\nmsg.specialistResults = state.specialistResults || [];\nmsg.pendingDimensions = [];\nif (expected === 0) {\n  node.status({ fill: 'yellow', shape: 'ring', text: 'no specialist dimensions' });\n  return msg;\n}\nif (completed < expected) {\n  node.status({ fill: 'blue', shape: 'dot', text: `${completed}/${expected} specialist(s)` });\n  return null;\n}\nif (state.aggregateStarted) {\n  node.status({ fill: 'grey', shape: 'ring', text: 'aggregate already started' });\n  return null;\n}\nstate.aggregateStarted = true;\nstate.aggregateReadyAt = new Date().toISOString();\nif (state.correlationId) flow.set('deepReview:lastCorrelationId', state.correlationId);\nflow.set(key, state);\nmsg.reviewState = state;\nnode.status({ fill: 'green', shape: 'dot', text: `${completed}/${expected} complete` });\nreturn msg;",
     "id": "deep_review_next_dimension",
     "initialize": "",
     "libs": [],
@@ -463,9 +466,9 @@
     "outputs": 1,
     "timeout": 0,
     "type": "function",
-    "wires": [["deep_review_build_aggregate"]],
-    "x": 130,
-    "y": 900,
+    "wires": [["121f5380eb3e3a9f"]],
+    "x": 270,
+    "y": 1145,
     "z": "deep_review_tab"
   },
   {
@@ -480,8 +483,8 @@
     "timeout": 0,
     "type": "function",
     "wires": [["deep_review_builder_specialist"]],
-    "x": 370,
-    "y": 760,
+    "x": 270,
+    "y": 945,
     "z": "deep_review_tab"
   },
   {
@@ -493,8 +496,8 @@
     "runtimeProfile": "deep_review_profile_specialist",
     "type": "moltnet-tasks-create",
     "wires": [["deep_review_wait_specialist"]],
-    "x": 850,
-    "y": 760,
+    "x": 840,
+    "y": 945,
     "z": "deep_review_tab"
   },
   {
@@ -504,11 +507,12 @@
     "name": "wait SPECIALIST",
     "pollIntervalSec": 2.5,
     "tail": true,
+    "taskId": "",
     "timeoutSec": 7200,
     "type": "moltnet-task-wait",
     "wires": [["cceba4a8c3d9aafd"], ["deep_review_gate_specialist"]],
-    "x": 1090,
-    "y": 760,
+    "x": 1110,
+    "y": 945,
     "z": "deep_review_tab"
   },
   {
@@ -520,13 +524,13 @@
     "source": "payload",
     "type": "moltnet-task-reader",
     "wires": [["deep_review_pack_specialist"]],
-    "x": 1550,
-    "y": 760,
+    "x": 1600,
+    "y": 925,
     "z": "deep_review_tab"
   },
   {
     "finalize": "",
-    "func": "const key = 'deepReview:' + msg.correlationId;\nconst state = flow.get(key) || msg.reviewState || {};\nconst result = {\n  dimension: msg.reviewDimension || msg.payload?.dimension || state.currentDimension,\n  output: msg.payload,\n  artifact: msg.result?.artifact || null,\n  artifactBody: msg.result?.artifactBody || null,\n  artifactRef: msg.result?.artifactRef || null,\n  outputRef: msg.result?.outputRef || null\n};\nstate.specialistResults = Array.isArray(state.specialistResults) ? state.specialistResults : [];\nstate.specialistResults = state.specialistResults.filter((item) => item.dimension !== result.dimension);\nstate.specialistResults.push(result);\nstate.tasks = state.tasks || {};\nstate.tasks.specialists = state.tasks.specialists || {};\nstate.tasks.specialists[result.dimension] = {\n  taskId: result.outputRef?.taskId || msg.payload?.id || null,\n  outputCid: result.outputRef?.outputCid || null,\n  artifactCid: result.artifactRef?.artifactCid || result.artifact?.cid || null\n};\nstate.completedSpecialists = state.specialistResults.length;\nflow.set(key, state);\nmsg.reviewState = state;\nmsg.review = state.review || msg.review;\nmsg.reviewBundle = state.reviewBundle || msg.reviewBundle;\nmsg.reviewBundleRef = state.reviewBundleRef || msg.reviewBundleRef;\nmsg.preflight = state.preflight || msg.preflight;\nmsg.specialistResults = state.specialistResults;\nmsg.pendingDimensions = [];\nmsg.payload = null;\nreturn msg;",
+    "func": "const key = 'deepReview:' + msg.correlationId;\nconst state = flow.get(key) || msg.reviewState || {};\nconst result = {\n  dimension: msg.reviewDimension || msg.payload?.dimension || state.currentDimension,\n  output: msg.payload,\n  artifact: msg.result?.artifact || null,\n  artifactBody: msg.result?.artifactBody || null,\n  artifactRef: msg.result?.artifactRef || null,\n  outputRef: msg.result?.outputRef || null\n};\nstate.specialistResults = Array.isArray(state.specialistResults) ? state.specialistResults : [];\nstate.specialistResults = state.specialistResults.filter((item) => item.dimension !== result.dimension);\nstate.specialistResults.push(result);\nstate.tasks = state.tasks || {};\nstate.tasks.specialists = state.tasks.specialists || {};\nstate.tasks.specialists[result.dimension] = {\n  taskId: result.outputRef?.taskId || msg.payload?.id || null,\n  outputCid: result.outputRef?.outputCid || null,\n  artifactCid: result.artifactRef?.artifactCid || result.artifact?.cid || null\n};\nstate.completedSpecialists = state.specialistResults.length;\nif (state.correlationId) flow.set('deepReview:lastCorrelationId', state.correlationId);\nflow.set(key, state);\nmsg.reviewState = state;\nmsg.review = state.review || msg.review;\nmsg.reviewBundle = state.reviewBundle || msg.reviewBundle;\nmsg.reviewBundleRef = state.reviewBundleRef || msg.reviewBundleRef;\nmsg.preflight = state.preflight || msg.preflight;\nmsg.specialistResults = state.specialistResults;\nmsg.pendingDimensions = [];\nmsg.payload = null;\nreturn msg;",
     "id": "deep_review_pack_specialist",
     "initialize": "",
     "libs": [],
@@ -536,8 +540,8 @@
     "timeout": 0,
     "type": "function",
     "wires": [["deep_review_specialist_result_link_out"]],
-    "x": 1780,
-    "y": 760,
+    "x": 1850,
+    "y": 925,
     "z": "deep_review_tab"
   },
   {
@@ -552,13 +556,13 @@
     "type": "catch",
     "uncaught": false,
     "wires": [["deep_review_pack_specialist_error"]],
-    "x": 1550,
-    "y": 840,
+    "x": 1600,
+    "y": 1010,
     "z": "deep_review_tab"
   },
   {
     "finalize": "",
-    "func": "const key = 'deepReview:' + msg.correlationId;\nconst state = flow.get(key) || msg.reviewState || {};\nconst payload = msg.payload && typeof msg.payload === 'object' ? msg.payload : {};\nconst tags = Array.isArray(payload.tags) ? payload.tags : [];\nconst dimensionTag = tags.find((tag) => typeof tag === 'string' && tag.startsWith('dimension:'));\nconst dimension = msg.reviewDimension || payload.dimension || (typeof dimensionTag === 'string' ? dimensionTag.slice('dimension:'.length) : null);\nif (!dimension) {\n  node.status({ fill: 'red', shape: 'ring', text: 'missing dimension' });\n  return null;\n}\nconst error = msg.error || {};\nconst result = {\n  dimension,\n  status: 'failed',\n  output: null,\n  artifact: null,\n  artifactBody: {\n    dimension,\n    findings: [],\n    clean: false,\n    coverageNotes: 'Specialist task failed before readable findings were available.',\n    failed: true,\n    error: {\n      message: String(error.message || 'specialist lane failed'),\n      source: error.source || null\n    }\n  },\n  artifactRef: null,\n  outputRef: null,\n  error: {\n    message: String(error.message || 'specialist lane failed'),\n    source: error.source || null\n  }\n};\nstate.specialistResults = Array.isArray(state.specialistResults) ? state.specialistResults : [];\nstate.specialistResults = state.specialistResults.filter((item) => item.dimension !== dimension);\nstate.specialistResults.push(result);\nstate.tasks = state.tasks || {};\nstate.tasks.specialists = state.tasks.specialists || {};\nstate.tasks.specialists[dimension] = {\n  status: 'failed',\n  taskId: payload.id || null,\n  error: result.error\n};\nstate.completedSpecialists = state.specialistResults.length;\nflow.set(key, state);\nmsg.reviewState = state;\nmsg.review = state.review || msg.review;\nmsg.reviewBundle = state.reviewBundle || msg.reviewBundle;\nmsg.reviewBundleRef = state.reviewBundleRef || msg.reviewBundleRef;\nmsg.preflight = state.preflight || msg.preflight;\nmsg.specialistResults = state.specialistResults;\nmsg.pendingDimensions = [];\nmsg.payload = null;\nnode.status({ fill: 'yellow', shape: 'ring', text: `${dimension} failed` });\nreturn msg;",
+    "func": "const key = 'deepReview:' + msg.correlationId;\nconst state = flow.get(key) || msg.reviewState || {};\nconst payload = msg.payload && typeof msg.payload === 'object' ? msg.payload : {};\nconst tags = Array.isArray(payload.tags) ? payload.tags : [];\nconst dimensionTag = tags.find((tag) => typeof tag === 'string' && tag.startsWith('dimension:'));\nconst dimension = msg.reviewDimension || payload.dimension || (typeof dimensionTag === 'string' ? dimensionTag.slice('dimension:'.length) : null);\nif (!dimension) {\n  node.status({ fill: 'red', shape: 'ring', text: 'missing dimension' });\n  return null;\n}\nconst error = msg.error || {};\nconst result = {\n  dimension,\n  status: 'failed',\n  output: null,\n  artifact: null,\n  artifactBody: {\n    dimension,\n    findings: [],\n    clean: false,\n    coverageNotes: 'Specialist task failed before readable findings were available.',\n    failed: true,\n    error: {\n      message: String(error.message || 'specialist lane failed'),\n      source: error.source || null\n    }\n  },\n  artifactRef: null,\n  outputRef: null,\n  error: {\n    message: String(error.message || 'specialist lane failed'),\n    source: error.source || null\n  }\n};\nstate.specialistResults = Array.isArray(state.specialistResults) ? state.specialistResults : [];\nstate.specialistResults = state.specialistResults.filter((item) => item.dimension !== dimension);\nstate.specialistResults.push(result);\nstate.tasks = state.tasks || {};\nstate.tasks.specialists = state.tasks.specialists || {};\nstate.tasks.specialists[dimension] = {\n  status: 'failed',\n  taskId: payload.id || null,\n  error: result.error\n};\nstate.completedSpecialists = state.specialistResults.length;\nif (state.correlationId) flow.set('deepReview:lastCorrelationId', state.correlationId);\nflow.set(key, state);\nmsg.reviewState = state;\nmsg.review = state.review || msg.review;\nmsg.reviewBundle = state.reviewBundle || msg.reviewBundle;\nmsg.reviewBundleRef = state.reviewBundleRef || msg.reviewBundleRef;\nmsg.preflight = state.preflight || msg.preflight;\nmsg.specialistResults = state.specialistResults;\nmsg.pendingDimensions = [];\nmsg.payload = null;\nnode.status({ fill: 'yellow', shape: 'ring', text: `${dimension} failed` });\nreturn msg;",
     "id": "deep_review_pack_specialist_error",
     "initialize": "",
     "libs": [],
@@ -568,13 +572,13 @@
     "timeout": 0,
     "type": "function",
     "wires": [["deep_review_specialist_result_link_out"]],
-    "x": 1800,
-    "y": 840,
+    "x": 1850,
+    "y": 1010,
     "z": "deep_review_tab"
   },
   {
     "finalize": "",
-    "func": "const key = 'deepReview:' + msg.correlationId;\nconst state = flow.get(key) || msg.reviewState || {};\nmsg.review = state.review || msg.review;\nmsg.reviewBundle = state.reviewBundle || msg.reviewBundle;\nmsg.preflight = state.preflight || msg.preflight;\nmsg.specialistResults = state.specialistResults || msg.specialistResults || [];\nstate.aggregateRequestedAt = new Date().toISOString();\nflow.set(key, state);\nmsg.reviewState = state;\nmsg.payload = {\n  taskType: 'freeform',\n  title: 'Deep review: aggregate findings',\n  tags: ['deep-review', 'deep-review:aggregate', msg.review.workflow],\n  correlationId: msg.correlationId,\n  input: {\n    brief: [\n      'Aggregate the specialist deep-review results into one final review.',\n      '',\n      'Dedupe findings, keep the highest severity, rank globally, surface themes, and check whether any changed files in the review bundle were not covered.',\n      '',\n      'Some specialist results may have status \"failed\" with an error instead of findings. Treat those as coverage gaps, include them in the final review summary, and do not invent findings for failed dimensions.',\n      '',\n      'Return a freeform artifact with kind \"markdown\" and title \"final-review\". Also include a compact kind \"json\" artifact titled \"review-summary\" with fields: verdict, topRisks, findingCounts, coverage.',\n      '',\n      'If the submit tool requires a verification block, every verification.results[].kind must be one of: gate, assertion, rubric, sideEffect. For a submit-tool-call success criterion, report it as kind \"gate\"; never use \"submit-tool-call\" as a verification result kind.'\n    ].join('\\n'),\n    expectedOutput: 'Summary plus artifacts markdown/final-review and json/review-summary.',\n    constraints: ['Do not modify code.', 'Do not publish externally unless publishPolicy requires a separate publish task.', 'When self-verifying a submit-tool-call gate, use verification result kind \"gate\".'],\n    context: [\n      { slug: 'review-config', binding: 'context_inline', content: JSON.stringify(msg.review, null, 2) },\n      { slug: 'review-bundle', binding: 'context_inline', content: JSON.stringify(msg.reviewBundle, null, 2) },\n      { slug: 'preflight', binding: 'context_inline', content: JSON.stringify(msg.preflight, null, 2) },\n      { slug: 'specialist-results', binding: 'context_inline', content: JSON.stringify(msg.specialistResults, null, 2) },\n      { slug: 'review-run-state', binding: 'context_inline', content: JSON.stringify({ correlationId: state.correlationId, tasks: state.tasks, dimensions: state.dimensions }, null, 2) }\n    ],\n    execution: { workspace: 'none' }\n  }\n};\nreturn msg;",
+    "func": "const key = 'deepReview:' + msg.correlationId;\nconst state = flow.get(key) || msg.reviewState || {};\nmsg.review = state.review || msg.review;\nmsg.reviewBundle = state.reviewBundle || msg.reviewBundle;\nmsg.preflight = state.preflight || msg.preflight;\nmsg.specialistResults = state.specialistResults || msg.specialistResults || [];\nstate.aggregateRequestedAt = new Date().toISOString();\nif (state.correlationId) flow.set('deepReview:lastCorrelationId', state.correlationId);\nflow.set(key, state);\nmsg.reviewState = state;\nmsg.payload = {\n  taskType: 'freeform',\n  title: 'Deep review: aggregate findings',\n  tags: ['deep-review', 'deep-review:aggregate', msg.review.workflow],\n  correlationId: msg.correlationId,\n  input: {\n    brief: [\n      'Aggregate the specialist deep-review results into one final review.',\n      '',\n      'Dedupe findings, keep the highest severity, rank globally, surface themes, and check whether any changed files in the review bundle were not covered.',\n      '',\n      'Some specialist results may have status \"failed\" with an error instead of findings. Treat those as coverage gaps, include them in the final review summary, and do not invent findings for failed dimensions.',\n      '',\n      'Return a freeform artifact with kind \"markdown\" and title \"final-review\". Also include a compact kind \"json\" artifact titled \"review-summary\" with fields: verdict, topRisks, findingCounts, coverage.',\n      '',\n      'If the submit tool requires a verification block, every verification.results[].kind must be one of: gate, assertion, rubric, sideEffect. For a submit-tool-call success criterion, report it as kind \"gate\"; never use \"submit-tool-call\" as a verification result kind.'\n    ].join('\\n'),\n    expectedOutput: 'Summary plus artifacts markdown/final-review and json/review-summary.',\n    constraints: ['Do not modify code.', 'Do not publish externally unless publishPolicy requires a separate publish task.', 'When self-verifying a submit-tool-call gate, use verification result kind \"gate\".'],\n    context: [\n      { slug: 'review-config', binding: 'context_inline', content: JSON.stringify(msg.review, null, 2) },\n      { slug: 'review-bundle', binding: 'context_inline', content: JSON.stringify(msg.reviewBundle, null, 2) },\n      { slug: 'preflight', binding: 'context_inline', content: JSON.stringify(msg.preflight, null, 2) },\n      { slug: 'specialist-results', binding: 'context_inline', content: JSON.stringify(msg.specialistResults, null, 2) },\n      { slug: 'review-run-state', binding: 'context_inline', content: JSON.stringify({ correlationId: state.correlationId, tasks: state.tasks, dimensions: state.dimensions }, null, 2) }\n    ],\n    execution: { workspace: 'none' }\n  }\n};\nreturn msg;",
     "id": "deep_review_build_aggregate",
     "initialize": "",
     "libs": [],
@@ -584,8 +588,8 @@
     "timeout": 0,
     "type": "function",
     "wires": [["deep_review_builder_aggregate"]],
-    "x": 370,
-    "y": 900,
+    "x": 270,
+    "y": 1225,
     "z": "deep_review_tab"
   },
   {
@@ -597,8 +601,8 @@
     "runtimeProfile": "deep_review_profile_aggregate",
     "type": "moltnet-tasks-create",
     "wires": [["deep_review_wait_aggregate"]],
-    "x": 850,
-    "y": 900,
+    "x": 840,
+    "y": 1225,
     "z": "deep_review_tab"
   },
   {
@@ -611,8 +615,8 @@
     "timeoutSec": 7200,
     "type": "moltnet-task-wait",
     "wires": [["3ac746883d75229d"], ["deep_review_gate_aggregate"]],
-    "x": 1090,
-    "y": 900,
+    "x": 1110,
+    "y": 1225,
     "z": "deep_review_tab"
   },
   {
@@ -622,8 +626,8 @@
     "name": "tail events",
     "type": "link out",
     "wires": [],
-    "x": 1000,
-    "y": 460,
+    "x": 1260,
+    "y": 510,
     "z": "deep_review_tab"
   },
   {
@@ -638,8 +642,8 @@
     "name": "tail events",
     "type": "link in",
     "wires": [["deep_review_tail"]],
-    "x": 130,
-    "y": 1100,
+    "x": 120,
+    "y": 1760,
     "z": "deep_review_tab"
   },
   {
@@ -655,8 +659,8 @@
     "tostatus": false,
     "type": "debug",
     "wires": [],
-    "x": 300,
-    "y": 1100,
+    "x": 320,
+    "y": 1760,
     "z": "deep_review_tab"
   },
   {
@@ -672,8 +676,8 @@
     "tostatus": false,
     "type": "debug",
     "wires": [],
-    "x": 310,
-    "y": 1200,
+    "x": 320,
+    "y": 1840,
     "z": "deep_review_tab"
   },
   {
@@ -683,7 +687,7 @@
     "name": "tail events",
     "type": "link out",
     "wires": [],
-    "x": 940,
+    "x": 1120,
     "y": 220,
     "z": "deep_review_tab"
   },
@@ -694,8 +698,8 @@
     "name": "tail events",
     "type": "link out",
     "wires": [],
-    "x": 1240,
-    "y": 860,
+    "x": 1320,
+    "y": 1175,
     "z": "deep_review_tab"
   },
   {
@@ -705,8 +709,8 @@
     "name": "tail events",
     "type": "link out",
     "wires": [],
-    "x": 1240,
-    "y": 720,
+    "x": 1320,
+    "y": 895,
     "z": "deep_review_tab"
   },
   {
@@ -716,8 +720,8 @@
     "name": "tail events",
     "type": "link out",
     "wires": [],
-    "x": 1020,
-    "y": 600,
+    "x": 1320,
+    "y": 655,
     "z": "deep_review_tab"
   },
   {
@@ -730,8 +734,8 @@
     "name": "review done in",
     "type": "link in",
     "wires": [["deep_review_done"]],
-    "x": 130,
-    "y": 1200,
+    "x": 120,
+    "y": 1840,
     "z": "deep_review_tab"
   },
   {
@@ -741,8 +745,8 @@
     "name": "review done out",
     "type": "link out",
     "wires": [],
-    "x": 1340,
-    "y": 640,
+    "x": 1590,
+    "y": 705,
     "z": "deep_review_tab"
   },
   {
@@ -752,8 +756,8 @@
     "name": "review done out",
     "type": "link out",
     "wires": [],
-    "x": 1560,
-    "y": 900,
+    "x": 1600,
+    "y": 1225,
     "z": "deep_review_tab"
   },
   {
@@ -778,8 +782,8 @@
     "type": "moltnet-task-builder",
     "wires": [["deep_review_create_freeze"]],
     "workspace": "",
-    "x": 350,
-    "y": 260,
+    "x": 390,
+    "y": 265,
     "z": "deep_review_tab"
   },
   {
@@ -803,8 +807,8 @@
       ["deep_review_stash_freeze_snapshot"],
       ["deep_review_freeze_failure_link_out"]
     ],
-    "x": 1030,
-    "y": 260,
+    "x": 1140,
+    "y": 265,
     "z": "deep_review_tab"
   },
   {
@@ -829,8 +833,8 @@
     "type": "moltnet-task-builder",
     "wires": [["deep_review_create_preflight"]],
     "workspace": "",
-    "x": 370,
-    "y": 500,
+    "x": 510,
+    "y": 555,
     "z": "deep_review_tab"
   },
   {
@@ -851,11 +855,11 @@
     ],
     "type": "switch",
     "wires": [
-      ["deep_review_read_preflight"],
+      ["deep_review_stash_preflight_snapshot"],
       ["deep_review_preflight_failure_link_out"]
     ],
-    "x": 1080,
-    "y": 500,
+    "x": 1280,
+    "y": 555,
     "z": "deep_review_tab"
   },
   {
@@ -880,8 +884,8 @@
     "type": "moltnet-task-builder",
     "wires": [["deep_review_create_pivot_publish"]],
     "workspace": "",
-    "x": 370,
-    "y": 640,
+    "x": 550,
+    "y": 705,
     "z": "deep_review_tab"
   },
   {
@@ -905,8 +909,8 @@
       ["deep_review_pivot_done_link_out"],
       ["deep_review_pivot_failure_link_out"]
     ],
-    "x": 1110,
-    "y": 640,
+    "x": 1360,
+    "y": 705,
     "z": "deep_review_tab"
   },
   {
@@ -931,8 +935,8 @@
     "type": "moltnet-task-builder",
     "wires": [["deep_review_create_specialist"]],
     "workspace": "",
-    "x": 610,
-    "y": 760,
+    "x": 550,
+    "y": 945,
     "z": "deep_review_tab"
   },
   {
@@ -956,8 +960,8 @@
       ["deep_review_read_specialist"],
       ["deep_review_pack_specialist_error"]
     ],
-    "x": 1330,
-    "y": 760,
+    "x": 1360,
+    "y": 945,
     "z": "deep_review_tab"
   },
   {
@@ -982,8 +986,8 @@
     "type": "moltnet-task-builder",
     "wires": [["deep_review_create_aggregate"]],
     "workspace": "",
-    "x": 610,
-    "y": 900,
+    "x": 550,
+    "y": 1225,
     "z": "deep_review_tab"
   },
   {
@@ -1007,13 +1011,13 @@
       ["deep_review_aggregate_done_link_out"],
       ["deep_review_aggregate_failure_link_out"]
     ],
-    "x": 1330,
-    "y": 900,
+    "x": 1360,
+    "y": 1225,
     "z": "deep_review_tab"
   },
   {
     "finalize": "",
-    "func": "const key = 'deepReview:' + (msg.correlationId || 'unknown');\nconst state = flow.get(key) || msg.reviewState || {};\nconst snapshot = msg.payload && typeof msg.payload === 'object' ? msg.payload : {};\nconst task = snapshot.task || {};\nconst attempt = snapshot.attempt || {};\nconst stage = msg.reviewStage || task.title || task.taskType || msg.error?.source?.name || 'deep-review';\nconst error = snapshot.error || attempt.error || msg.error || { message: stage + ' failed' };\nstate.correlationId = msg.correlationId || state.correlationId || null;\nstate.review = state.review || msg.review || null;\nstate.failed = true;\nstate.failure = {\n  stage,\n  taskId: snapshot.taskId || task.id || msg.taskId || null,\n  attemptN: snapshot.acceptedAttemptN || attempt.attemptN || msg.attemptN || null,\n  error: {\n    message: String(error.message || error.detail || error || 'deep review stage failed'),\n    source: error.source || null\n  },\n  failedAt: new Date().toISOString()\n};\nflow.set(key, state);\nmsg.reviewState = state;\nmsg.payload = {\n  workflowStatus: 'failed',\n  correlationId: state.correlationId,\n  stage,\n  failure: state.failure\n};\nnode.status({ fill: 'red', shape: 'ring', text: stage + ' failed' });\nreturn msg;",
+    "func": "const key = 'deepReview:' + (msg.correlationId || 'unknown');\nconst state = flow.get(key) || msg.reviewState || {};\nconst snapshot = msg.payload && typeof msg.payload === 'object' ? msg.payload : {};\nconst task = snapshot.task || {};\nconst attempt = snapshot.attempt || {};\nconst stage = msg.reviewStage || task.title || task.taskType || msg.error?.source?.name || 'deep-review';\nconst error = snapshot.error || attempt.error || msg.error || { message: stage + ' failed' };\nstate.correlationId = msg.correlationId || state.correlationId || null;\nstate.review = state.review || msg.review || null;\nstate.failed = true;\nstate.failure = {\n  stage,\n  taskId: snapshot.taskId || task.id || msg.taskId || null,\n  attemptN: snapshot.acceptedAttemptN || attempt.attemptN || msg.attemptN || null,\n  error: {\n    message: String(error.message || error.detail || error || 'deep review stage failed'),\n    source: error.source || null\n  },\n  failedAt: new Date().toISOString()\n};\nif (state.correlationId) flow.set('deepReview:lastCorrelationId', state.correlationId);\nflow.set(key, state);\nmsg.reviewState = state;\nmsg.payload = {\n  workflowStatus: 'failed',\n  correlationId: state.correlationId,\n  stage,\n  failure: state.failure\n};\nnode.status({ fill: 'red', shape: 'ring', text: stage + ' failed' });\nreturn msg;",
     "id": "deep_review_pack_terminal_failure",
     "initialize": "",
     "libs": [],
@@ -1023,13 +1027,13 @@
     "timeout": 0,
     "type": "function",
     "wires": [["deep_review_failure_done_link_out"]],
-    "x": 1330,
-    "y": 1020,
+    "x": 1180,
+    "y": 1435,
     "z": "deep_review_tab"
   },
   {
     "finalize": "",
-    "func": "const key = 'deepReview:' + (msg.correlationId || 'unknown');\nconst state = flow.get(key) || msg.reviewState || {};\nconst snapshot = msg.payload && typeof msg.payload === 'object' ? msg.payload : {};\nconst task = snapshot.task || {};\nconst attempt = snapshot.attempt || {};\nconst stage = msg.reviewStage || task.title || task.taskType || msg.error?.source?.name || 'deep-review';\nconst error = snapshot.error || attempt.error || msg.error || { message: stage + ' failed' };\nstate.correlationId = msg.correlationId || state.correlationId || null;\nstate.review = state.review || msg.review || null;\nstate.failed = true;\nstate.failure = {\n  stage,\n  taskId: snapshot.taskId || task.id || msg.taskId || null,\n  attemptN: snapshot.acceptedAttemptN || attempt.attemptN || msg.attemptN || null,\n  error: {\n    message: String(error.message || error.detail || error || 'deep review stage failed'),\n    source: error.source || null\n  },\n  failedAt: new Date().toISOString()\n};\nflow.set(key, state);\nmsg.reviewState = state;\nmsg.payload = {\n  workflowStatus: 'failed',\n  correlationId: state.correlationId,\n  stage,\n  failure: state.failure\n};\nnode.status({ fill: 'red', shape: 'ring', text: stage + ' failed' });\nreturn msg;",
+    "func": "const key = 'deepReview:' + (msg.correlationId || 'unknown');\nconst state = flow.get(key) || msg.reviewState || {};\nconst snapshot = msg.payload && typeof msg.payload === 'object' ? msg.payload : {};\nconst task = snapshot.task || {};\nconst attempt = snapshot.attempt || {};\nconst stage = msg.reviewStage || task.title || task.taskType || msg.error?.source?.name || 'deep-review';\nconst error = snapshot.error || attempt.error || msg.error || { message: stage + ' failed' };\nstate.correlationId = msg.correlationId || state.correlationId || null;\nstate.review = state.review || msg.review || null;\nstate.failed = true;\nstate.failure = {\n  stage,\n  taskId: snapshot.taskId || task.id || msg.taskId || null,\n  attemptN: snapshot.acceptedAttemptN || attempt.attemptN || msg.attemptN || null,\n  error: {\n    message: String(error.message || error.detail || error || 'deep review stage failed'),\n    source: error.source || null\n  },\n  failedAt: new Date().toISOString()\n};\nif (state.correlationId) flow.set('deepReview:lastCorrelationId', state.correlationId);\nflow.set(key, state);\nmsg.reviewState = state;\nmsg.payload = {\n  workflowStatus: 'failed',\n  correlationId: state.correlationId,\n  stage,\n  failure: state.failure\n};\nnode.status({ fill: 'red', shape: 'ring', text: stage + ' failed' });\nreturn msg;",
     "id": "deep_review_pack_terminal_error",
     "initialize": "",
     "libs": [],
@@ -1039,8 +1043,8 @@
     "timeout": 0,
     "type": "function",
     "wires": [["deep_review_failure_done_link_out"]],
-    "x": 1330,
-    "y": 1100,
+    "x": 1180,
+    "y": 1515,
     "z": "deep_review_tab"
   },
   {
@@ -1050,8 +1054,8 @@
     "name": "review done out",
     "type": "link out",
     "wires": [],
-    "x": 1560,
-    "y": 1060,
+    "x": 1460,
+    "y": 1435,
     "z": "deep_review_tab"
   },
   {
@@ -1076,8 +1080,8 @@
     "type": "catch",
     "uncaught": false,
     "wires": [["deep_review_pack_terminal_error"]],
-    "x": 1110,
-    "y": 1100,
+    "x": 930,
+    "y": 1515,
     "z": "deep_review_tab"
   },
   {
@@ -1105,8 +1109,8 @@
     ],
     "type": "status",
     "wires": [[]],
-    "x": 1100,
-    "y": 1160,
+    "x": 930,
+    "y": 1595,
     "z": "deep_review_tab"
   },
   {
@@ -1115,8 +1119,8 @@
     "name": "1. Configure target and memory",
     "type": "comment",
     "wires": [],
-    "x": 250,
-    "y": 80,
+    "x": 300,
+    "y": 85,
     "z": "deep_review_tab"
   },
   {
@@ -1125,18 +1129,18 @@
     "name": "2. FREEZE scope bundle",
     "type": "comment",
     "wires": [],
-    "x": 260,
+    "x": 300,
     "y": 210,
     "z": "deep_review_tab"
   },
   {
     "id": "deep_review_lane_bundle_artifacts",
-    "info": "Optional side lane: list/download any persistent bundle artifacts uploaded by the FREEZE task.",
-    "name": "Review bundle artifacts",
+    "info": "Optional side lanes: list/download persistent bundle artifacts uploaded by FREEZE, and inspect durable runtime-session metadata for completed FREEZE/PREFLIGHT attempts.",
+    "name": "Review bundle and runtime sessions",
     "type": "comment",
     "wires": [],
-    "x": 1210,
-    "y": 305,
+    "x": 430,
+    "y": 350,
     "z": "deep_review_tab"
   },
   {
@@ -1145,8 +1149,8 @@
     "name": "3. PREFLIGHT decision",
     "type": "comment",
     "wires": [],
-    "x": 260,
-    "y": 450,
+    "x": 300,
+    "y": 500,
     "z": "deep_review_tab"
   },
   {
@@ -1155,8 +1159,8 @@
     "name": "PIVOT publish lane",
     "type": "comment",
     "wires": [],
-    "x": 250,
-    "y": 590,
+    "x": 300,
+    "y": 650,
     "z": "deep_review_tab"
   },
   {
@@ -1165,8 +1169,8 @@
     "name": "4. Specialist fan-out",
     "type": "comment",
     "wires": [],
-    "x": 260,
-    "y": 710,
+    "x": 300,
+    "y": 810,
     "z": "deep_review_tab"
   },
   {
@@ -1175,8 +1179,8 @@
     "name": "5. Aggregate final review",
     "type": "comment",
     "wires": [],
-    "x": 260,
-    "y": 850,
+    "x": 300,
+    "y": 1090,
     "z": "deep_review_tab"
   },
   {
@@ -1185,8 +1189,8 @@
     "name": "Failure handling",
     "type": "comment",
     "wires": [],
-    "x": 1220,
-    "y": 970,
+    "x": 300,
+    "y": 1380,
     "z": "deep_review_tab"
   },
   {
@@ -1195,8 +1199,8 @@
     "name": "Tail and final outputs",
     "type": "comment",
     "wires": [],
-    "x": 250,
-    "y": 1040,
+    "x": 300,
+    "y": 1700,
     "z": "deep_review_tab"
   },
   {
@@ -1206,18 +1210,18 @@
     "name": "bundle ready",
     "type": "link out",
     "wires": [],
-    "x": 1880,
-    "y": 260,
+    "x": 2140,
+    "y": 265,
     "z": "deep_review_tab"
   },
   {
     "id": "deep_review_bundle_ready_link_in",
-    "links": ["deep_review_bundle_ready_link_out"],
+    "links": ["deep_review_bundle_ready_link_out", "18a480760520ba5a"],
     "name": "bundle ready",
     "type": "link in",
     "wires": [["deep_review_build_preflight"]],
-    "x": 80,
-    "y": 500,
+    "x": 70,
+    "y": 555,
     "z": "deep_review_tab"
   },
   {
@@ -1227,8 +1231,8 @@
     "name": "specialist result",
     "type": "link out",
     "wires": [],
-    "x": 2000,
-    "y": 800,
+    "x": 2130,
+    "y": 925,
     "z": "deep_review_tab"
   },
   {
@@ -1237,8 +1241,8 @@
     "name": "specialist result",
     "type": "link in",
     "wires": [["deep_review_next_dimension"]],
-    "x": 80,
-    "y": 900,
+    "x": 70,
+    "y": 1145,
     "z": "deep_review_tab"
   },
   {
@@ -1248,8 +1252,8 @@
     "name": "terminal failure",
     "type": "link out",
     "wires": [],
-    "x": 1180,
-    "y": 300,
+    "x": 1320,
+    "y": 320,
     "z": "deep_review_tab"
   },
   {
@@ -1259,8 +1263,8 @@
     "name": "terminal failure",
     "type": "link out",
     "wires": [],
-    "x": 1230,
-    "y": 540,
+    "x": 1460,
+    "y": 610,
     "z": "deep_review_tab"
   },
   {
@@ -1270,8 +1274,8 @@
     "name": "terminal failure",
     "type": "link out",
     "wires": [],
-    "x": 1280,
-    "y": 680,
+    "x": 1590,
+    "y": 760,
     "z": "deep_review_tab"
   },
   {
@@ -1281,8 +1285,8 @@
     "name": "terminal failure",
     "type": "link out",
     "wires": [],
-    "x": 1490,
-    "y": 940,
+    "x": 1600,
+    "y": 1280,
     "z": "deep_review_tab"
   },
   {
@@ -1296,8 +1300,240 @@
     "name": "terminal failure",
     "type": "link in",
     "wires": [["deep_review_pack_terminal_failure"]],
-    "x": 1110,
-    "y": 1020,
+    "x": 930,
+    "y": 1435,
+    "z": "deep_review_tab"
+  },
+  {
+    "id": "deep_review_lane_retry",
+    "info": "Filesystem-backed flow context keeps deepReview:<correlationId> across Node-RED restarts. Use the retry inject after fixing credentials/profile config. Empty correlationId retries the last recorded deep-review run; stage=failed retries state.failure.stage. Retry creates a fresh task for the selected workflow stage rather than mutating an existing task attempt.",
+    "name": "Manual retry from saved state",
+    "type": "comment",
+    "wires": [],
+    "x": 360,
+    "y": 1940,
+    "z": "deep_review_tab"
+  },
+  {
+    "crontab": "",
+    "id": "deep_review_retry_failed",
+    "name": "retry failed stage",
+    "once": false,
+    "onceDelay": 0.1,
+    "payload": "{\"correlationId\":\"\",\"stage\":\"failed\",\"dimension\":\"\"}",
+    "payloadType": "json",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "topic": "",
+    "type": "inject",
+    "wires": [["deep_review_load_retry_state"]],
+    "x": 150,
+    "y": 2000,
+    "z": "deep_review_tab"
+  },
+  {
+    "finalize": "",
+    "func": "const input = msg.payload && typeof msg.payload === 'object' ? msg.payload : {};\nconst correlationId =\n  msg.correlationId ||\n  input.correlationId ||\n  flow.get('deepReview:lastCorrelationId');\nif (!correlationId) {\n  node.error('retry: correlationId is required, and no last deep-review run is recorded', msg);\n  return null;\n}\nconst key = 'deepReview:' + correlationId;\nconst state = flow.get(key);\nif (!state) {\n  node.error('retry: no saved deep-review state for ' + correlationId, msg);\n  return null;\n}\nconst source = state.failure?.error?.source || {};\nconst rawStage = [\n  input.stage,\n  msg.retryStage,\n  state.failure?.stage,\n  source.id,\n  source.name\n]\n  .filter(Boolean)\n  .join(' ')\n  .toLowerCase();\nlet stage = null;\nif (!rawStage || rawStage.includes('failed')) {\n  const failed = [state.failure?.stage, source.id, source.name]\n    .filter(Boolean)\n    .join(' ')\n    .toLowerCase();\n  if (failed.includes('aggregate')) stage = 'aggregate';\n  else if (failed.includes('specialist')) stage = 'specialist';\n  else if (failed.includes('pivot')) stage = 'pivot';\n  else if (failed.includes('preflight')) stage = 'preflight';\n} else if (rawStage.includes('aggregate')) stage = 'aggregate';\nelse if (rawStage.includes('specialist')) stage = 'specialist';\nelse if (rawStage.includes('pivot')) stage = 'pivot';\nelse if (rawStage.includes('preflight')) stage = 'preflight';\nif (!stage || stage === 'freeze') {\n  node.error('retry: unsupported stage \"' + (input.stage || state.failure?.stage || 'unknown') + '\". Restart from the beginning for FREEZE.', msg);\n  return null;\n}\nmsg.correlationId = correlationId;\nstate.correlationId = state.correlationId || correlationId;\nmsg.reviewState = state;\nmsg.review = state.review;\nmsg.reviewBundle = state.reviewBundle;\nmsg.reviewBundleRef = state.reviewBundleRef;\nmsg.preflight = state.preflight;\nmsg.specialistResults = state.specialistResults || [];\nstate.retryCount = Number(state.retryCount || 0) + 1;\nstate.lastRetriedStage = stage;\nstate.lastRetryRequestedAt = new Date().toISOString();\nstate.failed = false;\nif (stage === 'aggregate') {\n  state.aggregateStarted = false;\n  state.aggregateRetryRequestedAt = state.lastRetryRequestedAt;\n}\nif (stage === 'specialist') {\n  const dimension = input.dimension || msg.reviewDimension || state.failure?.dimension;\n  if (!dimension) {\n    node.error('retry: specialist retry requires payload.dimension', msg);\n    return null;\n  }\n  msg.reviewDimension = dimension;\n  msg.payload = { dimension, retry: true };\n  state.specialistResults = (state.specialistResults || []).filter((item) => item.dimension !== dimension);\n  state.completedSpecialists = state.specialistResults.length;\n} else {\n  msg.payload = { retry: true, stage };\n}\nif (state.correlationId) flow.set('deepReview:lastCorrelationId', state.correlationId);\nflow.set(key, state);\nnode.status({ fill: 'blue', shape: 'dot', text: 'retry ' + stage });\nif (stage === 'aggregate') return [msg, null, null, null];\nif (stage === 'specialist') return [null, msg, null, null];\nif (stage === 'preflight') return [null, null, msg, null];\nreturn [null, null, null, msg];",
+    "id": "deep_review_load_retry_state",
+    "initialize": "",
+    "libs": [],
+    "name": "load retry state",
+    "noerr": 0,
+    "outputLabels": ["AGGREGATE", "SPECIALIST", "PREFLIGHT", "PIVOT"],
+    "outputs": 4,
+    "timeout": 0,
+    "type": "function",
+    "wires": [
+      ["f25f51b3e15378ba"],
+      ["fac3b7976571600e"],
+      ["18a480760520ba5a"],
+      ["edcc698660d82265"]
+    ],
+    "x": 430,
+    "y": 2000,
+    "z": "deep_review_tab"
+  },
+  {
+    "agent": "deep_review_agent_cfg",
+    "allowMsgTeamOverride": false,
+    "attemptN": "",
+    "id": "deep_review_get_freeze_session",
+    "name": "get FREEZE session",
+    "taskId": "",
+    "teamId": "",
+    "type": "moltnet-runtime-session-get",
+    "wires": [["deep_review_debug_runtime_session"]],
+    "x": 950,
+    "y": 425,
+    "z": "deep_review_tab"
+  },
+  {
+    "finalize": "",
+    "func": "msg.preflightSnapshot = msg.payload;\nreturn msg;",
+    "id": "deep_review_stash_preflight_snapshot",
+    "initialize": "",
+    "libs": [],
+    "name": "stash PREFLIGHT snapshot",
+    "noerr": 0,
+    "outputs": 1,
+    "timeout": 0,
+    "type": "function",
+    "wires": [["deep_review_read_preflight"]],
+    "x": 1540,
+    "y": 555,
+    "z": "deep_review_tab"
+  },
+  {
+    "agent": "deep_review_agent_cfg",
+    "allowMsgTeamOverride": false,
+    "attemptN": "",
+    "id": "deep_review_get_preflight_session",
+    "name": "get PREFLIGHT session",
+    "taskId": "",
+    "teamId": "",
+    "type": "moltnet-runtime-session-get",
+    "wires": [["deep_review_debug_runtime_session"]],
+    "x": 1210,
+    "y": 425,
+    "z": "deep_review_tab"
+  },
+  {
+    "active": true,
+    "complete": "runtimeSession",
+    "console": false,
+    "id": "deep_review_debug_runtime_session",
+    "name": "runtime session metadata",
+    "statusType": "auto",
+    "statusVal": "",
+    "targetType": "msg",
+    "tosidebar": true,
+    "tostatus": false,
+    "type": "debug",
+    "wires": [],
+    "x": 1490,
+    "y": 425,
+    "z": "deep_review_tab"
+  },
+  {
+    "id": "16faf32e4fc42dce",
+    "links": ["0e5bc273a0b26717", "edcc698660d82265"],
+    "name": "pivot ready",
+    "type": "link in",
+    "wires": [["deep_review_build_pivot_publish"]],
+    "x": 70,
+    "y": 705,
+    "z": "deep_review_tab"
+  },
+  {
+    "id": "0e5bc273a0b26717",
+    "links": ["16faf32e4fc42dce"],
+    "mode": "link",
+    "name": "pivot ready",
+    "type": "link out",
+    "wires": [],
+    "x": 2440,
+    "y": 555,
+    "z": "deep_review_tab"
+  },
+  {
+    "id": "edcc698660d82265",
+    "links": ["16faf32e4fc42dce"],
+    "mode": "link",
+    "name": "pivot ready",
+    "type": "link out",
+    "wires": [],
+    "x": 720,
+    "y": 2070,
+    "z": "deep_review_tab"
+  },
+  {
+    "id": "0bb7739dbe669278",
+    "links": ["85888005a9fb88bc", "fac3b7976571600e"],
+    "name": "start specialist",
+    "type": "link in",
+    "wires": [["deep_review_build_specialist"]],
+    "x": 70,
+    "y": 945,
+    "z": "deep_review_tab"
+  },
+  {
+    "id": "85888005a9fb88bc",
+    "links": ["0bb7739dbe669278"],
+    "mode": "link",
+    "name": "start specialist",
+    "type": "link out",
+    "wires": [],
+    "x": 370,
+    "y": 835,
+    "z": "deep_review_tab"
+  },
+  {
+    "id": "fac3b7976571600e",
+    "links": ["0bb7739dbe669278"],
+    "mode": "link",
+    "name": "start specialist",
+    "type": "link out",
+    "wires": [],
+    "x": 720,
+    "y": 1990,
+    "z": "deep_review_tab"
+  },
+  {
+    "id": "b3bb0fc6441c8e1c",
+    "links": ["791ab27471c4788e", "121f5380eb3e3a9f", "f25f51b3e15378ba"],
+    "name": "start aggregation",
+    "type": "link in",
+    "wires": [["deep_review_build_aggregate"]],
+    "x": 70,
+    "y": 1225,
+    "z": "deep_review_tab"
+  },
+  {
+    "id": "791ab27471c4788e",
+    "links": ["b3bb0fc6441c8e1c"],
+    "mode": "link",
+    "name": "start aggregation",
+    "type": "link out",
+    "wires": [],
+    "x": 370,
+    "y": 895,
+    "z": "deep_review_tab"
+  },
+  {
+    "id": "121f5380eb3e3a9f",
+    "links": ["b3bb0fc6441c8e1c"],
+    "mode": "link",
+    "name": "start aggregation",
+    "type": "link out",
+    "wires": [],
+    "x": 500,
+    "y": 1145,
+    "z": "deep_review_tab"
+  },
+  {
+    "id": "f25f51b3e15378ba",
+    "links": ["b3bb0fc6441c8e1c"],
+    "mode": "link",
+    "name": "start aggregation",
+    "type": "link out",
+    "wires": [],
+    "x": 720,
+    "y": 1950,
+    "z": "deep_review_tab"
+  },
+  {
+    "id": "18a480760520ba5a",
+    "links": ["deep_review_bundle_ready_link_in"],
+    "mode": "link",
+    "name": "bundle ready",
+    "type": "link out",
+    "wires": [],
+    "x": 720,
+    "y": 2030,
     "z": "deep_review_tab"
   }
 ]
