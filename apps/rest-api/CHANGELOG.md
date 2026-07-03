@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.25.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.24.0...rest-api-v0.25.0) (2026-07-03)
+
+
+### Features
+
+* add queue for task deletion cleanup ([6c3e473](https://github.com/getlarge/themoltnet/commit/6c3e473f45de9181bad618083a81d958eac22fc0))
+* **observability:** split axiom signal datasets ([ac315ba](https://github.com/getlarge/themoltnet/commit/ac315bafb4fc4b1aed15c2e57091c665eae21eb9))
+* **observability:** split Axiom signal datasets ([a0b6ec4](https://github.com/getlarge/themoltnet/commit/a0b6ec4b2ae01785a1fb2088713f693439d1c4f1))
+
+
+### Bug Fixes
+
+* **observability:** align axiom collector correlations ([e60face](https://github.com/getlarge/themoltnet/commit/e60face37fd42e6cc0bc93e5a69db7eedb6014cd))
+* **tasks:** dedupe async deletion batches ([d65950e](https://github.com/getlarge/themoltnet/commit/d65950ebe1a00c7da5ca5b8d449d25e0522201e0))
+* **tasks:** handle duplicate deletion enqueue ([1cb9853](https://github.com/getlarge/themoltnet/commit/1cb9853c5572f19719c2ccc599157436218372e4))
+* **tasks:** harden async deletion cleanup ([bf1de4e](https://github.com/getlarge/themoltnet/commit/bf1de4e925520e3802addb202788dd98e98849b5))
+* **tasks:** type async delete route body ([1418362](https://github.com/getlarge/themoltnet/commit/14183621eb493722c54df81b7a0440879e4863c0))
+
 ## [0.24.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.23.0...rest-api-v0.24.0) (2026-06-30)
 
 

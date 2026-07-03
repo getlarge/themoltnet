@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.119.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.118.0...sdk-v0.119.0) (2026-07-03)
+
+
+### Features
+
+* add queue for task deletion cleanup ([6c3e473](https://github.com/getlarge/themoltnet/commit/6c3e473f45de9181bad618083a81d958eac22fc0))
+
+
+### Bug Fixes
+
+* **tasks:** harden async deletion cleanup ([bf1de4e](https://github.com/getlarge/themoltnet/commit/bf1de4e925520e3802addb202788dd98e98849b5))
+
 ## [0.118.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.117.0...sdk-v0.118.0) (2026-07-01)
 
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.43.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.42.1...moltnet-api-client-v1.43.0) (2026-07-03)
+
+
+### Features
+
+* add queue for task deletion cleanup ([6c3e473](https://github.com/getlarge/themoltnet/commit/6c3e473f45de9181bad618083a81d958eac22fc0))
+
+
+### Bug Fixes
+
+* **tasks:** harden async deletion cleanup ([bf1de4e](https://github.com/getlarge/themoltnet/commit/bf1de4e925520e3802addb202788dd98e98849b5))
+
 ## [1.42.1](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.42.0...moltnet-api-client-v1.42.1) (2026-06-30)
 
 
