@@ -27,9 +27,15 @@ import {
   type NewExecutorManifestVerification,
   type NewTask,
   type NewTaskAttempt,
+  type NewTaskAttemptActivityStats,
   type NewTaskMessage,
+  runtimeProfiles,
+  runtimeSessions,
+  runtimeSlots,
   type Task,
   type TaskAttempt,
+  type TaskAttemptActivityStats,
+  taskAttemptActivityStats,
   taskAttempts,
   type TaskMessage,
   taskMessages,
@@ -71,6 +77,92 @@ export interface TaskRetentionCutoffs {
   failedBefore: Date;
   cancelledBefore: Date;
   expiredBefore: Date;
+}
+
+export type TaskActivityGroupBy =
+  | 'none'
+  | 'day'
+  | 'tag'
+  | 'taskType'
+  | 'profile'
+  | 'diary'
+  | 'agent'
+  | 'providerModel';
+
+export interface TaskActivityAnalyticsFilter {
+  teamId: string;
+  completedAfter: Date;
+  completedBefore: Date;
+  tags?: string[];
+  taskTypes?: string[];
+  profileIds?: string[];
+  diaryIds?: string[];
+  claimedByAgentIds?: string[];
+  groupBy?: TaskActivityGroupBy;
+}
+
+export interface TaskActivityMetricBucket {
+  taskCount: number;
+  acceptedTaskCount: number;
+  firstAttemptAcceptedTaskCount: number;
+  retryRecoveredTaskCount: number;
+  terminalFailureTaskCount: number;
+  attemptCount: number;
+  acceptedAttemptCount: number;
+  failedAttemptCount: number;
+  timeoutAttemptCount: number;
+  abortedAttemptCount: number;
+  cancelledAttemptCount: number;
+  retryAttemptCount: number;
+  highFrictionAttemptCount: number;
+  messageCount: number;
+  turnCount: number;
+  toolCallCount: number;
+  failedToolCallCount: number;
+  knowledgeToolCallCount: number;
+  entrySearchCount: number;
+  entryGetCount: number;
+  packGetCount: number;
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  totalTokens: number;
+  extraAttemptCount: number;
+  extraTokensBeforeAcceptance: number;
+  medianTimeToAcceptedMs: number | null;
+  medianTurnsPerAttempt: number | null;
+  medianToolCallsPerAttempt: number | null;
+}
+
+export interface TaskActivityAnalyticsGroup {
+  key: string;
+  label: string;
+  metrics: TaskActivityMetricBucket;
+}
+
+export interface TaskActivityAnalyticsResult {
+  overall: TaskActivityMetricBucket;
+  groups: TaskActivityAnalyticsGroup[];
+  statsComplete: boolean;
+}
+
+interface TaskActivityAttemptRow {
+  taskId: string;
+  taskType: string;
+  taskTags: string[];
+  diaryId: string | null;
+  taskStatus: Task['status'];
+  acceptedAttemptN: number | null;
+  taskQueuedAt: Date;
+  taskCompletedAt: Date | null;
+  attemptN: number;
+  attemptStatus: TaskAttempt['status'];
+  attemptCompletedAt: Date | null;
+  claimedByAgentId: string;
+  usage: unknown;
+  profileId: string | null;
+  provider: string | null;
+  model: string | null;
+  stats: TaskAttemptActivityStats | null;
 }
 
 export function createTaskRepository(db: Database) {
@@ -943,7 +1035,572 @@ export function createTaskRepository(db: Database) {
       const hasMore = rows.length > limit;
       return { items: hasMore ? rows.slice(0, limit) : rows, hasMore };
     },
+
+    async recomputeAttemptActivityStats(
+      taskId: string,
+      attemptN: number,
+    ): Promise<TaskAttemptActivityStats> {
+      const messages = await getExecutor(db)
+        .select()
+        .from(taskMessages)
+        .where(
+          and(
+            eq(taskMessages.taskId, taskId),
+            eq(taskMessages.attemptN, attemptN),
+          ),
+        )
+        .orderBy(asc(taskMessages.seq));
+      const values = deriveAttemptActivityStats(taskId, attemptN, messages);
+      const [row] = await getExecutor(db)
+        .insert(taskAttemptActivityStats)
+        .values(values)
+        .onConflictDoUpdate({
+          target: [
+            taskAttemptActivityStats.taskId,
+            taskAttemptActivityStats.attemptN,
+          ],
+          set: {
+            computedAt: values.computedAt,
+            entryGetCount: values.entryGetCount,
+            entrySearchCount: values.entrySearchCount,
+            failedToolCallCount: values.failedToolCallCount,
+            knowledgeToolCallCount: values.knowledgeToolCallCount,
+            messageCount: values.messageCount,
+            packGetCount: values.packGetCount,
+            sourceLastSeq: values.sourceLastSeq,
+            toolCallCount: values.toolCallCount,
+            turnCount: values.turnCount,
+          },
+        })
+        .returning();
+      if (!row) {
+        throw new Error('failed to upsert task attempt activity stats');
+      }
+      return row;
+    },
+
+    async listMissingAttemptActivityStats(
+      filter: TaskActivityAnalyticsFilter,
+      limit = 500,
+    ): Promise<Array<{ taskId: string; attemptN: number }>> {
+      const rows = await queryActivityAttemptRows(db, filter, true, limit);
+      return rows.map((row) => ({
+        taskId: row.taskId,
+        attemptN: row.attemptN,
+      }));
+    },
+
+    async getTaskActivityAnalytics(
+      filter: TaskActivityAnalyticsFilter,
+    ): Promise<TaskActivityAnalyticsResult> {
+      const recomputeLimit = 500;
+      const missing = await this.listMissingAttemptActivityStats(
+        filter,
+        recomputeLimit,
+      );
+      for (const attempt of missing) {
+        await this.recomputeAttemptActivityStats(
+          attempt.taskId,
+          attempt.attemptN,
+        );
+      }
+      const rows = await queryActivityAttemptRows(db, filter, false);
+      return buildActivityAnalytics(rows, filter.groupBy ?? 'none', {
+        statsComplete: missing.length < recomputeLimit,
+      });
+    },
   };
+}
+
+function deriveAttemptActivityStats(
+  taskId: string,
+  attemptN: number,
+  messages: TaskMessage[],
+): NewTaskAttemptActivityStats {
+  const counts = {
+    entryGetCount: 0,
+    entrySearchCount: 0,
+    failedToolCallCount: 0,
+    knowledgeToolCallCount: 0,
+    messageCount: messages.length,
+    packGetCount: 0,
+    toolCallCount: 0,
+    turnCount: 0,
+  };
+  let sourceLastSeq = -1;
+  for (const message of messages) {
+    sourceLastSeq = Math.max(sourceLastSeq, Number(message.seq));
+    if (message.kind === 'turn_end') counts.turnCount += 1;
+    if (message.kind === 'tool_call_start') {
+      counts.toolCallCount += 1;
+      const toolName = getToolName(message.payload);
+      const kind = classifyKnowledgeTool(toolName);
+      if (kind) counts.knowledgeToolCallCount += 1;
+      if (kind === 'entry_search') counts.entrySearchCount += 1;
+      if (kind === 'entry_get') counts.entryGetCount += 1;
+      if (kind === 'pack_get') counts.packGetCount += 1;
+    }
+    if (
+      message.kind === 'tool_call_end' &&
+      isRecord(message.payload) &&
+      message.payload.is_error === true
+    ) {
+      counts.failedToolCallCount += 1;
+    }
+  }
+  return {
+    ...counts,
+    attemptN,
+    computedAt: new Date(),
+    sourceLastSeq,
+    taskId,
+  };
+}
+
+function getToolName(payload: unknown): string | null {
+  if (!isRecord(payload)) return null;
+  const value = payload.tool_name ?? payload.name ?? payload.tool;
+  return typeof value === 'string' ? value : null;
+}
+
+function classifyKnowledgeTool(
+  toolName: string | null,
+): 'entry_search' | 'entry_get' | 'pack_get' | null {
+  if (!toolName) return null;
+  const normalized = toolName.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+  if (
+    normalized.includes('entry_search') ||
+    normalized.includes('entries_search') ||
+    normalized.includes('diary_search')
+  ) {
+    return 'entry_search';
+  }
+  if (
+    normalized.includes('entry_get') ||
+    normalized.includes('entries_get') ||
+    normalized.includes('diary_entry_get')
+  ) {
+    return 'entry_get';
+  }
+  if (
+    normalized.includes('pack_get') ||
+    normalized.includes('packs_get') ||
+    normalized.includes('rendered_pack_get') ||
+    normalized.includes('rendered_packs_get')
+  ) {
+    return 'pack_get';
+  }
+  return null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function mapActivityAttemptRow(row: unknown): TaskActivityAttemptRow {
+  const r = row as Record<string, unknown>;
+  const stats =
+    r.statsTaskId === null
+      ? null
+      : ({
+          attemptN: Number(r.statsAttemptN),
+          computedAt: coerceDate(r.statsComputedAt),
+          entryGetCount: Number(r.entryGetCount ?? 0),
+          entrySearchCount: Number(r.entrySearchCount ?? 0),
+          failedToolCallCount: Number(r.failedToolCallCount ?? 0),
+          knowledgeToolCallCount: Number(r.knowledgeToolCallCount ?? 0),
+          messageCount: Number(r.messageCount ?? 0),
+          packGetCount: Number(r.packGetCount ?? 0),
+          sourceLastSeq: Number(r.sourceLastSeq ?? -1),
+          taskId: String(r.statsTaskId),
+          toolCallCount: Number(r.toolCallCount ?? 0),
+          turnCount: Number(r.turnCount ?? 0),
+        } satisfies TaskAttemptActivityStats);
+  return {
+    acceptedAttemptN:
+      r.acceptedAttemptN === null ? null : Number(r.acceptedAttemptN),
+    attemptCompletedAt: coerceNullableDate(r.attemptCompletedAt),
+    attemptN: Number(r.attemptN),
+    attemptStatus: String(r.attemptStatus) as TaskAttempt['status'],
+    claimedByAgentId: String(r.claimedByAgentId),
+    diaryId: r.diaryId === null ? null : String(r.diaryId),
+    model: r.model === null ? null : String(r.model),
+    profileId: r.profileId === null ? null : String(r.profileId),
+    provider: r.provider === null ? null : String(r.provider),
+    stats,
+    taskCompletedAt: coerceNullableDate(r.taskCompletedAt),
+    taskId: String(r.taskId),
+    taskQueuedAt: coerceDate(r.taskQueuedAt),
+    taskStatus: String(r.taskStatus) as Task['status'],
+    taskTags: Array.isArray(r.taskTags) ? r.taskTags.map(String) : [],
+    taskType: String(r.taskType),
+    usage: r.usage,
+  };
+}
+
+function coerceNullableDate(value: unknown): Date | null {
+  return value === null ? null : coerceDate(value);
+}
+
+function coerceDate(value: unknown): Date {
+  return value instanceof Date ? value : new Date(String(value));
+}
+
+function emptyMetricBucket(): TaskActivityMetricBucket {
+  return {
+    abortedAttemptCount: 0,
+    acceptedAttemptCount: 0,
+    acceptedTaskCount: 0,
+    attemptCount: 0,
+    cancelledAttemptCount: 0,
+    entryGetCount: 0,
+    entrySearchCount: 0,
+    extraAttemptCount: 0,
+    extraTokensBeforeAcceptance: 0,
+    failedAttemptCount: 0,
+    failedToolCallCount: 0,
+    firstAttemptAcceptedTaskCount: 0,
+    highFrictionAttemptCount: 0,
+    knowledgeToolCallCount: 0,
+    medianTimeToAcceptedMs: null,
+    medianToolCallsPerAttempt: null,
+    medianTurnsPerAttempt: null,
+    messageCount: 0,
+    packGetCount: 0,
+    retryAttemptCount: 0,
+    retryRecoveredTaskCount: 0,
+    taskCount: 0,
+    terminalFailureTaskCount: 0,
+    timeoutAttemptCount: 0,
+    toolCallCount: 0,
+    totalInputTokens: 0,
+    totalOutputTokens: 0,
+    totalTokens: 0,
+    turnCount: 0,
+  };
+}
+
+function buildActivityAnalytics(
+  rows: TaskActivityAttemptRow[],
+  groupBy: TaskActivityGroupBy,
+  options: { statsComplete: boolean },
+): TaskActivityAnalyticsResult {
+  return {
+    groups:
+      groupBy === 'none'
+        ? []
+        : buildActivityGroups(rows, groupBy).sort((a, b) =>
+            a.key.localeCompare(b.key),
+          ),
+    overall: summarizeActivityRows(rows),
+    statsComplete: options.statsComplete,
+  };
+}
+
+function buildActivityGroups(
+  rows: TaskActivityAttemptRow[],
+  groupBy: Exclude<TaskActivityGroupBy, 'none'>,
+): TaskActivityAnalyticsGroup[] {
+  const grouped = new Map<string, TaskActivityAttemptRow[]>();
+  for (const row of rows) {
+    for (const group of groupKeys(row, groupBy)) {
+      const existing = grouped.get(group.key) ?? [];
+      existing.push(row);
+      grouped.set(group.key, existing);
+    }
+  }
+  return [...grouped.entries()].map(([key, groupRows]) => ({
+    key,
+    label: labelForGroup(key, groupBy, groupRows),
+    metrics: summarizeActivityRows(groupRows),
+  }));
+}
+
+function groupKeys(
+  row: TaskActivityAttemptRow,
+  groupBy: Exclude<TaskActivityGroupBy, 'none'>,
+): Array<{ key: string }> {
+  switch (groupBy) {
+    case 'agent':
+      return [{ key: row.claimedByAgentId }];
+    case 'day':
+      return [
+        {
+          key: (
+            row.attemptCompletedAt ??
+            row.taskCompletedAt ??
+            row.taskQueuedAt
+          )
+            .toISOString()
+            .slice(0, 10),
+        },
+      ];
+    case 'diary':
+      return [{ key: row.diaryId ?? 'unknown' }];
+    case 'profile':
+      return [{ key: row.profileId ?? 'unknown' }];
+    case 'providerModel':
+      return [
+        { key: `${row.provider ?? 'unknown'}/${row.model ?? 'unknown'}` },
+      ];
+    case 'tag':
+      return row.taskTags.length
+        ? row.taskTags.map((tag) => ({ key: tag }))
+        : [{ key: 'untagged' }];
+    case 'taskType':
+      return [{ key: row.taskType }];
+  }
+}
+
+function labelForGroup(
+  key: string,
+  groupBy: Exclude<TaskActivityGroupBy, 'none'>,
+  rows: TaskActivityAttemptRow[],
+): string {
+  if (groupBy === 'profile') {
+    const row = rows.find((candidate) => candidate.profileId === key);
+    if (row?.provider || row?.model) {
+      return `${row.provider ?? 'unknown'}/${row.model ?? 'unknown'}`;
+    }
+  }
+  return key;
+}
+
+function summarizeActivityRows(
+  rows: TaskActivityAttemptRow[],
+): TaskActivityMetricBucket {
+  const bucket = emptyMetricBucket();
+  const taskMap = new Map<string, TaskActivityAttemptRow[]>();
+  const turns: number[] = [];
+  const toolCalls: number[] = [];
+  const timeToAcceptedMs: number[] = [];
+
+  for (const row of rows) {
+    const taskRows = taskMap.get(row.taskId) ?? [];
+    taskRows.push(row);
+    taskMap.set(row.taskId, taskRows);
+
+    const stats = row.stats;
+    const usage = readUsage(row.usage);
+    const totalTokens = usage.inputTokens + usage.outputTokens;
+    bucket.attemptCount += 1;
+    bucket.messageCount += stats?.messageCount ?? 0;
+    bucket.turnCount += stats?.turnCount ?? 0;
+    bucket.toolCallCount += stats?.toolCallCount ?? 0;
+    bucket.failedToolCallCount += stats?.failedToolCallCount ?? 0;
+    bucket.knowledgeToolCallCount += stats?.knowledgeToolCallCount ?? 0;
+    bucket.entrySearchCount += stats?.entrySearchCount ?? 0;
+    bucket.entryGetCount += stats?.entryGetCount ?? 0;
+    bucket.packGetCount += stats?.packGetCount ?? 0;
+    bucket.totalInputTokens += usage.inputTokens;
+    bucket.totalOutputTokens += usage.outputTokens;
+    bucket.totalTokens += totalTokens;
+    if (row.attemptStatus === 'completed') bucket.acceptedAttemptCount += 1;
+    if (row.attemptStatus === 'failed') bucket.failedAttemptCount += 1;
+    if (row.attemptStatus === 'timed_out') bucket.timeoutAttemptCount += 1;
+    if (row.attemptStatus === 'aborted') bucket.abortedAttemptCount += 1;
+    if (row.attemptStatus === 'cancelled') bucket.cancelledAttemptCount += 1;
+    if (row.attemptN > 1) bucket.retryAttemptCount += 1;
+    if (
+      (stats?.turnCount ?? 0) >= 8 ||
+      (stats?.failedToolCallCount ?? 0) >= 3
+    ) {
+      bucket.highFrictionAttemptCount += 1;
+    }
+    if (row.acceptedAttemptN !== null && row.attemptN < row.acceptedAttemptN) {
+      bucket.extraAttemptCount += 1;
+      bucket.extraTokensBeforeAcceptance += totalTokens;
+    }
+    if (stats) {
+      turns.push(stats.turnCount);
+      toolCalls.push(stats.toolCallCount);
+    }
+  }
+
+  bucket.taskCount = taskMap.size;
+  for (const taskRows of taskMap.values()) {
+    const first = taskRows[0];
+    if (!first) continue;
+    const acceptedAttemptN = first.acceptedAttemptN;
+    if (acceptedAttemptN !== null) {
+      bucket.acceptedTaskCount += 1;
+      if (acceptedAttemptN === 1) bucket.firstAttemptAcceptedTaskCount += 1;
+      if (acceptedAttemptN > 1) bucket.retryRecoveredTaskCount += 1;
+      const acceptedRow = taskRows.find(
+        (row) => row.attemptN === acceptedAttemptN,
+      );
+      const completedAt =
+        acceptedRow?.attemptCompletedAt ?? first.taskCompletedAt ?? null;
+      if (completedAt) {
+        timeToAcceptedMs.push(
+          Math.max(0, completedAt.getTime() - first.taskQueuedAt.getTime()),
+        );
+      }
+    } else if (
+      first.taskStatus === 'failed' ||
+      first.taskStatus === 'cancelled' ||
+      first.taskStatus === 'expired'
+    ) {
+      bucket.terminalFailureTaskCount += 1;
+    }
+  }
+
+  bucket.medianTimeToAcceptedMs = median(timeToAcceptedMs);
+  bucket.medianToolCallsPerAttempt = median(toolCalls);
+  bucket.medianTurnsPerAttempt = median(turns);
+  return bucket;
+}
+
+function readUsage(usage: unknown): {
+  inputTokens: number;
+  outputTokens: number;
+} {
+  if (!isRecord(usage)) return { inputTokens: 0, outputTokens: 0 };
+  return {
+    inputTokens: readNonNegativeNumber(usage.inputTokens),
+    outputTokens: readNonNegativeNumber(usage.outputTokens),
+  };
+}
+
+function readNonNegativeNumber(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0
+    ? value
+    : 0;
+}
+
+function median(values: number[]): number | null {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  const value =
+    sorted.length % 2 === 0
+      ? ((sorted[mid - 1] ?? 0) + (sorted[mid] ?? 0)) / 2
+      : (sorted[mid] ?? 0);
+  return Number.isFinite(value) ? value : null;
+}
+
+function terminalAttemptStatuses(): TaskAttempt['status'][] {
+  return ['completed', 'failed', 'cancelled', 'aborted', 'timed_out'];
+}
+
+function buildActivityFilters(filter: TaskActivityAnalyticsFilter): SQL[] {
+  const filters: SQL[] = [
+    eq(tasks.teamId, filter.teamId),
+    inArray(taskAttempts.status, terminalAttemptStatuses()),
+    gte(taskAttempts.completedAt, filter.completedAfter),
+    lt(taskAttempts.completedAt, filter.completedBefore),
+  ];
+  const tags = normalizeList(filter.tags);
+  if (tags.length > 0) {
+    filters.push(
+      sql`${tasks.tags} @> ARRAY[${sql.join(
+        tags.map((tag) => sql`${tag}`),
+        sql`,`,
+      )}]::text[]`,
+    );
+  }
+  const taskTypes = normalizeList(filter.taskTypes);
+  if (taskTypes.length === 1) {
+    filters.push(eq(tasks.taskType, taskTypes[0]));
+  } else if (taskTypes.length > 1) {
+    filters.push(inArray(tasks.taskType, taskTypes));
+  }
+  const diaryIds = normalizeList(filter.diaryIds);
+  if (diaryIds.length === 1) {
+    filters.push(eq(tasks.diaryId, diaryIds[0]));
+  } else if (diaryIds.length > 1) {
+    filters.push(inArray(tasks.diaryId, diaryIds));
+  }
+  const claimedByAgentIds = normalizeList(filter.claimedByAgentIds);
+  if (claimedByAgentIds.length === 1) {
+    filters.push(eq(taskAttempts.claimedByAgentId, claimedByAgentIds[0]));
+  } else if (claimedByAgentIds.length > 1) {
+    filters.push(inArray(taskAttempts.claimedByAgentId, claimedByAgentIds));
+  }
+  const profileIds = normalizeList(filter.profileIds);
+  if (profileIds.length > 0) {
+    const profileIdSql = sql.join(
+      profileIds.map((profileId) => sql`${profileId}::uuid`),
+      sql`,`,
+    );
+    filters.push(sql`
+      (
+        ${runtimeSessions.sourceRuntimeProfileId} IN (${profileIdSql})
+        OR latest_slot.runtime_profile_id IN (${profileIdSql})
+      )
+    `);
+  }
+  return filters;
+}
+
+async function queryActivityAttemptRows(
+  db: Database,
+  filter: TaskActivityAnalyticsFilter,
+  missingOnly: boolean,
+  limit?: number,
+): Promise<TaskActivityAttemptRow[]> {
+  const filters = buildActivityFilters(filter);
+  if (missingOnly) filters.push(isNull(taskAttemptActivityStats.taskId));
+  const limitSql = limit ? sql`LIMIT ${limit}` : sql``;
+  const result = await getExecutor(db).execute(sql`
+    SELECT
+      ${tasks.id} AS "taskId",
+      ${tasks.taskType} AS "taskType",
+      ${tasks.tags} AS "taskTags",
+      ${tasks.diaryId} AS "diaryId",
+      ${tasks.status} AS "taskStatus",
+      ${tasks.acceptedAttemptN} AS "acceptedAttemptN",
+      ${tasks.queuedAt} AS "taskQueuedAt",
+      ${tasks.completedAt} AS "taskCompletedAt",
+      ${taskAttempts.attemptN} AS "attemptN",
+      ${taskAttempts.status} AS "attemptStatus",
+      ${taskAttempts.completedAt} AS "attemptCompletedAt",
+      ${taskAttempts.claimedByAgentId} AS "claimedByAgentId",
+      ${taskAttempts.usage} AS "usage",
+      COALESCE(${runtimeSessions.sourceRuntimeProfileId}, latest_slot.runtime_profile_id) AS "profileId",
+      COALESCE(${taskAttempts.usage}->>'provider', ${runtimeProfiles.provider}, latest_slot.provider) AS "provider",
+      COALESCE(${taskAttempts.usage}->>'model', ${runtimeProfiles.model}, latest_slot.model) AS "model",
+      ${taskAttemptActivityStats.taskId} AS "statsTaskId",
+      ${taskAttemptActivityStats.attemptN} AS "statsAttemptN",
+      ${taskAttemptActivityStats.computedAt} AS "statsComputedAt",
+      ${taskAttemptActivityStats.sourceLastSeq} AS "sourceLastSeq",
+      ${taskAttemptActivityStats.messageCount} AS "messageCount",
+      ${taskAttemptActivityStats.turnCount} AS "turnCount",
+      ${taskAttemptActivityStats.toolCallCount} AS "toolCallCount",
+      ${taskAttemptActivityStats.failedToolCallCount} AS "failedToolCallCount",
+      ${taskAttemptActivityStats.knowledgeToolCallCount} AS "knowledgeToolCallCount",
+      ${taskAttemptActivityStats.entrySearchCount} AS "entrySearchCount",
+      ${taskAttemptActivityStats.entryGetCount} AS "entryGetCount",
+      ${taskAttemptActivityStats.packGetCount} AS "packGetCount"
+    FROM ${taskAttempts}
+    INNER JOIN ${tasks} ON ${tasks.id} = ${taskAttempts.taskId}
+    LEFT JOIN ${taskAttemptActivityStats}
+      ON ${taskAttemptActivityStats.taskId} = ${taskAttempts.taskId}
+      AND ${taskAttemptActivityStats.attemptN} = ${taskAttempts.attemptN}
+    LEFT JOIN ${runtimeSessions}
+      ON ${runtimeSessions.teamId} = ${tasks.teamId}
+      AND ${runtimeSessions.taskId} = ${taskAttempts.taskId}
+      AND ${runtimeSessions.attemptN} = ${taskAttempts.attemptN}
+      AND ${runtimeSessions.deletedAt} IS NULL
+    LEFT JOIN LATERAL (
+      SELECT
+        ${runtimeSlots.runtimeProfileId} AS runtime_profile_id,
+        ${runtimeSlots.provider} AS provider,
+        ${runtimeSlots.model} AS model
+      FROM ${runtimeSlots}
+      WHERE ${runtimeSlots.teamId} = ${tasks.teamId}
+        AND ${runtimeSlots.lastTaskId} = ${taskAttempts.taskId}
+        AND ${runtimeSlots.lastAttemptN} = ${taskAttempts.attemptN}
+      ORDER BY ${runtimeSlots.lastUsedAtMs} DESC
+      LIMIT 1
+    ) latest_slot ON TRUE
+    LEFT JOIN ${runtimeProfiles}
+      ON ${runtimeProfiles.id} = COALESCE(${runtimeSessions.sourceRuntimeProfileId}, latest_slot.runtime_profile_id)
+    WHERE ${and(...filters)}
+    ORDER BY ${taskAttempts.completedAt} DESC
+    ${limitSql}
+  `);
+  return result.rows.map((row) => mapActivityAttemptRow(row));
 }
 
 function escapeLikePattern(value: string): string {

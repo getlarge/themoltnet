@@ -182,6 +182,47 @@ export const ListTasksQuerySchema = Type.Object(
   { $id: 'ListTasksQuery' },
 );
 
+export const TaskActivityAnalyticsGroupBySchema = Type.Union(
+  [
+    Type.Literal('none'),
+    Type.Literal('day'),
+    Type.Literal('tag'),
+    Type.Literal('taskType'),
+    Type.Literal('profile'),
+    Type.Literal('diary'),
+    Type.Literal('agent'),
+    Type.Literal('providerModel'),
+  ],
+  { $id: 'TaskActivityAnalyticsGroupBy' },
+);
+
+export const TaskActivityAnalyticsQuerySchema = Type.Object(
+  {
+    completedAfter: Type.Optional(Type.String({ format: 'date-time' })),
+    completedBefore: Type.Optional(Type.String({ format: 'date-time' })),
+    tags: Type.Optional(
+      Type.Array(Type.String({ minLength: 1, maxLength: 128 }), {
+        maxItems: 20,
+        description: 'Repeated tags filter. Task must include all tags.',
+      }),
+    ),
+    taskTypes: Type.Optional(
+      Type.Array(Type.String({ minLength: 1 }), { maxItems: 20 }),
+    ),
+    profileIds: Type.Optional(
+      Type.Array(Type.String({ format: 'uuid' }), { maxItems: 20 }),
+    ),
+    diaryIds: Type.Optional(
+      Type.Array(Type.String({ format: 'uuid' }), { maxItems: 20 }),
+    ),
+    claimedByAgentIds: Type.Optional(
+      Type.Array(Type.String({ format: 'uuid' }), { maxItems: 20 }),
+    ),
+    groupBy: Type.Optional(TaskActivityAnalyticsGroupBySchema),
+  },
+  { $id: 'TaskActivityAnalyticsQuery' },
+);
+
 export const ClaimTaskBodySchema = Type.Object(
   {
     leaseTtlSec: Type.Optional(
@@ -313,6 +354,85 @@ export const AppendMessagesResponseSchema = Type.Object(
   { $id: 'AppendMessagesResponse' },
 );
 
+const Rate = Type.Number({ minimum: 0, maximum: 1 });
+const NullableNumber = Type.Union([Type.Number(), Type.Null()]);
+
+export const TaskActivityProductMetricsSchema = Type.Object(
+  {
+    success: Type.Object({
+      taskCount: Type.Integer({ minimum: 0 }),
+      acceptedTaskCount: Type.Integer({ minimum: 0 }),
+      acceptedOutputRate: Rate,
+      firstAttemptAcceptedTaskCount: Type.Integer({ minimum: 0 }),
+      firstAttemptAcceptedRate: Rate,
+      retryRecoveredTaskCount: Type.Integer({ minimum: 0 }),
+      retryRecoveryRate: Rate,
+      terminalFailureTaskCount: Type.Integer({ minimum: 0 }),
+      terminalFailureRate: Rate,
+    }),
+    productivity: Type.Object({
+      attemptCount: Type.Integer({ minimum: 0 }),
+      acceptedTasksPerDay: Type.Number({ minimum: 0 }),
+      averageAttemptsPerAcceptedTask: NullableNumber,
+      medianTimeToAcceptedMs: NullableNumber,
+      medianTurnsPerAttempt: NullableNumber,
+      medianToolCallsPerAttempt: NullableNumber,
+    }),
+    hurdles: Type.Object({
+      failedAttemptCount: Type.Integer({ minimum: 0 }),
+      timeoutAttemptCount: Type.Integer({ minimum: 0 }),
+      abortedAttemptCount: Type.Integer({ minimum: 0 }),
+      cancelledAttemptCount: Type.Integer({ minimum: 0 }),
+      retryAttemptCount: Type.Integer({ minimum: 0 }),
+      highFrictionAttemptCount: Type.Integer({ minimum: 0 }),
+      failedToolCallCount: Type.Integer({ minimum: 0 }),
+      failedToolCallRate: Rate,
+    }),
+    knowledge: Type.Object({
+      knowledgeToolCallCount: Type.Integer({ minimum: 0 }),
+      entrySearchCount: Type.Integer({ minimum: 0 }),
+      entryGetCount: Type.Integer({ minimum: 0 }),
+      packGetCount: Type.Integer({ minimum: 0 }),
+      knowledgeCallsPerAcceptedTask: NullableNumber,
+    }),
+    roi: Type.Object({
+      totalInputTokens: Type.Integer({ minimum: 0 }),
+      totalOutputTokens: Type.Integer({ minimum: 0 }),
+      totalTokens: Type.Integer({ minimum: 0 }),
+      acceptedTasksPerThousandTokens: NullableNumber,
+      tokensPerAcceptedTask: NullableNumber,
+      extraAttemptCount: Type.Integer({ minimum: 0 }),
+      extraTokensBeforeAcceptance: Type.Integer({ minimum: 0 }),
+    }),
+    raw: Type.Object({
+      messageCount: Type.Integer({ minimum: 0 }),
+      turnCount: Type.Integer({ minimum: 0 }),
+      toolCallCount: Type.Integer({ minimum: 0 }),
+      failedToolCallCount: Type.Integer({ minimum: 0 }),
+    }),
+  },
+  { $id: 'TaskActivityProductMetrics' },
+);
+
+export const TaskActivityAnalyticsResponseSchema = Type.Object(
+  {
+    range: Type.Object({
+      completedAfter: Type.String({ format: 'date-time' }),
+      completedBefore: Type.String({ format: 'date-time' }),
+    }),
+    statsComplete: Type.Boolean(),
+    overall: Type.Ref(TaskActivityProductMetricsSchema.$id),
+    groups: Type.Array(
+      Type.Object({
+        key: Type.String(),
+        label: Type.String(),
+        metrics: Type.Ref(TaskActivityProductMetricsSchema.$id),
+      }),
+    ),
+  },
+  { $id: 'TaskActivityAnalyticsResponse' },
+);
+
 export const TaskTypeDescriptorSchema = Type.Object(
   {
     taskType: Type.String(),
@@ -359,6 +479,8 @@ export const taskSchemas = [
   BatchDeleteTasksBodySchema,
   BatchDeleteTasksAcceptedResponseSchema,
   ListTasksQuerySchema,
+  TaskActivityAnalyticsGroupBySchema,
+  TaskActivityAnalyticsQuerySchema,
   ClaimTaskBodySchema,
   HeartbeatBodySchema,
   CompleteTaskBodySchema,
@@ -371,6 +493,8 @@ export const taskSchemas = [
   ClaimTaskResponseSchema,
   HeartbeatResponseSchema,
   AppendMessagesResponseSchema,
+  TaskActivityProductMetricsSchema,
+  TaskActivityAnalyticsResponseSchema,
   TaskTypeDescriptorSchema,
   ListTaskSchemasResponseSchema,
 ];

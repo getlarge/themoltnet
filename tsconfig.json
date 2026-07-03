@@ -114,6 +114,9 @@
       "path": "libs/task-mcp-app"
     },
     {
+      "path": "libs/task-analytics-service"
+    },
+    {
       "path": "libs/task-artifact-service"
     },
     {
@@ -121,6 +124,9 @@
     },
     {
       "path": "libs/task-ui"
+    },
+    {
+      "path": "libs/task-workflows"
     },
     {
       "path": "libs/tasks"

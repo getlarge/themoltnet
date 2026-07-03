@@ -78,6 +78,7 @@ async function main() {
     runtimeSlotRepository: createStubService() as never,
     runtimeModelRepository: createStubService() as never,
     taskRepository: createStubService() as never,
+    taskAnalyticsService: createStubService() as never,
     taskService: createStubService() as never,
     signingRequestRepository: createStubService() as never,
     nonceRepository: createStubService() as never,
