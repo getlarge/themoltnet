@@ -13,6 +13,7 @@ import type {
 import { ContextPackService } from '@moltnet/context-pack-service';
 import type { Agent, AgentVoucher, DiaryEntry } from '@moltnet/database';
 import type { RuntimeSessionStorage } from '@moltnet/runtime-session-service';
+import type { TaskAnalyticsService } from '@moltnet/task-analytics-service';
 import type { TaskArtifactStorage } from '@moltnet/task-artifact-service';
 import type { FastifyInstance } from 'fastify';
 import { vi } from 'vitest';
@@ -272,6 +273,9 @@ export interface MockServices {
     [K in keyof RelationshipReader]: ReturnType<typeof vi.fn>;
   };
   taskRepository: { [K in keyof TaskRepository]: ReturnType<typeof vi.fn> };
+  taskAnalyticsService: {
+    [K in keyof TaskAnalyticsService]: ReturnType<typeof vi.fn>;
+  };
   taskService: { [K in keyof TaskService]: ReturnType<typeof vi.fn> };
 }
 
@@ -620,6 +624,10 @@ export function createMockServices(): MockServices {
       appendMessages: vi.fn(),
       listMessages: vi.fn().mockResolvedValue({ items: [], hasMore: false }),
     },
+    taskAnalyticsService: {
+      recomputeAttemptActivityStats: vi.fn(),
+      getActivityAnalytics: vi.fn(),
+    },
     taskService: {
       create: vi.fn(),
       list: vi.fn(),
@@ -828,6 +836,8 @@ export async function createTestApp(
     },
     teamRepository: mocks.teamRepository as never,
     taskRepository: mocks.taskRepository as unknown as TaskRepository,
+    taskAnalyticsService:
+      mocks.taskAnalyticsService as unknown as TaskAnalyticsService,
     taskService: mocks.taskService as unknown as TaskService,
     diaryTransferRepository:
       mocks.diaryTransferRepository as unknown as DiaryTransferRepository,

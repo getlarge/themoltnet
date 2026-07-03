@@ -89,6 +89,40 @@ const MOCK_ATTEMPT = {
   daemonState: null,
 };
 
+function emptyActivityMetrics() {
+  return {
+    abortedAttemptCount: 0,
+    acceptedAttemptCount: 0,
+    acceptedTaskCount: 0,
+    attemptCount: 0,
+    cancelledAttemptCount: 0,
+    entryGetCount: 0,
+    entrySearchCount: 0,
+    extraAttemptCount: 0,
+    extraTokensBeforeAcceptance: 0,
+    failedAttemptCount: 0,
+    failedToolCallCount: 0,
+    firstAttemptAcceptedTaskCount: 0,
+    highFrictionAttemptCount: 0,
+    knowledgeToolCallCount: 0,
+    medianTimeToAcceptedMs: null,
+    medianToolCallsPerAttempt: null,
+    medianTurnsPerAttempt: null,
+    messageCount: 0,
+    packGetCount: 0,
+    retryAttemptCount: 0,
+    retryRecoveredTaskCount: 0,
+    taskCount: 0,
+    terminalFailureTaskCount: 0,
+    timeoutAttemptCount: 0,
+    toolCallCount: 0,
+    totalInputTokens: 0,
+    totalOutputTokens: 0,
+    totalTokens: 0,
+    turnCount: 0,
+  };
+}
+
 describe('POST /tasks', () => {
   let app: FastifyInstance;
   let mocks: ReturnType<typeof createMockServices>;
@@ -502,6 +536,115 @@ describe('GET /tasks', () => {
     expect(response.statusCode).toBe(200);
     const call = mocks.taskService.list.mock.calls[0][0];
     expect(call.profileId).toBeUndefined();
+  });
+});
+
+describe('GET /tasks/analytics/activity', () => {
+  let app: FastifyInstance;
+  let mocks: ReturnType<typeof createMockServices>;
+
+  beforeAll(async () => {
+    mocks = createMockServices();
+    app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
+    resetMockServices(mocks);
+    mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
+    mocks.taskAnalyticsService.getActivityAnalytics.mockResolvedValue({
+      groups: [
+        {
+          key: PROFILE_ID,
+          label: 'Default profile',
+          metrics: {
+            ...emptyActivityMetrics(),
+            acceptedTaskCount: 2,
+            attemptCount: 3,
+            taskCount: 2,
+            toolCallCount: 10,
+            totalTokens: 4000,
+          },
+        },
+      ],
+      overall: {
+        ...emptyActivityMetrics(),
+        acceptedTaskCount: 2,
+        attemptCount: 3,
+        firstAttemptAcceptedTaskCount: 1,
+        knowledgeToolCallCount: 4,
+        retryRecoveredTaskCount: 1,
+        taskCount: 2,
+        toolCallCount: 10,
+        totalInputTokens: 2500,
+        totalOutputTokens: 1500,
+        totalTokens: 4000,
+      },
+      statsComplete: true,
+    });
+  });
+
+  it('passes product analytics filters through to taskAnalyticsService', async () => {
+    const secondProfileId = 'dddddddd-0000-0000-0000-000000000005';
+    const secondDiaryId = 'cccccccc-0000-0000-0000-000000000006';
+
+    const response = await app.inject({
+      method: 'GET',
+      url:
+        '/tasks/analytics/activity?' +
+        'completedAfter=2026-04-01T00:00:00.000Z' +
+        '&completedBefore=2026-05-01T00:00:00.000Z' +
+        '&tags=observability' +
+        '&taskTypes=fulfill_brief' +
+        `&profileIds=${PROFILE_ID}` +
+        `&profileIds=${secondProfileId}` +
+        `&diaryIds=${DIARY_ID}` +
+        `&diaryIds=${secondDiaryId}` +
+        `&claimedByAgentIds=${OWNER_ID}` +
+        '&groupBy=profile',
+      headers: {
+        authorization: 'Bearer test-token',
+        'x-moltnet-team-id': TEAM_ID,
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(
+      mocks.taskAnalyticsService.getActivityAnalytics,
+    ).toHaveBeenCalledWith({
+      callerId: OWNER_ID,
+      callerNs: KetoNamespace.Agent,
+      claimedByAgentIds: [OWNER_ID],
+      completedAfter: '2026-04-01T00:00:00.000Z',
+      completedBefore: '2026-05-01T00:00:00.000Z',
+      diaryIds: [DIARY_ID, secondDiaryId],
+      groupBy: 'profile',
+      profileIds: [PROFILE_ID, secondProfileId],
+      tags: ['observability'],
+      taskTypes: ['fulfill_brief'],
+      teamId: TEAM_ID,
+    });
+    expect(response.json()).toMatchObject({
+      overall: {
+        productivity: {
+          acceptedTasksPerDay: 2 / 30,
+          attemptCount: 3,
+        },
+        roi: {
+          acceptedTasksPerThousandTokens: 0.5,
+          tokensPerAcceptedTask: 2000,
+        },
+        success: {
+          acceptedOutputRate: 1,
+          firstAttemptAcceptedRate: 0.5,
+          retryRecoveryRate: 0.5,
+        },
+      },
+      statsComplete: true,
+    });
   });
 });
 
