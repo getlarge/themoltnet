@@ -1,0 +1,7 @@
+{
+  "brief": "{{brief}}",
+  "execution": {
+    "workspace": "none"
+  },
+  "expectedOutput": "Concise result. Do not rely on repository state unless the brief asks for it."
+}
