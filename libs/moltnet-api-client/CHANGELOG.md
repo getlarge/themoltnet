@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.44.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.43.0...moltnet-api-client-v1.44.0) (2026-07-04)
+
+
+### Features
+
+* **tasks:** add task activity analytics ([62da9b4](https://github.com/getlarge/themoltnet/commit/62da9b46a8768e69ac2423eface1b34d5599868a))
+
 ## [1.43.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.42.1...moltnet-api-client-v1.43.0) (2026-07-03)
 
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.0](https://github.com/getlarge/themoltnet/compare/node-red-contrib-core-v0.9.0...node-red-contrib-core-v0.10.0) (2026-07-04)
+
+
+### Features
+
+* **node-red:** add runtime session nodes ([aca8be0](https://github.com/getlarge/themoltnet/commit/aca8be02e112d424dc9e921cb11b8235eb4a1b8f))
+
 ## [0.9.0](https://github.com/getlarge/themoltnet/compare/node-red-contrib-core-v0.8.0...node-red-contrib-core-v0.9.0) (2026-07-03)
 
 

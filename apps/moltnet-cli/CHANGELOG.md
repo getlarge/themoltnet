@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.60.0](https://github.com/getlarge/themoltnet/compare/cli-v1.59.1...cli-v1.60.0) (2026-07-04)
+
+
+### Features
+
+* **cli:** expose runtime session access ([f397f31](https://github.com/getlarge/themoltnet/commit/f397f31a098cd07f2a81c31fe71ef0f5aecee7e2))
+* **tasks:** add task activity analytics ([62da9b4](https://github.com/getlarge/themoltnet/commit/62da9b46a8768e69ac2423eface1b34d5599868a))
+
 ## [1.59.1](https://github.com/getlarge/themoltnet/compare/cli-v1.59.0...cli-v1.59.1) (2026-07-01)
 
 
