@@ -17,6 +17,7 @@ import {
   type TokenValidator,
 } from '@moltnet/auth';
 import type { RuntimeSessionStorage } from '@moltnet/runtime-session-service';
+import type { TaskAnalyticsService } from '@moltnet/task-analytics-service';
 import type { TaskArtifactStorage } from '@moltnet/task-artifact-service';
 import scalarApiReference from '@scalar/fastify-api-reference';
 import Fastify, {
@@ -165,6 +166,7 @@ export interface AppOptions {
   runtimeSlotRepository: RuntimeSlotRepository;
   runtimeModelRepository: RuntimeModelRepository;
   taskRepository: TaskRepository;
+  taskAnalyticsService: TaskAnalyticsService;
   taskService: TaskService;
   /** Signing request repository + dataSource are required together (DBOS) */
   signingRequestRepository: SigningRequestRepository;
@@ -379,6 +381,7 @@ export async function registerApiRoutes(
   decorateSafe('runtimeSessionMaxBytes', options.runtimeSessionMaxBytes);
   decorateSafe('taskArtifactMaxBytes', options.taskArtifactMaxBytes);
   decorateSafe('taskRepository', options.taskRepository);
+  decorateSafe('taskAnalyticsService', options.taskAnalyticsService);
   decorateSafe('taskService', options.taskService);
   decorateSafe('signingRequestRepository', options.signingRequestRepository);
   decorateSafe('dataSource', options.dataSource);

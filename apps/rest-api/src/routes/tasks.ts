@@ -2,6 +2,10 @@ import { createHash, randomUUID } from 'node:crypto';
 
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { KetoNamespace, requireAuth } from '@moltnet/auth';
+import type {
+  TaskActivityAnalyticsResult,
+  TaskActivityMetricBucket,
+} from '@moltnet/database';
 import { DBOSErrors } from '@moltnet/database';
 import {
   ConflictProblemDetailsSchema,
@@ -9,6 +13,7 @@ import {
   TeamHeaderRequiredSchema,
   ValidationProblemDetailsSchema,
 } from '@moltnet/models';
+import { TaskAnalyticsServiceError } from '@moltnet/task-analytics-service';
 import {
   BUILT_IN_TASK_TYPES,
   normalizeTaskCreateRequest,
@@ -38,6 +43,8 @@ import {
   ListMessagesQuerySchema,
   ListTaskSchemasResponseSchema,
   ListTasksQuerySchema,
+  TaskActivityAnalyticsQuerySchema,
+  TaskActivityAnalyticsResponseSchema,
   TaskAttemptParamsSchema,
   TaskListResponseSchema,
   TaskParamsSchema,
@@ -80,6 +87,23 @@ function toTaskProblem(error: TaskServiceError) {
   }
 }
 
+function toTaskAnalyticsProblem(error: TaskAnalyticsServiceError) {
+  switch (error.code) {
+    case 'forbidden':
+      return createProblem('forbidden', error.message);
+    case 'invalid':
+      return createValidationProblem(
+        error.validationErrors ?? [
+          {
+            field: 'request',
+            message: error.message,
+          },
+        ],
+        error.message,
+      );
+  }
+}
+
 function getAuthContext(request: {
   authContext: {
     identityId: string;
@@ -91,6 +115,121 @@ function getAuthContext(request: {
     throw createProblem('unauthorized', 'Authentication context missing');
   }
   return authContext;
+}
+
+function rate(numerator: number, denominator: number): number {
+  return denominator > 0 ? numerator / denominator : 0;
+}
+
+function nullableRatio(numerator: number, denominator: number): number | null {
+  return denominator > 0 ? numerator / denominator : null;
+}
+
+function toProductMetrics(
+  metrics: TaskActivityMetricBucket,
+  rangeDays: number,
+) {
+  return {
+    hurdles: {
+      abortedAttemptCount: metrics.abortedAttemptCount,
+      cancelledAttemptCount: metrics.cancelledAttemptCount,
+      failedAttemptCount: metrics.failedAttemptCount,
+      failedToolCallCount: metrics.failedToolCallCount,
+      failedToolCallRate: rate(
+        metrics.failedToolCallCount,
+        metrics.toolCallCount,
+      ),
+      highFrictionAttemptCount: metrics.highFrictionAttemptCount,
+      retryAttemptCount: metrics.retryAttemptCount,
+      timeoutAttemptCount: metrics.timeoutAttemptCount,
+    },
+    knowledge: {
+      entryGetCount: metrics.entryGetCount,
+      entrySearchCount: metrics.entrySearchCount,
+      knowledgeCallsPerAcceptedTask: nullableRatio(
+        metrics.knowledgeToolCallCount,
+        metrics.acceptedTaskCount,
+      ),
+      knowledgeToolCallCount: metrics.knowledgeToolCallCount,
+      packGetCount: metrics.packGetCount,
+    },
+    productivity: {
+      acceptedTasksPerDay:
+        rangeDays > 0 ? metrics.acceptedTaskCount / rangeDays : 0,
+      attemptCount: metrics.attemptCount,
+      averageAttemptsPerAcceptedTask: nullableRatio(
+        metrics.attemptCount,
+        metrics.acceptedTaskCount,
+      ),
+      medianTimeToAcceptedMs: metrics.medianTimeToAcceptedMs,
+      medianToolCallsPerAttempt: metrics.medianToolCallsPerAttempt,
+      medianTurnsPerAttempt: metrics.medianTurnsPerAttempt,
+    },
+    raw: {
+      failedToolCallCount: metrics.failedToolCallCount,
+      messageCount: metrics.messageCount,
+      toolCallCount: metrics.toolCallCount,
+      turnCount: metrics.turnCount,
+    },
+    roi: {
+      acceptedTasksPerThousandTokens:
+        metrics.totalTokens > 0
+          ? (metrics.acceptedTaskCount / metrics.totalTokens) * 1000
+          : null,
+      extraAttemptCount: metrics.extraAttemptCount,
+      extraTokensBeforeAcceptance: metrics.extraTokensBeforeAcceptance,
+      tokensPerAcceptedTask: nullableRatio(
+        metrics.totalTokens,
+        metrics.acceptedTaskCount,
+      ),
+      totalInputTokens: metrics.totalInputTokens,
+      totalOutputTokens: metrics.totalOutputTokens,
+      totalTokens: metrics.totalTokens,
+    },
+    success: {
+      acceptedOutputRate: rate(metrics.acceptedTaskCount, metrics.taskCount),
+      acceptedTaskCount: metrics.acceptedTaskCount,
+      firstAttemptAcceptedRate: rate(
+        metrics.firstAttemptAcceptedTaskCount,
+        metrics.taskCount,
+      ),
+      firstAttemptAcceptedTaskCount: metrics.firstAttemptAcceptedTaskCount,
+      retryRecoveredTaskCount: metrics.retryRecoveredTaskCount,
+      retryRecoveryRate: rate(
+        metrics.retryRecoveredTaskCount,
+        metrics.acceptedTaskCount,
+      ),
+      taskCount: metrics.taskCount,
+      terminalFailureRate: rate(
+        metrics.terminalFailureTaskCount,
+        metrics.taskCount,
+      ),
+      terminalFailureTaskCount: metrics.terminalFailureTaskCount,
+    },
+  };
+}
+
+function toAnalyticsResponse(input: {
+  completedAfter: Date;
+  completedBefore: Date;
+  result: TaskActivityAnalyticsResult;
+}) {
+  const rangeMs =
+    input.completedBefore.getTime() - input.completedAfter.getTime();
+  const rangeDays = Math.max(1, rangeMs / (24 * 60 * 60 * 1000));
+  return {
+    groups: input.result.groups.map((group) => ({
+      key: group.key,
+      label: group.label,
+      metrics: toProductMetrics(group.metrics, rangeDays),
+    })),
+    overall: toProductMetrics(input.result.overall, rangeDays),
+    range: {
+      completedAfter: input.completedAfter.toISOString(),
+      completedBefore: input.completedBefore.toISOString(),
+    },
+    statsComplete: input.result.statsComplete,
+  };
 }
 
 async function validateAllowedProfiles(
@@ -365,6 +504,62 @@ export function taskRoutes(fastify: FastifyInstance) {
         });
       } catch (error) {
         if (error instanceof TaskServiceError) throw toTaskProblem(error);
+        throw error;
+      }
+    },
+  );
+
+  // GET /tasks/analytics/activity
+  server.get(
+    '/tasks/analytics/activity',
+    {
+      config: { rateLimit: fastify.rateLimitConfig.read },
+      schema: {
+        operationId: 'getTaskActivityAnalytics',
+        tags: ['tasks'],
+        description:
+          'Return bounded product analytics for task attempts: success, productivity, hurdles, knowledge leverage, and token-efficiency ROI proxies.',
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        headers: TeamHeaderRequiredSchema,
+        querystring: TaskActivityAnalyticsQuerySchema,
+        response: {
+          200: Type.Ref(TaskActivityAnalyticsResponseSchema.$id),
+          400: Type.Ref(ValidationProblemDetailsSchema.$id),
+          401: Type.Ref(ProblemDetailsSchema.$id),
+          403: Type.Ref(ProblemDetailsSchema.$id),
+        },
+      },
+    },
+    async (request) => {
+      const { identityId, subjectType } = getAuthContext(request);
+      const teamId = requireCurrentTeamId(request, 'task analytics');
+      const callerNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const completedBefore = request.query.completedBefore
+        ? new Date(request.query.completedBefore)
+        : new Date();
+      const completedAfter = request.query.completedAfter
+        ? new Date(request.query.completedAfter)
+        : new Date(completedBefore.getTime() - 30 * 24 * 60 * 60 * 1000);
+      try {
+        const result = await fastify.taskAnalyticsService.getActivityAnalytics({
+          claimedByAgentIds: request.query.claimedByAgentIds,
+          completedAfter: completedAfter.toISOString(),
+          completedBefore: completedBefore.toISOString(),
+          diaryIds: request.query.diaryIds,
+          groupBy: request.query.groupBy ?? 'none',
+          profileIds: request.query.profileIds,
+          tags: request.query.tags,
+          taskTypes: request.query.taskTypes,
+          teamId,
+          callerId: identityId,
+          callerNs,
+        });
+        return toAnalyticsResponse({ completedAfter, completedBefore, result });
+      } catch (error) {
+        if (error instanceof TaskAnalyticsServiceError) {
+          throw toTaskAnalyticsProblem(error);
+        }
         throw error;
       }
     },

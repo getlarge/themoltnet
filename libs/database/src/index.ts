@@ -140,6 +140,11 @@ export {
 } from './repositories/signing-request.repository.js';
 export {
   createTaskRepository,
+  type TaskActivityAnalyticsFilter,
+  type TaskActivityAnalyticsGroup,
+  type TaskActivityAnalyticsResult,
+  type TaskActivityGroupBy,
+  type TaskActivityMetricBucket,
   type TaskRepository,
 } from './repositories/task.repository.js';
 export {
@@ -178,23 +183,15 @@ export {
   type UniqueViolationTarget,
 } from './unique-violation.js';
 export {
-  _resetTaskWorkflowsForTesting,
   type AgentKeyLookup,
   initSigningWorkflows,
-  initTaskWorkflows,
   setSigningKeyLookup,
   setSigningRequestPersistence,
   setSigningTimeoutSeconds,
   setSigningVerifier,
-  setTaskWorkflowDeps,
   type SignatureVerifier,
   type SigningEnvelope,
   type SigningRequestPersistence,
   type SigningResult,
   signingWorkflows,
-  type TaskAttemptClaimedEvent,
-  type TaskAttemptFinalEvent,
-  TaskWorkflowConfigurationError,
-  type TaskWorkflowDeps,
-  taskWorkflows,
 } from './workflows/index.js';

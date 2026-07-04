@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/unbound-method */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -8,7 +9,7 @@ import {
   type TaskProgressEvent,
   type TaskWorkflowDeps,
   taskWorkflows,
-} from '../src/workflows/task-workflows.js';
+} from './task-workflows.js';
 
 vi.mock('@dbos-inc/dbos-sdk', () => {
   const events: Record<string, unknown> = {};
@@ -47,6 +48,7 @@ function makeDeps(overrides: Partial<TaskWorkflowDeps> = {}): TaskWorkflowDeps {
     updateTaskStatus: vi.fn().mockResolvedValue(null),
     updateTaskStatusIfNotIn: vi.fn().mockResolvedValue(null),
     removeClaimantTuple: vi.fn().mockResolvedValue(undefined),
+    recomputeAttemptActivityStats: vi.fn().mockResolvedValue(undefined),
     countAttempts: vi.fn().mockResolvedValue(1),
     getMaxAttempts: vi.fn().mockResolvedValue(1),
     findTaskById: vi

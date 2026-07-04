@@ -49,12 +49,10 @@ import {
   getDatabase,
   getDataSource,
   initSigningWorkflows,
-  initTaskWorkflows,
   type NonceRepository,
   setSigningKeyLookup,
   setSigningRequestPersistence,
   setSigningVerifier,
-  setTaskWorkflowDeps,
 } from '@moltnet/database';
 import { createDiaryService } from '@moltnet/diary-service';
 import {
@@ -69,7 +67,15 @@ import {
   observabilityPlugin,
 } from '@moltnet/observability';
 import { createRuntimeSessionStorage } from '@moltnet/runtime-session-service';
+import {
+  createTaskAnalyticsService,
+  type TaskAnalyticsService,
+} from '@moltnet/task-analytics-service';
 import { createTaskArtifactStorage } from '@moltnet/task-artifact-service';
+import {
+  initTaskWorkflows,
+  setTaskWorkflowDeps,
+} from '@moltnet/task-workflows';
 import { initTaskTypeRegistry } from '@moltnet/tasks';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { Redis } from 'ioredis';
@@ -305,6 +311,12 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
 
   await initTaskTypeRegistry();
   const transactionRunner = createDrizzleTransactionRunner(dbConnection.db);
+  const taskAnalyticsService: TaskAnalyticsService = createTaskAnalyticsService(
+    {
+      taskRepository,
+      permissionChecker,
+    },
+  );
   const taskService: TaskService = createTaskService({
     taskRepository,
     diaryRepository,
@@ -422,6 +434,12 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
         setTaskWorkflowDeps({
           dataSource,
           createAttempt: (input) => taskRepository.createAttempt(input),
+          recomputeAttemptActivityStats: async (taskId, attemptN) => {
+            await taskAnalyticsService.recomputeAttemptActivityStats(
+              taskId,
+              attemptN,
+            );
+          },
           updateAttempt: (taskId, attemptN, fields) =>
             taskRepository.updateAttempt(taskId, attemptN, fields),
           updateTaskStatus: (taskId, status, extra) =>
@@ -530,6 +548,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     runtimeSlotRepository,
     runtimeModelRepository,
     taskRepository,
+    taskAnalyticsService,
     taskService,
     signingRequestRepository,
     nonceRepository,

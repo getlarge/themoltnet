@@ -1,5 +1,5 @@
 {
-  "name": "@moltnet/task-service",
+  "name": "@moltnet/task-workflows",
   "version": "0.1.0",
   "license": "AGPL-3.0-only",
   "private": true,
@@ -14,14 +14,10 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@moltnet/auth": "workspace:*",
-    "@moltnet/crypto-service": "workspace:*",
-    "@moltnet/database": "workspace:*",
-    "@moltnet/task-workflows": "workspace:*",
-    "@moltnet/tasks": "workspace:*"
+    "@dbos-inc/dbos-sdk": "catalog:",
+    "@moltnet/database": "workspace:*"
   },
   "devDependencies": {
-    "typebox": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   },
@@ -31,5 +27,6 @@
       "scope:task",
       "platform:server"
     ]
-  }
+  },
+  "sideEffects": false
 }

@@ -1617,3 +1617,42 @@ export const taskMessages = pgTable(
 
 export type TaskMessage = typeof taskMessages.$inferSelect;
 export type NewTaskMessage = typeof taskMessages.$inferInsert;
+
+// ── Task Attempt Activity Stats ───────────────────────────
+
+export const taskAttemptActivityStats = pgTable(
+  'task_attempt_activity_stats',
+  {
+    taskId: uuid('task_id').notNull(),
+    attemptN: integer('attempt_n').notNull(),
+    computedAt: timestamp('computed_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    sourceLastSeq: bigint('source_last_seq', { mode: 'number' })
+      .notNull()
+      .default(-1),
+    messageCount: integer('message_count').notNull().default(0),
+    turnCount: integer('turn_count').notNull().default(0),
+    toolCallCount: integer('tool_call_count').notNull().default(0),
+    failedToolCallCount: integer('failed_tool_call_count').notNull().default(0),
+    knowledgeToolCallCount: integer('knowledge_tool_call_count')
+      .notNull()
+      .default(0),
+    entrySearchCount: integer('entry_search_count').notNull().default(0),
+    entryGetCount: integer('entry_get_count').notNull().default(0),
+    packGetCount: integer('pack_get_count').notNull().default(0),
+  },
+  (table) => [
+    primaryKey({ columns: [table.taskId, table.attemptN] }),
+    index('task_attempt_activity_stats_task_idx').on(table.taskId),
+    foreignKey({
+      columns: [table.taskId, table.attemptN],
+      foreignColumns: [taskAttempts.taskId, taskAttempts.attemptN],
+    }).onDelete('cascade'),
+  ],
+);
+
+export type TaskAttemptActivityStats =
+  typeof taskAttemptActivityStats.$inferSelect;
+export type NewTaskAttemptActivityStats =
+  typeof taskAttemptActivityStats.$inferInsert;

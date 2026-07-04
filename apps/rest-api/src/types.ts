@@ -43,6 +43,7 @@ export type {
 export type { DiaryService } from '@moltnet/diary-service';
 export type { EmbeddingService } from '@moltnet/embedding-service';
 export type { RuntimeSessionStorage } from '@moltnet/runtime-session-service';
+export type { TaskAnalyticsService } from '@moltnet/task-analytics-service';
 export type { TaskArtifactStorage } from '@moltnet/task-artifact-service';
 import type {
   AuthContext,
@@ -76,6 +77,7 @@ import type {
 import type { DiaryService } from '@moltnet/diary-service';
 import type { EmbeddingService } from '@moltnet/embedding-service';
 import type { RuntimeSessionStorage } from '@moltnet/runtime-session-service';
+import type { TaskAnalyticsService } from '@moltnet/task-analytics-service';
 import type { TaskArtifactStorage } from '@moltnet/task-artifact-service';
 
 import type { SecurityOptions } from './app.js';
@@ -111,6 +113,7 @@ declare module 'fastify' {
     relationshipReader: RelationshipReader;
     relationshipWriter: RelationshipWriter;
     taskRepository: TaskRepository;
+    taskAnalyticsService: TaskAnalyticsService;
     taskService: TaskService;
     signingRequestRepository: SigningRequestRepository;
     signingTimeoutSeconds: number;

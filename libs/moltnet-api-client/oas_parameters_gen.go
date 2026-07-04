@@ -5066,6 +5066,635 @@ func decodeGetTaskParams(args [1]string, argsEscaped bool, r *http.Request) (par
 	return params, nil
 }
 
+// GetTaskActivityAnalyticsParams is parameters of getTaskActivityAnalytics operation.
+type GetTaskActivityAnalyticsParams struct {
+	CompletedAfter  OptDateTime `json:",omitempty,omitzero"`
+	CompletedBefore OptDateTime `json:",omitempty,omitzero"`
+	// Repeated tags filter. Task must include all tags.
+	Tags              []string                           `json:",omitempty"`
+	TaskTypes         []string                           `json:",omitempty"`
+	ProfileIds        []uuid.UUID                        `json:",omitempty"`
+	DiaryIds          []uuid.UUID                        `json:",omitempty"`
+	ClaimedByAgentIds []uuid.UUID                        `json:",omitempty"`
+	GroupBy           OptGetTaskActivityAnalyticsGroupBy `json:",omitempty,omitzero"`
+	// Team ID (UUID) that will own the resource. Required.
+	XMoltnetTeamID uuid.UUID
+}
+
+func unpackGetTaskActivityAnalyticsParams(packed middleware.Parameters) (params GetTaskActivityAnalyticsParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "completedAfter",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.CompletedAfter = v.(OptDateTime)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "completedBefore",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.CompletedBefore = v.(OptDateTime)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "tags",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.Tags = v.([]string)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "taskTypes",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.TaskTypes = v.([]string)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "profileIds",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.ProfileIds = v.([]uuid.UUID)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "diaryIds",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.DiaryIds = v.([]uuid.UUID)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "claimedByAgentIds",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.ClaimedByAgentIds = v.([]uuid.UUID)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "groupBy",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.GroupBy = v.(OptGetTaskActivityAnalyticsGroupBy)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+		}
+		params.XMoltnetTeamID = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeGetTaskActivityAnalyticsParams(args [0]string, argsEscaped bool, r *http.Request) (params GetTaskActivityAnalyticsParams, _ error) {
+	q := uri.NewQueryDecoder(r.URL.Query())
+	h := uri.NewHeaderDecoder(r.Header)
+	// Decode query: completedAfter.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "completedAfter",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotCompletedAfterVal time.Time
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToDateTime(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotCompletedAfterVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.CompletedAfter.SetTo(paramsDotCompletedAfterVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "completedAfter",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: completedBefore.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "completedBefore",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotCompletedBeforeVal time.Time
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToDateTime(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotCompletedBeforeVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.CompletedBefore.SetTo(paramsDotCompletedBeforeVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "completedBefore",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: tags.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "tags",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				return d.DecodeArray(func(d uri.Decoder) error {
+					var paramsDotTagsVal string
+					if err := func() error {
+						val, err := d.DecodeValue()
+						if err != nil {
+							return err
+						}
+
+						c, err := conv.ToString(val)
+						if err != nil {
+							return err
+						}
+
+						paramsDotTagsVal = c
+						return nil
+					}(); err != nil {
+						return err
+					}
+					params.Tags = append(params.Tags, paramsDotTagsVal)
+					return nil
+				})
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if params.Tags == nil {
+					return nil // optional
+				}
+				if err := (validate.Array{
+					MinLength:    0,
+					MinLengthSet: false,
+					MaxLength:    20,
+					MaxLengthSet: true,
+				}).ValidateLength(len(params.Tags)); err != nil {
+					return errors.Wrap(err, "array")
+				}
+				var failures []validate.FieldError
+				for i, elem := range params.Tags {
+					if err := func() error {
+						if err := (validate.String{
+							MinLength:     1,
+							MinLengthSet:  true,
+							MaxLength:     128,
+							MaxLengthSet:  true,
+							Email:         false,
+							Hostname:      false,
+							Regex:         nil,
+							MinNumeric:    0,
+							MinNumericSet: false,
+							MaxNumeric:    0,
+							MaxNumericSet: false,
+						}).Validate(string(elem)); err != nil {
+							return errors.Wrap(err, "string")
+						}
+						return nil
+					}(); err != nil {
+						failures = append(failures, validate.FieldError{
+							Name:  fmt.Sprintf("[%d]", i),
+							Error: err,
+						})
+					}
+				}
+				if len(failures) > 0 {
+					return &validate.Error{Fields: failures}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "tags",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: taskTypes.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "taskTypes",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				return d.DecodeArray(func(d uri.Decoder) error {
+					var paramsDotTaskTypesVal string
+					if err := func() error {
+						val, err := d.DecodeValue()
+						if err != nil {
+							return err
+						}
+
+						c, err := conv.ToString(val)
+						if err != nil {
+							return err
+						}
+
+						paramsDotTaskTypesVal = c
+						return nil
+					}(); err != nil {
+						return err
+					}
+					params.TaskTypes = append(params.TaskTypes, paramsDotTaskTypesVal)
+					return nil
+				})
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if params.TaskTypes == nil {
+					return nil // optional
+				}
+				if err := (validate.Array{
+					MinLength:    0,
+					MinLengthSet: false,
+					MaxLength:    20,
+					MaxLengthSet: true,
+				}).ValidateLength(len(params.TaskTypes)); err != nil {
+					return errors.Wrap(err, "array")
+				}
+				var failures []validate.FieldError
+				for i, elem := range params.TaskTypes {
+					if err := func() error {
+						if err := (validate.String{
+							MinLength:     1,
+							MinLengthSet:  true,
+							MaxLength:     0,
+							MaxLengthSet:  false,
+							Email:         false,
+							Hostname:      false,
+							Regex:         nil,
+							MinNumeric:    0,
+							MinNumericSet: false,
+							MaxNumeric:    0,
+							MaxNumericSet: false,
+						}).Validate(string(elem)); err != nil {
+							return errors.Wrap(err, "string")
+						}
+						return nil
+					}(); err != nil {
+						failures = append(failures, validate.FieldError{
+							Name:  fmt.Sprintf("[%d]", i),
+							Error: err,
+						})
+					}
+				}
+				if len(failures) > 0 {
+					return &validate.Error{Fields: failures}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "taskTypes",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: profileIds.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "profileIds",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				return d.DecodeArray(func(d uri.Decoder) error {
+					var paramsDotProfileIdsVal uuid.UUID
+					if err := func() error {
+						val, err := d.DecodeValue()
+						if err != nil {
+							return err
+						}
+
+						c, err := conv.ToUUID(val)
+						if err != nil {
+							return err
+						}
+
+						paramsDotProfileIdsVal = c
+						return nil
+					}(); err != nil {
+						return err
+					}
+					params.ProfileIds = append(params.ProfileIds, paramsDotProfileIdsVal)
+					return nil
+				})
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if params.ProfileIds == nil {
+					return nil // optional
+				}
+				if err := (validate.Array{
+					MinLength:    0,
+					MinLengthSet: false,
+					MaxLength:    20,
+					MaxLengthSet: true,
+				}).ValidateLength(len(params.ProfileIds)); err != nil {
+					return errors.Wrap(err, "array")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "profileIds",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: diaryIds.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "diaryIds",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				return d.DecodeArray(func(d uri.Decoder) error {
+					var paramsDotDiaryIdsVal uuid.UUID
+					if err := func() error {
+						val, err := d.DecodeValue()
+						if err != nil {
+							return err
+						}
+
+						c, err := conv.ToUUID(val)
+						if err != nil {
+							return err
+						}
+
+						paramsDotDiaryIdsVal = c
+						return nil
+					}(); err != nil {
+						return err
+					}
+					params.DiaryIds = append(params.DiaryIds, paramsDotDiaryIdsVal)
+					return nil
+				})
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if params.DiaryIds == nil {
+					return nil // optional
+				}
+				if err := (validate.Array{
+					MinLength:    0,
+					MinLengthSet: false,
+					MaxLength:    20,
+					MaxLengthSet: true,
+				}).ValidateLength(len(params.DiaryIds)); err != nil {
+					return errors.Wrap(err, "array")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "diaryIds",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: claimedByAgentIds.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "claimedByAgentIds",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				return d.DecodeArray(func(d uri.Decoder) error {
+					var paramsDotClaimedByAgentIdsVal uuid.UUID
+					if err := func() error {
+						val, err := d.DecodeValue()
+						if err != nil {
+							return err
+						}
+
+						c, err := conv.ToUUID(val)
+						if err != nil {
+							return err
+						}
+
+						paramsDotClaimedByAgentIdsVal = c
+						return nil
+					}(); err != nil {
+						return err
+					}
+					params.ClaimedByAgentIds = append(params.ClaimedByAgentIds, paramsDotClaimedByAgentIdsVal)
+					return nil
+				})
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if params.ClaimedByAgentIds == nil {
+					return nil // optional
+				}
+				if err := (validate.Array{
+					MinLength:    0,
+					MinLengthSet: false,
+					MaxLength:    20,
+					MaxLengthSet: true,
+				}).ValidateLength(len(params.ClaimedByAgentIds)); err != nil {
+					return errors.Wrap(err, "array")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "claimedByAgentIds",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: groupBy.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "groupBy",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotGroupByVal GetTaskActivityAnalyticsGroupBy
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotGroupByVal = GetTaskActivityAnalyticsGroupBy(c)
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.GroupBy.SetTo(paramsDotGroupByVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if value, ok := params.GroupBy.Get(); ok {
+					if err := func() error {
+						if err := value.Validate(); err != nil {
+							return err
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "groupBy",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode header: x-moltnet-team-id.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.XMoltnetTeamID = c
+				return nil
+			}); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // GetTeamParams is parameters of getTeam operation.
 type GetTeamParams struct {
 	// UUID v4 identifier.
