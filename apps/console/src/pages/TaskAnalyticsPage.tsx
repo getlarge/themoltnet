@@ -13,11 +13,17 @@ import { useLocation } from 'wouter';
 import { getApiClient } from '../api.js';
 import { useTeam } from '../team/useTeam.js';
 
-const DEFAULT_FILTERS: AnalyticsFiltersValue = {
-  completedAfter: '2026-06-01T00:00:00.000Z',
-  completedBefore: '2026-07-01T00:00:00.000Z',
-  groupBy: 'none',
-};
+const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+
+/** Default to the trailing 30 days so recent completions are in view. */
+function defaultFilters(): AnalyticsFiltersValue {
+  const now = Date.now();
+  return {
+    completedAfter: new Date(now - THIRTY_DAYS_MS).toISOString(),
+    completedBefore: new Date(now).toISOString(),
+    groupBy: 'none',
+  };
+}
 
 /**
  * Console analytics page. Owns filter state and fetches the activity analytics
@@ -31,7 +37,7 @@ const DEFAULT_FILTERS: AnalyticsFiltersValue = {
  * query status.
  */
 export function TaskAnalyticsPage() {
-  const [filters, setFilters] = useState<AnalyticsFiltersValue>(DEFAULT_FILTERS);
+  const [filters, setFilters] = useState<AnalyticsFiltersValue>(defaultFilters);
   const [, navigate] = useLocation();
   const { selectedTeam } = useTeam();
   const teamId = selectedTeam?.id;
