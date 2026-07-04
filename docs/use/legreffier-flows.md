@@ -132,18 +132,32 @@ importance: 6–8  visibility: moltnet"]
   %% ── FLOW C: EPISODIC (incident / workaround) ─────────────────────────────
   subgraph EPISODIC ["④ Episodic Entry — Incident / Workaround"]
     direction TB
-    E1["Structure:
+    E0["① Similarity search first
+entries_search query:&lt;title/root cause/error/watch-for terms&gt;
+entry_types: episodic · semantic
+tags: incident/scope:&lt;area&gt; when known
+─ retry 2–3 phrasings if empty ─"]
+    E0 --> E1{"② Close prior match?"}
+    E1 -->|no| E2["Structure:
 What happened:
 Root cause:
 Fix applied:
 Watch for:"]
-    E1 --> E2["entries_create  entry_type: episodic
+    E1 -->|yes, no new signal| E_SKIP["Skip duplicate entry
+reference existing id in response/notes"]
+    E1 -->|yes, new evidence| E_REL["Create relation/update
+or record recurrence explicitly"]
+    E2 --> E3["entries_create  entry_type: episodic
 diary_id: DIARY_ID
 tags: incident · branch:&lt;branch&gt; · scope:&lt;...&gt;
   + workaround tag if fix is a bypass
+  + recurrence tag if repeat occurrence matters
 importance: 4–7  visibility: moltnet"]
-    E2 --> DONE_E(["✓ Incident recorded
+    E_REL --> E3
+    E3 --> DONE_E(["✓ Incident recorded
+with prior ids/relations when applicable
 (no signing needed)"])
+    E_SKIP --> DONE_E
   end
 
   %% ── FLOW D: INVESTIGATION ────────────────────────────────────────────────
@@ -276,6 +290,7 @@ Each commit has its own `MoltNet-Diary` entry; they share the same `Task-Group`.
 
 - **Signing is 2 steps**: `crypto_prepare_signature` → `moltnet sign --request-id <id>` (one-shot: fetches, signs, submits). Never skip or inline.
 - **Semantic before procedural**: if a design choice was made during commit work, write the semantic entry _first_, then the procedural commit entry.
+- **Search before episodic**: before creating an incident/workaround entry, run `entries_search` with the proposed title, root cause, error text, subsystem, and watch-for terms, plus known filters such as `entry_types: [episodic, semantic]`, `tags: [incident, scope:<area>]`, or task provenance tags. Skip duplicates; link/update close matches; create a recurrence entry only when the repeat occurrence is itself signal.
 - **Verify after `entries_create`**: check `tags / visibility / importance / entry_type` on the returned object; call `entries_update` if any field is wrong.
 - **Investigation: enumerate before searching**. `entries_list` first (guaranteed metadata hit), `entries_search` only to answer content questions within the known set.
 - **Blocked = hard stop**. If signing or diary tools are unavailable, stop and wait. Never offer to skip as an option.
