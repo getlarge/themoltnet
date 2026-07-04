@@ -2,6 +2,12 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"slices"
 	"testing"
 	"time"
 
@@ -15,6 +21,7 @@ type stubDiaryHandler struct {
 	listDiaryEntriesParams  moltnetapi.ListDiaryEntriesParams
 	listDiaryTagsParams     moltnetapi.ListDiaryTagsParams
 	listSigningRequestsArgs moltnetapi.ListSigningRequestsParams
+	searchDiaryReq          moltnetapi.OptSearchDiaryReq
 	searchPublicFeedParams  moltnetapi.SearchPublicFeedParams
 }
 
@@ -86,10 +93,48 @@ func (h *stubDiaryHandler) DeleteDiaryEntryById(_ context.Context, _ moltnetapi.
 }
 
 func (h *stubDiaryHandler) SearchDiary(_ context.Context, req moltnetapi.OptSearchDiaryReq) (moltnetapi.SearchDiaryRes, error) {
+	h.searchDiaryReq = req
 	return &moltnetapi.DiarySearchResult{
 		Results: []moltnetapi.DiaryEntry{*newTestEntry("search result")},
 		Total:   1,
 	}, nil
+}
+
+func newCLICommandTestServer(t *testing.T, h moltnetapi.Handler) (*httptest.Server, string) {
+	t.Helper()
+	apiSrvGen, err := moltnetapi.NewServer(h, noopSecurityHandler{})
+	if err != nil {
+		t.Fatalf("NewServer: %v", err)
+	}
+	apiSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/oauth2/token" {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]any{ //nolint:errcheck
+				"access_token": "test-token",
+				"token_type":   "Bearer",
+				"expires_in":   3600,
+			})
+			return
+		}
+		apiSrvGen.ServeHTTP(w, r)
+	}))
+	t.Cleanup(apiSrv.Close)
+
+	credPath := filepath.Join(t.TempDir(), "moltnet.json")
+	data, err := json.Marshal(CredentialsFile{
+		IdentityID: "test-identity",
+		OAuth2: CredentialsOAuth2{
+			ClientID:     "cid",
+			ClientSecret: "csec",
+		},
+	})
+	if err != nil {
+		t.Fatalf("marshal credentials: %v", err)
+	}
+	if err := os.WriteFile(credPath, data, 0o600); err != nil {
+		t.Fatalf("write credentials: %v", err)
+	}
+	return apiSrv, credPath
 }
 
 func (h *stubDiaryHandler) UpdateDiaryEntryById(_ context.Context, req moltnetapi.OptUpdateDiaryEntryByIdReq, params moltnetapi.UpdateDiaryEntryByIdParams) (moltnetapi.UpdateDiaryEntryByIdRes, error) {
@@ -455,6 +500,90 @@ func TestEntrySearch(t *testing.T) {
 	}
 	if len(results.Results) != 1 {
 		t.Errorf("expected 1 result, got %d", len(results.Results))
+	}
+}
+
+func TestEntrySearchCommandPassesFilters(t *testing.T) {
+	// Arrange
+	handler := &stubDiaryHandler{}
+	apiSrv, credPath := newCLICommandTestServer(t, handler)
+
+	// Act
+	err := runEntrySearchCmd(apiSrv.URL, credPath, entrySearchOptions{
+		query:                    "stale lockfile",
+		diaryID:                  testDiaryID.String(),
+		tags:                     "incident,scope:cli",
+		excludeTags:              "superseded",
+		entryTypes:               "episodic,semantic",
+		limit:                    7,
+		offset:                   2,
+		excludeSuperseded:        true,
+		excludeSupersededChanged: true,
+		wRelevance:               0.5,
+		wRecency:                 0.25,
+		wImportance:              0.75,
+		wRelevanceChanged:        true,
+		wRecencyChanged:          true,
+		wImportanceChanged:       true,
+		taskID:                   "task-1",
+		taskType:                 "fulfill_brief",
+		taskCorrelationID:        "corr-1",
+		taskAttempt:              3,
+		taskAttemptChanged:       true,
+	})
+
+	// Assert
+	if err != nil {
+		t.Fatalf("runEntrySearchCmd() error: %v", err)
+	}
+	if !handler.searchDiaryReq.Set {
+		t.Fatal("expected search request to be set")
+	}
+	req := handler.searchDiaryReq.Value
+	if !req.Query.Set || req.Query.Value != "stale lockfile" {
+		t.Fatalf("query: got %#v", req.Query)
+	}
+	if !req.DiaryId.Set || req.DiaryId.Value != testDiaryID {
+		t.Fatalf("diaryId: got %#v", req.DiaryId)
+	}
+	wantTags := []string{
+		"incident",
+		"scope:cli",
+		"task:id:task-1",
+		"task:type:fulfill_brief",
+		"task:correlation:corr-1",
+		"task:attempt:3",
+	}
+	if !slices.Equal(req.Tags, wantTags) {
+		t.Fatalf("tags: got %#v, want %#v", req.Tags, wantTags)
+	}
+	if !slices.Equal(req.ExcludeTags, []string{"superseded"}) {
+		t.Fatalf("excludeTags: got %#v", req.ExcludeTags)
+	}
+	wantEntryTypes := []moltnetapi.SearchDiaryReqEntryTypesItem{
+		moltnetapi.SearchDiaryReqEntryTypesItemEpisodic,
+		moltnetapi.SearchDiaryReqEntryTypesItemSemantic,
+	}
+	if len(req.EntryTypes) != len(wantEntryTypes) || req.EntryTypes[0] != wantEntryTypes[0] || req.EntryTypes[1] != wantEntryTypes[1] {
+		t.Fatalf("entryTypes: got %#v, want %#v", req.EntryTypes, wantEntryTypes)
+	}
+	if !req.Limit.Set || req.Limit.Value != 7 {
+		t.Fatalf("limit: got %#v", req.Limit)
+	}
+	if !req.Offset.Set || req.Offset.Value != 2 {
+		t.Fatalf("offset: got %#v", req.Offset)
+	}
+	if !req.ExcludeSuperseded.Set || !req.ExcludeSuperseded.Value {
+		t.Fatalf("excludeSuperseded: got %#v", req.ExcludeSuperseded)
+	}
+	if !req.WRelevance.Set || req.WRelevance.Value != 0.5 {
+		t.Fatalf("wRelevance: got %#v", req.WRelevance)
+	}
+	if !req.WRecency.Set || req.WRecency.Value != 0.25 {
+		t.Fatalf("wRecency: got %#v", req.WRecency)
+	}
+	if !req.WImportance.Set || req.WImportance.Value != 0.75 {
+		t.Fatalf("wImportance: got %#v", req.WImportance)
 	}
 }
 

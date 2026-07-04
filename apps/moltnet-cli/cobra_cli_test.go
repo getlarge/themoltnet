@@ -703,6 +703,33 @@ func TestEntrySearchRequiresQuery(t *testing.T) {
 	}
 }
 
+func TestEntrySearchHelpIncludesFilters(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	stdout, _, err := executeCommand(root, "entry", "search", "--help")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for _, flag := range []string{
+		"--diary-id",
+		"--tags",
+		"--exclude-tags",
+		"--entry-types",
+		"--task-id",
+		"--task-type",
+		"--task-correlation-id",
+		"--task-attempt",
+		"--exclude-superseded",
+		"--w-relevance",
+		"--w-recency",
+		"--w-importance",
+	} {
+		if !strings.Contains(stdout, flag) {
+			t.Errorf("expected help to contain %s, got: %s", flag, stdout)
+		}
+	}
+}
+
 func TestEntryVerifyRequiresArg(t *testing.T) {
 	t.Parallel()
 	root := NewRootCmd("test", "")

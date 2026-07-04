@@ -199,17 +199,68 @@ func newEntryDeleteCmd() *cobra.Command {
 
 func newEntrySearchCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "search",
-		Short:   "Search diary entries using semantic or keyword search",
-		Example: `  moltnet entry search --query "authentication decisions"`,
+		Use:   "search",
+		Short: "Search diary entries using semantic or keyword search",
+		Example: `  moltnet entry search --query "authentication decisions"
+  moltnet entry search --query "stale lockfile" --entry-types episodic,semantic --tags incident,scope:cli
+  moltnet entry search --query "task regression" --task-type fulfill_brief --task-correlation-id <uuid>`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			credPath, _ := cmd.Flags().GetString("credentials")
 			apiURL := resolveAPIURL(cmd, credPath)
 			query, _ := cmd.Flags().GetString("query")
-			return runEntrySearchCmd(apiURL, credPath, query)
+			diaryID, _ := cmd.Flags().GetString("diary-id")
+			tags, _ := cmd.Flags().GetString("tags")
+			excludeTags, _ := cmd.Flags().GetString("exclude-tags")
+			entryTypes, _ := cmd.Flags().GetString("entry-types")
+			limit, _ := cmd.Flags().GetInt("limit")
+			offset, _ := cmd.Flags().GetInt("offset")
+			excludeSuperseded, _ := cmd.Flags().GetBool("exclude-superseded")
+			wRelevance, _ := cmd.Flags().GetFloat64("w-relevance")
+			wRecency, _ := cmd.Flags().GetFloat64("w-recency")
+			wImportance, _ := cmd.Flags().GetFloat64("w-importance")
+			taskID, _ := cmd.Flags().GetString("task-id")
+			taskType, _ := cmd.Flags().GetString("task-type")
+			taskCorrelationID, _ := cmd.Flags().GetString("task-correlation-id")
+			taskAttempt, _ := cmd.Flags().GetInt("task-attempt")
+			return runEntrySearchCmd(apiURL, credPath, entrySearchOptions{
+				query:                    query,
+				diaryID:                  diaryID,
+				tags:                     tags,
+				excludeTags:              excludeTags,
+				entryTypes:               entryTypes,
+				limit:                    limit,
+				offset:                   offset,
+				excludeSuperseded:        excludeSuperseded,
+				excludeSupersededChanged: cmd.Flags().Changed("exclude-superseded"),
+				wRelevance:               wRelevance,
+				wRecency:                 wRecency,
+				wImportance:              wImportance,
+				wRelevanceChanged:        cmd.Flags().Changed("w-relevance"),
+				wRecencyChanged:          cmd.Flags().Changed("w-recency"),
+				wImportanceChanged:       cmd.Flags().Changed("w-importance"),
+				taskID:                   taskID,
+				taskType:                 taskType,
+				taskCorrelationID:        taskCorrelationID,
+				taskAttempt:              taskAttempt,
+				taskAttemptChanged:       cmd.Flags().Changed("task-attempt"),
+			})
 		},
 	}
 	cmd.Flags().String("query", "", "Search query (required)")
+	cmd.Flags().String("diary-id", "", "Restrict search to a diary UUID")
+	cmd.Flags().String("tags", "", "Comma-separated tags that entries must include (AND)")
+	cmd.Flags().String("exclude-tags", "", "Comma-separated tags that entries must not include")
+	cmd.Flags().String("entry-types", "", "Comma-separated entry types (semantic, episodic, procedural, reflection)")
+	cmd.Flags().Int("limit", 0, "Maximum number of results")
+	cmd.Flags().Int("offset", 0, "Result offset")
+	cmd.Flags().Bool("exclude-superseded", false, "Exclude superseded entries")
+	cmd.Flags().Float64("w-relevance", 0, "Hybrid ranking relevance weight")
+	cmd.Flags().Float64("w-recency", 0, "Hybrid ranking recency weight")
+	cmd.Flags().Float64("w-importance", 0, "Hybrid ranking importance weight")
+	cmd.Flags().String("task-id", "", "Task provenance shorthand: adds task:id:<id> to the tags filter")
+	cmd.Flags().String("task-type", "", "Task provenance shorthand: adds task:type:<type> to the tags filter")
+	cmd.Flags().String("task-correlation-id", "", "Task provenance shorthand: adds task:correlation:<id> to the tags filter")
+	cmd.Flags().Int("task-attempt", 0, "Task provenance shorthand: adds task:attempt:<n> to the tags filter")
 	_ = cmd.MarkFlagRequired("query")
 	return cmd
 }
