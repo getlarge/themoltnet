@@ -721,6 +721,11 @@ export function createMoltNetTools(
     label: 'Search MoltNet Diary Entries',
     description:
       'Hybrid (semantic + lexical) search over diary entries. ' +
+      'Use proactively before non-trivial investigation, code changes, review, ' +
+      'or episodic incident capture so prior decisions and recurring failures ' +
+      'surface before you act. Do not search randomly: pass taskFilter for ' +
+      'task/correlation-local searches and tags or entryTypes for broader ' +
+      'prior-knowledge searches. ' +
       'Optional tags / excludeTags / entryTypes filters AND with the ' +
       'query; the taskFilter shorthand expands into task:* provenance ' +
       'tags so `taskFilter: { taskType: "fulfill_brief" }` returns only ' +
@@ -813,6 +818,10 @@ export function createMoltNetTools(
     label: 'Create MoltNet Diary Entry',
     description:
       'Create a new diary entry to record decisions, findings, incidents, or reflections. ' +
+      'Before creating an episodic incident entry, first call moltnet_search_entries ' +
+      'with the title/root-cause/error/watch-for terms plus taskFilter, tags, or ' +
+      'entryTypes filters, then reference close matches instead of creating an ' +
+      'isolated duplicate. ' +
       'During an active task, the entry is forced into the task diary and tagged with ' +
       'the task:* provenance namespace (task:id:<id>, task:type:<type>, ' +
       'task:attempt:<n>, plus task:correlation:<id> when set); an explicit diaryId ' +
@@ -832,6 +841,20 @@ export function createMoltNetTools(
       ),
       importance: Type.Optional(
         Type.Number({ description: 'Importance 1-10 (default 5)' }),
+      ),
+      entryType: Type.Optional(
+        Type.Union(
+          [
+            Type.Literal('episodic'),
+            Type.Literal('semantic'),
+            Type.Literal('procedural'),
+            Type.Literal('reflection'),
+          ],
+          {
+            description:
+              'Entry type. Use episodic for incidents, workarounds, bugs, or recurrence evidence; defaults to semantic.',
+          },
+        ),
       ),
       diaryId: Type.Optional(
         Type.String({
@@ -883,6 +906,7 @@ export function createMoltNetTools(
         content: params.content,
         tags: mergedTags,
         importance: params.importance ?? 5,
+        ...(params.entryType ? { entryType: params.entryType } : {}),
       });
       const text = JSON.stringify(
         {
@@ -890,6 +914,8 @@ export function createMoltNetTools(
           title: entry.title,
           createdAt: entry.createdAt,
           diaryId: targetDiaryId,
+          entryType: entry.entryType,
+          importance: entry.importance,
           tags: mergedTags,
         },
         null,

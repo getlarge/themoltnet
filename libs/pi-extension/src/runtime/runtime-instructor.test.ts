@@ -59,6 +59,17 @@ describe('runtime instructor', () => {
     expect(out).toMatch(/MoltNet-Diary: <id>/);
   });
 
+  it('requires proactive memory search before investigation and episodic capture', () => {
+    const out = buildRuntimeInstructor(ctx);
+    expect(out).toContain('Proactive memory use');
+    expect(out).toContain('moltnet_search_entries');
+    expect(out).toContain('moltnet_list_entries');
+    expect(out).toContain('taskFilter');
+    expect(out).toContain('scope:<area>');
+    expect(out).toMatch(/Before creating an `episodic` incident entry/);
+    expect(out).toMatch(/similar incidents/);
+  });
+
   it('frames skill packs as advisory and bounded', () => {
     const out = buildRuntimeInstructor(ctx);
     expect(out).toMatch(/\/home\/agent\/\.skill\//);
