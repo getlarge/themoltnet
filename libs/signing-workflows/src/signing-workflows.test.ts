@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/unbound-method */
+import { DBOS } from '@dbos-inc/dbos-sdk';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -7,9 +9,8 @@ import {
   setSigningRequestPersistence,
   setSigningVerifier,
   signingWorkflows,
-} from '../src/workflows/signing-workflows.js';
+} from './signing-workflows.js';
 
-// Mock DBOS SDK
 vi.mock('@dbos-inc/dbos-sdk', () => {
   const registeredSteps: Record<string, (...args: unknown[]) => unknown> = {};
   const registeredWorkflows: Record<string, (...args: unknown[]) => unknown> =
@@ -42,9 +43,6 @@ vi.mock('@dbos-inc/dbos-sdk', () => {
   };
 });
 
-// We need to import DBOS after mocking
-import { DBOS } from '@dbos-inc/dbos-sdk';
-
 describe('Signing Workflows', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -53,8 +51,6 @@ describe('Signing Workflows', () => {
 
   describe('initSigningWorkflows', () => {
     it('registers workflows with DBOS', () => {
-      // initSigningWorkflows was already called by the import
-      // but calling it again should be idempotent
       initSigningWorkflows();
 
       expect(DBOS.registerStep).toHaveBeenCalled();
@@ -65,7 +61,7 @@ describe('Signing Workflows', () => {
       initSigningWorkflows();
       const stepCallCount = vi.mocked(DBOS.registerStep).mock.calls.length;
       initSigningWorkflows();
-      // Should not have registered additional steps
+
       expect(vi.mocked(DBOS.registerStep).mock.calls.length).toBe(
         stepCallCount,
       );

@@ -48,11 +48,7 @@ import {
   type DatabaseConnection,
   getDatabase,
   getDataSource,
-  initSigningWorkflows,
   type NonceRepository,
-  setSigningKeyLookup,
-  setSigningRequestPersistence,
-  setSigningVerifier,
 } from '@moltnet/database';
 import { createDiaryService } from '@moltnet/diary-service';
 import {
@@ -67,6 +63,12 @@ import {
   observabilityPlugin,
 } from '@moltnet/observability';
 import { createRuntimeSessionStorage } from '@moltnet/runtime-session-service';
+import {
+  initSigningWorkflows,
+  setSigningKeyLookup,
+  setSigningRequestPersistence,
+  setSigningVerifier,
+} from '@moltnet/signing-workflows';
 import {
   createTaskAnalyticsService,
   type TaskAnalyticsService,

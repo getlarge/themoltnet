@@ -1003,6 +1003,9 @@ importers:
       '@moltnet/runtime-session-service':
         specifier: workspace:*
         version: link:../../libs/runtime-session-service
+      '@moltnet/signing-workflows':
+        specifier: workspace:*
+        version: link:../../libs/signing-workflows
       '@moltnet/task-analytics-service':
         specifier: workspace:*
         version: link:../../libs/task-analytics-service
@@ -1872,6 +1875,19 @@ importers:
       vitest:
         specifier: 'catalog:'
         version: 3.2.4(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.4)(jiti@2.7.0)(jsdom@27.4.0(@noble/hashes@1.8.0))(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
+
+  libs/signing-workflows:
+    dependencies:
+      '@dbos-inc/dbos-sdk':
+        specifier: 'catalog:'
+        version: 4.13.5
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.4(@types/debug@4.1.13)(@types/node@25.1.0)(@vitest/ui@3.2.4)(jiti@2.7.0)(jsdom@27.4.0(@noble/hashes@2.0.1))(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
 
   libs/task-analytics-service:
     dependencies:
