@@ -6,6 +6,7 @@ import {
   type PromptSection,
 } from './assemble.js';
 import { buildFinalOutputBlock } from './final-output.js';
+import { buildProactiveMemoryWorkflowBlock } from './proactive-memory.js';
 import {
   renderRubricCriteriaList,
   renderRubricPreambleSection,
@@ -78,13 +79,15 @@ export function buildPrReviewUserPrompt(
   const workflow = [
     '1. Read the subject summary, resources, inspection hints, and any',
     '   task-specific instructions before scoring.',
-    '2. Inspect the target artefact directly using the tools and resources the',
+    '2. Search MoltNet diary memory for prior decisions, incidents, and',
+    '   recurring review traps relevant to the subject.',
+    '3. Inspect the target artefact directly using the tools and resources the',
     '   task makes available.',
-    '3. If you are in a dedicated disposable worktree and need the review target',
+    '4. If you are in a dedicated disposable worktree and need the review target',
     '   checked out locally, do that work inside this disposable workspace only.',
-    '4. Apply the rubric strictly. This task is about complexity and',
+    '5. Apply the rubric strictly. This task is about complexity and',
     '   reviewability, not correctness or feature desirability.',
-    '5. Perform any required outward action before emitting the final',
+    '6. Perform any required outward action before emitting the final',
     '   structured output.',
   ].join('\n');
 
@@ -139,6 +142,12 @@ export function buildPrReviewUserPrompt(
       source: 'static',
       header: 'Review workflow',
       body: workflow,
+    },
+    {
+      id: 'pr_review.proactive_memory',
+      source: 'discipline',
+      header: 'Proactive memory use',
+      body: buildProactiveMemoryWorkflowBlock(),
     },
     {
       id: 'pr_review.task_prompt',

@@ -6,6 +6,7 @@ import {
   type PromptSection,
 } from './assemble.js';
 import { buildFinalOutputBlock } from './final-output.js';
+import { buildProactiveMemoryWorkflowBlock } from './proactive-memory.js';
 import { buildSelfVerificationBlock } from './self-verification.js';
 
 interface Ctx {
@@ -87,11 +88,13 @@ export function buildFreeformUserPrompt(
 
   const workflow = [
     '1. Clarify the real objective from the brief before acting.',
-    '2. Gather enough context to avoid guessing.',
-    '3. Complete the requested work when it is safe and bounded.',
-    '4. If the request reveals a recurring task shape, include a',
+    '2. Search MoltNet diary memory for prior decisions, incidents, and',
+    '   recurring traps relevant to the brief.',
+    '3. Gather enough context to avoid guessing.',
+    '4. Complete the requested work when it is safe and bounded.',
+    '5. If the request reveals a recurring task shape, include a',
     '   `proposedTaskType` in the final output with a concise rationale.',
-    '5. If you changed code on a branch, include that branch in',
+    '6. If you changed code on a branch, include that branch in',
     '   `branch` so future continuations can recover git context.',
   ].join('\n');
 
@@ -126,6 +129,12 @@ export function buildFreeformUserPrompt(
       source: 'static',
       header: 'Workflow',
       body: workflow,
+    },
+    {
+      id: 'freeform.proactive_memory',
+      source: 'discipline',
+      header: 'Proactive memory use',
+      body: buildProactiveMemoryWorkflowBlock(),
     },
     {
       id: 'freeform.verification',
