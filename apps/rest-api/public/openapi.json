@@ -9880,6 +9880,7 @@
       "TaskActivityProductMetrics": {
         "properties": {
           "hurdles": {
+            "description": "Hurdle metrics: failed, timed-out, aborted, cancelled, retry, high-friction, and tool-failure signals.",
             "properties": {
               "abortedAttemptCount": {
                 "minimum": 0,
@@ -9898,11 +9899,13 @@
                 "type": "integer"
               },
               "failedToolCallRate": {
+                "description": "Failed tool-call ratio. Product intent: surface tooling/runtime reliability drag.",
                 "maximum": 1,
                 "minimum": 0,
                 "type": "number"
               },
               "highFrictionAttemptCount": {
+                "description": "Attempts with retry, failure, timeout, abort, cancellation, or failed tool-call friction.",
                 "minimum": 0,
                 "type": "integer"
               },
@@ -9928,6 +9931,7 @@
             "type": "object"
           },
           "knowledge": {
+            "description": "Knowledge leverage metrics: diary search/get and pack retrieval usage per accepted task.",
             "properties": {
               "entryGetCount": {
                 "minimum": 0,
@@ -9966,6 +9970,7 @@
             "type": "object"
           },
           "productivity": {
+            "description": "Productivity metrics: accepted task throughput and attempt/turn/tool-call effort required to finish work.",
             "properties": {
               "acceptedTasksPerDay": {
                 "minimum": 0,
@@ -10054,6 +10059,7 @@
             "type": "object"
           },
           "roi": {
+            "description": "Token-efficiency ROI metrics: token totals, accepted work per token, tokens per accepted task, and retry waste.",
             "properties": {
               "acceptedTasksPerThousandTokens": {
                 "anyOf": [
@@ -10070,6 +10076,7 @@
                 "type": "integer"
               },
               "extraTokensBeforeAcceptance": {
+                "description": "Tokens spent on attempts before the accepted attempt. Product intent: wasted retry cost.",
                 "minimum": 0,
                 "type": "integer"
               },
@@ -10081,7 +10088,8 @@
                   {
                     "type": "null"
                   }
-                ]
+                ],
+                "description": "Token cost per accepted task. Product intent: ROI proxy for accepted work."
               },
               "totalInputTokens": {
                 "minimum": 0,
@@ -10108,8 +10116,10 @@
             "type": "object"
           },
           "success": {
+            "description": "Task success metrics: accepted output rate, first-attempt success, retry recovery, and terminal failure.",
             "properties": {
               "acceptedOutputRate": {
+                "description": "Accepted task ratio: acceptedTaskCount / taskCount. Product intent: how often tasks produce accepted outputs.",
                 "maximum": 1,
                 "minimum": 0,
                 "type": "number"
@@ -10119,6 +10129,7 @@
                 "type": "integer"
               },
               "firstAttemptAcceptedRate": {
+                "description": "First-attempt success ratio. Product intent: how often work succeeds without retry friction.",
                 "maximum": 1,
                 "minimum": 0,
                 "type": "number"
@@ -10132,6 +10143,7 @@
                 "type": "integer"
               },
               "retryRecoveryRate": {
+                "description": "Retry recovery ratio. Product intent: how often retries turn failed first attempts into accepted work.",
                 "maximum": 1,
                 "minimum": 0,
                 "type": "number"

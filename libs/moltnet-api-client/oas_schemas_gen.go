@@ -42257,12 +42257,21 @@ func (s *TaskActivityAnalyticsResponseRange) SetCompletedBefore(val time.Time) {
 
 // Ref: #/components/schemas/TaskActivityProductMetrics
 type TaskActivityProductMetrics struct {
-	Hurdles      TaskActivityProductMetricsHurdles      `json:"hurdles"`
-	Knowledge    TaskActivityProductMetricsKnowledge    `json:"knowledge"`
+	// Hurdle metrics: failed, timed-out, aborted, cancelled, retry, high-friction, and tool-failure
+	// signals.
+	Hurdles TaskActivityProductMetricsHurdles `json:"hurdles"`
+	// Knowledge leverage metrics: diary search/get and pack retrieval usage per accepted task.
+	Knowledge TaskActivityProductMetricsKnowledge `json:"knowledge"`
+	// Productivity metrics: accepted task throughput and attempt/turn/tool-call effort required to
+	// finish work.
 	Productivity TaskActivityProductMetricsProductivity `json:"productivity"`
 	Raw          TaskActivityProductMetricsRaw          `json:"raw"`
-	Roi          TaskActivityProductMetricsRoi          `json:"roi"`
-	Success      TaskActivityProductMetricsSuccess      `json:"success"`
+	// Token-efficiency ROI metrics: token totals, accepted work per token, tokens per accepted task, and
+	// retry waste.
+	Roi TaskActivityProductMetricsRoi `json:"roi"`
+	// Task success metrics: accepted output rate, first-attempt success, retry recovery, and terminal
+	// failure.
+	Success TaskActivityProductMetricsSuccess `json:"success"`
 }
 
 // GetHurdles returns the value of Hurdles.
@@ -42325,15 +42334,19 @@ func (s *TaskActivityProductMetrics) SetSuccess(val TaskActivityProductMetricsSu
 	s.Success = val
 }
 
+// Hurdle metrics: failed, timed-out, aborted, cancelled, retry, high-friction, and tool-failure
+// signals.
 type TaskActivityProductMetricsHurdles struct {
-	AbortedAttemptCount      int     `json:"abortedAttemptCount"`
-	CancelledAttemptCount    int     `json:"cancelledAttemptCount"`
-	FailedAttemptCount       int     `json:"failedAttemptCount"`
-	FailedToolCallCount      int     `json:"failedToolCallCount"`
-	FailedToolCallRate       float64 `json:"failedToolCallRate"`
-	HighFrictionAttemptCount int     `json:"highFrictionAttemptCount"`
-	RetryAttemptCount        int     `json:"retryAttemptCount"`
-	TimeoutAttemptCount      int     `json:"timeoutAttemptCount"`
+	AbortedAttemptCount   int `json:"abortedAttemptCount"`
+	CancelledAttemptCount int `json:"cancelledAttemptCount"`
+	FailedAttemptCount    int `json:"failedAttemptCount"`
+	FailedToolCallCount   int `json:"failedToolCallCount"`
+	// Failed tool-call ratio. Product intent: surface tooling/runtime reliability drag.
+	FailedToolCallRate float64 `json:"failedToolCallRate"`
+	// Attempts with retry, failure, timeout, abort, cancellation, or failed tool-call friction.
+	HighFrictionAttemptCount int `json:"highFrictionAttemptCount"`
+	RetryAttemptCount        int `json:"retryAttemptCount"`
+	TimeoutAttemptCount      int `json:"timeoutAttemptCount"`
 }
 
 // GetAbortedAttemptCount returns the value of AbortedAttemptCount.
@@ -42416,6 +42429,7 @@ func (s *TaskActivityProductMetricsHurdles) SetTimeoutAttemptCount(val int) {
 	s.TimeoutAttemptCount = val
 }
 
+// Knowledge leverage metrics: diary search/get and pack retrieval usage per accepted task.
 type TaskActivityProductMetricsKnowledge struct {
 	EntryGetCount                 int        `json:"entryGetCount"`
 	EntrySearchCount              int        `json:"entrySearchCount"`
@@ -42474,6 +42488,8 @@ func (s *TaskActivityProductMetricsKnowledge) SetPackGetCount(val int) {
 	s.PackGetCount = val
 }
 
+// Productivity metrics: accepted task throughput and attempt/turn/tool-call effort required to
+// finish work.
 type TaskActivityProductMetricsProductivity struct {
 	AcceptedTasksPerDay            float64    `json:"acceptedTasksPerDay"`
 	AttemptCount                   int        `json:"attemptCount"`
@@ -42590,14 +42606,18 @@ func (s *TaskActivityProductMetricsRaw) SetTurnCount(val int) {
 	s.TurnCount = val
 }
 
+// Token-efficiency ROI metrics: token totals, accepted work per token, tokens per accepted task, and
+// retry waste.
 type TaskActivityProductMetricsRoi struct {
 	AcceptedTasksPerThousandTokens NilFloat64 `json:"acceptedTasksPerThousandTokens"`
 	ExtraAttemptCount              int        `json:"extraAttemptCount"`
-	ExtraTokensBeforeAcceptance    int        `json:"extraTokensBeforeAcceptance"`
-	TokensPerAcceptedTask          NilFloat64 `json:"tokensPerAcceptedTask"`
-	TotalInputTokens               int        `json:"totalInputTokens"`
-	TotalOutputTokens              int        `json:"totalOutputTokens"`
-	TotalTokens                    int        `json:"totalTokens"`
+	// Tokens spent on attempts before the accepted attempt. Product intent: wasted retry cost.
+	ExtraTokensBeforeAcceptance int `json:"extraTokensBeforeAcceptance"`
+	// Token cost per accepted task. Product intent: ROI proxy for accepted work.
+	TokensPerAcceptedTask NilFloat64 `json:"tokensPerAcceptedTask"`
+	TotalInputTokens      int        `json:"totalInputTokens"`
+	TotalOutputTokens     int        `json:"totalOutputTokens"`
+	TotalTokens           int        `json:"totalTokens"`
 }
 
 // GetAcceptedTasksPerThousandTokens returns the value of AcceptedTasksPerThousandTokens.
@@ -42670,16 +42690,23 @@ func (s *TaskActivityProductMetricsRoi) SetTotalTokens(val int) {
 	s.TotalTokens = val
 }
 
+// Task success metrics: accepted output rate, first-attempt success, retry recovery, and terminal
+// failure.
 type TaskActivityProductMetricsSuccess struct {
-	AcceptedOutputRate            float64 `json:"acceptedOutputRate"`
-	AcceptedTaskCount             int     `json:"acceptedTaskCount"`
+	// Accepted task ratio: acceptedTaskCount / taskCount. Product intent: how often tasks produce
+	// accepted outputs.
+	AcceptedOutputRate float64 `json:"acceptedOutputRate"`
+	AcceptedTaskCount  int     `json:"acceptedTaskCount"`
+	// First-attempt success ratio. Product intent: how often work succeeds without retry friction.
 	FirstAttemptAcceptedRate      float64 `json:"firstAttemptAcceptedRate"`
 	FirstAttemptAcceptedTaskCount int     `json:"firstAttemptAcceptedTaskCount"`
 	RetryRecoveredTaskCount       int     `json:"retryRecoveredTaskCount"`
-	RetryRecoveryRate             float64 `json:"retryRecoveryRate"`
-	TaskCount                     int     `json:"taskCount"`
-	TerminalFailureRate           float64 `json:"terminalFailureRate"`
-	TerminalFailureTaskCount      int     `json:"terminalFailureTaskCount"`
+	// Retry recovery ratio. Product intent: how often retries turn failed first attempts into accepted
+	// work.
+	RetryRecoveryRate        float64 `json:"retryRecoveryRate"`
+	TaskCount                int     `json:"taskCount"`
+	TerminalFailureRate      float64 `json:"terminalFailureRate"`
+	TerminalFailureTaskCount int     `json:"terminalFailureTaskCount"`
 }
 
 // GetAcceptedOutputRate returns the value of AcceptedOutputRate.
