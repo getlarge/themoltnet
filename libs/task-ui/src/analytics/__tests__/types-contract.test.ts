@@ -2,26 +2,14 @@ import { describe, expect, it } from 'vitest';
 
 import type { TaskActivityAnalyticsResponse } from '../types.js';
 
-// Contract guard for the 1:1 API mirror (PR #1550).
+// Structural smoke check for the analytics response shape.
 //
-// The hand-written `TaskActivityAnalyticsResponse` in `../types.js` mirrors the
-// analytics endpoint's response so the generated `@moltnet/api-client` type
-// drops in with no adapter. Nothing structurally forces the two to stay
-// identical, so a drift (a renamed or newly-nullable field) would compile fine
-// and break the "no adapter" promise silently at merge.
-//
-// AT MERGE (#1550): replace the placeholder below with a bidirectional
-// type-assignability assertion against the generated client type, e.g.
-//
-//   import type { TaskActivityAnalyticsResponse as ApiResponse }
-//     from '@moltnet/api-client';
-//   import { expectTypeOf } from 'vitest';
-//   expectTypeOf<ApiResponse>().toEqualTypeOf<TaskActivityAnalyticsResponse>();
-//
-// `toEqualTypeOf` (not `toMatchTypeOf`) is required so a rename or a widened
-// nullability is caught in both directions. Once this passes, delete the local
-// types and re-export the generated ones (see the DELETE AT MERGE note in
-// types.ts).
+// `task-ui` deliberately does NOT depend on `@moltnet/api-client`, so the
+// bidirectional type-assignability assertion against the generated
+// `TaskActivityAnalyticsResponse` lives in the Console app (which depends on
+// both): see `apps/console/__tests__/analytics-contract.test.ts`. That test
+// is the enforcement that the hand-written mirror here stays identical to the
+// wire shape; this file just keeps the required top-level fields buildable.
 
 describe('analytics response contract', () => {
   it('has the five product pillars plus range/statsComplete/groups', () => {

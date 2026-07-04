@@ -1,13 +1,17 @@
+import { getTaskActivityAnalyticsOptions } from '@moltnet/api-client/query';
 import {
   AnalyticsBoard,
   type AnalyticsFiltersValue,
+  type AnalyticsStatus,
   type TaskActivityAnalyticsGroup,
 } from '@moltnet/task-ui';
+import { useQuery } from '@tanstack/react-query';
 import { Stack, Text } from '@themoltnet/design-system';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useLocation } from 'wouter';
 
-import { getMockAnalytics } from '../analytics/mockAnalytics.js';
+import { getApiClient } from '../api.js';
+import { useTeam } from '../team/useTeam.js';
 
 const DEFAULT_FILTERS: AnalyticsFiltersValue = {
   completedAfter: '2026-06-01T00:00:00.000Z',
@@ -16,30 +20,40 @@ const DEFAULT_FILTERS: AnalyticsFiltersValue = {
 };
 
 /**
- * Console analytics page. Owns filter state and produces the analytics response
- * through a data adapter, then hands both into the shared <AnalyticsBoard>.
+ * Console analytics page. Owns filter state and fetches the activity analytics
+ * for the selected team, then hands the response into the shared
+ * <AnalyticsBoard>. Data fetching is isolated to this one file.
  *
- * Data fetching is isolated to this one file. Today it calls the mock adapter;
- * when the analytics endpoint ships (see #1373 / PR #1550), replace
- * `getMockAnalytics` with the generated react-query option and map its states
- * to the board's `status` EXPLICITLY — TanStack Query's status is
- * `pending | error | success`, not the board's `loading | error | empty | ready`,
- * and "empty" is a data-shape decision (no attempts in the window), not a query
- * status. For example:
- *
- *   const query = useQuery(getTaskActivityAnalyticsOptions({ query: filters }));
- *   const status: AnalyticsStatus =
- *     query.isPending ? 'loading'
- *     : query.isError ? 'error'
- *     : (query.data?.overall.success.taskCount ?? 0) === 0 ? 'empty'
- *     : 'ready';
- *   // <AnalyticsBoard status={status} response={query.data} onRetry={query.refetch} ... />
+ * The generated `TaskActivityAnalyticsResponse` is structurally identical to the
+ * board's expected shape, so it flows in with no adapter. TanStack Query's
+ * status (`pending | error | success`) is mapped EXPLICITLY to the board's
+ * states — "empty" is a data-shape decision (no tasks in the window), not a
+ * query status.
  */
 export function TaskAnalyticsPage() {
   const [filters, setFilters] = useState<AnalyticsFiltersValue>(DEFAULT_FILTERS);
   const [, navigate] = useLocation();
+  const { selectedTeam } = useTeam();
+  const teamId = selectedTeam?.id;
 
-  const response = useMemo(() => getMockAnalytics(filters), [filters]);
+  const query = useQuery({
+    ...getTaskActivityAnalyticsOptions({
+      client: getApiClient(),
+      headers: { 'x-moltnet-team-id': teamId ?? '' },
+      query: filters,
+    }),
+    enabled: Boolean(teamId),
+  });
+
+  const status: AnalyticsStatus = !teamId
+    ? 'empty'
+    : query.isPending
+      ? 'loading'
+      : query.isError
+        ? 'error'
+        : (query.data?.overall.success.taskCount ?? 0) === 0
+          ? 'empty'
+          : 'ready';
 
   // Drilldown is only meaningful for dimensions the task list can filter on.
   // Today that's the agent cohort; other groupings have no drilldown target yet,
@@ -62,10 +76,12 @@ export function TaskAnalyticsPage() {
       </Stack>
 
       <AnalyticsBoard
-        status="ready"
-        response={response}
+        status={status}
+        response={query.data}
+        error={query.error instanceof Error ? query.error.message : null}
         filters={filters}
         onFiltersChange={setFilters}
+        onRetry={() => query.refetch()}
         onSelectGroup={onSelectGroup}
       />
     </Stack>

@@ -7,13 +7,13 @@
 // pre-aggregates `task_messages` into a materialized stats table, so the UI
 // never touches raw messages.
 //
-// DELETE AT MERGE (#1550): once `@moltnet/api-client` exports the generated
-// `TaskActivityAnalyticsResponse` / `TaskActivityProductMetrics`, delete the
-// hand-written copies below and re-export the generated types instead. Nothing
-// here structurally forces these to stay identical to the wire shape, so a
-// silent drift (a nullable/renamed field) would compile fine but break the
-// "no adapter" promise at runtime. `__tests__/types-contract.test.ts` documents
-// the assignability check to enable at merge time as the enforcement.
+// These types are kept hand-written (rather than re-exported from
+// `@moltnet/api-client`) on purpose: `task-ui` must not depend on the API
+// client — the coupling is a compile-time structural check, not a module edge.
+// A bidirectional type-assignability test in the Console app
+// (`apps/console/__tests__/analytics-contract.test.ts`) locks these to the
+// generated wire type, so a silent drift (a renamed or newly-nullable field)
+// fails the build there instead of breaking the "no adapter" flow at runtime.
 
 /** Pivot dimension for the comparison table + daily trend bucketing. */
 export type AnalyticsGroupBy =
