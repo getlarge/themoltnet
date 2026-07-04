@@ -1,0 +1,7 @@
+{
+  "brief": "{{brief}}",
+  "execution": {
+    "workspace": "shared_mount"
+  },
+  "expectedOutput": "Concise answer with any important caveats."
+}

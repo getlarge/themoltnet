@@ -33,6 +33,13 @@ server owns queue metadata such as status, timestamps, attempt numbers,
 | `api/render-pack.create.template.json` | `render_pack` | Create a renderer task from a live pack id.  |
 | `api/judge-pack.create.template.json`  | `judge_pack`  | Create a judge task from live render output. |
 
+## Task recipes
+
+Reusable one-off task patterns live in [`recipes/`](./recipes/). They are
+plain `moltnet task create` examples, not CLI presets: the task-type `input`
+JSON stays in a file, while envelope metadata such as `--title`, `--tags`,
+timeouts, expiry, and attempts are passed as flags.
+
 ### Tooling
 
 - `tools/src/tasks/create-task.ts` — loads a create-payload fixture,

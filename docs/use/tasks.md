@@ -320,11 +320,15 @@ for the full mapping table.
 | Dispatch / running timeouts  | `--dispatch-timeout-sec`, `--running-timeout-sec`         | `dispatch_timeout_sec`, `running_timeout_sec` | `dispatchTimeoutSec`, `runningTimeoutSec` |
 | Expiry from enqueue          | `--expires-in-sec`                                        | `expires_in_sec`                              | `expiresInSec`                            |
 | Max attempts                 | `--max-attempts`                                          | `max_attempts`                                | `maxAttempts`                             |
+| Mutable task tags            | `--tags "tag-a,tag-b"`                                    | `tags: [...]`                                 | `tags: [...]`                             |
 
 CLI-only ergonomics: `--dry-run` (print canonical body, no POST),
 `--skip-validation` (bypass the local schema check — useful when developing a
 new task type whose schema isn't deployed yet), `--output id|json` (default
 `json`; `id` prints just the UUID + newline).
+
+Copyable freeform task recipes that use these flags live in
+[`examples/tasks/recipes`](../../examples/tasks/recipes/README.md).
 
 ### Inspect a task
 
