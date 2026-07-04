@@ -113,32 +113,34 @@ jobs:
             return 1
           }
 
+          # E2E projects depend on the app projects they exercise, so app and
+          # shared-lib changes mark the matching e2e project affected. Gate on
+          # the e2e projects directly so e2e-only changes run the same jobs.
           # Node e2e: rest-api queue/API suites. mcp-server and agent-daemon
           # have dedicated jobs below so they do not contend with rest-api's
           # sponsor-flow restart.
-          if contains "@moltnet/rest-api"; then
+          if contains "@moltnet/rest-api-e2e"; then
             echo "e2e-node=true" >> "$GITHUB_OUTPUT"
           else
             echo "e2e-node=false" >> "$GITHUB_OUTPUT"
           fi
 
-          if contains "@themoltnet/agent-daemon"; then
+          if contains "@themoltnet/agent-daemon-e2e"; then
             echo "e2e-agent-daemon=true" >> "$GITHUB_OUTPUT"
           else
             echo "e2e-agent-daemon=false" >> "$GITHUB_OUTPUT"
           fi
 
-          if contains "@moltnet/console"; then
+          if contains "@moltnet/console-e2e"; then
             echo "e2e-browser=true" >> "$GITHUB_OUTPUT"
           else
             echo "e2e-browser=false" >> "$GITHUB_OUTPUT"
           fi
 
-          # MCP e2e: the mcp-server node suite + the mcp-host browser suite. Any
-          # change to the server, the host fixture, or an MCP app UI lib must
-          # exercise these. (Previously the mcp-host browser suite lived in the
-          # console-gated browser job and silently skipped for MCP-only PRs.)
-          if contains "@moltnet/mcp-server" "@moltnet/mcp-host" "@moltnet/mcp-host-e2e" "@moltnet/entry-explore-mcp-app" "@moltnet/task-mcp-app" "@moltnet/mcp-test-harness"; then
+          # MCP e2e: the mcp-server node suite + the mcp-host browser suite.
+          # Their project dependencies pull in server, host, fixture, and MCP
+          # app changes; direct e2e changes affect the e2e projects themselves.
+          if contains "@moltnet/mcp-server-e2e" "@moltnet/mcp-host-e2e"; then
             echo "e2e-mcp=true" >> "$GITHUB_OUTPUT"
           else
             echo "e2e-mcp=false" >> "$GITHUB_OUTPUT"

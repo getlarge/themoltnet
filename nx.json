@@ -68,6 +68,11 @@
       "plugin": "@nx/vite/plugin"
     },
     {
+      "exclude": [
+        "apps/rest-api-e2e/**/*",
+        "apps/mcp-server-e2e/**/*",
+        "apps/agent-daemon-e2e/**/*"
+      ],
       "options": {
         "ciTargetName": "test-ci",
         "testMode": "run",
