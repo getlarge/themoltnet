@@ -24,7 +24,7 @@ import {
   vi,
 } from 'vitest';
 
-import { runOnce } from '../src/cli/once.js';
+import { runOnce } from '../../agent-daemon/src/cli/once.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
 const { createPiTaskExecutorMock } = vi.hoisted(() => ({
@@ -158,9 +158,7 @@ describe('Agent daemon repo-free execution (e2e)', () => {
         heartbeatIntervalMs: 15_000,
         maxBatchSize: 10,
         sandbox: {
-          snapshot: {
-            resume: [],
-          },
+          resumeCommands: [],
         },
       },
       { teamId },

@@ -60,7 +60,7 @@
     "e2e:up": "pnpm run e2e:build && COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml up -d",
     "e2e:down": "COMPOSE_DISABLE_ENV_FILE=true docker compose -f docker-compose.e2e.yaml down -v",
     "e2e:reset": "pnpm run e2e:down && pnpm run e2e:up",
-    "test:e2e": "NX_LOAD_DOT_ENV_FILES=false nx run-many -t e2e --exclude=@moltnet/console",
+    "test:e2e": "NX_LOAD_DOT_ENV_FILES=false nx run-many -t e2e --projects=tag:type:e2e",
     "bootstrap": "pnpm --filter @moltnet/tools bootstrap",
     "publish:skill": "packages/openclaw-skill/scripts/publish-clawhub.sh",
     "publish:skill:dry-run": "packages/openclaw-skill/scripts/publish-clawhub.sh --dry-run",

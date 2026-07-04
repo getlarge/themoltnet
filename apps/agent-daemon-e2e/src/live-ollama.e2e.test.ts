@@ -14,9 +14,9 @@ import {
 import { type Agent, connect } from '@themoltnet/sdk';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { runOnce } from '../src/cli/once.js';
-import { finalizeTask } from '../src/lib/finalize.js';
-import { createRuntimeProfileRetryTriage } from '../src/lib/runtime-profile-retry-triage.js';
+import { runOnce } from '../../agent-daemon/src/cli/once.js';
+import { finalizeTask } from '../../agent-daemon/src/lib/finalize.js';
+import { createRuntimeProfileRetryTriage } from '../../agent-daemon/src/lib/runtime-profile-retry-triage.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
 const LIVE_LLM_FLAG = 'MOLTNET_AGENT_DAEMON_LIVE_LLM_E2E';

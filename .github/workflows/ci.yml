@@ -795,7 +795,7 @@ jobs:
       # suite running against the same stack.
       - name: Run REST API E2E tests
         if: needs.affected.outputs.e2e-node == 'true'
-        run: pnpm exec nx run @moltnet/rest-api:e2e
+        run: pnpm exec nx run @moltnet/rest-api-e2e:e2e
       - name: Docker Compose logs
         if: failure() && needs.affected.outputs.e2e-node == 'true'
         run: docker compose -f docker-compose.e2e.yaml logs --tail=50
@@ -875,7 +875,7 @@ jobs:
         run: pnpm exec nx run @themoltnet/pi-extension:test-ci--src/vm-manager.integration.test.ts
       - name: Run agent-daemon E2E tests
         if: needs.affected.outputs.e2e-agent-daemon == 'true'
-        run: pnpm exec nx run @themoltnet/agent-daemon:e2e
+        run: pnpm exec nx run @themoltnet/agent-daemon-e2e:e2e
       - name: Docker Compose logs
         if: failure() && needs.affected.outputs.e2e-agent-daemon == 'true'
         run: docker compose -f docker-compose.e2e.yaml logs --tail=50
@@ -915,7 +915,7 @@ jobs:
       - name: Get Playwright version
         id: pw-version
         if: needs.affected.outputs.e2e-browser == 'true'
-        run: echo "version=$(pnpm --silent --filter @moltnet/console exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+        run: echo "version=$(pnpm --silent --filter @moltnet/console-e2e exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
       - name: Cache Playwright browsers
         id: pw-cache
         if: needs.affected.outputs.e2e-browser == 'true'
@@ -925,10 +925,10 @@ jobs:
           key: playwright-chromium-${{ steps.pw-version.outputs.version }}
       - name: Install Playwright browsers
         if: needs.affected.outputs.e2e-browser == 'true' && steps.pw-cache.outputs.cache-hit != 'true'
-        run: pnpm --filter @moltnet/console exec playwright install chromium
+        run: pnpm --filter @moltnet/console-e2e exec playwright install chromium
       - name: Install Playwright system deps
         if: needs.affected.outputs.e2e-browser == 'true'
-        run: pnpm --filter @moltnet/console exec playwright install-deps chromium
+        run: pnpm --filter @moltnet/console-e2e exec playwright install-deps chromium
       - name: Log in to GHCR
         if: needs.affected.outputs.e2e-browser == 'true'
         uses: docker/login-action@v4
@@ -958,7 +958,7 @@ jobs:
           ORY_KETO_PUBLIC_URL: http://localhost:4466
           ORY_KETO_ADMIN_URL: http://localhost:4467
           ORY_KRATOS_ADMIN_URL: http://localhost:4434
-        run: pnpm exec nx run @moltnet/console:e2e
+        run: pnpm exec nx run @moltnet/console-e2e:e2e
       - name: Docker Compose logs
         if: failure() && needs.affected.outputs.e2e-browser == 'true'
         run: docker compose -f docker-compose.e2e.yaml logs --tail=50
@@ -1041,7 +1041,7 @@ jobs:
           ORY_KETO_ADMIN_URL: http://127.0.0.1:4467
           ORY_KRATOS_PUBLIC_URL: http://127.0.0.1:4433
           ORY_KRATOS_ADMIN_URL: http://127.0.0.1:4434
-        run: pnpm exec nx run @moltnet/mcp-server:e2e
+        run: pnpm exec nx run @moltnet/mcp-server-e2e:e2e
       - name: Run MCP Host Browser E2E tests
         if: needs.affected.outputs.e2e-mcp == 'true'
         env:

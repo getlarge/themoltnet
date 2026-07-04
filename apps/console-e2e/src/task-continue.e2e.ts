@@ -119,9 +119,7 @@ test.describe.serial('Continue task from console', () => {
         runtimeKind: 'gondolin_pi',
         provider: 'anthropic',
         model: 'claude-sonnet-4-5',
-        sandbox: {
-          image: 'ghcr.io/getlarge/themoltnet/agent-runtime:e2e',
-        },
+        sandbox: {},
       },
     });
     if (!profile.data?.id) {

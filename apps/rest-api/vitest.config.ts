@@ -8,7 +8,7 @@ export default defineConfig({
     environment: 'node',
     root: resolve(import.meta.dirname),
     include: ['__tests__/**/*.test.ts'],
-    // e2e tests require DATABASE_URL; run separately via vitest.config.e2e.ts
+    // E2E tests require Docker infra and live in @moltnet/rest-api-e2e.
     exclude: ['__tests__/e2e/**'],
     // CI failure mode: '[vitest-worker]: Timeout calling "onTaskUpdate"'
     // — vitest's parent↔fork IPC times out at 5s when worker threads

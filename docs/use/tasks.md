@@ -173,13 +173,13 @@ Source-of-truth tests for this contract:
 
 - `libs/tasks/src/validation.test.ts` covers the freeform execution policy,
   `execution.workspace`, and `continueFrom` validation.
-- `apps/mcp-server/e2e/task-tools.e2e.test.ts` covers the MCP
+- `apps/mcp-server-e2e/src/task-tools.e2e.test.ts` covers the MCP
   `tasks_continue` helper shape and injected claim condition.
-- `apps/rest-api/e2e/tasks-continue.e2e.test.ts` covers server-side
+- `apps/rest-api-e2e/src/tasks-continue.e2e.test.ts` covers server-side
   continuation validation.
 - `apps/agent-daemon/src/lib/task-execution-plan.test.ts`,
   `apps/agent-daemon/src/lib/execution-plan-cache.test.ts`, and
-  `apps/agent-daemon/e2e/daemon.e2e.test.ts` cover daemon workspace planning,
+  `apps/agent-daemon-e2e/src/daemon.e2e.test.ts` cover daemon workspace planning,
   runtime-slot attachment, and continuation affinity.
 
 ## Operations

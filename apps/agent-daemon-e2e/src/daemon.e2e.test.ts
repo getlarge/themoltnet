@@ -33,24 +33,24 @@ import { resolveTaskWorktreePath } from '@themoltnet/pi-extension';
 import { type Agent, connect } from '@themoltnet/sdk';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
-import type { DaemonSlotIdentity } from '../src/lib/daemon-slot-identity.js';
+import type { DaemonSlotIdentity } from '../../agent-daemon/src/lib/daemon-slot-identity.js';
 import {
   createExecutionPlanCache,
   type RuntimeSlotStore,
-} from '../src/lib/execution-plan-cache.js';
-import { finalizeTask } from '../src/lib/finalize.js';
+} from '../../agent-daemon/src/lib/execution-plan-cache.js';
+import { finalizeTask } from '../../agent-daemon/src/lib/finalize.js';
 import {
   resolveRuntimeProfile,
   validateRuntimeProfilePrerequisites,
-} from '../src/lib/runtime-profile.js';
+} from '../../agent-daemon/src/lib/runtime-profile.js';
 import {
   createApiRuntimeSessionStore,
   resolveRuntimeSessionKind,
   type RuntimeSessionStore,
-} from '../src/lib/runtime-sessions.js';
-import { createApiRuntimeSlotStore } from '../src/lib/runtime-slots.js';
-import { resolveLatestPiSessionPath } from '../src/lib/session-files.js';
-import { ensureDaemonStateDirs } from '../src/lib/state-dir.js';
+} from '../../agent-daemon/src/lib/runtime-sessions.js';
+import { createApiRuntimeSlotStore } from '../../agent-daemon/src/lib/runtime-slots.js';
+import { resolveLatestPiSessionPath } from '../../agent-daemon/src/lib/session-files.js';
+import { ensureDaemonStateDirs } from '../../agent-daemon/src/lib/state-dir.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
 const silentLogger: AgentRuntimeLogger = {
@@ -839,6 +839,9 @@ describe('Agent daemon (e2e)', () => {
           taskId: claimedTask.task.id,
           attemptN: claimedTask.attemptN,
           status: 'cancelled' as const,
+          output: null,
+          outputCid: null,
+          usage: { inputTokens: 0, outputTokens: 0 },
           durationMs: 1,
         };
       },
@@ -1542,17 +1545,22 @@ async function runStubbedSlotAwareTask(args: StubbedSlotAwareTaskArgs) {
   const [output] = outputs;
   // Mirror the production daemon: forward the runtime-slot expiry through to
   // /complete so freeform attempts report a non-null warm-slot hint.
-  const plan = usedExecutionPlan;
-  const taskForCtx =
-    plan && plan.slotKey ? await args.agent.tasks.get(args.taskId) : null;
-  const resolvedSlot =
-    plan && plan.slotKey
-      ? await args.slotStore.findLatestSlotByTaskAttempt(
-          taskForCtx.teamId,
-          args.taskId,
-          output.attemptN,
-        )
-      : null;
+  const plan = usedExecutionPlan as Awaited<
+    ReturnType<typeof executionPlans.getOrCreate>
+  > | null;
+  let taskForCtx: Awaited<ReturnType<typeof args.agent.tasks.get>> | null =
+    null;
+  let resolvedSlot: Awaited<
+    ReturnType<typeof args.slotStore.findLatestSlotByTaskAttempt>
+  > = null;
+  if (plan?.slotKey) {
+    taskForCtx = await args.agent.tasks.get(args.taskId);
+    resolvedSlot = await args.slotStore.findLatestSlotByTaskAttempt(
+      taskForCtx.teamId,
+      args.taskId,
+      output.attemptN,
+    );
+  }
   if (
     args.runtimeSessionStore &&
     taskForCtx &&
@@ -1596,6 +1604,7 @@ async function buildStubbedTaskOutput(
       id: string;
       taskType: string;
       input: Record<string, unknown>;
+      inputCid: string;
     };
     attemptN: number;
   },

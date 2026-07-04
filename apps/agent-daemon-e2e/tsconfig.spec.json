@@ -1,0 +1,34 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "outDir": "./out-tsc/spec",
+    "rootDir": ".",
+    "tsBuildInfoFile": "./out-tsc/tsconfig.spec.tsbuildinfo",
+    "types": ["vitest/globals", "node"]
+  },
+  "extends": "./tsconfig.json",
+  "include": ["src/**/*.ts", "vitest.config.ts"],
+  "references": [
+    {
+      "path": "../../apps/agent-daemon/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/bootstrap/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/crypto-service/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/tasks/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/agent-runtime/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/pi-extension/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/sdk/tsconfig.lib.json"
+    }
+  ]
+}
