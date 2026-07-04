@@ -53,13 +53,21 @@ export function TaskAnalyticsPage() {
 
   const status: AnalyticsStatus = !teamId
     ? 'empty'
-    : query.isPending
+    : query.isLoading
       ? 'loading'
       : query.isError
         ? 'error'
         : (query.data?.overall.success.taskCount ?? 0) === 0
           ? 'empty'
           : 'ready';
+
+  // Surface the real failure even when the thrown value isn't an Error
+  // subclass, rather than collapsing to the board's generic fallback.
+  const errorMessage = query.error
+    ? query.error instanceof Error
+      ? query.error.message
+      : String(query.error)
+    : null;
 
   // Drilldown is only meaningful for dimensions the task list can filter on.
   // Today that's the agent cohort; other groupings have no drilldown target yet,
@@ -84,7 +92,7 @@ export function TaskAnalyticsPage() {
       <AnalyticsBoard
         status={status}
         response={query.data}
-        error={query.error instanceof Error ? query.error.message : null}
+        error={errorMessage}
         filters={filters}
         onFiltersChange={setFilters}
         onRetry={() => query.refetch()}
