@@ -5,6 +5,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { computeJsonCid } from '@moltnet/crypto-service';
+import { runOnce } from '@themoltnet/agent-daemon/cli/once.js';
+import { finalizeTask } from '@themoltnet/agent-daemon/lib/finalize.js';
+import { createRuntimeProfileRetryTriage } from '@themoltnet/agent-daemon/lib/runtime-profile-retry-triage.js';
 import {
   AgentRuntime,
   type AgentRuntimeLogger,
@@ -14,9 +17,6 @@ import {
 import { type Agent, connect } from '@themoltnet/sdk';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { runOnce } from '../src/cli/once.js';
-import { finalizeTask } from '../src/lib/finalize.js';
-import { createRuntimeProfileRetryTriage } from '../src/lib/runtime-profile-retry-triage.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
 const LIVE_LLM_FLAG = 'MOLTNET_AGENT_DAEMON_LIVE_LLM_E2E';

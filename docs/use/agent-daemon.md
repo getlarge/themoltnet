@@ -659,13 +659,13 @@ The policy and continuation behavior above is covered by source-of-truth tests:
 
 - `libs/tasks/src/validation.test.ts` for freeform policy,
   `execution.workspace`, and `continueFrom` validation.
-- `apps/mcp-server/e2e/task-tools.e2e.test.ts` for MCP `tasks_continue`
+- `apps/mcp-server-e2e/src/task-tools.e2e.test.ts` for MCP `tasks_continue`
   composition.
-- `apps/rest-api/e2e/tasks-continue.e2e.test.ts` for server-side continuation
+- `apps/rest-api-e2e/src/tasks-continue.e2e.test.ts` for server-side continuation
   validation.
 - `apps/agent-daemon/src/lib/task-execution-plan.test.ts`,
   `apps/agent-daemon/src/lib/execution-plan-cache.test.ts`, and
-  `apps/agent-daemon/e2e/daemon.e2e.test.ts` for daemon workspace planning,
+  `apps/agent-daemon-e2e/src/daemon.e2e.test.ts` for daemon workspace planning,
   runtime-slot attachment, and continuation affinity.
 
 ## Identity and sandbox model

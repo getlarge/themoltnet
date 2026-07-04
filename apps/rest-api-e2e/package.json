@@ -1,0 +1,52 @@
+{
+  "name": "@moltnet/rest-api-e2e",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@moltnet/api-client": "workspace:*",
+    "@moltnet/auth": "workspace:*",
+    "@moltnet/bootstrap": "workspace:*",
+    "@moltnet/crypto-service": "workspace:*",
+    "@moltnet/database": "workspace:*",
+    "@ory/client-fetch": "catalog:",
+    "drizzle-orm": "catalog:",
+    "ioredis": "catalog:"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "nx": {
+    "projectType": "application",
+    "tags": [
+      "type:e2e",
+      "scope:public",
+      "platform:server"
+    ],
+    "implicitDependencies": [
+      "@moltnet/rest-api"
+    ],
+    "targets": {
+      "e2e": {
+        "cache": true,
+        "executor": "nx:run-commands",
+        "inputs": [
+          "default",
+          "^production",
+          "{projectRoot}/vitest.config.ts",
+          "{projectRoot}/src/**/*",
+          {
+            "externalDependencies": [
+              "vitest"
+            ]
+          }
+        ],
+        "options": {
+          "command": "vitest run --config vitest.config.ts",
+          "cwd": "apps/rest-api-e2e"
+        },
+        "outputs": []
+      }
+    }
+  }
+}

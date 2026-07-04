@@ -2,8 +2,8 @@
  * Reusable e2e harness for tests that need a freshly provisioned MoltNet
  * agent against the e2e Docker stack (rest-api + Ory split deployment).
  *
- * Originally duplicated across apps/agent-daemon/e2e/setup.ts and
- * apps/mcp-server/e2e/setup.ts; lifted here once a third consumer (the
+ * Originally duplicated across apps/agent-daemon-e2e/src/setup.ts and
+ * apps/mcp-server-e2e/src/setup.ts; lifted here once a third consumer (the
  * console e2e suite added in #1303) needed the same provisioning logic.
  * Existing duplicates can migrate in a follow-up PR.
  *

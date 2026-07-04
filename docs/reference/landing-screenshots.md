@@ -13,11 +13,11 @@ light).
   `apps/landing/public/screenshots/{board,live-pane,create-task}.png`
   and the `*-light.png` variants.
 - Capture specs (Playwright, run against the console e2e stack):
-  - `apps/console/e2e/landing-setup.e2e.ts` — a human registers, creates a
+  - `apps/console-e2e/src/landing-setup.e2e.ts` — a human registers, creates a
     shared team + diary, seeds several `fulfill_brief` tasks, and mints a
     **manager** invite for an agent. Writes state to
     `$TMPDIR/landing-shots.json`.
-  - `apps/console/e2e/landing-capture.e2e.ts` — logs the human back in, opens
+  - `apps/console-e2e/src/landing-capture.e2e.ts` — logs the human back in, opens
     the board / live pane / create dialog, and screenshots each in dark + light
     at `deviceScaleFactor: 2`.
 
@@ -40,7 +40,7 @@ Active/Done lanes only populate when an agent actually claims and runs tasks.
 2. **Seed the shared team + tasks + agent invite:**
 
    ```bash
-   pnpm exec nx run @moltnet/console:e2e -- landing-setup.e2e.ts
+   pnpm exec nx run @moltnet/console-e2e:e2e -- landing-setup.e2e.ts
    ```
 
    Note the printed `team=… invite=…`.
@@ -77,7 +77,7 @@ Active/Done lanes only populate when an agent actually claims and runs tasks.
 5. **Capture** (both themes, 2×):
 
    ```bash
-   pnpm exec nx run @moltnet/console:e2e -- landing-capture.e2e.ts
+   pnpm exec nx run @moltnet/console-e2e:e2e -- landing-capture.e2e.ts
    ```
 
 6. **Compress** the PNGs (retina 2× shots are large):

@@ -10,6 +10,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { computeJsonCid } from '@moltnet/crypto-service';
+import { runOnce } from '@themoltnet/agent-daemon/cli/once.js';
 import type { ClaimedTask, TaskReporter } from '@themoltnet/agent-runtime';
 import type { ExecutePiTaskOptions } from '@themoltnet/pi-extension';
 import type * as PiExtension from '@themoltnet/pi-extension';
@@ -24,7 +25,6 @@ import {
   vi,
 } from 'vitest';
 
-import { runOnce } from '../src/cli/once.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
 const { createPiTaskExecutorMock } = vi.hoisted(() => ({
@@ -158,9 +158,7 @@ describe('Agent daemon repo-free execution (e2e)', () => {
         heartbeatIntervalMs: 15_000,
         maxBatchSize: 10,
         sandbox: {
-          snapshot: {
-            resume: [],
-          },
+          resumeCommands: [],
         },
       },
       { teamId },

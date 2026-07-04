@@ -134,7 +134,7 @@ test('owner can transfer a diary to another team owner who accepts it', async ({
 
   // The pending-transfers panel should no longer show this transfer.
   await destPage.reload();
-  await expect(destPage.getByText('Incoming transfers (1)')).not.toBeVisible();
+  await expect(destPage.getByText('Incoming transfers (1)')).toBeHidden();
 
   await sourceCtx.close();
   await destCtx.close();
@@ -201,7 +201,7 @@ test('destination owner can reject a pending transfer and the diary stays on the
     .getByRole('dialog')
     .getByRole('button', { name: 'Reject' })
     .click();
-  await expect(destPage.getByText('Incoming transfers (1)')).not.toBeVisible();
+  await expect(destPage.getByText('Incoming transfers (1)')).toBeHidden();
 
   // Diary stays on the source team.
   const { data: refreshed } = await getDiary({

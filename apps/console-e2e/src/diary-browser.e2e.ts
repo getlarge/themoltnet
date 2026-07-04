@@ -249,7 +249,7 @@ test.describe.serial('Diary browser', () => {
     await page.getByRole('button', { name: 'Delete', exact: true }).click();
 
     await expect(page.getByText('2 deleted, 0 skipped')).toBeVisible();
-    await expect(page.getByText(seeded.entryTitle)).not.toBeVisible();
-    await expect(page.getByText(seeded.secondEntryTitle)).not.toBeVisible();
+    await expect(page.getByText(seeded.entryTitle)).toBeHidden();
+    await expect(page.getByText(seeded.secondEntryTitle)).toBeHidden();
   });
 });

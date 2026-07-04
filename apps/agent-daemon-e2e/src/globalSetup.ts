@@ -1,7 +1,7 @@
 /**
  * Daemon E2E Global Setup — Health Check Only.
  *
- * Mirrors apps/mcp-server/e2e/globalSetup.ts. The Docker Compose stack is
+ * Mirrors apps/mcp-server-e2e/src/globalSetup.ts. The Docker Compose stack is
  * brought up by CI (or the developer) before the suite runs; we only
  * verify health here.
  *

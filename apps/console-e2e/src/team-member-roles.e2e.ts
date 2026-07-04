@@ -125,7 +125,7 @@ test('owner can demote a manager to member from the console', async ({
   ).toBeVisible();
 
   await managerPage.goto(`${CONSOLE_URL}/teams/${team.id}`);
-  await expect(managerPage.getByText('Invites')).not.toBeVisible();
+  await expect(managerPage.getByText('Invites')).toBeHidden();
 
   await ownerContext.close();
   await managerContext.close();

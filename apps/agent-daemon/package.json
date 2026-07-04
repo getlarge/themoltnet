@@ -17,6 +17,60 @@
   "homepage": "https://themolt.net",
   "main": "./dist/main.js",
   "types": "./dist/main.d.ts",
+  "exports": {
+    ".": {
+      "import": "./src/main.ts",
+      "types": "./src/main.ts"
+    },
+    "./cli/once.js": {
+      "import": "./src/cli/once.ts",
+      "types": "./src/cli/once.ts"
+    },
+    "./lib/daemon-slot-identity.js": {
+      "import": "./src/lib/daemon-slot-identity.ts",
+      "types": "./src/lib/daemon-slot-identity.ts"
+    },
+    "./lib/execution-plan-cache.js": {
+      "import": "./src/lib/execution-plan-cache.ts",
+      "types": "./src/lib/execution-plan-cache.ts"
+    },
+    "./lib/finalize.js": {
+      "import": "./src/lib/finalize.ts",
+      "types": "./src/lib/finalize.ts"
+    },
+    "./lib/runtime-profile.js": {
+      "import": "./src/lib/runtime-profile.ts",
+      "types": "./src/lib/runtime-profile.ts"
+    },
+    "./lib/runtime-profile-retry-triage.js": {
+      "import": "./src/lib/runtime-profile-retry-triage.ts",
+      "types": "./src/lib/runtime-profile-retry-triage.ts"
+    },
+    "./lib/runtime-sessions.js": {
+      "import": "./src/lib/runtime-sessions.ts",
+      "types": "./src/lib/runtime-sessions.ts"
+    },
+    "./lib/runtime-slots.js": {
+      "import": "./src/lib/runtime-slots.ts",
+      "types": "./src/lib/runtime-slots.ts"
+    },
+    "./lib/session-files.js": {
+      "import": "./src/lib/session-files.ts",
+      "types": "./src/lib/session-files.ts"
+    },
+    "./lib/state-dir.js": {
+      "import": "./src/lib/state-dir.ts",
+      "types": "./src/lib/state-dir.ts"
+    }
+  },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/main.d.ts",
+        "import": "./dist/main.js"
+      }
+    }
+  },
   "bin": {
     "moltnet-agent": "./dist/main.js"
   },
@@ -74,30 +128,6 @@
       "scope:agent",
       "platform:cli"
     ],
-    "targets": {
-      "e2e": {
-        "cache": true,
-        "executor": "nx:run-commands",
-        "inputs": [
-          "default",
-          "^production",
-          "{projectRoot}/vitest.config.e2e.ts",
-          "{projectRoot}/e2e/**/*",
-          {
-            "env": "MOLTNET_AGENT_DAEMON_LIVE_LLM_E2E"
-          },
-          {
-            "externalDependencies": [
-              "vitest"
-            ]
-          }
-        ],
-        "options": {
-          "command": "vitest run --config vitest.config.e2e.ts",
-          "cwd": "apps/agent-daemon"
-        },
-        "outputs": []
-      }
-    }
+    "targets": {}
   }
 }

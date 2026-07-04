@@ -113,32 +113,34 @@ jobs:
             return 1
           }
 
+          # E2E projects depend on the app projects they exercise, so app and
+          # shared-lib changes mark the matching e2e project affected. Gate on
+          # the e2e projects directly so e2e-only changes run the same jobs.
           # Node e2e: rest-api queue/API suites. mcp-server and agent-daemon
           # have dedicated jobs below so they do not contend with rest-api's
           # sponsor-flow restart.
-          if contains "@moltnet/rest-api"; then
+          if contains "@moltnet/rest-api-e2e"; then
             echo "e2e-node=true" >> "$GITHUB_OUTPUT"
           else
             echo "e2e-node=false" >> "$GITHUB_OUTPUT"
           fi
 
-          if contains "@themoltnet/agent-daemon"; then
+          if contains "@themoltnet/agent-daemon-e2e"; then
             echo "e2e-agent-daemon=true" >> "$GITHUB_OUTPUT"
           else
             echo "e2e-agent-daemon=false" >> "$GITHUB_OUTPUT"
           fi
 
-          if contains "@moltnet/console"; then
+          if contains "@moltnet/console-e2e"; then
             echo "e2e-browser=true" >> "$GITHUB_OUTPUT"
           else
             echo "e2e-browser=false" >> "$GITHUB_OUTPUT"
           fi
 
-          # MCP e2e: the mcp-server node suite + the mcp-host browser suite. Any
-          # change to the server, the host fixture, or an MCP app UI lib must
-          # exercise these. (Previously the mcp-host browser suite lived in the
-          # console-gated browser job and silently skipped for MCP-only PRs.)
-          if contains "@moltnet/mcp-server" "@moltnet/mcp-host" "@moltnet/mcp-host-e2e" "@moltnet/entry-explore-mcp-app" "@moltnet/task-mcp-app" "@moltnet/mcp-test-harness"; then
+          # MCP e2e: the mcp-server node suite + the mcp-host browser suite.
+          # Their project dependencies pull in server, host, fixture, and MCP
+          # app changes; direct e2e changes affect the e2e projects themselves.
+          if contains "@moltnet/mcp-server-e2e" "@moltnet/mcp-host-e2e"; then
             echo "e2e-mcp=true" >> "$GITHUB_OUTPUT"
           else
             echo "e2e-mcp=false" >> "$GITHUB_OUTPUT"
@@ -795,7 +797,7 @@ jobs:
       # suite running against the same stack.
       - name: Run REST API E2E tests
         if: needs.affected.outputs.e2e-node == 'true'
-        run: pnpm exec nx run @moltnet/rest-api:e2e
+        run: pnpm exec nx run @moltnet/rest-api-e2e:e2e
       - name: Docker Compose logs
         if: failure() && needs.affected.outputs.e2e-node == 'true'
         run: docker compose -f docker-compose.e2e.yaml logs --tail=50
@@ -875,7 +877,7 @@ jobs:
         run: pnpm exec nx run @themoltnet/pi-extension:test-ci--src/vm-manager.integration.test.ts
       - name: Run agent-daemon E2E tests
         if: needs.affected.outputs.e2e-agent-daemon == 'true'
-        run: pnpm exec nx run @themoltnet/agent-daemon:e2e
+        run: pnpm exec nx run @themoltnet/agent-daemon-e2e:e2e
       - name: Docker Compose logs
         if: failure() && needs.affected.outputs.e2e-agent-daemon == 'true'
         run: docker compose -f docker-compose.e2e.yaml logs --tail=50
@@ -915,7 +917,7 @@ jobs:
       - name: Get Playwright version
         id: pw-version
         if: needs.affected.outputs.e2e-browser == 'true'
-        run: echo "version=$(pnpm --silent --filter @moltnet/console exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+        run: echo "version=$(pnpm --silent --filter @moltnet/console-e2e exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
       - name: Cache Playwright browsers
         id: pw-cache
         if: needs.affected.outputs.e2e-browser == 'true'
@@ -925,10 +927,10 @@ jobs:
           key: playwright-chromium-${{ steps.pw-version.outputs.version }}
       - name: Install Playwright browsers
         if: needs.affected.outputs.e2e-browser == 'true' && steps.pw-cache.outputs.cache-hit != 'true'
-        run: pnpm --filter @moltnet/console exec playwright install chromium
+        run: pnpm --filter @moltnet/console-e2e exec playwright install chromium
       - name: Install Playwright system deps
         if: needs.affected.outputs.e2e-browser == 'true'
-        run: pnpm --filter @moltnet/console exec playwright install-deps chromium
+        run: pnpm --filter @moltnet/console-e2e exec playwright install-deps chromium
       - name: Log in to GHCR
         if: needs.affected.outputs.e2e-browser == 'true'
         uses: docker/login-action@v4
@@ -958,7 +960,7 @@ jobs:
           ORY_KETO_PUBLIC_URL: http://localhost:4466
           ORY_KETO_ADMIN_URL: http://localhost:4467
           ORY_KRATOS_ADMIN_URL: http://localhost:4434
-        run: pnpm exec nx run @moltnet/console:e2e
+        run: pnpm exec nx run @moltnet/console-e2e:e2e
       - name: Docker Compose logs
         if: failure() && needs.affected.outputs.e2e-browser == 'true'
         run: docker compose -f docker-compose.e2e.yaml logs --tail=50
@@ -1041,7 +1043,7 @@ jobs:
           ORY_KETO_ADMIN_URL: http://127.0.0.1:4467
           ORY_KRATOS_PUBLIC_URL: http://127.0.0.1:4433
           ORY_KRATOS_ADMIN_URL: http://127.0.0.1:4434
-        run: pnpm exec nx run @moltnet/mcp-server:e2e
+        run: pnpm exec nx run @moltnet/mcp-server-e2e:e2e
       - name: Run MCP Host Browser E2E tests
         if: needs.affected.outputs.e2e-mcp == 'true'
         env:

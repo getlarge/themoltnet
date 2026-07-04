@@ -17,8 +17,15 @@ import {
 // state file written by the setup spec and a live agent run, neither of which
 // exists in CI. Skipped automatically when the state file is absent.
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const OUT_DIR = join(__dirname, '..', '..', 'landing', 'public', 'screenshots');
+const currentDir = dirname(fileURLToPath(import.meta.url));
+const OUT_DIR = join(
+  currentDir,
+  '..',
+  '..',
+  'landing',
+  'public',
+  'screenshots',
+);
 const STATE_FILE = join(tmpdir(), 'landing-shots.json');
 
 interface State {

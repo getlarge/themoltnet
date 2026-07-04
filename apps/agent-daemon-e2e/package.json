@@ -1,0 +1,55 @@
+{
+  "name": "@themoltnet/agent-daemon-e2e",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@moltnet/bootstrap": "workspace:*",
+    "@moltnet/crypto-service": "workspace:*",
+    "@moltnet/observability": "workspace:*",
+    "@moltnet/tasks": "workspace:*",
+    "@themoltnet/agent-daemon": "workspace:*",
+    "@themoltnet/agent-runtime": "workspace:*",
+    "@themoltnet/pi-extension": "workspace:*",
+    "@themoltnet/sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "nx": {
+    "projectType": "application",
+    "tags": [
+      "type:e2e",
+      "scope:agent",
+      "platform:cli"
+    ],
+    "implicitDependencies": [
+      "@themoltnet/agent-daemon"
+    ],
+    "targets": {
+      "e2e": {
+        "cache": true,
+        "executor": "nx:run-commands",
+        "inputs": [
+          "default",
+          "^production",
+          "{projectRoot}/vitest.config.ts",
+          "{projectRoot}/src/**/*",
+          {
+            "env": "MOLTNET_AGENT_DAEMON_LIVE_LLM_E2E"
+          },
+          {
+            "externalDependencies": [
+              "vitest"
+            ]
+          }
+        ],
+        "options": {
+          "command": "vitest run --config vitest.config.ts",
+          "cwd": "apps/agent-daemon-e2e"
+        },
+        "outputs": []
+      }
+    }
+  }
+}

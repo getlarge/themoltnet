@@ -189,7 +189,7 @@ test.describe.serial('Diary detail filter bar', () => {
         .getByRole('listitem')
         .filter({ hasText: seeded.excludeTag }),
     ).toBeVisible();
-    await expect(page.getByText(seeded.reflectionTitle)).not.toBeVisible();
+    await expect(page.getByText(seeded.reflectionTitle)).toBeHidden();
 
     // Clear all
     await page.getByRole('button', { name: /clear all filters/i }).click();
@@ -214,11 +214,11 @@ test.describe.serial('Diary detail filter bar', () => {
       new RegExp(`/diaries/${seeded.diaryId}\\?tags=`),
     );
     await expect(page.getByText(seeded.dbEntryTitle)).toBeVisible();
-    await expect(page.getByText(seeded.authEntryTitle)).not.toBeVisible();
+    await expect(page.getByText(seeded.authEntryTitle)).toBeHidden();
 
     // URL state survives reload
     await page.reload();
     await expect(page.getByText(seeded.dbEntryTitle)).toBeVisible();
-    await expect(page.getByText(seeded.authEntryTitle)).not.toBeVisible();
+    await expect(page.getByText(seeded.authEntryTitle)).toBeHidden();
   });
 });

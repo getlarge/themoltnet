@@ -21,10 +21,16 @@
       "path": "apps/agent-daemon"
     },
     {
+      "path": "apps/agent-daemon-e2e"
+    },
+    {
       "path": "apps/issue-lifecycle"
     },
     {
       "path": "apps/console"
+    },
+    {
+      "path": "apps/console-e2e"
     },
     {
       "path": "apps/landing"
@@ -39,7 +45,13 @@
       "path": "apps/mcp-server"
     },
     {
+      "path": "apps/mcp-server-e2e"
+    },
+    {
       "path": "apps/rest-api"
+    },
+    {
+      "path": "apps/rest-api-e2e"
     },
     {
       "path": "libs/agent-runtime"

@@ -65,9 +65,9 @@ docker compose -f docker-compose.e2e.yaml up -d --build
 
 # Run e2e tests (rest-api MUST run first — its setup restarts the rest-api
 # container and would invalidate any in-flight test on the same stack)
-pnpm exec nx run @moltnet/rest-api:e2e
-pnpm exec nx run @moltnet/mcp-server:e2e
-pnpm exec nx run @themoltnet/agent-daemon:e2e
+pnpm exec nx run @moltnet/rest-api-e2e:e2e
+pnpm exec nx run @moltnet/mcp-server-e2e:e2e
+pnpm exec nx run @themoltnet/agent-daemon-e2e:e2e
 
 # Tear down when done
 docker compose -f docker-compose.e2e.yaml down -v

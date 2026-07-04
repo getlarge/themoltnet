@@ -17,9 +17,6 @@
       "types": "./src/index.ts"
     }
   },
-  "scripts": {
-    "test": "vitest run --passWithNoTests"
-  },
   "dependencies": {
     "@modelcontextprotocol/ext-apps": "catalog:",
     "@themoltnet/design-system": "workspace:*"

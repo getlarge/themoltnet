@@ -1,0 +1,50 @@
+{
+  "name": "@moltnet/mcp-server-e2e",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "catalog:",
+    "@moltnet/api-client": "workspace:*",
+    "@moltnet/bootstrap": "workspace:*",
+    "@moltnet/crypto-service": "workspace:*",
+    "@moltnet/database": "workspace:*",
+    "@moltnet/mcp-test-harness": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "nx": {
+    "projectType": "application",
+    "tags": [
+      "type:e2e",
+      "scope:public",
+      "platform:server"
+    ],
+    "implicitDependencies": [
+      "@moltnet/mcp-server"
+    ],
+    "targets": {
+      "e2e": {
+        "cache": true,
+        "executor": "nx:run-commands",
+        "inputs": [
+          "default",
+          "^production",
+          "{projectRoot}/vitest.config.ts",
+          "{projectRoot}/src/**/*",
+          {
+            "externalDependencies": [
+              "vitest"
+            ]
+          }
+        ],
+        "options": {
+          "command": "vitest run --config vitest.config.ts",
+          "cwd": "apps/mcp-server-e2e"
+        },
+        "outputs": []
+      }
+    }
+  }
+}

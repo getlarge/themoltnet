@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "outDir": "./out-tsc/spec",
+    "rootDir": ".",
+    "tsBuildInfoFile": "./out-tsc/tsconfig.spec.tsbuildinfo",
+    "types": ["vitest/globals", "node"]
+  },
+  "extends": "./tsconfig.json",
+  "include": ["src/**/*.ts", "vitest.config.ts"],
+  "references": [
+    {
+      "path": "../../apps/mcp-server/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/api-client/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/bootstrap/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/crypto-service/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/database/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/mcp-test-harness/tsconfig.lib.json"
+    }
+  ]
+}

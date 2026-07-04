@@ -354,7 +354,7 @@ the review itself and for any requested outward action such as `gh pr comment`.
 
 If you want an automated local check without real GitHub mutation, use the
 stubbed `pr_review` lifecycle coverage in
-`apps/agent-daemon/e2e/daemon.e2e.test.ts` instead of this manual smoke path.
+`apps/agent-daemon-e2e/src/daemon.e2e.test.ts` instead of this manual smoke path.
 
 ### What to verify
 
