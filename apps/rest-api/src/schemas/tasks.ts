@@ -359,51 +359,112 @@ const NullableNumber = Type.Union([Type.Number(), Type.Null()]);
 
 export const TaskActivityProductMetricsSchema = Type.Object(
   {
-    success: Type.Object({
-      taskCount: Type.Integer({ minimum: 0 }),
-      acceptedTaskCount: Type.Integer({ minimum: 0 }),
-      acceptedOutputRate: Rate,
-      firstAttemptAcceptedTaskCount: Type.Integer({ minimum: 0 }),
-      firstAttemptAcceptedRate: Rate,
-      retryRecoveredTaskCount: Type.Integer({ minimum: 0 }),
-      retryRecoveryRate: Rate,
-      terminalFailureTaskCount: Type.Integer({ minimum: 0 }),
-      terminalFailureRate: Rate,
-    }),
-    productivity: Type.Object({
-      attemptCount: Type.Integer({ minimum: 0 }),
-      acceptedTasksPerDay: Type.Number({ minimum: 0 }),
-      averageAttemptsPerAcceptedTask: NullableNumber,
-      medianTimeToAcceptedMs: NullableNumber,
-      medianTurnsPerAttempt: NullableNumber,
-      medianToolCallsPerAttempt: NullableNumber,
-    }),
-    hurdles: Type.Object({
-      failedAttemptCount: Type.Integer({ minimum: 0 }),
-      timeoutAttemptCount: Type.Integer({ minimum: 0 }),
-      abortedAttemptCount: Type.Integer({ minimum: 0 }),
-      cancelledAttemptCount: Type.Integer({ minimum: 0 }),
-      retryAttemptCount: Type.Integer({ minimum: 0 }),
-      highFrictionAttemptCount: Type.Integer({ minimum: 0 }),
-      failedToolCallCount: Type.Integer({ minimum: 0 }),
-      failedToolCallRate: Rate,
-    }),
-    knowledge: Type.Object({
-      knowledgeToolCallCount: Type.Integer({ minimum: 0 }),
-      entrySearchCount: Type.Integer({ minimum: 0 }),
-      entryGetCount: Type.Integer({ minimum: 0 }),
-      packGetCount: Type.Integer({ minimum: 0 }),
-      knowledgeCallsPerAcceptedTask: NullableNumber,
-    }),
-    roi: Type.Object({
-      totalInputTokens: Type.Integer({ minimum: 0 }),
-      totalOutputTokens: Type.Integer({ minimum: 0 }),
-      totalTokens: Type.Integer({ minimum: 0 }),
-      acceptedTasksPerThousandTokens: NullableNumber,
-      tokensPerAcceptedTask: NullableNumber,
-      extraAttemptCount: Type.Integer({ minimum: 0 }),
-      extraTokensBeforeAcceptance: Type.Integer({ minimum: 0 }),
-    }),
+    success: Type.Object(
+      {
+        taskCount: Type.Integer({ minimum: 0 }),
+        acceptedTaskCount: Type.Integer({ minimum: 0 }),
+        acceptedOutputRate: Type.Number({
+          minimum: 0,
+          maximum: 1,
+          description:
+            'Accepted task ratio: acceptedTaskCount / taskCount. Product intent: how often tasks produce accepted outputs.',
+        }),
+        firstAttemptAcceptedTaskCount: Type.Integer({ minimum: 0 }),
+        firstAttemptAcceptedRate: Type.Number({
+          minimum: 0,
+          maximum: 1,
+          description:
+            'First-attempt success ratio. Product intent: how often work succeeds without retry friction.',
+        }),
+        retryRecoveredTaskCount: Type.Integer({ minimum: 0 }),
+        retryRecoveryRate: Type.Number({
+          minimum: 0,
+          maximum: 1,
+          description:
+            'Retry recovery ratio. Product intent: how often retries turn failed first attempts into accepted work.',
+        }),
+        terminalFailureTaskCount: Type.Integer({ minimum: 0 }),
+        terminalFailureRate: Rate,
+      },
+      {
+        description:
+          'Task success metrics: accepted output rate, first-attempt success, retry recovery, and terminal failure.',
+      },
+    ),
+    productivity: Type.Object(
+      {
+        attemptCount: Type.Integer({ minimum: 0 }),
+        acceptedTasksPerDay: Type.Number({ minimum: 0 }),
+        averageAttemptsPerAcceptedTask: NullableNumber,
+        medianTimeToAcceptedMs: NullableNumber,
+        medianTurnsPerAttempt: NullableNumber,
+        medianToolCallsPerAttempt: NullableNumber,
+      },
+      {
+        description:
+          'Productivity metrics: accepted task throughput and attempt/turn/tool-call effort required to finish work.',
+      },
+    ),
+    hurdles: Type.Object(
+      {
+        failedAttemptCount: Type.Integer({ minimum: 0 }),
+        timeoutAttemptCount: Type.Integer({ minimum: 0 }),
+        abortedAttemptCount: Type.Integer({ minimum: 0 }),
+        cancelledAttemptCount: Type.Integer({ minimum: 0 }),
+        retryAttemptCount: Type.Integer({ minimum: 0 }),
+        highFrictionAttemptCount: Type.Integer({
+          minimum: 0,
+          description:
+            'Attempts with retry, failure, timeout, abort, cancellation, or failed tool-call friction.',
+        }),
+        failedToolCallCount: Type.Integer({ minimum: 0 }),
+        failedToolCallRate: Type.Number({
+          minimum: 0,
+          maximum: 1,
+          description:
+            'Failed tool-call ratio. Product intent: surface tooling/runtime reliability drag.',
+        }),
+      },
+      {
+        description:
+          'Hurdle metrics: failed, timed-out, aborted, cancelled, retry, high-friction, and tool-failure signals.',
+      },
+    ),
+    knowledge: Type.Object(
+      {
+        knowledgeToolCallCount: Type.Integer({ minimum: 0 }),
+        entrySearchCount: Type.Integer({ minimum: 0 }),
+        entryGetCount: Type.Integer({ minimum: 0 }),
+        packGetCount: Type.Integer({ minimum: 0 }),
+        knowledgeCallsPerAcceptedTask: NullableNumber,
+      },
+      {
+        description:
+          'Knowledge leverage metrics: diary search/get and pack retrieval usage per accepted task.',
+      },
+    ),
+    roi: Type.Object(
+      {
+        totalInputTokens: Type.Integer({ minimum: 0 }),
+        totalOutputTokens: Type.Integer({ minimum: 0 }),
+        totalTokens: Type.Integer({ minimum: 0 }),
+        acceptedTasksPerThousandTokens: NullableNumber,
+        tokensPerAcceptedTask: Type.Union([Type.Number(), Type.Null()], {
+          description:
+            'Token cost per accepted task. Product intent: ROI proxy for accepted work.',
+        }),
+        extraAttemptCount: Type.Integer({ minimum: 0 }),
+        extraTokensBeforeAcceptance: Type.Integer({
+          minimum: 0,
+          description:
+            'Tokens spent on attempts before the accepted attempt. Product intent: wasted retry cost.',
+        }),
+      },
+      {
+        description:
+          'Token-efficiency ROI metrics: token totals, accepted work per token, tokens per accepted task, and retry waste.',
+      },
+    ),
     raw: Type.Object({
       messageCount: Type.Integer({ minimum: 0 }),
       turnCount: Type.Integer({ minimum: 0 }),
