@@ -400,6 +400,8 @@ reference on RuntimeProfileRef.`,
 				taskType:                      flagString(cmd, "task-type"),
 				title:                         flagString(cmd, "title"),
 				titleSet:                      cmd.Flags().Changed("title"),
+				tags:                          flagString(cmd, "tags"),
+				tagsSet:                       cmd.Flags().Changed("tags"),
 				teamID:                        flagString(cmd, "team-id"),
 				diaryID:                       flagString(cmd, "diary-id"),
 				inputFile:                     flagString(cmd, "input-file"),
@@ -427,6 +429,7 @@ reference on RuntimeProfileRef.`,
 	}
 	cmd.Flags().String("task-type", "", "Task type name (required)")
 	cmd.Flags().String("title", "", "Mutable task title metadata")
+	cmd.Flags().String("tags", "", "Comma-separated task tags")
 	cmd.Flags().String("team-id", "", "Team UUID (required)")
 	cmd.Flags().String("diary-id", "", "Diary UUID (required)")
 	cmd.Flags().String("input-file", "-", `Path to the input JSON blob; "-" reads stdin (default)`)

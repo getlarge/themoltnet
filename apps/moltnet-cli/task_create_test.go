@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -142,6 +143,8 @@ func TestRunTaskCreate_DryRunPrintsCanonicalBody(t *testing.T) {
 
 	var out bytes.Buffer
 	opts := newCreateOpts(`{"brief":"dry","scopeHint":"misc"}`)
+	opts.tags = "ci, review:complexity, ci"
+	opts.tagsSet = true
 	opts.out = &out
 	opts.dryRun = true
 
@@ -167,6 +170,68 @@ func TestRunTaskCreate_DryRunPrintsCanonicalBody(t *testing.T) {
 	}
 	if inputObj["brief"] != "dry" {
 		t.Errorf("dry-run input.brief = %v, want \"dry\"", inputObj["brief"])
+	}
+	tags, ok := body["tags"].([]any)
+	if !ok {
+		t.Fatalf("dry-run tags not an array: %v", body["tags"])
+	}
+	if want := []any{"ci", "review:complexity"}; !reflect.DeepEqual(tags, want) {
+		t.Errorf("dry-run tags = %v, want %v", tags, want)
+	}
+}
+
+func TestRunTaskCreate_TagsRoundTrip(t *testing.T) {
+	h := &stubCreateHandler{descriptors: []moltnetapi.TaskTypeDescriptor{fulfillBriefSchema()}}
+	_, _, client := newTestServer(t, h)
+
+	opts := newCreateOpts(`{"brief":"with-tags","scopeHint":"misc"}`)
+	opts.out = io.Discard
+	opts.tags = "ci, review:pr, pr:1557, ci"
+	opts.tagsSet = true
+
+	if err := runTaskCreateWithClient(context.Background(), client, opts); err != nil {
+		t.Fatalf("runTaskCreateWithClient: %v", err)
+	}
+	if got, want := h.lastCreate.Tags, []string{"ci", "review:pr", "pr:1557"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("CreateTaskReq.Tags = %v, want %v", got, want)
+	}
+}
+
+func TestRunTaskCreate_InvalidTagsRejectedBeforeAPI(t *testing.T) {
+	tests := []struct {
+		name string
+		tags string
+		want string
+	}{
+		{
+			name: "too many",
+			tags: "a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u",
+			want: "at most 20",
+		},
+		{
+			name: "too long",
+			tags: strings.Repeat("x", 129),
+			want: "longer than 128",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := &stubCreateHandler{descriptors: []moltnetapi.TaskTypeDescriptor{fulfillBriefSchema()}}
+			_, _, client := newTestServer(t, h)
+
+			opts := newCreateOpts(`{"brief":"bad-tags","scopeHint":"misc"}`)
+			opts.out = io.Discard
+			opts.tags = tt.tags
+			opts.tagsSet = true
+
+			err := runTaskCreateWithClient(context.Background(), client, opts)
+			if err == nil || !strings.Contains(err.Error(), tt.want) {
+				t.Fatalf("error = %v, want containing %q", err, tt.want)
+			}
+			if _, createN := h.counts(); createN != 0 {
+				t.Fatalf("CreateTask calls = %d, want 0", createN)
+			}
+		})
 	}
 }
 

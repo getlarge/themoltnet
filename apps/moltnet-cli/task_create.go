@@ -24,6 +24,8 @@ type taskCreateOpts struct {
 	taskType  string
 	title     string
 	titleSet  bool
+	tags      string
+	tagsSet   bool
 	teamID    string
 	diaryID   string
 	inputFile string // "-" or path; empty defaults to stdin
@@ -162,6 +164,13 @@ func buildCreateTaskReq(opts taskCreateOpts) (*moltnetapi.CreateTaskReq, error) 
 		}
 		req.Title = moltnetapi.NewOptString(title)
 	}
+	if opts.tagsSet {
+		tags, err := normalizeTaskTags(opts.tags)
+		if err != nil {
+			return nil, err
+		}
+		req.Tags = tags
+	}
 
 	if opts.correlationIDSet {
 		req.CorrelationId, err = parseOptUUIDFlag("correlation-id", opts.correlationID)
@@ -230,6 +239,25 @@ func buildCreateTaskReq(opts taskCreateOpts) (*moltnetapi.CreateTaskReq, error) 
 	}
 
 	return req, nil
+}
+
+func normalizeTaskTags(raw string) ([]string, error) {
+	seen := make(map[string]struct{})
+	tags := make([]string, 0)
+	for _, tag := range splitAndTrim(raw, ",") {
+		if len(tag) > 128 {
+			return nil, fmt.Errorf("--tags contains tag %q longer than 128 characters", tag)
+		}
+		if _, ok := seen[tag]; ok {
+			continue
+		}
+		seen[tag] = struct{}{}
+		tags = append(tags, tag)
+	}
+	if len(tags) > 20 {
+		return nil, fmt.Errorf("--tags accepts at most 20 tags, got %d", len(tags))
+	}
+	return tags, nil
 }
 
 // readInputBlob reads the `input` JSON from a path, stdin ("-" or empty),

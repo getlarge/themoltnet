@@ -10,10 +10,11 @@ Three modes:
    `correlationId` from anchors on the PR (when applicable), creates the
    task, and runs it.
 2. **Task spec** — supply `task-spec-path`. The action creates a task from
-   `{ taskType, correlationId, input }` JSON using the caller's
+   `{ taskType, correlationId, input, tags? }` JSON using the caller's
    `MOLTNET_TEAM_ID` and `MOLTNET_DIARY_ID`, then runs the daemon against the
    created task. This is the path used by LeGreffier PR review workflows whose
-   composers must stay credential-free.
+   composers must stay credential-free. The optional top-level `tags` array is
+   merged with the action's `tags` input and forwarded to `moltnet task create`.
 3. **Explicit task** — supply `task-id`. The action skips task creation
    and runs the daemon against the provided id.
 
@@ -24,6 +25,7 @@ Three modes:
   with:
     task-id: ${{ inputs.task-id }} # optional
     task-spec-path: ${{ steps.compose.outputs.task-spec-path }} # optional
+    tags: ci,review:pr,pr:${{ github.event.pull_request.number }} # optional
     skip-validation: 'false' # only applies with task-spec-path
     mode: once # once | drain (poll disallowed in CI)
     daemon-version: latest
