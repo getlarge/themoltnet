@@ -638,6 +638,9 @@ importers:
       '@moltnet/tasks':
         specifier: workspace:*
         version: link:../../libs/tasks
+      '@themoltnet/agent-daemon':
+        specifier: workspace:*
+        version: link:../agent-daemon
       '@themoltnet/agent-runtime':
         specifier: workspace:*
         version: link:../../libs/agent-runtime

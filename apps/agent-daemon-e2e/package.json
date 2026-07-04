@@ -7,6 +7,7 @@
     "@moltnet/crypto-service": "workspace:*",
     "@moltnet/observability": "workspace:*",
     "@moltnet/tasks": "workspace:*",
+    "@themoltnet/agent-daemon": "workspace:*",
     "@themoltnet/agent-runtime": "workspace:*",
     "@themoltnet/pi-extension": "workspace:*",
     "@themoltnet/sdk": "workspace:*"

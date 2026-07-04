@@ -4,6 +4,149 @@ import simpleImportSort from 'eslint-plugin-simple-import-sort';
 import reactHooks from 'eslint-plugin-react-hooks';
 import tseslint from 'typescript-eslint';
 
+const moduleBoundaryOptions = {
+  enforceBuildableLibDependency: false,
+  allow: [],
+  depConstraints: [
+    // Apps may depend on anything except other apps and tools.
+    {
+      sourceTag: 'type:app',
+      onlyDependOnLibsWithTags: [
+        'type:feature',
+        'type:runtime',
+        'type:data-access',
+        'type:client',
+        'type:ui',
+        'type:util',
+      ],
+    },
+    // Features (domain services) may depend on lower layers only.
+    {
+      sourceTag: 'type:feature',
+      onlyDependOnLibsWithTags: [
+        'type:feature',
+        'type:data-access',
+        'type:client',
+        'type:util',
+      ],
+    },
+    // Runtime libs (agent runtime, bootstrap, pi-extension) may use
+    // features and lower; bootstrap legitimately needs data-access.
+    {
+      sourceTag: 'type:runtime',
+      onlyDependOnLibsWithTags: [
+        'type:feature',
+        'type:runtime',
+        'type:data-access',
+        'type:client',
+        'type:util',
+      ],
+    },
+    // Data-access is leaf-ish: only utils.
+    {
+      sourceTag: 'type:data-access',
+      onlyDependOnLibsWithTags: ['type:util'],
+    },
+    // UI libs may depend on UI, clients, and utils.
+    {
+      sourceTag: 'type:ui',
+      onlyDependOnLibsWithTags: ['type:ui', 'type:client', 'type:util'],
+    },
+    // Public API clients (sdk, api-client, cli, legreffier) may depend
+    // on utils, other clients, and ui (the design-system has CLI/React
+    // surfaces consumed by interactive CLIs).
+    {
+      sourceTag: 'type:client',
+      onlyDependOnLibsWithTags: ['type:client', 'type:ui', 'type:util'],
+    },
+    // Utils are leaves — they depend only on other utils.
+    {
+      sourceTag: 'type:util',
+      onlyDependOnLibsWithTags: ['type:util'],
+    },
+    // Tools is a leaf — internal CLIs may consume anything but
+    // nothing depends on them (enforced by tools NOT being in any
+    // other rule's onlyDependOnLibsWithTags list).
+    {
+      sourceTag: 'type:tool',
+      onlyDependOnLibsWithTags: [
+        'type:feature',
+        'type:runtime',
+        'type:data-access',
+        'type:client',
+        'type:util',
+      ],
+    },
+    // Browser code cannot pull in server-only libs, nor server-only
+    // npm packages. Banned externals are picked to surface the most
+    // common foot-guns (Node servers, DB drivers, server frameworks,
+    // workflow engines). Add to the list as new server deps appear.
+    {
+      sourceTag: 'platform:browser',
+      onlyDependOnLibsWithTags: ['platform:browser', 'platform:isomorphic'],
+      bannedExternalImports: [
+        'fastify',
+        '@fastify/*',
+        'pg',
+        'pg-pool',
+        'drizzle-orm',
+        'drizzle-orm/*',
+        '@dbos-inc/*',
+        '@ory/client',
+      ],
+    },
+    // Server code cannot pull in browser-only libs nor browser-only
+    // npm packages. `react` is intentionally NOT banned — Ink-based
+    // CLIs render React in a terminal. `react-dom` is the real
+    // browser marker.
+    {
+      sourceTag: 'platform:server',
+      onlyDependOnLibsWithTags: ['platform:server', 'platform:isomorphic'],
+      bannedExternalImports: ['react-dom', 'react-dom/*'],
+    },
+    // CLI binaries can use server, cli, extension, and isomorphic libs.
+    // (agent-daemon is a CLI app that drives the pi-extension runtime.)
+    {
+      sourceTag: 'platform:cli',
+      onlyDependOnLibsWithTags: [
+        'platform:cli',
+        'platform:server',
+        'platform:extension',
+        'platform:isomorphic',
+      ],
+    },
+    // Pi-extension runs in Gondolin VM, may reach for cli/server libs.
+    {
+      sourceTag: 'platform:extension',
+      onlyDependOnLibsWithTags: [
+        'platform:extension',
+        'platform:cli',
+        'platform:server',
+        'platform:isomorphic',
+      ],
+    },
+    // Isomorphic libs may only depend on other isomorphic libs and
+    // must not pull in platform-specific npm packages (server
+    // frameworks, DB drivers, browser renderers, etc).
+    {
+      sourceTag: 'platform:isomorphic',
+      onlyDependOnLibsWithTags: ['platform:isomorphic'],
+      bannedExternalImports: [
+        'fastify',
+        '@fastify/*',
+        'pg',
+        'pg-pool',
+        'drizzle-orm',
+        'drizzle-orm/*',
+        '@dbos-inc/*',
+        '@ory/client',
+        'react-dom',
+        'react-dom/*',
+      ],
+    },
+  ],
+};
+
 export default tseslint.config(
   // Global ignores (replaces .eslintignore and ignorePatterns)
   {
@@ -51,155 +194,24 @@ export default tseslint.config(
       '@nx': nxPlugin,
     },
     rules: {
+      '@nx/enforce-module-boundaries': ['error', moduleBoundaryOptions],
+    },
+  },
+
+  // E2E projects are intentionally bound to their app project. Keep the
+  // exception narrow: daemon e2e may import daemon app internals only through
+  // npm-scope subpaths, while relative cross-project imports remain forbidden.
+  {
+    files: ['apps/agent-daemon-e2e/src/**/*.ts'],
+    plugins: {
+      '@nx': nxPlugin,
+    },
+    rules: {
       '@nx/enforce-module-boundaries': [
         'error',
         {
-          enforceBuildableLibDependency: false,
-          allow: [],
-          depConstraints: [
-            // Apps may depend on anything except other apps and tools.
-            {
-              sourceTag: 'type:app',
-              onlyDependOnLibsWithTags: [
-                'type:feature',
-                'type:runtime',
-                'type:data-access',
-                'type:client',
-                'type:ui',
-                'type:util',
-              ],
-            },
-            // Features (domain services) may depend on lower layers only.
-            {
-              sourceTag: 'type:feature',
-              onlyDependOnLibsWithTags: [
-                'type:feature',
-                'type:data-access',
-                'type:client',
-                'type:util',
-              ],
-            },
-            // Runtime libs (agent runtime, bootstrap, pi-extension) may use
-            // features and lower; bootstrap legitimately needs data-access.
-            {
-              sourceTag: 'type:runtime',
-              onlyDependOnLibsWithTags: [
-                'type:feature',
-                'type:runtime',
-                'type:data-access',
-                'type:client',
-                'type:util',
-              ],
-            },
-            // Data-access is leaf-ish: only utils.
-            {
-              sourceTag: 'type:data-access',
-              onlyDependOnLibsWithTags: ['type:util'],
-            },
-            // UI libs may depend on UI, clients, and utils.
-            {
-              sourceTag: 'type:ui',
-              onlyDependOnLibsWithTags: ['type:ui', 'type:client', 'type:util'],
-            },
-            // Public API clients (sdk, api-client, cli, legreffier) may depend
-            // on utils, other clients, and ui (the design-system has CLI/React
-            // surfaces consumed by interactive CLIs).
-            {
-              sourceTag: 'type:client',
-              onlyDependOnLibsWithTags: ['type:client', 'type:ui', 'type:util'],
-            },
-            // Utils are leaves — they depend only on other utils.
-            {
-              sourceTag: 'type:util',
-              onlyDependOnLibsWithTags: ['type:util'],
-            },
-            // Tools is a leaf — internal CLIs may consume anything but
-            // nothing depends on them (enforced by tools NOT being in any
-            // other rule's onlyDependOnLibsWithTags list).
-            {
-              sourceTag: 'type:tool',
-              onlyDependOnLibsWithTags: [
-                'type:feature',
-                'type:runtime',
-                'type:data-access',
-                'type:client',
-                'type:util',
-              ],
-            },
-            // Browser code cannot pull in server-only libs, nor server-only
-            // npm packages. Banned externals are picked to surface the most
-            // common foot-guns (Node servers, DB drivers, server frameworks,
-            // workflow engines). Add to the list as new server deps appear.
-            {
-              sourceTag: 'platform:browser',
-              onlyDependOnLibsWithTags: [
-                'platform:browser',
-                'platform:isomorphic',
-              ],
-              bannedExternalImports: [
-                'fastify',
-                '@fastify/*',
-                'pg',
-                'pg-pool',
-                'drizzle-orm',
-                'drizzle-orm/*',
-                '@dbos-inc/*',
-                '@ory/client',
-              ],
-            },
-            // Server code cannot pull in browser-only libs nor browser-only
-            // npm packages. `react` is intentionally NOT banned — Ink-based
-            // CLIs render React in a terminal. `react-dom` is the real
-            // browser marker.
-            {
-              sourceTag: 'platform:server',
-              onlyDependOnLibsWithTags: [
-                'platform:server',
-                'platform:isomorphic',
-              ],
-              bannedExternalImports: ['react-dom', 'react-dom/*'],
-            },
-            // CLI binaries can use server, cli, extension, and isomorphic libs.
-            // (agent-daemon is a CLI app that drives the pi-extension runtime.)
-            {
-              sourceTag: 'platform:cli',
-              onlyDependOnLibsWithTags: [
-                'platform:cli',
-                'platform:server',
-                'platform:extension',
-                'platform:isomorphic',
-              ],
-            },
-            // Pi-extension runs in Gondolin VM, may reach for cli/server libs.
-            {
-              sourceTag: 'platform:extension',
-              onlyDependOnLibsWithTags: [
-                'platform:extension',
-                'platform:cli',
-                'platform:server',
-                'platform:isomorphic',
-              ],
-            },
-            // Isomorphic libs may only depend on other isomorphic libs and
-            // must not pull in platform-specific npm packages (server
-            // frameworks, DB drivers, browser renderers, etc).
-            {
-              sourceTag: 'platform:isomorphic',
-              onlyDependOnLibsWithTags: ['platform:isomorphic'],
-              bannedExternalImports: [
-                'fastify',
-                '@fastify/*',
-                'pg',
-                'pg-pool',
-                'drizzle-orm',
-                'drizzle-orm/*',
-                '@dbos-inc/*',
-                '@ory/client',
-                'react-dom',
-                'react-dom/*',
-              ],
-            },
-          ],
+          ...moduleBoundaryOptions,
+          allow: [...moduleBoundaryOptions.allow, '@themoltnet/agent-daemon/*'],
         },
       ],
     },

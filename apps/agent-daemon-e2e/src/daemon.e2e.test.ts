@@ -22,6 +22,24 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { computeBytesCid, computeJsonCid } from '@moltnet/crypto-service';
+import type { DaemonSlotIdentity } from '@themoltnet/agent-daemon/lib/daemon-slot-identity.js';
+import {
+  createExecutionPlanCache,
+  type RuntimeSlotStore,
+} from '@themoltnet/agent-daemon/lib/execution-plan-cache.js';
+import { finalizeTask } from '@themoltnet/agent-daemon/lib/finalize.js';
+import {
+  resolveRuntimeProfile,
+  validateRuntimeProfilePrerequisites,
+} from '@themoltnet/agent-daemon/lib/runtime-profile.js';
+import {
+  createApiRuntimeSessionStore,
+  resolveRuntimeSessionKind,
+  type RuntimeSessionStore,
+} from '@themoltnet/agent-daemon/lib/runtime-sessions.js';
+import { createApiRuntimeSlotStore } from '@themoltnet/agent-daemon/lib/runtime-slots.js';
+import { resolveLatestPiSessionPath } from '@themoltnet/agent-daemon/lib/session-files.js';
+import { ensureDaemonStateDirs } from '@themoltnet/agent-daemon/lib/state-dir.js';
 import {
   AgentRuntime,
   type AgentRuntimeLogger,
@@ -33,24 +51,6 @@ import { resolveTaskWorktreePath } from '@themoltnet/pi-extension';
 import { type Agent, connect } from '@themoltnet/sdk';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
-import type { DaemonSlotIdentity } from '../../agent-daemon/src/lib/daemon-slot-identity.js';
-import {
-  createExecutionPlanCache,
-  type RuntimeSlotStore,
-} from '../../agent-daemon/src/lib/execution-plan-cache.js';
-import { finalizeTask } from '../../agent-daemon/src/lib/finalize.js';
-import {
-  resolveRuntimeProfile,
-  validateRuntimeProfilePrerequisites,
-} from '../../agent-daemon/src/lib/runtime-profile.js';
-import {
-  createApiRuntimeSessionStore,
-  resolveRuntimeSessionKind,
-  type RuntimeSessionStore,
-} from '../../agent-daemon/src/lib/runtime-sessions.js';
-import { createApiRuntimeSlotStore } from '../../agent-daemon/src/lib/runtime-slots.js';
-import { resolveLatestPiSessionPath } from '../../agent-daemon/src/lib/session-files.js';
-import { ensureDaemonStateDirs } from '../../agent-daemon/src/lib/state-dir.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
 const silentLogger: AgentRuntimeLogger = {
