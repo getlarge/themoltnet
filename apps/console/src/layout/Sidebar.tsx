@@ -20,6 +20,7 @@ const navItems: NavItem[] = [
   { label: 'Overview', path: '/' },
   { label: 'Diaries', path: '/diaries' },
   { label: 'Tasks', path: '/tasks' },
+  { label: 'Analytics', path: '/tasks/analytics' },
   { label: 'Profiles', path: '/profiles' },
   { label: 'Teams', path: '/teams' },
 ];
@@ -37,6 +38,14 @@ export interface SidebarProps {
 export function Sidebar({ collapsed = false, id }: SidebarProps) {
   const theme = useTheme();
   const [location, navigate] = useLocation();
+
+  // Only the most specific matching nav item highlights, so visiting
+  // /tasks/analytics lights up "Analytics", not also the "Tasks" prefix.
+  const activePath = navItems
+    .filter((item) => isActive(location, item.path))
+    .reduce<
+      string | null
+    >((best, item) => (best === null || item.path.length > best.length ? item.path : best), null);
 
   const width = collapsed ? 56 : 220;
 
@@ -102,7 +111,7 @@ export function Sidebar({ collapsed = false, id }: SidebarProps) {
       <nav aria-label="Primary">
         <Stack gap={1}>
           {navItems.map((item) => {
-            const active = isActive(location, item.path);
+            const active = item.path === activePath;
 
             return (
               <Button

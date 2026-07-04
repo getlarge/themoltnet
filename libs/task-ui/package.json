@@ -12,7 +12,9 @@
       "types": "./src/index.ts"
     }
   },
-  "scripts": {},
+  "scripts": {
+    "demo": "vite demo"
+  },
   "dependencies": {
     "@themoltnet/design-system": "workspace:*",
     "react": "catalog:"
@@ -24,6 +26,7 @@
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-react": "catalog:",
     "jsdom": "catalog:",
+    "react-dom": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plugin-dts": "catalog:",

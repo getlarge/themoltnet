@@ -1994,6 +1994,9 @@ importers:
       jsdom:
         specifier: 'catalog:'
         version: 25.0.1
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.2.4(react@19.2.4)
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
