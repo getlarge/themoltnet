@@ -108,6 +108,9 @@
       "path": "libs/runtime-session-service"
     },
     {
+      "path": "libs/signing-workflows"
+    },
+    {
       "path": "libs/sdk"
     },
     {

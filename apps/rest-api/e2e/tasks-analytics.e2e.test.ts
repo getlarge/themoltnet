@@ -25,6 +25,7 @@ import {
   getTask,
   getTaskActivityAnalytics,
   joinTeam,
+  listTaskAttempts,
   taskHeartbeat,
 } from '@moltnet/api-client';
 import { computeJsonCid } from '@moltnet/crypto-service';
@@ -422,9 +423,13 @@ describe('Task Analytics API', () => {
               claimedByAgentIds: [claimer.identityId],
               completedAfter,
               completedBefore,
-              diaryIds: [diaryId, otherDiary!.id],
+              diaryIds: [diaryId, diaryId, otherDiary!.id],
               groupBy: 'profile',
-              profileIds: [profile!.id, '00000000-0000-0000-0000-000000000000'],
+              profileIds: [
+                profile!.id,
+                profile!.id,
+                '00000000-0000-0000-0000-000000000000',
+              ],
               tags: ['analytics-e2e'],
               taskTypes: ['curate_pack'],
             },
@@ -847,6 +852,105 @@ describe('Task Analytics API', () => {
       expect(
         acceptedProfileOnly.data!.overall.success.retryRecoveredTaskCount,
       ).toBe(1);
+    });
+
+    it('includes timed-out attempts in activity stats and hurdle metrics', async () => {
+      const completedAfter = new Date(Date.now() - 60_000).toISOString();
+      const tag = `analytics-timeout-${randomUUID()}`;
+      const { diaryId, teamId } = await createAnalyticsTeamContext(
+        'task-analytics-timeout',
+      );
+
+      const { data: task, error: createError } = await createTask({
+        client,
+        auth: () => proposer.accessToken,
+        headers: { 'x-moltnet-team-id': teamId },
+        body: {
+          taskType: 'curate_pack',
+          diaryId,
+          tags: [tag],
+          maxAttempts: 1,
+          dispatchTimeoutSec: 2,
+          input: {
+            diaryId,
+            taskPrompt: 'measure timeout attempt analytics',
+          },
+        },
+      });
+      expect(createError).toBeUndefined();
+
+      const claimed = await claimTask({
+        client,
+        auth: () => claimer.accessToken,
+        path: { id: task!.id },
+        body: { leaseTtlSec: 60 },
+      });
+      expect(claimed.error).toBeUndefined();
+      const attemptN = claimed.data!.attempt.attemptN;
+
+      const final = await pollUntil(
+        () =>
+          getTask({
+            client,
+            auth: () => proposer.accessToken,
+            path: { id: task!.id },
+          }).then((r) => r.data!),
+        (current) => current.status === 'failed',
+        {
+          label: 'task.analytics.timeout.failed',
+          maxAttempts: 30,
+          intervalMs: 500,
+        },
+      );
+      expect(final.status).toBe('failed');
+
+      const attempts = await listTaskAttempts({
+        client,
+        auth: () => proposer.accessToken,
+        path: { id: task!.id },
+      });
+      expect(attempts.error).toBeUndefined();
+      expect(attempts.data).toHaveLength(1);
+      expect(attempts.data![0].attemptN).toBe(attemptN);
+      expect(attempts.data![0].status).toBe('timed_out');
+      expect(attempts.data![0].error?.code).toBe('dispatch_expired');
+
+      const completedBefore = new Date(Date.now() + 60_000).toISOString();
+      const analytics = await pollUntil(
+        () =>
+          getTaskActivityAnalytics({
+            client,
+            auth: () => proposer.accessToken,
+            headers: { 'x-moltnet-team-id': teamId },
+            query: {
+              completedAfter,
+              completedBefore,
+              diaryIds: [diaryId],
+              tags: [tag],
+              taskTypes: ['curate_pack'],
+            },
+          }).then((r) => {
+            expect(r.error).toBeUndefined();
+            return r.data!;
+          }),
+        (data) =>
+          data.statsComplete && data.overall.productivity.attemptCount === 1,
+        {
+          label: 'task.analytics.timeout.stats',
+          maxAttempts: 20,
+          intervalMs: 250,
+        },
+      );
+
+      expect(analytics.overall.success.taskCount).toBe(1);
+      expect(analytics.overall.success.acceptedTaskCount).toBe(0);
+      expect(analytics.overall.success.terminalFailureTaskCount).toBe(1);
+      expect(analytics.overall.success.acceptedOutputRate).toBe(0);
+      expect(analytics.overall.productivity.attemptCount).toBe(1);
+      expect(analytics.overall.hurdles.timeoutAttemptCount).toBe(1);
+      expect(analytics.overall.roi.totalTokens).toBe(0);
+      expect(analytics.overall.roi.tokensPerAcceptedTask).toBeNull();
+      expect(analytics.overall.roi.acceptedTasksPerThousandTokens).toBeNull();
     });
 
     it('keeps diaryIds constrained to the requested team', async () => {

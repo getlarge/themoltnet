@@ -2163,16 +2163,28 @@ export type TaskActivityAnalyticsResponse = {
 };
 
 export type TaskActivityProductMetrics = {
+  /**
+   * Hurdle metrics: failed, timed-out, aborted, cancelled, retry, high-friction, and tool-failure signals.
+   */
   hurdles: {
     abortedAttemptCount: number;
     cancelledAttemptCount: number;
     failedAttemptCount: number;
     failedToolCallCount: number;
+    /**
+     * Failed tool-call ratio. Product intent: surface tooling/runtime reliability drag.
+     */
     failedToolCallRate: number;
+    /**
+     * Attempts with retry, failure, timeout, abort, cancellation, or failed tool-call friction.
+     */
     highFrictionAttemptCount: number;
     retryAttemptCount: number;
     timeoutAttemptCount: number;
   };
+  /**
+   * Knowledge leverage metrics: diary search/get and pack retrieval usage per accepted task.
+   */
   knowledge: {
     entryGetCount: number;
     entrySearchCount: number;
@@ -2180,6 +2192,9 @@ export type TaskActivityProductMetrics = {
     knowledgeToolCallCount: number;
     packGetCount: number;
   };
+  /**
+   * Productivity metrics: accepted task throughput and attempt/turn/tool-call effort required to finish work.
+   */
   productivity: {
     acceptedTasksPerDay: number;
     attemptCount: number;
@@ -2194,21 +2209,42 @@ export type TaskActivityProductMetrics = {
     toolCallCount: number;
     turnCount: number;
   };
+  /**
+   * Token-efficiency ROI metrics: token totals, accepted work per token, tokens per accepted task, and retry waste.
+   */
   roi: {
     acceptedTasksPerThousandTokens: number | null;
     extraAttemptCount: number;
+    /**
+     * Tokens spent on attempts before the accepted attempt. Product intent: wasted retry cost.
+     */
     extraTokensBeforeAcceptance: number;
+    /**
+     * Token cost per accepted task. Product intent: ROI proxy for accepted work.
+     */
     tokensPerAcceptedTask: number | null;
     totalInputTokens: number;
     totalOutputTokens: number;
     totalTokens: number;
   };
+  /**
+   * Task success metrics: accepted output rate, first-attempt success, retry recovery, and terminal failure.
+   */
   success: {
+    /**
+     * Accepted task ratio: acceptedTaskCount / taskCount. Product intent: how often tasks produce accepted outputs.
+     */
     acceptedOutputRate: number;
     acceptedTaskCount: number;
+    /**
+     * First-attempt success ratio. Product intent: how often work succeeds without retry friction.
+     */
     firstAttemptAcceptedRate: number;
     firstAttemptAcceptedTaskCount: number;
     retryRecoveredTaskCount: number;
+    /**
+     * Retry recovery ratio. Product intent: how often retries turn failed first attempts into accepted work.
+     */
     retryRecoveryRate: number;
     taskCount: number;
     terminalFailureRate: number;

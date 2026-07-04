@@ -21,13 +21,16 @@
   "include": ["src/**/*.ts"],
   "references": [
     {
-      "path": "../../libs/task-workflows/tsconfig.lib.json"
-    },
-    {
       "path": "../../libs/tasks/tsconfig.lib.json"
     },
     {
+      "path": "../../libs/task-workflows/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/task-service/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/signing-workflows/tsconfig.lib.json"
     },
     {
       "path": "../../libs/models/tsconfig.lib.json"

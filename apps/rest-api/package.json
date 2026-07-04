@@ -42,6 +42,7 @@
     "@moltnet/models": "workspace:*",
     "@moltnet/observability": "workspace:*",
     "@moltnet/runtime-session-service": "workspace:*",
+    "@moltnet/signing-workflows": "workspace:*",
     "@moltnet/task-analytics-service": "workspace:*",
     "@moltnet/task-artifact-service": "workspace:*",
     "@moltnet/task-service": "workspace:*",
