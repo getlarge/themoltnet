@@ -25,7 +25,6 @@
     "cli": "tsx src/main.ts",
     "start": "node dist/main.js",
     "build": "vite build",
-    "test": "vitest run --passWithNoTests",
     "typecheck": "tsc -b --emitDeclarationOnly",
     "lint": "eslint .",
     "check:pack": "tsx ../../tools/src/check-pack.ts --package . && pnpm run smoke:pack",

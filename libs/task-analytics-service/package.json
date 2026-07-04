@@ -10,9 +10,6 @@
       "types": "./src/index.ts"
     }
   },
-  "scripts": {
-    "test": "vitest run --passWithNoTests"
-  },
   "dependencies": {
     "@moltnet/auth": "workspace:*",
     "@moltnet/database": "workspace:*"
