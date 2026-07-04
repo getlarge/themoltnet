@@ -17,6 +17,7 @@ func newTaskCmd() *cobra.Command {
 	taskCmd.AddCommand(newTaskTailCmd())
 	taskCmd.AddCommand(newTaskAttemptsCmd())
 	taskCmd.AddCommand(newTaskArtifactsCmd())
+	taskCmd.AddCommand(newTaskRuntimeSessionsCmd())
 	taskCmd.AddCommand(newTaskSchemasCmd())
 	taskCmd.AddCommand(newTaskCreateCmd())
 	taskCmd.AddCommand(newTaskContinueCmd())
@@ -137,6 +138,117 @@ func newTaskArtifactsDownloadCmd() *cobra.Command {
 	_ = cmd.MarkFlagRequired("team-id")
 	_ = cmd.MarkFlagRequired("attempt")
 	_ = cmd.MarkFlagRequired("cid")
+	_ = cmd.MarkFlagRequired("out")
+	return cmd
+}
+
+func newTaskRuntimeSessionsCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "runtime-sessions",
+		Short: "Get, upload, and download durable runtime session checkpoints",
+	}
+	cmd.AddCommand(newTaskRuntimeSessionsGetCmd())
+	cmd.AddCommand(newTaskRuntimeSessionsUploadCmd())
+	cmd.AddCommand(newTaskRuntimeSessionsDownloadCmd())
+	return cmd
+}
+
+func newTaskRuntimeSessionsGetCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "get <task-id>",
+		Short: "Get durable runtime session metadata for a task attempt",
+		Example: `  moltnet task runtime-sessions get <task-id> --team-id <uuid> \
+    --attempt 1`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			credPath := flagString(cmd, "credentials")
+			return runTaskRuntimeSessionGetCmd(taskRuntimeSessionGetOpts{
+				apiURL:   resolveAPIURL(cmd, credPath),
+				credPath: credPath,
+				taskID:   args[0],
+				teamID:   flagString(cmd, "team-id"),
+				attemptN: flagInt(cmd, "attempt"),
+				out:      cmd.OutOrStdout(),
+			})
+		},
+	}
+	cmd.Flags().String("team-id", "", "Team UUID (required)")
+	cmd.Flags().Int("attempt", 0, "Attempt number (required)")
+	_ = cmd.MarkFlagRequired("team-id")
+	_ = cmd.MarkFlagRequired("attempt")
+	return cmd
+}
+
+func newTaskRuntimeSessionsUploadCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "upload <task-id>",
+		Short: "Upload or replace durable runtime session content for a task attempt",
+		Example: `  moltnet task runtime-sessions upload <task-id> --team-id <uuid> \
+    --attempt 1 --session-kind root --file ./session.jsonl
+
+  # Read session bytes from stdin
+  moltnet task runtime-sessions upload <task-id> --team-id <uuid> \
+    --attempt 1 --session-kind extend --file -`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			credPath := flagString(cmd, "credentials")
+			return runTaskRuntimeSessionUploadCmd(taskRuntimeSessionUploadOpts{
+				apiURL:                 resolveAPIURL(cmd, credPath),
+				credPath:               credPath,
+				taskID:                 args[0],
+				teamID:                 flagString(cmd, "team-id"),
+				attemptN:               flagInt(cmd, "attempt"),
+				sessionKind:            flagString(cmd, "session-kind"),
+				file:                   flagString(cmd, "file"),
+				parentSessionID:        flagString(cmd, "parent-session-id"),
+				sourceSlotID:           flagString(cmd, "source-slot-id"),
+				sourceRuntimeProfileID: flagString(cmd, "source-runtime-profile-id"),
+				out:                    cmd.OutOrStdout(),
+			})
+		},
+	}
+	cmd.Flags().String("team-id", "", "Team UUID (required)")
+	cmd.Flags().Int("attempt", 0, "Attempt number (required)")
+	cmd.Flags().String("session-kind", "", "Session kind: root, extend, or fork (required)")
+	cmd.Flags().String("file", "-", `Path to upload; "-" reads stdin`)
+	cmd.Flags().String("parent-session-id", "", "Optional parent runtime session UUID")
+	cmd.Flags().String("source-slot-id", "", "Optional source runtime slot UUID")
+	cmd.Flags().String("source-runtime-profile-id", "", "Optional source runtime profile UUID")
+	_ = cmd.MarkFlagRequired("team-id")
+	_ = cmd.MarkFlagRequired("attempt")
+	_ = cmd.MarkFlagRequired("session-kind")
+	return cmd
+}
+
+func newTaskRuntimeSessionsDownloadCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "download <task-id>",
+		Short: "Download durable runtime session bytes for a task attempt",
+		Example: `  moltnet task runtime-sessions download <task-id> --team-id <uuid> \
+    --attempt 1 --out ./session.jsonl
+
+  # Write bytes to stdout
+  moltnet task runtime-sessions download <task-id> --team-id <uuid> \
+    --attempt 1 --out -`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			credPath := flagString(cmd, "credentials")
+			return runTaskRuntimeSessionDownloadCmd(taskRuntimeSessionDownloadOpts{
+				apiURL:   resolveAPIURL(cmd, credPath),
+				credPath: credPath,
+				taskID:   args[0],
+				teamID:   flagString(cmd, "team-id"),
+				attemptN: flagInt(cmd, "attempt"),
+				outFile:  flagString(cmd, "out"),
+				out:      cmd.OutOrStdout(),
+			})
+		},
+	}
+	cmd.Flags().String("team-id", "", "Team UUID (required)")
+	cmd.Flags().Int("attempt", 0, "Attempt number (required)")
+	cmd.Flags().String("out", "", `Output path (required); "-" writes bytes to stdout`)
+	_ = cmd.MarkFlagRequired("team-id")
+	_ = cmd.MarkFlagRequired("attempt")
 	_ = cmd.MarkFlagRequired("out")
 	return cmd
 }

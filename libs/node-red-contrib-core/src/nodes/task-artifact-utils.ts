@@ -122,17 +122,21 @@ export function resolveMaxBytes(configured: unknown): number {
 export function resolveUploadBody(
   msg: NodeMessageInFlow,
   maxBytes: number,
+  nodeName = 'task-artifact-upload',
 ): Uint8Array {
   const payload = msg.payload;
-  if (Buffer.isBuffer(payload)) return enforceMaxBytes(payload, maxBytes);
-  if (payload instanceof Uint8Array) return enforceMaxBytes(payload, maxBytes);
+  if (Buffer.isBuffer(payload))
+    return enforceMaxBytes(payload, maxBytes, nodeName);
+  if (payload instanceof Uint8Array)
+    return enforceMaxBytes(payload, maxBytes, nodeName);
   if (payload instanceof ArrayBuffer) {
-    if (payload.byteLength > maxBytes) throw tooLarge('upload', maxBytes);
+    if (payload.byteLength > maxBytes)
+      throw tooLarge('upload', maxBytes, nodeName);
     return new Uint8Array(payload);
   }
   if (typeof payload === 'string') {
     if (Buffer.byteLength(payload) > maxBytes)
-      throw tooLarge('upload', maxBytes);
+      throw tooLarge('upload', maxBytes, nodeName);
     return new TextEncoder().encode(payload);
   }
 
@@ -140,29 +144,33 @@ export function resolveUploadBody(
   if (typeof record.contentBase64 === 'string') {
     const normalized = record.contentBase64.replace(/\s/g, '');
     if (decodedBase64Length(normalized) > maxBytes) {
-      throw tooLarge('upload', maxBytes);
+      throw tooLarge('upload', maxBytes, nodeName);
     }
     return Buffer.from(normalized, 'base64');
   }
   const content = record.content ?? record.body;
-  if (Buffer.isBuffer(content)) return enforceMaxBytes(content, maxBytes);
-  if (content instanceof Uint8Array) return enforceMaxBytes(content, maxBytes);
+  if (Buffer.isBuffer(content))
+    return enforceMaxBytes(content, maxBytes, nodeName);
+  if (content instanceof Uint8Array)
+    return enforceMaxBytes(content, maxBytes, nodeName);
   if (content instanceof ArrayBuffer) {
-    if (content.byteLength > maxBytes) throw tooLarge('upload', maxBytes);
+    if (content.byteLength > maxBytes)
+      throw tooLarge('upload', maxBytes, nodeName);
     return new Uint8Array(content);
   }
   if (typeof content === 'string') {
     if (Buffer.byteLength(content) > maxBytes)
-      throw tooLarge('upload', maxBytes);
+      throw tooLarge('upload', maxBytes, nodeName);
     return new TextEncoder().encode(content);
   }
 
-  throw new Error('task-artifact-upload: payload content is required');
+  throw new Error(`${nodeName}: payload content is required`);
 }
 
 export async function collectArtifactBody(
   value: unknown,
   maxBytes: number,
+  nodeName = 'task-artifact-download',
 ): Promise<Buffer> {
   const source =
     value && typeof value === 'object' && 'stream' in value
@@ -170,27 +178,30 @@ export async function collectArtifactBody(
       : value;
 
   if (Buffer.isBuffer(source)) {
-    if (source.byteLength > maxBytes) throw tooLarge('download', maxBytes);
+    if (source.byteLength > maxBytes)
+      throw tooLarge('download', maxBytes, nodeName);
     return source;
   }
   if (source instanceof Uint8Array) {
-    if (source.byteLength > maxBytes) throw tooLarge('download', maxBytes);
+    if (source.byteLength > maxBytes)
+      throw tooLarge('download', maxBytes, nodeName);
     return Buffer.from(source);
   }
   if (source instanceof ArrayBuffer) {
-    if (source.byteLength > maxBytes) throw tooLarge('download', maxBytes);
+    if (source.byteLength > maxBytes)
+      throw tooLarge('download', maxBytes, nodeName);
     return Buffer.from(source);
   }
   if (typeof source === 'string') {
     if (Buffer.byteLength(source) > maxBytes)
-      throw tooLarge('download', maxBytes);
+      throw tooLarge('download', maxBytes, nodeName);
     return Buffer.from(source);
   }
   if (source instanceof Readable) {
     const chunks: Buffer[] = [];
     let bytes = 0;
     for await (const chunk of source) {
-      bytes = pushChunk(chunks, chunk, bytes, maxBytes);
+      bytes = pushChunk(chunks, chunk, bytes, maxBytes, nodeName);
     }
     return Buffer.concat(chunks);
   }
@@ -198,21 +209,22 @@ export async function collectArtifactBody(
     const chunks: Buffer[] = [];
     let bytes = 0;
     for await (const chunk of source as AsyncIterable<unknown>) {
-      bytes = pushChunk(chunks, chunk, bytes, maxBytes);
+      bytes = pushChunk(chunks, chunk, bytes, maxBytes, nodeName);
     }
     return Buffer.concat(chunks);
   }
   if (source && typeof source === 'object' && 'arrayBuffer' in source) {
     const size = (source as { size?: unknown }).size;
     if (typeof size === 'number' && size > maxBytes) {
-      throw tooLarge('download', maxBytes);
+      throw tooLarge('download', maxBytes, nodeName);
     }
     const arrayBuffer = await (source as Blob).arrayBuffer();
-    if (arrayBuffer.byteLength > maxBytes) throw tooLarge('download', maxBytes);
+    if (arrayBuffer.byteLength > maxBytes)
+      throw tooLarge('download', maxBytes, nodeName);
     return Buffer.from(arrayBuffer);
   }
 
-  throw new Error('task-artifact-download: unsupported artifact body');
+  throw new Error(`${nodeName}: unsupported downloaded body`);
 }
 
 function toBuffer(value: unknown): Buffer {
@@ -228,8 +240,12 @@ export function recordField(value: unknown, key: string): unknown {
   return (value as Record<string, unknown>)[key];
 }
 
-function enforceMaxBytes<T extends Uint8Array>(value: T, maxBytes: number): T {
-  if (value.byteLength > maxBytes) throw tooLarge('upload', maxBytes);
+function enforceMaxBytes<T extends Uint8Array>(
+  value: T,
+  maxBytes: number,
+  nodeName: string,
+): T {
+  if (value.byteLength > maxBytes) throw tooLarge('upload', maxBytes, nodeName);
   return value;
 }
 
@@ -238,10 +254,11 @@ function pushChunk(
   chunk: unknown,
   bytes: number,
   maxBytes: number,
+  nodeName: string,
 ): number {
   const next = toBuffer(chunk);
   const total = bytes + next.byteLength;
-  if (total > maxBytes) throw tooLarge('download', maxBytes);
+  if (total > maxBytes) throw tooLarge('download', maxBytes, nodeName);
   chunks.push(next);
   return total;
 }
@@ -252,8 +269,10 @@ function decodedBase64Length(value: string): number {
   return Math.floor((value.length * 3) / 4) - padding;
 }
 
-function tooLarge(operation: 'upload' | 'download', maxBytes: number): Error {
-  return new Error(
-    `task-artifact-${operation}: artifact body exceeds ${maxBytes} bytes`,
-  );
+function tooLarge(
+  operation: 'upload' | 'download',
+  maxBytes: number,
+  nodeName: string,
+): Error {
+  return new Error(`${nodeName}: ${operation} body exceeds ${maxBytes} bytes`);
 }
