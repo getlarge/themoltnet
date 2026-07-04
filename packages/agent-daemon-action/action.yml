@@ -21,11 +21,20 @@ inputs:
     default: ''
   task-spec-path:
     description: >
-      Path to a JSON file with shape { taskType, correlationId, input }.
+      Path to a JSON file with shape { taskType, correlationId, input,
+      tags? }.
       When set and task-id is empty, the action creates the task with
       moltnet task create, then runs the daemon against the created id.
       teamId and diaryId come from MOLTNET_TEAM_ID and MOLTNET_DIARY_ID,
       keeping task composers credential-free.
+    required: false
+    default: ''
+  tags:
+    description: >
+      Optional comma- or newline-separated task tags to apply when creating a
+      task from task-spec-path. Merged after any top-level task spec `tags`.
+      Tags are trimmed, de-duplicated, and must satisfy the task API limits
+      (max 20, max 128 chars each).
     required: false
     default: ''
   skip-validation:
@@ -393,6 +402,7 @@ runs:
       shell: bash
       env:
         TASK_SPEC_PATH: ${{ inputs.task-spec-path }}
+        TASK_TAGS: ${{ inputs.tags }}
         SKIP_VALIDATION: ${{ inputs.skip-validation }}
         MOLTNET_RUNNING_TIMEOUT_SEC: ${{ inputs.running-timeout-sec }}
       run: |
@@ -418,6 +428,31 @@ runs:
 
         INPUT_PATH="$RUNNER_TEMP/moltnet-task-input.json"
         jq '.input' "$TASK_SPEC_PATH" > "$INPUT_PATH"
+        TAGS=$(jq -r --arg actionTags "$TASK_TAGS" '
+          def trim: gsub("^\\s+|\\s+$"; "");
+          def action_tags:
+            ((($actionTags
+              | gsub("\\r\\n"; "\n")
+              | gsub("\\r"; "\n")
+              | split("\n")
+              | map(split(","))) | add) // [])
+            | map(trim)
+            | map(select(length > 0));
+
+          if (.tags? != null and ((.tags | type) != "array" or any(.tags[]; type != "string"))) then
+            error("task spec .tags must be an array of strings")
+          else
+            ((.tags // []) + action_tags)
+            | reduce .[] as $tag ([]; if index($tag) then . else . + [$tag] end)
+            | if length > 20 then
+                error("task tags exceed 20 items")
+              elif any(.[]; length > 128) then
+                error("task tag exceeds 128 characters")
+              else
+                join(",")
+              end
+          end
+        ' "$TASK_SPEC_PATH")
 
         CREDS="$GITHUB_WORKSPACE/.moltnet/$MOLTNET_AGENT_NAME/moltnet.json"
         if [ ! -f "$CREDS" ]; then
@@ -434,6 +469,13 @@ runs:
         fi
         if [ -n "${MOLTNET_RUNNING_TIMEOUT_SEC:-}" ]; then
           flags+=(--running-timeout-sec "$MOLTNET_RUNNING_TIMEOUT_SEC")
+        fi
+        if [ -n "$TAGS" ]; then
+          if npx -y @themoltnet/cli task create --help | grep -q -- '--tags'; then
+            flags+=(--tags "$TAGS")
+          else
+            echo "::warning::@themoltnet/cli from npm does not support task create --tags yet; creating task without tags"
+          fi
         fi
 
         TASK_ID=$(npx -y @themoltnet/cli task create \

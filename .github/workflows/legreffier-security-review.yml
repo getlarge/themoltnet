@@ -63,17 +63,27 @@ jobs:
           PR_NUMBER: ${{ github.event.issue.number }}
         run: |
           set -euo pipefail
+          head_ref="$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json headRefName --jq .headRefName)"
+          branch_tag="$(printf '%s' "$head_ref" \
+            | tr '[:upper:]' '[:lower:]' \
+            | sed -E 's/[^a-z0-9._-]+/-/g; s/^-+|-+$//g' \
+            | cut -c1-121)"
+          if [ -z "$branch_tag" ]; then
+            branch_tag="unknown"
+          fi
           task_spec_path="$RUNNER_TEMP/pr-security-review-task-spec.json"
           node --import tsx tools/src/tasks/compose-pr-security-review.ts \
             --pr "$PR_NUMBER" \
             --repo "$GITHUB_REPOSITORY" \
             > "$task_spec_path"
           echo "task-spec-path=$task_spec_path" >> "$GITHUB_OUTPUT"
+          echo "task-tags=ci,ci:github-actions,review:pr,review:security,pr:$PR_NUMBER,branch:$branch_tag" >> "$GITHUB_OUTPUT"
 
       - name: Run task
         uses: ./packages/agent-daemon-action
         with:
           task-spec-path: ${{ steps.compose.outputs.task-spec-path }}
+          tags: ${{ steps.compose.outputs.task-tags }}
           # Flip to 'false' once the deployed `pr_review` schema includes
           # the optional `context: TaskContext` field.
           skip-validation: 'true'
