@@ -2,6 +2,7 @@
   "name": "@moltnet/console-e2e",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "dependencies": {
     "@moltnet/api-client": "workspace:*",
     "@moltnet/bootstrap": "workspace:*",
