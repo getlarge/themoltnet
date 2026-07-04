@@ -46,7 +46,9 @@ describe('Sparkline', () => {
         ]}
       />,
     );
-    expect(screen.getByRole('img', { name: 'Accepted rate' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', { name: 'Accepted rate' }),
+    ).toBeInTheDocument();
   });
 
   it('breaks the line at null gaps into separate polylines', () => {

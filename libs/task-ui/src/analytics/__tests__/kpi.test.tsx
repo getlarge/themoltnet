@@ -13,7 +13,11 @@ function renderWithTheme(ui: React.ReactElement) {
 describe('MetricKpiCard', () => {
   it('renders label, value and caption', () => {
     renderWithTheme(
-      <MetricKpiCard label="Accepted output rate" value="82%" caption="41/50" />,
+      <MetricKpiCard
+        label="Accepted output rate"
+        value="82%"
+        caption="41/50"
+      />,
     );
     expect(screen.getByText('Accepted output rate')).toBeInTheDocument();
     expect(screen.getByText('82%')).toBeInTheDocument();

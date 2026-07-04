@@ -43,11 +43,9 @@ export function Sidebar({ collapsed = false, id }: SidebarProps) {
   // /tasks/analytics lights up "Analytics", not also the "Tasks" prefix.
   const activePath = navItems
     .filter((item) => isActive(location, item.path))
-    .reduce<string | null>(
-      (best, item) =>
-        best === null || item.path.length > best.length ? item.path : best,
-      null,
-    );
+    .reduce<
+      string | null
+    >((best, item) => (best === null || item.path.length > best.length ? item.path : best), null);
 
   const width = collapsed ? 56 : 220;
 

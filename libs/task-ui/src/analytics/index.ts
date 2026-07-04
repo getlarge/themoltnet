@@ -9,11 +9,7 @@ export {
   type SparklinePoint,
   type SparklineProps,
 } from './charts/sparkline.js';
-export {
-  makeEmptyMetrics,
-  makeMetrics,
-  makeResponse,
-} from './fixtures.js';
+export { makeEmptyMetrics, makeMetrics, makeResponse } from './fixtures.js';
 export {
   formatCount,
   formatDurationMs,

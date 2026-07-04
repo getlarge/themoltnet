@@ -30,11 +30,19 @@ export function RatioBar({
   const known = value !== null && !Number.isNaN(value);
   const fraction = known ? Math.min(1, Math.max(0, value)) : 0;
   const fillColor =
-    tone === 'neutral' ? theme.color.primary.DEFAULT : theme.color[tone].DEFAULT;
+    tone === 'neutral'
+      ? theme.color.primary.DEFAULT
+      : theme.color[tone].DEFAULT;
   const display = valueText ?? (known ? formatPercent(value) : UNKNOWN);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[1] }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: theme.spacing[1],
+      }}
+    >
       {(label || display) && (
         <div
           style={{

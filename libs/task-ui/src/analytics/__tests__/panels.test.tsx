@@ -44,7 +44,9 @@ describe('HurdlesPanel', () => {
 
 describe('KnowledgeUsagePanel', () => {
   it('renders the per-accepted-task leverage and counters', () => {
-    renderWithTheme(<KnowledgeUsagePanel knowledge={makeMetrics().knowledge} />);
+    renderWithTheme(
+      <KnowledgeUsagePanel knowledge={makeMetrics().knowledge} />,
+    );
     expect(
       screen.getByText('Knowledge calls per accepted task'),
     ).toBeInTheDocument();

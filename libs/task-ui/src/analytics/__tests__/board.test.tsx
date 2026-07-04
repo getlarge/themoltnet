@@ -157,9 +157,7 @@ describe('MetricsTable', () => {
         roi: { ...base.roi, acceptedTasksPerThousandTokens: null },
       }),
     };
-    renderWithTheme(
-      <MetricsTable groups={[...groups, withNull]} />,
-    );
+    renderWithTheme(<MetricsTable groups={[...groups, withNull]} />);
     // Sort by the ROI "Acc./1k tok" column; the null cohort ranks last.
     fireEvent.click(screen.getByRole('button', { name: /Acc\.\/1k tok/i }));
     expect(renderedOrder().at(-1)).toBe('model-null');
@@ -173,9 +171,7 @@ describe('AnalyticsBoard', () => {
   };
 
   it('renders a skeleton in the loading state', () => {
-    renderWithTheme(
-      <AnalyticsBoard {...baseProps} status="loading" />,
-    );
+    renderWithTheme(<AnalyticsBoard {...baseProps} status="loading" />);
     expect(screen.getByTestId('analytics-skeleton')).toBeInTheDocument();
   });
 
@@ -195,9 +191,7 @@ describe('AnalyticsBoard', () => {
   });
 
   it('renders the empty state', () => {
-    renderWithTheme(
-      <AnalyticsBoard {...baseProps} status="empty" />,
-    );
+    renderWithTheme(<AnalyticsBoard {...baseProps} status="empty" />);
     expect(
       screen.getByText(/no task activity matches these filters/i),
     ).toBeInTheDocument();
@@ -223,7 +217,9 @@ describe('AnalyticsBoard', () => {
         response={makeResponse({ statsComplete: false })}
       />,
     );
-    expect(screen.getByText(/stats are still catching up/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/stats are still catching up/i),
+    ).toBeInTheDocument();
   });
 
   it('renders the trend sparkline when grouped by day', () => {

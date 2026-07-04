@@ -71,7 +71,13 @@ export function AnalyticsFilters({
   return (
     <Stack gap={3}>
       <Stack direction="row" gap={3} align="flex-end" wrap>
-        <label style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[1] }}>
+        <label
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: theme.spacing[1],
+          }}
+        >
           <Text variant="caption" color="muted">
             Completed after
           </Text>
@@ -86,7 +92,13 @@ export function AnalyticsFilters({
           />
         </label>
 
-        <label style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[1] }}>
+        <label
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: theme.spacing[1],
+          }}
+        >
           <Text variant="caption" color="muted">
             Completed before
           </Text>
@@ -101,7 +113,13 @@ export function AnalyticsFilters({
           />
         </label>
 
-        <label style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[1] }}>
+        <label
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: theme.spacing[1],
+          }}
+        >
           <Text variant="caption" color="muted">
             Compare by
           </Text>

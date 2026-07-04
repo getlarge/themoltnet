@@ -121,7 +121,12 @@ export function makeEmptyMetrics(): TaskActivityProductMetrics {
       extraAttemptCount: 0,
       extraTokensBeforeAcceptance: 0,
     },
-    raw: { messageCount: 0, turnCount: 0, toolCallCount: 0, failedToolCallCount: 0 },
+    raw: {
+      messageCount: 0,
+      turnCount: 0,
+      toolCallCount: 0,
+      failedToolCallCount: 0,
+    },
   };
 }
 

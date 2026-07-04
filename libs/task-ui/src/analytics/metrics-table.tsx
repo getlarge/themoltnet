@@ -69,8 +69,10 @@ const columns: Column[] = [
     key: 'attemptsPerAccepted',
     header: 'Att./acc.',
     align: 'right',
-    value: (g) => formatRatio(g.metrics.productivity.averageAttemptsPerAcceptedTask),
-    sortValue: (g) => g.metrics.productivity.averageAttemptsPerAcceptedTask ?? Infinity,
+    value: (g) =>
+      formatRatio(g.metrics.productivity.averageAttemptsPerAcceptedTask),
+    sortValue: (g) =>
+      g.metrics.productivity.averageAttemptsPerAcceptedTask ?? Infinity,
   },
   {
     key: 'medianTurns',
@@ -90,8 +92,10 @@ const columns: Column[] = [
     key: 'knowledgePerAccepted',
     header: 'Know./acc.',
     align: 'right',
-    value: (g) => formatRatio(g.metrics.knowledge.knowledgeCallsPerAcceptedTask),
-    sortValue: (g) => g.metrics.knowledge.knowledgeCallsPerAcceptedTask ?? -Infinity,
+    value: (g) =>
+      formatRatio(g.metrics.knowledge.knowledgeCallsPerAcceptedTask),
+    sortValue: (g) =>
+      g.metrics.knowledge.knowledgeCallsPerAcceptedTask ?? -Infinity,
   },
 ];
 
@@ -177,9 +181,7 @@ export function MetricsTable({ groups, onSelectGroup }: MetricsTableProps) {
                       style={{
                         border: 'none',
                         background: 'transparent',
-                        color: active
-                          ? theme.color.primary.DEFAULT
-                          : 'inherit',
+                        color: active ? theme.color.primary.DEFAULT : 'inherit',
                         font: 'inherit',
                         cursor: 'pointer',
                         padding: 0,

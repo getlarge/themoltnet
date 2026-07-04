@@ -46,7 +46,10 @@ export function MultiSelectFacet({
   }
 
   return (
-    <div ref={rootRef} style={{ position: 'relative', display: 'inline-block' }}>
+    <div
+      ref={rootRef}
+      style={{ position: 'relative', display: 'inline-block' }}
+    >
       <button
         type="button"
         aria-haspopup="true"

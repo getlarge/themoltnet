@@ -114,7 +114,9 @@ test.describe.serial('Task analytics', () => {
       },
     });
     if (grant.error || !grant.data) {
-      throw new Error(`createDiaryGrant failed: ${JSON.stringify(grant.error)}`);
+      throw new Error(
+        `createDiaryGrant failed: ${JSON.stringify(grant.error)}`,
+      );
     }
   });
 
@@ -166,9 +168,7 @@ test.describe.serial('Task analytics', () => {
     await selectSharedTeam(page);
     await page.goto(`${CONSOLE_URL}/tasks/analytics`);
 
-    await page
-      .getByLabel('Compare by')
-      .selectOption('providerModel');
+    await page.getByLabel('Compare by').selectOption('providerModel');
 
     // The comparison table appears with its cohort header and sortable columns.
     await expect(

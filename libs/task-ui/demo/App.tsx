@@ -99,9 +99,7 @@ function DemoContent() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() =>
-              setMode(resolvedMode === 'dark' ? 'light' : 'dark')
-            }
+            onClick={() => setMode(resolvedMode === 'dark' ? 'light' : 'dark')}
           >
             {resolvedMode === 'dark' ? 'Light' : 'Dark'} theme
           </Button>

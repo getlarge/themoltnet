@@ -51,7 +51,9 @@ export function MetricKpiCard({
 }: MetricKpiCardProps) {
   const theme = useTheme();
   const isUnknown = value === UNKNOWN;
-  const valueColor = isUnknown ? theme.color.text.muted : toneColor(tone, theme);
+  const valueColor = isUnknown
+    ? theme.color.text.muted
+    : toneColor(tone, theme);
 
   const labelEl = (
     <Text
