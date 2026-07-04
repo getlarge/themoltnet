@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.61.0](https://github.com/getlarge/themoltnet/compare/cli-v1.60.0...cli-v1.61.0) (2026-07-04)
+
+
+### Features
+
+* add tags in CI PR review tasks ([f1d18be](https://github.com/getlarge/themoltnet/commit/f1d18be1cedb194f3cf7fd702fa86815353af8b4))
+
 ## [1.60.0](https://github.com/getlarge/themoltnet/compare/cli-v1.59.1...cli-v1.60.0) (2026-07-04)
 
 
