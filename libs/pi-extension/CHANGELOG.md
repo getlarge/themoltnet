@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.33.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.32.1...pi-extension-v0.33.0) (2026-07-05)
+
+
+### Features
+
+* constrain proactive diary memory search ([85777ee](https://github.com/getlarge/themoltnet/commit/85777ee5858d2605233d6c25d2102d45ddb2474c))
+* **pi-extension:** guide proactive diary memory use ([c55f564](https://github.com/getlarge/themoltnet/commit/c55f5642826a5d6d0dfdd68e603db1c10588719d))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.35.0
+
 ## [0.32.1](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.32.0...pi-extension-v0.32.1) (2026-07-03)
 
 

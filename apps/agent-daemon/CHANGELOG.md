@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.29.5](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.29.4...agent-daemon-v0.29.5) (2026-07-05)
+
+
+### Bug Fixes
+
+* **e2e:** allow bound daemon app imports ([0195653](https://github.com/getlarge/themoltnet/commit/01956534d4993d1d9c90f733e01dcc167cd4e30e))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.35.0
+    * @themoltnet/pi-extension bumped to 0.33.0
+
 ## [0.29.4](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.29.3...agent-daemon-v0.29.4) (2026-07-03)
 
 

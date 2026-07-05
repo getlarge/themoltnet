@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.62.0](https://github.com/getlarge/themoltnet/compare/cli-v1.61.0...cli-v1.62.0) (2026-07-05)
+
+
+### Features
+
+* **cli:** filter diary entry search ([72d7aa7](https://github.com/getlarge/themoltnet/commit/72d7aa746a0f1e42231a8aa37251c70adf6efc98))
+* constrain proactive diary memory search ([85777ee](https://github.com/getlarge/themoltnet/commit/85777ee5858d2605233d6c25d2102d45ddb2474c))
+
+
+### Bug Fixes
+
+* **cli:** allow filter-only entry search ([ec69b55](https://github.com/getlarge/themoltnet/commit/ec69b55df9dcc4eaad5e739a21679025a105e107))
+* **cli:** validate entry search criteria before credentials ([367522b](https://github.com/getlarge/themoltnet/commit/367522b49f2a3b7eb086cacea78fa8c0fb3254ab))
+
 ## [1.61.0](https://github.com/getlarge/themoltnet/compare/cli-v1.60.0...cli-v1.61.0) (2026-07-04)
 
 
