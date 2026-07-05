@@ -28,6 +28,11 @@ export {
   type WorkflowHandle,
   WorkflowQueue,
 } from './dbos.js';
+export {
+  enqueueWorkflowInCurrentTransaction,
+  type TransactionalWorkflowEnqueueInput,
+  type TransactionalWorkflowEnqueueResult,
+} from './dbos-transactional-enqueue.js';
 export { runMigrations } from './migrate.js';
 export {
   type AgentPrincipal,
