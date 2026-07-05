@@ -311,10 +311,6 @@ type entrySearchOptions struct {
 
 // runEntrySearchCmd searches diary entries.
 func runEntrySearchCmd(apiURL, credPath string, opts entrySearchOptions) error {
-	client, err := newClientFromCreds(apiURL, credPath)
-	if err != nil {
-		return err
-	}
 	req := moltnetapi.SearchDiaryReq{}
 	if opts.query != "" {
 		req.Query = moltnetapi.OptString{Value: opts.query, Set: true}
@@ -363,6 +359,10 @@ func runEntrySearchCmd(apiURL, credPath string, opts entrySearchOptions) error {
 	}
 	if !hasEntrySearchCriteria(req) {
 		return fmt.Errorf("entry search: provide --query or at least one filter flag")
+	}
+	client, err := newClientFromCreds(apiURL, credPath)
+	if err != nil {
+		return err
 	}
 	res, err := client.SearchDiary(context.Background(), moltnetapi.OptSearchDiaryReq{
 		Value: req,
