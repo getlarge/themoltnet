@@ -219,6 +219,7 @@ async function checkPermission(
 
 async function batchCheckPermissions(
   permissionApi: PermissionApi,
+  logger: PermissionCheckerLogger,
   tuples: Array<{
     namespace: string;
     object: string;
@@ -232,27 +233,47 @@ async function batchCheckPermissions(
 ): Promise<boolean[]> {
   if (tuples.length === 0) return [];
 
-  const data = await permissionApi.batchCheckPermission({
-    batchCheckPermissionBody: {
-      tuples,
-    },
-  });
+  try {
+    const data = await permissionApi.batchCheckPermission({
+      batchCheckPermissionBody: {
+        tuples,
+      },
+    });
 
-  const resultErrors = data.results
-    .map((result, index) =>
-      result.error
-        ? `${tuples[index]?.object ?? index}: ${result.error}`
-        : null,
-    )
-    .filter((error): error is string => error !== null);
-
-  if (resultErrors.length > 0) {
-    throw new Error(
-      `batch permission check failed for ${resultErrors.join(', ')}`,
+    return data.results.map((result, index) => {
+      if (result.error) {
+        const tuple = tuples[index];
+        logger.warn(
+          {
+            error: result.error,
+            namespace: tuple?.namespace,
+            object: tuple?.object,
+            relation: tuple?.relation,
+            subjectNs: tuple?.subject_set.namespace,
+            subjectId: tuple?.subject_set.object,
+          },
+          'keto.batch_permission_result_failed',
+        );
+        return false;
+      }
+      return result.allowed;
+    });
+  } catch (err) {
+    logger.warn(
+      {
+        err,
+        tuples: tuples.map((tuple) => ({
+          namespace: tuple.namespace,
+          object: tuple.object,
+          relation: tuple.relation,
+          subjectNs: tuple.subject_set.namespace,
+          subjectId: tuple.subject_set.object,
+        })),
+      },
+      'keto.batch_permission_check_failed',
     );
+    return tuples.map(() => false);
   }
-
-  return data.results.map((result) => result.allowed);
 }
 
 export function createPermissionChecker(
@@ -364,6 +385,7 @@ export function createPermissionChecker(
     ): Promise<Map<string, boolean>> {
       const results = await batchCheckPermissions(
         permissionApi,
+        log,
         entryIds.map((entryId) => ({
           namespace: KetoNamespace.DiaryEntry,
           object: entryId,
@@ -388,6 +410,7 @@ export function createPermissionChecker(
       if (entryIds.length === 0) return false;
       const results = await batchCheckPermissions(
         permissionApi,
+        log,
         entryIds.map((entryId) => ({
           namespace: KetoNamespace.DiaryEntry,
           object: entryId,
@@ -425,6 +448,7 @@ export function createPermissionChecker(
     ): Promise<Map<string, boolean>> {
       const results = await batchCheckPermissions(
         permissionApi,
+        log,
         packIds.map((packId) => ({
           namespace: KetoNamespace.ContextPack,
           object: packId,
@@ -607,6 +631,7 @@ export function createPermissionChecker(
     ): Promise<Map<string, boolean>> {
       const results = await batchCheckPermissions(
         permissionApi,
+        log,
         taskIds.map((taskId) => ({
           namespace: KetoNamespace.Task,
           object: taskId,
@@ -681,6 +706,7 @@ export function createPermissionChecker(
     ): Promise<Map<string, boolean>> {
       const results = await batchCheckPermissions(
         permissionApi,
+        log,
         taskIds.map((taskId) => ({
           namespace: KetoNamespace.Task,
           object: taskId,
@@ -720,6 +746,7 @@ export function createPermissionChecker(
     ): Promise<Map<string, boolean>> {
       const results = await batchCheckPermissions(
         permissionApi,
+        log,
         taskIds.map((taskId) => ({
           namespace: KetoNamespace.Task,
           object: taskId,
@@ -743,6 +770,7 @@ export function createPermissionChecker(
     ): Promise<Map<string, boolean>> {
       const results = await batchCheckPermissions(
         permissionApi,
+        log,
         taskIds.map((taskId) => ({
           namespace: KetoNamespace.Task,
           object: taskId,
