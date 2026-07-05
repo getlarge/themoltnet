@@ -220,6 +220,17 @@ interface VerifiedExecutorAttestation {
   };
 }
 
+export interface EnqueueTaskAttemptWorkflowInput {
+  taskId: string;
+  attemptN: number;
+  callerId: string;
+  workflowId: string;
+  leaseTtlSec: number;
+  claimedExecutorFingerprint: string | null;
+  dispatchTimeoutSec: number | null;
+  runningTimeoutSec: number | null;
+}
+
 interface TaskServiceDeps {
   taskRepository: TaskRepository;
   diaryRepository: DiaryRepository;
@@ -244,6 +255,13 @@ interface TaskServiceDeps {
    * tests wire `createDrizzleTransactionRunner(db)` or a stub.
    */
   transactionRunner: TransactionRunner;
+  /**
+   * Optional experimental DBOS-UDF path. When provided, claim writes and
+   * workflow enqueue happen inside the same Postgres transaction.
+   */
+  enqueueTaskAttemptWorkflow?: (
+    input: EnqueueTaskAttemptWorkflowInput,
+  ) => Promise<void>;
   logger: Logger;
   taskLifetime?: {
     defaultExpiresInSec: number;
@@ -280,6 +298,7 @@ export function createTaskService(deps: TaskServiceDeps) {
     permissionChecker,
     relationshipWriter,
     transactionRunner,
+    enqueueTaskAttemptWorkflow,
     logger,
     taskLifetime,
   } = deps;
@@ -1314,7 +1333,24 @@ export function createTaskService(deps: TaskServiceDeps) {
               );
             }
           }
-          return taskRepository.claimIfQueued(taskId);
+          const claimed = await taskRepository.claimIfQueued(taskId);
+          if (!claimed) return null;
+
+          if (enqueueTaskAttemptWorkflow) {
+            await persistExecutorVerification(claimedExecutor, taskRepository);
+            await enqueueTaskAttemptWorkflow({
+              taskId,
+              attemptN,
+              callerId,
+              workflowId,
+              leaseTtlSec,
+              claimedExecutorFingerprint: claimedExecutor?.fingerprint ?? null,
+              dispatchTimeoutSec: row.dispatchTimeoutSec ?? null,
+              runningTimeoutSec: row.runningTimeoutSec ?? null,
+            });
+          }
+
+          return claimed;
         },
         { name: 'task.claim.cas' },
       );
@@ -1324,27 +1360,30 @@ export function createTaskService(deps: TaskServiceDeps) {
           'Task is not queued or is already being claimed',
         );
       }
-      await persistExecutorVerification(claimedExecutor, taskRepository);
 
-      try {
-        await DBOS.startWorkflow(taskWorkflows.startAttemptWorkflow, {
-          workflowID: workflowId,
-        })(
-          taskId,
-          attemptN,
-          callerId,
-          workflowId,
-          leaseTtlSec,
-          claimedExecutor?.fingerprint ?? null,
-          row.dispatchTimeoutSec ?? null,
-          row.runningTimeoutSec ?? null,
-        );
-      } catch (error) {
-        if (
-          !(error instanceof Error) ||
-          !error.name.includes('WorkflowAlreadyExists')
-        ) {
-          throw error;
+      if (!enqueueTaskAttemptWorkflow) {
+        await persistExecutorVerification(claimedExecutor, taskRepository);
+
+        try {
+          await DBOS.startWorkflow(taskWorkflows.startAttemptWorkflow, {
+            workflowID: workflowId,
+          })(
+            taskId,
+            attemptN,
+            callerId,
+            workflowId,
+            leaseTtlSec,
+            claimedExecutor?.fingerprint ?? null,
+            row.dispatchTimeoutSec ?? null,
+            row.runningTimeoutSec ?? null,
+          );
+        } catch (error) {
+          if (
+            !(error instanceof Error) ||
+            !error.name.includes('WorkflowAlreadyExists')
+          ) {
+            throw error;
+          }
         }
       }
 

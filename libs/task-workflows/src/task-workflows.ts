@@ -1,4 +1,4 @@
-import { DBOS } from '@dbos-inc/dbos-sdk';
+import { DBOS, WorkflowQueue } from '@dbos-inc/dbos-sdk';
 import type {
   DataSource,
   NewTaskAttempt,
@@ -144,6 +144,7 @@ export const DEFAULT_DISPATCH_TIMEOUT_SECONDS = 300;
 // Long-running evals (brief fulfillment, judgment) can take 30–60 min.
 // Agents must heartbeat (extend the lease) before this elapses to signal liveness.
 export const DEFAULT_RUNNING_TIMEOUT_SECONDS = 7200;
+export const TASK_ATTEMPT_WORKFLOW_QUEUE = 'task-attempts';
 
 const stepConfig = {
   retriesAllowed: true,
@@ -186,6 +187,8 @@ export function setTaskWorkflowDeps(deps: TaskWorkflowDeps): void {
 
 export function initTaskWorkflows(): void {
   if (_workflows) return;
+
+  new WorkflowQueue(TASK_ATTEMPT_WORKFLOW_QUEUE, {});
 
   // Single-write steps — no transaction needed, each is naturally idempotent.
   const insertAttemptStep = DBOS.registerStep(
@@ -685,7 +688,7 @@ export function initTaskWorkflows(): void {
           // requires we don't throw here on event content.
         }
       },
-      { name: 'task.workflow.startAttempt' },
+      { name: 'task.workflow.startAttempt', serialization: 'portable' },
     ),
   };
 }

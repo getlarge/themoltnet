@@ -45,6 +45,7 @@ import {
   createTaskRepository,
   createTeamRepository,
   createVoucherRepository,
+  enqueueWorkflowInCurrentTransaction,
   type DatabaseConnection,
   getDatabase,
   getDataSource,
@@ -77,6 +78,7 @@ import { createTaskArtifactStorage } from '@moltnet/task-artifact-service';
 import {
   initTaskWorkflows,
   setTaskWorkflowDeps,
+  TASK_ATTEMPT_WORKFLOW_QUEUE,
 } from '@moltnet/task-workflows';
 import { initTaskTypeRegistry } from '@moltnet/tasks';
 import Fastify, { type FastifyInstance } from 'fastify';
@@ -330,6 +332,23 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     permissionChecker,
     relationshipWriter,
     transactionRunner,
+    enqueueTaskAttemptWorkflow: async (input) => {
+      await enqueueWorkflowInCurrentTransaction(dbConnection.db, {
+        workflowName: 'task.workflow.startAttempt',
+        queueName: TASK_ATTEMPT_WORKFLOW_QUEUE,
+        workflowId: input.workflowId,
+        positionalArgs: [
+          input.taskId,
+          input.attemptN,
+          input.callerId,
+          input.workflowId,
+          input.leaseTtlSec,
+          input.claimedExecutorFingerprint,
+          input.dispatchTimeoutSec,
+          input.runningTimeoutSec,
+        ],
+      });
+    },
     logger: app.log,
     taskLifetime: {
       defaultExpiresInSec: config.taskOrphanSweeper.TASK_DEFAULT_EXPIRES_IN_SEC,

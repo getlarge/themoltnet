@@ -4,6 +4,7 @@ export {
   DEFAULT_RUNNING_TIMEOUT_SECONDS,
   initTaskWorkflows,
   setTaskWorkflowDeps,
+  TASK_ATTEMPT_WORKFLOW_QUEUE,
   type TaskAttemptClaimedEvent,
   type TaskAttemptFinalEvent,
   type TaskProgressEvent,
