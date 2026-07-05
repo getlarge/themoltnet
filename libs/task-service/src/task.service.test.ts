@@ -1174,6 +1174,33 @@ describe('createTaskService.deleteMany', () => {
     expect(mocks.taskRepository.deleteMany).not.toHaveBeenCalled();
   });
 
+  it('skips deletion planning when delete permissions deny closed', async () => {
+    const mocks = makeMocks({
+      visibleTasks: {
+        [JUDGE_TASK]: makeJudgeTask(JUDGE_TASK, 'cancelled'),
+      },
+    });
+    mocks.permissionChecker.canDeleteTasks.mockResolvedValue(
+      new Map([[JUDGE_TASK, false]]),
+    );
+    const service = createTaskService(
+      mocks as unknown as Parameters<typeof createTaskService>[0],
+    );
+
+    const result = await service.planDeleteMany({
+      ids: [JUDGE_TASK],
+      callerId: AGENT_ID,
+      callerNs: KetoNamespace.Agent,
+    });
+
+    expect(result).toEqual({
+      accepted: [],
+      skipped: [JUDGE_TASK],
+    });
+    expect(mocks.taskRepository.findByIds).not.toHaveBeenCalled();
+    expect(mocks.taskRepository.deleteMany).not.toHaveBeenCalled();
+  });
+
   it('skips sealed task deletion in force mode without force_delete permission', async () => {
     const sealed = makeJudgeTask(JUDGE_TASK, 'cancelled');
     const unsealed = makeJudgeTask(RUN_TASK, 'cancelled');

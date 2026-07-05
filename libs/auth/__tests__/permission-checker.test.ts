@@ -24,10 +24,21 @@ const TASK_ID = '990e8400-e29b-41d4-a716-446655440005';
 describe('PermissionChecker', () => {
   let mockPermissionApi: MockPermissionApi;
   let checker: PermissionChecker;
+  let logger: {
+    warn: ReturnType<typeof vi.fn>;
+    debug: ReturnType<typeof vi.fn>;
+    child: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(() => {
     mockPermissionApi = createMockPermissionApi();
-    checker = createPermissionChecker(mockPermissionApi as any);
+    logger = {
+      warn: vi.fn(),
+      debug: vi.fn(),
+      child: vi.fn(),
+    };
+    logger.child.mockReturnValue(logger);
+    checker = createPermissionChecker(mockPermissionApi as any, logger);
   });
 
   describe('diary permissions', () => {
@@ -287,21 +298,41 @@ describe('PermissionChecker', () => {
       });
     });
 
-    it('throws when the batch API errors', async () => {
+    it('denies all batch permissions when the batch API errors', async () => {
       mockPermissionApi.batchCheckPermission.mockRejectedValue(
         new Error('Keto unavailable'),
       );
 
-      await expect(
-        checker.canReadPacks(
-          [DIARY_ID, ENTRY_ID],
-          AGENT_ID,
-          KetoNamespace.Agent,
-        ),
-      ).rejects.toThrow('Keto unavailable');
+      const result = await checker.canReadPacks(
+        [DIARY_ID, ENTRY_ID],
+        AGENT_ID,
+        KetoNamespace.Agent,
+      );
+
+      expect(result).toEqual(
+        new Map([
+          [DIARY_ID, false],
+          [ENTRY_ID, false],
+        ]),
+      );
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          err: expect.any(Error),
+          tuples: expect.arrayContaining([
+            expect.objectContaining({
+              namespace: 'ContextPack',
+              object: DIARY_ID,
+              relation: 'read',
+              subjectNs: 'Agent',
+              subjectId: AGENT_ID,
+            }),
+          ]),
+        }),
+        'keto.batch_permission_check_failed',
+      );
     });
 
-    it('throws when Keto returns per-item errors in the batch result', async () => {
+    it('denies only failed results when Keto returns per-item batch errors', async () => {
       mockPermissionApi.batchCheckPermission.mockResolvedValue({
         results: [
           { allowed: true },
@@ -309,14 +340,28 @@ describe('PermissionChecker', () => {
         ],
       });
 
-      await expect(
-        checker.canReadPacks(
-          [DIARY_ID, ENTRY_ID],
-          AGENT_ID,
-          KetoNamespace.Agent,
-        ),
-      ).rejects.toThrow(
-        `batch permission check failed for ${ENTRY_ID}: resolution failed`,
+      const result = await checker.canReadPacks(
+        [DIARY_ID, ENTRY_ID],
+        AGENT_ID,
+        KetoNamespace.Agent,
+      );
+
+      expect(result).toEqual(
+        new Map([
+          [DIARY_ID, true],
+          [ENTRY_ID, false],
+        ]),
+      );
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: 'resolution failed',
+          namespace: 'ContextPack',
+          object: ENTRY_ID,
+          relation: 'read',
+          subjectNs: 'Agent',
+          subjectId: AGENT_ID,
+        }),
+        'keto.batch_permission_result_failed',
       );
     });
   });
@@ -390,6 +435,40 @@ describe('PermissionChecker', () => {
       });
     });
 
+    it('denies all task deletion permissions when the batch API errors', async () => {
+      mockPermissionApi.batchCheckPermission.mockRejectedValue(
+        new Error('Keto unavailable'),
+      );
+
+      const result = await checker.canDeleteTasks(
+        [TASK_ID, ENTRY_ID],
+        AGENT_ID,
+        KetoNamespace.Agent,
+      );
+
+      expect(result).toEqual(
+        new Map([
+          [TASK_ID, false],
+          [ENTRY_ID, false],
+        ]),
+      );
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          err: expect.any(Error),
+          tuples: expect.arrayContaining([
+            expect.objectContaining({
+              namespace: 'Task',
+              object: TASK_ID,
+              relation: 'delete',
+              subjectNs: 'Agent',
+              subjectId: AGENT_ID,
+            }),
+          ]),
+        }),
+        'keto.batch_permission_check_failed',
+      );
+    });
+
     it('checks canForceDeleteTasks against Task force_delete permission in one batch request', async () => {
       mockPermissionApi.batchCheckPermission.mockResolvedValue({
         results: [{ allowed: false }, { allowed: true }],
@@ -433,6 +512,39 @@ describe('PermissionChecker', () => {
           ],
         },
       });
+    });
+
+    it('denies only failed force delete results when Keto returns per-item batch errors', async () => {
+      mockPermissionApi.batchCheckPermission.mockResolvedValue({
+        results: [
+          { allowed: true },
+          { allowed: false, error: 'resolution failed' },
+        ],
+      });
+
+      const result = await checker.canForceDeleteTasks(
+        [TASK_ID, ENTRY_ID],
+        AGENT_ID,
+        KetoNamespace.Agent,
+      );
+
+      expect(result).toEqual(
+        new Map([
+          [TASK_ID, true],
+          [ENTRY_ID, false],
+        ]),
+      );
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: 'resolution failed',
+          namespace: 'Task',
+          object: ENTRY_ID,
+          relation: 'force_delete',
+          subjectNs: 'Agent',
+          subjectId: AGENT_ID,
+        }),
+        'keto.batch_permission_result_failed',
+      );
     });
   });
 
