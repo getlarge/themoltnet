@@ -42,25 +42,16 @@ You can pull the full set without enumerating ids by passing the
 
 ## Proactive memory use
 
-Before material work, query MoltNet memory instead of waiting for a
-human prompt. Keep searches constrained; do not search randomly:
+Before material work, apply the runtime instructor's proactive memory
+rules instead of waiting for a human prompt. Start with constrained
+diary context: inspect tags/list entries when task provenance or scope
+tags are known, then use \`moltnet_search_entries\` with \`taskFilter\`,
+\`entryTypes\`, and tags. Do not run broad unfiltered searches before
+constrained searches miss.
 
-- Use \`moltnet_diary_tags\` to discover likely \`scope:*\`, \`incident\`,
-  \`decision\`, and task provenance tags.
-- Use \`moltnet_list_entries\` when tags, task ids, correlation ids, or
-  entry ids are known.
-- Use \`moltnet_search_entries\` for semantic matches against the brief,
-  error text, subsystem, root cause, proposed fix, or review subject.
-  Always pass narrowing filters when available: \`taskFilter\` for the
-  current task/correlation lineage, \`entryTypes\` for decision/incident
-  searches, and \`tags\` such as \`scope:<area>\`, \`incident\`, or \`decision\`
-  discovered from \`moltnet_diary_tags\`.
-- Before creating any \`episodic\` incident entry, search for similar
-  incidents first with \`entryTypes: ["episodic", "semantic"]\` plus the
-  relevant \`scope:*\` or task provenance filters. If a close match exists,
-  reference that entry instead of creating an isolated duplicate; create
-  a recurrence entry only when the repeat occurrence is itself useful
-  signal.
+For incident capture, follow the runtime instructor exactly: search
+for similar episodic/semantic entries first, reference close matches,
+and create a recurrence entry only when the repeat is useful signal.
 
 ## Workspace
 
@@ -574,25 +565,16 @@ The current branch is \`moltnet/22222222-3333-4444-8555-666666666666/thing\`. St
 
 ## Proactive memory use
 
-Before material work, query MoltNet memory instead of waiting for a
-human prompt. Keep searches constrained; do not search randomly:
+Before material work, apply the runtime instructor's proactive memory
+rules instead of waiting for a human prompt. Start with constrained
+diary context: inspect tags/list entries when task provenance or scope
+tags are known, then use \`moltnet_search_entries\` with \`taskFilter\`,
+\`entryTypes\`, and tags. Do not run broad unfiltered searches before
+constrained searches miss.
 
-- Use \`moltnet_diary_tags\` to discover likely \`scope:*\`, \`incident\`,
-  \`decision\`, and task provenance tags.
-- Use \`moltnet_list_entries\` when tags, task ids, correlation ids, or
-  entry ids are known.
-- Use \`moltnet_search_entries\` for semantic matches against the brief,
-  error text, subsystem, root cause, proposed fix, or review subject.
-  Always pass narrowing filters when available: \`taskFilter\` for the
-  current task/correlation lineage, \`entryTypes\` for decision/incident
-  searches, and \`tags\` such as \`scope:<area>\`, \`incident\`, or \`decision\`
-  discovered from \`moltnet_diary_tags\`.
-- Before creating any \`episodic\` incident entry, search for similar
-  incidents first with \`entryTypes: ["episodic", "semantic"]\` plus the
-  relevant \`scope:*\` or task provenance filters. If a close match exists,
-  reference that entry instead of creating an isolated duplicate; create
-  a recurrence entry only when the repeat occurrence is itself useful
-  signal.
+For incident capture, follow the runtime instructor exactly: search
+for similar episodic/semantic entries first, reference close matches,
+and create a recurrence entry only when the repeat is useful signal.
 
 ## Self-verification
 
@@ -725,25 +707,16 @@ Do the thing
 
 ## Proactive memory use
 
-Before material work, query MoltNet memory instead of waiting for a
-human prompt. Keep searches constrained; do not search randomly:
+Before material work, apply the runtime instructor's proactive memory
+rules instead of waiting for a human prompt. Start with constrained
+diary context: inspect tags/list entries when task provenance or scope
+tags are known, then use \`moltnet_search_entries\` with \`taskFilter\`,
+\`entryTypes\`, and tags. Do not run broad unfiltered searches before
+constrained searches miss.
 
-- Use \`moltnet_diary_tags\` to discover likely \`scope:*\`, \`incident\`,
-  \`decision\`, and task provenance tags.
-- Use \`moltnet_list_entries\` when tags, task ids, correlation ids, or
-  entry ids are known.
-- Use \`moltnet_search_entries\` for semantic matches against the brief,
-  error text, subsystem, root cause, proposed fix, or review subject.
-  Always pass narrowing filters when available: \`taskFilter\` for the
-  current task/correlation lineage, \`entryTypes\` for decision/incident
-  searches, and \`tags\` such as \`scope:<area>\`, \`incident\`, or \`decision\`
-  discovered from \`moltnet_diary_tags\`.
-- Before creating any \`episodic\` incident entry, search for similar
-  incidents first with \`entryTypes: ["episodic", "semantic"]\` plus the
-  relevant \`scope:*\` or task provenance filters. If a close match exists,
-  reference that entry instead of creating an isolated duplicate; create
-  a recurrence entry only when the repeat occurrence is itself useful
-  signal.
+For incident capture, follow the runtime instructor exactly: search
+for similar episodic/semantic entries first, reference close matches,
+and create a recurrence entry only when the repeat is useful signal.
 
 ## Self-verification
 
@@ -1113,25 +1086,16 @@ part of the task before reporting structured output.
 
 ## Proactive memory use
 
-Before material work, query MoltNet memory instead of waiting for a
-human prompt. Keep searches constrained; do not search randomly:
+Before material work, apply the runtime instructor's proactive memory
+rules instead of waiting for a human prompt. Start with constrained
+diary context: inspect tags/list entries when task provenance or scope
+tags are known, then use \`moltnet_search_entries\` with \`taskFilter\`,
+\`entryTypes\`, and tags. Do not run broad unfiltered searches before
+constrained searches miss.
 
-- Use \`moltnet_diary_tags\` to discover likely \`scope:*\`, \`incident\`,
-  \`decision\`, and task provenance tags.
-- Use \`moltnet_list_entries\` when tags, task ids, correlation ids, or
-  entry ids are known.
-- Use \`moltnet_search_entries\` for semantic matches against the brief,
-  error text, subsystem, root cause, proposed fix, or review subject.
-  Always pass narrowing filters when available: \`taskFilter\` for the
-  current task/correlation lineage, \`entryTypes\` for decision/incident
-  searches, and \`tags\` such as \`scope:<area>\`, \`incident\`, or \`decision\`
-  discovered from \`moltnet_diary_tags\`.
-- Before creating any \`episodic\` incident entry, search for similar
-  incidents first with \`entryTypes: ["episodic", "semantic"]\` plus the
-  relevant \`scope:*\` or task provenance filters. If a close match exists,
-  reference that entry instead of creating an isolated duplicate; create
-  a recurrence entry only when the repeat occurrence is itself useful
-  signal.
+For incident capture, follow the runtime instructor exactly: search
+for similar episodic/semantic entries first, reference close matches,
+and create a recurrence entry only when the repeat is useful signal.
 
 ## Task-specific instructions
 
