@@ -1,6 +1,6 @@
 ---
 name: legreffier
-description: 'LeGreffier mode for Claude & Codex when GIT_CONFIG_GLOBAL=.moltnet/gitconfig; use to verify bot identity or commit signing key, sign commits with MoltNet diary (one per repo), investigate past rationale via signed diary search with relevance/recency weights, check git history or audit trail, and answer questions like "why did this break", "why did we do this", "show me the reasoning", or "what does the diary say". Also triggers for episodic diary entries when something breaks, a workaround is applied, or the user expresses surprise/frustration (e.g. "WTF", "how did that happen", "this is broken", "why did this break").'
+description: 'LeGreffier mode for Claude & Codex when GIT_CONFIG_GLOBAL=.moltnet/gitconfig; use to verify bot identity or commit signing key, sign commits with MoltNet diary (one per repo), investigate past rationale via signed diary search with relevance/recency weights, check git history or audit trail, and answer questions like "why did this break", "why did we do this", "show me the reasoning", or "what does the diary say". Also triggers for proactive, tag/task-filtered diary search before non-trivial work and for episodic diary entries when something breaks, a workaround is applied, or the user expresses surprise/frustration (e.g. "WTF", "how did that happen", "this is broken", "why did this break").'
 ---
 
 # LeGreffier Skill (Claude & Codex)
@@ -35,6 +35,7 @@ If `.moltnet/` is absent from CWD:
 - Verify signing identity (name/email/key), "bot verification", "commit signing"
 - Explain past decisions: "why was X changed", "what was the reasoning", "check the audit", "what does the diary say", "show me the history", "git history"
 - Any session that changes files or produces a commit (diary entry mandatory before declaring complete)
+- Before non-trivial investigation, debugging, code changes, review, or incident capture where prior diary context may change the plan
 - Something breaks, a workaround is applied, or user expresses surprise/frustration
 
 ## Two signature layers
@@ -128,12 +129,46 @@ Write-timing:
 
 - **`procedural`**: every medium/high-risk commit (required); low-risk optional but preferred
 - **`semantic`**: any non-trivial design choice, especially when rejecting an alternative
-- **`episodic`**: any concrete obstacle requiring investigation/workaround — write immediately, before continuing
+- **`episodic`**: any concrete obstacle requiring investigation/workaround — search for similar incidents first, then write immediately before continuing when the occurrence adds new signal
 - **`reflection`**: end of session if patterns or process gaps were noticed
+
+## Proactive diary search
+
+Use diary memory before the user has to ask for it. Before non-trivial
+investigation, debugging, code changes, review, or incident capture, check for
+relevant prior entries.
+
+Do not search randomly. Keep searches constrained:
+
+- Start with `diary_tags` / `moltnet_diary_tags` when you do not know the
+  diary vocabulary yet.
+- Use `entries_list` / `moltnet_list_entries` when task provenance or tags are
+  known.
+- Use `entries_search` / `moltnet_search_entries` for semantic similarity, but
+  pass narrowing filters when available:
+  - task/correlation-local work: `taskFilter` or the equivalent `task:*`
+    provenance tags
+  - prior decisions: `entryTypes: ["semantic"]` plus `decision` and
+    `scope:<area>` tags
+  - prior incidents: `entryTypes: ["episodic", "semantic"]` plus `incident`,
+    `scope:<area>`, and task provenance tags when known
+
+Broaden only after constrained searches miss. If you broaden, state what filter
+missed and why the wider query is justified.
+
+Before creating an `episodic` entry, always run a similarity search using the
+proposed title, root cause, error text, affected subsystem, and watch-for terms,
+filtered by `entryTypes: ["episodic", "semantic"]` and known `incident`,
+`scope:<area>`, branch, or task provenance tags. If a close prior match exists,
+do not create an isolated duplicate: reference the prior entry, update/link it
+when the new occurrence adds material evidence, or create a recurrence entry
+only when the repeat occurrence is itself useful signal. Recurrence entries must
+include the prior matching entry id(s) and explain what is new.
 
 ### Episodic triggers (immediate capture)
 
-Write an `episodic` entry immediately — don't defer to end of session — when:
+Search for similar incidents, then write an `episodic` entry immediately —
+don't defer to end of session — when:
 
 | Signal                                        | Example                                          |
 | --------------------------------------------- | ------------------------------------------------ |
@@ -147,7 +182,10 @@ Write an `episodic` entry immediately — don't defer to end of session — when
 | Repository invariant violated                 | Non-monotonic metadata, inconsistent graph state |
 | Generated artifacts required manual repair    | Regenerated file needed hand-fix                 |
 
-**Heuristic**: >2 minutes investigating before finding a fix → episodic entry. Write before continuing if an invariant was violated or tool output was manually patched.
+**Heuristic**: >2 minutes investigating before finding a fix → episodic search
+and capture. Write before continuing if an invariant was violated or tool output
+was manually patched, unless the search finds a close duplicate with no new
+signal.
 
 ## Metadata conventions
 
@@ -262,32 +300,32 @@ CLI global flags: `--credentials ".moltnet/<AGENT_NAME>/moltnet.json"`
 
 ### CLI equivalents
 
-| MCP Tool                                               | CLI Command                                                                                |
-| ------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
-| `moltnet_whoami`                                       | `moltnet agents whoami`                                                                    |
-| `agent_lookup`                                         | `moltnet agents lookup <fingerprint>`                                                      |
-| `diaries_list`                                         | `moltnet diary list`                                                                       |
-| `diaries_create`                                       | `moltnet diary create --name <name>`                                                       |
-| `diaries_get`                                          | `moltnet diary get <diary-id>`                                                             |
-| `entries_create`                                       | `moltnet entry create --diary-id <uuid> --content "..."`                                   |
-| `entries_create` (signed)                              | `moltnet entry create-signed --diary-id <uuid> --content "..." --type <type> --tags "..."` |
-| `entries_list`                                         | `moltnet entry list --diary-id <uuid> [--tags "..." --entry-type <type> --limit <n>]`      |
-| `entries_get`                                          | `moltnet entry get <entry-id>`                                                             |
-| `entries_update`                                       | `moltnet entry update <entry-id> [--tags "..." --importance <n>]`                          |
-| `entries_delete`                                       | `moltnet entry delete <entry-id>`                                                          |
-| `entries_search`                                       | `moltnet entry search --query "..."`                                                       |
-| `entries_verify`                                       | `moltnet entry verify <entry-id>`                                                          |
-| `crypto_prepare_signature` + `crypto_submit_signature` | `moltnet sign --request-id <uuid>`                                                         |
-| `crypto_verify`                                        | `moltnet crypto verify --signature "..."`                                                  |
-| `relations_create`                                     | `moltnet relations create --entry-id <uuid> --target-id <uuid> --relation <type>`          |
-| `relations_list`                                       | `moltnet relations list --entry-id <uuid>`                                                 |
-| `relations_update`                                     | `moltnet relations update --relation-id <uuid> --status <status>`                          |
-| `relations_delete`                                     | `moltnet relations delete --relation-id <uuid>`                                            |
-| `diary_tags`                                           | `moltnet diary tags <diary-id>`                                                            |
-| `diaries_compile`                                      | `moltnet diary compile <diary-id> --token-budget <n> [--task-prompt "..."]`                |
-| `packs_create`                                         | `moltnet pack create --diary-id <uuid> --entries '<json>'`                                 |
-| `packs_render_preview`                                 | `moltnet pack render --preview <pack-uuid> [--out context-pack.md]`                        |
-| `packs_render`                                         | `moltnet pack render <pack-uuid> [--out rendered-pack.md]`                                 |
+| MCP Tool                                               | CLI Command                                                                                                               |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| `moltnet_whoami`                                       | `moltnet agents whoami`                                                                                                   |
+| `agent_lookup`                                         | `moltnet agents lookup <fingerprint>`                                                                                     |
+| `diaries_list`                                         | `moltnet diary list`                                                                                                      |
+| `diaries_create`                                       | `moltnet diary create --name <name>`                                                                                      |
+| `diaries_get`                                          | `moltnet diary get <diary-id>`                                                                                            |
+| `entries_create`                                       | `moltnet entry create --diary-id <uuid> --content "..."`                                                                  |
+| `entries_create` (signed)                              | `moltnet entry create-signed --diary-id <uuid> --content "..." --type <type> --tags "..."`                                |
+| `entries_list`                                         | `moltnet entry list --diary-id <uuid> [--tags "..." --entry-type <type> --limit <n>]`                                     |
+| `entries_get`                                          | `moltnet entry get <entry-id>`                                                                                            |
+| `entries_update`                                       | `moltnet entry update <entry-id> [--tags "..." --importance <n>]`                                                         |
+| `entries_delete`                                       | `moltnet entry delete <entry-id>`                                                                                         |
+| `entries_search`                                       | `moltnet entry search --query "..." [--diary-id <uuid>] [--tags "..."] [--entry-types "..."] [--task-type fulfill_brief]` |
+| `entries_verify`                                       | `moltnet entry verify <entry-id>`                                                                                         |
+| `crypto_prepare_signature` + `crypto_submit_signature` | `moltnet sign --request-id <uuid>`                                                                                        |
+| `crypto_verify`                                        | `moltnet crypto verify --signature "..."`                                                                                 |
+| `relations_create`                                     | `moltnet relations create --entry-id <uuid> --target-id <uuid> --relation <type>`                                         |
+| `relations_list`                                       | `moltnet relations list --entry-id <uuid>`                                                                                |
+| `relations_update`                                     | `moltnet relations update --relation-id <uuid> --status <status>`                                                         |
+| `relations_delete`                                     | `moltnet relations delete --relation-id <uuid>`                                                                           |
+| `diary_tags`                                           | `moltnet diary tags <diary-id>`                                                                                           |
+| `diaries_compile`                                      | `moltnet diary compile <diary-id> --token-budget <n> [--task-prompt "..."]`                                               |
+| `packs_create`                                         | `moltnet pack create --diary-id <uuid> --entries '<json>'`                                                                |
+| `packs_render_preview`                                 | `moltnet pack render --preview <pack-uuid> [--out context-pack.md]`                                                       |
+| `packs_render`                                         | `moltnet pack render <pack-uuid> [--out rendered-pack.md]`                                                                |
 
 ## Accountable commit workflow
 

@@ -6,6 +6,7 @@ import {
   type PromptSection,
 } from './assemble.js';
 import { buildFinalOutputBlock } from './final-output.js';
+import { buildProactiveMemoryWorkflowBlock } from './proactive-memory.js';
 import {
   renderRubricCriteriaList,
   renderRubricPreambleSection,
@@ -121,6 +122,12 @@ export function buildAssessBriefUserPrompt(
       source: 'static',
       header: "Querying the producer's diary entries",
       body: diaryQuery,
+    },
+    {
+      id: 'assess_brief.proactive_memory',
+      source: 'discipline',
+      header: 'Proactive memory use',
+      body: buildProactiveMemoryWorkflowBlock(),
     },
     {
       id: 'assess_brief.workspace',

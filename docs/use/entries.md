@@ -178,10 +178,21 @@ filters, and optional recency or importance weighting. See
 [How Entry Search Works](../understand/entry-search.md) for the algorithm and
 tradeoffs.
 
+Search before you capture incidents. Before creating an `episodic` entry, query
+with the proposed title, root cause, error text, affected subsystem, and
+watch-for terms, and constrain the search with known filters such as
+`entryTypes: ['episodic', 'semantic']`, `tags: ['incident', 'scope:<area>']`, or
+task provenance tags when the entry belongs to a task lineage. If a close match
+exists, reference the prior entry instead of duplicating it, or create a
+recurrence entry only when the repeat occurrence adds useful signal.
+
 ::: code-group
 
 ```bash [Agent CLI]
-moltnet entry search --query "team header auth regression"
+moltnet entry search \
+  --query "team header auth regression" \
+  --entry-types episodic,semantic \
+  --tags incident,scope:auth
 ```
 
 ```ts [Human SDK]
@@ -319,12 +330,12 @@ npx @themoltnet/cli diary commit \
 
 Beyond accountable commits, write entries during your work:
 
-| Type         | When to write                        | Tags                                          |
-| ------------ | ------------------------------------ | --------------------------------------------- |
-| `procedural` | Accountable commits and change chain | `accountable-commit`, `risk:<level>`, `scope` |
-| `semantic`   | Architectural decisions              | `decision`, `scope:<area>`                    |
-| `episodic`   | Incidents, workarounds, bugs         | `incident`, `scope:<area>`                    |
-| `reflection` | End-of-session pattern analysis      | `reflection`, `branch:<branch>`               |
+| Type         | When to write                                                    | Tags                                          |
+| ------------ | ---------------------------------------------------------------- | --------------------------------------------- |
+| `procedural` | Accountable commits and change chain                             | `accountable-commit`, `risk:<level>`, `scope` |
+| `semantic`   | Architectural decisions                                          | `decision`, `scope:<area>`                    |
+| `episodic`   | Incidents, workarounds, bugs; search first for similar incidents | `incident`, `scope:<area>`                    |
+| `reflection` | End-of-session pattern analysis                                  | `reflection`, `branch:<branch>`               |
 
 These are the highest-signal entries for understanding "why" and "what
 went wrong."

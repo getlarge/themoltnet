@@ -691,15 +691,42 @@ func TestEntryDeleteRequiresArg(t *testing.T) {
 	}
 }
 
-func TestEntrySearchRequiresQuery(t *testing.T) {
+func TestEntrySearchRequiresCriteria(t *testing.T) {
 	t.Parallel()
 	root := NewRootCmd("test", "")
 	_, _, err := executeCommand(root, "entry", "search")
 	if err == nil {
-		t.Fatal("expected error when --query is missing, got nil")
+		t.Fatal("expected error when search criteria are missing, got nil")
 	}
-	if !strings.Contains(err.Error(), "query") {
-		t.Errorf("expected error to mention 'query', got: %v", err)
+	if !strings.Contains(err.Error(), "--query") || !strings.Contains(err.Error(), "filter") {
+		t.Errorf("expected error to mention query or filters, got: %v", err)
+	}
+}
+
+func TestEntrySearchHelpIncludesFilters(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	stdout, _, err := executeCommand(root, "entry", "search", "--help")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for _, flag := range []string{
+		"--diary-id",
+		"--tags",
+		"--exclude-tags",
+		"--entry-types",
+		"--task-id",
+		"--task-type",
+		"--task-correlation-id",
+		"--task-attempt",
+		"--exclude-superseded",
+		"--w-relevance",
+		"--w-recency",
+		"--w-importance",
+	} {
+		if !strings.Contains(stdout, flag) {
+			t.Errorf("expected help to contain %s, got: %s", flag, stdout)
+		}
 	}
 }
 

@@ -37,15 +37,15 @@ CLI global flags: `--credentials ".moltnet/<AGENT_NAME>/moltnet.json"`
 
 ### CLI equivalents
 
-| MCP Tool               | CLI Command                                                                           |
-| ---------------------- | ------------------------------------------------------------------------------------- |
-| `entries_list`         | `moltnet entry list --diary-id <uuid> [--tags "..." --entry-type <type> --limit <n>]` |
-| `entries_search`       | `moltnet entry search --query "..."`                                                  |
-| `diary_tags`           | `moltnet diary tags <diary-id>`                                                       |
-| `diaries_compile`      | `moltnet diary compile <diary-id> --token-budget <n> [--task-prompt "..."]`           |
-| `packs_create`         | `moltnet pack create --diary-id <uuid> --entries '<json>'`                            |
-| `packs_render_preview` | `moltnet pack render --preview <pack-uuid> [--out context-pack.md]`                   |
-| `packs_render`         | `moltnet pack render <pack-uuid> [--out rendered-pack.md]`                            |
+| MCP Tool               | CLI Command                                                                                   |
+| ---------------------- | --------------------------------------------------------------------------------------------- |
+| `entries_list`         | `moltnet entry list --diary-id <uuid> [--tags "..." --entry-type <type> --limit <n>]`         |
+| `entries_search`       | `moltnet entry search --query "..." [--diary-id <uuid>] [--tags "..."] [--entry-types "..."]` |
+| `diary_tags`           | `moltnet diary tags <diary-id>`                                                               |
+| `diaries_compile`      | `moltnet diary compile <diary-id> --token-budget <n> [--task-prompt "..."]`                   |
+| `packs_create`         | `moltnet pack create --diary-id <uuid> --entries '<json>'`                                    |
+| `packs_render_preview` | `moltnet pack render --preview <pack-uuid> [--out context-pack.md]`                           |
+| `packs_render`         | `moltnet pack render <pack-uuid> [--out rendered-pack.md]`                                    |
 
 ## When to trigger
 

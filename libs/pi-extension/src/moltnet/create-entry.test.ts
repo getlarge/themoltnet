@@ -22,6 +22,7 @@ interface CapturedCreate {
     content: string;
     tags: string[];
     importance: number;
+    entryType?: 'episodic' | 'semantic' | 'procedural' | 'reflection';
   };
 }
 
@@ -30,7 +31,13 @@ interface FakeAgent {
     create: (
       diaryId: string,
       body: CapturedCreate['body'],
-    ) => Promise<{ id: string; title: string; createdAt: string }>;
+    ) => Promise<{
+      id: string;
+      title: string;
+      createdAt: string;
+      entryType: string;
+      importance: number;
+    }>;
   };
   packs: unknown;
 }
@@ -44,6 +51,8 @@ function makeFakeAgent(captured: CapturedCreate[]) {
           id: 'entry-fake',
           title: body.title,
           createdAt: '2026-04-29T00:00:00Z',
+          entryType: body.entryType ?? 'semantic',
+          importance: body.importance,
         };
       },
     },
@@ -100,6 +109,16 @@ describe('moltnet_create_entry — tool description', () => {
     expect(tool.description).toMatch(/moltnet entry create/i);
     expect(tool.description).toMatch(/bypass/i);
   });
+
+  it('nudges agents to search before creating episodic incident entries', () => {
+    const tool = findCreateEntryTool(
+      configFor(makeFakeAgent([]), 'env-diary', null),
+    );
+    expect(tool.description).toMatch(/episodic incident/i);
+    expect(tool.description).toMatch(/moltnet_search_entries/);
+    expect(tool.description).toMatch(/taskFilter, tags, or entryTypes/);
+    expect(tool.description).toMatch(/isolated duplicate/i);
+  });
 });
 
 describe('moltnet_create_entry — task-context enforcement', () => {
@@ -127,6 +146,48 @@ describe('moltnet_create_entry — task-context enforcement', () => {
     // Assert
     expect(captured).toHaveLength(1);
     expect(captured[0].diaryId).toBe('task-diary');
+  });
+
+  it('passes explicit entryType through to the SDK create call', async () => {
+    // Arrange
+    const captured: CapturedCreate[] = [];
+    const agent = makeFakeAgent(captured);
+    const config = configFor(agent, 'task-diary', taskCtx);
+    const tool = findCreateEntryTool(config);
+
+    // Act
+    await callExecute(tool, {
+      title: 'incident',
+      content: 'body',
+      entryType: 'episodic',
+    });
+
+    // Assert
+    expect(captured[0].body.entryType).toBe('episodic');
+  });
+
+  it('returns entryType and importance in the tool response', async () => {
+    // Arrange
+    const captured: CapturedCreate[] = [];
+    const agent = makeFakeAgent(captured);
+    const config = configFor(agent, 'task-diary', taskCtx);
+    const tool = findCreateEntryTool(config);
+
+    // Act
+    const result = await callExecute(tool, {
+      title: 'incident',
+      content: 'body',
+      importance: 7,
+      entryType: 'episodic',
+    });
+    const [content] = result.content;
+    expect(content.type).toBe('text');
+    if (content.type !== 'text') throw new Error('expected text response');
+    const payload = JSON.parse(content.text);
+
+    // Assert
+    expect(payload.entryType).toBe('episodic');
+    expect(payload.importance).toBe(7);
   });
 
   it('rejects an explicit diaryId mismatching the task diary', async () => {

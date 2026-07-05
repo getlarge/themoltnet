@@ -6,6 +6,7 @@ import {
   type PromptSection,
 } from './assemble.js';
 import { buildFinalOutputBlock } from './final-output.js';
+import { buildProactiveMemoryWorkflowBlock } from './proactive-memory.js';
 import { buildSelfVerificationBlock } from './self-verification.js';
 
 interface Ctx {
@@ -96,13 +97,15 @@ export function buildFulfillBriefUserPrompt(
     ctx.workspace?.mode === 'dedicated_worktree'
       ? `1. Use the already-provisioned dedicated worktree branch${ctx.workspace.branch ? ` (\`${ctx.workspace.branch}\`)` : ''}; do not create or switch the primary checkout.`
       : `1. Create a feature branch (starting prefix suggestion: \`${branchSlug}<short-slug>\`).`,
-    '2. Understand the problem — read relevant code; do not speculate.',
-    '3. Implement the change. Keep commits small and coherent.',
-    '4. Add tests if applicable.',
-    '5. For every commit, create a signed diary entry first via',
+    '2. Search MoltNet diary memory for prior decisions, incidents, and',
+    '   recurring traps relevant to the brief before changing code.',
+    '3. Understand the problem — read relevant code; do not speculate.',
+    '4. Implement the change. Keep commits small and coherent.',
+    '5. Add tests if applicable.',
+    '6. For every commit, create a signed diary entry first via',
     '   `moltnet_create_entry` and embed its id in the commit trailer',
     '   `MoltNet-Diary: <id>` (per the runtime instructor).',
-    '6. Push the branch and open a PR — run `git push` and `gh pr create`',
+    '7. Push the branch and open a PR — run `git push` and `gh pr create`',
     '   IN the VM with your normal `bash` tool (use the',
     '   `GH_TOKEN=$(moltnet github token …) gh …` form from the runtime',
     '   instructor). Do NOT use `moltnet_host_exec` for this; it needs human',
@@ -140,6 +143,12 @@ export function buildFulfillBriefUserPrompt(
       source: 'static',
       header: 'Workflow',
       body: workflow,
+    },
+    {
+      id: 'fulfill_brief.proactive_memory',
+      source: 'discipline',
+      header: 'Proactive memory use',
+      body: buildProactiveMemoryWorkflowBlock(),
     },
     {
       id: 'fulfill_brief.verification',

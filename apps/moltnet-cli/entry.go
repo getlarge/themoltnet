@@ -286,17 +286,87 @@ func runEntryDeleteCmd(apiURL, credPath, entryID string) error {
 	return nil
 }
 
+type entrySearchOptions struct {
+	query                    string
+	diaryID                  string
+	tags                     string
+	excludeTags              string
+	entryTypes               string
+	limit                    int
+	offset                   int
+	excludeSuperseded        bool
+	excludeSupersededChanged bool
+	wRelevance               float64
+	wRecency                 float64
+	wImportance              float64
+	wRelevanceChanged        bool
+	wRecencyChanged          bool
+	wImportanceChanged       bool
+	taskID                   string
+	taskType                 string
+	taskCorrelationID        string
+	taskAttempt              int
+	taskAttemptChanged       bool
+}
+
 // runEntrySearchCmd searches diary entries.
-func runEntrySearchCmd(apiURL, credPath, query string) error {
+func runEntrySearchCmd(apiURL, credPath string, opts entrySearchOptions) error {
+	req := moltnetapi.SearchDiaryReq{}
+	if opts.query != "" {
+		req.Query = moltnetapi.OptString{Value: opts.query, Set: true}
+	}
+	if opts.diaryID != "" {
+		diaryUUID, err := uuid.Parse(opts.diaryID)
+		if err != nil {
+			return fmt.Errorf("invalid diary ID %q: %w", opts.diaryID, err)
+		}
+		req.DiaryId = moltnetapi.OptUUID{Value: diaryUUID, Set: true}
+	}
+	if opts.tags != "" {
+		req.Tags = splitAndTrim(opts.tags, ",")
+	}
+	if opts.excludeTags != "" {
+		req.ExcludeTags = splitAndTrim(opts.excludeTags, ",")
+	}
+	if opts.entryTypes != "" {
+		parsedEntryTypes, err := parseSearchDiaryEntryTypes(opts.entryTypes)
+		if err != nil {
+			return err
+		}
+		req.EntryTypes = parsedEntryTypes
+	}
+	taskTags := compileTaskFilterTags(opts.taskID, opts.taskType, opts.taskCorrelationID, opts.taskAttempt, opts.taskAttemptChanged)
+	if len(taskTags) > 0 {
+		req.Tags = append(req.Tags, taskTags...)
+	}
+	if opts.limit > 0 {
+		req.Limit = moltnetapi.OptFloat64{Value: float64(opts.limit), Set: true}
+	}
+	if opts.offset > 0 {
+		req.Offset = moltnetapi.OptFloat64{Value: float64(opts.offset), Set: true}
+	}
+	if opts.excludeSupersededChanged {
+		req.ExcludeSuperseded = moltnetapi.OptBool{Value: opts.excludeSuperseded, Set: true}
+	}
+	if opts.wRelevanceChanged {
+		req.WRelevance = moltnetapi.OptFloat64{Value: opts.wRelevance, Set: true}
+	}
+	if opts.wRecencyChanged {
+		req.WRecency = moltnetapi.OptFloat64{Value: opts.wRecency, Set: true}
+	}
+	if opts.wImportanceChanged {
+		req.WImportance = moltnetapi.OptFloat64{Value: opts.wImportance, Set: true}
+	}
+	if !hasEntrySearchCriteria(req) {
+		return fmt.Errorf("entry search: provide --query or at least one filter flag")
+	}
 	client, err := newClientFromCreds(apiURL, credPath)
 	if err != nil {
 		return err
 	}
 	res, err := client.SearchDiary(context.Background(), moltnetapi.OptSearchDiaryReq{
-		Value: moltnetapi.SearchDiaryReq{
-			Query: moltnetapi.OptString{Value: query, Set: true},
-		},
-		Set: true,
+		Value: req,
+		Set:   true,
 	})
 	if err != nil {
 		return fmt.Errorf("entry search: %w", formatTransportError(err))
@@ -306,6 +376,20 @@ func runEntrySearchCmd(apiURL, credPath, query string) error {
 		return formatAPIError(res)
 	}
 	return printJSON(results)
+}
+
+func hasEntrySearchCriteria(req moltnetapi.SearchDiaryReq) bool {
+	return req.Query.Set ||
+		req.DiaryId.Set ||
+		len(req.Tags) > 0 ||
+		len(req.ExcludeTags) > 0 ||
+		len(req.EntryTypes) > 0 ||
+		req.Limit.Set ||
+		req.Offset.Set ||
+		req.ExcludeSuperseded.Set ||
+		req.WRelevance.Set ||
+		req.WRecency.Set ||
+		req.WImportance.Set
 }
 
 // runEntryVerifyCmd verifies a signed diary entry.
@@ -383,4 +467,33 @@ func parseListDiaryEntryTypes(s string) ([]moltnetapi.ListDiaryEntriesEntryTypeI
 		parsed = append(parsed, moltnetapi.ListDiaryEntriesEntryTypeItem(value))
 	}
 	return parsed, nil
+}
+
+func parseSearchDiaryEntryTypes(s string) ([]moltnetapi.SearchDiaryReqEntryTypesItem, error) {
+	values := splitAndTrim(s, ",")
+	parsed := make([]moltnetapi.SearchDiaryReqEntryTypesItem, 0, len(values))
+	for _, value := range values {
+		if _, err := parseEntryType(value); err != nil {
+			return nil, err
+		}
+		parsed = append(parsed, moltnetapi.SearchDiaryReqEntryTypesItem(value))
+	}
+	return parsed, nil
+}
+
+func compileTaskFilterTags(taskID, taskType, taskCorrelationID string, taskAttempt int, taskAttemptChanged bool) []string {
+	tags := make([]string, 0, 4)
+	if taskID != "" {
+		tags = append(tags, "task:id:"+taskID)
+	}
+	if taskType != "" {
+		tags = append(tags, "task:type:"+taskType)
+	}
+	if taskCorrelationID != "" {
+		tags = append(tags, "task:correlation:"+taskCorrelationID)
+	}
+	if taskAttemptChanged {
+		tags = append(tags, fmt.Sprintf("task:attempt:%d", taskAttempt))
+	}
+	return tags
 }

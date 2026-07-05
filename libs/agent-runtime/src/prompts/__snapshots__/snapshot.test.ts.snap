@@ -40,6 +40,19 @@ You can pull the full set without enumerating ids by passing the
   read it from the task you fetched in step 1 and pass
   \`taskFilter: { correlationId: "<id>" }\`.
 
+## Proactive memory use
+
+Before material work, apply the runtime instructor's proactive memory
+rules instead of waiting for a human prompt. Start with constrained
+diary context: inspect tags/list entries when task provenance or scope
+tags are known, then use \`moltnet_search_entries\` with \`taskFilter\`,
+\`entryTypes\`, and tags. Do not run broad unfiltered searches before
+constrained searches miss.
+
+For incident capture, follow the runtime instructor exactly: search
+for similar episodic/semantic entries first, reference close matches,
+and create a recurrence entry only when the repeat is useful signal.
+
 ## Workspace
 
 This review attempt is running inside a dedicated disposable git
@@ -536,17 +549,32 @@ The current branch is \`moltnet/22222222-3333-4444-8555-666666666666/thing\`. St
 ## Workflow
 
 1. Use the already-provisioned dedicated worktree branch (\`moltnet/22222222-3333-4444-8555-666666666666/thing\`); do not create or switch the primary checkout.
-2. Understand the problem — read relevant code; do not speculate.
-3. Implement the change. Keep commits small and coherent.
-4. Add tests if applicable.
-5. For every commit, create a signed diary entry first via
+2. Search MoltNet diary memory for prior decisions, incidents, and
+   recurring traps relevant to the brief before changing code.
+3. Understand the problem — read relevant code; do not speculate.
+4. Implement the change. Keep commits small and coherent.
+5. Add tests if applicable.
+6. For every commit, create a signed diary entry first via
    \`moltnet_create_entry\` and embed its id in the commit trailer
    \`MoltNet-Diary: <id>\` (per the runtime instructor).
-6. Push the branch and open a PR — run \`git push\` and \`gh pr create\`
+7. Push the branch and open a PR — run \`git push\` and \`gh pr create\`
    IN the VM with your normal \`bash\` tool (use the
    \`GH_TOKEN=$(moltnet github token …) gh …\` form from the runtime
    instructor). Do NOT use \`moltnet_host_exec\` for this; it needs human
    approval that is unavailable in a headless run.
+
+## Proactive memory use
+
+Before material work, apply the runtime instructor's proactive memory
+rules instead of waiting for a human prompt. Start with constrained
+diary context: inspect tags/list entries when task provenance or scope
+tags are known, then use \`moltnet_search_entries\` with \`taskFilter\`,
+\`entryTypes\`, and tags. Do not run broad unfiltered searches before
+constrained searches miss.
+
+For incident capture, follow the runtime instructor exactly: search
+for similar episodic/semantic entries first, reference close matches,
+and create a recurrence entry only when the repeat is useful signal.
 
 ## Self-verification
 
@@ -663,17 +691,32 @@ Do the thing
 ## Workflow
 
 1. Create a feature branch (starting prefix suggestion: \`feat/misc-<short-slug>\`).
-2. Understand the problem — read relevant code; do not speculate.
-3. Implement the change. Keep commits small and coherent.
-4. Add tests if applicable.
-5. For every commit, create a signed diary entry first via
+2. Search MoltNet diary memory for prior decisions, incidents, and
+   recurring traps relevant to the brief before changing code.
+3. Understand the problem — read relevant code; do not speculate.
+4. Implement the change. Keep commits small and coherent.
+5. Add tests if applicable.
+6. For every commit, create a signed diary entry first via
    \`moltnet_create_entry\` and embed its id in the commit trailer
    \`MoltNet-Diary: <id>\` (per the runtime instructor).
-6. Push the branch and open a PR — run \`git push\` and \`gh pr create\`
+7. Push the branch and open a PR — run \`git push\` and \`gh pr create\`
    IN the VM with your normal \`bash\` tool (use the
    \`GH_TOKEN=$(moltnet github token …) gh …\` form from the runtime
    instructor). Do NOT use \`moltnet_host_exec\` for this; it needs human
    approval that is unavailable in a headless run.
+
+## Proactive memory use
+
+Before material work, apply the runtime instructor's proactive memory
+rules instead of waiting for a human prompt. Start with constrained
+diary context: inspect tags/list entries when task provenance or scope
+tags are known, then use \`moltnet_search_entries\` with \`taskFilter\`,
+\`entryTypes\`, and tags. Do not run broad unfiltered searches before
+constrained searches miss.
+
+For incident capture, follow the runtime instructor exactly: search
+for similar episodic/semantic entries first, reference close matches,
+and create a recurrence entry only when the repeat is useful signal.
 
 ## Self-verification
 
@@ -1030,14 +1073,29 @@ part of the task before reporting structured output.
 
 1. Read the subject summary, resources, inspection hints, and any
    task-specific instructions before scoring.
-2. Inspect the target artefact directly using the tools and resources the
+2. Search MoltNet diary memory for prior decisions, incidents, and
+   recurring review traps relevant to the subject.
+3. Inspect the target artefact directly using the tools and resources the
    task makes available.
-3. If you are in a dedicated disposable worktree and need the review target
+4. If you are in a dedicated disposable worktree and need the review target
    checked out locally, do that work inside this disposable workspace only.
-4. Apply the rubric strictly. This task is about complexity and
+5. Apply the rubric strictly. This task is about complexity and
    reviewability, not correctness or feature desirability.
-5. Perform any required outward action before emitting the final
+6. Perform any required outward action before emitting the final
    structured output.
+
+## Proactive memory use
+
+Before material work, apply the runtime instructor's proactive memory
+rules instead of waiting for a human prompt. Start with constrained
+diary context: inspect tags/list entries when task provenance or scope
+tags are known, then use \`moltnet_search_entries\` with \`taskFilter\`,
+\`entryTypes\`, and tags. Do not run broad unfiltered searches before
+constrained searches miss.
+
+For incident capture, follow the runtime instructor exactly: search
+for similar episodic/semantic entries first, reference close matches,
+and create a recurrence entry only when the repeat is useful signal.
 
 ## Task-specific instructions
 
