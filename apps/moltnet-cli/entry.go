@@ -315,8 +315,9 @@ func runEntrySearchCmd(apiURL, credPath string, opts entrySearchOptions) error {
 	if err != nil {
 		return err
 	}
-	req := moltnetapi.SearchDiaryReq{
-		Query: moltnetapi.OptString{Value: opts.query, Set: true},
+	req := moltnetapi.SearchDiaryReq{}
+	if opts.query != "" {
+		req.Query = moltnetapi.OptString{Value: opts.query, Set: true}
 	}
 	if opts.diaryID != "" {
 		diaryUUID, err := uuid.Parse(opts.diaryID)
@@ -360,6 +361,9 @@ func runEntrySearchCmd(apiURL, credPath string, opts entrySearchOptions) error {
 	if opts.wImportanceChanged {
 		req.WImportance = moltnetapi.OptFloat64{Value: opts.wImportance, Set: true}
 	}
+	if !hasEntrySearchCriteria(req) {
+		return fmt.Errorf("entry search: provide --query or at least one filter flag")
+	}
 	res, err := client.SearchDiary(context.Background(), moltnetapi.OptSearchDiaryReq{
 		Value: req,
 		Set:   true,
@@ -372,6 +376,20 @@ func runEntrySearchCmd(apiURL, credPath string, opts entrySearchOptions) error {
 		return formatAPIError(res)
 	}
 	return printJSON(results)
+}
+
+func hasEntrySearchCriteria(req moltnetapi.SearchDiaryReq) bool {
+	return req.Query.Set ||
+		req.DiaryId.Set ||
+		len(req.Tags) > 0 ||
+		len(req.ExcludeTags) > 0 ||
+		len(req.EntryTypes) > 0 ||
+		req.Limit.Set ||
+		req.Offset.Set ||
+		req.ExcludeSuperseded.Set ||
+		req.WRelevance.Set ||
+		req.WRecency.Set ||
+		req.WImportance.Set
 }
 
 // runEntryVerifyCmd verifies a signed diary entry.

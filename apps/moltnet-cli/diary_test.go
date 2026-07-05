@@ -587,6 +587,33 @@ func TestEntrySearchCommandPassesFilters(t *testing.T) {
 	}
 }
 
+func TestEntrySearchCommandAllowsFilterOnlySearch(t *testing.T) {
+	// Arrange
+	handler := &stubDiaryHandler{}
+	apiSrv, credPath := newCLICommandTestServer(t, handler)
+
+	// Act
+	err := runEntrySearchCmd(apiSrv.URL, credPath, entrySearchOptions{
+		tags:       "incident,scope:cli",
+		entryTypes: "episodic",
+	})
+
+	// Assert
+	if err != nil {
+		t.Fatalf("runEntrySearchCmd() error: %v", err)
+	}
+	req := handler.searchDiaryReq.Value
+	if req.Query.Set {
+		t.Fatalf("query should be unset for filter-only search, got %#v", req.Query)
+	}
+	if !slices.Equal(req.Tags, []string{"incident", "scope:cli"}) {
+		t.Fatalf("tags: got %#v", req.Tags)
+	}
+	if len(req.EntryTypes) != 1 || req.EntryTypes[0] != moltnetapi.SearchDiaryReqEntryTypesItemEpisodic {
+		t.Fatalf("entryTypes: got %#v", req.EntryTypes)
+	}
+}
+
 func TestEntryUpdate(t *testing.T) {
 	// Arrange
 	_, _, client := newTestServer(t, &stubDiaryHandler{})

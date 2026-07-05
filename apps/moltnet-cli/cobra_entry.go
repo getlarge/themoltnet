@@ -203,6 +203,7 @@ func newEntrySearchCmd() *cobra.Command {
 		Short: "Search diary entries using semantic or keyword search",
 		Example: `  moltnet entry search --query "authentication decisions"
   moltnet entry search --query "stale lockfile" --entry-types episodic,semantic --tags incident,scope:cli
+  moltnet entry search --entry-types episodic --tags incident,scope:cli
   moltnet entry search --query "task regression" --task-type fulfill_brief --task-correlation-id <uuid>`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			credPath, _ := cmd.Flags().GetString("credentials")
@@ -246,7 +247,7 @@ func newEntrySearchCmd() *cobra.Command {
 			})
 		},
 	}
-	cmd.Flags().String("query", "", "Search query (required)")
+	cmd.Flags().String("query", "", "Search query")
 	cmd.Flags().String("diary-id", "", "Restrict search to a diary UUID")
 	cmd.Flags().String("tags", "", "Comma-separated tags that entries must include (AND)")
 	cmd.Flags().String("exclude-tags", "", "Comma-separated tags that entries must not include")
@@ -261,7 +262,6 @@ func newEntrySearchCmd() *cobra.Command {
 	cmd.Flags().String("task-type", "", "Task provenance shorthand: adds task:type:<type> to the tags filter")
 	cmd.Flags().String("task-correlation-id", "", "Task provenance shorthand: adds task:correlation:<id> to the tags filter")
 	cmd.Flags().Int("task-attempt", 0, "Task provenance shorthand: adds task:attempt:<n> to the tags filter")
-	_ = cmd.MarkFlagRequired("query")
 	return cmd
 }
 
