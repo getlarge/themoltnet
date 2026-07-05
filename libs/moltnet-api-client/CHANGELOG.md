@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.44.1](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.44.0...moltnet-api-client-v1.44.1) (2026-07-05)
+
+
+### Codegen
+
+* **api:** regenerate task analytics clients ([1058393](https://github.com/getlarge/themoltnet/commit/10583938c4cbc404960f29530635c97a3dedc081))
+
 ## [1.44.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.43.0...moltnet-api-client-v1.44.0) (2026-07-04)
 
 

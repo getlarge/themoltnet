@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.35.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.34.1...agent-runtime-v0.35.0) (2026-07-05)
+
+
+### Features
+
+* **agent-runtime:** prompt proactive memory search ([49709e1](https://github.com/getlarge/themoltnet/commit/49709e169e699c8c4aeb9df2ff4d592864ff1a1b))
+* constrain proactive diary memory search ([85777ee](https://github.com/getlarge/themoltnet/commit/85777ee5858d2605233d6c25d2102d45ddb2474c))
+
+
+### Bug Fixes
+
+* **agent-runtime:** trim proactive memory prompt copy ([af444d9](https://github.com/getlarge/themoltnet/commit/af444d9c966238f13d8a9bb32c88acf52ddf7096))
+
 ## [0.34.1](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.34.0...agent-runtime-v0.34.1) (2026-07-03)
 
 
