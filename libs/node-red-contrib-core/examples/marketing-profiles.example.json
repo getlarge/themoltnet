@@ -1,0 +1,102 @@
+[
+  {
+    "allowedWorkspaceModes": ["shared_mount"],
+    "context": [
+      {
+        "binding": "skill",
+        "content": "<inline .agents/skills/marketing-harvester/SKILL.md at create time — see marketing-profiles.README.md>",
+        "slug": "marketing-harvester"
+      }
+    ],
+    "defaultWorkspaceMode": "shared_mount",
+    "description": "Analyses recent docs/PRs/diary into a JSON digest of shippable highlights. Cheap/fast; reads the repo.",
+    "model": "claude-haiku-4-5-20251001",
+    "name": "marketing-harvester",
+    "provider": "anthropic",
+    "requiredEnv": [],
+    "requiredTools": ["git"],
+    "sandbox": {},
+    "temperature": 0.2,
+    "thinkingLevel": "low"
+  },
+  {
+    "allowedWorkspaceModes": ["none"],
+    "context": [
+      {
+        "binding": "skill",
+        "content": "<inline .agents/skills/marketing-editor/SKILL.md at create time — see marketing-profiles.README.md>",
+        "slug": "marketing-editor"
+      }
+    ],
+    "defaultWorkspaceMode": "none",
+    "description": "Picks one angle from the digest, deduped against past postings. Mid model.",
+    "model": "claude-sonnet-5",
+    "name": "marketing-editor",
+    "provider": "anthropic",
+    "requiredEnv": [],
+    "requiredTools": [],
+    "sandbox": {},
+    "temperature": 0.4,
+    "thinkingLevel": "medium"
+  },
+  {
+    "allowedWorkspaceModes": ["none"],
+    "context": [
+      {
+        "binding": "skill",
+        "content": "<inline .agents/skills/marketing-writer/SKILL.md at create time — see marketing-profiles.README.md>",
+        "slug": "marketing-writer"
+      }
+    ],
+    "defaultWorkspaceMode": "none",
+    "description": "Drafts channel-ready copy in MoltNet brand voice. Strong model; addresses revision notes.",
+    "model": "claude-opus-4-8",
+    "name": "marketing-writer",
+    "provider": "anthropic",
+    "requiredEnv": [],
+    "requiredTools": [],
+    "sandbox": {},
+    "temperature": 0.7,
+    "thinkingLevel": "medium"
+  },
+  {
+    "allowedWorkspaceModes": ["none"],
+    "context": [
+      {
+        "binding": "skill",
+        "content": "<inline .agents/skills/marketing-reviewer/SKILL.md at create time — see marketing-profiles.README.md>",
+        "slug": "marketing-reviewer"
+      }
+    ],
+    "defaultWorkspaceMode": "none",
+    "description": "Fact-checks the draft against the digest and flags brand-voice/channel issues as edits. Mid model.",
+    "model": "claude-sonnet-5",
+    "name": "marketing-reviewer",
+    "provider": "anthropic",
+    "requiredEnv": [],
+    "requiredTools": [],
+    "sandbox": {},
+    "temperature": 0.3,
+    "thinkingLevel": "medium"
+  },
+  {
+    "allowedWorkspaceModes": ["none"],
+    "context": [
+      {
+        "binding": "skill",
+        "content": "<inline .agents/skills/marketing-judge/SKILL.md at create time — see marketing-profiles.README.md>",
+        "slug": "marketing-judge"
+      }
+    ],
+    "defaultWorkspaceMode": "none",
+    "description": "Strict gate: decides publish-readiness and returns {pass, score, notes}. Mid model, low temperature.",
+    "model": "claude-sonnet-5",
+    "name": "marketing-judge",
+    "provider": "anthropic",
+    "requiredEnv": [],
+    "requiredTools": [],
+    "sandbox": {},
+    "temperature": 0.1,
+    "thinkingLevel": "medium"
+  }
+]
