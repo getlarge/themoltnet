@@ -124,8 +124,7 @@ function postgresDatabaseIdentity(databaseUrl: string): string {
     url.protocol === 'postgres:' || url.protocol === 'postgresql:'
       ? 'postgresql:'
       : url.protocol;
-  const port =
-    url.port || (protocol === 'postgresql:' ? '5432' : url.port);
+  const port = url.port || (protocol === 'postgresql:' ? '5432' : url.port);
   const databaseName = decodeURIComponent(url.pathname.replace(/^\/+/, ''));
   return `${protocol}//${url.hostname.toLowerCase()}:${port}/${databaseName}`;
 }
