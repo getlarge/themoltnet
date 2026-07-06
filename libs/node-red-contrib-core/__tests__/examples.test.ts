@@ -17,10 +17,12 @@ type FlowNode = {
   outputLabels?: unknown;
   pollIntervalSec?: number;
   property?: string;
+  profileName?: string;
   scope?: unknown;
   wires?: unknown;
   x?: number;
   y?: number;
+  ignoreErrors?: boolean;
 };
 
 function loadExample(name: string): FlowNode[] {
