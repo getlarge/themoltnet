@@ -48,6 +48,45 @@ describe('retry triage classification', () => {
     ).toBe('non_retryable');
   });
 
+  it('classifies max-turn caps non-retryable without LLM triage', async () => {
+    let called = false;
+    const result = await classifyAttemptFailure({
+      ...BASE_INPUT,
+      error: {
+        code: 'max_turns_exceeded',
+        message: 'Aborted after 24 tool-use turns (cap 24).',
+      },
+      triage: () => {
+        called = true;
+        return Promise.resolve({
+          decision: 'retry',
+          confidence: 'high',
+          reason: 'Would retry if called.',
+        });
+      },
+    });
+
+    expect(called).toBe(false);
+    expect(result.source).toBe('deterministic');
+    expect(result.error.retryable).toBe(false);
+    expect(result.error.retry).toEqual({
+      source: 'deterministic',
+      decision: 'do_not_retry',
+      confidence: 'high',
+      reason: 'Matched deterministic no-retry policy.',
+    });
+  });
+
+  it('classifies workspace escape tool errors non-retryable', () => {
+    expect(
+      classifyDeterministically({
+        code: 'tool_call_error',
+        message:
+          'path escapes workspace: /home/agent/.moltnet/legreffier/gitconfig',
+      }),
+    ).toBe('non_retryable');
+  });
+
   it('classifies submit-missing as non-retryable through the full attempt path', async () => {
     const error: TaskError = {
       code: 'submit_output_missing',

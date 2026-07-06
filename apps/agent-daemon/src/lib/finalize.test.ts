@@ -53,6 +53,7 @@ type HeartbeatMock = (
   cancelled: boolean;
   cancelReason: string | null;
 }>;
+type GetMock = (taskId: string) => Promise<Task>;
 
 function makeAgent() {
   const complete = vi.fn<CompleteMock>().mockResolvedValue(undefined);
@@ -63,13 +64,18 @@ function makeAgent() {
     cancelReason: null,
   });
   const listMessages = vi.fn().mockResolvedValue([]);
+  const get = vi.fn<GetMock>().mockResolvedValue({
+    id: 't1',
+    status: 'running',
+  } as unknown as Task);
   return {
     complete,
     failAttempt,
     heartbeat,
     listMessages,
+    get,
     agent: {
-      tasks: { complete, failAttempt, heartbeat, listMessages },
+      tasks: { complete, failAttempt, heartbeat, listMessages, get },
     } as unknown as Agent,
   };
 }
@@ -217,6 +223,49 @@ describe('finalizeTask', () => {
         confidence: 'high',
       },
     });
+  });
+
+  it('does not fall back to /failAttempt when /complete result polling times out', async () => {
+    const output = makeOutput('completed', { branch: 'feat/x' });
+    const err = new MoltNetError('Conflict', {
+      code: 'https://themolt.net/problems/conflict',
+      statusCode: 409,
+      detail: 'Complete workflow timed out waiting for result',
+    });
+    const log = vi.fn();
+    stub.complete.mockRejectedValueOnce(err);
+
+    await expect(finalizeTask(stub.agent, output, { log })).rejects.toBe(err);
+
+    expect(stub.get).toHaveBeenCalledWith('t1');
+    expect(stub.failAttempt).not.toHaveBeenCalled();
+    expect(log).toHaveBeenCalledWith(
+      'complete-result-timeout-without-fail-fallback',
+      expect.objectContaining({
+        err,
+        taskId: 't1',
+        attemptN: 1,
+      }),
+    );
+  });
+
+  it('treats a completed task read after /complete timeout as successful', async () => {
+    const output = makeOutput('completed', { branch: 'feat/x' });
+    stub.complete.mockRejectedValueOnce(
+      new MoltNetError('Conflict', {
+        code: 'https://themolt.net/problems/conflict',
+        statusCode: 409,
+        detail: 'Complete workflow timed out waiting for result',
+      }),
+    );
+    stub.get.mockResolvedValueOnce({
+      id: 't1',
+      status: 'completed',
+    } as unknown as Task);
+
+    await expect(finalizeTask(stub.agent, output)).resolves.toBeUndefined();
+
+    expect(stub.failAttempt).not.toHaveBeenCalled();
   });
 
   it('keeps server output validation rejections non-retryable', async () => {

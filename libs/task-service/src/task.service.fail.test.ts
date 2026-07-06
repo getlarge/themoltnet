@@ -1,4 +1,5 @@
 import { KetoNamespace } from '@moltnet/auth';
+import { computeJsonCid } from '@moltnet/crypto-service';
 import { DBOS, type Task as DbTask } from '@moltnet/database';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -56,6 +57,120 @@ describe('createTaskService.failAttempt', () => {
     vi.restoreAllMocks();
   });
 
+  function makeRunningDeps(reloadedTask: DbTask = makeTask('running')) {
+    return {
+      taskRepository: {
+        findById: vi
+          .fn()
+          .mockResolvedValueOnce(makeTask('running'))
+          .mockResolvedValueOnce(reloadedTask),
+        findAttempt: vi.fn().mockResolvedValue({
+          taskId: TASK_ID,
+          attemptN: 1,
+          claimedByAgentId: AGENT_ID,
+          status: 'running',
+        }),
+      },
+      permissionChecker: {
+        canReportTask: vi.fn().mockResolvedValue(true),
+      },
+      logger: {
+        info: vi.fn(),
+        debug: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+      },
+    };
+  }
+
+  async function completeBody() {
+    const output = {
+      summary: 'done',
+      artifacts: [{ kind: 'markdown', title: 'report', body: 'ok' }],
+    };
+    return {
+      output,
+      outputCid: await computeJsonCid(output),
+      usage: { inputTokens: 1, outputTokens: 2 },
+    };
+  }
+
+  it('waits on the workflow result event instead of polling until complete timeout', async () => {
+    const body = await completeBody();
+    const deps = makeRunningDeps(
+      makeTask('completed', {
+        acceptedAttemptN: 1,
+        completedAt: new Date('2026-06-01T00:01:00Z'),
+      }),
+    );
+    const send = vi.spyOn(DBOS, 'send').mockResolvedValue(undefined);
+    const getEvent = vi.spyOn(DBOS, 'getEvent').mockResolvedValue({
+      status: 'completed',
+      taskId: TASK_ID,
+      attemptN: 1,
+      output: body.output,
+    });
+    const service = createTaskService(deps as never);
+
+    const result = await service.complete(
+      TASK_ID,
+      1,
+      AGENT_ID,
+      KetoNamespace.Agent,
+      body,
+    );
+
+    expect(result.status).toBe('completed');
+    expect(send).toHaveBeenCalledWith(
+      `task:${TASK_ID}:attempt:1`,
+      expect.objectContaining({
+        kind: 'completed',
+        output: body.output,
+        outputCid: body.outputCid,
+      }),
+      'progress',
+    );
+    expect(getEvent).toHaveBeenCalledWith(
+      `task:${TASK_ID}:attempt:1`,
+      'result',
+      10,
+    );
+  });
+
+  it('keeps complete timed out when the workflow result event is absent', async () => {
+    const body = await completeBody();
+    const deps = makeRunningDeps();
+    vi.spyOn(DBOS, 'send').mockResolvedValue(undefined);
+    vi.spyOn(DBOS, 'getEvent').mockResolvedValue(null);
+    const service = createTaskService(deps as never);
+
+    await expect(
+      service.complete(TASK_ID, 1, AGENT_ID, KetoNamespace.Agent, body),
+    ).rejects.toMatchObject({
+      code: 'timed_out',
+      message: 'Complete workflow timed out waiting for result',
+    });
+  });
+
+  it('rejects complete when the workflow result is not completed', async () => {
+    const body = await completeBody();
+    const deps = makeRunningDeps(makeTask('cancelled'));
+    vi.spyOn(DBOS, 'send').mockResolvedValue(undefined);
+    vi.spyOn(DBOS, 'getEvent').mockResolvedValue({
+      status: 'cancelled',
+      taskId: TASK_ID,
+      attemptN: 1,
+    });
+    const service = createTaskService(deps as never);
+
+    await expect(
+      service.complete(TASK_ID, 1, AGENT_ID, KetoNamespace.Agent, body),
+    ).rejects.toMatchObject({
+      code: 'conflict',
+      message: 'Task ended in terminal state cancelled, not completed',
+    });
+  });
+
   it('returns the queued task when a retryable attempt failure requeues', async () => {
     const error = {
       code: 'provider_timeout',
@@ -86,6 +201,11 @@ describe('createTaskService.failAttempt', () => {
       },
     };
     const send = vi.spyOn(DBOS, 'send').mockResolvedValue(undefined);
+    const getEvent = vi.spyOn(DBOS, 'getEvent').mockResolvedValue({
+      status: 'failed',
+      taskId: TASK_ID,
+      attemptN: 1,
+    });
     const service = createTaskService(deps as never);
 
     const result = await service.failAttempt(
@@ -102,6 +222,51 @@ describe('createTaskService.failAttempt', () => {
       { kind: 'failed', error },
       'progress',
     );
+    expect(getEvent).toHaveBeenCalledWith(
+      `task:${TASK_ID}:attempt:1`,
+      'result',
+      10,
+    );
+  });
+
+  it('rejects failAttempt when the workflow result is not failed', async () => {
+    const error = {
+      code: 'execution_error',
+      message: 'failed after a race',
+    };
+    const deps = makeRunningDeps(makeTask('queued'));
+    vi.spyOn(DBOS, 'send').mockResolvedValue(undefined);
+    vi.spyOn(DBOS, 'getEvent').mockResolvedValue({
+      status: 'cancelled',
+      taskId: TASK_ID,
+      attemptN: 1,
+    });
+    const service = createTaskService(deps as never);
+
+    await expect(
+      service.failAttempt(TASK_ID, 1, AGENT_ID, KetoNamespace.Agent, error),
+    ).rejects.toMatchObject({
+      code: 'conflict',
+      message: 'Task workflow ended with cancelled, not failed',
+    });
+  });
+
+  it('rejects abort when the workflow result is not aborted or cancelled', async () => {
+    const deps = makeRunningDeps(makeTask('completed'));
+    vi.spyOn(DBOS, 'send').mockResolvedValue(undefined);
+    vi.spyOn(DBOS, 'getEvent').mockResolvedValue({
+      status: 'completed',
+      taskId: TASK_ID,
+      attemptN: 1,
+    });
+    const service = createTaskService(deps as never);
+
+    await expect(
+      service.abort(TASK_ID, 1, AGENT_ID, KetoNamespace.Agent, 'shutdown'),
+    ).rejects.toMatchObject({
+      code: 'conflict',
+      message: 'Task workflow ended with completed, not aborted',
+    });
   });
 });
 

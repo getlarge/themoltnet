@@ -137,6 +137,24 @@ export async function finalizeTask(
         ...(daemonState ? { daemonState } : {}),
       });
     } catch (err) {
+      if (isCompleteWorkflowResultTimeout(err)) {
+        const settled = await getSettledTaskAfterCompleteTimeout(
+          agent,
+          output.taskId,
+          ctx,
+        );
+        if (settled?.status === 'completed') {
+          await maybeWriteAnchors(output, ctx);
+          return;
+        }
+        ctx.log?.('complete-result-timeout-without-fail-fallback', {
+          err,
+          taskId: output.taskId,
+          attemptN: output.attemptN,
+          ...(settled?.status ? { status: settled.status } : {}),
+        });
+        throw err;
+      }
       // The server rejected the structured output (most commonly
       // VALIDATION_FAILED on a cross-field rule the LLM did not satisfy,
       // e.g. `output.verification is required because input.successCriteria
@@ -196,6 +214,42 @@ export async function finalizeTask(
   await agent.tasks.failAttempt(output.taskId, output.attemptN, {
     error: classified.error,
   });
+}
+
+function isCompleteWorkflowResultTimeout(err: unknown): boolean {
+  if (!(err instanceof MoltNetError)) return false;
+  const detail = err.detail ?? err.message;
+  return (
+    err.statusCode === 409 &&
+    typeof detail === 'string' &&
+    detail.includes('Complete workflow timed out waiting for result')
+  );
+}
+
+async function getSettledTaskAfterCompleteTimeout(
+  agent: Agent,
+  taskId: string,
+  ctx: FinalizeContext,
+): Promise<Task | null> {
+  try {
+    const task = await agent.tasks.get(taskId);
+    return isTerminalTaskStatus(task.status) ? task : null;
+  } catch (err) {
+    ctx.log?.('complete-result-timeout-state-fetch-failed', {
+      err,
+      taskId,
+    });
+    return null;
+  }
+}
+
+function isTerminalTaskStatus(status: Task['status']): boolean {
+  return (
+    status === 'completed' ||
+    status === 'failed' ||
+    status === 'cancelled' ||
+    status === 'expired'
+  );
 }
 
 function errorToFailReason(
