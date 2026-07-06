@@ -48,8 +48,16 @@ import {
   PollingApiTaskSource,
 } from '@themoltnet/agent-runtime';
 import { resolveTaskWorktreePath } from '@themoltnet/pi-extension';
-import { type Agent, connect } from '@themoltnet/sdk';
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { type Agent, connect, MoltNetError } from '@themoltnet/sdk';
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
@@ -492,6 +500,94 @@ describe('Agent daemon (e2e)', () => {
         }),
       }),
     });
+  }, 60_000);
+
+  it('does not fail an attempt after /complete workflow result timeout', async () => {
+    const created = await proposeCuratePackTask({ maxAttempts: 2 });
+    const runtime = new AgentRuntime({
+      source: new PollingApiTaskSource({
+        agent,
+        teamId,
+        taskTypes: ['curate_pack'],
+        leaseTtlSec: 60,
+        stopWhenEmpty: true,
+        logger: silentLogger,
+      }),
+      makeReporter: () =>
+        new ApiTaskReporter({
+          tasks: agent.tasks,
+          leaseTtlSec: 60,
+          heartbeatIntervalMs: 0,
+        }),
+      executeTask: async (claimedTask, reporter) => {
+        await reporter.open({
+          taskId: claimedTask.task.id,
+          attemptN: claimedTask.attemptN,
+        });
+        const stubOutput = {
+          packId: '00000000-0000-4000-8000-000000001571',
+          packCid:
+            'bafyreidlnv7nu7y4kdxkxv5e2onbpoq5o3i6gw7r6xkk7d3w5b3xrylkqe',
+          entries: [
+            {
+              entryId: '00000000-0000-4000-8000-000000001572',
+              rank: 1,
+              rationale: 'e2e complete timeout stub entry',
+            },
+          ],
+          recipeParams: {},
+          summary: 'e2e complete timeout curation summary.',
+          verification: buildProducerVerification(claimedTask.task.inputCid),
+        };
+        const output = {
+          taskId: claimedTask.task.id,
+          attemptN: claimedTask.attemptN,
+          status: 'completed' as const,
+          output: stubOutput,
+          outputCid: await computeJsonCid(stubOutput),
+          usage: { inputTokens: 1, outputTokens: 1 },
+          durationMs: 1,
+        };
+        await reporter.finalize(output.usage);
+        await reporter.close();
+        return output;
+      },
+    });
+
+    const [output] = await runtime.start();
+    const timeout = new MoltNetError('Conflict', {
+      code: 'https://themolt.net/problems/conflict',
+      statusCode: 409,
+      detail: 'Complete workflow timed out waiting for result',
+    });
+    const complete = vi.fn().mockRejectedValue(timeout);
+    const failAttempt = vi.fn(agent.tasks.failAttempt);
+    const timeoutAgent = {
+      ...agent,
+      tasks: {
+        ...agent.tasks,
+        complete,
+        failAttempt,
+      },
+    } as unknown as Agent;
+
+    try {
+      await expect(
+        finalizeTask(timeoutAgent, output, { task: created }),
+      ).rejects.toBe(timeout);
+      expect(complete).toHaveBeenCalledWith(
+        created.id,
+        1,
+        expect.objectContaining({ output: output.output }),
+      );
+      expect(failAttempt).not.toHaveBeenCalled();
+      const current = await agent.tasks.get(created.id);
+      expect(current.status).toBe('running');
+    } finally {
+      await agent.tasks.cancel(created.id, {
+        reason: 'complete-timeout e2e cleanup',
+      });
+    }
   }, 60_000);
 
   it('runtime execution can upload and transmit task artifact CIDs', async () => {

@@ -50,6 +50,10 @@ const NON_RETRYABLE_CODES = new Set([
   'bad_api_key',
   'invalid_api_key',
   'invalid_model',
+  // Hitting the turn cap is usually a deterministic model/workload/tool-loop
+  // mismatch for the selected runtime profile. Retrying the same attempt shape
+  // tends to burn another slot without adding useful evidence.
+  'max_turns_exceeded',
   'output_rejected_by_server',
   // Submit-output validation is first handled as same-session correction by
   // the Pi submit tool. If it reaches daemon retry triage, that correction
@@ -91,6 +95,7 @@ const NON_RETRYABLE_MESSAGE_PATTERNS = [
   /\binvalid (?:api )?key\b/i,
   /\bmissing credentials?\b/i,
   /\bmodel .*not (?:found|registered|available)\b/i,
+  /\bpath escapes workspace\b/i,
   /\bunknown task type\b/i,
   /\bvalidation failed\b/i,
   /\bcancelled\b/i,
