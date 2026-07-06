@@ -291,7 +291,7 @@ export function createTaskService(deps: TaskServiceDeps) {
     taskId: string,
     attemptN: number,
     timeoutMessage: string,
-  ): Promise<DbTask> {
+  ): Promise<{ final: TaskAttemptFinalEvent; task: DbTask }> {
     const final = await DBOS.getEvent<TaskAttemptFinalEvent>(
       workflowId,
       'result',
@@ -325,7 +325,7 @@ export function createTaskService(deps: TaskServiceDeps) {
         'Task could not be reloaded after workflow result',
       );
     }
-    return updated;
+    return { final, task: updated };
   }
 
   /**
@@ -1620,7 +1620,7 @@ export function createTaskService(deps: TaskServiceDeps) {
         'progress',
       );
 
-      const updated = await waitForAttemptFinalTask(
+      const { final, task: updated } = await waitForAttemptFinalTask(
         workflowId,
         taskId,
         attemptN,
@@ -1632,9 +1632,14 @@ export function createTaskService(deps: TaskServiceDeps) {
       // /complete are sent in the same window and DBOS processes the
       // cancel event first — the task ends up `cancelled`, and the
       // worker's /complete request did not actually succeed.
-      if (updated.status !== 'completed') {
+      if (final.status !== 'completed' || updated.status !== 'completed') {
         logger.info(
-          { taskId, attemptN, status: updated.status },
+          {
+            taskId,
+            attemptN,
+            finalStatus: final.status,
+            status: updated.status,
+          },
           'task.complete.race_lost',
         );
         throw new TaskServiceError(
@@ -1702,12 +1707,27 @@ export function createTaskService(deps: TaskServiceDeps) {
       // Multiplexed `progress` topic (#936).
       await DBOS.send(workflowId, { kind: 'failed', error }, 'progress');
 
-      const updated = await waitForAttemptFinalTask(
+      const { final, task: updated } = await waitForAttemptFinalTask(
         workflowId,
         taskId,
         attemptN,
         'Fail workflow timed out waiting for result',
       );
+      if (final.status !== 'failed') {
+        logger.info(
+          {
+            taskId,
+            attemptN,
+            finalStatus: final.status,
+            status: updated.status,
+          },
+          'task.fail.race_lost',
+        );
+        throw new TaskServiceError(
+          'conflict',
+          `Task workflow ended with ${final.status}, not failed`,
+        );
+      }
       if (updated.status === 'queued') {
         logger.info(
           { taskId, attemptN, status: updated.status },
@@ -1791,7 +1811,7 @@ export function createTaskService(deps: TaskServiceDeps) {
       // Multiplexed `progress` topic (#936).
       await DBOS.send(workflowId, { kind: 'aborted', error }, 'progress');
 
-      const updated = await waitForAttemptFinalTask(
+      const { final, task: updated } = await waitForAttemptFinalTask(
         workflowId,
         taskId,
         attemptN,
@@ -1800,6 +1820,21 @@ export function createTaskService(deps: TaskServiceDeps) {
       // Success when the workflow requeued the task (non-terminal
       // `queued`, the expected outcome with retries remaining) OR settled
       // it terminally (`failed` when exhausted, or a raced `cancelled`).
+      if (final.status !== 'aborted' && final.status !== 'cancelled') {
+        logger.info(
+          {
+            taskId,
+            attemptN,
+            finalStatus: final.status,
+            status: updated.status,
+          },
+          'task.abort.race_lost',
+        );
+        throw new TaskServiceError(
+          'conflict',
+          `Task workflow ended with ${final.status}, not aborted`,
+        );
+      }
       if (
         updated.status !== 'queued' &&
         !TERMINAL_STATUSES.has(updated.status)
