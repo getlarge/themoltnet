@@ -24,10 +24,7 @@ import {
   type TaskRepository,
   type TransactionRunner,
 } from '@moltnet/database';
-import {
-  type TaskAttemptFinalEvent,
-  taskWorkflows,
-} from '@moltnet/task-workflows';
+import type { TaskAttemptFinalEvent } from '@moltnet/task-workflows';
 import {
   type AsyncTaskValidationContext,
   BUILT_IN_TASK_TYPES,
@@ -256,10 +253,10 @@ interface TaskServiceDeps {
    */
   transactionRunner: TransactionRunner;
   /**
-   * Optional experimental DBOS-UDF path. When provided, claim writes and
-   * workflow enqueue happen inside the same Postgres transaction.
+   * Enqueues the attempt workflow inside the same Postgres transaction as the
+   * claim write.
    */
-  enqueueTaskAttemptWorkflow?: (
+  enqueueTaskAttemptWorkflow: (
     input: EnqueueTaskAttemptWorkflowInput,
   ) => Promise<void>;
   logger: Logger;
@@ -302,6 +299,11 @@ export function createTaskService(deps: TaskServiceDeps) {
     logger,
     taskLifetime,
   } = deps;
+  if (typeof enqueueTaskAttemptWorkflow !== 'function') {
+    throw new Error(
+      'createTaskService requires enqueueTaskAttemptWorkflow to preserve transactional task claim enqueue semantics',
+    );
+  }
   const defaultExpiresInSec = taskLifetime?.defaultExpiresInSec ?? null;
   const maxExpiresInSec = taskLifetime?.maxExpiresInSec ?? null;
 
@@ -1336,19 +1338,17 @@ export function createTaskService(deps: TaskServiceDeps) {
           const claimed = await taskRepository.claimIfQueued(taskId);
           if (!claimed) return null;
 
-          if (enqueueTaskAttemptWorkflow) {
-            await persistExecutorVerification(claimedExecutor, taskRepository);
-            await enqueueTaskAttemptWorkflow({
-              taskId,
-              attemptN,
-              callerId,
-              workflowId,
-              leaseTtlSec,
-              claimedExecutorFingerprint: claimedExecutor?.fingerprint ?? null,
-              dispatchTimeoutSec: row.dispatchTimeoutSec ?? null,
-              runningTimeoutSec: row.runningTimeoutSec ?? null,
-            });
-          }
+          await persistExecutorVerification(claimedExecutor, taskRepository);
+          await enqueueTaskAttemptWorkflow({
+            taskId,
+            attemptN,
+            callerId,
+            workflowId,
+            leaseTtlSec,
+            claimedExecutorFingerprint: claimedExecutor?.fingerprint ?? null,
+            dispatchTimeoutSec: row.dispatchTimeoutSec ?? null,
+            runningTimeoutSec: row.runningTimeoutSec ?? null,
+          });
 
           return claimed;
         },
@@ -1359,32 +1359,6 @@ export function createTaskService(deps: TaskServiceDeps) {
           'conflict',
           'Task is not queued or is already being claimed',
         );
-      }
-
-      if (!enqueueTaskAttemptWorkflow) {
-        await persistExecutorVerification(claimedExecutor, taskRepository);
-
-        try {
-          await DBOS.startWorkflow(taskWorkflows.startAttemptWorkflow, {
-            workflowID: workflowId,
-          })(
-            taskId,
-            attemptN,
-            callerId,
-            workflowId,
-            leaseTtlSec,
-            claimedExecutor?.fingerprint ?? null,
-            row.dispatchTimeoutSec ?? null,
-            row.runningTimeoutSec ?? null,
-          );
-        } catch (error) {
-          if (
-            !(error instanceof Error) ||
-            !error.name.includes('WorkflowAlreadyExists')
-          ) {
-            throw error;
-          }
-        }
       }
 
       const claimed = await DBOS.getEvent<{ taskId: string; attemptN: number }>(

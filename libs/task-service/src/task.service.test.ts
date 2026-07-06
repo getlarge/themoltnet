@@ -256,6 +256,13 @@ interface Mocks {
   permissionChecker: PermissionCheckerMocks;
   relationshipWriter: RelationshipWriterMocks;
   transactionRunner: TransactionRunner;
+  enqueueTaskAttemptWorkflow: Mock<
+    (
+      input: Parameters<
+        Parameters<typeof createTaskService>[0]['enqueueTaskAttemptWorkflow']
+      >[0],
+    ) => Promise<void>
+  >;
   logger: {
     info: Mock<(obj: object, msg: string) => void>;
     debug: Mock<(obj: object, msg: string) => void>;
@@ -598,6 +605,7 @@ function makeMocks(
       removeTaskRelationsBatch: vi.fn().mockResolvedValue(undefined),
     },
     transactionRunner,
+    enqueueTaskAttemptWorkflow: vi.fn().mockResolvedValue(undefined),
     logger: {
       info: vi.fn(),
       debug: vi.fn(),
@@ -645,6 +653,17 @@ beforeAll(async () => {
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v),
   );
   await initTaskTypeRegistry();
+});
+
+describe('createTaskService', () => {
+  it('requires transactional task attempt workflow enqueue wiring', () => {
+    const deps = makeMocks() as unknown as Record<string, unknown>;
+    delete deps.enqueueTaskAttemptWorkflow;
+
+    expect(() => createTaskService(deps as never)).toThrow(
+      'createTaskService requires enqueueTaskAttemptWorkflow to preserve transactional task claim enqueue semantics',
+    );
+  });
 });
 
 describe('createTaskService.claim — runtime profile attestation', () => {
@@ -729,10 +748,11 @@ describe('createTaskService.claim — runtime profile attestation', () => {
     expect(mocks.taskRepository.claimIfQueued).not.toHaveBeenCalled();
   });
 
-  it('enqueues the attempt workflow inside the claim transaction when configured', async () => {
+  it('enqueues the attempt workflow inside the claim transaction', async () => {
     const events: string[] = [];
-    const enqueueTaskAttemptWorkflow = vi.fn(async () => {
+    const enqueueTaskAttemptWorkflow = vi.fn(() => {
       events.push('enqueue');
+      return Promise.resolve();
     });
     mocks.transactionRunner = {
       async runInTransaction(fn) {
@@ -779,9 +799,9 @@ describe('createTaskService.claim — runtime profile attestation', () => {
   it('does not wait or grant when transactional enqueue fails', async () => {
     const events: string[] = [];
     const enqueueError = new Error('duplicate workflow id');
-    const enqueueTaskAttemptWorkflow = vi.fn(async () => {
+    const enqueueTaskAttemptWorkflow = vi.fn(() => {
       events.push('enqueue');
-      throw enqueueError;
+      return Promise.reject(enqueueError);
     });
     mocks.transactionRunner = {
       async runInTransaction(fn) {
