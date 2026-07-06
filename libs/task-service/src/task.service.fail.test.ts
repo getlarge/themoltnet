@@ -119,7 +119,7 @@ describe('createTaskService.failAttempt', () => {
       attemptN: 1,
       output: body.output,
     });
-    const service = createTaskService(deps as never);
+    const service = createTaskService(withRequiredDeps(deps) as never);
 
     const result = await service.complete(
       TASK_ID,
@@ -151,7 +151,7 @@ describe('createTaskService.failAttempt', () => {
     const deps = makeRunningDeps();
     vi.spyOn(DBOS, 'send').mockResolvedValue(undefined);
     vi.spyOn(DBOS, 'getEvent').mockResolvedValue(null);
-    const service = createTaskService(deps as never);
+    const service = createTaskService(withRequiredDeps(deps) as never);
 
     await expect(
       service.complete(TASK_ID, 1, AGENT_ID, KetoNamespace.Agent, body),
@@ -170,7 +170,7 @@ describe('createTaskService.failAttempt', () => {
       taskId: TASK_ID,
       attemptN: 1,
     });
-    const service = createTaskService(deps as never);
+    const service = createTaskService(withRequiredDeps(deps) as never);
 
     await expect(
       service.complete(TASK_ID, 1, AGENT_ID, KetoNamespace.Agent, body),
@@ -250,7 +250,7 @@ describe('createTaskService.failAttempt', () => {
       taskId: TASK_ID,
       attemptN: 1,
     });
-    const service = createTaskService(deps as never);
+    const service = createTaskService(withRequiredDeps(deps) as never);
 
     await expect(
       service.failAttempt(TASK_ID, 1, AGENT_ID, KetoNamespace.Agent, error),
@@ -268,7 +268,7 @@ describe('createTaskService.failAttempt', () => {
       taskId: TASK_ID,
       attemptN: 1,
     });
-    const service = createTaskService(deps as never);
+    const service = createTaskService(withRequiredDeps(deps) as never);
 
     await expect(
       service.abort(TASK_ID, 1, AGENT_ID, KetoNamespace.Agent, 'shutdown'),
