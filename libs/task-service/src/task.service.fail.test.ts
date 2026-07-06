@@ -1,4 +1,5 @@
 import { KetoNamespace } from '@moltnet/auth';
+import { computeJsonCid } from '@moltnet/crypto-service';
 import { DBOS, type Task as DbTask } from '@moltnet/database';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -56,6 +57,74 @@ describe('createTaskService.failAttempt', () => {
     vi.restoreAllMocks();
   });
 
+  it('waits on the workflow result event instead of polling until complete timeout', async () => {
+    const output = {
+      summary: 'done',
+      artifacts: [{ kind: 'markdown', title: 'report', body: 'ok' }],
+    };
+    const outputCid = await computeJsonCid(output);
+    const deps = {
+      taskRepository: {
+        findById: vi
+          .fn()
+          .mockResolvedValueOnce(makeTask('running'))
+          .mockResolvedValueOnce(
+            makeTask('completed', {
+              acceptedAttemptN: 1,
+              completedAt: new Date('2026-06-01T00:01:00Z'),
+            }),
+          ),
+        findAttempt: vi.fn().mockResolvedValue({
+          taskId: TASK_ID,
+          attemptN: 1,
+          claimedByAgentId: AGENT_ID,
+          status: 'running',
+        }),
+      },
+      permissionChecker: {
+        canReportTask: vi.fn().mockResolvedValue(true),
+      },
+      logger: {
+        info: vi.fn(),
+        debug: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+      },
+    };
+    const send = vi.spyOn(DBOS, 'send').mockResolvedValue(undefined);
+    const getEvent = vi.spyOn(DBOS, 'getEvent').mockResolvedValue({
+      status: 'completed',
+      taskId: TASK_ID,
+      attemptN: 1,
+      output,
+    });
+    const service = createTaskService(deps as never);
+
+    const result = await service.complete(
+      TASK_ID,
+      1,
+      AGENT_ID,
+      KetoNamespace.Agent,
+      {
+        output,
+        outputCid,
+        usage: { inputTokens: 1, outputTokens: 2 },
+      },
+    );
+
+    expect(result.status).toBe('completed');
+    expect(send).toHaveBeenCalledWith(
+      `task:${TASK_ID}:attempt:1`,
+      expect.objectContaining({ kind: 'completed', output, outputCid }),
+      'progress',
+    );
+    expect(getEvent).toHaveBeenCalledWith(
+      `task:${TASK_ID}:attempt:1`,
+      'result',
+      10,
+    );
+  });
+
   it('returns the queued task when a retryable attempt failure requeues', async () => {
     const error = {
       code: 'provider_timeout',
@@ -86,6 +155,11 @@ describe('createTaskService.failAttempt', () => {
       },
     };
     const send = vi.spyOn(DBOS, 'send').mockResolvedValue(undefined);
+    const getEvent = vi.spyOn(DBOS, 'getEvent').mockResolvedValue({
+      status: 'failed',
+      taskId: TASK_ID,
+      attemptN: 1,
+    });
     const service = createTaskService(deps as never);
 
     const result = await service.failAttempt(
@@ -101,6 +175,11 @@ describe('createTaskService.failAttempt', () => {
       `task:${TASK_ID}:attempt:1`,
       { kind: 'failed', error },
       'progress',
+    );
+    expect(getEvent).toHaveBeenCalledWith(
+      `task:${TASK_ID}:attempt:1`,
+      'result',
+      10,
     );
   });
 });

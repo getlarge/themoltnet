@@ -24,7 +24,10 @@ import {
   type TaskRepository,
   type TransactionRunner,
 } from '@moltnet/database';
-import { taskWorkflows } from '@moltnet/task-workflows';
+import {
+  type TaskAttemptFinalEvent,
+  taskWorkflows,
+} from '@moltnet/task-workflows';
 import {
   type AsyncTaskValidationContext,
   BUILT_IN_TASK_TYPES,
@@ -282,6 +285,48 @@ export function createTaskService(deps: TaskServiceDeps) {
   } = deps;
   const defaultExpiresInSec = taskLifetime?.defaultExpiresInSec ?? null;
   const maxExpiresInSec = taskLifetime?.maxExpiresInSec ?? null;
+
+  async function waitForAttemptFinalTask(
+    workflowId: string,
+    taskId: string,
+    attemptN: number,
+    timeoutMessage: string,
+  ): Promise<DbTask> {
+    const final = await DBOS.getEvent<TaskAttemptFinalEvent>(
+      workflowId,
+      'result',
+      EVENT_TIMEOUT_SECONDS,
+    );
+    if (!final) {
+      throw new TaskServiceError('timed_out', timeoutMessage);
+    }
+    if (final.taskId !== taskId || final.attemptN !== attemptN) {
+      logger.error(
+        {
+          taskId,
+          attemptN,
+          workflowId,
+          finalTaskId: final.taskId,
+          finalAttemptN: final.attemptN,
+          finalStatus: final.status,
+        },
+        'task.workflow.result_mismatch',
+      );
+      throw new TaskServiceError(
+        'conflict',
+        'Task workflow result did not match the requested attempt',
+      );
+    }
+
+    const updated = await taskRepository.findById(taskId);
+    if (!updated) {
+      throw new TaskServiceError(
+        'not_found',
+        'Task could not be reloaded after workflow result',
+      );
+    }
+    return updated;
+  }
 
   /**
    * Build the async validation context (#1096) for one create call.
@@ -1575,43 +1620,34 @@ export function createTaskService(deps: TaskServiceDeps) {
         'progress',
       );
 
-      const deadline = Date.now() + EVENT_TIMEOUT_SECONDS * 1000;
-      while (true) {
-        const updated = await taskRepository.findById(taskId);
-        if (updated && TERMINAL_STATUSES.has(updated.status)) {
-          // Defense in depth (#938): if the workflow ended up in a different
-          // terminal state than the one this caller asked for, return 409
-          // rather than 200. This handles the race where /cancel and
-          // /complete are sent in the same window and DBOS processes the
-          // cancel event first — the task ends up `cancelled`, and the
-          // worker's /complete request did not actually succeed.
-          if (updated.status !== 'completed') {
-            logger.info(
-              { taskId, attemptN, status: updated.status },
-              'task.complete.race_lost',
-            );
-            throw new TaskServiceError(
-              'conflict',
-              `Task ended in terminal state ${updated.status}, not completed`,
-            );
-          }
-          logger.info(
-            { taskId, attemptN, status: updated.status },
-            'task.completed',
-          );
-          await tryPromoteSatisfiedWaitingTasks({ triggerTaskId: taskId });
-          return dbTaskToWire(updated);
-        }
-        if (Date.now() >= deadline) {
-          throw new TaskServiceError(
-            'timed_out',
-            'Complete workflow timed out waiting for result',
-          );
-        }
-        await new Promise<void>((resolve) => {
-          setTimeout(resolve, 250);
-        });
+      const updated = await waitForAttemptFinalTask(
+        workflowId,
+        taskId,
+        attemptN,
+        'Complete workflow timed out waiting for result',
+      );
+      // Defense in depth (#938): if the workflow ended up in a different
+      // terminal state than the one this caller asked for, return 409
+      // rather than 200. This handles the race where /cancel and
+      // /complete are sent in the same window and DBOS processes the
+      // cancel event first — the task ends up `cancelled`, and the
+      // worker's /complete request did not actually succeed.
+      if (updated.status !== 'completed') {
+        logger.info(
+          { taskId, attemptN, status: updated.status },
+          'task.complete.race_lost',
+        );
+        throw new TaskServiceError(
+          'conflict',
+          `Task ended in terminal state ${updated.status}, not completed`,
+        );
       }
+      logger.info(
+        { taskId, attemptN, status: updated.status },
+        'task.completed',
+      );
+      await tryPromoteSatisfiedWaitingTasks({ triggerTaskId: taskId });
+      return dbTaskToWire(updated);
     },
 
     async failAttempt(
@@ -1666,49 +1702,36 @@ export function createTaskService(deps: TaskServiceDeps) {
       // Multiplexed `progress` topic (#936).
       await DBOS.send(workflowId, { kind: 'failed', error }, 'progress');
 
-      const deadline = Date.now() + EVENT_TIMEOUT_SECONDS * 1000;
-      while (true) {
-        const updated = await taskRepository.findById(taskId);
-        if (updated?.status === 'queued') {
-          logger.info(
-            { taskId, attemptN, status: updated.status },
-            'task.fail.requeued',
-          );
-          return dbTaskToWire(updated);
-        }
-        if (updated && TERMINAL_STATUSES.has(updated.status)) {
-          // Defense in depth (#938): if the workflow ended in a different
-          // terminal state (typically `cancelled` when a cancel races
-          // with a fail), the caller's /fail did not actually take
-          // effect — return 409.
-          //
-          if (updated.status !== 'failed') {
-            logger.info(
-              { taskId, attemptN, status: updated.status },
-              'task.fail.race_lost',
-            );
-            throw new TaskServiceError(
-              'conflict',
-              `Task ended in terminal state ${updated.status}, not failed`,
-            );
-          }
-          logger.info(
-            { taskId, attemptN, status: updated.status },
-            'task.failed',
-          );
-          await tryPromoteSatisfiedWaitingTasks({ triggerTaskId: taskId });
-          return dbTaskToWire(updated);
-        }
-        if (Date.now() >= deadline) {
-          throw new TaskServiceError(
-            'timed_out',
-            'Fail workflow timed out waiting for result',
-          );
-        }
-        await new Promise<void>((resolve) => {
-          setTimeout(resolve, 250);
-        });
+      const updated = await waitForAttemptFinalTask(
+        workflowId,
+        taskId,
+        attemptN,
+        'Fail workflow timed out waiting for result',
+      );
+      if (updated.status === 'queued') {
+        logger.info(
+          { taskId, attemptN, status: updated.status },
+          'task.fail.requeued',
+        );
+        return dbTaskToWire(updated);
       }
+      // Defense in depth (#938): if the workflow ended in a different
+      // terminal state (typically `cancelled` when a cancel races
+      // with a fail), the caller's /fail did not actually take
+      // effect — return 409.
+      if (updated.status !== 'failed') {
+        logger.info(
+          { taskId, attemptN, status: updated.status },
+          'task.fail.race_lost',
+        );
+        throw new TaskServiceError(
+          'conflict',
+          `Task ended in terminal state ${updated.status}, not failed`,
+        );
+      }
+      logger.info({ taskId, attemptN, status: updated.status }, 'task.failed');
+      await tryPromoteSatisfiedWaitingTasks({ triggerTaskId: taskId });
+      return dbTaskToWire(updated);
     },
 
     async abort(
@@ -1768,33 +1791,27 @@ export function createTaskService(deps: TaskServiceDeps) {
       // Multiplexed `progress` topic (#936).
       await DBOS.send(workflowId, { kind: 'aborted', error }, 'progress');
 
-      const deadline = Date.now() + EVENT_TIMEOUT_SECONDS * 1000;
-      while (true) {
-        const updated = await taskRepository.findById(taskId);
-        // Success when the workflow requeued the task (non-terminal
-        // `queued`, the expected outcome with retries remaining) OR settled
-        // it terminally (`failed` when exhausted, or a raced `cancelled`).
-        if (
-          updated &&
-          (updated.status === 'queued' || TERMINAL_STATUSES.has(updated.status))
-        ) {
-          logger.info(
-            { taskId, attemptN, status: updated.status },
-            'task.aborted',
-          );
-          await tryPromoteSatisfiedWaitingTasks({ triggerTaskId: taskId });
-          return dbTaskToWire(updated);
-        }
-        if (Date.now() >= deadline) {
-          throw new TaskServiceError(
-            'timed_out',
-            'Abort workflow timed out waiting for result',
-          );
-        }
-        await new Promise<void>((resolve) => {
-          setTimeout(resolve, 250);
-        });
+      const updated = await waitForAttemptFinalTask(
+        workflowId,
+        taskId,
+        attemptN,
+        'Abort workflow timed out waiting for result',
+      );
+      // Success when the workflow requeued the task (non-terminal
+      // `queued`, the expected outcome with retries remaining) OR settled
+      // it terminally (`failed` when exhausted, or a raced `cancelled`).
+      if (
+        updated.status !== 'queued' &&
+        !TERMINAL_STATUSES.has(updated.status)
+      ) {
+        throw new TaskServiceError(
+          'timed_out',
+          'Abort workflow result did not settle the task',
+        );
       }
+      logger.info({ taskId, attemptN, status: updated.status }, 'task.aborted');
+      await tryPromoteSatisfiedWaitingTasks({ triggerTaskId: taskId });
+      return dbTaskToWire(updated);
     },
 
     async cancel(
