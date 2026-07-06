@@ -1,0 +1,77 @@
+<script type="text/javascript">
+  RED.nodes.registerType('moltnet-task-cancel', {
+    category: 'moltnet',
+    color: '#00d4c8',
+    paletteLabel: 'task: cancel',
+    defaults: {
+      name: { value: '' },
+      agent: { value: '', type: 'moltnet-agent', required: true },
+      taskId: { value: '' },
+      reason: { value: '' },
+      skipMissing: { value: false },
+      ignoreErrors: { value: false },
+    },
+    inputs: 1,
+    outputs: 1,
+    icon: 'font-awesome/fa-ban',
+    label: function () {
+      return this.name || 'task: cancel';
+    },
+  });
+</script>
+
+<script type="text/html" data-template-name="moltnet-task-cancel">
+  <div class="form-row">
+    <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+    <input type="text" id="node-input-name" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-agent"><i class="fa fa-user"></i> Agent</label>
+    <input type="text" id="node-input-agent" />
+  </div>
+  <div class="form-row">
+    <label for="node-input-taskId"><i class="fa fa-hashtag"></i> Task ID</label>
+    <input
+      type="text"
+      id="node-input-taskId"
+      placeholder="msg.taskId / msg.payload rows"
+    />
+  </div>
+  <div class="form-row">
+    <label for="node-input-reason"><i class="fa fa-comment"></i> Reason</label>
+    <input type="text" id="node-input-reason" placeholder="workflow failed" />
+  </div>
+  <div class="form-row">
+    <label>&nbsp;</label>
+    <input
+      type="checkbox"
+      id="node-input-skipMissing"
+      style="display:inline-block; width:auto; vertical-align:top;"
+    />
+    <span>Pass through when no task id is available</span>
+  </div>
+  <div class="form-row">
+    <label>&nbsp;</label>
+    <input
+      type="checkbox"
+      id="node-input-ignoreErrors"
+      style="display:inline-block; width:auto; vertical-align:top;"
+    />
+    <span>Keep the original message if cancel fails</span>
+  </div>
+</script>
+
+<script type="text/html" data-help-name="moltnet-task-cancel">
+  <p>Cancels one or more MoltNet tasks.</p>
+  <p>
+    Task ids are resolved from <code>msg.taskId</code>,
+    <code>msg.taskIds</code>, <code>msg.payload.taskId</code>,
+    <code>msg.payload.id</code>, <code>msg.payload.failure.taskId</code>, an
+    array on <code>msg.payload</code>, or the configured Task ID.
+  </p>
+  <p>
+    The original <code>msg.payload</code> is preserved. Cancelled task rows are
+    written to <code>msg.cancelledTasks</code>; ignored cancel failures are
+    written to <code>msg.cancelErrors</code>.
+  </p>
+</script>

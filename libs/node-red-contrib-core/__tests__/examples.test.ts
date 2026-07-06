@@ -282,6 +282,37 @@ describe('example flows', () => {
       "workflowStatus: 'failed'",
     );
     expect(nodes.get('deep_review_pack_terminal_failure')?.wires).toEqual([
+      ['deep_review_prepare_cancel_running'],
+    ]);
+    expect(nodes.get('deep_review_pack_terminal_error')?.wires).toEqual([
+      ['deep_review_prepare_cancel_running'],
+    ]);
+    expect(nodes.get('deep_review_prepare_cancel_running')?.func).toContain(
+      "statuses: ['queued', 'running']",
+    );
+    expect(nodes.get('deep_review_prepare_cancel_running')?.wires).toEqual([
+      ['deep_review_list_running_for_cancel'],
+    ]);
+    expect(nodes.get('deep_review_list_running_for_cancel')?.type).toBe(
+      'moltnet-tasks-list',
+    );
+    expect(nodes.get('deep_review_cancel_running_tasks')?.type).toBe(
+      'moltnet-task-cancel',
+    );
+    expect(nodes.get('deep_review_cancel_running_tasks')?.ignoreErrors).toBe(
+      true,
+    );
+    expect(nodes.get('deep_review_cleanup_error_catch')?.scope).toEqual([
+      'deep_review_list_running_for_cancel',
+      'deep_review_cancel_running_tasks',
+    ]);
+    expect(nodes.get('deep_review_cleanup_error_catch')?.wires).toEqual([
+      ['deep_review_restore_failure_payload'],
+    ]);
+    expect(nodes.get('deep_review_restore_failure_payload')?.func).toContain(
+      'msg.error',
+    );
+    expect(nodes.get('deep_review_restore_failure_payload')?.wires).toEqual([
       ['deep_review_failure_done_link_out'],
     ]);
     expect(nodes.get('deep_review_done_link_in')?.links).toEqual(

@@ -26,6 +26,7 @@
       "moltnet-tasks-create": "dist/nodes/tasks-create.js",
       "moltnet-tasks-list": "dist/nodes/tasks-list.js",
       "moltnet-task-get": "dist/nodes/task-get.js",
+      "moltnet-task-cancel": "dist/nodes/task-cancel.js",
       "moltnet-task-wait": "dist/nodes/task-wait.js",
       "moltnet-task-artifacts-list": "dist/nodes/task-artifacts-list.js",
       "moltnet-task-artifact-upload": "dist/nodes/task-artifact-upload.js",

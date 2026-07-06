@@ -80,6 +80,7 @@ const init: NodeInitializer = (RED): void => {
           if (!taskId) {
             throw new Error('task-wait: taskId is required');
           }
+          msg.taskId = taskId;
           taskIdForStatus = taskId;
           label = describeWait(taskId, msg, label);
           active.set(taskId, label);
@@ -131,6 +132,7 @@ const init: NodeInitializer = (RED): void => {
               resultMsg.payload = correlationId
                 ? { ...snapshot, correlationId }
                 : snapshot;
+              resultMsg.taskId = taskId;
               if (correlationId) resultMsg.correlationId = correlationId;
               active.delete(taskId);
               this.status({

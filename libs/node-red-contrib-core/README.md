@@ -57,6 +57,11 @@ want the MoltNet editor skin.
   `{ taskId, status, terminal, accepted, acceptedAttemptN, state, attempt,
 attempts, error, task }`. `state` is the accepted attempt's output artifact
   (the lifecycle "phase" payload) or `null`. For switch/branch logic.
+- **`moltnet-task-cancel`** (palette: _task: cancel_) — cancels one task or an
+  array of task rows/ids. Reads ids from `msg.taskId`, `msg.taskIds`,
+  `msg.payload.taskId`, `msg.payload.id`, `msg.payload.failure.taskId`, or an
+  array on `msg.payload`. Preserves the original payload and writes results to
+  `msg.cancelledTasks` / `msg.cancelErrors`.
 - **`moltnet-task-wait`** (palette: _task: wait_) — polls a task until it settles,
   in one loop doing double duty like the CLI's `task tail`. **Two outputs:**
   output 1 (_tail_) emits each new task message as it arrives (gated by a `tail`
