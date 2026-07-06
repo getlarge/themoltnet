@@ -12,7 +12,9 @@ const AGENT_ID = 'a0000000-0000-0000-0000-000000000001';
 function withRequiredDeps<T extends object>(deps: T) {
   return {
     ...deps,
-    enqueueTaskAttemptWorkflow: vi.fn().mockResolvedValue(undefined),
+    enqueueWorkflowInCurrentTransaction: vi.fn().mockResolvedValue({
+      workflowId: `task:${TASK_ID}:attempt:1`,
+    }),
   };
 }
 

@@ -2,6 +2,8 @@ export {
   _resetTaskWorkflowsForTesting,
   DEFAULT_DISPATCH_TIMEOUT_SECONDS,
   DEFAULT_RUNNING_TIMEOUT_SECONDS,
+  enqueueTaskAttemptWorkflow,
+  type EnqueueTaskAttemptWorkflowInput,
   initTaskWorkflows,
   setTaskWorkflowDeps,
   TASK_ATTEMPT_WORKFLOW_QUEUE,
@@ -11,4 +13,5 @@ export {
   TaskWorkflowConfigurationError,
   type TaskWorkflowDeps,
   taskWorkflows,
+  type TransactionalWorkflowEnqueue,
 } from './task-workflows.js';

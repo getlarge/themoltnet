@@ -4,6 +4,8 @@ import type {
   NewTaskAttempt,
   Task,
   TaskAttempt,
+  TransactionalWorkflowEnqueueInput,
+  TransactionalWorkflowEnqueueResult,
 } from '@moltnet/database';
 
 /**
@@ -57,6 +59,21 @@ export interface TaskAttemptFinalEvent {
     | 'lease_expired'
     | 'running_total_exceeded';
 }
+
+export interface EnqueueTaskAttemptWorkflowInput {
+  taskId: string;
+  attemptN: number;
+  callerId: string;
+  workflowId: string;
+  leaseTtlSec: number;
+  claimedExecutorFingerprint: string | null;
+  dispatchTimeoutSec: number | null;
+  runningTimeoutSec: number | null;
+}
+
+export type TransactionalWorkflowEnqueue = (
+  input: TransactionalWorkflowEnqueueInput,
+) => Promise<TransactionalWorkflowEnqueueResult>;
 
 export interface TaskWorkflowDeps {
   dataSource: DataSource;
@@ -145,6 +162,27 @@ export const DEFAULT_DISPATCH_TIMEOUT_SECONDS = 300;
 // Agents must heartbeat (extend the lease) before this elapses to signal liveness.
 export const DEFAULT_RUNNING_TIMEOUT_SECONDS = 7200;
 export const TASK_ATTEMPT_WORKFLOW_QUEUE = 'task-attempts';
+
+export async function enqueueTaskAttemptWorkflow(
+  enqueueWorkflowInCurrentTransaction: TransactionalWorkflowEnqueue,
+  input: EnqueueTaskAttemptWorkflowInput,
+): Promise<void> {
+  await enqueueWorkflowInCurrentTransaction({
+    workflowName: 'task.workflow.startAttempt',
+    queueName: TASK_ATTEMPT_WORKFLOW_QUEUE,
+    workflowId: input.workflowId,
+    positionalArgs: [
+      input.taskId,
+      input.attemptN,
+      input.callerId,
+      input.workflowId,
+      input.leaseTtlSec,
+      input.claimedExecutorFingerprint,
+      input.dispatchTimeoutSec,
+      input.runningTimeoutSec,
+    ],
+  });
+}
 
 const stepConfig = {
   retriesAllowed: true,

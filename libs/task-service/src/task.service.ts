@@ -26,6 +26,10 @@ import {
 } from '@moltnet/database';
 import type { TaskAttemptFinalEvent } from '@moltnet/task-workflows';
 import {
+  enqueueTaskAttemptWorkflow,
+  type TransactionalWorkflowEnqueue,
+} from '@moltnet/task-workflows';
+import {
   type AsyncTaskValidationContext,
   BUILT_IN_TASK_TYPES,
   type ClaimCondition,
@@ -217,17 +221,6 @@ interface VerifiedExecutorAttestation {
   };
 }
 
-export interface EnqueueTaskAttemptWorkflowInput {
-  taskId: string;
-  attemptN: number;
-  callerId: string;
-  workflowId: string;
-  leaseTtlSec: number;
-  claimedExecutorFingerprint: string | null;
-  dispatchTimeoutSec: number | null;
-  runningTimeoutSec: number | null;
-}
-
 interface TaskServiceDeps {
   taskRepository: TaskRepository;
   diaryRepository: DiaryRepository;
@@ -253,12 +246,10 @@ interface TaskServiceDeps {
    */
   transactionRunner: TransactionRunner;
   /**
-   * Enqueues the attempt workflow inside the same Postgres transaction as the
-   * claim write.
+   * Enqueues a DBOS workflow using the current TransactionRunner-managed
+   * Postgres transaction.
    */
-  enqueueTaskAttemptWorkflow: (
-    input: EnqueueTaskAttemptWorkflowInput,
-  ) => Promise<void>;
+  enqueueWorkflowInCurrentTransaction: TransactionalWorkflowEnqueue;
   logger: Logger;
   taskLifetime?: {
     defaultExpiresInSec: number;
@@ -295,13 +286,13 @@ export function createTaskService(deps: TaskServiceDeps) {
     permissionChecker,
     relationshipWriter,
     transactionRunner,
-    enqueueTaskAttemptWorkflow,
+    enqueueWorkflowInCurrentTransaction,
     logger,
     taskLifetime,
   } = deps;
-  if (typeof enqueueTaskAttemptWorkflow !== 'function') {
+  if (typeof enqueueWorkflowInCurrentTransaction !== 'function') {
     throw new Error(
-      'createTaskService requires enqueueTaskAttemptWorkflow to preserve transactional task claim enqueue semantics',
+      'createTaskService requires enqueueWorkflowInCurrentTransaction to preserve transactional task claim enqueue semantics',
     );
   }
   const defaultExpiresInSec = taskLifetime?.defaultExpiresInSec ?? null;
@@ -1339,16 +1330,19 @@ export function createTaskService(deps: TaskServiceDeps) {
           if (!claimed) return null;
 
           await persistExecutorVerification(claimedExecutor, taskRepository);
-          await enqueueTaskAttemptWorkflow({
-            taskId,
-            attemptN,
-            callerId,
-            workflowId,
-            leaseTtlSec,
-            claimedExecutorFingerprint: claimedExecutor?.fingerprint ?? null,
-            dispatchTimeoutSec: row.dispatchTimeoutSec ?? null,
-            runningTimeoutSec: row.runningTimeoutSec ?? null,
-          });
+          await enqueueTaskAttemptWorkflow(
+            enqueueWorkflowInCurrentTransaction,
+            {
+              taskId,
+              attemptN,
+              callerId,
+              workflowId,
+              leaseTtlSec,
+              claimedExecutorFingerprint: claimedExecutor?.fingerprint ?? null,
+              dispatchTimeoutSec: row.dispatchTimeoutSec ?? null,
+              runningTimeoutSec: row.runningTimeoutSec ?? null,
+            },
+          );
 
           return claimed;
         },

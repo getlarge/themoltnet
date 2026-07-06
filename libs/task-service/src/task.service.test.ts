@@ -256,12 +256,14 @@ interface Mocks {
   permissionChecker: PermissionCheckerMocks;
   relationshipWriter: RelationshipWriterMocks;
   transactionRunner: TransactionRunner;
-  enqueueTaskAttemptWorkflow: Mock<
+  enqueueWorkflowInCurrentTransaction: Mock<
     (
       input: Parameters<
-        Parameters<typeof createTaskService>[0]['enqueueTaskAttemptWorkflow']
+        Parameters<
+          typeof createTaskService
+        >[0]['enqueueWorkflowInCurrentTransaction']
       >[0],
-    ) => Promise<void>
+    ) => Promise<{ workflowId: string }>
   >;
   logger: {
     info: Mock<(obj: object, msg: string) => void>;
@@ -605,7 +607,9 @@ function makeMocks(
       removeTaskRelationsBatch: vi.fn().mockResolvedValue(undefined),
     },
     transactionRunner,
-    enqueueTaskAttemptWorkflow: vi.fn().mockResolvedValue(undefined),
+    enqueueWorkflowInCurrentTransaction: vi.fn().mockResolvedValue({
+      workflowId: `task:${JUDGE_TASK}:attempt:1`,
+    }),
     logger: {
       info: vi.fn(),
       debug: vi.fn(),
@@ -656,12 +660,12 @@ beforeAll(async () => {
 });
 
 describe('createTaskService', () => {
-  it('requires transactional task attempt workflow enqueue wiring', () => {
+  it('requires transactional workflow enqueue wiring', () => {
     const deps = makeMocks() as unknown as Record<string, unknown>;
-    delete deps.enqueueTaskAttemptWorkflow;
+    delete deps.enqueueWorkflowInCurrentTransaction;
 
     expect(() => createTaskService(deps as never)).toThrow(
-      'createTaskService requires enqueueTaskAttemptWorkflow to preserve transactional task claim enqueue semantics',
+      'createTaskService requires enqueueWorkflowInCurrentTransaction to preserve transactional task claim enqueue semantics',
     );
   });
 });
@@ -750,9 +754,9 @@ describe('createTaskService.claim — runtime profile attestation', () => {
 
   it('enqueues the attempt workflow inside the claim transaction', async () => {
     const events: string[] = [];
-    const enqueueTaskAttemptWorkflow = vi.fn(() => {
+    const enqueueWorkflowInCurrentTransaction = vi.fn(() => {
       events.push('enqueue');
-      return Promise.resolve();
+      return Promise.resolve({ workflowId: `task:${JUDGE_TASK}:attempt:1` });
     });
     mocks.transactionRunner = {
       async runInTransaction(fn) {
@@ -768,22 +772,13 @@ describe('createTaskService.claim — runtime profile attestation', () => {
       .mockResolvedValue({ taskId: JUDGE_TASK, attemptN: 1 });
     service = createTaskService({
       ...(mocks as unknown as Parameters<typeof createTaskService>[0]),
-      enqueueTaskAttemptWorkflow,
+      enqueueWorkflowInCurrentTransaction,
     });
 
     await service.claim(JUDGE_TASK, AGENT_ID, KetoNamespace.Agent, 30);
 
     expect(events).toEqual(['tx:start', 'enqueue', 'tx:end']);
-    expect(enqueueTaskAttemptWorkflow).toHaveBeenCalledWith({
-      taskId: JUDGE_TASK,
-      attemptN: 1,
-      callerId: AGENT_ID,
-      workflowId: `task:${JUDGE_TASK}:attempt:1`,
-      leaseTtlSec: 30,
-      claimedExecutorFingerprint: null,
-      dispatchTimeoutSec: null,
-      runningTimeoutSec: null,
-    });
+    expect(enqueueWorkflowInCurrentTransaction).toHaveBeenCalledTimes(1);
     expect(startWorkflow).not.toHaveBeenCalled();
     expect(getEvent).toHaveBeenCalledWith(
       `task:${JUDGE_TASK}:attempt:1`,
@@ -799,7 +794,7 @@ describe('createTaskService.claim — runtime profile attestation', () => {
   it('does not wait or grant when transactional enqueue fails', async () => {
     const events: string[] = [];
     const enqueueError = new Error('duplicate workflow id');
-    const enqueueTaskAttemptWorkflow = vi.fn(() => {
+    const enqueueWorkflowInCurrentTransaction = vi.fn(() => {
       events.push('enqueue');
       return Promise.reject(enqueueError);
     });
@@ -818,7 +813,7 @@ describe('createTaskService.claim — runtime profile attestation', () => {
     const startWorkflow = vi.spyOn(DBOS, 'startWorkflow');
     service = createTaskService({
       ...(mocks as unknown as Parameters<typeof createTaskService>[0]),
-      enqueueTaskAttemptWorkflow,
+      enqueueWorkflowInCurrentTransaction,
     });
 
     await expect(
