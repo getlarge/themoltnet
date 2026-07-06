@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   _resetTaskWorkflowsForTesting,
+  enqueueTaskAttemptWorkflow,
   initTaskWorkflows,
   setTaskWorkflowDeps,
   type TaskAttemptFinalEvent,
@@ -27,6 +28,7 @@ vi.mock('@dbos-inc/dbos-sdk', () => {
       recv: vi.fn(),
       _events: events,
     },
+    WorkflowQueue: vi.fn(),
   };
 });
 
@@ -177,6 +179,41 @@ describe('startAttemptWorkflow — timeout paths', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe('enqueueTaskAttemptWorkflow', () => {
+  it('maps task attempt claims to the DBOS transactional enqueue payload', async () => {
+    const enqueueWorkflowInCurrentTransaction = vi.fn().mockResolvedValue({
+      workflowId: WORKFLOW_ID,
+    });
+
+    await enqueueTaskAttemptWorkflow(enqueueWorkflowInCurrentTransaction, {
+      taskId: TASK_ID,
+      attemptN: ATTEMPT_N,
+      callerId: AGENT_ID,
+      workflowId: WORKFLOW_ID,
+      leaseTtlSec: LEASE_TTL_SEC,
+      claimedExecutorFingerprint: 'executor-fingerprint',
+      dispatchTimeoutSec: 120,
+      runningTimeoutSec: 600,
+    });
+
+    expect(enqueueWorkflowInCurrentTransaction).toHaveBeenCalledWith({
+      workflowName: 'task.workflow.startAttempt',
+      queueName: 'task-attempts',
+      workflowId: WORKFLOW_ID,
+      positionalArgs: [
+        TASK_ID,
+        ATTEMPT_N,
+        AGENT_ID,
+        WORKFLOW_ID,
+        LEASE_TTL_SEC,
+        'executor-fingerprint',
+        120,
+        600,
+      ],
+    });
   });
 });
 

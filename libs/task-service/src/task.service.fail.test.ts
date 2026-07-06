@@ -9,6 +9,15 @@ const TASK_ID = '11111111-1111-1111-1111-111111111111';
 const TEAM_ID = '00000000-0000-0000-0000-000000000001';
 const AGENT_ID = 'a0000000-0000-0000-0000-000000000001';
 
+function withRequiredDeps<T extends object>(deps: T) {
+  return {
+    ...deps,
+    enqueueWorkflowInCurrentTransaction: vi.fn().mockResolvedValue({
+      workflowId: `task:${TASK_ID}:attempt:1`,
+    }),
+  };
+}
+
 function makeTask(
   status: DbTask['status'],
   overrides: Partial<DbTask> = {},
@@ -110,7 +119,7 @@ describe('createTaskService.failAttempt', () => {
       attemptN: 1,
       output: body.output,
     });
-    const service = createTaskService(deps as never);
+    const service = createTaskService(withRequiredDeps(deps) as never);
 
     const result = await service.complete(
       TASK_ID,
@@ -142,7 +151,7 @@ describe('createTaskService.failAttempt', () => {
     const deps = makeRunningDeps();
     vi.spyOn(DBOS, 'send').mockResolvedValue(undefined);
     vi.spyOn(DBOS, 'getEvent').mockResolvedValue(null);
-    const service = createTaskService(deps as never);
+    const service = createTaskService(withRequiredDeps(deps) as never);
 
     await expect(
       service.complete(TASK_ID, 1, AGENT_ID, KetoNamespace.Agent, body),
@@ -161,7 +170,7 @@ describe('createTaskService.failAttempt', () => {
       taskId: TASK_ID,
       attemptN: 1,
     });
-    const service = createTaskService(deps as never);
+    const service = createTaskService(withRequiredDeps(deps) as never);
 
     await expect(
       service.complete(TASK_ID, 1, AGENT_ID, KetoNamespace.Agent, body),
@@ -206,7 +215,7 @@ describe('createTaskService.failAttempt', () => {
       taskId: TASK_ID,
       attemptN: 1,
     });
-    const service = createTaskService(deps as never);
+    const service = createTaskService(withRequiredDeps(deps) as never);
 
     const result = await service.failAttempt(
       TASK_ID,
@@ -241,7 +250,7 @@ describe('createTaskService.failAttempt', () => {
       taskId: TASK_ID,
       attemptN: 1,
     });
-    const service = createTaskService(deps as never);
+    const service = createTaskService(withRequiredDeps(deps) as never);
 
     await expect(
       service.failAttempt(TASK_ID, 1, AGENT_ID, KetoNamespace.Agent, error),
@@ -259,7 +268,7 @@ describe('createTaskService.failAttempt', () => {
       taskId: TASK_ID,
       attemptN: 1,
     });
-    const service = createTaskService(deps as never);
+    const service = createTaskService(withRequiredDeps(deps) as never);
 
     await expect(
       service.abort(TASK_ID, 1, AGENT_ID, KetoNamespace.Agent, 'shutdown'),
@@ -297,7 +306,7 @@ describe('createTaskService.appendMessages', () => {
         error: vi.fn(),
       },
     };
-    const service = createTaskService(deps as never);
+    const service = createTaskService(withRequiredDeps(deps) as never);
 
     const result = await service.appendMessages(
       TASK_ID,
@@ -341,7 +350,7 @@ describe('createTaskService.appendMessages', () => {
         error: vi.fn(),
       },
     };
-    const service = createTaskService(deps as never);
+    const service = createTaskService(withRequiredDeps(deps) as never);
 
     await expect(
       service.appendMessages(
@@ -384,7 +393,7 @@ describe('createTaskService.appendMessages', () => {
         error: vi.fn(),
       },
     };
-    const service = createTaskService(deps as never);
+    const service = createTaskService(withRequiredDeps(deps) as never);
 
     await expect(
       service.appendMessages(TASK_ID, 1, AGENT_ID, KetoNamespace.Agent, [

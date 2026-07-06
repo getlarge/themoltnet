@@ -46,6 +46,7 @@ import {
   createTeamRepository,
   createVoucherRepository,
   type DatabaseConnection,
+  enqueueWorkflowInCurrentTransaction as enqueueDbosWorkflowInCurrentTransaction,
   getDatabase,
   getDataSource,
   type NonceRepository,
@@ -114,6 +115,34 @@ export interface BootstrapResult {
   nonceRepository: NonceRepository;
   /** ioredis client backing the rate limiter, or null when Redis is unconfigured. */
   rateLimitRedis: Redis | null;
+}
+
+function postgresDatabaseIdentity(databaseUrl: string): string {
+  const url = new URL(databaseUrl);
+  const protocol =
+    url.protocol === 'postgres:' || url.protocol === 'postgresql:'
+      ? 'postgresql:'
+      : url.protocol;
+  const port = url.port || (protocol === 'postgresql:' ? '5432' : url.port);
+  const databaseName = decodeURIComponent(url.pathname.replace(/^\/+/, ''));
+  return `${protocol}//${url.hostname.toLowerCase()}:${port}/${databaseName}`;
+}
+
+function assertTransactionalDbosCoLocated(
+  databaseUrl: string,
+  systemDatabaseUrl: string,
+): void {
+  const appDatabase = postgresDatabaseIdentity(databaseUrl);
+  const systemDatabase = postgresDatabaseIdentity(systemDatabaseUrl);
+  if (appDatabase === systemDatabase) return;
+
+  throw new Error(
+    [
+      'Transactional DBOS enqueue requires DATABASE_URL and DBOS_SYSTEM_DATABASE_URL to target the same Postgres database.',
+      'The app transaction calls dbos.enqueue_workflow from the app connection, so DBOS system tables must be reachable in the dbos schema on that same database.',
+      `DATABASE_URL targets ${appDatabase}; DBOS_SYSTEM_DATABASE_URL targets ${systemDatabase}.`,
+    ].join(' '),
+  );
 }
 
 export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
@@ -186,6 +215,10 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   if (!config.database.DATABASE_URL) {
     throw new Error('DATABASE_URL is required');
   }
+  assertTransactionalDbosCoLocated(
+    config.database.DATABASE_URL,
+    config.database.DBOS_SYSTEM_DATABASE_URL,
+  );
 
   const dbConnection = createDatabase(config.database.DATABASE_URL);
   // Seed the getDatabase() singleton so route-level code (e.g. advisory
@@ -330,6 +363,8 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     permissionChecker,
     relationshipWriter,
     transactionRunner,
+    enqueueWorkflowInCurrentTransaction: (input) =>
+      enqueueDbosWorkflowInCurrentTransaction(dbConnection.db, input),
     logger: app.log,
     taskLifetime: {
       defaultExpiresInSec: config.taskOrphanSweeper.TASK_DEFAULT_EXPIRES_IN_SEC,

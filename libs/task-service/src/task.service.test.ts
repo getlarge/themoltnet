@@ -1,6 +1,11 @@
 import { KetoNamespace } from '@moltnet/auth';
 import { computeJsonCid } from '@moltnet/crypto-service';
-import type { Task as DbTask, TransactionRunner } from '@moltnet/database';
+import {
+  DBOS,
+  type Task as DbTask,
+  type TaskAttempt as DbTaskAttempt,
+  type TransactionRunner,
+} from '@moltnet/database';
 import { initTaskTypeRegistry } from '@moltnet/tasks';
 import * as Format from 'typebox/format';
 import {
@@ -153,6 +158,12 @@ type TaskRepositoryMocks = {
   tryAcquireContinuationLock: Mock<
     (taskId: string, attemptN: number) => Promise<boolean>
   >;
+  findAttemptWithManifests: Mock<
+    (taskId: string, attemptN: number) => Promise<DbTaskAttempt | null>
+  >;
+  upsertExecutorManifestVerification: Mock<
+    (input: Record<string, unknown>) => Promise<void>
+  >;
 };
 
 type CorrelationSealRepositoryMocks = {
@@ -208,6 +219,7 @@ type PermissionCheckerMocks = {
 
 type RelationshipWriterMocks = {
   grantTaskParent: Mock<(taskId: string, diaryId: string) => Promise<void>>;
+  grantTaskClaimant: Mock<(taskId: string, agentId: string) => Promise<void>>;
   removeTaskRelationsBatch: Mock<
     (
       tasks: Array<{
@@ -244,6 +256,15 @@ interface Mocks {
   permissionChecker: PermissionCheckerMocks;
   relationshipWriter: RelationshipWriterMocks;
   transactionRunner: TransactionRunner;
+  enqueueWorkflowInCurrentTransaction: Mock<
+    (
+      input: Parameters<
+        Parameters<
+          typeof createTaskService
+        >[0]['enqueueWorkflowInCurrentTransaction']
+      >[0],
+    ) => Promise<{ workflowId: string }>
+  >;
   logger: {
     info: Mock<(obj: object, msg: string) => void>;
     debug: Mock<(obj: object, msg: string) => void>;
@@ -386,6 +407,33 @@ function makeMocks(
     tryAcquireContinuationLock: vi
       .fn<(taskId: string, attemptN: number) => Promise<boolean>>()
       .mockResolvedValue(true),
+    findAttemptWithManifests: vi
+      .fn<(taskId: string, attemptN: number) => Promise<DbTaskAttempt | null>>()
+      .mockImplementation((taskId, attemptN) =>
+        Promise.resolve({
+          taskId,
+          attemptN,
+          claimedByAgentId: AGENT_ID,
+          runtimeId: null,
+          workflowId: `task:${taskId}:attempt:${attemptN}`,
+          claimedAt: new Date('2026-05-11T00:00:00Z'),
+          startedAt: null,
+          completedAt: null,
+          status: 'claimed',
+          output: null,
+          outputCid: null,
+          claimedExecutorFingerprint: null,
+          completedExecutorFingerprint: null,
+          error: null,
+          usage: null,
+          contentSignature: null,
+          signedAt: null,
+          daemonState: null,
+        } as DbTaskAttempt),
+      ),
+    upsertExecutorManifestVerification: vi
+      .fn<(input: Record<string, unknown>) => Promise<void>>()
+      .mockResolvedValue(undefined),
   };
 
   const transactionRunner: TransactionRunner = {
@@ -553,9 +601,15 @@ function makeMocks(
             ? Promise.reject(new Error('keto down'))
             : Promise.resolve(),
         ),
+      grantTaskClaimant: vi
+        .fn<(taskId: string, agentId: string) => Promise<void>>()
+        .mockResolvedValue(undefined),
       removeTaskRelationsBatch: vi.fn().mockResolvedValue(undefined),
     },
     transactionRunner,
+    enqueueWorkflowInCurrentTransaction: vi.fn().mockResolvedValue({
+      workflowId: `task:${JUDGE_TASK}:attempt:1`,
+    }),
     logger: {
       info: vi.fn(),
       debug: vi.fn(),
@@ -603,6 +657,17 @@ beforeAll(async () => {
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v),
   );
   await initTaskTypeRegistry();
+});
+
+describe('createTaskService', () => {
+  it('requires transactional workflow enqueue wiring', () => {
+    const deps = makeMocks() as unknown as Record<string, unknown>;
+    delete deps.enqueueWorkflowInCurrentTransaction;
+
+    expect(() => createTaskService(deps as never)).toThrow(
+      'createTaskService requires enqueueWorkflowInCurrentTransaction to preserve transactional task claim enqueue semantics',
+    );
+  });
 });
 
 describe('createTaskService.claim — runtime profile attestation', () => {
@@ -685,6 +750,80 @@ describe('createTaskService.claim — runtime profile attestation', () => {
       JUDGE_TASK,
     );
     expect(mocks.taskRepository.claimIfQueued).not.toHaveBeenCalled();
+  });
+
+  it('enqueues the attempt workflow inside the claim transaction', async () => {
+    const events: string[] = [];
+    const enqueueWorkflowInCurrentTransaction = vi.fn(() => {
+      events.push('enqueue');
+      return Promise.resolve({ workflowId: `task:${JUDGE_TASK}:attempt:1` });
+    });
+    mocks.transactionRunner = {
+      async runInTransaction(fn) {
+        events.push('tx:start');
+        const result = await fn();
+        events.push('tx:end');
+        return result;
+      },
+    };
+    const startWorkflow = vi.spyOn(DBOS, 'startWorkflow');
+    const getEvent = vi
+      .spyOn(DBOS, 'getEvent')
+      .mockResolvedValue({ taskId: JUDGE_TASK, attemptN: 1 });
+    service = createTaskService({
+      ...(mocks as unknown as Parameters<typeof createTaskService>[0]),
+      enqueueWorkflowInCurrentTransaction,
+    });
+
+    await service.claim(JUDGE_TASK, AGENT_ID, KetoNamespace.Agent, 30);
+
+    expect(events).toEqual(['tx:start', 'enqueue', 'tx:end']);
+    expect(enqueueWorkflowInCurrentTransaction).toHaveBeenCalledTimes(1);
+    expect(startWorkflow).not.toHaveBeenCalled();
+    expect(getEvent).toHaveBeenCalledWith(
+      `task:${JUDGE_TASK}:attempt:1`,
+      'claimed',
+      10,
+    );
+    expect(mocks.relationshipWriter.grantTaskClaimant).toHaveBeenCalledWith(
+      JUDGE_TASK,
+      AGENT_ID,
+    );
+  });
+
+  it('does not wait or grant when transactional enqueue fails', async () => {
+    const events: string[] = [];
+    const enqueueError = new Error('duplicate workflow id');
+    const enqueueWorkflowInCurrentTransaction = vi.fn(() => {
+      events.push('enqueue');
+      return Promise.reject(enqueueError);
+    });
+    mocks.transactionRunner = {
+      async runInTransaction(fn) {
+        events.push('tx:start');
+        try {
+          return await fn();
+        } catch (error) {
+          events.push('tx:rollback');
+          throw error;
+        }
+      },
+    };
+    const getEvent = vi.spyOn(DBOS, 'getEvent');
+    const startWorkflow = vi.spyOn(DBOS, 'startWorkflow');
+    service = createTaskService({
+      ...(mocks as unknown as Parameters<typeof createTaskService>[0]),
+      enqueueWorkflowInCurrentTransaction,
+    });
+
+    await expect(
+      service.claim(JUDGE_TASK, AGENT_ID, KetoNamespace.Agent, 30),
+    ).rejects.toThrow(enqueueError);
+
+    expect(events).toEqual(['tx:start', 'enqueue', 'tx:rollback']);
+    expect(startWorkflow).not.toHaveBeenCalled();
+    expect(getEvent).not.toHaveBeenCalled();
+    expect(mocks.relationshipWriter.grantTaskClaimant).not.toHaveBeenCalled();
   });
 
   it('expires an elapsed waiting task before promoting it during claim', async () => {
