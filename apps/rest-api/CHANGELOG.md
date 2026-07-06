@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.27.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.26.0...rest-api-v0.27.0) (2026-07-06)
+
+
+### Features
+
+* **tasks:** enqueue attempts transactionally ([b770105](https://github.com/getlarge/themoltnet/commit/b770105e6f30537da61b21fc8e7dcfdb0cbbcceb))
+
+
+### Bug Fixes
+
+* **ci:** satisfy transactional enqueue checks ([f70df88](https://github.com/getlarge/themoltnet/commit/f70df88006d92727d5d5dff0a0ee3fa503ba1984))
+* **rest-api:** format DBOS enqueue guard ([68bfcfa](https://github.com/getlarge/themoltnet/commit/68bfcfa4a70491c09d1a9083616bc075f154d6ff))
+* **rest-api:** require colocated DBOS enqueue database ([bf09719](https://github.com/getlarge/themoltnet/commit/bf09719dec6a2c33a239eee76427ca48d626f906))
+
 ## [0.26.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.25.0...rest-api-v0.26.0) (2026-07-04)
 
 
