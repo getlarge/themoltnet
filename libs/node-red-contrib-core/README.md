@@ -57,6 +57,11 @@ want the MoltNet editor skin.
   `{ taskId, status, terminal, accepted, acceptedAttemptN, state, attempt,
 attempts, error, task }`. `state` is the accepted attempt's output artifact
   (the lifecycle "phase" payload) or `null`. For switch/branch logic.
+- **`moltnet-task-cancel`** (palette: _task: cancel_) — cancels one task or an
+  array of task rows/ids. Reads ids from `msg.taskId`, `msg.taskIds`,
+  `msg.payload.taskId`, `msg.payload.id`, `msg.payload.failure.taskId`, or an
+  array on `msg.payload`. Preserves the original payload and writes results to
+  `msg.cancelledTasks` / `msg.cancelErrors`.
 - **`moltnet-task-wait`** (palette: _task: wait_) — polls a task until it settles,
   in one loop doing double duty like the CLI's `task tail`. **Two outputs:**
   output 1 (_tail_) emits each new task message as it arrives (gated by a `tail`
@@ -273,12 +278,17 @@ created through the Runtime Profiles API for team
 `6743b4b1-6b93-46e2-a048-19490f04f91a`; recreate them or replace the IDs when
 running the flow in another team.
 
-| Stage      | Profile ID                             | Provider / model                      | Settings                                                                                                                                                                                                                  |
-| ---------- | -------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| FREEZE     | `1a653eb9-7bfa-475f-b517-c070c9c25b5e` | `ollama-cloud/qwen3-coder:480b-cloud` | `thinkingLevel=high`, `temperature=0.1`, `maxOutputTokens=12000`, `maxTurns=60`, `maxBashTimeouts=5`, `defaultWorkspaceMode=dedicated_worktree`, `allowedWorkspaceModes=[dedicated_worktree]`, requires `git`, `gh`, `rg` |
-| PREFLIGHT  | `f4bb1d9b-6281-4158-ad88-cbcb1198c3dc` | `ollama-cloud/qwen3-coder:480b-cloud` | `thinkingLevel=high`, `temperature=0.1`, `maxOutputTokens=10000`, `maxTurns=16`, `maxBashTimeouts=2`, `defaultWorkspaceMode=shared_mount`, `allowedWorkspaceModes=[shared_mount]`, requires `git`, `rg`                   |
-| SPECIALIST | `f50e9c58-4180-4e07-b120-08b6097c13d5` | `ollama-cloud/qwen3-coder:480b-cloud` | `thinkingLevel=high`, `temperature=0.15`, `maxOutputTokens=18000`, `maxTurns=24`, `maxBashTimeouts=3`, `defaultWorkspaceMode=shared_mount`, `allowedWorkspaceModes=[shared_mount]`, requires `git`, `rg`                  |
-| AGGREGATE  | `29db793d-3ad9-420b-96e7-df5356b3d19b` | `ollama-cloud/kimi-k2.7-code:cloud`   | `thinkingLevel=high`, `temperature=0.2`, `maxOutputTokens=24000`, `maxTurns=16`, `maxBashTimeouts=2`, `defaultWorkspaceMode=none`, `allowedWorkspaceModes=[none]`                                                         |
+| Stage      | Profile ID                             | Provider / model                      | Workspace and tool contract                                                                                         |
+| ---------- | -------------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| FREEZE     | `1a653eb9-7bfa-475f-b517-c070c9c25b5e` | `ollama-cloud/qwen3-coder:480b-cloud` | `defaultWorkspaceMode=dedicated_worktree`, `allowedWorkspaceModes=[dedicated_worktree]`, requires `git`, `gh`, `rg` |
+| PREFLIGHT  | `f4bb1d9b-6281-4158-ad88-cbcb1198c3dc` | `ollama-cloud/qwen3-coder:480b-cloud` | `defaultWorkspaceMode=shared_mount`, `allowedWorkspaceModes=[shared_mount]`, requires `git`, `rg`                   |
+| SPECIALIST | `f50e9c58-4180-4e07-b120-08b6097c13d5` | `ollama-cloud/qwen3-coder:480b-cloud` | `defaultWorkspaceMode=shared_mount`, `allowedWorkspaceModes=[shared_mount]`, requires `git`, `rg`                   |
+| AGGREGATE  | `29db793d-3ad9-420b-96e7-df5356b3d19b` | `ollama-cloud/kimi-k2.7-code:cloud`   | `defaultWorkspaceMode=none`, `allowedWorkspaceModes=[none]`                                                         |
+
+The example intentionally avoids prescribing `maxTurns`, output-token caps,
+sampling temperature, or other model-behavior tuning. Keep those profile values
+at the platform/runtime defaults until a repeated run gives enough evidence to
+set a limit deliberately.
 
 All four profiles set `sandbox.env.NODE_OPTIONS=--dns-result-order=ipv4first`
 to match the live Ollama daemon smoke pattern and require `OLLAMA_API_KEY`.
@@ -299,10 +309,10 @@ export OLLAMA_API_KEY=...
 npx @themoltnet/agent-daemon@latest poll \
   --agent <agent-name> \
   --team 6743b4b1-6b93-46e2-a048-19490f04f91a \
-  --profile deep-review-freeze-ollama-qwen-coder-v1 \
-  --profile deep-review-preflight-ollama-qwen-coder-v1 \
-  --profile deep-review-specialist-ollama-qwen-coder-v1 \
-  --profile deep-review-aggregate-ollama-kimi-v1
+  --profile deep-review-freeze-v1 \
+  --profile deep-review-preflight-v1 \
+  --profile deep-review-specialist-v1 \
+  --profile deep-review-aggregate-v1
 ```
 
 The daemon host must have matching Pi model registry entries. This repo's

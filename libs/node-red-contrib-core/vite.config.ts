@@ -15,6 +15,7 @@ const nodes = [
   'tasks-create',
   'tasks-list',
   'task-get',
+  'task-cancel',
   'task-wait',
   'task-artifacts-list',
   'task-artifact-upload',

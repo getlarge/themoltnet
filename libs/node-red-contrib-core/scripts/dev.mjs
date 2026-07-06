@@ -11,12 +11,14 @@
  * dependsOn pipeline. After editing a node, stop (Ctrl-C) and re-run to
  * rebuild + reload — Node-RED does not hot-reload custom nodes.
  */
-import { execSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import {
   existsSync,
   mkdirSync,
+  readFileSync,
   rmSync,
   symlinkSync,
+  watch,
   writeFileSync,
 } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -25,6 +27,13 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const pkgDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const themePkgDir = resolve(pkgDir, '../node-red-theme');
 const userDir = resolve(pkgDir, '.node-red-dev');
+const exampleFlowFile = resolve(
+  pkgDir,
+  'examples/deep-review-freeform.flow.json',
+);
+const devFlowFile = resolve(userDir, 'flows.json');
+const exampleTabId = 'deep_review_tab';
+const refreshExampleFlow = process.env.MOLTNET_NODE_RED_REFRESH_EXAMPLE === '1';
 const port = process.env.PORT ?? '1880';
 
 const themeEntry = resolve(themePkgDir, 'dist/index.js');
@@ -54,8 +63,115 @@ writeFileSync(
 );
 writeFileSync(
   resolve(userDir, 'settings.js'),
-  `module.exports = ${JSON.stringify({ editorTheme }, null, 2)};\n`,
+  `module.exports = ${JSON.stringify(
+    {
+      editorTheme,
+      flowFile: 'flows.json',
+      flowFilePretty: true,
+      contextStorage: {
+        default: {
+          module: 'localfilesystem',
+        },
+      },
+    },
+    null,
+    2,
+  )};\n`,
 );
+
+let syncTimer;
+const isExampleNode = (node) =>
+  node.id === exampleTabId ||
+  node.z === exampleTabId ||
+  (typeof node.id === 'string' && node.id.startsWith('deep_review_'));
+
+const extractExampleFlow = (flow) => {
+  if (!Array.isArray(flow)) {
+    throw new Error('Node-RED flow file must contain an array');
+  }
+
+  const extracted = flow.filter(isExampleNode);
+  if (!extracted.some((node) => node.id === exampleTabId)) {
+    throw new Error(`Cannot find ${exampleTabId} in Node-RED flow file`);
+  }
+  return extracted;
+};
+
+const syncExampleToDevFlow = (reason) => {
+  const exampleFlow = extractExampleFlow(
+    JSON.parse(readFileSync(exampleFlowFile, 'utf8')),
+  );
+  const devFlow = existsSync(devFlowFile)
+    ? JSON.parse(readFileSync(devFlowFile, 'utf8'))
+    : [];
+  if (!Array.isArray(devFlow)) {
+    throw new Error('Node-RED dev flow file must contain an array');
+  }
+
+  const nextDevFlow = [
+    ...devFlow.filter((node) => !isExampleNode(node)),
+    ...exampleFlow,
+  ];
+  writeFileSync(devFlowFile, `${JSON.stringify(nextDevFlow, null, 2)}\n`);
+  console.log(
+    `▸ refreshed ${exampleTabId} from ${exampleFlowFile} (${reason})`,
+  );
+};
+
+const warnIfDevFlowIsBehindExample = () => {
+  try {
+    const exampleFlow = extractExampleFlow(
+      JSON.parse(readFileSync(exampleFlowFile, 'utf8')),
+    );
+    const devFlow = extractExampleFlow(
+      JSON.parse(readFileSync(devFlowFile, 'utf8')),
+    );
+    const devIds = new Set(devFlow.map((node) => node.id));
+    const missingIds = exampleFlow
+      .map((node) => node.id)
+      .filter((id) => !devIds.has(id));
+
+    if (missingIds.length > 0) {
+      console.warn(
+        `⚠ ${exampleTabId} in ${devFlowFile} is missing ` +
+          `${missingIds.length} example node(s): ` +
+          `${missingIds.slice(0, 8).join(', ')}. ` +
+          'Preserving the live Node-RED canvas. Restart with ' +
+          'MOLTNET_NODE_RED_REFRESH_EXAMPLE=1 to replace it from the example.',
+      );
+    }
+  } catch (error) {
+    console.warn(`⚠ failed to compare Node-RED flow: ${error.message}`);
+  }
+};
+
+if (!existsSync(devFlowFile)) {
+  syncExampleToDevFlow('missing dev flow');
+} else if (refreshExampleFlow) {
+  syncExampleToDevFlow('MOLTNET_NODE_RED_REFRESH_EXAMPLE=1');
+} else {
+  warnIfDevFlowIsBehindExample();
+}
+
+const syncFlowToExample = () => {
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(() => {
+    try {
+      const devFlow = JSON.parse(readFileSync(devFlowFile, 'utf8'));
+      const exampleFlow = extractExampleFlow(devFlow);
+      writeFileSync(
+        exampleFlowFile,
+        `${JSON.stringify(exampleFlow, null, 2)}\n`,
+      );
+      console.log(
+        `▸ synced ${exampleTabId} from Node-RED → ${exampleFlowFile}`,
+      );
+    } catch (error) {
+      console.warn(`⚠ failed to sync Node-RED flow: ${error.message}`);
+    }
+  }, 200);
+};
+const watcher = watch(devFlowFile, syncFlowToExample);
 
 // 2. Link this package into the userDir so Node-RED discovers it
 const scope = resolve(userDir, 'node_modules', '@themoltnet');
@@ -70,7 +186,19 @@ console.log(
 
 // 3. Run Node-RED 5 (downloaded on first run via npx, then cached)
 console.log(`▸ starting Node-RED on http://localhost:${port} …`);
-execSync(`npx -y node-red@5 --userDir "${userDir}" -p ${port}`, {
-  cwd: pkgDir,
-  stdio: 'inherit',
+const child = spawn(
+  'npx',
+  ['-y', 'node-red@5', '--userDir', userDir, '-p', port],
+  {
+    cwd: pkgDir,
+    stdio: 'inherit',
+  },
+);
+
+child.on('exit', (code, signal) => {
+  watcher.close();
+  syncFlowToExample();
+  setTimeout(() => {
+    process.exit(code ?? (signal ? 1 : 0));
+  }, 250);
 });

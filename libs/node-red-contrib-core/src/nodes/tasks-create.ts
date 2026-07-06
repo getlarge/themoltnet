@@ -124,6 +124,7 @@ const init: NodeInitializer = (RED): void => {
           // downstream task: wait / tasks: create / workflow: status inherit it.
           const out = RED.util.cloneMessage(msg);
           if (correlationId) out.correlationId = correlationId;
+          out.taskId = task.id;
           out.payload = task;
           active.delete(invocationId);
           this.status({
