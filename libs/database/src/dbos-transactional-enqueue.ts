@@ -1,4 +1,4 @@
-import { sql, type SQL } from 'drizzle-orm';
+import { type SQL, sql } from 'drizzle-orm';
 
 import type { Database } from './db.js';
 import { getExecutor, hasActiveTransaction } from './transaction-context.js';

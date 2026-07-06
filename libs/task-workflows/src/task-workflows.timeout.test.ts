@@ -27,6 +27,7 @@ vi.mock('@dbos-inc/dbos-sdk', () => {
       recv: vi.fn(),
       _events: events,
     },
+    WorkflowQueue: vi.fn(),
   };
 });
 
