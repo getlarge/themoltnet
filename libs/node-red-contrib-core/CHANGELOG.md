@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.11.0](https://github.com/getlarge/themoltnet/compare/node-red-contrib-core-v0.10.0...node-red-contrib-core-v0.11.0) (2026-07-06)
+
+
+### Features
+
+* **node-red:** add deep review retry lane ([6a348e1](https://github.com/getlarge/themoltnet/commit/6a348e1fa35000ac39687bc8ef61747d4e1391e7))
+* **node-red:** add deep review retry lane ([6c44297](https://github.com/getlarge/themoltnet/commit/6c442970f8330cbf6d7a51c7fa63f2d307870c94))
+* **node-red:** cancel deep review tasks on failure ([bbff842](https://github.com/getlarge/themoltnet/commit/bbff842f25eb0709f823268f5f9e4a0c47d85405))
+
+
+### Bug Fixes
+
+* **node-red:** harden deep review flow ([850790b](https://github.com/getlarge/themoltnet/commit/850790b1a0a10ba07b6ea043a9aeef1afb413c1e))
+
 ## [0.10.0](https://github.com/getlarge/themoltnet/compare/node-red-contrib-core-v0.9.0...node-red-contrib-core-v0.10.0) (2026-07-04)
 
 

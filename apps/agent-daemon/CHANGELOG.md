@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.29.6](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.29.5...agent-daemon-v0.29.6) (2026-07-06)
+
+
+### Bug Fixes
+
+* **agent-daemon:** harden retry loop handling ([67c018b](https://github.com/getlarge/themoltnet/commit/67c018b3320abb2bfa6298fec96f7e4e875dbe7b))
+* **agent-daemon:** harden retry loop handling ([14639bd](https://github.com/getlarge/themoltnet/commit/14639bd35054badd93a6b43c0bfd2ec746679059))
+
 ## [0.29.5](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.29.4...agent-daemon-v0.29.5) (2026-07-05)
 
 
