@@ -33,6 +33,9 @@ import { pipeline } from 'node:stream/promises';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BACKUP_ROOT = resolve(process.cwd(), '.ory-backups');
 const ORY_STDIO_MAX_BUFFER = 64 * 1024 * 1024;
+const ORY_DETAIL_CHUNK_SIZE = 1;
+const ORY_COMMAND_MAX_ATTEMPTS = 4;
+const ORY_COMMAND_RETRY_BASE_DELAY_MS = 1_000;
 
 function fatal(message) {
   console.error(`ERROR: ${message}`);
@@ -152,43 +155,85 @@ function buildOryEnv(mode) {
   return env;
 }
 
+function sleep(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+function extractCommandFailure(error, args) {
+  const command = ['ory', ...args].join(' ');
+  const stdout =
+    typeof error?.stdout === 'string'
+      ? error.stdout.trim()
+      : Buffer.isBuffer(error?.stdout)
+        ? error.stdout.toString('utf8').trim()
+        : '';
+  const stderr =
+    typeof error?.stderr === 'string'
+      ? error.stderr.trim()
+      : Buffer.isBuffer(error?.stderr)
+        ? error.stderr.toString('utf8').trim()
+        : '';
+
+  const details = [
+    `ory command failed: ${command}`,
+    error instanceof Error ? error.message : String(error),
+    stderr ? `stderr:\n${stderr}` : '',
+    stdout ? `stdout:\n${stdout}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n\n');
+
+  return { details, stdout, stderr };
+}
+
+function isTransientOryFailure({ details, stdout, stderr }) {
+  const text = `${details}\n${stdout}\n${stderr}`.toLowerCase();
+  return [
+    'giving up after',
+    'timeout',
+    'timed out',
+    'econnreset',
+    'econnrefused',
+    'socket hang up',
+    'temporary failure',
+    'too many requests',
+    '429',
+    '500 internal server error',
+    '502 bad gateway',
+    '503 service unavailable',
+    '504 gateway timeout',
+  ].some((needle) => text.includes(needle));
+}
+
 function runOry(args, { mode } = {}) {
-  try {
-    return execFileSync('ory', args, {
-      cwd: '/tmp',
-      env: buildOryEnv(mode),
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'pipe'],
-      maxBuffer: ORY_STDIO_MAX_BUFFER,
-    });
-  } catch (error) {
-    const command = ['ory', ...args].join(' ');
-    const stdout =
-      typeof error?.stdout === 'string'
-        ? error.stdout.trim()
-        : Buffer.isBuffer(error?.stdout)
-          ? error.stdout.toString('utf8').trim()
-          : '';
-    const stderr =
-      typeof error?.stderr === 'string'
-        ? error.stderr.trim()
-        : Buffer.isBuffer(error?.stderr)
-          ? error.stderr.toString('utf8').trim()
-          : '';
+  let lastFailure;
 
-    const details = [
-      `ory command failed: ${command}`,
-      error instanceof Error ? error.message : String(error),
-      stderr ? `stderr:\n${stderr}` : '',
-      stdout ? `stdout:\n${stdout}` : '',
-    ]
-      .filter(Boolean)
-      .join('\n\n');
+  for (let attempt = 1; attempt <= ORY_COMMAND_MAX_ATTEMPTS; attempt += 1) {
+    if (attempt > 1) {
+      const delay = ORY_COMMAND_RETRY_BASE_DELAY_MS * 2 ** (attempt - 2);
+      log(
+        `Retrying Ory command after transient failure (${attempt}/${ORY_COMMAND_MAX_ATTEMPTS})`,
+      );
+      sleep(delay);
+    }
 
-    throw new Error(details, {
-      cause: error instanceof Error ? error : undefined,
-    });
+    try {
+      return execFileSync('ory', args, {
+        cwd: '/tmp',
+        env: buildOryEnv(mode),
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+        maxBuffer: ORY_STDIO_MAX_BUFFER,
+      });
+    } catch (error) {
+      lastFailure = extractCommandFailure(error, args);
+      if (!isTransientOryFailure(lastFailure)) {
+        break;
+      }
+    }
   }
+
+  throw new Error(lastFailure?.details ?? 'ory command failed');
 }
 
 function ensureDir(path) {
@@ -333,7 +378,7 @@ function fetchDetailedResources({
   }
 
   const details = [];
-  for (const idChunk of chunk(ids, 50)) {
+  for (const idChunk of chunk(ids, ORY_DETAIL_CHUNK_SIZE)) {
     const stdout = runOry(
       [...getCommand, ...idChunk, ...extraArgs, '--format', 'json'],
       { mode },
