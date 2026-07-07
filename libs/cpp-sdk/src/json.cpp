@@ -5,16 +5,20 @@
 
 #if __has_include(<ArduinoJson.h>)
 #include <ArduinoJson.h>
-#define MOLTNET_HAS_ARDUINOJSON 1
+#if defined(ARDUINOJSON_VERSION_MAJOR) && ARDUINOJSON_VERSION_MAJOR >= 7
+#define MOLTNET_HAS_ARDUINOJSON_V7 1
 #else
-#define MOLTNET_HAS_ARDUINOJSON 0
+#define MOLTNET_HAS_ARDUINOJSON_V7 0
+#endif
+#else
+#define MOLTNET_HAS_ARDUINOJSON_V7 0
 #endif
 
 namespace moltnet::json {
 
 std::optional<std::string> string_field(const std::string& body,
                                         const std::string& key) {
-#if MOLTNET_HAS_ARDUINOJSON
+#if MOLTNET_HAS_ARDUINOJSON_V7
   ArduinoJson::JsonDocument doc;
   if (ArduinoJson::deserializeJson(doc, body)) {
     return std::nullopt;
@@ -68,7 +72,7 @@ std::optional<std::string> string_field(const std::string& body,
 }
 
 std::optional<int> int_field(const std::string& body, const std::string& key) {
-#if MOLTNET_HAS_ARDUINOJSON
+#if MOLTNET_HAS_ARDUINOJSON_V7
   ArduinoJson::JsonDocument doc;
   if (ArduinoJson::deserializeJson(doc, body)) {
     return std::nullopt;

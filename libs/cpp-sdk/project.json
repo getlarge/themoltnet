@@ -12,7 +12,19 @@
         "{projectRoot}/include/**/*.hpp",
         "{projectRoot}/src/**/*.cpp",
         "{projectRoot}/src/**/*.hpp",
-        "{projectRoot}/examples/**/*.cpp"
+        "{projectRoot}/examples/**/*.cpp",
+        {
+          "runtime": "uname -s && uname -m"
+        },
+        {
+          "runtime": "cmake --version | head -n 1"
+        },
+        {
+          "runtime": "ninja --version"
+        },
+        {
+          "runtime": "c++ --version | head -n 1"
+        }
       ],
       "options": {
         "command": "cmake -S libs/cpp-sdk -B libs/cpp-sdk/build -G Ninja -DCMAKE_BUILD_TYPE=Debug && cmake --build libs/cpp-sdk/build"
@@ -23,7 +35,7 @@
       "cache": false,
       "executor": "nx:run-commands",
       "options": {
-        "command": "rm -rf libs/cpp-sdk/build"
+        "command": "rm -rf libs/cpp-sdk/build libs/cpp-sdk/build-e2e"
       }
     },
     "e2e": {
@@ -38,6 +50,18 @@
         "{projectRoot}/src/**/*.hpp",
         "{projectRoot}/e2e/**/*",
         {
+          "runtime": "uname -s && uname -m"
+        },
+        {
+          "runtime": "cmake --version | head -n 1"
+        },
+        {
+          "runtime": "ninja --version"
+        },
+        {
+          "runtime": "c++ --version | head -n 1"
+        },
+        {
           "externalDependencies": ["tsx"]
         },
         {
@@ -45,7 +69,7 @@
         }
       ],
       "options": {
-        "command": "cmake -S libs/cpp-sdk -B libs/cpp-sdk/build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DMOLTNET_CPP_BUILD_E2E=ON && cmake --build libs/cpp-sdk/build --target moltnet_cpp_sdk_e2e && node --import tsx libs/cpp-sdk/e2e/setup.ts && libs/cpp-sdk/build/moltnet_cpp_sdk_e2e"
+        "command": "bash -lc 'config=\"${MOLTNET_CPP_E2E_CONFIG:-${RUNNER_TEMP:-${TMPDIR:-/tmp}}/moltnet-cpp-sdk-e2e-config.json}\"; cmake -S libs/cpp-sdk -B libs/cpp-sdk/build-e2e -G Ninja -DCMAKE_BUILD_TYPE=Debug -DMOLTNET_CPP_BUILD_E2E=ON && cmake --build libs/cpp-sdk/build-e2e --target moltnet_cpp_sdk_e2e && MOLTNET_CPP_E2E_CONFIG=\"$config\" node --import tsx libs/cpp-sdk/e2e/setup.ts && MOLTNET_CPP_E2E_CONFIG=\"$config\" libs/cpp-sdk/build-e2e/moltnet_cpp_sdk_e2e'"
       },
       "outputs": []
     },
@@ -60,7 +84,19 @@
         "{projectRoot}/src/**/*.cpp",
         "{projectRoot}/src/**/*.hpp",
         "{projectRoot}/tests/**/*.cpp",
-        "{projectRoot}/tests/**/*.hpp"
+        "{projectRoot}/tests/**/*.hpp",
+        {
+          "runtime": "uname -s && uname -m"
+        },
+        {
+          "runtime": "cmake --version | head -n 1"
+        },
+        {
+          "runtime": "ninja --version"
+        },
+        {
+          "runtime": "c++ --version | head -n 1"
+        }
       ],
       "options": {
         "command": "ctest --test-dir libs/cpp-sdk/build --output-on-failure"

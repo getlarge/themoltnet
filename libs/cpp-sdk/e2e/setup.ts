@@ -9,7 +9,8 @@ import {
 import { createE2EAgentHarness } from '@moltnet/bootstrap';
 
 const outputPath =
-  process.env.MOLTNET_CPP_E2E_CONFIG ?? 'libs/cpp-sdk/build/e2e-config.json';
+  process.env.MOLTNET_CPP_E2E_CONFIG ??
+  `${process.env.RUNNER_TEMP ?? process.env.TMPDIR ?? '/tmp'}/moltnet-cpp-sdk-e2e-config.json`;
 
 const harness = await createE2EAgentHarness({
   restApiUrl: process.env.REST_API_URL ?? process.env.SERVER_BASE_URL,

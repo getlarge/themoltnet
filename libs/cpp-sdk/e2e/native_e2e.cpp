@@ -1,8 +1,13 @@
 #include "moltnet/client.hpp"
 
 #include <arpa/inet.h>
+#include <cerrno>
+#include <cstring>
+#include <fcntl.h>
 #include <netdb.h>
+#include <poll.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <unistd.h>
 
 #include <cstdlib>
@@ -14,6 +19,8 @@
 #include <string>
 
 namespace {
+
+constexpr int kSocketTimeoutMs = 5000;
 
 struct Url {
   std::string host;
@@ -96,6 +103,53 @@ void send_all(int fd, const std::string& data) {
   }
 }
 
+void set_blocking(int fd, bool blocking) {
+  const int flags = fcntl(fd, F_GETFL, 0);
+  if (flags < 0) throw std::runtime_error("fcntl(F_GETFL) failed");
+  const int next_flags =
+      blocking ? (flags & ~O_NONBLOCK) : (flags | O_NONBLOCK);
+  if (fcntl(fd, F_SETFL, next_flags) < 0) {
+    throw std::runtime_error("fcntl(F_SETFL) failed");
+  }
+}
+
+void set_io_timeouts(int fd) {
+  timeval timeout{};
+  timeout.tv_sec = kSocketTimeoutMs / 1000;
+  timeout.tv_usec = (kSocketTimeoutMs % 1000) * 1000;
+  if (setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) < 0) {
+    throw std::runtime_error("setsockopt(SO_RCVTIMEO) failed");
+  }
+  if (setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout)) < 0) {
+    throw std::runtime_error("setsockopt(SO_SNDTIMEO) failed");
+  }
+}
+
+bool connect_with_timeout(int fd, const addrinfo* address) {
+  set_blocking(fd, false);
+  const int rc = connect(fd, address->ai_addr, address->ai_addrlen);
+  if (rc == 0) {
+    set_blocking(fd, true);
+    return true;
+  }
+  if (errno != EINPROGRESS) return false;
+
+  pollfd pfd{fd, POLLOUT, 0};
+  const int poll_rc = poll(&pfd, 1, kSocketTimeoutMs);
+  if (poll_rc <= 0) return false;
+
+  int socket_error = 0;
+  socklen_t socket_error_len = sizeof(socket_error);
+  if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &socket_error, &socket_error_len) <
+      0) {
+    return false;
+  }
+  if (socket_error != 0) return false;
+
+  set_blocking(fd, true);
+  return true;
+}
+
 std::string recv_all(int fd) {
   std::string response;
   char buffer[4096];
@@ -139,12 +193,13 @@ moltnet::HttpResponse socket_transport(const moltnet::HttpRequest& request) {
   for (auto* p = result; p != nullptr; p = p->ai_next) {
     fd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
     if (fd < 0) continue;
-    if (connect(fd, p->ai_addr, p->ai_addrlen) == 0) break;
+    if (connect_with_timeout(fd, p)) break;
     close(fd);
     fd = -1;
   }
   freeaddrinfo(result);
   if (fd < 0) throw std::runtime_error("failed to connect to " + url.host);
+  set_io_timeouts(fd);
 
   std::ostringstream out;
   out << request.method << ' ' << url.target << " HTTP/1.1\r\n";
@@ -204,7 +259,7 @@ int main() {
   try {
     const char* config_env = std::getenv("MOLTNET_CPP_E2E_CONFIG");
     const std::string config_path =
-        config_env ? config_env : "libs/cpp-sdk/build/e2e-config.json";
+        config_env ? config_env : "/tmp/moltnet-cpp-sdk-e2e-config.json";
     const auto fixture = read_file(config_path);
 
     moltnet::Config config;

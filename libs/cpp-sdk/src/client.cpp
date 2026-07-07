@@ -1,6 +1,7 @@
 #include "moltnet/client.hpp"
 
 #include <chrono>
+#include <algorithm>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -150,8 +151,9 @@ std::string Client::authenticate() {
   }
 
   access_token_ = *token;
-  token_expires_at_ms_ =
-      now_ms() + ((*expires_in - config_.token_expiry_buffer_seconds) * 1000LL);
+  const int usable_lifetime_seconds =
+      std::max(1, *expires_in - config_.token_expiry_buffer_seconds);
+  token_expires_at_ms_ = now_ms() + (usable_lifetime_seconds * 1000LL);
   return access_token_;
 }
 
