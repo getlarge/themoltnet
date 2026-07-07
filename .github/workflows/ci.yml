@@ -38,6 +38,7 @@ jobs:
       e2e-browser: ${{ steps.compute.outputs.e2e-browser }}
       e2e-mcp: ${{ steps.compute.outputs.e2e-mcp }}
       e2e-go-cli: ${{ steps.compute.outputs.e2e-go-cli }}
+      e2e-cpp-sdk: ${{ steps.compute.outputs.e2e-cpp-sdk }}
       e2e-any: ${{ steps.compute.outputs.e2e-any }}
       landing: ${{ steps.compute.outputs.landing }}
       agents-matrix: ${{ steps.matrix.outputs.matrix }}
@@ -152,10 +153,16 @@ jobs:
             echo "e2e-go-cli=false" >> "$GITHUB_OUTPUT"
           fi
 
+          if contains "@themoltnet/cpp-sdk" "@moltnet/rest-api" "@moltnet/api-client" "@moltnet/bootstrap"; then
+            echo "e2e-cpp-sdk=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "e2e-cpp-sdk=false" >> "$GITHUB_OUTPUT"
+          fi
+
           # e2e-any: true iff any suite should run. The e2e stack images
           # (rest-api, mcp-server, db-migrate, console, mcp-host) are shared by
           # all suites, so this single flag gates the image builds.
-          if contains "@moltnet/rest-api" "@moltnet/mcp-server" "@moltnet/mcp-host" "@moltnet/mcp-host-e2e" "@moltnet/entry-explore-mcp-app" "@moltnet/task-mcp-app" "@moltnet/mcp-test-harness" "@themoltnet/agent-daemon" "@moltnet/console" "moltnet-cli" "moltnet-api-client"; then
+          if contains "@moltnet/rest-api" "@moltnet/mcp-server" "@moltnet/mcp-host" "@moltnet/mcp-host-e2e" "@moltnet/entry-explore-mcp-app" "@moltnet/task-mcp-app" "@moltnet/mcp-test-harness" "@themoltnet/agent-daemon" "@moltnet/console" "moltnet-cli" "moltnet-api-client" "@themoltnet/cpp-sdk" "@moltnet/api-client" "@moltnet/bootstrap"; then
             echo "e2e-any=true" >> "$GITHUB_OUTPUT"
           else
             echo "e2e-any=false" >> "$GITHUB_OUTPUT"
@@ -323,6 +330,8 @@ jobs:
         with:
           node-version: 22.19.0
           cache: pnpm
+      - name: Install native build tools
+        run: sudo apt-get update && sudo apt-get install -y cmake ninja-build
       - run: pnpm install --frozen-lockfile
 
       # check:quickstart + nx format:check cover concerns not modeled in
@@ -1123,6 +1132,71 @@ jobs:
         run: go test -tags e2e -v -timeout 120s ./apps/moltnet-cli/...
       - name: Docker Compose logs
         if: failure() && needs.affected.outputs.e2e-go-cli == 'true'
+        run: docker compose -f docker-compose.e2e.yaml logs --tail=50
+
+  # C++ SDK e2e runs the native client against the REST API Compose stack.
+  # The TypeScript fixture setup uses the generated API client for in-spec
+  # seed writes, then the C++ binary exercises OAuth + read endpoints over HTTP.
+  e2e-cpp-sdk:
+    name: E2E Tests (C++ SDK)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: read
+    needs: [affected, orchestrator]
+    env:
+      # Per-image: ci-<sha> if affected this run, else the moving :ci-main
+      # (resolved by the affected job). The e2e stack needs all five.
+      REST_API_IMAGE: ${{ needs.affected.outputs.rest-api-image }}
+      MCP_SERVER_IMAGE: ${{ needs.affected.outputs.mcp-server-image }}
+      DB_MIGRATE_IMAGE: ${{ needs.affected.outputs.db-migrate-image }}
+      CONSOLE_IMAGE: ${{ needs.affected.outputs.console-image }}
+      MCP_HOST_IMAGE: ${{ needs.affected.outputs.mcp-host-image }}
+      DATABASE_URL: postgresql://moltnet:moltnet_secret@localhost:5433/moltnet
+      ORY_HYDRA_ADMIN_URL: http://localhost:4445
+      ORY_HYDRA_PUBLIC_URL: http://localhost:4444
+      ORY_KETO_PUBLIC_URL: http://localhost:4466
+      ORY_KETO_ADMIN_URL: http://localhost:4467
+      ORY_KRATOS_ADMIN_URL: http://localhost:4434
+      REST_API_URL: http://localhost:8080
+      SERVER_BASE_URL: http://localhost:8080
+    steps:
+      - name: Skip if C++ SDK E2E not affected
+        if: needs.affected.outputs.e2e-cpp-sdk != 'true'
+        run: echo "C++ SDK E2E projects not affected; E2E Tests (C++ SDK) not required."
+
+      - uses: actions/checkout@v6
+        if: needs.affected.outputs.e2e-cpp-sdk == 'true'
+      - uses: pnpm/action-setup@v5
+        if: needs.affected.outputs.e2e-cpp-sdk == 'true'
+      - uses: actions/setup-node@v6
+        if: needs.affected.outputs.e2e-cpp-sdk == 'true'
+        with:
+          node-version: 22.19.0
+          cache: pnpm
+      - name: Install native build tools
+        if: needs.affected.outputs.e2e-cpp-sdk == 'true'
+        run: sudo apt-get update && sudo apt-get install -y cmake ninja-build
+      - run: pnpm install --frozen-lockfile
+        if: needs.affected.outputs.e2e-cpp-sdk == 'true'
+      - name: Log in to GHCR
+        if: needs.affected.outputs.e2e-cpp-sdk == 'true'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Start Docker Compose stack
+        if: needs.affected.outputs.e2e-cpp-sdk == 'true'
+        env:
+          COMPOSE_DISABLE_ENV_FILE: true
+        run: docker compose -f docker-compose.e2e.yaml up -d
+      - name: Run C++ SDK E2E tests
+        if: needs.affected.outputs.e2e-cpp-sdk == 'true'
+        run: pnpm exec nx run @themoltnet/cpp-sdk:e2e
+      - name: Docker Compose logs
+        if: failure() && needs.affected.outputs.e2e-cpp-sdk == 'true'
         run: docker compose -f docker-compose.e2e.yaml logs --tail=50
 
   go-otel-extension:

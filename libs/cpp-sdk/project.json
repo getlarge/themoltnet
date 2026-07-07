@@ -4,6 +4,7 @@
   "targets": {
     "build": {
       "cache": true,
+      "dependsOn": [],
       "executor": "nx:run-commands",
       "inputs": [
         "{projectRoot}/CMakeLists.txt",
@@ -24,6 +25,29 @@
       "options": {
         "command": "rm -rf libs/cpp-sdk/build"
       }
+    },
+    "e2e": {
+      "cache": false,
+      "dependsOn": ["build"],
+      "executor": "nx:run-commands",
+      "inputs": [
+        "{projectRoot}/CMakeLists.txt",
+        "{projectRoot}/include/**/*.h",
+        "{projectRoot}/include/**/*.hpp",
+        "{projectRoot}/src/**/*.cpp",
+        "{projectRoot}/src/**/*.hpp",
+        "{projectRoot}/e2e/**/*",
+        {
+          "externalDependencies": ["tsx"]
+        },
+        {
+          "env": "MOLTNET_CPP_E2E_CONFIG"
+        }
+      ],
+      "options": {
+        "command": "cmake -S libs/cpp-sdk -B libs/cpp-sdk/build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DMOLTNET_CPP_BUILD_E2E=ON && cmake --build libs/cpp-sdk/build --target moltnet_cpp_sdk_e2e && node --import tsx libs/cpp-sdk/e2e/setup.ts && libs/cpp-sdk/build/moltnet_cpp_sdk_e2e"
+      },
+      "outputs": []
     },
     "test": {
       "cache": true,

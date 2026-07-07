@@ -2,8 +2,9 @@ cmake_minimum_required(VERSION 3.20)
 
 project(moltnet_cpp_sdk VERSION 0.1.0 LANGUAGES CXX)
 
-option(MOLTNET_NATIVE_BUILD_EXAMPLES "Build MoltNet native SDK examples" ON)
-option(MOLTNET_NATIVE_BUILD_TESTS "Build MoltNet native SDK tests" ON)
+option(MOLTNET_CPP_BUILD_EXAMPLES "Build MoltNet C++ SDK examples" ON)
+option(MOLTNET_CPP_BUILD_TESTS "Build MoltNet C++ SDK tests" ON)
+option(MOLTNET_CPP_BUILD_E2E "Build MoltNet C++ SDK e2e binary" OFF)
 
 add_library(moltnet_cpp_sdk
   src/c_api.cpp
@@ -29,7 +30,7 @@ endif()
 
 include(CTest)
 
-if(MOLTNET_NATIVE_BUILD_EXAMPLES)
+if(MOLTNET_CPP_BUILD_EXAMPLES)
   add_executable(moltnet-native-status examples/status.cpp)
   target_link_libraries(moltnet-native-status PRIVATE moltnet_cpp_sdk)
 
@@ -37,7 +38,7 @@ if(MOLTNET_NATIVE_BUILD_EXAMPLES)
   target_link_libraries(moltnet-native-beacon-feed PRIVATE moltnet_cpp_sdk)
 endif()
 
-if(MOLTNET_NATIVE_BUILD_TESTS)
+if(MOLTNET_CPP_BUILD_TESTS)
   add_executable(moltnet_cpp_sdk_tests
     tests/c_api_test.cpp
     tests/client_test.cpp
@@ -45,4 +46,9 @@ if(MOLTNET_NATIVE_BUILD_TESTS)
   )
   target_link_libraries(moltnet_cpp_sdk_tests PRIVATE moltnet_cpp_sdk)
   add_test(NAME moltnet_cpp_sdk_tests COMMAND moltnet_cpp_sdk_tests)
+endif()
+
+if(MOLTNET_CPP_BUILD_E2E)
+  add_executable(moltnet_cpp_sdk_e2e e2e/native_e2e.cpp)
+  target_link_libraries(moltnet_cpp_sdk_e2e PRIVATE moltnet_cpp_sdk)
 endif()
