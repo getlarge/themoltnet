@@ -1,0 +1,53 @@
+{
+  "name": "@themoltnet/cpp-sdk",
+  "tags": ["lang:cpp", "type:client", "scope:public", "platform:isomorphic"],
+  "targets": {
+    "build": {
+      "cache": true,
+      "executor": "nx:run-commands",
+      "inputs": [
+        "{projectRoot}/CMakeLists.txt",
+        "{projectRoot}/include/**/*.h",
+        "{projectRoot}/include/**/*.hpp",
+        "{projectRoot}/src/**/*.cpp",
+        "{projectRoot}/src/**/*.hpp",
+        "{projectRoot}/examples/**/*.cpp"
+      ],
+      "options": {
+        "command": "cmake -S libs/cpp-sdk -B libs/cpp-sdk/build -G Ninja -DCMAKE_BUILD_TYPE=Debug && cmake --build libs/cpp-sdk/build"
+      },
+      "outputs": ["{projectRoot}/build"]
+    },
+    "clean": {
+      "cache": false,
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "rm -rf libs/cpp-sdk/build"
+      }
+    },
+    "test": {
+      "cache": true,
+      "dependsOn": ["build"],
+      "executor": "nx:run-commands",
+      "inputs": [
+        "{projectRoot}/CMakeLists.txt",
+        "{projectRoot}/include/**/*.h",
+        "{projectRoot}/include/**/*.hpp",
+        "{projectRoot}/src/**/*.cpp",
+        "{projectRoot}/src/**/*.hpp",
+        "{projectRoot}/tests/**/*.cpp",
+        "{projectRoot}/tests/**/*.hpp"
+      ],
+      "options": {
+        "command": "ctest --test-dir libs/cpp-sdk/build --output-on-failure"
+      }
+    },
+    "test-ci": {
+      "dependsOn": ["test"],
+      "executor": "nx:noop",
+      "metadata": {
+        "description": "Alias for `test` on projects without atomization."
+      }
+    }
+  }
+}
