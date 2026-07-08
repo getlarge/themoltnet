@@ -11,6 +11,12 @@ export const TERMINAL_STATUSES = new Set<DbTask['status']>([
   'expired',
 ]);
 
+export const DELETE_ELIGIBLE_STATUSES = new Set<DbTask['status']>([
+  'waiting',
+  'queued',
+  ...TERMINAL_STATUSES,
+]);
+
 export const LIVE_STATUSES = new Set<DbTask['status']>([
   'waiting',
   'queued',

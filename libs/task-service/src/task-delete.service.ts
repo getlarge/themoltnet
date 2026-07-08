@@ -1,7 +1,7 @@
 import type { KetoNamespace } from '@moltnet/auth';
 
 import {
-  LIVE_STATUSES,
+  DELETE_ELIGIBLE_STATUSES,
   TaskServiceError,
   TERMINAL_STATUSES,
 } from './task-service.shared.js';
@@ -65,11 +65,11 @@ export function createTaskDeleteService(
     }
 
     const rows = await taskRepository.findByIds(allowedIds);
+    const deleteEligibleIds = rows
+      .filter((row) => DELETE_ELIGIBLE_STATUSES.has(row.status))
+      .map((row) => row.id);
     const terminalIds = rows
-      .filter(
-        (row) =>
-          TERMINAL_STATUSES.has(row.status) && !LIVE_STATUSES.has(row.status),
-      )
+      .filter((row) => TERMINAL_STATUSES.has(row.status))
       .map((row) => row.id);
     const sealedIds = new Set(
       await taskRepository.findSealedTaskIds(terminalIds),
@@ -82,8 +82,12 @@ export function createTaskDeleteService(
             input.callerNs,
           )
         : new Map<string, boolean>();
-    const accepted = terminalIds.filter(
-      (id) => !sealedIds.has(id) || Boolean(forceAllowedMap.get(id)),
+    const terminalIdSet = new Set(terminalIds);
+    const accepted = deleteEligibleIds.filter(
+      (id) =>
+        !terminalIdSet.has(id) ||
+        !sealedIds.has(id) ||
+        Boolean(forceAllowedMap.get(id)),
     );
     const acceptedSet = new Set(accepted);
 

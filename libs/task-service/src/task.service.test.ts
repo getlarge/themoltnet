@@ -1289,11 +1289,11 @@ describe('createTaskService.create — conditional claimability', () => {
 });
 
 describe('createTaskService.deleteMany', () => {
-  it('plans only authorized terminal unsealed task deletion in safe mode', async () => {
+  it('plans authorized queued and terminal unsealed task deletion in safe mode', async () => {
     const terminal = makeJudgeTask(JUDGE_TASK, 'cancelled');
-    const live = makeJudgeTask(RUN_TASK, 'queued');
+    const queued = makeJudgeTask(RUN_TASK, 'queued');
     const mocks = makeMocks({
-      visibleTasks: { [JUDGE_TASK]: terminal, [RUN_TASK]: live },
+      visibleTasks: { [JUDGE_TASK]: terminal, [RUN_TASK]: queued },
     });
     mocks.taskRepository.findSealedTaskIds.mockResolvedValue([JUDGE_TASK]);
     const service = createTaskService(
@@ -1307,8 +1307,51 @@ describe('createTaskService.deleteMany', () => {
     });
 
     expect(result).toEqual({
+      accepted: [RUN_TASK],
+      skipped: [JUDGE_TASK, OTHER_TEAM_ID],
+    });
+    expect(mocks.taskRepository.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it('plans authorized waiting task deletion without force', async () => {
+    const waiting = makeJudgeTask(JUDGE_TASK, 'waiting');
+    const mocks = makeMocks({ visibleTasks: { [JUDGE_TASK]: waiting } });
+    const service = createTaskService(
+      mocks as unknown as Parameters<typeof createTaskService>[0],
+    );
+
+    const result = await service.planDeleteMany({
+      ids: [JUDGE_TASK],
+      callerId: AGENT_ID,
+      callerNs: KetoNamespace.Agent,
+    });
+
+    expect(result).toEqual({
+      accepted: [JUDGE_TASK],
+      skipped: [],
+    });
+    expect(mocks.permissionChecker.canForceDeleteTasks).not.toHaveBeenCalled();
+  });
+
+  it('skips dispatched and running tasks in safe mode', async () => {
+    const dispatched = makeJudgeTask(JUDGE_TASK, 'dispatched');
+    const running = makeJudgeTask(RUN_TASK, 'running');
+    const mocks = makeMocks({
+      visibleTasks: { [JUDGE_TASK]: dispatched, [RUN_TASK]: running },
+    });
+    const service = createTaskService(
+      mocks as unknown as Parameters<typeof createTaskService>[0],
+    );
+
+    const result = await service.planDeleteMany({
+      ids: [JUDGE_TASK, RUN_TASK],
+      callerId: AGENT_ID,
+      callerNs: KetoNamespace.Agent,
+    });
+
+    expect(result).toEqual({
       accepted: [],
-      skipped: [JUDGE_TASK, RUN_TASK, OTHER_TEAM_ID],
+      skipped: [JUDGE_TASK, RUN_TASK],
     });
     expect(mocks.taskRepository.deleteMany).not.toHaveBeenCalled();
   });
