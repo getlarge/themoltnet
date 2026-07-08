@@ -5,6 +5,7 @@
   "type": "module",
   "devDependencies": {
     "@moltnet/api-client": "workspace:*",
-    "@moltnet/bootstrap": "workspace:*"
+    "@moltnet/bootstrap": "workspace:*",
+    "@themoltnet/sdk": "workspace:*"
   }
 }

@@ -1481,6 +1481,9 @@ importers:
       '@moltnet/bootstrap':
         specifier: workspace:*
         version: link:../bootstrap
+      '@themoltnet/sdk':
+        specifier: workspace:*
+        version: link:../sdk
 
   libs/crypto-service:
     dependencies:

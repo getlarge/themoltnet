@@ -7,6 +7,7 @@ import {
   createTask,
 } from '@moltnet/api-client';
 import { createE2EAgentHarness } from '@moltnet/bootstrap';
+import { buildCuratePack } from '@themoltnet/sdk';
 
 const outputPath =
   process.env.MOLTNET_CPP_E2E_CONFIG ??
@@ -47,22 +48,24 @@ async function main() {
       );
     }
 
+    const builtTask = buildCuratePack({
+      diaryId: agent.privateDiaryId,
+      taskPrompt:
+        `Read-back fixture for the MoltNet C++ SDK e2e test. ` +
+        `Marker: ${marker}`,
+    })
+      .team(agent.personalTeamId)
+      .diary(agent.privateDiaryId)
+      .title(`C++ SDK e2e ${marker}`)
+      .tags('cpp-sdk-e2e', marker)
+      .maxAttempts(1)
+      .build();
+
     const { data: task, error: taskError } = await createTask({
       client,
       auth: () => agent.accessToken,
-      headers: { 'x-moltnet-team-id': agent.personalTeamId },
-      body: {
-        taskType: 'curate_pack',
-        diaryId: agent.privateDiaryId,
-        title: `C++ SDK e2e ${marker}`,
-        tags: ['cpp-sdk-e2e', marker],
-        maxAttempts: 1,
-        input: {
-          diaryId: agent.privateDiaryId,
-          marker,
-          taskPrompt: 'Read-back fixture for the MoltNet C++ SDK e2e test.',
-        },
-      },
+      headers: { 'x-moltnet-team-id': builtTask.teamId },
+      body: builtTask.body,
     });
 
     if (taskError || !task) {
