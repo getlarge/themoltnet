@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.27.1](https://github.com/getlarge/themoltnet/compare/rest-api-v0.27.0...rest-api-v0.27.1) (2026-07-08)
+
+
+### Bug Fixes
+
+* enable manual deletion for queued tasks ([bebae6f](https://github.com/getlarge/themoltnet/commit/bebae6f21d255ccea112b1e65099f4874a6238ea))
+* **rest-api:** log manual task deletion workflow ([28646d5](https://github.com/getlarge/themoltnet/commit/28646d50a80d8608d1400dc055ac62eac43d201c))
+* **tasks:** lock manual deletion cleanup set ([f332ede](https://github.com/getlarge/themoltnet/commit/f332edeb55212240a691695f9b6cbf8beb1f41c6))
+* **tasks:** make manual deletion atomic ([99e67df](https://github.com/getlarge/themoltnet/commit/99e67df3061cd79d44cf32f70e3bc44496ee7f6d))
+* **tasks:** recheck deletion seals under lock ([ef19f77](https://github.com/getlarge/themoltnet/commit/ef19f776fdddd33e966619847f79963f32d4b4e8))
+
 ## [0.27.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.26.0...rest-api-v0.27.0) (2026-07-06)
 
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.44.2](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.44.1...moltnet-api-client-v1.44.2) (2026-07-08)
+
+
+### Bug Fixes
+
+* enable manual deletion for queued tasks ([bebae6f](https://github.com/getlarge/themoltnet/commit/bebae6f21d255ccea112b1e65099f4874a6238ea))
+
 ## [1.44.1](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.44.0...moltnet-api-client-v1.44.1) (2026-07-05)
 
 
