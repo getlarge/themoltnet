@@ -79,10 +79,20 @@ RawResponse Client::list_tasks(const TasksQuery& query_value) {
   query::add(parts, "query", query_value.query);
   query::add(parts, "status", query_value.status);
   query::add_each(parts, "statuses", query_value.statuses);
+  query::add_each(parts, "taskTypes", query_value.task_types);
+  query::add_each(parts, "tags", query_value.tags);
+  query::add_each(parts, "excludeTags", query_value.exclude_tags);
   query::add(parts, "diaryId", query_value.diary_id);
   query::add(parts, "profileId", query_value.profile_id);
+  query::add(parts, "correlationId", query_value.correlation_id);
+  query::add(parts, "proposedByAgentId", query_value.proposed_by_agent_id);
+  query::add(parts, "proposedByHumanId", query_value.proposed_by_human_id);
   query::add(parts, "claimedByAgentId", query_value.claimed_by_agent_id);
-  query::add_each(parts, "taskTypes", query_value.task_types);
+  query::add(parts, "hasAttempts", query_value.has_attempts);
+  query::add(parts, "queuedAfter", query_value.queued_after);
+  query::add(parts, "queuedBefore", query_value.queued_before);
+  query::add(parts, "completedAfter", query_value.completed_after);
+  query::add(parts, "completedBefore", query_value.completed_before);
   query::add(parts, "limit", query_value.limit);
   query::add(parts, "cursor", query_value.cursor);
   return request_json("GET", "/tasks", query::join(parts), "", true);
@@ -120,6 +130,16 @@ RawResponse Client::list_task_artifacts(const std::string& task_id,
   query::add(parts, "cursor", query_value.cursor);
   return request_json("GET", "/tasks/" + query::encode(task_id) + "/artifacts",
                       query::join(parts), "", true);
+}
+
+RawResponse Client::download_task_artifact(const std::string& task_id,
+                                           int attempt_n,
+                                           const std::string& cid) {
+  return request_json("GET",
+                      "/tasks/" + query::encode(task_id) + "/attempts/" +
+                          std::to_string(attempt_n) + "/artifacts/" +
+                          query::encode(cid) + "/content",
+                      "", "", true);
 }
 
 void Client::invalidate_token() {

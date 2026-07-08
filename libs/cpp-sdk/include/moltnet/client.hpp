@@ -42,10 +42,20 @@ struct TasksQuery {
   std::optional<std::string> query;
   std::optional<std::string> status;
   std::vector<std::string> statuses;
+  std::vector<std::string> task_types;
+  std::vector<std::string> tags;
+  std::vector<std::string> exclude_tags;
   std::optional<std::string> diary_id;
   std::optional<std::string> profile_id;
+  std::optional<std::string> correlation_id;
+  std::optional<std::string> proposed_by_agent_id;
+  std::optional<std::string> proposed_by_human_id;
   std::optional<std::string> claimed_by_agent_id;
-  std::vector<std::string> task_types;
+  std::optional<bool> has_attempts;
+  std::optional<std::string> queued_after;
+  std::optional<std::string> queued_before;
+  std::optional<std::string> completed_after;
+  std::optional<std::string> completed_before;
   std::optional<int> limit;
   std::optional<std::string> cursor;
 };
@@ -76,6 +86,8 @@ class Client {
                                  const MessagesQuery& query = {});
   RawResponse list_task_artifacts(const std::string& task_id,
                                   const PageQuery& query = {});
+  RawResponse download_task_artifact(const std::string& task_id, int attempt_n,
+                                     const std::string& cid);
 
   void invalidate_token();
 

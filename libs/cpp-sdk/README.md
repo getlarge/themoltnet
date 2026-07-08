@@ -14,7 +14,7 @@ forcing libcurl, cpprestsdk, or any other HTTP client library into the core.
 - Optional config loading from `~/.config/moltnet/moltnet.json` with env
   overrides.
 - Read-first API helpers for diaries, entries, search, tasks, attempts,
-  messages, schemas, and artifact metadata.
+  messages, schemas, artifact metadata, and artifact content downloads.
 - Raw JSON response bodies, preserving server schema changes.
 
 ## Build
@@ -45,7 +45,13 @@ filters for API surfaces that need multiple values:
 
 - `statuses` emits repeated `statuses=<value>` query parameters.
 - `task_types` emits repeated `taskTypes=<value>` query parameters.
+- `tags` emits repeated `tags=<value>` query parameters; the REST API matches
+  tasks containing all supplied tags.
+- `exclude_tags` emits repeated `excludeTags=<value>` query parameters.
 - `profile_id` emits `profileId=<value>`.
 - `claimed_by_agent_id` emits `claimedByAgentId=<value>`.
+- `correlation_id`, `proposed_by_agent_id`, `proposed_by_human_id`,
+  `has_attempts`, `queued_after`, `queued_before`, `completed_after`, and
+  `completed_before` map directly to the REST task list filters.
 
 All task reads include `x-moltnet-team-id` through `Config::team_id`.
