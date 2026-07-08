@@ -82,7 +82,7 @@ jobs:
             --repo "$GITHUB_REPOSITORY" \
             > "$task_spec_path"
           echo "task-spec-path=$task_spec_path" >> "$GITHUB_OUTPUT"
-          echo "task-tags=ci,ci:github-actions,review:pr,review:complexity,pr:$PR_NUMBER,branch:$branch_tag" >> "$GITHUB_OUTPUT"
+          echo "task-tags=ci,source:github-actions,workflow:legreffier-complexity-review,repo:$GITHUB_REPOSITORY,agent-daemon,agent:legreffier,review:pr,review:complexity,pr:$PR_NUMBER,branch:$branch_tag" >> "$GITHUB_OUTPUT"
 
       - name: Run task
         uses: ./packages/agent-daemon-action

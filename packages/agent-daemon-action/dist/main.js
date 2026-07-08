@@ -29496,7 +29496,7 @@ var findLatestRuntimeSlotForAttempt = (options) => (options.client ?? client).ge
 	...options
 });
 /**
-* Delete terminal tasks in bulk. Safe mode skips live, unauthorized, missing, and protected tasks.
+* Queue asynchronous deletion of terminal tasks in bulk. By default, live, unauthorized, missing, and protected tasks are skipped. Set force: true with a reason to delete protected terminal tasks.
 */
 var batchDeleteTasks = (options) => (options.client ?? client).delete({
 	security: [
@@ -41741,6 +41741,86 @@ var PRODUCER_TASK_TYPES = new Set([
 	"render_pack",
 	"run_eval"
 ]);
+function isNonEmptyString(value) {
+	return typeof value === "string" && value.length > 0;
+}
+function criterionWeight(criterion, index) {
+	if (typeof criterion.weight === "number") return criterion.weight;
+	if (typeof criterion.max_score === "number") return criterion.max_score / 100;
+	if (typeof criterion.maxScore === "number") return criterion.maxScore / 100;
+	throw new TaskBuildError([{
+		field: `successCriteria/rubric/criteria/${index}/weight`,
+		message: "criterion is missing weight or max_score"
+	}]);
+}
+/**
+* Normalize authoring-time rubric criteria to canonical MoltNet rubric
+* criteria. Accepts `{id,title,description,weight}` and
+* `{name,description,max_score}` style inputs, strips authoring-only fields,
+* and fills a default scoring mode.
+*/
+function normalizeRubricCriteria(criteria, options) {
+	const errors = [];
+	const normalized = criteria.map((criterion, index) => {
+		const id = criterion.id ?? criterion.name;
+		const description = criterion.description ?? criterion.title;
+		if (!isNonEmptyString(id)) errors.push({
+			field: `successCriteria/rubric/criteria/${index}/id`,
+			message: "criterion is missing id or name"
+		});
+		if (!isNonEmptyString(description)) errors.push({
+			field: `successCriteria/rubric/criteria/${index}/description`,
+			message: "criterion is missing description or title"
+		});
+		return {
+			id: id ?? "",
+			description: description ?? "",
+			weight: criterionWeight(criterion, index),
+			scoring: criterion.scoring ?? options?.scoring ?? "llm_score"
+		};
+	});
+	if (errors.length > 0) throw new TaskBuildError(errors);
+	return normalized;
+}
+/**
+* Build a canonical `SuccessCriteria` envelope from rubric/checklist-style
+* criteria. This keeps rubrics readable at the authoring boundary while
+* preserving the strict task schema on the wire.
+*/
+function buildRubricSuccessCriteria(options) {
+	const rubric = {
+		rubricId: options.rubricId,
+		version: options.version ?? "v1",
+		criteria: normalizeRubricCriteria(options.criteria, { scoring: options.scoring }),
+		...options.contentHash ? { contentHash: options.contentHash } : {},
+		...options.preamble ? { preamble: options.preamble } : {},
+		...options.scope ? { scope: options.scope } : {}
+	};
+	const weightError = validateRubricWeights(rubric);
+	if (weightError) throw new TaskBuildError([{
+		field: "successCriteria/rubric/criteria",
+		message: weightError
+	}]);
+	return {
+		version: 1,
+		rubric
+	};
+}
+function resolveJudgeEvalAttemptTarget(target) {
+	if ("judgeEvalTarget" in target && typeof target.judgeEvalTarget === "function") return target.judgeEvalTarget();
+	if ("targetTaskId" in target) return {
+		targetTaskId: target.targetTaskId,
+		targetAttemptN: target.targetAttemptN
+	};
+	if ("taskId" in target) return {
+		targetTaskId: target.taskId,
+		targetAttemptN: target.accepted?.attemptN ?? target.attemptN ?? 1
+	};
+	throw new TaskBuildError([{
+		field: "target",
+		message: "judge_eval_attempt target is missing task id"
+	}]);
+}
 /**
 * Fluent, network-free builder for a `tasks.create` body. Encodes the
 * non-obvious task schema (context arrays, success-criteria gates,
@@ -42191,6 +42271,20 @@ function buildJudgeEvalAttempt(input) {
 	return buildTask("judge_eval_attempt", input);
 }
 /**
+* Build a `judge_eval_attempt` task from an accepted `run_eval` result (or a
+* small target tuple) plus human-friendly rubric criteria.
+*
+* @param target - A `TaskResultReader` or `{targetTaskId,targetAttemptN}` tuple.
+* @param options - Rubric metadata and eval/checklist-style criteria.
+* @returns A typed {@link TaskBuilder}.
+*/
+function buildJudgeEvalAttemptForRunEval(target, options) {
+	return buildJudgeEvalAttempt({
+		...resolveJudgeEvalAttemptTarget(target),
+		successCriteria: buildRubricSuccessCriteria(options)
+	});
+}
+/**
 * Build a `pr_review` task. Requires `subject` + `successCriteria`. Note the
 * rubric criteria must use `boolean` scoring for this task type.
 *
@@ -42228,7 +42322,9 @@ var TaskResultReader = class {
 	accepted;
 	/** Token / cost usage for the accepted attempt, if reported. */
 	usage;
+	/** Task id for the task whose accepted attempt is being read. */
 	taskId;
+	/** CID of the accepted attempt output. */
 	outputCid;
 	constructor(task, attempt) {
 		const errors = [];
@@ -42318,6 +42414,19 @@ var TaskResultReader = class {
 			taskId: this.taskId,
 			outputCid: this.outputCid,
 			role
+		};
+	}
+	/**
+	* Return the target tuple required by `judge_eval_attempt`.
+	*
+	* This intentionally uses the accepted attempt number, not merely the
+	* attempt object passed to the reader, so a downstream judge is pinned to
+	* the producer output that the task accepted.
+	*/
+	judgeEvalTarget() {
+		return {
+			targetTaskId: this.taskId,
+			targetAttemptN: this.accepted.attemptN
 		};
 	}
 	/**
@@ -42458,6 +42567,7 @@ function createTasksNamespace(context) {
 		buildAssessBrief,
 		buildJudgePack,
 		buildJudgeEvalAttempt,
+		buildJudgeEvalAttemptForRunEval,
 		buildPrReview,
 		async readResult(taskOrId) {
 			const task = typeof taskOrId === "string" ? unwrapResult(await getTask({
@@ -44804,7 +44914,8 @@ async function createTask(input) {
 			...input.successCriteria ? { successCriteria: input.successCriteria } : {}
 		},
 		correlationId: input.correlationId,
-		...input.runningTimeoutSec !== void 0 ? { runningTimeoutSec: input.runningTimeoutSec } : {}
+		...input.runningTimeoutSec !== void 0 ? { runningTimeoutSec: input.runningTimeoutSec } : {},
+		...input.tags?.length ? { tags: input.tags } : {}
 	}, { teamId: input.teamId });
 }
 async function createAssessTask(input) {
@@ -44823,7 +44934,8 @@ async function createAssessTask(input) {
 		input: assessInput,
 		references: [reference],
 		correlationId: input.correlationId,
-		...input.runningTimeoutSec !== void 0 ? { runningTimeoutSec: input.runningTimeoutSec } : {}
+		...input.runningTimeoutSec !== void 0 ? { runningTimeoutSec: input.runningTimeoutSec } : {},
+		...input.tags?.length ? { tags: input.tags } : {}
 	}, { teamId: input.teamId });
 }
 //#endregion
@@ -44954,6 +45066,7 @@ async function dispatch(ctx) {
 	const diaryId = required(env, "MOLTNET_DIARY_ID");
 	const moltnet = await connect();
 	const runningTimeoutSec = parseRunningTimeout(env);
+	const tags = parseTaskTags(env);
 	if (parsed.verb === "fulfill") {
 		await dispatchFulfill({
 			moltnet,
@@ -44963,7 +45076,8 @@ async function dispatch(ctx) {
 			referenceUrl: extracted.referenceUrl,
 			issueTitle: extracted.issueTitle,
 			issueBody: extracted.issueBody,
-			runningTimeoutSec
+			runningTimeoutSec,
+			tags
 		});
 		return;
 	}
@@ -44976,7 +45090,8 @@ async function dispatch(ctx) {
 		repo: extracted.repo,
 		prNumber: extracted.issueNumber,
 		referenceUrl: extracted.referenceUrl,
-		runningTimeoutSec
+		runningTimeoutSec,
+		tags
 	});
 }
 /**
@@ -45001,6 +45116,16 @@ function parseRunningTimeout(env) {
 	}
 	return n;
 }
+function parseTaskTags(env) {
+	const raw = env.MOLTNET_TASK_TAGS;
+	if (!raw) return void 0;
+	const tags = raw.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split(/\n|,/).map((tag) => tag.trim()).filter((tag) => tag.length > 0).reduce((acc, tag) => acc.includes(tag) ? acc : [...acc, tag], []);
+	if (tags.length === 0) return void 0;
+	if (tags.length > 20) throw new Error("task tags exceed 20 items");
+	const oversized = tags.find((tag) => tag.length > 128);
+	if (oversized) throw new Error(`task tag exceeds 128 characters: ${oversized}`);
+	return tags;
+}
 async function dispatchFulfill(args) {
 	const correlationId = await resolveCorrelation({
 		contextType: "issue",
@@ -45018,7 +45143,8 @@ async function dispatchFulfill(args) {
 		referenceUrl: args.referenceUrl,
 		title: args.issueTitle ?? `Issue #${args.issueNumber}`,
 		brief: args.issueBody ?? "",
-		runningTimeoutSec: args.runningTimeoutSec
+		runningTimeoutSec: args.runningTimeoutSec,
+		tags: args.tags
 	});
 	import_core.setOutput("task-id", created.id);
 	import_core.setOutput("correlation-id", correlationId);
@@ -45069,7 +45195,8 @@ async function dispatchAssess(args) {
 		targetTaskId: fulfill.id,
 		targetOutputCid: accepted.outputCid,
 		successCriteria,
-		runningTimeoutSec: args.runningTimeoutSec
+		runningTimeoutSec: args.runningTimeoutSec,
+		tags: args.tags
 	});
 	import_core.setOutput("task-id", created.id);
 	import_core.setOutput("correlation-id", correlationId);

@@ -133,6 +133,13 @@ jobs:
           # to 2400s/40 min so the server cap never beats the runner
           # cap to the punch).
           running-timeout-sec: '2400'
+          tags: |
+            ci
+            source:github-actions
+            workflow:moltnet-mention
+            repo:${{ github.repository }}
+            agent-daemon
+            agent:${{ needs.parse.outputs.agent }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Agent identity (required) — sourced from `moltnet config

@@ -95,6 +95,17 @@ describe('createTask', () => {
     };
     expect(body.input.successCriteria).toEqual(sc);
   });
+
+  it('forwards task tags when provided', async () => {
+    const m = makeAgent();
+    await createTask({
+      agent: m.agent,
+      ...BASE_INPUT,
+      tags: ['ci', 'source:github-actions'],
+    });
+    const body = m.create.mock.calls[0][0] as { tags?: string[] };
+    expect(body.tags).toEqual(['ci', 'source:github-actions']);
+  });
 });
 
 const RUBRIC: SuccessCriteria = {
@@ -150,5 +161,22 @@ describe('createAssessTask', () => {
       },
       { teamId: BASE_INPUT.teamId },
     );
+  });
+
+  it('forwards task tags when provided', async () => {
+    const m = makeAgent();
+    await createAssessTask({
+      agent: m.agent,
+      teamId: BASE_INPUT.teamId,
+      diaryId: BASE_INPUT.diaryId,
+      correlationId: BASE_INPUT.correlationId,
+      targetTaskId: '44444444-4444-4444-8444-444444444444',
+      targetOutputCid: 'bafy-fulfill-output',
+      successCriteria: RUBRIC,
+      tags: ['ci', 'agent-daemon'],
+    });
+
+    const body = m.create.mock.calls[0][0] as { tags?: string[] };
+    expect(body.tags).toEqual(['ci', 'agent-daemon']);
   });
 });
