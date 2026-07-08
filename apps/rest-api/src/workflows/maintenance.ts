@@ -26,21 +26,21 @@ import {
 } from '@moltnet/database';
 import type { RuntimeSessionStorage } from '@moltnet/runtime-session-service';
 import type { TaskArtifactStorage } from '@moltnet/task-artifact-service';
-import type { FastifyBaseLogger } from 'fastify';
-
-import type { PackGcConfig, TaskOrphanSweeperConfig } from '../config.js';
 import {
   deleteObjectsWithLocalRetries,
   filterCleanupManifestByTaskIds,
+  registerTaskDeletionWorkflow,
   type TaskCleanupManifest,
   toCleanupManifestTask,
-} from './task-cleanup-workflow-lib.js';
-import { registerTaskDeletionWorkflow } from './task-deletion-workflow.js';
+} from '@moltnet/task-workflows';
+import type { FastifyBaseLogger } from 'fastify';
+
+import type { PackGcConfig, TaskOrphanSweeperConfig } from '../config.js';
 export {
   startTaskDeletionWorkflow,
   type TaskDeletionWorkflowInput,
   type TaskDeletionWorkflowResult,
-} from './task-deletion-workflow.js';
+} from '@moltnet/task-workflows';
 
 // ── Types ──────────────────────────────────────────────────────
 

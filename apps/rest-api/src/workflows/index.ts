@@ -48,11 +48,6 @@ export {
   type RunWorkflowOptions,
 } from './run-workflow.js';
 export {
-  startTaskDeletionWorkflow,
-  type TaskDeletionWorkflowInput,
-  type TaskDeletionWorkflowResult,
-} from './task-deletion-workflow.js';
-export {
   FOUNDING_ACCEPT_EVENT,
   type FoundingMember,
   initTeamFoundingWorkflow,
@@ -62,3 +57,8 @@ export {
   TeamFoundingTimeoutError,
   teamFoundingWorkflow,
 } from './team-founding-workflow.js';
+export {
+  startTaskDeletionWorkflow,
+  type TaskDeletionWorkflowInput,
+  type TaskDeletionWorkflowResult,
+} from '@moltnet/task-workflows';

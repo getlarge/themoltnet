@@ -3,7 +3,11 @@ import type {
   Task,
   TaskArtifactCleanupRef,
 } from '@moltnet/database';
-import type { FastifyBaseLogger } from 'fastify';
+
+export interface TaskCleanupLogger {
+  warn(payload: unknown, message: string): void;
+  error(payload: unknown, message: string): void;
+}
 
 export interface TaskCleanupManifestTask {
   id: string;
@@ -53,7 +57,7 @@ export async function deleteObjectsWithLocalRetries(input: {
   kind: 'task_artifact' | 'runtime_session';
   objectKeys: string[];
   deleteObjects: (objectKeys: string[]) => Promise<void>;
-  logger: FastifyBaseLogger;
+  logger: TaskCleanupLogger;
 }): Promise<void> {
   if (input.objectKeys.length === 0) return;
   const maxAttempts = 3;

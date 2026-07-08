@@ -6,17 +6,17 @@ import {
   type WorkflowHandle,
   WorkflowQueue,
 } from '@moltnet/database';
+
+import {
+  type TaskCleanupLogger,
+  type TaskCleanupManifest,
+  toCleanupManifestTask,
+} from './task-cleanup-workflow-lib.js';
 import {
   buildTaskDeletionPlan,
   classifyTaskDeletionCandidates,
   DELETE_ELIGIBLE_TASK_STATUSES,
-} from '@moltnet/task-workflows';
-import type { FastifyBaseLogger } from 'fastify';
-
-import {
-  type TaskCleanupManifest,
-  toCleanupManifestTask,
-} from './task-cleanup-workflow-lib.js';
+} from './task-deletion-policy.js';
 
 export interface TaskDeletionWorkflowInput {
   ids: string[];
@@ -42,7 +42,9 @@ interface TaskDeletionWorkflowDeps {
   runtimeSessionRepository: RuntimeSessionRepository;
   taskArtifactRepository: TaskArtifactRepository;
   taskRepository: TaskRepository;
-  logger: FastifyBaseLogger;
+  logger: TaskCleanupLogger & {
+    info(payload: unknown, message: string): void;
+  };
 }
 
 type DeleteTaskRowsStep = (
@@ -58,8 +60,37 @@ type DeleteTaskObjectsStep = (manifest: TaskCleanupManifest) => Promise<number>;
 let _taskDeletionWorkflow:
   | ((input: TaskDeletionWorkflowInput) => Promise<TaskDeletionWorkflowResult>)
   | null = null;
+let _taskDeletionQueueRegistered = false;
 
 const TASK_DELETION_QUEUE_NAME = 'task-deletion-cleanup';
+
+export function _resetTaskDeletionWorkflowForTesting(): void {
+  _taskDeletionWorkflow = null;
+  _taskDeletionQueueRegistered = false;
+}
+
+function ensureTaskDeletionQueue(): void {
+  if (_taskDeletionQueueRegistered) {
+    return;
+  }
+
+  try {
+    new WorkflowQueue(TASK_DELETION_QUEUE_NAME, { concurrency: 2 });
+  } catch (err) {
+    if (
+      err instanceof Error &&
+      err.message.includes(
+        `Workflow Queue '${TASK_DELETION_QUEUE_NAME}' defined multiple times`,
+      )
+    ) {
+      _taskDeletionQueueRegistered = true;
+      return;
+    }
+    throw err;
+  }
+
+  _taskDeletionQueueRegistered = true;
+}
 
 export async function startTaskDeletionWorkflow(
   input: TaskDeletionWorkflowInput,
@@ -82,7 +113,7 @@ export function registerTaskDeletionWorkflow(input: {
   deleteTaskArtifactObjectsStep: DeleteTaskObjectsStep;
   deleteRuntimeSessionObjectsStep: DeleteTaskObjectsStep;
 }): void {
-  new WorkflowQueue(TASK_DELETION_QUEUE_NAME, { concurrency: 2 });
+  ensureTaskDeletionQueue();
 
   const buildTaskDeletionManifestStep = DBOS.registerStep(
     async (

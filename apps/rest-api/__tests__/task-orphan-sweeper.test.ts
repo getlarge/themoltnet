@@ -10,52 +10,75 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // Mock DBOS BEFORE importing the module under test. We capture each
 // registered workflow/step by name so the test can drive the sweeper
 // directly without a live DBOS runtime.
-const registeredWorkflows: Record<string, (...args: unknown[]) => unknown> = {};
-const registeredSteps: Record<string, (...args: unknown[]) => unknown> = {};
-const registeredScheduled: Record<string, unknown> = {};
+const {
+  registeredWorkflows,
+  registeredSteps,
+  registeredScheduled,
+  dbosMock,
+  WorkflowQueueMock,
+} = vi.hoisted(() => {
+  const registeredWorkflows: Record<string, (...args: unknown[]) => unknown> =
+    {};
+  const registeredSteps: Record<string, (...args: unknown[]) => unknown> = {};
+  const registeredScheduled: Record<string, unknown> = {};
+  const dbosMock = {
+    registerWorkflow: vi.fn(
+      (
+        fn: (...args: unknown[]) => unknown,
+        config: { name: string },
+      ): ((...args: unknown[]) => unknown) => {
+        registeredWorkflows[config.name] = fn;
+        return fn;
+      },
+    ),
+    registerStep: vi.fn(
+      (
+        fn: (...args: unknown[]) => unknown,
+        config: { name: string },
+      ): ((...args: unknown[]) => unknown) => {
+        registeredSteps[config.name] = fn;
+        return fn;
+      },
+    ),
+    registerScheduled: vi.fn((workflow: unknown, config: { name: string }) => {
+      registeredScheduled[config.name] = workflow;
+    }),
+    startWorkflow: vi.fn(
+      (fn: (...args: unknown[]) => unknown) =>
+        (...args: unknown[]) =>
+          fn(...args),
+    ),
+    resumeWorkflow: vi.fn(),
+  };
+
+  class WorkflowQueueMock {
+    readonly name: string;
+
+    constructor(name: string) {
+      this.name = name;
+    }
+  }
+
+  return {
+    registeredWorkflows,
+    registeredSteps,
+    registeredScheduled,
+    dbosMock,
+    WorkflowQueueMock,
+  };
+});
+
+vi.mock('@dbos-inc/dbos-sdk', () => ({
+  DBOS: dbosMock,
+  WorkflowQueue: WorkflowQueueMock,
+}));
 
 vi.mock('@moltnet/database', async () => {
   const actual = await vi.importActual<DatabaseModule>('@moltnet/database');
   return {
     ...actual,
-    DBOS: {
-      registerWorkflow: vi.fn(
-        (
-          fn: (...args: unknown[]) => unknown,
-          config: { name: string },
-        ): ((...args: unknown[]) => unknown) => {
-          registeredWorkflows[config.name] = fn;
-          return fn;
-        },
-      ),
-      registerStep: vi.fn(
-        (
-          fn: (...args: unknown[]) => unknown,
-          config: { name: string },
-        ): ((...args: unknown[]) => unknown) => {
-          registeredSteps[config.name] = fn;
-          return fn;
-        },
-      ),
-      registerScheduled: vi.fn(
-        (workflow: unknown, config: { name: string }) => {
-          registeredScheduled[config.name] = workflow;
-        },
-      ),
-      startWorkflow: vi.fn(
-        (fn: (...args: unknown[]) => unknown) =>
-          (...args: unknown[]) =>
-            fn(...args),
-      ),
-      resumeWorkflow: vi.fn(),
-    },
-    WorkflowQueue: class {
-      readonly name: string;
-
-      constructor(name: string) {
-        this.name = name;
-      }
-    },
+    DBOS: dbosMock,
+    WorkflowQueue: WorkflowQueueMock,
   };
 });
 
