@@ -51,6 +51,14 @@ void moltnet_client_destroy(moltnet_client_t* client);
 void moltnet_free_string(char* value);
 void moltnet_raw_response_free(moltnet_raw_response_t* response);
 
+moltnet_raw_response_t moltnet_whoami(moltnet_client_t* client);
+moltnet_raw_response_t moltnet_list_runtime_models(moltnet_client_t* client,
+                                                   const char* provider);
+moltnet_raw_response_t moltnet_get_runtime_model(moltnet_client_t* client,
+                                                 const char* model_id);
+moltnet_raw_response_t moltnet_list_runtime_profiles(moltnet_client_t* client);
+moltnet_raw_response_t moltnet_get_runtime_profile(moltnet_client_t* client,
+                                                   const char* profile_id);
 moltnet_raw_response_t moltnet_list_diaries(moltnet_client_t* client);
 moltnet_raw_response_t moltnet_get_diary(moltnet_client_t* client,
                                          const char* id);
