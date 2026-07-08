@@ -2464,7 +2464,7 @@ describe('Tasks API', () => {
       );
     });
 
-    it('safe deletion queues terminal unsealed tasks and force gates sealed terminal cleanup', async () => {
+    it('safe deletion queues waiting/queued and terminal unsealed tasks and force gates sealed terminal cleanup', async () => {
       const terminal = await createTask({
         client,
         auth: () => proposer.accessToken,
@@ -2476,15 +2476,15 @@ describe('Tasks API', () => {
           input: { brief: 'terminal cleanup' },
         },
       });
-      const live = await createTask({
+      const queued = await createTask({
         client,
         auth: () => proposer.accessToken,
         headers: { 'x-moltnet-team-id': proposer.personalTeamId },
         body: {
           taskType: 'freeform',
-          title: 'cleanup live',
+          title: 'cleanup queued',
           diaryId: proposer.privateDiaryId,
-          input: { brief: 'live cleanup' },
+          input: { brief: 'queued cleanup' },
         },
       });
       const sealed = await createTask({
@@ -2500,7 +2500,7 @@ describe('Tasks API', () => {
         },
       });
       expect(terminal.error).toBeUndefined();
-      expect(live.error).toBeUndefined();
+      expect(queued.error).toBeUndefined();
       expect(sealed.error).toBeUndefined();
 
       await cancelTask({
@@ -2527,18 +2527,14 @@ describe('Tasks API', () => {
         client,
         auth: () => proposer.accessToken,
         body: {
-          ids: [terminal.data!.id, live.data!.id, sealed.data!.id, missingId],
+          ids: [terminal.data!.id, queued.data!.id, sealed.data!.id, missingId],
         },
       });
       expect(safe.error).toBeUndefined();
       expect(safe.response.status).toBe(202);
       expect(safe.data?.workflowId).toEqual(expect.any(String));
-      expect(safe.data?.accepted).toEqual([terminal.data!.id]);
-      expect(safe.data?.skipped).toEqual([
-        live.data!.id,
-        sealed.data!.id,
-        missingId,
-      ]);
+      expect(safe.data?.accepted).toEqual([terminal.data!.id, queued.data!.id]);
+      expect(safe.data?.skipped).toEqual([sealed.data!.id, missingId]);
       await pollUntil(
         () =>
           getTask({
@@ -2550,6 +2546,19 @@ describe('Tasks API', () => {
         {
           ...TASK_DELETION_POLL_OPTIONS,
           label: 'safe cleanup deletes terminal task',
+        },
+      );
+      await pollUntil(
+        () =>
+          getTask({
+            client,
+            auth: () => proposer.accessToken,
+            path: { id: queued.data!.id },
+          }),
+        taskNoLongerVisible,
+        {
+          ...TASK_DELETION_POLL_OPTIONS,
+          label: 'safe cleanup deletes queued task',
         },
       );
 
@@ -2564,7 +2573,7 @@ describe('Tasks API', () => {
         client,
         auth: () => proposer.accessToken,
         body: {
-          ids: [sealed.data!.id, live.data!.id],
+          ids: [sealed.data!.id],
           force: true,
           reason: 'operator reviewed terminal sealed task',
         },
@@ -2573,7 +2582,7 @@ describe('Tasks API', () => {
       expect(accepted.response.status).toBe(202);
       expect(accepted.data?.workflowId).toEqual(expect.any(String));
       expect(accepted.data?.accepted).toEqual([sealed.data!.id]);
-      expect(accepted.data?.skipped).toEqual([live.data!.id]);
+      expect(accepted.data?.skipped).toEqual([]);
       await pollUntil(
         () =>
           getTask({
@@ -2599,16 +2608,6 @@ describe('Tasks API', () => {
           label: 'force cleanup removes correlation seal',
         },
       );
-
-      expect(
-        (
-          await getTask({
-            client,
-            auth: () => proposer.accessToken,
-            path: { id: live.data!.id },
-          })
-        ).response.status,
-      ).toBe(200);
     });
   });
 });
