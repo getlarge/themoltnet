@@ -175,12 +175,6 @@ export {
 } from './repositories/voucher.repository.js';
 export * from './schema.js';
 export {
-  DELETE_ELIGIBLE_TASK_STATUSES,
-  isDeleteEligibleTaskStatus,
-  isTerminalTaskStatus,
-  TERMINAL_TASK_STATUSES,
-} from './task-status-policy.js';
-export {
   createDBOSTransactionRunner,
   createDrizzleTransactionRunner,
   getExecutor,

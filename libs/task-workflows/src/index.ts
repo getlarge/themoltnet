@@ -1,4 +1,14 @@
 export {
+  buildTaskDeletionPlan,
+  classifyTaskDeletionCandidates,
+  DELETE_ELIGIBLE_TASK_STATUSES,
+  isDeleteEligibleTaskStatus,
+  isTerminalTaskStatus,
+  type TaskDeletionCandidateClassification,
+  type TaskDeletionPlan,
+  TERMINAL_TASK_STATUSES,
+} from './task-deletion-policy.js';
+export {
   _resetTaskWorkflowsForTesting,
   DEFAULT_DISPATCH_TIMEOUT_SECONDS,
   DEFAULT_RUNNING_TIMEOUT_SECONDS,

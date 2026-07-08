@@ -1,8 +1,8 @@
+import type { Task as DbTask } from '@moltnet/database';
 import {
   DELETE_ELIGIBLE_TASK_STATUSES,
-  type Task as DbTask,
   TERMINAL_TASK_STATUSES,
-} from '@moltnet/database';
+} from '@moltnet/task-workflows';
 import type { TaskAttempt, TaskValidationError } from '@moltnet/tasks';
 
 export const EVENT_TIMEOUT_SECONDS = 10;

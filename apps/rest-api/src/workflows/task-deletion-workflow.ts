@@ -1,14 +1,16 @@
 import {
   DBOS,
-  DELETE_ELIGIBLE_TASK_STATUSES,
-  isDeleteEligibleTaskStatus,
-  isTerminalTaskStatus,
   type RuntimeSessionRepository,
   type TaskArtifactRepository,
   type TaskRepository,
   type WorkflowHandle,
   WorkflowQueue,
 } from '@moltnet/database';
+import {
+  buildTaskDeletionPlan,
+  classifyTaskDeletionCandidates,
+  DELETE_ELIGIBLE_TASK_STATUSES,
+} from '@moltnet/task-workflows';
 import type { FastifyBaseLogger } from 'fastify';
 
 import {
@@ -93,35 +95,32 @@ export function registerTaskDeletionWorkflow(input: {
       } = input.getDeps();
       const uniqueIds = [...new Set(workflowInput.ids)];
       const rows = await taskRepository.findByIds(uniqueIds);
-      const deleteEligibleTasks = rows.filter((task) =>
-        isDeleteEligibleTaskStatus(task.status),
-      );
-      const terminalTasks = deleteEligibleTasks.filter((task) =>
-        isTerminalTaskStatus(task.status),
-      );
+      const { deleteEligibleTasks, terminalTaskIds } =
+        classifyTaskDeletionCandidates(rows);
       const sealedIds = new Set(
-        await taskRepository.findSealedTaskIds(
-          terminalTasks.map((task) => task.id),
-        ),
+        await taskRepository.findSealedTaskIds(terminalTaskIds),
       );
-      const tasksForCleanup = deleteEligibleTasks
-        .filter((task) => !sealedIds.has(task.id) || workflowInput.force)
-        .map(toCleanupManifestTask);
+      const plan = buildTaskDeletionPlan({
+        requestedIds: uniqueIds,
+        deleteEligibleTasks,
+        sealedTaskIds: [...sealedIds],
+        forceDeleteAllowedTaskIds: workflowInput.force
+          ? terminalTaskIds
+          : undefined,
+      });
+      const tasksForCleanup = plan.acceptedTasks.map(toCleanupManifestTask);
       const taskIds = tasksForCleanup.map((task) => task.id);
       const [taskArtifacts, runtimeSessions] = await Promise.all([
         taskArtifactRepository.listCleanupRefsForTasks(taskIds),
         runtimeSessionRepository.listCleanupRefsForTasks(taskIds),
       ]);
-      const cleanupSet = new Set(taskIds);
 
       return {
         tasks: tasksForCleanup,
         taskArtifacts,
         runtimeSessions,
-        skipped: uniqueIds.filter((id) => !cleanupSet.has(id)),
-        skippedProtected: workflowInput.force
-          ? 0
-          : terminalTasks.filter((task) => sealedIds.has(task.id)).length,
+        skipped: plan.skipped,
+        skippedProtected: plan.skippedProtected,
         batchFull: false,
         createdAt: new Date().toISOString(),
       };
