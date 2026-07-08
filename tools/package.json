@@ -59,6 +59,25 @@
       "type:tool",
       "scope:tooling",
       "platform:cli"
-    ]
+    ],
+    "targets": {
+      "install-golangci-lint": {
+        "cache": true,
+        "executor": "nx:run-commands",
+        "inputs": [
+          "{workspaceRoot}/tools/package.json",
+          {
+            "runtime": "go version"
+          }
+        ],
+        "options": {
+          "command": "GOBIN=\"$PWD/.cache/golangci-lint/v2.5.0/bin\" go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.5.0",
+          "cwd": "{workspaceRoot}"
+        },
+        "outputs": [
+          "{workspaceRoot}/.cache/golangci-lint/v2.5.0/bin"
+        ]
+      }
+    }
   }
 }
