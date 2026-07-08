@@ -7,6 +7,7 @@ import {
   createDiaryEntry,
   createRuntimeProfile,
   createTask,
+  taskHeartbeat,
   uploadTaskArtifact,
 } from '@moltnet/api-client';
 import { createE2EAgentHarness } from '@moltnet/bootstrap';
@@ -163,6 +164,19 @@ async function main() {
     if (claimError || !claim) {
       throw new Error(
         `Failed to claim e2e task: ${JSON.stringify(claimError)}`,
+      );
+    }
+
+    const { error: heartbeatError } = await taskHeartbeat({
+      client,
+      auth: () => agent.accessToken,
+      path: { id: claimedTask.id, n: claim.attempt.attemptN },
+      body: { leaseTtlSec: 60 },
+    });
+
+    if (heartbeatError) {
+      throw new Error(
+        `Failed to heartbeat e2e task attempt: ${JSON.stringify(heartbeatError)}`,
       );
     }
 
