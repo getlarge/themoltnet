@@ -688,7 +688,7 @@ describe('taskOrphanSweeperWorkflow — backstop (#1077)', () => {
     } as unknown as Task;
     const liveTask = {
       id: 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee6',
-      status: 'queued',
+      status: 'running',
       teamId: '99999999-9999-9999-9999-999999999999',
       diaryId: 'ffffffff-ffff-ffff-ffff-fffffffffff6',
       claimAgentId: null,
@@ -770,6 +770,66 @@ describe('taskOrphanSweeperWorkflow — backstop (#1077)', () => {
       skipped: [liveTask.id],
       deletedTaskCount: 1,
       deletedObjectCount: 2,
+      skippedProtected: 0,
+    });
+  });
+
+  it('task deletion workflow deletes queued tasks without force', async () => {
+    await init();
+    const { deps } = makeDeps([]);
+    const queuedTask = {
+      id: 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee7',
+      status: 'queued',
+      teamId: '99999999-9999-9999-9999-999999999999',
+      diaryId: 'ffffffff-ffff-ffff-ffff-fffffffffff7',
+      claimAgentId: null,
+    } as unknown as Task;
+    vi.mocked(deps.taskRepository.findByIds).mockResolvedValue([queuedTask]);
+    vi.mocked(deps.taskRepository.findSealedTaskIds).mockResolvedValue([]);
+    vi.mocked(
+      deps.taskArtifactRepository.listCleanupRefsForTasks,
+    ).mockResolvedValue([]);
+    vi.mocked(
+      deps.runtimeSessionRepository.listCleanupRefsForTasks,
+    ).mockResolvedValue([]);
+    vi.mocked(deps.taskRepository.deleteMany).mockResolvedValue([
+      queuedTask.id,
+    ]);
+    const { setMaintenanceDeps: setDeps } =
+      await import('../src/workflows/maintenance.js');
+    setDeps(deps);
+
+    const workflow = registeredWorkflows['maintenance.taskDeletion'];
+    if (!workflow) {
+      throw new Error('task deletion workflow not registered');
+    }
+    const result = await workflow({
+      ids: [queuedTask.id],
+      force: false,
+      requestedBy: { id: AGENT_ID, ns: 'agent' },
+    });
+
+    expect(
+      deps.taskRepository.deleteCorrelationSealsForTasks,
+    ).not.toHaveBeenCalled();
+    expect(deps.taskRepository.deleteMany).toHaveBeenCalledWith([
+      queuedTask.id,
+    ]);
+    expect(
+      deps.relationshipWriter.removeTaskRelationsBatch,
+    ).toHaveBeenCalledWith([
+      {
+        id: queuedTask.id,
+        diaryId: queuedTask.diaryId,
+        claimAgentId: queuedTask.claimAgentId,
+      },
+    ]);
+    expect(result).toEqual({
+      requested: 1,
+      accepted: 1,
+      skipped: [],
+      deletedTaskCount: 1,
+      deletedObjectCount: 0,
       skippedProtected: 0,
     });
   });

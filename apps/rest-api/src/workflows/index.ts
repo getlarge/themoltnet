@@ -32,9 +32,6 @@ export {
   initMaintenanceWorkflows,
   type MaintenanceDeps,
   setMaintenanceDeps,
-  startTaskDeletionWorkflow,
-  type TaskDeletionWorkflowInput,
-  type TaskDeletionWorkflowResult,
 } from './maintenance.js';
 export {
   initRegistrationWorkflow,
@@ -50,6 +47,11 @@ export {
   runWorkflow,
   type RunWorkflowOptions,
 } from './run-workflow.js';
+export {
+  startTaskDeletionWorkflow,
+  type TaskDeletionWorkflowInput,
+  type TaskDeletionWorkflowResult,
+} from './task-deletion-workflow.js';
 export {
   FOUNDING_ACCEPT_EVENT,
   type FoundingMember,
