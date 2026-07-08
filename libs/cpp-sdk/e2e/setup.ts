@@ -2,8 +2,10 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 
 import {
+  claimTask,
   createClient,
   createDiaryEntry,
+  createRuntimeProfile,
   createTask,
 } from '@moltnet/api-client';
 import { createE2EAgentHarness } from '@moltnet/bootstrap';
@@ -74,6 +76,95 @@ async function main() {
       );
     }
 
+    const { data: profile, error: profileError } = await createRuntimeProfile({
+      client,
+      auth: () => agent.accessToken,
+      headers: { 'x-moltnet-team-id': agent.personalTeamId },
+      body: {
+        name: `cpp-sdk-e2e-profile-${marker}`,
+        provider: 'openai',
+        model: 'gpt-5-mini',
+        runtimeKind: 'gondolin_pi',
+        defaultWorkspaceMode: 'none',
+        allowedWorkspaceModes: ['none'],
+        sandbox: {},
+      },
+    });
+
+    if (profileError || !profile) {
+      throw new Error(
+        `Failed to create e2e runtime profile: ${JSON.stringify(profileError)}`,
+      );
+    }
+
+    const profiledTaskBody = buildCuratePack({
+      diaryId: agent.privateDiaryId,
+      taskPrompt:
+        `Profile-filter fixture for the MoltNet C++ SDK e2e test. ` +
+        `Marker: ${marker}`,
+    })
+      .team(agent.personalTeamId)
+      .diary(agent.privateDiaryId)
+      .title(`C++ SDK e2e profiled ${marker}`)
+      .tags('cpp-sdk-e2e', marker, 'profile-filter')
+      .maxAttempts(1)
+      .allowProfiles({ profileId: profile.id })
+      .build();
+
+    const { data: profiledTask, error: profiledTaskError } = await createTask({
+      client,
+      auth: () => agent.accessToken,
+      headers: { 'x-moltnet-team-id': profiledTaskBody.teamId },
+      body: profiledTaskBody.body,
+    });
+
+    if (profiledTaskError || !profiledTask) {
+      throw new Error(
+        `Failed to create e2e profiled task: ${JSON.stringify(profiledTaskError)}`,
+      );
+    }
+
+    const claimedTaskBody = buildCuratePack({
+      diaryId: agent.privateDiaryId,
+      taskPrompt:
+        `Claimant-filter fixture for the MoltNet C++ SDK e2e test. ` +
+        `Marker: ${marker}`,
+    })
+      .team(agent.personalTeamId)
+      .diary(agent.privateDiaryId)
+      .title(`C++ SDK e2e claimed ${marker}`)
+      .tags('cpp-sdk-e2e', marker, 'claimant-filter')
+      .maxAttempts(1)
+      .allowProfiles({ profileId: profile.id })
+      .build();
+
+    const { data: claimedTask, error: claimedTaskCreateError } =
+      await createTask({
+        client,
+        auth: () => agent.accessToken,
+        headers: { 'x-moltnet-team-id': claimedTaskBody.teamId },
+        body: claimedTaskBody.body,
+      });
+
+    if (claimedTaskCreateError || !claimedTask) {
+      throw new Error(
+        `Failed to create e2e claimed task: ${JSON.stringify(claimedTaskCreateError)}`,
+      );
+    }
+
+    const { error: claimError } = await claimTask({
+      client,
+      auth: () => agent.accessToken,
+      path: { id: claimedTask.id },
+      body: { leaseTtlSec: 60, profileId: profile.id },
+    });
+
+    if (claimError) {
+      throw new Error(
+        `Failed to claim e2e task: ${JSON.stringify(claimError)}`,
+      );
+    }
+
     await mkdir(dirname(outputPath), { recursive: true });
     await writeFile(
       outputPath,
@@ -86,6 +177,10 @@ async function main() {
           diaryId: agent.privateDiaryId,
           entryId: entry.id,
           taskId: task.id,
+          profileId: profile.id,
+          profiledTaskId: profiledTask.id,
+          claimedTaskId: claimedTask.id,
+          claimedByAgentId: agent.identityId,
           marker,
         },
         null,

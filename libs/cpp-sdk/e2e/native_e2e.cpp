@@ -271,6 +271,11 @@ int main() {
     const auto diary_id = required_field(fixture, "diaryId");
     const auto entry_id = required_field(fixture, "entryId");
     const auto task_id = required_field(fixture, "taskId");
+    const auto profile_id = required_field(fixture, "profileId");
+    const auto profiled_task_id = required_field(fixture, "profiledTaskId");
+    const auto claimed_task_id = required_field(fixture, "claimedTaskId");
+    const auto claimed_by_agent_id =
+        required_field(fixture, "claimedByAgentId");
     const auto marker = required_field(fixture, "marker");
 
     moltnet::Client client(config, socket_transport);
@@ -301,6 +306,26 @@ int main() {
     auto tasks = client.list_tasks(tasks_query);
     expect_status(tasks, 200, "list_tasks");
     expect_contains(tasks.body, task_id, "list_tasks");
+
+    moltnet::TasksQuery profiled_tasks_query;
+    profiled_tasks_query.statuses = {"waiting", "queued"};
+    profiled_tasks_query.task_types = {"curate_pack"};
+    profiled_tasks_query.profile_id = profile_id;
+    profiled_tasks_query.limit = 100;
+    auto profiled_tasks = client.list_tasks(profiled_tasks_query);
+    expect_status(profiled_tasks, 200, "list_tasks profile/status filters");
+    expect_contains(profiled_tasks.body, profiled_task_id,
+                    "list_tasks profile/status filters");
+
+    moltnet::TasksQuery claimed_tasks_query;
+    claimed_tasks_query.statuses = {"dispatched", "running"};
+    claimed_tasks_query.task_types = {"curate_pack"};
+    claimed_tasks_query.claimed_by_agent_id = claimed_by_agent_id;
+    claimed_tasks_query.limit = 100;
+    auto claimed_tasks = client.list_tasks(claimed_tasks_query);
+    expect_status(claimed_tasks, 200, "list_tasks claimant/status filters");
+    expect_contains(claimed_tasks.body, claimed_task_id,
+                    "list_tasks claimant/status filters");
 
     auto task = client.get_task(task_id);
     expect_status(task, 200, "get_task");

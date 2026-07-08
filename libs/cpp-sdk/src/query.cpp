@@ -31,6 +31,13 @@ void add(std::vector<std::string>& parts, const std::string& key,
   if (value) parts.push_back(encode(key) + "=" + std::to_string(*value));
 }
 
+void add_each(std::vector<std::string>& parts, const std::string& key,
+              const std::vector<std::string>& values) {
+  for (const auto& value : values) {
+    if (!value.empty()) parts.push_back(encode(key) + "=" + encode(value));
+  }
+}
+
 std::string join(const std::vector<std::string>& parts) {
   std::ostringstream out;
   for (size_t i = 0; i < parts.size(); i++) {

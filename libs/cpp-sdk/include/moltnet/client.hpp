@@ -2,6 +2,7 @@
 
 #include <optional>
 #include <string>
+#include <vector>
 
 #include "moltnet/http.hpp"
 
@@ -40,7 +41,11 @@ struct SearchQuery {
 struct TasksQuery {
   std::optional<std::string> query;
   std::optional<std::string> status;
+  std::vector<std::string> statuses;
   std::optional<std::string> diary_id;
+  std::optional<std::string> profile_id;
+  std::optional<std::string> claimed_by_agent_id;
+  std::vector<std::string> task_types;
   std::optional<int> limit;
   std::optional<std::string> cursor;
 };
