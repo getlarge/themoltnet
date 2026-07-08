@@ -13,8 +13,9 @@ forcing libcurl, cpprestsdk, or any other HTTP client library into the core.
 - Automatic token reuse and one re-auth retry on `401`.
 - Optional config loading from `~/.config/moltnet/moltnet.json` with env
   overrides.
-- Read-first API helpers for diaries, entries, search, tasks, attempts,
-  messages, schemas, artifact metadata, and artifact content downloads.
+- Read-first API helpers for identity, runtime models, runtime profiles,
+  diaries, entries, search, tasks, attempts, messages, schemas, artifact
+  metadata, and artifact content downloads.
 - Raw JSON response bodies, preserving server schema changes.
 
 ## Build
@@ -55,3 +56,16 @@ filters for API surfaces that need multiple values:
   `completed_before` map directly to the REST task list filters.
 
 All task reads include `x-moltnet-team-id` through `Config::team_id`.
+
+## Runtime reads
+
+- `whoami()` reads `GET /agents/whoami`.
+- `list_runtime_models()` reads the visible global and team-scoped runtime
+  model catalog. `RuntimeModelsQuery::provider` emits `provider=<value>`.
+- `get_runtime_model()` reads one model catalog entry by ID.
+- `list_runtime_profiles()` and `get_runtime_profile()` read runtime profiles
+  for `Config::team_id`.
+
+Runtime profile reads require `Config::team_id` because profiles are team
+scoped. Runtime model listing can run without a team, but includes team-scoped
+entries when `Config::team_id` is set.

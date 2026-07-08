@@ -26,6 +26,10 @@ struct PageQuery {
   std::optional<std::string> cursor;
 };
 
+struct RuntimeModelsQuery {
+  std::optional<std::string> provider;
+};
+
 struct EntriesQuery {
   std::optional<int> limit;
   std::optional<int> offset;
@@ -70,6 +74,12 @@ Config load_config();
 class Client {
  public:
   Client(Config config, Transport transport);
+
+  RawResponse whoami();
+  RawResponse list_runtime_models(const RuntimeModelsQuery& query = {});
+  RawResponse get_runtime_model(const std::string& model_id);
+  RawResponse list_runtime_profiles();
+  RawResponse get_runtime_profile(const std::string& profile_id);
 
   RawResponse list_diaries();
   RawResponse get_diary(const std::string& id);

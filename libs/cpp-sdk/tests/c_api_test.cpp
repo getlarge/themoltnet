@@ -28,6 +28,33 @@ int fake_transport(const moltnet_http_request_t* request,
     response->body = "{\"diaries\":[]}";
     return 0;
   }
+  if (fake->urls.back() == "https://api.example.test/runtime-profiles") {
+    response->status = 200;
+    response->body = "{\"items\":[{\"id\":\"profile-1\"}]}";
+    return 0;
+  }
+  if (fake->urls.back() ==
+      "https://api.example.test/runtime-profiles/profile-1") {
+    response->status = 200;
+    response->body = "{\"id\":\"profile-1\"}";
+    return 0;
+  }
+  if (fake->urls.back() ==
+      "https://api.example.test/runtime-models?provider=openai") {
+    response->status = 200;
+    response->body = "{\"items\":[{\"id\":\"model-1\"}]}";
+    return 0;
+  }
+  if (fake->urls.back() == "https://api.example.test/runtime-models/model-1") {
+    response->status = 200;
+    response->body = "{\"id\":\"model-1\"}";
+    return 0;
+  }
+  if (fake->urls.back() == "https://api.example.test/agents/whoami") {
+    response->status = 200;
+    response->body = "{\"fingerprint\":\"ABCD-EFGH-IJKL-MNOP\"}";
+    return 0;
+  }
   response->status = 404;
   response->body = "{}";
   return 0;
@@ -55,5 +82,40 @@ void test_c_api_smoke() {
   ASSERT_EQ(fake.token_requests, 1);
 
   moltnet_raw_response_free(&response);
+
+  response = moltnet_whoami(client);
+  ASSERT_EQ(response.status, 200);
+  ASSERT_TRUE(std::string(response.body).find("ABCD-EFGH-IJKL-MNOP") !=
+              std::string::npos);
+  ASSERT_TRUE(response.error == nullptr);
+  moltnet_raw_response_free(&response);
+
+  response = moltnet_list_runtime_profiles(client);
+  ASSERT_EQ(response.status, 200);
+  ASSERT_TRUE(std::string(response.body).find("profile-1") !=
+              std::string::npos);
+  ASSERT_TRUE(response.error == nullptr);
+  moltnet_raw_response_free(&response);
+
+  response = moltnet_get_runtime_profile(client, "profile-1");
+  ASSERT_EQ(response.status, 200);
+  ASSERT_TRUE(std::string(response.body).find("profile-1") !=
+              std::string::npos);
+  ASSERT_TRUE(response.error == nullptr);
+  moltnet_raw_response_free(&response);
+
+  response = moltnet_list_runtime_models(client, "openai");
+  ASSERT_EQ(response.status, 200);
+  ASSERT_TRUE(std::string(response.body).find("model-1") !=
+              std::string::npos);
+  ASSERT_TRUE(response.error == nullptr);
+  moltnet_raw_response_free(&response);
+
+  response = moltnet_get_runtime_model(client, "model-1");
+  ASSERT_EQ(response.status, 200);
+  ASSERT_TRUE(std::string(response.body).find("model-1") != std::string::npos);
+  ASSERT_TRUE(response.error == nullptr);
+  moltnet_raw_response_free(&response);
+
   moltnet_client_destroy(client);
 }

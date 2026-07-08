@@ -271,8 +271,12 @@ int main() {
     const auto diary_id = required_field(fixture, "diaryId");
     const auto entry_id = required_field(fixture, "entryId");
     const auto task_id = required_field(fixture, "taskId");
+    const auto runtime_model_id = required_field(fixture, "runtimeModelId");
+    const auto runtime_provider = required_field(fixture, "runtimeProvider");
+    const auto runtime_model = required_field(fixture, "runtimeModel");
     const auto profile_id = required_field(fixture, "profileId");
     const auto profiled_task_id = required_field(fixture, "profiledTaskId");
+    const auto agent_identity_id = required_field(fixture, "agentIdentityId");
     const auto claimed_task_id = required_field(fixture, "claimedTaskId");
     const auto claimed_by_agent_id =
         required_field(fixture, "claimedByAgentId");
@@ -283,6 +287,32 @@ int main() {
     const auto marker = required_field(fixture, "marker");
 
     moltnet::Client client(config, socket_transport);
+
+    auto whoami = client.whoami();
+    expect_status(whoami, 200, "whoami");
+    expect_contains(whoami.body, agent_identity_id, "whoami");
+
+    moltnet::RuntimeModelsQuery runtime_models_query;
+    runtime_models_query.provider = runtime_provider;
+    auto runtime_models = client.list_runtime_models(runtime_models_query);
+    expect_status(runtime_models, 200, "list_runtime_models");
+    expect_contains(runtime_models.body, runtime_model_id,
+                    "list_runtime_models");
+    expect_contains(runtime_models.body, runtime_model, "list_runtime_models");
+
+    auto runtime_model_response = client.get_runtime_model(runtime_model_id);
+    expect_status(runtime_model_response, 200, "get_runtime_model");
+    expect_contains(runtime_model_response.body, runtime_model_id,
+                    "get_runtime_model");
+
+    auto runtime_profiles = client.list_runtime_profiles();
+    expect_status(runtime_profiles, 200, "list_runtime_profiles");
+    expect_contains(runtime_profiles.body, profile_id, "list_runtime_profiles");
+
+    auto runtime_profile = client.get_runtime_profile(profile_id);
+    expect_status(runtime_profile, 200, "get_runtime_profile");
+    expect_contains(runtime_profile.body, profile_id, "get_runtime_profile");
+    expect_contains(runtime_profile.body, runtime_model, "get_runtime_profile");
 
     moltnet::EntriesQuery entries_query;
     entries_query.limit = 20;

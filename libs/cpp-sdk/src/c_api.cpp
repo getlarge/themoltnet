@@ -99,6 +99,58 @@ void moltnet_raw_response_free(moltnet_raw_response_t* response) {
   response->error = nullptr;
 }
 
+moltnet_raw_response_t moltnet_whoami(moltnet_client_t* client) {
+  if (client == nullptr) return fail_text("client is null");
+  try {
+    return ok(client->client.whoami());
+  } catch (const std::exception& error) {
+    return fail(error);
+  }
+}
+
+moltnet_raw_response_t moltnet_list_runtime_models(moltnet_client_t* client,
+                                                   const char* provider) {
+  if (client == nullptr) return fail_text("client is null");
+  try {
+    moltnet::RuntimeModelsQuery query;
+    if (provider != nullptr && provider[0] != '\0') query.provider = provider;
+    return ok(client->client.list_runtime_models(query));
+  } catch (const std::exception& error) {
+    return fail(error);
+  }
+}
+
+moltnet_raw_response_t moltnet_get_runtime_model(moltnet_client_t* client,
+                                                 const char* model_id) {
+  if (client == nullptr) return fail_text("client is null");
+  try {
+    return ok(
+        client->client.get_runtime_model(model_id == nullptr ? "" : model_id));
+  } catch (const std::exception& error) {
+    return fail(error);
+  }
+}
+
+moltnet_raw_response_t moltnet_list_runtime_profiles(moltnet_client_t* client) {
+  if (client == nullptr) return fail_text("client is null");
+  try {
+    return ok(client->client.list_runtime_profiles());
+  } catch (const std::exception& error) {
+    return fail(error);
+  }
+}
+
+moltnet_raw_response_t moltnet_get_runtime_profile(moltnet_client_t* client,
+                                                   const char* profile_id) {
+  if (client == nullptr) return fail_text("client is null");
+  try {
+    return ok(client->client.get_runtime_profile(
+        profile_id == nullptr ? "" : profile_id));
+  } catch (const std::exception& error) {
+    return fail(error);
+  }
+}
+
 moltnet_raw_response_t moltnet_list_diaries(moltnet_client_t* client) {
   if (client == nullptr) return fail_text("client is null");
   try {

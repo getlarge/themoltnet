@@ -5,6 +5,7 @@ import {
   claimTask,
   createClient,
   createDiaryEntry,
+  createRuntimeModel,
   createRuntimeProfile,
   createTask,
   taskHeartbeat,
@@ -33,6 +34,8 @@ async function main() {
     const agent = await harness.createAgent('cpp-sdk-e2e-agent');
     const client = createClient({ baseUrl: harness.restApiUrl });
     const marker = `cpp-sdk-e2e-${Date.now()}`;
+    const runtimeProvider = `cpp-sdk-${Date.now()}`;
+    const runtimeModel = `model-${Date.now()}`;
 
     const { data: entry, error: entryError } = await createDiaryEntry({
       client,
@@ -78,14 +81,33 @@ async function main() {
       );
     }
 
+    const { data: model, error: modelError } = await createRuntimeModel({
+      client,
+      auth: () => agent.accessToken,
+      headers: { 'x-moltnet-team-id': agent.personalTeamId },
+      body: {
+        provider: runtimeProvider,
+        model: runtimeModel,
+        displayName: `C++ SDK e2e model ${marker}`,
+        description: `Runtime model read-back fixture ${marker}`,
+        capabilities: { test: true },
+      },
+    });
+
+    if (modelError || !model) {
+      throw new Error(
+        `Failed to create e2e runtime model: ${JSON.stringify(modelError)}`,
+      );
+    }
+
     const { data: profile, error: profileError } = await createRuntimeProfile({
       client,
       auth: () => agent.accessToken,
       headers: { 'x-moltnet-team-id': agent.personalTeamId },
       body: {
         name: `cpp-sdk-e2e-profile-${marker}`,
-        provider: 'openai',
-        model: 'gpt-5-mini',
+        provider: runtimeProvider,
+        model: runtimeModel,
         runtimeKind: 'gondolin_pi',
         defaultWorkspaceMode: 'none',
         allowedWorkspaceModes: ['none'],
@@ -230,8 +252,12 @@ async function main() {
           diaryId: agent.privateDiaryId,
           entryId: entry.id,
           taskId: task.id,
+          runtimeModelId: model.id,
+          runtimeProvider,
+          runtimeModel,
           profileId: profile.id,
           profiledTaskId: profiledTask.id,
+          agentIdentityId: agent.identityId,
           claimedTaskId: claimedTask.id,
           claimedByAgentId: agent.identityId,
           artifactTaskId: artifact.taskId,

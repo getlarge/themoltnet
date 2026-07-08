@@ -43,6 +43,28 @@ Client::Client(Config config, Transport transport)
   }
 }
 
+RawResponse Client::whoami() { return request_json("GET", "/agents/whoami"); }
+
+RawResponse Client::list_runtime_models(
+    const RuntimeModelsQuery& query_value) {
+  std::vector<std::string> parts;
+  query::add(parts, "provider", query_value.provider);
+  return request_json("GET", "/runtime-models", query::join(parts));
+}
+
+RawResponse Client::get_runtime_model(const std::string& model_id) {
+  return request_json("GET", "/runtime-models/" + query::encode(model_id));
+}
+
+RawResponse Client::list_runtime_profiles() {
+  return request_json("GET", "/runtime-profiles", "", "", true);
+}
+
+RawResponse Client::get_runtime_profile(const std::string& profile_id) {
+  return request_json("GET", "/runtime-profiles/" + query::encode(profile_id),
+                      "", "", true);
+}
+
 RawResponse Client::list_diaries() { return request_json("GET", "/diaries"); }
 
 RawResponse Client::get_diary(const std::string& id) {
