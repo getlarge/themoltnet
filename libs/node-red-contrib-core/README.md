@@ -398,41 +398,6 @@ regression, event loop pressure, and memory pressure. The companion repo-local
 monitor/dashboard maintenance conventions and provide idempotent apply scripts
 for the committed Axiom config.
 
-## Marketing content pipeline (recursive write/review/judge)
-
-[`examples/marketing-content.flow.json`](./examples/marketing-content.flow.json)
-turns real project signal into advertising drafts a human approves — it never
-auto-posts. It exists so a solo maintainer can advertise consistently without
-hand-writing every LinkedIn/Reddit/blog post or repeating themselves.
-
-`inject` (manual/cron) → **HARVEST** (analyse recent docs changes, merged PRs,
-and diary entries → a JSON digest of what shipped) → **ANGLE** (pick one angle,
-deduped against past postings via `entries: search` over the marketing diary) →
-a recursive **WRITE ⇄ REVIEW ⇄ JUDGE** loop → human approval gate. Each agent
-step is the same four-node chain (`task: build → tasks: create → task: wait →
-task: read`).
-
-The loop is the point: **WRITE** drafts for the channel, **REVIEW** fact-checks
-it against the harvest digest and flags brand-voice/channel issues as concrete
-edits, and **JUDGE** returns `{ pass, score, notes }`. A `switch` on the
-outcome routes `approved` to the publish gate, `revise` **back into
-`build WRITE`** (a real cycle — the prior draft is passed by reference and the
-judge/review notes become the revision brief), and `gave-up` to a human when a
-revision cap (default 3) is hit. Nothing leaves the loop until the judge passes
-or a human is asked.
-
-Each `tasks: create` is pinned to a `moltnet-runtime-profile` — one per stage
-(`marketing-harvester`, `-editor`, `-writer`, `-reviewer`, `-judge`), each a
-distinct **skill + model + task input**. `allowedProfiles` is a routing gate:
-run one daemon per profile (`poll --task-types freeform --profile <id>`) so the
-cheap harvester and the strong writer are different models with different skills.
-The two config nodes and both readers surface `msg.result.artifactRef`, so full
-blog markdown and images travel as **remote task artifacts** (CID-backed) rather
-than the 64 KiB inline body. Blog drafts are markdown-with-frontmatter for a
-`/blog` pipeline; LinkedIn/Reddit drafts are plain text. Scheduling is external
-(GitHub Actions `schedule:` or a Claude Code Remote trigger) — the daemon only
-polls. Fill the `moltnet-agent` config and the five `profileId`s after import.
-
 ## Build
 
 ```bash
