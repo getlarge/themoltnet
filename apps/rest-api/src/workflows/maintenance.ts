@@ -731,20 +731,24 @@ export function initMaintenanceWorkflows(
       } = getDeps();
       const taskIds = manifest.tasks.map((task) => task.id);
       const deletedIds = await transactionRunner.runInTransaction(async () => {
-        if (opts?.deleteCorrelationSeals) {
-          await taskRepository.deleteCorrelationSealsForTasks(taskIds);
+        const targetTaskIds = opts?.onlyStatuses
+          ? await taskRepository.lockIdsIfStatusIn(taskIds, opts.onlyStatuses)
+          : taskIds;
+        const targetTaskIdSet = new Set(targetTaskIds);
+        const targetSessionIds = manifest.runtimeSessions
+          .filter((session) => targetTaskIdSet.has(session.taskId))
+          .map((session) => session.id);
+        await runtimeSessionRepository.detachChildren(targetSessionIds);
+        if (opts?.deleteCorrelationSeals && targetTaskIds.length > 0) {
+          await taskRepository.deleteCorrelationSealsForTasks(targetTaskIds);
         }
         const deletedTaskIds = opts?.onlyStatuses
           ? await taskRepository.deleteManyIfStatusIn(
-              taskIds,
+              targetTaskIds,
               opts.onlyStatuses,
             )
-          : await taskRepository.deleteMany(taskIds);
+          : await taskRepository.deleteMany(targetTaskIds);
         const deletedTaskIdSet = new Set(deletedTaskIds);
-        const deletedSessionIds = manifest.runtimeSessions
-          .filter((session) => deletedTaskIdSet.has(session.taskId))
-          .map((session) => session.id);
-        await runtimeSessionRepository.detachChildren(deletedSessionIds);
         const deletedTasks = manifest.tasks.filter((task) =>
           deletedTaskIdSet.has(task.id),
         );

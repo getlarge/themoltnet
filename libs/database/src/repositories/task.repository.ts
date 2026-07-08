@@ -317,6 +317,29 @@ export function createTaskRepository(db: Database) {
         .where(inArray(correlationSeals.sealedByTaskId, ids));
     },
 
+    async lockIdsIfStatusIn(
+      ids: string[],
+      statuses: readonly Task['status'][],
+    ): Promise<string[]> {
+      if (ids.length === 0 || statuses.length === 0) return [];
+      if (!hasActiveTransaction()) {
+        throw new Error(
+          'lockIdsIfStatusIn must be called inside a TransactionRunner-managed transaction; FOR UPDATE has no effect outside one',
+        );
+      }
+      const rows = await getExecutor(db)
+        .select({ id: tasks.id })
+        .from(tasks)
+        .where(
+          and(
+            inArray(tasks.id, [...new Set(ids)]),
+            inArray(tasks.status, [...new Set(statuses)]),
+          ),
+        )
+        .for('update');
+      return rows.map((row) => row.id);
+    },
+
     async deleteMany(ids: string[]): Promise<string[]> {
       if (ids.length === 0) return [];
       const deleted = await getExecutor(db)

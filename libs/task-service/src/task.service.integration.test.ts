@@ -84,6 +84,7 @@ function createIntegrationDeps() {
     ),
     findSealedTaskIds: vi.fn(() => Promise.resolve([] as string[])),
     deleteCorrelationSealsForTasks: vi.fn(() => Promise.resolve(undefined)),
+    lockIdsIfStatusIn: vi.fn((ids: string[]) => Promise.resolve(ids)),
     deleteMany: vi.fn((ids: string[]) => {
       const deleted: string[] = [];
       for (const id of ids) {

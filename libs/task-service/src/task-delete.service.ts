@@ -114,11 +114,15 @@ export function createTaskDeleteService(
 
       const deleted = await transactionRunner.runInTransaction(
         async () => {
-          if (force) {
-            await taskRepository.deleteCorrelationSealsForTasks(deletableIds);
+          const targetTaskIds = await taskRepository.lockIdsIfStatusIn(
+            deletableIds,
+            DELETE_ELIGIBLE_TASK_STATUSES,
+          );
+          if (force && targetTaskIds.length > 0) {
+            await taskRepository.deleteCorrelationSealsForTasks(targetTaskIds);
           }
           const deletedTaskIds = await taskRepository.deleteManyIfStatusIn(
-            deletableIds,
+            targetTaskIds,
             DELETE_ELIGIBLE_TASK_STATUSES,
           );
           const deletedSet = new Set(deletedTaskIds);

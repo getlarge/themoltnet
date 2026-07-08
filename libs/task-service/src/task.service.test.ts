@@ -145,6 +145,9 @@ type TaskRepositoryMocks = {
   promoteWaitingTasks: Mock<(ids: string[]) => Promise<DbTask[]>>;
   findSealedTaskIds: Mock<(ids: string[]) => Promise<string[]>>;
   deleteCorrelationSealsForTasks: Mock<(ids: string[]) => Promise<void>>;
+  lockIdsIfStatusIn: Mock<
+    (ids: string[], statuses: readonly DbTask['status'][]) => Promise<string[]>
+  >;
   deleteMany: Mock<(ids: string[]) => Promise<string[]>>;
   deleteManyIfStatusIn: Mock<
     (ids: string[], statuses: readonly DbTask['status'][]) => Promise<string[]>
@@ -366,6 +369,14 @@ function makeMocks(
     deleteCorrelationSealsForTasks: vi
       .fn<(ids: string[]) => Promise<void>>()
       .mockResolvedValue(undefined),
+    lockIdsIfStatusIn: vi
+      .fn<
+        (
+          ids: string[],
+          statuses: readonly DbTask['status'][],
+        ) => Promise<string[]>
+      >()
+      .mockImplementation((ids) => Promise.resolve(ids)),
     deleteMany: vi
       .fn<(ids: string[]) => Promise<string[]>>()
       .mockImplementation((ids) => Promise.resolve(ids)),
@@ -1456,6 +1467,7 @@ describe('createTaskService.deleteMany', () => {
   it('reports accepted tasks as skipped when they are no longer delete-eligible at delete time', async () => {
     const task = makeJudgeTask(JUDGE_TASK, 'queued');
     const mocks = makeMocks({ visibleTasks: { [JUDGE_TASK]: task } });
+    mocks.taskRepository.lockIdsIfStatusIn.mockResolvedValue([]);
     mocks.taskRepository.deleteManyIfStatusIn.mockResolvedValue([]);
     const service = createTaskService(
       mocks as unknown as Parameters<typeof createTaskService>[0],
@@ -1467,14 +1479,55 @@ describe('createTaskService.deleteMany', () => {
       callerNs: KetoNamespace.Agent,
     });
 
-    expect(mocks.taskRepository.deleteManyIfStatusIn).toHaveBeenCalledWith(
+    expect(mocks.taskRepository.lockIdsIfStatusIn).toHaveBeenCalledWith(
       [JUDGE_TASK],
+      ['waiting', 'queued', 'completed', 'failed', 'cancelled', 'expired'],
+    );
+    expect(mocks.taskRepository.deleteManyIfStatusIn).toHaveBeenCalledWith(
+      [],
       ['waiting', 'queued', 'completed', 'failed', 'cancelled', 'expired'],
     );
     expect(mocks.taskRepository.deleteMany).not.toHaveBeenCalled();
     expect(
+      mocks.taskRepository.deleteCorrelationSealsForTasks,
+    ).not.toHaveBeenCalled();
+    expect(
       mocks.relationshipWriter.removeTaskRelationsBatch,
     ).toHaveBeenCalledWith([]);
+    expect(result).toEqual({ deleted: [], skipped: [JUDGE_TASK] });
+  });
+
+  it('does not delete force seals when accepted tasks are no longer delete-eligible at delete time', async () => {
+    const task = makeJudgeTask(JUDGE_TASK, 'cancelled');
+    const mocks = makeMocks({ visibleTasks: { [JUDGE_TASK]: task } });
+    mocks.taskRepository.findSealedTaskIds.mockResolvedValue([JUDGE_TASK]);
+    mocks.permissionChecker.canForceDeleteTasks.mockResolvedValue(
+      new Map([[JUDGE_TASK, true]]),
+    );
+    mocks.taskRepository.lockIdsIfStatusIn.mockResolvedValue([]);
+    const service = createTaskService(
+      mocks as unknown as Parameters<typeof createTaskService>[0],
+    );
+
+    const result = await service.deleteMany({
+      ids: [JUDGE_TASK],
+      callerId: AGENT_ID,
+      callerNs: KetoNamespace.Agent,
+      force: true,
+      reason: 'operator cleanup',
+    });
+
+    expect(mocks.taskRepository.lockIdsIfStatusIn).toHaveBeenCalledWith(
+      [JUDGE_TASK],
+      ['waiting', 'queued', 'completed', 'failed', 'cancelled', 'expired'],
+    );
+    expect(
+      mocks.taskRepository.deleteCorrelationSealsForTasks,
+    ).not.toHaveBeenCalled();
+    expect(mocks.taskRepository.deleteManyIfStatusIn).toHaveBeenCalledWith(
+      [],
+      ['waiting', 'queued', 'completed', 'failed', 'cancelled', 'expired'],
+    );
     expect(result).toEqual({ deleted: [], skipped: [JUDGE_TASK] });
   });
 
