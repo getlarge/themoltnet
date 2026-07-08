@@ -276,6 +276,10 @@ int main() {
     const auto claimed_task_id = required_field(fixture, "claimedTaskId");
     const auto claimed_by_agent_id =
         required_field(fixture, "claimedByAgentId");
+    const auto artifact_task_id = required_field(fixture, "artifactTaskId");
+    const auto artifact_attempt_n =
+        std::stoi(required_field(fixture, "artifactAttemptN"));
+    const auto artifact_cid = required_field(fixture, "artifactCid");
     const auto marker = required_field(fixture, "marker");
 
     moltnet::Client client(config, socket_transport);
@@ -307,6 +311,14 @@ int main() {
     expect_status(tasks, 200, "list_tasks");
     expect_contains(tasks.body, task_id, "list_tasks");
 
+    moltnet::TasksQuery tagged_tasks_query;
+    tagged_tasks_query.task_types = {"curate_pack"};
+    tagged_tasks_query.tags = {"cpp-sdk-e2e", marker};
+    tagged_tasks_query.limit = 20;
+    auto tagged_tasks = client.list_tasks(tagged_tasks_query);
+    expect_status(tagged_tasks, 200, "list_tasks tag filters");
+    expect_contains(tagged_tasks.body, task_id, "list_tasks tag filters");
+
     moltnet::TasksQuery profiled_tasks_query;
     profiled_tasks_query.statuses = {"waiting", "queued"};
     profiled_tasks_query.task_types = {"curate_pack"};
@@ -326,6 +338,17 @@ int main() {
     expect_status(claimed_tasks, 200, "list_tasks claimant/status filters");
     expect_contains(claimed_tasks.body, claimed_task_id,
                     "list_tasks claimant/status filters");
+
+    auto artifact_list = client.list_task_artifacts(artifact_task_id);
+    expect_status(artifact_list, 200, "list_task_artifacts");
+    expect_contains(artifact_list.body, artifact_cid, "list_task_artifacts");
+
+    auto artifact_content = client.download_task_artifact(
+        artifact_task_id, artifact_attempt_n, artifact_cid);
+    expect_status(artifact_content, 200, "download_task_artifact");
+    expect_contains(artifact_content.body, marker, "download_task_artifact");
+    expect_contains(artifact_content.body, "issue_lifecycle_state",
+                    "download_task_artifact");
 
     auto task = client.get_task(task_id);
     expect_status(task, 200, "get_task");

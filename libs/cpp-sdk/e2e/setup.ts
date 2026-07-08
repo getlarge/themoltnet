@@ -7,6 +7,7 @@ import {
   createDiaryEntry,
   createRuntimeProfile,
   createTask,
+  uploadTaskArtifact,
 } from '@moltnet/api-client';
 import { createE2EAgentHarness } from '@moltnet/bootstrap';
 import { buildCuratePack } from '@themoltnet/sdk';
@@ -152,16 +153,54 @@ async function main() {
       );
     }
 
-    const { error: claimError } = await claimTask({
+    const { data: claim, error: claimError } = await claimTask({
       client,
       auth: () => agent.accessToken,
       path: { id: claimedTask.id },
       body: { leaseTtlSec: 60, profileId: profile.id },
     });
 
-    if (claimError) {
+    if (claimError || !claim) {
       throw new Error(
         `Failed to claim e2e task: ${JSON.stringify(claimError)}`,
+      );
+    }
+
+    const artifactBody = JSON.stringify({
+      artifacts: [
+        {
+          kind: 'issue_lifecycle_state',
+          body: JSON.stringify({
+            phase: 'pr_review',
+            decision: 'review_passed',
+            summary: `C++ SDK artifact fixture ${marker}`,
+            prReviewKind: 'complexity',
+            findings: [],
+          }),
+        },
+      ],
+      marker,
+    });
+
+    const { data: artifact, error: artifactError } = await uploadTaskArtifact({
+      client,
+      auth: () => agent.accessToken,
+      headers: { 'x-moltnet-team-id': agent.personalTeamId },
+      path: {
+        taskId: claimedTask.id,
+        attemptN: claim.attempt.attemptN,
+      },
+      query: {
+        kind: 'freeform_output',
+        title: `C++ SDK e2e artifact ${marker}`,
+        contentType: 'application/json',
+      },
+      body: new Blob([artifactBody], { type: 'application/json' }),
+    });
+
+    if (artifactError || !artifact) {
+      throw new Error(
+        `Failed to upload e2e task artifact: ${JSON.stringify(artifactError)}`,
       );
     }
 
@@ -181,6 +220,9 @@ async function main() {
           profiledTaskId: profiledTask.id,
           claimedTaskId: claimedTask.id,
           claimedByAgentId: agent.identityId,
+          artifactTaskId: artifact.taskId,
+          artifactAttemptN: String(artifact.attemptN),
+          artifactCid: artifact.cid,
           marker,
         },
         null,

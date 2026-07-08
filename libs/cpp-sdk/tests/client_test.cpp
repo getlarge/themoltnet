@@ -19,13 +19,23 @@ struct FakeTransport {
                           "\",\"token_type\":\"bearer\",\"expires_in\":3600}"};
     }
     if (request.url ==
-        "https://api.example.test/tasks?statuses=waiting&statuses=queued&profileId=profile-1&taskTypes=freeform&limit=5") {
+        "https://api.example.test/tasks?statuses=waiting&statuses=queued&taskTypes=freeform&profileId=profile-1&limit=5") {
       task_requests++;
       if (task_requests == 1) return {401, {}, "{\"code\":\"UNAUTHORIZED\"}"};
       return {200, {}, "{\"tasks\":[]}"};
     }
+    if (request.url ==
+        "https://api.example.test/tasks?query=complexity%20review&statuses=queued&statuses=running&statuses=completed&taskTypes=pr_review&tags=review%3Acomplexity&tags=repo%3Agetlarge%2Fthemolt.net&excludeTags=draft&diaryId=diary-1&profileId=profile-1&correlationId=correlation-1&proposedByAgentId=agent-1&proposedByHumanId=human-1&claimedByAgentId=worker-1&hasAttempts=true&queuedAfter=2026-07-08T00%3A00%3A00Z&queuedBefore=2026-07-09T00%3A00%3A00Z&completedAfter=2026-07-08T01%3A00%3A00Z&completedBefore=2026-07-09T01%3A00%3A00Z&limit=10&cursor=cursor%2B1") {
+      return {200, {}, "{\"tasks\":[{\"id\":\"review-task\"}]}"};
+    }
     if (request.url == "https://api.example.test/tasks/task-1") {
       return {200, {}, "{\"id\":\"task-1\"}"};
+    }
+    if (request.url ==
+        "https://api.example.test/tasks/task%2F1/attempts/2/artifacts/bagaaiera%2Fcid/content") {
+      return {200,
+              {{"content-type", "application/octet-stream"}},
+              "{\"artifacts\":[{\"kind\":\"issue_lifecycle_state\"}]}"};
     }
     return {404, {}, request.url};
   }
@@ -72,5 +82,56 @@ void test_client_builds_task_query_and_team_header() {
 
   ASSERT_EQ(response.status, 200);
   ASSERT_TRUE(fake.requests[1].url == "https://api.example.test/tasks/task-1");
+  ASSERT_TRUE(fake.requests[1].headers.at("x-moltnet-team-id") == "team-1");
+}
+
+void test_client_builds_full_task_query_filters() {
+  FakeTransport fake;
+  moltnet::Client client(config(), [&](const moltnet::HttpRequest& request) {
+    return fake(request);
+  });
+
+  moltnet::TasksQuery query;
+  query.query = "complexity review";
+  query.statuses = {"queued", "running", "completed"};
+  query.task_types = {"pr_review"};
+  query.tags = {"review:complexity", "repo:getlarge/themolt.net"};
+  query.exclude_tags = {"draft"};
+  query.diary_id = "diary-1";
+  query.profile_id = "profile-1";
+  query.correlation_id = "correlation-1";
+  query.proposed_by_agent_id = "agent-1";
+  query.proposed_by_human_id = "human-1";
+  query.claimed_by_agent_id = "worker-1";
+  query.has_attempts = true;
+  query.queued_after = "2026-07-08T00:00:00Z";
+  query.queued_before = "2026-07-09T00:00:00Z";
+  query.completed_after = "2026-07-08T01:00:00Z";
+  query.completed_before = "2026-07-09T01:00:00Z";
+  query.limit = 10;
+  query.cursor = "cursor+1";
+
+  const auto response = client.list_tasks(query);
+
+  ASSERT_EQ(response.status, 200);
+  ASSERT_TRUE(response.body.find("review-task") != std::string::npos);
+  ASSERT_TRUE(fake.requests[1].headers.at("x-moltnet-team-id") == "team-1");
+}
+
+void test_client_downloads_task_artifact_content() {
+  FakeTransport fake;
+  moltnet::Client client(config(), [&](const moltnet::HttpRequest& request) {
+    return fake(request);
+  });
+
+  const auto response =
+      client.download_task_artifact("task/1", 2, "bagaaiera/cid");
+
+  ASSERT_EQ(response.status, 200);
+  ASSERT_TRUE(response.body.find("issue_lifecycle_state") !=
+              std::string::npos);
+  ASSERT_TRUE(
+      fake.requests[1].url ==
+      "https://api.example.test/tasks/task%2F1/attempts/2/artifacts/bagaaiera%2Fcid/content");
   ASSERT_TRUE(fake.requests[1].headers.at("x-moltnet-team-id") == "team-1");
 }
