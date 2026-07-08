@@ -69,8 +69,9 @@ type Invoker interface {
 	BatchDeleteDiaryEntries(ctx context.Context, request *BatchDeleteDiaryEntriesReq) (BatchDeleteDiaryEntriesRes, error)
 	// BatchDeleteTasks invokes batchDeleteTasks operation.
 	//
-	// Queue asynchronous deletion of terminal tasks in bulk. By default, live, unauthorized, missing,
-	// and protected tasks are skipped. Set force: true with a reason to delete protected terminal tasks.
+	// Queue asynchronous deletion of waiting, queued, and terminal tasks in bulk. By default, dispatched,
+	//  running, unauthorized, missing, and protected tasks are skipped. Set force: true with a reason to
+	// delete protected terminal tasks.
 	//
 	// DELETE /tasks
 	BatchDeleteTasks(ctx context.Context, request *BatchDeleteTasksReq) (BatchDeleteTasksRes, error)
@@ -1820,8 +1821,11 @@ func (c *Client) sendBatchDeleteDiaryEntries(ctx context.Context, request *Batch
 
 // BatchDeleteTasks invokes batchDeleteTasks operation.
 //
-// Queue asynchronous deletion of terminal tasks in bulk. By default, live, unauthorized, missing,
-// and protected tasks are skipped. Set force: true with a reason to delete protected terminal tasks.
+// Queue asynchronous deletion of waiting, queued, and terminal tasks in bulk. By default, dispatched,
+//
+//	running, unauthorized, missing, and protected tasks are skipped. Set force: true with a reason to
+//
+// delete protected terminal tasks.
 //
 // DELETE /tasks
 func (c *Client) BatchDeleteTasks(ctx context.Context, request *BatchDeleteTasksReq) (BatchDeleteTasksRes, error) {

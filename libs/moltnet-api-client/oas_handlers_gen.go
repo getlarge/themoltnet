@@ -1443,8 +1443,11 @@ func (s *Server) handleBatchDeleteDiaryEntriesRequest(args [0]string, argsEscape
 
 // handleBatchDeleteTasksRequest handles batchDeleteTasks operation.
 //
-// Queue asynchronous deletion of terminal tasks in bulk. By default, live, unauthorized, missing,
-// and protected tasks are skipped. Set force: true with a reason to delete protected terminal tasks.
+// Queue asynchronous deletion of waiting, queued, and terminal tasks in bulk. By default, dispatched,
+//
+//	running, unauthorized, missing, and protected tasks are skipped. Set force: true with a reason to
+//
+// delete protected terminal tasks.
 //
 // DELETE /tasks
 func (s *Server) handleBatchDeleteTasksRequest(args [0]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {

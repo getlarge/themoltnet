@@ -2651,6 +2651,7 @@ describe('Tasks API', () => {
             status: 'cancelled',
             completedAt: new Date(),
             cancelReason: 'sealed during delete race',
+            cancelledByAgentId: proposer.identityId,
           })
           .where(eq(tasks.id, task.data!.id));
         await tx.insert(correlationSeals).values({
