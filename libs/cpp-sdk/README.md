@@ -37,3 +37,15 @@ pnpm exec nx run @themoltnet/cpp-sdk:test
 If `ArduinoJson.h` is available on the include path, the SDK uses it for JSON
 field extraction. Otherwise it falls back to a tiny string-field extractor for
 the token/config fields needed by V1. The HTTP transport remains separate.
+
+## Task filters
+
+`TasksQuery` supports both the legacy singular `status` filter and repeated
+filters for API surfaces that need multiple values:
+
+- `statuses` emits repeated `statuses=<value>` query parameters.
+- `task_types` emits repeated `taskTypes=<value>` query parameters.
+- `profile_id` emits `profileId=<value>`.
+- `claimed_by_agent_id` emits `claimedByAgentId=<value>`.
+
+All task reads include `x-moltnet-team-id` through `Config::team_id`.

@@ -78,7 +78,11 @@ RawResponse Client::list_tasks(const TasksQuery& query_value) {
   std::vector<std::string> parts;
   query::add(parts, "query", query_value.query);
   query::add(parts, "status", query_value.status);
+  query::add_each(parts, "statuses", query_value.statuses);
   query::add(parts, "diaryId", query_value.diary_id);
+  query::add(parts, "profileId", query_value.profile_id);
+  query::add(parts, "claimedByAgentId", query_value.claimed_by_agent_id);
+  query::add_each(parts, "taskTypes", query_value.task_types);
   query::add(parts, "limit", query_value.limit);
   query::add(parts, "cursor", query_value.cursor);
   return request_json("GET", "/tasks", query::join(parts), "", true);

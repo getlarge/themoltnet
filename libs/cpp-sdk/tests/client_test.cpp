@@ -18,7 +18,8 @@ struct FakeTransport {
       return {200, {}, "{\"access_token\":\"token-" + std::to_string(token_requests) +
                           "\",\"token_type\":\"bearer\",\"expires_in\":3600}"};
     }
-    if (request.url == "https://api.example.test/tasks?status=queued&limit=5") {
+    if (request.url ==
+        "https://api.example.test/tasks?statuses=waiting&statuses=queued&profileId=profile-1&taskTypes=freeform&limit=5") {
       task_requests++;
       if (task_requests == 1) return {401, {}, "{\"code\":\"UNAUTHORIZED\"}"};
       return {200, {}, "{\"tasks\":[]}"};
@@ -48,7 +49,9 @@ void test_client_auth_retries_after_401() {
   });
 
   moltnet::TasksQuery query;
-  query.status = "queued";
+  query.statuses = {"waiting", "queued"};
+  query.profile_id = "profile-1";
+  query.task_types = {"freeform"};
   query.limit = 5;
   const auto response = client.list_tasks(query);
 
