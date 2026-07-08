@@ -10,52 +10,75 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // Mock DBOS BEFORE importing the module under test. We capture each
 // registered workflow/step by name so the test can drive the sweeper
 // directly without a live DBOS runtime.
-const registeredWorkflows: Record<string, (...args: unknown[]) => unknown> = {};
-const registeredSteps: Record<string, (...args: unknown[]) => unknown> = {};
-const registeredScheduled: Record<string, unknown> = {};
+const {
+  registeredWorkflows,
+  registeredSteps,
+  registeredScheduled,
+  dbosMock,
+  WorkflowQueueMock,
+} = vi.hoisted(() => {
+  const registeredWorkflows: Record<string, (...args: unknown[]) => unknown> =
+    {};
+  const registeredSteps: Record<string, (...args: unknown[]) => unknown> = {};
+  const registeredScheduled: Record<string, unknown> = {};
+  const dbosMock = {
+    registerWorkflow: vi.fn(
+      (
+        fn: (...args: unknown[]) => unknown,
+        config: { name: string },
+      ): ((...args: unknown[]) => unknown) => {
+        registeredWorkflows[config.name] = fn;
+        return fn;
+      },
+    ),
+    registerStep: vi.fn(
+      (
+        fn: (...args: unknown[]) => unknown,
+        config: { name: string },
+      ): ((...args: unknown[]) => unknown) => {
+        registeredSteps[config.name] = fn;
+        return fn;
+      },
+    ),
+    registerScheduled: vi.fn((workflow: unknown, config: { name: string }) => {
+      registeredScheduled[config.name] = workflow;
+    }),
+    startWorkflow: vi.fn(
+      (fn: (...args: unknown[]) => unknown) =>
+        (...args: unknown[]) =>
+          fn(...args),
+    ),
+    resumeWorkflow: vi.fn(),
+  };
+
+  class WorkflowQueueMock {
+    readonly name: string;
+
+    constructor(name: string) {
+      this.name = name;
+    }
+  }
+
+  return {
+    registeredWorkflows,
+    registeredSteps,
+    registeredScheduled,
+    dbosMock,
+    WorkflowQueueMock,
+  };
+});
+
+vi.mock('@dbos-inc/dbos-sdk', () => ({
+  DBOS: dbosMock,
+  WorkflowQueue: WorkflowQueueMock,
+}));
 
 vi.mock('@moltnet/database', async () => {
   const actual = await vi.importActual<DatabaseModule>('@moltnet/database');
   return {
     ...actual,
-    DBOS: {
-      registerWorkflow: vi.fn(
-        (
-          fn: (...args: unknown[]) => unknown,
-          config: { name: string },
-        ): ((...args: unknown[]) => unknown) => {
-          registeredWorkflows[config.name] = fn;
-          return fn;
-        },
-      ),
-      registerStep: vi.fn(
-        (
-          fn: (...args: unknown[]) => unknown,
-          config: { name: string },
-        ): ((...args: unknown[]) => unknown) => {
-          registeredSteps[config.name] = fn;
-          return fn;
-        },
-      ),
-      registerScheduled: vi.fn(
-        (workflow: unknown, config: { name: string }) => {
-          registeredScheduled[config.name] = workflow;
-        },
-      ),
-      startWorkflow: vi.fn(
-        (fn: (...args: unknown[]) => unknown) =>
-          (...args: unknown[]) =>
-            fn(...args),
-      ),
-      resumeWorkflow: vi.fn(),
-    },
-    WorkflowQueue: class {
-      readonly name: string;
-
-      constructor(name: string) {
-        this.name = name;
-      }
-    },
+    DBOS: dbosMock,
+    WorkflowQueue: WorkflowQueueMock,
   };
 });
 
@@ -126,7 +149,11 @@ function makeDeps(orphans: Array<{ task: Task; attempt: TaskAttempt }>): {
       ),
     findSealedTaskIds: vi.fn().mockResolvedValue([]),
     deleteCorrelationSealsForTasks: vi.fn().mockResolvedValue(undefined),
+    lockIdsIfStatusIn: vi
+      .fn()
+      .mockImplementation((ids: string[]) => Promise.resolve(ids)),
     deleteMany: vi.fn().mockResolvedValue([]),
+    deleteManyIfStatusIn: vi.fn().mockResolvedValue([]),
     countAttempts: vi.fn().mockResolvedValue(1),
     getMaxAttempts: vi.fn().mockResolvedValue(1),
     findById: vi
@@ -688,7 +715,7 @@ describe('taskOrphanSweeperWorkflow — backstop (#1077)', () => {
     } as unknown as Task;
     const liveTask = {
       id: 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee6',
-      status: 'queued',
+      status: 'running',
       teamId: '99999999-9999-9999-9999-999999999999',
       diaryId: 'ffffffff-ffff-ffff-ffff-fffffffffff6',
       claimAgentId: null,
@@ -720,7 +747,7 @@ describe('taskOrphanSweeperWorkflow — backstop (#1077)', () => {
         sizeBytes: 456,
       },
     ]);
-    vi.mocked(deps.taskRepository.deleteMany).mockResolvedValue([
+    vi.mocked(deps.taskRepository.deleteManyIfStatusIn).mockResolvedValue([
       deletedTask.id,
     ]);
     const { setMaintenanceDeps: setDeps } =
@@ -738,15 +765,21 @@ describe('taskOrphanSweeperWorkflow — backstop (#1077)', () => {
       requestedBy: { id: AGENT_ID, ns: 'agent' },
     });
 
+    expect(deps.taskRepository.lockIdsIfStatusIn).toHaveBeenCalledWith(
+      [deletedTask.id],
+      ['waiting', 'queued', 'completed', 'failed', 'cancelled', 'expired'],
+    );
     expect(
       deps.taskRepository.deleteCorrelationSealsForTasks,
     ).toHaveBeenCalledWith([deletedTask.id]);
     expect(deps.runtimeSessionRepository.detachChildren).toHaveBeenCalledWith([
       '33333333-3333-3333-3333-333333333336',
     ]);
-    expect(deps.taskRepository.deleteMany).toHaveBeenCalledWith([
-      deletedTask.id,
-    ]);
+    expect(deps.taskRepository.deleteManyIfStatusIn).toHaveBeenCalledWith(
+      [deletedTask.id],
+      ['waiting', 'queued', 'completed', 'failed', 'cancelled', 'expired'],
+    );
+    expect(deps.taskRepository.deleteMany).not.toHaveBeenCalled();
     expect(deps.taskArtifactStorage.deleteObjects).toHaveBeenCalledWith([
       'teams/t/artifacts/deleted-by-api',
     ]);
@@ -770,6 +803,284 @@ describe('taskOrphanSweeperWorkflow — backstop (#1077)', () => {
       skipped: [liveTask.id],
       deletedTaskCount: 1,
       deletedObjectCount: 2,
+      skippedProtected: 0,
+    });
+  });
+
+  it('task deletion workflow deletes queued tasks without force', async () => {
+    await init();
+    const { deps } = makeDeps([]);
+    const queuedTask = {
+      id: 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee7',
+      status: 'queued',
+      teamId: '99999999-9999-9999-9999-999999999999',
+      diaryId: 'ffffffff-ffff-ffff-ffff-fffffffffff7',
+      claimAgentId: null,
+    } as unknown as Task;
+    vi.mocked(deps.taskRepository.findByIds).mockResolvedValue([queuedTask]);
+    vi.mocked(deps.taskRepository.findSealedTaskIds).mockResolvedValue([]);
+    vi.mocked(
+      deps.taskArtifactRepository.listCleanupRefsForTasks,
+    ).mockResolvedValue([]);
+    vi.mocked(
+      deps.runtimeSessionRepository.listCleanupRefsForTasks,
+    ).mockResolvedValue([]);
+    vi.mocked(deps.taskRepository.deleteManyIfStatusIn).mockResolvedValue([
+      queuedTask.id,
+    ]);
+    const { setMaintenanceDeps: setDeps } =
+      await import('../src/workflows/maintenance.js');
+    setDeps(deps);
+
+    const workflow = registeredWorkflows['maintenance.taskDeletion'];
+    if (!workflow) {
+      throw new Error('task deletion workflow not registered');
+    }
+    const result = await workflow({
+      ids: [queuedTask.id],
+      force: false,
+      requestedBy: { id: AGENT_ID, ns: 'agent' },
+    });
+
+    expect(
+      deps.taskRepository.deleteCorrelationSealsForTasks,
+    ).not.toHaveBeenCalled();
+    expect(deps.taskRepository.deleteManyIfStatusIn).toHaveBeenCalledWith(
+      [queuedTask.id],
+      ['waiting', 'queued', 'completed', 'failed', 'cancelled', 'expired'],
+    );
+    expect(deps.taskRepository.deleteMany).not.toHaveBeenCalled();
+    expect(
+      deps.relationshipWriter.removeTaskRelationsBatch,
+    ).toHaveBeenCalledWith([
+      {
+        id: queuedTask.id,
+        diaryId: queuedTask.diaryId,
+        claimAgentId: queuedTask.claimAgentId,
+      },
+    ]);
+    expect(result).toEqual({
+      requested: 1,
+      accepted: 1,
+      skipped: [],
+      deletedTaskCount: 1,
+      deletedObjectCount: 0,
+      skippedProtected: 0,
+    });
+  });
+
+  it('task deletion workflow skips tasks that become ineligible before atomic delete', async () => {
+    await init();
+    const { deps } = makeDeps([]);
+    const queuedTask = {
+      id: 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee8',
+      status: 'queued',
+      teamId: '99999999-9999-9999-9999-999999999999',
+      diaryId: 'ffffffff-ffff-ffff-ffff-fffffffffff8',
+      claimAgentId: null,
+    } as unknown as Task;
+    vi.mocked(deps.taskRepository.findByIds).mockResolvedValue([queuedTask]);
+    vi.mocked(deps.taskRepository.findSealedTaskIds).mockResolvedValue([]);
+    vi.mocked(
+      deps.taskArtifactRepository.listCleanupRefsForTasks,
+    ).mockResolvedValue([
+      {
+        taskId: queuedTask.id,
+        objectKey: 'artifacts/raced',
+        sizeBytes: 10,
+      },
+    ]);
+    vi.mocked(
+      deps.runtimeSessionRepository.listCleanupRefsForTasks,
+    ).mockResolvedValue([
+      {
+        id: '11111111-1111-1111-1111-111111111111',
+        taskId: queuedTask.id,
+        objectKey: 'sessions/raced',
+        sizeBytes: 10,
+      },
+    ]);
+    vi.mocked(deps.taskRepository.lockIdsIfStatusIn).mockResolvedValue([]);
+    vi.mocked(deps.taskRepository.deleteManyIfStatusIn).mockResolvedValue([]);
+    const { setMaintenanceDeps: setDeps } =
+      await import('../src/workflows/maintenance.js');
+    setDeps(deps);
+
+    const workflow = registeredWorkflows['maintenance.taskDeletion'];
+    if (!workflow) {
+      throw new Error('task deletion workflow not registered');
+    }
+    const result = await workflow({
+      ids: [queuedTask.id],
+      force: false,
+      requestedBy: { id: AGENT_ID, ns: 'agent' },
+    });
+
+    expect(deps.taskRepository.lockIdsIfStatusIn).toHaveBeenCalledWith(
+      [queuedTask.id],
+      ['waiting', 'queued', 'completed', 'failed', 'cancelled', 'expired'],
+    );
+    expect(deps.taskRepository.deleteManyIfStatusIn).toHaveBeenCalledWith(
+      [],
+      ['waiting', 'queued', 'completed', 'failed', 'cancelled', 'expired'],
+    );
+    expect(deps.runtimeSessionRepository.detachChildren).toHaveBeenCalledWith(
+      [],
+    );
+    expect(
+      deps.relationshipWriter.removeTaskRelationsBatch,
+    ).toHaveBeenCalledWith([]);
+    expect(deps.taskArtifactStorage.deleteObjects).not.toHaveBeenCalled();
+    expect(deps.runtimeSessionStorage.deleteObjects).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      requested: 1,
+      accepted: 1,
+      skipped: [queuedTask.id],
+      deletedTaskCount: 0,
+      deletedObjectCount: 0,
+      skippedProtected: 0,
+    });
+  });
+
+  it('task deletion workflow skips a queued task that becomes sealed before atomic delete', async () => {
+    await init();
+    const { deps } = makeDeps([]);
+    const queuedTask = {
+      id: 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeee10',
+      status: 'queued',
+      teamId: '99999999-9999-9999-9999-999999999999',
+      diaryId: 'ffffffff-ffff-ffff-ffff-ffffffffff10',
+      claimAgentId: null,
+    } as unknown as Task;
+    vi.mocked(deps.taskRepository.findByIds).mockResolvedValue([queuedTask]);
+    vi.mocked(deps.taskRepository.findSealedTaskIds)
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([queuedTask.id]);
+    vi.mocked(
+      deps.taskArtifactRepository.listCleanupRefsForTasks,
+    ).mockResolvedValue([
+      {
+        taskId: queuedTask.id,
+        objectKey: 'artifacts/sealed-race',
+        sizeBytes: 10,
+      },
+    ]);
+    vi.mocked(
+      deps.runtimeSessionRepository.listCleanupRefsForTasks,
+    ).mockResolvedValue([
+      {
+        id: '11111111-1111-1111-1111-111111111110',
+        taskId: queuedTask.id,
+        objectKey: 'sessions/sealed-race',
+        sizeBytes: 10,
+      },
+    ]);
+    vi.mocked(deps.taskRepository.deleteManyIfStatusIn).mockResolvedValue([]);
+    const { setMaintenanceDeps: setDeps } =
+      await import('../src/workflows/maintenance.js');
+    setDeps(deps);
+
+    const workflow = registeredWorkflows['maintenance.taskDeletion'];
+    if (!workflow) {
+      throw new Error('task deletion workflow not registered');
+    }
+    const result = await workflow({
+      ids: [queuedTask.id],
+      force: true,
+      reason: 'operator cleanup request before seal race',
+      requestedBy: { id: AGENT_ID, ns: 'agent' },
+    });
+
+    expect(deps.taskRepository.lockIdsIfStatusIn).toHaveBeenCalledWith(
+      [queuedTask.id],
+      ['waiting', 'queued', 'completed', 'failed', 'cancelled', 'expired'],
+    );
+    expect(
+      deps.taskRepository.deleteCorrelationSealsForTasks,
+    ).not.toHaveBeenCalled();
+    expect(deps.taskRepository.deleteManyIfStatusIn).toHaveBeenCalledWith(
+      [],
+      ['waiting', 'queued', 'completed', 'failed', 'cancelled', 'expired'],
+    );
+    expect(deps.runtimeSessionRepository.detachChildren).toHaveBeenCalledWith(
+      [],
+    );
+    expect(deps.taskArtifactStorage.deleteObjects).not.toHaveBeenCalled();
+    expect(deps.runtimeSessionStorage.deleteObjects).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      requested: 1,
+      accepted: 1,
+      skipped: [queuedTask.id],
+      deletedTaskCount: 0,
+      deletedObjectCount: 0,
+      skippedProtected: 0,
+    });
+  });
+
+  it('task deletion workflow does not delete force seals when locked delete set is empty', async () => {
+    await init();
+    const { deps } = makeDeps([]);
+    const sealedTask = {
+      id: 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee9',
+      status: 'cancelled',
+      diaryId: 'ffffffff-ffff-ffff-ffff-fffffffffff9',
+      claimAgentId: null,
+    } as unknown as Task;
+    vi.mocked(deps.taskRepository.findByIds).mockResolvedValue([sealedTask]);
+    vi.mocked(deps.taskRepository.findSealedTaskIds).mockResolvedValue([
+      sealedTask.id,
+    ]);
+    vi.mocked(
+      deps.taskArtifactRepository.listCleanupRefsForTasks,
+    ).mockResolvedValue([]);
+    vi.mocked(
+      deps.runtimeSessionRepository.listCleanupRefsForTasks,
+    ).mockResolvedValue([
+      {
+        id: '11111111-1111-1111-1111-111111111119',
+        taskId: sealedTask.id,
+        objectKey: 'sessions/sealed-raced',
+        sizeBytes: 10,
+      },
+    ]);
+    vi.mocked(deps.taskRepository.lockIdsIfStatusIn).mockResolvedValue([]);
+    vi.mocked(deps.taskRepository.deleteManyIfStatusIn).mockResolvedValue([]);
+    const { setMaintenanceDeps: setDeps } =
+      await import('../src/workflows/maintenance.js');
+    setDeps(deps);
+
+    const workflow = registeredWorkflows['maintenance.taskDeletion'];
+    if (!workflow) {
+      throw new Error('task deletion workflow not registered');
+    }
+    const result = await workflow({
+      ids: [sealedTask.id],
+      force: true,
+      reason: 'operator confirmed sealed terminal cleanup',
+      requestedBy: { id: AGENT_ID, ns: 'agent' },
+    });
+
+    expect(deps.taskRepository.lockIdsIfStatusIn).toHaveBeenCalledWith(
+      [sealedTask.id],
+      ['waiting', 'queued', 'completed', 'failed', 'cancelled', 'expired'],
+    );
+    expect(
+      deps.taskRepository.deleteCorrelationSealsForTasks,
+    ).not.toHaveBeenCalled();
+    expect(deps.taskRepository.deleteManyIfStatusIn).toHaveBeenCalledWith(
+      [],
+      ['waiting', 'queued', 'completed', 'failed', 'cancelled', 'expired'],
+    );
+    expect(deps.runtimeSessionRepository.detachChildren).toHaveBeenCalledWith(
+      [],
+    );
+    expect(deps.runtimeSessionStorage.deleteObjects).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      requested: 1,
+      accepted: 1,
+      skipped: [sealedTask.id],
+      deletedTaskCount: 0,
+      deletedObjectCount: 0,
       skippedProtected: 0,
     });
   });

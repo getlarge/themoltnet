@@ -36,6 +36,7 @@ import {
   tasks,
   teams,
 } from '../src/schema.js';
+import { createDrizzleTransactionRunner } from '../src/transaction-context.js';
 
 describe('TaskRepository maintenance sweeper queries (integration)', () => {
   let db: Database;
@@ -43,6 +44,7 @@ describe('TaskRepository maintenance sweeper queries (integration)', () => {
   let repo: ReturnType<typeof createTaskRepository>;
   let artifactRepo: ReturnType<typeof createTaskArtifactRepository>;
   let runtimeSessionRepo: ReturnType<typeof createRuntimeSessionRepository>;
+  let transactionRunner: ReturnType<typeof createDrizzleTransactionRunner>;
   let stopContainer: (() => Promise<void>) | undefined;
 
   const TEAM_ID = '11111111-1111-4111-8111-111111111101';
@@ -64,6 +66,7 @@ describe('TaskRepository maintenance sweeper queries (integration)', () => {
     repo = createTaskRepository(db);
     artifactRepo = createTaskArtifactRepository(db);
     runtimeSessionRepo = createRuntimeSessionRepository(db);
+    transactionRunner = createDrizzleTransactionRunner(db);
 
     // Seed FK rows once — task inserts cascade through these.
     // Note: agents must exist before teams reference them via createdBy.
@@ -637,6 +640,80 @@ describe('TaskRepository maintenance sweeper queries (integration)', () => {
     expect(child.parentSessionId).toBeNull();
 
     await db.delete(taskArtifacts);
+    await db.delete(runtimeSessions);
+    await db.delete(taskAttempts);
+    await db.delete(tasks);
+  });
+
+  it('detaches child runtime sessions before deleting locked task rows', async () => {
+    const PARENT_TASK_ID = '77777777-7777-4777-8777-777777777701';
+    const CHILD_TASK_ID = '77777777-7777-4777-8777-777777777702';
+    const PARENT_SESSION_ID = 'dddddddd-dddd-4ddd-8ddd-dddddddddd11';
+    const CHILD_SESSION_ID = 'dddddddd-dddd-4ddd-8ddd-dddddddddd12';
+
+    await seedTask({
+      id: PARENT_TASK_ID,
+      status: 'queued',
+      claimExpiresAt: null,
+      createAttempt: true,
+      attemptStatus: 'claimed',
+    });
+    await seedTask({
+      id: CHILD_TASK_ID,
+      status: 'completed',
+      claimExpiresAt: null,
+      completedAt: new Date('2026-04-26T10:00:00Z'),
+      createAttempt: true,
+      attemptStatus: 'completed',
+    });
+    await db.insert(runtimeSessions).values([
+      {
+        id: PARENT_SESSION_ID,
+        teamId: TEAM_ID,
+        taskId: PARENT_TASK_ID,
+        attemptN: 1,
+        sessionKind: 'root',
+        objectKey: `teams/${TEAM_ID}/sessions/locked-root.jsonl.gz`,
+        contentType: 'application/x-ndjson',
+        contentEncoding: 'gzip',
+        sizeBytes: 456,
+        sha256: 'd'.repeat(64),
+        storageClass: 'runtime-session',
+      },
+      {
+        id: CHILD_SESSION_ID,
+        teamId: TEAM_ID,
+        taskId: CHILD_TASK_ID,
+        attemptN: 1,
+        sessionKind: 'fork',
+        parentSessionId: PARENT_SESSION_ID,
+        objectKey: `teams/${TEAM_ID}/sessions/locked-fork.jsonl.gz`,
+        contentType: 'application/x-ndjson',
+        contentEncoding: 'gzip',
+        sizeBytes: 789,
+        sha256: 'e'.repeat(64),
+        storageClass: 'runtime-session',
+      },
+    ]);
+
+    const deletedIds = await transactionRunner.runInTransaction(async () => {
+      const lockedIds = await repo.lockIdsIfStatusIn(
+        [PARENT_TASK_ID],
+        ['waiting', 'queued'],
+      );
+      expect(lockedIds).toEqual([PARENT_TASK_ID]);
+
+      await runtimeSessionRepo.detachChildren([PARENT_SESSION_ID]);
+      return repo.deleteManyIfStatusIn(lockedIds, ['waiting', 'queued']);
+    });
+
+    expect(deletedIds).toEqual([PARENT_TASK_ID]);
+    const [child] = await db
+      .select()
+      .from(runtimeSessions)
+      .where(eq(runtimeSessions.id, CHILD_SESSION_ID));
+    expect(child.parentSessionId).toBeNull();
+
     await db.delete(runtimeSessions);
     await db.delete(taskAttempts);
     await db.delete(tasks);

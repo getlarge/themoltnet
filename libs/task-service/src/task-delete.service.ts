@@ -1,10 +1,11 @@
 import type { KetoNamespace } from '@moltnet/auth';
-
 import {
-  LIVE_STATUSES,
-  TaskServiceError,
-  TERMINAL_STATUSES,
-} from './task-service.shared.js';
+  buildTaskDeletionPlan,
+  classifyTaskDeletionCandidates,
+  DELETE_ELIGIBLE_TASK_STATUSES,
+} from '@moltnet/task-workflows';
+
+import { TaskServiceError } from './task-service.shared.js';
 import type { TaskServiceDeps } from './task-service.types.js';
 
 export interface DeleteManyInput {
@@ -46,6 +47,7 @@ export function createTaskDeleteService(
 
   async function buildDeleteManyPlan(input: DeleteManyInput): Promise<{
     accepted: string[];
+    forceDeleteSealedTaskIds: string[];
     skipped: string[];
   }> {
     const force = input.force ?? false;
@@ -61,41 +63,43 @@ export function createTaskDeleteService(
     );
     const allowedIds = uniqueIds.filter((id) => allowedMap.get(id));
     if (allowedIds.length === 0) {
-      return { accepted: [], skipped: uniqueIds };
+      return { accepted: [], forceDeleteSealedTaskIds: [], skipped: uniqueIds };
     }
 
     const rows = await taskRepository.findByIds(allowedIds);
-    const terminalIds = rows
-      .filter(
-        (row) =>
-          TERMINAL_STATUSES.has(row.status) && !LIVE_STATUSES.has(row.status),
-      )
-      .map((row) => row.id);
+    const { deleteEligibleTasks, terminalTaskIds } =
+      classifyTaskDeletionCandidates(rows);
     const sealedIds = new Set(
-      await taskRepository.findSealedTaskIds(terminalIds),
+      await taskRepository.findSealedTaskIds(terminalTaskIds),
     );
     const forceAllowedMap =
-      force && terminalIds.length > 0
+      force && terminalTaskIds.length > 0
         ? await permissionChecker.canForceDeleteTasks(
-            terminalIds,
+            terminalTaskIds,
             input.callerId,
             input.callerNs,
           )
         : new Map<string, boolean>();
-    const accepted = terminalIds.filter(
-      (id) => !sealedIds.has(id) || Boolean(forceAllowedMap.get(id)),
-    );
-    const acceptedSet = new Set(accepted);
+    const plan = buildTaskDeletionPlan({
+      requestedIds: uniqueIds,
+      deleteEligibleTasks,
+      sealedTaskIds: [...sealedIds],
+      forceDeleteAllowedTaskIds: [...forceAllowedMap.entries()]
+        .filter(([, allowed]) => allowed)
+        .map(([id]) => id),
+    });
 
     return {
-      accepted: uniqueIds.filter((id) => acceptedSet.has(id)),
-      skipped: uniqueIds.filter((id) => !acceptedSet.has(id)),
+      accepted: plan.acceptedIds,
+      forceDeleteSealedTaskIds: plan.forceDeleteSealedTaskIds,
+      skipped: plan.skipped,
     };
   }
 
   return {
     async planDeleteMany(input) {
-      return buildDeleteManyPlan(input);
+      const plan = await buildDeleteManyPlan(input);
+      return { accepted: plan.accepted, skipped: plan.skipped };
     },
 
     async deleteMany(input) {
@@ -109,10 +113,30 @@ export function createTaskDeleteService(
 
       const deleted = await transactionRunner.runInTransaction(
         async () => {
-          if (force) {
-            await taskRepository.deleteCorrelationSealsForTasks(deletableIds);
+          const targetTaskIds = await taskRepository.lockIdsIfStatusIn(
+            deletableIds,
+            DELETE_ELIGIBLE_TASK_STATUSES,
+          );
+          const sealedTaskIds = new Set(
+            await taskRepository.findSealedTaskIds(targetTaskIds),
+          );
+          const forceDeleteSealedTaskIds = new Set(
+            plan.forceDeleteSealedTaskIds,
+          );
+          const finalTargetTaskIds = targetTaskIds.filter(
+            (taskId) =>
+              !sealedTaskIds.has(taskId) ||
+              forceDeleteSealedTaskIds.has(taskId),
+          );
+          if (force && finalTargetTaskIds.length > 0) {
+            await taskRepository.deleteCorrelationSealsForTasks(
+              finalTargetTaskIds,
+            );
           }
-          const deletedTaskIds = await taskRepository.deleteMany(deletableIds);
+          const deletedTaskIds = await taskRepository.deleteManyIfStatusIn(
+            finalTargetTaskIds,
+            DELETE_ELIGIBLE_TASK_STATUSES,
+          );
           const deletedSet = new Set(deletedTaskIds);
           const deletedRows = rows.filter((row) => deletedSet.has(row.id));
 

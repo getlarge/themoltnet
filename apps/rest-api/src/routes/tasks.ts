@@ -420,7 +420,7 @@ export function taskRoutes(fastify: FastifyInstance) {
         operationId: 'batchDeleteTasks',
         tags: ['tasks'],
         description:
-          'Queue asynchronous deletion of terminal tasks in bulk. By default, live, unauthorized, missing, and protected tasks are skipped. Set force: true with a reason to delete protected terminal tasks.',
+          'Queue asynchronous deletion of waiting, queued, and terminal tasks in bulk. By default, dispatched, running, unauthorized, missing, and protected tasks are skipped. Set force: true with a reason to delete protected terminal tasks.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         body: BatchDeleteTasksBodySchema,
         response: {
@@ -445,10 +445,36 @@ export function taskRoutes(fastify: FastifyInstance) {
           force,
           reason: request.body.reason,
         });
-        if (plan.accepted.length === 0) {
-          const operationId = taskDeletionDeduplicationId(
-            request.body.ids,
+        const operationId = taskDeletionDeduplicationId(
+          plan.accepted.length === 0 ? request.body.ids : plan.accepted,
+          force,
+        );
+        request.log.info(
+          {
+            operationId,
+            requestedTaskIds: request.body.ids,
+            acceptedTaskIds: plan.accepted,
+            skippedTaskIds: plan.skipped,
+            requested: request.body.ids.length,
+            accepted: plan.accepted.length,
+            skipped: plan.skipped.length,
             force,
+            requestedBy: { id: identityId, ns: subjectType },
+          },
+          'task.delete.plan',
+        );
+        if (plan.accepted.length === 0) {
+          request.log.info(
+            {
+              operationId,
+              requestedTaskIds: request.body.ids,
+              skippedTaskIds: plan.skipped,
+              requested: request.body.ids.length,
+              skipped: plan.skipped.length,
+              force,
+              requestedBy: { id: identityId, ns: subjectType },
+            },
+            'task.delete.noop',
           );
           return await reply.status(202).send({
             workflowId: null,
@@ -458,8 +484,6 @@ export function taskRoutes(fastify: FastifyInstance) {
             skipped: plan.skipped,
           });
         }
-
-        const operationId = taskDeletionDeduplicationId(plan.accepted, force);
         let workflowId: string | null = null;
         let status: 'queued' | 'duplicate' = 'queued';
         try {
@@ -478,8 +502,34 @@ export function taskRoutes(fastify: FastifyInstance) {
             operationId,
           );
           workflowId = handle.workflowID;
+          request.log.info(
+            {
+              workflowId,
+              operationId,
+              acceptedTaskIds: plan.accepted,
+              skippedTaskIds: plan.skipped,
+              accepted: plan.accepted.length,
+              skipped: plan.skipped.length,
+              force,
+              requestedBy: { id: identityId, ns: subjectType },
+            },
+            'task.delete.workflow_queued',
+          );
         } catch (error) {
           if (!(error instanceof DBOSErrors.DBOSQueueDuplicatedError)) {
+            request.log.error(
+              {
+                err: error,
+                operationId,
+                acceptedTaskIds: plan.accepted,
+                skippedTaskIds: plan.skipped,
+                accepted: plan.accepted.length,
+                skipped: plan.skipped.length,
+                force,
+                requestedBy: { id: identityId, ns: subjectType },
+              },
+              'task.delete.workflow_enqueue_failed',
+            );
             throw error;
           }
           status = 'duplicate';
@@ -487,11 +537,14 @@ export function taskRoutes(fastify: FastifyInstance) {
             {
               err: error,
               operationId,
+              acceptedTaskIds: plan.accepted,
+              skippedTaskIds: plan.skipped,
               accepted: plan.accepted.length,
+              skipped: plan.skipped.length,
               force,
               requestedBy: { id: identityId, ns: subjectType },
             },
-            'task.delete-many.already_queued',
+            'task.delete.workflow_duplicate',
           );
         }
 

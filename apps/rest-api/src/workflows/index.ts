@@ -32,9 +32,6 @@ export {
   initMaintenanceWorkflows,
   type MaintenanceDeps,
   setMaintenanceDeps,
-  startTaskDeletionWorkflow,
-  type TaskDeletionWorkflowInput,
-  type TaskDeletionWorkflowResult,
 } from './maintenance.js';
 export {
   initRegistrationWorkflow,
@@ -60,3 +57,8 @@ export {
   TeamFoundingTimeoutError,
   teamFoundingWorkflow,
 } from './team-founding-workflow.js';
+export {
+  startTaskDeletionWorkflow,
+  type TaskDeletionWorkflowInput,
+  type TaskDeletionWorkflowResult,
+} from '@moltnet/task-workflows';
