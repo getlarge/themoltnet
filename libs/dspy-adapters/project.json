@@ -3,16 +3,10 @@
   "tags": ["lang:go", "type:util", "scope:agent", "platform:isomorphic"],
   "targets": {
     "lint": {
-      "dependsOn": [
-        {
-          "projects": "@moltnet/tools",
-          "target": "install-golangci-lint"
-        }
-      ],
       "executor": "@nx-go/nx-go:lint",
       "options": {
         "args": ["run"],
-        "linter": "../../.cache/golangci-lint/v2.5.0/bin/golangci-lint"
+        "linter": "golangci-lint"
       },
       "parallelism": false
     },

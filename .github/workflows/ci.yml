@@ -198,6 +198,23 @@ jobs:
         id: matrix
         run: node .github/scripts/agents-changeset-matrix.cjs
 
+      - uses: actions/setup-go@v6
+        if: steps.matrix.outputs.has-agents == 'true'
+        with:
+          go-version: '1.25'
+      - name: Cache golangci-lint
+        if: steps.matrix.outputs.has-agents == 'true'
+        id: golangci-lint-cache
+        uses: actions/cache@v5
+        with:
+          path: .cache/golangci-lint/v2.5.0/bin
+          key: golangci-lint-${{ runner.os }}-${{ runner.arch }}-go1.25-v2.5.0
+      - name: Install golangci-lint
+        if: steps.matrix.outputs.has-agents == 'true' && steps.golangci-lint-cache.outputs.cache-hit != 'true'
+        run: |
+          GOBIN="$PWD/.cache/golangci-lint/v2.5.0/bin" \
+            go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.5.0
+
   # Nx Cloud DTE agents. Each matrix slot is a GitHub-hosted runner that
   # calls `nx-cloud start-agent` and shuts down when the orchestrator
   # marks the run complete. Tests use testcontainers internally for any
@@ -250,6 +267,19 @@ jobs:
             sudo apt-get update
             sudo apt-get install -y cmake ninja-build
           fi
+      - name: Restore golangci-lint
+        id: golangci-lint-cache
+        uses: actions/cache/restore@v5
+        with:
+          path: .cache/golangci-lint/v2.5.0/bin
+          key: golangci-lint-${{ runner.os }}-${{ runner.arch }}-go1.25-v2.5.0
+      - name: Install golangci-lint
+        if: steps.golangci-lint-cache.outputs.cache-hit != 'true'
+        run: |
+          GOBIN="$PWD/.cache/golangci-lint/v2.5.0/bin" \
+            go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.5.0
+      - name: Add golangci-lint to PATH
+        run: echo "$PWD/.cache/golangci-lint/v2.5.0/bin" >> "$GITHUB_PATH"
       # Distributed docker:build (configuration=ci) builds+pushes via buildx
       # with registry cache, so agents that pick up a docker:build task need a
       # docker-container builder + GHCR auth. Agents that don't are unaffected.
