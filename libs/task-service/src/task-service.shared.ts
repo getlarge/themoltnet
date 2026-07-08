@@ -1,21 +1,20 @@
-import type { Task as DbTask } from '@moltnet/database';
+import {
+  DELETE_ELIGIBLE_TASK_STATUSES,
+  type Task as DbTask,
+  TERMINAL_TASK_STATUSES,
+} from '@moltnet/database';
 import type { TaskAttempt, TaskValidationError } from '@moltnet/tasks';
 
 export const EVENT_TIMEOUT_SECONDS = 10;
 export const DEFAULT_LEASE_TTL_SEC = 300;
 
-export const TERMINAL_STATUSES = new Set<DbTask['status']>([
-  'completed',
-  'failed',
-  'cancelled',
-  'expired',
-]);
+export const TERMINAL_STATUSES = new Set<DbTask['status']>(
+  TERMINAL_TASK_STATUSES,
+);
 
-export const DELETE_ELIGIBLE_STATUSES = new Set<DbTask['status']>([
-  'waiting',
-  'queued',
-  ...TERMINAL_STATUSES,
-]);
+export const DELETE_ELIGIBLE_STATUSES = new Set<DbTask['status']>(
+  DELETE_ELIGIBLE_TASK_STATUSES,
+);
 
 export const LIVE_STATUSES = new Set<DbTask['status']>([
   'waiting',

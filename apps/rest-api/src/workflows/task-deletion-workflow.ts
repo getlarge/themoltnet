@@ -1,7 +1,9 @@
 import {
   DBOS,
+  DELETE_ELIGIBLE_TASK_STATUSES,
+  isDeleteEligibleTaskStatus,
+  isTerminalTaskStatus,
   type RuntimeSessionRepository,
-  type Task,
   type TaskArtifactRepository,
   type TaskRepository,
   type WorkflowHandle,
@@ -13,19 +15,6 @@ import {
   type TaskCleanupManifest,
   toCleanupManifestTask,
 } from './task-cleanup-workflow-lib.js';
-
-const TERMINAL_STATUSES = new Set<Task['status']>([
-  'completed',
-  'failed',
-  'cancelled',
-  'expired',
-]);
-
-const DELETE_ELIGIBLE_STATUSES = new Set<Task['status']>([
-  'waiting',
-  'queued',
-  ...TERMINAL_STATUSES,
-]);
 
 export interface TaskDeletionWorkflowInput {
   ids: string[];
@@ -56,7 +45,10 @@ interface TaskDeletionWorkflowDeps {
 
 type DeleteTaskRowsStep = (
   manifest: TaskCleanupManifest,
-  opts?: { deleteCorrelationSeals?: boolean },
+  opts?: {
+    deleteCorrelationSeals?: boolean;
+    onlyStatuses?: typeof DELETE_ELIGIBLE_TASK_STATUSES;
+  },
 ) => Promise<TaskCleanupManifest>;
 
 type DeleteTaskObjectsStep = (manifest: TaskCleanupManifest) => Promise<number>;
@@ -102,10 +94,10 @@ export function registerTaskDeletionWorkflow(input: {
       const uniqueIds = [...new Set(workflowInput.ids)];
       const rows = await taskRepository.findByIds(uniqueIds);
       const deleteEligibleTasks = rows.filter((task) =>
-        DELETE_ELIGIBLE_STATUSES.has(task.status),
+        isDeleteEligibleTaskStatus(task.status),
       );
       const terminalTasks = deleteEligibleTasks.filter((task) =>
-        TERMINAL_STATUSES.has(task.status),
+        isTerminalTaskStatus(task.status),
       );
       const sealedIds = new Set(
         await taskRepository.findSealedTaskIds(
@@ -220,12 +212,20 @@ export function registerTaskDeletionWorkflow(input: {
         );
         const deletedManifest = await input.deleteTaskRowsStep(manifest, {
           deleteCorrelationSeals: workflowInput.force,
+          onlyStatuses: DELETE_ELIGIBLE_TASK_STATUSES,
         });
+        const deletedTaskIds = deletedManifest.tasks.map((task) => task.id);
+        const deletedTaskIdSet = new Set(deletedTaskIds);
+        const skippedAfterManifest = manifest.tasks
+          .map((task) => task.id)
+          .filter((id) => !deletedTaskIdSet.has(id));
+        const skipped = [...manifest.skipped, ...skippedAfterManifest];
         logger.info(
           {
             workflowId,
             operationId: workflowInput.operationId,
-            deletedTaskIds: deletedManifest.tasks.map((task) => task.id),
+            deletedTaskIds,
+            skippedAfterManifestTaskIds: skippedAfterManifest,
             deletedTaskCount: deletedManifest.tasks.length,
             force: workflowInput.force,
             requestedBy: workflowInput.requestedBy,
@@ -259,10 +259,11 @@ export function registerTaskDeletionWorkflow(input: {
             operationId: workflowInput.operationId,
             requested: workflowInput.ids.length,
             accepted: manifest.tasks.length,
-            skipped: manifest.skipped.length,
-            skippedTaskIds: manifest.skipped,
+            skipped: skipped.length,
+            skippedTaskIds: skipped,
+            skippedAfterManifestTaskIds: skippedAfterManifest,
             skippedProtected: manifest.skippedProtected,
-            deletedTaskIds: deletedManifest.tasks.map((task) => task.id),
+            deletedTaskIds,
             deletedTaskCount: deletedManifest.tasks.length,
             deletedObjectCount,
             force: workflowInput.force,
@@ -277,7 +278,7 @@ export function registerTaskDeletionWorkflow(input: {
         return {
           requested: workflowInput.ids.length,
           accepted: manifest.tasks.length,
-          skipped: manifest.skipped,
+          skipped,
           deletedTaskCount: deletedManifest.tasks.length,
           deletedObjectCount,
           skippedProtected: manifest.skippedProtected,

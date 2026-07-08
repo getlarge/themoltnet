@@ -146,6 +146,9 @@ type TaskRepositoryMocks = {
   findSealedTaskIds: Mock<(ids: string[]) => Promise<string[]>>;
   deleteCorrelationSealsForTasks: Mock<(ids: string[]) => Promise<void>>;
   deleteMany: Mock<(ids: string[]) => Promise<string[]>>;
+  deleteManyIfStatusIn: Mock<
+    (ids: string[], statuses: readonly DbTask['status'][]) => Promise<string[]>
+  >;
   expireIfStillNonTerminal: Mock<(id: string) => Promise<DbTask | null>>;
   updateStatus: Mock<
     (
@@ -365,6 +368,14 @@ function makeMocks(
       .mockResolvedValue(undefined),
     deleteMany: vi
       .fn<(ids: string[]) => Promise<string[]>>()
+      .mockImplementation((ids) => Promise.resolve(ids)),
+    deleteManyIfStatusIn: vi
+      .fn<
+        (
+          ids: string[],
+          statuses: readonly DbTask['status'][],
+        ) => Promise<string[]>
+      >()
       .mockImplementation((ids) => Promise.resolve(ids)),
     expireIfStillNonTerminal: vi
       .fn<(id: string) => Promise<DbTask | null>>()
@@ -1311,6 +1322,7 @@ describe('createTaskService.deleteMany', () => {
       skipped: [JUDGE_TASK, OTHER_TEAM_ID],
     });
     expect(mocks.taskRepository.deleteMany).not.toHaveBeenCalled();
+    expect(mocks.taskRepository.deleteManyIfStatusIn).not.toHaveBeenCalled();
   });
 
   it('plans authorized waiting task deletion without force', async () => {
@@ -1354,6 +1366,7 @@ describe('createTaskService.deleteMany', () => {
       skipped: [JUDGE_TASK, RUN_TASK],
     });
     expect(mocks.taskRepository.deleteMany).not.toHaveBeenCalled();
+    expect(mocks.taskRepository.deleteManyIfStatusIn).not.toHaveBeenCalled();
   });
 
   it('skips deletion planning when delete permissions deny closed', async () => {
@@ -1381,6 +1394,7 @@ describe('createTaskService.deleteMany', () => {
     });
     expect(mocks.taskRepository.findByIds).not.toHaveBeenCalled();
     expect(mocks.taskRepository.deleteMany).not.toHaveBeenCalled();
+    expect(mocks.taskRepository.deleteManyIfStatusIn).not.toHaveBeenCalled();
   });
 
   it('skips sealed task deletion in force mode without force_delete permission', async () => {
@@ -1437,6 +1451,31 @@ describe('createTaskService.deleteMany', () => {
       accepted: [JUDGE_TASK],
       skipped: [],
     });
+  });
+
+  it('reports accepted tasks as skipped when they are no longer delete-eligible at delete time', async () => {
+    const task = makeJudgeTask(JUDGE_TASK, 'queued');
+    const mocks = makeMocks({ visibleTasks: { [JUDGE_TASK]: task } });
+    mocks.taskRepository.deleteManyIfStatusIn.mockResolvedValue([]);
+    const service = createTaskService(
+      mocks as unknown as Parameters<typeof createTaskService>[0],
+    );
+
+    const result = await service.deleteMany({
+      ids: [JUDGE_TASK],
+      callerId: AGENT_ID,
+      callerNs: KetoNamespace.Agent,
+    });
+
+    expect(mocks.taskRepository.deleteManyIfStatusIn).toHaveBeenCalledWith(
+      [JUDGE_TASK],
+      ['waiting', 'queued', 'completed', 'failed', 'cancelled', 'expired'],
+    );
+    expect(mocks.taskRepository.deleteMany).not.toHaveBeenCalled();
+    expect(
+      mocks.relationshipWriter.removeTaskRelationsBatch,
+    ).toHaveBeenCalledWith([]);
+    expect(result).toEqual({ deleted: [], skipped: [JUDGE_TASK] });
   });
 
   it('removes task relations in the delete transaction with one batch call', async () => {

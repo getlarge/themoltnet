@@ -91,6 +91,20 @@ function createIntegrationDeps() {
       }
       return Promise.resolve(deleted);
     }),
+    deleteManyIfStatusIn: vi.fn(
+      (ids: string[], statuses: readonly DbTask['status'][]) => {
+        const statusSet = new Set(statuses);
+        const deleted: string[] = [];
+        for (const id of ids) {
+          const task = tasks.get(id);
+          if (task && statusSet.has(task.status)) {
+            tasks.delete(id);
+            deleted.push(id);
+          }
+        }
+        return Promise.resolve(deleted);
+      },
+    ),
     findByCorrelationId: vi.fn((correlationId: string) =>
       Promise.resolve(
         [...tasks.values()].filter(

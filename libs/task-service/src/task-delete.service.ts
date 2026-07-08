@@ -1,4 +1,5 @@
 import type { KetoNamespace } from '@moltnet/auth';
+import { DELETE_ELIGIBLE_TASK_STATUSES } from '@moltnet/database';
 
 import {
   DELETE_ELIGIBLE_STATUSES,
@@ -116,7 +117,10 @@ export function createTaskDeleteService(
           if (force) {
             await taskRepository.deleteCorrelationSealsForTasks(deletableIds);
           }
-          const deletedTaskIds = await taskRepository.deleteMany(deletableIds);
+          const deletedTaskIds = await taskRepository.deleteManyIfStatusIn(
+            deletableIds,
+            DELETE_ELIGIBLE_TASK_STATUSES,
+          );
           const deletedSet = new Set(deletedTaskIds);
           const deletedRows = rows.filter((row) => deletedSet.has(row.id));
 

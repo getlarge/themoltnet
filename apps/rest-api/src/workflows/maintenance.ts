@@ -18,6 +18,7 @@ import {
   type NonceRepository,
   type RenderedPackRepository,
   type RuntimeSessionRepository,
+  type Task,
   type TaskArtifactRepository,
   type TaskRepository,
   type TransactionRunner,
@@ -717,7 +718,10 @@ export function initMaintenanceWorkflows(
   const deleteTaskRowsStep = DBOS.registerStep(
     async (
       manifest: TaskCleanupManifest,
-      opts?: { deleteCorrelationSeals?: boolean },
+      opts?: {
+        deleteCorrelationSeals?: boolean;
+        onlyStatuses?: readonly Task['status'][];
+      },
     ): Promise<TaskCleanupManifest> => {
       const {
         relationshipWriter,
@@ -725,15 +729,22 @@ export function initMaintenanceWorkflows(
         taskRepository,
         transactionRunner,
       } = getDeps();
-      const sessionIds = manifest.runtimeSessions.map((session) => session.id);
       const taskIds = manifest.tasks.map((task) => task.id);
       const deletedIds = await transactionRunner.runInTransaction(async () => {
         if (opts?.deleteCorrelationSeals) {
           await taskRepository.deleteCorrelationSealsForTasks(taskIds);
         }
-        await runtimeSessionRepository.detachChildren(sessionIds);
-        const deletedTaskIds = await taskRepository.deleteMany(taskIds);
+        const deletedTaskIds = opts?.onlyStatuses
+          ? await taskRepository.deleteManyIfStatusIn(
+              taskIds,
+              opts.onlyStatuses,
+            )
+          : await taskRepository.deleteMany(taskIds);
         const deletedTaskIdSet = new Set(deletedTaskIds);
+        const deletedSessionIds = manifest.runtimeSessions
+          .filter((session) => deletedTaskIdSet.has(session.taskId))
+          .map((session) => session.id);
+        await runtimeSessionRepository.detachChildren(deletedSessionIds);
         const deletedTasks = manifest.tasks.filter((task) =>
           deletedTaskIdSet.has(task.id),
         );

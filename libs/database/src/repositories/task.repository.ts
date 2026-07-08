@@ -326,6 +326,23 @@ export function createTaskRepository(db: Database) {
       return deleted.map((row) => row.id);
     },
 
+    async deleteManyIfStatusIn(
+      ids: string[],
+      statuses: readonly Task['status'][],
+    ): Promise<string[]> {
+      if (ids.length === 0 || statuses.length === 0) return [];
+      const deleted = await getExecutor(db)
+        .delete(tasks)
+        .where(
+          and(
+            inArray(tasks.id, [...new Set(ids)]),
+            inArray(tasks.status, [...new Set(statuses)]),
+          ),
+        )
+        .returning({ id: tasks.id });
+      return deleted.map((row) => row.id);
+    },
+
     async listExpiredNonTerminalTasks(
       now: Date,
       limit: number,
