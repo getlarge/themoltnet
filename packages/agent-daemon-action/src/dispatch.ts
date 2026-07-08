@@ -90,6 +90,7 @@ export async function dispatch(ctx: DispatchContext): Promise<void> {
   const diaryId = required(env, 'MOLTNET_DIARY_ID');
   const moltnet = await connect();
   const runningTimeoutSec = parseRunningTimeout(env);
+  const tags = parseTaskTags(env);
 
   if (parsed.verb === 'fulfill') {
     await dispatchFulfill({
@@ -101,6 +102,7 @@ export async function dispatch(ctx: DispatchContext): Promise<void> {
       issueTitle: extracted.issueTitle,
       issueBody: extracted.issueBody,
       runningTimeoutSec,
+      tags,
     });
     return;
   }
@@ -116,6 +118,7 @@ export async function dispatch(ctx: DispatchContext): Promise<void> {
     prNumber: extracted.issueNumber,
     referenceUrl: extracted.referenceUrl,
     runningTimeoutSec,
+    tags,
   });
 }
 
@@ -144,6 +147,32 @@ function parseRunningTimeout(env: NodeJS.ProcessEnv): number | undefined {
   return n;
 }
 
+function parseTaskTags(env: NodeJS.ProcessEnv): string[] | undefined {
+  const raw = env.MOLTNET_TASK_TAGS;
+  if (!raw) return undefined;
+
+  const tags = raw
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .split(/\n|,/)
+    .map((tag) => tag.trim())
+    .filter((tag) => tag.length > 0)
+    .reduce<string[]>(
+      (acc, tag) => (acc.includes(tag) ? acc : [...acc, tag]),
+      [],
+    );
+
+  if (tags.length === 0) return undefined;
+  if (tags.length > 20) {
+    throw new Error('task tags exceed 20 items');
+  }
+  const oversized = tags.find((tag) => tag.length > 128);
+  if (oversized) {
+    throw new Error(`task tag exceeds 128 characters: ${oversized}`);
+  }
+  return tags;
+}
+
 async function dispatchFulfill(args: {
   moltnet: Agent;
   teamId: string;
@@ -153,6 +182,7 @@ async function dispatchFulfill(args: {
   issueTitle?: string;
   issueBody?: string | null;
   runningTimeoutSec?: number;
+  tags?: string[];
 }): Promise<void> {
   const correlationId = await resolveCorrelation(
     { contextType: 'issue', referenceUrl: args.referenceUrl },
@@ -172,6 +202,7 @@ async function dispatchFulfill(args: {
     title: args.issueTitle ?? `Issue #${args.issueNumber}`,
     brief: args.issueBody ?? '',
     runningTimeoutSec: args.runningTimeoutSec,
+    tags: args.tags,
   });
 
   core.setOutput('task-id', created.id);
@@ -191,6 +222,7 @@ async function dispatchAssess(args: {
   prNumber: number;
   referenceUrl: string;
   runningTimeoutSec?: number;
+  tags?: string[];
 }): Promise<void> {
   const pr = { owner: args.owner, repo: args.repo, number: args.prNumber };
 
@@ -262,6 +294,7 @@ async function dispatchAssess(args: {
     targetOutputCid: accepted.outputCid,
     successCriteria,
     runningTimeoutSec: args.runningTimeoutSec,
+    tags: args.tags,
   });
 
   core.setOutput('task-id', created.id);

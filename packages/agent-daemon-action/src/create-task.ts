@@ -56,6 +56,8 @@ export interface FulfillTaskInput {
    * "running" until the default 2h cap fires.
    */
   runningTimeoutSec?: number;
+  /** Optional task tags for queue filtering/reporting. */
+  tags?: string[];
 }
 
 export async function createTask(input: FulfillTaskInput): Promise<Task> {
@@ -78,6 +80,7 @@ export async function createTask(input: FulfillTaskInput): Promise<Task> {
       ...(input.runningTimeoutSec !== undefined
         ? { runningTimeoutSec: input.runningTimeoutSec }
         : {}),
+      ...(input.tags?.length ? { tags: input.tags } : {}),
     },
     { teamId: input.teamId },
   );
@@ -104,6 +107,8 @@ export interface AssessTaskInput {
    * Same rationale as FulfillTaskInput.runningTimeoutSec.
    */
   runningTimeoutSec?: number;
+  /** Optional task tags for queue filtering/reporting. */
+  tags?: string[];
 }
 
 export async function createAssessTask(input: AssessTaskInput): Promise<Task> {
@@ -127,6 +132,7 @@ export async function createAssessTask(input: AssessTaskInput): Promise<Task> {
       ...(input.runningTimeoutSec !== undefined
         ? { runningTimeoutSec: input.runningTimeoutSec }
         : {}),
+      ...(input.tags?.length ? { tags: input.tags } : {}),
     },
     { teamId: input.teamId },
   );

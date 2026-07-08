@@ -31,10 +31,11 @@ inputs:
     default: ''
   tags:
     description: >
-      Optional comma- or newline-separated task tags to apply when creating a
-      task from task-spec-path. Merged after any top-level task spec `tags`.
-      Tags are trimmed, de-duplicated, and must satisfy the task API limits
-      (max 20, max 128 chars each).
+      Optional comma- or newline-separated task tags to apply when the action
+      creates a task, either from task-spec-path or from a @moltnet-* mention.
+      For task-spec-path, these are merged after any top-level task spec
+      `tags`. Tags are trimmed, de-duplicated, and must satisfy the task API
+      limits (max 20, max 128 chars each).
     required: false
     default: ''
   skip-validation:
@@ -501,6 +502,7 @@ runs:
         # `tasks.create` as `runningTimeoutSec`. Empty = use server
         # default (7200s).
         MOLTNET_RUNNING_TIMEOUT_SEC: ${{ inputs.running-timeout-sec }}
+        MOLTNET_TASK_TAGS: ${{ inputs.tags }}
       run: |
         set -euo pipefail
         # MOLTNET_CLIENT_ID / MOLTNET_CLIENT_SECRET / MOLTNET_API_URL /
