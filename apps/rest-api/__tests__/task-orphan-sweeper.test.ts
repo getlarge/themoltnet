@@ -942,6 +942,81 @@ describe('taskOrphanSweeperWorkflow — backstop (#1077)', () => {
     });
   });
 
+  it('task deletion workflow skips a queued task that becomes sealed before atomic delete', async () => {
+    await init();
+    const { deps } = makeDeps([]);
+    const queuedTask = {
+      id: 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeee10',
+      status: 'queued',
+      teamId: '99999999-9999-9999-9999-999999999999',
+      diaryId: 'ffffffff-ffff-ffff-ffff-ffffffffff10',
+      claimAgentId: null,
+    } as unknown as Task;
+    vi.mocked(deps.taskRepository.findByIds).mockResolvedValue([queuedTask]);
+    vi.mocked(deps.taskRepository.findSealedTaskIds)
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([queuedTask.id]);
+    vi.mocked(
+      deps.taskArtifactRepository.listCleanupRefsForTasks,
+    ).mockResolvedValue([
+      {
+        taskId: queuedTask.id,
+        objectKey: 'artifacts/sealed-race',
+        sizeBytes: 10,
+      },
+    ]);
+    vi.mocked(
+      deps.runtimeSessionRepository.listCleanupRefsForTasks,
+    ).mockResolvedValue([
+      {
+        id: '11111111-1111-1111-1111-111111111110',
+        taskId: queuedTask.id,
+        objectKey: 'sessions/sealed-race',
+        sizeBytes: 10,
+      },
+    ]);
+    vi.mocked(deps.taskRepository.deleteManyIfStatusIn).mockResolvedValue([]);
+    const { setMaintenanceDeps: setDeps } =
+      await import('../src/workflows/maintenance.js');
+    setDeps(deps);
+
+    const workflow = registeredWorkflows['maintenance.taskDeletion'];
+    if (!workflow) {
+      throw new Error('task deletion workflow not registered');
+    }
+    const result = await workflow({
+      ids: [queuedTask.id],
+      force: true,
+      reason: 'operator cleanup request before seal race',
+      requestedBy: { id: AGENT_ID, ns: 'agent' },
+    });
+
+    expect(deps.taskRepository.lockIdsIfStatusIn).toHaveBeenCalledWith(
+      [queuedTask.id],
+      ['waiting', 'queued', 'completed', 'failed', 'cancelled', 'expired'],
+    );
+    expect(
+      deps.taskRepository.deleteCorrelationSealsForTasks,
+    ).not.toHaveBeenCalled();
+    expect(deps.taskRepository.deleteManyIfStatusIn).toHaveBeenCalledWith(
+      [],
+      ['waiting', 'queued', 'completed', 'failed', 'cancelled', 'expired'],
+    );
+    expect(deps.runtimeSessionRepository.detachChildren).toHaveBeenCalledWith(
+      [],
+    );
+    expect(deps.taskArtifactStorage.deleteObjects).not.toHaveBeenCalled();
+    expect(deps.runtimeSessionStorage.deleteObjects).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      requested: 1,
+      accepted: 1,
+      skipped: [queuedTask.id],
+      deletedTaskCount: 0,
+      deletedObjectCount: 0,
+      skippedProtected: 0,
+    });
+  });
+
   it('task deletion workflow does not delete force seals when locked delete set is empty', async () => {
     await init();
     const { deps } = makeDeps([]);

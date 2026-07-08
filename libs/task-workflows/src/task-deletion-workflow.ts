@@ -150,6 +150,7 @@ export function registerTaskDeletionWorkflow(input: {
         tasks: tasksForCleanup,
         taskArtifacts,
         runtimeSessions,
+        forceDeleteSealedTaskIds: plan.forceDeleteSealedTaskIds,
         skipped: plan.skipped,
         skippedProtected: plan.skippedProtected,
         batchFull: false,

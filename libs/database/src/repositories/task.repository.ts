@@ -336,6 +336,7 @@ export function createTaskRepository(db: Database) {
             inArray(tasks.status, [...new Set(statuses)]),
           ),
         )
+        .orderBy(asc(tasks.id))
         .for('update');
       return rows.map((row) => row.id);
     },

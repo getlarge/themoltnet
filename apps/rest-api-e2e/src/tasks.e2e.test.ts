@@ -49,7 +49,7 @@ import {
   signExecutorAttestation,
 } from '@moltnet/crypto-service';
 import { correlationSeals, tasks } from '@moltnet/database';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createAgent, pollUntil, type TestAgent } from './helpers.js';
@@ -2608,6 +2608,85 @@ describe('Tasks API', () => {
           label: 'force cleanup removes correlation seal',
         },
       );
+    });
+
+    it('skips a queued task that becomes terminal and sealed while deletion is queued', async () => {
+      const correlationId = randomUUID();
+      const task = await createTask({
+        client,
+        auth: () => proposer.accessToken,
+        headers: { 'x-moltnet-team-id': proposer.personalTeamId },
+        body: {
+          taskType: 'freeform',
+          title: 'cleanup race queued to sealed',
+          diaryId: proposer.privateDiaryId,
+          correlationId,
+          input: { brief: 'race deletion with seal creation' },
+        },
+      });
+      expect(task.error).toBeUndefined();
+
+      await harness.db.transaction(async (tx) => {
+        await tx.execute(
+          sql`select id from tasks where id = ${task.data!.id} for update`,
+        );
+
+        const deletion = await batchDeleteTasks({
+          client,
+          auth: () => proposer.accessToken,
+          body: {
+            ids: [task.data!.id],
+            force: true,
+            reason: 'operator requested cleanup before seal race',
+          },
+        });
+        expect(deletion.error).toBeUndefined();
+        expect(deletion.response.status).toBe(202);
+        expect(deletion.data?.accepted).toEqual([task.data!.id]);
+        expect(deletion.data?.skipped).toEqual([]);
+
+        await tx
+          .update(tasks)
+          .set({
+            status: 'cancelled',
+            completedAt: new Date(),
+            cancelReason: 'sealed during delete race',
+          })
+          .where(eq(tasks.id, task.data!.id));
+        await tx.insert(correlationSeals).values({
+          correlationId,
+          sealedByTaskId: task.data!.id,
+          sealedByTaskType: task.data!.taskType,
+          sealedByAgentId: proposer.identityId,
+        });
+      });
+
+      await pollUntil(
+        () =>
+          getTask({
+            client,
+            auth: () => proposer.accessToken,
+            path: { id: task.data!.id },
+          }),
+        (result) => result.response.status === 200,
+        {
+          ...TASK_DELETION_POLL_OPTIONS,
+          label: 'race-lost sealed task remains visible',
+        },
+      );
+      const stillVisible = await getTask({
+        client,
+        auth: () => proposer.accessToken,
+        path: { id: task.data!.id },
+      });
+      expect(stillVisible.response.status).toBe(200);
+      expect(stillVisible.data!.status).toBe('cancelled');
+
+      const seals = await harness.db
+        .select()
+        .from(correlationSeals)
+        .where(eq(correlationSeals.sealedByTaskId, task.data!.id));
+      expect(seals).toHaveLength(1);
     });
   });
 });

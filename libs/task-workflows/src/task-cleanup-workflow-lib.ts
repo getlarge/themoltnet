@@ -20,6 +20,7 @@ export interface TaskCleanupManifest {
   tasks: TaskCleanupManifestTask[];
   taskArtifacts: TaskArtifactCleanupRef[];
   runtimeSessions: RuntimeSessionCleanupRef[];
+  forceDeleteSealedTaskIds?: string[];
   skippedProtected: number;
   batchFull: boolean;
   createdAt: string;

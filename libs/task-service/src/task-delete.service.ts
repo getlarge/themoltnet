@@ -47,6 +47,7 @@ export function createTaskDeleteService(
 
   async function buildDeleteManyPlan(input: DeleteManyInput): Promise<{
     accepted: string[];
+    forceDeleteSealedTaskIds: string[];
     skipped: string[];
   }> {
     const force = input.force ?? false;
@@ -62,7 +63,7 @@ export function createTaskDeleteService(
     );
     const allowedIds = uniqueIds.filter((id) => allowedMap.get(id));
     if (allowedIds.length === 0) {
-      return { accepted: [], skipped: uniqueIds };
+      return { accepted: [], forceDeleteSealedTaskIds: [], skipped: uniqueIds };
     }
 
     const rows = await taskRepository.findByIds(allowedIds);
@@ -90,13 +91,15 @@ export function createTaskDeleteService(
 
     return {
       accepted: plan.acceptedIds,
+      forceDeleteSealedTaskIds: plan.forceDeleteSealedTaskIds,
       skipped: plan.skipped,
     };
   }
 
   return {
     async planDeleteMany(input) {
-      return buildDeleteManyPlan(input);
+      const plan = await buildDeleteManyPlan(input);
+      return { accepted: plan.accepted, skipped: plan.skipped };
     },
 
     async deleteMany(input) {
@@ -114,11 +117,24 @@ export function createTaskDeleteService(
             deletableIds,
             DELETE_ELIGIBLE_TASK_STATUSES,
           );
-          if (force && targetTaskIds.length > 0) {
-            await taskRepository.deleteCorrelationSealsForTasks(targetTaskIds);
+          const sealedTaskIds = new Set(
+            await taskRepository.findSealedTaskIds(targetTaskIds),
+          );
+          const forceDeleteSealedTaskIds = new Set(
+            plan.forceDeleteSealedTaskIds,
+          );
+          const finalTargetTaskIds = targetTaskIds.filter(
+            (taskId) =>
+              !sealedTaskIds.has(taskId) ||
+              forceDeleteSealedTaskIds.has(taskId),
+          );
+          if (force && finalTargetTaskIds.length > 0) {
+            await taskRepository.deleteCorrelationSealsForTasks(
+              finalTargetTaskIds,
+            );
           }
           const deletedTaskIds = await taskRepository.deleteManyIfStatusIn(
-            targetTaskIds,
+            finalTargetTaskIds,
             DELETE_ELIGIBLE_TASK_STATUSES,
           );
           const deletedSet = new Set(deletedTaskIds);

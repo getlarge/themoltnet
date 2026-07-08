@@ -734,20 +734,32 @@ export function initMaintenanceWorkflows(
         const targetTaskIds = opts?.onlyStatuses
           ? await taskRepository.lockIdsIfStatusIn(taskIds, opts.onlyStatuses)
           : taskIds;
-        const targetTaskIdSet = new Set(targetTaskIds);
+        const sealedTaskIds = new Set(
+          await taskRepository.findSealedTaskIds(targetTaskIds),
+        );
+        const forceDeleteSealedTaskIds = new Set(
+          manifest.forceDeleteSealedTaskIds ?? [],
+        );
+        const finalTargetTaskIds = targetTaskIds.filter(
+          (taskId) =>
+            !sealedTaskIds.has(taskId) || forceDeleteSealedTaskIds.has(taskId),
+        );
+        const targetTaskIdSet = new Set(finalTargetTaskIds);
         const targetSessionIds = manifest.runtimeSessions
           .filter((session) => targetTaskIdSet.has(session.taskId))
           .map((session) => session.id);
         await runtimeSessionRepository.detachChildren(targetSessionIds);
-        if (opts?.deleteCorrelationSeals && targetTaskIds.length > 0) {
-          await taskRepository.deleteCorrelationSealsForTasks(targetTaskIds);
+        if (opts?.deleteCorrelationSeals && finalTargetTaskIds.length > 0) {
+          await taskRepository.deleteCorrelationSealsForTasks(
+            finalTargetTaskIds,
+          );
         }
         const deletedTaskIds = opts?.onlyStatuses
           ? await taskRepository.deleteManyIfStatusIn(
-              targetTaskIds,
+              finalTargetTaskIds,
               opts.onlyStatuses,
             )
-          : await taskRepository.deleteMany(targetTaskIds);
+          : await taskRepository.deleteMany(finalTargetTaskIds);
         const deletedTaskIdSet = new Set(deletedTaskIds);
         const deletedTasks = manifest.tasks.filter((task) =>
           deletedTaskIdSet.has(task.id),

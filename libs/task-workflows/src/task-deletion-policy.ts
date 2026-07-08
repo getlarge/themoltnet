@@ -51,6 +51,7 @@ export function classifyTaskDeletionCandidates<
 export interface TaskDeletionPlan<T extends Pick<Task, 'id' | 'status'>> {
   acceptedTasks: T[];
   acceptedIds: string[];
+  forceDeleteSealedTaskIds: string[];
   skipped: string[];
   skippedProtected: number;
 }
@@ -70,10 +71,16 @@ export function buildTaskDeletionPlan<
     (task) => !sealedIdSet.has(task.id) || forceAllowedIdSet.has(task.id),
   );
   const acceptedIdSet = new Set(acceptedTasks.map((task) => task.id));
+  const forceDeleteSealedTaskIds = input.deleteEligibleTasks
+    .filter(
+      (task) => sealedIdSet.has(task.id) && forceAllowedIdSet.has(task.id),
+    )
+    .map((task) => task.id);
 
   return {
     acceptedTasks,
     acceptedIds: uniqueIds.filter((id) => acceptedIdSet.has(id)),
+    forceDeleteSealedTaskIds,
     skipped: uniqueIds.filter((id) => !acceptedIdSet.has(id)),
     skippedProtected: input.deleteEligibleTasks.filter(
       (task) => sealedIdSet.has(task.id) && !forceAllowedIdSet.has(task.id),

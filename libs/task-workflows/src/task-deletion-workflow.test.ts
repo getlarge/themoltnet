@@ -174,4 +174,77 @@ describe('task deletion workflow', () => {
       skippedProtected: 0,
     });
   });
+
+  it('passes only originally force-authorized sealed task ids to the row-delete step', async () => {
+    const queuedTask = task('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa4', 'queued');
+    const sealedTerminalTask = task(
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa5',
+      'cancelled',
+    );
+    const findByIds = vi
+      .fn()
+      .mockResolvedValue([queuedTask, sealedTerminalTask]);
+    const findSealedTaskIds = vi
+      .fn()
+      .mockResolvedValue([sealedTerminalTask.id]);
+    const taskRepository = {
+      findByIds,
+      findSealedTaskIds,
+    } as unknown as TaskRepository;
+    const taskArtifactRepository = {
+      listCleanupRefsForTasks: vi.fn().mockResolvedValue([]),
+    } as unknown as TaskArtifactRepository;
+    const runtimeSessionRepository = {
+      listCleanupRefsForTasks: vi.fn().mockResolvedValue([]),
+    } as unknown as RuntimeSessionRepository;
+    const logger = {
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+    };
+    const deleteTaskRowsStep = vi.fn((manifest: TaskCleanupManifest) =>
+      Promise.resolve(manifest),
+    );
+
+    registerTaskDeletionWorkflow({
+      getDeps: () => ({
+        taskRepository,
+        taskArtifactRepository,
+        runtimeSessionRepository,
+        logger,
+      }),
+      deleteTaskRowsStep,
+      deleteTaskArtifactObjectsStep: vi.fn().mockResolvedValue(0),
+      deleteRuntimeSessionObjectsStep: vi.fn().mockResolvedValue(0),
+    });
+
+    const workflow = latestRegisteredWorkflow();
+    await workflow({
+      ids: [queuedTask.id, sealedTerminalTask.id],
+      force: true,
+      reason: 'operator reviewed sealed terminal task',
+      requestedBy: { id: AGENT_ID, ns: 'agent' },
+    });
+
+    expect(deleteTaskRowsStep).toHaveBeenCalledWith(
+      expect.objectContaining({
+        forceDeleteSealedTaskIds: [sealedTerminalTask.id],
+        tasks: [
+          expect.objectContaining({ id: queuedTask.id }),
+          expect.objectContaining({ id: sealedTerminalTask.id }),
+        ],
+      }),
+      {
+        deleteCorrelationSeals: true,
+        onlyStatuses: [
+          'waiting',
+          'queued',
+          'completed',
+          'failed',
+          'cancelled',
+          'expired',
+        ],
+      },
+    );
+  });
 });
