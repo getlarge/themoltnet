@@ -1,0 +1,13 @@
+{
+  "criteria": [
+    {
+      "description": "The response states that the producer created eval-note.txt and uploaded it as a task artifact, rather than being off-topic, empty, or claiming it could not.",
+      "id": "reports-upload",
+      "scoring": "llm_score",
+      "weight": 1
+    }
+  ],
+  "preamble": "The producer was told to create a file and register it via the moltnet_upload_task_artifact tool. Whether the tool was actually called is graded by deterministic gates, not by you. Grade only whether the producer's response coherently reports that it created and uploaded the artifact.",
+  "rubricId": "tool-use-artifact-upload",
+  "version": "v1"
+}
