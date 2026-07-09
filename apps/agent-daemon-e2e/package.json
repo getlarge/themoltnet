@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@moltnet/agent-eval": "workspace:*",
     "@moltnet/bootstrap": "workspace:*",
     "@moltnet/crypto-service": "workspace:*",
     "@moltnet/observability": "workspace:*",
