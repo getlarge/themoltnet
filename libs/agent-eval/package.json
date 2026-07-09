@@ -1,0 +1,31 @@
+{
+  "name": "@moltnet/agent-eval",
+  "version": "0.1.0",
+  "license": "AGPL-3.0-only",
+  "private": true,
+  "type": "module",
+  "description": "Deterministic evaluation harness for MoltNet agent-runtime prompts and rendered packs",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "scripts": {},
+  "dependencies": {
+    "@moltnet/tasks": "workspace:*",
+    "typebox": "catalog:"
+  },
+  "devDependencies": {
+    "@themoltnet/sdk": "workspace:*",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "nx": {
+    "tags": [
+      "type:util",
+      "scope:agent",
+      "platform:isomorphic"
+    ]
+  }
+}
