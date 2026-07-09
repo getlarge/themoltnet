@@ -1,0 +1,13 @@
+{
+  "criteria": [
+    {
+      "description": "The response is a non-empty, coherent single sentence acknowledging the scenario, not blank, an error, or a refusal.",
+      "id": "non-empty-ack",
+      "scoring": "llm_checklist",
+      "weight": 1
+    }
+  ],
+  "preamble": "This scenario is validated almost entirely by deterministic gates (prompt assembled, clean submit). The rubric only checks that the producer actually replied rather than emitting an empty or error response.",
+  "rubricId": "prompt-assembly-integrity",
+  "version": "v1"
+}

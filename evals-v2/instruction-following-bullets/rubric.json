@@ -1,0 +1,25 @@
+{
+  "criteria": [
+    {
+      "description": "The response contains exactly three bullet points, each on its own line starting with '- '. Score 1 only if the count is exactly three and every bullet uses the '- ' marker; score 0 otherwise.",
+      "id": "exactly-three-bullets",
+      "scoring": "llm_checklist",
+      "weight": 0.6
+    },
+    {
+      "description": "There is no prose outside the bullets — no introductory sentence, no heading, no trailing summary. Score 1 only if the response is nothing but the three bullets; score 0 if any extra text is present.",
+      "id": "no-prose",
+      "scoring": "llm_checklist",
+      "weight": 0.25
+    },
+    {
+      "description": "The three bullets are genuinely about benefits of multi-model agent evaluation, not filler or off-topic content.",
+      "id": "on-topic",
+      "scoring": "llm_score",
+      "weight": 0.15
+    }
+  ],
+  "preamble": "The producer was told to output EXACTLY three bullet points, each starting with '- ', and NO prose before/between/after. Grade the producer's `response` strictly against those format constraints. Content quality matters less than exact format adherence — this scenario measures whether the model follows precise formatting instructions.",
+  "rubricId": "instruction-following-bullets",
+  "version": "v1"
+}

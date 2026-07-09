@@ -1,0 +1,19 @@
+{
+  "criteria": [
+    {
+      "description": "The response actually explains the purpose of a submit-output tool (capturing structured task output), rather than being off-topic, empty, or a refusal.",
+      "id": "on-topic",
+      "scoring": "llm_score",
+      "weight": 0.6
+    },
+    {
+      "description": "The response is short (roughly one to three sentences) as the prompt requested, not a long essay.",
+      "id": "concise",
+      "scoring": "llm_checklist",
+      "weight": 0.4
+    }
+  ],
+  "preamble": "Grade whether the producer's response is a coherent, on-topic explanation. The submit-tool mechanics are graded by deterministic gates, not by you.",
+  "rubricId": "submit-output-compliance",
+  "version": "v1"
+}
