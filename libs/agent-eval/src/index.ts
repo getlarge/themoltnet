@@ -24,3 +24,10 @@ export {
 } from './pi-config.js';
 export { readScenario, ScenarioError } from './read-scenario.js';
 export { GateExpectations, type Scenario } from './scenario.js';
+export {
+  type MatrixDeps,
+  runMatrix,
+  type ScoreCell,
+  type ScoreMatrix,
+  summarizeMatrix,
+} from './score-matrix.js';
