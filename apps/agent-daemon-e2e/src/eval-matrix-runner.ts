@@ -9,8 +9,8 @@
  * This is a standalone runner, NOT part of the per-PR e2e suite. It requires the
  * full e2e Docker stack up and `OLLAMA_API_KEY` set. Invoke via:
  *
- *   MODELS="qwen3-coder:480b-cloud,glm-4.6:cloud" \
- *   MOLTNET_EVAL_JUDGE_MODEL="qwen3-coder:480b-cloud" \
+ *   MODELS="qwen3.5:397b-cloud,glm-5.2:cloud" \
+ *   MOLTNET_EVAL_JUDGE_MODEL="qwen3.5:397b-cloud" \
  *   OLLAMA_API_KEY=... \
  *   pnpm exec tsx apps/agent-daemon-e2e/src/eval-matrix-runner.ts
  *
@@ -53,7 +53,7 @@ const CORPUS_ROOT = resolve(import.meta.dirname, '../../..', 'evals-v2');
 const WARM_TTL_SEC = '1200';
 
 function parseModels(): string[] {
-  const raw = process.env.MODELS ?? 'qwen3-coder:480b-cloud';
+  const raw = process.env.MODELS ?? 'qwen3.5:397b-cloud';
   return raw
     .split(',')
     .map((m) => m.trim())
@@ -72,7 +72,7 @@ async function main(): Promise<void> {
   }
   const models = parseModels();
   const judgeModel =
-    process.env.MOLTNET_EVAL_JUDGE_MODEL ?? 'qwen3-coder:480b-cloud';
+    process.env.MOLTNET_EVAL_JUDGE_MODEL ?? 'qwen3.5:397b-cloud';
   const scenarios = loadScenarios();
   const outPath = resolve(
     process.env.EVAL_MATRIX_OUT ?? join(process.cwd(), 'score-matrix.json'),

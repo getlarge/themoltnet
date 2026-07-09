@@ -1,0 +1,111 @@
+# Nightly agent-runtime prompt eval matrix (issue #1588).
+#
+# Sweeps the committed evals-v2/ scenarios across N Ollama Cloud producer
+# models, applies stage-1 deterministic gates, and scores gate-passing attempts
+# with a single pinned judge model. Emits score-matrix.json as an artifact for
+# regression detection + progress tracking.
+#
+# This is NOT a per-PR gate. It runs on a schedule (and on demand) because a
+# full model matrix x real LLM latency far exceeds the 15-min per-PR e2e budget
+# and spends Ollama tokens per run. The per-PR tripwire is the gate-only smoke
+# in apps/agent-daemon-e2e/src/live-ollama-evals.e2e.test.ts.
+#
+# Uses the moving :ci-main image tags published by the last main build, so it
+# needs no per-run image build. If :ci-main does not yet exist (before the first
+# main build lands), this workflow will fail to pull the stack — that is
+# expected until the bootstrap main build runs.
+name: Eval Matrix (nightly)
+
+on:
+  schedule:
+    # 03:00 UTC daily — off-peak, after any same-day main builds refreshed :ci-main.
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      models:
+        description: 'Comma-separated producer models to sweep (ollama-cloud ids). Defaults are drawn from the maintained .pi/models.json list.'
+        required: false
+        default: 'qwen3.5:397b-cloud,glm-5.2:cloud,gpt-oss:120b-cloud'
+      judge_model:
+        description: 'Pinned judge model (held constant across the matrix).'
+        required: false
+        default: 'qwen3.5:397b-cloud'
+
+concurrency:
+  group: eval-matrix
+  cancel-in-progress: false
+
+jobs:
+  eval-matrix:
+    name: Eval Matrix
+    runs-on: ubuntu-latest
+    # Generous: N models x scenarios x real LLM latency + VM boot. Adjust as the
+    # corpus/model list grows.
+    timeout-minutes: 120
+    permissions:
+      contents: read
+      packages: read
+    env:
+      REG: ghcr.io/getlarge/themoltnet
+      # Stable moving tags from the last main build (no per-run affected calc).
+      REST_API_IMAGE: ghcr.io/getlarge/themoltnet/rest-api:ci-main
+      MCP_SERVER_IMAGE: ghcr.io/getlarge/themoltnet/mcp-server:ci-main
+      DB_MIGRATE_IMAGE: ghcr.io/getlarge/themoltnet/db-migrate:ci-main
+      CONSOLE_IMAGE: ghcr.io/getlarge/themoltnet/console:ci-main
+      MCP_HOST_IMAGE: ghcr.io/getlarge/themoltnet/mcp-host:ci-main
+      DATABASE_URL: postgresql://moltnet:moltnet_secret@localhost:5433/moltnet
+      ORY_HYDRA_ADMIN_URL: http://localhost:4445
+      ORY_HYDRA_PUBLIC_URL: http://localhost:4444
+      ORY_KETO_PUBLIC_URL: http://localhost:4466
+      ORY_KETO_ADMIN_URL: http://localhost:4467
+      ORY_KRATOS_ADMIN_URL: http://localhost:4434
+      ORY_KRATOS_PUBLIC_URL: http://localhost:4433
+      SERVER_BASE_URL: http://localhost:8080
+      ORY_ACTION_API_KEY: local-dev-webhook-key
+      # Nx loads the dotenvx-encrypted root .env otherwise; keep ciphertext out.
+      NX_LOAD_DOT_ENV_FILES: 'false'
+      OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
+      MODELS: ${{ github.event.inputs.models || 'qwen3.5:397b-cloud,glm-5.2:cloud,gpt-oss:120b-cloud' }}
+      MOLTNET_EVAL_JUDGE_MODEL: ${{ github.event.inputs.judge_model || 'qwen3.5:397b-cloud' }}
+      EVAL_MATRIX_OUT: ${{ github.workspace }}/score-matrix.json
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.19.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install Gondolin sandbox dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends qemu-utils qemu-system-x86
+      - name: Cache Gondolin snapshots
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/moltnet/gondolin
+          key: ${{ runner.os }}-${{ runner.arch }}-gondolin-snapshot-v1-eval-matrix-${{ hashFiles('libs/pi-extension/src/snapshot.ts', 'pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-gondolin-snapshot-v1-eval-matrix-
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Start Docker Compose stack
+        env:
+          COMPOSE_DISABLE_ENV_FILE: true
+        run: docker compose -f docker-compose.e2e.yaml up -d
+      - name: Run eval matrix
+        run: pnpm exec tsx apps/agent-daemon-e2e/src/eval-matrix-runner.ts
+      - name: Upload score matrix
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: score-matrix
+          path: score-matrix.json
+          if-no-files-found: warn
+      - name: Docker Compose logs
+        if: failure()
+        run: docker compose -f docker-compose.e2e.yaml logs --tail=100
