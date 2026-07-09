@@ -626,6 +626,9 @@ importers:
 
   apps/agent-daemon-e2e:
     dependencies:
+      '@moltnet/agent-eval':
+        specifier: workspace:*
+        version: link:../../libs/agent-eval
       '@moltnet/bootstrap':
         specifier: workspace:*
         version: link:../../libs/bootstrap
