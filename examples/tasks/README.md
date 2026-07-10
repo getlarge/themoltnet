@@ -13,9 +13,10 @@ still matters for prompt-builder regression tests and quick local runs.
 
 > **For full agent-daemon end-to-end smoke tests** (claim → VM boot →
 > agent runs → diary entries land with task-provenance tags), see
-> [`docs/local-runtime-testing.md`](../../docs/local-runtime-testing.md).
-> That flow uses `pnpm task:bootstrap-local` to provision a throwaway
-> agent against the local stack, then runs the daemon for real.
+> the local development & smoke testing walkthrough in
+> [`apps/agent-daemon/README.md`](../../apps/agent-daemon/README.md).
+> That flow provisions a throwaway agent against the local stack with
+> `bootstrap-local-agent.ts`, then runs the daemon for real.
 
 ## Recommended: API-backed pack pipeline demo
 

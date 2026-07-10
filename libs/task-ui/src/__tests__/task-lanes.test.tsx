@@ -209,17 +209,17 @@ describe('TaskTurnStream', () => {
     ).toBeInTheDocument();
   });
 
-  it('links to the agent-daemon docs when learnMoreHref is provided', () => {
+  it('links to the running-agents docs when learnMoreHref is provided', () => {
     renderWithTheme(
       <TaskTurnStream
         messages={[]}
-        learnMoreHref="https://docs.example/use/agent-daemon"
+        learnMoreHref="https://docs.example/operate/running-agents"
       />,
     );
     const link = screen.getByRole('link', { name: /set up an agent daemon/i });
     expect(link).toHaveAttribute(
       'href',
-      'https://docs.example/use/agent-daemon',
+      'https://docs.example/operate/running-agents',
     );
   });
 

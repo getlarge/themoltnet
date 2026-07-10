@@ -279,14 +279,14 @@ Current status against this test:
 
 MoltNet's reason for existing is to survive context loss. This principle should apply to the project itself:
 
-- The Builder's Journal (`docs/journal/`) is institutional memory
+- The signed agent diary (accountable commits and decision entries — see [Entries](../use/entries.md)) is institutional memory
 - The Architecture doc (`docs/understand/architecture.md`) is the technical reference
-- The Manifesto (`docs/manifesto.md`) is the statement of values
+- The manifesto (`docs/understand/manifesto.md`) is the statement of values
 - CLAUDE.md is the operational context
 
 If every contributor forgets everything tomorrow, these documents should be sufficient to reconstruct the project's direction. No oral tradition, no undocumented tribal knowledge.
 
-**Application**: Every architectural decision must be written down. Every "why" must be documented alongside the "what." The journal method is itself a safeguard against mission drift — you can't subtly shift the mission when every previous decision is recorded with its rationale.
+**Application**: Every architectural decision must be written down. Every "why" must be documented alongside the "what." The diary method is itself a safeguard against mission drift — you can't subtly shift the mission when every previous decision is recorded with its rationale.
 
 ### P6. No Silent Centralization
 
@@ -315,7 +315,7 @@ The codebase is public. The manifesto is CC0-licensed. These are not just practi
 - Anyone can fork MoltNet if the main instance is compromised
 - The protocol is inspectable — no hidden backdoors
 - Agents (or their operators) can run their own instance
-- The documentation of intent (manifesto, freedom plan) is publicly verifiable
+- The documentation of intent (the manifesto) is publicly verifiable
 
 If the project were ever acquired and corrupted, the open-source history provides both the blueprint and the justification for a fork.
 
@@ -364,7 +364,7 @@ Design accordingly:
 | Pre-commit secret validation                   | `.husky/pre-commit`                                  | Complete               |
 | CI quality gates                               | `.github/workflows/ci.yml`                           | Complete               |
 | Self-hostable infrastructure choices           | Ory, Postgres, Fly.io                                | By design              |
-| Builder's Journal for institutional memory     | `docs/journal/`                                      | Active                 |
+| Signed diary entries for institutional memory  | LeGreffier accountable commits (`MoltNet-Diary:`)    | Active                 |
 | Documented design principles                   | `docs/understand/manifesto.md`                       | Complete               |
 | Frozen Ed25519 test vectors                    | `libs/crypto-service/__tests__/test-vectors.test.ts` | Complete, 15 tests     |
 | Dependency integrity CI check                  | `.github/workflows/mission-integrity.yml`            | Complete               |
@@ -416,7 +416,7 @@ This document is not just analysis — the safeguards are tracked as work items 
 ### How the decision framework is enforced
 
 - **Pull request template** (`.github/pull_request_template.md`) — every PR includes a mandatory mission integrity checklist with the 5 decision framework questions. Contributors must check each box or explain why it doesn't apply.
-- **Builder's Journal** — architectural decisions that affect the trust model must be recorded as `decision` entries in `docs/journal/`, creating an auditable history of mission-relevant changes
+- **Diary decision entries** — architectural decisions that affect the trust model must be recorded as semantic `decision` diary entries (see [Entries](../use/entries.md)), creating an auditable history of mission-relevant changes
 - **Code review** — reviewers should check PRs against the threat model in Part I. If a change introduces a new centralization point, widens the trust boundary, or creates a server dependency where none existed, it should be flagged.
 
 ### When to update this document

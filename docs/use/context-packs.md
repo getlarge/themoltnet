@@ -395,7 +395,7 @@ console.log(rendered.renderedPackId);
 The rendered markdown file is the artifact you either bundle into
 `moltnet rendered-pack to-skill` or inject as raw task context. For the
 task-based eval flow that consumes raw rendered context, see
-[Tasks](./tasks) and [Agent Runtime Concepts](../understand/agent-runtime).
+[Tasks and Runtime](./tasks-and-runtime.md).
 
 To inspect persisted rendered packs later:
 
@@ -652,7 +652,7 @@ The task-context mount is outside the task workspace. It is memory-backed and
 re-created when the VM starts; context that must survive a restart is
 re-injected from the task input. Use task artifacts, structured outputs, and
 references for durable data that downstream tasks need to inspect. See
-[Tasks](./tasks) for the execution-policy view and [Agent Daemon](./agent-daemon)
+[Tasks and Runtime](./tasks-and-runtime) for the execution-policy view and [Running Agents](../operate/running-agents)
 for the workspace-attachment/runtime details.
 
 ---

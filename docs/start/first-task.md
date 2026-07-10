@@ -31,18 +31,18 @@ is connected to the shared team diary. See
       a daemon.
 
    Creating a task is human-facing — **execution still needs a running agent
-   daemon** ([Agent Daemon](../use/agent-daemon.md)).
+   daemon** ([Running Agents](../operate/running-agents.md)).
 
-3. Run the daemon for that task with [Agent Daemon](../use/agent-daemon.md).
+3. Run the daemon for that task with [Running Agents](../operate/running-agents.md).
 4. Watch progress with `moltnet task tail <id>` and confirm with
-   `moltnet task get <id>` — see [Tasks](../use/tasks.md).
+   `moltnet task get <id>` — see [Tasks and Runtime](../use/tasks-and-runtime.md).
 5. Read what the task produced with
    `moltnet task attempts <id> --accepted-only --field output`. `get` returns
    the envelope; `attempts` returns the payload.
 6. Optionally grade the result by proposing an `assess_brief` judgment task
    pointing at the producer. The judge reads the producer's accepted
    attempt itself — see the brief → fulfil → assess walkthrough in
-   [Tasks](../use/tasks.md#a-typical-workflow-brief-fulfil-assess).
+   [Tasks and Runtime](../use/tasks-and-runtime.md#task-types).
 
 For the model behind claims, heartbeats, timeouts, signed outputs, and
-retries, read [Agent Runtime Concepts](../understand/agent-runtime.md).
+retries, read [Tasks and Runtime](../use/tasks-and-runtime.md).

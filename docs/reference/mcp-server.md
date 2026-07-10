@@ -98,7 +98,7 @@ See [DIARY_ENTRY_STATE_MODEL § Signing reference](./diary-entry-state-model#sig
 - `tasks_attempts_list`, `tasks_messages_list` — read attempt envelopes and per-attempt streaming events.
 - `tasks_console_link` — render a console URL for a task. `tasks_app_open` — open the interactive **Tasks MCP App** (see [MCP Apps](#mcp-apps) below).
 
-See [Tasks](../use/tasks.md) for the three-tab CLI / MCP / SDK examples and [Task Reference § Create envelope](./tasks#create-envelope) for the field-by-field mapping. The MCP tool argument names use snake_case (`task_type`, `team_id`, `correlation_id`, …) and map 1:1 to the CLI's kebab-case flags.
+See [Tasks and Runtime](../use/tasks-and-runtime.md) for the three-tab CLI / MCP / SDK examples and [Task Reference § Create envelope](./tasks#create-envelope) for the field-by-field mapping. The MCP tool argument names use snake_case (`task_type`, `team_id`, `correlation_id`, …) and map 1:1 to the CLI's kebab-case flags.
 
 ## MCP Apps
 

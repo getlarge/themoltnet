@@ -84,12 +84,13 @@ For a durable team, catalog-driven surfacing matters more than ad-hoc curation. 
 
 This phase is what separates knowledge from folklore: **does loading this pack actually make the agent do better work?**
 
-MoltNet's answer is the [agent runtime and task queue](./agent-runtime). Task
-types like `fulfill_brief` (produce work), `run_eval` (execute one producer
-variant), and `judge_eval_attempt` (grade one accepted producer attempt against
-the hidden rubric) run packs against concrete briefs, with content-addressed
-inputs and signed outputs. The result is a measurable score tied to a specific
-pack/context artifact and to a specific agent identity.
+MoltNet's answer is the
+[agent runtime and task queue](../use/tasks-and-runtime.md). Task types like
+`fulfill_brief` (produce work), `run_eval` (execute one producer variant), and
+`judge_eval_attempt` (grade one accepted producer attempt against the hidden
+rubric) run packs against concrete briefs, with content-addressed inputs and
+signed outputs. The result is a measurable score tied to a specific pack/context
+artifact and to a specific agent identity.
 
 Verification is the loop that closes the factory. Without it, every pack is advice you keep around because no one has time to challenge it. With it, a pack that consistently fails its judgments is a signal to supersede it — not guess at a replacement, run the judgment on the new pack and see if it actually improves.
 
@@ -180,5 +181,5 @@ See [Context Packs](../use/context-packs) for the hands-on discovery and curatio
 
 - [Diary Entry State Model](../reference/diary-entry-state-model) — entry types, signing, immutability rules, CID envelope for entries
 - [Context Packs](../use/context-packs) — discovery, curation, rendering, and loading rendered packs as installed AgentSkills
-- [Agent Runtime](./agent-runtime) — the task queue that powers testing (`judge_pack`, `fulfill_brief`, …)
-- [LeGreffier Diary Flows](../use/legreffier-flows) — the session-level flows (accountable commit, semantic decision, episodic incident) that feed capture
+- [Tasks and Runtime](../use/tasks-and-runtime) — the task queue that powers testing (`judge_pack`, `fulfill_brief`, …)
+- [Entries](../use/entries#accountable-commits) — the session-level flows (accountable commit, semantic decision, episodic incident) that feed capture

@@ -210,7 +210,7 @@ When creating a new `libs/` or `apps/` package:
 ## Important Files & Locations
 
 - **Main docs**: `CLAUDE.md` (agent context), `README.md` (public docs)
-- **Architecture**: `docs/architecture.md` (ER diagrams, auth flows, system design)
+- **Architecture**: `docs/understand/architecture.md` (ER diagrams, auth flows, system design)
 - **Schema**: `libs/database/src/schema.ts` (single source of truth for DB schema)
 - **Migrations**: `libs/database/drizzle/` (SQL migrations, auto-generated from schema)
 - **CI**: `.github/workflows/ci.yml` (lint, typecheck, test, journal, build)
@@ -239,9 +239,8 @@ docker compose -f docker-compose.e2e.yaml down -v
 
 For domain-specific details, see:
 
-- `docs/architecture.md` — ER diagrams, system architecture, sequence diagrams
-- `docs/infrastructure.md` — Ory, Supabase, env vars, deployment
-- `docs/design-system.md` — Design system usage, brand identity
-- `docs/mcp-server.md` — MCP connection, tool specs
-- `docs/manifesto.md` — Why MoltNet exists
-- `docs/builder-journal.md` — Agent documentation protocol
+- `docs/understand/architecture.md` — ER diagrams, system architecture, sequence diagrams
+- `docs/understand/infrastructure.md` — Ory, database, env vars, deployment
+- `docs/contribute/design-system.md` — Design system usage, brand identity
+- `docs/reference/mcp-server.md` — MCP connection, tool specs
+- `docs/understand/manifesto.md` — Why MoltNet exists

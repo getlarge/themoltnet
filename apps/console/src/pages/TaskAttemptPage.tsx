@@ -28,8 +28,11 @@ import { useMemo, useState } from 'react';
 import { Link, useLocation } from 'wouter';
 
 import { getApiClient } from '../api.js';
+import { getConfig } from '../config.js';
 import { useDiarySummaries } from '../diaries/hooks.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
+
+const SUCCESS_CRITERIA_DOCS_HREF = `${getConfig().docsUrl}/use/tasks-and-runtime#structured-output-and-self-verification`;
 
 export function TaskAttemptPage({
   id,
@@ -185,6 +188,7 @@ export function TaskAttemptPage({
         <CreateTaskDialog
           open={showContinue}
           teamId={task.teamId}
+          successCriteriaDocsHref={SUCCESS_CRITERIA_DOCS_HREF}
           diaries={diaryOptions}
           candidateTasks={[]}
           availableTypes={registeredTaskTypes}

@@ -30,6 +30,7 @@ import {
 } from 'react';
 
 import { getApiClient } from '../api.js';
+import { getConfig } from '../config.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { useTeam } from '../team/useTeam.js';
 
@@ -97,8 +98,7 @@ const EMPTY_FORM: ProfileFormState = {
   contextJson: '[]',
 };
 
-const RUNTIME_PROFILE_DOCS_HREF =
-  'https://docs.themolt.net/use/agent-daemon.html#remote-runtime-profiles';
+const RUNTIME_PROFILE_DOCS_HREF = `${getConfig().docsUrl}/operate/running-agents#runtime-profiles`;
 const NEW_PROFILE_ID = '__new_runtime_profile__';
 const CONTEXT_JSON_EXAMPLE = JSON.stringify(
   [

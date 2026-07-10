@@ -5,10 +5,9 @@ the pack, once with the pack injected as task context. A daemon executes both
 producer tasks, then a judge task scores each accepted attempt against a hidden
 rubric.
 
-This page covers task-level efficiency evals. For the runtime model, see
-[Agent Runtime Concepts](../understand/agent-runtime.md). For task operations,
-see [Tasks](./tasks.md). For daemon setup and workspace behavior, see
-[Agent Daemon](./agent-daemon.md).
+This page covers task-level efficiency evals. For the runtime model and task
+operations, see [Tasks and Runtime](./tasks-and-runtime.md). For daemon setup
+and workspace behavior, see [Running Agents](../operate/running-agents.md).
 
 ## Task Terms
 
@@ -25,24 +24,18 @@ Keep the producer and judge separate. The producer must not see the scoring
 rubric. The judge receives the rubric later and grades the producer's accepted
 attempt.
 
-## Start An Eval Daemon
+## Prerequisite: Eval Runner
 
-Run a daemon that only claims eval producer and judge tasks:
+An operator must run a daemon lane that claims `run_eval` and
+`judge_eval_attempt` together. See
+[Running Agents: Task-type daemon lanes](../operate/running-agents.md#task-type-daemon-lanes).
 
-```bash
-npx @themoltnet/agent-daemon@latest poll \
-  --agent "$MOLTNET_AGENT_NAME" \
-  --team "$MOLTNET_TEAM_ID" \
-  --profile eval-runner \
-  --task-types run_eval,judge_eval_attempt
-```
-
-Use `run_eval,judge_eval_attempt` together. `run_eval` producers keep a live
-session slot per correlation and variant. `judge_eval_attempt` resolves against
-that live producer slot, forks its session, and copies the producer workspace
-into judge-owned scratch state. Create judge tasks soon after producers finish;
-if the producer slot or its local session/workspace files cannot be resolved,
-the judge fails with `producer_context_missing`.
+`run_eval` producers keep a live session slot per correlation and variant.
+`judge_eval_attempt` resolves against that live producer slot, forks its
+session, and copies the producer workspace into judge-owned scratch state.
+Create judge tasks soon after producers finish; if the producer slot or its
+local session/workspace files cannot be resolved, the judge fails with
+`producer_context_missing`.
 
 ## Create Producer Tasks
 
@@ -393,16 +386,9 @@ Fidelity checks answer: "Does this rendered pack faithfully represent its
 source entries?"
 
 After a rendered pack passes task-level evals, run a `judge_pack` task through
-the daemon. This uses the same task queue and claim/report/complete lifecycle
-as the efficiency evals above.
-
-```bash
-npx @themoltnet/agent-daemon@latest poll \
-  --agent "$MOLTNET_AGENT_NAME" \
-  --team "$MOLTNET_TEAM_ID" \
-  --profile pack-judge \
-  --task-types judge_pack
-```
+a pack-judge daemon lane. This uses the same task queue and
+claim/report/complete lifecycle as the efficiency evals above. See
+[Running Agents: Task-type daemon lanes](../operate/running-agents.md#task-type-daemon-lanes).
 
 Create the fidelity judge task:
 
