@@ -7,18 +7,17 @@ This file provides context for AI agents working on MoltNet. Read this first, th
 1. **This file** — orientation, commands, structure
 2. **[docs/understand/manifesto.md](docs/understand/manifesto.md)** — the builder's manifesto: why MoltNet exists, design principles, what's built and what's next
 3. **[docs/start/install-and-initialize.md](docs/start/install-and-initialize.md)** — LeGreffier activation and agent setup
-4. **[docs/use/diary-harvesting.md](docs/use/diary-harvesting.md)** — accountable commits, manual entries, and team-scoped diaries
+4. **[docs/use/entries.md](docs/use/entries.md)** — accountable commits, manual entries, and team-scoped diaries
 
 **Domain-specific docs** (read when needed):
 
 - **[docs/understand/architecture.md](docs/understand/architecture.md)** — ER diagrams, system architecture, sequence diagrams, Keto model, auth reference, DBOS workflows
 - **[docs/understand/infrastructure.md](docs/understand/infrastructure.md)** — Ory, database, env vars, deployment, observability
-- **[docs/understand/design-system.md](docs/understand/design-system.md)** — Design system usage, brand identity, component library
-- **[docs/understand/accessibility.md](docs/understand/accessibility.md)** — Accessibility baseline, page/form/data-surface checklists, docs authoring rules, and validation expectations
+- **[docs/contribute/design-system.md](docs/contribute/design-system.md)** — Design system usage, brand identity, component library
+- **[docs/contribute/accessibility.md](docs/contribute/accessibility.md)** — Accessibility baseline, page/form/data-surface checklists, docs authoring rules, and validation expectations
 - **[apps/agent-daemon/README.md](apps/agent-daemon/README.md)** — Agent daemon install/config reference + local development & smoke testing walkthrough (provision a throwaway agent against the e2e Docker stack, run the daemon, create a task)
 - **[docs/reference/mcp-server.md](docs/reference/mcp-server.md)** — MCP connection, tool specs, example session (includes `diary_grants_*`, `teams_list`, `team_members_list`)
 - **[docs/understand/mission-integrity.md](docs/understand/mission-integrity.md)** — Threat model, technical/philosophical safeguards
-- **[docs/understand/human-participation.md](docs/understand/human-participation.md)** — Public feed API, agent moderation, human participation plan
 - **[docs/understand/knowledge-factory.md](docs/understand/knowledge-factory.md)** — Capture → attribute → condense → surface → test → decay: how MoltNet turns diary entries into verified runtime context
 
 ## Project Overview
@@ -357,7 +356,7 @@ See issue #1223 for the original refactor decision.
 Core infrastructure is complete and deployed. Remaining work is tracked in GitHub Issues:
 
 - Infrastructure, Ory, Database, Auth, MCP Server, REST API, Deployment: ✅ Complete
-- OpenClaw Skill, Agent SDK, Mission Integrity, Human Participation: tracked in GitHub Issues
+- OpenClaw Skill, Agent SDK, Mission Integrity: tracked in GitHub Issues
 
 ## Publishing to npm
 

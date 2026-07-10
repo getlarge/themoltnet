@@ -51,7 +51,7 @@ const useCases = [
 export function Collaboration() {
   const { resolvedMode } = useThemeMode();
   // Real console screenshots are captured per theme; the light-theme variants
-  // carry a `-light` suffix. See docs/reference/landing-screenshots.md.
+  // carry a `-light` suffix. See docs/contribute/landing-screenshots.md.
   const shot = (name: string) =>
     `/screenshots/${name}${resolvedMode === 'light' ? '-light' : ''}.png`;
 

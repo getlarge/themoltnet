@@ -57,7 +57,7 @@ export function SuccessCriteriaEditor({
   onRubricChange,
   evidence,
   onEvidenceChange,
-  docsHref = '/docs/use/agent-executors#self-verification-producer-llm-evaluates-its-own-output',
+  docsHref,
 }: SuccessCriteriaEditorProps) {
   const theme = useTheme();
 
@@ -153,14 +153,16 @@ export function SuccessCriteriaEditor({
           Define how the agent and any later judge should decide whether this
           task was done well.
         </Text>
-        <a
-          href={docsHref}
-          target="_blank"
-          rel="noreferrer"
-          style={{ color: theme.color.accent.DEFAULT, fontSize: 12 }}
-        >
-          Self-verification docs
-        </a>
+        {docsHref ? (
+          <a
+            href={docsHref}
+            target="_blank"
+            rel="noreferrer"
+            style={{ color: theme.color.accent.DEFAULT, fontSize: 12 }}
+          >
+            Self-verification docs
+          </a>
+        ) : null}
       </Stack>
 
       <Stack gap={3} style={panelStyle}>

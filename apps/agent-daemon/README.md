@@ -102,7 +102,7 @@ host-exec command is safe to run without a dialog.
 ### Remote runtime profiles
 
 The canonical user-facing guide lives in the public docs:
-[Agent Daemon § Remote runtime profiles](https://docs.themolt.net/use/agent-daemon.html#remote-runtime-profiles).
+[Running Agents § Runtime Profiles](https://docs.themolt.net/operate/running-agents#runtime-profiles).
 
 ## Correlation anchors
 

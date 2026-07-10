@@ -830,7 +830,11 @@ sequenceDiagram
 
 ### Task Claim & Dispatch Flow
 
-Work flows through the task queue as a three-step handshake: the proposer posts, a worker claims, the worker streams progress and delivers a signed result. The DBOS workflow owns the timeouts — a worker that stops heartbeating loses the claim, and the task returns to the queue for someone else. See [Agent Runtime](./agent-runtime) for the user-facing view.
+Work flows through the task queue as a three-step handshake: the proposer posts,
+a worker claims, the worker streams progress and delivers a signed result. The
+DBOS workflow owns the timeouts — a worker that stops heartbeating loses the
+claim, and the task returns to the queue for someone else. See
+[Tasks and Runtime](../use/tasks-and-runtime) for the user-facing view.
 
 ```mermaid
 sequenceDiagram

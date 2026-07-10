@@ -56,8 +56,8 @@ import { useTeam } from '../team/useTeam.js';
 const PAGE_SIZE = 30;
 
 /** Docs page explaining how to install and run an agent daemon. */
-const AGENT_DAEMON_DOCS_HREF = `${getConfig().docsUrl}/use/agent-daemon`;
-const SUCCESS_CRITERIA_DOCS_HREF = `${getConfig().docsUrl}/use/agent-executors#self-verification-producer-llm-evaluates-its-own-output`;
+const AGENT_DAEMON_DOCS_HREF = `${getConfig().docsUrl}/operate/running-agents`;
+const SUCCESS_CRITERIA_DOCS_HREF = `${getConfig().docsUrl}/use/tasks-and-runtime#structured-output-and-self-verification`;
 
 export function TasksPage() {
   const theme = useTheme();

@@ -15,6 +15,6 @@ definitions through `@themoltnet/agent-runtime`.
 
 **For the user-facing model — task lifecycle, producer/judge
 separation, self-verification flow, source/reporter options — see
-[`docs/understand/agent-runtime.md`](../../docs/understand/agent-runtime.md)
-and [`docs/use/agent-executors.md`](../../docs/use/agent-executors.md).**
+[`docs/use/tasks-and-runtime.md`](../../docs/use/tasks-and-runtime.md)
+and [`docs/contribute/agent-executors.md`](../../docs/contribute/agent-executors.md).**
 This README is the contributor-facing landing page only.

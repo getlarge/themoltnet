@@ -5,7 +5,7 @@ import llmstxt from 'vitepress-plugin-llms';
 // Links to these files appear inside published pages (markdown cross-refs that
 // still make sense on GitHub's raw view); they must survive the build-time
 // dead-link check, so the same list drives both srcExclude and ignoreDeadLinks.
-const INTERNAL_DOCS = [] as const;
+const INTERNAL_DOCS = ['understand/manifesto'] as const;
 const INTERNAL_SUBTREES = [
   'journal',
   'research',
@@ -79,8 +79,9 @@ export default defineConfig({
     siteTitle: 'MoltNet Docs',
     nav: [
       { text: 'Start', link: '/start/getting-started' },
-      { text: 'Use', link: '/use/tasks' },
-      { text: 'Understand', link: '/understand/agent-runtime' },
+      { text: 'Use', link: '/use/tasks-and-runtime' },
+      { text: 'Run / Operate', link: '/operate/running-agents' },
+      { text: 'Understand', link: '/understand/knowledge-factory' },
       { text: 'Reference', link: '/reference/mcp-server' },
     ],
     sidebar: [
@@ -103,31 +104,56 @@ export default defineConfig({
         ],
       },
       {
-        text: 'Use',
+        text: 'Use MoltNet',
         items: [
-          { text: 'SDK & Integrations', link: '/use/sdk-and-integrations' },
           { text: 'Teams & Collaboration', link: '/use/teams' },
           { text: 'Entries', link: '/use/entries' },
-          { text: 'LeGreffier Diary Flows', link: '/use/legreffier-flows' },
           { text: 'Context Packs', link: '/use/context-packs' },
-          { text: 'Tasks', link: '/use/tasks' },
-          { text: 'Agent Runtime Concepts', link: '/understand/agent-runtime' },
-          { text: 'Agent Daemon', link: '/use/agent-daemon' },
-          { text: 'Agent Executors', link: '/use/agent-executors' },
           { text: 'Context Pack Evals', link: '/use/context-pack-evals' },
+          { text: 'Tasks and Runtime', link: '/use/tasks-and-runtime' },
+          { text: 'SDK & Integrations', link: '/use/sdk-and-integrations' },
+        ],
+      },
+      {
+        text: 'Run / Operate',
+        items: [
+          { text: 'Running Agents', link: '/operate/running-agents' },
+          { text: 'Local Platform', link: '/operate/local-platform' },
+          { text: 'Infrastructure', link: '/understand/infrastructure' },
+          {
+            text: 'Fly MPG Backup and Restore',
+            link: '/use/recipes/fly-mpg-backup-restore',
+          },
+          {
+            text: 'Ory Backup and Restore',
+            link: '/use/recipes/ory-backup-restore',
+          },
         ],
       },
       {
         text: 'Understand',
         items: [
-          { text: 'Agent Runtime Concepts', link: '/understand/agent-runtime' },
           { text: 'Knowledge Factory', link: '/understand/knowledge-factory' },
+          { text: 'Entry Search', link: '/understand/entry-search' },
           { text: 'Architecture', link: '/understand/architecture' },
-          { text: 'Manifesto', link: '/understand/manifesto' },
           { text: 'Mission Integrity', link: '/understand/mission-integrity' },
-          { text: 'Infrastructure', link: '/understand/infrastructure' },
-          { text: 'Design System', link: '/understand/design-system' },
-          { text: 'Accessibility', link: '/understand/accessibility' },
+        ],
+      },
+      {
+        text: 'Contribute',
+        items: [
+          { text: 'LeGreffier Flows', link: '/contribute/legreffier-flows' },
+          { text: 'Agent Executors', link: '/contribute/agent-executors' },
+          { text: 'Design System', link: '/contribute/design-system' },
+          { text: 'Accessibility', link: '/contribute/accessibility' },
+          {
+            text: 'Landing Screenshots',
+            link: '/contribute/landing-screenshots',
+          },
+          {
+            text: 'Nx Release Workflow',
+            link: '/contribute/nx-release-workflow',
+          },
         ],
       },
       {

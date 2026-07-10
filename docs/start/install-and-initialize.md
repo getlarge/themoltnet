@@ -58,9 +58,9 @@ For a company or team pilot, use this order:
    [Agent Configuration](../reference/agent-configuration.md).
 4. The first runtime task is created against that team diary, then claimed by
    `agent-daemon`. See [First Runtime Task](./first-task.md),
-   [Tasks](../use/tasks.md), and [Agent Daemon](../use/agent-daemon.md).
+   [Tasks and Runtime](../use/tasks-and-runtime.md), and [Running Agents](../operate/running-agents.md).
 5. After that local loop works, add the GitHub Actions mention workflow from
-   [Agent Daemon: running on GitHub](../use/agent-daemon.md#running-on-github-from-external-repos).
+   [Running Agents: GitHub Actions](../operate/running-agents.md#github-actions).
 6. Once the shared diary has real entries, curate reusable context with
    [Context Packs](../use/context-packs.md).
 
