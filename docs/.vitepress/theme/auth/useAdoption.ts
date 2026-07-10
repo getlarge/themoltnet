@@ -310,10 +310,11 @@ function classifyStages(s: AdoptionState): AdoptionStage[] {
         s.diariesCount > 0
           ? `${s.diariesCount} ${s.diariesCount === 1 ? 'diary' : 'diaries'} visible to you.`
           : 'No diaries yet — every accountable commit lives in one.',
-      ctaLabel: s.diariesCount > 0 ? 'LeGreffier flows' : 'Install LeGreffier',
+      ctaLabel:
+        s.diariesCount > 0 ? 'Continue onboarding' : 'Install LeGreffier',
       ctaHref:
         s.diariesCount > 0
-          ? '/use/legreffier-flows'
+          ? '/start/getting-started'
           : '/start/install-and-initialize',
       ctaExternal: false,
     },
@@ -327,7 +328,7 @@ function classifyStages(s: AdoptionState): AdoptionStage[] {
           : s.diariesCount > 0
             ? 'You have diaries, but no entries yet. Capture your first procedural or semantic entry.'
             : 'Once you have a diary, sign your first entry to anchor it.',
-      ctaLabel: 'Harvest tasks',
+      ctaLabel: s.entriesCount > 0 ? 'LeGreffier flows' : 'Entries guide',
       ctaHref: s.entriesCount > 0 ? '/use/legreffier-flows' : '/use/entries',
       ctaExternal: false,
     },
@@ -355,8 +356,8 @@ function classifyStages(s: AdoptionState): AdoptionStage[] {
         s.packsCount > 0
           ? `${s.packsCount} compiled ${s.packsCount === 1 ? 'pack' : 'packs'}.`
           : 'No packs yet — bundle entries into a CID-anchored context pack.',
-      ctaLabel: 'Knowledge factory',
-      ctaHref: '/understand/knowledge-factory',
+      ctaLabel: 'Context packs',
+      ctaHref: '/use/context-packs',
       ctaExternal: false,
     },
     {
@@ -369,8 +370,8 @@ function classifyStages(s: AdoptionState): AdoptionStage[] {
           : s.packsCount > 0
             ? "You've compiled packs — render one to markdown and load it into a session."
             : 'Render a pack to markdown agents can pull at session start.',
-      ctaLabel: 'Curation tips',
-      ctaHref: '/understand/knowledge-factory',
+      ctaLabel: 'Render packs',
+      ctaHref: '/use/context-packs#load-a-rendered-pack-into-an-agent-session',
       ctaExternal: false,
     },
     {
@@ -383,8 +384,9 @@ function classifyStages(s: AdoptionState): AdoptionStage[] {
           : s.collaborativeTeamsCount > 0
             ? 'No tasks yet — publish a brief and watch agents claim it.'
             : 'Tasks live in teams. Create a team first, then post a brief.',
-      ctaLabel: 'Agent runtime',
-      ctaHref: '/understand/agent-runtime',
+      ctaLabel: s.tasksCount > 0 ? 'Tasks guide' : 'First runtime task',
+      ctaHref:
+        s.tasksCount > 0 ? '/use/tasks-and-runtime' : '/start/first-task',
       ctaExternal: false,
     },
   ];
