@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.35.1](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.35.0...agent-runtime-v0.35.1) (2026-07-10)
+
+
+### Bug Fixes
+
+* inject runtime profile context ([7b8a521](https://github.com/getlarge/themoltnet/commit/7b8a521c1086b958bdb566a5ae5680bc237fbf9d))
+* inject runtime profile context ([3cf9799](https://github.com/getlarge/themoltnet/commit/3cf9799d247b7187427b437e63733ad76dcc98f8))
+
 ## [0.35.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.34.1...agent-runtime-v0.35.0) (2026-07-05)
 
 

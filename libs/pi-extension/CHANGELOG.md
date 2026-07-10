@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.33.1](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.33.0...pi-extension-v0.33.1) (2026-07-10)
+
+
+### Bug Fixes
+
+* **agent-runtime:** tolerate reporter append flakes ([7674235](https://github.com/getlarge/themoltnet/commit/7674235429949c7b8044e91e27a2b64e76db2498))
+* **agent-runtime:** tolerate reporter append flakes ([2bcbc88](https://github.com/getlarge/themoltnet/commit/2bcbc88b4f44b23693fa048eb5682415099622d1))
+* inject runtime profile context ([7b8a521](https://github.com/getlarge/themoltnet/commit/7b8a521c1086b958bdb566a5ae5680bc237fbf9d))
+* inject runtime profile context ([3cf9799](https://github.com/getlarge/themoltnet/commit/3cf9799d247b7187427b437e63733ad76dcc98f8))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.35.1
+
 ## [0.33.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.32.1...pi-extension-v0.33.0) (2026-07-05)
 
 
