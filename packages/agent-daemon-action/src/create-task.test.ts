@@ -106,6 +106,17 @@ describe('createTask', () => {
     const body = m.create.mock.calls[0][0] as { tags?: string[] };
     expect(body.tags).toEqual(['ci', 'source:github-actions']);
   });
+
+  it('forwards maxAttempts when provided', async () => {
+    const m = makeAgent();
+    await createTask({
+      agent: m.agent,
+      ...BASE_INPUT,
+      maxAttempts: 2,
+    });
+    const body = m.create.mock.calls[0][0] as { maxAttempts?: number };
+    expect(body.maxAttempts).toBe(2);
+  });
 });
 
 const RUBRIC: SuccessCriteria = {
@@ -178,5 +189,22 @@ describe('createAssessTask', () => {
 
     const body = m.create.mock.calls[0][0] as { tags?: string[] };
     expect(body.tags).toEqual(['ci', 'agent-daemon']);
+  });
+
+  it('forwards maxAttempts when provided', async () => {
+    const m = makeAgent();
+    await createAssessTask({
+      agent: m.agent,
+      teamId: BASE_INPUT.teamId,
+      diaryId: BASE_INPUT.diaryId,
+      correlationId: BASE_INPUT.correlationId,
+      targetTaskId: '44444444-4444-4444-8444-444444444444',
+      targetOutputCid: 'bafy-fulfill-output',
+      successCriteria: RUBRIC,
+      maxAttempts: 2,
+    });
+
+    const body = m.create.mock.calls[0][0] as { maxAttempts?: number };
+    expect(body.maxAttempts).toBe(2);
   });
 });

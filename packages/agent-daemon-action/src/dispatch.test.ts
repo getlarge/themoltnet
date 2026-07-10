@@ -35,7 +35,11 @@ const BASE_ENV = {
 function issueCommentContext(body: string): DispatchContext {
   return {
     github: {} as DispatchContext['github'],
-    env: { ...BASE_ENV, MOLTNET_TASK_TAGS: 'ci, source:github-actions\nci' },
+    env: {
+      ...BASE_ENV,
+      MOLTNET_MAX_ATTEMPTS: '2',
+      MOLTNET_TASK_TAGS: 'ci, source:github-actions\nci',
+    },
     context: {
       payload: {
         comment: { body },
@@ -70,8 +74,23 @@ describe('dispatch', () => {
     expect(mocks.createTask).toHaveBeenCalledTimes(1);
     expect(mocks.createTask).toHaveBeenCalledWith(
       expect.objectContaining({
+        maxAttempts: 2,
         tags: ['ci', 'source:github-actions'],
       }),
+    );
+  });
+
+  it('warns and uses the server default for invalid max attempts', async () => {
+    const ctx = issueCommentContext('@moltnet-fulfill please handle this');
+    ctx.env.MOLTNET_MAX_ATTEMPTS = '99';
+
+    await dispatch(ctx);
+
+    expect(mocks.warning).toHaveBeenCalledWith(
+      'MOLTNET_MAX_ATTEMPTS=99 is not an integer in [1, 10]; using server default',
+    );
+    expect(mocks.createTask).toHaveBeenCalledWith(
+      expect.not.objectContaining({ maxAttempts: expect.anything() }),
     );
   });
 });

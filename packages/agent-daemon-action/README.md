@@ -27,6 +27,7 @@ Three modes:
     task-spec-path: ${{ steps.compose.outputs.task-spec-path }} # optional
     tags: ci,review:pr,pr:${{ github.event.pull_request.number }} # optional
     skip-validation: 'false' # only applies with task-spec-path
+    max-attempts: '2' # optional task-level retry budget
     mode: once # once | drain (poll disallowed in CI)
     daemon-version: latest
     # Required — runtime profile UUID or team-scoped name.
@@ -65,6 +66,7 @@ jobs:
       - uses: getlarge/themoltnet/packages/agent-daemon-action@v0
         with:
           task-spec-path: ${{ steps.compose.outputs.task-spec-path }}
+          max-attempts: '2'
 ```
 
 A copy-paste workflow template lives at

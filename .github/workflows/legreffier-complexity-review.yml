@@ -90,4 +90,5 @@ jobs:
           task-spec-path: ${{ steps.compose.outputs.task-spec-path }}
           tags: ${{ steps.compose.outputs.task-tags }}
           skip-validation: 'false'
+          max-attempts: '2'
           profile: ${{ vars.MOLTNET_AGENT_PROFILE }}

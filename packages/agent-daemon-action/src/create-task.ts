@@ -56,6 +56,8 @@ export interface FulfillTaskInput {
    * "running" until the default 2h cap fires.
    */
   runningTimeoutSec?: number;
+  /** Optional task-level attempt budget. */
+  maxAttempts?: number;
   /** Optional task tags for queue filtering/reporting. */
   tags?: string[];
 }
@@ -79,6 +81,9 @@ export async function createTask(input: FulfillTaskInput): Promise<Task> {
       correlationId: input.correlationId,
       ...(input.runningTimeoutSec !== undefined
         ? { runningTimeoutSec: input.runningTimeoutSec }
+        : {}),
+      ...(input.maxAttempts !== undefined
+        ? { maxAttempts: input.maxAttempts }
         : {}),
       ...(input.tags?.length ? { tags: input.tags } : {}),
     },
@@ -107,6 +112,8 @@ export interface AssessTaskInput {
    * Same rationale as FulfillTaskInput.runningTimeoutSec.
    */
   runningTimeoutSec?: number;
+  /** Optional task-level attempt budget. */
+  maxAttempts?: number;
   /** Optional task tags for queue filtering/reporting. */
   tags?: string[];
 }
@@ -131,6 +138,9 @@ export async function createAssessTask(input: AssessTaskInput): Promise<Task> {
       correlationId: input.correlationId,
       ...(input.runningTimeoutSec !== undefined
         ? { runningTimeoutSec: input.runningTimeoutSec }
+        : {}),
+      ...(input.maxAttempts !== undefined
+        ? { maxAttempts: input.maxAttempts }
         : {}),
       ...(input.tags?.length ? { tags: input.tags } : {}),
     },
