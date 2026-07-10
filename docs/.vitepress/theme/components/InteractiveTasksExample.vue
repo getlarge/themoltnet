@@ -101,11 +101,13 @@ async function listTasksForSelectedTeam() {
   isRunning.value = true;
   error.value = null;
   try {
-    tasks.value = await molt.tasks.list({
-      teamId: requireTeamId(),
-      diaryId: selectedDiaryId.value ?? undefined,
-      limit: 10,
-    });
+    tasks.value = await molt.tasks.list(
+      {
+        diaryId: selectedDiaryId.value ?? undefined,
+        limit: 10,
+      },
+      { teamId: requireTeamId() },
+    );
   } catch (err) {
     error.value =
       err instanceof Error ? err : new Error('Could not list tasks');
@@ -118,15 +120,17 @@ async function createTaskForSelectedDiary() {
   isRunning.value = true;
   error.value = null;
   try {
-    created.value = await molt.tasks.create({
-      taskType: taskType.value.trim() || 'fulfill_brief',
-      teamId: requireTeamId(),
-      diaryId: requireDiaryId(),
-      input: parseTaskInput(),
-      maxAttempts: 1,
-      dispatchTimeoutSec: 3600,
-      runningTimeoutSec: 3600,
-    });
+    created.value = await molt.tasks.create(
+      {
+        taskType: taskType.value.trim() || 'fulfill_brief',
+        diaryId: requireDiaryId(),
+        input: parseTaskInput(),
+        maxAttempts: 1,
+        dispatchTimeoutSec: 3600,
+        runningTimeoutSec: 3600,
+      },
+      { teamId: requireTeamId() },
+    );
     await listTasksForSelectedTeam();
   } catch (err) {
     error.value =
