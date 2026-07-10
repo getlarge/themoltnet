@@ -1,6 +1,7 @@
-import type { ContextRef, TaskContext } from '@moltnet/tasks';
+import type { ContextRef } from '@moltnet/tasks';
 
 const PROMPT_SEPARATOR = '\n\n---\n\n';
+const MAX_MERGED_RUNTIME_CONTEXT_ENTRIES = 10;
 
 export interface ContextDeliverer {
   /**
@@ -22,7 +23,7 @@ export interface ContextDeliverer {
 }
 
 export interface ResolveContextArgs {
-  context: TaskContext;
+  context: readonly ContextRef[];
   deliver: ContextDeliverer;
 }
 
@@ -36,7 +37,28 @@ export interface ResolvedContext {
 }
 
 /**
- * Resolve `task.input.context[]` into delivered side-effects (skills
+ * Merge runtime-profile context defaults with task-scoped context. Profile
+ * entries are defaults; task entries with the same slug override them.
+ */
+export function mergeRuntimeProfileContext(
+  profileContext: readonly ContextRef[],
+  taskContext: readonly ContextRef[],
+): ContextRef[] {
+  const taskSlugs = new Set(taskContext.map((ref) => ref.slug));
+  const merged = [
+    ...profileContext.filter((ref) => !taskSlugs.has(ref.slug)),
+    ...taskContext,
+  ];
+  if (merged.length > MAX_MERGED_RUNTIME_CONTEXT_ENTRIES) {
+    throw new Error(
+      `merged runtime context has ${merged.length} entries; maximum is ${MAX_MERGED_RUNTIME_CONTEXT_ENTRIES}`,
+    );
+  }
+  return merged;
+}
+
+/**
+ * Resolve runtime context entries into delivered side-effects (skills
  * persisted via `deliver.skill`) and prompt fragments
  * (`systemPromptPrefix`, `userInlineSuffix`) the caller weaves into the
  * built prompt.
@@ -56,9 +78,10 @@ export interface ResolvedContext {
  *   - `user_inline`   → content appended to `userInlineSuffix` in
  *                       declared order, same separator.
  *
- * No fetching, no hashing — bytes are inlined in `ContextRef.content`,
- * and the task's `inputCid` already pins the entire input. The proposer
- * chose these bytes; the resolver just dispatches them.
+ * No fetching, no hashing — bytes are inlined in `ContextRef.content`.
+ * Task-scoped entries are pinned by the task's `inputCid`; profile-scoped
+ * entries are pinned by the runtime profile revision/source the daemon
+ * resolved. The resolver just dispatches already-selected bytes.
  *
  * The function is pure with respect to its arguments: file writes are
  * confined to the injected `deliver` callback, which makes the
@@ -118,12 +141,13 @@ function formatInlineContextBlock(slug: string, content: string): string {
     '### Injected Task Context',
     '',
     `Context id: \`${slug}\``,
-    'The following raw context was supplied by the task creator. Treat it',
-    'as task-relevant background that may override generic coding instincts',
-    'when it contains repo- or workflow-specific constraints.',
+    'The following raw context was selected for this task by its task input',
+    'or runtime profile. Treat it as task-relevant background that may',
+    'override generic coding instincts when it contains repo- or',
+    'workflow-specific constraints.',
     'The same content may also be materialized by the runtime under',
     '`/moltnet-task-context/context` for tool-based inspection. Do not',
-    'create or rely on workspace mirror files for this task context.',
+    'create or rely on workspace mirror files for this runtime context.',
     '',
     '<context>',
     content,

@@ -2,6 +2,7 @@ import { accessSync, constants } from 'node:fs';
 import { delimiter, isAbsolute, resolve } from 'node:path';
 
 import type {
+  RuntimeProfileContext,
   RuntimeProfileThinkingLevel,
   RuntimeProfileWorkspaceMode,
 } from '@moltnet/tasks';
@@ -32,6 +33,7 @@ export interface ResolvedRuntimeProfile {
   allowedWorkspaceModes: RuntimeProfileWorkspaceMode[];
   requiredEnv: string[];
   requiredTools: string[];
+  context: RuntimeProfileContext[];
   sandboxConfig: SandboxConfig;
   mountPath: string;
   source: string;
@@ -97,6 +99,7 @@ export async function resolveRuntimeProfile(options: {
     allowedWorkspaceModes: profile.allowedWorkspaceModes,
     requiredEnv: profile.requiredEnv,
     requiredTools: profile.requiredTools,
+    context: profile.context ?? [],
     sandboxConfig: profile.sandbox,
     mountPath: resolve(options.cwd),
     source: `runtime-profile:${profile.id}`,

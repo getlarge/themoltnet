@@ -101,6 +101,23 @@ describe('buildRunEvalUserPrompt', () => {
     expect(out).not.toContain('AGENTS.md');
   });
 
+  it('renders injected-context discipline for profile-only context', () => {
+    const out = render(baseInput, {
+      ...ctx,
+      effectiveRuntimeContext: [
+        {
+          slug: 'profile-context',
+          binding: 'context_inline',
+          content: '# Profile Context',
+        },
+      ],
+    });
+
+    expect(out).toContain('## Injected Task Context');
+    expect(out).toContain('runtime profile');
+    expect(out).toContain('/moltnet-task-context/context');
+  });
+
   it('does NOT leak the judge rubric or judge-only sections', () => {
     // RunEvalSuccessCriteria intentionally excludes `rubric` so the
     // producer cannot see the judge's answer key. Assert the rendered

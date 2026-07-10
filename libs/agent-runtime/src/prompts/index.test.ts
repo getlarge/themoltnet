@@ -3,6 +3,7 @@ import {
   FREEFORM_TYPE,
   JUDGE_EVAL_ATTEMPT_TYPE,
   PR_REVIEW_TYPE,
+  RUN_EVAL_TYPE,
 } from '@moltnet/tasks';
 import { describe, expect, it } from 'vitest';
 
@@ -49,6 +50,32 @@ describe('buildTaskUserPrompt', () => {
     // path as worktree-ephemeral so agents stop dropping content on the floor.
     expect(prompt).toContain('"body"');
     expect(prompt).toMatch(/ephemeral|not persisted/i);
+  });
+
+  it('forwards effective runtime context to run_eval prompt builders', () => {
+    const task = makeFulfillBriefTask({
+      taskType: RUN_EVAL_TYPE,
+      input: {
+        scenario: { prompt: 'Check runtime context behavior.' },
+        variantLabel: 'profile-context',
+        execution: { mode: 'vitro', workspace: 'none' },
+        context: [],
+      },
+    });
+
+    const prompt = buildTaskUserPrompt(task, {
+      ...ctx,
+      effectiveRuntimeContext: [
+        {
+          slug: 'profile-context',
+          binding: 'context_inline',
+          content: '# Profile Context',
+        },
+      ],
+    }).text;
+
+    expect(prompt).toContain('## Injected Task Context');
+    expect(prompt).toContain('runtime profile');
   });
 
   it('rejects fulfill_brief with empty brief', () => {

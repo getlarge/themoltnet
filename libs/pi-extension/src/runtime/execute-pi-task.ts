@@ -36,9 +36,9 @@ import { computeJsonCid } from '@moltnet/crypto-service';
 import {
   buildTaskUserPrompt,
   type ClaimedTask,
+  type ContextRef,
   FREEFORM_TYPE,
   type SubagentContractRegistry,
-  TaskContext,
   type TaskOutput,
   type TaskReporter,
   taskTypeUsesSubagents,
@@ -46,7 +46,6 @@ import {
   type TaskUserPromptContext,
 } from '@themoltnet/agent-runtime';
 import { connect } from '@themoltnet/sdk';
-import { Value } from 'typebox/value';
 
 import {
   createMoltNetTools,
@@ -67,13 +66,17 @@ import {
 import { activateAgentEnv, resumeVm } from '../vm-manager.js';
 import { buildAgentSession } from './agent-session-factory.js';
 import type { PiTaskExecutionPlanFactory } from './execution-plan.js';
-import { injectTaskContext } from './inject-task-context.js';
 import type { PiThinkingLevel } from './pi-thinking-level.js';
 import {
   type ContinueFromPointer,
   resolvePriorContext,
 } from './resolve-prior-context.js';
 import { redactRetryTriageSecrets } from './retry-triage.js';
+import {
+  type InjectedRuntimeContext,
+  injectRuntimeContext,
+  resolveEffectiveRuntimeContext,
+} from './runtime-context.js';
 import { buildRuntimeInstructor } from './runtime-instructor.js';
 import {
   createSubagentTool,
@@ -248,6 +251,12 @@ export interface ExecutePiTaskOptions {
   sandboxConfig?: SandboxConfig;
   /** Host environment variable names to forward into the Pi VM. */
   forwardEnv?: string[];
+  /**
+   * Runtime profile context defaults. Merged with task.input.context at
+   * execution time because the selected runtime profile is known only after
+   * claim. Task entries override profile entries with the same slug.
+   */
+  runtimeProfileContext?: readonly ContextRef[];
   /**
    * Forwarded to `buildTaskUserPrompt` for per-type builders. Static
    * across tasks. Today no built-in builder needs per-task `extras` —
@@ -679,6 +688,22 @@ export async function executePiTask(
       }
     }
 
+    // Slice 1.5 of #943 — select task/profile context before prompt
+    // rendering so builders that mention context availability see the same
+    // effective context later delivered to the VM.
+    const rawContext = (task.input as { context?: unknown }).context;
+    let effectiveRuntimeContext: ContextRef[];
+    try {
+      effectiveRuntimeContext = resolveEffectiveRuntimeContext({
+        rawTaskContext: rawContext,
+        runtimeProfileContext: opts.runtimeProfileContext,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      await emit('error', { message, phase: 'context_resolution' });
+      return makeFailedOutput('context_resolution_failed', message);
+    }
+
     let taskPrompt: string;
     try {
       const promptCtx: TaskUserPromptContext = {
@@ -699,6 +724,7 @@ export async function executePiTask(
         },
         extras: opts.promptExtras,
         priorContext: resolvedPriorContext,
+        effectiveRuntimeContext,
       };
       const assembled = buildTaskUserPrompt(task, promptCtx);
       taskPrompt = assembled.text;
@@ -716,25 +742,12 @@ export async function executePiTask(
       return makeFailedOutput('prompt_build_failed', message);
     }
 
-    // Slice 1.5 of #943 — resolve task.input.context[] into delivered
-    // skill files, system-prompt prefix, and user-message suffix. Only
-    // task types that carry a TaskContext fragment in their input
-    // schema (currently `run_eval`) populate this; everywhere else
-    // `rawContext` is undefined and the resolver short-circuits on an
-    // empty array.
-    const rawContext = (task.input as { context?: unknown }).context;
-    let injectedContext: Awaited<ReturnType<typeof injectTaskContext>>;
+    // Resolve effective runtime context into delivered skill files,
+    // system-prompt prefix, and user-message suffix.
+    let injectedContext: InjectedRuntimeContext;
     try {
-      const contextArray = rawContext === undefined ? [] : rawContext;
-      if (!Value.Check(TaskContext, contextArray)) {
-        throw new Error(
-          `task.input.context failed TaskContext validation: ${JSON.stringify(
-            [...Value.Errors(TaskContext, contextArray)].slice(0, 3),
-          )}`,
-        );
-      }
-      injectedContext = await injectTaskContext({
-        context: contextArray,
+      injectedContext = await injectRuntimeContext({
+        context: effectiveRuntimeContext,
         fs: managed.vm.fs,
         guestWorkspace: managed.guestWorkspace,
       });
@@ -850,11 +863,11 @@ export async function executePiTask(
       //    in the system prompt every turn, not lazily fetched via a
       //    pi Skill pointer the model may or may not follow.
       //  - Append `injectedContext.systemPromptPrefix` after the runtime
-      //    instructor when the task's input.context contributed any
+      //    instructor when effective runtime context contributed any
       //    `prompt_prefix` bindings. Empty string when none — guarded so
       //    we don't pass an empty entry to pi.
-      //  - skillsOverride returns ONLY the skills resolved from
-      //    input.context (binding: 'skill'). Locally-discovered skills
+      //  - skillsOverride returns ONLY the skills resolved from effective
+      //    runtime context (binding: 'skill'). Locally-discovered skills
       //    (`cwd/.pi/skills`, `~/.pi/agent/skills`, …) are discarded so
       //    untrusted local prose never appears as a `<location>` pointer
       //    in the system prompt's `<available_skills>` block.

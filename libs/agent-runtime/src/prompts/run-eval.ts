@@ -1,4 +1,4 @@
-import type { RunEvalInput } from '@moltnet/tasks';
+import type { ContextRef, RunEvalInput } from '@moltnet/tasks';
 
 import {
   type AssembledPrompt,
@@ -18,6 +18,7 @@ interface Ctx {
    * surfaced in the user prompt — the producer never acts on it.
    */
   correlationId?: string | null;
+  effectiveRuntimeContext?: readonly ContextRef[];
 }
 
 /**
@@ -28,11 +29,11 @@ interface Ctx {
  * `judge_eval_attempt` task(s) grade against their own hidden rubric.
  *
  * Context delivery is handled by `resolveTaskContext` (see
- * libs/agent-runtime/src/context-bindings.ts) and runs BEFORE this
- * prompt is rendered: `prompt_prefix` items are concatenated ahead of
- * the body, `skill` items are persisted at the runtime's skill path,
- * and `user_inline` items are appended to the first user message. This
- * builder does NOT inline `input.context[]` itself.
+ * libs/agent-runtime/src/context-bindings.ts) and is selected BEFORE this
+ * prompt is rendered. Task-scoped context lives in `input.context`; runtime
+ * profile defaults arrive as `ctx.effectiveRuntimeContext` after the runtime
+ * merges them with task context. This builder only renders context
+ * discipline; it does NOT inline context bytes itself.
  *
  * Prompt-shape notes (issue #1175, area 1):
  * - No `Correlation` section: the agent never acts on it. The id is
@@ -53,8 +54,9 @@ export function buildRunEvalUserPrompt(
   ctx: Ctx,
 ): AssembledPrompt {
   const { scenario, variantLabel, successCriteria } = input;
-  const hasContext = input.context.length > 0;
-  const hasInlineContext = input.context.some(
+  const effectiveRuntimeContext = ctx.effectiveRuntimeContext ?? input.context;
+  const hasContext = effectiveRuntimeContext.length > 0;
+  const hasInlineContext = effectiveRuntimeContext.some(
     (entry) => entry.binding === 'context_inline',
   );
 
@@ -66,7 +68,7 @@ export function buildRunEvalUserPrompt(
   const contextDiscipline = hasContext
     ? [
         'This task includes Injected Task Context supplied by the task',
-        'creator. You MUST inspect it BEFORE you write solution files or',
+        'input or runtime profile. You MUST inspect it BEFORE you write solution files or',
         'draft your final answer — not after.',
         '',
         'Reconcile every constraint from that context **into the code path',
