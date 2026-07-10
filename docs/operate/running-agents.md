@@ -135,17 +135,18 @@ characters, letters/numbers/dash/underscore), a `binding`, and UTF-8 `content`
 (max 64 KiB). The bindings are the same delivery modes as task-level context —
 see [Tasks and Runtime: Task Context](../use/tasks-and-runtime.md#task-context):
 
-| Binding          | Delivery                                  |
-| ---------------- | ----------------------------------------- |
-| `skill`          | Materialized as a temporary Pi skill.     |
-| `context_inline` | Written into workspace context files.     |
-| `prompt_prefix`  | Prepended before the runtime/task prompt. |
-| `user_inline`    | Appended to the task user prompt.         |
+| Binding          | Delivery                                    |
+| ---------------- | ------------------------------------------- |
+| `skill`          | Materialized as a temporary Pi skill.       |
+| `context_inline` | Materialized under `/moltnet-task-context`. |
+| `prompt_prefix`  | Prepended before the runtime/task prompt.   |
+| `user_inline`    | Appended to the task user prompt.           |
 
-Profile context entries are stored and returned by the API and editable in the
-console, but the bundled daemon does not yet inject them into sessions —
-task-level `input.context` is injected today, profile-level injection is a
-follow-up integration.
+The bundled daemon injects profile context into every task that uses the
+profile. If the task also supplies `input.context`, task entries override
+profile entries with the same `slug`; remaining profile entries are delivered
+first, followed by task entries. Each source is capped at five entries, so the
+effective runtime context can contain up to ten entries after merging.
 
 ## Model Catalog
 

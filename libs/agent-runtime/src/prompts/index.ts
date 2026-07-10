@@ -1,6 +1,7 @@
 import {
   ASSESS_BRIEF_TYPE,
   AssessBriefInput,
+  type ContextRef,
   CURATE_PACK_TYPE,
   CuratePackInput,
   FREEFORM_TYPE,
@@ -61,6 +62,13 @@ export interface TaskUserPromptContext {
     source?: 'producer_attachment' | 'producer_copy';
   };
   extras?: Record<string, unknown>;
+  /**
+   * Effective context selected for this attempt after the runtime has merged
+   * runtime-profile defaults with task-scoped context. Prompt builders that
+   * mention context availability should use this value instead of assuming
+   * only `task.input.context` exists.
+   */
+  effectiveRuntimeContext?: readonly ContextRef[];
   /**
    * Resolved source-task material for `freeform.continueFrom`
    * continuations. Caller (the daemon runtime) fetches the source
@@ -216,6 +224,7 @@ export function buildTaskUserPrompt(
         diaryId: ctx.diaryId,
         taskId: ctx.taskId,
         correlationId: task.correlationId,
+        effectiveRuntimeContext: ctx.effectiveRuntimeContext,
       });
     }
 

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   type ContextDeliverer,
+  mergeRuntimeProfileContext,
   resolveTaskContext,
 } from './context-bindings.js';
 
@@ -150,5 +151,119 @@ describe('resolveTaskContext', () => {
     expect(out.systemPromptPrefix).toContain('### Injected Task Context');
     expect(out.systemPromptPrefix).toContain('PREFIX');
     expect(out.userInlineSuffix).toBe('INLINE');
+  });
+});
+
+describe('mergeRuntimeProfileContext', () => {
+  it('uses profile context when task context is empty', () => {
+    expect(
+      mergeRuntimeProfileContext(
+        [{ slug: 'profile-skill', binding: 'skill', content: '# Profile' }],
+        [],
+      ),
+    ).toEqual([
+      { slug: 'profile-skill', binding: 'skill', content: '# Profile' },
+    ]);
+  });
+
+  it('keeps profile entries before task entries when slugs do not collide', () => {
+    expect(
+      mergeRuntimeProfileContext(
+        [{ slug: 'profile-skill', binding: 'skill', content: '# Profile' }],
+        [{ slug: 'task-skill', binding: 'skill', content: '# Task' }],
+      ).map((ref) => ref.slug),
+    ).toEqual(['profile-skill', 'task-skill']);
+  });
+
+  it('lets task context override profile context by slug', () => {
+    expect(
+      mergeRuntimeProfileContext(
+        [
+          { slug: 'shared', binding: 'skill', content: '# Profile' },
+          { slug: 'profile-only', binding: 'skill', content: '# Keep' },
+        ],
+        [{ slug: 'shared', binding: 'prompt_prefix', content: 'Task wins' }],
+      ),
+    ).toEqual([
+      { slug: 'profile-only', binding: 'skill', content: '# Keep' },
+      { slug: 'shared', binding: 'prompt_prefix', content: 'Task wins' },
+    ]);
+  });
+
+  it('accepts five profile entries plus five task entries', () => {
+    const profileContext = Array.from({ length: 5 }, (_, i) => ({
+      slug: `profile-${i}`,
+      binding: 'skill' as const,
+      content: `profile ${i}`,
+    }));
+    const taskContext = Array.from({ length: 5 }, (_, i) => ({
+      slug: `task-${i}`,
+      binding: 'skill' as const,
+      content: `task ${i}`,
+    }));
+
+    expect(
+      mergeRuntimeProfileContext(profileContext, taskContext).map(
+        (ref) => ref.slug,
+      ),
+    ).toEqual([
+      'profile-0',
+      'profile-1',
+      'profile-2',
+      'profile-3',
+      'profile-4',
+      'task-0',
+      'task-1',
+      'task-2',
+      'task-3',
+      'task-4',
+    ]);
+  });
+
+  it('rejects more than ten effective context entries', () => {
+    const profileContext = Array.from({ length: 6 }, (_, i) => ({
+      slug: `profile-${i}`,
+      binding: 'skill' as const,
+      content: `profile ${i}`,
+    }));
+    const taskContext = Array.from({ length: 5 }, (_, i) => ({
+      slug: `task-${i}`,
+      binding: 'skill' as const,
+      content: `task ${i}`,
+    }));
+
+    expect(() =>
+      mergeRuntimeProfileContext(profileContext, taskContext),
+    ).toThrow(/maximum is 10/);
+  });
+
+  it('counts entries after task slug overrides remove profile defaults', () => {
+    const profileContext = Array.from({ length: 6 }, (_, i) => ({
+      slug: i === 0 ? 'shared' : `profile-${i}`,
+      binding: 'skill' as const,
+      content: `profile ${i}`,
+    }));
+    const taskContext = Array.from({ length: 5 }, (_, i) => ({
+      slug: i === 0 ? 'shared' : `task-${i}`,
+      binding: 'skill' as const,
+      content: `task ${i}`,
+    }));
+
+    expect(
+      mergeRuntimeProfileContext(profileContext, taskContext).map(
+        (ref) => ref.slug,
+      ),
+    ).toEqual([
+      'profile-1',
+      'profile-2',
+      'profile-3',
+      'profile-4',
+      'profile-5',
+      'shared',
+      'task-1',
+      'task-2',
+      'task-3',
+      'task-4',
+    ]);
   });
 });

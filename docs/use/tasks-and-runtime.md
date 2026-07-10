@@ -352,6 +352,10 @@ For the bundled Pi executor, materialized files live under
 from the task input on VM resume. Use task artifacts for durable files that
 later tasks need to consume.
 
+Runtime profiles can also contribute context defaults. The bundled daemon
+merges profile context with task context after claim; task entries override
+profile entries that share the same `slug`.
+
 ## Cancellation
 
 Task cancellation is proposer-side: a proposer or diary writer cancels the

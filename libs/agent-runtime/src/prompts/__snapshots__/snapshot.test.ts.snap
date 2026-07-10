@@ -1380,7 +1380,7 @@ Task id: \`t-1\`
 ## Injected Task Context
 
 This task includes Injected Task Context supplied by the task
-creator. You MUST inspect it BEFORE you write solution files or
+input or runtime profile. You MUST inspect it BEFORE you write solution files or
 draft your final answer — not after.
 
 Reconcile every constraint from that context **into the code path

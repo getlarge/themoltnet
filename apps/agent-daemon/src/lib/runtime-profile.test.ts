@@ -30,6 +30,13 @@ const profile = {
   allowedWorkspaceModes: ['none', 'dedicated_worktree'],
   requiredEnv: [],
   requiredTools: [],
+  context: [
+    {
+      slug: 'repo-rules',
+      binding: 'skill' as const,
+      content: '# Repo rules',
+    },
+  ],
   sandbox: {
     snapshot: { allowedHosts: ['api.github.com'] },
     resources: { cpus: 4, memory: '4G' },
@@ -83,6 +90,7 @@ describe('resolveRuntimeProfile', () => {
       allowedWorkspaceModes: ['none', 'dedicated_worktree'],
       requiredEnv: [],
       requiredTools: [],
+      context: profile.context,
       sandboxConfig: profile.sandbox,
       mountPath: '/tmp/workspace',
       source: `runtime-profile:${profile.id}`,
