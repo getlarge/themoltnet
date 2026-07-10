@@ -90,6 +90,7 @@ export async function dispatch(ctx: DispatchContext): Promise<void> {
   const diaryId = required(env, 'MOLTNET_DIARY_ID');
   const moltnet = await connect();
   const runningTimeoutSec = parseRunningTimeout(env);
+  const maxAttempts = parseMaxAttempts(env);
   const tags = parseTaskTags(env);
 
   if (parsed.verb === 'fulfill') {
@@ -102,6 +103,7 @@ export async function dispatch(ctx: DispatchContext): Promise<void> {
       issueTitle: extracted.issueTitle,
       issueBody: extracted.issueBody,
       runningTimeoutSec,
+      maxAttempts,
       tags,
     });
     return;
@@ -118,6 +120,7 @@ export async function dispatch(ctx: DispatchContext): Promise<void> {
     prNumber: extracted.issueNumber,
     referenceUrl: extracted.referenceUrl,
     runningTimeoutSec,
+    maxAttempts,
     tags,
   });
 }
@@ -141,6 +144,19 @@ function parseRunningTimeout(env: NodeJS.ProcessEnv): number | undefined {
   if (!Number.isInteger(n) || n < 1 || n > 86400) {
     core.warning(
       `MOLTNET_RUNNING_TIMEOUT_SEC=${raw} is not an integer in [1, 86400]; using server default`,
+    );
+    return undefined;
+  }
+  return n;
+}
+
+function parseMaxAttempts(env: NodeJS.ProcessEnv): number | undefined {
+  const raw = env.MOLTNET_MAX_ATTEMPTS;
+  if (!raw) return undefined;
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n < 1 || n > 10) {
+    core.warning(
+      `MOLTNET_MAX_ATTEMPTS=${raw} is not an integer in [1, 10]; using server default`,
     );
     return undefined;
   }
@@ -182,6 +198,7 @@ async function dispatchFulfill(args: {
   issueTitle?: string;
   issueBody?: string | null;
   runningTimeoutSec?: number;
+  maxAttempts?: number;
   tags?: string[];
 }): Promise<void> {
   const correlationId = await resolveCorrelation(
@@ -202,6 +219,7 @@ async function dispatchFulfill(args: {
     title: args.issueTitle ?? `Issue #${args.issueNumber}`,
     brief: args.issueBody ?? '',
     runningTimeoutSec: args.runningTimeoutSec,
+    maxAttempts: args.maxAttempts,
     tags: args.tags,
   });
 
@@ -222,6 +240,7 @@ async function dispatchAssess(args: {
   prNumber: number;
   referenceUrl: string;
   runningTimeoutSec?: number;
+  maxAttempts?: number;
   tags?: string[];
 }): Promise<void> {
   const pr = { owner: args.owner, repo: args.repo, number: args.prNumber };
@@ -294,6 +313,7 @@ async function dispatchAssess(args: {
     targetOutputCid: accepted.outputCid,
     successCriteria,
     runningTimeoutSec: args.runningTimeoutSec,
+    maxAttempts: args.maxAttempts,
     tags: args.tags,
   });
 

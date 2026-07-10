@@ -79,6 +79,13 @@ inputs:
       have time-out the attempt anyway.
     required: false
     default: ''
+  max-attempts:
+    description: >
+      Task-level attempt budget forwarded to `moltnet task create`.
+      Empty uses the server default. Set to 2+ when the proposer wants
+      a fallback retry for real executor/provider failures.
+    required: false
+    default: ''
   node-version:
     description: >
       Node.js version for the runner. Default is 24 because the
@@ -406,6 +413,7 @@ runs:
         TASK_TAGS: ${{ inputs.tags }}
         SKIP_VALIDATION: ${{ inputs.skip-validation }}
         MOLTNET_RUNNING_TIMEOUT_SEC: ${{ inputs.running-timeout-sec }}
+        MOLTNET_MAX_ATTEMPTS: ${{ inputs.max-attempts }}
       run: |
         set -euo pipefail
         if [ ! -f "$TASK_SPEC_PATH" ]; then
@@ -471,6 +479,9 @@ runs:
         if [ -n "${MOLTNET_RUNNING_TIMEOUT_SEC:-}" ]; then
           flags+=(--running-timeout-sec "$MOLTNET_RUNNING_TIMEOUT_SEC")
         fi
+        if [ -n "${MOLTNET_MAX_ATTEMPTS:-}" ]; then
+          flags+=(--max-attempts "$MOLTNET_MAX_ATTEMPTS")
+        fi
         if [ -n "$TAGS" ]; then
           if npx -y @themoltnet/cli task create --help | grep -q -- '--tags'; then
             flags+=(--tags "$TAGS")
@@ -502,6 +513,7 @@ runs:
         # `tasks.create` as `runningTimeoutSec`. Empty = use server
         # default (7200s).
         MOLTNET_RUNNING_TIMEOUT_SEC: ${{ inputs.running-timeout-sec }}
+        MOLTNET_MAX_ATTEMPTS: ${{ inputs.max-attempts }}
         MOLTNET_TASK_TAGS: ${{ inputs.tags }}
       run: |
         set -euo pipefail

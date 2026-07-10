@@ -543,9 +543,7 @@ export {
   type ProviderErrorRetryLevel,
   type ProviderErrorRetryUi,
   resolveTaskWorktreePath,
-  type TurnEventHandler,
   type TurnEventHandlerFactory,
-  type TurnEventKind,
 } from './runtime/execute-pi-task.js';
 export {
   type InjectedTaskContext,
@@ -572,3 +570,7 @@ export {
   type SubagentToolHandle,
   type SubagentToolParameters,
 } from './runtime/subagent-tool.js';
+export type {
+  TurnEventHandler,
+  TurnEventKind,
+} from './runtime/task-event-emitter.js';

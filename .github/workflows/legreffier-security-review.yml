@@ -87,4 +87,5 @@ jobs:
           # Flip to 'false' once the deployed `pr_review` schema includes
           # the optional `context: TaskContext` field.
           skip-validation: 'true'
+          max-attempts: '2'
           profile: ${{ vars.MOLTNET_AGENT_PROFILE }}

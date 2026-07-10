@@ -44915,6 +44915,7 @@ async function createTask(input) {
 		},
 		correlationId: input.correlationId,
 		...input.runningTimeoutSec !== void 0 ? { runningTimeoutSec: input.runningTimeoutSec } : {},
+		...input.maxAttempts !== void 0 ? { maxAttempts: input.maxAttempts } : {},
 		...input.tags?.length ? { tags: input.tags } : {}
 	}, { teamId: input.teamId });
 }
@@ -44935,6 +44936,7 @@ async function createAssessTask(input) {
 		references: [reference],
 		correlationId: input.correlationId,
 		...input.runningTimeoutSec !== void 0 ? { runningTimeoutSec: input.runningTimeoutSec } : {},
+		...input.maxAttempts !== void 0 ? { maxAttempts: input.maxAttempts } : {},
 		...input.tags?.length ? { tags: input.tags } : {}
 	}, { teamId: input.teamId });
 }
@@ -45066,6 +45068,7 @@ async function dispatch(ctx) {
 	const diaryId = required(env, "MOLTNET_DIARY_ID");
 	const moltnet = await connect();
 	const runningTimeoutSec = parseRunningTimeout(env);
+	const maxAttempts = parseMaxAttempts(env);
 	const tags = parseTaskTags(env);
 	if (parsed.verb === "fulfill") {
 		await dispatchFulfill({
@@ -45077,6 +45080,7 @@ async function dispatch(ctx) {
 			issueTitle: extracted.issueTitle,
 			issueBody: extracted.issueBody,
 			runningTimeoutSec,
+			maxAttempts,
 			tags
 		});
 		return;
@@ -45091,6 +45095,7 @@ async function dispatch(ctx) {
 		prNumber: extracted.issueNumber,
 		referenceUrl: extracted.referenceUrl,
 		runningTimeoutSec,
+		maxAttempts,
 		tags
 	});
 }
@@ -45112,6 +45117,16 @@ function parseRunningTimeout(env) {
 	const n = Number(raw);
 	if (!Number.isInteger(n) || n < 1 || n > 86400) {
 		import_core.warning(`MOLTNET_RUNNING_TIMEOUT_SEC=${raw} is not an integer in [1, 86400]; using server default`);
+		return;
+	}
+	return n;
+}
+function parseMaxAttempts(env) {
+	const raw = env.MOLTNET_MAX_ATTEMPTS;
+	if (!raw) return void 0;
+	const n = Number(raw);
+	if (!Number.isInteger(n) || n < 1 || n > 10) {
+		import_core.warning(`MOLTNET_MAX_ATTEMPTS=${raw} is not an integer in [1, 10]; using server default`);
 		return;
 	}
 	return n;
@@ -45144,6 +45159,7 @@ async function dispatchFulfill(args) {
 		title: args.issueTitle ?? `Issue #${args.issueNumber}`,
 		brief: args.issueBody ?? "",
 		runningTimeoutSec: args.runningTimeoutSec,
+		maxAttempts: args.maxAttempts,
 		tags: args.tags
 	});
 	import_core.setOutput("task-id", created.id);
@@ -45196,6 +45212,7 @@ async function dispatchAssess(args) {
 		targetOutputCid: accepted.outputCid,
 		successCriteria,
 		runningTimeoutSec: args.runningTimeoutSec,
+		maxAttempts: args.maxAttempts,
 		tags: args.tags
 	});
 	import_core.setOutput("task-id", created.id);
