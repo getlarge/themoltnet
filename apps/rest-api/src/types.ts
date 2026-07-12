@@ -83,6 +83,7 @@ import type { TaskArtifactStorage } from '@moltnet/task-artifact-service';
 import type { SecurityOptions } from './app.js';
 import type { PackGcConfig } from './config.js';
 import type { TaskService } from './services/task.service.js';
+import type { TaskAvailabilityWaiter } from './services/task-availability.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -115,6 +116,7 @@ declare module 'fastify' {
     taskRepository: TaskRepository;
     taskAnalyticsService: TaskAnalyticsService;
     taskService: TaskService;
+    taskAvailabilityWaiter?: TaskAvailabilityWaiter;
     signingRequestRepository: SigningRequestRepository;
     signingTimeoutSeconds: number;
     dataSource: DataSource;

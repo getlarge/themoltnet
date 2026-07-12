@@ -23,6 +23,9 @@
   "include": ["src"],
   "references": [
     {
+      "path": "../tasks/tsconfig.lib.json"
+    },
+    {
       "path": "../sdk/tsconfig.lib.json"
     },
     {

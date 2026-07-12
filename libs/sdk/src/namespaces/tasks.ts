@@ -9,6 +9,7 @@ import {
   createTask,
   failTaskAttempt,
   getTask,
+  getTaskAvailability,
   listTaskArtifacts,
   listTaskAttempts,
   listTaskMessages,
@@ -133,6 +134,17 @@ export function createTasksNamespace(context: AgentContext): TasksNamespace {
     async list(query, options) {
       return unwrapResult(
         await listTasks({
+          client,
+          auth,
+          query,
+          headers: requiredTeamHeaders(options),
+        }),
+      );
+    },
+
+    async availability(query, options) {
+      return unwrapResult(
+        await getTaskAvailability({
           client,
           auth,
           query,

@@ -1646,6 +1646,22 @@
             "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,99}$",
             "type": "string"
           },
+          "preset": {
+            "anyOf": [
+              {
+                "enum": [
+                  "standard@v1"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "interactive-direct@v1"
+                ],
+                "type": "string"
+              }
+            ]
+          },
           "provider": {
             "maxLength": 100,
             "minLength": 1,
@@ -7283,6 +7299,22 @@
             "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,99}$",
             "type": "string"
           },
+          "preset": {
+            "anyOf": [
+              {
+                "enum": [
+                  "standard@v1"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "interactive-direct@v1"
+                ],
+                "type": "string"
+              }
+            ]
+          },
           "provider": {
             "maxLength": 100,
             "minLength": 1,
@@ -7606,6 +7638,7 @@
           "teamId",
           "name",
           "description",
+          "preset",
           "provider",
           "model",
           "thinkingLevel",
@@ -7898,6 +7931,22 @@
                   "minLength": 1,
                   "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,99}$",
                   "type": "string"
+                },
+                "preset": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "standard@v1"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "enum": [
+                        "interactive-direct@v1"
+                      ],
+                      "type": "string"
+                    }
+                  ]
                 },
                 "provider": {
                   "maxLength": 100,
@@ -8222,6 +8271,7 @@
                 "teamId",
                 "name",
                 "description",
+                "preset",
                 "provider",
                 "model",
                 "thinkingLevel",
@@ -10911,6 +10961,38 @@
           }
         ]
       },
+      "TaskAvailabilityQuery": {
+        "properties": {
+          "profileId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "taskTypes": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "timeoutMs": {
+            "maximum": 25000,
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "TaskAvailabilityResponse": {
+        "properties": {
+          "available": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "available"
+        ],
+        "type": "object"
+      },
       "TaskError": {
         "additionalProperties": false,
         "properties": {
@@ -11722,6 +11804,22 @@
             "minLength": 1,
             "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,99}$",
             "type": "string"
+          },
+          "preset": {
+            "anyOf": [
+              {
+                "enum": [
+                  "standard@v1"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "interactive-direct@v1"
+                ],
+                "type": "string"
+              }
+            ]
           },
           "provider": {
             "maxLength": 100,
@@ -31659,6 +31757,111 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TaskActivityAnalyticsResponse"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "tasks"
+        ]
+      }
+    },
+    "/tasks/availability": {
+      "get": {
+        "description": "Wait briefly for a queued task matching daemon routing filters.",
+        "operationId": "getTaskAvailability",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "taskTypes",
+            "required": false,
+            "schema": {
+              "items": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          {
+            "in": "query",
+            "name": "profileId",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "timeoutMs",
+            "required": false,
+            "schema": {
+              "maximum": 25000,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Team ID (UUID) that will own the resource. Required.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskAvailabilityResponse"
                 }
               }
             },

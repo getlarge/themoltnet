@@ -46,6 +46,8 @@ import {
   TaskActivityAnalyticsQuerySchema,
   TaskActivityAnalyticsResponseSchema,
   TaskAttemptParamsSchema,
+  TaskAvailabilityQuerySchema,
+  TaskAvailabilityResponseSchema,
   TaskListResponseSchema,
   TaskParamsSchema,
   UpdateTaskMetadataBodySchema,
@@ -555,6 +557,68 @@ export function taskRoutes(fastify: FastifyInstance) {
           accepted: plan.accepted,
           skipped: plan.skipped,
         });
+      } catch (error) {
+        if (error instanceof TaskServiceError) throw toTaskProblem(error);
+        throw error;
+      }
+    },
+  );
+
+  // GET /tasks/availability
+  //
+  // Daemons call this only after an empty queue scan. The handler listens for
+  // a Postgres transition-to-queued notification for at most 25 seconds and
+  // always rechecks the filtered queue, so a notification race or another
+  // profile's task cannot cause a false positive.
+  server.get(
+    '/tasks/availability',
+    {
+      config: { rateLimit: fastify.rateLimitConfig.read },
+      schema: {
+        operationId: 'getTaskAvailability',
+        tags: ['tasks'],
+        description:
+          'Wait briefly for a queued task matching daemon routing filters.',
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        headers: TeamHeaderRequiredSchema,
+        querystring: TaskAvailabilityQuerySchema,
+        response: {
+          200: Type.Ref(TaskAvailabilityResponseSchema.$id),
+          400: Type.Ref(ValidationProblemDetailsSchema.$id),
+          401: Type.Ref(ProblemDetailsSchema.$id),
+          403: Type.Ref(ProblemDetailsSchema.$id),
+        },
+      },
+    },
+    async (request) => {
+      const { identityId, subjectType } = getAuthContext(request);
+      const teamId = requireCurrentTeamId(request, 'task availability');
+      const callerNs =
+        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const isAvailable = async (): Promise<boolean> => {
+        const result = await fastify.taskService.list({
+          teamId,
+          status: 'queued',
+          taskTypes: request.query.taskTypes,
+          profileId: request.query.profileId,
+          limit: 1,
+          callerId: identityId,
+          callerNs,
+        });
+        return result.items.length > 0;
+      };
+      try {
+        if (await isAvailable()) return { available: true };
+        const timeoutMs = request.query.timeoutMs ?? 25_000;
+        if (!fastify.taskAvailabilityWaiter || timeoutMs === 0) {
+          return { available: false };
+        }
+        return {
+          available: await fastify.taskAvailabilityWaiter.waitForAvailable({
+            timeoutMs,
+            isAvailable,
+          }),
+        };
       } catch (error) {
         if (error instanceof TaskServiceError) throw toTaskProblem(error);
         throw error;

@@ -8,7 +8,11 @@ import {
   ProblemDetailsSchema,
   TeamHeaderOptionalSchema,
 } from '@moltnet/models';
-import type { RuntimeProfileWorkspaceMode } from '@moltnet/tasks';
+import {
+  DEFAULT_RUNTIME_PROFILE_PRESET,
+  type RuntimeProfilePreset,
+  type RuntimeProfileWorkspaceMode,
+} from '@moltnet/tasks';
 import {
   RuntimeProfile as RuntimeProfileSchema,
   type RuntimeProfileThinkingLevel,
@@ -84,6 +88,43 @@ function validateWorkspacePolicy(input: {
         },
       ],
       'Invalid runtime profile workspace policy',
+    );
+  }
+}
+
+function validatePresetPolicy(input: {
+  preset: RuntimeProfilePreset;
+  defaultWorkspaceMode: RuntimeProfileWorkspaceMode | null;
+  allowedWorkspaceModes: readonly RuntimeProfileWorkspaceMode[];
+  maxTurns: number;
+}): void {
+  if (input.preset !== 'interactive-direct@v1') return;
+  const directWorkspaceOnly =
+    input.allowedWorkspaceModes.length === 1 &&
+    input.allowedWorkspaceModes[0] === 'none' &&
+    (input.defaultWorkspaceMode === null ||
+      input.defaultWorkspaceMode === 'none');
+  if (!directWorkspaceOnly) {
+    throw createValidationProblem(
+      [
+        {
+          field: 'allowedWorkspaceModes',
+          message:
+            'interactive-direct@v1 requires allowedWorkspaceModes to be exactly ["none"] and an unset or none defaultWorkspaceMode',
+        },
+      ],
+      'Invalid interactive runtime profile policy',
+    );
+  }
+  if (input.maxTurns > 3) {
+    throw createValidationProblem(
+      [
+        {
+          field: 'maxTurns',
+          message: 'interactive-direct@v1 permits at most three turns',
+        },
+      ],
+      'Invalid interactive runtime profile policy',
     );
   }
 }
@@ -171,6 +212,7 @@ function serializeProfile(
     teamId: row.teamId,
     name: row.name,
     description: row.description ?? null,
+    preset: row.preset as RuntimeProfilePreset,
     provider: row.provider,
     model: row.model,
     thinkingLevel:
@@ -209,6 +251,7 @@ function serializeProfile(
 type ProfileDefinitionInput = {
   name: string;
   description?: string | null;
+  preset?: RuntimeProfilePreset;
   provider: string;
   model: string;
   thinkingLevel?: RuntimeProfileThinkingLevel | null;
@@ -238,9 +281,10 @@ async function computeProfileDefinitionCid(
   input: ProfileDefinitionInput,
 ): Promise<string> {
   return computeJsonCid({
-    v: 'moltnet:runtime-profile:v1',
+    v: 'moltnet:runtime-profile:v2',
     name: input.name,
     description: input.description ?? null,
+    preset: input.preset ?? DEFAULT_RUNTIME_PROFILE_PRESET,
     provider: input.provider.toLowerCase(),
     model: input.model.toLowerCase(),
     thinkingLevel: input.thinkingLevel ?? null,
@@ -346,12 +390,18 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
         ),
       };
       validateWorkspacePolicy(workspacePolicy);
+      validatePresetPolicy({
+        preset: body.preset ?? DEFAULT_RUNTIME_PROFILE_PRESET,
+        ...workspacePolicy,
+        maxTurns: body.maxTurns ?? 0,
+      });
       const definitionCid = await computeProfileDefinitionCid(body);
       try {
         const row = await fastify.runtimeProfileRepository.create({
           teamId,
           name: body.name,
           description: body.description ?? null,
+          preset: body.preset ?? DEFAULT_RUNTIME_PROFILE_PRESET,
           provider: body.provider.toLowerCase(),
           model: body.model.toLowerCase(),
           thinkingLevel: body.thinkingLevel ?? null,
@@ -470,6 +520,7 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
           'description' in body
             ? (body.description ?? null)
             : existing.description,
+        preset: body.preset ?? (existing.preset as RuntimeProfilePreset),
         provider: (body.provider ?? existing.provider).toLowerCase(),
         model: (body.model ?? existing.model).toLowerCase(),
         thinkingLevel:
@@ -517,6 +568,12 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
       validateWorkspacePolicy({
         defaultWorkspaceMode: next.defaultWorkspaceMode ?? null,
         allowedWorkspaceModes: next.allowedWorkspaceModes ?? [],
+      });
+      validatePresetPolicy({
+        preset: next.preset ?? DEFAULT_RUNTIME_PROFILE_PRESET,
+        defaultWorkspaceMode: next.defaultWorkspaceMode ?? null,
+        allowedWorkspaceModes: next.allowedWorkspaceModes ?? [],
+        maxTurns: next.maxTurns ?? 0,
       });
       const definitionCid = await computeProfileDefinitionCid(next);
       try {

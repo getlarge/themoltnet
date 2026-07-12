@@ -2,12 +2,13 @@
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
-import type { TaskOutput } from '@moltnet/tasks';
+import { FREEFORM_TYPE, type TaskOutput } from '@moltnet/tasks';
 import {
   AgentRuntime,
   ApiTaskReporter,
   type ClaimedTask,
   PollingApiTaskSource,
+  type TaskExecutor,
 } from '@themoltnet/agent-runtime';
 import {
   createPiTaskExecutor,
@@ -78,6 +79,8 @@ interface ProfileRuntime {
   piAgentDir: ReturnType<typeof ensurePiAgentDir>;
   slotIdentity: DaemonSlotIdentity;
   executionPlans: ReturnType<typeof createExecutionPlanCache>;
+  /** Retained in poll mode so the profile snapshot cache spans claims. */
+  executor?: TaskExecutor;
 }
 
 export async function runPolling(opts: PollSharedArgs): Promise<number> {
@@ -134,12 +137,12 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     }
     throw err;
   }
-  const pollIntervalMs = optionalPositiveInt(
+  let pollIntervalMs = optionalPositiveInt(
     values['poll-interval-ms'],
     'poll-interval-ms',
     2_000,
   );
-  const maxPollIntervalMs = optionalPositiveInt(
+  let maxPollIntervalMs = optionalPositiveInt(
     values['max-poll-interval-ms'],
     'max-poll-interval-ms',
     30_000,
@@ -181,6 +184,20 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       cfg.profilePrerequisiteEnv,
       cfg.profilePrerequisitePath,
     );
+  }
+  const directProfiles = profiles.filter(
+    (profile) => profile.preset === 'interactive-direct@v1',
+  );
+  if (directProfiles.length > 0) {
+    if (taskTypes.length === 0) {
+      taskTypes = [FREEFORM_TYPE];
+    } else if (taskTypes.some((taskType) => taskType !== FREEFORM_TYPE)) {
+      throw new Error(
+        'interactive-direct@v1 profiles may poll only freeform tasks.',
+      );
+    }
+    if (values['poll-interval-ms'] === undefined) pollIntervalMs = 500;
+    if (values['max-poll-interval-ms'] === undefined) maxPollIntervalMs = 1_000;
   }
   const slotRegistry = createApiRuntimeSlotStore({ agent: ctx.agent });
   const runtimeSessionStore = createApiRuntimeSessionStore({
@@ -264,6 +281,41 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     runtimeProfileNames: profiles.map((p) => p.name),
   });
 
+  // Profile-owned executors deliberately outlive an individual claim. This
+  // preserves Pi's snapshot cache per profile while execution plans continue
+  // to own correlation-scoped session/workspace reuse.
+  for (const runtimeConfig of runtimes.values()) {
+    const { common, executionPlans, profile, sandbox } = runtimeConfig;
+    runtimeConfig.executor = createPiTaskExecutor({
+      agentName: common.agent,
+      agentRootDir: ctx.agentRootDir,
+      mountPath: sandbox.rootDir,
+      provider: profile.provider,
+      model: profile.model,
+      runtimePreset: profile.preset,
+      enableDirectVmPrewarm: !opts.stopWhenEmpty,
+      thinkingLevel: profile.thinkingLevel,
+      temperature: profile.temperature,
+      topP: profile.topP,
+      topK: profile.topK,
+      maxOutputTokens: profile.maxOutputTokens,
+      sandboxConfig: sandbox.config,
+      forwardEnv: profile.requiredEnv,
+      runtimeProfileContext: profile.context,
+      makeExecutionPlan: (task) => executionPlans.getOrCreate(task),
+      makeOnTurnEvent: makeTurnEventHandlerFactory(
+        rootLogger.child({
+          runtimeProfileId: profile.id,
+          runtimeProfileName: profile.name,
+          provider: profile.provider,
+          model: profile.model,
+        }),
+      ),
+      maxTurns: common.maxTurns,
+      maxBashTimeouts: common.maxBashTimeouts,
+    });
+  }
+
   const abort = new AbortController();
   let runtime: AgentRuntime | null = null;
   // Track the in-flight task+attempt so a SIGINT/SIGTERM `drain` can abort
@@ -316,6 +368,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
           name: profile.name,
           provider: profile.provider,
           model: profile.model,
+          runtimePreset: profile.preset,
           thinkingLevel: profile.thinkingLevel,
           temperature: profile.temperature,
           topP: profile.topP,
@@ -423,34 +476,39 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
             terminalOutput = applyRuntimeSessionUploadFailure(output, err);
           }
         }
-        return finalizeTask(ctx.agent, terminalOutput, {
-          task: claimedTask.task,
-          slot: resolved ? { expiresAtMs: resolved.slot.expiresAtMs } : null,
-          retryTriage: createRuntimeProfileRetryTriage({
-            runtimeProfile: selected.profile,
-            piAgentDir: selected.piAgentDir.path,
-            cwd: ctx.agentRootDir,
-          }),
-          writeCorrelationAnchors: makePrBodyAnchorWriter({
-            gh: createGhCliClient(),
-            logger: rootLogger.child({
-              runtimeProfileId: selected.profile.id,
-              runtimeProfileName: selected.profile.name,
+        const finalizationStartedAt = Date.now();
+        try {
+          return await finalizeTask(ctx.agent, terminalOutput, {
+            task: claimedTask.task,
+            slot: resolved ? { expiresAtMs: resolved.slot.expiresAtMs } : null,
+            retryTriage: createRuntimeProfileRetryTriage({
+              runtimeProfile: selected.profile,
+              piAgentDir: selected.piAgentDir.path,
+              cwd: ctx.agentRootDir,
             }),
-          }),
-          log: (msg, fields) => rootLogger.warn(fields ?? {}, msg),
-        });
+            writeCorrelationAnchors: makePrBodyAnchorWriter({
+              gh: createGhCliClient(),
+              logger: rootLogger.child({
+                runtimeProfileId: selected.profile.id,
+                runtimeProfileName: selected.profile.name,
+              }),
+            }),
+            log: (msg, fields) => rootLogger.warn(fields ?? {}, msg),
+          });
+        } finally {
+          rootLogger.info(
+            {
+              taskId: claimedTask.task.id,
+              attemptN: claimedTask.attemptN,
+              durationMs: Date.now() - finalizationStartedAt,
+            },
+            'agent-daemon.task_finalized',
+          );
+        }
       },
       executeTask: async (claimedTask, reporter) => {
         const selected = runtimeForClaimedTask(runtimes, claimedTask);
-        const {
-          common,
-          executionPlans,
-          profile,
-          sandbox,
-          slotIdentity,
-          stateDirs,
-        } = selected;
+        const { executionPlans, profile, slotIdentity, stateDirs } = selected;
         const taskLogger = rootLogger.child({
           runtimeProfileId: profile.id,
           runtimeProfileName: profile.name,
@@ -585,25 +643,12 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
             lastAttemptN: claimedTask.attemptN,
           });
         }
-        const rawExecuteTask = createPiTaskExecutor({
-          agentName: common.agent,
-          agentRootDir: ctx.agentRootDir,
-          mountPath: sandbox.rootDir,
-          provider: profile.provider,
-          model: profile.model,
-          thinkingLevel: profile.thinkingLevel,
-          temperature: profile.temperature,
-          topP: profile.topP,
-          topK: profile.topK,
-          maxOutputTokens: profile.maxOutputTokens,
-          sandboxConfig: sandbox.config,
-          forwardEnv: profile.requiredEnv,
-          runtimeProfileContext: profile.context,
-          makeExecutionPlan: (task) => executionPlans.getOrCreate(task),
-          makeOnTurnEvent: makeTurnEventHandlerFactory(taskLogger),
-          maxTurns: common.maxTurns,
-          maxBashTimeouts: common.maxBashTimeouts,
-        });
+        const rawExecuteTask = selected.executor;
+        if (!rawExecuteTask) {
+          throw new Error(
+            `Runtime executor was not initialized for ${profile.id}`,
+          );
+        }
         try {
           active = {
             taskId: claimedTask.task.id,

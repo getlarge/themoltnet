@@ -5,8 +5,6 @@ import {
   assembleTaskPrompt,
   type PromptSection,
 } from './assemble.js';
-import { buildFinalOutputBlock } from './final-output.js';
-import { buildProactiveMemoryWorkflowBlock } from './proactive-memory.js';
 import {
   renderRubricCriteriaList,
   renderRubricPreambleSection,
@@ -76,21 +74,6 @@ export function buildPrReviewUserPrompt(
     'part of the task before reporting structured output.',
   ].join('\n');
 
-  const workflow = [
-    '1. Read the subject summary, resources, inspection hints, and any',
-    '   task-specific instructions before scoring.',
-    '2. Search MoltNet diary memory for prior decisions, incidents, and',
-    '   recurring review traps relevant to the subject.',
-    '3. Inspect the target artefact directly using the tools and resources the',
-    '   task makes available.',
-    '4. If you are in a dedicated disposable worktree and need the review target',
-    '   checked out locally, do that work inside this disposable workspace only.',
-    '5. Apply the rubric strictly. This task is about complexity and',
-    '   reviewability, not correctness or feature desirability.',
-    '6. Perform any required outward action before emitting the final',
-    '   structured output.',
-  ].join('\n');
-
   const taskPromptSection = input.taskPrompt ?? '';
   const preamble = renderRubricPreambleSection(rubric) ?? '';
   const criteria = renderRubricCriteriaList(rubric);
@@ -101,8 +84,6 @@ export function buildPrReviewUserPrompt(
     '- Score `0` when it does not, or when the evidence is ambiguous.',
     '- `rationale` is REQUIRED for every score. Keep it concrete and audit-friendly.',
     '- Compute `composite = Σ(weight_i × score_i)` exactly; the runtime rejects mismatches.',
-    '',
-    'Write a signed diary entry (tags: `judgment`, `pr_review`) capturing the rationale before reporting structured output.',
   ].join('\n');
 
   const sections: PromptSection[] = [
@@ -138,18 +119,6 @@ export function buildPrReviewUserPrompt(
       body: executionContract,
     },
     {
-      id: 'pr_review.workflow',
-      source: 'static',
-      header: 'Review workflow',
-      body: workflow,
-    },
-    {
-      id: 'pr_review.proactive_memory',
-      source: 'discipline',
-      header: 'Proactive memory use',
-      body: buildProactiveMemoryWorkflowBlock(),
-    },
-    {
       id: 'pr_review.task_prompt',
       source: 'task_input',
       header: 'Task-specific instructions',
@@ -171,27 +140,6 @@ export function buildPrReviewUserPrompt(
       source: 'rubric_judge',
       header: 'Scoring rules',
       body: scoring,
-    },
-    {
-      id: 'pr_review.final_output',
-      source: 'final_output',
-      body: buildFinalOutputBlock({
-        taskType: 'pr_review',
-        outputSchemaName: 'PrReviewOutput',
-        shapeSketch: [
-          '{',
-          '  "scores": [',
-          '    { "criterionId": "...", "score": 0, "rationale": "..." }',
-          '  ],',
-          '  "composite": <sum-of-weighted-binary-scores>,',
-          '  "verdict": "<1-3 sentence overall>"',
-          '}',
-        ].join('\n'),
-        extraNotes: [
-          '`scores` MUST stay in the same order as the rubric criteria.',
-          '`score` MUST be exactly `0` or `1` for every criterion.',
-        ],
-      }),
     },
   ];
 

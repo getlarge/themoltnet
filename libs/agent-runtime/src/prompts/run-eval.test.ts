@@ -29,43 +29,12 @@ describe('buildRunEvalUserPrompt', () => {
     expect(render(baseInput)).toContain('t-1');
   });
 
-  it('omits the self-verification block when no successCriteria', () => {
-    // The heading `## Self-verification` is only emitted by the
-    // self-verification block itself; the final-output block mentions
-    // the word in its prose but never as a heading.
-    expect(render(baseInput)).not.toContain('## Self-verification');
-  });
-
-  it('includes the self-verification block when successCriteria present', () => {
-    const out = render({
-      ...baseInput,
-      successCriteria: { version: 1 as const },
-    });
-    expect(out).toContain('## Self-verification');
-    expect(out).toContain('part of the promise you made when you claimed');
-    expect(out).toContain('`verification` MUST be a JSON object');
-    expect(out).toContain('Minimal valid example:');
-  });
-
   it('lists scenario inputFiles when present', () => {
     const out = render({
       ...baseInput,
       scenario: { prompt: 'x', inputFiles: ['a.md'] },
     });
     expect(out).toContain('a.md');
-  });
-
-  it('always emits the final-output block', () => {
-    expect(render(baseInput)).toContain('RunEvalOutput');
-  });
-
-  it('shows verification as an object in the final output sketch', () => {
-    const out = render({
-      ...baseInput,
-      successCriteria: { version: 1 as const },
-    });
-    expect(out).toContain('"verification": {');
-    expect(out).toContain('must be an object, never a string');
   });
 
   it('omits the discipline section when no task context exists', () => {
@@ -142,7 +111,7 @@ describe('buildRunEvalUserPrompt', () => {
     const ids = assembled.trace.map((t) => t.id);
     expect(ids).toContain('run_eval.header');
     expect(ids).toContain('run_eval.scenario');
-    expect(ids).toContain('run_eval.final_output');
+    expect(ids).not.toContain('run_eval.final_output');
     // Dropped sections must not appear in the trace either — replay
     // tooling treats "absent from trace" as "never rendered".
     expect(ids).not.toContain('run_eval.correlation');

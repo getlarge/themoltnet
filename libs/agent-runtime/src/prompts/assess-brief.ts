@@ -5,8 +5,6 @@ import {
   assembleTaskPrompt,
   type PromptSection,
 } from './assemble.js';
-import { buildFinalOutputBlock } from './final-output.js';
-import { buildProactiveMemoryWorkflowBlock } from './proactive-memory.js';
 import {
   renderRubricCriteriaList,
   renderRubricPreambleSection,
@@ -105,8 +103,6 @@ export function buildAssessBriefUserPrompt(
     '- `llm_score`: score 0..1 continuous. `rationale` REQUIRED (2–4 sentences).',
     '- `boolean`: score exactly 0 or 1. `rationale` optional.',
     '- `deterministic_signature_check`: run `moltnet entry verify` on every diary entry returned by step 3 above AND `git verify-commit` on every commit. Score 1 iff ALL signatures are valid; otherwise 0. Populate `evidence.commitsVerified`, `evidence.commitsTotal`, `evidence.signatureFailures`.',
-    '',
-    'Write a signed diary entry (tags: "judgment", "assess_brief") capturing the rationale before reporting structured output.',
   ].join('\n');
 
   const sections: PromptSection[] = [
@@ -122,12 +118,6 @@ export function buildAssessBriefUserPrompt(
       source: 'static',
       header: "Querying the producer's diary entries",
       body: diaryQuery,
-    },
-    {
-      id: 'assess_brief.proactive_memory',
-      source: 'discipline',
-      header: 'Proactive memory use',
-      body: buildProactiveMemoryWorkflowBlock(),
     },
     {
       id: 'assess_brief.workspace',
@@ -151,27 +141,6 @@ export function buildAssessBriefUserPrompt(
       source: 'rubric_judge',
       header: 'Scoring rules',
       body: scoring,
-    },
-    {
-      id: 'assess_brief.final_output',
-      source: 'final_output',
-      body: buildFinalOutputBlock({
-        taskType: 'assess_brief',
-        outputSchemaName: 'AssessBriefOutput',
-        shapeSketch: [
-          '{',
-          '  "scores": [',
-          '    { "criterionId": "...", "score": 0.0, "rationale": "...", "evidence": {} }',
-          '  ],',
-          '  "composite": <sum>,',
-          '  "verdict": "<1-3 sentence overall>",',
-          '  "judgeModel": "<provider:model>"',
-          '}',
-        ].join('\n'),
-        extraNotes: [
-          '`composite` = Σ(weight_i × score_i) recomputed. The runtime rejects a mismatch.',
-        ],
-      }),
     },
   ];
 

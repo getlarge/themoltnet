@@ -40,19 +40,6 @@ You can pull the full set without enumerating ids by passing the
   read it from the task you fetched in step 1 and pass
   \`taskFilter: { correlationId: "<id>" }\`.
 
-## Proactive memory use
-
-Before material work, apply the runtime instructor's proactive memory
-rules instead of waiting for a human prompt. Start with constrained
-diary context: inspect tags/list entries when task provenance or scope
-tags are known, then use \`moltnet_search_entries\` with \`taskFilter\`,
-\`entryTypes\`, and tags. Do not run broad unfiltered searches before
-constrained searches miss.
-
-For incident capture, follow the runtime instructor exactly: search
-for similar episodic/semantic entries first, reference close matches,
-and create a recurrence entry only when the repeat is useful signal.
-
 ## Workspace
 
 This review attempt is running inside a dedicated disposable git
@@ -68,51 +55,7 @@ The current review branch is \`task/assess-brief-11111111\`. You may replace it 
 
 - \`llm_score\`: score 0..1 continuous. \`rationale\` REQUIRED (2–4 sentences).
 - \`boolean\`: score exactly 0 or 1. \`rationale\` optional.
-- \`deterministic_signature_check\`: run \`moltnet entry verify\` on every diary entry returned by step 3 above AND \`git verify-commit\` on every commit. Score 1 iff ALL signatures are valid; otherwise 0. Populate \`evidence.commitsVerified\`, \`evidence.commitsTotal\`, \`evidence.signatureFailures\`.
-
-Write a signed diary entry (tags: "judgment", "assess_brief") capturing the rationale before reporting structured output.
-
-## Final output (read this carefully)
-
-Your VERY LAST action in this conversation MUST report the structured
-output matching \`AssessBriefOutput\`.
-
-Call \`submit_assess_brief_output\` exactly once with the payload.
-The runtime captures the validated arguments for attempt completion.
-Do NOT emit the output as plain assistant text. Do NOT rely on a
-JSON-in-message fallback. If you do not call \`submit_assess_brief_output\`, the
-attempt is recorded as failing the promised submit-output criterion
-even if the underlying work succeeded.
-
-Your final assistant text before that tool call may explain your work,
-but the submit-tool call itself must be your VERY LAST action.
-
-Task artifacts: when you produce large files, binary files, logs, reports,
-screenshots, traces, bundles, or datasets, save them in the task workspace
-and call \`moltnet_upload_task_artifact\` before the submit-output tool.
-Put the returned artifact CID in the structured output where the schema
-allows artifact metadata (for example \`artifacts[].cid\`). Do not paste
-large bytes into structured output.
-
-Referenced inputs: if this task depends on prior task artifacts, call
-\`moltnet_list_task_artifacts\` for the referenced task and download the
-specific CID you need with \`moltnet_download_task_artifact\` before judging
-or continuing that work.
-
-Output shape:
-
-\`\`\`json
-{
-  "scores": [
-    { "criterionId": "...", "score": 0.0, "rationale": "...", "evidence": {} }
-  ],
-  "composite": <sum>,
-  "verdict": "<1-3 sentence overall>",
-  "judgeModel": "<provider:model>"
-}
-\`\`\`
-
-\`composite\` = Σ(weight_i × score_i) recomputed. The runtime rejects a mismatch."
+- \`deterministic_signature_check\`: run \`moltnet entry verify\` on every diary entry returned by step 3 above AND \`git verify-commit\` on every commit. Score 1 iff ALL signatures are valid; otherwise 0. Populate \`evidence.commitsVerified\`, \`evidence.commitsTotal\`, \`evidence.signatureFailures\`."
 `;
 
 exports[`prompt snapshots (assembler refactor pin) > curate_pack — minimal 1`] = `
@@ -214,106 +157,7 @@ entry id, do not reformat, do not fabricate a UUID.
 - Do NOT write diary entries unless curation surfaces a genuine
   incident worth recording. The curation reasoning lives in the task
   output, not in the diary.
-- Respect hard include/exclude filters literally.
-
-## Self-verification
-
-If \`input.successCriteria\` is set on this task, your final output MUST
-include a \`verification\` block. Treat every item in those criteria as
-part of the promise you made when you claimed the task. That includes
-the built-in submit-output gate when present. Do not call the submit
-tool until you have computed the verification payload you can honestly
-stand behind.
-
-Call \`moltnet_get_task\` with task id \`t-1\` and read \`input.successCriteria\`.
-
-- If \`input.successCriteria\` is **absent**, omit \`verification\` from your
-  final output entirely.
-- If \`input.successCriteria\` is **present**, evaluate every applicable
-  item — \`gates\`, \`assertions\`, \`rubric\` criteria, \`sideEffects\` — against
-  your produced work and emit one result per id. Be honest: a \`fail\` with
-  a one-line reason is more useful than a false \`pass\`. Use \`skip\` (with a
-  \`detail\`) when you genuinely could not determine a result. Compute
-  \`passed = results.every(r => r.status !== 'fail')\`.
-- \`verification\` MUST be a JSON object. Never send a string, markdown
-  block, null, or an empty placeholder. The submit tool expects an object
-  with \`inputCid\`, \`results\`, and \`passed\` fields.
-
-Verification shape:
-
-\`\`\`json
-{
-  "inputCid": "<the inputCid you saw on the task>",
-  "results": [
-    { "id": "<criterion id>", "kind": "assertion|gate|rubric|sideEffect",
-      "status": "pass|fail|skip", "detail": "<optional one-liner>" }
-  ],
-  "passed": <boolean>
-}
-\`\`\`
-
-Minimal valid example:
-
-\`\`\`json
-{
-  "inputCid": "<task inputCid>",
-  "results": [
-    {
-      "id": "<criterion id>",
-      "kind": "rubric",
-      "status": "pass",
-      "detail": "one-line reason"
-    }
-  ],
-  "passed": true
-}
-\`\`\`
-
-
-## Final output (read this carefully)
-
-Your VERY LAST action in this conversation MUST report the structured
-output matching \`CuratePackOutput\`.
-
-Call \`submit_curate_pack_output\` exactly once with the payload.
-The runtime captures the validated arguments for attempt completion.
-Do NOT emit the output as plain assistant text. Do NOT rely on a
-JSON-in-message fallback. If you do not call \`submit_curate_pack_output\`, the
-attempt is recorded as failing the promised submit-output criterion
-even if the underlying work succeeded.
-
-Your final assistant text before that tool call may explain your work,
-but the submit-tool call itself must be your VERY LAST action.
-
-Task artifacts: when you produce large files, binary files, logs, reports,
-screenshots, traces, bundles, or datasets, save them in the task workspace
-and call \`moltnet_upload_task_artifact\` before the submit-output tool.
-Put the returned artifact CID in the structured output where the schema
-allows artifact metadata (for example \`artifacts[].cid\`). Do not paste
-large bytes into structured output.
-
-Referenced inputs: if this task depends on prior task artifacts, call
-\`moltnet_list_task_artifacts\` for the referenced task and download the
-specific CID you need with \`moltnet_download_task_artifact\` before judging
-or continuing that work.
-
-Output shape:
-
-\`\`\`json
-{
-  "packId": "<uuid>",
-  "packCid": "<cid>",
-  "entries": [
-    { "entryId": "<uuid>", "rank": 1, "rationale": "<why>" }
-  ],
-  "recipeParams": { "recipe": "...", "prompt": "...", ... },
-  "checkpoints": [
-    { "phase": "recon", "candidateIds": [...], "droppedIds": [...], "notes": "..." }
-  ],
-  "summary": "<2-4 sentences: what you looked for, how you narrowed, what defines the final set>",
-  "verification": <required iff input.successCriteria; see Self-verification>
-}
-\`\`\`"
+- Respect hard include/exclude filters literally."
 `;
 
 exports[`prompt snapshots (assembler refactor pin) > curate_pack — pinned entry types + filters 1`] = `
@@ -409,106 +253,7 @@ entry id, do not reformat, do not fabricate a UUID.
 - Do NOT write diary entries unless curation surfaces a genuine
   incident worth recording. The curation reasoning lives in the task
   output, not in the diary.
-- Respect hard include/exclude filters literally.
-
-## Self-verification
-
-If \`input.successCriteria\` is set on this task, your final output MUST
-include a \`verification\` block. Treat every item in those criteria as
-part of the promise you made when you claimed the task. That includes
-the built-in submit-output gate when present. Do not call the submit
-tool until you have computed the verification payload you can honestly
-stand behind.
-
-Call \`moltnet_get_task\` with task id \`t-1\` and read \`input.successCriteria\`.
-
-- If \`input.successCriteria\` is **absent**, omit \`verification\` from your
-  final output entirely.
-- If \`input.successCriteria\` is **present**, evaluate every applicable
-  item — \`gates\`, \`assertions\`, \`rubric\` criteria, \`sideEffects\` — against
-  your produced work and emit one result per id. Be honest: a \`fail\` with
-  a one-line reason is more useful than a false \`pass\`. Use \`skip\` (with a
-  \`detail\`) when you genuinely could not determine a result. Compute
-  \`passed = results.every(r => r.status !== 'fail')\`.
-- \`verification\` MUST be a JSON object. Never send a string, markdown
-  block, null, or an empty placeholder. The submit tool expects an object
-  with \`inputCid\`, \`results\`, and \`passed\` fields.
-
-Verification shape:
-
-\`\`\`json
-{
-  "inputCid": "<the inputCid you saw on the task>",
-  "results": [
-    { "id": "<criterion id>", "kind": "assertion|gate|rubric|sideEffect",
-      "status": "pass|fail|skip", "detail": "<optional one-liner>" }
-  ],
-  "passed": <boolean>
-}
-\`\`\`
-
-Minimal valid example:
-
-\`\`\`json
-{
-  "inputCid": "<task inputCid>",
-  "results": [
-    {
-      "id": "<criterion id>",
-      "kind": "rubric",
-      "status": "pass",
-      "detail": "one-line reason"
-    }
-  ],
-  "passed": true
-}
-\`\`\`
-
-
-## Final output (read this carefully)
-
-Your VERY LAST action in this conversation MUST report the structured
-output matching \`CuratePackOutput\`.
-
-Call \`submit_curate_pack_output\` exactly once with the payload.
-The runtime captures the validated arguments for attempt completion.
-Do NOT emit the output as plain assistant text. Do NOT rely on a
-JSON-in-message fallback. If you do not call \`submit_curate_pack_output\`, the
-attempt is recorded as failing the promised submit-output criterion
-even if the underlying work succeeded.
-
-Your final assistant text before that tool call may explain your work,
-but the submit-tool call itself must be your VERY LAST action.
-
-Task artifacts: when you produce large files, binary files, logs, reports,
-screenshots, traces, bundles, or datasets, save them in the task workspace
-and call \`moltnet_upload_task_artifact\` before the submit-output tool.
-Put the returned artifact CID in the structured output where the schema
-allows artifact metadata (for example \`artifacts[].cid\`). Do not paste
-large bytes into structured output.
-
-Referenced inputs: if this task depends on prior task artifacts, call
-\`moltnet_list_task_artifacts\` for the referenced task and download the
-specific CID you need with \`moltnet_download_task_artifact\` before judging
-or continuing that work.
-
-Output shape:
-
-\`\`\`json
-{
-  "packId": "<uuid>",
-  "packCid": "<cid>",
-  "entries": [
-    { "entryId": "<uuid>", "rank": 1, "rationale": "<why>" }
-  ],
-  "recipeParams": { "recipe": "...", "prompt": "...", ... },
-  "checkpoints": [
-    { "phase": "recon", "candidateIds": [...], "droppedIds": [...], "notes": "..." }
-  ],
-  "summary": "<2-4 sentences: what you looked for, how you narrowed, what defines the final set>",
-  "verification": <required iff input.successCriteria; see Self-verification>
-}
-\`\`\`"
+- Respect hard include/exclude filters literally."
 `;
 
 exports[`prompt snapshots (assembler refactor pin) > fulfill_brief — correlation + dedicated worktree 1`] = `
@@ -516,9 +261,6 @@ exports[`prompt snapshots (assembler refactor pin) > fulfill_brief — correlati
 
 You are a software engineering agent working in a sandboxed environment.
 Use the current working directory as the task workspace.
-The MoltNet runtime instructor (above, in this system prompt) defines the
-invariants for this task: identity, gh authentication, diary discipline,
-and the accountable-commit shape. Follow it for every commit.
 
 ## Task: Fulfill brief
 
@@ -544,131 +286,7 @@ from this branch naming scheme when correlationId is set.
 
 This attempt is running inside a dedicated git worktree created
 for this task. Do not repurpose or switch the primary checkout.
-The current branch is \`moltnet/22222222-3333-4444-8555-666666666666/thing\`. Stay on this branch unless the runtime instructor explicitly tells you otherwise.
-
-## Workflow
-
-1. Use the already-provisioned dedicated worktree branch (\`moltnet/22222222-3333-4444-8555-666666666666/thing\`); do not create or switch the primary checkout.
-2. Search MoltNet diary memory for prior decisions, incidents, and
-   recurring traps relevant to the brief before changing code.
-3. Understand the problem — read relevant code; do not speculate.
-4. Implement the change. Keep commits small and coherent.
-5. Add tests if applicable.
-6. For every commit, create a signed diary entry first via
-   \`moltnet_create_entry\` and embed its id in the commit trailer
-   \`MoltNet-Diary: <id>\` (per the runtime instructor).
-7. Push the branch and open a PR — run \`git push\` and \`gh pr create\`
-   IN the VM with your normal \`bash\` tool (use the
-   \`GH_TOKEN=$(moltnet github token …) gh …\` form from the runtime
-   instructor). Do NOT use \`moltnet_host_exec\` for this; it needs human
-   approval that is unavailable in a headless run.
-
-## Proactive memory use
-
-Before material work, apply the runtime instructor's proactive memory
-rules instead of waiting for a human prompt. Start with constrained
-diary context: inspect tags/list entries when task provenance or scope
-tags are known, then use \`moltnet_search_entries\` with \`taskFilter\`,
-\`entryTypes\`, and tags. Do not run broad unfiltered searches before
-constrained searches miss.
-
-For incident capture, follow the runtime instructor exactly: search
-for similar episodic/semantic entries first, reference close matches,
-and create a recurrence entry only when the repeat is useful signal.
-
-## Self-verification
-
-If \`input.successCriteria\` is set on this task, your final output MUST
-include a \`verification\` block. Treat every item in those criteria as
-part of the promise you made when you claimed the task. That includes
-the built-in submit-output gate when present. Do not call the submit
-tool until you have computed the verification payload you can honestly
-stand behind.
-
-Call \`moltnet_get_task\` with task id \`t-1\` and read \`input.successCriteria\`.
-
-- If \`input.successCriteria\` is **absent**, omit \`verification\` from your
-  final output entirely.
-- If \`input.successCriteria\` is **present**, evaluate every applicable
-  item — \`gates\`, \`assertions\`, \`rubric\` criteria, \`sideEffects\` — against
-  your produced work and emit one result per id. Be honest: a \`fail\` with
-  a one-line reason is more useful than a false \`pass\`. Use \`skip\` (with a
-  \`detail\`) when you genuinely could not determine a result. Compute
-  \`passed = results.every(r => r.status !== 'fail')\`.
-- \`verification\` MUST be a JSON object. Never send a string, markdown
-  block, null, or an empty placeholder. The submit tool expects an object
-  with \`inputCid\`, \`results\`, and \`passed\` fields.
-
-Verification shape:
-
-\`\`\`json
-{
-  "inputCid": "<the inputCid you saw on the task>",
-  "results": [
-    { "id": "<criterion id>", "kind": "assertion|gate|rubric|sideEffect",
-      "status": "pass|fail|skip", "detail": "<optional one-liner>" }
-  ],
-  "passed": <boolean>
-}
-\`\`\`
-
-Minimal valid example:
-
-\`\`\`json
-{
-  "inputCid": "<task inputCid>",
-  "results": [
-    {
-      "id": "<criterion id>",
-      "kind": "rubric",
-      "status": "pass",
-      "detail": "one-line reason"
-    }
-  ],
-  "passed": true
-}
-\`\`\`
-
-
-## Final output (read this carefully)
-
-Your VERY LAST action in this conversation MUST report the structured
-output matching \`FulfillBriefOutput\`.
-
-Call \`submit_fulfill_brief_output\` exactly once with the payload.
-The runtime captures the validated arguments for attempt completion.
-Do NOT emit the output as plain assistant text. Do NOT rely on a
-JSON-in-message fallback. If you do not call \`submit_fulfill_brief_output\`, the
-attempt is recorded as failing the promised submit-output criterion
-even if the underlying work succeeded.
-
-Your final assistant text before that tool call may explain your work,
-but the submit-tool call itself must be your VERY LAST action.
-
-Task artifacts: when you produce large files, binary files, logs, reports,
-screenshots, traces, bundles, or datasets, save them in the task workspace
-and call \`moltnet_upload_task_artifact\` before the submit-output tool.
-Put the returned artifact CID in the structured output where the schema
-allows artifact metadata (for example \`artifacts[].cid\`). Do not paste
-large bytes into structured output.
-
-Referenced inputs: if this task depends on prior task artifacts, call
-\`moltnet_list_task_artifacts\` for the referenced task and download the
-specific CID you need with \`moltnet_download_task_artifact\` before judging
-or continuing that work.
-
-Output shape:
-
-\`\`\`json
-{
-  "branch": "<branch-name>",
-  "commits": [{ "sha": "...", "message": "...", "diaryEntryId": "..." }],
-  "pullRequestUrl": "<url-or-null>",
-  "diaryEntryIds": ["..."],
-  "summary": "<1-3 sentence recap>",
-  "verification": <required iff input.successCriteria; see Self-verification>
-}
-\`\`\`"
+The current branch is \`moltnet/22222222-3333-4444-8555-666666666666/thing\`. Stay on this branch unless the runtime instructor explicitly tells you otherwise."
 `;
 
 exports[`prompt snapshots (assembler refactor pin) > fulfill_brief — minimal 1`] = `
@@ -676,9 +294,6 @@ exports[`prompt snapshots (assembler refactor pin) > fulfill_brief — minimal 1
 
 You are a software engineering agent working in a sandboxed environment.
 Use the current working directory as the task workspace.
-The MoltNet runtime instructor (above, in this system prompt) defines the
-invariants for this task: identity, gh authentication, diary discipline,
-and the accountable-commit shape. Follow it for every commit.
 
 ## Task: Fulfill brief
 
@@ -686,131 +301,7 @@ Task id: \`t-1\`
 
 ## Brief
 
-Do the thing
-
-## Workflow
-
-1. Create a feature branch (starting prefix suggestion: \`feat/misc-<short-slug>\`).
-2. Search MoltNet diary memory for prior decisions, incidents, and
-   recurring traps relevant to the brief before changing code.
-3. Understand the problem — read relevant code; do not speculate.
-4. Implement the change. Keep commits small and coherent.
-5. Add tests if applicable.
-6. For every commit, create a signed diary entry first via
-   \`moltnet_create_entry\` and embed its id in the commit trailer
-   \`MoltNet-Diary: <id>\` (per the runtime instructor).
-7. Push the branch and open a PR — run \`git push\` and \`gh pr create\`
-   IN the VM with your normal \`bash\` tool (use the
-   \`GH_TOKEN=$(moltnet github token …) gh …\` form from the runtime
-   instructor). Do NOT use \`moltnet_host_exec\` for this; it needs human
-   approval that is unavailable in a headless run.
-
-## Proactive memory use
-
-Before material work, apply the runtime instructor's proactive memory
-rules instead of waiting for a human prompt. Start with constrained
-diary context: inspect tags/list entries when task provenance or scope
-tags are known, then use \`moltnet_search_entries\` with \`taskFilter\`,
-\`entryTypes\`, and tags. Do not run broad unfiltered searches before
-constrained searches miss.
-
-For incident capture, follow the runtime instructor exactly: search
-for similar episodic/semantic entries first, reference close matches,
-and create a recurrence entry only when the repeat is useful signal.
-
-## Self-verification
-
-If \`input.successCriteria\` is set on this task, your final output MUST
-include a \`verification\` block. Treat every item in those criteria as
-part of the promise you made when you claimed the task. That includes
-the built-in submit-output gate when present. Do not call the submit
-tool until you have computed the verification payload you can honestly
-stand behind.
-
-Call \`moltnet_get_task\` with task id \`t-1\` and read \`input.successCriteria\`.
-
-- If \`input.successCriteria\` is **absent**, omit \`verification\` from your
-  final output entirely.
-- If \`input.successCriteria\` is **present**, evaluate every applicable
-  item — \`gates\`, \`assertions\`, \`rubric\` criteria, \`sideEffects\` — against
-  your produced work and emit one result per id. Be honest: a \`fail\` with
-  a one-line reason is more useful than a false \`pass\`. Use \`skip\` (with a
-  \`detail\`) when you genuinely could not determine a result. Compute
-  \`passed = results.every(r => r.status !== 'fail')\`.
-- \`verification\` MUST be a JSON object. Never send a string, markdown
-  block, null, or an empty placeholder. The submit tool expects an object
-  with \`inputCid\`, \`results\`, and \`passed\` fields.
-
-Verification shape:
-
-\`\`\`json
-{
-  "inputCid": "<the inputCid you saw on the task>",
-  "results": [
-    { "id": "<criterion id>", "kind": "assertion|gate|rubric|sideEffect",
-      "status": "pass|fail|skip", "detail": "<optional one-liner>" }
-  ],
-  "passed": <boolean>
-}
-\`\`\`
-
-Minimal valid example:
-
-\`\`\`json
-{
-  "inputCid": "<task inputCid>",
-  "results": [
-    {
-      "id": "<criterion id>",
-      "kind": "rubric",
-      "status": "pass",
-      "detail": "one-line reason"
-    }
-  ],
-  "passed": true
-}
-\`\`\`
-
-
-## Final output (read this carefully)
-
-Your VERY LAST action in this conversation MUST report the structured
-output matching \`FulfillBriefOutput\`.
-
-Call \`submit_fulfill_brief_output\` exactly once with the payload.
-The runtime captures the validated arguments for attempt completion.
-Do NOT emit the output as plain assistant text. Do NOT rely on a
-JSON-in-message fallback. If you do not call \`submit_fulfill_brief_output\`, the
-attempt is recorded as failing the promised submit-output criterion
-even if the underlying work succeeded.
-
-Your final assistant text before that tool call may explain your work,
-but the submit-tool call itself must be your VERY LAST action.
-
-Task artifacts: when you produce large files, binary files, logs, reports,
-screenshots, traces, bundles, or datasets, save them in the task workspace
-and call \`moltnet_upload_task_artifact\` before the submit-output tool.
-Put the returned artifact CID in the structured output where the schema
-allows artifact metadata (for example \`artifacts[].cid\`). Do not paste
-large bytes into structured output.
-
-Referenced inputs: if this task depends on prior task artifacts, call
-\`moltnet_list_task_artifacts\` for the referenced task and download the
-specific CID you need with \`moltnet_download_task_artifact\` before judging
-or continuing that work.
-
-Output shape:
-
-\`\`\`json
-{
-  "branch": "<branch-name>",
-  "commits": [{ "sha": "...", "message": "...", "diaryEntryId": "..." }],
-  "pullRequestUrl": "<url-or-null>",
-  "diaryEntryIds": ["..."],
-  "summary": "<1-3 sentence recap>",
-  "verification": <required iff input.successCriteria; see Self-verification>
-}
-\`\`\`"
+Do the thing"
 `;
 
 exports[`prompt snapshots (assembler refactor pin) > judge_eval_attempt — attached scratch_mount 1`] = `
@@ -854,49 +345,7 @@ This workspace is a fresh judge-owned scratch copy of the producer workspace.
 ## Composite arithmetic
 
 Your \`composite\` MUST equal \`Σ(criterion.weight × score)\` over the rubric
-criteria. Drift > 0.001 is rejected.
-
-## Final output (read this carefully)
-
-Your VERY LAST action in this conversation MUST report the structured
-output matching \`JudgeEvalAttemptOutput\`.
-
-Call \`submit_judge_eval_attempt_output\` exactly once with the payload.
-The runtime captures the validated arguments for attempt completion.
-Do NOT emit the output as plain assistant text. Do NOT rely on a
-JSON-in-message fallback. If you do not call \`submit_judge_eval_attempt_output\`, the
-attempt is recorded as failing the promised submit-output criterion
-even if the underlying work succeeded.
-
-Your final assistant text before that tool call may explain your work,
-but the submit-tool call itself must be your VERY LAST action.
-
-Task artifacts: when you produce large files, binary files, logs, reports,
-screenshots, traces, bundles, or datasets, save them in the task workspace
-and call \`moltnet_upload_task_artifact\` before the submit-output tool.
-Put the returned artifact CID in the structured output where the schema
-allows artifact metadata (for example \`artifacts[].cid\`). Do not paste
-large bytes into structured output.
-
-Referenced inputs: if this task depends on prior task artifacts, call
-\`moltnet_list_task_artifacts\` for the referenced task and download the
-specific CID you need with \`moltnet_download_task_artifact\` before judging
-or continuing that work.
-
-Output shape:
-
-\`\`\`json
-{
-  "targetTaskId": "11111111-1111-4111-8111-111111111111",
-  "targetAttemptN": 1,
-  "variantLabel": "<from producer input>",
-  "scores": [ { "criterionId": "...", "score": 0..1, "rationale": "...", "assertions": [...]?, "evidence": { "text": "..." } } ],
-  "composite": <Σ(weight × score), 0..1>,
-  "verdict": "<1-3 sentences>",
-  "judgeModel": "<id>",  // optional
-  "traceparent": "<from claim>"
-}
-\`\`\`"
+criteria. Drift > 0.001 is rejected."
 `;
 
 exports[`prompt snapshots (assembler refactor pin) > judge_pack — minimal 1`] = `
@@ -978,61 +427,7 @@ This task's id is: t-1
 - Do NOT call \`moltnet_pack_create\` or \`moltnet_pack_render\`.
 - Do NOT fetch the curator's or renderer's task output directly — they
   may leak guidance that biases judgment.
-- Keep the session focused on scoring; no speculative exploration.
-
-Write a signed diary entry (tags: \`judgment\`, \`judge_pack\`, \`rubric:r-1\`) capturing the rationale before reporting structured output.
-
-## Final output (read this carefully)
-
-Your VERY LAST action in this conversation MUST report the structured
-output matching \`JudgePackOutput\`.
-
-Call \`submit_judge_pack_output\` exactly once with the payload.
-The runtime captures the validated arguments for attempt completion.
-Do NOT emit the output as plain assistant text. Do NOT rely on a
-JSON-in-message fallback. If you do not call \`submit_judge_pack_output\`, the
-attempt is recorded as failing the promised submit-output criterion
-even if the underlying work succeeded.
-
-Your final assistant text before that tool call may explain your work,
-but the submit-tool call itself must be your VERY LAST action.
-
-Task artifacts: when you produce large files, binary files, logs, reports,
-screenshots, traces, bundles, or datasets, save them in the task workspace
-and call \`moltnet_upload_task_artifact\` before the submit-output tool.
-Put the returned artifact CID in the structured output where the schema
-allows artifact metadata (for example \`artifacts[].cid\`). Do not paste
-large bytes into structured output.
-
-Referenced inputs: if this task depends on prior task artifacts, call
-\`moltnet_list_task_artifacts\` for the referenced task and download the
-specific CID you need with \`moltnet_download_task_artifact\` before judging
-or continuing that work.
-
-Output shape:
-
-\`\`\`json
-{
-  "scores": [
-    { "criterionId": "...", "score": 0.0, "rationale": "...", "evidence": {} },
-    {
-      "criterionId": "<llm_checklist criterion>",
-      "score": 0,                          // 1 iff every assertion passed
-      "assertions": [
-        { "id": "claim-1", "text": "...", "passed": false, "evidence": "..." }
-      ]
-    }
-  ],
-  "composite": <sum-of-weighted-scores>,
-  "verdict": "<1-3 sentence overall>",
-  "judgeModel": "<provider:model>",
-  "rendererBinaryCid": "<cid-string-only-if-available>"
-}
-\`\`\`
-
-Omit \`rendererBinaryCid\` entirely when no binary CID is exposed by
-\`moltnet_rendered_pack_get\`. Do NOT emit \`null\` — the field is
-optional and absence is the correct representation when unavailable."
+- Keep the session focused on scoring; no speculative exploration."
 `;
 
 exports[`prompt snapshots (assembler refactor pin) > pr_review — full subject 1`] = `
@@ -1069,34 +464,6 @@ If the task-specific instructions or inspection hints require an outward action 
 (for example publishing the judgment somewhere), perform that action as
 part of the task before reporting structured output.
 
-## Review workflow
-
-1. Read the subject summary, resources, inspection hints, and any
-   task-specific instructions before scoring.
-2. Search MoltNet diary memory for prior decisions, incidents, and
-   recurring review traps relevant to the subject.
-3. Inspect the target artefact directly using the tools and resources the
-   task makes available.
-4. If you are in a dedicated disposable worktree and need the review target
-   checked out locally, do that work inside this disposable workspace only.
-5. Apply the rubric strictly. This task is about complexity and
-   reviewability, not correctness or feature desirability.
-6. Perform any required outward action before emitting the final
-   structured output.
-
-## Proactive memory use
-
-Before material work, apply the runtime instructor's proactive memory
-rules instead of waiting for a human prompt. Start with constrained
-diary context: inspect tags/list entries when task provenance or scope
-tags are known, then use \`moltnet_search_entries\` with \`taskFilter\`,
-\`entryTypes\`, and tags. Do not run broad unfiltered searches before
-constrained searches miss.
-
-For incident capture, follow the runtime instructor exactly: search
-for similar episodic/semantic entries first, reference close matches,
-and create a recurrence entry only when the repeat is useful signal.
-
 ## Task-specific instructions
 
 Use the consumer-supplied review flow.
@@ -1111,51 +478,7 @@ Use the consumer-supplied review flow.
 - Score \`1\` when the subject clearly clears the criterion.
 - Score \`0\` when it does not, or when the evidence is ambiguous.
 - \`rationale\` is REQUIRED for every score. Keep it concrete and audit-friendly.
-- Compute \`composite = Σ(weight_i × score_i)\` exactly; the runtime rejects mismatches.
-
-Write a signed diary entry (tags: \`judgment\`, \`pr_review\`) capturing the rationale before reporting structured output.
-
-## Final output (read this carefully)
-
-Your VERY LAST action in this conversation MUST report the structured
-output matching \`PrReviewOutput\`.
-
-Call \`submit_pr_review_output\` exactly once with the payload.
-The runtime captures the validated arguments for attempt completion.
-Do NOT emit the output as plain assistant text. Do NOT rely on a
-JSON-in-message fallback. If you do not call \`submit_pr_review_output\`, the
-attempt is recorded as failing the promised submit-output criterion
-even if the underlying work succeeded.
-
-Your final assistant text before that tool call may explain your work,
-but the submit-tool call itself must be your VERY LAST action.
-
-Task artifacts: when you produce large files, binary files, logs, reports,
-screenshots, traces, bundles, or datasets, save them in the task workspace
-and call \`moltnet_upload_task_artifact\` before the submit-output tool.
-Put the returned artifact CID in the structured output where the schema
-allows artifact metadata (for example \`artifacts[].cid\`). Do not paste
-large bytes into structured output.
-
-Referenced inputs: if this task depends on prior task artifacts, call
-\`moltnet_list_task_artifacts\` for the referenced task and download the
-specific CID you need with \`moltnet_download_task_artifact\` before judging
-or continuing that work.
-
-Output shape:
-
-\`\`\`json
-{
-  "scores": [
-    { "criterionId": "...", "score": 0, "rationale": "..." }
-  ],
-  "composite": <sum-of-weighted-binary-scores>,
-  "verdict": "<1-3 sentence overall>"
-}
-\`\`\`
-
-\`scores\` MUST stay in the same order as the rubric criteria.
-\`score\` MUST be exactly \`0\` or \`1\` for every criterion."
+- Compute \`composite = Σ(weight_i × score_i)\` exactly; the runtime rejects mismatches."
 `;
 
 exports[`prompt snapshots (assembler refactor pin) > render_pack — minimal 1`] = `
@@ -1212,102 +535,7 @@ than relying on a deterministic \`server:*\` renderer.
    completeness. Optimize for "no detectable drift across a
    claim-by-claim audit", not "shorter at any cost". When compressing, prefer
    tightening prose around a quote rather than altering the quote,
-   and prefer summarising a list over silently truncating it.
-
-## Self-verification
-
-If \`input.successCriteria\` is set on this task, your final output MUST
-include a \`verification\` block. Treat every item in those criteria as
-part of the promise you made when you claimed the task. That includes
-the built-in submit-output gate when present. Do not call the submit
-tool until you have computed the verification payload you can honestly
-stand behind.
-
-Call \`moltnet_get_task\` with task id \`t-1\` and read \`input.successCriteria\`.
-
-- If \`input.successCriteria\` is **absent**, omit \`verification\` from your
-  final output entirely.
-- If \`input.successCriteria\` is **present**, evaluate every applicable
-  item — \`gates\`, \`assertions\`, \`rubric\` criteria, \`sideEffects\` — against
-  your produced work and emit one result per id. Be honest: a \`fail\` with
-  a one-line reason is more useful than a false \`pass\`. Use \`skip\` (with a
-  \`detail\`) when you genuinely could not determine a result. Compute
-  \`passed = results.every(r => r.status !== 'fail')\`.
-- \`verification\` MUST be a JSON object. Never send a string, markdown
-  block, null, or an empty placeholder. The submit tool expects an object
-  with \`inputCid\`, \`results\`, and \`passed\` fields.
-
-Verification shape:
-
-\`\`\`json
-{
-  "inputCid": "<the inputCid you saw on the task>",
-  "results": [
-    { "id": "<criterion id>", "kind": "assertion|gate|rubric|sideEffect",
-      "status": "pass|fail|skip", "detail": "<optional one-liner>" }
-  ],
-  "passed": <boolean>
-}
-\`\`\`
-
-Minimal valid example:
-
-\`\`\`json
-{
-  "inputCid": "<task inputCid>",
-  "results": [
-    {
-      "id": "<criterion id>",
-      "kind": "rubric",
-      "status": "pass",
-      "detail": "one-line reason"
-    }
-  ],
-  "passed": true
-}
-\`\`\`
-
-
-## Final output (read this carefully)
-
-Your VERY LAST action in this conversation MUST report the structured
-output matching \`RenderPackOutput\`.
-
-Call \`submit_render_pack_output\` exactly once with the payload.
-The runtime captures the validated arguments for attempt completion.
-Do NOT emit the output as plain assistant text. Do NOT rely on a
-JSON-in-message fallback. If you do not call \`submit_render_pack_output\`, the
-attempt is recorded as failing the promised submit-output criterion
-even if the underlying work succeeded.
-
-Your final assistant text before that tool call may explain your work,
-but the submit-tool call itself must be your VERY LAST action.
-
-Task artifacts: when you produce large files, binary files, logs, reports,
-screenshots, traces, bundles, or datasets, save them in the task workspace
-and call \`moltnet_upload_task_artifact\` before the submit-output tool.
-Put the returned artifact CID in the structured output where the schema
-allows artifact metadata (for example \`artifacts[].cid\`). Do not paste
-large bytes into structured output.
-
-Referenced inputs: if this task depends on prior task artifacts, call
-\`moltnet_list_task_artifacts\` for the referenced task and download the
-specific CID you need with \`moltnet_download_task_artifact\` before judging
-or continuing that work.
-
-Output shape:
-
-\`\`\`json
-{
-  "renderedPackId": "<uuid-or-null>",
-  "renderedCid": "<cid>",
-  "renderMethod": "<label>",
-  "byteSize": <int>,
-  "entriesRendered": <int>,
-  "summary": "<1-3 sentence recap>",
-  "verification": <required iff input.successCriteria; see Self-verification>
-}
-\`\`\`"
+   and prefer summarising a list over silently truncating it."
 `;
 
 exports[`prompt snapshots (assembler refactor pin) > run_eval — baseline (no context, no successCriteria) 1`] = `
@@ -1322,53 +550,7 @@ List the top 3 risks in this code.
 
 ## Input files
 
-- \`a.ts\`
-
-## Final output (read this carefully)
-
-Your VERY LAST action in this conversation MUST report the structured
-output matching \`RunEvalOutput\`.
-
-Call \`submit_run_eval_output\` exactly once with the payload.
-The runtime captures the validated arguments for attempt completion.
-Do NOT emit the output as plain assistant text. Do NOT rely on a
-JSON-in-message fallback. If you do not call \`submit_run_eval_output\`, the
-attempt is recorded as failing the promised submit-output criterion
-even if the underlying work succeeded.
-
-Your final assistant text before that tool call may explain your work,
-but the submit-tool call itself must be your VERY LAST action.
-
-Task artifacts: when you produce large files, binary files, logs, reports,
-screenshots, traces, bundles, or datasets, save them in the task workspace
-and call \`moltnet_upload_task_artifact\` before the submit-output tool.
-Put the returned artifact CID in the structured output where the schema
-allows artifact metadata (for example \`artifacts[].cid\`). Do not paste
-large bytes into structured output.
-
-Referenced inputs: if this task depends on prior task artifacts, call
-\`moltnet_list_task_artifacts\` for the referenced task and download the
-specific CID you need with \`moltnet_download_task_artifact\` before judging
-or continuing that work.
-
-Output shape:
-
-\`\`\`json
-{
-  "response": "<your free-form answer>",
-  "artifacts": [{ "path": "...", "cid": "..." }],  // optional
-  "totalTokens": <int>,
-  "durationMs": <int>,
-  "traceparent": "<from claim>",
-  "verification": {
-    "inputCid": "<task inputCid>",
-    "results": [
-      { "id": "<criterion id>", "kind": "rubric", "status": "pass|fail|skip", "detail": "<optional one-liner>" }
-    ],
-    "passed": <boolean>
-  } // required iff input.successCriteria; must be an object, never a string
-}
-\`\`\`"
+- \`a.ts\`"
 `;
 
 exports[`prompt snapshots (assembler refactor pin) > run_eval — with-context + correlation + successCriteria 1`] = `
@@ -1395,105 +577,5 @@ rules, those rules override your generic instincts.
 
 ## Scenario
 
-List the top 3 risks in this code.
-
-## Self-verification
-
-If \`input.successCriteria\` is set on this task, your final output MUST
-include a \`verification\` block. Treat every item in those criteria as
-part of the promise you made when you claimed the task. That includes
-the built-in submit-output gate when present. Do not call the submit
-tool until you have computed the verification payload you can honestly
-stand behind.
-
-Call \`moltnet_get_task\` with task id \`t-1\` and read \`input.successCriteria\`.
-
-- If \`input.successCriteria\` is **absent**, omit \`verification\` from your
-  final output entirely.
-- If \`input.successCriteria\` is **present**, evaluate every applicable
-  item — \`gates\`, \`assertions\`, \`rubric\` criteria, \`sideEffects\` — against
-  your produced work and emit one result per id. Be honest: a \`fail\` with
-  a one-line reason is more useful than a false \`pass\`. Use \`skip\` (with a
-  \`detail\`) when you genuinely could not determine a result. Compute
-  \`passed = results.every(r => r.status !== 'fail')\`.
-- \`verification\` MUST be a JSON object. Never send a string, markdown
-  block, null, or an empty placeholder. The submit tool expects an object
-  with \`inputCid\`, \`results\`, and \`passed\` fields.
-
-Verification shape:
-
-\`\`\`json
-{
-  "inputCid": "<the inputCid you saw on the task>",
-  "results": [
-    { "id": "<criterion id>", "kind": "assertion|gate|rubric|sideEffect",
-      "status": "pass|fail|skip", "detail": "<optional one-liner>" }
-  ],
-  "passed": <boolean>
-}
-\`\`\`
-
-Minimal valid example:
-
-\`\`\`json
-{
-  "inputCid": "<task inputCid>",
-  "results": [
-    {
-      "id": "<criterion id>",
-      "kind": "rubric",
-      "status": "pass",
-      "detail": "one-line reason"
-    }
-  ],
-  "passed": true
-}
-\`\`\`
-
-
-## Final output (read this carefully)
-
-Your VERY LAST action in this conversation MUST report the structured
-output matching \`RunEvalOutput\`.
-
-Call \`submit_run_eval_output\` exactly once with the payload.
-The runtime captures the validated arguments for attempt completion.
-Do NOT emit the output as plain assistant text. Do NOT rely on a
-JSON-in-message fallback. If you do not call \`submit_run_eval_output\`, the
-attempt is recorded as failing the promised submit-output criterion
-even if the underlying work succeeded.
-
-Your final assistant text before that tool call may explain your work,
-but the submit-tool call itself must be your VERY LAST action.
-
-Task artifacts: when you produce large files, binary files, logs, reports,
-screenshots, traces, bundles, or datasets, save them in the task workspace
-and call \`moltnet_upload_task_artifact\` before the submit-output tool.
-Put the returned artifact CID in the structured output where the schema
-allows artifact metadata (for example \`artifacts[].cid\`). Do not paste
-large bytes into structured output.
-
-Referenced inputs: if this task depends on prior task artifacts, call
-\`moltnet_list_task_artifacts\` for the referenced task and download the
-specific CID you need with \`moltnet_download_task_artifact\` before judging
-or continuing that work.
-
-Output shape:
-
-\`\`\`json
-{
-  "response": "<your free-form answer>",
-  "artifacts": [{ "path": "...", "cid": "..." }],  // optional
-  "totalTokens": <int>,
-  "durationMs": <int>,
-  "traceparent": "<from claim>",
-  "verification": {
-    "inputCid": "<task inputCid>",
-    "results": [
-      { "id": "<criterion id>", "kind": "rubric", "status": "pass|fail|skip", "detail": "<optional one-liner>" }
-    ],
-    "passed": <boolean>
-  } // required iff input.successCriteria; must be an object, never a string
-}
-\`\`\`"
+List the top 3 risks in this code."
 `;

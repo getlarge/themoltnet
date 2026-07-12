@@ -5,9 +5,6 @@ import {
   assembleTaskPrompt,
   type PromptSection,
 } from './assemble.js';
-import { buildFinalOutputBlock } from './final-output.js';
-import { buildProactiveMemoryWorkflowBlock } from './proactive-memory.js';
-import { buildSelfVerificationBlock } from './self-verification.js';
 
 interface Ctx {
   taskId: string;
@@ -86,18 +83,6 @@ export function buildFreeformUserPrompt(
       ].join('\n')
     : '';
 
-  const workflow = [
-    '1. Clarify the real objective from the brief before acting.',
-    '2. Search MoltNet diary memory for prior decisions, incidents, and',
-    '   recurring traps relevant to the brief.',
-    '3. Gather enough context to avoid guessing.',
-    '4. Complete the requested work when it is safe and bounded.',
-    '5. If the request reveals a recurring task shape, include a',
-    '   `proposedTaskType` in the final output with a concise rationale.',
-    '6. If you changed code on a branch, include that branch in',
-    '   `branch` so future continuations can recover git context.',
-  ].join('\n');
-
   const sections: PromptSection[] = [
     { id: 'freeform.header', source: 'header', body: header },
     {
@@ -124,54 +109,15 @@ export function buildFreeformUserPrompt(
       header: 'Suggested Task Type',
       body: suggestedTaskType,
     },
-    {
-      id: 'freeform.workflow',
-      source: 'static',
-      header: 'Workflow',
-      body: workflow,
-    },
-    {
-      id: 'freeform.proactive_memory',
-      source: 'discipline',
-      header: 'Proactive memory use',
-      body: buildProactiveMemoryWorkflowBlock(),
-    },
-    {
-      id: 'freeform.verification',
-      source: 'verification',
-      body: buildSelfVerificationBlock(ctx.taskId),
-    },
-    {
-      id: 'freeform.final_output',
-      source: 'final_output',
-      body: buildFinalOutputBlock({
-        taskType: 'freeform',
-        outputSchemaName: 'FreeformOutput',
-        shapeSketch: [
-          '{',
-          '  "summary": "<2-5 sentence result>",',
-          '  "branch": "<branch name when code changed; omit for prose-only work>",',
-          '  "artifacts": [{ "kind": "...", "title": "...", "description": "...", "body": "<inline content up to 64 KiB; preferred for textual output so it persists with the task>", "url": "...", "path": "<worktree-ephemeral; not persisted after completion>" }],',
-          '  "proposedTaskType": { "name": "...", "rationale": "...", "inputShape": {}, "outputShape": {} },',
-          '  "diaryEntryIds": ["..."],',
-          '  "verification": <required iff input.successCriteria; see Self-verification>',
-          '}',
-        ].join('\n'),
-      }),
-    },
   ];
 
   const priorContextBody = buildPriorContextSection(ctx.priorContext);
   if (priorContextBody) {
-    sections.splice(
-      sections.findIndex((s) => s.id === 'freeform.workflow') + 1,
-      0,
-      {
-        id: 'freeform.prior_context',
-        source: 'task_input',
-        body: priorContextBody,
-      },
-    );
+    sections.push({
+      id: 'freeform.prior_context',
+      source: 'task_input',
+      body: priorContextBody,
+    });
   }
 
   return assembleTaskPrompt('freeform', sections);

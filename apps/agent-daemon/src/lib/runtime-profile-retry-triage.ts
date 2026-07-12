@@ -1,5 +1,8 @@
 import { type Api, getModel, type Model } from '@earendil-works/pi-ai';
-import { createPiRetryTriage } from '@themoltnet/pi-extension';
+import {
+  createPiRetryTriage,
+  getRuntimePreset,
+} from '@themoltnet/pi-extension';
 
 import type { RetryTriage } from './retry-triage.js';
 import type { ResolvedRuntimeProfile } from './runtime-profile.js';
@@ -7,7 +10,7 @@ import type { ResolvedRuntimeProfile } from './runtime-profile.js';
 export function createRuntimeProfileRetryTriage(options: {
   runtimeProfile: Pick<
     ResolvedRuntimeProfile,
-    'provider' | 'model' | 'thinkingLevel'
+    'provider' | 'model' | 'thinkingLevel' | 'preset'
   >;
   piAgentDir: string;
   timeoutMs?: number;
@@ -27,5 +30,7 @@ export function createRuntimeProfileRetryTriage(options: {
     piAgentDir: options.piAgentDir,
     timeoutMs: options.timeoutMs,
     cwd: options.cwd,
+    systemPrompt: getRuntimePreset(options.runtimeProfile.preset)
+      .retryTriageSystemPrompt,
   });
 }

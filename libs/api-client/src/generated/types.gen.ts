@@ -437,6 +437,7 @@ export type CreateRuntimeProfileBody = {
   maxTurns?: number;
   model: string;
   name: string;
+  preset?: 'standard@v1' | 'interactive-direct@v1';
   provider: string;
   requiredEnv?: Array<string>;
   requiredTools?: Array<string>;
@@ -1749,6 +1750,7 @@ export type RuntimeProfile = {
   maxTurns: number;
   model: string;
   name: string;
+  preset: 'standard@v1' | 'interactive-direct@v1';
   provider: string;
   requiredEnv: Array<string>;
   requiredTools: Array<string>;
@@ -1831,6 +1833,7 @@ export type RuntimeProfileListResponse = {
     maxTurns: number;
     model: string;
     name: string;
+    preset: 'standard@v1' | 'interactive-direct@v1';
     provider: string;
     requiredEnv: Array<string>;
     requiredTools: Array<string>;
@@ -2383,6 +2386,16 @@ export type TaskAttemptStatus =
   | 'aborted'
   | 'timed_out';
 
+export type TaskAvailabilityQuery = {
+  profileId?: string;
+  taskTypes?: Array<string>;
+  timeoutMs?: number;
+};
+
+export type TaskAvailabilityResponse = {
+  available: boolean;
+};
+
 export type TaskError = {
   code: string;
   message: string;
@@ -2529,6 +2542,7 @@ export type UpdateRuntimeProfileBody = {
   maxTurns?: number;
   model?: string;
   name?: string;
+  preset?: 'standard@v1' | 'interactive-direct@v1';
   provider?: string;
   requiredEnv?: Array<string>;
   requiredTools?: Array<string>;
@@ -9630,6 +9644,51 @@ export type GetTaskActivityAnalyticsResponses = {
 
 export type GetTaskActivityAnalyticsResponse =
   GetTaskActivityAnalyticsResponses[keyof GetTaskActivityAnalyticsResponses];
+
+export type GetTaskAvailabilityData = {
+  body?: never;
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path?: never;
+  query?: {
+    taskTypes?: Array<string>;
+    profileId?: string;
+    timeoutMs?: number;
+  };
+  url: '/tasks/availability';
+};
+
+export type GetTaskAvailabilityErrors = {
+  /**
+   * Default Response
+   */
+  400: ValidationProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+};
+
+export type GetTaskAvailabilityError =
+  GetTaskAvailabilityErrors[keyof GetTaskAvailabilityErrors];
+
+export type GetTaskAvailabilityResponses = {
+  /**
+   * Default Response
+   */
+  200: TaskAvailabilityResponse;
+};
+
+export type GetTaskAvailabilityResponse =
+  GetTaskAvailabilityResponses[keyof GetTaskAvailabilityResponses];
 
 export type ListTaskSchemasData = {
   body?: never;

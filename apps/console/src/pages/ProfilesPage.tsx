@@ -45,12 +45,14 @@ type RuntimeProfileThinkingLevel =
   | 'medium'
   | 'high'
   | 'xhigh';
+type RuntimeProfilePreset = 'standard@v1' | 'interactive-direct@v1';
 type RuntimeProfileListItem = Omit<RuntimeProfile, 'thinkingLevel'> &
   Partial<Pick<RuntimeProfile, 'thinkingLevel'>>;
 
 interface ProfileFormState {
   name: string;
   description: string;
+  preset: RuntimeProfilePreset;
   provider: string;
   model: string;
   thinkingLevel: RuntimeProfileThinkingLevel | '';
@@ -76,6 +78,7 @@ interface ProfileFormState {
 const EMPTY_FORM: ProfileFormState = {
   name: '',
   description: '',
+  preset: 'standard@v1',
   provider: '',
   model: '',
   thinkingLevel: '',
@@ -120,6 +123,8 @@ const CONTEXT_JSON_EXAMPLE = JSON.stringify(
 );
 
 const FIELD_HELP = {
+  preset:
+    'Versioned runtime behaviour. Standard enables the full MoltNet task workflow; interactive direct is freeform-only with submit-output recovery and no workspace or diary tools.',
   sessionTtlSec:
     'Maximum lifetime for one warm agent session before the daemon starts a fresh executor context.',
   workspaceTtlSec:
@@ -480,6 +485,21 @@ export function ProfilesPage() {
                 value={form.name}
                 onChange={(value) => updateField('name', value)}
                 required
+              />
+              <LabeledSelect
+                label="Runtime preset"
+                help={FIELD_HELP.preset}
+                value={form.preset}
+                onChange={(value) =>
+                  updateField('preset', value as RuntimeProfilePreset)
+                }
+                options={[
+                  { value: 'standard@v1', label: 'Standard v1' },
+                  {
+                    value: 'interactive-direct@v1',
+                    label: 'Interactive direct v1',
+                  },
+                ]}
               />
               <LabeledInput
                 label="Provider"
@@ -1063,6 +1083,7 @@ function profileToForm(profile: RuntimeProfile): ProfileFormState {
   return {
     name: profile.name,
     description: profile.description ?? '',
+    preset: profile.preset ?? 'standard@v1',
     provider: profile.provider,
     model: profile.model,
     thinkingLevel: profile.thinkingLevel ?? '',
@@ -1113,12 +1134,17 @@ function buildProfileBody(form: ProfileFormState): CreateRuntimeProfileBody {
   if (!Array.isArray(context)) {
     throw new Error('Context JSON must be an array.');
   }
-  if (form.allowedWorkspaceModes.length === 0) {
+  const direct = form.preset === 'interactive-direct@v1';
+  const allowedWorkspaceModes = direct
+    ? (['none'] as RuntimeProfileWorkspaceMode[])
+    : form.allowedWorkspaceModes;
+  const defaultWorkspaceMode = direct ? 'none' : form.defaultWorkspaceMode;
+  if (allowedWorkspaceModes.length === 0) {
     throw new Error('Allowed workspace modes must include at least one mode.');
   }
   if (
-    form.defaultWorkspaceMode &&
-    !form.allowedWorkspaceModes.includes(form.defaultWorkspaceMode)
+    defaultWorkspaceMode &&
+    !allowedWorkspaceModes.includes(defaultWorkspaceMode)
   ) {
     throw new Error(
       'Default workspace mode must be included in allowed workspace modes.',
@@ -1129,6 +1155,7 @@ function buildProfileBody(form: ProfileFormState): CreateRuntimeProfileBody {
     ...(form.description.trim()
       ? { description: form.description.trim() }
       : {}),
+    preset: form.preset,
     provider: requireText(form.provider, 'Provider'),
     model: requireText(form.model, 'Model'),
     thinkingLevel: form.thinkingLevel || null,
@@ -1146,8 +1173,8 @@ function buildProfileBody(form: ProfileFormState): CreateRuntimeProfileBody {
     sandbox,
     sessionStorageMode: 'local',
     workspaceStorageMode: 'local',
-    defaultWorkspaceMode: form.defaultWorkspaceMode || null,
-    allowedWorkspaceModes: form.allowedWorkspaceModes,
+    defaultWorkspaceMode: defaultWorkspaceMode || null,
+    allowedWorkspaceModes,
     sessionTtlSec: parsePositiveInt(form.sessionTtlSec, 'Session TTL seconds'),
     workspaceTtlSec: parsePositiveInt(
       form.workspaceTtlSec,

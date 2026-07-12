@@ -5,7 +5,6 @@ import {
   assembleTaskPrompt,
   type PromptSection,
 } from './assemble.js';
-import { buildFinalOutputBlock } from './final-output.js';
 
 interface Ctx {
   diaryId: string;
@@ -116,26 +115,6 @@ export function buildJudgeEvalAttemptUserPrompt(
       source: 'rubric_judge',
       header: 'Composite arithmetic',
       body: composite,
-    },
-    {
-      id: 'judge_eval_attempt.final_output',
-      source: 'final_output',
-      body: buildFinalOutputBlock({
-        taskType: 'judge_eval_attempt',
-        outputSchemaName: 'JudgeEvalAttemptOutput',
-        shapeSketch: [
-          '{',
-          `  "targetTaskId": "${input.targetTaskId}",`,
-          `  "targetAttemptN": ${input.targetAttemptN},`,
-          '  "variantLabel": "<from producer input>",',
-          '  "scores": [ { "criterionId": "...", "score": 0..1, "rationale": "...", "assertions": [...]?, "evidence": { "text": "..." } } ],',
-          '  "composite": <Σ(weight × score), 0..1>,',
-          '  "verdict": "<1-3 sentences>",',
-          '  "judgeModel": "<id>",  // optional',
-          '  "traceparent": "<from claim>"',
-          '}',
-        ].join('\n'),
-      }),
     },
   ];
 

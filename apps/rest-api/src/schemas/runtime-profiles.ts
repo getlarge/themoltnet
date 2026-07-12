@@ -14,6 +14,7 @@ import {
   RuntimeProfileNullableThinkingLevel,
   RuntimeProfileNullableTopK,
   RuntimeProfileNullableTopP,
+  RuntimeProfilePreset,
   RuntimeProfileSandbox,
   RuntimeProfileToolName,
   RuntimeProfileWorkspaceMode,
@@ -24,6 +25,7 @@ export const CreateRuntimeProfileBodySchema = Type.Object(
   {
     name: RuntimeProfileName,
     description: Type.Optional(Type.String({ maxLength: 4096 })),
+    preset: Type.Optional(RuntimeProfilePreset),
     provider: Type.String({ minLength: 1, maxLength: 100 }),
     model: Type.String({ minLength: 1, maxLength: 200 }),
     thinkingLevel: Type.Optional(RuntimeProfileNullableThinkingLevel),

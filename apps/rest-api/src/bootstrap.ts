@@ -93,6 +93,7 @@ import {
   createTaskService,
   type TaskService,
 } from './services/task.service.js';
+import { TaskAvailabilityWaiter } from './services/task-availability.js';
 import {
   initDiaryTransferWorkflow,
   initHumanOnboardingWorkflow,
@@ -587,6 +588,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     taskRepository,
     taskAnalyticsService,
     taskService,
+    taskAvailabilityWaiter: new TaskAvailabilityWaiter(dbConnection.pool),
     signingRequestRepository,
     nonceRepository,
     dataSource,

@@ -123,7 +123,13 @@ export class AgentRuntime {
           taskType: claimedTask.task.taskType,
           attemptN: claimedTask.attemptN,
         });
-        taskLogger.info({}, 'agent-runtime.task_claimed');
+        taskLogger.info(
+          {
+            queueToClaimMs: elapsedSince(claimedTask.task.queuedAt),
+            claimedAt: new Date().toISOString(),
+          },
+          'agent-runtime.task_claimed',
+        );
         const reporter = this.opts.makeReporter(claimedTask);
         this.currentReporter = reporter;
         // Restore the W3C trace context from the claim response so every
@@ -241,4 +247,12 @@ export class AgentRuntime {
       this.currentReporter?.requestCancel?.(reason);
     }
   }
+}
+
+function elapsedSince(value: string | Date | null | undefined): number | null {
+  if (!value) return null;
+  const timestamp = value instanceof Date ? value.getTime() : Date.parse(value);
+  return Number.isFinite(timestamp)
+    ? Math.max(0, Date.now() - timestamp)
+    : null;
 }

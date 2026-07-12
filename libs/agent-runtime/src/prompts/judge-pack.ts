@@ -5,7 +5,6 @@ import {
   assembleTaskPrompt,
   type PromptSection,
 } from './assemble.js';
-import { buildFinalOutputBlock } from './final-output.js';
 import {
   renderRubricCriteriaList,
   renderRubricPreambleSection,
@@ -103,8 +102,6 @@ export function buildJudgePackUserPrompt(
     "- Do NOT fetch the curator's or renderer's task output directly — they",
     '  may leak guidance that biases judgment.',
     '- Keep the session focused on scoring; no speculative exploration.',
-    '',
-    `Write a signed diary entry (tags: \`judgment\`, \`judge_pack\`, \`rubric:${rubric.rubricId}\`) capturing the rationale before reporting structured output.`,
   ].join('\n');
 
   const sections: PromptSection[] = [
@@ -143,37 +140,6 @@ export function buildJudgePackUserPrompt(
       source: 'static',
       header: 'Constraints',
       body: constraints,
-    },
-    {
-      id: 'judge_pack.final_output',
-      source: 'final_output',
-      body: buildFinalOutputBlock({
-        taskType: 'judge_pack',
-        outputSchemaName: 'JudgePackOutput',
-        shapeSketch: [
-          '{',
-          '  "scores": [',
-          '    { "criterionId": "...", "score": 0.0, "rationale": "...", "evidence": {} },',
-          '    {',
-          '      "criterionId": "<llm_checklist criterion>",',
-          '      "score": 0,                          // 1 iff every assertion passed',
-          '      "assertions": [',
-          '        { "id": "claim-1", "text": "...", "passed": false, "evidence": "..." }',
-          '      ]',
-          '    }',
-          '  ],',
-          '  "composite": <sum-of-weighted-scores>,',
-          '  "verdict": "<1-3 sentence overall>",',
-          '  "judgeModel": "<provider:model>",',
-          '  "rendererBinaryCid": "<cid-string-only-if-available>"',
-          '}',
-        ].join('\n'),
-        extraNotes: [
-          'Omit `rendererBinaryCid` entirely when no binary CID is exposed by',
-          '`moltnet_rendered_pack_get`. Do NOT emit `null` — the field is',
-          'optional and absence is the correct representation when unavailable.',
-        ],
-      }),
     },
   ];
 

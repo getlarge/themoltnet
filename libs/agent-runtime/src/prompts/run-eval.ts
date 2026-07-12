@@ -5,8 +5,6 @@ import {
   assembleTaskPrompt,
   type PromptSection,
 } from './assemble.js';
-import { buildFinalOutputBlock } from './final-output.js';
-import { buildSelfVerificationBlock } from './self-verification.js';
 
 interface Ctx {
   diaryId: string;
@@ -53,7 +51,7 @@ export function buildRunEvalUserPrompt(
   input: RunEvalInput,
   ctx: Ctx,
 ): AssembledPrompt {
-  const { scenario, variantLabel, successCriteria } = input;
+  const { scenario, variantLabel } = input;
   const effectiveRuntimeContext = ctx.effectiveRuntimeContext ?? input.context;
   const hasContext = effectiveRuntimeContext.length > 0;
   const hasInlineContext = effectiveRuntimeContext.some(
@@ -89,31 +87,6 @@ export function buildRunEvalUserPrompt(
     ? scenario.inputFiles.map((f) => `- \`${f}\``).join('\n')
     : '';
 
-  const verification = successCriteria
-    ? buildSelfVerificationBlock(ctx.taskId)
-    : '';
-
-  const finalOutput = buildFinalOutputBlock({
-    taskType: 'run_eval',
-    outputSchemaName: 'RunEvalOutput',
-    shapeSketch: [
-      '{',
-      '  "response": "<your free-form answer>",',
-      '  "artifacts": [{ "path": "...", "cid": "..." }],  // optional',
-      '  "totalTokens": <int>,',
-      '  "durationMs": <int>,',
-      '  "traceparent": "<from claim>",',
-      '  "verification": {',
-      '    "inputCid": "<task inputCid>",',
-      '    "results": [',
-      '      { "id": "<criterion id>", "kind": "rubric", "status": "pass|fail|skip", "detail": "<optional one-liner>" }',
-      '    ],',
-      '    "passed": <boolean>',
-      '  } // required iff input.successCriteria; must be an object, never a string',
-      '}',
-    ].join('\n'),
-  });
-
   const sections: PromptSection[] = [
     { id: 'run_eval.header', source: 'header', body: header },
     {
@@ -133,16 +106,6 @@ export function buildRunEvalUserPrompt(
       source: 'task_input',
       header: 'Input files',
       body: inputFiles,
-    },
-    {
-      id: 'run_eval.verification',
-      source: 'verification',
-      body: verification,
-    },
-    {
-      id: 'run_eval.final_output',
-      source: 'final_output',
-      body: finalOutput,
     },
   ];
 

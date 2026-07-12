@@ -60,6 +60,7 @@ export function createPiRetryTriage(options: {
   piAgentDir: string;
   timeoutMs?: number;
   cwd?: string;
+  systemPrompt?: string;
 }): PiRetryTriage {
   return async (input) => {
     const cwd = options.cwd ?? process.cwd();
@@ -67,7 +68,9 @@ export function createPiRetryTriage(options: {
     const resourceLoader = new DefaultResourceLoader({
       cwd,
       agentDir: options.piAgentDir,
-      appendSystemPrompt: [TRIAGE_SYSTEM_PROMPT],
+      appendSystemPrompt: [
+        options.systemPrompt ?? DEFAULT_TRIAGE_SYSTEM_PROMPT,
+      ],
       skillsOverride: () => ({ skills: [], diagnostics: [] }),
     });
     await resourceLoader.reload();
@@ -227,7 +230,7 @@ function truncateString(value: string, maxChars: number): string {
   return `${value.slice(0, maxChars)}...[truncated ${value.length - maxChars} chars]`;
 }
 
-const TRIAGE_SYSTEM_PROMPT = [
+const DEFAULT_TRIAGE_SYSTEM_PROMPT = [
   'You are MoltNet retry triage.',
   'You classify one failed execution attempt, not the whole task.',
   'Return retry only for likely transient/runtime failures or clear evidence a new attempt can recover.',

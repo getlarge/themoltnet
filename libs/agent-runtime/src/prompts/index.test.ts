@@ -27,7 +27,7 @@ describe('buildTaskUserPrompt', () => {
     expect(prompt).toContain('t1');
   });
 
-  it('builds freeform prompt with discovery instructions', () => {
+  it('builds freeform prompt from task facts', () => {
     const task = makeFulfillBriefTask({
       taskType: FREEFORM_TYPE,
       title: 'Task taxonomy',
@@ -44,12 +44,9 @@ describe('buildTaskUserPrompt', () => {
     expect(prompt).toContain('Freeform Task Agent');
     expect(prompt).toContain('Figure out if this recurring request');
     expect(prompt).toContain('taxonomy_probe');
-    expect(prompt).toContain('proposedTaskType');
-    expect(prompt).toContain('submit_freeform_output');
-    // Artifact shape sketch must mention the new inline body field and flag
-    // path as worktree-ephemeral so agents stop dropping content on the floor.
-    expect(prompt).toContain('"body"');
-    expect(prompt).toMatch(/ephemeral|not persisted/i);
+    expect(prompt).toContain('Keep unknown task types invalid for now.');
+    expect(prompt).not.toContain('submit_freeform_output');
+    expect(prompt).not.toContain('Final output (read this carefully)');
   });
 
   it('forwards effective runtime context to run_eval prompt builders', () => {
@@ -251,7 +248,6 @@ describe('buildTaskUserPrompt', () => {
     const prompt = buildTaskUserPrompt(task, ctx).text;
     expect(prompt).toContain('Generated change review');
     expect(prompt).toContain('https://example.test/review/123');
-    expect(prompt).toContain('submit_pr_review_output');
     expect(prompt).toContain('task-specific instructions');
     expect(prompt).toContain(
       'Use the consumer-supplied review flow and publish the review before final output.',
@@ -289,7 +285,6 @@ describe('buildTaskUserPrompt', () => {
     expect(prompt).toContain('## Workspace');
     expect(prompt).toContain('dedicated git worktree');
     expect(prompt).toContain(`moltnet/${correlationId}/thing`);
-    expect(prompt).toContain('already-provisioned dedicated worktree branch');
   });
 
   it('omits the correlation section when correlationId is null', () => {

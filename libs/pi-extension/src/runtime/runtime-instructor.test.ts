@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  buildRuntimeInstructor,
+  buildRuntimeKernel,
   buildWorkspaceMountInstructions,
 } from './runtime-instructor.js';
+import {
+  buildRuntimePresetPrompt,
+  getRuntimePreset,
+} from './runtime-presets.js';
 
 const ctx = {
   taskId: 'task-abc',
@@ -17,7 +21,7 @@ const ctx = {
 
 describe('runtime instructor', () => {
   it('embeds the task context fields verbatim', () => {
-    const out = buildRuntimeInstructor(ctx);
+    const out = buildRuntimeKernel(ctx);
     expect(out).toContain('task-abc');
     expect(out).toContain('fulfill_brief');
     expect(out).toContain('diary-xyz');
@@ -25,71 +29,38 @@ describe('runtime instructor', () => {
   });
 
   it('declares gh authentication invariant with the credentials path pattern', () => {
-    const out = buildRuntimeInstructor(ctx);
+    const out = buildRuntimeKernel(ctx);
     expect(out).toMatch(/GH_TOKEN=\$\(moltnet github token --credentials/);
     expect(out).toMatch(/GIT_CONFIG_GLOBAL/);
   });
 
-  it('declares the diary discipline invariant with the task:* tag namespace', () => {
-    const out = buildRuntimeInstructor(ctx);
-    expect(out).toContain('moltnet_create_entry');
-    expect(out).toContain('task:id:task-abc');
-    expect(out).toContain('task:type:fulfill_brief');
-    expect(out).toContain('task:attempt:1');
-    // Old flat-prefix scheme must not leak into the prompt — agents
-    // would otherwise produce conflicting freeform tags.
-    expect(out).not.toMatch(/`task_type:/);
-    expect(out).not.toMatch(/`task_attempt:/);
-  });
-
-  it('forbids the `moltnet entry` CLI inside a task (it bypasses task-tag auto-injection)', () => {
-    // This is the #1094 P4 fix: entry `2c7109f3` (the failed
-    // task `a3762f44` postmortem) was created via the moltnet CLI
-    // from inside the VM, which hits the REST API directly and
-    // bypasses the custom tool's auto-tag injection — leaving an
-    // entry that `task:id:` filters can't find. The runtime
-    // instructor must steer the agent away from that path.
-    const out = buildRuntimeInstructor(ctx);
-    expect(out).toMatch(/moltnet entry create/i);
-    expect(out).toMatch(/bypass/i);
-  });
-
-  it('declares the accountable-commit trailer shape', () => {
-    const out = buildRuntimeInstructor(ctx);
-    expect(out).toMatch(/MoltNet-Diary: <id>/);
-  });
-
-  it('requires proactive memory search before investigation and episodic capture', () => {
-    const out = buildRuntimeInstructor(ctx);
-    expect(out).toContain('Proactive memory use');
-    expect(out).toContain('moltnet_search_entries');
-    expect(out).toContain('moltnet_list_entries');
-    expect(out).toContain('taskFilter');
-    expect(out).toContain('scope:<area>');
-    expect(out).toMatch(/Before creating an `episodic` incident entry/);
-    expect(out).toMatch(/similar incidents/);
+  it('keeps behaviour out of the immutable kernel and in standard@v1', () => {
+    const kernel = buildRuntimeKernel(ctx);
+    const standard = buildRuntimePresetPrompt(
+      getRuntimePreset('standard@v1'),
+      ctx,
+    );
+    expect(kernel).not.toContain('Proactive memory and diary');
+    expect(kernel).not.toContain('MoltNet-Diary: <id>');
+    expect(standard).toContain('Proactive memory and diary');
+    expect(standard).toContain('MoltNet-Diary: <id>');
   });
 
   it('frames skill packs as advisory and bounded', () => {
-    const out = buildRuntimeInstructor(ctx);
+    const out = buildRuntimeKernel(ctx);
     expect(out).toMatch(/\/home\/agent\/\.skill\//);
     expect(out).toMatch(/advisory/i);
   });
 
   it('requires additional git worktrees to stay inside the mounted workspace', () => {
-    const out = buildRuntimeInstructor(ctx);
+    const out = buildRuntimeKernel(ctx);
     expect(out).toContain('.worktrees/<name>');
     expect(out).toContain('outside the sandbox mount');
     expect(out).toContain('non-existent checkout');
   });
 
-  it('mentions task:correlation:<id> when the task carries a correlationId', () => {
-    const out = buildRuntimeInstructor({ ...ctx, correlationId: 'corr-xyz' });
-    expect(out).toContain('task:correlation:corr-xyz');
-  });
-
-  it('omits the correlation tag when correlationId is null', () => {
-    const out = buildRuntimeInstructor(ctx); // correlationId: null
+  it('does not turn correlation metadata into behavioural provenance prose', () => {
+    const out = buildRuntimeKernel({ ...ctx, correlationId: 'corr-xyz' });
     expect(out).not.toMatch(/task:correlation:/);
   });
 });

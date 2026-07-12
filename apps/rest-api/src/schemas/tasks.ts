@@ -327,6 +327,22 @@ export const TaskListResponseSchema = Type.Object(
   { $id: 'TaskListResponse' },
 );
 
+export const TaskAvailabilityQuerySchema = Type.Object(
+  {
+    taskTypes: Type.Optional(Type.Array(Type.String({ minLength: 1 }))),
+    profileId: Type.Optional(Type.String({ format: 'uuid' })),
+    timeoutMs: Type.Optional(Type.Integer({ minimum: 0, maximum: 25_000 })),
+  },
+  { $id: 'TaskAvailabilityQuery' },
+);
+
+export const TaskAvailabilityResponseSchema = Type.Object(
+  {
+    available: Type.Boolean(),
+  },
+  { $id: 'TaskAvailabilityResponse' },
+);
+
 export const ClaimTaskResponseSchema = Type.Object(
   {
     task: Type.Ref(Task.$id),
@@ -540,6 +556,8 @@ export const taskSchemas = [
   BatchDeleteTasksBodySchema,
   BatchDeleteTasksAcceptedResponseSchema,
   ListTasksQuerySchema,
+  TaskAvailabilityQuerySchema,
+  TaskAvailabilityResponseSchema,
   TaskActivityAnalyticsGroupBySchema,
   TaskActivityAnalyticsQuerySchema,
   ClaimTaskBodySchema,

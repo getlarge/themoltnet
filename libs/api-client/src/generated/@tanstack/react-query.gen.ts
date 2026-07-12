@@ -73,6 +73,7 @@ import {
   getSigningRequest,
   getTask,
   getTaskActivityAnalytics,
+  getTaskAvailability,
   getTeam,
   getTrustGraph,
   getWhoami,
@@ -318,6 +319,9 @@ import type {
   GetTaskActivityAnalyticsData,
   GetTaskActivityAnalyticsError,
   GetTaskActivityAnalyticsResponse,
+  GetTaskAvailabilityData,
+  GetTaskAvailabilityError,
+  GetTaskAvailabilityResponse,
   GetTaskData,
   GetTaskError,
   GetTaskResponse,
@@ -3375,6 +3379,34 @@ export const getTaskActivityAnalyticsOptions = (
       return data;
     },
     queryKey: getTaskActivityAnalyticsQueryKey(options),
+  });
+
+export const getTaskAvailabilityQueryKey = (
+  options: Options<GetTaskAvailabilityData>,
+) => createQueryKey('getTaskAvailability', options);
+
+/**
+ * Wait briefly for a queued task matching daemon routing filters.
+ */
+export const getTaskAvailabilityOptions = (
+  options: Options<GetTaskAvailabilityData>,
+) =>
+  queryOptions<
+    GetTaskAvailabilityResponse,
+    GetTaskAvailabilityError,
+    GetTaskAvailabilityResponse,
+    ReturnType<typeof getTaskAvailabilityQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getTaskAvailability({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getTaskAvailabilityQueryKey(options),
   });
 
 export const listTaskSchemasQueryKey = (

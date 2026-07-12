@@ -185,6 +185,9 @@ import type {
   GetTaskActivityAnalyticsData,
   GetTaskActivityAnalyticsErrors,
   GetTaskActivityAnalyticsResponses,
+  GetTaskAvailabilityData,
+  GetTaskAvailabilityErrors,
+  GetTaskAvailabilityResponses,
   GetTaskData,
   GetTaskErrors,
   GetTaskResponses,
@@ -2471,6 +2474,30 @@ export const getTaskActivityAnalytics = <ThrowOnError extends boolean = false>(
       },
     ],
     url: '/tasks/analytics/activity',
+    ...options,
+  });
+
+/**
+ * Wait briefly for a queued task matching daemon routing filters.
+ */
+export const getTaskAvailability = <ThrowOnError extends boolean = false>(
+  options: Options<GetTaskAvailabilityData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetTaskAvailabilityResponses,
+    GetTaskAvailabilityErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/tasks/availability',
     ...options,
   });
 

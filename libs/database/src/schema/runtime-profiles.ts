@@ -39,6 +39,9 @@ export function defineRuntimeProfilesTable({
         .references(() => teams.id, { onDelete: 'restrict' }),
       name: varchar('name', { length: 100 }).notNull(),
       description: text('description'),
+      preset: varchar('preset', { length: 64 })
+        .notNull()
+        .default('standard@v1'),
       provider: varchar('provider', { length: 100 }).notNull(),
       model: varchar('model', { length: 200 }).notNull(),
       thinkingLevel: varchar('thinking_level', { length: 16 }),
@@ -113,6 +116,10 @@ export function defineRuntimeProfilesTable({
       check(
         'runtime_profiles_creator_xor',
         sql`(created_by_agent_id IS NOT NULL) <> (created_by_human_id IS NOT NULL)`,
+      ),
+      check(
+        'runtime_profiles_preset_valid',
+        sql`preset = ANY(ARRAY['standard@v1','interactive-direct@v1']::text[])`,
       ),
       check('runtime_profiles_session_ttl_positive', sql`session_ttl_sec > 0`),
       check(

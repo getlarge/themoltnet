@@ -67,6 +67,8 @@ export interface BuildAgentSessionArgs {
   maxOutputTokens?: number | null;
   /** Pre-built customTools array. Caller composes Gondolin + MoltNet + submit tools. */
   customTools: ToolDefinition[];
+  /** Built-in Pi tools to expose. An empty array is an intentionally sterile session. */
+  tools?: string[];
   /** System-prompt fragments appended after pi's defaults. Parent passes the
    *  runtime instructor; subagents pass their narrower variant. */
   appendSystemPrompt: string[];
@@ -137,6 +139,7 @@ export async function buildAgentSession(
     cwd: args.cwdPath,
     model: args.modelHandle,
     thinkingLevel: args.thinkingLevel ?? undefined,
+    tools: args.tools,
     customTools: args.customTools,
     sessionManager,
     resourceLoader,

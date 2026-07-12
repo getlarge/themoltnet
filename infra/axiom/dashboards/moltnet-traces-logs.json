@@ -65,10 +65,64 @@
         "apl": "['moltnet']\n| extend service = tostring(['service.name'])\n| extend route = tostring(['attributes.route'])\n| extend status = toint(['attributes.http.response.status_code'])\n| where status in (401, 403, 404)\n| summarize count = count() by service, route, status\n| top 20 by count"
       },
       "type": "Table"
+    },
+    {
+      "colorScheme": "Blue",
+      "id": "runtime-queue-to-claim",
+      "name": "Queue to claim (P50 / P95 ms)",
+      "query": {
+        "apl": "['moltnet']\n| where ['body'] == 'agent-runtime.task_claimed'\n| extend queue_ms = todouble(['attributes.queueToClaimMs'])\n| where isnotnull(queue_ms)\n| summarize Value = percentile(queue_ms, 50), p95 = percentile(queue_ms, 95)"
+      },
+      "showChart": true,
+      "type": "Statistic"
+    },
+    {
+      "colorScheme": "Purple",
+      "id": "runtime-queue-to-first-activity",
+      "name": "Queue to first Pi activity (P50 / P95 ms)",
+      "query": {
+        "apl": "['moltnet']\n| where ['body'] == 'turn.info'\n| where tostring(['attributes.event']) == 'first_pi_activity'\n| extend latency_ms = todouble(['attributes.queueToFirstActivityMs'])\n| where isnotnull(latency_ms)\n| summarize Value = percentile(latency_ms, 50), p95 = percentile(latency_ms, 95)"
+      },
+      "showChart": true,
+      "type": "Statistic"
+    },
+    {
+      "id": "runtime-vm-warm-cold",
+      "name": "VM acquire latency by snapshot cache state",
+      "query": {
+        "apl": "['moltnet']\n| where ['body'] == 'turn.info'\n| where tostring(['attributes.event']) == 'runtime_timing' and tostring(['attributes.stage']) == 'vm_acquired'\n| extend cache_state = iff(tobool(['attributes.snapshotCacheHit']), 'warm', 'cold')\n| extend latency_ms = todouble(['attributes.durationMs'])\n| summarize p50 = percentile(latency_ms, 50), p95 = percentile(latency_ms, 95) by cache_state"
+      },
+      "type": "Table"
+    },
+    {
+      "id": "runtime-prompt-tokens",
+      "name": "Prompt tokens (P50 / P95)",
+      "query": {
+        "apl": "['moltnet']\n| where ['name'] startswith 'chat '\n| extend prompt_tokens = todouble(['attributes.gen_ai.usage.input_tokens'])\n| where isnotnull(prompt_tokens)\n| summarize Value = percentile(prompt_tokens, 50), p95 = percentile(prompt_tokens, 95)"
+      },
+      "showChart": true,
+      "type": "Statistic"
+    },
+    {
+      "id": "runtime-turn-count",
+      "name": "Runtime turn count (P50 / P95)",
+      "query": {
+        "apl": "['moltnet']\n| where ['body'] == 'turn.info'\n| where tostring(['attributes.event']) == 'session_summary'\n| extend turns = todouble(['attributes.turnCount'])\n| summarize Value = percentile(turns, 50), p95 = percentile(turns, 95)"
+      },
+      "showChart": true,
+      "type": "Statistic"
+    },
+    {
+      "id": "runtime-stage-latency",
+      "name": "Snapshot, VM, and session setup P95",
+      "query": {
+        "apl": "['moltnet']\n| where ['body'] == 'turn.info'\n| where tostring(['attributes.event']) == 'runtime_timing'\n| extend stage = tostring(['attributes.stage'])\n| extend latency_ms = todouble(['attributes.durationMs'])\n| summarize p50 = percentile(latency_ms, 50), p95 = percentile(latency_ms, 95) by stage"
+      },
+      "type": "Table"
     }
   ],
   "datasets": ["moltnet"],
-  "description": "Operational drilldown over the moltnet traces/logs dataset.",
+  "description": "Operational drilldown over the moltnet traces/logs dataset, including agent runtime queue, setup, prompt, and turn latency.",
   "layout": [
     {
       "h": 2,
@@ -157,6 +211,72 @@
       "w": 6,
       "x": 6,
       "y": 12
+    },
+    {
+      "h": 3,
+      "i": "runtime-queue-to-claim",
+      "minH": 1,
+      "minW": 1,
+      "moved": false,
+      "static": false,
+      "w": 3,
+      "x": 0,
+      "y": 17
+    },
+    {
+      "h": 3,
+      "i": "runtime-queue-to-first-activity",
+      "minH": 1,
+      "minW": 1,
+      "moved": false,
+      "static": false,
+      "w": 3,
+      "x": 3,
+      "y": 17
+    },
+    {
+      "h": 3,
+      "i": "runtime-prompt-tokens",
+      "minH": 1,
+      "minW": 1,
+      "moved": false,
+      "static": false,
+      "w": 3,
+      "x": 6,
+      "y": 17
+    },
+    {
+      "h": 3,
+      "i": "runtime-turn-count",
+      "minH": 1,
+      "minW": 1,
+      "moved": false,
+      "static": false,
+      "w": 3,
+      "x": 9,
+      "y": 17
+    },
+    {
+      "h": 5,
+      "i": "runtime-vm-warm-cold",
+      "minH": 1,
+      "minW": 1,
+      "moved": false,
+      "static": false,
+      "w": 6,
+      "x": 0,
+      "y": 20
+    },
+    {
+      "h": 5,
+      "i": "runtime-stage-latency",
+      "minH": 1,
+      "minW": 1,
+      "moved": false,
+      "static": false,
+      "w": 6,
+      "x": 6,
+      "y": 20
     }
   ],
   "name": "MoltNet Traces and Logs",

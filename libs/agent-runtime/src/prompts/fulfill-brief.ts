@@ -5,9 +5,6 @@ import {
   assembleTaskPrompt,
   type PromptSection,
 } from './assemble.js';
-import { buildFinalOutputBlock } from './final-output.js';
-import { buildProactiveMemoryWorkflowBlock } from './proactive-memory.js';
-import { buildSelfVerificationBlock } from './self-verification.js';
 
 interface Ctx {
   diaryId: string;
@@ -39,16 +36,13 @@ export function buildFulfillBriefUserPrompt(
   input: FulfillBriefInput,
   ctx: Ctx,
 ): AssembledPrompt {
-  const { brief, seedFiles, scopeHint } = input;
+  const { brief, seedFiles } = input;
 
   const header = [
     '# Fulfill Brief Agent',
     '',
     'You are a software engineering agent working in a sandboxed environment.',
     'Use the current working directory as the task workspace.',
-    'The MoltNet runtime instructor (above, in this system prompt) defines the',
-    'invariants for this task: identity, gh authentication, diary discipline,',
-    'and the accountable-commit shape. Follow it for every commit.',
     '',
     '## Task: Fulfill brief',
     '',
@@ -61,12 +55,6 @@ export function buildFulfillBriefUserPrompt(
         ...seedFiles.map((f) => `- \`${f}\``),
       ].join('\n')
     : '';
-
-  const branchSlug = ctx.correlationId
-    ? `moltnet/${ctx.correlationId}/`
-    : scopeHint
-      ? `feat/${scopeHint}-`
-      : 'feat/';
 
   const correlation = ctx.correlationId
     ? [
@@ -93,25 +81,6 @@ export function buildFulfillBriefUserPrompt(
         ].join('\n')
       : '';
 
-  const workflow = [
-    ctx.workspace?.mode === 'dedicated_worktree'
-      ? `1. Use the already-provisioned dedicated worktree branch${ctx.workspace.branch ? ` (\`${ctx.workspace.branch}\`)` : ''}; do not create or switch the primary checkout.`
-      : `1. Create a feature branch (starting prefix suggestion: \`${branchSlug}<short-slug>\`).`,
-    '2. Search MoltNet diary memory for prior decisions, incidents, and',
-    '   recurring traps relevant to the brief before changing code.',
-    '3. Understand the problem — read relevant code; do not speculate.',
-    '4. Implement the change. Keep commits small and coherent.',
-    '5. Add tests if applicable.',
-    '6. For every commit, create a signed diary entry first via',
-    '   `moltnet_create_entry` and embed its id in the commit trailer',
-    '   `MoltNet-Diary: <id>` (per the runtime instructor).',
-    '7. Push the branch and open a PR — run `git push` and `gh pr create`',
-    '   IN the VM with your normal `bash` tool (use the',
-    '   `GH_TOKEN=$(moltnet github token …) gh …` form from the runtime',
-    '   instructor). Do NOT use `moltnet_host_exec` for this; it needs human',
-    '   approval that is unavailable in a headless run.',
-  ].join('\n');
-
   const sections: PromptSection[] = [
     { id: 'fulfill_brief.header', source: 'header', body: header },
     {
@@ -137,41 +106,6 @@ export function buildFulfillBriefUserPrompt(
       source: 'workspace',
       header: 'Workspace',
       body: workspace,
-    },
-    {
-      id: 'fulfill_brief.workflow',
-      source: 'static',
-      header: 'Workflow',
-      body: workflow,
-    },
-    {
-      id: 'fulfill_brief.proactive_memory',
-      source: 'discipline',
-      header: 'Proactive memory use',
-      body: buildProactiveMemoryWorkflowBlock(),
-    },
-    {
-      id: 'fulfill_brief.verification',
-      source: 'verification',
-      body: buildSelfVerificationBlock(ctx.taskId),
-    },
-    {
-      id: 'fulfill_brief.final_output',
-      source: 'final_output',
-      body: buildFinalOutputBlock({
-        taskType: 'fulfill_brief',
-        outputSchemaName: 'FulfillBriefOutput',
-        shapeSketch: [
-          '{',
-          '  "branch": "<branch-name>",',
-          '  "commits": [{ "sha": "...", "message": "...", "diaryEntryId": "..." }],',
-          '  "pullRequestUrl": "<url-or-null>",',
-          '  "diaryEntryIds": ["..."],',
-          '  "summary": "<1-3 sentence recap>",',
-          '  "verification": <required iff input.successCriteria; see Self-verification>',
-          '}',
-        ].join('\n'),
-      }),
     },
   ];
 

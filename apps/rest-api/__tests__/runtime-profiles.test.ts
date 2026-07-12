@@ -19,6 +19,7 @@ function mockProfile(overrides: Partial<RuntimeProfile> = {}): RuntimeProfile {
     teamId: TEAM_ID,
     name: 'linear-github',
     description: 'Linear triage and GitHub implementation profile',
+    preset: 'standard@v1',
     provider: 'anthropic',
     model: 'claude-sonnet-4-5',
     thinkingLevel: null,
@@ -138,6 +139,7 @@ describe('runtime profile routes', () => {
     expect(response.json()).toMatchObject({
       id: PROFILE_ID,
       name: 'linear-github',
+      preset: 'standard@v1',
       provider: 'anthropic',
       model: 'claude-sonnet-4-5',
       thinkingLevel: 'high',
@@ -157,6 +159,7 @@ describe('runtime profile routes', () => {
     expect(mocks.runtimeProfileRepository.create).toHaveBeenCalledWith(
       expect.objectContaining({
         teamId: TEAM_ID,
+        preset: 'standard@v1',
         provider: 'anthropic',
         model: 'claude-sonnet-4-5',
         thinkingLevel: 'high',
@@ -208,6 +211,41 @@ describe('runtime profile routes', () => {
           field: 'defaultWorkspaceMode',
           message:
             'defaultWorkspaceMode must be included in allowedWorkspaceModes',
+        },
+      ],
+    });
+    expect(mocks.runtimeProfileRepository.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects interactive-direct profiles with workspace access or too many turns', async () => {
+    mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
+    mocks.permissionChecker.canManageTeamRuntime.mockResolvedValue(true);
+    mocks.teamRepository.findById.mockResolvedValue({ id: TEAM_ID });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/runtime-profiles',
+      headers: {
+        authorization: 'Bearer test-token',
+        'x-moltnet-team-id': TEAM_ID,
+      },
+      payload: {
+        name: 'interactive-direct',
+        preset: 'interactive-direct@v1',
+        provider: 'anthropic',
+        model: 'claude-sonnet-4-5',
+        sandbox: {},
+        allowedWorkspaceModes: ['shared_mount'],
+        maxTurns: 4,
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({
+      code: 'VALIDATION_FAILED',
+      errors: [
+        {
+          field: 'allowedWorkspaceModes',
         },
       ],
     });

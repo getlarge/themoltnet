@@ -565,6 +565,14 @@ export {
   type RetryTriageDecision,
 } from './runtime/retry-triage.js';
 export {
+  assertRuntimePresetAllowsTask,
+  buildRuntimePresetPrompt,
+  getRuntimePreset,
+  resolvePresetMaxTurns,
+  type RuntimePreset,
+  type RuntimeWorkspaceMode,
+} from './runtime/runtime-presets.js';
+export {
   createSubagentTool,
   type CreateSubagentToolArgs,
   type SubagentToolHandle,

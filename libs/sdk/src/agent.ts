@@ -53,6 +53,7 @@ import type {
   GetPublicFeedData,
   GetRenderedPackByIdData,
   GetRuntimeSessionData,
+  GetTaskAvailabilityData,
   GetTeamResponse,
   GetTrustGraphData,
   Health,
@@ -115,6 +116,7 @@ import type {
   TaskArtifact,
   TaskArtifactList,
   TaskAttempt,
+  TaskAvailabilityResponse,
   TaskHeartbeatData,
   TaskListResponse,
   TaskMessage,
@@ -526,6 +528,11 @@ export interface TasksNamespace {
     query: ListTasksData['query'],
     options: TaskRequestOptions,
   ): Promise<TaskListResponse>;
+
+  availability(
+    query: GetTaskAvailabilityData['query'],
+    options: TaskRequestOptions,
+  ): Promise<TaskAvailabilityResponse>;
 
   create(
     body: CreateTaskData['body'],

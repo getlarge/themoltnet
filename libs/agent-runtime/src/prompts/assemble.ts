@@ -30,10 +30,6 @@ export type PromptSectionSource =
   | 'context_binding'
   /** Injected-context discipline guidance. */
   | 'discipline'
-  /** Self-verification block. */
-  | 'verification'
-  /** Submit-tool closing block. */
-  | 'final_output'
   /** Workspace shape / attachment hints. */
   | 'workspace'
   /** Judge-only rubric. Forbidden in producer prompts. */

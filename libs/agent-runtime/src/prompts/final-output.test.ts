@@ -1,203 +1,46 @@
-import {
-  ASSESS_BRIEF_TYPE,
-  CURATE_PACK_TYPE,
-  FULFILL_BRIEF_TYPE,
-  JUDGE_PACK_TYPE,
-  PR_REVIEW_TYPE,
-  RENDER_PACK_TYPE,
-  type Rubric,
-  RUN_EVAL_TYPE,
-} from '@moltnet/tasks';
+import { FULFILL_BRIEF_TYPE, RUN_EVAL_TYPE } from '@moltnet/tasks';
 import { describe, expect, it } from 'vitest';
 
 import { makeFulfillBriefTask } from '../test-fixtures.js';
-import { buildFinalOutputBlock } from './final-output.js';
 import { buildTaskUserPrompt } from './index.js';
 
 const ctx = { diaryId: 'd1', taskId: 't1' };
 
-const rubric: Rubric = {
-  rubricId: 'r1',
-  version: 'v1',
-  criteria: [{ id: 'c1', description: 'd', weight: 1, scoring: 'llm_score' }],
-};
+describe('task prompt ownership', () => {
+  it('renders typed task facts without generic runtime workflow prose', () => {
+    const prompt = buildTaskUserPrompt(
+      makeFulfillBriefTask({
+        taskType: FULFILL_BRIEF_TYPE,
+        input: { brief: 'Ship the profile migration.' },
+      }),
+      ctx,
+    ).text;
 
-const TASK_FIXTURES: Array<{
-  label: string;
-  prompt: () => string;
-  submitTool: string;
-  schema: string;
-}> = [
-  {
-    label: 'fulfill_brief',
-    submitTool: 'submit_fulfill_brief_output',
-    schema: 'FulfillBriefOutput',
-    prompt: () =>
-      buildTaskUserPrompt(
-        makeFulfillBriefTask({
-          taskType: FULFILL_BRIEF_TYPE,
-          title: 'x',
-          input: { brief: 'do' },
-        }),
-        ctx,
-      ).text,
-  },
-  {
-    label: 'assess_brief',
-    submitTool: 'submit_assess_brief_output',
-    schema: 'AssessBriefOutput',
-    prompt: () =>
-      buildTaskUserPrompt(
-        makeFulfillBriefTask({
-          taskType: ASSESS_BRIEF_TYPE,
-          input: {
-            targetTaskId: '11111111-1111-4111-8111-111111111111',
-            successCriteria: { version: 1, rubric },
-          },
-        }),
-        ctx,
-      ).text,
-  },
-  {
-    label: 'curate_pack',
-    submitTool: 'submit_curate_pack_output',
-    schema: 'CuratePackOutput',
-    prompt: () =>
-      buildTaskUserPrompt(
-        makeFulfillBriefTask({
-          taskType: CURATE_PACK_TYPE,
-          input: {
-            diaryId: 'aaaaaaaa-0000-4000-8000-000000000001',
-            taskPrompt: 'p',
-          },
-        }),
-        ctx,
-      ).text,
-  },
-  {
-    label: 'render_pack',
-    submitTool: 'submit_render_pack_output',
-    schema: 'RenderPackOutput',
-    prompt: () =>
-      buildTaskUserPrompt(
-        makeFulfillBriefTask({
-          taskType: RENDER_PACK_TYPE,
-          input: { packId: 'bbbbbbbb-0000-4000-8000-000000000002' },
-        }),
-        ctx,
-      ).text,
-  },
-  {
-    label: 'judge_pack',
-    submitTool: 'submit_judge_pack_output',
-    schema: 'JudgePackOutput',
-    prompt: () =>
-      buildTaskUserPrompt(
-        makeFulfillBriefTask({
-          taskType: JUDGE_PACK_TYPE,
-          input: {
-            renderedPackId: 'cccccccc-0000-4000-8000-000000000003',
-            sourcePackId: 'dddddddd-0000-4000-8000-000000000004',
-            successCriteria: { version: 1, rubric },
-          },
-        }),
-        ctx,
-      ).text,
-  },
-  {
-    label: 'pr_review',
-    submitTool: 'submit_pr_review_output',
-    schema: 'PrReviewOutput',
-    prompt: () =>
-      buildTaskUserPrompt(
-        makeFulfillBriefTask({
-          taskType: PR_REVIEW_TYPE,
-          input: {
-            subject: {
-              title: 'Review title',
-              summary: 'Review summary',
-            },
-            successCriteria: {
-              version: 1,
-              rubric: {
-                rubricId: 'pr-complexity-binary',
-                version: 'v1',
-                criteria: [
-                  {
-                    id: 'c1',
-                    description: 'd',
-                    weight: 1,
-                    scoring: 'boolean',
-                  },
-                ],
-              },
-            },
-          },
-        }),
-        ctx,
-      ).text,
-  },
-  {
-    label: 'run_eval',
-    submitTool: 'submit_run_eval_output',
-    schema: 'RunEvalOutput',
-    prompt: () =>
-      buildTaskUserPrompt(
-        makeFulfillBriefTask({
-          taskType: RUN_EVAL_TYPE,
-          input: {
-            scenario: { prompt: 'List 3 risks.' },
-            variantLabel: 'baseline',
-            execution: { mode: 'vitro', workspace: 'none' },
-            context: [],
-          },
-        }),
-        ctx,
-      ).text,
-  },
-];
-
-describe('buildFinalOutputBlock', () => {
-  it('requires the submit tool and names the schema', () => {
-    const block = buildFinalOutputBlock({
-      taskType: 'fulfill_brief',
-      outputSchemaName: 'FulfillBriefOutput',
-      shapeSketch: '{ "summary": "..." }',
-    });
-    expect(block).toMatch(/Final output \(read this carefully\)/);
-    expect(block).toMatch(/submit_fulfill_brief_output/);
-    expect(block).toMatch(/FulfillBriefOutput/);
-    expect(block).toMatch(/Do NOT emit the output as plain assistant text/);
-    expect(block).toMatch(/promised submit-output criterion/);
-    expect(block).not.toMatch(/Fallback/);
-    expect(block).not.toMatch(/single JSON object matching/);
+    expect(prompt).toContain('Ship the profile migration.');
+    expect(prompt).not.toContain('Proactive memory use');
+    expect(prompt).not.toContain('MoltNet-Diary: <id>');
+    expect(prompt).not.toContain('Final output (read this carefully)');
+    expect(prompt).not.toContain('submit_fulfill_brief_output');
   });
 
-  it('appends extra notes verbatim when provided', () => {
-    const block = buildFinalOutputBlock({
-      taskType: 'judge_pack',
-      outputSchemaName: 'JudgePackOutput',
-      shapeSketch: '{}',
-      extraNotes: ['Custom warning line.'],
-    });
-    expect(block).toContain('Custom warning line.');
-  });
-});
+  it('does not leak generic verification or output sketches into run_eval', () => {
+    const prompt = buildTaskUserPrompt(
+      makeFulfillBriefTask({
+        taskType: RUN_EVAL_TYPE,
+        input: {
+          scenario: { prompt: 'Respond with a concise answer.' },
+          variantLabel: 'baseline',
+          execution: { mode: 'vitro', workspace: 'none' },
+          context: [],
+          successCriteria: { version: 1 },
+        },
+      }),
+      ctx,
+    ).text;
 
-describe('every task-type prompt ends with the strict final-output block', () => {
-  for (const fx of TASK_FIXTURES) {
-    it(`${fx.label} prompt mentions ${fx.submitTool} and ${fx.schema}`, () => {
-      const prompt = fx.prompt();
-      expect(prompt).toContain('Final output (read this carefully)');
-      expect(prompt).toContain(fx.submitTool);
-      expect(prompt).toContain(fx.schema);
-      expect(prompt).toContain(
-        'Do NOT emit the output as plain assistant text.',
-      );
-      // The block must be at the tail of the prompt — nothing else
-      // overrides the closing instruction.
-      const blockIdx = prompt.indexOf('Final output (read this carefully)');
-      expect(prompt.slice(blockIdx)).not.toMatch(/##\s+\w/);
-    });
-  }
+    expect(prompt).toContain('Respond with a concise answer.');
+    expect(prompt).not.toContain('## Self-verification');
+    expect(prompt).not.toContain('RunEvalOutput');
+    expect(prompt).not.toContain('Final output (read this carefully)');
+  });
 });

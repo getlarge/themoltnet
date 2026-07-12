@@ -290,6 +290,7 @@ export async function runOnce(argv: string[]): Promise<number> {
       mountPath: sandbox.rootDir,
       provider: profile.provider,
       model: profile.model,
+      runtimePreset: profile.preset,
       thinkingLevel: profile.thinkingLevel,
       temperature: profile.temperature,
       topP: profile.topP,
@@ -465,17 +466,29 @@ export async function runOnce(argv: string[]): Promise<number> {
             terminalOutput = applyRuntimeSessionUploadFailure(output, err);
           }
         }
-        return finalizeTask(ctx.agent, terminalOutput, {
-          task: claimedTask.task,
-          slot: resolved ? { expiresAtMs: resolved.slot.expiresAtMs } : null,
-          retryTriage: createRuntimeProfileRetryTriage({
-            runtimeProfile: profile,
-            piAgentDir: piAgentDir.path,
-            cwd: ctx.agentRootDir,
-          }),
-          writeCorrelationAnchors,
-          log: (msg, fields) => rootLogger.warn(fields ?? {}, msg),
-        });
+        const finalizationStartedAt = Date.now();
+        try {
+          return await finalizeTask(ctx.agent, terminalOutput, {
+            task: claimedTask.task,
+            slot: resolved ? { expiresAtMs: resolved.slot.expiresAtMs } : null,
+            retryTriage: createRuntimeProfileRetryTriage({
+              runtimeProfile: profile,
+              piAgentDir: piAgentDir.path,
+              cwd: ctx.agentRootDir,
+            }),
+            writeCorrelationAnchors,
+            log: (msg, fields) => rootLogger.warn(fields ?? {}, msg),
+          });
+        } finally {
+          rootLogger.info(
+            {
+              taskId: claimedTask.task.id,
+              attemptN: claimedTask.attemptN,
+              durationMs: Date.now() - finalizationStartedAt,
+            },
+            'agent-daemon.task_finalized',
+          );
+        }
       },
       executeTask,
     });

@@ -217,6 +217,13 @@
       "when": 1783065534185,
       "tag": "0030_whole_secret_warriors",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1783796221273,
+      "tag": "0031_slim_ares",
+      "breakpoints": true
     }
   ],
   "version": "7"

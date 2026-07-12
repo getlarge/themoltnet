@@ -29,8 +29,11 @@ const silentLogger: AgentRuntimeLogger = {
 function makeAgent(
   list: TasksNamespace['list'],
   claim: TasksNamespace['claim'],
+  availability: TasksNamespace['availability'] = vi.fn().mockResolvedValue({
+    available: false,
+  }),
 ): Agent {
-  return { tasks: { list, claim } } as unknown as Agent;
+  return { tasks: { list, claim, availability } } as unknown as Agent;
 }
 
 describe('PollingApiTaskSource', () => {
@@ -117,6 +120,61 @@ describe('PollingApiTaskSource', () => {
     });
 
     await expect(src.claim()).resolves.toBeNull();
+  });
+
+  it('waits for availability after an empty poll before scanning again', async () => {
+    const abort = new AbortController();
+    const list = vi
+      .fn<TasksNamespace['list']>()
+      .mockResolvedValue({ items: [], total: 0 });
+    const availability = vi
+      .fn<TasksNamespace['availability']>()
+      .mockImplementation(async () => {
+        abort.abort();
+        return { available: false };
+      });
+
+    const src = new PollingApiTaskSource({
+      agent: makeAgent(list, vi.fn(), availability),
+      teamId: 'team-1',
+      taskTypes: ['freeform'],
+      leaseTtlSec: 60,
+      signal: abort.signal,
+    });
+
+    await expect(src.claim()).resolves.toBeNull();
+    expect(availability).toHaveBeenCalledWith(
+      { taskTypes: ['freeform'], timeoutMs: 25_000 },
+      { teamId: 'team-1' },
+    );
+  });
+
+  it('falls back to short polling when availability is unsupported or fails', async () => {
+    const abort = new AbortController();
+    const list = vi
+      .fn<TasksNamespace['list']>()
+      .mockResolvedValue({ items: [], total: 0 });
+    const availability = vi
+      .fn<TasksNamespace['availability']>()
+      .mockImplementation(async () => {
+        abort.abort();
+        throw new MoltNetError('not found', {
+          code: 'NOT_FOUND',
+          statusCode: 404,
+        });
+      });
+
+    const src = new PollingApiTaskSource({
+      agent: makeAgent(list, vi.fn(), availability),
+      teamId: 'team-1',
+      leaseTtlSec: 60,
+      pollIntervalMs: 1,
+      maxPollIntervalMs: 1,
+      signal: abort.signal,
+    });
+
+    await expect(src.claim()).resolves.toBeNull();
+    expect(availability).toHaveBeenCalledOnce();
   });
 
   it('does NOT exit drain mode on a transient list error — keeps polling until queue is confirmed empty', async () => {

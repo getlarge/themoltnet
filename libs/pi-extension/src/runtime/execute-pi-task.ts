@@ -33,11 +33,14 @@ import {
   createWriteToolDefinition,
 } from '@earendil-works/pi-coding-agent';
 import { computeJsonCid } from '@moltnet/crypto-service';
+import { trace } from '@opentelemetry/api';
 import {
   buildTaskUserPrompt,
   type ClaimedTask,
   type ContextRef,
+  DEFAULT_RUNTIME_PROFILE_PRESET,
   FREEFORM_TYPE,
+  type RuntimeProfilePreset,
   type SubagentContractRegistry,
   type TaskOutput,
   type TaskReporter,
@@ -77,7 +80,13 @@ import {
   injectRuntimeContext,
   resolveEffectiveRuntimeContext,
 } from './runtime-context.js';
-import { buildRuntimeInstructor } from './runtime-instructor.js';
+import { buildRuntimeKernel } from './runtime-instructor.js';
+import {
+  assertRuntimePresetAllowsTask,
+  buildRuntimePresetPrompt,
+  getRuntimePreset,
+  resolvePresetMaxTurns,
+} from './runtime-presets.js';
 import {
   createSubagentTool,
   type SubagentToolHandle,
@@ -223,6 +232,21 @@ export interface ExecutePiTaskOptions {
   /** LLM selection. */
   provider: string;
   model: string;
+  /** Centrally versioned prompt, tool, and retry policy selected by the profile. */
+  runtimePreset?: RuntimeProfilePreset;
+  /** Whether this executor reused an already-resolved snapshot checkpoint. */
+  snapshotCacheHit?: boolean;
+  /**
+   * Direct profiles may hand a sterile VM resumed ahead of a claim to the
+   * executor. The acquired VM is still owned by this attempt and therefore
+   * closed by normal cleanup.
+   */
+  acquirePrewarmedVm?: () => Promise<{
+    managed: Awaited<ReturnType<typeof resumeVm>>;
+    warm: boolean;
+  } | null>;
+  /** Enable the five-minute direct-profile warm VM pool for polling daemons. */
+  enableDirectVmPrewarm?: boolean;
   /**
    * Runtime-profile reasoning/thinking level. Null/undefined means use Pi's
    * configured default; explicit `off` disables provider thinking where
@@ -392,6 +416,11 @@ export function createPiTaskExecutor(
   opts: ExecutePiTaskOptions,
 ): (claimedTask: ClaimedTask, reporter: TaskReporter) => Promise<TaskOutput> {
   let cachedCheckpoint: string | null = opts.checkpointPath ?? null;
+  const directPrewarm =
+    opts.enableDirectVmPrewarm && opts.runtimePreset === 'interactive-direct@v1'
+      ? createSterileDirectVmPrewarm(opts, () => cachedCheckpoint)
+      : null;
+  directPrewarm?.start();
 
   return async (claimedTask, reporter) => {
     const reporterWasOpened = !reporter.cancelSignal.aborted;
@@ -404,6 +433,10 @@ export function createPiTaskExecutor(
     return executePiTask(claimedTask, reporter, {
       ...opts,
       checkpointPath: cachedCheckpoint ?? undefined,
+      snapshotCacheHit: cachedCheckpoint !== null,
+      acquirePrewarmedVm: directPrewarm
+        ? () => directPrewarm.acquire()
+        : undefined,
       resolveCheckpointPath: async () => {
         if (!cachedCheckpoint) {
           cachedCheckpoint = await ensureSnapshot({
@@ -423,6 +456,112 @@ export function createPiTaskExecutor(
 }
 
 /**
+ * A one-slot VM pool for interactive-direct. The VM has no task context,
+ * workspace tools, or persistent session, so it is safe to resume before a
+ * claim. Acquiring it transfers ownership to the normal attempt cleanup; a
+ * replacement begins warming immediately while that attempt runs.
+ */
+function createSterileDirectVmPrewarm(
+  opts: ExecutePiTaskOptions,
+  getCheckpoint: () => string | null,
+): {
+  start: () => void;
+  acquire: () => Promise<{
+    managed: Awaited<ReturnType<typeof resumeVm>>;
+    warm: boolean;
+  } | null>;
+} {
+  const ttlMs = getRuntimePreset('interactive-direct@v1').prewarm.ttlSec * 1000;
+  const mountPath = opts.mountPath ?? process.cwd();
+  const agentRootDir = opts.agentRootDir ?? mountPath;
+  let warmVm: Awaited<ReturnType<typeof resumeVm>> | null = null;
+  let warming: Promise<void> | null = null;
+  let expiresAt = 0;
+  let expiryTimer: ReturnType<typeof setTimeout> | null = null;
+  let disposed = false;
+
+  const clearExpiry = () => {
+    if (expiryTimer) clearTimeout(expiryTimer);
+    expiryTimer = null;
+  };
+  const discard = async () => {
+    const stale = warmVm;
+    warmVm = null;
+    expiresAt = 0;
+    clearExpiry();
+    await stale?.vm.close().catch((err: unknown) => {
+      process.stderr.write(
+        `[prewarm] sterile VM close failed: ${err instanceof Error ? err.message : String(err)}\n`,
+      );
+    });
+  };
+  const start = () => {
+    if (disposed || warmVm || warming) return;
+    warming = (async () => {
+      const checkpointPath =
+        getCheckpoint() ??
+        (opts.resolveCheckpointPath
+          ? await opts.resolveCheckpointPath()
+          : await ensureSnapshot({ config: opts.sandboxConfig?.snapshot }));
+      const managed = await resumeVm({
+        checkpointPath,
+        agentName: opts.agentName,
+        agentRootDir,
+        mountPath,
+        workspaceMode: 'shared_mount',
+        extraAllowedHosts: opts.extraAllowedHosts,
+        sandboxConfig: opts.sandboxConfig,
+        forwardEnv: opts.forwardEnv,
+      });
+      if (disposed) {
+        await managed.vm.close();
+        return;
+      }
+      warmVm = managed;
+      expiresAt = Date.now() + ttlMs;
+      expiryTimer = setTimeout(() => {
+        void discard();
+      }, ttlMs);
+      expiryTimer.unref?.();
+    })()
+      .catch((err: unknown) => {
+        process.stderr.write(
+          `[prewarm] sterile VM warm failed: ${err instanceof Error ? err.message : String(err)}\n`,
+        );
+      })
+      .finally(() => {
+        warming = null;
+      });
+  };
+  const dispose = () => {
+    disposed = true;
+    void discard();
+  };
+  // Poll daemons are expected to terminate through these signals. Tear down
+  // the idle VM immediately so it never keeps a drained process alive.
+  process.once('SIGINT', dispose);
+  process.once('SIGTERM', dispose);
+
+  return {
+    start,
+    acquire: async () => {
+      if (warming) await warming;
+      if (!warmVm || Date.now() >= expiresAt) {
+        if (warmVm) await discard();
+        start();
+        return null;
+      }
+      const managed = warmVm;
+      warmVm = null;
+      expiresAt = 0;
+      clearExpiry();
+      start();
+      return { managed, warm: true };
+    },
+  };
+}
+
+/**
  * Run one attempt of `task` in a freshly-resumed Gondolin VM. Owns the full
  * lifecycle: resume VM → wire tools → pi session → close VM. Always returns
  * a `TaskOutput` (failures surface as `status: 'failed'`); throws only on
@@ -435,6 +574,9 @@ export async function executePiTask(
 ): Promise<TaskOutput> {
   const task = claimedTask.task;
   const attemptN = claimedTask.attemptN;
+  const runtimePreset = getRuntimePreset(
+    opts.runtimePreset ?? DEFAULT_RUNTIME_PROFILE_PRESET,
+  );
   const startTime = Date.now();
   const requestedMountPath = opts.mountPath ?? process.cwd();
   const agentRootDir = opts.agentRootDir ?? requestedMountPath;
@@ -464,6 +606,29 @@ export async function executePiTask(
         retryable: false,
       },
     };
+  }
+
+  // Direct profiles are intentionally not a weaker prompt-only mode. Reject
+  // workspace-bearing freeform requests before snapshot/VM setup so no
+  // side-effecting workspace plan is ever materialised.
+  if (runtimePreset.toolSurface === 'submit_only') {
+    const directInput = task.input as {
+      execution?: { workspace?: string };
+      continueFrom?: unknown;
+    };
+    if (
+      directInput.execution?.workspace &&
+      directInput.execution.workspace !== 'none'
+    ) {
+      return makePresetFailure(task.id, attemptN, startTime, opts, {
+        reason: `Runtime preset ${runtimePreset.id} only permits workspace mode none.`,
+      });
+    }
+    if (directInput.continueFrom) {
+      return makePresetFailure(task.id, attemptN, startTime, opts, {
+        reason: `Runtime preset ${runtimePreset.id} does not permit continuations.`,
+      });
+    }
   }
 
   let reporterOpen = opts.reporterAlreadyOpened ?? false;
@@ -554,6 +719,16 @@ export async function executePiTask(
 
     // Resolve the snapshot after the reporter has been opened so build
     // failures can surface as task messages instead of only daemon logs.
+    const snapshotStartedAt = Date.now();
+    const snapshotSpan = trace
+      .getTracer('@themoltnet/pi-extension/runtime')
+      .startSpan('runtime.snapshot', {
+        attributes: {
+          'moltnet.task.id': task.id,
+          'moltnet.task.attempt': attemptN,
+          'runtime.snapshot.cache_hit': opts.snapshotCacheHit === true,
+        },
+      });
     let checkpointPath: string;
     try {
       checkpointPath =
@@ -568,39 +743,74 @@ export async function executePiTask(
                   process.stderr.write(`[snapshot] ${m}\n`);
                 }),
             }));
+      await emit('info', {
+        event: 'runtime_timing',
+        stage: 'snapshot_ready',
+        durationMs: Date.now() - snapshotStartedAt,
+        snapshotCacheHit: opts.snapshotCacheHit === true,
+      });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       await emitError('snapshot', message);
       return makeFailedOutput('snapshot_failed', message);
+    } finally {
+      snapshotSpan.end();
     }
 
     // Resolve the dedicated worktree after the reporter is live so path
     // collisions / git metadata errors also reach the task attempt stream.
+    const vmAcquireStartedAt = Date.now();
+    const vmAcquireSpan = trace
+      .getTracer('@themoltnet/pi-extension/runtime')
+      .startSpan('runtime.vm_acquire', {
+        attributes: {
+          'moltnet.task.id': task.id,
+          'moltnet.task.attempt': attemptN,
+        },
+      });
     try {
       workspace = prepareTaskWorkspace(task, requestedMountPath, executionPlan);
       mountPath = workspace.mountPath;
       cwdPath = workspace.cwdPath;
+      assertRuntimePresetAllowsTask({
+        preset: runtimePreset,
+        taskType: task.taskType,
+        workspaceMode: workspace.mode,
+      });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
+      vmAcquireSpan.end();
       await emitError('worktree_setup', message);
       return makeFailedOutput('worktree_setup_failed', message);
     }
 
     try {
-      const sandboxConfig = applyExecutionPlanSandboxOverrides(
-        opts.sandboxConfig,
-        executionPlan,
-      );
-      managed = await resumeVm({
-        checkpointPath,
-        agentName: opts.agentName,
-        agentRootDir,
-        mountPath,
-        workspaceMode: workspace.mode,
-        extraAllowedHosts: opts.extraAllowedHosts,
-        sandboxConfig,
-        forwardEnv: opts.forwardEnv,
-        signal: reporter.cancelSignal,
+      const prewarmed = await opts.acquirePrewarmedVm?.();
+      if (prewarmed) {
+        managed = prewarmed.managed;
+      } else {
+        const sandboxConfig = applyExecutionPlanSandboxOverrides(
+          opts.sandboxConfig,
+          executionPlan,
+        );
+        managed = await resumeVm({
+          checkpointPath,
+          agentName: opts.agentName,
+          agentRootDir,
+          mountPath,
+          workspaceMode: workspace.mode,
+          extraAllowedHosts: opts.extraAllowedHosts,
+          sandboxConfig,
+          forwardEnv: opts.forwardEnv,
+          signal: reporter.cancelSignal,
+        });
+      }
+      await emit('info', {
+        event: 'runtime_timing',
+        stage: 'vm_acquired',
+        durationMs: Date.now() - vmAcquireStartedAt,
+        vmWarm: prewarmed?.warm === true,
+        snapshotCacheHit: prewarmed?.warm ?? opts.snapshotCacheHit === true,
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -612,6 +822,8 @@ export async function executePiTask(
       }
       await emitError('vm_resume', message);
       return makeFailedOutput('vm_resume_failed', message);
+    } finally {
+      vmAcquireSpan.end();
     }
 
     const diaryId = task.diaryId ?? '';
@@ -682,12 +894,18 @@ export async function executePiTask(
     // Slice 1.5 of #943 — select task/profile context before prompt
     // rendering so builders that mention context availability see the same
     // effective context later delivered to the VM.
-    const rawContext = (task.input as { context?: unknown }).context;
+    const rawContext =
+      runtimePreset.toolSurface === 'full'
+        ? (task.input as { context?: unknown }).context
+        : undefined;
     let effectiveRuntimeContext: ContextRef[];
     try {
       effectiveRuntimeContext = resolveEffectiveRuntimeContext({
         rawTaskContext: rawContext,
-        runtimeProfileContext: opts.runtimeProfileContext,
+        runtimeProfileContext:
+          runtimePreset.toolSurface === 'full'
+            ? opts.runtimeProfileContext
+            : undefined,
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -717,15 +935,23 @@ export async function executePiTask(
         priorContext: resolvedPriorContext,
         effectiveRuntimeContext,
       };
-      const assembled = buildTaskUserPrompt(task, promptCtx);
-      taskPrompt = assembled.text;
+      const assembled =
+        runtimePreset.toolSurface === 'submit_only'
+          ? null
+          : buildTaskUserPrompt(task, promptCtx);
+      taskPrompt = assembled
+        ? assembled.text
+        : buildDirectFreeformPrompt(task.input, task.id);
       // Forward the per-section trace for replay tooling — answers
       // "what did the model actually see, section by section?".
       await emit('info', {
         event: 'prompt_assembled',
         correlationId: task.correlationId ?? null,
-        taskType: assembled.taskType,
-        sections: assembled.trace,
+        taskType: assembled?.taskType ?? task.taskType,
+        sections: assembled?.trace ?? [
+          { id: 'interactive_direct.task_input', source: 'task_input' },
+        ],
+        userPromptTokenEstimate: estimateTokens(taskPrompt),
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -766,11 +992,14 @@ export async function executePiTask(
     // built-in tool implementations are rebuilt from defaults inside the
     // session unless we route them through customTools, which DOES override the
     // default by name at definition-registry merge time (AgentSession._refreshToolRegistry).
-    const gondolinCustomTools = createGondolinToolDefinitions({
-      vm: managed.vm,
-      mountPath,
-      guestWorkspace: managed.guestWorkspace,
-    });
+    const gondolinCustomTools =
+      runtimePreset.toolSurface === 'full'
+        ? createGondolinToolDefinitions({
+            vm: managed.vm,
+            mountPath,
+            guestWorkspace: managed.guestWorkspace,
+          })
+        : [];
 
     // Per-task-type submit-output tool. Captured payload (when the
     // model calls the tool with valid args) becomes the authoritative
@@ -783,51 +1012,68 @@ export async function executePiTask(
         model: opts.model,
         input: task.input,
         inputCid: task.inputCid,
-        maxSubmitValidationRetries: opts.maxSubmitValidationRetries,
+        maxSubmitValidationRetries:
+          opts.maxSubmitValidationRetries ??
+          runtimePreset.turnPolicy.maxSubmitValidationRetries,
       });
     const submitTools: ToolDefinition[] =
       submitToolDefs as unknown as ToolDefinition[];
 
+    const sessionSetupStartedAt = Date.now();
+    const sessionSetupSpan = trace
+      .getTracer('@themoltnet/pi-extension/runtime')
+      .startSpan('runtime.session_setup', {
+        attributes: {
+          'moltnet.task.id': task.id,
+          'moltnet.task.attempt': attemptN,
+          'runtime.preset': runtimePreset.id,
+        },
+      });
     try {
-      const moltnetAgent = await connect({ configDir: managed.agentDir });
+      const moltnetAgent =
+        runtimePreset.toolSurface === 'full'
+          ? await connect({ configDir: managed.agentDir })
+          : null;
       // Build the host-exec env allowlist: default keys + all agent env keys
       // (MOLTNET_*, GIT_CONFIG_GLOBAL, etc. set by activateAgentEnv).
       const hostExecBaseEnv = new Set([
         ...HOST_EXEC_DEFAULT_BASE_ENV,
         ...Object.keys(managed.credentials.agentEnv),
       ]);
-      const moltnetTools = createMoltNetTools({
-        getAgent: () => moltnetAgent,
-        getDiaryId: () => diaryId,
-        getTeamId: () => taskTeamId,
-        getSessionErrors: () => [],
-        clearSessionErrors: () => {
-          /* no-op in headless mode */
-        },
-        getHostCwd: () => cwdPath,
-        openWorkspaceFileForRead: (filePath) =>
-          openVmWorkspaceFileForRead({
-            vm: activeManaged.vm,
-            cwdPath,
-            guestWorkspace: activeManaged.guestWorkspace,
-            filePath,
-          }),
-        hostExecBaseEnv,
-        hostExecAutoApprove:
-          opts.hostExecAutoApprove ??
-          opts.sandboxConfig?.hostExec?.autoApprove ??
-          false,
-        // Daemon path is always inside an active task — wire the task
-        // context so moltnet_create_entry forces the task diary and
-        // injects provenance tags (issue #979).
-        getTaskContext: () => ({
-          taskId: task.id,
-          taskType: task.taskType,
-          attemptN,
-          diaryId,
-          correlationId: task.correlationId ?? null,
-        }),
-      });
+      const moltnetTools = moltnetAgent
+        ? createMoltNetTools({
+            getAgent: () => moltnetAgent,
+            getDiaryId: () => diaryId,
+            getTeamId: () => taskTeamId,
+            getSessionErrors: () => [],
+            clearSessionErrors: () => {
+              /* no-op in headless mode */
+            },
+            getHostCwd: () => cwdPath,
+            openWorkspaceFileForRead: (filePath) =>
+              openVmWorkspaceFileForRead({
+                vm: activeManaged.vm,
+                cwdPath,
+                guestWorkspace: activeManaged.guestWorkspace,
+                filePath,
+              }),
+            hostExecBaseEnv,
+            hostExecAutoApprove:
+              opts.hostExecAutoApprove ??
+              opts.sandboxConfig?.hostExec?.autoApprove ??
+              false,
+            // Daemon path is always inside an active task — wire the task
+            // context so moltnet_create_entry forces the task diary and
+            // injects provenance tags (issue #979).
+            getTaskContext: () => ({
+              taskId: task.id,
+              taskType: task.taskType,
+              attemptN,
+              diaryId,
+              correlationId: task.correlationId ?? null,
+            }),
+          })
+        : [];
 
       // Pi-coding-agent's own env-var convention is
       // `PI_CODING_AGENT_DIR` (see @earendil-works/pi-coding-agent's
@@ -862,7 +1108,7 @@ export async function executePiTask(
       //    (`cwd/.pi/skills`, `~/.pi/agent/skills`, …) are discarded so
       //    untrusted local prose never appears as a `<location>` pointer
       //    in the system prompt's `<available_skills>` block.
-      const runtimeInstructor = buildRuntimeInstructor({
+      const runtimeInstructorContext = {
         taskId: task.id,
         taskType: task.taskType,
         attemptN,
@@ -870,8 +1116,16 @@ export async function executePiTask(
         agentName: opts.agentName,
         guestWorkspace: managed.guestWorkspace,
         correlationId: task.correlationId ?? null,
-      });
-      const appendSystemPrompt: string[] = [runtimeInstructor];
+      };
+      const runtimeInstructor = buildRuntimeKernel(runtimeInstructorContext);
+      const runtimePresetPrompt = buildRuntimePresetPrompt(
+        runtimePreset,
+        runtimeInstructorContext,
+      );
+      const appendSystemPrompt: string[] = [
+        runtimeInstructor,
+        runtimePresetPrompt,
+      ];
       if (injectedContext.systemPromptPrefix) {
         appendSystemPrompt.push(injectedContext.systemPromptPrefix);
       }
@@ -883,7 +1137,10 @@ export async function executePiTask(
       // submit-output tool (different schema) nor the subagent tool
       // itself (no nested delegation in v1).
       const parentSubagentTools: ToolDefinition[] = [];
-      if (taskTypeUsesSubagents(task.taskType)) {
+      if (
+        runtimePreset.toolSurface === 'full' &&
+        taskTypeUsesSubagents(task.taskType)
+      ) {
         subagentHandle = createSubagentTool({
           mountPath,
           cwdPath,
@@ -927,6 +1184,7 @@ export async function executePiTask(
           ...submitTools,
           ...parentSubagentTools,
         ],
+        tools: runtimePreset.toolSurface === 'submit_only' ? [] : undefined,
         appendSystemPrompt,
         skillsOverride: () => ({ skills: injectedSkills, diagnostics: [] }),
         // MoltNet-specific span attrs only — pi's OTel extension owns
@@ -936,12 +1194,22 @@ export async function executePiTask(
           'moltnet.task.attempt': attemptN,
           'moltnet.task.type': task.taskType,
         },
-        sessionPersistence: executionPlan?.sessionPersistence ?? undefined,
+        sessionPersistence:
+          runtimePreset.toolSurface === 'full'
+            ? (executionPlan?.sessionPersistence ?? undefined)
+            : undefined,
+      });
+      await emit('info', {
+        event: 'runtime_timing',
+        stage: 'session_ready',
+        durationMs: Date.now() - sessionSetupStartedAt,
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       await emit('error', { message, phase: 'session_setup' });
       return makeFailedOutput('session_setup_failed', message);
+    } finally {
+      sessionSetupSpan.end();
     }
 
     // Per-attempt scalars accumulated by the session event handler
@@ -962,7 +1230,7 @@ export async function executePiTask(
 
     // Cap-driven abort state. See `triggerCapAbort` below.
     let capAbort: { code: string; message: string } | null = null;
-    const maxTurns = opts.maxTurns ?? 0;
+    const maxTurns = resolvePresetMaxTurns(runtimePreset, opts.maxTurns);
     const maxBashTimeouts = opts.maxBashTimeouts ?? 3;
 
     // Wire reporter.cancelSignal → session.abort() so the LLM session
@@ -991,6 +1259,7 @@ export async function executePiTask(
     // doesn't have to assert; by the time this point is reached the
     // success path has assigned the session (failure returned earlier).
     const liveSession = session;
+    let firstPiActivityAt: number | null = null;
 
     // Trigger a cap abort idempotently. The pi session will emit a final
     // `turn_end` with `stopReason: 'aborted'` in response; we silently
@@ -1018,6 +1287,17 @@ export async function executePiTask(
         emitError,
         track,
         triggerCapAbort,
+        onFirstActivity: () => {
+          if (firstPiActivityAt !== null) return;
+          firstPiActivityAt = Date.now();
+          track(
+            emit('info', {
+              event: 'first_pi_activity',
+              executionElapsedMs: firstPiActivityAt - startTime,
+              queueToFirstActivityMs: elapsedSince(task.queuedAt),
+            }),
+          );
+        },
       }),
     );
 
@@ -1035,7 +1315,9 @@ export async function executePiTask(
           llmAbort: turnState.llmAbort,
           llmErrorMessage: turnState.llmErrorMessage,
         }),
-        maxRetries: opts.maxProviderErrorRetries ?? 2,
+        maxRetries:
+          opts.maxProviderErrorRetries ??
+          runtimePreset.turnPolicy.maxProviderErrorRetries,
         baseDelayMs: opts.providerErrorRetryBaseDelayMs ?? 2_000,
         maxDelayMs: opts.providerErrorRetryMaxDelayMs ?? 30_000,
         retryPrompt: opts.providerErrorRetryPrompt ?? 'Go on',
@@ -1048,7 +1330,9 @@ export async function executePiTask(
       });
     const submitMissingConfig = resolveSubmitMissingConfig({
       submitToolHandle,
-      maxSubmitMissingReprompts: opts.maxSubmitMissingReprompts,
+      maxSubmitMissingReprompts:
+        opts.maxSubmitMissingReprompts ??
+        runtimePreset.turnPolicy.maxSubmitMissingReprompts,
       submitMissingPrompt: opts.submitMissingPrompt,
     });
     const promptResult = await promptUntilSubmitted({
@@ -1068,6 +1352,13 @@ export async function executePiTask(
       },
     });
     runError = promptResult.runError;
+    await emit('info', {
+      event: 'session_summary',
+      turnCount: turnState.turnCount,
+      toolUseTurnCount: turnState.toolUseTurnCount,
+      inputTokens: usage.inputTokens,
+      outputTokens: usage.outputTokens,
+    });
     // Surface how many submit-missing nudges this attempt needed (0 when the
     // model submitted on the first pass). Stream-visible counterpart to the
     // `output_missing` OTel counter recorded below when recovery fails.
@@ -1220,6 +1511,8 @@ export interface SessionTurnState {
   llmAbort: boolean;
   /** Provider diagnostic from the final error turn, else null. */
   llmErrorMessage: string | null;
+  /** Total assistant turns observed for this session. */
+  turnCount: number;
   /** Tool-use turns seen (drives the max-turns cap). */
   toolUseTurnCount: number;
   /** Bash timeouts seen this attempt (drives the max-bash-timeouts cap). */
@@ -1231,6 +1524,7 @@ export function createSessionTurnState(): SessionTurnState {
     assistantText: '',
     llmAbort: false,
     llmErrorMessage: null,
+    turnCount: 0,
     toolUseTurnCount: 0,
     bashTimeoutCount: 0,
   };
@@ -1257,6 +1551,8 @@ export interface SessionEventHandlerDeps {
   track: (p: Promise<void>) => void;
   /** Idempotent cap-abort trigger (aborts the live session). */
   triggerCapAbort: (code: string, message: string) => void;
+  /** Called once on the first Pi turn, text, or tool activity. */
+  onFirstActivity?: () => void;
 }
 
 /**
@@ -1284,8 +1580,19 @@ export function makeSessionEventHandler(
     emitError,
     track,
     triggerCapAbort,
+    onFirstActivity,
   } = deps;
+  let sawActivity = false;
   return (event) => {
+    if (
+      !sawActivity &&
+      (event.type === 'turn_start' ||
+        event.type === 'message_update' ||
+        event.type === 'tool_execution_start')
+    ) {
+      sawActivity = true;
+      onFirstActivity?.();
+    }
     if (event.type === 'message_update') {
       const ae = event.assistantMessageEvent;
       if (ae.type === 'text_delta') {
@@ -1357,6 +1664,7 @@ export function makeSessionEventHandler(
         if (cr) usage.cacheReadTokens = (usage.cacheReadTokens ?? 0) + cr;
         if (cw) usage.cacheWriteTokens = (usage.cacheWriteTokens ?? 0) + cw;
       }
+      if (msg?.role === 'assistant') state.turnCount += 1;
       const stopReason = msg?.stopReason ?? 'end_turn';
       track(emit('turn_end', { stop_reason: stopReason }));
       // Tool-use turn counter for the max-turns cap. Anthropic SDK
@@ -1712,6 +2020,53 @@ function emptyUsage(provider: string, model: string): TaskUsage {
     provider,
     model,
   };
+}
+
+function makePresetFailure(
+  taskId: string,
+  attemptN: number,
+  startedAt: number,
+  opts: Pick<ExecutePiTaskOptions, 'provider' | 'model'>,
+  input: { reason: string },
+): TaskOutput {
+  return {
+    taskId,
+    attemptN,
+    status: 'failed',
+    output: null,
+    outputCid: null,
+    usage: emptyUsage(opts.provider, opts.model),
+    durationMs: Date.now() - startedAt,
+    error: {
+      code: 'runtime_preset_disallows_task',
+      message: input.reason,
+      retryable: false,
+    },
+  };
+}
+
+/** A direct preset receives only its typed task facts; workflow prose is preset-owned. */
+function buildDirectFreeformPrompt(input: unknown, taskId: string): string {
+  const taskInput = input as {
+    brief?: unknown;
+    expectedOutput?: unknown;
+    constraints?: unknown;
+  };
+  const constraints = Array.isArray(taskInput.constraints)
+    ? taskInput.constraints.map((item) => `- ${String(item)}`).join('\n')
+    : '';
+  return [
+    '# Direct task facts',
+    '',
+    `Task id: \`${taskId}\``,
+    '',
+    '## Brief',
+    String(taskInput.brief ?? ''),
+    ...(taskInput.expectedOutput
+      ? ['', '## Expected output', String(taskInput.expectedOutput)]
+      : []),
+    ...(constraints ? ['', '## Constraints', constraints] : []),
+  ].join('\n');
 }
 
 /**
@@ -2174,6 +2529,21 @@ export function isBashTimeoutResult(result: unknown): boolean {
 }
 
 const TRUNCATE_LIMIT = 4 * 1024;
+
+function estimateTokens(text: string): number {
+  // Stable, provider-neutral estimate for queue/prompt dashboards. Exact
+  // provider token counts remain on the Pi OTel chat spans.
+  return Math.ceil(text.length / 4);
+}
+
+function elapsedSince(value: string | Date | null | undefined): number | null {
+  if (!value) return null;
+  const timestamp = value instanceof Date ? value.getTime() : Date.parse(value);
+  return Number.isFinite(timestamp)
+    ? Math.max(0, Date.now() - timestamp)
+    : null;
+}
+
 function truncateForWire(value: unknown): unknown {
   if (value === null || value === undefined) return value;
   if (typeof value === 'string') {

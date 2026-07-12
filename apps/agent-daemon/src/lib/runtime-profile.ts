@@ -3,6 +3,7 @@ import { delimiter, isAbsolute, resolve } from 'node:path';
 
 import type {
   RuntimeProfileContext,
+  RuntimeProfilePreset,
   RuntimeProfileThinkingLevel,
   RuntimeProfileWorkspaceMode,
 } from '@moltnet/tasks';
@@ -15,6 +16,7 @@ export interface ResolvedRuntimeProfile {
   id: string;
   name: string;
   teamId: string;
+  preset: RuntimeProfilePreset;
   provider: string;
   model: string;
   thinkingLevel: RuntimeProfileThinkingLevel | null;
@@ -81,6 +83,7 @@ export async function resolveRuntimeProfile(options: {
     id: profile.id,
     name: profile.name,
     teamId: profile.teamId,
+    preset: profile.preset,
     provider: profile.provider,
     model: profile.model,
     thinkingLevel: profile.thinkingLevel ?? null,

@@ -268,6 +268,7 @@ export interface PollingApiTaskSourceOptions {
 const DEFAULT_LIST_LIMIT = 10;
 const DEFAULT_POLL_INTERVAL_MS = 2_000;
 const DEFAULT_MAX_POLL_INTERVAL_MS = 30_000;
+const AVAILABILITY_WAIT_MS = 25_000;
 
 /**
  * Long-running pull-based source for the daemon mode.
@@ -329,7 +330,11 @@ export class PollingApiTaskSource implements TaskSource {
       // keep polling so a 5xx on the API doesn't masquerade as a drained
       // queue and exit the daemon early.
       if (this.opts.stopWhenEmpty && !hadListError) return null;
-      await this.sleepWithBackoff();
+      if (hadListError) {
+        await this.sleepWithBackoff();
+      } else {
+        await this.waitForAvailability();
+      }
     }
     return null;
   }
@@ -539,6 +544,40 @@ export class PollingApiTaskSource implements TaskSource {
       this.maxBackoffMs,
       this.currentBackoffMs * 2,
     );
+  }
+
+  /**
+   * Prefer a bounded server-side LISTEN wait after a successful empty scan.
+   * Older APIs (404) and waiter errors fall back to the normal short-poll
+   * backoff, so an availability deployment is never a daemon compatibility
+   * boundary.
+   */
+  private async waitForAvailability(): Promise<void> {
+    const taskTypes =
+      this.opts.taskTypes && this.opts.taskTypes.length > 0
+        ? this.opts.taskTypes
+        : undefined;
+    try {
+      const result = await this.opts.agent.tasks.availability(
+        {
+          ...(taskTypes ? { taskTypes } : {}),
+          timeoutMs: AVAILABILITY_WAIT_MS,
+        },
+        { teamId: this.opts.teamId },
+      );
+      if (this.opts.debug) {
+        this.logger.debug(
+          { available: result.available, timeoutMs: AVAILABILITY_WAIT_MS },
+          'polling-api.availability_waited',
+        );
+      }
+      // A long-poll timeout already amortised the empty scan. Keep the next
+      // fallback quick instead of compounding the exponential idle delay.
+      this.currentBackoffMs = this.minBackoffMs;
+    } catch (err) {
+      this.logger.debug({ err }, 'polling-api.availability_failed');
+      await this.sleepWithBackoff();
+    }
   }
 }
 

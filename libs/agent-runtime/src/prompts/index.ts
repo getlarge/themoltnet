@@ -41,7 +41,6 @@ export * from './fulfill-brief.js';
 export * from './judge-eval-attempt.js';
 export * from './judge-pack.js';
 export * from './pr-review.js';
-export * from './proactive-memory.js';
 export * from './render-pack.js';
 export * from './run-eval.js';
 

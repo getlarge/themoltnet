@@ -5,8 +5,6 @@ import {
   assembleTaskPrompt,
   type PromptSection,
 } from './assemble.js';
-import { buildFinalOutputBlock } from './final-output.js';
-import { buildSelfVerificationBlock } from './self-verification.js';
 
 interface Ctx {
   diaryId: string;
@@ -216,34 +214,6 @@ export function buildCuratePackUserPrompt(
       source: 'static',
       header: 'Hard constraints',
       body: hardConstraints,
-    },
-    {
-      id: 'curate_pack.verification',
-      source: 'verification',
-      body: buildSelfVerificationBlock(ctx.taskId),
-    },
-    {
-      id: 'curate_pack.final_output',
-      source: 'final_output',
-      body: buildFinalOutputBlock({
-        taskType: 'curate_pack',
-        outputSchemaName: 'CuratePackOutput',
-        shapeSketch: [
-          '{',
-          '  "packId": "<uuid>",',
-          '  "packCid": "<cid>",',
-          '  "entries": [',
-          '    { "entryId": "<uuid>", "rank": 1, "rationale": "<why>" }',
-          '  ],',
-          '  "recipeParams": { "recipe": "...", "prompt": "...", ... },',
-          '  "checkpoints": [',
-          '    { "phase": "recon", "candidateIds": [...], "droppedIds": [...], "notes": "..." }',
-          '  ],',
-          '  "summary": "<2-4 sentences: what you looked for, how you narrowed, what defines the final set>",',
-          '  "verification": <required iff input.successCriteria; see Self-verification>',
-          '}',
-        ].join('\n'),
-      }),
     },
   ];
 

@@ -7,6 +7,19 @@ export const RuntimeProfileName = Type.String({
 });
 export type RuntimeProfileName = Static<typeof RuntimeProfileName>;
 
+/**
+ * Centrally versioned runtime behaviour selected by a runtime profile.
+ * Profiles may tune operational facts (model, sandbox and retention), but
+ * cannot supply arbitrary executable instructions.
+ */
+export const RuntimeProfilePreset = Type.Union([
+  Type.Literal('standard@v1'),
+  Type.Literal('interactive-direct@v1'),
+]);
+export type RuntimeProfilePreset = Static<typeof RuntimeProfilePreset>;
+
+export const DEFAULT_RUNTIME_PROFILE_PRESET = 'standard@v1' as const;
+
 export const RuntimeProfileEnvName = Type.String({
   minLength: 1,
   maxLength: 128,
@@ -275,6 +288,7 @@ export const RuntimeProfile = Type.Object(
     teamId: Type.String({ format: 'uuid' }),
     name: RuntimeProfileName,
     description: Type.Union([Type.String({ maxLength: 4096 }), Type.Null()]),
+    preset: RuntimeProfilePreset,
     provider: Type.String({ minLength: 1, maxLength: 100 }),
     model: Type.String({ minLength: 1, maxLength: 200 }),
     thinkingLevel: RuntimeProfileNullableThinkingLevel,

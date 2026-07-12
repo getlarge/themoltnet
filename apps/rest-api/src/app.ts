@@ -61,6 +61,7 @@ import { taskRoutes } from './routes/tasks.js';
 import { teamRoutes } from './routes/teams.js';
 import { vouchRoutes } from './routes/vouch.js';
 import { sharedSchemas } from './schemas.js';
+import type { TaskAvailabilityWaiter } from './services/task-availability.js';
 import type {
   AgentRepository,
   ContextPackRepository,
@@ -168,6 +169,8 @@ export interface AppOptions {
   taskRepository: TaskRepository;
   taskAnalyticsService: TaskAnalyticsService;
   taskService: TaskService;
+  /** Optional Postgres LISTEN waiter used by daemon queue long-polling. */
+  taskAvailabilityWaiter?: TaskAvailabilityWaiter;
   /** Signing request repository + dataSource are required together (DBOS) */
   signingRequestRepository: SigningRequestRepository;
   nonceRepository: NonceRepository;
@@ -383,6 +386,9 @@ export async function registerApiRoutes(
   decorateSafe('taskRepository', options.taskRepository);
   decorateSafe('taskAnalyticsService', options.taskAnalyticsService);
   decorateSafe('taskService', options.taskService);
+  if (options.taskAvailabilityWaiter) {
+    decorateSafe('taskAvailabilityWaiter', options.taskAvailabilityWaiter);
+  }
   decorateSafe('signingRequestRepository', options.signingRequestRepository);
   decorateSafe('dataSource', options.dataSource);
   decorateSafe('transactionRunner', options.transactionRunner);

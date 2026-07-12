@@ -539,6 +539,50 @@ describe('GET /tasks', () => {
   });
 });
 
+describe('GET /tasks/availability', () => {
+  let app: FastifyInstance;
+  let mocks: ReturnType<typeof createMockServices>;
+
+  beforeAll(async () => {
+    mocks = createMockServices();
+    app = await createTestApp(mocks, VALID_AUTH_CONTEXT);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
+    resetMockServices(mocks);
+    mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
+  });
+
+  it('returns immediately when a matching queued task already exists', async () => {
+    mocks.taskService.list.mockResolvedValue({ items: [MOCK_TASK], total: 1 });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/tasks/availability?taskTypes=fulfill_brief&profileId=${PROFILE_ID}`,
+      headers: {
+        authorization: 'Bearer test-token',
+        'x-moltnet-team-id': TEAM_ID,
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ available: true });
+    expect(mocks.taskService.list).toHaveBeenCalledWith(
+      expect.objectContaining({
+        teamId: TEAM_ID,
+        status: 'queued',
+        taskTypes: ['fulfill_brief'],
+        profileId: PROFILE_ID,
+        limit: 1,
+      }),
+    );
+  });
+});
+
 describe('GET /tasks/analytics/activity', () => {
   let app: FastifyInstance;
   let mocks: ReturnType<typeof createMockServices>;
