@@ -1,0 +1,10 @@
+{
+  "expectWorkspaceMode": "shared_mount",
+  "requireCleanSubmit": true,
+  "requirePromptSections": [
+    "run_eval.header",
+    "run_eval.scenario",
+    "run_eval.final_output"
+  ],
+  "requireToolCalls": ["moltnet_upload_task_artifact"]
+}
