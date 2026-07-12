@@ -88,6 +88,10 @@ The bootstrap script does not create runtime profiles. Create at least one
 team-scoped profile before starting the daemon. The provider/model must match
 your `.pi/models.json` and available Pi auth.
 
+To give local daemon tasks the standard operating guide, copy the
+[Standard Workflow Context](./running-agents.md#start-with-a-standard-workflow-context)
+into the profile's `context` field.
+
 ```ts
 import { connect } from '@themoltnet/sdk';
 

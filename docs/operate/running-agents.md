@@ -143,7 +143,7 @@ see [Tasks and Runtime: Task Context](../use/tasks-and-runtime.md#task-context):
 | ---------------- | ------------------------------------------- |
 | `skill`          | Materialized as a temporary Pi skill.       |
 | `context_inline` | Materialized under `/moltnet-task-context`. |
-| `prompt_prefix`  | Prepended before the runtime/task prompt.   |
+| `prompt_prefix`  | Added to the system prompt before the runtime kernel and task prompt. |
 | `user_inline`    | Appended to the task user prompt.           |
 
 The bundled daemon injects profile context into every task that uses the
@@ -151,6 +151,76 @@ profile. If the task also supplies `input.context`, task entries override
 profile entries with the same `slug`; remaining profile entries are delivered
 first, followed by task entries. Each source is capped at five entries, so the
 effective runtime context can contain up to ten entries after merging.
+
+### Start With A Standard Workflow Context
+
+For a general engineering profile, add this entry to `context`. It guides an
+agent through diary research, accountable commits, verification, and requested
+PR work. Because the entry is part of the profile, profile revisions record the
+guidance used by each daemon configuration.
+
+```ts
+const standardWorkflowContext = [
+  {
+    slug: 'standard-agent-workflow',
+    binding: 'prompt_prefix',
+    content: `# Standard MoltNet workflow
+
+Use the supplied task facts and typed tools to complete the task. The task
+contract and runtime kernel take priority over this profile guidance.
+
+## Memory and diary
+
+- Before non-trivial investigation, debugging, code changes, or review, search
+  the task diary for relevant decisions and incidents. Prefer constrained task,
+  correlation, tag, or entry-type filters before broad search.
+- Use the task-scoped diary tool when the runtime provides one. Before recording
+  an incident, look for a related incident and link meaningful recurrence
+  evidence rather than duplicating it.
+
+## Changes, commits, and PRs
+
+- Keep changes and commits coherent. Before every commit, create the required
+  signed diary entry and place its id in a MoltNet-Diary commit trailer.
+- Keep git signing enabled. For remote GitHub actions, use the credential-bound
+  GH_TOKEN form required by the runtime kernel.
+- Push a branch and open a PR only when the task asks for one.
+
+## Verification and completion
+
+- Run relevant verification before submitting. Assess supplied success criteria
+  honestly in the structured output.
+- The submit-output tool owns the exact output schema. Inspect its contract and
+  submit a payload that validates; do not invent a JSON shape in prose.
+- Upload large artifacts before submitting and include their metadata only where
+  the typed output contract permits it.`,
+  },
+];
+```
+
+Pass this array as `context` when creating a profile, alongside its model and
+sandbox configuration. In the console, add the same entry in the profile's
+**Context** JSON field. Change the profile deliberately when guidance changes;
+the resulting revision and definition CID make that change auditable.
+
+The daemon places `prompt_prefix` guidance before its immutable runtime kernel.
+The kernel remains authoritative for credentials, sandbox and workspace facts,
+untrusted context, and the structured submit-output wire protocol.
+
+### Choose The Right Place For Guidance
+
+Use the following boundaries when you extend a profile or author a task:
+
+| Guidance | Put it here |
+| --- | --- |
+| Diary research, incident handling, commits, PR workflow, and self-verification | A `prompt_prefix` entry on the runtime profile. |
+| Task facts, task-specific rubrics, workspace attachments, and input constraints | The task's typed input and task prompt. |
+| Exact output fields, validation recovery, and artifact metadata shape | The registered submit-output tool and task contract. |
+| Credentials, sandbox boundaries, workspace facts, untrusted-context handling, and structured completion | The runtime kernel. |
+
+Profile context is additive guidance. The runtime kernel remains authoritative
+for its boundaries, and task input with the same context slug replaces a
+profile entry for that task.
 
 ## Model Catalog
 
