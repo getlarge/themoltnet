@@ -77,7 +77,10 @@ import {
   injectRuntimeContext,
   resolveEffectiveRuntimeContext,
 } from './runtime-context.js';
-import { buildRuntimeInstructor } from './runtime-instructor.js';
+import {
+  buildRuntimeKernel,
+  composeRuntimeSystemPrompt,
+} from './runtime-instructor.js';
 import {
   createSubagentTool,
   type SubagentToolHandle,
@@ -849,20 +852,16 @@ export async function executePiTask(
       const modelHandle = getModelLoose(opts.provider, opts.model);
 
       // Daemon-controlled runtime isolation (issue #979 + #943 slice 1.5):
-      //  - Inline the runtime instructor as appendSystemPrompt so the
-      //    invariants (gh auth, diary discipline, accountable commits) are
-      //    in the system prompt every turn, not lazily fetched via a
-      //    pi Skill pointer the model may or may not follow.
-      //  - Append `injectedContext.systemPromptPrefix` after the runtime
-      //    instructor when effective runtime context contributed any
-      //    `prompt_prefix` bindings. Empty string when none — guarded so
-      //    we don't pass an empty entry to pi.
+      //  - Runtime-profile prompt context is operator-selected guidance.
+      //    Append the immutable kernel after it so context cannot override
+      //    credential, sandbox, untrusted-context, or submit-wire rules.
+      //  - Empty context is guarded so we do not pass an empty entry to Pi.
       //  - skillsOverride returns ONLY the skills resolved from effective
       //    runtime context (binding: 'skill'). Locally-discovered skills
       //    (`cwd/.pi/skills`, `~/.pi/agent/skills`, …) are discarded so
       //    untrusted local prose never appears as a `<location>` pointer
       //    in the system prompt's `<available_skills>` block.
-      const runtimeInstructor = buildRuntimeInstructor({
+      const runtimeKernel = buildRuntimeKernel({
         taskId: task.id,
         taskType: task.taskType,
         attemptN,
@@ -871,10 +870,10 @@ export async function executePiTask(
         guestWorkspace: managed.guestWorkspace,
         correlationId: task.correlationId ?? null,
       });
-      const appendSystemPrompt: string[] = [runtimeInstructor];
-      if (injectedContext.systemPromptPrefix) {
-        appendSystemPrompt.push(injectedContext.systemPromptPrefix);
-      }
+      const appendSystemPrompt = composeRuntimeSystemPrompt({
+        profilePromptPrefix: injectedContext.systemPromptPrefix,
+        kernel: runtimeKernel,
+      });
       const injectedSkills = injectedContext.skills;
 
       // Subagent custom tool — registered only when the task type opts
@@ -896,7 +895,7 @@ export async function executePiTask(
           maxOutputTokens: opts.maxOutputTokens,
           agentName: opts.agentName,
           inheritedCustomTools: [...gondolinCustomTools, ...moltnetTools],
-          parentRuntimeInstructor: runtimeInstructor,
+          parentRuntimeInstructor: runtimeKernel,
           parentTaskId: task.id,
           parentTaskType: task.taskType,
           parentAttemptN: attemptN,
