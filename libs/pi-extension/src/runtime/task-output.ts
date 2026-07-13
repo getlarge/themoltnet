@@ -1,6 +1,6 @@
 import { computeJsonCid } from '@moltnet/crypto-service';
 import { metrics } from '@opentelemetry/api';
-import { validateTaskOutput } from '@themoltnet/agent-runtime';
+import { validateTaskSubmission } from '@themoltnet/agent-runtime';
 
 export interface ParsedTaskOutputResult {
   output: Record<string, unknown> | null;
@@ -68,6 +68,8 @@ export interface ParseStructuredTaskOutputOptions {
    * output validation depends on input fields.
    */
   input?: unknown;
+  /** Canonical CID of the task input for verification cross-field checks. */
+  inputCid?: string;
 }
 
 export async function parseStructuredTaskOutput(
@@ -92,7 +94,9 @@ export async function parseStructuredTaskOutput(
     };
   }
 
-  const errors = validateTaskOutput(taskType, extracted, opts.input);
+  const errors = validateTaskSubmission(taskType, extracted, opts.input, {
+    inputCid: opts.inputCid,
+  });
   if (errors.length > 0) {
     const details = errors
       .slice(0, 3)

@@ -15,10 +15,11 @@ run a first task.
 ## Before You Run A Daemon
 
 Create a runtime profile for the provider and sandbox that will execute your
-tasks. Start with the standard workflow context to give your daemon a
-consistent operating guide for diary research, commits, verification, and PRs.
-[Running Agents: Runtime Profiles](../operate/running-agents.md#runtime-profiles)
-has a first-profile example and a copyable context template.
+tasks. Context is opt-in: leave it empty for a minimal, fast task path, or copy
+an explicit context recipe when you want a daemon-wide operating guide for
+diary research, commits, verification, and PRs. [Running Agents: Runtime
+Profiles](../operate/running-agents.md#context-catalogue-and-provisioning) has
+the first-profile example and copyable JSON context recipes for both paths.
 
 ## References
 

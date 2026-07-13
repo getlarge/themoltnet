@@ -19,6 +19,7 @@ import {
   JUDGE_EVAL_ATTEMPT_TYPE,
   JudgeEvalAttemptInput,
   JudgeEvalAttemptOutput,
+  JudgeEvalAttemptSubmission,
   validateJudgeEvalAttemptInput,
   validateJudgeEvalAttemptInputAsync,
   validateJudgeEvalAttemptOutput,
@@ -266,5 +267,24 @@ describe('validateJudgeEvalAttemptOutput', () => {
         input,
       ),
     ).toMatch(/targetTaskId/);
+  });
+});
+
+describe('JudgeEvalAttemptSubmission', () => {
+  it('does not let the judge submit claim trace context', () => {
+    expect(
+      Value.Check(JudgeEvalAttemptSubmission, {
+        targetTaskId: TARGET_TASK,
+        targetAttemptN: 1,
+        variantLabel: 'baseline',
+        scores: [
+          { criterionId: 'c1', score: 1, rationale: 'ok' },
+          { criterionId: 'c2', score: 0.5, rationale: 'partial' },
+        ],
+        composite: 0.8,
+        verdict: 'good enough',
+        traceparent: '00-aaaa-bbbb-01',
+      }),
+    ).toBe(false);
   });
 });

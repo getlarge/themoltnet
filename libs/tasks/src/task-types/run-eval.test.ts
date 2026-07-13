@@ -5,6 +5,7 @@ import {
   RUN_EVAL_TYPE,
   RunEvalInput,
   RunEvalOutput,
+  RunEvalSubmission,
   validateRunEvalOutput,
 } from './run-eval.js';
 
@@ -20,6 +21,10 @@ const minimalOutput = {
   totalTokens: 1234,
   durationMs: 4321,
   traceparent: '00-aaaa-bbbb-01',
+};
+
+const minimalSubmission = {
+  response: 'Here is the summary.',
 };
 
 /**
@@ -137,6 +142,23 @@ describe('RunEvalOutput', () => {
         artifacts: [{ path: 'out.md', cid: 'bafy1' }],
       }),
     ).toBe(true);
+  });
+});
+
+describe('RunEvalSubmission', () => {
+  it('accepts only agent-authored fields', () => {
+    expect(Value.Check(RunEvalSubmission, minimalSubmission)).toBe(true);
+  });
+
+  it('rejects executor-owned telemetry', () => {
+    expect(
+      Value.Check(RunEvalSubmission, {
+        ...minimalSubmission,
+        totalTokens: 1234,
+        durationMs: 4321,
+        traceparent: '00-aaaa-bbbb-01',
+      }),
+    ).toBe(false);
   });
 });
 

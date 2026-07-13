@@ -34,6 +34,7 @@ import {
   JUDGE_EVAL_ATTEMPT_TYPE,
   JudgeEvalAttemptInput,
   JudgeEvalAttemptOutput,
+  JudgeEvalAttemptSubmission,
   onCreateJudgeEvalAttempt,
   validateJudgeEvalAttemptInput,
   validateJudgeEvalAttemptInputAsync,
@@ -63,6 +64,7 @@ import {
   RUN_EVAL_TYPE,
   RunEvalInput,
   RunEvalOutput,
+  RunEvalSubmission,
   validateRunEvalOutput,
 } from './run-eval.js';
 
@@ -81,6 +83,12 @@ interface TaskTypeEntry {
   readonly name: string;
   readonly inputSchema: TSchema;
   readonly outputSchema: TSchema;
+  /**
+   * Shape accepted from the agent's submit-output tool. Most task types submit
+   * their durable output directly; types with executor-observed fields declare
+   * a narrower schema and are materialized by the executor before persistence.
+   */
+  readonly submissionSchema?: TSchema;
   readonly outputKind: OutputKind;
   readonly resumable?: boolean;
   /**
@@ -336,6 +344,7 @@ export const BUILT_IN_TASK_TYPES = {
     name: RUN_EVAL_TYPE,
     inputSchema: RunEvalInput,
     outputSchema: RunEvalOutput,
+    submissionSchema: RunEvalSubmission,
     outputKind: 'artifact',
     resumable: true,
     workspaceScope: 'session',
@@ -348,6 +357,7 @@ export const BUILT_IN_TASK_TYPES = {
     name: JUDGE_EVAL_ATTEMPT_TYPE,
     inputSchema: JudgeEvalAttemptInput,
     outputSchema: JudgeEvalAttemptOutput,
+    submissionSchema: JudgeEvalAttemptSubmission,
     outputKind: 'judgment',
     workspaceScope: 'attempt',
     sessionScope: 'none',

@@ -9,14 +9,19 @@ import {
   type TaskValidationError,
 } from './async-validation.js';
 import type { Gate } from './success-criteria.js';
-import { BUILT_IN_TASK_TYPES } from './task-types/index.js';
-import type { TaskRef } from './wire.js';
+import {
+  JUDGE_EVAL_ATTEMPT_TYPE,
+  RUN_EVAL_TYPE,
+  BUILT_IN_TASK_TYPES,
+} from './task-types/index.js';
+import type { TaskRef, TaskUsage } from './wire.js';
 
 export type { TaskValidationError } from './async-validation.js';
 
 interface TaskTypeDefinition {
   readonly inputSchema: TSchema;
   readonly outputSchema: TSchema;
+  readonly submissionSchema?: TSchema;
   readonly resumable?: boolean;
   readonly workspaceMode?: 'shared_mount' | 'dedicated_worktree';
   readonly workspaceScope?: 'attempt' | 'session';
@@ -227,6 +232,7 @@ export function validateTaskOutput(
    * caller bug, not a normal flow.
    */
   input?: unknown,
+  runtime?: { inputCid?: string },
 ): TaskValidationError[] {
   const entry = getTaskTypeEntry(taskType);
   if (!entry) {
@@ -248,6 +254,78 @@ export function validateTaskOutput(
     }
   }
 
+  const verification =
+    output !== null && typeof output === 'object'
+      ? (output as { verification?: { inputCid?: unknown } }).verification
+      : undefined;
+  if (
+    runtime?.inputCid &&
+    verification !== undefined &&
+    verification?.inputCid !== runtime.inputCid
+  ) {
+    return [
+      {
+        field: 'output/verification/inputCid',
+        message: 'must match the task input CID',
+      },
+    ];
+  }
+
+  return [];
+}
+
+/**
+ * Validate the payload an agent may pass to its submit-output tool. This is
+ * intentionally distinct from durable output for task types whose executor
+ * stamps observed telemetry after the model has finished.
+ */
+export function validateTaskSubmission(
+  taskType: string,
+  submission: unknown,
+  input?: unknown,
+  runtime?: { inputCid?: string },
+): TaskValidationError[] {
+  const entry = getTaskTypeEntry(taskType);
+  if (!entry) {
+    return [
+      {
+        field: 'taskType',
+        message: `Unknown task type: ${taskType}`,
+      },
+    ];
+  }
+
+  const errors = schemaErrors(
+    'output',
+    entry.submissionSchema ?? entry.outputSchema,
+    submission,
+  );
+  if (errors.length > 0) return errors;
+
+  if (entry.validateOutput) {
+    const validationError = entry.validateOutput(submission, input);
+    if (validationError) {
+      return [{ field: 'output', message: validationError }];
+    }
+  }
+
+  const verification =
+    submission !== null && typeof submission === 'object'
+      ? (submission as { verification?: { inputCid?: unknown } }).verification
+      : undefined;
+  if (
+    runtime?.inputCid &&
+    verification !== undefined &&
+    verification?.inputCid !== runtime.inputCid
+  ) {
+    return [
+      {
+        field: 'output/verification/inputCid',
+        message: 'must match the task input CID',
+      },
+    ];
+  }
+
   return [];
 }
 
@@ -258,6 +336,44 @@ export function validateTaskOutput(
  */
 export function getTaskOutputSchema(taskType: string): TSchema | null {
   return getTaskTypeEntry(taskType)?.outputSchema ?? null;
+}
+
+/** Schema advertised by the submit-output tool for agent-authored fields. */
+export function getTaskSubmissionSchema(taskType: string): TSchema | null {
+  const entry = getTaskTypeEntry(taskType);
+  return entry?.submissionSchema ?? entry?.outputSchema ?? null;
+}
+
+export interface RuntimeOutputFacts {
+  usage: TaskUsage;
+  durationMs: number;
+  traceparent?: string;
+}
+
+/**
+ * Add executor-observed fields to an accepted agent submission. The task
+ * service still validates the returned durable value against outputSchema.
+ * Unknown and ordinary task types remain identity transformations.
+ */
+export function materializeTaskOutput(
+  taskType: string,
+  submission: Record<string, unknown>,
+  facts: RuntimeOutputFacts,
+): Record<string, unknown> {
+  const traceparent = facts.traceparent?.trim();
+  const trace = traceparent ? { traceparent } : {};
+  if (taskType === RUN_EVAL_TYPE) {
+    return {
+      ...submission,
+      totalTokens: facts.usage.inputTokens + facts.usage.outputTokens,
+      durationMs: facts.durationMs,
+      ...trace,
+    };
+  }
+  if (taskType === JUDGE_EVAL_ATTEMPT_TYPE) {
+    return { ...submission, ...trace };
+  }
+  return submission;
 }
 
 /**

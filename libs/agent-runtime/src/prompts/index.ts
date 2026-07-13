@@ -32,6 +32,7 @@ import { buildJudgePackUserPrompt } from './judge-pack.js';
 import { buildPrReviewUserPrompt } from './pr-review.js';
 import { buildRenderPackUserPrompt } from './render-pack.js';
 import { buildRunEvalUserPrompt } from './run-eval.js';
+import { appendTaskContractFacts } from './task-contract-facts.js';
 
 export * from './assemble.js';
 export * from './assess-brief.js';
@@ -44,6 +45,7 @@ export * from './pr-review.js';
 export * from './proactive-memory.js';
 export * from './render-pack.js';
 export * from './run-eval.js';
+export * from './task-contract-facts.js';
 
 /**
  * Context shared by all task user-prompt builders. Per-type extras can
@@ -95,7 +97,7 @@ export interface TaskUserPromptContext {
  * message** of the agent's session (pi-coding-agent's
  * `session.prompt(text)` puts text in the user role). The system
  * prompt is built separately by pi from `appendSystemPrompt` (the
- * runtime instructor lives there). Builders here are free-form Markdown
+ * runtime kernel lives there). Builders here are free-form Markdown
  * for the user turn; they don't replace or prepend to the system
  * prompt.
  */
@@ -103,6 +105,7 @@ export function buildTaskUserPrompt(
   task: Task,
   ctx: TaskUserPromptContext,
 ): AssembledPrompt {
+  let prompt: AssembledPrompt;
   switch (task.taskType) {
     case FREEFORM_TYPE: {
       if (!Value.Check(FreeformInput, task.input)) {
@@ -111,10 +114,11 @@ export function buildTaskUserPrompt(
           `freeform input failed validation: ${JSON.stringify(errors.slice(0, 3))}`,
         );
       }
-      return buildFreeformUserPrompt(task.input, {
+      prompt = buildFreeformUserPrompt(task.input, {
         taskId: ctx.taskId,
         priorContext: ctx.priorContext,
       });
+      break;
     }
 
     case FULFILL_BRIEF_TYPE: {
@@ -124,12 +128,13 @@ export function buildTaskUserPrompt(
           `fulfill_brief input failed validation: ${JSON.stringify(errors.slice(0, 3))}`,
         );
       }
-      return buildFulfillBriefUserPrompt(task.input, {
+      prompt = buildFulfillBriefUserPrompt(task.input, {
         diaryId: ctx.diaryId,
         taskId: ctx.taskId,
         correlationId: task.correlationId,
         workspace: ctx.workspace,
       });
+      break;
     }
 
     case ASSESS_BRIEF_TYPE: {
@@ -139,11 +144,12 @@ export function buildTaskUserPrompt(
           `assess_brief input failed validation: ${JSON.stringify(errors.slice(0, 3))}`,
         );
       }
-      return buildAssessBriefUserPrompt(task.input, {
+      prompt = buildAssessBriefUserPrompt(task.input, {
         diaryId: ctx.diaryId,
         taskId: ctx.taskId,
         workspace: ctx.workspace,
       });
+      break;
     }
 
     case CURATE_PACK_TYPE: {
@@ -153,10 +159,11 @@ export function buildTaskUserPrompt(
           `curate_pack input failed validation: ${JSON.stringify(errors.slice(0, 3))}`,
         );
       }
-      return buildCuratePackUserPrompt(task.input, {
+      prompt = buildCuratePackUserPrompt(task.input, {
         diaryId: ctx.diaryId,
         taskId: ctx.taskId,
       });
+      break;
     }
 
     case RENDER_PACK_TYPE: {
@@ -166,10 +173,11 @@ export function buildTaskUserPrompt(
           `render_pack input failed validation: ${JSON.stringify(errors.slice(0, 3))}`,
         );
       }
-      return buildRenderPackUserPrompt(task.input, {
+      prompt = buildRenderPackUserPrompt(task.input, {
         diaryId: ctx.diaryId,
         taskId: ctx.taskId,
       });
+      break;
     }
 
     case JUDGE_PACK_TYPE: {
@@ -179,10 +187,11 @@ export function buildTaskUserPrompt(
           `judge_pack input failed validation: ${JSON.stringify(errors.slice(0, 3))}`,
         );
       }
-      return buildJudgePackUserPrompt(task.input, {
+      prompt = buildJudgePackUserPrompt(task.input, {
         diaryId: ctx.diaryId,
         taskId: ctx.taskId,
       });
+      break;
     }
 
     case JUDGE_EVAL_ATTEMPT_TYPE: {
@@ -192,11 +201,12 @@ export function buildTaskUserPrompt(
           `judge_eval_attempt input failed validation: ${JSON.stringify(errors.slice(0, 3))}`,
         );
       }
-      return buildJudgeEvalAttemptUserPrompt(task.input, {
+      prompt = buildJudgeEvalAttemptUserPrompt(task.input, {
         diaryId: ctx.diaryId,
         taskId: ctx.taskId,
         workspace: ctx.workspace,
       });
+      break;
     }
 
     case PR_REVIEW_TYPE: {
@@ -206,11 +216,12 @@ export function buildTaskUserPrompt(
           `pr_review input failed validation: ${JSON.stringify(errors.slice(0, 3))}`,
         );
       }
-      return buildPrReviewUserPrompt(task.input, {
+      prompt = buildPrReviewUserPrompt(task.input, {
         diaryId: ctx.diaryId,
         taskId: ctx.taskId,
         workspace: ctx.workspace,
       });
+      break;
     }
 
     case RUN_EVAL_TYPE: {
@@ -220,12 +231,13 @@ export function buildTaskUserPrompt(
           `run_eval input failed validation: ${JSON.stringify(errors.slice(0, 3))}`,
         );
       }
-      return buildRunEvalUserPrompt(task.input, {
+      prompt = buildRunEvalUserPrompt(task.input, {
         diaryId: ctx.diaryId,
         taskId: ctx.taskId,
         correlationId: task.correlationId,
         effectiveRuntimeContext: ctx.effectiveRuntimeContext,
       });
+      break;
     }
 
     default:
@@ -233,4 +245,6 @@ export function buildTaskUserPrompt(
         `No prompt builder registered for taskType="${task.taskType}"`,
       );
   }
+
+  return appendTaskContractFacts(prompt, task);
 }

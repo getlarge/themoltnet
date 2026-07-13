@@ -20,14 +20,14 @@
  *   - Tool name shape: `submit_<task_type>_output` (e.g.
  *     `submit_fulfill_brief_output`). This is the string the model
  *     sees in the prompt's "preferred path" instruction.
- *   - Parameters schema: the task type's TypeBox `*Output` schema
+ *   - Parameters schema: the task type's TypeBox submission schema
  *     **directly**, NOT wrapped in `{ output: <schema> }`. Tool args
- *     ARE the payload, so the model gets field-level guidance at
- *     planning time.
+ *     ARE the agent-authored payload. Executor-observed fields are stamped
+ *     after submission and never requested from the model.
  *   - Description text: shared across executors so the tool's
  *     advertised purpose is identical regardless of who registers it.
  */
-import { getTaskOutputSchema } from '@moltnet/tasks';
+import { getTaskSubmissionSchema } from '@moltnet/tasks';
 import type { TSchema } from 'typebox';
 
 export interface SubmitOutputContract {
@@ -42,10 +42,13 @@ export interface SubmitOutputContract {
   /** Human-readable description shown to the model and any UI that
    * lists registered tools. */
   description: string;
-  /** TypeBox schema the tool's `parameters` MUST validate against. The
-   * task-type's `*Output` schema, directly. Pass it through verbatim
-   * to the executor's tool-definition factory. */
+  /** TypeBox schema the tool's `parameters` MUST validate against. Pass it
+   * through verbatim to the executor's tool-definition factory. */
   parametersSchema: TSchema;
+  /** Stable JSON rendering the executor must make visible to the model.
+   * Pi registers a permissive transport schema so invalid calls can be
+   * corrected in-session; this remains the authoritative typed contract. */
+  parametersSchemaJson: string;
 }
 
 /**
@@ -57,7 +60,7 @@ export interface SubmitOutputContract {
 export function getSubmitOutputContract(
   taskType: string,
 ): SubmitOutputContract | null {
-  const schema = getTaskOutputSchema(taskType);
+  const schema = getTaskSubmissionSchema(taskType);
   if (!schema) return null;
 
   return {
@@ -65,14 +68,15 @@ export function getSubmitOutputContract(
     taskType,
     description:
       `Submit the structured output for this ${taskType} task. ` +
-      'Call exactly once when done. The arguments below ARE the output ' +
-      "payload — pass each top-level field of the task type's output " +
+      'Call exactly once when done. The arguments below ARE the agent-authored ' +
+      "payload — pass each top-level field of the task type's submission " +
       'schema directly. The runtime validates the args against the ' +
       'schema; mismatches return a tool error you can recover from in ' +
       'the same session. On a valid call the runtime captures the ' +
       'payload for attempt completion — you do not need to repeat the ' +
       'JSON in your final assistant message.',
     parametersSchema: schema,
+    parametersSchemaJson: JSON.stringify(schema, null, 2),
   };
 }
 

@@ -38,12 +38,14 @@ import {
   type ClaimedTask,
   type ContextRef,
   FREEFORM_TYPE,
+  materializeTaskOutput,
   type SubagentContractRegistry,
   type TaskOutput,
   type TaskReporter,
   taskTypeUsesSubagents,
   type TaskUsage,
   type TaskUserPromptContext,
+  validateTaskOutput,
 } from '@themoltnet/agent-runtime';
 import { connect } from '@themoltnet/sdk';
 
@@ -1114,6 +1116,7 @@ export async function executePiTask(
         taskType: task.taskType,
         model: opts.model,
         input: task.input,
+        inputCid: task.inputCid,
         assistantText: turnState.assistantText,
         submitToolHandle,
         emit,
@@ -1121,6 +1124,22 @@ export async function executePiTask(
       parsedOutput = captured.output;
       parsedOutputCid = captured.outputCid;
       parseError = captured.error;
+      if (parsedOutput && !parseError) {
+        const materialized = await materializeCapturedAttemptOutput({
+          taskType: task.taskType,
+          submission: parsedOutput,
+          input: task.input,
+          inputCid: task.inputCid,
+          usage,
+          durationMs: Date.now() - startTime,
+          traceparent: claimedTask.traceHeaders.traceparent,
+          model: opts.model,
+          emit,
+        });
+        parsedOutput = materialized.output;
+        parsedOutputCid = materialized.outputCid;
+        parseError = materialized.error;
+      }
     }
 
     if (cancelled) {
@@ -1404,6 +1423,8 @@ export interface CaptureAttemptOutputDeps {
   model?: string;
   /** Original task input, threaded to the parser path for cross-field rules. */
   input: unknown;
+  /** Canonical CID of input, used to validate an authored verification. */
+  inputCid?: string;
   /** Streamed assistant text, used only by the legacy parser fallback. */
   assistantText: string;
   /** Submit-output handle, or null for task types with no registered schema. */
@@ -1415,6 +1436,84 @@ export interface CaptureAttemptOutputDeps {
     kind: TurnEventKind,
     payload: Record<string, unknown>,
   ) => Promise<void>;
+}
+
+export interface MaterializeCapturedAttemptOutputDeps {
+  taskType: string;
+  submission: Record<string, unknown>;
+  input: unknown;
+  inputCid: string;
+  usage: TaskUsage;
+  durationMs: number;
+  traceparent?: string;
+  model?: string;
+  emit: (
+    kind: TurnEventKind,
+    payload: Record<string, unknown>,
+  ) => Promise<void>;
+}
+
+/**
+ * Convert a model-approved submission into durable task output. This is where
+ * executor-observed fields become part of a task result; the model never gets
+ * a chance to fabricate them through its submit tool.
+ */
+export async function materializeCapturedAttemptOutput(
+  deps: MaterializeCapturedAttemptOutputDeps,
+): Promise<ParsedTaskOutputResult> {
+  const durableOutput = materializeTaskOutput(deps.taskType, deps.submission, {
+    usage: deps.usage,
+    durationMs: deps.durationMs,
+    traceparent: deps.traceparent,
+  });
+  const errors = validateTaskOutput(deps.taskType, durableOutput, deps.input, {
+    inputCid: deps.inputCid,
+  });
+  if (errors.length > 0) {
+    const error = {
+      code: 'output_validation_failed',
+      message:
+        'Materialized output failed schema validation: ' +
+        errors
+          .slice(0, 3)
+          .map((item) => `${item.field}: ${item.message}`)
+          .join('; '),
+    };
+    recordTaskOutputParseResult({
+      taskType: deps.taskType,
+      model: deps.model,
+      code: 'output_validation_failed',
+    });
+    await deps.emit('error', {
+      message: error.message,
+      phase: 'output_validation',
+    });
+    return { output: null, outputCid: null, error };
+  }
+
+  try {
+    return {
+      output: durableOutput,
+      outputCid: await computeJsonCid(durableOutput),
+      error: null,
+    };
+  } catch (caught) {
+    const message = caught instanceof Error ? caught.message : String(caught);
+    const error = {
+      code: 'output_cid_compute_failed',
+      message: `Materialized output could not be canonicalized: ${message}`,
+    };
+    recordTaskOutputParseResult({
+      taskType: deps.taskType,
+      model: deps.model,
+      code: 'output_cid_compute_failed',
+    });
+    await deps.emit('error', {
+      message: error.message,
+      phase: 'output_validation',
+    });
+    return { output: null, outputCid: null, error };
+  }
 }
 
 // Same shape the parser path already returns; alias it so the submit-tool
@@ -1442,8 +1541,15 @@ export type CapturedAttemptOutput = ParsedTaskOutputResult;
 export async function captureAttemptOutput(
   deps: CaptureAttemptOutputDeps,
 ): Promise<CapturedAttemptOutput> {
-  const { taskType, model, input, assistantText, submitToolHandle, emit } =
-    deps;
+  const {
+    taskType,
+    model,
+    input,
+    inputCid,
+    assistantText,
+    submitToolHandle,
+    emit,
+  } = deps;
   // Prefer the submit-tool's captured payload over the parser path.
   // The submit-tool already validated args against the task type's
   // output schema; if the model called it successfully we trust the
@@ -1499,6 +1605,7 @@ export async function captureAttemptOutput(
   const parsed = await parseStructuredTaskOutput(assistantText, taskType, {
     model,
     input,
+    inputCid,
   });
   if (parsed.error) {
     await emit('error', {
@@ -1945,7 +2052,7 @@ export function buildSubmitMissingPrompt(toolName: string): string {
     `You ended your turn but did not call the required \`${toolName}\` tool, ` +
     'so no output was captured and the task is not yet complete. ' +
     `Call \`${toolName}\` now with the final structured output exactly as ` +
-    'described in the task prompt. Do not reply with prose, a summary, or an ' +
+    "described by that tool's agent submission schema. Do not reply with prose, a summary, or an " +
     'apology — the only way to finish is to call the tool.'
   );
 }

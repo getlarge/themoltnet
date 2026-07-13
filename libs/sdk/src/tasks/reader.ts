@@ -98,6 +98,7 @@ export class TaskResultReader<TOutput = Record<string, unknown>> {
         task.taskType,
         attempt.output,
         task.input,
+        { inputCid: task.inputCid },
       );
       if (outErrors.length > 0) throw new TaskResultError(outErrors);
     }

@@ -30,7 +30,7 @@ import { defineTool } from '@earendil-works/pi-coding-agent';
 import {
   getSubmitOutputContract,
   SUBMIT_OUTPUT_GATE_ID,
-  validateTaskOutput,
+  validateTaskSubmission,
 } from '@themoltnet/agent-runtime';
 import { Type } from 'typebox';
 
@@ -129,14 +129,14 @@ const RecoverableSubmitToolParameters = Type.Object(
 );
 
 function formatValidationErrors(
-  errors: ReturnType<typeof validateTaskOutput>,
+  errors: ReturnType<typeof validateTaskSubmission>,
 ): string {
   return errors.map((err) => `${err.field}: ${err.message}`).join('; ');
 }
 
 function submitOutputRepairHint(
   taskType: string,
-  errors: ReturnType<typeof validateTaskOutput>,
+  errors: ReturnType<typeof validateTaskSubmission>,
 ): string {
   const fields = new Set(errors.map((err) => err.field));
   const hints: string[] = [
@@ -252,7 +252,9 @@ function maybeRepairSubmitOutput(
   if (taskType !== 'freeform') return null;
   const repaired = repairFreeformSubmitOutput(params, opts);
   if (!repaired) return null;
-  return validateTaskOutput(taskType, repaired, opts.input).length === 0
+  return validateTaskSubmission(taskType, repaired, opts.input, {
+    inputCid: opts.inputCid,
+  }).length === 0
     ? repaired
     : null;
 }
@@ -285,9 +287,12 @@ export function createSubmitOutputTool(
     description: contract.description,
     promptSnippet:
       `${contract.toolName}: submit the final structured ${taskType} ` +
-      'output using the schema shown in the task prompt.',
+      'output. Use the agent submission schema below exactly; runtime-owned ' +
+      'telemetry fields are not yours to supply.\n\n' +
+      `Agent submission schema:\n\`\`\`json\n${contract.parametersSchemaJson}\n\`\`\``,
     promptGuidelines: [
-      `Call \`${contract.toolName}\` with the exact ${taskType} output shape shown in the task prompt.`,
+      `Call \`${contract.toolName}\` with the exact ${taskType} agent submission shape shown above.`,
+      'The transport accepts malformed objects only so validation errors can be recovered in-session; the schema shown above is authoritative.',
       'If the submit tool returns a validation error, fix every listed field and call the same tool again.',
     ],
     parameters: RecoverableSubmitToolParameters,
@@ -324,7 +329,12 @@ export function createSubmitOutputTool(
       // affordance as a plain schema miss.
       const repairedParams = maybeRepairSubmitOutput(taskType, params, opts);
       const candidateParams = repairedParams ?? params;
-      const errors = validateTaskOutput(taskType, candidateParams, opts.input);
+      const errors = validateTaskSubmission(
+        taskType,
+        candidateParams,
+        opts.input,
+        { inputCid: opts.inputCid },
+      );
       if (errors.length > 0) {
         invalidCallCount += 1;
         const detailMsg = formatValidationErrors(errors);

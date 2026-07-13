@@ -5,6 +5,7 @@ import {
   MeterProvider,
   MetricReader,
 } from '@opentelemetry/sdk-metrics';
+import { BUILT_IN_TASK_TYPES } from '@themoltnet/agent-runtime';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import {
@@ -20,9 +21,9 @@ import {
 /**
  * The tool is constructed via pi-coding-agent's `defineTool` — its
  * `execute` is reachable through the wrapped definition. The submit
- * tool registers the task type's *Output schema directly as its
- * parameters, so tool args ARE the payload (no `{ output: ... }`
- * envelope).
+ * transport schema is permissive so malformed calls can be recoverable, while
+ * the visible prompt contract and handler validation use the task type's
+ * agent-submission schema directly (no `{ output: ... }` envelope).
  */
 function callExecute(handle: ReturnType<typeof createSubmitOutputTool>) {
   const tool = handle.tool as unknown as {
@@ -124,7 +125,10 @@ describe('createSubmitOutputTool', () => {
     expect(tool.parameters.properties ?? {}).toEqual({});
     expect(tool.parameters.additionalProperties).toBeTruthy();
     expect(tool.promptSnippet).toContain('submit_judge_eval_attempt_output');
-    expect(tool.promptGuidelines?.join('\n')).toContain('task prompt');
+    expect(tool.promptSnippet).toContain('Agent submission schema');
+    expect(tool.promptSnippet).toContain('"variantLabel"');
+    expect(tool.promptSnippet).not.toContain('"traceparent"');
+    expect(tool.promptGuidelines?.join('\n')).not.toContain('task prompt');
   });
 
   it('captures a valid payload without terminating the session', async () => {
@@ -343,9 +347,6 @@ describe('createSubmitOutputTool', () => {
     });
     const result = await callExecute(handle)({
       response: 'done',
-      totalTokens: 10,
-      durationMs: 100,
-      traceparent: '00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01',
     });
 
     expect(result.isError).toBe(true);
@@ -366,9 +367,6 @@ describe('createSubmitOutputTool', () => {
     });
     const result = await callExecute(handle)({
       response: 'done',
-      totalTokens: 10,
-      durationMs: 100,
-      traceparent: '00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01',
       verification,
     });
 
@@ -376,9 +374,6 @@ describe('createSubmitOutputTool', () => {
     expect(result.terminate).not.toBe(true);
     expect(handle.getCaptured()).toEqual({
       response: 'done',
-      totalTokens: 10,
-      durationMs: 100,
-      traceparent: '00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01',
       verification,
     });
   });
@@ -404,15 +399,7 @@ describe('createSubmitOutputTool', () => {
     // would couple this test to every output shape — we just verify the
     // tool factory accepts the type and the produced tool has the right
     // name. Validation is exercised in dedicated cases above.
-    const types = [
-      'freeform',
-      'fulfill_brief',
-      'assess_brief',
-      'curate_pack',
-      'render_pack',
-      'judge_pack',
-    ];
-    for (const t of types) {
+    for (const t of Object.keys(BUILT_IN_TASK_TYPES)) {
       const handle = createSubmitOutputTool(t);
       expect((handle.tool as unknown as { name: string }).name).toBe(
         `submit_${t}_output`,

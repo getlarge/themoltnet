@@ -7,7 +7,11 @@
     "types": ["node", "vitest/globals", "vitest"]
   },
   "extends": "./tsconfig.json",
-  "include": [".vitepress/**/*", "scripts/**/*"],
+  "include": [
+    ".vitepress/**/*",
+    ".vitepress/theme/data/**/*.json",
+    "scripts/**/*"
+  ],
   "references": [
     {
       "path": "./tsconfig.lib.json"

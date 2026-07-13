@@ -88,9 +88,10 @@ The bootstrap script does not create runtime profiles. Create at least one
 team-scoped profile before starting the daemon. The provider/model must match
 your `.pi/models.json` and available Pi auth.
 
-To give local daemon tasks the standard operating guide, copy the
-[Standard Workflow Context](./running-agents.md#start-with-a-standard-workflow-context)
-into the profile's `context` field.
+To give local daemon tasks the standard operating guide, copy the valid JSON
+from [the standard engineering context recipe](./running-agents.md#context-catalogue-and-provisioning)
+into the profile's `context` field. Leave `context` empty for a minimal task
+path without diary, commit, or PR workflow guidance.
 
 ```ts
 import { connect } from '@themoltnet/sdk';
@@ -110,6 +111,7 @@ const profile = await agent.runtimeProfiles.create(
     workspaceTtlSec: 1800,
     requiredEnv: ['OLLAMA_API_KEY'],
     requiredTools: ['git', 'pnpm'],
+    context: [],
     sandbox: {
       hostExec: {
         autoApprove: [

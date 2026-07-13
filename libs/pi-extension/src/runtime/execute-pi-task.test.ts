@@ -37,6 +37,7 @@ import {
   formatProviderErrorRetryStatus,
   isBashTimeoutResult,
   makeSessionEventHandler,
+  materializeCapturedAttemptOutput,
   notifyProviderErrorRetryUi,
   openVmWorkspaceFileForRead,
   promptUntilSubmitted,
@@ -778,6 +779,47 @@ describe('captureAttemptOutput (output-capture characterization)', () => {
   });
 });
 
+describe('materializeCapturedAttemptOutput', () => {
+  it('stamps eval telemetry from the executor rather than the agent submission', async () => {
+    const emitted: Array<{ kind: string; payload: Record<string, unknown> }> =
+      [];
+    const result = await materializeCapturedAttemptOutput({
+      taskType: 'run_eval',
+      submission: {
+        response: 'done',
+        verification: {
+          inputCid: 'bafy-input',
+          results: [],
+          passed: true,
+        },
+      },
+      input: {
+        scenario: { prompt: 'do it' },
+        variantLabel: 'baseline',
+        execution: { mode: 'vitro', workspace: 'none' },
+        context: [],
+        successCriteria: { version: 1 },
+      },
+      inputCid: 'bafy-input',
+      usage: { inputTokens: 40, outputTokens: 2 },
+      durationMs: 789,
+      traceparent: '00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01',
+      emit: async (kind, payload) => {
+        emitted.push({ kind, payload });
+      },
+    });
+
+    expect(result.error).toBeNull();
+    expect(result.output).toMatchObject({
+      response: 'done',
+      totalTokens: 42,
+      durationMs: 789,
+      traceparent: '00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01',
+    });
+    expect(emitted).toEqual([]);
+  });
+});
+
 describe('makeSessionEventHandler (subscribe-handler characterization)', () => {
   // The real exported event type. The `as unknown as Ev` casts below mean a
   // renamed pi field won't fail these fakes directly — the true guard is the
@@ -1392,9 +1434,6 @@ describe('parseStructuredTaskOutput', () => {
     const result = await parseStructuredTaskOutput(
       JSON.stringify({
         response: 'done',
-        totalTokens: 10,
-        durationMs: 100,
-        traceparent: '00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01',
       }),
       'run_eval',
       {
@@ -1419,9 +1458,6 @@ describe('parseStructuredTaskOutput', () => {
   it('still accepts the same payload when no input is available', async () => {
     const output = {
       response: 'done',
-      totalTokens: 10,
-      durationMs: 100,
-      traceparent: '00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01',
     };
 
     const result = await parseStructuredTaskOutput(

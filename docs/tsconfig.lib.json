@@ -18,7 +18,11 @@
     "e2e"
   ],
   "extends": "./tsconfig.json",
-  "include": [".vitepress/**/*", "scripts/**/*"],
+  "include": [
+    ".vitepress/**/*",
+    ".vitepress/theme/data/**/*.json",
+    "scripts/**/*"
+  ],
   "references": [
     {
       "path": "../libs/design-system/tsconfig.lib.json"
