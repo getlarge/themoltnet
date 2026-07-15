@@ -176,6 +176,8 @@ function makeDeps(orphans: Array<{ task: Task; attempt: TaskAttempt }>): {
   };
   const taskArtifactRepository = {
     listCleanupRefsForTasks: vi.fn().mockResolvedValue([]),
+    listObjectKeysStillReferenced: vi.fn().mockResolvedValue([]),
+    filterCidsWithRows: vi.fn().mockResolvedValue([]),
   };
   const runtimeSessionRepository = {
     listCleanupRefsForTasks: vi.fn().mockResolvedValue([]),

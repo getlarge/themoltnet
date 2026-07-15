@@ -1,4 +1,10 @@
 export {
+  type OrphanSweepObject,
+  parseTaskArtifactObjectKey,
+  selectOrphanCandidates,
+  type TaskArtifactObjectRef,
+} from './task-artifact-orphan-sweep.js';
+export {
   deleteObjectsWithLocalRetries,
   filterCleanupManifestByTaskIds,
   type TaskCleanupLogger,

@@ -126,6 +126,18 @@ export const TaskOrphanSweeperConfigSchema = Type.Object({
   TASK_CANCELLED_RETENTION_DAYS: Type.Number({ default: 90 }),
   /** Retention window for expired terminal tasks. */
   TASK_EXPIRED_RETENTION_DAYS: Type.Number({ default: 90 }),
+  /**
+   * How often the artifact orphan-object sweep runs. It deletes storage
+   * objects with no task_artifacts row — primarily staged input artifacts
+   * that were never bound to a task creation.
+   */
+  TASK_ARTIFACT_ORPHAN_SWEEPER_CRON: Type.String({ default: '30 3 * * *' }),
+  /**
+   * Minimum object age in seconds before an unreferenced artifact object
+   * may be deleted. Must comfortably exceed the longest plausible gap
+   * between staging bytes and creating the task that binds them.
+   */
+  TASK_ARTIFACT_ORPHAN_GRACE_SEC: Type.Number({ default: 48 * 60 * 60 }),
 });
 
 export const RuntimeSessionStorageConfigSchema = Type.Object({
