@@ -8,8 +8,12 @@ export {
   TaskArtifactStorageNotConfiguredError,
 } from './task-artifact-storage.js';
 export {
+  buildArtifactObjectKey,
   createTaskArtifactService,
+  type DownloadTaskArtifactByCidInput,
   serializeTaskArtifact,
+  type StagedTaskArtifactResult,
+  type StageTaskArtifactInput,
   type TaskArtifactLogger,
   type TaskArtifactServiceDeps,
   TaskArtifactServiceError,

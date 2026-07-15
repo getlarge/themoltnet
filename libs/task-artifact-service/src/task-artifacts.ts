@@ -67,6 +67,25 @@ export interface DownloadTaskArtifactInput extends TaskArtifactAttemptInput {
   cid: string;
 }
 
+export interface StageTaskArtifactInput extends TaskArtifactSubject {
+  body: unknown;
+  contentEncoding?: string | null;
+  contentType: string;
+  teamId: string;
+}
+
+export interface StagedTaskArtifactResult {
+  cid: string;
+  contentType: string;
+  sizeBytes: number;
+}
+
+export interface DownloadTaskArtifactByCidInput extends TaskArtifactSubject {
+  cid: string;
+  taskId: string;
+  teamId: string;
+}
+
 export interface TaskArtifactDownload {
   artifact: TaskArtifact;
   object: TaskArtifactObject;
@@ -250,6 +269,47 @@ export function createTaskArtifactService(deps: TaskArtifactServiceDeps) {
 
     listForTask,
 
+    /**
+     * Stage artifact bytes for later binding as a task input artifact.
+     * Writes the content-addressed object only — no metadata row exists
+     * until a task creation references the returned CID, so the bytes are
+     * not downloadable or listable through the API in the meantime.
+     * Unbound objects are garbage-collected after a grace window.
+     */
+    async stageUpload(
+      input: StageTaskArtifactInput,
+    ): Promise<StagedTaskArtifactResult> {
+      await requireTeamAccess(deps, input);
+      const staged = await stageArtifactUpload(input.body, {
+        maxBytes: deps.taskArtifactMaxBytes,
+      });
+      const objectKey = buildArtifactObjectKey(input.teamId, staged.cid);
+      try {
+        const existingObject = await deps.objectStorage.headObject(objectKey);
+        if (!existingObject) {
+          await deps.objectStorage.putObject({
+            body: createReadStream(staged.path),
+            contentEncoding: input.contentEncoding ?? null,
+            contentLength: staged.sizeBytes,
+            contentType: input.contentType,
+            key: objectKey,
+          });
+        }
+        return {
+          cid: staged.cid,
+          contentType: input.contentType,
+          sizeBytes: staged.sizeBytes,
+        };
+      } catch (err) {
+        if (err instanceof TaskArtifactStorageNotConfiguredError) {
+          throw new TaskArtifactServiceError(503, err.message);
+        }
+        throw err;
+      } finally {
+        await staged.dispose();
+      }
+    },
+
     async download(
       input: DownloadTaskArtifactInput,
     ): Promise<TaskArtifactDownload> {
@@ -265,24 +325,53 @@ export function createTaskArtifactService(deps: TaskArtifactServiceDeps) {
       if (!artifact) {
         throw new TaskArtifactServiceError(404, 'Task artifact not found');
       }
-      try {
-        const object = await deps.objectStorage.getObject(artifact.objectKey);
-        return { artifact, object, stream: object.body };
-      } catch (err) {
-        if (err instanceof TaskArtifactStorageNotConfiguredError) {
-          throw new TaskArtifactServiceError(503, err.message);
-        }
-        if (err instanceof MissingTaskArtifactObjectError) {
-          deps.logger.warn(
-            { artifactId: artifact.id, cid: artifact.cid, err },
-            'task artifact metadata exists but object storage is missing the object',
-          );
-          throw new TaskArtifactServiceError(503, err.message);
-        }
-        throw err;
+      return openArtifactObject(deps, artifact);
+    },
+
+    /**
+     * Download an artifact by CID for a task without naming an attempt —
+     * the read path for input artifacts (attempt_n NULL), though it also
+     * resolves attempt artifacts since a CID names unambiguous bytes.
+     */
+    async downloadForTask(
+      input: DownloadTaskArtifactByCidInput,
+    ): Promise<TaskArtifactDownload> {
+      await requireTeamAccess(deps, input);
+      await requireTaskReadAccess(deps, input);
+      await assertTaskInTeam(deps, input);
+      const artifact = await deps.taskArtifactRepository.findByCidForTask({
+        cid: input.cid,
+        taskId: input.taskId,
+        teamId: input.teamId,
+      });
+      if (!artifact) {
+        throw new TaskArtifactServiceError(404, 'Task artifact not found');
       }
+      return openArtifactObject(deps, artifact);
     },
   };
+}
+
+async function openArtifactObject(
+  deps: TaskArtifactServiceDeps,
+  artifact: TaskArtifact,
+): Promise<TaskArtifactDownload> {
+  try {
+    const object = await deps.objectStorage.getObject(artifact.objectKey);
+    return { artifact, object, stream: object.body };
+  } catch (err) {
+    if (err instanceof TaskArtifactStorageNotConfiguredError) {
+      throw new TaskArtifactServiceError(503, err.message);
+    }
+    if (err instanceof MissingTaskArtifactObjectError) {
+      deps.logger.warn(
+        { artifactId: artifact.id, cid: artifact.cid, err },
+        'task artifact metadata exists but object storage is missing the object',
+      );
+      throw new TaskArtifactServiceError(503, err.message);
+    }
+    throw err;
+  }
 }
 
 async function assertTaskAttemptUploadEligible(
@@ -441,6 +530,12 @@ async function stageArtifactUpload(body: unknown, input: { maxBytes: number }) {
   }
 }
 
-function buildArtifactObjectKey(teamId: string, cid: string): string {
+/**
+ * Canonical object-key layout for team-scoped, content-addressed task
+ * artifacts. Exported so the task-create binding (task-service, wired in
+ * app bootstrap) can resolve staged objects without depending on this
+ * service. The orphan sweep parses keys of this exact shape.
+ */
+export function buildArtifactObjectKey(teamId: string, cid: string): string {
   return ['teams', teamId, 'artifacts', cid].join('/');
 }

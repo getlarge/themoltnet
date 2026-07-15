@@ -226,7 +226,9 @@ export const TaskRef = Type.Object(
       Type.Object(
         {
           cid: Cid,
-          attemptN: Type.Integer({ minimum: 1 }),
+          // Absent = input artifact staged before the task existed and
+          // bound at creation time (taskId null, no attempt).
+          attemptN: Type.Optional(Type.Integer({ minimum: 1 })),
           kind: Type.Optional(Type.String({ minLength: 1, maxLength: 100 })),
           title: Type.Optional(Type.String({ minLength: 1, maxLength: 255 })),
           contentType: Type.Optional(

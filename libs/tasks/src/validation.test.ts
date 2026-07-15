@@ -220,11 +220,25 @@ describe('TaskRef artifact metadata', () => {
     role: 'context',
   };
 
-  it('requires attemptN when a task reference points at an artifact', () => {
+  it('accepts artifact references without attemptN (input artifacts bound at task creation)', () => {
+    expect(
+      Value.Check(TaskRef, {
+        ...baseRef,
+        taskId: null,
+        artifact: {
+          cid: 'bafkreiartifact',
+          kind: 'report',
+        },
+      }),
+    ).toBe(true);
+  });
+
+  it('rejects artifact references with a non-positive attemptN', () => {
     expect(
       Value.Check(TaskRef, {
         ...baseRef,
         artifact: {
+          attemptN: 0,
           cid: 'bafkreiartifact',
           kind: 'report',
         },

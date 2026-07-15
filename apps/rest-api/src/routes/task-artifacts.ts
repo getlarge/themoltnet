@@ -13,11 +13,14 @@ import {
 } from '@moltnet/task-artifact-service';
 import {
   ListTaskArtifactsQuery as ListTaskArtifactsQuerySchema,
+  StagedTaskArtifact as StagedTaskArtifactSchema,
+  StageTaskArtifactQuery as StageTaskArtifactQuerySchema,
   TaskArtifact as TaskArtifactSchema,
   TaskArtifactAttemptParams as TaskArtifactAttemptParamsSchema,
   TaskArtifactContent as TaskArtifactContentSchema,
   TaskArtifactContentParams as TaskArtifactContentParamsSchema,
   TaskArtifactList as TaskArtifactListSchema,
+  TaskArtifactTaskContentParams as TaskArtifactTaskContentParamsSchema,
   TaskArtifactTaskParams as TaskArtifactTaskParamsSchema,
   UploadTaskArtifactQuery as UploadTaskArtifactQuerySchema,
 } from '@moltnet/tasks';
@@ -175,6 +178,68 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
     },
   );
 
+  server.put(
+    '/task-artifacts/staged',
+    {
+      config: {
+        ...deferInaccessibleTeamAuthorization,
+        rateLimit: fastify.rateLimitConfig.taskArtifactUpload,
+        swaggerTransform: ({ schema, url }) => ({
+          schema: {
+            ...schema,
+            body: TaskArtifactContentSchema,
+          },
+          url,
+        }),
+      },
+      schema: {
+        operationId: 'stageTaskArtifact',
+        tags: ['task-artifacts'],
+        description:
+          'Stage immutable content-addressed artifact bytes for later ' +
+          'binding as task input artifacts via task creation references. ' +
+          'Creates no metadata row; staged bytes are not downloadable until ' +
+          'bound to a task, and unbound objects are garbage-collected after ' +
+          'a grace window.',
+        consumes: ['application/octet-stream'],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        headers: TeamHeaderRequiredSchema,
+        querystring: StageTaskArtifactQuerySchema,
+        response: {
+          200: StagedTaskArtifactSchema,
+          400: ValidationProblemDetailsSchema,
+          401: ProblemDetailsSchema,
+          403: ProblemDetailsSchema,
+          404: ProblemDetailsSchema,
+          503: ProblemDetailsSchema,
+        },
+      },
+    },
+    async (request) => {
+      // Unlike attempt-output uploads, staging is open to humans: task
+      // proposers (Diary write) may be human and attach inputs via the API.
+      const { identityId, subjectNs } = authSubject(request);
+      try {
+        return await taskArtifacts.stageUpload({
+          body: request.body,
+          contentEncoding: request.query.contentEncoding ?? null,
+          contentType:
+            request.query.contentType ??
+            normalizeContentType(request.headers['content-type']) ??
+            'application/octet-stream',
+          identityId,
+          subjectNs,
+          teamId: requireCurrentTeamId(request, 'task artifacts'),
+        });
+      } catch (error) {
+        if (error instanceof TaskArtifactServiceError) {
+          throw toArtifactProblem(error);
+        }
+        throw error;
+      }
+    },
+  );
+
   server.get(
     '/tasks/:taskId/artifacts',
     {
@@ -217,6 +282,88 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
       } catch (error) {
         if (error instanceof TaskArtifactServiceError) {
           throw toArtifactProblem(error, 'query');
+        }
+        throw error;
+      }
+    },
+  );
+
+  server.get(
+    '/tasks/:taskId/artifacts/:cid/content',
+    {
+      config: {
+        ...deferInaccessibleTeamAuthorization,
+        rateLimit: fastify.rateLimitConfig.read,
+      },
+      schema: {
+        operationId: 'downloadTaskArtifactByCid',
+        tags: ['task-artifacts'],
+        description:
+          'Download immutable task artifact content by CID without naming ' +
+          'an attempt. Resolves input artifacts bound at task creation as ' +
+          'well as attempt artifacts.',
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        headers: TeamHeaderRequiredSchema,
+        params: TaskArtifactTaskContentParamsSchema,
+        response: {
+          200: {
+            content: {
+              'application/octet-stream': {
+                schema: TaskArtifactContentSchema,
+              },
+            },
+            description: 'Task artifact content stream.',
+            headers: {
+              'x-moltnet-task-artifact-id': {
+                type: 'string',
+                description: 'Artifact metadata row id.',
+              },
+              'x-moltnet-task-artifact-cid': {
+                type: 'string',
+                description: 'CIDv1 raw-bytes identifier for the artifact.',
+              },
+              'x-moltnet-task-artifact-content-type': {
+                type: 'string',
+                description: 'Content type recorded at upload time.',
+              },
+              'x-moltnet-task-artifact-content-encoding': {
+                type: 'string',
+                description:
+                  'Content encoding recorded at upload time, empty when unset.',
+              },
+            },
+          },
+          400: ValidationProblemDetailsSchema,
+          401: ProblemDetailsSchema,
+          403: ProblemDetailsSchema,
+          404: ProblemDetailsSchema,
+          503: ProblemDetailsSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const { identityId, subjectNs } = authSubject(request);
+      try {
+        const { artifact, stream } = await taskArtifacts.downloadForTask({
+          cid: request.params.cid,
+          identityId,
+          subjectNs,
+          taskId: request.params.taskId,
+          teamId: requireCurrentTeamId(request, 'task artifacts'),
+        });
+        return await reply
+          .header('x-moltnet-task-artifact-id', artifact.id)
+          .header('x-moltnet-task-artifact-cid', artifact.cid)
+          .header('x-moltnet-task-artifact-content-type', artifact.contentType)
+          .header(
+            'x-moltnet-task-artifact-content-encoding',
+            artifact.contentEncoding ?? '',
+          )
+          .type('application/octet-stream')
+          .send(stream as never);
+      } catch (error) {
+        if (error instanceof TaskArtifactServiceError) {
+          throw toArtifactProblem(error);
         }
         throw error;
       }

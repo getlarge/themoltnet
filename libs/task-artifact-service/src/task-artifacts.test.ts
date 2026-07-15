@@ -10,6 +10,7 @@ import {
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { TaskArtifactStorage } from './task-artifact-storage.js';
+import { TaskArtifactStorageNotConfiguredError } from './task-artifact-storage.js';
 import {
   createTaskArtifactService,
   type TaskArtifactServiceDeps,
@@ -56,6 +57,7 @@ function createDeps() {
     putObject: vi.fn(),
     getObject: vi.fn(),
     headObject: vi.fn().mockResolvedValue(null),
+    listObjects: vi.fn(),
     deleteObject: vi.fn(),
     deleteObjects: vi.fn(),
   };
@@ -76,6 +78,7 @@ function createDeps() {
         .mockResolvedValue({ artifact: mockArtifact(), created: true }),
       findExistingForAttempt: vi.fn().mockResolvedValue(null),
       findByCidForAttempt: vi.fn().mockResolvedValue(null),
+      findByCidForTask: vi.fn().mockResolvedValue(null),
       listForTask: vi.fn().mockResolvedValue({
         artifacts: [],
         nextCursor: null,
@@ -564,5 +567,244 @@ describe('createTaskArtifactService', () => {
     expect(result.artifact).toBe(artifact);
     expect(await readStream(result.stream)).toEqual(Buffer.from('hello'));
     expect(storage.getObject).toHaveBeenCalledWith(artifact.objectKey);
+  });
+
+  describe('stageUpload', () => {
+    it('stages bytes under a CID-addressed key and returns cid/size/contentType', async () => {
+      const body = Buffer.from('{"staged":true}');
+      const expectedCid = await computeBytesCid(body);
+      vi.mocked(storage.putObject).mockImplementation(async (input) => {
+        await readStream(input.body);
+      });
+
+      const result = await subject.stageUpload({
+        body: Readable.from([body]),
+        contentType: 'application/json',
+        identityId: AGENT_ID,
+        subjectNs: KetoNamespace.Agent,
+        teamId: TEAM_ID,
+      });
+
+      expect(result).toEqual({
+        cid: expectedCid,
+        contentType: 'application/json',
+        sizeBytes: body.byteLength,
+      });
+      const uploaded = vi.mocked(storage.putObject).mock.calls[0]?.[0];
+      expect(uploaded).toMatchObject({
+        contentLength: body.byteLength,
+        contentType: 'application/json',
+        key: `teams/${TEAM_ID}/artifacts/${expectedCid}`,
+      });
+    });
+
+    it('creates no repository rows when staging', async () => {
+      await subject.stageUpload({
+        body: Readable.from(['{"staged":true}']),
+        contentType: 'application/json',
+        identityId: AGENT_ID,
+        subjectNs: KetoNamespace.Agent,
+        teamId: TEAM_ID,
+      });
+
+      expect(
+        deps.taskArtifactRepository.createForAttempt,
+      ).not.toHaveBeenCalled();
+      expect(
+        deps.taskArtifactRepository.findExistingForAttempt,
+      ).not.toHaveBeenCalled();
+      expect(
+        deps.taskArtifactRepository.findByCidForAttempt,
+      ).not.toHaveBeenCalled();
+      expect(
+        deps.taskArtifactRepository.findByCidForTask,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('skips putObject when the CID key already exists', async () => {
+      vi.mocked(storage.headObject).mockResolvedValue({
+        contentLength: 15,
+        contentType: 'application/json',
+      });
+
+      const result = await subject.stageUpload({
+        body: Readable.from(['{"staged":true}']),
+        contentType: 'application/json',
+        identityId: AGENT_ID,
+        subjectNs: KetoNamespace.Agent,
+        teamId: TEAM_ID,
+      });
+
+      expect(storage.putObject).not.toHaveBeenCalled();
+      expect(result.contentType).toBe('application/json');
+    });
+
+    it('rejects staging when team access is denied', async () => {
+      vi.mocked(deps.permissionChecker.canAccessTeam).mockResolvedValue(false);
+
+      await expect(
+        subject.stageUpload({
+          body: Readable.from(['{"staged":true}']),
+          contentType: 'application/json',
+          identityId: AGENT_ID,
+          subjectNs: KetoNamespace.Agent,
+          teamId: TEAM_ID,
+        }),
+      ).rejects.toMatchObject({
+        message: 'Task not found',
+        statusCode: 404,
+      });
+      expect(storage.putObject).not.toHaveBeenCalled();
+    });
+
+    it('rejects a non-stream body with 400', async () => {
+      await expect(
+        subject.stageUpload({
+          body: { not: 'a stream' },
+          contentType: 'application/json',
+          identityId: AGENT_ID,
+          subjectNs: KetoNamespace.Agent,
+          teamId: TEAM_ID,
+        }),
+      ).rejects.toMatchObject({
+        message: 'task artifact content must be a stream',
+        statusCode: 400,
+      });
+      expect(storage.putObject).not.toHaveBeenCalled();
+    });
+
+    it('rejects an oversize body with 400', async () => {
+      deps.taskArtifactMaxBytes = 4;
+
+      await expect(
+        subject.stageUpload({
+          body: Readable.from([Buffer.from('this payload is too large')]),
+          contentType: 'application/json',
+          identityId: AGENT_ID,
+          subjectNs: KetoNamespace.Agent,
+          teamId: TEAM_ID,
+        }),
+      ).rejects.toMatchObject({ statusCode: 400 });
+      expect(storage.putObject).not.toHaveBeenCalled();
+    });
+
+    it('maps storage-not-configured failures to 503', async () => {
+      vi.mocked(storage.headObject).mockRejectedValue(
+        new TaskArtifactStorageNotConfiguredError(),
+      );
+
+      await expect(
+        subject.stageUpload({
+          body: Readable.from(['{"staged":true}']),
+          contentType: 'application/json',
+          identityId: AGENT_ID,
+          subjectNs: KetoNamespace.Agent,
+          teamId: TEAM_ID,
+        }),
+      ).rejects.toMatchObject({ statusCode: 503 });
+    });
+  });
+
+  describe('downloadForTask', () => {
+    it('streams the object for an input-artifact row', async () => {
+      const artifact = mockArtifact({
+        attemptN: null,
+        cid: 'bafkreiinput',
+        contentType: 'text/plain',
+        objectKey: `teams/${TEAM_ID}/artifacts/bafkreiinput`,
+      });
+      vi.mocked(deps.taskArtifactRepository.findByCidForTask).mockResolvedValue(
+        artifact,
+      );
+      vi.mocked(storage.getObject).mockResolvedValue({
+        body: Readable.from(['input-bytes']),
+        contentType: 'text/plain',
+      });
+
+      const result = await subject.downloadForTask({
+        cid: artifact.cid,
+        identityId: AGENT_ID,
+        subjectNs: KetoNamespace.Agent,
+        taskId: TASK_ID,
+        teamId: TEAM_ID,
+      });
+
+      expect(result.artifact).toBe(artifact);
+      expect(await readStream(result.stream)).toEqual(
+        Buffer.from('input-bytes'),
+      );
+      expect(deps.taskArtifactRepository.findByCidForTask).toHaveBeenCalledWith(
+        {
+          cid: artifact.cid,
+          taskId: TASK_ID,
+          teamId: TEAM_ID,
+        },
+      );
+      expect(storage.getObject).toHaveBeenCalledWith(artifact.objectKey);
+    });
+
+    it('returns 404 when no artifact row matches the CID', async () => {
+      vi.mocked(deps.taskArtifactRepository.findByCidForTask).mockResolvedValue(
+        null,
+      );
+
+      await expect(
+        subject.downloadForTask({
+          cid: 'bafkreimissing',
+          identityId: AGENT_ID,
+          subjectNs: KetoNamespace.Agent,
+          taskId: TASK_ID,
+          teamId: TEAM_ID,
+        }),
+      ).rejects.toMatchObject({
+        message: 'Task artifact not found',
+        statusCode: 404,
+      });
+    });
+
+    it('returns 404 when the subject cannot view the task', async () => {
+      vi.mocked(deps.permissionChecker.canViewTask).mockResolvedValue(false);
+
+      await expect(
+        subject.downloadForTask({
+          cid: 'bafkreiinput',
+          identityId: AGENT_ID,
+          subjectNs: KetoNamespace.Agent,
+          taskId: TASK_ID,
+          teamId: TEAM_ID,
+        }),
+      ).rejects.toMatchObject({
+        message: 'Task not found',
+        statusCode: 404,
+      });
+      expect(
+        deps.taskArtifactRepository.findByCidForTask,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('returns 404 when the task belongs to another team', async () => {
+      vi.mocked(deps.taskRepository.findById).mockResolvedValue({
+        claimAgentId: AGENT_ID,
+        claimExpiresAt: new Date(Date.now() + 60_000),
+        id: TASK_ID,
+        teamId: 'cccccccc-0000-0000-0000-000000000003',
+      } as never);
+
+      await expect(
+        subject.downloadForTask({
+          cid: 'bafkreiinput',
+          identityId: AGENT_ID,
+          subjectNs: KetoNamespace.Agent,
+          taskId: TASK_ID,
+          teamId: TEAM_ID,
+        }),
+      ).rejects.toMatchObject({
+        message: 'Task not found',
+        statusCode: 404,
+      });
+      expect(
+        deps.taskArtifactRepository.findByCidForTask,
+      ).not.toHaveBeenCalled();
+    });
   });
 });

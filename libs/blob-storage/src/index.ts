@@ -14,6 +14,7 @@ import {
   GetObjectCommand,
   HeadBucketCommand,
   HeadObjectCommand,
+  ListObjectsV2Command,
   NoSuchKey,
   NotFound,
   PutObjectCommand,
@@ -58,6 +59,23 @@ export interface BlobObjectHead {
   contentType?: string;
 }
 
+export interface BlobObjectSummary {
+  key: string;
+  sizeBytes?: number;
+  lastModified?: Date;
+}
+
+export interface BlobObjectList {
+  objects: BlobObjectSummary[];
+  nextContinuationToken: string | null;
+}
+
+export interface ListBlobObjectsInput {
+  prefix?: string;
+  continuationToken?: string;
+  maxKeys?: number;
+}
+
 export interface BlobObjectStorage {
   putObject(input: {
     key: string;
@@ -70,6 +88,8 @@ export interface BlobObjectStorage {
   getObject(key: string): Promise<BlobObject>;
 
   headObject(key: string): Promise<BlobObjectHead | null>;
+
+  listObjects(input: ListBlobObjectsInput): Promise<BlobObjectList>;
 
   deleteObject(key: string): Promise<void>;
 
@@ -182,6 +202,32 @@ export function createS3CompatibleObjectStorage(
         }
         throw err;
       }
+    },
+
+    async listObjects(input) {
+      await requireBucketReady();
+      const result = await client.send(
+        new ListObjectsV2Command({
+          Bucket: config.bucket,
+          ContinuationToken: input.continuationToken,
+          MaxKeys: input.maxKeys,
+          Prefix: input.prefix,
+        }),
+      );
+      return {
+        objects: (result.Contents ?? []).flatMap((object) =>
+          object.Key !== undefined
+            ? [
+                {
+                  key: object.Key,
+                  lastModified: object.LastModified,
+                  sizeBytes: object.Size,
+                },
+              ]
+            : [],
+        ),
+        nextContinuationToken: result.NextContinuationToken ?? null,
+      };
     },
 
     async deleteObject(key) {

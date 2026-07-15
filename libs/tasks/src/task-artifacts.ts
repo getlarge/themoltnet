@@ -5,7 +5,8 @@ export const TaskArtifact = Type.Object(
     id: Type.String({ format: 'uuid' }),
     teamId: Type.String({ format: 'uuid' }),
     taskId: Type.String({ format: 'uuid' }),
-    attemptN: Type.Integer({ minimum: 1 }),
+    // Null for input artifacts bound at task creation (no attempt).
+    attemptN: Type.Union([Type.Integer({ minimum: 1 }), Type.Null()]),
     kind: Type.String({ minLength: 1, maxLength: 100 }),
     title: Type.String({ minLength: 1, maxLength: 255 }),
     contentType: Type.String({ minLength: 1, maxLength: 200 }),
@@ -15,7 +16,11 @@ export const TaskArtifact = Type.Object(
     ]),
     sizeBytes: Type.Integer({ minimum: 0 }),
     cid: Type.String({ minLength: 1, maxLength: 100 }),
-    createdByAgentId: Type.String({ format: 'uuid' }),
+    // Null when a human proposer bound the artifact at task creation.
+    createdByAgentId: Type.Union([
+      Type.String({ format: 'uuid' }),
+      Type.Null(),
+    ]),
     expiresAt: Type.Union([Type.String({ format: 'date-time' }), Type.Null()]),
     createdAt: Type.String({ format: 'date-time' }),
   },
@@ -101,13 +106,51 @@ export type TaskArtifactContentParams = Static<
   typeof TaskArtifactContentParams
 >;
 
+export const StageTaskArtifactQuery = Type.Object(
+  {
+    contentType: Type.Optional(Type.String({ minLength: 1, maxLength: 200 })),
+    contentEncoding: Type.Optional(
+      Type.String({ minLength: 1, maxLength: 100 }),
+    ),
+  },
+  { $id: 'StageTaskArtifactQuery', additionalProperties: false },
+);
+export type StageTaskArtifactQuery = Static<typeof StageTaskArtifactQuery>;
+
+export const StagedTaskArtifact = Type.Object(
+  {
+    cid: Type.String({ minLength: 1, maxLength: 100 }),
+    sizeBytes: Type.Integer({ minimum: 0 }),
+    contentType: Type.String({ minLength: 1, maxLength: 200 }),
+  },
+  { $id: 'StagedTaskArtifact' },
+);
+export type StagedTaskArtifact = Static<typeof StagedTaskArtifact>;
+
+export const TaskArtifactTaskContentParams = Type.Object(
+  {
+    taskId: Type.String({ format: 'uuid' }),
+    cid: Type.String({ minLength: 1, maxLength: 100 }),
+  },
+  {
+    $id: 'TaskArtifactTaskContentParams',
+    additionalProperties: false,
+  },
+);
+export type TaskArtifactTaskContentParams = Static<
+  typeof TaskArtifactTaskContentParams
+>;
+
 export const taskArtifactSchemas = [
   TaskArtifact,
   TaskArtifactList,
   ListTaskArtifactsQuery,
   UploadTaskArtifactQuery,
+  StageTaskArtifactQuery,
+  StagedTaskArtifact,
   TaskArtifactContent,
   TaskArtifactTaskParams,
   TaskArtifactAttemptParams,
   TaskArtifactContentParams,
+  TaskArtifactTaskContentParams,
 ];

@@ -1,6 +1,10 @@
 import type { Readable } from 'node:stream';
 
-import { createS3CompatibleObjectStorage } from '@moltnet/blob-storage';
+import {
+  type BlobObjectList,
+  createS3CompatibleObjectStorage,
+  type ListBlobObjectsInput,
+} from '@moltnet/blob-storage';
 
 export interface TaskArtifactStorageConfig {
   TASK_ARTIFACT_STORAGE_ACCESS_KEY_ID?: string;
@@ -36,6 +40,8 @@ export interface TaskArtifactStorage {
   getObject(key: string): Promise<TaskArtifactObject>;
 
   headObject(key: string): Promise<TaskArtifactObjectHead | null>;
+
+  listObjects(input: ListBlobObjectsInput): Promise<BlobObjectList>;
 
   deleteObject(key: string): Promise<void>;
 
@@ -91,6 +97,9 @@ function createDisabledTaskArtifactStorage(): TaskArtifactStorage {
       return Promise.reject(new TaskArtifactStorageNotConfiguredError());
     },
     headObject() {
+      return Promise.reject(new TaskArtifactStorageNotConfiguredError());
+    },
+    listObjects() {
       return Promise.reject(new TaskArtifactStorageNotConfiguredError());
     },
     deleteObject() {
