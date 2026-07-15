@@ -39,6 +39,7 @@ export class TaskServiceError extends Error {
       | 'forbidden'
       | 'invalid'
       | 'timed_out'
+      | 'unavailable'
       | 'unknown_task_type',
     message: string,
     public readonly validationErrors?: TaskValidationError[],

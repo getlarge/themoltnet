@@ -1,5 +1,9 @@
 import { KetoNamespace } from '@moltnet/auth';
-import { computeJsonCid } from '@moltnet/crypto-service';
+import {
+  computeBytesCid,
+  computeJsonCid,
+  decodeBytesCidToSha256,
+} from '@moltnet/crypto-service';
 import {
   DBOS,
   type Task as DbTask,
@@ -237,8 +241,23 @@ type RelationshipWriterMocks = {
   >;
 };
 
+type TaskArtifactRepositoryMocks = {
+  createForTask: Mock<(input: Record<string, unknown>) => Promise<unknown>>;
+};
+
+type TaskInputArtifactObjectStoreMocks = {
+  buildObjectKey: (teamId: string, cid: string) => string;
+  headObject: Mock<
+    (
+      key: string,
+    ) => Promise<{ contentLength?: number; contentType?: string } | null>
+  >;
+};
+
 interface Mocks {
   taskRepository: TaskRepositoryMocks;
+  taskArtifactRepository: TaskArtifactRepositoryMocks;
+  taskInputArtifactObjectStore: TaskInputArtifactObjectStoreMocks;
   diaryRepository: {
     findById: Mock<(id: string) => Promise<{ id: string; teamId: string }>>;
   };
@@ -466,6 +485,23 @@ function makeMocks(
 
   return {
     taskRepository,
+    taskArtifactRepository: {
+      createForTask: vi
+        .fn<(input: Record<string, unknown>) => Promise<unknown>>()
+        .mockResolvedValue(undefined),
+    },
+    taskInputArtifactObjectStore: {
+      buildObjectKey: (teamId: string, cid: string) =>
+        `teams/${teamId}/artifacts/${cid}`,
+      headObject: vi
+        .fn<
+          (key: string) => Promise<{
+            contentLength?: number;
+            contentType?: string;
+          } | null>
+        >()
+        .mockResolvedValue(null),
+    },
     diaryRepository: {
       findById: vi
         .fn<(id: string) => Promise<{ id: string; teamId: string }>>()
@@ -1119,6 +1155,253 @@ describe('createTaskService.create — producer input normalization', () => {
       ],
     });
     expect(mocks.taskRepository.create).not.toHaveBeenCalled();
+  });
+});
+
+describe('createTaskService.create — input artifact binding', () => {
+  let mocks: Mocks;
+  let service: ReturnType<typeof createTaskService>;
+
+  beforeEach(() => {
+    mocks = makeMocks();
+    service = createTaskService(
+      mocks as unknown as Parameters<typeof createTaskService>[0],
+    );
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  async function makeInputCid(seed: string): Promise<string> {
+    return computeBytesCid(new TextEncoder().encode(seed));
+  }
+
+  function inputRef(
+    cid: string,
+    artifact: Record<string, unknown> = {},
+  ): Record<string, unknown> {
+    return {
+      taskId: null,
+      outputCid: cid,
+      role: 'context',
+      artifact: { cid, ...artifact },
+    };
+  }
+
+  it('binds a staged input artifact for an agent caller', async () => {
+    const cid = await makeInputCid('happy-path');
+    const sha256 = decodeBytesCidToSha256(cid);
+    mocks.taskInputArtifactObjectStore.headObject.mockResolvedValue({
+      contentLength: 42,
+      contentType: 'text/plain',
+    });
+
+    const task = await service.create({
+      ...fulfillCreateInput(),
+      references: [inputRef(cid)],
+    } as never);
+
+    expect(mocks.taskInputArtifactObjectStore.headObject).toHaveBeenCalledWith(
+      `teams/${TEAM_ID}/artifacts/${cid}`,
+    );
+    expect(mocks.taskArtifactRepository.createForTask).toHaveBeenCalledTimes(1);
+    expect(mocks.taskArtifactRepository.createForTask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        taskId: task.id,
+        teamId: TEAM_ID,
+        cid,
+        sha256,
+        sizeBytes: 42,
+        kind: 'input',
+        title: cid,
+        contentType: 'text/plain',
+        createdByAgentId: AGENT_ID,
+      }),
+    );
+  });
+
+  it('uses explicit reference metadata when provided', async () => {
+    const cid = await makeInputCid('explicit-metadata');
+    mocks.taskInputArtifactObjectStore.headObject.mockResolvedValue({
+      contentLength: 42,
+      contentType: 'text/plain',
+    });
+
+    await service.create({
+      ...fulfillCreateInput(),
+      references: [
+        inputRef(cid, {
+          kind: 'brief',
+          title: 'brief.md',
+          contentType: 'text/markdown',
+        }),
+      ],
+    } as never);
+
+    expect(mocks.taskArtifactRepository.createForTask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cid,
+        kind: 'brief',
+        title: 'brief.md',
+        contentType: 'text/markdown',
+      }),
+    );
+  });
+
+  it('records a null creator for human callers', async () => {
+    const cid = await makeInputCid('human-caller');
+    mocks.taskInputArtifactObjectStore.headObject.mockResolvedValue({
+      contentLength: 42,
+      contentType: 'text/plain',
+    });
+
+    await service.create({
+      ...fulfillCreateInput(),
+      callerId: 'b0000000-0000-0000-0000-000000000010',
+      callerNs: 'human' as const,
+      callerIsAgent: false,
+      references: [inputRef(cid)],
+    } as never);
+
+    expect(mocks.taskArtifactRepository.createForTask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cid,
+        createdByAgentId: null,
+      }),
+    );
+  });
+
+  it('rejects a reference whose staged object is missing before opening the transaction', async () => {
+    const cid = await makeInputCid('missing-object');
+    mocks.taskInputArtifactObjectStore.headObject.mockResolvedValue(null);
+
+    await expect(
+      service.create({
+        ...fulfillCreateInput(),
+        references: [inputRef(cid)],
+      } as never),
+    ).rejects.toMatchObject({
+      code: 'invalid',
+      validationErrors: [
+        {
+          field: 'references',
+          // Vitest's matcher helpers are typed loosely here.
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          message: expect.stringMatching(/stage/i),
+        },
+      ],
+    });
+
+    expect(mocks.taskArtifactRepository.createForTask).not.toHaveBeenCalled();
+    expect(mocks.taskRepository.create).not.toHaveBeenCalled();
+  });
+
+  it('surfaces storage failures as an unavailable error', async () => {
+    const cid = await makeInputCid('storage-down');
+    mocks.taskInputArtifactObjectStore.headObject.mockRejectedValue(
+      new Error('s3 exploded'),
+    );
+
+    await expect(
+      service.create({
+        ...fulfillCreateInput(),
+        references: [inputRef(cid)],
+      } as never),
+    ).rejects.toMatchObject({
+      code: 'unavailable',
+    });
+
+    expect(mocks.taskArtifactRepository.createForTask).not.toHaveBeenCalled();
+    expect(mocks.taskRepository.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects a reference whose outputCid does not equal the artifact cid', async () => {
+    const cid = await makeInputCid('output-cid-mismatch');
+    const otherCid = await makeInputCid('some-other-bytes');
+    mocks.taskInputArtifactObjectStore.headObject.mockResolvedValue({
+      contentLength: 42,
+      contentType: 'text/plain',
+    });
+
+    await expect(
+      service.create({
+        ...fulfillCreateInput(),
+        references: [
+          {
+            taskId: null,
+            outputCid: otherCid,
+            role: 'context',
+            artifact: { cid },
+          },
+        ],
+      } as never),
+    ).rejects.toMatchObject({
+      code: 'invalid',
+    });
+
+    expect(mocks.taskArtifactRepository.createForTask).not.toHaveBeenCalled();
+    expect(mocks.taskRepository.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects duplicate input artifact CIDs across references', async () => {
+    const cid = await makeInputCid('duplicate-cid');
+    mocks.taskInputArtifactObjectStore.headObject.mockResolvedValue({
+      contentLength: 42,
+      contentType: 'text/plain',
+    });
+
+    await expect(
+      service.create({
+        ...fulfillCreateInput(),
+        references: [inputRef(cid), inputRef(cid)],
+      } as never),
+    ).rejects.toMatchObject({
+      code: 'invalid',
+    });
+
+    expect(mocks.taskArtifactRepository.createForTask).not.toHaveBeenCalled();
+    expect(mocks.taskRepository.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects a malformed input artifact CID', async () => {
+    await expect(
+      service.create({
+        ...fulfillCreateInput(),
+        references: [inputRef('not-a-cid')],
+      } as never),
+    ).rejects.toMatchObject({
+      code: 'invalid',
+    });
+
+    expect(
+      mocks.taskInputArtifactObjectStore.headObject,
+    ).not.toHaveBeenCalled();
+    expect(mocks.taskArtifactRepository.createForTask).not.toHaveBeenCalled();
+    expect(mocks.taskRepository.create).not.toHaveBeenCalled();
+  });
+
+  it('ignores attempt-scoped artifact references during input binding', async () => {
+    const cid = await makeInputCid('attempt-scoped');
+
+    const task = await service.create({
+      ...fulfillCreateInput(),
+      references: [
+        {
+          taskId: RUN_TASK,
+          outputCid: cid,
+          role: 'context',
+          artifact: { cid, attemptN: 1 },
+        },
+      ],
+    } as never);
+
+    expect(task.taskType).toBe('fulfill_brief');
+    expect(
+      mocks.taskInputArtifactObjectStore.headObject,
+    ).not.toHaveBeenCalled();
+    expect(mocks.taskArtifactRepository.createForTask).not.toHaveBeenCalled();
+    expect(mocks.taskRepository.create).toHaveBeenCalledOnce();
   });
 });
 

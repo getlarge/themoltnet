@@ -84,6 +84,8 @@ function toTaskProblem(error: TaskServiceError) {
       );
     case 'timed_out':
       return createProblem('conflict', error.message);
+    case 'unavailable':
+      return createProblem('service-unavailable', error.message);
   }
 }
 
@@ -308,6 +310,9 @@ export function taskRoutes(fastify: FastifyInstance) {
           400: Type.Ref(ValidationProblemDetailsSchema.$id),
           401: Type.Ref(ProblemDetailsSchema.$id),
           403: Type.Ref(ProblemDetailsSchema.$id),
+          404: Type.Ref(ProblemDetailsSchema.$id),
+          409: Type.Ref(ConflictProblemDetailsSchema.$id),
+          503: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
     },

@@ -1,5 +1,8 @@
 import type { ExecutorTrustLevel } from '@moltnet/crypto-service';
-import { computeJsonCid } from '@moltnet/crypto-service';
+import {
+  computeJsonCid,
+  decodeBytesCidToSha256,
+} from '@moltnet/crypto-service';
 import type { NewTask, Task as DbTask } from '@moltnet/database';
 import {
   BUILT_IN_TASK_TYPES,
@@ -8,6 +11,7 @@ import {
   normalizeTaskInputForCreate,
   type OutputKind,
   type Task,
+  type TaskRef,
   validateTaskCreateRequest,
   validateTaskInputAsync,
 } from '@moltnet/tasks';
@@ -52,6 +56,8 @@ export function createTaskCreateService(
   deps: Pick<
     TaskServiceDeps,
     | 'taskRepository'
+    | 'taskArtifactRepository'
+    | 'taskInputArtifactObjectStore'
     | 'diaryRepository'
     | 'correlationSealRepository'
     | 'permissionChecker'
@@ -68,6 +74,8 @@ export function createTaskCreateService(
 ): TaskCreateService {
   const {
     taskRepository,
+    taskArtifactRepository,
+    taskInputArtifactObjectStore,
     diaryRepository,
     correlationSealRepository,
     permissionChecker,
@@ -245,6 +253,12 @@ export function createTaskCreateService(
         }
       }
 
+      const resolvedInputArtifacts = await resolveInputArtifacts(
+        taskInputArtifactObjectStore,
+        input.teamId,
+        input.references as TaskRef[] | undefined,
+      );
+
       const newTask: NewTask = {
         taskType: input.taskType,
         title: normalizeTaskTitle(input.title),
@@ -285,6 +299,23 @@ export function createTaskCreateService(
         row = await transactionRunner.runInTransaction(
           async () => {
             const inserted = await taskRepository.create(newTask);
+            for (const artifact of resolvedInputArtifacts) {
+              await taskArtifactRepository.createForTask({
+                cid: artifact.cid,
+                contentEncoding: null,
+                contentType: artifact.contentType,
+                createdByAgentId: input.callerIsAgent
+                  ? (input.proposerId ?? input.callerId)
+                  : null,
+                kind: artifact.kind,
+                objectKey: artifact.objectKey,
+                sha256: artifact.sha256,
+                sizeBytes: artifact.sizeBytes,
+                taskId: inserted.id,
+                teamId: input.teamId,
+                title: artifact.title,
+              });
+            }
             for (const effect of sideEffects) {
               if (effect.kind === 'sealCorrelation') {
                 await correlationSealRepository.acquireCorrelationLock(
@@ -394,4 +425,106 @@ export function createTaskCreateService(
       return dbTaskToWire(row);
     },
   };
+}
+
+interface ResolvedInputArtifact {
+  cid: string;
+  contentType: string;
+  kind: string;
+  objectKey: string;
+  sha256: string;
+  sizeBytes: number;
+  title: string;
+}
+
+/**
+ * Resolve input-artifact references (taskId null + artifact without an
+ * attempt) against staged objects in team storage. Staged uploads create
+ * no metadata row, so existence is checked against the object store and
+ * the artifact row is built from the reference plus object metadata; the
+ * sha256 is recovered from the CID itself.
+ *
+ * A staged object could in principle be swept between this check and the
+ * transaction commit, but the orphan-sweep grace window (48h by default)
+ * makes that window irrelevant for freshly staged objects.
+ */
+async function resolveInputArtifacts(
+  objectStore: TaskServiceDeps['taskInputArtifactObjectStore'],
+  teamId: string,
+  references: TaskRef[] | undefined,
+): Promise<ResolvedInputArtifact[]> {
+  const inputRefs = (references ?? []).filter(
+    (ref) =>
+      ref.taskId === null &&
+      ref.artifact !== undefined &&
+      ref.artifact.attemptN === undefined,
+  );
+  if (inputRefs.length === 0) return [];
+
+  const invalid = (message: string): TaskServiceError =>
+    new TaskServiceError(
+      'invalid',
+      'Task references failed input artifact validation',
+      [{ field: 'references', message }],
+    );
+
+  const seenCids = new Set<string>();
+  const resolved: ResolvedInputArtifact[] = [];
+  for (const ref of inputRefs) {
+    const artifact = ref.artifact;
+    if (!artifact) continue;
+    if (ref.outputCid !== artifact.cid) {
+      throw invalid(
+        `input artifact reference outputCid must equal artifact.cid (got ${ref.outputCid} vs ${artifact.cid})`,
+      );
+    }
+    if (seenCids.has(artifact.cid)) {
+      throw invalid(`duplicate input artifact CID: ${artifact.cid}`);
+    }
+    seenCids.add(artifact.cid);
+
+    let sha256: string;
+    try {
+      sha256 = decodeBytesCidToSha256(artifact.cid);
+    } catch {
+      throw invalid(
+        `input artifact CID is not a raw-bytes sha2-256 CIDv1: ${artifact.cid}`,
+      );
+    }
+
+    const objectKey = objectStore.buildObjectKey(teamId, artifact.cid);
+    let head;
+    try {
+      head = await objectStore.headObject(objectKey);
+    } catch (err) {
+      throw new TaskServiceError(
+        'unavailable',
+        `Task input artifact storage is unavailable: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+    if (!head) {
+      throw invalid(
+        `input artifact object not found for CID ${artifact.cid}; stage it first via PUT /task-artifacts/staged`,
+      );
+    }
+    if (head.contentLength === undefined) {
+      throw invalid(
+        `input artifact object for CID ${artifact.cid} has no content length`,
+      );
+    }
+
+    resolved.push({
+      cid: artifact.cid,
+      contentType:
+        artifact.contentType ?? head.contentType ?? 'application/octet-stream',
+      kind: artifact.kind ?? 'input',
+      objectKey,
+      sha256,
+      sizeBytes: head.contentLength,
+      title: artifact.title ?? artifact.cid,
+    });
+  }
+  return resolved;
 }
