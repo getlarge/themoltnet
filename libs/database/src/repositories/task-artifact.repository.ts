@@ -11,7 +11,7 @@ import { getExecutor } from '../transaction-context.js';
 export interface CreateTaskArtifactInput {
   teamId: string;
   taskId: string;
-  attemptN: number;
+  attemptN: number | null;
   kind: string;
   title: string;
   objectKey: string;
@@ -20,9 +20,19 @@ export interface CreateTaskArtifactInput {
   sizeBytes: number;
   sha256: string;
   cid: string;
-  createdByAgentId: string;
+  createdByAgentId: string | null;
   expiresAt?: Date | null;
 }
+
+export type CreateTaskInputArtifactInput = Omit<
+  CreateTaskArtifactInput,
+  'attemptN'
+>;
+
+export type CreateTaskAttemptArtifactInput = CreateTaskArtifactInput & {
+  attemptN: number;
+  createdByAgentId: string;
+};
 
 export interface ListTaskArtifactsInput {
   teamId: string;
@@ -61,10 +71,9 @@ export class TaskArtifactConflictError extends Error {
 
 export function createTaskArtifactRepository(db: Database) {
   async function findExistingForAttempt(
-    input: Pick<
-      CreateTaskArtifactInput,
-      'teamId' | 'taskId' | 'attemptN' | 'cid'
-    >,
+    input: Pick<CreateTaskArtifactInput, 'teamId' | 'taskId' | 'cid'> & {
+      attemptN: number;
+    },
   ): Promise<TaskArtifact | null> {
     const [row] = await getExecutor(db)
       .select()
@@ -83,7 +92,7 @@ export function createTaskArtifactRepository(db: Database) {
 
   return {
     async createForAttempt(
-      input: CreateTaskArtifactInput,
+      input: CreateTaskAttemptArtifactInput,
     ): Promise<CreateTaskArtifactResult> {
       const [inserted] = await getExecutor(db)
         .insert(taskArtifacts)
@@ -111,6 +120,22 @@ export function createTaskArtifactRepository(db: Database) {
 
     findExistingForAttempt,
 
+    /**
+     * Insert an input artifact row (attempt_n NULL) for a task. Only used
+     * inside the task-create transaction where the task row is brand new,
+     * so no conflict handling is needed — duplicate CIDs are rejected by
+     * validation and the partial unique index is the safety net.
+     */
+    async createForTask(
+      input: CreateTaskInputArtifactInput,
+    ): Promise<TaskArtifact> {
+      const [inserted] = await getExecutor(db)
+        .insert(taskArtifacts)
+        .values(toTaskArtifactValues({ ...input, attemptN: null }))
+        .returning();
+      return inserted;
+    },
+
     async findByCidForAttempt(input: {
       teamId: string;
       taskId: string;
@@ -132,10 +157,40 @@ export function createTaskArtifactRepository(db: Database) {
       return row ?? null;
     },
 
+    /**
+     * Resolve an artifact row by CID for a whole task, regardless of
+     * attempt. When the same CID exists as both an input artifact and an
+     * attempt output, the input row (attempt_n NULL) wins — the bytes are
+     * identical either way, only metadata differs.
+     */
+    async findByCidForTask(input: {
+      teamId: string;
+      taskId: string;
+      cid: string;
+    }): Promise<TaskArtifact | null> {
+      const [row] = await getExecutor(db)
+        .select()
+        .from(taskArtifacts)
+        .where(
+          and(
+            eq(taskArtifacts.teamId, input.teamId),
+            eq(taskArtifacts.taskId, input.taskId),
+            eq(taskArtifacts.cid, input.cid),
+          ),
+        )
+        .orderBy(sql`${taskArtifacts.attemptN} ASC NULLS FIRST`)
+        .limit(1);
+      return row ?? null;
+    },
+
     async listForTask(
       input: ListTaskArtifactsInput,
     ): Promise<ListTaskArtifactsResult> {
       const createdAtCursorKey = sql`date_trunc('milliseconds', ${taskArtifacts.createdAt})`;
+      // Input artifacts have attempt_n NULL; sort them before attempt 1
+      // (attempts start at 1) so cursor pagination covers them. Cursors
+      // encode NULL attempt_n as 0 for the same reason.
+      const attemptSortKey = sql`COALESCE(${taskArtifacts.attemptN}, 0)`;
       const rows = await getExecutor(db)
         .select()
         .from(taskArtifacts)
@@ -145,13 +200,13 @@ export function createTaskArtifactRepository(db: Database) {
             eq(taskArtifacts.taskId, input.taskId),
             input.cursor
               ? or(
-                  sql`${taskArtifacts.attemptN} > ${input.cursor.attemptN}`,
+                  sql`${attemptSortKey} > ${input.cursor.attemptN}`,
                   and(
-                    eq(taskArtifacts.attemptN, input.cursor.attemptN),
+                    sql`${attemptSortKey} = ${input.cursor.attemptN}`,
                     sql`${createdAtCursorKey} > ${input.cursor.createdAt}`,
                   ),
                   and(
-                    eq(taskArtifacts.attemptN, input.cursor.attemptN),
+                    sql`${attemptSortKey} = ${input.cursor.attemptN}`,
                     sql`${createdAtCursorKey} = ${input.cursor.createdAt}`,
                     sql`${taskArtifacts.id} > ${input.cursor.id}`,
                   ),
@@ -160,7 +215,7 @@ export function createTaskArtifactRepository(db: Database) {
           ),
         )
         .orderBy(
-          asc(taskArtifacts.attemptN),
+          asc(attemptSortKey),
           asc(createdAtCursorKey),
           asc(taskArtifacts.id),
         )
@@ -190,13 +245,61 @@ export function createTaskArtifactRepository(db: Database) {
         .from(taskArtifacts)
         .where(inArray(taskArtifacts.taskId, taskIds));
     },
+
+    /**
+     * Objects are shared by every row with the same CID in a team, so a
+     * cleanup pass must not delete objects that rows of other tasks still
+     * point at. Returns the subset of the given keys that still have rows.
+     */
+    async listObjectKeysStillReferenced(
+      objectKeys: string[],
+    ): Promise<string[]> {
+      if (objectKeys.length === 0) return [];
+      const rows = await getExecutor(db)
+        .selectDistinct({ objectKey: taskArtifacts.objectKey })
+        .from(taskArtifacts)
+        .where(inArray(taskArtifacts.objectKey, objectKeys));
+      return rows.map((row) => row.objectKey);
+    },
+
+    /**
+     * Batch existence check for the orphan-object sweep: which of the
+     * given (teamId, cid) pairs have at least one artifact row?
+     */
+    async filterCidsWithRows(
+      pairs: { teamId: string; cid: string }[],
+    ): Promise<{ teamId: string; cid: string }[]> {
+      if (pairs.length === 0) return [];
+      const cidsByTeam = new Map<string, string[]>();
+      for (const pair of pairs) {
+        const cids = cidsByTeam.get(pair.teamId) ?? [];
+        cids.push(pair.cid);
+        cidsByTeam.set(pair.teamId, cids);
+      }
+      return getExecutor(db)
+        .selectDistinct({
+          teamId: taskArtifacts.teamId,
+          cid: taskArtifacts.cid,
+        })
+        .from(taskArtifacts)
+        .where(
+          or(
+            ...[...cidsByTeam.entries()].map(([teamId, cids]) =>
+              and(
+                eq(taskArtifacts.teamId, teamId),
+                inArray(taskArtifacts.cid, cids),
+              ),
+            ),
+          ),
+        );
+    },
   };
 }
 
 function encodeTaskArtifactCursor(artifact: TaskArtifact): string {
   return Buffer.from(
     JSON.stringify({
-      attemptN: artifact.attemptN,
+      attemptN: artifact.attemptN ?? 0,
       createdAt: artifact.createdAt.toISOString(),
       id: artifact.id,
     }),

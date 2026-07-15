@@ -1534,7 +1534,10 @@ export const taskArtifacts = pgTable(
     taskId: uuid('task_id')
       .notNull()
       .references(() => tasks.id, { onDelete: 'cascade' }),
-    attemptN: integer('attempt_n').notNull(),
+    // NULL attempt_n = task input artifact bound at creation time (no
+    // attempt exists yet); the composite FK below is skipped for those
+    // rows (MATCH SIMPLE) while task_id stays enforced by its own FK.
+    attemptN: integer('attempt_n'),
     kind: varchar('kind', { length: 100 }).notNull(),
     title: varchar('title', { length: 255 }).notNull(),
     objectKey: text('object_key').notNull(),
@@ -1543,9 +1546,12 @@ export const taskArtifacts = pgTable(
     sizeBytes: integer('size_bytes').notNull(),
     sha256: varchar('sha256', { length: 64 }).notNull(),
     cid: varchar('cid', { length: 100 }).notNull(),
-    createdByAgentId: uuid('created_by_agent_id')
-      .notNull()
-      .references(() => agents.identityId, { onDelete: 'restrict' }),
+    // NULL when the artifact was bound by a human proposer; attribution
+    // lives on tasks.proposed_by_human_id in that case.
+    createdByAgentId: uuid('created_by_agent_id').references(
+      () => agents.identityId,
+      { onDelete: 'restrict' },
+    ),
     expiresAt: timestamp('expires_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
@@ -1561,6 +1567,11 @@ export const taskArtifacts = pgTable(
       table.attemptN,
       table.cid,
     ),
+    // The composite index above treats NULL attempt_n as distinct; this
+    // partial index dedups input artifacts (one row per task and CID).
+    uniqueIndex('task_artifacts_input_cid_idx')
+      .on(table.teamId, table.taskId, table.cid)
+      .where(sql`attempt_n IS NULL`),
     index('task_artifacts_team_cid_idx').on(table.teamId, table.cid),
     index('task_artifacts_object_key_idx').on(table.objectKey),
     index('task_artifacts_task_attempt_idx').on(

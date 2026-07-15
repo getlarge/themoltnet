@@ -217,6 +217,13 @@
       "when": 1783065534185,
       "tag": "0030_whole_secret_warriors",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1784119463966,
+      "tag": "0031_aberrant_reaper",
+      "breakpoints": true
     }
   ],
   "version": "7"
