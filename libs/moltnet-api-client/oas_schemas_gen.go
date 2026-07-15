@@ -3675,6 +3675,7 @@ func (*ConflictProblemDetails) createDiaryGrantRes()       {}
 func (*ConflictProblemDetails) createGroupRes()            {}
 func (*ConflictProblemDetails) createRuntimeModelRes()     {}
 func (*ConflictProblemDetails) createRuntimeProfileRes()   {}
+func (*ConflictProblemDetails) createTaskRes()             {}
 func (*ConflictProblemDetails) failTaskAttemptRes()        {}
 func (*ConflictProblemDetails) initiateTransferRes()       {}
 func (*ConflictProblemDetails) joinTeamRes()               {}
@@ -6500,6 +6501,10 @@ type CreateTaskForbidden ProblemDetails
 
 func (*CreateTaskForbidden) createTaskRes() {}
 
+type CreateTaskNotFound ProblemDetails
+
+func (*CreateTaskNotFound) createTaskRes() {}
+
 type CreateTaskReq struct {
 	AllowedProfiles            []RuntimeProfileRef   `json:"allowedProfiles"`
 	ClaimCondition             OptClaimCondition     `json:"claimCondition"`
@@ -6667,6 +6672,10 @@ func (s *CreateTaskReqInput) init() CreateTaskReqInput {
 	}
 	return m
 }
+
+type CreateTaskServiceUnavailable ProblemDetails
+
+func (*CreateTaskServiceUnavailable) createTaskRes() {}
 
 type CreateTaskUnauthorized ProblemDetails
 
@@ -12694,6 +12703,1674 @@ func (s *DownloadTaskArtifactBadRequestCode) UnmarshalText(data []byte) error {
 		return nil
 	case DownloadTaskArtifactBadRequestCodeDIARYTRANSFERALREADYRESOLVED:
 		*s = DownloadTaskArtifactBadRequestCodeDIARYTRANSFERALREADYRESOLVED
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Merged schema.
+type DownloadTaskArtifactByCidBadRequest struct {
+	Code            DownloadTaskArtifactByCidBadRequestCode `json:"code"`
+	Detail          OptString                               `json:"detail"`
+	Instance        OptString                               `json:"instance"`
+	Status          int                                     `json:"status"`
+	Title           string                                  `json:"title"`
+	Type            url.URL                                 `json:"type"`
+	Errors          []ValidationError                       `json:"errors"`
+	AdditionalProps DownloadTaskArtifactByCidBadRequestAdditional
+}
+
+// GetCode returns the value of Code.
+func (s *DownloadTaskArtifactByCidBadRequest) GetCode() DownloadTaskArtifactByCidBadRequestCode {
+	return s.Code
+}
+
+// GetDetail returns the value of Detail.
+func (s *DownloadTaskArtifactByCidBadRequest) GetDetail() OptString {
+	return s.Detail
+}
+
+// GetInstance returns the value of Instance.
+func (s *DownloadTaskArtifactByCidBadRequest) GetInstance() OptString {
+	return s.Instance
+}
+
+// GetStatus returns the value of Status.
+func (s *DownloadTaskArtifactByCidBadRequest) GetStatus() int {
+	return s.Status
+}
+
+// GetTitle returns the value of Title.
+func (s *DownloadTaskArtifactByCidBadRequest) GetTitle() string {
+	return s.Title
+}
+
+// GetType returns the value of Type.
+func (s *DownloadTaskArtifactByCidBadRequest) GetType() url.URL {
+	return s.Type
+}
+
+// GetErrors returns the value of Errors.
+func (s *DownloadTaskArtifactByCidBadRequest) GetErrors() []ValidationError {
+	return s.Errors
+}
+
+// GetAdditionalProps returns the value of AdditionalProps.
+func (s *DownloadTaskArtifactByCidBadRequest) GetAdditionalProps() DownloadTaskArtifactByCidBadRequestAdditional {
+	return s.AdditionalProps
+}
+
+// SetCode sets the value of Code.
+func (s *DownloadTaskArtifactByCidBadRequest) SetCode(val DownloadTaskArtifactByCidBadRequestCode) {
+	s.Code = val
+}
+
+// SetDetail sets the value of Detail.
+func (s *DownloadTaskArtifactByCidBadRequest) SetDetail(val OptString) {
+	s.Detail = val
+}
+
+// SetInstance sets the value of Instance.
+func (s *DownloadTaskArtifactByCidBadRequest) SetInstance(val OptString) {
+	s.Instance = val
+}
+
+// SetStatus sets the value of Status.
+func (s *DownloadTaskArtifactByCidBadRequest) SetStatus(val int) {
+	s.Status = val
+}
+
+// SetTitle sets the value of Title.
+func (s *DownloadTaskArtifactByCidBadRequest) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetType sets the value of Type.
+func (s *DownloadTaskArtifactByCidBadRequest) SetType(val url.URL) {
+	s.Type = val
+}
+
+// SetErrors sets the value of Errors.
+func (s *DownloadTaskArtifactByCidBadRequest) SetErrors(val []ValidationError) {
+	s.Errors = val
+}
+
+// SetAdditionalProps sets the value of AdditionalProps.
+func (s *DownloadTaskArtifactByCidBadRequest) SetAdditionalProps(val DownloadTaskArtifactByCidBadRequestAdditional) {
+	s.AdditionalProps = val
+}
+
+func (*DownloadTaskArtifactByCidBadRequest) downloadTaskArtifactByCidRes() {}
+
+type DownloadTaskArtifactByCidBadRequestAdditional map[string]jx.Raw
+
+func (s *DownloadTaskArtifactByCidBadRequestAdditional) init() DownloadTaskArtifactByCidBadRequestAdditional {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type DownloadTaskArtifactByCidBadRequestCode string
+
+const (
+	DownloadTaskArtifactByCidBadRequestCodeUNAUTHORIZED                   DownloadTaskArtifactByCidBadRequestCode = "UNAUTHORIZED"
+	DownloadTaskArtifactByCidBadRequestCodeFORBIDDEN                      DownloadTaskArtifactByCidBadRequestCode = "FORBIDDEN"
+	DownloadTaskArtifactByCidBadRequestCodeNOTFOUND                       DownloadTaskArtifactByCidBadRequestCode = "NOT_FOUND"
+	DownloadTaskArtifactByCidBadRequestCodeCONFLICT                       DownloadTaskArtifactByCidBadRequestCode = "CONFLICT"
+	DownloadTaskArtifactByCidBadRequestCodeUNSUPPORTEDMEDIATYPE           DownloadTaskArtifactByCidBadRequestCode = "UNSUPPORTED_MEDIA_TYPE"
+	DownloadTaskArtifactByCidBadRequestCodeVALIDATIONFAILED               DownloadTaskArtifactByCidBadRequestCode = "VALIDATION_FAILED"
+	DownloadTaskArtifactByCidBadRequestCodeINVALIDCHALLENGE               DownloadTaskArtifactByCidBadRequestCode = "INVALID_CHALLENGE"
+	DownloadTaskArtifactByCidBadRequestCodeINVALIDSIGNATURE               DownloadTaskArtifactByCidBadRequestCode = "INVALID_SIGNATURE"
+	DownloadTaskArtifactByCidBadRequestCodeVOUCHERLIMIT                   DownloadTaskArtifactByCidBadRequestCode = "VOUCHER_LIMIT"
+	DownloadTaskArtifactByCidBadRequestCodeRATELIMITEXCEEDED              DownloadTaskArtifactByCidBadRequestCode = "RATE_LIMIT_EXCEEDED"
+	DownloadTaskArtifactByCidBadRequestCodeSERIALIZATIONEXHAUSTED         DownloadTaskArtifactByCidBadRequestCode = "SERIALIZATION_EXHAUSTED"
+	DownloadTaskArtifactByCidBadRequestCodeSIGNINGREQUESTEXPIRED          DownloadTaskArtifactByCidBadRequestCode = "SIGNING_REQUEST_EXPIRED"
+	DownloadTaskArtifactByCidBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED DownloadTaskArtifactByCidBadRequestCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	DownloadTaskArtifactByCidBadRequestCodeREGISTRATIONFAILED             DownloadTaskArtifactByCidBadRequestCode = "REGISTRATION_FAILED"
+	DownloadTaskArtifactByCidBadRequestCodeUPSTREAMERROR                  DownloadTaskArtifactByCidBadRequestCode = "UPSTREAM_ERROR"
+	DownloadTaskArtifactByCidBadRequestCodeSERVICEUNAVAILABLE             DownloadTaskArtifactByCidBadRequestCode = "SERVICE_UNAVAILABLE"
+	DownloadTaskArtifactByCidBadRequestCodeINTERNALSERVERERROR            DownloadTaskArtifactByCidBadRequestCode = "INTERNAL_SERVER_ERROR"
+	DownloadTaskArtifactByCidBadRequestCodeTEAMPERSONALIMMUTABLE          DownloadTaskArtifactByCidBadRequestCode = "TEAM_PERSONAL_IMMUTABLE"
+	DownloadTaskArtifactByCidBadRequestCodeTEAMNOTACTIVE                  DownloadTaskArtifactByCidBadRequestCode = "TEAM_NOT_ACTIVE"
+	DownloadTaskArtifactByCidBadRequestCodeINVITEEXPIRED                  DownloadTaskArtifactByCidBadRequestCode = "INVITE_EXPIRED"
+	DownloadTaskArtifactByCidBadRequestCodeINVITEEXHAUSTED                DownloadTaskArtifactByCidBadRequestCode = "INVITE_EXHAUSTED"
+	DownloadTaskArtifactByCidBadRequestCodeTEAMLASTOWNER                  DownloadTaskArtifactByCidBadRequestCode = "TEAM_LAST_OWNER"
+	DownloadTaskArtifactByCidBadRequestCodeTEAMALREADYACTIVE              DownloadTaskArtifactByCidBadRequestCode = "TEAM_ALREADY_ACTIVE"
+	DownloadTaskArtifactByCidBadRequestCodeTEAMNOTFOUNDING                DownloadTaskArtifactByCidBadRequestCode = "TEAM_NOT_FOUNDING"
+	DownloadTaskArtifactByCidBadRequestCodeFOUNDINGALREADYACCEPTED        DownloadTaskArtifactByCidBadRequestCode = "FOUNDING_ALREADY_ACCEPTED"
+	DownloadTaskArtifactByCidBadRequestCodeDIARYTRANSFERPENDING           DownloadTaskArtifactByCidBadRequestCode = "DIARY_TRANSFER_PENDING"
+	DownloadTaskArtifactByCidBadRequestCodeDIARYTRANSFERNOTFOUND          DownloadTaskArtifactByCidBadRequestCode = "DIARY_TRANSFER_NOT_FOUND"
+	DownloadTaskArtifactByCidBadRequestCodeDIARYTRANSFERALREADYRESOLVED   DownloadTaskArtifactByCidBadRequestCode = "DIARY_TRANSFER_ALREADY_RESOLVED"
+)
+
+// AllValues returns all DownloadTaskArtifactByCidBadRequestCode values.
+func (DownloadTaskArtifactByCidBadRequestCode) AllValues() []DownloadTaskArtifactByCidBadRequestCode {
+	return []DownloadTaskArtifactByCidBadRequestCode{
+		DownloadTaskArtifactByCidBadRequestCodeUNAUTHORIZED,
+		DownloadTaskArtifactByCidBadRequestCodeFORBIDDEN,
+		DownloadTaskArtifactByCidBadRequestCodeNOTFOUND,
+		DownloadTaskArtifactByCidBadRequestCodeCONFLICT,
+		DownloadTaskArtifactByCidBadRequestCodeUNSUPPORTEDMEDIATYPE,
+		DownloadTaskArtifactByCidBadRequestCodeVALIDATIONFAILED,
+		DownloadTaskArtifactByCidBadRequestCodeINVALIDCHALLENGE,
+		DownloadTaskArtifactByCidBadRequestCodeINVALIDSIGNATURE,
+		DownloadTaskArtifactByCidBadRequestCodeVOUCHERLIMIT,
+		DownloadTaskArtifactByCidBadRequestCodeRATELIMITEXCEEDED,
+		DownloadTaskArtifactByCidBadRequestCodeSERIALIZATIONEXHAUSTED,
+		DownloadTaskArtifactByCidBadRequestCodeSIGNINGREQUESTEXPIRED,
+		DownloadTaskArtifactByCidBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED,
+		DownloadTaskArtifactByCidBadRequestCodeREGISTRATIONFAILED,
+		DownloadTaskArtifactByCidBadRequestCodeUPSTREAMERROR,
+		DownloadTaskArtifactByCidBadRequestCodeSERVICEUNAVAILABLE,
+		DownloadTaskArtifactByCidBadRequestCodeINTERNALSERVERERROR,
+		DownloadTaskArtifactByCidBadRequestCodeTEAMPERSONALIMMUTABLE,
+		DownloadTaskArtifactByCidBadRequestCodeTEAMNOTACTIVE,
+		DownloadTaskArtifactByCidBadRequestCodeINVITEEXPIRED,
+		DownloadTaskArtifactByCidBadRequestCodeINVITEEXHAUSTED,
+		DownloadTaskArtifactByCidBadRequestCodeTEAMLASTOWNER,
+		DownloadTaskArtifactByCidBadRequestCodeTEAMALREADYACTIVE,
+		DownloadTaskArtifactByCidBadRequestCodeTEAMNOTFOUNDING,
+		DownloadTaskArtifactByCidBadRequestCodeFOUNDINGALREADYACCEPTED,
+		DownloadTaskArtifactByCidBadRequestCodeDIARYTRANSFERPENDING,
+		DownloadTaskArtifactByCidBadRequestCodeDIARYTRANSFERNOTFOUND,
+		DownloadTaskArtifactByCidBadRequestCodeDIARYTRANSFERALREADYRESOLVED,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s DownloadTaskArtifactByCidBadRequestCode) MarshalText() ([]byte, error) {
+	switch s {
+	case DownloadTaskArtifactByCidBadRequestCodeUNAUTHORIZED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidBadRequestCodeFORBIDDEN:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidBadRequestCodeNOTFOUND:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidBadRequestCodeCONFLICT:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidBadRequestCodeUNSUPPORTEDMEDIATYPE:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidBadRequestCodeVALIDATIONFAILED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidBadRequestCodeINVALIDCHALLENGE:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidBadRequestCodeINVALIDSIGNATURE:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidBadRequestCodeVOUCHERLIMIT:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidBadRequestCodeRATELIMITEXCEEDED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidBadRequestCodeSERIALIZATIONEXHAUSTED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidBadRequestCodeSIGNINGREQUESTEXPIRED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidBadRequestCodeREGISTRATIONFAILED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidBadRequestCodeUPSTREAMERROR:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidBadRequestCodeSERVICEUNAVAILABLE:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidBadRequestCodeINTERNALSERVERERROR:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidBadRequestCodeTEAMPERSONALIMMUTABLE:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidBadRequestCodeTEAMNOTACTIVE:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidBadRequestCodeINVITEEXPIRED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidBadRequestCodeINVITEEXHAUSTED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidBadRequestCodeTEAMLASTOWNER:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidBadRequestCodeTEAMALREADYACTIVE:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidBadRequestCodeTEAMNOTFOUNDING:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidBadRequestCodeFOUNDINGALREADYACCEPTED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidBadRequestCodeDIARYTRANSFERPENDING:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidBadRequestCodeDIARYTRANSFERNOTFOUND:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidBadRequestCodeDIARYTRANSFERALREADYRESOLVED:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *DownloadTaskArtifactByCidBadRequestCode) UnmarshalText(data []byte) error {
+	switch DownloadTaskArtifactByCidBadRequestCode(data) {
+	case DownloadTaskArtifactByCidBadRequestCodeUNAUTHORIZED:
+		*s = DownloadTaskArtifactByCidBadRequestCodeUNAUTHORIZED
+		return nil
+	case DownloadTaskArtifactByCidBadRequestCodeFORBIDDEN:
+		*s = DownloadTaskArtifactByCidBadRequestCodeFORBIDDEN
+		return nil
+	case DownloadTaskArtifactByCidBadRequestCodeNOTFOUND:
+		*s = DownloadTaskArtifactByCidBadRequestCodeNOTFOUND
+		return nil
+	case DownloadTaskArtifactByCidBadRequestCodeCONFLICT:
+		*s = DownloadTaskArtifactByCidBadRequestCodeCONFLICT
+		return nil
+	case DownloadTaskArtifactByCidBadRequestCodeUNSUPPORTEDMEDIATYPE:
+		*s = DownloadTaskArtifactByCidBadRequestCodeUNSUPPORTEDMEDIATYPE
+		return nil
+	case DownloadTaskArtifactByCidBadRequestCodeVALIDATIONFAILED:
+		*s = DownloadTaskArtifactByCidBadRequestCodeVALIDATIONFAILED
+		return nil
+	case DownloadTaskArtifactByCidBadRequestCodeINVALIDCHALLENGE:
+		*s = DownloadTaskArtifactByCidBadRequestCodeINVALIDCHALLENGE
+		return nil
+	case DownloadTaskArtifactByCidBadRequestCodeINVALIDSIGNATURE:
+		*s = DownloadTaskArtifactByCidBadRequestCodeINVALIDSIGNATURE
+		return nil
+	case DownloadTaskArtifactByCidBadRequestCodeVOUCHERLIMIT:
+		*s = DownloadTaskArtifactByCidBadRequestCodeVOUCHERLIMIT
+		return nil
+	case DownloadTaskArtifactByCidBadRequestCodeRATELIMITEXCEEDED:
+		*s = DownloadTaskArtifactByCidBadRequestCodeRATELIMITEXCEEDED
+		return nil
+	case DownloadTaskArtifactByCidBadRequestCodeSERIALIZATIONEXHAUSTED:
+		*s = DownloadTaskArtifactByCidBadRequestCodeSERIALIZATIONEXHAUSTED
+		return nil
+	case DownloadTaskArtifactByCidBadRequestCodeSIGNINGREQUESTEXPIRED:
+		*s = DownloadTaskArtifactByCidBadRequestCodeSIGNINGREQUESTEXPIRED
+		return nil
+	case DownloadTaskArtifactByCidBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = DownloadTaskArtifactByCidBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case DownloadTaskArtifactByCidBadRequestCodeREGISTRATIONFAILED:
+		*s = DownloadTaskArtifactByCidBadRequestCodeREGISTRATIONFAILED
+		return nil
+	case DownloadTaskArtifactByCidBadRequestCodeUPSTREAMERROR:
+		*s = DownloadTaskArtifactByCidBadRequestCodeUPSTREAMERROR
+		return nil
+	case DownloadTaskArtifactByCidBadRequestCodeSERVICEUNAVAILABLE:
+		*s = DownloadTaskArtifactByCidBadRequestCodeSERVICEUNAVAILABLE
+		return nil
+	case DownloadTaskArtifactByCidBadRequestCodeINTERNALSERVERERROR:
+		*s = DownloadTaskArtifactByCidBadRequestCodeINTERNALSERVERERROR
+		return nil
+	case DownloadTaskArtifactByCidBadRequestCodeTEAMPERSONALIMMUTABLE:
+		*s = DownloadTaskArtifactByCidBadRequestCodeTEAMPERSONALIMMUTABLE
+		return nil
+	case DownloadTaskArtifactByCidBadRequestCodeTEAMNOTACTIVE:
+		*s = DownloadTaskArtifactByCidBadRequestCodeTEAMNOTACTIVE
+		return nil
+	case DownloadTaskArtifactByCidBadRequestCodeINVITEEXPIRED:
+		*s = DownloadTaskArtifactByCidBadRequestCodeINVITEEXPIRED
+		return nil
+	case DownloadTaskArtifactByCidBadRequestCodeINVITEEXHAUSTED:
+		*s = DownloadTaskArtifactByCidBadRequestCodeINVITEEXHAUSTED
+		return nil
+	case DownloadTaskArtifactByCidBadRequestCodeTEAMLASTOWNER:
+		*s = DownloadTaskArtifactByCidBadRequestCodeTEAMLASTOWNER
+		return nil
+	case DownloadTaskArtifactByCidBadRequestCodeTEAMALREADYACTIVE:
+		*s = DownloadTaskArtifactByCidBadRequestCodeTEAMALREADYACTIVE
+		return nil
+	case DownloadTaskArtifactByCidBadRequestCodeTEAMNOTFOUNDING:
+		*s = DownloadTaskArtifactByCidBadRequestCodeTEAMNOTFOUNDING
+		return nil
+	case DownloadTaskArtifactByCidBadRequestCodeFOUNDINGALREADYACCEPTED:
+		*s = DownloadTaskArtifactByCidBadRequestCodeFOUNDINGALREADYACCEPTED
+		return nil
+	case DownloadTaskArtifactByCidBadRequestCodeDIARYTRANSFERPENDING:
+		*s = DownloadTaskArtifactByCidBadRequestCodeDIARYTRANSFERPENDING
+		return nil
+	case DownloadTaskArtifactByCidBadRequestCodeDIARYTRANSFERNOTFOUND:
+		*s = DownloadTaskArtifactByCidBadRequestCodeDIARYTRANSFERNOTFOUND
+		return nil
+	case DownloadTaskArtifactByCidBadRequestCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = DownloadTaskArtifactByCidBadRequestCodeDIARYTRANSFERALREADYRESOLVED
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type DownloadTaskArtifactByCidForbidden struct {
+	Code            DownloadTaskArtifactByCidForbiddenCode `json:"code"`
+	Detail          OptString                              `json:"detail"`
+	Instance        OptString                              `json:"instance"`
+	Status          int                                    `json:"status"`
+	Title           string                                 `json:"title"`
+	Type            url.URL                                `json:"type"`
+	AdditionalProps DownloadTaskArtifactByCidForbiddenAdditional
+}
+
+// GetCode returns the value of Code.
+func (s *DownloadTaskArtifactByCidForbidden) GetCode() DownloadTaskArtifactByCidForbiddenCode {
+	return s.Code
+}
+
+// GetDetail returns the value of Detail.
+func (s *DownloadTaskArtifactByCidForbidden) GetDetail() OptString {
+	return s.Detail
+}
+
+// GetInstance returns the value of Instance.
+func (s *DownloadTaskArtifactByCidForbidden) GetInstance() OptString {
+	return s.Instance
+}
+
+// GetStatus returns the value of Status.
+func (s *DownloadTaskArtifactByCidForbidden) GetStatus() int {
+	return s.Status
+}
+
+// GetTitle returns the value of Title.
+func (s *DownloadTaskArtifactByCidForbidden) GetTitle() string {
+	return s.Title
+}
+
+// GetType returns the value of Type.
+func (s *DownloadTaskArtifactByCidForbidden) GetType() url.URL {
+	return s.Type
+}
+
+// GetAdditionalProps returns the value of AdditionalProps.
+func (s *DownloadTaskArtifactByCidForbidden) GetAdditionalProps() DownloadTaskArtifactByCidForbiddenAdditional {
+	return s.AdditionalProps
+}
+
+// SetCode sets the value of Code.
+func (s *DownloadTaskArtifactByCidForbidden) SetCode(val DownloadTaskArtifactByCidForbiddenCode) {
+	s.Code = val
+}
+
+// SetDetail sets the value of Detail.
+func (s *DownloadTaskArtifactByCidForbidden) SetDetail(val OptString) {
+	s.Detail = val
+}
+
+// SetInstance sets the value of Instance.
+func (s *DownloadTaskArtifactByCidForbidden) SetInstance(val OptString) {
+	s.Instance = val
+}
+
+// SetStatus sets the value of Status.
+func (s *DownloadTaskArtifactByCidForbidden) SetStatus(val int) {
+	s.Status = val
+}
+
+// SetTitle sets the value of Title.
+func (s *DownloadTaskArtifactByCidForbidden) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetType sets the value of Type.
+func (s *DownloadTaskArtifactByCidForbidden) SetType(val url.URL) {
+	s.Type = val
+}
+
+// SetAdditionalProps sets the value of AdditionalProps.
+func (s *DownloadTaskArtifactByCidForbidden) SetAdditionalProps(val DownloadTaskArtifactByCidForbiddenAdditional) {
+	s.AdditionalProps = val
+}
+
+func (*DownloadTaskArtifactByCidForbidden) downloadTaskArtifactByCidRes() {}
+
+type DownloadTaskArtifactByCidForbiddenAdditional map[string]jx.Raw
+
+func (s *DownloadTaskArtifactByCidForbiddenAdditional) init() DownloadTaskArtifactByCidForbiddenAdditional {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type DownloadTaskArtifactByCidForbiddenCode string
+
+const (
+	DownloadTaskArtifactByCidForbiddenCodeUNAUTHORIZED                   DownloadTaskArtifactByCidForbiddenCode = "UNAUTHORIZED"
+	DownloadTaskArtifactByCidForbiddenCodeFORBIDDEN                      DownloadTaskArtifactByCidForbiddenCode = "FORBIDDEN"
+	DownloadTaskArtifactByCidForbiddenCodeNOTFOUND                       DownloadTaskArtifactByCidForbiddenCode = "NOT_FOUND"
+	DownloadTaskArtifactByCidForbiddenCodeCONFLICT                       DownloadTaskArtifactByCidForbiddenCode = "CONFLICT"
+	DownloadTaskArtifactByCidForbiddenCodeUNSUPPORTEDMEDIATYPE           DownloadTaskArtifactByCidForbiddenCode = "UNSUPPORTED_MEDIA_TYPE"
+	DownloadTaskArtifactByCidForbiddenCodeVALIDATIONFAILED               DownloadTaskArtifactByCidForbiddenCode = "VALIDATION_FAILED"
+	DownloadTaskArtifactByCidForbiddenCodeINVALIDCHALLENGE               DownloadTaskArtifactByCidForbiddenCode = "INVALID_CHALLENGE"
+	DownloadTaskArtifactByCidForbiddenCodeINVALIDSIGNATURE               DownloadTaskArtifactByCidForbiddenCode = "INVALID_SIGNATURE"
+	DownloadTaskArtifactByCidForbiddenCodeVOUCHERLIMIT                   DownloadTaskArtifactByCidForbiddenCode = "VOUCHER_LIMIT"
+	DownloadTaskArtifactByCidForbiddenCodeRATELIMITEXCEEDED              DownloadTaskArtifactByCidForbiddenCode = "RATE_LIMIT_EXCEEDED"
+	DownloadTaskArtifactByCidForbiddenCodeSERIALIZATIONEXHAUSTED         DownloadTaskArtifactByCidForbiddenCode = "SERIALIZATION_EXHAUSTED"
+	DownloadTaskArtifactByCidForbiddenCodeSIGNINGREQUESTEXPIRED          DownloadTaskArtifactByCidForbiddenCode = "SIGNING_REQUEST_EXPIRED"
+	DownloadTaskArtifactByCidForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED DownloadTaskArtifactByCidForbiddenCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	DownloadTaskArtifactByCidForbiddenCodeREGISTRATIONFAILED             DownloadTaskArtifactByCidForbiddenCode = "REGISTRATION_FAILED"
+	DownloadTaskArtifactByCidForbiddenCodeUPSTREAMERROR                  DownloadTaskArtifactByCidForbiddenCode = "UPSTREAM_ERROR"
+	DownloadTaskArtifactByCidForbiddenCodeSERVICEUNAVAILABLE             DownloadTaskArtifactByCidForbiddenCode = "SERVICE_UNAVAILABLE"
+	DownloadTaskArtifactByCidForbiddenCodeINTERNALSERVERERROR            DownloadTaskArtifactByCidForbiddenCode = "INTERNAL_SERVER_ERROR"
+	DownloadTaskArtifactByCidForbiddenCodeTEAMPERSONALIMMUTABLE          DownloadTaskArtifactByCidForbiddenCode = "TEAM_PERSONAL_IMMUTABLE"
+	DownloadTaskArtifactByCidForbiddenCodeTEAMNOTACTIVE                  DownloadTaskArtifactByCidForbiddenCode = "TEAM_NOT_ACTIVE"
+	DownloadTaskArtifactByCidForbiddenCodeINVITEEXPIRED                  DownloadTaskArtifactByCidForbiddenCode = "INVITE_EXPIRED"
+	DownloadTaskArtifactByCidForbiddenCodeINVITEEXHAUSTED                DownloadTaskArtifactByCidForbiddenCode = "INVITE_EXHAUSTED"
+	DownloadTaskArtifactByCidForbiddenCodeTEAMLASTOWNER                  DownloadTaskArtifactByCidForbiddenCode = "TEAM_LAST_OWNER"
+	DownloadTaskArtifactByCidForbiddenCodeTEAMALREADYACTIVE              DownloadTaskArtifactByCidForbiddenCode = "TEAM_ALREADY_ACTIVE"
+	DownloadTaskArtifactByCidForbiddenCodeTEAMNOTFOUNDING                DownloadTaskArtifactByCidForbiddenCode = "TEAM_NOT_FOUNDING"
+	DownloadTaskArtifactByCidForbiddenCodeFOUNDINGALREADYACCEPTED        DownloadTaskArtifactByCidForbiddenCode = "FOUNDING_ALREADY_ACCEPTED"
+	DownloadTaskArtifactByCidForbiddenCodeDIARYTRANSFERPENDING           DownloadTaskArtifactByCidForbiddenCode = "DIARY_TRANSFER_PENDING"
+	DownloadTaskArtifactByCidForbiddenCodeDIARYTRANSFERNOTFOUND          DownloadTaskArtifactByCidForbiddenCode = "DIARY_TRANSFER_NOT_FOUND"
+	DownloadTaskArtifactByCidForbiddenCodeDIARYTRANSFERALREADYRESOLVED   DownloadTaskArtifactByCidForbiddenCode = "DIARY_TRANSFER_ALREADY_RESOLVED"
+)
+
+// AllValues returns all DownloadTaskArtifactByCidForbiddenCode values.
+func (DownloadTaskArtifactByCidForbiddenCode) AllValues() []DownloadTaskArtifactByCidForbiddenCode {
+	return []DownloadTaskArtifactByCidForbiddenCode{
+		DownloadTaskArtifactByCidForbiddenCodeUNAUTHORIZED,
+		DownloadTaskArtifactByCidForbiddenCodeFORBIDDEN,
+		DownloadTaskArtifactByCidForbiddenCodeNOTFOUND,
+		DownloadTaskArtifactByCidForbiddenCodeCONFLICT,
+		DownloadTaskArtifactByCidForbiddenCodeUNSUPPORTEDMEDIATYPE,
+		DownloadTaskArtifactByCidForbiddenCodeVALIDATIONFAILED,
+		DownloadTaskArtifactByCidForbiddenCodeINVALIDCHALLENGE,
+		DownloadTaskArtifactByCidForbiddenCodeINVALIDSIGNATURE,
+		DownloadTaskArtifactByCidForbiddenCodeVOUCHERLIMIT,
+		DownloadTaskArtifactByCidForbiddenCodeRATELIMITEXCEEDED,
+		DownloadTaskArtifactByCidForbiddenCodeSERIALIZATIONEXHAUSTED,
+		DownloadTaskArtifactByCidForbiddenCodeSIGNINGREQUESTEXPIRED,
+		DownloadTaskArtifactByCidForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED,
+		DownloadTaskArtifactByCidForbiddenCodeREGISTRATIONFAILED,
+		DownloadTaskArtifactByCidForbiddenCodeUPSTREAMERROR,
+		DownloadTaskArtifactByCidForbiddenCodeSERVICEUNAVAILABLE,
+		DownloadTaskArtifactByCidForbiddenCodeINTERNALSERVERERROR,
+		DownloadTaskArtifactByCidForbiddenCodeTEAMPERSONALIMMUTABLE,
+		DownloadTaskArtifactByCidForbiddenCodeTEAMNOTACTIVE,
+		DownloadTaskArtifactByCidForbiddenCodeINVITEEXPIRED,
+		DownloadTaskArtifactByCidForbiddenCodeINVITEEXHAUSTED,
+		DownloadTaskArtifactByCidForbiddenCodeTEAMLASTOWNER,
+		DownloadTaskArtifactByCidForbiddenCodeTEAMALREADYACTIVE,
+		DownloadTaskArtifactByCidForbiddenCodeTEAMNOTFOUNDING,
+		DownloadTaskArtifactByCidForbiddenCodeFOUNDINGALREADYACCEPTED,
+		DownloadTaskArtifactByCidForbiddenCodeDIARYTRANSFERPENDING,
+		DownloadTaskArtifactByCidForbiddenCodeDIARYTRANSFERNOTFOUND,
+		DownloadTaskArtifactByCidForbiddenCodeDIARYTRANSFERALREADYRESOLVED,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s DownloadTaskArtifactByCidForbiddenCode) MarshalText() ([]byte, error) {
+	switch s {
+	case DownloadTaskArtifactByCidForbiddenCodeUNAUTHORIZED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidForbiddenCodeFORBIDDEN:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidForbiddenCodeNOTFOUND:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidForbiddenCodeCONFLICT:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidForbiddenCodeUNSUPPORTEDMEDIATYPE:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidForbiddenCodeVALIDATIONFAILED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidForbiddenCodeINVALIDCHALLENGE:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidForbiddenCodeINVALIDSIGNATURE:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidForbiddenCodeVOUCHERLIMIT:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidForbiddenCodeRATELIMITEXCEEDED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidForbiddenCodeSERIALIZATIONEXHAUSTED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidForbiddenCodeSIGNINGREQUESTEXPIRED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidForbiddenCodeREGISTRATIONFAILED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidForbiddenCodeUPSTREAMERROR:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidForbiddenCodeSERVICEUNAVAILABLE:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidForbiddenCodeINTERNALSERVERERROR:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidForbiddenCodeTEAMPERSONALIMMUTABLE:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidForbiddenCodeTEAMNOTACTIVE:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidForbiddenCodeINVITEEXPIRED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidForbiddenCodeINVITEEXHAUSTED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidForbiddenCodeTEAMLASTOWNER:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidForbiddenCodeTEAMALREADYACTIVE:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidForbiddenCodeTEAMNOTFOUNDING:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidForbiddenCodeFOUNDINGALREADYACCEPTED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidForbiddenCodeDIARYTRANSFERPENDING:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidForbiddenCodeDIARYTRANSFERNOTFOUND:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidForbiddenCodeDIARYTRANSFERALREADYRESOLVED:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *DownloadTaskArtifactByCidForbiddenCode) UnmarshalText(data []byte) error {
+	switch DownloadTaskArtifactByCidForbiddenCode(data) {
+	case DownloadTaskArtifactByCidForbiddenCodeUNAUTHORIZED:
+		*s = DownloadTaskArtifactByCidForbiddenCodeUNAUTHORIZED
+		return nil
+	case DownloadTaskArtifactByCidForbiddenCodeFORBIDDEN:
+		*s = DownloadTaskArtifactByCidForbiddenCodeFORBIDDEN
+		return nil
+	case DownloadTaskArtifactByCidForbiddenCodeNOTFOUND:
+		*s = DownloadTaskArtifactByCidForbiddenCodeNOTFOUND
+		return nil
+	case DownloadTaskArtifactByCidForbiddenCodeCONFLICT:
+		*s = DownloadTaskArtifactByCidForbiddenCodeCONFLICT
+		return nil
+	case DownloadTaskArtifactByCidForbiddenCodeUNSUPPORTEDMEDIATYPE:
+		*s = DownloadTaskArtifactByCidForbiddenCodeUNSUPPORTEDMEDIATYPE
+		return nil
+	case DownloadTaskArtifactByCidForbiddenCodeVALIDATIONFAILED:
+		*s = DownloadTaskArtifactByCidForbiddenCodeVALIDATIONFAILED
+		return nil
+	case DownloadTaskArtifactByCidForbiddenCodeINVALIDCHALLENGE:
+		*s = DownloadTaskArtifactByCidForbiddenCodeINVALIDCHALLENGE
+		return nil
+	case DownloadTaskArtifactByCidForbiddenCodeINVALIDSIGNATURE:
+		*s = DownloadTaskArtifactByCidForbiddenCodeINVALIDSIGNATURE
+		return nil
+	case DownloadTaskArtifactByCidForbiddenCodeVOUCHERLIMIT:
+		*s = DownloadTaskArtifactByCidForbiddenCodeVOUCHERLIMIT
+		return nil
+	case DownloadTaskArtifactByCidForbiddenCodeRATELIMITEXCEEDED:
+		*s = DownloadTaskArtifactByCidForbiddenCodeRATELIMITEXCEEDED
+		return nil
+	case DownloadTaskArtifactByCidForbiddenCodeSERIALIZATIONEXHAUSTED:
+		*s = DownloadTaskArtifactByCidForbiddenCodeSERIALIZATIONEXHAUSTED
+		return nil
+	case DownloadTaskArtifactByCidForbiddenCodeSIGNINGREQUESTEXPIRED:
+		*s = DownloadTaskArtifactByCidForbiddenCodeSIGNINGREQUESTEXPIRED
+		return nil
+	case DownloadTaskArtifactByCidForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = DownloadTaskArtifactByCidForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case DownloadTaskArtifactByCidForbiddenCodeREGISTRATIONFAILED:
+		*s = DownloadTaskArtifactByCidForbiddenCodeREGISTRATIONFAILED
+		return nil
+	case DownloadTaskArtifactByCidForbiddenCodeUPSTREAMERROR:
+		*s = DownloadTaskArtifactByCidForbiddenCodeUPSTREAMERROR
+		return nil
+	case DownloadTaskArtifactByCidForbiddenCodeSERVICEUNAVAILABLE:
+		*s = DownloadTaskArtifactByCidForbiddenCodeSERVICEUNAVAILABLE
+		return nil
+	case DownloadTaskArtifactByCidForbiddenCodeINTERNALSERVERERROR:
+		*s = DownloadTaskArtifactByCidForbiddenCodeINTERNALSERVERERROR
+		return nil
+	case DownloadTaskArtifactByCidForbiddenCodeTEAMPERSONALIMMUTABLE:
+		*s = DownloadTaskArtifactByCidForbiddenCodeTEAMPERSONALIMMUTABLE
+		return nil
+	case DownloadTaskArtifactByCidForbiddenCodeTEAMNOTACTIVE:
+		*s = DownloadTaskArtifactByCidForbiddenCodeTEAMNOTACTIVE
+		return nil
+	case DownloadTaskArtifactByCidForbiddenCodeINVITEEXPIRED:
+		*s = DownloadTaskArtifactByCidForbiddenCodeINVITEEXPIRED
+		return nil
+	case DownloadTaskArtifactByCidForbiddenCodeINVITEEXHAUSTED:
+		*s = DownloadTaskArtifactByCidForbiddenCodeINVITEEXHAUSTED
+		return nil
+	case DownloadTaskArtifactByCidForbiddenCodeTEAMLASTOWNER:
+		*s = DownloadTaskArtifactByCidForbiddenCodeTEAMLASTOWNER
+		return nil
+	case DownloadTaskArtifactByCidForbiddenCodeTEAMALREADYACTIVE:
+		*s = DownloadTaskArtifactByCidForbiddenCodeTEAMALREADYACTIVE
+		return nil
+	case DownloadTaskArtifactByCidForbiddenCodeTEAMNOTFOUNDING:
+		*s = DownloadTaskArtifactByCidForbiddenCodeTEAMNOTFOUNDING
+		return nil
+	case DownloadTaskArtifactByCidForbiddenCodeFOUNDINGALREADYACCEPTED:
+		*s = DownloadTaskArtifactByCidForbiddenCodeFOUNDINGALREADYACCEPTED
+		return nil
+	case DownloadTaskArtifactByCidForbiddenCodeDIARYTRANSFERPENDING:
+		*s = DownloadTaskArtifactByCidForbiddenCodeDIARYTRANSFERPENDING
+		return nil
+	case DownloadTaskArtifactByCidForbiddenCodeDIARYTRANSFERNOTFOUND:
+		*s = DownloadTaskArtifactByCidForbiddenCodeDIARYTRANSFERNOTFOUND
+		return nil
+	case DownloadTaskArtifactByCidForbiddenCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = DownloadTaskArtifactByCidForbiddenCodeDIARYTRANSFERALREADYRESOLVED
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type DownloadTaskArtifactByCidNotFound struct {
+	Code            DownloadTaskArtifactByCidNotFoundCode `json:"code"`
+	Detail          OptString                             `json:"detail"`
+	Instance        OptString                             `json:"instance"`
+	Status          int                                   `json:"status"`
+	Title           string                                `json:"title"`
+	Type            url.URL                               `json:"type"`
+	AdditionalProps DownloadTaskArtifactByCidNotFoundAdditional
+}
+
+// GetCode returns the value of Code.
+func (s *DownloadTaskArtifactByCidNotFound) GetCode() DownloadTaskArtifactByCidNotFoundCode {
+	return s.Code
+}
+
+// GetDetail returns the value of Detail.
+func (s *DownloadTaskArtifactByCidNotFound) GetDetail() OptString {
+	return s.Detail
+}
+
+// GetInstance returns the value of Instance.
+func (s *DownloadTaskArtifactByCidNotFound) GetInstance() OptString {
+	return s.Instance
+}
+
+// GetStatus returns the value of Status.
+func (s *DownloadTaskArtifactByCidNotFound) GetStatus() int {
+	return s.Status
+}
+
+// GetTitle returns the value of Title.
+func (s *DownloadTaskArtifactByCidNotFound) GetTitle() string {
+	return s.Title
+}
+
+// GetType returns the value of Type.
+func (s *DownloadTaskArtifactByCidNotFound) GetType() url.URL {
+	return s.Type
+}
+
+// GetAdditionalProps returns the value of AdditionalProps.
+func (s *DownloadTaskArtifactByCidNotFound) GetAdditionalProps() DownloadTaskArtifactByCidNotFoundAdditional {
+	return s.AdditionalProps
+}
+
+// SetCode sets the value of Code.
+func (s *DownloadTaskArtifactByCidNotFound) SetCode(val DownloadTaskArtifactByCidNotFoundCode) {
+	s.Code = val
+}
+
+// SetDetail sets the value of Detail.
+func (s *DownloadTaskArtifactByCidNotFound) SetDetail(val OptString) {
+	s.Detail = val
+}
+
+// SetInstance sets the value of Instance.
+func (s *DownloadTaskArtifactByCidNotFound) SetInstance(val OptString) {
+	s.Instance = val
+}
+
+// SetStatus sets the value of Status.
+func (s *DownloadTaskArtifactByCidNotFound) SetStatus(val int) {
+	s.Status = val
+}
+
+// SetTitle sets the value of Title.
+func (s *DownloadTaskArtifactByCidNotFound) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetType sets the value of Type.
+func (s *DownloadTaskArtifactByCidNotFound) SetType(val url.URL) {
+	s.Type = val
+}
+
+// SetAdditionalProps sets the value of AdditionalProps.
+func (s *DownloadTaskArtifactByCidNotFound) SetAdditionalProps(val DownloadTaskArtifactByCidNotFoundAdditional) {
+	s.AdditionalProps = val
+}
+
+func (*DownloadTaskArtifactByCidNotFound) downloadTaskArtifactByCidRes() {}
+
+type DownloadTaskArtifactByCidNotFoundAdditional map[string]jx.Raw
+
+func (s *DownloadTaskArtifactByCidNotFoundAdditional) init() DownloadTaskArtifactByCidNotFoundAdditional {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type DownloadTaskArtifactByCidNotFoundCode string
+
+const (
+	DownloadTaskArtifactByCidNotFoundCodeUNAUTHORIZED                   DownloadTaskArtifactByCidNotFoundCode = "UNAUTHORIZED"
+	DownloadTaskArtifactByCidNotFoundCodeFORBIDDEN                      DownloadTaskArtifactByCidNotFoundCode = "FORBIDDEN"
+	DownloadTaskArtifactByCidNotFoundCodeNOTFOUND                       DownloadTaskArtifactByCidNotFoundCode = "NOT_FOUND"
+	DownloadTaskArtifactByCidNotFoundCodeCONFLICT                       DownloadTaskArtifactByCidNotFoundCode = "CONFLICT"
+	DownloadTaskArtifactByCidNotFoundCodeUNSUPPORTEDMEDIATYPE           DownloadTaskArtifactByCidNotFoundCode = "UNSUPPORTED_MEDIA_TYPE"
+	DownloadTaskArtifactByCidNotFoundCodeVALIDATIONFAILED               DownloadTaskArtifactByCidNotFoundCode = "VALIDATION_FAILED"
+	DownloadTaskArtifactByCidNotFoundCodeINVALIDCHALLENGE               DownloadTaskArtifactByCidNotFoundCode = "INVALID_CHALLENGE"
+	DownloadTaskArtifactByCidNotFoundCodeINVALIDSIGNATURE               DownloadTaskArtifactByCidNotFoundCode = "INVALID_SIGNATURE"
+	DownloadTaskArtifactByCidNotFoundCodeVOUCHERLIMIT                   DownloadTaskArtifactByCidNotFoundCode = "VOUCHER_LIMIT"
+	DownloadTaskArtifactByCidNotFoundCodeRATELIMITEXCEEDED              DownloadTaskArtifactByCidNotFoundCode = "RATE_LIMIT_EXCEEDED"
+	DownloadTaskArtifactByCidNotFoundCodeSERIALIZATIONEXHAUSTED         DownloadTaskArtifactByCidNotFoundCode = "SERIALIZATION_EXHAUSTED"
+	DownloadTaskArtifactByCidNotFoundCodeSIGNINGREQUESTEXPIRED          DownloadTaskArtifactByCidNotFoundCode = "SIGNING_REQUEST_EXPIRED"
+	DownloadTaskArtifactByCidNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED DownloadTaskArtifactByCidNotFoundCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	DownloadTaskArtifactByCidNotFoundCodeREGISTRATIONFAILED             DownloadTaskArtifactByCidNotFoundCode = "REGISTRATION_FAILED"
+	DownloadTaskArtifactByCidNotFoundCodeUPSTREAMERROR                  DownloadTaskArtifactByCidNotFoundCode = "UPSTREAM_ERROR"
+	DownloadTaskArtifactByCidNotFoundCodeSERVICEUNAVAILABLE             DownloadTaskArtifactByCidNotFoundCode = "SERVICE_UNAVAILABLE"
+	DownloadTaskArtifactByCidNotFoundCodeINTERNALSERVERERROR            DownloadTaskArtifactByCidNotFoundCode = "INTERNAL_SERVER_ERROR"
+	DownloadTaskArtifactByCidNotFoundCodeTEAMPERSONALIMMUTABLE          DownloadTaskArtifactByCidNotFoundCode = "TEAM_PERSONAL_IMMUTABLE"
+	DownloadTaskArtifactByCidNotFoundCodeTEAMNOTACTIVE                  DownloadTaskArtifactByCidNotFoundCode = "TEAM_NOT_ACTIVE"
+	DownloadTaskArtifactByCidNotFoundCodeINVITEEXPIRED                  DownloadTaskArtifactByCidNotFoundCode = "INVITE_EXPIRED"
+	DownloadTaskArtifactByCidNotFoundCodeINVITEEXHAUSTED                DownloadTaskArtifactByCidNotFoundCode = "INVITE_EXHAUSTED"
+	DownloadTaskArtifactByCidNotFoundCodeTEAMLASTOWNER                  DownloadTaskArtifactByCidNotFoundCode = "TEAM_LAST_OWNER"
+	DownloadTaskArtifactByCidNotFoundCodeTEAMALREADYACTIVE              DownloadTaskArtifactByCidNotFoundCode = "TEAM_ALREADY_ACTIVE"
+	DownloadTaskArtifactByCidNotFoundCodeTEAMNOTFOUNDING                DownloadTaskArtifactByCidNotFoundCode = "TEAM_NOT_FOUNDING"
+	DownloadTaskArtifactByCidNotFoundCodeFOUNDINGALREADYACCEPTED        DownloadTaskArtifactByCidNotFoundCode = "FOUNDING_ALREADY_ACCEPTED"
+	DownloadTaskArtifactByCidNotFoundCodeDIARYTRANSFERPENDING           DownloadTaskArtifactByCidNotFoundCode = "DIARY_TRANSFER_PENDING"
+	DownloadTaskArtifactByCidNotFoundCodeDIARYTRANSFERNOTFOUND          DownloadTaskArtifactByCidNotFoundCode = "DIARY_TRANSFER_NOT_FOUND"
+	DownloadTaskArtifactByCidNotFoundCodeDIARYTRANSFERALREADYRESOLVED   DownloadTaskArtifactByCidNotFoundCode = "DIARY_TRANSFER_ALREADY_RESOLVED"
+)
+
+// AllValues returns all DownloadTaskArtifactByCidNotFoundCode values.
+func (DownloadTaskArtifactByCidNotFoundCode) AllValues() []DownloadTaskArtifactByCidNotFoundCode {
+	return []DownloadTaskArtifactByCidNotFoundCode{
+		DownloadTaskArtifactByCidNotFoundCodeUNAUTHORIZED,
+		DownloadTaskArtifactByCidNotFoundCodeFORBIDDEN,
+		DownloadTaskArtifactByCidNotFoundCodeNOTFOUND,
+		DownloadTaskArtifactByCidNotFoundCodeCONFLICT,
+		DownloadTaskArtifactByCidNotFoundCodeUNSUPPORTEDMEDIATYPE,
+		DownloadTaskArtifactByCidNotFoundCodeVALIDATIONFAILED,
+		DownloadTaskArtifactByCidNotFoundCodeINVALIDCHALLENGE,
+		DownloadTaskArtifactByCidNotFoundCodeINVALIDSIGNATURE,
+		DownloadTaskArtifactByCidNotFoundCodeVOUCHERLIMIT,
+		DownloadTaskArtifactByCidNotFoundCodeRATELIMITEXCEEDED,
+		DownloadTaskArtifactByCidNotFoundCodeSERIALIZATIONEXHAUSTED,
+		DownloadTaskArtifactByCidNotFoundCodeSIGNINGREQUESTEXPIRED,
+		DownloadTaskArtifactByCidNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED,
+		DownloadTaskArtifactByCidNotFoundCodeREGISTRATIONFAILED,
+		DownloadTaskArtifactByCidNotFoundCodeUPSTREAMERROR,
+		DownloadTaskArtifactByCidNotFoundCodeSERVICEUNAVAILABLE,
+		DownloadTaskArtifactByCidNotFoundCodeINTERNALSERVERERROR,
+		DownloadTaskArtifactByCidNotFoundCodeTEAMPERSONALIMMUTABLE,
+		DownloadTaskArtifactByCidNotFoundCodeTEAMNOTACTIVE,
+		DownloadTaskArtifactByCidNotFoundCodeINVITEEXPIRED,
+		DownloadTaskArtifactByCidNotFoundCodeINVITEEXHAUSTED,
+		DownloadTaskArtifactByCidNotFoundCodeTEAMLASTOWNER,
+		DownloadTaskArtifactByCidNotFoundCodeTEAMALREADYACTIVE,
+		DownloadTaskArtifactByCidNotFoundCodeTEAMNOTFOUNDING,
+		DownloadTaskArtifactByCidNotFoundCodeFOUNDINGALREADYACCEPTED,
+		DownloadTaskArtifactByCidNotFoundCodeDIARYTRANSFERPENDING,
+		DownloadTaskArtifactByCidNotFoundCodeDIARYTRANSFERNOTFOUND,
+		DownloadTaskArtifactByCidNotFoundCodeDIARYTRANSFERALREADYRESOLVED,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s DownloadTaskArtifactByCidNotFoundCode) MarshalText() ([]byte, error) {
+	switch s {
+	case DownloadTaskArtifactByCidNotFoundCodeUNAUTHORIZED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidNotFoundCodeFORBIDDEN:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidNotFoundCodeNOTFOUND:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidNotFoundCodeCONFLICT:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidNotFoundCodeUNSUPPORTEDMEDIATYPE:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidNotFoundCodeVALIDATIONFAILED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidNotFoundCodeINVALIDCHALLENGE:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidNotFoundCodeINVALIDSIGNATURE:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidNotFoundCodeVOUCHERLIMIT:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidNotFoundCodeRATELIMITEXCEEDED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidNotFoundCodeSERIALIZATIONEXHAUSTED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidNotFoundCodeSIGNINGREQUESTEXPIRED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidNotFoundCodeREGISTRATIONFAILED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidNotFoundCodeUPSTREAMERROR:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidNotFoundCodeSERVICEUNAVAILABLE:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidNotFoundCodeINTERNALSERVERERROR:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidNotFoundCodeTEAMPERSONALIMMUTABLE:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidNotFoundCodeTEAMNOTACTIVE:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidNotFoundCodeINVITEEXPIRED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidNotFoundCodeINVITEEXHAUSTED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidNotFoundCodeTEAMLASTOWNER:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidNotFoundCodeTEAMALREADYACTIVE:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidNotFoundCodeTEAMNOTFOUNDING:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidNotFoundCodeFOUNDINGALREADYACCEPTED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidNotFoundCodeDIARYTRANSFERPENDING:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidNotFoundCodeDIARYTRANSFERNOTFOUND:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidNotFoundCodeDIARYTRANSFERALREADYRESOLVED:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *DownloadTaskArtifactByCidNotFoundCode) UnmarshalText(data []byte) error {
+	switch DownloadTaskArtifactByCidNotFoundCode(data) {
+	case DownloadTaskArtifactByCidNotFoundCodeUNAUTHORIZED:
+		*s = DownloadTaskArtifactByCidNotFoundCodeUNAUTHORIZED
+		return nil
+	case DownloadTaskArtifactByCidNotFoundCodeFORBIDDEN:
+		*s = DownloadTaskArtifactByCidNotFoundCodeFORBIDDEN
+		return nil
+	case DownloadTaskArtifactByCidNotFoundCodeNOTFOUND:
+		*s = DownloadTaskArtifactByCidNotFoundCodeNOTFOUND
+		return nil
+	case DownloadTaskArtifactByCidNotFoundCodeCONFLICT:
+		*s = DownloadTaskArtifactByCidNotFoundCodeCONFLICT
+		return nil
+	case DownloadTaskArtifactByCidNotFoundCodeUNSUPPORTEDMEDIATYPE:
+		*s = DownloadTaskArtifactByCidNotFoundCodeUNSUPPORTEDMEDIATYPE
+		return nil
+	case DownloadTaskArtifactByCidNotFoundCodeVALIDATIONFAILED:
+		*s = DownloadTaskArtifactByCidNotFoundCodeVALIDATIONFAILED
+		return nil
+	case DownloadTaskArtifactByCidNotFoundCodeINVALIDCHALLENGE:
+		*s = DownloadTaskArtifactByCidNotFoundCodeINVALIDCHALLENGE
+		return nil
+	case DownloadTaskArtifactByCidNotFoundCodeINVALIDSIGNATURE:
+		*s = DownloadTaskArtifactByCidNotFoundCodeINVALIDSIGNATURE
+		return nil
+	case DownloadTaskArtifactByCidNotFoundCodeVOUCHERLIMIT:
+		*s = DownloadTaskArtifactByCidNotFoundCodeVOUCHERLIMIT
+		return nil
+	case DownloadTaskArtifactByCidNotFoundCodeRATELIMITEXCEEDED:
+		*s = DownloadTaskArtifactByCidNotFoundCodeRATELIMITEXCEEDED
+		return nil
+	case DownloadTaskArtifactByCidNotFoundCodeSERIALIZATIONEXHAUSTED:
+		*s = DownloadTaskArtifactByCidNotFoundCodeSERIALIZATIONEXHAUSTED
+		return nil
+	case DownloadTaskArtifactByCidNotFoundCodeSIGNINGREQUESTEXPIRED:
+		*s = DownloadTaskArtifactByCidNotFoundCodeSIGNINGREQUESTEXPIRED
+		return nil
+	case DownloadTaskArtifactByCidNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = DownloadTaskArtifactByCidNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case DownloadTaskArtifactByCidNotFoundCodeREGISTRATIONFAILED:
+		*s = DownloadTaskArtifactByCidNotFoundCodeREGISTRATIONFAILED
+		return nil
+	case DownloadTaskArtifactByCidNotFoundCodeUPSTREAMERROR:
+		*s = DownloadTaskArtifactByCidNotFoundCodeUPSTREAMERROR
+		return nil
+	case DownloadTaskArtifactByCidNotFoundCodeSERVICEUNAVAILABLE:
+		*s = DownloadTaskArtifactByCidNotFoundCodeSERVICEUNAVAILABLE
+		return nil
+	case DownloadTaskArtifactByCidNotFoundCodeINTERNALSERVERERROR:
+		*s = DownloadTaskArtifactByCidNotFoundCodeINTERNALSERVERERROR
+		return nil
+	case DownloadTaskArtifactByCidNotFoundCodeTEAMPERSONALIMMUTABLE:
+		*s = DownloadTaskArtifactByCidNotFoundCodeTEAMPERSONALIMMUTABLE
+		return nil
+	case DownloadTaskArtifactByCidNotFoundCodeTEAMNOTACTIVE:
+		*s = DownloadTaskArtifactByCidNotFoundCodeTEAMNOTACTIVE
+		return nil
+	case DownloadTaskArtifactByCidNotFoundCodeINVITEEXPIRED:
+		*s = DownloadTaskArtifactByCidNotFoundCodeINVITEEXPIRED
+		return nil
+	case DownloadTaskArtifactByCidNotFoundCodeINVITEEXHAUSTED:
+		*s = DownloadTaskArtifactByCidNotFoundCodeINVITEEXHAUSTED
+		return nil
+	case DownloadTaskArtifactByCidNotFoundCodeTEAMLASTOWNER:
+		*s = DownloadTaskArtifactByCidNotFoundCodeTEAMLASTOWNER
+		return nil
+	case DownloadTaskArtifactByCidNotFoundCodeTEAMALREADYACTIVE:
+		*s = DownloadTaskArtifactByCidNotFoundCodeTEAMALREADYACTIVE
+		return nil
+	case DownloadTaskArtifactByCidNotFoundCodeTEAMNOTFOUNDING:
+		*s = DownloadTaskArtifactByCidNotFoundCodeTEAMNOTFOUNDING
+		return nil
+	case DownloadTaskArtifactByCidNotFoundCodeFOUNDINGALREADYACCEPTED:
+		*s = DownloadTaskArtifactByCidNotFoundCodeFOUNDINGALREADYACCEPTED
+		return nil
+	case DownloadTaskArtifactByCidNotFoundCodeDIARYTRANSFERPENDING:
+		*s = DownloadTaskArtifactByCidNotFoundCodeDIARYTRANSFERPENDING
+		return nil
+	case DownloadTaskArtifactByCidNotFoundCodeDIARYTRANSFERNOTFOUND:
+		*s = DownloadTaskArtifactByCidNotFoundCodeDIARYTRANSFERNOTFOUND
+		return nil
+	case DownloadTaskArtifactByCidNotFoundCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = DownloadTaskArtifactByCidNotFoundCodeDIARYTRANSFERALREADYRESOLVED
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Task artifact content stream.
+type DownloadTaskArtifactByCidOK struct {
+	Data io.Reader
+}
+
+// Read reads data from the Data reader.
+//
+// Kept to satisfy the io.Reader interface.
+func (s DownloadTaskArtifactByCidOK) Read(p []byte) (n int, err error) {
+	if s.Data == nil {
+		return 0, io.EOF
+	}
+	return s.Data.Read(p)
+}
+
+// DownloadTaskArtifactByCidOKHeaders wraps DownloadTaskArtifactByCidOK with response headers.
+type DownloadTaskArtifactByCidOKHeaders struct {
+	XMoltnetTaskArtifactCid             OptString
+	XMoltnetTaskArtifactContentEncoding OptString
+	XMoltnetTaskArtifactContentType     OptString
+	XMoltnetTaskArtifactID              OptString
+	Response                            DownloadTaskArtifactByCidOK
+}
+
+// GetXMoltnetTaskArtifactCid returns the value of XMoltnetTaskArtifactCid.
+func (s *DownloadTaskArtifactByCidOKHeaders) GetXMoltnetTaskArtifactCid() OptString {
+	return s.XMoltnetTaskArtifactCid
+}
+
+// GetXMoltnetTaskArtifactContentEncoding returns the value of XMoltnetTaskArtifactContentEncoding.
+func (s *DownloadTaskArtifactByCidOKHeaders) GetXMoltnetTaskArtifactContentEncoding() OptString {
+	return s.XMoltnetTaskArtifactContentEncoding
+}
+
+// GetXMoltnetTaskArtifactContentType returns the value of XMoltnetTaskArtifactContentType.
+func (s *DownloadTaskArtifactByCidOKHeaders) GetXMoltnetTaskArtifactContentType() OptString {
+	return s.XMoltnetTaskArtifactContentType
+}
+
+// GetXMoltnetTaskArtifactID returns the value of XMoltnetTaskArtifactID.
+func (s *DownloadTaskArtifactByCidOKHeaders) GetXMoltnetTaskArtifactID() OptString {
+	return s.XMoltnetTaskArtifactID
+}
+
+// GetResponse returns the value of Response.
+func (s *DownloadTaskArtifactByCidOKHeaders) GetResponse() DownloadTaskArtifactByCidOK {
+	return s.Response
+}
+
+// SetXMoltnetTaskArtifactCid sets the value of XMoltnetTaskArtifactCid.
+func (s *DownloadTaskArtifactByCidOKHeaders) SetXMoltnetTaskArtifactCid(val OptString) {
+	s.XMoltnetTaskArtifactCid = val
+}
+
+// SetXMoltnetTaskArtifactContentEncoding sets the value of XMoltnetTaskArtifactContentEncoding.
+func (s *DownloadTaskArtifactByCidOKHeaders) SetXMoltnetTaskArtifactContentEncoding(val OptString) {
+	s.XMoltnetTaskArtifactContentEncoding = val
+}
+
+// SetXMoltnetTaskArtifactContentType sets the value of XMoltnetTaskArtifactContentType.
+func (s *DownloadTaskArtifactByCidOKHeaders) SetXMoltnetTaskArtifactContentType(val OptString) {
+	s.XMoltnetTaskArtifactContentType = val
+}
+
+// SetXMoltnetTaskArtifactID sets the value of XMoltnetTaskArtifactID.
+func (s *DownloadTaskArtifactByCidOKHeaders) SetXMoltnetTaskArtifactID(val OptString) {
+	s.XMoltnetTaskArtifactID = val
+}
+
+// SetResponse sets the value of Response.
+func (s *DownloadTaskArtifactByCidOKHeaders) SetResponse(val DownloadTaskArtifactByCidOK) {
+	s.Response = val
+}
+
+func (*DownloadTaskArtifactByCidOKHeaders) downloadTaskArtifactByCidRes() {}
+
+type DownloadTaskArtifactByCidServiceUnavailable struct {
+	Code            DownloadTaskArtifactByCidServiceUnavailableCode `json:"code"`
+	Detail          OptString                                       `json:"detail"`
+	Instance        OptString                                       `json:"instance"`
+	Status          int                                             `json:"status"`
+	Title           string                                          `json:"title"`
+	Type            url.URL                                         `json:"type"`
+	AdditionalProps DownloadTaskArtifactByCidServiceUnavailableAdditional
+}
+
+// GetCode returns the value of Code.
+func (s *DownloadTaskArtifactByCidServiceUnavailable) GetCode() DownloadTaskArtifactByCidServiceUnavailableCode {
+	return s.Code
+}
+
+// GetDetail returns the value of Detail.
+func (s *DownloadTaskArtifactByCidServiceUnavailable) GetDetail() OptString {
+	return s.Detail
+}
+
+// GetInstance returns the value of Instance.
+func (s *DownloadTaskArtifactByCidServiceUnavailable) GetInstance() OptString {
+	return s.Instance
+}
+
+// GetStatus returns the value of Status.
+func (s *DownloadTaskArtifactByCidServiceUnavailable) GetStatus() int {
+	return s.Status
+}
+
+// GetTitle returns the value of Title.
+func (s *DownloadTaskArtifactByCidServiceUnavailable) GetTitle() string {
+	return s.Title
+}
+
+// GetType returns the value of Type.
+func (s *DownloadTaskArtifactByCidServiceUnavailable) GetType() url.URL {
+	return s.Type
+}
+
+// GetAdditionalProps returns the value of AdditionalProps.
+func (s *DownloadTaskArtifactByCidServiceUnavailable) GetAdditionalProps() DownloadTaskArtifactByCidServiceUnavailableAdditional {
+	return s.AdditionalProps
+}
+
+// SetCode sets the value of Code.
+func (s *DownloadTaskArtifactByCidServiceUnavailable) SetCode(val DownloadTaskArtifactByCidServiceUnavailableCode) {
+	s.Code = val
+}
+
+// SetDetail sets the value of Detail.
+func (s *DownloadTaskArtifactByCidServiceUnavailable) SetDetail(val OptString) {
+	s.Detail = val
+}
+
+// SetInstance sets the value of Instance.
+func (s *DownloadTaskArtifactByCidServiceUnavailable) SetInstance(val OptString) {
+	s.Instance = val
+}
+
+// SetStatus sets the value of Status.
+func (s *DownloadTaskArtifactByCidServiceUnavailable) SetStatus(val int) {
+	s.Status = val
+}
+
+// SetTitle sets the value of Title.
+func (s *DownloadTaskArtifactByCidServiceUnavailable) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetType sets the value of Type.
+func (s *DownloadTaskArtifactByCidServiceUnavailable) SetType(val url.URL) {
+	s.Type = val
+}
+
+// SetAdditionalProps sets the value of AdditionalProps.
+func (s *DownloadTaskArtifactByCidServiceUnavailable) SetAdditionalProps(val DownloadTaskArtifactByCidServiceUnavailableAdditional) {
+	s.AdditionalProps = val
+}
+
+func (*DownloadTaskArtifactByCidServiceUnavailable) downloadTaskArtifactByCidRes() {}
+
+type DownloadTaskArtifactByCidServiceUnavailableAdditional map[string]jx.Raw
+
+func (s *DownloadTaskArtifactByCidServiceUnavailableAdditional) init() DownloadTaskArtifactByCidServiceUnavailableAdditional {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type DownloadTaskArtifactByCidServiceUnavailableCode string
+
+const (
+	DownloadTaskArtifactByCidServiceUnavailableCodeUNAUTHORIZED                   DownloadTaskArtifactByCidServiceUnavailableCode = "UNAUTHORIZED"
+	DownloadTaskArtifactByCidServiceUnavailableCodeFORBIDDEN                      DownloadTaskArtifactByCidServiceUnavailableCode = "FORBIDDEN"
+	DownloadTaskArtifactByCidServiceUnavailableCodeNOTFOUND                       DownloadTaskArtifactByCidServiceUnavailableCode = "NOT_FOUND"
+	DownloadTaskArtifactByCidServiceUnavailableCodeCONFLICT                       DownloadTaskArtifactByCidServiceUnavailableCode = "CONFLICT"
+	DownloadTaskArtifactByCidServiceUnavailableCodeUNSUPPORTEDMEDIATYPE           DownloadTaskArtifactByCidServiceUnavailableCode = "UNSUPPORTED_MEDIA_TYPE"
+	DownloadTaskArtifactByCidServiceUnavailableCodeVALIDATIONFAILED               DownloadTaskArtifactByCidServiceUnavailableCode = "VALIDATION_FAILED"
+	DownloadTaskArtifactByCidServiceUnavailableCodeINVALIDCHALLENGE               DownloadTaskArtifactByCidServiceUnavailableCode = "INVALID_CHALLENGE"
+	DownloadTaskArtifactByCidServiceUnavailableCodeINVALIDSIGNATURE               DownloadTaskArtifactByCidServiceUnavailableCode = "INVALID_SIGNATURE"
+	DownloadTaskArtifactByCidServiceUnavailableCodeVOUCHERLIMIT                   DownloadTaskArtifactByCidServiceUnavailableCode = "VOUCHER_LIMIT"
+	DownloadTaskArtifactByCidServiceUnavailableCodeRATELIMITEXCEEDED              DownloadTaskArtifactByCidServiceUnavailableCode = "RATE_LIMIT_EXCEEDED"
+	DownloadTaskArtifactByCidServiceUnavailableCodeSERIALIZATIONEXHAUSTED         DownloadTaskArtifactByCidServiceUnavailableCode = "SERIALIZATION_EXHAUSTED"
+	DownloadTaskArtifactByCidServiceUnavailableCodeSIGNINGREQUESTEXPIRED          DownloadTaskArtifactByCidServiceUnavailableCode = "SIGNING_REQUEST_EXPIRED"
+	DownloadTaskArtifactByCidServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED DownloadTaskArtifactByCidServiceUnavailableCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	DownloadTaskArtifactByCidServiceUnavailableCodeREGISTRATIONFAILED             DownloadTaskArtifactByCidServiceUnavailableCode = "REGISTRATION_FAILED"
+	DownloadTaskArtifactByCidServiceUnavailableCodeUPSTREAMERROR                  DownloadTaskArtifactByCidServiceUnavailableCode = "UPSTREAM_ERROR"
+	DownloadTaskArtifactByCidServiceUnavailableCodeSERVICEUNAVAILABLE             DownloadTaskArtifactByCidServiceUnavailableCode = "SERVICE_UNAVAILABLE"
+	DownloadTaskArtifactByCidServiceUnavailableCodeINTERNALSERVERERROR            DownloadTaskArtifactByCidServiceUnavailableCode = "INTERNAL_SERVER_ERROR"
+	DownloadTaskArtifactByCidServiceUnavailableCodeTEAMPERSONALIMMUTABLE          DownloadTaskArtifactByCidServiceUnavailableCode = "TEAM_PERSONAL_IMMUTABLE"
+	DownloadTaskArtifactByCidServiceUnavailableCodeTEAMNOTACTIVE                  DownloadTaskArtifactByCidServiceUnavailableCode = "TEAM_NOT_ACTIVE"
+	DownloadTaskArtifactByCidServiceUnavailableCodeINVITEEXPIRED                  DownloadTaskArtifactByCidServiceUnavailableCode = "INVITE_EXPIRED"
+	DownloadTaskArtifactByCidServiceUnavailableCodeINVITEEXHAUSTED                DownloadTaskArtifactByCidServiceUnavailableCode = "INVITE_EXHAUSTED"
+	DownloadTaskArtifactByCidServiceUnavailableCodeTEAMLASTOWNER                  DownloadTaskArtifactByCidServiceUnavailableCode = "TEAM_LAST_OWNER"
+	DownloadTaskArtifactByCidServiceUnavailableCodeTEAMALREADYACTIVE              DownloadTaskArtifactByCidServiceUnavailableCode = "TEAM_ALREADY_ACTIVE"
+	DownloadTaskArtifactByCidServiceUnavailableCodeTEAMNOTFOUNDING                DownloadTaskArtifactByCidServiceUnavailableCode = "TEAM_NOT_FOUNDING"
+	DownloadTaskArtifactByCidServiceUnavailableCodeFOUNDINGALREADYACCEPTED        DownloadTaskArtifactByCidServiceUnavailableCode = "FOUNDING_ALREADY_ACCEPTED"
+	DownloadTaskArtifactByCidServiceUnavailableCodeDIARYTRANSFERPENDING           DownloadTaskArtifactByCidServiceUnavailableCode = "DIARY_TRANSFER_PENDING"
+	DownloadTaskArtifactByCidServiceUnavailableCodeDIARYTRANSFERNOTFOUND          DownloadTaskArtifactByCidServiceUnavailableCode = "DIARY_TRANSFER_NOT_FOUND"
+	DownloadTaskArtifactByCidServiceUnavailableCodeDIARYTRANSFERALREADYRESOLVED   DownloadTaskArtifactByCidServiceUnavailableCode = "DIARY_TRANSFER_ALREADY_RESOLVED"
+)
+
+// AllValues returns all DownloadTaskArtifactByCidServiceUnavailableCode values.
+func (DownloadTaskArtifactByCidServiceUnavailableCode) AllValues() []DownloadTaskArtifactByCidServiceUnavailableCode {
+	return []DownloadTaskArtifactByCidServiceUnavailableCode{
+		DownloadTaskArtifactByCidServiceUnavailableCodeUNAUTHORIZED,
+		DownloadTaskArtifactByCidServiceUnavailableCodeFORBIDDEN,
+		DownloadTaskArtifactByCidServiceUnavailableCodeNOTFOUND,
+		DownloadTaskArtifactByCidServiceUnavailableCodeCONFLICT,
+		DownloadTaskArtifactByCidServiceUnavailableCodeUNSUPPORTEDMEDIATYPE,
+		DownloadTaskArtifactByCidServiceUnavailableCodeVALIDATIONFAILED,
+		DownloadTaskArtifactByCidServiceUnavailableCodeINVALIDCHALLENGE,
+		DownloadTaskArtifactByCidServiceUnavailableCodeINVALIDSIGNATURE,
+		DownloadTaskArtifactByCidServiceUnavailableCodeVOUCHERLIMIT,
+		DownloadTaskArtifactByCidServiceUnavailableCodeRATELIMITEXCEEDED,
+		DownloadTaskArtifactByCidServiceUnavailableCodeSERIALIZATIONEXHAUSTED,
+		DownloadTaskArtifactByCidServiceUnavailableCodeSIGNINGREQUESTEXPIRED,
+		DownloadTaskArtifactByCidServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED,
+		DownloadTaskArtifactByCidServiceUnavailableCodeREGISTRATIONFAILED,
+		DownloadTaskArtifactByCidServiceUnavailableCodeUPSTREAMERROR,
+		DownloadTaskArtifactByCidServiceUnavailableCodeSERVICEUNAVAILABLE,
+		DownloadTaskArtifactByCidServiceUnavailableCodeINTERNALSERVERERROR,
+		DownloadTaskArtifactByCidServiceUnavailableCodeTEAMPERSONALIMMUTABLE,
+		DownloadTaskArtifactByCidServiceUnavailableCodeTEAMNOTACTIVE,
+		DownloadTaskArtifactByCidServiceUnavailableCodeINVITEEXPIRED,
+		DownloadTaskArtifactByCidServiceUnavailableCodeINVITEEXHAUSTED,
+		DownloadTaskArtifactByCidServiceUnavailableCodeTEAMLASTOWNER,
+		DownloadTaskArtifactByCidServiceUnavailableCodeTEAMALREADYACTIVE,
+		DownloadTaskArtifactByCidServiceUnavailableCodeTEAMNOTFOUNDING,
+		DownloadTaskArtifactByCidServiceUnavailableCodeFOUNDINGALREADYACCEPTED,
+		DownloadTaskArtifactByCidServiceUnavailableCodeDIARYTRANSFERPENDING,
+		DownloadTaskArtifactByCidServiceUnavailableCodeDIARYTRANSFERNOTFOUND,
+		DownloadTaskArtifactByCidServiceUnavailableCodeDIARYTRANSFERALREADYRESOLVED,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s DownloadTaskArtifactByCidServiceUnavailableCode) MarshalText() ([]byte, error) {
+	switch s {
+	case DownloadTaskArtifactByCidServiceUnavailableCodeUNAUTHORIZED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeFORBIDDEN:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeNOTFOUND:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeCONFLICT:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeUNSUPPORTEDMEDIATYPE:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeVALIDATIONFAILED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeINVALIDCHALLENGE:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeINVALIDSIGNATURE:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeVOUCHERLIMIT:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeRATELIMITEXCEEDED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeSERIALIZATIONEXHAUSTED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeSIGNINGREQUESTEXPIRED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeREGISTRATIONFAILED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeUPSTREAMERROR:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeSERVICEUNAVAILABLE:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeINTERNALSERVERERROR:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeTEAMPERSONALIMMUTABLE:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeTEAMNOTACTIVE:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeINVITEEXPIRED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeINVITEEXHAUSTED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeTEAMLASTOWNER:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeTEAMALREADYACTIVE:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeTEAMNOTFOUNDING:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeFOUNDINGALREADYACCEPTED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeDIARYTRANSFERPENDING:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeDIARYTRANSFERNOTFOUND:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeDIARYTRANSFERALREADYRESOLVED:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *DownloadTaskArtifactByCidServiceUnavailableCode) UnmarshalText(data []byte) error {
+	switch DownloadTaskArtifactByCidServiceUnavailableCode(data) {
+	case DownloadTaskArtifactByCidServiceUnavailableCodeUNAUTHORIZED:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeUNAUTHORIZED
+		return nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeFORBIDDEN:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeFORBIDDEN
+		return nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeNOTFOUND:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeNOTFOUND
+		return nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeCONFLICT:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeCONFLICT
+		return nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeUNSUPPORTEDMEDIATYPE:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeUNSUPPORTEDMEDIATYPE
+		return nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeVALIDATIONFAILED:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeVALIDATIONFAILED
+		return nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeINVALIDCHALLENGE:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeINVALIDCHALLENGE
+		return nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeINVALIDSIGNATURE:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeINVALIDSIGNATURE
+		return nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeVOUCHERLIMIT:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeVOUCHERLIMIT
+		return nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeRATELIMITEXCEEDED:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeRATELIMITEXCEEDED
+		return nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeSERIALIZATIONEXHAUSTED:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeSERIALIZATIONEXHAUSTED
+		return nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeSIGNINGREQUESTEXPIRED:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeSIGNINGREQUESTEXPIRED
+		return nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeREGISTRATIONFAILED:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeREGISTRATIONFAILED
+		return nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeUPSTREAMERROR:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeUPSTREAMERROR
+		return nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeSERVICEUNAVAILABLE:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeSERVICEUNAVAILABLE
+		return nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeINTERNALSERVERERROR:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeINTERNALSERVERERROR
+		return nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeTEAMPERSONALIMMUTABLE:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeTEAMPERSONALIMMUTABLE
+		return nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeTEAMNOTACTIVE:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeTEAMNOTACTIVE
+		return nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeINVITEEXPIRED:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeINVITEEXPIRED
+		return nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeINVITEEXHAUSTED:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeINVITEEXHAUSTED
+		return nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeTEAMLASTOWNER:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeTEAMLASTOWNER
+		return nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeTEAMALREADYACTIVE:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeTEAMALREADYACTIVE
+		return nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeTEAMNOTFOUNDING:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeTEAMNOTFOUNDING
+		return nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeFOUNDINGALREADYACCEPTED:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeFOUNDINGALREADYACCEPTED
+		return nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeDIARYTRANSFERPENDING:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeDIARYTRANSFERPENDING
+		return nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeDIARYTRANSFERNOTFOUND:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeDIARYTRANSFERNOTFOUND
+		return nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeDIARYTRANSFERALREADYRESOLVED
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type DownloadTaskArtifactByCidUnauthorized struct {
+	Code            DownloadTaskArtifactByCidUnauthorizedCode `json:"code"`
+	Detail          OptString                                 `json:"detail"`
+	Instance        OptString                                 `json:"instance"`
+	Status          int                                       `json:"status"`
+	Title           string                                    `json:"title"`
+	Type            url.URL                                   `json:"type"`
+	AdditionalProps DownloadTaskArtifactByCidUnauthorizedAdditional
+}
+
+// GetCode returns the value of Code.
+func (s *DownloadTaskArtifactByCidUnauthorized) GetCode() DownloadTaskArtifactByCidUnauthorizedCode {
+	return s.Code
+}
+
+// GetDetail returns the value of Detail.
+func (s *DownloadTaskArtifactByCidUnauthorized) GetDetail() OptString {
+	return s.Detail
+}
+
+// GetInstance returns the value of Instance.
+func (s *DownloadTaskArtifactByCidUnauthorized) GetInstance() OptString {
+	return s.Instance
+}
+
+// GetStatus returns the value of Status.
+func (s *DownloadTaskArtifactByCidUnauthorized) GetStatus() int {
+	return s.Status
+}
+
+// GetTitle returns the value of Title.
+func (s *DownloadTaskArtifactByCidUnauthorized) GetTitle() string {
+	return s.Title
+}
+
+// GetType returns the value of Type.
+func (s *DownloadTaskArtifactByCidUnauthorized) GetType() url.URL {
+	return s.Type
+}
+
+// GetAdditionalProps returns the value of AdditionalProps.
+func (s *DownloadTaskArtifactByCidUnauthorized) GetAdditionalProps() DownloadTaskArtifactByCidUnauthorizedAdditional {
+	return s.AdditionalProps
+}
+
+// SetCode sets the value of Code.
+func (s *DownloadTaskArtifactByCidUnauthorized) SetCode(val DownloadTaskArtifactByCidUnauthorizedCode) {
+	s.Code = val
+}
+
+// SetDetail sets the value of Detail.
+func (s *DownloadTaskArtifactByCidUnauthorized) SetDetail(val OptString) {
+	s.Detail = val
+}
+
+// SetInstance sets the value of Instance.
+func (s *DownloadTaskArtifactByCidUnauthorized) SetInstance(val OptString) {
+	s.Instance = val
+}
+
+// SetStatus sets the value of Status.
+func (s *DownloadTaskArtifactByCidUnauthorized) SetStatus(val int) {
+	s.Status = val
+}
+
+// SetTitle sets the value of Title.
+func (s *DownloadTaskArtifactByCidUnauthorized) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetType sets the value of Type.
+func (s *DownloadTaskArtifactByCidUnauthorized) SetType(val url.URL) {
+	s.Type = val
+}
+
+// SetAdditionalProps sets the value of AdditionalProps.
+func (s *DownloadTaskArtifactByCidUnauthorized) SetAdditionalProps(val DownloadTaskArtifactByCidUnauthorizedAdditional) {
+	s.AdditionalProps = val
+}
+
+func (*DownloadTaskArtifactByCidUnauthorized) downloadTaskArtifactByCidRes() {}
+
+type DownloadTaskArtifactByCidUnauthorizedAdditional map[string]jx.Raw
+
+func (s *DownloadTaskArtifactByCidUnauthorizedAdditional) init() DownloadTaskArtifactByCidUnauthorizedAdditional {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type DownloadTaskArtifactByCidUnauthorizedCode string
+
+const (
+	DownloadTaskArtifactByCidUnauthorizedCodeUNAUTHORIZED                   DownloadTaskArtifactByCidUnauthorizedCode = "UNAUTHORIZED"
+	DownloadTaskArtifactByCidUnauthorizedCodeFORBIDDEN                      DownloadTaskArtifactByCidUnauthorizedCode = "FORBIDDEN"
+	DownloadTaskArtifactByCidUnauthorizedCodeNOTFOUND                       DownloadTaskArtifactByCidUnauthorizedCode = "NOT_FOUND"
+	DownloadTaskArtifactByCidUnauthorizedCodeCONFLICT                       DownloadTaskArtifactByCidUnauthorizedCode = "CONFLICT"
+	DownloadTaskArtifactByCidUnauthorizedCodeUNSUPPORTEDMEDIATYPE           DownloadTaskArtifactByCidUnauthorizedCode = "UNSUPPORTED_MEDIA_TYPE"
+	DownloadTaskArtifactByCidUnauthorizedCodeVALIDATIONFAILED               DownloadTaskArtifactByCidUnauthorizedCode = "VALIDATION_FAILED"
+	DownloadTaskArtifactByCidUnauthorizedCodeINVALIDCHALLENGE               DownloadTaskArtifactByCidUnauthorizedCode = "INVALID_CHALLENGE"
+	DownloadTaskArtifactByCidUnauthorizedCodeINVALIDSIGNATURE               DownloadTaskArtifactByCidUnauthorizedCode = "INVALID_SIGNATURE"
+	DownloadTaskArtifactByCidUnauthorizedCodeVOUCHERLIMIT                   DownloadTaskArtifactByCidUnauthorizedCode = "VOUCHER_LIMIT"
+	DownloadTaskArtifactByCidUnauthorizedCodeRATELIMITEXCEEDED              DownloadTaskArtifactByCidUnauthorizedCode = "RATE_LIMIT_EXCEEDED"
+	DownloadTaskArtifactByCidUnauthorizedCodeSERIALIZATIONEXHAUSTED         DownloadTaskArtifactByCidUnauthorizedCode = "SERIALIZATION_EXHAUSTED"
+	DownloadTaskArtifactByCidUnauthorizedCodeSIGNINGREQUESTEXPIRED          DownloadTaskArtifactByCidUnauthorizedCode = "SIGNING_REQUEST_EXPIRED"
+	DownloadTaskArtifactByCidUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED DownloadTaskArtifactByCidUnauthorizedCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	DownloadTaskArtifactByCidUnauthorizedCodeREGISTRATIONFAILED             DownloadTaskArtifactByCidUnauthorizedCode = "REGISTRATION_FAILED"
+	DownloadTaskArtifactByCidUnauthorizedCodeUPSTREAMERROR                  DownloadTaskArtifactByCidUnauthorizedCode = "UPSTREAM_ERROR"
+	DownloadTaskArtifactByCidUnauthorizedCodeSERVICEUNAVAILABLE             DownloadTaskArtifactByCidUnauthorizedCode = "SERVICE_UNAVAILABLE"
+	DownloadTaskArtifactByCidUnauthorizedCodeINTERNALSERVERERROR            DownloadTaskArtifactByCidUnauthorizedCode = "INTERNAL_SERVER_ERROR"
+	DownloadTaskArtifactByCidUnauthorizedCodeTEAMPERSONALIMMUTABLE          DownloadTaskArtifactByCidUnauthorizedCode = "TEAM_PERSONAL_IMMUTABLE"
+	DownloadTaskArtifactByCidUnauthorizedCodeTEAMNOTACTIVE                  DownloadTaskArtifactByCidUnauthorizedCode = "TEAM_NOT_ACTIVE"
+	DownloadTaskArtifactByCidUnauthorizedCodeINVITEEXPIRED                  DownloadTaskArtifactByCidUnauthorizedCode = "INVITE_EXPIRED"
+	DownloadTaskArtifactByCidUnauthorizedCodeINVITEEXHAUSTED                DownloadTaskArtifactByCidUnauthorizedCode = "INVITE_EXHAUSTED"
+	DownloadTaskArtifactByCidUnauthorizedCodeTEAMLASTOWNER                  DownloadTaskArtifactByCidUnauthorizedCode = "TEAM_LAST_OWNER"
+	DownloadTaskArtifactByCidUnauthorizedCodeTEAMALREADYACTIVE              DownloadTaskArtifactByCidUnauthorizedCode = "TEAM_ALREADY_ACTIVE"
+	DownloadTaskArtifactByCidUnauthorizedCodeTEAMNOTFOUNDING                DownloadTaskArtifactByCidUnauthorizedCode = "TEAM_NOT_FOUNDING"
+	DownloadTaskArtifactByCidUnauthorizedCodeFOUNDINGALREADYACCEPTED        DownloadTaskArtifactByCidUnauthorizedCode = "FOUNDING_ALREADY_ACCEPTED"
+	DownloadTaskArtifactByCidUnauthorizedCodeDIARYTRANSFERPENDING           DownloadTaskArtifactByCidUnauthorizedCode = "DIARY_TRANSFER_PENDING"
+	DownloadTaskArtifactByCidUnauthorizedCodeDIARYTRANSFERNOTFOUND          DownloadTaskArtifactByCidUnauthorizedCode = "DIARY_TRANSFER_NOT_FOUND"
+	DownloadTaskArtifactByCidUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED   DownloadTaskArtifactByCidUnauthorizedCode = "DIARY_TRANSFER_ALREADY_RESOLVED"
+)
+
+// AllValues returns all DownloadTaskArtifactByCidUnauthorizedCode values.
+func (DownloadTaskArtifactByCidUnauthorizedCode) AllValues() []DownloadTaskArtifactByCidUnauthorizedCode {
+	return []DownloadTaskArtifactByCidUnauthorizedCode{
+		DownloadTaskArtifactByCidUnauthorizedCodeUNAUTHORIZED,
+		DownloadTaskArtifactByCidUnauthorizedCodeFORBIDDEN,
+		DownloadTaskArtifactByCidUnauthorizedCodeNOTFOUND,
+		DownloadTaskArtifactByCidUnauthorizedCodeCONFLICT,
+		DownloadTaskArtifactByCidUnauthorizedCodeUNSUPPORTEDMEDIATYPE,
+		DownloadTaskArtifactByCidUnauthorizedCodeVALIDATIONFAILED,
+		DownloadTaskArtifactByCidUnauthorizedCodeINVALIDCHALLENGE,
+		DownloadTaskArtifactByCidUnauthorizedCodeINVALIDSIGNATURE,
+		DownloadTaskArtifactByCidUnauthorizedCodeVOUCHERLIMIT,
+		DownloadTaskArtifactByCidUnauthorizedCodeRATELIMITEXCEEDED,
+		DownloadTaskArtifactByCidUnauthorizedCodeSERIALIZATIONEXHAUSTED,
+		DownloadTaskArtifactByCidUnauthorizedCodeSIGNINGREQUESTEXPIRED,
+		DownloadTaskArtifactByCidUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED,
+		DownloadTaskArtifactByCidUnauthorizedCodeREGISTRATIONFAILED,
+		DownloadTaskArtifactByCidUnauthorizedCodeUPSTREAMERROR,
+		DownloadTaskArtifactByCidUnauthorizedCodeSERVICEUNAVAILABLE,
+		DownloadTaskArtifactByCidUnauthorizedCodeINTERNALSERVERERROR,
+		DownloadTaskArtifactByCidUnauthorizedCodeTEAMPERSONALIMMUTABLE,
+		DownloadTaskArtifactByCidUnauthorizedCodeTEAMNOTACTIVE,
+		DownloadTaskArtifactByCidUnauthorizedCodeINVITEEXPIRED,
+		DownloadTaskArtifactByCidUnauthorizedCodeINVITEEXHAUSTED,
+		DownloadTaskArtifactByCidUnauthorizedCodeTEAMLASTOWNER,
+		DownloadTaskArtifactByCidUnauthorizedCodeTEAMALREADYACTIVE,
+		DownloadTaskArtifactByCidUnauthorizedCodeTEAMNOTFOUNDING,
+		DownloadTaskArtifactByCidUnauthorizedCodeFOUNDINGALREADYACCEPTED,
+		DownloadTaskArtifactByCidUnauthorizedCodeDIARYTRANSFERPENDING,
+		DownloadTaskArtifactByCidUnauthorizedCodeDIARYTRANSFERNOTFOUND,
+		DownloadTaskArtifactByCidUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s DownloadTaskArtifactByCidUnauthorizedCode) MarshalText() ([]byte, error) {
+	switch s {
+	case DownloadTaskArtifactByCidUnauthorizedCodeUNAUTHORIZED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeFORBIDDEN:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeNOTFOUND:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeCONFLICT:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeVALIDATIONFAILED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeINVALIDCHALLENGE:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeINVALIDSIGNATURE:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeVOUCHERLIMIT:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeRATELIMITEXCEEDED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeSERIALIZATIONEXHAUSTED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeSIGNINGREQUESTEXPIRED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeREGISTRATIONFAILED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeUPSTREAMERROR:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeSERVICEUNAVAILABLE:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeINTERNALSERVERERROR:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeTEAMPERSONALIMMUTABLE:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeTEAMNOTACTIVE:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeINVITEEXPIRED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeINVITEEXHAUSTED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeTEAMLASTOWNER:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeTEAMALREADYACTIVE:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeTEAMNOTFOUNDING:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeFOUNDINGALREADYACCEPTED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeDIARYTRANSFERPENDING:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeDIARYTRANSFERNOTFOUND:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *DownloadTaskArtifactByCidUnauthorizedCode) UnmarshalText(data []byte) error {
+	switch DownloadTaskArtifactByCidUnauthorizedCode(data) {
+	case DownloadTaskArtifactByCidUnauthorizedCodeUNAUTHORIZED:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeUNAUTHORIZED
+		return nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeFORBIDDEN:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeFORBIDDEN
+		return nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeNOTFOUND:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeNOTFOUND
+		return nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeCONFLICT:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeCONFLICT
+		return nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeUNSUPPORTEDMEDIATYPE
+		return nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeVALIDATIONFAILED:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeVALIDATIONFAILED
+		return nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeINVALIDCHALLENGE:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeINVALIDCHALLENGE
+		return nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeINVALIDSIGNATURE:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeINVALIDSIGNATURE
+		return nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeVOUCHERLIMIT:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeVOUCHERLIMIT
+		return nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeRATELIMITEXCEEDED:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeRATELIMITEXCEEDED
+		return nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeSERIALIZATIONEXHAUSTED:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeSERIALIZATIONEXHAUSTED
+		return nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeSIGNINGREQUESTEXPIRED:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeSIGNINGREQUESTEXPIRED
+		return nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeREGISTRATIONFAILED:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeREGISTRATIONFAILED
+		return nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeUPSTREAMERROR:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeUPSTREAMERROR
+		return nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeSERVICEUNAVAILABLE:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeSERVICEUNAVAILABLE
+		return nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeINTERNALSERVERERROR:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeINTERNALSERVERERROR
+		return nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeTEAMPERSONALIMMUTABLE:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeTEAMPERSONALIMMUTABLE
+		return nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeTEAMNOTACTIVE:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeTEAMNOTACTIVE
+		return nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeINVITEEXPIRED:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeINVITEEXPIRED
+		return nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeINVITEEXHAUSTED:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeINVITEEXHAUSTED
+		return nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeTEAMLASTOWNER:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeTEAMLASTOWNER
+		return nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeTEAMALREADYACTIVE:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeTEAMALREADYACTIVE
+		return nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeTEAMNOTFOUNDING:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeTEAMNOTFOUNDING
+		return nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeFOUNDINGALREADYACCEPTED:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeFOUNDINGALREADYACCEPTED
+		return nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeDIARYTRANSFERPENDING:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeDIARYTRANSFERPENDING
+		return nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeDIARYTRANSFERNOTFOUND:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeDIARYTRANSFERNOTFOUND
+		return nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -26092,12 +27769,12 @@ func (s *ListTaskArtifactsOK) SetNextCursor(val NilString) {
 func (*ListTaskArtifactsOK) listTaskArtifactsRes() {}
 
 type ListTaskArtifactsOKArtifactsItem struct {
-	AttemptN         int         `json:"attemptN"`
+	AttemptN         NilInt      `json:"attemptN"`
 	Cid              string      `json:"cid"`
 	ContentEncoding  NilString   `json:"contentEncoding"`
 	ContentType      string      `json:"contentType"`
 	CreatedAt        time.Time   `json:"createdAt"`
-	CreatedByAgentId uuid.UUID   `json:"createdByAgentId"`
+	CreatedByAgentId NilUUID     `json:"createdByAgentId"`
 	ExpiresAt        NilDateTime `json:"expiresAt"`
 	ID               uuid.UUID   `json:"id"`
 	Kind             string      `json:"kind"`
@@ -26108,7 +27785,7 @@ type ListTaskArtifactsOKArtifactsItem struct {
 }
 
 // GetAttemptN returns the value of AttemptN.
-func (s *ListTaskArtifactsOKArtifactsItem) GetAttemptN() int {
+func (s *ListTaskArtifactsOKArtifactsItem) GetAttemptN() NilInt {
 	return s.AttemptN
 }
 
@@ -26133,7 +27810,7 @@ func (s *ListTaskArtifactsOKArtifactsItem) GetCreatedAt() time.Time {
 }
 
 // GetCreatedByAgentId returns the value of CreatedByAgentId.
-func (s *ListTaskArtifactsOKArtifactsItem) GetCreatedByAgentId() uuid.UUID {
+func (s *ListTaskArtifactsOKArtifactsItem) GetCreatedByAgentId() NilUUID {
 	return s.CreatedByAgentId
 }
 
@@ -26173,7 +27850,7 @@ func (s *ListTaskArtifactsOKArtifactsItem) GetTitle() string {
 }
 
 // SetAttemptN sets the value of AttemptN.
-func (s *ListTaskArtifactsOKArtifactsItem) SetAttemptN(val int) {
+func (s *ListTaskArtifactsOKArtifactsItem) SetAttemptN(val NilInt) {
 	s.AttemptN = val
 }
 
@@ -26198,7 +27875,7 @@ func (s *ListTaskArtifactsOKArtifactsItem) SetCreatedAt(val time.Time) {
 }
 
 // SetCreatedByAgentId sets the value of CreatedByAgentId.
-func (s *ListTaskArtifactsOKArtifactsItem) SetCreatedByAgentId(val uuid.UUID) {
+func (s *ListTaskArtifactsOKArtifactsItem) SetCreatedByAgentId(val NilUUID) {
 	s.CreatedByAgentId = val
 }
 
@@ -41690,6 +43367,1651 @@ func (s *SigningRequestStatus) UnmarshalText(data []byte) error {
 	}
 }
 
+// Merged schema.
+type StageTaskArtifactBadRequest struct {
+	Code            StageTaskArtifactBadRequestCode `json:"code"`
+	Detail          OptString                       `json:"detail"`
+	Instance        OptString                       `json:"instance"`
+	Status          int                             `json:"status"`
+	Title           string                          `json:"title"`
+	Type            url.URL                         `json:"type"`
+	Errors          []ValidationError               `json:"errors"`
+	AdditionalProps StageTaskArtifactBadRequestAdditional
+}
+
+// GetCode returns the value of Code.
+func (s *StageTaskArtifactBadRequest) GetCode() StageTaskArtifactBadRequestCode {
+	return s.Code
+}
+
+// GetDetail returns the value of Detail.
+func (s *StageTaskArtifactBadRequest) GetDetail() OptString {
+	return s.Detail
+}
+
+// GetInstance returns the value of Instance.
+func (s *StageTaskArtifactBadRequest) GetInstance() OptString {
+	return s.Instance
+}
+
+// GetStatus returns the value of Status.
+func (s *StageTaskArtifactBadRequest) GetStatus() int {
+	return s.Status
+}
+
+// GetTitle returns the value of Title.
+func (s *StageTaskArtifactBadRequest) GetTitle() string {
+	return s.Title
+}
+
+// GetType returns the value of Type.
+func (s *StageTaskArtifactBadRequest) GetType() url.URL {
+	return s.Type
+}
+
+// GetErrors returns the value of Errors.
+func (s *StageTaskArtifactBadRequest) GetErrors() []ValidationError {
+	return s.Errors
+}
+
+// GetAdditionalProps returns the value of AdditionalProps.
+func (s *StageTaskArtifactBadRequest) GetAdditionalProps() StageTaskArtifactBadRequestAdditional {
+	return s.AdditionalProps
+}
+
+// SetCode sets the value of Code.
+func (s *StageTaskArtifactBadRequest) SetCode(val StageTaskArtifactBadRequestCode) {
+	s.Code = val
+}
+
+// SetDetail sets the value of Detail.
+func (s *StageTaskArtifactBadRequest) SetDetail(val OptString) {
+	s.Detail = val
+}
+
+// SetInstance sets the value of Instance.
+func (s *StageTaskArtifactBadRequest) SetInstance(val OptString) {
+	s.Instance = val
+}
+
+// SetStatus sets the value of Status.
+func (s *StageTaskArtifactBadRequest) SetStatus(val int) {
+	s.Status = val
+}
+
+// SetTitle sets the value of Title.
+func (s *StageTaskArtifactBadRequest) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetType sets the value of Type.
+func (s *StageTaskArtifactBadRequest) SetType(val url.URL) {
+	s.Type = val
+}
+
+// SetErrors sets the value of Errors.
+func (s *StageTaskArtifactBadRequest) SetErrors(val []ValidationError) {
+	s.Errors = val
+}
+
+// SetAdditionalProps sets the value of AdditionalProps.
+func (s *StageTaskArtifactBadRequest) SetAdditionalProps(val StageTaskArtifactBadRequestAdditional) {
+	s.AdditionalProps = val
+}
+
+func (*StageTaskArtifactBadRequest) stageTaskArtifactRes() {}
+
+type StageTaskArtifactBadRequestAdditional map[string]jx.Raw
+
+func (s *StageTaskArtifactBadRequestAdditional) init() StageTaskArtifactBadRequestAdditional {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type StageTaskArtifactBadRequestCode string
+
+const (
+	StageTaskArtifactBadRequestCodeUNAUTHORIZED                   StageTaskArtifactBadRequestCode = "UNAUTHORIZED"
+	StageTaskArtifactBadRequestCodeFORBIDDEN                      StageTaskArtifactBadRequestCode = "FORBIDDEN"
+	StageTaskArtifactBadRequestCodeNOTFOUND                       StageTaskArtifactBadRequestCode = "NOT_FOUND"
+	StageTaskArtifactBadRequestCodeCONFLICT                       StageTaskArtifactBadRequestCode = "CONFLICT"
+	StageTaskArtifactBadRequestCodeUNSUPPORTEDMEDIATYPE           StageTaskArtifactBadRequestCode = "UNSUPPORTED_MEDIA_TYPE"
+	StageTaskArtifactBadRequestCodeVALIDATIONFAILED               StageTaskArtifactBadRequestCode = "VALIDATION_FAILED"
+	StageTaskArtifactBadRequestCodeINVALIDCHALLENGE               StageTaskArtifactBadRequestCode = "INVALID_CHALLENGE"
+	StageTaskArtifactBadRequestCodeINVALIDSIGNATURE               StageTaskArtifactBadRequestCode = "INVALID_SIGNATURE"
+	StageTaskArtifactBadRequestCodeVOUCHERLIMIT                   StageTaskArtifactBadRequestCode = "VOUCHER_LIMIT"
+	StageTaskArtifactBadRequestCodeRATELIMITEXCEEDED              StageTaskArtifactBadRequestCode = "RATE_LIMIT_EXCEEDED"
+	StageTaskArtifactBadRequestCodeSERIALIZATIONEXHAUSTED         StageTaskArtifactBadRequestCode = "SERIALIZATION_EXHAUSTED"
+	StageTaskArtifactBadRequestCodeSIGNINGREQUESTEXPIRED          StageTaskArtifactBadRequestCode = "SIGNING_REQUEST_EXPIRED"
+	StageTaskArtifactBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED StageTaskArtifactBadRequestCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	StageTaskArtifactBadRequestCodeREGISTRATIONFAILED             StageTaskArtifactBadRequestCode = "REGISTRATION_FAILED"
+	StageTaskArtifactBadRequestCodeUPSTREAMERROR                  StageTaskArtifactBadRequestCode = "UPSTREAM_ERROR"
+	StageTaskArtifactBadRequestCodeSERVICEUNAVAILABLE             StageTaskArtifactBadRequestCode = "SERVICE_UNAVAILABLE"
+	StageTaskArtifactBadRequestCodeINTERNALSERVERERROR            StageTaskArtifactBadRequestCode = "INTERNAL_SERVER_ERROR"
+	StageTaskArtifactBadRequestCodeTEAMPERSONALIMMUTABLE          StageTaskArtifactBadRequestCode = "TEAM_PERSONAL_IMMUTABLE"
+	StageTaskArtifactBadRequestCodeTEAMNOTACTIVE                  StageTaskArtifactBadRequestCode = "TEAM_NOT_ACTIVE"
+	StageTaskArtifactBadRequestCodeINVITEEXPIRED                  StageTaskArtifactBadRequestCode = "INVITE_EXPIRED"
+	StageTaskArtifactBadRequestCodeINVITEEXHAUSTED                StageTaskArtifactBadRequestCode = "INVITE_EXHAUSTED"
+	StageTaskArtifactBadRequestCodeTEAMLASTOWNER                  StageTaskArtifactBadRequestCode = "TEAM_LAST_OWNER"
+	StageTaskArtifactBadRequestCodeTEAMALREADYACTIVE              StageTaskArtifactBadRequestCode = "TEAM_ALREADY_ACTIVE"
+	StageTaskArtifactBadRequestCodeTEAMNOTFOUNDING                StageTaskArtifactBadRequestCode = "TEAM_NOT_FOUNDING"
+	StageTaskArtifactBadRequestCodeFOUNDINGALREADYACCEPTED        StageTaskArtifactBadRequestCode = "FOUNDING_ALREADY_ACCEPTED"
+	StageTaskArtifactBadRequestCodeDIARYTRANSFERPENDING           StageTaskArtifactBadRequestCode = "DIARY_TRANSFER_PENDING"
+	StageTaskArtifactBadRequestCodeDIARYTRANSFERNOTFOUND          StageTaskArtifactBadRequestCode = "DIARY_TRANSFER_NOT_FOUND"
+	StageTaskArtifactBadRequestCodeDIARYTRANSFERALREADYRESOLVED   StageTaskArtifactBadRequestCode = "DIARY_TRANSFER_ALREADY_RESOLVED"
+)
+
+// AllValues returns all StageTaskArtifactBadRequestCode values.
+func (StageTaskArtifactBadRequestCode) AllValues() []StageTaskArtifactBadRequestCode {
+	return []StageTaskArtifactBadRequestCode{
+		StageTaskArtifactBadRequestCodeUNAUTHORIZED,
+		StageTaskArtifactBadRequestCodeFORBIDDEN,
+		StageTaskArtifactBadRequestCodeNOTFOUND,
+		StageTaskArtifactBadRequestCodeCONFLICT,
+		StageTaskArtifactBadRequestCodeUNSUPPORTEDMEDIATYPE,
+		StageTaskArtifactBadRequestCodeVALIDATIONFAILED,
+		StageTaskArtifactBadRequestCodeINVALIDCHALLENGE,
+		StageTaskArtifactBadRequestCodeINVALIDSIGNATURE,
+		StageTaskArtifactBadRequestCodeVOUCHERLIMIT,
+		StageTaskArtifactBadRequestCodeRATELIMITEXCEEDED,
+		StageTaskArtifactBadRequestCodeSERIALIZATIONEXHAUSTED,
+		StageTaskArtifactBadRequestCodeSIGNINGREQUESTEXPIRED,
+		StageTaskArtifactBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED,
+		StageTaskArtifactBadRequestCodeREGISTRATIONFAILED,
+		StageTaskArtifactBadRequestCodeUPSTREAMERROR,
+		StageTaskArtifactBadRequestCodeSERVICEUNAVAILABLE,
+		StageTaskArtifactBadRequestCodeINTERNALSERVERERROR,
+		StageTaskArtifactBadRequestCodeTEAMPERSONALIMMUTABLE,
+		StageTaskArtifactBadRequestCodeTEAMNOTACTIVE,
+		StageTaskArtifactBadRequestCodeINVITEEXPIRED,
+		StageTaskArtifactBadRequestCodeINVITEEXHAUSTED,
+		StageTaskArtifactBadRequestCodeTEAMLASTOWNER,
+		StageTaskArtifactBadRequestCodeTEAMALREADYACTIVE,
+		StageTaskArtifactBadRequestCodeTEAMNOTFOUNDING,
+		StageTaskArtifactBadRequestCodeFOUNDINGALREADYACCEPTED,
+		StageTaskArtifactBadRequestCodeDIARYTRANSFERPENDING,
+		StageTaskArtifactBadRequestCodeDIARYTRANSFERNOTFOUND,
+		StageTaskArtifactBadRequestCodeDIARYTRANSFERALREADYRESOLVED,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s StageTaskArtifactBadRequestCode) MarshalText() ([]byte, error) {
+	switch s {
+	case StageTaskArtifactBadRequestCodeUNAUTHORIZED:
+		return []byte(s), nil
+	case StageTaskArtifactBadRequestCodeFORBIDDEN:
+		return []byte(s), nil
+	case StageTaskArtifactBadRequestCodeNOTFOUND:
+		return []byte(s), nil
+	case StageTaskArtifactBadRequestCodeCONFLICT:
+		return []byte(s), nil
+	case StageTaskArtifactBadRequestCodeUNSUPPORTEDMEDIATYPE:
+		return []byte(s), nil
+	case StageTaskArtifactBadRequestCodeVALIDATIONFAILED:
+		return []byte(s), nil
+	case StageTaskArtifactBadRequestCodeINVALIDCHALLENGE:
+		return []byte(s), nil
+	case StageTaskArtifactBadRequestCodeINVALIDSIGNATURE:
+		return []byte(s), nil
+	case StageTaskArtifactBadRequestCodeVOUCHERLIMIT:
+		return []byte(s), nil
+	case StageTaskArtifactBadRequestCodeRATELIMITEXCEEDED:
+		return []byte(s), nil
+	case StageTaskArtifactBadRequestCodeSERIALIZATIONEXHAUSTED:
+		return []byte(s), nil
+	case StageTaskArtifactBadRequestCodeSIGNINGREQUESTEXPIRED:
+		return []byte(s), nil
+	case StageTaskArtifactBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case StageTaskArtifactBadRequestCodeREGISTRATIONFAILED:
+		return []byte(s), nil
+	case StageTaskArtifactBadRequestCodeUPSTREAMERROR:
+		return []byte(s), nil
+	case StageTaskArtifactBadRequestCodeSERVICEUNAVAILABLE:
+		return []byte(s), nil
+	case StageTaskArtifactBadRequestCodeINTERNALSERVERERROR:
+		return []byte(s), nil
+	case StageTaskArtifactBadRequestCodeTEAMPERSONALIMMUTABLE:
+		return []byte(s), nil
+	case StageTaskArtifactBadRequestCodeTEAMNOTACTIVE:
+		return []byte(s), nil
+	case StageTaskArtifactBadRequestCodeINVITEEXPIRED:
+		return []byte(s), nil
+	case StageTaskArtifactBadRequestCodeINVITEEXHAUSTED:
+		return []byte(s), nil
+	case StageTaskArtifactBadRequestCodeTEAMLASTOWNER:
+		return []byte(s), nil
+	case StageTaskArtifactBadRequestCodeTEAMALREADYACTIVE:
+		return []byte(s), nil
+	case StageTaskArtifactBadRequestCodeTEAMNOTFOUNDING:
+		return []byte(s), nil
+	case StageTaskArtifactBadRequestCodeFOUNDINGALREADYACCEPTED:
+		return []byte(s), nil
+	case StageTaskArtifactBadRequestCodeDIARYTRANSFERPENDING:
+		return []byte(s), nil
+	case StageTaskArtifactBadRequestCodeDIARYTRANSFERNOTFOUND:
+		return []byte(s), nil
+	case StageTaskArtifactBadRequestCodeDIARYTRANSFERALREADYRESOLVED:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *StageTaskArtifactBadRequestCode) UnmarshalText(data []byte) error {
+	switch StageTaskArtifactBadRequestCode(data) {
+	case StageTaskArtifactBadRequestCodeUNAUTHORIZED:
+		*s = StageTaskArtifactBadRequestCodeUNAUTHORIZED
+		return nil
+	case StageTaskArtifactBadRequestCodeFORBIDDEN:
+		*s = StageTaskArtifactBadRequestCodeFORBIDDEN
+		return nil
+	case StageTaskArtifactBadRequestCodeNOTFOUND:
+		*s = StageTaskArtifactBadRequestCodeNOTFOUND
+		return nil
+	case StageTaskArtifactBadRequestCodeCONFLICT:
+		*s = StageTaskArtifactBadRequestCodeCONFLICT
+		return nil
+	case StageTaskArtifactBadRequestCodeUNSUPPORTEDMEDIATYPE:
+		*s = StageTaskArtifactBadRequestCodeUNSUPPORTEDMEDIATYPE
+		return nil
+	case StageTaskArtifactBadRequestCodeVALIDATIONFAILED:
+		*s = StageTaskArtifactBadRequestCodeVALIDATIONFAILED
+		return nil
+	case StageTaskArtifactBadRequestCodeINVALIDCHALLENGE:
+		*s = StageTaskArtifactBadRequestCodeINVALIDCHALLENGE
+		return nil
+	case StageTaskArtifactBadRequestCodeINVALIDSIGNATURE:
+		*s = StageTaskArtifactBadRequestCodeINVALIDSIGNATURE
+		return nil
+	case StageTaskArtifactBadRequestCodeVOUCHERLIMIT:
+		*s = StageTaskArtifactBadRequestCodeVOUCHERLIMIT
+		return nil
+	case StageTaskArtifactBadRequestCodeRATELIMITEXCEEDED:
+		*s = StageTaskArtifactBadRequestCodeRATELIMITEXCEEDED
+		return nil
+	case StageTaskArtifactBadRequestCodeSERIALIZATIONEXHAUSTED:
+		*s = StageTaskArtifactBadRequestCodeSERIALIZATIONEXHAUSTED
+		return nil
+	case StageTaskArtifactBadRequestCodeSIGNINGREQUESTEXPIRED:
+		*s = StageTaskArtifactBadRequestCodeSIGNINGREQUESTEXPIRED
+		return nil
+	case StageTaskArtifactBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = StageTaskArtifactBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case StageTaskArtifactBadRequestCodeREGISTRATIONFAILED:
+		*s = StageTaskArtifactBadRequestCodeREGISTRATIONFAILED
+		return nil
+	case StageTaskArtifactBadRequestCodeUPSTREAMERROR:
+		*s = StageTaskArtifactBadRequestCodeUPSTREAMERROR
+		return nil
+	case StageTaskArtifactBadRequestCodeSERVICEUNAVAILABLE:
+		*s = StageTaskArtifactBadRequestCodeSERVICEUNAVAILABLE
+		return nil
+	case StageTaskArtifactBadRequestCodeINTERNALSERVERERROR:
+		*s = StageTaskArtifactBadRequestCodeINTERNALSERVERERROR
+		return nil
+	case StageTaskArtifactBadRequestCodeTEAMPERSONALIMMUTABLE:
+		*s = StageTaskArtifactBadRequestCodeTEAMPERSONALIMMUTABLE
+		return nil
+	case StageTaskArtifactBadRequestCodeTEAMNOTACTIVE:
+		*s = StageTaskArtifactBadRequestCodeTEAMNOTACTIVE
+		return nil
+	case StageTaskArtifactBadRequestCodeINVITEEXPIRED:
+		*s = StageTaskArtifactBadRequestCodeINVITEEXPIRED
+		return nil
+	case StageTaskArtifactBadRequestCodeINVITEEXHAUSTED:
+		*s = StageTaskArtifactBadRequestCodeINVITEEXHAUSTED
+		return nil
+	case StageTaskArtifactBadRequestCodeTEAMLASTOWNER:
+		*s = StageTaskArtifactBadRequestCodeTEAMLASTOWNER
+		return nil
+	case StageTaskArtifactBadRequestCodeTEAMALREADYACTIVE:
+		*s = StageTaskArtifactBadRequestCodeTEAMALREADYACTIVE
+		return nil
+	case StageTaskArtifactBadRequestCodeTEAMNOTFOUNDING:
+		*s = StageTaskArtifactBadRequestCodeTEAMNOTFOUNDING
+		return nil
+	case StageTaskArtifactBadRequestCodeFOUNDINGALREADYACCEPTED:
+		*s = StageTaskArtifactBadRequestCodeFOUNDINGALREADYACCEPTED
+		return nil
+	case StageTaskArtifactBadRequestCodeDIARYTRANSFERPENDING:
+		*s = StageTaskArtifactBadRequestCodeDIARYTRANSFERPENDING
+		return nil
+	case StageTaskArtifactBadRequestCodeDIARYTRANSFERNOTFOUND:
+		*s = StageTaskArtifactBadRequestCodeDIARYTRANSFERNOTFOUND
+		return nil
+	case StageTaskArtifactBadRequestCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = StageTaskArtifactBadRequestCodeDIARYTRANSFERALREADYRESOLVED
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type StageTaskArtifactForbidden struct {
+	Code            StageTaskArtifactForbiddenCode `json:"code"`
+	Detail          OptString                      `json:"detail"`
+	Instance        OptString                      `json:"instance"`
+	Status          int                            `json:"status"`
+	Title           string                         `json:"title"`
+	Type            url.URL                        `json:"type"`
+	AdditionalProps StageTaskArtifactForbiddenAdditional
+}
+
+// GetCode returns the value of Code.
+func (s *StageTaskArtifactForbidden) GetCode() StageTaskArtifactForbiddenCode {
+	return s.Code
+}
+
+// GetDetail returns the value of Detail.
+func (s *StageTaskArtifactForbidden) GetDetail() OptString {
+	return s.Detail
+}
+
+// GetInstance returns the value of Instance.
+func (s *StageTaskArtifactForbidden) GetInstance() OptString {
+	return s.Instance
+}
+
+// GetStatus returns the value of Status.
+func (s *StageTaskArtifactForbidden) GetStatus() int {
+	return s.Status
+}
+
+// GetTitle returns the value of Title.
+func (s *StageTaskArtifactForbidden) GetTitle() string {
+	return s.Title
+}
+
+// GetType returns the value of Type.
+func (s *StageTaskArtifactForbidden) GetType() url.URL {
+	return s.Type
+}
+
+// GetAdditionalProps returns the value of AdditionalProps.
+func (s *StageTaskArtifactForbidden) GetAdditionalProps() StageTaskArtifactForbiddenAdditional {
+	return s.AdditionalProps
+}
+
+// SetCode sets the value of Code.
+func (s *StageTaskArtifactForbidden) SetCode(val StageTaskArtifactForbiddenCode) {
+	s.Code = val
+}
+
+// SetDetail sets the value of Detail.
+func (s *StageTaskArtifactForbidden) SetDetail(val OptString) {
+	s.Detail = val
+}
+
+// SetInstance sets the value of Instance.
+func (s *StageTaskArtifactForbidden) SetInstance(val OptString) {
+	s.Instance = val
+}
+
+// SetStatus sets the value of Status.
+func (s *StageTaskArtifactForbidden) SetStatus(val int) {
+	s.Status = val
+}
+
+// SetTitle sets the value of Title.
+func (s *StageTaskArtifactForbidden) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetType sets the value of Type.
+func (s *StageTaskArtifactForbidden) SetType(val url.URL) {
+	s.Type = val
+}
+
+// SetAdditionalProps sets the value of AdditionalProps.
+func (s *StageTaskArtifactForbidden) SetAdditionalProps(val StageTaskArtifactForbiddenAdditional) {
+	s.AdditionalProps = val
+}
+
+func (*StageTaskArtifactForbidden) stageTaskArtifactRes() {}
+
+type StageTaskArtifactForbiddenAdditional map[string]jx.Raw
+
+func (s *StageTaskArtifactForbiddenAdditional) init() StageTaskArtifactForbiddenAdditional {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type StageTaskArtifactForbiddenCode string
+
+const (
+	StageTaskArtifactForbiddenCodeUNAUTHORIZED                   StageTaskArtifactForbiddenCode = "UNAUTHORIZED"
+	StageTaskArtifactForbiddenCodeFORBIDDEN                      StageTaskArtifactForbiddenCode = "FORBIDDEN"
+	StageTaskArtifactForbiddenCodeNOTFOUND                       StageTaskArtifactForbiddenCode = "NOT_FOUND"
+	StageTaskArtifactForbiddenCodeCONFLICT                       StageTaskArtifactForbiddenCode = "CONFLICT"
+	StageTaskArtifactForbiddenCodeUNSUPPORTEDMEDIATYPE           StageTaskArtifactForbiddenCode = "UNSUPPORTED_MEDIA_TYPE"
+	StageTaskArtifactForbiddenCodeVALIDATIONFAILED               StageTaskArtifactForbiddenCode = "VALIDATION_FAILED"
+	StageTaskArtifactForbiddenCodeINVALIDCHALLENGE               StageTaskArtifactForbiddenCode = "INVALID_CHALLENGE"
+	StageTaskArtifactForbiddenCodeINVALIDSIGNATURE               StageTaskArtifactForbiddenCode = "INVALID_SIGNATURE"
+	StageTaskArtifactForbiddenCodeVOUCHERLIMIT                   StageTaskArtifactForbiddenCode = "VOUCHER_LIMIT"
+	StageTaskArtifactForbiddenCodeRATELIMITEXCEEDED              StageTaskArtifactForbiddenCode = "RATE_LIMIT_EXCEEDED"
+	StageTaskArtifactForbiddenCodeSERIALIZATIONEXHAUSTED         StageTaskArtifactForbiddenCode = "SERIALIZATION_EXHAUSTED"
+	StageTaskArtifactForbiddenCodeSIGNINGREQUESTEXPIRED          StageTaskArtifactForbiddenCode = "SIGNING_REQUEST_EXPIRED"
+	StageTaskArtifactForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED StageTaskArtifactForbiddenCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	StageTaskArtifactForbiddenCodeREGISTRATIONFAILED             StageTaskArtifactForbiddenCode = "REGISTRATION_FAILED"
+	StageTaskArtifactForbiddenCodeUPSTREAMERROR                  StageTaskArtifactForbiddenCode = "UPSTREAM_ERROR"
+	StageTaskArtifactForbiddenCodeSERVICEUNAVAILABLE             StageTaskArtifactForbiddenCode = "SERVICE_UNAVAILABLE"
+	StageTaskArtifactForbiddenCodeINTERNALSERVERERROR            StageTaskArtifactForbiddenCode = "INTERNAL_SERVER_ERROR"
+	StageTaskArtifactForbiddenCodeTEAMPERSONALIMMUTABLE          StageTaskArtifactForbiddenCode = "TEAM_PERSONAL_IMMUTABLE"
+	StageTaskArtifactForbiddenCodeTEAMNOTACTIVE                  StageTaskArtifactForbiddenCode = "TEAM_NOT_ACTIVE"
+	StageTaskArtifactForbiddenCodeINVITEEXPIRED                  StageTaskArtifactForbiddenCode = "INVITE_EXPIRED"
+	StageTaskArtifactForbiddenCodeINVITEEXHAUSTED                StageTaskArtifactForbiddenCode = "INVITE_EXHAUSTED"
+	StageTaskArtifactForbiddenCodeTEAMLASTOWNER                  StageTaskArtifactForbiddenCode = "TEAM_LAST_OWNER"
+	StageTaskArtifactForbiddenCodeTEAMALREADYACTIVE              StageTaskArtifactForbiddenCode = "TEAM_ALREADY_ACTIVE"
+	StageTaskArtifactForbiddenCodeTEAMNOTFOUNDING                StageTaskArtifactForbiddenCode = "TEAM_NOT_FOUNDING"
+	StageTaskArtifactForbiddenCodeFOUNDINGALREADYACCEPTED        StageTaskArtifactForbiddenCode = "FOUNDING_ALREADY_ACCEPTED"
+	StageTaskArtifactForbiddenCodeDIARYTRANSFERPENDING           StageTaskArtifactForbiddenCode = "DIARY_TRANSFER_PENDING"
+	StageTaskArtifactForbiddenCodeDIARYTRANSFERNOTFOUND          StageTaskArtifactForbiddenCode = "DIARY_TRANSFER_NOT_FOUND"
+	StageTaskArtifactForbiddenCodeDIARYTRANSFERALREADYRESOLVED   StageTaskArtifactForbiddenCode = "DIARY_TRANSFER_ALREADY_RESOLVED"
+)
+
+// AllValues returns all StageTaskArtifactForbiddenCode values.
+func (StageTaskArtifactForbiddenCode) AllValues() []StageTaskArtifactForbiddenCode {
+	return []StageTaskArtifactForbiddenCode{
+		StageTaskArtifactForbiddenCodeUNAUTHORIZED,
+		StageTaskArtifactForbiddenCodeFORBIDDEN,
+		StageTaskArtifactForbiddenCodeNOTFOUND,
+		StageTaskArtifactForbiddenCodeCONFLICT,
+		StageTaskArtifactForbiddenCodeUNSUPPORTEDMEDIATYPE,
+		StageTaskArtifactForbiddenCodeVALIDATIONFAILED,
+		StageTaskArtifactForbiddenCodeINVALIDCHALLENGE,
+		StageTaskArtifactForbiddenCodeINVALIDSIGNATURE,
+		StageTaskArtifactForbiddenCodeVOUCHERLIMIT,
+		StageTaskArtifactForbiddenCodeRATELIMITEXCEEDED,
+		StageTaskArtifactForbiddenCodeSERIALIZATIONEXHAUSTED,
+		StageTaskArtifactForbiddenCodeSIGNINGREQUESTEXPIRED,
+		StageTaskArtifactForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED,
+		StageTaskArtifactForbiddenCodeREGISTRATIONFAILED,
+		StageTaskArtifactForbiddenCodeUPSTREAMERROR,
+		StageTaskArtifactForbiddenCodeSERVICEUNAVAILABLE,
+		StageTaskArtifactForbiddenCodeINTERNALSERVERERROR,
+		StageTaskArtifactForbiddenCodeTEAMPERSONALIMMUTABLE,
+		StageTaskArtifactForbiddenCodeTEAMNOTACTIVE,
+		StageTaskArtifactForbiddenCodeINVITEEXPIRED,
+		StageTaskArtifactForbiddenCodeINVITEEXHAUSTED,
+		StageTaskArtifactForbiddenCodeTEAMLASTOWNER,
+		StageTaskArtifactForbiddenCodeTEAMALREADYACTIVE,
+		StageTaskArtifactForbiddenCodeTEAMNOTFOUNDING,
+		StageTaskArtifactForbiddenCodeFOUNDINGALREADYACCEPTED,
+		StageTaskArtifactForbiddenCodeDIARYTRANSFERPENDING,
+		StageTaskArtifactForbiddenCodeDIARYTRANSFERNOTFOUND,
+		StageTaskArtifactForbiddenCodeDIARYTRANSFERALREADYRESOLVED,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s StageTaskArtifactForbiddenCode) MarshalText() ([]byte, error) {
+	switch s {
+	case StageTaskArtifactForbiddenCodeUNAUTHORIZED:
+		return []byte(s), nil
+	case StageTaskArtifactForbiddenCodeFORBIDDEN:
+		return []byte(s), nil
+	case StageTaskArtifactForbiddenCodeNOTFOUND:
+		return []byte(s), nil
+	case StageTaskArtifactForbiddenCodeCONFLICT:
+		return []byte(s), nil
+	case StageTaskArtifactForbiddenCodeUNSUPPORTEDMEDIATYPE:
+		return []byte(s), nil
+	case StageTaskArtifactForbiddenCodeVALIDATIONFAILED:
+		return []byte(s), nil
+	case StageTaskArtifactForbiddenCodeINVALIDCHALLENGE:
+		return []byte(s), nil
+	case StageTaskArtifactForbiddenCodeINVALIDSIGNATURE:
+		return []byte(s), nil
+	case StageTaskArtifactForbiddenCodeVOUCHERLIMIT:
+		return []byte(s), nil
+	case StageTaskArtifactForbiddenCodeRATELIMITEXCEEDED:
+		return []byte(s), nil
+	case StageTaskArtifactForbiddenCodeSERIALIZATIONEXHAUSTED:
+		return []byte(s), nil
+	case StageTaskArtifactForbiddenCodeSIGNINGREQUESTEXPIRED:
+		return []byte(s), nil
+	case StageTaskArtifactForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case StageTaskArtifactForbiddenCodeREGISTRATIONFAILED:
+		return []byte(s), nil
+	case StageTaskArtifactForbiddenCodeUPSTREAMERROR:
+		return []byte(s), nil
+	case StageTaskArtifactForbiddenCodeSERVICEUNAVAILABLE:
+		return []byte(s), nil
+	case StageTaskArtifactForbiddenCodeINTERNALSERVERERROR:
+		return []byte(s), nil
+	case StageTaskArtifactForbiddenCodeTEAMPERSONALIMMUTABLE:
+		return []byte(s), nil
+	case StageTaskArtifactForbiddenCodeTEAMNOTACTIVE:
+		return []byte(s), nil
+	case StageTaskArtifactForbiddenCodeINVITEEXPIRED:
+		return []byte(s), nil
+	case StageTaskArtifactForbiddenCodeINVITEEXHAUSTED:
+		return []byte(s), nil
+	case StageTaskArtifactForbiddenCodeTEAMLASTOWNER:
+		return []byte(s), nil
+	case StageTaskArtifactForbiddenCodeTEAMALREADYACTIVE:
+		return []byte(s), nil
+	case StageTaskArtifactForbiddenCodeTEAMNOTFOUNDING:
+		return []byte(s), nil
+	case StageTaskArtifactForbiddenCodeFOUNDINGALREADYACCEPTED:
+		return []byte(s), nil
+	case StageTaskArtifactForbiddenCodeDIARYTRANSFERPENDING:
+		return []byte(s), nil
+	case StageTaskArtifactForbiddenCodeDIARYTRANSFERNOTFOUND:
+		return []byte(s), nil
+	case StageTaskArtifactForbiddenCodeDIARYTRANSFERALREADYRESOLVED:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *StageTaskArtifactForbiddenCode) UnmarshalText(data []byte) error {
+	switch StageTaskArtifactForbiddenCode(data) {
+	case StageTaskArtifactForbiddenCodeUNAUTHORIZED:
+		*s = StageTaskArtifactForbiddenCodeUNAUTHORIZED
+		return nil
+	case StageTaskArtifactForbiddenCodeFORBIDDEN:
+		*s = StageTaskArtifactForbiddenCodeFORBIDDEN
+		return nil
+	case StageTaskArtifactForbiddenCodeNOTFOUND:
+		*s = StageTaskArtifactForbiddenCodeNOTFOUND
+		return nil
+	case StageTaskArtifactForbiddenCodeCONFLICT:
+		*s = StageTaskArtifactForbiddenCodeCONFLICT
+		return nil
+	case StageTaskArtifactForbiddenCodeUNSUPPORTEDMEDIATYPE:
+		*s = StageTaskArtifactForbiddenCodeUNSUPPORTEDMEDIATYPE
+		return nil
+	case StageTaskArtifactForbiddenCodeVALIDATIONFAILED:
+		*s = StageTaskArtifactForbiddenCodeVALIDATIONFAILED
+		return nil
+	case StageTaskArtifactForbiddenCodeINVALIDCHALLENGE:
+		*s = StageTaskArtifactForbiddenCodeINVALIDCHALLENGE
+		return nil
+	case StageTaskArtifactForbiddenCodeINVALIDSIGNATURE:
+		*s = StageTaskArtifactForbiddenCodeINVALIDSIGNATURE
+		return nil
+	case StageTaskArtifactForbiddenCodeVOUCHERLIMIT:
+		*s = StageTaskArtifactForbiddenCodeVOUCHERLIMIT
+		return nil
+	case StageTaskArtifactForbiddenCodeRATELIMITEXCEEDED:
+		*s = StageTaskArtifactForbiddenCodeRATELIMITEXCEEDED
+		return nil
+	case StageTaskArtifactForbiddenCodeSERIALIZATIONEXHAUSTED:
+		*s = StageTaskArtifactForbiddenCodeSERIALIZATIONEXHAUSTED
+		return nil
+	case StageTaskArtifactForbiddenCodeSIGNINGREQUESTEXPIRED:
+		*s = StageTaskArtifactForbiddenCodeSIGNINGREQUESTEXPIRED
+		return nil
+	case StageTaskArtifactForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = StageTaskArtifactForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case StageTaskArtifactForbiddenCodeREGISTRATIONFAILED:
+		*s = StageTaskArtifactForbiddenCodeREGISTRATIONFAILED
+		return nil
+	case StageTaskArtifactForbiddenCodeUPSTREAMERROR:
+		*s = StageTaskArtifactForbiddenCodeUPSTREAMERROR
+		return nil
+	case StageTaskArtifactForbiddenCodeSERVICEUNAVAILABLE:
+		*s = StageTaskArtifactForbiddenCodeSERVICEUNAVAILABLE
+		return nil
+	case StageTaskArtifactForbiddenCodeINTERNALSERVERERROR:
+		*s = StageTaskArtifactForbiddenCodeINTERNALSERVERERROR
+		return nil
+	case StageTaskArtifactForbiddenCodeTEAMPERSONALIMMUTABLE:
+		*s = StageTaskArtifactForbiddenCodeTEAMPERSONALIMMUTABLE
+		return nil
+	case StageTaskArtifactForbiddenCodeTEAMNOTACTIVE:
+		*s = StageTaskArtifactForbiddenCodeTEAMNOTACTIVE
+		return nil
+	case StageTaskArtifactForbiddenCodeINVITEEXPIRED:
+		*s = StageTaskArtifactForbiddenCodeINVITEEXPIRED
+		return nil
+	case StageTaskArtifactForbiddenCodeINVITEEXHAUSTED:
+		*s = StageTaskArtifactForbiddenCodeINVITEEXHAUSTED
+		return nil
+	case StageTaskArtifactForbiddenCodeTEAMLASTOWNER:
+		*s = StageTaskArtifactForbiddenCodeTEAMLASTOWNER
+		return nil
+	case StageTaskArtifactForbiddenCodeTEAMALREADYACTIVE:
+		*s = StageTaskArtifactForbiddenCodeTEAMALREADYACTIVE
+		return nil
+	case StageTaskArtifactForbiddenCodeTEAMNOTFOUNDING:
+		*s = StageTaskArtifactForbiddenCodeTEAMNOTFOUNDING
+		return nil
+	case StageTaskArtifactForbiddenCodeFOUNDINGALREADYACCEPTED:
+		*s = StageTaskArtifactForbiddenCodeFOUNDINGALREADYACCEPTED
+		return nil
+	case StageTaskArtifactForbiddenCodeDIARYTRANSFERPENDING:
+		*s = StageTaskArtifactForbiddenCodeDIARYTRANSFERPENDING
+		return nil
+	case StageTaskArtifactForbiddenCodeDIARYTRANSFERNOTFOUND:
+		*s = StageTaskArtifactForbiddenCodeDIARYTRANSFERNOTFOUND
+		return nil
+	case StageTaskArtifactForbiddenCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = StageTaskArtifactForbiddenCodeDIARYTRANSFERALREADYRESOLVED
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type StageTaskArtifactNotFound struct {
+	Code            StageTaskArtifactNotFoundCode `json:"code"`
+	Detail          OptString                     `json:"detail"`
+	Instance        OptString                     `json:"instance"`
+	Status          int                           `json:"status"`
+	Title           string                        `json:"title"`
+	Type            url.URL                       `json:"type"`
+	AdditionalProps StageTaskArtifactNotFoundAdditional
+}
+
+// GetCode returns the value of Code.
+func (s *StageTaskArtifactNotFound) GetCode() StageTaskArtifactNotFoundCode {
+	return s.Code
+}
+
+// GetDetail returns the value of Detail.
+func (s *StageTaskArtifactNotFound) GetDetail() OptString {
+	return s.Detail
+}
+
+// GetInstance returns the value of Instance.
+func (s *StageTaskArtifactNotFound) GetInstance() OptString {
+	return s.Instance
+}
+
+// GetStatus returns the value of Status.
+func (s *StageTaskArtifactNotFound) GetStatus() int {
+	return s.Status
+}
+
+// GetTitle returns the value of Title.
+func (s *StageTaskArtifactNotFound) GetTitle() string {
+	return s.Title
+}
+
+// GetType returns the value of Type.
+func (s *StageTaskArtifactNotFound) GetType() url.URL {
+	return s.Type
+}
+
+// GetAdditionalProps returns the value of AdditionalProps.
+func (s *StageTaskArtifactNotFound) GetAdditionalProps() StageTaskArtifactNotFoundAdditional {
+	return s.AdditionalProps
+}
+
+// SetCode sets the value of Code.
+func (s *StageTaskArtifactNotFound) SetCode(val StageTaskArtifactNotFoundCode) {
+	s.Code = val
+}
+
+// SetDetail sets the value of Detail.
+func (s *StageTaskArtifactNotFound) SetDetail(val OptString) {
+	s.Detail = val
+}
+
+// SetInstance sets the value of Instance.
+func (s *StageTaskArtifactNotFound) SetInstance(val OptString) {
+	s.Instance = val
+}
+
+// SetStatus sets the value of Status.
+func (s *StageTaskArtifactNotFound) SetStatus(val int) {
+	s.Status = val
+}
+
+// SetTitle sets the value of Title.
+func (s *StageTaskArtifactNotFound) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetType sets the value of Type.
+func (s *StageTaskArtifactNotFound) SetType(val url.URL) {
+	s.Type = val
+}
+
+// SetAdditionalProps sets the value of AdditionalProps.
+func (s *StageTaskArtifactNotFound) SetAdditionalProps(val StageTaskArtifactNotFoundAdditional) {
+	s.AdditionalProps = val
+}
+
+func (*StageTaskArtifactNotFound) stageTaskArtifactRes() {}
+
+type StageTaskArtifactNotFoundAdditional map[string]jx.Raw
+
+func (s *StageTaskArtifactNotFoundAdditional) init() StageTaskArtifactNotFoundAdditional {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type StageTaskArtifactNotFoundCode string
+
+const (
+	StageTaskArtifactNotFoundCodeUNAUTHORIZED                   StageTaskArtifactNotFoundCode = "UNAUTHORIZED"
+	StageTaskArtifactNotFoundCodeFORBIDDEN                      StageTaskArtifactNotFoundCode = "FORBIDDEN"
+	StageTaskArtifactNotFoundCodeNOTFOUND                       StageTaskArtifactNotFoundCode = "NOT_FOUND"
+	StageTaskArtifactNotFoundCodeCONFLICT                       StageTaskArtifactNotFoundCode = "CONFLICT"
+	StageTaskArtifactNotFoundCodeUNSUPPORTEDMEDIATYPE           StageTaskArtifactNotFoundCode = "UNSUPPORTED_MEDIA_TYPE"
+	StageTaskArtifactNotFoundCodeVALIDATIONFAILED               StageTaskArtifactNotFoundCode = "VALIDATION_FAILED"
+	StageTaskArtifactNotFoundCodeINVALIDCHALLENGE               StageTaskArtifactNotFoundCode = "INVALID_CHALLENGE"
+	StageTaskArtifactNotFoundCodeINVALIDSIGNATURE               StageTaskArtifactNotFoundCode = "INVALID_SIGNATURE"
+	StageTaskArtifactNotFoundCodeVOUCHERLIMIT                   StageTaskArtifactNotFoundCode = "VOUCHER_LIMIT"
+	StageTaskArtifactNotFoundCodeRATELIMITEXCEEDED              StageTaskArtifactNotFoundCode = "RATE_LIMIT_EXCEEDED"
+	StageTaskArtifactNotFoundCodeSERIALIZATIONEXHAUSTED         StageTaskArtifactNotFoundCode = "SERIALIZATION_EXHAUSTED"
+	StageTaskArtifactNotFoundCodeSIGNINGREQUESTEXPIRED          StageTaskArtifactNotFoundCode = "SIGNING_REQUEST_EXPIRED"
+	StageTaskArtifactNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED StageTaskArtifactNotFoundCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	StageTaskArtifactNotFoundCodeREGISTRATIONFAILED             StageTaskArtifactNotFoundCode = "REGISTRATION_FAILED"
+	StageTaskArtifactNotFoundCodeUPSTREAMERROR                  StageTaskArtifactNotFoundCode = "UPSTREAM_ERROR"
+	StageTaskArtifactNotFoundCodeSERVICEUNAVAILABLE             StageTaskArtifactNotFoundCode = "SERVICE_UNAVAILABLE"
+	StageTaskArtifactNotFoundCodeINTERNALSERVERERROR            StageTaskArtifactNotFoundCode = "INTERNAL_SERVER_ERROR"
+	StageTaskArtifactNotFoundCodeTEAMPERSONALIMMUTABLE          StageTaskArtifactNotFoundCode = "TEAM_PERSONAL_IMMUTABLE"
+	StageTaskArtifactNotFoundCodeTEAMNOTACTIVE                  StageTaskArtifactNotFoundCode = "TEAM_NOT_ACTIVE"
+	StageTaskArtifactNotFoundCodeINVITEEXPIRED                  StageTaskArtifactNotFoundCode = "INVITE_EXPIRED"
+	StageTaskArtifactNotFoundCodeINVITEEXHAUSTED                StageTaskArtifactNotFoundCode = "INVITE_EXHAUSTED"
+	StageTaskArtifactNotFoundCodeTEAMLASTOWNER                  StageTaskArtifactNotFoundCode = "TEAM_LAST_OWNER"
+	StageTaskArtifactNotFoundCodeTEAMALREADYACTIVE              StageTaskArtifactNotFoundCode = "TEAM_ALREADY_ACTIVE"
+	StageTaskArtifactNotFoundCodeTEAMNOTFOUNDING                StageTaskArtifactNotFoundCode = "TEAM_NOT_FOUNDING"
+	StageTaskArtifactNotFoundCodeFOUNDINGALREADYACCEPTED        StageTaskArtifactNotFoundCode = "FOUNDING_ALREADY_ACCEPTED"
+	StageTaskArtifactNotFoundCodeDIARYTRANSFERPENDING           StageTaskArtifactNotFoundCode = "DIARY_TRANSFER_PENDING"
+	StageTaskArtifactNotFoundCodeDIARYTRANSFERNOTFOUND          StageTaskArtifactNotFoundCode = "DIARY_TRANSFER_NOT_FOUND"
+	StageTaskArtifactNotFoundCodeDIARYTRANSFERALREADYRESOLVED   StageTaskArtifactNotFoundCode = "DIARY_TRANSFER_ALREADY_RESOLVED"
+)
+
+// AllValues returns all StageTaskArtifactNotFoundCode values.
+func (StageTaskArtifactNotFoundCode) AllValues() []StageTaskArtifactNotFoundCode {
+	return []StageTaskArtifactNotFoundCode{
+		StageTaskArtifactNotFoundCodeUNAUTHORIZED,
+		StageTaskArtifactNotFoundCodeFORBIDDEN,
+		StageTaskArtifactNotFoundCodeNOTFOUND,
+		StageTaskArtifactNotFoundCodeCONFLICT,
+		StageTaskArtifactNotFoundCodeUNSUPPORTEDMEDIATYPE,
+		StageTaskArtifactNotFoundCodeVALIDATIONFAILED,
+		StageTaskArtifactNotFoundCodeINVALIDCHALLENGE,
+		StageTaskArtifactNotFoundCodeINVALIDSIGNATURE,
+		StageTaskArtifactNotFoundCodeVOUCHERLIMIT,
+		StageTaskArtifactNotFoundCodeRATELIMITEXCEEDED,
+		StageTaskArtifactNotFoundCodeSERIALIZATIONEXHAUSTED,
+		StageTaskArtifactNotFoundCodeSIGNINGREQUESTEXPIRED,
+		StageTaskArtifactNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED,
+		StageTaskArtifactNotFoundCodeREGISTRATIONFAILED,
+		StageTaskArtifactNotFoundCodeUPSTREAMERROR,
+		StageTaskArtifactNotFoundCodeSERVICEUNAVAILABLE,
+		StageTaskArtifactNotFoundCodeINTERNALSERVERERROR,
+		StageTaskArtifactNotFoundCodeTEAMPERSONALIMMUTABLE,
+		StageTaskArtifactNotFoundCodeTEAMNOTACTIVE,
+		StageTaskArtifactNotFoundCodeINVITEEXPIRED,
+		StageTaskArtifactNotFoundCodeINVITEEXHAUSTED,
+		StageTaskArtifactNotFoundCodeTEAMLASTOWNER,
+		StageTaskArtifactNotFoundCodeTEAMALREADYACTIVE,
+		StageTaskArtifactNotFoundCodeTEAMNOTFOUNDING,
+		StageTaskArtifactNotFoundCodeFOUNDINGALREADYACCEPTED,
+		StageTaskArtifactNotFoundCodeDIARYTRANSFERPENDING,
+		StageTaskArtifactNotFoundCodeDIARYTRANSFERNOTFOUND,
+		StageTaskArtifactNotFoundCodeDIARYTRANSFERALREADYRESOLVED,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s StageTaskArtifactNotFoundCode) MarshalText() ([]byte, error) {
+	switch s {
+	case StageTaskArtifactNotFoundCodeUNAUTHORIZED:
+		return []byte(s), nil
+	case StageTaskArtifactNotFoundCodeFORBIDDEN:
+		return []byte(s), nil
+	case StageTaskArtifactNotFoundCodeNOTFOUND:
+		return []byte(s), nil
+	case StageTaskArtifactNotFoundCodeCONFLICT:
+		return []byte(s), nil
+	case StageTaskArtifactNotFoundCodeUNSUPPORTEDMEDIATYPE:
+		return []byte(s), nil
+	case StageTaskArtifactNotFoundCodeVALIDATIONFAILED:
+		return []byte(s), nil
+	case StageTaskArtifactNotFoundCodeINVALIDCHALLENGE:
+		return []byte(s), nil
+	case StageTaskArtifactNotFoundCodeINVALIDSIGNATURE:
+		return []byte(s), nil
+	case StageTaskArtifactNotFoundCodeVOUCHERLIMIT:
+		return []byte(s), nil
+	case StageTaskArtifactNotFoundCodeRATELIMITEXCEEDED:
+		return []byte(s), nil
+	case StageTaskArtifactNotFoundCodeSERIALIZATIONEXHAUSTED:
+		return []byte(s), nil
+	case StageTaskArtifactNotFoundCodeSIGNINGREQUESTEXPIRED:
+		return []byte(s), nil
+	case StageTaskArtifactNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case StageTaskArtifactNotFoundCodeREGISTRATIONFAILED:
+		return []byte(s), nil
+	case StageTaskArtifactNotFoundCodeUPSTREAMERROR:
+		return []byte(s), nil
+	case StageTaskArtifactNotFoundCodeSERVICEUNAVAILABLE:
+		return []byte(s), nil
+	case StageTaskArtifactNotFoundCodeINTERNALSERVERERROR:
+		return []byte(s), nil
+	case StageTaskArtifactNotFoundCodeTEAMPERSONALIMMUTABLE:
+		return []byte(s), nil
+	case StageTaskArtifactNotFoundCodeTEAMNOTACTIVE:
+		return []byte(s), nil
+	case StageTaskArtifactNotFoundCodeINVITEEXPIRED:
+		return []byte(s), nil
+	case StageTaskArtifactNotFoundCodeINVITEEXHAUSTED:
+		return []byte(s), nil
+	case StageTaskArtifactNotFoundCodeTEAMLASTOWNER:
+		return []byte(s), nil
+	case StageTaskArtifactNotFoundCodeTEAMALREADYACTIVE:
+		return []byte(s), nil
+	case StageTaskArtifactNotFoundCodeTEAMNOTFOUNDING:
+		return []byte(s), nil
+	case StageTaskArtifactNotFoundCodeFOUNDINGALREADYACCEPTED:
+		return []byte(s), nil
+	case StageTaskArtifactNotFoundCodeDIARYTRANSFERPENDING:
+		return []byte(s), nil
+	case StageTaskArtifactNotFoundCodeDIARYTRANSFERNOTFOUND:
+		return []byte(s), nil
+	case StageTaskArtifactNotFoundCodeDIARYTRANSFERALREADYRESOLVED:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *StageTaskArtifactNotFoundCode) UnmarshalText(data []byte) error {
+	switch StageTaskArtifactNotFoundCode(data) {
+	case StageTaskArtifactNotFoundCodeUNAUTHORIZED:
+		*s = StageTaskArtifactNotFoundCodeUNAUTHORIZED
+		return nil
+	case StageTaskArtifactNotFoundCodeFORBIDDEN:
+		*s = StageTaskArtifactNotFoundCodeFORBIDDEN
+		return nil
+	case StageTaskArtifactNotFoundCodeNOTFOUND:
+		*s = StageTaskArtifactNotFoundCodeNOTFOUND
+		return nil
+	case StageTaskArtifactNotFoundCodeCONFLICT:
+		*s = StageTaskArtifactNotFoundCodeCONFLICT
+		return nil
+	case StageTaskArtifactNotFoundCodeUNSUPPORTEDMEDIATYPE:
+		*s = StageTaskArtifactNotFoundCodeUNSUPPORTEDMEDIATYPE
+		return nil
+	case StageTaskArtifactNotFoundCodeVALIDATIONFAILED:
+		*s = StageTaskArtifactNotFoundCodeVALIDATIONFAILED
+		return nil
+	case StageTaskArtifactNotFoundCodeINVALIDCHALLENGE:
+		*s = StageTaskArtifactNotFoundCodeINVALIDCHALLENGE
+		return nil
+	case StageTaskArtifactNotFoundCodeINVALIDSIGNATURE:
+		*s = StageTaskArtifactNotFoundCodeINVALIDSIGNATURE
+		return nil
+	case StageTaskArtifactNotFoundCodeVOUCHERLIMIT:
+		*s = StageTaskArtifactNotFoundCodeVOUCHERLIMIT
+		return nil
+	case StageTaskArtifactNotFoundCodeRATELIMITEXCEEDED:
+		*s = StageTaskArtifactNotFoundCodeRATELIMITEXCEEDED
+		return nil
+	case StageTaskArtifactNotFoundCodeSERIALIZATIONEXHAUSTED:
+		*s = StageTaskArtifactNotFoundCodeSERIALIZATIONEXHAUSTED
+		return nil
+	case StageTaskArtifactNotFoundCodeSIGNINGREQUESTEXPIRED:
+		*s = StageTaskArtifactNotFoundCodeSIGNINGREQUESTEXPIRED
+		return nil
+	case StageTaskArtifactNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = StageTaskArtifactNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case StageTaskArtifactNotFoundCodeREGISTRATIONFAILED:
+		*s = StageTaskArtifactNotFoundCodeREGISTRATIONFAILED
+		return nil
+	case StageTaskArtifactNotFoundCodeUPSTREAMERROR:
+		*s = StageTaskArtifactNotFoundCodeUPSTREAMERROR
+		return nil
+	case StageTaskArtifactNotFoundCodeSERVICEUNAVAILABLE:
+		*s = StageTaskArtifactNotFoundCodeSERVICEUNAVAILABLE
+		return nil
+	case StageTaskArtifactNotFoundCodeINTERNALSERVERERROR:
+		*s = StageTaskArtifactNotFoundCodeINTERNALSERVERERROR
+		return nil
+	case StageTaskArtifactNotFoundCodeTEAMPERSONALIMMUTABLE:
+		*s = StageTaskArtifactNotFoundCodeTEAMPERSONALIMMUTABLE
+		return nil
+	case StageTaskArtifactNotFoundCodeTEAMNOTACTIVE:
+		*s = StageTaskArtifactNotFoundCodeTEAMNOTACTIVE
+		return nil
+	case StageTaskArtifactNotFoundCodeINVITEEXPIRED:
+		*s = StageTaskArtifactNotFoundCodeINVITEEXPIRED
+		return nil
+	case StageTaskArtifactNotFoundCodeINVITEEXHAUSTED:
+		*s = StageTaskArtifactNotFoundCodeINVITEEXHAUSTED
+		return nil
+	case StageTaskArtifactNotFoundCodeTEAMLASTOWNER:
+		*s = StageTaskArtifactNotFoundCodeTEAMLASTOWNER
+		return nil
+	case StageTaskArtifactNotFoundCodeTEAMALREADYACTIVE:
+		*s = StageTaskArtifactNotFoundCodeTEAMALREADYACTIVE
+		return nil
+	case StageTaskArtifactNotFoundCodeTEAMNOTFOUNDING:
+		*s = StageTaskArtifactNotFoundCodeTEAMNOTFOUNDING
+		return nil
+	case StageTaskArtifactNotFoundCodeFOUNDINGALREADYACCEPTED:
+		*s = StageTaskArtifactNotFoundCodeFOUNDINGALREADYACCEPTED
+		return nil
+	case StageTaskArtifactNotFoundCodeDIARYTRANSFERPENDING:
+		*s = StageTaskArtifactNotFoundCodeDIARYTRANSFERPENDING
+		return nil
+	case StageTaskArtifactNotFoundCodeDIARYTRANSFERNOTFOUND:
+		*s = StageTaskArtifactNotFoundCodeDIARYTRANSFERNOTFOUND
+		return nil
+	case StageTaskArtifactNotFoundCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = StageTaskArtifactNotFoundCodeDIARYTRANSFERALREADYRESOLVED
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type StageTaskArtifactOK struct {
+	Cid         string `json:"cid"`
+	ContentType string `json:"contentType"`
+	SizeBytes   int    `json:"sizeBytes"`
+}
+
+// GetCid returns the value of Cid.
+func (s *StageTaskArtifactOK) GetCid() string {
+	return s.Cid
+}
+
+// GetContentType returns the value of ContentType.
+func (s *StageTaskArtifactOK) GetContentType() string {
+	return s.ContentType
+}
+
+// GetSizeBytes returns the value of SizeBytes.
+func (s *StageTaskArtifactOK) GetSizeBytes() int {
+	return s.SizeBytes
+}
+
+// SetCid sets the value of Cid.
+func (s *StageTaskArtifactOK) SetCid(val string) {
+	s.Cid = val
+}
+
+// SetContentType sets the value of ContentType.
+func (s *StageTaskArtifactOK) SetContentType(val string) {
+	s.ContentType = val
+}
+
+// SetSizeBytes sets the value of SizeBytes.
+func (s *StageTaskArtifactOK) SetSizeBytes(val int) {
+	s.SizeBytes = val
+}
+
+func (*StageTaskArtifactOK) stageTaskArtifactRes() {}
+
+// Task artifact content stream.
+type StageTaskArtifactReq struct {
+	Data io.Reader
+}
+
+// Read reads data from the Data reader.
+//
+// Kept to satisfy the io.Reader interface.
+func (s StageTaskArtifactReq) Read(p []byte) (n int, err error) {
+	if s.Data == nil {
+		return 0, io.EOF
+	}
+	return s.Data.Read(p)
+}
+
+type StageTaskArtifactServiceUnavailable struct {
+	Code            StageTaskArtifactServiceUnavailableCode `json:"code"`
+	Detail          OptString                               `json:"detail"`
+	Instance        OptString                               `json:"instance"`
+	Status          int                                     `json:"status"`
+	Title           string                                  `json:"title"`
+	Type            url.URL                                 `json:"type"`
+	AdditionalProps StageTaskArtifactServiceUnavailableAdditional
+}
+
+// GetCode returns the value of Code.
+func (s *StageTaskArtifactServiceUnavailable) GetCode() StageTaskArtifactServiceUnavailableCode {
+	return s.Code
+}
+
+// GetDetail returns the value of Detail.
+func (s *StageTaskArtifactServiceUnavailable) GetDetail() OptString {
+	return s.Detail
+}
+
+// GetInstance returns the value of Instance.
+func (s *StageTaskArtifactServiceUnavailable) GetInstance() OptString {
+	return s.Instance
+}
+
+// GetStatus returns the value of Status.
+func (s *StageTaskArtifactServiceUnavailable) GetStatus() int {
+	return s.Status
+}
+
+// GetTitle returns the value of Title.
+func (s *StageTaskArtifactServiceUnavailable) GetTitle() string {
+	return s.Title
+}
+
+// GetType returns the value of Type.
+func (s *StageTaskArtifactServiceUnavailable) GetType() url.URL {
+	return s.Type
+}
+
+// GetAdditionalProps returns the value of AdditionalProps.
+func (s *StageTaskArtifactServiceUnavailable) GetAdditionalProps() StageTaskArtifactServiceUnavailableAdditional {
+	return s.AdditionalProps
+}
+
+// SetCode sets the value of Code.
+func (s *StageTaskArtifactServiceUnavailable) SetCode(val StageTaskArtifactServiceUnavailableCode) {
+	s.Code = val
+}
+
+// SetDetail sets the value of Detail.
+func (s *StageTaskArtifactServiceUnavailable) SetDetail(val OptString) {
+	s.Detail = val
+}
+
+// SetInstance sets the value of Instance.
+func (s *StageTaskArtifactServiceUnavailable) SetInstance(val OptString) {
+	s.Instance = val
+}
+
+// SetStatus sets the value of Status.
+func (s *StageTaskArtifactServiceUnavailable) SetStatus(val int) {
+	s.Status = val
+}
+
+// SetTitle sets the value of Title.
+func (s *StageTaskArtifactServiceUnavailable) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetType sets the value of Type.
+func (s *StageTaskArtifactServiceUnavailable) SetType(val url.URL) {
+	s.Type = val
+}
+
+// SetAdditionalProps sets the value of AdditionalProps.
+func (s *StageTaskArtifactServiceUnavailable) SetAdditionalProps(val StageTaskArtifactServiceUnavailableAdditional) {
+	s.AdditionalProps = val
+}
+
+func (*StageTaskArtifactServiceUnavailable) stageTaskArtifactRes() {}
+
+type StageTaskArtifactServiceUnavailableAdditional map[string]jx.Raw
+
+func (s *StageTaskArtifactServiceUnavailableAdditional) init() StageTaskArtifactServiceUnavailableAdditional {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type StageTaskArtifactServiceUnavailableCode string
+
+const (
+	StageTaskArtifactServiceUnavailableCodeUNAUTHORIZED                   StageTaskArtifactServiceUnavailableCode = "UNAUTHORIZED"
+	StageTaskArtifactServiceUnavailableCodeFORBIDDEN                      StageTaskArtifactServiceUnavailableCode = "FORBIDDEN"
+	StageTaskArtifactServiceUnavailableCodeNOTFOUND                       StageTaskArtifactServiceUnavailableCode = "NOT_FOUND"
+	StageTaskArtifactServiceUnavailableCodeCONFLICT                       StageTaskArtifactServiceUnavailableCode = "CONFLICT"
+	StageTaskArtifactServiceUnavailableCodeUNSUPPORTEDMEDIATYPE           StageTaskArtifactServiceUnavailableCode = "UNSUPPORTED_MEDIA_TYPE"
+	StageTaskArtifactServiceUnavailableCodeVALIDATIONFAILED               StageTaskArtifactServiceUnavailableCode = "VALIDATION_FAILED"
+	StageTaskArtifactServiceUnavailableCodeINVALIDCHALLENGE               StageTaskArtifactServiceUnavailableCode = "INVALID_CHALLENGE"
+	StageTaskArtifactServiceUnavailableCodeINVALIDSIGNATURE               StageTaskArtifactServiceUnavailableCode = "INVALID_SIGNATURE"
+	StageTaskArtifactServiceUnavailableCodeVOUCHERLIMIT                   StageTaskArtifactServiceUnavailableCode = "VOUCHER_LIMIT"
+	StageTaskArtifactServiceUnavailableCodeRATELIMITEXCEEDED              StageTaskArtifactServiceUnavailableCode = "RATE_LIMIT_EXCEEDED"
+	StageTaskArtifactServiceUnavailableCodeSERIALIZATIONEXHAUSTED         StageTaskArtifactServiceUnavailableCode = "SERIALIZATION_EXHAUSTED"
+	StageTaskArtifactServiceUnavailableCodeSIGNINGREQUESTEXPIRED          StageTaskArtifactServiceUnavailableCode = "SIGNING_REQUEST_EXPIRED"
+	StageTaskArtifactServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED StageTaskArtifactServiceUnavailableCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	StageTaskArtifactServiceUnavailableCodeREGISTRATIONFAILED             StageTaskArtifactServiceUnavailableCode = "REGISTRATION_FAILED"
+	StageTaskArtifactServiceUnavailableCodeUPSTREAMERROR                  StageTaskArtifactServiceUnavailableCode = "UPSTREAM_ERROR"
+	StageTaskArtifactServiceUnavailableCodeSERVICEUNAVAILABLE             StageTaskArtifactServiceUnavailableCode = "SERVICE_UNAVAILABLE"
+	StageTaskArtifactServiceUnavailableCodeINTERNALSERVERERROR            StageTaskArtifactServiceUnavailableCode = "INTERNAL_SERVER_ERROR"
+	StageTaskArtifactServiceUnavailableCodeTEAMPERSONALIMMUTABLE          StageTaskArtifactServiceUnavailableCode = "TEAM_PERSONAL_IMMUTABLE"
+	StageTaskArtifactServiceUnavailableCodeTEAMNOTACTIVE                  StageTaskArtifactServiceUnavailableCode = "TEAM_NOT_ACTIVE"
+	StageTaskArtifactServiceUnavailableCodeINVITEEXPIRED                  StageTaskArtifactServiceUnavailableCode = "INVITE_EXPIRED"
+	StageTaskArtifactServiceUnavailableCodeINVITEEXHAUSTED                StageTaskArtifactServiceUnavailableCode = "INVITE_EXHAUSTED"
+	StageTaskArtifactServiceUnavailableCodeTEAMLASTOWNER                  StageTaskArtifactServiceUnavailableCode = "TEAM_LAST_OWNER"
+	StageTaskArtifactServiceUnavailableCodeTEAMALREADYACTIVE              StageTaskArtifactServiceUnavailableCode = "TEAM_ALREADY_ACTIVE"
+	StageTaskArtifactServiceUnavailableCodeTEAMNOTFOUNDING                StageTaskArtifactServiceUnavailableCode = "TEAM_NOT_FOUNDING"
+	StageTaskArtifactServiceUnavailableCodeFOUNDINGALREADYACCEPTED        StageTaskArtifactServiceUnavailableCode = "FOUNDING_ALREADY_ACCEPTED"
+	StageTaskArtifactServiceUnavailableCodeDIARYTRANSFERPENDING           StageTaskArtifactServiceUnavailableCode = "DIARY_TRANSFER_PENDING"
+	StageTaskArtifactServiceUnavailableCodeDIARYTRANSFERNOTFOUND          StageTaskArtifactServiceUnavailableCode = "DIARY_TRANSFER_NOT_FOUND"
+	StageTaskArtifactServiceUnavailableCodeDIARYTRANSFERALREADYRESOLVED   StageTaskArtifactServiceUnavailableCode = "DIARY_TRANSFER_ALREADY_RESOLVED"
+)
+
+// AllValues returns all StageTaskArtifactServiceUnavailableCode values.
+func (StageTaskArtifactServiceUnavailableCode) AllValues() []StageTaskArtifactServiceUnavailableCode {
+	return []StageTaskArtifactServiceUnavailableCode{
+		StageTaskArtifactServiceUnavailableCodeUNAUTHORIZED,
+		StageTaskArtifactServiceUnavailableCodeFORBIDDEN,
+		StageTaskArtifactServiceUnavailableCodeNOTFOUND,
+		StageTaskArtifactServiceUnavailableCodeCONFLICT,
+		StageTaskArtifactServiceUnavailableCodeUNSUPPORTEDMEDIATYPE,
+		StageTaskArtifactServiceUnavailableCodeVALIDATIONFAILED,
+		StageTaskArtifactServiceUnavailableCodeINVALIDCHALLENGE,
+		StageTaskArtifactServiceUnavailableCodeINVALIDSIGNATURE,
+		StageTaskArtifactServiceUnavailableCodeVOUCHERLIMIT,
+		StageTaskArtifactServiceUnavailableCodeRATELIMITEXCEEDED,
+		StageTaskArtifactServiceUnavailableCodeSERIALIZATIONEXHAUSTED,
+		StageTaskArtifactServiceUnavailableCodeSIGNINGREQUESTEXPIRED,
+		StageTaskArtifactServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED,
+		StageTaskArtifactServiceUnavailableCodeREGISTRATIONFAILED,
+		StageTaskArtifactServiceUnavailableCodeUPSTREAMERROR,
+		StageTaskArtifactServiceUnavailableCodeSERVICEUNAVAILABLE,
+		StageTaskArtifactServiceUnavailableCodeINTERNALSERVERERROR,
+		StageTaskArtifactServiceUnavailableCodeTEAMPERSONALIMMUTABLE,
+		StageTaskArtifactServiceUnavailableCodeTEAMNOTACTIVE,
+		StageTaskArtifactServiceUnavailableCodeINVITEEXPIRED,
+		StageTaskArtifactServiceUnavailableCodeINVITEEXHAUSTED,
+		StageTaskArtifactServiceUnavailableCodeTEAMLASTOWNER,
+		StageTaskArtifactServiceUnavailableCodeTEAMALREADYACTIVE,
+		StageTaskArtifactServiceUnavailableCodeTEAMNOTFOUNDING,
+		StageTaskArtifactServiceUnavailableCodeFOUNDINGALREADYACCEPTED,
+		StageTaskArtifactServiceUnavailableCodeDIARYTRANSFERPENDING,
+		StageTaskArtifactServiceUnavailableCodeDIARYTRANSFERNOTFOUND,
+		StageTaskArtifactServiceUnavailableCodeDIARYTRANSFERALREADYRESOLVED,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s StageTaskArtifactServiceUnavailableCode) MarshalText() ([]byte, error) {
+	switch s {
+	case StageTaskArtifactServiceUnavailableCodeUNAUTHORIZED:
+		return []byte(s), nil
+	case StageTaskArtifactServiceUnavailableCodeFORBIDDEN:
+		return []byte(s), nil
+	case StageTaskArtifactServiceUnavailableCodeNOTFOUND:
+		return []byte(s), nil
+	case StageTaskArtifactServiceUnavailableCodeCONFLICT:
+		return []byte(s), nil
+	case StageTaskArtifactServiceUnavailableCodeUNSUPPORTEDMEDIATYPE:
+		return []byte(s), nil
+	case StageTaskArtifactServiceUnavailableCodeVALIDATIONFAILED:
+		return []byte(s), nil
+	case StageTaskArtifactServiceUnavailableCodeINVALIDCHALLENGE:
+		return []byte(s), nil
+	case StageTaskArtifactServiceUnavailableCodeINVALIDSIGNATURE:
+		return []byte(s), nil
+	case StageTaskArtifactServiceUnavailableCodeVOUCHERLIMIT:
+		return []byte(s), nil
+	case StageTaskArtifactServiceUnavailableCodeRATELIMITEXCEEDED:
+		return []byte(s), nil
+	case StageTaskArtifactServiceUnavailableCodeSERIALIZATIONEXHAUSTED:
+		return []byte(s), nil
+	case StageTaskArtifactServiceUnavailableCodeSIGNINGREQUESTEXPIRED:
+		return []byte(s), nil
+	case StageTaskArtifactServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case StageTaskArtifactServiceUnavailableCodeREGISTRATIONFAILED:
+		return []byte(s), nil
+	case StageTaskArtifactServiceUnavailableCodeUPSTREAMERROR:
+		return []byte(s), nil
+	case StageTaskArtifactServiceUnavailableCodeSERVICEUNAVAILABLE:
+		return []byte(s), nil
+	case StageTaskArtifactServiceUnavailableCodeINTERNALSERVERERROR:
+		return []byte(s), nil
+	case StageTaskArtifactServiceUnavailableCodeTEAMPERSONALIMMUTABLE:
+		return []byte(s), nil
+	case StageTaskArtifactServiceUnavailableCodeTEAMNOTACTIVE:
+		return []byte(s), nil
+	case StageTaskArtifactServiceUnavailableCodeINVITEEXPIRED:
+		return []byte(s), nil
+	case StageTaskArtifactServiceUnavailableCodeINVITEEXHAUSTED:
+		return []byte(s), nil
+	case StageTaskArtifactServiceUnavailableCodeTEAMLASTOWNER:
+		return []byte(s), nil
+	case StageTaskArtifactServiceUnavailableCodeTEAMALREADYACTIVE:
+		return []byte(s), nil
+	case StageTaskArtifactServiceUnavailableCodeTEAMNOTFOUNDING:
+		return []byte(s), nil
+	case StageTaskArtifactServiceUnavailableCodeFOUNDINGALREADYACCEPTED:
+		return []byte(s), nil
+	case StageTaskArtifactServiceUnavailableCodeDIARYTRANSFERPENDING:
+		return []byte(s), nil
+	case StageTaskArtifactServiceUnavailableCodeDIARYTRANSFERNOTFOUND:
+		return []byte(s), nil
+	case StageTaskArtifactServiceUnavailableCodeDIARYTRANSFERALREADYRESOLVED:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *StageTaskArtifactServiceUnavailableCode) UnmarshalText(data []byte) error {
+	switch StageTaskArtifactServiceUnavailableCode(data) {
+	case StageTaskArtifactServiceUnavailableCodeUNAUTHORIZED:
+		*s = StageTaskArtifactServiceUnavailableCodeUNAUTHORIZED
+		return nil
+	case StageTaskArtifactServiceUnavailableCodeFORBIDDEN:
+		*s = StageTaskArtifactServiceUnavailableCodeFORBIDDEN
+		return nil
+	case StageTaskArtifactServiceUnavailableCodeNOTFOUND:
+		*s = StageTaskArtifactServiceUnavailableCodeNOTFOUND
+		return nil
+	case StageTaskArtifactServiceUnavailableCodeCONFLICT:
+		*s = StageTaskArtifactServiceUnavailableCodeCONFLICT
+		return nil
+	case StageTaskArtifactServiceUnavailableCodeUNSUPPORTEDMEDIATYPE:
+		*s = StageTaskArtifactServiceUnavailableCodeUNSUPPORTEDMEDIATYPE
+		return nil
+	case StageTaskArtifactServiceUnavailableCodeVALIDATIONFAILED:
+		*s = StageTaskArtifactServiceUnavailableCodeVALIDATIONFAILED
+		return nil
+	case StageTaskArtifactServiceUnavailableCodeINVALIDCHALLENGE:
+		*s = StageTaskArtifactServiceUnavailableCodeINVALIDCHALLENGE
+		return nil
+	case StageTaskArtifactServiceUnavailableCodeINVALIDSIGNATURE:
+		*s = StageTaskArtifactServiceUnavailableCodeINVALIDSIGNATURE
+		return nil
+	case StageTaskArtifactServiceUnavailableCodeVOUCHERLIMIT:
+		*s = StageTaskArtifactServiceUnavailableCodeVOUCHERLIMIT
+		return nil
+	case StageTaskArtifactServiceUnavailableCodeRATELIMITEXCEEDED:
+		*s = StageTaskArtifactServiceUnavailableCodeRATELIMITEXCEEDED
+		return nil
+	case StageTaskArtifactServiceUnavailableCodeSERIALIZATIONEXHAUSTED:
+		*s = StageTaskArtifactServiceUnavailableCodeSERIALIZATIONEXHAUSTED
+		return nil
+	case StageTaskArtifactServiceUnavailableCodeSIGNINGREQUESTEXPIRED:
+		*s = StageTaskArtifactServiceUnavailableCodeSIGNINGREQUESTEXPIRED
+		return nil
+	case StageTaskArtifactServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = StageTaskArtifactServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case StageTaskArtifactServiceUnavailableCodeREGISTRATIONFAILED:
+		*s = StageTaskArtifactServiceUnavailableCodeREGISTRATIONFAILED
+		return nil
+	case StageTaskArtifactServiceUnavailableCodeUPSTREAMERROR:
+		*s = StageTaskArtifactServiceUnavailableCodeUPSTREAMERROR
+		return nil
+	case StageTaskArtifactServiceUnavailableCodeSERVICEUNAVAILABLE:
+		*s = StageTaskArtifactServiceUnavailableCodeSERVICEUNAVAILABLE
+		return nil
+	case StageTaskArtifactServiceUnavailableCodeINTERNALSERVERERROR:
+		*s = StageTaskArtifactServiceUnavailableCodeINTERNALSERVERERROR
+		return nil
+	case StageTaskArtifactServiceUnavailableCodeTEAMPERSONALIMMUTABLE:
+		*s = StageTaskArtifactServiceUnavailableCodeTEAMPERSONALIMMUTABLE
+		return nil
+	case StageTaskArtifactServiceUnavailableCodeTEAMNOTACTIVE:
+		*s = StageTaskArtifactServiceUnavailableCodeTEAMNOTACTIVE
+		return nil
+	case StageTaskArtifactServiceUnavailableCodeINVITEEXPIRED:
+		*s = StageTaskArtifactServiceUnavailableCodeINVITEEXPIRED
+		return nil
+	case StageTaskArtifactServiceUnavailableCodeINVITEEXHAUSTED:
+		*s = StageTaskArtifactServiceUnavailableCodeINVITEEXHAUSTED
+		return nil
+	case StageTaskArtifactServiceUnavailableCodeTEAMLASTOWNER:
+		*s = StageTaskArtifactServiceUnavailableCodeTEAMLASTOWNER
+		return nil
+	case StageTaskArtifactServiceUnavailableCodeTEAMALREADYACTIVE:
+		*s = StageTaskArtifactServiceUnavailableCodeTEAMALREADYACTIVE
+		return nil
+	case StageTaskArtifactServiceUnavailableCodeTEAMNOTFOUNDING:
+		*s = StageTaskArtifactServiceUnavailableCodeTEAMNOTFOUNDING
+		return nil
+	case StageTaskArtifactServiceUnavailableCodeFOUNDINGALREADYACCEPTED:
+		*s = StageTaskArtifactServiceUnavailableCodeFOUNDINGALREADYACCEPTED
+		return nil
+	case StageTaskArtifactServiceUnavailableCodeDIARYTRANSFERPENDING:
+		*s = StageTaskArtifactServiceUnavailableCodeDIARYTRANSFERPENDING
+		return nil
+	case StageTaskArtifactServiceUnavailableCodeDIARYTRANSFERNOTFOUND:
+		*s = StageTaskArtifactServiceUnavailableCodeDIARYTRANSFERNOTFOUND
+		return nil
+	case StageTaskArtifactServiceUnavailableCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = StageTaskArtifactServiceUnavailableCodeDIARYTRANSFERALREADYRESOLVED
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type StageTaskArtifactUnauthorized struct {
+	Code            StageTaskArtifactUnauthorizedCode `json:"code"`
+	Detail          OptString                         `json:"detail"`
+	Instance        OptString                         `json:"instance"`
+	Status          int                               `json:"status"`
+	Title           string                            `json:"title"`
+	Type            url.URL                           `json:"type"`
+	AdditionalProps StageTaskArtifactUnauthorizedAdditional
+}
+
+// GetCode returns the value of Code.
+func (s *StageTaskArtifactUnauthorized) GetCode() StageTaskArtifactUnauthorizedCode {
+	return s.Code
+}
+
+// GetDetail returns the value of Detail.
+func (s *StageTaskArtifactUnauthorized) GetDetail() OptString {
+	return s.Detail
+}
+
+// GetInstance returns the value of Instance.
+func (s *StageTaskArtifactUnauthorized) GetInstance() OptString {
+	return s.Instance
+}
+
+// GetStatus returns the value of Status.
+func (s *StageTaskArtifactUnauthorized) GetStatus() int {
+	return s.Status
+}
+
+// GetTitle returns the value of Title.
+func (s *StageTaskArtifactUnauthorized) GetTitle() string {
+	return s.Title
+}
+
+// GetType returns the value of Type.
+func (s *StageTaskArtifactUnauthorized) GetType() url.URL {
+	return s.Type
+}
+
+// GetAdditionalProps returns the value of AdditionalProps.
+func (s *StageTaskArtifactUnauthorized) GetAdditionalProps() StageTaskArtifactUnauthorizedAdditional {
+	return s.AdditionalProps
+}
+
+// SetCode sets the value of Code.
+func (s *StageTaskArtifactUnauthorized) SetCode(val StageTaskArtifactUnauthorizedCode) {
+	s.Code = val
+}
+
+// SetDetail sets the value of Detail.
+func (s *StageTaskArtifactUnauthorized) SetDetail(val OptString) {
+	s.Detail = val
+}
+
+// SetInstance sets the value of Instance.
+func (s *StageTaskArtifactUnauthorized) SetInstance(val OptString) {
+	s.Instance = val
+}
+
+// SetStatus sets the value of Status.
+func (s *StageTaskArtifactUnauthorized) SetStatus(val int) {
+	s.Status = val
+}
+
+// SetTitle sets the value of Title.
+func (s *StageTaskArtifactUnauthorized) SetTitle(val string) {
+	s.Title = val
+}
+
+// SetType sets the value of Type.
+func (s *StageTaskArtifactUnauthorized) SetType(val url.URL) {
+	s.Type = val
+}
+
+// SetAdditionalProps sets the value of AdditionalProps.
+func (s *StageTaskArtifactUnauthorized) SetAdditionalProps(val StageTaskArtifactUnauthorizedAdditional) {
+	s.AdditionalProps = val
+}
+
+func (*StageTaskArtifactUnauthorized) stageTaskArtifactRes() {}
+
+type StageTaskArtifactUnauthorizedAdditional map[string]jx.Raw
+
+func (s *StageTaskArtifactUnauthorizedAdditional) init() StageTaskArtifactUnauthorizedAdditional {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type StageTaskArtifactUnauthorizedCode string
+
+const (
+	StageTaskArtifactUnauthorizedCodeUNAUTHORIZED                   StageTaskArtifactUnauthorizedCode = "UNAUTHORIZED"
+	StageTaskArtifactUnauthorizedCodeFORBIDDEN                      StageTaskArtifactUnauthorizedCode = "FORBIDDEN"
+	StageTaskArtifactUnauthorizedCodeNOTFOUND                       StageTaskArtifactUnauthorizedCode = "NOT_FOUND"
+	StageTaskArtifactUnauthorizedCodeCONFLICT                       StageTaskArtifactUnauthorizedCode = "CONFLICT"
+	StageTaskArtifactUnauthorizedCodeUNSUPPORTEDMEDIATYPE           StageTaskArtifactUnauthorizedCode = "UNSUPPORTED_MEDIA_TYPE"
+	StageTaskArtifactUnauthorizedCodeVALIDATIONFAILED               StageTaskArtifactUnauthorizedCode = "VALIDATION_FAILED"
+	StageTaskArtifactUnauthorizedCodeINVALIDCHALLENGE               StageTaskArtifactUnauthorizedCode = "INVALID_CHALLENGE"
+	StageTaskArtifactUnauthorizedCodeINVALIDSIGNATURE               StageTaskArtifactUnauthorizedCode = "INVALID_SIGNATURE"
+	StageTaskArtifactUnauthorizedCodeVOUCHERLIMIT                   StageTaskArtifactUnauthorizedCode = "VOUCHER_LIMIT"
+	StageTaskArtifactUnauthorizedCodeRATELIMITEXCEEDED              StageTaskArtifactUnauthorizedCode = "RATE_LIMIT_EXCEEDED"
+	StageTaskArtifactUnauthorizedCodeSERIALIZATIONEXHAUSTED         StageTaskArtifactUnauthorizedCode = "SERIALIZATION_EXHAUSTED"
+	StageTaskArtifactUnauthorizedCodeSIGNINGREQUESTEXPIRED          StageTaskArtifactUnauthorizedCode = "SIGNING_REQUEST_EXPIRED"
+	StageTaskArtifactUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED StageTaskArtifactUnauthorizedCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	StageTaskArtifactUnauthorizedCodeREGISTRATIONFAILED             StageTaskArtifactUnauthorizedCode = "REGISTRATION_FAILED"
+	StageTaskArtifactUnauthorizedCodeUPSTREAMERROR                  StageTaskArtifactUnauthorizedCode = "UPSTREAM_ERROR"
+	StageTaskArtifactUnauthorizedCodeSERVICEUNAVAILABLE             StageTaskArtifactUnauthorizedCode = "SERVICE_UNAVAILABLE"
+	StageTaskArtifactUnauthorizedCodeINTERNALSERVERERROR            StageTaskArtifactUnauthorizedCode = "INTERNAL_SERVER_ERROR"
+	StageTaskArtifactUnauthorizedCodeTEAMPERSONALIMMUTABLE          StageTaskArtifactUnauthorizedCode = "TEAM_PERSONAL_IMMUTABLE"
+	StageTaskArtifactUnauthorizedCodeTEAMNOTACTIVE                  StageTaskArtifactUnauthorizedCode = "TEAM_NOT_ACTIVE"
+	StageTaskArtifactUnauthorizedCodeINVITEEXPIRED                  StageTaskArtifactUnauthorizedCode = "INVITE_EXPIRED"
+	StageTaskArtifactUnauthorizedCodeINVITEEXHAUSTED                StageTaskArtifactUnauthorizedCode = "INVITE_EXHAUSTED"
+	StageTaskArtifactUnauthorizedCodeTEAMLASTOWNER                  StageTaskArtifactUnauthorizedCode = "TEAM_LAST_OWNER"
+	StageTaskArtifactUnauthorizedCodeTEAMALREADYACTIVE              StageTaskArtifactUnauthorizedCode = "TEAM_ALREADY_ACTIVE"
+	StageTaskArtifactUnauthorizedCodeTEAMNOTFOUNDING                StageTaskArtifactUnauthorizedCode = "TEAM_NOT_FOUNDING"
+	StageTaskArtifactUnauthorizedCodeFOUNDINGALREADYACCEPTED        StageTaskArtifactUnauthorizedCode = "FOUNDING_ALREADY_ACCEPTED"
+	StageTaskArtifactUnauthorizedCodeDIARYTRANSFERPENDING           StageTaskArtifactUnauthorizedCode = "DIARY_TRANSFER_PENDING"
+	StageTaskArtifactUnauthorizedCodeDIARYTRANSFERNOTFOUND          StageTaskArtifactUnauthorizedCode = "DIARY_TRANSFER_NOT_FOUND"
+	StageTaskArtifactUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED   StageTaskArtifactUnauthorizedCode = "DIARY_TRANSFER_ALREADY_RESOLVED"
+)
+
+// AllValues returns all StageTaskArtifactUnauthorizedCode values.
+func (StageTaskArtifactUnauthorizedCode) AllValues() []StageTaskArtifactUnauthorizedCode {
+	return []StageTaskArtifactUnauthorizedCode{
+		StageTaskArtifactUnauthorizedCodeUNAUTHORIZED,
+		StageTaskArtifactUnauthorizedCodeFORBIDDEN,
+		StageTaskArtifactUnauthorizedCodeNOTFOUND,
+		StageTaskArtifactUnauthorizedCodeCONFLICT,
+		StageTaskArtifactUnauthorizedCodeUNSUPPORTEDMEDIATYPE,
+		StageTaskArtifactUnauthorizedCodeVALIDATIONFAILED,
+		StageTaskArtifactUnauthorizedCodeINVALIDCHALLENGE,
+		StageTaskArtifactUnauthorizedCodeINVALIDSIGNATURE,
+		StageTaskArtifactUnauthorizedCodeVOUCHERLIMIT,
+		StageTaskArtifactUnauthorizedCodeRATELIMITEXCEEDED,
+		StageTaskArtifactUnauthorizedCodeSERIALIZATIONEXHAUSTED,
+		StageTaskArtifactUnauthorizedCodeSIGNINGREQUESTEXPIRED,
+		StageTaskArtifactUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED,
+		StageTaskArtifactUnauthorizedCodeREGISTRATIONFAILED,
+		StageTaskArtifactUnauthorizedCodeUPSTREAMERROR,
+		StageTaskArtifactUnauthorizedCodeSERVICEUNAVAILABLE,
+		StageTaskArtifactUnauthorizedCodeINTERNALSERVERERROR,
+		StageTaskArtifactUnauthorizedCodeTEAMPERSONALIMMUTABLE,
+		StageTaskArtifactUnauthorizedCodeTEAMNOTACTIVE,
+		StageTaskArtifactUnauthorizedCodeINVITEEXPIRED,
+		StageTaskArtifactUnauthorizedCodeINVITEEXHAUSTED,
+		StageTaskArtifactUnauthorizedCodeTEAMLASTOWNER,
+		StageTaskArtifactUnauthorizedCodeTEAMALREADYACTIVE,
+		StageTaskArtifactUnauthorizedCodeTEAMNOTFOUNDING,
+		StageTaskArtifactUnauthorizedCodeFOUNDINGALREADYACCEPTED,
+		StageTaskArtifactUnauthorizedCodeDIARYTRANSFERPENDING,
+		StageTaskArtifactUnauthorizedCodeDIARYTRANSFERNOTFOUND,
+		StageTaskArtifactUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s StageTaskArtifactUnauthorizedCode) MarshalText() ([]byte, error) {
+	switch s {
+	case StageTaskArtifactUnauthorizedCodeUNAUTHORIZED:
+		return []byte(s), nil
+	case StageTaskArtifactUnauthorizedCodeFORBIDDEN:
+		return []byte(s), nil
+	case StageTaskArtifactUnauthorizedCodeNOTFOUND:
+		return []byte(s), nil
+	case StageTaskArtifactUnauthorizedCodeCONFLICT:
+		return []byte(s), nil
+	case StageTaskArtifactUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
+		return []byte(s), nil
+	case StageTaskArtifactUnauthorizedCodeVALIDATIONFAILED:
+		return []byte(s), nil
+	case StageTaskArtifactUnauthorizedCodeINVALIDCHALLENGE:
+		return []byte(s), nil
+	case StageTaskArtifactUnauthorizedCodeINVALIDSIGNATURE:
+		return []byte(s), nil
+	case StageTaskArtifactUnauthorizedCodeVOUCHERLIMIT:
+		return []byte(s), nil
+	case StageTaskArtifactUnauthorizedCodeRATELIMITEXCEEDED:
+		return []byte(s), nil
+	case StageTaskArtifactUnauthorizedCodeSERIALIZATIONEXHAUSTED:
+		return []byte(s), nil
+	case StageTaskArtifactUnauthorizedCodeSIGNINGREQUESTEXPIRED:
+		return []byte(s), nil
+	case StageTaskArtifactUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case StageTaskArtifactUnauthorizedCodeREGISTRATIONFAILED:
+		return []byte(s), nil
+	case StageTaskArtifactUnauthorizedCodeUPSTREAMERROR:
+		return []byte(s), nil
+	case StageTaskArtifactUnauthorizedCodeSERVICEUNAVAILABLE:
+		return []byte(s), nil
+	case StageTaskArtifactUnauthorizedCodeINTERNALSERVERERROR:
+		return []byte(s), nil
+	case StageTaskArtifactUnauthorizedCodeTEAMPERSONALIMMUTABLE:
+		return []byte(s), nil
+	case StageTaskArtifactUnauthorizedCodeTEAMNOTACTIVE:
+		return []byte(s), nil
+	case StageTaskArtifactUnauthorizedCodeINVITEEXPIRED:
+		return []byte(s), nil
+	case StageTaskArtifactUnauthorizedCodeINVITEEXHAUSTED:
+		return []byte(s), nil
+	case StageTaskArtifactUnauthorizedCodeTEAMLASTOWNER:
+		return []byte(s), nil
+	case StageTaskArtifactUnauthorizedCodeTEAMALREADYACTIVE:
+		return []byte(s), nil
+	case StageTaskArtifactUnauthorizedCodeTEAMNOTFOUNDING:
+		return []byte(s), nil
+	case StageTaskArtifactUnauthorizedCodeFOUNDINGALREADYACCEPTED:
+		return []byte(s), nil
+	case StageTaskArtifactUnauthorizedCodeDIARYTRANSFERPENDING:
+		return []byte(s), nil
+	case StageTaskArtifactUnauthorizedCodeDIARYTRANSFERNOTFOUND:
+		return []byte(s), nil
+	case StageTaskArtifactUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *StageTaskArtifactUnauthorizedCode) UnmarshalText(data []byte) error {
+	switch StageTaskArtifactUnauthorizedCode(data) {
+	case StageTaskArtifactUnauthorizedCodeUNAUTHORIZED:
+		*s = StageTaskArtifactUnauthorizedCodeUNAUTHORIZED
+		return nil
+	case StageTaskArtifactUnauthorizedCodeFORBIDDEN:
+		*s = StageTaskArtifactUnauthorizedCodeFORBIDDEN
+		return nil
+	case StageTaskArtifactUnauthorizedCodeNOTFOUND:
+		*s = StageTaskArtifactUnauthorizedCodeNOTFOUND
+		return nil
+	case StageTaskArtifactUnauthorizedCodeCONFLICT:
+		*s = StageTaskArtifactUnauthorizedCodeCONFLICT
+		return nil
+	case StageTaskArtifactUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
+		*s = StageTaskArtifactUnauthorizedCodeUNSUPPORTEDMEDIATYPE
+		return nil
+	case StageTaskArtifactUnauthorizedCodeVALIDATIONFAILED:
+		*s = StageTaskArtifactUnauthorizedCodeVALIDATIONFAILED
+		return nil
+	case StageTaskArtifactUnauthorizedCodeINVALIDCHALLENGE:
+		*s = StageTaskArtifactUnauthorizedCodeINVALIDCHALLENGE
+		return nil
+	case StageTaskArtifactUnauthorizedCodeINVALIDSIGNATURE:
+		*s = StageTaskArtifactUnauthorizedCodeINVALIDSIGNATURE
+		return nil
+	case StageTaskArtifactUnauthorizedCodeVOUCHERLIMIT:
+		*s = StageTaskArtifactUnauthorizedCodeVOUCHERLIMIT
+		return nil
+	case StageTaskArtifactUnauthorizedCodeRATELIMITEXCEEDED:
+		*s = StageTaskArtifactUnauthorizedCodeRATELIMITEXCEEDED
+		return nil
+	case StageTaskArtifactUnauthorizedCodeSERIALIZATIONEXHAUSTED:
+		*s = StageTaskArtifactUnauthorizedCodeSERIALIZATIONEXHAUSTED
+		return nil
+	case StageTaskArtifactUnauthorizedCodeSIGNINGREQUESTEXPIRED:
+		*s = StageTaskArtifactUnauthorizedCodeSIGNINGREQUESTEXPIRED
+		return nil
+	case StageTaskArtifactUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = StageTaskArtifactUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case StageTaskArtifactUnauthorizedCodeREGISTRATIONFAILED:
+		*s = StageTaskArtifactUnauthorizedCodeREGISTRATIONFAILED
+		return nil
+	case StageTaskArtifactUnauthorizedCodeUPSTREAMERROR:
+		*s = StageTaskArtifactUnauthorizedCodeUPSTREAMERROR
+		return nil
+	case StageTaskArtifactUnauthorizedCodeSERVICEUNAVAILABLE:
+		*s = StageTaskArtifactUnauthorizedCodeSERVICEUNAVAILABLE
+		return nil
+	case StageTaskArtifactUnauthorizedCodeINTERNALSERVERERROR:
+		*s = StageTaskArtifactUnauthorizedCodeINTERNALSERVERERROR
+		return nil
+	case StageTaskArtifactUnauthorizedCodeTEAMPERSONALIMMUTABLE:
+		*s = StageTaskArtifactUnauthorizedCodeTEAMPERSONALIMMUTABLE
+		return nil
+	case StageTaskArtifactUnauthorizedCodeTEAMNOTACTIVE:
+		*s = StageTaskArtifactUnauthorizedCodeTEAMNOTACTIVE
+		return nil
+	case StageTaskArtifactUnauthorizedCodeINVITEEXPIRED:
+		*s = StageTaskArtifactUnauthorizedCodeINVITEEXPIRED
+		return nil
+	case StageTaskArtifactUnauthorizedCodeINVITEEXHAUSTED:
+		*s = StageTaskArtifactUnauthorizedCodeINVITEEXHAUSTED
+		return nil
+	case StageTaskArtifactUnauthorizedCodeTEAMLASTOWNER:
+		*s = StageTaskArtifactUnauthorizedCodeTEAMLASTOWNER
+		return nil
+	case StageTaskArtifactUnauthorizedCodeTEAMALREADYACTIVE:
+		*s = StageTaskArtifactUnauthorizedCodeTEAMALREADYACTIVE
+		return nil
+	case StageTaskArtifactUnauthorizedCodeTEAMNOTFOUNDING:
+		*s = StageTaskArtifactUnauthorizedCodeTEAMNOTFOUNDING
+		return nil
+	case StageTaskArtifactUnauthorizedCodeFOUNDINGALREADYACCEPTED:
+		*s = StageTaskArtifactUnauthorizedCodeFOUNDINGALREADYACCEPTED
+		return nil
+	case StageTaskArtifactUnauthorizedCodeDIARYTRANSFERPENDING:
+		*s = StageTaskArtifactUnauthorizedCodeDIARYTRANSFERPENDING
+		return nil
+	case StageTaskArtifactUnauthorizedCodeDIARYTRANSFERNOTFOUND:
+		*s = StageTaskArtifactUnauthorizedCodeDIARYTRANSFERNOTFOUND
+		return nil
+	case StageTaskArtifactUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = StageTaskArtifactUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 type StartLegreffierOnboardingBadRequest ProblemDetails
 
 func (*StartLegreffierOnboardingBadRequest) startLegreffierOnboardingRes() {}
@@ -44084,7 +47406,7 @@ func (s *TaskRef) SetTaskId(val NilUUID) {
 }
 
 type TaskRefArtifact struct {
-	AttemptN    int       `json:"attemptN"`
+	AttemptN    OptInt    `json:"attemptN"`
 	Cid         string    `json:"cid"`
 	ContentType OptString `json:"contentType"`
 	Kind        OptString `json:"kind"`
@@ -44092,7 +47414,7 @@ type TaskRefArtifact struct {
 }
 
 // GetAttemptN returns the value of AttemptN.
-func (s *TaskRefArtifact) GetAttemptN() int {
+func (s *TaskRefArtifact) GetAttemptN() OptInt {
 	return s.AttemptN
 }
 
@@ -44117,7 +47439,7 @@ func (s *TaskRefArtifact) GetTitle() OptString {
 }
 
 // SetAttemptN sets the value of AttemptN.
-func (s *TaskRefArtifact) SetAttemptN(val int) {
+func (s *TaskRefArtifact) SetAttemptN(val OptInt) {
 	s.AttemptN = val
 }
 
@@ -44372,7 +47694,7 @@ func (s *TaskReferencesItem) SetTaskId(val NilUUID) {
 }
 
 type TaskReferencesItemArtifact struct {
-	AttemptN    int       `json:"attemptN"`
+	AttemptN    OptInt    `json:"attemptN"`
 	Cid         string    `json:"cid"`
 	ContentType OptString `json:"contentType"`
 	Kind        OptString `json:"kind"`
@@ -44380,7 +47702,7 @@ type TaskReferencesItemArtifact struct {
 }
 
 // GetAttemptN returns the value of AttemptN.
-func (s *TaskReferencesItemArtifact) GetAttemptN() int {
+func (s *TaskReferencesItemArtifact) GetAttemptN() OptInt {
 	return s.AttemptN
 }
 
@@ -44405,7 +47727,7 @@ func (s *TaskReferencesItemArtifact) GetTitle() OptString {
 }
 
 // SetAttemptN sets the value of AttemptN.
-func (s *TaskReferencesItemArtifact) SetAttemptN(val int) {
+func (s *TaskReferencesItemArtifact) SetAttemptN(val OptInt) {
 	s.AttemptN = val
 }
 
@@ -49961,12 +53283,12 @@ func (s *UploadTaskArtifactNotFoundCode) UnmarshalText(data []byte) error {
 }
 
 type UploadTaskArtifactOK struct {
-	AttemptN         int         `json:"attemptN"`
+	AttemptN         NilInt      `json:"attemptN"`
 	Cid              string      `json:"cid"`
 	ContentEncoding  NilString   `json:"contentEncoding"`
 	ContentType      string      `json:"contentType"`
 	CreatedAt        time.Time   `json:"createdAt"`
-	CreatedByAgentId uuid.UUID   `json:"createdByAgentId"`
+	CreatedByAgentId NilUUID     `json:"createdByAgentId"`
 	ExpiresAt        NilDateTime `json:"expiresAt"`
 	ID               uuid.UUID   `json:"id"`
 	Kind             string      `json:"kind"`
@@ -49977,7 +53299,7 @@ type UploadTaskArtifactOK struct {
 }
 
 // GetAttemptN returns the value of AttemptN.
-func (s *UploadTaskArtifactOK) GetAttemptN() int {
+func (s *UploadTaskArtifactOK) GetAttemptN() NilInt {
 	return s.AttemptN
 }
 
@@ -50002,7 +53324,7 @@ func (s *UploadTaskArtifactOK) GetCreatedAt() time.Time {
 }
 
 // GetCreatedByAgentId returns the value of CreatedByAgentId.
-func (s *UploadTaskArtifactOK) GetCreatedByAgentId() uuid.UUID {
+func (s *UploadTaskArtifactOK) GetCreatedByAgentId() NilUUID {
 	return s.CreatedByAgentId
 }
 
@@ -50042,7 +53364,7 @@ func (s *UploadTaskArtifactOK) GetTitle() string {
 }
 
 // SetAttemptN sets the value of AttemptN.
-func (s *UploadTaskArtifactOK) SetAttemptN(val int) {
+func (s *UploadTaskArtifactOK) SetAttemptN(val NilInt) {
 	s.AttemptN = val
 }
 
@@ -50067,7 +53389,7 @@ func (s *UploadTaskArtifactOK) SetCreatedAt(val time.Time) {
 }
 
 // SetCreatedByAgentId sets the value of CreatedByAgentId.
-func (s *UploadTaskArtifactOK) SetCreatedByAgentId(val uuid.UUID) {
+func (s *UploadTaskArtifactOK) SetCreatedByAgentId(val NilUUID) {
 	s.CreatedByAgentId = val
 }
 

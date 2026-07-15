@@ -45,6 +45,7 @@ import {
   diffContextPacksById,
   downloadRuntimeSession,
   downloadTaskArtifact,
+  downloadTaskArtifactByCid,
   failTaskAttempt,
   findLatestRuntimeSlotForAttempt,
   finishRuntimeSlot,
@@ -117,6 +118,7 @@ import {
   rotateClientSecret,
   searchDiary,
   searchPublicFeed,
+  stageTaskArtifact,
   startLegreffierOnboarding,
   submitSignature,
   taskHeartbeat,
@@ -239,6 +241,9 @@ import type {
   DownloadRuntimeSessionData,
   DownloadRuntimeSessionError,
   DownloadRuntimeSessionResponse,
+  DownloadTaskArtifactByCidData,
+  DownloadTaskArtifactByCidError,
+  DownloadTaskArtifactByCidResponse,
   DownloadTaskArtifactData,
   DownloadTaskArtifactError,
   DownloadTaskArtifactResponse,
@@ -449,6 +454,9 @@ import type {
   SearchPublicFeedData,
   SearchPublicFeedError,
   SearchPublicFeedResponse,
+  StageTaskArtifactData,
+  StageTaskArtifactError,
+  StageTaskArtifactResponse,
   StartLegreffierOnboardingData,
   StartLegreffierOnboardingError,
   StartLegreffierOnboardingResponse,
@@ -3223,6 +3231,33 @@ export const findLatestRuntimeSlotForAttemptOptions = (
   });
 
 /**
+ * Stage immutable content-addressed artifact bytes for later binding as task input artifacts via task creation references. Creates no metadata row; staged bytes are not downloadable until bound to a task, and unbound objects are garbage-collected after a grace window.
+ */
+export const stageTaskArtifactMutation = (
+  options?: Partial<Options<StageTaskArtifactData>>,
+): UseMutationOptions<
+  StageTaskArtifactResponse,
+  StageTaskArtifactError,
+  Options<StageTaskArtifactData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    StageTaskArtifactResponse,
+    StageTaskArtifactError,
+    Options<StageTaskArtifactData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await stageTaskArtifact({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+/**
  * Queue asynchronous deletion of waiting, queued, and terminal tasks in bulk. By default, dispatched, running, unauthorized, missing, and protected tasks are skipped. Set force: true with a reason to delete protected terminal tasks.
  */
 export const batchDeleteTasksMutation = (
@@ -3779,6 +3814,34 @@ export const listTaskArtifactsInfiniteOptions = (
       queryKey: listTaskArtifactsInfiniteQueryKey(options),
     },
   );
+
+export const downloadTaskArtifactByCidQueryKey = (
+  options: Options<DownloadTaskArtifactByCidData>,
+) => createQueryKey('downloadTaskArtifactByCid', options);
+
+/**
+ * Download immutable task artifact content by CID without naming an attempt. Resolves input artifacts bound at task creation as well as attempt artifacts.
+ */
+export const downloadTaskArtifactByCidOptions = (
+  options: Options<DownloadTaskArtifactByCidData>,
+) =>
+  queryOptions<
+    DownloadTaskArtifactByCidResponse,
+    DownloadTaskArtifactByCidError,
+    DownloadTaskArtifactByCidResponse,
+    ReturnType<typeof downloadTaskArtifactByCidQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await downloadTaskArtifactByCid({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: downloadTaskArtifactByCidQueryKey(options),
+  });
 
 /**
  * Upload immutable content-addressed artifact content for a task attempt.

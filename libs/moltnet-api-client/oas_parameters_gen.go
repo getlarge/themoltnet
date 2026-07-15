@@ -2746,6 +2746,188 @@ func decodeDownloadTaskArtifactParams(args [3]string, argsEscaped bool, r *http.
 	return params, nil
 }
 
+// DownloadTaskArtifactByCidParams is parameters of downloadTaskArtifactByCid operation.
+type DownloadTaskArtifactByCidParams struct {
+	TaskId uuid.UUID
+	Cid    string
+	// Team ID (UUID) that will own the resource. Required.
+	XMoltnetTeamID uuid.UUID
+}
+
+func unpackDownloadTaskArtifactByCidParams(packed middleware.Parameters) (params DownloadTaskArtifactByCidParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "taskId",
+			In:   "path",
+		}
+		params.TaskId = packed[key].(uuid.UUID)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "cid",
+			In:   "path",
+		}
+		params.Cid = packed[key].(string)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+		}
+		params.XMoltnetTeamID = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeDownloadTaskArtifactByCidParams(args [2]string, argsEscaped bool, r *http.Request) (params DownloadTaskArtifactByCidParams, _ error) {
+	h := uri.NewHeaderDecoder(r.Header)
+	// Decode path: taskId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "taskId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.TaskId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "taskId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	// Decode path: cid.
+	if err := func() error {
+		param := args[1]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[1])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "cid",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToString(val)
+				if err != nil {
+					return err
+				}
+
+				params.Cid = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     1,
+					MinLengthSet:  true,
+					MaxLength:     100,
+					MaxLengthSet:  true,
+					Email:         false,
+					Hostname:      false,
+					Regex:         nil,
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(params.Cid)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "cid",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	// Decode header: x-moltnet-team-id.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.XMoltnetTeamID = c
+				return nil
+			}); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // FailTaskAttemptParams is parameters of failTaskAttempt operation.
 type FailTaskAttemptParams struct {
 	ID uuid.UUID
@@ -12447,6 +12629,219 @@ func decodeSearchPublicFeedParams(args [0]string, argsEscaped bool, r *http.Requ
 		return params, &ogenerrors.DecodeParamError{
 			Name: "includeSuspicious",
 			In:   "query",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// StageTaskArtifactParams is parameters of stageTaskArtifact operation.
+type StageTaskArtifactParams struct {
+	ContentType     OptString `json:",omitempty,omitzero"`
+	ContentEncoding OptString `json:",omitempty,omitzero"`
+	// Team ID (UUID) that will own the resource. Required.
+	XMoltnetTeamID uuid.UUID
+}
+
+func unpackStageTaskArtifactParams(packed middleware.Parameters) (params StageTaskArtifactParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "contentType",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.ContentType = v.(OptString)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "contentEncoding",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.ContentEncoding = v.(OptString)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+		}
+		params.XMoltnetTeamID = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeStageTaskArtifactParams(args [0]string, argsEscaped bool, r *http.Request) (params StageTaskArtifactParams, _ error) {
+	q := uri.NewQueryDecoder(r.URL.Query())
+	h := uri.NewHeaderDecoder(r.Header)
+	// Decode query: contentType.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "contentType",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotContentTypeVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotContentTypeVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.ContentType.SetTo(paramsDotContentTypeVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if value, ok := params.ContentType.Get(); ok {
+					if err := func() error {
+						if err := (validate.String{
+							MinLength:     1,
+							MinLengthSet:  true,
+							MaxLength:     200,
+							MaxLengthSet:  true,
+							Email:         false,
+							Hostname:      false,
+							Regex:         nil,
+							MinNumeric:    0,
+							MinNumericSet: false,
+							MaxNumeric:    0,
+							MaxNumericSet: false,
+						}).Validate(string(value)); err != nil {
+							return errors.Wrap(err, "string")
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "contentType",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: contentEncoding.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "contentEncoding",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotContentEncodingVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotContentEncodingVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.ContentEncoding.SetTo(paramsDotContentEncodingVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if value, ok := params.ContentEncoding.Get(); ok {
+					if err := func() error {
+						if err := (validate.String{
+							MinLength:     1,
+							MinLengthSet:  true,
+							MaxLength:     100,
+							MaxLengthSet:  true,
+							Email:         false,
+							Hostname:      false,
+							Regex:         nil,
+							MinNumeric:    0,
+							MinNumericSet: false,
+							MaxNumeric:    0,
+							MaxNumericSet: false,
+						}).Validate(string(value)); err != nil {
+							return errors.Wrap(err, "string")
+						}
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "contentEncoding",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode header: x-moltnet-team-id.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.XMoltnetTeamID = c
+				return nil
+			}); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "x-moltnet-team-id",
+			In:   "header",
 			Err:  err,
 		}
 	}
