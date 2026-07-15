@@ -10,12 +10,14 @@ import { Buffer } from 'node:buffer';
 import {
   createTask,
   downloadTaskArtifact,
+  downloadTaskArtifactByCid,
   getTask,
   listTaskArtifacts,
   listTaskAttempts,
   listTaskMessages,
   listTasks,
   listTaskSchemas,
+  stageTaskArtifact,
   uploadTaskArtifact,
 } from '@moltnet/api-client';
 import { validateTaskCreateRequest } from '@moltnet/tasks';
@@ -24,6 +26,7 @@ import type { FastifyInstance } from 'fastify';
 import type {
   TaskArtifactDownloadInput,
   TaskArtifactsListInput,
+  TaskArtifactStageInput,
   TaskArtifactUploadInput,
   TaskAttemptsListInput,
   TaskConsoleLinkInput,
@@ -39,6 +42,8 @@ import {
   TaskArtifactDownloadSchema,
   TaskArtifactsListOutputSchema,
   TaskArtifactsListSchema,
+  TaskArtifactStageOutputSchema,
+  TaskArtifactStageSchema,
   TaskArtifactUploadOutputSchema,
   TaskArtifactUploadSchema,
   TaskAttemptsListOutputSchema,
@@ -476,6 +481,40 @@ export async function handleTaskArtifactUpload(
   return structuredResult(data);
 }
 
+export async function handleTaskArtifactStage(
+  args: TaskArtifactStageInput,
+  deps: McpDeps,
+  context: HandlerContext,
+): Promise<CallToolResult> {
+  deps.logger.debug({ tool: 'tasks_artifacts_stage' }, 'tool.invoked');
+  const token = getTokenFromContext(context);
+  if (!token) return errorResult('Not authenticated');
+
+  const body = Buffer.from(args.content_base64, 'base64');
+  const { data, error } = await stageTaskArtifact({
+    client: deps.client,
+    auth: () => token,
+    headers: { 'x-moltnet-team-id': args.team_id },
+    query: {
+      contentType: args.content_type,
+      contentEncoding: args.content_encoding,
+    },
+    body: new Blob([body]),
+  });
+
+  if (error || !data) {
+    deps.logger.error(
+      { tool: 'tasks_artifacts_stage', err: error },
+      'tool.error',
+    );
+    return errorResult(
+      extractApiErrorMessage(error, 'Failed to stage task artifact'),
+    );
+  }
+
+  return structuredResult(data);
+}
+
 export async function handleTaskArtifactDownload(
   args: TaskArtifactDownloadInput,
   deps: McpDeps,
@@ -485,12 +524,24 @@ export async function handleTaskArtifactDownload(
   const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
-  const { data, error, response } = await downloadTaskArtifact({
-    client: deps.client,
-    auth: () => token,
-    headers: { 'x-moltnet-team-id': args.team_id },
-    path: { taskId: args.task_id, attemptN: args.attempt_n, cid: args.cid },
-  });
+  const { data, error, response } =
+    args.attempt_n !== undefined
+      ? await downloadTaskArtifact({
+          client: deps.client,
+          auth: () => token,
+          headers: { 'x-moltnet-team-id': args.team_id },
+          path: {
+            taskId: args.task_id,
+            attemptN: args.attempt_n,
+            cid: args.cid,
+          },
+        })
+      : await downloadTaskArtifactByCid({
+          client: deps.client,
+          auth: () => token,
+          headers: { 'x-moltnet-team-id': args.team_id },
+          path: { taskId: args.task_id, cid: args.cid },
+        });
 
   if (error || !data) {
     deps.logger.error(
@@ -638,9 +689,21 @@ export function registerTaskTools(
 
   fastify.mcpAddTool(
     {
+      name: 'tasks_artifacts_stage',
+      description:
+        'Stage base64-encoded bytes as a content-addressed object for later binding as a task input artifact. Returns the CID to reference in tasks_create references (taskId null, artifact.cid). Staged bytes are not downloadable until bound and are garbage-collected if never bound.',
+      inputSchema: TaskArtifactStageSchema,
+      outputSchema: TaskArtifactStageOutputSchema,
+    },
+    async (args: TaskArtifactStageInput, ctx: HandlerContext) =>
+      handleTaskArtifactStage(args, deps, ctx),
+  );
+
+  fastify.mcpAddTool(
+    {
       name: 'tasks_artifacts_download',
       description:
-        'Download immutable task artifact content by task, attempt, and CID. Returns base64 bytes plus artifact response headers.',
+        'Download immutable task artifact content by task and CID. Pass attempt_n for attempt-scoped artifacts; omit it to resolve any artifact on the task, including input artifacts bound at creation. Returns base64 bytes plus artifact response headers.',
       inputSchema: TaskArtifactDownloadSchema,
       outputSchema: TaskArtifactDownloadOutputSchema,
     },

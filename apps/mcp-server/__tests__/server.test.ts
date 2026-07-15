@@ -587,12 +587,16 @@ describe('buildApp', () => {
           "name": "tasks_app_open",
         },
         {
-          "inputSchema": "317b3e44c5c788a4",
+          "inputSchema": "103b766b06c08ec5",
           "name": "tasks_artifacts_download",
         },
         {
           "inputSchema": "d635cf5e76b422d5",
           "name": "tasks_artifacts_list",
+        },
+        {
+          "inputSchema": "daf34ae492524728",
+          "name": "tasks_artifacts_stage",
         },
         {
           "inputSchema": "73c4908a186697bc",
@@ -611,7 +615,7 @@ describe('buildApp', () => {
           "name": "tasks_continue",
         },
         {
-          "inputSchema": "161f74d0eba16099",
+          "inputSchema": "da22bfd73952c6e4",
           "name": "tasks_create",
         },
         {
