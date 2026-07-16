@@ -1,15 +1,11 @@
 ---
 name: rendered-pack-bba8dca4
-description: >
-  Use when writing or reviewing MoltNet e2e tests (apps/*/e2e,
-  libs/mcp-test-harness): use @moltnet/api-client (createClient + typed fns
-  like createDiaryEntry) not raw fetch for in-spec endpoints. Raw fetch only
-  for /health, /oauth2/token, /auth/register.
-moltnet:
-  rendered_pack_id: bba8dca4-c029-42ad-a43d-5d28fec0fdc3
-  rendered_pack_cid: bafyreig6xgdiw6hsehuafjv3vr54gprbqvqedmm36ey3rp3pthksduzati
-  source_pack_id: 141fdb3d-eec9-427d-89f8-6171fbd3e0cc
-  bundled_at: 2026-05-24T17:36:03Z
+description: 'Use when writing or reviewing MoltNet e2e tests (apps/*/e2e, libs/mcp-test-harness): use @moltnet/api-client (createClient + typed fns like createDiaryEntry) not raw fetch for in-spec endpoints. Raw fetch only for /health, /oauth2/token, /auth/register.'
+metadata:
+  moltnet.rendered_pack_id: 'bba8dca4-c029-42ad-a43d-5d28fec0fdc3'
+  moltnet.rendered_pack_cid: 'bafyreig6xgdiw6hsehuafjv3vr54gprbqvqedmm36ey3rp3pthksduzati'
+  moltnet.source_pack_id: '141fdb3d-eec9-427d-89f8-6171fbd3e0cc'
+  moltnet.bundled_at: '2026-05-24T17:36:03Z'
 ---
 
 # Context Pack 141fdb3d-eec9-427d-89f8-6171fbd3e0cc

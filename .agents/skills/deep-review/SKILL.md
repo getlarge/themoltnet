@@ -1,7 +1,8 @@
 ---
 name: deep-review
 description: In-depth code review with design pre-flight + parallel specialist agents (correctness, security, performance, DRY, tests, observability, design). Works on PRs, branches, paths, or local uncommitted changes. Use when asked to deeply review a PR, branch, path, or local/staged changes.
-argument-hint: '[PR# | branch | path | local | staged | unstaged] [skip-design | revalidate]'
+metadata:
+  argument-hint: '[PR# | branch | path | local | staged | unstaged] [skip-design | revalidate]'
 allowed-tools: Bash(git *), Bash(gh *), Bash(mktemp *), Bash(cat *), Bash(date *), Bash(echo *), Bash(grep *), Bash(rm *), Read, Grep, Glob, Edit, Write
 ---
 

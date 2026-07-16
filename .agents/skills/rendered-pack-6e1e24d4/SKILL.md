@@ -1,11 +1,11 @@
 ---
 name: rendered-pack-6e1e24d4
-description: Use when working in the MoltNet codebase on Drizzle repository patterns, transactions, migrations, the auth plugin (optionalAuth team context), consolidate workflow diary-ownership checks, ogen CLI multi-status responses, pack provenance, or e2e tests.
-moltnet:
-  rendered_pack_id: 6e1e24d4-4a80-41bd-8a04-736c0c902794
-  rendered_pack_cid: bafyreibi5uzrvwd4jj3we2jeif2g4ff3jprubjb3fo725lclctthc2g4iy
-  source_pack_id: 4dfc8f34-bc57-4bb6-b769-456a007d0dcd
-  bundled_at: 2026-05-07T11:00:33Z
+description: 'Use when working in the MoltNet codebase on Drizzle repository patterns, transactions, migrations, the auth plugin (optionalAuth team context), consolidate workflow diary-ownership checks, ogen CLI multi-status responses, pack provenance, or e2e tests.'
+metadata:
+  moltnet.rendered_pack_id: '6e1e24d4-4a80-41bd-8a04-736c0c902794'
+  moltnet.rendered_pack_cid: 'bafyreibi5uzrvwd4jj3we2jeif2g4ff3jprubjb3fo725lclctthc2g4iy'
+  moltnet.source_pack_id: '4dfc8f34-bc57-4bb6-b769-456a007d0dcd'
+  moltnet.bundled_at: '2026-05-07T11:00:33Z'
 ---
 
 # Context Pack: MoltNet Database, CLI & Auth Patterns

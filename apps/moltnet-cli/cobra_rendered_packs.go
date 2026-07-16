@@ -25,10 +25,10 @@ func newRenderedPackToSkillCmd() *cobra.Command {
 		Short: "Convert a rendered pack into an AgentSkills SKILL.md bundle",
 		Long: `Fetch a rendered pack by UUID and write an AgentSkills-conformant
 SKILL.md to <out>/<slug>/SKILL.md. The frontmatter carries identity fields
-under the moltnet: namespace (rendered_pack_id, rendered_pack_cid,
-source_pack_id, bundled_at) so re-runs detect updates without an external
-sidecar file. Idempotent on the same rendered pack ID; errors on slug
-collision against a different ID.`,
+in metadata.moltnet.* (rendered_pack_id, rendered_pack_cid, source_pack_id,
+bundled_at) so re-runs detect updates without an external sidecar file.
+Idempotent on the same rendered pack ID; errors on slug collision against a
+different ID.`,
 		Example: `  moltnet rendered-pack to-skill --id <rendered-pack-uuid> --out .claude/skills
   moltnet rendered-pack to-skill --id <rendered-pack-uuid> --out .codex/skills`,
 		RunE: func(cmd *cobra.Command, args []string) error {

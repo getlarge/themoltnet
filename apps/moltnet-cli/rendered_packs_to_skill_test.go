@@ -45,12 +45,12 @@ func TestRenderSkillMarkdown(t *testing.T) {
 	checks := []string{
 		"---\n",
 		"name: rendered-pack-12345678\n",
-		"description: Test description\n",
-		"moltnet:\n",
-		"  rendered_pack_id: 12345678-1234-5678-1234-567812345678\n",
-		"  rendered_pack_cid: bafyreiabc123\n",
-		"  source_pack_id: abcdef00-0000-0000-0000-000000000000\n",
-		"  bundled_at: 2026-05-05T20:00:00Z\n",
+		"description: \"Test description\"\n",
+		"metadata:\n",
+		"  moltnet.rendered_pack_id: \"12345678-1234-5678-1234-567812345678\"\n",
+		"  moltnet.rendered_pack_cid: \"bafyreiabc123\"\n",
+		"  moltnet.source_pack_id: \"abcdef00-0000-0000-0000-000000000000\"\n",
+		"  moltnet.bundled_at: \"2026-05-05T20:00:00Z\"\n",
 		"\nBody line 1\nBody line 2\n",
 	}
 	for _, want := range checks {
@@ -61,6 +61,24 @@ func TestRenderSkillMarkdown(t *testing.T) {
 	// Trailing newline always present.
 	if !strings.HasSuffix(got, "\n") {
 		t.Errorf("rendered markdown should end with newline")
+	}
+}
+
+func TestRenderSkillMarkdown_QuotesYAMLSpecialCharacters(t *testing.T) {
+	b := skillBundle{
+		slug:            "rendered-pack-12345678",
+		description:     "Use when editing YAML: preserve # comments and \"quotes\".",
+		body:            "Body",
+		renderedPackID:  mustUUID(t, "12345678-1234-5678-1234-567812345678"),
+		renderedPackCid: "cid",
+		sourcePackID:    mustUUID(t, "abcdef00-0000-0000-0000-000000000000"),
+		bundledAt:       time.Now(),
+	}
+
+	got := renderSkillMarkdown(b)
+	want := "description: \"Use when editing YAML: preserve # comments and \\\"quotes\\\".\"\n"
+	if !strings.Contains(got, want) {
+		t.Errorf("rendered markdown missing %q\nfull output:\n%s", want, got)
 	}
 }
 
@@ -88,13 +106,23 @@ func TestExtractRenderedPackIDFromSkill(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "valid frontmatter with moltnet block",
+			name: "legacy frontmatter with moltnet block",
 			input: "---\n" +
 				"name: foo\n" +
 				"description: bar\n" +
 				"moltnet:\n" +
 				"  rendered_pack_id: 12345678-1234-5678-1234-567812345678\n" +
 				"  bundled_at: 2026-05-05T20:00:00Z\n" +
+				"---\n\nbody",
+			wantID: "12345678-1234-5678-1234-567812345678",
+		},
+		{
+			name: "current frontmatter with metadata field",
+			input: "---\n" +
+				"name: foo\n" +
+				"description: bar\n" +
+				"metadata:\n" +
+				"  moltnet.rendered_pack_id: \"12345678-1234-5678-1234-567812345678\"\n" +
 				"---\n\nbody",
 			wantID: "12345678-1234-5678-1234-567812345678",
 		},
@@ -202,8 +230,28 @@ func TestWriteSkillBundle_IdempotentSameID(t *testing.T) {
 	if strings.Contains(string(got), "Body v1") {
 		t.Errorf("old body still present after re-write")
 	}
-	if !strings.Contains(string(got), "rendered_pack_cid: cid2") {
+	if !strings.Contains(string(got), "moltnet.rendered_pack_cid: \"cid2\"") {
 		t.Errorf("cid not updated")
+	}
+}
+
+func TestWriteSkillBundle_RejectsDescriptionExceedingAgentSkillsLimit(t *testing.T) {
+	b := skillBundle{
+		slug:            "rendered-pack-aabbccdd",
+		description:     strings.Repeat("é", maxSkillDescriptionLength+1),
+		body:            "Body",
+		renderedPackID:  mustUUID(t, "aabbccdd-0000-0000-0000-000000000000"),
+		renderedPackCid: "cid",
+		sourcePackID:    mustUUID(t, "11111111-1111-1111-1111-111111111111"),
+		bundledAt:       time.Now(),
+	}
+
+	_, err := writeSkillBundle(t.TempDir(), b)
+	if err == nil {
+		t.Fatal("expected description length error, got nil")
+	}
+	if !strings.Contains(err.Error(), "1024-character limit") {
+		t.Errorf("error = %v, want Agent Skills length limit", err)
 	}
 }
 
