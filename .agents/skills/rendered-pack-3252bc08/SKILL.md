@@ -1,11 +1,11 @@
 ---
 name: rendered-pack-3252bc08
-description: Use BEFORE changing deps in publishable MoltNet packages: public in-repo @themoltnet/* deps use workspace:* for pnpm publish rewrite; private @moltnet/* bundled by Vite SSR stay in devDependencies; check release-please lockfile drift.
-moltnet:
-  rendered_pack_id: 3252bc08-7a18-4410-a986-517f12eebc49
-  rendered_pack_cid: bafyreiekoy55nnwdl5c3z4gmmckivmznncrucg34bgjrdfcuxgislijexe
-  source_pack_id: 13cae84a-3ecd-4fdc-b4a3-13fbfcc62705
-  bundled_at: 2026-06-26T07:59:36Z
+description: 'Use BEFORE changing deps in publishable MoltNet packages: public in-repo @themoltnet/* deps use workspace:* for pnpm publish rewrite; private @moltnet/* bundled by Vite SSR stay in devDependencies; check release-please lockfile drift.'
+metadata:
+  moltnet.rendered_pack_id: '3252bc08-7a18-4410-a986-517f12eebc49'
+  moltnet.rendered_pack_cid: 'bafyreiekoy55nnwdl5c3z4gmmckivmznncrucg34bgjrdfcuxgislijexe'
+  moltnet.source_pack_id: '13cae84a-3ecd-4fdc-b4a3-13fbfcc62705'
+  moltnet.bundled_at: '2026-06-26T07:59:36Z'
 ---
 
 # Publishable Package Dependency Rules

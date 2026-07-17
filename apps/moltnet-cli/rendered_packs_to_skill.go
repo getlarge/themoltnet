@@ -6,8 +6,10 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
 	"github.com/google/uuid"
@@ -16,8 +18,8 @@ import (
 // skillBundle is the in-memory representation of an AgentSkills SKILL.md file.
 //
 // The body is a verbatim copy of the rendered pack content. The frontmatter
-// carries identity fields under the `moltnet:` namespace so re-runs can
-// detect updates without an external sidecar.
+// carries identity fields under the Agent Skills `metadata` field so re-runs
+// can detect updates without an external sidecar.
 type skillBundle struct {
 	slug            string
 	description     string
@@ -35,11 +37,11 @@ type skillBundle struct {
 //	---
 //	name: <slug>
 //	description: <one-liner>
-//	moltnet:
-//	  rendered_pack_id: <uuid>
-//	  rendered_pack_cid: <cid>
-//	  source_pack_id: <uuid>
-//	  bundled_at: <RFC3339>
+//	metadata:
+//	  moltnet.rendered_pack_id: <uuid>
+//	  moltnet.rendered_pack_cid: <cid>
+//	  moltnet.source_pack_id: <uuid>
+//	  moltnet.bundled_at: <RFC3339>
 //	---
 //
 // The blank line between frontmatter and body is required by the
@@ -48,12 +50,12 @@ func renderSkillMarkdown(b skillBundle) string {
 	var sb strings.Builder
 	sb.WriteString("---\n")
 	fmt.Fprintf(&sb, "name: %s\n", b.slug)
-	fmt.Fprintf(&sb, "description: %s\n", b.description)
-	sb.WriteString("moltnet:\n")
-	fmt.Fprintf(&sb, "  rendered_pack_id: %s\n", b.renderedPackID)
-	fmt.Fprintf(&sb, "  rendered_pack_cid: %s\n", b.renderedPackCid)
-	fmt.Fprintf(&sb, "  source_pack_id: %s\n", b.sourcePackID)
-	fmt.Fprintf(&sb, "  bundled_at: %s\n", b.bundledAt.UTC().Format(time.RFC3339))
+	fmt.Fprintf(&sb, "description: %s\n", strconv.Quote(b.description))
+	sb.WriteString("metadata:\n")
+	fmt.Fprintf(&sb, "  moltnet.rendered_pack_id: %s\n", strconv.Quote(b.renderedPackID.String()))
+	fmt.Fprintf(&sb, "  moltnet.rendered_pack_cid: %s\n", strconv.Quote(b.renderedPackCid))
+	fmt.Fprintf(&sb, "  moltnet.source_pack_id: %s\n", strconv.Quote(b.sourcePackID.String()))
+	fmt.Fprintf(&sb, "  moltnet.bundled_at: %s\n", strconv.Quote(b.bundledAt.UTC().Format(time.RFC3339)))
 	sb.WriteString("---\n\n")
 	sb.WriteString(b.body)
 	if !strings.HasSuffix(b.body, "\n") {
@@ -74,14 +76,33 @@ func slugForRenderedPack(id uuid.UUID) string {
 }
 
 // extractRenderedPackIDFromSkill parses a SKILL.md and returns the
-// `moltnet.rendered_pack_id` value, if present. Returns uuid.Nil and a nil
-// error when the file exists but lacks the moltnet block — that's a
-// user-edited skill we shouldn't clobber unless the caller decides to.
+// `metadata.moltnet.rendered_pack_id` value, if present. It also accepts the
+// legacy top-level `moltnet.rendered_pack_id` shape so existing bundles remain
+// protected from slug collisions during migration. Returns uuid.Nil and a nil
+// error when the file lacks either field — that's a user-edited skill we
+// shouldn't clobber unless the caller decides to.
 //
 // Minimal parser: scans the YAML frontmatter line-by-line for the literal
-// `  rendered_pack_id: <uuid>` form. Avoids pulling in a YAML dependency
-// for a single field.
-var renderedPackIDLine = regexp.MustCompile(`(?m)^\s+rendered_pack_id:\s*([0-9a-fA-F-]{36})\s*$`)
+// `  moltnet.rendered_pack_id: <uuid>` and legacy
+// `  rendered_pack_id: <uuid>` forms. Avoids pulling in a YAML dependency for
+// a single field.
+var renderedPackIDLine = regexp.MustCompile(`(?m)^\s+(?:moltnet\.)?rendered_pack_id:\s*"?([0-9a-fA-F-]{36})"?\s*$`)
+
+const maxSkillDescriptionLength = 1024
+
+func validateSkillBundle(b skillBundle) error {
+	if b.description == "" {
+		return fmt.Errorf("skill description must not be empty")
+	}
+	if length := utf8.RuneCountInString(b.description); length > maxSkillDescriptionLength {
+		return fmt.Errorf(
+			"skill description exceeds Agent Skills %d-character limit (%d characters)",
+			maxSkillDescriptionLength,
+			length,
+		)
+	}
+	return nil
+}
 
 func extractRenderedPackIDFromSkill(content string) (uuid.UUID, error) {
 	if !strings.HasPrefix(content, "---\n") {
@@ -107,6 +128,11 @@ func extractRenderedPackIDFromSkill(content string) (uuid.UUID, error) {
 // the function returns an error — the caller has hit a slug collision
 // against a different rendered pack.
 func writeSkillBundle(outDir string, b skillBundle) (string, error) {
+	b.description = strings.TrimSpace(b.description)
+	if err := validateSkillBundle(b); err != nil {
+		return "", err
+	}
+
 	skillDir := filepath.Join(outDir, b.slug)
 	skillPath := filepath.Join(skillDir, "SKILL.md")
 
