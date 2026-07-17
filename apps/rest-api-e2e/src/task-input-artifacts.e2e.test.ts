@@ -111,8 +111,9 @@ describe('Task input artifacts API', () => {
         input: { diaryId, taskPrompt: 'input artifact binding' },
         references: [
           {
+            // Canonical input-artifact reference: no outputCid — there is
+            // no producing task output; artifact.cid is the only CID.
             taskId: null,
-            outputCid: inputCid,
             role: 'context',
             artifact: {
               cid: inputCid,

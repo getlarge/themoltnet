@@ -37,7 +37,8 @@ export type TaskMessageKind =
 
 export interface TaskRef {
   taskId: string | null;
-  outputCid: string;
+  // Absent on input-artifact references (taskId null + artifact).
+  outputCid?: string;
   role: 'judged_work' | 'reviewed_diff' | 'target_source' | 'context';
   external?: {
     kind: 'github_pr' | 'github_issue' | 'http_url';
@@ -46,6 +47,13 @@ export interface TaskRef {
     url?: string;
     commit_sha?: string;
     snapshot_cid?: string;
+  };
+  artifact?: {
+    cid: string;
+    attemptN?: number;
+    kind?: string;
+    title?: string;
+    contentType?: string;
   };
 }
 

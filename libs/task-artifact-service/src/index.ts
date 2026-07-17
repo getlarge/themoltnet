@@ -1,5 +1,6 @@
 export {
   createTaskArtifactStorage,
+  isTaskArtifactStorageNotConfiguredError,
   MissingTaskArtifactObjectError,
   type TaskArtifactObject,
   type TaskArtifactObjectHead,

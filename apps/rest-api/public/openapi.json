@@ -9182,11 +9182,13 @@
           "contentEncoding": {
             "maxLength": 100,
             "minLength": 1,
+            "pattern": "^[\\x21-\\x7e][\\x20-\\x7e]*$",
             "type": "string"
           },
           "contentType": {
             "maxLength": 200,
             "minLength": 1,
+            "pattern": "^[\\x21-\\x7e][\\x20-\\x7e]*$",
             "type": "string"
           }
         },
@@ -9545,7 +9547,6 @@
               },
               "required": [
                 "taskId",
-                "outputCid",
                 "role"
               ],
               "type": "object"
@@ -11379,7 +11380,6 @@
         },
         "required": [
           "taskId",
-          "outputCid",
           "role"
         ],
         "type": "object"
@@ -12193,11 +12193,13 @@
           "contentEncoding": {
             "maxLength": 100,
             "minLength": 1,
+            "pattern": "^[\\x21-\\x7e][\\x20-\\x7e]*$",
             "type": "string"
           },
           "contentType": {
             "maxLength": 200,
             "minLength": 1,
+            "pattern": "^[\\x21-\\x7e][\\x20-\\x7e]*$",
             "type": "string"
           },
           "kind": {
@@ -31066,6 +31068,7 @@
             "schema": {
               "maxLength": 200,
               "minLength": 1,
+              "pattern": "^[\\x21-\\x7e][\\x20-\\x7e]*$",
               "type": "string"
             }
           },
@@ -31076,6 +31079,7 @@
             "schema": {
               "maxLength": 100,
               "minLength": 1,
+              "pattern": "^[\\x21-\\x7e][\\x20-\\x7e]*$",
               "type": "string"
             }
           },
@@ -36507,6 +36511,7 @@
             "schema": {
               "maxLength": 200,
               "minLength": 1,
+              "pattern": "^[\\x21-\\x7e][\\x20-\\x7e]*$",
               "type": "string"
             }
           },
@@ -36517,6 +36522,7 @@
             "schema": {
               "maxLength": 100,
               "minLength": 1,
+              "pattern": "^[\\x21-\\x7e][\\x20-\\x7e]*$",
               "type": "string"
             }
           },

@@ -279,7 +279,7 @@ export function createTaskArtifactService(deps: TaskArtifactServiceDeps) {
     async stageUpload(
       input: StageTaskArtifactInput,
     ): Promise<StagedTaskArtifactResult> {
-      await requireTeamAccess(deps, input);
+      await requireTeamAccess(deps, input, 'Team not found');
       const staged = await stageArtifactUpload(input.body, {
         maxBytes: deps.taskArtifactMaxBytes,
       });
@@ -368,7 +368,12 @@ async function openArtifactObject(
         { artifactId: artifact.id, cid: artifact.cid, err },
         'task artifact metadata exists but object storage is missing the object',
       );
-      throw new TaskArtifactServiceError(503, err.message);
+      // A row without its object is a permanent integrity failure, not a
+      // transient outage — 500 so it never masquerades as a retryable 503.
+      throw new TaskArtifactServiceError(
+        500,
+        'Task artifact content is missing from storage',
+      );
     }
     throw err;
   }
@@ -450,6 +455,9 @@ function assertActiveTaskLease(task: Task, identityId: string): void {
 async function requireTeamAccess(
   deps: TaskArtifactServiceDeps,
   input: TaskArtifactSubject & { teamId: string },
+  // 404 (not 403) so denial does not confirm the resource exists; the
+  // message is overridable because staging references no task at all.
+  message = 'Task not found',
 ) {
   const canAccess = await deps.permissionChecker.canAccessTeam(
     input.teamId,
@@ -457,7 +465,7 @@ async function requireTeamAccess(
     input.subjectNs,
   );
   if (!canAccess) {
-    throw new TaskArtifactServiceError(404, 'Task not found');
+    throw new TaskArtifactServiceError(404, message);
   }
 }
 

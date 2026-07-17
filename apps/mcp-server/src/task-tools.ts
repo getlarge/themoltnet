@@ -524,12 +524,15 @@ export async function handleTaskArtifactDownload(
   const token = getTokenFromContext(context);
   if (!token) return errorResult('Not authenticated');
 
+  const request = {
+    client: deps.client,
+    auth: () => token,
+    headers: { 'x-moltnet-team-id': args.team_id },
+  };
   const { data, error, response } =
     args.attempt_n !== undefined
       ? await downloadTaskArtifact({
-          client: deps.client,
-          auth: () => token,
-          headers: { 'x-moltnet-team-id': args.team_id },
+          ...request,
           path: {
             taskId: args.task_id,
             attemptN: args.attempt_n,
@@ -537,9 +540,7 @@ export async function handleTaskArtifactDownload(
           },
         })
       : await downloadTaskArtifactByCid({
-          client: deps.client,
-          auth: () => token,
-          headers: { 'x-moltnet-team-id': args.team_id },
+          ...request,
           path: { taskId: args.task_id, cid: args.cid },
         });
 

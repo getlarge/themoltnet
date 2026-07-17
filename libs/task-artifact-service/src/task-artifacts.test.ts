@@ -651,7 +651,7 @@ describe('createTaskArtifactService', () => {
           teamId: TEAM_ID,
         }),
       ).rejects.toMatchObject({
-        message: 'Task not found',
+        message: 'Team not found',
         statusCode: 404,
       });
       expect(storage.putObject).not.toHaveBeenCalled();

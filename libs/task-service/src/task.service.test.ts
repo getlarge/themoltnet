@@ -242,7 +242,7 @@ type RelationshipWriterMocks = {
 };
 
 type TaskArtifactRepositoryMocks = {
-  createForTask: Mock<(input: Record<string, unknown>) => Promise<unknown>>;
+  createManyForTask: Mock<(input: Record<string, unknown>) => Promise<unknown>>;
 };
 
 type TaskInputArtifactObjectStoreMocks = {
@@ -486,7 +486,7 @@ function makeMocks(
   return {
     taskRepository,
     taskArtifactRepository: {
-      createForTask: vi
+      createManyForTask: vi
         .fn<(input: Record<string, unknown>) => Promise<unknown>>()
         .mockResolvedValue(undefined),
     },
@@ -1205,19 +1205,23 @@ describe('createTaskService.create — input artifact binding', () => {
     expect(mocks.taskInputArtifactObjectStore.headObject).toHaveBeenCalledWith(
       `teams/${TEAM_ID}/artifacts/${cid}`,
     );
-    expect(mocks.taskArtifactRepository.createForTask).toHaveBeenCalledTimes(1);
-    expect(mocks.taskArtifactRepository.createForTask).toHaveBeenCalledWith(
-      expect.objectContaining({
-        taskId: task.id,
-        teamId: TEAM_ID,
-        cid,
-        sha256,
-        sizeBytes: 42,
-        kind: 'input',
-        title: cid,
-        contentType: 'text/plain',
-        createdByAgentId: AGENT_ID,
-      }),
+    expect(
+      mocks.taskArtifactRepository.createManyForTask,
+    ).toHaveBeenCalledTimes(1);
+    expect(mocks.taskArtifactRepository.createManyForTask).toHaveBeenCalledWith(
+      [
+        expect.objectContaining({
+          taskId: task.id,
+          teamId: TEAM_ID,
+          cid,
+          sha256,
+          sizeBytes: 42,
+          kind: 'input',
+          title: cid,
+          contentType: 'text/plain',
+          createdByAgentId: AGENT_ID,
+        }),
+      ],
     );
   });
 
@@ -1239,13 +1243,15 @@ describe('createTaskService.create — input artifact binding', () => {
       ],
     } as never);
 
-    expect(mocks.taskArtifactRepository.createForTask).toHaveBeenCalledWith(
-      expect.objectContaining({
-        cid,
-        kind: 'brief',
-        title: 'brief.md',
-        contentType: 'text/markdown',
-      }),
+    expect(mocks.taskArtifactRepository.createManyForTask).toHaveBeenCalledWith(
+      [
+        expect.objectContaining({
+          cid,
+          kind: 'brief',
+          title: 'brief.md',
+          contentType: 'text/markdown',
+        }),
+      ],
     );
   });
 
@@ -1264,11 +1270,13 @@ describe('createTaskService.create — input artifact binding', () => {
       references: [inputRef(cid)],
     } as never);
 
-    expect(mocks.taskArtifactRepository.createForTask).toHaveBeenCalledWith(
-      expect.objectContaining({
-        cid,
-        createdByAgentId: null,
-      }),
+    expect(mocks.taskArtifactRepository.createManyForTask).toHaveBeenCalledWith(
+      [
+        expect.objectContaining({
+          cid,
+          createdByAgentId: null,
+        }),
+      ],
     );
   });
 
@@ -1293,7 +1301,9 @@ describe('createTaskService.create — input artifact binding', () => {
       ],
     });
 
-    expect(mocks.taskArtifactRepository.createForTask).not.toHaveBeenCalled();
+    expect(
+      mocks.taskArtifactRepository.createManyForTask,
+    ).not.toHaveBeenCalled();
     expect(mocks.taskRepository.create).not.toHaveBeenCalled();
   });
 
@@ -1312,7 +1322,9 @@ describe('createTaskService.create — input artifact binding', () => {
       code: 'unavailable',
     });
 
-    expect(mocks.taskArtifactRepository.createForTask).not.toHaveBeenCalled();
+    expect(
+      mocks.taskArtifactRepository.createManyForTask,
+    ).not.toHaveBeenCalled();
     expect(mocks.taskRepository.create).not.toHaveBeenCalled();
   });
 
@@ -1340,7 +1352,9 @@ describe('createTaskService.create — input artifact binding', () => {
       code: 'invalid',
     });
 
-    expect(mocks.taskArtifactRepository.createForTask).not.toHaveBeenCalled();
+    expect(
+      mocks.taskArtifactRepository.createManyForTask,
+    ).not.toHaveBeenCalled();
     expect(mocks.taskRepository.create).not.toHaveBeenCalled();
   });
 
@@ -1360,7 +1374,9 @@ describe('createTaskService.create — input artifact binding', () => {
       code: 'invalid',
     });
 
-    expect(mocks.taskArtifactRepository.createForTask).not.toHaveBeenCalled();
+    expect(
+      mocks.taskArtifactRepository.createManyForTask,
+    ).not.toHaveBeenCalled();
     expect(mocks.taskRepository.create).not.toHaveBeenCalled();
   });
 
@@ -1377,7 +1393,9 @@ describe('createTaskService.create — input artifact binding', () => {
     expect(
       mocks.taskInputArtifactObjectStore.headObject,
     ).not.toHaveBeenCalled();
-    expect(mocks.taskArtifactRepository.createForTask).not.toHaveBeenCalled();
+    expect(
+      mocks.taskArtifactRepository.createManyForTask,
+    ).not.toHaveBeenCalled();
     expect(mocks.taskRepository.create).not.toHaveBeenCalled();
   });
 
@@ -1400,8 +1418,33 @@ describe('createTaskService.create — input artifact binding', () => {
     expect(
       mocks.taskInputArtifactObjectStore.headObject,
     ).not.toHaveBeenCalled();
-    expect(mocks.taskArtifactRepository.createForTask).not.toHaveBeenCalled();
+    expect(mocks.taskArtifactRepository.createManyForTask).toHaveBeenCalledWith(
+      [],
+    );
     expect(mocks.taskRepository.create).toHaveBeenCalledOnce();
+  });
+
+  it('surfaces an in-transaction artifact insert failure without creating the task', async () => {
+    // Atomicity itself is delegated to the DB transaction; this asserts
+    // the failure path propagates instead of claiming partial success.
+    const cid = await makeInputCid('tx-insert-fails');
+    mocks.taskInputArtifactObjectStore.headObject.mockResolvedValue({
+      contentLength: 42,
+      contentType: 'text/plain',
+    });
+    mocks.taskArtifactRepository.createManyForTask.mockRejectedValue(
+      new Error('unique violation'),
+    );
+
+    await expect(
+      service.create({
+        ...fulfillCreateInput(),
+        references: [inputRef(cid)],
+      } as never),
+    ).rejects.toMatchObject({
+      code: 'conflict',
+      message: expect.stringContaining('transaction failed') as string,
+    });
   });
 });
 

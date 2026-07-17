@@ -86809,8 +86809,10 @@ func (s *TaskRef) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
-		e.FieldStart("outputCid")
-		e.Str(s.OutputCid)
+		if s.OutputCid.Set {
+			e.FieldStart("outputCid")
+			s.OutputCid.Encode(e)
+		}
 	}
 	{
 		e.FieldStart("role")
@@ -86860,11 +86862,9 @@ func (s *TaskRef) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"external\"")
 			}
 		case "outputCid":
-			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
-				v, err := d.Str()
-				s.OutputCid = string(v)
-				if err != nil {
+				s.OutputCid.Reset()
+				if err := s.OutputCid.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -86901,7 +86901,7 @@ func (s *TaskRef) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00011100,
+		0b00011000,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -87398,8 +87398,10 @@ func (s *TaskReferencesItem) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
-		e.FieldStart("outputCid")
-		e.Str(s.OutputCid)
+		if s.OutputCid.Set {
+			e.FieldStart("outputCid")
+			s.OutputCid.Encode(e)
+		}
 	}
 	{
 		e.FieldStart("role")
@@ -87449,11 +87451,9 @@ func (s *TaskReferencesItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"external\"")
 			}
 		case "outputCid":
-			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
-				v, err := d.Str()
-				s.OutputCid = string(v)
-				if err != nil {
+				s.OutputCid.Reset()
+				if err := s.OutputCid.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -87490,7 +87490,7 @@ func (s *TaskReferencesItem) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00011100,
+		0b00011000,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.

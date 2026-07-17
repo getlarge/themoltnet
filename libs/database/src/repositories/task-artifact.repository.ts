@@ -121,19 +121,24 @@ export function createTaskArtifactRepository(db: Database) {
     findExistingForAttempt,
 
     /**
-     * Insert an input artifact row (attempt_n NULL) for a task. Only used
-     * inside the task-create transaction where the task row is brand new,
-     * so no conflict handling is needed — duplicate CIDs are rejected by
-     * validation and the partial unique index is the safety net.
+     * Insert input artifact rows (attempt_n NULL) for a task in one
+     * statement. Only used inside the task-create transaction where the
+     * task row is brand new, so no conflict handling is needed —
+     * duplicate CIDs are rejected by validation and the partial unique
+     * index is the safety net.
      */
-    async createForTask(
-      input: CreateTaskInputArtifactInput,
-    ): Promise<TaskArtifact> {
-      const [inserted] = await getExecutor(db)
+    async createManyForTask(
+      inputs: CreateTaskInputArtifactInput[],
+    ): Promise<TaskArtifact[]> {
+      if (inputs.length === 0) return [];
+      return getExecutor(db)
         .insert(taskArtifacts)
-        .values(toTaskArtifactValues({ ...input, attemptN: null }))
+        .values(
+          inputs.map((input) =>
+            toTaskArtifactValues({ ...input, attemptN: null }),
+          ),
+        )
         .returning();
-      return inserted;
     },
 
     async findByCidForAttempt(input: {
@@ -248,8 +253,10 @@ export function createTaskArtifactRepository(db: Database) {
 
     /**
      * Objects are shared by every row with the same CID in a team, so a
-     * cleanup pass must not delete objects that rows of other tasks still
-     * point at. Returns the subset of the given keys that still have rows.
+     * cleanup or sweep pass must not delete objects that rows still point
+     * at. Returns the subset of the given keys that have at least one
+     * artifact row — the single row-existence predicate for both the
+     * retention cleanup and the orphan-object sweep.
      */
     async listObjectKeysStillReferenced(
       objectKeys: string[],
@@ -260,38 +267,6 @@ export function createTaskArtifactRepository(db: Database) {
         .from(taskArtifacts)
         .where(inArray(taskArtifacts.objectKey, objectKeys));
       return rows.map((row) => row.objectKey);
-    },
-
-    /**
-     * Batch existence check for the orphan-object sweep: which of the
-     * given (teamId, cid) pairs have at least one artifact row?
-     */
-    async filterCidsWithRows(
-      pairs: { teamId: string; cid: string }[],
-    ): Promise<{ teamId: string; cid: string }[]> {
-      if (pairs.length === 0) return [];
-      const cidsByTeam = new Map<string, string[]>();
-      for (const pair of pairs) {
-        const cids = cidsByTeam.get(pair.teamId) ?? [];
-        cids.push(pair.cid);
-        cidsByTeam.set(pair.teamId, cids);
-      }
-      return getExecutor(db)
-        .selectDistinct({
-          teamId: taskArtifacts.teamId,
-          cid: taskArtifacts.cid,
-        })
-        .from(taskArtifacts)
-        .where(
-          or(
-            ...[...cidsByTeam.entries()].map(([teamId, cids]) =>
-              and(
-                eq(taskArtifacts.teamId, teamId),
-                inArray(taskArtifacts.cid, cids),
-              ),
-            ),
-          ),
-        );
     },
   };
 }

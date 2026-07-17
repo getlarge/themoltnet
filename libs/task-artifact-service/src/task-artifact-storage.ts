@@ -55,6 +55,22 @@ export class TaskArtifactStorageNotConfiguredError extends Error {
   }
 }
 
+/**
+ * Name-based guard for TaskArtifactStorageNotConfiguredError. Prefer this
+ * over instanceof at module boundaries: bundling or module-registry
+ * resets can duplicate the class, and a duplicated copy must still be
+ * recognized as "storage disabled" rather than escalated as a failure.
+ */
+export function isTaskArtifactStorageNotConfiguredError(err: unknown): boolean {
+  return (
+    err instanceof TaskArtifactStorageNotConfiguredError ||
+    (typeof err === 'object' &&
+      err !== null &&
+      (err as { name?: unknown }).name ===
+        'TaskArtifactStorageNotConfiguredError')
+  );
+}
+
 export class MissingTaskArtifactObjectError extends Error {
   constructor(key: string) {
     super(`Task artifact object is missing: ${key}`);

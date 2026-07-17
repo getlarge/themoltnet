@@ -47350,7 +47350,7 @@ func (s *TaskOutputKind) UnmarshalText(data []byte) error {
 type TaskRef struct {
 	Artifact  OptTaskRefArtifact `json:"artifact"`
 	External  OptTaskRefExternal `json:"external"`
-	OutputCid string             `json:"outputCid"`
+	OutputCid OptString          `json:"outputCid"`
 	Role      TaskRefRole        `json:"role"`
 	TaskId    NilUUID            `json:"taskId"`
 }
@@ -47366,7 +47366,7 @@ func (s *TaskRef) GetExternal() OptTaskRefExternal {
 }
 
 // GetOutputCid returns the value of OutputCid.
-func (s *TaskRef) GetOutputCid() string {
+func (s *TaskRef) GetOutputCid() OptString {
 	return s.OutputCid
 }
 
@@ -47391,7 +47391,7 @@ func (s *TaskRef) SetExternal(val OptTaskRefExternal) {
 }
 
 // SetOutputCid sets the value of OutputCid.
-func (s *TaskRef) SetOutputCid(val string) {
+func (s *TaskRef) SetOutputCid(val OptString) {
 	s.OutputCid = val
 }
 
@@ -47638,7 +47638,7 @@ func (s *TaskRefRole) UnmarshalText(data []byte) error {
 type TaskReferencesItem struct {
 	Artifact  OptTaskReferencesItemArtifact `json:"artifact"`
 	External  OptTaskReferencesItemExternal `json:"external"`
-	OutputCid string                        `json:"outputCid"`
+	OutputCid OptString                     `json:"outputCid"`
 	Role      TaskReferencesItemRole        `json:"role"`
 	TaskId    NilUUID                       `json:"taskId"`
 }
@@ -47654,7 +47654,7 @@ func (s *TaskReferencesItem) GetExternal() OptTaskReferencesItemExternal {
 }
 
 // GetOutputCid returns the value of OutputCid.
-func (s *TaskReferencesItem) GetOutputCid() string {
+func (s *TaskReferencesItem) GetOutputCid() OptString {
 	return s.OutputCid
 }
 
@@ -47679,7 +47679,7 @@ func (s *TaskReferencesItem) SetExternal(val OptTaskReferencesItemExternal) {
 }
 
 // SetOutputCid sets the value of OutputCid.
-func (s *TaskReferencesItem) SetOutputCid(val string) {
+func (s *TaskReferencesItem) SetOutputCid(val OptString) {
 	s.OutputCid = val
 }
 

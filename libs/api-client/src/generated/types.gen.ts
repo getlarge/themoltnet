@@ -2102,7 +2102,7 @@ export type Task = {
       snapshot_cid?: string;
       url?: string;
     };
-    outputCid: string;
+    outputCid?: string;
     role: 'judged_work' | 'reviewed_diff' | 'target_source' | 'context';
     taskId: string | null;
   }>;
@@ -2471,7 +2471,7 @@ export type TaskRef = {
     snapshot_cid?: string;
     url?: string;
   };
-  outputCid: string;
+  outputCid?: string;
   role: 'judged_work' | 'reviewed_diff' | 'target_source' | 'context';
   taskId: string | null;
 };

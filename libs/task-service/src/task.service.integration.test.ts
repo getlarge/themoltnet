@@ -122,6 +122,14 @@ function createIntegrationDeps() {
     grants,
     deps: {
       taskRepository,
+      taskArtifactRepository: {
+        createManyForTask: vi.fn(() => Promise.resolve([])),
+      },
+      taskInputArtifactObjectStore: {
+        buildObjectKey: (teamId: string, cid: string) =>
+          `teams/${teamId}/artifacts/${cid}`,
+        headObject: vi.fn(() => Promise.resolve(null)),
+      },
       diaryRepository: {
         findById: vi.fn(() =>
           Promise.resolve({ id: DIARY_ID, teamId: TEAM_ID }),

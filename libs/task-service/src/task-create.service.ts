@@ -299,8 +299,8 @@ export function createTaskCreateService(
         row = await transactionRunner.runInTransaction(
           async () => {
             const inserted = await taskRepository.create(newTask);
-            for (const artifact of resolvedInputArtifacts) {
-              await taskArtifactRepository.createForTask({
+            await taskArtifactRepository.createManyForTask(
+              resolvedInputArtifacts.map((artifact) => ({
                 cid: artifact.cid,
                 contentEncoding: null,
                 contentType: artifact.contentType,
@@ -314,8 +314,8 @@ export function createTaskCreateService(
                 taskId: inserted.id,
                 teamId: input.teamId,
                 title: artifact.title,
-              });
-            }
+              })),
+            );
             for (const effect of sideEffects) {
               if (effect.kind === 'sealCorrelation') {
                 await correlationSealRepository.acquireCorrelationLock(
@@ -442,22 +442,27 @@ interface ResolvedInputArtifact {
  * attempt) against staged objects in team storage. Staged uploads create
  * no metadata row, so existence is checked against the object store and
  * the artifact row is built from the reference plus object metadata; the
- * sha256 is recovered from the CID itself.
+ * sha256 is recovered from the CID itself. Reference shape rules
+ * (outputCid presence/equality, attemptN combos) are enforced earlier by
+ * validateTaskCreateRequest via validateTaskReferences.
  *
  * A staged object could in principle be swept between this check and the
- * transaction commit, but the orphan-sweep grace window (48h by default)
- * makes that window irrelevant for freshly staged objects.
+ * transaction commit; the sweep re-verifies row existence immediately
+ * before deleting and the grace window covers freshly staged objects, so
+ * the remaining race is milliseconds wide on objects already past the
+ * grace window.
  */
 async function resolveInputArtifacts(
   objectStore: TaskServiceDeps['taskInputArtifactObjectStore'],
   teamId: string,
   references: TaskRef[] | undefined,
 ): Promise<ResolvedInputArtifact[]> {
-  const inputRefs = (references ?? []).filter(
-    (ref) =>
-      ref.taskId === null &&
-      ref.artifact !== undefined &&
-      ref.artifact.attemptN === undefined,
+  const inputRefs = (references ?? []).flatMap((ref) =>
+    ref.taskId === null &&
+    ref.artifact !== undefined &&
+    ref.artifact.attemptN === undefined
+      ? [ref.artifact]
+      : [],
   );
   if (inputRefs.length === 0) return [];
 
@@ -469,62 +474,59 @@ async function resolveInputArtifacts(
     );
 
   const seenCids = new Set<string>();
-  const resolved: ResolvedInputArtifact[] = [];
-  for (const ref of inputRefs) {
-    const artifact = ref.artifact;
-    if (!artifact) continue;
-    if (ref.outputCid !== artifact.cid) {
-      throw invalid(
-        `input artifact reference outputCid must equal artifact.cid (got ${ref.outputCid} vs ${artifact.cid})`,
-      );
-    }
+  for (const artifact of inputRefs) {
     if (seenCids.has(artifact.cid)) {
       throw invalid(`duplicate input artifact CID: ${artifact.cid}`);
     }
     seenCids.add(artifact.cid);
-
-    let sha256: string;
-    try {
-      sha256 = decodeBytesCidToSha256(artifact.cid);
-    } catch {
-      throw invalid(
-        `input artifact CID is not a raw-bytes sha2-256 CIDv1: ${artifact.cid}`,
-      );
-    }
-
-    const objectKey = objectStore.buildObjectKey(teamId, artifact.cid);
-    let head;
-    try {
-      head = await objectStore.headObject(objectKey);
-    } catch (err) {
-      throw new TaskServiceError(
-        'unavailable',
-        `Task input artifact storage is unavailable: ${
-          err instanceof Error ? err.message : String(err)
-        }`,
-      );
-    }
-    if (!head) {
-      throw invalid(
-        `input artifact object not found for CID ${artifact.cid}; stage it first via PUT /task-artifacts/staged`,
-      );
-    }
-    if (head.contentLength === undefined) {
-      throw invalid(
-        `input artifact object for CID ${artifact.cid} has no content length`,
-      );
-    }
-
-    resolved.push({
-      cid: artifact.cid,
-      contentType:
-        artifact.contentType ?? head.contentType ?? 'application/octet-stream',
-      kind: artifact.kind ?? 'input',
-      objectKey,
-      sha256,
-      sizeBytes: head.contentLength,
-      title: artifact.title ?? artifact.cid,
-    });
   }
-  return resolved;
+
+  return Promise.all(
+    inputRefs.map(async (artifact) => {
+      let sha256: string;
+      try {
+        sha256 = decodeBytesCidToSha256(artifact.cid);
+      } catch {
+        throw invalid(
+          `input artifact CID is not a raw-bytes sha2-256 CIDv1: ${artifact.cid}`,
+        );
+      }
+
+      const objectKey = objectStore.buildObjectKey(teamId, artifact.cid);
+      let head;
+      try {
+        head = await objectStore.headObject(objectKey);
+      } catch (err) {
+        throw new TaskServiceError(
+          'unavailable',
+          `Task input artifact storage is unavailable: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      }
+      if (!head) {
+        throw invalid(
+          `input artifact object not found for CID ${artifact.cid}; stage it first via PUT /task-artifacts/staged`,
+        );
+      }
+      if (head.contentLength === undefined) {
+        throw invalid(
+          `input artifact object for CID ${artifact.cid} has no content length`,
+        );
+      }
+
+      return {
+        cid: artifact.cid,
+        contentType:
+          artifact.contentType ??
+          head.contentType ??
+          'application/octet-stream',
+        kind: artifact.kind ?? 'input',
+        objectKey,
+        sha256,
+        sizeBytes: head.contentLength,
+        title: artifact.title ?? artifact.cid,
+      };
+    }),
+  );
 }

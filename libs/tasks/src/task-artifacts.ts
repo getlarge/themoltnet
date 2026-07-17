@@ -46,14 +46,26 @@ export const ListTaskArtifactsQuery = Type.Object(
 );
 export type ListTaskArtifactsQuery = Static<typeof ListTaskArtifactsQuery>;
 
+// contentType/contentEncoding are echoed back verbatim in download
+// response headers, so constrain them to printable ASCII (no CR/LF or
+// control characters) at the schema boundary.
+const HeaderSafeContentType = Type.String({
+  minLength: 1,
+  maxLength: 200,
+  pattern: '^[\\x21-\\x7e][\\x20-\\x7e]*$',
+});
+const HeaderSafeContentEncoding = Type.String({
+  minLength: 1,
+  maxLength: 100,
+  pattern: '^[\\x21-\\x7e][\\x20-\\x7e]*$',
+});
+
 export const UploadTaskArtifactQuery = Type.Object(
   {
     kind: Type.String({ minLength: 1, maxLength: 100 }),
     title: Type.String({ minLength: 1, maxLength: 255 }),
-    contentType: Type.Optional(Type.String({ minLength: 1, maxLength: 200 })),
-    contentEncoding: Type.Optional(
-      Type.String({ minLength: 1, maxLength: 100 }),
-    ),
+    contentType: Type.Optional(HeaderSafeContentType),
+    contentEncoding: Type.Optional(HeaderSafeContentEncoding),
   },
   { $id: 'UploadTaskArtifactQuery', additionalProperties: false },
 );
@@ -108,10 +120,8 @@ export type TaskArtifactContentParams = Static<
 
 export const StageTaskArtifactQuery = Type.Object(
   {
-    contentType: Type.Optional(Type.String({ minLength: 1, maxLength: 200 })),
-    contentEncoding: Type.Optional(
-      Type.String({ minLength: 1, maxLength: 100 }),
-    ),
+    contentType: Type.Optional(HeaderSafeContentType),
+    contentEncoding: Type.Optional(HeaderSafeContentEncoding),
   },
   { $id: 'StageTaskArtifactQuery', additionalProperties: false },
 );
