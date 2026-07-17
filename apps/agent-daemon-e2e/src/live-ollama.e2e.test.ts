@@ -21,9 +21,9 @@ import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
 const LIVE_LLM_FLAG = 'MOLTNET_AGENT_DAEMON_LIVE_LLM_E2E';
 const LIVE_PROVIDER = 'ollama-cloud';
-const LIVE_MODEL = 'qwen3-coder:480b-cloud';
+const LIVE_MODEL = 'gemma4:31b-cloud';
 const LIVE_TRIAGE_MODEL =
-  process.env.MOLTNET_AGENT_DAEMON_LIVE_TRIAGE_MODEL ?? 'minimax-m2.1:cloud';
+  process.env.MOLTNET_AGENT_DAEMON_LIVE_TRIAGE_MODEL ?? 'minimax-m3:cloud';
 const FREEFORM_SUBMIT_INSTRUCTIONS =
   'Before submitting, call moltnet_get_task for this task id and read inputCid. ' +
   'The submit_freeform_output args must be the FreeformOutput object directly, not wrapped. ' +
