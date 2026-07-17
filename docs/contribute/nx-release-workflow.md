@@ -5,14 +5,23 @@ Nx release, and for how Nx release is expected to be used.
 
 ## Intent
 
-Nx release should replace release-please as the release orchestration layer.
-The goal is to let the Nx project graph and release groups decide ordering,
-dependency bumps, changelog/tag generation, Docker image tagging, and Go module
-dependency propagation.
+Nx release is in a proving period alongside the existing Release Please
+implementation. The goal is to let the Nx project graph and release groups
+decide ordering, dependency bumps, changelog/tag generation, Docker image
+tagging, and Go module dependency propagation.
 
-Release-please remains the historical workflow until the migration lands. Do
-not update release-please configuration for new release behavior on this branch
-unless the migration is being rolled back.
+The shared `.github/workflows/release.yml` file deliberately remains the single
+release workflow: npm trusted publishing binds each package to that filename.
+Its `workflow_dispatch` `engine` input defaults to `legacy`. Use `engine: nx`
+only for a deliberately scheduled Nx rehearsal or production release; it is
+mutually exclusive with the legacy jobs and serialized with all other release
+runs. The normal push-to-`main` Release Please flow remains unchanged during
+this period.
+
+Remove the legacy jobs, Release Please configuration, and recovery workflow
+only after Nx has completed several production releases, including npm OIDC,
+GHCR, Go proxy verification, GitHub release asset upload, and GitHub Action tag
+updates. Keep the workflow filename as `release.yml` when that cleanup happens.
 
 ## Release Groups
 
@@ -53,7 +62,7 @@ it from the main development worktree:
 git worktree add --detach .worktrees/nx-release-rehearsal origin/main
 cd .worktrees/nx-release-rehearsal
 pnpm install --frozen-lockfile
-pnpm exec nx release patch --verbose --yes
+pnpm exec nx release --verbose
 ```
 
 This command intentionally exercises real side effects:
@@ -105,13 +114,13 @@ export GOPROXY="http://localhost:3000,direct"
 ```
 
 Run the top-level release command for versioning and changelog generation, then
-run publish separately. Top-level `nx release patch` does not expose the npm
+run publish separately. Top-level `nx release` does not expose the npm
 `--registry` option, but `nx release publish` does. Nx forwards publish options
 to every `nx-release-publish` target, so custom publishers must tolerate generic
 publish flags such as `--registry`, `--tag`, `--access`, and `--dryRun`.
 
 ```bash
-pnpm exec nx release patch --skip-publish --verbose
+pnpm exec nx release --skip-publish --verbose
 GO_RELEASE_SKIP_PROXY=true GO_RELEASE_USE_LOCAL_REPLACES=true GITHUB_ACTION_RELEASE_SKIP_PUSH=true pnpm exec nx release publish --verbose --registry http://localhost:4873
 ```
 

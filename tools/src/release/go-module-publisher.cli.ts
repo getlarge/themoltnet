@@ -16,6 +16,7 @@ function normalizeBooleanOptionValues(args: string[]) {
     'dryRun',
     'firstRelease',
     'first-release',
+    'provenance',
     'verbose',
     'yes',
   ]);
@@ -40,6 +41,7 @@ export function createCliOptions(argv = process.argv, env = process.env) {
       firstRelease: { type: 'boolean' },
       goproxy: { type: 'string' },
       otp: { type: 'string' },
+      provenance: { type: 'boolean' },
       'project-root': { type: 'string' },
       registry: { type: 'string' },
       tag: { type: 'string' },
