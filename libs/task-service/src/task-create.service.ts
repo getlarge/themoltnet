@@ -481,6 +481,29 @@ async function resolveInputArtifacts(
     seenCids.add(artifact.cid);
   }
 
+  // Bounded fan-out: references carry no maxItems, so cap concurrent
+  // HEAD requests instead of Promise.all-ing an unbounded array.
+  const HEAD_CONCURRENCY = 8;
+  const resolved: ResolvedInputArtifact[] = [];
+  for (let i = 0; i < inputRefs.length; i += HEAD_CONCURRENCY) {
+    resolved.push(
+      ...(await resolveInputArtifactChunk(
+        objectStore,
+        teamId,
+        inputRefs.slice(i, i + HEAD_CONCURRENCY),
+        invalid,
+      )),
+    );
+  }
+  return resolved;
+}
+
+async function resolveInputArtifactChunk(
+  objectStore: TaskServiceDeps['taskInputArtifactObjectStore'],
+  teamId: string,
+  inputRefs: NonNullable<TaskRef['artifact']>[],
+  invalid: (message: string) => TaskServiceError,
+): Promise<ResolvedInputArtifact[]> {
   return Promise.all(
     inputRefs.map(async (artifact) => {
       let sha256: string;
