@@ -12,11 +12,13 @@ export interface TaskArtifactObjectRef {
   teamId: string;
   cid: string;
   objectKey: string;
+  sizeBytes?: number;
 }
 
 export interface OrphanSweepObject {
   key: string;
   lastModified?: Date;
+  sizeBytes?: number;
 }
 
 const TASK_ARTIFACT_OBJECT_KEY_PATTERN =
@@ -51,7 +53,7 @@ export function selectOrphanCandidates(
   for (const object of objects) {
     if (!object.lastModified || object.lastModified >= graceCutoff) continue;
     const ref = parseTaskArtifactObjectKey(object.key);
-    if (ref) candidates.push(ref);
+    if (ref) candidates.push({ ...ref, sizeBytes: object.sizeBytes });
   }
   return candidates;
 }
