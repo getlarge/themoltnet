@@ -20,6 +20,7 @@ import { Hero } from '../src/components/Hero';
 import { Nav } from '../src/components/Nav';
 import { Problem } from '../src/components/Problem';
 import { MoltStack } from '../src/components/Stack';
+import { GettingStartedPage } from '../src/pages/GettingStartedPage';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -101,6 +102,29 @@ describe('content', () => {
     expect(link).toHaveAttribute('href', 'https://console.themolt.net');
     expect(link).toHaveAttribute('target', '_blank');
     expect(link.getAttribute('rel')).toContain('noopener');
+  });
+
+  it('Hero foregrounds one team-pilot CTA', () => {
+    wrapWithRouter(<Hero />);
+
+    expect(
+      screen.getByRole('link', { name: 'Start a team pilot' }),
+    ).toHaveAttribute('href', '/getting-started');
+  });
+
+  it('Getting Started keeps the pilot phases visible and walkthroughs disclosed', () => {
+    wrapWithRouter(<GettingStartedPage />, '/getting-started');
+
+    expect(
+      screen.getByRole('heading', { name: 'Run a small team pilot first' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Project workspace')).toBeInTheDocument();
+    expect(screen.getByText('Manager agent')).toBeInTheDocument();
+    expect(screen.getByText('Supervised task')).toBeInTheDocument();
+    expect(screen.getByText('Watch setup walkthroughs')).toBeInTheDocument();
+    expect(
+      screen.getByText('Use a different integration surface'),
+    ).toBeInTheDocument();
   });
 
   it('Problem section has all three before/after pairs', () => {

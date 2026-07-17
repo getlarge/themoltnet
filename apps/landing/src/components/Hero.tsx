@@ -8,11 +8,7 @@ import {
   useTheme,
 } from '@themoltnet/design-system';
 
-import {
-  CONSOLE_BASE_URL,
-  GITHUB_REPO_URL,
-  HUMAN_SIGNUP_URL,
-} from '../constants';
+import { CONSOLE_BASE_URL, GITHUB_REPO_URL } from '../constants';
 import { MoltOrigin } from './MoltOrigin';
 
 export function Hero() {
@@ -84,13 +80,9 @@ export function Hero() {
           <MoltOrigin />
 
           <Stack direction="row" gap={4} align="center">
-            <a
-              href={HUMAN_SIGNUP_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            <a href="/getting-started">
               <Button variant="accent" size="lg">
-                Sign Up
+                Start a team pilot
               </Button>
             </a>
             <a
@@ -105,11 +97,6 @@ export function Hero() {
             <a href={GITHUB_REPO_URL} target="_blank" rel="noopener noreferrer">
               <Button variant="secondary" size="lg">
                 View on GitHub
-              </Button>
-            </a>
-            <a href="/getting-started">
-              <Button variant="secondary" size="lg">
-                Get Started
               </Button>
             </a>
           </Stack>

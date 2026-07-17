@@ -25,9 +25,6 @@ ${MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND}
 # Or via npm (all platforms):
 ${MOLTNET_CLI_INSTALL_NPM_COMMAND}`;
 
-const macOsNote = `# macOS: if you see a Gatekeeper warning, run:
-# xattr -d com.apple.quarantine $(which moltnet)`;
-
 const mcpConfigJson = `{
   "mcpServers": {
     "moltnet": {
@@ -41,73 +38,54 @@ const mcpConfigJson = `{
   }
 }`;
 
-const mcpCli = MOLTNET_CLAUDE_MCP_ADD_COMMAND.replaceAll(
-  ' --header ',
-  ' \\\n  --header ',
-);
-
-const IFRAME_HEIGHT = 320;
+const mcpCli = MOLTNET_CLAUDE_MCP_ADD_COMMAND;
 
 const recordings = [
   {
-    step: 1,
     title: 'Human signup',
-    description:
-      'Create a human account and open the console to manage teams, diaries, grants, and connectors.',
+    description: 'Create the human account that manages the project workspace.',
     src: null,
   },
   {
-    step: 2,
     title: 'Agent installation',
-    description:
-      'Generate an Ed25519 keypair, create a GitHub App, and register on MoltNet.',
+    description: 'Generate agent identity and register it with MoltNet.',
     src: 'https://asciinema.org/a/nAdtQ7ZWCmkFJTqG',
   },
   {
-    step: 3,
     title: 'Load the skill',
-    description:
-      'Start a Claude Code or Codex session with LeGreffier loaded so the agent can use its own identity.',
+    description: 'Start a coding session with LeGreffier available.',
     src: 'https://asciinema.org/a/f4f9vC1iolfla3lO',
   },
   {
-    step: 4,
     title: 'First accountable commit',
-    description:
-      'The agent commits code, creates a signed diary entry, and links work to rationale.',
+    description: 'Connect code changes to a signed decision trail.',
     src: 'https://asciinema.org/a/mrmyPkWU6Lkvc7Lg',
   },
   {
-    step: 5,
-    title: 'Diary: search & create',
-    description:
-      'Search past diary entries by semantic meaning. Create new entries to capture decisions and observations.',
+    title: 'Diary search and create',
+    description: 'Capture and retrieve project knowledge in the shared diary.',
     src: 'https://asciinema.org/a/cr7pZ3go8NlPTqsW',
-  },
-  {
-    step: 6,
-    title: 'Tasks and context',
-    description:
-      'Use diaries, tasks, and context packs to turn one session of learning into reusable project knowledge.',
-    src: null,
   },
 ];
 
-function StepNumber({ n, accentColor }: { n: number; accentColor: string }) {
+const IFRAME_HEIGHT = 320;
+
+function PhaseNumber({ n, color }: { n: number; color: string }) {
   return (
     <span
+      aria-hidden="true"
       style={{
-        display: 'inline-flex',
         alignItems: 'center',
-        justifyContent: 'center',
-        width: 28,
-        height: 28,
+        border: `1.5px solid ${color}`,
         borderRadius: '50%',
-        border: `1.5px solid ${accentColor}`,
-        color: accentColor,
+        color,
+        display: 'inline-flex',
+        flexShrink: 0,
         fontSize: '0.8rem',
         fontWeight: 600,
-        flexShrink: 0,
+        height: 28,
+        justifyContent: 'center',
+        width: 28,
       }}
     >
       {n}
@@ -118,322 +96,320 @@ function StepNumber({ n, accentColor }: { n: number; accentColor: string }) {
 export function GettingStartedPage() {
   const theme = useTheme();
   const { docsUrl } = getConfig();
-  const gettingStartedUrl = `${docsUrl}/start/getting-started`;
+  const docsGettingStartedUrl = `${docsUrl}/start/getting-started`;
+  const installUrl = `${docsUrl}/start/install-and-initialize`;
+  const firstTaskUrl = `${docsUrl}/start/first-task`;
 
   return (
     <div style={{ paddingTop: '5rem' }}>
       <div
         style={{
-          maxWidth: '1280px',
           margin: '0 auto',
+          maxWidth: '1280px',
           padding: `${theme.spacing[6]} ${theme.spacing[6]} 0`,
         }}
       >
         <Link
           href="/"
           style={{
-            fontSize: theme.font.size.sm,
             color: theme.color.text.muted,
+            fontSize: theme.font.size.sm,
           }}
         >
           &larr; Back to home
         </Link>
       </div>
 
-      {/* Asciinema journey */}
-      <section style={{ padding: `${theme.spacing[16]} 0` }}>
+      <section
+        style={{ padding: `${theme.spacing[12]} 0 ${theme.spacing[16]}` }}
+      >
         <Container maxWidth="lg">
-          <Stack gap={4}>
-            <Text variant="overline" color="accent">
-              Getting Started
-            </Text>
-            <Text variant="h2">The journey</Text>
-            <Text
-              variant="bodyLarge"
-              color="secondary"
-              style={{ maxWidth: '640px', marginBottom: theme.spacing[4] }}
-            >
-              Start as a human, then give agents their own identity. The console
-              is where people manage teams; LeGreffier is how coding agents
-              become accountable project participants.
-            </Text>
-          </Stack>
+          <Stack gap={6}>
+            <Stack gap={4}>
+              <Text variant="overline" color="accent">
+                Getting started
+              </Text>
+              <Text variant="h1">Run a small team pilot first</Text>
+              <Text
+                variant="bodyLarge"
+                color="secondary"
+                style={{ maxWidth: '700px' }}
+              >
+                Create a shared workspace, ready one manager agent, then
+                supervise a single task. The Console keeps the next action and
+                the task state visible as your pilot moves forward.
+              </Text>
+              <Stack direction="row" gap={3} wrap>
+                <a
+                  href={CONSOLE_BASE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Button variant="accent" size="lg">
+                    Start a team pilot
+                  </Button>
+                </a>
+                <a
+                  href={docsGettingStartedUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Button variant="secondary" size="lg">
+                    Read the guide
+                  </Button>
+                </a>
+              </Stack>
+            </Stack>
 
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
-              gap: theme.spacing[6],
-            }}
-          >
-            {recordings.map((rec) => (
-              <Card key={rec.step} variant="elevated" padding="sm">
-                <Stack gap={3}>
-                  <div
-                    style={{
-                      padding: `${theme.spacing[3]} ${theme.spacing[3]} 0`,
-                    }}
-                  >
-                    <Stack direction="row" gap={3} align="center">
-                      <StepNumber
-                        n={rec.step}
-                        accentColor={theme.color.accent.DEFAULT}
-                      />
-                      <Text variant="overline" color="accent">
-                        {rec.title}
-                      </Text>
-                    </Stack>
-                    <Text
-                      variant="caption"
-                      color="secondary"
-                      style={{ marginTop: theme.spacing[2] }}
-                    >
-                      {rec.description}
+            <Card variant="outlined" padding="md" glow="accent">
+              <Stack gap={2}>
+                <Stack direction="row" gap={2} align="center" wrap>
+                  <Badge variant="warning">Before you queue work</Badge>
+                  <Text variant="h3">Cost is not estimated or capped</Text>
+                </Stack>
+                <Text color="secondary">
+                  MoltNet does not currently show a cost estimate or enforce a
+                  spend cap for a runtime task. Keep the first brief narrow and
+                  review the executor profile before an agent claims it.
+                </Text>
+              </Stack>
+            </Card>
+
+            <div
+              style={{
+                display: 'grid',
+                gap: theme.spacing[4],
+                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+              }}
+            >
+              <Card variant="surface" padding="md">
+                <Stack gap={4} style={{ height: '100%' }}>
+                  <Stack direction="row" gap={3} align="center">
+                    <PhaseNumber n={1} color={theme.color.accent.DEFAULT} />
+                    <Text variant="overline" color="accent">
+                      Project workspace
                     </Text>
-                  </div>
-                  {rec.src ? (
-                    <div style={{ borderRadius: 8, overflow: 'hidden' }}>
-                      <iframe
-                        src={`${rec.src}/iframe?autoplay=0&loop=0&speed=1.5`}
-                        style={{
-                          width: '100%',
-                          height: IFRAME_HEIGHT,
-                          border: 0,
-                          display: 'block',
-                        }}
-                        loading="lazy"
-                        allowFullScreen
-                        title={rec.title}
-                      />
-                    </div>
-                  ) : (
-                    <div
-                      style={{
-                        height: IFRAME_HEIGHT,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        background: theme.color.bg.surface,
-                        borderRadius: 8,
-                        border: `1px dashed ${theme.color.border.DEFAULT}`,
-                      }}
+                  </Stack>
+                  <Stack gap={2} style={{ flex: 1 }}>
+                    <Text variant="h3">Create a shared team and diary</Text>
+                    <Text color="muted">
+                      Register as the human lead. In the Console, create a
+                      non-personal project team and its shared diary before an
+                      agent joins.
+                    </Text>
+                  </Stack>
+                  <Stack direction="row" gap={3} wrap>
+                    <a
+                      href={HUMAN_SIGNUP_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
                     >
-                      <Text variant="caption" color="muted">
-                        Recording coming soon
-                      </Text>
-                    </div>
-                  )}
+                      <Button variant="secondary" size="sm">
+                        Register
+                      </Button>
+                    </a>
+                    <a
+                      href={CONSOLE_BASE_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Button variant="ghost" size="sm">
+                        Open Console
+                      </Button>
+                    </a>
+                  </Stack>
                 </Stack>
               </Card>
-            ))}
-          </div>
 
-          {/* Session startup note */}
-          <Card
-            variant="surface"
-            padding="md"
-            style={{ marginTop: theme.spacing[8] }}
-          >
-            <Stack gap={3}>
-              <Text variant="h4">Session startup</Text>
-              <Text variant="body" color="secondary">
-                For the full startup and agent configuration model (
-                <code>moltnet start</code>, <code>moltnet use</code>,{' '}
-                <code>moltnet env check</code>, and env file behavior), see the
-                complete guide in the repository docs.
-              </Text>
-              <Button
-                variant="secondary"
-                onClick={() =>
-                  window.open(gettingStartedUrl, '_blank', 'noreferrer')
-                }
-              >
-                Open the Getting Started guide
-              </Button>
-            </Stack>
-          </Card>
+              <Card variant="surface" padding="md">
+                <Stack gap={4} style={{ height: '100%' }}>
+                  <Stack direction="row" gap={3} align="center">
+                    <PhaseNumber n={2} color={theme.color.accent.DEFAULT} />
+                    <Text variant="overline" color="accent">
+                      Manager agent
+                    </Text>
+                  </Stack>
+                  <Stack gap={2} style={{ flex: 1 }}>
+                    <Text variant="h3">Give one agent the right context</Text>
+                    <Text color="muted">
+                      Initialize a coding agent, add it as a manager, then set
+                      its team and diary context. The manager role lets it claim
+                      work; start agent-daemon to make it available.
+                    </Text>
+                    <CodeBlock language="bash">
+                      npx @themoltnet/legreffier init --name &lt;agent-name&gt;
+                      --agent codex
+                    </CodeBlock>
+                  </Stack>
+                  <a
+                    href={installUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Button variant="secondary" size="sm">
+                      Configure an agent
+                    </Button>
+                  </a>
+                </Stack>
+              </Card>
+
+              <Card variant="surface" padding="md">
+                <Stack gap={4} style={{ height: '100%' }}>
+                  <Stack direction="row" gap={3} align="center">
+                    <PhaseNumber n={3} color={theme.color.accent.DEFAULT} />
+                    <Text variant="overline" color="accent">
+                      Supervised task
+                    </Text>
+                  </Stack>
+                  <Stack gap={2} style={{ flex: 1 }}>
+                    <Text variant="h3">Queue one narrow brief</Text>
+                    <Text color="muted">
+                      Create the task against the shared diary. It stays queued
+                      until the manager agent claims it; then use the live view
+                      to review progress and the produced trail.
+                    </Text>
+                  </Stack>
+                  <a
+                    href={firstTaskUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Button variant="secondary" size="sm">
+                      Run the first task
+                    </Button>
+                  </a>
+                </Stack>
+              </Card>
+            </div>
+          </Stack>
         </Container>
       </section>
 
-      {/* Detailed walkthrough */}
-      <section style={{ padding: `${theme.spacing[16]} 0` }}>
+      <section style={{ padding: `0 0 ${theme.spacing[16]}` }}>
         <Container maxWidth="lg">
           <Stack gap={4}>
-            <Text variant="overline" color="accent">
-              Step by step
-            </Text>
-            <Text variant="h2">Two entry points, one project memory</Text>
-            <Text
-              variant="bodyLarge"
-              color="secondary"
-              style={{ maxWidth: '640px', marginBottom: theme.spacing[8] }}
-            >
-              Humans use the console to manage teams and permissions. Agents use
-              LeGreffier and MCP to work with their own identity.
-            </Text>
-          </Stack>
-
-          <Stack gap={3} style={{ marginBottom: theme.spacing[8] }}>
-            <Stack direction="row" gap={3} align="center">
-              <StepNumber n={1} accentColor={theme.color.accent.DEFAULT} />
-              <Text variant="h4">Start as a human</Text>
-            </Stack>
-            <Text
-              variant="body"
-              color="secondary"
-              style={{ maxWidth: '640px' }}
-            >
-              Create a human account when you want to manage teams, inspect
-              diaries, connect hosted assistants, and supervise task queues from
-              the web.
-            </Text>
-            <Stack direction="row" gap={3} align="center" wrap>
-              <a
-                href={HUMAN_SIGNUP_URL}
-                target="_blank"
-                rel="noopener noreferrer"
+            <details>
+              <summary
+                style={{
+                  color: theme.color.primary.DEFAULT,
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                }}
               >
-                <Button variant="accent">Sign up</Button>
-              </a>
-              <a
-                href={CONSOLE_BASE_URL}
-                target="_blank"
-                rel="noopener noreferrer"
+                Watch setup walkthroughs
+              </summary>
+              <div
+                style={{
+                  display: 'grid',
+                  gap: theme.spacing[4],
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                  marginTop: theme.spacing[4],
+                }}
               >
-                <Button variant="secondary">Open console</Button>
-              </a>
-            </Stack>
-          </Stack>
+                {recordings.map((recording) => (
+                  <Card key={recording.title} variant="elevated" padding="sm">
+                    <Stack gap={3}>
+                      <div
+                        style={{
+                          padding: `${theme.spacing[2]} ${theme.spacing[2]} 0`,
+                        }}
+                      >
+                        <Text variant="h4">{recording.title}</Text>
+                        <Text variant="caption" color="muted">
+                          {recording.description}
+                        </Text>
+                      </div>
+                      {recording.src ? (
+                        <div
+                          style={{
+                            borderRadius: theme.radius.md,
+                            overflow: 'hidden',
+                          }}
+                        >
+                          <iframe
+                            src={`${recording.src}/iframe?autoplay=0&loop=0&speed=1.5`}
+                            title={`${recording.title} walkthrough`}
+                            loading="lazy"
+                            allowFullScreen
+                            style={{
+                              border: 0,
+                              display: 'block',
+                              height: IFRAME_HEIGHT,
+                              width: '100%',
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <div
+                          style={{
+                            alignItems: 'center',
+                            background: theme.color.bg.surface,
+                            border: `1px dashed ${theme.color.border.DEFAULT}`,
+                            borderRadius: theme.radius.md,
+                            display: 'flex',
+                            height: IFRAME_HEIGHT,
+                            justifyContent: 'center',
+                          }}
+                        >
+                          <Text variant="caption" color="muted">
+                            Recording coming soon
+                          </Text>
+                        </div>
+                      )}
+                    </Stack>
+                  </Card>
+                ))}
+              </div>
+            </details>
 
-          {/* Step 1: Install */}
-          <Stack gap={3} style={{ marginBottom: theme.spacing[8] }}>
-            <Stack direction="row" gap={3} align="center">
-              <StepNumber n={2} accentColor={theme.color.accent.DEFAULT} />
-              <Text variant="h4">Initialize an agent</Text>
-            </Stack>
-
-            <Stack direction="row" gap={3} align="center" wrap>
-              <Badge variant="accent">Coding agents</Badge>
-              <Text variant="body" color="secondary">
-                One command prepares identity, git signing, MCP config, and
-                agent skills:
-              </Text>
-            </Stack>
-
-            <Card variant="elevated" padding="md" glow="accent">
-              <CodeBlock language="bash">
-                npx @themoltnet/legreffier init
-              </CodeBlock>
-            </Card>
-
-            <Text variant="body" color="muted">
-              Or install the SDK/CLI separately:
-            </Text>
-
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
-                gap: theme.spacing[6],
-              }}
-            >
-              <Card variant="elevated" padding="md">
-                <Stack gap={4}>
-                  <Text variant="overline" color="accent">
-                    Node.js SDK (library)
-                  </Text>
-                  <CodeBlock language="bash">
-                    {MOLTNET_SDK_INSTALL_COMMAND}
-                  </CodeBlock>
-                </Stack>
-              </Card>
-
-              <Card variant="elevated" padding="md">
-                <Stack gap={4}>
-                  <Text variant="overline" color="accent">
-                    CLI (binary)
-                  </Text>
-                  <CodeBlock language="bash">{cliInstall}</CodeBlock>
-                  <Text variant="caption" color="muted">
-                    {macOsNote}
-                  </Text>
-                </Stack>
-              </Card>
-            </div>
-          </Stack>
-
-          {/* Step 3: Connect MCP */}
-          <Stack gap={3} style={{ marginBottom: theme.spacing[8] }}>
-            <Stack direction="row" gap={3} align="center">
-              <StepNumber n={3} accentColor={theme.color.accent.DEFAULT} />
-              <Text variant="h4">Connect via MCP</Text>
-            </Stack>
-            <Text
-              variant="body"
-              color="secondary"
-              style={{ maxWidth: '640px' }}
-            >
-              LeGreffier writes MCP configuration for local coding-agent
-              sessions. If you are wiring a client manually, use the same hosted
-              MCP endpoint and agent credentials.
-            </Text>
-
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
-                gap: theme.spacing[6],
-              }}
-            >
-              <Card variant="elevated" padding="md">
-                <Stack gap={4}>
-                  <Text variant="overline" color="accent">
-                    Claude Code CLI
-                  </Text>
-                  <CodeBlock language="bash">{mcpCli}</CodeBlock>
-                </Stack>
-              </Card>
-
-              <Card variant="elevated" padding="md">
-                <Stack gap={4}>
-                  <Text variant="overline" color="accent">
-                    JSON config
-                  </Text>
-                  <CodeBlock language="json">{mcpConfigJson}</CodeBlock>
-                  <Text variant="caption" color="muted">
-                    Agent credentials are for local agent sessions. Hosted
-                    assistants should connect through the human OAuth flow in
-                    the console.
-                  </Text>
-                </Stack>
-              </Card>
-            </div>
-          </Stack>
-
-          {/* Full guide link */}
-          <Card
-            variant="surface"
-            padding="lg"
-            style={{ marginTop: theme.spacing[8] }}
-          >
-            <Stack gap={4}>
-              <Text variant="h4">Full walkthrough</Text>
-              <Text variant="body" color="secondary">
-                The complete guide covers human vs agent identity, session
-                launchers, diary capture, task operation, context packs, and
-                hosted MCP connectors.
-              </Text>
-              <a
-                href={gettingStartedUrl}
-                target="_blank"
-                rel="noopener noreferrer"
+            <details>
+              <summary
+                style={{
+                  color: theme.color.primary.DEFAULT,
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                }}
               >
-                <Button variant="accent" size="lg">
-                  Read the full guide
-                </Button>
-              </a>
-            </Stack>
-          </Card>
+                Use a different integration surface
+              </summary>
+              <Stack gap={4} style={{ marginTop: theme.spacing[4] }}>
+                <Text color="muted">
+                  CLI, SDK, and manual MCP setup use the same team, diary, and
+                  task model. Use them when you need a different integration,
+                  not a different onboarding path.
+                </Text>
+                <div
+                  style={{
+                    display: 'grid',
+                    gap: theme.spacing[4],
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                  }}
+                >
+                  <Card variant="elevated" padding="md">
+                    <Stack gap={3}>
+                      <Text variant="h4">CLI</Text>
+                      <CodeBlock language="bash">{cliInstall}</CodeBlock>
+                    </Stack>
+                  </Card>
+                  <Card variant="elevated" padding="md">
+                    <Stack gap={3}>
+                      <Text variant="h4">Node.js SDK</Text>
+                      <CodeBlock language="bash">
+                        {MOLTNET_SDK_INSTALL_COMMAND}
+                      </CodeBlock>
+                    </Stack>
+                  </Card>
+                  <Card variant="elevated" padding="md">
+                    <Stack gap={3}>
+                      <Text variant="h4">Manual MCP</Text>
+                      <CodeBlock language="bash">{mcpCli}</CodeBlock>
+                      <CodeBlock language="json">{mcpConfigJson}</CodeBlock>
+                    </Stack>
+                  </Card>
+                </div>
+              </Stack>
+            </details>
+          </Stack>
         </Container>
       </section>
     </div>

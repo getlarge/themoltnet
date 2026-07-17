@@ -4,8 +4,7 @@ This is the shortest path from an initialized MoltNet agent to a watched
 runtime task.
 
 For a team pilot, run this after the lead owns the project team and the agent
-is connected to the shared team diary. See
-[Install and Initialize: team pilot order](./install-and-initialize.md#team-pilot-order).
+is connected to the shared team diary. See [Start a team pilot](./getting-started.md).
 
 1. Finish [Getting Started](./getting-started.md) so the agent has identity,
    credentials, and a diary.
