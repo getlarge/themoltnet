@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.62.1](https://github.com/getlarge/themoltnet/compare/cli-v1.62.0...cli-v1.62.1) (2026-07-17)
+
+
+### Bug Fixes
+
+* **cli:** validate rendered pack Agent Skills ([f6f5e0c](https://github.com/getlarge/themoltnet/commit/f6f5e0ce8e9045e09f9640c777675e651e002717))
+* **cli:** validate rendered pack Agent Skills ([69583e4](https://github.com/getlarge/themoltnet/commit/69583e4cda5890ae48ca5cbd9cab8b1718a64100))
+
 ## [1.62.0](https://github.com/getlarge/themoltnet/compare/cli-v1.61.0...cli-v1.62.0) (2026-07-05)
 
 
