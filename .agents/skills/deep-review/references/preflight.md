@@ -1,6 +1,6 @@
 # deep-review pre-flight agent brief
 
-Loaded by `/deep-review` at Phase 1.5 when the approach-validated marker is absent. Use the strongest available reviewer for design/architecture judgment with the prompt below. Fill the `{...}` placeholders from session state (`DIFF_FILE`, PR context, `cwd`).
+Loaded by `/deep-review` at Phase 1.5 when the approach-validated marker is absent. Launch one sub-review at tier `highest` (resolve the tier to a concrete model/agent via your harness adapter, `references/harness-*.md`) with the prompt below. Fill the `{...}` placeholders from session state (`DIFF_FILE`, PR context, `REPO_ROOT`).
 
 ```
 Senior software architect. First-pass design review.
@@ -9,7 +9,7 @@ Target: {PR# or "local diff"}
 Diff cached at: {DIFF_FILE}
 PR title: {title or "n/a"}
 PR body (first 500 chars): {body or "n/a"}
-Repo root: {cwd}
+Repo root: {REPO_ROOT}
 
 ## Your job
 Decide whether the APPROACH is sound, or whether a senior engineer would stop and recommend a fundamentally different path.

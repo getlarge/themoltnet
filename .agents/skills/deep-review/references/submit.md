@@ -2,30 +2,6 @@
 
 Loaded by `/deep-review` at Phase 5 when the user approves submitting to GitHub. Single atomic call; payload shape depends on `VERDICT`.
 
-## Authorship guard
-
-Before any GitHub write (`gh pr ...`, write-capable `gh api ...`, review
-submission, or marker-only review), check whether the session is activated as a
-MoltNet agent:
-
-```bash
-CFG="$GIT_CONFIG_GLOBAL"
-case "$CFG" in /*) ;; *) CFG="$(git rev-parse --show-toplevel)/$CFG" ;; esac
-case "$CFG" in
-  */.moltnet/*/gitconfig)
-    CREDS="$(dirname "$CFG")/moltnet.json"
-    [ -f "$CREDS" ] || { echo "FATAL: moltnet.json not found at $CREDS" >&2; exit 1; }
-    GH_TOKEN="$(moltnet github token --credentials "$CREDS")" || exit 1
-    export GH_TOKEN
-    ;;
-esac
-```
-
-If token minting fails, stop. Do not let `gh` fall back to a human login unless
-the user explicitly asked for visible human authorship on that specific GitHub
-write. This keeps agent-authored reviews and marker comments attributed to the
-activated agent.
-
 ## Single atomic call
 
 ```bash
