@@ -9,6 +9,24 @@ on:
       - '**.md'
   workflow_dispatch:
     inputs:
+      engine:
+        description: 'Release implementation to run. Keep legacy until Nx has completed its proving period.'
+        required: true
+        type: choice
+        default: legacy
+        options:
+          - legacy
+          - nx
+      dry-run:
+        description: 'Plan an Nx release without committing, tagging, creating releases, or publishing.'
+        required: false
+        type: boolean
+        default: true
+      first-release:
+        description: 'Allow Nx to bootstrap projects with no previous release tag.'
+        required: false
+        type: boolean
+        default: false
       republish:
         description: >
           Comma-separated packages to re-publish from existing draft releases.
@@ -20,6 +38,13 @@ permissions:
   contents: write
   pull-requests: write
   id-token: write
+
+# Both release engines create tags and publish immutable artifacts. Queue every
+# invocation of this workflow so a manual Nx release cannot overlap a push that
+# is still being handled by Release Please.
+concurrency:
+  group: release-main
+  cancel-in-progress: false
 
 # nx@22 unconditionally loads workspace-root .env at bin startup via plain
 # dotenv. Our .env is dotenvx-encrypted, so plain-dotenv pulls ciphertext
@@ -79,7 +104,9 @@ jobs:
   resolve-publish:
     name: Resolve packages to publish
     needs: release-please
-    if: always() && !cancelled()
+    if: >-
+      always() && !cancelled() &&
+      (github.event_name == 'push' || inputs.engine == 'legacy')
     runs-on: ubuntu-latest
     outputs:
       sdk: ${{ steps.resolve.outputs.sdk }}
@@ -226,6 +253,92 @@ jobs:
             tag=$(find_draft_tag "openclaw-skill")
             [ -n "$tag" ] && echo "skill-version=$(version_from_tag "$tag" "openclaw-skill")" >> "$GITHUB_OUTPUT"
           fi
+
+  nx-release:
+    name: Nx Release
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.engine == 'nx' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+      id-token: write
+      packages: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+      - uses: pnpm/action-setup@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: apps/moltnet-cli/go.mod
+          cache: true
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        if: ${{ !inputs.dry-run }}
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Guard production ref
+        if: ${{ !inputs.dry-run && github.ref_name != 'main' }}
+        run: |
+          echo 'Non-dry-run releases must run from main.'
+          exit 1
+
+      - name: Run Nx release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_CONFIG_ACCESS: public
+          NPM_CONFIG_PROVENANCE: 'true'
+          GOPROXY: https://proxy.golang.org,direct
+          GONOSUMDB: github.com/getlarge/themoltnet
+        run: |
+          set -euo pipefail
+
+          RELEASE_ARGS=(--verbose --skip-publish)
+          PUBLISH_ARGS=(--verbose)
+          if [ '${{ inputs.first-release || false }}' = 'true' ]; then
+            RELEASE_ARGS+=(--first-release)
+            PUBLISH_ARGS+=(--first-release)
+          fi
+
+          if [ '${{ inputs.dry-run }}' = 'true' ]; then
+            pnpm exec nx release --dry-run "${RELEASE_ARGS[@]}"
+            exit 0
+          fi
+
+          BEFORE_RELEASE="$(git rev-parse HEAD)"
+          pnpm exec nx release "${RELEASE_ARGS[@]}"
+          AFTER_RELEASE="$(git rev-parse HEAD)"
+
+          if [ "$AFTER_RELEASE" = "$BEFORE_RELEASE" ]; then
+            echo 'No release commit was created.'
+            exit 0
+          fi
+
+          git push origin HEAD:main --follow-tags --no-verify --atomic
+          pnpm exec nx release publish "${PUBLISH_ARGS[@]}"
 
   publish-sdk:
     name: Publish SDK to npm

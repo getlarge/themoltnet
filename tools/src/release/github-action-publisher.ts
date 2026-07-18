@@ -24,6 +24,7 @@ function normalizeBooleanOptionValues(args: string[]) {
     'dryRun',
     'firstRelease',
     'first-release',
+    'provenance',
     'verbose',
     'yes',
   ]);
@@ -57,6 +58,9 @@ function parsePublisherArgs(argv = process.argv.slice(2)): Options {
       },
       project: {
         type: 'string',
+      },
+      provenance: {
+        type: 'boolean',
       },
       registry: {
         type: 'string',

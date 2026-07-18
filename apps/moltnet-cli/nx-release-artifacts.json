@@ -3,9 +3,9 @@
     "nameTemplate": "{binary}_{version}_{goos}_{goarch}"
   },
   "artifactStore": {
-    "create": false,
+    "create": true,
     "draft": true,
-    "finalize": false,
+    "finalize": true,
     "provider": "github",
     "releaseTag": "cli-v{version}",
     "upload": true

@@ -20,6 +20,7 @@ function normalizeBooleanOptionValues(args: string[]) {
     'dryRun',
     'skip-upload',
     'skipUpload',
+    'provenance',
     'verbose',
     'yes',
   ]);
@@ -66,6 +67,9 @@ export function createCliRunOptions(argv = process.argv, env = process.env) {
       },
       otp: {
         type: 'string',
+      },
+      provenance: {
+        type: 'boolean',
       },
       userconfig: {
         type: 'string',
