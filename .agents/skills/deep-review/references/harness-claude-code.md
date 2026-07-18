@@ -12,11 +12,11 @@ The review target and flags arrive via `$ARGUMENTS` (expanded by Claude Code at 
 
 Resolve each specialist/sub-review tier to a model on the Agent call:
 
-| Tier | Model |
-|---|---|
-| `highest` | `opus` |
+| Tier       | Model    |
+| ---------- | -------- |
+| `highest`  | `opus`   |
 | `standard` | `sonnet` |
-| `fast` | `haiku` |
+| `fast`     | `haiku`  |
 
 The security-critical upgrade in `specialists.md` shifts a specialist up one tier (`fast`→`standard`,
 `standard`→`highest`); apply it to the model above, and **never run a security-critical specialist on `haiku`**.
@@ -26,14 +26,14 @@ The security-critical upgrade in `specialists.md` shifts a specialist up one tie
 Use the **Agent tool**. Unless a row below says otherwise, every sub-review uses
 `subagent_type: general-purpose` with the `model` from the tier table, passing the brief's prompt verbatim.
 
-| Sub-review | subagent_type | model |
-|---|---|---|
-| Pre-flight (`preflight.md`) | `general-purpose` | `opus` (tier `highest`) |
-| Reconcile (`reconcile.md`) | `general-purpose` | `sonnet` (tier `standard`) |
-| Correctness, Security, Design/API | `general-purpose` | `opus` |
-| Performance, Operability | `general-purpose` | `sonnet` (→ `opus` if security-critical) |
-| Tests, Readability | `general-purpose` | `haiku` (→ `sonnet` if security-critical) |
-| Coverage sweep | `general-purpose` | `sonnet` |
+| Sub-review                        | subagent_type     | model                                     |
+| --------------------------------- | ----------------- | ----------------------------------------- |
+| Pre-flight (`preflight.md`)       | `general-purpose` | `opus` (tier `highest`)                   |
+| Reconcile (`reconcile.md`)        | `general-purpose` | `sonnet` (tier `standard`)                |
+| Correctness, Security, Design/API | `general-purpose` | `opus`                                    |
+| Performance, Operability          | `general-purpose` | `sonnet` (→ `opus` if security-critical)  |
+| Tests, Readability                | `general-purpose` | `haiku` (→ `sonnet` if security-critical) |
+| Coverage sweep                    | `general-purpose` | `sonnet`                                  |
 
 ## DRY / repo-search specialist
 

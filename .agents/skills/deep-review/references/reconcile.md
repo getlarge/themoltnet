@@ -4,7 +4,7 @@ Loaded by `/deep-review` at Phase 1.5 (`MODE=pr` only), launched **before** the 
 at Phase 1.6 — on `VERDICT ∈ {PIVOT, ASK}` the result is simply discarded. Goal: before deriving new
 findings, check whether **already-raised, still-unresolved** review threads were actually fixed — so the
 review doesn't re-report old issues as new, and genuine carry-over doesn't get lost. **Detection** is
-**read-only** and runs **in an agent**; the writes under "Thread actions" run *only* from Phase 5 with explicit
+**read-only** and runs **in an agent**; the writes under "Thread actions" run _only_ from Phase 5 with explicit
 user approval, in the main agent. Either way, deep-review never **fixes the code** behind an open thread — that
 stays `/fix-review`'s job.
 
@@ -18,10 +18,11 @@ run sub-reviews concurrently). Fill the `{...}` placeholders from session state 
 
 `{TREE_STATE}` is load-bearing — the sub-review cannot detect this itself and will otherwise classify with false
 confidence against the wrong code:
+
 - Normally → `at the PR head — trust it.`
 - When `STALE_CONTEXT=1` (Phase 1 Step 0 fallback: `REPO_ROOT=cwd`, no tree at the PR head could be
   materialized) → `NOT at the PR head — it may be any revision, possibly dirty. You cannot verify whether a
-  thread was addressed. Mark every thread Ambiguous and say why.`
+thread was addressed. Mark every thread Ambiguous and say why.`
 
 Why `standard` and not `highest`: classification is bounded comparison (does the code at `path:line` satisfy
 the ask?), not open-ended bug-hunting. The security-critical upgrade in `specialists.md` does **not** apply

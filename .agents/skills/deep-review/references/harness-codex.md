@@ -4,8 +4,8 @@ Bindings for running deep-review in **Codex CLI**. The core (`SKILL.md`) and bri
 and **capabilities**; this file maps them to Codex mechanisms. Load this once, before Phase 1.5.
 
 Codex's subagent model differs from Claude Code's in one way that shapes everything below: **model and
-`model_reasoning_effort` are pinned per named agent, not chosen per delegated call.** A parent selects *which
-named agent* handles each part of the work (Codex subagents docs show exactly this: "Have `pr_explorer` map…,
+`model_reasoning_effort` are pinned per named agent, not chosen per delegated call.** A parent selects _which
+named agent_ handles each part of the work (Codex subagents docs show exactly this: "Have `pr_explorer` map…,
 `reviewer` find risks…"). So on Codex a **tier is a named agent**, not a per-call model argument. Codex ships
 built-in agents (`default`, `worker`, `explorer`) and supports project-scoped custom agents in
 `.codex/agents/*.toml` that pin `model` and `model_reasoning_effort`.
@@ -24,16 +24,16 @@ Two ways to bind tiers; pick whichever the project has set up.
 **A. Recommended — three project agents** (`.codex/agents/deep-review-{high,standard,fast}.toml`), each pinning
 model + effort. Delegate each specialist to the agent matching its tier:
 
-| Tier | Agent | Suggested pin |
-|---|---|---|
-| `highest` | `deep-review-high` | `model = "gpt-5.6"`, `model_reasoning_effort = "high"` |
-| `standard` | `deep-review-standard` | `model = "gpt-5.6"`, `model_reasoning_effort = "medium"` |
-| `fast` | `deep-review-fast` | `model = "gpt-5.6-terra"`, `model_reasoning_effort = "low"` |
+| Tier       | Agent                  | Suggested pin                                               |
+| ---------- | ---------------------- | ----------------------------------------------------------- |
+| `highest`  | `deep-review-high`     | `model = "gpt-5.6"`, `model_reasoning_effort = "high"`      |
+| `standard` | `deep-review-standard` | `model = "gpt-5.6"`, `model_reasoning_effort = "medium"`    |
+| `fast`     | `deep-review-fast`     | `model = "gpt-5.6-terra"`, `model_reasoning_effort = "low"` |
 
 **B. No setup — built-in agents + effort in the instruction.** If those project agents don't exist, map tiers to
 built-in agents and state the intended reasoning effort in the delegation instruction so the agent budgets
 accordingly: `highest`/`standard` → `worker` (ask for high / medium effort respectively), `fast` → `worker` at
-low effort or `default`. This is weaker than option A (effort isn't pinned) but preserves the tier *ordering*.
+low effort or `default`. This is weaker than option A (effort isn't pinned) but preserves the tier _ordering_.
 
 The security-critical upgrade in `specialists.md` shifts a specialist up one tier (`fast`→`standard`,
 `standard`→`highest`); apply it to the mapping above, and **never run a security-critical specialist at the

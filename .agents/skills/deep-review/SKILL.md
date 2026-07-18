@@ -3,12 +3,12 @@ name: deep-review
 description: In-depth code review with design pre-flight + parallel specialist agents (correctness, security, performance, DRY, tests, observability, design). Works on PRs, branches, paths, or local uncommitted changes. Use when asked to deeply review a PR, branch, path, or local/staged changes.
 allowed-tools: Bash(git:*) Bash(gh:*) Bash(mktemp:*) Bash(cat:*) Bash(date:*) Bash(echo:*) Bash(grep:*) Bash(awk:*) Bash(sort:*) Bash(rm:*) Read Grep Glob Edit Write
 metadata:
-  argument-hint: "[PR# | branch | path | local | staged | unstaged] [skip-design | revalidate]"
+  argument-hint: '[PR# | branch | path | local | staged | unstaged] [skip-design | revalidate]'
 ---
 
 World-class code review. Determine the review target (a PR number, branch, path, or the local/staged/unstaged working tree) and any flags from the invoking request. Senior reviewer, not a linter — findings must improve overall code health, not bikeshed. First question before any line-level finding: **is the approach itself sound?** (Google's Rule #1: a doomed CL shouldn't be nitpicked.)
 
-This skill is **harness-neutral**: the phases below describe *what* to do in review tiers and capabilities, never a specific model or agent API. Before Phase 1.5 (the first place a sub-review is launched), load the one execution adapter matching the harness you are running in and use its bindings for every tier→model choice, repo-search tool, and concurrency limit:
+This skill is **harness-neutral**: the phases below describe _what_ to do in review tiers and capabilities, never a specific model or agent API. Before Phase 1.5 (the first place a sub-review is launched), load the one execution adapter matching the harness you are running in and use its bindings for every tier→model choice, repo-search tool, and concurrency limit:
 
 - `references/harness-claude-code.md` — when running in Claude Code.
 - `references/harness-codex.md` — when running in Codex.
@@ -50,26 +50,27 @@ Before Phase 0, run these three commands and keep their output as the PR / tree 
 ## Phase 0 — Resolve target + flags
 
 Parse flags from the invoking request first (any position, separate tokens):
+
 - `skip-design` → force-skip the **pre-flight agent** only. The Phase 1.5 reconcile launch is unaffected.
 - `revalidate` → force-run the **pre-flight agent** even if marker present.
 
 Resolve the remaining token to `MODE` + diff command:
 
-| Token | MODE | Diff |
-|---|---|---|
-| Numeric | `pr` | `gh pr diff <N>` |
-| `local` / `wip` / `uncommitted` | `local` | `git diff HEAD` + untracked via `git ls-files --others --exclude-standard` |
-| `staged` | `staged` | `git diff --cached` |
-| `unstaged` | `unstaged` | `git diff` |
-| Branch name | `branch` | `git diff <upstream-or-main>...<branch>` |
-| Path | `path` | `git diff HEAD -- <path>` (dirty) or `git diff <base>...HEAD -- <path>` |
+| Token                           | MODE       | Diff                                                                       |
+| ------------------------------- | ---------- | -------------------------------------------------------------------------- |
+| Numeric                         | `pr`       | `gh pr diff <N>`                                                           |
+| `local` / `wip` / `uncommitted` | `local`    | `git diff HEAD` + untracked via `git ls-files --others --exclude-standard` |
+| `staged`                        | `staged`   | `git diff --cached`                                                        |
+| `unstaged`                      | `unstaged` | `git diff`                                                                 |
+| Branch name                     | `branch`   | `git diff <upstream-or-main>...<branch>`                                   |
+| Path                            | `path`     | `git diff HEAD -- <path>` (dirty) or `git diff <base>...HEAD -- <path>`    |
 
 **Empty arg** → auto-pick: dirty tree → `local`; else open PR → `pr`; else `branch` vs main. **State the mode picked** on the first output line.
 
 ## Phase 1 — Cache diff + classify files
 
 **Step 0 — Materialize a read-only review tree (`MODE ∈ {pr, branch}`).** The diff from `gh pr diff <N>` is
-server-side and always current, but specialists + pre-flight read *surrounding code* and the DRY specialist
+server-side and always current, but specialists + pre-flight read _surrounding code_ and the DRY specialist
 greps the repo **from the filesystem**. That tree must reflect the target revision — **without disturbing the
 user's checkout or WIP**. Set `REPO_ROOT` (default `cwd`) to wherever the target is materialized; every agent
 uses `REPO_ROOT` as its repo root.
@@ -99,38 +100,38 @@ Then, for every mode:
    `git diff --name-only <same range>` (matching the Phase 0 diff command). Never use a local range for `pr` mode.
 3. **Classify by path/extension. Do NOT read diff hunks into this context** — that defeats the cache.
 
-   | Specialist | Include file if path matches |
-   |---|---|
-   | Correctness | always (every changed file) |
-   | DRY | always (runs unconditionally when specialist is active; uses repo-wide search) |
-   | Security | auth, crypto, parse, http, network, deserialize, cookie, session, token, middleware, validator |
-   | Performance | db, query, model, repo, loop, cache, worker, job, handler, pipeline |
-   | Design/API | schema, migration, `*.proto`, openapi, `api/`, `public/`, `index.*`, config |
-   | Tests | `*test*`, `*spec*`, `__tests__/`, or any source file whose sibling test isn't in the diff |
-   | Operability | log, metric, trace, error, retry, timeout, feature-flag, migration, job |
-   | Readability | any non-generated source file with >80 changed lines (use shortstat hints; no hunk read) |
+   | Specialist  | Include file if path matches                                                                   |
+   | ----------- | ---------------------------------------------------------------------------------------------- |
+   | Correctness | always (every changed file)                                                                    |
+   | DRY         | always (runs unconditionally when specialist is active; uses repo-wide search)                 |
+   | Security    | auth, crypto, parse, http, network, deserialize, cookie, session, token, middleware, validator |
+   | Performance | db, query, model, repo, loop, cache, worker, job, handler, pipeline                            |
+   | Design/API  | schema, migration, `*.proto`, openapi, `api/`, `public/`, `index.*`, config                    |
+   | Tests       | `*test*`, `*spec*`, `__tests__/`, or any source file whose sibling test isn't in the diff      |
+   | Operability | log, metric, trace, error, retry, timeout, feature-flag, migration, job                        |
+   | Readability | any non-generated source file with >80 changed lines (use shortstat hints; no hunk read)       |
 
 3b. **Then route by content.** Paths lie: `user.ts` holding raw SQL never matches Performance's path lane, and
-   a generic `utils.ts` would otherwise reach no lane at all. Scan the **cached diff** for changed lines
-   (`+`/`-`) matching each lane and **union the hits into that lane's file list**. This prints *paths only* — no
-   hunks enter this context, so the cache discipline above holds.
+a generic `utils.ts` would otherwise reach no lane at all. Scan the **cached diff** for changed lines
+(`+`/`-`) matching each lane and **union the hits into that lane's file list**. This prints _paths only_ — no
+hunks enter this context, so the cache discipline above holds.
 
-   ```bash
-   lane() {  # $1 = lowercase ERE → paths whose changed lines match
-     awk -v re="$1" '
-       /^\+\+\+ /{ p=$2; sub(/^b\//,"",p); next }
-       /^[+-]/ && !/^\+\+\+/ && !/^---/ { if (p!="" && p!="/dev/null" && tolower($0) ~ re) print p }
-     ' "$DIFF_FILE" | sort -u | grep -vEi '\.(md|txt|rst|lock|sum|snap)$|(^|/)(docs|fixtures|testdata|vendor)/'
-   }
-   lane 'password|secret|token|api_?key|crypt|cipher|jwt|oauth|session|cookie|sanitiz|eval\(|exec\(|deserializ|innerhtml'   # → Security
-   lane 'select |insert into|delete from|update .* set|\.query\(|\.aggregate\(|\.findmany\(|lru_cache|cache\.'              # → Performance
-   lane 'log\.|logger|console\.|metric|trace|span\(|retry|timeout|panic|recover\('                                          # → Operability
-   ```
+```bash
+lane() {  # $1 = lowercase ERE → paths whose changed lines match
+  awk -v re="$1" '
+    /^\+\+\+ /{ p=$2; sub(/^b\//,"",p); next }
+    /^[+-]/ && !/^\+\+\+/ && !/^---/ { if (p!="" && p!="/dev/null" && tolower($0) ~ re) print p }
+  ' "$DIFF_FILE" | sort -u | grep -vEi '\.(md|txt|rst|lock|sum|snap)$|(^|/)(docs|fixtures|testdata|vendor)/'
+}
+lane 'password|secret|token|api_?key|crypt|cipher|jwt|oauth|session|cookie|sanitiz|eval\(|exec\(|deserializ|innerhtml'   # → Security
+lane 'select |insert into|delete from|update .* set|\.query\(|\.aggregate\(|\.findmany\(|lru_cache|cache\.'              # → Performance
+lane 'log\.|logger|console\.|metric|trace|span\(|retry|timeout|panic|recover\('                                          # → Operability
+```
 
-   No match → `lane` exits non-zero with empty output; that is normal, not an error. False positives are cheap
-   (the specialist reads the file and says `Clean.`); false negatives are the bug this closes — prefer
-   over-inclusion. Deleted files resolve to `/dev/null` and are correctly dropped. Paths containing spaces are
-   not routed by this scan — their path lane still applies.
+No match → `lane` exits non-zero with empty output; that is normal, not an error. False positives are cheap
+(the specialist reads the file and says `Clean.`); false negatives are the bug this closes — prefer
+over-inclusion. Deleted files resolve to `/dev/null` and are correctly dropped. Paths containing spaces are
+not routed by this scan — their path lane still applies.
 
 4. Build `FILES_BY_SPECIALIST` (path lanes ∪ content lanes); set `SPECIALISTS` = keys with non-empty lists.
 5. Report scope on one line: `Reviewing {MODE}: N files / +X / −Y LOC / {languages}. Specialists: {SPECIALISTS}. Skipped: {list, one-word reason each}`.
@@ -147,6 +148,7 @@ only one does. Never wait for the verdict before launching reconcile.
 ### Iteration check (skip if already validated)
 
 Skip if any of:
+
 - `skip-design` flag was set.
 - `MODE=pr` AND a prior review by the current user contains the marker:
   ```bash
@@ -215,7 +217,7 @@ payload is exactly what must stay out of here.
 `Not addressed` threads become **carry-over**: they surface at the top of the Phase 4 report and are used to
 **dedupe** specialist findings in Phase 3 aggregation (don't re-report as "new").
 
-Phase 1.6 only **detects** — no writes here. Based on `PRIOR_THREADS`, Phase 5 then *offers* (approval-gated)
+Phase 1.6 only **detects** — no writes here. Based on `PRIOR_THREADS`, Phase 5 then _offers_ (approval-gated)
 to resolve verified-`Addressed` threads and reply on `Not addressed` ones. deep-review still never **fixes the
 code** behind an open thread — that stays `/fix-review`'s job.
 
@@ -225,7 +227,7 @@ code** behind an open thread — that stays `/fix-review`'s job.
 - **Otherwise** → Phase 3. **Always fan out — there is no size below which the specialists are skipped.** A small
   diff spawns fewer specialists (only lanes with files), not none.
 
-Never review the diff yourself as a substitute for Phase 3. The fan-out is free for *this* context — specialists
+Never review the diff yourself as a substitute for Phase 3. The fan-out is free for _this_ context — specialists
 run as isolated sub-reviews — so its only cost is tokens and one round-trip, which never outweighs a missed
 finding. DRY in particular cannot be done here: it is a **repo-wide** search for existing helpers using the
 harness's repo-search tool (`specialists.md` + your adapter), and an inline pass silently degrades it to
@@ -273,21 +275,21 @@ Not run: <specialist — why (no files in its lane)>.
 
 ### Severity (defined once — every finding MUST be labeled)
 
-| Label | Meaning |
-|---|---|
-| **Blocker** | Bug, security, data loss, broken contract. Must fix. |
-| **Major** | Design flaw, missing tests on critical path, obs gap, perf regression on hot path. Should fix. |
-| **Minor** | Readability, small refactor, non-critical test gap. Optional. |
-| **Nit** | Style preference, naming. Explicitly optional — author may ignore. |
-| **FYI** | Context, follow-up, learning. No action expected. |
+| Label       | Meaning                                                                                        |
+| ----------- | ---------------------------------------------------------------------------------------------- |
+| **Blocker** | Bug, security, data loss, broken contract. Must fix.                                           |
+| **Major**   | Design flaw, missing tests on critical path, obs gap, perf regression on hot path. Should fix. |
+| **Minor**   | Readability, small refactor, non-critical test gap. Optional.                                  |
+| **Nit**     | Style preference, naming. Explicitly optional — author may ignore.                             |
+| **FYI**     | Context, follow-up, learning. No action expected.                                              |
 
 Specialists (`references/specialists.md`) and Phase 4 use this same ladder.
 
 ### Rules (apply everywhere)
 
-- **Never claim coverage you don't have.** The Coverage section reports what *ran*, not what was *tagged*. A specialist that never spawned is `Not run`, never `Clean`. Silent degradation is worse than an admitted gap — the reader trusts this section to know what was actually checked.
+- **Never claim coverage you don't have.** The Coverage section reports what _ran_, not what was _tagged_. A specialist that never spawned is `Not run`, never `Clean`. Silent degradation is worse than an admitted gap — the reader trusts this section to know what was actually checked.
 - **Google's standard:** approve if the change improves overall code health, even if imperfect. Never block on preference. Reject perfectionism. Lint territory (whitespace, import order, formatter output) is invisible.
-- **Framing:** describe the *problem*, not the prescribed solution. The author figures out the fix.
+- **Framing:** describe the _problem_, not the prescribed solution. The author figures out the fix.
 
 ## Phase 5 — Offer next step
 
@@ -295,8 +297,8 @@ Specialists (`references/specialists.md`) and Phase 4 use this same ladder.
 
 Before the findings offer below, close the loop on reconciled threads (see `references/reconcile.md`, "Thread actions"). Both are **approval-gated** — offer, stop, wait; never write silently:
 
-- **Verified-`Addressed`** → *"N threads look genuinely fixed but are still open. Resolve them? (yes / no / pick which)"*. On approval, resolve only the confirmed subset.
-- **`Not addressed`** → *"Post a short 'still open as of this review' reply on M unfixed threads? (yes / no / pick which)"*. Reply only where it adds signal; never spam "done"/"fixed". Default to no reply if the carry-over section already says it clearly.
+- **Verified-`Addressed`** → _"N threads look genuinely fixed but are still open. Resolve them? (yes / no / pick which)"_. On approval, resolve only the confirmed subset.
+- **`Not addressed`** → _"Post a short 'still open as of this review' reply on M unfixed threads? (yes / no / pick which)"_. Reply only where it adds signal; never spam "done"/"fixed". Default to no reply if the carry-over section already says it clearly.
 
 Never resolve `Ambiguous` threads, threads you didn't verify, or threads the user excluded.
 
@@ -311,39 +313,40 @@ Branch by **(authorship × VERDICT × PIVOT_SIZE)**.
 
 ### Own-work
 
-**PROCEED** → ask: *"These are your changes — want me to fix the findings directly? (yes / no / pick which / submit as review anyway)"*. **Stop and wait.**
+**PROCEED** → ask: _"These are your changes — want me to fix the findings directly? (yes / no / pick which / submit as review anyway)"_. **Stop and wait.**
 
 On **yes / pick which**:
+
 1. If "pick which", show a numbered list of findings; user chooses.
-2. Build a fix plan (1 line per finding, grouped by file). Ask *"Go ahead?"* — wait.
+2. Build a fix plan (1 line per finding, grouped by file). Ask _"Go ahead?"_ — wait.
 3. On approval:
    - Apply fixes **strictly scoped** to selected findings. No drive-by refactors.
    - If a finding is ambiguous or you disagree on second look, surface it — don't guess.
    - Run lint-fix + relevant tests. Surface failures, never paper over.
-   - Ask before committing: *"Commit as `fix: address self-review findings on <area>`? (yes / no / different message)"*.
+   - Ask before committing: _"Commit as `fix: address self-review findings on <area>`? (yes / no / different message)"_.
    - `MODE=pr` → push after commit (ask first if non-FF). Other modes → stop at commit.
 4. Final report: files changed, findings addressed, findings skipped (reason), commit SHA.
 
 On **submit as review anyway** → fall through to someone-else flow.
 On **no** → stop.
 
-**PIVOT + `PIVOT_SIZE=small` (<100 LOC rework)** → ask: *"Want me to apply the alternative approach directly? (yes / no / submit as review anyway)"*. On yes: same plan-first discipline as the PROCEED fix flow, treating the alternative approach as the "finding."
+**PIVOT + `PIVOT_SIZE=small` (<100 LOC rework)** → ask: _"Want me to apply the alternative approach directly? (yes / no / submit as review anyway)"_. On yes: same plan-first discipline as the PROCEED fix flow, treating the alternative approach as the "finding."
 
-**PIVOT + `PIVOT_SIZE=medium` (100–400 LOC)** → ask: *"The pivot is sizeable. Want me to (a) apply it now with a plan, (b) submit the design review, or (c) do nothing?"*. (a) → plan-first, expect multiple commits. (b) → someone-else flow.
+**PIVOT + `PIVOT_SIZE=medium` (100–400 LOC)** → ask: _"The pivot is sizeable. Want me to (a) apply it now with a plan, (b) submit the design review, or (c) do nothing?"_. (a) → plan-first, expect multiple commits. (b) → someone-else flow.
 
-**PIVOT + `PIVOT_SIZE=large` (>400 LOC or architecture-level)** → **never auto-rework**. Ask: *"This pivot is large enough that auto-refactoring would be risky. Want me to (a) submit this as a design review for the record, or (b) leave it for offline discussion?"*.
+**PIVOT + `PIVOT_SIZE=large` (>400 LOC or architecture-level)** → **never auto-rework**. Ask: _"This pivot is large enough that auto-refactoring would be risky. Want me to (a) submit this as a design review for the record, or (b) leave it for offline discussion?"_.
 
 ### Someone-else's PR
 
-Ask: *"Submit this as a GitHub review with line-anchored threads? (yes / no / pick which findings)"*. **Stop and wait.** On yes, read `references/submit.md` for the submission protocol, then submit.
+Ask: _"Submit this as a GitHub review with line-anchored threads? (yes / no / pick which findings)"_. **Stop and wait.** On yes, read `references/submit.md` for the submission protocol, then submit.
 
 ### Marker injection (on PROCEED only — never on PIVOT or ASK)
 
-| Situation | Mechanism |
-|---|---|
-| `MODE=pr`, Branch-B submission | Marker at end of review body (see `references/submit.md`) |
-| `MODE=pr`, Branch-A fix flow (no line review submitted) | Post marker-only review (see `references/submit.md`, "Marker-only review" section) |
-| `MODE ∈ {local, branch, staged, unstaged}` | `REF=$(git rev-parse --abbrev-ref HEAD); [ "$REF" = "HEAD" ] && REF=$(git rev-parse --short HEAD); REF_SAN=$(echo "$REF" \| tr '/' '-'); git config --local "deep-review.approach-validated.$REF_SAN" "$(date -Iseconds)"` |
+| Situation                                               | Mechanism                                                                                                                                                                                                                  |
+| ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MODE=pr`, Branch-B submission                          | Marker at end of review body (see `references/submit.md`)                                                                                                                                                                  |
+| `MODE=pr`, Branch-A fix flow (no line review submitted) | Post marker-only review (see `references/submit.md`, "Marker-only review" section)                                                                                                                                         |
+| `MODE ∈ {local, branch, staged, unstaged}`              | `REF=$(git rev-parse --abbrev-ref HEAD); [ "$REF" = "HEAD" ] && REF=$(git rev-parse --short HEAD); REF_SAN=$(echo "$REF" \| tr '/' '-'); git config --local "deep-review.approach-validated.$REF_SAN" "$(date -Iseconds)"` |
 
 ---
 
