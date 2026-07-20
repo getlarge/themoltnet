@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.28.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.27.1...rest-api-v0.28.0) (2026-07-20)
+
+
+### Features
+
+* **maintenance:** refcount-aware artifact cleanup and orphan-object sweep ([959a820](https://github.com/getlarge/themoltnet/commit/959a8202d3676154cec4bce966b0801eb9796ed3))
+* **task-artifacts:** rowless staging upload and task-scoped download ([486c1ad](https://github.com/getlarge/themoltnet/commit/486c1ad5d15888e44a6e70db400e9d1c8be82e4d))
+* **task-service:** bind staged input artifacts at task creation ([562ddd6](https://github.com/getlarge/themoltnet/commit/562ddd64be36193fe34a7465182529731078d9e7))
+* **tasks:** strict reference validation; input artifact refs drop outputCid ([5b26e7e](https://github.com/getlarge/themoltnet/commit/5b26e7e2f7a6d30836f2052559726c6cb12e94a6))
+* **tasks:** task input artifacts — staged upload before task creation ([c5c069f](https://github.com/getlarge/themoltnet/commit/c5c069f2e9b901129a36000d229bd01ca75cc4a5))
+
+
+### Bug Fixes
+
+* **maintenance:** orphan-sweep TOCTOU guard, audit trail, and delete ceiling ([a1ebdab](https://github.com/getlarge/themoltnet/commit/a1ebdab0081a1943e7e3d2b8f2800f5c6bb6a985))
+
 ## [0.27.1](https://github.com/getlarge/themoltnet/compare/rest-api-v0.27.0...rest-api-v0.27.1) (2026-07-08)
 
 
