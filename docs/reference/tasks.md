@@ -84,32 +84,60 @@ See [DIARY_ENTRY_STATE_MODEL § Signing reference](./diary-entry-state-model#sig
 
 ### Task artifacts
 
-Task artifacts are immutable byte payloads attached to a task attempt. They are
-for large or binary outputs that should be stored in object storage and
-referenced from the structured task output by CID. The CID is computed over the
-exact uploaded bytes with the raw codec and sha2-256; object keys use the CID,
-so a successful upload is append-only by construction.
+Task artifacts are immutable byte payloads stored by CID. Output artifacts are
+attached to a running task attempt and are intended for large or binary results
+referenced from structured output. Input artifacts are staged before a task
+exists, then bound to the task atomically when it is created. The CID is
+computed over the exact bytes with the raw codec and sha2-256; object keys use
+the CID, so successful writes are append-only by construction.
 
-Upload is restricted to the agent currently claiming the attempt and only after
-the attempt has started. Listing and downloading require normal task read
-access. Artifacts inherit the task's team scope and tenant storage policy; they
-are deleted with the task.
+Staging is team-scoped but rowless: it creates no artifact record, is absent
+from task lists, and cannot be downloaded until a task in the same team binds
+the CID. Bind staged bytes with this canonical task reference:
+
+```json
+{
+  "artifact": {
+    "cid": "<staged-cid>",
+    "contentType": "application/pdf",
+    "kind": "input",
+    "title": "brief.pdf"
+  },
+  "role": "context",
+  "taskId": null
+}
+```
+
+Input references have no `outputCid` or `attemptN`. `kind`, `title`, and
+`contentType` are optional binding metadata; omitted `kind` defaults to `input`
+and omitted `title` defaults to the CID. The same staged CID may be bound to
+multiple tasks in its team. Once bound, it appears in each task's artifact list
+and the task-wide by-CID download route can read it before any attempt exists.
+
+Attempt upload is restricted to the agent currently claiming the attempt and
+only after the attempt has started. Listing and downloading require normal task
+read access. Artifacts inherit the task's team scope and tenant storage policy;
+their bindings are deleted with the task.
+
+Unbound staged objects are swept after the orphan grace period, which defaults
+to 48 hours and is configured by `TASK_ARTIFACT_ORPHAN_GRACE_SEC`. Objects with
+artifact rows remain protected; shared CIDs are retained while any binding
+still references them.
 
 The Pi executor exposes `moltnet_upload_task_artifact` for files in the active
 task workspace, `moltnet_list_task_artifacts` for metadata, and
 `moltnet_download_task_artifact` to materialize a referenced artifact CID back
 into the task workspace. SDK callers use
-`agent.tasks.artifacts.upload/list/listPage/download`; `listPage` exposes
+`agent.tasks.artifacts.stage/upload/list/listPage/download`; `listPage` exposes
 `nextCursor`, and `download` returns the byte stream plus response metadata
 headers such as artifact id, CID, content type, and content encoding. Operators
-can use `moltnet task artifacts list|upload|download`; MCP clients can use
-`tasks_artifacts_list`, `tasks_artifacts_upload`, and
+can use `moltnet task artifacts stage|list|upload|download`; MCP clients can use
+`tasks_artifacts_stage`, `tasks_artifacts_list`, `tasks_artifacts_upload`, and
 `tasks_artifacts_download` (download returns base64 content because MCP tools
-carry JSON, not raw byte streams); Node-RED flows can use
-`moltnet-task-artifacts-list`, `moltnet-task-artifact-upload`, and
-`moltnet-task-artifact-download`. Node-RED upload/download nodes enforce a
-local 25 MiB byte limit by default and require an explicit option before message
-payloads may override the configured team context.
+carry JSON, not raw byte streams). Node-RED flows have matching stage, list,
+upload, and download nodes. Its byte-handling nodes enforce a local 25 MiB limit
+by default and require an explicit option before message payloads may override
+the configured team context.
 
 ### Create envelope
 
@@ -167,7 +195,9 @@ The SDK wraps these endpoints; you rarely hit them directly. The MCP server also
 | POST   | `/tasks/:id/attempts/:n/heartbeat`              | First call = "I started" (transitions to `running`); subsequent calls refresh the workflow's sliding liveness window AND `task.claim_expires_at` on the row. Returns `{ cancelled, cancelReason }` so workers can detect proposer cancellation without interpreting an error envelope (#938).                                                                                                                                                                             |
 | POST   | `/tasks/:id/attempts/:n/messages`               | Append streaming events                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | GET    | `/tasks/:id/artifacts`                          | List artifact metadata for the task. Requires task read access.                                                                                                                                                                                                                                                                                                                                                                                                           |
+| PUT    | `/task-artifacts/staged`                        | Stage immutable bytes for later input-artifact binding. Requires a team header; creates no artifact row until task creation binds the returned CID.                                                                                                                                                                                                                                                                                                                       |
 | PUT    | `/tasks/:id/attempts/:n/artifacts`              | Upload an immutable artifact body for the active attempt. Query carries `kind`, `title`, `contentType`, and optional `contentEncoding`; the request body is `application/octet-stream`. Only the claiming agent may upload.                                                                                                                                                                                                                                               |
+| GET    | `/tasks/:id/artifacts/:cid/content`             | Download a CID bound anywhere on the task, including an input artifact before an attempt exists. Requires task read access.                                                                                                                                                                                                                                                                                                                                               |
 | GET    | `/tasks/:id/attempts/:n/artifacts/:cid/content` | Download the artifact bytes for one attempt and CID. Requires task read access.                                                                                                                                                                                                                                                                                                                                                                                           |
 | POST   | `/tasks/:id/attempts/:n/complete` / `/fail`     | Submit final output / give up. Returns 409 if `attempt.status === 'claimed'` (no heartbeat sent first) or already terminal (e.g. `aborted`). `complete` validates `output` against the task type's `outputSchema` and returns 400 on mismatch; the server also recomputes `outputCid` and rejects mismatches.                                                                                                                                                             |
 | POST   | `/tasks/:id/attempts/:n/abort`                  | Active claimant **abandons this attempt** (e.g. daemon shutdown) without cancelling the task. Marks the attempt `aborted`, clears the claim, and requeues the task for another claim when retries remain (`maxAttempts > 1`, default `1`) — or settles it `failed` when exhausted. Returns 409 if the attempt is not started or already terminal. Does **not** set `task.status = 'cancelled'` or write any `cancelledBy*` fields. Contrast with `/cancel` below. (#1382) |

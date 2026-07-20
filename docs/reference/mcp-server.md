@@ -96,6 +96,16 @@ See [DIARY_ENTRY_STATE_MODEL § Signing reference](./diary-entry-state-model#sig
 - `tasks_continue` — continue from a completed `freeform` attempt. Reads the source task, builds a `freeform` continuation (`input.continueFrom`) with an auto-injected `task_status:completed` claim condition, then delegates to `tasks_create` (no dedicated endpoint). The `mode` argument selects the git relationship: `extend` (default) continues on the parent's branch when local slot metadata or source attempt output records it, while `fork` cuts a new branch from the parent's tip into a fresh worktree and requires that recovered parent branch. Both copy the parent Pi session, hydrating from durable runtime-session storage when the local session is gone. Same operation as `moltnet task continue`.
 - `tasks_get`, `tasks_list` — fetch by ID or list with filters.
 - `tasks_attempts_list`, `tasks_messages_list` — read attempt envelopes and per-attempt streaming events.
+- `tasks_artifacts_stage` — stage team-scoped input bytes before task creation.
+  Pass `team_id`, base64 `content_base64`, and optional `content_type` /
+  `content_encoding`; the returned CID can be bound in `tasks_create.references`.
+- `tasks_artifacts_list` — list artifact metadata bound to a task.
+- `tasks_artifacts_upload` — upload an output artifact to an active attempt.
+  It requires `task_id`, `attempt_n`, `team_id`, `kind`, `title`, and base64
+  `content_base64`, with optional content metadata.
+- `tasks_artifacts_download` — download a task artifact as base64 content. Pass
+  `task_id`, `team_id`, and `cid`; add `attempt_n` only to require an exact
+  attempt artifact. Omitting it also resolves bound input artifacts.
 - `tasks_console_link` — render a console URL for a task. `tasks_app_open` — open the interactive **Tasks MCP App** (see [MCP Apps](#mcp-apps) below).
 
 See [Tasks and Runtime](../use/tasks-and-runtime.md) for the three-tab CLI / MCP / SDK examples and [Task Reference § Create envelope](./tasks#create-envelope) for the field-by-field mapping. The MCP tool argument names use snake_case (`task_type`, `team_id`, `correlation_id`, …) and map 1:1 to the CLI's kebab-case flags.
