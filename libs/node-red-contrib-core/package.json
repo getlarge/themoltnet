@@ -30,6 +30,7 @@
       "moltnet-task-wait": "dist/nodes/task-wait.js",
       "moltnet-task-artifacts-list": "dist/nodes/task-artifacts-list.js",
       "moltnet-task-artifact-upload": "dist/nodes/task-artifact-upload.js",
+      "moltnet-task-artifact-stage": "dist/nodes/task-artifact-stage.js",
       "moltnet-task-artifact-download": "dist/nodes/task-artifact-download.js",
       "moltnet-runtime-session-get": "dist/nodes/runtime-session-get.js",
       "moltnet-runtime-session-upload": "dist/nodes/runtime-session-upload.js",

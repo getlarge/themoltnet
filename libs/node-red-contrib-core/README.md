@@ -15,10 +15,12 @@ Empirically validated against **Node-RED 5.0.0** (Node 22):
   package carries no private-package runtime dependency. `@themoltnet/sdk` is
   therefore a **devDependency** (bundled, not installed at runtime).
 - The `.html` editor files are copied to `dist/nodes/` as assets (not compiled).
-- Two **config nodes** (`moltnet-agent`, `moltnet-runtime-profile`) and eleven
-  **action nodes** (`moltnet-tasks-create`, `moltnet-task-get`,
-  `moltnet-task-wait`, `moltnet-task-artifacts-list`,
-  `moltnet-task-artifact-upload`, `moltnet-task-artifact-download`,
+- Two **config nodes** (`moltnet-agent`, `moltnet-runtime-profile`) and the
+  MoltNet **action nodes** (`moltnet-tasks-create`, `moltnet-task-get`,
+  `moltnet-task-cancel`, `moltnet-task-wait`, `moltnet-task-artifacts-list`,
+  `moltnet-task-artifact-stage`, `moltnet-task-artifact-upload`,
+  `moltnet-task-artifact-download`, `moltnet-runtime-session-get`,
+  `moltnet-runtime-session-upload`, `moltnet-runtime-session-download`,
   `moltnet-workflow-status`, `moltnet-task-builder`, `moltnet-task-reader`,
   `moltnet-tasks-list`, `moltnet-entries-search`)
   register and appear in the palette.
@@ -80,10 +82,17 @@ attempts, error, task }`. `state` is the accepted attempt's output artifact
   `content`, `body`, or base64 `contentBase64`. Team context is the configured
   node/agent by default; message team overrides require an explicit checkbox.
   Emits artifact metadata on `msg.payload` and `msg.artifact`.
+- **`moltnet-task-artifact-stage`** (palette: _task artifact: stage_) — stages
+  bytes for later binding as a task input artifact. It accepts the same payload
+  shapes and team controls as upload, but needs no task or attempt. The returned
+  metadata is emitted on `msg.payload` and `msg.artifact`; pass it to a task
+  builder's **References from** field.
 - **`moltnet-task-artifact-download`** (palette: _task artifact: download_) —
-  downloads an artifact by task id, attempt number, and CID. Emits the artifact
-  bytes as a Buffer on `msg.payload` and metadata on `msg.artifact`. Upload and
-  download nodes enforce a local 25 MiB byte limit by default.
+  downloads an artifact by task id and CID. Set an attempt number for an exact
+  attempt artifact, or omit it to resolve the CID across the task, including a
+  bound input artifact. Emits the bytes as a Buffer on `msg.payload` and
+  metadata on `msg.artifact`. Stage, upload, and download nodes enforce a local
+  25 MiB byte limit by default.
 - **`moltnet-workflow-status`** (palette: _workflow: status_) — reads the tasks of
   one workflow run (by `correlationId`) and emits a table-shaped `msg.payload`
   (array of `{ taskId, type, title, status, queuedAt, completedAt }`) plus
@@ -92,9 +101,10 @@ attempts, error, task }`. `state` is the accepted attempt's output artifact
   `tasks.create` body from the SDK fluent builder (`buildFreeform`). Pure offline
   transform: reads `teamId`/`diaryId` from the referenced `agent` (with optional
   typedInput overrides), maps **context rows** (slug ← msg/flow/global/str/json),
-  binds a prior task's output via **References from** (a `msg`-path to an
-  `outputRef` from `task: read`), and toggles the **submit-output** / schema
-  gates. Emits the flat body on `msg.payload` for a downstream `tasks: create`
+  binds a prior task's output or staged input artifact via **References from**
+  (a `msg`-path to an `outputRef` from `task: read` or metadata from
+  `task artifact: stage`), and toggles the **submit-output** / schema gates.
+  Emits the flat body on `msg.payload` for a downstream `tasks: create`
   (the SDK's `{ body, teamId }` envelope is flattened to `{ ...body, teamId }`).
   Validation errors surface on the node (red ring).
 - **`moltnet-task-reader`** (palette: _task: read_) — parses a completed snapshot

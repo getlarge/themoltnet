@@ -19,6 +19,7 @@ const nodes = [
   'task-wait',
   'task-artifacts-list',
   'task-artifact-upload',
+  'task-artifact-stage',
   'task-artifact-download',
   'runtime-session-get',
   'runtime-session-upload',

@@ -186,6 +186,38 @@ describe('moltnet-task-builder references + gates + execution', () => {
     ]);
   });
 
+  it('binds staged artifact metadata as an input reference', async () => {
+    const { red, node } = setup({
+      taskType: 'freeform',
+      brief: 'b',
+      referencesFrom: 'staged',
+      referencesRole: 'context',
+    });
+    const { outputs } = await red.input(node, {
+      payload: {},
+      staged: {
+        cid: 'bafy-input',
+        kind: 'input',
+        title: 'brief.txt',
+        contentType: 'text/plain',
+      },
+    } as Record<string, unknown>);
+    const payload = outputs[0].payload as Record<string, unknown>;
+
+    expect(payload.references).toEqual([
+      {
+        taskId: null,
+        role: 'context',
+        artifact: {
+          cid: 'bafy-input',
+          kind: 'input',
+          title: 'brief.txt',
+          contentType: 'text/plain',
+        },
+      },
+    ]);
+  });
+
   it('adds submit-output gate and execution workspace', async () => {
     const { red, node } = setup({
       taskType: 'freeform',

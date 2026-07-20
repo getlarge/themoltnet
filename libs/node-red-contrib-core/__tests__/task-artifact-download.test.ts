@@ -111,6 +111,54 @@ describe('moltnet-task-artifact-download', () => {
     ]);
   });
 
+  it('downloads by task and CID when attemptN is omitted', async () => {
+    const seen: Array<Record<string, unknown>> = [];
+    const agent = {
+      tasks: {
+        artifacts: {
+          download: (
+            ref: Record<string, unknown>,
+            options: Record<string, unknown>,
+          ) => {
+            seen.push({ ref, options });
+            return Promise.resolve({
+              artifactId: 'artifact-input',
+              stream: readableChunks(['input']),
+            });
+          },
+        },
+      },
+    };
+    const red = new FakeRed();
+    red.load(agentStub(agent));
+    red.load(taskArtifactDownload);
+    const a = red.create('moltnet-agent', 'a1');
+    (a as Record<string, unknown>).teamId = 'team-1';
+    const node = red.create('moltnet-task-artifact-download', 'n1', {
+      agent: 'a1',
+      taskId: 'task-1',
+    });
+
+    const { outputs } = await red.input(node, {
+      payload: { cid: 'bafy-input' },
+    });
+
+    expect(seen).toEqual([
+      {
+        ref: { taskId: 'task-1', cid: 'bafy-input' },
+        options: { teamId: 'team-1' },
+      },
+    ]);
+    expect(outputs[0].artifact).toEqual({
+      taskId: 'task-1',
+      teamId: 'team-1',
+      cid: 'bafy-input',
+      artifactId: 'artifact-input',
+      contentType: undefined,
+      contentEncoding: undefined,
+    });
+  });
+
   it('rejects downloads over the local byte limit', async () => {
     const red = new FakeRed();
     red.load(

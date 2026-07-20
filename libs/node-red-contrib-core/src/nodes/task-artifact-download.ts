@@ -12,7 +12,8 @@ import {
   collectArtifactBody,
   payloadRecord,
   recordField,
-  requireAttemptContext,
+  requireArtifactContext,
+  resolveAttemptN,
   resolveMaxBytes,
 } from './task-artifact-utils.js';
 
@@ -44,22 +45,24 @@ const init: NodeInitializer = (RED): void => {
               'task-artifact-download: no moltnet-agent configured',
             );
           }
-          const { taskId, teamId, attemptN } = requireAttemptContext(
+          const { taskId, teamId } = requireArtifactContext(
             'task-artifact-download',
             msg,
             def.taskId,
             def.teamId,
-            def.attemptN,
             agentNode,
             bool(def.allowMsgTeamOverride) ?? false,
           );
+          const attemptN = resolveAttemptN(msg, def.attemptN);
           const cid = resolveCid(msg, def.cid);
           if (!cid) throw new Error('task-artifact-download: cid is required');
 
           this.status({ fill: 'blue', shape: 'dot', text: 'downloading…' });
           const result = await withAgent(agentNode, (agent) =>
             agent.tasks.artifacts.download(
-              { taskId, attemptN, cid },
+              attemptN === undefined
+                ? { taskId, cid }
+                : { taskId, attemptN, cid },
               {
                 teamId,
               },
@@ -79,7 +82,7 @@ const init: NodeInitializer = (RED): void => {
           out.artifact = {
             taskId,
             teamId,
-            attemptN,
+            ...(attemptN === undefined ? {} : { attemptN }),
             cid,
             ...metadataFromResult(result),
           };
