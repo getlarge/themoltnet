@@ -199,6 +199,56 @@ describe('buildTask (generic core)', () => {
     ]);
   });
 
+  it('artifactReference() turns staged metadata into an input artifact ref', () => {
+    const { body } = buildTask('freeform', { brief: 'consume input' })
+      .team(TEAM)
+      .diary(DIARY)
+      .artifactReference(
+        {
+          cid: 'bafkreiINPUT',
+          contentType: 'application/pdf',
+          title: 'brief.pdf',
+        },
+        'context',
+      )
+      .build();
+
+    expect(body.references).toEqual([
+      {
+        taskId: null,
+        role: 'context',
+        artifact: {
+          cid: 'bafkreiINPUT',
+          contentType: 'application/pdf',
+          title: 'brief.pdf',
+        },
+      },
+    ]);
+  });
+
+  it('artifactReference() accepts the canonical input artifact TaskRef', () => {
+    const { body } = buildTask('freeform', { brief: 'consume input' })
+      .team(TEAM)
+      .diary(DIARY)
+      .artifactReference(
+        {
+          taskId: null,
+          role: 'target_source',
+          artifact: { cid: 'bafkreiINPUT', kind: 'input' },
+        },
+        'context',
+      )
+      .build();
+
+    expect(body.references).toEqual([
+      {
+        taskId: null,
+        role: 'context',
+        artifact: { cid: 'bafkreiINPUT', kind: 'input' },
+      },
+    ]);
+  });
+
   it('artifactReference() throws if artifact CID is missing', () => {
     expect(() =>
       buildTask('assess_brief', {

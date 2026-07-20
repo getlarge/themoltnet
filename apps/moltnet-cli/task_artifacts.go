@@ -39,15 +39,73 @@ type taskArtifactsUploadOpts struct {
 	out                io.Writer
 }
 
+type taskArtifactsStageOpts struct {
+	apiURL             string
+	credPath           string
+	teamID             string
+	file               string
+	contentType        string
+	contentTypeSet     bool
+	contentEncoding    string
+	contentEncodingSet bool
+	out                io.Writer
+}
+
 type taskArtifactsDownloadOpts struct {
-	apiURL   string
-	credPath string
-	taskID   string
-	teamID   string
-	attemptN int
-	cid      string
-	outFile  string
-	out      io.Writer
+	apiURL     string
+	credPath   string
+	taskID     string
+	teamID     string
+	attemptN   int
+	attemptSet bool
+	cid        string
+	outFile    string
+	out        io.Writer
+}
+
+func runTaskArtifactsStageCmd(opts taskArtifactsStageOpts) error {
+	client, err := newClientFromCreds(opts.apiURL, opts.credPath)
+	if err != nil {
+		return err
+	}
+	return runTaskArtifactsStageWithClient(context.Background(), client, opts)
+}
+
+func runTaskArtifactsStageWithClient(ctx context.Context, client *moltnetapi.Client, opts taskArtifactsStageOpts) error {
+	params, err := buildStageTaskArtifactParams(opts)
+	if err != nil {
+		return err
+	}
+	reader, closeReader, err := openInputFile(opts.file)
+	if err != nil {
+		return err
+	}
+	defer closeReader()
+
+	res, err := client.StageTaskArtifact(ctx, moltnetapi.StageTaskArtifactReq{Data: reader}, params)
+	if err != nil {
+		return fmt.Errorf("task artifacts stage: %w", formatTransportError(err))
+	}
+	staged, ok := res.(*moltnetapi.StageTaskArtifactOK)
+	if !ok {
+		return formatAPIError(res)
+	}
+	return printJSONTo(opts.out, staged)
+}
+
+func buildStageTaskArtifactParams(opts taskArtifactsStageOpts) (moltnetapi.StageTaskArtifactParams, error) {
+	teamID, err := uuid.Parse(opts.teamID)
+	if err != nil {
+		return moltnetapi.StageTaskArtifactParams{}, fmt.Errorf("invalid --team-id %q: %w", opts.teamID, err)
+	}
+	params := moltnetapi.StageTaskArtifactParams{XMoltnetTeamID: teamID}
+	if opts.contentTypeSet {
+		params.ContentType = moltnetapi.NewOptString(opts.contentType)
+	}
+	if opts.contentEncodingSet {
+		params.ContentEncoding = moltnetapi.NewOptString(opts.contentEncoding)
+	}
+	return params, nil
 }
 
 func runTaskArtifactsListCmd(opts taskArtifactsListOpts) error {
@@ -164,9 +222,18 @@ func runTaskArtifactsDownloadCmd(opts taskArtifactsDownloadOpts) error {
 }
 
 func runTaskArtifactsDownloadWithClient(ctx context.Context, client *moltnetapi.Client, opts taskArtifactsDownloadOpts) error {
-	params, err := buildDownloadTaskArtifactParams(opts)
+	taskID, teamID, err := parseTaskArtifactIDs(opts.taskID, opts.teamID)
 	if err != nil {
 		return err
+	}
+	if opts.cid == "" {
+		return fmt.Errorf("--cid is required")
+	}
+	if opts.outFile == "" {
+		return fmt.Errorf("--out is required")
+	}
+	if opts.attemptSet && opts.attemptN <= 0 {
+		return fmt.Errorf("--attempt must be >= 1, got %d", opts.attemptN)
 	}
 	writer, closeWriter, err := openOutputFile(opts.outFile, opts.out)
 	if err != nil {
@@ -174,38 +241,33 @@ func runTaskArtifactsDownloadWithClient(ctx context.Context, client *moltnetapi.
 	}
 	defer closeWriter()
 
-	res, err := client.DownloadTaskArtifact(ctx, params)
+	if opts.attemptSet {
+		res, err := client.DownloadTaskArtifact(ctx, moltnetapi.DownloadTaskArtifactParams{
+			TaskId: taskID, AttemptN: opts.attemptN, Cid: opts.cid, XMoltnetTeamID: teamID,
+		})
+		if err != nil {
+			return fmt.Errorf("task artifacts download: %w", formatTransportError(err))
+		}
+		download, ok := res.(*moltnetapi.DownloadTaskArtifactOKHeaders)
+		if !ok {
+			return formatAPIError(res)
+		}
+		_, err = io.Copy(writer, download.Response.Data)
+		return err
+	}
+
+	res, err := client.DownloadTaskArtifactByCid(ctx, moltnetapi.DownloadTaskArtifactByCidParams{
+		TaskId: taskID, Cid: opts.cid, XMoltnetTeamID: teamID,
+	})
 	if err != nil {
 		return fmt.Errorf("task artifacts download: %w", formatTransportError(err))
 	}
-	download, ok := res.(*moltnetapi.DownloadTaskArtifactOKHeaders)
+	download, ok := res.(*moltnetapi.DownloadTaskArtifactByCidOKHeaders)
 	if !ok {
 		return formatAPIError(res)
 	}
 	_, err = io.Copy(writer, download.Response.Data)
 	return err
-}
-
-func buildDownloadTaskArtifactParams(opts taskArtifactsDownloadOpts) (moltnetapi.DownloadTaskArtifactParams, error) {
-	taskID, teamID, err := parseTaskArtifactIDs(opts.taskID, opts.teamID)
-	if err != nil {
-		return moltnetapi.DownloadTaskArtifactParams{}, err
-	}
-	if opts.attemptN <= 0 {
-		return moltnetapi.DownloadTaskArtifactParams{}, fmt.Errorf("--attempt must be >= 1, got %d", opts.attemptN)
-	}
-	if opts.cid == "" {
-		return moltnetapi.DownloadTaskArtifactParams{}, fmt.Errorf("--cid is required")
-	}
-	if opts.outFile == "" {
-		return moltnetapi.DownloadTaskArtifactParams{}, fmt.Errorf("--out is required")
-	}
-	return moltnetapi.DownloadTaskArtifactParams{
-		TaskId:         taskID,
-		AttemptN:       opts.attemptN,
-		Cid:            opts.cid,
-		XMoltnetTeamID: teamID,
-	}, nil
 }
 
 func parseTaskArtifactIDs(taskIDRaw, teamIDRaw string) (uuid.UUID, uuid.UUID, error) {

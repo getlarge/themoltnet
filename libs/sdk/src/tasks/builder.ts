@@ -48,10 +48,25 @@ export type ReferenceSource =
 export type ArtifactReferenceSource =
   | TaskRef
   | {
-      taskId: string | null;
+      cid: string;
+      kind?: string;
+      title?: string;
+      contentType?: string;
+    }
+  | {
+      taskId: string;
       outputCid: string;
       artifactCid: string;
       attemptN: number;
+      kind?: string;
+      title?: string;
+      contentType?: string;
+    }
+  | {
+      taskId: null;
+      artifactCid: string;
+      outputCid?: never;
+      attemptN?: never;
       kind?: string;
       title?: string;
       contentType?: string;
@@ -400,8 +415,25 @@ export class TaskBuilder<TInput extends Record<string, unknown>> {
     let ref: TaskRef;
     if ('artifactRef' in source && typeof source.artifactRef === 'function') {
       ref = source.artifactRef(role);
+    } else if ('cid' in source && source.cid) {
+      ref = {
+        taskId: null,
+        role,
+        artifact: {
+          cid: source.cid,
+          ...(source.kind ? { kind: source.kind } : {}),
+          ...(source.title ? { title: source.title } : {}),
+          ...(source.contentType ? { contentType: source.contentType } : {}),
+        },
+      };
     } else if ('artifact' in source && source.artifact?.cid) {
-      if (
+      if (source.taskId === null && source.artifact.attemptN === undefined) {
+        ref = {
+          taskId: null,
+          role,
+          artifact: { ...source.artifact },
+        };
+      } else if (
         typeof source.artifact.attemptN !== 'number' ||
         !Number.isInteger(source.artifact.attemptN) ||
         source.artifact.attemptN < 1
@@ -412,8 +444,9 @@ export class TaskBuilder<TInput extends Record<string, unknown>> {
             message: 'artifact reference is missing required attemptN',
           },
         ]);
+      } else {
+        ref = { ...source, role } as TaskRef;
       }
-      ref = { ...source, role } as TaskRef;
     } else {
       const s = source as {
         taskId: string | null;
@@ -425,7 +458,8 @@ export class TaskBuilder<TInput extends Record<string, unknown>> {
         contentType?: string;
       };
       const errors = [];
-      if (!s.outputCid) {
+      const inputArtifact = s.taskId === null && s.attemptN === undefined;
+      if (!inputArtifact && !s.outputCid) {
         errors.push({
           field: 'references/outputCid',
           message: 'reference is missing required outputCid',
@@ -438,9 +472,10 @@ export class TaskBuilder<TInput extends Record<string, unknown>> {
         });
       }
       if (
-        typeof s.attemptN !== 'number' ||
-        !Number.isInteger(s.attemptN) ||
-        s.attemptN < 1
+        !inputArtifact &&
+        (typeof s.attemptN !== 'number' ||
+          !Number.isInteger(s.attemptN) ||
+          s.attemptN < 1)
       ) {
         errors.push({
           field: 'references/artifact/attemptN',
@@ -448,14 +483,13 @@ export class TaskBuilder<TInput extends Record<string, unknown>> {
         });
       }
       if (errors.length > 0) throw new TaskBuildError(errors);
-      const attemptN = s.attemptN as number;
       ref = {
         taskId: s.taskId ?? null,
-        outputCid: s.outputCid as string,
+        ...(!inputArtifact && s.outputCid ? { outputCid: s.outputCid } : {}),
         role,
         artifact: {
           cid: s.artifactCid as string,
-          attemptN,
+          ...(s.attemptN !== undefined ? { attemptN: s.attemptN } : {}),
           ...(s.kind ? { kind: s.kind } : {}),
           ...(s.title ? { title: s.title } : {}),
           ...(s.contentType ? { contentType: s.contentType } : {}),

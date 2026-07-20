@@ -38,6 +38,7 @@ import type {
   DiarySearchResult,
   DiaryTagsResponse,
   DownloadRuntimeSessionData,
+  DownloadTaskArtifactByCidData,
   DownloadTaskArtifactData,
   EntryVerifyResult,
   FailTaskAttemptData,
@@ -108,6 +109,8 @@ import type {
   SearchPublicFeedData,
   SigningRequest,
   SigningRequestList,
+  StagedTaskArtifact,
+  StageTaskArtifactData,
   StartLegreffierOnboardingData,
   StartLegreffierOnboardingResponse,
   Success,
@@ -655,6 +658,12 @@ export interface TasksNamespace {
 }
 
 export interface TaskArtifactsNamespace {
+  stage(
+    body: TaskArtifactUploadBody,
+    query: StageTaskArtifactData['query'],
+    options: TaskRequestOptions,
+  ): Promise<StagedTaskArtifact>;
+
   upload(
     path: UploadTaskArtifactData['path'],
     body: TaskArtifactUploadBody,
@@ -675,7 +684,9 @@ export interface TaskArtifactsNamespace {
   ): Promise<TaskArtifactList>;
 
   download(
-    path: DownloadTaskArtifactData['path'],
+    path:
+      | DownloadTaskArtifactData['path']
+      | DownloadTaskArtifactByCidData['path'],
     options: TaskRequestOptions,
   ): Promise<TaskArtifactDownload>;
 }

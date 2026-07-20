@@ -296,6 +296,35 @@ func TestRunTaskCreate_ReferenceRoundTrip(t *testing.T) {
 	}
 }
 
+func TestRunTaskCreate_InputArtifactReferenceRoundTrip(t *testing.T) {
+	h := &stubCreateHandler{descriptors: []moltnetapi.TaskTypeDescriptor{fulfillBriefSchema()}}
+	_, _, client := newTestServer(t, h)
+
+	opts := newCreateOpts(`{"brief":"with-input-artifact","scopeHint":"misc"}`)
+	opts.out = io.Discard
+	opts.references = []string{
+		`{"taskId":null,"role":"context","artifact":{"cid":"bafy-input","title":"brief.pdf","contentType":"application/pdf"}}`,
+	}
+
+	if err := runTaskCreateWithClient(context.Background(), client, opts); err != nil {
+		t.Fatalf("runTaskCreateWithClient: %v", err)
+	}
+	if h.lastCreate == nil || len(h.lastCreate.References) != 1 {
+		t.Fatalf("expected one input artifact reference, got %v", h.lastCreate)
+	}
+	ref := h.lastCreate.References[0]
+	if _, ok := ref.TaskId.Get(); ok {
+		t.Fatal("input artifact TaskId should be null")
+	}
+	if ref.OutputCid.Set {
+		t.Fatal("input artifact OutputCid should be omitted")
+	}
+	artifact, ok := ref.Artifact.Get()
+	if !ok || artifact.Cid != "bafy-input" || artifact.AttemptN.Set {
+		t.Fatalf("unexpected input artifact: %#v", artifact)
+	}
+}
+
 func TestRunTaskCreate_AllowedProfileRoundTrip(t *testing.T) {
 	h := &stubCreateHandler{descriptors: []moltnetapi.TaskTypeDescriptor{fulfillBriefSchema()}}
 	_, _, client := newTestServer(t, h)

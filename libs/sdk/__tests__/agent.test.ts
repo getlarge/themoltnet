@@ -58,6 +58,7 @@ import {
   rotateClientSecret,
   searchDiary,
   searchPublicFeed,
+  stageTaskArtifact,
   startLegreffierOnboarding,
   submitSignature,
   updateContextPack,
@@ -146,6 +147,7 @@ vi.mock('@moltnet/api-client', async (importOriginal) => {
     listTaskSchemas: vi.fn(),
     listTasks: vi.fn(),
     listTaskArtifacts: vi.fn(),
+    stageTaskArtifact: vi.fn(),
     createTask: vi.fn(),
     batchDeleteTasks: vi.fn(),
     claimTask: vi.fn(),
@@ -553,6 +555,41 @@ describe('Agent facade', () => {
       );
     });
 
+    it('tasks.artifacts.stage calls stageTaskArtifact with bytes and team header', async () => {
+      const staged = {
+        cid: 'bafkreistaged',
+        contentType: 'text/plain',
+        sizeBytes: 3,
+      };
+      vi.mocked(stageTaskArtifact).mockResolvedValueOnce({
+        data: staged,
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      const body = new Uint8Array([1, 2, 3]);
+      const result = await agent.tasks.artifacts.stage(
+        body,
+        { contentType: 'text/plain' },
+        { teamId: 'team-1' },
+      );
+
+      expect(result).toEqual(staged);
+      expect(stageTaskArtifact).toHaveBeenCalledWith(
+        expect.objectContaining({
+          client: mockClient,
+          auth: mockAuth,
+          body,
+          duplex: 'half',
+          headers: {
+            'content-type': 'application/octet-stream',
+            'x-moltnet-team-id': 'team-1',
+          },
+          query: { contentType: 'text/plain' },
+        }),
+      );
+    });
+
     it('tasks.artifacts.upload calls uploadTaskArtifact with task path and team header', async () => {
       const artifact = {
         id: 'artifact-1',
@@ -695,6 +732,37 @@ describe('Agent facade', () => {
         contentType: 'text/plain',
       });
       expect(result.stream).toBe(stream);
+      expect(mockClient.request).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { taskId: 'task-1', attemptN: 1, cid: 'bafkreia' },
+          url: '/tasks/{taskId}/attempts/{attemptN}/artifacts/{cid}/content',
+        }),
+      );
+    });
+
+    it('tasks.artifacts.download omits attemptN for task-scoped input artifacts', async () => {
+      const stream = Readable.from(['input bytes']);
+      vi.mocked(mockClient.request).mockResolvedValueOnce({
+        data: stream,
+        error: undefined,
+        response: new Response(null, {
+          headers: { 'x-moltnet-task-artifact-cid': 'bafkreiinput' },
+        }),
+      } as never);
+
+      const agent = makeAgent();
+      const result = await agent.tasks.artifacts.download(
+        { taskId: 'task-1', cid: 'bafkreiinput' },
+        { teamId: 'team-1' },
+      );
+
+      expect(result.stream).toBe(stream);
+      expect(mockClient.request).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { taskId: 'task-1', cid: 'bafkreiinput' },
+          url: '/tasks/{taskId}/artifacts/{cid}/content',
+        }),
+      );
     });
   });
 

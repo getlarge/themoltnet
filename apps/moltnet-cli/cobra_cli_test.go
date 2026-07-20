@@ -270,9 +270,23 @@ func TestTaskArtifactsHelp(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	for _, want := range []string{"list", "upload", "download"} {
+	for _, want := range []string{"stage", "list", "upload", "download"} {
 		if !strings.Contains(stdout, want) {
 			t.Errorf("expected task artifacts help to contain %q, got: %s", want, stdout)
+		}
+	}
+}
+
+func TestTaskArtifactsStageHelp(t *testing.T) {
+	t.Parallel()
+	root := NewRootCmd("test", "")
+	stdout, _, err := executeCommand(root, "task", "artifacts", "stage", "--help")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for _, want := range []string{"--team-id", "--file", "--content-type", "--content-encoding"} {
+		if !strings.Contains(stdout, want) {
+			t.Errorf("expected task artifacts stage help to contain %q, got: %s", want, stdout)
 		}
 	}
 }
