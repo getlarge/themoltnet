@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.15.0](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.14.0...mcp-server-v0.15.0) (2026-07-20)
+
+
+### Features
+
+* **mcp-server:** tasks_artifacts_stage tool and attempt-optional download ([7b3cc0b](https://github.com/getlarge/themoltnet/commit/7b3cc0b7f56bbe21fe5ad5c165bd6d38187522ac))
+* **tasks:** strict reference validation; input artifact refs drop outputCid ([5b26e7e](https://github.com/getlarge/themoltnet/commit/5b26e7e2f7a6d30836f2052559726c6cb12e94a6))
+* **tasks:** task input artifacts — staged upload before task creation ([c5c069f](https://github.com/getlarge/themoltnet/commit/c5c069f2e9b901129a36000d229bd01ca75cc4a5))
+
 ## [0.14.0](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.13.1...mcp-server-v0.14.0) (2026-07-03)
 
 

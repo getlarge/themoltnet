@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.45.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.44.2...moltnet-api-client-v1.45.0) (2026-07-20)
+
+
+### Features
+
+* **tasks:** strict reference validation; input artifact refs drop outputCid ([5b26e7e](https://github.com/getlarge/themoltnet/commit/5b26e7e2f7a6d30836f2052559726c6cb12e94a6))
+* **tasks:** task input artifacts — staged upload before task creation ([c5c069f](https://github.com/getlarge/themoltnet/commit/c5c069f2e9b901129a36000d229bd01ca75cc4a5))
+
+
+### Codegen
+
+* **codegen:** regenerate OpenAPI spec and TS/Go clients ([93b4176](https://github.com/getlarge/themoltnet/commit/93b41768e00d4fe4e56341397da63af6a78a7902))
+
 ## [1.44.2](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.44.1...moltnet-api-client-v1.44.2) (2026-07-08)
 
 

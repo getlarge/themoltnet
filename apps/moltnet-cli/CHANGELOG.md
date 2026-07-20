@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.63.0](https://github.com/getlarge/themoltnet/compare/cli-v1.62.1...cli-v1.63.0) (2026-07-20)
+
+
+### Features
+
+* **tasks:** task input artifacts — staged upload before task creation ([c5c069f](https://github.com/getlarge/themoltnet/commit/c5c069f2e9b901129a36000d229bd01ca75cc4a5))
+
 ## [1.62.1](https://github.com/getlarge/themoltnet/compare/cli-v1.62.0...cli-v1.62.1) (2026-07-17)
 
 
