@@ -74,7 +74,10 @@ import {
   createTaskAnalyticsService,
   type TaskAnalyticsService,
 } from '@moltnet/task-analytics-service';
-import { createTaskArtifactStorage } from '@moltnet/task-artifact-service';
+import {
+  buildArtifactObjectKey,
+  createTaskArtifactStorage,
+} from '@moltnet/task-artifact-service';
 import {
   initTaskWorkflows,
   setTaskWorkflowDeps,
@@ -354,6 +357,11 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   );
   const taskService: TaskService = createTaskService({
     taskRepository,
+    taskArtifactRepository,
+    taskInputArtifactObjectStore: {
+      buildObjectKey: buildArtifactObjectKey,
+      headObject: (key) => taskArtifactStorage.headObject(key),
+    },
     diaryRepository,
     agentRepository,
     runtimeProfileRepository,

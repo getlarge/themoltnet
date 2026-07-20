@@ -19,6 +19,7 @@ import {
   taskTypeWorkspaceScope,
   validateTaskCreateRequest,
   validateTaskOutput,
+  validateTaskReferences,
 } from './validation.js';
 import { DaemonState, TaskAttempt, TaskRef } from './wire.js';
 
@@ -220,11 +221,36 @@ describe('TaskRef artifact metadata', () => {
     role: 'context',
   };
 
-  it('requires attemptN when a task reference points at an artifact', () => {
+  it('accepts a task-output ref without outputCid at the schema level (cross-field validation covers it)', () => {
+    // outputCid is now Type.Optional on TaskRef; the "required when
+    // taskId is set" rule lives in validateTaskReferences, not the schema.
+    expect(
+      Value.Check(TaskRef, {
+        taskId: '11111111-1111-4111-8111-111111111111',
+        role: 'context',
+      }),
+    ).toBe(true);
+  });
+
+  it('accepts artifact references without attemptN (input artifacts bound at task creation)', () => {
+    expect(
+      Value.Check(TaskRef, {
+        ...baseRef,
+        taskId: null,
+        artifact: {
+          cid: 'bafkreiartifact',
+          kind: 'report',
+        },
+      }),
+    ).toBe(true);
+  });
+
+  it('rejects artifact references with a non-positive attemptN', () => {
     expect(
       Value.Check(TaskRef, {
         ...baseRef,
         artifact: {
+          attemptN: 0,
           cid: 'bafkreiartifact',
           kind: 'report',
         },
@@ -243,6 +269,168 @@ describe('TaskRef artifact metadata', () => {
         },
       }),
     ).toBe(true);
+  });
+});
+
+describe('validateTaskReferences', () => {
+  const TASK_ID = '11111111-1111-4111-8111-111111111111';
+
+  it('accepts a task-output ref (taskId + outputCid, no artifact)', () => {
+    const errors = validateTaskReferences([
+      { taskId: TASK_ID, outputCid: 'bafkreioutput', role: 'context' },
+    ]);
+    expect(errors).toEqual([]);
+  });
+
+  it('accepts a task-output ref whose artifact names its producing attempt', () => {
+    const errors = validateTaskReferences([
+      {
+        taskId: TASK_ID,
+        outputCid: 'bafkreioutput',
+        role: 'judged_work',
+        artifact: { cid: 'bafkreiartifact', attemptN: 1 },
+      },
+    ]);
+    expect(errors).toEqual([]);
+  });
+
+  it('accepts an input artifact ref (taskId null, artifact without attemptN, no outputCid)', () => {
+    const errors = validateTaskReferences([
+      {
+        taskId: null,
+        role: 'context',
+        artifact: { cid: 'bafkreiinput' },
+      },
+    ]);
+    expect(errors).toEqual([]);
+  });
+
+  it('accepts an input artifact ref whose outputCid equals artifact.cid', () => {
+    const errors = validateTaskReferences([
+      {
+        taskId: null,
+        outputCid: 'bafkreiinput',
+        role: 'context',
+        artifact: { cid: 'bafkreiinput' },
+      },
+    ]);
+    expect(errors).toEqual([]);
+  });
+
+  it('accepts an external ref (taskId null, external, no outputCid)', () => {
+    const errors = validateTaskReferences([
+      {
+        taskId: null,
+        role: 'target_source',
+        external: { kind: 'http_url', url: 'https://example.com' },
+      },
+    ]);
+    expect(errors).toEqual([]);
+  });
+
+  it('accepts an external ref that also carries an outputCid', () => {
+    const errors = validateTaskReferences([
+      {
+        taskId: null,
+        outputCid: 'bafkreisnapshot',
+        role: 'target_source',
+        external: { kind: 'github_pr', pr: 42 },
+      },
+    ]);
+    expect(errors).toEqual([]);
+  });
+
+  it('rejects a task-output ref missing outputCid', () => {
+    const errors = validateTaskReferences([
+      { taskId: TASK_ID, role: 'context' },
+    ]);
+    expect(errors).toEqual([
+      {
+        field: 'references[0]',
+        message: 'outputCid is required when referencing a task output',
+      },
+    ]);
+  });
+
+  it('rejects a task-output ref whose artifact omits attemptN', () => {
+    const errors = validateTaskReferences([
+      {
+        taskId: TASK_ID,
+        outputCid: 'bafkreioutput',
+        role: 'context',
+        artifact: { cid: 'bafkreiartifact' },
+      },
+    ]);
+    expect(errors).toHaveLength(1);
+    expect(errors[0].field).toBe('references[0]');
+    expect(errors[0].message).toMatch(/must include attemptN/);
+  });
+
+  it('rejects an input artifact ref that includes attemptN', () => {
+    const errors = validateTaskReferences([
+      {
+        taskId: null,
+        role: 'context',
+        artifact: { cid: 'bafkreiinput', attemptN: 1 },
+      },
+    ]);
+    expect(errors).toHaveLength(1);
+    expect(errors[0].field).toBe('references[0]');
+    expect(errors[0].message).toMatch(/must not include/);
+  });
+
+  it('rejects an input artifact ref whose outputCid differs from artifact.cid', () => {
+    const errors = validateTaskReferences([
+      {
+        taskId: null,
+        outputCid: 'bafkreidifferent',
+        role: 'context',
+        artifact: { cid: 'bafkreiinput' },
+      },
+    ]);
+    expect(errors).toHaveLength(1);
+    expect(errors[0].field).toBe('references[0]');
+    expect(errors[0].message).toMatch(/must be omitted or/);
+  });
+
+  it('rejects a taskId-null ref with neither artifact nor external', () => {
+    const errors = validateTaskReferences([{ taskId: null, role: 'context' }]);
+    expect(errors).toHaveLength(1);
+    expect(errors[0].field).toBe('references[0]');
+    expect(errors[0].message).toMatch(/either an artifact/);
+  });
+
+  it('reports the offending reference index in the error field', () => {
+    const errors = validateTaskReferences([
+      { taskId: TASK_ID, outputCid: 'bafkreioutput', role: 'context' },
+      { taskId: TASK_ID, role: 'context' },
+    ]);
+    expect(errors).toEqual([
+      {
+        field: 'references[1]',
+        message: 'outputCid is required when referencing a task output',
+      },
+    ]);
+  });
+
+  it('treats null, undefined, and empty references as valid', () => {
+    expect(validateTaskReferences(null)).toEqual([]);
+    expect(validateTaskReferences(undefined)).toEqual([]);
+    expect(validateTaskReferences([])).toEqual([]);
+  });
+
+  it('surfaces reference errors through validateTaskCreateRequest', () => {
+    const errors = validateTaskCreateRequest({
+      taskType: 'freeform',
+      input: { brief: 'probe' },
+      references: [{ taskId: null, role: 'context' }],
+    });
+    expect(errors).toContainEqual({
+      field: 'references[0]',
+      message:
+        'references with taskId null must carry either an artifact ' +
+        '(input artifact) or an external descriptor',
+    });
   });
 });
 

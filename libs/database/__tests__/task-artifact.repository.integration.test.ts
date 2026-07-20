@@ -7,15 +7,21 @@
  */
 
 import { PostgreSqlContainer } from '@testcontainers/postgresql';
+import { eq } from 'drizzle-orm';
 import type { Pool } from 'pg';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import { createDatabase, type Database } from '../src/db.js';
 import { runMigrations } from '../src/migrate.js';
-import { createTaskArtifactRepository } from '../src/repositories/task-artifact.repository.js';
+import {
+  createTaskArtifactRepository,
+  decodeTaskArtifactCursor,
+  type ListTaskArtifactsInput,
+} from '../src/repositories/task-artifact.repository.js';
 import {
   agents,
   diaries,
+  type TaskArtifact,
   taskArtifacts,
   taskAttempts,
   tasks,
@@ -32,6 +38,7 @@ describe('TaskArtifactRepository (integration)', () => {
   const AGENT_ID = '22222222-2222-4222-8222-222222222282';
   const DIARY_ID = '33333333-3333-4333-8333-333333333383';
   const TASK_ID = '44444444-4444-4444-8444-444444444484';
+  const SECOND_TASK_ID = '55555555-5555-4555-8555-555555555585';
 
   beforeAll(async () => {
     const container = await new PostgreSqlContainer('pgvector/pgvector:pg16')
@@ -135,6 +142,30 @@ describe('TaskArtifactRepository (integration)', () => {
     };
   }
 
+  function inputArtifactInput(overrides: {
+    cid: string;
+    kind?: string;
+    taskId?: string;
+    createdByAgentId?: string | null;
+  }) {
+    return {
+      cid: overrides.cid,
+      contentEncoding: null,
+      contentType: 'application/json',
+      createdByAgentId:
+        overrides.createdByAgentId === undefined
+          ? null
+          : overrides.createdByAgentId,
+      kind: overrides.kind ?? 'json',
+      objectKey: `teams/${TEAM_ID}/artifacts/${overrides.cid}`,
+      sha256: 'b'.repeat(64),
+      sizeBytes: 11,
+      taskId: overrides.taskId ?? TASK_ID,
+      teamId: TEAM_ID,
+      title: `input-${overrides.cid}.json`,
+    };
+  }
+
   it('returns the existing row for duplicate CID on the same attempt', async () => {
     const first = await repo.createForAttempt(
       artifactInput({ cid: 'bafkreiduplicate' }),
@@ -190,5 +221,127 @@ describe('TaskArtifactRepository (integration)', () => {
       taskId: TASK_ID,
       teamId: TEAM_ID,
     });
+  });
+
+  it('createManyForTask inserts input rows with null attemptN and null createdByAgentId (human case)', async () => {
+    const rows = await repo.createManyForTask([
+      inputArtifactInput({
+        cid: 'bafkreihumaninput',
+        createdByAgentId: null,
+      }),
+    ]);
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0].attemptN).toBeNull();
+    expect(rows[0].createdByAgentId).toBeNull();
+    expect(rows[0].cid).toBe('bafkreihumaninput');
+    expect(rows[0].taskId).toBe(TASK_ID);
+  });
+
+  it('paginates across the input/attempt boundary without duplicates or drops', async () => {
+    // 1 input artifact (attempt_n NULL) + 2 on attempt 1 + 1 on attempt 2.
+    await repo.createManyForTask([
+      inputArtifactInput({ cid: 'bafkreiinput0' }),
+    ]);
+    await repo.createForAttempt(
+      artifactInput({ attemptN: 1, cid: 'bafkreia1x' }),
+    );
+    await repo.createForAttempt(
+      artifactInput({ attemptN: 1, cid: 'bafkreia1y' }),
+    );
+    await repo.createForAttempt(
+      artifactInput({ attemptN: 2, cid: 'bafkreia2x' }),
+    );
+
+    const seen: TaskArtifact[] = [];
+    let cursor: ListTaskArtifactsInput['cursor'];
+    // Bounded loop: 4 rows / limit 2 = 2 pages; guard rail prevents a
+    // runaway if pagination regresses.
+    for (let page = 0; page < 10; page++) {
+      const result = await repo.listForTask({
+        teamId: TEAM_ID,
+        taskId: TASK_ID,
+        limit: 2,
+        cursor,
+      });
+      seen.push(...result.artifacts);
+      if (!result.nextCursor) break;
+      cursor = decodeTaskArtifactCursor(result.nextCursor);
+    }
+
+    expect(seen).toHaveLength(4);
+    const cids = seen.map((artifact) => artifact.cid);
+    expect(new Set(cids).size).toBe(4);
+    // Input row (attempt_n NULL, sorted as 0) comes first.
+    expect(seen[0].attemptN).toBeNull();
+    const orderKeys = seen.map((artifact) => artifact.attemptN ?? 0);
+    expect(orderKeys).toEqual([...orderKeys].sort((a, b) => a - b));
+  });
+
+  it('findByCidForTask returns the input row when the CID also exists on an attempt', async () => {
+    const SHARED_CID = 'bafkreisharedcid';
+    await repo.createForAttempt(
+      artifactInput({ attemptN: 1, cid: SHARED_CID }),
+    );
+    await repo.createManyForTask([inputArtifactInput({ cid: SHARED_CID })]);
+
+    const row = await repo.findByCidForTask({
+      teamId: TEAM_ID,
+      taskId: TASK_ID,
+      cid: SHARED_CID,
+    });
+
+    expect(row).not.toBeNull();
+    expect(row?.attemptN).toBeNull();
+    expect(row?.cid).toBe(SHARED_CID);
+  });
+
+  it('rejects a duplicate input CID via the partial unique index', async () => {
+    await repo.createManyForTask([inputArtifactInput({ cid: 'bafkreidup' })]);
+
+    await expect(
+      repo.createManyForTask([inputArtifactInput({ cid: 'bafkreidup' })]),
+    ).rejects.toThrow();
+  });
+
+  it('listObjectKeysStillReferenced returns only keys with surviving rows', async () => {
+    // A second task lets us delete one task's rows and confirm only the
+    // still-referenced object key is reported.
+    await db.insert(tasks).values({
+      id: SECOND_TASK_ID,
+      taskType: 'freeform',
+      teamId: TEAM_ID,
+      diaryId: DIARY_ID,
+      outputKind: 'artifact',
+      input: { brief: 'second task' },
+      inputSchemaCid: 'cid-placeholder-input-schema',
+      inputCid: 'cid-placeholder-input-2',
+      proposedByAgentId: AGENT_ID,
+      status: 'running',
+      claimAgentId: AGENT_ID,
+      maxAttempts: 1,
+    });
+
+    const [keep] = await repo.createManyForTask([
+      inputArtifactInput({ cid: 'bafkreikeep' }),
+    ]);
+    const [gone] = await repo.createManyForTask([
+      inputArtifactInput({ cid: 'bafkreigone', taskId: SECOND_TASK_ID }),
+    ]);
+
+    // Delete the second task's rows; its object key is now unreferenced.
+    await db
+      .delete(taskArtifacts)
+      .where(eq(taskArtifacts.taskId, SECOND_TASK_ID));
+
+    const referenced = await repo.listObjectKeysStillReferenced([
+      keep.objectKey,
+      gone.objectKey,
+    ]);
+
+    expect(referenced).toEqual([keep.objectKey]);
+
+    // Keep other tests isolated: drop the second task row we seeded.
+    await db.delete(tasks).where(eq(tasks.id, SECOND_TASK_ID));
   });
 });

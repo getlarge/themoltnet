@@ -105,6 +105,9 @@ import type {
   DownloadRuntimeSessionData,
   DownloadRuntimeSessionErrors,
   DownloadRuntimeSessionResponses,
+  DownloadTaskArtifactByCidData,
+  DownloadTaskArtifactByCidErrors,
+  DownloadTaskArtifactByCidResponses,
   DownloadTaskArtifactData,
   DownloadTaskArtifactErrors,
   DownloadTaskArtifactResponses,
@@ -316,6 +319,9 @@ import type {
   SearchPublicFeedData,
   SearchPublicFeedErrors,
   SearchPublicFeedResponses,
+  StageTaskArtifactData,
+  StageTaskArtifactErrors,
+  StageTaskArtifactResponses,
   StartLegreffierOnboardingData,
   StartLegreffierOnboardingErrors,
   StartLegreffierOnboardingResponses,
@@ -2371,6 +2377,35 @@ export const findLatestRuntimeSlotForAttempt = <
   });
 
 /**
+ * Stage immutable content-addressed artifact bytes for later binding as task input artifacts via task creation references. Creates no metadata row; staged bytes are not downloadable until bound to a task, and unbound objects are garbage-collected after a grace window.
+ */
+export const stageTaskArtifact = <ThrowOnError extends boolean = false>(
+  options: Options<StageTaskArtifactData, ThrowOnError>,
+) =>
+  (options.client ?? client).put<
+    StageTaskArtifactResponses,
+    StageTaskArtifactErrors,
+    ThrowOnError
+  >({
+    bodySerializer: null,
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/task-artifacts/staged',
+    ...options,
+    headers: {
+      'Content-Type': 'application/octet-stream',
+      ...options.headers,
+    },
+  });
+
+/**
  * Queue asynchronous deletion of waiting, queued, and terminal tasks in bulk. By default, dispatched, running, unauthorized, missing, and protected tasks are skipped. Set force: true with a reason to delete protected terminal tasks.
  */
 export const batchDeleteTasks = <ThrowOnError extends boolean = false>(
@@ -2813,6 +2848,30 @@ export const listTaskArtifacts = <ThrowOnError extends boolean = false>(
       },
     ],
     url: '/tasks/{taskId}/artifacts',
+    ...options,
+  });
+
+/**
+ * Download immutable task artifact content by CID without naming an attempt. Resolves input artifacts bound at task creation as well as attempt artifacts.
+ */
+export const downloadTaskArtifactByCid = <ThrowOnError extends boolean = false>(
+  options: Options<DownloadTaskArtifactByCidData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    DownloadTaskArtifactByCidResponses,
+    DownloadTaskArtifactByCidErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/tasks/{taskId}/artifacts/{cid}/content',
     ...options,
   });
 

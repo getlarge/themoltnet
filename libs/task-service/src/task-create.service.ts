@@ -1,5 +1,8 @@
 import type { ExecutorTrustLevel } from '@moltnet/crypto-service';
-import { computeJsonCid } from '@moltnet/crypto-service';
+import {
+  computeJsonCid,
+  decodeBytesCidToSha256,
+} from '@moltnet/crypto-service';
 import type { NewTask, Task as DbTask } from '@moltnet/database';
 import {
   BUILT_IN_TASK_TYPES,
@@ -8,6 +11,7 @@ import {
   normalizeTaskInputForCreate,
   type OutputKind,
   type Task,
+  type TaskRef,
   validateTaskCreateRequest,
   validateTaskInputAsync,
 } from '@moltnet/tasks';
@@ -52,6 +56,8 @@ export function createTaskCreateService(
   deps: Pick<
     TaskServiceDeps,
     | 'taskRepository'
+    | 'taskArtifactRepository'
+    | 'taskInputArtifactObjectStore'
     | 'diaryRepository'
     | 'correlationSealRepository'
     | 'permissionChecker'
@@ -68,6 +74,8 @@ export function createTaskCreateService(
 ): TaskCreateService {
   const {
     taskRepository,
+    taskArtifactRepository,
+    taskInputArtifactObjectStore,
     diaryRepository,
     correlationSealRepository,
     permissionChecker,
@@ -245,6 +253,12 @@ export function createTaskCreateService(
         }
       }
 
+      const resolvedInputArtifacts = await resolveInputArtifacts(
+        taskInputArtifactObjectStore,
+        input.teamId,
+        input.references as TaskRef[] | undefined,
+      );
+
       const newTask: NewTask = {
         taskType: input.taskType,
         title: normalizeTaskTitle(input.title),
@@ -285,6 +299,23 @@ export function createTaskCreateService(
         row = await transactionRunner.runInTransaction(
           async () => {
             const inserted = await taskRepository.create(newTask);
+            await taskArtifactRepository.createManyForTask(
+              resolvedInputArtifacts.map((artifact) => ({
+                cid: artifact.cid,
+                contentEncoding: null,
+                contentType: artifact.contentType,
+                createdByAgentId: input.callerIsAgent
+                  ? (input.proposerId ?? input.callerId)
+                  : null,
+                kind: artifact.kind,
+                objectKey: artifact.objectKey,
+                sha256: artifact.sha256,
+                sizeBytes: artifact.sizeBytes,
+                taskId: inserted.id,
+                teamId: input.teamId,
+                title: artifact.title,
+              })),
+            );
             for (const effect of sideEffects) {
               if (effect.kind === 'sealCorrelation') {
                 await correlationSealRepository.acquireCorrelationLock(
@@ -394,4 +425,131 @@ export function createTaskCreateService(
       return dbTaskToWire(row);
     },
   };
+}
+
+interface ResolvedInputArtifact {
+  cid: string;
+  contentType: string;
+  kind: string;
+  objectKey: string;
+  sha256: string;
+  sizeBytes: number;
+  title: string;
+}
+
+/**
+ * Resolve input-artifact references (taskId null + artifact without an
+ * attempt) against staged objects in team storage. Staged uploads create
+ * no metadata row, so existence is checked against the object store and
+ * the artifact row is built from the reference plus object metadata; the
+ * sha256 is recovered from the CID itself. Reference shape rules
+ * (outputCid presence/equality, attemptN combos) are enforced earlier by
+ * validateTaskCreateRequest via validateTaskReferences.
+ *
+ * A staged object could in principle be swept between this check and the
+ * transaction commit; the sweep re-verifies row existence immediately
+ * before deleting and the grace window covers freshly staged objects, so
+ * the remaining race is milliseconds wide on objects already past the
+ * grace window.
+ */
+async function resolveInputArtifacts(
+  objectStore: TaskServiceDeps['taskInputArtifactObjectStore'],
+  teamId: string,
+  references: TaskRef[] | undefined,
+): Promise<ResolvedInputArtifact[]> {
+  const inputRefs = (references ?? []).flatMap((ref) =>
+    ref.taskId === null &&
+    ref.artifact !== undefined &&
+    ref.artifact.attemptN === undefined
+      ? [ref.artifact]
+      : [],
+  );
+  if (inputRefs.length === 0) return [];
+
+  const invalid = (message: string): TaskServiceError =>
+    new TaskServiceError(
+      'invalid',
+      'Task references failed input artifact validation',
+      [{ field: 'references', message }],
+    );
+
+  const seenCids = new Set<string>();
+  for (const artifact of inputRefs) {
+    if (seenCids.has(artifact.cid)) {
+      throw invalid(`duplicate input artifact CID: ${artifact.cid}`);
+    }
+    seenCids.add(artifact.cid);
+  }
+
+  // Bounded fan-out: references carry no maxItems, so cap concurrent
+  // HEAD requests instead of Promise.all-ing an unbounded array.
+  const HEAD_CONCURRENCY = 8;
+  const resolved: ResolvedInputArtifact[] = [];
+  for (let i = 0; i < inputRefs.length; i += HEAD_CONCURRENCY) {
+    resolved.push(
+      ...(await resolveInputArtifactChunk(
+        objectStore,
+        teamId,
+        inputRefs.slice(i, i + HEAD_CONCURRENCY),
+        invalid,
+      )),
+    );
+  }
+  return resolved;
+}
+
+async function resolveInputArtifactChunk(
+  objectStore: TaskServiceDeps['taskInputArtifactObjectStore'],
+  teamId: string,
+  inputRefs: NonNullable<TaskRef['artifact']>[],
+  invalid: (message: string) => TaskServiceError,
+): Promise<ResolvedInputArtifact[]> {
+  return Promise.all(
+    inputRefs.map(async (artifact) => {
+      let sha256: string;
+      try {
+        sha256 = decodeBytesCidToSha256(artifact.cid);
+      } catch {
+        throw invalid(
+          `input artifact CID is not a raw-bytes sha2-256 CIDv1: ${artifact.cid}`,
+        );
+      }
+
+      const objectKey = objectStore.buildObjectKey(teamId, artifact.cid);
+      let head;
+      try {
+        head = await objectStore.headObject(objectKey);
+      } catch (err) {
+        throw new TaskServiceError(
+          'unavailable',
+          `Task input artifact storage is unavailable: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      }
+      if (!head) {
+        throw invalid(
+          `input artifact object not found for CID ${artifact.cid}; stage it first via PUT /task-artifacts/staged`,
+        );
+      }
+      if (head.contentLength === undefined) {
+        throw invalid(
+          `input artifact object for CID ${artifact.cid} has no content length`,
+        );
+      }
+
+      return {
+        cid: artifact.cid,
+        contentType:
+          artifact.contentType ??
+          head.contentType ??
+          'application/octet-stream',
+        kind: artifact.kind ?? 'input',
+        objectKey,
+        sha256,
+        sizeBytes: head.contentLength,
+        title: artifact.title ?? artifact.cid,
+      };
+    }),
+  );
 }

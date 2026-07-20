@@ -201,7 +201,10 @@ export const ClaimCondition = Type.Unsafe<ClaimCondition>(
 export const TaskRef = Type.Object(
   {
     taskId: Type.Union([Uuid, Type.Null()]),
-    outputCid: Cid,
+    // Required when referencing a task's output (taskId set); omitted for
+    // input-artifact references, where artifact.cid is the only CID.
+    // Cross-field rules are enforced by validateTaskReferences().
+    outputCid: Type.Optional(Cid),
     role: Type.Union([
       Type.Literal('judged_work'),
       Type.Literal('reviewed_diff'),
@@ -226,7 +229,9 @@ export const TaskRef = Type.Object(
       Type.Object(
         {
           cid: Cid,
-          attemptN: Type.Integer({ minimum: 1 }),
+          // Absent = input artifact staged before the task existed and
+          // bound at creation time (taskId null, no attempt).
+          attemptN: Type.Optional(Type.Integer({ minimum: 1 })),
           kind: Type.Optional(Type.String({ minLength: 1, maxLength: 100 })),
           title: Type.Optional(Type.String({ minLength: 1, maxLength: 255 })),
           contentType: Type.Optional(

@@ -126,6 +126,28 @@ export const TaskOrphanSweeperConfigSchema = Type.Object({
   TASK_CANCELLED_RETENTION_DAYS: Type.Number({ default: 90 }),
   /** Retention window for expired terminal tasks. */
   TASK_EXPIRED_RETENTION_DAYS: Type.Number({ default: 90 }),
+  /**
+   * How often the artifact orphan-object sweep runs. It deletes storage
+   * objects with no task_artifacts row — primarily staged input artifacts
+   * that were never bound to a task creation. Validated as a 5-field
+   * crontab so a typo fails at config load, not at scheduler registration.
+   */
+  TASK_ARTIFACT_ORPHAN_SWEEPER_CRON: Type.String({
+    default: '30 3 * * *',
+    pattern: '^\\S+\\s+\\S+\\s+\\S+\\s+\\S+\\s+\\S+$',
+  }),
+  /**
+   * Minimum object age in seconds before an unreferenced artifact object
+   * may be deleted. Must comfortably exceed the longest plausible gap
+   * between staging bytes and creating the task that binds them.
+   */
+  TASK_ARTIFACT_ORPHAN_GRACE_SEC: Type.Number({ default: 48 * 60 * 60 }),
+  /**
+   * Blast-radius cap: maximum objects the orphan sweep may delete in one
+   * run. Exceeding it aborts the run with an error log — a logic bug or
+   * schema drift in the row-existence gate must not mass-delete a bucket.
+   */
+  TASK_ARTIFACT_ORPHAN_SWEEPER_MAX_DELETES: Type.Number({ default: 1000 }),
 });
 
 export const RuntimeSessionStorageConfigSchema = Type.Object({

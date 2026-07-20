@@ -8,6 +8,7 @@ import type {
   DiaryRepository,
   RenderedPackRepository,
   RuntimeProfileRepository,
+  TaskArtifactRepository,
   TaskRepository,
   TransactionRunner,
 } from '@moltnet/database';
@@ -58,8 +59,26 @@ export interface VerifiedExecutorAttestation {
   };
 }
 
+export interface TaskInputArtifactObjectHead {
+  contentLength?: number;
+  contentType?: string;
+}
+
+/**
+ * Minimal structural view of the task-artifact object storage used to
+ * resolve staged input artifacts at task creation. Kept structural so
+ * task-service does not depend on task-artifact-service; the app
+ * bootstrap wires it from TaskArtifactStorage + buildArtifactObjectKey.
+ */
+export interface TaskInputArtifactObjectStore {
+  buildObjectKey(teamId: string, cid: string): string;
+  headObject(key: string): Promise<TaskInputArtifactObjectHead | null>;
+}
+
 export interface TaskServiceDeps {
   taskRepository: TaskRepository;
+  taskArtifactRepository: TaskArtifactRepository;
+  taskInputArtifactObjectStore: TaskInputArtifactObjectStore;
   diaryRepository: DiaryRepository;
   agentRepository: AgentRepository;
   runtimeProfileRepository: RuntimeProfileRepository;

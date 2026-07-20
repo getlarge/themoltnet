@@ -82,6 +82,9 @@ vi.mock('@moltnet/database', async () => {
   };
 });
 
+import { buildArtifactObjectKey } from '@moltnet/task-artifact-service';
+import { parseTaskArtifactObjectKey } from '@moltnet/task-workflows';
+
 import {
   initMaintenanceWorkflows,
   type MaintenanceDeps,
@@ -95,6 +98,9 @@ const AGENT_ID = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
 const GRACE_PERIOD_SEC = 300;
 const BATCH_SIZE = 50;
 const EXPIRED_TASK_ID = 'dddddddd-dddd-dddd-dddd-dddddddddddd';
+const TEAM_ID = '99999999-9999-9999-9999-999999999999';
+const ARTIFACT_ORPHAN_GRACE_SEC = 3600;
+const ARTIFACT_ORPHAN_MAX_DELETES = 1000;
 
 function makeOrphan(claimExpiresAt: Date): {
   task: Task;
@@ -176,6 +182,7 @@ function makeDeps(orphans: Array<{ task: Task; attempt: TaskAttempt }>): {
   };
   const taskArtifactRepository = {
     listCleanupRefsForTasks: vi.fn().mockResolvedValue([]),
+    listObjectKeysStillReferenced: vi.fn().mockResolvedValue([]),
   };
   const runtimeSessionRepository = {
     listCleanupRefsForTasks: vi.fn().mockResolvedValue([]),
@@ -184,6 +191,9 @@ function makeDeps(orphans: Array<{ task: Task; attempt: TaskAttempt }>): {
   const taskArtifactStorage = {
     deleteObject: vi.fn().mockResolvedValue(undefined),
     deleteObjects: vi.fn().mockResolvedValue(undefined),
+    listObjects: vi
+      .fn()
+      .mockResolvedValue({ objects: [], nextContinuationToken: null }),
   };
   const runtimeSessionStorage = {
     deleteObject: vi.fn().mockResolvedValue(undefined),
@@ -256,6 +266,29 @@ async function runRetentionSweep(): Promise<{
   };
 }
 
+async function runArtifactOrphanSweep(
+  input: { graceSec?: number; maxDeletes?: number } = {},
+): Promise<{
+  aborted: boolean;
+  candidates: number;
+  deleted: number;
+  scannedObjects: number;
+}> {
+  const sweeper = registeredWorkflows['maintenance.taskArtifactOrphanSweeper'];
+  if (!sweeper) {
+    throw new Error('task artifact orphan sweeper workflow not registered');
+  }
+  return (await sweeper({
+    graceSec: input.graceSec ?? ARTIFACT_ORPHAN_GRACE_SEC,
+    maxDeletes: input.maxDeletes ?? ARTIFACT_ORPHAN_MAX_DELETES,
+  })) as {
+    aborted: boolean;
+    candidates: number;
+    deleted: number;
+    scannedObjects: number;
+  };
+}
+
 describe('taskOrphanSweeperWorkflow — backstop (#1077)', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -289,6 +322,9 @@ describe('taskOrphanSweeperWorkflow — backstop (#1077)', () => {
         TASK_FAILED_RETENTION_DAYS: 90,
         TASK_CANCELLED_RETENTION_DAYS: 90,
         TASK_EXPIRED_RETENTION_DAYS: 90,
+        TASK_ARTIFACT_ORPHAN_SWEEPER_CRON: '0 * * * *',
+        TASK_ARTIFACT_ORPHAN_GRACE_SEC: ARTIFACT_ORPHAN_GRACE_SEC,
+        TASK_ARTIFACT_ORPHAN_SWEEPER_MAX_DELETES: ARTIFACT_ORPHAN_MAX_DELETES,
       },
     );
     return DBOS;
@@ -1116,7 +1152,303 @@ describe('taskOrphanSweeperWorkflow — backstop (#1077)', () => {
     );
   });
 
+  it('task retention cleanup retains shared artifact objects still referenced by other tasks (#1599 refcount guard)', async () => {
+    await init();
+    const { deps, logger } = makeDeps([]);
+    const retained = [
+      {
+        id: 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeee11',
+        status: 'completed',
+        teamId: TEAM_ID,
+        diaryId: 'ffffffff-ffff-ffff-ffff-ffffffffff11',
+        claimAgentId: null,
+      },
+      {
+        id: 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeee12',
+        status: 'completed',
+        teamId: TEAM_ID,
+        diaryId: 'ffffffff-ffff-ffff-ffff-ffffffffff12',
+        claimAgentId: null,
+      },
+    ] as unknown as Task[];
+    const keptKey = 'teams/t/artifacts/shared-kept';
+    const goneKey = 'teams/t/artifacts/orphaned-gone';
+    vi.mocked(
+      deps.taskRepository.listTerminalTasksPastRetention,
+    ).mockResolvedValue(retained);
+    vi.mocked(deps.taskRepository.findSealedTaskIds).mockResolvedValue([]);
+    vi.mocked(
+      deps.taskArtifactRepository.listCleanupRefsForTasks,
+    ).mockResolvedValue([
+      {
+        id: '22222222-2222-2222-2222-222222222291',
+        taskId: retained[0].id,
+        objectKey: keptKey,
+        sizeBytes: 123,
+      },
+      {
+        id: '22222222-2222-2222-2222-222222222292',
+        taskId: retained[1].id,
+        objectKey: goneKey,
+        sizeBytes: 456,
+      },
+    ]);
+    vi.mocked(
+      deps.runtimeSessionRepository.listCleanupRefsForTasks,
+    ).mockResolvedValue([]);
+    vi.mocked(deps.taskRepository.deleteMany).mockResolvedValue([
+      retained[0].id,
+      retained[1].id,
+    ]);
+    // Both rows are gone, but another live task still references keptKey.
+    vi.mocked(
+      deps.taskArtifactRepository.listObjectKeysStillReferenced,
+    ).mockResolvedValue([keptKey]);
+    const { setMaintenanceDeps: setDeps } =
+      await import('../src/workflows/maintenance.js');
+    setDeps(deps);
+
+    const workflow = registeredWorkflows['maintenance.taskRetentionCleanup'];
+    if (!workflow) {
+      throw new Error('task retention cleanup workflow not registered');
+    }
+    await workflow({
+      batchSize: BATCH_SIZE,
+      policyDays: {
+        completed: 180,
+        failed: 90,
+        cancelled: 90,
+        expired: 90,
+      },
+    });
+
+    expect(
+      deps.taskArtifactRepository.listObjectKeysStillReferenced,
+    ).toHaveBeenCalledWith([keptKey, goneKey]);
+    // Only the unreferenced key is deleted — the shared one is retained.
+    expect(deps.taskArtifactStorage.deleteObjects).toHaveBeenCalledTimes(1);
+    expect(deps.taskArtifactStorage.deleteObjects).toHaveBeenCalledWith([
+      goneKey,
+    ]);
+    const retainedLog = logger.info.mock.calls.find(
+      ([, msg]) =>
+        typeof msg === 'string' &&
+        msg.includes('task artifact objects retained'),
+    );
+    expect(retainedLog).toBeDefined();
+    expect(retainedLog?.[0]).toMatchObject({ candidates: 2, retained: 1 });
+  });
+
+  it('artifact orphan sweep deletes only past-grace, rowless, artifact-shaped keys across pages', async () => {
+    await init();
+    const { deps, logger } = makeDeps([]);
+    const now = Date.now();
+    const pastGrace = new Date(now - 2 * ARTIFACT_ORPHAN_GRACE_SEC * 1000);
+    const fresh = new Date(now - 60_000);
+    const orphanKey = buildArtifactObjectKey(TEAM_ID, 'orphancid001');
+    const boundKey = buildArtifactObjectKey(TEAM_ID, 'boundcid002');
+    const sessionKey = `teams/${TEAM_ID}/runtime-sessions/sesscid003`;
+    const freshKey = buildArtifactObjectKey(TEAM_ID, 'freshcid004');
+    vi.mocked(deps.taskArtifactStorage.listObjects)
+      .mockResolvedValueOnce({
+        objects: [
+          { key: orphanKey, lastModified: pastGrace, sizeBytes: 10 },
+          { key: boundKey, lastModified: pastGrace, sizeBytes: 20 },
+          { key: sessionKey, lastModified: pastGrace, sizeBytes: 30 },
+        ],
+        nextContinuationToken: 'page-2',
+      })
+      .mockResolvedValueOnce({
+        objects: [{ key: freshKey, lastModified: fresh, sizeBytes: 40 }],
+        nextContinuationToken: null,
+      });
+    // boundKey has a live row; orphanKey does not.
+    vi.mocked(
+      deps.taskArtifactRepository.listObjectKeysStillReferenced,
+    ).mockImplementation((keys: string[]) =>
+      Promise.resolve(keys.filter((key) => key === boundKey)),
+    );
+    const { setMaintenanceDeps: setDeps } =
+      await import('../src/workflows/maintenance.js');
+    setDeps(deps);
+
+    const result = await runArtifactOrphanSweep();
+
+    expect(deps.taskArtifactStorage.listObjects).toHaveBeenCalledTimes(2);
+    expect(deps.taskArtifactStorage.deleteObjects).toHaveBeenCalledTimes(1);
+    expect(deps.taskArtifactStorage.deleteObjects).toHaveBeenCalledWith([
+      orphanKey,
+    ]);
+    expect(result).toMatchObject({
+      aborted: false,
+      candidates: 2,
+      deleted: 1,
+      scannedObjects: 4,
+    });
+    const completeLog = logger.info.mock.calls.find(
+      ([, msg]) =>
+        typeof msg === 'string' &&
+        msg.includes('task artifact orphan sweep complete'),
+    );
+    expect(completeLog).toBeDefined();
+    expect(completeLog?.[0]).toMatchObject({
+      aborted: false,
+      candidates: 2,
+      deleted: 1,
+      scannedObjects: 4,
+    });
+  });
+
+  it('artifact orphan sweep retains keys rebound between resolve and delete (TOCTOU guard)', async () => {
+    await init();
+    const { deps, logger } = makeDeps([]);
+    const pastGrace = new Date(
+      Date.now() - 2 * ARTIFACT_ORPHAN_GRACE_SEC * 1000,
+    );
+    const orphanKey = buildArtifactObjectKey(TEAM_ID, 'reboundcid01');
+    vi.mocked(deps.taskArtifactStorage.listObjects).mockResolvedValue({
+      objects: [{ key: orphanKey, lastModified: pastGrace, sizeBytes: 10 }],
+      nextContinuationToken: null,
+    });
+    // Resolve step sees no row (orphan), delete-step re-check sees a row.
+    vi.mocked(deps.taskArtifactRepository.listObjectKeysStillReferenced)
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([orphanKey]);
+    const { setMaintenanceDeps: setDeps } =
+      await import('../src/workflows/maintenance.js');
+    setDeps(deps);
+
+    const result = await runArtifactOrphanSweep();
+
+    // Nothing to delete after the re-check — deleteObjects is skipped
+    // entirely for the empty set (deleteObjectsWithLocalRetries no-ops).
+    expect(deps.taskArtifactStorage.deleteObjects).not.toHaveBeenCalled();
+    expect(result).toMatchObject({ aborted: false, candidates: 1, deleted: 0 });
+    const reboundLog = logger.info.mock.calls.find(
+      ([, msg]) =>
+        typeof msg === 'string' &&
+        msg.includes('bound since resolve, retained'),
+    );
+    expect(reboundLog).toBeDefined();
+    expect(reboundLog?.[0]).toMatchObject({ rebound: [orphanKey] });
+  });
+
+  it('artifact orphan sweep aborts when orphan count exceeds the per-run ceiling', async () => {
+    await init();
+    const { deps, logger } = makeDeps([]);
+    const pastGrace = new Date(
+      Date.now() - 2 * ARTIFACT_ORPHAN_GRACE_SEC * 1000,
+    );
+    const orphanKeys = [
+      buildArtifactObjectKey(TEAM_ID, 'ceilingcid01'),
+      buildArtifactObjectKey(TEAM_ID, 'ceilingcid02'),
+      buildArtifactObjectKey(TEAM_ID, 'ceilingcid03'),
+    ];
+    vi.mocked(deps.taskArtifactStorage.listObjects).mockResolvedValue({
+      objects: orphanKeys.map((key) => ({
+        key,
+        lastModified: pastGrace,
+        sizeBytes: 10,
+      })),
+      nextContinuationToken: null,
+    });
+    // All rowless → all orphans; ceiling of 2 is exceeded by 3.
+    vi.mocked(
+      deps.taskArtifactRepository.listObjectKeysStillReferenced,
+    ).mockResolvedValue([]);
+    const { setMaintenanceDeps: setDeps } =
+      await import('../src/workflows/maintenance.js');
+    setDeps(deps);
+
+    const result = await runArtifactOrphanSweep({ maxDeletes: 2 });
+
+    expect(result).toMatchObject({ aborted: true, deleted: 0 });
+    expect(deps.taskArtifactStorage.deleteObjects).not.toHaveBeenCalled();
+    const abortLog = logger.error.mock.calls.find(
+      ([, msg]) =>
+        typeof msg === 'string' &&
+        msg.includes('per-run delete ceiling exceeded'),
+    );
+    expect(abortLog).toBeDefined();
+  });
+
+  it('artifact orphan sweep is a no-op when object storage is not configured', async () => {
+    await init();
+    const { deps, logger } = makeDeps([]);
+    // The sweeper matches this error by NAME (see
+    // isTaskArtifactStorageNotConfiguredError) precisely because module
+    // duplication — like the resetModules() in this file's beforeEach —
+    // breaks instanceof identity. A plain name-matched error is the
+    // honest way to exercise that contract.
+    const notConfigured = new Error(
+      'Task artifact object storage is not configured',
+    );
+    notConfigured.name = 'TaskArtifactStorageNotConfiguredError';
+    vi.mocked(deps.taskArtifactStorage.listObjects).mockRejectedValue(
+      notConfigured,
+    );
+    const { setMaintenanceDeps: setDeps } =
+      await import('../src/workflows/maintenance.js');
+    setDeps(deps);
+
+    const result = await runArtifactOrphanSweep();
+
+    expect(result).toMatchObject({ candidates: 0, deleted: 0 });
+    expect(deps.taskArtifactStorage.deleteObjects).not.toHaveBeenCalled();
+    expect(
+      deps.taskArtifactRepository.listObjectKeysStillReferenced,
+    ).not.toHaveBeenCalled();
+    const skipLog = logger.debug.mock.calls.find(
+      ([msg]) =>
+        typeof msg === 'string' && msg.includes('storage not configured'),
+    );
+    expect(skipLog).toBeDefined();
+  });
+
+  it('artifact orphan sweep audit-logs the exact keys it is about to delete', async () => {
+    await init();
+    const { deps, logger } = makeDeps([]);
+    const pastGrace = new Date(
+      Date.now() - 2 * ARTIFACT_ORPHAN_GRACE_SEC * 1000,
+    );
+    const orphanKey = buildArtifactObjectKey(TEAM_ID, 'auditcid001');
+    vi.mocked(deps.taskArtifactStorage.listObjects).mockResolvedValue({
+      objects: [{ key: orphanKey, lastModified: pastGrace, sizeBytes: 10 }],
+      nextContinuationToken: null,
+    });
+    vi.mocked(
+      deps.taskArtifactRepository.listObjectKeysStillReferenced,
+    ).mockResolvedValue([]);
+    const { setMaintenanceDeps: setDeps } =
+      await import('../src/workflows/maintenance.js');
+    setDeps(deps);
+
+    await runArtifactOrphanSweep();
+
+    const deletingLog = logger.info.mock.calls.find(
+      ([, msg]) =>
+        typeof msg === 'string' &&
+        msg.includes('task artifact orphan sweep — deleting objects'),
+    );
+    expect(deletingLog).toBeDefined();
+    expect(deletingLog?.[0]).toEqual({ objectKeys: [orphanKey] });
+    expect(deps.taskArtifactStorage.deleteObjects).toHaveBeenCalledWith([
+      orphanKey,
+    ]);
+  });
+
   // Suppress unused-variable warning on imports we use only via dynamic re-import.
   void initMaintenanceWorkflows;
   void setMaintenanceDeps;
+});
+
+describe('task-artifact object key grammar round-trip (#1599)', () => {
+  it('parseTaskArtifactObjectKey reverses buildArtifactObjectKey', () => {
+    const cid = 'bafkreiabc123XYZ';
+    const objectKey = buildArtifactObjectKey(TEAM_ID, cid);
+
+    const parsed = parseTaskArtifactObjectKey(objectKey);
+
+    expect(parsed).toEqual({ teamId: TEAM_ID, cid, objectKey });
+  });
 });

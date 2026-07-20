@@ -382,6 +382,68 @@ export function validateTaskCreateRequest(args: {
       message: `At least one reference is required for task type: ${args.taskType}`,
     });
   }
+  errors.push(...validateTaskReferences(args.references));
+  return errors;
+}
+
+/**
+ * Cross-field rules for the reference shapes the schema alone cannot
+ * express. Every reference must be exactly one of:
+ *
+ * - **task output ref**: taskId set, outputCid required; an optional
+ *   artifact must name its producing attempt (attemptN).
+ * - **input artifact ref**: taskId null, artifact without attemptN;
+ *   outputCid omitted (or equal to artifact.cid when sent) -- the bytes
+ *   were staged before any task existed, so there is no output to name.
+ * - **external ref**: taskId null, external present, no artifact.
+ *
+ * Anything else used to be silently persisted into taskRefs and never
+ * materialized; now it fails fast with a field error.
+ */
+export function validateTaskReferences(
+  references: TaskRef[] | null | undefined,
+): TaskValidationError[] {
+  const errors: TaskValidationError[] = [];
+  (references ?? []).forEach((ref, index) => {
+    const invalid = (message: string) =>
+      errors.push({ field: `references[${index}]`, message });
+
+    if (ref.taskId !== null) {
+      if (ref.outputCid === undefined) {
+        invalid('outputCid is required when referencing a task output');
+      }
+      if (ref.artifact && ref.artifact.attemptN === undefined) {
+        invalid(
+          'artifact references to another task must include attemptN; ' +
+            'input artifacts are referenced with taskId null',
+        );
+      }
+      return;
+    }
+
+    if (ref.artifact) {
+      if (ref.artifact.attemptN !== undefined) {
+        invalid(
+          'input artifact references (taskId null) must not include ' +
+            'attemptN; reference the producing task by id instead',
+        );
+      }
+      if (ref.outputCid !== undefined && ref.outputCid !== ref.artifact.cid) {
+        invalid(
+          'outputCid on an input artifact reference must be omitted or ' +
+            'equal artifact.cid',
+        );
+      }
+      return;
+    }
+
+    if (!ref.external) {
+      invalid(
+        'references with taskId null must carry either an artifact ' +
+          '(input artifact) or an external descriptor',
+      );
+    }
+  });
   return errors;
 }
 

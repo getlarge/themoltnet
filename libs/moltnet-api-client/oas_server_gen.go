@@ -228,6 +228,13 @@ type Handler interface {
 	//
 	// GET /tasks/{taskId}/attempts/{attemptN}/artifacts/{cid}/content
 	DownloadTaskArtifact(ctx context.Context, params DownloadTaskArtifactParams) (DownloadTaskArtifactRes, error)
+	// DownloadTaskArtifactByCid implements downloadTaskArtifactByCid operation.
+	//
+	// Download immutable task artifact content by CID without naming an attempt. Resolves input
+	// artifacts bound at task creation as well as attempt artifacts.
+	//
+	// GET /tasks/{taskId}/artifacts/{cid}/content
+	DownloadTaskArtifactByCid(ctx context.Context, params DownloadTaskArtifactByCidParams) (DownloadTaskArtifactByCidRes, error)
 	// FailTaskAttempt implements failTaskAttempt operation.
 	//
 	// Mark an attempt as failed with error details.
@@ -671,6 +678,14 @@ type Handler interface {
 	//
 	// GET /public/feed/search
 	SearchPublicFeed(ctx context.Context, params SearchPublicFeedParams) (SearchPublicFeedRes, error)
+	// StageTaskArtifact implements stageTaskArtifact operation.
+	//
+	// Stage immutable content-addressed artifact bytes for later binding as task input artifacts via
+	// task creation references. Creates no metadata row; staged bytes are not downloadable until bound
+	// to a task, and unbound objects are garbage-collected after a grace window.
+	//
+	// PUT /task-artifacts/staged
+	StageTaskArtifact(ctx context.Context, req StageTaskArtifactReq, params StageTaskArtifactParams) (StageTaskArtifactRes, error)
 	// StartLegreffierOnboarding implements startLegreffierOnboarding operation.
 	//
 	// Start LeGreffier onboarding. Returns a workflowId and a GitHub App manifest form URL. No

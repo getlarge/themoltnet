@@ -1,6 +1,10 @@
 import type { Readable } from 'node:stream';
 
-import { createS3CompatibleObjectStorage } from '@moltnet/blob-storage';
+import {
+  type BlobObjectList,
+  createS3CompatibleObjectStorage,
+  type ListBlobObjectsInput,
+} from '@moltnet/blob-storage';
 
 export interface TaskArtifactStorageConfig {
   TASK_ARTIFACT_STORAGE_ACCESS_KEY_ID?: string;
@@ -37,6 +41,8 @@ export interface TaskArtifactStorage {
 
   headObject(key: string): Promise<TaskArtifactObjectHead | null>;
 
+  listObjects(input: ListBlobObjectsInput): Promise<BlobObjectList>;
+
   deleteObject(key: string): Promise<void>;
 
   deleteObjects(keys: string[]): Promise<void>;
@@ -47,6 +53,22 @@ export class TaskArtifactStorageNotConfiguredError extends Error {
     super('Task artifact object storage is not configured');
     this.name = 'TaskArtifactStorageNotConfiguredError';
   }
+}
+
+/**
+ * Name-based guard for TaskArtifactStorageNotConfiguredError. Prefer this
+ * over instanceof at module boundaries: bundling or module-registry
+ * resets can duplicate the class, and a duplicated copy must still be
+ * recognized as "storage disabled" rather than escalated as a failure.
+ */
+export function isTaskArtifactStorageNotConfiguredError(err: unknown): boolean {
+  return (
+    err instanceof TaskArtifactStorageNotConfiguredError ||
+    (typeof err === 'object' &&
+      err !== null &&
+      (err as { name?: unknown }).name ===
+        'TaskArtifactStorageNotConfiguredError')
+  );
 }
 
 export class MissingTaskArtifactObjectError extends Error {
@@ -91,6 +113,9 @@ function createDisabledTaskArtifactStorage(): TaskArtifactStorage {
       return Promise.reject(new TaskArtifactStorageNotConfiguredError());
     },
     headObject() {
+      return Promise.reject(new TaskArtifactStorageNotConfiguredError());
+    },
+    listObjects() {
       return Promise.reject(new TaskArtifactStorageNotConfiguredError());
     },
     deleteObject() {

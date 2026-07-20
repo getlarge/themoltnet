@@ -137,6 +137,10 @@ type DownloadRuntimeSessionRes interface {
 	downloadRuntimeSessionRes()
 }
 
+type DownloadTaskArtifactByCidRes interface {
+	downloadTaskArtifactByCidRes()
+}
+
 type DownloadTaskArtifactRes interface {
 	downloadTaskArtifactRes()
 }
@@ -403,6 +407,10 @@ type SearchDiaryRes interface {
 
 type SearchPublicFeedRes interface {
 	searchPublicFeedRes()
+}
+
+type StageTaskArtifactRes interface {
+	stageTaskArtifactRes()
 }
 
 type StartLegreffierOnboardingRes interface {

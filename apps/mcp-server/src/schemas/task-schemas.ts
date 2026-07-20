@@ -20,6 +20,8 @@ import type {
   ListTaskMessagesResponses,
   ListTaskSchemasResponses,
   ListTasksResponses,
+  StageTaskArtifactData,
+  StageTaskArtifactResponses,
   UploadTaskArtifactData,
   UploadTaskArtifactResponses,
 } from '@moltnet/api-client';
@@ -435,10 +437,14 @@ export const TaskArtifactDownloadSchema = Type.Object({
     format: 'uuid',
     description: 'Task ID.',
   }),
-  attempt_n: Type.Integer({
-    minimum: 1,
-    description: 'Attempt number.',
-  }),
+  attempt_n: Type.Optional(
+    Type.Integer({
+      minimum: 1,
+      description:
+        'Attempt number. Omit to resolve by CID across the whole task, ' +
+        'including input artifacts bound at task creation.',
+    }),
+  ),
   team_id: Type.String({
     format: 'uuid',
     description: 'Team ID that owns the task.',
@@ -451,13 +457,47 @@ export const TaskArtifactDownloadSchema = Type.Object({
 type DownloadArtifactPath = PathOf<DownloadTaskArtifactData>;
 export type TaskArtifactDownloadInput = {
   task_id: DownloadArtifactPath['taskId'];
-  attempt_n: DownloadArtifactPath['attemptN'];
+  attempt_n?: DownloadArtifactPath['attemptN'];
   team_id: TeamIdHeaderOf<DownloadTaskArtifactData>;
   cid: DownloadArtifactPath['cid'];
 };
 type _TaskArtifactDownloadInputMatchesApi = AssertSchemaToApi<
   Static<typeof TaskArtifactDownloadSchema>,
   TaskArtifactDownloadInput
+>;
+
+export const TaskArtifactStageSchema = Type.Object({
+  team_id: Type.String({
+    format: 'uuid',
+    description: 'Team ID to stage the artifact bytes for.',
+  }),
+  content_base64: Type.String({
+    minLength: 1,
+    description: 'Base64-encoded artifact bytes.',
+  }),
+  content_type: Type.Optional(
+    Type.String({
+      minLength: 1,
+      description: 'Content type metadata, e.g. text/markdown.',
+    }),
+  ),
+  content_encoding: Type.Optional(
+    Type.String({
+      minLength: 1,
+      description: 'Optional content encoding metadata, e.g. gzip.',
+    }),
+  ),
+});
+type StageArtifactQuery = QueryOf<StageTaskArtifactData>;
+export type TaskArtifactStageInput = {
+  team_id: TeamIdHeaderOf<StageTaskArtifactData>;
+  content_base64: string;
+  content_type?: StageArtifactQuery['contentType'];
+  content_encoding?: StageArtifactQuery['contentEncoding'];
+};
+type _TaskArtifactStageInputMatchesApi = AssertSchemaToApi<
+  Static<typeof TaskArtifactStageSchema>,
+  TaskArtifactStageInput
 >;
 
 export const TaskConsoleLinkSchema = Type.Object({
@@ -502,14 +542,14 @@ const TaskArtifactMetadataSchema = Type.Object({
   id: Type.String(),
   teamId: Type.String(),
   taskId: Type.String(),
-  attemptN: Type.Integer(),
+  attemptN: Type.Union([Type.Integer(), Type.Null()]),
   kind: Type.String(),
   title: Type.String(),
   contentType: Type.String(),
   contentEncoding: Type.Union([Type.String(), Type.Null()]),
   sizeBytes: Type.Integer({ minimum: 0 }),
   cid: Type.String(),
-  createdByAgentId: Type.String(),
+  createdByAgentId: Type.Union([Type.String(), Type.Null()]),
   expiresAt: Type.Union([Type.String(), Type.Null()]),
   createdAt: Type.String(),
 });
@@ -519,6 +559,11 @@ export const TaskArtifactsListOutputSchema = Type.Object({
   nextCursor: Type.Union([Type.String(), Type.Null()]),
 });
 export const TaskArtifactUploadOutputSchema = TaskArtifactMetadataSchema;
+export const TaskArtifactStageOutputSchema = Type.Object({
+  cid: Type.String(),
+  sizeBytes: Type.Integer({ minimum: 0 }),
+  contentType: Type.String(),
+});
 export const TaskArtifactDownloadOutputSchema = Type.Object({
   artifactId: Type.Union([Type.String(), Type.Null()]),
   cid: Type.Union([Type.String(), Type.Null()]),
@@ -696,6 +741,10 @@ const _TaskArtifactsListOutputMatchesApi: AssertOutputMatchesApi<
 const _TaskArtifactUploadOutputMatchesApi: AssertOutputMatchesApi<
   Static<typeof TaskArtifactUploadOutputSchema>,
   ResponseOf<UploadTaskArtifactResponses>
+> = true;
+const _TaskArtifactStageOutputMatchesApi: AssertOutputMatchesApi<
+  Static<typeof TaskArtifactStageOutputSchema>,
+  ResponseOf<StageTaskArtifactResponses>
 > = true;
 type TaskArtifactDownloadOutput = Omit<
   Static<typeof TaskArtifactDownloadOutputSchema>,

@@ -510,6 +510,16 @@ func encodeSearchDiaryRequest(
 	return nil
 }
 
+func encodeStageTaskArtifactRequest(
+	req StageTaskArtifactReq,
+	r *http.Request,
+) error {
+	const contentType = "application/octet-stream"
+	body := req
+	ht.SetBody(r, body, contentType)
+	return nil
+}
+
 func encodeStartLegreffierOnboardingRequest(
 	req *StartLegreffierOnboardingReq,
 	r *http.Request,

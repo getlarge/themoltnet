@@ -29,3 +29,22 @@ export function computeBytesCidFromSha256(sha256Bytes: Uint8Array): string {
     createDigest(SHA2_256_CODE, sha256Bytes),
   ).toString();
 }
+
+/**
+ * Recover the hex sha2-256 digest embedded in a raw-bytes CID.
+ *
+ * Inverse of computeBytesCidFromSha256(): the multihash of a CIDv1 raw
+ * CID *is* the payload digest, so no bytes are needed to derive it. Used
+ * when binding staged input artifacts to a task from just their CID.
+ */
+export function decodeBytesCidToSha256(cid: string): string {
+  const parsed = CID.parse(cid);
+  if (
+    parsed.code !== raw.code ||
+    parsed.multihash.code !== SHA2_256_CODE ||
+    parsed.multihash.digest.byteLength !== 32
+  ) {
+    throw new Error('CID is not a raw-bytes sha2-256 CIDv1');
+  }
+  return Buffer.from(parsed.multihash.digest).toString('hex');
+}

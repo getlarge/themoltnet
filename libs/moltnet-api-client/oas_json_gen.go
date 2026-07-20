@@ -14489,6 +14489,44 @@ func (s *CreateTaskForbidden) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes CreateTaskNotFound as json.
+func (s *CreateTaskNotFound) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes CreateTaskNotFound from json.
+func (s *CreateTaskNotFound) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateTaskNotFound to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = CreateTaskNotFound(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CreateTaskNotFound) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateTaskNotFound) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode implements json.Marshaler.
 func (s *CreateTaskReq) Encode(e *jx.Encoder) {
 	e.ObjStart()
@@ -14895,6 +14933,44 @@ func (s CreateTaskReqInput) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *CreateTaskReqInput) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateTaskServiceUnavailable as json.
+func (s *CreateTaskServiceUnavailable) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes CreateTaskServiceUnavailable from json.
+func (s *CreateTaskServiceUnavailable) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateTaskServiceUnavailable to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = CreateTaskServiceUnavailable(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CreateTaskServiceUnavailable) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateTaskServiceUnavailable) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -27162,6 +27238,1773 @@ func (s DownloadTaskArtifactBadRequestCode) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *DownloadTaskArtifactBadRequestCode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DownloadTaskArtifactByCidBadRequest) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DownloadTaskArtifactByCidBadRequest) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("code")
+		s.Code.Encode(e)
+	}
+	{
+		if s.Detail.Set {
+			e.FieldStart("detail")
+			s.Detail.Encode(e)
+		}
+	}
+	{
+		if s.Instance.Set {
+			e.FieldStart("instance")
+			s.Instance.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("status")
+		e.Int(s.Status)
+	}
+	{
+		e.FieldStart("title")
+		e.Str(s.Title)
+	}
+	{
+		e.FieldStart("type")
+		json.EncodeURI(e, s.Type)
+	}
+	{
+		e.FieldStart("errors")
+		e.ArrStart()
+		for _, elem := range s.Errors {
+			elem.Encode(e)
+		}
+		e.ArrEnd()
+	}
+	for k, elem := range s.AdditionalProps {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+var jsonFieldsNameOfDownloadTaskArtifactByCidBadRequest = [7]string{
+	0: "code",
+	1: "detail",
+	2: "instance",
+	3: "status",
+	4: "title",
+	5: "type",
+	6: "errors",
+}
+
+// Decode decodes DownloadTaskArtifactByCidBadRequest from json.
+func (s *DownloadTaskArtifactByCidBadRequest) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DownloadTaskArtifactByCidBadRequest to nil")
+	}
+	var requiredBitSet [1]uint8
+	s.AdditionalProps = map[string]jx.Raw{}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "detail":
+			if err := func() error {
+				s.Detail.Reset()
+				if err := s.Detail.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"detail\"")
+			}
+		case "instance":
+			if err := func() error {
+				s.Instance.Reset()
+				if err := s.Instance.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"instance\"")
+			}
+		case "status":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.Status = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"status\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Title = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "type":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeURI(d)
+				s.Type = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"type\"")
+			}
+		case "errors":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				s.Errors = make([]ValidationError, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem ValidationError
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.Errors = append(s.Errors, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"errors\"")
+			}
+		default:
+			var elem jx.Raw
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				elem = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrapf(err, "decode field %q", k)
+			}
+			s.AdditionalProps[string(k)] = elem
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DownloadTaskArtifactByCidBadRequest")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b01111001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfDownloadTaskArtifactByCidBadRequest) {
+					name = jsonFieldsNameOfDownloadTaskArtifactByCidBadRequest[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DownloadTaskArtifactByCidBadRequest) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DownloadTaskArtifactByCidBadRequest) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s DownloadTaskArtifactByCidBadRequestAdditional) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s DownloadTaskArtifactByCidBadRequestAdditional) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+// Decode decodes DownloadTaskArtifactByCidBadRequestAdditional from json.
+func (s *DownloadTaskArtifactByCidBadRequestAdditional) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DownloadTaskArtifactByCidBadRequestAdditional to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DownloadTaskArtifactByCidBadRequestAdditional")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DownloadTaskArtifactByCidBadRequestAdditional) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DownloadTaskArtifactByCidBadRequestAdditional) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DownloadTaskArtifactByCidBadRequestCode as json.
+func (s DownloadTaskArtifactByCidBadRequestCode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes DownloadTaskArtifactByCidBadRequestCode from json.
+func (s *DownloadTaskArtifactByCidBadRequestCode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DownloadTaskArtifactByCidBadRequestCode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch DownloadTaskArtifactByCidBadRequestCode(v) {
+	case DownloadTaskArtifactByCidBadRequestCodeUNAUTHORIZED:
+		*s = DownloadTaskArtifactByCidBadRequestCodeUNAUTHORIZED
+	case DownloadTaskArtifactByCidBadRequestCodeFORBIDDEN:
+		*s = DownloadTaskArtifactByCidBadRequestCodeFORBIDDEN
+	case DownloadTaskArtifactByCidBadRequestCodeNOTFOUND:
+		*s = DownloadTaskArtifactByCidBadRequestCodeNOTFOUND
+	case DownloadTaskArtifactByCidBadRequestCodeCONFLICT:
+		*s = DownloadTaskArtifactByCidBadRequestCodeCONFLICT
+	case DownloadTaskArtifactByCidBadRequestCodeUNSUPPORTEDMEDIATYPE:
+		*s = DownloadTaskArtifactByCidBadRequestCodeUNSUPPORTEDMEDIATYPE
+	case DownloadTaskArtifactByCidBadRequestCodeVALIDATIONFAILED:
+		*s = DownloadTaskArtifactByCidBadRequestCodeVALIDATIONFAILED
+	case DownloadTaskArtifactByCidBadRequestCodeINVALIDCHALLENGE:
+		*s = DownloadTaskArtifactByCidBadRequestCodeINVALIDCHALLENGE
+	case DownloadTaskArtifactByCidBadRequestCodeINVALIDSIGNATURE:
+		*s = DownloadTaskArtifactByCidBadRequestCodeINVALIDSIGNATURE
+	case DownloadTaskArtifactByCidBadRequestCodeVOUCHERLIMIT:
+		*s = DownloadTaskArtifactByCidBadRequestCodeVOUCHERLIMIT
+	case DownloadTaskArtifactByCidBadRequestCodeRATELIMITEXCEEDED:
+		*s = DownloadTaskArtifactByCidBadRequestCodeRATELIMITEXCEEDED
+	case DownloadTaskArtifactByCidBadRequestCodeSERIALIZATIONEXHAUSTED:
+		*s = DownloadTaskArtifactByCidBadRequestCodeSERIALIZATIONEXHAUSTED
+	case DownloadTaskArtifactByCidBadRequestCodeSIGNINGREQUESTEXPIRED:
+		*s = DownloadTaskArtifactByCidBadRequestCodeSIGNINGREQUESTEXPIRED
+	case DownloadTaskArtifactByCidBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = DownloadTaskArtifactByCidBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED
+	case DownloadTaskArtifactByCidBadRequestCodeREGISTRATIONFAILED:
+		*s = DownloadTaskArtifactByCidBadRequestCodeREGISTRATIONFAILED
+	case DownloadTaskArtifactByCidBadRequestCodeUPSTREAMERROR:
+		*s = DownloadTaskArtifactByCidBadRequestCodeUPSTREAMERROR
+	case DownloadTaskArtifactByCidBadRequestCodeSERVICEUNAVAILABLE:
+		*s = DownloadTaskArtifactByCidBadRequestCodeSERVICEUNAVAILABLE
+	case DownloadTaskArtifactByCidBadRequestCodeINTERNALSERVERERROR:
+		*s = DownloadTaskArtifactByCidBadRequestCodeINTERNALSERVERERROR
+	case DownloadTaskArtifactByCidBadRequestCodeTEAMPERSONALIMMUTABLE:
+		*s = DownloadTaskArtifactByCidBadRequestCodeTEAMPERSONALIMMUTABLE
+	case DownloadTaskArtifactByCidBadRequestCodeTEAMNOTACTIVE:
+		*s = DownloadTaskArtifactByCidBadRequestCodeTEAMNOTACTIVE
+	case DownloadTaskArtifactByCidBadRequestCodeINVITEEXPIRED:
+		*s = DownloadTaskArtifactByCidBadRequestCodeINVITEEXPIRED
+	case DownloadTaskArtifactByCidBadRequestCodeINVITEEXHAUSTED:
+		*s = DownloadTaskArtifactByCidBadRequestCodeINVITEEXHAUSTED
+	case DownloadTaskArtifactByCidBadRequestCodeTEAMLASTOWNER:
+		*s = DownloadTaskArtifactByCidBadRequestCodeTEAMLASTOWNER
+	case DownloadTaskArtifactByCidBadRequestCodeTEAMALREADYACTIVE:
+		*s = DownloadTaskArtifactByCidBadRequestCodeTEAMALREADYACTIVE
+	case DownloadTaskArtifactByCidBadRequestCodeTEAMNOTFOUNDING:
+		*s = DownloadTaskArtifactByCidBadRequestCodeTEAMNOTFOUNDING
+	case DownloadTaskArtifactByCidBadRequestCodeFOUNDINGALREADYACCEPTED:
+		*s = DownloadTaskArtifactByCidBadRequestCodeFOUNDINGALREADYACCEPTED
+	case DownloadTaskArtifactByCidBadRequestCodeDIARYTRANSFERPENDING:
+		*s = DownloadTaskArtifactByCidBadRequestCodeDIARYTRANSFERPENDING
+	case DownloadTaskArtifactByCidBadRequestCodeDIARYTRANSFERNOTFOUND:
+		*s = DownloadTaskArtifactByCidBadRequestCodeDIARYTRANSFERNOTFOUND
+	case DownloadTaskArtifactByCidBadRequestCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = DownloadTaskArtifactByCidBadRequestCodeDIARYTRANSFERALREADYRESOLVED
+	default:
+		*s = DownloadTaskArtifactByCidBadRequestCode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DownloadTaskArtifactByCidBadRequestCode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DownloadTaskArtifactByCidBadRequestCode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DownloadTaskArtifactByCidForbidden) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DownloadTaskArtifactByCidForbidden) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("code")
+		s.Code.Encode(e)
+	}
+	{
+		if s.Detail.Set {
+			e.FieldStart("detail")
+			s.Detail.Encode(e)
+		}
+	}
+	{
+		if s.Instance.Set {
+			e.FieldStart("instance")
+			s.Instance.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("status")
+		e.Int(s.Status)
+	}
+	{
+		e.FieldStart("title")
+		e.Str(s.Title)
+	}
+	{
+		e.FieldStart("type")
+		json.EncodeURI(e, s.Type)
+	}
+	for k, elem := range s.AdditionalProps {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+var jsonFieldsNameOfDownloadTaskArtifactByCidForbidden = [6]string{
+	0: "code",
+	1: "detail",
+	2: "instance",
+	3: "status",
+	4: "title",
+	5: "type",
+}
+
+// Decode decodes DownloadTaskArtifactByCidForbidden from json.
+func (s *DownloadTaskArtifactByCidForbidden) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DownloadTaskArtifactByCidForbidden to nil")
+	}
+	var requiredBitSet [1]uint8
+	s.AdditionalProps = map[string]jx.Raw{}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "detail":
+			if err := func() error {
+				s.Detail.Reset()
+				if err := s.Detail.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"detail\"")
+			}
+		case "instance":
+			if err := func() error {
+				s.Instance.Reset()
+				if err := s.Instance.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"instance\"")
+			}
+		case "status":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.Status = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"status\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Title = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "type":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeURI(d)
+				s.Type = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"type\"")
+			}
+		default:
+			var elem jx.Raw
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				elem = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrapf(err, "decode field %q", k)
+			}
+			s.AdditionalProps[string(k)] = elem
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DownloadTaskArtifactByCidForbidden")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00111001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfDownloadTaskArtifactByCidForbidden) {
+					name = jsonFieldsNameOfDownloadTaskArtifactByCidForbidden[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DownloadTaskArtifactByCidForbidden) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DownloadTaskArtifactByCidForbidden) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s DownloadTaskArtifactByCidForbiddenAdditional) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s DownloadTaskArtifactByCidForbiddenAdditional) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+// Decode decodes DownloadTaskArtifactByCidForbiddenAdditional from json.
+func (s *DownloadTaskArtifactByCidForbiddenAdditional) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DownloadTaskArtifactByCidForbiddenAdditional to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DownloadTaskArtifactByCidForbiddenAdditional")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DownloadTaskArtifactByCidForbiddenAdditional) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DownloadTaskArtifactByCidForbiddenAdditional) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DownloadTaskArtifactByCidForbiddenCode as json.
+func (s DownloadTaskArtifactByCidForbiddenCode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes DownloadTaskArtifactByCidForbiddenCode from json.
+func (s *DownloadTaskArtifactByCidForbiddenCode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DownloadTaskArtifactByCidForbiddenCode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch DownloadTaskArtifactByCidForbiddenCode(v) {
+	case DownloadTaskArtifactByCidForbiddenCodeUNAUTHORIZED:
+		*s = DownloadTaskArtifactByCidForbiddenCodeUNAUTHORIZED
+	case DownloadTaskArtifactByCidForbiddenCodeFORBIDDEN:
+		*s = DownloadTaskArtifactByCidForbiddenCodeFORBIDDEN
+	case DownloadTaskArtifactByCidForbiddenCodeNOTFOUND:
+		*s = DownloadTaskArtifactByCidForbiddenCodeNOTFOUND
+	case DownloadTaskArtifactByCidForbiddenCodeCONFLICT:
+		*s = DownloadTaskArtifactByCidForbiddenCodeCONFLICT
+	case DownloadTaskArtifactByCidForbiddenCodeUNSUPPORTEDMEDIATYPE:
+		*s = DownloadTaskArtifactByCidForbiddenCodeUNSUPPORTEDMEDIATYPE
+	case DownloadTaskArtifactByCidForbiddenCodeVALIDATIONFAILED:
+		*s = DownloadTaskArtifactByCidForbiddenCodeVALIDATIONFAILED
+	case DownloadTaskArtifactByCidForbiddenCodeINVALIDCHALLENGE:
+		*s = DownloadTaskArtifactByCidForbiddenCodeINVALIDCHALLENGE
+	case DownloadTaskArtifactByCidForbiddenCodeINVALIDSIGNATURE:
+		*s = DownloadTaskArtifactByCidForbiddenCodeINVALIDSIGNATURE
+	case DownloadTaskArtifactByCidForbiddenCodeVOUCHERLIMIT:
+		*s = DownloadTaskArtifactByCidForbiddenCodeVOUCHERLIMIT
+	case DownloadTaskArtifactByCidForbiddenCodeRATELIMITEXCEEDED:
+		*s = DownloadTaskArtifactByCidForbiddenCodeRATELIMITEXCEEDED
+	case DownloadTaskArtifactByCidForbiddenCodeSERIALIZATIONEXHAUSTED:
+		*s = DownloadTaskArtifactByCidForbiddenCodeSERIALIZATIONEXHAUSTED
+	case DownloadTaskArtifactByCidForbiddenCodeSIGNINGREQUESTEXPIRED:
+		*s = DownloadTaskArtifactByCidForbiddenCodeSIGNINGREQUESTEXPIRED
+	case DownloadTaskArtifactByCidForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = DownloadTaskArtifactByCidForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED
+	case DownloadTaskArtifactByCidForbiddenCodeREGISTRATIONFAILED:
+		*s = DownloadTaskArtifactByCidForbiddenCodeREGISTRATIONFAILED
+	case DownloadTaskArtifactByCidForbiddenCodeUPSTREAMERROR:
+		*s = DownloadTaskArtifactByCidForbiddenCodeUPSTREAMERROR
+	case DownloadTaskArtifactByCidForbiddenCodeSERVICEUNAVAILABLE:
+		*s = DownloadTaskArtifactByCidForbiddenCodeSERVICEUNAVAILABLE
+	case DownloadTaskArtifactByCidForbiddenCodeINTERNALSERVERERROR:
+		*s = DownloadTaskArtifactByCidForbiddenCodeINTERNALSERVERERROR
+	case DownloadTaskArtifactByCidForbiddenCodeTEAMPERSONALIMMUTABLE:
+		*s = DownloadTaskArtifactByCidForbiddenCodeTEAMPERSONALIMMUTABLE
+	case DownloadTaskArtifactByCidForbiddenCodeTEAMNOTACTIVE:
+		*s = DownloadTaskArtifactByCidForbiddenCodeTEAMNOTACTIVE
+	case DownloadTaskArtifactByCidForbiddenCodeINVITEEXPIRED:
+		*s = DownloadTaskArtifactByCidForbiddenCodeINVITEEXPIRED
+	case DownloadTaskArtifactByCidForbiddenCodeINVITEEXHAUSTED:
+		*s = DownloadTaskArtifactByCidForbiddenCodeINVITEEXHAUSTED
+	case DownloadTaskArtifactByCidForbiddenCodeTEAMLASTOWNER:
+		*s = DownloadTaskArtifactByCidForbiddenCodeTEAMLASTOWNER
+	case DownloadTaskArtifactByCidForbiddenCodeTEAMALREADYACTIVE:
+		*s = DownloadTaskArtifactByCidForbiddenCodeTEAMALREADYACTIVE
+	case DownloadTaskArtifactByCidForbiddenCodeTEAMNOTFOUNDING:
+		*s = DownloadTaskArtifactByCidForbiddenCodeTEAMNOTFOUNDING
+	case DownloadTaskArtifactByCidForbiddenCodeFOUNDINGALREADYACCEPTED:
+		*s = DownloadTaskArtifactByCidForbiddenCodeFOUNDINGALREADYACCEPTED
+	case DownloadTaskArtifactByCidForbiddenCodeDIARYTRANSFERPENDING:
+		*s = DownloadTaskArtifactByCidForbiddenCodeDIARYTRANSFERPENDING
+	case DownloadTaskArtifactByCidForbiddenCodeDIARYTRANSFERNOTFOUND:
+		*s = DownloadTaskArtifactByCidForbiddenCodeDIARYTRANSFERNOTFOUND
+	case DownloadTaskArtifactByCidForbiddenCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = DownloadTaskArtifactByCidForbiddenCodeDIARYTRANSFERALREADYRESOLVED
+	default:
+		*s = DownloadTaskArtifactByCidForbiddenCode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DownloadTaskArtifactByCidForbiddenCode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DownloadTaskArtifactByCidForbiddenCode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DownloadTaskArtifactByCidNotFound) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DownloadTaskArtifactByCidNotFound) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("code")
+		s.Code.Encode(e)
+	}
+	{
+		if s.Detail.Set {
+			e.FieldStart("detail")
+			s.Detail.Encode(e)
+		}
+	}
+	{
+		if s.Instance.Set {
+			e.FieldStart("instance")
+			s.Instance.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("status")
+		e.Int(s.Status)
+	}
+	{
+		e.FieldStart("title")
+		e.Str(s.Title)
+	}
+	{
+		e.FieldStart("type")
+		json.EncodeURI(e, s.Type)
+	}
+	for k, elem := range s.AdditionalProps {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+var jsonFieldsNameOfDownloadTaskArtifactByCidNotFound = [6]string{
+	0: "code",
+	1: "detail",
+	2: "instance",
+	3: "status",
+	4: "title",
+	5: "type",
+}
+
+// Decode decodes DownloadTaskArtifactByCidNotFound from json.
+func (s *DownloadTaskArtifactByCidNotFound) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DownloadTaskArtifactByCidNotFound to nil")
+	}
+	var requiredBitSet [1]uint8
+	s.AdditionalProps = map[string]jx.Raw{}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "detail":
+			if err := func() error {
+				s.Detail.Reset()
+				if err := s.Detail.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"detail\"")
+			}
+		case "instance":
+			if err := func() error {
+				s.Instance.Reset()
+				if err := s.Instance.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"instance\"")
+			}
+		case "status":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.Status = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"status\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Title = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "type":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeURI(d)
+				s.Type = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"type\"")
+			}
+		default:
+			var elem jx.Raw
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				elem = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrapf(err, "decode field %q", k)
+			}
+			s.AdditionalProps[string(k)] = elem
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DownloadTaskArtifactByCidNotFound")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00111001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfDownloadTaskArtifactByCidNotFound) {
+					name = jsonFieldsNameOfDownloadTaskArtifactByCidNotFound[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DownloadTaskArtifactByCidNotFound) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DownloadTaskArtifactByCidNotFound) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s DownloadTaskArtifactByCidNotFoundAdditional) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s DownloadTaskArtifactByCidNotFoundAdditional) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+// Decode decodes DownloadTaskArtifactByCidNotFoundAdditional from json.
+func (s *DownloadTaskArtifactByCidNotFoundAdditional) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DownloadTaskArtifactByCidNotFoundAdditional to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DownloadTaskArtifactByCidNotFoundAdditional")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DownloadTaskArtifactByCidNotFoundAdditional) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DownloadTaskArtifactByCidNotFoundAdditional) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DownloadTaskArtifactByCidNotFoundCode as json.
+func (s DownloadTaskArtifactByCidNotFoundCode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes DownloadTaskArtifactByCidNotFoundCode from json.
+func (s *DownloadTaskArtifactByCidNotFoundCode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DownloadTaskArtifactByCidNotFoundCode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch DownloadTaskArtifactByCidNotFoundCode(v) {
+	case DownloadTaskArtifactByCidNotFoundCodeUNAUTHORIZED:
+		*s = DownloadTaskArtifactByCidNotFoundCodeUNAUTHORIZED
+	case DownloadTaskArtifactByCidNotFoundCodeFORBIDDEN:
+		*s = DownloadTaskArtifactByCidNotFoundCodeFORBIDDEN
+	case DownloadTaskArtifactByCidNotFoundCodeNOTFOUND:
+		*s = DownloadTaskArtifactByCidNotFoundCodeNOTFOUND
+	case DownloadTaskArtifactByCidNotFoundCodeCONFLICT:
+		*s = DownloadTaskArtifactByCidNotFoundCodeCONFLICT
+	case DownloadTaskArtifactByCidNotFoundCodeUNSUPPORTEDMEDIATYPE:
+		*s = DownloadTaskArtifactByCidNotFoundCodeUNSUPPORTEDMEDIATYPE
+	case DownloadTaskArtifactByCidNotFoundCodeVALIDATIONFAILED:
+		*s = DownloadTaskArtifactByCidNotFoundCodeVALIDATIONFAILED
+	case DownloadTaskArtifactByCidNotFoundCodeINVALIDCHALLENGE:
+		*s = DownloadTaskArtifactByCidNotFoundCodeINVALIDCHALLENGE
+	case DownloadTaskArtifactByCidNotFoundCodeINVALIDSIGNATURE:
+		*s = DownloadTaskArtifactByCidNotFoundCodeINVALIDSIGNATURE
+	case DownloadTaskArtifactByCidNotFoundCodeVOUCHERLIMIT:
+		*s = DownloadTaskArtifactByCidNotFoundCodeVOUCHERLIMIT
+	case DownloadTaskArtifactByCidNotFoundCodeRATELIMITEXCEEDED:
+		*s = DownloadTaskArtifactByCidNotFoundCodeRATELIMITEXCEEDED
+	case DownloadTaskArtifactByCidNotFoundCodeSERIALIZATIONEXHAUSTED:
+		*s = DownloadTaskArtifactByCidNotFoundCodeSERIALIZATIONEXHAUSTED
+	case DownloadTaskArtifactByCidNotFoundCodeSIGNINGREQUESTEXPIRED:
+		*s = DownloadTaskArtifactByCidNotFoundCodeSIGNINGREQUESTEXPIRED
+	case DownloadTaskArtifactByCidNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = DownloadTaskArtifactByCidNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED
+	case DownloadTaskArtifactByCidNotFoundCodeREGISTRATIONFAILED:
+		*s = DownloadTaskArtifactByCidNotFoundCodeREGISTRATIONFAILED
+	case DownloadTaskArtifactByCidNotFoundCodeUPSTREAMERROR:
+		*s = DownloadTaskArtifactByCidNotFoundCodeUPSTREAMERROR
+	case DownloadTaskArtifactByCidNotFoundCodeSERVICEUNAVAILABLE:
+		*s = DownloadTaskArtifactByCidNotFoundCodeSERVICEUNAVAILABLE
+	case DownloadTaskArtifactByCidNotFoundCodeINTERNALSERVERERROR:
+		*s = DownloadTaskArtifactByCidNotFoundCodeINTERNALSERVERERROR
+	case DownloadTaskArtifactByCidNotFoundCodeTEAMPERSONALIMMUTABLE:
+		*s = DownloadTaskArtifactByCidNotFoundCodeTEAMPERSONALIMMUTABLE
+	case DownloadTaskArtifactByCidNotFoundCodeTEAMNOTACTIVE:
+		*s = DownloadTaskArtifactByCidNotFoundCodeTEAMNOTACTIVE
+	case DownloadTaskArtifactByCidNotFoundCodeINVITEEXPIRED:
+		*s = DownloadTaskArtifactByCidNotFoundCodeINVITEEXPIRED
+	case DownloadTaskArtifactByCidNotFoundCodeINVITEEXHAUSTED:
+		*s = DownloadTaskArtifactByCidNotFoundCodeINVITEEXHAUSTED
+	case DownloadTaskArtifactByCidNotFoundCodeTEAMLASTOWNER:
+		*s = DownloadTaskArtifactByCidNotFoundCodeTEAMLASTOWNER
+	case DownloadTaskArtifactByCidNotFoundCodeTEAMALREADYACTIVE:
+		*s = DownloadTaskArtifactByCidNotFoundCodeTEAMALREADYACTIVE
+	case DownloadTaskArtifactByCidNotFoundCodeTEAMNOTFOUNDING:
+		*s = DownloadTaskArtifactByCidNotFoundCodeTEAMNOTFOUNDING
+	case DownloadTaskArtifactByCidNotFoundCodeFOUNDINGALREADYACCEPTED:
+		*s = DownloadTaskArtifactByCidNotFoundCodeFOUNDINGALREADYACCEPTED
+	case DownloadTaskArtifactByCidNotFoundCodeDIARYTRANSFERPENDING:
+		*s = DownloadTaskArtifactByCidNotFoundCodeDIARYTRANSFERPENDING
+	case DownloadTaskArtifactByCidNotFoundCodeDIARYTRANSFERNOTFOUND:
+		*s = DownloadTaskArtifactByCidNotFoundCodeDIARYTRANSFERNOTFOUND
+	case DownloadTaskArtifactByCidNotFoundCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = DownloadTaskArtifactByCidNotFoundCodeDIARYTRANSFERALREADYRESOLVED
+	default:
+		*s = DownloadTaskArtifactByCidNotFoundCode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DownloadTaskArtifactByCidNotFoundCode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DownloadTaskArtifactByCidNotFoundCode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DownloadTaskArtifactByCidServiceUnavailable) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DownloadTaskArtifactByCidServiceUnavailable) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("code")
+		s.Code.Encode(e)
+	}
+	{
+		if s.Detail.Set {
+			e.FieldStart("detail")
+			s.Detail.Encode(e)
+		}
+	}
+	{
+		if s.Instance.Set {
+			e.FieldStart("instance")
+			s.Instance.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("status")
+		e.Int(s.Status)
+	}
+	{
+		e.FieldStart("title")
+		e.Str(s.Title)
+	}
+	{
+		e.FieldStart("type")
+		json.EncodeURI(e, s.Type)
+	}
+	for k, elem := range s.AdditionalProps {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+var jsonFieldsNameOfDownloadTaskArtifactByCidServiceUnavailable = [6]string{
+	0: "code",
+	1: "detail",
+	2: "instance",
+	3: "status",
+	4: "title",
+	5: "type",
+}
+
+// Decode decodes DownloadTaskArtifactByCidServiceUnavailable from json.
+func (s *DownloadTaskArtifactByCidServiceUnavailable) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DownloadTaskArtifactByCidServiceUnavailable to nil")
+	}
+	var requiredBitSet [1]uint8
+	s.AdditionalProps = map[string]jx.Raw{}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "detail":
+			if err := func() error {
+				s.Detail.Reset()
+				if err := s.Detail.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"detail\"")
+			}
+		case "instance":
+			if err := func() error {
+				s.Instance.Reset()
+				if err := s.Instance.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"instance\"")
+			}
+		case "status":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.Status = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"status\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Title = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "type":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeURI(d)
+				s.Type = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"type\"")
+			}
+		default:
+			var elem jx.Raw
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				elem = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrapf(err, "decode field %q", k)
+			}
+			s.AdditionalProps[string(k)] = elem
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DownloadTaskArtifactByCidServiceUnavailable")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00111001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfDownloadTaskArtifactByCidServiceUnavailable) {
+					name = jsonFieldsNameOfDownloadTaskArtifactByCidServiceUnavailable[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DownloadTaskArtifactByCidServiceUnavailable) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DownloadTaskArtifactByCidServiceUnavailable) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s DownloadTaskArtifactByCidServiceUnavailableAdditional) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s DownloadTaskArtifactByCidServiceUnavailableAdditional) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+// Decode decodes DownloadTaskArtifactByCidServiceUnavailableAdditional from json.
+func (s *DownloadTaskArtifactByCidServiceUnavailableAdditional) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DownloadTaskArtifactByCidServiceUnavailableAdditional to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DownloadTaskArtifactByCidServiceUnavailableAdditional")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DownloadTaskArtifactByCidServiceUnavailableAdditional) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DownloadTaskArtifactByCidServiceUnavailableAdditional) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DownloadTaskArtifactByCidServiceUnavailableCode as json.
+func (s DownloadTaskArtifactByCidServiceUnavailableCode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes DownloadTaskArtifactByCidServiceUnavailableCode from json.
+func (s *DownloadTaskArtifactByCidServiceUnavailableCode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DownloadTaskArtifactByCidServiceUnavailableCode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch DownloadTaskArtifactByCidServiceUnavailableCode(v) {
+	case DownloadTaskArtifactByCidServiceUnavailableCodeUNAUTHORIZED:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeUNAUTHORIZED
+	case DownloadTaskArtifactByCidServiceUnavailableCodeFORBIDDEN:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeFORBIDDEN
+	case DownloadTaskArtifactByCidServiceUnavailableCodeNOTFOUND:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeNOTFOUND
+	case DownloadTaskArtifactByCidServiceUnavailableCodeCONFLICT:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeCONFLICT
+	case DownloadTaskArtifactByCidServiceUnavailableCodeUNSUPPORTEDMEDIATYPE:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeUNSUPPORTEDMEDIATYPE
+	case DownloadTaskArtifactByCidServiceUnavailableCodeVALIDATIONFAILED:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeVALIDATIONFAILED
+	case DownloadTaskArtifactByCidServiceUnavailableCodeINVALIDCHALLENGE:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeINVALIDCHALLENGE
+	case DownloadTaskArtifactByCidServiceUnavailableCodeINVALIDSIGNATURE:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeINVALIDSIGNATURE
+	case DownloadTaskArtifactByCidServiceUnavailableCodeVOUCHERLIMIT:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeVOUCHERLIMIT
+	case DownloadTaskArtifactByCidServiceUnavailableCodeRATELIMITEXCEEDED:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeRATELIMITEXCEEDED
+	case DownloadTaskArtifactByCidServiceUnavailableCodeSERIALIZATIONEXHAUSTED:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeSERIALIZATIONEXHAUSTED
+	case DownloadTaskArtifactByCidServiceUnavailableCodeSIGNINGREQUESTEXPIRED:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeSIGNINGREQUESTEXPIRED
+	case DownloadTaskArtifactByCidServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED
+	case DownloadTaskArtifactByCidServiceUnavailableCodeREGISTRATIONFAILED:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeREGISTRATIONFAILED
+	case DownloadTaskArtifactByCidServiceUnavailableCodeUPSTREAMERROR:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeUPSTREAMERROR
+	case DownloadTaskArtifactByCidServiceUnavailableCodeSERVICEUNAVAILABLE:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeSERVICEUNAVAILABLE
+	case DownloadTaskArtifactByCidServiceUnavailableCodeINTERNALSERVERERROR:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeINTERNALSERVERERROR
+	case DownloadTaskArtifactByCidServiceUnavailableCodeTEAMPERSONALIMMUTABLE:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeTEAMPERSONALIMMUTABLE
+	case DownloadTaskArtifactByCidServiceUnavailableCodeTEAMNOTACTIVE:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeTEAMNOTACTIVE
+	case DownloadTaskArtifactByCidServiceUnavailableCodeINVITEEXPIRED:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeINVITEEXPIRED
+	case DownloadTaskArtifactByCidServiceUnavailableCodeINVITEEXHAUSTED:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeINVITEEXHAUSTED
+	case DownloadTaskArtifactByCidServiceUnavailableCodeTEAMLASTOWNER:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeTEAMLASTOWNER
+	case DownloadTaskArtifactByCidServiceUnavailableCodeTEAMALREADYACTIVE:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeTEAMALREADYACTIVE
+	case DownloadTaskArtifactByCidServiceUnavailableCodeTEAMNOTFOUNDING:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeTEAMNOTFOUNDING
+	case DownloadTaskArtifactByCidServiceUnavailableCodeFOUNDINGALREADYACCEPTED:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeFOUNDINGALREADYACCEPTED
+	case DownloadTaskArtifactByCidServiceUnavailableCodeDIARYTRANSFERPENDING:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeDIARYTRANSFERPENDING
+	case DownloadTaskArtifactByCidServiceUnavailableCodeDIARYTRANSFERNOTFOUND:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeDIARYTRANSFERNOTFOUND
+	case DownloadTaskArtifactByCidServiceUnavailableCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeDIARYTRANSFERALREADYRESOLVED
+	default:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DownloadTaskArtifactByCidServiceUnavailableCode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DownloadTaskArtifactByCidServiceUnavailableCode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *DownloadTaskArtifactByCidUnauthorized) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *DownloadTaskArtifactByCidUnauthorized) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("code")
+		s.Code.Encode(e)
+	}
+	{
+		if s.Detail.Set {
+			e.FieldStart("detail")
+			s.Detail.Encode(e)
+		}
+	}
+	{
+		if s.Instance.Set {
+			e.FieldStart("instance")
+			s.Instance.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("status")
+		e.Int(s.Status)
+	}
+	{
+		e.FieldStart("title")
+		e.Str(s.Title)
+	}
+	{
+		e.FieldStart("type")
+		json.EncodeURI(e, s.Type)
+	}
+	for k, elem := range s.AdditionalProps {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+var jsonFieldsNameOfDownloadTaskArtifactByCidUnauthorized = [6]string{
+	0: "code",
+	1: "detail",
+	2: "instance",
+	3: "status",
+	4: "title",
+	5: "type",
+}
+
+// Decode decodes DownloadTaskArtifactByCidUnauthorized from json.
+func (s *DownloadTaskArtifactByCidUnauthorized) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DownloadTaskArtifactByCidUnauthorized to nil")
+	}
+	var requiredBitSet [1]uint8
+	s.AdditionalProps = map[string]jx.Raw{}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "detail":
+			if err := func() error {
+				s.Detail.Reset()
+				if err := s.Detail.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"detail\"")
+			}
+		case "instance":
+			if err := func() error {
+				s.Instance.Reset()
+				if err := s.Instance.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"instance\"")
+			}
+		case "status":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.Status = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"status\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Title = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "type":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeURI(d)
+				s.Type = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"type\"")
+			}
+		default:
+			var elem jx.Raw
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				elem = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrapf(err, "decode field %q", k)
+			}
+			s.AdditionalProps[string(k)] = elem
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DownloadTaskArtifactByCidUnauthorized")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00111001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfDownloadTaskArtifactByCidUnauthorized) {
+					name = jsonFieldsNameOfDownloadTaskArtifactByCidUnauthorized[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *DownloadTaskArtifactByCidUnauthorized) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DownloadTaskArtifactByCidUnauthorized) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s DownloadTaskArtifactByCidUnauthorizedAdditional) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s DownloadTaskArtifactByCidUnauthorizedAdditional) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+// Decode decodes DownloadTaskArtifactByCidUnauthorizedAdditional from json.
+func (s *DownloadTaskArtifactByCidUnauthorizedAdditional) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DownloadTaskArtifactByCidUnauthorizedAdditional to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode DownloadTaskArtifactByCidUnauthorizedAdditional")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DownloadTaskArtifactByCidUnauthorizedAdditional) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DownloadTaskArtifactByCidUnauthorizedAdditional) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes DownloadTaskArtifactByCidUnauthorizedCode as json.
+func (s DownloadTaskArtifactByCidUnauthorizedCode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes DownloadTaskArtifactByCidUnauthorizedCode from json.
+func (s *DownloadTaskArtifactByCidUnauthorizedCode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode DownloadTaskArtifactByCidUnauthorizedCode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch DownloadTaskArtifactByCidUnauthorizedCode(v) {
+	case DownloadTaskArtifactByCidUnauthorizedCodeUNAUTHORIZED:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeUNAUTHORIZED
+	case DownloadTaskArtifactByCidUnauthorizedCodeFORBIDDEN:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeFORBIDDEN
+	case DownloadTaskArtifactByCidUnauthorizedCodeNOTFOUND:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeNOTFOUND
+	case DownloadTaskArtifactByCidUnauthorizedCodeCONFLICT:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeCONFLICT
+	case DownloadTaskArtifactByCidUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeUNSUPPORTEDMEDIATYPE
+	case DownloadTaskArtifactByCidUnauthorizedCodeVALIDATIONFAILED:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeVALIDATIONFAILED
+	case DownloadTaskArtifactByCidUnauthorizedCodeINVALIDCHALLENGE:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeINVALIDCHALLENGE
+	case DownloadTaskArtifactByCidUnauthorizedCodeINVALIDSIGNATURE:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeINVALIDSIGNATURE
+	case DownloadTaskArtifactByCidUnauthorizedCodeVOUCHERLIMIT:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeVOUCHERLIMIT
+	case DownloadTaskArtifactByCidUnauthorizedCodeRATELIMITEXCEEDED:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeRATELIMITEXCEEDED
+	case DownloadTaskArtifactByCidUnauthorizedCodeSERIALIZATIONEXHAUSTED:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeSERIALIZATIONEXHAUSTED
+	case DownloadTaskArtifactByCidUnauthorizedCodeSIGNINGREQUESTEXPIRED:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeSIGNINGREQUESTEXPIRED
+	case DownloadTaskArtifactByCidUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED
+	case DownloadTaskArtifactByCidUnauthorizedCodeREGISTRATIONFAILED:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeREGISTRATIONFAILED
+	case DownloadTaskArtifactByCidUnauthorizedCodeUPSTREAMERROR:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeUPSTREAMERROR
+	case DownloadTaskArtifactByCidUnauthorizedCodeSERVICEUNAVAILABLE:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeSERVICEUNAVAILABLE
+	case DownloadTaskArtifactByCidUnauthorizedCodeINTERNALSERVERERROR:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeINTERNALSERVERERROR
+	case DownloadTaskArtifactByCidUnauthorizedCodeTEAMPERSONALIMMUTABLE:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeTEAMPERSONALIMMUTABLE
+	case DownloadTaskArtifactByCidUnauthorizedCodeTEAMNOTACTIVE:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeTEAMNOTACTIVE
+	case DownloadTaskArtifactByCidUnauthorizedCodeINVITEEXPIRED:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeINVITEEXPIRED
+	case DownloadTaskArtifactByCidUnauthorizedCodeINVITEEXHAUSTED:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeINVITEEXHAUSTED
+	case DownloadTaskArtifactByCidUnauthorizedCodeTEAMLASTOWNER:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeTEAMLASTOWNER
+	case DownloadTaskArtifactByCidUnauthorizedCodeTEAMALREADYACTIVE:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeTEAMALREADYACTIVE
+	case DownloadTaskArtifactByCidUnauthorizedCodeTEAMNOTFOUNDING:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeTEAMNOTFOUNDING
+	case DownloadTaskArtifactByCidUnauthorizedCodeFOUNDINGALREADYACCEPTED:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeFOUNDINGALREADYACCEPTED
+	case DownloadTaskArtifactByCidUnauthorizedCodeDIARYTRANSFERPENDING:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeDIARYTRANSFERPENDING
+	case DownloadTaskArtifactByCidUnauthorizedCodeDIARYTRANSFERNOTFOUND:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeDIARYTRANSFERNOTFOUND
+	case DownloadTaskArtifactByCidUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED
+	default:
+		*s = DownloadTaskArtifactByCidUnauthorizedCode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s DownloadTaskArtifactByCidUnauthorizedCode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *DownloadTaskArtifactByCidUnauthorizedCode) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -50706,7 +52549,7 @@ func (s *ListTaskArtifactsOKArtifactsItem) Encode(e *jx.Encoder) {
 func (s *ListTaskArtifactsOKArtifactsItem) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("attemptN")
-		e.Int(s.AttemptN)
+		s.AttemptN.Encode(e)
 	}
 	{
 		e.FieldStart("cid")
@@ -50726,7 +52569,7 @@ func (s *ListTaskArtifactsOKArtifactsItem) encodeFields(e *jx.Encoder) {
 	}
 	{
 		e.FieldStart("createdByAgentId")
-		json.EncodeUUID(e, s.CreatedByAgentId)
+		s.CreatedByAgentId.Encode(e)
 	}
 	{
 		e.FieldStart("expiresAt")
@@ -50786,9 +52629,7 @@ func (s *ListTaskArtifactsOKArtifactsItem) Decode(d *jx.Decoder) error {
 		case "attemptN":
 			requiredBitSet[0] |= 1 << 0
 			if err := func() error {
-				v, err := d.Int()
-				s.AttemptN = int(v)
-				if err != nil {
+				if err := s.AttemptN.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -50844,9 +52685,7 @@ func (s *ListTaskArtifactsOKArtifactsItem) Decode(d *jx.Decoder) error {
 		case "createdByAgentId":
 			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
-				v, err := json.DecodeUUID(d)
-				s.CreatedByAgentId = v
-				if err != nil {
+				if err := s.CreatedByAgentId.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -77555,6 +79394,1903 @@ func (s *SigningRequestStatus) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode implements json.Marshaler.
+func (s *StageTaskArtifactBadRequest) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *StageTaskArtifactBadRequest) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("code")
+		s.Code.Encode(e)
+	}
+	{
+		if s.Detail.Set {
+			e.FieldStart("detail")
+			s.Detail.Encode(e)
+		}
+	}
+	{
+		if s.Instance.Set {
+			e.FieldStart("instance")
+			s.Instance.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("status")
+		e.Int(s.Status)
+	}
+	{
+		e.FieldStart("title")
+		e.Str(s.Title)
+	}
+	{
+		e.FieldStart("type")
+		json.EncodeURI(e, s.Type)
+	}
+	{
+		e.FieldStart("errors")
+		e.ArrStart()
+		for _, elem := range s.Errors {
+			elem.Encode(e)
+		}
+		e.ArrEnd()
+	}
+	for k, elem := range s.AdditionalProps {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+var jsonFieldsNameOfStageTaskArtifactBadRequest = [7]string{
+	0: "code",
+	1: "detail",
+	2: "instance",
+	3: "status",
+	4: "title",
+	5: "type",
+	6: "errors",
+}
+
+// Decode decodes StageTaskArtifactBadRequest from json.
+func (s *StageTaskArtifactBadRequest) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode StageTaskArtifactBadRequest to nil")
+	}
+	var requiredBitSet [1]uint8
+	s.AdditionalProps = map[string]jx.Raw{}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "detail":
+			if err := func() error {
+				s.Detail.Reset()
+				if err := s.Detail.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"detail\"")
+			}
+		case "instance":
+			if err := func() error {
+				s.Instance.Reset()
+				if err := s.Instance.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"instance\"")
+			}
+		case "status":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.Status = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"status\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Title = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "type":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeURI(d)
+				s.Type = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"type\"")
+			}
+		case "errors":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				s.Errors = make([]ValidationError, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem ValidationError
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.Errors = append(s.Errors, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"errors\"")
+			}
+		default:
+			var elem jx.Raw
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				elem = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrapf(err, "decode field %q", k)
+			}
+			s.AdditionalProps[string(k)] = elem
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode StageTaskArtifactBadRequest")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b01111001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfStageTaskArtifactBadRequest) {
+					name = jsonFieldsNameOfStageTaskArtifactBadRequest[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *StageTaskArtifactBadRequest) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *StageTaskArtifactBadRequest) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s StageTaskArtifactBadRequestAdditional) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s StageTaskArtifactBadRequestAdditional) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+// Decode decodes StageTaskArtifactBadRequestAdditional from json.
+func (s *StageTaskArtifactBadRequestAdditional) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode StageTaskArtifactBadRequestAdditional to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode StageTaskArtifactBadRequestAdditional")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s StageTaskArtifactBadRequestAdditional) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *StageTaskArtifactBadRequestAdditional) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes StageTaskArtifactBadRequestCode as json.
+func (s StageTaskArtifactBadRequestCode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes StageTaskArtifactBadRequestCode from json.
+func (s *StageTaskArtifactBadRequestCode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode StageTaskArtifactBadRequestCode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch StageTaskArtifactBadRequestCode(v) {
+	case StageTaskArtifactBadRequestCodeUNAUTHORIZED:
+		*s = StageTaskArtifactBadRequestCodeUNAUTHORIZED
+	case StageTaskArtifactBadRequestCodeFORBIDDEN:
+		*s = StageTaskArtifactBadRequestCodeFORBIDDEN
+	case StageTaskArtifactBadRequestCodeNOTFOUND:
+		*s = StageTaskArtifactBadRequestCodeNOTFOUND
+	case StageTaskArtifactBadRequestCodeCONFLICT:
+		*s = StageTaskArtifactBadRequestCodeCONFLICT
+	case StageTaskArtifactBadRequestCodeUNSUPPORTEDMEDIATYPE:
+		*s = StageTaskArtifactBadRequestCodeUNSUPPORTEDMEDIATYPE
+	case StageTaskArtifactBadRequestCodeVALIDATIONFAILED:
+		*s = StageTaskArtifactBadRequestCodeVALIDATIONFAILED
+	case StageTaskArtifactBadRequestCodeINVALIDCHALLENGE:
+		*s = StageTaskArtifactBadRequestCodeINVALIDCHALLENGE
+	case StageTaskArtifactBadRequestCodeINVALIDSIGNATURE:
+		*s = StageTaskArtifactBadRequestCodeINVALIDSIGNATURE
+	case StageTaskArtifactBadRequestCodeVOUCHERLIMIT:
+		*s = StageTaskArtifactBadRequestCodeVOUCHERLIMIT
+	case StageTaskArtifactBadRequestCodeRATELIMITEXCEEDED:
+		*s = StageTaskArtifactBadRequestCodeRATELIMITEXCEEDED
+	case StageTaskArtifactBadRequestCodeSERIALIZATIONEXHAUSTED:
+		*s = StageTaskArtifactBadRequestCodeSERIALIZATIONEXHAUSTED
+	case StageTaskArtifactBadRequestCodeSIGNINGREQUESTEXPIRED:
+		*s = StageTaskArtifactBadRequestCodeSIGNINGREQUESTEXPIRED
+	case StageTaskArtifactBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = StageTaskArtifactBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED
+	case StageTaskArtifactBadRequestCodeREGISTRATIONFAILED:
+		*s = StageTaskArtifactBadRequestCodeREGISTRATIONFAILED
+	case StageTaskArtifactBadRequestCodeUPSTREAMERROR:
+		*s = StageTaskArtifactBadRequestCodeUPSTREAMERROR
+	case StageTaskArtifactBadRequestCodeSERVICEUNAVAILABLE:
+		*s = StageTaskArtifactBadRequestCodeSERVICEUNAVAILABLE
+	case StageTaskArtifactBadRequestCodeINTERNALSERVERERROR:
+		*s = StageTaskArtifactBadRequestCodeINTERNALSERVERERROR
+	case StageTaskArtifactBadRequestCodeTEAMPERSONALIMMUTABLE:
+		*s = StageTaskArtifactBadRequestCodeTEAMPERSONALIMMUTABLE
+	case StageTaskArtifactBadRequestCodeTEAMNOTACTIVE:
+		*s = StageTaskArtifactBadRequestCodeTEAMNOTACTIVE
+	case StageTaskArtifactBadRequestCodeINVITEEXPIRED:
+		*s = StageTaskArtifactBadRequestCodeINVITEEXPIRED
+	case StageTaskArtifactBadRequestCodeINVITEEXHAUSTED:
+		*s = StageTaskArtifactBadRequestCodeINVITEEXHAUSTED
+	case StageTaskArtifactBadRequestCodeTEAMLASTOWNER:
+		*s = StageTaskArtifactBadRequestCodeTEAMLASTOWNER
+	case StageTaskArtifactBadRequestCodeTEAMALREADYACTIVE:
+		*s = StageTaskArtifactBadRequestCodeTEAMALREADYACTIVE
+	case StageTaskArtifactBadRequestCodeTEAMNOTFOUNDING:
+		*s = StageTaskArtifactBadRequestCodeTEAMNOTFOUNDING
+	case StageTaskArtifactBadRequestCodeFOUNDINGALREADYACCEPTED:
+		*s = StageTaskArtifactBadRequestCodeFOUNDINGALREADYACCEPTED
+	case StageTaskArtifactBadRequestCodeDIARYTRANSFERPENDING:
+		*s = StageTaskArtifactBadRequestCodeDIARYTRANSFERPENDING
+	case StageTaskArtifactBadRequestCodeDIARYTRANSFERNOTFOUND:
+		*s = StageTaskArtifactBadRequestCodeDIARYTRANSFERNOTFOUND
+	case StageTaskArtifactBadRequestCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = StageTaskArtifactBadRequestCodeDIARYTRANSFERALREADYRESOLVED
+	default:
+		*s = StageTaskArtifactBadRequestCode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s StageTaskArtifactBadRequestCode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *StageTaskArtifactBadRequestCode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *StageTaskArtifactForbidden) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *StageTaskArtifactForbidden) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("code")
+		s.Code.Encode(e)
+	}
+	{
+		if s.Detail.Set {
+			e.FieldStart("detail")
+			s.Detail.Encode(e)
+		}
+	}
+	{
+		if s.Instance.Set {
+			e.FieldStart("instance")
+			s.Instance.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("status")
+		e.Int(s.Status)
+	}
+	{
+		e.FieldStart("title")
+		e.Str(s.Title)
+	}
+	{
+		e.FieldStart("type")
+		json.EncodeURI(e, s.Type)
+	}
+	for k, elem := range s.AdditionalProps {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+var jsonFieldsNameOfStageTaskArtifactForbidden = [6]string{
+	0: "code",
+	1: "detail",
+	2: "instance",
+	3: "status",
+	4: "title",
+	5: "type",
+}
+
+// Decode decodes StageTaskArtifactForbidden from json.
+func (s *StageTaskArtifactForbidden) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode StageTaskArtifactForbidden to nil")
+	}
+	var requiredBitSet [1]uint8
+	s.AdditionalProps = map[string]jx.Raw{}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "detail":
+			if err := func() error {
+				s.Detail.Reset()
+				if err := s.Detail.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"detail\"")
+			}
+		case "instance":
+			if err := func() error {
+				s.Instance.Reset()
+				if err := s.Instance.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"instance\"")
+			}
+		case "status":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.Status = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"status\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Title = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "type":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeURI(d)
+				s.Type = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"type\"")
+			}
+		default:
+			var elem jx.Raw
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				elem = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrapf(err, "decode field %q", k)
+			}
+			s.AdditionalProps[string(k)] = elem
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode StageTaskArtifactForbidden")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00111001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfStageTaskArtifactForbidden) {
+					name = jsonFieldsNameOfStageTaskArtifactForbidden[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *StageTaskArtifactForbidden) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *StageTaskArtifactForbidden) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s StageTaskArtifactForbiddenAdditional) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s StageTaskArtifactForbiddenAdditional) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+// Decode decodes StageTaskArtifactForbiddenAdditional from json.
+func (s *StageTaskArtifactForbiddenAdditional) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode StageTaskArtifactForbiddenAdditional to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode StageTaskArtifactForbiddenAdditional")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s StageTaskArtifactForbiddenAdditional) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *StageTaskArtifactForbiddenAdditional) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes StageTaskArtifactForbiddenCode as json.
+func (s StageTaskArtifactForbiddenCode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes StageTaskArtifactForbiddenCode from json.
+func (s *StageTaskArtifactForbiddenCode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode StageTaskArtifactForbiddenCode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch StageTaskArtifactForbiddenCode(v) {
+	case StageTaskArtifactForbiddenCodeUNAUTHORIZED:
+		*s = StageTaskArtifactForbiddenCodeUNAUTHORIZED
+	case StageTaskArtifactForbiddenCodeFORBIDDEN:
+		*s = StageTaskArtifactForbiddenCodeFORBIDDEN
+	case StageTaskArtifactForbiddenCodeNOTFOUND:
+		*s = StageTaskArtifactForbiddenCodeNOTFOUND
+	case StageTaskArtifactForbiddenCodeCONFLICT:
+		*s = StageTaskArtifactForbiddenCodeCONFLICT
+	case StageTaskArtifactForbiddenCodeUNSUPPORTEDMEDIATYPE:
+		*s = StageTaskArtifactForbiddenCodeUNSUPPORTEDMEDIATYPE
+	case StageTaskArtifactForbiddenCodeVALIDATIONFAILED:
+		*s = StageTaskArtifactForbiddenCodeVALIDATIONFAILED
+	case StageTaskArtifactForbiddenCodeINVALIDCHALLENGE:
+		*s = StageTaskArtifactForbiddenCodeINVALIDCHALLENGE
+	case StageTaskArtifactForbiddenCodeINVALIDSIGNATURE:
+		*s = StageTaskArtifactForbiddenCodeINVALIDSIGNATURE
+	case StageTaskArtifactForbiddenCodeVOUCHERLIMIT:
+		*s = StageTaskArtifactForbiddenCodeVOUCHERLIMIT
+	case StageTaskArtifactForbiddenCodeRATELIMITEXCEEDED:
+		*s = StageTaskArtifactForbiddenCodeRATELIMITEXCEEDED
+	case StageTaskArtifactForbiddenCodeSERIALIZATIONEXHAUSTED:
+		*s = StageTaskArtifactForbiddenCodeSERIALIZATIONEXHAUSTED
+	case StageTaskArtifactForbiddenCodeSIGNINGREQUESTEXPIRED:
+		*s = StageTaskArtifactForbiddenCodeSIGNINGREQUESTEXPIRED
+	case StageTaskArtifactForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = StageTaskArtifactForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED
+	case StageTaskArtifactForbiddenCodeREGISTRATIONFAILED:
+		*s = StageTaskArtifactForbiddenCodeREGISTRATIONFAILED
+	case StageTaskArtifactForbiddenCodeUPSTREAMERROR:
+		*s = StageTaskArtifactForbiddenCodeUPSTREAMERROR
+	case StageTaskArtifactForbiddenCodeSERVICEUNAVAILABLE:
+		*s = StageTaskArtifactForbiddenCodeSERVICEUNAVAILABLE
+	case StageTaskArtifactForbiddenCodeINTERNALSERVERERROR:
+		*s = StageTaskArtifactForbiddenCodeINTERNALSERVERERROR
+	case StageTaskArtifactForbiddenCodeTEAMPERSONALIMMUTABLE:
+		*s = StageTaskArtifactForbiddenCodeTEAMPERSONALIMMUTABLE
+	case StageTaskArtifactForbiddenCodeTEAMNOTACTIVE:
+		*s = StageTaskArtifactForbiddenCodeTEAMNOTACTIVE
+	case StageTaskArtifactForbiddenCodeINVITEEXPIRED:
+		*s = StageTaskArtifactForbiddenCodeINVITEEXPIRED
+	case StageTaskArtifactForbiddenCodeINVITEEXHAUSTED:
+		*s = StageTaskArtifactForbiddenCodeINVITEEXHAUSTED
+	case StageTaskArtifactForbiddenCodeTEAMLASTOWNER:
+		*s = StageTaskArtifactForbiddenCodeTEAMLASTOWNER
+	case StageTaskArtifactForbiddenCodeTEAMALREADYACTIVE:
+		*s = StageTaskArtifactForbiddenCodeTEAMALREADYACTIVE
+	case StageTaskArtifactForbiddenCodeTEAMNOTFOUNDING:
+		*s = StageTaskArtifactForbiddenCodeTEAMNOTFOUNDING
+	case StageTaskArtifactForbiddenCodeFOUNDINGALREADYACCEPTED:
+		*s = StageTaskArtifactForbiddenCodeFOUNDINGALREADYACCEPTED
+	case StageTaskArtifactForbiddenCodeDIARYTRANSFERPENDING:
+		*s = StageTaskArtifactForbiddenCodeDIARYTRANSFERPENDING
+	case StageTaskArtifactForbiddenCodeDIARYTRANSFERNOTFOUND:
+		*s = StageTaskArtifactForbiddenCodeDIARYTRANSFERNOTFOUND
+	case StageTaskArtifactForbiddenCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = StageTaskArtifactForbiddenCodeDIARYTRANSFERALREADYRESOLVED
+	default:
+		*s = StageTaskArtifactForbiddenCode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s StageTaskArtifactForbiddenCode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *StageTaskArtifactForbiddenCode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *StageTaskArtifactNotFound) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *StageTaskArtifactNotFound) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("code")
+		s.Code.Encode(e)
+	}
+	{
+		if s.Detail.Set {
+			e.FieldStart("detail")
+			s.Detail.Encode(e)
+		}
+	}
+	{
+		if s.Instance.Set {
+			e.FieldStart("instance")
+			s.Instance.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("status")
+		e.Int(s.Status)
+	}
+	{
+		e.FieldStart("title")
+		e.Str(s.Title)
+	}
+	{
+		e.FieldStart("type")
+		json.EncodeURI(e, s.Type)
+	}
+	for k, elem := range s.AdditionalProps {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+var jsonFieldsNameOfStageTaskArtifactNotFound = [6]string{
+	0: "code",
+	1: "detail",
+	2: "instance",
+	3: "status",
+	4: "title",
+	5: "type",
+}
+
+// Decode decodes StageTaskArtifactNotFound from json.
+func (s *StageTaskArtifactNotFound) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode StageTaskArtifactNotFound to nil")
+	}
+	var requiredBitSet [1]uint8
+	s.AdditionalProps = map[string]jx.Raw{}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "detail":
+			if err := func() error {
+				s.Detail.Reset()
+				if err := s.Detail.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"detail\"")
+			}
+		case "instance":
+			if err := func() error {
+				s.Instance.Reset()
+				if err := s.Instance.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"instance\"")
+			}
+		case "status":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.Status = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"status\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Title = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "type":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeURI(d)
+				s.Type = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"type\"")
+			}
+		default:
+			var elem jx.Raw
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				elem = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrapf(err, "decode field %q", k)
+			}
+			s.AdditionalProps[string(k)] = elem
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode StageTaskArtifactNotFound")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00111001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfStageTaskArtifactNotFound) {
+					name = jsonFieldsNameOfStageTaskArtifactNotFound[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *StageTaskArtifactNotFound) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *StageTaskArtifactNotFound) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s StageTaskArtifactNotFoundAdditional) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s StageTaskArtifactNotFoundAdditional) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+// Decode decodes StageTaskArtifactNotFoundAdditional from json.
+func (s *StageTaskArtifactNotFoundAdditional) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode StageTaskArtifactNotFoundAdditional to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode StageTaskArtifactNotFoundAdditional")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s StageTaskArtifactNotFoundAdditional) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *StageTaskArtifactNotFoundAdditional) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes StageTaskArtifactNotFoundCode as json.
+func (s StageTaskArtifactNotFoundCode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes StageTaskArtifactNotFoundCode from json.
+func (s *StageTaskArtifactNotFoundCode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode StageTaskArtifactNotFoundCode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch StageTaskArtifactNotFoundCode(v) {
+	case StageTaskArtifactNotFoundCodeUNAUTHORIZED:
+		*s = StageTaskArtifactNotFoundCodeUNAUTHORIZED
+	case StageTaskArtifactNotFoundCodeFORBIDDEN:
+		*s = StageTaskArtifactNotFoundCodeFORBIDDEN
+	case StageTaskArtifactNotFoundCodeNOTFOUND:
+		*s = StageTaskArtifactNotFoundCodeNOTFOUND
+	case StageTaskArtifactNotFoundCodeCONFLICT:
+		*s = StageTaskArtifactNotFoundCodeCONFLICT
+	case StageTaskArtifactNotFoundCodeUNSUPPORTEDMEDIATYPE:
+		*s = StageTaskArtifactNotFoundCodeUNSUPPORTEDMEDIATYPE
+	case StageTaskArtifactNotFoundCodeVALIDATIONFAILED:
+		*s = StageTaskArtifactNotFoundCodeVALIDATIONFAILED
+	case StageTaskArtifactNotFoundCodeINVALIDCHALLENGE:
+		*s = StageTaskArtifactNotFoundCodeINVALIDCHALLENGE
+	case StageTaskArtifactNotFoundCodeINVALIDSIGNATURE:
+		*s = StageTaskArtifactNotFoundCodeINVALIDSIGNATURE
+	case StageTaskArtifactNotFoundCodeVOUCHERLIMIT:
+		*s = StageTaskArtifactNotFoundCodeVOUCHERLIMIT
+	case StageTaskArtifactNotFoundCodeRATELIMITEXCEEDED:
+		*s = StageTaskArtifactNotFoundCodeRATELIMITEXCEEDED
+	case StageTaskArtifactNotFoundCodeSERIALIZATIONEXHAUSTED:
+		*s = StageTaskArtifactNotFoundCodeSERIALIZATIONEXHAUSTED
+	case StageTaskArtifactNotFoundCodeSIGNINGREQUESTEXPIRED:
+		*s = StageTaskArtifactNotFoundCodeSIGNINGREQUESTEXPIRED
+	case StageTaskArtifactNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = StageTaskArtifactNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED
+	case StageTaskArtifactNotFoundCodeREGISTRATIONFAILED:
+		*s = StageTaskArtifactNotFoundCodeREGISTRATIONFAILED
+	case StageTaskArtifactNotFoundCodeUPSTREAMERROR:
+		*s = StageTaskArtifactNotFoundCodeUPSTREAMERROR
+	case StageTaskArtifactNotFoundCodeSERVICEUNAVAILABLE:
+		*s = StageTaskArtifactNotFoundCodeSERVICEUNAVAILABLE
+	case StageTaskArtifactNotFoundCodeINTERNALSERVERERROR:
+		*s = StageTaskArtifactNotFoundCodeINTERNALSERVERERROR
+	case StageTaskArtifactNotFoundCodeTEAMPERSONALIMMUTABLE:
+		*s = StageTaskArtifactNotFoundCodeTEAMPERSONALIMMUTABLE
+	case StageTaskArtifactNotFoundCodeTEAMNOTACTIVE:
+		*s = StageTaskArtifactNotFoundCodeTEAMNOTACTIVE
+	case StageTaskArtifactNotFoundCodeINVITEEXPIRED:
+		*s = StageTaskArtifactNotFoundCodeINVITEEXPIRED
+	case StageTaskArtifactNotFoundCodeINVITEEXHAUSTED:
+		*s = StageTaskArtifactNotFoundCodeINVITEEXHAUSTED
+	case StageTaskArtifactNotFoundCodeTEAMLASTOWNER:
+		*s = StageTaskArtifactNotFoundCodeTEAMLASTOWNER
+	case StageTaskArtifactNotFoundCodeTEAMALREADYACTIVE:
+		*s = StageTaskArtifactNotFoundCodeTEAMALREADYACTIVE
+	case StageTaskArtifactNotFoundCodeTEAMNOTFOUNDING:
+		*s = StageTaskArtifactNotFoundCodeTEAMNOTFOUNDING
+	case StageTaskArtifactNotFoundCodeFOUNDINGALREADYACCEPTED:
+		*s = StageTaskArtifactNotFoundCodeFOUNDINGALREADYACCEPTED
+	case StageTaskArtifactNotFoundCodeDIARYTRANSFERPENDING:
+		*s = StageTaskArtifactNotFoundCodeDIARYTRANSFERPENDING
+	case StageTaskArtifactNotFoundCodeDIARYTRANSFERNOTFOUND:
+		*s = StageTaskArtifactNotFoundCodeDIARYTRANSFERNOTFOUND
+	case StageTaskArtifactNotFoundCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = StageTaskArtifactNotFoundCodeDIARYTRANSFERALREADYRESOLVED
+	default:
+		*s = StageTaskArtifactNotFoundCode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s StageTaskArtifactNotFoundCode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *StageTaskArtifactNotFoundCode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *StageTaskArtifactOK) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *StageTaskArtifactOK) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("cid")
+		e.Str(s.Cid)
+	}
+	{
+		e.FieldStart("contentType")
+		e.Str(s.ContentType)
+	}
+	{
+		e.FieldStart("sizeBytes")
+		e.Int(s.SizeBytes)
+	}
+}
+
+var jsonFieldsNameOfStageTaskArtifactOK = [3]string{
+	0: "cid",
+	1: "contentType",
+	2: "sizeBytes",
+}
+
+// Decode decodes StageTaskArtifactOK from json.
+func (s *StageTaskArtifactOK) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode StageTaskArtifactOK to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "cid":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				v, err := d.Str()
+				s.Cid = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"cid\"")
+			}
+		case "contentType":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.ContentType = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"contentType\"")
+			}
+		case "sizeBytes":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := d.Int()
+				s.SizeBytes = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"sizeBytes\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode StageTaskArtifactOK")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfStageTaskArtifactOK) {
+					name = jsonFieldsNameOfStageTaskArtifactOK[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *StageTaskArtifactOK) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *StageTaskArtifactOK) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *StageTaskArtifactServiceUnavailable) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *StageTaskArtifactServiceUnavailable) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("code")
+		s.Code.Encode(e)
+	}
+	{
+		if s.Detail.Set {
+			e.FieldStart("detail")
+			s.Detail.Encode(e)
+		}
+	}
+	{
+		if s.Instance.Set {
+			e.FieldStart("instance")
+			s.Instance.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("status")
+		e.Int(s.Status)
+	}
+	{
+		e.FieldStart("title")
+		e.Str(s.Title)
+	}
+	{
+		e.FieldStart("type")
+		json.EncodeURI(e, s.Type)
+	}
+	for k, elem := range s.AdditionalProps {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+var jsonFieldsNameOfStageTaskArtifactServiceUnavailable = [6]string{
+	0: "code",
+	1: "detail",
+	2: "instance",
+	3: "status",
+	4: "title",
+	5: "type",
+}
+
+// Decode decodes StageTaskArtifactServiceUnavailable from json.
+func (s *StageTaskArtifactServiceUnavailable) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode StageTaskArtifactServiceUnavailable to nil")
+	}
+	var requiredBitSet [1]uint8
+	s.AdditionalProps = map[string]jx.Raw{}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "detail":
+			if err := func() error {
+				s.Detail.Reset()
+				if err := s.Detail.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"detail\"")
+			}
+		case "instance":
+			if err := func() error {
+				s.Instance.Reset()
+				if err := s.Instance.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"instance\"")
+			}
+		case "status":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.Status = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"status\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Title = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "type":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeURI(d)
+				s.Type = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"type\"")
+			}
+		default:
+			var elem jx.Raw
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				elem = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrapf(err, "decode field %q", k)
+			}
+			s.AdditionalProps[string(k)] = elem
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode StageTaskArtifactServiceUnavailable")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00111001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfStageTaskArtifactServiceUnavailable) {
+					name = jsonFieldsNameOfStageTaskArtifactServiceUnavailable[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *StageTaskArtifactServiceUnavailable) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *StageTaskArtifactServiceUnavailable) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s StageTaskArtifactServiceUnavailableAdditional) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s StageTaskArtifactServiceUnavailableAdditional) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+// Decode decodes StageTaskArtifactServiceUnavailableAdditional from json.
+func (s *StageTaskArtifactServiceUnavailableAdditional) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode StageTaskArtifactServiceUnavailableAdditional to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode StageTaskArtifactServiceUnavailableAdditional")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s StageTaskArtifactServiceUnavailableAdditional) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *StageTaskArtifactServiceUnavailableAdditional) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes StageTaskArtifactServiceUnavailableCode as json.
+func (s StageTaskArtifactServiceUnavailableCode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes StageTaskArtifactServiceUnavailableCode from json.
+func (s *StageTaskArtifactServiceUnavailableCode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode StageTaskArtifactServiceUnavailableCode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch StageTaskArtifactServiceUnavailableCode(v) {
+	case StageTaskArtifactServiceUnavailableCodeUNAUTHORIZED:
+		*s = StageTaskArtifactServiceUnavailableCodeUNAUTHORIZED
+	case StageTaskArtifactServiceUnavailableCodeFORBIDDEN:
+		*s = StageTaskArtifactServiceUnavailableCodeFORBIDDEN
+	case StageTaskArtifactServiceUnavailableCodeNOTFOUND:
+		*s = StageTaskArtifactServiceUnavailableCodeNOTFOUND
+	case StageTaskArtifactServiceUnavailableCodeCONFLICT:
+		*s = StageTaskArtifactServiceUnavailableCodeCONFLICT
+	case StageTaskArtifactServiceUnavailableCodeUNSUPPORTEDMEDIATYPE:
+		*s = StageTaskArtifactServiceUnavailableCodeUNSUPPORTEDMEDIATYPE
+	case StageTaskArtifactServiceUnavailableCodeVALIDATIONFAILED:
+		*s = StageTaskArtifactServiceUnavailableCodeVALIDATIONFAILED
+	case StageTaskArtifactServiceUnavailableCodeINVALIDCHALLENGE:
+		*s = StageTaskArtifactServiceUnavailableCodeINVALIDCHALLENGE
+	case StageTaskArtifactServiceUnavailableCodeINVALIDSIGNATURE:
+		*s = StageTaskArtifactServiceUnavailableCodeINVALIDSIGNATURE
+	case StageTaskArtifactServiceUnavailableCodeVOUCHERLIMIT:
+		*s = StageTaskArtifactServiceUnavailableCodeVOUCHERLIMIT
+	case StageTaskArtifactServiceUnavailableCodeRATELIMITEXCEEDED:
+		*s = StageTaskArtifactServiceUnavailableCodeRATELIMITEXCEEDED
+	case StageTaskArtifactServiceUnavailableCodeSERIALIZATIONEXHAUSTED:
+		*s = StageTaskArtifactServiceUnavailableCodeSERIALIZATIONEXHAUSTED
+	case StageTaskArtifactServiceUnavailableCodeSIGNINGREQUESTEXPIRED:
+		*s = StageTaskArtifactServiceUnavailableCodeSIGNINGREQUESTEXPIRED
+	case StageTaskArtifactServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = StageTaskArtifactServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED
+	case StageTaskArtifactServiceUnavailableCodeREGISTRATIONFAILED:
+		*s = StageTaskArtifactServiceUnavailableCodeREGISTRATIONFAILED
+	case StageTaskArtifactServiceUnavailableCodeUPSTREAMERROR:
+		*s = StageTaskArtifactServiceUnavailableCodeUPSTREAMERROR
+	case StageTaskArtifactServiceUnavailableCodeSERVICEUNAVAILABLE:
+		*s = StageTaskArtifactServiceUnavailableCodeSERVICEUNAVAILABLE
+	case StageTaskArtifactServiceUnavailableCodeINTERNALSERVERERROR:
+		*s = StageTaskArtifactServiceUnavailableCodeINTERNALSERVERERROR
+	case StageTaskArtifactServiceUnavailableCodeTEAMPERSONALIMMUTABLE:
+		*s = StageTaskArtifactServiceUnavailableCodeTEAMPERSONALIMMUTABLE
+	case StageTaskArtifactServiceUnavailableCodeTEAMNOTACTIVE:
+		*s = StageTaskArtifactServiceUnavailableCodeTEAMNOTACTIVE
+	case StageTaskArtifactServiceUnavailableCodeINVITEEXPIRED:
+		*s = StageTaskArtifactServiceUnavailableCodeINVITEEXPIRED
+	case StageTaskArtifactServiceUnavailableCodeINVITEEXHAUSTED:
+		*s = StageTaskArtifactServiceUnavailableCodeINVITEEXHAUSTED
+	case StageTaskArtifactServiceUnavailableCodeTEAMLASTOWNER:
+		*s = StageTaskArtifactServiceUnavailableCodeTEAMLASTOWNER
+	case StageTaskArtifactServiceUnavailableCodeTEAMALREADYACTIVE:
+		*s = StageTaskArtifactServiceUnavailableCodeTEAMALREADYACTIVE
+	case StageTaskArtifactServiceUnavailableCodeTEAMNOTFOUNDING:
+		*s = StageTaskArtifactServiceUnavailableCodeTEAMNOTFOUNDING
+	case StageTaskArtifactServiceUnavailableCodeFOUNDINGALREADYACCEPTED:
+		*s = StageTaskArtifactServiceUnavailableCodeFOUNDINGALREADYACCEPTED
+	case StageTaskArtifactServiceUnavailableCodeDIARYTRANSFERPENDING:
+		*s = StageTaskArtifactServiceUnavailableCodeDIARYTRANSFERPENDING
+	case StageTaskArtifactServiceUnavailableCodeDIARYTRANSFERNOTFOUND:
+		*s = StageTaskArtifactServiceUnavailableCodeDIARYTRANSFERNOTFOUND
+	case StageTaskArtifactServiceUnavailableCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = StageTaskArtifactServiceUnavailableCodeDIARYTRANSFERALREADYRESOLVED
+	default:
+		*s = StageTaskArtifactServiceUnavailableCode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s StageTaskArtifactServiceUnavailableCode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *StageTaskArtifactServiceUnavailableCode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *StageTaskArtifactUnauthorized) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *StageTaskArtifactUnauthorized) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("code")
+		s.Code.Encode(e)
+	}
+	{
+		if s.Detail.Set {
+			e.FieldStart("detail")
+			s.Detail.Encode(e)
+		}
+	}
+	{
+		if s.Instance.Set {
+			e.FieldStart("instance")
+			s.Instance.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("status")
+		e.Int(s.Status)
+	}
+	{
+		e.FieldStart("title")
+		e.Str(s.Title)
+	}
+	{
+		e.FieldStart("type")
+		json.EncodeURI(e, s.Type)
+	}
+	for k, elem := range s.AdditionalProps {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+var jsonFieldsNameOfStageTaskArtifactUnauthorized = [6]string{
+	0: "code",
+	1: "detail",
+	2: "instance",
+	3: "status",
+	4: "title",
+	5: "type",
+}
+
+// Decode decodes StageTaskArtifactUnauthorized from json.
+func (s *StageTaskArtifactUnauthorized) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode StageTaskArtifactUnauthorized to nil")
+	}
+	var requiredBitSet [1]uint8
+	s.AdditionalProps = map[string]jx.Raw{}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "code":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Code.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"code\"")
+			}
+		case "detail":
+			if err := func() error {
+				s.Detail.Reset()
+				if err := s.Detail.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"detail\"")
+			}
+		case "instance":
+			if err := func() error {
+				s.Instance.Reset()
+				if err := s.Instance.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"instance\"")
+			}
+		case "status":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Int()
+				s.Status = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"status\"")
+			}
+		case "title":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				v, err := d.Str()
+				s.Title = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"title\"")
+			}
+		case "type":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := json.DecodeURI(d)
+				s.Type = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"type\"")
+			}
+		default:
+			var elem jx.Raw
+			if err := func() error {
+				v, err := d.RawAppend(nil)
+				elem = jx.Raw(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrapf(err, "decode field %q", k)
+			}
+			s.AdditionalProps[string(k)] = elem
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode StageTaskArtifactUnauthorized")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00111001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfStageTaskArtifactUnauthorized) {
+					name = jsonFieldsNameOfStageTaskArtifactUnauthorized[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *StageTaskArtifactUnauthorized) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *StageTaskArtifactUnauthorized) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s StageTaskArtifactUnauthorizedAdditional) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields implements json.Marshaler.
+func (s StageTaskArtifactUnauthorizedAdditional) encodeFields(e *jx.Encoder) {
+	for k, elem := range s {
+		e.FieldStart(k)
+
+		if len(elem) != 0 {
+			e.Raw(elem)
+		}
+	}
+}
+
+// Decode decodes StageTaskArtifactUnauthorizedAdditional from json.
+func (s *StageTaskArtifactUnauthorizedAdditional) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode StageTaskArtifactUnauthorizedAdditional to nil")
+	}
+	m := s.init()
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		var elem jx.Raw
+		if err := func() error {
+			v, err := d.RawAppend(nil)
+			elem = jx.Raw(v)
+			if err != nil {
+				return err
+			}
+			return nil
+		}(); err != nil {
+			return errors.Wrapf(err, "decode field %q", k)
+		}
+		m[string(k)] = elem
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode StageTaskArtifactUnauthorizedAdditional")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s StageTaskArtifactUnauthorizedAdditional) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *StageTaskArtifactUnauthorizedAdditional) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes StageTaskArtifactUnauthorizedCode as json.
+func (s StageTaskArtifactUnauthorizedCode) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes StageTaskArtifactUnauthorizedCode from json.
+func (s *StageTaskArtifactUnauthorizedCode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode StageTaskArtifactUnauthorizedCode to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch StageTaskArtifactUnauthorizedCode(v) {
+	case StageTaskArtifactUnauthorizedCodeUNAUTHORIZED:
+		*s = StageTaskArtifactUnauthorizedCodeUNAUTHORIZED
+	case StageTaskArtifactUnauthorizedCodeFORBIDDEN:
+		*s = StageTaskArtifactUnauthorizedCodeFORBIDDEN
+	case StageTaskArtifactUnauthorizedCodeNOTFOUND:
+		*s = StageTaskArtifactUnauthorizedCodeNOTFOUND
+	case StageTaskArtifactUnauthorizedCodeCONFLICT:
+		*s = StageTaskArtifactUnauthorizedCodeCONFLICT
+	case StageTaskArtifactUnauthorizedCodeUNSUPPORTEDMEDIATYPE:
+		*s = StageTaskArtifactUnauthorizedCodeUNSUPPORTEDMEDIATYPE
+	case StageTaskArtifactUnauthorizedCodeVALIDATIONFAILED:
+		*s = StageTaskArtifactUnauthorizedCodeVALIDATIONFAILED
+	case StageTaskArtifactUnauthorizedCodeINVALIDCHALLENGE:
+		*s = StageTaskArtifactUnauthorizedCodeINVALIDCHALLENGE
+	case StageTaskArtifactUnauthorizedCodeINVALIDSIGNATURE:
+		*s = StageTaskArtifactUnauthorizedCodeINVALIDSIGNATURE
+	case StageTaskArtifactUnauthorizedCodeVOUCHERLIMIT:
+		*s = StageTaskArtifactUnauthorizedCodeVOUCHERLIMIT
+	case StageTaskArtifactUnauthorizedCodeRATELIMITEXCEEDED:
+		*s = StageTaskArtifactUnauthorizedCodeRATELIMITEXCEEDED
+	case StageTaskArtifactUnauthorizedCodeSERIALIZATIONEXHAUSTED:
+		*s = StageTaskArtifactUnauthorizedCodeSERIALIZATIONEXHAUSTED
+	case StageTaskArtifactUnauthorizedCodeSIGNINGREQUESTEXPIRED:
+		*s = StageTaskArtifactUnauthorizedCodeSIGNINGREQUESTEXPIRED
+	case StageTaskArtifactUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
+		*s = StageTaskArtifactUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED
+	case StageTaskArtifactUnauthorizedCodeREGISTRATIONFAILED:
+		*s = StageTaskArtifactUnauthorizedCodeREGISTRATIONFAILED
+	case StageTaskArtifactUnauthorizedCodeUPSTREAMERROR:
+		*s = StageTaskArtifactUnauthorizedCodeUPSTREAMERROR
+	case StageTaskArtifactUnauthorizedCodeSERVICEUNAVAILABLE:
+		*s = StageTaskArtifactUnauthorizedCodeSERVICEUNAVAILABLE
+	case StageTaskArtifactUnauthorizedCodeINTERNALSERVERERROR:
+		*s = StageTaskArtifactUnauthorizedCodeINTERNALSERVERERROR
+	case StageTaskArtifactUnauthorizedCodeTEAMPERSONALIMMUTABLE:
+		*s = StageTaskArtifactUnauthorizedCodeTEAMPERSONALIMMUTABLE
+	case StageTaskArtifactUnauthorizedCodeTEAMNOTACTIVE:
+		*s = StageTaskArtifactUnauthorizedCodeTEAMNOTACTIVE
+	case StageTaskArtifactUnauthorizedCodeINVITEEXPIRED:
+		*s = StageTaskArtifactUnauthorizedCodeINVITEEXPIRED
+	case StageTaskArtifactUnauthorizedCodeINVITEEXHAUSTED:
+		*s = StageTaskArtifactUnauthorizedCodeINVITEEXHAUSTED
+	case StageTaskArtifactUnauthorizedCodeTEAMLASTOWNER:
+		*s = StageTaskArtifactUnauthorizedCodeTEAMLASTOWNER
+	case StageTaskArtifactUnauthorizedCodeTEAMALREADYACTIVE:
+		*s = StageTaskArtifactUnauthorizedCodeTEAMALREADYACTIVE
+	case StageTaskArtifactUnauthorizedCodeTEAMNOTFOUNDING:
+		*s = StageTaskArtifactUnauthorizedCodeTEAMNOTFOUNDING
+	case StageTaskArtifactUnauthorizedCodeFOUNDINGALREADYACCEPTED:
+		*s = StageTaskArtifactUnauthorizedCodeFOUNDINGALREADYACCEPTED
+	case StageTaskArtifactUnauthorizedCodeDIARYTRANSFERPENDING:
+		*s = StageTaskArtifactUnauthorizedCodeDIARYTRANSFERPENDING
+	case StageTaskArtifactUnauthorizedCodeDIARYTRANSFERNOTFOUND:
+		*s = StageTaskArtifactUnauthorizedCodeDIARYTRANSFERNOTFOUND
+	case StageTaskArtifactUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED:
+		*s = StageTaskArtifactUnauthorizedCodeDIARYTRANSFERALREADYRESOLVED
+	default:
+		*s = StageTaskArtifactUnauthorizedCode(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s StageTaskArtifactUnauthorizedCode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *StageTaskArtifactUnauthorizedCode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes StartLegreffierOnboardingBadRequest as json.
 func (s *StartLegreffierOnboardingBadRequest) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
@@ -83073,8 +86809,10 @@ func (s *TaskRef) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
-		e.FieldStart("outputCid")
-		e.Str(s.OutputCid)
+		if s.OutputCid.Set {
+			e.FieldStart("outputCid")
+			s.OutputCid.Encode(e)
+		}
 	}
 	{
 		e.FieldStart("role")
@@ -83124,11 +86862,9 @@ func (s *TaskRef) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"external\"")
 			}
 		case "outputCid":
-			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
-				v, err := d.Str()
-				s.OutputCid = string(v)
-				if err != nil {
+				s.OutputCid.Reset()
+				if err := s.OutputCid.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -83165,7 +86901,7 @@ func (s *TaskRef) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00011100,
+		0b00011000,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -83221,8 +86957,10 @@ func (s *TaskRefArtifact) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *TaskRefArtifact) encodeFields(e *jx.Encoder) {
 	{
-		e.FieldStart("attemptN")
-		e.Int(s.AttemptN)
+		if s.AttemptN.Set {
+			e.FieldStart("attemptN")
+			s.AttemptN.Encode(e)
+		}
 	}
 	{
 		e.FieldStart("cid")
@@ -83266,11 +87004,9 @@ func (s *TaskRefArtifact) Decode(d *jx.Decoder) error {
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
 		case "attemptN":
-			requiredBitSet[0] |= 1 << 0
 			if err := func() error {
-				v, err := d.Int()
-				s.AttemptN = int(v)
-				if err != nil {
+				s.AttemptN.Reset()
+				if err := s.AttemptN.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -83329,7 +87065,7 @@ func (s *TaskRefArtifact) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000011,
+		0b00000010,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -83662,8 +87398,10 @@ func (s *TaskReferencesItem) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
-		e.FieldStart("outputCid")
-		e.Str(s.OutputCid)
+		if s.OutputCid.Set {
+			e.FieldStart("outputCid")
+			s.OutputCid.Encode(e)
+		}
 	}
 	{
 		e.FieldStart("role")
@@ -83713,11 +87451,9 @@ func (s *TaskReferencesItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"external\"")
 			}
 		case "outputCid":
-			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
-				v, err := d.Str()
-				s.OutputCid = string(v)
-				if err != nil {
+				s.OutputCid.Reset()
+				if err := s.OutputCid.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -83754,7 +87490,7 @@ func (s *TaskReferencesItem) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00011100,
+		0b00011000,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -83810,8 +87546,10 @@ func (s *TaskReferencesItemArtifact) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *TaskReferencesItemArtifact) encodeFields(e *jx.Encoder) {
 	{
-		e.FieldStart("attemptN")
-		e.Int(s.AttemptN)
+		if s.AttemptN.Set {
+			e.FieldStart("attemptN")
+			s.AttemptN.Encode(e)
+		}
 	}
 	{
 		e.FieldStart("cid")
@@ -83855,11 +87593,9 @@ func (s *TaskReferencesItemArtifact) Decode(d *jx.Decoder) error {
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
 		case "attemptN":
-			requiredBitSet[0] |= 1 << 0
 			if err := func() error {
-				v, err := d.Int()
-				s.AttemptN = int(v)
-				if err != nil {
+				s.AttemptN.Reset()
+				if err := s.AttemptN.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -83918,7 +87654,7 @@ func (s *TaskReferencesItemArtifact) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000011,
+		0b00000010,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -93131,7 +96867,7 @@ func (s *UploadTaskArtifactOK) Encode(e *jx.Encoder) {
 func (s *UploadTaskArtifactOK) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("attemptN")
-		e.Int(s.AttemptN)
+		s.AttemptN.Encode(e)
 	}
 	{
 		e.FieldStart("cid")
@@ -93151,7 +96887,7 @@ func (s *UploadTaskArtifactOK) encodeFields(e *jx.Encoder) {
 	}
 	{
 		e.FieldStart("createdByAgentId")
-		json.EncodeUUID(e, s.CreatedByAgentId)
+		s.CreatedByAgentId.Encode(e)
 	}
 	{
 		e.FieldStart("expiresAt")
@@ -93211,9 +96947,7 @@ func (s *UploadTaskArtifactOK) Decode(d *jx.Decoder) error {
 		case "attemptN":
 			requiredBitSet[0] |= 1 << 0
 			if err := func() error {
-				v, err := d.Int()
-				s.AttemptN = int(v)
-				if err != nil {
+				if err := s.AttemptN.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -93269,9 +97003,7 @@ func (s *UploadTaskArtifactOK) Decode(d *jx.Decoder) error {
 		case "createdByAgentId":
 			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
-				v, err := json.DecodeUUID(d)
-				s.CreatedByAgentId = v
-				if err != nil {
+				if err := s.CreatedByAgentId.Decode(d); err != nil {
 					return err
 				}
 				return nil

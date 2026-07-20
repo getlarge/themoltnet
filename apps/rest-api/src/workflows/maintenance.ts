@@ -25,11 +25,16 @@ import {
   WorkflowQueue,
 } from '@moltnet/database';
 import type { RuntimeSessionStorage } from '@moltnet/runtime-session-service';
-import type { TaskArtifactStorage } from '@moltnet/task-artifact-service';
+import {
+  isTaskArtifactStorageNotConfiguredError,
+  type TaskArtifactStorage,
+} from '@moltnet/task-artifact-service';
 import {
   deleteObjectsWithLocalRetries,
   filterCleanupManifestByTaskIds,
   registerTaskDeletionWorkflow,
+  selectOrphanCandidates,
+  type TaskArtifactObjectRef,
   type TaskCleanupManifest,
   toCleanupManifestTask,
 } from '@moltnet/task-workflows';
@@ -255,6 +260,12 @@ export function initMaintenanceWorkflows(
     cancelled: orphanSweeperConfig.TASK_CANCELLED_RETENTION_DAYS,
     expired: orphanSweeperConfig.TASK_EXPIRED_RETENTION_DAYS,
   };
+  const artifactOrphanCron =
+    orphanSweeperConfig.TASK_ARTIFACT_ORPHAN_SWEEPER_CRON;
+  const artifactOrphanGraceSec =
+    orphanSweeperConfig.TASK_ARTIFACT_ORPHAN_GRACE_SEC;
+  const artifactOrphanMaxDeletes =
+    orphanSweeperConfig.TASK_ARTIFACT_ORPHAN_SWEEPER_MAX_DELETES;
 
   const listOrphansStep = DBOS.registerStep(
     async (now: Date, gracePeriodSec: number, batchSize: number) => {
@@ -671,17 +682,42 @@ export function initMaintenanceWorkflows(
 
   const deleteTaskArtifactObjectsStep = DBOS.registerStep(
     async (manifest: TaskCleanupManifest): Promise<number> => {
-      const { taskArtifactStorage, logger } = getDeps();
+      const { taskArtifactRepository, taskArtifactStorage, logger } = getDeps();
+      // Artifact objects are content-addressed per team and shared by
+      // every row with the same CID — including input artifacts of other
+      // tasks. Rows for this manifest are already deleted (this step runs
+      // after deleteTaskRowsStep), so any surviving row means another
+      // task still needs the object.
+      const candidateKeys = [
+        ...new Set(
+          manifest.taskArtifacts.map((artifact) => artifact.objectKey),
+        ),
+      ];
+      const stillReferenced = new Set(
+        await taskArtifactRepository.listObjectKeysStillReferenced(
+          candidateKeys,
+        ),
+      );
+      const deletableKeys = candidateKeys.filter(
+        (key) => !stillReferenced.has(key),
+      );
+      if (stillReferenced.size > 0) {
+        logger.info(
+          {
+            candidates: candidateKeys.length,
+            retained: stillReferenced.size,
+          },
+          'maintenance: task artifact objects retained — still referenced by other tasks',
+        );
+      }
       await deleteObjectsWithLocalRetries({
         kind: 'task_artifact',
-        objectKeys: manifest.taskArtifacts.map(
-          (artifact) => artifact.objectKey,
-        ),
+        objectKeys: deletableKeys,
         deleteObjects: (objectKeys) =>
           taskArtifactStorage.deleteObjects(objectKeys),
         logger,
       });
-      return manifest.taskArtifacts.length;
+      return deletableKeys.length;
     },
     {
       name: 'maintenance.taskRetentionCleanup.deleteTaskArtifactObjects',
@@ -891,5 +927,220 @@ export function initMaintenanceWorkflows(
   DBOS.registerScheduled(taskRetentionSweeperSchedulerWorkflow, {
     name: 'maintenance.taskRetentionSweeperScheduler',
     crontab: retentionCron,
+  });
+
+  // ── Task Artifact Orphan-Object Sweep ────────────────────────
+  // Staged input artifacts (PUT /task-artifacts/staged) write storage
+  // objects without a metadata row; a row appears only when a task
+  // creation binds the CID. This sweep deletes objects past the grace
+  // window that no task_artifacts row references — never-bound staging
+  // uploads and leftovers from failed create transactions.
+  const listArtifactObjectsPageStep = DBOS.registerStep(
+    async (
+      continuationToken: string | null,
+      graceCutoffIso: string,
+    ): Promise<{
+      candidates: TaskArtifactObjectRef[];
+      nextContinuationToken: string | null;
+      scannedBytes: number;
+      scannedObjects: number;
+      storageConfigured: boolean;
+    }> => {
+      const { taskArtifactStorage } = getDeps();
+      try {
+        const page = await taskArtifactStorage.listObjects({
+          continuationToken: continuationToken ?? undefined,
+          maxKeys: 1000,
+          prefix: 'teams/',
+        });
+        return {
+          candidates: selectOrphanCandidates(
+            page.objects,
+            new Date(graceCutoffIso),
+          ),
+          nextContinuationToken: page.nextContinuationToken,
+          scannedBytes: page.objects.reduce(
+            (total, object) => total + (object.sizeBytes ?? 0),
+            0,
+          ),
+          scannedObjects: page.objects.length,
+          storageConfigured: true,
+        };
+      } catch (err) {
+        if (isTaskArtifactStorageNotConfiguredError(err)) {
+          return {
+            candidates: [],
+            nextContinuationToken: null,
+            scannedBytes: 0,
+            scannedObjects: 0,
+            storageConfigured: false,
+          };
+        }
+        throw err;
+      }
+    },
+    {
+      name: 'maintenance.taskArtifactOrphanSweeper.listObjectsPage',
+      retriesAllowed: true,
+      maxAttempts: 3,
+      intervalSeconds: 2,
+      backoffRate: 2,
+    },
+  );
+
+  const resolveOrphanArtifactObjectsStep = DBOS.registerStep(
+    async (candidates: TaskArtifactObjectRef[]): Promise<string[]> => {
+      const { taskArtifactRepository } = getDeps();
+      const referenced = new Set(
+        await taskArtifactRepository.listObjectKeysStillReferenced(
+          candidates.map((candidate) => candidate.objectKey),
+        ),
+      );
+      return candidates
+        .filter((candidate) => !referenced.has(candidate.objectKey))
+        .map((candidate) => candidate.objectKey);
+    },
+    {
+      name: 'maintenance.taskArtifactOrphanSweeper.resolveOrphans',
+      retriesAllowed: true,
+      maxAttempts: 3,
+      intervalSeconds: 2,
+      backoffRate: 2,
+    },
+  );
+
+  const deleteOrphanArtifactObjectsStep = DBOS.registerStep(
+    async (objectKeys: string[]): Promise<number> => {
+      const { taskArtifactRepository, taskArtifactStorage, logger } = getDeps();
+      // Re-verify row existence immediately before the irreversible
+      // delete: a task creation may have bound one of these CIDs between
+      // the resolve step and now (an object already past the grace window
+      // can be staged long before it is bound). This shrinks the
+      // sweep-vs-bind race from step-scheduling latency to milliseconds.
+      const rebound = new Set(
+        await taskArtifactRepository.listObjectKeysStillReferenced(objectKeys),
+      );
+      const deletableKeys = objectKeys.filter((key) => !rebound.has(key));
+      if (rebound.size > 0) {
+        logger.info(
+          { rebound: [...rebound] },
+          'maintenance: task artifact orphan sweep — objects bound since resolve, retained',
+        );
+      }
+      // Audit trail: object deletes are irreversible, so record exactly
+      // which keys go, before the delete call, in bounded chunks.
+      for (let i = 0; i < deletableKeys.length; i += 250) {
+        logger.info(
+          { objectKeys: deletableKeys.slice(i, i + 250) },
+          'maintenance: task artifact orphan sweep — deleting objects',
+        );
+      }
+      await deleteObjectsWithLocalRetries({
+        kind: 'task_artifact',
+        objectKeys: deletableKeys,
+        deleteObjects: (keys) => taskArtifactStorage.deleteObjects(keys),
+        logger,
+      });
+      return deletableKeys.length;
+    },
+    {
+      name: 'maintenance.taskArtifactOrphanSweeper.deleteOrphans',
+      retriesAllowed: true,
+      maxAttempts: 6,
+      intervalSeconds: 5,
+      backoffRate: 2,
+    },
+  );
+
+  const taskArtifactOrphanSweeperWorkflow = DBOS.registerWorkflow(
+    async (input: {
+      graceSec: number;
+      maxDeletes: number;
+    }): Promise<{
+      aborted: boolean;
+      candidates: number;
+      deleted: number;
+      scannedObjects: number;
+    }> => {
+      const { logger } = getDeps();
+      const graceCutoffIso = new Date(
+        Date.now() - input.graceSec * 1000,
+      ).toISOString();
+      let continuationToken: string | null = null;
+      let candidateCount = 0;
+      let deleted = 0;
+      let scannedObjects = 0;
+      let scannedBytes = 0;
+      let aborted = false;
+      do {
+        const page = await listArtifactObjectsPageStep(
+          continuationToken,
+          graceCutoffIso,
+        );
+        if (!page.storageConfigured) {
+          logger.debug(
+            'maintenance: task artifact orphan sweep skipped — storage not configured',
+          );
+          return { aborted: false, candidates: 0, deleted: 0, scannedObjects };
+        }
+        scannedObjects += page.scannedObjects;
+        scannedBytes += page.scannedBytes;
+        candidateCount += page.candidates.length;
+        if (page.candidates.length > 0) {
+          const orphanKeys = await resolveOrphanArtifactObjectsStep(
+            page.candidates,
+          );
+          if (deleted + orphanKeys.length > input.maxDeletes) {
+            // Blast-radius cap: a logic bug or schema drift in the
+            // row-existence gate must not mass-delete a bucket. Abort
+            // and let an operator inspect before raising the ceiling.
+            logger.error(
+              {
+                deleted,
+                pending: orphanKeys.length,
+                maxDeletes: input.maxDeletes,
+              },
+              'maintenance: task artifact orphan sweep aborted — per-run delete ceiling exceeded',
+            );
+            aborted = true;
+            break;
+          }
+          if (orphanKeys.length > 0) {
+            deleted += await deleteOrphanArtifactObjectsStep(orphanKeys);
+          }
+        }
+        continuationToken = page.nextContinuationToken;
+      } while (continuationToken);
+      // Heartbeat on every run — a silent 3am job is indistinguishable
+      // from a dead one. scanned* also make staged-but-unbound volume
+      // observable (rowless staging has no DB-side accounting).
+      logger.info(
+        {
+          aborted,
+          candidates: candidateCount,
+          deleted,
+          scannedBytes,
+          scannedObjects,
+        },
+        'maintenance: task artifact orphan sweep complete',
+      );
+      return { aborted, candidates: candidateCount, deleted, scannedObjects };
+    },
+    { name: 'maintenance.taskArtifactOrphanSweeper' },
+  );
+
+  const taskArtifactOrphanSweeperSchedulerWorkflow = DBOS.registerWorkflow(
+    async (_scheduledTime: Date, _actualTime: Date): Promise<void> => {
+      await DBOS.startWorkflow(taskArtifactOrphanSweeperWorkflow)({
+        graceSec: artifactOrphanGraceSec,
+        maxDeletes: artifactOrphanMaxDeletes,
+      });
+    },
+    { name: 'maintenance.taskArtifactOrphanSweeperScheduler' },
+  );
+
+  DBOS.registerScheduled(taskArtifactOrphanSweeperSchedulerWorkflow, {
+    name: 'maintenance.taskArtifactOrphanSweeperScheduler',
+    crontab: artifactOrphanCron,
   });
 }

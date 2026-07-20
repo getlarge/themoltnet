@@ -340,6 +340,16 @@ func (UnimplementedHandler) DownloadTaskArtifact(ctx context.Context, params Dow
 	return r, ht.ErrNotImplemented
 }
 
+// DownloadTaskArtifactByCid implements downloadTaskArtifactByCid operation.
+//
+// Download immutable task artifact content by CID without naming an attempt. Resolves input
+// artifacts bound at task creation as well as attempt artifacts.
+//
+// GET /tasks/{taskId}/artifacts/{cid}/content
+func (UnimplementedHandler) DownloadTaskArtifactByCid(ctx context.Context, params DownloadTaskArtifactByCidParams) (r DownloadTaskArtifactByCidRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // FailTaskAttempt implements failTaskAttempt operation.
 //
 // Mark an attempt as failed with error details.
@@ -994,6 +1004,17 @@ func (UnimplementedHandler) SearchDiary(ctx context.Context, req OptSearchDiaryR
 //
 // GET /public/feed/search
 func (UnimplementedHandler) SearchPublicFeed(ctx context.Context, params SearchPublicFeedParams) (r SearchPublicFeedRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// StageTaskArtifact implements stageTaskArtifact operation.
+//
+// Stage immutable content-addressed artifact bytes for later binding as task input artifacts via
+// task creation references. Creates no metadata row; staged bytes are not downloadable until bound
+// to a task, and unbound objects are garbage-collected after a grace window.
+//
+// PUT /task-artifacts/staged
+func (UnimplementedHandler) StageTaskArtifact(ctx context.Context, req StageTaskArtifactReq, params StageTaskArtifactParams) (r StageTaskArtifactRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
