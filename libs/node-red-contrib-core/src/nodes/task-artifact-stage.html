@@ -1,4 +1,5 @@
 <script type="text/javascript">
+  var moltnetTaskArtifactStageMaxBytes = 25 * 1024 * 1024;
   RED.nodes.registerType('moltnet-task-artifact-stage', {
     category: 'moltnet',
     color: '#00d4c8',
@@ -8,7 +9,10 @@
       agent: { value: '', type: 'moltnet-agent', required: true },
       teamId: { value: '' },
       allowMsgTeamOverride: { value: false },
-      maxBytes: { value: 26214400, validate: RED.validators.number() },
+      maxBytes: {
+        value: moltnetTaskArtifactStageMaxBytes,
+        validate: RED.validators.number(),
+      },
       contentType: { value: '' },
       contentEncoding: { value: '' },
     },
@@ -46,7 +50,9 @@
     <span>Allow <code>msg.teamId</code></span>
   </div>
   <div class="form-row">
-    <label for="node-input-maxBytes"><i class="fa fa-database"></i> Max</label>
+    <label for="node-input-maxBytes"
+      ><i class="fa fa-database"></i> Max bytes</label
+    >
     <input type="number" id="node-input-maxBytes" />
   </div>
   <div class="form-row">
@@ -75,8 +81,13 @@
   </p>
   <p>
     Reads bytes from the same payload shapes as task artifact upload and emits
-    <code>{ cid, sizeBytes, contentType }</code> on <code>msg.payload</code> and
-    <code>msg.artifact</code>. Wire <code>msg.artifact</code> into a task
-    builder's References from field.
+    <code>{ artifactSource: "staged", cid, sizeBytes, contentType }</code> on
+    <code>msg.payload</code> and <code>msg.artifact</code>. Wire
+    <code>msg.artifact</code> into a task builder's References from field.
+  </p>
+  <p>
+    Buffer and Uint8Array payloads avoid encoding overhead. The
+    <code>{ contentBase64 }</code> form is available for JSON-only sources. The
+    local byte limit defaults to 25 MiB.
   </p>
 </script>

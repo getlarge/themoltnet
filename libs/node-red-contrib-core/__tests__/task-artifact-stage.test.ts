@@ -10,6 +10,7 @@ describe('moltnet-task-artifact-stage', () => {
   it('stages base64 payload content for the configured team', async () => {
     const seen: Array<Record<string, unknown>> = [];
     const staged = {
+      artifactSource: 'staged',
       cid: 'bafy-staged',
       sizeBytes: 14,
       contentType: 'text/plain',
@@ -60,6 +61,39 @@ describe('moltnet-task-artifact-stage', () => {
     ]);
     expect(outputs[0].payload).toEqual(staged);
     expect(outputs[0].artifact).toBe(outputs[0].payload);
+  });
+
+  it('accepts whitespace in base64 payload content', async () => {
+    const seen: string[] = [];
+    const red = new FakeRed();
+    red.load(
+      agentStub({
+        tasks: {
+          artifacts: {
+            stage: (body: Uint8Array) => {
+              seen.push(Buffer.from(body).toString('utf8'));
+              return Promise.resolve({
+                artifactSource: 'staged',
+                cid: 'bafy-staged',
+                sizeBytes: body.byteLength,
+              });
+            },
+          },
+        },
+      }),
+    );
+    red.load(taskArtifactStage);
+    const a = red.create('moltnet-agent', 'a1');
+    (a as Record<string, unknown>).teamId = 'team-1';
+    const node = red.create('moltnet-task-artifact-stage', 'n1', {
+      agent: 'a1',
+    });
+
+    await red.input(node, {
+      payload: { contentBase64: 'YXJ0aWZhY3Qg\nYnl0ZXM=' },
+    });
+
+    expect(seen).toEqual(['artifact bytes']);
   });
 
   it('allows an explicit message team override', async () => {

@@ -159,6 +159,41 @@ describe('moltnet-task-artifact-download', () => {
     });
   });
 
+  it.each([0, -1, 1.5, 'invalid'])(
+    'rejects an explicitly invalid attemptN (%s)',
+    async (attemptN) => {
+      let calls = 0;
+      const red = new FakeRed();
+      red.load(
+        agentStub({
+          tasks: {
+            artifacts: {
+              download: () => {
+                calls += 1;
+                return Promise.resolve({ stream: readableChunks(['no']) });
+              },
+            },
+          },
+        }),
+      );
+      red.load(taskArtifactDownload);
+      const a = red.create('moltnet-agent', 'a1');
+      (a as Record<string, unknown>).teamId = 'team-1';
+      const node = red.create('moltnet-task-artifact-download', 'n1', {
+        agent: 'a1',
+        taskId: 'task-1',
+      });
+
+      await expect(
+        red.input(node, {
+          attemptN,
+          payload: { cid: 'bafy-artifact' },
+        }),
+      ).rejects.toThrow(/attemptN must be a positive integer/);
+      expect(calls).toBe(0);
+    },
+  );
+
   it('rejects downloads over the local byte limit', async () => {
     const red = new FakeRed();
     red.load(

@@ -54,14 +54,28 @@ export function resolveAttemptN(
   msg: NodeMessageInFlow,
   configured: unknown,
 ): number | undefined {
+  return resolveAttemptSelection(msg, configured).attemptN;
+}
+
+export interface AttemptSelection {
+  supplied: boolean;
+  attemptN?: number;
+}
+
+export function resolveAttemptSelection(
+  msg: NodeMessageInFlow,
+  configured: unknown,
+): AttemptSelection {
   const payload = payloadRecord(msg);
-  return (
-    positiveInt(msg.attemptN) ??
-    positiveInt(payload.attemptN) ??
-    positiveInt(recordField(payload.attempt, 'attemptN')) ??
-    positiveInt(recordField(payload.artifact, 'attemptN')) ??
-    positiveInt(configured)
-  );
+  const candidate = [
+    msg.attemptN,
+    payload.attemptN,
+    recordField(payload.attempt, 'attemptN'),
+    recordField(payload.artifact, 'attemptN'),
+    configured,
+  ].find(isSupplied);
+  if (candidate === undefined) return { supplied: false };
+  return { supplied: true, attemptN: positiveInt(candidate) };
 }
 
 export function requireArtifactContext(
@@ -142,11 +156,10 @@ export function resolveUploadBody(
 
   const record = payloadRecord(msg);
   if (typeof record.contentBase64 === 'string') {
-    const normalized = record.contentBase64.replace(/\s/g, '');
-    if (decodedBase64Length(normalized) > maxBytes) {
+    if (decodedBase64Length(record.contentBase64) > maxBytes) {
       throw tooLarge('upload', maxBytes, nodeName);
     }
-    return Buffer.from(normalized, 'base64');
+    return Buffer.from(record.contentBase64, 'base64');
   }
   const content = record.content ?? record.body;
   if (Buffer.isBuffer(content))
@@ -265,8 +278,26 @@ function pushChunk(
 
 function decodedBase64Length(value: string): number {
   if (!value) return 0;
-  const padding = value.endsWith('==') ? 2 : value.endsWith('=') ? 1 : 0;
-  return Math.floor((value.length * 3) / 4) - padding;
+  let characters = 0;
+  let previous = '';
+  let last = '';
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    if (isBase64Whitespace(code)) continue;
+    characters += 1;
+    previous = last;
+    last = value[index];
+  }
+  const padding = last === '=' ? (previous === '=' ? 2 : 1) : 0;
+  return Math.max(0, Math.floor((characters * 3) / 4) - padding);
+}
+
+function isSupplied(value: unknown): boolean {
+  return value !== undefined && value !== null && value !== '';
+}
+
+function isBase64Whitespace(code: number): boolean {
+  return code === 0x20 || (code >= 0x09 && code <= 0x0d);
 }
 
 function tooLarge(

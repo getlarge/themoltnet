@@ -13,7 +13,7 @@ import {
   payloadRecord,
   recordField,
   requireArtifactContext,
-  resolveAttemptN,
+  resolveAttemptSelection,
   resolveMaxBytes,
 } from './task-artifact-utils.js';
 
@@ -53,7 +53,13 @@ const init: NodeInitializer = (RED): void => {
             agentNode,
             bool(def.allowMsgTeamOverride) ?? false,
           );
-          const attemptN = resolveAttemptN(msg, def.attemptN);
+          const attempt = resolveAttemptSelection(msg, def.attemptN);
+          if (attempt.supplied && attempt.attemptN === undefined) {
+            throw new Error(
+              'task-artifact-download: attemptN must be a positive integer',
+            );
+          }
+          const attemptN = attempt.attemptN;
           const cid = resolveCid(msg, def.cid);
           if (!cid) throw new Error('task-artifact-download: cid is required');
 
