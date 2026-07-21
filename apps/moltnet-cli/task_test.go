@@ -739,6 +739,36 @@ func TestRunTaskArtifactsDownloadByCIDWritesBytes(t *testing.T) {
 	}
 }
 
+func TestRunTaskArtifactsDownloadRejectsInvalidExplicitAttempt(t *testing.T) {
+	for _, attemptN := range []int{0, -1} {
+		t.Run(fmt.Sprintf("attempt_%d", attemptN), func(t *testing.T) {
+			h := &stubTasksHandler{}
+			_, _, client := newTestServer(t, h)
+
+			err := runTaskArtifactsDownloadWithClient(context.Background(), client, taskArtifactsDownloadOpts{
+				taskID:     "11111111-1111-4111-8111-111111111111",
+				teamID:     "22222222-2222-4222-8222-222222222222",
+				attemptN:   attemptN,
+				attemptSet: true,
+				cid:        "bafy-download",
+				outFile:    "-",
+				out:        io.Discard,
+			})
+
+			if err == nil || !strings.Contains(err.Error(), "--attempt must be >= 1") {
+				t.Fatalf("expected invalid attempt error, got %v", err)
+			}
+			if h.downloadTaskArtifactCalls != 0 || h.downloadTaskArtifactByCIDCalls != 0 {
+				t.Fatalf(
+					"download calls = attempt:%d byCID:%d, want zero",
+					h.downloadTaskArtifactCalls,
+					h.downloadTaskArtifactByCIDCalls,
+				)
+			}
+		})
+	}
+}
+
 func TestRunTaskArtifactsUploadRejectsInvalidAttempt(t *testing.T) {
 	h := &stubTasksHandler{}
 	_, _, client := newTestServer(t, h)

@@ -240,34 +240,40 @@ func runTaskArtifactsDownloadWithClient(ctx context.Context, client *moltnetapi.
 		return err
 	}
 	defer closeWriter()
+	body, err := downloadTaskArtifactBody(ctx, client, opts, taskID, teamID)
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(writer, body)
+	return err
+}
 
+func downloadTaskArtifactBody(ctx context.Context, client *moltnetapi.Client, opts taskArtifactsDownloadOpts, taskID, teamID uuid.UUID) (io.Reader, error) {
 	if opts.attemptSet {
 		res, err := client.DownloadTaskArtifact(ctx, moltnetapi.DownloadTaskArtifactParams{
 			TaskId: taskID, AttemptN: opts.attemptN, Cid: opts.cid, XMoltnetTeamID: teamID,
 		})
 		if err != nil {
-			return fmt.Errorf("task artifacts download: %w", formatTransportError(err))
+			return nil, fmt.Errorf("task artifacts download: %w", formatTransportError(err))
 		}
 		download, ok := res.(*moltnetapi.DownloadTaskArtifactOKHeaders)
 		if !ok {
-			return formatAPIError(res)
+			return nil, formatAPIError(res)
 		}
-		_, err = io.Copy(writer, download.Response.Data)
-		return err
+		return download.Response.Data, nil
 	}
 
 	res, err := client.DownloadTaskArtifactByCid(ctx, moltnetapi.DownloadTaskArtifactByCidParams{
 		TaskId: taskID, Cid: opts.cid, XMoltnetTeamID: teamID,
 	})
 	if err != nil {
-		return fmt.Errorf("task artifacts download: %w", formatTransportError(err))
+		return nil, fmt.Errorf("task artifacts download: %w", formatTransportError(err))
 	}
 	download, ok := res.(*moltnetapi.DownloadTaskArtifactByCidOKHeaders)
 	if !ok {
-		return formatAPIError(res)
+		return nil, formatAPIError(res)
 	}
-	_, err = io.Copy(writer, download.Response.Data)
-	return err
+	return download.Response.Data, nil
 }
 
 func parseTaskArtifactIDs(taskIDRaw, teamIDRaw string) (uuid.UUID, uuid.UUID, error) {
