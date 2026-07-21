@@ -164,7 +164,8 @@ the base snapshot is used (Alpine + git + gh + MoltNet CLI + agent user).
     ]
   },
   "network": {
-    "allowedHosts": ["api.example.com", "*.services.example.com"]
+    "allowedHosts": ["api.example.com", "*.services.example.com"],
+    "allowedInternalHosts": ["onboard-api.internal"]
   },
   "resources": {
     "cpus": 2,
@@ -206,19 +207,32 @@ Controls what's installed on top of the base layer during snapshot build.
 
 ### `network`
 
-Controls HTTP(S) egress while a VM is running. `allowedHosts` accepts exact
+Controls HTTP(S) egress while a VM is running. Both arrays accept exact
 hostnames such as `api.example.com` and leading wildcard patterns such as
-`*.example.com`. Do not include a URL scheme, port, or path. The base runtime
-hosts and the MoltNet API host remain available automatically.
+`*.example.com`. Do not include a URL scheme, port, or path.
+
+- `allowedHosts` grants ordinary hostname egress. Gondolin still rejects a
+  matching hostname if DNS resolves it to loopback, link-local, or a private IP
+  range. This protects public allowlist entries from DNS rebinding and SSRF.
+- `allowedInternalHosts` explicitly permits matching hostnames to resolve to
+  internal/private IP ranges. Gondolin automatically includes these entries in
+  its effective hostname allowlist, so they do not need to appear in both
+  arrays. Treat this as the stronger, security-sensitive permission.
+
+The base runtime hosts, MoltNet API host, and legacy `extraAllowedHosts` remain
+external-only. They are not implicitly allowed to resolve internally.
 
 Runtime hosts are deliberately separate from `snapshot.allowedHosts`: build
 dependencies do not become task-time egress grants, and runtime services do not
-become snapshot build dependencies. Explicit runtime grants may resolve to
-private addresses; private hosts that do not match a grant remain blocked.
+become snapshot build dependencies. Private destinations require an explicit
+`allowedInternalHosts` grant; unlisted internal and external hosts remain
+blocked.
 
 Profiles and repo-local `sandbox.json` use the same field. For profiles, treat
 this as a team-editable security boundary: forwarded environment values and
-other VM-accessible secrets can be sent to any granted host.
+other VM-accessible secrets can be sent to any granted host. An internal grant
+can additionally expose localhost services, cloud metadata, and private network
+infrastructure if the hostname is attacker-controlled.
 
 ### `resources`
 

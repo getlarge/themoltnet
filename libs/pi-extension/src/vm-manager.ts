@@ -378,17 +378,21 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
   const moltnetConfig = JSON.parse(creds.moltnetJson);
   const apiHost = new URL(moltnetConfig.endpoints.api).hostname;
 
-  const runtimeAllowedHosts = [
-    ...(config.sandboxConfig?.network?.allowedHosts ?? []),
-    ...(config.extraAllowedHosts ?? []),
-  ];
+  const runtimeAllowedHosts = config.sandboxConfig?.network?.allowedHosts ?? [];
+  const runtimeAllowedInternalHosts =
+    config.sandboxConfig?.network?.allowedInternalHosts ?? [];
   const allowedHosts = [
-    ...new Set([...BASE_ALLOWED_HOSTS, apiHost, ...runtimeAllowedHosts]),
+    ...new Set([
+      ...BASE_ALLOWED_HOSTS,
+      apiHost,
+      ...(config.extraAllowedHosts ?? []),
+      ...runtimeAllowedHosts,
+    ]),
   ];
 
   const { httpHooks, env: secretEnv } = createHttpHooks({
     allowedHosts,
-    allowedInternalHosts: runtimeAllowedHosts,
+    allowedInternalHosts: runtimeAllowedInternalHosts,
   });
 
   // Build VM-side agent env vars from credentials.

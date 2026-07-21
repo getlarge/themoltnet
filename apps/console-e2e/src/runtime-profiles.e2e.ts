@@ -51,8 +51,11 @@ test.describe.serial('Runtime profiles console', () => {
       .selectOption('dedicated_worktree');
     await page.getByLabel(/allow shared mount/i).uncheck();
     await page
-      .getByLabel('Runtime egress hosts', { exact: true })
-      .fill('onboard-api.internal, *.example.com');
+      .getByLabel('Public runtime egress hosts', { exact: true })
+      .fill('api.example.com, *.example.com');
+    await page
+      .getByLabel('Internal runtime egress hosts', { exact: true })
+      .fill('onboard-api.internal');
     await page.getByLabel('Sandbox JSON', { exact: true }).fill('{}');
     await page.getByRole('button', { name: /create profile/i }).click();
 
@@ -65,8 +68,11 @@ test.describe.serial('Runtime profiles console', () => {
       }),
     ).toBeVisible();
     await expect(
-      page.getByLabel('Runtime egress hosts', { exact: true }),
-    ).toHaveValue('onboard-api.internal, *.example.com');
+      page.getByLabel('Public runtime egress hosts', { exact: true }),
+    ).toHaveValue('api.example.com, *.example.com');
+    await expect(
+      page.getByLabel('Internal runtime egress hosts', { exact: true }),
+    ).toHaveValue('onboard-api.internal');
 
     await page.getByRole('button', { name: /new profile/i }).click();
     await expect(page.getByLabel(/^name$/i)).toHaveValue('');
@@ -99,8 +105,11 @@ test.describe.serial('Runtime profiles console', () => {
     await expect(page.getByText(secondProfileName)).toHaveCount(0);
     await page.getByRole('button', { name: new RegExp(profileName) }).click();
     await expect(
-      page.getByLabel('Runtime egress hosts', { exact: true }),
-    ).toHaveValue('onboard-api.internal, *.example.com');
+      page.getByLabel('Public runtime egress hosts', { exact: true }),
+    ).toHaveValue('api.example.com, *.example.com');
+    await expect(
+      page.getByLabel('Internal runtime egress hosts', { exact: true }),
+    ).toHaveValue('onboard-api.internal');
     await page.getByRole('button', { name: /delete profile/i }).click();
     await expect(page.getByText(profileName)).toHaveCount(0);
     await expect(page.getByText(/no runtime profiles yet/i)).toBeVisible();

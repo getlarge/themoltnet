@@ -13392,10 +13392,21 @@ func (s *CreateRuntimeProfileBodySandboxNetwork) encodeFields(e *jx.Encoder) {
 			e.ArrEnd()
 		}
 	}
+	{
+		if s.AllowedInternalHosts != nil {
+			e.FieldStart("allowedInternalHosts")
+			e.ArrStart()
+			for _, elem := range s.AllowedInternalHosts {
+				e.Str(elem)
+			}
+			e.ArrEnd()
+		}
+	}
 }
 
-var jsonFieldsNameOfCreateRuntimeProfileBodySandboxNetwork = [1]string{
+var jsonFieldsNameOfCreateRuntimeProfileBodySandboxNetwork = [2]string{
 	0: "allowedHosts",
+	1: "allowedInternalHosts",
 }
 
 // Decode decodes CreateRuntimeProfileBodySandboxNetwork from json.
@@ -13424,6 +13435,25 @@ func (s *CreateRuntimeProfileBodySandboxNetwork) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"allowedHosts\"")
+			}
+		case "allowedInternalHosts":
+			if err := func() error {
+				s.AllowedInternalHosts = make([]string, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem string
+					v, err := d.Str()
+					elem = string(v)
+					if err != nil {
+						return err
+					}
+					s.AllowedInternalHosts = append(s.AllowedInternalHosts, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"allowedInternalHosts\"")
 			}
 		default:
 			return errors.Errorf("unexpected field %q", k)
@@ -76669,10 +76699,21 @@ func (s *RuntimeProfileListResponseItemsItemSandboxNetwork) encodeFields(e *jx.E
 			e.ArrEnd()
 		}
 	}
+	{
+		if s.AllowedInternalHosts != nil {
+			e.FieldStart("allowedInternalHosts")
+			e.ArrStart()
+			for _, elem := range s.AllowedInternalHosts {
+				e.Str(elem)
+			}
+			e.ArrEnd()
+		}
+	}
 }
 
-var jsonFieldsNameOfRuntimeProfileListResponseItemsItemSandboxNetwork = [1]string{
+var jsonFieldsNameOfRuntimeProfileListResponseItemsItemSandboxNetwork = [2]string{
 	0: "allowedHosts",
+	1: "allowedInternalHosts",
 }
 
 // Decode decodes RuntimeProfileListResponseItemsItemSandboxNetwork from json.
@@ -76701,6 +76742,25 @@ func (s *RuntimeProfileListResponseItemsItemSandboxNetwork) Decode(d *jx.Decoder
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"allowedHosts\"")
+			}
+		case "allowedInternalHosts":
+			if err := func() error {
+				s.AllowedInternalHosts = make([]string, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem string
+					v, err := d.Str()
+					elem = string(v)
+					if err != nil {
+						return err
+					}
+					s.AllowedInternalHosts = append(s.AllowedInternalHosts, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"allowedInternalHosts\"")
 			}
 		default:
 			return errors.Errorf("unexpected field %q", k)
@@ -77977,10 +78037,21 @@ func (s *RuntimeProfileSandboxNetwork) encodeFields(e *jx.Encoder) {
 			e.ArrEnd()
 		}
 	}
+	{
+		if s.AllowedInternalHosts != nil {
+			e.FieldStart("allowedInternalHosts")
+			e.ArrStart()
+			for _, elem := range s.AllowedInternalHosts {
+				e.Str(elem)
+			}
+			e.ArrEnd()
+		}
+	}
 }
 
-var jsonFieldsNameOfRuntimeProfileSandboxNetwork = [1]string{
+var jsonFieldsNameOfRuntimeProfileSandboxNetwork = [2]string{
 	0: "allowedHosts",
+	1: "allowedInternalHosts",
 }
 
 // Decode decodes RuntimeProfileSandboxNetwork from json.
@@ -78009,6 +78080,25 @@ func (s *RuntimeProfileSandboxNetwork) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"allowedHosts\"")
+			}
+		case "allowedInternalHosts":
+			if err := func() error {
+				s.AllowedInternalHosts = make([]string, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem string
+					v, err := d.Str()
+					elem = string(v)
+					if err != nil {
+						return err
+					}
+					s.AllowedInternalHosts = append(s.AllowedInternalHosts, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"allowedInternalHosts\"")
 			}
 		default:
 			return errors.Errorf("unexpected field %q", k)
@@ -92135,10 +92225,21 @@ func (s *UpdateRuntimeProfileBodySandboxNetwork) encodeFields(e *jx.Encoder) {
 			e.ArrEnd()
 		}
 	}
+	{
+		if s.AllowedInternalHosts != nil {
+			e.FieldStart("allowedInternalHosts")
+			e.ArrStart()
+			for _, elem := range s.AllowedInternalHosts {
+				e.Str(elem)
+			}
+			e.ArrEnd()
+		}
+	}
 }
 
-var jsonFieldsNameOfUpdateRuntimeProfileBodySandboxNetwork = [1]string{
+var jsonFieldsNameOfUpdateRuntimeProfileBodySandboxNetwork = [2]string{
 	0: "allowedHosts",
+	1: "allowedInternalHosts",
 }
 
 // Decode decodes UpdateRuntimeProfileBodySandboxNetwork from json.
@@ -92167,6 +92268,25 @@ func (s *UpdateRuntimeProfileBodySandboxNetwork) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"allowedHosts\"")
+			}
+		case "allowedInternalHosts":
+			if err := func() error {
+				s.AllowedInternalHosts = make([]string, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem string
+					v, err := d.Str()
+					elem = string(v)
+					if err != nil {
+						return err
+					}
+					s.AllowedInternalHosts = append(s.AllowedInternalHosts, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"allowedInternalHosts\"")
 			}
 		default:
 			return errors.Errorf("unexpected field %q", k)

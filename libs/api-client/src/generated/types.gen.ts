@@ -450,6 +450,7 @@ export type CreateRuntimeProfileBody = {
     };
     network?: {
       allowedHosts?: Array<string>;
+      allowedInternalHosts?: Array<string>;
     };
     resources?: {
       cpus?: number;
@@ -1766,6 +1767,7 @@ export type RuntimeProfile = {
     };
     network?: {
       allowedHosts?: Array<string>;
+      allowedInternalHosts?: Array<string>;
     };
     resources?: {
       cpus?: number;
@@ -1851,6 +1853,7 @@ export type RuntimeProfileListResponse = {
       };
       network?: {
         allowedHosts?: Array<string>;
+        allowedInternalHosts?: Array<string>;
       };
       resources?: {
         cpus?: number;
@@ -1912,6 +1915,7 @@ export type RuntimeProfileSandbox = {
   };
   network?: {
     allowedHosts?: Array<string>;
+    allowedInternalHosts?: Array<string>;
   };
   resources?: {
     cpus?: number;
@@ -2570,6 +2574,7 @@ export type UpdateRuntimeProfileBody = {
     };
     network?: {
       allowedHosts?: Array<string>;
+      allowedInternalHosts?: Array<string>;
     };
     resources?: {
       cpus?: number;

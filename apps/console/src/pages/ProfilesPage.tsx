@@ -59,6 +59,7 @@ interface ProfileFormState {
   topK: string;
   maxOutputTokens: string;
   runtimeAllowedHosts: string;
+  runtimeAllowedInternalHosts: string;
   sandboxJson: string;
   sessionTtlSec: string;
   workspaceTtlSec: string;
@@ -85,6 +86,7 @@ const EMPTY_FORM: ProfileFormState = {
   topK: '',
   maxOutputTokens: '',
   runtimeAllowedHosts: '',
+  runtimeAllowedInternalHosts: '',
   sandboxJson: '{}',
   sessionTtlSec: '1800',
   workspaceTtlSec: '1800',
@@ -153,7 +155,9 @@ const FIELD_HELP = {
   requiredTools:
     'Comma-separated executables or paths that must be available before this daemon can run the profile.',
   runtimeAllowedHosts:
-    'Comma-separated hostnames the VM may reach over HTTP or HTTPS while tasks run. Use a leading wildcard such as *.example.com for subdomains.',
+    'Comma-separated public hostnames the VM may reach over HTTP or HTTPS. Private, loopback, and link-local resolutions remain blocked to prevent SSRF and DNS rebinding.',
+  runtimeAllowedInternalHosts:
+    'Security-sensitive: comma-separated hostnames explicitly permitted to resolve to private, loopback, or link-local addresses. These hosts are also added to the runtime egress allowlist.',
   sandboxJson:
     'Advanced Pi sandbox policy, excluding runtime egress hosts, passed to the executor.',
   contextJson:
@@ -689,11 +693,20 @@ export function ProfilesPage() {
                 placeholder="git, gh, pnpm"
               />
               <LabeledInput
-                label="Runtime egress hosts"
+                label="Public runtime egress hosts"
                 help={FIELD_HELP.runtimeAllowedHosts}
                 value={form.runtimeAllowedHosts}
                 onChange={(value) => updateField('runtimeAllowedHosts', value)}
                 placeholder="api.example.com, *.services.example.com"
+              />
+              <LabeledInput
+                label="Internal runtime egress hosts"
+                help={FIELD_HELP.runtimeAllowedInternalHosts}
+                value={form.runtimeAllowedInternalHosts}
+                onChange={(value) =>
+                  updateField('runtimeAllowedInternalHosts', value)
+                }
+                placeholder="onboard-api.internal, metadata.example.com"
               />
             </div>
 
@@ -1088,6 +1101,8 @@ function profileToForm(profile: RuntimeProfile): ProfileFormState {
       profile.maxOutputTokens === null ? '' : String(profile.maxOutputTokens),
     runtimeAllowedHosts:
       profile.sandbox.network?.allowedHosts?.join(', ') ?? '',
+    runtimeAllowedInternalHosts:
+      profile.sandbox.network?.allowedInternalHosts?.join(', ') ?? '',
     sandboxJson: JSON.stringify(sandbox, null, 2),
     sessionTtlSec: String(profile.sessionTtlSec),
     workspaceTtlSec: String(profile.workspaceTtlSec),
@@ -1124,13 +1139,26 @@ function buildProfileBody(form: ProfileFormState): CreateRuntimeProfileBody {
   );
   if (sandbox.network !== undefined) {
     throw new Error(
-      'Configure network.allowedHosts with the Runtime egress hosts field.',
+      'Configure network hosts with the dedicated runtime egress fields.',
     );
   }
   const runtimeAllowedHosts = parseCsv(form.runtimeAllowedHosts);
+  const runtimeAllowedInternalHosts = parseCsv(
+    form.runtimeAllowedInternalHosts,
+  );
   const sandboxWithNetwork: RuntimeProfileSandbox =
-    runtimeAllowedHosts.length > 0
-      ? { ...sandbox, network: { allowedHosts: runtimeAllowedHosts } }
+    runtimeAllowedHosts.length > 0 || runtimeAllowedInternalHosts.length > 0
+      ? {
+          ...sandbox,
+          network: {
+            ...(runtimeAllowedHosts.length > 0
+              ? { allowedHosts: runtimeAllowedHosts }
+              : {}),
+            ...(runtimeAllowedInternalHosts.length > 0
+              ? { allowedInternalHosts: runtimeAllowedInternalHosts }
+              : {}),
+          },
+        }
       : sandbox;
   const context = parseJson<RuntimeProfileContext[]>(
     form.contextJson,

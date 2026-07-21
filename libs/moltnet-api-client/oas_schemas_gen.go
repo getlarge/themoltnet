@@ -6029,7 +6029,8 @@ func (CreateRuntimeProfileBodySandboxHostExecAutoApprove) AllValues() []CreateRu
 }
 
 type CreateRuntimeProfileBodySandboxNetwork struct {
-	AllowedHosts []string `json:"allowedHosts"`
+	AllowedHosts         []string `json:"allowedHosts"`
+	AllowedInternalHosts []string `json:"allowedInternalHosts"`
 }
 
 // GetAllowedHosts returns the value of AllowedHosts.
@@ -6037,9 +6038,19 @@ func (s *CreateRuntimeProfileBodySandboxNetwork) GetAllowedHosts() []string {
 	return s.AllowedHosts
 }
 
+// GetAllowedInternalHosts returns the value of AllowedInternalHosts.
+func (s *CreateRuntimeProfileBodySandboxNetwork) GetAllowedInternalHosts() []string {
+	return s.AllowedInternalHosts
+}
+
 // SetAllowedHosts sets the value of AllowedHosts.
 func (s *CreateRuntimeProfileBodySandboxNetwork) SetAllowedHosts(val []string) {
 	s.AllowedHosts = val
+}
+
+// SetAllowedInternalHosts sets the value of AllowedInternalHosts.
+func (s *CreateRuntimeProfileBodySandboxNetwork) SetAllowedInternalHosts(val []string) {
+	s.AllowedInternalHosts = val
 }
 
 type CreateRuntimeProfileBodySandboxResources struct {
@@ -42035,7 +42046,8 @@ func (RuntimeProfileListResponseItemsItemSandboxHostExecAutoApprove) AllValues()
 }
 
 type RuntimeProfileListResponseItemsItemSandboxNetwork struct {
-	AllowedHosts []string `json:"allowedHosts"`
+	AllowedHosts         []string `json:"allowedHosts"`
+	AllowedInternalHosts []string `json:"allowedInternalHosts"`
 }
 
 // GetAllowedHosts returns the value of AllowedHosts.
@@ -42043,9 +42055,19 @@ func (s *RuntimeProfileListResponseItemsItemSandboxNetwork) GetAllowedHosts() []
 	return s.AllowedHosts
 }
 
+// GetAllowedInternalHosts returns the value of AllowedInternalHosts.
+func (s *RuntimeProfileListResponseItemsItemSandboxNetwork) GetAllowedInternalHosts() []string {
+	return s.AllowedInternalHosts
+}
+
 // SetAllowedHosts sets the value of AllowedHosts.
 func (s *RuntimeProfileListResponseItemsItemSandboxNetwork) SetAllowedHosts(val []string) {
 	s.AllowedHosts = val
+}
+
+// SetAllowedInternalHosts sets the value of AllowedInternalHosts.
+func (s *RuntimeProfileListResponseItemsItemSandboxNetwork) SetAllowedInternalHosts(val []string) {
+	s.AllowedInternalHosts = val
 }
 
 type RuntimeProfileListResponseItemsItemSandboxResources struct {
@@ -42659,7 +42681,8 @@ func (RuntimeProfileSandboxHostExecAutoApprove) AllValues() []RuntimeProfileSand
 }
 
 type RuntimeProfileSandboxNetwork struct {
-	AllowedHosts []string `json:"allowedHosts"`
+	AllowedHosts         []string `json:"allowedHosts"`
+	AllowedInternalHosts []string `json:"allowedInternalHosts"`
 }
 
 // GetAllowedHosts returns the value of AllowedHosts.
@@ -42667,9 +42690,19 @@ func (s *RuntimeProfileSandboxNetwork) GetAllowedHosts() []string {
 	return s.AllowedHosts
 }
 
+// GetAllowedInternalHosts returns the value of AllowedInternalHosts.
+func (s *RuntimeProfileSandboxNetwork) GetAllowedInternalHosts() []string {
+	return s.AllowedInternalHosts
+}
+
 // SetAllowedHosts sets the value of AllowedHosts.
 func (s *RuntimeProfileSandboxNetwork) SetAllowedHosts(val []string) {
 	s.AllowedHosts = val
+}
+
+// SetAllowedInternalHosts sets the value of AllowedInternalHosts.
+func (s *RuntimeProfileSandboxNetwork) SetAllowedInternalHosts(val []string) {
+	s.AllowedInternalHosts = val
 }
 
 type RuntimeProfileSandboxResources struct {
@@ -49699,7 +49732,8 @@ func (UpdateRuntimeProfileBodySandboxHostExecAutoApprove) AllValues() []UpdateRu
 }
 
 type UpdateRuntimeProfileBodySandboxNetwork struct {
-	AllowedHosts []string `json:"allowedHosts"`
+	AllowedHosts         []string `json:"allowedHosts"`
+	AllowedInternalHosts []string `json:"allowedInternalHosts"`
 }
 
 // GetAllowedHosts returns the value of AllowedHosts.
@@ -49707,9 +49741,19 @@ func (s *UpdateRuntimeProfileBodySandboxNetwork) GetAllowedHosts() []string {
 	return s.AllowedHosts
 }
 
+// GetAllowedInternalHosts returns the value of AllowedInternalHosts.
+func (s *UpdateRuntimeProfileBodySandboxNetwork) GetAllowedInternalHosts() []string {
+	return s.AllowedInternalHosts
+}
+
 // SetAllowedHosts sets the value of AllowedHosts.
 func (s *UpdateRuntimeProfileBodySandboxNetwork) SetAllowedHosts(val []string) {
 	s.AllowedHosts = val
+}
+
+// SetAllowedInternalHosts sets the value of AllowedInternalHosts.
+func (s *UpdateRuntimeProfileBodySandboxNetwork) SetAllowedInternalHosts(val []string) {
+	s.AllowedInternalHosts = val
 }
 
 type UpdateRuntimeProfileBodySandboxResources struct {

@@ -144,7 +144,7 @@ describe('resumeVm task-context mount', () => {
     expect(resumeOptions.env.NODE_OPTIONS).toBe('--dns-result-order=ipv4first');
   });
 
-  it('adds runtime network hosts to the HTTP and internal-host allowlists', async () => {
+  it('keeps ordinary, internal, and legacy network grants separate', async () => {
     // Arrange
     const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-network-'));
     tempRoots.push(root);
@@ -170,7 +170,8 @@ describe('resumeVm task-context mount', () => {
       extraAllowedHosts: ['legacy-api.example.com'],
       sandboxConfig: {
         network: {
-          allowedHosts: ['onboard-api.internal', '*.example.com'],
+          allowedHosts: ['api.example.com', '*.example.com'],
+          allowedInternalHosts: ['onboard-api.internal'],
         },
       },
     });
@@ -179,15 +180,11 @@ describe('resumeVm task-context mount', () => {
     expect(gondolinMock.createHttpHooks).toHaveBeenCalledWith({
       allowedHosts: expect.arrayContaining([
         'api.themolt.net',
-        'onboard-api.internal',
+        'api.example.com',
         '*.example.com',
         'legacy-api.example.com',
       ]),
-      allowedInternalHosts: [
-        'onboard-api.internal',
-        '*.example.com',
-        'legacy-api.example.com',
-      ],
+      allowedInternalHosts: ['onboard-api.internal'],
     });
   });
 

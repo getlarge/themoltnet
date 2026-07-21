@@ -93,6 +93,7 @@ const profile = await molt.runtimeProfiles.create(
     sandbox: {
       network: {
         allowedHosts: ['api.linear.app', '*.example.com'],
+        allowedInternalHosts: ['onboard-api.internal'],
       },
       vfs: { shadow: ['.env', '.env.local', '.moltnet'], shadowMode: 'deny' },
       hostExec: { autoApprove: false },
@@ -215,11 +216,23 @@ Profile sandbox policy controls snapshot setup, resume commands, VFS shadowing,
 guest env, VM resources, and host command auto-approval.
 
 Runtime HTTP(S) egress is denied unless a hostname matches the base MoltNet
-allowlist, the configured MoltNet API host, or
-`sandbox.network.allowedHosts`. Entries are hostnames rather than URLs: use an
-exact hostname such as `api.example.com` or a leading wildcard such as
-`*.example.com`. A runtime grant also permits a matching hostname that resolves
-to a private address; unlisted private hosts remain blocked.
+allowlist, the configured MoltNet API host, `sandbox.network.allowedHosts`, or
+`sandbox.network.allowedInternalHosts`. Entries are hostnames rather than URLs:
+use an exact hostname such as `api.example.com` or a leading wildcard such as
+`*.example.com`.
+
+`allowedHosts` is for ordinary public services. Gondolin resolves the hostname
+for each request and still blocks loopback, link-local, and private IP ranges.
+That address check prevents an allowed public hostname from bypassing the
+sandbox through DNS rebinding or a changed DNS record.
+
+`allowedInternalHosts` is the explicit exception for services that may resolve
+to internal/private addresses. Gondolin also adds these entries to its effective
+hostname allowlist, so do not duplicate them in `allowedHosts`. This is the
+stronger permission: granting an attacker-controlled hostname can expose cloud
+metadata endpoints, localhost services, or private infrastructure through SSRF.
+Base hosts, the configured MoltNet API host, and legacy daemon host grants remain
+external-only.
 
 Keep runtime egress separate from `sandbox.snapshot.allowedHosts`. Snapshot
 hosts are reachable only while building the cached VM image, while network
@@ -232,7 +245,8 @@ trusted with those secrets.
 ```json
 {
   "network": {
-    "allowedHosts": ["onboard-api.internal", "*.example.com"]
+    "allowedHosts": ["api.example.com", "*.example.com"],
+    "allowedInternalHosts": ["onboard-api.internal"]
   }
 }
 ```

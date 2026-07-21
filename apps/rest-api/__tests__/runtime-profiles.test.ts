@@ -87,7 +87,10 @@ describe('runtime profile routes', () => {
         topK: 40,
         maxOutputTokens: 12_000,
         sandbox: {
-          network: { allowedHosts: ['onboard-api.internal'] },
+          network: {
+            allowedHosts: ['api.linear.app'],
+            allowedInternalHosts: ['onboard-api.internal'],
+          },
         },
       }),
     );
@@ -110,7 +113,10 @@ describe('runtime profile routes', () => {
         topK: 40,
         maxOutputTokens: 12_000,
         sandbox: {
-          network: { allowedHosts: ['onboard-api.internal'] },
+          network: {
+            allowedHosts: ['api.linear.app'],
+            allowedInternalHosts: ['onboard-api.internal'],
+          },
           resumeCommands: [
             {
               run: 'linear issue view "$LINEAR_ISSUE_ID"',
@@ -150,7 +156,10 @@ describe('runtime profile routes', () => {
       topK: 40,
       maxOutputTokens: 12_000,
       sandbox: {
-        network: { allowedHosts: ['onboard-api.internal'] },
+        network: {
+          allowedHosts: ['api.linear.app'],
+          allowedInternalHosts: ['onboard-api.internal'],
+        },
       },
       runtimeKind: 'gondolin_pi',
       leaseTtlSec: 300,
@@ -177,7 +186,10 @@ describe('runtime profile routes', () => {
         maxTurns: 30,
         maxBashTimeouts: 2,
         sandbox: expect.objectContaining({
-          network: { allowedHosts: ['onboard-api.internal'] },
+          network: {
+            allowedHosts: ['api.linear.app'],
+            allowedInternalHosts: ['onboard-api.internal'],
+          },
         }),
         defaultWorkspaceMode: 'dedicated_worktree',
         allowedWorkspaceModes: ['none', 'dedicated_worktree'],
@@ -312,34 +324,37 @@ describe('runtime profile routes', () => {
     expect(mocks.runtimeProfileRepository.create).not.toHaveBeenCalled();
   });
 
-  it('rejects malformed runtime egress hosts', async () => {
-    // Arrange
-    mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
-    mocks.permissionChecker.canManageTeamRuntime.mockResolvedValue(true);
-    mocks.teamRepository.findById.mockResolvedValue({ id: TEAM_ID });
+  it.each(['allowedHosts', 'allowedInternalHosts'] as const)(
+    'rejects malformed runtime egress hosts in %s',
+    async (field) => {
+      // Arrange
+      mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
+      mocks.permissionChecker.canManageTeamRuntime.mockResolvedValue(true);
+      mocks.teamRepository.findById.mockResolvedValue({ id: TEAM_ID });
 
-    // Act
-    const response = await app.inject({
-      method: 'POST',
-      url: '/runtime-profiles',
-      headers: {
-        authorization: 'Bearer test-token',
-        'x-moltnet-team-id': TEAM_ID,
-      },
-      payload: {
-        name: 'unsafe-network',
-        provider: 'anthropic',
-        model: 'claude-sonnet-4-5',
-        sandbox: {
-          network: { allowedHosts: ['https://example.com'] },
+      // Act
+      const response = await app.inject({
+        method: 'POST',
+        url: '/runtime-profiles',
+        headers: {
+          authorization: 'Bearer test-token',
+          'x-moltnet-team-id': TEAM_ID,
         },
-      },
-    });
+        payload: {
+          name: 'unsafe-network',
+          provider: 'anthropic',
+          model: 'claude-sonnet-4-5',
+          sandbox: {
+            network: { [field]: ['https://example.com'] },
+          },
+        },
+      });
 
-    // Assert
-    expect(response.statusCode).toBe(400);
-    expect(mocks.runtimeProfileRepository.create).not.toHaveBeenCalled();
-  });
+      // Assert
+      expect(response.statusCode).toBe(400);
+      expect(mocks.runtimeProfileRepository.create).not.toHaveBeenCalled();
+    },
+  );
 
   it('returns typed conflict details for duplicate profile names', async () => {
     mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);

@@ -171,6 +171,9 @@ export const RuntimeProfileSandbox = Type.Object(
           allowedHosts: Type.Optional(
             Type.Array(RuntimeProfileAllowedHost, { maxItems: 50 }),
           ),
+          allowedInternalHosts: Type.Optional(
+            Type.Array(RuntimeProfileAllowedHost, { maxItems: 50 }),
+          ),
         },
         { additionalProperties: false },
       ),

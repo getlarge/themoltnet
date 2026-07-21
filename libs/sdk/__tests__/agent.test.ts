@@ -1592,7 +1592,8 @@ describe('Agent facade', () => {
           allowedHosts: ['api.github.com'],
         },
         network: {
-          allowedHosts: ['onboard-api.internal'],
+          allowedHosts: ['api.linear.app'],
+          allowedInternalHosts: ['onboard-api.internal'],
         },
       },
       context: [],
@@ -1663,7 +1664,10 @@ describe('Agent facade', () => {
         model: 'claude-sonnet-4-5',
         sandbox: {
           snapshot: { allowedHosts: ['api.github.com'] },
-          network: { allowedHosts: ['onboard-api.internal'] },
+          network: {
+            allowedHosts: ['api.linear.app'],
+            allowedInternalHosts: ['onboard-api.internal'],
+          },
         },
       };
 

@@ -1411,7 +1411,10 @@ describe('Agent daemon (e2e)', () => {
       const profileName = `daemon-e2e-${randomUUID()}`;
       const allowedProfile = await createProfile(profileName, {
         snapshot: { allowedHosts: ['api.github.com'] },
-        network: { allowedHosts: ['onboard-api.internal'] },
+        network: {
+          allowedHosts: ['api.linear.app'],
+          allowedInternalHosts: ['onboard-api.internal'],
+        },
         resources: { cpus: 4, memory: '4G' },
       });
       const otherProfile = await createProfile(`daemon-e2e-${randomUUID()}`);
