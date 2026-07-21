@@ -220,7 +220,10 @@ hostnames such as `api.example.com` and leading wildcard patterns such as
   arrays. Treat this as the stronger, security-sensitive permission.
 
 The base runtime hosts, MoltNet API host, and legacy `extraAllowedHosts` remain
-external-only. They are not implicitly allowed to resolve internally.
+external-only. They are not implicitly allowed to resolve internally, and VM
+resume rejects an `allowedInternalHosts` pattern that overlaps one of those
+protected patterns. Use a distinct internal service hostname when private
+resolution is required.
 
 Runtime hosts are deliberately separate from `snapshot.allowedHosts`: build
 dependencies do not become task-time egress grants, and runtime services do not

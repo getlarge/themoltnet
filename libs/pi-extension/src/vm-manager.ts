@@ -321,6 +321,69 @@ const BASE_ALLOWED_HOSTS = [
 ];
 
 /**
+ * Return whether two Gondolin hostname globs can match at least one common
+ * string. Each `*` is an arbitrary substring, so this walks the product of the
+ * two small glob automata instead of relying on exact-string comparisons.
+ */
+function hostnamePatternsOverlap(left: string, right: string): boolean {
+  const a = left.trim().toLowerCase();
+  const b = right.trim().toLowerCase();
+  if (!a || !b) return false;
+
+  const pending: Array<[number, number]> = [[0, 0]];
+  const visited = new Set<string>();
+
+  while (pending.length > 0) {
+    const next = pending.pop();
+    if (!next) continue;
+    const [aIndex, bIndex] = next;
+    const state = `${aIndex}:${bIndex}`;
+    if (visited.has(state)) continue;
+    visited.add(state);
+
+    if (aIndex === a.length && bIndex === b.length) return true;
+
+    const aChar = a[aIndex];
+    const bChar = b[bIndex];
+
+    // A glob star may consume no characters.
+    if (aChar === '*') pending.push([aIndex + 1, bIndex]);
+    if (bChar === '*') pending.push([aIndex, bIndex + 1]);
+
+    // Or both patterns may consume one compatible character. A star remains
+    // at its current state so it can consume an arbitrary-length substring.
+    if (
+      aChar !== undefined &&
+      bChar !== undefined &&
+      (aChar === '*' || bChar === '*' || aChar === bChar)
+    ) {
+      pending.push([
+        aChar === '*' ? aIndex : aIndex + 1,
+        bChar === '*' ? bIndex : bIndex + 1,
+      ]);
+    }
+  }
+
+  return false;
+}
+
+function assertInternalHostsDoNotOverlapProtectedHosts(
+  internalHosts: string[],
+  protectedHosts: string[],
+): void {
+  for (const internalHost of internalHosts) {
+    const protectedHost = protectedHosts.find((candidate) =>
+      hostnamePatternsOverlap(internalHost, candidate),
+    );
+    if (protectedHost) {
+      throw new Error(
+        `sandbox.network.allowedInternalHosts pattern "${internalHost}" overlaps external-only host pattern "${protectedHost}"`,
+      );
+    }
+  }
+}
+
+/**
  * Run a shell command in the guest and throw if it fails. Mirror of
  * `run()` in `snapshot.ts` for the resume-side hook chain — every
  * setup step is essential to a healthy session, so a silent non-zero
@@ -381,13 +444,19 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
   const runtimeAllowedHosts = config.sandboxConfig?.network?.allowedHosts ?? [];
   const runtimeAllowedInternalHosts =
     config.sandboxConfig?.network?.allowedInternalHosts ?? [];
-  const allowedHosts = [
+  const protectedExternalHosts = [
     ...new Set([
       ...BASE_ALLOWED_HOSTS,
       apiHost,
       ...(config.extraAllowedHosts ?? []),
-      ...runtimeAllowedHosts,
     ]),
+  ];
+  assertInternalHostsDoNotOverlapProtectedHosts(
+    runtimeAllowedInternalHosts,
+    protectedExternalHosts,
+  );
+  const allowedHosts = [
+    ...new Set([...protectedExternalHosts, ...runtimeAllowedHosts]),
   ];
 
   const { httpHooks, env: secretEnv } = createHttpHooks({

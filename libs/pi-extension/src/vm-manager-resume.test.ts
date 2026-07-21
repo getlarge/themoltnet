@@ -188,6 +188,64 @@ describe('resumeVm task-context mount', () => {
     });
   });
 
+  it.each([
+    {
+      label: 'immutable base wildcard',
+      internalHost: '*.sub.openai.com',
+      extraAllowedHosts: undefined,
+      protectedHost: '*.openai.com',
+    },
+    {
+      label: 'configured API hostname',
+      internalHost: '*.themolt.net',
+      extraAllowedHosts: undefined,
+      protectedHost: 'api.themolt.net',
+    },
+    {
+      label: 'legacy external hostname',
+      internalHost: '*.legacy.example.com',
+      extraAllowedHosts: ['api.legacy.example.com'],
+      protectedHost: 'api.legacy.example.com',
+    },
+  ])(
+    'rejects an internal wildcard overlapping a $label',
+    async ({ internalHost, extraAllowedHosts, protectedHost }) => {
+      // Arrange
+      const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-overlap-'));
+      tempRoots.push(root);
+      const workspace = path.join(root, 'workspace');
+      const agentDir = path.join(root, '.moltnet', 'legreffier');
+      mkdirSync(workspace, { recursive: true });
+      mkdirSync(agentDir, { recursive: true });
+      writeFileSync(
+        path.join(agentDir, 'moltnet.json'),
+        JSON.stringify({
+          endpoints: { api: 'https://api.themolt.net' },
+        }),
+        'utf8',
+      );
+      writeFileSync(path.join(agentDir, 'env'), '', 'utf8');
+
+      // Act
+      const resume = resumeVm({
+        checkpointPath: path.join(root, 'checkpoint.qcow2'),
+        agentName: 'legreffier',
+        agentRootDir: root,
+        mountPath: workspace,
+        extraAllowedHosts,
+        sandboxConfig: {
+          network: { allowedInternalHosts: [internalHost] },
+        },
+      });
+
+      // Assert
+      await expect(resume).rejects.toThrow(
+        `pattern "${internalHost}" overlaps external-only host pattern "${protectedHost}"`,
+      );
+      expect(gondolinMock.createHttpHooks).not.toHaveBeenCalled();
+    },
+  );
+
   it('shadows future node_modules paths before resume commands run', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-node-modules-'));
     tempRoots.push(root);

@@ -232,7 +232,10 @@ hostname allowlist, so do not duplicate them in `allowedHosts`. This is the
 stronger permission: granting an attacker-controlled hostname can expose cloud
 metadata endpoints, localhost services, or private infrastructure through SSRF.
 Base hosts, the configured MoltNet API host, and legacy daemon host grants remain
-external-only.
+external-only. VM resume rejects an `allowedInternalHosts` pattern when it
+overlaps any of those protected hostnames, including through a wildcard. Use a
+distinct internal service hostname rather than attempting to upgrade a
+protected external grant.
 
 Keep runtime egress separate from `sandbox.snapshot.allowedHosts`. Snapshot
 hosts are reachable only while building the cached VM image, while network
