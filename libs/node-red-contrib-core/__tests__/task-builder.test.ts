@@ -196,8 +196,10 @@ describe('moltnet-task-builder references + gates + execution', () => {
     const { outputs } = await red.input(node, {
       payload: {},
       staged: {
+        artifactSource: 'staged',
         cid: 'bafy-input',
         kind: 'input',
+        sizeBytes: 11,
         title: 'brief.txt',
         contentType: 'text/plain',
       },
@@ -216,6 +218,27 @@ describe('moltnet-task-builder references + gates + execution', () => {
         },
       },
     ]);
+  });
+
+  it('rejects downloaded artifact metadata without explicit provenance', async () => {
+    const { red, node } = setup({
+      taskType: 'freeform',
+      brief: 'b',
+      referencesFrom: 'downloaded',
+      referencesRole: 'context',
+    });
+
+    await expect(
+      red.input(node, {
+        payload: {},
+        downloaded: {
+          taskId: 't1',
+          attemptN: 1,
+          cid: 'bafy-artifact',
+          artifactId: 'artifact-1',
+        },
+      } as Record<string, unknown>),
+    ).rejects.toThrow(/artifact CID is ambiguous/);
   });
 
   it('adds submit-output gate and execution workspace', async () => {

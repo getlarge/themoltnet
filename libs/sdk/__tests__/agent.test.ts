@@ -574,7 +574,7 @@ describe('Agent facade', () => {
         { teamId: 'team-1' },
       );
 
-      expect(result).toEqual(staged);
+      expect(result).toEqual({ ...staged, artifactSource: 'staged' });
       expect(stageTaskArtifact).toHaveBeenCalledWith(
         expect.objectContaining({
           client: mockClient,

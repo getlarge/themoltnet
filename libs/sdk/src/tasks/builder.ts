@@ -21,6 +21,7 @@ import {
   validateTaskCreateRequest,
 } from '@moltnet/tasks';
 
+import type { StagedTaskArtifactReference } from './artifacts.js';
 import { TaskBuildError } from './errors.js';
 
 /** The `tasks.create` request body the builder produces. */
@@ -47,12 +48,7 @@ export type ReferenceSource =
 
 export type ArtifactReferenceSource =
   | TaskRef
-  | {
-      cid: string;
-      kind?: string;
-      title?: string;
-      contentType?: string;
-    }
+  | StagedTaskArtifactReference
   | {
       taskId: string;
       outputCid: string;
@@ -400,13 +396,17 @@ export class TaskBuilder<TInput extends Record<string, unknown>> {
   }
 
   /**
-   * Add a reference to a persistent task artifact while retaining the accepted
-   * output CID as the provenance anchor.
+   * Add either a staged input artifact or a persistent attempt artifact.
+   * Staged metadata returned by `tasks.artifacts.stage()` carries
+   * `artifactSource: 'staged'` and produces a reference with `taskId: null`, no
+   * `outputCid`, and no `attemptN`. Persistent artifacts require the producing
+   * task, accepted output CID, artifact CID, and positive attempt number so
+   * their provenance remains explicit.
    *
-   * @param source - A result reader, raw artifact reference, or `TaskRef`.
+   * @param source - Staged SDK metadata, a result reader, raw artifact reference, or `TaskRef`.
    * @param role - The role the referenced artifact plays.
    * @returns This builder, for chaining.
-   * @throws {TaskBuildError} when output or artifact CID is missing.
+   * @throws {TaskBuildError} when the source is ambiguous or required provenance is missing.
    */
   artifactReference(
     source: ArtifactReferenceSource,
@@ -415,7 +415,11 @@ export class TaskBuilder<TInput extends Record<string, unknown>> {
     let ref: TaskRef;
     if ('artifactRef' in source && typeof source.artifactRef === 'function') {
       ref = source.artifactRef(role);
-    } else if ('cid' in source && source.cid) {
+    } else if (
+      'artifactSource' in source &&
+      source.artifactSource === 'staged' &&
+      source.cid
+    ) {
       ref = {
         taskId: null,
         role,
@@ -426,6 +430,14 @@ export class TaskBuilder<TInput extends Record<string, unknown>> {
           ...(source.contentType ? { contentType: source.contentType } : {}),
         },
       };
+    } else if ('cid' in source) {
+      throw new TaskBuildError([
+        {
+          field: 'references/artifactSource',
+          message:
+            'top-level artifact CID is ambiguous; use metadata returned by tasks.artifacts.stage()',
+        },
+      ]);
     } else if ('artifact' in source && source.artifact?.cid) {
       if (source.taskId === null && source.artifact.attemptN === undefined) {
         ref = {

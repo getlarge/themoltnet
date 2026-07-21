@@ -76,7 +76,10 @@ export function createTasksNamespace(context: AgentContext): TasksNamespace {
           query,
         } satisfies TaskArtifactStageOptions;
 
-        return unwrapResult(await stageTaskArtifact(stageOptions));
+        return {
+          ...unwrapResult(await stageTaskArtifact(stageOptions)),
+          artifactSource: 'staged',
+        };
       },
 
       async upload(path, body, query, options) {

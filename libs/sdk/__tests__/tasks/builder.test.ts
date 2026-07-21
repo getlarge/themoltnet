@@ -205,8 +205,10 @@ describe('buildTask (generic core)', () => {
       .diary(DIARY)
       .artifactReference(
         {
+          artifactSource: 'staged',
           cid: 'bafkreiINPUT',
           contentType: 'application/pdf',
+          sizeBytes: 123,
           title: 'brief.pdf',
         },
         'context',
@@ -224,6 +226,23 @@ describe('buildTask (generic core)', () => {
         },
       },
     ]);
+  });
+
+  it('artifactReference() rejects ambiguous downloaded artifact metadata', () => {
+    expect(() =>
+      buildTask('freeform', { brief: 'consume input' })
+        .team(TEAM)
+        .diary(DIARY)
+        .artifactReference(
+          {
+            taskId: '22222222-2222-2222-2222-222222222222',
+            attemptN: 1,
+            cid: 'bafkreiART',
+          } as never,
+          'context',
+        )
+        .build(),
+    ).toThrow(/artifact CID is ambiguous/);
   });
 
   it('artifactReference() accepts the canonical input artifact TaskRef', () => {

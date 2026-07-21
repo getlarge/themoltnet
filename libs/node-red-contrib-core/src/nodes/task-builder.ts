@@ -222,7 +222,7 @@ const init: NodeInitializer = (RED): void => {
           const ref = RED.util.getMessageProperty(msg, def.referencesFrom) as
             | Record<string, unknown>
             | undefined;
-          if (ref?.artifact || (ref?.cid && !ref?.outputCid)) {
+          if (ref?.artifact || ref?.artifactSource === 'staged' || ref?.cid) {
             builder.artifactReference(
               ref as ArtifactReferenceSource,
               def.referencesRole ?? 'context',

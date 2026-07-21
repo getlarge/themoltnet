@@ -1,3 +1,4 @@
+export * from './artifacts.js';
 export * from './builder.js';
 export * from './errors.js';
 export * from './reader.js';

@@ -109,7 +109,6 @@ import type {
   SearchPublicFeedData,
   SigningRequest,
   SigningRequestList,
-  StagedTaskArtifact,
   StageTaskArtifactData,
   StartLegreffierOnboardingData,
   StartLegreffierOnboardingResponse,
@@ -170,6 +169,7 @@ import type {
   BuildRubricSuccessCriteriaOptions,
   BuiltTask,
   JudgeEvalAttemptTarget,
+  StagedTaskArtifactReference,
   TaskBuilder,
   TaskResultReader,
 } from './tasks/index.js';
@@ -662,7 +662,7 @@ export interface TaskArtifactsNamespace {
     body: TaskArtifactUploadBody,
     query: StageTaskArtifactData['query'],
     options: TaskRequestOptions,
-  ): Promise<StagedTaskArtifact>;
+  ): Promise<StagedTaskArtifactReference>;
 
   upload(
     path: UploadTaskArtifactData['path'],
