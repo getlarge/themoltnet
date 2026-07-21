@@ -91,6 +91,9 @@ const profile = await molt.runtimeProfiles.create(
     requiredEnv: ['GITHUB_TOKEN'],
     requiredTools: ['git', 'gh', 'pnpm'],
     sandbox: {
+      network: {
+        allowedHosts: ['api.linear.app', '*.example.com'],
+      },
       vfs: { shadow: ['.env', '.env.local', '.moltnet'], shadowMode: 'deny' },
       hostExec: { autoApprove: false },
       resources: { cpus: 4, memory: '8G' },
@@ -210,6 +213,29 @@ named by `.pi/models.json`, for example `OLLAMA_API_KEY`.
 
 Profile sandbox policy controls snapshot setup, resume commands, VFS shadowing,
 guest env, VM resources, and host command auto-approval.
+
+Runtime HTTP(S) egress is denied unless a hostname matches the base MoltNet
+allowlist, the configured MoltNet API host, or
+`sandbox.network.allowedHosts`. Entries are hostnames rather than URLs: use an
+exact hostname such as `api.example.com` or a leading wildcard such as
+`*.example.com`. A runtime grant also permits a matching hostname that resolves
+to a private address; unlisted private hosts remain blocked.
+
+Keep runtime egress separate from `sandbox.snapshot.allowedHosts`. Snapshot
+hosts are reachable only while building the cached VM image, while network
+hosts are reachable by every task that runs with the profile. Runtime profiles
+are team-editable policy: anyone able to update a profile can grant its tasks
+access to additional services. Values forwarded through `requiredEnv` are
+available inside the VM and can be sent to any granted host, so only grant hosts
+trusted with those secrets.
+
+```json
+{
+  "network": {
+    "allowedHosts": ["onboard-api.internal", "*.example.com"]
+  }
+}
+```
 
 Minimal host-exec example:
 

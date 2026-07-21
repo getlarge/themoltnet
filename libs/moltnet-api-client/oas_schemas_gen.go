@@ -5913,6 +5913,7 @@ func (s *CreateRuntimeProfileBodyRuntimeKind) UnmarshalText(data []byte) error {
 type CreateRuntimeProfileBodySandbox struct {
 	Env            OptCreateRuntimeProfileBodySandboxEnv               `json:"env"`
 	HostExec       OptCreateRuntimeProfileBodySandboxHostExec          `json:"hostExec"`
+	Network        OptCreateRuntimeProfileBodySandboxNetwork           `json:"network"`
 	Resources      OptCreateRuntimeProfileBodySandboxResources         `json:"resources"`
 	ResumeCommands []CreateRuntimeProfileBodySandboxResumeCommandsItem `json:"resumeCommands"`
 	Snapshot       OptCreateRuntimeProfileBodySandboxSnapshot          `json:"snapshot"`
@@ -5927,6 +5928,11 @@ func (s *CreateRuntimeProfileBodySandbox) GetEnv() OptCreateRuntimeProfileBodySa
 // GetHostExec returns the value of HostExec.
 func (s *CreateRuntimeProfileBodySandbox) GetHostExec() OptCreateRuntimeProfileBodySandboxHostExec {
 	return s.HostExec
+}
+
+// GetNetwork returns the value of Network.
+func (s *CreateRuntimeProfileBodySandbox) GetNetwork() OptCreateRuntimeProfileBodySandboxNetwork {
+	return s.Network
 }
 
 // GetResources returns the value of Resources.
@@ -5957,6 +5963,11 @@ func (s *CreateRuntimeProfileBodySandbox) SetEnv(val OptCreateRuntimeProfileBody
 // SetHostExec sets the value of HostExec.
 func (s *CreateRuntimeProfileBodySandbox) SetHostExec(val OptCreateRuntimeProfileBodySandboxHostExec) {
 	s.HostExec = val
+}
+
+// SetNetwork sets the value of Network.
+func (s *CreateRuntimeProfileBodySandbox) SetNetwork(val OptCreateRuntimeProfileBodySandboxNetwork) {
+	s.Network = val
 }
 
 // SetResources sets the value of Resources.
@@ -6015,6 +6026,20 @@ func (CreateRuntimeProfileBodySandboxHostExecAutoApprove) AllValues() []CreateRu
 	return []CreateRuntimeProfileBodySandboxHostExecAutoApprove{
 		CreateRuntimeProfileBodySandboxHostExecAutoApproveFalse,
 	}
+}
+
+type CreateRuntimeProfileBodySandboxNetwork struct {
+	AllowedHosts []string `json:"allowedHosts"`
+}
+
+// GetAllowedHosts returns the value of AllowedHosts.
+func (s *CreateRuntimeProfileBodySandboxNetwork) GetAllowedHosts() []string {
+	return s.AllowedHosts
+}
+
+// SetAllowedHosts sets the value of AllowedHosts.
+func (s *CreateRuntimeProfileBodySandboxNetwork) SetAllowedHosts(val []string) {
+	s.AllowedHosts = val
 }
 
 type CreateRuntimeProfileBodySandboxResources struct {
@@ -31848,6 +31873,52 @@ func (o OptCreateRuntimeProfileBodySandboxHostExecAutoApprove) Or(d CreateRuntim
 	return d
 }
 
+// NewOptCreateRuntimeProfileBodySandboxNetwork returns new OptCreateRuntimeProfileBodySandboxNetwork with value set to v.
+func NewOptCreateRuntimeProfileBodySandboxNetwork(v CreateRuntimeProfileBodySandboxNetwork) OptCreateRuntimeProfileBodySandboxNetwork {
+	return OptCreateRuntimeProfileBodySandboxNetwork{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptCreateRuntimeProfileBodySandboxNetwork is optional CreateRuntimeProfileBodySandboxNetwork.
+type OptCreateRuntimeProfileBodySandboxNetwork struct {
+	Value CreateRuntimeProfileBodySandboxNetwork
+	Set   bool
+}
+
+// IsSet returns true if OptCreateRuntimeProfileBodySandboxNetwork was set.
+func (o OptCreateRuntimeProfileBodySandboxNetwork) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptCreateRuntimeProfileBodySandboxNetwork) Reset() {
+	var v CreateRuntimeProfileBodySandboxNetwork
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptCreateRuntimeProfileBodySandboxNetwork) SetTo(v CreateRuntimeProfileBodySandboxNetwork) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptCreateRuntimeProfileBodySandboxNetwork) Get() (v CreateRuntimeProfileBodySandboxNetwork, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptCreateRuntimeProfileBodySandboxNetwork) Or(d CreateRuntimeProfileBodySandboxNetwork) CreateRuntimeProfileBodySandboxNetwork {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptCreateRuntimeProfileBodySandboxResources returns new OptCreateRuntimeProfileBodySandboxResources with value set to v.
 func NewOptCreateRuntimeProfileBodySandboxResources(v CreateRuntimeProfileBodySandboxResources) OptCreateRuntimeProfileBodySandboxResources {
 	return OptCreateRuntimeProfileBodySandboxResources{
@@ -33886,6 +33957,52 @@ func (o OptRuntimeProfileListResponseItemsItemSandboxHostExecAutoApprove) Or(d R
 	return d
 }
 
+// NewOptRuntimeProfileListResponseItemsItemSandboxNetwork returns new OptRuntimeProfileListResponseItemsItemSandboxNetwork with value set to v.
+func NewOptRuntimeProfileListResponseItemsItemSandboxNetwork(v RuntimeProfileListResponseItemsItemSandboxNetwork) OptRuntimeProfileListResponseItemsItemSandboxNetwork {
+	return OptRuntimeProfileListResponseItemsItemSandboxNetwork{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptRuntimeProfileListResponseItemsItemSandboxNetwork is optional RuntimeProfileListResponseItemsItemSandboxNetwork.
+type OptRuntimeProfileListResponseItemsItemSandboxNetwork struct {
+	Value RuntimeProfileListResponseItemsItemSandboxNetwork
+	Set   bool
+}
+
+// IsSet returns true if OptRuntimeProfileListResponseItemsItemSandboxNetwork was set.
+func (o OptRuntimeProfileListResponseItemsItemSandboxNetwork) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptRuntimeProfileListResponseItemsItemSandboxNetwork) Reset() {
+	var v RuntimeProfileListResponseItemsItemSandboxNetwork
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptRuntimeProfileListResponseItemsItemSandboxNetwork) SetTo(v RuntimeProfileListResponseItemsItemSandboxNetwork) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptRuntimeProfileListResponseItemsItemSandboxNetwork) Get() (v RuntimeProfileListResponseItemsItemSandboxNetwork, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptRuntimeProfileListResponseItemsItemSandboxNetwork) Or(d RuntimeProfileListResponseItemsItemSandboxNetwork) RuntimeProfileListResponseItemsItemSandboxNetwork {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptRuntimeProfileListResponseItemsItemSandboxResources returns new OptRuntimeProfileListResponseItemsItemSandboxResources with value set to v.
 func NewOptRuntimeProfileListResponseItemsItemSandboxResources(v RuntimeProfileListResponseItemsItemSandboxResources) OptRuntimeProfileListResponseItemsItemSandboxResources {
 	return OptRuntimeProfileListResponseItemsItemSandboxResources{
@@ -34250,6 +34367,52 @@ func (o OptRuntimeProfileSandboxHostExecAutoApprove) Get() (v RuntimeProfileSand
 
 // Or returns value if set, or given parameter if does not.
 func (o OptRuntimeProfileSandboxHostExecAutoApprove) Or(d RuntimeProfileSandboxHostExecAutoApprove) RuntimeProfileSandboxHostExecAutoApprove {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptRuntimeProfileSandboxNetwork returns new OptRuntimeProfileSandboxNetwork with value set to v.
+func NewOptRuntimeProfileSandboxNetwork(v RuntimeProfileSandboxNetwork) OptRuntimeProfileSandboxNetwork {
+	return OptRuntimeProfileSandboxNetwork{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptRuntimeProfileSandboxNetwork is optional RuntimeProfileSandboxNetwork.
+type OptRuntimeProfileSandboxNetwork struct {
+	Value RuntimeProfileSandboxNetwork
+	Set   bool
+}
+
+// IsSet returns true if OptRuntimeProfileSandboxNetwork was set.
+func (o OptRuntimeProfileSandboxNetwork) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptRuntimeProfileSandboxNetwork) Reset() {
+	var v RuntimeProfileSandboxNetwork
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptRuntimeProfileSandboxNetwork) SetTo(v RuntimeProfileSandboxNetwork) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptRuntimeProfileSandboxNetwork) Get() (v RuntimeProfileSandboxNetwork, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptRuntimeProfileSandboxNetwork) Or(d RuntimeProfileSandboxNetwork) RuntimeProfileSandboxNetwork {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -35860,6 +36023,52 @@ func (o OptUpdateRuntimeProfileBodySandboxHostExecAutoApprove) Get() (v UpdateRu
 
 // Or returns value if set, or given parameter if does not.
 func (o OptUpdateRuntimeProfileBodySandboxHostExecAutoApprove) Or(d UpdateRuntimeProfileBodySandboxHostExecAutoApprove) UpdateRuntimeProfileBodySandboxHostExecAutoApprove {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptUpdateRuntimeProfileBodySandboxNetwork returns new OptUpdateRuntimeProfileBodySandboxNetwork with value set to v.
+func NewOptUpdateRuntimeProfileBodySandboxNetwork(v UpdateRuntimeProfileBodySandboxNetwork) OptUpdateRuntimeProfileBodySandboxNetwork {
+	return OptUpdateRuntimeProfileBodySandboxNetwork{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptUpdateRuntimeProfileBodySandboxNetwork is optional UpdateRuntimeProfileBodySandboxNetwork.
+type OptUpdateRuntimeProfileBodySandboxNetwork struct {
+	Value UpdateRuntimeProfileBodySandboxNetwork
+	Set   bool
+}
+
+// IsSet returns true if OptUpdateRuntimeProfileBodySandboxNetwork was set.
+func (o OptUpdateRuntimeProfileBodySandboxNetwork) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptUpdateRuntimeProfileBodySandboxNetwork) Reset() {
+	var v UpdateRuntimeProfileBodySandboxNetwork
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptUpdateRuntimeProfileBodySandboxNetwork) SetTo(v UpdateRuntimeProfileBodySandboxNetwork) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptUpdateRuntimeProfileBodySandboxNetwork) Get() (v UpdateRuntimeProfileBodySandboxNetwork, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptUpdateRuntimeProfileBodySandboxNetwork) Or(d UpdateRuntimeProfileBodySandboxNetwork) UpdateRuntimeProfileBodySandboxNetwork {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -41710,6 +41919,7 @@ func (s *RuntimeProfileListResponseItemsItemRuntimeKind) UnmarshalText(data []by
 type RuntimeProfileListResponseItemsItemSandbox struct {
 	Env            OptRuntimeProfileListResponseItemsItemSandboxEnv               `json:"env"`
 	HostExec       OptRuntimeProfileListResponseItemsItemSandboxHostExec          `json:"hostExec"`
+	Network        OptRuntimeProfileListResponseItemsItemSandboxNetwork           `json:"network"`
 	Resources      OptRuntimeProfileListResponseItemsItemSandboxResources         `json:"resources"`
 	ResumeCommands []RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem `json:"resumeCommands"`
 	Snapshot       OptRuntimeProfileListResponseItemsItemSandboxSnapshot          `json:"snapshot"`
@@ -41724,6 +41934,11 @@ func (s *RuntimeProfileListResponseItemsItemSandbox) GetEnv() OptRuntimeProfileL
 // GetHostExec returns the value of HostExec.
 func (s *RuntimeProfileListResponseItemsItemSandbox) GetHostExec() OptRuntimeProfileListResponseItemsItemSandboxHostExec {
 	return s.HostExec
+}
+
+// GetNetwork returns the value of Network.
+func (s *RuntimeProfileListResponseItemsItemSandbox) GetNetwork() OptRuntimeProfileListResponseItemsItemSandboxNetwork {
+	return s.Network
 }
 
 // GetResources returns the value of Resources.
@@ -41754,6 +41969,11 @@ func (s *RuntimeProfileListResponseItemsItemSandbox) SetEnv(val OptRuntimeProfil
 // SetHostExec sets the value of HostExec.
 func (s *RuntimeProfileListResponseItemsItemSandbox) SetHostExec(val OptRuntimeProfileListResponseItemsItemSandboxHostExec) {
 	s.HostExec = val
+}
+
+// SetNetwork sets the value of Network.
+func (s *RuntimeProfileListResponseItemsItemSandbox) SetNetwork(val OptRuntimeProfileListResponseItemsItemSandboxNetwork) {
+	s.Network = val
 }
 
 // SetResources sets the value of Resources.
@@ -41812,6 +42032,20 @@ func (RuntimeProfileListResponseItemsItemSandboxHostExecAutoApprove) AllValues()
 	return []RuntimeProfileListResponseItemsItemSandboxHostExecAutoApprove{
 		RuntimeProfileListResponseItemsItemSandboxHostExecAutoApproveFalse,
 	}
+}
+
+type RuntimeProfileListResponseItemsItemSandboxNetwork struct {
+	AllowedHosts []string `json:"allowedHosts"`
+}
+
+// GetAllowedHosts returns the value of AllowedHosts.
+func (s *RuntimeProfileListResponseItemsItemSandboxNetwork) GetAllowedHosts() []string {
+	return s.AllowedHosts
+}
+
+// SetAllowedHosts sets the value of AllowedHosts.
+func (s *RuntimeProfileListResponseItemsItemSandboxNetwork) SetAllowedHosts(val []string) {
+	s.AllowedHosts = val
 }
 
 type RuntimeProfileListResponseItemsItemSandboxResources struct {
@@ -42309,6 +42543,7 @@ func (s *RuntimeProfileRuntimeKind) UnmarshalText(data []byte) error {
 type RuntimeProfileSandbox struct {
 	Env            OptRuntimeProfileSandboxEnv               `json:"env"`
 	HostExec       OptRuntimeProfileSandboxHostExec          `json:"hostExec"`
+	Network        OptRuntimeProfileSandboxNetwork           `json:"network"`
 	Resources      OptRuntimeProfileSandboxResources         `json:"resources"`
 	ResumeCommands []RuntimeProfileSandboxResumeCommandsItem `json:"resumeCommands"`
 	Snapshot       OptRuntimeProfileSandboxSnapshot          `json:"snapshot"`
@@ -42323,6 +42558,11 @@ func (s *RuntimeProfileSandbox) GetEnv() OptRuntimeProfileSandboxEnv {
 // GetHostExec returns the value of HostExec.
 func (s *RuntimeProfileSandbox) GetHostExec() OptRuntimeProfileSandboxHostExec {
 	return s.HostExec
+}
+
+// GetNetwork returns the value of Network.
+func (s *RuntimeProfileSandbox) GetNetwork() OptRuntimeProfileSandboxNetwork {
+	return s.Network
 }
 
 // GetResources returns the value of Resources.
@@ -42353,6 +42593,11 @@ func (s *RuntimeProfileSandbox) SetEnv(val OptRuntimeProfileSandboxEnv) {
 // SetHostExec sets the value of HostExec.
 func (s *RuntimeProfileSandbox) SetHostExec(val OptRuntimeProfileSandboxHostExec) {
 	s.HostExec = val
+}
+
+// SetNetwork sets the value of Network.
+func (s *RuntimeProfileSandbox) SetNetwork(val OptRuntimeProfileSandboxNetwork) {
+	s.Network = val
 }
 
 // SetResources sets the value of Resources.
@@ -42411,6 +42656,20 @@ func (RuntimeProfileSandboxHostExecAutoApprove) AllValues() []RuntimeProfileSand
 	return []RuntimeProfileSandboxHostExecAutoApprove{
 		RuntimeProfileSandboxHostExecAutoApproveFalse,
 	}
+}
+
+type RuntimeProfileSandboxNetwork struct {
+	AllowedHosts []string `json:"allowedHosts"`
+}
+
+// GetAllowedHosts returns the value of AllowedHosts.
+func (s *RuntimeProfileSandboxNetwork) GetAllowedHosts() []string {
+	return s.AllowedHosts
+}
+
+// SetAllowedHosts sets the value of AllowedHosts.
+func (s *RuntimeProfileSandboxNetwork) SetAllowedHosts(val []string) {
+	s.AllowedHosts = val
 }
 
 type RuntimeProfileSandboxResources struct {
@@ -49324,6 +49583,7 @@ func (s *UpdateRuntimeProfileBodyRuntimeKind) UnmarshalText(data []byte) error {
 type UpdateRuntimeProfileBodySandbox struct {
 	Env            OptUpdateRuntimeProfileBodySandboxEnv               `json:"env"`
 	HostExec       OptUpdateRuntimeProfileBodySandboxHostExec          `json:"hostExec"`
+	Network        OptUpdateRuntimeProfileBodySandboxNetwork           `json:"network"`
 	Resources      OptUpdateRuntimeProfileBodySandboxResources         `json:"resources"`
 	ResumeCommands []UpdateRuntimeProfileBodySandboxResumeCommandsItem `json:"resumeCommands"`
 	Snapshot       OptUpdateRuntimeProfileBodySandboxSnapshot          `json:"snapshot"`
@@ -49338,6 +49598,11 @@ func (s *UpdateRuntimeProfileBodySandbox) GetEnv() OptUpdateRuntimeProfileBodySa
 // GetHostExec returns the value of HostExec.
 func (s *UpdateRuntimeProfileBodySandbox) GetHostExec() OptUpdateRuntimeProfileBodySandboxHostExec {
 	return s.HostExec
+}
+
+// GetNetwork returns the value of Network.
+func (s *UpdateRuntimeProfileBodySandbox) GetNetwork() OptUpdateRuntimeProfileBodySandboxNetwork {
+	return s.Network
 }
 
 // GetResources returns the value of Resources.
@@ -49368,6 +49633,11 @@ func (s *UpdateRuntimeProfileBodySandbox) SetEnv(val OptUpdateRuntimeProfileBody
 // SetHostExec sets the value of HostExec.
 func (s *UpdateRuntimeProfileBodySandbox) SetHostExec(val OptUpdateRuntimeProfileBodySandboxHostExec) {
 	s.HostExec = val
+}
+
+// SetNetwork sets the value of Network.
+func (s *UpdateRuntimeProfileBodySandbox) SetNetwork(val OptUpdateRuntimeProfileBodySandboxNetwork) {
+	s.Network = val
 }
 
 // SetResources sets the value of Resources.
@@ -49426,6 +49696,20 @@ func (UpdateRuntimeProfileBodySandboxHostExecAutoApprove) AllValues() []UpdateRu
 	return []UpdateRuntimeProfileBodySandboxHostExecAutoApprove{
 		UpdateRuntimeProfileBodySandboxHostExecAutoApproveFalse,
 	}
+}
+
+type UpdateRuntimeProfileBodySandboxNetwork struct {
+	AllowedHosts []string `json:"allowedHosts"`
+}
+
+// GetAllowedHosts returns the value of AllowedHosts.
+func (s *UpdateRuntimeProfileBodySandboxNetwork) GetAllowedHosts() []string {
+	return s.AllowedHosts
+}
+
+// SetAllowedHosts sets the value of AllowedHosts.
+func (s *UpdateRuntimeProfileBodySandboxNetwork) SetAllowedHosts(val []string) {
+	s.AllowedHosts = val
 }
 
 type UpdateRuntimeProfileBodySandboxResources struct {

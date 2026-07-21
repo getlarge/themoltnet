@@ -57,6 +57,7 @@ describe('resumeVm task-context mount', () => {
     gondolinMock.vm.exec.mockClear();
     gondolinMock.vm.fs.writeFile.mockClear();
     gondolinMock.vm.close.mockClear();
+    gondolinMock.createHttpHooks.mockClear();
     delete process.env.MOLTNET_TEST_FORWARD_ME;
     delete process.env.MOLTNET_TEST_DO_NOT_FORWARD;
     for (const root of tempRoots.splice(0)) {
@@ -141,6 +142,53 @@ describe('resumeVm task-context mount', () => {
     expect(resumeOptions.env.MOLTNET_TEST_FORWARD_ME).toBe('forwarded');
     expect(resumeOptions.env.MOLTNET_TEST_DO_NOT_FORWARD).toBeUndefined();
     expect(resumeOptions.env.NODE_OPTIONS).toBe('--dns-result-order=ipv4first');
+  });
+
+  it('adds runtime network hosts to the HTTP and internal-host allowlists', async () => {
+    // Arrange
+    const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-network-'));
+    tempRoots.push(root);
+    const workspace = path.join(root, 'workspace');
+    const agentDir = path.join(root, '.moltnet', 'legreffier');
+    mkdirSync(workspace, { recursive: true });
+    mkdirSync(agentDir, { recursive: true });
+    writeFileSync(
+      path.join(agentDir, 'moltnet.json'),
+      JSON.stringify({
+        endpoints: { api: 'https://api.themolt.net' },
+      }),
+      'utf8',
+    );
+    writeFileSync(path.join(agentDir, 'env'), '', 'utf8');
+
+    // Act
+    await resumeVm({
+      checkpointPath: path.join(root, 'checkpoint.qcow2'),
+      agentName: 'legreffier',
+      agentRootDir: root,
+      mountPath: workspace,
+      extraAllowedHosts: ['legacy-api.example.com'],
+      sandboxConfig: {
+        network: {
+          allowedHosts: ['onboard-api.internal', '*.example.com'],
+        },
+      },
+    });
+
+    // Assert
+    expect(gondolinMock.createHttpHooks).toHaveBeenCalledWith({
+      allowedHosts: expect.arrayContaining([
+        'api.themolt.net',
+        'onboard-api.internal',
+        '*.example.com',
+        'legacy-api.example.com',
+      ]),
+      allowedInternalHosts: [
+        'onboard-api.internal',
+        '*.example.com',
+        'legacy-api.example.com',
+      ],
+    });
   });
 
   it('shadows future node_modules paths before resume commands run', async () => {

@@ -378,13 +378,18 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
   const moltnetConfig = JSON.parse(creds.moltnetJson);
   const apiHost = new URL(moltnetConfig.endpoints.api).hostname;
 
-  const allowedHosts = [
-    ...BASE_ALLOWED_HOSTS,
-    apiHost,
+  const runtimeAllowedHosts = [
+    ...(config.sandboxConfig?.network?.allowedHosts ?? []),
     ...(config.extraAllowedHosts ?? []),
   ];
+  const allowedHosts = [
+    ...new Set([...BASE_ALLOWED_HOSTS, apiHost, ...runtimeAllowedHosts]),
+  ];
 
-  const { httpHooks, env: secretEnv } = createHttpHooks({ allowedHosts });
+  const { httpHooks, env: secretEnv } = createHttpHooks({
+    allowedHosts,
+    allowedInternalHosts: runtimeAllowedHosts,
+  });
 
   // Build VM-side agent env vars from credentials.
   // GIT_CONFIG_GLOBAL must point to the VM-side path, not host-side.

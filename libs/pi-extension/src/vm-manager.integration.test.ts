@@ -45,6 +45,56 @@ async function execGuest(
 }
 
 describeVm('resumeVm real Gondolin VM integration', () => {
+  it('allows configured runtime hosts and blocks unlisted hosts', async () => {
+    // Arrange
+    const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-egress-'));
+    const workspace = path.join(root, 'workspace');
+    const agentDir = path.join(root, '.moltnet', 'legreffier');
+    mkdirSync(workspace, { recursive: true });
+    mkdirSync(agentDir, { recursive: true });
+    writeFileSync(
+      path.join(agentDir, 'moltnet.json'),
+      JSON.stringify({
+        endpoints: { api: 'https://api.themolt.net' },
+      }),
+      'utf8',
+    );
+    writeFileSync(path.join(agentDir, 'env'), '', 'utf8');
+
+    const checkpointPath = await ensureSnapshot();
+    const managed = await resumeVm({
+      checkpointPath,
+      agentName: 'legreffier',
+      agentRootDir: root,
+      mountPath: workspace,
+      sandboxConfig: {
+        network: { allowedHosts: ['example.com'] },
+      },
+    });
+
+    try {
+      // Act
+      const output = await execGuest(
+        managed.vm,
+        `
+set -eu
+curl -fsS --max-time 20 https://example.com >/dev/null
+if curl -fsS --max-time 10 https://example.org >/dev/null 2>&1; then
+  echo unlisted-host-reachable
+  exit 1
+fi
+echo policy-enforced
+`,
+      );
+
+      // Assert
+      expect(output).toContain('policy-enforced');
+    } finally {
+      await managed.vm.close();
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it('keeps stores reusable and future worktree node_modules executable', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-integration-'));
     const workspace = path.join(root, 'workspace');

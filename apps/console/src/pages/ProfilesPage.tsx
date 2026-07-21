@@ -58,6 +58,7 @@ interface ProfileFormState {
   topP: string;
   topK: string;
   maxOutputTokens: string;
+  runtimeAllowedHosts: string;
   sandboxJson: string;
   sessionTtlSec: string;
   workspaceTtlSec: string;
@@ -83,6 +84,7 @@ const EMPTY_FORM: ProfileFormState = {
   topP: '',
   topK: '',
   maxOutputTokens: '',
+  runtimeAllowedHosts: '',
   sandboxJson: '{}',
   sessionTtlSec: '1800',
   workspaceTtlSec: '1800',
@@ -150,8 +152,10 @@ const FIELD_HELP = {
     'Comma-separated environment variables that must be present before this daemon can run the profile.',
   requiredTools:
     'Comma-separated executables or paths that must be available before this daemon can run the profile.',
+  runtimeAllowedHosts:
+    'Comma-separated hostnames the VM may reach over HTTP or HTTPS while tasks run. Use a leading wildcard such as *.example.com for subdomains.',
   sandboxJson:
-    'Pi sandbox policy for the runtime, including filesystem/network rules passed to the executor.',
+    'Advanced Pi sandbox policy, excluding runtime egress hosts, passed to the executor.',
   contextJson:
     'Optional context entries injected into every task that uses this profile. Use skill for Pi skills, context_inline for workspace context files, prompt_prefix for system/task prompt prefixing, or user_inline for user prompt suffixing.',
 } as const;
@@ -684,6 +688,13 @@ export function ProfilesPage() {
                 onChange={(value) => updateField('requiredTools', value)}
                 placeholder="git, gh, pnpm"
               />
+              <LabeledInput
+                label="Runtime egress hosts"
+                help={FIELD_HELP.runtimeAllowedHosts}
+                value={form.runtimeAllowedHosts}
+                onChange={(value) => updateField('runtimeAllowedHosts', value)}
+                placeholder="api.example.com, *.services.example.com"
+              />
             </div>
 
             <LabeledTextarea
@@ -1060,6 +1071,9 @@ function fieldStyle(theme: ReturnType<typeof useTheme>): React.CSSProperties {
 }
 
 function profileToForm(profile: RuntimeProfile): ProfileFormState {
+  const sandbox = { ...profile.sandbox };
+  delete sandbox.network;
+
   return {
     name: profile.name,
     description: profile.description ?? '',
@@ -1072,7 +1086,9 @@ function profileToForm(profile: RuntimeProfile): ProfileFormState {
     topK: profile.topK === null ? '' : String(profile.topK),
     maxOutputTokens:
       profile.maxOutputTokens === null ? '' : String(profile.maxOutputTokens),
-    sandboxJson: JSON.stringify(profile.sandbox, null, 2),
+    runtimeAllowedHosts:
+      profile.sandbox.network?.allowedHosts?.join(', ') ?? '',
+    sandboxJson: JSON.stringify(sandbox, null, 2),
     sessionTtlSec: String(profile.sessionTtlSec),
     workspaceTtlSec: String(profile.workspaceTtlSec),
     leaseTtlSec: String(profile.leaseTtlSec),
@@ -1106,6 +1122,16 @@ function buildProfileBody(form: ProfileFormState): CreateRuntimeProfileBody {
     form.sandboxJson,
     'Sandbox JSON',
   );
+  if (sandbox.network !== undefined) {
+    throw new Error(
+      'Configure network.allowedHosts with the Runtime egress hosts field.',
+    );
+  }
+  const runtimeAllowedHosts = parseCsv(form.runtimeAllowedHosts);
+  const sandboxWithNetwork: RuntimeProfileSandbox =
+    runtimeAllowedHosts.length > 0
+      ? { ...sandbox, network: { allowedHosts: runtimeAllowedHosts } }
+      : sandbox;
   const context = parseJson<RuntimeProfileContext[]>(
     form.contextJson,
     'Context JSON',
@@ -1143,7 +1169,7 @@ function buildProfileBody(form: ProfileFormState): CreateRuntimeProfileBody {
       'Max output tokens',
     ),
     runtimeKind: 'gondolin_pi',
-    sandbox,
+    sandbox: sandboxWithNetwork,
     sessionStorageMode: 'local',
     workspaceStorageMode: 'local',
     defaultWorkspaceMode: form.defaultWorkspaceMode || null,
