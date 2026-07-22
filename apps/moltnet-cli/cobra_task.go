@@ -28,11 +28,42 @@ func newTaskCmd() *cobra.Command {
 func newTaskArtifactsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "artifacts",
-		Short: "List, upload, and download immutable task artifacts",
+		Short: "Stage, list, upload, and download immutable task artifacts",
 	}
+	cmd.AddCommand(newTaskArtifactsStageCmd())
 	cmd.AddCommand(newTaskArtifactsListCmd())
 	cmd.AddCommand(newTaskArtifactsUploadCmd())
 	cmd.AddCommand(newTaskArtifactsDownloadCmd())
+	return cmd
+}
+
+func newTaskArtifactsStageCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "stage",
+		Short: "Stage immutable bytes for binding as a task input artifact",
+		Example: `  moltnet task artifacts stage --team-id <uuid> --file ./brief.pdf \
+    --content-type application/pdf
+
+  # Read bytes from stdin
+  cat ./brief.pdf | moltnet task artifacts stage --team-id <uuid> \
+    --content-type application/pdf`,
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			credPath := flagString(cmd, "credentials")
+			return runTaskArtifactsStageCmd(taskArtifactsStageOpts{
+				apiURL: resolveAPIURL(cmd, credPath), credPath: credPath,
+				teamID: flagString(cmd, "team-id"), file: flagString(cmd, "file"),
+				contentType: flagString(cmd, "content-type"), contentTypeSet: cmd.Flags().Changed("content-type"),
+				contentEncoding: flagString(cmd, "content-encoding"), contentEncodingSet: cmd.Flags().Changed("content-encoding"),
+				out: cmd.OutOrStdout(),
+			})
+		},
+	}
+	cmd.Flags().String("team-id", "", "Team UUID (required)")
+	cmd.Flags().String("file", "-", `Path to stage; "-" reads stdin`)
+	cmd.Flags().String("content-type", "", "Content type metadata, e.g. application/pdf")
+	cmd.Flags().String("content-encoding", "", "Optional content encoding metadata, e.g. gzip")
+	_ = cmd.MarkFlagRequired("team-id")
 	return cmd
 }
 
@@ -109,34 +140,34 @@ func newTaskArtifactsUploadCmd() *cobra.Command {
 func newTaskArtifactsDownloadCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "download <task-id>",
-		Short: "Download immutable task artifact bytes by attempt and CID",
+		Short: "Download immutable task artifact bytes by task and CID",
 		Example: `  moltnet task artifacts download <task-id> --team-id <uuid> \
     --attempt 1 --cid bafy... --out ./result.md
 
   # Write bytes to stdout
   moltnet task artifacts download <task-id> --team-id <uuid> \
-    --attempt 1 --cid bafy... --out -`,
+    --cid bafy... --out -`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			credPath := flagString(cmd, "credentials")
 			return runTaskArtifactsDownloadCmd(taskArtifactsDownloadOpts{
-				apiURL:   resolveAPIURL(cmd, credPath),
-				credPath: credPath,
-				taskID:   args[0],
-				teamID:   flagString(cmd, "team-id"),
-				attemptN: flagInt(cmd, "attempt"),
-				cid:      flagString(cmd, "cid"),
-				outFile:  flagString(cmd, "out"),
-				out:      cmd.OutOrStdout(),
+				apiURL:     resolveAPIURL(cmd, credPath),
+				credPath:   credPath,
+				taskID:     args[0],
+				teamID:     flagString(cmd, "team-id"),
+				attemptN:   flagInt(cmd, "attempt"),
+				attemptSet: cmd.Flags().Changed("attempt"),
+				cid:        flagString(cmd, "cid"),
+				outFile:    flagString(cmd, "out"),
+				out:        cmd.OutOrStdout(),
 			})
 		},
 	}
 	cmd.Flags().String("team-id", "", "Team UUID (required)")
-	cmd.Flags().Int("attempt", 0, "Attempt number (required)")
+	cmd.Flags().Int("attempt", 0, "Attempt number; omit to resolve the CID across the task")
 	cmd.Flags().String("cid", "", "Artifact CID (required)")
 	cmd.Flags().String("out", "", `Output path (required); "-" writes bytes to stdout`)
 	_ = cmd.MarkFlagRequired("team-id")
-	_ = cmd.MarkFlagRequired("attempt")
 	_ = cmd.MarkFlagRequired("cid")
 	_ = cmd.MarkFlagRequired("out")
 	return cmd
@@ -375,6 +406,12 @@ reference on RuntimeProfileRef.`,
     --team-id <uuid> --diary-id <uuid> --correlation-id <uuid> \
     --reference '{"taskId":"<uuid>","role":"judged_work","outputCid":"<cid>"}' \
     --input-file ./assess-input.json
+
+  # Bind a staged input artifact
+  moltnet task create --task-type fulfill_brief \
+    --team-id <uuid> --diary-id <uuid> \
+    --reference '{"taskId":null,"role":"context","artifact":{"cid":"bafy...","title":"brief.pdf","contentType":"application/pdf"}}' \
+    --input-file ./brief.json
 
   # Restrict runtime profiles (repeatable)
   moltnet task create --task-type fulfill_brief \

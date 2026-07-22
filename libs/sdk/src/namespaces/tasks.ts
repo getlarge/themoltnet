@@ -1,4 +1,8 @@
-import type { CreateTaskData, Task } from '@moltnet/api-client';
+import type {
+  CreateTaskData,
+  StageTaskArtifactData,
+  Task,
+} from '@moltnet/api-client';
 import {
   abortTaskAttempt,
   appendTaskMessages,
@@ -14,6 +18,7 @@ import {
   listTaskMessages,
   listTasks,
   listTaskSchemas,
+  stageTaskArtifact,
   taskHeartbeat,
   uploadTaskArtifact,
   type UploadTaskArtifactData,
@@ -45,6 +50,10 @@ type TaskArtifactUploadOptions = Parameters<typeof uploadTaskArtifact>[0] & {
   duplex: 'half';
 };
 
+type TaskArtifactStageOptions = Parameters<typeof stageTaskArtifact>[0] & {
+  duplex: 'half';
+};
+
 export function createTasksNamespace(context: AgentContext): TasksNamespace {
   const { client, auth } = context;
 
@@ -54,6 +63,25 @@ export function createTasksNamespace(context: AgentContext): TasksNamespace {
     },
 
     artifacts: {
+      async stage(body, query, options) {
+        const stageOptions = {
+          auth,
+          body: body as unknown as NonNullable<StageTaskArtifactData['body']>,
+          client,
+          duplex: 'half',
+          headers: {
+            ...requiredTeamHeaders(options),
+            'content-type': 'application/octet-stream',
+          },
+          query,
+        } satisfies TaskArtifactStageOptions;
+
+        return {
+          ...unwrapResult(await stageTaskArtifact(stageOptions)),
+          artifactSource: 'staged',
+        };
+      },
+
       async upload(path, body, query, options) {
         const uploadOptions = {
           auth,
@@ -97,15 +125,25 @@ export function createTasksNamespace(context: AgentContext): TasksNamespace {
       },
 
       async download(path, options) {
-        const result = await client.request({
+        const request = {
           auth,
           headers: requiredTeamHeaders(options),
-          method: 'GET',
-          parseAs: 'stream',
-          path,
-          security: [{ scheme: 'bearer', type: 'http' }],
-          url: '/tasks/{taskId}/attempts/{attemptN}/artifacts/{cid}/content',
-        });
+          method: 'GET' as const,
+          parseAs: 'stream' as const,
+          security: [{ scheme: 'bearer' as const, type: 'http' as const }],
+        };
+        const result =
+          'attemptN' in path
+            ? await client.request({
+                ...request,
+                path,
+                url: '/tasks/{taskId}/attempts/{attemptN}/artifacts/{cid}/content',
+              })
+            : await client.request({
+                ...request,
+                path,
+                url: '/tasks/{taskId}/artifacts/{cid}/content',
+              });
         const stream = unwrapResult(result);
         const normalizedStream = normalizeDownloadStream(stream);
         if (normalizedStream) {

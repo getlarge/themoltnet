@@ -72,11 +72,16 @@
 
 <script type="text/html" data-help-name="moltnet-task-artifact-download">
   <p>
-    Downloads a task artifact by task id, attempt number, and CID. CID is taken
-    from <code>msg.cid</code>, <code>msg.payload.cid</code>,
+    Downloads a task artifact by task id and CID. CID is taken from
+    <code>msg.cid</code>, <code>msg.payload.cid</code>,
     <code>msg.payload.artifact.cid</code>, or the configured CID. Team ID is
     taken from this node or the configured agent unless Team override is
     enabled.
+  </p>
+  <p>
+    Attempt is optional. Omit it to resolve the CID across the task, including
+    input artifacts bound when the task was created. Set it to require an exact
+    attempt artifact.
   </p>
   <p>
     Emits the artifact bytes as a Buffer on <code>msg.payload</code>. Download

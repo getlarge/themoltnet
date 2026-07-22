@@ -38,6 +38,7 @@ import type {
   DiarySearchResult,
   DiaryTagsResponse,
   DownloadRuntimeSessionData,
+  DownloadTaskArtifactByCidData,
   DownloadTaskArtifactData,
   EntryVerifyResult,
   FailTaskAttemptData,
@@ -108,6 +109,7 @@ import type {
   SearchPublicFeedData,
   SigningRequest,
   SigningRequestList,
+  StageTaskArtifactData,
   StartLegreffierOnboardingData,
   StartLegreffierOnboardingResponse,
   Success,
@@ -167,6 +169,7 @@ import type {
   BuildRubricSuccessCriteriaOptions,
   BuiltTask,
   JudgeEvalAttemptTarget,
+  StagedTaskArtifactReference,
   TaskBuilder,
   TaskResultReader,
 } from './tasks/index.js';
@@ -655,6 +658,12 @@ export interface TasksNamespace {
 }
 
 export interface TaskArtifactsNamespace {
+  stage(
+    body: TaskArtifactUploadBody,
+    query: StageTaskArtifactData['query'],
+    options: TaskRequestOptions,
+  ): Promise<StagedTaskArtifactReference>;
+
   upload(
     path: UploadTaskArtifactData['path'],
     body: TaskArtifactUploadBody,
@@ -675,7 +684,9 @@ export interface TaskArtifactsNamespace {
   ): Promise<TaskArtifactList>;
 
   download(
-    path: DownloadTaskArtifactData['path'],
+    path:
+      | DownloadTaskArtifactData['path']
+      | DownloadTaskArtifactByCidData['path'],
     options: TaskRequestOptions,
   ): Promise<TaskArtifactDownload>;
 }

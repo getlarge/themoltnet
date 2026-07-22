@@ -186,6 +186,61 @@ describe('moltnet-task-builder references + gates + execution', () => {
     ]);
   });
 
+  it('binds staged artifact metadata as an input reference', async () => {
+    const { red, node } = setup({
+      taskType: 'freeform',
+      brief: 'b',
+      referencesFrom: 'staged',
+      referencesRole: 'context',
+    });
+    const { outputs } = await red.input(node, {
+      payload: {},
+      staged: {
+        artifactSource: 'staged',
+        cid: 'bafy-input',
+        kind: 'input',
+        sizeBytes: 11,
+        title: 'brief.txt',
+        contentType: 'text/plain',
+      },
+    } as Record<string, unknown>);
+    const payload = outputs[0].payload as Record<string, unknown>;
+
+    expect(payload.references).toEqual([
+      {
+        taskId: null,
+        role: 'context',
+        artifact: {
+          cid: 'bafy-input',
+          kind: 'input',
+          title: 'brief.txt',
+          contentType: 'text/plain',
+        },
+      },
+    ]);
+  });
+
+  it('rejects downloaded artifact metadata without explicit provenance', async () => {
+    const { red, node } = setup({
+      taskType: 'freeform',
+      brief: 'b',
+      referencesFrom: 'downloaded',
+      referencesRole: 'context',
+    });
+
+    await expect(
+      red.input(node, {
+        payload: {},
+        downloaded: {
+          taskId: 't1',
+          attemptN: 1,
+          cid: 'bafy-artifact',
+          artifactId: 'artifact-1',
+        },
+      } as Record<string, unknown>),
+    ).rejects.toThrow(/artifact CID is ambiguous/);
+  });
+
   it('adds submit-output gate and execution workspace', async () => {
     const { red, node } = setup({
       taskType: 'freeform',

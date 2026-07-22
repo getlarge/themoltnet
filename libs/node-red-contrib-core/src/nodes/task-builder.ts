@@ -1,7 +1,9 @@
 import {
+  type ArtifactReferenceSource,
   buildJudgeEvalAttemptForRunEval,
   type BuildRubricSuccessCriteriaOptions,
   buildTask,
+  type ReferenceSource,
   TaskBuildError,
 } from '@themoltnet/sdk';
 import type {
@@ -53,7 +55,7 @@ interface TaskBuilderDef extends NodeDef {
   diaryId?: string;
   diaryIdType?: ValueType;
   contexts?: ContextMapping[];
-  /** msg path to an `outputRef` (`{taskId, outputCid}`) from a prior task: read. */
+  /** msg path to an output, attempt-artifact, or staged input-artifact ref. */
   referencesFrom?: string;
   referencesRole?:
     | 'context'
@@ -214,14 +216,22 @@ const init: NodeInitializer = (RED): void => {
           }
         }
 
-        // Reference a prior task's output, pulled from a msg path. The builder
-        // re-stamps the role we pass, ignoring any role on the source ref.
+        // Reference a prior output/artifact or staged input artifact. The
+        // builder re-stamps the role, ignoring any role on the source ref.
         if (def.referencesFrom) {
           const ref = RED.util.getMessageProperty(msg, def.referencesFrom) as
-            | { taskId: string | null; outputCid: string }
+            | Record<string, unknown>
             | undefined;
-          if (ref && ref.outputCid) {
-            builder.references(ref, def.referencesRole ?? 'context');
+          if (ref?.artifact || ref?.artifactSource === 'staged' || ref?.cid) {
+            builder.artifactReference(
+              ref as ArtifactReferenceSource,
+              def.referencesRole ?? 'context',
+            );
+          } else if (ref?.outputCid) {
+            builder.references(
+              ref as ReferenceSource,
+              def.referencesRole ?? 'context',
+            );
           }
         }
         if (def.submitOutputGate) builder.requireSubmitOutput();

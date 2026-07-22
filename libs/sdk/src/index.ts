@@ -73,6 +73,7 @@ export { exportSSHKey } from './ssh.js';
 export {
   type AcceptedMeta,
   type ArtifactFilter,
+  type ArtifactReferenceSource,
   buildAssessBrief,
   buildCuratePack,
   buildFreeform,

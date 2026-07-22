@@ -199,6 +199,75 @@ describe('buildTask (generic core)', () => {
     ]);
   });
 
+  it('artifactReference() turns staged metadata into an input artifact ref', () => {
+    const { body } = buildTask('freeform', { brief: 'consume input' })
+      .team(TEAM)
+      .diary(DIARY)
+      .artifactReference(
+        {
+          artifactSource: 'staged',
+          cid: 'bafkreiINPUT',
+          contentType: 'application/pdf',
+          sizeBytes: 123,
+          title: 'brief.pdf',
+        },
+        'context',
+      )
+      .build();
+
+    expect(body.references).toEqual([
+      {
+        taskId: null,
+        role: 'context',
+        artifact: {
+          cid: 'bafkreiINPUT',
+          contentType: 'application/pdf',
+          title: 'brief.pdf',
+        },
+      },
+    ]);
+  });
+
+  it('artifactReference() rejects ambiguous downloaded artifact metadata', () => {
+    expect(() =>
+      buildTask('freeform', { brief: 'consume input' })
+        .team(TEAM)
+        .diary(DIARY)
+        .artifactReference(
+          {
+            taskId: '22222222-2222-2222-2222-222222222222',
+            attemptN: 1,
+            cid: 'bafkreiART',
+          } as never,
+          'context',
+        )
+        .build(),
+    ).toThrow(/artifact CID is ambiguous/);
+  });
+
+  it('artifactReference() accepts the canonical input artifact TaskRef', () => {
+    const { body } = buildTask('freeform', { brief: 'consume input' })
+      .team(TEAM)
+      .diary(DIARY)
+      .artifactReference(
+        {
+          taskId: null,
+          role: 'target_source',
+          artifact: { cid: 'bafkreiINPUT', kind: 'input' },
+        },
+        'context',
+      )
+      .build();
+
+    expect(body.references).toEqual([
+      {
+        taskId: null,
+        role: 'context',
+        artifact: { cid: 'bafkreiINPUT', kind: 'input' },
+      },
+    ]);
+  });
+
   it('artifactReference() throws if artifact CID is missing', () => {
     expect(() =>
       buildTask('assess_brief', {

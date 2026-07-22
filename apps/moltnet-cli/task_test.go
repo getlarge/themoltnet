@@ -25,25 +25,30 @@ import (
 type stubTasksHandler struct {
 	moltnetapi.UnimplementedHandler
 
-	listCalls                    int
-	listParams                   moltnetapi.ListTasksParams
-	getCalls                     int
-	getParams                    moltnetapi.GetTaskParams
-	listTaskArtifactsCalls       int
-	listTaskArtifactsParams      moltnetapi.ListTaskArtifactsParams
-	uploadTaskArtifactCalls      int
-	uploadTaskArtifactParams     moltnetapi.UploadTaskArtifactParams
-	uploadTaskArtifactBody       string
-	downloadTaskArtifactCalls    int
-	downloadTaskArtifactParams   moltnetapi.DownloadTaskArtifactParams
-	getRuntimeSessionCalls       int
-	getRuntimeSessionParams      moltnetapi.GetRuntimeSessionParams
-	uploadRuntimeSessionCalls    int
-	uploadRuntimeSessionParams   moltnetapi.UploadRuntimeSessionParams
-	uploadRuntimeSessionBody     string
-	downloadRuntimeSessionCalls  int
-	downloadRuntimeSessionParams moltnetapi.DownloadRuntimeSessionParams
-	responseTaskID               uuid.UUID
+	listCalls                       int
+	listParams                      moltnetapi.ListTasksParams
+	getCalls                        int
+	getParams                       moltnetapi.GetTaskParams
+	listTaskArtifactsCalls          int
+	listTaskArtifactsParams         moltnetapi.ListTaskArtifactsParams
+	uploadTaskArtifactCalls         int
+	uploadTaskArtifactParams        moltnetapi.UploadTaskArtifactParams
+	uploadTaskArtifactBody          string
+	stageTaskArtifactCalls          int
+	stageTaskArtifactParams         moltnetapi.StageTaskArtifactParams
+	stageTaskArtifactBody           string
+	downloadTaskArtifactCalls       int
+	downloadTaskArtifactParams      moltnetapi.DownloadTaskArtifactParams
+	downloadTaskArtifactByCIDCalls  int
+	downloadTaskArtifactByCIDParams moltnetapi.DownloadTaskArtifactByCidParams
+	getRuntimeSessionCalls          int
+	getRuntimeSessionParams         moltnetapi.GetRuntimeSessionParams
+	uploadRuntimeSessionCalls       int
+	uploadRuntimeSessionParams      moltnetapi.UploadRuntimeSessionParams
+	uploadRuntimeSessionBody        string
+	downloadRuntimeSessionCalls     int
+	downloadRuntimeSessionParams    moltnetapi.DownloadRuntimeSessionParams
+	responseTaskID                  uuid.UUID
 }
 
 func (h *stubTasksHandler) ListTasks(_ context.Context, params moltnetapi.ListTasksParams) (moltnetapi.ListTasksRes, error) {
@@ -86,6 +91,17 @@ func (h *stubTasksHandler) UploadTaskArtifact(_ context.Context, req moltnetapi.
 	return artifact, nil
 }
 
+func (h *stubTasksHandler) StageTaskArtifact(_ context.Context, req moltnetapi.StageTaskArtifactReq, params moltnetapi.StageTaskArtifactParams) (moltnetapi.StageTaskArtifactRes, error) {
+	h.stageTaskArtifactCalls++
+	h.stageTaskArtifactParams = params
+	body, err := io.ReadAll(req.Data)
+	if err != nil {
+		return nil, err
+	}
+	h.stageTaskArtifactBody = string(body)
+	return &moltnetapi.StageTaskArtifactOK{Cid: "bafy-staged", ContentType: "text/plain", SizeBytes: len(body)}, nil
+}
+
 func (h *stubTasksHandler) DownloadTaskArtifact(_ context.Context, params moltnetapi.DownloadTaskArtifactParams) (moltnetapi.DownloadTaskArtifactRes, error) {
 	h.downloadTaskArtifactCalls++
 	h.downloadTaskArtifactParams = params
@@ -94,6 +110,15 @@ func (h *stubTasksHandler) DownloadTaskArtifact(_ context.Context, params moltne
 		Response: moltnetapi.DownloadTaskArtifactOK{
 			Data: strings.NewReader("artifact-bytes"),
 		},
+	}, nil
+}
+
+func (h *stubTasksHandler) DownloadTaskArtifactByCid(_ context.Context, params moltnetapi.DownloadTaskArtifactByCidParams) (moltnetapi.DownloadTaskArtifactByCidRes, error) {
+	h.downloadTaskArtifactByCIDCalls++
+	h.downloadTaskArtifactByCIDParams = params
+	return &moltnetapi.DownloadTaskArtifactByCidOKHeaders{
+		XMoltnetTaskArtifactCid: moltnetapi.NewOptString(params.Cid),
+		Response:                moltnetapi.DownloadTaskArtifactByCidOK{Data: strings.NewReader("input-artifact-bytes")},
 	}, nil
 }
 
@@ -630,18 +655,47 @@ func TestRunTaskArtifactsUploadStreamsFile(t *testing.T) {
 	}
 }
 
+func TestRunTaskArtifactsStageStreamsFile(t *testing.T) {
+	h := &stubTasksHandler{}
+	_, _, client := newTestServer(t, h)
+	dir := t.TempDir()
+	path := filepath.Join(dir, "input.txt")
+	if err := os.WriteFile(path, []byte("input-body"), 0o600); err != nil {
+		t.Fatalf("write input fixture: %v", err)
+	}
+	var out bytes.Buffer
+
+	err := runTaskArtifactsStageWithClient(context.Background(), client, taskArtifactsStageOpts{
+		teamID: "22222222-2222-4222-8222-222222222222", file: path,
+		contentType: "text/plain", contentTypeSet: true, out: &out,
+	})
+	if err != nil {
+		t.Fatalf("runTaskArtifactsStageWithClient: %v", err)
+	}
+	if h.stageTaskArtifactCalls != 1 || h.stageTaskArtifactBody != "input-body" {
+		t.Fatalf("stage call/body = %d/%q", h.stageTaskArtifactCalls, h.stageTaskArtifactBody)
+	}
+	if got, ok := h.stageTaskArtifactParams.ContentType.Get(); !ok || got != "text/plain" {
+		t.Errorf("ContentType = (%q,%v), want (text/plain,true)", got, ok)
+	}
+	if !strings.Contains(out.String(), `"cid": "bafy-staged"`) {
+		t.Errorf("output should contain staged cid, got: %s", out.String())
+	}
+}
+
 func TestRunTaskArtifactsDownloadWritesBytes(t *testing.T) {
 	h := &stubTasksHandler{}
 	_, _, client := newTestServer(t, h)
 	var out bytes.Buffer
 
 	err := runTaskArtifactsDownloadWithClient(context.Background(), client, taskArtifactsDownloadOpts{
-		taskID:   "11111111-1111-4111-8111-111111111111",
-		teamID:   "22222222-2222-4222-8222-222222222222",
-		attemptN: 3,
-		cid:      "bafy-download",
-		outFile:  "-",
-		out:      &out,
+		taskID:     "11111111-1111-4111-8111-111111111111",
+		teamID:     "22222222-2222-4222-8222-222222222222",
+		attemptN:   3,
+		attemptSet: true,
+		cid:        "bafy-download",
+		outFile:    "-",
+		out:        &out,
 	})
 	if err != nil {
 		t.Fatalf("runTaskArtifactsDownloadWithClient: %v", err)
@@ -658,6 +712,60 @@ func TestRunTaskArtifactsDownloadWritesBytes(t *testing.T) {
 	}
 	if out.String() != "artifact-bytes" {
 		t.Errorf("downloaded bytes = %q", out.String())
+	}
+}
+
+func TestRunTaskArtifactsDownloadByCIDWritesBytes(t *testing.T) {
+	h := &stubTasksHandler{}
+	_, _, client := newTestServer(t, h)
+	var out bytes.Buffer
+
+	err := runTaskArtifactsDownloadWithClient(context.Background(), client, taskArtifactsDownloadOpts{
+		taskID: "11111111-1111-4111-8111-111111111111",
+		teamID: "22222222-2222-4222-8222-222222222222",
+		cid:    "bafy-input", outFile: "-", out: &out,
+	})
+	if err != nil {
+		t.Fatalf("runTaskArtifactsDownloadWithClient: %v", err)
+	}
+	if h.downloadTaskArtifactByCIDCalls != 1 {
+		t.Fatalf("expected one by-CID download call, got %d", h.downloadTaskArtifactByCIDCalls)
+	}
+	if h.downloadTaskArtifactCalls != 0 {
+		t.Fatalf("attempt download should not be called, got %d", h.downloadTaskArtifactCalls)
+	}
+	if out.String() != "input-artifact-bytes" {
+		t.Errorf("downloaded bytes = %q", out.String())
+	}
+}
+
+func TestRunTaskArtifactsDownloadRejectsInvalidExplicitAttempt(t *testing.T) {
+	for _, attemptN := range []int{0, -1} {
+		t.Run(fmt.Sprintf("attempt_%d", attemptN), func(t *testing.T) {
+			h := &stubTasksHandler{}
+			_, _, client := newTestServer(t, h)
+
+			err := runTaskArtifactsDownloadWithClient(context.Background(), client, taskArtifactsDownloadOpts{
+				taskID:     "11111111-1111-4111-8111-111111111111",
+				teamID:     "22222222-2222-4222-8222-222222222222",
+				attemptN:   attemptN,
+				attemptSet: true,
+				cid:        "bafy-download",
+				outFile:    "-",
+				out:        io.Discard,
+			})
+
+			if err == nil || !strings.Contains(err.Error(), "--attempt must be >= 1") {
+				t.Fatalf("expected invalid attempt error, got %v", err)
+			}
+			if h.downloadTaskArtifactCalls != 0 || h.downloadTaskArtifactByCIDCalls != 0 {
+				t.Fatalf(
+					"download calls = attempt:%d byCID:%d, want zero",
+					h.downloadTaskArtifactCalls,
+					h.downloadTaskArtifactByCIDCalls,
+				)
+			}
+		})
 	}
 }
 
