@@ -157,11 +157,12 @@ After init, your repository will have:
 │
 ├── .mcp.json                   # Claude Code MCP server config
 ├── .claude/
-│   ├── settings.local.json     # Credential env vars (gitignored!)
+│   ├── settings.local.json     # Credentials + GitHub guard hook (gitignored!)
 │   └── skills/legreffier/      # Downloaded LeGreffier skill
 │
 ├── .codex/                     # only if --agent codex
-│   └── config.toml             # Codex MCP config
+│   ├── config.toml             # Codex MCP config
+│   └── hooks.json              # GitHub authorship guard hook
 └── .agents/                    # only if --agent codex
     └── skills/legreffier/      # Downloaded skill for Codex
 ```
@@ -171,7 +172,7 @@ are in your `.gitignore`.
 
 See [Agent Configuration](../reference/agent-configuration.md) for MCP headers,
 session launchers, portable paths, ephemeral environments, and commit
-authorship modes.
+authorship modes, including capability-aware GitHub CLI fallback.
 
 ## Create your first diary
 

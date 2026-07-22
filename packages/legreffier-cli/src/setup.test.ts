@@ -285,59 +285,30 @@ describe('buildPermissions', () => {
 });
 
 describe('buildGhTokenRule', () => {
-  it('produces rule using absolute credentials path resolved from GIT_CONFIG_GLOBAL', () => {
+  it('documents the centralized guard and canonical scoped token form', () => {
     const rule = buildGhTokenRule();
+    expect(rule).toContain('moltnet github guard');
     expect(rule).toContain('git rev-parse --show-toplevel');
     expect(rule).toContain('CREDS="$(dirname "$CFG")/moltnet.json"');
-    expect(rule).toContain('GH_TOKEN');
-    expect(rule).toContain('moltnet github token');
-    expect(rule).toContain('npx @themoltnet/cli github token');
-    expect(rule).toContain('.moltnet/<agent>/gitconfig');
-  });
-
-  it('forbids referencing $MOLTNET_CLI (unset in ad-hoc shells causes silent fallback to human token)', () => {
-    const rule = buildGhTokenRule();
-    // The rule must not USE $MOLTNET_CLI in a command example, but it must
-    // explicitly call out why referencing it is forbidden.
     expect(rule).toMatch(/GH_TOKEN=\$\(moltnet github token/);
     expect(rule).toMatch(/GH_TOKEN=\$\(npx @themoltnet\/cli github token/);
-    expect(rule).toContain('$MOLTNET_CLI');
-    expect(rule).toContain('ad-hoc shells');
   });
 
-  it('is generic across MoltNet agents (not legreffier-specific)', () => {
+  it('documents capability-aware fallback and safe uncertainty behavior', () => {
     const rule = buildGhTokenRule();
-    expect(rule).toContain('MoltNet agents');
-    // Must describe the pattern, not hardcode the legreffier agent name
-    expect(rule).toContain('.moltnet/<agent>/gitconfig');
-  });
-
-  it('lists scoped gh subcommands matching app permissions', () => {
-    const rule = buildGhTokenRule();
-    expect(rule).toContain('gh pr');
-    expect(rule).toContain('gh issue');
-    expect(rule).toContain('gh api repos/{owner}/{repo}/contents/');
-    expect(rule).toContain('gh repo view');
-  });
-
-  it('mentions token caching and 401 recovery', () => {
-    const rule = buildGhTokenRule();
-    expect(rule).toContain('cached locally');
+    expect(rule).toContain('user token as a fallback');
+    expect(rule).toContain('lacks the required permission');
+    expect(rule).toContain('human` authorship mode');
+    expect(rule).toContain('unknown write-capable commands');
+    expect(rule).toContain('fails open silently');
     expect(rule).toContain('gh-token-cache.json');
-    expect(rule).toContain('401');
   });
 
-  it('enforces absolute path resolution for credentials', () => {
+  it('keeps command-scoped tokens isolated', () => {
     const rule = buildGhTokenRule();
     expect(rule).toContain('STRICT RULE');
-    expect(rule).toContain('absolute path');
-    expect(rule).toContain('CREDS=');
-    expect(rule).toContain('CFG="$GIT_CONFIG_GLOBAL"');
-    expect(rule).toContain('git rev-parse --show-toplevel');
-    expect(rule).toContain('Forbidden patterns');
-    expect(rule).toContain('Why absolute paths are mandatory');
-    // Behavioral centerpiece: hard failure on missing credentials file
-    expect(rule).toContain('[ -f "$CREDS" ]');
+    expect(rule).toContain('authorizes only that `gh` process');
+    expect(rule).toContain('different `gh` command later in a chain');
   });
 
   it('stays in sync with the committed .claude/rules/legreffier-gh.md', async () => {
@@ -542,6 +513,12 @@ describe('writeSettingsLocal', () => {
     expect(parsed.permissions.allow).toContain(
       'Bash(npx @themoltnet/cli rendered-pack get *)',
     );
+    expect(parsed.hooks.PreToolUse).toEqual([
+      {
+        matcher: 'Bash',
+        hooks: [{ type: 'command', command: 'moltnet github guard' }],
+      },
+    ]);
   });
 
   it('merges into existing settings.local.json', async () => {
@@ -551,6 +528,15 @@ describe('writeSettingsLocal', () => {
       env: { EXISTING_VAR: 'keep-me', OTHER_CLIENT_ID: 'other' },
       enabledMcpjsonServers: ['other-agent'],
       permissions: { allow: ['Bash(custom-cmd *)', 'Bash(git config *)'] },
+      hooks: {
+        SessionStart: [{ hooks: [{ type: 'command', command: 'bootstrap' }] }],
+        PreToolUse: [
+          {
+            matcher: 'Bash',
+            hooks: [{ type: 'command', command: 'custom-guard' }],
+          },
+        ],
+      },
       customKey: true,
     };
     await writeFile(filePath, JSON.stringify(existing), 'utf-8');
@@ -587,6 +573,11 @@ describe('writeSettingsLocal', () => {
         (p: string) => p === 'Bash(git config *)',
       ),
     ).toHaveLength(1);
+    expect(parsed.hooks.SessionStart).toHaveLength(1);
+    expect(parsed.hooks.PreToolUse[0].hooks).toEqual([
+      { type: 'command', command: 'custom-guard' },
+      { type: 'command', command: 'moltnet github guard' },
+    ]);
   });
 
   it('creates .claude dir if missing', async () => {

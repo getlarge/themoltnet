@@ -3,7 +3,11 @@ import { join } from 'node:path';
 
 import { parse, stringify } from 'smol-toml';
 
-import { buildCodexRules, installCanonicalSkills } from '../setup.js';
+import {
+  buildCodexRules,
+  installCanonicalSkills,
+  mergeGitHubGuardHook,
+} from '../setup.js';
 import type { AgentAdapter, AgentAdapterOptions } from './types.js';
 
 interface CodexToml {
@@ -49,12 +53,26 @@ export class CodexAdapter implements AgentAdapter {
     await installCanonicalSkills(repoDir);
   }
 
-  /**
-   * Env file generation moved to shared writeEnvFile in the agentSetup phase.
-   * Codex has no additional settings beyond the env file.
-   */
-  async writeSettings(_opts: AgentAdapterOptions): Promise<void> {
-    // no-op — env file is written by writeEnvFile in agentSetup
+  async writeSettings(opts: AgentAdapterOptions): Promise<void> {
+    const dir = join(opts.repoDir, '.codex');
+    await mkdir(dir, { recursive: true });
+    const filePath = join(dir, 'hooks.json');
+
+    let existing: Record<string, unknown> = {};
+    try {
+      existing = JSON.parse(await readFile(filePath, 'utf-8')) as Record<
+        string,
+        unknown
+      >;
+    } catch {
+      // file doesn't exist or isn't valid JSON — start fresh
+    }
+
+    await writeFile(
+      filePath,
+      JSON.stringify(mergeGitHubGuardHook(existing), null, 2) + '\n',
+      'utf-8',
+    );
   }
 
   async writeRules(opts: AgentAdapterOptions): Promise<void> {

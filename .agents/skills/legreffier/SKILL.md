@@ -417,24 +417,17 @@ CLI global flags: `--credentials ".moltnet/<AGENT_NAME>/moltnet.json"`
 Applies only when the agent has a GitHub App configured — i.e. `moltnet.json` contains a
 `github.appId` field. Skip this section entirely if `moltnet.json` has no `github` block.
 
-**Mode-dependent behavior:**
+LeGreffier setup installs `moltnet github guard` as a `PreToolUse` Bash hook for
+Claude Code and Codex. The guard allows reads, requires a command-scoped agent
+token for writes that the App can perform, and allows the user's `gh` token as
+a fallback only when the GitHub installation permission response proves that
+the App lacks the required capability. Unknown commands and ambiguous GraphQL
+mutations are denied. Permission lookup failures fail open silently so the
+editor hook stays non-blocking.
 
-- **`agent` and `coauthor` modes**: use the agent's GitHub App token for all `gh` calls.
-- **`human` mode**: still default to the agent's GitHub App token. Skip `GH_TOKEN` only for user-visible **write** actions
-  (`gh pr create`, `gh pr comment`, `gh pr edit`, `gh pr close`, `gh pr merge`, `gh pr ready`,
-  `gh issue create`, `gh issue comment`, `gh issue edit`, `gh issue close`) so they appear as
-  the human, and only when the user explicitly wants human GitHub authorship. Use the agent token for read-only `gh` calls (`gh pr view`, `gh pr list`,
-  `gh issue view`, etc.), for `git push`, and for content API calls
-  (`gh api repos/{owner}/{repo}/contents/...`). The human must have `gh auth login` configured.
-
-**Hard default:** do not run bare `gh ...` commands when a GitHub App is configured. Source
-`GH_TOKEN` from MoltNet first and wrap the command unless you are intentionally using the narrow
-human-authorship exception above.
-
-Decision rule:
-
-1. If `MOLTNET_COMMIT_AUTHORSHIP=human` **and** the user explicitly wants a visible human-authored `gh pr ...` or `gh issue ...` write action, run that narrow write action bare.
-2. Otherwise, for any `gh` command in legreffier mode, use the exact wrapped form below.
+In `human` authorship mode, visible `gh pr` and `gh issue` writes run bare so
+GitHub attributes them to the human. `git push` still uses the agent credential
+helper.
 
 When using the agent token:
 
@@ -448,8 +441,9 @@ GH_TOKEN=$(moltnet github token --credentials "$CREDS") gh <command>
 GH_TOKEN=$(npx @themoltnet/cli github token --credentials "$CREDS") gh <command>
 ```
 
-Use that exact wrapper for `gh pr ...`, `gh issue ...`, `gh repo ...`, and `gh api ...` whenever
-the agent token is in play.
+Use that exact wrapper whenever the agent token is in play. Keep the assignment
+on the same simple command: a token attached to one command in a chain does not
+authorize another `gh` process.
 
 The `git rev-parse --show-toplevel` anchor is required because
 `GIT_CONFIG_GLOBAL` may be a relative path (e.g.
@@ -458,18 +452,9 @@ or linked worktree. Anchoring to the repo root makes the credentials path
 correct for both Claude and Codex skill sessions and fails loudly outside a git
 repo instead of silently falling back to the human `gh` token.
 
-The token is cached locally (~1 hour lifetime, 5-min expiry buffer).
-
-### Allowed `gh` subcommands
-
-The GitHub App only has these permissions:
-
-- `gh pr ...` (pull_requests: write)
-- `gh issue ...` (issues: write)
-- `gh api repos/{owner}/{repo}/contents/...` (contents: write)
-- `gh repo view`, `gh repo clone` (metadata: read + contents: read)
-
-Do NOT use `GH_TOKEN` for other `gh` commands (releases, actions, packages, etc.).
+The token and its installation permissions are cached locally (~1 hour
+lifetime, 5-min expiry buffer). Legacy cache entries without permissions are
+refreshed on the first relevant write.
 
 ### 401 recovery
 

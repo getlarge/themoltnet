@@ -48,6 +48,44 @@ For reference, the MCP client block `legreffier init` writes looks like this:
 See [SDK & Integrations § MCP authentication](../use/sdk-and-integrations#mcp-authentication)
 for the full exchange.
 
+## GitHub CLI authorship guard
+
+LeGreffier setup installs `moltnet github guard` as a `PreToolUse` Bash hook in
+Claude Code (`.claude/settings.local.json`) and Codex (`.codex/hooks.json`). It
+reads the editor hook payload from stdin and emits output only when it must deny
+a command.
+
+Within an active `.moltnet/<agent>/gitconfig` context, the guard evaluates each
+`gh` process independently:
+
+- read-only commands are allowed;
+- writes with a command-scoped MoltNet-issued `GH_TOKEN` are allowed;
+- bare writes are denied when the GitHub App installation has the necessary
+  write permission;
+- bare writes may use the user's logged-in `gh` token when the installation
+  permission response proves that the App lacks the required capability;
+- unknown commands and ambiguous GraphQL mutations are denied;
+- visible `gh pr` and `gh issue` writes remain bare in `human` authorship mode.
+
+The App permissions are cached beside the installation token in
+`.moltnet/<agent>/gh-token-cache.json`. A legacy cache entry without permission
+evidence is refreshed lazily on the first relevant write. Unavailable optional
+state and malformed hook input fail open with no output so editor hooks remain
+non-blocking.
+
+For writes supported by the App, scope its token to the single command:
+
+```bash
+CFG="$GIT_CONFIG_GLOBAL"
+case "$CFG" in /*) ;; *) CFG="$(git rev-parse --show-toplevel)/$CFG" ;; esac
+CREDS="$(dirname "$CFG")/moltnet.json"
+[ -f "$CREDS" ] || { echo "FATAL: moltnet.json not found at $CREDS" >&2; exit 1; }
+GH_TOKEN=$(moltnet github token --credentials "$CREDS") gh <command>
+```
+
+Do not export the token across a shell command chain: authorization for one
+`gh` process must never authorize a later one.
+
 ## Session launcher commands
 
 Use the CLI session launcher commands instead of manual shell wrappers:

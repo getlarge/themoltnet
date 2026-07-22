@@ -31,6 +31,10 @@
           {
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/check-legreffier-commit.sh",
             "type": "command"
+          },
+          {
+            "command": "moltnet github guard",
+            "type": "command"
           }
         ],
         "matcher": "Bash"

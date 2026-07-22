@@ -100,9 +100,47 @@ describe('CodexAdapter.writeRules', () => {
 });
 
 describe('CodexAdapter.writeSettings', () => {
-  it('is a no-op (env file generation moved to shared writeEnvFile)', async () => {
+  it('writes the GitHub guard to .codex/hooks.json', async () => {
     const adapter = new CodexAdapter();
-    // Should not throw and should not create any files
     await adapter.writeSettings(baseOpts);
+
+    const parsed = JSON.parse(
+      await readFile(join(tmpRepo, '.codex', 'hooks.json'), 'utf-8'),
+    );
+    expect(parsed.hooks).toBeUndefined();
+    expect(parsed.PreToolUse).toEqual([
+      {
+        matcher: 'Bash',
+        hooks: [{ type: 'command', command: 'moltnet github guard' }],
+      },
+    ]);
+  });
+
+  it('preserves existing hooks and does not duplicate the guard', async () => {
+    const dir = join(tmpRepo, '.codex');
+    await mkdir(dir, { recursive: true });
+    await writeFile(
+      join(dir, 'hooks.json'),
+      JSON.stringify({
+        SessionStart: [{ hooks: [{ type: 'command', command: 'bootstrap' }] }],
+        PreToolUse: [
+          {
+            matcher: 'Bash',
+            hooks: [{ type: 'command', command: 'moltnet github guard' }],
+          },
+        ],
+      }),
+      'utf-8',
+    );
+
+    const adapter = new CodexAdapter();
+    await adapter.writeSettings(baseOpts);
+    await adapter.writeSettings(baseOpts);
+
+    const parsed = JSON.parse(await readFile(join(dir, 'hooks.json'), 'utf-8'));
+    expect(parsed.SessionStart).toHaveLength(1);
+    expect(parsed.PreToolUse[0].hooks).toEqual([
+      { type: 'command', command: 'moltnet github guard' },
+    ]);
   });
 });

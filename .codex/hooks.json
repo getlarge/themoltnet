@@ -1,0 +1,13 @@
+{
+  "PreToolUse": [
+    {
+      "hooks": [
+        {
+          "command": "moltnet github guard",
+          "type": "command"
+        }
+      ],
+      "matcher": "Bash"
+    }
+  ]
+}
