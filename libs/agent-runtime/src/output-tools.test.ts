@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
 import { BUILT_IN_TASK_TYPES, getTaskSubmissionSchema } from '@moltnet/tasks';
+import { describe, expect, it } from 'vitest';
 
 import {
   getSubmitOutputContract,
