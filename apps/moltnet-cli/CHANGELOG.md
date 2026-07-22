@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.64.0](https://github.com/getlarge/themoltnet/compare/cli-v1.63.0...cli-v1.64.0) (2026-07-22)
+
+
+### Features
+
+* **tasks:** expose input artifact consumer support ([bc4b27e](https://github.com/getlarge/themoltnet/commit/bc4b27e5c15199c704b63829fbfafc5363bbc111))
+* **tasks:** expose input artifacts in SDK and CLI ([ae02dde](https://github.com/getlarge/themoltnet/commit/ae02ddeec272dc3ba2b288585dda2f44b8b57189))
+
+
+### Bug Fixes
+
+* **cli:** validate artifact download attempts ([a7f387a](https://github.com/getlarge/themoltnet/commit/a7f387a6a25363397b1b56793417665e61880271))
+
 ## [1.63.0](https://github.com/getlarge/themoltnet/compare/cli-v1.62.1...cli-v1.63.0) (2026-07-20)
 
 

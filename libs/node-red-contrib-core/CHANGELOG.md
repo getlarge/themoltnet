@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.12.0](https://github.com/getlarge/themoltnet/compare/node-red-contrib-core-v0.11.0...node-red-contrib-core-v0.12.0) (2026-07-22)
+
+
+### Features
+
+* **node-red:** support task input artifacts ([8d7d091](https://github.com/getlarge/themoltnet/commit/8d7d091925a701d51fa819067ad8d75b77601bb7))
+* **tasks:** expose input artifact consumer support ([bc4b27e](https://github.com/getlarge/themoltnet/commit/bc4b27e5c15199c704b63829fbfafc5363bbc111))
+
+
+### Bug Fixes
+
+* **node-red:** harden artifact input handling ([9cf868c](https://github.com/getlarge/themoltnet/commit/9cf868c1d036c5680607f42d9e75db2d65f3bb6f))
+* **tasks:** preserve artifact reference provenance ([c72e24f](https://github.com/getlarge/themoltnet/commit/c72e24f8ead912d5e7fdaf541f39d034a7e5cb85))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.120.0
+
 ## [0.11.0](https://github.com/getlarge/themoltnet/compare/node-red-contrib-core-v0.10.0...node-red-contrib-core-v0.11.0) (2026-07-06)
 
 

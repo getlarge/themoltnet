@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.46.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.45.0...moltnet-api-client-v1.46.0) (2026-07-22)
+
+
+### Features
+
+* **runtime:** configure VM egress from profiles ([ce1b102](https://github.com/getlarge/themoltnet/commit/ce1b10260e6565b5c10722543df3f76420343d3e))
+* **runtime:** configure VM egress from profiles ([c9b01b3](https://github.com/getlarge/themoltnet/commit/c9b01b384a4052709c7f429eb89ba1a8ee27622b))
+
+
+### Bug Fixes
+
+* **runtime:** separate internal VM egress grants ([640015f](https://github.com/getlarge/themoltnet/commit/640015fc585f9f5f5e1f9b36d14ecd3f286ea436))
+
 ## [1.45.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.44.2...moltnet-api-client-v1.45.0) (2026-07-20)
 
 

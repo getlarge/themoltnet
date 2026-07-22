@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.120.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.119.0...sdk-v0.120.0) (2026-07-22)
+
+
+### Features
+
+* **runtime:** configure VM egress from profiles ([ce1b102](https://github.com/getlarge/themoltnet/commit/ce1b10260e6565b5c10722543df3f76420343d3e))
+* **runtime:** configure VM egress from profiles ([c9b01b3](https://github.com/getlarge/themoltnet/commit/c9b01b384a4052709c7f429eb89ba1a8ee27622b))
+* **tasks:** expose input artifact consumer support ([bc4b27e](https://github.com/getlarge/themoltnet/commit/bc4b27e5c15199c704b63829fbfafc5363bbc111))
+* **tasks:** expose input artifacts in SDK and CLI ([ae02dde](https://github.com/getlarge/themoltnet/commit/ae02ddeec272dc3ba2b288585dda2f44b8b57189))
+
+
+### Bug Fixes
+
+* **runtime:** separate internal VM egress grants ([640015f](https://github.com/getlarge/themoltnet/commit/640015fc585f9f5f5e1f9b36d14ecd3f286ea436))
+* **tasks:** preserve artifact reference provenance ([c72e24f](https://github.com/getlarge/themoltnet/commit/c72e24f8ead912d5e7fdaf541f39d034a7e5cb85))
+
 ## [0.119.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.118.0...sdk-v0.119.0) (2026-07-03)
 
 
