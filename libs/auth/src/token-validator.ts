@@ -37,6 +37,13 @@ export interface TokenValidatorConfig {
   cacheTtl?: number;
   /** Optional trusted Talos admin client used only for issued API keys. */
   talosApi?: Pick<ApiKeysApi, 'adminVerifyApiKey'>;
+  /** Secret-safe authentication diagnostics. */
+  logger?: TokenValidatorLogger;
+}
+
+export interface TokenValidatorLogger {
+  debug: (obj: unknown, msg?: string) => void;
+  warn: (obj: unknown, msg?: string) => void;
 }
 
 export interface TokenValidator {
@@ -55,6 +62,12 @@ function isTalosApiKey(token: string): boolean {
 function asMetadata(value: object | undefined): Record<string, unknown> {
   if (!value || Array.isArray(value)) return {};
   return value as Record<string, unknown>;
+}
+
+function extractErrorStatus(error: unknown): number | undefined {
+  return typeof error === 'object' && error !== null && 'status' in error
+    ? ((error as { status?: unknown }).status as number | undefined)
+    : undefined;
 }
 
 function isJwtToken(token: string): boolean {
@@ -175,36 +188,119 @@ export function createTokenValidator(
   config?: TokenValidatorConfig,
 ): TokenValidator {
   const jwksUri = config?.jwksUri;
+  const logger = config?.logger ?? {
+    debug: () => undefined,
+    warn: () => undefined,
+  };
 
   async function resolveTalosApiKey(
     token: string,
   ): Promise<AgentAuthContext | null> {
-    if (!config?.talosApi) return null;
+    if (!config?.talosApi) {
+      logger.warn(
+        { credentialType: 'talos-api-key', reason: 'verifier_not_configured' },
+        'Talos API key validation unavailable',
+      );
+      return null;
+    }
 
     try {
       const result = await config.talosApi.adminVerifyApiKey({
         verifyApiKeyRequest: { credential: token },
       });
-      if (!result.is_valid || !result.actor_id || !result.key_id) return null;
+      if (!result.is_valid) {
+        logger.debug(
+          {
+            credentialType: 'talos-api-key',
+            reason: 'credential_rejected',
+            errorCode: result.error_code,
+          },
+          'Talos API key rejected',
+        );
+        return null;
+      }
+      if (!result.actor_id || !result.key_id) {
+        logger.warn(
+          {
+            credentialType: 'talos-api-key',
+            reason: 'incomplete_verification_response',
+          },
+          'Talos API key validation failed',
+        );
+        return null;
+      }
 
       const metadata = asMetadata(result.metadata);
-      if (metadata.subject_type !== 'agent') return null;
+      if (metadata.subject_type !== 'agent') {
+        logger.warn(
+          {
+            credentialType: 'talos-api-key',
+            reason: 'invalid_subject_type',
+            keyId: result.key_id,
+            actorId: result.actor_id,
+          },
+          'Talos API key metadata rejected',
+        );
+        return null;
+      }
 
       const publicKey = metadata.public_key;
       const fingerprint = metadata.fingerprint;
       if (typeof publicKey !== 'string' || typeof fingerprint !== 'string') {
+        logger.warn(
+          {
+            credentialType: 'talos-api-key',
+            reason: 'missing_agent_identity',
+            keyId: result.key_id,
+            actorId: result.actor_id,
+          },
+          'Talos API key metadata rejected',
+        );
         return null;
       }
 
       const teamId = metadata.team_id;
       const maximumToolPolicyId = metadata.maximum_tool_policy_id;
-      if (teamId !== undefined && typeof teamId !== 'string') return null;
+      if (teamId !== undefined && typeof teamId !== 'string') {
+        logger.warn(
+          {
+            credentialType: 'talos-api-key',
+            reason: 'invalid_team_binding',
+            keyId: result.key_id,
+            actorId: result.actor_id,
+          },
+          'Talos API key metadata rejected',
+        );
+        return null;
+      }
       if (
         maximumToolPolicyId !== undefined &&
         typeof maximumToolPolicyId !== 'string'
       ) {
+        logger.warn(
+          {
+            credentialType: 'talos-api-key',
+            reason: 'invalid_maximum_tool_policy',
+            keyId: result.key_id,
+            actorId: result.actor_id,
+          },
+          'Talos API key metadata rejected',
+        );
         return null;
       }
+
+      logger.debug(
+        {
+          credentialType: 'talos-api-key',
+          reason: 'credential_accepted',
+          keyId: result.key_id,
+          actorId: result.actor_id,
+          scopeCount: result.scopes?.length ?? 0,
+          teamBound: Boolean(teamId),
+          maximumToolPolicyBound: Boolean(maximumToolPolicyId),
+        },
+        'Talos API key accepted',
+      );
 
       return {
         subjectType: 'agent',
@@ -217,11 +313,19 @@ export function createTokenValidator(
         credentialBinding: {
           kind: 'talos-api-key',
           keyId: result.key_id,
-          ...(teamId ? { teamId } : {}),
+          ...(teamId ? { boundTeamId: teamId } : {}),
           ...(maximumToolPolicyId ? { maximumToolPolicyId } : {}),
         },
       } satisfies AgentAuthContext;
-    } catch {
+    } catch (error) {
+      logger.warn(
+        {
+          credentialType: 'talos-api-key',
+          reason: 'verifier_request_failed',
+          status: extractErrorStatus(error),
+        },
+        'Talos API key validation unavailable',
+      );
       return null;
     }
   }

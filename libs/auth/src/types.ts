@@ -8,7 +8,7 @@ export interface TalosCredentialBinding {
   kind: 'talos-api-key';
   keyId: string;
   /** Optional team ceiling carried in MoltNet-owned Talos metadata. */
-  teamId?: string;
+  boundTeamId?: string;
   /** Optional maximum tool-policy ceiling carried in Talos metadata. */
   maximumToolPolicyId?: string;
 }

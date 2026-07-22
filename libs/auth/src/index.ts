@@ -80,6 +80,7 @@ export {
   createTokenValidator,
   type TokenValidator,
   type TokenValidatorConfig,
+  type TokenValidatorLogger,
 } from './token-validator.js';
 export type {
   AgentAuthContext,

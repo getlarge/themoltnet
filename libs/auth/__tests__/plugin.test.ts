@@ -217,7 +217,7 @@ describe('requireAuth preHandler', () => {
       credentialBinding: {
         kind: 'talos-api-key',
         keyId: 'talos-key-123',
-        teamId: 'team-123',
+        boundTeamId: 'team-123',
       },
     });
 
@@ -246,7 +246,7 @@ describe('requireAuth preHandler', () => {
       credentialBinding: {
         kind: 'talos-api-key',
         keyId: 'talos-key-123',
-        teamId: 'team-123',
+        boundTeamId: 'team-123',
       },
     });
 

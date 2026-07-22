@@ -194,7 +194,7 @@ async function resolveTeamContext(
     ? teamIdHeader[0]
     : teamIdHeader;
 
-  const constrainedTeamId = authContext.credentialBinding?.teamId;
+  const constrainedTeamId = authContext.credentialBinding?.boundTeamId;
   if (
     requestedTeamId &&
     constrainedTeamId &&

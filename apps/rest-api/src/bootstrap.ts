@@ -568,6 +568,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   const tokenValidator = createTokenValidator(oryClients.oauth2, {
     jwksUri: `${oryUrls.hydraPublicUrl}/.well-known/jwks.json`,
     talosApi,
+    logger: app.log,
   });
 
   const sessionResolver = createSessionResolver(oryClients.frontend, {

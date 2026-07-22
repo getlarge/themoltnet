@@ -26,6 +26,13 @@ function createMockTalosApi() {
   };
 }
 
+function createMockLogger() {
+  return {
+    debug: vi.fn(),
+    warn: vi.fn(),
+  };
+}
+
 const OPAQUE_TOKEN = 'ory_at_valid_token_123';
 const VALID_CLIENT_ID = 'hydra-client-uuid';
 const VALID_IDENTITY_ID = '550e8400-e29b-41d4-a716-446655440000';
@@ -368,8 +375,10 @@ describe('TokenValidator', () => {
 
     it('maps a valid Talos agent key onto the existing agent context', async () => {
       const talosApi = createMockTalosApi();
+      const logger = createMockLogger();
       const validator = createTokenValidator(mockOAuth2Api as any, {
         talosApi,
+        logger,
       });
       talosApi.adminVerifyApiKey.mockResolvedValue({
         is_valid: true,
@@ -398,7 +407,7 @@ describe('TokenValidator', () => {
         credentialBinding: {
           kind: 'talos-api-key',
           keyId: 'talos-key-123',
-          teamId: 'team-123',
+          boundTeamId: 'team-123',
           maximumToolPolicyId: 'policy-456',
         },
       });
@@ -406,12 +415,29 @@ describe('TokenValidator', () => {
         verifyApiKeyRequest: { credential: 'ory_ak_secret' },
       });
       expect(mockOAuth2Api.introspectOAuth2Token).not.toHaveBeenCalled();
+      expect(logger.debug).toHaveBeenCalledWith(
+        {
+          credentialType: 'talos-api-key',
+          reason: 'credential_accepted',
+          keyId: 'talos-key-123',
+          actorId: VALID_IDENTITY_ID,
+          scopeCount: 1,
+          teamBound: true,
+          maximumToolPolicyBound: true,
+        },
+        'Talos API key accepted',
+      );
+      expect(JSON.stringify(logger.debug.mock.calls)).not.toContain(
+        'ory_ak_secret',
+      );
     });
 
     it('accepts the local Talos prefix and fails closed on verifier errors', async () => {
       const talosApi = createMockTalosApi();
+      const logger = createMockLogger();
       const validator = createTokenValidator(mockOAuth2Api as any, {
         talosApi,
+        logger,
       });
       talosApi.adminVerifyApiKey.mockRejectedValue(new Error('Talos offline'));
 
@@ -419,12 +445,25 @@ describe('TokenValidator', () => {
 
       expect(result).toBeNull();
       expect(mockOAuth2Api.introspectOAuth2Token).not.toHaveBeenCalled();
+      expect(logger.warn).toHaveBeenCalledWith(
+        {
+          credentialType: 'talos-api-key',
+          reason: 'verifier_request_failed',
+          status: undefined,
+        },
+        'Talos API key validation unavailable',
+      );
+      expect(JSON.stringify(logger.warn.mock.calls)).not.toContain(
+        'talos_secret',
+      );
     });
 
     it('rejects Talos keys without MoltNet-owned agent metadata', async () => {
       const talosApi = createMockTalosApi();
+      const logger = createMockLogger();
       const validator = createTokenValidator(mockOAuth2Api as any, {
         talosApi,
+        logger,
       });
       talosApi.adminVerifyApiKey.mockResolvedValue({
         is_valid: true,
@@ -436,6 +475,37 @@ describe('TokenValidator', () => {
       const result = await validator.resolveAuthContext('ory_ak_secret');
 
       expect(result).toBeNull();
+      expect(logger.warn).toHaveBeenCalledWith(
+        {
+          credentialType: 'talos-api-key',
+          reason: 'missing_agent_identity',
+          keyId: 'talos-key-123',
+          actorId: VALID_IDENTITY_ID,
+        },
+        'Talos API key metadata rejected',
+      );
+      expect(JSON.stringify(logger.warn.mock.calls)).not.toContain(
+        'ory_ak_secret',
+      );
+    });
+
+    it('surfaces a missing Talos verifier without exposing the credential', async () => {
+      const logger = createMockLogger();
+      const validator = createTokenValidator(mockOAuth2Api as any, { logger });
+
+      const result = await validator.resolveAuthContext('ory_ak_secret');
+
+      expect(result).toBeNull();
+      expect(logger.warn).toHaveBeenCalledWith(
+        {
+          credentialType: 'talos-api-key',
+          reason: 'verifier_not_configured',
+        },
+        'Talos API key validation unavailable',
+      );
+      expect(JSON.stringify(logger.warn.mock.calls)).not.toContain(
+        'ory_ak_secret',
+      );
     });
   });
 
