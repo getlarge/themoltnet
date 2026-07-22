@@ -133,9 +133,13 @@ describe('loadOryConfig', () => {
       ORY_HYDRA_ADMIN_URL: 'http://hydra:4445',
       ORY_KETO_PUBLIC_URL: 'http://keto:4466',
       ORY_KETO_ADMIN_URL: 'http://keto:4467',
+      TALOS_ADMIN_URL: 'http://talos:4420',
+      TALOS_API_KEY: 'ory_pat_talos',
     });
     expect(config.ORY_KRATOS_PUBLIC_URL).toBe('http://kratos:4433');
     expect(config.ORY_KETO_ADMIN_URL).toBe('http://keto:4467');
+    expect(config.TALOS_ADMIN_URL).toBe('http://talos:4420');
+    expect(config.TALOS_API_KEY).toBe('ory_pat_talos');
   });
 
   it('allows all fields to be optional', () => {

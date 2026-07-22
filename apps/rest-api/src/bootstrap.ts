@@ -17,6 +17,7 @@ import {
   createRelationshipReader,
   createRelationshipWriter,
   createSessionResolver,
+  createTalosClient,
   createTokenValidator,
 } from '@moltnet/auth';
 import { ContextPackService } from '@moltnet/context-pack-service';
@@ -273,6 +274,12 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     ketoReadUrl: oryUrls.ketoPublicUrl,
     ketoWriteUrl: oryUrls.ketoAdminUrl,
   });
+  const talosApi = oryUrls.talosAdminUrl
+    ? createTalosClient({
+        baseUrl: oryUrls.talosAdminUrl,
+        apiKey: oryUrls.talosApiKey,
+      })
+    : undefined;
 
   // ── Repositories ───────────────────────────────────────────────
   const agentRepository = createAgentRepository(dbConnection.db);
@@ -560,6 +567,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
 
   const tokenValidator = createTokenValidator(oryClients.oauth2, {
     jwksUri: `${oryUrls.hydraPublicUrl}/.well-known/jwks.json`,
+    talosApi,
   });
 
   const sessionResolver = createSessionResolver(oryClients.frontend, {
