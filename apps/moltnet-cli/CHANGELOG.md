@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.64.1](https://github.com/getlarge/themoltnet/compare/cli-v1.64.0...cli-v1.64.1) (2026-07-22)
+
+
+### Bug Fixes
+
+* **task-artifacts:** address review follow-ups ([9dbee48](https://github.com/getlarge/themoltnet/commit/9dbee48069aa18d1b8c745ed2bc73a8af86258bc))
+* **task-artifacts:** restore input download parity ([d95e91f](https://github.com/getlarge/themoltnet/commit/d95e91f5ab3ad0c6b96235aae79892840bd298bd))
+
 ## [1.64.0](https://github.com/getlarge/themoltnet/compare/cli-v1.63.0...cli-v1.64.0) (2026-07-22)
 
 
