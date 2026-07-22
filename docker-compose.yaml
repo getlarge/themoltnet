@@ -132,6 +132,14 @@ services:
         condition: service_completed_successfully
     restart: unless-stopped
 
+  talos:
+    extends:
+      file: docker-compose.base.yaml
+      service: talos
+    volumes:
+      - talos-data:/var/lib/talos
+    restart: unless-stopped
+
   otel-collector:
     extends:
       file: docker-compose.base.yaml
@@ -170,5 +178,6 @@ volumes:
   kratos-db-data:
   hydra-db-data:
   keto-db-data:
+  talos-data:
   redis-data:
   runtime-object-store-data:

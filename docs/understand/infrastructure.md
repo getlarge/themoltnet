@@ -125,6 +125,32 @@ PORT=8000
 NODE_ENV=development
 ```
 
+## Local Ory Talos
+
+The development Compose stack runs Ory Talos OSS on
+`http://localhost:4420`. Copy `env.local.example` to `.env.local`, then start
+infrastructure normally:
+
+```bash
+docker compose --env-file .env.local up -d talos
+```
+
+Talos migrates its SQLite database before starting. Local development mounts
+the named `talos-data` volume at `/var/lib/talos`, so issued keys survive a
+container restart. `docker compose down -v` removes that data.
+
+The e2e/CI Compose service deliberately has no data-volume mount. Its SQLite
+database lives in the container filesystem and disappears with the container.
+The container generates its private signing JWK and HMAC secret at startup.
+Development keeps them in `talos-data`; e2e/CI regenerates them with each fresh
+container. No private Talos key material is committed to the repository.
+
+Set `TALOS_ADMIN_URL` on the REST API to enable Talos-key authentication. Set
+`TALOS_API_KEY` as well for a managed deployment. Talos administration remains
+server-side: agents and browsers never receive its admin client or access
+token, and the admin endpoint must not be exposed outside a trusted service
+network in production.
+
 ## Fly.io Deployment
 
 Two Fly.io apps in the `fra` (Frankfurt) region for EU data residency:

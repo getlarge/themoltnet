@@ -1,0 +1,48 @@
+# Local-only Ory Talos OSS configuration.
+# Production uses a managed or separately hardened Talos deployment.
+
+serve:
+  http:
+    host: 0.0.0.0
+    port: 4420
+    request_log:
+      exclude_health_endpoints: true
+  metrics:
+    host: 0.0.0.0
+    port: 4422
+
+credentials:
+  issuer: http://localhost:4420
+  api_keys:
+    default_ttl: 720h
+    max_ttl: 8760h
+    prefix:
+      current: ory_ak
+      retired: []
+  derived_tokens:
+    default_ttl: 5m
+    jwt:
+      signing_keys:
+        urls:
+          - file:///var/lib/talos/jwks.json
+    macaroon:
+      prefix:
+        current: mc
+        retired: []
+
+db:
+  dsn: sqlite3:///var/lib/talos/talos.db?_journal_mode=WAL
+
+log:
+  level: info
+  format: json
+
+tracing:
+  enabled: false
+
+cache:
+  type: noop
+  ttl: 5m
+
+multitenancy:
+  enabled: false
