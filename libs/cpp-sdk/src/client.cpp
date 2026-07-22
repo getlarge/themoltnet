@@ -155,6 +155,14 @@ RawResponse Client::list_task_artifacts(const std::string& task_id,
 }
 
 RawResponse Client::download_task_artifact(const std::string& task_id,
+                                           const std::string& cid) {
+  return request_json("GET", "/tasks/" + query::encode(task_id) +
+                                 "/artifacts/" + query::encode(cid) +
+                                 "/content",
+                      "", "", true);
+}
+
+RawResponse Client::download_task_artifact(const std::string& task_id,
                                            int attempt_n,
                                            const std::string& cid) {
   return request_json("GET",
