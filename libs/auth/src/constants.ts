@@ -18,10 +18,9 @@ export const ORY_OPAQUE_PREFIXES = ['ory_at_', 'ory_ht_'] as const;
 
 /**
  * Talos issued-key prefixes accepted by the authentication chokepoint.
- * `ory_ak_` is used by Ory Network; the local OSS configuration uses
- * `talos_` so credentials cannot be confused with Hydra access tokens.
+ * Shared by Ory Network and the checked-in local Talos configuration.
  */
-export const TALOS_API_KEY_PREFIXES = ['ory_ak_', 'talos_'] as const;
+export const TALOS_API_KEY_PREFIXES = ['ory_ak_'] as const;
 
 /**
  * Kratos session cookie names: `ory_kratos_session` (self-hosted) and

@@ -8,7 +8,12 @@
  * Then resolves the full AuthContext for authenticated requests.
  */
 
-import type { ApiKeysApi, OAuth2Api } from '@ory/client-fetch';
+import {
+  type ApiKeysApi,
+  KeyStatus,
+  KeyVisibility,
+  type OAuth2Api,
+} from '@ory/client-fetch';
 import type { DecodedJwt, VerifierOptions } from 'fast-jwt';
 import { createVerifier } from 'fast-jwt';
 import buildGetJwks from 'get-jwks';
@@ -37,9 +42,21 @@ export interface TokenValidatorConfig {
   cacheTtl?: number;
   /** Optional trusted Talos admin client used only for issued API keys. */
   talosApi?: Pick<ApiKeysApi, 'adminVerifyApiKey'>;
+  /** Resolve the verified Talos actor to MoltNet's canonical active agent. */
+  resolveTalosAgent?: TalosAgentResolver;
   /** Secret-safe authentication diagnostics. */
   logger?: TokenValidatorLogger;
 }
+
+export interface TalosAgentIdentity {
+  identityId: string;
+  publicKey: string;
+  fingerprint: string;
+}
+
+export type TalosAgentResolver = (
+  identityId: string,
+) => Promise<TalosAgentIdentity | null>;
 
 export interface TokenValidatorLogger {
   debug: (obj: unknown, msg?: string) => void;
@@ -64,10 +81,30 @@ function asMetadata(value: object | undefined): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
-function extractErrorStatus(error: unknown): number | undefined {
-  return typeof error === 'object' && error !== null && 'status' in error
-    ? ((error as { status?: unknown }).status as number | undefined)
-    : undefined;
+function summarizeOryError(error: unknown): {
+  errorType: string;
+  status?: number;
+  causeCode?: string;
+} {
+  if (typeof error !== 'object' || error === null) {
+    return { errorType: 'UnknownError' };
+  }
+
+  const candidate = error as {
+    name?: unknown;
+    response?: { status?: unknown };
+    cause?: { code?: unknown };
+  };
+  return {
+    errorType:
+      typeof candidate.name === 'string' ? candidate.name : 'UnknownError',
+    ...(typeof candidate.response?.status === 'number'
+      ? { status: candidate.response.status }
+      : {}),
+    ...(typeof candidate.cause?.code === 'string'
+      ? { causeCode: candidate.cause.code }
+      : {}),
+  };
 }
 
 function isJwtToken(token: string): boolean {
@@ -196,138 +233,144 @@ export function createTokenValidator(
   async function resolveTalosApiKey(
     token: string,
   ): Promise<AgentAuthContext | null> {
-    if (!config?.talosApi) {
-      logger.warn(
-        { credentialType: 'talos-api-key', reason: 'verifier_not_configured' },
-        'Talos API key validation unavailable',
-      );
-      return null;
-    }
+    if (!config?.talosApi || !config.resolveTalosAgent) return null;
 
+    let result: Awaited<
+      ReturnType<Pick<ApiKeysApi, 'adminVerifyApiKey'>['adminVerifyApiKey']>
+    >;
     try {
-      const result = await config.talosApi.adminVerifyApiKey({
+      result = await config.talosApi.adminVerifyApiKey({
         verifyApiKeyRequest: { credential: token },
+        cacheControl: 'no-store',
+        pragma: 'no-cache',
       });
-      if (!result.is_valid) {
-        logger.debug(
-          {
-            credentialType: 'talos-api-key',
-            reason: 'credential_rejected',
-            errorCode: result.error_code,
-          },
-          'Talos API key rejected',
-        );
-        return null;
-      }
-      if (!result.actor_id || !result.key_id) {
-        logger.warn(
-          {
-            credentialType: 'talos-api-key',
-            reason: 'incomplete_verification_response',
-          },
-          'Talos API key validation failed',
-        );
-        return null;
-      }
-
-      const metadata = asMetadata(result.metadata);
-      if (metadata.subject_type !== 'agent') {
-        logger.warn(
-          {
-            credentialType: 'talos-api-key',
-            reason: 'invalid_subject_type',
-            keyId: result.key_id,
-            actorId: result.actor_id,
-          },
-          'Talos API key metadata rejected',
-        );
-        return null;
-      }
-
-      const publicKey = metadata.public_key;
-      const fingerprint = metadata.fingerprint;
-      if (typeof publicKey !== 'string' || typeof fingerprint !== 'string') {
-        logger.warn(
-          {
-            credentialType: 'talos-api-key',
-            reason: 'missing_agent_identity',
-            keyId: result.key_id,
-            actorId: result.actor_id,
-          },
-          'Talos API key metadata rejected',
-        );
-        return null;
-      }
-
-      const teamId = metadata.team_id;
-      const maximumToolPolicyId = metadata.maximum_tool_policy_id;
-      if (teamId !== undefined && typeof teamId !== 'string') {
-        logger.warn(
-          {
-            credentialType: 'talos-api-key',
-            reason: 'invalid_team_binding',
-            keyId: result.key_id,
-            actorId: result.actor_id,
-          },
-          'Talos API key metadata rejected',
-        );
-        return null;
-      }
-      if (
-        maximumToolPolicyId !== undefined &&
-        typeof maximumToolPolicyId !== 'string'
-      ) {
-        logger.warn(
-          {
-            credentialType: 'talos-api-key',
-            reason: 'invalid_maximum_tool_policy',
-            keyId: result.key_id,
-            actorId: result.actor_id,
-          },
-          'Talos API key metadata rejected',
-        );
-        return null;
-      }
-
-      logger.debug(
-        {
-          credentialType: 'talos-api-key',
-          reason: 'credential_accepted',
-          keyId: result.key_id,
-          actorId: result.actor_id,
-          scopeCount: result.scopes?.length ?? 0,
-          teamBound: Boolean(teamId),
-          maximumToolPolicyBound: Boolean(maximumToolPolicyId),
-        },
-        'Talos API key accepted',
-      );
-
-      return {
-        subjectType: 'agent',
-        identityId: result.actor_id,
-        publicKey,
-        fingerprint,
-        clientId: result.key_id,
-        scopes: result.scopes ?? [],
-        currentTeamId: null,
-        credentialBinding: {
-          kind: 'talos-api-key',
-          keyId: result.key_id,
-          ...(teamId ? { boundTeamId: teamId } : {}),
-          ...(maximumToolPolicyId ? { maximumToolPolicyId } : {}),
-        },
-      } satisfies AgentAuthContext;
     } catch (error) {
       logger.warn(
         {
           credentialType: 'talos-api-key',
           reason: 'verifier_request_failed',
-          status: extractErrorStatus(error),
+          ...summarizeOryError(error),
         },
         'Talos API key validation unavailable',
       );
       return null;
     }
+
+    const expired = result.expire_time
+      ? result.expire_time.getTime() <= Date.now()
+      : false;
+    const invalidStatus =
+      result.status !== undefined &&
+      result.status !== KeyStatus.KeyStatusActive &&
+      result.status !== KeyStatus.KeyStatusUnspecified;
+    const publicVisibility =
+      result.visibility === KeyVisibility.KeyVisibilityPublic;
+    if (!result.is_valid || expired || invalidStatus || publicVisibility) {
+      logger.debug(
+        {
+          credentialType: 'talos-api-key',
+          reason: publicVisibility
+            ? 'public_key_rejected'
+            : 'credential_rejected',
+          errorCode: result.error_code,
+          status: result.status,
+        },
+        'Talos API key rejected',
+      );
+      return null;
+    }
+    if (!result.actor_id || !result.key_id) {
+      logger.warn(
+        {
+          credentialType: 'talos-api-key',
+          reason: 'incomplete_verification_response',
+        },
+        'Talos API key validation failed',
+      );
+      return null;
+    }
+
+    const metadata = asMetadata(result.metadata);
+    if (metadata.subject_type !== 'agent') {
+      logger.warn(
+        {
+          credentialType: 'talos-api-key',
+          reason: 'invalid_subject_type',
+          keyId: result.key_id,
+          actorId: result.actor_id,
+        },
+        'Talos API key metadata rejected',
+      );
+      return null;
+    }
+
+    const teamId = metadata.team_id;
+    if (teamId !== undefined && typeof teamId !== 'string') {
+      logger.warn(
+        {
+          credentialType: 'talos-api-key',
+          reason: 'invalid_team_binding',
+          keyId: result.key_id,
+          actorId: result.actor_id,
+        },
+        'Talos API key metadata rejected',
+      );
+      return null;
+    }
+
+    let agent: TalosAgentIdentity | null;
+    try {
+      agent = await config.resolveTalosAgent(result.actor_id);
+    } catch (error) {
+      logger.warn(
+        {
+          credentialType: 'talos-api-key',
+          reason: 'agent_resolution_failed',
+          actorId: result.actor_id,
+          ...summarizeOryError(error),
+        },
+        'Talos agent resolution unavailable',
+      );
+      return null;
+    }
+    if (!agent || agent.identityId !== result.actor_id) {
+      logger.warn(
+        {
+          credentialType: 'talos-api-key',
+          reason: 'agent_not_found_or_inactive',
+          keyId: result.key_id,
+          actorId: result.actor_id,
+        },
+        'Talos API key actor rejected',
+      );
+      return null;
+    }
+
+    logger.debug(
+      {
+        credentialType: 'talos-api-key',
+        reason: 'credential_accepted',
+        keyId: result.key_id,
+        actorId: result.actor_id,
+        scopeCount: result.scopes?.length ?? 0,
+        teamBound: Boolean(teamId),
+      },
+      'Talos API key accepted',
+    );
+
+    return {
+      subjectType: 'agent',
+      identityId: agent.identityId,
+      publicKey: agent.publicKey,
+      fingerprint: agent.fingerprint,
+      clientId: result.key_id,
+      scopes: result.scopes ?? [],
+      currentTeamId: null,
+      credentialBinding: {
+        keyId: result.key_id,
+        ...(teamId ? { boundTeamId: teamId } : {}),
+      },
+    } satisfies AgentAuthContext;
   }
 
   let verifyJwt: ((token: string) => Promise<Record<string, unknown>>) | null =
@@ -428,7 +471,11 @@ export function createTokenValidator(
     introspect,
 
     async resolveAuthContext(token: string): Promise<AuthContext | null> {
-      if (isTalosApiKey(token)) {
+      if (
+        config?.talosApi &&
+        config.resolveTalosAgent &&
+        isTalosApiKey(token)
+      ) {
         return resolveTalosApiKey(token);
       }
 

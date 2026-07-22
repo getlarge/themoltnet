@@ -190,11 +190,23 @@ async function resolveTeamContext(
   authContext: AuthContext,
 ): Promise<void> {
   const teamIdHeader = request.headers[TEAM_HEADER];
-  const requestedTeamId = Array.isArray(teamIdHeader)
+  const rawRequestedTeamId = Array.isArray(teamIdHeader)
     ? teamIdHeader[0]
     : teamIdHeader;
 
-  const constrainedTeamId = authContext.credentialBinding?.boundTeamId;
+  if (rawRequestedTeamId !== undefined && !rawRequestedTeamId.trim()) {
+    const error = createAuthError('Team header must not be empty');
+    error.statusCode = 400;
+    error.code = 'BAD_REQUEST';
+    throw error;
+  }
+
+  const requestedTeamId = rawRequestedTeamId?.trim();
+
+  const constrainedTeamId =
+    authContext.subjectType === 'agent'
+      ? authContext.credentialBinding?.boundTeamId
+      : undefined;
   if (
     requestedTeamId &&
     constrainedTeamId &&
@@ -206,7 +218,9 @@ async function resolveTeamContext(
     throw error;
   }
 
-  const teamId = requestedTeamId ?? constrainedTeamId;
+  // A credential binding is a ceiling, not an implicit request selection.
+  // Team-agnostic routes remain unscoped until the caller requests a team.
+  const teamId = requestedTeamId;
 
   if (teamId) {
     const subjectNs =

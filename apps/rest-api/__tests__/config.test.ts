@@ -145,6 +145,12 @@ describe('loadOryConfig', () => {
     expect(config.ORY_PROJECT_URL).toBeUndefined();
     expect(config.ORY_API_KEY).toBeUndefined();
   });
+
+  it('rejects a malformed Talos admin URL', () => {
+    expect(() =>
+      loadOryConfig({ ORY_TALOS_ADMIN_URL: 'not-a-valid-url' }),
+    ).toThrow('Invalid Ory config');
+  });
 });
 
 // ============================================================================
@@ -257,6 +263,24 @@ describe('loadConfig', () => {
     const { ORY_ACTION_API_KEY: _, ...envWithoutKey } = validEnv;
     expect(() => loadConfig(envWithoutKey)).toThrow('Invalid Webhook config');
   });
+
+  it('rejects a public plaintext Talos admin URL in production', () => {
+    expect(() =>
+      loadConfig({
+        ...validEnv,
+        ORY_TALOS_ADMIN_URL: 'http://talos.example.com:4420',
+      }),
+    ).toThrow('Talos admin traffic must use HTTPS');
+  });
+
+  it('allows a plaintext internal Talos admin URL in production', () => {
+    const config = loadConfig({
+      ...validEnv,
+      ORY_TALOS_ADMIN_URL: 'http://talos:4420',
+    });
+
+    expect(config.ory.ORY_TALOS_ADMIN_URL).toBe('http://talos:4420');
+  });
 });
 
 // ============================================================================
@@ -321,6 +345,7 @@ describe('resolveOryUrls', () => {
     expect(resolved.hydraAdminUrl).toBe('https://ory.example.com');
     expect(resolved.ketoPublicUrl).toBe('https://ory.example.com');
     expect(resolved.ketoAdminUrl).toBe('https://ory.example.com');
+    expect(resolved.talosAdminUrl).toBe('https://ory.example.com');
     expect(resolved.apiKey).toBe('ory_pat_xxx');
   });
 
@@ -344,6 +369,19 @@ describe('resolveOryUrls', () => {
       ORY_PROJECT_URL: 'https://ory.example.com',
     });
     expect(resolved.apiKey).toBeUndefined();
+  });
+
+  it('leaves Talos disabled for self-hosted Ory unless its URL is set', () => {
+    const resolved = resolveOryUrls({
+      ORY_KRATOS_PUBLIC_URL: 'http://kratos:4433',
+      ORY_KRATOS_ADMIN_URL: 'http://kratos:4434',
+      ORY_HYDRA_PUBLIC_URL: 'http://hydra:4444',
+      ORY_HYDRA_ADMIN_URL: 'http://hydra:4445',
+      ORY_KETO_PUBLIC_URL: 'http://keto:4466',
+      ORY_KETO_ADMIN_URL: 'http://keto:4467',
+    });
+
+    expect(resolved.talosAdminUrl).toBeUndefined();
   });
 });
 

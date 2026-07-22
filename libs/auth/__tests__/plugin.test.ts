@@ -211,11 +211,10 @@ describe('requireAuth preHandler', () => {
     });
   });
 
-  it('uses a Talos key team constraint when no team header is supplied', async () => {
+  it('keeps a bound Talos key unscoped when no team is requested', async () => {
     mockTokenValidator.resolveAuthContext.mockResolvedValue({
       ...VALID_AUTH_CONTEXT,
       credentialBinding: {
-        kind: 'talos-api-key',
         keyId: 'talos-key-123',
         boundTeamId: 'team-123',
       },
@@ -232,6 +231,33 @@ describe('requireAuth preHandler', () => {
     });
 
     expect(response.statusCode).toBe(200);
+    expect(response.json().authContext.currentTeamId).toBeNull();
+    expect(mockPermissionChecker.canAccessTeam).not.toHaveBeenCalled();
+  });
+
+  it('accepts a requested team matching the Talos key ceiling', async () => {
+    mockTokenValidator.resolveAuthContext.mockResolvedValue({
+      ...VALID_AUTH_CONTEXT,
+      credentialBinding: {
+        keyId: 'talos-key-123',
+        boundTeamId: 'team-123',
+      },
+    });
+
+    app.get('/protected', { preHandler: [requireAuth] }, async (request) => ({
+      authContext: request.authContext,
+    }));
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/protected',
+      headers: {
+        authorization: `Bearer ${VALID_TOKEN}`,
+        'x-moltnet-team-id': 'team-123',
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
     expect(response.json().authContext.currentTeamId).toBe('team-123');
     expect(mockPermissionChecker.canAccessTeam).toHaveBeenCalledWith(
       'team-123',
@@ -240,11 +266,40 @@ describe('requireAuth preHandler', () => {
     );
   });
 
+  it('rejects an empty team header instead of dropping the Talos ceiling', async () => {
+    mockTokenValidator.resolveAuthContext.mockResolvedValue({
+      ...VALID_AUTH_CONTEXT,
+      credentialBinding: {
+        keyId: 'talos-key-123',
+        boundTeamId: 'team-123',
+      },
+    });
+
+    app.get('/protected', { preHandler: [requireAuth] }, async () => ({
+      ok: true,
+    }));
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/protected',
+      headers: {
+        authorization: `Bearer ${VALID_TOKEN}`,
+        'x-moltnet-team-id': '   ',
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({
+      code: 'BAD_REQUEST',
+      message: 'Team header must not be empty',
+    });
+    expect(mockPermissionChecker.canAccessTeam).not.toHaveBeenCalled();
+  });
+
   it('rejects a team header outside a Talos key team constraint', async () => {
     mockTokenValidator.resolveAuthContext.mockResolvedValue({
       ...VALID_AUTH_CONTEXT,
       credentialBinding: {
-        kind: 'talos-api-key',
         keyId: 'talos-key-123',
         boundTeamId: 'team-123',
       },

@@ -26,6 +26,14 @@ function createMockTalosApi() {
   };
 }
 
+function createMockTalosAgentResolver() {
+  return vi.fn().mockResolvedValue({
+    identityId: VALID_IDENTITY_ID,
+    publicKey: 'ed25519:AAAA+/bbbb==',
+    fingerprint: 'A1B2-C3D4-E5F6-07A8',
+  });
+}
+
 function createMockLogger() {
   return {
     debug: vi.fn(),
@@ -375,9 +383,11 @@ describe('TokenValidator', () => {
 
     it('maps a valid Talos agent key onto the existing agent context', async () => {
       const talosApi = createMockTalosApi();
+      const resolveTalosAgent = createMockTalosAgentResolver();
       const logger = createMockLogger();
       const validator = createTokenValidator(mockOAuth2Api as any, {
         talosApi,
+        resolveTalosAgent,
         logger,
       });
       talosApi.adminVerifyApiKey.mockResolvedValue({
@@ -387,11 +397,11 @@ describe('TokenValidator', () => {
         scopes: ['diary:read'],
         metadata: {
           subject_type: 'agent',
-          public_key: 'ed25519:AAAA+/bbbb==',
-          fingerprint: 'A1B2-C3D4-E5F6-07A8',
           team_id: 'team-123',
-          maximum_tool_policy_id: 'policy-456',
         },
+        status: 'KEY_STATUS_ACTIVE',
+        visibility: 'KEY_VISIBILITY_SECRET',
+        expire_time: new Date(Date.now() + 60_000),
       });
 
       const result = await validator.resolveAuthContext('ory_ak_secret');
@@ -405,15 +415,16 @@ describe('TokenValidator', () => {
         scopes: ['diary:read'],
         currentTeamId: null,
         credentialBinding: {
-          kind: 'talos-api-key',
           keyId: 'talos-key-123',
           boundTeamId: 'team-123',
-          maximumToolPolicyId: 'policy-456',
         },
       });
       expect(talosApi.adminVerifyApiKey).toHaveBeenCalledWith({
         verifyApiKeyRequest: { credential: 'ory_ak_secret' },
+        cacheControl: 'no-store',
+        pragma: 'no-cache',
       });
+      expect(resolveTalosAgent).toHaveBeenCalledWith(VALID_IDENTITY_ID);
       expect(mockOAuth2Api.introspectOAuth2Token).not.toHaveBeenCalled();
       expect(logger.debug).toHaveBeenCalledWith(
         {
@@ -423,7 +434,6 @@ describe('TokenValidator', () => {
           actorId: VALID_IDENTITY_ID,
           scopeCount: 1,
           teamBound: true,
-          maximumToolPolicyBound: true,
         },
         'Talos API key accepted',
       );
@@ -432,16 +442,23 @@ describe('TokenValidator', () => {
       );
     });
 
-    it('accepts the local Talos prefix and fails closed on verifier errors', async () => {
+    it('fails closed and logs the HTTP status on verifier errors', async () => {
       const talosApi = createMockTalosApi();
+      const resolveTalosAgent = createMockTalosAgentResolver();
       const logger = createMockLogger();
       const validator = createTokenValidator(mockOAuth2Api as any, {
         talosApi,
+        resolveTalosAgent,
         logger,
       });
-      talosApi.adminVerifyApiKey.mockRejectedValue(new Error('Talos offline'));
+      talosApi.adminVerifyApiKey.mockRejectedValue(
+        Object.assign(new Error('Talos offline'), {
+          name: 'ResponseError',
+          response: { status: 503 },
+        }),
+      );
 
-      const result = await validator.resolveAuthContext('talos_secret');
+      const result = await validator.resolveAuthContext('ory_ak_secret');
 
       expect(result).toBeNull();
       expect(mockOAuth2Api.introspectOAuth2Token).not.toHaveBeenCalled();
@@ -449,20 +466,23 @@ describe('TokenValidator', () => {
         {
           credentialType: 'talos-api-key',
           reason: 'verifier_request_failed',
-          status: undefined,
+          errorType: 'ResponseError',
+          status: 503,
         },
         'Talos API key validation unavailable',
       );
       expect(JSON.stringify(logger.warn.mock.calls)).not.toContain(
-        'talos_secret',
+        'ory_ak_secret',
       );
     });
 
-    it('rejects Talos keys without MoltNet-owned agent metadata', async () => {
+    it('rejects Talos keys whose actor has no canonical active agent', async () => {
       const talosApi = createMockTalosApi();
+      const resolveTalosAgent = vi.fn().mockResolvedValue(null);
       const logger = createMockLogger();
       const validator = createTokenValidator(mockOAuth2Api as any, {
         talosApi,
+        resolveTalosAgent,
         logger,
       });
       talosApi.adminVerifyApiKey.mockResolvedValue({
@@ -478,34 +498,78 @@ describe('TokenValidator', () => {
       expect(logger.warn).toHaveBeenCalledWith(
         {
           credentialType: 'talos-api-key',
-          reason: 'missing_agent_identity',
+          reason: 'agent_not_found_or_inactive',
           keyId: 'talos-key-123',
           actorId: VALID_IDENTITY_ID,
         },
-        'Talos API key metadata rejected',
+        'Talos API key actor rejected',
       );
       expect(JSON.stringify(logger.warn.mock.calls)).not.toContain(
         'ory_ak_secret',
       );
     });
 
-    it('surfaces a missing Talos verifier without exposing the credential', async () => {
+    it('falls back to introspection when Talos is not configured', async () => {
       const logger = createMockLogger();
       const validator = createTokenValidator(mockOAuth2Api as any, { logger });
+      mockOAuth2Api.introspectOAuth2Token.mockResolvedValue({ active: false });
 
       const result = await validator.resolveAuthContext('ory_ak_secret');
 
       expect(result).toBeNull();
-      expect(logger.warn).toHaveBeenCalledWith(
+      expect(mockOAuth2Api.introspectOAuth2Token).toHaveBeenCalledWith({
+        token: 'ory_ak_secret',
+      });
+      expect(logger.warn).not.toHaveBeenCalled();
+    });
+
+    it('rejects a key Talos reports as revoked', async () => {
+      const talosApi = createMockTalosApi();
+      const resolveTalosAgent = createMockTalosAgentResolver();
+      const logger = createMockLogger();
+      const validator = createTokenValidator(mockOAuth2Api as any, {
+        talosApi,
+        resolveTalosAgent,
+        logger,
+      });
+      talosApi.adminVerifyApiKey.mockResolvedValue({
+        is_valid: false,
+        error_code: 'VERIFICATION_ERROR_REVOKED',
+      });
+
+      const result = await validator.resolveAuthContext('ory_ak_revoked');
+
+      expect(result).toBeNull();
+      expect(resolveTalosAgent).not.toHaveBeenCalled();
+      expect(logger.debug).toHaveBeenCalledWith(
         {
           credentialType: 'talos-api-key',
-          reason: 'verifier_not_configured',
+          reason: 'credential_rejected',
+          errorCode: 'VERIFICATION_ERROR_REVOKED',
+          status: undefined,
         },
-        'Talos API key validation unavailable',
+        'Talos API key rejected',
       );
-      expect(JSON.stringify(logger.warn.mock.calls)).not.toContain(
-        'ory_ak_secret',
-      );
+    });
+
+    it('rejects public-visibility keys before resolving the actor', async () => {
+      const talosApi = createMockTalosApi();
+      const resolveTalosAgent = createMockTalosAgentResolver();
+      const validator = createTokenValidator(mockOAuth2Api as any, {
+        talosApi,
+        resolveTalosAgent,
+      });
+      talosApi.adminVerifyApiKey.mockResolvedValue({
+        is_valid: true,
+        actor_id: VALID_IDENTITY_ID,
+        key_id: 'talos-public-123',
+        visibility: 'KEY_VISIBILITY_PUBLIC',
+      });
+
+      const result = await validator.resolveAuthContext('ory_ak_public');
+
+      expect(result).toBeNull();
+      expect(resolveTalosAgent).not.toHaveBeenCalled();
     });
   });
 

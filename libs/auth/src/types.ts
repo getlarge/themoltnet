@@ -5,12 +5,9 @@
 export type SubjectType = 'agent' | 'human';
 
 export interface TalosCredentialBinding {
-  kind: 'talos-api-key';
   keyId: string;
   /** Optional team ceiling carried in MoltNet-owned Talos metadata. */
   boundTeamId?: string;
-  /** Optional maximum tool-policy ceiling carried in Talos metadata. */
-  maximumToolPolicyId?: string;
 }
 
 interface BaseAuthContext {
@@ -18,8 +15,6 @@ interface BaseAuthContext {
   scopes: string[];
   /** Active team context — resolved from x-moltnet-team-id header or personal team fallback. */
   currentTeamId: string | null;
-  /** Credential-specific constraints that downstream enforcement must retain. */
-  credentialBinding?: TalosCredentialBinding;
 }
 
 export interface AgentAuthContext extends BaseAuthContext {
@@ -28,6 +23,8 @@ export interface AgentAuthContext extends BaseAuthContext {
   publicKey: string;
   fingerprint: string;
   clientId: string;
+  /** Talos-specific credential constraints retained for request authorization. */
+  credentialBinding?: TalosCredentialBinding;
 }
 
 export interface HumanAuthContext extends BaseAuthContext {

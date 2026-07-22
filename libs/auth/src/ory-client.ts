@@ -5,6 +5,7 @@
  */
 
 import {
+  ApiKeysApi,
   Configuration,
   FrontendApi,
   IdentityApi,
@@ -21,6 +22,9 @@ export interface OryClientConfig {
   hydraAdminUrl?: string;
   ketoReadUrl?: string;
   ketoWriteUrl?: string;
+  talosAdminUrl?: string;
+  /** Timeout for Talos verification requests (default: 5 seconds). */
+  talosRequestTimeoutMs?: number;
 }
 
 export interface OryClients {
@@ -32,6 +36,8 @@ export interface OryClients {
   relationship: RelationshipApi;
   /** Read-only Keto client (read port) — use for queries */
   relationshipRead: RelationshipApi;
+  /** Talos admin client; absent when Talos authentication is disabled. */
+  apiKeys?: ApiKeysApi;
 }
 
 export function createOryClients(config: OryClientConfig): OryClients {
@@ -41,6 +47,21 @@ export function createOryClients(config: OryClientConfig): OryClients {
     return new Configuration({
       basePath: url ?? config.baseUrl,
       ...accessToken,
+    });
+  }
+
+  function makeTalosConfig(url: string): Configuration {
+    const timeoutMs = config.talosRequestTimeoutMs ?? 5_000;
+    return new Configuration({
+      basePath: url,
+      ...accessToken,
+      fetchApi: async (input, init) => {
+        const timeoutSignal = AbortSignal.timeout(timeoutMs);
+        const signal = init?.signal
+          ? AbortSignal.any([init.signal, timeoutSignal])
+          : timeoutSignal;
+        return globalThis.fetch(input, { ...init, signal });
+      },
     });
   }
 
@@ -66,5 +87,8 @@ export function createOryClients(config: OryClientConfig): OryClients {
     permission: new PermissionApi(makeConfig(config.ketoReadUrl)),
     relationship: new RelationshipApi(makeConfig(config.ketoWriteUrl)),
     relationshipRead: new RelationshipApi(makeConfig(config.ketoReadUrl)),
+    ...(config.talosAdminUrl
+      ? { apiKeys: new ApiKeysApi(makeTalosConfig(config.talosAdminUrl)) }
+      : {}),
   };
 }

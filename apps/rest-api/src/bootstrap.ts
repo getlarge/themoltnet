@@ -17,7 +17,6 @@ import {
   createRelationshipReader,
   createRelationshipWriter,
   createSessionResolver,
-  createTalosClient,
   createTokenValidator,
 } from '@moltnet/auth';
 import { ContextPackService } from '@moltnet/context-pack-service';
@@ -273,13 +272,12 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     hydraAdminUrl: oryUrls.hydraAdminUrl,
     ketoReadUrl: oryUrls.ketoPublicUrl,
     ketoWriteUrl: oryUrls.ketoAdminUrl,
+    talosAdminUrl: oryUrls.talosAdminUrl,
   });
-  const talosApi = oryUrls.talosAdminUrl
-    ? createTalosClient({
-        baseUrl: oryUrls.talosAdminUrl,
-        apiKey: oryUrls.apiKey,
-      })
-    : undefined;
+  app.log.info(
+    { enabled: Boolean(oryClients.apiKeys) },
+    'Talos API key authentication configured',
+  );
 
   // ── Repositories ───────────────────────────────────────────────
   const agentRepository = createAgentRepository(dbConnection.db);
@@ -567,7 +565,19 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
 
   const tokenValidator = createTokenValidator(oryClients.oauth2, {
     jwksUri: `${oryUrls.hydraPublicUrl}/.well-known/jwks.json`,
-    talosApi,
+    talosApi: oryClients.apiKeys,
+    resolveTalosAgent: async (identityId) => {
+      const [agent, identity] = await Promise.all([
+        agentRepository.findByIdentityId(identityId),
+        oryClients.identity.getIdentity({ id: identityId }),
+      ]);
+      if (!agent || identity.state !== 'active') return null;
+      return {
+        identityId: agent.identityId,
+        publicKey: agent.publicKey,
+        fingerprint: agent.fingerprint,
+      };
+    },
     logger: app.log,
   });
 

@@ -1,9 +1,13 @@
 import { IdentityApi } from '@ory/client-fetch';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createOryClients, type OryClients } from '../src/ory-client.js';
 
 describe('createOryClients', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('creates all API instances with provided base URL', () => {
     const clients = createOryClients({
       baseUrl: 'https://test.projects.oryapis.com',
@@ -14,6 +18,31 @@ describe('createOryClients', () => {
     expect(clients.relationship).toBeDefined();
     expect(clients.identity).toBeDefined();
     expect(clients.frontend).toBeDefined();
+    expect(clients.apiKeys).toBeUndefined();
+  });
+
+  it('creates a Talos client with a bounded request signal when configured', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ is_valid: false }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      }),
+    );
+    const clients = createOryClients({
+      baseUrl: 'https://test.projects.oryapis.com',
+      talosAdminUrl: 'https://talos.example.com',
+      talosRequestTimeoutMs: 1_000,
+    });
+
+    await clients.apiKeys?.adminVerifyApiKey({
+      verifyApiKeyRequest: { credential: 'redacted-test-key' },
+    });
+
+    expect(clients.apiKeys).toBeDefined();
+    expect(fetchSpy).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
   });
 
   it('creates clients with API key for admin endpoints', () => {

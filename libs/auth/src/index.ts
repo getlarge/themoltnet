@@ -66,7 +66,6 @@ export {
   type SessionResolver,
   type SessionResolverConfig,
 } from './session-resolver.js';
-export { createTalosClient, type TalosClientConfig } from './talos-client.js';
 export type { TeamInviteRole, TeamRole } from './team-role.js';
 export {
   highestTeamRole,
@@ -78,6 +77,8 @@ export {
 } from './team-role.js';
 export {
   createTokenValidator,
+  type TalosAgentIdentity,
+  type TalosAgentResolver,
   type TokenValidator,
   type TokenValidatorConfig,
   type TokenValidatorLogger,

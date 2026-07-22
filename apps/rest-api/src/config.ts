@@ -19,6 +19,16 @@ if (!Format.Has('uuid')) {
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v),
   );
 }
+if (!Format.Has('uri')) {
+  Format.Set('uri', (value) => {
+    try {
+      const url = new URL(value);
+      return url.protocol === 'http:' || url.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  });
+}
 
 // ============================================================================
 // Schemas
@@ -59,7 +69,9 @@ export const OryConfigSchema = Type.Object({
   ORY_KETO_PUBLIC_URL: Type.Optional(Type.String({ minLength: 1 })),
   ORY_KETO_ADMIN_URL: Type.Optional(Type.String({ minLength: 1 })),
   /** Trusted Talos admin endpoint. Omit to disable Talos-key authentication. */
-  ORY_TALOS_ADMIN_URL: Type.Optional(Type.String({ minLength: 1 })),
+  ORY_TALOS_ADMIN_URL: Type.Optional(
+    Type.String({ minLength: 1, format: 'uri' }),
+  ),
 });
 
 export const ObservabilityConfigSchema = Type.Object({
@@ -546,6 +558,7 @@ export function loadConfig(
 ): AppConfig {
   const server = loadServerConfig(env);
   const security = loadSecurityConfig(env);
+  const ory = loadOryConfig(env);
 
   if (server.NODE_ENV === 'production' && !env['CORS_ORIGINS']) {
     throw new Error(
@@ -554,11 +567,33 @@ export function loadConfig(
     );
   }
 
+  const talosUrl = ory.ORY_TALOS_ADMIN_URL ?? ory.ORY_PROJECT_URL;
+  if (server.NODE_ENV === 'production' && talosUrl) {
+    const url = new URL(talosUrl);
+    const hostname = url.hostname.toLowerCase();
+    const isInternalHost =
+      hostname === 'localhost' ||
+      hostname === '127.0.0.1' ||
+      hostname === '[::1]' ||
+      /^10\./.test(hostname) ||
+      /^192\.168\./.test(hostname) ||
+      /^172\.(1[6-9]|2\d|3[01])\./.test(hostname) ||
+      !hostname.includes('.') ||
+      hostname.endsWith('.internal') ||
+      hostname.endsWith('.local');
+
+    if (url.protocol !== 'https:' && !isInternalHost) {
+      throw new Error(
+        'Talos admin traffic must use HTTPS outside the internal network in production.',
+      );
+    }
+  }
+
   return {
     server,
     database: loadDatabaseConfig(env),
     webhook: loadWebhookConfig(env),
-    ory: loadOryConfig(env),
+    ory,
     observability: loadObservabilityConfig(env),
     recovery: loadRecoveryConfig(env),
     embedding: loadEmbeddingConfig(env),
@@ -632,6 +667,6 @@ export function resolveOryUrls(config: OryConfig): ResolvedOryUrls {
     ketoPublicUrl: resolve(config.ORY_KETO_PUBLIC_URL, 'Keto public URL'),
     ketoAdminUrl: resolve(config.ORY_KETO_ADMIN_URL, 'Keto admin URL'),
     apiKey: config.ORY_API_KEY,
-    talosAdminUrl: config.ORY_TALOS_ADMIN_URL,
+    talosAdminUrl: config.ORY_TALOS_ADMIN_URL ?? fallback,
   };
 }
