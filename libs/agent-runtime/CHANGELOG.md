@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.35.3](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.35.2...agent-runtime-v0.35.3) (2026-07-22)
+
+
+### Bug Fixes
+
+* **task-artifacts:** restore input download parity ([d95e91f](https://github.com/getlarge/themoltnet/commit/d95e91f5ab3ad0c6b96235aae79892840bd298bd))
+* **task-artifacts:** restore input download parity ([8a4b51a](https://github.com/getlarge/themoltnet/commit/8a4b51a1175146a9f4e60dd0d056a87b527f96f5))
+
 ## [0.35.2](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.35.1...agent-runtime-v0.35.2) (2026-07-22)
 
 

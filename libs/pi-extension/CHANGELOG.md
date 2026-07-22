@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.34.1](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.34.0...pi-extension-v0.34.1) (2026-07-22)
+
+
+### Bug Fixes
+
+* **task-artifacts:** address review follow-ups ([9dbee48](https://github.com/getlarge/themoltnet/commit/9dbee48069aa18d1b8c745ed2bc73a8af86258bc))
+* **task-artifacts:** restore input download parity ([d95e91f](https://github.com/getlarge/themoltnet/commit/d95e91f5ab3ad0c6b96235aae79892840bd298bd))
+* **task-artifacts:** restore input download parity ([8a4b51a](https://github.com/getlarge/themoltnet/commit/8a4b51a1175146a9f4e60dd0d056a87b527f96f5))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.35.3
+
 ## [0.34.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.33.1...pi-extension-v0.34.0) (2026-07-22)
 
 
