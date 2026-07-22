@@ -442,6 +442,36 @@ describe('TokenValidator', () => {
       );
     });
 
+    it('rejects a credential Talos reports as invalid', async () => {
+      const talosApi = createMockTalosApi();
+      const resolveTalosAgent = createMockTalosAgentResolver();
+      const logger = createMockLogger();
+      const validator = createTokenValidator(mockOAuth2Api as any, {
+        talosApi,
+        resolveTalosAgent,
+        logger,
+      });
+      talosApi.adminVerifyApiKey.mockResolvedValue({
+        is_valid: false,
+        error_code: 'API_KEY_REVOKED',
+      });
+
+      const result = await validator.resolveAuthContext('ory_ak_revoked');
+
+      expect(result).toBeNull();
+      expect(resolveTalosAgent).not.toHaveBeenCalled();
+      expect(mockOAuth2Api.introspectOAuth2Token).not.toHaveBeenCalled();
+      expect(logger.debug).toHaveBeenCalledWith(
+        {
+          credentialType: 'talos-api-key',
+          reason: 'credential_rejected',
+          errorCode: 'API_KEY_REVOKED',
+          status: undefined,
+        },
+        'Talos API key rejected',
+      );
+    });
+
     it('fails closed and logs the HTTP status on verifier errors', async () => {
       const talosApi = createMockTalosApi();
       const resolveTalosAgent = createMockTalosAgentResolver();
