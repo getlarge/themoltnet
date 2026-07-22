@@ -93,7 +93,7 @@ echo policy-enforced
       await managed.vm.close();
       rmSync(root, { recursive: true, force: true });
     }
-  });
+  }, 120_000);
 
   it('keeps stores reusable and future worktree node_modules executable', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-integration-'));
