@@ -133,13 +133,11 @@ describe('loadOryConfig', () => {
       ORY_HYDRA_ADMIN_URL: 'http://hydra:4445',
       ORY_KETO_PUBLIC_URL: 'http://keto:4466',
       ORY_KETO_ADMIN_URL: 'http://keto:4467',
-      TALOS_ADMIN_URL: 'http://talos:4420',
-      TALOS_API_KEY: 'ory_pat_talos',
+      ORY_TALOS_ADMIN_URL: 'http://talos:4420',
     });
     expect(config.ORY_KRATOS_PUBLIC_URL).toBe('http://kratos:4433');
     expect(config.ORY_KETO_ADMIN_URL).toBe('http://keto:4467');
-    expect(config.TALOS_ADMIN_URL).toBe('http://talos:4420');
-    expect(config.TALOS_API_KEY).toBe('ory_pat_talos');
+    expect(config.ORY_TALOS_ADMIN_URL).toBe('http://talos:4420');
   });
 
   it('allows all fields to be optional', () => {
@@ -299,6 +297,8 @@ describe('resolveOryUrls', () => {
       ORY_HYDRA_ADMIN_URL: 'http://hydra:4445',
       ORY_KETO_PUBLIC_URL: 'http://keto:4466',
       ORY_KETO_ADMIN_URL: 'http://keto:4467',
+      ORY_TALOS_ADMIN_URL: 'http://talos:4420',
+      ORY_API_KEY: 'ory_pat_xxx',
     });
     expect(resolved.kratosPublicUrl).toBe('http://kratos:4433');
     expect(resolved.kratosAdminUrl).toBe('http://kratos:4434');
@@ -306,6 +306,8 @@ describe('resolveOryUrls', () => {
     expect(resolved.hydraAdminUrl).toBe('http://hydra:4445');
     expect(resolved.ketoPublicUrl).toBe('http://keto:4466');
     expect(resolved.ketoAdminUrl).toBe('http://keto:4467');
+    expect(resolved.talosAdminUrl).toBe('http://talos:4420');
+    expect(resolved.apiKey).toBe('ory_pat_xxx');
   });
 
   it('falls back to ORY_PROJECT_URL when individual URLs are missing', () => {

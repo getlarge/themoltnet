@@ -277,7 +277,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   const talosApi = oryUrls.talosAdminUrl
     ? createTalosClient({
         baseUrl: oryUrls.talosAdminUrl,
-        apiKey: oryUrls.talosApiKey,
+        apiKey: oryUrls.apiKey,
       })
     : undefined;
 

@@ -148,11 +148,11 @@ runtime configuration environment variables. Development keeps them in
 `talos-data`; e2e/CI regenerates them with each fresh container. No private
 Talos key material is committed to the repository.
 
-Set `TALOS_ADMIN_URL` on the REST API to enable Talos-key authentication. Set
-`TALOS_API_KEY` as well for a managed deployment. Talos administration remains
-server-side: agents and browsers never receive its admin client or access
-token, and the admin endpoint must not be exposed outside a trusted service
-network in production.
+Set `ORY_TALOS_ADMIN_URL` on the REST API to enable Talos-key authentication.
+Managed Ory deployments reuse the existing `ORY_API_KEY`; local OSS does not
+require one. Talos administration remains server-side: agents and browsers
+never receive its admin client or access token, and the admin endpoint must not
+be exposed outside a trusted service network in production.
 
 ## Fly.io Deployment
 

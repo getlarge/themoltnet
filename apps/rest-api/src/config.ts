@@ -59,9 +59,7 @@ export const OryConfigSchema = Type.Object({
   ORY_KETO_PUBLIC_URL: Type.Optional(Type.String({ minLength: 1 })),
   ORY_KETO_ADMIN_URL: Type.Optional(Type.String({ minLength: 1 })),
   /** Trusted Talos admin endpoint. Omit to disable Talos-key authentication. */
-  TALOS_ADMIN_URL: Type.Optional(Type.String({ minLength: 1 })),
-  /** Ory Network access token; local OSS Talos intentionally leaves this unset. */
-  TALOS_API_KEY: Type.Optional(Type.String({ minLength: 1 })),
+  ORY_TALOS_ADMIN_URL: Type.Optional(Type.String({ minLength: 1 })),
 });
 
 export const ObservabilityConfigSchema = Type.Object({
@@ -308,7 +306,6 @@ export interface ResolvedOryUrls {
   ketoAdminUrl: string;
   apiKey?: string;
   talosAdminUrl?: string;
-  talosApiKey?: string;
 }
 
 // ============================================================================
@@ -635,7 +632,6 @@ export function resolveOryUrls(config: OryConfig): ResolvedOryUrls {
     ketoPublicUrl: resolve(config.ORY_KETO_PUBLIC_URL, 'Keto public URL'),
     ketoAdminUrl: resolve(config.ORY_KETO_ADMIN_URL, 'Keto admin URL'),
     apiKey: config.ORY_API_KEY,
-    talosAdminUrl: config.TALOS_ADMIN_URL,
-    talosApiKey: config.TALOS_API_KEY,
+    talosAdminUrl: config.ORY_TALOS_ADMIN_URL,
   };
 }
