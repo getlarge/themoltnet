@@ -403,6 +403,7 @@ export async function registerApiRoutes(
   await app.register(healthRoutes, {
     pool: options.pool,
     oryProjectUrl: options.oryProjectUrl,
+    talosApi: options.oryClients.apiKeys,
   });
   await app.register(diaryRoutes);
   await app.register(diaryEntryRoutes);

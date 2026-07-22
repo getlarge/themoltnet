@@ -154,6 +154,21 @@ require one. Talos administration remains server-side: agents and browsers
 never receive its admin client or access token, and the admin endpoint must not
 be exposed outside a trusted service network in production.
 
+### Talos operations
+
+- **Outage behavior:** Talos-key authentication fails closed. A failed or timed
+  out verification produces a `401`; Hydra OAuth2 and JWT authentication remain
+  available. When Talos is configured, `/health/ready` includes it and reports
+  degraded readiness while it is unavailable.
+- **Local key rotation:** stop Talos, remove `jwks.json` and `hmac-secret` from
+  the `talos-data` volume, then restart it. This invalidates existing derived
+  tokens and must only be used for disposable development state. Rotate managed
+  production material through the Ory control plane.
+- **Production topology:** `talos serve` exposes public and administrative APIs
+  on the same port. Keep port `4420` on a private service network or behind a
+  proxy that exposes only explicitly approved public paths; never publish the
+  Talos admin API directly.
+
 ## Fly.io Deployment
 
 Two Fly.io apps in the `fra` (Frankfurt) region for EU data residency:

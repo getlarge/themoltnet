@@ -708,6 +708,7 @@ export async function createTestApp(
   healthOptions?: {
     pool?: { query(sql: string): Promise<unknown> };
     oryProjectUrl?: string;
+    talosApi?: { getJwks(): Promise<unknown> };
   },
   /**
    * Override how a bearer token resolves to an AuthContext. Defaults to always
@@ -757,6 +758,9 @@ export async function createTestApp(
     oauth2: mockOAuth2Api,
     permission: {} as OryClients['permission'],
     relationship: {} as OryClients['relationship'],
+    ...(healthOptions?.talosApi
+      ? { apiKeys: healthOptions.talosApi as OryClients['apiKeys'] }
+      : {}),
   };
 
   const realContextPackService = new ContextPackService({

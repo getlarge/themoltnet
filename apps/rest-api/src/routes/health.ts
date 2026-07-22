@@ -5,6 +5,7 @@
  * - GET /health/ready — deep readiness probe (checks DB + Ory connectivity)
  */
 
+import type { ApiKeysApi } from '@ory/client-fetch';
 import type { FastifyInstance } from 'fastify';
 import { Type } from 'typebox';
 
@@ -18,6 +19,7 @@ interface HealthPool {
 export interface HealthRouteOptions {
   pool?: HealthPool;
   oryProjectUrl?: string;
+  talosApi?: Pick<ApiKeysApi, 'getJwks'>;
 }
 
 interface ComponentResult {
@@ -93,6 +95,24 @@ async function probeOry(
   }
 }
 
+async function probeTalos(
+  talosApi: Pick<ApiKeysApi, 'getJwks'>,
+  log: { warn: (obj: object, msg: string) => void },
+): Promise<ComponentResult> {
+  const start = performance.now();
+  try {
+    await talosApi.getJwks();
+    return { status: 'ok', latencyMs: Math.round(performance.now() - start) };
+  } catch (err) {
+    log.warn({ err, probe: 'talos' }, 'Readiness probe failed');
+    return {
+      status: 'error',
+      latencyMs: Math.round(performance.now() - start),
+      error: classifyError(err),
+    };
+  }
+}
+
 // eslint-disable-next-line @typescript-eslint/require-await -- Fastify plugin convention
 export async function healthRoutes(
   fastify: FastifyInstance,
@@ -131,7 +151,7 @@ export async function healthRoutes(
       },
     },
     async (request, reply) => {
-      const [database, ory] = await Promise.all([
+      const [database, ory, talos] = await Promise.all([
         opts.pool
           ? probeDatabase(opts.pool, request.log)
           : {
@@ -146,13 +166,17 @@ export async function healthRoutes(
               latencyMs: 0,
               error: 'not_configured',
             },
+        opts.talosApi ? probeTalos(opts.talosApi, request.log) : undefined,
       ]);
 
-      const allOk = database.status === 'ok' && ory.status === 'ok';
+      const allOk =
+        database.status === 'ok' &&
+        ory.status === 'ok' &&
+        (talos === undefined || talos.status === 'ok');
       const body = {
         status: allOk ? ('ok' as const) : ('degraded' as const),
         timestamp: new Date().toISOString(),
-        components: { database, ory },
+        components: { database, ory, ...(talos ? { talos } : {}) },
       };
 
       return reply.status(allOk ? 200 : 503).send(body);

@@ -224,4 +224,58 @@ describe('Health readiness probes', () => {
     expect(body.components.ory.status).toBe('error');
     expect(body.components.ory.error).toBe('connection_failed');
   });
+
+  it('includes Talos readiness when API key auth is configured', async () => {
+    const mockPool = {
+      query: vi.fn().mockResolvedValue({ rows: [{ '?column?': 1 }] }),
+    };
+    const talosApi = { getJwks: vi.fn().mockResolvedValue({ keys: [] }) };
+    fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response('{}', { status: 200 }));
+
+    app = await createTestApp(mocks, null, undefined, {
+      pool: mockPool,
+      oryProjectUrl: 'https://mock-ory.example.com',
+      talosApi,
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/health/ready',
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().components.talos.status).toBe('ok');
+    expect(talosApi.getJwks).toHaveBeenCalledOnce();
+  });
+
+  it('returns degraded when configured Talos is unavailable', async () => {
+    const mockPool = {
+      query: vi.fn().mockResolvedValue({ rows: [{ '?column?': 1 }] }),
+    };
+    const talosApi = {
+      getJwks: vi.fn().mockRejectedValue(new TypeError('fetch failed')),
+    };
+    fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response('{}', { status: 200 }));
+
+    app = await createTestApp(mocks, null, undefined, {
+      pool: mockPool,
+      oryProjectUrl: 'https://mock-ory.example.com',
+      talosApi,
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/health/ready',
+    });
+
+    expect(response.statusCode).toBe(503);
+    expect(response.json().components.talos).toMatchObject({
+      status: 'error',
+      error: 'connection_failed',
+    });
+  });
 });

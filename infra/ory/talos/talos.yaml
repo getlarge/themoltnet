@@ -14,8 +14,10 @@ serve:
 credentials:
   issuer: http://localhost:4420
   api_keys:
-    default_ttl: 720h
-    max_ttl: 8760h
+    # Bearer keys are deliberately short until MoltNet ships rotation/revocation
+    # management. Issuance may request less, never more than seven days.
+    default_ttl: 24h
+    max_ttl: 168h
     prefix:
       current: ory_ak
       retired: []
@@ -42,6 +44,8 @@ tracing:
   enabled: false
 
 cache:
+  # Local/e2e favors deterministic revocation over throughput. MoltNet's auth
+  # verifier also sends Cache-Control: no-store on every decision.
   type: noop
   ttl: 5m
 

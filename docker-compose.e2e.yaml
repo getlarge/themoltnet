@@ -241,7 +241,9 @@ services:
       keto:
         condition: service_healthy
       talos:
-        condition: service_healthy
+        # Talos auth is optional; REST startup must not block unrelated suites.
+        # Talos-specific e2e setup waits by calling its admin API directly.
+        condition: service_started
       redis:
         condition: service_healthy
       runtime-object-store:

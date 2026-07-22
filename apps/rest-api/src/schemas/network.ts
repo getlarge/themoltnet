@@ -25,6 +25,7 @@ export const ReadinessSchema = Type.Object(
     components: Type.Object({
       database: ComponentStatusSchema,
       ory: ComponentStatusSchema,
+      talos: Type.Optional(ComponentStatusSchema),
     }),
   },
   { $id: 'Readiness' },
