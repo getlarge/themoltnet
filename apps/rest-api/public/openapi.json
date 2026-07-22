@@ -1699,6 +1699,32 @@
                 },
                 "type": "object"
               },
+              "network": {
+                "additionalProperties": false,
+                "properties": {
+                  "allowedHosts": {
+                    "items": {
+                      "maxLength": 255,
+                      "minLength": 1,
+                      "pattern": "^(?:\\*\\.)?(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)(?:\\.(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?))*$",
+                      "type": "string"
+                    },
+                    "maxItems": 50,
+                    "type": "array"
+                  },
+                  "allowedInternalHosts": {
+                    "items": {
+                      "maxLength": 255,
+                      "minLength": 1,
+                      "pattern": "^(?:\\*\\.)?(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)(?:\\.(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?))*$",
+                      "type": "string"
+                    },
+                    "maxItems": 50,
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              },
               "resources": {
                 "additionalProperties": false,
                 "properties": {
@@ -7340,6 +7366,32 @@
                 },
                 "type": "object"
               },
+              "network": {
+                "additionalProperties": false,
+                "properties": {
+                  "allowedHosts": {
+                    "items": {
+                      "maxLength": 255,
+                      "minLength": 1,
+                      "pattern": "^(?:\\*\\.)?(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)(?:\\.(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?))*$",
+                      "type": "string"
+                    },
+                    "maxItems": 50,
+                    "type": "array"
+                  },
+                  "allowedInternalHosts": {
+                    "items": {
+                      "maxLength": 255,
+                      "minLength": 1,
+                      "pattern": "^(?:\\*\\.)?(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)(?:\\.(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?))*$",
+                      "type": "string"
+                    },
+                    "maxItems": 50,
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              },
               "resources": {
                 "additionalProperties": false,
                 "properties": {
@@ -7956,6 +8008,32 @@
                       },
                       "type": "object"
                     },
+                    "network": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "allowedHosts": {
+                          "items": {
+                            "maxLength": 255,
+                            "minLength": 1,
+                            "pattern": "^(?:\\*\\.)?(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)(?:\\.(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?))*$",
+                            "type": "string"
+                          },
+                          "maxItems": 50,
+                          "type": "array"
+                        },
+                        "allowedInternalHosts": {
+                          "items": {
+                            "maxLength": 255,
+                            "minLength": 1,
+                            "pattern": "^(?:\\*\\.)?(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)(?:\\.(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?))*$",
+                            "type": "string"
+                          },
+                          "maxItems": 50,
+                          "type": "array"
+                        }
+                      },
+                      "type": "object"
+                    },
                     "resources": {
                       "additionalProperties": false,
                       "properties": {
@@ -8293,6 +8371,32 @@
                   false
                 ],
                 "type": "boolean"
+              }
+            },
+            "type": "object"
+          },
+          "network": {
+            "additionalProperties": false,
+            "properties": {
+              "allowedHosts": {
+                "items": {
+                  "maxLength": 255,
+                  "minLength": 1,
+                  "pattern": "^(?:\\*\\.)?(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)(?:\\.(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?))*$",
+                  "type": "string"
+                },
+                "maxItems": 50,
+                "type": "array"
+              },
+              "allowedInternalHosts": {
+                "items": {
+                  "maxLength": 255,
+                  "minLength": 1,
+                  "pattern": "^(?:\\*\\.)?(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)(?:\\.(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?))*$",
+                  "type": "string"
+                },
+                "maxItems": 50,
+                "type": "array"
               }
             },
             "type": "object"
@@ -11857,6 +11961,32 @@
                       false
                     ],
                     "type": "boolean"
+                  }
+                },
+                "type": "object"
+              },
+              "network": {
+                "additionalProperties": false,
+                "properties": {
+                  "allowedHosts": {
+                    "items": {
+                      "maxLength": 255,
+                      "minLength": 1,
+                      "pattern": "^(?:\\*\\.)?(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)(?:\\.(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?))*$",
+                      "type": "string"
+                    },
+                    "maxItems": 50,
+                    "type": "array"
+                  },
+                  "allowedInternalHosts": {
+                    "items": {
+                      "maxLength": 255,
+                      "minLength": 1,
+                      "pattern": "^(?:\\*\\.)?(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)(?:\\.(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?))*$",
+                      "type": "string"
+                    },
+                    "maxItems": 50,
+                    "type": "array"
                   }
                 },
                 "type": "object"

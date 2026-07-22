@@ -129,6 +129,16 @@ export type RuntimeProfileSandboxResumeCommand = Static<
   typeof RuntimeProfileSandboxResumeCommand
 >;
 
+export const RuntimeProfileAllowedHost = Type.String({
+  minLength: 1,
+  maxLength: 255,
+  pattern:
+    '^(?:\\*\\.)?(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)(?:\\.(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?))*$',
+});
+export type RuntimeProfileAllowedHost = Static<
+  typeof RuntimeProfileAllowedHost
+>;
+
 export const RuntimeProfileSandbox = Type.Object(
   {
     snapshot: Type.Optional(
@@ -150,6 +160,19 @@ export const RuntimeProfileSandbox = Type.Object(
               maxLength: 16,
               pattern: '^[0-9]+[KMGTP]?$',
             }),
+          ),
+        },
+        { additionalProperties: false },
+      ),
+    ),
+    network: Type.Optional(
+      Type.Object(
+        {
+          allowedHosts: Type.Optional(
+            Type.Array(RuntimeProfileAllowedHost, { maxItems: 50 }),
+          ),
+          allowedInternalHosts: Type.Optional(
+            Type.Array(RuntimeProfileAllowedHost, { maxItems: 50 }),
           ),
         },
         { additionalProperties: false },

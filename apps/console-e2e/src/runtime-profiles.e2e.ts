@@ -50,6 +50,12 @@ test.describe.serial('Runtime profiles console', () => {
       .getByLabel('Default workspace mode', { exact: true })
       .selectOption('dedicated_worktree');
     await page.getByLabel(/allow shared mount/i).uncheck();
+    await page
+      .getByLabel('Public runtime egress hosts', { exact: true })
+      .fill('api.example.com, *.example.com');
+    await page
+      .getByLabel('Internal runtime egress hosts', { exact: true })
+      .fill('onboard-api.internal');
     await page.getByLabel('Sandbox JSON', { exact: true }).fill('{}');
     await page.getByRole('button', { name: /create profile/i }).click();
 
@@ -61,6 +67,12 @@ test.describe.serial('Runtime profiles console', () => {
         name: new RegExp(`${profileName}.*anthropic/claude-sonnet-4-5`),
       }),
     ).toBeVisible();
+    await expect(
+      page.getByLabel('Public runtime egress hosts', { exact: true }),
+    ).toHaveValue('api.example.com, *.example.com');
+    await expect(
+      page.getByLabel('Internal runtime egress hosts', { exact: true }),
+    ).toHaveValue('onboard-api.internal');
 
     await page.getByRole('button', { name: /new profile/i }).click();
     await expect(page.getByLabel(/^name$/i)).toHaveValue('');
@@ -92,6 +104,12 @@ test.describe.serial('Runtime profiles console', () => {
     await page.getByRole('button', { name: /delete profile/i }).click();
     await expect(page.getByText(secondProfileName)).toHaveCount(0);
     await page.getByRole('button', { name: new RegExp(profileName) }).click();
+    await expect(
+      page.getByLabel('Public runtime egress hosts', { exact: true }),
+    ).toHaveValue('api.example.com, *.example.com');
+    await expect(
+      page.getByLabel('Internal runtime egress hosts', { exact: true }),
+    ).toHaveValue('onboard-api.internal');
     await page.getByRole('button', { name: /delete profile/i }).click();
     await expect(page.getByText(profileName)).toHaveCount(0);
     await expect(page.getByText(/no runtime profiles yet/i)).toBeVisible();

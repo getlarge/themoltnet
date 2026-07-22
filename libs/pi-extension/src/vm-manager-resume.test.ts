@@ -57,6 +57,7 @@ describe('resumeVm task-context mount', () => {
     gondolinMock.vm.exec.mockClear();
     gondolinMock.vm.fs.writeFile.mockClear();
     gondolinMock.vm.close.mockClear();
+    gondolinMock.createHttpHooks.mockClear();
     delete process.env.MOLTNET_TEST_FORWARD_ME;
     delete process.env.MOLTNET_TEST_DO_NOT_FORWARD;
     for (const root of tempRoots.splice(0)) {
@@ -142,6 +143,108 @@ describe('resumeVm task-context mount', () => {
     expect(resumeOptions.env.MOLTNET_TEST_DO_NOT_FORWARD).toBeUndefined();
     expect(resumeOptions.env.NODE_OPTIONS).toBe('--dns-result-order=ipv4first');
   });
+
+  it('keeps ordinary, internal, and legacy network grants separate', async () => {
+    // Arrange
+    const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-network-'));
+    tempRoots.push(root);
+    const workspace = path.join(root, 'workspace');
+    const agentDir = path.join(root, '.moltnet', 'legreffier');
+    mkdirSync(workspace, { recursive: true });
+    mkdirSync(agentDir, { recursive: true });
+    writeFileSync(
+      path.join(agentDir, 'moltnet.json'),
+      JSON.stringify({
+        endpoints: { api: 'https://api.themolt.net' },
+      }),
+      'utf8',
+    );
+    writeFileSync(path.join(agentDir, 'env'), '', 'utf8');
+
+    // Act
+    await resumeVm({
+      checkpointPath: path.join(root, 'checkpoint.qcow2'),
+      agentName: 'legreffier',
+      agentRootDir: root,
+      mountPath: workspace,
+      extraAllowedHosts: ['legacy-api.example.com'],
+      sandboxConfig: {
+        network: {
+          allowedHosts: ['api.example.com', '*.example.com'],
+          allowedInternalHosts: ['onboard-api.internal'],
+        },
+      },
+    });
+
+    // Assert
+    expect(gondolinMock.createHttpHooks).toHaveBeenCalledWith({
+      allowedHosts: expect.arrayContaining([
+        'api.themolt.net',
+        'api.example.com',
+        '*.example.com',
+        'legacy-api.example.com',
+      ]),
+      allowedInternalHosts: ['onboard-api.internal'],
+    });
+  });
+
+  it.each([
+    {
+      label: 'immutable base wildcard',
+      internalHost: '*.sub.openai.com',
+      extraAllowedHosts: undefined,
+      protectedHost: '*.openai.com',
+    },
+    {
+      label: 'configured API hostname',
+      internalHost: '*.themolt.net',
+      extraAllowedHosts: undefined,
+      protectedHost: 'api.themolt.net',
+    },
+    {
+      label: 'legacy external hostname',
+      internalHost: '*.legacy.example.com',
+      extraAllowedHosts: ['api.legacy.example.com'],
+      protectedHost: 'api.legacy.example.com',
+    },
+  ])(
+    'rejects an internal wildcard overlapping a $label',
+    async ({ internalHost, extraAllowedHosts, protectedHost }) => {
+      // Arrange
+      const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-overlap-'));
+      tempRoots.push(root);
+      const workspace = path.join(root, 'workspace');
+      const agentDir = path.join(root, '.moltnet', 'legreffier');
+      mkdirSync(workspace, { recursive: true });
+      mkdirSync(agentDir, { recursive: true });
+      writeFileSync(
+        path.join(agentDir, 'moltnet.json'),
+        JSON.stringify({
+          endpoints: { api: 'https://api.themolt.net' },
+        }),
+        'utf8',
+      );
+      writeFileSync(path.join(agentDir, 'env'), '', 'utf8');
+
+      // Act
+      const resume = resumeVm({
+        checkpointPath: path.join(root, 'checkpoint.qcow2'),
+        agentName: 'legreffier',
+        agentRootDir: root,
+        mountPath: workspace,
+        extraAllowedHosts,
+        sandboxConfig: {
+          network: { allowedInternalHosts: [internalHost] },
+        },
+      });
+
+      // Assert
+      await expect(resume).rejects.toThrow(
+        `pattern "${internalHost}" overlaps external-only host pattern "${protectedHost}"`,
+      );
+      expect(gondolinMock.createHttpHooks).not.toHaveBeenCalled();
+    },
+  );
 
   it('shadows future node_modules paths before resume commands run', async () => {
     const root = mkdtempSync(path.join(tmpdir(), 'moltnet-vm-node-modules-'));

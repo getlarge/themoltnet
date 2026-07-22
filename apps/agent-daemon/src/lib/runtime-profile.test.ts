@@ -39,6 +39,10 @@ const profile = {
   ],
   sandbox: {
     snapshot: { allowedHosts: ['api.github.com'] },
+    network: {
+      allowedHosts: ['api.linear.app'],
+      allowedInternalHosts: ['onboard-api.internal'],
+    },
     resources: { cpus: 4, memory: '4G' },
   },
 };

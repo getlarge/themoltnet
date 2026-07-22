@@ -1659,6 +1659,10 @@ describe('Agent facade', () => {
         snapshot: {
           allowedHosts: ['api.github.com'],
         },
+        network: {
+          allowedHosts: ['api.linear.app'],
+          allowedInternalHosts: ['onboard-api.internal'],
+        },
       },
       context: [],
       requiredTools: [],
@@ -1726,7 +1730,13 @@ describe('Agent facade', () => {
         runtimeKind: 'gondolin_pi' as const,
         provider: 'anthropic',
         model: 'claude-sonnet-4-5',
-        sandbox: { snapshot: { allowedHosts: ['api.github.com'] } },
+        sandbox: {
+          snapshot: { allowedHosts: ['api.github.com'] },
+          network: {
+            allowedHosts: ['api.linear.app'],
+            allowedInternalHosts: ['onboard-api.internal'],
+          },
+        },
       };
 
       const agent = makeAgent();

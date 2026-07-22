@@ -64,6 +64,14 @@ export interface SandboxConfig {
     /** Overlay disk size (default '3G'). */
     overlaySize?: string;
   };
+  /** Runtime network egress policy. Separate from snapshot build access. */
+  network?: {
+    /** Additional host patterns allowed while the VM is running.
+     * Internal and private address resolution remains blocked. */
+    allowedHosts?: string[];
+    /** Host patterns explicitly allowed to resolve to internal/private IPs. */
+    allowedInternalHosts?: string[];
+  };
   /** Shell commands to run every VM resume, after platform setup
    *  (TLS, DNS, git safe.directory, tmpfs node_modules) and before
    *  the agent session starts. Use for per-session bootstrap that

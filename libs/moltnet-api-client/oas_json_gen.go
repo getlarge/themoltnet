@@ -13068,6 +13068,12 @@ func (s *CreateRuntimeProfileBodySandbox) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.Network.Set {
+			e.FieldStart("network")
+			s.Network.Encode(e)
+		}
+	}
+	{
 		if s.Resources.Set {
 			e.FieldStart("resources")
 			s.Resources.Encode(e)
@@ -13097,13 +13103,14 @@ func (s *CreateRuntimeProfileBodySandbox) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfCreateRuntimeProfileBodySandbox = [6]string{
+var jsonFieldsNameOfCreateRuntimeProfileBodySandbox = [7]string{
 	0: "env",
 	1: "hostExec",
-	2: "resources",
-	3: "resumeCommands",
-	4: "snapshot",
-	5: "vfs",
+	2: "network",
+	3: "resources",
+	4: "resumeCommands",
+	5: "snapshot",
+	6: "vfs",
 }
 
 // Decode decodes CreateRuntimeProfileBodySandbox from json.
@@ -13133,6 +13140,16 @@ func (s *CreateRuntimeProfileBodySandbox) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"hostExec\"")
+			}
+		case "network":
+			if err := func() error {
+				s.Network.Reset()
+				if err := s.Network.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"network\"")
 			}
 		case "resources":
 			if err := func() error {
@@ -13352,6 +13369,112 @@ func (s CreateRuntimeProfileBodySandboxHostExecAutoApprove) MarshalJSON() ([]byt
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *CreateRuntimeProfileBodySandboxHostExecAutoApprove) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *CreateRuntimeProfileBodySandboxNetwork) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *CreateRuntimeProfileBodySandboxNetwork) encodeFields(e *jx.Encoder) {
+	{
+		if s.AllowedHosts != nil {
+			e.FieldStart("allowedHosts")
+			e.ArrStart()
+			for _, elem := range s.AllowedHosts {
+				e.Str(elem)
+			}
+			e.ArrEnd()
+		}
+	}
+	{
+		if s.AllowedInternalHosts != nil {
+			e.FieldStart("allowedInternalHosts")
+			e.ArrStart()
+			for _, elem := range s.AllowedInternalHosts {
+				e.Str(elem)
+			}
+			e.ArrEnd()
+		}
+	}
+}
+
+var jsonFieldsNameOfCreateRuntimeProfileBodySandboxNetwork = [2]string{
+	0: "allowedHosts",
+	1: "allowedInternalHosts",
+}
+
+// Decode decodes CreateRuntimeProfileBodySandboxNetwork from json.
+func (s *CreateRuntimeProfileBodySandboxNetwork) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateRuntimeProfileBodySandboxNetwork to nil")
+	}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "allowedHosts":
+			if err := func() error {
+				s.AllowedHosts = make([]string, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem string
+					v, err := d.Str()
+					elem = string(v)
+					if err != nil {
+						return err
+					}
+					s.AllowedHosts = append(s.AllowedHosts, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"allowedHosts\"")
+			}
+		case "allowedInternalHosts":
+			if err := func() error {
+				s.AllowedInternalHosts = make([]string, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem string
+					v, err := d.Str()
+					elem = string(v)
+					if err != nil {
+						return err
+					}
+					s.AllowedInternalHosts = append(s.AllowedInternalHosts, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"allowedInternalHosts\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode CreateRuntimeProfileBodySandboxNetwork")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CreateRuntimeProfileBodySandboxNetwork) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateRuntimeProfileBodySandboxNetwork) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -61050,6 +61173,39 @@ func (s *OptCreateRuntimeProfileBodySandboxHostExecAutoApprove) UnmarshalJSON(da
 	return s.Decode(d)
 }
 
+// Encode encodes CreateRuntimeProfileBodySandboxNetwork as json.
+func (o OptCreateRuntimeProfileBodySandboxNetwork) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes CreateRuntimeProfileBodySandboxNetwork from json.
+func (o *OptCreateRuntimeProfileBodySandboxNetwork) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptCreateRuntimeProfileBodySandboxNetwork to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptCreateRuntimeProfileBodySandboxNetwork) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptCreateRuntimeProfileBodySandboxNetwork) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes CreateRuntimeProfileBodySandboxResources as json.
 func (o OptCreateRuntimeProfileBodySandboxResources) Encode(e *jx.Encoder) {
 	if !o.Set {
@@ -62300,6 +62456,39 @@ func (s *OptRuntimeProfileListResponseItemsItemSandboxHostExecAutoApprove) Unmar
 	return s.Decode(d)
 }
 
+// Encode encodes RuntimeProfileListResponseItemsItemSandboxNetwork as json.
+func (o OptRuntimeProfileListResponseItemsItemSandboxNetwork) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes RuntimeProfileListResponseItemsItemSandboxNetwork from json.
+func (o *OptRuntimeProfileListResponseItemsItemSandboxNetwork) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptRuntimeProfileListResponseItemsItemSandboxNetwork to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptRuntimeProfileListResponseItemsItemSandboxNetwork) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptRuntimeProfileListResponseItemsItemSandboxNetwork) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes RuntimeProfileListResponseItemsItemSandboxResources as json.
 func (o OptRuntimeProfileListResponseItemsItemSandboxResources) Encode(e *jx.Encoder) {
 	if !o.Set {
@@ -62561,6 +62750,39 @@ func (s OptRuntimeProfileSandboxHostExecAutoApprove) MarshalJSON() ([]byte, erro
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *OptRuntimeProfileSandboxHostExecAutoApprove) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes RuntimeProfileSandboxNetwork as json.
+func (o OptRuntimeProfileSandboxNetwork) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes RuntimeProfileSandboxNetwork from json.
+func (o *OptRuntimeProfileSandboxNetwork) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptRuntimeProfileSandboxNetwork to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptRuntimeProfileSandboxNetwork) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptRuntimeProfileSandboxNetwork) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -63691,6 +63913,39 @@ func (s OptUpdateRuntimeProfileBodySandboxHostExecAutoApprove) MarshalJSON() ([]
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *OptUpdateRuntimeProfileBodySandboxHostExecAutoApprove) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes UpdateRuntimeProfileBodySandboxNetwork as json.
+func (o OptUpdateRuntimeProfileBodySandboxNetwork) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes UpdateRuntimeProfileBodySandboxNetwork from json.
+func (o *OptUpdateRuntimeProfileBodySandboxNetwork) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptUpdateRuntimeProfileBodySandboxNetwork to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptUpdateRuntimeProfileBodySandboxNetwork) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptUpdateRuntimeProfileBodySandboxNetwork) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -76120,6 +76375,12 @@ func (s *RuntimeProfileListResponseItemsItemSandbox) encodeFields(e *jx.Encoder)
 		}
 	}
 	{
+		if s.Network.Set {
+			e.FieldStart("network")
+			s.Network.Encode(e)
+		}
+	}
+	{
 		if s.Resources.Set {
 			e.FieldStart("resources")
 			s.Resources.Encode(e)
@@ -76149,13 +76410,14 @@ func (s *RuntimeProfileListResponseItemsItemSandbox) encodeFields(e *jx.Encoder)
 	}
 }
 
-var jsonFieldsNameOfRuntimeProfileListResponseItemsItemSandbox = [6]string{
+var jsonFieldsNameOfRuntimeProfileListResponseItemsItemSandbox = [7]string{
 	0: "env",
 	1: "hostExec",
-	2: "resources",
-	3: "resumeCommands",
-	4: "snapshot",
-	5: "vfs",
+	2: "network",
+	3: "resources",
+	4: "resumeCommands",
+	5: "snapshot",
+	6: "vfs",
 }
 
 // Decode decodes RuntimeProfileListResponseItemsItemSandbox from json.
@@ -76185,6 +76447,16 @@ func (s *RuntimeProfileListResponseItemsItemSandbox) Decode(d *jx.Decoder) error
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"hostExec\"")
+			}
+		case "network":
+			if err := func() error {
+				s.Network.Reset()
+				if err := s.Network.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"network\"")
 			}
 		case "resources":
 			if err := func() error {
@@ -76404,6 +76676,112 @@ func (s RuntimeProfileListResponseItemsItemSandboxHostExecAutoApprove) MarshalJS
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *RuntimeProfileListResponseItemsItemSandboxHostExecAutoApprove) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *RuntimeProfileListResponseItemsItemSandboxNetwork) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *RuntimeProfileListResponseItemsItemSandboxNetwork) encodeFields(e *jx.Encoder) {
+	{
+		if s.AllowedHosts != nil {
+			e.FieldStart("allowedHosts")
+			e.ArrStart()
+			for _, elem := range s.AllowedHosts {
+				e.Str(elem)
+			}
+			e.ArrEnd()
+		}
+	}
+	{
+		if s.AllowedInternalHosts != nil {
+			e.FieldStart("allowedInternalHosts")
+			e.ArrStart()
+			for _, elem := range s.AllowedInternalHosts {
+				e.Str(elem)
+			}
+			e.ArrEnd()
+		}
+	}
+}
+
+var jsonFieldsNameOfRuntimeProfileListResponseItemsItemSandboxNetwork = [2]string{
+	0: "allowedHosts",
+	1: "allowedInternalHosts",
+}
+
+// Decode decodes RuntimeProfileListResponseItemsItemSandboxNetwork from json.
+func (s *RuntimeProfileListResponseItemsItemSandboxNetwork) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode RuntimeProfileListResponseItemsItemSandboxNetwork to nil")
+	}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "allowedHosts":
+			if err := func() error {
+				s.AllowedHosts = make([]string, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem string
+					v, err := d.Str()
+					elem = string(v)
+					if err != nil {
+						return err
+					}
+					s.AllowedHosts = append(s.AllowedHosts, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"allowedHosts\"")
+			}
+		case "allowedInternalHosts":
+			if err := func() error {
+				s.AllowedInternalHosts = make([]string, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem string
+					v, err := d.Str()
+					elem = string(v)
+					if err != nil {
+						return err
+					}
+					s.AllowedInternalHosts = append(s.AllowedInternalHosts, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"allowedInternalHosts\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode RuntimeProfileListResponseItemsItemSandboxNetwork")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *RuntimeProfileListResponseItemsItemSandboxNetwork) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *RuntimeProfileListResponseItemsItemSandboxNetwork) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -77335,6 +77713,12 @@ func (s *RuntimeProfileSandbox) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.Network.Set {
+			e.FieldStart("network")
+			s.Network.Encode(e)
+		}
+	}
+	{
 		if s.Resources.Set {
 			e.FieldStart("resources")
 			s.Resources.Encode(e)
@@ -77364,13 +77748,14 @@ func (s *RuntimeProfileSandbox) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfRuntimeProfileSandbox = [6]string{
+var jsonFieldsNameOfRuntimeProfileSandbox = [7]string{
 	0: "env",
 	1: "hostExec",
-	2: "resources",
-	3: "resumeCommands",
-	4: "snapshot",
-	5: "vfs",
+	2: "network",
+	3: "resources",
+	4: "resumeCommands",
+	5: "snapshot",
+	6: "vfs",
 }
 
 // Decode decodes RuntimeProfileSandbox from json.
@@ -77400,6 +77785,16 @@ func (s *RuntimeProfileSandbox) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"hostExec\"")
+			}
+		case "network":
+			if err := func() error {
+				s.Network.Reset()
+				if err := s.Network.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"network\"")
 			}
 		case "resources":
 			if err := func() error {
@@ -77619,6 +78014,112 @@ func (s RuntimeProfileSandboxHostExecAutoApprove) MarshalJSON() ([]byte, error) 
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *RuntimeProfileSandboxHostExecAutoApprove) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *RuntimeProfileSandboxNetwork) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *RuntimeProfileSandboxNetwork) encodeFields(e *jx.Encoder) {
+	{
+		if s.AllowedHosts != nil {
+			e.FieldStart("allowedHosts")
+			e.ArrStart()
+			for _, elem := range s.AllowedHosts {
+				e.Str(elem)
+			}
+			e.ArrEnd()
+		}
+	}
+	{
+		if s.AllowedInternalHosts != nil {
+			e.FieldStart("allowedInternalHosts")
+			e.ArrStart()
+			for _, elem := range s.AllowedInternalHosts {
+				e.Str(elem)
+			}
+			e.ArrEnd()
+		}
+	}
+}
+
+var jsonFieldsNameOfRuntimeProfileSandboxNetwork = [2]string{
+	0: "allowedHosts",
+	1: "allowedInternalHosts",
+}
+
+// Decode decodes RuntimeProfileSandboxNetwork from json.
+func (s *RuntimeProfileSandboxNetwork) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode RuntimeProfileSandboxNetwork to nil")
+	}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "allowedHosts":
+			if err := func() error {
+				s.AllowedHosts = make([]string, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem string
+					v, err := d.Str()
+					elem = string(v)
+					if err != nil {
+						return err
+					}
+					s.AllowedHosts = append(s.AllowedHosts, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"allowedHosts\"")
+			}
+		case "allowedInternalHosts":
+			if err := func() error {
+				s.AllowedInternalHosts = make([]string, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem string
+					v, err := d.Str()
+					elem = string(v)
+					if err != nil {
+						return err
+					}
+					s.AllowedInternalHosts = append(s.AllowedInternalHosts, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"allowedInternalHosts\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode RuntimeProfileSandboxNetwork")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *RuntimeProfileSandboxNetwork) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *RuntimeProfileSandboxNetwork) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -91400,6 +91901,12 @@ func (s *UpdateRuntimeProfileBodySandbox) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.Network.Set {
+			e.FieldStart("network")
+			s.Network.Encode(e)
+		}
+	}
+	{
 		if s.Resources.Set {
 			e.FieldStart("resources")
 			s.Resources.Encode(e)
@@ -91429,13 +91936,14 @@ func (s *UpdateRuntimeProfileBodySandbox) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfUpdateRuntimeProfileBodySandbox = [6]string{
+var jsonFieldsNameOfUpdateRuntimeProfileBodySandbox = [7]string{
 	0: "env",
 	1: "hostExec",
-	2: "resources",
-	3: "resumeCommands",
-	4: "snapshot",
-	5: "vfs",
+	2: "network",
+	3: "resources",
+	4: "resumeCommands",
+	5: "snapshot",
+	6: "vfs",
 }
 
 // Decode decodes UpdateRuntimeProfileBodySandbox from json.
@@ -91465,6 +91973,16 @@ func (s *UpdateRuntimeProfileBodySandbox) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"hostExec\"")
+			}
+		case "network":
+			if err := func() error {
+				s.Network.Reset()
+				if err := s.Network.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"network\"")
 			}
 		case "resources":
 			if err := func() error {
@@ -91684,6 +92202,112 @@ func (s UpdateRuntimeProfileBodySandboxHostExecAutoApprove) MarshalJSON() ([]byt
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *UpdateRuntimeProfileBodySandboxHostExecAutoApprove) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *UpdateRuntimeProfileBodySandboxNetwork) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *UpdateRuntimeProfileBodySandboxNetwork) encodeFields(e *jx.Encoder) {
+	{
+		if s.AllowedHosts != nil {
+			e.FieldStart("allowedHosts")
+			e.ArrStart()
+			for _, elem := range s.AllowedHosts {
+				e.Str(elem)
+			}
+			e.ArrEnd()
+		}
+	}
+	{
+		if s.AllowedInternalHosts != nil {
+			e.FieldStart("allowedInternalHosts")
+			e.ArrStart()
+			for _, elem := range s.AllowedInternalHosts {
+				e.Str(elem)
+			}
+			e.ArrEnd()
+		}
+	}
+}
+
+var jsonFieldsNameOfUpdateRuntimeProfileBodySandboxNetwork = [2]string{
+	0: "allowedHosts",
+	1: "allowedInternalHosts",
+}
+
+// Decode decodes UpdateRuntimeProfileBodySandboxNetwork from json.
+func (s *UpdateRuntimeProfileBodySandboxNetwork) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode UpdateRuntimeProfileBodySandboxNetwork to nil")
+	}
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "allowedHosts":
+			if err := func() error {
+				s.AllowedHosts = make([]string, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem string
+					v, err := d.Str()
+					elem = string(v)
+					if err != nil {
+						return err
+					}
+					s.AllowedHosts = append(s.AllowedHosts, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"allowedHosts\"")
+			}
+		case "allowedInternalHosts":
+			if err := func() error {
+				s.AllowedInternalHosts = make([]string, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem string
+					v, err := d.Str()
+					elem = string(v)
+					if err != nil {
+						return err
+					}
+					s.AllowedInternalHosts = append(s.AllowedInternalHosts, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"allowedInternalHosts\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode UpdateRuntimeProfileBodySandboxNetwork")
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *UpdateRuntimeProfileBodySandboxNetwork) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *UpdateRuntimeProfileBodySandboxNetwork) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
