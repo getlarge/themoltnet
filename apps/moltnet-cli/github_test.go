@@ -1,7 +1,12 @@
 package main
 
 import (
+	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -340,7 +345,11 @@ func TestGetCachedInstallationToken_CacheHit(t *testing.T) {
 
 	// Write a valid cache file with token expiring in 1 hour
 	expiresAt := time.Now().Add(1 * time.Hour).UTC().Format(time.RFC3339)
-	cache := tokenCache{Token: "ghs_cached_token", ExpiresAt: expiresAt}
+	cache := tokenCache{
+		Token:       "ghs_cached_token",
+		ExpiresAt:   expiresAt,
+		Permissions: map[string]string{"contents": "write"},
+	}
 	cacheData, _ := json.Marshal(cache)
 	os.WriteFile(filepath.Join(tmpDir, "gh-token-cache.json"), cacheData, 0o600)
 
@@ -350,6 +359,90 @@ func TestGetCachedInstallationToken_CacheHit(t *testing.T) {
 	}
 	if token != "ghs_cached_token" {
 		t.Errorf("token = %q, want %q", token, "ghs_cached_token")
+	}
+}
+
+func TestGetCachedInstallationTokenDetails_CachesInstallationPermissions(t *testing.T) {
+	tmpDir := t.TempDir()
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("generate key: %v", err)
+	}
+	keyPath := filepath.Join(tmpDir, "private-key.pem")
+	keyData := pem.EncodeToMemory(&pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
+	})
+	if err := os.WriteFile(keyPath, keyData, 0o600); err != nil {
+		t.Fatalf("write key: %v", err)
+	}
+
+	expiresAt := time.Now().Add(time.Hour).UTC().Format(time.RFC3339)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/app/installations/67890/access_tokens" || r.Method != http.MethodPost {
+			t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		fmt.Fprintf(w, `{"token":"ghs_fresh","expires_at":%q,"permissions":{"issues":"read","pull_requests":"write"}}`, expiresAt)
+	}))
+	defer server.Close()
+
+	old := githubAPIBaseURL
+	githubAPIBaseURL = server.URL
+	defer func() { githubAPIBaseURL = old }()
+
+	details, err := getCachedInstallationTokenDetails(
+		context.Background(),
+		server.Client(),
+		"12345",
+		keyPath,
+		"67890",
+	)
+	if err != nil {
+		t.Fatalf("get token details: %v", err)
+	}
+	if details.Token != "ghs_fresh" || details.Permissions["pull_requests"] != "write" {
+		t.Fatalf("unexpected token details: %#v", details)
+	}
+
+	cacheData, err := os.ReadFile(filepath.Join(tmpDir, "gh-token-cache.json"))
+	if err != nil {
+		t.Fatalf("read cache: %v", err)
+	}
+	var cached tokenCache
+	if err := json.Unmarshal(cacheData, &cached); err != nil {
+		t.Fatalf("parse cache: %v", err)
+	}
+	if cached.Permissions["issues"] != "read" || cached.Permissions["pull_requests"] != "write" {
+		t.Fatalf("permissions not cached: %#v", cached.Permissions)
+	}
+}
+
+func TestGetCachedInstallationTokenDetails_RefreshesLegacyCacheWithoutPermissions(t *testing.T) {
+	tmpDir := t.TempDir()
+	keyPath := filepath.Join(tmpDir, "private-key.pem")
+	if err := os.WriteFile(keyPath, []byte("dummy"), 0o600); err != nil {
+		t.Fatalf("write key: %v", err)
+	}
+	cache := tokenCache{
+		Token:     "ghs_legacy",
+		ExpiresAt: time.Now().Add(time.Hour).UTC().Format(time.RFC3339),
+	}
+	cacheData, _ := json.Marshal(cache)
+	if err := os.WriteFile(filepath.Join(tmpDir, "gh-token-cache.json"), cacheData, 0o600); err != nil {
+		t.Fatalf("write cache: %v", err)
+	}
+
+	_, err := getCachedInstallationTokenDetails(
+		context.Background(),
+		http.DefaultClient,
+		"12345",
+		keyPath,
+		"67890",
+	)
+	if err == nil || !strings.Contains(err.Error(), "failed to decode PEM block") {
+		t.Fatalf("expected legacy cache refresh, got: %v", err)
 	}
 }
 
