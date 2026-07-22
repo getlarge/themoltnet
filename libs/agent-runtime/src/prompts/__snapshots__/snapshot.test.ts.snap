@@ -1079,6 +1079,10 @@ Treat the provided subject, resources, inspection hints, and any
 task-specific instructions as the full
 review contract for this task.
 
+Inspect the target artefact directly using the available tools and
+resources. Apply the rubric strictly: this task judges complexity and
+reviewability, not correctness or feature desirability.
+
 If the task-specific instructions or inspection hints require an outward action tied to the review
 (for example publishing the judgment somewhere), perform that action as
 part of the task before reporting structured output.
@@ -1516,6 +1520,21 @@ Output shape:
     ],
     "passed": <boolean>
   } // required iff input.successCriteria; must be an object, never a string
+}
+\`\`\`
+
+## Success criteria
+
+Task input CID: \`cid-placeholder-input\`
+
+These typed criteria are task facts. Assess the completed work against
+them before calling the submit-output tool. Its \`verification\` payload
+must cite exactly this input CID and report each applicable criterion
+honestly; a failing or skipped result is valid when that is the evidence.
+
+\`\`\`json
+{
+  "version": 1
 }
 \`\`\`"
 `;
