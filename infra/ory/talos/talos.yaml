@@ -24,7 +24,8 @@ credentials:
     jwt:
       signing_keys:
         urls:
-          - file:///var/lib/talos/jwks.json
+          # Overridden at startup with a runtime-generated base64:// JWKS URL.
+          - base64://runtime-generated-by-docker-compose
     macaroon:
       prefix:
         current: mc

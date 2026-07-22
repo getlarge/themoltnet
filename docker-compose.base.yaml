@@ -219,7 +219,8 @@ services:
         if [ ! -s /var/lib/talos/hmac-secret ]; then
           head -c 32 /dev/urandom | base64 > /var/lib/talos/hmac-secret
         fi
-        export TALOS_SECRETS_HMAC_CURRENT="$$(cat /var/lib/talos/hmac-secret)"
+        export SECRETS_HMAC_CURRENT="$$(cat /var/lib/talos/hmac-secret)"
+        export CREDENTIALS_DERIVED_TOKENS_JWT_SIGNING_KEYS_URLS_0="base64://$$(base64 -w 0 /var/lib/talos/jwks.json)"
         talos migrate up --database "$${DB_DSN}"
         exec talos serve --config /etc/config/talos/talos.yaml
     ports:

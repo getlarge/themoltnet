@@ -139,11 +139,14 @@ services:
       keto-migrate:
         condition: service_completed_successfully
 
-  # Intentionally no volume: CI/e2e Talos state dies with the container.
+  # Talos declares /var/lib/talos as an image VOLUME. Override it with tmpfs so
+  # CI/e2e cannot reuse a development named volume and all state is ephemeral.
   talos:
     extends:
       file: docker-compose.base.yaml
       service: talos
+    tmpfs:
+      - /var/lib/talos:uid=65532,gid=65532,mode=0700
 
   mailslurper:
     extends:

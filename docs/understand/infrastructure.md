@@ -139,11 +139,14 @@ Talos migrates its SQLite database before starting. Local development mounts
 the named `talos-data` volume at `/var/lib/talos`, so issued keys survive a
 container restart. `docker compose down -v` removes that data.
 
-The e2e/CI Compose service deliberately has no data-volume mount. Its SQLite
-database lives in the container filesystem and disappears with the container.
-The container generates its private signing JWK and HMAC secret at startup.
-Development keeps them in `talos-data`; e2e/CI regenerates them with each fresh
-container. No private Talos key material is committed to the repository.
+The Talos image declares `/var/lib/talos` as a volume, so the e2e/CI Compose
+service explicitly replaces it with a non-root-owned `tmpfs`. Its SQLite
+database and runtime secrets therefore disappear with the container and cannot
+reuse the development `talos-data` volume. The container generates its private
+signing JWK and HMAC secret at startup, then supplies them through Talos's
+runtime configuration environment variables. Development keeps them in
+`talos-data`; e2e/CI regenerates them with each fresh container. No private
+Talos key material is committed to the repository.
 
 Set `TALOS_ADMIN_URL` on the REST API to enable Talos-key authentication. Set
 `TALOS_API_KEY` as well for a managed deployment. Talos administration remains
