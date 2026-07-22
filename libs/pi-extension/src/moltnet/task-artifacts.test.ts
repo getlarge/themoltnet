@@ -376,7 +376,12 @@ describe('moltnet_download_task_artifact', () => {
       expect(capturedDownloads).toEqual([
         { taskId: 'task-123', cid: 'bafkreiinput' },
       ]);
-      expect(JSON.stringify(result)).not.toContain('attemptN');
+      const content = result.content[0];
+      expect(content?.type).toBe('text');
+      if (!content || content.type !== 'text') {
+        throw new Error('expected text tool output');
+      }
+      expect(JSON.parse(content.text)).not.toHaveProperty('attemptN');
     } finally {
       await rm(cwd, { force: true, recursive: true });
     }
