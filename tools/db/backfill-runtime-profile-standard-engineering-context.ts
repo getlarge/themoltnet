@@ -104,7 +104,10 @@ function normalizeList(values: readonly string[]): string[] {
   return [...new Set(values.map((value) => value.trim()).filter(Boolean))];
 }
 
-function computeProfileDefinitionCid(profile: typeof runtimeProfiles.$inferSelect, context: ContextEntry[]): Promise<string> {
+function computeProfileDefinitionCid(
+  profile: typeof runtimeProfiles.$inferSelect,
+  context: ContextEntry[],
+): Promise<string> {
   return computeJsonCid({
     v: 'moltnet:runtime-profile:v1',
     name: profile.name,
@@ -150,11 +153,14 @@ async function backfill(): Promise<void> {
   try {
     const profiles = await db.select().from(runtimeProfiles);
     const standardContext = await loadStandardEngineeringContext();
-    const candidates: Array<(typeof runtimeProfiles.$inferSelect)> = [];
+    const candidates: Array<typeof runtimeProfiles.$inferSelect> = [];
     const blocked: Array<{ id: string; name: string; entryCount: number }> = [];
 
     for (const profile of profiles) {
-      if (!Array.isArray(profile.context) || !profile.context.every(isContextEntry)) {
+      if (
+        !Array.isArray(profile.context) ||
+        !profile.context.every(isContextEntry)
+      ) {
         throw new Error(`Profile ${profile.id} has invalid context data`);
       }
       if (
