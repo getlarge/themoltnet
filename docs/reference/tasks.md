@@ -127,7 +127,8 @@ still references them.
 The Pi executor exposes `moltnet_upload_task_artifact` for files in the active
 task workspace, `moltnet_list_task_artifacts` for metadata, and
 `moltnet_download_task_artifact` to materialize a referenced artifact CID back
-into the task workspace. SDK callers use
+into the task workspace. Pi callers omit `attemptN` for bound input artifacts
+and pass it only to select an artifact from one exact attempt. SDK callers use
 `agent.tasks.artifacts.stage/upload/list/listPage/download`; `listPage` exposes
 `nextCursor`, and `download` returns the byte stream plus response metadata
 headers such as artifact id, CID, content type, and content encoding. Operators

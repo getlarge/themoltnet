@@ -419,8 +419,10 @@ const input = await agent.tasks.artifacts.download(
 :::
 
 Outside a running Pi task, use these public surfaces or REST. Inside a Pi task,
-the agent receives upload/list/download tools for the active task. Runtime
-sessions remain separate:
+the agent receives upload/list/download tools for the active task. With
+`moltnet_download_task_artifact`, omit `attemptN` for a bound input artifact;
+pass it only when selecting an artifact from one exact attempt. Runtime sessions
+remain separate:
 
 ```bash
 moltnet task runtime-sessions get <task-id> --attempt 1

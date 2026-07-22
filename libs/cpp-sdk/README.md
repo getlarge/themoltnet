@@ -57,6 +57,13 @@ filters for API surfaces that need multiple values:
 
 All task reads include `x-moltnet-team-id` through `Config::team_id`.
 
+Task artifact downloads have two forms:
+
+- `download_task_artifact(task_id, cid)` resolves a CID anywhere on the task,
+  including an input artifact bound when the task was created.
+- `download_task_artifact(task_id, attempt_n, cid)` requires the CID to belong
+  to one exact producing attempt.
+
 ## Runtime reads
 
 - `whoami()` reads `GET /agents/whoami`.
