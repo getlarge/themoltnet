@@ -1,16 +1,8 @@
+import type { ContextRef } from '@themoltnet/sdk';
+
 import catalogue from '../data/runtime-profile-contexts.json';
 
-type RuntimeProfileContextBinding =
-  | 'skill'
-  | 'context_inline'
-  | 'prompt_prefix'
-  | 'user_inline';
-
-export interface RuntimeProfileContextEntry {
-  slug: string;
-  binding: RuntimeProfileContextBinding;
-  content: string;
-}
+export type RuntimeProfileContextEntry = ContextRef;
 
 interface RuntimeProfileContextRecipe {
   description: string;

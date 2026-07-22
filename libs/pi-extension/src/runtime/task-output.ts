@@ -21,6 +21,9 @@ const METER_NAME = '@themoltnet/pi-extension/task-output';
 let parseResultCounter: ReturnType<
   ReturnType<typeof metrics.getMeter>['createCounter']
 > | null = null;
+let telemetryAnomalyCounter: ReturnType<
+  ReturnType<typeof metrics.getMeter>['createCounter']
+> | null = null;
 
 function getParseResultCounter() {
   if (parseResultCounter) return parseResultCounter;
@@ -34,6 +37,18 @@ function getParseResultCounter() {
   return parseResultCounter;
 }
 
+function getTelemetryAnomalyCounter() {
+  if (telemetryAnomalyCounter) return telemetryAnomalyCounter;
+  telemetryAnomalyCounter = metrics
+    .getMeter(METER_NAME)
+    .createCounter('agent_runtime.task_output.telemetry_anomaly', {
+      description:
+        'Executor-observed telemetry anomalies on materialized task output, labelled by task_type, model, and kind.',
+      unit: '1',
+    });
+  return telemetryAnomalyCounter;
+}
+
 /**
  * Test-only hook: drop the cached counter so a fresh MeterProvider
  * registered between test cases is picked up. Production code must not
@@ -41,6 +56,7 @@ function getParseResultCounter() {
  */
 export function __resetTaskOutputCounterForTests(): void {
   parseResultCounter = null;
+  telemetryAnomalyCounter = null;
 }
 
 /**
@@ -57,6 +73,19 @@ export function recordTaskOutputParseResult(args: {
     task_type: args.taskType,
     model: args.model ?? 'unknown',
     code: args.code,
+  });
+}
+
+/** Record missing executor telemetry without changing the durable output. */
+export function recordTaskOutputTelemetryAnomaly(args: {
+  taskType: string;
+  model?: string;
+  kind: 'zero_usage' | 'zero_duration';
+}): void {
+  getTelemetryAnomalyCounter().add(1, {
+    task_type: args.taskType,
+    model: args.model ?? 'unknown',
+    kind: args.kind,
   });
 }
 

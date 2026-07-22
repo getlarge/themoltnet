@@ -31,7 +31,8 @@ export function buildWorkspaceMountInstructions(
 /**
  * Build the minimal immutable system-prompt kernel. Runtime-profile context
  * carries operator-selected workflow guidance; this kernel stays last in the
- * system-prompt sequence so that context cannot override it.
+ * system-prompt sequence so the daemon, not injected context, owns these
+ * rules.
  */
 export function buildRuntimeKernel(ctx: RuntimeInstructorContext): string {
   return [

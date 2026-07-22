@@ -10,9 +10,9 @@ import {
 } from './async-validation.js';
 import type { Gate } from './success-criteria.js';
 import {
+  BUILT_IN_TASK_TYPES,
   JUDGE_EVAL_ATTEMPT_TYPE,
   RUN_EVAL_TYPE,
-  BUILT_IN_TASK_TYPES,
 } from './task-types/index.js';
 import type { TaskRef, TaskUsage } from './wire.js';
 
@@ -219,6 +219,62 @@ export function validateTaskInput(
   return [];
 }
 
+function checkVerificationInputCid(
+  value: unknown,
+  runtime?: { inputCid?: string },
+): TaskValidationError[] {
+  const verification =
+    value !== null && typeof value === 'object'
+      ? (value as { verification?: { inputCid?: unknown } }).verification
+      : undefined;
+  if (
+    runtime?.inputCid &&
+    verification !== undefined &&
+    verification.inputCid !== runtime.inputCid
+  ) {
+    return [
+      {
+        field: 'output/verification/inputCid',
+        message: 'must match the task input CID',
+      },
+    ];
+  }
+  return [];
+}
+
+function validateTaskResult(
+  taskType: string,
+  value: unknown,
+  input?: unknown,
+  runtime?: { inputCid?: string },
+  submission = false,
+): TaskValidationError[] {
+  const entry = getTaskTypeEntry(taskType);
+  if (!entry) {
+    return [
+      {
+        field: 'taskType',
+        message: `Unknown task type: ${taskType}`,
+      },
+    ];
+  }
+
+  const schema = submission
+    ? (entry.submissionSchema ?? entry.outputSchema)
+    : entry.outputSchema;
+  const errors = schemaErrors('output', schema, value);
+  if (errors.length > 0) return errors;
+
+  if (entry.validateOutput) {
+    const validationError = entry.validateOutput(value, input);
+    if (validationError) {
+      return [{ field: 'output', message: validationError }];
+    }
+  }
+
+  return checkVerificationInputCid(value, runtime);
+}
+
 export function validateTaskOutput(
   taskType: string,
   output: unknown,
@@ -234,44 +290,7 @@ export function validateTaskOutput(
   input?: unknown,
   runtime?: { inputCid?: string },
 ): TaskValidationError[] {
-  const entry = getTaskTypeEntry(taskType);
-  if (!entry) {
-    return [
-      {
-        field: 'taskType',
-        message: `Unknown task type: ${taskType}`,
-      },
-    ];
-  }
-
-  const errors = schemaErrors('output', entry.outputSchema, output);
-  if (errors.length > 0) return errors;
-
-  if (entry.validateOutput) {
-    const validationError = entry.validateOutput(output, input);
-    if (validationError) {
-      return [{ field: 'output', message: validationError }];
-    }
-  }
-
-  const verification =
-    output !== null && typeof output === 'object'
-      ? (output as { verification?: { inputCid?: unknown } }).verification
-      : undefined;
-  if (
-    runtime?.inputCid &&
-    verification !== undefined &&
-    verification?.inputCid !== runtime.inputCid
-  ) {
-    return [
-      {
-        field: 'output/verification/inputCid',
-        message: 'must match the task input CID',
-      },
-    ];
-  }
-
-  return [];
+  return validateTaskResult(taskType, output, input, runtime);
 }
 
 /**
@@ -285,48 +304,7 @@ export function validateTaskSubmission(
   input?: unknown,
   runtime?: { inputCid?: string },
 ): TaskValidationError[] {
-  const entry = getTaskTypeEntry(taskType);
-  if (!entry) {
-    return [
-      {
-        field: 'taskType',
-        message: `Unknown task type: ${taskType}`,
-      },
-    ];
-  }
-
-  const errors = schemaErrors(
-    'output',
-    entry.submissionSchema ?? entry.outputSchema,
-    submission,
-  );
-  if (errors.length > 0) return errors;
-
-  if (entry.validateOutput) {
-    const validationError = entry.validateOutput(submission, input);
-    if (validationError) {
-      return [{ field: 'output', message: validationError }];
-    }
-  }
-
-  const verification =
-    submission !== null && typeof submission === 'object'
-      ? (submission as { verification?: { inputCid?: unknown } }).verification
-      : undefined;
-  if (
-    runtime?.inputCid &&
-    verification !== undefined &&
-    verification?.inputCid !== runtime.inputCid
-  ) {
-    return [
-      {
-        field: 'output/verification/inputCid',
-        message: 'must match the task input CID',
-      },
-    ];
-  }
-
-  return [];
+  return validateTaskResult(taskType, submission, input, runtime, true);
 }
 
 /**

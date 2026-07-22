@@ -100,6 +100,7 @@ import {
   type ParsedTaskOutputResult,
   parseStructuredTaskOutput,
   recordTaskOutputParseResult,
+  recordTaskOutputTelemetryAnomaly,
 } from './task-output.js';
 import { prepareTaskWorkspace } from './task-workspace.js';
 
@@ -1461,6 +1462,20 @@ export interface MaterializeCapturedAttemptOutputDeps {
 export async function materializeCapturedAttemptOutput(
   deps: MaterializeCapturedAttemptOutputDeps,
 ): Promise<ParsedTaskOutputResult> {
+  if (deps.usage.inputTokens === 0 && deps.usage.outputTokens === 0) {
+    recordTaskOutputTelemetryAnomaly({
+      taskType: deps.taskType,
+      model: deps.model,
+      kind: 'zero_usage',
+    });
+  }
+  if (deps.durationMs === 0) {
+    recordTaskOutputTelemetryAnomaly({
+      taskType: deps.taskType,
+      model: deps.model,
+      kind: 'zero_duration',
+    });
+  }
   const durableOutput = materializeTaskOutput(deps.taskType, deps.submission, {
     usage: deps.usage,
     durationMs: deps.durationMs,

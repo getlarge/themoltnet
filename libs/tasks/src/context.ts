@@ -3,18 +3,27 @@
  * V1 bindings only; Tier-2 (reference_file, mcp_resource, imported_file,
  * tool_response_seed, additional_context_hook) ship in a later slice.
  */
-import { type Static, Type } from 'typebox';
+import { Type } from 'typebox';
 
-export const ContextBinding = Type.Union(
-  [
-    Type.Literal('skill'),
-    Type.Literal('context_inline'),
-    Type.Literal('prompt_prefix'),
-    Type.Literal('user_inline'),
-  ],
-  { $id: 'ContextBinding' },
+export const CONTEXT_BINDINGS = [
+  'skill',
+  'context_inline',
+  'prompt_prefix',
+  'user_inline',
+] as const;
+export type ContextBinding = (typeof CONTEXT_BINDINGS)[number];
+
+/** Maximum UTF-16 code units accepted in one ContextRef content field. */
+export const CONTEXT_REF_MAX_CONTENT_LENGTH = 65_536;
+
+export const ContextBinding = Type.Unsafe<ContextBinding>(
+  Type.Union(
+    CONTEXT_BINDINGS.map((binding) => Type.Literal(binding)),
+    {
+      $id: 'ContextBinding',
+    },
+  ),
 );
-export type ContextBinding = Static<typeof ContextBinding>;
 
 /**
  * One context entry. Bytes are inlined: the proposer chose them, and the
@@ -29,7 +38,7 @@ export type ContextBinding = Static<typeof ContextBinding>;
  *            name under the runtime's skill discovery path. Must be
  *            kebab-case-safe (alphanumeric + dashes/underscores).
  * - `binding` — how the bytes are delivered to the LLM (see above).
- * - `content` — the actual bytes (UTF-8 text). Capped at 64 KiB per
+ * - `content` — UTF-8 text. Capped at 65,536 UTF-16 code units per
  *               entry; total per-task context bytes are bounded by the
  *               soft `maxItems` cap and per-binding daemon limits.
  *               Raised from 32 KiB in 2026-05 — protocol-heavy operator
@@ -46,15 +55,22 @@ export const ContextRef = Type.Object(
       pattern: '^[a-zA-Z0-9_-]+$',
     }),
     binding: ContextBinding,
-    content: Type.String({ minLength: 1, maxLength: 65_536 }),
+    content: Type.String({
+      minLength: 1,
+      maxLength: CONTEXT_REF_MAX_CONTENT_LENGTH,
+    }),
   },
   { $id: 'ContextRef', additionalProperties: false },
 );
-export type ContextRef = Static<typeof ContextRef>;
+export type ContextRef = {
+  slug: string;
+  binding: ContextBinding;
+  content: string;
+};
 
 /** Reusable input fragment for any task type. Soft cap at 5 items. */
 export const TaskContext = Type.Array(ContextRef, {
   $id: 'TaskContext',
   maxItems: 5,
 });
-export type TaskContext = Static<typeof TaskContext>;
+export type TaskContext = ContextRef[];

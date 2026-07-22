@@ -136,7 +136,7 @@ captured in the profile definition CID.
 Profiles may carry a small `context` array of operator guidance that belongs to
 the profile rather than to one task. Each entry has a `slug` (max 64
 characters, letters/numbers/dash/underscore), a `binding`, and UTF-8 `content`
-(max 64 KiB). The bindings are the same delivery modes as task-level context —
+(max 65,536 characters). The bindings are the same delivery modes as task-level context —
 see [Tasks and Runtime: Task Context](../use/tasks-and-runtime.md#task-context):
 
 | Binding          | Delivery                                                        |
@@ -158,6 +158,15 @@ Profile context is optional. An empty `context: []` is the minimal path: task
 facts, the typed submit-output tool, and the immutable kernel still apply, but
 there is no diary, commit, PR, or generic verification workflow injected by
 default.
+
+### Upgrade Existing Profiles
+
+Upgrading the daemon does not add catalogue fragments to existing profile
+revisions. Review each deployed profile's **Context** field after this upgrade.
+To retain the standard engineering workflow (diary discipline, accountable
+commits, requested PR work, and verification guidance), replace or extend its
+context with the `standard-engineering@v1` JSON array below. Leaving the field
+empty is supported when that minimal behavior is intentional.
 
 The canonical, versioned source for reusable fragments and recipes is
 [`docs/.vitepress/theme/data/runtime-profile-contexts.json`](https://github.com/getlarge/themoltnet/blob/main/docs/.vitepress/theme/data/runtime-profile-contexts.json).
@@ -201,8 +210,10 @@ the resulting profile revision and definition CID record the exact fragments
 used by that daemon configuration.
 
 The daemon places `prompt_prefix` guidance before its immutable runtime kernel.
-The kernel remains authoritative for credentials, sandbox and workspace facts,
-untrusted context, and the structured submit-output wire protocol.
+The system prompt is designed to give the kernel precedence, and injected
+context cannot edit the kernel text. Code-side validation and credential
+injection enforce credentials, sandbox and workspace facts, untrusted context,
+and the structured submit-output wire protocol.
 
 ### Prompt Ownership Catalogue
 

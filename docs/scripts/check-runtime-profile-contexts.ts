@@ -1,11 +1,13 @@
 import { readFile } from 'node:fs/promises';
 
-const bindings = new Set([
-  'skill',
-  'context_inline',
-  'prompt_prefix',
-  'user_inline',
-]);
+import {
+  CONTEXT_BINDINGS,
+  CONTEXT_REF_MAX_CONTENT_LENGTH,
+  type ContextBinding,
+  type ContextRef,
+} from '@themoltnet/sdk';
+
+const bindings = new Set<ContextBinding>(CONTEXT_BINDINGS);
 const slugPattern = /^[a-zA-Z0-9_-]{1,64}$/;
 const requiredStandardEngineeringFragments = [
   'proactive-memory-v1',
@@ -15,10 +17,9 @@ const requiredStandardEngineeringFragments = [
   'verification-and-artifacts-v1',
 ];
 
-type Entry = { slug: string; binding: string; content: string };
 type Catalogue = {
   version: number;
-  fragments: Record<string, Entry>;
+  fragments: Record<string, ContextRef>;
   recipes: Record<string, { description: string; fragments: string[] }>;
 };
 
@@ -44,7 +45,7 @@ for (const [fragmentId, entry] of Object.entries(catalogue.fragments)) {
   if (
     !bindings.has(entry.binding) ||
     entry.content.length === 0 ||
-    entry.content.length > 65_536
+    entry.content.length > CONTEXT_REF_MAX_CONTENT_LENGTH
   ) {
     throw new Error(`Invalid RuntimeProfileContext fragment: ${fragmentId}`);
   }
