@@ -8,12 +8,12 @@
  * Then resolves the full AuthContext for authenticated requests.
  */
 
-import type { OAuth2Api } from '@ory/client-fetch';
+import type { ApiKeysApi, OAuth2Api } from '@ory/client-fetch';
 import type { DecodedJwt, VerifierOptions } from 'fast-jwt';
 import { createVerifier } from 'fast-jwt';
 import buildGetJwks from 'get-jwks';
 
-import { ORY_OPAQUE_PREFIXES } from './constants.js';
+import { ORY_OPAQUE_PREFIXES, TALOS_API_KEY_PREFIXES } from './constants.js';
 import type {
   AgentAuthContext,
   AuthContext,
@@ -35,6 +35,8 @@ export interface TokenValidatorConfig {
   cacheMax?: number;
   /** JWKS cache TTL in ms (default: 600_000 = 10 minutes) */
   cacheTtl?: number;
+  /** Optional trusted Talos admin client used only for issued API keys. */
+  talosApi?: Pick<ApiKeysApi, 'adminVerifyApiKey'>;
 }
 
 export interface TokenValidator {
@@ -44,6 +46,15 @@ export interface TokenValidator {
 
 function isOpaqueToken(token: string): boolean {
   return ORY_OPAQUE_PREFIXES.some((prefix) => token.startsWith(prefix));
+}
+
+function isTalosApiKey(token: string): boolean {
+  return TALOS_API_KEY_PREFIXES.some((prefix) => token.startsWith(prefix));
+}
+
+function asMetadata(value: object | undefined): Record<string, unknown> {
+  if (!value || Array.isArray(value)) return {};
+  return value as Record<string, unknown>;
 }
 
 function isJwtToken(token: string): boolean {
@@ -165,6 +176,56 @@ export function createTokenValidator(
 ): TokenValidator {
   const jwksUri = config?.jwksUri;
 
+  async function resolveTalosApiKey(
+    token: string,
+  ): Promise<AgentAuthContext | null> {
+    if (!config?.talosApi) return null;
+
+    try {
+      const result = await config.talosApi.adminVerifyApiKey({
+        verifyApiKeyRequest: { credential: token },
+      });
+      if (!result.is_valid || !result.actor_id || !result.key_id) return null;
+
+      const metadata = asMetadata(result.metadata);
+      if (metadata.subject_type !== 'agent') return null;
+
+      const publicKey = metadata.public_key;
+      const fingerprint = metadata.fingerprint;
+      if (typeof publicKey !== 'string' || typeof fingerprint !== 'string') {
+        return null;
+      }
+
+      const teamId = metadata.team_id;
+      const maximumToolPolicyId = metadata.maximum_tool_policy_id;
+      if (teamId !== undefined && typeof teamId !== 'string') return null;
+      if (
+        maximumToolPolicyId !== undefined &&
+        typeof maximumToolPolicyId !== 'string'
+      ) {
+        return null;
+      }
+
+      return {
+        subjectType: 'agent',
+        identityId: result.actor_id,
+        publicKey,
+        fingerprint,
+        clientId: result.key_id,
+        scopes: result.scopes ?? [],
+        currentTeamId: null,
+        credentialBinding: {
+          kind: 'talos-api-key',
+          keyId: result.key_id,
+          ...(teamId ? { teamId } : {}),
+          ...(maximumToolPolicyId ? { maximumToolPolicyId } : {}),
+        },
+      } satisfies AgentAuthContext;
+    } catch {
+      return null;
+    }
+  }
+
   let verifyJwt: ((token: string) => Promise<Record<string, unknown>>) | null =
     null;
 
@@ -263,6 +324,10 @@ export function createTokenValidator(
     introspect,
 
     async resolveAuthContext(token: string): Promise<AuthContext | null> {
+      if (isTalosApiKey(token)) {
+        return resolveTalosApiKey(token);
+      }
+
       let result: IntrospectionResult;
 
       if (isOpaqueToken(token)) {

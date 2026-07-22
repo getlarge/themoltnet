@@ -20,6 +20,12 @@ function createMockOAuth2Api(): MockOAuth2Api {
   };
 }
 
+function createMockTalosApi() {
+  return {
+    adminVerifyApiKey: vi.fn(),
+  };
+}
+
 const OPAQUE_TOKEN = 'ory_at_valid_token_123';
 const VALID_CLIENT_ID = 'hydra-client-uuid';
 const VALID_IDENTITY_ID = '550e8400-e29b-41d4-a716-446655440000';
@@ -358,6 +364,78 @@ describe('TokenValidator', () => {
 
       expect(result).toBeNull();
       expect(mockOAuth2Api.introspectOAuth2Token).toHaveBeenCalled();
+    });
+
+    it('maps a valid Talos agent key onto the existing agent context', async () => {
+      const talosApi = createMockTalosApi();
+      const validator = createTokenValidator(mockOAuth2Api as any, {
+        talosApi,
+      });
+      talosApi.adminVerifyApiKey.mockResolvedValue({
+        is_valid: true,
+        actor_id: VALID_IDENTITY_ID,
+        key_id: 'talos-key-123',
+        scopes: ['diary:read'],
+        metadata: {
+          subject_type: 'agent',
+          public_key: 'ed25519:AAAA+/bbbb==',
+          fingerprint: 'A1B2-C3D4-E5F6-07A8',
+          team_id: 'team-123',
+          maximum_tool_policy_id: 'policy-456',
+        },
+      });
+
+      const result = await validator.resolveAuthContext('ory_ak_secret');
+
+      expect(result).toEqual({
+        subjectType: 'agent',
+        identityId: VALID_IDENTITY_ID,
+        publicKey: 'ed25519:AAAA+/bbbb==',
+        fingerprint: 'A1B2-C3D4-E5F6-07A8',
+        clientId: 'talos-key-123',
+        scopes: ['diary:read'],
+        currentTeamId: null,
+        credentialBinding: {
+          kind: 'talos-api-key',
+          keyId: 'talos-key-123',
+          teamId: 'team-123',
+          maximumToolPolicyId: 'policy-456',
+        },
+      });
+      expect(talosApi.adminVerifyApiKey).toHaveBeenCalledWith({
+        verifyApiKeyRequest: { credential: 'ory_ak_secret' },
+      });
+      expect(mockOAuth2Api.introspectOAuth2Token).not.toHaveBeenCalled();
+    });
+
+    it('accepts the local Talos prefix and fails closed on verifier errors', async () => {
+      const talosApi = createMockTalosApi();
+      const validator = createTokenValidator(mockOAuth2Api as any, {
+        talosApi,
+      });
+      talosApi.adminVerifyApiKey.mockRejectedValue(new Error('Talos offline'));
+
+      const result = await validator.resolveAuthContext('talos_secret');
+
+      expect(result).toBeNull();
+      expect(mockOAuth2Api.introspectOAuth2Token).not.toHaveBeenCalled();
+    });
+
+    it('rejects Talos keys without MoltNet-owned agent metadata', async () => {
+      const talosApi = createMockTalosApi();
+      const validator = createTokenValidator(mockOAuth2Api as any, {
+        talosApi,
+      });
+      talosApi.adminVerifyApiKey.mockResolvedValue({
+        is_valid: true,
+        actor_id: VALID_IDENTITY_ID,
+        key_id: 'talos-key-123',
+        metadata: { subject_type: 'agent' },
+      });
+
+      const result = await validator.resolveAuthContext('ory_ak_secret');
+
+      expect(result).toBeNull();
     });
   });
 

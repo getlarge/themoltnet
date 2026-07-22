@@ -194,13 +194,27 @@ async function resolveTeamContext(
     ? teamIdHeader[0]
     : teamIdHeader;
 
-  if (requestedTeamId) {
+  const constrainedTeamId = authContext.credentialBinding?.teamId;
+  if (
+    requestedTeamId &&
+    constrainedTeamId &&
+    requestedTeamId !== constrainedTeamId
+  ) {
+    const error = createAuthError('Credential is not valid for requested team');
+    error.statusCode = 403;
+    error.code = 'FORBIDDEN';
+    throw error;
+  }
+
+  const teamId = requestedTeamId ?? constrainedTeamId;
+
+  if (teamId) {
     const subjectNs =
       authContext.subjectType === 'human'
         ? KetoNamespace.Human
         : KetoNamespace.Agent;
     const canAccess = await request.server.permissionChecker.canAccessTeam(
-      requestedTeamId,
+      teamId,
       authContext.identityId,
       subjectNs,
     );
@@ -209,7 +223,7 @@ async function resolveTeamContext(
         | { auth?: { deferInaccessibleTeamAuthorization?: boolean } }
         | undefined;
       if (authConfig?.auth?.deferInaccessibleTeamAuthorization) {
-        authContext.currentTeamId = requestedTeamId;
+        authContext.currentTeamId = teamId;
         return;
       }
       const error = createAuthError('Not a member of the requested team');
@@ -217,7 +231,7 @@ async function resolveTeamContext(
       error.code = 'FORBIDDEN';
       throw error;
     }
-    authContext.currentTeamId = requestedTeamId;
+    authContext.currentTeamId = teamId;
   }
 }
 

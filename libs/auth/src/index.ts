@@ -9,6 +9,7 @@ export {
   KRATOS_COOKIE_NAME_REGEX,
   ORY_OPAQUE_PREFIXES,
   SESSION_TOKEN_HEADER,
+  TALOS_API_KEY_PREFIXES,
   TEAM_HEADER,
 } from './constants.js';
 export {
@@ -65,6 +66,7 @@ export {
   type SessionResolver,
   type SessionResolverConfig,
 } from './session-resolver.js';
+export { createTalosClient, type TalosClientConfig } from './talos-client.js';
 export type { TeamInviteRole, TeamRole } from './team-role.js';
 export {
   highestTeamRole,
@@ -87,5 +89,6 @@ export type {
   IntrospectionResultActive,
   IntrospectionResultInactive,
   SubjectType,
+  TalosCredentialBinding,
 } from './types.js';
 export type { OAuth2Client } from '@ory/client-fetch';

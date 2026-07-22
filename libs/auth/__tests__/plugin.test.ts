@@ -211,6 +211,66 @@ describe('requireAuth preHandler', () => {
     });
   });
 
+  it('uses a Talos key team constraint when no team header is supplied', async () => {
+    mockTokenValidator.resolveAuthContext.mockResolvedValue({
+      ...VALID_AUTH_CONTEXT,
+      credentialBinding: {
+        kind: 'talos-api-key',
+        keyId: 'talos-key-123',
+        teamId: 'team-123',
+      },
+    });
+
+    app.get('/protected', { preHandler: [requireAuth] }, async (request) => {
+      return { authContext: request.authContext };
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/protected',
+      headers: { authorization: `Bearer ${VALID_TOKEN}` },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().authContext.currentTeamId).toBe('team-123');
+    expect(mockPermissionChecker.canAccessTeam).toHaveBeenCalledWith(
+      'team-123',
+      VALID_AUTH_CONTEXT.identityId,
+      KetoNamespace.Agent,
+    );
+  });
+
+  it('rejects a team header outside a Talos key team constraint', async () => {
+    mockTokenValidator.resolveAuthContext.mockResolvedValue({
+      ...VALID_AUTH_CONTEXT,
+      credentialBinding: {
+        kind: 'talos-api-key',
+        keyId: 'talos-key-123',
+        teamId: 'team-123',
+      },
+    });
+
+    app.get('/protected', { preHandler: [requireAuth] }, async () => ({
+      ok: true,
+    }));
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/protected',
+      headers: {
+        authorization: `Bearer ${VALID_TOKEN}`,
+        'x-moltnet-team-id': 'team-other',
+      },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json()).toMatchObject({
+      code: 'FORBIDDEN',
+      message: 'Credential is not valid for requested team',
+    });
+    expect(mockPermissionChecker.canAccessTeam).not.toHaveBeenCalled();
+  });
+
   it('can defer inaccessible team authorization to resource handlers', async () => {
     mockTokenValidator.resolveAuthContext.mockResolvedValue({
       ...VALID_AUTH_CONTEXT,
