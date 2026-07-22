@@ -182,6 +182,21 @@ describe('buildFinalOutputBlock', () => {
     });
     expect(block).toContain('Custom warning line.');
   });
+
+  it('explains attempt selection for referenced task artifacts', () => {
+    const block = buildFinalOutputBlock({
+      taskType: 'fulfill_brief',
+      outputSchemaName: 'FulfillBriefOutput',
+      shapeSketch: '{}',
+    });
+
+    expect(block).toMatch(
+      /For a bound input artifact, omit `attemptN` because it has no producing\s+attempt\./,
+    );
+    expect(block).toMatch(
+      /Pass `attemptN` only for an artifact from one exact task attempt\./,
+    );
+  });
 });
 
 describe('every task-type prompt ends with the strict final-output block', () => {

@@ -1179,9 +1179,10 @@ export function createMoltNetTools(
     name: 'moltnet_download_task_artifact',
     label: 'Download MoltNet Task Artifact',
     description:
-      'Download immutable task artifact bytes by taskId, attemptN, and CID into ' +
-      'a new file in the current task workspace. Use moltnet_list_task_artifacts ' +
-      'first to choose the correct CID for referenced task inputs.',
+      'Download immutable task artifact bytes by taskId and CID into a new file ' +
+      'in the current task workspace. Use moltnet_list_task_artifacts first to ' +
+      'choose the correct CID. Omit attemptN for a bound input artifact; pass it ' +
+      'only to require an artifact from one exact task attempt.',
     parameters: Type.Object({
       taskId: Type.Optional(
         Type.String({
@@ -1189,10 +1190,13 @@ export function createMoltNetTools(
             'Task ID. Defaults to the active task when running inside a task attempt.',
         }),
       ),
-      attemptN: Type.Integer({
-        minimum: 1,
-        description: 'Attempt number that produced the artifact.',
-      }),
+      attemptN: Type.Optional(
+        Type.Integer({
+          minimum: 1,
+          description:
+            'Attempt number that produced the artifact. Omit for bound input artifacts, which have no producing attempt.',
+        }),
+      ),
       cid: Type.String({
         minLength: 1,
         description: 'Artifact CID returned by moltnet_list_task_artifacts.',
@@ -1220,10 +1224,13 @@ export function createMoltNetTools(
         cwd,
         params.outputPath,
       );
-      const download = await agent.tasks.artifacts.download(
-        { taskId, attemptN: params.attemptN, cid: params.cid },
-        { teamId },
-      );
+      const artifactPath =
+        params.attemptN === undefined
+          ? { taskId, cid: params.cid }
+          : { taskId, attemptN: params.attemptN, cid: params.cid };
+      const download = await agent.tasks.artifacts.download(artifactPath, {
+        teamId,
+      });
       await pipeline(
         download.stream,
         createWriteStream(outputPath, { flags: 'wx' }),
@@ -1236,7 +1243,9 @@ export function createMoltNetTools(
             text: JSON.stringify(
               {
                 taskId,
-                attemptN: params.attemptN,
+                ...(params.attemptN === undefined
+                  ? {}
+                  : { attemptN: params.attemptN }),
                 cid: params.cid,
                 artifactId: download.artifactId,
                 contentType: download.contentType,

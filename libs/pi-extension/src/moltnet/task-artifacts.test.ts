@@ -29,6 +29,10 @@ interface CapturedUpload {
   options: { teamId: string };
 }
 
+type CapturedDownloadPath =
+  | { taskId: string; attemptN: number; cid: string }
+  | { taskId: string; cid: string };
+
 function makeTaskContext(): MoltNetTaskContext {
   return {
     taskId: 'task-123',
@@ -41,12 +45,14 @@ function makeTaskContext(): MoltNetTaskContext {
 
 function makeConfig(input: {
   captured?: CapturedUpload[];
+  capturedDownloads?: CapturedDownloadPath[];
   cwd: string;
   taskCtx?: MoltNetTaskContext | null;
   teamId?: string | null;
   openWorkspaceFileForRead?: MoltNetToolsConfig['openWorkspaceFileForRead'];
 }): MoltNetToolsConfig {
   const captured = input.captured ?? [];
+  const capturedDownloads = input.capturedDownloads ?? [];
   const agent = {
     tasks: {
       artifacts: {
@@ -79,14 +85,17 @@ function makeConfig(input: {
           ],
           nextCursor: null,
         })),
-        download: vi.fn(async () => ({
-          artifactId: 'artifact-1',
-          cid: 'bafkreia',
-          contentEncoding: null,
-          contentType: 'text/plain',
-          sha256: 'a'.repeat(64),
-          stream: Readable.from(['artifact bytes']),
-        })),
+        download: vi.fn(async (artifactPath: CapturedDownloadPath) => {
+          capturedDownloads.push(artifactPath);
+          return {
+            artifactId: 'artifact-1',
+            cid: 'bafkreia',
+            contentEncoding: null,
+            contentType: 'text/plain',
+            sha256: 'a'.repeat(64),
+            stream: Readable.from(['artifact bytes']),
+          };
+        }),
       },
     },
   };
@@ -319,10 +328,11 @@ describe('moltnet_list_task_artifacts', () => {
 describe('moltnet_download_task_artifact', () => {
   it('downloads artifact content into a new workspace file', async () => {
     const cwd = await mkdtemp(path.join(tmpdir(), 'moltnet-pi-artifact-'));
+    const capturedDownloads: CapturedDownloadPath[] = [];
     try {
       await mkdir(path.join(cwd, 'inputs'));
       const tool = findTool(
-        makeConfig({ cwd }),
+        makeConfig({ cwd, capturedDownloads }),
         'moltnet_download_task_artifact',
       );
 
@@ -337,6 +347,41 @@ describe('moltnet_download_task_artifact', () => {
       ).resolves.toBe('artifact bytes');
       expect(JSON.stringify(result)).toContain('result.txt');
       expect(JSON.stringify(result)).toContain('artifact-1');
+      expect(capturedDownloads).toEqual([
+        { taskId: 'task-123', attemptN: 2, cid: 'bafkreia' },
+      ]);
+    } finally {
+      await rm(cwd, { force: true, recursive: true });
+    }
+  });
+
+  it('downloads a bound input artifact without an attempt number', async () => {
+    const cwd = await mkdtemp(path.join(tmpdir(), 'moltnet-pi-artifact-'));
+    const capturedDownloads: CapturedDownloadPath[] = [];
+    try {
+      await mkdir(path.join(cwd, 'inputs'));
+      const tool = findTool(
+        makeConfig({ cwd, capturedDownloads }),
+        'moltnet_download_task_artifact',
+      );
+
+      const result = await callTool(tool, {
+        cid: 'bafkreiinput',
+        outputPath: 'inputs/brief.pdf',
+      });
+
+      await expect(
+        readFile(path.join(cwd, 'inputs/brief.pdf'), 'utf8'),
+      ).resolves.toBe('artifact bytes');
+      expect(capturedDownloads).toEqual([
+        { taskId: 'task-123', cid: 'bafkreiinput' },
+      ]);
+      const content = result.content[0];
+      expect(content?.type).toBe('text');
+      if (!content || content.type !== 'text') {
+        throw new Error('expected text tool output');
+      }
+      expect(JSON.parse(content.text)).not.toHaveProperty('attemptN');
     } finally {
       await rm(cwd, { force: true, recursive: true });
     }

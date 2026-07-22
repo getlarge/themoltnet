@@ -65,6 +65,8 @@ export function buildFinalOutputBlock(opts: FinalOutputBlockOptions): string {
     `\`moltnet_list_task_artifacts\` for the referenced task and download the`,
     `specific CID you need with \`moltnet_download_task_artifact\` before judging`,
     `or continuing that work.`,
+    `For a bound input artifact, omit \`attemptN\` because it has no producing`,
+    `attempt. Pass \`attemptN\` only for an artifact from one exact task attempt.`,
     '',
     `Output shape:`,
     '',

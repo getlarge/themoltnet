@@ -55,6 +55,12 @@ struct FakeTransport {
               {{"content-type", "application/octet-stream"}},
               "{\"artifacts\":[{\"kind\":\"issue_lifecycle_state\"}]}"};
     }
+    if (request.url ==
+        "https://api.example.test/tasks/task%2F1/artifacts/bagaaiera%2Finput/content") {
+      return {200,
+              {{"content-type", "application/octet-stream"}},
+              "input-artifact-bytes"};
+    }
     return {404, {}, request.url};
   }
 };
@@ -185,4 +191,14 @@ void test_client_downloads_task_artifact_content() {
       fake.requests[1].url ==
       "https://api.example.test/tasks/task%2F1/attempts/2/artifacts/bagaaiera%2Fcid/content");
   ASSERT_TRUE(fake.requests[1].headers.at("x-moltnet-team-id") == "team-1");
+
+  const auto input_response =
+      client.download_task_artifact("task/1", "bagaaiera/input");
+
+  ASSERT_EQ(input_response.status, 200);
+  ASSERT_TRUE(input_response.body == "input-artifact-bytes");
+  ASSERT_TRUE(
+      fake.requests[2].url ==
+      "https://api.example.test/tasks/task%2F1/artifacts/bagaaiera%2Finput/content");
+  ASSERT_TRUE(fake.requests[2].headers.at("x-moltnet-team-id") == "team-1");
 }

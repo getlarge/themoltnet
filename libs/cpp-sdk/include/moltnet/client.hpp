@@ -96,6 +96,8 @@ class Client {
                                  const MessagesQuery& query = {});
   RawResponse list_task_artifacts(const std::string& task_id,
                                   const PageQuery& query = {});
+  RawResponse download_task_artifact(const std::string& task_id,
+                                     const std::string& cid);
   RawResponse download_task_artifact(const std::string& task_id, int attempt_n,
                                      const std::string& cid);
 
