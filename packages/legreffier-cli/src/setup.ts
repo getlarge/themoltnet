@@ -108,7 +108,8 @@ export async function downloadSkills(
  */
 export const CANONICAL_SKILL_DIR = '.agents/skills';
 
-export const GITHUB_GUARD_HOOK_COMMAND = 'moltnet github guard';
+export const GITHUB_GUARD_HOOK_COMMAND =
+  'command -v moltnet >/dev/null 2>&1 && moltnet github guard 2>/dev/null || true';
 
 interface CommandHook {
   type: 'command';
@@ -131,18 +132,25 @@ export function mergeGitHubGuardHook(hooks: unknown): HookSettings {
       ? (hooks as HookSettings)
       : {};
   const preToolUse = Array.isArray(existing.PreToolUse)
-    ? [...existing.PreToolUse]
+    ? existing.PreToolUse.map((entry) => ({
+        ...entry,
+        hooks: Array.isArray(entry.hooks)
+          ? entry.hooks.filter((hook) => !isGitHubGuardHook(hook))
+          : [],
+      }))
     : [];
-  const bashMatcher = preToolUse.find((entry) => entry.matcher === 'Bash');
+  const bashMatcherIndex = preToolUse.findIndex(
+    (entry) => entry.matcher === 'Bash',
+  );
 
-  if (bashMatcher) {
-    const commands = Array.isArray(bashMatcher.hooks) ? bashMatcher.hooks : [];
-    if (!commands.some((hook) => hook.command === GITHUB_GUARD_HOOK_COMMAND)) {
-      bashMatcher.hooks = [
-        ...commands,
+  if (bashMatcherIndex >= 0) {
+    preToolUse[bashMatcherIndex] = {
+      ...preToolUse[bashMatcherIndex],
+      hooks: [
+        ...preToolUse[bashMatcherIndex].hooks,
         { type: 'command', command: GITHUB_GUARD_HOOK_COMMAND },
-      ];
-    }
+      ],
+    };
   } else {
     preToolUse.push({
       matcher: 'Bash',
@@ -151,6 +159,16 @@ export function mergeGitHubGuardHook(hooks: unknown): HookSettings {
   }
 
   return { ...existing, PreToolUse: preToolUse };
+}
+
+function isGitHubGuardHook(hook: unknown): boolean {
+  return (
+    !!hook &&
+    typeof hook === 'object' &&
+    'command' in hook &&
+    typeof hook.command === 'string' &&
+    /\bgithub\s+guard\b/.test(hook.command)
+  );
 }
 
 /**
@@ -228,12 +246,14 @@ export function buildGhTokenRule(): string {
     '- allows the user token as a fallback when the App installation explicitly',
     '  lacks the required permission;',
     '- allows bare visible `gh pr` and `gh issue` writes in `human` authorship mode;',
-    '- denies unknown write-capable commands and ambiguous GraphQL mutations.',
+    '- denies unknown commands, while GraphQL mutations require a scoped token.',
     '',
     'Installation permissions are cached with the token in `gh-token-cache.json`.',
-    'The first relevant write lazily refreshes legacy or expired cache state. If',
-    'optional permission state cannot be loaded, the hook fails open silently so an',
-    'editor never reports a non-blocking hook error.',
+    'Writes are atomic, and refresh failures are cached briefly to avoid retry storms.',
+    'The first relevant write lazily refreshes legacy or expired cache state. By',
+    'default unavailable optional permission state fails open silently; set',
+    '`MOLTNET_GITHUB_GUARD_STRICT=1` to fail closed instead. Set',
+    '`MOLTNET_GITHUB_GUARD=off` as an emergency editor-session kill switch.',
     '',
     'For writes the App can perform, use the canonical command-scoped form:',
     '',
@@ -263,7 +283,7 @@ export function buildCodexRules(_agentName: string): string {
     '# Codex sandbox rules for LeGreffier',
     '#',
     '# Allow the commands that the legreffier skill needs to run.',
-    '# GH_TOKEN is injected inline; see $legreffier skill for details.',
+    '# The GitHub guard owns authorship policy; these rules only reduce prompts.',
     '',
     '# Read-only git commands (session activation & commit workflow)',
     'prefix_rule(',

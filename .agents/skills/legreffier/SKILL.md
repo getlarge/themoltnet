@@ -421,9 +421,11 @@ LeGreffier setup installs `moltnet github guard` as a `PreToolUse` Bash hook for
 Claude Code and Codex. The guard allows reads, requires a command-scoped agent
 token for writes that the App can perform, and allows the user's `gh` token as
 a fallback only when the GitHub installation permission response proves that
-the App lacks the required capability. Unknown commands and ambiguous GraphQL
-mutations are denied. Permission lookup failures fail open silently so the
-editor hook stays non-blocking.
+the App lacks the required capability. Unknown commands are denied; GraphQL
+mutations require a scoped token. Permission lookup failures fail open silently
+by default so the editor hook stays non-blocking. Use
+`MOLTNET_GITHUB_GUARD_STRICT=1` to fail closed or
+`MOLTNET_GITHUB_GUARD=off` as an emergency editor-session kill switch.
 
 In `human` authorship mode, visible `gh pr` and `gh issue` writes run bare so
 GitHub attributes them to the human. `git push` still uses the agent credential

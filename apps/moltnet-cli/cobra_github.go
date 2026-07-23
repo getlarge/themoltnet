@@ -53,7 +53,9 @@ func newGitHubCmd() *cobra.Command {
 deny write-capable gh commands that would silently use human credentials.
 
 Malformed input and commands outside an activated MoltNet git context are
-allowed silently so hook failures never block the agent session.`,
+allowed silently. Set MOLTNET_GITHUB_GUARD_STRICT=1 to deny writes when App
+permission state is unavailable, or MOLTNET_GITHUB_GUARD=off to disable the
+guard for an emergency editor session.`,
 		Example: `  # .claude/settings.local.json or .codex/hooks.json
   moltnet github guard`,
 		Args: cobra.NoArgs,

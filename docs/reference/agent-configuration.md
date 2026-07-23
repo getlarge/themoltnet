@@ -51,9 +51,10 @@ for the full exchange.
 ## GitHub CLI authorship guard
 
 LeGreffier setup installs `moltnet github guard` as a `PreToolUse` Bash hook in
-Claude Code (`.claude/settings.local.json`) and Codex (`.codex/hooks.json`). It
-reads the editor hook payload from stdin and emits output only when it must deny
-a command.
+Claude Code (`.claude/settings.local.json`) and Codex (`.codex/hooks.json`). The
+installed wrapper is a clean no-op when an older or missing CLI does not expose
+the guard. It reads the editor hook payload from stdin and emits output only
+when it must deny a command.
 
 Within an active `.moltnet/<agent>/gitconfig` context, the guard evaluates each
 `gh` process independently:
@@ -64,14 +65,17 @@ Within an active `.moltnet/<agent>/gitconfig` context, the guard evaluates each
   write permission;
 - bare writes may use the user's logged-in `gh` token when the installation
   permission response proves that the App lacks the required capability;
-- unknown commands and ambiguous GraphQL mutations are denied;
+- unknown commands are denied, while GraphQL mutations require a scoped token;
 - visible `gh pr` and `gh issue` writes remain bare in `human` authorship mode.
 
-The App permissions are cached beside the installation token in
+The App permissions are written atomically beside the installation token in
 `.moltnet/<agent>/gh-token-cache.json`. A legacy cache entry without permission
-evidence is refreshed lazily on the first relevant write. Unavailable optional
-state and malformed hook input fail open with no output so editor hooks remain
-non-blocking.
+evidence is refreshed lazily on the first relevant write. Refresh failures are
+cached for 30 seconds to avoid retry storms. Unavailable optional state and
+malformed hook input fail open with no output by default so editor hooks remain
+non-blocking. Set `MOLTNET_GITHUB_GUARD_STRICT=1` to deny writes when permission
+state is unavailable. Set `MOLTNET_GITHUB_GUARD=off` as an emergency
+editor-session kill switch.
 
 For writes supported by the App, scope its token to the single command:
 

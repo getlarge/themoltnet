@@ -17,7 +17,11 @@ import (
 	"mvdan.cc/sh/v3/syntax"
 )
 
-const githubGuardPermissionTimeout = 2 * time.Second
+const (
+	githubGuardPermissionTimeout = 2 * time.Second
+	githubGuardNegativeCacheTTL  = 30 * time.Second
+	githubGuardGitTimeout        = 500 * time.Millisecond
+)
 
 type hookInput struct {
 	ToolInput struct {
@@ -36,6 +40,7 @@ type hookDenyOutput struct {
 type githubGuardContext struct {
 	CredentialsPath string
 	AuthorshipMode  string
+	Strict          bool
 }
 
 type guardPermissionLoader func(context.Context, string) (map[string]string, error)
@@ -55,8 +60,18 @@ type ghOperation struct {
 	Description  string
 }
 
-// runGitHubGuardCmd implements the hook contract. Every internal failure is a
-// silent allow; the only output this command ever writes is a deny decision.
+type guardVerdict struct {
+	Allow  bool
+	Reason string
+}
+
+type guardEvaluationState struct {
+	InheritedTokenUses      int
+	InheritedTokenExhausted bool
+}
+
+// runGitHubGuardCmd implements the hook contract. Internal failures allow
+// silently by default; MOLTNET_GITHUB_GUARD_STRICT=1 makes them deny instead.
 func runGitHubGuardCmd(in io.Reader, out io.Writer) error {
 	return runGitHubGuard(in, out, currentGitHubGuardContext, loadGitHubGuardPermissions)
 }
@@ -67,6 +82,10 @@ func runGitHubGuard(
 	resolveContext func() (githubGuardContext, bool),
 	permissions guardPermissionLoader,
 ) error {
+	if strings.EqualFold(strings.TrimSpace(os.Getenv("MOLTNET_GITHUB_GUARD")), "off") {
+		return nil
+	}
+
 	var input hookInput
 	if err := json.NewDecoder(io.LimitReader(in, 1<<20)).Decode(&input); err != nil || input.ToolInput.Command == "" {
 		return nil
@@ -97,7 +116,9 @@ func currentGitHubGuardContext() (githubGuardContext, bool) {
 
 	gitConfigPath := configured
 	if !filepath.IsAbs(gitConfigPath) {
-		cmd := exec.Command("git", "rev-parse", "--show-toplevel")
+		ctx, cancel := context.WithTimeout(context.Background(), githubGuardGitTimeout)
+		defer cancel()
+		cmd := exec.CommandContext(ctx, "git", "rev-parse", "--show-toplevel")
 		cmd.Stderr = io.Discard
 		root, err := cmd.Output()
 		if err != nil {
@@ -123,7 +144,17 @@ func currentGitHubGuardContext() (githubGuardContext, bool) {
 	return githubGuardContext{
 		CredentialsPath: filepath.Join(filepath.Dir(gitConfigPath), "moltnet.json"),
 		AuthorshipMode:  authorshipMode,
+		Strict:          envEnabled("MOLTNET_GITHUB_GUARD_STRICT"),
 	}, true
+}
+
+func envEnabled(name string) bool {
+	switch strings.ToLower(strings.TrimSpace(os.Getenv(name))) {
+	case "1", "true", "yes", "on":
+		return true
+	default:
+		return false
+	}
 }
 
 func isMoltnetGitConfig(path string) bool {
@@ -146,12 +177,13 @@ func loadGitHubGuardPermissions(ctx context.Context, credentialsPath string) (ma
 		return nil, fmt.Errorf("GitHub App not configured")
 	}
 
-	details, err := getCachedInstallationTokenDetails(
+	details, err := getCachedInstallationTokenDetailsWithFailureTTL(
 		ctx,
 		&http.Client{Timeout: githubGuardPermissionTimeout},
 		creds.GitHub.AppID,
 		creds.GitHub.PrivateKeyPath,
 		creds.GitHub.InstallationID,
+		githubGuardNegativeCacheTTL,
 	)
 	if err != nil {
 		return nil, err
@@ -160,14 +192,20 @@ func loadGitHubGuardPermissions(ctx context.Context, credentialsPath string) (ma
 }
 
 func evaluateGitHubGuard(command string, guardCtx githubGuardContext, permissions guardPermissionLoader) string {
-	return evaluateGitHubGuardScript(command, guardCtx, permissions, false, 0)
+	return evaluateGitHubGuardScript(
+		command,
+		guardCtx,
+		permissions,
+		&guardEvaluationState{},
+		0,
+	)
 }
 
 func evaluateGitHubGuardScript(
 	command string,
 	guardCtx githubGuardContext,
 	permissions guardPermissionLoader,
-	inheritedToken bool,
+	state *guardEvaluationState,
 	depth int,
 ) string {
 	file, err := syntax.NewParser(syntax.Variant(syntax.LangBash)).Parse(strings.NewReader(command), "hook")
@@ -189,19 +227,32 @@ func evaluateGitHubGuardScript(
 		if !ok {
 			return true
 		}
-		if nested, ok := literalNestedShellScript(executable, args); ok {
+		nested, isNested, verifiable := nestedShellScript(executable, args)
+		if isNested && !verifiable {
+			denial = "Cannot verify a dynamic nested shell command. Use a literal shell command or run it outside the activated MoltNet agent context."
+			return false
+		}
+		if isNested {
 			if depth >= 8 {
 				denial = "Nested shell command is too deep for the GitHub authorship guard to verify."
 				return false
+			}
+			nestedState := state
+			if scopedToken {
+				nestedState = &guardEvaluationState{InheritedTokenUses: 1}
 			}
 			denial = evaluateGitHubGuardScript(
 				nested,
 				guardCtx,
 				permissions,
-				inheritedToken || scopedToken,
+				nestedState,
 				depth+1,
 			)
 			return denial == ""
+		}
+		if isKnownPrefixRunner(executable) && args == nil {
+			denial = "Cannot verify a dynamic command passed through a shell prefix runner."
+			return false
 		}
 		if filepath.Base(executable) != "gh" {
 			return true
@@ -211,62 +262,103 @@ func evaluateGitHubGuardScript(
 		if args != nil {
 			op = classifyGitHubOperation(args)
 		}
-		if op.Kind == ghReadOnly {
-			return true
-		}
-		if op.Kind == ghUnknown || op.Permission == "" {
-			denial = "Cannot prove this gh command is read-only or map it to a supported GitHub App permission. Use a recognized gh operation, or run the command outside the activated MoltNet agent context."
-			return false
-		}
-		if scopedToken || inheritedToken {
-			return true
-		}
-		if op.HumanVisible && guardCtx.AuthorshipMode == "human" {
-			return true
-		}
-
-		ctx, cancel := context.WithTimeout(context.Background(), githubGuardPermissionTimeout)
-		granted, loadErr := permissions(ctx, guardCtx.CredentialsPath)
-		cancel()
-		if loadErr != nil {
-			// Hook state is optional. A missing cache, credentials file, or network
-			// response must never turn into a hook execution error.
-			return true
-		}
-		if !permissionAllowsWrite(granted[op.Permission]) {
-			// The installation cannot perform this operation, so gh may fall back
-			// to the user's configured credential.
-			return true
-		}
-
-		description := op.Description
-		if description == "" {
-			description = "GitHub write"
-		}
-		denial = fmt.Sprintf(
-			"%s must be attributed to the active MoltNet GitHub App (%s:write). Retry with `GH_TOKEN=$(moltnet github token --credentials %q) gh ...` on this same command.",
-			description,
-			op.Permission,
-			guardCtx.CredentialsPath,
+		verdict := decideGitHubCall(
+			op,
+			scopedToken,
+			state,
+			guardCtx,
+			permissions,
 		)
+		if verdict.Allow {
+			return true
+		}
+		denial = verdict.Reason
 		return false
 	})
 	return denial
 }
 
-func literalNestedShellScript(executable string, args []string) (string, bool) {
-	if args == nil {
-		return "", false
+func decideGitHubCall(
+	op ghOperation,
+	scopedToken bool,
+	state *guardEvaluationState,
+	guardCtx githubGuardContext,
+	permissions guardPermissionLoader,
+) guardVerdict {
+	if op.Kind == ghReadOnly {
+		return guardVerdict{Allow: true}
 	}
+	if op.Kind == ghUnknown {
+		return guardVerdict{
+			Reason: "Cannot prove this gh command is read-only or map it to a supported GitHub operation. Use a recognized gh operation, or run the command outside the activated MoltNet agent context.",
+		}
+	}
+
+	hasAgentToken := scopedToken
+	if !hasAgentToken && state.InheritedTokenUses > 0 {
+		state.InheritedTokenUses--
+		state.InheritedTokenExhausted = true
+		hasAgentToken = true
+	}
+	if hasAgentToken {
+		return guardVerdict{Allow: true}
+	}
+	if state.InheritedTokenExhausted {
+		return guardVerdict{
+			Reason: "A GH_TOKEN assigned to a nested shell may authorize only one gh write. Scope a fresh MoltNet token directly to each additional gh command.",
+		}
+	}
+	if op.HumanVisible && guardCtx.AuthorshipMode == "human" {
+		return guardVerdict{Allow: true}
+	}
+	if op.Permission == "" {
+		return guardVerdict{
+			Reason: "This GitHub write cannot be mapped to a specific installation permission. Retry with a command-scoped GH_TOKEN minted by `moltnet github token`.",
+		}
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), githubGuardPermissionTimeout)
+	granted, loadErr := permissions(ctx, guardCtx.CredentialsPath)
+	cancel()
+	if loadErr != nil {
+		if guardCtx.Strict {
+			return guardVerdict{
+				Reason: "GitHub App permissions are unavailable and strict guard mode is enabled. Retry after restoring credentials or network access.",
+			}
+		}
+		return guardVerdict{Allow: true}
+	}
+	if !permissionAllowsWrite(granted[op.Permission]) {
+		return guardVerdict{Allow: true}
+	}
+
+	description := op.Description
+	if description == "" {
+		description = "GitHub write"
+	}
+	return guardVerdict{
+		Reason: fmt.Sprintf(
+			"%s must be attributed to the active MoltNet GitHub App (%s:write). Retry with `GH_TOKEN=$(moltnet github token --credentials %q) gh ...` on this same command.",
+			description,
+			op.Permission,
+			guardCtx.CredentialsPath,
+		),
+	}
+}
+
+func nestedShellScript(executable string, args []string) (string, bool, bool) {
 	base := filepath.Base(executable)
+	if base != "eval" && base != "sh" && base != "bash" && base != "dash" && base != "zsh" {
+		return "", false, false
+	}
+	if args == nil {
+		return "", true, false
+	}
 	if base == "eval" {
 		if len(args) == 0 {
-			return "", false
+			return "", false, false
 		}
-		return strings.Join(args, " "), true
-	}
-	if base != "sh" && base != "bash" && base != "dash" && base != "zsh" {
-		return "", false
+		return strings.Join(args, " "), true, true
 	}
 	for i, arg := range args {
 		if arg == "--" {
@@ -274,12 +366,12 @@ func literalNestedShellScript(executable string, args []string) (string, bool) {
 		}
 		if arg == "--command" || (strings.HasPrefix(arg, "-") && strings.Contains(strings.TrimPrefix(arg, "-"), "c")) {
 			if i+1 < len(args) {
-				return args[i+1], true
+				return args[i+1], true, true
 			}
-			return "", false
+			return "", true, false
 		}
 	}
-	return "", false
+	return "", false, false
 }
 
 func permissionAllowsWrite(level string) bool {
@@ -367,7 +459,140 @@ func parseShellInvocation(call *syntax.CallExpr) (string, []string, bool, bool) 
 		}
 		args = append(args, arg)
 	}
+	for isKnownPrefixRunner(executable) {
+		var unwrapped bool
+		executable, args, unwrapped = unwrapPrefixRunner(executable, args)
+		if !unwrapped {
+			return executable, nil, scopedToken, true
+		}
+	}
 	return executable, args, scopedToken, true
+}
+
+func isKnownPrefixRunner(executable string) bool {
+	switch filepath.Base(executable) {
+	case "nohup", "sudo", "timeout", "xargs":
+		return true
+	default:
+		return false
+	}
+}
+
+func unwrapPrefixRunner(executable string, args []string) (string, []string, bool) {
+	if args == nil {
+		return executable, nil, false
+	}
+	switch filepath.Base(executable) {
+	case "nohup":
+		if len(args) > 0 && args[0] == "--" {
+			args = args[1:]
+		}
+		return commandFromArgs(executable, args)
+	case "sudo":
+		commandIndex, ok := commandAfterOptions(args, map[string]bool{
+			"-C": true, "--close-from": true,
+			"-g": true, "--group": true,
+			"-h": true, "--host": true,
+			"-p": true, "--prompt": true,
+			"-r": true, "--role": true,
+			"-t": true, "--type": true,
+			"-T": true, "--command-timeout": true,
+			"-u": true, "--user": true,
+		}, map[string]bool{
+			"-A": true, "--askpass": true,
+			"-b": true, "--background": true,
+			"-E": true, "--preserve-env": true,
+			"-H": true, "--set-home": true,
+			"-K": true, "--remove-timestamp": true,
+			"-k": true, "--reset-timestamp": true,
+			"-n": true, "--non-interactive": true,
+			"-S": true, "--stdin": true,
+			"-V": true, "--version": true,
+			"-v": true, "--validate": true,
+		})
+		if !ok {
+			return executable, nil, false
+		}
+		return commandFromArgs(executable, args[commandIndex:])
+	case "timeout":
+		durationIndex, ok := commandAfterOptions(args, map[string]bool{
+			"-k": true, "--kill-after": true,
+			"-s": true, "--signal": true,
+		}, map[string]bool{
+			"--foreground":      true,
+			"--preserve-status": true,
+			"-v":                true, "--verbose": true,
+		})
+		if !ok || durationIndex+1 >= len(args) {
+			return executable, nil, false
+		}
+		return commandFromArgs(executable, args[durationIndex+1:])
+	case "xargs":
+		commandIndex, ok := commandAfterOptions(args, map[string]bool{
+			"-a": true, "--arg-file": true,
+			"-d": true, "--delimiter": true,
+			"-E": true, "-e": true, "--eof": true,
+			"-I": true, "-i": true, "--replace": true,
+			"-L": true, "-l": true, "--max-lines": true,
+			"-n": true, "--max-args": true,
+			"-P": true, "--max-procs": true,
+			"-s": true, "--max-chars": true,
+		}, map[string]bool{
+			"-0": true, "--null": true,
+			"-o": true, "--open-tty": true,
+			"-p": true, "--interactive": true,
+			"-r": true, "--no-run-if-empty": true,
+			"-t": true, "--verbose": true,
+			"-x": true, "--exit": true,
+			"--show-limits": true,
+		})
+		if !ok {
+			return executable, nil, false
+		}
+		return commandFromArgs(executable, args[commandIndex:])
+	default:
+		return executable, args, false
+	}
+}
+
+func commandAfterOptions(args []string, valueOptions, booleanOptions map[string]bool) (int, bool) {
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		if arg == "--" {
+			return i + 1, i+1 < len(args)
+		}
+		if !strings.HasPrefix(arg, "-") || arg == "-" {
+			return i, true
+		}
+		name := arg
+		if before, _, found := strings.Cut(arg, "="); found {
+			name = before
+		}
+		if valueOptions[name] {
+			if strings.Contains(arg, "=") {
+				continue
+			}
+			if len(name) == 2 && len(arg) > 2 {
+				continue
+			}
+			i++
+			if i >= len(args) {
+				return 0, false
+			}
+			continue
+		}
+		if !booleanOptions[name] {
+			return 0, false
+		}
+	}
+	return 0, false
+}
+
+func commandFromArgs(original string, args []string) (string, []string, bool) {
+	if len(args) == 0 || strings.HasPrefix(args[0], "-") {
+		return original, nil, false
+	}
+	return args[0], args[1:], true
 }
 
 func staticShellWord(word *syntax.Word) (string, bool) {
@@ -462,38 +687,39 @@ func isMoltnetTokenParts(parts []syntax.WordPart) bool {
 }
 
 func classifyGitHubOperation(args []string) ghOperation {
-	if len(args) == 0 || containsHelpFlag(args) {
+	args, rootHelp, ok := stripGitHubGlobalFlags(args)
+	if !ok {
+		return ghOperation{Kind: ghUnknown}
+	}
+	if rootHelp || len(args) == 0 {
 		return ghOperation{Kind: ghReadOnly}
 	}
 
+	args = normalizeGitHubAlias(args)
 	top := args[0]
-	if strings.HasPrefix(top, "-") {
+	if len(args) == 2 && (args[1] == "--help" || args[1] == "-h") {
 		return ghOperation{Kind: ghReadOnly}
 	}
+
 	switch top {
-	case "co":
-		args = append([]string{"pr", "checkout"}, args[1:]...)
-	case "cs":
-		args[0] = "codespace"
-	case "at":
-		args[0] = "attestation"
-	case "ext", "extensions":
-		args[0] = "extension"
-	case "rs":
-		args[0] = "ruleset"
-	case "agent", "agents", "agent-tasks":
-		args[0] = "agent-task"
-	case "skills":
-		args[0] = "skill"
+	case "auth":
+		return classifySubcommand(args, map[string]bool{
+			"status": true,
+			"token":  true,
+		})
+	case "alias":
+		return classifySubcommand(args, map[string]bool{"list": true})
+	case "config":
+		return classifySubcommand(args, map[string]bool{
+			"get":  true,
+			"list": true,
+		})
 	}
-	top = args[0]
 
 	switch top {
 	case "api":
 		return classifyGitHubAPI(args[1:])
 	case "browse", "completion", "licenses", "search", "status", "help":
-		return ghOperation{Kind: ghReadOnly}
-	case "auth", "alias", "config":
 		return ghOperation{Kind: ghReadOnly}
 	case "attestation", "org", "ruleset":
 		return classifySubcommand(args, map[string]bool{
@@ -569,13 +795,45 @@ func classifyGitHubOperation(args []string) ghOperation {
 	}
 }
 
-func containsHelpFlag(args []string) bool {
-	for _, arg := range args {
-		if arg == "--help" || arg == "-h" || arg == "--version" {
-			return true
+func stripGitHubGlobalFlags(args []string) ([]string, bool, bool) {
+	for len(args) > 0 && strings.HasPrefix(args[0], "-") {
+		arg := args[0]
+		switch {
+		case arg == "--help" || arg == "-h" || arg == "--version":
+			return nil, true, true
+		case arg == "-R" || arg == "--repo" || arg == "--hostname":
+			if len(args) < 2 {
+				return nil, false, false
+			}
+			args = args[2:]
+		case strings.HasPrefix(arg, "--repo=") || strings.HasPrefix(arg, "--hostname="):
+			args = args[1:]
+		default:
+			return nil, false, false
 		}
 	}
-	return false
+	return args, false, true
+}
+
+func normalizeGitHubAlias(args []string) []string {
+	normalized := append([]string(nil), args...)
+	switch normalized[0] {
+	case "co":
+		return append([]string{"pr", "checkout"}, normalized[1:]...)
+	case "cs":
+		normalized[0] = "codespace"
+	case "at":
+		normalized[0] = "attestation"
+	case "ext", "extensions":
+		normalized[0] = "extension"
+	case "rs":
+		normalized[0] = "ruleset"
+	case "agent", "agents", "agent-tasks":
+		normalized[0] = "agent-task"
+	case "skills":
+		normalized[0] = "skill"
+	}
+	return normalized
 }
 
 func classifySubcommand(args []string, readOnly map[string]bool) ghOperation {
@@ -644,12 +902,16 @@ func classifyGitHubAPI(args []string) ghOperation {
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
 		switch {
+		case (arg == "--help" || arg == "-h") && endpoint == "":
+			return ghOperation{Kind: ghReadOnly}
 		case arg == "-X" || arg == "--method":
 			if i+1 >= len(args) {
 				return ghOperation{Kind: ghUnknown}
 			}
 			i++
 			method = strings.ToUpper(args[i])
+		case strings.HasPrefix(arg, "-X") && len(arg) > 2:
+			method = strings.ToUpper(strings.TrimPrefix(arg, "-X"))
 		case strings.HasPrefix(arg, "--method="):
 			method = strings.ToUpper(strings.TrimPrefix(arg, "--method="))
 		case arg == "-f" || arg == "--raw-field" || arg == "-F" || arg == "--field":
@@ -659,6 +921,16 @@ func classifyGitHubAPI(args []string) ghOperation {
 			i++
 			hasFields = true
 			if key, value, ok := strings.Cut(args[i], "="); ok && key == "query" {
+				query = value
+			}
+		case strings.HasPrefix(arg, "-f") && len(arg) > 2:
+			hasFields = true
+			if key, value, ok := strings.Cut(strings.TrimPrefix(arg, "-f"), "="); ok && key == "query" {
+				query = value
+			}
+		case strings.HasPrefix(arg, "-F") && len(arg) > 2:
+			hasFields = true
+			if key, value, ok := strings.Cut(strings.TrimPrefix(arg, "-F"), "="); ok && key == "query" {
 				query = value
 			}
 		case strings.HasPrefix(arg, "--raw-field=") || strings.HasPrefix(arg, "--field="):
@@ -675,10 +947,18 @@ func classifyGitHubAPI(args []string) ghOperation {
 			hasInput = true
 		case strings.HasPrefix(arg, "--input="):
 			hasInput = true
-		case strings.HasPrefix(arg, "-"):
-			// Formatting, pagination, hostname, and preview flags do not
-			// alter whether the request writes.
+		case apiFlagNeedsValue(arg):
+			if strings.Contains(arg, "=") || apiAttachedShortFlag(arg) {
+				continue
+			}
+			i++
+			if i >= len(args) {
+				return ghOperation{Kind: ghUnknown}
+			}
+		case apiBooleanFlag(arg):
 			continue
+		case strings.HasPrefix(arg, "-"):
+			return ghOperation{Kind: ghUnknown}
 		case endpoint == "":
 			endpoint = arg
 		}
@@ -719,6 +999,45 @@ func classifyGitHubAPI(args []string) ghOperation {
 		return ghOperation{Kind: ghWrite, Description: "GitHub API write"}
 	}
 	return ghOperation{Kind: ghWrite, Permission: permission, Description: "GitHub API write"}
+}
+
+func apiFlagNeedsValue(arg string) bool {
+	name := arg
+	if before, _, found := strings.Cut(arg, "="); found {
+		name = before
+	}
+	if len(arg) > 2 && (strings.HasPrefix(arg, "-H") ||
+		strings.HasPrefix(arg, "-q") ||
+		strings.HasPrefix(arg, "-t")) {
+		name = arg[:2]
+	}
+	switch name {
+	case "-H", "--header",
+		"--hostname",
+		"--preview",
+		"--cache",
+		"-q", "--jq",
+		"-t", "--template":
+		return true
+	default:
+		return false
+	}
+}
+
+func apiAttachedShortFlag(arg string) bool {
+	return len(arg) > 2 &&
+		(strings.HasPrefix(arg, "-H") ||
+			strings.HasPrefix(arg, "-q") ||
+			strings.HasPrefix(arg, "-t"))
+}
+
+func apiBooleanFlag(arg string) bool {
+	switch arg {
+	case "--paginate", "--slurp", "--verbose", "--include", "-i", "--silent":
+		return true
+	default:
+		return false
+	}
 }
 
 func permissionForRESTEndpoint(endpoint string) string {

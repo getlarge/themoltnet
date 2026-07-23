@@ -108,7 +108,8 @@ export function buildFulfillBriefUserPrompt(
     '7. Push the branch and open a PR — run `git push` and `gh pr create`',
     '   IN the VM with your normal `bash` tool (use the',
     '   `GH_TOKEN=$(moltnet github token …) gh …` form from the runtime',
-    '   instructor). Do NOT use `moltnet_host_exec` for this; it needs human',
+    '   instructor for writes; read-only `gh` commands may run bare). Do NOT',
+    '   use `moltnet_host_exec` for this; it needs human',
     '   approval that is unavailable in a headless run.',
   ].join('\n');
 

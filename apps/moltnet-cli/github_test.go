@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -443,6 +444,139 @@ func TestGetCachedInstallationTokenDetails_RefreshesLegacyCacheWithoutPermission
 	)
 	if err == nil || !strings.Contains(err.Error(), "failed to decode PEM block") {
 		t.Fatalf("expected legacy cache refresh, got: %v", err)
+	}
+}
+
+func TestGetCachedInstallationTokenDetails_CachesEmptyPermissions(t *testing.T) {
+	tmpDir := t.TempDir()
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("generate key: %v", err)
+	}
+	keyPath := filepath.Join(tmpDir, "private-key.pem")
+	keyData := pem.EncodeToMemory(&pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
+	})
+	if err := os.WriteFile(keyPath, keyData, 0o600); err != nil {
+		t.Fatalf("write key: %v", err)
+	}
+
+	var requests atomic.Int32
+	expiresAt := time.Now().Add(time.Hour).UTC().Format(time.RFC3339)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		requests.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		fmt.Fprintf(w, `{"token":"ghs_empty","expires_at":%q,"permissions":{}}`, expiresAt)
+	}))
+	defer server.Close()
+
+	old := githubAPIBaseURL
+	githubAPIBaseURL = server.URL
+	defer func() { githubAPIBaseURL = old }()
+
+	for range 2 {
+		details, err := getCachedInstallationTokenDetails(
+			context.Background(),
+			server.Client(),
+			"12345",
+			keyPath,
+			"67890",
+		)
+		if err != nil {
+			t.Fatalf("get token details: %v", err)
+		}
+		if details.Permissions == nil || len(details.Permissions) != 0 {
+			t.Fatalf("expected a non-nil empty permission map: %#v", details.Permissions)
+		}
+	}
+	if got := requests.Load(); got != 1 {
+		t.Fatalf("expected one token refresh, got %d", got)
+	}
+}
+
+func TestGetCachedInstallationTokenDetails_NegativeCachesRefreshFailure(t *testing.T) {
+	tmpDir := t.TempDir()
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("generate key: %v", err)
+	}
+	keyPath := filepath.Join(tmpDir, "private-key.pem")
+	keyData := pem.EncodeToMemory(&pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
+	})
+	if err := os.WriteFile(keyPath, keyData, 0o600); err != nil {
+		t.Fatalf("write key: %v", err)
+	}
+
+	var requests atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		requests.Add(1)
+		http.Error(w, "unavailable", http.StatusServiceUnavailable)
+	}))
+	defer server.Close()
+
+	old := githubAPIBaseURL
+	githubAPIBaseURL = server.URL
+	defer func() { githubAPIBaseURL = old }()
+
+	_, firstErr := getCachedInstallationTokenDetailsWithFailureTTL(
+		context.Background(),
+		server.Client(),
+		"12345",
+		keyPath,
+		"67890",
+		time.Minute,
+	)
+	if firstErr == nil {
+		t.Fatal("expected initial token refresh failure")
+	}
+	_, secondErr := getCachedInstallationTokenDetailsWithFailureTTL(
+		context.Background(),
+		server.Client(),
+		"12345",
+		keyPath,
+		"67890",
+		time.Minute,
+	)
+	if secondErr == nil || !strings.Contains(secondErr.Error(), "temporarily suppressed") {
+		t.Fatalf("expected cached refresh failure, got %v", secondErr)
+	}
+	if got := requests.Load(); got != 1 {
+		t.Fatalf("expected one GitHub request, got %d", got)
+	}
+}
+
+func TestWriteJSONAtomicUsesPrivateModeAndValidJSON(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "cache.json")
+	value := tokenCache{
+		Token:       "ghs_test",
+		ExpiresAt:   time.Now().Add(time.Hour).UTC().Format(time.RFC3339),
+		Permissions: map[string]string{},
+	}
+
+	if err := writeJSONAtomic(path, value); err != nil {
+		t.Fatalf("write atomic JSON: %v", err)
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatalf("stat cache: %v", err)
+	}
+	if got := info.Mode().Perm(); got != 0o600 {
+		t.Fatalf("cache mode = %o, want 600", got)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read cache: %v", err)
+	}
+	var decoded tokenCache
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		t.Fatalf("decode cache: %v", err)
+	}
+	if decoded.Permissions == nil {
+		t.Fatal("empty permissions must remain distinguishable from a legacy cache")
 	}
 }
 

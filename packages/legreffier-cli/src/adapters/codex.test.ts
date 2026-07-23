@@ -4,6 +4,7 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { GITHUB_GUARD_HOOK_COMMAND } from '../setup.js';
 import { CodexAdapter } from './codex.js';
 import type { AgentAdapterOptions } from './types.js';
 
@@ -111,7 +112,7 @@ describe('CodexAdapter.writeSettings', () => {
     expect(parsed.PreToolUse).toEqual([
       {
         matcher: 'Bash',
-        hooks: [{ type: 'command', command: 'moltnet github guard' }],
+        hooks: [{ type: 'command', command: GITHUB_GUARD_HOOK_COMMAND }],
       },
     ]);
   });
@@ -140,7 +141,7 @@ describe('CodexAdapter.writeSettings', () => {
     const parsed = JSON.parse(await readFile(join(dir, 'hooks.json'), 'utf-8'));
     expect(parsed.SessionStart).toHaveLength(1);
     expect(parsed.PreToolUse[0].hooks).toEqual([
-      { type: 'command', command: 'moltnet github guard' },
+      { type: 'command', command: GITHUB_GUARD_HOOK_COMMAND },
     ]);
   });
 });

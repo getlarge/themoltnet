@@ -11,12 +11,14 @@ Claude Code and Codex. The guard parses each shell command independently and:
 - allows the user token as a fallback when the App installation explicitly
   lacks the required permission;
 - allows bare visible `gh pr` and `gh issue` writes in `human` authorship mode;
-- denies unknown write-capable commands and ambiguous GraphQL mutations.
+- denies unknown commands, while GraphQL mutations require a scoped token.
 
 Installation permissions are cached with the token in `gh-token-cache.json`.
-The first relevant write lazily refreshes legacy or expired cache state. If
-optional permission state cannot be loaded, the hook fails open silently so an
-editor never reports a non-blocking hook error.
+Writes are atomic, and refresh failures are cached briefly to avoid retry storms.
+The first relevant write lazily refreshes legacy or expired cache state. By
+default unavailable optional permission state fails open silently; set
+`MOLTNET_GITHUB_GUARD_STRICT=1` to fail closed instead. Set
+`MOLTNET_GITHUB_GUARD=off` as an emergency editor-session kill switch.
 
 For writes the App can perform, use the canonical command-scoped form:
 

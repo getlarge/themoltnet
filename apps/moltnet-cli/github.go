@@ -238,12 +238,20 @@ func runGitHubTokenCmd(credPath string) error {
 type tokenCache struct {
 	Token       string            `json:"token"`
 	ExpiresAt   string            `json:"expires_at"`
-	Permissions map[string]string `json:"permissions,omitempty"`
+	Permissions map[string]string `json:"permissions"`
+}
+
+type tokenRefreshFailure struct {
+	FailedAt string `json:"failed_at"`
 }
 
 // tokenCachePath returns the cache file path next to the private key.
 func tokenCachePath(privateKeyPath string) string {
 	return filepath.Join(filepath.Dir(privateKeyPath), "gh-token-cache.json")
+}
+
+func tokenRefreshFailurePath(privateKeyPath string) string {
+	return filepath.Join(filepath.Dir(privateKeyPath), "gh-token-cache-error.json")
 }
 
 // timeNow is a seam for tests.
@@ -274,6 +282,22 @@ func getCachedInstallationTokenDetails(
 	client *http.Client,
 	appID, privateKeyPath, installationID string,
 ) (tokenCache, error) {
+	return getCachedInstallationTokenDetailsWithFailureTTL(
+		ctx,
+		client,
+		appID,
+		privateKeyPath,
+		installationID,
+		0,
+	)
+}
+
+func getCachedInstallationTokenDetailsWithFailureTTL(
+	ctx context.Context,
+	client *http.Client,
+	appID, privateKeyPath, installationID string,
+	failureTTL time.Duration,
+) (tokenCache, error) {
 	cachePath := tokenCachePath(privateKeyPath)
 
 	// Try reading cache
@@ -287,18 +311,62 @@ func getCachedInstallationTokenDetails(
 		}
 	}
 
+	if failureTTL > 0 {
+		if data, err := os.ReadFile(tokenRefreshFailurePath(privateKeyPath)); err == nil {
+			var failed tokenRefreshFailure
+			if json.Unmarshal(data, &failed) == nil {
+				failedAt, parseErr := time.Parse(time.RFC3339Nano, failed.FailedAt)
+				if parseErr == nil && timeNow().Before(failedAt.Add(failureTTL)) {
+					return tokenCache{}, fmt.Errorf("GitHub token refresh is temporarily suppressed after a recent failure")
+				}
+			}
+		}
+	}
+
 	// Cache miss or expired — fetch fresh token
 	details, err := getInstallationTokenDetails(ctx, client, appID, privateKeyPath, installationID)
 	if err != nil {
+		if failureTTL > 0 {
+			_ = writeJSONAtomic(
+				tokenRefreshFailurePath(privateKeyPath),
+				tokenRefreshFailure{FailedAt: timeNow().UTC().Format(time.RFC3339Nano)},
+			)
+		}
 		return tokenCache{}, err
 	}
 
 	// Write cache (best-effort)
-	if data, err := json.Marshal(details); err == nil {
-		_ = os.WriteFile(cachePath, data, 0o600)
-	}
+	_ = writeJSONAtomic(cachePath, details)
+	_ = os.Remove(tokenRefreshFailurePath(privateKeyPath))
 
 	return details, nil
+}
+
+func writeJSONAtomic(path string, value any) error {
+	dir := filepath.Dir(path)
+	file, err := os.CreateTemp(dir, ".gh-token-cache-*")
+	if err != nil {
+		return err
+	}
+	tempPath := file.Name()
+	defer os.Remove(tempPath)
+
+	if err := file.Chmod(0o600); err != nil {
+		file.Close()
+		return err
+	}
+	if err := json.NewEncoder(file).Encode(value); err != nil {
+		file.Close()
+		return err
+	}
+	if err := file.Sync(); err != nil {
+		file.Close()
+		return err
+	}
+	if err := file.Close(); err != nil {
+		return err
+	}
+	return os.Rename(tempPath, path)
 }
 
 // getInstallationToken exchanges a GitHub App JWT for an installation token.

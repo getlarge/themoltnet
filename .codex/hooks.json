@@ -3,7 +3,7 @@
     {
       "hooks": [
         {
-          "command": "moltnet github guard",
+          "command": "command -v moltnet >/dev/null 2>&1 && moltnet github guard 2>/dev/null || true",
           "type": "command"
         }
       ],
