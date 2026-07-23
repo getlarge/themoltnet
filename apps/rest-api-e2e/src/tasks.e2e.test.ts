@@ -234,7 +234,7 @@ describe('Tasks API', () => {
     return { executorFingerprint, executorSignature };
   }
 
-  function buildProducerVerification(inputCid = 'bafy-e2e-input') {
+  function buildProducerVerification(inputCid: string) {
     return {
       inputCid,
       results: [
