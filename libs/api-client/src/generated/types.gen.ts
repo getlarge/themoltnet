@@ -1476,6 +1476,11 @@ export type Readiness = {
       latencyMs: number;
       status: 'ok' | 'error';
     };
+    talos?: {
+      error?: string;
+      latencyMs: number;
+      status: 'ok' | 'error';
+    };
   };
   status: 'ok' | 'degraded';
   timestamp: string;

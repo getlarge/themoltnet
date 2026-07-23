@@ -33738,6 +33738,52 @@ func (o OptProvenanceGraphRenderedPackNodeMetaCreator) Or(d ProvenanceGraphRende
 	return d
 }
 
+// NewOptReadinessComponentsTalos returns new OptReadinessComponentsTalos with value set to v.
+func NewOptReadinessComponentsTalos(v ReadinessComponentsTalos) OptReadinessComponentsTalos {
+	return OptReadinessComponentsTalos{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptReadinessComponentsTalos is optional ReadinessComponentsTalos.
+type OptReadinessComponentsTalos struct {
+	Value ReadinessComponentsTalos
+	Set   bool
+}
+
+// IsSet returns true if OptReadinessComponentsTalos was set.
+func (o OptReadinessComponentsTalos) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptReadinessComponentsTalos) Reset() {
+	var v ReadinessComponentsTalos
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptReadinessComponentsTalos) SetTo(v ReadinessComponentsTalos) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptReadinessComponentsTalos) Get() (v ReadinessComponentsTalos, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptReadinessComponentsTalos) Or(d ReadinessComponentsTalos) ReadinessComponentsTalos {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptRelationStatus returns new OptRelationStatus with value set to v.
 func NewOptRelationStatus(v RelationStatus) OptRelationStatus {
 	return OptRelationStatus{
@@ -38556,6 +38602,7 @@ func (s *Readiness) SetTimestamp(val time.Time) {
 type ReadinessComponents struct {
 	Database ReadinessComponentsDatabase `json:"database"`
 	Ory      ReadinessComponentsOry      `json:"ory"`
+	Talos    OptReadinessComponentsTalos `json:"talos"`
 }
 
 // GetDatabase returns the value of Database.
@@ -38568,6 +38615,11 @@ func (s *ReadinessComponents) GetOry() ReadinessComponentsOry {
 	return s.Ory
 }
 
+// GetTalos returns the value of Talos.
+func (s *ReadinessComponents) GetTalos() OptReadinessComponentsTalos {
+	return s.Talos
+}
+
 // SetDatabase sets the value of Database.
 func (s *ReadinessComponents) SetDatabase(val ReadinessComponentsDatabase) {
 	s.Database = val
@@ -38576,6 +38628,11 @@ func (s *ReadinessComponents) SetDatabase(val ReadinessComponentsDatabase) {
 // SetOry sets the value of Ory.
 func (s *ReadinessComponents) SetOry(val ReadinessComponentsOry) {
 	s.Ory = val
+}
+
+// SetTalos sets the value of Talos.
+func (s *ReadinessComponents) SetTalos(val OptReadinessComponentsTalos) {
+	s.Talos = val
 }
 
 type ReadinessComponentsDatabase struct {
@@ -38726,6 +38783,83 @@ func (s *ReadinessComponentsOryStatus) UnmarshalText(data []byte) error {
 		return nil
 	case ReadinessComponentsOryStatusError:
 		*s = ReadinessComponentsOryStatusError
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type ReadinessComponentsTalos struct {
+	Error     OptString                      `json:"error"`
+	LatencyMs float64                        `json:"latencyMs"`
+	Status    ReadinessComponentsTalosStatus `json:"status"`
+}
+
+// GetError returns the value of Error.
+func (s *ReadinessComponentsTalos) GetError() OptString {
+	return s.Error
+}
+
+// GetLatencyMs returns the value of LatencyMs.
+func (s *ReadinessComponentsTalos) GetLatencyMs() float64 {
+	return s.LatencyMs
+}
+
+// GetStatus returns the value of Status.
+func (s *ReadinessComponentsTalos) GetStatus() ReadinessComponentsTalosStatus {
+	return s.Status
+}
+
+// SetError sets the value of Error.
+func (s *ReadinessComponentsTalos) SetError(val OptString) {
+	s.Error = val
+}
+
+// SetLatencyMs sets the value of LatencyMs.
+func (s *ReadinessComponentsTalos) SetLatencyMs(val float64) {
+	s.LatencyMs = val
+}
+
+// SetStatus sets the value of Status.
+func (s *ReadinessComponentsTalos) SetStatus(val ReadinessComponentsTalosStatus) {
+	s.Status = val
+}
+
+type ReadinessComponentsTalosStatus string
+
+const (
+	ReadinessComponentsTalosStatusOk    ReadinessComponentsTalosStatus = "ok"
+	ReadinessComponentsTalosStatusError ReadinessComponentsTalosStatus = "error"
+)
+
+// AllValues returns all ReadinessComponentsTalosStatus values.
+func (ReadinessComponentsTalosStatus) AllValues() []ReadinessComponentsTalosStatus {
+	return []ReadinessComponentsTalosStatus{
+		ReadinessComponentsTalosStatusOk,
+		ReadinessComponentsTalosStatusError,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ReadinessComponentsTalosStatus) MarshalText() ([]byte, error) {
+	switch s {
+	case ReadinessComponentsTalosStatusOk:
+		return []byte(s), nil
+	case ReadinessComponentsTalosStatusError:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ReadinessComponentsTalosStatus) UnmarshalText(data []byte) error {
+	switch ReadinessComponentsTalosStatus(data) {
+	case ReadinessComponentsTalosStatusOk:
+		*s = ReadinessComponentsTalosStatusOk
+		return nil
+	case ReadinessComponentsTalosStatusError:
+		*s = ReadinessComponentsTalosStatusError
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
