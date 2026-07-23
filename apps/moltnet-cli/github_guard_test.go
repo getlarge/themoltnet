@@ -188,6 +188,7 @@ func TestEvaluateGitHubGuard_APIWriteClassification(t *testing.T) {
 		{name: "graphql query", command: `gh api graphql -f 'query=query Repo { viewer { login } }'`, deny: false},
 		{name: "graphql shorthand query", command: `gh api graphql -f 'query={ viewer { login } }'`, deny: false},
 		{name: "graphql mutation", command: `gh api graphql -f 'query=mutation Add { addComment(input: {}) { clientMutationId } }'`, deny: true},
+		{name: "graphql typed mutation", command: `gh api graphql -F 'query=mutation Add { addComment(input: {}) { clientMutationId } }'`, deny: true},
 		{name: "graphql file", command: "gh api graphql -F query=@query.graphql", deny: true},
 		{name: "unknown write endpoint", command: "gh api -X POST user/keys -f key=x", deny: true},
 	}
@@ -198,6 +199,24 @@ func TestEvaluateGitHubGuard_APIWriteClassification(t *testing.T) {
 				t.Fatalf("deny=%v, reason=%q", tt.deny, reason)
 			}
 		})
+	}
+}
+
+func TestPermissionForRESTEndpoint(t *testing.T) {
+	t.Parallel()
+	tests := map[string]string{
+		"repos/o/r/contents/file": "contents",
+		"/repos/o/r/releases/1":   "contents",
+		"repos/o/r/issues/1":      "issues",
+		"repos/o/r/pulls/1/merge": "pull_requests",
+		"repos/o/r/actions/runs":  "actions",
+		"repos/o/r":               "",
+		"orgs/o/repos":            "",
+	}
+	for endpoint, want := range tests {
+		if got := permissionForRESTEndpoint(endpoint); got != want {
+			t.Errorf("permissionForRESTEndpoint(%q) = %q, want %q", endpoint, got, want)
+		}
 	}
 }
 

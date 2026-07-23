@@ -686,6 +686,8 @@ func isMoltnetTokenParts(parts []syntax.WordPart) bool {
 	}
 }
 
+// classifyGitHubOperation's command taxonomy was audited against gh 2.95.0.
+// Unknown future commands deny so CLI drift cannot silently add a write path.
 func classifyGitHubOperation(args []string) ghOperation {
 	args, rootHelp, ok := stripGitHubGlobalFlags(args)
 	if !ok {
@@ -896,6 +898,7 @@ func classifyGitHubAPI(args []string) ghOperation {
 	method := ""
 	endpoint := ""
 	query := ""
+	queryFromFile := false
 	hasFields := false
 	hasInput := false
 
@@ -914,7 +917,7 @@ func classifyGitHubAPI(args []string) ghOperation {
 			method = strings.ToUpper(strings.TrimPrefix(arg, "-X"))
 		case strings.HasPrefix(arg, "--method="):
 			method = strings.ToUpper(strings.TrimPrefix(arg, "--method="))
-		case arg == "-f" || arg == "--raw-field" || arg == "-F" || arg == "--field":
+		case arg == "-f" || arg == "--raw-field":
 			if i+1 >= len(args) {
 				return ghOperation{Kind: ghUnknown}
 			}
@@ -922,6 +925,16 @@ func classifyGitHubAPI(args []string) ghOperation {
 			hasFields = true
 			if key, value, ok := strings.Cut(args[i], "="); ok && key == "query" {
 				query = value
+			}
+		case arg == "-F" || arg == "--field":
+			if i+1 >= len(args) {
+				return ghOperation{Kind: ghUnknown}
+			}
+			i++
+			hasFields = true
+			if key, value, ok := strings.Cut(args[i], "="); ok && key == "query" {
+				query = value
+				queryFromFile = strings.HasPrefix(value, "@")
 			}
 		case strings.HasPrefix(arg, "-f") && len(arg) > 2:
 			hasFields = true
@@ -932,12 +945,20 @@ func classifyGitHubAPI(args []string) ghOperation {
 			hasFields = true
 			if key, value, ok := strings.Cut(strings.TrimPrefix(arg, "-F"), "="); ok && key == "query" {
 				query = value
+				queryFromFile = strings.HasPrefix(value, "@")
 			}
-		case strings.HasPrefix(arg, "--raw-field=") || strings.HasPrefix(arg, "--field="):
+		case strings.HasPrefix(arg, "--raw-field="):
 			hasFields = true
 			field := strings.SplitN(arg, "=", 2)[1]
 			if key, value, ok := strings.Cut(field, "="); ok && key == "query" {
 				query = value
+			}
+		case strings.HasPrefix(arg, "--field="):
+			hasFields = true
+			field := strings.SplitN(arg, "=", 2)[1]
+			if key, value, ok := strings.Cut(field, "="); ok && key == "query" {
+				query = value
+				queryFromFile = strings.HasPrefix(value, "@")
 			}
 		case arg == "--input":
 			if i+1 >= len(args) {
@@ -968,7 +989,7 @@ func classifyGitHubAPI(args []string) ghOperation {
 		return ghOperation{Kind: ghUnknown}
 	}
 	if endpoint == "graphql" {
-		if hasInput || query == "" || strings.HasPrefix(query, "@") {
+		if hasInput || query == "" || queryFromFile {
 			return ghOperation{Kind: ghUnknown}
 		}
 		document, err := parser.ParseQuery(&ast.Source{Name: "hook", Input: query})
