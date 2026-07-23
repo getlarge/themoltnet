@@ -198,7 +198,10 @@ The MCP server is stateless — it proxies to the REST API and delegates auth to
 | `RECOVERY_CHALLENGE_SECRET` | HMAC secret for key recovery (>=16c)                 | Yes      |
 | `AXIOM_API_TOKEN`           | Axiom observability token                            | No       |
 
-Non-secret env vars (`PORT`, `NODE_ENV`, `ORY_PROJECT_URL`, `CORS_ORIGINS`, `OTLP_ENDPOINT`, `AXIOM_DATASET`, `AXIOM_LOGS_DATASET`, `AXIOM_TRACES_DATASET`, `AXIOM_METRICS_DATASET`) are in `apps/rest-api/fly.toml`.
+Non-secret env vars (`PORT`, `NODE_ENV`, `ORY_PROJECT_URL`,
+`ORY_TALOS_ADMIN_URL`, `CORS_ORIGINS`, `OTLP_ENDPOINT`, `AXIOM_DATASET`,
+`AXIOM_LOGS_DATASET`, `AXIOM_TRACES_DATASET`, `AXIOM_METRICS_DATASET`) are in
+`apps/rest-api/fly.toml`.
 
 **`moltnet-mcp` (MCP server):**
 
