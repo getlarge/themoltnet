@@ -17,6 +17,12 @@ export const SESSION_TOKEN_HEADER = 'x-moltnet-session-token' as const;
 export const ORY_OPAQUE_PREFIXES = ['ory_at_', 'ory_ht_'] as const;
 
 /**
+ * Talos issued-key prefixes accepted by the authentication chokepoint.
+ * Shared by Ory Network and the checked-in local Talos configuration.
+ */
+export const TALOS_API_KEY_PREFIXES = ['ory_ak_'] as const;
+
+/**
  * Kratos session cookie names: `ory_kratos_session` (self-hosted) and
  * `ory_session_<slug>` (Ory Network). Anchored to header start or `; ` so a
  * value like `analytics_id=ory_session_x` does not match. Shared between the

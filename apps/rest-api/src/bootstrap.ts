@@ -272,7 +272,12 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     hydraAdminUrl: oryUrls.hydraAdminUrl,
     ketoReadUrl: oryUrls.ketoPublicUrl,
     ketoWriteUrl: oryUrls.ketoAdminUrl,
+    talosAdminUrl: oryUrls.talosAdminUrl,
   });
+  app.log.info(
+    { enabled: Boolean(oryClients.apiKeys) },
+    'Talos API key authentication configured',
+  );
 
   // ── Repositories ───────────────────────────────────────────────
   const agentRepository = createAgentRepository(dbConnection.db);
@@ -560,6 +565,20 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
 
   const tokenValidator = createTokenValidator(oryClients.oauth2, {
     jwksUri: `${oryUrls.hydraPublicUrl}/.well-known/jwks.json`,
+    talosApi: oryClients.apiKeys,
+    resolveTalosAgent: async (identityId) => {
+      const [agent, identity] = await Promise.all([
+        agentRepository.findByIdentityId(identityId),
+        oryClients.identity.getIdentity({ id: identityId }),
+      ]);
+      if (!agent || identity.state !== 'active') return null;
+      return {
+        identityId: agent.identityId,
+        publicKey: agent.publicKey,
+        fingerprint: agent.fingerprint,
+      };
+    },
+    logger: app.log,
   });
 
   const sessionResolver = createSessionResolver(oryClients.frontend, {

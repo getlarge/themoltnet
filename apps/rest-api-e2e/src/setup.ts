@@ -46,6 +46,8 @@ const KRATOS_ADMIN_URL =
   process.env.ORY_KRATOS_ADMIN_URL ?? 'http://localhost:4434';
 const KRATOS_PUBLIC_URL =
   process.env.ORY_KRATOS_PUBLIC_URL ?? 'http://localhost:4433';
+const TALOS_ADMIN_URL =
+  process.env.ORY_TALOS_ADMIN_URL ?? 'http://localhost:4420';
 
 const WEBHOOK_API_KEY =
   process.env.ORY_ACTION_API_KEY ?? 'local-dev-webhook-key';
@@ -58,6 +60,7 @@ export {
   KETO_WRITE_URL,
   KRATOS_ADMIN_URL,
   KRATOS_PUBLIC_URL,
+  TALOS_ADMIN_URL,
   WEBHOOK_API_KEY,
 };
 
@@ -76,6 +79,7 @@ function createE2eOryClients(): {
     hydraAdminUrl: HYDRA_ADMIN_URL,
     ketoReadUrl: KETO_READ_URL,
     ketoWriteUrl: KETO_WRITE_URL,
+    talosAdminUrl: TALOS_ADMIN_URL,
   });
 
   const kratosAdminConfig = new Configuration({ basePath: KRATOS_ADMIN_URL });

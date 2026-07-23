@@ -139,6 +139,15 @@ services:
       keto-migrate:
         condition: service_completed_successfully
 
+  # Talos declares /var/lib/talos as an image VOLUME. Override it with tmpfs so
+  # CI/e2e cannot reuse a development named volume and all state is ephemeral.
+  talos:
+    extends:
+      file: docker-compose.base.yaml
+      service: talos
+    tmpfs:
+      - /var/lib/talos:uid=65532,gid=65532,mode=0700
+
   mailslurper:
     extends:
       file: docker-compose.base.yaml
@@ -173,6 +182,7 @@ services:
       ORY_HYDRA_ADMIN_URL: http://hydra:4445
       ORY_KETO_PUBLIC_URL: http://keto:4466
       ORY_KETO_ADMIN_URL: http://keto:4467
+      ORY_TALOS_ADMIN_URL: http://talos:4420
       ORY_ACTION_API_KEY: local-dev-webhook-key
       RECOVERY_CHALLENGE_SECRET: e2e-recovery-secret-for-hmac-signing
       CORS_ORIGINS: 'http://localhost:5174,http://localhost:4433'
@@ -230,6 +240,10 @@ services:
         condition: service_healthy
       keto:
         condition: service_healthy
+      talos:
+        # Talos auth is optional; REST startup must not block unrelated suites.
+        # Talos-specific e2e setup waits by calling its admin API directly.
+        condition: service_started
       redis:
         condition: service_healthy
       runtime-object-store:

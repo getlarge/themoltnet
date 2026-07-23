@@ -207,6 +207,38 @@ services:
       retries: 5
       start_period: 10s
 
+  talos:
+    image: oryd/talos:v26.2.0
+    entrypoint: ['/bin/sh', '-ec']
+    command:
+      - |
+        umask 077
+        if [ ! -s /var/lib/talos/jwks.json ]; then
+          talos jwk generate eddsa --jwks --kid moltnet-local-dev -o /var/lib/talos/jwks.json
+        fi
+        if [ ! -s /var/lib/talos/hmac-secret ]; then
+          head -c 32 /dev/urandom | base64 > /var/lib/talos/hmac-secret
+        fi
+        export SECRETS_HMAC_CURRENT="$$(cat /var/lib/talos/hmac-secret)"
+        export CREDENTIALS_DERIVED_TOKENS_JWT_SIGNING_KEYS_URLS_0="base64://$$(base64 -w 0 /var/lib/talos/jwks.json)"
+        talos migrate up --database "$${DB_DSN}"
+        exec talos serve --config /etc/config/talos/talos.yaml
+    ports:
+      - '4420:4420'
+      - '4422:4422'
+    environment:
+      DB_DSN: sqlite3:///var/lib/talos/talos.db?_journal_mode=WAL
+      CREDENTIALS_ISSUER: http://localhost:4420
+    volumes:
+      - ./infra/ory/talos/talos.yaml:/etc/config/talos/talos.yaml:ro
+    healthcheck:
+      test:
+        ['CMD', 'wget', '--spider', '-q', 'http://localhost:4422/health/alive']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
   otel-collector:
     # Custom collector image that bundles the Ory-introspection auth
     # extension (see infra/otel/custom-collector/). The stock

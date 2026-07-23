@@ -9,6 +9,7 @@ export {
   KRATOS_COOKIE_NAME_REGEX,
   ORY_OPAQUE_PREFIXES,
   SESSION_TOKEN_HEADER,
+  TALOS_API_KEY_PREFIXES,
   TEAM_HEADER,
 } from './constants.js';
 export {
@@ -76,8 +77,11 @@ export {
 } from './team-role.js';
 export {
   createTokenValidator,
+  type TalosAgentIdentity,
+  type TalosAgentResolver,
   type TokenValidator,
   type TokenValidatorConfig,
+  type TokenValidatorLogger,
 } from './token-validator.js';
 export type {
   AgentAuthContext,
@@ -87,5 +91,6 @@ export type {
   IntrospectionResultActive,
   IntrospectionResultInactive,
   SubjectType,
+  TalosCredentialBinding,
 } from './types.js';
 export type { OAuth2Client } from '@ory/client-fetch';

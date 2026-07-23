@@ -5955,6 +5955,37 @@
                   "latencyMs"
                 ],
                 "type": "object"
+              },
+              "talos": {
+                "properties": {
+                  "error": {
+                    "type": "string"
+                  },
+                  "latencyMs": {
+                    "type": "number"
+                  },
+                  "status": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "ok"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "error"
+                        ],
+                        "type": "string"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "status",
+                  "latencyMs"
+                ],
+                "type": "object"
               }
             },
             "required": [

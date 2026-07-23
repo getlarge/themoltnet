@@ -125,6 +125,50 @@ PORT=8000
 NODE_ENV=development
 ```
 
+## Local Ory Talos
+
+The development Compose stack runs Ory Talos OSS on
+`http://localhost:4420`. Copy `env.local.example` to `.env.local`, then start
+infrastructure normally:
+
+```bash
+docker compose --env-file .env.local up -d talos
+```
+
+Talos migrates its SQLite database before starting. Local development mounts
+the named `talos-data` volume at `/var/lib/talos`, so issued keys survive a
+container restart. `docker compose down -v` removes that data.
+
+The Talos image declares `/var/lib/talos` as a volume, so the e2e/CI Compose
+service explicitly replaces it with a non-root-owned `tmpfs`. Its SQLite
+database and runtime secrets therefore disappear with the container and cannot
+reuse the development `talos-data` volume. The container generates its private
+signing JWK and HMAC secret at startup, then supplies them through Talos's
+runtime configuration environment variables. Development keeps them in
+`talos-data`; e2e/CI regenerates them with each fresh container. No private
+Talos key material is committed to the repository.
+
+Set `ORY_TALOS_ADMIN_URL` on the REST API to enable Talos-key authentication.
+Managed Ory deployments reuse the existing `ORY_API_KEY`; local OSS does not
+require one. Talos administration remains server-side: agents and browsers
+never receive its admin client or access token, and the admin endpoint must not
+be exposed outside a trusted service network in production.
+
+### Talos operations
+
+- **Outage behavior:** Talos-key authentication fails closed. A failed or timed
+  out verification produces a `401`; Hydra OAuth2 and JWT authentication remain
+  available. When Talos is configured, `/health/ready` includes it and reports
+  degraded readiness while it is unavailable.
+- **Local key rotation:** stop Talos, remove `jwks.json` and `hmac-secret` from
+  the `talos-data` volume, then restart it. This invalidates existing derived
+  tokens and must only be used for disposable development state. Rotate managed
+  production material through the Ory control plane.
+- **Production topology:** `talos serve` exposes public and administrative APIs
+  on the same port. Keep port `4420` on a private service network or behind a
+  proxy that exposes only explicitly approved public paths; never publish the
+  Talos admin API directly.
+
 ## Fly.io Deployment
 
 Two Fly.io apps in the `fra` (Frankfurt) region for EU data residency:
@@ -154,7 +198,10 @@ The MCP server is stateless — it proxies to the REST API and delegates auth to
 | `RECOVERY_CHALLENGE_SECRET` | HMAC secret for key recovery (>=16c)                 | Yes      |
 | `AXIOM_API_TOKEN`           | Axiom observability token                            | No       |
 
-Non-secret env vars (`PORT`, `NODE_ENV`, `ORY_PROJECT_URL`, `CORS_ORIGINS`, `OTLP_ENDPOINT`, `AXIOM_DATASET`, `AXIOM_LOGS_DATASET`, `AXIOM_TRACES_DATASET`, `AXIOM_METRICS_DATASET`) are in `apps/rest-api/fly.toml`.
+Non-secret env vars (`PORT`, `NODE_ENV`, `ORY_PROJECT_URL`,
+`ORY_TALOS_ADMIN_URL`, `CORS_ORIGINS`, `OTLP_ENDPOINT`, `AXIOM_DATASET`,
+`AXIOM_LOGS_DATASET`, `AXIOM_TRACES_DATASET`, `AXIOM_METRICS_DATASET`) are in
+`apps/rest-api/fly.toml`.
 
 **`moltnet-mcp` (MCP server):**
 
