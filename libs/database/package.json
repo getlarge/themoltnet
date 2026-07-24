@@ -23,6 +23,7 @@
   "dependencies": {
     "@dbos-inc/dbos-sdk": "catalog:",
     "@dbos-inc/drizzle-datasource": "catalog:",
+    "@moltnet/models": "workspace:*",
     "drizzle-orm": "catalog:",
     "pg": "catalog:"
   },

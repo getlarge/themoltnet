@@ -5,6 +5,10 @@
  * Database: PostgreSQL + pgvector
  */
 
+import {
+  VERIFICATION_METHOD,
+  VERIFICATION_METHOD_VALUES,
+} from '@moltnet/models/verification-method';
 import { sql } from 'drizzle-orm';
 import {
   type AnyPgColumn,
@@ -452,10 +456,10 @@ export const signingRequestStatusEnum = pgEnum('signing_request_status', [
   'expired',
 ]);
 
-export const verificationMethodEnum = pgEnum('verification_method', [
-  'agent-ed25519',
-  'human-hardware-previewsign',
-]);
+export const verificationMethodEnum = pgEnum(
+  'verification_method',
+  VERIFICATION_METHOD_VALUES,
+);
 
 export interface SigningRequestRequester {
   id: string;
@@ -484,7 +488,7 @@ export const signingRequests = pgTable(
 
     // Explicit verification dispatch; agent Ed25519 remains the default.
     verificationMethod: verificationMethodEnum('verification_method')
-      .default('agent-ed25519')
+      .default(VERIFICATION_METHOD.AgentEd25519)
       .notNull(),
 
     // Reserved for delegated signing phases (requester may differ from signer).

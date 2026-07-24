@@ -25,6 +25,8 @@ import { DBOS, parseStatusFilter } from '@moltnet/database';
 import {
   ConflictProblemDetailsSchema,
   ProblemDetailsSchema,
+  VERIFICATION_METHOD,
+  VerificationMethodSchema,
 } from '@moltnet/models';
 import { signingWorkflows } from '@moltnet/signing-workflows';
 import type { FastifyInstance } from 'fastify';
@@ -79,12 +81,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         body: Type.Object({
           message: Type.String({ minLength: 1, maxLength: 100000 }),
-          verificationMethod: Type.Optional(
-            Type.Union([
-              Type.Literal('agent-ed25519'),
-              Type.Literal('human-hardware-previewsign'),
-            ]),
-          ),
+          verificationMethod: Type.Optional(VerificationMethodSchema),
         }),
         response: {
           400: Type.Ref(ProblemDetailsSchema.$id),
@@ -95,7 +92,8 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { message, verificationMethod = 'agent-ed25519' } = request.body;
+      const { message, verificationMethod = VERIFICATION_METHOD.AgentEd25519 } =
+        request.body;
       const agentId = request.authContext!.identityId;
       const timeoutSeconds = fastify.signingTimeoutSeconds;
       const expiresAt = new Date(Date.now() + timeoutSeconds * 1000);

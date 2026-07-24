@@ -14,6 +14,8 @@ export {
   type SigningResult,
   type SigningVerifier,
   signingWorkflows,
+  VERIFICATION_METHOD,
+  VERIFICATION_METHOD_VALUES,
   type VerificationMethod,
   verificationMethods,
 } from './signing-workflows.js';

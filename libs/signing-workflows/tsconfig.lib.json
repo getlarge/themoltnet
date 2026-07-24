@@ -8,5 +8,10 @@
   },
   "exclude": ["src/**/*.test.ts", "src/**/*.spec.ts"],
   "extends": "./tsconfig.json",
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts"],
+  "references": [
+    {
+      "path": "../models/tsconfig.lib.json"
+    }
+  ]
 }

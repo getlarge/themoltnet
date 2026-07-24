@@ -1,3 +1,4 @@
+import { VerificationMethodSchema } from '@moltnet/models';
 import { Type } from 'typebox';
 
 import { DateTime, NullableDateTime } from './atoms.js';
@@ -26,10 +27,7 @@ export const SigningRequestSchema = Type.Object(
   {
     id: Type.String({ format: 'uuid' }),
     agentId: Type.String({ format: 'uuid' }),
-    verificationMethod: Type.Union([
-      Type.Literal('agent-ed25519'),
-      Type.Literal('human-hardware-previewsign'),
-    ]),
+    verificationMethod: VerificationMethodSchema,
     message: Type.String(),
     nonce: Type.String({ format: 'uuid' }),
     signingInput: Type.String({

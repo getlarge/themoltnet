@@ -8,6 +8,11 @@
     ".": {
       "import": "./src/index.ts",
       "types": "./src/index.ts"
+    },
+    "./verification-method": {
+      "import": "./src/verification-method.ts",
+      "types": "./src/verification-method.ts",
+      "default": "./src/verification-method.ts"
     }
   },
   "scripts": {},

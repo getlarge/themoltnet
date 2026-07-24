@@ -13,6 +13,17 @@
  */
 
 import { DBOS } from '@dbos-inc/dbos-sdk';
+import {
+  VERIFICATION_METHOD,
+  VERIFICATION_METHOD_VALUES,
+  type VerificationMethod,
+} from '@moltnet/models';
+
+export {
+  VERIFICATION_METHOD,
+  VERIFICATION_METHOD_VALUES,
+  type VerificationMethod,
+} from '@moltnet/models';
 
 /**
  * Interface for Ed25519 signature verification.
@@ -33,12 +44,8 @@ export interface SignatureVerifier {
   ): Promise<boolean>;
 }
 
-export const verificationMethods = [
-  'agent-ed25519',
-  'human-hardware-previewsign',
-] as const;
-
-export type VerificationMethod = (typeof verificationMethods)[number];
+/** @deprecated Use VERIFICATION_METHOD_VALUES. */
+export const verificationMethods = VERIFICATION_METHOD_VALUES;
 
 export interface SigningVerifier {
   verify(
@@ -110,7 +117,10 @@ let signingRequestPersistence: SigningRequestPersistence | null = null;
 let signingTimeoutSeconds = 300; // 5 minutes default
 
 export function setSigningVerifier(verifier: SignatureVerifier): void {
-  registerSigningVerifier('agent-ed25519', new Ed25519Verifier(verifier));
+  registerSigningVerifier(
+    VERIFICATION_METHOD.AgentEd25519,
+    new Ed25519Verifier(verifier),
+  );
 }
 
 export function registerSigningVerifier(
@@ -247,7 +257,7 @@ export function initSigningWorkflows(): void {
         agentId: string,
         message: string,
         nonce: string,
-        verificationMethod: VerificationMethod = 'agent-ed25519',
+        verificationMethod: VerificationMethod = VERIFICATION_METHOD.AgentEd25519,
       ): Promise<SigningResult> => {
         // 1. Publish the signing envelope for the agent to read
         const envelope: SigningEnvelope = { requestId, message, nonce };
