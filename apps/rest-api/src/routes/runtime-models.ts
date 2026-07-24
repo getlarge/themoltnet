@@ -76,7 +76,7 @@ export async function runtimeModelRoutes(fastify: FastifyInstance) {
     '/runtime-models',
     {
       config: {
-        auth: { talosCredentialScope: 'team' },
+        auth: { credentialBindingScope: 'team' },
         rateLimit: fastify.rateLimitConfig.read,
       },
       schema: {
@@ -113,7 +113,7 @@ export async function runtimeModelRoutes(fastify: FastifyInstance) {
   server.post(
     '/runtime-models',
     {
-      config: { auth: { talosCredentialScope: 'team' } },
+      config: { auth: { credentialBindingScope: 'team' } },
       schema: {
         operationId: 'createRuntimeModel',
         tags: ['runtime-models'],

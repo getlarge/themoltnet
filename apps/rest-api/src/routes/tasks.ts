@@ -267,7 +267,7 @@ export function taskRoutes(fastify: FastifyInstance) {
     '/tasks/schemas',
     {
       config: {
-        auth: { talosCredentialScope: 'identity' },
+        auth: { credentialBindingScope: 'identity' },
         rateLimit: fastify.rateLimitConfig.read,
       },
       schema: {
@@ -301,7 +301,7 @@ export function taskRoutes(fastify: FastifyInstance) {
   server.post(
     '/tasks',
     {
-      config: { auth: { talosCredentialScope: 'team' } },
+      config: { auth: { credentialBindingScope: 'team' } },
       schema: {
         operationId: 'createTask',
         tags: ['tasks'],
@@ -369,7 +369,7 @@ export function taskRoutes(fastify: FastifyInstance) {
     '/tasks',
     {
       config: {
-        auth: { talosCredentialScope: 'team' },
+        auth: { credentialBindingScope: 'team' },
         rateLimit: fastify.rateLimitConfig.read,
       },
       schema: {
@@ -579,7 +579,7 @@ export function taskRoutes(fastify: FastifyInstance) {
     '/tasks/analytics/activity',
     {
       config: {
-        auth: { talosCredentialScope: 'team' },
+        auth: { credentialBindingScope: 'team' },
         rateLimit: fastify.rateLimitConfig.read,
       },
       schema: {

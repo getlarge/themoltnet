@@ -57,6 +57,9 @@
       "path": "libs/agent-runtime"
     },
     {
+      "path": "libs/agent-key-service"
+    },
+    {
       "path": "libs/api-client"
     },
     {

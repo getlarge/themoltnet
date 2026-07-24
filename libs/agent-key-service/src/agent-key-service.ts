@@ -15,11 +15,8 @@ import {
   RevocationReason,
 } from '@ory/client-fetch';
 
-import { createProblem, createValidationProblem } from '../problems/index.js';
-import {
-  decodeOpaqueCursor,
-  encodeOpaqueCursor,
-} from '../utils/opaque-cursor.js';
+import { decodeOpaqueCursor, encodeOpaqueCursor } from './opaque-cursor.js';
+import { createProblem, createValidationProblem } from './problems.js';
 
 const DEFAULT_TTL_DAYS = 30;
 const MAX_TALOS_LIST_PAGES_PER_REQUEST = 5;
@@ -51,7 +48,7 @@ export interface AgentKeyWithSecret {
 }
 
 export interface AgentKeySubject {
-  /** Talos key used for this request, when authentication came from Talos. */
+  /** Bound API key used for this request, when available. */
   credentialKeyId?: string;
   identityId: string;
   subjectNs: KetoNamespace;

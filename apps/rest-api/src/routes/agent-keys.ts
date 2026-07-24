@@ -1,4 +1,8 @@
 import { type TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
+import {
+  type AgentKeySubject,
+  createAgentKeyService,
+} from '@moltnet/agent-key-service';
 import { KetoNamespace, requireAuth } from '@moltnet/auth';
 import {
   ProblemDetailsSchema,
@@ -18,10 +22,6 @@ import {
   CreateAgentKeyBodySchema,
   RevokeAgentKeyBodySchema,
 } from '../schemas.js';
-import {
-  type AgentKeySubject,
-  createAgentKeyService,
-} from '../services/agent-keys.js';
 import { requestAbortSignal } from '../utils/request-abort-signal.js';
 import { requireCurrentTeamId } from '../utils/require-current-team-id.js';
 
@@ -81,7 +81,7 @@ export async function agentKeyRoutes(
     {
       onRequest: fastify.rateLimitHooks.agentKey,
       config: {
-        auth: { talosCredentialScope: 'team' },
+        auth: { credentialBindingScope: 'team' },
         rateLimit: false,
         rateLimitBucket: 'agent-key',
       },
@@ -123,7 +123,7 @@ export async function agentKeyRoutes(
     '/agent-keys',
     {
       config: {
-        auth: { talosCredentialScope: 'team' },
+        auth: { credentialBindingScope: 'team' },
         rateLimit: fastify.rateLimitConfig.read,
       },
       schema: {
@@ -168,7 +168,7 @@ export async function agentKeyRoutes(
     {
       onRequest: fastify.rateLimitHooks.agentKey,
       config: {
-        auth: { talosCredentialScope: 'team' },
+        auth: { credentialBindingScope: 'team' },
         rateLimit: false,
         rateLimitBucket: 'agent-key',
       },
@@ -210,7 +210,7 @@ export async function agentKeyRoutes(
     {
       onRequest: fastify.rateLimitHooks.agentKey,
       config: {
-        auth: { talosCredentialScope: 'team' },
+        auth: { credentialBindingScope: 'team' },
         rateLimit: false,
         rateLimitBucket: 'agent-key',
       },

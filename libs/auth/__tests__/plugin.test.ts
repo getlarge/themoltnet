@@ -250,7 +250,7 @@ describe('requireAuth preHandler', () => {
     app.get(
       '/protected',
       {
-        config: { auth: { talosCredentialScope: 'identity' } },
+        config: { auth: { credentialBindingScope: 'identity' } },
         preHandler: [requireAuth],
       },
       async (request) => ({ authContext: request.authContext }),
@@ -279,7 +279,7 @@ describe('requireAuth preHandler', () => {
     app.get(
       '/protected',
       {
-        config: { auth: { talosCredentialScope: 'team' } },
+        config: { auth: { credentialBindingScope: 'team' } },
         preHandler: [requireAuth],
       },
       async () => ({ ok: true }),
@@ -311,7 +311,7 @@ describe('requireAuth preHandler', () => {
     app.get(
       '/protected',
       {
-        config: { auth: { talosCredentialScope: 'team' } },
+        config: { auth: { credentialBindingScope: 'team' } },
         preHandler: [requireAuth],
       },
       async (request) => ({
@@ -349,7 +349,7 @@ describe('requireAuth preHandler', () => {
     app.get(
       '/protected',
       {
-        config: { auth: { talosCredentialScope: 'team' } },
+        config: { auth: { credentialBindingScope: 'team' } },
         preHandler: [requireAuth],
       },
       async () => ({
@@ -386,7 +386,7 @@ describe('requireAuth preHandler', () => {
     app.get(
       '/protected',
       {
-        config: { auth: { talosCredentialScope: 'team' } },
+        config: { auth: { credentialBindingScope: 'team' } },
         preHandler: [requireAuth],
       },
       async () => ({

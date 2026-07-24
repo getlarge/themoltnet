@@ -46,13 +46,13 @@ declare module 'fastify' {
     auth?: {
       deferInaccessibleTeamAuthorization?: boolean;
       /**
-       * Explicit ceiling for team-bound Talos credentials.
+       * Route classification for credentials bound to one team.
        *
        * Unclassified routes deny bound credentials. Identity-safe routes may
        * operate without a team selection. Team routes require an explicit,
        * matching x-moltnet-team-id header.
        */
-      talosCredentialScope?: 'identity' | 'team';
+      credentialBindingScope?: 'identity' | 'team';
     };
   }
   interface FastifyInstance {
@@ -223,7 +223,7 @@ async function resolveTeamContext(
 
   if (constrainedTeamId) {
     const credentialScope =
-      request.routeOptions.config.auth?.talosCredentialScope;
+      request.routeOptions.config.auth?.credentialBindingScope;
     if (!credentialScope) {
       const error = createAuthError(
         'Team-bound credential is not permitted on this route',

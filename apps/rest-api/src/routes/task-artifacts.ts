@@ -87,7 +87,7 @@ const deferInaccessibleTeamAuthorization = {
   // the auth plugin's generic 403.
   auth: {
     deferInaccessibleTeamAuthorization: true,
-    talosCredentialScope: 'team' as const,
+    credentialBindingScope: 'team' as const,
   },
 };
 

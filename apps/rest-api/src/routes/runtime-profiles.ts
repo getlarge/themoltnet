@@ -275,7 +275,7 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
     '/runtime-profiles',
     {
       config: {
-        auth: { talosCredentialScope: 'team' },
+        auth: { credentialBindingScope: 'team' },
         rateLimit: fastify.rateLimitConfig.read,
       },
       schema: {
@@ -309,7 +309,7 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
   server.post(
     '/runtime-profiles',
     {
-      config: { auth: { talosCredentialScope: 'team' } },
+      config: { auth: { credentialBindingScope: 'team' } },
       preValidation: validateRuntimeProfileModelOptions,
       schema: {
         operationId: 'createRuntimeProfile',

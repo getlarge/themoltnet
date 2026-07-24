@@ -371,7 +371,7 @@ export function teamRoutes(fastify: FastifyInstance) {
     '/teams',
     {
       config: {
-        auth: { talosCredentialScope: 'team' },
+        auth: { credentialBindingScope: 'team' },
         rateLimit: fastify.rateLimitConfig.read,
       },
       schema: {

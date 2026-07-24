@@ -1,5 +1,5 @@
 /**
- * E2E: Talos-issued API keys through the real REST authentication chokepoint.
+ * E2E: Agent-key lifecycle through the real REST authentication chokepoint.
  */
 
 import {
@@ -16,7 +16,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createAgent, type TestAgent } from './helpers.js';
 import { createTestHarness, type TestHarness } from './setup.js';
 
-describe('Talos API key authentication', () => {
+describe('agent keys', () => {
   const issueIdempotencyKey = 'rest-api-e2e-agent-key';
   let harness: TestHarness;
   let agent: TestAgent;

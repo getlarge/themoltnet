@@ -68,7 +68,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
     {
       // Each workflow consumes DBOS resources — apply a stricter per-agent limit
       config: {
-        auth: { talosCredentialScope: 'identity' },
+        auth: { credentialBindingScope: 'identity' },
         rateLimit: fastify.rateLimitConfig?.signing,
       },
       schema: {
@@ -125,7 +125,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
     '/crypto/signing-requests',
     {
       config: {
-        auth: { talosCredentialScope: 'identity' },
+        auth: { credentialBindingScope: 'identity' },
         rateLimit: fastify.rateLimitConfig.read,
       },
       schema: {
@@ -185,7 +185,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
     '/crypto/signing-requests/:id',
     {
       config: {
-        auth: { talosCredentialScope: 'identity' },
+        auth: { credentialBindingScope: 'identity' },
         rateLimit: fastify.rateLimitConfig.read,
       },
       schema: {
@@ -223,7 +223,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
   server.post(
     '/crypto/signing-requests/:id/sign',
     {
-      config: { auth: { talosCredentialScope: 'identity' } },
+      config: { auth: { credentialBindingScope: 'identity' } },
       schema: {
         operationId: 'submitSignature',
         tags: ['crypto'],
