@@ -172,29 +172,29 @@ export async function openVmWorkspaceFileForRead(config: {
 
 export function createGondolinToolDefinitions(config: {
   vm: VM;
-  mountPath: string;
+  cwdPath: string;
   guestWorkspace: string;
 }): ToolDefinition[] {
-  const { vm, mountPath, guestWorkspace } = config;
-  const grepTool = createGrepToolDefinition(mountPath);
+  const { vm, cwdPath, guestWorkspace } = config;
+  const grepTool = createGrepToolDefinition(cwdPath);
   return [
-    createReadToolDefinition(mountPath, {
-      operations: createGondolinReadOps(vm, mountPath, guestWorkspace),
+    createReadToolDefinition(cwdPath, {
+      operations: createGondolinReadOps(vm, cwdPath, guestWorkspace),
     }),
-    createWriteToolDefinition(mountPath, {
-      operations: createGondolinWriteOps(vm, mountPath, guestWorkspace),
+    createWriteToolDefinition(cwdPath, {
+      operations: createGondolinWriteOps(vm, cwdPath, guestWorkspace),
     }),
-    createEditToolDefinition(mountPath, {
-      operations: createGondolinEditOps(vm, mountPath, guestWorkspace),
+    createEditToolDefinition(cwdPath, {
+      operations: createGondolinEditOps(vm, cwdPath, guestWorkspace),
     }),
-    createBashToolDefinition(mountPath, {
-      operations: createGondolinBashOps(vm, mountPath, guestWorkspace),
+    createBashToolDefinition(cwdPath, {
+      operations: createGondolinBashOps(vm, cwdPath, guestWorkspace),
     }),
-    createLsToolDefinition(mountPath, {
-      operations: createGondolinLsOps(vm, mountPath, guestWorkspace),
+    createLsToolDefinition(cwdPath, {
+      operations: createGondolinLsOps(vm, cwdPath, guestWorkspace),
     }),
-    createFindToolDefinition(mountPath, {
-      operations: createGondolinFindOps(vm, mountPath, guestWorkspace),
+    createFindToolDefinition(cwdPath, {
+      operations: createGondolinFindOps(vm, cwdPath, guestWorkspace),
     }),
     {
       ...grepTool,
@@ -202,13 +202,7 @@ export function createGondolinToolDefinitions(config: {
         ...args: Parameters<typeof grepTool.execute>
       ): ReturnType<typeof grepTool.execute> {
         const [_id, params, signal] = args;
-        return executeGondolinGrep(
-          vm,
-          mountPath,
-          guestWorkspace,
-          params,
-          signal,
-        );
+        return executeGondolinGrep(vm, cwdPath, guestWorkspace, params, signal);
       },
     },
   ] as unknown as ToolDefinition[];
@@ -774,7 +768,7 @@ export async function executePiTask(
     // default by name at definition-registry merge time (AgentSession._refreshToolRegistry).
     const gondolinCustomTools = createGondolinToolDefinitions({
       vm: managed.vm,
-      mountPath,
+      cwdPath,
       guestWorkspace: managed.guestWorkspace,
     });
 
