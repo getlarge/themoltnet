@@ -20,7 +20,9 @@ type ResponseScenario =
   | 'success-after-keepalive'
   | 'hid-error'
   | 'ctap-error'
-  | 'presence-timeout';
+  | 'presence-timeout'
+  | 'processing-timeout'
+  | 'read-timeout';
 
 function scriptedProvider(
   options: {
@@ -91,6 +93,14 @@ function scriptedProvider(
               channel: TEST_CHANNEL,
               command: CTAPHID_KEEPALIVE,
               payload: Uint8Array.of(0x02),
+            }),
+          );
+        } else if (options.scenario === 'processing-timeout') {
+          reads.push(
+            ...encodeHidMessage({
+              channel: TEST_CHANNEL,
+              command: CTAPHID_KEEPALIVE,
+              payload: Uint8Array.of(0x01),
             }),
           );
         }
@@ -242,7 +252,7 @@ describe('CTAPHID framing', () => {
 
     await expect(transport.cbor(0x04)).rejects.toMatchObject({
       code: 'TRANSPORT_ERROR',
-      details: { status: 0x06 },
+      details: { status: 0x06, statusName: 'CHANNEL_BUSY' },
     });
     await transport.close();
   });
@@ -266,7 +276,51 @@ describe('CTAPHID framing', () => {
 
     await expect(transport.cbor(0x04, undefined, 2)).rejects.toMatchObject({
       code: 'USER_PRESENCE_TIMEOUT',
-      details: { keepaliveStatusName: 'UP_NEEDED' },
+      details: {
+        deviceId: expect.any(String),
+        command: CTAPHID_CBOR,
+        timeoutMs: 2,
+        receivedPacket: true,
+        keepaliveSeen: true,
+        keepaliveStatusName: 'UP_NEEDED',
+      },
+    });
+    await transport.close();
+  });
+
+  it('distinguishes a stalled operation after a processing keepalive', async () => {
+    const transport = await CtapHidTransport.open({
+      provider: scriptedProvider({ scenario: 'processing-timeout' }),
+    });
+
+    await expect(transport.cbor(0x04, undefined, 2)).rejects.toMatchObject({
+      code: 'TRANSPORT_ERROR',
+      details: {
+        deviceId: expect.any(String),
+        command: CTAPHID_CBOR,
+        timeoutMs: 2,
+        receivedPacket: true,
+        keepaliveSeen: true,
+        keepaliveStatusName: 'PROCESSING',
+      },
+    });
+    await transport.close();
+  });
+
+  it('identifies a timeout where no response bytes were read', async () => {
+    const transport = await CtapHidTransport.open({
+      provider: scriptedProvider({ scenario: 'read-timeout' }),
+    });
+
+    await expect(transport.cbor(0x04, undefined, 2)).rejects.toMatchObject({
+      code: 'TRANSPORT_ERROR',
+      details: {
+        deviceId: expect.any(String),
+        command: CTAPHID_CBOR,
+        timeoutMs: 2,
+        receivedPacket: false,
+        keepaliveSeen: false,
+      },
     });
     await transport.close();
   });

@@ -71,8 +71,24 @@ const CTAP_STATUS_NAMES: Readonly<Record<number, string>> = {
   0x7f: 'OTHER',
 };
 
-export function ctapStatusName(status: number): string {
+const CTAPHID_ERROR_NAMES: Readonly<Record<number, string>> = {
+  0x01: 'INVALID_COMMAND',
+  0x02: 'INVALID_PARAMETER',
+  0x03: 'INVALID_LENGTH',
+  0x04: 'INVALID_SEQUENCE',
+  0x05: 'MESSAGE_TIMEOUT',
+  0x06: 'CHANNEL_BUSY',
+  0x0a: 'LOCK_REQUIRED',
+  0x0b: 'INVALID_CHANNEL',
+  0x7f: 'OTHER',
+};
+
+function ctapStatusName(status: number): string {
   return CTAP_STATUS_NAMES[status] ?? 'UNKNOWN';
+}
+
+function ctapHidErrorName(status: number): string {
+  return CTAPHID_ERROR_NAMES[status] ?? 'UNKNOWN';
 }
 
 export interface HidDeviceInfo {
@@ -413,11 +429,13 @@ export class CtapHidTransport implements CtapConnection {
     const assembler = new HidMessageAssembler();
     let deadline = Date.now() + timeoutMs;
     let lastKeepaliveStatus: number | undefined;
+    let receivedPacket = false;
     while (Date.now() < deadline) {
       const packet = await this.connection.read(
         Math.min(250, deadline - Date.now()),
       );
       if (!packet) continue;
+      receivedPacket = true;
       const message = assembler.add(packet);
       if (!message || message.channel !== channel) continue;
       if (message.command === CTAPHID_KEEPALIVE) {
@@ -426,10 +444,14 @@ export class CtapHidTransport implements CtapConnection {
         continue;
       }
       if (message.command === CTAPHID_ERROR) {
+        const status = message.payload[0] ?? 0x7f;
+        const statusName = ctapHidErrorName(status);
         throw new CtapError(
           'TRANSPORT_ERROR',
-          'CTAPHID device returned an error',
-          { status: message.payload[0] },
+          `CTAPHID device returned an error: ${statusName} (0x${status
+            .toString(16)
+            .padStart(2, '0')})`,
+          { status, statusName },
         );
       }
       invariant(
@@ -440,11 +462,19 @@ export class CtapHidTransport implements CtapConnection {
       return message.payload;
     }
     await this.cancel().catch(() => undefined);
+    const timeoutDetails = {
+      deviceId: this.device.id,
+      command,
+      timeoutMs,
+      receivedPacket,
+      keepaliveSeen: lastKeepaliveStatus !== undefined,
+    };
     if (lastKeepaliveStatus === KEEPALIVE_STATUS_UP_NEEDED) {
       throw new CtapError(
         'USER_PRESENCE_TIMEOUT',
         'Timed out waiting for user presence on the authenticator',
         {
+          ...timeoutDetails,
           keepaliveStatus: lastKeepaliveStatus,
           keepaliveStatusName: 'UP_NEEDED',
         },
@@ -452,13 +482,16 @@ export class CtapHidTransport implements CtapConnection {
     }
     throw new CtapError(
       'TRANSPORT_ERROR',
-      'Timed out waiting for the authenticator',
+      receivedPacket
+        ? 'Authenticator stalled after sending response bytes'
+        : 'Timed out before the authenticator returned any response bytes',
       lastKeepaliveStatus === KEEPALIVE_STATUS_PROCESSING
         ? {
+            ...timeoutDetails,
             keepaliveStatus: lastKeepaliveStatus,
             keepaliveStatusName: 'PROCESSING',
           }
-        : undefined,
+        : timeoutDetails,
     );
   }
 

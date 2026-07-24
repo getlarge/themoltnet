@@ -2,6 +2,7 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 
 import { CtapError } from './errors.js';
 
+// Node-only transport primitives; intentionally not part of the root API.
 export function concatBytes(...values: readonly Uint8Array[]): Uint8Array {
   const result = new Uint8Array(
     values.reduce((total, value) => total + value.length, 0),

@@ -14,7 +14,11 @@ export default defineConfig({
     ssr: true,
     outDir: 'dist',
     emptyOutDir: true,
-    rollupOptions: { input: { index: 'src/index.ts' } },
-    rolldownOptions: { input: { index: 'src/index.ts' } },
+    rollupOptions: {
+      input: { index: 'src/index.ts', cbor: 'src/cbor-entry.ts' },
+    },
+    rolldownOptions: {
+      input: { index: 'src/index.ts', cbor: 'src/cbor-entry.ts' },
+    },
   },
 });

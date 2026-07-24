@@ -10,6 +10,10 @@
     ".": {
       "import": "./src/index.ts",
       "types": "./src/index.ts"
+    },
+    "./cbor": {
+      "import": "./src/cbor-entry.ts",
+      "types": "./src/cbor-entry.ts"
     }
   },
   "publishConfig": {
@@ -17,6 +21,10 @@
       ".": {
         "types": "./dist/index.d.ts",
         "import": "./dist/index.js"
+      },
+      "./cbor": {
+        "types": "./dist/cbor.d.ts",
+        "import": "./dist/cbor.js"
       }
     }
   },
