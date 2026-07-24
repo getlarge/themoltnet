@@ -35,6 +35,537 @@
         ],
         "type": "object"
       },
+      "AgentKey": {
+        "properties": {
+          "agentId": {
+            "description": "UUID v4 identifier",
+            "format": "uuid",
+            "type": "string"
+          },
+          "createdAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "expiresAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "lastUsedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "revocationDescription": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "revocationReason": {
+            "anyOf": [
+              {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "key_compromise"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "affiliation_changed"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "superseded"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "privilege_withdrawn"
+                    ],
+                    "type": "string"
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "active"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "revoked"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "expired"
+                ],
+                "type": "string"
+              }
+            ]
+          },
+          "teamId": {
+            "description": "UUID v4 identifier",
+            "format": "uuid",
+            "type": "string"
+          },
+          "updatedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "agentId",
+          "teamId",
+          "name",
+          "status",
+          "createdAt",
+          "expiresAt",
+          "lastUsedAt",
+          "updatedAt",
+          "revocationReason",
+          "revocationDescription"
+        ],
+        "type": "object"
+      },
+      "AgentKeyList": {
+        "properties": {
+          "items": {
+            "items": {
+              "properties": {
+                "agentId": {
+                  "description": "UUID v4 identifier",
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "createdAt": {
+                  "anyOf": [
+                    {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "expiresAt": {
+                  "anyOf": [
+                    {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "id": {
+                  "type": "string"
+                },
+                "lastUsedAt": {
+                  "anyOf": [
+                    {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "revocationDescription": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "revocationReason": {
+                  "anyOf": [
+                    {
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "key_compromise"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "affiliation_changed"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "superseded"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "privilege_withdrawn"
+                          ],
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "status": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "active"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "enum": [
+                        "revoked"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "enum": [
+                        "expired"
+                      ],
+                      "type": "string"
+                    }
+                  ]
+                },
+                "teamId": {
+                  "description": "UUID v4 identifier",
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "updatedAt": {
+                  "anyOf": [
+                    {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "agentId",
+                "teamId",
+                "name",
+                "status",
+                "createdAt",
+                "expiresAt",
+                "lastUsedAt",
+                "updatedAt",
+                "revocationReason",
+                "revocationDescription"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "nextPageToken": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "nextPageToken"
+        ],
+        "type": "object"
+      },
+      "AgentKeyParams": {
+        "properties": {
+          "keyId": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "keyId"
+        ],
+        "type": "object"
+      },
+      "AgentKeyRevocationReason": {
+        "anyOf": [
+          {
+            "enum": [
+              "key_compromise"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "affiliation_changed"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "superseded"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "privilege_withdrawn"
+            ],
+            "type": "string"
+          }
+        ]
+      },
+      "AgentKeyStatus": {
+        "anyOf": [
+          {
+            "enum": [
+              "active"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "revoked"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "expired"
+            ],
+            "type": "string"
+          }
+        ]
+      },
+      "AgentKeyWithSecret": {
+        "properties": {
+          "key": {
+            "properties": {
+              "agentId": {
+                "description": "UUID v4 identifier",
+                "format": "uuid",
+                "type": "string"
+              },
+              "createdAt": {
+                "anyOf": [
+                  {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "expiresAt": {
+                "anyOf": [
+                  {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "id": {
+                "type": "string"
+              },
+              "lastUsedAt": {
+                "anyOf": [
+                  {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "name": {
+                "type": "string"
+              },
+              "revocationDescription": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "revocationReason": {
+                "anyOf": [
+                  {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "key_compromise"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "affiliation_changed"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "superseded"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "privilege_withdrawn"
+                        ],
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "status": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "active"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "revoked"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
+                      "expired"
+                    ],
+                    "type": "string"
+                  }
+                ]
+              },
+              "teamId": {
+                "description": "UUID v4 identifier",
+                "format": "uuid",
+                "type": "string"
+              },
+              "updatedAt": {
+                "anyOf": [
+                  {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "agentId",
+              "teamId",
+              "name",
+              "status",
+              "createdAt",
+              "expiresAt",
+              "lastUsedAt",
+              "updatedAt",
+              "revocationReason",
+              "revocationDescription"
+            ],
+            "type": "object"
+          },
+          "secret": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "secret"
+        ],
+        "type": "object"
+      },
       "AgentPrincipal": {
         "additionalProperties": false,
         "properties": {
@@ -1431,6 +1962,31 @@
             "type": "object"
           }
         ]
+      },
+      "CreateAgentKeyBody": {
+        "properties": {
+          "agentId": {
+            "description": "UUID v4 identifier",
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "ttlDays": {
+            "default": 30,
+            "maximum": 90,
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "agentId",
+          "name"
+        ],
+        "type": "object"
       },
       "CreateRuntimeModelBody": {
         "additionalProperties": false,
@@ -6853,6 +7409,47 @@
         "required": [
           "slot",
           "workspace"
+        ],
+        "type": "object"
+      },
+      "RevokeAgentKeyBody": {
+        "properties": {
+          "description": {
+            "maxLength": 500,
+            "minLength": 1,
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "enum": [
+                  "key_compromise"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "affiliation_changed"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "superseded"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "privilege_withdrawn"
+                ],
+                "type": "string"
+              }
+            ]
+          }
+        },
+        "required": [
+          "reason"
         ],
         "type": "object"
       },
@@ -12754,6 +13351,546 @@
         },
         "tags": [
           "public"
+        ]
+      }
+    },
+    "/agent-keys": {
+      "get": {
+        "description": "List agent API keys bound to the active team. Team credential managers may list every agent.",
+        "operationId": "listAgentKeys",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "agentId",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "active"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "revoked"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "expired"
+                  ],
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "pageSize",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "pageToken",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Team ID (UUID) that will own the resource. Required.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentKeyList"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "agent-keys"
+        ]
+      },
+      "post": {
+        "description": "Issue a secret API key bound to one agent and the active team.",
+        "operationId": "createAgentKey",
+        "parameters": [
+          {
+            "description": "Team ID (UUID) that will own the resource. Required.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "agentId": {
+                    "description": "UUID v4 identifier",
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "name": {
+                    "maxLength": 128,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "ttlDays": {
+                    "default": 30,
+                    "maximum": 90,
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "agentId",
+                  "name"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentKeyWithSecret"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "agent-keys"
+        ]
+      }
+    },
+    "/agent-keys/{keyId}/revoke": {
+      "post": {
+        "description": "Permanently revoke an agent API key.",
+        "operationId": "revokeAgentKey",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "keyId",
+            "required": true,
+            "schema": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "description": "Team ID (UUID) that will own the resource. Required.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "description": {
+                    "maxLength": 500,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "reason": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "key_compromise"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "affiliation_changed"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "superseded"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "privilege_withdrawn"
+                        ],
+                        "type": "string"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "reason"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "agent-keys"
+        ]
+      }
+    },
+    "/agent-keys/{keyId}/rotate": {
+      "post": {
+        "description": "Rotate an agent API key immediately. The previous secret is revoked and expiry is unchanged.",
+        "operationId": "rotateAgentKey",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "keyId",
+            "required": true,
+            "schema": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "description": "Team ID (UUID) that will own the resource. Required.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentKeyWithSecret"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "agent-keys"
         ]
       }
     },
@@ -39098,6 +40235,18 @@
       "get": {
         "description": "List teams the caller belongs to.",
         "operationId": "listTeams",
+        "parameters": [
+          {
+            "description": "Team ID (UUID) for scoping the request. Optional.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {

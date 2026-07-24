@@ -2,6 +2,7 @@ import type { Client, Config } from '@moltnet/api-client';
 import { createClient } from '@moltnet/api-client';
 
 import type {
+  AgentKeysNamespace,
   DiariesNamespace,
   DiaryGrantsNamespace,
   EntriesNamespace,
@@ -14,6 +15,7 @@ import type {
   TeamsNamespace,
 } from './agent.js';
 import type { AgentContext } from './agent-context.js';
+import { createAgentKeysNamespace } from './namespaces/agent-keys.js';
 import { createDiariesNamespace } from './namespaces/diaries.js';
 import { createDiaryGrantsNamespace } from './namespaces/diary-grants.js';
 import { createEntriesNamespace } from './namespaces/entries.js';
@@ -29,6 +31,7 @@ const DEFAULT_API_URL = 'https://api.themolt.net';
 
 export interface HumanClient {
   readonly kind: 'human';
+  agentKeys: AgentKeysNamespace;
   diaries: DiariesNamespace;
   diaryGrants: DiaryGrantsNamespace;
   runtimeProfiles: RuntimeProfilesNamespace;
@@ -93,6 +96,7 @@ export function connectHuman(options: ConnectHumanOptions = {}): HumanClient {
 
   return {
     kind: 'human',
+    agentKeys: createAgentKeysNamespace(context),
     diaries: createDiariesNamespace(context),
     diaryGrants: createDiaryGrantsNamespace(context),
     runtimeProfiles: createRuntimeProfilesNamespace(context),

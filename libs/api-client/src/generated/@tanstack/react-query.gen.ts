@@ -21,6 +21,7 @@ import {
   cancelTask,
   claimTask,
   completeTask,
+  createAgentKey,
   createDiary,
   createDiaryCustomPack,
   createDiaryEntry,
@@ -81,6 +82,7 @@ import {
   issueVoucher,
   joinTeam,
   listActiveVouchers,
+  listAgentKeys,
   listContextPacks,
   listDiaries,
   listDiaryEntries,
@@ -114,7 +116,9 @@ import {
   removeTeamMember,
   renderContextPack,
   requestRecoveryChallenge,
+  revokeAgentKey,
   revokeDiaryGrant,
+  rotateAgentKey,
   rotateClientSecret,
   searchDiary,
   searchPublicFeed,
@@ -172,6 +176,9 @@ import type {
   CompleteTaskData,
   CompleteTaskError,
   CompleteTaskResponse,
+  CreateAgentKeyData,
+  CreateAgentKeyError,
+  CreateAgentKeyResponse,
   CreateDiaryCustomPackData,
   CreateDiaryCustomPackError,
   CreateDiaryCustomPackResponse,
@@ -347,6 +354,9 @@ import type {
   ListActiveVouchersData,
   ListActiveVouchersError,
   ListActiveVouchersResponse,
+  ListAgentKeysData,
+  ListAgentKeysError,
+  ListAgentKeysResponse,
   ListContextPacksData,
   ListContextPacksError,
   ListContextPacksResponse,
@@ -442,9 +452,15 @@ import type {
   RequestRecoveryChallengeData,
   RequestRecoveryChallengeError,
   RequestRecoveryChallengeResponse,
+  RevokeAgentKeyData,
+  RevokeAgentKeyError,
+  RevokeAgentKeyResponse,
   RevokeDiaryGrantData,
   RevokeDiaryGrantError,
   RevokeDiaryGrantResponse,
+  RotateAgentKeyData,
+  RotateAgentKeyError,
+  RotateAgentKeyResponse,
   RotateClientSecretData,
   RotateClientSecretError,
   RotateClientSecretResponse,
@@ -577,6 +593,112 @@ export const getNetworkInfoOptions = (options?: Options<GetNetworkInfoData>) =>
     },
     queryKey: getNetworkInfoQueryKey(options),
   });
+
+export const listAgentKeysQueryKey = (options: Options<ListAgentKeysData>) =>
+  createQueryKey('listAgentKeys', options);
+
+/**
+ * List agent API keys bound to the active team. Team credential managers may list every agent.
+ */
+export const listAgentKeysOptions = (options: Options<ListAgentKeysData>) =>
+  queryOptions<
+    ListAgentKeysResponse,
+    ListAgentKeysError,
+    ListAgentKeysResponse,
+    ReturnType<typeof listAgentKeysQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await listAgentKeys({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: listAgentKeysQueryKey(options),
+  });
+
+/**
+ * Issue a secret API key bound to one agent and the active team.
+ */
+export const createAgentKeyMutation = (
+  options?: Partial<Options<CreateAgentKeyData>>,
+): UseMutationOptions<
+  CreateAgentKeyResponse,
+  CreateAgentKeyError,
+  Options<CreateAgentKeyData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    CreateAgentKeyResponse,
+    CreateAgentKeyError,
+    Options<CreateAgentKeyData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await createAgentKey({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+/**
+ * Permanently revoke an agent API key.
+ */
+export const revokeAgentKeyMutation = (
+  options?: Partial<Options<RevokeAgentKeyData>>,
+): UseMutationOptions<
+  RevokeAgentKeyResponse,
+  RevokeAgentKeyError,
+  Options<RevokeAgentKeyData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    RevokeAgentKeyResponse,
+    RevokeAgentKeyError,
+    Options<RevokeAgentKeyData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await revokeAgentKey({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+/**
+ * Rotate an agent API key immediately. The previous secret is revoked and expiry is unchanged.
+ */
+export const rotateAgentKeyMutation = (
+  options?: Partial<Options<RotateAgentKeyData>>,
+): UseMutationOptions<
+  RotateAgentKeyResponse,
+  RotateAgentKeyError,
+  Options<RotateAgentKeyData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    RotateAgentKeyResponse,
+    RotateAgentKeyError,
+    Options<RotateAgentKeyData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await rotateAgentKey({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
 
 export const getWhoamiQueryKey = (options?: Options<GetWhoamiData>) =>
   createQueryKey('getWhoami', options);
