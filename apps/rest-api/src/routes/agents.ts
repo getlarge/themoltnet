@@ -126,7 +126,10 @@ export async function agentRoutes(fastify: FastifyInstance) {
   server.get(
     '/agents/whoami',
     {
-      config: { rateLimit: fastify.rateLimitConfig.read },
+      config: {
+        auth: { talosCredentialScope: 'identity' },
+        rateLimit: fastify.rateLimitConfig.read,
+      },
       schema: {
         operationId: 'getWhoami',
         tags: ['agents'],

@@ -58,6 +58,7 @@ export async function runtimeSlotRoutes(fastify: FastifyInstance) {
   server.post(
     '/runtime-slots/begin',
     {
+      config: { auth: { talosCredentialScope: 'team' } },
       schema: {
         operationId: 'beginRuntimeSlot',
         tags: ['runtime-slots'],
@@ -99,6 +100,7 @@ export async function runtimeSlotRoutes(fastify: FastifyInstance) {
   server.post(
     '/runtime-slots/finish',
     {
+      config: { auth: { talosCredentialScope: 'team' } },
       schema: {
         operationId: 'finishRuntimeSlot',
         tags: ['runtime-slots'],
@@ -140,7 +142,10 @@ export async function runtimeSlotRoutes(fastify: FastifyInstance) {
   server.get(
     '/runtime-slots',
     {
-      config: { rateLimit: fastify.rateLimitConfig.read },
+      config: {
+        auth: { talosCredentialScope: 'team' },
+        rateLimit: fastify.rateLimitConfig.read,
+      },
       schema: {
         operationId: 'listRuntimeSlots',
         tags: ['runtime-slots'],
@@ -173,7 +178,10 @@ export async function runtimeSlotRoutes(fastify: FastifyInstance) {
   server.get(
     '/runtime-slots/latest',
     {
-      config: { rateLimit: fastify.rateLimitConfig.read },
+      config: {
+        auth: { talosCredentialScope: 'team' },
+        rateLimit: fastify.rateLimitConfig.read,
+      },
       schema: {
         operationId: 'findLatestRuntimeSlotForAttempt',
         tags: ['runtime-slots'],

@@ -36,6 +36,7 @@ import {
 } from './plugins/rate-limit.js';
 import { requestContextPlugin } from './plugins/request-context.js';
 import { securityHeadersPlugin } from './plugins/security-headers.js';
+import { agentKeyRoutes } from './routes/agent-keys.js';
 import { agentRoutes } from './routes/agents.js';
 import { cryptoRoutes } from './routes/crypto.js';
 import { diaryRoutes } from './routes/diary.js';
@@ -411,6 +412,9 @@ export async function registerApiRoutes(
   await app.register(renderedPackRoutes);
   await app.register(entryRelationRoutes);
   await app.register(agentRoutes);
+  await app.register(agentKeyRoutes, {
+    talosApi: options.oryClients.apiKeys,
+  });
   await app.register(cryptoRoutes);
   await app.register(signingRequestRoutes);
   await app.register(recoveryRoutes, {

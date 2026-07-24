@@ -64,6 +64,7 @@ export async function runtimeSessionRoutes(fastify: FastifyInstance) {
     '/runtime-sessions/:taskId/:attemptN/content',
     {
       config: {
+        auth: { talosCredentialScope: 'team' },
         swaggerTransform: ({ schema, url }) => ({
           schema: {
             ...schema,
@@ -118,7 +119,10 @@ export async function runtimeSessionRoutes(fastify: FastifyInstance) {
   server.get(
     '/runtime-sessions/:taskId/:attemptN',
     {
-      config: { rateLimit: fastify.rateLimitConfig.read },
+      config: {
+        auth: { talosCredentialScope: 'team' },
+        rateLimit: fastify.rateLimitConfig.read,
+      },
       schema: {
         operationId: 'getRuntimeSession',
         tags: ['runtime-sessions'],
@@ -152,7 +156,10 @@ export async function runtimeSessionRoutes(fastify: FastifyInstance) {
   server.get(
     '/runtime-sessions/:taskId/:attemptN/content',
     {
-      config: { rateLimit: fastify.rateLimitConfig.read },
+      config: {
+        auth: { talosCredentialScope: 'team' },
+        rateLimit: fastify.rateLimitConfig.read,
+      },
       schema: {
         operationId: 'downloadRuntimeSession',
         tags: ['runtime-sessions'],
