@@ -1273,7 +1273,12 @@ jobs:
           # deterministic and only changes through an intentional update.
           python -m pip install --disable-pip-version-check \
             "git+https://github.com/agentskills/agentskills.git@38a2ff82958afee88dadf4831509e6f7e9d8ef4e#subdirectory=skills-ref"
-          find .agents/skills -mindepth 1 -maxdepth 1 -type d -print0 \
+          # `impeccable` is a vendored third-party skill (Apache-2.0) whose
+          # upstream SKILL.md carries non-spec frontmatter; it is validated
+          # upstream and installed via `npx impeccable install`. Exclude it —
+          # keep in sync with the exclusion in .github/scripts/check-skill-sync.sh.
+          find .agents/skills -mindepth 1 -maxdepth 1 -type d \
+            ! -name impeccable -print0 \
             | xargs -0 -r -n 1 skills-ref validate
 
       - name: Validate SKILL.md exists and has frontmatter

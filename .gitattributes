@@ -13,3 +13,7 @@
 # libs/agent-daemon-state/drizzle-sqlite/meta, and any future ones).
 **/meta/*_snapshot.json linguist-generated=true
 **/meta/_journal.json linguist-generated=true
+
+# Vendored third-party skill (impeccable, Apache-2.0). ~2.8MB of generated
+# .mjs per provider tree — keep out of language stats and collapse diff noise.
+**/skills/impeccable/** linguist-vendored=true
