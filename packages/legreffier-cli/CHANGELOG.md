@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.35.0](https://github.com/getlarge/themoltnet/compare/legreffier-v0.34.7...legreffier-v0.35.0) (2026-07-24)
+
+
+### Features
+
+* centralize GitHub authorship guard ([dda7c8a](https://github.com/getlarge/themoltnet/commit/dda7c8a5f0c6c22831e181dc5dad86b6b12f59ed))
+* **legreffier:** install GitHub authorship guard ([dcac5b0](https://github.com/getlarge/themoltnet/commit/dcac5b0173e07c2aafddaec1fb38db9dcde8e054))
+
+
+### Bug Fixes
+
+* **cli:** address authorship guard review ([153329e](https://github.com/getlarge/themoltnet/commit/153329e549de48750255fe919519445e5bbb8bbd))
+* **cli:** harden GitHub authorship guard ([af14025](https://github.com/getlarge/themoltnet/commit/af140257564fb9d6a81de6d09ae2dd3fa06641c3))
+* **legreffier:** register shared agent hooks ([5b00a55](https://github.com/getlarge/themoltnet/commit/5b00a55ad18e2e9834da042f4ad56f568d63e176))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @themoltnet/github-agent bumped to 0.24.14
+    * @themoltnet/sdk bumped to 0.121.0
+
 ## [0.34.7](https://github.com/getlarge/themoltnet/compare/legreffier-v0.34.6...legreffier-v0.34.7) (2026-07-22)
 
 
