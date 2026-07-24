@@ -123,7 +123,7 @@ describe('createGondolinToolDefinitions', () => {
   it('registers the full VM-routed built-in tool surface', () => {
     const tools = createGondolinToolDefinitions({
       vm: {} as never,
-      mountPath: '/Users/ed/project',
+      cwdPath: '/Users/ed/project',
       guestWorkspace: '/workspace',
     });
 

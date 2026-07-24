@@ -1,4 +1,5 @@
 import {
+  access,
   mkdir,
   mkdtemp,
   readFile,
@@ -13,10 +14,19 @@ import { Readable } from 'node:stream';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  createGondolinToolDefinitions,
+  resolveTaskWorktreePath,
+} from '../runtime/execute-pi-task.js';
+import {
   createMoltNetTools,
   type MoltNetTaskContext,
   type MoltNetToolsConfig,
 } from './tools.js';
+
+const PNG_BYTES = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABmJLR0QA/wD/AP+gvaeTAAABi0lEQVQ4jdWSv0tbYRSGn3MTok1RnCQoRFsKoYNQiktF3DREKHV0cLR7wYJj7VaH0NGhg39EkMQGaQgSpbUaCcErSixB2nQJdSghTc79nPTmxoSAW9/p4/x4zvvCB/+PjBF2Py9zkAi2lq3bV+X4IefHGc6+L3UEJJMBhFX++ndIuBAXUPfHsSSML5DuCJifr+OzphEJMWjFvc2K/YhyUSkVZntGySajZLYa7GyNuQ4cXoGUeDzhuX66Obz2J/X0gwcwE9sGuQTnZWuECCL59mXEvANW70CEIyyJAPgBMOKA8cxUr+o1QRjoryJiarQRMEZcgE9sjIm2jrx4c7W+93HogTHCyOLv9237z8DKuIVfJ+Nc2g3KhTl6KZeOkk01SSfC3sZPe4Ny8YKLYqjr8tcvIXLpEtnUxk3J/QcMroBUQHOc5e86+ZaJYcw+UCHYWHHTeFwcBKn3xVF9jeoP1CmgTQfV56iOovqJZv9bpqZqnQE3Kh2O8c9ZQPUJxoFG00YlweR0uWu8++oaz1SX517RnkIAAAAASUVORK5CYII=',
+  'base64',
+);
 
 interface CapturedUpload {
   path: { taskId: string; attemptN: number };
@@ -47,6 +57,8 @@ function makeConfig(input: {
   captured?: CapturedUpload[];
   capturedDownloads?: CapturedDownloadPath[];
   cwd: string;
+  downloadBody?: Buffer | string;
+  downloadContentType?: string;
   taskCtx?: MoltNetTaskContext | null;
   teamId?: string | null;
   openWorkspaceFileForRead?: MoltNetToolsConfig['openWorkspaceFileForRead'];
@@ -91,9 +103,9 @@ function makeConfig(input: {
             artifactId: 'artifact-1',
             cid: 'bafkreia',
             contentEncoding: null,
-            contentType: 'text/plain',
+            contentType: input.downloadContentType ?? 'text/plain',
             sha256: 'a'.repeat(64),
-            stream: Readable.from(['artifact bytes']),
+            stream: Readable.from([input.downloadBody ?? 'artifact bytes']),
           };
         }),
       },
@@ -386,6 +398,133 @@ describe('moltnet_download_task_artifact', () => {
       await rm(cwd, { force: true, recursive: true });
     }
   });
+
+  it.each([
+    { name: 'shared mount', worktree: false },
+    { name: 'dedicated worktree', worktree: true },
+  ])(
+    'keeps bound image reads and relative writes in the active $name cwd',
+    async ({ worktree }) => {
+      const mountPath = await mkdtemp(
+        path.join(tmpdir(), 'moltnet-pi-artifact-'),
+      );
+      const cwdPath = worktree
+        ? resolveTaskWorktreePath(mountPath, 'task-1624')
+        : mountPath;
+      const artifactPath = path.join(cwdPath, 'inputs', 'inspection.png');
+      const writePath = path.join(cwdPath, 'outputs', 'analysis.txt');
+      const capturedDownloads: CapturedDownloadPath[] = [];
+      const vmAccess = vi.fn((filePath: string) => access(filePath));
+      const vmReadFile = vi.fn((filePath: string) => readFile(filePath));
+      const vmExec = vi.fn((_command: string[]) =>
+        Promise.resolve({
+          exitCode: 0,
+          ok: true,
+          stderr: '',
+          stdout: 'image/png\n',
+        }),
+      );
+      const vm = {
+        exec: vmExec,
+        fs: {
+          access: vmAccess,
+          readFile: vmReadFile,
+        },
+      };
+
+      try {
+        await mkdir(path.dirname(artifactPath), { recursive: true });
+        const downloadTool = findTool(
+          makeConfig({
+            capturedDownloads,
+            cwd: cwdPath,
+            downloadBody: PNG_BYTES,
+            downloadContentType: 'image/png',
+          }),
+          'moltnet_download_task_artifact',
+        );
+
+        await callTool(downloadTool, {
+          cid: 'bafkreiinput',
+          outputPath: 'inputs/inspection.png',
+        });
+
+        const toolConfig = {
+          vm: vm as never,
+          cwdPath,
+          guestWorkspace: mountPath,
+        };
+        const readTool = createGondolinToolDefinitions(toolConfig).find(
+          (tool) => tool.name === 'read',
+        );
+        if (!readTool) throw new Error('read tool not registered');
+
+        const result = await readTool.execute(
+          'call-id',
+          { path: 'inputs/inspection.png' },
+          new AbortController().signal,
+          () => {},
+          null as never,
+        );
+        const writeTool = createGondolinToolDefinitions(toolConfig).find(
+          (tool) => tool.name === 'write',
+        );
+        if (!writeTool) throw new Error('write tool not registered');
+
+        await writeTool.execute(
+          'call-id',
+          {
+            content: 'analysis complete',
+            path: 'outputs/analysis.txt',
+          },
+          new AbortController().signal,
+          () => {},
+          null as never,
+        );
+
+        await expect(readFile(artifactPath)).resolves.toEqual(PNG_BYTES);
+        expect(capturedDownloads).toEqual([
+          { taskId: 'task-123', cid: 'bafkreiinput' },
+        ]);
+        expect(vmAccess).toHaveBeenCalledWith(artifactPath);
+        expect(vmReadFile).toHaveBeenCalledWith(artifactPath);
+        const execCommands = vmExec.mock.calls.map(([command]) =>
+          command.join('\n'),
+        );
+        expect(execCommands).toEqual(
+          expect.arrayContaining([expect.stringContaining(writePath)]),
+        );
+        expect(result.content).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              text: expect.stringContaining('Read image file [image/png]'),
+              type: 'text',
+            }),
+            expect.objectContaining({
+              data: expect.stringMatching(/.+/),
+              mimeType: 'image/png',
+              type: 'image',
+            }),
+          ]),
+        );
+        // Shared mount is the equal-path control; worktree is the divergence.
+        if (worktree) {
+          const lossyMountPath = path.join(
+            mountPath,
+            'inputs',
+            'inspection.png',
+          );
+          expect(vmAccess).not.toHaveBeenCalledWith(lossyMountPath);
+          expect(vmReadFile).not.toHaveBeenCalledWith(lossyMountPath);
+          expect(execCommands.join('\n')).not.toContain(
+            path.join(mountPath, 'outputs', 'analysis.txt'),
+          );
+        }
+      } finally {
+        await rm(mountPath, { force: true, recursive: true });
+      }
+    },
+  );
 
   it('rejects download paths escaping the workspace', async () => {
     const cwd = await mkdtemp(path.join(tmpdir(), 'moltnet-pi-artifact-'));
