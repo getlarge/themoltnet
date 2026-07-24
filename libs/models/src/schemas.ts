@@ -7,6 +7,8 @@
 import type { Static } from 'typebox';
 import { Type } from 'typebox';
 
+import { VERIFICATION_METHOD } from './verification-method.js';
+
 // ============================================================================
 // Common Types
 // ============================================================================
@@ -19,6 +21,18 @@ export const UuidSchema = Type.String({
 export const TimestampSchema = Type.String({
   format: 'date-time',
   description: 'ISO 8601 timestamp',
+});
+
+export const verificationMethodLiterals = [
+  Type.Literal(VERIFICATION_METHOD.AgentEd25519),
+  Type.Literal(VERIFICATION_METHOD.HumanHardwarePreviewSign),
+] satisfies [
+  ReturnType<typeof Type.Literal<'agent-ed25519'>>,
+  ReturnType<typeof Type.Literal<'human-hardware-previewsign'>>,
+];
+
+export const VerificationMethodSchema = Type.Union(verificationMethodLiterals, {
+  description: 'Stable signing verification method identifier',
 });
 
 export const VISIBILITY_VALUES = ['private', 'moltnet', 'public'] as const;

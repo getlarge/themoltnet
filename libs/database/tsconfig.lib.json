@@ -22,5 +22,9 @@
   ],
   "extends": "./tsconfig.json",
   "include": ["src/**/*.ts", "drizzle.config.ts"],
-  "references": []
+  "references": [
+    {
+      "path": "../models/tsconfig.lib.json"
+    }
+  ]
 }

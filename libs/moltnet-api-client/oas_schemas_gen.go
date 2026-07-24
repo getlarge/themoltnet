@@ -6866,6 +6866,8 @@ func (*CreateSigningRequestInternalServerError) createSigningRequestRes() {}
 
 type CreateSigningRequestReq struct {
 	Message string `json:"message"`
+	// Stable signing verification method identifier.
+	VerificationMethod OptCreateSigningRequestReqVerificationMethod `json:"verificationMethod"`
 }
 
 // GetMessage returns the value of Message.
@@ -6873,9 +6875,61 @@ func (s *CreateSigningRequestReq) GetMessage() string {
 	return s.Message
 }
 
+// GetVerificationMethod returns the value of VerificationMethod.
+func (s *CreateSigningRequestReq) GetVerificationMethod() OptCreateSigningRequestReqVerificationMethod {
+	return s.VerificationMethod
+}
+
 // SetMessage sets the value of Message.
 func (s *CreateSigningRequestReq) SetMessage(val string) {
 	s.Message = val
+}
+
+// SetVerificationMethod sets the value of VerificationMethod.
+func (s *CreateSigningRequestReq) SetVerificationMethod(val OptCreateSigningRequestReqVerificationMethod) {
+	s.VerificationMethod = val
+}
+
+// Stable signing verification method identifier.
+type CreateSigningRequestReqVerificationMethod string
+
+const (
+	CreateSigningRequestReqVerificationMethodAgentEd25519             CreateSigningRequestReqVerificationMethod = "agent-ed25519"
+	CreateSigningRequestReqVerificationMethodHumanHardwarePreviewsign CreateSigningRequestReqVerificationMethod = "human-hardware-previewsign"
+)
+
+// AllValues returns all CreateSigningRequestReqVerificationMethod values.
+func (CreateSigningRequestReqVerificationMethod) AllValues() []CreateSigningRequestReqVerificationMethod {
+	return []CreateSigningRequestReqVerificationMethod{
+		CreateSigningRequestReqVerificationMethodAgentEd25519,
+		CreateSigningRequestReqVerificationMethodHumanHardwarePreviewsign,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s CreateSigningRequestReqVerificationMethod) MarshalText() ([]byte, error) {
+	switch s {
+	case CreateSigningRequestReqVerificationMethodAgentEd25519:
+		return []byte(s), nil
+	case CreateSigningRequestReqVerificationMethodHumanHardwarePreviewsign:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *CreateSigningRequestReqVerificationMethod) UnmarshalText(data []byte) error {
+	switch CreateSigningRequestReqVerificationMethod(data) {
+	case CreateSigningRequestReqVerificationMethodAgentEd25519:
+		*s = CreateSigningRequestReqVerificationMethodAgentEd25519
+		return nil
+	case CreateSigningRequestReqVerificationMethodHumanHardwarePreviewsign:
+		*s = CreateSigningRequestReqVerificationMethodHumanHardwarePreviewsign
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
 }
 
 type CreateSigningRequestUnauthorized ProblemDetails
@@ -32710,6 +32764,52 @@ func (o OptCreateRuntimeProfileBodyWorkspaceStorageMode) Or(d CreateRuntimeProfi
 	return d
 }
 
+// NewOptCreateSigningRequestReqVerificationMethod returns new OptCreateSigningRequestReqVerificationMethod with value set to v.
+func NewOptCreateSigningRequestReqVerificationMethod(v CreateSigningRequestReqVerificationMethod) OptCreateSigningRequestReqVerificationMethod {
+	return OptCreateSigningRequestReqVerificationMethod{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptCreateSigningRequestReqVerificationMethod is optional CreateSigningRequestReqVerificationMethod.
+type OptCreateSigningRequestReqVerificationMethod struct {
+	Value CreateSigningRequestReqVerificationMethod
+	Set   bool
+}
+
+// IsSet returns true if OptCreateSigningRequestReqVerificationMethod was set.
+func (o OptCreateSigningRequestReqVerificationMethod) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptCreateSigningRequestReqVerificationMethod) Reset() {
+	var v CreateSigningRequestReqVerificationMethod
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptCreateSigningRequestReqVerificationMethod) SetTo(v CreateSigningRequestReqVerificationMethod) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptCreateSigningRequestReqVerificationMethod) Get() (v CreateSigningRequestReqVerificationMethod, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptCreateSigningRequestReqVerificationMethod) Or(d CreateSigningRequestReqVerificationMethod) CreateSigningRequestReqVerificationMethod {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptCreateTeamInviteReq returns new OptCreateTeamInviteReq with value set to v.
 func NewOptCreateTeamInviteReq(v CreateTeamInviteReq) OptCreateTeamInviteReq {
 	return OptCreateTeamInviteReq{
@@ -44518,6 +44618,8 @@ type SigningRequest struct {
 	SigningInput string               `json:"signingInput"`
 	Status       SigningRequestStatus `json:"status"`
 	Valid        NilBool              `json:"valid"`
+	// Stable signing verification method identifier.
+	VerificationMethod SigningRequestVerificationMethod `json:"verificationMethod"`
 }
 
 // GetAgentId returns the value of AgentId.
@@ -44575,6 +44677,11 @@ func (s *SigningRequest) GetValid() NilBool {
 	return s.Valid
 }
 
+// GetVerificationMethod returns the value of VerificationMethod.
+func (s *SigningRequest) GetVerificationMethod() SigningRequestVerificationMethod {
+	return s.VerificationMethod
+}
+
 // SetAgentId sets the value of AgentId.
 func (s *SigningRequest) SetAgentId(val uuid.UUID) {
 	s.AgentId = val
@@ -44628,6 +44735,11 @@ func (s *SigningRequest) SetStatus(val SigningRequestStatus) {
 // SetValid sets the value of Valid.
 func (s *SigningRequest) SetValid(val NilBool) {
 	s.Valid = val
+}
+
+// SetVerificationMethod sets the value of VerificationMethod.
+func (s *SigningRequest) SetVerificationMethod(val SigningRequestVerificationMethod) {
+	s.VerificationMethod = val
 }
 
 func (*SigningRequest) createSigningRequestRes() {}
@@ -44726,6 +44838,48 @@ func (s *SigningRequestStatus) UnmarshalText(data []byte) error {
 		return nil
 	case SigningRequestStatusExpired:
 		*s = SigningRequestStatusExpired
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Stable signing verification method identifier.
+type SigningRequestVerificationMethod string
+
+const (
+	SigningRequestVerificationMethodAgentEd25519             SigningRequestVerificationMethod = "agent-ed25519"
+	SigningRequestVerificationMethodHumanHardwarePreviewsign SigningRequestVerificationMethod = "human-hardware-previewsign"
+)
+
+// AllValues returns all SigningRequestVerificationMethod values.
+func (SigningRequestVerificationMethod) AllValues() []SigningRequestVerificationMethod {
+	return []SigningRequestVerificationMethod{
+		SigningRequestVerificationMethodAgentEd25519,
+		SigningRequestVerificationMethodHumanHardwarePreviewsign,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s SigningRequestVerificationMethod) MarshalText() ([]byte, error) {
+	switch s {
+	case SigningRequestVerificationMethodAgentEd25519:
+		return []byte(s), nil
+	case SigningRequestVerificationMethodHumanHardwarePreviewsign:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *SigningRequestVerificationMethod) UnmarshalText(data []byte) error {
+	switch SigningRequestVerificationMethod(data) {
+	case SigningRequestVerificationMethodAgentEd25519:
+		*s = SigningRequestVerificationMethodAgentEd25519
+		return nil
+	case SigningRequestVerificationMethodHumanHardwarePreviewsign:
+		*s = SigningRequestVerificationMethodHumanHardwarePreviewsign
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)

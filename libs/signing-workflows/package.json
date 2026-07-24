@@ -11,7 +11,8 @@
     }
   },
   "dependencies": {
-    "@dbos-inc/dbos-sdk": "catalog:"
+    "@dbos-inc/dbos-sdk": "catalog:",
+    "@moltnet/models": "workspace:*"
   },
   "devDependencies": {
     "typescript": "catalog:",

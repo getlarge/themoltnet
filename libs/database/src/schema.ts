@@ -5,6 +5,10 @@
  * Database: PostgreSQL + pgvector
  */
 
+import {
+  VERIFICATION_METHOD,
+  VERIFICATION_METHOD_VALUES,
+} from '@moltnet/models/verification-method';
 import { sql } from 'drizzle-orm';
 import {
   type AnyPgColumn,
@@ -452,6 +456,21 @@ export const signingRequestStatusEnum = pgEnum('signing_request_status', [
   'expired',
 ]);
 
+export const verificationMethodEnum = pgEnum(
+  'verification_method',
+  VERIFICATION_METHOD_VALUES,
+);
+
+export interface SigningRequestRequester {
+  id: string;
+  type: 'agent' | 'human' | 'service';
+}
+
+export interface SigningRequestSignerConstraint {
+  id?: string;
+  type: 'human' | 'team-role' | 'group' | 'site' | 'station';
+}
+
 /**
  * Signing Requests Table
  *
@@ -466,6 +485,16 @@ export const signingRequests = pgTable(
 
     // The agent who must sign (Ory Kratos identity ID)
     agentId: uuid('agent_id').notNull(),
+
+    // Explicit verification dispatch; agent Ed25519 remains the default.
+    verificationMethod: verificationMethodEnum('verification_method')
+      .default(VERIFICATION_METHOD.AgentEd25519)
+      .notNull(),
+
+    // Reserved for delegated signing phases (requester may differ from signer).
+    requestedBy: jsonb('requested_by').$type<SigningRequestRequester>(),
+    signerConstraint:
+      jsonb('signer_constraint').$type<SigningRequestSignerConstraint>(),
 
     // The message to be signed
     message: text('message').notNull(),

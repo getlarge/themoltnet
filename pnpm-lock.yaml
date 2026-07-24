@@ -1543,6 +1543,9 @@ importers:
       '@dbos-inc/drizzle-datasource':
         specifier: 'catalog:'
         version: 4.13.5(@dbos-inc/dbos-sdk@4.13.5)(drizzle-orm@0.45.2(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.16.0)(better-sqlite3@12.10.0)(pg@8.18.0))
+      '@moltnet/models':
+        specifier: workspace:*
+        version: link:../models
       drizzle-orm:
         specifier: 'catalog:'
         version: 0.45.2(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.16.0)(better-sqlite3@12.10.0)(pg@8.18.0)
@@ -2042,6 +2045,9 @@ importers:
       '@dbos-inc/dbos-sdk':
         specifier: 'catalog:'
         version: 4.13.5
+      '@moltnet/models':
+        specifier: workspace:*
+        version: link:../models
     devDependencies:
       typescript:
         specifier: 'catalog:'

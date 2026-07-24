@@ -393,10 +393,15 @@ export interface AgentsNamespace {
   ): Promise<VerifyResult>;
 }
 
+export type SigningVerificationMethod = SigningRequest['verificationMethod'];
+
 export interface SigningRequestsNamespace {
   list(query?: ListSigningRequestsData['query']): Promise<SigningRequestList>;
 
-  create(body: { message: string }): Promise<SigningRequest>;
+  create(body: {
+    message: string;
+    verificationMethod?: SigningVerificationMethod;
+  }): Promise<SigningRequest>;
 
   get(id: string): Promise<SigningRequest>;
 

@@ -91,9 +91,10 @@ func runEntryCreateSignedCmd(apiURL, credPath, diaryID, content, title, entryTyp
 	}
 
 	// Step 3: Create signing request with CID as message
-	sigRes, err := client.CreateSigningRequest(context.Background(), &moltnetapi.CreateSigningRequestReq{
-		Message: cid,
-	})
+	sigRes, err := client.CreateSigningRequest(
+		context.Background(),
+		newAgentSigningRequest(cid),
+	)
 	if err != nil {
 		return fmt.Errorf("create signing request: %w", formatTransportError(err))
 	}

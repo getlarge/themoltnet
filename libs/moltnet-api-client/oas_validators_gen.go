@@ -5971,10 +5971,39 @@ func (s *CreateSigningRequestReq) Validate() error {
 			Error: err,
 		})
 	}
+	if err := func() error {
+		if value, ok := s.VerificationMethod.Get(); ok {
+			if err := func() error {
+				if err := value.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "verificationMethod",
+			Error: err,
+		})
+	}
 	if len(failures) > 0 {
 		return &validate.Error{Fields: failures}
 	}
 	return nil
+}
+
+func (s CreateSigningRequestReqVerificationMethod) Validate() error {
+	switch s {
+	case "agent-ed25519":
+		return nil
+	case "human-hardware-previewsign":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
 }
 
 func (s *CreateSigningRequestUnauthorized) Validate() error {
@@ -24479,6 +24508,17 @@ func (s *SigningRequest) Validate() error {
 			Error: err,
 		})
 	}
+	if err := func() error {
+		if err := s.VerificationMethod.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "verificationMethod",
+			Error: err,
+		})
+	}
 	if len(failures) > 0 {
 		return &validate.Error{Fields: failures}
 	}
@@ -24565,6 +24605,17 @@ func (s SigningRequestStatus) Validate() error {
 	case "completed":
 		return nil
 	case "expired":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s SigningRequestVerificationMethod) Validate() error {
+	switch s {
+	case "agent-ed25519":
+		return nil
+	case "human-hardware-previewsign":
 		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)

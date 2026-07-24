@@ -9606,11 +9606,29 @@
                 "type": "null"
               }
             ]
+          },
+          "verificationMethod": {
+            "anyOf": [
+              {
+                "enum": [
+                  "agent-ed25519"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "human-hardware-previewsign"
+                ],
+                "type": "string"
+              }
+            ],
+            "description": "Stable signing verification method identifier"
           }
         },
         "required": [
           "id",
           "agentId",
+          "verificationMethod",
           "message",
           "nonce",
           "signingInput",
@@ -14275,6 +14293,23 @@
                     "maxLength": 100000,
                     "minLength": 1,
                     "type": "string"
+                  },
+                  "verificationMethod": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "agent-ed25519"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
+                          "human-hardware-previewsign"
+                        ],
+                        "type": "string"
+                      }
+                    ],
+                    "description": "Stable signing verification method identifier"
                   }
                 },
                 "required": [

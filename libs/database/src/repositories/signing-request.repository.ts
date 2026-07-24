@@ -26,6 +26,7 @@ export function createSigningRequestRepository(db: Database) {
     async create(
       input: Pick<NewSigningRequest, 'agentId' | 'message'> & {
         expiresAt: Date;
+        verificationMethod?: NewSigningRequest['verificationMethod'];
         workflowId?: string;
       },
     ): Promise<SigningRequest> {
@@ -35,6 +36,7 @@ export function createSigningRequestRepository(db: Database) {
           agentId: input.agentId,
           message: input.message,
           expiresAt: input.expiresAt,
+          verificationMethod: input.verificationMethod ?? 'agent-ed25519',
           workflowId: input.workflowId,
         })
         .returning();

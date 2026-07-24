@@ -92,37 +92,40 @@ func TestLoadCredentialsMissing(t *testing.T) {
 // stubSigningHandler implements GetSigningRequest and SubmitSignature for testing.
 type stubSigningHandler struct {
 	moltnetapi.UnimplementedHandler
-	requestID uuid.UUID
-	message   string
-	nonce     uuid.UUID
-	gotSig    string
+	requestID          uuid.UUID
+	message            string
+	nonce              uuid.UUID
+	verificationMethod moltnetapi.SigningRequestVerificationMethod
+	gotSig             string
 }
 
 func (h *stubSigningHandler) GetSigningRequest(_ context.Context, params moltnetapi.GetSigningRequestParams) (moltnetapi.GetSigningRequestRes, error) {
 	signingBytes := BuildSigningBytes(h.message, h.nonce.String())
 	signingInput := base64.StdEncoding.EncodeToString(signingBytes)
 	return &moltnetapi.SigningRequest{
-		ID:           h.requestID,
-		Message:      h.message,
-		Nonce:        h.nonce,
-		SigningInput: signingInput,
-		Status:       moltnetapi.SigningRequestStatusPending,
-		AgentId:      uuid.New(),
-		CreatedAt:    time.Now(),
-		ExpiresAt:    time.Now().Add(5 * time.Minute),
+		ID:                 h.requestID,
+		Message:            h.message,
+		Nonce:              h.nonce,
+		SigningInput:       signingInput,
+		Status:             moltnetapi.SigningRequestStatusPending,
+		VerificationMethod: h.verificationMethod,
+		AgentId:            uuid.New(),
+		CreatedAt:          time.Now(),
+		ExpiresAt:          time.Now().Add(5 * time.Minute),
 	}, nil
 }
 
 func (h *stubSigningHandler) SubmitSignature(_ context.Context, req *moltnetapi.SubmitSignatureReq, params moltnetapi.SubmitSignatureParams) (moltnetapi.SubmitSignatureRes, error) {
 	h.gotSig = req.Signature
 	return &moltnetapi.SigningRequest{
-		ID:        params.ID,
-		Message:   h.message,
-		Nonce:     h.nonce,
-		Status:    moltnetapi.SigningRequestStatusCompleted,
-		AgentId:   uuid.New(),
-		CreatedAt: time.Now(),
-		ExpiresAt: time.Now().Add(5 * time.Minute),
+		ID:                 params.ID,
+		Message:            h.message,
+		Nonce:              h.nonce,
+		Status:             moltnetapi.SigningRequestStatusCompleted,
+		VerificationMethod: h.verificationMethod,
+		AgentId:            uuid.New(),
+		CreatedAt:          time.Now(),
+		ExpiresAt:          time.Now().Add(5 * time.Minute),
 	}, nil
 }
 
@@ -136,9 +139,10 @@ func TestSignWithRequestID(t *testing.T) {
 	reqID := uuid.MustParse("00000000-0000-0000-0000-000000000099")
 	nonceID := uuid.MustParse("aaaaaaaa-0000-0000-0000-000000000000")
 	handler := &stubSigningHandler{
-		requestID: reqID,
-		message:   "hello from test",
-		nonce:     nonceID,
+		requestID:          reqID,
+		message:            "hello from test",
+		nonce:              nonceID,
+		verificationMethod: moltnetapi.SigningRequestVerificationMethodAgentEd25519,
 	}
 
 	_, _, client := newTestServer(t, handler)
@@ -167,5 +171,32 @@ func TestSignWithRequestID(t *testing.T) {
 	}
 	if !valid {
 		t.Error("submitted signature failed verification")
+	}
+}
+
+func TestSignWithRequestIDRejectsNonAgentVerificationMethod(t *testing.T) {
+	// Arrange
+	kp, err := GenerateKeyPair()
+	if err != nil {
+		t.Fatalf("generate keypair: %v", err)
+	}
+	reqID := uuid.MustParse("00000000-0000-0000-0000-000000000099")
+	handler := &stubSigningHandler{
+		requestID:          reqID,
+		message:            "hardware request",
+		nonce:              uuid.MustParse("aaaaaaaa-0000-0000-0000-000000000000"),
+		verificationMethod: moltnetapi.SigningRequestVerificationMethodHumanHardwarePreviewsign,
+	}
+	_, _, client := newTestServer(t, handler)
+
+	// Act
+	_, err = signWithRequestID(client, reqID.String(), kp.PrivateKey)
+
+	// Assert
+	if err == nil {
+		t.Fatal("expected non-agent verification method to be rejected")
+	}
+	if handler.gotSig != "" {
+		t.Error("non-agent request must not submit an Ed25519 signature")
 	}
 }

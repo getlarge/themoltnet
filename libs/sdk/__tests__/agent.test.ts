@@ -390,6 +390,39 @@ describe('Agent facade', () => {
         }),
       );
     });
+
+    it('diary.createSigned explicitly selects agent Ed25519 verification', async () => {
+      vi.mocked(createSigningRequest).mockResolvedValueOnce({
+        data: {
+          id: 'sr-1',
+          signingInput: Buffer.from('framed signing bytes').toString('base64'),
+        },
+        error: undefined,
+      } as any);
+      vi.mocked(submitSignature).mockResolvedValueOnce({
+        data: { id: 'sr-1' },
+        error: undefined,
+      } as any);
+      vi.mocked(createDiaryEntry).mockResolvedValueOnce({
+        data: mockEntry,
+        error: undefined,
+      } as any);
+
+      const agent = makeAgent();
+      await agent.entries.createSigned(
+        'my-diary',
+        { content: 'Signed content', entryType: 'semantic' },
+        Buffer.alloc(32, 1).toString('base64'),
+      );
+
+      expect(createSigningRequest).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.objectContaining({
+            verificationMethod: 'agent-ed25519',
+          }),
+        }),
+      );
+    });
   });
 
   // -----------------------------------------------------------------------
@@ -892,6 +925,7 @@ describe('Agent facade', () => {
         message: 'msg',
         nonce: 'n',
         status: 'pending',
+        verificationMethod: 'agent-ed25519',
         signature: null,
         valid: null,
         createdAt: '2024-01-01',
@@ -904,11 +938,17 @@ describe('Agent facade', () => {
       } as any);
 
       const agent = makeAgent();
-      await agent.crypto.signingRequests.create({ message: 'msg' });
+      await agent.crypto.signingRequests.create({
+        message: 'msg',
+        verificationMethod: 'agent-ed25519',
+      });
 
       expect(createSigningRequest).toHaveBeenCalledWith(
         expect.objectContaining({
-          body: { message: 'msg' },
+          body: {
+            message: 'msg',
+            verificationMethod: 'agent-ed25519',
+          },
         }),
       );
     });

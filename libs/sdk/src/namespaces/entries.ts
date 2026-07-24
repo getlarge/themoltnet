@@ -112,7 +112,10 @@ export function createEntriesNamespace(
         await createSigningRequest({
           client,
           auth,
-          body: { message: contentCid },
+          body: {
+            message: contentCid,
+            verificationMethod: 'agent-ed25519',
+          },
         }),
       );
 

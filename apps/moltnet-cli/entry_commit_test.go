@@ -275,20 +275,23 @@ type stubCommitHandler struct {
 	signingRequestID uuid.UUID
 	nonce            uuid.UUID
 	gotCreateReq     *moltnetapi.CreateDiaryEntryReq
+	gotSigningReq    *moltnetapi.CreateSigningRequestReq
 }
 
 func (h *stubCommitHandler) CreateSigningRequest(_ context.Context, req *moltnetapi.CreateSigningRequestReq) (moltnetapi.CreateSigningRequestRes, error) {
+	h.gotSigningReq = req
 	signingBytes := BuildSigningBytes(req.Message, h.nonce.String())
 	signingInput := base64.StdEncoding.EncodeToString(signingBytes)
 	return &moltnetapi.SigningRequest{
-		ID:           h.signingRequestID,
-		Message:      req.Message,
-		Nonce:        h.nonce,
-		SigningInput: signingInput,
-		Status:       moltnetapi.SigningRequestStatusPending,
-		AgentId:      uuid.New(),
-		CreatedAt:    time.Now(),
-		ExpiresAt:    time.Now().Add(5 * time.Minute),
+		ID:                 h.signingRequestID,
+		Message:            req.Message,
+		Nonce:              h.nonce,
+		SigningInput:       signingInput,
+		Status:             moltnetapi.SigningRequestStatusPending,
+		VerificationMethod: moltnetapi.SigningRequestVerificationMethodAgentEd25519,
+		AgentId:            uuid.New(),
+		CreatedAt:          time.Now(),
+		ExpiresAt:          time.Now().Add(5 * time.Minute),
 	}, nil
 }
 
@@ -297,26 +300,28 @@ func (h *stubCommitHandler) GetSigningRequest(_ context.Context, params moltneta
 	signingBytes := BuildSigningBytes("stub-message", h.nonce.String())
 	signingInput := base64.StdEncoding.EncodeToString(signingBytes)
 	return &moltnetapi.SigningRequest{
-		ID:           params.ID,
-		Message:      "stub-message",
-		Nonce:        h.nonce,
-		SigningInput: signingInput,
-		Status:       moltnetapi.SigningRequestStatusPending,
-		AgentId:      uuid.New(),
-		CreatedAt:    time.Now(),
-		ExpiresAt:    time.Now().Add(5 * time.Minute),
+		ID:                 params.ID,
+		Message:            "stub-message",
+		Nonce:              h.nonce,
+		SigningInput:       signingInput,
+		Status:             moltnetapi.SigningRequestStatusPending,
+		VerificationMethod: moltnetapi.SigningRequestVerificationMethodAgentEd25519,
+		AgentId:            uuid.New(),
+		CreatedAt:          time.Now(),
+		ExpiresAt:          time.Now().Add(5 * time.Minute),
 	}, nil
 }
 
 func (h *stubCommitHandler) SubmitSignature(_ context.Context, req *moltnetapi.SubmitSignatureReq, params moltnetapi.SubmitSignatureParams) (moltnetapi.SubmitSignatureRes, error) {
 	return &moltnetapi.SigningRequest{
-		ID:        params.ID,
-		Message:   "stub-message",
-		Nonce:     h.nonce,
-		Status:    moltnetapi.SigningRequestStatusCompleted,
-		AgentId:   uuid.New(),
-		CreatedAt: time.Now(),
-		ExpiresAt: time.Now().Add(5 * time.Minute),
+		ID:                 params.ID,
+		Message:            "stub-message",
+		Nonce:              h.nonce,
+		Status:             moltnetapi.SigningRequestStatusCompleted,
+		VerificationMethod: moltnetapi.SigningRequestVerificationMethodAgentEd25519,
+		AgentId:            uuid.New(),
+		CreatedAt:          time.Now(),
+		ExpiresAt:          time.Now().Add(5 * time.Minute),
 	}, nil
 }
 
@@ -370,6 +375,13 @@ func TestSignAndCreateEntry_Unsigned(t *testing.T) {
 	if result.Signature == "" {
 		t.Error("expected non-empty signature")
 	}
+	if handler.gotSigningReq == nil {
+		t.Fatal("expected CreateSigningRequest to be called")
+	}
+	if !handler.gotSigningReq.VerificationMethod.Set ||
+		handler.gotSigningReq.VerificationMethod.Value != moltnetapi.CreateSigningRequestReqVerificationMethodAgentEd25519 {
+		t.Errorf("verification method = %+v, want agent-ed25519", handler.gotSigningReq.VerificationMethod)
+	}
 	// Verify unsigned: no signingRequestId or contentHash on the create request
 	if handler.gotCreateReq == nil {
 		t.Fatal("expected CreateDiaryEntry to be called")
@@ -414,6 +426,13 @@ func TestSignAndCreateEntry_Signed(t *testing.T) {
 	}
 	if result.Signature == "" {
 		t.Error("expected non-empty signature")
+	}
+	if handler.gotSigningReq == nil {
+		t.Fatal("expected CreateSigningRequest to be called")
+	}
+	if !handler.gotSigningReq.VerificationMethod.Set ||
+		handler.gotSigningReq.VerificationMethod.Value != moltnetapi.CreateSigningRequestReqVerificationMethodAgentEd25519 {
+		t.Errorf("verification method = %+v, want agent-ed25519", handler.gotSigningReq.VerificationMethod)
 	}
 	// Verify signed: signingRequestId and contentHash should be set
 	if handler.gotCreateReq == nil {

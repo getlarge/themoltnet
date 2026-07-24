@@ -25,8 +25,14 @@ import { DBOS, parseStatusFilter } from '@moltnet/database';
 import {
   ConflictProblemDetailsSchema,
   ProblemDetailsSchema,
+  VERIFICATION_METHOD,
+  VerificationMethodSchema,
 } from '@moltnet/models';
-import { signingWorkflows } from '@moltnet/signing-workflows';
+import {
+  assertSigningVerifierRegistered,
+  SigningVerifierNotRegisteredError,
+  signingWorkflows,
+} from '@moltnet/signing-workflows';
 import type { FastifyInstance } from 'fastify';
 import { Type } from 'typebox';
 
@@ -42,6 +48,7 @@ function toSigningResponse(row: SigningRequest) {
   return {
     id: row.id,
     agentId: row.agentId,
+    verificationMethod: row.verificationMethod,
     message: row.message,
     nonce: row.nonce,
     signingInput: Buffer.from(
@@ -79,6 +86,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         body: Type.Object({
           message: Type.String({ minLength: 1, maxLength: 100000 }),
+          verificationMethod: Type.Optional(VerificationMethodSchema),
         }),
         response: {
           400: Type.Ref(ProblemDetailsSchema.$id),
@@ -89,7 +97,20 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { message } = request.body;
+      const { message, verificationMethod = VERIFICATION_METHOD.AgentEd25519 } =
+        request.body;
+      try {
+        assertSigningVerifierRegistered(verificationMethod);
+      } catch (error) {
+        if (error instanceof SigningVerifierNotRegisteredError) {
+          throw createProblem(
+            'validation-failed',
+            `No signing verifier is registered for verification method: ${error.verificationMethod}`,
+          );
+        }
+        throw error;
+      }
+
       const agentId = request.authContext!.identityId;
       const timeoutSeconds = fastify.signingTimeoutSeconds;
       const expiresAt = new Date(Date.now() + timeoutSeconds * 1000);
@@ -99,13 +120,20 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
         agentId,
         message,
         expiresAt,
+        verificationMethod,
       });
 
       // Start the DBOS workflow (must be outside runTransaction so recv/send work)
       const workflowHandle = await DBOS.startWorkflow(
         signingWorkflows.requestSignature,
         { workflowID: `signing-${created.id}` },
-      )(created.id, agentId, message, created.nonce);
+      )(
+        created.id,
+        agentId,
+        message,
+        created.nonce,
+        created.verificationMethod,
+      );
 
       // Persist the workflow ID for later send() calls
       await fastify.signingRequestRepository.updateStatus(created.id, {

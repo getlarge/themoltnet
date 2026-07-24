@@ -224,6 +224,13 @@
       "when": 1784119463966,
       "tag": "0031_aberrant_reaper",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1784898370065,
+      "tag": "0032_yellow_deadpool",
+      "breakpoints": true
     }
   ],
   "version": "7"

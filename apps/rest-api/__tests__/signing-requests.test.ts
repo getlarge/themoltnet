@@ -6,6 +6,12 @@ import type {
   TokenValidator,
 } from '@moltnet/auth';
 import { buildSigningBytes } from '@moltnet/crypto-service';
+import { DBOS } from '@moltnet/database';
+import type * as SigningWorkflowModule from '@moltnet/signing-workflows';
+import {
+  assertSigningVerifierRegistered,
+  SigningVerifierNotRegisteredError,
+} from '@moltnet/signing-workflows';
 import type { FastifyInstance } from 'fastify';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -39,11 +45,16 @@ vi.mock('@moltnet/database', async (importOriginal) => {
   };
 });
 
-vi.mock('@moltnet/signing-workflows', () => ({
-  signingWorkflows: {
-    requestSignature: vi.fn(),
-  },
-}));
+vi.mock('@moltnet/signing-workflows', async (importOriginal) => {
+  const original = await importOriginal<typeof SigningWorkflowModule>();
+  return {
+    ...original,
+    assertSigningVerifierRegistered: vi.fn(),
+    signingWorkflows: {
+      requestSignature: vi.fn(),
+    },
+  };
+});
 
 const OWNER_ID = '550e8400-e29b-41d4-a716-446655440000';
 const OTHER_AGENT_ID = '660e8400-e29b-41d4-a716-446655440001';
@@ -65,6 +76,9 @@ function createMockSigningRequest(
   return {
     id: REQUEST_ID,
     agentId: OWNER_ID,
+    verificationMethod: 'agent-ed25519',
+    requestedBy: null,
+    signerConstraint: null,
     message: 'Hello, world!',
     nonce: 'aaa08400-e29b-41d4-a716-446655440011',
     status: 'pending',
@@ -225,6 +239,7 @@ describe('Signing request routes', () => {
       const body = response.json();
       expect(body.id).toBe(REQUEST_ID);
       expect(body.message).toBe('Hello, world!');
+      expect(body.verificationMethod).toBe('agent-ed25519');
       expect(body.status).toBe('pending');
       expect(body.signingInput).toBe(
         expectedSigningInput(
@@ -236,7 +251,16 @@ describe('Signing request routes', () => {
         expect.objectContaining({
           agentId: OWNER_ID,
           message: 'Hello, world!',
+          verificationMethod: 'agent-ed25519',
         }),
+      );
+      const workflow = vi.mocked(DBOS.startWorkflow).mock.results[0].value;
+      expect(workflow).toHaveBeenCalledWith(
+        REQUEST_ID,
+        OWNER_ID,
+        'Hello, world!',
+        'aaa08400-e29b-41d4-a716-446655440011',
+        'agent-ed25519',
       );
     });
 
@@ -250,6 +274,36 @@ describe('Signing request routes', () => {
       });
 
       expect(response.statusCode).toBe(401);
+    });
+
+    it('rejects a verification method with no registered verifier', async () => {
+      vi.mocked(assertSigningVerifierRegistered).mockImplementationOnce(
+        (method) => {
+          throw new SigningVerifierNotRegisteredError(method);
+        },
+      );
+      vi.mocked(DBOS.startWorkflow).mockClear();
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/crypto/signing-requests',
+        headers: { authorization: 'Bearer test-token' },
+        payload: {
+          message: 'Hello, world!',
+          verificationMethod: 'human-hardware-previewsign',
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(response.json()).toEqual(
+        expect.objectContaining({
+          code: 'VALIDATION_FAILED',
+          detail:
+            'No signing verifier is registered for verification method: human-hardware-previewsign',
+        }),
+      );
+      expect(signingRepo.create).not.toHaveBeenCalled();
+      expect(DBOS.startWorkflow).not.toHaveBeenCalled();
     });
   });
 
@@ -268,6 +322,7 @@ describe('Signing request routes', () => {
       const body = response.json();
       expect(body.items).toHaveLength(1);
       expect(body.total).toBe(1);
+      expect(body.items[0].verificationMethod).toBe('agent-ed25519');
       expect(body.items[0].signingInput).toBe(
         expectedSigningInput(
           'Hello, world!',
@@ -308,6 +363,7 @@ describe('Signing request routes', () => {
       expect(response.statusCode).toBe(200);
       const body = response.json();
       expect(body.id).toBe(REQUEST_ID);
+      expect(body.verificationMethod).toBe('agent-ed25519');
       expect(body.signingInput).toBe(
         expectedSigningInput(
           'Hello, world!',
