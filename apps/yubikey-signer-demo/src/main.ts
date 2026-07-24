@@ -9,10 +9,18 @@ import { verifyP256PrehashedSignature } from '@themoltnet/yubikey-preview-sign/v
 async function main(): Promise<void> {
   const client = new PreviewSignClient();
   const devices = await client.listDevices();
-  const device = devices[0];
-  if (!device || devices.length !== 1) {
+  const capableDevices = [];
+  for (const candidate of devices) {
+    const capabilities = await client.getCapabilities(candidate.id);
+    if (capabilities.supportsPreviewSign) {
+      capableDevices.push(candidate);
+    }
+  }
+
+  const device = capableDevices[0];
+  if (!device || capableDevices.length !== 1) {
     throw new Error(
-      `Expected exactly one FIDO HID device, found ${devices.length}`,
+      `Expected exactly one previewSign-capable FIDO HID device, found ${capableDevices.length} among ${devices.length} FIDO devices`,
     );
   }
 
