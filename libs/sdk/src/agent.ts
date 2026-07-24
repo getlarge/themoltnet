@@ -200,13 +200,13 @@ export interface DiaryCreateRequestOptions {
 
 export interface AgentKeysNamespace {
   list(
+    query: ListAgentKeysData['query'] | undefined,
     options: RequiredTeamRequestOptions,
-    query?: ListAgentKeysData['query'],
   ): Promise<AgentKeyList>;
 
   create(
     body: CreateAgentKeyData['body'],
-    options: RequiredTeamRequestOptions,
+    options: AgentKeyIssueRequestOptions,
   ): Promise<AgentKeyWithSecret>;
 
   rotate(
@@ -219,6 +219,11 @@ export interface AgentKeysNamespace {
     body: RevokeAgentKeyData['body'],
     options: RequiredTeamRequestOptions,
   ): Promise<void>;
+}
+
+export interface AgentKeyIssueRequestOptions extends RequiredTeamRequestOptions {
+  /** Stable retry key. Reuse it only for the same issue request. */
+  idempotencyKey: string;
 }
 
 export interface DiariesNamespace {

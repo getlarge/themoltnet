@@ -15,6 +15,7 @@
 
 import type { FrontendApi } from '@ory/client-fetch';
 
+import { HUMAN_SESSION_SCOPES } from './scopes.js';
 import type { HumanAuthContext } from './types.js';
 
 /**
@@ -35,14 +36,6 @@ export interface ResolveSessionInput {
 export interface SessionResolver {
   resolveSession(input: ResolveSessionInput): Promise<HumanAuthContext | null>;
 }
-
-/** Default scopes granted to session-authenticated humans. */
-const DEFAULT_SESSION_SCOPES = [
-  'diary:read',
-  'diary:write',
-  'human:profile',
-  'team:read',
-];
 
 function summarizeCookieHeader(cookie: string | undefined): {
   present: boolean;
@@ -121,7 +114,7 @@ export function createSessionResolver(
   frontendApi: FrontendApi,
   config?: SessionResolverConfig,
 ): SessionResolver {
-  const scopes = config?.scopes ?? DEFAULT_SESSION_SCOPES;
+  const scopes = config?.scopes ?? [...HUMAN_SESSION_SCOPES];
   const logger = config?.logger ?? NOOP_LOGGER;
 
   return {

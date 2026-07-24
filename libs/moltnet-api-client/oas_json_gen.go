@@ -1341,14 +1341,14 @@ func (s *AgentKeyList) encodeFields(e *jx.Encoder) {
 		e.ArrEnd()
 	}
 	{
-		e.FieldStart("nextPageToken")
-		s.NextPageToken.Encode(e)
+		e.FieldStart("nextCursor")
+		s.NextCursor.Encode(e)
 	}
 }
 
 var jsonFieldsNameOfAgentKeyList = [2]string{
 	0: "items",
-	1: "nextPageToken",
+	1: "nextCursor",
 }
 
 // Decode decodes AgentKeyList from json.
@@ -1378,15 +1378,15 @@ func (s *AgentKeyList) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"items\"")
 			}
-		case "nextPageToken":
+		case "nextCursor":
 			requiredBitSet[0] |= 1 << 1
 			if err := func() error {
-				if err := s.NextPageToken.Decode(d); err != nil {
+				if err := s.NextCursor.Decode(d); err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"nextPageToken\"")
+				return errors.Wrap(err, "decode field \"nextCursor\"")
 			}
 		default:
 			return d.Skip()
@@ -10038,17 +10038,17 @@ func (s *CreateAgentKeyBadGateway) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
-// Encode encodes CreateAgentKeyBadRequest as json.
-func (s *CreateAgentKeyBadRequest) Encode(e *jx.Encoder) {
+// Encode encodes CreateAgentKeyConflict as json.
+func (s *CreateAgentKeyConflict) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
 
 	unwrapped.Encode(e)
 }
 
-// Decode decodes CreateAgentKeyBadRequest from json.
-func (s *CreateAgentKeyBadRequest) Decode(d *jx.Decoder) error {
+// Decode decodes CreateAgentKeyConflict from json.
+func (s *CreateAgentKeyConflict) Decode(d *jx.Decoder) error {
 	if s == nil {
-		return errors.New("invalid: unable to decode CreateAgentKeyBadRequest to nil")
+		return errors.New("invalid: unable to decode CreateAgentKeyConflict to nil")
 	}
 	var unwrapped ProblemDetails
 	if err := func() error {
@@ -10059,19 +10059,19 @@ func (s *CreateAgentKeyBadRequest) Decode(d *jx.Decoder) error {
 	}(); err != nil {
 		return errors.Wrap(err, "alias")
 	}
-	*s = CreateAgentKeyBadRequest(unwrapped)
+	*s = CreateAgentKeyConflict(unwrapped)
 	return nil
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s *CreateAgentKeyBadRequest) MarshalJSON() ([]byte, error) {
+func (s *CreateAgentKeyConflict) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *CreateAgentKeyBadRequest) UnmarshalJSON(data []byte) error {
+func (s *CreateAgentKeyConflict) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -10279,6 +10279,44 @@ func (s *CreateAgentKeyServiceUnavailable) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *CreateAgentKeyServiceUnavailable) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateAgentKeyTooManyRequests as json.
+func (s *CreateAgentKeyTooManyRequests) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes CreateAgentKeyTooManyRequests from json.
+func (s *CreateAgentKeyTooManyRequests) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateAgentKeyTooManyRequests to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = CreateAgentKeyTooManyRequests(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CreateAgentKeyTooManyRequests) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateAgentKeyTooManyRequests) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -47338,44 +47376,6 @@ func (s *ListAgentKeysBadGateway) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
-// Encode encodes ListAgentKeysBadRequest as json.
-func (s *ListAgentKeysBadRequest) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
-}
-
-// Decode decodes ListAgentKeysBadRequest from json.
-func (s *ListAgentKeysBadRequest) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode ListAgentKeysBadRequest to nil")
-	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
-	}
-	*s = ListAgentKeysBadRequest(unwrapped)
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *ListAgentKeysBadRequest) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *ListAgentKeysBadRequest) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
 // Encode encodes ListAgentKeysForbidden as json.
 func (s *ListAgentKeysForbidden) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
@@ -74541,44 +74541,6 @@ func (s *RevokeAgentKeyBadGateway) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
-// Encode encodes RevokeAgentKeyBadRequest as json.
-func (s *RevokeAgentKeyBadRequest) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
-}
-
-// Decode decodes RevokeAgentKeyBadRequest from json.
-func (s *RevokeAgentKeyBadRequest) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode RevokeAgentKeyBadRequest to nil")
-	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
-	}
-	*s = RevokeAgentKeyBadRequest(unwrapped)
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *RevokeAgentKeyBadRequest) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *RevokeAgentKeyBadRequest) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
 // Encode encodes RevokeAgentKeyForbidden as json.
 func (s *RevokeAgentKeyForbidden) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
@@ -75380,44 +75342,6 @@ func (s *RotateAgentKeyBadGateway) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
-// Encode encodes RotateAgentKeyBadRequest as json.
-func (s *RotateAgentKeyBadRequest) Encode(e *jx.Encoder) {
-	unwrapped := (*ProblemDetails)(s)
-
-	unwrapped.Encode(e)
-}
-
-// Decode decodes RotateAgentKeyBadRequest from json.
-func (s *RotateAgentKeyBadRequest) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode RotateAgentKeyBadRequest to nil")
-	}
-	var unwrapped ProblemDetails
-	if err := func() error {
-		if err := unwrapped.Decode(d); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return errors.Wrap(err, "alias")
-	}
-	*s = RotateAgentKeyBadRequest(unwrapped)
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *RotateAgentKeyBadRequest) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *RotateAgentKeyBadRequest) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
 // Encode encodes RotateAgentKeyForbidden as json.
 func (s *RotateAgentKeyForbidden) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
@@ -75528,6 +75452,44 @@ func (s *RotateAgentKeyServiceUnavailable) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *RotateAgentKeyServiceUnavailable) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes RotateAgentKeyTooManyRequests as json.
+func (s *RotateAgentKeyTooManyRequests) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes RotateAgentKeyTooManyRequests from json.
+func (s *RotateAgentKeyTooManyRequests) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode RotateAgentKeyTooManyRequests to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = RotateAgentKeyTooManyRequests(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *RotateAgentKeyTooManyRequests) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *RotateAgentKeyTooManyRequests) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

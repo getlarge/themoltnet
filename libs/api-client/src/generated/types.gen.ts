@@ -70,7 +70,7 @@ export type AgentKeyList = {
     teamId: string;
     updatedAt: string | null;
   }>;
-  nextPageToken: string | null;
+  nextCursor: string | null;
 };
 
 export type AgentKeyParams = {
@@ -2884,8 +2884,8 @@ export type ListAgentKeysData = {
   query?: {
     agentId?: string;
     status?: 'active' | 'revoked' | 'expired';
-    pageSize?: number;
-    pageToken?: string;
+    limit?: number;
+    cursor?: string;
   };
   url: '/agent-keys';
 };
@@ -2894,7 +2894,7 @@ export type ListAgentKeysErrors = {
   /**
    * Default Response
    */
-  400: ProblemDetails;
+  400: ValidationProblemDetails;
   /**
    * Default Response
    */
@@ -2939,6 +2939,10 @@ export type CreateAgentKeyData = {
      * Team ID (UUID) that will own the resource. Required.
      */
     'x-moltnet-team-id': string;
+    /**
+     * Caller-generated retry key. Reuse it only for the same issue request.
+     */
+    'idempotency-key': string;
   };
   path?: never;
   query?: never;
@@ -2949,7 +2953,7 @@ export type CreateAgentKeyErrors = {
   /**
    * Default Response
    */
-  400: ProblemDetails;
+  400: ValidationProblemDetails;
   /**
    * Default Response
    */
@@ -2958,6 +2962,14 @@ export type CreateAgentKeyErrors = {
    * Default Response
    */
   403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
   /**
    * Default Response
    */
@@ -3007,7 +3019,7 @@ export type RevokeAgentKeyErrors = {
   /**
    * Default Response
    */
-  400: ProblemDetails;
+  400: ValidationProblemDetails;
   /**
    * Default Response
    */
@@ -3062,7 +3074,7 @@ export type RotateAgentKeyErrors = {
   /**
    * Default Response
    */
-  400: ProblemDetails;
+  400: ValidationProblemDetails;
   /**
    * Default Response
    */
@@ -3075,6 +3087,10 @@ export type RotateAgentKeyErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
   /**
    * Default Response
    */

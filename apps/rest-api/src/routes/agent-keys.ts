@@ -3,6 +3,7 @@ import { KetoNamespace, requireAuth } from '@moltnet/auth';
 import {
   ProblemDetailsSchema,
   TeamHeaderRequiredSchema,
+  ValidationProblemDetailsSchema,
 } from '@moltnet/models';
 import type { ApiKeysApi } from '@ory/client-fetch';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
@@ -45,6 +46,19 @@ function authSubject(request: FastifyRequest): AgentKeySubject {
   };
 }
 
+const AgentKeyIssueHeadersSchema = Type.Intersect([
+  TeamHeaderRequiredSchema,
+  Type.Object({
+    'idempotency-key': Type.String({
+      minLength: 1,
+      maxLength: 200,
+      pattern: '\\S',
+      description:
+        'Caller-generated retry key. Reuse it only for the same issue request.',
+    }),
+  }),
+]);
+
 export async function agentKeyRoutes(
   fastify: FastifyInstance,
   options: AgentKeyRoutesOptions,
@@ -61,20 +75,25 @@ export async function agentKeyRoutes(
   server.post(
     '/agent-keys',
     {
-      config: { auth: { talosCredentialScope: 'team' } },
+      config: {
+        auth: { talosCredentialScope: 'team' },
+        rateLimit: fastify.rateLimitConfig.agentKey,
+      },
       schema: {
         operationId: 'createAgentKey',
         tags: ['agent-keys'],
         description:
           'Issue a secret API key bound to one agent and the active team.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
-        headers: TeamHeaderRequiredSchema,
+        headers: AgentKeyIssueHeadersSchema,
         body: CreateAgentKeyBodySchema,
         response: {
           201: Type.Ref(AgentKeyWithSecretSchema.$id),
-          400: Type.Ref(ProblemDetailsSchema.$id),
+          400: Type.Ref(ValidationProblemDetailsSchema.$id),
           401: Type.Ref(ProblemDetailsSchema.$id),
           403: Type.Ref(ProblemDetailsSchema.$id),
+          409: Type.Ref(ProblemDetailsSchema.$id),
+          429: Type.Ref(ProblemDetailsSchema.$id),
           502: Type.Ref(ProblemDetailsSchema.$id),
           503: Type.Ref(ProblemDetailsSchema.$id),
         },
@@ -84,6 +103,7 @@ export async function agentKeyRoutes(
       const teamId = requireCurrentTeamId(request, 'agent keys');
       const result = await agentKeys.issue({
         ...request.body,
+        idempotencyKey: request.headers['idempotency-key'],
         logger: request.log,
         subject: authSubject(request),
         teamId,
@@ -109,14 +129,14 @@ export async function agentKeyRoutes(
         querystring: Type.Object({
           agentId: Type.Optional(Type.String({ format: 'uuid' })),
           status: Type.Optional(AgentKeyStatusSchema),
-          pageSize: Type.Optional(
+          limit: Type.Optional(
             Type.Integer({ minimum: 1, maximum: 100, default: 20 }),
           ),
-          pageToken: Type.Optional(Type.String()),
+          cursor: Type.Optional(Type.String()),
         }),
         response: {
           200: Type.Ref(AgentKeyListSchema.$id),
-          400: Type.Ref(ProblemDetailsSchema.$id),
+          400: Type.Ref(ValidationProblemDetailsSchema.$id),
           401: Type.Ref(ProblemDetailsSchema.$id),
           403: Type.Ref(ProblemDetailsSchema.$id),
           502: Type.Ref(ProblemDetailsSchema.$id),
@@ -138,7 +158,10 @@ export async function agentKeyRoutes(
   server.post(
     '/agent-keys/:keyId/rotate',
     {
-      config: { auth: { talosCredentialScope: 'team' } },
+      config: {
+        auth: { talosCredentialScope: 'team' },
+        rateLimit: fastify.rateLimitConfig.agentKey,
+      },
       schema: {
         operationId: 'rotateAgentKey',
         tags: ['agent-keys'],
@@ -149,10 +172,11 @@ export async function agentKeyRoutes(
         params: AgentKeyParamsSchema,
         response: {
           200: Type.Ref(AgentKeyWithSecretSchema.$id),
-          400: Type.Ref(ProblemDetailsSchema.$id),
+          400: Type.Ref(ValidationProblemDetailsSchema.$id),
           401: Type.Ref(ProblemDetailsSchema.$id),
           403: Type.Ref(ProblemDetailsSchema.$id),
           404: Type.Ref(ProblemDetailsSchema.$id),
+          429: Type.Ref(ProblemDetailsSchema.$id),
           502: Type.Ref(ProblemDetailsSchema.$id),
           503: Type.Ref(ProblemDetailsSchema.$id),
         },
@@ -183,7 +207,7 @@ export async function agentKeyRoutes(
         body: RevokeAgentKeyBodySchema,
         response: {
           204: Type.Null(),
-          400: Type.Ref(ProblemDetailsSchema.$id),
+          400: Type.Ref(ValidationProblemDetailsSchema.$id),
           401: Type.Ref(ProblemDetailsSchema.$id),
           403: Type.Ref(ProblemDetailsSchema.$id),
           404: Type.Ref(ProblemDetailsSchema.$id),

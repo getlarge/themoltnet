@@ -874,7 +874,7 @@ func encodeCreateAgentKeyResponse(response CreateAgentKeyRes, w http.ResponseWri
 
 		return nil
 
-	case *CreateAgentKeyBadRequest:
+	case *ValidationProblemDetails:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(400)
 
@@ -901,6 +901,30 @@ func encodeCreateAgentKeyResponse(response CreateAgentKeyRes, w http.ResponseWri
 	case *CreateAgentKeyForbidden:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(403)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *CreateAgentKeyConflict:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(409)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *CreateAgentKeyTooManyRequests:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(429)
 
 		e := new(jx.Encoder)
 		response.Encode(e)
@@ -4890,7 +4914,7 @@ func encodeListAgentKeysResponse(response ListAgentKeysRes, w http.ResponseWrite
 
 		return nil
 
-	case *ListAgentKeysBadRequest:
+	case *ValidationProblemDetails:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(400)
 
@@ -6905,7 +6929,7 @@ func encodeRevokeAgentKeyResponse(response RevokeAgentKeyRes, w http.ResponseWri
 
 		return nil
 
-	case *RevokeAgentKeyBadRequest:
+	case *ValidationProblemDetails:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(400)
 
@@ -7066,7 +7090,7 @@ func encodeRotateAgentKeyResponse(response RotateAgentKeyRes, w http.ResponseWri
 
 		return nil
 
-	case *RotateAgentKeyBadRequest:
+	case *ValidationProblemDetails:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(400)
 
@@ -7105,6 +7129,18 @@ func encodeRotateAgentKeyResponse(response RotateAgentKeyRes, w http.ResponseWri
 	case *RotateAgentKeyNotFound:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(404)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *RotateAgentKeyTooManyRequests:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(429)
 
 		e := new(jx.Encoder)
 		response.Encode(e)

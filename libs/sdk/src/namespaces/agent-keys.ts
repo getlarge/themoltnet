@@ -16,7 +16,7 @@ export function createAgentKeysNamespace(
   const { client, auth } = context;
 
   return {
-    async list(options, query) {
+    async list(query, options) {
       return unwrapResult(
         await listAgentKeys({
           client,
@@ -32,7 +32,10 @@ export function createAgentKeysNamespace(
         await createAgentKey({
           client,
           auth,
-          headers: requiredTeamHeaders(options),
+          headers: {
+            ...requiredTeamHeaders(options),
+            'idempotency-key': options.idempotencyKey,
+          },
           body,
         }),
       );

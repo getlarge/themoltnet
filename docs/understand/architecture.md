@@ -1088,10 +1088,13 @@ current membership and permissions inside the allowed team. Owners and
 managers receive `Team#manage_credentials`; agents may manage only their own
 keys.
 
-Keys last 30 days by default and at most 90 days. Rotation is immediate: Talos
-revokes the old secret and returns the replacement once. If that response is
-lost, issue another key and revoke the orphan rather than trying to recover the
-secret.
+Keys last 30 days by default and at most 90 days. Issue requests require an
+idempotency key, which MoltNet deterministically maps to Talos's AIP-133
+`request_id`. A replay cannot create a duplicate and returns `409` because
+Talos intentionally cannot return the original secret. Rotation is immediate:
+Talos revokes the old secret and returns the replacement once. If that response
+is lost, issue another key and revoke the orphan rather than trying to recover
+the secret.
 
 ### Security Notes
 

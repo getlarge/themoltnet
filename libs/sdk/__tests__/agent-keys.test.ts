@@ -18,13 +18,13 @@ describe('AgentKeysNamespace', () => {
   });
 
   it('lists keys in the requested team context', async () => {
-    const expected = { items: [], nextPageToken: null };
+    const expected = { items: [], nextCursor: null };
     get.mockResolvedValue({ data: expected });
 
     await expect(
       namespace.list(
-        { teamId: TEAM_ID },
         { agentId: 'bbbbbbbb-0000-4000-8000-000000000002' },
+        { teamId: TEAM_ID },
       ),
     ).resolves.toEqual(expected);
     expect(get).toHaveBeenCalledWith(
@@ -62,7 +62,7 @@ describe('AgentKeysNamespace', () => {
           agentId: 'bbbbbbbb-0000-4000-8000-000000000002',
           name: 'daemon',
         },
-        { teamId: TEAM_ID },
+        { teamId: TEAM_ID, idempotencyKey: 'sdk-test-request' },
       ),
     ).resolves.toEqual(issued);
     await expect(
@@ -81,6 +81,7 @@ describe('AgentKeysNamespace', () => {
       expect.objectContaining({
         url: '/agent-keys',
         headers: expect.objectContaining({
+          'idempotency-key': 'sdk-test-request',
           'x-moltnet-team-id': TEAM_ID,
         }),
       }),

@@ -17,11 +17,13 @@ import { createAgent, type TestAgent } from './helpers.js';
 import { createTestHarness, type TestHarness } from './setup.js';
 
 describe('Talos API key authentication', () => {
+  const issueIdempotencyKey = 'rest-api-e2e-agent-key';
   let harness: TestHarness;
   let agent: TestAgent;
   let keyId: string;
   let secret: string;
   let activeKeyId: string | null = null;
+  const paginationKeyIds: string[] = [];
 
   beforeAll(async () => {
     harness = await createTestHarness();
@@ -35,7 +37,10 @@ describe('Talos API key authentication', () => {
     const { data: issued, error } = await createAgentKey({
       client,
       auth: () => agent.accessToken,
-      headers: { 'x-moltnet-team-id': agent.personalTeamId },
+      headers: {
+        'idempotency-key': issueIdempotencyKey,
+        'x-moltnet-team-id': agent.personalTeamId,
+      },
       body: {
         agentId: agent.identityId,
         name: 'rest-api-e2e',
@@ -50,10 +55,93 @@ describe('Talos API key authentication', () => {
     activeKeyId = keyId;
   });
 
+  it('prevents duplicate issue after a lost response', async () => {
+    const client = createClient({ baseUrl: harness.baseUrl });
+    const replay = await createAgentKey({
+      client,
+      auth: () => agent.accessToken,
+      headers: {
+        'idempotency-key': issueIdempotencyKey,
+        'x-moltnet-team-id': agent.personalTeamId,
+      },
+      body: {
+        agentId: agent.identityId,
+        name: 'rest-api-e2e',
+        ttlDays: 1,
+      },
+    });
+
+    expect(replay.response.status).toBe(409);
+    expect(replay.error).toMatchObject({ code: 'CONFLICT' });
+
+    const listed = await listAgentKeys({
+      client,
+      auth: () => agent.accessToken,
+      headers: { 'x-moltnet-team-id': agent.personalTeamId },
+      query: { agentId: agent.identityId, limit: 100 },
+    });
+    expect(listed.response.status).toBe(200);
+    expect(listed.data?.items.filter((key) => key.id === keyId)).toHaveLength(
+      1,
+    );
+  });
+
+  it('continues filtered lists with the native Talos cursor', async () => {
+    const client = createClient({ baseUrl: harness.baseUrl });
+    for (const suffix of ['a', 'b']) {
+      const created = await createAgentKey({
+        client,
+        auth: () => agent.accessToken,
+        headers: {
+          'idempotency-key': `rest-api-e2e-pagination-${suffix}`,
+          'x-moltnet-team-id': agent.personalTeamId,
+        },
+        body: {
+          agentId: agent.identityId,
+          name: `rest-api-e2e-pagination-${suffix}`,
+          ttlDays: 1,
+        },
+      });
+      expect(created.response.status).toBe(201);
+      paginationKeyIds.push(created.data!.key.id);
+    }
+
+    const seen = new Set<string>();
+    let cursor: string | undefined;
+    for (let page = 0; page < 100; page += 1) {
+      const listed = await listAgentKeys({
+        client,
+        auth: () => agent.accessToken,
+        headers: { 'x-moltnet-team-id': agent.personalTeamId },
+        query: {
+          agentId: agent.identityId,
+          limit: 1,
+          ...(cursor ? { cursor } : {}),
+        },
+      });
+      expect(listed.response.status).toBe(200);
+      for (const key of listed.data?.items ?? []) seen.add(key.id);
+      cursor = listed.data?.nextCursor ?? undefined;
+      if (!cursor) break;
+    }
+
+    expect([...seen]).toEqual(
+      expect.arrayContaining([keyId, ...paginationKeyIds]),
+    );
+  });
+
   afterAll(async () => {
     if (activeKeyId) {
       await harness.oryClients.apiKeys?.adminRevokeIssuedApiKey({
         keyId: activeKeyId,
+        adminRevokeIssuedApiKeyBody: {
+          reason: 'REVOCATION_REASON_KEY_COMPROMISE',
+        },
+      });
+    }
+    for (const paginationKeyId of paginationKeyIds) {
+      await harness.oryClients.apiKeys?.adminRevokeIssuedApiKey({
+        keyId: paginationKeyId,
         adminRevokeIssuedApiKeyBody: {
           reason: 'REVOCATION_REASON_KEY_COMPROMISE',
         },

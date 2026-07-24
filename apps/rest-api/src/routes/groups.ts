@@ -316,11 +316,10 @@ export async function groupRoutes(fastify: FastifyInstance) {
       const memberNs: string = bodySubjectNs ?? KetoNamespace.Agent;
 
       // Validate subject is a team member with matching namespace
-      const teamMembers = await fastify.relationshipReader.listTeamMembers(
+      const isMember = await fastify.relationshipReader.isTeamMember(
         group.teamId,
-      );
-      const isMember = teamMembers.some(
-        (m) => m.subjectId === subjectId && m.subjectNs === memberNs,
+        subjectId,
+        memberNs as KetoNamespace,
       );
       if (!isMember) {
         throw createProblem('not-found', 'Subject is not a member of the team');

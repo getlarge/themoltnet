@@ -2725,6 +2725,17 @@ func (c *Client) sendCreateAgentKey(ctx context.Context, request *CreateAgentKey
 			return res, errors.Wrap(err, "encode header")
 		}
 	}
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "idempotency-key",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			return e.EncodeValue(conv.StringToString(params.IdempotencyKey))
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
+	}
 
 	{
 		type bitset = [1]uint8
@@ -12059,15 +12070,15 @@ func (c *Client) sendListAgentKeys(ctx context.Context, params ListAgentKeysPara
 		}
 	}
 	{
-		// Encode "pageSize" parameter.
+		// Encode "limit" parameter.
 		cfg := uri.QueryParameterEncodingConfig{
-			Name:    "pageSize",
+			Name:    "limit",
 			Style:   uri.QueryStyleForm,
 			Explode: true,
 		}
 
 		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
-			if val, ok := params.PageSize.Get(); ok {
+			if val, ok := params.Limit.Get(); ok {
 				return e.EncodeValue(conv.IntToString(val))
 			}
 			return nil
@@ -12076,15 +12087,15 @@ func (c *Client) sendListAgentKeys(ctx context.Context, params ListAgentKeysPara
 		}
 	}
 	{
-		// Encode "pageToken" parameter.
+		// Encode "cursor" parameter.
 		cfg := uri.QueryParameterEncodingConfig{
-			Name:    "pageToken",
+			Name:    "cursor",
 			Style:   uri.QueryStyleForm,
 			Explode: true,
 		}
 
 		if err := q.EncodeParam(cfg, func(e uri.Encoder) error {
-			if val, ok := params.PageToken.Get(); ok {
+			if val, ok := params.Cursor.Get(); ok {
 				return e.EncodeValue(conv.StringToString(val))
 			}
 			return nil

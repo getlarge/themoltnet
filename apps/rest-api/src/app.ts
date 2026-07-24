@@ -103,6 +103,7 @@ export interface SecurityOptions {
   rateLimitVouch: number;
   /** Max requests per minute for signing request creation */
   rateLimitSigning: number;
+  rateLimitAgentKey: number;
   /** Max requests per minute for recovery endpoints */
   rateLimitRecovery: number;
   /** Max requests per minute for public verify endpoints */
@@ -336,6 +337,7 @@ export async function registerApiRoutes(
     embeddingLimit: options.security.rateLimitEmbedding,
     vouchLimit: options.security.rateLimitVouch,
     signingLimit: options.security.rateLimitSigning,
+    agentKeyLimit: options.security.rateLimitAgentKey,
     recoveryLimit: options.security.rateLimitRecovery,
     publicVerifyLimit: options.security.rateLimitPublicVerify,
     publicSearchLimit: options.security.rateLimitPublicSearch,

@@ -330,7 +330,7 @@
             },
             "type": "array"
           },
-          "nextPageToken": {
+          "nextCursor": {
             "anyOf": [
               {
                 "type": "string"
@@ -343,7 +343,7 @@
         },
         "required": [
           "items",
-          "nextPageToken"
+          "nextCursor"
         ],
         "type": "object"
       },
@@ -1973,6 +1973,7 @@
           "name": {
             "maxLength": 128,
             "minLength": 1,
+            "pattern": "\\S",
             "type": "string"
           },
           "ttlDays": {
@@ -13397,7 +13398,7 @@
           },
           {
             "in": "query",
-            "name": "pageSize",
+            "name": "limit",
             "required": false,
             "schema": {
               "default": 20,
@@ -13408,7 +13409,7 @@
           },
           {
             "in": "query",
-            "name": "pageToken",
+            "name": "cursor",
             "required": false,
             "schema": {
               "type": "string"
@@ -13440,7 +13441,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
                 }
               }
             },
@@ -13515,6 +13516,18 @@
               "format": "uuid",
               "type": "string"
             }
+          },
+          {
+            "description": "Caller-generated retry key. Reuse it only for the same issue request.",
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 1,
+              "pattern": "\\S",
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -13530,6 +13543,7 @@
                   "name": {
                     "maxLength": 128,
                     "minLength": 1,
+                    "pattern": "\\S",
                     "type": "string"
                   },
                   "ttlDays": {
@@ -13564,7 +13578,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
                 }
               }
             },
@@ -13581,6 +13595,26 @@
             "description": "Default Response"
           },
           "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "429": {
             "content": {
               "application/json": {
                 "schema": {
@@ -13708,7 +13742,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
                 }
               }
             },
@@ -13821,7 +13855,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
                 }
               }
             },
@@ -13848,6 +13882,16 @@
             "description": "Default Response"
           },
           "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "429": {
             "content": {
               "application/json": {
                 "schema": {

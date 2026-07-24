@@ -2876,7 +2876,7 @@ func decodeCreateAgentKeyResponse(resp *http.Response) (res CreateAgentKeyRes, _
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response CreateAgentKeyBadRequest
+			var response ValidationProblemDetails
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -2965,6 +2965,94 @@ func decodeCreateAgentKeyResponse(resp *http.Response) (res CreateAgentKeyRes, _
 			d := jx.DecodeBytes(buf)
 
 			var response CreateAgentKeyForbidden
+			if err := func() error {
+				if err := response.Decode(d); err != nil {
+					return err
+				}
+				if err := d.Skip(); err != io.EOF {
+					return errors.New("unexpected trailing data")
+				}
+				return nil
+			}(); err != nil {
+				err = &ogenerrors.DecodeBodyError{
+					ContentType: ct,
+					Body:        buf,
+					Err:         err,
+				}
+				return res, err
+			}
+			// Validate response.
+			if err := func() error {
+				if err := response.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return res, errors.Wrap(err, "validate")
+			}
+			return &response, nil
+		default:
+			return res, validate.InvalidContentType(ct)
+		}
+	case 409:
+		// Code 409.
+		ct, _, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
+		if err != nil {
+			return res, errors.Wrap(err, "parse media type")
+		}
+		switch {
+		case ct == "application/json":
+			buf, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return res, err
+			}
+			d := jx.DecodeBytes(buf)
+
+			var response CreateAgentKeyConflict
+			if err := func() error {
+				if err := response.Decode(d); err != nil {
+					return err
+				}
+				if err := d.Skip(); err != io.EOF {
+					return errors.New("unexpected trailing data")
+				}
+				return nil
+			}(); err != nil {
+				err = &ogenerrors.DecodeBodyError{
+					ContentType: ct,
+					Body:        buf,
+					Err:         err,
+				}
+				return res, err
+			}
+			// Validate response.
+			if err := func() error {
+				if err := response.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return res, errors.Wrap(err, "validate")
+			}
+			return &response, nil
+		default:
+			return res, validate.InvalidContentType(ct)
+		}
+	case 429:
+		// Code 429.
+		ct, _, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
+		if err != nil {
+			return res, errors.Wrap(err, "parse media type")
+		}
+		switch {
+		case ct == "application/json":
+			buf, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return res, err
+			}
+			d := jx.DecodeBytes(buf)
+
+			var response CreateAgentKeyTooManyRequests
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -15870,7 +15958,7 @@ func decodeListAgentKeysResponse(resp *http.Response) (res ListAgentKeysRes, _ e
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response ListAgentKeysBadRequest
+			var response ValidationProblemDetails
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -22493,7 +22581,7 @@ func decodeRevokeAgentKeyResponse(resp *http.Response) (res RevokeAgentKeyRes, _
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response RevokeAgentKeyBadRequest
+			var response ValidationProblemDetails
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -23024,7 +23112,7 @@ func decodeRotateAgentKeyResponse(resp *http.Response) (res RotateAgentKeyRes, _
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response RotateAgentKeyBadRequest
+			var response ValidationProblemDetails
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -23157,6 +23245,50 @@ func decodeRotateAgentKeyResponse(resp *http.Response) (res RotateAgentKeyRes, _
 			d := jx.DecodeBytes(buf)
 
 			var response RotateAgentKeyNotFound
+			if err := func() error {
+				if err := response.Decode(d); err != nil {
+					return err
+				}
+				if err := d.Skip(); err != io.EOF {
+					return errors.New("unexpected trailing data")
+				}
+				return nil
+			}(); err != nil {
+				err = &ogenerrors.DecodeBodyError{
+					ContentType: ct,
+					Body:        buf,
+					Err:         err,
+				}
+				return res, err
+			}
+			// Validate response.
+			if err := func() error {
+				if err := response.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return res, errors.Wrap(err, "validate")
+			}
+			return &response, nil
+		default:
+			return res, validate.InvalidContentType(ct)
+		}
+	case 429:
+		// Code 429.
+		ct, _, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
+		if err != nil {
+			return res, errors.Wrap(err, "parse media type")
+		}
+		switch {
+		case ct == "application/json":
+			buf, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return res, err
+			}
+			d := jx.DecodeBytes(buf)
+
+			var response RotateAgentKeyTooManyRequests
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err

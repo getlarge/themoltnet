@@ -314,8 +314,8 @@ func (*AddGroupMemberUnauthorized) addGroupMemberRes() {}
 
 // Ref: #/components/schemas/AgentKeyList
 type AgentKeyList struct {
-	Items         []AgentKeyListItemsItem `json:"items"`
-	NextPageToken NilString               `json:"nextPageToken"`
+	Items      []AgentKeyListItemsItem `json:"items"`
+	NextCursor NilString               `json:"nextCursor"`
 }
 
 // GetItems returns the value of Items.
@@ -323,9 +323,9 @@ func (s *AgentKeyList) GetItems() []AgentKeyListItemsItem {
 	return s.Items
 }
 
-// GetNextPageToken returns the value of NextPageToken.
-func (s *AgentKeyList) GetNextPageToken() NilString {
-	return s.NextPageToken
+// GetNextCursor returns the value of NextCursor.
+func (s *AgentKeyList) GetNextCursor() NilString {
+	return s.NextCursor
 }
 
 // SetItems sets the value of Items.
@@ -333,9 +333,9 @@ func (s *AgentKeyList) SetItems(val []AgentKeyListItemsItem) {
 	s.Items = val
 }
 
-// SetNextPageToken sets the value of NextPageToken.
-func (s *AgentKeyList) SetNextPageToken(val NilString) {
-	s.NextPageToken = val
+// SetNextCursor sets the value of NextCursor.
+func (s *AgentKeyList) SetNextCursor(val NilString) {
+	s.NextCursor = val
 }
 
 func (*AgentKeyList) listAgentKeysRes() {}
@@ -4896,9 +4896,9 @@ type CreateAgentKeyBadGateway ProblemDetails
 
 func (*CreateAgentKeyBadGateway) createAgentKeyRes() {}
 
-type CreateAgentKeyBadRequest ProblemDetails
+type CreateAgentKeyConflict ProblemDetails
 
-func (*CreateAgentKeyBadRequest) createAgentKeyRes() {}
+func (*CreateAgentKeyConflict) createAgentKeyRes() {}
 
 type CreateAgentKeyForbidden ProblemDetails
 
@@ -4944,6 +4944,10 @@ func (s *CreateAgentKeyReq) SetTtlDays(val OptInt) {
 type CreateAgentKeyServiceUnavailable ProblemDetails
 
 func (*CreateAgentKeyServiceUnavailable) createAgentKeyRes() {}
+
+type CreateAgentKeyTooManyRequests ProblemDetails
+
+func (*CreateAgentKeyTooManyRequests) createAgentKeyRes() {}
 
 type CreateAgentKeyUnauthorized ProblemDetails
 
@@ -24776,10 +24780,6 @@ type ListAgentKeysBadGateway ProblemDetails
 
 func (*ListAgentKeysBadGateway) listAgentKeysRes() {}
 
-type ListAgentKeysBadRequest ProblemDetails
-
-func (*ListAgentKeysBadRequest) listAgentKeysRes() {}
-
 type ListAgentKeysForbidden ProblemDetails
 
 func (*ListAgentKeysForbidden) listAgentKeysRes() {}
@@ -40969,10 +40969,6 @@ type RevokeAgentKeyBadGateway ProblemDetails
 
 func (*RevokeAgentKeyBadGateway) revokeAgentKeyRes() {}
 
-type RevokeAgentKeyBadRequest ProblemDetails
-
-func (*RevokeAgentKeyBadRequest) revokeAgentKeyRes() {}
-
 type RevokeAgentKeyForbidden ProblemDetails
 
 func (*RevokeAgentKeyForbidden) revokeAgentKeyRes() {}
@@ -41236,10 +41232,6 @@ type RotateAgentKeyBadGateway ProblemDetails
 
 func (*RotateAgentKeyBadGateway) rotateAgentKeyRes() {}
 
-type RotateAgentKeyBadRequest ProblemDetails
-
-func (*RotateAgentKeyBadRequest) rotateAgentKeyRes() {}
-
 type RotateAgentKeyForbidden ProblemDetails
 
 func (*RotateAgentKeyForbidden) rotateAgentKeyRes() {}
@@ -41251,6 +41243,10 @@ func (*RotateAgentKeyNotFound) rotateAgentKeyRes() {}
 type RotateAgentKeyServiceUnavailable ProblemDetails
 
 func (*RotateAgentKeyServiceUnavailable) rotateAgentKeyRes() {}
+
+type RotateAgentKeyTooManyRequests ProblemDetails
+
+func (*RotateAgentKeyTooManyRequests) rotateAgentKeyRes() {}
 
 type RotateAgentKeyUnauthorized ProblemDetails
 
@@ -55580,9 +55576,13 @@ func (s *ValidationProblemDetails) SetAdditionalProps(val ValidationProblemDetai
 
 func (*ValidationProblemDetails) batchDeleteTasksRes()         {}
 func (*ValidationProblemDetails) completeTaskRes()             {}
+func (*ValidationProblemDetails) createAgentKeyRes()           {}
 func (*ValidationProblemDetails) createTaskRes()               {}
 func (*ValidationProblemDetails) getTaskActivityAnalyticsRes() {}
+func (*ValidationProblemDetails) listAgentKeysRes()            {}
 func (*ValidationProblemDetails) listTasksRes()                {}
+func (*ValidationProblemDetails) revokeAgentKeyRes()           {}
+func (*ValidationProblemDetails) rotateAgentKeyRes()           {}
 func (*ValidationProblemDetails) updateTaskMetadataRes()       {}
 
 type ValidationProblemDetailsAdditional map[string]jx.Raw

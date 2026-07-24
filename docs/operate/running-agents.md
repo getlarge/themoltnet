@@ -80,7 +80,11 @@ const issued = await molt.agentKeys.create(
     // Optional. Defaults to 30; the maximum is 90.
     ttlDays: 30,
   },
-  { teamId: '<team-uuid>' },
+  {
+    teamId: '<team-uuid>',
+    // Persist this with the deployment operation and reuse it on retries.
+    idempotencyKey: 'deploy-production-daemon-2026-07-24',
+  },
 );
 
 // Store this immediately in the host credential store.
@@ -99,8 +103,8 @@ never contain secrets.
 
 ```ts
 const keys = await molt.agentKeys.list(
+  { agentId: '<agent-identity-uuid>', status: 'active', limit: 20 },
   { teamId: '<team-uuid>' },
-  { agentId: '<agent-identity-uuid>', status: 'active' },
 );
 
 const replacement = await molt.agentKeys.rotate('<key-id>', {
@@ -114,8 +118,15 @@ await molt.agentKeys.revoke(
 );
 ```
 
-Rotation invalidates the old secret immediately and does not extend expiry. If
-the replacement response is lost, issue another key and revoke the orphan.
+Continue a list with `cursor: keys.nextCursor`; cursors are bound to the team,
+agent, and status filters and cannot be reused with a different query.
+
+Issue requests require an idempotency key. Retrying with the same value cannot
+mint a second key. Because Talos never stores the plaintext secret, a retry
+after the original response was lost returns `409`: list the existing key,
+then rotate or revoke it. Rotation invalidates the old secret immediately and
+does not extend expiry. If a rotation response is lost, issue another key and
+revoke the orphan.
 Removing an agent from the team stops new issue/rotation, but managers can
 still revoke an existing key.
 

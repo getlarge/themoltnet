@@ -2822,6 +2822,10 @@ func (s *Server) handleCreateAgentKeyRequest(args [0]string, argsEscaped bool, w
 					Name: "x-moltnet-team-id",
 					In:   "header",
 				}: params.XMoltnetTeamID,
+				{
+					Name: "idempotency-key",
+					In:   "header",
+				}: params.IdempotencyKey,
 			},
 			Raw: r,
 		}
@@ -15741,13 +15745,13 @@ func (s *Server) handleListAgentKeysRequest(args [0]string, argsEscaped bool, w 
 					In:   "query",
 				}: params.Status,
 				{
-					Name: "pageSize",
+					Name: "limit",
 					In:   "query",
-				}: params.PageSize,
+				}: params.Limit,
 				{
-					Name: "pageToken",
+					Name: "cursor",
 					In:   "query",
-				}: params.PageToken,
+				}: params.Cursor,
 				{
 					Name: "x-moltnet-team-id",
 					In:   "header",

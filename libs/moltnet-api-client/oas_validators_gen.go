@@ -3141,7 +3141,7 @@ func (s *CreateAgentKeyBadGateway) Validate() error {
 	return nil
 }
 
-func (s *CreateAgentKeyBadRequest) Validate() error {
+func (s *CreateAgentKeyConflict) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err
@@ -3171,7 +3171,7 @@ func (s *CreateAgentKeyReq) Validate() error {
 			MaxLengthSet:  true,
 			Email:         false,
 			Hostname:      false,
-			Regex:         nil,
+			Regex:         regexMap["\\S"],
 			MinNumeric:    0,
 			MinNumericSet: false,
 			MaxNumeric:    0,
@@ -3221,6 +3221,14 @@ func (s *CreateAgentKeyReq) Validate() error {
 }
 
 func (s *CreateAgentKeyServiceUnavailable) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *CreateAgentKeyTooManyRequests) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err
@@ -14873,14 +14881,6 @@ func (s *ListAgentKeysBadGateway) Validate() error {
 	return nil
 }
 
-func (s *ListAgentKeysBadRequest) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (s *ListAgentKeysForbidden) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -19984,14 +19984,6 @@ func (s *RevokeAgentKeyBadGateway) Validate() error {
 	return nil
 }
 
-func (s *RevokeAgentKeyBadRequest) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (s *RevokeAgentKeyForbidden) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -20190,14 +20182,6 @@ func (s *RotateAgentKeyBadGateway) Validate() error {
 	return nil
 }
 
-func (s *RotateAgentKeyBadRequest) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (s *RotateAgentKeyForbidden) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -20215,6 +20199,14 @@ func (s *RotateAgentKeyNotFound) Validate() error {
 }
 
 func (s *RotateAgentKeyServiceUnavailable) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *RotateAgentKeyTooManyRequests) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err

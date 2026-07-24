@@ -619,6 +619,90 @@ export const listAgentKeysOptions = (options: Options<ListAgentKeysData>) =>
     queryKey: listAgentKeysQueryKey(options),
   });
 
+const createInfiniteParams = <
+  K extends Pick<QueryKey<Options>[0], 'body' | 'headers' | 'path' | 'query'>,
+>(
+  queryKey: QueryKey<Options>,
+  page: K,
+) => {
+  const params = { ...queryKey[0] };
+  if (page.body) {
+    params.body = {
+      ...(queryKey[0].body as any),
+      ...(page.body as any),
+    };
+  }
+  if (page.headers) {
+    params.headers = {
+      ...queryKey[0].headers,
+      ...page.headers,
+    };
+  }
+  if (page.path) {
+    params.path = {
+      ...(queryKey[0].path as any),
+      ...(page.path as any),
+    };
+  }
+  if (page.query) {
+    params.query = {
+      ...(queryKey[0].query as any),
+      ...(page.query as any),
+    };
+  }
+  return params as unknown as typeof page;
+};
+
+export const listAgentKeysInfiniteQueryKey = (
+  options: Options<ListAgentKeysData>,
+): QueryKey<Options<ListAgentKeysData>> =>
+  createQueryKey('listAgentKeys', options, true);
+
+/**
+ * List agent API keys bound to the active team. Team credential managers may list every agent.
+ */
+export const listAgentKeysInfiniteOptions = (
+  options: Options<ListAgentKeysData>,
+) =>
+  infiniteQueryOptions<
+    ListAgentKeysResponse,
+    ListAgentKeysError,
+    InfiniteData<ListAgentKeysResponse>,
+    QueryKey<Options<ListAgentKeysData>>,
+    | string
+    | Pick<
+        QueryKey<Options<ListAgentKeysData>>[0],
+        'body' | 'headers' | 'path' | 'query'
+      >
+  >(
+    // @ts-ignore
+    {
+      queryFn: async ({ pageParam, queryKey, signal }) => {
+        // @ts-ignore
+        const page: Pick<
+          QueryKey<Options<ListAgentKeysData>>[0],
+          'body' | 'headers' | 'path' | 'query'
+        > =
+          typeof pageParam === 'object'
+            ? pageParam
+            : {
+                query: {
+                  cursor: pageParam,
+                },
+              };
+        const params = createInfiniteParams(queryKey, page);
+        const { data } = await listAgentKeys({
+          ...options,
+          ...params,
+          signal,
+          throwOnError: true,
+        });
+        return data;
+      },
+      queryKey: listAgentKeysInfiniteQueryKey(options),
+    },
+  );
+
 /**
  * Issue a secret API key bound to one agent and the active team.
  */
@@ -887,40 +971,6 @@ export const listSigningRequestsOptions = (
     },
     queryKey: listSigningRequestsQueryKey(options),
   });
-
-const createInfiniteParams = <
-  K extends Pick<QueryKey<Options>[0], 'body' | 'headers' | 'path' | 'query'>,
->(
-  queryKey: QueryKey<Options>,
-  page: K,
-) => {
-  const params = { ...queryKey[0] };
-  if (page.body) {
-    params.body = {
-      ...(queryKey[0].body as any),
-      ...(page.body as any),
-    };
-  }
-  if (page.headers) {
-    params.headers = {
-      ...queryKey[0].headers,
-      ...page.headers,
-    };
-  }
-  if (page.path) {
-    params.path = {
-      ...(queryKey[0].path as any),
-      ...(page.path as any),
-    };
-  }
-  if (page.query) {
-    params.query = {
-      ...(queryKey[0].query as any),
-      ...(page.query as any),
-    };
-  }
-  return params as unknown as typeof page;
-};
 
 export const listSigningRequestsInfiniteQueryKey = (
   options?: Options<ListSigningRequestsData>,

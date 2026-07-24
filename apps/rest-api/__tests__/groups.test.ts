@@ -280,9 +280,7 @@ describe('Group routes', () => {
 
   describe('POST /groups/:groupId/members', () => {
     beforeEach(() => {
-      mocks.relationshipReader.listTeamMembers.mockResolvedValue([
-        { subjectId: OTHER_AGENT_ID, subjectNs: 'Agent', relation: 'members' },
-      ]);
+      mocks.relationshipReader.isTeamMember.mockResolvedValue(true);
       mocks.relationshipWriter.grantGroupMember.mockResolvedValue(undefined);
     });
 
@@ -333,9 +331,7 @@ describe('Group routes', () => {
     });
 
     it('rejects Human member added without subjectNs (defaults to Agent, mismatches)', async () => {
-      mocks.relationshipReader.listTeamMembers.mockResolvedValue([
-        { subjectId: OTHER_AGENT_ID, subjectNs: 'Human', relation: 'members' },
-      ]);
+      mocks.relationshipReader.isTeamMember.mockResolvedValue(false);
 
       const res = await app.inject({
         method: 'POST',
@@ -349,7 +345,7 @@ describe('Group routes', () => {
     });
 
     it('returns 404 if subject is not a team member', async () => {
-      mocks.relationshipReader.listTeamMembers.mockResolvedValue([]);
+      mocks.relationshipReader.isTeamMember.mockResolvedValue(false);
 
       const res = await app.inject({
         method: 'POST',
@@ -363,6 +359,7 @@ describe('Group routes', () => {
 
     it('returns 404 if subjectNs does not match team membership namespace', async () => {
       // Team member is Agent, but request says Human
+      mocks.relationshipReader.isTeamMember.mockResolvedValue(false);
       const res = await app.inject({
         method: 'POST',
         url: `/groups/${GROUP_ID}/members`,

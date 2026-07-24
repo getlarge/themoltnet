@@ -813,6 +813,8 @@ func decodeCompleteTaskParams(args [2]string, argsEscaped bool, r *http.Request)
 type CreateAgentKeyParams struct {
 	// Team ID (UUID) that will own the resource. Required.
 	XMoltnetTeamID uuid.UUID
+	// Caller-generated retry key. Reuse it only for the same issue request.
+	IdempotencyKey string
 }
 
 func unpackCreateAgentKeyParams(packed middleware.Parameters) (params CreateAgentKeyParams) {
@@ -822,6 +824,13 @@ func unpackCreateAgentKeyParams(packed middleware.Parameters) (params CreateAgen
 			In:   "header",
 		}
 		params.XMoltnetTeamID = packed[key].(uuid.UUID)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "idempotency-key",
+			In:   "header",
+		}
+		params.IdempotencyKey = packed[key].(string)
 	}
 	return params
 }
@@ -858,6 +867,60 @@ func decodeCreateAgentKeyParams(args [0]string, argsEscaped bool, r *http.Reques
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
 			Name: "x-moltnet-team-id",
+			In:   "header",
+			Err:  err,
+		}
+	}
+	// Decode header: idempotency-key.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "idempotency-key",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToString(val)
+				if err != nil {
+					return err
+				}
+
+				params.IdempotencyKey = c
+				return nil
+			}); err != nil {
+				return err
+			}
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     1,
+					MinLengthSet:  true,
+					MaxLength:     200,
+					MaxLengthSet:  true,
+					Email:         false,
+					Hostname:      false,
+					Regex:         regexMap["\\S"],
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(params.IdempotencyKey)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "idempotency-key",
 			In:   "header",
 			Err:  err,
 		}
@@ -6242,10 +6305,10 @@ func decodeInitiateTransferParams(args [1]string, argsEscaped bool, r *http.Requ
 
 // ListAgentKeysParams is parameters of listAgentKeys operation.
 type ListAgentKeysParams struct {
-	AgentId   OptUUID                `json:",omitempty,omitzero"`
-	Status    OptListAgentKeysStatus `json:",omitempty,omitzero"`
-	PageSize  OptInt                 `json:",omitempty,omitzero"`
-	PageToken OptString              `json:",omitempty,omitzero"`
+	AgentId OptUUID                `json:",omitempty,omitzero"`
+	Status  OptListAgentKeysStatus `json:",omitempty,omitzero"`
+	Limit   OptInt                 `json:",omitempty,omitzero"`
+	Cursor  OptString              `json:",omitempty,omitzero"`
 	// Team ID (UUID) that will own the resource. Required.
 	XMoltnetTeamID uuid.UUID
 }
@@ -6271,20 +6334,20 @@ func unpackListAgentKeysParams(packed middleware.Parameters) (params ListAgentKe
 	}
 	{
 		key := middleware.ParameterKey{
-			Name: "pageSize",
+			Name: "limit",
 			In:   "query",
 		}
 		if v, ok := packed[key]; ok {
-			params.PageSize = v.(OptInt)
+			params.Limit = v.(OptInt)
 		}
 	}
 	{
 		key := middleware.ParameterKey{
-			Name: "pageToken",
+			Name: "cursor",
 			In:   "query",
 		}
 		if v, ok := packed[key]; ok {
-			params.PageToken = v.(OptString)
+			params.Cursor = v.(OptString)
 		}
 	}
 	{
@@ -6397,22 +6460,22 @@ func decodeListAgentKeysParams(args [0]string, argsEscaped bool, r *http.Request
 			Err:  err,
 		}
 	}
-	// Set default value for query: pageSize.
+	// Set default value for query: limit.
 	{
 		val := int(20)
-		params.PageSize.SetTo(val)
+		params.Limit.SetTo(val)
 	}
-	// Decode query: pageSize.
+	// Decode query: limit.
 	if err := func() error {
 		cfg := uri.QueryParameterDecodingConfig{
-			Name:    "pageSize",
+			Name:    "limit",
 			Style:   uri.QueryStyleForm,
 			Explode: true,
 		}
 
 		if err := q.HasParam(cfg); err == nil {
 			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
-				var paramsDotPageSizeVal int
+				var paramsDotLimitVal int
 				if err := func() error {
 					val, err := d.DecodeValue()
 					if err != nil {
@@ -6424,18 +6487,18 @@ func decodeListAgentKeysParams(args [0]string, argsEscaped bool, r *http.Request
 						return err
 					}
 
-					paramsDotPageSizeVal = c
+					paramsDotLimitVal = c
 					return nil
 				}(); err != nil {
 					return err
 				}
-				params.PageSize.SetTo(paramsDotPageSizeVal)
+				params.Limit.SetTo(paramsDotLimitVal)
 				return nil
 			}); err != nil {
 				return err
 			}
 			if err := func() error {
-				if value, ok := params.PageSize.Get(); ok {
+				if value, ok := params.Limit.Get(); ok {
 					if err := func() error {
 						if err := (validate.Int{
 							MinSet:        true,
@@ -6463,22 +6526,22 @@ func decodeListAgentKeysParams(args [0]string, argsEscaped bool, r *http.Request
 		return nil
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
-			Name: "pageSize",
+			Name: "limit",
 			In:   "query",
 			Err:  err,
 		}
 	}
-	// Decode query: pageToken.
+	// Decode query: cursor.
 	if err := func() error {
 		cfg := uri.QueryParameterDecodingConfig{
-			Name:    "pageToken",
+			Name:    "cursor",
 			Style:   uri.QueryStyleForm,
 			Explode: true,
 		}
 
 		if err := q.HasParam(cfg); err == nil {
 			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
-				var paramsDotPageTokenVal string
+				var paramsDotCursorVal string
 				if err := func() error {
 					val, err := d.DecodeValue()
 					if err != nil {
@@ -6490,12 +6553,12 @@ func decodeListAgentKeysParams(args [0]string, argsEscaped bool, r *http.Request
 						return err
 					}
 
-					paramsDotPageTokenVal = c
+					paramsDotCursorVal = c
 					return nil
 				}(); err != nil {
 					return err
 				}
-				params.PageToken.SetTo(paramsDotPageTokenVal)
+				params.Cursor.SetTo(paramsDotCursorVal)
 				return nil
 			}); err != nil {
 				return err
@@ -6504,7 +6567,7 @@ func decodeListAgentKeysParams(args [0]string, argsEscaped bool, r *http.Request
 		return nil
 	}(); err != nil {
 		return params, &ogenerrors.DecodeParamError{
-			Name: "pageToken",
+			Name: "cursor",
 			In:   "query",
 			Err:  err,
 		}

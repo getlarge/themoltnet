@@ -1,9 +1,10 @@
-import { randomUUID } from 'node:crypto';
+import { createHash } from 'node:crypto';
 
-import type {
+import {
+  AGENT_CREDENTIAL_SCOPES,
   KetoNamespace,
-  PermissionChecker,
-  RelationshipReader,
+  type PermissionChecker,
+  type RelationshipReader,
 } from '@moltnet/auth';
 import type { AgentRepository } from '@moltnet/database';
 import {
@@ -15,16 +16,12 @@ import {
 } from '@ory/client-fetch';
 
 import { createProblem, createValidationProblem } from '../problems/index.js';
+import {
+  decodeOpaqueCursor,
+  encodeOpaqueCursor,
+} from '../utils/opaque-cursor.js';
 
 const DEFAULT_TTL_DAYS = 30;
-const TALOS_PAGE_SIZE = 1_000;
-const AGENT_KEY_SCOPES = [
-  'diary:read',
-  'diary:write',
-  'crypto:sign',
-  'agent:profile',
-  'team:read',
-] as const;
 
 export type AgentKeyStatus = 'active' | 'revoked' | 'expired';
 export type AgentKeyRevocationReason =
@@ -66,6 +63,7 @@ interface AgentKeyBinding {
 interface Logger {
   debug: (obj: Record<string, unknown>, msg: string) => void;
   info: (obj: Record<string, unknown>, msg: string) => void;
+  warn: (obj: Record<string, unknown>, msg: string) => void;
 }
 
 type TalosApi = Pick<
@@ -86,6 +84,7 @@ export interface AgentKeyServiceDeps {
 
 export interface IssueAgentKeyInput {
   agentId: string;
+  idempotencyKey: string;
   logger: Logger;
   name: string;
   subject: AgentKeySubject;
@@ -95,9 +94,9 @@ export interface IssueAgentKeyInput {
 
 export interface ListAgentKeysInput {
   agentId?: string;
+  cursor?: string;
+  limit?: number;
   logger: Logger;
-  pageSize?: number;
-  pageToken?: string;
   status?: AgentKeyStatus;
   subject: AgentKeySubject;
   teamId: string;
@@ -161,6 +160,18 @@ function toStatus(status: IssuedApiKey['status']): AgentKeyStatus {
   }
 }
 
+function effectiveStatus(key: IssuedApiKey): AgentKeyStatus {
+  const status = toStatus(key.status);
+  if (
+    status === 'active' &&
+    key.expire_time &&
+    key.expire_time.getTime() <= Date.now()
+  ) {
+    return 'expired';
+  }
+  return status;
+}
+
 function fromRevocationReason(
   reason: IssuedApiKey['revocation_reason'],
 ): AgentKeyRevocationReason | null {
@@ -207,7 +218,7 @@ function toAgentKey(key: IssuedApiKey): AgentKey {
     agentId: binding.agentId,
     teamId: binding.teamId,
     name: key.name ?? key.key_id,
-    status: toStatus(key.status),
+    status: effectiveStatus(key),
     createdAt: key.create_time?.toISOString() ?? null,
     expiresAt: key.expire_time?.toISOString() ?? null,
     lastUsedAt: key.last_used_time?.toISOString() ?? null,
@@ -217,33 +228,77 @@ function toAgentKey(key: IssuedApiKey): AgentKey {
   };
 }
 
-function encodePageToken(offset: number): string {
-  return Buffer.from(JSON.stringify({ offset })).toString('base64url');
+interface AgentKeyCursor {
+  actorId: string | null;
+  pageToken: string;
+  status: AgentKeyStatus | null;
+  teamId: string;
+  version: 1;
 }
 
-function decodePageToken(token: string | undefined): number {
-  if (!token) return 0;
-  try {
-    const decoded = JSON.parse(
-      Buffer.from(token, 'base64url').toString('utf8'),
-    ) as unknown;
-    if (
-      typeof decoded === 'object' &&
-      decoded !== null &&
-      'offset' in decoded &&
-      typeof decoded.offset === 'number' &&
-      Number.isInteger(decoded.offset) &&
-      decoded.offset >= 0
-    ) {
-      return decoded.offset;
-    }
-  } catch {
-    // Normalized to a public validation error below.
+function isAgentKeyStatus(value: unknown): value is AgentKeyStatus {
+  return value === 'active' || value === 'revoked' || value === 'expired';
+}
+
+function isAgentKeyCursor(value: unknown): value is AgentKeyCursor {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'version' in value &&
+    value.version === 1 &&
+    'pageToken' in value &&
+    typeof value.pageToken === 'string' &&
+    value.pageToken.length > 0 &&
+    'teamId' in value &&
+    typeof value.teamId === 'string' &&
+    'actorId' in value &&
+    (value.actorId === null || typeof value.actorId === 'string') &&
+    'status' in value &&
+    (value.status === null || isAgentKeyStatus(value.status))
+  );
+}
+
+function decodeCursor(
+  cursor: string | undefined,
+  expected: Omit<AgentKeyCursor, 'pageToken' | 'version'>,
+): string | undefined {
+  if (!cursor) return undefined;
+  const decoded = decodeOpaqueCursor(cursor, isAgentKeyCursor);
+  if (
+    decoded &&
+    decoded.teamId === expected.teamId &&
+    decoded.actorId === expected.actorId &&
+    decoded.status === expected.status
+  ) {
+    return decoded.pageToken;
   }
   throw createValidationProblem(
-    [{ field: 'pageToken', message: 'Invalid page token' }],
-    'Invalid agent key page token',
+    [{ field: 'cursor', message: 'Invalid cursor for this query' }],
+    'Invalid agent key cursor',
   );
+}
+
+function encodeCursor(
+  pageToken: string,
+  query: Omit<AgentKeyCursor, 'pageToken' | 'version'>,
+): string {
+  return encodeOpaqueCursor({ ...query, pageToken, version: 1 });
+}
+
+function talosRequestId(input: IssueAgentKeyInput): string {
+  const hex = createHash('sha256')
+    .update('moltnet:agent-key:v1\0')
+    .update(input.teamId)
+    .update('\0')
+    .update(input.agentId)
+    .update('\0')
+    .update(input.idempotencyKey)
+    .digest('hex')
+    .slice(0, 32)
+    .split('');
+  hex[12] = '5';
+  hex[16] = ((Number.parseInt(hex[16] ?? '0', 16) & 0x3) | 0x8).toString(16);
+  return `${hex.slice(0, 8).join('')}-${hex.slice(8, 12).join('')}-${hex.slice(12, 16).join('')}-${hex.slice(16, 20).join('')}-${hex.slice(20).join('')}`;
 }
 
 function isNotFoundError(error: unknown): boolean {
@@ -262,12 +317,18 @@ async function getTeamKey(
   api: TalosApi,
   keyId: string,
   teamId: string,
+  logger: Logger,
+  action: 'rotate' | 'revoke',
 ): Promise<{ key: IssuedApiKey; binding: AgentKeyBinding }> {
   let key: IssuedApiKey;
   try {
     key = await api.adminGetIssuedApiKey({ keyId });
   } catch (error) {
     if (isNotFoundError(error)) throw createProblem('not-found');
+    logger.warn(
+      { err: error, action: `${action}:read`, keyId, teamId },
+      'agent_key.upstream_error',
+    );
     throw createProblem('upstream-error', 'Failed to read agent key');
   }
   const binding = readBinding(key);
@@ -305,31 +366,28 @@ async function assertCurrentAgentMember(
   teamId: string,
   agentId: string,
 ): Promise<void> {
-  const members = await deps.relationshipReader.listTeamMembers(teamId);
-  const isAgentMember = members.some(
-    (member) => member.subjectNs === 'Agent' && member.subjectId === agentId,
+  const isAgentMember = await deps.relationshipReader.isTeamMember(
+    teamId,
+    agentId,
+    KetoNamespace.Agent,
   );
   const agent = await deps.agentRepository.findByIdentityId(agentId);
   if (!isAgentMember || !agent) {
-    throw createProblem(
-      'validation-failed',
+    throw createValidationProblem(
+      [
+        {
+          field: 'agentId',
+          message: 'Target agent is not a current member of this team',
+        },
+      ],
       'Target agent is not a current member of this team',
     );
   }
 }
 
-async function listAllIssuedKeys(api: TalosApi): Promise<IssuedApiKey[]> {
-  const keys: IssuedApiKey[] = [];
-  let pageToken: string | undefined;
-  do {
-    const result = await api.adminListIssuedApiKeys({
-      pageSize: TALOS_PAGE_SIZE,
-      pageToken,
-    });
-    keys.push(...(result.issued_api_keys ?? []));
-    pageToken = result.next_page_token || undefined;
-  } while (pageToken);
-  return keys;
+function actorFilter(actorId: string | undefined): string | undefined {
+  if (!actorId) return undefined;
+  return `actor_id="${actorId.replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"`;
 }
 
 export function createAgentKeyService(deps: AgentKeyServiceDeps) {
@@ -344,17 +402,29 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
         input.agentId,
       );
       await assertCurrentAgentMember(deps, input.teamId, input.agentId);
+      const name = input.name.trim();
+      if (!name) {
+        throw createValidationProblem(
+          [
+            {
+              field: 'name',
+              message: 'Name must contain a non-space character',
+            },
+          ],
+          'Invalid agent key name',
+        );
+      }
 
       let result: Awaited<ReturnType<typeof api.adminIssueApiKey>>;
       try {
         result = await api.adminIssueApiKey({
           issueApiKeyRequest: {
             actor_id: input.agentId,
-            name: input.name.trim(),
-            request_id: randomUUID(),
+            name,
+            request_id: talosRequestId(input),
             ttl: `${ttlDays * 86_400}s`,
             visibility: KeyVisibility.KeyVisibilitySecret,
-            scopes: [...AGENT_KEY_SCOPES],
+            scopes: [...AGENT_CREDENTIAL_SCOPES],
             metadata: {
               schema_version: 1,
               subject_type: 'agent',
@@ -362,8 +432,32 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
             },
           },
         });
-      } catch {
+      } catch (error) {
+        input.logger.warn(
+          {
+            err: error,
+            action: 'issue',
+            agentId: input.agentId,
+            teamId: input.teamId,
+          },
+          'agent_key.upstream_error',
+        );
         throw createProblem('upstream-error', 'Failed to issue agent key');
+      }
+      if (result.issued_api_key && !result.secret) {
+        input.logger.warn(
+          {
+            action: 'issue:replay',
+            keyId: result.issued_api_key.key_id,
+            agentId: input.agentId,
+            teamId: input.teamId,
+          },
+          'agent_key.idempotency_replay',
+        );
+        throw createProblem(
+          'conflict',
+          'This idempotency key already issued an agent key. The original secret cannot be recovered; rotate or revoke the listed key.',
+        );
       }
       if (!result.issued_api_key || !result.secret) {
         throw createProblem(
@@ -390,7 +484,7 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
 
     async list(input: ListAgentKeysInput): Promise<{
       items: AgentKey[];
-      nextPageToken: string | null;
+      nextCursor: string | null;
     }> {
       const api = getTalosApi(deps);
       const canManageAll = await canManageAllTeamKeys(
@@ -409,53 +503,121 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
         throw createProblem('forbidden');
       }
 
-      let issuedKeys: IssuedApiKey[];
-      try {
-        issuedKeys = await listAllIssuedKeys(api);
-      } catch {
-        throw createProblem('upstream-error', 'Failed to list agent keys');
-      }
-
       const agentFilter = canManageAll
         ? input.agentId
         : input.subject.identityId;
-      const matching = issuedKeys
-        .filter((key) => {
-          const binding = readBinding(key);
-          return (
-            binding?.teamId === input.teamId &&
-            (!agentFilter || binding.agentId === agentFilter)
-          );
-        })
-        .map(toAgentKey)
-        .filter((key) => !input.status || key.status === input.status)
-        .sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
+      const cursorQuery = {
+        actorId: agentFilter ?? null,
+        status: input.status ?? null,
+        teamId: input.teamId,
+      };
+      const limit = input.limit ?? 20;
+      let pageToken = decodeCursor(input.cursor, cursorQuery);
+      let nextPageToken: string | undefined;
+      let scannedCount = 0;
+      let talosCalls = 0;
+      const seenTokens = new Set<string>();
+      const items: AgentKey[] = [];
 
-      const offset = decodePageToken(input.pageToken);
-      const pageSize = input.pageSize ?? 20;
-      const items = matching.slice(offset, offset + pageSize);
-      const nextOffset = offset + items.length;
+      do {
+        if (pageToken) {
+          if (seenTokens.has(pageToken)) {
+            input.logger.warn(
+              {
+                action: 'list',
+                teamId: input.teamId,
+                pageTokenRepeated: true,
+              },
+              'agent_key.upstream_error',
+            );
+            throw createProblem(
+              'upstream-error',
+              'Talos returned a repeated page token',
+            );
+          }
+          seenTokens.add(pageToken);
+        }
+
+        let result: Awaited<ReturnType<typeof api.adminListIssuedApiKeys>>;
+        try {
+          result = await api.adminListIssuedApiKeys({
+            filter: actorFilter(agentFilter),
+            pageSize: limit - items.length,
+            pageToken,
+          });
+        } catch (error) {
+          input.logger.warn(
+            {
+              err: error,
+              action: 'list',
+              actorId: agentFilter,
+              teamId: input.teamId,
+            },
+            'agent_key.upstream_error',
+          );
+          throw createProblem('upstream-error', 'Failed to list agent keys');
+        }
+
+        talosCalls += 1;
+        const issuedKeys = result.issued_api_keys ?? [];
+        scannedCount += issuedKeys.length;
+        for (const issuedKey of issuedKeys) {
+          const binding = readBinding(issuedKey);
+          if (
+            binding?.teamId !== input.teamId ||
+            (agentFilter && binding.agentId !== agentFilter)
+          ) {
+            continue;
+          }
+          try {
+            const key = toAgentKey(issuedKey);
+            if (!input.status || key.status === input.status) items.push(key);
+          } catch (error) {
+            input.logger.warn(
+              {
+                err: error,
+                action: 'list:map',
+                keyId: issuedKey.key_id,
+                actorId: issuedKey.actor_id,
+                teamId: input.teamId,
+              },
+              'agent_key.malformed_upstream_row',
+            );
+          }
+        }
+        nextPageToken = result.next_page_token || undefined;
+        pageToken = nextPageToken;
+      } while (items.length < limit && nextPageToken);
 
       input.logger.debug(
         {
           action: 'list',
           teamId: input.teamId,
           actorId: input.subject.identityId,
-          scannedCount: issuedKeys.length,
-          matchedCount: matching.length,
+          scannedCount,
+          matchedCount: items.length,
+          talosCalls,
+          actorFilterApplied: Boolean(agentFilter),
         },
         'agent_key.lifecycle',
       );
       return {
         items,
-        nextPageToken:
-          nextOffset < matching.length ? encodePageToken(nextOffset) : null,
+        nextCursor: nextPageToken
+          ? encodeCursor(nextPageToken, cursorQuery)
+          : null,
       };
     },
 
     async rotate(input: RotateAgentKeyInput): Promise<AgentKeyWithSecret> {
       const api = getTalosApi(deps);
-      const { key, binding } = await getTeamKey(api, input.keyId, input.teamId);
+      const { key, binding } = await getTeamKey(
+        api,
+        input.keyId,
+        input.teamId,
+        input.logger,
+        'rotate',
+      );
       await assertCanManageAgentKey(
         deps,
         input.subject,
@@ -474,12 +636,21 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
               subject_type: 'agent',
               team_id: input.teamId,
             },
-            scopes: [...AGENT_KEY_SCOPES],
+            scopes: [...AGENT_CREDENTIAL_SCOPES],
             visibility: KeyVisibility.KeyVisibilitySecret,
           },
         });
       } catch (error) {
         if (isNotFoundError(error)) throw createProblem('not-found');
+        input.logger.warn(
+          {
+            err: error,
+            action: 'rotate',
+            keyId: input.keyId,
+            teamId: input.teamId,
+          },
+          'agent_key.upstream_error',
+        );
         throw createProblem('upstream-error', 'Failed to rotate agent key');
       }
       if (!result.issued_api_key || !result.secret) {
@@ -507,7 +678,13 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
 
     async revoke(input: RevokeAgentKeyInput): Promise<void> {
       const api = getTalosApi(deps);
-      const { binding } = await getTeamKey(api, input.keyId, input.teamId);
+      const { binding } = await getTeamKey(
+        api,
+        input.keyId,
+        input.teamId,
+        input.logger,
+        'revoke',
+      );
       await assertCanManageAgentKey(
         deps,
         input.subject,
@@ -538,6 +715,15 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
         });
       } catch (error) {
         if (isNotFoundError(error)) throw createProblem('not-found');
+        input.logger.warn(
+          {
+            err: error,
+            action: 'revoke',
+            keyId: input.keyId,
+            teamId: input.teamId,
+          },
+          'agent_key.upstream_error',
+        );
         throw createProblem('upstream-error', 'Failed to revoke agent key');
       }
 

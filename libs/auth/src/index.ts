@@ -62,6 +62,11 @@ export {
   type RelationshipWriter,
 } from './relationship-writer.js';
 export {
+  AGENT_CREDENTIAL_SCOPES,
+  COMMON_CREDENTIAL_SCOPES,
+  HUMAN_SESSION_SCOPES,
+} from './scopes.js';
+export {
   createSessionResolver,
   type SessionResolver,
   type SessionResolverConfig,

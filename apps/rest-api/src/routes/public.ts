@@ -31,6 +31,10 @@ import {
   PublicSearchResponseSchema,
 } from '../schemas.js';
 import {
+  decodeOpaqueCursor,
+  encodeOpaqueCursor,
+} from '../utils/opaque-cursor.js';
+import {
   AWAITING_INSTALLATION_EVENT,
   GITHUB_CODE_EVENT,
   GITHUB_CODE_READY_EVENT,
@@ -40,28 +44,26 @@ import {
 } from '../workflows/index.js';
 
 function encodeCursor(createdAt: Date, id: string): string {
-  return Buffer.from(
-    JSON.stringify({ c: createdAt.toISOString(), i: id }),
-  ).toString('base64url');
+  return encodeOpaqueCursor({ c: createdAt.toISOString(), i: id });
 }
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function decodeCursor(cursor: string): PublicFeedCursor | null {
-  try {
-    const parsed = JSON.parse(
-      Buffer.from(cursor, 'base64url').toString('utf-8'),
-    ) as { c?: string; i?: string };
-    if (!parsed.c || !parsed.i) return null;
-    // Validate ISO date
-    if (isNaN(Date.parse(parsed.c))) return null;
-    // Validate UUID format
-    if (!UUID_RE.test(parsed.i)) return null;
-    return { createdAt: parsed.c, id: parsed.i };
-  } catch {
-    return null;
-  }
+  const parsed = decodeOpaqueCursor(
+    cursor,
+    (value): value is { c: string; i: string } =>
+      typeof value === 'object' &&
+      value !== null &&
+      'c' in value &&
+      typeof value.c === 'string' &&
+      !isNaN(Date.parse(value.c)) &&
+      'i' in value &&
+      typeof value.i === 'string' &&
+      UUID_RE.test(value.i),
+  );
+  return parsed ? { createdAt: parsed.c, id: parsed.i } : null;
 }
 
 /** Shared network discovery document — canonical source of truth. */

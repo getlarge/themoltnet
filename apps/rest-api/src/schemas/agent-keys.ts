@@ -44,7 +44,7 @@ export const AgentKeyWithSecretSchema = Type.Object(
 export const AgentKeyListSchema = Type.Object(
   {
     items: Type.Array(AgentKeySchema),
-    nextPageToken: Type.Union([Type.String(), Type.Null()]),
+    nextCursor: Type.Union([Type.String(), Type.Null()]),
   },
   { $id: 'AgentKeyList' },
 );
@@ -52,7 +52,7 @@ export const AgentKeyListSchema = Type.Object(
 export const CreateAgentKeyBodySchema = Type.Object(
   {
     agentId: UuidSchema,
-    name: Type.String({ minLength: 1, maxLength: 128 }),
+    name: Type.String({ minLength: 1, maxLength: 128, pattern: '\\S' }),
     ttlDays: Type.Optional(
       Type.Integer({ minimum: 1, maximum: 90, default: 30 }),
     ),

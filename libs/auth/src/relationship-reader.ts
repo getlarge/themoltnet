@@ -49,6 +49,12 @@ export interface RelationshipReader {
   listTeamIdsAndRolesBySubject(subjectId: string): Promise<TeamIdWithRole[]>;
   /** Returns all members of a team with their roles. */
   listTeamMembers(teamId: string): Promise<TeamMemberTuple[]>;
+  /** Returns whether the exact subject namespace currently belongs to a team. */
+  isTeamMember(
+    teamId: string,
+    subjectId: string,
+    subjectNs: KetoNamespace,
+  ): Promise<boolean>;
   /** Returns all members of a group. */
   listGroupMembers(groupId: string): Promise<GroupMemberTuple[]>;
   /** Returns all per-diary grants (writers + managers). */
@@ -164,6 +170,19 @@ export function createRelationshipReader(
       } while (pageToken);
 
       return [...members.values()];
+    },
+
+    async isTeamMember(
+      teamId: string,
+      subjectId: string,
+      subjectNs: KetoNamespace,
+    ): Promise<boolean> {
+      const members = await this.listTeamMembers(teamId);
+      return members.some(
+        (member) =>
+          member.subjectId === subjectId &&
+          member.subjectNs === String(subjectNs),
+      );
     },
 
     async listGroupMembers(groupId: string): Promise<GroupMemberTuple[]> {

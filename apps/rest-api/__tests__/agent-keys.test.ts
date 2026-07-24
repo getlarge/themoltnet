@@ -27,6 +27,7 @@ const KEY_ID = '01JKEY00000000000000000001';
 const ROTATED_KEY_ID = '01JKEY00000000000000000002';
 const CREATED_AT = new Date('2026-07-24T08:00:00.000Z');
 const EXPIRES_AT = new Date('2026-08-23T08:00:00.000Z');
+const IDEMPOTENCY_KEY = 'agent-key-test-request';
 
 function issuedKey(
   overrides: Record<string, unknown> = {},
@@ -76,18 +77,7 @@ describe('agent key routes', () => {
     vi.clearAllMocks();
     mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
     mocks.permissionChecker.canManageTeamCredentials.mockResolvedValue(false);
-    mocks.relationshipReader.listTeamMembers.mockResolvedValue([
-      {
-        subjectId: OWNER_ID,
-        subjectNs: 'Agent',
-        relation: 'members',
-      },
-      {
-        subjectId: OTHER_AGENT_ID,
-        subjectNs: 'Agent',
-        relation: 'members',
-      },
-    ]);
+    mocks.relationshipReader.isTeamMember.mockResolvedValue(true);
     mocks.agentRepository.findByIdentityId.mockResolvedValue(createMockAgent());
   });
 
@@ -102,6 +92,7 @@ describe('agent key routes', () => {
       url: '/agent-keys',
       headers: {
         authorization: 'Bearer test-token',
+        'idempotency-key': IDEMPOTENCY_KEY,
         'x-moltnet-team-id': TEAM_ID,
       },
       payload: { agentId: OWNER_ID, name: ' daemon ' },
@@ -121,6 +112,9 @@ describe('agent key routes', () => {
       issueApiKeyRequest: expect.objectContaining({
         actor_id: OWNER_ID,
         name: 'daemon',
+        request_id: expect.stringMatching(
+          /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+        ),
         ttl: '2592000s',
         visibility: KeyVisibility.KeyVisibilitySecret,
         metadata: {
@@ -148,6 +142,7 @@ describe('agent key routes', () => {
       url: '/agent-keys',
       headers: {
         authorization: 'Bearer test-token',
+        'idempotency-key': 'manager-issue-request',
         'x-moltnet-team-id': TEAM_ID,
       },
       payload: { agentId: OTHER_AGENT_ID, name: 'worker', ttlDays: 90 },
@@ -168,12 +163,96 @@ describe('agent key routes', () => {
       url: '/agent-keys',
       headers: {
         authorization: 'Bearer test-token',
+        'idempotency-key': 'forbidden-issue-request',
         'x-moltnet-team-id': TEAM_ID,
       },
       payload: { agentId: OTHER_AGENT_ID, name: 'worker' },
     });
 
     expect(response.statusCode).toBe(403);
+    expect(talosApi.adminIssueApiKey).not.toHaveBeenCalled();
+  });
+
+  it('derives the same Talos request ID from a repeated idempotency key', async () => {
+    talosApi.adminIssueApiKey.mockResolvedValue({
+      issued_api_key: issuedKey(),
+      secret: 'ory_ak_secret',
+    });
+    const request = {
+      method: 'POST' as const,
+      url: '/agent-keys',
+      headers: {
+        authorization: 'Bearer test-token',
+        'idempotency-key': IDEMPOTENCY_KEY,
+        'x-moltnet-team-id': TEAM_ID,
+      },
+      payload: { agentId: OWNER_ID, name: 'daemon' },
+    };
+
+    await app.inject(request);
+    await app.inject(request);
+
+    const firstRequestId =
+      talosApi.adminIssueApiKey.mock.calls[0]?.[0].issueApiKeyRequest
+        .request_id;
+    const secondRequestId =
+      talosApi.adminIssueApiKey.mock.calls[1]?.[0].issueApiKeyRequest
+        .request_id;
+    expect(firstRequestId).toBe(secondRequestId);
+  });
+
+  it('reports an idempotency replay without minting another key', async () => {
+    talosApi.adminIssueApiKey.mockResolvedValue({
+      issued_api_key: issuedKey(),
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/agent-keys',
+      headers: {
+        authorization: 'Bearer test-token',
+        'idempotency-key': IDEMPOTENCY_KEY,
+        'x-moltnet-team-id': TEAM_ID,
+      },
+      payload: { agentId: OWNER_ID, name: 'daemon' },
+    });
+
+    expect(response.statusCode).toBe(409);
+    expect(response.json().detail).toContain('already issued');
+    expect(talosApi.adminIssueApiKey).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects a whitespace-only key name', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/agent-keys',
+      headers: {
+        authorization: 'Bearer test-token',
+        'idempotency-key': 'blank-name-request',
+        'x-moltnet-team-id': TEAM_ID,
+      },
+      payload: { agentId: OWNER_ID, name: '   ' },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(talosApi.adminIssueApiKey).not.toHaveBeenCalled();
+  });
+
+  it('rejects issue when the target agent is no longer a team member', async () => {
+    mocks.relationshipReader.isTeamMember.mockResolvedValue(false);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/agent-keys',
+      headers: {
+        authorization: 'Bearer test-token',
+        'idempotency-key': 'former-member-request',
+        'x-moltnet-team-id': TEAM_ID,
+      },
+      payload: { agentId: OWNER_ID, name: 'daemon' },
+    });
+
+    expect(response.statusCode).toBe(400);
     expect(talosApi.adminIssueApiKey).not.toHaveBeenCalled();
   });
 
@@ -214,9 +293,197 @@ describe('agent key routes', () => {
           teamId: TEAM_ID,
         }),
       ],
-      nextPageToken: null,
+      nextCursor: null,
+    });
+    expect(talosApi.adminListIssuedApiKeys).toHaveBeenCalledWith({
+      filter: `actor_id="${OWNER_ID}"`,
+      pageSize: 20,
+      pageToken: undefined,
     });
     expect(response.body).not.toContain('secret');
+  });
+
+  it('streams Talos cursors until the MoltNet page is full', async () => {
+    talosApi.adminListIssuedApiKeys
+      .mockResolvedValueOnce({
+        issued_api_keys: [
+          issuedKey({
+            key_id: '01JKEY00000000000000000003',
+            metadata: {
+              schema_version: 1,
+              subject_type: 'agent',
+              team_id: OTHER_TEAM_ID,
+            },
+          }),
+        ],
+        next_page_token: 'talos-page-2',
+      })
+      .mockResolvedValueOnce({
+        issued_api_keys: [
+          issuedKey({ key_id: '01JKEY00000000000000000004' }),
+          issuedKey({ key_id: '01JKEY00000000000000000005' }),
+        ],
+        next_page_token: 'talos-page-3',
+      })
+      .mockResolvedValueOnce({
+        issued_api_keys: [issuedKey({ key_id: '01JKEY00000000000000000006' })],
+      });
+
+    const first = await app.inject({
+      method: 'GET',
+      url: '/agent-keys?limit=2',
+      headers: {
+        authorization: 'Bearer test-token',
+        'x-moltnet-team-id': TEAM_ID,
+      },
+    });
+
+    expect(first.statusCode).toBe(200);
+    expect(first.json().items).toHaveLength(2);
+    expect(first.json().nextCursor).toEqual(expect.any(String));
+    expect(talosApi.adminListIssuedApiKeys).toHaveBeenNthCalledWith(1, {
+      filter: `actor_id="${OWNER_ID}"`,
+      pageSize: 2,
+      pageToken: undefined,
+    });
+    expect(talosApi.adminListIssuedApiKeys).toHaveBeenNthCalledWith(2, {
+      filter: `actor_id="${OWNER_ID}"`,
+      pageSize: 2,
+      pageToken: 'talos-page-2',
+    });
+
+    const second = await app.inject({
+      method: 'GET',
+      url: `/agent-keys?limit=2&cursor=${encodeURIComponent(first.json().nextCursor)}`,
+      headers: {
+        authorization: 'Bearer test-token',
+        'x-moltnet-team-id': TEAM_ID,
+      },
+    });
+
+    expect(second.statusCode).toBe(200);
+    expect(second.json()).toMatchObject({
+      items: [expect.objectContaining({ id: '01JKEY00000000000000000006' })],
+      nextCursor: null,
+    });
+    expect(talosApi.adminListIssuedApiKeys).toHaveBeenNthCalledWith(3, {
+      filter: `actor_id="${OWNER_ID}"`,
+      pageSize: 2,
+      pageToken: 'talos-page-3',
+    });
+  });
+
+  it('rejects a cursor when the effective query changes', async () => {
+    talosApi.adminListIssuedApiKeys.mockResolvedValue({
+      issued_api_keys: [issuedKey()],
+      next_page_token: 'talos-next',
+    });
+    const first = await app.inject({
+      method: 'GET',
+      url: '/agent-keys?limit=1',
+      headers: {
+        authorization: 'Bearer test-token',
+        'x-moltnet-team-id': TEAM_ID,
+      },
+    });
+
+    const changedQuery = await app.inject({
+      method: 'GET',
+      url: `/agent-keys?limit=1&status=revoked&cursor=${encodeURIComponent(first.json().nextCursor)}`,
+      headers: {
+        authorization: 'Bearer test-token',
+        'x-moltnet-team-id': TEAM_ID,
+      },
+    });
+
+    expect(changedQuery.statusCode).toBe(400);
+    expect(talosApi.adminListIssuedApiKeys).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses an unfiltered native cursor for a team-manager list', async () => {
+    mocks.permissionChecker.canManageTeamCredentials.mockResolvedValue(true);
+    talosApi.adminListIssuedApiKeys.mockResolvedValue({
+      issued_api_keys: [issuedKey()],
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/agent-keys',
+      headers: {
+        authorization: 'Bearer test-token',
+        'x-moltnet-team-id': TEAM_ID,
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(talosApi.adminListIssuedApiKeys).toHaveBeenCalledWith({
+      filter: undefined,
+      pageSize: 20,
+      pageToken: undefined,
+    });
+  });
+
+  it('skips malformed Talos rows without failing the list', async () => {
+    talosApi.adminListIssuedApiKeys.mockResolvedValue({
+      issued_api_keys: [
+        issuedKey({ key_id: undefined }),
+        issuedKey({ key_id: '01JKEY00000000000000000003' }),
+      ],
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/agent-keys',
+      headers: {
+        authorization: 'Bearer test-token',
+        'x-moltnet-team-id': TEAM_ID,
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().items).toEqual([
+      expect.objectContaining({ id: '01JKEY00000000000000000003' }),
+    ]);
+  });
+
+  it('derives expired status from the Talos expiry timestamp', async () => {
+    talosApi.adminListIssuedApiKeys.mockResolvedValue({
+      issued_api_keys: [
+        issuedKey({ expire_time: new Date('2000-01-01T00:00:00.000Z') }),
+      ],
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/agent-keys?status=expired',
+      headers: {
+        authorization: 'Bearer test-token',
+        'x-moltnet-team-id': TEAM_ID,
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().items).toEqual([
+      expect.objectContaining({ id: KEY_ID, status: 'expired' }),
+    ]);
+  });
+
+  it('fails closed when the credential-manager Keto check errors', async () => {
+    mocks.permissionChecker.canManageTeamCredentials.mockRejectedValue(
+      new Error('Keto unavailable'),
+    );
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/agent-keys',
+      headers: {
+        authorization: 'Bearer test-token',
+        'x-moltnet-team-id': TEAM_ID,
+      },
+    });
+
+    expect(response.statusCode).toBe(500);
+    expect(talosApi.adminListIssuedApiKeys).not.toHaveBeenCalled();
   });
 
   it('rotates immediately while rebuilding immutable metadata', async () => {
@@ -254,6 +521,65 @@ describe('agent key routes', () => {
         },
       }),
     });
+  });
+
+  it('does not let a non-owner rotate another agent key', async () => {
+    talosApi.adminGetIssuedApiKey.mockResolvedValue(
+      issuedKey({ actor_id: OTHER_AGENT_ID }),
+    );
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/agent-keys/${KEY_ID}/rotate`,
+      headers: {
+        authorization: 'Bearer test-token',
+        'x-moltnet-team-id': TEAM_ID,
+      },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(talosApi.adminRotateIssuedApiKey).not.toHaveBeenCalled();
+  });
+
+  it('hides a cross-team key from rotate', async () => {
+    talosApi.adminGetIssuedApiKey.mockResolvedValue(
+      issuedKey({
+        metadata: {
+          schema_version: 1,
+          subject_type: 'agent',
+          team_id: OTHER_TEAM_ID,
+        },
+      }),
+    );
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/agent-keys/${KEY_ID}/rotate`,
+      headers: {
+        authorization: 'Bearer test-token',
+        'x-moltnet-team-id': TEAM_ID,
+      },
+    });
+
+    expect(response.statusCode).toBe(404);
+    expect(talosApi.adminRotateIssuedApiKey).not.toHaveBeenCalled();
+  });
+
+  it('rejects rotate when the bound agent is no longer a team member', async () => {
+    talosApi.adminGetIssuedApiKey.mockResolvedValue(issuedKey());
+    mocks.relationshipReader.isTeamMember.mockResolvedValue(false);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/agent-keys/${KEY_ID}/rotate`,
+      headers: {
+        authorization: 'Bearer test-token',
+        'x-moltnet-team-id': TEAM_ID,
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(talosApi.adminRotateIssuedApiKey).not.toHaveBeenCalled();
   });
 
   it('hides a key bound to another team', async () => {
@@ -298,6 +624,25 @@ describe('agent key routes', () => {
     });
 
     expect(response.statusCode).toBe(400);
+    expect(talosApi.adminRevokeIssuedApiKey).not.toHaveBeenCalled();
+  });
+
+  it('does not let a non-owner revoke another agent key', async () => {
+    talosApi.adminGetIssuedApiKey.mockResolvedValue(
+      issuedKey({ actor_id: OTHER_AGENT_ID }),
+    );
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/agent-keys/${KEY_ID}/revoke`,
+      headers: {
+        authorization: 'Bearer test-token',
+        'x-moltnet-team-id': TEAM_ID,
+      },
+      payload: { reason: 'key_compromise' },
+    });
+
+    expect(response.statusCode).toBe(403);
     expect(talosApi.adminRevokeIssuedApiKey).not.toHaveBeenCalled();
   });
 });

@@ -167,7 +167,11 @@ that mutation and always reconstructs canonical metadata during rotation.
   out verification produces a `401`; Hydra OAuth2 and JWT authentication remain
   available. When Talos is configured, `/health/ready` includes it and reports
   degraded readiness while it is unavailable.
-- **Lost issue/rotation response:** Talos never reveals a secret again. Issue a
+- **Lost issue response:** repeat the request with the same idempotency key.
+  MoltNet returns `409` instead of creating a duplicate because Talos can
+  identify the completed request but cannot reveal its original secret. List
+  the existing key, then rotate or revoke it.
+- **Lost rotation response:** rotation has no Talos idempotency field. Issue a
   replacement, then revoke the key whose secret was lost.
 - **Routine rotation:** use the MoltNet `POST /agent-keys/:keyId/rotate`
   endpoint. Rotation is immediate and keeps the original expiry.
