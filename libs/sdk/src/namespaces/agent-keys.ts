@@ -17,12 +17,19 @@ export function createAgentKeysNamespace(
 
   return {
     async list(query, options) {
+      // Drop keys whose value is undefined so absent filters (agentId, status,
+      // cursor, limit) are never serialized as empty query params.
+      const filteredQuery = query
+        ? Object.fromEntries(
+            Object.entries(query).filter(([, value]) => value !== undefined),
+          )
+        : undefined;
       return unwrapResult(
         await listAgentKeys({
           client,
           auth,
           headers: requiredTeamHeaders(options),
-          query,
+          query: filteredQuery,
         }),
       );
     },

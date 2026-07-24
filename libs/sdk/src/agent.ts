@@ -198,22 +198,54 @@ export interface DiaryCreateRequestOptions {
   teamId: string;
 }
 
+/**
+ * Manage the long-lived, rotatable API keys that authenticate an agent.
+ *
+ * Every key is bound to one team, which is an immutable ceiling on the authority
+ * the key can ever carry — a key cannot be moved to another team. A human
+ * manager holding team credentials can operate on another agent's keys (pass the
+ * target `agentId` in the create body / list query); an agent can manage its own
+ * keys as self-service. All operations require team context via `options.teamId`.
+ */
 export interface AgentKeysNamespace {
+  /**
+   * List agent keys in a team. Results are paginated with an opaque cursor:
+   * read {@link AgentKeyList.nextCursor} and, when it is non-null, pass it back
+   * as `query.cursor` to fetch the next page. A `null` cursor means the last
+   * page. Optionally filter by `agentId` or `status`. Pass `undefined` for
+   * `query` to list with no filters. Never treat a single page as the complete
+   * set — follow the cursor to exhaustion.
+   */
   list(
     query: ListAgentKeysData['query'] | undefined,
     options: RequiredTeamRequestOptions,
   ): Promise<AgentKeyList>;
 
+  /**
+   * Create an agent key. The returned {@link AgentKeyWithSecret.secret} is shown
+   * exactly once and cannot be retrieved again — capture it immediately.
+   *
+   * Issuance is idempotent on `options.idempotencyKey`: if a response is lost,
+   * replaying the same request with the same key returns the original key
+   * instead of minting a second credential. See {@link AgentKeyIssueRequestOptions}.
+   */
   create(
     body: CreateAgentKeyData['body'],
     options: AgentKeyIssueRequestOptions,
   ): Promise<AgentKeyWithSecret>;
 
+  /**
+   * Rotate an agent key, invalidating its old secret and returning a new
+   * {@link AgentKeyWithSecret.secret} exactly once. Rotation requires a
+   * credential independent from the key being rotated (a key cannot rotate
+   * itself), so authenticate as the agent via OAuth2, another key, or a manager.
+   */
   rotate(
     keyId: string,
     options: RequiredTeamRequestOptions,
   ): Promise<AgentKeyWithSecret>;
 
+  /** Revoke an agent key with an explicit, contract-typed reason. */
   revoke(
     keyId: string,
     body: RevokeAgentKeyData['body'],
@@ -222,7 +254,13 @@ export interface AgentKeysNamespace {
 }
 
 export interface AgentKeyIssueRequestOptions extends RequiredTeamRequestOptions {
-  /** Stable retry key. Reuse it only for the same issue request. */
+  /**
+   * Idempotency key for the issue request. The server deduplicates on this
+   * value, so a retry after a lost response returns the originally issued key
+   * rather than a second credential. Generate a fresh unique value (e.g. a UUID)
+   * per distinct issue request, and reuse that exact value only when retrying
+   * the same request for recovery.
+   */
   idempotencyKey: string;
 }
 

@@ -1,6 +1,7 @@
 import type { Client } from '@moltnet/api-client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { MoltNetError } from '../src/errors.js';
 import { createAgentKeysNamespace } from '../src/namespaces/agent-keys.js';
 
 const TEAM_ID = 'aaaaaaaa-0000-4000-8000-000000000001';
@@ -101,5 +102,82 @@ describe('AgentKeysNamespace', () => {
         body: { reason: 'key_compromise' },
       }),
     );
+  });
+
+  it('strips undefined query filters before sending', async () => {
+    get.mockResolvedValue({ data: { items: [], nextCursor: null } });
+
+    await namespace.list(
+      { agentId: 'bbbbbbbb-0000-4000-8000-000000000002', status: undefined },
+      { teamId: TEAM_ID },
+    );
+
+    // status was undefined, so it must not appear in the serialized query.
+    expect(get).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: { agentId: 'bbbbbbbb-0000-4000-8000-000000000002' },
+      }),
+    );
+  });
+
+  it('lists with no filters when query is undefined', async () => {
+    get.mockResolvedValue({ data: { items: [], nextCursor: null } });
+
+    await namespace.list(undefined, { teamId: TEAM_ID });
+
+    expect(get).toHaveBeenCalledWith(
+      expect.objectContaining({
+        url: '/agent-keys',
+        headers: { 'x-moltnet-team-id': TEAM_ID },
+        query: undefined,
+      }),
+    );
+  });
+
+  it('round-trips the continuation cursor', async () => {
+    get.mockResolvedValue({
+      data: { items: [], nextCursor: null },
+    });
+
+    await namespace.list({ cursor: 'page-2-cursor' }, { teamId: TEAM_ID });
+
+    expect(get).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: { cursor: 'page-2-cursor' },
+      }),
+    );
+  });
+
+  it('propagates a typed API error with its status code', async () => {
+    get.mockResolvedValue({
+      error: {
+        status: 403,
+        title: 'Forbidden',
+        detail: 'not a member of this team',
+      },
+      response: { status: 403, statusText: 'Forbidden' },
+    });
+
+    await expect(
+      namespace.list(undefined, { teamId: TEAM_ID }),
+    ).rejects.toMatchObject({ statusCode: 403 });
+    await expect(
+      namespace.list(undefined, { teamId: TEAM_ID }),
+    ).rejects.toBeInstanceOf(MoltNetError);
+  });
+
+  it('throws when revoke returns an error response', async () => {
+    post.mockResolvedValue({
+      error: { status: 404, title: 'Not Found' },
+      response: { status: 404, statusText: 'Not Found' },
+    });
+
+    await expect(
+      namespace.revoke(
+        KEY_ID,
+        { reason: 'key_compromise' },
+        { teamId: TEAM_ID },
+      ),
+    ).rejects.toMatchObject({ statusCode: 404 });
   });
 });
