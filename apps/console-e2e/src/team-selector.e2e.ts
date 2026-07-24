@@ -6,6 +6,7 @@ import {
   createCookieSessionApiClient,
   createTestUser,
   expectConsoleOverview,
+  expectSelectedProjectTeam,
   getSessionCookie,
   loginViaBrowser,
   registerViaBrowser,
@@ -81,10 +82,10 @@ test.describe.serial('Team selector', () => {
 
     const teamSelect = page.locator('select[aria-label="Select team"]');
     await teamSelect.selectOption({ label: alphaTeamName });
-    await expect(page.getByText(`Team: ${alphaTeamName}`)).toBeVisible();
+    await expectSelectedProjectTeam(page, alphaTeamName);
 
     await teamSelect.selectOption({ label: betaTeamName });
-    await expect(page.getByText(`Team: ${betaTeamName}`)).toBeVisible();
+    await expectSelectedProjectTeam(page, betaTeamName);
   });
 
   test('team selection persists across page reload', async ({ page }) => {
@@ -95,11 +96,11 @@ test.describe.serial('Team selector', () => {
     const teamSelect = page.locator('select[aria-label="Select team"]');
     await expect(teamSelect).toBeVisible();
     await teamSelect.selectOption({ label: betaTeamName });
-    await expect(page.getByText(`Team: ${betaTeamName}`)).toBeVisible();
+    await expectSelectedProjectTeam(page, betaTeamName);
 
     await page.reload();
     await expectConsoleOverview(page);
 
-    await expect(page.getByText(`Team: ${betaTeamName}`)).toBeVisible();
+    await expectSelectedProjectTeam(page, betaTeamName);
   });
 });
