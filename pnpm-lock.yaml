@@ -1057,6 +1057,9 @@ importers:
       '@huggingface/transformers':
         specifier: 'catalog:'
         version: 3.8.1
+      '@moltnet/agent-key-service':
+        specifier: workspace:*
+        version: link:../../libs/agent-key-service
       '@moltnet/auth':
         specifier: workspace:*
         version: link:../../libs/auth
@@ -1293,6 +1296,31 @@ importers:
       vue:
         specifier: 'catalog:'
         version: 3.5.33(typescript@5.9.3)
+
+  libs/agent-key-service:
+    dependencies:
+      '@moltnet/auth':
+        specifier: workspace:*
+        version: link:../auth
+      '@moltnet/database':
+        specifier: workspace:*
+        version: link:../database
+      '@moltnet/models':
+        specifier: workspace:*
+        version: link:../models
+      '@ory/client-fetch':
+        specifier: 'catalog:'
+        version: 1.22.63
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.19.19
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.4(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.4)(jiti@2.7.0)(jsdom@27.4.0(@noble/hashes@2.0.1))(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
 
   libs/agent-runtime:
     dependencies:

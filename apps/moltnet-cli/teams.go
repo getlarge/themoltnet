@@ -14,7 +14,10 @@ func runTeamsListCmd(apiURL, credPath string) error {
 	if err != nil {
 		return err
 	}
-	res, err := client.ListTeams(context.Background())
+	res, err := client.ListTeams(
+		context.Background(),
+		moltnetapi.ListTeamsParams{},
+	)
 	if err != nil {
 		return fmt.Errorf("teams list: %w", formatTransportError(err))
 	}

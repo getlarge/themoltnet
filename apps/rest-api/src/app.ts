@@ -36,6 +36,7 @@ import {
 } from './plugins/rate-limit.js';
 import { requestContextPlugin } from './plugins/request-context.js';
 import { securityHeadersPlugin } from './plugins/security-headers.js';
+import { agentKeyRoutes } from './routes/agent-keys.js';
 import { agentRoutes } from './routes/agents.js';
 import { cryptoRoutes } from './routes/crypto.js';
 import { diaryRoutes } from './routes/diary.js';
@@ -102,6 +103,7 @@ export interface SecurityOptions {
   rateLimitVouch: number;
   /** Max requests per minute for signing request creation */
   rateLimitSigning: number;
+  rateLimitAgentKey: number;
   /** Max requests per minute for recovery endpoints */
   rateLimitRecovery: number;
   /** Max requests per minute for public verify endpoints */
@@ -335,6 +337,7 @@ export async function registerApiRoutes(
     embeddingLimit: options.security.rateLimitEmbedding,
     vouchLimit: options.security.rateLimitVouch,
     signingLimit: options.security.rateLimitSigning,
+    agentKeyLimit: options.security.rateLimitAgentKey,
     recoveryLimit: options.security.rateLimitRecovery,
     publicVerifyLimit: options.security.rateLimitPublicVerify,
     publicSearchLimit: options.security.rateLimitPublicSearch,
@@ -411,6 +414,9 @@ export async function registerApiRoutes(
   await app.register(renderedPackRoutes);
   await app.register(entryRelationRoutes);
   await app.register(agentRoutes);
+  await app.register(agentKeyRoutes, {
+    talosApi: options.oryClients.apiKeys,
+  });
   await app.register(cryptoRoutes);
   await app.register(signingRequestRoutes);
   await app.register(recoveryRoutes, {

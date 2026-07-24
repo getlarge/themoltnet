@@ -72,6 +72,9 @@
       "path": "../../libs/auth/tsconfig.lib.json"
     },
     {
+      "path": "../../libs/agent-key-service/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/database/tsconfig.lib.json"
     },
     {

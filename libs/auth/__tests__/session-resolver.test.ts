@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { HUMAN_SESSION_SCOPES } from '../src/scopes.js';
 import {
   createSessionResolver,
   type SessionResolver,
@@ -57,7 +58,7 @@ describe('createSessionResolver', () => {
       identityId: VALID_IDENTITY_ID,
       humanId: VALID_HUMAN_ID,
       clientId: null,
-      scopes: ['diary:read', 'diary:write', 'human:profile', 'team:read'],
+      scopes: [...HUMAN_SESSION_SCOPES],
       currentTeamId: null,
     } satisfies HumanAuthContext);
 

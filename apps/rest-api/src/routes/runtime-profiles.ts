@@ -274,7 +274,10 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
   server.get(
     '/runtime-profiles',
     {
-      config: { rateLimit: fastify.rateLimitConfig.read },
+      config: {
+        auth: { credentialBindingScope: 'team' },
+        rateLimit: fastify.rateLimitConfig.read,
+      },
       schema: {
         operationId: 'listRuntimeProfiles',
         tags: ['runtime-profiles'],
@@ -306,6 +309,7 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
   server.post(
     '/runtime-profiles',
     {
+      config: { auth: { credentialBindingScope: 'team' } },
       preValidation: validateRuntimeProfileModelOptions,
       schema: {
         operationId: 'createRuntimeProfile',

@@ -20,6 +20,53 @@ export type AgentIdentity = {
   publicKey: string;
 };
 
+export type AgentKey = {
+  /**
+   * UUID v4 identifier
+   */
+  agentId: string;
+  createdAt: string | null;
+  expiresAt: string | null;
+  id: string;
+  lastUsedAt: string | null;
+  name: string;
+  revocationDescription: string | null;
+  revocationReason:
+    | 'key_compromise'
+    | 'affiliation_changed'
+    | 'superseded'
+    | 'privilege_withdrawn'
+    | null;
+  status: 'active' | 'revoked' | 'expired';
+  /**
+   * UUID v4 identifier
+   */
+  teamId: string;
+  updatedAt: string | null;
+};
+
+export type AgentKeyList = {
+  items: Array<AgentKey>;
+  nextCursor: string | null;
+};
+
+export type AgentKeyParams = {
+  keyId: string;
+};
+
+export type AgentKeyRevocationReason =
+  | 'key_compromise'
+  | 'affiliation_changed'
+  | 'superseded'
+  | 'privilege_withdrawn';
+
+export type AgentKeyStatus = 'active' | 'revoked' | 'expired';
+
+export type AgentKeyWithSecret = {
+  key: AgentKey;
+  secret: string;
+};
+
 export type AgentPrincipal = {
   /**
    * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
@@ -408,6 +455,15 @@ export type ContextPackResponseListWithRendered = {
   total: number;
 } & {
   renderedPacks?: Array<RenderedPack>;
+};
+
+export type CreateAgentKeyBody = {
+  /**
+   * UUID v4 identifier
+   */
+  agentId: string;
+  name: string;
+  ttlDays?: number;
 };
 
 export type CreateRuntimeModelBody = {
@@ -1691,6 +1747,21 @@ export type ResolvedRuntimeSlot = {
   } | null;
 };
 
+export type RevokeAgentKeyBody =
+  | {
+      reason: 'key_compromise';
+    }
+  | {
+      reason: 'affiliation_changed';
+    }
+  | {
+      reason: 'superseded';
+    }
+  | {
+      description?: string;
+      reason: 'privilege_withdrawn';
+    };
+
 export type RotateSecretResponse = {
   clientId: string;
   clientSecret: string;
@@ -2760,6 +2831,262 @@ export type GetNetworkInfoResponses = {
 
 export type GetNetworkInfoResponse =
   GetNetworkInfoResponses[keyof GetNetworkInfoResponses];
+
+export type ListAgentKeysData = {
+  body?: never;
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path?: never;
+  query?: {
+    agentId?: string;
+    status?: 'active' | 'revoked' | 'expired';
+    limit?: number;
+    cursor?: string;
+  };
+  url: '/agent-keys';
+};
+
+export type ListAgentKeysErrors = {
+  /**
+   * Default Response
+   */
+  400: ValidationProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  502: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
+};
+
+export type ListAgentKeysError = ListAgentKeysErrors[keyof ListAgentKeysErrors];
+
+export type ListAgentKeysResponses = {
+  /**
+   * Default Response
+   */
+  200: AgentKeyList;
+};
+
+export type ListAgentKeysResponse =
+  ListAgentKeysResponses[keyof ListAgentKeysResponses];
+
+export type CreateAgentKeyData = {
+  body: {
+    /**
+     * UUID v4 identifier
+     */
+    agentId: string;
+    name: string;
+    ttlDays?: number;
+  };
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+    /**
+     * Caller-generated retry key. Reuse it only for the same issue request.
+     */
+    'idempotency-key': string;
+  };
+  path?: never;
+  query?: never;
+  url: '/agent-keys';
+};
+
+export type CreateAgentKeyErrors = {
+  /**
+   * Default Response
+   */
+  400: ValidationProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  502: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
+};
+
+export type CreateAgentKeyError =
+  CreateAgentKeyErrors[keyof CreateAgentKeyErrors];
+
+export type CreateAgentKeyResponses = {
+  /**
+   * Default Response
+   */
+  201: AgentKeyWithSecret;
+};
+
+export type CreateAgentKeyResponse =
+  CreateAgentKeyResponses[keyof CreateAgentKeyResponses];
+
+export type RevokeAgentKeyData = {
+  body?:
+    | {
+        reason: 'key_compromise';
+      }
+    | {
+        reason: 'affiliation_changed';
+      }
+    | {
+        reason: 'superseded';
+      }
+    | {
+        description?: string;
+        reason: 'privilege_withdrawn';
+      };
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path: {
+    keyId: string;
+  };
+  query?: never;
+  url: '/agent-keys/{keyId}/revoke';
+};
+
+export type RevokeAgentKeyErrors = {
+  /**
+   * Default Response
+   */
+  400: ValidationProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  502: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
+};
+
+export type RevokeAgentKeyError =
+  RevokeAgentKeyErrors[keyof RevokeAgentKeyErrors];
+
+export type RevokeAgentKeyResponses = {
+  /**
+   * Default Response
+   */
+  204: void;
+};
+
+export type RevokeAgentKeyResponse =
+  RevokeAgentKeyResponses[keyof RevokeAgentKeyResponses];
+
+export type RotateAgentKeyData = {
+  body?: never;
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path: {
+    keyId: string;
+  };
+  query?: never;
+  url: '/agent-keys/{keyId}/rotate';
+};
+
+export type RotateAgentKeyErrors = {
+  /**
+   * Default Response
+   */
+  400: ValidationProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  502: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
+};
+
+export type RotateAgentKeyError =
+  RotateAgentKeyErrors[keyof RotateAgentKeyErrors];
+
+export type RotateAgentKeyResponses = {
+  /**
+   * Default Response
+   */
+  200: AgentKeyWithSecret;
+};
+
+export type RotateAgentKeyResponse =
+  RotateAgentKeyResponses[keyof RotateAgentKeyResponses];
 
 export type GetWhoamiData = {
   body?: never;
@@ -12163,6 +12490,12 @@ export type DownloadTaskArtifactResponse =
 
 export type ListTeamsData = {
   body?: never;
+  headers?: {
+    /**
+     * Team ID (UUID) for scoping the request. Optional.
+     */
+    'x-moltnet-team-id'?: string;
+  };
   path?: never;
   query?: never;
   url: '/teams';

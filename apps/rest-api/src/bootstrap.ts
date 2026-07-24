@@ -654,6 +654,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       rateLimitEmbedding: config.security.RATE_LIMIT_EMBEDDING,
       rateLimitVouch: config.security.RATE_LIMIT_VOUCH,
       rateLimitSigning: config.security.RATE_LIMIT_SIGNING,
+      rateLimitAgentKey: config.security.RATE_LIMIT_AGENT_KEY,
       rateLimitRecovery: config.security.RATE_LIMIT_RECOVERY,
       rateLimitPublicVerify: config.security.RATE_LIMIT_PUBLIC_VERIFY,
       rateLimitPublicSearch: config.security.RATE_LIMIT_PUBLIC_SEARCH,

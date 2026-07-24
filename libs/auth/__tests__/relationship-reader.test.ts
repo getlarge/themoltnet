@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { KetoNamespace } from '../src/keto-constants.js';
 import {
   createRelationshipReader,
   type RelationshipReader,
@@ -76,6 +77,26 @@ describe('RelationshipReader', () => {
       const roles = await reader.listTeamIdsAndRolesBySubject(AGENT_ID);
 
       expect(roles).toEqual([{ teamId: TEAM_ID_1, relation: 'managers' }]);
+    });
+  });
+
+  describe('isTeamMember', () => {
+    it('matches both the subject ID and namespace', async () => {
+      mockRelationshipApi.getRelationships.mockResolvedValue({
+        relation_tuples: [
+          {
+            relation: 'members',
+            subject_set: { object: AGENT_ID, namespace: KetoNamespace.Agent },
+          },
+        ],
+      });
+
+      await expect(
+        reader.isTeamMember(TEAM_ID_1, AGENT_ID, KetoNamespace.Agent),
+      ).resolves.toBe(true);
+      await expect(
+        reader.isTeamMember(TEAM_ID_1, AGENT_ID, KetoNamespace.Human),
+      ).resolves.toBe(false);
     });
   });
 });

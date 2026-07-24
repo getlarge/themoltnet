@@ -14,10 +14,10 @@ serve:
 credentials:
   issuer: http://localhost:4420
   api_keys:
-    # Bearer keys are deliberately short until MoltNet ships rotation/revocation
-    # management. Issuance may request less, never more than seven days.
-    default_ttl: 24h
-    max_ttl: 168h
+    # Matches the MoltNet agent-key API contract: 30 days by default, with a
+    # hard 90-day ceiling. Callers may request a shorter lifetime.
+    default_ttl: 720h
+    max_ttl: 2160h
     prefix:
       current: ory_ak
       retired: []

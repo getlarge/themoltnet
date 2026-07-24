@@ -6,7 +6,12 @@
  */
 
 import rateLimit from '@fastify/rate-limit';
-import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import type {
+  FastifyInstance,
+  FastifyReply,
+  FastifyRequest,
+  onRequestAsyncHookHandler,
+} from 'fastify';
 import fp from 'fastify-plugin';
 import type { Redis } from 'ioredis';
 
@@ -27,6 +32,8 @@ export interface RateLimitPluginOptions {
   vouchLimit: number;
   /** Max requests per minute for signing request creation (default: 5) */
   signingLimit: number;
+  /** Max requests per minute shared by agent-key lifecycle writes (default: 5) */
+  agentKeyLimit: number;
   /** Max requests per minute for recovery endpoints (default: 5) */
   recoveryLimit: number;
   /** Max requests per minute for public verify endpoints (default: 10) */
@@ -92,9 +99,14 @@ function makeAllowList(paths: readonly string[]): (url: string) => boolean {
  */
 function bucketLabel(request: FastifyRequest): string {
   const cfg = request.routeOptions?.config as
-    | { rateLimit?: { groupId?: string } }
+    | {
+        rateLimit?: { groupId?: string } | false;
+        rateLimitBucket?: string;
+      }
     | undefined;
-  return cfg?.rateLimit?.groupId ?? 'global';
+  const routeGroupId =
+    typeof cfg?.rateLimit === 'object' ? cfg.rateLimit.groupId : undefined;
+  return routeGroupId ?? cfg?.rateLimitBucket ?? 'global';
 }
 
 /**
@@ -156,6 +168,7 @@ async function rateLimitPluginImpl(
     embeddingLimit,
     vouchLimit,
     signingLimit,
+    agentKeyLimit,
     recoveryLimit,
     publicVerifyLimit,
     publicSearchLimit,
@@ -239,6 +252,19 @@ async function rateLimitPluginImpl(
     },
   });
 
+  // Route-level configs get isolated child stores in @fastify/rate-limit, even
+  // when they repeat a groupId. Reuse one handler so all lifecycle mutations
+  // consume the same per-principal budget with either the local or Redis store.
+  const agentKeyRateLimit = fastify.rateLimit({
+    max: agentKeyLimit,
+    timeWindow: '1 minute',
+    keyGenerator: (request: FastifyRequest) =>
+      `${request.authContext?.identityId ?? request.ip}:agent-key`,
+  });
+  fastify.decorate('rateLimitHooks', {
+    agentKey: agentKeyRateLimit as onRequestAsyncHookHandler,
+  });
+
   // Store route-specific configs for use in route definitions
   fastify.decorate('rateLimitConfig', {
     embedding: {
@@ -304,7 +330,14 @@ export const rateLimitPlugin = fp(rateLimitPluginImpl, {
 
 // Type augmentation for Fastify
 declare module 'fastify' {
+  interface FastifyContextConfig {
+    rateLimitBucket?: string;
+  }
+
   interface FastifyInstance {
+    rateLimitHooks: {
+      agentKey: onRequestAsyncHookHandler;
+    };
     rateLimitConfig: {
       embedding: { max: number; timeWindow: string };
       vouch: { max: number; timeWindow: string };

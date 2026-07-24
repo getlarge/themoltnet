@@ -138,6 +138,7 @@ describe('DiaryService (DBOS integration)', () => {
       listTeamIdsBySubject: vi.fn().mockResolvedValue([]),
       listTeamIdsAndRolesBySubject: vi.fn().mockResolvedValue([]),
       listTeamMembers: vi.fn().mockResolvedValue([]),
+      isTeamMember: vi.fn().mockResolvedValue(false),
       listGroupMembers: vi.fn().mockResolvedValue([]),
     };
 

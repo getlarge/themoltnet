@@ -2,6 +2,7 @@
  * Team governance and diary transfer routes unit tests
  */
 
+import type { AuthContext } from '@moltnet/auth';
 import type { FastifyInstance } from 'fastify';
 import {
   afterAll,
@@ -87,6 +88,21 @@ const MOCK_DEST_TEAM = {
   id: OTHER_TEAM_ID,
   name: 'Beta',
 };
+const HUMAN_AUTH_CONTEXT: AuthContext = {
+  subjectType: 'human',
+  identityId: OWNER_ID,
+  humanId: OWNER_ID,
+  clientId: null,
+  scopes: ['diary:read', 'diary:write', 'human:profile', 'team:read'],
+  currentTeamId: null,
+};
+const TEAM_BOUND_AUTH_CONTEXT: AuthContext = {
+  ...VALID_AUTH_CONTEXT,
+  credentialBinding: {
+    keyId: '01JKEY00000000000000000001',
+    boundTeamId: TEAM_ID,
+  },
+};
 
 const MOCK_DIARY = {
   id: DIARY_ID,
@@ -112,6 +128,75 @@ const MOCK_TRANSFER = {
   createdAt: new Date(),
   updatedAt: new Date(),
 };
+
+describe('GET /teams', () => {
+  it('keeps all teams visible to a human navigating with a team header', async () => {
+    const mocks = createMockServices();
+    const app = await createTestApp(mocks, HUMAN_AUTH_CONTEXT);
+    mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
+    mocks.relationshipReader.listTeamIdsAndRolesBySubject.mockResolvedValue([
+      { teamId: TEAM_ID, relation: 'owners' },
+      { teamId: OTHER_TEAM_ID, relation: 'members' },
+    ]);
+    mocks.teamRepository.listByIds.mockResolvedValue([
+      MOCK_ACTIVE_TEAM,
+      MOCK_DEST_TEAM,
+    ]);
+
+    try {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/teams',
+        headers: {
+          ...authHeaders,
+          'x-moltnet-team-id': TEAM_ID,
+        },
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(JSON.parse(res.body).items).toEqual([
+        expect.objectContaining({ id: TEAM_ID }),
+        expect.objectContaining({ id: OTHER_TEAM_ID }),
+      ]);
+      expect(mocks.teamRepository.listByIds).toHaveBeenCalledWith([
+        TEAM_ID,
+        OTHER_TEAM_ID,
+      ]);
+    } finally {
+      await app.close();
+    }
+  });
+
+  it('limits a team-bound agent credential to its bound team', async () => {
+    const mocks = createMockServices();
+    const app = await createTestApp(mocks, TEAM_BOUND_AUTH_CONTEXT);
+    mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
+    mocks.relationshipReader.listTeamIdsAndRolesBySubject.mockResolvedValue([
+      { teamId: TEAM_ID, relation: 'owners' },
+      { teamId: OTHER_TEAM_ID, relation: 'members' },
+    ]);
+    mocks.teamRepository.listByIds.mockResolvedValue([MOCK_ACTIVE_TEAM]);
+
+    try {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/teams',
+        headers: {
+          ...authHeaders,
+          'x-moltnet-team-id': TEAM_ID,
+        },
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(JSON.parse(res.body).items).toEqual([
+        expect.objectContaining({ id: TEAM_ID }),
+      ]);
+      expect(mocks.teamRepository.listByIds).toHaveBeenCalledWith([TEAM_ID]);
+    } finally {
+      await app.close();
+    }
+  });
+});
 
 // ── Suite 1: POST /teams — founding flow ─────────────────────────
 

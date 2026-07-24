@@ -81,7 +81,10 @@ func TestMain(m *testing.M) {
 	}
 
 	// Find personal team
-	teamsRes, err := e2eClient.ListTeams(context.Background())
+	teamsRes, err := e2eClient.ListTeams(
+		context.Background(),
+		moltnetapi.ListTeamsParams{},
+	)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "E2E setup: list teams: %v\n", err)
 		os.Exit(1)

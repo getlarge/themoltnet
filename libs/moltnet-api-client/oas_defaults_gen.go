@@ -19,6 +19,14 @@ func (s *ClaimTaskReq) setDefaults() {
 }
 
 // setDefaults set default value of fields.
+func (s *CreateAgentKeyReq) setDefaults() {
+	{
+		val := int(30)
+		s.TtlDays.SetTo(val)
+	}
+}
+
+// setDefaults set default value of fields.
 func (s *CreateTaskReq) setDefaults() {
 	{
 		val := int(1)

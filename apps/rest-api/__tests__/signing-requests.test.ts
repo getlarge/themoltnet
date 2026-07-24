@@ -191,6 +191,7 @@ function createApp(
       rateLimitEmbedding: 1000,
       rateLimitVouch: 1000,
       rateLimitSigning: 1000,
+      rateLimitAgentKey: 1000,
       rateLimitRecovery: 1000,
       rateLimitPublicVerify: 1000,
       rateLimitPublicSearch: 1000,
