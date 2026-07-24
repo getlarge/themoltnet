@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.31.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.30.0...rest-api-v0.31.0) (2026-07-24)
+
+
+### Features
+
+* **auth:** add team-bound Talos agent key API ([5bb283b](https://github.com/getlarge/themoltnet/commit/5bb283b487a2be85eabd77cd88e3047e970e9d6f))
+* **auth:** add team-bound Talos agent key API ([1609500](https://github.com/getlarge/themoltnet/commit/1609500b849a29c7f97c534d875747a7324ab2ac))
+* **crypto:** dispatch signing verification by method ([de724a2](https://github.com/getlarge/themoltnet/commit/de724a2cf85c7a36cd9214098ca496ce05e4faca))
+* **crypto:** dispatch signing verification by method ([977575b](https://github.com/getlarge/themoltnet/commit/977575bc20c043ce68ee071999cfadb3a36cc12a)), closes [#1634](https://github.com/getlarge/themoltnet/issues/1634)
+* **sdk:** expose agent key lifecycle clients ([66d988e](https://github.com/getlarge/themoltnet/commit/66d988e2388c0dfefd76ea9eccceec215b86e71c))
+
+
+### Bug Fixes
+
+* **api:** regenerate verification method clients ([b7579fa](https://github.com/getlarge/themoltnet/commit/b7579faf47acc5c4d000720e67d4bc090cd7ab46))
+* **auth:** preserve human team navigation ([b27053e](https://github.com/getlarge/themoltnet/commit/b27053efcafbb532579dbed4f4eeefd77ef454cf))
+* **crypto:** reject unavailable signing verifiers ([030cb97](https://github.com/getlarge/themoltnet/commit/030cb97529fcb1559fe3e4357fd214ec3684da17))
+* **rest-api:** close agent key review gaps ([4fce4bc](https://github.com/getlarge/themoltnet/commit/4fce4bc1ff914e4a4b101765bf6923ea52486f13))
+* **rest-api:** harden agent key operations ([dd05ecd](https://github.com/getlarge/themoltnet/commit/dd05ecd51c4e9b623180a3d0f687388f0656d6e4))
+
 ## [0.30.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.29.0...rest-api-v0.30.0) (2026-07-24)
 
 

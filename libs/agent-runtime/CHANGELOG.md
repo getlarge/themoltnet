@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.36.1](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.36.0...agent-runtime-v0.36.1) (2026-07-24)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.122.0
+
 ## [0.36.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.35.3...agent-runtime-v0.36.0) (2026-07-24)
 
 

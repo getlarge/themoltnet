@@ -1,6 +1,6 @@
 {
   "name": "@themoltnet/ctap",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "description": "Minimal Node.js CTAP2/HID transport for MoltNet hardware signing",
   "license": "MIT",

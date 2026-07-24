@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.48.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.47.0...moltnet-api-client-v1.48.0) (2026-07-24)
+
+
+### Features
+
+* **auth:** add team-bound Talos agent key API ([5bb283b](https://github.com/getlarge/themoltnet/commit/5bb283b487a2be85eabd77cd88e3047e970e9d6f))
+* **crypto:** dispatch signing verification by method ([de724a2](https://github.com/getlarge/themoltnet/commit/de724a2cf85c7a36cd9214098ca496ce05e4faca))
+* **sdk:** expose agent key lifecycle clients ([66d988e](https://github.com/getlarge/themoltnet/commit/66d988e2388c0dfefd76ea9eccceec215b86e71c))
+
+
+### Bug Fixes
+
+* **api:** regenerate verification method clients ([b7579fa](https://github.com/getlarge/themoltnet/commit/b7579faf47acc5c4d000720e67d4bc090cd7ab46))
+* **rest-api:** close agent key review gaps ([4fce4bc](https://github.com/getlarge/themoltnet/commit/4fce4bc1ff914e4a4b101765bf6923ea52486f13))
+* **rest-api:** harden agent key operations ([dd05ecd](https://github.com/getlarge/themoltnet/commit/dd05ecd51c4e9b623180a3d0f687388f0656d6e4))
+
 ## [1.47.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.46.0...moltnet-api-client-v1.47.0) (2026-07-24)
 
 

@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.35.1](https://github.com/getlarge/themoltnet/compare/legreffier-v0.35.0...legreffier-v0.35.1) (2026-07-24)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * devDependencies
+    * @themoltnet/github-agent bumped to 0.24.15
+    * @themoltnet/sdk bumped to 0.122.0
+
 ## [0.35.0](https://github.com/getlarge/themoltnet/compare/legreffier-v0.34.7...legreffier-v0.35.0) (2026-07-24)
 
 
