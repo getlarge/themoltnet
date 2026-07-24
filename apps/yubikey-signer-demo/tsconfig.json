@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "outDir": "./out-tsc",
+    "rootDir": "src",
+    "tsBuildInfoFile": "./out-tsc/tsconfig.tsbuildinfo",
+    "types": ["node"]
+  },
+  "extends": "../../tsconfig.json",
+  "include": ["src"],
+  "references": []
+}

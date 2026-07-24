@@ -1,0 +1,25 @@
+{
+  "name": "@moltnet/yubikey-signer-demo",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Disposable local hardware smoke for Phase 1 previewSign SDK development",
+  "scripts": {
+    "smoke": "tsx src/main.ts"
+  },
+  "dependencies": {
+    "@themoltnet/yubikey-preview-sign": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:"
+  },
+  "nx": {
+    "tags": [
+      "type:tool",
+      "scope:identity",
+      "platform:node"
+    ]
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "declaration": true,
+    "declarationDir": "./out-tsc",
+    "outDir": "./out-tsc",
+    "rootDir": "src",
+    "tsBuildInfoFile": "./out-tsc/tsconfig.tsbuildinfo",
+    "types": ["node"]
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "out-tsc",
+    "src/**/*.test.ts",
+    "src/**/*.spec.ts"
+  ],
+  "extends": "./tsconfig.json",
+  "include": ["src"],
+  "references": [{ "path": "../ctap/tsconfig.lib.json" }]
+}

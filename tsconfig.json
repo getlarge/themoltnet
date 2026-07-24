@@ -18,6 +18,9 @@
   "files": [],
   "references": [
     {
+      "path": "apps/yubikey-signer-demo"
+    },
+    {
       "path": "apps/agent-daemon"
     },
     {
@@ -76,6 +79,9 @@
     },
     {
       "path": "libs/crypto-service"
+    },
+    {
+      "path": "libs/ctap"
     },
     {
       "path": "libs/database"
@@ -145,6 +151,9 @@
     },
     {
       "path": "libs/tasks"
+    },
+    {
+      "path": "libs/yubikey-preview-sign"
     },
     {
       "path": "tools"
