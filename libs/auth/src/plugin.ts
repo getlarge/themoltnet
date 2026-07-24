@@ -42,6 +42,19 @@ export interface AuthPluginOptions {
 }
 
 declare module 'fastify' {
+  interface FastifyContextConfig {
+    auth?: {
+      deferInaccessibleTeamAuthorization?: boolean;
+      /**
+       * Explicit ceiling for team-bound Talos credentials.
+       *
+       * Unclassified routes deny bound credentials. Identity-safe routes may
+       * operate without a team selection. Team routes require an explicit,
+       * matching x-moltnet-team-id header.
+       */
+      talosCredentialScope?: 'identity' | 'team';
+    };
+  }
   interface FastifyInstance {
     tokenValidator: TokenValidator;
     permissionChecker: PermissionChecker;
@@ -207,6 +220,28 @@ async function resolveTeamContext(
     authContext.subjectType === 'agent'
       ? authContext.credentialBinding?.boundTeamId
       : undefined;
+
+  if (constrainedTeamId) {
+    const credentialScope =
+      request.routeOptions.config.auth?.talosCredentialScope;
+    if (!credentialScope) {
+      const error = createAuthError(
+        'Team-bound credential is not permitted on this route',
+      );
+      error.statusCode = 403;
+      error.code = 'FORBIDDEN';
+      throw error;
+    }
+    if (credentialScope === 'team' && !requestedTeamId) {
+      const error = createAuthError(
+        'Team-bound credential requires a team header on this route',
+      );
+      error.statusCode = 403;
+      error.code = 'FORBIDDEN';
+      throw error;
+    }
+  }
+
   if (
     requestedTeamId &&
     constrainedTeamId &&
@@ -233,10 +268,9 @@ async function resolveTeamContext(
       subjectNs,
     );
     if (!canAccess) {
-      const authConfig = request.routeOptions.config as
-        | { auth?: { deferInaccessibleTeamAuthorization?: boolean } }
-        | undefined;
-      if (authConfig?.auth?.deferInaccessibleTeamAuthorization) {
+      if (
+        request.routeOptions.config.auth?.deferInaccessibleTeamAuthorization
+      ) {
         authContext.currentTeamId = teamId;
         return;
       }

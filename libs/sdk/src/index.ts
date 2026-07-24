@@ -1,5 +1,6 @@
 export type {
   Agent,
+  AgentKeysNamespace,
   AgentsNamespace,
   AuthNamespace,
   CryptoNamespace,

@@ -1,6 +1,8 @@
 import type {
   AbortTaskAttemptData,
   AcceptTransferResponses,
+  AgentKeyList,
+  AgentKeyWithSecret,
   AgentProfile,
   AppendTaskMessagesData,
   BatchDeleteDiaryEntriesData,
@@ -15,6 +17,7 @@ import type {
   CompleteTaskData,
   ContextPackResponse,
   ContextPackResponseListWithRendered,
+  CreateAgentKeyData,
   CreateDiaryCustomPackData,
   CreateDiaryData,
   CreateDiaryEntryData,
@@ -61,6 +64,7 @@ import type {
   InitiateTransferData,
   InitiateTransferResponses,
   JoinTeamResponse,
+  ListAgentKeysData,
   ListContextPacksData,
   ListDiariesData,
   ListDiaryEntriesData,
@@ -98,6 +102,7 @@ import type {
   RenderedPackWithContent,
   RequestRecoveryChallengeData,
   ResolvedRuntimeSlot,
+  RevokeAgentKeyData,
   RevokeDiaryGrantData,
   RevokeDiaryGrantResponse,
   RotateSecretResponse,
@@ -146,6 +151,7 @@ import type {
 } from '@moltnet/tasks';
 
 import type { AgentContext } from './agent-context.js';
+import { createAgentKeysNamespace } from './namespaces/agent-keys.js';
 import { createAgentsNamespace } from './namespaces/agents.js';
 import { createAuthNamespace } from './namespaces/auth.js';
 import { createCryptoNamespace } from './namespaces/crypto.js';
@@ -163,6 +169,7 @@ import { createRuntimeSessionsNamespace } from './namespaces/runtime-sessions.js
 import { createRuntimeSlotsNamespace } from './namespaces/runtime-slots.js';
 import { createSigningRequestsNamespace } from './namespaces/signing-requests.js';
 import { createTasksNamespace } from './namespaces/tasks.js';
+import type { RequiredTeamRequestOptions } from './namespaces/team-headers.js';
 import { createTeamsNamespace } from './namespaces/teams.js';
 import { createVouchNamespace } from './namespaces/vouch.js';
 import type {
@@ -189,6 +196,29 @@ export interface DiaryRequestOptions {
 export interface DiaryCreateRequestOptions {
   /** Team that will own the diary. Sets `x-moltnet-team-id`. */
   teamId: string;
+}
+
+export interface AgentKeysNamespace {
+  list(
+    options: RequiredTeamRequestOptions,
+    query?: ListAgentKeysData['query'],
+  ): Promise<AgentKeyList>;
+
+  create(
+    body: CreateAgentKeyData['body'],
+    options: RequiredTeamRequestOptions,
+  ): Promise<AgentKeyWithSecret>;
+
+  rotate(
+    keyId: string,
+    options: RequiredTeamRequestOptions,
+  ): Promise<AgentKeyWithSecret>;
+
+  revoke(
+    keyId: string,
+    body: RevokeAgentKeyData['body'],
+    options: RequiredTeamRequestOptions,
+  ): Promise<void>;
 }
 
 export interface DiariesNamespace {
@@ -771,6 +801,7 @@ export type RuntimeSessionDownloadStream = AsyncIterable<Uint8Array>;
 // ---------------------------------------------------------------------------
 
 export interface Agent {
+  agentKeys: AgentKeysNamespace;
   diaries: DiariesNamespace;
   diaryGrants: DiaryGrantsNamespace;
   diaryTransfers: DiaryTransfersNamespace;
@@ -812,6 +843,7 @@ export function createAgent(options: CreateAgentOptions): Agent {
   const context: AgentContext = { client, auth };
 
   const diaries = createDiariesNamespace(context);
+  const agentKeys = createAgentKeysNamespace(context);
   const diaryGrants = createDiaryGrantsNamespace(context);
   const diaryTransfers = createDiaryTransfersNamespace(context);
   const packs = createPacksNamespace(context);
@@ -832,6 +864,7 @@ export function createAgent(options: CreateAgentOptions): Agent {
   const runtimeSessions = createRuntimeSessionsNamespace(context);
 
   return {
+    agentKeys,
     diaries,
     diaryGrants,
     diaryTransfers,

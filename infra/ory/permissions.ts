@@ -37,6 +37,9 @@ class Team implements Namespace {
     // Administer team-scoped runtime configuration (profiles/model catalog).
     manage_runtime: (ctx: Context) => this.permits.write(ctx),
 
+    // Issue and administer team-bound agent credentials.
+    manage_credentials: (ctx: Context) => this.permits.write(ctx),
+
     // Read-only access to team resources (all roles)
     access: (ctx: Context) =>
       this.related.owners.includes(ctx.subject) ||

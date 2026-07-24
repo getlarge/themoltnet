@@ -45,6 +45,10 @@ type CompleteTaskRes interface {
 	completeTaskRes()
 }
 
+type CreateAgentKeyRes interface {
+	createAgentKeyRes()
+}
+
 type CreateDiaryCustomPackRes interface {
 	createDiaryCustomPackRes()
 }
@@ -269,6 +273,10 @@ type ListActiveVouchersRes interface {
 	listActiveVouchersRes()
 }
 
+type ListAgentKeysRes interface {
+	listAgentKeysRes()
+}
+
 type ListContextPacksRes interface {
 	listContextPacksRes()
 }
@@ -393,8 +401,16 @@ type RequestRecoveryChallengeRes interface {
 	requestRecoveryChallengeRes()
 }
 
+type RevokeAgentKeyRes interface {
+	revokeAgentKeyRes()
+}
+
 type RevokeDiaryGrantRes interface {
 	revokeDiaryGrantRes()
+}
+
+type RotateAgentKeyRes interface {
+	rotateAgentKeyRes()
 }
 
 type RotateClientSecretRes interface {

@@ -164,6 +164,20 @@ func encodeCompleteTaskRequest(
 	return nil
 }
 
+func encodeCreateAgentKeyRequest(
+	req *CreateAgentKeyReq,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
 func encodeCreateDiaryRequest(
 	req *CreateDiaryReq,
 	r *http.Request,
@@ -464,6 +478,20 @@ func encodeRenderContextPackRequest(
 
 func encodeRequestRecoveryChallengeRequest(
 	req *RequestRecoveryChallengeReq,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeRevokeAgentKeyRequest(
+	req *RevokeAgentKeyReq,
 	r *http.Request,
 ) error {
 	const contentType = "application/json"

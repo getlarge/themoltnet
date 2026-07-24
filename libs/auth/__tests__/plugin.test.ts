@@ -211,7 +211,7 @@ describe('requireAuth preHandler', () => {
     });
   });
 
-  it('keeps a bound Talos key unscoped when no team is requested', async () => {
+  it('denies a bound Talos key on an unclassified route', async () => {
     mockTokenValidator.resolveAuthContext.mockResolvedValue({
       ...VALID_AUTH_CONTEXT,
       credentialBinding: {
@@ -230,8 +230,72 @@ describe('requireAuth preHandler', () => {
       headers: { authorization: `Bearer ${VALID_TOKEN}` },
     });
 
+    expect(response.statusCode).toBe(403);
+    expect(response.json()).toMatchObject({
+      code: 'FORBIDDEN',
+      message: 'Team-bound credential is not permitted on this route',
+    });
+    expect(mockPermissionChecker.canAccessTeam).not.toHaveBeenCalled();
+  });
+
+  it('allows a bound Talos key on an identity-safe route without a team', async () => {
+    mockTokenValidator.resolveAuthContext.mockResolvedValue({
+      ...VALID_AUTH_CONTEXT,
+      credentialBinding: {
+        keyId: 'talos-key-123',
+        boundTeamId: 'team-123',
+      },
+    });
+
+    app.get(
+      '/protected',
+      {
+        config: { auth: { talosCredentialScope: 'identity' } },
+        preHandler: [requireAuth],
+      },
+      async (request) => ({ authContext: request.authContext }),
+    );
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/protected',
+      headers: { authorization: `Bearer ${VALID_TOKEN}` },
+    });
+
     expect(response.statusCode).toBe(200);
     expect(response.json().authContext.currentTeamId).toBeNull();
+    expect(mockPermissionChecker.canAccessTeam).not.toHaveBeenCalled();
+  });
+
+  it('requires a team header for a bound Talos key on a team route', async () => {
+    mockTokenValidator.resolveAuthContext.mockResolvedValue({
+      ...VALID_AUTH_CONTEXT,
+      credentialBinding: {
+        keyId: 'talos-key-123',
+        boundTeamId: 'team-123',
+      },
+    });
+
+    app.get(
+      '/protected',
+      {
+        config: { auth: { talosCredentialScope: 'team' } },
+        preHandler: [requireAuth],
+      },
+      async () => ({ ok: true }),
+    );
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/protected',
+      headers: { authorization: `Bearer ${VALID_TOKEN}` },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json()).toMatchObject({
+      code: 'FORBIDDEN',
+      message: 'Team-bound credential requires a team header on this route',
+    });
     expect(mockPermissionChecker.canAccessTeam).not.toHaveBeenCalled();
   });
 
@@ -244,9 +308,16 @@ describe('requireAuth preHandler', () => {
       },
     });
 
-    app.get('/protected', { preHandler: [requireAuth] }, async (request) => ({
-      authContext: request.authContext,
-    }));
+    app.get(
+      '/protected',
+      {
+        config: { auth: { talosCredentialScope: 'team' } },
+        preHandler: [requireAuth],
+      },
+      async (request) => ({
+        authContext: request.authContext,
+      }),
+    );
 
     const response = await app.inject({
       method: 'GET',
@@ -275,9 +346,16 @@ describe('requireAuth preHandler', () => {
       },
     });
 
-    app.get('/protected', { preHandler: [requireAuth] }, async () => ({
-      ok: true,
-    }));
+    app.get(
+      '/protected',
+      {
+        config: { auth: { talosCredentialScope: 'team' } },
+        preHandler: [requireAuth],
+      },
+      async () => ({
+        ok: true,
+      }),
+    );
 
     const response = await app.inject({
       method: 'GET',
@@ -305,9 +383,16 @@ describe('requireAuth preHandler', () => {
       },
     });
 
-    app.get('/protected', { preHandler: [requireAuth] }, async () => ({
-      ok: true,
-    }));
+    app.get(
+      '/protected',
+      {
+        config: { auth: { talosCredentialScope: 'team' } },
+        preHandler: [requireAuth],
+      },
+      async () => ({
+        ok: true,
+      }),
+    );
 
     const response = await app.inject({
       method: 'GET',

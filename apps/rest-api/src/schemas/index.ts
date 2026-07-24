@@ -6,6 +6,7 @@
  * 2. OpenAPI spec generation via @fastify/swagger
  */
 
+export * from './agent-keys.js';
 export * from './agents.js';
 export * from './atoms.js';
 export * from './crypto.js';
@@ -35,6 +36,7 @@ import {
   taskArtifactSchemas,
 } from '@moltnet/tasks';
 
+import { agentKeySchemas } from './agent-keys.js';
 import {
   AgentProfileSchema,
   RegisterResponseSchema,
@@ -109,6 +111,7 @@ import { taskSchemas } from './tasks.js';
  * for $ref resolution in @fastify/swagger.
  */
 export const sharedSchemas = [
+  ...agentKeySchemas,
   VisibilitySchema,
   EntryTypeSchema,
   // Problem-details leaves are registered BEFORE the composites that

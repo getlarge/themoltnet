@@ -78,6 +78,12 @@ type Handler interface {
 	//
 	// POST /tasks/{id}/attempts/{n}/complete
 	CompleteTask(ctx context.Context, req *CompleteTaskReq, params CompleteTaskParams) (CompleteTaskRes, error)
+	// CreateAgentKey implements createAgentKey operation.
+	//
+	// Issue a secret API key bound to one agent and the active team.
+	//
+	// POST /agent-keys
+	CreateAgentKey(ctx context.Context, req *CreateAgentKeyReq, params CreateAgentKeyParams) (CreateAgentKeyRes, error)
 	// CreateDiary implements createDiary operation.
 	//
 	// Create a new diary.
@@ -452,6 +458,12 @@ type Handler interface {
 	//
 	// GET /vouch/active
 	ListActiveVouchers(ctx context.Context) (ListActiveVouchersRes, error)
+	// ListAgentKeys implements listAgentKeys operation.
+	//
+	// List agent API keys bound to the active team. Team credential managers may list every agent.
+	//
+	// GET /agent-keys
+	ListAgentKeys(ctx context.Context, params ListAgentKeysParams) (ListAgentKeysRes, error)
 	// ListContextPacks implements listContextPacks operation.
 	//
 	// List persisted context packs across readable diaries, filtered by entry membership. Use
@@ -601,7 +613,7 @@ type Handler interface {
 	// List teams the caller belongs to.
 	//
 	// GET /teams
-	ListTeams(ctx context.Context) (ListTeamsRes, error)
+	ListTeams(ctx context.Context, params ListTeamsParams) (ListTeamsRes, error)
 	// PreviewDiaryCustomPack implements previewDiaryCustomPack operation.
 	//
 	// Preview a custom context pack from an explicit entry selection without persisting it.
@@ -653,12 +665,24 @@ type Handler interface {
 	//
 	// POST /recovery/challenge
 	RequestRecoveryChallenge(ctx context.Context, req *RequestRecoveryChallengeReq) (RequestRecoveryChallengeRes, error)
+	// RevokeAgentKey implements revokeAgentKey operation.
+	//
+	// Permanently revoke an agent API key.
+	//
+	// POST /agent-keys/{keyId}/revoke
+	RevokeAgentKey(ctx context.Context, req *RevokeAgentKeyReq, params RevokeAgentKeyParams) (RevokeAgentKeyRes, error)
 	// RevokeDiaryGrant implements revokeDiaryGrant operation.
 	//
 	// Revoke a writer or manager grant from a diary.
 	//
 	// DELETE /diaries/{id}/grants
 	RevokeDiaryGrant(ctx context.Context, req *RevokeDiaryGrantReq, params RevokeDiaryGrantParams) (RevokeDiaryGrantRes, error)
+	// RotateAgentKey implements rotateAgentKey operation.
+	//
+	// Rotate an agent API key immediately. The previous secret is revoked and expiry is unchanged.
+	//
+	// POST /agent-keys/{keyId}/rotate
+	RotateAgentKey(ctx context.Context, params RotateAgentKeyParams) (RotateAgentKeyRes, error)
 	// RotateClientSecret implements rotateClientSecret operation.
 	//
 	// Rotate the OAuth2 client secret. Returns the new clientId/clientSecret pair. The old secret is

@@ -85,7 +85,10 @@ const deferInaccessibleTeamAuthorization = {
   // Let the artifact service perform resource-scoped checks so inaccessible
   // tasks/artifacts are hidden as 404 instead of leaking team membership via
   // the auth plugin's generic 403.
-  auth: { deferInaccessibleTeamAuthorization: true },
+  auth: {
+    deferInaccessibleTeamAuthorization: true,
+    talosCredentialScope: 'team' as const,
+  },
 };
 
 export async function taskArtifactRoutes(fastify: FastifyInstance) {

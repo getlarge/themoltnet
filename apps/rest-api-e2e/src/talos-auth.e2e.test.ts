@@ -2,7 +2,15 @@
  * E2E: Talos-issued API keys through the real REST authentication chokepoint.
  */
 
-import { createClient, getWhoami } from '@moltnet/api-client';
+import {
+  createAgentKey,
+  createClient,
+  createTeam,
+  getWhoami,
+  listAgentKeys,
+  revokeAgentKey,
+  rotateAgentKey,
+} from '@moltnet/api-client';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createAgent, type TestAgent } from './helpers.js';
@@ -13,7 +21,7 @@ describe('Talos API key authentication', () => {
   let agent: TestAgent;
   let keyId: string;
   let secret: string;
-  let revoked = false;
+  let activeKeyId: string | null = null;
 
   beforeAll(async () => {
     harness = await createTestHarness();
@@ -23,30 +31,29 @@ describe('Talos API key authentication', () => {
       bootstrapIdentityId: harness.bootstrapIdentityId,
     });
 
-    const issued = await harness.oryClients.apiKeys?.adminIssueApiKey({
-      issueApiKeyRequest: {
-        actor_id: agent.identityId,
+    const client = createClient({ baseUrl: harness.baseUrl });
+    const { data: issued, error } = await createAgentKey({
+      client,
+      auth: () => agent.accessToken,
+      headers: { 'x-moltnet-team-id': agent.personalTeamId },
+      body: {
+        agentId: agent.identityId,
         name: 'rest-api-e2e',
-        scopes: ['agent:profile'],
-        ttl: '10m',
-        visibility: 'KEY_VISIBILITY_SECRET',
-        metadata: {
-          subject_type: 'agent',
-          team_id: agent.personalTeamId,
-        },
+        ttlDays: 1,
       },
     });
-    if (!issued?.issued_api_key?.key_id || !issued.secret) {
-      throw new Error('Talos did not return an issued key and secret');
+    if (error || !issued) {
+      throw new Error(`MoltNet did not issue an agent key: ${String(error)}`);
     }
-    keyId = issued.issued_api_key.key_id;
+    keyId = issued.key.id;
     secret = issued.secret;
+    activeKeyId = keyId;
   });
 
   afterAll(async () => {
-    if (keyId && !revoked) {
+    if (activeKeyId) {
       await harness.oryClients.apiKeys?.adminRevokeIssuedApiKey({
-        keyId,
+        keyId: activeKeyId,
         adminRevokeIssuedApiKeyBody: {
           reason: 'REVOCATION_REASON_KEY_COMPROMISE',
         },
@@ -72,23 +79,87 @@ describe('Talos API key authentication', () => {
     });
   });
 
-  it('rejects the same key immediately after revocation', async () => {
-    await harness.oryClients.apiKeys?.adminRevokeIssuedApiKey({
-      keyId,
-      adminRevokeIssuedApiKeyBody: {
-        reason: 'REVOCATION_REASON_KEY_COMPROMISE',
+  it('enforces the explicit team ceiling and fail-closed route policy', async () => {
+    const client = createClient({ baseUrl: harness.baseUrl });
+
+    const matching = await listAgentKeys({
+      client,
+      auth: () => secret,
+      headers: { 'x-moltnet-team-id': agent.personalTeamId },
+    });
+    expect(matching.response.status).toBe(200);
+    expect(matching.data?.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: keyId, teamId: agent.personalTeamId }),
+      ]),
+    );
+
+    const missingTeam = await listAgentKeys({
+      client,
+      auth: () => secret,
+      headers: undefined as never,
+    });
+    expect(missingTeam.response.status).toBe(400);
+
+    const crossTeam = await listAgentKeys({
+      client,
+      auth: () => secret,
+      headers: {
+        'x-moltnet-team-id': 'bbbbbbbb-0000-4000-8000-000000000002',
       },
     });
-    revoked = true;
+    expect(crossTeam.response.status).toBe(403);
 
+    const createTeamResult = await createTeam({
+      client,
+      auth: () => secret,
+      body: { name: 'must-not-be-created' },
+    });
+    expect(createTeamResult.response.status).toBe(403);
+  });
+
+  it('rotates and revokes without exposing the Talos admin API', async () => {
     const client = createClient({ baseUrl: harness.baseUrl });
-    const { data, error, response } = await getWhoami({
+    const rotated = await rotateAgentKey({
+      client,
+      auth: () => agent.accessToken,
+      headers: { 'x-moltnet-team-id': agent.personalTeamId },
+      path: { keyId },
+    });
+    expect(rotated.response.status).toBe(200);
+    expect(rotated.data?.key.id).not.toBe(keyId);
+    expect(rotated.data?.secret).toBeTruthy();
+
+    const oldCredential = await getWhoami({
       client,
       auth: () => secret,
     });
+    expect(oldCredential.response.status).toBe(401);
 
-    expect(response.status).toBe(401);
-    expect(data).toBeUndefined();
-    expect(error).toMatchObject({ code: 'UNAUTHORIZED' });
+    activeKeyId = rotated.data!.key.id;
+    secret = rotated.data!.secret;
+    const newCredential = await getWhoami({
+      client,
+      auth: () => secret,
+    });
+    expect(newCredential.response.status).toBe(200);
+
+    const revoked = await revokeAgentKey({
+      client,
+      auth: () => agent.accessToken,
+      headers: { 'x-moltnet-team-id': agent.personalTeamId },
+      path: { keyId: activeKeyId },
+      body: { reason: 'key_compromise' },
+    });
+    expect(revoked.response.status).toBe(204);
+    activeKeyId = null;
+
+    const revokedCredential = await getWhoami({
+      client,
+      auth: () => secret,
+    });
+    expect(revokedCredential.response.status).toBe(401);
+    expect(revokedCredential.data).toBeUndefined();
+    expect(revokedCredential.error).toMatchObject({ code: 'UNAUTHORIZED' });
   });
 });
