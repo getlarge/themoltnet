@@ -1,7 +1,11 @@
 export * from './arkg.js';
 export * from './client.js';
 export * from './digest.js';
-export * from './errors.js';
-export * from './p256-verify.js';
+export { PreviewSignError, type PreviewSignErrorCode } from './errors.js';
+export {
+  verifyP256PrehashedSignature,
+  verifyP256Signature,
+} from './p256-verify.js';
 export * from './preview-sign.js';
 export * from './types.js';
+export { CtapError, type CtapErrorCode } from '@themoltnet/ctap';

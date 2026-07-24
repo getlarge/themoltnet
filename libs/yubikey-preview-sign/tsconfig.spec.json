@@ -7,6 +7,10 @@
     "types": ["node", "vitest", "vitest/globals"]
   },
   "extends": "./tsconfig.json",
-  "include": ["src/**/*.test.ts", "src/**/*.d.ts"],
+  "include": [
+    "scripts/check-verify-isolation.ts",
+    "src/**/*.test.ts",
+    "src/**/*.d.ts"
+  ],
   "references": [{ "path": "./tsconfig.lib.json" }]
 }

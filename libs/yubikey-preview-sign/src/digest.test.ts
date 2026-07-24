@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import { toHex, utf8 } from './bytes.js';
-import { createPreviewSignDigestV1 } from './digest.js';
+import {
+  createPreviewSignDigestV1,
+  createPreviewSignPrehash,
+} from './digest.js';
 
 describe('previewSign digest v1', () => {
   it.each([
@@ -28,5 +31,6 @@ describe('previewSign digest v1', () => {
     expect(toHex(digest)).toBe(
       'a12871fee210fb8619291eaea194581cbd2531e4b23759d225f6806923f63222',
     );
+    expect(createPreviewSignPrehash(Uint8Array.of(0x01, 0x02))).toEqual(digest);
   });
 });

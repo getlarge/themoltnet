@@ -6,6 +6,12 @@ import { sha256 } from './bytes.js';
  * This intentionally matches Yubico's preview examples: SHA-256 of the
  * caller-provided payload bytes, with no MoltNet envelope or domain prefix.
  */
-export function createPreviewSignDigestV1(payload: Uint8Array): Uint8Array {
+export function createPreviewSignPrehash(payload: Uint8Array): Uint8Array {
   return sha256(payload);
 }
+
+/**
+ * @deprecated Use `createPreviewSignPrehash`. The signed bytes intentionally
+ * carry no MoltNet wire-version marker; protocol envelopes belong to callers.
+ */
+export const createPreviewSignDigestV1 = createPreviewSignPrehash;

@@ -10,15 +10,20 @@ isomorphic:
 
 ```ts
 import {
-  createPreviewSignDigestV1,
+  createPreviewSignPrehash,
   verifyP256PrehashedSignature,
 } from '@themoltnet/yubikey-preview-sign/verify';
 ```
 
-`createPreviewSignDigestV1(payload)` is exactly SHA-256 of `payload`. It adds no
-MoltNet prefix or CBOR envelope. `signDigest` accepts exactly 32 bytes and the
-YubiKey signs those bytes as-is; the offline verifier therefore does not hash
-them again.
+`createPreviewSignPrehash(payload)` is exactly SHA-256 of `payload`. It adds no
+MoltNet prefix, wire-version marker, or CBOR envelope. The deprecated
+`createPreviewSignDigestV1` name remains as an alias for compatibility.
+`signDigest` accepts exactly 32 bytes and the YubiKey signs those bytes as-is;
+the offline verifier therefore does not hash them again.
+
+Authenticator-produced ECDSA signatures are canonicalized to low-S before the
+SDK returns them. The standalone verifier rejects non-canonical high-S forms,
+so signature bytes have one stable representation.
 
 Each signature derives a fresh ESP256 child key from the enrolled ARKG seed.
 The returned verification-key record carries the IKM, context, derived public
