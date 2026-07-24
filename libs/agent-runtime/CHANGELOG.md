@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.36.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.35.3...agent-runtime-v0.36.0) (2026-07-24)
+
+
+### Features
+
+* centralize GitHub authorship guard ([dda7c8a](https://github.com/getlarge/themoltnet/commit/dda7c8a5f0c6c22831e181dc5dad86b6b12f59ed))
+
+
+### Bug Fixes
+
+* **cli:** harden GitHub authorship guard ([af14025](https://github.com/getlarge/themoltnet/commit/af140257564fb9d6a81de6d09ae2dd3fa06641c3))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.121.0
+
 ## [0.35.3](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.35.2...agent-runtime-v0.35.3) (2026-07-22)
 
 

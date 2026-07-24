@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.47.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.46.0...moltnet-api-client-v1.47.0) (2026-07-24)
+
+
+### Features
+
+* **auth:** add Talos-backed agent key foundation ([0e1e7be](https://github.com/getlarge/themoltnet/commit/0e1e7bef62d9d82782a49966fa606974ba0a56fb))
+
+
+### Codegen
+
+* **api:** regenerate Talos readiness clients ([f4f2994](https://github.com/getlarge/themoltnet/commit/f4f299493ff34f835139929b5792c4afa1024824))
+
 ## [1.46.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.45.0...moltnet-api-client-v1.46.0) (2026-07-22)
 
 

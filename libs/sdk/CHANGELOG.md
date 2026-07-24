@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.121.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.120.0...sdk-v0.121.0) (2026-07-24)
+
+
+### Features
+
+* **runtime:** document profile context recipes ([2aac879](https://github.com/getlarge/themoltnet/commit/2aac879383ff263778ee533abe4c3f10f656efa8))
+
+
+### Bug Fixes
+
+* **runtime:** address profile context review feedback ([b9990fb](https://github.com/getlarge/themoltnet/commit/b9990fb4c901b5cd21b815a5051e5ef446dd3db2))
+
 ## [0.120.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.119.0...sdk-v0.120.0) (2026-07-22)
 
 

@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.30.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.29.0...rest-api-v0.30.0) (2026-07-24)
+
+
+### Features
+
+* **auth:** add Talos-backed agent key foundation ([0e1e7be](https://github.com/getlarge/themoltnet/commit/0e1e7bef62d9d82782a49966fa606974ba0a56fb))
+* **auth:** expose Talos validation decisions safely ([fe2056c](https://github.com/getlarge/themoltnet/commit/fe2056c62f3fcb83734daf2ae7cee1e3be4cf8c0))
+* **infra:** expose Talos readiness and safer defaults ([a85d2bb](https://github.com/getlarge/themoltnet/commit/a85d2bbd875a16e1abd458a6ef3490ad8361947a))
+* **rest-api:** wire optional Talos authentication ([20e7f79](https://github.com/getlarge/themoltnet/commit/20e7f7981360c630fc77e651e7da920726c90f41))
+
+
+### Bug Fixes
+
+* **auth:** harden Talos credential validation ([6d1901e](https://github.com/getlarge/themoltnet/commit/6d1901e7946a6507af3f34df0452c3ddf1ca0237))
+* **config:** align Talos with Ory environment conventions ([3417f35](https://github.com/getlarge/themoltnet/commit/3417f357e16ecf6ba501571ca34c6ec049f8ba58))
+
 ## [0.29.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.28.0...rest-api-v0.29.0) (2026-07-22)
 
 

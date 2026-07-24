@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.65.0](https://github.com/getlarge/themoltnet/compare/cli-v1.64.1...cli-v1.65.0) (2026-07-24)
+
+
+### Features
+
+* centralize GitHub authorship guard ([dda7c8a](https://github.com/getlarge/themoltnet/commit/dda7c8a5f0c6c22831e181dc5dad86b6b12f59ed))
+* **cli:** guard GitHub authorship by capability ([2a2486a](https://github.com/getlarge/themoltnet/commit/2a2486af90e1a09686cda920865df29a8dd653cf))
+* **legreffier:** install GitHub authorship guard ([dcac5b0](https://github.com/getlarge/themoltnet/commit/dcac5b0173e07c2aafddaec1fb38db9dcde8e054))
+
+
+### Bug Fixes
+
+* **cli:** address authorship guard review ([153329e](https://github.com/getlarge/themoltnet/commit/153329e549de48750255fe919519445e5bbb8bbd))
+* **cli:** harden GitHub authorship guard ([af14025](https://github.com/getlarge/themoltnet/commit/af140257564fb9d6a81de6d09ae2dd3fa06641c3))
+
 ## [1.64.1](https://github.com/getlarge/themoltnet/compare/cli-v1.64.0...cli-v1.64.1) (2026-07-22)
 
 
