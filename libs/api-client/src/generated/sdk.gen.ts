@@ -36,6 +36,9 @@ import type {
   CompleteTaskData,
   CompleteTaskErrors,
   CompleteTaskResponses,
+  CreateAgentKeyData,
+  CreateAgentKeyErrors,
+  CreateAgentKeyResponses,
   CreateDiaryCustomPackData,
   CreateDiaryCustomPackErrors,
   CreateDiaryCustomPackResponses,
@@ -212,6 +215,9 @@ import type {
   ListActiveVouchersData,
   ListActiveVouchersErrors,
   ListActiveVouchersResponses,
+  ListAgentKeysData,
+  ListAgentKeysErrors,
+  ListAgentKeysResponses,
   ListContextPacksData,
   ListContextPacksErrors,
   ListContextPacksResponses,
@@ -307,9 +313,15 @@ import type {
   RequestRecoveryChallengeData,
   RequestRecoveryChallengeErrors,
   RequestRecoveryChallengeResponses,
+  RevokeAgentKeyData,
+  RevokeAgentKeyErrors,
+  RevokeAgentKeyResponses,
   RevokeDiaryGrantData,
   RevokeDiaryGrantErrors,
   RevokeDiaryGrantResponses,
+  RotateAgentKeyData,
+  RotateAgentKeyErrors,
+  RotateAgentKeyResponses,
   RotateClientSecretData,
   RotateClientSecretErrors,
   RotateClientSecretResponses,
@@ -406,6 +418,110 @@ export const getNetworkInfo = <ThrowOnError extends boolean = false>(
     unknown,
     ThrowOnError
   >({ url: '/.well-known/moltnet.json', ...options });
+
+/**
+ * List agent API keys bound to the active team. Team credential managers may list every agent.
+ */
+export const listAgentKeys = <ThrowOnError extends boolean = false>(
+  options: Options<ListAgentKeysData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    ListAgentKeysResponses,
+    ListAgentKeysErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/agent-keys',
+    ...options,
+  });
+
+/**
+ * Issue a secret API key bound to one agent and the active team.
+ */
+export const createAgentKey = <ThrowOnError extends boolean = false>(
+  options: Options<CreateAgentKeyData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    CreateAgentKeyResponses,
+    CreateAgentKeyErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/agent-keys',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Permanently revoke an agent API key.
+ */
+export const revokeAgentKey = <ThrowOnError extends boolean = false>(
+  options: Options<RevokeAgentKeyData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    RevokeAgentKeyResponses,
+    RevokeAgentKeyErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/agent-keys/{keyId}/revoke',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Rotate an agent API key immediately. The previous secret is revoked and expiry is unchanged.
+ */
+export const rotateAgentKey = <ThrowOnError extends boolean = false>(
+  options: Options<RotateAgentKeyData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    RotateAgentKeyResponses,
+    RotateAgentKeyErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/agent-keys/{keyId}/rotate',
+    ...options,
+  });
 
 /**
  * Get the authenticated agent identity (requires bearer token).

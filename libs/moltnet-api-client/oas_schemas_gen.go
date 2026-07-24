@@ -312,6 +312,521 @@ type AddGroupMemberUnauthorized ProblemDetails
 
 func (*AddGroupMemberUnauthorized) addGroupMemberRes() {}
 
+// Ref: #/components/schemas/AgentKeyList
+type AgentKeyList struct {
+	Items         []AgentKeyListItemsItem `json:"items"`
+	NextPageToken NilString               `json:"nextPageToken"`
+}
+
+// GetItems returns the value of Items.
+func (s *AgentKeyList) GetItems() []AgentKeyListItemsItem {
+	return s.Items
+}
+
+// GetNextPageToken returns the value of NextPageToken.
+func (s *AgentKeyList) GetNextPageToken() NilString {
+	return s.NextPageToken
+}
+
+// SetItems sets the value of Items.
+func (s *AgentKeyList) SetItems(val []AgentKeyListItemsItem) {
+	s.Items = val
+}
+
+// SetNextPageToken sets the value of NextPageToken.
+func (s *AgentKeyList) SetNextPageToken(val NilString) {
+	s.NextPageToken = val
+}
+
+func (*AgentKeyList) listAgentKeysRes() {}
+
+type AgentKeyListItemsItem struct {
+	// UUID v4 identifier.
+	AgentId               uuid.UUID                                `json:"agentId"`
+	CreatedAt             NilDateTime                              `json:"createdAt"`
+	ExpiresAt             NilDateTime                              `json:"expiresAt"`
+	ID                    string                                   `json:"id"`
+	LastUsedAt            NilDateTime                              `json:"lastUsedAt"`
+	Name                  string                                   `json:"name"`
+	RevocationDescription NilString                                `json:"revocationDescription"`
+	RevocationReason      NilAgentKeyListItemsItemRevocationReason `json:"revocationReason"`
+	Status                AgentKeyListItemsItemStatus              `json:"status"`
+	// UUID v4 identifier.
+	TeamId    uuid.UUID   `json:"teamId"`
+	UpdatedAt NilDateTime `json:"updatedAt"`
+}
+
+// GetAgentId returns the value of AgentId.
+func (s *AgentKeyListItemsItem) GetAgentId() uuid.UUID {
+	return s.AgentId
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *AgentKeyListItemsItem) GetCreatedAt() NilDateTime {
+	return s.CreatedAt
+}
+
+// GetExpiresAt returns the value of ExpiresAt.
+func (s *AgentKeyListItemsItem) GetExpiresAt() NilDateTime {
+	return s.ExpiresAt
+}
+
+// GetID returns the value of ID.
+func (s *AgentKeyListItemsItem) GetID() string {
+	return s.ID
+}
+
+// GetLastUsedAt returns the value of LastUsedAt.
+func (s *AgentKeyListItemsItem) GetLastUsedAt() NilDateTime {
+	return s.LastUsedAt
+}
+
+// GetName returns the value of Name.
+func (s *AgentKeyListItemsItem) GetName() string {
+	return s.Name
+}
+
+// GetRevocationDescription returns the value of RevocationDescription.
+func (s *AgentKeyListItemsItem) GetRevocationDescription() NilString {
+	return s.RevocationDescription
+}
+
+// GetRevocationReason returns the value of RevocationReason.
+func (s *AgentKeyListItemsItem) GetRevocationReason() NilAgentKeyListItemsItemRevocationReason {
+	return s.RevocationReason
+}
+
+// GetStatus returns the value of Status.
+func (s *AgentKeyListItemsItem) GetStatus() AgentKeyListItemsItemStatus {
+	return s.Status
+}
+
+// GetTeamId returns the value of TeamId.
+func (s *AgentKeyListItemsItem) GetTeamId() uuid.UUID {
+	return s.TeamId
+}
+
+// GetUpdatedAt returns the value of UpdatedAt.
+func (s *AgentKeyListItemsItem) GetUpdatedAt() NilDateTime {
+	return s.UpdatedAt
+}
+
+// SetAgentId sets the value of AgentId.
+func (s *AgentKeyListItemsItem) SetAgentId(val uuid.UUID) {
+	s.AgentId = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *AgentKeyListItemsItem) SetCreatedAt(val NilDateTime) {
+	s.CreatedAt = val
+}
+
+// SetExpiresAt sets the value of ExpiresAt.
+func (s *AgentKeyListItemsItem) SetExpiresAt(val NilDateTime) {
+	s.ExpiresAt = val
+}
+
+// SetID sets the value of ID.
+func (s *AgentKeyListItemsItem) SetID(val string) {
+	s.ID = val
+}
+
+// SetLastUsedAt sets the value of LastUsedAt.
+func (s *AgentKeyListItemsItem) SetLastUsedAt(val NilDateTime) {
+	s.LastUsedAt = val
+}
+
+// SetName sets the value of Name.
+func (s *AgentKeyListItemsItem) SetName(val string) {
+	s.Name = val
+}
+
+// SetRevocationDescription sets the value of RevocationDescription.
+func (s *AgentKeyListItemsItem) SetRevocationDescription(val NilString) {
+	s.RevocationDescription = val
+}
+
+// SetRevocationReason sets the value of RevocationReason.
+func (s *AgentKeyListItemsItem) SetRevocationReason(val NilAgentKeyListItemsItemRevocationReason) {
+	s.RevocationReason = val
+}
+
+// SetStatus sets the value of Status.
+func (s *AgentKeyListItemsItem) SetStatus(val AgentKeyListItemsItemStatus) {
+	s.Status = val
+}
+
+// SetTeamId sets the value of TeamId.
+func (s *AgentKeyListItemsItem) SetTeamId(val uuid.UUID) {
+	s.TeamId = val
+}
+
+// SetUpdatedAt sets the value of UpdatedAt.
+func (s *AgentKeyListItemsItem) SetUpdatedAt(val NilDateTime) {
+	s.UpdatedAt = val
+}
+
+type AgentKeyListItemsItemRevocationReason string
+
+const (
+	AgentKeyListItemsItemRevocationReasonKeyCompromise      AgentKeyListItemsItemRevocationReason = "key_compromise"
+	AgentKeyListItemsItemRevocationReasonAffiliationChanged AgentKeyListItemsItemRevocationReason = "affiliation_changed"
+	AgentKeyListItemsItemRevocationReasonSuperseded         AgentKeyListItemsItemRevocationReason = "superseded"
+	AgentKeyListItemsItemRevocationReasonPrivilegeWithdrawn AgentKeyListItemsItemRevocationReason = "privilege_withdrawn"
+)
+
+// AllValues returns all AgentKeyListItemsItemRevocationReason values.
+func (AgentKeyListItemsItemRevocationReason) AllValues() []AgentKeyListItemsItemRevocationReason {
+	return []AgentKeyListItemsItemRevocationReason{
+		AgentKeyListItemsItemRevocationReasonKeyCompromise,
+		AgentKeyListItemsItemRevocationReasonAffiliationChanged,
+		AgentKeyListItemsItemRevocationReasonSuperseded,
+		AgentKeyListItemsItemRevocationReasonPrivilegeWithdrawn,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s AgentKeyListItemsItemRevocationReason) MarshalText() ([]byte, error) {
+	switch s {
+	case AgentKeyListItemsItemRevocationReasonKeyCompromise:
+		return []byte(s), nil
+	case AgentKeyListItemsItemRevocationReasonAffiliationChanged:
+		return []byte(s), nil
+	case AgentKeyListItemsItemRevocationReasonSuperseded:
+		return []byte(s), nil
+	case AgentKeyListItemsItemRevocationReasonPrivilegeWithdrawn:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *AgentKeyListItemsItemRevocationReason) UnmarshalText(data []byte) error {
+	switch AgentKeyListItemsItemRevocationReason(data) {
+	case AgentKeyListItemsItemRevocationReasonKeyCompromise:
+		*s = AgentKeyListItemsItemRevocationReasonKeyCompromise
+		return nil
+	case AgentKeyListItemsItemRevocationReasonAffiliationChanged:
+		*s = AgentKeyListItemsItemRevocationReasonAffiliationChanged
+		return nil
+	case AgentKeyListItemsItemRevocationReasonSuperseded:
+		*s = AgentKeyListItemsItemRevocationReasonSuperseded
+		return nil
+	case AgentKeyListItemsItemRevocationReasonPrivilegeWithdrawn:
+		*s = AgentKeyListItemsItemRevocationReasonPrivilegeWithdrawn
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type AgentKeyListItemsItemStatus string
+
+const (
+	AgentKeyListItemsItemStatusActive  AgentKeyListItemsItemStatus = "active"
+	AgentKeyListItemsItemStatusRevoked AgentKeyListItemsItemStatus = "revoked"
+	AgentKeyListItemsItemStatusExpired AgentKeyListItemsItemStatus = "expired"
+)
+
+// AllValues returns all AgentKeyListItemsItemStatus values.
+func (AgentKeyListItemsItemStatus) AllValues() []AgentKeyListItemsItemStatus {
+	return []AgentKeyListItemsItemStatus{
+		AgentKeyListItemsItemStatusActive,
+		AgentKeyListItemsItemStatusRevoked,
+		AgentKeyListItemsItemStatusExpired,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s AgentKeyListItemsItemStatus) MarshalText() ([]byte, error) {
+	switch s {
+	case AgentKeyListItemsItemStatusActive:
+		return []byte(s), nil
+	case AgentKeyListItemsItemStatusRevoked:
+		return []byte(s), nil
+	case AgentKeyListItemsItemStatusExpired:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *AgentKeyListItemsItemStatus) UnmarshalText(data []byte) error {
+	switch AgentKeyListItemsItemStatus(data) {
+	case AgentKeyListItemsItemStatusActive:
+		*s = AgentKeyListItemsItemStatusActive
+		return nil
+	case AgentKeyListItemsItemStatusRevoked:
+		*s = AgentKeyListItemsItemStatusRevoked
+		return nil
+	case AgentKeyListItemsItemStatusExpired:
+		*s = AgentKeyListItemsItemStatusExpired
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/AgentKeyWithSecret
+type AgentKeyWithSecret struct {
+	Key    AgentKeyWithSecretKey `json:"key"`
+	Secret string                `json:"secret"`
+}
+
+// GetKey returns the value of Key.
+func (s *AgentKeyWithSecret) GetKey() AgentKeyWithSecretKey {
+	return s.Key
+}
+
+// GetSecret returns the value of Secret.
+func (s *AgentKeyWithSecret) GetSecret() string {
+	return s.Secret
+}
+
+// SetKey sets the value of Key.
+func (s *AgentKeyWithSecret) SetKey(val AgentKeyWithSecretKey) {
+	s.Key = val
+}
+
+// SetSecret sets the value of Secret.
+func (s *AgentKeyWithSecret) SetSecret(val string) {
+	s.Secret = val
+}
+
+func (*AgentKeyWithSecret) createAgentKeyRes() {}
+func (*AgentKeyWithSecret) rotateAgentKeyRes() {}
+
+type AgentKeyWithSecretKey struct {
+	// UUID v4 identifier.
+	AgentId               uuid.UUID                                `json:"agentId"`
+	CreatedAt             NilDateTime                              `json:"createdAt"`
+	ExpiresAt             NilDateTime                              `json:"expiresAt"`
+	ID                    string                                   `json:"id"`
+	LastUsedAt            NilDateTime                              `json:"lastUsedAt"`
+	Name                  string                                   `json:"name"`
+	RevocationDescription NilString                                `json:"revocationDescription"`
+	RevocationReason      NilAgentKeyWithSecretKeyRevocationReason `json:"revocationReason"`
+	Status                AgentKeyWithSecretKeyStatus              `json:"status"`
+	// UUID v4 identifier.
+	TeamId    uuid.UUID   `json:"teamId"`
+	UpdatedAt NilDateTime `json:"updatedAt"`
+}
+
+// GetAgentId returns the value of AgentId.
+func (s *AgentKeyWithSecretKey) GetAgentId() uuid.UUID {
+	return s.AgentId
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *AgentKeyWithSecretKey) GetCreatedAt() NilDateTime {
+	return s.CreatedAt
+}
+
+// GetExpiresAt returns the value of ExpiresAt.
+func (s *AgentKeyWithSecretKey) GetExpiresAt() NilDateTime {
+	return s.ExpiresAt
+}
+
+// GetID returns the value of ID.
+func (s *AgentKeyWithSecretKey) GetID() string {
+	return s.ID
+}
+
+// GetLastUsedAt returns the value of LastUsedAt.
+func (s *AgentKeyWithSecretKey) GetLastUsedAt() NilDateTime {
+	return s.LastUsedAt
+}
+
+// GetName returns the value of Name.
+func (s *AgentKeyWithSecretKey) GetName() string {
+	return s.Name
+}
+
+// GetRevocationDescription returns the value of RevocationDescription.
+func (s *AgentKeyWithSecretKey) GetRevocationDescription() NilString {
+	return s.RevocationDescription
+}
+
+// GetRevocationReason returns the value of RevocationReason.
+func (s *AgentKeyWithSecretKey) GetRevocationReason() NilAgentKeyWithSecretKeyRevocationReason {
+	return s.RevocationReason
+}
+
+// GetStatus returns the value of Status.
+func (s *AgentKeyWithSecretKey) GetStatus() AgentKeyWithSecretKeyStatus {
+	return s.Status
+}
+
+// GetTeamId returns the value of TeamId.
+func (s *AgentKeyWithSecretKey) GetTeamId() uuid.UUID {
+	return s.TeamId
+}
+
+// GetUpdatedAt returns the value of UpdatedAt.
+func (s *AgentKeyWithSecretKey) GetUpdatedAt() NilDateTime {
+	return s.UpdatedAt
+}
+
+// SetAgentId sets the value of AgentId.
+func (s *AgentKeyWithSecretKey) SetAgentId(val uuid.UUID) {
+	s.AgentId = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *AgentKeyWithSecretKey) SetCreatedAt(val NilDateTime) {
+	s.CreatedAt = val
+}
+
+// SetExpiresAt sets the value of ExpiresAt.
+func (s *AgentKeyWithSecretKey) SetExpiresAt(val NilDateTime) {
+	s.ExpiresAt = val
+}
+
+// SetID sets the value of ID.
+func (s *AgentKeyWithSecretKey) SetID(val string) {
+	s.ID = val
+}
+
+// SetLastUsedAt sets the value of LastUsedAt.
+func (s *AgentKeyWithSecretKey) SetLastUsedAt(val NilDateTime) {
+	s.LastUsedAt = val
+}
+
+// SetName sets the value of Name.
+func (s *AgentKeyWithSecretKey) SetName(val string) {
+	s.Name = val
+}
+
+// SetRevocationDescription sets the value of RevocationDescription.
+func (s *AgentKeyWithSecretKey) SetRevocationDescription(val NilString) {
+	s.RevocationDescription = val
+}
+
+// SetRevocationReason sets the value of RevocationReason.
+func (s *AgentKeyWithSecretKey) SetRevocationReason(val NilAgentKeyWithSecretKeyRevocationReason) {
+	s.RevocationReason = val
+}
+
+// SetStatus sets the value of Status.
+func (s *AgentKeyWithSecretKey) SetStatus(val AgentKeyWithSecretKeyStatus) {
+	s.Status = val
+}
+
+// SetTeamId sets the value of TeamId.
+func (s *AgentKeyWithSecretKey) SetTeamId(val uuid.UUID) {
+	s.TeamId = val
+}
+
+// SetUpdatedAt sets the value of UpdatedAt.
+func (s *AgentKeyWithSecretKey) SetUpdatedAt(val NilDateTime) {
+	s.UpdatedAt = val
+}
+
+type AgentKeyWithSecretKeyRevocationReason string
+
+const (
+	AgentKeyWithSecretKeyRevocationReasonKeyCompromise      AgentKeyWithSecretKeyRevocationReason = "key_compromise"
+	AgentKeyWithSecretKeyRevocationReasonAffiliationChanged AgentKeyWithSecretKeyRevocationReason = "affiliation_changed"
+	AgentKeyWithSecretKeyRevocationReasonSuperseded         AgentKeyWithSecretKeyRevocationReason = "superseded"
+	AgentKeyWithSecretKeyRevocationReasonPrivilegeWithdrawn AgentKeyWithSecretKeyRevocationReason = "privilege_withdrawn"
+)
+
+// AllValues returns all AgentKeyWithSecretKeyRevocationReason values.
+func (AgentKeyWithSecretKeyRevocationReason) AllValues() []AgentKeyWithSecretKeyRevocationReason {
+	return []AgentKeyWithSecretKeyRevocationReason{
+		AgentKeyWithSecretKeyRevocationReasonKeyCompromise,
+		AgentKeyWithSecretKeyRevocationReasonAffiliationChanged,
+		AgentKeyWithSecretKeyRevocationReasonSuperseded,
+		AgentKeyWithSecretKeyRevocationReasonPrivilegeWithdrawn,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s AgentKeyWithSecretKeyRevocationReason) MarshalText() ([]byte, error) {
+	switch s {
+	case AgentKeyWithSecretKeyRevocationReasonKeyCompromise:
+		return []byte(s), nil
+	case AgentKeyWithSecretKeyRevocationReasonAffiliationChanged:
+		return []byte(s), nil
+	case AgentKeyWithSecretKeyRevocationReasonSuperseded:
+		return []byte(s), nil
+	case AgentKeyWithSecretKeyRevocationReasonPrivilegeWithdrawn:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *AgentKeyWithSecretKeyRevocationReason) UnmarshalText(data []byte) error {
+	switch AgentKeyWithSecretKeyRevocationReason(data) {
+	case AgentKeyWithSecretKeyRevocationReasonKeyCompromise:
+		*s = AgentKeyWithSecretKeyRevocationReasonKeyCompromise
+		return nil
+	case AgentKeyWithSecretKeyRevocationReasonAffiliationChanged:
+		*s = AgentKeyWithSecretKeyRevocationReasonAffiliationChanged
+		return nil
+	case AgentKeyWithSecretKeyRevocationReasonSuperseded:
+		*s = AgentKeyWithSecretKeyRevocationReasonSuperseded
+		return nil
+	case AgentKeyWithSecretKeyRevocationReasonPrivilegeWithdrawn:
+		*s = AgentKeyWithSecretKeyRevocationReasonPrivilegeWithdrawn
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type AgentKeyWithSecretKeyStatus string
+
+const (
+	AgentKeyWithSecretKeyStatusActive  AgentKeyWithSecretKeyStatus = "active"
+	AgentKeyWithSecretKeyStatusRevoked AgentKeyWithSecretKeyStatus = "revoked"
+	AgentKeyWithSecretKeyStatusExpired AgentKeyWithSecretKeyStatus = "expired"
+)
+
+// AllValues returns all AgentKeyWithSecretKeyStatus values.
+func (AgentKeyWithSecretKeyStatus) AllValues() []AgentKeyWithSecretKeyStatus {
+	return []AgentKeyWithSecretKeyStatus{
+		AgentKeyWithSecretKeyStatusActive,
+		AgentKeyWithSecretKeyStatusRevoked,
+		AgentKeyWithSecretKeyStatusExpired,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s AgentKeyWithSecretKeyStatus) MarshalText() ([]byte, error) {
+	switch s {
+	case AgentKeyWithSecretKeyStatusActive:
+		return []byte(s), nil
+	case AgentKeyWithSecretKeyStatusRevoked:
+		return []byte(s), nil
+	case AgentKeyWithSecretKeyStatusExpired:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *AgentKeyWithSecretKeyStatus) UnmarshalText(data []byte) error {
+	switch AgentKeyWithSecretKeyStatus(data) {
+	case AgentKeyWithSecretKeyStatusActive:
+		*s = AgentKeyWithSecretKeyStatusActive
+		return nil
+	case AgentKeyWithSecretKeyStatusRevoked:
+		*s = AgentKeyWithSecretKeyStatusRevoked
+		return nil
+	case AgentKeyWithSecretKeyStatusExpired:
+		*s = AgentKeyWithSecretKeyStatusExpired
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 // Ref: #/components/schemas/AgentPrincipal
 type AgentPrincipal struct {
 	// Key fingerprint (A1B2-C3D4-E5F6-G7H8).
@@ -4376,6 +4891,63 @@ func (s *CookieAuth) SetAPIKey(val string) {
 func (s *CookieAuth) SetRoles(val []string) {
 	s.Roles = val
 }
+
+type CreateAgentKeyBadGateway ProblemDetails
+
+func (*CreateAgentKeyBadGateway) createAgentKeyRes() {}
+
+type CreateAgentKeyBadRequest ProblemDetails
+
+func (*CreateAgentKeyBadRequest) createAgentKeyRes() {}
+
+type CreateAgentKeyForbidden ProblemDetails
+
+func (*CreateAgentKeyForbidden) createAgentKeyRes() {}
+
+type CreateAgentKeyReq struct {
+	// UUID v4 identifier.
+	AgentId uuid.UUID `json:"agentId"`
+	Name    string    `json:"name"`
+	TtlDays OptInt    `json:"ttlDays"`
+}
+
+// GetAgentId returns the value of AgentId.
+func (s *CreateAgentKeyReq) GetAgentId() uuid.UUID {
+	return s.AgentId
+}
+
+// GetName returns the value of Name.
+func (s *CreateAgentKeyReq) GetName() string {
+	return s.Name
+}
+
+// GetTtlDays returns the value of TtlDays.
+func (s *CreateAgentKeyReq) GetTtlDays() OptInt {
+	return s.TtlDays
+}
+
+// SetAgentId sets the value of AgentId.
+func (s *CreateAgentKeyReq) SetAgentId(val uuid.UUID) {
+	s.AgentId = val
+}
+
+// SetName sets the value of Name.
+func (s *CreateAgentKeyReq) SetName(val string) {
+	s.Name = val
+}
+
+// SetTtlDays sets the value of TtlDays.
+func (s *CreateAgentKeyReq) SetTtlDays(val OptInt) {
+	s.TtlDays = val
+}
+
+type CreateAgentKeyServiceUnavailable ProblemDetails
+
+func (*CreateAgentKeyServiceUnavailable) createAgentKeyRes() {}
+
+type CreateAgentKeyUnauthorized ProblemDetails
+
+func (*CreateAgentKeyUnauthorized) createAgentKeyRes() {}
 
 type CreateDiaryBadRequest ProblemDetails
 
@@ -24200,6 +24772,74 @@ type ListActiveVouchersUnauthorized ProblemDetails
 
 func (*ListActiveVouchersUnauthorized) listActiveVouchersRes() {}
 
+type ListAgentKeysBadGateway ProblemDetails
+
+func (*ListAgentKeysBadGateway) listAgentKeysRes() {}
+
+type ListAgentKeysBadRequest ProblemDetails
+
+func (*ListAgentKeysBadRequest) listAgentKeysRes() {}
+
+type ListAgentKeysForbidden ProblemDetails
+
+func (*ListAgentKeysForbidden) listAgentKeysRes() {}
+
+type ListAgentKeysServiceUnavailable ProblemDetails
+
+func (*ListAgentKeysServiceUnavailable) listAgentKeysRes() {}
+
+type ListAgentKeysStatus string
+
+const (
+	ListAgentKeysStatusActive  ListAgentKeysStatus = "active"
+	ListAgentKeysStatusRevoked ListAgentKeysStatus = "revoked"
+	ListAgentKeysStatusExpired ListAgentKeysStatus = "expired"
+)
+
+// AllValues returns all ListAgentKeysStatus values.
+func (ListAgentKeysStatus) AllValues() []ListAgentKeysStatus {
+	return []ListAgentKeysStatus{
+		ListAgentKeysStatusActive,
+		ListAgentKeysStatusRevoked,
+		ListAgentKeysStatusExpired,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ListAgentKeysStatus) MarshalText() ([]byte, error) {
+	switch s {
+	case ListAgentKeysStatusActive:
+		return []byte(s), nil
+	case ListAgentKeysStatusRevoked:
+		return []byte(s), nil
+	case ListAgentKeysStatusExpired:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ListAgentKeysStatus) UnmarshalText(data []byte) error {
+	switch ListAgentKeysStatus(data) {
+	case ListAgentKeysStatusActive:
+		*s = ListAgentKeysStatusActive
+		return nil
+	case ListAgentKeysStatusRevoked:
+		*s = ListAgentKeysStatusRevoked
+		return nil
+	case ListAgentKeysStatusExpired:
+		*s = ListAgentKeysStatusExpired
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type ListAgentKeysUnauthorized ProblemDetails
+
+func (*ListAgentKeysUnauthorized) listAgentKeysRes() {}
+
 type ListContextPacksBadRequest ProblemDetails
 
 func (*ListContextPacksBadRequest) listContextPacksRes() {}
@@ -30109,6 +30749,96 @@ func (s *NetworkInfoTechnical) SetMcpLibrary(val string) {
 	s.McpLibrary = val
 }
 
+// NewNilAgentKeyListItemsItemRevocationReason returns new NilAgentKeyListItemsItemRevocationReason with value set to v.
+func NewNilAgentKeyListItemsItemRevocationReason(v AgentKeyListItemsItemRevocationReason) NilAgentKeyListItemsItemRevocationReason {
+	return NilAgentKeyListItemsItemRevocationReason{
+		Value: v,
+	}
+}
+
+// NilAgentKeyListItemsItemRevocationReason is nullable AgentKeyListItemsItemRevocationReason.
+type NilAgentKeyListItemsItemRevocationReason struct {
+	Value AgentKeyListItemsItemRevocationReason
+	Null  bool
+}
+
+// SetTo sets value to v.
+func (o *NilAgentKeyListItemsItemRevocationReason) SetTo(v AgentKeyListItemsItemRevocationReason) {
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o NilAgentKeyListItemsItemRevocationReason) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *NilAgentKeyListItemsItemRevocationReason) SetToNull() {
+	o.Null = true
+	var v AgentKeyListItemsItemRevocationReason
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o NilAgentKeyListItemsItemRevocationReason) Get() (v AgentKeyListItemsItemRevocationReason, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o NilAgentKeyListItemsItemRevocationReason) Or(d AgentKeyListItemsItemRevocationReason) AgentKeyListItemsItemRevocationReason {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewNilAgentKeyWithSecretKeyRevocationReason returns new NilAgentKeyWithSecretKeyRevocationReason with value set to v.
+func NewNilAgentKeyWithSecretKeyRevocationReason(v AgentKeyWithSecretKeyRevocationReason) NilAgentKeyWithSecretKeyRevocationReason {
+	return NilAgentKeyWithSecretKeyRevocationReason{
+		Value: v,
+	}
+}
+
+// NilAgentKeyWithSecretKeyRevocationReason is nullable AgentKeyWithSecretKeyRevocationReason.
+type NilAgentKeyWithSecretKeyRevocationReason struct {
+	Value AgentKeyWithSecretKeyRevocationReason
+	Null  bool
+}
+
+// SetTo sets value to v.
+func (o *NilAgentKeyWithSecretKeyRevocationReason) SetTo(v AgentKeyWithSecretKeyRevocationReason) {
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o NilAgentKeyWithSecretKeyRevocationReason) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *NilAgentKeyWithSecretKeyRevocationReason) SetToNull() {
+	o.Null = true
+	var v AgentKeyWithSecretKeyRevocationReason
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o NilAgentKeyWithSecretKeyRevocationReason) Get() (v AgentKeyWithSecretKeyRevocationReason, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o NilAgentKeyWithSecretKeyRevocationReason) Or(d AgentKeyWithSecretKeyRevocationReason) AgentKeyWithSecretKeyRevocationReason {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewNilBool returns new NilBool with value set to v.
 func NewNilBool(v bool) NilBool {
 	return NilBool{
@@ -32752,6 +33482,52 @@ func (o OptInt) Get() (v int, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptInt) Or(d int) int {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptListAgentKeysStatus returns new OptListAgentKeysStatus with value set to v.
+func NewOptListAgentKeysStatus(v ListAgentKeysStatus) OptListAgentKeysStatus {
+	return OptListAgentKeysStatus{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptListAgentKeysStatus is optional ListAgentKeysStatus.
+type OptListAgentKeysStatus struct {
+	Value ListAgentKeysStatus
+	Set   bool
+}
+
+// IsSet returns true if OptListAgentKeysStatus was set.
+func (o OptListAgentKeysStatus) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptListAgentKeysStatus) Reset() {
+	var v ListAgentKeysStatus
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptListAgentKeysStatus) SetTo(v ListAgentKeysStatus) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptListAgentKeysStatus) Get() (v ListAgentKeysStatus, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptListAgentKeysStatus) Or(d ListAgentKeysStatus) ListAgentKeysStatus {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -40189,6 +40965,115 @@ func (s *RequestRecoveryChallengeReq) SetPublicKey(val string) {
 	s.PublicKey = val
 }
 
+type RevokeAgentKeyBadGateway ProblemDetails
+
+func (*RevokeAgentKeyBadGateway) revokeAgentKeyRes() {}
+
+type RevokeAgentKeyBadRequest ProblemDetails
+
+func (*RevokeAgentKeyBadRequest) revokeAgentKeyRes() {}
+
+type RevokeAgentKeyForbidden ProblemDetails
+
+func (*RevokeAgentKeyForbidden) revokeAgentKeyRes() {}
+
+// RevokeAgentKeyNoContent is response for RevokeAgentKey operation.
+type RevokeAgentKeyNoContent struct{}
+
+func (*RevokeAgentKeyNoContent) revokeAgentKeyRes() {}
+
+type RevokeAgentKeyNotFound ProblemDetails
+
+func (*RevokeAgentKeyNotFound) revokeAgentKeyRes() {}
+
+type RevokeAgentKeyReq struct {
+	Description OptString               `json:"description"`
+	Reason      RevokeAgentKeyReqReason `json:"reason"`
+}
+
+// GetDescription returns the value of Description.
+func (s *RevokeAgentKeyReq) GetDescription() OptString {
+	return s.Description
+}
+
+// GetReason returns the value of Reason.
+func (s *RevokeAgentKeyReq) GetReason() RevokeAgentKeyReqReason {
+	return s.Reason
+}
+
+// SetDescription sets the value of Description.
+func (s *RevokeAgentKeyReq) SetDescription(val OptString) {
+	s.Description = val
+}
+
+// SetReason sets the value of Reason.
+func (s *RevokeAgentKeyReq) SetReason(val RevokeAgentKeyReqReason) {
+	s.Reason = val
+}
+
+type RevokeAgentKeyReqReason string
+
+const (
+	RevokeAgentKeyReqReasonKeyCompromise      RevokeAgentKeyReqReason = "key_compromise"
+	RevokeAgentKeyReqReasonAffiliationChanged RevokeAgentKeyReqReason = "affiliation_changed"
+	RevokeAgentKeyReqReasonSuperseded         RevokeAgentKeyReqReason = "superseded"
+	RevokeAgentKeyReqReasonPrivilegeWithdrawn RevokeAgentKeyReqReason = "privilege_withdrawn"
+)
+
+// AllValues returns all RevokeAgentKeyReqReason values.
+func (RevokeAgentKeyReqReason) AllValues() []RevokeAgentKeyReqReason {
+	return []RevokeAgentKeyReqReason{
+		RevokeAgentKeyReqReasonKeyCompromise,
+		RevokeAgentKeyReqReasonAffiliationChanged,
+		RevokeAgentKeyReqReasonSuperseded,
+		RevokeAgentKeyReqReasonPrivilegeWithdrawn,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s RevokeAgentKeyReqReason) MarshalText() ([]byte, error) {
+	switch s {
+	case RevokeAgentKeyReqReasonKeyCompromise:
+		return []byte(s), nil
+	case RevokeAgentKeyReqReasonAffiliationChanged:
+		return []byte(s), nil
+	case RevokeAgentKeyReqReasonSuperseded:
+		return []byte(s), nil
+	case RevokeAgentKeyReqReasonPrivilegeWithdrawn:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *RevokeAgentKeyReqReason) UnmarshalText(data []byte) error {
+	switch RevokeAgentKeyReqReason(data) {
+	case RevokeAgentKeyReqReasonKeyCompromise:
+		*s = RevokeAgentKeyReqReasonKeyCompromise
+		return nil
+	case RevokeAgentKeyReqReasonAffiliationChanged:
+		*s = RevokeAgentKeyReqReasonAffiliationChanged
+		return nil
+	case RevokeAgentKeyReqReasonSuperseded:
+		*s = RevokeAgentKeyReqReasonSuperseded
+		return nil
+	case RevokeAgentKeyReqReasonPrivilegeWithdrawn:
+		*s = RevokeAgentKeyReqReasonPrivilegeWithdrawn
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type RevokeAgentKeyServiceUnavailable ProblemDetails
+
+func (*RevokeAgentKeyServiceUnavailable) revokeAgentKeyRes() {}
+
+type RevokeAgentKeyUnauthorized ProblemDetails
+
+func (*RevokeAgentKeyUnauthorized) revokeAgentKeyRes() {}
+
 type RevokeDiaryGrantBadRequest ProblemDetails
 
 func (*RevokeDiaryGrantBadRequest) revokeDiaryGrantRes() {}
@@ -40346,6 +41231,30 @@ func (s *RevokeDiaryGrantReqSubjectNs) UnmarshalText(data []byte) error {
 type RevokeDiaryGrantUnauthorized ProblemDetails
 
 func (*RevokeDiaryGrantUnauthorized) revokeDiaryGrantRes() {}
+
+type RotateAgentKeyBadGateway ProblemDetails
+
+func (*RotateAgentKeyBadGateway) rotateAgentKeyRes() {}
+
+type RotateAgentKeyBadRequest ProblemDetails
+
+func (*RotateAgentKeyBadRequest) rotateAgentKeyRes() {}
+
+type RotateAgentKeyForbidden ProblemDetails
+
+func (*RotateAgentKeyForbidden) rotateAgentKeyRes() {}
+
+type RotateAgentKeyNotFound ProblemDetails
+
+func (*RotateAgentKeyNotFound) rotateAgentKeyRes() {}
+
+type RotateAgentKeyServiceUnavailable ProblemDetails
+
+func (*RotateAgentKeyServiceUnavailable) rotateAgentKeyRes() {}
+
+type RotateAgentKeyUnauthorized ProblemDetails
+
+func (*RotateAgentKeyUnauthorized) rotateAgentKeyRes() {}
 
 type RotateClientSecretBadGateway ProblemDetails
 

@@ -118,6 +118,15 @@ func (UnimplementedHandler) CompleteTask(ctx context.Context, req *CompleteTaskR
 	return r, ht.ErrNotImplemented
 }
 
+// CreateAgentKey implements createAgentKey operation.
+//
+// Issue a secret API key bound to one agent and the active team.
+//
+// POST /agent-keys
+func (UnimplementedHandler) CreateAgentKey(ctx context.Context, req *CreateAgentKeyReq, params CreateAgentKeyParams) (r CreateAgentKeyRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // CreateDiary implements createDiary operation.
 //
 // Create a new diary.
@@ -673,6 +682,15 @@ func (UnimplementedHandler) ListActiveVouchers(ctx context.Context) (r ListActiv
 	return r, ht.ErrNotImplemented
 }
 
+// ListAgentKeys implements listAgentKeys operation.
+//
+// List agent API keys bound to the active team. Team credential managers may list every agent.
+//
+// GET /agent-keys
+func (UnimplementedHandler) ListAgentKeys(ctx context.Context, params ListAgentKeysParams) (r ListAgentKeysRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // ListContextPacks implements listContextPacks operation.
 //
 // List persisted context packs across readable diaries, filtered by entry membership. Use
@@ -891,7 +909,7 @@ func (UnimplementedHandler) ListTeamMembers(ctx context.Context, params ListTeam
 // List teams the caller belongs to.
 //
 // GET /teams
-func (UnimplementedHandler) ListTeams(ctx context.Context) (r ListTeamsRes, _ error) {
+func (UnimplementedHandler) ListTeams(ctx context.Context, params ListTeamsParams) (r ListTeamsRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -970,12 +988,30 @@ func (UnimplementedHandler) RequestRecoveryChallenge(ctx context.Context, req *R
 	return r, ht.ErrNotImplemented
 }
 
+// RevokeAgentKey implements revokeAgentKey operation.
+//
+// Permanently revoke an agent API key.
+//
+// POST /agent-keys/{keyId}/revoke
+func (UnimplementedHandler) RevokeAgentKey(ctx context.Context, req *RevokeAgentKeyReq, params RevokeAgentKeyParams) (r RevokeAgentKeyRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // RevokeDiaryGrant implements revokeDiaryGrant operation.
 //
 // Revoke a writer or manager grant from a diary.
 //
 // DELETE /diaries/{id}/grants
 func (UnimplementedHandler) RevokeDiaryGrant(ctx context.Context, req *RevokeDiaryGrantReq, params RevokeDiaryGrantParams) (r RevokeDiaryGrantRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// RotateAgentKey implements rotateAgentKey operation.
+//
+// Rotate an agent API key immediately. The previous secret is revoked and expiry is unchanged.
+//
+// POST /agent-keys/{keyId}/rotate
+func (UnimplementedHandler) RotateAgentKey(ctx context.Context, params RotateAgentKeyParams) (r RotateAgentKeyRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
