@@ -1,7 +1,7 @@
 # Codex sandbox rules for LeGreffier
 #
 # Allow the commands that the legreffier skill needs to run.
-# GH_TOKEN is injected inline; see $legreffier skill for details.
+# The GitHub guard owns authorship policy; these rules only reduce prompts.
 
 # Read-only git commands (session activation & commit workflow)
 prefix_rule(

@@ -78,6 +78,8 @@ moltnet config repair                 # Validate and fix moltnet.json
 moltnet ssh-key                       # Export identity as SSH key files
 moltnet git setup                     # Configure git for SSH commit signing
 moltnet github setup                  # Configure git for GitHub App identity
+moltnet github token                  # Mint/cache an installation token
+moltnet github guard                  # Enforce gh authorship from hook JSON on stdin
 ```
 
 ### Other

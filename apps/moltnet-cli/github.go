@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
@@ -235,13 +236,22 @@ func runGitHubTokenCmd(credPath string) error {
 
 // tokenCache is the on-disk cache format for GitHub installation tokens.
 type tokenCache struct {
-	Token     string `json:"token"`
-	ExpiresAt string `json:"expires_at"`
+	Token       string            `json:"token"`
+	ExpiresAt   string            `json:"expires_at"`
+	Permissions map[string]string `json:"permissions"`
+}
+
+type tokenRefreshFailure struct {
+	FailedAt string `json:"failed_at"`
 }
 
 // tokenCachePath returns the cache file path next to the private key.
 func tokenCachePath(privateKeyPath string) string {
 	return filepath.Join(filepath.Dir(privateKeyPath), "gh-token-cache.json")
+}
+
+func tokenRefreshFailurePath(privateKeyPath string) string {
+	return filepath.Join(filepath.Dir(privateKeyPath), "gh-token-cache-error.json")
 }
 
 // timeNow is a seam for tests.
@@ -250,6 +260,44 @@ var timeNow = time.Now
 // getCachedInstallationToken returns a cached token if valid (>5 min remaining),
 // otherwise fetches a new one from the GitHub API and writes the cache.
 func getCachedInstallationToken(appID, privateKeyPath, installationID string) (string, error) {
+	details, err := getCachedInstallationTokenDetails(
+		context.Background(),
+		http.DefaultClient,
+		appID,
+		privateKeyPath,
+		installationID,
+	)
+	if err != nil {
+		return "", err
+	}
+	return details.Token, nil
+}
+
+// getCachedInstallationTokenDetails returns a cached token and its granted
+// permissions. Legacy cache entries without permissions are refreshed so
+// callers never mistake an assumed manifest for the installation's actual
+// approved capabilities.
+func getCachedInstallationTokenDetails(
+	ctx context.Context,
+	client *http.Client,
+	appID, privateKeyPath, installationID string,
+) (tokenCache, error) {
+	return getCachedInstallationTokenDetailsWithFailureTTL(
+		ctx,
+		client,
+		appID,
+		privateKeyPath,
+		installationID,
+		0,
+	)
+}
+
+func getCachedInstallationTokenDetailsWithFailureTTL(
+	ctx context.Context,
+	client *http.Client,
+	appID, privateKeyPath, installationID string,
+	failureTTL time.Duration,
+) (tokenCache, error) {
 	cachePath := tokenCachePath(privateKeyPath)
 
 	// Try reading cache
@@ -257,38 +305,99 @@ func getCachedInstallationToken(appID, privateKeyPath, installationID string) (s
 		var cached tokenCache
 		if err := json.Unmarshal(data, &cached); err == nil && cached.Token != "" && cached.ExpiresAt != "" {
 			expiresAt, err := time.Parse(time.RFC3339, cached.ExpiresAt)
-			if err == nil && timeNow().Add(5*time.Minute).Before(expiresAt) {
-				return cached.Token, nil
+			if err == nil && timeNow().Add(5*time.Minute).Before(expiresAt) && cached.Permissions != nil {
+				return cached, nil
+			}
+		}
+	}
+
+	if failureTTL > 0 {
+		if data, err := os.ReadFile(tokenRefreshFailurePath(privateKeyPath)); err == nil {
+			var failed tokenRefreshFailure
+			if json.Unmarshal(data, &failed) == nil {
+				failedAt, parseErr := time.Parse(time.RFC3339Nano, failed.FailedAt)
+				if parseErr == nil && timeNow().Before(failedAt.Add(failureTTL)) {
+					return tokenCache{}, fmt.Errorf("GitHub token refresh is temporarily suppressed after a recent failure")
+				}
 			}
 		}
 	}
 
 	// Cache miss or expired — fetch fresh token
-	token, expiresAtStr, err := getInstallationToken(appID, privateKeyPath, installationID)
+	details, err := getInstallationTokenDetails(ctx, client, appID, privateKeyPath, installationID)
 	if err != nil {
-		return "", err
+		if failureTTL > 0 {
+			_ = writeJSONAtomic(
+				tokenRefreshFailurePath(privateKeyPath),
+				tokenRefreshFailure{FailedAt: timeNow().UTC().Format(time.RFC3339Nano)},
+			)
+		}
+		return tokenCache{}, err
 	}
 
 	// Write cache (best-effort)
-	cache := tokenCache{Token: token, ExpiresAt: expiresAtStr}
-	if data, err := json.Marshal(cache); err == nil {
-		_ = os.WriteFile(cachePath, data, 0o600)
-	}
+	_ = writeJSONAtomic(cachePath, details)
+	_ = os.Remove(tokenRefreshFailurePath(privateKeyPath))
 
-	return token, nil
+	return details, nil
+}
+
+func writeJSONAtomic(path string, value any) error {
+	dir := filepath.Dir(path)
+	file, err := os.CreateTemp(dir, ".gh-token-cache-*")
+	if err != nil {
+		return err
+	}
+	tempPath := file.Name()
+	defer os.Remove(tempPath)
+
+	if err := file.Chmod(0o600); err != nil {
+		file.Close()
+		return err
+	}
+	if err := json.NewEncoder(file).Encode(value); err != nil {
+		file.Close()
+		return err
+	}
+	if err := file.Sync(); err != nil {
+		file.Close()
+		return err
+	}
+	if err := file.Close(); err != nil {
+		return err
+	}
+	return os.Rename(tempPath, path)
 }
 
 // getInstallationToken exchanges a GitHub App JWT for an installation token.
 // Returns the token string, its expiry (RFC3339), and any error.
 func getInstallationToken(appID, privateKeyPath, installationID string) (string, string, error) {
+	details, err := getInstallationTokenDetails(
+		context.Background(),
+		http.DefaultClient,
+		appID,
+		privateKeyPath,
+		installationID,
+	)
+	if err != nil {
+		return "", "", err
+	}
+	return details.Token, details.ExpiresAt, nil
+}
+
+func getInstallationTokenDetails(
+	ctx context.Context,
+	client *http.Client,
+	appID, privateKeyPath, installationID string,
+) (tokenCache, error) {
 	pemData, err := os.ReadFile(privateKeyPath)
 	if err != nil {
-		return "", "", fmt.Errorf("read GitHub App private key: %w", err)
+		return tokenCache{}, fmt.Errorf("read GitHub App private key: %w", err)
 	}
 
 	block, _ := pem.Decode(pemData)
 	if block == nil {
-		return "", "", fmt.Errorf("failed to decode PEM block from %s", privateKeyPath)
+		return tokenCache{}, fmt.Errorf("failed to decode PEM block from %s", privateKeyPath)
 	}
 
 	privKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
@@ -296,49 +405,49 @@ func getInstallationToken(appID, privateKeyPath, installationID string) (string,
 		// Fall back to PKCS#8 format
 		pkcs8Key, errPKCS8 := x509.ParsePKCS8PrivateKey(block.Bytes)
 		if errPKCS8 != nil {
-			return "", "", fmt.Errorf("parse private key: PKCS#1: %v, PKCS#8: %w", err, errPKCS8)
+			return tokenCache{}, fmt.Errorf("parse private key: PKCS#1: %v, PKCS#8: %w", err, errPKCS8)
 		}
 		var ok bool
 		privKey, ok = pkcs8Key.(*rsa.PrivateKey)
 		if !ok {
-			return "", "", fmt.Errorf("PKCS#8 key is not RSA")
+			return tokenCache{}, fmt.Errorf("PKCS#8 key is not RSA")
 		}
 	}
 
 	jwt, err := createAppJWT(appID, privKey)
 	if err != nil {
-		return "", "", err
+		return tokenCache{}, err
 	}
 
-	url := fmt.Sprintf("https://api.github.com/app/installations/%s/access_tokens", installationID)
-	req, err := http.NewRequest("POST", url, nil)
+	url := fmt.Sprintf("%s/app/installations/%s/access_tokens", githubAPIBaseURL, installationID)
+	req, err := http.NewRequestWithContext(ctx, "POST", url, nil)
 	if err != nil {
-		return "", "", err
+		return tokenCache{}, err
 	}
 	req.Header.Set("Authorization", "Bearer "+jwt)
 	req.Header.Set("Accept", "application/vnd.github+json")
 	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
-		return "", "", fmt.Errorf("GitHub API request: %w", err)
+		return tokenCache{}, fmt.Errorf("GitHub API request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusCreated {
-		return "", "", fmt.Errorf("GitHub API error (%d): %s", resp.StatusCode, string(body))
+		return tokenCache{}, fmt.Errorf("GitHub API error (%d): %s", resp.StatusCode, string(body))
 	}
 
-	var result struct {
-		Token     string `json:"token"`
-		ExpiresAt string `json:"expires_at"`
-	}
+	var result tokenCache
 	if err := json.Unmarshal(body, &result); err != nil {
-		return "", "", fmt.Errorf("parse GitHub response: %w", err)
+		return tokenCache{}, fmt.Errorf("parse GitHub response: %w", err)
 	}
 
-	return result.Token, result.ExpiresAt, nil
+	if result.Permissions == nil {
+		result.Permissions = map[string]string{}
+	}
+	return result, nil
 }
 
 // createAppJWT creates an RS256-signed JWT for GitHub App authentication.

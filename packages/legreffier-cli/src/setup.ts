@@ -1,4 +1,5 @@
 import {
+  chmod,
   cp,
   mkdir,
   readFile,
@@ -108,6 +109,118 @@ export async function downloadSkills(
  */
 export const CANONICAL_SKILL_DIR = '.agents/skills';
 
+const GITHUB_GUARD_CLI_COMMAND = 'moltnet github guard';
+
+export const GITHUB_GUARD_HOOK_COMMAND = `command -v moltnet >/dev/null 2>&1 && ${GITHUB_GUARD_CLI_COMMAND} 2>/dev/null || true`;
+
+export const CLAUDE_GITHUB_GUARD_HOOK_COMMAND =
+  '"$CLAUDE_PROJECT_DIR"/.claude/hooks/moltnet-github-guard.sh';
+
+export const CLAUDE_GITHUB_GUARD_HOOK_SCRIPT = `#!/bin/sh
+command -v moltnet >/dev/null 2>&1 || exit 0
+${GITHUB_GUARD_CLI_COMMAND} 2>/dev/null || true
+`;
+
+interface CommandHook {
+  type: 'command';
+  command: string;
+}
+
+interface ToolHookMatcher {
+  matcher: string;
+  hooks: CommandHook[];
+}
+
+interface HookSettings {
+  PreToolUse?: ToolHookMatcher[];
+  [event: string]: unknown;
+}
+
+export function mergeGitHubGuardHook(
+  hooks: unknown,
+  command = GITHUB_GUARD_HOOK_COMMAND,
+): HookSettings {
+  const existing =
+    hooks && typeof hooks === 'object' && !Array.isArray(hooks)
+      ? (hooks as HookSettings)
+      : {};
+  const preToolUse = Array.isArray(existing.PreToolUse)
+    ? existing.PreToolUse.map((entry) => ({
+        ...entry,
+        hooks: Array.isArray(entry.hooks)
+          ? entry.hooks.filter((hook) => !isGitHubGuardHook(hook))
+          : [],
+      }))
+    : [];
+  const bashMatcherIndex = preToolUse.findIndex(
+    (entry) => entry.matcher === 'Bash',
+  );
+
+  if (bashMatcherIndex >= 0) {
+    preToolUse[bashMatcherIndex] = {
+      ...preToolUse[bashMatcherIndex],
+      hooks: [
+        ...preToolUse[bashMatcherIndex].hooks,
+        { type: 'command', command },
+      ],
+    };
+  } else {
+    preToolUse.push({
+      matcher: 'Bash',
+      hooks: [{ type: 'command', command }],
+    });
+  }
+
+  return { ...existing, PreToolUse: preToolUse };
+}
+
+function isGitHubGuardHook(hook: unknown): boolean {
+  return (
+    !!hook &&
+    typeof hook === 'object' &&
+    'command' in hook &&
+    typeof hook.command === 'string' &&
+    /\bgithub(?:\s+|-)guard\b/.test(hook.command)
+  );
+}
+
+/** Register the shared Claude guard and install its executable hook script. */
+export async function writeClaudeGuardHook(repoDir: string): Promise<void> {
+  const dir = join(repoDir, '.claude');
+  const hooksDir = join(dir, 'hooks');
+  const scriptPath = join(hooksDir, 'moltnet-github-guard.sh');
+  const settingsPath = join(dir, 'settings.json');
+  await mkdir(hooksDir, { recursive: true });
+  await writeFile(scriptPath, CLAUDE_GITHUB_GUARD_HOOK_SCRIPT, 'utf-8');
+  await chmod(scriptPath, 0o755);
+
+  let existing: Record<string, unknown> = {};
+  try {
+    existing = JSON.parse(await readFile(settingsPath, 'utf-8')) as Record<
+      string,
+      unknown
+    >;
+  } catch {
+    // file doesn't exist or isn't valid JSON — start fresh
+  }
+
+  await writeFile(
+    settingsPath,
+    JSON.stringify(
+      {
+        ...existing,
+        hooks: mergeGitHubGuardHook(
+          existing.hooks,
+          CLAUDE_GITHUB_GUARD_HOOK_COMMAND,
+        ),
+      },
+      null,
+      2,
+    ) + '\n',
+    'utf-8',
+  );
+}
+
 /**
  * Install the canonical skill tree under `.agents/skills/` (real files).
  * Idempotent — re-running overwrites files with the latest release payload.
@@ -172,99 +285,41 @@ export function buildGhTokenRule(): string {
   return [
     '# GitHub CLI Authentication (MoltNet agents)',
     '',
-    '> **STRICT RULE — read this before every `gh` call.**',
-    '>',
-    '> When `GIT_CONFIG_GLOBAL` is set (matches `.moltnet/<agent>/gitconfig`), the',
-    '> default is: you **MUST NOT** run bare `gh <command>`. You **MUST** prefix',
-    '> every `gh` call with a `GH_TOKEN` resolved from an **absolute path** to',
-    '> `moltnet.json`. Running bare `gh` silently falls back to the human personal',
-    '> token and attributes the action to the wrong identity — this is a',
-    '> correctness bug, not a warning.',
-    '>',
-    '> **Exception — `human` authorship mode**: when `MOLTNET_COMMIT_AUTHORSHIP=human`',
-    '> in `.moltnet/<agent>/env`, `gh pr ...` and `gh issue ...` **must** run bare',
-    '> (no `GH_TOKEN`) so the PR/issue appears as authored by the human. All other',
-    '> `gh` calls (including `gh api repos/.../contents/...`) still require the agent',
-    '> token. `git push` is not a `gh` call and always uses the agent token via the',
-    '> gitconfig-configured credential helper.',
+    '> **STRICT RULE — keep the generated `PreToolUse` guard enabled.**',
     '',
-    '## The only correct form',
+    'LeGreffier setup installs `moltnet github guard` for Bash tool calls in both',
+    'Claude Code and Codex. The guard parses each shell command independently and:',
+    '',
+    '- allows read-only `gh` operations;',
+    '- allows writes carrying a command-scoped MoltNet-issued `GH_TOKEN`;',
+    '- denies a bare write when the GitHub App has the required write capability;',
+    '- allows the user token as a fallback when the App installation explicitly',
+    '  lacks the required permission;',
+    '- allows bare visible `gh pr` and `gh issue` writes in `human` authorship mode;',
+    '- denies unknown commands, while GraphQL mutations require a scoped token.',
+    '',
+    'Installation permissions are cached with the token in `gh-token-cache.json`.',
+    'Writes are atomic, and refresh failures are cached briefly to avoid retry storms.',
+    'The first relevant write lazily refreshes legacy or expired cache state. By',
+    'default unavailable optional permission state fails open silently; set',
+    '`MOLTNET_GITHUB_GUARD_STRICT=1` to fail closed instead. Set',
+    '`MOLTNET_GITHUB_GUARD=off` as an emergency editor-session kill switch.',
+    '',
+    'For writes the App can perform, use the canonical command-scoped form:',
     '',
     '```bash',
-    '# 1. Resolve credentials to an ABSOLUTE path. GIT_CONFIG_GLOBAL is typically',
-    '#    relative (e.g. .moltnet/<agent>/gitconfig). Anchor it against the repo',
-    '#    root so this works from any subdirectory or worktree, not just the root.',
     'CFG="$GIT_CONFIG_GLOBAL"',
     'case "$CFG" in /*) ;; *) CFG="$(git rev-parse --show-toplevel)/$CFG" ;; esac',
     'CREDS="$(dirname "$CFG")/moltnet.json"',
-    '',
-    '# 2. Refuse to proceed if the file does not exist at that absolute path.',
     '[ -f "$CREDS" ] || { echo "FATAL: moltnet.json not found at $CREDS" >&2; exit 1; }',
-    '',
-    '# 3. Call gh with GH_TOKEN inlined. Use the `moltnet` binary if it',
-    '#    is on PATH, otherwise fall back to `npx @themoltnet/cli`. Never',
-    '#    reference `$MOLTNET_CLI` here — it may be unset in ad-hoc shells',
-    '#    and expanding to empty silently swallows the subcommand, producing',
-    '#    an empty GH_TOKEN and falling back to your personal auth.',
     'GH_TOKEN=$(moltnet github token --credentials "$CREDS") gh <command>',
-    '# or, if `moltnet` is not installed:',
+    '# Published CLI fallback:',
     'GH_TOKEN=$(npx @themoltnet/cli github token --credentials "$CREDS") gh <command>',
     '```',
     '',
-    'The credentials file (`moltnet.json`) always lives next to the `gitconfig`',
-    'inside the same `.moltnet/<agent>/` directory, regardless of which agent is',
-    'active. The token is cached locally (~1 hour lifetime, 5-min expiry buffer),',
-    'so repeated calls are fast after the first API hit.',
-    '',
-    '## Why absolute paths are mandatory',
-    '',
-    '`GIT_CONFIG_GLOBAL` is almost always a **relative path** (e.g. `.moltnet/<agent>/gitconfig`),',
-    "interpreted by git relative to the repo root — not the shell's CWD. So a bare",
-    '`$(dirname "$GIT_CONFIG_GLOBAL")` resolves to a non-existent directory whenever',
-    'you run `gh` from a subdirectory (e.g. `packages/api`) or from a worktree whose',
-    'CWD differs from the main worktree root. When that happens:',
-    '',
-    '- `moltnet github token` (or `npx @themoltnet/cli github token`) prints `no credentials found` to stderr,',
-    '- the command substitution yields an empty `GH_TOKEN`,',
-    '- `gh` silently falls back to your personal token,',
-    '- the resulting API call is attributed to the **human**, not the agent.',
-    '',
-    'This failure is invisible in normal output. The `git rev-parse --show-toplevel`',
-    'anchoring in step 1 is the only reliable way to get an absolute path that works',
-    'from any CWD inside the repo (and any worktree). If the snippet is run outside',
-    'a git repo, `git rev-parse` exits non-zero and the whole pipeline fails loudly',
-    'instead of silently producing the wrong path.',
-    '',
-    '## Forbidden patterns',
-    '',
-    '- `gh <command>` — bare, no `GH_TOKEN`. **Never** (except the `human` mode',
-    '  write-op carve-out for `gh pr` / `gh issue` described in the header above).',
-    '- `GH_TOKEN=$(... --credentials "$(dirname "$GIT_CONFIG_GLOBAL")/moltnet.json") gh ...`',
-    '  — uses the raw relative path. Breaks in worktrees.',
-    '- `GH_TOKEN=$(... --credentials "./moltnet.json") gh ...` — relative. Breaks.',
-    '- `GH_TOKEN=$(... --credentials "~/.moltnet/...") gh ...` — `~` is not expanded',
-    '  inside double quotes; use `$HOME` or the literal absolute path.',
-    '- `GH_TOKEN=$($MOLTNET_CLI github token ...) gh ...` — do **not** reference the',
-    '  `$MOLTNET_CLI` variable in this rule. It is only set inside the legreffier',
-    '  skill session; in ad-hoc shells it expands to empty, the `github token`',
-    '  subcommand is swallowed, `GH_TOKEN` is empty, and `gh` silently falls back',
-    '  to the human token. Hardcode `moltnet` or `npx @themoltnet/cli`.',
-    '',
-    '## Allowed `gh` subcommands',
-    '',
-    'The GitHub App only has these permissions:',
-    '',
-    '- `gh pr ...` (pull_requests: write)',
-    '- `gh issue ...` (issues: write)',
-    '- `gh api repos/{owner}/{repo}/contents/...` (contents: write)',
-    '- `gh repo view`, `gh repo clone` (metadata: read + contents: read)',
-    '',
-    'Do NOT use `GH_TOKEN` for other `gh` commands (releases, actions, packages, etc.).',
-    '',
-    '## 401 recovery',
-    '',
-    'If you get a 401 error, the cached token may be stale. Delete',
-    '`gh-token-cache.json` next to `moltnet.json` and retry.',
+    'The token assignment authorizes only that `gh` process. It must not authorize a',
+    'different `gh` command later in a chain. Never use an empty or unverified token',
+    'substitution: `gh` would silently fall back to the human login.',
     '',
   ].join('\n');
 }
@@ -278,7 +333,7 @@ export function buildCodexRules(_agentName: string): string {
     '# Codex sandbox rules for LeGreffier',
     '#',
     '# Allow the commands that the legreffier skill needs to run.',
-    '# GH_TOKEN is injected inline; see $legreffier skill for details.',
+    '# The GitHub guard owns authorship policy; these rules only reduce prompts.',
     '',
     '# Read-only git commands (session activation & commit workflow)',
     'prefix_rule(',
@@ -535,6 +590,7 @@ export async function writeSettingsLocal({
     env?: Record<string, string>;
     enabledMcpjsonServers?: string[];
     permissions?: { allow?: string[]; deny?: string[] };
+    hooks?: HookSettings;
   } = {};
   try {
     existing = JSON.parse(await readFile(filePath, 'utf-8'));

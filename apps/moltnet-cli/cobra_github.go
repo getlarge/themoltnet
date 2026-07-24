@@ -46,6 +46,24 @@ func newGitHubCmd() *cobra.Command {
 		},
 	}
 
-	githubCmd.AddCommand(setupCmd, credHelperCmd, tokenCmd)
+	guardCmd := &cobra.Command{
+		Use:   "guard",
+		Short: "Guard GitHub CLI authorship in agent hook commands",
+		Long: `Read a Claude Code or Codex PreToolUse hook payload from stdin and
+deny write-capable gh commands that would silently use human credentials.
+
+Malformed input and commands outside an activated MoltNet git context are
+allowed silently. Set MOLTNET_GITHUB_GUARD_STRICT=1 to deny writes when App
+permission state is unavailable, or MOLTNET_GITHUB_GUARD=off to disable the
+guard for an emergency editor session.`,
+		Example: `  # .claude/settings.json or .codex/hooks.json
+  moltnet github guard`,
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runGitHubGuardCmd(cmd.InOrStdin(), cmd.OutOrStdout())
+		},
+	}
+
+	githubCmd.AddCommand(setupCmd, credHelperCmd, tokenCmd, guardCmd)
 	return githubCmd
 }

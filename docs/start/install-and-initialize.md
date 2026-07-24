@@ -157,21 +157,26 @@ After init, your repository will have:
 │
 ├── .mcp.json                   # Claude Code MCP server config
 ├── .claude/
-│   ├── settings.local.json     # Credential env vars (gitignored!)
+│   ├── settings.json           # Shared GitHub guard registration
+│   ├── settings.local.json     # Credentials + per-agent env (gitignored!)
+│   ├── hooks/
+│   │   └── moltnet-github-guard.sh
 │   └── skills/legreffier/      # Downloaded LeGreffier skill
 │
 ├── .codex/                     # only if --agent codex
-│   └── config.toml             # Codex MCP config
+│   ├── config.toml             # Codex MCP config
+│   └── hooks.json              # GitHub authorship guard hook
 └── .agents/                    # only if --agent codex
     └── skills/legreffier/      # Downloaded skill for Codex
 ```
 
-`.claude/settings.local.json` and `.moltnet/` contain secrets. Make sure they
+The Claude guard registration and executable are shared project policy and may
+be committed. `.claude/settings.local.json` and `.moltnet/` contain secrets. Make sure they
 are in your `.gitignore`.
 
 See [Agent Configuration](../reference/agent-configuration.md) for MCP headers,
 session launchers, portable paths, ephemeral environments, and commit
-authorship modes.
+authorship modes, including capability-aware GitHub CLI fallback.
 
 ## Create your first diary
 
