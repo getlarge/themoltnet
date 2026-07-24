@@ -21,7 +21,6 @@ import {
   buildPermissions,
   CANONICAL_SKILL_DIR,
   downloadSkills,
-  GITHUB_GUARD_HOOK_COMMAND,
   installCanonicalSkills,
   linkSkills,
   writeSettingsLocal,
@@ -517,12 +516,7 @@ describe('writeSettingsLocal', () => {
     expect(parsed.permissions.allow).toContain(
       'Bash(npx @themoltnet/cli rendered-pack get *)',
     );
-    expect(parsed.hooks.PreToolUse).toEqual([
-      {
-        matcher: 'Bash',
-        hooks: [{ type: 'command', command: GITHUB_GUARD_HOOK_COMMAND }],
-      },
-    ]);
+    expect(parsed.hooks).toBeUndefined();
   });
 
   it('merges into existing settings.local.json', async () => {
@@ -580,63 +574,7 @@ describe('writeSettingsLocal', () => {
     expect(parsed.hooks.SessionStart).toHaveLength(1);
     expect(parsed.hooks.PreToolUse[0].hooks).toEqual([
       { type: 'command', command: 'custom-guard' },
-      { type: 'command', command: GITHUB_GUARD_HOOK_COMMAND },
     ]);
-  });
-
-  it('replaces all stale guard variants with one canonical hook', async () => {
-    const filePath = join(tmpRepo, '.claude', 'settings.local.json');
-    await mkdir(join(tmpRepo, '.claude'), { recursive: true });
-    await writeFile(
-      filePath,
-      JSON.stringify({
-        hooks: {
-          PreToolUse: [
-            {
-              matcher: 'Bash',
-              hooks: [
-                { type: 'command', command: 'moltnet github guard' },
-                {
-                  type: 'command',
-                  command: 'moltnet github guard 2>/dev/null || true',
-                },
-                { type: 'command', command: 'custom-guard' },
-              ],
-            },
-            {
-              matcher: 'Bash',
-              hooks: [
-                {
-                  type: 'command',
-                  command: 'command moltnet github guard',
-                },
-              ],
-            },
-          ],
-        },
-      }),
-      'utf-8',
-    );
-
-    await writeSettingsLocal({
-      repoDir: tmpRepo,
-      agentName: 'my-agent',
-      appId: '2878569',
-      pemPath: '/tmp/my-app.pem',
-      installationId: '123',
-      clientId: 'cid',
-      clientSecret: 'csec',
-    });
-
-    const parsed = JSON.parse(await readFile(filePath, 'utf-8'));
-    const commands = parsed.hooks.PreToolUse.flatMap(
-      (matcher: { hooks: Array<{ command: string }> }) =>
-        matcher.hooks.map((hook) => hook.command),
-    );
-    expect(
-      commands.filter((command: string) => command.includes('github guard')),
-    ).toEqual([GITHUB_GUARD_HOOK_COMMAND]);
-    expect(commands).toContain('custom-guard');
   });
 
   it('creates .claude dir if missing', async () => {

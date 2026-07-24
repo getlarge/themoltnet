@@ -108,8 +108,8 @@ describe('CodexAdapter.writeSettings', () => {
     const parsed = JSON.parse(
       await readFile(join(tmpRepo, '.codex', 'hooks.json'), 'utf-8'),
     );
-    expect(parsed.hooks).toBeUndefined();
-    expect(parsed.PreToolUse).toEqual([
+    expect(parsed.PreToolUse).toBeUndefined();
+    expect(parsed.hooks.PreToolUse).toEqual([
       {
         matcher: 'Bash',
         hooks: [{ type: 'command', command: GITHUB_GUARD_HOOK_COMMAND }],
@@ -123,13 +123,18 @@ describe('CodexAdapter.writeSettings', () => {
     await writeFile(
       join(dir, 'hooks.json'),
       JSON.stringify({
-        SessionStart: [{ hooks: [{ type: 'command', command: 'bootstrap' }] }],
-        PreToolUse: [
-          {
-            matcher: 'Bash',
-            hooks: [{ type: 'command', command: 'moltnet github guard' }],
-          },
-        ],
+        description: 'existing hooks',
+        hooks: {
+          SessionStart: [
+            { hooks: [{ type: 'command', command: 'bootstrap' }] },
+          ],
+          PreToolUse: [
+            {
+              matcher: 'Bash',
+              hooks: [{ type: 'command', command: 'moltnet github guard' }],
+            },
+          ],
+        },
       }),
       'utf-8',
     );
@@ -139,8 +144,9 @@ describe('CodexAdapter.writeSettings', () => {
     await adapter.writeSettings(baseOpts);
 
     const parsed = JSON.parse(await readFile(join(dir, 'hooks.json'), 'utf-8'));
-    expect(parsed.SessionStart).toHaveLength(1);
-    expect(parsed.PreToolUse[0].hooks).toEqual([
+    expect(parsed.description).toBe('existing hooks');
+    expect(parsed.hooks.SessionStart).toHaveLength(1);
+    expect(parsed.hooks.PreToolUse[0].hooks).toEqual([
       { type: 'command', command: GITHUB_GUARD_HOOK_COMMAND },
     ]);
   });
