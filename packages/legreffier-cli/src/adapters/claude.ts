@@ -7,6 +7,7 @@ import {
   buildGhTokenRule,
   installCanonicalSkills,
   linkSkills,
+  writeClaudeGuardHook,
   writeSettingsLocal,
 } from '../setup.js';
 import type { AgentAdapter, AgentAdapterOptions } from './types.js';
@@ -41,6 +42,7 @@ export class ClaudeAdapter implements AgentAdapter {
   }
 
   async writeSettings(opts: AgentAdapterOptions): Promise<void> {
+    await writeClaudeGuardHook(opts.repoDir);
     await writeSettingsLocal({
       repoDir: opts.repoDir,
       agentName: opts.agentName,

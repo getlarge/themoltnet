@@ -1,13 +1,15 @@
 {
-  "PreToolUse": [
-    {
-      "hooks": [
-        {
-          "command": "command -v moltnet >/dev/null 2>&1 && moltnet github guard 2>/dev/null || true",
-          "type": "command"
-        }
-      ],
-      "matcher": "Bash"
-    }
-  ]
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "command": "command -v moltnet >/dev/null 2>&1 && moltnet github guard 2>/dev/null || true",
+            "type": "command"
+          }
+        ],
+        "matcher": "Bash"
+      }
+    ]
+  }
 }

@@ -1,4 +1,5 @@
 import {
+  chmod,
   cp,
   mkdir,
   readFile,
@@ -111,6 +112,14 @@ export const CANONICAL_SKILL_DIR = '.agents/skills';
 export const GITHUB_GUARD_HOOK_COMMAND =
   'command -v moltnet >/dev/null 2>&1 && moltnet github guard 2>/dev/null || true';
 
+export const CLAUDE_GITHUB_GUARD_HOOK_COMMAND =
+  '"$CLAUDE_PROJECT_DIR"/.claude/hooks/moltnet-github-guard.sh';
+
+const CLAUDE_GITHUB_GUARD_HOOK_SCRIPT = `#!/bin/sh
+command -v moltnet >/dev/null 2>&1 || exit 0
+moltnet github guard 2>/dev/null || true
+`;
+
 interface CommandHook {
   type: 'command';
   command: string;
@@ -126,7 +135,10 @@ interface HookSettings {
   [event: string]: unknown;
 }
 
-export function mergeGitHubGuardHook(hooks: unknown): HookSettings {
+export function mergeGitHubGuardHook(
+  hooks: unknown,
+  command = GITHUB_GUARD_HOOK_COMMAND,
+): HookSettings {
   const existing =
     hooks && typeof hooks === 'object' && !Array.isArray(hooks)
       ? (hooks as HookSettings)
@@ -148,13 +160,13 @@ export function mergeGitHubGuardHook(hooks: unknown): HookSettings {
       ...preToolUse[bashMatcherIndex],
       hooks: [
         ...preToolUse[bashMatcherIndex].hooks,
-        { type: 'command', command: GITHUB_GUARD_HOOK_COMMAND },
+        { type: 'command', command },
       ],
     };
   } else {
     preToolUse.push({
       matcher: 'Bash',
-      hooks: [{ type: 'command', command: GITHUB_GUARD_HOOK_COMMAND }],
+      hooks: [{ type: 'command', command }],
     });
   }
 
@@ -167,7 +179,44 @@ function isGitHubGuardHook(hook: unknown): boolean {
     typeof hook === 'object' &&
     'command' in hook &&
     typeof hook.command === 'string' &&
-    /\bgithub\s+guard\b/.test(hook.command)
+    /\bgithub(?:\s+|-)guard\b/.test(hook.command)
+  );
+}
+
+/** Register the shared Claude guard and install its executable hook script. */
+export async function writeClaudeGuardHook(repoDir: string): Promise<void> {
+  const dir = join(repoDir, '.claude');
+  const hooksDir = join(dir, 'hooks');
+  const scriptPath = join(hooksDir, 'moltnet-github-guard.sh');
+  const settingsPath = join(dir, 'settings.json');
+  await mkdir(hooksDir, { recursive: true });
+  await writeFile(scriptPath, CLAUDE_GITHUB_GUARD_HOOK_SCRIPT, 'utf-8');
+  await chmod(scriptPath, 0o755);
+
+  let existing: Record<string, unknown> = {};
+  try {
+    existing = JSON.parse(await readFile(settingsPath, 'utf-8')) as Record<
+      string,
+      unknown
+    >;
+  } catch {
+    // file doesn't exist or isn't valid JSON — start fresh
+  }
+
+  await writeFile(
+    settingsPath,
+    JSON.stringify(
+      {
+        ...existing,
+        hooks: mergeGitHubGuardHook(
+          existing.hooks,
+          CLAUDE_GITHUB_GUARD_HOOK_COMMAND,
+        ),
+      },
+      null,
+      2,
+    ) + '\n',
+    'utf-8',
   );
 }
 
@@ -574,7 +623,6 @@ export async function writeSettingsLocal({
       ...existing.permissions,
       allow: mergedAllow,
     },
-    hooks: mergeGitHubGuardHook(existing.hooks),
     env: {
       ...existing.env,
       [`${prefix}_GITHUB_APP_ID`]: appId,

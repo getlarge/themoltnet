@@ -70,7 +70,14 @@ export class CodexAdapter implements AgentAdapter {
 
     await writeFile(
       filePath,
-      JSON.stringify(mergeGitHubGuardHook(existing), null, 2) + '\n',
+      JSON.stringify(
+        {
+          ...existing,
+          hooks: mergeGitHubGuardHook(existing.hooks),
+        },
+        null,
+        2,
+      ) + '\n',
       'utf-8',
     );
   }
