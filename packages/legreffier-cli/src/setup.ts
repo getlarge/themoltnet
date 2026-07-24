@@ -109,15 +109,16 @@ export async function downloadSkills(
  */
 export const CANONICAL_SKILL_DIR = '.agents/skills';
 
-export const GITHUB_GUARD_HOOK_COMMAND =
-  'command -v moltnet >/dev/null 2>&1 && moltnet github guard 2>/dev/null || true';
+const GITHUB_GUARD_CLI_COMMAND = 'moltnet github guard';
+
+export const GITHUB_GUARD_HOOK_COMMAND = `command -v moltnet >/dev/null 2>&1 && ${GITHUB_GUARD_CLI_COMMAND} 2>/dev/null || true`;
 
 export const CLAUDE_GITHUB_GUARD_HOOK_COMMAND =
   '"$CLAUDE_PROJECT_DIR"/.claude/hooks/moltnet-github-guard.sh';
 
-const CLAUDE_GITHUB_GUARD_HOOK_SCRIPT = `#!/bin/sh
+export const CLAUDE_GITHUB_GUARD_HOOK_SCRIPT = `#!/bin/sh
 command -v moltnet >/dev/null 2>&1 || exit 0
-moltnet github guard 2>/dev/null || true
+${GITHUB_GUARD_CLI_COMMAND} 2>/dev/null || true
 `;
 
 interface CommandHook {

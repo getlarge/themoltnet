@@ -4,7 +4,10 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { CLAUDE_GITHUB_GUARD_HOOK_COMMAND } from '../setup.js';
+import {
+  CLAUDE_GITHUB_GUARD_HOOK_COMMAND,
+  CLAUDE_GITHUB_GUARD_HOOK_SCRIPT,
+} from '../setup.js';
 import { ClaudeAdapter } from './claude.js';
 import type { AgentAdapterOptions } from './types.js';
 
@@ -65,7 +68,9 @@ describe('ClaudeAdapter.writeSettings', () => {
       'hooks',
       'moltnet-github-guard.sh',
     );
-    expect(await readFile(hookPath, 'utf-8')).toContain('moltnet github guard');
+    expect(await readFile(hookPath, 'utf-8')).toBe(
+      CLAUDE_GITHUB_GUARD_HOOK_SCRIPT,
+    );
     expect((await stat(hookPath)).mode & 0o111).not.toBe(0);
   });
 

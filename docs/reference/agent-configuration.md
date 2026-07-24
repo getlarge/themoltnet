@@ -51,10 +51,13 @@ for the full exchange.
 ## GitHub CLI authorship guard
 
 LeGreffier setup installs `moltnet github guard` as a `PreToolUse` Bash hook in
-Claude Code (`.claude/settings.local.json`) and Codex (`.codex/hooks.json`). The
-installed wrapper is a clean no-op when an older or missing CLI does not expose
-the guard. It reads the editor hook payload from stdin and emits output only
-when it must deny a command.
+Claude Code (`.claude/settings.json`, invoking
+`.claude/hooks/moltnet-github-guard.sh`) and Codex (`.codex/hooks.json`). The
+Claude registration and executable are shared project policy; per-agent
+credentials and environment remain in the gitignored
+`.claude/settings.local.json`. The installed wrapper is a clean no-op when an
+older or missing CLI does not expose the guard. It reads the editor hook payload
+from stdin and emits output only when it must deny a command.
 
 Within an active `.moltnet/<agent>/gitconfig` context, the guard evaluates each
 `gh` process independently:

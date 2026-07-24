@@ -223,7 +223,7 @@ func evaluateGitHubGuardScript(
 			return true
 		}
 
-		executable, args, scopedToken, ok := parseShellInvocation(call)
+		executable, args, scopedToken, ok := parseShellInvocation(call, guardCtx.CredentialsPath)
 		if !ok {
 			return true
 		}
@@ -364,7 +364,7 @@ func nestedShellScript(executable string, args []string) (string, bool, bool) {
 		if arg == "--" {
 			continue
 		}
-		if arg == "--command" || (strings.HasPrefix(arg, "-") && strings.Contains(strings.TrimPrefix(arg, "-"), "c")) {
+		if arg == "--command" || shellShortOptionsContainCommand(arg) {
 			if i+1 < len(args) {
 				return args[i+1], true, true
 			}
@@ -372,6 +372,12 @@ func nestedShellScript(executable string, args []string) (string, bool, bool) {
 		}
 	}
 	return "", false, false
+}
+
+func shellShortOptionsContainCommand(arg string) bool {
+	return strings.HasPrefix(arg, "-") &&
+		!strings.HasPrefix(arg, "--") &&
+		strings.ContainsRune(strings.TrimPrefix(arg, "-"), 'c')
 }
 
 func permissionAllowsWrite(level string) bool {
@@ -383,10 +389,10 @@ func permissionAllowsWrite(level string) bool {
 	}
 }
 
-func parseShellInvocation(call *syntax.CallExpr) (string, []string, bool, bool) {
+func parseShellInvocation(call *syntax.CallExpr, credentialsPath string) (string, []string, bool, bool) {
 	scopedToken := false
 	for _, assign := range call.Assigns {
-		if assign.Name != nil && assign.Name.Value == "GH_TOKEN" && isMoltnetTokenWord(assign.Value) {
+		if assign.Name != nil && assign.Name.Value == "GH_TOKEN" && isMoltnetTokenWord(assign.Value, credentialsPath) {
 			scopedToken = true
 		}
 	}
@@ -412,7 +418,7 @@ func parseShellInvocation(call *syntax.CallExpr) (string, []string, bool, bool) 
 			words = words[1:]
 			for len(words) > 0 {
 				if name, value, assignment := shellAssignmentWord(words[0]); assignment {
-					if name == "GH_TOKEN" && isMoltnetTokenParts(value) {
+					if name == "GH_TOKEN" && isMoltnetTokenParts(value, credentialsPath) {
 						scopedToken = true
 					}
 					words = words[1:]
@@ -432,6 +438,12 @@ func parseShellInvocation(call *syntax.CallExpr) (string, []string, bool, bool) 
 					}
 					words = words[2:]
 					continue
+				}
+				if arg == "-S" ||
+					arg == "--split-string" ||
+					strings.HasPrefix(arg, "-S") ||
+					strings.HasPrefix(arg, "--split-string=") {
+					return "env", nil, scopedToken, true
 				}
 				if strings.HasPrefix(arg, "-") {
 					words = words[1:]
@@ -471,7 +483,7 @@ func parseShellInvocation(call *syntax.CallExpr) (string, []string, bool, bool) 
 
 func isKnownPrefixRunner(executable string) bool {
 	switch filepath.Base(executable) {
-	case "nohup", "sudo", "timeout", "xargs":
+	case "env", "nohup", "sudo", "timeout", "xargs":
 		return true
 	default:
 		return false
@@ -644,14 +656,14 @@ func shellAssignmentWord(word *syntax.Word) (string, []syntax.WordPart, bool) {
 	return name, parts, true
 }
 
-func isMoltnetTokenWord(word *syntax.Word) bool {
+func isMoltnetTokenWord(word *syntax.Word, credentialsPath string) bool {
 	if word == nil {
 		return false
 	}
-	return isMoltnetTokenParts(word.Parts)
+	return isMoltnetTokenParts(word.Parts, credentialsPath)
 }
 
-func isMoltnetTokenParts(parts []syntax.WordPart) bool {
+func isMoltnetTokenParts(parts []syntax.WordPart, credentialsPath string) bool {
 	if len(parts) == 1 {
 		if quoted, ok := parts[0].(*syntax.DblQuoted); ok {
 			parts = quoted.Parts
@@ -672,18 +684,49 @@ func isMoltnetTokenParts(parts []syntax.WordPart) bool {
 	if !ok || len(call.Assigns) != 0 {
 		return false
 	}
-	executable, args, _, ok := parseShellInvocation(call)
+	executable, args, _, ok := parseShellInvocation(call, credentialsPath)
 	if !ok {
 		return false
 	}
 	switch filepath.Base(executable) {
 	case "moltnet":
-		return len(args) >= 2 && args[0] == "github" && args[1] == "token"
+		return len(args) >= 2 &&
+			args[0] == "github" &&
+			args[1] == "token" &&
+			tokenCredentialsMatch(args[2:], credentialsPath)
 	case "npx":
-		return len(args) >= 3 && args[0] == "@themoltnet/cli" && args[1] == "github" && args[2] == "token"
+		return len(args) >= 3 &&
+			args[0] == "@themoltnet/cli" &&
+			args[1] == "github" &&
+			args[2] == "token" &&
+			tokenCredentialsMatch(args[3:], credentialsPath)
 	default:
 		return false
 	}
+}
+
+func tokenCredentialsMatch(args []string, credentialsPath string) bool {
+	for i := 0; i < len(args); i++ {
+		var configured string
+		switch {
+		case args[i] == "--credentials":
+			if i+1 >= len(args) {
+				return false
+			}
+			i++
+			configured = args[i]
+		case strings.HasPrefix(args[i], "--credentials="):
+			configured = strings.TrimPrefix(args[i], "--credentials=")
+		default:
+			continue
+		}
+		if configured == "" ||
+			!filepath.IsAbs(configured) ||
+			filepath.Clean(configured) != filepath.Clean(credentialsPath) {
+			return false
+		}
+	}
+	return true
 }
 
 // classifyGitHubOperation's command taxonomy was audited against gh 2.95.0.

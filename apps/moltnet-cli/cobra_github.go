@@ -56,7 +56,7 @@ Malformed input and commands outside an activated MoltNet git context are
 allowed silently. Set MOLTNET_GITHUB_GUARD_STRICT=1 to deny writes when App
 permission state is unavailable, or MOLTNET_GITHUB_GUARD=off to disable the
 guard for an emergency editor session.`,
-		Example: `  # .claude/settings.local.json or .codex/hooks.json
+		Example: `  # .claude/settings.json or .codex/hooks.json
   moltnet github guard`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {

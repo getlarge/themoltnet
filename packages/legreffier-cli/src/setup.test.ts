@@ -20,6 +20,7 @@ import {
   buildGhTokenRule,
   buildPermissions,
   CANONICAL_SKILL_DIR,
+  CLAUDE_GITHUB_GUARD_HOOK_SCRIPT,
   downloadSkills,
   installCanonicalSkills,
   linkSkills,
@@ -333,6 +334,24 @@ describe('buildGhTokenRule', () => {
       'utf-8',
     );
     expect(committed).toBe(buildGhTokenRule());
+  });
+});
+
+describe('Claude GitHub guard hook', () => {
+  it('stays in sync with the committed hook script', async () => {
+    const committed = await readFile(
+      join(
+        dirname(fileURLToPath(import.meta.url)),
+        '..',
+        '..',
+        '..',
+        '.claude',
+        'hooks',
+        'moltnet-github-guard.sh',
+      ),
+      'utf-8',
+    );
+    expect(committed).toBe(CLAUDE_GITHUB_GUARD_HOOK_SCRIPT);
   });
 });
 

@@ -93,8 +93,8 @@ func TestEvaluateGitHubGuard_PermissionLookupFailureAllowsSilently(t *testing.T)
 func TestEvaluateGitHubGuard_CommandScopedMoltnetTokensAllow(t *testing.T) {
 	t.Parallel()
 	commands := []string{
-		`GH_TOKEN=$(moltnet github token --credentials /repo/.moltnet/a/moltnet.json) gh issue close 1615`,
-		`GH_TOKEN="$(npx @themoltnet/cli github token --credentials /repo/.moltnet/a/moltnet.json)" command gh pr merge 42`,
+		`GH_TOKEN=$(moltnet github token --credentials /repo/.moltnet/test-agent/moltnet.json) gh issue close 1615`,
+		`GH_TOKEN="$(npx @themoltnet/cli github token --credentials=/repo/.moltnet/test-agent/moltnet.json)" command gh pr merge 42`,
 		`env GH_TOKEN=$(moltnet github token) /usr/local/bin/gh api --method DELETE repos/o/r/issues/1`,
 	}
 	for _, command := range commands {
@@ -104,6 +104,18 @@ func TestEvaluateGitHubGuard_CommandScopedMoltnetTokensAllow(t *testing.T) {
 				t.Fatalf("expected scoped token to allow, got denial: %s", reason)
 			}
 		})
+	}
+}
+
+func TestEvaluateGitHubGuard_OtherAgentTokenDoesNotAuthorizeWrite(t *testing.T) {
+	t.Parallel()
+	reason := evaluateGitHubGuard(
+		`GH_TOKEN=$(moltnet github token --credentials /repo/.moltnet/other-agent/moltnet.json) gh pr create`,
+		staticGuardContext("agent"),
+		guardPermissions(map[string]string{"pull_requests": "write"}),
+	)
+	if reason == "" {
+		t.Fatal("expected a token minted from another agent's credentials to be denied")
 	}
 }
 
@@ -137,6 +149,10 @@ func TestEvaluateGitHubGuard_LiteralNestedShells(t *testing.T) {
 	for _, command := range []string{
 		`sh -c 'gh issue close 1'`,
 		`bash -lc 'gh issue close 1'`,
+		`bash --rcfile /dev/null -c 'gh issue close 1'`,
+		`bash --norc -c 'gh issue close 1'`,
+		`bash --init-file /dev/null -c 'gh issue close 1'`,
+		`bash --noprofile -c 'gh issue close 1'`,
 		`eval 'gh issue close 1'`,
 	} {
 		if reason := evaluateGitHubGuard(command, staticGuardContext("agent"), permissions); reason == "" {
@@ -168,6 +184,9 @@ func TestEvaluateGitHubGuard_HumanModeAllowsVisibleWritesOnly(t *testing.T) {
 	}
 	if reason := evaluateGitHubGuard("gh api --method PUT repos/o/r/contents/file -f content=x", staticGuardContext("human"), permissions); reason == "" {
 		t.Fatal("expected content API write to remain agent-attributed")
+	}
+	if reason := evaluateGitHubGuard("gh pr comment 1 --body ok", staticGuardContext("coauthor"), permissions); reason == "" {
+		t.Fatal("expected coauthor mode to retain agent-attributed GitHub writes")
 	}
 }
 
@@ -292,6 +311,8 @@ func TestEvaluateGitHubGuard_CommandRunnersCannotHideGitHubWrites(t *testing.T) 
 		"contents":      "write",
 	})
 	for _, command := range []string{
+		`env -S "GH_TOKEN=fake gh pr create"`,
+		`env --split-string="gh issue close 1"`,
 		`nohup gh pr merge 1`,
 		`timeout 10s gh issue close 1`,
 		`sudo -u root gh release delete v1`,
