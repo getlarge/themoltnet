@@ -390,15 +390,20 @@ export function teamRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { currentTeamId, identityId } = getAuthContext(request);
+      const authContext = getAuthContext(request);
+      const { identityId } = authContext;
+      const credentialTeamId =
+        authContext.subjectType === 'agent'
+          ? authContext.credentialBinding?.boundTeamId
+          : undefined;
 
       // Single Keto call: get all team IDs + roles for this subject
       const allTeamRoles =
         await fastify.relationshipReader.listTeamIdsAndRolesBySubject(
           identityId,
         );
-      const teamRoles = currentTeamId
-        ? allTeamRoles.filter(({ teamId }) => teamId === currentTeamId)
+      const teamRoles = credentialTeamId
+        ? allTeamRoles.filter(({ teamId }) => teamId === credentialTeamId)
         : allTeamRoles;
       if (teamRoles.length === 0) return { items: [] };
 
