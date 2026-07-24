@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.35.1](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.35.0...pi-extension-v0.35.1) (2026-07-24)
+
+
+### Bug Fixes
+
+* **pi-extension:** resolve built-ins from task cwd ([2089ce9](https://github.com/getlarge/themoltnet/commit/2089ce9fb9e9fe1e3cdbf4ee79b781444498f3e0))
+* **pi-extension:** resolve built-ins from task cwd ([bc177af](https://github.com/getlarge/themoltnet/commit/bc177af68433ac90e800ea4f2d60ece508993809))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.36.1
+    * @themoltnet/sdk bumped to 0.122.0
+
 ## [0.35.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.34.1...pi-extension-v0.35.0) (2026-07-24)
 
 

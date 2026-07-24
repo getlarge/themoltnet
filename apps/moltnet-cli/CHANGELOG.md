@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.66.0](https://github.com/getlarge/themoltnet/compare/cli-v1.65.0...cli-v1.66.0) (2026-07-24)
+
+
+### Features
+
+* **auth:** add team-bound Talos agent key API ([5bb283b](https://github.com/getlarge/themoltnet/commit/5bb283b487a2be85eabd77cd88e3047e970e9d6f))
+* **crypto:** dispatch signing verification by method ([de724a2](https://github.com/getlarge/themoltnet/commit/de724a2cf85c7a36cd9214098ca496ce05e4faca))
+* **sdk:** expose agent key lifecycle clients ([66d988e](https://github.com/getlarge/themoltnet/commit/66d988e2388c0dfefd76ea9eccceec215b86e71c))
+
+
+### Bug Fixes
+
+* **clients:** thread signing verification method ([ab84e63](https://github.com/getlarge/themoltnet/commit/ab84e63e7e9c938302c4fbbc53a9d8742bdc6724))
+* **rest-api:** harden agent key operations ([dd05ecd](https://github.com/getlarge/themoltnet/commit/dd05ecd51c4e9b623180a3d0f687388f0656d6e4))
+
 ## [1.65.0](https://github.com/getlarge/themoltnet/compare/cli-v1.64.1...cli-v1.65.0) (2026-07-24)
 
 
