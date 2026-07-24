@@ -14,6 +14,7 @@ import { useLocation } from 'wouter';
 
 import { getApiClient } from '../api.js';
 import { useAuth } from '../auth/useAuth.js';
+import { getConfig } from '../config.js';
 import { useDiarySummaries } from '../diaries/hooks.js';
 import { buildTeamPilotBriefing } from '../overview/team-pilot.js';
 import { useTeam } from '../team/useTeam.js';
@@ -22,6 +23,8 @@ const statusLabel = {
   not_started: 'Not started',
   ready: 'Ready',
   in_progress: 'In progress',
+  needs_attention: 'Needs attention',
+  unavailable: 'Unavailable',
   complete: 'Complete',
 } as const;
 
@@ -29,6 +32,8 @@ const statusVariant = {
   not_started: 'default',
   ready: 'accent',
   in_progress: 'primary',
+  needs_attention: 'error',
+  unavailable: 'warning',
   complete: 'success',
 } as const;
 
@@ -39,6 +44,7 @@ export function OverviewPage() {
   const [, navigate] = useLocation();
   const teamId = selectedTeam?.id ?? '';
   const hasProjectTeam = Boolean(selectedTeam && !selectedTeam.personal);
+  const { docsUrl } = getConfig();
 
   const diariesQuery = useDiarySummaries(hasProjectTeam ? teamId : null);
   const teamQuery = useQuery({
@@ -61,19 +67,26 @@ export function OverviewPage() {
     teamsLoading ||
     (hasProjectTeam &&
       (diariesQuery.isLoading || teamQuery.isLoading || tasksQuery.isLoading));
-  const dataError =
-    hasProjectTeam &&
-    (diariesQuery.error || teamQuery.error || tasksQuery.error);
 
   const briefing = useMemo(
     () =>
       buildTeamPilotBriefing({
         team: selectedTeam,
-        diaries: diariesQuery.data ?? [],
-        members: teamQuery.data?.members ?? [],
-        tasks: tasksQuery.data?.items ?? [],
+        diaries: diariesQuery.error ? null : (diariesQuery.data ?? []),
+        docsUrl,
+        members: teamQuery.error ? null : (teamQuery.data?.members ?? []),
+        tasks: tasksQuery.error ? null : (tasksQuery.data?.items ?? []),
       }),
-    [diariesQuery.data, selectedTeam, tasksQuery.data, teamQuery.data],
+    [
+      diariesQuery.data,
+      diariesQuery.error,
+      docsUrl,
+      selectedTeam,
+      tasksQuery.data,
+      tasksQuery.error,
+      teamQuery.data,
+      teamQuery.error,
+    ],
   );
 
   if (isLoading) {
@@ -85,7 +98,7 @@ export function OverviewPage() {
     );
   }
 
-  if (teamError || dataError) {
+  if (teamError) {
     return (
       <Stack gap={4}>
         <Text variant="h1">Team pilot</Text>
@@ -93,9 +106,8 @@ export function OverviewPage() {
           <Stack gap={3}>
             <Text variant="h3">Pilot status is unavailable</Text>
             <Text color="muted">
-              The console could not load the team, diary, or task state needed
-              for this briefing. Check connectivity, then try the relevant
-              workspace directly.
+              The console could not load the selected team. Check connectivity,
+              then try the relevant workspace directly.
             </Text>
             <Stack direction="row" gap={3} wrap>
               <Button
@@ -159,7 +171,7 @@ export function OverviewPage() {
                   align="center"
                 >
                   <Text variant="overline" color="accent">
-                    {index + 1}. {phase.id}
+                    {index + 1}. {phase.label}
                   </Text>
                   <Badge variant={statusVariant[phase.status]}>
                     {statusLabel[phase.status]}
@@ -209,19 +221,20 @@ export function OverviewPage() {
         <Stack gap={3} style={{ marginTop: theme.spacing[4] }}>
           <Divider />
           <Text color="muted">
-            {selectedTeam && !selectedTeam.personal
+            {hasProjectTeam && selectedTeam
               ? `Current project team: ${selectedTeam.name}.`
               : 'A personal team is selected. Choose a non-personal project team for a shared pilot.'}
           </Text>
           <Text color="muted">
-            {briefing.managerAgent
-              ? `Manager agent: ${briefing.managerAgent.displayName}. The manager role permits task claims; it does not prove that agent-daemon is running.`
-              : 'No manager agent is visible in the selected project team.'}
+            {briefing.agentMember
+              ? `Team agent: ${briefing.agentMember.displayName}. Owner or manager membership is the conventional claim path, while diary writer grants can also authorize claims. Visible membership does not prove that agent-daemon is running.`
+              : 'No agent is visible in the selected project team.'}
           </Text>
           <Text color="muted">
             {briefing.queuedTaskCount} queued, {briefing.activeTaskCount}{' '}
-            active, and {briefing.completedTaskCount} completed task
-            {briefing.completedTaskCount === 1 ? '' : 's'} in the loaded queue.
+            active, {briefing.waitingTaskCount} condition-waiting,{' '}
+            {briefing.completedTaskCount} completed, and{' '}
+            {briefing.failedTaskCount} unsuccessful in the loaded queue.
           </Text>
           <Stack direction="row" gap={3} wrap>
             <Button
