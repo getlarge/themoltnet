@@ -33,6 +33,35 @@ export interface SignatureVerifier {
   ): Promise<boolean>;
 }
 
+export const verificationMethods = [
+  'agent-ed25519',
+  'human-hardware-previewsign',
+] as const;
+
+export type VerificationMethod = (typeof verificationMethods)[number];
+
+export interface SigningVerifier {
+  verify(
+    message: string,
+    nonce: string,
+    signature: string,
+    publicKey: string,
+  ): Promise<boolean>;
+}
+
+export class Ed25519Verifier implements SigningVerifier {
+  constructor(private readonly verifier: SignatureVerifier) {}
+
+  verify(
+    message: string,
+    nonce: string,
+    signature: string,
+    publicKey: string,
+  ): Promise<boolean> {
+    return this.verifier.verifyWithNonce(message, nonce, signature, publicKey);
+  }
+}
+
 /**
  * Interface for looking up an agent's public key.
  * Implemented by the agent repository.
@@ -75,13 +104,20 @@ export interface SigningResult {
 // ── Dependency Injection ────────────────────────────────────────────
 // Dependencies are injected at runtime before DBOS.launch()
 
-let signatureVerifier: SignatureVerifier | null = null;
+const signingVerifierRegistry = new Map<VerificationMethod, SigningVerifier>();
 let agentKeyLookup: AgentKeyLookup | null = null;
 let signingRequestPersistence: SigningRequestPersistence | null = null;
 let signingTimeoutSeconds = 300; // 5 minutes default
 
 export function setSigningVerifier(verifier: SignatureVerifier): void {
-  signatureVerifier = verifier;
+  registerSigningVerifier('agent-ed25519', new Ed25519Verifier(verifier));
+}
+
+export function registerSigningVerifier(
+  verificationMethod: VerificationMethod,
+  verifier: SigningVerifier,
+): void {
+  signingVerifierRegistry.set(verificationMethod, verifier);
 }
 
 export function setSigningKeyLookup(lookup: AgentKeyLookup): void {
@@ -98,13 +134,16 @@ export function setSigningTimeoutSeconds(seconds: number): void {
   signingTimeoutSeconds = seconds;
 }
 
-function getSignatureVerifier(): SignatureVerifier {
-  if (!signatureVerifier) {
+function getSigningVerifier(
+  verificationMethod: VerificationMethod,
+): SigningVerifier {
+  const verifier = signingVerifierRegistry.get(verificationMethod);
+  if (!verifier) {
     throw new Error(
-      'SignatureVerifier not set. Call setSigningVerifier() before using signing workflows.',
+      `Signing verifier not registered for verification method: ${verificationMethod}`,
     );
   }
-  return signatureVerifier;
+  return verifier;
 }
 
 function getAgentKeyLookup(): AgentKeyLookup {
@@ -141,6 +180,7 @@ let _workflows: {
     agentId: string,
     message: string,
     nonce: string,
+    verificationMethod?: VerificationMethod,
   ) => Promise<SigningResult>;
 } | null = null;
 
@@ -163,12 +203,13 @@ export function initSigningWorkflows(): void {
 
   const verifySignatureStep = DBOS.registerStep(
     async (
+      verificationMethod: VerificationMethod,
       message: string,
       nonce: string,
       signature: string,
       publicKey: string,
     ): Promise<boolean> => {
-      return getSignatureVerifier().verifyWithNonce(
+      return getSigningVerifier(verificationMethod).verify(
         message,
         nonce,
         signature,
@@ -206,6 +247,7 @@ export function initSigningWorkflows(): void {
         agentId: string,
         message: string,
         nonce: string,
+        verificationMethod: VerificationMethod = 'agent-ed25519',
       ): Promise<SigningResult> => {
         // 1. Publish the signing envelope for the agent to read
         const envelope: SigningEnvelope = { requestId, message, nonce };
@@ -250,6 +292,7 @@ export function initSigningWorkflows(): void {
 
         // 4. Verify the signature using deterministic pre-hash (buildSigningBytes)
         const valid = await verifySignatureStep(
+          verificationMethod,
           message,
           nonce,
           submission.signature,
@@ -294,4 +337,5 @@ export const signingWorkflows = {
 /** @internal Reset module state for testing. */
 export function _resetSigningWorkflowsForTesting(): void {
   _workflows = null;
+  signingVerifierRegistry.clear();
 }

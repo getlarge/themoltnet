@@ -1,7 +1,9 @@
 export {
   _resetSigningWorkflowsForTesting,
   type AgentKeyLookup,
+  Ed25519Verifier,
   initSigningWorkflows,
+  registerSigningVerifier,
   setSigningKeyLookup,
   setSigningRequestPersistence,
   setSigningTimeoutSeconds,
@@ -10,5 +12,8 @@ export {
   type SigningEnvelope,
   type SigningRequestPersistence,
   type SigningResult,
+  type SigningVerifier,
   signingWorkflows,
+  type VerificationMethod,
+  verificationMethods,
 } from './signing-workflows.js';

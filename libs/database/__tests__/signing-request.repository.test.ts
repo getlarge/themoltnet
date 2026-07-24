@@ -38,6 +38,9 @@ const REQUEST_ID = '770e8400-e29b-41d4-a716-446655440002';
 const mockRequest: SigningRequest = {
   id: REQUEST_ID,
   agentId: AGENT_ID,
+  verificationMethod: 'agent-ed25519',
+  requestedBy: null,
+  signerConstraint: null,
   message: 'Hello, world!',
   nonce: '880e8400-e29b-41d4-a716-446655440003',
   status: 'pending',
@@ -68,7 +71,34 @@ describe('createSigningRequestRepository', () => {
       });
 
       expect(db.insert).toHaveBeenCalled();
+      expect(db._chain.values).toHaveBeenCalledWith(
+        expect.objectContaining({
+          verificationMethod: 'agent-ed25519',
+        }),
+      );
       expect(result).toEqual(mockRequest);
+    });
+
+    it('creates a signing request with an explicit verification method', async () => {
+      db._chain.returning.mockResolvedValueOnce([
+        {
+          ...mockRequest,
+          verificationMethod: 'human-hardware-previewsign',
+        },
+      ]);
+
+      await repo.create({
+        agentId: AGENT_ID,
+        message: 'Hello, world!',
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+        verificationMethod: 'human-hardware-previewsign',
+      });
+
+      expect(db._chain.values).toHaveBeenCalledWith(
+        expect.objectContaining({
+          verificationMethod: 'human-hardware-previewsign',
+        }),
+      );
     });
 
     it('creates a signing request with custom expiry', async () => {

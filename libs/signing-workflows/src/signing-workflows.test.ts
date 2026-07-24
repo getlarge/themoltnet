@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   _resetSigningWorkflowsForTesting,
   initSigningWorkflows,
+  registerSigningVerifier,
   setSigningKeyLookup,
   setSigningRequestPersistence,
   setSigningVerifier,
@@ -100,6 +101,11 @@ describe('Signing Workflows', () => {
     });
 
     it('completes successfully when signature is valid', async () => {
+      const verifyWithNonce = vi.fn().mockResolvedValue(true);
+      setSigningVerifier({
+        verify: vi.fn().mockResolvedValue(true),
+        verifyWithNonce,
+      });
       vi.mocked(DBOS.recv).mockResolvedValue({ signature: SIGNATURE });
 
       const result = await signingWorkflows.requestSignature(
@@ -115,6 +121,12 @@ describe('Signing Workflows', () => {
         nonce: NONCE,
       });
       expect(DBOS.recv).toHaveBeenCalledWith('signature', expect.any(Number));
+      expect(verifyWithNonce).toHaveBeenCalledWith(
+        MESSAGE,
+        NONCE,
+        SIGNATURE,
+        PUBLIC_KEY,
+      );
       expect(result.status).toBe('completed');
       expect(result.valid).toBe(true);
       expect(result.requestId).toBe(REQUEST_ID);
@@ -167,6 +179,30 @@ describe('Signing Workflows', () => {
 
       expect(result.status).toBe('completed');
       expect(result.valid).toBe(false);
+    });
+
+    it('dispatches verification by verification method', async () => {
+      const hardwareVerifier = {
+        verify: vi.fn().mockResolvedValue(true),
+      };
+      registerSigningVerifier('human-hardware-previewsign', hardwareVerifier);
+      vi.mocked(DBOS.recv).mockResolvedValue({ signature: SIGNATURE });
+
+      const result = await signingWorkflows.requestSignature(
+        REQUEST_ID,
+        AGENT_ID,
+        MESSAGE,
+        NONCE,
+        'human-hardware-previewsign',
+      );
+
+      expect(hardwareVerifier.verify).toHaveBeenCalledWith(
+        MESSAGE,
+        NONCE,
+        SIGNATURE,
+        PUBLIC_KEY,
+      );
+      expect(result.valid).toBe(true);
     });
   });
 });

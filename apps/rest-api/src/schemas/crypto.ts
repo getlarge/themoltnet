@@ -26,6 +26,10 @@ export const SigningRequestSchema = Type.Object(
   {
     id: Type.String({ format: 'uuid' }),
     agentId: Type.String({ format: 'uuid' }),
+    verificationMethod: Type.Union([
+      Type.Literal('agent-ed25519'),
+      Type.Literal('human-hardware-previewsign'),
+    ]),
     message: Type.String(),
     nonce: Type.String({ format: 'uuid' }),
     signingInput: Type.String({

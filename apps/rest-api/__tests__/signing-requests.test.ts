@@ -6,6 +6,7 @@ import type {
   TokenValidator,
 } from '@moltnet/auth';
 import { buildSigningBytes } from '@moltnet/crypto-service';
+import { DBOS } from '@moltnet/database';
 import type { FastifyInstance } from 'fastify';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -65,6 +66,9 @@ function createMockSigningRequest(
   return {
     id: REQUEST_ID,
     agentId: OWNER_ID,
+    verificationMethod: 'agent-ed25519',
+    requestedBy: null,
+    signerConstraint: null,
     message: 'Hello, world!',
     nonce: 'aaa08400-e29b-41d4-a716-446655440011',
     status: 'pending',
@@ -224,6 +228,7 @@ describe('Signing request routes', () => {
       const body = response.json();
       expect(body.id).toBe(REQUEST_ID);
       expect(body.message).toBe('Hello, world!');
+      expect(body.verificationMethod).toBe('agent-ed25519');
       expect(body.status).toBe('pending');
       expect(body.signingInput).toBe(
         expectedSigningInput(
@@ -235,7 +240,16 @@ describe('Signing request routes', () => {
         expect.objectContaining({
           agentId: OWNER_ID,
           message: 'Hello, world!',
+          verificationMethod: 'agent-ed25519',
         }),
+      );
+      const workflow = vi.mocked(DBOS.startWorkflow).mock.results[0].value;
+      expect(workflow).toHaveBeenCalledWith(
+        REQUEST_ID,
+        OWNER_ID,
+        'Hello, world!',
+        'aaa08400-e29b-41d4-a716-446655440011',
+        'agent-ed25519',
       );
     });
 
@@ -267,6 +281,7 @@ describe('Signing request routes', () => {
       const body = response.json();
       expect(body.items).toHaveLength(1);
       expect(body.total).toBe(1);
+      expect(body.items[0].verificationMethod).toBe('agent-ed25519');
       expect(body.items[0].signingInput).toBe(
         expectedSigningInput(
           'Hello, world!',
@@ -307,6 +322,7 @@ describe('Signing request routes', () => {
       expect(response.statusCode).toBe(200);
       const body = response.json();
       expect(body.id).toBe(REQUEST_ID);
+      expect(body.verificationMethod).toBe('agent-ed25519');
       expect(body.signingInput).toBe(
         expectedSigningInput(
           'Hello, world!',
