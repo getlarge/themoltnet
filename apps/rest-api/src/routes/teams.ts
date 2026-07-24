@@ -398,9 +398,7 @@ export function teamRoutes(fastify: FastifyInstance) {
           identityId,
         );
       const teamRoles = currentTeamId
-        ? allTeamRoles.filter(
-            ({ teamId }) => teamId === currentTeamId,
-          )
+        ? allTeamRoles.filter(({ teamId }) => teamId === currentTeamId)
         : allTeamRoles;
       if (teamRoles.length === 0) return { items: [] };
 
