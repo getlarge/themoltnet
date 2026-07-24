@@ -7,6 +7,7 @@ import type {
 } from '@moltnet/auth';
 import { buildSigningBytes } from '@moltnet/crypto-service';
 import { DBOS } from '@moltnet/database';
+import { isSigningVerifierRegistered } from '@moltnet/signing-workflows';
 import type { FastifyInstance } from 'fastify';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -41,6 +42,9 @@ vi.mock('@moltnet/database', async (importOriginal) => {
 });
 
 vi.mock('@moltnet/signing-workflows', () => ({
+  isSigningVerifierRegistered: vi.fn(
+    (method: string) => method === 'agent-ed25519',
+  ),
   signingWorkflows: {
     requestSignature: vi.fn(),
   },
@@ -263,6 +267,32 @@ describe('Signing request routes', () => {
       });
 
       expect(response.statusCode).toBe(401);
+    });
+
+    it('rejects a verification method with no registered verifier', async () => {
+      vi.mocked(isSigningVerifierRegistered).mockReturnValueOnce(false);
+      vi.mocked(DBOS.startWorkflow).mockClear();
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/crypto/signing-requests',
+        headers: { authorization: 'Bearer test-token' },
+        payload: {
+          message: 'Hello, world!',
+          verificationMethod: 'human-hardware-previewsign',
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(response.json()).toEqual(
+        expect.objectContaining({
+          code: 'VALIDATION_FAILED',
+          detail:
+            'No signing verifier is registered for verification method: human-hardware-previewsign',
+        }),
+      );
+      expect(signingRepo.create).not.toHaveBeenCalled();
+      expect(DBOS.startWorkflow).not.toHaveBeenCalled();
     });
   });
 

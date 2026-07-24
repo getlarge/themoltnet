@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   _resetSigningWorkflowsForTesting,
   initSigningWorkflows,
+  isSigningVerifierRegistered,
   registerSigningVerifier,
   setSigningKeyLookup,
   setSigningRequestPersistence,
@@ -196,13 +197,66 @@ describe('Signing Workflows', () => {
         'human-hardware-previewsign',
       );
 
-      expect(hardwareVerifier.verify).toHaveBeenCalledWith(
+      expect(hardwareVerifier.verify).toHaveBeenCalledWith({
+        verificationMethod: 'human-hardware-previewsign',
+        message: MESSAGE,
+        nonce: NONCE,
+        signature: SIGNATURE,
+        publicKey: PUBLIC_KEY,
+      });
+      expect(result.valid).toBe(true);
+    });
+
+    it('completes as invalid when the selected verifier throws', async () => {
+      const updateStatus = vi.fn().mockResolvedValue(undefined);
+      vi.mocked(DBOS.recv).mockResolvedValue({ signature: SIGNATURE });
+      setSigningVerifier({
+        verify: vi.fn().mockResolvedValue(true),
+        verifyWithNonce: vi.fn().mockRejectedValue(new Error('malformed key')),
+      });
+      setSigningRequestPersistence({ updateStatus });
+
+      const result = await signingWorkflows.requestSignature(
+        REQUEST_ID,
+        AGENT_ID,
         MESSAGE,
         NONCE,
-        SIGNATURE,
-        PUBLIC_KEY,
       );
-      expect(result.valid).toBe(true);
+
+      expect(updateStatus).toHaveBeenCalledWith(
+        REQUEST_ID,
+        expect.objectContaining({
+          status: 'completed',
+          signature: SIGNATURE,
+          valid: false,
+        }),
+      );
+      expect(DBOS.setEvent).toHaveBeenCalledWith('result', {
+        requestId: REQUEST_ID,
+        status: 'completed',
+        valid: false,
+      });
+      expect(result).toEqual({
+        requestId: REQUEST_ID,
+        status: 'completed',
+        valid: false,
+      });
+    });
+  });
+
+  describe('signing verifier registry', () => {
+    it('reports whether a verification method can be fulfilled', () => {
+      expect(isSigningVerifierRegistered('human-hardware-previewsign')).toBe(
+        false,
+      );
+
+      registerSigningVerifier('human-hardware-previewsign', {
+        verify: vi.fn().mockResolvedValue(true),
+      });
+
+      expect(isSigningVerifierRegistered('human-hardware-previewsign')).toBe(
+        true,
+      );
     });
   });
 });

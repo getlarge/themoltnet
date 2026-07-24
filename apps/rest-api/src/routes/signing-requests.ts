@@ -28,7 +28,10 @@ import {
   VERIFICATION_METHOD,
   VerificationMethodSchema,
 } from '@moltnet/models';
-import { signingWorkflows } from '@moltnet/signing-workflows';
+import {
+  isSigningVerifierRegistered,
+  signingWorkflows,
+} from '@moltnet/signing-workflows';
 import type { FastifyInstance } from 'fastify';
 import { Type } from 'typebox';
 
@@ -94,6 +97,13 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       const { message, verificationMethod = VERIFICATION_METHOD.AgentEd25519 } =
         request.body;
+      if (!isSigningVerifierRegistered(verificationMethod)) {
+        throw createProblem(
+          'validation-failed',
+          `No signing verifier is registered for verification method: ${verificationMethod}`,
+        );
+      }
+
       const agentId = request.authContext!.identityId;
       const timeoutSeconds = fastify.signingTimeoutSeconds;
       const expiresAt = new Date(Date.now() + timeoutSeconds * 1000);

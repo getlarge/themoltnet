@@ -13,11 +13,7 @@
  */
 
 import { DBOS } from '@dbos-inc/dbos-sdk';
-import {
-  VERIFICATION_METHOD,
-  VERIFICATION_METHOD_VALUES,
-  type VerificationMethod,
-} from '@moltnet/models';
+import { VERIFICATION_METHOD, type VerificationMethod } from '@moltnet/models';
 
 export {
   VERIFICATION_METHOD,
@@ -44,27 +40,27 @@ export interface SignatureVerifier {
   ): Promise<boolean>;
 }
 
-/** @deprecated Use VERIFICATION_METHOD_VALUES. */
-export const verificationMethods = VERIFICATION_METHOD_VALUES;
+export interface SigningVerificationInput {
+  verificationMethod: VerificationMethod;
+  message: string;
+  nonce: string;
+  signature: string;
+  publicKey: string;
+}
 
 export interface SigningVerifier {
-  verify(
-    message: string,
-    nonce: string,
-    signature: string,
-    publicKey: string,
-  ): Promise<boolean>;
+  verify(input: SigningVerificationInput): Promise<boolean>;
 }
 
 export class Ed25519Verifier implements SigningVerifier {
   constructor(private readonly verifier: SignatureVerifier) {}
 
-  verify(
-    message: string,
-    nonce: string,
-    signature: string,
-    publicKey: string,
-  ): Promise<boolean> {
+  verify({
+    message,
+    nonce,
+    signature,
+    publicKey,
+  }: SigningVerificationInput): Promise<boolean> {
     return this.verifier.verifyWithNonce(message, nonce, signature, publicKey);
   }
 }
@@ -128,6 +124,12 @@ export function registerSigningVerifier(
   verifier: SigningVerifier,
 ): void {
   signingVerifierRegistry.set(verificationMethod, verifier);
+}
+
+export function isSigningVerifierRegistered(
+  verificationMethod: VerificationMethod,
+): boolean {
+  return signingVerifierRegistry.has(verificationMethod);
 }
 
 export function setSigningKeyLookup(lookup: AgentKeyLookup): void {
@@ -219,12 +221,13 @@ export function initSigningWorkflows(): void {
       signature: string,
       publicKey: string,
     ): Promise<boolean> => {
-      return getSigningVerifier(verificationMethod).verify(
+      return getSigningVerifier(verificationMethod).verify({
+        verificationMethod,
         message,
         nonce,
         signature,
         publicKey,
-      );
+      });
     },
     {
       name: 'signing.step.verifySignature',
@@ -301,13 +304,19 @@ export function initSigningWorkflows(): void {
         }
 
         // 4. Verify the signature using deterministic pre-hash (buildSigningBytes)
-        const valid = await verifySignatureStep(
-          verificationMethod,
-          message,
-          nonce,
-          submission.signature,
-          publicKey,
-        );
+        let valid: boolean;
+        try {
+          valid = await verifySignatureStep(
+            verificationMethod,
+            message,
+            nonce,
+            submission.signature,
+            publicKey,
+          );
+        } catch {
+          // A verifier error is a terminal invalid result, not a pending request.
+          valid = false;
+        }
 
         // 5. Persist the final status
         await persistStatusStep(
