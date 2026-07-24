@@ -15,6 +15,7 @@ import InteractiveTasksExample from './components/InteractiveTasksExample.vue';
 import InteractiveTeamsExample from './components/InteractiveTeamsExample.vue';
 import LoginButton from './components/LoginButton.vue';
 import RunAsMeExample from './components/RunAsMeExample.vue';
+import RuntimeProfileContextRecipe from './components/RuntimeProfileContextRecipe.vue';
 import TeamSelector from './components/TeamSelector.vue';
 import UserCard from './components/UserCard.vue';
 import UserGreeting from './components/UserGreeting.vue';
@@ -68,6 +69,7 @@ export default {
     app.component('UserGreeting', UserGreeting);
     app.component('LoginButton', LoginButton);
     app.component('RunAsMeExample', RunAsMeExample);
+    app.component('RuntimeProfileContextRecipe', RuntimeProfileContextRecipe);
     app.component('TeamSelector', TeamSelector);
   },
 } satisfies Theme;

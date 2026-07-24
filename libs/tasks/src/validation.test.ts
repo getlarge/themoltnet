@@ -9,6 +9,8 @@ import { FreeformInput } from './task-types/freeform.js';
 import { BUILT_IN_TASK_TYPES, FREEFORM_TYPE } from './task-types/index.js';
 import {
   getTaskExecutionPolicy,
+  getTaskSubmissionSchema,
+  materializeTaskOutput,
   normalizeTaskCreateRequest,
   normalizeTaskInputForCreate,
   SUBMIT_OUTPUT_GATE_ID,
@@ -20,6 +22,7 @@ import {
   validateTaskCreateRequest,
   validateTaskOutput,
   validateTaskReferences,
+  validateTaskSubmission,
 } from './validation.js';
 import { DaemonState, TaskAttempt, TaskRef } from './wire.js';
 
@@ -962,6 +965,133 @@ describe('taskTypeSessionScope', () => {
   it('reserves custom scope for eval isolation planning', () => {
     expect(taskTypeSessionScope('run_eval')).toBe('custom');
     expect(taskTypeSessionScope('judge_eval_attempt')).toBe('none');
+  });
+});
+
+describe('agent submission and runtime materialization', () => {
+  const runEvalInput = {
+    scenario: { prompt: 'Respond concisely.' },
+    variantLabel: 'baseline',
+    execution: { mode: 'vitro' as const, workspace: 'none' as const },
+    context: [],
+    successCriteria: { version: 1 as const },
+  };
+  const submission = {
+    response: 'done',
+    verification: {
+      inputCid: 'bafy-input',
+      results: [],
+      passed: true,
+    },
+  };
+
+  it('advertises a submission schema for every built-in task type', () => {
+    for (const taskType of Object.keys(BUILT_IN_TASK_TYPES)) {
+      expect(getTaskSubmissionSchema(taskType)).not.toBeNull();
+    }
+  });
+
+  it('requires verification wherever a producer schema accepts it with success criteria', () => {
+    let producerTypesWithVerification = 0;
+    const entries = Object.values(BUILT_IN_TASK_TYPES) as Array<{
+      inputSchema: { properties?: Record<string, unknown> };
+      submissionSchema?: { properties?: Record<string, unknown> };
+      validateOutput?: unknown;
+    }>;
+    for (const entry of entries) {
+      const inputProperties = entry.inputSchema.properties;
+      const submissionProperties = entry.submissionSchema?.properties;
+      if (
+        inputProperties?.successCriteria !== undefined &&
+        submissionProperties?.verification !== undefined
+      ) {
+        producerTypesWithVerification++;
+        expect(entry.validateOutput).toBeTypeOf('function');
+      }
+    }
+    expect(producerTypesWithVerification).toBeGreaterThan(0);
+  });
+
+  it('rejects a run_eval submission that tries to supply executor telemetry', () => {
+    expect(
+      validateTaskSubmission(
+        'run_eval',
+        { ...submission, totalTokens: 999, durationMs: 1 },
+        runEvalInput,
+        { inputCid: 'bafy-input' },
+      ),
+    ).not.toEqual([]);
+  });
+
+  it('requires a verification to cite the exact task input CID', () => {
+    expect(
+      validateTaskSubmission('run_eval', submission, runEvalInput, {
+        inputCid: 'another-input-cid',
+      }),
+    ).toEqual([
+      {
+        field: 'output/verification/inputCid',
+        message: 'must match the task input CID',
+      },
+    ]);
+  });
+
+  it('rejects a durable output whose verification cites another task input CID', () => {
+    const output = materializeTaskOutput('run_eval', submission, {
+      usage: { inputTokens: 12, outputTokens: 30 },
+      durationMs: 456,
+    });
+
+    expect(
+      validateTaskOutput('run_eval', output, runEvalInput, {
+        inputCid: 'another-input-cid',
+      }),
+    ).toEqual([
+      {
+        field: 'output/verification/inputCid',
+        message: 'must match the task input CID',
+      },
+    ]);
+  });
+
+  it('stamps durable run_eval telemetry from runtime facts rather than the submission', () => {
+    const output = materializeTaskOutput(
+      'run_eval',
+      {
+        ...submission,
+        totalTokens: 999_999,
+        durationMs: 1,
+        traceparent: 'agent-supplied',
+      },
+      {
+        usage: { inputTokens: 12, outputTokens: 30 },
+        durationMs: 456,
+        traceparent: '00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01',
+      },
+    );
+
+    expect(output).toMatchObject({
+      ...submission,
+      totalTokens: 42,
+      durationMs: 456,
+      traceparent: '00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01',
+    });
+    expect(
+      validateTaskOutput('run_eval', output, runEvalInput, {
+        inputCid: 'bafy-input',
+      }),
+    ).toEqual([]);
+  });
+
+  it('allows durable eval output without a traceparent', () => {
+    const output = materializeTaskOutput('run_eval', submission, {
+      usage: { inputTokens: 12, outputTokens: 30 },
+      durationMs: 456,
+      traceparent: '   ',
+    });
+
+    expect(output).not.toHaveProperty('traceparent');
+    expect(validateTaskOutput('run_eval', output, runEvalInput)).toEqual([]);
   });
 });
 

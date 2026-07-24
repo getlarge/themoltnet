@@ -42,6 +42,28 @@ export const JudgeEvalAttemptInput = Type.Object(
 );
 export type JudgeEvalAttemptInput = Static<typeof JudgeEvalAttemptInput>;
 
+/** Agent-authored part of a judge attempt's output. */
+export const JudgeEvalAttemptSubmission = Type.Object(
+  {
+    targetTaskId: Type.String({ format: 'uuid' }),
+    targetAttemptN: Type.Integer({ minimum: 1 }),
+    variantLabel: Type.String({
+      minLength: 1,
+      maxLength: 64,
+      pattern: '^(?!.* - ).*$',
+    }),
+    scores: Type.Array(JudgePackScore, { minItems: 1 }),
+    composite: Type.Number({ minimum: 0, maximum: 1 }),
+    verdict: Type.String({ minLength: 1 }),
+    judgeModel: Type.Optional(Type.String({ minLength: 1 })),
+  },
+  { $id: 'JudgeEvalAttemptSubmission', additionalProperties: false },
+);
+export type JudgeEvalAttemptSubmission = Static<
+  typeof JudgeEvalAttemptSubmission
+>;
+
+/** Durable output after the executor stamps the claim trace context. */
 export const JudgeEvalAttemptOutput = Type.Object(
   {
     targetTaskId: Type.String({ format: 'uuid' }),
@@ -55,7 +77,8 @@ export const JudgeEvalAttemptOutput = Type.Object(
     composite: Type.Number({ minimum: 0, maximum: 1 }),
     verdict: Type.String({ minLength: 1 }),
     judgeModel: Type.Optional(Type.String({ minLength: 1 })),
-    traceparent: Type.String({ minLength: 1 }),
+    /** Stamped when the claim supplied a W3C trace context. */
+    traceparent: Type.Optional(Type.String({ minLength: 1 })),
   },
   { $id: 'JudgeEvalAttemptOutput', additionalProperties: false },
 );

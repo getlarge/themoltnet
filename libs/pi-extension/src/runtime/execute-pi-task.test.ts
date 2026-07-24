@@ -37,6 +37,7 @@ import {
   formatProviderErrorRetryStatus,
   isBashTimeoutResult,
   makeSessionEventHandler,
+  materializeCapturedAttemptOutput,
   notifyProviderErrorRetryUi,
   openVmWorkspaceFileForRead,
   promptUntilSubmitted,
@@ -778,6 +779,91 @@ describe('captureAttemptOutput (output-capture characterization)', () => {
   });
 });
 
+describe('materializeCapturedAttemptOutput', () => {
+  it('stamps eval telemetry from the executor rather than the agent submission', async () => {
+    const emitted: Array<{ kind: string; payload: Record<string, unknown> }> =
+      [];
+    const result = await materializeCapturedAttemptOutput({
+      taskType: 'run_eval',
+      submission: {
+        response: 'done',
+        totalTokens: 999_999,
+        durationMs: 1,
+        traceparent: 'agent-supplied',
+        verification: {
+          inputCid: 'bafy-input',
+          results: [],
+          passed: true,
+        },
+      },
+      input: {
+        scenario: { prompt: 'do it' },
+        variantLabel: 'baseline',
+        execution: { mode: 'vitro', workspace: 'none' },
+        context: [],
+        successCriteria: { version: 1 },
+      },
+      inputCid: 'bafy-input',
+      usage: { inputTokens: 40, outputTokens: 2 },
+      durationMs: 789,
+      traceparent: '00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01',
+      emit: async (kind, payload) => {
+        emitted.push({ kind, payload });
+      },
+    });
+
+    expect(result.error).toBeNull();
+    expect(result.output).toMatchObject({
+      response: 'done',
+      totalTokens: 42,
+      durationMs: 789,
+      traceparent: '00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01',
+    });
+    expect(emitted).toEqual([]);
+  });
+
+  it('reports a materialized output that fails input CID validation', async () => {
+    const emitted: Array<{ kind: string; payload: Record<string, unknown> }> =
+      [];
+    const result = await materializeCapturedAttemptOutput({
+      taskType: 'run_eval',
+      submission: {
+        response: 'done',
+        verification: {
+          inputCid: 'wrong-input-cid',
+          results: [],
+          passed: true,
+        },
+      },
+      input: {
+        scenario: { prompt: 'do it' },
+        variantLabel: 'baseline',
+        execution: { mode: 'vitro', workspace: 'none' },
+        context: [],
+        successCriteria: { version: 1 },
+      },
+      inputCid: 'bafy-input',
+      usage: { inputTokens: 40, outputTokens: 2 },
+      durationMs: 789,
+      emit: async (kind, payload) => {
+        emitted.push({ kind, payload });
+      },
+    });
+
+    expect(result).toMatchObject({
+      output: null,
+      outputCid: null,
+      error: { code: 'output_validation_failed' },
+    });
+    expect(emitted).toEqual([
+      expect.objectContaining({
+        kind: 'error',
+        payload: expect.objectContaining({ phase: 'output_validation' }),
+      }),
+    ]);
+  });
+});
+
 describe('makeSessionEventHandler (subscribe-handler characterization)', () => {
   // The real exported event type. The `as unknown as Ev` casts below mean a
   // renamed pi field won't fail these fakes directly — the true guard is the
@@ -1392,9 +1478,6 @@ describe('parseStructuredTaskOutput', () => {
     const result = await parseStructuredTaskOutput(
       JSON.stringify({
         response: 'done',
-        totalTokens: 10,
-        durationMs: 100,
-        traceparent: '00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01',
       }),
       'run_eval',
       {
@@ -1419,9 +1502,6 @@ describe('parseStructuredTaskOutput', () => {
   it('still accepts the same payload when no input is available', async () => {
     const output = {
       response: 'done',
-      totalTokens: 10,
-      durationMs: 100,
-      traceparent: '00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01',
     };
 
     const result = await parseStructuredTaskOutput(
@@ -1487,6 +1567,28 @@ describe('agent_runtime.task_output.parse_result counter', () => {
     return out;
   }
 
+  async function telemetryAnomalies(): Promise<DataPoint[]> {
+    const collected = await reader.snapshot();
+    const points: DataPoint[] = [];
+    for (const sm of collected.resourceMetrics.scopeMetrics) {
+      for (const metric of sm.metrics) {
+        if (
+          metric.descriptor.name !==
+          'agent_runtime.task_output.telemetry_anomaly'
+        ) {
+          continue;
+        }
+        for (const point of metric.dataPoints) {
+          points.push({
+            attributes: { ...point.attributes },
+            value: point.value as number,
+          });
+        }
+      }
+    }
+    return points;
+  }
+
   it('increments `success` with task_type + model labels on a valid payload', async () => {
     const output = {
       branch: 'feat/x',
@@ -1515,6 +1617,43 @@ describe('agent_runtime.task_output.parse_result counter', () => {
     const snap = await snapshotByCode();
     expect(snap.output_missing).toHaveLength(1);
     expect(snap.output_missing[0].attributes.code).toBe('output_missing');
+  });
+
+  it('records zero executor telemetry without changing durable output', async () => {
+    const result = await materializeCapturedAttemptOutput({
+      taskType: 'run_eval',
+      submission: {
+        response: 'done',
+        verification: { inputCid: 'bafy-input', results: [], passed: true },
+      },
+      input: {
+        scenario: { prompt: 'do it' },
+        variantLabel: 'baseline',
+        execution: { mode: 'vitro', workspace: 'none' },
+        context: [],
+        successCriteria: { version: 1 },
+      },
+      inputCid: 'bafy-input',
+      usage: { inputTokens: 0, outputTokens: 0 },
+      durationMs: 0,
+      model: 'm',
+      emit: async () => {},
+    });
+
+    expect(result.error).toBeNull();
+    expect(result.output).toMatchObject({ totalTokens: 0, durationMs: 0 });
+    expect(await telemetryAnomalies()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          attributes: expect.objectContaining({ kind: 'zero_usage' }),
+          value: 1,
+        }),
+        expect.objectContaining({
+          attributes: expect.objectContaining({ kind: 'zero_duration' }),
+          value: 1,
+        }),
+      ]),
+    );
   });
 
   it('increments `output_validation_failed` on schema mismatch', async () => {

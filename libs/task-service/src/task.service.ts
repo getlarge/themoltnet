@@ -498,6 +498,7 @@ export function createTaskService(deps: TaskServiceDeps) {
         task.taskType,
         body.output,
         task.input,
+        { inputCid: task.inputCid },
       );
       if (outputErrors.length > 0) {
         throw new TaskServiceError(

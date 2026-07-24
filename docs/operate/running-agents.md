@@ -136,21 +136,108 @@ captured in the profile definition CID.
 Profiles may carry a small `context` array of operator guidance that belongs to
 the profile rather than to one task. Each entry has a `slug` (max 64
 characters, letters/numbers/dash/underscore), a `binding`, and UTF-8 `content`
-(max 64 KiB). The bindings are the same delivery modes as task-level context —
+(max 65,536 characters). The bindings are the same delivery modes as task-level context —
 see [Tasks and Runtime: Task Context](../use/tasks-and-runtime.md#task-context):
 
-| Binding          | Delivery                                    |
-| ---------------- | ------------------------------------------- |
-| `skill`          | Materialized as a temporary Pi skill.       |
-| `context_inline` | Materialized under `/moltnet-task-context`. |
-| `prompt_prefix`  | Prepended before the runtime/task prompt.   |
-| `user_inline`    | Appended to the task user prompt.           |
+| Binding          | Delivery                                                        |
+| ---------------- | --------------------------------------------------------------- |
+| `skill`          | Materialized as a temporary Pi skill.                           |
+| `context_inline` | Materialized under `/moltnet-task-context`.                     |
+| `prompt_prefix`  | Added to the system prompt before the immutable runtime kernel. |
+| `user_inline`    | Appended to the task user prompt.                               |
 
 The bundled daemon injects profile context into every task that uses the
 profile. If the task also supplies `input.context`, task entries override
 profile entries with the same `slug`; remaining profile entries are delivered
 first, followed by task entries. Each source is capped at five entries, so the
 effective runtime context can contain up to ten entries after merging.
+
+### Context Catalogue And Provisioning
+
+Profile context is optional. An empty `context: []` is the minimal path: task
+facts, the typed submit-output tool, and the immutable kernel still apply, but
+there is no diary, commit, PR, or generic verification workflow injected by
+default.
+
+### Upgrade Existing Profiles
+
+Upgrading the daemon does not add catalogue fragments to existing profile
+revisions. Review each deployed profile's **Context** field after this upgrade.
+To retain the standard engineering workflow (diary discipline, accountable
+commits, requested PR work, and verification guidance), replace or extend its
+context with the `standard-engineering@v1` JSON array below. Leaving the field
+empty is supported when that minimal behavior is intentional.
+
+The canonical, versioned source for reusable fragments and recipes is
+[`docs/.vitepress/theme/data/runtime-profile-contexts.json`](https://github.com/getlarge/themoltnet/blob/main/docs/.vitepress/theme/data/runtime-profile-contexts.json).
+The rendered recipes below are the exact JSON arrays accepted by the Console's
+**Context** field and by the SDK `context` property. Copy the JSON itself — do
+not paste a TypeScript variable declaration.
+
+For general engineering work, choose the fully opt-in recipe. It preserves the
+former proactive-memory, task-diary, accountable-commit, requested-PR,
+verification, and artifact guidance as independently named fragments.
+
+<RuntimeProfileContextRecipe recipe="standard-engineering@v1" />
+
+For a short, isolated `run_eval`, use the compact direct recipe. Pair it with
+the existing profile controls that bound execution; this is not a new preset or
+new persisted profile field.
+
+<RuntimeProfileContextRecipe recipe="run-eval-direct@v1" />
+
+```ts
+const profile = await molt.runtimeProfiles.create(
+  {
+    name: 'run-eval-direct',
+    provider: 'openai',
+    model: 'gpt-5-codex',
+    runtimeKind: 'gondolin_pi',
+    maxTurns: 3,
+    allowedWorkspaceModes: ['none'],
+    context: [
+      /* paste the run-eval-direct@v1 JSON array above */
+    ],
+    sandbox: {},
+  },
+  { teamId },
+);
+```
+
+Use the actual copied array in code, rather than the comment placeholder. The
+same array can be pasted directly in Console. Change a recipe deliberately;
+the resulting profile revision and definition CID record the exact fragments
+used by that daemon configuration.
+
+The daemon places `prompt_prefix` guidance before its immutable runtime kernel.
+The system prompt is designed to give the kernel precedence, and injected
+context cannot edit the kernel text. Code-side validation and credential
+injection enforce credentials, sandbox and workspace facts, untrusted context,
+and the structured submit-output wire protocol.
+
+### Prompt Ownership Catalogue
+
+The catalogue is also the source-of-truth inventory for prompt text removed
+from the daemon instructor and generic task-output helpers. Keep a behavioral
+block in one owner only.
+
+| Former block or fact                                                                       | Canonical owner                                                                                                      | Scope                                                        |
+| ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| Proactive memory and incident recurrence discipline                                        | `proactive-memory-v1` in the context catalogue                                                                       | Optional standard profile guidance                           |
+| Task-diary tool path and provenance rules                                                  | `task-diary-discipline-v1` in the context catalogue; task identity remains in the kernel                             | Optional standard profile guidance plus immutable task facts |
+| Signed diary-backed commits and requested PR work                                          | `accountable-delivery-v1` in the context catalogue                                                                   | Optional standard profile guidance                           |
+| Signed assessment/review rationale entries                                                 | `judgment-diary-v1` in the context catalogue                                                                         | Optional standard profile guidance for assess/review tasks   |
+| Generic verification, artifact, and completion prose                                       | `verification-and-artifacts-v1` in the context catalogue; exact schema and recovery are generated by the submit tool | Optional profile discipline; executable task contract        |
+| Per-task facts, rubrics, workspace attachment, continuation material, and constraints      | Typed task input and its task prompt builder                                                                         | Every task of that type                                      |
+| Freeform recurring-shape proposal and branch-continuation facts                            | Freeform task prompt builder                                                                                         | Every freeform task                                          |
+| Success criteria and canonical input CID for producer verification                         | Generated task-contract facts                                                                                        | Every producer task declaring criteria                       |
+| Agent-authored output fields and recoverable validation                                    | Registered submit-output tool sourced from the task submission schema                                                | Every built-in task                                          |
+| Token counts, duration, and claim trace context                                            | Executor materialization before durable output validation                                                            | Runtime-owned telemetry                                      |
+| Credentials, sandbox and workspace boundaries, untrusted context, and submit wire protocol | Runtime kernel                                                                                                       | Immutable                                                    |
+
+Profile context is additive guidance. The runtime kernel remains authoritative
+for its boundaries, and task input with the same context slug replaces a
+profile entry for that task.
 
 ## Model Catalog
 

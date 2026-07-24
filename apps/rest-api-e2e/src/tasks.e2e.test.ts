@@ -234,7 +234,7 @@ describe('Tasks API', () => {
     return { executorFingerprint, executorSignature };
   }
 
-  function buildProducerVerification(inputCid = 'bafy-e2e-input') {
+  function buildProducerVerification(inputCid: string) {
     return {
       inputCid,
       results: [
@@ -624,10 +624,12 @@ describe('Tasks API', () => {
   describe('claim → heartbeat → complete', () => {
     let taskId: string;
     let attemptN: number;
+    let inputCid: string;
 
     beforeAll(async () => {
       const { data } = await propose();
       taskId = data!.id;
+      inputCid = data!.inputCid;
 
       const { data: claimed, error } = await claim(taskId);
       expect(error).toBeUndefined();
@@ -684,7 +686,7 @@ describe('Tasks API', () => {
         ],
         recipeParams: { recipe: 'topic-focused-v1' },
         summary: 'Created a pack receipt for the curated diary entries.',
-        verification: buildProducerVerification(),
+        verification: buildProducerVerification(inputCid),
       };
       const outputCid = await computeJsonCid(output);
 
@@ -880,7 +882,7 @@ describe('Tasks API', () => {
         ],
         recipeParams: { recipe: 'topic-focused-v1' },
         summary: 'heartbeat-then-complete should succeed',
-        verification: buildProducerVerification(),
+        verification: buildProducerVerification(task!.inputCid),
       };
       const outputCid = await computeJsonCid(output);
 
@@ -944,7 +946,7 @@ describe('Tasks API', () => {
         ],
         recipeParams: { recipe: 'topic-focused-v1' },
         summary: 'missing Keto claimant tuple should not block report upload',
-        verification: buildProducerVerification(),
+        verification: buildProducerVerification(task!.inputCid),
       };
       const outputCid = await computeJsonCid(output);
 
@@ -1047,7 +1049,7 @@ describe('Tasks API', () => {
         ],
         recipeParams: { recipe: 'executor-trust-v1' },
         summary: 'Completed with signed executor manifest.',
-        verification: buildProducerVerification(),
+        verification: buildProducerVerification(task!.inputCid),
       };
       const outputCid = await computeJsonCid(output);
       const completeAttestation = await signedExecutorComplete(

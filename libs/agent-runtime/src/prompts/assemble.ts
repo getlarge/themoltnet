@@ -26,6 +26,8 @@ export type PromptSectionSource =
   | 'static'
   /** Pulled from `task.input` (brief text, scenario prompt, etc.). */
   | 'task_input'
+  /** Generated from the typed task contract, not operator workflow prose. */
+  | 'task_contract'
   /** Resolved `context_inline` / `prompt_prefix` / `user_inline` body. */
   | 'context_binding'
   /** Injected-context discipline guidance. */

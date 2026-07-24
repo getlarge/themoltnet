@@ -77,7 +77,9 @@ describe('judge_eval_attempt duplicate protection', () => {
     await harness?.teardown();
   });
 
-  async function proposeRunEval(correlationId: string): Promise<string> {
+  async function proposeRunEval(
+    correlationId: string,
+  ): Promise<{ id: string; inputCid: string }> {
     const { data, error } = await createTask({
       client,
       auth: () => proposer.accessToken,
@@ -96,14 +98,17 @@ describe('judge_eval_attempt duplicate protection', () => {
       },
     });
     expect(error).toBeUndefined();
-    return data!.id;
+    return { id: data!.id, inputCid: data!.inputCid };
   }
 
-  async function completeRunEval(taskId: string): Promise<void> {
+  async function completeRunEval(task: {
+    id: string;
+    inputCid: string;
+  }): Promise<void> {
     const { data: claimed, error: claimErr } = await claimTask({
       client,
       auth: () => claimer.accessToken,
-      path: { id: taskId },
+      path: { id: task.id },
       body: { leaseTtlSec: 60 },
     });
     expect(claimErr).toBeUndefined();
@@ -112,7 +117,7 @@ describe('judge_eval_attempt duplicate protection', () => {
     await taskHeartbeat({
       client,
       auth: () => claimer.accessToken,
-      path: { id: taskId, n: attemptN },
+      path: { id: task.id, n: attemptN },
       body: { leaseTtlSec: 60 },
     });
 
@@ -122,7 +127,7 @@ describe('judge_eval_attempt duplicate protection', () => {
       durationMs: 100,
       traceparent: '00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01',
       verification: {
-        inputCid: 'bafye2eeval',
+        inputCid: task.inputCid,
         results: [],
         passed: true,
       },
@@ -132,7 +137,7 @@ describe('judge_eval_attempt duplicate protection', () => {
     const { error: completeErr } = await completeTask({
       client,
       auth: () => claimer.accessToken,
-      path: { id: taskId, n: attemptN },
+      path: { id: task.id, n: attemptN },
       body: {
         output,
         outputCid,
@@ -146,13 +151,13 @@ describe('judge_eval_attempt duplicate protection', () => {
         const { data } = await getTask({
           client,
           auth: () => proposer.accessToken,
-          path: { id: taskId },
+          path: { id: task.id },
         });
         return data!;
       },
       (task) =>
         task.status === 'completed' && task.acceptedAttemptN === attemptN,
-      { label: `run_eval.accepted[${taskId.slice(0, 8)}]`, maxAttempts: 30 },
+      { label: `run_eval.accepted[${task.id.slice(0, 8)}]`, maxAttempts: 30 },
     );
   }
 
@@ -161,9 +166,9 @@ describe('judge_eval_attempt duplicate protection', () => {
     runTaskId: string;
   }> {
     const correlationId = crypto.randomUUID();
-    const runTaskId = await proposeRunEval(correlationId);
-    await completeRunEval(runTaskId);
-    return { correlationId, runTaskId };
+    const runTask = await proposeRunEval(correlationId);
+    await completeRunEval(runTask);
+    return { correlationId, runTaskId: runTask.id };
   }
 
   function judgeBody(correlationId: string, runTaskId: string) {
@@ -182,10 +187,12 @@ describe('judge_eval_attempt duplicate protection', () => {
   it('keeps a conditional judge task waiting until all promised run evals are accepted', async () => {
     const firstCorrelationId = crypto.randomUUID();
     const secondCorrelationId = crypto.randomUUID();
-    const [firstRunTaskId, secondRunTaskId] = await Promise.all([
+    const [firstRunTask, secondRunTask] = await Promise.all([
       proposeRunEval(firstCorrelationId),
       proposeRunEval(secondCorrelationId),
     ]);
+    const firstRunTaskId = firstRunTask.id;
+    const secondRunTaskId = secondRunTask.id;
 
     const { data: judge, error: judgeError } = await createTask({
       client,
@@ -213,7 +220,7 @@ describe('judge_eval_attempt duplicate protection', () => {
     });
     expect(prematureClaim.response.status).toBe(409);
 
-    await completeRunEval(firstRunTaskId);
+    await completeRunEval(firstRunTask);
     const halfReadyClaim = await claimTask({
       client,
       auth: () => claimer.accessToken,
@@ -236,7 +243,7 @@ describe('judge_eval_attempt duplicate protection', () => {
     );
     expect(stillWaiting.status).toBe('waiting');
 
-    await completeRunEval(secondRunTaskId);
+    await completeRunEval(secondRunTask);
     const claimed = await claimTask({
       client,
       auth: () => claimer.accessToken,

@@ -62,7 +62,7 @@ describe('Task Analytics API', () => {
     await harness?.teardown();
   });
 
-  function buildProducerVerification(inputCid = 'bafy-e2e-input') {
+  function buildProducerVerification(inputCid: string) {
     return {
       inputCid,
       results: [
@@ -177,7 +177,7 @@ describe('Task Analytics API', () => {
       ],
       recipeParams: { recipe: 'analytics-team-scope-e2e' },
       summary: 'Created a pack receipt for team analytics scope.',
-      verification: buildProducerVerification('bafy-team-scope-input'),
+      verification: buildProducerVerification(task!.inputCid),
     };
     const outputCid = await computeJsonCid(output);
 
@@ -380,7 +380,7 @@ describe('Task Analytics API', () => {
         ],
         recipeParams: { recipe: 'analytics-e2e' },
         summary: 'Created a pack receipt for analytics e2e.',
-        verification: buildProducerVerification(),
+        verification: buildProducerVerification(task!.inputCid),
       };
       const outputCid = await computeJsonCid(output);
 
@@ -726,7 +726,7 @@ describe('Task Analytics API', () => {
         ],
         recipeParams: { recipe: 'analytics-retry-e2e' },
         summary: 'Created a pack receipt after retry.',
-        verification: buildProducerVerification('bafy-retry-input'),
+        verification: buildProducerVerification(task!.inputCid),
       };
       const outputCid = await computeJsonCid(output);
 

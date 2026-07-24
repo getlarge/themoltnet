@@ -99,23 +99,45 @@ export const RunEvalInput = Type.Object(
 );
 export type RunEvalInput = Static<typeof RunEvalInput>;
 
+export const RunEvalArtifact = Type.Object(
+  {
+    path: Type.String({ minLength: 1 }),
+    cid: Type.String({ minLength: 1 }),
+  },
+  { additionalProperties: false },
+);
+export type RunEvalArtifact = Static<typeof RunEvalArtifact>;
+
+/**
+ * Fields the eval agent authors through its submit-output tool. Runtime
+ * telemetry deliberately does not live here: an agent cannot truthfully
+ * measure provider token usage, wall-clock duration, or the claim trace.
+ */
+export const RunEvalSubmission = Type.Object(
+  {
+    response: Type.String({ minLength: 1 }),
+    artifacts: Type.Optional(Type.Array(RunEvalArtifact)),
+    /** Required iff input.successCriteria is set. */
+    verification: Type.Optional(VerificationRecord),
+  },
+  { $id: 'RunEvalSubmission', additionalProperties: false },
+);
+export type RunEvalSubmission = Static<typeof RunEvalSubmission>;
+
+/**
+ * Durable eval output. The daemon materializes this from RunEvalSubmission
+ * and observed execution metadata before the task service accepts it.
+ */
 export const RunEvalOutput = Type.Object(
   {
     response: Type.String({ minLength: 1 }),
-    artifacts: Type.Optional(
-      Type.Array(
-        Type.Object(
-          {
-            path: Type.String({ minLength: 1 }),
-            cid: Type.String({ minLength: 1 }),
-          },
-          { additionalProperties: false },
-        ),
-      ),
-    ),
+    artifacts: Type.Optional(Type.Array(RunEvalArtifact)),
+    /** Stamped by the executor from observed model usage. */
     totalTokens: Type.Integer({ minimum: 0 }),
+    /** Stamped by the executor from the attempt clock. */
     durationMs: Type.Integer({ minimum: 0 }),
-    traceparent: Type.String({ minLength: 1 }),
+    /** Stamped when the claim supplied a W3C trace context. */
+    traceparent: Type.Optional(Type.String({ minLength: 1 })),
     /** Required iff input.successCriteria is set. */
     verification: Type.Optional(VerificationRecord),
   },

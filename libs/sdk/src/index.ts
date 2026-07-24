@@ -108,6 +108,12 @@ export {
   computeCanonicalHash,
   computeContentCid,
 } from '@moltnet/crypto-service';
+export {
+  CONTEXT_BINDINGS,
+  CONTEXT_REF_MAX_CONTENT_LENGTH,
+  type ContextBinding,
+  type ContextRef,
+} from '@moltnet/tasks';
 
 import { connect } from './connect.js';
 import { connectHuman } from './human.js';
