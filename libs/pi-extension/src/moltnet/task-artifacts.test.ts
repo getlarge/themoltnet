@@ -13,7 +13,10 @@ import { Readable } from 'node:stream';
 
 import { describe, expect, it, vi } from 'vitest';
 
-import { createGondolinToolDefinitions } from '../runtime/execute-pi-task.js';
+import {
+  createGondolinToolDefinitions,
+  resolveTaskWorktreePath,
+} from '../runtime/execute-pi-task.js';
 import {
   createMoltNetTools,
   type MoltNetTaskContext,
@@ -400,19 +403,20 @@ describe('moltnet_download_task_artifact', () => {
     { name: 'shared mount', worktree: false },
     { name: 'dedicated worktree', worktree: true },
   ])(
-    'makes a bound image input readable from the active $name cwd',
+    'keeps bound image reads and relative writes in the active $name cwd',
     async ({ worktree }) => {
       const mountPath = await mkdtemp(
         path.join(tmpdir(), 'moltnet-pi-artifact-'),
       );
       const cwdPath = worktree
-        ? path.join(mountPath, '.worktrees', 'task-1624')
+        ? resolveTaskWorktreePath(mountPath, 'task-1624')
         : mountPath;
       const artifactPath = path.join(cwdPath, 'inputs', 'inspection.png');
+      const writePath = path.join(cwdPath, 'outputs', 'analysis.txt');
       const capturedDownloads: CapturedDownloadPath[] = [];
       const vmAccess = vi.fn((filePath: string) => access(filePath));
       const vmReadFile = vi.fn((filePath: string) => readFile(filePath));
-      const vmExec = vi.fn(() =>
+      const vmExec = vi.fn((_command: string[]) =>
         Promise.resolve({
           exitCode: 0,
           ok: true,
@@ -462,6 +466,21 @@ describe('moltnet_download_task_artifact', () => {
           () => {},
           null as never,
         );
+        const writeTool = createGondolinToolDefinitions(toolConfig).find(
+          (tool) => tool.name === 'write',
+        );
+        if (!writeTool) throw new Error('write tool not registered');
+
+        await writeTool.execute(
+          'call-id',
+          {
+            content: 'analysis complete',
+            path: 'outputs/analysis.txt',
+          },
+          new AbortController().signal,
+          () => {},
+          null as never,
+        );
 
         await expect(readFile(artifactPath)).resolves.toEqual(PNG_BYTES);
         expect(capturedDownloads).toEqual([
@@ -469,7 +488,12 @@ describe('moltnet_download_task_artifact', () => {
         ]);
         expect(vmAccess).toHaveBeenCalledWith(artifactPath);
         expect(vmReadFile).toHaveBeenCalledWith(artifactPath);
-        expect(vmExec).toHaveBeenCalled();
+        const execCommands = vmExec.mock.calls.map(([command]) =>
+          command.join('\n'),
+        );
+        expect(execCommands).toEqual(
+          expect.arrayContaining([expect.stringContaining(writePath)]),
+        );
         expect(result.content).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
@@ -483,6 +507,7 @@ describe('moltnet_download_task_artifact', () => {
             }),
           ]),
         );
+        // Shared mount is the equal-path control; worktree is the divergence.
         if (worktree) {
           const lossyMountPath = path.join(
             mountPath,
@@ -491,6 +516,9 @@ describe('moltnet_download_task_artifact', () => {
           );
           expect(vmAccess).not.toHaveBeenCalledWith(lossyMountPath);
           expect(vmReadFile).not.toHaveBeenCalledWith(lossyMountPath);
+          expect(execCommands.join('\n')).not.toContain(
+            path.join(mountPath, 'outputs', 'analysis.txt'),
+          );
         }
       } finally {
         await rm(mountPath, { force: true, recursive: true });

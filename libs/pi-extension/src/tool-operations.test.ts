@@ -39,6 +39,24 @@ describe('toGuestPath', () => {
       ),
     ).toBe('/Users/ed/project/src/index.ts');
   });
+
+  it('accepts paths in a dedicated worktree nested under the mount', () => {
+    const mountPath = '/Users/ed/project';
+    const cwdPath = `${mountPath}/.worktrees/task-1624`;
+
+    expect(toGuestPath(cwdPath, `${cwdPath}/src/index.ts`, mountPath)).toBe(
+      `${cwdPath}/src/index.ts`,
+    );
+  });
+
+  it('rejects paths escaping the mount from a nested worktree cwd', () => {
+    const mountPath = '/Users/ed/project';
+    const cwdPath = `${mountPath}/.worktrees/task-1624`;
+
+    expect(() =>
+      toGuestPath(cwdPath, `${mountPath}/../secret.txt`, mountPath),
+    ).toThrow(/path escapes workspace/);
+  });
 });
 
 describe('Gondolin read-only tool operations', () => {
