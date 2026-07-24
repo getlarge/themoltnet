@@ -1,4 +1,5 @@
-import { useTheme } from '../hooks.js';
+import { useReducedMotion, useTheme } from '../hooks.js';
+import { Logo } from './logo.js';
 
 export interface LogoAnimatedProps {
   /** Height in pixels (width matches — it's square) */
@@ -45,6 +46,22 @@ export function LogoAnimated({
   style,
 }: LogoAnimatedProps) {
   const theme = useTheme();
+  const reducedMotion = useReducedMotion();
+
+  // SVG SMIL <animate> cannot be disabled by CSS prefers-reduced-motion, so
+  // honor the preference here by rendering the static mark instead. Props are
+  // shared between the two components, so this is a transparent fallback.
+  if (reducedMotion) {
+    return (
+      <Logo
+        size={size}
+        ringColor={ringColor}
+        diamondColor={diamondColor}
+        className={className}
+        style={style}
+      />
+    );
+  }
 
   const ring = ringColor ?? theme.color.primary.DEFAULT;
   const ringLight = ringColor ?? theme.color.primary.hover;

@@ -1,5 +1,5 @@
 import { render } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { configureAxe } from 'vitest-axe';
 
 import {
@@ -35,6 +35,45 @@ const checkA11y = configureAxe({
 function renderWithTheme(ui: React.ReactElement) {
   return render(<MoltThemeProvider>{ui}</MoltThemeProvider>);
 }
+
+function mockReducedMotion(prefersReduce: boolean) {
+  // Answer every query with a valid MediaQueryList so unrelated consumers
+  // (e.g. theme-provider's prefers-color-scheme check) don't read `.matches`
+  // off undefined; only the reduced-motion query reflects `prefersReduce`.
+  Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    configurable: true,
+    value: vi.fn().mockImplementation((query: string) => ({
+      matches: query.includes('prefers-reduced-motion') ? prefersReduce : false,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })),
+  });
+}
+
+describe('LogoAnimated reduced-motion fallback', () => {
+  afterEach(() => {
+    // Restore the jsdom default (matchMedia undefined) so the smoke tests,
+    // which rely on that guard path, are not affected by the mock above.
+    delete (window as { matchMedia?: unknown }).matchMedia;
+    vi.restoreAllMocks();
+  });
+
+  it('drops SMIL animation when prefers-reduced-motion is set', () => {
+    // SVG <animate> (SMIL) cannot be disabled by CSS, so LogoAnimated must
+    // fall back to the static Logo when the user prefers reduced motion.
+    mockReducedMotion(true);
+    const { container } = renderWithTheme(<LogoAnimated />);
+    expect(container.querySelectorAll('animate')).toHaveLength(0);
+  });
+
+  it('keeps SMIL animation when motion is allowed', () => {
+    mockReducedMotion(false);
+    const { container } = renderWithTheme(<LogoAnimated />);
+    expect(container.querySelectorAll('animate').length).toBeGreaterThan(0);
+  });
+});
 
 describe('design-system accessibility smoke tests', () => {
   it('renders core controls without axe violations', async () => {
