@@ -22,6 +22,14 @@ while IFS= read -r entry; do
   skill=$(basename "$entry")
   expected="../../.agents/skills/$skill"
 
+  # Vendored third-party skills that ship provider-specific real builds
+  # (installed via `npx impeccable install`, not the symlink convention).
+  # Keep this exclusion list in sync with the skills-ref exclude in
+  # .github/workflows/ci.yml (skill-check job).
+  case "$skill" in
+    impeccable) continue ;;
+  esac
+
   if [ ! -L "$entry" ]; then
     echo "::error::'$entry' must be a symlink into $AGENTS_DIR (real files belong in $AGENTS_DIR; symlink with: ln -s $expected $entry)"
     failed=1
