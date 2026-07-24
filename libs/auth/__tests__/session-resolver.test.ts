@@ -4,6 +4,7 @@ import {
   createSessionResolver,
   type SessionResolver,
 } from '../src/session-resolver.js';
+import { HUMAN_SESSION_SCOPES } from '../src/scopes.js';
 import type { HumanAuthContext } from '../src/types.js';
 
 const VALID_SESSION_TOKEN = 'ory_st_valid_session_token_123';
@@ -57,7 +58,7 @@ describe('createSessionResolver', () => {
       identityId: VALID_IDENTITY_ID,
       humanId: VALID_HUMAN_ID,
       clientId: null,
-      scopes: ['diary:read', 'diary:write', 'human:profile', 'team:read'],
+      scopes: [...HUMAN_SESSION_SCOPES],
       currentTeamId: null,
     } satisfies HumanAuthContext);
 

@@ -35,7 +35,7 @@ export const AgentKeySchema = Type.Object(
 
 export const AgentKeyWithSecretSchema = Type.Object(
   {
-    key: AgentKeySchema,
+    key: Type.Ref(AgentKeySchema.$id),
     secret: Type.String(),
   },
   { $id: 'AgentKeyWithSecret' },
@@ -43,7 +43,7 @@ export const AgentKeyWithSecretSchema = Type.Object(
 
 export const AgentKeyListSchema = Type.Object(
   {
-    items: Type.Array(AgentKeySchema),
+    items: Type.Array(Type.Ref(AgentKeySchema.$id)),
     nextCursor: Type.Union([Type.String(), Type.Null()]),
   },
   { $id: 'AgentKeyList' },
@@ -60,11 +60,22 @@ export const CreateAgentKeyBodySchema = Type.Object(
   { $id: 'CreateAgentKeyBody' },
 );
 
-export const RevokeAgentKeyBodySchema = Type.Object(
-  {
-    reason: AgentKeyRevocationReasonSchema,
-    description: Type.Optional(Type.String({ minLength: 1, maxLength: 500 })),
-  },
+export const RevokeAgentKeyBodySchema = Type.Union(
+  [
+    Type.Object({
+      reason: Type.Literal('key_compromise'),
+    }),
+    Type.Object({
+      reason: Type.Literal('affiliation_changed'),
+    }),
+    Type.Object({
+      reason: Type.Literal('superseded'),
+    }),
+    Type.Object({
+      reason: Type.Literal('privilege_withdrawn'),
+      description: Type.Optional(Type.String({ minLength: 1, maxLength: 500 })),
+    }),
+  ],
   { $id: 'RevokeAgentKeyBody' },
 );
 

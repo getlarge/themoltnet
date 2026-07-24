@@ -691,7 +691,7 @@ type Invoker interface {
 	// Permanently revoke an agent API key.
 	//
 	// POST /agent-keys/{keyId}/revoke
-	RevokeAgentKey(ctx context.Context, request *RevokeAgentKeyReq, params RevokeAgentKeyParams) (RevokeAgentKeyRes, error)
+	RevokeAgentKey(ctx context.Context, request OptRevokeAgentKeyReq, params RevokeAgentKeyParams) (RevokeAgentKeyRes, error)
 	// RevokeDiaryGrant invokes revokeDiaryGrant operation.
 	//
 	// Revoke a writer or manager grant from a diary.
@@ -18114,12 +18114,12 @@ func (c *Client) sendRequestRecoveryChallenge(ctx context.Context, request *Requ
 // Permanently revoke an agent API key.
 //
 // POST /agent-keys/{keyId}/revoke
-func (c *Client) RevokeAgentKey(ctx context.Context, request *RevokeAgentKeyReq, params RevokeAgentKeyParams) (RevokeAgentKeyRes, error) {
+func (c *Client) RevokeAgentKey(ctx context.Context, request OptRevokeAgentKeyReq, params RevokeAgentKeyParams) (RevokeAgentKeyRes, error) {
 	res, err := c.sendRevokeAgentKey(ctx, request, params)
 	return res, err
 }
 
-func (c *Client) sendRevokeAgentKey(ctx context.Context, request *RevokeAgentKeyReq, params RevokeAgentKeyParams) (res RevokeAgentKeyRes, err error) {
+func (c *Client) sendRevokeAgentKey(ctx context.Context, request OptRevokeAgentKeyReq, params RevokeAgentKeyParams) (res RevokeAgentKeyRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("revokeAgentKey"),
 		semconv.HTTPRequestMethodKey.String("POST"),

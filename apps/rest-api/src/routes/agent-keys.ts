@@ -22,6 +22,7 @@ import {
   type AgentKeySubject,
   createAgentKeyService,
 } from '../services/agent-keys.js';
+import { requestAbortSignal } from '../utils/request-abort-signal.js';
 import { requireCurrentTeamId } from '../utils/require-current-team-id.js';
 
 interface AgentKeyRoutesOptions {
@@ -40,6 +41,9 @@ function authSubject(request: FastifyRequest): AgentKeySubject {
   if (!auth) throw createProblem('unauthorized');
   return {
     identityId: auth.identityId,
+    ...(auth.subjectType === 'agent' && auth.credentialBinding
+      ? { credentialKeyId: auth.credentialBinding.keyId }
+      : {}),
     subjectType: auth.subjectType,
     subjectNs:
       auth.subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent,
@@ -75,9 +79,11 @@ export async function agentKeyRoutes(
   server.post(
     '/agent-keys',
     {
+      onRequest: fastify.rateLimitHooks.agentKey,
       config: {
         auth: { talosCredentialScope: 'team' },
-        rateLimit: fastify.rateLimitConfig.agentKey,
+        rateLimit: false,
+        rateLimitBucket: 'agent-key',
       },
       schema: {
         operationId: 'createAgentKey',
@@ -105,6 +111,7 @@ export async function agentKeyRoutes(
         ...request.body,
         idempotencyKey: request.headers['idempotency-key'],
         logger: request.log,
+        signal: requestAbortSignal(request, reply),
         subject: authSubject(request),
         teamId,
       });
@@ -144,11 +151,12 @@ export async function agentKeyRoutes(
         },
       },
     },
-    async (request) => {
+    async (request, reply) => {
       const teamId = requireCurrentTeamId(request, 'agent keys');
       return agentKeys.list({
         ...request.query,
         logger: request.log,
+        signal: requestAbortSignal(request, reply),
         subject: authSubject(request),
         teamId,
       });
@@ -158,9 +166,11 @@ export async function agentKeyRoutes(
   server.post(
     '/agent-keys/:keyId/rotate',
     {
+      onRequest: fastify.rateLimitHooks.agentKey,
       config: {
         auth: { talosCredentialScope: 'team' },
-        rateLimit: fastify.rateLimitConfig.agentKey,
+        rateLimit: false,
+        rateLimitBucket: 'agent-key',
       },
       schema: {
         operationId: 'rotateAgentKey',
@@ -176,17 +186,19 @@ export async function agentKeyRoutes(
           401: Type.Ref(ProblemDetailsSchema.$id),
           403: Type.Ref(ProblemDetailsSchema.$id),
           404: Type.Ref(ProblemDetailsSchema.$id),
+          409: Type.Ref(ProblemDetailsSchema.$id),
           429: Type.Ref(ProblemDetailsSchema.$id),
           502: Type.Ref(ProblemDetailsSchema.$id),
           503: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
     },
-    async (request) => {
+    async (request, reply) => {
       const teamId = requireCurrentTeamId(request, 'agent keys');
       return agentKeys.rotate({
         keyId: request.params.keyId,
         logger: request.log,
+        signal: requestAbortSignal(request, reply),
         subject: authSubject(request),
         teamId,
       });
@@ -196,7 +208,12 @@ export async function agentKeyRoutes(
   server.post(
     '/agent-keys/:keyId/revoke',
     {
-      config: { auth: { talosCredentialScope: 'team' } },
+      onRequest: fastify.rateLimitHooks.agentKey,
+      config: {
+        auth: { talosCredentialScope: 'team' },
+        rateLimit: false,
+        rateLimitBucket: 'agent-key',
+      },
       schema: {
         operationId: 'revokeAgentKey',
         tags: ['agent-keys'],
@@ -211,6 +228,7 @@ export async function agentKeyRoutes(
           401: Type.Ref(ProblemDetailsSchema.$id),
           403: Type.Ref(ProblemDetailsSchema.$id),
           404: Type.Ref(ProblemDetailsSchema.$id),
+          429: Type.Ref(ProblemDetailsSchema.$id),
           502: Type.Ref(ProblemDetailsSchema.$id),
           503: Type.Ref(ProblemDetailsSchema.$id),
         },
@@ -223,6 +241,7 @@ export async function agentKeyRoutes(
         keyId: request.params.keyId,
         logger: request.log,
         subject: authSubject(request),
+        signal: requestAbortSignal(request, reply),
         teamId,
       });
       return reply.status(204).send(null);

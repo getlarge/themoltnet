@@ -22,6 +22,7 @@ import {
 } from '../utils/opaque-cursor.js';
 
 const DEFAULT_TTL_DAYS = 30;
+const MAX_TALOS_LIST_PAGES_PER_REQUEST = 5;
 
 export type AgentKeyStatus = 'active' | 'revoked' | 'expired';
 export type AgentKeyRevocationReason =
@@ -50,6 +51,8 @@ export interface AgentKeyWithSecret {
 }
 
 export interface AgentKeySubject {
+  /** Talos key used for this request, when authentication came from Talos. */
+  credentialKeyId?: string;
   identityId: string;
   subjectNs: KetoNamespace;
   subjectType: 'agent' | 'human';
@@ -87,6 +90,7 @@ export interface IssueAgentKeyInput {
   idempotencyKey: string;
   logger: Logger;
   name: string;
+  signal?: AbortSignal;
   subject: AgentKeySubject;
   teamId: string;
   ttlDays?: number;
@@ -97,6 +101,7 @@ export interface ListAgentKeysInput {
   cursor?: string;
   limit?: number;
   logger: Logger;
+  signal?: AbortSignal;
   status?: AgentKeyStatus;
   subject: AgentKeySubject;
   teamId: string;
@@ -105,6 +110,7 @@ export interface ListAgentKeysInput {
 export interface RotateAgentKeyInput {
   keyId: string;
   logger: Logger;
+  signal?: AbortSignal;
   subject: AgentKeySubject;
   teamId: string;
 }
@@ -114,6 +120,7 @@ export interface RevokeAgentKeyInput {
   keyId: string;
   logger: Logger;
   reason: AgentKeyRevocationReason;
+  signal?: AbortSignal;
   subject: AgentKeySubject;
   teamId: string;
 }
@@ -313,20 +320,51 @@ function isNotFoundError(error: unknown): boolean {
   );
 }
 
+function talosInit(signal: AbortSignal | undefined): RequestInit | undefined {
+  return signal ? { signal } : undefined;
+}
+
+function talosFailureKind(
+  error: unknown,
+  signal: AbortSignal | undefined,
+): 'cancelled' | 'timeout' | 'upstream' {
+  if (signal?.aborted) return 'cancelled';
+  if (typeof error !== 'object' || error === null) return 'upstream';
+  const candidate = error as {
+    name?: unknown;
+    cause?: { code?: unknown };
+  };
+  if (
+    candidate.name === 'TimeoutError' ||
+    candidate.cause?.code === 'ETIMEDOUT'
+  ) {
+    return 'timeout';
+  }
+  if (candidate.name === 'AbortError') return 'cancelled';
+  return 'upstream';
+}
+
 async function getTeamKey(
   api: TalosApi,
   keyId: string,
   teamId: string,
   logger: Logger,
   action: 'rotate' | 'revoke',
+  signal: AbortSignal | undefined,
 ): Promise<{ key: IssuedApiKey; binding: AgentKeyBinding }> {
   let key: IssuedApiKey;
   try {
-    key = await api.adminGetIssuedApiKey({ keyId });
+    key = await api.adminGetIssuedApiKey({ keyId }, talosInit(signal));
   } catch (error) {
     if (isNotFoundError(error)) throw createProblem('not-found');
     logger.warn(
-      { err: error, action: `${action}:read`, keyId, teamId },
+      {
+        err: error,
+        action: `${action}:read`,
+        failureKind: talosFailureKind(error, signal),
+        keyId,
+        teamId,
+      },
       'agent_key.upstream_error',
     );
     throw createProblem('upstream-error', 'Failed to read agent key');
@@ -361,6 +399,17 @@ async function assertCanManageAgentKey(
   throw createProblem('forbidden');
 }
 
+async function assertCanManageExistingAgentKey(
+  deps: AgentKeyServiceDeps,
+  subject: AgentKeySubject,
+  teamId: string,
+  agentId: string,
+): Promise<void> {
+  if (subject.subjectType === 'agent' && subject.identityId === agentId) return;
+  if (await canManageAllTeamKeys(deps, subject, teamId)) return;
+  throw createProblem('not-found');
+}
+
 async function assertCurrentAgentMember(
   deps: AgentKeyServiceDeps,
   teamId: string,
@@ -390,6 +439,163 @@ function actorFilter(actorId: string | undefined): string | undefined {
   return `actor_id="${actorId.replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"`;
 }
 
+interface ResolvedListQuery {
+  agentFilter: string | undefined;
+  cursorQuery: Omit<AgentKeyCursor, 'pageToken' | 'version'>;
+  limit: number;
+  pageToken: string | undefined;
+}
+
+async function resolveListQuery(
+  deps: AgentKeyServiceDeps,
+  input: ListAgentKeysInput,
+): Promise<ResolvedListQuery> {
+  const canManageAll = await canManageAllTeamKeys(
+    deps,
+    input.subject,
+    input.teamId,
+  );
+  if (!canManageAll && input.subject.subjectType !== 'agent') {
+    throw createProblem('forbidden');
+  }
+  if (
+    !canManageAll &&
+    input.agentId &&
+    input.agentId !== input.subject.identityId
+  ) {
+    throw createProblem('forbidden');
+  }
+
+  const agentFilter = canManageAll ? input.agentId : input.subject.identityId;
+  const cursorQuery = {
+    actorId: agentFilter ?? null,
+    status: input.status ?? null,
+    teamId: input.teamId,
+  };
+  return {
+    agentFilter,
+    cursorQuery,
+    limit: input.limit ?? 20,
+    pageToken: decodeCursor(input.cursor, cursorQuery),
+  };
+}
+
+async function scanAgentKeyPages(
+  api: TalosApi,
+  input: ListAgentKeysInput,
+  query: ResolvedListQuery,
+): Promise<{ items: AgentKey[]; nextCursor: string | null }> {
+  let pageToken = query.pageToken;
+  let nextPageToken: string | undefined;
+  let scannedCount = 0;
+  let talosCalls = 0;
+  const seenTokens = new Set<string>();
+  const items: AgentKey[] = [];
+
+  do {
+    if (pageToken) {
+      if (seenTokens.has(pageToken)) {
+        input.logger.warn(
+          {
+            action: 'list',
+            teamId: input.teamId,
+            pageTokenRepeated: true,
+          },
+          'agent_key.upstream_error',
+        );
+        throw createProblem(
+          'upstream-error',
+          'Talos returned a repeated page token',
+        );
+      }
+      seenTokens.add(pageToken);
+    }
+
+    let result: Awaited<ReturnType<typeof api.adminListIssuedApiKeys>>;
+    try {
+      result = await api.adminListIssuedApiKeys(
+        {
+          filter: actorFilter(query.agentFilter),
+          pageSize: query.limit - items.length,
+          pageToken,
+        },
+        talosInit(input.signal),
+      );
+    } catch (error) {
+      input.logger.warn(
+        {
+          err: error,
+          action: 'list',
+          actorId: query.agentFilter,
+          failureKind: talosFailureKind(error, input.signal),
+          teamId: input.teamId,
+        },
+        'agent_key.upstream_error',
+      );
+      throw createProblem('upstream-error', 'Failed to list agent keys');
+    }
+
+    talosCalls += 1;
+    const issuedKeys = result.issued_api_keys ?? [];
+    scannedCount += issuedKeys.length;
+    for (const issuedKey of issuedKeys) {
+      const binding = readBinding(issuedKey);
+      if (
+        binding?.teamId !== input.teamId ||
+        (query.agentFilter && binding.agentId !== query.agentFilter)
+      ) {
+        continue;
+      }
+      try {
+        const key = toAgentKey(issuedKey);
+        if (!input.status || key.status === input.status) items.push(key);
+      } catch (error) {
+        input.logger.warn(
+          {
+            err: error,
+            action: 'list:map',
+            keyId: issuedKey.key_id,
+            actorId: issuedKey.actor_id,
+            teamId: input.teamId,
+          },
+          'agent_key.malformed_upstream_row',
+        );
+      }
+    }
+    nextPageToken = result.next_page_token || undefined;
+    pageToken = nextPageToken;
+  } while (
+    items.length < query.limit &&
+    nextPageToken &&
+    talosCalls < MAX_TALOS_LIST_PAGES_PER_REQUEST
+  );
+
+  const scanBudgetExhausted = Boolean(
+    nextPageToken &&
+    items.length < query.limit &&
+    talosCalls >= MAX_TALOS_LIST_PAGES_PER_REQUEST,
+  );
+  input.logger.debug(
+    {
+      action: 'list',
+      teamId: input.teamId,
+      actorId: input.subject.identityId,
+      scannedCount,
+      matchedCount: items.length,
+      talosCalls,
+      actorFilterApplied: Boolean(query.agentFilter),
+      scanBudgetExhausted,
+    },
+    'agent_key.lifecycle',
+  );
+  return {
+    items,
+    nextCursor: nextPageToken
+      ? encodeCursor(nextPageToken, query.cursorQuery)
+      : null,
+  };
+}
+
 export function createAgentKeyService(deps: AgentKeyServiceDeps) {
   return {
     async issue(input: IssueAgentKeyInput): Promise<AgentKeyWithSecret> {
@@ -417,27 +623,31 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
 
       let result: Awaited<ReturnType<typeof api.adminIssueApiKey>>;
       try {
-        result = await api.adminIssueApiKey({
-          issueApiKeyRequest: {
-            actor_id: input.agentId,
-            name,
-            request_id: talosRequestId(input),
-            ttl: `${ttlDays * 86_400}s`,
-            visibility: KeyVisibility.KeyVisibilitySecret,
-            scopes: [...AGENT_CREDENTIAL_SCOPES],
-            metadata: {
-              schema_version: 1,
-              subject_type: 'agent',
-              team_id: input.teamId,
+        result = await api.adminIssueApiKey(
+          {
+            issueApiKeyRequest: {
+              actor_id: input.agentId,
+              name,
+              request_id: talosRequestId(input),
+              ttl: `${ttlDays * 86_400}s`,
+              visibility: KeyVisibility.KeyVisibilitySecret,
+              scopes: [...AGENT_CREDENTIAL_SCOPES],
+              metadata: {
+                schema_version: 1,
+                subject_type: 'agent',
+                team_id: input.teamId,
+              },
             },
           },
-        });
+          talosInit(input.signal),
+        );
       } catch (error) {
         input.logger.warn(
           {
             err: error,
             action: 'issue',
             agentId: input.agentId,
+            failureKind: talosFailureKind(error, input.signal),
             teamId: input.teamId,
           },
           'agent_key.upstream_error',
@@ -466,6 +676,25 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
         );
       }
 
+      let key: AgentKey;
+      try {
+        key = toAgentKey(result.issued_api_key);
+      } catch (error) {
+        input.logger.warn(
+          {
+            err: error,
+            action: 'issue:validate',
+            keyId: result.issued_api_key.key_id,
+            agentId: input.agentId,
+            teamId: input.teamId,
+          },
+          'agent_key.malformed_upstream_row',
+        );
+        throw createProblem(
+          'upstream-error',
+          'Talos returned an invalid issued agent key',
+        );
+      }
       input.logger.info(
         {
           action: 'issue',
@@ -477,7 +706,7 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
         'agent_key.lifecycle',
       );
       return {
-        key: toAgentKey(result.issued_api_key),
+        key,
         secret: result.secret,
       };
     },
@@ -487,126 +716,8 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
       nextCursor: string | null;
     }> {
       const api = getTalosApi(deps);
-      const canManageAll = await canManageAllTeamKeys(
-        deps,
-        input.subject,
-        input.teamId,
-      );
-      if (!canManageAll && input.subject.subjectType !== 'agent') {
-        throw createProblem('forbidden');
-      }
-      if (
-        !canManageAll &&
-        input.agentId &&
-        input.agentId !== input.subject.identityId
-      ) {
-        throw createProblem('forbidden');
-      }
-
-      const agentFilter = canManageAll
-        ? input.agentId
-        : input.subject.identityId;
-      const cursorQuery = {
-        actorId: agentFilter ?? null,
-        status: input.status ?? null,
-        teamId: input.teamId,
-      };
-      const limit = input.limit ?? 20;
-      let pageToken = decodeCursor(input.cursor, cursorQuery);
-      let nextPageToken: string | undefined;
-      let scannedCount = 0;
-      let talosCalls = 0;
-      const seenTokens = new Set<string>();
-      const items: AgentKey[] = [];
-
-      do {
-        if (pageToken) {
-          if (seenTokens.has(pageToken)) {
-            input.logger.warn(
-              {
-                action: 'list',
-                teamId: input.teamId,
-                pageTokenRepeated: true,
-              },
-              'agent_key.upstream_error',
-            );
-            throw createProblem(
-              'upstream-error',
-              'Talos returned a repeated page token',
-            );
-          }
-          seenTokens.add(pageToken);
-        }
-
-        let result: Awaited<ReturnType<typeof api.adminListIssuedApiKeys>>;
-        try {
-          result = await api.adminListIssuedApiKeys({
-            filter: actorFilter(agentFilter),
-            pageSize: limit - items.length,
-            pageToken,
-          });
-        } catch (error) {
-          input.logger.warn(
-            {
-              err: error,
-              action: 'list',
-              actorId: agentFilter,
-              teamId: input.teamId,
-            },
-            'agent_key.upstream_error',
-          );
-          throw createProblem('upstream-error', 'Failed to list agent keys');
-        }
-
-        talosCalls += 1;
-        const issuedKeys = result.issued_api_keys ?? [];
-        scannedCount += issuedKeys.length;
-        for (const issuedKey of issuedKeys) {
-          const binding = readBinding(issuedKey);
-          if (
-            binding?.teamId !== input.teamId ||
-            (agentFilter && binding.agentId !== agentFilter)
-          ) {
-            continue;
-          }
-          try {
-            const key = toAgentKey(issuedKey);
-            if (!input.status || key.status === input.status) items.push(key);
-          } catch (error) {
-            input.logger.warn(
-              {
-                err: error,
-                action: 'list:map',
-                keyId: issuedKey.key_id,
-                actorId: issuedKey.actor_id,
-                teamId: input.teamId,
-              },
-              'agent_key.malformed_upstream_row',
-            );
-          }
-        }
-        nextPageToken = result.next_page_token || undefined;
-        pageToken = nextPageToken;
-      } while (items.length < limit && nextPageToken);
-
-      input.logger.debug(
-        {
-          action: 'list',
-          teamId: input.teamId,
-          actorId: input.subject.identityId,
-          scannedCount,
-          matchedCount: items.length,
-          talosCalls,
-          actorFilterApplied: Boolean(agentFilter),
-        },
-        'agent_key.lifecycle',
-      );
-      return {
-        items,
-        nextCursor: nextPageToken
-          ? encodeCursor(nextPageToken, cursorQuery)
-          : null,
-      };
+      const query = await resolveListQuery(deps, input);
+      return scanAgentKeyPages(api, input, query);
     },
 
     async rotate(input: RotateAgentKeyInput): Promise<AgentKeyWithSecret> {
@@ -617,35 +728,46 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
         input.teamId,
         input.logger,
         'rotate',
+        input.signal,
       );
-      await assertCanManageAgentKey(
+      await assertCanManageExistingAgentKey(
         deps,
         input.subject,
         input.teamId,
         binding.agentId,
       );
+      if (input.subject.credentialKeyId === input.keyId) {
+        throw createProblem(
+          'conflict',
+          'The credential being rotated cannot authorize its own rotation. Use OAuth, a different active key, or a team credential manager so a lost response remains recoverable.',
+        );
+      }
       await assertCurrentAgentMember(deps, input.teamId, binding.agentId);
 
       let result: Awaited<ReturnType<typeof api.adminRotateIssuedApiKey>>;
       try {
-        result = await api.adminRotateIssuedApiKey({
-          keyId: input.keyId,
-          adminRotateIssuedApiKeyBody: {
-            metadata: {
-              schema_version: 1,
-              subject_type: 'agent',
-              team_id: input.teamId,
+        result = await api.adminRotateIssuedApiKey(
+          {
+            keyId: input.keyId,
+            adminRotateIssuedApiKeyBody: {
+              metadata: {
+                schema_version: 1,
+                subject_type: 'agent',
+                team_id: input.teamId,
+              },
+              scopes: [...AGENT_CREDENTIAL_SCOPES],
+              visibility: KeyVisibility.KeyVisibilitySecret,
             },
-            scopes: [...AGENT_CREDENTIAL_SCOPES],
-            visibility: KeyVisibility.KeyVisibilitySecret,
           },
-        });
+          talosInit(input.signal),
+        );
       } catch (error) {
         if (isNotFoundError(error)) throw createProblem('not-found');
         input.logger.warn(
           {
             err: error,
             action: 'rotate',
+            failureKind: talosFailureKind(error, input.signal),
             keyId: input.keyId,
             teamId: input.teamId,
           },
@@ -660,6 +782,31 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
         );
       }
 
+      let rotatedKey: AgentKey;
+      try {
+        rotatedKey = toAgentKey(result.issued_api_key);
+        if (
+          rotatedKey.agentId !== binding.agentId ||
+          rotatedKey.teamId !== input.teamId
+        ) {
+          throw new Error('Rotated key binding changed');
+        }
+      } catch (error) {
+        input.logger.warn(
+          {
+            err: error,
+            action: 'rotate:validate',
+            keyId: result.issued_api_key.key_id,
+            oldKeyId: input.keyId,
+            teamId: input.teamId,
+          },
+          'agent_key.malformed_upstream_row',
+        );
+        throw createProblem(
+          'upstream-error',
+          'Talos returned an invalid rotated agent key',
+        );
+      }
       input.logger.info(
         {
           action: 'rotate',
@@ -671,7 +818,7 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
         'agent_key.lifecycle',
       );
       return {
-        key: toAgentKey(result.issued_api_key),
+        key: rotatedKey,
         secret: result.secret,
       };
     },
@@ -684,8 +831,9 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
         input.teamId,
         input.logger,
         'revoke',
+        input.signal,
       );
-      await assertCanManageAgentKey(
+      await assertCanManageExistingAgentKey(
         deps,
         input.subject,
         input.teamId,
@@ -706,19 +854,23 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
       }
 
       try {
-        await api.adminRevokeIssuedApiKey({
-          keyId: input.keyId,
-          adminRevokeIssuedApiKeyBody: {
-            reason: toRevocationReason(input.reason),
-            ...(input.description ? { description: input.description } : {}),
+        await api.adminRevokeIssuedApiKey(
+          {
+            keyId: input.keyId,
+            adminRevokeIssuedApiKeyBody: {
+              reason: toRevocationReason(input.reason),
+              ...(input.description ? { description: input.description } : {}),
+            },
           },
-        });
+          talosInit(input.signal),
+        );
       } catch (error) {
         if (isNotFoundError(error)) throw createProblem('not-found');
         input.logger.warn(
           {
             err: error,
             action: 'revoke',
+            failureKind: talosFailureKind(error, input.signal),
             keyId: input.keyId,
             teamId: input.teamId,
           },

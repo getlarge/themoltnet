@@ -184,149 +184,7 @@
         "properties": {
           "items": {
             "items": {
-              "properties": {
-                "agentId": {
-                  "description": "UUID v4 identifier",
-                  "format": "uuid",
-                  "type": "string"
-                },
-                "createdAt": {
-                  "anyOf": [
-                    {
-                      "format": "date-time",
-                      "type": "string"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "expiresAt": {
-                  "anyOf": [
-                    {
-                      "format": "date-time",
-                      "type": "string"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "id": {
-                  "type": "string"
-                },
-                "lastUsedAt": {
-                  "anyOf": [
-                    {
-                      "format": "date-time",
-                      "type": "string"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "name": {
-                  "type": "string"
-                },
-                "revocationDescription": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "revocationReason": {
-                  "anyOf": [
-                    {
-                      "anyOf": [
-                        {
-                          "enum": [
-                            "key_compromise"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "affiliation_changed"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "superseded"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "privilege_withdrawn"
-                          ],
-                          "type": "string"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "status": {
-                  "anyOf": [
-                    {
-                      "enum": [
-                        "active"
-                      ],
-                      "type": "string"
-                    },
-                    {
-                      "enum": [
-                        "revoked"
-                      ],
-                      "type": "string"
-                    },
-                    {
-                      "enum": [
-                        "expired"
-                      ],
-                      "type": "string"
-                    }
-                  ]
-                },
-                "teamId": {
-                  "description": "UUID v4 identifier",
-                  "format": "uuid",
-                  "type": "string"
-                },
-                "updatedAt": {
-                  "anyOf": [
-                    {
-                      "format": "date-time",
-                      "type": "string"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                }
-              },
-              "required": [
-                "id",
-                "agentId",
-                "teamId",
-                "name",
-                "status",
-                "createdAt",
-                "expiresAt",
-                "lastUsedAt",
-                "updatedAt",
-                "revocationReason",
-                "revocationDescription"
-              ],
-              "type": "object"
+              "$ref": "#/components/schemas/AgentKey"
             },
             "type": "array"
           },
@@ -412,149 +270,7 @@
       "AgentKeyWithSecret": {
         "properties": {
           "key": {
-            "properties": {
-              "agentId": {
-                "description": "UUID v4 identifier",
-                "format": "uuid",
-                "type": "string"
-              },
-              "createdAt": {
-                "anyOf": [
-                  {
-                    "format": "date-time",
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
-              "expiresAt": {
-                "anyOf": [
-                  {
-                    "format": "date-time",
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
-              "id": {
-                "type": "string"
-              },
-              "lastUsedAt": {
-                "anyOf": [
-                  {
-                    "format": "date-time",
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
-              "name": {
-                "type": "string"
-              },
-              "revocationDescription": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
-              "revocationReason": {
-                "anyOf": [
-                  {
-                    "anyOf": [
-                      {
-                        "enum": [
-                          "key_compromise"
-                        ],
-                        "type": "string"
-                      },
-                      {
-                        "enum": [
-                          "affiliation_changed"
-                        ],
-                        "type": "string"
-                      },
-                      {
-                        "enum": [
-                          "superseded"
-                        ],
-                        "type": "string"
-                      },
-                      {
-                        "enum": [
-                          "privilege_withdrawn"
-                        ],
-                        "type": "string"
-                      }
-                    ]
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
-              "status": {
-                "anyOf": [
-                  {
-                    "enum": [
-                      "active"
-                    ],
-                    "type": "string"
-                  },
-                  {
-                    "enum": [
-                      "revoked"
-                    ],
-                    "type": "string"
-                  },
-                  {
-                    "enum": [
-                      "expired"
-                    ],
-                    "type": "string"
-                  }
-                ]
-              },
-              "teamId": {
-                "description": "UUID v4 identifier",
-                "format": "uuid",
-                "type": "string"
-              },
-              "updatedAt": {
-                "anyOf": [
-                  {
-                    "format": "date-time",
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              }
-            },
-            "required": [
-              "id",
-              "agentId",
-              "teamId",
-              "name",
-              "status",
-              "createdAt",
-              "expiresAt",
-              "lastUsedAt",
-              "updatedAt",
-              "revocationReason",
-              "revocationDescription"
-            ],
-            "type": "object"
+            "$ref": "#/components/schemas/AgentKey"
           },
           "secret": {
             "type": "string"
@@ -7414,45 +7130,69 @@
         "type": "object"
       },
       "RevokeAgentKeyBody": {
-        "properties": {
-          "description": {
-            "maxLength": 500,
-            "minLength": 1,
-            "type": "string"
-          },
-          "reason": {
-            "anyOf": [
-              {
+        "anyOf": [
+          {
+            "properties": {
+              "reason": {
                 "enum": [
                   "key_compromise"
                 ],
                 "type": "string"
-              },
-              {
+              }
+            },
+            "required": [
+              "reason"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "reason": {
                 "enum": [
                   "affiliation_changed"
                 ],
                 "type": "string"
-              },
-              {
+              }
+            },
+            "required": [
+              "reason"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "reason": {
                 "enum": [
                   "superseded"
                 ],
                 "type": "string"
+              }
+            },
+            "required": [
+              "reason"
+            ],
+            "type": "object"
+          },
+          {
+            "properties": {
+              "description": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
               },
-              {
+              "reason": {
                 "enum": [
                   "privilege_withdrawn"
                 ],
                 "type": "string"
               }
-            ]
+            },
+            "required": [
+              "reason"
+            ],
+            "type": "object"
           }
-        },
-        "required": [
-          "reason"
-        ],
-        "type": "object"
+        ]
       },
       "RotateSecretResponse": {
         "properties": {
@@ -13690,49 +13430,72 @@
           "content": {
             "application/json": {
               "schema": {
-                "properties": {
-                  "description": {
-                    "maxLength": 500,
-                    "minLength": 1,
-                    "type": "string"
-                  },
-                  "reason": {
-                    "anyOf": [
-                      {
+                "anyOf": [
+                  {
+                    "properties": {
+                      "reason": {
                         "enum": [
                           "key_compromise"
                         ],
                         "type": "string"
-                      },
-                      {
+                      }
+                    },
+                    "required": [
+                      "reason"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "properties": {
+                      "reason": {
                         "enum": [
                           "affiliation_changed"
                         ],
                         "type": "string"
-                      },
-                      {
+                      }
+                    },
+                    "required": [
+                      "reason"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "properties": {
+                      "reason": {
                         "enum": [
                           "superseded"
                         ],
                         "type": "string"
+                      }
+                    },
+                    "required": [
+                      "reason"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "properties": {
+                      "description": {
+                        "maxLength": 500,
+                        "minLength": 1,
+                        "type": "string"
                       },
-                      {
+                      "reason": {
                         "enum": [
                           "privilege_withdrawn"
                         ],
                         "type": "string"
                       }
-                    ]
+                    },
+                    "required": [
+                      "reason"
+                    ],
+                    "type": "object"
                   }
-                },
-                "required": [
-                  "reason"
-                ],
-                "type": "object"
+                ]
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "204": {
@@ -13769,6 +13532,16 @@
             "description": "Default Response"
           },
           "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "429": {
             "content": {
               "application/json": {
                 "schema": {
@@ -13882,6 +13655,16 @@
             "description": "Default Response"
           },
           "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "409": {
             "content": {
               "application/json": {
                 "schema": {

@@ -6977,6 +6977,18 @@ func encodeRevokeAgentKeyResponse(response RevokeAgentKeyRes, w http.ResponseWri
 
 		return nil
 
+	case *RevokeAgentKeyTooManyRequests:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(429)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
 	case *RevokeAgentKeyBadGateway:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(502)
@@ -7129,6 +7141,18 @@ func encodeRotateAgentKeyResponse(response RotateAgentKeyRes, w http.ResponseWri
 	case *RotateAgentKeyNotFound:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(404)
+
+		e := new(jx.Encoder)
+		response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
+
+		return nil
+
+	case *RotateAgentKeyConflict:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.WriteHeader(409)
 
 		e := new(jx.Encoder)
 		response.Encode(e)

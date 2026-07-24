@@ -993,7 +993,7 @@ func (UnimplementedHandler) RequestRecoveryChallenge(ctx context.Context, req *R
 // Permanently revoke an agent API key.
 //
 // POST /agent-keys/{keyId}/revoke
-func (UnimplementedHandler) RevokeAgentKey(ctx context.Context, req *RevokeAgentKeyReq, params RevokeAgentKeyParams) (r RevokeAgentKeyRes, _ error) {
+func (UnimplementedHandler) RevokeAgentKey(ctx context.Context, req OptRevokeAgentKeyReq, params RevokeAgentKeyParams) (r RevokeAgentKeyRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

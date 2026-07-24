@@ -220,6 +220,47 @@ func (s *AddGroupMemberUnauthorized) Validate() error {
 	return nil
 }
 
+func (s *AgentKey) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if value, ok := s.RevocationReason.Get(); ok {
+			if err := func() error {
+				if err := value.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "revocationReason",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := s.Status.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "status",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
 func (s *AgentKeyList) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
@@ -260,48 +301,7 @@ func (s *AgentKeyList) Validate() error {
 	return nil
 }
 
-func (s *AgentKeyListItemsItem) Validate() error {
-	if s == nil {
-		return validate.ErrNilPointer
-	}
-
-	var failures []validate.FieldError
-	if err := func() error {
-		if value, ok := s.RevocationReason.Get(); ok {
-			if err := func() error {
-				if err := value.Validate(); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "revocationReason",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if err := s.Status.Validate(); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "status",
-			Error: err,
-		})
-	}
-	if len(failures) > 0 {
-		return &validate.Error{Fields: failures}
-	}
-	return nil
-}
-
-func (s AgentKeyListItemsItemRevocationReason) Validate() error {
+func (s AgentKeyRevocationReason) Validate() error {
 	switch s {
 	case "key_compromise":
 		return nil
@@ -316,7 +316,7 @@ func (s AgentKeyListItemsItemRevocationReason) Validate() error {
 	}
 }
 
-func (s AgentKeyListItemsItemStatus) Validate() error {
+func (s AgentKeyStatus) Validate() error {
 	switch s {
 	case "active":
 		return nil
@@ -350,75 +350,6 @@ func (s *AgentKeyWithSecret) Validate() error {
 		return &validate.Error{Fields: failures}
 	}
 	return nil
-}
-
-func (s *AgentKeyWithSecretKey) Validate() error {
-	if s == nil {
-		return validate.ErrNilPointer
-	}
-
-	var failures []validate.FieldError
-	if err := func() error {
-		if value, ok := s.RevocationReason.Get(); ok {
-			if err := func() error {
-				if err := value.Validate(); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "revocationReason",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if err := s.Status.Validate(); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "status",
-			Error: err,
-		})
-	}
-	if len(failures) > 0 {
-		return &validate.Error{Fields: failures}
-	}
-	return nil
-}
-
-func (s AgentKeyWithSecretKeyRevocationReason) Validate() error {
-	switch s {
-	case "key_compromise":
-		return nil
-	case "affiliation_changed":
-		return nil
-	case "superseded":
-		return nil
-	case "privilege_withdrawn":
-		return nil
-	default:
-		return errors.Errorf("invalid value: %v", s)
-	}
-}
-
-func (s AgentKeyWithSecretKeyStatus) Validate() error {
-	switch s {
-	case "active":
-		return nil
-	case "revoked":
-		return nil
-	case "expired":
-		return nil
-	default:
-		return errors.Errorf("invalid value: %v", s)
-	}
 }
 
 func (s *AgentPrincipal) Validate() error {
@@ -18646,6 +18577,38 @@ func (s *ProvenanceGraph) Validate() error {
 	return nil
 }
 
+func (s *ProvenanceGraphAffiliationChangedNode) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.Reason.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "reason",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s ProvenanceGraphAffiliationChangedNodeReason) Validate() error {
+	switch s {
+	case "affiliation_changed":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
 func (s *ProvenanceGraphEdgesItem) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
@@ -18803,6 +18766,38 @@ func (s ProvenanceGraphEntryNodeMetaEntryType) Validate() error {
 	case "procedural":
 		return nil
 	case "reflection":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s *ProvenanceGraphKeyCompromiseNode) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.Reason.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "reason",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s ProvenanceGraphKeyCompromiseNodeReason) Validate() error {
+	switch s {
+	case "key_compromise":
 		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
@@ -18974,6 +18969,68 @@ func (s ProvenanceGraphPackNodeMetaCreator) Validate() error {
 	}
 }
 
+func (s *ProvenanceGraphPrivilegeWithdrawnNode) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if value, ok := s.Description.Get(); ok {
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     1,
+					MinLengthSet:  true,
+					MaxLength:     500,
+					MaxLengthSet:  true,
+					Email:         false,
+					Hostname:      false,
+					Regex:         nil,
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(value)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "description",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := s.Reason.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "reason",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s ProvenanceGraphPrivilegeWithdrawnNodeReason) Validate() error {
+	switch s {
+	case "privilege_withdrawn":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
 func (s *ProvenanceGraphRenderedPackNode) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
@@ -19072,6 +19129,38 @@ func (s ProvenanceGraphRenderedPackNodeMetaCreator) Validate() error {
 		return nil
 	default:
 		return errors.Errorf("invalid type %q", s.Type)
+	}
+}
+
+func (s *ProvenanceGraphSupersededNode) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.Reason.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "reason",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s ProvenanceGraphSupersededNodeReason) Validate() error {
+	switch s {
+	case "superseded":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
 	}
 }
 
@@ -20000,75 +20089,42 @@ func (s *RevokeAgentKeyNotFound) Validate() error {
 	return nil
 }
 
-func (s *RevokeAgentKeyReq) Validate() error {
-	if s == nil {
-		return validate.ErrNilPointer
-	}
-
-	var failures []validate.FieldError
-	if err := func() error {
-		if value, ok := s.Description.Get(); ok {
-			if err := func() error {
-				if err := (validate.String{
-					MinLength:     1,
-					MinLengthSet:  true,
-					MaxLength:     500,
-					MaxLengthSet:  true,
-					Email:         false,
-					Hostname:      false,
-					Regex:         nil,
-					MinNumeric:    0,
-					MinNumericSet: false,
-					MaxNumeric:    0,
-					MaxNumericSet: false,
-				}).Validate(string(value)); err != nil {
-					return errors.Wrap(err, "string")
-				}
-				return nil
-			}(); err != nil {
-				return err
-			}
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "description",
-			Error: err,
-		})
-	}
-	if err := func() error {
-		if err := s.Reason.Validate(); err != nil {
+func (s RevokeAgentKeyReq) Validate() error {
+	switch s.Type {
+	case ProvenanceGraphKeyCompromiseNodeRevokeAgentKeyReq:
+		if err := s.ProvenanceGraphKeyCompromiseNode.Validate(); err != nil {
 			return err
 		}
 		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "reason",
-			Error: err,
-		})
-	}
-	if len(failures) > 0 {
-		return &validate.Error{Fields: failures}
-	}
-	return nil
-}
-
-func (s RevokeAgentKeyReqReason) Validate() error {
-	switch s {
-	case "key_compromise":
+	case ProvenanceGraphAffiliationChangedNodeRevokeAgentKeyReq:
+		if err := s.ProvenanceGraphAffiliationChangedNode.Validate(); err != nil {
+			return err
+		}
 		return nil
-	case "affiliation_changed":
+	case ProvenanceGraphSupersededNodeRevokeAgentKeyReq:
+		if err := s.ProvenanceGraphSupersededNode.Validate(); err != nil {
+			return err
+		}
 		return nil
-	case "superseded":
-		return nil
-	case "privilege_withdrawn":
+	case ProvenanceGraphPrivilegeWithdrawnNodeRevokeAgentKeyReq:
+		if err := s.ProvenanceGraphPrivilegeWithdrawnNode.Validate(); err != nil {
+			return err
+		}
 		return nil
 	default:
-		return errors.Errorf("invalid value: %v", s)
+		return errors.Errorf("invalid type %q", s.Type)
 	}
 }
 
 func (s *RevokeAgentKeyServiceUnavailable) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *RevokeAgentKeyTooManyRequests) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err
@@ -20175,6 +20231,14 @@ func (s *RevokeDiaryGrantUnauthorized) Validate() error {
 }
 
 func (s *RotateAgentKeyBadGateway) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *RotateAgentKeyConflict) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err

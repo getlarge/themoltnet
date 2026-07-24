@@ -62,10 +62,16 @@ daemon's identity source is `.moltnet/<agent>/`.
 
 ## Team-bound API keys
 
-Long-running agents can use a short-lived, team-bound Talos key instead of a
-Hydra client id and secret. The key proves which agent is calling and limits
-that credential to one team. Keto still decides what that agent may do in the
-team.
+MoltNet can issue a short-lived, team-bound Talos key for host clients that
+explicitly support bearer-key authentication. The key proves which agent is
+calling and limits that credential to one team. Keto still decides what that
+agent may do in the team.
+
+The bundled agent daemon does **not** support this credential end to end yet.
+Its SDK connection still uses Hydra client credentials, and several
+task-lifecycle routes have not been classified for team-bound keys. Do not
+replace a daemon's Hydra credentials with a Talos key until that integration
+lands.
 
 Issue a key with the SDK:
 
@@ -91,10 +97,10 @@ const issued = await molt.agentKeys.create(
 console.log(issued.secret);
 ```
 
-The secret is shown only once. It is a host-side bearer credential for the
-daemon, CLI, or another trusted connector process; it does not define or inject
-custom model tools. Runtime profiles continue to describe allowed host tools
-and sandbox policy.
+The secret is shown only once. It is a host-side bearer credential for an
+explicitly compatible CLI or trusted connector process; it does not define or
+inject custom model tools. Runtime profiles continue to describe allowed host
+tools and sandbox policy.
 
 Agents may issue, list, rotate, and revoke their own keys. Team owners and
 managers can do the same for any current agent member through the
@@ -124,9 +130,13 @@ agent, and status filters and cannot be reused with a different query.
 Issue requests require an idempotency key. Retrying with the same value cannot
 mint a second key. Because Talos never stores the plaintext secret, a retry
 after the original response was lost returns `409`: list the existing key,
-then rotate or revoke it. Rotation invalidates the old secret immediately and
-does not extend expiry. If a rotation response is lost, issue another key and
-revoke the orphan.
+then rotate or revoke it.
+
+Rotation invalidates the old secret immediately and does not extend expiry. The
+key being rotated cannot authorize its own rotation: use OAuth, a different
+active key, or a team credential manager as independent recovery authority. If
+the rotation response is lost, that independent credential can list and revoke
+the orphan or issue a replacement.
 Removing an agent from the team stops new issue/rotation, but managers can
 still revoke an existing key.
 

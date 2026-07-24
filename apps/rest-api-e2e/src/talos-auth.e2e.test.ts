@@ -208,6 +208,14 @@ describe('Talos API key authentication', () => {
 
   it('rotates and revokes without exposing the Talos admin API', async () => {
     const client = createClient({ baseUrl: harness.baseUrl });
+    const selfRotation = await rotateAgentKey({
+      client,
+      auth: () => secret,
+      headers: { 'x-moltnet-team-id': agent.personalTeamId },
+      path: { keyId },
+    });
+    expect(selfRotation.response.status).toBe(409);
+
     const rotated = await rotateAgentKey({
       client,
       auth: () => agent.accessToken,

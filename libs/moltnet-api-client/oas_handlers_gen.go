@@ -23148,7 +23148,7 @@ func (s *Server) handleRevokeAgentKeyRequest(args [1]string, argsEscaped bool, w
 		}
 
 		type (
-			Request  = *RevokeAgentKeyReq
+			Request  = OptRevokeAgentKeyReq
 			Params   = RevokeAgentKeyParams
 			Response = RevokeAgentKeyRes
 		)

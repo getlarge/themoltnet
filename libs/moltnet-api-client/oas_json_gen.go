@@ -1324,135 +1324,14 @@ func (s *AddGroupMemberUnauthorized) UnmarshalJSON(data []byte) error {
 }
 
 // Encode implements json.Marshaler.
-func (s *AgentKeyList) Encode(e *jx.Encoder) {
+func (s *AgentKey) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
 	e.ObjEnd()
 }
 
 // encodeFields encodes fields.
-func (s *AgentKeyList) encodeFields(e *jx.Encoder) {
-	{
-		e.FieldStart("items")
-		e.ArrStart()
-		for _, elem := range s.Items {
-			elem.Encode(e)
-		}
-		e.ArrEnd()
-	}
-	{
-		e.FieldStart("nextCursor")
-		s.NextCursor.Encode(e)
-	}
-}
-
-var jsonFieldsNameOfAgentKeyList = [2]string{
-	0: "items",
-	1: "nextCursor",
-}
-
-// Decode decodes AgentKeyList from json.
-func (s *AgentKeyList) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode AgentKeyList to nil")
-	}
-	var requiredBitSet [1]uint8
-
-	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
-		switch string(k) {
-		case "items":
-			requiredBitSet[0] |= 1 << 0
-			if err := func() error {
-				s.Items = make([]AgentKeyListItemsItem, 0)
-				if err := d.Arr(func(d *jx.Decoder) error {
-					var elem AgentKeyListItemsItem
-					if err := elem.Decode(d); err != nil {
-						return err
-					}
-					s.Items = append(s.Items, elem)
-					return nil
-				}); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"items\"")
-			}
-		case "nextCursor":
-			requiredBitSet[0] |= 1 << 1
-			if err := func() error {
-				if err := s.NextCursor.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"nextCursor\"")
-			}
-		default:
-			return d.Skip()
-		}
-		return nil
-	}); err != nil {
-		return errors.Wrap(err, "decode AgentKeyList")
-	}
-	// Validate required fields.
-	var failures []validate.FieldError
-	for i, mask := range [1]uint8{
-		0b00000011,
-	} {
-		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
-			// Mask only required fields and check equality to mask using XOR.
-			//
-			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
-			// Bits of fields which would be set are actually bits of missed fields.
-			missed := bits.OnesCount8(result)
-			for bitN := 0; bitN < missed; bitN++ {
-				bitIdx := bits.TrailingZeros8(result)
-				fieldIdx := i*8 + bitIdx
-				var name string
-				if fieldIdx < len(jsonFieldsNameOfAgentKeyList) {
-					name = jsonFieldsNameOfAgentKeyList[fieldIdx]
-				} else {
-					name = strconv.Itoa(fieldIdx)
-				}
-				failures = append(failures, validate.FieldError{
-					Name:  name,
-					Error: validate.ErrFieldRequired,
-				})
-				// Reset bit.
-				result &^= 1 << bitIdx
-			}
-		}
-	}
-	if len(failures) > 0 {
-		return &validate.Error{Fields: failures}
-	}
-
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *AgentKeyList) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *AgentKeyList) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode implements json.Marshaler.
-func (s *AgentKeyListItemsItem) Encode(e *jx.Encoder) {
-	e.ObjStart()
-	s.encodeFields(e)
-	e.ObjEnd()
-}
-
-// encodeFields encodes fields.
-func (s *AgentKeyListItemsItem) encodeFields(e *jx.Encoder) {
+func (s *AgentKey) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("agentId")
 		json.EncodeUUID(e, s.AgentId)
@@ -1499,7 +1378,7 @@ func (s *AgentKeyListItemsItem) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfAgentKeyListItemsItem = [11]string{
+var jsonFieldsNameOfAgentKey = [11]string{
 	0:  "agentId",
 	1:  "createdAt",
 	2:  "expiresAt",
@@ -1513,10 +1392,10 @@ var jsonFieldsNameOfAgentKeyListItemsItem = [11]string{
 	10: "updatedAt",
 }
 
-// Decode decodes AgentKeyListItemsItem from json.
-func (s *AgentKeyListItemsItem) Decode(d *jx.Decoder) error {
+// Decode decodes AgentKey from json.
+func (s *AgentKey) Decode(d *jx.Decoder) error {
 	if s == nil {
-		return errors.New("invalid: unable to decode AgentKeyListItemsItem to nil")
+		return errors.New("invalid: unable to decode AgentKey to nil")
 	}
 	var requiredBitSet [2]uint8
 
@@ -1645,7 +1524,7 @@ func (s *AgentKeyListItemsItem) Decode(d *jx.Decoder) error {
 		}
 		return nil
 	}); err != nil {
-		return errors.Wrap(err, "decode AgentKeyListItemsItem")
+		return errors.Wrap(err, "decode AgentKey")
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
@@ -1663,8 +1542,8 @@ func (s *AgentKeyListItemsItem) Decode(d *jx.Decoder) error {
 				bitIdx := bits.TrailingZeros8(result)
 				fieldIdx := i*8 + bitIdx
 				var name string
-				if fieldIdx < len(jsonFieldsNameOfAgentKeyListItemsItem) {
-					name = jsonFieldsNameOfAgentKeyListItemsItem[fieldIdx]
+				if fieldIdx < len(jsonFieldsNameOfAgentKey) {
+					name = jsonFieldsNameOfAgentKey[fieldIdx]
 				} else {
 					name = strconv.Itoa(fieldIdx)
 				}
@@ -1685,100 +1564,221 @@ func (s *AgentKeyListItemsItem) Decode(d *jx.Decoder) error {
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s *AgentKeyListItemsItem) MarshalJSON() ([]byte, error) {
+func (s *AgentKey) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *AgentKeyListItemsItem) UnmarshalJSON(data []byte) error {
+func (s *AgentKey) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
 
-// Encode encodes AgentKeyListItemsItemRevocationReason as json.
-func (s AgentKeyListItemsItemRevocationReason) Encode(e *jx.Encoder) {
-	e.Str(string(s))
+// Encode implements json.Marshaler.
+func (s *AgentKeyList) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
 }
 
-// Decode decodes AgentKeyListItemsItemRevocationReason from json.
-func (s *AgentKeyListItemsItemRevocationReason) Decode(d *jx.Decoder) error {
+// encodeFields encodes fields.
+func (s *AgentKeyList) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("items")
+		e.ArrStart()
+		for _, elem := range s.Items {
+			elem.Encode(e)
+		}
+		e.ArrEnd()
+	}
+	{
+		e.FieldStart("nextCursor")
+		s.NextCursor.Encode(e)
+	}
+}
+
+var jsonFieldsNameOfAgentKeyList = [2]string{
+	0: "items",
+	1: "nextCursor",
+}
+
+// Decode decodes AgentKeyList from json.
+func (s *AgentKeyList) Decode(d *jx.Decoder) error {
 	if s == nil {
-		return errors.New("invalid: unable to decode AgentKeyListItemsItemRevocationReason to nil")
+		return errors.New("invalid: unable to decode AgentKeyList to nil")
 	}
-	v, err := d.StrBytes()
-	if err != nil {
-		return err
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "items":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				s.Items = make([]AgentKey, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem AgentKey
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.Items = append(s.Items, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"items\"")
+			}
+		case "nextCursor":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				if err := s.NextCursor.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"nextCursor\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode AgentKeyList")
 	}
-	// Try to use constant string.
-	switch AgentKeyListItemsItemRevocationReason(v) {
-	case AgentKeyListItemsItemRevocationReasonKeyCompromise:
-		*s = AgentKeyListItemsItemRevocationReasonKeyCompromise
-	case AgentKeyListItemsItemRevocationReasonAffiliationChanged:
-		*s = AgentKeyListItemsItemRevocationReasonAffiliationChanged
-	case AgentKeyListItemsItemRevocationReasonSuperseded:
-		*s = AgentKeyListItemsItemRevocationReasonSuperseded
-	case AgentKeyListItemsItemRevocationReasonPrivilegeWithdrawn:
-		*s = AgentKeyListItemsItemRevocationReasonPrivilegeWithdrawn
-	default:
-		*s = AgentKeyListItemsItemRevocationReason(v)
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000011,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfAgentKeyList) {
+					name = jsonFieldsNameOfAgentKeyList[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
 	}
 
 	return nil
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s AgentKeyListItemsItemRevocationReason) MarshalJSON() ([]byte, error) {
+func (s *AgentKeyList) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *AgentKeyListItemsItemRevocationReason) UnmarshalJSON(data []byte) error {
+func (s *AgentKeyList) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
 
-// Encode encodes AgentKeyListItemsItemStatus as json.
-func (s AgentKeyListItemsItemStatus) Encode(e *jx.Encoder) {
+// Encode encodes AgentKeyRevocationReason as json.
+func (s AgentKeyRevocationReason) Encode(e *jx.Encoder) {
 	e.Str(string(s))
 }
 
-// Decode decodes AgentKeyListItemsItemStatus from json.
-func (s *AgentKeyListItemsItemStatus) Decode(d *jx.Decoder) error {
+// Decode decodes AgentKeyRevocationReason from json.
+func (s *AgentKeyRevocationReason) Decode(d *jx.Decoder) error {
 	if s == nil {
-		return errors.New("invalid: unable to decode AgentKeyListItemsItemStatus to nil")
+		return errors.New("invalid: unable to decode AgentKeyRevocationReason to nil")
 	}
 	v, err := d.StrBytes()
 	if err != nil {
 		return err
 	}
 	// Try to use constant string.
-	switch AgentKeyListItemsItemStatus(v) {
-	case AgentKeyListItemsItemStatusActive:
-		*s = AgentKeyListItemsItemStatusActive
-	case AgentKeyListItemsItemStatusRevoked:
-		*s = AgentKeyListItemsItemStatusRevoked
-	case AgentKeyListItemsItemStatusExpired:
-		*s = AgentKeyListItemsItemStatusExpired
+	switch AgentKeyRevocationReason(v) {
+	case AgentKeyRevocationReasonKeyCompromise:
+		*s = AgentKeyRevocationReasonKeyCompromise
+	case AgentKeyRevocationReasonAffiliationChanged:
+		*s = AgentKeyRevocationReasonAffiliationChanged
+	case AgentKeyRevocationReasonSuperseded:
+		*s = AgentKeyRevocationReasonSuperseded
+	case AgentKeyRevocationReasonPrivilegeWithdrawn:
+		*s = AgentKeyRevocationReasonPrivilegeWithdrawn
 	default:
-		*s = AgentKeyListItemsItemStatus(v)
+		*s = AgentKeyRevocationReason(v)
 	}
 
 	return nil
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s AgentKeyListItemsItemStatus) MarshalJSON() ([]byte, error) {
+func (s AgentKeyRevocationReason) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *AgentKeyListItemsItemStatus) UnmarshalJSON(data []byte) error {
+func (s *AgentKeyRevocationReason) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes AgentKeyStatus as json.
+func (s AgentKeyStatus) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes AgentKeyStatus from json.
+func (s *AgentKeyStatus) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode AgentKeyStatus to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch AgentKeyStatus(v) {
+	case AgentKeyStatusActive:
+		*s = AgentKeyStatusActive
+	case AgentKeyStatusRevoked:
+		*s = AgentKeyStatusRevoked
+	case AgentKeyStatusExpired:
+		*s = AgentKeyStatusExpired
+	default:
+		*s = AgentKeyStatus(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s AgentKeyStatus) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *AgentKeyStatus) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -1890,345 +1890,6 @@ func (s *AgentKeyWithSecret) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *AgentKeyWithSecret) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode implements json.Marshaler.
-func (s *AgentKeyWithSecretKey) Encode(e *jx.Encoder) {
-	e.ObjStart()
-	s.encodeFields(e)
-	e.ObjEnd()
-}
-
-// encodeFields encodes fields.
-func (s *AgentKeyWithSecretKey) encodeFields(e *jx.Encoder) {
-	{
-		e.FieldStart("agentId")
-		json.EncodeUUID(e, s.AgentId)
-	}
-	{
-		e.FieldStart("createdAt")
-		s.CreatedAt.Encode(e, json.EncodeDateTime)
-	}
-	{
-		e.FieldStart("expiresAt")
-		s.ExpiresAt.Encode(e, json.EncodeDateTime)
-	}
-	{
-		e.FieldStart("id")
-		e.Str(s.ID)
-	}
-	{
-		e.FieldStart("lastUsedAt")
-		s.LastUsedAt.Encode(e, json.EncodeDateTime)
-	}
-	{
-		e.FieldStart("name")
-		e.Str(s.Name)
-	}
-	{
-		e.FieldStart("revocationDescription")
-		s.RevocationDescription.Encode(e)
-	}
-	{
-		e.FieldStart("revocationReason")
-		s.RevocationReason.Encode(e)
-	}
-	{
-		e.FieldStart("status")
-		s.Status.Encode(e)
-	}
-	{
-		e.FieldStart("teamId")
-		json.EncodeUUID(e, s.TeamId)
-	}
-	{
-		e.FieldStart("updatedAt")
-		s.UpdatedAt.Encode(e, json.EncodeDateTime)
-	}
-}
-
-var jsonFieldsNameOfAgentKeyWithSecretKey = [11]string{
-	0:  "agentId",
-	1:  "createdAt",
-	2:  "expiresAt",
-	3:  "id",
-	4:  "lastUsedAt",
-	5:  "name",
-	6:  "revocationDescription",
-	7:  "revocationReason",
-	8:  "status",
-	9:  "teamId",
-	10: "updatedAt",
-}
-
-// Decode decodes AgentKeyWithSecretKey from json.
-func (s *AgentKeyWithSecretKey) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode AgentKeyWithSecretKey to nil")
-	}
-	var requiredBitSet [2]uint8
-
-	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
-		switch string(k) {
-		case "agentId":
-			requiredBitSet[0] |= 1 << 0
-			if err := func() error {
-				v, err := json.DecodeUUID(d)
-				s.AgentId = v
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"agentId\"")
-			}
-		case "createdAt":
-			requiredBitSet[0] |= 1 << 1
-			if err := func() error {
-				if err := s.CreatedAt.Decode(d, json.DecodeDateTime); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"createdAt\"")
-			}
-		case "expiresAt":
-			requiredBitSet[0] |= 1 << 2
-			if err := func() error {
-				if err := s.ExpiresAt.Decode(d, json.DecodeDateTime); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"expiresAt\"")
-			}
-		case "id":
-			requiredBitSet[0] |= 1 << 3
-			if err := func() error {
-				v, err := d.Str()
-				s.ID = string(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"id\"")
-			}
-		case "lastUsedAt":
-			requiredBitSet[0] |= 1 << 4
-			if err := func() error {
-				if err := s.LastUsedAt.Decode(d, json.DecodeDateTime); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"lastUsedAt\"")
-			}
-		case "name":
-			requiredBitSet[0] |= 1 << 5
-			if err := func() error {
-				v, err := d.Str()
-				s.Name = string(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"name\"")
-			}
-		case "revocationDescription":
-			requiredBitSet[0] |= 1 << 6
-			if err := func() error {
-				if err := s.RevocationDescription.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"revocationDescription\"")
-			}
-		case "revocationReason":
-			requiredBitSet[0] |= 1 << 7
-			if err := func() error {
-				if err := s.RevocationReason.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"revocationReason\"")
-			}
-		case "status":
-			requiredBitSet[1] |= 1 << 0
-			if err := func() error {
-				if err := s.Status.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"status\"")
-			}
-		case "teamId":
-			requiredBitSet[1] |= 1 << 1
-			if err := func() error {
-				v, err := json.DecodeUUID(d)
-				s.TeamId = v
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"teamId\"")
-			}
-		case "updatedAt":
-			requiredBitSet[1] |= 1 << 2
-			if err := func() error {
-				if err := s.UpdatedAt.Decode(d, json.DecodeDateTime); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"updatedAt\"")
-			}
-		default:
-			return d.Skip()
-		}
-		return nil
-	}); err != nil {
-		return errors.Wrap(err, "decode AgentKeyWithSecretKey")
-	}
-	// Validate required fields.
-	var failures []validate.FieldError
-	for i, mask := range [2]uint8{
-		0b11111111,
-		0b00000111,
-	} {
-		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
-			// Mask only required fields and check equality to mask using XOR.
-			//
-			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
-			// Bits of fields which would be set are actually bits of missed fields.
-			missed := bits.OnesCount8(result)
-			for bitN := 0; bitN < missed; bitN++ {
-				bitIdx := bits.TrailingZeros8(result)
-				fieldIdx := i*8 + bitIdx
-				var name string
-				if fieldIdx < len(jsonFieldsNameOfAgentKeyWithSecretKey) {
-					name = jsonFieldsNameOfAgentKeyWithSecretKey[fieldIdx]
-				} else {
-					name = strconv.Itoa(fieldIdx)
-				}
-				failures = append(failures, validate.FieldError{
-					Name:  name,
-					Error: validate.ErrFieldRequired,
-				})
-				// Reset bit.
-				result &^= 1 << bitIdx
-			}
-		}
-	}
-	if len(failures) > 0 {
-		return &validate.Error{Fields: failures}
-	}
-
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *AgentKeyWithSecretKey) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *AgentKeyWithSecretKey) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes AgentKeyWithSecretKeyRevocationReason as json.
-func (s AgentKeyWithSecretKeyRevocationReason) Encode(e *jx.Encoder) {
-	e.Str(string(s))
-}
-
-// Decode decodes AgentKeyWithSecretKeyRevocationReason from json.
-func (s *AgentKeyWithSecretKeyRevocationReason) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode AgentKeyWithSecretKeyRevocationReason to nil")
-	}
-	v, err := d.StrBytes()
-	if err != nil {
-		return err
-	}
-	// Try to use constant string.
-	switch AgentKeyWithSecretKeyRevocationReason(v) {
-	case AgentKeyWithSecretKeyRevocationReasonKeyCompromise:
-		*s = AgentKeyWithSecretKeyRevocationReasonKeyCompromise
-	case AgentKeyWithSecretKeyRevocationReasonAffiliationChanged:
-		*s = AgentKeyWithSecretKeyRevocationReasonAffiliationChanged
-	case AgentKeyWithSecretKeyRevocationReasonSuperseded:
-		*s = AgentKeyWithSecretKeyRevocationReasonSuperseded
-	case AgentKeyWithSecretKeyRevocationReasonPrivilegeWithdrawn:
-		*s = AgentKeyWithSecretKeyRevocationReasonPrivilegeWithdrawn
-	default:
-		*s = AgentKeyWithSecretKeyRevocationReason(v)
-	}
-
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s AgentKeyWithSecretKeyRevocationReason) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *AgentKeyWithSecretKeyRevocationReason) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes AgentKeyWithSecretKeyStatus as json.
-func (s AgentKeyWithSecretKeyStatus) Encode(e *jx.Encoder) {
-	e.Str(string(s))
-}
-
-// Decode decodes AgentKeyWithSecretKeyStatus from json.
-func (s *AgentKeyWithSecretKeyStatus) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode AgentKeyWithSecretKeyStatus to nil")
-	}
-	v, err := d.StrBytes()
-	if err != nil {
-		return err
-	}
-	// Try to use constant string.
-	switch AgentKeyWithSecretKeyStatus(v) {
-	case AgentKeyWithSecretKeyStatusActive:
-		*s = AgentKeyWithSecretKeyStatusActive
-	case AgentKeyWithSecretKeyStatusRevoked:
-		*s = AgentKeyWithSecretKeyStatusRevoked
-	case AgentKeyWithSecretKeyStatusExpired:
-		*s = AgentKeyWithSecretKeyStatusExpired
-	default:
-		*s = AgentKeyWithSecretKeyStatus(v)
-	}
-
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s AgentKeyWithSecretKeyStatus) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *AgentKeyWithSecretKeyStatus) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -61076,8 +60737,8 @@ func (s *NetworkInfoTechnical) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
-// Encode encodes AgentKeyListItemsItemRevocationReason as json.
-func (o NilAgentKeyListItemsItemRevocationReason) Encode(e *jx.Encoder) {
+// Encode encodes AgentKeyRevocationReason as json.
+func (o NilAgentKeyRevocationReason) Encode(e *jx.Encoder) {
 	if o.Null {
 		e.Null()
 		return
@@ -61085,17 +60746,17 @@ func (o NilAgentKeyListItemsItemRevocationReason) Encode(e *jx.Encoder) {
 	e.Str(string(o.Value))
 }
 
-// Decode decodes AgentKeyListItemsItemRevocationReason from json.
-func (o *NilAgentKeyListItemsItemRevocationReason) Decode(d *jx.Decoder) error {
+// Decode decodes AgentKeyRevocationReason from json.
+func (o *NilAgentKeyRevocationReason) Decode(d *jx.Decoder) error {
 	if o == nil {
-		return errors.New("invalid: unable to decode NilAgentKeyListItemsItemRevocationReason to nil")
+		return errors.New("invalid: unable to decode NilAgentKeyRevocationReason to nil")
 	}
 	if d.Next() == jx.Null {
 		if err := d.Null(); err != nil {
 			return err
 		}
 
-		var v AgentKeyListItemsItemRevocationReason
+		var v AgentKeyRevocationReason
 		o.Value = v
 		o.Null = true
 		return nil
@@ -61108,58 +60769,14 @@ func (o *NilAgentKeyListItemsItemRevocationReason) Decode(d *jx.Decoder) error {
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s NilAgentKeyListItemsItemRevocationReason) MarshalJSON() ([]byte, error) {
+func (s NilAgentKeyRevocationReason) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *NilAgentKeyListItemsItemRevocationReason) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes AgentKeyWithSecretKeyRevocationReason as json.
-func (o NilAgentKeyWithSecretKeyRevocationReason) Encode(e *jx.Encoder) {
-	if o.Null {
-		e.Null()
-		return
-	}
-	e.Str(string(o.Value))
-}
-
-// Decode decodes AgentKeyWithSecretKeyRevocationReason from json.
-func (o *NilAgentKeyWithSecretKeyRevocationReason) Decode(d *jx.Decoder) error {
-	if o == nil {
-		return errors.New("invalid: unable to decode NilAgentKeyWithSecretKeyRevocationReason to nil")
-	}
-	if d.Next() == jx.Null {
-		if err := d.Null(); err != nil {
-			return err
-		}
-
-		var v AgentKeyWithSecretKeyRevocationReason
-		o.Value = v
-		o.Null = true
-		return nil
-	}
-	o.Null = false
-	if err := o.Value.Decode(d); err != nil {
-		return err
-	}
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s NilAgentKeyWithSecretKeyRevocationReason) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *NilAgentKeyWithSecretKeyRevocationReason) UnmarshalJSON(data []byte) error {
+func (s *NilAgentKeyRevocationReason) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -63894,6 +63511,39 @@ func (s OptRelationType) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *OptRelationType) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes RevokeAgentKeyReq as json.
+func (o OptRevokeAgentKeyReq) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes RevokeAgentKeyReq from json.
+func (o *OptRevokeAgentKeyReq) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptRevokeAgentKeyReq to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptRevokeAgentKeyReq) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptRevokeAgentKeyReq) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -67175,6 +66825,138 @@ func (s *ProvenanceGraph) UnmarshalJSON(data []byte) error {
 }
 
 // Encode implements json.Marshaler.
+func (s *ProvenanceGraphAffiliationChangedNode) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *ProvenanceGraphAffiliationChangedNode) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("reason")
+		s.Reason.Encode(e)
+	}
+}
+
+var jsonFieldsNameOfProvenanceGraphAffiliationChangedNode = [1]string{
+	0: "reason",
+}
+
+// Decode decodes ProvenanceGraphAffiliationChangedNode from json.
+func (s *ProvenanceGraphAffiliationChangedNode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ProvenanceGraphAffiliationChangedNode to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "reason":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Reason.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"reason\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode ProvenanceGraphAffiliationChangedNode")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfProvenanceGraphAffiliationChangedNode) {
+					name = jsonFieldsNameOfProvenanceGraphAffiliationChangedNode[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ProvenanceGraphAffiliationChangedNode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ProvenanceGraphAffiliationChangedNode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ProvenanceGraphAffiliationChangedNodeReason as json.
+func (s ProvenanceGraphAffiliationChangedNodeReason) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes ProvenanceGraphAffiliationChangedNodeReason from json.
+func (s *ProvenanceGraphAffiliationChangedNodeReason) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ProvenanceGraphAffiliationChangedNodeReason to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch ProvenanceGraphAffiliationChangedNodeReason(v) {
+	case ProvenanceGraphAffiliationChangedNodeReasonAffiliationChanged:
+		*s = ProvenanceGraphAffiliationChangedNodeReasonAffiliationChanged
+	default:
+		*s = ProvenanceGraphAffiliationChangedNodeReason(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s ProvenanceGraphAffiliationChangedNodeReason) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ProvenanceGraphAffiliationChangedNodeReason) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
 func (s *ProvenanceGraphEdgesItem) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
@@ -68059,6 +67841,138 @@ func (s ProvenanceGraphEntryNodeMetaEntryType) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *ProvenanceGraphEntryNodeMetaEntryType) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *ProvenanceGraphKeyCompromiseNode) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *ProvenanceGraphKeyCompromiseNode) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("reason")
+		s.Reason.Encode(e)
+	}
+}
+
+var jsonFieldsNameOfProvenanceGraphKeyCompromiseNode = [1]string{
+	0: "reason",
+}
+
+// Decode decodes ProvenanceGraphKeyCompromiseNode from json.
+func (s *ProvenanceGraphKeyCompromiseNode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ProvenanceGraphKeyCompromiseNode to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "reason":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Reason.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"reason\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode ProvenanceGraphKeyCompromiseNode")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfProvenanceGraphKeyCompromiseNode) {
+					name = jsonFieldsNameOfProvenanceGraphKeyCompromiseNode[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ProvenanceGraphKeyCompromiseNode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ProvenanceGraphKeyCompromiseNode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ProvenanceGraphKeyCompromiseNodeReason as json.
+func (s ProvenanceGraphKeyCompromiseNodeReason) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes ProvenanceGraphKeyCompromiseNodeReason from json.
+func (s *ProvenanceGraphKeyCompromiseNodeReason) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ProvenanceGraphKeyCompromiseNodeReason to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch ProvenanceGraphKeyCompromiseNodeReason(v) {
+	case ProvenanceGraphKeyCompromiseNodeReasonKeyCompromise:
+		*s = ProvenanceGraphKeyCompromiseNodeReasonKeyCompromise
+	default:
+		*s = ProvenanceGraphKeyCompromiseNodeReason(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s ProvenanceGraphKeyCompromiseNodeReason) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ProvenanceGraphKeyCompromiseNodeReason) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -68975,6 +68889,155 @@ func (s *ProvenanceGraphPackNodeMetaCreator) UnmarshalJSON(data []byte) error {
 }
 
 // Encode implements json.Marshaler.
+func (s *ProvenanceGraphPrivilegeWithdrawnNode) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *ProvenanceGraphPrivilegeWithdrawnNode) encodeFields(e *jx.Encoder) {
+	{
+		if s.Description.Set {
+			e.FieldStart("description")
+			s.Description.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("reason")
+		s.Reason.Encode(e)
+	}
+}
+
+var jsonFieldsNameOfProvenanceGraphPrivilegeWithdrawnNode = [2]string{
+	0: "description",
+	1: "reason",
+}
+
+// Decode decodes ProvenanceGraphPrivilegeWithdrawnNode from json.
+func (s *ProvenanceGraphPrivilegeWithdrawnNode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ProvenanceGraphPrivilegeWithdrawnNode to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "description":
+			if err := func() error {
+				s.Description.Reset()
+				if err := s.Description.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"description\"")
+			}
+		case "reason":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				if err := s.Reason.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"reason\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode ProvenanceGraphPrivilegeWithdrawnNode")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000010,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfProvenanceGraphPrivilegeWithdrawnNode) {
+					name = jsonFieldsNameOfProvenanceGraphPrivilegeWithdrawnNode[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ProvenanceGraphPrivilegeWithdrawnNode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ProvenanceGraphPrivilegeWithdrawnNode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ProvenanceGraphPrivilegeWithdrawnNodeReason as json.
+func (s ProvenanceGraphPrivilegeWithdrawnNodeReason) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes ProvenanceGraphPrivilegeWithdrawnNodeReason from json.
+func (s *ProvenanceGraphPrivilegeWithdrawnNodeReason) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ProvenanceGraphPrivilegeWithdrawnNodeReason to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch ProvenanceGraphPrivilegeWithdrawnNodeReason(v) {
+	case ProvenanceGraphPrivilegeWithdrawnNodeReasonPrivilegeWithdrawn:
+		*s = ProvenanceGraphPrivilegeWithdrawnNodeReasonPrivilegeWithdrawn
+	default:
+		*s = ProvenanceGraphPrivilegeWithdrawnNodeReason(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s ProvenanceGraphPrivilegeWithdrawnNodeReason) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ProvenanceGraphPrivilegeWithdrawnNodeReason) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
 func (s *ProvenanceGraphRenderedPackNode) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
@@ -69528,6 +69591,138 @@ func (s ProvenanceGraphRenderedPackNodeMetaCreator) MarshalJSON() ([]byte, error
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *ProvenanceGraphRenderedPackNodeMetaCreator) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *ProvenanceGraphSupersededNode) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *ProvenanceGraphSupersededNode) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("reason")
+		s.Reason.Encode(e)
+	}
+}
+
+var jsonFieldsNameOfProvenanceGraphSupersededNode = [1]string{
+	0: "reason",
+}
+
+// Decode decodes ProvenanceGraphSupersededNode from json.
+func (s *ProvenanceGraphSupersededNode) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ProvenanceGraphSupersededNode to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "reason":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Reason.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"reason\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode ProvenanceGraphSupersededNode")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfProvenanceGraphSupersededNode) {
+					name = jsonFieldsNameOfProvenanceGraphSupersededNode[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ProvenanceGraphSupersededNode) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ProvenanceGraphSupersededNode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ProvenanceGraphSupersededNodeReason as json.
+func (s ProvenanceGraphSupersededNodeReason) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes ProvenanceGraphSupersededNodeReason from json.
+func (s *ProvenanceGraphSupersededNodeReason) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ProvenanceGraphSupersededNodeReason to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch ProvenanceGraphSupersededNodeReason(v) {
+	case ProvenanceGraphSupersededNodeReasonSuperseded:
+		*s = ProvenanceGraphSupersededNodeReasonSuperseded
+	default:
+		*s = ProvenanceGraphSupersededNodeReason(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s ProvenanceGraphSupersededNodeReason) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ProvenanceGraphSupersededNodeReason) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -74617,30 +74812,37 @@ func (s *RevokeAgentKeyNotFound) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
-// Encode implements json.Marshaler.
-func (s *RevokeAgentKeyReq) Encode(e *jx.Encoder) {
+// Encode encodes RevokeAgentKeyReq as json.
+func (s RevokeAgentKeyReq) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
 	e.ObjEnd()
 }
 
-// encodeFields encodes fields.
-func (s *RevokeAgentKeyReq) encodeFields(e *jx.Encoder) {
-	{
-		if s.Description.Set {
-			e.FieldStart("description")
-			s.Description.Encode(e)
+func (s RevokeAgentKeyReq) encodeFields(e *jx.Encoder) {
+	switch s.Type {
+	case ProvenanceGraphKeyCompromiseNodeRevokeAgentKeyReq:
+		e.FieldStart("reason")
+		e.Str("key_compromise")
+	case ProvenanceGraphAffiliationChangedNodeRevokeAgentKeyReq:
+		e.FieldStart("reason")
+		e.Str("affiliation_changed")
+	case ProvenanceGraphSupersededNodeRevokeAgentKeyReq:
+		e.FieldStart("reason")
+		e.Str("superseded")
+	case ProvenanceGraphPrivilegeWithdrawnNodeRevokeAgentKeyReq:
+		e.FieldStart("reason")
+		e.Str("privilege_withdrawn")
+		{
+			s := s.ProvenanceGraphPrivilegeWithdrawnNode
+			{
+				if s.Description.Set {
+					e.FieldStart("description")
+					s.Description.Encode(e)
+				}
+			}
 		}
 	}
-	{
-		e.FieldStart("reason")
-		s.Reason.Encode(e)
-	}
-}
-
-var jsonFieldsNameOfRevokeAgentKeyReq = [2]string{
-	0: "description",
-	1: "reason",
 }
 
 // Decode decodes RevokeAgentKeyReq from json.
@@ -74648,75 +74850,74 @@ func (s *RevokeAgentKeyReq) Decode(d *jx.Decoder) error {
 	if s == nil {
 		return errors.New("invalid: unable to decode RevokeAgentKeyReq to nil")
 	}
-	var requiredBitSet [1]uint8
+	// Sum type discriminator.
+	if typ := d.Next(); typ != jx.Object {
+		return errors.Errorf("unexpected json type %q", typ)
+	}
 
-	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
-		switch string(k) {
-		case "description":
-			if err := func() error {
-				s.Description.Reset()
-				if err := s.Description.Decode(d); err != nil {
+	var found bool
+	if err := d.Capture(func(d *jx.Decoder) error {
+		return d.ObjBytes(func(d *jx.Decoder, key []byte) error {
+			if found {
+				return d.Skip()
+			}
+			switch string(key) {
+			case "reason":
+				typ, err := d.Str()
+				if err != nil {
 					return err
 				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"description\"")
-			}
-		case "reason":
-			requiredBitSet[0] |= 1 << 1
-			if err := func() error {
-				if err := s.Reason.Decode(d); err != nil {
-					return err
+				switch typ {
+				case "key_compromise":
+					s.Type = ProvenanceGraphKeyCompromiseNodeRevokeAgentKeyReq
+					found = true
+				case "affiliation_changed":
+					s.Type = ProvenanceGraphAffiliationChangedNodeRevokeAgentKeyReq
+					found = true
+				case "superseded":
+					s.Type = ProvenanceGraphSupersededNodeRevokeAgentKeyReq
+					found = true
+				case "privilege_withdrawn":
+					s.Type = ProvenanceGraphPrivilegeWithdrawnNodeRevokeAgentKeyReq
+					found = true
+				default:
+					return errors.Errorf("unknown type %s", typ)
 				}
 				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"reason\"")
 			}
-		default:
 			return d.Skip()
-		}
-		return nil
+		})
 	}); err != nil {
-		return errors.Wrap(err, "decode RevokeAgentKeyReq")
+		return errors.Wrap(err, "capture")
 	}
-	// Validate required fields.
-	var failures []validate.FieldError
-	for i, mask := range [1]uint8{
-		0b00000010,
-	} {
-		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
-			// Mask only required fields and check equality to mask using XOR.
-			//
-			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
-			// Bits of fields which would be set are actually bits of missed fields.
-			missed := bits.OnesCount8(result)
-			for bitN := 0; bitN < missed; bitN++ {
-				bitIdx := bits.TrailingZeros8(result)
-				fieldIdx := i*8 + bitIdx
-				var name string
-				if fieldIdx < len(jsonFieldsNameOfRevokeAgentKeyReq) {
-					name = jsonFieldsNameOfRevokeAgentKeyReq[fieldIdx]
-				} else {
-					name = strconv.Itoa(fieldIdx)
-				}
-				failures = append(failures, validate.FieldError{
-					Name:  name,
-					Error: validate.ErrFieldRequired,
-				})
-				// Reset bit.
-				result &^= 1 << bitIdx
-			}
+	if !found {
+		return errors.New("unable to detect sum type variant")
+	}
+	switch s.Type {
+	case ProvenanceGraphKeyCompromiseNodeRevokeAgentKeyReq:
+		if err := s.ProvenanceGraphKeyCompromiseNode.Decode(d); err != nil {
+			return err
 		}
+	case ProvenanceGraphAffiliationChangedNodeRevokeAgentKeyReq:
+		if err := s.ProvenanceGraphAffiliationChangedNode.Decode(d); err != nil {
+			return err
+		}
+	case ProvenanceGraphSupersededNodeRevokeAgentKeyReq:
+		if err := s.ProvenanceGraphSupersededNode.Decode(d); err != nil {
+			return err
+		}
+	case ProvenanceGraphPrivilegeWithdrawnNodeRevokeAgentKeyReq:
+		if err := s.ProvenanceGraphPrivilegeWithdrawnNode.Decode(d); err != nil {
+			return err
+		}
+	default:
+		return errors.Errorf("inferred invalid type: %s", s.Type)
 	}
-	if len(failures) > 0 {
-		return &validate.Error{Fields: failures}
-	}
-
 	return nil
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s *RevokeAgentKeyReq) MarshalJSON() ([]byte, error) {
+func (s RevokeAgentKeyReq) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
@@ -74724,50 +74925,6 @@ func (s *RevokeAgentKeyReq) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *RevokeAgentKeyReq) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes RevokeAgentKeyReqReason as json.
-func (s RevokeAgentKeyReqReason) Encode(e *jx.Encoder) {
-	e.Str(string(s))
-}
-
-// Decode decodes RevokeAgentKeyReqReason from json.
-func (s *RevokeAgentKeyReqReason) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode RevokeAgentKeyReqReason to nil")
-	}
-	v, err := d.StrBytes()
-	if err != nil {
-		return err
-	}
-	// Try to use constant string.
-	switch RevokeAgentKeyReqReason(v) {
-	case RevokeAgentKeyReqReasonKeyCompromise:
-		*s = RevokeAgentKeyReqReasonKeyCompromise
-	case RevokeAgentKeyReqReasonAffiliationChanged:
-		*s = RevokeAgentKeyReqReasonAffiliationChanged
-	case RevokeAgentKeyReqReasonSuperseded:
-		*s = RevokeAgentKeyReqReasonSuperseded
-	case RevokeAgentKeyReqReasonPrivilegeWithdrawn:
-		*s = RevokeAgentKeyReqReasonPrivilegeWithdrawn
-	default:
-		*s = RevokeAgentKeyReqReason(v)
-	}
-
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s RevokeAgentKeyReqReason) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *RevokeAgentKeyReqReason) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -74806,6 +74963,44 @@ func (s *RevokeAgentKeyServiceUnavailable) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *RevokeAgentKeyServiceUnavailable) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes RevokeAgentKeyTooManyRequests as json.
+func (s *RevokeAgentKeyTooManyRequests) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes RevokeAgentKeyTooManyRequests from json.
+func (s *RevokeAgentKeyTooManyRequests) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode RevokeAgentKeyTooManyRequests to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = RevokeAgentKeyTooManyRequests(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *RevokeAgentKeyTooManyRequests) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *RevokeAgentKeyTooManyRequests) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -75338,6 +75533,44 @@ func (s *RotateAgentKeyBadGateway) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *RotateAgentKeyBadGateway) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes RotateAgentKeyConflict as json.
+func (s *RotateAgentKeyConflict) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes RotateAgentKeyConflict from json.
+func (s *RotateAgentKeyConflict) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode RotateAgentKeyConflict to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = RotateAgentKeyConflict(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *RotateAgentKeyConflict) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *RotateAgentKeyConflict) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

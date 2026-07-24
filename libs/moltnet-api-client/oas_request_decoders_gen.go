@@ -2588,7 +2588,7 @@ func (s *Server) decodeRequestRecoveryChallengeRequest(r *http.Request) (
 }
 
 func (s *Server) decodeRevokeAgentKeyRequest(r *http.Request) (
-	req *RevokeAgentKeyReq,
+	req OptRevokeAgentKeyReq,
 	rawBody []byte,
 	close func() error,
 	rerr error,
@@ -2608,6 +2608,9 @@ func (s *Server) decodeRevokeAgentKeyRequest(r *http.Request) (
 			rerr = errors.Join(rerr, close())
 		}
 	}()
+	if _, ok := r.Header["Content-Type"]; !ok && r.ContentLength == 0 {
+		return req, rawBody, close, nil
+	}
 	ct, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if err != nil {
 		return req, rawBody, close, errors.Wrap(err, "parse media type")
@@ -2615,7 +2618,7 @@ func (s *Server) decodeRevokeAgentKeyRequest(r *http.Request) (
 	switch {
 	case ct == "application/json":
 		if r.ContentLength == 0 {
-			return req, rawBody, close, validate.ErrBodyRequired
+			return req, rawBody, close, nil
 		}
 		buf, err := io.ReadAll(r.Body)
 		defer func() {
@@ -2629,14 +2632,15 @@ func (s *Server) decodeRevokeAgentKeyRequest(r *http.Request) (
 		r.Body = io.NopCloser(bytes.NewBuffer(buf))
 
 		if len(buf) == 0 {
-			return req, rawBody, close, validate.ErrBodyRequired
+			return req, rawBody, close, nil
 		}
 
 		rawBody = append(rawBody, buf...)
 		d := jx.DecodeBytes(buf)
 
-		var request RevokeAgentKeyReq
+		var request OptRevokeAgentKeyReq
 		if err := func() error {
+			request.Reset()
 			if err := request.Decode(d); err != nil {
 				return err
 			}
@@ -2653,14 +2657,21 @@ func (s *Server) decodeRevokeAgentKeyRequest(r *http.Request) (
 			return req, rawBody, close, err
 		}
 		if err := func() error {
-			if err := request.Validate(); err != nil {
-				return err
+			if value, ok := request.Get(); ok {
+				if err := func() error {
+					if err := value.Validate(); err != nil {
+						return err
+					}
+					return nil
+				}(); err != nil {
+					return err
+				}
 			}
 			return nil
 		}(); err != nil {
 			return req, rawBody, close, errors.Wrap(err, "validate")
 		}
-		return &request, rawBody, close, nil
+		return request, rawBody, close, nil
 	default:
 		return req, rawBody, close, validate.InvalidContentType(ct)
 	}

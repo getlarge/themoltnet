@@ -312,14 +312,141 @@ type AddGroupMemberUnauthorized ProblemDetails
 
 func (*AddGroupMemberUnauthorized) addGroupMemberRes() {}
 
+// Ref: #/components/schemas/AgentKey
+type AgentKey struct {
+	// UUID v4 identifier.
+	AgentId               uuid.UUID                   `json:"agentId"`
+	CreatedAt             NilDateTime                 `json:"createdAt"`
+	ExpiresAt             NilDateTime                 `json:"expiresAt"`
+	ID                    string                      `json:"id"`
+	LastUsedAt            NilDateTime                 `json:"lastUsedAt"`
+	Name                  string                      `json:"name"`
+	RevocationDescription NilString                   `json:"revocationDescription"`
+	RevocationReason      NilAgentKeyRevocationReason `json:"revocationReason"`
+	Status                AgentKeyStatus              `json:"status"`
+	// UUID v4 identifier.
+	TeamId    uuid.UUID   `json:"teamId"`
+	UpdatedAt NilDateTime `json:"updatedAt"`
+}
+
+// GetAgentId returns the value of AgentId.
+func (s *AgentKey) GetAgentId() uuid.UUID {
+	return s.AgentId
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *AgentKey) GetCreatedAt() NilDateTime {
+	return s.CreatedAt
+}
+
+// GetExpiresAt returns the value of ExpiresAt.
+func (s *AgentKey) GetExpiresAt() NilDateTime {
+	return s.ExpiresAt
+}
+
+// GetID returns the value of ID.
+func (s *AgentKey) GetID() string {
+	return s.ID
+}
+
+// GetLastUsedAt returns the value of LastUsedAt.
+func (s *AgentKey) GetLastUsedAt() NilDateTime {
+	return s.LastUsedAt
+}
+
+// GetName returns the value of Name.
+func (s *AgentKey) GetName() string {
+	return s.Name
+}
+
+// GetRevocationDescription returns the value of RevocationDescription.
+func (s *AgentKey) GetRevocationDescription() NilString {
+	return s.RevocationDescription
+}
+
+// GetRevocationReason returns the value of RevocationReason.
+func (s *AgentKey) GetRevocationReason() NilAgentKeyRevocationReason {
+	return s.RevocationReason
+}
+
+// GetStatus returns the value of Status.
+func (s *AgentKey) GetStatus() AgentKeyStatus {
+	return s.Status
+}
+
+// GetTeamId returns the value of TeamId.
+func (s *AgentKey) GetTeamId() uuid.UUID {
+	return s.TeamId
+}
+
+// GetUpdatedAt returns the value of UpdatedAt.
+func (s *AgentKey) GetUpdatedAt() NilDateTime {
+	return s.UpdatedAt
+}
+
+// SetAgentId sets the value of AgentId.
+func (s *AgentKey) SetAgentId(val uuid.UUID) {
+	s.AgentId = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *AgentKey) SetCreatedAt(val NilDateTime) {
+	s.CreatedAt = val
+}
+
+// SetExpiresAt sets the value of ExpiresAt.
+func (s *AgentKey) SetExpiresAt(val NilDateTime) {
+	s.ExpiresAt = val
+}
+
+// SetID sets the value of ID.
+func (s *AgentKey) SetID(val string) {
+	s.ID = val
+}
+
+// SetLastUsedAt sets the value of LastUsedAt.
+func (s *AgentKey) SetLastUsedAt(val NilDateTime) {
+	s.LastUsedAt = val
+}
+
+// SetName sets the value of Name.
+func (s *AgentKey) SetName(val string) {
+	s.Name = val
+}
+
+// SetRevocationDescription sets the value of RevocationDescription.
+func (s *AgentKey) SetRevocationDescription(val NilString) {
+	s.RevocationDescription = val
+}
+
+// SetRevocationReason sets the value of RevocationReason.
+func (s *AgentKey) SetRevocationReason(val NilAgentKeyRevocationReason) {
+	s.RevocationReason = val
+}
+
+// SetStatus sets the value of Status.
+func (s *AgentKey) SetStatus(val AgentKeyStatus) {
+	s.Status = val
+}
+
+// SetTeamId sets the value of TeamId.
+func (s *AgentKey) SetTeamId(val uuid.UUID) {
+	s.TeamId = val
+}
+
+// SetUpdatedAt sets the value of UpdatedAt.
+func (s *AgentKey) SetUpdatedAt(val NilDateTime) {
+	s.UpdatedAt = val
+}
+
 // Ref: #/components/schemas/AgentKeyList
 type AgentKeyList struct {
-	Items      []AgentKeyListItemsItem `json:"items"`
-	NextCursor NilString               `json:"nextCursor"`
+	Items      []AgentKey `json:"items"`
+	NextCursor NilString  `json:"nextCursor"`
 }
 
 // GetItems returns the value of Items.
-func (s *AgentKeyList) GetItems() []AgentKeyListItemsItem {
+func (s *AgentKeyList) GetItems() []AgentKey {
 	return s.Items
 }
 
@@ -329,7 +456,7 @@ func (s *AgentKeyList) GetNextCursor() NilString {
 }
 
 // SetItems sets the value of Items.
-func (s *AgentKeyList) SetItems(val []AgentKeyListItemsItem) {
+func (s *AgentKeyList) SetItems(val []AgentKey) {
 	s.Items = val
 }
 
@@ -340,161 +467,35 @@ func (s *AgentKeyList) SetNextCursor(val NilString) {
 
 func (*AgentKeyList) listAgentKeysRes() {}
 
-type AgentKeyListItemsItem struct {
-	// UUID v4 identifier.
-	AgentId               uuid.UUID                                `json:"agentId"`
-	CreatedAt             NilDateTime                              `json:"createdAt"`
-	ExpiresAt             NilDateTime                              `json:"expiresAt"`
-	ID                    string                                   `json:"id"`
-	LastUsedAt            NilDateTime                              `json:"lastUsedAt"`
-	Name                  string                                   `json:"name"`
-	RevocationDescription NilString                                `json:"revocationDescription"`
-	RevocationReason      NilAgentKeyListItemsItemRevocationReason `json:"revocationReason"`
-	Status                AgentKeyListItemsItemStatus              `json:"status"`
-	// UUID v4 identifier.
-	TeamId    uuid.UUID   `json:"teamId"`
-	UpdatedAt NilDateTime `json:"updatedAt"`
-}
-
-// GetAgentId returns the value of AgentId.
-func (s *AgentKeyListItemsItem) GetAgentId() uuid.UUID {
-	return s.AgentId
-}
-
-// GetCreatedAt returns the value of CreatedAt.
-func (s *AgentKeyListItemsItem) GetCreatedAt() NilDateTime {
-	return s.CreatedAt
-}
-
-// GetExpiresAt returns the value of ExpiresAt.
-func (s *AgentKeyListItemsItem) GetExpiresAt() NilDateTime {
-	return s.ExpiresAt
-}
-
-// GetID returns the value of ID.
-func (s *AgentKeyListItemsItem) GetID() string {
-	return s.ID
-}
-
-// GetLastUsedAt returns the value of LastUsedAt.
-func (s *AgentKeyListItemsItem) GetLastUsedAt() NilDateTime {
-	return s.LastUsedAt
-}
-
-// GetName returns the value of Name.
-func (s *AgentKeyListItemsItem) GetName() string {
-	return s.Name
-}
-
-// GetRevocationDescription returns the value of RevocationDescription.
-func (s *AgentKeyListItemsItem) GetRevocationDescription() NilString {
-	return s.RevocationDescription
-}
-
-// GetRevocationReason returns the value of RevocationReason.
-func (s *AgentKeyListItemsItem) GetRevocationReason() NilAgentKeyListItemsItemRevocationReason {
-	return s.RevocationReason
-}
-
-// GetStatus returns the value of Status.
-func (s *AgentKeyListItemsItem) GetStatus() AgentKeyListItemsItemStatus {
-	return s.Status
-}
-
-// GetTeamId returns the value of TeamId.
-func (s *AgentKeyListItemsItem) GetTeamId() uuid.UUID {
-	return s.TeamId
-}
-
-// GetUpdatedAt returns the value of UpdatedAt.
-func (s *AgentKeyListItemsItem) GetUpdatedAt() NilDateTime {
-	return s.UpdatedAt
-}
-
-// SetAgentId sets the value of AgentId.
-func (s *AgentKeyListItemsItem) SetAgentId(val uuid.UUID) {
-	s.AgentId = val
-}
-
-// SetCreatedAt sets the value of CreatedAt.
-func (s *AgentKeyListItemsItem) SetCreatedAt(val NilDateTime) {
-	s.CreatedAt = val
-}
-
-// SetExpiresAt sets the value of ExpiresAt.
-func (s *AgentKeyListItemsItem) SetExpiresAt(val NilDateTime) {
-	s.ExpiresAt = val
-}
-
-// SetID sets the value of ID.
-func (s *AgentKeyListItemsItem) SetID(val string) {
-	s.ID = val
-}
-
-// SetLastUsedAt sets the value of LastUsedAt.
-func (s *AgentKeyListItemsItem) SetLastUsedAt(val NilDateTime) {
-	s.LastUsedAt = val
-}
-
-// SetName sets the value of Name.
-func (s *AgentKeyListItemsItem) SetName(val string) {
-	s.Name = val
-}
-
-// SetRevocationDescription sets the value of RevocationDescription.
-func (s *AgentKeyListItemsItem) SetRevocationDescription(val NilString) {
-	s.RevocationDescription = val
-}
-
-// SetRevocationReason sets the value of RevocationReason.
-func (s *AgentKeyListItemsItem) SetRevocationReason(val NilAgentKeyListItemsItemRevocationReason) {
-	s.RevocationReason = val
-}
-
-// SetStatus sets the value of Status.
-func (s *AgentKeyListItemsItem) SetStatus(val AgentKeyListItemsItemStatus) {
-	s.Status = val
-}
-
-// SetTeamId sets the value of TeamId.
-func (s *AgentKeyListItemsItem) SetTeamId(val uuid.UUID) {
-	s.TeamId = val
-}
-
-// SetUpdatedAt sets the value of UpdatedAt.
-func (s *AgentKeyListItemsItem) SetUpdatedAt(val NilDateTime) {
-	s.UpdatedAt = val
-}
-
-type AgentKeyListItemsItemRevocationReason string
+type AgentKeyRevocationReason string
 
 const (
-	AgentKeyListItemsItemRevocationReasonKeyCompromise      AgentKeyListItemsItemRevocationReason = "key_compromise"
-	AgentKeyListItemsItemRevocationReasonAffiliationChanged AgentKeyListItemsItemRevocationReason = "affiliation_changed"
-	AgentKeyListItemsItemRevocationReasonSuperseded         AgentKeyListItemsItemRevocationReason = "superseded"
-	AgentKeyListItemsItemRevocationReasonPrivilegeWithdrawn AgentKeyListItemsItemRevocationReason = "privilege_withdrawn"
+	AgentKeyRevocationReasonKeyCompromise      AgentKeyRevocationReason = "key_compromise"
+	AgentKeyRevocationReasonAffiliationChanged AgentKeyRevocationReason = "affiliation_changed"
+	AgentKeyRevocationReasonSuperseded         AgentKeyRevocationReason = "superseded"
+	AgentKeyRevocationReasonPrivilegeWithdrawn AgentKeyRevocationReason = "privilege_withdrawn"
 )
 
-// AllValues returns all AgentKeyListItemsItemRevocationReason values.
-func (AgentKeyListItemsItemRevocationReason) AllValues() []AgentKeyListItemsItemRevocationReason {
-	return []AgentKeyListItemsItemRevocationReason{
-		AgentKeyListItemsItemRevocationReasonKeyCompromise,
-		AgentKeyListItemsItemRevocationReasonAffiliationChanged,
-		AgentKeyListItemsItemRevocationReasonSuperseded,
-		AgentKeyListItemsItemRevocationReasonPrivilegeWithdrawn,
+// AllValues returns all AgentKeyRevocationReason values.
+func (AgentKeyRevocationReason) AllValues() []AgentKeyRevocationReason {
+	return []AgentKeyRevocationReason{
+		AgentKeyRevocationReasonKeyCompromise,
+		AgentKeyRevocationReasonAffiliationChanged,
+		AgentKeyRevocationReasonSuperseded,
+		AgentKeyRevocationReasonPrivilegeWithdrawn,
 	}
 }
 
 // MarshalText implements encoding.TextMarshaler.
-func (s AgentKeyListItemsItemRevocationReason) MarshalText() ([]byte, error) {
+func (s AgentKeyRevocationReason) MarshalText() ([]byte, error) {
 	switch s {
-	case AgentKeyListItemsItemRevocationReasonKeyCompromise:
+	case AgentKeyRevocationReasonKeyCompromise:
 		return []byte(s), nil
-	case AgentKeyListItemsItemRevocationReasonAffiliationChanged:
+	case AgentKeyRevocationReasonAffiliationChanged:
 		return []byte(s), nil
-	case AgentKeyListItemsItemRevocationReasonSuperseded:
+	case AgentKeyRevocationReasonSuperseded:
 		return []byte(s), nil
-	case AgentKeyListItemsItemRevocationReasonPrivilegeWithdrawn:
+	case AgentKeyRevocationReasonPrivilegeWithdrawn:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -502,50 +503,51 @@ func (s AgentKeyListItemsItemRevocationReason) MarshalText() ([]byte, error) {
 }
 
 // UnmarshalText implements encoding.TextUnmarshaler.
-func (s *AgentKeyListItemsItemRevocationReason) UnmarshalText(data []byte) error {
-	switch AgentKeyListItemsItemRevocationReason(data) {
-	case AgentKeyListItemsItemRevocationReasonKeyCompromise:
-		*s = AgentKeyListItemsItemRevocationReasonKeyCompromise
+func (s *AgentKeyRevocationReason) UnmarshalText(data []byte) error {
+	switch AgentKeyRevocationReason(data) {
+	case AgentKeyRevocationReasonKeyCompromise:
+		*s = AgentKeyRevocationReasonKeyCompromise
 		return nil
-	case AgentKeyListItemsItemRevocationReasonAffiliationChanged:
-		*s = AgentKeyListItemsItemRevocationReasonAffiliationChanged
+	case AgentKeyRevocationReasonAffiliationChanged:
+		*s = AgentKeyRevocationReasonAffiliationChanged
 		return nil
-	case AgentKeyListItemsItemRevocationReasonSuperseded:
-		*s = AgentKeyListItemsItemRevocationReasonSuperseded
+	case AgentKeyRevocationReasonSuperseded:
+		*s = AgentKeyRevocationReasonSuperseded
 		return nil
-	case AgentKeyListItemsItemRevocationReasonPrivilegeWithdrawn:
-		*s = AgentKeyListItemsItemRevocationReasonPrivilegeWithdrawn
+	case AgentKeyRevocationReasonPrivilegeWithdrawn:
+		*s = AgentKeyRevocationReasonPrivilegeWithdrawn
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
 	}
 }
 
-type AgentKeyListItemsItemStatus string
+// Ref: #/components/schemas/AgentKeyStatus
+type AgentKeyStatus string
 
 const (
-	AgentKeyListItemsItemStatusActive  AgentKeyListItemsItemStatus = "active"
-	AgentKeyListItemsItemStatusRevoked AgentKeyListItemsItemStatus = "revoked"
-	AgentKeyListItemsItemStatusExpired AgentKeyListItemsItemStatus = "expired"
+	AgentKeyStatusActive  AgentKeyStatus = "active"
+	AgentKeyStatusRevoked AgentKeyStatus = "revoked"
+	AgentKeyStatusExpired AgentKeyStatus = "expired"
 )
 
-// AllValues returns all AgentKeyListItemsItemStatus values.
-func (AgentKeyListItemsItemStatus) AllValues() []AgentKeyListItemsItemStatus {
-	return []AgentKeyListItemsItemStatus{
-		AgentKeyListItemsItemStatusActive,
-		AgentKeyListItemsItemStatusRevoked,
-		AgentKeyListItemsItemStatusExpired,
+// AllValues returns all AgentKeyStatus values.
+func (AgentKeyStatus) AllValues() []AgentKeyStatus {
+	return []AgentKeyStatus{
+		AgentKeyStatusActive,
+		AgentKeyStatusRevoked,
+		AgentKeyStatusExpired,
 	}
 }
 
 // MarshalText implements encoding.TextMarshaler.
-func (s AgentKeyListItemsItemStatus) MarshalText() ([]byte, error) {
+func (s AgentKeyStatus) MarshalText() ([]byte, error) {
 	switch s {
-	case AgentKeyListItemsItemStatusActive:
+	case AgentKeyStatusActive:
 		return []byte(s), nil
-	case AgentKeyListItemsItemStatusRevoked:
+	case AgentKeyStatusRevoked:
 		return []byte(s), nil
-	case AgentKeyListItemsItemStatusExpired:
+	case AgentKeyStatusExpired:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -553,16 +555,16 @@ func (s AgentKeyListItemsItemStatus) MarshalText() ([]byte, error) {
 }
 
 // UnmarshalText implements encoding.TextUnmarshaler.
-func (s *AgentKeyListItemsItemStatus) UnmarshalText(data []byte) error {
-	switch AgentKeyListItemsItemStatus(data) {
-	case AgentKeyListItemsItemStatusActive:
-		*s = AgentKeyListItemsItemStatusActive
+func (s *AgentKeyStatus) UnmarshalText(data []byte) error {
+	switch AgentKeyStatus(data) {
+	case AgentKeyStatusActive:
+		*s = AgentKeyStatusActive
 		return nil
-	case AgentKeyListItemsItemStatusRevoked:
-		*s = AgentKeyListItemsItemStatusRevoked
+	case AgentKeyStatusRevoked:
+		*s = AgentKeyStatusRevoked
 		return nil
-	case AgentKeyListItemsItemStatusExpired:
-		*s = AgentKeyListItemsItemStatusExpired
+	case AgentKeyStatusExpired:
+		*s = AgentKeyStatusExpired
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -571,12 +573,12 @@ func (s *AgentKeyListItemsItemStatus) UnmarshalText(data []byte) error {
 
 // Ref: #/components/schemas/AgentKeyWithSecret
 type AgentKeyWithSecret struct {
-	Key    AgentKeyWithSecretKey `json:"key"`
-	Secret string                `json:"secret"`
+	Key    AgentKey `json:"key"`
+	Secret string   `json:"secret"`
 }
 
 // GetKey returns the value of Key.
-func (s *AgentKeyWithSecret) GetKey() AgentKeyWithSecretKey {
+func (s *AgentKeyWithSecret) GetKey() AgentKey {
 	return s.Key
 }
 
@@ -586,7 +588,7 @@ func (s *AgentKeyWithSecret) GetSecret() string {
 }
 
 // SetKey sets the value of Key.
-func (s *AgentKeyWithSecret) SetKey(val AgentKeyWithSecretKey) {
+func (s *AgentKeyWithSecret) SetKey(val AgentKey) {
 	s.Key = val
 }
 
@@ -597,235 +599,6 @@ func (s *AgentKeyWithSecret) SetSecret(val string) {
 
 func (*AgentKeyWithSecret) createAgentKeyRes() {}
 func (*AgentKeyWithSecret) rotateAgentKeyRes() {}
-
-type AgentKeyWithSecretKey struct {
-	// UUID v4 identifier.
-	AgentId               uuid.UUID                                `json:"agentId"`
-	CreatedAt             NilDateTime                              `json:"createdAt"`
-	ExpiresAt             NilDateTime                              `json:"expiresAt"`
-	ID                    string                                   `json:"id"`
-	LastUsedAt            NilDateTime                              `json:"lastUsedAt"`
-	Name                  string                                   `json:"name"`
-	RevocationDescription NilString                                `json:"revocationDescription"`
-	RevocationReason      NilAgentKeyWithSecretKeyRevocationReason `json:"revocationReason"`
-	Status                AgentKeyWithSecretKeyStatus              `json:"status"`
-	// UUID v4 identifier.
-	TeamId    uuid.UUID   `json:"teamId"`
-	UpdatedAt NilDateTime `json:"updatedAt"`
-}
-
-// GetAgentId returns the value of AgentId.
-func (s *AgentKeyWithSecretKey) GetAgentId() uuid.UUID {
-	return s.AgentId
-}
-
-// GetCreatedAt returns the value of CreatedAt.
-func (s *AgentKeyWithSecretKey) GetCreatedAt() NilDateTime {
-	return s.CreatedAt
-}
-
-// GetExpiresAt returns the value of ExpiresAt.
-func (s *AgentKeyWithSecretKey) GetExpiresAt() NilDateTime {
-	return s.ExpiresAt
-}
-
-// GetID returns the value of ID.
-func (s *AgentKeyWithSecretKey) GetID() string {
-	return s.ID
-}
-
-// GetLastUsedAt returns the value of LastUsedAt.
-func (s *AgentKeyWithSecretKey) GetLastUsedAt() NilDateTime {
-	return s.LastUsedAt
-}
-
-// GetName returns the value of Name.
-func (s *AgentKeyWithSecretKey) GetName() string {
-	return s.Name
-}
-
-// GetRevocationDescription returns the value of RevocationDescription.
-func (s *AgentKeyWithSecretKey) GetRevocationDescription() NilString {
-	return s.RevocationDescription
-}
-
-// GetRevocationReason returns the value of RevocationReason.
-func (s *AgentKeyWithSecretKey) GetRevocationReason() NilAgentKeyWithSecretKeyRevocationReason {
-	return s.RevocationReason
-}
-
-// GetStatus returns the value of Status.
-func (s *AgentKeyWithSecretKey) GetStatus() AgentKeyWithSecretKeyStatus {
-	return s.Status
-}
-
-// GetTeamId returns the value of TeamId.
-func (s *AgentKeyWithSecretKey) GetTeamId() uuid.UUID {
-	return s.TeamId
-}
-
-// GetUpdatedAt returns the value of UpdatedAt.
-func (s *AgentKeyWithSecretKey) GetUpdatedAt() NilDateTime {
-	return s.UpdatedAt
-}
-
-// SetAgentId sets the value of AgentId.
-func (s *AgentKeyWithSecretKey) SetAgentId(val uuid.UUID) {
-	s.AgentId = val
-}
-
-// SetCreatedAt sets the value of CreatedAt.
-func (s *AgentKeyWithSecretKey) SetCreatedAt(val NilDateTime) {
-	s.CreatedAt = val
-}
-
-// SetExpiresAt sets the value of ExpiresAt.
-func (s *AgentKeyWithSecretKey) SetExpiresAt(val NilDateTime) {
-	s.ExpiresAt = val
-}
-
-// SetID sets the value of ID.
-func (s *AgentKeyWithSecretKey) SetID(val string) {
-	s.ID = val
-}
-
-// SetLastUsedAt sets the value of LastUsedAt.
-func (s *AgentKeyWithSecretKey) SetLastUsedAt(val NilDateTime) {
-	s.LastUsedAt = val
-}
-
-// SetName sets the value of Name.
-func (s *AgentKeyWithSecretKey) SetName(val string) {
-	s.Name = val
-}
-
-// SetRevocationDescription sets the value of RevocationDescription.
-func (s *AgentKeyWithSecretKey) SetRevocationDescription(val NilString) {
-	s.RevocationDescription = val
-}
-
-// SetRevocationReason sets the value of RevocationReason.
-func (s *AgentKeyWithSecretKey) SetRevocationReason(val NilAgentKeyWithSecretKeyRevocationReason) {
-	s.RevocationReason = val
-}
-
-// SetStatus sets the value of Status.
-func (s *AgentKeyWithSecretKey) SetStatus(val AgentKeyWithSecretKeyStatus) {
-	s.Status = val
-}
-
-// SetTeamId sets the value of TeamId.
-func (s *AgentKeyWithSecretKey) SetTeamId(val uuid.UUID) {
-	s.TeamId = val
-}
-
-// SetUpdatedAt sets the value of UpdatedAt.
-func (s *AgentKeyWithSecretKey) SetUpdatedAt(val NilDateTime) {
-	s.UpdatedAt = val
-}
-
-type AgentKeyWithSecretKeyRevocationReason string
-
-const (
-	AgentKeyWithSecretKeyRevocationReasonKeyCompromise      AgentKeyWithSecretKeyRevocationReason = "key_compromise"
-	AgentKeyWithSecretKeyRevocationReasonAffiliationChanged AgentKeyWithSecretKeyRevocationReason = "affiliation_changed"
-	AgentKeyWithSecretKeyRevocationReasonSuperseded         AgentKeyWithSecretKeyRevocationReason = "superseded"
-	AgentKeyWithSecretKeyRevocationReasonPrivilegeWithdrawn AgentKeyWithSecretKeyRevocationReason = "privilege_withdrawn"
-)
-
-// AllValues returns all AgentKeyWithSecretKeyRevocationReason values.
-func (AgentKeyWithSecretKeyRevocationReason) AllValues() []AgentKeyWithSecretKeyRevocationReason {
-	return []AgentKeyWithSecretKeyRevocationReason{
-		AgentKeyWithSecretKeyRevocationReasonKeyCompromise,
-		AgentKeyWithSecretKeyRevocationReasonAffiliationChanged,
-		AgentKeyWithSecretKeyRevocationReasonSuperseded,
-		AgentKeyWithSecretKeyRevocationReasonPrivilegeWithdrawn,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s AgentKeyWithSecretKeyRevocationReason) MarshalText() ([]byte, error) {
-	switch s {
-	case AgentKeyWithSecretKeyRevocationReasonKeyCompromise:
-		return []byte(s), nil
-	case AgentKeyWithSecretKeyRevocationReasonAffiliationChanged:
-		return []byte(s), nil
-	case AgentKeyWithSecretKeyRevocationReasonSuperseded:
-		return []byte(s), nil
-	case AgentKeyWithSecretKeyRevocationReasonPrivilegeWithdrawn:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *AgentKeyWithSecretKeyRevocationReason) UnmarshalText(data []byte) error {
-	switch AgentKeyWithSecretKeyRevocationReason(data) {
-	case AgentKeyWithSecretKeyRevocationReasonKeyCompromise:
-		*s = AgentKeyWithSecretKeyRevocationReasonKeyCompromise
-		return nil
-	case AgentKeyWithSecretKeyRevocationReasonAffiliationChanged:
-		*s = AgentKeyWithSecretKeyRevocationReasonAffiliationChanged
-		return nil
-	case AgentKeyWithSecretKeyRevocationReasonSuperseded:
-		*s = AgentKeyWithSecretKeyRevocationReasonSuperseded
-		return nil
-	case AgentKeyWithSecretKeyRevocationReasonPrivilegeWithdrawn:
-		*s = AgentKeyWithSecretKeyRevocationReasonPrivilegeWithdrawn
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type AgentKeyWithSecretKeyStatus string
-
-const (
-	AgentKeyWithSecretKeyStatusActive  AgentKeyWithSecretKeyStatus = "active"
-	AgentKeyWithSecretKeyStatusRevoked AgentKeyWithSecretKeyStatus = "revoked"
-	AgentKeyWithSecretKeyStatusExpired AgentKeyWithSecretKeyStatus = "expired"
-)
-
-// AllValues returns all AgentKeyWithSecretKeyStatus values.
-func (AgentKeyWithSecretKeyStatus) AllValues() []AgentKeyWithSecretKeyStatus {
-	return []AgentKeyWithSecretKeyStatus{
-		AgentKeyWithSecretKeyStatusActive,
-		AgentKeyWithSecretKeyStatusRevoked,
-		AgentKeyWithSecretKeyStatusExpired,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s AgentKeyWithSecretKeyStatus) MarshalText() ([]byte, error) {
-	switch s {
-	case AgentKeyWithSecretKeyStatusActive:
-		return []byte(s), nil
-	case AgentKeyWithSecretKeyStatusRevoked:
-		return []byte(s), nil
-	case AgentKeyWithSecretKeyStatusExpired:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *AgentKeyWithSecretKeyStatus) UnmarshalText(data []byte) error {
-	switch AgentKeyWithSecretKeyStatus(data) {
-	case AgentKeyWithSecretKeyStatusActive:
-		*s = AgentKeyWithSecretKeyStatusActive
-		return nil
-	case AgentKeyWithSecretKeyStatusRevoked:
-		*s = AgentKeyWithSecretKeyStatusRevoked
-		return nil
-	case AgentKeyWithSecretKeyStatusExpired:
-		*s = AgentKeyWithSecretKeyStatusExpired
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
 
 // Ref: #/components/schemas/AgentPrincipal
 type AgentPrincipal struct {
@@ -30749,37 +30522,37 @@ func (s *NetworkInfoTechnical) SetMcpLibrary(val string) {
 	s.McpLibrary = val
 }
 
-// NewNilAgentKeyListItemsItemRevocationReason returns new NilAgentKeyListItemsItemRevocationReason with value set to v.
-func NewNilAgentKeyListItemsItemRevocationReason(v AgentKeyListItemsItemRevocationReason) NilAgentKeyListItemsItemRevocationReason {
-	return NilAgentKeyListItemsItemRevocationReason{
+// NewNilAgentKeyRevocationReason returns new NilAgentKeyRevocationReason with value set to v.
+func NewNilAgentKeyRevocationReason(v AgentKeyRevocationReason) NilAgentKeyRevocationReason {
+	return NilAgentKeyRevocationReason{
 		Value: v,
 	}
 }
 
-// NilAgentKeyListItemsItemRevocationReason is nullable AgentKeyListItemsItemRevocationReason.
-type NilAgentKeyListItemsItemRevocationReason struct {
-	Value AgentKeyListItemsItemRevocationReason
+// NilAgentKeyRevocationReason is nullable AgentKeyRevocationReason.
+type NilAgentKeyRevocationReason struct {
+	Value AgentKeyRevocationReason
 	Null  bool
 }
 
 // SetTo sets value to v.
-func (o *NilAgentKeyListItemsItemRevocationReason) SetTo(v AgentKeyListItemsItemRevocationReason) {
+func (o *NilAgentKeyRevocationReason) SetTo(v AgentKeyRevocationReason) {
 	o.Null = false
 	o.Value = v
 }
 
 // IsNull returns true if value is Null.
-func (o NilAgentKeyListItemsItemRevocationReason) IsNull() bool { return o.Null }
+func (o NilAgentKeyRevocationReason) IsNull() bool { return o.Null }
 
 // SetToNull sets value to null.
-func (o *NilAgentKeyListItemsItemRevocationReason) SetToNull() {
+func (o *NilAgentKeyRevocationReason) SetToNull() {
 	o.Null = true
-	var v AgentKeyListItemsItemRevocationReason
+	var v AgentKeyRevocationReason
 	o.Value = v
 }
 
 // Get returns value and boolean that denotes whether value was set.
-func (o NilAgentKeyListItemsItemRevocationReason) Get() (v AgentKeyListItemsItemRevocationReason, ok bool) {
+func (o NilAgentKeyRevocationReason) Get() (v AgentKeyRevocationReason, ok bool) {
 	if o.Null {
 		return v, false
 	}
@@ -30787,52 +30560,7 @@ func (o NilAgentKeyListItemsItemRevocationReason) Get() (v AgentKeyListItemsItem
 }
 
 // Or returns value if set, or given parameter if does not.
-func (o NilAgentKeyListItemsItemRevocationReason) Or(d AgentKeyListItemsItemRevocationReason) AgentKeyListItemsItemRevocationReason {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewNilAgentKeyWithSecretKeyRevocationReason returns new NilAgentKeyWithSecretKeyRevocationReason with value set to v.
-func NewNilAgentKeyWithSecretKeyRevocationReason(v AgentKeyWithSecretKeyRevocationReason) NilAgentKeyWithSecretKeyRevocationReason {
-	return NilAgentKeyWithSecretKeyRevocationReason{
-		Value: v,
-	}
-}
-
-// NilAgentKeyWithSecretKeyRevocationReason is nullable AgentKeyWithSecretKeyRevocationReason.
-type NilAgentKeyWithSecretKeyRevocationReason struct {
-	Value AgentKeyWithSecretKeyRevocationReason
-	Null  bool
-}
-
-// SetTo sets value to v.
-func (o *NilAgentKeyWithSecretKeyRevocationReason) SetTo(v AgentKeyWithSecretKeyRevocationReason) {
-	o.Null = false
-	o.Value = v
-}
-
-// IsNull returns true if value is Null.
-func (o NilAgentKeyWithSecretKeyRevocationReason) IsNull() bool { return o.Null }
-
-// SetToNull sets value to null.
-func (o *NilAgentKeyWithSecretKeyRevocationReason) SetToNull() {
-	o.Null = true
-	var v AgentKeyWithSecretKeyRevocationReason
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o NilAgentKeyWithSecretKeyRevocationReason) Get() (v AgentKeyWithSecretKeyRevocationReason, ok bool) {
-	if o.Null {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o NilAgentKeyWithSecretKeyRevocationReason) Or(d AgentKeyWithSecretKeyRevocationReason) AgentKeyWithSecretKeyRevocationReason {
+func (o NilAgentKeyRevocationReason) Or(d AgentKeyRevocationReason) AgentKeyRevocationReason {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -34652,6 +34380,52 @@ func (o OptRelationType) Or(d RelationType) RelationType {
 	return d
 }
 
+// NewOptRevokeAgentKeyReq returns new OptRevokeAgentKeyReq with value set to v.
+func NewOptRevokeAgentKeyReq(v RevokeAgentKeyReq) OptRevokeAgentKeyReq {
+	return OptRevokeAgentKeyReq{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptRevokeAgentKeyReq is optional RevokeAgentKeyReq.
+type OptRevokeAgentKeyReq struct {
+	Value RevokeAgentKeyReq
+	Set   bool
+}
+
+// IsSet returns true if OptRevokeAgentKeyReq was set.
+func (o OptRevokeAgentKeyReq) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptRevokeAgentKeyReq) Reset() {
+	var v RevokeAgentKeyReq
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptRevokeAgentKeyReq) SetTo(v RevokeAgentKeyReq) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptRevokeAgentKeyReq) Get() (v RevokeAgentKeyReq, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptRevokeAgentKeyReq) Or(d RevokeAgentKeyReq) RevokeAgentKeyReq {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptRuntimeProfileListResponseItemsItemSandboxEnv returns new OptRuntimeProfileListResponseItemsItemSandboxEnv with value set to v.
 func NewOptRuntimeProfileListResponseItemsItemSandboxEnv(v RuntimeProfileListResponseItemsItemSandboxEnv) OptRuntimeProfileListResponseItemsItemSandboxEnv {
 	return OptRuntimeProfileListResponseItemsItemSandboxEnv{
@@ -37892,6 +37666,55 @@ func (s *ProvenanceGraph) SetNodes(val []ProvenanceGraphNodesItem) {
 
 func (*ProvenanceGraph) getContextPackProvenanceByIdRes() {}
 
+// Ref: #/components/schemas/ProvenanceGraphAffiliation_changedNode
+type ProvenanceGraphAffiliationChangedNode struct {
+	Reason ProvenanceGraphAffiliationChangedNodeReason `json:"reason"`
+}
+
+// GetReason returns the value of Reason.
+func (s *ProvenanceGraphAffiliationChangedNode) GetReason() ProvenanceGraphAffiliationChangedNodeReason {
+	return s.Reason
+}
+
+// SetReason sets the value of Reason.
+func (s *ProvenanceGraphAffiliationChangedNode) SetReason(val ProvenanceGraphAffiliationChangedNodeReason) {
+	s.Reason = val
+}
+
+type ProvenanceGraphAffiliationChangedNodeReason string
+
+const (
+	ProvenanceGraphAffiliationChangedNodeReasonAffiliationChanged ProvenanceGraphAffiliationChangedNodeReason = "affiliation_changed"
+)
+
+// AllValues returns all ProvenanceGraphAffiliationChangedNodeReason values.
+func (ProvenanceGraphAffiliationChangedNodeReason) AllValues() []ProvenanceGraphAffiliationChangedNodeReason {
+	return []ProvenanceGraphAffiliationChangedNodeReason{
+		ProvenanceGraphAffiliationChangedNodeReasonAffiliationChanged,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ProvenanceGraphAffiliationChangedNodeReason) MarshalText() ([]byte, error) {
+	switch s {
+	case ProvenanceGraphAffiliationChangedNodeReasonAffiliationChanged:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ProvenanceGraphAffiliationChangedNodeReason) UnmarshalText(data []byte) error {
+	switch ProvenanceGraphAffiliationChangedNodeReason(data) {
+	case ProvenanceGraphAffiliationChangedNodeReasonAffiliationChanged:
+		*s = ProvenanceGraphAffiliationChangedNodeReasonAffiliationChanged
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 type ProvenanceGraphEdgesItem struct {
 	From  string                          `json:"from"`
 	ID    string                          `json:"id"`
@@ -38350,6 +38173,55 @@ func (s *ProvenanceGraphEntryNodeMetaEntryType) UnmarshalText(data []byte) error
 		return nil
 	case ProvenanceGraphEntryNodeMetaEntryTypeReflection:
 		*s = ProvenanceGraphEntryNodeMetaEntryTypeReflection
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/ProvenanceGraphKey_compromiseNode
+type ProvenanceGraphKeyCompromiseNode struct {
+	Reason ProvenanceGraphKeyCompromiseNodeReason `json:"reason"`
+}
+
+// GetReason returns the value of Reason.
+func (s *ProvenanceGraphKeyCompromiseNode) GetReason() ProvenanceGraphKeyCompromiseNodeReason {
+	return s.Reason
+}
+
+// SetReason sets the value of Reason.
+func (s *ProvenanceGraphKeyCompromiseNode) SetReason(val ProvenanceGraphKeyCompromiseNodeReason) {
+	s.Reason = val
+}
+
+type ProvenanceGraphKeyCompromiseNodeReason string
+
+const (
+	ProvenanceGraphKeyCompromiseNodeReasonKeyCompromise ProvenanceGraphKeyCompromiseNodeReason = "key_compromise"
+)
+
+// AllValues returns all ProvenanceGraphKeyCompromiseNodeReason values.
+func (ProvenanceGraphKeyCompromiseNodeReason) AllValues() []ProvenanceGraphKeyCompromiseNodeReason {
+	return []ProvenanceGraphKeyCompromiseNodeReason{
+		ProvenanceGraphKeyCompromiseNodeReasonKeyCompromise,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ProvenanceGraphKeyCompromiseNodeReason) MarshalText() ([]byte, error) {
+	switch s {
+	case ProvenanceGraphKeyCompromiseNodeReasonKeyCompromise:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ProvenanceGraphKeyCompromiseNodeReason) UnmarshalText(data []byte) error {
+	switch ProvenanceGraphKeyCompromiseNodeReason(data) {
+	case ProvenanceGraphKeyCompromiseNodeReasonKeyCompromise:
+		*s = ProvenanceGraphKeyCompromiseNodeReasonKeyCompromise
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -38828,6 +38700,66 @@ func NewHumanPrincipalProvenanceGraphPackNodeMetaCreator(v HumanPrincipal) Prove
 	return s
 }
 
+// Ref: #/components/schemas/ProvenanceGraphPrivilege_withdrawnNode
+type ProvenanceGraphPrivilegeWithdrawnNode struct {
+	Description OptString                                   `json:"description"`
+	Reason      ProvenanceGraphPrivilegeWithdrawnNodeReason `json:"reason"`
+}
+
+// GetDescription returns the value of Description.
+func (s *ProvenanceGraphPrivilegeWithdrawnNode) GetDescription() OptString {
+	return s.Description
+}
+
+// GetReason returns the value of Reason.
+func (s *ProvenanceGraphPrivilegeWithdrawnNode) GetReason() ProvenanceGraphPrivilegeWithdrawnNodeReason {
+	return s.Reason
+}
+
+// SetDescription sets the value of Description.
+func (s *ProvenanceGraphPrivilegeWithdrawnNode) SetDescription(val OptString) {
+	s.Description = val
+}
+
+// SetReason sets the value of Reason.
+func (s *ProvenanceGraphPrivilegeWithdrawnNode) SetReason(val ProvenanceGraphPrivilegeWithdrawnNodeReason) {
+	s.Reason = val
+}
+
+type ProvenanceGraphPrivilegeWithdrawnNodeReason string
+
+const (
+	ProvenanceGraphPrivilegeWithdrawnNodeReasonPrivilegeWithdrawn ProvenanceGraphPrivilegeWithdrawnNodeReason = "privilege_withdrawn"
+)
+
+// AllValues returns all ProvenanceGraphPrivilegeWithdrawnNodeReason values.
+func (ProvenanceGraphPrivilegeWithdrawnNodeReason) AllValues() []ProvenanceGraphPrivilegeWithdrawnNodeReason {
+	return []ProvenanceGraphPrivilegeWithdrawnNodeReason{
+		ProvenanceGraphPrivilegeWithdrawnNodeReasonPrivilegeWithdrawn,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ProvenanceGraphPrivilegeWithdrawnNodeReason) MarshalText() ([]byte, error) {
+	switch s {
+	case ProvenanceGraphPrivilegeWithdrawnNodeReasonPrivilegeWithdrawn:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ProvenanceGraphPrivilegeWithdrawnNodeReason) UnmarshalText(data []byte) error {
+	switch ProvenanceGraphPrivilegeWithdrawnNodeReason(data) {
+	case ProvenanceGraphPrivilegeWithdrawnNodeReasonPrivilegeWithdrawn:
+		*s = ProvenanceGraphPrivilegeWithdrawnNodeReasonPrivilegeWithdrawn
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 // Ref: #/components/schemas/ProvenanceGraphRendered_packNode
 type ProvenanceGraphRenderedPackNode struct {
 	Cid   NilString                           `json:"cid"`
@@ -39106,6 +39038,55 @@ func NewHumanPrincipalProvenanceGraphRenderedPackNodeMetaCreator(v HumanPrincipa
 	var s ProvenanceGraphRenderedPackNodeMetaCreator
 	s.SetHumanPrincipal(v)
 	return s
+}
+
+// Ref: #/components/schemas/ProvenanceGraphSupersededNode
+type ProvenanceGraphSupersededNode struct {
+	Reason ProvenanceGraphSupersededNodeReason `json:"reason"`
+}
+
+// GetReason returns the value of Reason.
+func (s *ProvenanceGraphSupersededNode) GetReason() ProvenanceGraphSupersededNodeReason {
+	return s.Reason
+}
+
+// SetReason sets the value of Reason.
+func (s *ProvenanceGraphSupersededNode) SetReason(val ProvenanceGraphSupersededNodeReason) {
+	s.Reason = val
+}
+
+type ProvenanceGraphSupersededNodeReason string
+
+const (
+	ProvenanceGraphSupersededNodeReasonSuperseded ProvenanceGraphSupersededNodeReason = "superseded"
+)
+
+// AllValues returns all ProvenanceGraphSupersededNodeReason values.
+func (ProvenanceGraphSupersededNodeReason) AllValues() []ProvenanceGraphSupersededNodeReason {
+	return []ProvenanceGraphSupersededNodeReason{
+		ProvenanceGraphSupersededNodeReasonSuperseded,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ProvenanceGraphSupersededNodeReason) MarshalText() ([]byte, error) {
+	switch s {
+	case ProvenanceGraphSupersededNodeReasonSuperseded:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ProvenanceGraphSupersededNodeReason) UnmarshalText(data []byte) error {
+	switch ProvenanceGraphSupersededNodeReason(data) {
+	case ProvenanceGraphSupersededNodeReasonSuperseded:
+		*s = ProvenanceGraphSupersededNodeReasonSuperseded
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
 }
 
 // Ref: #/components/schemas/PublicFeedEntry
@@ -40982,89 +40963,138 @@ type RevokeAgentKeyNotFound ProblemDetails
 
 func (*RevokeAgentKeyNotFound) revokeAgentKeyRes() {}
 
+// RevokeAgentKeyReq represents sum type.
 type RevokeAgentKeyReq struct {
-	Description OptString               `json:"description"`
-	Reason      RevokeAgentKeyReqReason `json:"reason"`
+	// Type selects the active sum variant, switch on this field.
+	Type                                  RevokeAgentKeyReqType
+	ProvenanceGraphKeyCompromiseNode      ProvenanceGraphKeyCompromiseNode
+	ProvenanceGraphAffiliationChangedNode ProvenanceGraphAffiliationChangedNode
+	ProvenanceGraphSupersededNode         ProvenanceGraphSupersededNode
+	ProvenanceGraphPrivilegeWithdrawnNode ProvenanceGraphPrivilegeWithdrawnNode
 }
 
-// GetDescription returns the value of Description.
-func (s *RevokeAgentKeyReq) GetDescription() OptString {
-	return s.Description
-}
+// RevokeAgentKeyReqType is oneOf type of RevokeAgentKeyReq.
+type RevokeAgentKeyReqType string
 
-// GetReason returns the value of Reason.
-func (s *RevokeAgentKeyReq) GetReason() RevokeAgentKeyReqReason {
-	return s.Reason
-}
-
-// SetDescription sets the value of Description.
-func (s *RevokeAgentKeyReq) SetDescription(val OptString) {
-	s.Description = val
-}
-
-// SetReason sets the value of Reason.
-func (s *RevokeAgentKeyReq) SetReason(val RevokeAgentKeyReqReason) {
-	s.Reason = val
-}
-
-type RevokeAgentKeyReqReason string
-
+// Possible values for RevokeAgentKeyReqType.
 const (
-	RevokeAgentKeyReqReasonKeyCompromise      RevokeAgentKeyReqReason = "key_compromise"
-	RevokeAgentKeyReqReasonAffiliationChanged RevokeAgentKeyReqReason = "affiliation_changed"
-	RevokeAgentKeyReqReasonSuperseded         RevokeAgentKeyReqReason = "superseded"
-	RevokeAgentKeyReqReasonPrivilegeWithdrawn RevokeAgentKeyReqReason = "privilege_withdrawn"
+	ProvenanceGraphKeyCompromiseNodeRevokeAgentKeyReq      RevokeAgentKeyReqType = "key_compromise"
+	ProvenanceGraphAffiliationChangedNodeRevokeAgentKeyReq RevokeAgentKeyReqType = "affiliation_changed"
+	ProvenanceGraphSupersededNodeRevokeAgentKeyReq         RevokeAgentKeyReqType = "superseded"
+	ProvenanceGraphPrivilegeWithdrawnNodeRevokeAgentKeyReq RevokeAgentKeyReqType = "privilege_withdrawn"
 )
 
-// AllValues returns all RevokeAgentKeyReqReason values.
-func (RevokeAgentKeyReqReason) AllValues() []RevokeAgentKeyReqReason {
-	return []RevokeAgentKeyReqReason{
-		RevokeAgentKeyReqReasonKeyCompromise,
-		RevokeAgentKeyReqReasonAffiliationChanged,
-		RevokeAgentKeyReqReasonSuperseded,
-		RevokeAgentKeyReqReasonPrivilegeWithdrawn,
-	}
+// IsProvenanceGraphKeyCompromiseNode reports whether RevokeAgentKeyReq is ProvenanceGraphKeyCompromiseNode.
+func (s RevokeAgentKeyReq) IsProvenanceGraphKeyCompromiseNode() bool {
+	return s.Type == ProvenanceGraphKeyCompromiseNodeRevokeAgentKeyReq
 }
 
-// MarshalText implements encoding.TextMarshaler.
-func (s RevokeAgentKeyReqReason) MarshalText() ([]byte, error) {
-	switch s {
-	case RevokeAgentKeyReqReasonKeyCompromise:
-		return []byte(s), nil
-	case RevokeAgentKeyReqReasonAffiliationChanged:
-		return []byte(s), nil
-	case RevokeAgentKeyReqReasonSuperseded:
-		return []byte(s), nil
-	case RevokeAgentKeyReqReasonPrivilegeWithdrawn:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
+// IsProvenanceGraphAffiliationChangedNode reports whether RevokeAgentKeyReq is ProvenanceGraphAffiliationChangedNode.
+func (s RevokeAgentKeyReq) IsProvenanceGraphAffiliationChangedNode() bool {
+	return s.Type == ProvenanceGraphAffiliationChangedNodeRevokeAgentKeyReq
 }
 
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *RevokeAgentKeyReqReason) UnmarshalText(data []byte) error {
-	switch RevokeAgentKeyReqReason(data) {
-	case RevokeAgentKeyReqReasonKeyCompromise:
-		*s = RevokeAgentKeyReqReasonKeyCompromise
-		return nil
-	case RevokeAgentKeyReqReasonAffiliationChanged:
-		*s = RevokeAgentKeyReqReasonAffiliationChanged
-		return nil
-	case RevokeAgentKeyReqReasonSuperseded:
-		*s = RevokeAgentKeyReqReasonSuperseded
-		return nil
-	case RevokeAgentKeyReqReasonPrivilegeWithdrawn:
-		*s = RevokeAgentKeyReqReasonPrivilegeWithdrawn
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
+// IsProvenanceGraphSupersededNode reports whether RevokeAgentKeyReq is ProvenanceGraphSupersededNode.
+func (s RevokeAgentKeyReq) IsProvenanceGraphSupersededNode() bool {
+	return s.Type == ProvenanceGraphSupersededNodeRevokeAgentKeyReq
+}
+
+// IsProvenanceGraphPrivilegeWithdrawnNode reports whether RevokeAgentKeyReq is ProvenanceGraphPrivilegeWithdrawnNode.
+func (s RevokeAgentKeyReq) IsProvenanceGraphPrivilegeWithdrawnNode() bool {
+	return s.Type == ProvenanceGraphPrivilegeWithdrawnNodeRevokeAgentKeyReq
+}
+
+// SetProvenanceGraphKeyCompromiseNode sets RevokeAgentKeyReq to ProvenanceGraphKeyCompromiseNode.
+func (s *RevokeAgentKeyReq) SetProvenanceGraphKeyCompromiseNode(v ProvenanceGraphKeyCompromiseNode) {
+	s.Type = ProvenanceGraphKeyCompromiseNodeRevokeAgentKeyReq
+	s.ProvenanceGraphKeyCompromiseNode = v
+}
+
+// GetProvenanceGraphKeyCompromiseNode returns ProvenanceGraphKeyCompromiseNode and true boolean if RevokeAgentKeyReq is ProvenanceGraphKeyCompromiseNode.
+func (s RevokeAgentKeyReq) GetProvenanceGraphKeyCompromiseNode() (v ProvenanceGraphKeyCompromiseNode, ok bool) {
+	if !s.IsProvenanceGraphKeyCompromiseNode() {
+		return v, false
 	}
+	return s.ProvenanceGraphKeyCompromiseNode, true
+}
+
+// NewProvenanceGraphKeyCompromiseNodeRevokeAgentKeyReq returns new RevokeAgentKeyReq from ProvenanceGraphKeyCompromiseNode.
+func NewProvenanceGraphKeyCompromiseNodeRevokeAgentKeyReq(v ProvenanceGraphKeyCompromiseNode) RevokeAgentKeyReq {
+	var s RevokeAgentKeyReq
+	s.SetProvenanceGraphKeyCompromiseNode(v)
+	return s
+}
+
+// SetProvenanceGraphAffiliationChangedNode sets RevokeAgentKeyReq to ProvenanceGraphAffiliationChangedNode.
+func (s *RevokeAgentKeyReq) SetProvenanceGraphAffiliationChangedNode(v ProvenanceGraphAffiliationChangedNode) {
+	s.Type = ProvenanceGraphAffiliationChangedNodeRevokeAgentKeyReq
+	s.ProvenanceGraphAffiliationChangedNode = v
+}
+
+// GetProvenanceGraphAffiliationChangedNode returns ProvenanceGraphAffiliationChangedNode and true boolean if RevokeAgentKeyReq is ProvenanceGraphAffiliationChangedNode.
+func (s RevokeAgentKeyReq) GetProvenanceGraphAffiliationChangedNode() (v ProvenanceGraphAffiliationChangedNode, ok bool) {
+	if !s.IsProvenanceGraphAffiliationChangedNode() {
+		return v, false
+	}
+	return s.ProvenanceGraphAffiliationChangedNode, true
+}
+
+// NewProvenanceGraphAffiliationChangedNodeRevokeAgentKeyReq returns new RevokeAgentKeyReq from ProvenanceGraphAffiliationChangedNode.
+func NewProvenanceGraphAffiliationChangedNodeRevokeAgentKeyReq(v ProvenanceGraphAffiliationChangedNode) RevokeAgentKeyReq {
+	var s RevokeAgentKeyReq
+	s.SetProvenanceGraphAffiliationChangedNode(v)
+	return s
+}
+
+// SetProvenanceGraphSupersededNode sets RevokeAgentKeyReq to ProvenanceGraphSupersededNode.
+func (s *RevokeAgentKeyReq) SetProvenanceGraphSupersededNode(v ProvenanceGraphSupersededNode) {
+	s.Type = ProvenanceGraphSupersededNodeRevokeAgentKeyReq
+	s.ProvenanceGraphSupersededNode = v
+}
+
+// GetProvenanceGraphSupersededNode returns ProvenanceGraphSupersededNode and true boolean if RevokeAgentKeyReq is ProvenanceGraphSupersededNode.
+func (s RevokeAgentKeyReq) GetProvenanceGraphSupersededNode() (v ProvenanceGraphSupersededNode, ok bool) {
+	if !s.IsProvenanceGraphSupersededNode() {
+		return v, false
+	}
+	return s.ProvenanceGraphSupersededNode, true
+}
+
+// NewProvenanceGraphSupersededNodeRevokeAgentKeyReq returns new RevokeAgentKeyReq from ProvenanceGraphSupersededNode.
+func NewProvenanceGraphSupersededNodeRevokeAgentKeyReq(v ProvenanceGraphSupersededNode) RevokeAgentKeyReq {
+	var s RevokeAgentKeyReq
+	s.SetProvenanceGraphSupersededNode(v)
+	return s
+}
+
+// SetProvenanceGraphPrivilegeWithdrawnNode sets RevokeAgentKeyReq to ProvenanceGraphPrivilegeWithdrawnNode.
+func (s *RevokeAgentKeyReq) SetProvenanceGraphPrivilegeWithdrawnNode(v ProvenanceGraphPrivilegeWithdrawnNode) {
+	s.Type = ProvenanceGraphPrivilegeWithdrawnNodeRevokeAgentKeyReq
+	s.ProvenanceGraphPrivilegeWithdrawnNode = v
+}
+
+// GetProvenanceGraphPrivilegeWithdrawnNode returns ProvenanceGraphPrivilegeWithdrawnNode and true boolean if RevokeAgentKeyReq is ProvenanceGraphPrivilegeWithdrawnNode.
+func (s RevokeAgentKeyReq) GetProvenanceGraphPrivilegeWithdrawnNode() (v ProvenanceGraphPrivilegeWithdrawnNode, ok bool) {
+	if !s.IsProvenanceGraphPrivilegeWithdrawnNode() {
+		return v, false
+	}
+	return s.ProvenanceGraphPrivilegeWithdrawnNode, true
+}
+
+// NewProvenanceGraphPrivilegeWithdrawnNodeRevokeAgentKeyReq returns new RevokeAgentKeyReq from ProvenanceGraphPrivilegeWithdrawnNode.
+func NewProvenanceGraphPrivilegeWithdrawnNodeRevokeAgentKeyReq(v ProvenanceGraphPrivilegeWithdrawnNode) RevokeAgentKeyReq {
+	var s RevokeAgentKeyReq
+	s.SetProvenanceGraphPrivilegeWithdrawnNode(v)
+	return s
 }
 
 type RevokeAgentKeyServiceUnavailable ProblemDetails
 
 func (*RevokeAgentKeyServiceUnavailable) revokeAgentKeyRes() {}
+
+type RevokeAgentKeyTooManyRequests ProblemDetails
+
+func (*RevokeAgentKeyTooManyRequests) revokeAgentKeyRes() {}
 
 type RevokeAgentKeyUnauthorized ProblemDetails
 
@@ -41231,6 +41261,10 @@ func (*RevokeDiaryGrantUnauthorized) revokeDiaryGrantRes() {}
 type RotateAgentKeyBadGateway ProblemDetails
 
 func (*RotateAgentKeyBadGateway) rotateAgentKeyRes() {}
+
+type RotateAgentKeyConflict ProblemDetails
+
+func (*RotateAgentKeyConflict) rotateAgentKeyRes() {}
 
 type RotateAgentKeyForbidden ProblemDetails
 

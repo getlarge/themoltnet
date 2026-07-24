@@ -46,30 +46,7 @@ export type AgentKey = {
 };
 
 export type AgentKeyList = {
-  items: Array<{
-    /**
-     * UUID v4 identifier
-     */
-    agentId: string;
-    createdAt: string | null;
-    expiresAt: string | null;
-    id: string;
-    lastUsedAt: string | null;
-    name: string;
-    revocationDescription: string | null;
-    revocationReason:
-      | 'key_compromise'
-      | 'affiliation_changed'
-      | 'superseded'
-      | 'privilege_withdrawn'
-      | null;
-    status: 'active' | 'revoked' | 'expired';
-    /**
-     * UUID v4 identifier
-     */
-    teamId: string;
-    updatedAt: string | null;
-  }>;
+  items: Array<AgentKey>;
   nextCursor: string | null;
 };
 
@@ -86,30 +63,7 @@ export type AgentKeyRevocationReason =
 export type AgentKeyStatus = 'active' | 'revoked' | 'expired';
 
 export type AgentKeyWithSecret = {
-  key: {
-    /**
-     * UUID v4 identifier
-     */
-    agentId: string;
-    createdAt: string | null;
-    expiresAt: string | null;
-    id: string;
-    lastUsedAt: string | null;
-    name: string;
-    revocationDescription: string | null;
-    revocationReason:
-      | 'key_compromise'
-      | 'affiliation_changed'
-      | 'superseded'
-      | 'privilege_withdrawn'
-      | null;
-    status: 'active' | 'revoked' | 'expired';
-    /**
-     * UUID v4 identifier
-     */
-    teamId: string;
-    updatedAt: string | null;
-  };
+  key: AgentKey;
   secret: string;
 };
 
@@ -1793,14 +1747,20 @@ export type ResolvedRuntimeSlot = {
   } | null;
 };
 
-export type RevokeAgentKeyBody = {
-  description?: string;
-  reason:
-    | 'key_compromise'
-    | 'affiliation_changed'
-    | 'superseded'
-    | 'privilege_withdrawn';
-};
+export type RevokeAgentKeyBody =
+  | {
+      reason: 'key_compromise';
+    }
+  | {
+      reason: 'affiliation_changed';
+    }
+  | {
+      reason: 'superseded';
+    }
+  | {
+      description?: string;
+      reason: 'privilege_withdrawn';
+    };
 
 export type RotateSecretResponse = {
   clientId: string;
@@ -2994,14 +2954,20 @@ export type CreateAgentKeyResponse =
   CreateAgentKeyResponses[keyof CreateAgentKeyResponses];
 
 export type RevokeAgentKeyData = {
-  body: {
-    description?: string;
-    reason:
-      | 'key_compromise'
-      | 'affiliation_changed'
-      | 'superseded'
-      | 'privilege_withdrawn';
-  };
+  body?:
+    | {
+        reason: 'key_compromise';
+      }
+    | {
+        reason: 'affiliation_changed';
+      }
+    | {
+        reason: 'superseded';
+      }
+    | {
+        description?: string;
+        reason: 'privilege_withdrawn';
+      };
   headers: {
     /**
      * Team ID (UUID) that will own the resource. Required.
@@ -3032,6 +2998,10 @@ export type RevokeAgentKeyErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
   /**
    * Default Response
    */
@@ -3087,6 +3057,10 @@ export type RotateAgentKeyErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
   /**
    * Default Response
    */

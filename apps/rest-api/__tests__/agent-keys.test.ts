@@ -1,4 +1,4 @@
-import type { OryClients } from '@moltnet/auth';
+import { AGENT_CREDENTIAL_SCOPES, type OryClients } from '@moltnet/auth';
 import { KeyStatus, KeyVisibility, RevocationReason } from '@ory/client-fetch';
 import type { FastifyInstance } from 'fastify';
 import {
@@ -63,9 +63,24 @@ describe('agent key routes', () => {
 
   beforeAll(async () => {
     mocks = createMockServices();
-    app = await createTestApp(mocks, VALID_AUTH_CONTEXT, undefined, {
-      talosApi: talosApi as unknown as OryClients['apiKeys'],
-    });
+    app = await createTestApp(
+      mocks,
+      VALID_AUTH_CONTEXT,
+      undefined,
+      {
+        talosApi: talosApi as unknown as OryClients['apiKeys'],
+      },
+      (token) =>
+        token === 'talos-current-key'
+          ? {
+              ...VALID_AUTH_CONTEXT,
+              credentialBinding: {
+                keyId: KEY_ID,
+                boundTeamId: TEAM_ID,
+              },
+            }
+          : VALID_AUTH_CONTEXT,
+    );
   });
 
   afterAll(async () => {
@@ -108,22 +123,26 @@ describe('agent key routes', () => {
       },
       secret: 'ory_ak_secret',
     });
-    expect(talosApi.adminIssueApiKey).toHaveBeenCalledWith({
-      issueApiKeyRequest: expect.objectContaining({
-        actor_id: OWNER_ID,
-        name: 'daemon',
-        request_id: expect.stringMatching(
-          /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
-        ),
-        ttl: '2592000s',
-        visibility: KeyVisibility.KeyVisibilitySecret,
-        metadata: {
-          schema_version: 1,
-          subject_type: 'agent',
-          team_id: TEAM_ID,
-        },
-      }),
-    });
+    expect(talosApi.adminIssueApiKey).toHaveBeenCalledWith(
+      {
+        issueApiKeyRequest: expect.objectContaining({
+          actor_id: OWNER_ID,
+          name: 'daemon',
+          request_id: expect.stringMatching(
+            /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+          ),
+          ttl: '2592000s',
+          visibility: KeyVisibility.KeyVisibilitySecret,
+          scopes: [...AGENT_CREDENTIAL_SCOPES],
+          metadata: {
+            schema_version: 1,
+            subject_type: 'agent',
+            team_id: TEAM_ID,
+          },
+        }),
+      },
+      { signal: expect.any(AbortSignal) },
+    );
     expect(response.headers['cache-control']).toContain('no-store');
   });
 
@@ -149,12 +168,15 @@ describe('agent key routes', () => {
     });
 
     expect(response.statusCode).toBe(201);
-    expect(talosApi.adminIssueApiKey).toHaveBeenCalledWith({
-      issueApiKeyRequest: expect.objectContaining({
-        actor_id: OTHER_AGENT_ID,
-        ttl: '7776000s',
-      }),
-    });
+    expect(talosApi.adminIssueApiKey).toHaveBeenCalledWith(
+      {
+        issueApiKeyRequest: expect.objectContaining({
+          actor_id: OTHER_AGENT_ID,
+          ttl: '7776000s',
+        }),
+      },
+      { signal: expect.any(AbortSignal) },
+    );
   });
 
   it('does not let an ordinary agent issue a key for another agent', async () => {
@@ -295,11 +317,14 @@ describe('agent key routes', () => {
       ],
       nextCursor: null,
     });
-    expect(talosApi.adminListIssuedApiKeys).toHaveBeenCalledWith({
-      filter: `actor_id="${OWNER_ID}"`,
-      pageSize: 20,
-      pageToken: undefined,
-    });
+    expect(talosApi.adminListIssuedApiKeys).toHaveBeenCalledWith(
+      {
+        filter: `actor_id="${OWNER_ID}"`,
+        pageSize: 20,
+        pageToken: undefined,
+      },
+      { signal: expect.any(AbortSignal) },
+    );
     expect(response.body).not.toContain('secret');
   });
 
@@ -341,16 +366,24 @@ describe('agent key routes', () => {
     expect(first.statusCode).toBe(200);
     expect(first.json().items).toHaveLength(2);
     expect(first.json().nextCursor).toEqual(expect.any(String));
-    expect(talosApi.adminListIssuedApiKeys).toHaveBeenNthCalledWith(1, {
-      filter: `actor_id="${OWNER_ID}"`,
-      pageSize: 2,
-      pageToken: undefined,
-    });
-    expect(talosApi.adminListIssuedApiKeys).toHaveBeenNthCalledWith(2, {
-      filter: `actor_id="${OWNER_ID}"`,
-      pageSize: 2,
-      pageToken: 'talos-page-2',
-    });
+    expect(talosApi.adminListIssuedApiKeys).toHaveBeenNthCalledWith(
+      1,
+      {
+        filter: `actor_id="${OWNER_ID}"`,
+        pageSize: 2,
+        pageToken: undefined,
+      },
+      { signal: expect.any(AbortSignal) },
+    );
+    expect(talosApi.adminListIssuedApiKeys).toHaveBeenNthCalledWith(
+      2,
+      {
+        filter: `actor_id="${OWNER_ID}"`,
+        pageSize: 2,
+        pageToken: 'talos-page-2',
+      },
+      { signal: expect.any(AbortSignal) },
+    );
 
     const second = await app.inject({
       method: 'GET',
@@ -366,11 +399,15 @@ describe('agent key routes', () => {
       items: [expect.objectContaining({ id: '01JKEY00000000000000000006' })],
       nextCursor: null,
     });
-    expect(talosApi.adminListIssuedApiKeys).toHaveBeenNthCalledWith(3, {
-      filter: `actor_id="${OWNER_ID}"`,
-      pageSize: 2,
-      pageToken: 'talos-page-3',
-    });
+    expect(talosApi.adminListIssuedApiKeys).toHaveBeenNthCalledWith(
+      3,
+      {
+        filter: `actor_id="${OWNER_ID}"`,
+        pageSize: 2,
+        pageToken: 'talos-page-3',
+      },
+      { signal: expect.any(AbortSignal) },
+    );
   });
 
   it('rejects a cursor when the effective query changes', async () => {
@@ -416,11 +453,52 @@ describe('agent key routes', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(talosApi.adminListIssuedApiKeys).toHaveBeenCalledWith({
-      filter: undefined,
-      pageSize: 20,
-      pageToken: undefined,
+    expect(talosApi.adminListIssuedApiKeys).toHaveBeenCalledWith(
+      {
+        filter: undefined,
+        pageSize: 20,
+        pageToken: undefined,
+      },
+      { signal: expect.any(AbortSignal) },
+    );
+  });
+
+  it('returns a continuation cursor when the Talos scan budget is exhausted', async () => {
+    mocks.permissionChecker.canManageTeamCredentials.mockResolvedValue(true);
+    talosApi.adminListIssuedApiKeys.mockImplementation(
+      async ({ pageToken }: { pageToken?: string }) => {
+        const page = pageToken ? Number(pageToken.slice('page-'.length)) : 1;
+        return {
+          issued_api_keys: [
+            issuedKey({
+              key_id: `01JKEY0000000000000000000${page + 2}`,
+              metadata: {
+                schema_version: 1,
+                subject_type: 'agent',
+                team_id: OTHER_TEAM_ID,
+              },
+            }),
+          ],
+          next_page_token: `page-${page + 1}`,
+        };
+      },
+    );
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/agent-keys?limit=1',
+      headers: {
+        authorization: 'Bearer test-token',
+        'x-moltnet-team-id': TEAM_ID,
+      },
     });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      items: [],
+      nextCursor: expect.any(String),
+    });
+    expect(talosApi.adminListIssuedApiKeys).toHaveBeenCalledTimes(5);
   });
 
   it('skips malformed Talos rows without failing the list', async () => {
@@ -511,16 +589,40 @@ describe('agent key routes', () => {
       key: { id: ROTATED_KEY_ID, expiresAt: EXPIRES_AT.toISOString() },
       secret: 'ory_ak_rotated',
     });
-    expect(talosApi.adminRotateIssuedApiKey).toHaveBeenCalledWith({
-      keyId: KEY_ID,
-      adminRotateIssuedApiKeyBody: expect.objectContaining({
-        metadata: {
-          schema_version: 1,
-          subject_type: 'agent',
-          team_id: TEAM_ID,
+    expect(talosApi.adminRotateIssuedApiKey).toHaveBeenCalledWith(
+      {
+        keyId: KEY_ID,
+        adminRotateIssuedApiKeyBody: {
+          metadata: {
+            schema_version: 1,
+            subject_type: 'agent',
+            team_id: TEAM_ID,
+          },
+          scopes: [...AGENT_CREDENTIAL_SCOPES],
+          visibility: KeyVisibility.KeyVisibilitySecret,
         },
-      }),
+      },
+      { signal: expect.any(AbortSignal) },
+    );
+  });
+
+  it('requires an independent credential to rotate the current Talos key', async () => {
+    talosApi.adminGetIssuedApiKey.mockResolvedValue(issuedKey());
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/agent-keys/${KEY_ID}/rotate`,
+      headers: {
+        authorization: 'Bearer talos-current-key',
+        'x-moltnet-team-id': TEAM_ID,
+      },
     });
+
+    expect(response.statusCode).toBe(409);
+    expect(response.json()).toMatchObject({
+      detail: expect.stringContaining('cannot authorize its own rotation'),
+    });
+    expect(talosApi.adminRotateIssuedApiKey).not.toHaveBeenCalled();
   });
 
   it('does not let a non-owner rotate another agent key', async () => {
@@ -537,8 +639,31 @@ describe('agent key routes', () => {
       },
     });
 
-    expect(response.statusCode).toBe(403);
+    expect(response.statusCode).toBe(404);
     expect(talosApi.adminRotateIssuedApiKey).not.toHaveBeenCalled();
+  });
+
+  it('rejects a rotated key whose immutable binding changed', async () => {
+    talosApi.adminGetIssuedApiKey.mockResolvedValue(issuedKey());
+    talosApi.adminRotateIssuedApiKey.mockResolvedValue({
+      old_issued_api_key: issuedKey(),
+      issued_api_key: issuedKey({
+        key_id: ROTATED_KEY_ID,
+        actor_id: OTHER_AGENT_ID,
+      }),
+      secret: 'ory_ak_rotated',
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/agent-keys/${KEY_ID}/rotate`,
+      headers: {
+        authorization: 'Bearer test-token',
+        'x-moltnet-team-id': TEAM_ID,
+      },
+    });
+
+    expect(response.statusCode).toBe(502);
   });
 
   it('hides a cross-team key from rotate', async () => {
@@ -642,7 +767,80 @@ describe('agent key routes', () => {
       payload: { reason: 'key_compromise' },
     });
 
-    expect(response.statusCode).toBe(403);
+    expect(response.statusCode).toBe(404);
     expect(talosApi.adminRevokeIssuedApiKey).not.toHaveBeenCalled();
+  });
+
+  it('shares one rate-limit bucket across issue, rotate, and revoke', async () => {
+    const rateLimitMocks = createMockServices();
+    const rateLimitTalosApi = {
+      getJwks: vi.fn(),
+      adminGetIssuedApiKey: vi.fn().mockResolvedValue(issuedKey()),
+      adminIssueApiKey: vi.fn().mockResolvedValue({
+        issued_api_key: issuedKey(),
+        secret: 'ory_ak_secret',
+      }),
+      adminListIssuedApiKeys: vi.fn(),
+      adminRevokeIssuedApiKey: vi.fn().mockResolvedValue(undefined),
+      adminRotateIssuedApiKey: vi.fn().mockResolvedValue({
+        old_issued_api_key: issuedKey(),
+        issued_api_key: issuedKey({ key_id: ROTATED_KEY_ID }),
+        secret: 'ory_ak_rotated',
+      }),
+    };
+    rateLimitMocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
+    rateLimitMocks.permissionChecker.canManageTeamCredentials.mockResolvedValue(
+      false,
+    );
+    rateLimitMocks.relationshipReader.isTeamMember.mockResolvedValue(true);
+    rateLimitMocks.agentRepository.findByIdentityId.mockResolvedValue(
+      createMockAgent(),
+    );
+    const rateLimitApp = await createTestApp(
+      rateLimitMocks,
+      VALID_AUTH_CONTEXT,
+      { rateLimitAgentKey: 3 },
+      {
+        talosApi: rateLimitTalosApi as unknown as OryClients['apiKeys'],
+      },
+    );
+
+    try {
+      const headers = {
+        authorization: 'Bearer test-token',
+        'x-moltnet-team-id': TEAM_ID,
+      };
+      const issued = await rateLimitApp.inject({
+        method: 'POST',
+        url: '/agent-keys',
+        headers: { ...headers, 'idempotency-key': 'rate-limit-issue-1' },
+        payload: { agentId: OWNER_ID, name: 'rate-limit' },
+      });
+      const rotated = await rateLimitApp.inject({
+        method: 'POST',
+        url: `/agent-keys/${KEY_ID}/rotate`,
+        headers,
+      });
+      const revoked = await rateLimitApp.inject({
+        method: 'POST',
+        url: `/agent-keys/${ROTATED_KEY_ID}/revoke`,
+        headers,
+        payload: { reason: 'key_compromise' },
+      });
+      const limited = await rateLimitApp.inject({
+        method: 'POST',
+        url: '/agent-keys',
+        headers: { ...headers, 'idempotency-key': 'rate-limit-issue-2' },
+        payload: { agentId: OWNER_ID, name: 'rate-limit' },
+      });
+
+      expect(issued.statusCode).toBe(201);
+      expect(rotated.statusCode).toBe(200);
+      expect(revoked.statusCode).toBe(204);
+      expect(limited.statusCode).toBe(429);
+      expect(limited.headers['x-ratelimit-limit']).toBe('3');
+    } finally {
+      await rateLimitApp.close();
+    }
   });
 });

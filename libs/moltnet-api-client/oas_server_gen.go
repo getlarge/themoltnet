@@ -670,7 +670,7 @@ type Handler interface {
 	// Permanently revoke an agent API key.
 	//
 	// POST /agent-keys/{keyId}/revoke
-	RevokeAgentKey(ctx context.Context, req *RevokeAgentKeyReq, params RevokeAgentKeyParams) (RevokeAgentKeyRes, error)
+	RevokeAgentKey(ctx context.Context, req OptRevokeAgentKeyReq, params RevokeAgentKeyParams) (RevokeAgentKeyRes, error)
 	// RevokeDiaryGrant implements revokeDiaryGrant operation.
 	//
 	// Revoke a writer or manager grant from a diary.
