@@ -260,8 +260,7 @@ async function assertCurrentAgentMember(
   const members =
     await request.server.relationshipReader.listTeamMembers(teamId);
   const isAgentMember = members.some(
-    (member) =>
-      member.subjectNs === 'Agent' && member.subjectId === agentId,
+    (member) => member.subjectNs === 'Agent' && member.subjectId === agentId,
   );
   const agent = await request.server.agentRepository.findByIdentityId(agentId);
   if (!isAgentMember || !agent) {
