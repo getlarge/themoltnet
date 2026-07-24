@@ -12,6 +12,7 @@ import {
   CONSOLE_URL,
   createCookieSessionApiClient,
   createTestUser,
+  expectConsoleOverview,
   getSessionCookie,
   registerViaBrowser,
   submitKratosForm,
@@ -30,7 +31,7 @@ async function ensureConsoleSession(
   }
 
   await page.goto(`${CONSOLE_URL}/`);
-  await expect(page.getByText('Welcome')).toBeVisible();
+  await expectConsoleOverview(page);
   return getSessionCookie(page);
 }
 

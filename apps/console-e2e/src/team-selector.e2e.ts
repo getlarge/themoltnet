@@ -5,6 +5,7 @@ import {
   CONSOLE_URL,
   createCookieSessionApiClient,
   createTestUser,
+  expectConsoleOverview,
   getSessionCookie,
   loginViaBrowser,
   registerViaBrowser,
@@ -45,7 +46,7 @@ test.describe.serial('Team selector', () => {
     }
 
     await page.goto(`${CONSOLE_URL}/`);
-    await expect(page.getByText('Welcome')).toBeVisible();
+    await expectConsoleOverview(page);
     cookieHeader = await getSessionCookie(page);
 
     await createTeamViaApi(cookieHeader, alphaTeamName);
@@ -58,7 +59,7 @@ test.describe.serial('Team selector', () => {
     await loginViaBrowser(page, user);
 
     await expect(page).toHaveURL(/localhost:5174/);
-    await expect(page.getByText('Welcome')).toBeVisible();
+    await expectConsoleOverview(page);
 
     const teamSelect = page.locator('select[aria-label="Select team"]');
     await expect(teamSelect).toBeVisible();
@@ -76,7 +77,7 @@ test.describe.serial('Team selector', () => {
     await loginViaBrowser(page, user);
 
     await expect(page).toHaveURL(/localhost:5174/);
-    await expect(page.getByText('Welcome')).toBeVisible();
+    await expectConsoleOverview(page);
 
     const teamSelect = page.locator('select[aria-label="Select team"]');
     await teamSelect.selectOption({ label: alphaTeamName });
@@ -97,7 +98,7 @@ test.describe.serial('Team selector', () => {
     await expect(page.getByText(`Team: ${betaTeamName}`)).toBeVisible();
 
     await page.reload();
-    await expect(page.getByText('Welcome')).toBeVisible();
+    await expectConsoleOverview(page);
 
     await expect(page.getByText(`Team: ${betaTeamName}`)).toBeVisible();
   });

@@ -22,6 +22,7 @@ import {
   createNativeSessionToken,
   createTestUser,
   createTokenSessionApiClient,
+  expectConsoleOverview,
   KRATOS_PUBLIC_URL,
   loginViaBrowser,
   registerViaBrowser,
@@ -62,7 +63,7 @@ test.describe.serial('Continue task from console', () => {
   }) => {
     await registerViaBrowser(page, user);
     await page.goto(CONSOLE_URL);
-    await expect(page.getByText('Welcome')).toBeVisible();
+    await expectConsoleOverview(page);
 
     sessionToken = await createNativeSessionToken(user);
     const humanClient = createTokenSessionApiClient(sessionToken);

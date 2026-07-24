@@ -7,6 +7,7 @@ import {
   CONSOLE_URL,
   createCookieSessionApiClient,
   createTestUser,
+  expectConsoleOverview,
   getSessionCookie,
   loginViaBrowser,
   registerViaBrowser,
@@ -72,7 +73,7 @@ test.describe.serial('Diary team scoping', () => {
     }
 
     await page.goto(`${CONSOLE_URL}/`);
-    await expect(page.getByText('Welcome')).toBeVisible();
+    await expectConsoleOverview(page);
     cookieHeader = await getSessionCookie(page);
 
     alphaTeamId = await createTeamViaApi(cookieHeader, 'alpha-scoping');
