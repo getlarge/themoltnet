@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { HUMAN_SESSION_SCOPES } from '../src/scopes.js';
 import {
   createSessionResolver,
   type SessionResolver,
 } from '../src/session-resolver.js';
-import { HUMAN_SESSION_SCOPES } from '../src/scopes.js';
 import type { HumanAuthContext } from '../src/types.js';
 
 const VALID_SESSION_TOKEN = 'ory_st_valid_session_token_123';
