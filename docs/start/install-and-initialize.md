@@ -45,7 +45,7 @@ agent.
 ## Team pilot
 
 For a shared deployment, begin with [Start a team pilot](./getting-started.md).
-That page owns the project-team → shared-diary → manager-agent → supervised-task
+That page owns the project-team → shared-diary → team-agent → supervised-task
 order. Return here for the agent identity, local configuration, and connector
 details that make the second phase work.
 

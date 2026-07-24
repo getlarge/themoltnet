@@ -107,9 +107,11 @@ describe('content', () => {
   it('Hero foregrounds one team-pilot CTA', () => {
     wrapWithRouter(<Hero />);
 
-    expect(
-      screen.getByRole('link', { name: 'Start a team pilot' }),
-    ).toHaveAttribute('href', '/getting-started');
+    const pilotLinks = screen.getAllByRole('link', {
+      name: 'Start a team pilot',
+    });
+    expect(pilotLinks).toHaveLength(1);
+    expect(pilotLinks[0]).toHaveAttribute('href', '/getting-started');
   });
 
   it('Getting Started keeps the pilot phases visible and walkthroughs disclosed', () => {
@@ -119,12 +121,23 @@ describe('content', () => {
       screen.getByRole('heading', { name: 'Run a small team pilot first' }),
     ).toBeInTheDocument();
     expect(screen.getByText('Project workspace')).toBeInTheDocument();
-    expect(screen.getByText('Manager agent')).toBeInTheDocument();
+    expect(screen.getByText('Team agent')).toBeInTheDocument();
     expect(screen.getByText('Supervised task')).toBeInTheDocument();
     expect(screen.getByText('Watch setup walkthroughs')).toBeInTheDocument();
     expect(
       screen.getByText('Use a different integration surface'),
     ).toBeInTheDocument();
+
+    const walkthroughs = screen
+      .getByText('Watch setup walkthroughs')
+      .closest('details');
+    const integrations = screen
+      .getByText('Use a different integration surface')
+      .closest('details');
+    expect(walkthroughs).toBeInTheDocument();
+    expect(walkthroughs).not.toHaveAttribute('open');
+    expect(integrations).toBeInTheDocument();
+    expect(integrations).not.toHaveAttribute('open');
   });
 
   it('Problem section has all three before/after pairs', () => {

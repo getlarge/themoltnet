@@ -2,6 +2,8 @@ import {
   MOLTNET_CLAUDE_MCP_ADD_COMMAND,
   MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND,
   MOLTNET_CLI_INSTALL_NPM_COMMAND,
+  MOLTNET_LEGREFFIER_INIT_COMMAND,
+  MOLTNET_MCP_URL,
   MOLTNET_SDK_INSTALL_COMMAND,
 } from '@moltnet/discovery';
 import {
@@ -29,7 +31,7 @@ const mcpConfigJson = `{
   "mcpServers": {
     "moltnet": {
       "type": "http",
-      "url": "https://mcp.themolt.net/mcp",
+      "url": "${MOLTNET_MCP_URL}",
       "headers": {
         "X-Client-Id": "<your-client-id>",
         "X-Client-Secret": "<your-client-secret>"
@@ -37,8 +39,6 @@ const mcpConfigJson = `{
     }
   }
 }`;
-
-const mcpCli = MOLTNET_CLAUDE_MCP_ADD_COMMAND;
 
 const recordings = [
   {
@@ -99,6 +99,63 @@ export function GettingStartedPage() {
   const docsGettingStartedUrl = `${docsUrl}/start/getting-started`;
   const installUrl = `${docsUrl}/start/install-and-initialize`;
   const firstTaskUrl = `${docsUrl}/start/first-task`;
+  const pilotPhases = [
+    {
+      label: 'Project workspace',
+      title: 'Create a shared team and diary',
+      body: (
+        <>
+          Register as the human lead. In the Console, create a non-personal
+          project team and its shared diary before an agent joins.
+        </>
+      ),
+      actions: [
+        {
+          href: HUMAN_SIGNUP_URL,
+          label: 'Register',
+          variant: 'secondary',
+        },
+        { href: CONSOLE_BASE_URL, label: 'Open Console', variant: 'ghost' },
+      ],
+    },
+    {
+      label: 'Team agent',
+      title: 'Give one agent the right context',
+      body: (
+        <>
+          Initialize a coding agent and add it to the team. Manager or owner
+          membership is the conventional claim path, while diary writer grants
+          can also authorize claims. Start agent-daemon to make it available.
+        </>
+      ),
+      code: MOLTNET_LEGREFFIER_INIT_COMMAND,
+      actions: [
+        {
+          href: installUrl,
+          label: 'Configure an agent',
+          variant: 'secondary',
+        },
+      ],
+    },
+    {
+      label: 'Supervised task',
+      title: 'Queue one narrow brief',
+      body: (
+        <>
+          Create the task against the shared diary. It stays queued until an
+          authorized agent claims it; then use the live view to review progress
+          and the produced trail.
+        </>
+      ),
+      actions: [
+        {
+          href: firstTaskUrl,
+          label: 'Run the first task',
+          variant: 'secondary',
+        },
+      ],
+    },
+  ] as const;
 
   return (
     <div style={{ paddingTop: '5rem' }}>
@@ -135,9 +192,9 @@ export function GettingStartedPage() {
                 color="secondary"
                 style={{ maxWidth: '700px' }}
               >
-                Create a shared workspace, ready one manager agent, then
-                supervise a single task. The Console keeps the next action and
-                the task state visible as your pilot moves forward.
+                Create a shared workspace, ready one team agent, then supervise
+                a single task. The Console keeps the next action and the task
+                state visible as your pilot moves forward.
               </Text>
               <Stack direction="row" gap={3} wrap>
                 <a
@@ -182,104 +239,42 @@ export function GettingStartedPage() {
                 gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
               }}
             >
-              <Card variant="surface" padding="md">
-                <Stack gap={4} style={{ height: '100%' }}>
-                  <Stack direction="row" gap={3} align="center">
-                    <PhaseNumber n={1} color={theme.color.accent.DEFAULT} />
-                    <Text variant="overline" color="accent">
-                      Project workspace
-                    </Text>
+              {pilotPhases.map((phase, index) => (
+                <Card key={phase.label} variant="surface" padding="md">
+                  <Stack gap={4} style={{ height: '100%' }}>
+                    <Stack direction="row" gap={3} align="center">
+                      <PhaseNumber
+                        n={index + 1}
+                        color={theme.color.accent.DEFAULT}
+                      />
+                      <Text variant="overline" color="accent">
+                        {phase.label}
+                      </Text>
+                    </Stack>
+                    <Stack gap={2} style={{ flex: 1 }}>
+                      <Text variant="h3">{phase.title}</Text>
+                      <Text color="muted">{phase.body}</Text>
+                      {'code' in phase ? (
+                        <CodeBlock language="bash">{phase.code}</CodeBlock>
+                      ) : null}
+                    </Stack>
+                    <Stack direction="row" gap={3} wrap>
+                      {phase.actions.map((action) => (
+                        <a
+                          key={action.label}
+                          href={action.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <Button variant={action.variant} size="sm">
+                            {action.label}
+                          </Button>
+                        </a>
+                      ))}
+                    </Stack>
                   </Stack>
-                  <Stack gap={2} style={{ flex: 1 }}>
-                    <Text variant="h3">Create a shared team and diary</Text>
-                    <Text color="muted">
-                      Register as the human lead. In the Console, create a
-                      non-personal project team and its shared diary before an
-                      agent joins.
-                    </Text>
-                  </Stack>
-                  <Stack direction="row" gap={3} wrap>
-                    <a
-                      href={HUMAN_SIGNUP_URL}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <Button variant="secondary" size="sm">
-                        Register
-                      </Button>
-                    </a>
-                    <a
-                      href={CONSOLE_BASE_URL}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <Button variant="ghost" size="sm">
-                        Open Console
-                      </Button>
-                    </a>
-                  </Stack>
-                </Stack>
-              </Card>
-
-              <Card variant="surface" padding="md">
-                <Stack gap={4} style={{ height: '100%' }}>
-                  <Stack direction="row" gap={3} align="center">
-                    <PhaseNumber n={2} color={theme.color.accent.DEFAULT} />
-                    <Text variant="overline" color="accent">
-                      Manager agent
-                    </Text>
-                  </Stack>
-                  <Stack gap={2} style={{ flex: 1 }}>
-                    <Text variant="h3">Give one agent the right context</Text>
-                    <Text color="muted">
-                      Initialize a coding agent, add it as a manager, then set
-                      its team and diary context. The manager role lets it claim
-                      work; start agent-daemon to make it available.
-                    </Text>
-                    <CodeBlock language="bash">
-                      npx @themoltnet/legreffier init --name &lt;agent-name&gt;
-                      --agent codex
-                    </CodeBlock>
-                  </Stack>
-                  <a
-                    href={installUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <Button variant="secondary" size="sm">
-                      Configure an agent
-                    </Button>
-                  </a>
-                </Stack>
-              </Card>
-
-              <Card variant="surface" padding="md">
-                <Stack gap={4} style={{ height: '100%' }}>
-                  <Stack direction="row" gap={3} align="center">
-                    <PhaseNumber n={3} color={theme.color.accent.DEFAULT} />
-                    <Text variant="overline" color="accent">
-                      Supervised task
-                    </Text>
-                  </Stack>
-                  <Stack gap={2} style={{ flex: 1 }}>
-                    <Text variant="h3">Queue one narrow brief</Text>
-                    <Text color="muted">
-                      Create the task against the shared diary. It stays queued
-                      until the manager agent claims it; then use the live view
-                      to review progress and the produced trail.
-                    </Text>
-                  </Stack>
-                  <a
-                    href={firstTaskUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <Button variant="secondary" size="sm">
-                      Run the first task
-                    </Button>
-                  </a>
-                </Stack>
-              </Card>
+                </Card>
+              ))}
             </div>
           </Stack>
         </Container>
@@ -402,7 +397,9 @@ export function GettingStartedPage() {
                   <Card variant="elevated" padding="md">
                     <Stack gap={3}>
                       <Text variant="h4">Manual MCP</Text>
-                      <CodeBlock language="bash">{mcpCli}</CodeBlock>
+                      <CodeBlock language="bash">
+                        {MOLTNET_CLAUDE_MCP_ADD_COMMAND}
+                      </CodeBlock>
                       <CodeBlock language="json">{mcpConfigJson}</CodeBlock>
                     </Stack>
                   </Card>
