@@ -52,6 +52,60 @@ export interface SigningVerifier {
   verify(input: SigningVerificationInput): Promise<boolean>;
 }
 
+export type SigningWorkflowErrorCode =
+  | 'verifier_not_registered'
+  | 'key_lookup_not_configured'
+  | 'persistence_not_configured'
+  | 'workflows_not_initialized';
+
+/**
+ * Transport-neutral base error for callers that need to translate signing
+ * workflow failures into HTTP problems, RPC errors, or service results.
+ */
+export class SigningWorkflowError extends Error {
+  constructor(
+    public readonly code: SigningWorkflowErrorCode,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'SigningWorkflowError';
+  }
+}
+
+export class SigningVerifierNotRegisteredError extends SigningWorkflowError {
+  constructor(public readonly verificationMethod: VerificationMethod) {
+    super(
+      'verifier_not_registered',
+      `Signing verifier not registered for verification method: ${verificationMethod}`,
+    );
+    this.name = 'SigningVerifierNotRegisteredError';
+  }
+}
+
+export type SigningWorkflowDependency =
+  | 'key_lookup'
+  | 'persistence'
+  | 'workflows';
+
+const CONFIGURATION_ERROR_CODE = {
+  key_lookup: 'key_lookup_not_configured',
+  persistence: 'persistence_not_configured',
+  workflows: 'workflows_not_initialized',
+} as const satisfies Record<
+  SigningWorkflowDependency,
+  SigningWorkflowErrorCode
+>;
+
+export class SigningWorkflowConfigurationError extends SigningWorkflowError {
+  constructor(
+    public readonly dependency: SigningWorkflowDependency,
+    message: string,
+  ) {
+    super(CONFIGURATION_ERROR_CODE[dependency], message);
+    this.name = 'SigningWorkflowConfigurationError';
+  }
+}
+
 export class Ed25519Verifier implements SigningVerifier {
   constructor(private readonly verifier: SignatureVerifier) {}
 
@@ -132,6 +186,14 @@ export function isSigningVerifierRegistered(
   return signingVerifierRegistry.has(verificationMethod);
 }
 
+export function assertSigningVerifierRegistered(
+  verificationMethod: VerificationMethod,
+): void {
+  if (!isSigningVerifierRegistered(verificationMethod)) {
+    throw new SigningVerifierNotRegisteredError(verificationMethod);
+  }
+}
+
 export function setSigningKeyLookup(lookup: AgentKeyLookup): void {
   agentKeyLookup = lookup;
 }
@@ -151,16 +213,15 @@ function getSigningVerifier(
 ): SigningVerifier {
   const verifier = signingVerifierRegistry.get(verificationMethod);
   if (!verifier) {
-    throw new Error(
-      `Signing verifier not registered for verification method: ${verificationMethod}`,
-    );
+    throw new SigningVerifierNotRegisteredError(verificationMethod);
   }
   return verifier;
 }
 
 function getAgentKeyLookup(): AgentKeyLookup {
   if (!agentKeyLookup) {
-    throw new Error(
+    throw new SigningWorkflowConfigurationError(
+      'key_lookup',
       'AgentKeyLookup not set. Call setSigningKeyLookup() before using signing workflows.',
     );
   }
@@ -169,7 +230,8 @@ function getAgentKeyLookup(): AgentKeyLookup {
 
 function getSigningRequestPersistence(): SigningRequestPersistence {
   if (!signingRequestPersistence) {
-    throw new Error(
+    throw new SigningWorkflowConfigurationError(
+      'persistence',
       'SigningRequestPersistence not set. Call setSigningRequestPersistence() before using signing workflows.',
     );
   }
@@ -345,7 +407,8 @@ export function initSigningWorkflows(): void {
 export const signingWorkflows = {
   get requestSignature() {
     if (!_workflows) {
-      throw new Error(
+      throw new SigningWorkflowConfigurationError(
+        'workflows',
         'Signing workflows not initialized. Call initSigningWorkflows() after configureDBOS().',
       );
     }
@@ -357,4 +420,6 @@ export const signingWorkflows = {
 export function _resetSigningWorkflowsForTesting(): void {
   _workflows = null;
   signingVerifierRegistry.clear();
+  agentKeyLookup = null;
+  signingRequestPersistence = null;
 }

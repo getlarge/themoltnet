@@ -7,7 +7,11 @@ import type {
 } from '@moltnet/auth';
 import { buildSigningBytes } from '@moltnet/crypto-service';
 import { DBOS } from '@moltnet/database';
-import { isSigningVerifierRegistered } from '@moltnet/signing-workflows';
+import type * as SigningWorkflowModule from '@moltnet/signing-workflows';
+import {
+  assertSigningVerifierRegistered,
+  SigningVerifierNotRegisteredError,
+} from '@moltnet/signing-workflows';
 import type { FastifyInstance } from 'fastify';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -41,14 +45,16 @@ vi.mock('@moltnet/database', async (importOriginal) => {
   };
 });
 
-vi.mock('@moltnet/signing-workflows', () => ({
-  isSigningVerifierRegistered: vi.fn(
-    (method: string) => method === 'agent-ed25519',
-  ),
-  signingWorkflows: {
-    requestSignature: vi.fn(),
-  },
-}));
+vi.mock('@moltnet/signing-workflows', async (importOriginal) => {
+  const original = await importOriginal<typeof SigningWorkflowModule>();
+  return {
+    ...original,
+    assertSigningVerifierRegistered: vi.fn(),
+    signingWorkflows: {
+      requestSignature: vi.fn(),
+    },
+  };
+});
 
 const OWNER_ID = '550e8400-e29b-41d4-a716-446655440000';
 const OTHER_AGENT_ID = '660e8400-e29b-41d4-a716-446655440001';
@@ -270,7 +276,11 @@ describe('Signing request routes', () => {
     });
 
     it('rejects a verification method with no registered verifier', async () => {
-      vi.mocked(isSigningVerifierRegistered).mockReturnValueOnce(false);
+      vi.mocked(assertSigningVerifierRegistered).mockImplementationOnce(
+        (method) => {
+          throw new SigningVerifierNotRegisteredError(method);
+        },
+      );
       vi.mocked(DBOS.startWorkflow).mockClear();
 
       const response = await app.inject({

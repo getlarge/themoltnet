@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   _resetSigningWorkflowsForTesting,
+  assertSigningVerifierRegistered,
   initSigningWorkflows,
   isSigningVerifierRegistered,
   registerSigningVerifier,
@@ -12,6 +13,15 @@ import {
   setSigningVerifier,
   signingWorkflows,
 } from './signing-workflows.js';
+
+function captureThrownError(fn: () => unknown): unknown {
+  try {
+    fn();
+  } catch (error) {
+    return error;
+  }
+  throw new Error('Expected function to throw');
+}
 
 vi.mock('@dbos-inc/dbos-sdk', () => {
   const registeredSteps: Record<string, (...args: unknown[]) => unknown> = {};
@@ -33,8 +43,9 @@ vi.mock('@dbos-inc/dbos-sdk', () => {
           return fn;
         },
       ),
-      setEvent: vi.fn(async (key: string, value: unknown) => {
+      setEvent: vi.fn((key: string, value: unknown) => {
         events[key] = value;
+        return Promise.resolve();
       }),
       recv: vi.fn(),
       send: vi.fn(),
@@ -75,6 +86,18 @@ describe('Signing Workflows', () => {
       initSigningWorkflows();
       expect(signingWorkflows.requestSignature).toBeDefined();
       expect(typeof signingWorkflows.requestSignature).toBe('function');
+    });
+
+    it('throws a typed error before initialization', () => {
+      expect(
+        captureThrownError(() => signingWorkflows.requestSignature),
+      ).toEqual(
+        expect.objectContaining({
+          name: 'SigningWorkflowConfigurationError',
+          code: 'workflows_not_initialized',
+          dependency: 'workflows',
+        }),
+      );
     });
   });
 
@@ -242,6 +265,52 @@ describe('Signing Workflows', () => {
         valid: false,
       });
     });
+
+    it('throws a typed error when key lookup is not configured', async () => {
+      _resetSigningWorkflowsForTesting();
+      initSigningWorkflows();
+      setSigningVerifier({
+        verify: vi.fn().mockResolvedValue(true),
+        verifyWithNonce: vi.fn().mockResolvedValue(true),
+      });
+      setSigningRequestPersistence({
+        updateStatus: vi.fn().mockResolvedValue(undefined),
+      });
+      vi.mocked(DBOS.recv).mockResolvedValue({ signature: SIGNATURE });
+
+      await expect(
+        signingWorkflows.requestSignature(REQUEST_ID, AGENT_ID, MESSAGE, NONCE),
+      ).rejects.toEqual(
+        expect.objectContaining({
+          name: 'SigningWorkflowConfigurationError',
+          code: 'key_lookup_not_configured',
+          dependency: 'key_lookup',
+        }),
+      );
+    });
+
+    it('throws a typed error when persistence is not configured', async () => {
+      _resetSigningWorkflowsForTesting();
+      initSigningWorkflows();
+      setSigningVerifier({
+        verify: vi.fn().mockResolvedValue(true),
+        verifyWithNonce: vi.fn().mockResolvedValue(true),
+      });
+      setSigningKeyLookup({
+        getPublicKey: vi.fn().mockResolvedValue(PUBLIC_KEY),
+      });
+      vi.mocked(DBOS.recv).mockResolvedValue(null);
+
+      await expect(
+        signingWorkflows.requestSignature(REQUEST_ID, AGENT_ID, MESSAGE, NONCE),
+      ).rejects.toEqual(
+        expect.objectContaining({
+          name: 'SigningWorkflowConfigurationError',
+          code: 'persistence_not_configured',
+          dependency: 'persistence',
+        }),
+      );
+    });
   });
 
   describe('signing verifier registry', () => {
@@ -256,6 +325,20 @@ describe('Signing Workflows', () => {
 
       expect(isSigningVerifierRegistered('human-hardware-previewsign')).toBe(
         true,
+      );
+    });
+
+    it('throws a typed error with the unavailable verification method', () => {
+      expect(
+        captureThrownError(() =>
+          assertSigningVerifierRegistered('human-hardware-previewsign'),
+        ),
+      ).toEqual(
+        expect.objectContaining({
+          name: 'SigningVerifierNotRegisteredError',
+          code: 'verifier_not_registered',
+          verificationMethod: 'human-hardware-previewsign',
+        }),
       );
     });
   });
