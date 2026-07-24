@@ -210,24 +210,28 @@ export class PreviewSignClient {
     ) {
       return false;
     }
-    const derived = deriveArkgPublicKey(
-      input.enrollment.seedPublicKey,
-      fromBase64Url(input.verificationKey.ikm),
-      fromBase64Url(input.verificationKey.context),
-    );
-    return (
-      derived.publicKey.x === input.verificationKey.publicKey.x &&
-      derived.publicKey.y === input.verificationKey.publicKey.y &&
-      bytesEqual(
-        derived.additionalArguments,
-        fromBase64Url(input.verificationKey.additionalArguments),
-      ) &&
-      verifyP256PrehashedSignature(
-        input.digest,
-        input.signature,
-        input.verificationKey.publicKey,
-      )
-    );
+    try {
+      const derived = deriveArkgPublicKey(
+        input.enrollment.seedPublicKey,
+        fromBase64Url(input.verificationKey.ikm),
+        fromBase64Url(input.verificationKey.context),
+      );
+      return (
+        derived.publicKey.x === input.verificationKey.publicKey.x &&
+        derived.publicKey.y === input.verificationKey.publicKey.y &&
+        bytesEqual(
+          derived.additionalArguments,
+          fromBase64Url(input.verificationKey.additionalArguments),
+        ) &&
+        verifyP256PrehashedSignature(
+          input.digest,
+          input.signature,
+          input.verificationKey.publicKey,
+        )
+      );
+    } catch {
+      return false;
+    }
   }
 
   private async withCtapClient<T>(

@@ -1,24 +1,34 @@
 import { randomBytes } from 'node:crypto';
 
+import { type CtapConnection } from '@themoltnet/ctap';
 import {
   asMap,
-  type CtapConnection,
   decodeCbor,
   decodeCborPrefix,
   encodeCbor,
   mapBytes,
   mapNumber,
   mapString,
-} from '@themoltnet/ctap';
+} from '@themoltnet/ctap/cbor';
 
 import {
   ESP256_SPLIT_ARKG_PLACEHOLDER,
   parseArkgSeedPublicKey,
   parseCoseEc2PublicKey,
 } from './arkg.js';
-import { bytesEqual, concatBytes, sha256, toBase64Url, utf8 } from './bytes.js';
+import {
+  bytesEqual,
+  concatBytes,
+  readU32be,
+  sha256,
+  toBase64Url,
+  utf8,
+} from './bytes.js';
 import { invariant, PreviewSignError } from './errors.js';
-import { verifyP256Signature } from './p256-verify.js';
+import {
+  normalizeP256DerSignature,
+  verifyP256Signature,
+} from './p256-verify.js';
 import type {
   CoseArkgSeedPublicKey,
   CoseEc2PublicKey,
@@ -41,13 +51,18 @@ const RESPONSE_FORMAT = 1;
 const RESPONSE_AUTH_DATA = 2;
 const RESPONSE_SIGNATURE = 3;
 const RESPONSE_UNSIGNED_EXTENSIONS = 6;
-const PREVIEW_KEY_HANDLE = 2;
-const PREVIEW_ALGORITHMS = 3;
-const PREVIEW_PRESENCE = 4;
-const PREVIEW_TO_BE_SIGNED = 6;
-const PREVIEW_SIGNATURE = 6;
-const PREVIEW_ADDITIONAL_ARGUMENTS = 7;
-const PREVIEW_ATTESTATION_OBJECT = 7;
+// Numeric keys are scoped to separate previewSign request/output CBOR maps.
+const PREVIEW_REQUEST_KEYS = {
+  keyHandle: 2,
+  algorithms: 3,
+  presence: 4,
+  toBeSigned: 6,
+  additionalArguments: 7,
+} as const;
+const PREVIEW_OUTPUT_KEYS = {
+  signature: 6,
+  attestationObject: 7,
+} as const;
 
 interface AttestedCredentialData {
   credentialId: Uint8Array;
@@ -62,16 +77,6 @@ export interface ParsedAuthenticatorData {
   signCount: number;
   attestedCredential?: AttestedCredentialData;
   extensions?: Map<unknown, unknown>;
-}
-
-function readU32be(value: Uint8Array, offset: number): number {
-  return (
-    ((value[offset] ?? 0) * 0x1000000 +
-      ((value[offset + 1] ?? 0) << 16) +
-      ((value[offset + 2] ?? 0) << 8) +
-      (value[offset + 3] ?? 0)) >>>
-    0
-  );
 }
 
 export function parseAuthenticatorData(
@@ -250,8 +255,11 @@ export class PreviewSignCtapClient {
           [
             PREVIEW_SIGN,
             new Map<unknown, unknown>([
-              [PREVIEW_ALGORITHMS, [ESP256_SPLIT_ARKG_PLACEHOLDER]],
-              [PREVIEW_PRESENCE, presence],
+              [
+                PREVIEW_REQUEST_KEYS.algorithms,
+                [ESP256_SPLIT_ARKG_PLACEHOLDER],
+              ],
+              [PREVIEW_REQUEST_KEYS.presence, presence],
             ]),
           ],
         ]),
@@ -294,7 +302,7 @@ export class PreviewSignCtapClient {
     invariant(
       mapNumber(
         signedPreviewOutput,
-        PREVIEW_ALGORITHMS,
+        PREVIEW_REQUEST_KEYS.algorithms,
         'previewSign algorithm',
       ) === ESP256_SPLIT_ARKG_PLACEHOLDER,
       'INVALID_RESPONSE',
@@ -309,7 +317,7 @@ export class PreviewSignCtapClient {
     );
     const attestationObject = mapBytes(
       unsignedPreview,
-      PREVIEW_ATTESTATION_OBJECT,
+      PREVIEW_OUTPUT_KEYS.attestationObject,
       'previewSign attestation object',
     );
     const innerResponse = asMap(
@@ -387,9 +395,12 @@ export class PreviewSignCtapClient {
           [
             PREVIEW_SIGN,
             new Map<unknown, unknown>([
-              [PREVIEW_KEY_HANDLE, input.previewKeyHandle],
-              [PREVIEW_TO_BE_SIGNED, input.toBeSigned],
-              [PREVIEW_ADDITIONAL_ARGUMENTS, input.additionalArguments],
+              [PREVIEW_REQUEST_KEYS.keyHandle, input.previewKeyHandle],
+              [PREVIEW_REQUEST_KEYS.toBeSigned, input.toBeSigned],
+              [
+                PREVIEW_REQUEST_KEYS.additionalArguments,
+                input.additionalArguments,
+              ],
             ]),
           ],
         ]),
@@ -446,13 +457,15 @@ export class PreviewSignCtapClient {
       'VERIFICATION_FAILED',
       'Outer credential assertion signature is invalid',
     );
-    return mapBytes(
-      asMap(
-        authData.extensions?.get(PREVIEW_SIGN),
-        'previewSign assertion output',
+    return normalizeP256DerSignature(
+      mapBytes(
+        asMap(
+          authData.extensions?.get(PREVIEW_SIGN),
+          'previewSign assertion output',
+        ),
+        PREVIEW_OUTPUT_KEYS.signature,
+        'previewSign signature',
       ),
-      PREVIEW_SIGNATURE,
-      'previewSign signature',
     );
   }
 }

@@ -2,7 +2,7 @@ import { p256 } from '@noble/curves/nist.js';
 
 import { concatBytes, fromBase64Url, sha256 } from './bytes.js';
 import { invariant, PreviewSignError } from './errors.js';
-import type { CoseEc2PublicKey } from './types.js';
+import type { CoseEc2PublicKey } from './verify-types.js';
 
 function ecPoint(key: CoseEc2PublicKey): Uint8Array {
   invariant(
@@ -25,11 +25,37 @@ function verifyDigest(
   signature: Uint8Array,
   publicKey: CoseEc2PublicKey,
 ): boolean {
+  p256.Signature.fromBytes(signature, 'der');
   return p256.verify(signature, digest, ecPoint(publicKey), {
     format: 'der',
     prehash: false,
-    lowS: false,
+    lowS: true,
   });
+}
+
+/**
+ * Canonicalizes authenticator-produced DER signatures before they cross the
+ * SDK boundary. Authenticators may emit high-S ECDSA, but callers only receive
+ * and verify the unique low-S representation.
+ */
+export function normalizeP256DerSignature(signature: Uint8Array): Uint8Array {
+  try {
+    const parsed = p256.Signature.fromBytes(signature, 'der');
+    return parsed.hasHighS()
+      ? new p256.Signature(
+          parsed.r,
+          p256.Point.CURVE().n - parsed.s,
+          parsed.recovery,
+        ).toBytes('der')
+      : Uint8Array.from(signature);
+  } catch (error) {
+    throw new PreviewSignError(
+      'VERIFICATION_FAILED',
+      'Invalid DER-encoded P-256 signature',
+      undefined,
+      { cause: error },
+    );
+  }
 }
 
 export function verifyP256Signature(
@@ -38,7 +64,11 @@ export function verifyP256Signature(
   publicKey: CoseEc2PublicKey,
 ): boolean {
   try {
-    return verifyDigest(sha256(message), signature, publicKey);
+    return verifyDigest(
+      sha256(message),
+      normalizeP256DerSignature(signature),
+      publicKey,
+    );
   } catch (error) {
     throw new PreviewSignError(
       'VERIFICATION_FAILED',

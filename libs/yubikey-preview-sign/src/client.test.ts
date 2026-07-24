@@ -1,5 +1,5 @@
 import { p256 } from '@noble/curves/nist.js';
-import { asMap, decodeCbor, encodeCbor, mapBytes } from '@themoltnet/ctap';
+import { asMap, decodeCbor, encodeCbor, mapBytes } from '@themoltnet/ctap/cbor';
 import { describe, expect, it } from 'vitest';
 
 import { concatBytes, fromHex, sha256, toBase64Url, utf8 } from './bytes.js';
@@ -139,6 +139,34 @@ describe('PreviewSignClient', () => {
         verificationKey: signed.verificationKey,
         digest: sha256(utf8('mutated')),
         signature: signed.signature,
+      }),
+    ).toBe(false);
+  });
+
+  it('returns false for malformed untrusted verification records', () => {
+    const client = new PreviewSignClient();
+    const enrollment = {
+      version: 'preview-sign.enrollment.v1',
+      id: 'enrollment-vector',
+      seedPublicKey: seed,
+    } as EnrollmentRecordV1;
+
+    expect(
+      client.verifyDigest({
+        enrollment,
+        verificationKey: {
+          version: 'preview-sign.verification-key.v1',
+          id: 'malformed',
+          enrollmentId: enrollment.id,
+          createdAt: '2029-01-01T00:00:00Z',
+          algorithm: -9,
+          ikm: 'not+base64url',
+          context: '',
+          additionalArguments: '',
+          publicKey: seed.blindingKey,
+        },
+        digest: new Uint8Array(32),
+        signature: new Uint8Array(),
       }),
     ).toBe(false);
   });

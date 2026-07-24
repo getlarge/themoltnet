@@ -4,6 +4,11 @@ import { PreviewSignError } from './errors.js';
 
 const textEncoder = new TextEncoder();
 
+/*
+ * These helpers intentionally remain isomorphic and private to this package.
+ * The similarly named CTAP helpers use Node crypto/Buffer and cannot be pulled
+ * into the browser-safe `./verify` dependency graph.
+ */
 export function utf8(value: string): Uint8Array {
   return textEncoder.encode(value);
 }
@@ -80,6 +85,16 @@ export function bytesEqual(left: Uint8Array, right: Uint8Array): boolean {
     difference |= (left[index] ?? 0) ^ (right[index] ?? 0);
   }
   return difference === 0;
+}
+
+export function readU32be(value: Uint8Array, offset: number): number {
+  return (
+    ((value[offset] ?? 0) * 0x1000000 +
+      ((value[offset + 1] ?? 0) << 16) +
+      ((value[offset + 2] ?? 0) << 8) +
+      (value[offset + 3] ?? 0)) >>>
+    0
+  );
 }
 
 export function bigintToBytes(value: bigint, length: number): Uint8Array {

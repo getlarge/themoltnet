@@ -5,7 +5,7 @@ import {
   encodeCbor,
   mapBytes,
   mapNumber,
-} from '@themoltnet/ctap';
+} from '@themoltnet/ctap/cbor';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -121,7 +121,6 @@ describe('ARKG-P256', () => {
     const signature = p256.sign(digest, secret, {
       format: 'der',
       prehash: false,
-      lowS: false,
     });
 
     expect(verifyP256PrehashedSignature(digest, signature, publicKey)).toBe(

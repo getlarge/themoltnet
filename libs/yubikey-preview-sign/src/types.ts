@@ -1,6 +1,9 @@
 import type { DeviceDescriptor, HidProvider } from '@themoltnet/ctap';
 
+import type { CoseEc2PublicKey } from './verify-types.js';
+
 export { type DeviceDescriptor, type HidProvider };
+export type { CoseEc2PublicKey } from './verify-types.js';
 
 export enum PreviewSignPresence {
   Unattended = 0,
@@ -16,14 +19,6 @@ export interface PreviewSignCapabilities {
   aaguid?: string;
   supportsPreviewSign: boolean;
   supportsCtap23: boolean;
-}
-
-export interface CoseEc2PublicKey {
-  kty: 2;
-  algorithm: number;
-  curve: 1;
-  x: string;
-  y: string;
 }
 
 export interface CoseArkgSeedPublicKey {

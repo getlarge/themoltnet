@@ -6,7 +6,7 @@ import { p256 } from '@noble/curves/nist.js';
 import { hkdf } from '@noble/hashes/hkdf';
 import { hmac } from '@noble/hashes/hmac';
 import { sha256 as nobleSha256 } from '@noble/hashes/sha2';
-import { asMap, encodeCbor, mapBytes, mapNumber } from '@themoltnet/ctap';
+import { asMap, encodeCbor, mapBytes, mapNumber } from '@themoltnet/ctap/cbor';
 
 import {
   bigintToBytes,
@@ -29,6 +29,12 @@ const P256_ORDER =
   0xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551n;
 const DST_BL = utf8('ARKG-P256');
 const DST_KEM = utf8('ARKG-ECDH.ARKG-P256');
+const DST_KEM_ECDH_KG = utf8('ARKG-KEM-ECDH-KG.');
+const DST_DERIVE_KEY_KEM = utf8('ARKG-Derive-Key-KEM.');
+const DST_KEM_HMAC_MAC = utf8('ARKG-KEM-HMAC-mac.');
+const DST_KEM_HMAC_SHARED = utf8('ARKG-KEM-HMAC-shared.');
+const DST_DERIVE_KEY_BL = utf8('ARKG-Derive-Key-BL.');
+const DST_BL_EC = utf8('ARKG-BL-EC.');
 const ZERO_PAD = new Uint8Array(64);
 
 function xor(left: Uint8Array, right: Uint8Array): Uint8Array {
@@ -211,7 +217,7 @@ export function deriveArkgPublicKey(
   );
   const ephemeralScalar = hashToScalar(
     ikm,
-    concatBytes(utf8('ARKG-KEM-ECDH-KG.'), DST_KEM),
+    concatBytes(DST_KEM_ECDH_KG, DST_KEM),
   );
   const ephemeralSecret = bigintToBytes(ephemeralScalar, 32);
   const ephemeralPublic = p256.getPublicKey(ephemeralSecret, false);
@@ -219,26 +225,23 @@ export function deriveArkgPublicKey(
     .getSharedSecret(ephemeralSecret, ecPoint(seed.kemKey), true)
     .slice(1);
   const contextPrime = concatBytes(Uint8Array.of(context.length), context);
-  const kemContext = concatBytes(utf8('ARKG-Derive-Key-KEM.'), contextPrime);
+  const kemContext = concatBytes(DST_DERIVE_KEY_KEM, contextPrime);
   const macKey = hkdfSha256(
     sharedSecret,
-    concatBytes(utf8('ARKG-KEM-HMAC-mac.'), DST_KEM, kemContext),
+    concatBytes(DST_KEM_HMAC_MAC, DST_KEM, kemContext),
     32,
   );
   const tag = hmac(nobleSha256, macKey, ephemeralPublic).slice(0, 16);
   const ikmTau = hkdfSha256(
     sharedSecret,
-    concatBytes(utf8('ARKG-KEM-HMAC-shared.'), DST_KEM, kemContext),
+    concatBytes(DST_KEM_HMAC_SHARED, DST_KEM, kemContext),
     sharedSecret.length,
   );
   const keyHandle = concatBytes(tag, ephemeralPublic);
-  const blindingContext = concatBytes(
-    utf8('ARKG-Derive-Key-BL.'),
-    contextPrime,
-  );
+  const blindingContext = concatBytes(DST_DERIVE_KEY_BL, contextPrime);
   const tau = hashToScalar(
     ikmTau,
-    concatBytes(utf8('ARKG-BL-EC.'), DST_BL, blindingContext),
+    concatBytes(DST_BL_EC, DST_BL, blindingContext),
   );
   const seedPoint = p256.Point.fromBytes(ecPoint(seed.blindingKey));
   const derivedPoint = seedPoint

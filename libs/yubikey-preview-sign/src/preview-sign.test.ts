@@ -1,12 +1,12 @@
 import { p256 } from '@noble/curves/nist.js';
+import { type CtapConnection } from '@themoltnet/ctap';
 import {
   asMap,
-  type CtapConnection,
   decodeCbor,
   encodeCbor,
   mapBytes,
   mapNumber,
-} from '@themoltnet/ctap';
+} from '@themoltnet/ctap/cbor';
 import { describe, expect, it } from 'vitest';
 
 import { concatBytes, sha256, toBase64Url, utf8 } from './bytes.js';
@@ -168,7 +168,10 @@ describe('previewSign CTAP protocol', () => {
     const outerSecret = new Uint8Array(32).fill(7);
     const outerPublic = p256.getPublicKey(outerSecret, false);
     const digest = sha256(utf8('action'));
-    const previewSignature = Uint8Array.of(9, 8, 7);
+    const previewSignature = p256.sign(digest, new Uint8Array(32).fill(9), {
+      format: 'der',
+      prehash: false,
+    });
     let captured: Uint8Array | undefined;
     const connection: CtapConnection = {
       device,
@@ -216,6 +219,53 @@ describe('previewSign CTAP protocol', () => {
       asMap(asMap(decodeCbor(captured!)).get(4)).get('previewSign'),
     );
     expect(mapBytes(preview, 6, 'tbs')).toEqual(digest);
+  });
+
+  it('rejects an assertion signed by a substituted outer key', async () => {
+    const enrolledSecret = new Uint8Array(32).fill(7);
+    const attackerSecret = new Uint8Array(32).fill(8);
+    const outerPublic = p256.getPublicKey(enrolledSecret, false);
+    const digest = sha256(utf8('action'));
+    const connection: CtapConnection = {
+      device,
+      async cbor(_command, request) {
+        const decoded = asMap(decodeCbor(request!));
+        const clientDataHash = mapBytes(decoded, 2, 'client data');
+        const data = authData({
+          extensions: new Map([
+            ['previewSign', new Map([[6, Uint8Array.of(9, 8, 7)]])],
+          ]),
+        });
+        return encodeCbor(
+          new Map<unknown, unknown>([
+            [2, data],
+            [
+              3,
+              p256.sign(concatBytes(data, clientDataHash), attackerSecret, {
+                format: 'der',
+              }),
+            ],
+          ]),
+        );
+      },
+      async close() {},
+    };
+
+    await expect(
+      new PreviewSignCtapClient(connection).signByCredential({
+        outerCredentialId: Uint8Array.of(1),
+        outerPublicKey: {
+          kty: 2,
+          algorithm: -7,
+          curve: 1,
+          x: toBase64Url(outerPublic.slice(1, 33)),
+          y: toBase64Url(outerPublic.slice(33)),
+        },
+        previewKeyHandle: Uint8Array.of(2),
+        toBeSigned: digest,
+        additionalArguments: Uint8Array.of(3),
+      }),
+    ).rejects.toMatchObject({ code: 'VERIFICATION_FAILED' });
   });
 
   it('rejects truncated authenticator data', () => {
