@@ -19,6 +19,7 @@ export type {
   RuntimeSessionUploadBody,
   RuntimeSlotsNamespace,
   SigningRequestsNamespace,
+  SigningVerificationMethod,
   TaskArtifactDownload,
   TaskArtifactsNamespace,
   TaskArtifactUploadBody,

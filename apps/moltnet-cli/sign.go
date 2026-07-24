@@ -109,6 +109,16 @@ func signRawBytes(rawBytes []byte, privateKeyBase64 string) (string, error) {
 	return base64.StdEncoding.EncodeToString(sig), nil
 }
 
+func newAgentSigningRequest(message string) *moltnetapi.CreateSigningRequestReq {
+	return &moltnetapi.CreateSigningRequestReq{
+		Message: message,
+		VerificationMethod: moltnetapi.OptCreateSigningRequestReqVerificationMethod{
+			Value: moltnetapi.CreateSigningRequestReqVerificationMethodAgentEd25519,
+			Set:   true,
+		},
+	}
+}
+
 // signWithRequestID fetches a signing request by ID, signs the payload, and submits the signature.
 // Returns the base64-encoded signature on success.
 func signWithRequestID(client *moltnetapi.Client, requestID, privateKey string) (string, error) {
@@ -125,6 +135,13 @@ func signWithRequestID(client *moltnetapi.Client, requestID, privateKey string) 
 	req, ok := res.(*moltnetapi.SigningRequest)
 	if !ok {
 		return "", formatAPIError(res)
+	}
+	if req.VerificationMethod != moltnetapi.SigningRequestVerificationMethodAgentEd25519 {
+		return "", fmt.Errorf(
+			"signing request %s uses unsupported verification method %q (CLI supports only agent-ed25519)",
+			requestID,
+			req.VerificationMethod,
+		)
 	}
 	if req.Status != moltnetapi.SigningRequestStatusPending {
 		return "", fmt.Errorf("signing request %s is not pending (status: %s)", requestID, req.Status)

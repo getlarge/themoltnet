@@ -287,7 +287,10 @@ func TestE2E_DiaryCommit_Signed(t *testing.T) {
 }
 
 func TestE2E_Sign_RequestID(t *testing.T) {
-	sigRes, err := e2eClient.CreateSigningRequest(context.Background(), &moltnetapi.CreateSigningRequestReq{Message: "e2e test message"})
+	sigRes, err := e2eClient.CreateSigningRequest(
+		context.Background(),
+		newAgentSigningRequest("e2e test message"),
+	)
 	if err != nil {
 		t.Fatalf("create signing request: %v", err)
 	}

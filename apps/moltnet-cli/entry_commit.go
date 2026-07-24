@@ -284,7 +284,7 @@ func signAndCreateEntrySigned(
 	}
 	fmt.Fprintf(os.Stderr, "Computed CID: %s\n", cid)
 
-	sigRes, err := client.CreateSigningRequest(ctx, &moltnetapi.CreateSigningRequestReq{Message: cid})
+	sigRes, err := client.CreateSigningRequest(ctx, newAgentSigningRequest(cid))
 	if err != nil {
 		return nil, fmt.Errorf("create signing request: %w", formatTransportError(err))
 	}
@@ -333,7 +333,10 @@ func signAndCreateEntryUnsigned(
 	importance int,
 	entryType moltnetapi.CreateDiaryEntryReqEntryType,
 ) (*commitResult, error) {
-	sigRes, err := client.CreateSigningRequest(ctx, &moltnetapi.CreateSigningRequestReq{Message: payload})
+	sigRes, err := client.CreateSigningRequest(
+		ctx,
+		newAgentSigningRequest(payload),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("create signing request: %w", formatTransportError(err))
 	}
