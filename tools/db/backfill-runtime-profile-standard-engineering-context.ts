@@ -5,8 +5,8 @@
  *
  * This preserves the pre-profile-context workflow for deployed profiles while
  * keeping the resulting guidance profile-owned and revision/CID-addressed.
- * The script refuses to touch profiles with non-empty context: inspect and
- * migrate those deliberately instead of silently overwriting operator input.
+ * Existing profile context is preserved: the standard entry is appended only
+ * when it is not already present.
  *
  * Run from the repo root:
  *   pnpm exec tsx tools/db/backfill-runtime-profile-standard-engineering-context.ts --dry-run
@@ -154,7 +154,6 @@ async function backfill(): Promise<void> {
     const profiles = await db.select().from(runtimeProfiles);
     const standardContext = await loadStandardEngineeringContext();
     const candidates: Array<typeof runtimeProfiles.$inferSelect> = [];
-    const blocked: Array<{ id: string; name: string; entryCount: number }> = [];
 
     for (const profile of profiles) {
       if (
@@ -170,36 +169,15 @@ async function backfill(): Promise<void> {
       ) {
         continue;
       }
-      if (profile.context.length > 0) {
-        blocked.push({
-          id: profile.id,
-          name: profile.name,
-          entryCount: profile.context.length,
-        });
-        continue;
-      }
       candidates.push(profile);
     }
 
-    if (blocked.length > 0) {
-      console.error(
-        'Refusing to modify profiles with existing context. Migrate these deliberately:',
-      );
-      for (const profile of blocked) {
-        console.error(
-          `  ${profile.id} (${profile.name}): ${profile.entryCount} context entries`,
-        );
-      }
-      process.exitCode = 1;
-      return;
-    }
-
     console.log(
-      `Found ${candidates.length} empty runtime profiles to backfill${dryRun ? ' (dry run)' : ''}`,
+      `Found ${candidates.length} runtime profiles to backfill${dryRun ? ' (dry run)' : ''}`,
     );
 
     for (const profile of candidates) {
-      const context = [standardContext];
+      const context = [...profile.context, standardContext];
       const definitionCid = await computeProfileDefinitionCid(profile, context);
       if (dryRun) {
         console.log(
