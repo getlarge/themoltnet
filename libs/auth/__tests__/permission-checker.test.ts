@@ -549,6 +549,29 @@ describe('PermissionChecker', () => {
   });
 
   describe('team runtime permissions', () => {
+    it('checks canManageTeamCredentials against Team manage_credentials permission', async () => {
+      mockPermissionApi.checkPermission.mockResolvedValue({
+        allowed: true,
+      });
+
+      const result = await checker.canManageTeamCredentials(
+        DIARY_ID,
+        AGENT_ID,
+        KetoNamespace.Agent,
+      );
+
+      expect(result).toBe(true);
+      expect(mockPermissionApi.checkPermission).toHaveBeenCalledWith({
+        namespace: 'Team',
+        object: DIARY_ID,
+        relation: 'manage_credentials',
+        subjectId: undefined,
+        subjectSetNamespace: 'Agent',
+        subjectSetObject: AGENT_ID,
+        subjectSetRelation: '',
+      });
+    });
+
     it('checks canManageTeamRuntime against Team manage_runtime permission', async () => {
       mockPermissionApi.checkPermission.mockResolvedValue({
         allowed: true,

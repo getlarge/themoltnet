@@ -87,6 +87,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
   server.post(
     '/diaries',
     {
+      config: { auth: { talosCredentialScope: 'team' } },
       schema: {
         operationId: 'createDiary',
         tags: ['diary'],
@@ -158,7 +159,10 @@ export async function diaryRoutes(fastify: FastifyInstance) {
   server.get(
     '/diaries',
     {
-      config: { rateLimit: fastify.rateLimitConfig.read },
+      config: {
+        auth: { talosCredentialScope: 'team' },
+        rateLimit: fastify.rateLimitConfig.read,
+      },
       schema: {
         operationId: 'listDiaries',
         tags: ['diary'],

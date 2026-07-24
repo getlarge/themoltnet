@@ -32,6 +32,7 @@ import {
   RemovedResponseSchema,
   TeamDetailSchema,
   TeamFoundingResponseSchema,
+  TeamHeaderOptionalSchema,
   TeamInviteParamsSchema,
   TeamInviteResponseSchema,
   TeamListItemSchema,
@@ -369,12 +370,16 @@ export function teamRoutes(fastify: FastifyInstance) {
   server.get(
     '/teams',
     {
-      config: { rateLimit: fastify.rateLimitConfig.read },
+      config: {
+        auth: { talosCredentialScope: 'team' },
+        rateLimit: fastify.rateLimitConfig.read,
+      },
       schema: {
         operationId: 'listTeams',
         tags: ['teams'],
         description: 'List teams the caller belongs to.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        headers: TeamHeaderOptionalSchema,
         response: {
           400: Type.Ref(ProblemDetailsSchema.$id),
           200: Type.Object({
@@ -385,13 +390,18 @@ export function teamRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId } = getAuthContext(request);
+      const { currentTeamId, identityId } = getAuthContext(request);
 
       // Single Keto call: get all team IDs + roles for this subject
-      const teamRoles =
+      const allTeamRoles =
         await fastify.relationshipReader.listTeamIdsAndRolesBySubject(
           identityId,
         );
+      const teamRoles = currentTeamId
+        ? allTeamRoles.filter(
+            ({ teamId }) => teamId === currentTeamId,
+          )
+        : allTeamRoles;
       if (teamRoles.length === 0) return { items: [] };
 
       // Single DB query: batch fetch all team metadata
