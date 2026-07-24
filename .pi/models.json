@@ -143,18 +143,6 @@
           }
         },
         {
-          "id": "kimi-k2.5:cloud",
-          "reasoning": true,
-          "thinkingLevelMap": {
-            "high": "high",
-            "low": "low",
-            "medium": "medium",
-            "minimal": "low",
-            "off": "none",
-            "xhigh": "max"
-          }
-        },
-        {
           "id": "kimi-k2.6:cloud",
           "reasoning": true,
           "thinkingLevelMap": {
