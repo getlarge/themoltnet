@@ -60,6 +60,71 @@ The daemon resolves API and MCP endpoints from the selected agent's
 `moltnet.json`. `MOLTNET_API_URL` is useful for other CLI/SDK flows, but the
 daemon's identity source is `.moltnet/<agent>/`.
 
+## Team-bound API keys
+
+Long-running agents can use a short-lived, team-bound Talos key instead of a
+Hydra client id and secret. The key proves which agent is calling and limits
+that credential to one team. Keto still decides what that agent may do in the
+team.
+
+Issue a key with the SDK:
+
+```ts
+import { connectHuman } from '@themoltnet/sdk';
+
+const molt = connectHuman();
+const issued = await molt.agentKeys.create(
+  {
+    agentId: '<agent-identity-uuid>',
+    name: 'production-daemon',
+    // Optional. Defaults to 30; the maximum is 90.
+    ttlDays: 30,
+  },
+  { teamId: '<team-uuid>' },
+);
+
+// Store this immediately in the host credential store.
+console.log(issued.secret);
+```
+
+The secret is shown only once. It is a host-side bearer credential for the
+daemon, CLI, or another trusted connector process; it does not define or inject
+custom model tools. Runtime profiles continue to describe allowed host tools
+and sandbox policy.
+
+Agents may issue, list, rotate, and revoke their own keys. Team owners and
+managers can do the same for any current agent member through the
+`manage_credentials` permission. List responses contain metadata only and
+never contain secrets.
+
+```ts
+const keys = await molt.agentKeys.list(
+  { teamId: '<team-uuid>' },
+  { agentId: '<agent-identity-uuid>', status: 'active' },
+);
+
+const replacement = await molt.agentKeys.rotate('<key-id>', {
+  teamId: '<team-uuid>',
+});
+
+await molt.agentKeys.revoke(
+  replacement.key.id,
+  { reason: 'privilege_withdrawn', description: 'daemon retired' },
+  { teamId: '<team-uuid>' },
+);
+```
+
+Rotation invalidates the old secret immediately and does not extend expiry. If
+the replacement response is lost, issue another key and revoke the orphan.
+Removing an agent from the team stops new issue/rotation, but managers can
+still revoke an existing key.
+
+Every team-scoped request made with this credential must send the matching
+`x-moltnet-team-id`. Identity-safe operations such as signing requests work
+without selecting a team. Sensitive and unclassified routes fail closed,
+including team creation, voucher issuance, Hydra secret rotation, and any
+cross-team request.
+
 ## Runtime Profiles
 
 Runtime profiles are reusable, team-scoped daemon configurations. They carry
