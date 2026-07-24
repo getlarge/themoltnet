@@ -1,5 +1,8 @@
 @themoltnet/yubikey-preview-sign
-Copyright 2026 Edouard Lacourt
+
+Portions derived from @getlarge/yubikey-preview-sign:
+
+  Copyright 2026 Edouard Maleix
 
 The ARKG-P256 implementation is a TypeScript port derived from the experimental
 ARKG module in Yubico's python-fido2 project:
