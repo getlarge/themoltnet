@@ -2058,6 +2058,10 @@ export type SigningRequest = {
   signingInput: string;
   status: 'pending' | 'completed' | 'expired';
   valid: boolean | null;
+  /**
+   * Stable signing verification method identifier
+   */
+  verificationMethod: 'agent-ed25519' | 'human-hardware-previewsign';
 };
 
 export type SigningRequestList = {
@@ -3036,6 +3040,10 @@ export type ListSigningRequestsResponse =
 export type CreateSigningRequestData = {
   body: {
     message: string;
+    /**
+     * Stable signing verification method identifier
+     */
+    verificationMethod?: 'agent-ed25519' | 'human-hardware-previewsign';
   };
   path?: never;
   query?: never;

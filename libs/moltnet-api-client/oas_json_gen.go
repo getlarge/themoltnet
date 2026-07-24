@@ -14453,10 +14453,17 @@ func (s *CreateSigningRequestReq) encodeFields(e *jx.Encoder) {
 		e.FieldStart("message")
 		e.Str(s.Message)
 	}
+	{
+		if s.VerificationMethod.Set {
+			e.FieldStart("verificationMethod")
+			s.VerificationMethod.Encode(e)
+		}
+	}
 }
 
-var jsonFieldsNameOfCreateSigningRequestReq = [1]string{
+var jsonFieldsNameOfCreateSigningRequestReq = [2]string{
 	0: "message",
+	1: "verificationMethod",
 }
 
 // Decode decodes CreateSigningRequestReq from json.
@@ -14479,6 +14486,16 @@ func (s *CreateSigningRequestReq) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"message\"")
+			}
+		case "verificationMethod":
+			if err := func() error {
+				s.VerificationMethod.Reset()
+				if err := s.VerificationMethod.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"verificationMethod\"")
 			}
 		default:
 			return d.Skip()
@@ -14532,6 +14549,46 @@ func (s *CreateSigningRequestReq) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *CreateSigningRequestReq) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateSigningRequestReqVerificationMethod as json.
+func (s CreateSigningRequestReqVerificationMethod) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes CreateSigningRequestReqVerificationMethod from json.
+func (s *CreateSigningRequestReqVerificationMethod) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateSigningRequestReqVerificationMethod to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch CreateSigningRequestReqVerificationMethod(v) {
+	case CreateSigningRequestReqVerificationMethodAgentEd25519:
+		*s = CreateSigningRequestReqVerificationMethodAgentEd25519
+	case CreateSigningRequestReqVerificationMethodHumanHardwarePreviewsign:
+		*s = CreateSigningRequestReqVerificationMethodHumanHardwarePreviewsign
+	default:
+		*s = CreateSigningRequestReqVerificationMethod(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s CreateSigningRequestReqVerificationMethod) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateSigningRequestReqVerificationMethod) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -61437,6 +61494,39 @@ func (s *OptCreateRuntimeProfileBodyWorkspaceStorageMode) UnmarshalJSON(data []b
 	return s.Decode(d)
 }
 
+// Encode encodes CreateSigningRequestReqVerificationMethod as json.
+func (o OptCreateSigningRequestReqVerificationMethod) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	e.Str(string(o.Value))
+}
+
+// Decode decodes CreateSigningRequestReqVerificationMethod from json.
+func (o *OptCreateSigningRequestReqVerificationMethod) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptCreateSigningRequestReqVerificationMethod to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptCreateSigningRequestReqVerificationMethod) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptCreateSigningRequestReqVerificationMethod) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes CreateTeamInviteReq as json.
 func (o OptCreateTeamInviteReq) Encode(e *jx.Encoder) {
 	if !o.Set {
@@ -79708,9 +79798,13 @@ func (s *SigningRequest) encodeFields(e *jx.Encoder) {
 		e.FieldStart("valid")
 		s.Valid.Encode(e)
 	}
+	{
+		e.FieldStart("verificationMethod")
+		s.VerificationMethod.Encode(e)
+	}
 }
 
-var jsonFieldsNameOfSigningRequest = [11]string{
+var jsonFieldsNameOfSigningRequest = [12]string{
 	0:  "agentId",
 	1:  "completedAt",
 	2:  "createdAt",
@@ -79722,6 +79816,7 @@ var jsonFieldsNameOfSigningRequest = [11]string{
 	8:  "signingInput",
 	9:  "status",
 	10: "valid",
+	11: "verificationMethod",
 }
 
 // Decode decodes SigningRequest from json.
@@ -79857,6 +79952,16 @@ func (s *SigningRequest) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"valid\"")
 			}
+		case "verificationMethod":
+			requiredBitSet[1] |= 1 << 3
+			if err := func() error {
+				if err := s.VerificationMethod.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"verificationMethod\"")
+			}
 		default:
 			return d.Skip()
 		}
@@ -79868,7 +79973,7 @@ func (s *SigningRequest) Decode(d *jx.Decoder) error {
 	var failures []validate.FieldError
 	for i, mask := range [2]uint8{
 		0b11111111,
-		0b00000111,
+		0b00001111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -80109,6 +80214,46 @@ func (s SigningRequestStatus) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *SigningRequestStatus) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes SigningRequestVerificationMethod as json.
+func (s SigningRequestVerificationMethod) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes SigningRequestVerificationMethod from json.
+func (s *SigningRequestVerificationMethod) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode SigningRequestVerificationMethod to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch SigningRequestVerificationMethod(v) {
+	case SigningRequestVerificationMethodAgentEd25519:
+		*s = SigningRequestVerificationMethodAgentEd25519
+	case SigningRequestVerificationMethodHumanHardwarePreviewsign:
+		*s = SigningRequestVerificationMethodHumanHardwarePreviewsign
+	default:
+		*s = SigningRequestVerificationMethod(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s SigningRequestVerificationMethod) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *SigningRequestVerificationMethod) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
