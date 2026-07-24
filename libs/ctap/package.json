@@ -1,0 +1,65 @@
+{
+  "name": "@themoltnet/ctap",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Minimal Node.js CTAP2/HID transport for MoltNet hardware signing",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    },
+    "./cbor": {
+      "import": "./src/cbor-entry.ts",
+      "types": "./src/cbor-entry.ts"
+    }
+  },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js"
+      },
+      "./cbor": {
+        "types": "./dist/cbor.d.ts",
+        "import": "./dist/cbor.js"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "check:pack": "tsx ../../tools/src/check-pack.ts --package ."
+  },
+  "nx": {
+    "tags": [
+      "type:client",
+      "scope:identity",
+      "platform:node"
+    ]
+  },
+  "dependencies": {
+    "cbor": "catalog:",
+    "node-hid": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vite-plugin-dts": "catalog:",
+    "vitest": "catalog:"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/getlarge/themoltnet.git",
+    "directory": "libs/ctap"
+  },
+  "engines": {
+    "node": "^22.0.0 || >=24.0.0"
+  }
+}

@@ -30,7 +30,7 @@ on:
       republish:
         description: >
           Comma-separated packages to re-publish from existing draft releases.
-          Valid values: sdk, github-agent, legreffier, cli, api-client, dspy-adapters, skill, design-system, pi-extension, agent-runtime, node-red-theme, agent-daemon
+          Valid values: sdk, ctap, yubikey-preview-sign, github-agent, legreffier, cli, api-client, dspy-adapters, skill, design-system, pi-extension, agent-runtime, node-red-theme, agent-daemon
         required: false
         type: string
 
@@ -64,6 +64,10 @@ jobs:
     outputs:
       sdk-release-created: ${{ steps.release.outputs['libs/sdk--release_created'] }}
       sdk-tag-name: ${{ steps.release.outputs['libs/sdk--tag_name'] }}
+      ctap-release-created: ${{ steps.release.outputs['libs/ctap--release_created'] }}
+      ctap-tag-name: ${{ steps.release.outputs['libs/ctap--tag_name'] }}
+      yubikey-preview-sign-release-created: ${{ steps.release.outputs['libs/yubikey-preview-sign--release_created'] }}
+      yubikey-preview-sign-tag-name: ${{ steps.release.outputs['libs/yubikey-preview-sign--tag_name'] }}
       api-client-release-created: ${{ steps.release.outputs['libs/moltnet-api-client--release_created'] }}
       api-client-tag-name: ${{ steps.release.outputs['libs/moltnet-api-client--tag_name'] }}
       api-client-version: ${{ steps.release.outputs['libs/moltnet-api-client--version'] }}
@@ -111,6 +115,10 @@ jobs:
     outputs:
       sdk: ${{ steps.resolve.outputs.sdk }}
       sdk-tag: ${{ steps.resolve.outputs.sdk-tag }}
+      ctap: ${{ steps.resolve.outputs.ctap }}
+      ctap-tag: ${{ steps.resolve.outputs.ctap-tag }}
+      yubikey-preview-sign: ${{ steps.resolve.outputs.yubikey-preview-sign }}
+      yubikey-preview-sign-tag: ${{ steps.resolve.outputs.yubikey-preview-sign-tag }}
       github-agent: ${{ steps.resolve.outputs.github-agent }}
       github-agent-tag: ${{ steps.resolve.outputs.github-agent-tag }}
       cli: ${{ steps.resolve.outputs.cli }}
@@ -147,6 +155,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RP_SDK_CREATED: ${{ needs.release-please.outputs.sdk-release-created }}
           RP_SDK_TAG: ${{ needs.release-please.outputs.sdk-tag-name }}
+          RP_CTAP_CREATED: ${{ needs.release-please.outputs.ctap-release-created }}
+          RP_CTAP_TAG: ${{ needs.release-please.outputs.ctap-tag-name }}
+          RP_PREVIEW_SIGN_CREATED: ${{ needs.release-please.outputs.yubikey-preview-sign-release-created }}
+          RP_PREVIEW_SIGN_TAG: ${{ needs.release-please.outputs.yubikey-preview-sign-tag-name }}
           RP_AGENT_CREATED: ${{ needs.release-please.outputs.github-agent-release-created }}
           RP_AGENT_TAG: ${{ needs.release-please.outputs.github-agent-tag-name }}
           RP_CLI_CREATED: ${{ needs.release-please.outputs.cli-release-created }}
@@ -219,6 +231,8 @@ jobs:
 
           echo "Resolving publish targets..."
           resolve "sdk"          "$RP_SDK_CREATED"       "$RP_SDK_TAG"       "sdk"
+          resolve "ctap"         "$RP_CTAP_CREATED"      "$RP_CTAP_TAG"      "ctap"
+          resolve "yubikey-preview-sign" "$RP_PREVIEW_SIGN_CREATED" "$RP_PREVIEW_SIGN_TAG" "yubikey-preview-sign"
           resolve "github-agent" "$RP_AGENT_CREATED"     "$RP_AGENT_TAG"     "github-agent"
           resolve "cli"          "$RP_CLI_CREATED"       "$RP_CLI_TAG"       "cli"
           resolve "api-client"   "$RP_API_CREATED"       "$RP_API_TAG"       "moltnet-api-client"
@@ -383,6 +397,75 @@ jobs:
 
       - name: Publish SDK release
         run: gh release edit "${{ needs.resolve-publish.outputs.sdk-tag }}" --draft=false
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-ctap:
+    name: Publish CTAP to npm
+    needs: resolve-publish
+    if: ${{ always() && needs.resolve-publish.outputs.ctap == 'true' && !failure() && !cancelled() }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec nx run @themoltnet/ctap:build
+      - run: pnpm exec nx run @themoltnet/ctap:test
+      - run: pnpm exec nx run @themoltnet/ctap:check:pack
+      - name: Publish @themoltnet/ctap
+        uses: nick-fields/retry@v4.0.0
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: pnpm --filter @themoltnet/ctap publish --no-git-checks --access public --provenance
+      - name: Publish CTAP release
+        run: gh release edit "${{ needs.resolve-publish.outputs.ctap-tag }}" --draft=false
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-yubikey-preview-sign:
+    name: Publish YubiKey previewSign to npm
+    needs: [resolve-publish, publish-ctap]
+    if: >-
+      always() &&
+      needs.resolve-publish.outputs.yubikey-preview-sign == 'true' &&
+      (needs.publish-ctap.result == 'success' || needs.publish-ctap.result == 'skipped') &&
+      !failure() && !cancelled()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec nx run @themoltnet/yubikey-preview-sign:build
+      - run: pnpm exec nx run @themoltnet/yubikey-preview-sign:test
+      - run: pnpm exec nx run @themoltnet/yubikey-preview-sign:check:pack
+      - run: pnpm exec nx run @themoltnet/yubikey-preview-sign:check:verify-isolation
+      - name: Publish @themoltnet/yubikey-preview-sign
+        uses: nick-fields/retry@v4.0.0
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: pnpm --filter @themoltnet/yubikey-preview-sign publish --no-git-checks --access public --provenance
+      - name: Publish YubiKey previewSign release
+        run: gh release edit "${{ needs.resolve-publish.outputs.yubikey-preview-sign-tag }}" --draft=false
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

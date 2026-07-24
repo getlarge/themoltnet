@@ -38,6 +38,11 @@
       "component": "agent-runtime",
       "release-type": "node"
     },
+    "libs/ctap": {
+      "bump-minor-pre-major": true,
+      "component": "ctap",
+      "release-type": "node"
+    },
     "libs/design-system": {
       "component": "design-system",
       "release-type": "node"
@@ -81,6 +86,11 @@
     },
     "libs/sdk": {
       "component": "sdk",
+      "release-type": "node"
+    },
+    "libs/yubikey-preview-sign": {
+      "bump-minor-pre-major": true,
+      "component": "yubikey-preview-sign",
       "release-type": "node"
     },
     "packages/cli": {

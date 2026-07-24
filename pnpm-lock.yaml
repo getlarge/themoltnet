@@ -219,6 +219,9 @@ catalogs:
     absurd-sdk:
       specifier: ^0.4.0
       version: 0.4.0
+    cbor:
+      specifier: ^10.0.11
+      version: 10.0.12
     citty:
       specifier: ^0.2.2
       version: 0.2.2
@@ -291,6 +294,9 @@ catalogs:
     multiformats:
       specifier: ^13.3.0
       version: 13.4.2
+    node-hid:
+      specifier: ^3.2.0
+      version: 3.4.0
     nx:
       specifier: 22.7.0
       version: 22.7.0
@@ -1258,6 +1264,22 @@ importers:
         specifier: 'catalog:'
         version: 3.2.4(@types/debug@4.1.13)(@types/node@25.1.0)(@vitest/ui@3.2.4)(jiti@2.7.0)(jsdom@27.4.0(@noble/hashes@2.0.1))(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
 
+  apps/yubikey-signer-demo:
+    dependencies:
+      '@themoltnet/yubikey-preview-sign':
+        specifier: workspace:*
+        version: link:../../libs/yubikey-preview-sign
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.19.19
+      tsx:
+        specifier: 'catalog:'
+        version: 4.21.0
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+
   docs:
     devDependencies:
       '@moltnet/api-client':
@@ -1534,6 +1556,31 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
+
+  libs/ctap:
+    dependencies:
+      cbor:
+        specifier: 'catalog:'
+        version: 10.0.12
+      node-hid:
+        specifier: 'catalog:'
+        version: 3.4.0
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.19.19
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vite:
+        specifier: 'catalog:'
+        version: 8.0.3(@types/node@22.19.19)(esbuild@0.27.2)(jiti@2.7.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
+      vite-plugin-dts:
+        specifier: 'catalog:'
+        version: 4.5.4(@types/node@22.19.19)(rollup@4.60.1)(typescript@5.9.3)(vite@8.0.3(@types/node@22.19.19)(esbuild@0.27.2)(jiti@2.7.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4))
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.4(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.4)(jiti@2.7.0)(jsdom@27.4.0(@noble/hashes@2.0.1))(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
 
   libs/database:
     dependencies:
@@ -2224,6 +2271,34 @@ importers:
       vitest:
         specifier: 'catalog:'
         version: 3.2.4(@types/debug@4.1.13)(@types/node@25.1.0)(@vitest/ui@3.2.4)(jiti@2.7.0)(jsdom@27.4.0(@noble/hashes@2.0.1))(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
+
+  libs/yubikey-preview-sign:
+    dependencies:
+      '@noble/curves':
+        specifier: 'catalog:'
+        version: 2.0.1
+      '@noble/hashes':
+        specifier: 'catalog:'
+        version: 1.8.0
+      '@themoltnet/ctap':
+        specifier: workspace:*
+        version: link:../ctap
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.19.19
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vite:
+        specifier: 'catalog:'
+        version: 8.0.3(@types/node@22.19.19)(esbuild@0.27.2)(jiti@2.7.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
+      vite-plugin-dts:
+        specifier: 'catalog:'
+        version: 4.5.4(@types/node@22.19.19)(rollup@4.60.1)(typescript@5.9.3)(vite@8.0.3(@types/node@22.19.19)(esbuild@0.27.2)(jiti@2.7.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4))
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.4(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.4)(jiti@2.7.0)(jsdom@27.4.0(@noble/hashes@1.8.0))(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
 
   packages/agent-daemon-action:
     dependencies:
@@ -9104,6 +9179,10 @@ packages:
     resolution: {integrity: sha512-KdHvFWZjEKDf0cakgFjebl371GPsISX2oZHcuyKqM7DtogIsHrqKeLTo8wBHxaXRAQlY2PsPlZmfo+9ZCxEREQ==}
     engines: {node: '>=10'}
 
+  node-addon-api@8.9.0:
+    resolution: {integrity: sha512-ekZMeaaIzSQTSpr7X2X3iJM7lTzgnx8ahAG9pJfT/7+14mlEM8ZYQ9cgCDvSSRbReFK0oHli3WrZdCiRsgAT9Q==}
+    engines: {node: ^18 || ^20 || >= 21}
+
   node-domexception@1.0.0:
     resolution: {integrity: sha512-/jKZoMpw0F8GRwl4/eLROPA3cfcXtLApP0QzLmUT/HuPCZWyB7IY9ZrMeKw2O/nFIqPQB3PVM9aYm0F312AXDQ==}
     engines: {node: '>=10.5.0'}
@@ -9119,6 +9198,11 @@ packages:
   node-forge@1.4.0:
     resolution: {integrity: sha512-LarFH0+6VfriEhqMMcLX2F7SwSXeWwnEAJEsYm5QKWchiVYVvJyV9v7UDvUv+w5HO23ZpQTXDv/GxdDdMyOuoQ==}
     engines: {node: '>= 6.13.0'}
+
+  node-hid@3.4.0:
+    resolution: {integrity: sha512-Br7EO3bJARAJBdtcsGzF/Vs5TjfbkaMdglqLQ+Rk9GOGgVqv5DxYUVH5znLerJU+OfBWw8sd552Ujcprz1bG9g==}
+    engines: {node: '>=10.16'}
+    hasBin: true
 
   node-releases@2.0.27:
     resolution: {integrity: sha512-nmh3lCkYZ3grZvqcCH+fjmQ7X+H0OeZgP40OierEaAptX4XofMh5kwNbWh7lBduUzCcV/8kZ+NDLCwm2iorIlA==}
@@ -9451,6 +9535,11 @@ packages:
   pkce-challenge@5.0.1:
     resolution: {integrity: sha512-wQ0b/W4Fr01qtpHlqSqspcj3EhBvimsdh0KlHhH8HRZnMsEa0ea2fTULOXOS9ccQr3om+GcGRk4e+isrZWV8qQ==}
     engines: {node: '>=16.20.0'}
+
+  pkg-prebuilds@1.1.0:
+    resolution: {integrity: sha512-jyai+KTQ2OwbN6iRYw88XbYOMgtpoSYJpjYebx7d9ihqz3txNi3ucsBt3va0iVWe6svSlaqpijMHFF/eJCMZzg==}
+    engines: {node: '>= 14.15.0'}
+    hasBin: true
 
   pkg-types@1.3.1:
     resolution: {integrity: sha512-/Jm5M4RvtBFVkKWRu2BLUTNP8/M2a+UwuAX+ae4770q1qVGtfjG+WTCupoZixokjmHiry8uI+dlY8KXYV5HVVQ==}
@@ -18491,6 +18580,8 @@ snapshots:
       semver: 7.8.4
     optional: true
 
+  node-addon-api@8.9.0: {}
+
   node-domexception@1.0.0: {}
 
   node-fetch-native@1.6.7: {}
@@ -18502,6 +18593,11 @@ snapshots:
       formdata-polyfill: 4.0.10
 
   node-forge@1.4.0: {}
+
+  node-hid@3.4.0:
+    dependencies:
+      node-addon-api: 8.9.0
+      pkg-prebuilds: 1.1.0
 
   node-releases@2.0.27: {}
 
@@ -19019,6 +19115,8 @@ snapshots:
   pirates@4.0.7: {}
 
   pkce-challenge@5.0.1: {}
+
+  pkg-prebuilds@1.1.0: {}
 
   pkg-types@1.3.1:
     dependencies:
