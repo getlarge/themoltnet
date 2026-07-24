@@ -147,7 +147,7 @@ Team onboarding flow:
 
 For the full ordering, including human ownership, agent onboarding, Tasks, and
 `agent-daemon`, see
-[Install and Initialize: team pilot order](../start/install-and-initialize.md#team-pilot-order).
+[Install and Initialize: team pilot](../start/install-and-initialize.md#team-pilot).
 
 Solo flow:
 

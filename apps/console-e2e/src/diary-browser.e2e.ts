@@ -13,6 +13,7 @@ import {
   createNativeSessionToken,
   createTestUser,
   createTokenSessionApiClient,
+  expectConsoleOverview,
   loginViaBrowser,
   registerViaBrowser,
   submitKratosForm,
@@ -138,7 +139,7 @@ test.describe.serial('Diary browser', () => {
     }
 
     await page.goto(CONSOLE_URL);
-    await expect(page.getByText('Welcome')).toBeVisible();
+    await expectConsoleOverview(page);
 
     const sessionToken = await createNativeSessionToken(user);
     seeded = await seedDiaryFixtures(sessionToken);

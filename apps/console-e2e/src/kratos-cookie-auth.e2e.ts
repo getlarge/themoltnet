@@ -5,6 +5,7 @@ import {
   CONSOLE_URL,
   createCookieSessionApiClient,
   createTestUser,
+  expectConsoleOverview,
   getSessionCookie,
   loginViaBrowser,
   registerViaBrowser,
@@ -34,7 +35,7 @@ test.describe.serial('Kratos browser cookie auth', () => {
     }
 
     await page.goto(`${CONSOLE_URL}/`);
-    await expect(page.getByText('Welcome')).toBeVisible();
+    await expectConsoleOverview(page);
     await getSessionCookie(page);
   });
 
@@ -44,7 +45,7 @@ test.describe.serial('Kratos browser cookie auth', () => {
     await loginViaBrowser(page, user);
 
     await expect(page).toHaveURL(/localhost:5174\//);
-    await expect(page.getByText('Welcome')).toBeVisible();
+    await expectConsoleOverview(page);
     await getSessionCookie(page);
   });
 

@@ -15,6 +15,7 @@ import {
   createNativeSessionToken,
   createTestUser,
   createTokenSessionApiClient,
+  expectConsoleOverview,
   loginViaBrowser,
   registerViaBrowser,
   submitKratosForm,
@@ -86,7 +87,7 @@ test.describe.serial('Task lanes board', () => {
     }
 
     await page.goto(CONSOLE_URL);
-    await expect(page.getByText('Welcome')).toBeVisible();
+    await expectConsoleOverview(page);
 
     sessionToken = await createNativeSessionToken(user);
     const client = createTokenSessionApiClient(sessionToken);

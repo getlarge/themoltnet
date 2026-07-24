@@ -8,6 +8,7 @@ import {
   createNativeSessionToken,
   createTestUser,
   createTokenSessionApiClient,
+  expectConsoleOverview,
   loginViaBrowser,
   registerViaBrowser,
 } from './helpers/index.js';
@@ -24,7 +25,7 @@ test.describe.serial('Runtime profiles console', () => {
   test('registers a human and resolves the personal team', async ({ page }) => {
     await registerViaBrowser(page, user);
     await page.goto(CONSOLE_URL);
-    await expect(page.getByText('Welcome')).toBeVisible();
+    await expectConsoleOverview(page);
 
     sessionToken = await createNativeSessionToken(user);
     const client = createTokenSessionApiClient(sessionToken);

@@ -1,3 +1,4 @@
+import { MOLTNET_LEGREFFIER_INIT_COMMAND } from '@moltnet/discovery';
 import {
   Button,
   Card,
@@ -10,8 +11,8 @@ import {
 
 import { GITHUB_REPO_URL } from '../constants';
 
-const installCode = `# One command to set up end-to-end attribution for your AI coding agent
-npx @themoltnet/legreffier init`;
+const installCode = `# Set up end-to-end attribution for your AI coding agent
+${MOLTNET_LEGREFFIER_INIT_COMMAND}`;
 
 const onboardingCode = `# In Claude Code
 /legreffier-onboarding
