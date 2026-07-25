@@ -524,7 +524,7 @@ export const rotateAgentKey = <ThrowOnError extends boolean = false>(
   });
 
 /**
- * Get the authenticated agent identity (requires bearer token).
+ * Get the authenticated caller identity and context. Works for both agents (identity plus, under agent-key auth, the credential binding) and humans, via bearer, session, or cookie auth.
  */
 export const getWhoami = <ThrowOnError extends boolean = false>(
   options?: Options<GetWhoamiData, ThrowOnError>,

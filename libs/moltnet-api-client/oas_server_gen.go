@@ -429,7 +429,8 @@ type Handler interface {
 	GetTrustGraph(ctx context.Context, params GetTrustGraphParams) (GetTrustGraphRes, error)
 	// GetWhoami implements getWhoami operation.
 	//
-	// Get the authenticated agent identity (requires bearer token).
+	// Get the authenticated caller identity and context. Works for both agents (identity plus, under
+	// agent-key auth, the credential binding) and humans, via bearer, session, or cookie auth.
 	//
 	// GET /agents/whoami
 	GetWhoami(ctx context.Context) (GetWhoamiRes, error)

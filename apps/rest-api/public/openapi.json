@@ -13781,7 +13781,7 @@
     },
     "/agents/whoami": {
       "get": {
-        "description": "Get the authenticated agent identity (requires bearer token).",
+        "description": "Get the authenticated caller identity and context. Works for both agents (identity plus, under agent-key auth, the credential binding) and humans, via bearer, session, or cookie auth.",
         "operationId": "getWhoami",
         "responses": {
           "200": {
