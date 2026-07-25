@@ -128,7 +128,7 @@ export function CreateInviteDialog({
               type="number"
               value={maxUses}
               onChange={(e) => setMaxUses(e.target.value)}
-              inputSize="sm"
+              size="sm"
             />
             <Input
               label="Expires in (hours)"
@@ -136,7 +136,7 @@ export function CreateInviteDialog({
               value={expiresInHours}
               onChange={(e) => setExpiresInHours(e.target.value)}
               hint="168 = 7 days"
-              inputSize="sm"
+              size="sm"
             />
             {error && (
               <Text

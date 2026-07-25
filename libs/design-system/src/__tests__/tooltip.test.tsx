@@ -45,4 +45,16 @@ describe('Tooltip', () => {
     fireEvent.blur(wrapper);
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
   });
+
+  it('dismisses on Escape without moving focus (WCAG 1.4.13)', () => {
+    renderTooltip('dismissable hint', 'trigger');
+    const wrapper = screen.getByRole('button', { name: 'trigger' })
+      .parentElement as HTMLElement;
+
+    fireEvent.focus(wrapper);
+    expect(screen.getByRole('tooltip')).toBeInTheDocument();
+
+    fireEvent.keyDown(wrapper, { key: 'Escape' });
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+  });
 });

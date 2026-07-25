@@ -27,6 +27,25 @@ describe('Input', () => {
     expect(input).toHaveAccessibleDescription('Code is required');
   });
 
+  it('keeps the hint visible alongside the error (guidance survives errors)', () => {
+    renderWithTheme(
+      <Input
+        label="Public key"
+        hint="Paste the Ed25519 key"
+        error="Not a valid key"
+      />,
+    );
+
+    const input = screen.getByLabelText('Public key');
+
+    // Both hint and error are rendered and both describe the input.
+    expect(screen.getByText('Paste the Ed25519 key')).toBeInTheDocument();
+    expect(screen.getByText('Not a valid key')).toBeInTheDocument();
+    expect(input).toHaveAccessibleDescription(
+      'Paste the Ed25519 key Not a valid key',
+    );
+  });
+
   it('preserves consumer-provided descriptions', () => {
     renderWithTheme(
       <>

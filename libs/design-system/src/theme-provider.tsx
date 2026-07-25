@@ -109,6 +109,17 @@ function generateGlobalStyles(): string {
 [data-molt-theme] *, [data-molt-theme] *::before, [data-molt-theme] *::after {
   box-sizing: border-box;
 }
+
+@keyframes molt-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-molt-theme] * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
 `.trim();
 }
 

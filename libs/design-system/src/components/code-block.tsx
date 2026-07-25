@@ -54,8 +54,7 @@ export function CodeBlock({
     const code =
       typeof children === 'string'
         ? children.trim()
-        : // eslint-disable-next-line @typescript-eslint/no-base-to-string -- CodeBlock with language expects string children
-          String(children ?? '').trim();
+        : String(children ?? '').trim();
     const prismTheme = theme.mode === 'dark' ? themes.oneDark : themes.oneLight;
 
     return (
