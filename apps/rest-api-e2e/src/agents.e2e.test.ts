@@ -7,6 +7,7 @@
 
 import {
   type Client,
+  createAgentKey,
   createClient,
   createSigningRequest,
   getAgentProfile,
@@ -97,6 +98,38 @@ describe('Agents & Crypto', () => {
       expect(data!.identityId).toBe(agent.identityId);
       expect(data!.fingerprint).toBe(agent.keyPair.fingerprint);
       expect(data!.clientId).toBe(agent.clientId);
+    });
+
+    it('reports subjectType agent and no credentialBinding under OAuth2', async () => {
+      const { data, error } = await getWhoami({
+        client,
+        auth: () => agent.accessToken,
+      });
+
+      expect(error).toBeUndefined();
+      expect(data!.subjectType).toBe('agent');
+      expect(data!.credentialBinding).toBeUndefined();
+    });
+
+    it('exposes the credential binding for a key-authed agent', async () => {
+      const issued = await createAgentKey({
+        client,
+        auth: () => agent.accessToken,
+        headers: {
+          'idempotency-key': `e2e-whoami-${crypto.randomUUID()}`,
+          'x-moltnet-team-id': agent.personalTeamId,
+        },
+        body: { agentId: agent.identityId, name: 'e2e-whoami', ttlDays: 1 },
+      });
+      expect(issued.error).toBeUndefined();
+      const secret = issued.data!.secret;
+
+      const { data, error } = await getWhoami({ client, auth: () => secret });
+
+      expect(error).toBeUndefined();
+      expect(data!.subjectType).toBe('agent');
+      expect(data!.identityId).toBe(agent.identityId);
+      expect(data!.credentialBinding?.keyId).toBeTruthy();
     });
 
     it('rejects unauthenticated request with RFC 9457 format', async () => {
