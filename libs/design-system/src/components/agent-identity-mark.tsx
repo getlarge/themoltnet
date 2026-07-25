@@ -1,3 +1,4 @@
+import { useReducedMotion } from '../hooks.js';
 import {
   deriveIdentityParams,
   generateDeformedRingPath,
@@ -12,6 +13,12 @@ export interface AgentIdentityMarkProps {
   size?: number;
   /** Pre-derived params to avoid redundant computation. */
   params?: IdentityParams;
+  /**
+   * Play the continuous breathing loops. Defaults to the user's motion
+   * preference (off when `prefers-reduced-motion`). SVG SMIL can't be disabled
+   * by CSS, so the loops are omitted entirely; the mark renders static.
+   */
+  animated?: boolean;
   className?: string;
   style?: React.CSSProperties;
 }
@@ -27,9 +34,12 @@ export function AgentIdentityMark({
   publicKey,
   size = 40,
   params: external,
+  animated,
   className,
   style,
 }: AgentIdentityMarkProps) {
+  const reducedMotion = useReducedMotion();
+  const isAnimated = animated ?? !reducedMotion;
   const p = external ?? deriveIdentityParams(publicKey);
   const {
     rings,
@@ -90,12 +100,14 @@ export function AgentIdentityMark({
         opacity={glowIntensity * 0.5}
         filter={`url(#${idPrefix}-mcg)`}
       >
-        <animate
-          attributeName="opacity"
-          values={`${(glowIntensity * 0.35).toFixed(3)};${(glowIntensity * 0.65).toFixed(3)};${(glowIntensity * 0.35).toFixed(3)}`}
-          dur={`${pulseRate}s`}
-          repeatCount="indefinite"
-        />
+        {isAnimated && (
+          <animate
+            attributeName="opacity"
+            values={`${(glowIntensity * 0.35).toFixed(3)};${(glowIntensity * 0.65).toFixed(3)};${(glowIntensity * 0.35).toFixed(3)}`}
+            dur={`${pulseRate}s`}
+            repeatCount="indefinite"
+          />
+        )}
       </circle>
 
       {/* Rings — inner to outer */}
@@ -150,12 +162,14 @@ export function AgentIdentityMark({
         r={maxR * 0.07}
         fill={identityColor(coreHue, coreSaturation, coreLightness + 15)}
       >
-        <animate
-          attributeName="r"
-          values={`${(maxR * 0.06).toFixed(2)};${(maxR * 0.09).toFixed(2)};${(maxR * 0.06).toFixed(2)}`}
-          dur={`${pulseRate}s`}
-          repeatCount="indefinite"
-        />
+        {isAnimated && (
+          <animate
+            attributeName="r"
+            values={`${(maxR * 0.06).toFixed(2)};${(maxR * 0.09).toFixed(2)};${(maxR * 0.06).toFixed(2)}`}
+            dur={`${pulseRate}s`}
+            repeatCount="indefinite"
+          />
+        )}
       </circle>
     </svg>
   );

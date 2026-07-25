@@ -173,7 +173,7 @@ export function DependsOnBuilder({
             aria-controls="depends-on-task-options"
             aria-expanded={showCandidateList}
             autoComplete="off"
-            inputSize="sm"
+            size="sm"
             placeholder="Search by title, tag, type, id, or correlation id"
             role="combobox"
             value={searchQuery}

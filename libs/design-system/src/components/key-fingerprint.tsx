@@ -67,9 +67,10 @@ export function KeyFingerprint({
     cursor: copyable ? 'pointer' : 'default',
     userSelect: 'all',
     transition: `background ${theme.transition.fast}`,
-    ...(color
-      ? { borderLeft: `3px solid ${color}`, paddingLeft: theme.spacing[3] }
-      : {}),
+    // When keyed to an agent color, tint the whole chip's border rather than
+    // a thick one-sided "side-tab" bar (a recognizable AI-UI tell). The 1px
+    // full border above already carries the shape; this just recolors it.
+    ...(color ? { border: `1px solid ${color}` } : {}),
   };
 
   const copyButtonStyle: React.CSSProperties = {

@@ -390,7 +390,7 @@ export function TeamDetailPage({ id }: { id: string }) {
                 placeholder="Search members by name, email, or fingerprint"
                 value={memberQuery}
                 onChange={(e) => setMemberQuery(e.target.value)}
-                inputSize="sm"
+                size="sm"
               />
             )}
             {filteredMembers.length === 0 ? (

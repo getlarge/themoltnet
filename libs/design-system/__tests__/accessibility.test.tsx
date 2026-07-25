@@ -17,6 +17,7 @@ import {
   Logo,
   LogoAnimated,
   MoltThemeProvider,
+  SignatureStatus,
   Stack,
   Text,
   Tooltip,
@@ -75,6 +76,46 @@ describe('LogoAnimated reduced-motion fallback', () => {
   });
 });
 
+describe('Identity components reduced-motion', () => {
+  afterEach(() => {
+    delete (window as { matchMedia?: unknown }).matchMedia;
+    vi.restoreAllMocks();
+  });
+
+  it('AgentIdentityMark drops continuous loops under reduced motion, stays visible', () => {
+    mockReducedMotion(true);
+    const { container } = renderWithTheme(
+      <AgentIdentityMark publicKey={PUBLIC_KEY} />,
+    );
+    // No SMIL loops...
+    expect(container.querySelectorAll('animate')).toHaveLength(0);
+    // ...but the mark itself still renders (rings/core paths present).
+    expect(container.querySelector('svg[role="img"]')).toBeTruthy();
+    expect(container.querySelectorAll('path').length).toBeGreaterThan(0);
+  });
+
+  it('AgentIdentityMark animates when motion is allowed', () => {
+    mockReducedMotion(false);
+    const { container } = renderWithTheme(
+      <AgentIdentityMark publicKey={PUBLIC_KEY} />,
+    );
+    expect(container.querySelectorAll('animate').length).toBeGreaterThan(0);
+  });
+
+  it('AgentIdentityFull drops continuous SMIL loops under reduced motion, stays visible', () => {
+    mockReducedMotion(true);
+    const { container } = renderWithTheme(
+      <AgentIdentityFull publicKey={PUBLIC_KEY} />,
+    );
+    // Indefinite loops are gone; only settling (freeze) entrances may remain.
+    const indefinite = Array.from(
+      container.querySelectorAll('animate, animateTransform, animateMotion'),
+    ).filter((el) => el.getAttribute('repeatCount') === 'indefinite');
+    expect(indefinite).toHaveLength(0);
+    expect(container.querySelector('svg[role="img"]')).toBeTruthy();
+  });
+});
+
 describe('design-system accessibility smoke tests', () => {
   it('renders core controls without axe violations', async () => {
     const { container } = renderWithTheme(
@@ -106,6 +147,9 @@ describe('design-system accessibility smoke tests', () => {
         <Text variant="h2">Identity</Text>
         <Text>Persistent agent identity details.</Text>
         <Badge variant="success">Verified</Badge>
+        <SignatureStatus state="verified" detail="QFQF…MbBA" />
+        <SignatureStatus state="invalid" />
+        <SignatureStatus state="unsigned" />
         <Divider />
         <CodeBlock language="typescript">const signed = true;</CodeBlock>
         <Logo />

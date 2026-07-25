@@ -11,7 +11,12 @@ export interface InputProps extends Omit<
   label?: string;
   hint?: string;
   error?: string;
-  inputSize?: Size;
+  /**
+   * Control size. Named `size` to match Button and the rest of the system;
+   * the native `<input size>` attribute is intentionally shadowed (rarely used
+   * and pixel-width semantics don't fit the design scale).
+   */
+  size?: Size;
 }
 
 const sizeStyles: Record<Size, React.CSSProperties> = {
@@ -24,7 +29,7 @@ export function Input({
   label,
   hint,
   error,
-  inputSize = 'md',
+  size = 'md',
   disabled,
   style,
   id,
@@ -38,7 +43,8 @@ export function Input({
   const inputId = id ?? generatedId;
   const hintId = hint ? `${inputId}-hint` : undefined;
   const errorId = error ? `${inputId}-error` : undefined;
-  const describedBy = [ariaDescribedBy, error ? errorId : hintId]
+  // Describe by BOTH hint and error so guidance survives an error state.
+  const describedBy = [ariaDescribedBy, hintId, errorId]
     .filter(Boolean)
     .join(' ');
 
@@ -61,15 +67,16 @@ export function Input({
     lineHeight: theme.font.lineHeight.normal,
     outline: 'none',
     transition: `border-color ${theme.transition.fast}, box-shadow ${theme.transition.fast}`,
-    boxShadow:
-      focused && !error
-        ? `0 0 0 3px ${theme.color.primary.muted}`
-        : focused && error
-          ? `0 0 0 3px ${theme.color.error.muted}`
-          : 'none',
+    // Signature dual-ring focus (void-separated), matching Button and Card.
+    // Error tints the ring red; otherwise it's the primary teal.
+    boxShadow: focused
+      ? `0 0 0 2px ${theme.color.bg.void}, 0 0 0 4px ${
+          error ? theme.color.error.DEFAULT : theme.color.border.focus
+        }`
+      : 'none',
     opacity: disabled ? 0.5 : 1,
     cursor: disabled ? 'not-allowed' : 'text',
-    ...sizeStyles[inputSize],
+    ...sizeStyles[size],
     ...style,
   };
 
@@ -85,7 +92,16 @@ export function Input({
     display: 'block',
     marginTop: theme.spacing[1],
     fontSize: theme.font.size.xs,
-    color: error ? theme.color.error.DEFAULT : theme.color.text.muted,
+    color: theme.color.text.muted,
+  };
+
+  const errorStyle: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing[1],
+    marginTop: theme.spacing[1],
+    fontSize: theme.font.size.xs,
+    color: theme.color.error.DEFAULT,
   };
 
   return (
@@ -104,9 +120,16 @@ export function Input({
         {...handlers}
         {...rest}
       />
-      {(hint || error) && (
-        <span id={error ? errorId : hintId} style={hintStyle}>
-          {error ?? hint}
+      {hint && (
+        <span id={hintId} style={hintStyle}>
+          {hint}
+        </span>
+      )}
+      {error && (
+        <span id={errorId} style={errorStyle}>
+          {/* Glyph so the error isn't signalled by color alone (WCAG 1.4.1). */}
+          <span aria-hidden="true">⚠</span>
+          <span>{error}</span>
         </span>
       )}
     </div>

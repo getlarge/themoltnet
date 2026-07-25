@@ -28,7 +28,12 @@ export {
 } from './theme-provider.js';
 
 // Hooks
-export { useInteractive, useTheme, useThemeMode } from './hooks.js';
+export {
+  useInteractive,
+  useReducedMotion,
+  useTheme,
+  useThemeMode,
+} from './hooks.js';
 
 // Types
 export type { BaseComponentProps, Signal, Size } from './types.js';
@@ -76,6 +81,9 @@ export {
   type LogoAnimatedProps,
   type LogoProps,
   type LogoVariant,
+  type SignatureState,
+  SignatureStatus,
+  type SignatureStatusProps,
   Stack,
   type StackProps,
   Text,

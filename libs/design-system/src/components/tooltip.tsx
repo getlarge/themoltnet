@@ -46,12 +46,19 @@ export function Tooltip({
   };
 
   return (
+    // The wrapper is a non-interactive hover/focus container: the interactive
+    // widget is the trigger child. It listens for hover/focus to show the tip
+    // and Escape to dismiss it (WCAG 1.4.13), without itself being a control.
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
     <span
       style={wrapperStyle}
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
       onFocus={() => setOpen(true)}
       onBlur={() => setOpen(false)}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape' && open) setOpen(false);
+      }}
       aria-describedby={open ? tipId : undefined}
       {...rest}
     >

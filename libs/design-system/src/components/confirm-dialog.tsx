@@ -33,7 +33,7 @@ export function ConfirmDialog({
             {cancelLabel}
           </Button>
           <Button
-            variant={destructive ? 'accent' : 'primary'}
+            variant={destructive ? 'danger' : 'primary'}
             size="sm"
             onClick={onConfirm}
           >

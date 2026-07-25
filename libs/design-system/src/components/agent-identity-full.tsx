@@ -1,3 +1,4 @@
+import { useReducedMotion } from '../hooks.js';
 import {
   deriveIdentityParams,
   generateDeformedRingPath,
@@ -36,10 +37,15 @@ export function AgentIdentityFull({
   publicKey,
   size = 300,
   params: external,
-  animated = true,
+  animated: animatedProp = true,
   className,
   style,
 }: AgentIdentityFullProps) {
+  // SVG SMIL can't be disabled by CSS, so honor prefers-reduced-motion here:
+  // it forces the settled static frame (no entrance stagger, no continuous
+  // loops). An explicit `animated` prop still wins for callers that opt in.
+  const reducedMotion = useReducedMotion();
+  const animated = animatedProp && !reducedMotion;
   const p = external ?? deriveIdentityParams(publicKey);
   const {
     rings,
@@ -150,13 +156,15 @@ export function AgentIdentityFull({
           fill="freeze"
           id={`${idPrefix}-amb-in`}
         />
-        <animate
-          attributeName="opacity"
-          values={`${(gi * 0.06).toFixed(3)};${(gi * 0.12).toFixed(3)};${(gi * 0.06).toFixed(3)}`}
-          dur={`${pulseRate}s`}
-          begin={`${idPrefix}-amb-in.end`}
-          repeatCount="indefinite"
-        />
+        {animated && (
+          <animate
+            attributeName="opacity"
+            values={`${(gi * 0.06).toFixed(3)};${(gi * 0.12).toFixed(3)};${(gi * 0.06).toFixed(3)}`}
+            dur={`${pulseRate}s`}
+            begin={`${idPrefix}-amb-in.end`}
+            repeatCount="indefinite"
+          />
+        )}
       </circle>
 
       {/* ──── 2 · Rotating deformed rings ──── */}
@@ -201,14 +209,16 @@ export function AgentIdentityFull({
                 begin={`${enter}s`}
                 fill="freeze"
               />
-              <animateTransform
-                attributeName="transform"
-                type="rotate"
-                from={`0 ${cx} ${cy}`}
-                to={`${dir} ${cx} ${cy}`}
-                dur={`${ring.rotationDuration}s`}
-                repeatCount="indefinite"
-              />
+              {animated && (
+                <animateTransform
+                  attributeName="transform"
+                  type="rotate"
+                  from={`0 ${cx} ${cy}`}
+                  to={`${dir} ${cx} ${cy}`}
+                  dur={`${ring.rotationDuration}s`}
+                  repeatCount="indefinite"
+                />
+              )}
             </g>
 
             {/* Crisp stroke (rotates with ring) */}
@@ -227,14 +237,16 @@ export function AgentIdentityFull({
                 begin={`${enter}s`}
                 fill="freeze"
               />
-              <animateTransform
-                attributeName="transform"
-                type="rotate"
-                from={`0 ${cx} ${cy}`}
-                to={`${dir} ${cx} ${cy}`}
-                dur={`${ring.rotationDuration}s`}
-                repeatCount="indefinite"
-              />
+              {animated && (
+                <animateTransform
+                  attributeName="transform"
+                  type="rotate"
+                  from={`0 ${cx} ${cy}`}
+                  to={`${dir} ${cx} ${cy}`}
+                  dur={`${ring.rotationDuration}s`}
+                  repeatCount="indefinite"
+                />
+              )}
             </g>
           </g>
         );
@@ -259,13 +271,15 @@ export function AgentIdentityFull({
           fill="freeze"
           id={`${idPrefix}-ci`}
         />
-        <animate
-          attributeName="opacity"
-          values={`${(gi * 0.3).toFixed(2)};${(gi * 0.6).toFixed(2)};${(gi * 0.3).toFixed(2)}`}
-          dur={`${pulseRate}s`}
-          begin={`${idPrefix}-ci.end`}
-          repeatCount="indefinite"
-        />
+        {animated && (
+          <animate
+            attributeName="opacity"
+            values={`${(gi * 0.3).toFixed(2)};${(gi * 0.6).toFixed(2)};${(gi * 0.3).toFixed(2)}`}
+            dur={`${pulseRate}s`}
+            begin={`${idPrefix}-ci.end`}
+            repeatCount="indefinite"
+          />
+        )}
       </circle>
 
       {/* Tight core glow — breathing */}
@@ -285,13 +299,15 @@ export function AgentIdentityFull({
           fill="freeze"
           id={`${idPrefix}-cti`}
         />
-        <animate
-          attributeName="opacity"
-          values={`${(gi * 0.5).toFixed(2)};${(gi * 0.9).toFixed(2)};${(gi * 0.5).toFixed(2)}`}
-          dur={`${pulseRate}s`}
-          begin={`${idPrefix}-cti.end`}
-          repeatCount="indefinite"
-        />
+        {animated && (
+          <animate
+            attributeName="opacity"
+            values={`${(gi * 0.5).toFixed(2)};${(gi * 0.9).toFixed(2)};${(gi * 0.5).toFixed(2)}`}
+            dur={`${pulseRate}s`}
+            begin={`${idPrefix}-cti.end`}
+            repeatCount="indefinite"
+          />
+        )}
       </circle>
 
       {/* Diamond flash — single bright pulse on materialisation */}
@@ -373,6 +389,7 @@ export function AgentIdentityFull({
           coreLightness={coreLightness}
           idPrefix={idPrefix}
           delay={particleDelay}
+          animated={animated}
         />
       )}
 
@@ -397,20 +414,24 @@ export function AgentIdentityFull({
               strokeWidth="0.5"
               opacity="0"
             >
-              <animate
-                attributeName="opacity"
-                values={`0;${(gi * 0.25).toFixed(2)};${(gi * 0.08).toFixed(2)};${(gi * 0.25).toFixed(2)}`}
-                dur={`${pulseRate * 1.2}s`}
-                begin={`${haloDelay}s`}
-                repeatCount="indefinite"
-              />
-              <animate
-                attributeName="r"
-                values={`${haloR.toFixed(1)};${(haloR + 4).toFixed(1)};${haloR.toFixed(1)}`}
-                dur={`${pulseRate * 1.2}s`}
-                begin={`${haloDelay}s`}
-                repeatCount="indefinite"
-              />
+              {animated && (
+                <animate
+                  attributeName="opacity"
+                  values={`0;${(gi * 0.25).toFixed(2)};${(gi * 0.08).toFixed(2)};${(gi * 0.25).toFixed(2)}`}
+                  dur={`${pulseRate * 1.2}s`}
+                  begin={`${haloDelay}s`}
+                  repeatCount="indefinite"
+                />
+              )}
+              {animated && (
+                <animate
+                  attributeName="r"
+                  values={`${haloR.toFixed(1)};${(haloR + 4).toFixed(1)};${haloR.toFixed(1)}`}
+                  dur={`${pulseRate * 1.2}s`}
+                  begin={`${haloDelay}s`}
+                  repeatCount="indefinite"
+                />
+              )}
             </circle>
           );
         })()}
@@ -450,6 +471,7 @@ function OrbitalParticles({
   coreLightness,
   idPrefix,
   delay,
+  animated,
 }: {
   cx: number;
   cy: number;
@@ -460,6 +482,7 @@ function OrbitalParticles({
   coreLightness: number;
   idPrefix: string;
   delay: number;
+  animated: boolean;
 }) {
   const outer = rings[rings.length - 1];
   const orbitR = maxR * outer.radiusFraction;
@@ -492,22 +515,26 @@ function OrbitalParticles({
         opacity="0"
         filter={`url(#${idPrefix}-fp)`}
       >
-        <animate
-          attributeName="opacity"
-          values="0;0.6;0.6;0"
-          keyTimes="0;0.05;0.85;1"
-          dur={`${outer.rotationDuration * 0.55}s`}
-          begin={`${delay}s`}
-          repeatCount="indefinite"
-        />
-        <animateMotion
-          dur={`${outer.rotationDuration * 0.55}s`}
-          begin={`${delay}s`}
-          repeatCount="indefinite"
-          rotate="auto"
-        >
-          <mpath href={`#${idPrefix}-orb`} />
-        </animateMotion>
+        {animated && (
+          <animate
+            attributeName="opacity"
+            values="0;0.6;0.6;0"
+            keyTimes="0;0.05;0.85;1"
+            dur={`${outer.rotationDuration * 0.55}s`}
+            begin={`${delay}s`}
+            repeatCount="indefinite"
+          />
+        )}
+        {animated && (
+          <animateMotion
+            dur={`${outer.rotationDuration * 0.55}s`}
+            begin={`${delay}s`}
+            repeatCount="indefinite"
+            rotate="auto"
+          >
+            <mpath href={`#${idPrefix}-orb`} />
+          </animateMotion>
+        )}
       </circle>
 
       {/* Slow core-hue particle */}
@@ -517,22 +544,26 @@ function OrbitalParticles({
         opacity="0"
         filter={`url(#${idPrefix}-fp)`}
       >
-        <animate
-          attributeName="opacity"
-          values="0;0.4;0.4;0"
-          keyTimes="0;0.05;0.85;1"
-          dur={`${outer.rotationDuration * 0.75}s`}
-          begin={`${delay + 1.8}s`}
-          repeatCount="indefinite"
-        />
-        <animateMotion
-          dur={`${outer.rotationDuration * 0.75}s`}
-          begin={`${delay + 1.8}s`}
-          repeatCount="indefinite"
-          rotate="auto"
-        >
-          <mpath href={`#${idPrefix}-orb`} />
-        </animateMotion>
+        {animated && (
+          <animate
+            attributeName="opacity"
+            values="0;0.4;0.4;0"
+            keyTimes="0;0.05;0.85;1"
+            dur={`${outer.rotationDuration * 0.75}s`}
+            begin={`${delay + 1.8}s`}
+            repeatCount="indefinite"
+          />
+        )}
+        {animated && (
+          <animateMotion
+            dur={`${outer.rotationDuration * 0.75}s`}
+            begin={`${delay + 1.8}s`}
+            repeatCount="indefinite"
+            rotate="auto"
+          >
+            <mpath href={`#${idPrefix}-orb`} />
+          </animateMotion>
+        )}
       </circle>
     </>
   );
