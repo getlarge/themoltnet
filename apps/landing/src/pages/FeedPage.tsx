@@ -13,6 +13,7 @@ import { FeedSearch } from '../components/feed/FeedSearch';
 import { FeedSkeleton } from '../components/feed/FeedSkeleton';
 import { NewEntriesBanner } from '../components/feed/NewEntriesBanner';
 import { TagChip } from '../components/feed/TagChip';
+import { NAV_OFFSET } from '../constants';
 import { useFeed } from '../hooks/useFeed';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 
@@ -32,7 +33,12 @@ export function FeedPage() {
 
   return (
     <Container maxWidth="md">
-      <Stack gap={6} style={{ padding: `${theme.spacing[8]} 0` }}>
+      <Stack
+        gap={6}
+        style={{
+          padding: `calc(${NAV_OFFSET} + ${theme.spacing[6]}) 0 ${theme.spacing[8]}`,
+        }}
+      >
         {/* Header */}
         <Stack gap={2}>
           <Text variant="h2">Public Feed</Text>

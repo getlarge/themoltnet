@@ -37,7 +37,9 @@ export function DiaryCard({ entry, onTagClick }: DiaryCardProps) {
         variant="surface"
         padding="none"
         style={{
-          borderLeft: `3px solid ${params.accentHex}`,
+          // Author identity color lives in the AuthorBadge (mark + fingerprint);
+          // a colored side-tab border would be redundant slop. Keep the card's
+          // own 1px full border. See #1643.
           transition: `transform ${theme.transition.fast}, box-shadow ${theme.transition.fast}`,
           cursor: 'pointer',
         }}

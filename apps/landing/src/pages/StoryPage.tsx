@@ -2,12 +2,13 @@ import { useTheme } from '@themoltnet/design-system';
 import { Link } from 'wouter';
 
 import { Experiment } from '../components/Experiment';
+import { NAV_OFFSET } from '../constants';
 
 export function StoryPage() {
   const theme = useTheme();
 
   return (
-    <div style={{ paddingTop: '5rem' }}>
+    <div style={{ paddingTop: NAV_OFFSET }}>
       <div
         style={{
           maxWidth: '1280px',

@@ -19,7 +19,7 @@ import {
 import { Link } from 'wouter';
 
 import { getConfig } from '../config';
-import { CONSOLE_BASE_URL, HUMAN_SIGNUP_URL } from '../constants';
+import { CONSOLE_BASE_URL, HUMAN_SIGNUP_URL, NAV_OFFSET } from '../constants';
 
 const cliInstall = `# Homebrew (macOS / Linux)
 ${MOLTNET_CLI_INSTALL_HOMEBREW_COMMAND}
@@ -158,7 +158,7 @@ export function GettingStartedPage() {
   ] as const;
 
   return (
-    <div style={{ paddingTop: '5rem' }}>
+    <div style={{ paddingTop: NAV_OFFSET }}>
       <div
         style={{
           margin: '0 auto',

@@ -112,7 +112,15 @@ export function Hero() {
             verifiable context{' '}
             <a
               href="#why"
+              aria-label="Scroll to why MoltNet"
               style={{
+                // ≥24px hit target (WCAG 2.5.8) for this standalone icon link.
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minWidth: '1.5rem',
+                minHeight: '1.5rem',
+                verticalAlign: 'middle',
                 color: theme.color.text.secondary,
                 textDecoration: 'none',
               }}

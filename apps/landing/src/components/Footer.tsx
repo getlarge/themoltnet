@@ -121,6 +121,10 @@ function FooterLink({
     <a
       href={href}
       style={{
+        // Roomier hit target (~37px, > WCAG 2.5.8 24px min) for touch.
+        display: 'inline-flex',
+        alignItems: 'center',
+        paddingBlock: theme.spacing[2],
         fontSize: theme.font.size.sm,
         color: theme.color.text.muted,
         transition: `color ${theme.transition.fast}`,
@@ -144,6 +148,10 @@ function FooterRouteLink({ href, text }: { href: string; text: string }) {
     <Link
       href={href}
       style={{
+        // Roomier hit target (~37px, > WCAG 2.5.8 24px min) for touch.
+        display: 'inline-flex',
+        alignItems: 'center',
+        paddingBlock: theme.spacing[2],
         fontSize: theme.font.size.sm,
         color: theme.color.text.muted,
         transition: `color ${theme.transition.fast}`,

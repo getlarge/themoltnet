@@ -22,6 +22,7 @@ import {
 } from 'react';
 import { Link } from 'wouter';
 
+import { NAV_OFFSET } from '../constants';
 import { buildGraphLayout } from '../provenance/graph-layout';
 import {
   compressGraphToParam,
@@ -363,7 +364,7 @@ export function ProvenancePage() {
   return (
     <div
       style={{
-        paddingTop: '5rem',
+        paddingTop: NAV_OFFSET,
         minHeight: '100vh',
         background: `linear-gradient(180deg, ${theme.color.bg.elevated} 0%, ${theme.color.bg.surface} 52%, ${theme.color.bg.void} 100%)`,
       }}
