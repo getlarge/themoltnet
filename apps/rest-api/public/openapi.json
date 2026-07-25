@@ -13044,6 +13044,32 @@
           "clientId": {
             "type": "string"
           },
+          "credentialBinding": {
+            "properties": {
+              "boundTeamId": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "keyId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "keyId"
+            ],
+            "type": "object"
+          },
+          "currentTeamId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "fingerprint": {
             "type": "string"
           },
@@ -13053,13 +13079,27 @@
           },
           "publicKey": {
             "type": "string"
+          },
+          "subjectType": {
+            "anyOf": [
+              {
+                "enum": [
+                  "agent"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "human"
+                ],
+                "type": "string"
+              }
+            ]
           }
         },
         "required": [
           "identityId",
-          "publicKey",
-          "fingerprint",
-          "clientId"
+          "subjectType"
         ],
         "type": "object"
       }
