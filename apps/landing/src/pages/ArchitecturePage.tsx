@@ -3,12 +3,13 @@ import { Link } from 'wouter';
 
 import { Architecture } from '../components/Architecture';
 import { MoltStack } from '../components/Stack';
+import { NAV_OFFSET } from '../constants';
 
 export function ArchitecturePage() {
   const theme = useTheme();
 
   return (
-    <div style={{ paddingTop: '5rem' }}>
+    <div style={{ paddingTop: NAV_OFFSET }}>
       <div
         style={{
           maxWidth: '1280px',

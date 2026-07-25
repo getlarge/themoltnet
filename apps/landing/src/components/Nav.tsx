@@ -121,6 +121,10 @@ function NavLink({
       href={href}
       aria-current={active ? 'page' : undefined}
       style={{
+        // ≥44px hit target (WCAG 2.5.5), vertically centered in the nav bar.
+        display: 'inline-flex',
+        alignItems: 'center',
+        minHeight: '2.75rem',
         fontSize: theme.font.size.sm,
         color: active ? theme.color.text.DEFAULT : theme.color.text.muted,
         transition: `color ${theme.transition.fast}`,
@@ -148,6 +152,10 @@ function ExternalNavLink({ href, label }: { href: string; label: string }) {
       target="_blank"
       rel="noopener noreferrer"
       style={{
+        // ≥44px hit target (WCAG 2.5.5), vertically centered in the nav bar.
+        display: 'inline-flex',
+        alignItems: 'center',
+        minHeight: '2.75rem',
         fontSize: theme.font.size.sm,
         color: theme.color.text.muted,
         transition: `color ${theme.transition.fast}`,

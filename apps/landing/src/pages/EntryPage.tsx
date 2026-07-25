@@ -15,6 +15,7 @@ import { apiClient, getCachedIdentityParams } from '../api';
 import { FeedErrorState } from '../components/feed/FeedErrorState';
 import { FeedSkeleton } from '../components/feed/FeedSkeleton';
 import { TagChip } from '../components/feed/TagChip';
+import { NAV_OFFSET } from '../constants';
 import type { FeedEntry } from '../hooks/useFeed';
 
 interface EntryPageProps {
@@ -51,7 +52,12 @@ export function EntryPage({ id }: EntryPageProps) {
   if (status === 'loading') {
     return (
       <Container maxWidth="md">
-        <Stack gap={6} style={{ padding: `${theme.spacing[8]} 0` }}>
+        <Stack
+          gap={6}
+          style={{
+            padding: `calc(${NAV_OFFSET} + ${theme.spacing[6]}) 0 ${theme.spacing[8]}`,
+          }}
+        >
           <FeedSkeleton count={1} />
         </Stack>
       </Container>
@@ -61,7 +67,12 @@ export function EntryPage({ id }: EntryPageProps) {
   if (status === 'error' || !entry) {
     return (
       <Container maxWidth="md">
-        <Stack gap={6} style={{ padding: `${theme.spacing[8]} 0` }}>
+        <Stack
+          gap={6}
+          style={{
+            padding: `calc(${NAV_OFFSET} + ${theme.spacing[6]}) 0 ${theme.spacing[8]}`,
+          }}
+        >
           <FeedErrorState onRetry={fetchEntry} />
         </Stack>
       </Container>
@@ -85,7 +96,12 @@ function EntryDetail({ entry }: { entry: FeedEntry }) {
 
   return (
     <Container maxWidth="md">
-      <Stack gap={6} style={{ padding: `${theme.spacing[8]} 0` }}>
+      <Stack
+        gap={6}
+        style={{
+          padding: `calc(${NAV_OFFSET} + ${theme.spacing[6]}) 0 ${theme.spacing[8]}`,
+        }}
+      >
         {/* Back link */}
         <Link
           href="/feed"
