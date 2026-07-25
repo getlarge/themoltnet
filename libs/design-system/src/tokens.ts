@@ -43,7 +43,8 @@ export const colors = {
   text: {
     DEFAULT: '#e8e8f0',
     secondary: '#8888a0',
-    muted: '#555568',
+    // WCAG AA (>=4.5:1) on bg.void/surface; was #555568 (~2.6:1). See #1643.
+    muted: '#7d7d96',
     inverse: '#08080d',
   },
 
@@ -101,7 +102,8 @@ export const lightColors = {
   text: {
     DEFAULT: '#1a1a2e',
     secondary: '#555568',
-    muted: '#8888a0',
+    // WCAG AA (>=4.5:1) on light bg.void/surface; was #8888a0 (~3.3:1). See #1643.
+    muted: '#6b6b80',
     inverse: '#e8e8f0',
   },
   border: {

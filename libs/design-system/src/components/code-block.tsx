@@ -1,7 +1,29 @@
-import { Highlight, type Language, themes } from 'prism-react-renderer';
+import {
+  Highlight,
+  type Language,
+  type PrismTheme,
+  themes,
+} from 'prism-react-renderer';
 
 import { useTheme } from '../hooks.js';
 import type { BaseComponentProps } from '../types.js';
+
+// oneDark's comment color (#5c6370) renders at ~3.16:1 on our bg.surface,
+// failing WCAG AA. Lift comment tokens to an AA-legible bluish-gray. See #1643.
+const AA_COMMENT_COLOR = '#7a8394';
+
+function withAccessibleComments(base: PrismTheme): PrismTheme {
+  return {
+    ...base,
+    styles: base.styles.map((s) =>
+      s.types.includes('comment')
+        ? { ...s, style: { ...s.style, color: AA_COMMENT_COLOR } }
+        : s,
+    ),
+  };
+}
+
+const oneDarkAccessible = withAccessibleComments(themes.oneDark);
 
 export interface CodeBlockProps extends BaseComponentProps {
   /** Render as inline <code> instead of a block <pre>. */
@@ -55,7 +77,8 @@ export function CodeBlock({
       typeof children === 'string'
         ? children.trim()
         : String(children ?? '').trim();
-    const prismTheme = theme.mode === 'dark' ? themes.oneDark : themes.oneLight;
+    const prismTheme =
+      theme.mode === 'dark' ? oneDarkAccessible : themes.oneLight;
 
     return (
       <div style={{ position: 'relative' }}>
@@ -66,7 +89,9 @@ export function CodeBlock({
             right: theme.spacing[3],
             fontFamily: theme.font.family.mono,
             fontSize: theme.font.size.xs,
-            color: theme.color.text.muted,
+            // secondary (not muted) so this 12px label stays AA-legible on the
+            // elevated surfaces code blocks sit on. See #1643.
+            color: theme.color.text.secondary,
             userSelect: 'none',
             lineHeight: 1,
             zIndex: 1,
