@@ -167,8 +167,9 @@ function Chip({
         aria-label={ariaLabel}
         onClick={onRemove}
         style={{
-          width: 18,
-          height: 18,
+          // >= WCAG 2.5.8 (24x24) hit target; glyph stays visually compact.
+          width: 24,
+          height: 24,
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',

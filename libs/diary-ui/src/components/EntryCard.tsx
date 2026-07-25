@@ -1,4 +1,4 @@
-import { Card, Stack, Text, useTheme } from '@themoltnet/design-system';
+import { Card, Stack, Text } from '@themoltnet/design-system';
 
 import type { EntryType } from '../types.js';
 import { formatRelativeTime } from '../utils/format.js';
@@ -20,16 +20,12 @@ export interface EntryCardProps {
   entry: EntryCardEntry;
   view?: 'grid' | 'timeline';
   onOpen: (entryId: string) => void;
-  onTagClick?: (tag: string) => void;
 }
 
-export function EntryCard({
-  entry,
-  view = 'grid',
-  onOpen,
-  onTagClick,
-}: EntryCardProps) {
-  const theme = useTheme();
+export function EntryCard({ entry, view = 'grid', onOpen }: EntryCardProps) {
+  // `view` is retained for callers; grid/timeline differ by their container
+  // layout, not by a decorative accent border on the card itself.
+  void view;
 
   return (
     <button
@@ -51,14 +47,7 @@ export function EntryCard({
       <Card
         variant="surface"
         padding="md"
-        style={{
-          position: 'relative',
-          height: '100%',
-          borderLeft:
-            view === 'timeline'
-              ? `3px solid ${theme.color.accent.DEFAULT}`
-              : undefined,
-        }}
+        style={{ position: 'relative', height: '100%' }}
       >
         <Stack gap={3}>
           <Stack
@@ -84,16 +73,11 @@ export function EntryCard({
               wrap
               style={{ minWidth: 0, overflow: 'hidden' }}
             >
+              {/* Non-interactive inside the card button: nesting a
+                  role="button" TagChip in the card's <button> is invalid for
+                  AT. Tag filtering lives in the FilterBar. */}
               {entry.tags.slice(0, 6).map((tag) => (
-                <TagChip
-                  key={tag}
-                  tag={tag}
-                  onClick={
-                    onTagClick
-                      ? (clickedTag) => onTagClick(clickedTag)
-                      : undefined
-                  }
-                />
+                <TagChip key={tag} tag={tag} />
               ))}
             </Stack>
           )}
