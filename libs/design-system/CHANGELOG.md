@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.10.0](https://github.com/getlarge/themoltnet/compare/design-system-v0.9.0...design-system-v0.10.0) (2026-07-25)
+
+
+### Features
+
+* **design-system:** add SignatureStatus verification primitive ([781d3db](https://github.com/getlarge/themoltnet/commit/781d3dbe2fa6973cda7f8c7f23030e2502550fd9))
+
+
+### Bug Fixes
+
+* **design-system:** a11y + design fixes from impeccable critique ([0113587](https://github.com/getlarge/themoltnet/commit/0113587a210c840a4d2ea0c5e41becd79133cd29))
+* **design-system:** a11y + design fixes from impeccable critique ([87f2368](https://github.com/getlarge/themoltnet/commit/87f236858e103aadc44be3ab0d60f1d79ccd0bd4))
+* **design-system:** honor prefers-reduced-motion in LogoAnimated ([242d3ee](https://github.com/getlarge/themoltnet/commit/242d3ee6ee7d3046480699ed655ac6bb58a91bc0))
+
 ## [0.9.0](https://github.com/getlarge/themoltnet/compare/design-system-v0.8.0...design-system-v0.9.0) (2026-06-07)
 
 

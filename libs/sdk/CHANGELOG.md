@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.123.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.122.0...sdk-v0.123.0) (2026-07-25)
+
+
+### Features
+
+* **cli:** team-bound agent API key management (CLI + SDK hardening) ([823d318](https://github.com/getlarge/themoltnet/commit/823d318e35180861ac5caf0e8a05d2e7de49e981))
+
 ## [0.122.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.121.0...sdk-v0.122.0) (2026-07-24)
 
 
