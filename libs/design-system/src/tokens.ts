@@ -87,17 +87,20 @@ export const lightColors = {
     elevated: '#ffffff',
     overlay: '#f0f0f4',
   },
+  // Light primary/accent are darkened so they meet WCAG AA both as text on
+  // light surfaces (>=4.5:1 vs #fff) and as fills under inverse text (>=4.5:1
+  // vs #e8e8f0). Hover goes darker/richer (not lighter) in light theme. #1643.
   primary: {
-    DEFAULT: '#009990',
-    hover: '#00b3a8',
-    muted: 'rgba(0, 153, 144, 0.08)',
-    subtle: 'rgba(0, 153, 144, 0.04)',
+    DEFAULT: '#007068',
+    hover: '#005c54',
+    muted: 'rgba(0, 112, 104, 0.08)',
+    subtle: 'rgba(0, 112, 104, 0.04)',
   },
   accent: {
-    DEFAULT: '#c49000',
-    hover: '#d4a010',
-    muted: 'rgba(196, 144, 0, 0.08)',
-    subtle: 'rgba(196, 144, 0, 0.04)',
+    DEFAULT: '#8a6600',
+    hover: '#725400',
+    muted: 'rgba(138, 102, 0, 0.08)',
+    subtle: 'rgba(138, 102, 0, 0.04)',
   },
   text: {
     DEFAULT: '#1a1a2e',
@@ -109,23 +112,25 @@ export const lightColors = {
   border: {
     DEFAULT: '#e0e0e8',
     hover: '#c8c8d4',
-    focus: '#009990',
+    focus: '#007068',
   },
+  // Light signals darkened to meet WCAG AA as text/badges on light surfaces and
+  // their muted tints; warning stays distinctly orange (vs the amber accent). #1643.
   error: {
     DEFAULT: '#d03050',
     muted: 'rgba(208, 48, 80, 0.08)',
   },
   warning: {
-    DEFAULT: '#d08820',
-    muted: 'rgba(208, 136, 32, 0.08)',
+    DEFAULT: '#a05500',
+    muted: 'rgba(160, 85, 0, 0.08)',
   },
   success: {
-    DEFAULT: '#30a050',
-    muted: 'rgba(48, 160, 80, 0.08)',
+    DEFAULT: '#18783a',
+    muted: 'rgba(24, 120, 58, 0.08)',
   },
   info: {
-    DEFAULT: '#3080d0',
-    muted: 'rgba(48, 128, 208, 0.08)',
+    DEFAULT: '#2166b8',
+    muted: 'rgba(33, 102, 184, 0.08)',
   },
   white: '#ffffff',
   black: '#000000',
