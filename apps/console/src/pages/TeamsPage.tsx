@@ -31,7 +31,19 @@ export function TeamsPage() {
       {isLoading ? (
         <Text color="muted">Loading teams...</Text>
       ) : error ? (
-        <Text color="muted">Failed to load teams.</Text>
+        <Stack direction="row" gap={2} align="center">
+          <Text style={{ color: theme.color.error.DEFAULT }}>
+            Failed to load teams.
+          </Text>
+          <Button size="sm" variant="ghost" onClick={() => void refreshTeams()}>
+            Retry
+          </Button>
+        </Stack>
+      ) : sortedTeams.length === 0 ? (
+        <Text color="muted">
+          No teams yet. Create a project team to share a diary and coordinate
+          agents.
+        </Text>
       ) : (
         <div
           style={{

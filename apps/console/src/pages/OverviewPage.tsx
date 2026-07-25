@@ -138,6 +138,14 @@ export function OverviewPage() {
         <Text color="muted">{briefing.summary}</Text>
       </Stack>
 
+      {hasProjectTeam &&
+        (diariesQuery.isError || teamQuery.isError || tasksQuery.isError) && (
+          <Text style={{ color: theme.color.warning.DEFAULT }}>
+            Some pilot data couldn&apos;t be loaded, so the checks below may be
+            incomplete.
+          </Text>
+        )}
+
       <Card variant="outlined" padding="md" glow="accent">
         <Stack gap={2}>
           <Stack direction="row" gap={2} align="center" wrap>

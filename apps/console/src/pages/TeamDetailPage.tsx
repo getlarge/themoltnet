@@ -59,6 +59,13 @@ export function TeamDetailPage({ id }: { id: string }) {
   const [diaries, setDiaries] = useState<DiaryCatalog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  // Per-section load failures — surfaced so a failed fetch is never mistaken
+  // for an empty section on this permissions surface.
+  const [sectionErrors, setSectionErrors] = useState({
+    invites: false,
+    groups: false,
+    diaries: false,
+  });
   const [actionError, setActionError] = useState<string | null>(null);
   const [updatingMemberId, setUpdatingMemberId] = useState<string | null>(null);
   const [memberQuery, setMemberQuery] = useState('');
@@ -120,8 +127,11 @@ export function TeamDetailPage({ id }: { id: string }) {
         path: { id },
       });
       if (data) setInvites(data.items);
+      setSectionErrors((s) => ({ ...s, invites: false }));
     } catch {
-      // Non-critical
+      // A failed load must be distinguishable from "none" on a permissions
+      // surface — surface it instead of silently showing an empty section.
+      setSectionErrors((s) => ({ ...s, invites: true }));
     }
   }, [id, canManage]);
 
@@ -132,8 +142,9 @@ export function TeamDetailPage({ id }: { id: string }) {
         path: { id },
       });
       if (data) setGroups(data.items);
+      setSectionErrors((s) => ({ ...s, groups: false }));
     } catch {
-      // Non-critical
+      setSectionErrors((s) => ({ ...s, groups: true }));
     }
   }, [id]);
 
@@ -144,8 +155,9 @@ export function TeamDetailPage({ id }: { id: string }) {
         headers: { 'x-moltnet-team-id': id },
       });
       if (data) setDiaries(data.items);
+      setSectionErrors((s) => ({ ...s, diaries: false }));
     } catch {
-      // Non-critical
+      setSectionErrors((s) => ({ ...s, diaries: true }));
     }
   }, [id]);
 
@@ -430,7 +442,20 @@ export function TeamDetailPage({ id }: { id: string }) {
                 </Button>
               )}
             </Stack>
-            {groups.length === 0 ? (
+            {sectionErrors.groups ? (
+              <Stack direction="row" gap={2} align="center">
+                <Text style={{ color: theme.color.error.DEFAULT }}>
+                  Couldn&apos;t load groups.
+                </Text>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => void loadGroups()}
+                >
+                  Retry
+                </Button>
+              </Stack>
+            ) : groups.length === 0 ? (
               <Text color="muted">
                 No groups yet. Groups let you bundle members for diary grants.
               </Text>
@@ -456,7 +481,20 @@ export function TeamDetailPage({ id }: { id: string }) {
           <Stack gap={4}>
             {callerRole === 'owner' && <PendingTransfersPanel teamId={id} />}
             <Text variant="h4">Diaries ({diaries.length})</Text>
-            {diaries.length === 0 ? (
+            {sectionErrors.diaries ? (
+              <Stack direction="row" gap={2} align="center">
+                <Text style={{ color: theme.color.error.DEFAULT }}>
+                  Couldn&apos;t load diaries.
+                </Text>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => void loadDiaries()}
+                >
+                  Retry
+                </Button>
+              </Stack>
+            ) : diaries.length === 0 ? (
               <Text color="muted">No diaries scoped to this team yet.</Text>
             ) : (
               <Stack gap={3}>
@@ -485,7 +523,20 @@ export function TeamDetailPage({ id }: { id: string }) {
                 Create invite
               </Button>
             </Stack>
-            {invites.length === 0 ? (
+            {sectionErrors.invites ? (
+              <Stack direction="row" gap={2} align="center">
+                <Text style={{ color: theme.color.error.DEFAULT }}>
+                  Couldn&apos;t load invites.
+                </Text>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => void loadInvites()}
+                >
+                  Retry
+                </Button>
+              </Stack>
+            ) : invites.length === 0 ? (
               <Text color="muted">No active invites.</Text>
             ) : (
               <Stack gap={3}>
@@ -600,7 +651,9 @@ function TabButton({
           active ? theme.color.primary.DEFAULT : 'transparent'
         }`,
         padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-        color: active ? theme.color.text.DEFAULT : theme.color.text.muted,
+        // Inactive tabs use secondary (not muted) — they're interactive, not
+        // de-emphasized content.
+        color: active ? theme.color.text.DEFAULT : theme.color.text.secondary,
         fontFamily: 'inherit',
         fontSize: theme.font.size.sm,
         fontWeight: active
