@@ -34,7 +34,7 @@ import {
 } from '../components/teams/GrantDiaryAccessDialog.js';
 import { GroupCard } from '../components/teams/GroupCard.js';
 import { InviteCard } from '../components/teams/InviteCard.js';
-import { MemberRow } from '../components/teams/MemberRow.js';
+import { MembersTable } from '../components/teams/MembersTable.js';
 import { PendingTransfersPanel } from '../components/teams/PendingTransfersPanel.js';
 import { TeamDiaryCard } from '../components/teams/TeamDiaryCard.js';
 import { useTeam } from '../team/useTeam.js';
@@ -408,24 +408,14 @@ export function TeamDetailPage({ id }: { id: string }) {
             {filteredMembers.length === 0 ? (
               <Text color="muted">No members match your search.</Text>
             ) : (
-              <Stack gap={3}>
-                {filteredMembers.map((member) => (
-                  <MemberRow
-                    key={member.subjectId}
-                    subjectId={member.subjectId}
-                    subjectType={member.subjectType}
-                    role={member.role}
-                    displayName={member.displayName}
-                    fingerprint={member.fingerprint}
-                    email={member.email}
-                    roleActionLabel={roleActionLabel(member) ?? undefined}
-                    roleActionPending={updatingMemberId === member.subjectId}
-                    canRemove={canRemoveMember(member)}
-                    onRoleAction={() => void handleToggleMemberRole(member)}
-                    onRemove={() => setConfirmRemove(member)}
-                  />
-                ))}
-              </Stack>
+              <MembersTable
+                members={filteredMembers}
+                roleActionLabel={(m) => roleActionLabel(m) ?? undefined}
+                canRemove={canRemoveMember}
+                updatingMemberId={updatingMemberId}
+                onRoleAction={(m) => void handleToggleMemberRole(m)}
+                onRemove={(m) => setConfirmRemove(m)}
+              />
             )}
           </Stack>
         </div>

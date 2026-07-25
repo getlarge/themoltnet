@@ -144,6 +144,20 @@ function GrantSection({
   emptyText: string;
 }) {
   const theme = useTheme();
+  const cellPad = `${theme.spacing[2]} ${theme.spacing[3]}`;
+  const headStyle: React.CSSProperties = {
+    textAlign: 'left',
+    padding: cellPad,
+    borderBottom: `1px solid ${theme.color.border.DEFAULT}`,
+    color: theme.color.text.secondary,
+    fontWeight: theme.font.weight.medium,
+    whiteSpace: 'nowrap',
+  };
+  const td: React.CSSProperties = {
+    padding: cellPad,
+    borderBottom: `1px solid ${theme.color.border.DEFAULT}`,
+    verticalAlign: 'middle',
+  };
   return (
     <Stack gap={2}>
       <Text variant="caption" color="muted">
@@ -154,69 +168,92 @@ function GrantSection({
           {emptyText}
         </Text>
       ) : (
-        <Stack gap={2}>
-          {grants.map((g) => {
-            const subject = resolveSubject(g.subjectId, g.subjectNs);
-            return (
-              <Card
-                key={`${g.subjectNs}:${g.subjectId}:${g.role}`}
-                variant="outlined"
-                padding="sm"
-              >
-                <Stack
-                  direction="row"
-                  gap={3}
-                  align="center"
-                  justify="space-between"
-                >
-                  <Stack
-                    direction="row"
-                    gap={2}
-                    align="center"
-                    style={{ minWidth: 0, flex: 1 }}
-                  >
-                    <Badge variant="default">{iconFor(g.subjectNs)}</Badge>
-                    {subject.fingerprint ? (
-                      <KeyFingerprint
-                        fingerprint={subject.fingerprint}
-                        size="sm"
-                        copyable
-                      />
-                    ) : (
-                      <Text
-                        variant="body"
-                        style={{ fontSize: theme.font.size.sm }}
-                      >
-                        {subject.label}
-                      </Text>
-                    )}
-                  </Stack>
+        <Card variant="outlined" padding="none">
+          <div style={{ overflowX: 'auto' }}>
+            <table
+              style={{
+                width: '100%',
+                borderCollapse: 'collapse',
+                fontSize: theme.font.size.sm,
+              }}
+            >
+              <thead>
+                <tr>
+                  <th scope="col" style={headStyle}>
+                    Subject
+                  </th>
+                  <th scope="col" style={headStyle}>
+                    Type
+                  </th>
                   {canRevoke && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onRevoke(g)}
+                    <th
+                      scope="col"
+                      style={{ ...headStyle, textAlign: 'right' }}
                     >
-                      Revoke
-                    </Button>
+                      <span
+                        style={{
+                          position: 'absolute',
+                          width: 1,
+                          height: 1,
+                          overflow: 'hidden',
+                          clip: 'rect(0 0 0 0)',
+                        }}
+                      >
+                        Actions
+                      </span>
+                    </th>
                   )}
-                </Stack>
-              </Card>
-            );
-          })}
-        </Stack>
+                </tr>
+              </thead>
+              <tbody>
+                {grants.map((g) => {
+                  const subject = resolveSubject(g.subjectId, g.subjectNs);
+                  return (
+                    <tr key={`${g.subjectNs}:${g.subjectId}:${g.role}`}>
+                      <td style={{ ...td, minWidth: 0 }}>
+                        {subject.fingerprint ? (
+                          <KeyFingerprint
+                            fingerprint={subject.fingerprint}
+                            size="sm"
+                            copyable
+                          />
+                        ) : (
+                          <Text
+                            variant="body"
+                            style={{ fontSize: theme.font.size.sm }}
+                          >
+                            {subject.label}
+                          </Text>
+                        )}
+                      </td>
+                      <td style={td}>
+                        <Badge variant="default">{g.subjectNs}</Badge>
+                      </td>
+                      {canRevoke && (
+                        <td
+                          style={{
+                            ...td,
+                            textAlign: 'right',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => onRevoke(g)}
+                          >
+                            Revoke
+                          </Button>
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       )}
     </Stack>
   );
-}
-
-function iconFor(ns: Grant['subjectNs']): string {
-  switch (ns) {
-    case 'Agent':
-      return '🤖 Agent';
-    case 'Human':
-      return '👤 Human';
-    case 'Group':
-      return '👥 Group';
-  }
 }
