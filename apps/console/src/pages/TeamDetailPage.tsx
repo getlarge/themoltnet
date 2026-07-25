@@ -651,7 +651,9 @@ function TabButton({
           active ? theme.color.primary.DEFAULT : 'transparent'
         }`,
         padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-        color: active ? theme.color.text.DEFAULT : theme.color.text.muted,
+        // Inactive tabs use secondary (not muted) — they're interactive, not
+        // de-emphasized content.
+        color: active ? theme.color.text.DEFAULT : theme.color.text.secondary,
         fontFamily: 'inherit',
         fontSize: theme.font.size.sm,
         fontWeight: active

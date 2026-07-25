@@ -17,7 +17,7 @@ export function DiaryExplorePage({ id }: { id: string }) {
       <Stack gap={2}>
         <Link
           href={`/diaries/${id}`}
-          style={{ color: theme.color.text.muted, textDecoration: 'none' }}
+          style={{ color: theme.color.text.secondary, textDecoration: 'none' }}
         >
           &larr; {diaryName}
         </Link>
