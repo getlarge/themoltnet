@@ -103,24 +103,30 @@ describe('OverviewPage', () => {
     });
   });
 
-  it('surfaces the queued-task, daemon, and cost-cap constraints', async () => {
+  it('leads with live task counts and keeps the cost-cap caveat visible', async () => {
     render(<OverviewPage />, { wrapper: Wrapper });
 
+    // Task-state tiles lead the page (queued = 1 from the mock), no longer
+    // buried in a disclosure.
     expect(
-      await screen.findByRole('heading', {
-        name: 'Task waiting for an agent',
-      }),
+      await screen.findByRole('button', { name: /1 Queued/i }),
     ).toBeInTheDocument();
+    expect(screen.getByText('Active')).toBeInTheDocument();
+    expect(screen.getByText('Completed')).toBeInTheDocument();
+    // The current task phase still reads in the setup checklist.
+    expect(screen.getByText('Task waiting for an agent')).toBeInTheDocument();
     expect(
       screen.getByText(/authorized agent-daemon running to claim work/i),
     ).toBeInTheDocument();
+    // Cost caveat is present and no longer inside a <details>.
     expect(
-      screen.getByText('Cost is not estimated or capped here'),
+      screen.getByText(/Cost is not estimated or capped here/),
     ).toBeInTheDocument();
+    // The old numbered-eyebrow triptych + disclosure are gone.
     expect(
-      screen.getByText('Pilot checks and activity').closest('details'),
-    ).not.toHaveAttribute('open');
-    expect(screen.getByText('2. Team agent')).toBeInTheDocument();
+      screen.queryByText('Pilot checks and activity'),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('2. Team agent')).not.toBeInTheDocument();
   });
 
   it('keeps workspace and agent phases when the task query fails', async () => {
@@ -129,14 +135,10 @@ describe('OverviewPage', () => {
     render(<OverviewPage />, { wrapper: Wrapper });
 
     expect(
-      await screen.findByRole('heading', { name: 'Task status unavailable' }),
+      await screen.findByText('Task status unavailable'),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', { name: 'Project workspace ready' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', { name: 'Team agent ready' }),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Project workspace ready')).toBeInTheDocument();
+    expect(screen.getByText('Team agent ready')).toBeInTheDocument();
     expect(
       screen.queryByRole('heading', { name: 'Pilot status is unavailable' }),
     ).not.toBeInTheDocument();
@@ -152,14 +154,10 @@ describe('OverviewPage', () => {
     render(<OverviewPage />, { wrapper: Wrapper });
 
     expect(
-      await screen.findByRole('heading', { name: 'Diary status unavailable' }),
+      await screen.findByText('Diary status unavailable'),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', { name: 'Team agent ready' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', { name: 'Task waiting for an agent' }),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Team agent ready')).toBeInTheDocument();
+    expect(screen.getByText('Task waiting for an agent')).toBeInTheDocument();
   });
 
   it('renders the loading state from an overridable team hook', () => {
