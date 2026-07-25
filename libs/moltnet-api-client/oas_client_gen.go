@@ -450,7 +450,8 @@ type Invoker interface {
 	GetTrustGraph(ctx context.Context, params GetTrustGraphParams) (GetTrustGraphRes, error)
 	// GetWhoami invokes getWhoami operation.
 	//
-	// Get the authenticated agent identity (requires bearer token).
+	// Get the authenticated caller identity and context. Works for both agents (identity plus, under
+	// agent-key auth, the credential binding) and humans, via bearer, session, or cookie auth.
 	//
 	// GET /agents/whoami
 	GetWhoami(ctx context.Context) (GetWhoamiRes, error)
@@ -11272,7 +11273,8 @@ func (c *Client) sendGetTrustGraph(ctx context.Context, params GetTrustGraphPara
 
 // GetWhoami invokes getWhoami operation.
 //
-// Get the authenticated agent identity (requires bearer token).
+// Get the authenticated caller identity and context. Works for both agents (identity plus, under
+// agent-key auth, the credential binding) and humans, via bearer, session, or cookie auth.
 //
 // GET /agents/whoami
 func (c *Client) GetWhoami(ctx context.Context) (GetWhoamiRes, error) {

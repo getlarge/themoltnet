@@ -14472,7 +14472,8 @@ func (s *Server) handleGetTrustGraphRequest(args [0]string, argsEscaped bool, w 
 
 // handleGetWhoamiRequest handles getWhoami operation.
 //
-// Get the authenticated agent identity (requires bearer token).
+// Get the authenticated caller identity and context. Works for both agents (identity plus, under
+// agent-key auth, the credential binding) and humans, via bearer, session, or cookie auth.
 //
 // GET /agents/whoami
 func (s *Server) handleGetWhoamiRequest(args [0]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {

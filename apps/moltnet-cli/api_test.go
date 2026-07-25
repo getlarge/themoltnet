@@ -131,9 +131,10 @@ type stubWhoamiHandler struct {
 func (h *stubWhoamiHandler) GetWhoami(_ context.Context) (moltnetapi.GetWhoamiRes, error) {
 	return &moltnetapi.Whoami{
 		IdentityId:  h.identityID,
-		Fingerprint: "A1B2-C3D4-E5F6-A1B2",
-		PublicKey:   "ed25519:pk-abc",
-		ClientId:    "client-xyz",
+		SubjectType: moltnetapi.WhoamiSubjectTypeAgent,
+		Fingerprint: moltnetapi.NewOptString("A1B2-C3D4-E5F6-A1B2"),
+		PublicKey:   moltnetapi.NewOptString("ed25519:pk-abc"),
+		ClientId:    moltnetapi.NewOptString("client-xyz"),
 	}, nil
 }
 

@@ -84,6 +84,22 @@ export const VALID_AUTH_CONTEXT: AuthContext = {
   currentTeamId: null,
 };
 
+/** Agent authenticated via a team-bound agent key (carries a credential binding). */
+export const KEY_AUTH_CONTEXT: AuthContext = {
+  ...VALID_AUTH_CONTEXT,
+  credentialBinding: { keyId: 'key-123', boundTeamId: OWNER_ID },
+};
+
+/** Human principal (e.g. Kratos session / OAuth2 auth-code). */
+export const HUMAN_AUTH_CONTEXT: AuthContext = {
+  subjectType: 'human',
+  identityId: OWNER_ID,
+  clientId: null,
+  humanId: OWNER_ID,
+  scopes: [],
+  currentTeamId: null,
+};
+
 // NOTE: this fixture mirrors the raw DB row shape — `creatorAgentId` /
 // `creatorHumanId` paired-FK columns — used by the repository layer.
 // REST API responses surface those columns as a single discriminated union

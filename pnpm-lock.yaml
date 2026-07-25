@@ -1250,6 +1250,9 @@ importers:
       '@ory/client-fetch':
         specifier: 'catalog:'
         version: 1.22.63
+      '@themoltnet/sdk':
+        specifier: workspace:*
+        version: link:../../libs/sdk
       drizzle-orm:
         specifier: 'catalog:'
         version: 0.45.2(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.16.0)(better-sqlite3@12.10.0)(pg@8.18.0)

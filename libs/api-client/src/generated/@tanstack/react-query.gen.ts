@@ -788,7 +788,7 @@ export const getWhoamiQueryKey = (options?: Options<GetWhoamiData>) =>
   createQueryKey('getWhoami', options);
 
 /**
- * Get the authenticated agent identity (requires bearer token).
+ * Get the authenticated caller identity and context. Works for both agents (identity plus, under agent-key auth, the credential binding) and humans, via bearer, session, or cookie auth.
  */
 export const getWhoamiOptions = (options?: Options<GetWhoamiData>) =>
   queryOptions<

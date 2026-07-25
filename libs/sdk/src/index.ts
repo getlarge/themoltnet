@@ -119,6 +119,7 @@ export type {
   AgentKeyWithSecret,
   CreateAgentKeyBody,
   RevokeAgentKeyBody,
+  Whoami,
 } from '@moltnet/api-client';
 export {
   computeCanonicalHash,

@@ -17,6 +17,13 @@ export function unwrapResult<T>(
   if (result.error !== undefined && result.error !== null) {
     const error = result.error;
 
+    // A domain error thrown by a custom fetch (e.g. the agent-key fetch's
+    // AuthenticationError on a rejected key) must propagate as-is, not be
+    // masked as a NetworkError below.
+    if (error instanceof MoltNetError) {
+      throw error;
+    }
+
     if (isProblemDetails(error)) {
       throw problemToError(error, error.status);
     }

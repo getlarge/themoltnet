@@ -65529,6 +65529,39 @@ func (s *OptVerifyResultSigner) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes WhoamiCredentialBinding as json.
+func (o OptWhoamiCredentialBinding) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes WhoamiCredentialBinding from json.
+func (o *OptWhoamiCredentialBinding) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptWhoamiCredentialBinding to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptWhoamiCredentialBinding) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptWhoamiCredentialBinding) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes PreviewDiaryCustomPackBadRequest as json.
 func (s *PreviewDiaryCustomPackBadRequest) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
@@ -102796,28 +102829,53 @@ func (s *Whoami) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *Whoami) encodeFields(e *jx.Encoder) {
 	{
-		e.FieldStart("clientId")
-		e.Str(s.ClientId)
+		if s.ClientId.Set {
+			e.FieldStart("clientId")
+			s.ClientId.Encode(e)
+		}
 	}
 	{
-		e.FieldStart("fingerprint")
-		e.Str(s.Fingerprint)
+		if s.CredentialBinding.Set {
+			e.FieldStart("credentialBinding")
+			s.CredentialBinding.Encode(e)
+		}
+	}
+	{
+		if s.CurrentTeamId.Set {
+			e.FieldStart("currentTeamId")
+			s.CurrentTeamId.Encode(e)
+		}
+	}
+	{
+		if s.Fingerprint.Set {
+			e.FieldStart("fingerprint")
+			s.Fingerprint.Encode(e)
+		}
 	}
 	{
 		e.FieldStart("identityId")
 		json.EncodeUUID(e, s.IdentityId)
 	}
 	{
-		e.FieldStart("publicKey")
-		e.Str(s.PublicKey)
+		if s.PublicKey.Set {
+			e.FieldStart("publicKey")
+			s.PublicKey.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("subjectType")
+		s.SubjectType.Encode(e)
 	}
 }
 
-var jsonFieldsNameOfWhoami = [4]string{
+var jsonFieldsNameOfWhoami = [7]string{
 	0: "clientId",
-	1: "fingerprint",
-	2: "identityId",
-	3: "publicKey",
+	1: "credentialBinding",
+	2: "currentTeamId",
+	3: "fingerprint",
+	4: "identityId",
+	5: "publicKey",
+	6: "subjectType",
 }
 
 // Decode decodes Whoami from json.
@@ -102830,23 +102888,39 @@ func (s *Whoami) Decode(d *jx.Decoder) error {
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
 		case "clientId":
-			requiredBitSet[0] |= 1 << 0
 			if err := func() error {
-				v, err := d.Str()
-				s.ClientId = string(v)
-				if err != nil {
+				s.ClientId.Reset()
+				if err := s.ClientId.Decode(d); err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"clientId\"")
 			}
-		case "fingerprint":
-			requiredBitSet[0] |= 1 << 1
+		case "credentialBinding":
 			if err := func() error {
-				v, err := d.Str()
-				s.Fingerprint = string(v)
-				if err != nil {
+				s.CredentialBinding.Reset()
+				if err := s.CredentialBinding.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"credentialBinding\"")
+			}
+		case "currentTeamId":
+			if err := func() error {
+				s.CurrentTeamId.Reset()
+				if err := s.CurrentTeamId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"currentTeamId\"")
+			}
+		case "fingerprint":
+			if err := func() error {
+				s.Fingerprint.Reset()
+				if err := s.Fingerprint.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -102854,7 +102928,7 @@ func (s *Whoami) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"fingerprint\"")
 			}
 		case "identityId":
-			requiredBitSet[0] |= 1 << 2
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.IdentityId = v
@@ -102866,16 +102940,24 @@ func (s *Whoami) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"identityId\"")
 			}
 		case "publicKey":
-			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
-				v, err := d.Str()
-				s.PublicKey = string(v)
-				if err != nil {
+				s.PublicKey.Reset()
+				if err := s.PublicKey.Decode(d); err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"publicKey\"")
+			}
+		case "subjectType":
+			requiredBitSet[0] |= 1 << 6
+			if err := func() error {
+				if err := s.SubjectType.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"subjectType\"")
 			}
 		default:
 			return d.Skip()
@@ -102887,7 +102969,7 @@ func (s *Whoami) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00001111,
+		0b01010000,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -102929,6 +103011,159 @@ func (s *Whoami) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *Whoami) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *WhoamiCredentialBinding) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *WhoamiCredentialBinding) encodeFields(e *jx.Encoder) {
+	{
+		if s.BoundTeamId.Set {
+			e.FieldStart("boundTeamId")
+			s.BoundTeamId.Encode(e)
+		}
+	}
+	{
+		e.FieldStart("keyId")
+		e.Str(s.KeyId)
+	}
+}
+
+var jsonFieldsNameOfWhoamiCredentialBinding = [2]string{
+	0: "boundTeamId",
+	1: "keyId",
+}
+
+// Decode decodes WhoamiCredentialBinding from json.
+func (s *WhoamiCredentialBinding) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode WhoamiCredentialBinding to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "boundTeamId":
+			if err := func() error {
+				s.BoundTeamId.Reset()
+				if err := s.BoundTeamId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"boundTeamId\"")
+			}
+		case "keyId":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.KeyId = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"keyId\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode WhoamiCredentialBinding")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000010,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfWhoamiCredentialBinding) {
+					name = jsonFieldsNameOfWhoamiCredentialBinding[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *WhoamiCredentialBinding) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *WhoamiCredentialBinding) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes WhoamiSubjectType as json.
+func (s WhoamiSubjectType) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes WhoamiSubjectType from json.
+func (s *WhoamiSubjectType) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode WhoamiSubjectType to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch WhoamiSubjectType(v) {
+	case WhoamiSubjectTypeAgent:
+		*s = WhoamiSubjectTypeAgent
+	case WhoamiSubjectTypeHuman:
+		*s = WhoamiSubjectTypeHuman
+	default:
+		*s = WhoamiSubjectType(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s WhoamiSubjectType) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *WhoamiSubjectType) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

@@ -37196,6 +37196,52 @@ func (o OptVerifyResultSigner) Or(d VerifyResultSigner) VerifyResultSigner {
 	return d
 }
 
+// NewOptWhoamiCredentialBinding returns new OptWhoamiCredentialBinding with value set to v.
+func NewOptWhoamiCredentialBinding(v WhoamiCredentialBinding) OptWhoamiCredentialBinding {
+	return OptWhoamiCredentialBinding{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptWhoamiCredentialBinding is optional WhoamiCredentialBinding.
+type OptWhoamiCredentialBinding struct {
+	Value WhoamiCredentialBinding
+	Set   bool
+}
+
+// IsSet returns true if OptWhoamiCredentialBinding was set.
+func (o OptWhoamiCredentialBinding) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptWhoamiCredentialBinding) Reset() {
+	var v WhoamiCredentialBinding
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptWhoamiCredentialBinding) SetTo(v WhoamiCredentialBinding) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptWhoamiCredentialBinding) Get() (v WhoamiCredentialBinding, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptWhoamiCredentialBinding) Or(d WhoamiCredentialBinding) WhoamiCredentialBinding {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 type PreviewDiaryCustomPackBadRequest ProblemDetails
 
 func (*PreviewDiaryCustomPackBadRequest) previewDiaryCustomPackRes() {}
@@ -56216,19 +56262,32 @@ func (*Voucher) issueVoucherRes() {}
 
 // Ref: #/components/schemas/Whoami
 type Whoami struct {
-	ClientId    string    `json:"clientId"`
-	Fingerprint string    `json:"fingerprint"`
-	IdentityId  uuid.UUID `json:"identityId"`
-	PublicKey   string    `json:"publicKey"`
+	ClientId          OptString                  `json:"clientId"`
+	CredentialBinding OptWhoamiCredentialBinding `json:"credentialBinding"`
+	CurrentTeamId     OptNilUUID                 `json:"currentTeamId"`
+	Fingerprint       OptString                  `json:"fingerprint"`
+	IdentityId        uuid.UUID                  `json:"identityId"`
+	PublicKey         OptString                  `json:"publicKey"`
+	SubjectType       WhoamiSubjectType          `json:"subjectType"`
 }
 
 // GetClientId returns the value of ClientId.
-func (s *Whoami) GetClientId() string {
+func (s *Whoami) GetClientId() OptString {
 	return s.ClientId
 }
 
+// GetCredentialBinding returns the value of CredentialBinding.
+func (s *Whoami) GetCredentialBinding() OptWhoamiCredentialBinding {
+	return s.CredentialBinding
+}
+
+// GetCurrentTeamId returns the value of CurrentTeamId.
+func (s *Whoami) GetCurrentTeamId() OptNilUUID {
+	return s.CurrentTeamId
+}
+
 // GetFingerprint returns the value of Fingerprint.
-func (s *Whoami) GetFingerprint() string {
+func (s *Whoami) GetFingerprint() OptString {
 	return s.Fingerprint
 }
 
@@ -56238,17 +56297,32 @@ func (s *Whoami) GetIdentityId() uuid.UUID {
 }
 
 // GetPublicKey returns the value of PublicKey.
-func (s *Whoami) GetPublicKey() string {
+func (s *Whoami) GetPublicKey() OptString {
 	return s.PublicKey
 }
 
+// GetSubjectType returns the value of SubjectType.
+func (s *Whoami) GetSubjectType() WhoamiSubjectType {
+	return s.SubjectType
+}
+
 // SetClientId sets the value of ClientId.
-func (s *Whoami) SetClientId(val string) {
+func (s *Whoami) SetClientId(val OptString) {
 	s.ClientId = val
 }
 
+// SetCredentialBinding sets the value of CredentialBinding.
+func (s *Whoami) SetCredentialBinding(val OptWhoamiCredentialBinding) {
+	s.CredentialBinding = val
+}
+
+// SetCurrentTeamId sets the value of CurrentTeamId.
+func (s *Whoami) SetCurrentTeamId(val OptNilUUID) {
+	s.CurrentTeamId = val
+}
+
 // SetFingerprint sets the value of Fingerprint.
-func (s *Whoami) SetFingerprint(val string) {
+func (s *Whoami) SetFingerprint(val OptString) {
 	s.Fingerprint = val
 }
 
@@ -56258,8 +56332,79 @@ func (s *Whoami) SetIdentityId(val uuid.UUID) {
 }
 
 // SetPublicKey sets the value of PublicKey.
-func (s *Whoami) SetPublicKey(val string) {
+func (s *Whoami) SetPublicKey(val OptString) {
 	s.PublicKey = val
 }
 
+// SetSubjectType sets the value of SubjectType.
+func (s *Whoami) SetSubjectType(val WhoamiSubjectType) {
+	s.SubjectType = val
+}
+
 func (*Whoami) getWhoamiRes() {}
+
+type WhoamiCredentialBinding struct {
+	BoundTeamId OptUUID `json:"boundTeamId"`
+	KeyId       string  `json:"keyId"`
+}
+
+// GetBoundTeamId returns the value of BoundTeamId.
+func (s *WhoamiCredentialBinding) GetBoundTeamId() OptUUID {
+	return s.BoundTeamId
+}
+
+// GetKeyId returns the value of KeyId.
+func (s *WhoamiCredentialBinding) GetKeyId() string {
+	return s.KeyId
+}
+
+// SetBoundTeamId sets the value of BoundTeamId.
+func (s *WhoamiCredentialBinding) SetBoundTeamId(val OptUUID) {
+	s.BoundTeamId = val
+}
+
+// SetKeyId sets the value of KeyId.
+func (s *WhoamiCredentialBinding) SetKeyId(val string) {
+	s.KeyId = val
+}
+
+type WhoamiSubjectType string
+
+const (
+	WhoamiSubjectTypeAgent WhoamiSubjectType = "agent"
+	WhoamiSubjectTypeHuman WhoamiSubjectType = "human"
+)
+
+// AllValues returns all WhoamiSubjectType values.
+func (WhoamiSubjectType) AllValues() []WhoamiSubjectType {
+	return []WhoamiSubjectType{
+		WhoamiSubjectTypeAgent,
+		WhoamiSubjectTypeHuman,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s WhoamiSubjectType) MarshalText() ([]byte, error) {
+	switch s {
+	case WhoamiSubjectTypeAgent:
+		return []byte(s), nil
+	case WhoamiSubjectTypeHuman:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *WhoamiSubjectType) UnmarshalText(data []byte) error {
+	switch WhoamiSubjectType(data) {
+	case WhoamiSubjectTypeAgent:
+		*s = WhoamiSubjectTypeAgent
+		return nil
+	case WhoamiSubjectTypeHuman:
+		*s = WhoamiSubjectTypeHuman
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}

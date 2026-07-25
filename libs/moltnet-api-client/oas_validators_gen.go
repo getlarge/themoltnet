@@ -33184,3 +33184,37 @@ func (s *VerifyRecoveryChallengeReq) Validate() error {
 	}
 	return nil
 }
+
+func (s *Whoami) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.SubjectType.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "subjectType",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s WhoamiSubjectType) Validate() error {
+	switch s {
+	case "agent":
+		return nil
+	case "human":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}

@@ -1,5 +1,6 @@
 import { createRateLimitFetch } from '@moltnet/api-client/retry';
 
+import { AuthenticationError } from './errors.js';
 import type { TokenManager } from './token.js';
 
 export type { RateLimitRetryOptions } from '@moltnet/api-client/retry';
@@ -58,5 +59,44 @@ export function createRetryFetch(
     };
 
     return doFetch(init);
+  };
+}
+
+/**
+ * Create a fetch wrapper for agent-key (static-bearer) authentication.
+ *
+ * A static key cannot be refreshed, so there is no token-invalidation/replay
+ * (that half of {@link createRetryFetch} is intentionally omitted). What remains
+ * is orthogonal to token refresh and still matters for a long-running client:
+ *
+ * - **429**: delegates to `createRateLimitFetch` (Retry-After / backoff), unless
+ *   `retry` is `false`.
+ * - **401**: the key was rejected (revoked, expired, or not authorized for the
+ *   requested team). Rather than silently returning a bare 401 on every call,
+ *   throw an actionable {@link AuthenticationError}. The key value is never
+ *   included in the message.
+ */
+export function createAgentKeyFetch(
+  retry?: RetryOptions | false,
+): typeof fetch {
+  const rateLimitFetch =
+    retry === false
+      ? fetch
+      : createRateLimitFetch({
+          maxRetries: retry?.maxRateLimitRetries,
+          baseDelayMs: retry?.baseDelayMs,
+          maxDelayMs: retry?.maxDelayMs,
+        });
+
+  return async (input: RequestInfo | URL, init?: RequestInit) => {
+    const response = await rateLimitFetch(input, init);
+    if (response.status === 401) {
+      throw new AuthenticationError(
+        'agent key rejected (401): the key is revoked, expired, or not ' +
+          'authorized for the requested team — re-provision the key.',
+        { statusCode: 401 },
+      );
+    }
+    return response;
   };
 }

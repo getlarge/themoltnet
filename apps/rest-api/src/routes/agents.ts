@@ -134,7 +134,9 @@ export async function agentRoutes(fastify: FastifyInstance) {
         operationId: 'getWhoami',
         tags: ['agents'],
         description:
-          'Get the authenticated agent identity (requires bearer token).',
+          'Get the authenticated caller identity and context. Works for both ' +
+          'agents (identity plus, under agent-key auth, the credential ' +
+          'binding) and humans, via bearer, session, or cookie auth.',
         security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
         response: {
           200: Type.Ref(WhoamiSchema.$id),
@@ -147,8 +149,14 @@ export async function agentRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const authContext = request.authContext!;
-      if (authContext.subjectType !== 'agent') {
-        throw createProblem('forbidden', 'This endpoint is for agents only');
+
+      if (authContext.subjectType === 'human') {
+        request.log.debug({ subjectType: 'human' }, 'whoami resolved');
+        return {
+          identityId: authContext.identityId,
+          subjectType: 'human' as const,
+          currentTeamId: authContext.currentTeamId,
+        };
       }
 
       const agent = await fastify.agentRepository.findByIdentityId(
@@ -159,11 +167,32 @@ export async function agentRoutes(fastify: FastifyInstance) {
         throw createProblem('not-found', 'Agent profile not found');
       }
 
+      // keyId is a non-secret identifier; log it for audit. The secret is never
+      // present in the auth context.
+      request.log.debug(
+        {
+          subjectType: 'agent',
+          hasCredentialBinding: Boolean(authContext.credentialBinding),
+          keyId: authContext.credentialBinding?.keyId,
+        },
+        'whoami resolved',
+      );
+
       return {
         identityId: agent.identityId,
+        subjectType: 'agent' as const,
+        currentTeamId: authContext.currentTeamId,
         publicKey: agent.publicKey,
         fingerprint: agent.fingerprint,
         clientId: authContext.clientId,
+        ...(authContext.credentialBinding && {
+          credentialBinding: {
+            keyId: authContext.credentialBinding.keyId,
+            ...(authContext.credentialBinding.boundTeamId && {
+              boundTeamId: authContext.credentialBinding.boundTeamId,
+            }),
+          },
+        }),
       };
     },
   );

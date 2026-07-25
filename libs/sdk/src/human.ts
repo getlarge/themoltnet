@@ -1,4 +1,4 @@
-import type { Client, Config } from '@moltnet/api-client';
+import type { Client, Config, Whoami } from '@moltnet/api-client';
 import { createClient } from '@moltnet/api-client';
 
 import type {
@@ -15,6 +15,7 @@ import type {
   TeamsNamespace,
 } from './agent.js';
 import type { AgentContext } from './agent-context.js';
+import { normalizeApiUrl } from './api-url.js';
 import { createAgentKeysNamespace } from './namespaces/agent-keys.js';
 import { createDiariesNamespace } from './namespaces/diaries.js';
 import { createDiaryGrantsNamespace } from './namespaces/diary-grants.js';
@@ -26,8 +27,7 @@ import { createPublicNamespace } from './namespaces/public.js';
 import { createRuntimeProfilesNamespace } from './namespaces/runtime-profiles.js';
 import { createTasksNamespace } from './namespaces/tasks.js';
 import { createTeamsNamespace } from './namespaces/teams.js';
-
-const DEFAULT_API_URL = 'https://api.themolt.net';
+import { createWhoami } from './namespaces/whoami.js';
 
 export interface HumanClient {
   readonly kind: 'human';
@@ -42,6 +42,9 @@ export interface HumanClient {
   problems: ProblemsNamespace;
   teams: TeamsNamespace;
   tasks: TasksNamespace;
+
+  /** Return this human's identity and context (subject type, current team). */
+  whoami(): Promise<Whoami>;
 
   /** Return the underlying hey-api client for advanced use. */
   readonly client: Client;
@@ -85,7 +88,7 @@ export function connectHuman(options: ConnectHumanOptions = {}): HumanClient {
   const client =
     options.client ??
     createClient({
-      baseUrl: (options.apiUrl ?? DEFAULT_API_URL).replace(/\/$/, ''),
+      baseUrl: normalizeApiUrl(options.apiUrl),
       credentials: options.credentials ?? 'include',
       ...(options.fetch && { fetch: options.fetch }),
       ...(options.headers && { headers: options.headers }),
@@ -107,6 +110,7 @@ export function connectHuman(options: ConnectHumanOptions = {}): HumanClient {
     problems: createProblemsNamespace(context),
     teams: createTeamsNamespace(context),
     tasks: createTasksNamespace(context),
+    whoami: createWhoami(context),
     client,
   };
 }

@@ -5,6 +5,8 @@ import {
   createMockAgent,
   createMockServices,
   createTestApp,
+  HUMAN_AUTH_CONTEXT,
+  KEY_AUTH_CONTEXT,
   type MockServices,
   OTHER_AGENT_ID,
   OWNER_ID,
@@ -166,7 +168,7 @@ describe('Agent routes', () => {
   });
 
   describe('GET /agents/whoami', () => {
-    it('returns current agent profile', async () => {
+    it('returns current agent identity with subjectType and currentTeamId', async () => {
       mocks.agentRepository.findByIdentityId.mockResolvedValue(
         createMockAgent(),
       );
@@ -181,6 +183,46 @@ describe('Agent routes', () => {
       const body = response.json();
       expect(body.identityId).toBe(OWNER_ID);
       expect(body.fingerprint).toBe('C212-DAFA-27C5-6C57');
+      expect(body.subjectType).toBe('agent');
+      expect(body).toHaveProperty('currentTeamId');
+      expect(body).not.toHaveProperty('credentialBinding');
+    });
+
+    it('includes credentialBinding when authenticated via an agent key', async () => {
+      const keyApp = await createTestApp(mocks, KEY_AUTH_CONTEXT);
+      mocks.agentRepository.findByIdentityId.mockResolvedValue(
+        createMockAgent(),
+      );
+
+      const response = await keyApp.inject({
+        method: 'GET',
+        url: '/agents/whoami',
+        headers: authHeaders,
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json().credentialBinding).toEqual({
+        keyId: 'key-123',
+        boundTeamId: OWNER_ID,
+      });
+      await keyApp.close();
+    });
+
+    it('returns a human identity without a 403', async () => {
+      const humanApp = await createTestApp(mocks, HUMAN_AUTH_CONTEXT);
+
+      const response = await humanApp.inject({
+        method: 'GET',
+        url: '/agents/whoami',
+        headers: authHeaders,
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.identityId).toBe(OWNER_ID);
+      expect(body.subjectType).toBe('human');
+      expect(body).not.toHaveProperty('publicKey');
+      await humanApp.close();
     });
 
     it('returns 401 without auth', async () => {

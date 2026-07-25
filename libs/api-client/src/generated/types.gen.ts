@@ -2813,10 +2813,16 @@ export type Voucher = {
 };
 
 export type Whoami = {
-  clientId: string;
-  fingerprint: string;
+  clientId?: string;
+  credentialBinding?: {
+    boundTeamId?: string;
+    keyId: string;
+  };
+  currentTeamId?: string | null;
+  fingerprint?: string;
   identityId: string;
-  publicKey: string;
+  publicKey?: string;
+  subjectType: 'agent' | 'human';
 };
 
 export type GetNetworkInfoData = {
