@@ -15,9 +15,10 @@ type stubAgentsHandler struct {
 func (h *stubAgentsHandler) GetWhoami(_ context.Context) (moltnetapi.GetWhoamiRes, error) {
 	return &moltnetapi.Whoami{
 		IdentityId:  uuid.MustParse("00000000-0000-0000-0000-000000000001"),
-		Fingerprint: "A1B2-C3D4-E5F6-A1B2",
-		PublicKey:   "ed25519:pk-abc",
-		ClientId:    "client-xyz",
+		SubjectType: moltnetapi.WhoamiSubjectTypeAgent,
+		Fingerprint: moltnetapi.NewOptString("A1B2-C3D4-E5F6-A1B2"),
+		PublicKey:   moltnetapi.NewOptString("ed25519:pk-abc"),
+		ClientId:    moltnetapi.NewOptString("client-xyz"),
 	}, nil
 }
 
@@ -43,8 +44,8 @@ func TestAgentsWhoami(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected *Whoami, got %T", res)
 	}
-	if whoami.Fingerprint != "A1B2-C3D4-E5F6-A1B2" {
-		t.Errorf("expected fingerprint=A1B2-C3D4-E5F6-A1B2, got %q", whoami.Fingerprint)
+	if whoami.Fingerprint.Value != "A1B2-C3D4-E5F6-A1B2" {
+		t.Errorf("expected fingerprint=A1B2-C3D4-E5F6-A1B2, got %q", whoami.Fingerprint.Value)
 	}
 }
 
