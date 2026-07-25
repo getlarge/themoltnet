@@ -30,6 +30,28 @@ func writeSecretNotice(w io.Writer) {
 	fmt.Fprintln(w, agentKeySecretNotice)
 }
 
+// writeIdempotencyRetryHint tells the operator which idempotency key a failed
+// create used, so a bare re-run can reuse it instead of minting a duplicate
+// credential whose one-time secret would be lost. The idempotency key is not a
+// secret. It falls back to os.Stderr so the hint never lands on stdout.
+func writeIdempotencyRetryHint(w io.Writer, key string) {
+	if w == nil {
+		w = os.Stderr
+	}
+	fmt.Fprintf(w, "The request used idempotency key %s. If it may have reached the server, "+
+		"retry with --idempotency-key %s to avoid issuing a duplicate key.\n", key, key)
+}
+
+// parseTeamID parses the required --team-id flag into a UUID with a consistent
+// error message shared by every agent-keys command.
+func parseTeamID(v string) (uuid.UUID, error) {
+	id, err := uuid.Parse(v)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("invalid --team-id %q: %w", v, err)
+	}
+	return id, nil
+}
+
 // ----- list -----
 
 type agentsKeysListOpts struct {
@@ -123,9 +145,9 @@ func collectAllAgentKeys(
 }
 
 func buildListAgentKeysParams(opts agentsKeysListOpts) (moltnetapi.ListAgentKeysParams, error) {
-	teamID, err := uuid.Parse(opts.teamID)
+	teamID, err := parseTeamID(opts.teamID)
 	if err != nil {
-		return moltnetapi.ListAgentKeysParams{}, fmt.Errorf("invalid --team-id %q: %w", opts.teamID, err)
+		return moltnetapi.ListAgentKeysParams{}, err
 	}
 	params := moltnetapi.ListAgentKeysParams{XMoltnetTeamID: teamID}
 	if opts.agentSet {
@@ -204,12 +226,23 @@ func runAgentsKeysCreateWithClient(ctx context.Context, client *moltnetapi.Clien
 	if err != nil {
 		return err
 	}
+	// When the CLI generated the idempotency key, a failed create must surface
+	// it so a bare re-run can reuse it instead of minting a duplicate credential
+	// whose one-time secret would be lost. A caller-supplied key already known
+	// to the operator needs no hint.
+	generated := !opts.idempotencySet || opts.idempotencyKey == ""
 	res, err := client.CreateAgentKey(ctx, req, params)
 	if err != nil {
+		if generated {
+			writeIdempotencyRetryHint(opts.errOut, idempotencyKey)
+		}
 		return fmt.Errorf("agents keys create: %w", formatTransportError(err))
 	}
 	created, ok := res.(*moltnetapi.AgentKeyWithSecret)
 	if !ok {
+		if generated {
+			writeIdempotencyRetryHint(opts.errOut, idempotencyKey)
+		}
 		return formatAPIError(res)
 	}
 	writeSecretNotice(opts.errOut)
@@ -226,9 +259,9 @@ func runAgentsKeysCreateWithClient(ctx context.Context, client *moltnetapi.Clien
 // and generating one keeps single invocations ergonomic while still letting a
 // caller pin an explicit value to make a retry idempotent.
 func buildCreateAgentKey(opts agentsKeysCreateOpts) (*moltnetapi.CreateAgentKeyReq, moltnetapi.CreateAgentKeyParams, string, error) {
-	teamID, err := uuid.Parse(opts.teamID)
+	teamID, err := parseTeamID(opts.teamID)
 	if err != nil {
-		return nil, moltnetapi.CreateAgentKeyParams{}, "", fmt.Errorf("invalid --team-id %q: %w", opts.teamID, err)
+		return nil, moltnetapi.CreateAgentKeyParams{}, "", err
 	}
 	agentID, err := uuid.Parse(opts.agentID)
 	if err != nil {
@@ -295,9 +328,9 @@ func runAgentsKeysRotateWithClient(ctx context.Context, client *moltnetapi.Clien
 }
 
 func buildRotateAgentKeyParams(opts agentsKeysRotateOpts) (moltnetapi.RotateAgentKeyParams, error) {
-	teamID, err := uuid.Parse(opts.teamID)
+	teamID, err := parseTeamID(opts.teamID)
 	if err != nil {
-		return moltnetapi.RotateAgentKeyParams{}, fmt.Errorf("invalid --team-id %q: %w", opts.teamID, err)
+		return moltnetapi.RotateAgentKeyParams{}, err
 	}
 	if opts.keyID == "" {
 		return moltnetapi.RotateAgentKeyParams{}, fmt.Errorf("key ID is required")
@@ -355,9 +388,9 @@ func runAgentsKeysRevokeWithClient(ctx context.Context, client *moltnetapi.Clien
 }
 
 func buildRevokeAgentKey(opts agentsKeysRevokeOpts) (moltnetapi.OptRevokeAgentKeyReq, moltnetapi.RevokeAgentKeyParams, error) {
-	teamID, err := uuid.Parse(opts.teamID)
+	teamID, err := parseTeamID(opts.teamID)
 	if err != nil {
-		return moltnetapi.OptRevokeAgentKeyReq{}, moltnetapi.RevokeAgentKeyParams{}, fmt.Errorf("invalid --team-id %q: %w", opts.teamID, err)
+		return moltnetapi.OptRevokeAgentKeyReq{}, moltnetapi.RevokeAgentKeyParams{}, err
 	}
 	if opts.keyID == "" {
 		return moltnetapi.OptRevokeAgentKeyReq{}, moltnetapi.RevokeAgentKeyParams{}, fmt.Errorf("key ID is required")

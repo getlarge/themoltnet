@@ -56,12 +56,14 @@ type e2eAgentKeyResult struct {
 	IdempotencyKey string `json:"idempotencyKey"`
 }
 
+type e2eAgentKey struct {
+	ID     string `json:"id"`
+	Status string `json:"status"`
+}
+
 type e2eAgentKeyList struct {
-	Items []struct {
-		ID     string `json:"id"`
-		Status string `json:"status"`
-	} `json:"items"`
-	NextCursor *string `json:"nextCursor"`
+	Items      []e2eAgentKey `json:"items"`
+	NextCursor *string       `json:"nextCursor"`
 }
 
 func TestE2E_CLI_AgentKeyLifecycle(t *testing.T) {
@@ -145,11 +147,17 @@ func TestE2E_CLI_AgentKeyLifecycle(t *testing.T) {
 
 	// 7. Rotate the primary key with independent OAuth2 authority. The old
 	//    secret stops authenticating; the new one works.
-	stdout, _ = h.run(t, "agents", "keys", "rotate", created.Key.ID, "--team-id", team)
+	stdout, rotateStderr := h.run(t, "agents", "keys", "rotate", created.Key.ID, "--team-id", team)
 	var rotated e2eAgentKeyResult
 	decodeJSON(t, stdout, &rotated)
 	if rotated.Secret == "" || rotated.Key.ID == created.Key.ID {
 		t.Fatalf("rotate should return a new key id and secret, got %+v", rotated)
+	}
+	if !strings.Contains(rotateStderr, "shown exactly once") {
+		t.Errorf("rotate should print the one-time-secret notice to stderr, got: %s", rotateStderr)
+	}
+	if strings.Contains(rotateStderr, rotated.Secret) {
+		t.Error("the rotated secret must never appear on stderr")
 	}
 	if keyAuthenticates(t, e2eAPIURL, created.Secret) {
 		t.Error("the pre-rotation secret must stop authenticating after rotation")
@@ -175,10 +183,7 @@ func TestE2E_CLI_AgentKeyLifecycle(t *testing.T) {
 	}
 }
 
-func containsKey(items []struct {
-	ID     string `json:"id"`
-	Status string `json:"status"`
-}, id string) bool {
+func containsKey(items []e2eAgentKey, id string) bool {
 	for _, it := range items {
 		if it.ID == id {
 			return true

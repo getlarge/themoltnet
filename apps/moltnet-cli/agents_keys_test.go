@@ -401,6 +401,143 @@ func TestRunAgentsKeysCreate_ErrorLeaksNothingToStdout(t *testing.T) {
 	if strings.Contains(errOut.String(), "shown exactly once") {
 		t.Errorf("the secret notice must not print when creation fails, got: %s", errOut.String())
 	}
+	// The auto-generated idempotency key must be surfaced so a retry can recover
+	// instead of minting a duplicate.
+	if !strings.Contains(errOut.String(), "--idempotency-key") {
+		t.Errorf("stderr should surface the idempotency key for recovery, got: %s", errOut.String())
+	}
+}
+
+func TestRunAgentsKeysRotate_SecretOnlyInResult(t *testing.T) {
+	t.Parallel()
+	const secret = "sk_live_ROTATED_do_not_leak"
+
+	handler := agentKeysStubHandler{
+		rotate: func(_ moltnetapi.RotateAgentKeyParams) moltnetapi.RotateAgentKeyRes {
+			return &moltnetapi.AgentKeyWithSecret{
+				Key:    validAgentKey("key-rotated"),
+				Secret: secret,
+			}
+		},
+	}
+	_, _, client := newTestServer(t, handler)
+
+	var out, errOut bytes.Buffer
+	err := runAgentsKeysRotateWithClient(context.Background(), client, agentsKeysRotateOpts{
+		teamID: testTeamID, keyID: "key-1", out: &out, errOut: &errOut,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(out.String(), secret) {
+		t.Errorf("stdout should contain the rotated secret, got: %s", out.String())
+	}
+	if strings.Contains(errOut.String(), secret) {
+		t.Errorf("stderr must not contain the rotated secret, got: %s", errOut.String())
+	}
+	if !strings.Contains(errOut.String(), "shown exactly once") {
+		t.Errorf("rotate should carry the one-time-secret notice, got: %s", errOut.String())
+	}
+}
+
+func TestRunAgentsKeysRotate_ErrorPaths(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name string
+		res  moltnetapi.RotateAgentKeyRes
+		want string
+	}{
+		{
+			name: "not found",
+			res: &moltnetapi.RotateAgentKeyNotFound{
+				Code: moltnetapi.ProblemDetailsCodeNOTFOUND, Status: 404, Title: "Not Found", Type: problemType,
+			},
+			want: "404",
+		},
+		{
+			name: "rate limited",
+			res: &moltnetapi.RotateAgentKeyTooManyRequests{
+				Code: moltnetapi.ProblemDetailsCodeVALIDATIONFAILED, Status: 429, Title: "Too Many Requests", Type: problemType,
+			},
+			want: "429",
+		},
+	}
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			handler := agentKeysStubHandler{
+				rotate: func(_ moltnetapi.RotateAgentKeyParams) moltnetapi.RotateAgentKeyRes { return tc.res },
+			}
+			_, _, client := newTestServer(t, handler)
+			var out, errOut bytes.Buffer
+			err := runAgentsKeysRotateWithClient(context.Background(), client, agentsKeysRotateOpts{
+				teamID: testTeamID, keyID: "key-1", out: &out, errOut: &errOut,
+			})
+			if err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("expected error containing %q, got %v", tc.want, err)
+			}
+			if strings.Contains(errOut.String(), "shown exactly once") || out.Len() != 0 {
+				t.Errorf("no secret notice or stdout output on error; stdout=%q stderr=%q", out.String(), errOut.String())
+			}
+		})
+	}
+}
+
+func TestRunAgentsKeysList_ErrorPath(t *testing.T) {
+	t.Parallel()
+
+	handler := agentKeysStubHandler{
+		list: func(_ moltnetapi.ListAgentKeysParams) moltnetapi.ListAgentKeysRes {
+			return &moltnetapi.ListAgentKeysForbidden{
+				Code: moltnetapi.ProblemDetailsCodeFORBIDDEN, Status: 403, Title: "Forbidden", Type: problemType,
+			}
+		},
+	}
+	_, _, client := newTestServer(t, handler)
+	var out bytes.Buffer
+	err := runAgentsKeysListWithClient(context.Background(), client, agentsKeysListOpts{teamID: testTeamID, out: &out})
+	if err == nil || !strings.Contains(err.Error(), "403") {
+		t.Fatalf("expected 403 error, got %v", err)
+	}
+	if out.Len() != 0 {
+		t.Errorf("nothing should reach stdout on a list error, got: %s", out.String())
+	}
+}
+
+func TestRunAgentsKeysList_EmptyResultSet(t *testing.T) {
+	t.Parallel()
+
+	handler := agentKeysStubHandler{
+		list: func(_ moltnetapi.ListAgentKeysParams) moltnetapi.ListAgentKeysRes {
+			n := moltnetapi.NilString{}
+			n.SetToNull()
+			return &moltnetapi.AgentKeyList{Items: []moltnetapi.AgentKey{}, NextCursor: n}
+		},
+	}
+	_, _, client := newTestServer(t, handler)
+
+	for _, all := range []bool{false, true} {
+		var out bytes.Buffer
+		err := runAgentsKeysListWithClient(context.Background(), client, agentsKeysListOpts{teamID: testTeamID, all: all, out: &out})
+		if err != nil {
+			t.Fatalf("all=%v: unexpected error: %v", all, err)
+		}
+		var page moltnetapi.AgentKeyList
+		if derr := json.Unmarshal(out.Bytes(), &page); derr != nil {
+			t.Fatalf("all=%v: bad JSON: %v", all, derr)
+		}
+		if page.Items == nil {
+			t.Errorf("all=%v: items should be a non-nil empty list", all)
+		}
+		if len(page.Items) != 0 {
+			t.Errorf("all=%v: items should be empty, got %d", all, len(page.Items))
+		}
+		if !page.NextCursor.IsNull() {
+			t.Errorf("all=%v: nextCursor should be null on an empty result", all)
+		}
+	}
 }
 
 func TestRunAgentsKeysList_SinglePageAndAll(t *testing.T) {
