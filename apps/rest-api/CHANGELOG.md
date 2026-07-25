@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.32.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.31.0...rest-api-v0.32.0) (2026-07-25)
+
+
+### Features
+
+* **rest-api:** accurate whoami description + subject-type log ([534e268](https://github.com/getlarge/themoltnet/commit/534e26811d20898a5a84f4457fc71fd1f093347e))
+* **rest-api:** unified whoami for agents and humans ([7f43807](https://github.com/getlarge/themoltnet/commit/7f438070b0d00e9a74edf0af681a8f5f5048e97d))
+* **sdk:** agent-key auth + unified whoami (daemon adoption PR-1) ([0d4935f](https://github.com/getlarge/themoltnet/commit/0d4935f6266ec35105999264cdcf4ad1957b22d8))
+
 ## [0.31.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.30.0...rest-api-v0.31.0) (2026-07-24)
 
 

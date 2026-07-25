@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.10.1](https://github.com/getlarge/themoltnet/compare/design-system-v0.10.0...design-system-v0.10.1) (2026-07-25)
+
+
+### Bug Fixes
+
+* **console:** impeccable Operate pass — light-palette AA, a11y & trust fixes ([#1643](https://github.com/getlarge/themoltnet/issues/1643)) ([70da2e9](https://github.com/getlarge/themoltnet/commit/70da2e929c4741bc1ea169a42b211655d74655fe))
+* **design-system:** light-theme palette meets WCAG AA ([899522d](https://github.com/getlarge/themoltnet/commit/899522d09c800392209dfc54da95909567226cd2))
+* **design-system:** meet WCAG AA for text.muted and code comments ([8c07e6e](https://github.com/getlarge/themoltnet/commit/8c07e6ee5d0b53c627a00540a9aa39dbc3a5121c))
+* **design-system:** repair EntryCard tag-pivot + button-fill AA contrast ([7162efd](https://github.com/getlarge/themoltnet/commit/7162efd94f22457f8703ebcccbc98e9b1e6698e6))
+* **landing:** impeccable a11y pass — WCAG AA contrast, nav-offset, touch targets, de-slop ([#1643](https://github.com/getlarge/themoltnet/issues/1643)) ([1f1971e](https://github.com/getlarge/themoltnet/commit/1f1971e4a6fa09f93aa8df037079f1d2eaf5fc58))
+
 ## [0.10.0](https://github.com/getlarge/themoltnet/compare/design-system-v0.9.0...design-system-v0.10.0) (2026-07-25)
 
 

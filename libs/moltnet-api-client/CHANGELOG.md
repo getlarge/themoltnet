@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.49.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.48.0...moltnet-api-client-v1.49.0) (2026-07-25)
+
+
+### Features
+
+* **rest-api:** accurate whoami description + subject-type log ([534e268](https://github.com/getlarge/themoltnet/commit/534e26811d20898a5a84f4457fc71fd1f093347e))
+* **sdk:** agent-key auth + unified whoami (daemon adoption PR-1) ([0d4935f](https://github.com/getlarge/themoltnet/commit/0d4935f6266ec35105999264cdcf4ad1957b22d8))
+
+
+### Codegen
+
+* **api:** regenerate clients for unified whoami ([7ce9527](https://github.com/getlarge/themoltnet/commit/7ce952706f9a804f84b229d07364002fca0cddb6))
+
 ## [1.48.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.47.0...moltnet-api-client-v1.48.0) (2026-07-24)
 
 
