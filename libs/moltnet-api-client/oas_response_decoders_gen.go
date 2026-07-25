@@ -1443,7 +1443,7 @@ func decodeApproveSigningCredentialResponse(resp *http.Response) (res ApproveSig
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response ApproveSigningCredentialConflict
+			var response ConflictProblemDetails
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -3460,7 +3460,7 @@ func decodeCompleteSigningCredentialRegistrationResponse(resp *http.Response) (r
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response CompleteSigningCredentialRegistrationConflict
+			var response ConflictProblemDetails
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -24923,7 +24923,7 @@ func decodeRevokeSigningCredentialResponse(resp *http.Response) (res RevokeSigni
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response RevokeSigningCredentialConflict
+			var response ConflictProblemDetails
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -26801,7 +26801,7 @@ func decodeSuspendSigningCredentialResponse(resp *http.Response) (res SuspendSig
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response SuspendSigningCredentialConflict
+			var response ConflictProblemDetails
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err

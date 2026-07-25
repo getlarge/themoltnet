@@ -906,6 +906,7 @@ export type FinishRuntimeSlotBody = {
 
 export type Health = {
   status: string;
+  testSigningDriverEnabled: boolean;
   timestamp: string;
 };
 
@@ -1539,6 +1540,7 @@ export type Readiness = {
     };
   };
   status: 'ok' | 'degraded';
+  testSigningDriverEnabled: boolean;
   timestamp: string;
 };
 
@@ -2176,7 +2178,9 @@ export type SigningCredentialList = {
 
 export type SigningCredentialRegistration = {
   challenge: {
-    value: unknown;
+    value: {
+      [key: string]: unknown;
+    };
     /**
      * Stable signing verification method identifier
      */
@@ -2207,10 +2211,28 @@ export type SigningRequest = {
     type: 'agent' | 'human' | 'service';
   } | null;
   signature: string | null;
-  signerConstraint?: {
-    id?: string;
-    type: 'human' | 'team-role' | 'group' | 'site' | 'station';
-  } | null;
+  signerConstraint?:
+    | {
+        id: string;
+        type: 'human';
+      }
+    | {
+        id: 'owner' | 'manager' | 'member';
+        type: 'team-role';
+      }
+    | {
+        id: string;
+        type: 'group';
+      }
+    | {
+        id?: string;
+        type: 'site';
+      }
+    | {
+        id?: string;
+        type: 'station';
+      }
+    | null;
   signingCredentialId?: string | null;
   /**
    * Base64-encoded bytes to sign with Ed25519. Base64-decode this value, sign the raw bytes with your private key, then submit the base64 signature.
@@ -3519,7 +3541,9 @@ export type CompleteSigningCredentialRegistrationData = {
       [key: string]: unknown;
     };
     receipt: {
-      value: unknown;
+      value: {
+        [key: string]: unknown;
+      };
       /**
        * Stable signing verification method identifier
        */
@@ -3555,7 +3579,7 @@ export type CompleteSigningCredentialRegistrationErrors = {
   /**
    * Default Response
    */
-  409: ProblemDetails;
+  409: ConflictProblemDetails;
 };
 
 export type CompleteSigningCredentialRegistrationError =
@@ -3572,7 +3596,9 @@ export type CompleteSigningCredentialRegistrationResponse =
   CompleteSigningCredentialRegistrationResponses[keyof CompleteSigningCredentialRegistrationResponses];
 
 export type ApproveSigningCredentialData = {
-  body?: never;
+  body?: {
+    reason?: string;
+  };
   headers: {
     /**
      * Team ID (UUID) that will own the resource. Required.
@@ -3602,7 +3628,7 @@ export type ApproveSigningCredentialErrors = {
   /**
    * Default Response
    */
-  409: ProblemDetails;
+  409: ConflictProblemDetails;
 };
 
 export type ApproveSigningCredentialError =
@@ -3619,7 +3645,9 @@ export type ApproveSigningCredentialResponse =
   ApproveSigningCredentialResponses[keyof ApproveSigningCredentialResponses];
 
 export type RevokeSigningCredentialData = {
-  body?: never;
+  body?: {
+    reason?: string;
+  };
   headers: {
     /**
      * Team ID (UUID) that will own the resource. Required.
@@ -3649,7 +3677,7 @@ export type RevokeSigningCredentialErrors = {
   /**
    * Default Response
    */
-  409: ProblemDetails;
+  409: ConflictProblemDetails;
 };
 
 export type RevokeSigningCredentialError =
@@ -3666,7 +3694,9 @@ export type RevokeSigningCredentialResponse =
   RevokeSigningCredentialResponses[keyof RevokeSigningCredentialResponses];
 
 export type SuspendSigningCredentialData = {
-  body?: never;
+  body?: {
+    reason?: string;
+  };
   headers: {
     /**
      * Team ID (UUID) that will own the resource. Required.
@@ -3696,7 +3726,7 @@ export type SuspendSigningCredentialErrors = {
   /**
    * Default Response
    */
-  409: ProblemDetails;
+  409: ConflictProblemDetails;
 };
 
 export type SuspendSigningCredentialError =
@@ -3761,10 +3791,27 @@ export type CreateSigningRequestData = {
   body: {
     message: string;
     purpose?: string;
-    signerConstraint?: {
-      id?: string;
-      type: 'human' | 'team-role' | 'group' | 'site' | 'station';
-    };
+    signerConstraint?:
+      | {
+          id: string;
+          type: 'human';
+        }
+      | {
+          id: 'owner' | 'manager' | 'member';
+          type: 'team-role';
+        }
+      | {
+          id: string;
+          type: 'group';
+        }
+      | {
+          id?: string;
+          type: 'site';
+        }
+      | {
+          id?: string;
+          type: 'station';
+        };
     teamId?: string;
     /**
      * Stable signing verification method identifier
@@ -3905,7 +3952,9 @@ export type ClaimSigningRequestResponse =
 export type CompleteSigningRequestData = {
   body: {
     receipt: {
-      value: unknown;
+      value: {
+        [key: string]: unknown;
+      };
       /**
        * Stable signing verification method identifier
        */

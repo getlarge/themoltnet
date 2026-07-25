@@ -63,7 +63,7 @@ func (UnimplementedHandler) AppendTaskMessages(ctx context.Context, req *AppendT
 // ApproveSigningCredential implements approveSigningCredential operation.
 //
 // POST /crypto/signing-credentials/{id}/approve
-func (UnimplementedHandler) ApproveSigningCredential(ctx context.Context, params ApproveSigningCredentialParams) (r ApproveSigningCredentialRes, _ error) {
+func (UnimplementedHandler) ApproveSigningCredential(ctx context.Context, req OptApproveSigningCredentialReq, params ApproveSigningCredentialParams) (r ApproveSigningCredentialRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -1059,7 +1059,7 @@ func (UnimplementedHandler) RevokeDiaryGrant(ctx context.Context, req *RevokeDia
 // RevokeSigningCredential implements revokeSigningCredential operation.
 //
 // POST /crypto/signing-credentials/{id}/revoke
-func (UnimplementedHandler) RevokeSigningCredential(ctx context.Context, params RevokeSigningCredentialParams) (r RevokeSigningCredentialRes, _ error) {
+func (UnimplementedHandler) RevokeSigningCredential(ctx context.Context, req OptRevokeSigningCredentialReq, params RevokeSigningCredentialParams) (r RevokeSigningCredentialRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -1134,7 +1134,7 @@ func (UnimplementedHandler) SubmitSignature(ctx context.Context, req *SubmitSign
 // SuspendSigningCredential implements suspendSigningCredential operation.
 //
 // POST /crypto/signing-credentials/{id}/suspend
-func (UnimplementedHandler) SuspendSigningCredential(ctx context.Context, params SuspendSigningCredentialParams) (r SuspendSigningCredentialRes, _ error) {
+func (UnimplementedHandler) SuspendSigningCredential(ctx context.Context, req OptSuspendSigningCredentialReq, params SuspendSigningCredentialParams) (r SuspendSigningCredentialRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

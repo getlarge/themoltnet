@@ -64,7 +64,7 @@ type Invoker interface {
 	// ApproveSigningCredential invokes approveSigningCredential operation.
 	//
 	// POST /crypto/signing-credentials/{id}/approve
-	ApproveSigningCredential(ctx context.Context, params ApproveSigningCredentialParams) (ApproveSigningCredentialRes, error)
+	ApproveSigningCredential(ctx context.Context, request OptApproveSigningCredentialReq, params ApproveSigningCredentialParams) (ApproveSigningCredentialRes, error)
 	// BatchDeleteDiaryEntries invokes batchDeleteDiaryEntries operation.
 	//
 	// Delete multiple diary entries. Signed, unauthorized, and missing entries are skipped.
@@ -730,7 +730,7 @@ type Invoker interface {
 	// RevokeSigningCredential invokes revokeSigningCredential operation.
 	//
 	// POST /crypto/signing-credentials/{id}/revoke
-	RevokeSigningCredential(ctx context.Context, params RevokeSigningCredentialParams) (RevokeSigningCredentialRes, error)
+	RevokeSigningCredential(ctx context.Context, request OptRevokeSigningCredentialReq, params RevokeSigningCredentialParams) (RevokeSigningCredentialRes, error)
 	// RotateAgentKey invokes rotateAgentKey operation.
 	//
 	// Rotate an agent API key immediately. The previous secret is revoked and expiry is unchanged.
@@ -781,7 +781,7 @@ type Invoker interface {
 	// SuspendSigningCredential invokes suspendSigningCredential operation.
 	//
 	// POST /crypto/signing-credentials/{id}/suspend
-	SuspendSigningCredential(ctx context.Context, params SuspendSigningCredentialParams) (SuspendSigningCredentialRes, error)
+	SuspendSigningCredential(ctx context.Context, request OptSuspendSigningCredentialReq, params SuspendSigningCredentialParams) (SuspendSigningCredentialRes, error)
 	// TaskHeartbeat invokes taskHeartbeat operation.
 	//
 	// Send a heartbeat to keep the attempt lease alive.
@@ -1758,12 +1758,12 @@ func (c *Client) sendAppendTaskMessages(ctx context.Context, request *AppendTask
 // ApproveSigningCredential invokes approveSigningCredential operation.
 //
 // POST /crypto/signing-credentials/{id}/approve
-func (c *Client) ApproveSigningCredential(ctx context.Context, params ApproveSigningCredentialParams) (ApproveSigningCredentialRes, error) {
-	res, err := c.sendApproveSigningCredential(ctx, params)
+func (c *Client) ApproveSigningCredential(ctx context.Context, request OptApproveSigningCredentialReq, params ApproveSigningCredentialParams) (ApproveSigningCredentialRes, error) {
+	res, err := c.sendApproveSigningCredential(ctx, request, params)
 	return res, err
 }
 
-func (c *Client) sendApproveSigningCredential(ctx context.Context, params ApproveSigningCredentialParams) (res ApproveSigningCredentialRes, err error) {
+func (c *Client) sendApproveSigningCredential(ctx context.Context, request OptApproveSigningCredentialReq, params ApproveSigningCredentialParams) (res ApproveSigningCredentialRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("approveSigningCredential"),
 		semconv.HTTPRequestMethodKey.String("POST"),
@@ -1827,6 +1827,9 @@ func (c *Client) sendApproveSigningCredential(ctx context.Context, params Approv
 	r, err := ht.NewRequest(ctx, "POST", u)
 	if err != nil {
 		return res, errors.Wrap(err, "create request")
+	}
+	if err := encodeApproveSigningCredentialRequest(request, r); err != nil {
+		return res, errors.Wrap(err, "encode request")
 	}
 
 	stage = "EncodeHeaderParams"
@@ -19630,12 +19633,12 @@ func (c *Client) sendRevokeDiaryGrant(ctx context.Context, request *RevokeDiaryG
 // RevokeSigningCredential invokes revokeSigningCredential operation.
 //
 // POST /crypto/signing-credentials/{id}/revoke
-func (c *Client) RevokeSigningCredential(ctx context.Context, params RevokeSigningCredentialParams) (RevokeSigningCredentialRes, error) {
-	res, err := c.sendRevokeSigningCredential(ctx, params)
+func (c *Client) RevokeSigningCredential(ctx context.Context, request OptRevokeSigningCredentialReq, params RevokeSigningCredentialParams) (RevokeSigningCredentialRes, error) {
+	res, err := c.sendRevokeSigningCredential(ctx, request, params)
 	return res, err
 }
 
-func (c *Client) sendRevokeSigningCredential(ctx context.Context, params RevokeSigningCredentialParams) (res RevokeSigningCredentialRes, err error) {
+func (c *Client) sendRevokeSigningCredential(ctx context.Context, request OptRevokeSigningCredentialReq, params RevokeSigningCredentialParams) (res RevokeSigningCredentialRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("revokeSigningCredential"),
 		semconv.HTTPRequestMethodKey.String("POST"),
@@ -19699,6 +19702,9 @@ func (c *Client) sendRevokeSigningCredential(ctx context.Context, params RevokeS
 	r, err := ht.NewRequest(ctx, "POST", u)
 	if err != nil {
 		return res, errors.Wrap(err, "create request")
+	}
+	if err := encodeRevokeSigningCredentialRequest(request, r); err != nil {
+		return res, errors.Wrap(err, "encode request")
 	}
 
 	stage = "EncodeHeaderParams"
@@ -20876,12 +20882,12 @@ func (c *Client) sendSubmitSignature(ctx context.Context, request *SubmitSignatu
 // SuspendSigningCredential invokes suspendSigningCredential operation.
 //
 // POST /crypto/signing-credentials/{id}/suspend
-func (c *Client) SuspendSigningCredential(ctx context.Context, params SuspendSigningCredentialParams) (SuspendSigningCredentialRes, error) {
-	res, err := c.sendSuspendSigningCredential(ctx, params)
+func (c *Client) SuspendSigningCredential(ctx context.Context, request OptSuspendSigningCredentialReq, params SuspendSigningCredentialParams) (SuspendSigningCredentialRes, error) {
+	res, err := c.sendSuspendSigningCredential(ctx, request, params)
 	return res, err
 }
 
-func (c *Client) sendSuspendSigningCredential(ctx context.Context, params SuspendSigningCredentialParams) (res SuspendSigningCredentialRes, err error) {
+func (c *Client) sendSuspendSigningCredential(ctx context.Context, request OptSuspendSigningCredentialReq, params SuspendSigningCredentialParams) (res SuspendSigningCredentialRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("suspendSigningCredential"),
 		semconv.HTTPRequestMethodKey.String("POST"),
@@ -20945,6 +20951,9 @@ func (c *Client) sendSuspendSigningCredential(ctx context.Context, params Suspen
 	r, err := ht.NewRequest(ctx, "POST", u)
 	if err != nil {
 		return res, errors.Wrap(err, "create request")
+	}
+	if err := encodeSuspendSigningCredentialRequest(request, r); err != nil {
+		return res, errors.Wrap(err, "encode request")
 	}
 
 	stage = "EncodeHeaderParams"

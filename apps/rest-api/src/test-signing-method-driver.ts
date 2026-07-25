@@ -1,4 +1,5 @@
 import {
+  SigningCredentialError,
   type SigningMethodDriver,
   type SigningMethodJson,
   SigningReceiptInvalidError,
@@ -26,6 +27,25 @@ export function createTestSigningMethodDriver(): SigningMethodDriver {
 
     async verify() {
       return false;
+    },
+
+    validatePublicMaterial(input) {
+      const material = jsonRecord(input.publicMaterial);
+      const keys = Object.keys(material).sort();
+      if (
+        input.credentialType !== 'test-only' ||
+        input.algorithm !== 'test-only' ||
+        keys.length !== 2 ||
+        keys[0] !== 'publicKey' ||
+        keys[1] !== 'version' ||
+        material['version'] !== 1 ||
+        typeof material['publicKey'] !== 'string'
+      ) {
+        throw new SigningCredentialError(
+          'credential_public_material_invalid',
+          'Public material does not match the test-only credential schema',
+        );
+      }
     },
 
     async prepareClaim(input) {

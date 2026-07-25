@@ -764,6 +764,10 @@ export const approveSigningCredential = <ThrowOnError extends boolean = false>(
     ],
     url: '/crypto/signing-credentials/{id}/approve',
     ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
   });
 
 export const revokeSigningCredential = <ThrowOnError extends boolean = false>(
@@ -785,6 +789,10 @@ export const revokeSigningCredential = <ThrowOnError extends boolean = false>(
     ],
     url: '/crypto/signing-credentials/{id}/revoke',
     ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
   });
 
 export const suspendSigningCredential = <ThrowOnError extends boolean = false>(
@@ -806,6 +814,10 @@ export const suspendSigningCredential = <ThrowOnError extends boolean = false>(
     ],
     url: '/crypto/signing-credentials/{id}/suspend',
     ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
   });
 
 /**

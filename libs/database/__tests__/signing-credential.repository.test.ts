@@ -15,6 +15,7 @@ function createMockDb() {
     'offset',
     'orderBy',
     'set',
+    'for',
   ]) {
     chain[method] = vi.fn().mockReturnValue(chain);
   }
@@ -23,6 +24,7 @@ function createMockDb() {
     insert: vi.fn().mockReturnValue(chain),
     select: vi.fn().mockReturnValue(chain),
     update: vi.fn().mockReturnValue(chain),
+    delete: vi.fn().mockReturnValue(chain),
   };
   return { db: db as unknown as Database, chain };
 }
@@ -124,6 +126,7 @@ describe('createSigningCredentialRepository', () => {
   });
 
   it('only transitions from explicitly allowed lifecycle states', async () => {
+    db.chain.for.mockResolvedValueOnce([{ status: 'pending_approval' }]);
     db.chain.returning.mockResolvedValueOnce([
       { ...credential, status: 'active' },
     ]);
@@ -134,6 +137,7 @@ describe('createSigningCredentialRepository', () => {
       from: ['pending_approval'],
       to: 'active',
       approvedByHumanId: HUMAN_ID,
+      actor: { kind: 'human', id: ID },
     });
 
     expect(db.chain.set).toHaveBeenCalledWith(
@@ -142,6 +146,48 @@ describe('createSigningCredentialRepository', () => {
         approvedByHumanId: HUMAN_ID,
       }),
     );
-    expect(result?.status).toBe('active');
+    expect(result?.credential.status).toBe('active');
+    expect(result?.fromStatus).toBe('pending_approval');
+    expect(db.db.insert).toHaveBeenCalled();
+  });
+
+  it('preserves the original approver on suspend', async () => {
+    db.chain.for.mockResolvedValueOnce([{ status: 'active' }]);
+    db.chain.returning.mockResolvedValueOnce([
+      {
+        ...credential,
+        status: 'suspended',
+        approvedByHumanId: HUMAN_ID,
+      },
+    ]);
+
+    await repository.transition({
+      id: ID,
+      teamId: TEAM_ID,
+      from: ['active'],
+      to: 'suspended',
+      actor: { kind: 'agent', id: ID },
+    });
+
+    expect(db.chain.set).toHaveBeenCalledWith(
+      expect.not.objectContaining({ approvedByHumanId: expect.anything() }),
+    );
+  });
+
+  it('rejects self-approval at the repository boundary', async () => {
+    db.chain.for.mockResolvedValueOnce([]);
+
+    await expect(
+      repository.transition({
+        id: ID,
+        teamId: TEAM_ID,
+        from: ['pending_approval'],
+        to: 'active',
+        approvedByHumanId: HUMAN_ID,
+        actor: { kind: 'human', id: HUMAN_ID },
+      }),
+    ).resolves.toBeNull();
+
+    expect(db.db.update).not.toHaveBeenCalled();
   });
 });

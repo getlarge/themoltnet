@@ -97,7 +97,7 @@ function createSigningRepo() {
     create: vi.fn(),
     findById: vi.fn(),
     list: vi.fn(),
-    updateStatus: vi.fn(),
+    setWorkflowId: vi.fn(),
     countByAgent: vi.fn(),
   };
 }
@@ -226,7 +226,7 @@ describe('Signing request routes', () => {
     it('creates a signing request and returns 201', async () => {
       const mockReq = createMockSigningRequest();
       signingRepo.create.mockResolvedValue(mockReq);
-      signingRepo.updateStatus.mockResolvedValue(mockReq);
+      signingRepo.setWorkflowId.mockResolvedValue(mockReq);
 
       const response = await app.inject({
         method: 'POST',

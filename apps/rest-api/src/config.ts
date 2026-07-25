@@ -363,11 +363,17 @@ function validateSchema<T extends TObject>(
 export function loadServerConfig(
   env: Record<string, string | undefined> = process.env,
 ): ServerConfig {
-  return validateSchema(
+  const config = validateSchema(
     'Server',
     ServerConfigSchema,
     pickEnv(ServerConfigSchema, env),
   );
+  if (config.NODE_ENV === 'production' && config.MOLTNET_TEST_SIGNING_DRIVER) {
+    throw new Error(
+      'MOLTNET_TEST_SIGNING_DRIVER is forbidden when NODE_ENV=production',
+    );
+  }
+  return config;
 }
 
 export function loadDatabaseConfig(

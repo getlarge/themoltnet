@@ -1,4 +1,4 @@
-import { type AuthContext, KetoNamespace } from '@moltnet/auth';
+import type { AuthContext } from '@moltnet/auth';
 import {
   registerSigningMethodDriver,
   VERIFICATION_METHOD,
@@ -85,6 +85,7 @@ beforeAll(() => {
   registerSigningMethodDriver(VERIFICATION_METHOD.HumanHardwarePreviewSign, {
     verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
     verify: vi.fn().mockResolvedValue(true),
+    validatePublicMaterial: vi.fn(),
     prepareClaim: vi.fn().mockResolvedValue({
       challenge: {
         verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
@@ -108,6 +109,32 @@ describe('signing credential routes', () => {
     mocks = createMockServices();
     mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
     mocks.permissionChecker.canManageTeamCredentials.mockResolvedValue(true);
+    mocks.relationshipReader.listTeamIdsAndRolesBySubject.mockResolvedValue([
+      { teamId: TEAM_ID, relation: 'members' },
+    ]);
+    mocks.relationshipReader.listGroupIdsBySubject.mockResolvedValue([]);
+    mocks.signingCredentialRepository.lockRegistrationForCompletion.mockResolvedValue(
+      {
+        id: CREDENTIAL_ID,
+        ownerHumanId: HUMAN_ID,
+        teamId: TEAM_ID,
+        verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+        credentialType: 'test-only',
+        algorithm: 'test-only',
+        label: 'Test credential',
+        challenge: {
+          verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+          value: {},
+        },
+        methodState: {
+          verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+          value: {},
+        },
+        expiresAt: new Date(Date.now() + 300_000),
+        consumedAt: null,
+        createdAt: new Date(),
+      },
+    );
     const owner = {
       id: HUMAN_ID,
       identityId: OWNER_ID,
@@ -182,10 +209,13 @@ describe('signing credential routes', () => {
 
   it('lets a team credential manager approve a pending credential', async () => {
     mocks.signingCredentialRepository.transition.mockResolvedValue({
-      ...credential,
-      status: 'active',
-      approvedByHumanId: HUMAN_ID,
-      activatedAt: new Date(),
+      credential: {
+        ...credential,
+        status: 'active',
+        approvedByHumanId: HUMAN_ID,
+        activatedAt: new Date(),
+      },
+      fromStatus: 'pending_approval',
     });
 
     const response = await app.inject({
@@ -195,6 +225,7 @@ describe('signing credential routes', () => {
         authorization: 'Bearer human-session',
         'x-moltnet-team-id': TEAM_ID,
       },
+      payload: {},
     });
 
     expect(response.statusCode).toBe(200);
@@ -209,6 +240,28 @@ describe('signing credential routes', () => {
     expect(response.json()).not.toHaveProperty('ownerType');
     expect(response.json()).not.toHaveProperty('ownerHumanId');
   });
+
+  it.each(['approve', 'suspend', 'revoke'])(
+    'forbids a non-credential-manager from %s',
+    async (action) => {
+      mocks.permissionChecker.canManageTeamCredentials.mockResolvedValue(false);
+
+      const response = await app.inject({
+        method: 'POST',
+        url: `/crypto/signing-credentials/${CREDENTIAL_ID}/${action}`,
+        headers: {
+          authorization: 'Bearer human-session',
+          'x-moltnet-team-id': TEAM_ID,
+        },
+        payload: {},
+      });
+
+      expect(response.statusCode).toBe(403);
+      expect(
+        mocks.signingCredentialRepository.transition,
+      ).not.toHaveBeenCalled();
+    },
+  );
 
   it('lists credentials with one discriminated owner property', async () => {
     mocks.signingCredentialRepository.list.mockResolvedValue({
@@ -236,6 +289,54 @@ describe('signing credential routes', () => {
     expect(response.json().items[0]).not.toHaveProperty('ownerType');
     expect(response.json().items[0]).not.toHaveProperty('ownerHumanId');
     expect(mocks.humanRepository.findByIds).toHaveBeenCalledWith([HUMAN_ID]);
+  });
+
+  it('lists signable requests with SQL-backed pagination and total', async () => {
+    const pending = createPendingRequest({
+      id: GROUP_ID,
+      type: 'group',
+    });
+    mocks.relationshipReader.listGroupIdsBySubject.mockResolvedValue([
+      GROUP_ID,
+    ]);
+    mocks.groupRepository.findById.mockResolvedValue({
+      id: GROUP_ID,
+      teamId: TEAM_ID,
+    });
+    mocks.signingRequestRepository.listSignable.mockResolvedValue({
+      items: [pending],
+      total: 47,
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/crypto/signing-requests?scope=signable&limit=1&offset=20',
+      headers: {
+        authorization: 'Bearer human-session',
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      total: 47,
+      limit: 1,
+      offset: 20,
+    });
+    expect(mocks.signingRequestRepository.listSignable).toHaveBeenCalledWith(
+      expect.objectContaining({
+        teamRoles: [{ teamId: TEAM_ID, role: 'member' }],
+        humanIds: [HUMAN_ID, OWNER_ID],
+        groups: [{ groupId: GROUP_ID, teamId: TEAM_ID }],
+        limit: 1,
+        offset: 20,
+      }),
+    );
+    expect(
+      mocks.relationshipReader.listTeamIdsAndRolesBySubject,
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      mocks.relationshipReader.listGroupIdsBySubject,
+    ).toHaveBeenCalledTimes(1);
   });
 
   it('runs request → claim → receipt verification → completion', async () => {
@@ -273,8 +374,13 @@ describe('signing credential routes', () => {
       valid: true,
       completedAt: new Date(),
     });
+    mocks.signingRequestRepository.lockClaimForCompletion.mockResolvedValue(
+      claimed,
+    );
 
-    mocks.permissionChecker.canAccessTeam.mockResolvedValueOnce(false);
+    mocks.relationshipReader.listTeamIdsAndRolesBySubject.mockResolvedValueOnce(
+      [],
+    );
     const outsideTeamResponse = await app.inject({
       method: 'POST',
       url: `/crypto/signing-requests/${pending.id}/claim`,
@@ -299,6 +405,7 @@ describe('signing credential routes', () => {
     expect(claimResponse.statusCode).toBe(200);
     expect(claimResponse.json().status).toBe('claimed');
 
+    mocks.signingRequestRepository.findById.mockResolvedValue(claimed);
     const completeResponse = await app.inject({
       method: 'POST',
       url: `/crypto/signing-requests/${pending.id}/complete`,
@@ -368,11 +475,8 @@ describe('signing credential routes', () => {
       creatorHumanId: null,
       createdAt: new Date(),
     });
-    mocks.relationshipReader.listGroupMembers.mockResolvedValue([
-      {
-        subjectId: OWNER_ID,
-        subjectNs: String(KetoNamespace.Human),
-      },
+    mocks.relationshipReader.listGroupIdsBySubject.mockResolvedValue([
+      GROUP_ID,
     ]);
     mocks.signingCredentialRepository.findActiveCompatible.mockResolvedValue({
       ...credential,
@@ -397,8 +501,8 @@ describe('signing credential routes', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(mocks.relationshipReader.listGroupMembers).toHaveBeenCalledWith(
-      GROUP_ID,
+    expect(mocks.relationshipReader.listGroupIdsBySubject).toHaveBeenCalledWith(
+      OWNER_ID,
     );
   });
 
@@ -422,4 +526,79 @@ describe('signing credential routes', () => {
     expect(response.statusCode).toBe(400);
     expect(mocks.signingRequestRepository.claim).not.toHaveBeenCalled();
   });
+
+  it.each([
+    {
+      name: 'human',
+      constraint: {
+        type: 'human' as const,
+        id: 'bb0e8400-e29b-41d4-a716-446655440006',
+      },
+    },
+    {
+      name: 'team role',
+      constraint: { type: 'team-role' as const, id: 'manager' as const },
+    },
+    {
+      name: 'group',
+      constraint: { type: 'group' as const, id: GROUP_ID },
+    },
+  ])(
+    'forbids a claim that mismatches the $name constraint',
+    async (testCase) => {
+      const pending = createPendingRequest(testCase.constraint);
+      mocks.signingRequestRepository.findById.mockResolvedValue(pending);
+
+      const response = await app.inject({
+        method: 'POST',
+        url: `/crypto/signing-requests/${pending.id}/claim`,
+        headers: {
+          authorization: 'Bearer human-session',
+          'x-moltnet-team-id': TEAM_ID,
+        },
+        payload: { credentialId: CREDENTIAL_ID },
+      });
+
+      expect(response.statusCode).toBe(403);
+      expect(mocks.signingRequestRepository.claim).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['complete', 'reject'])(
+    'forbids a non-claimant from %s',
+    async (action) => {
+      const claimed = {
+        ...createPendingRequest(),
+        status: 'claimed' as const,
+        claimedByHumanId: 'cc0e8400-e29b-41d4-a716-446655440007',
+        signingCredentialId: CREDENTIAL_ID,
+        methodState: {
+          verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+          value: {},
+        },
+      };
+      mocks.signingRequestRepository.findById.mockResolvedValue(claimed);
+
+      const response = await app.inject({
+        method: 'POST',
+        url: `/crypto/signing-requests/${claimed.id}/${action}`,
+        headers: {
+          authorization: 'Bearer human-session',
+          'x-moltnet-team-id': TEAM_ID,
+        },
+        payload:
+          action === 'complete'
+            ? {
+                receipt: {
+                  verificationMethod:
+                    VERIFICATION_METHOD.HumanHardwarePreviewSign,
+                  value: {},
+                },
+              }
+            : {},
+      });
+
+      expect(response.statusCode).toBe(403);
+    },
+  );
 });

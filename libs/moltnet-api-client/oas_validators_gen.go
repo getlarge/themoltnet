@@ -566,14 +566,6 @@ func (s *AppendTaskMessagesUnauthorized) Validate() error {
 	return nil
 }
 
-func (s *ApproveSigningCredentialConflict) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (s *ApproveSigningCredentialForbidden) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -586,6 +578,48 @@ func (s *ApproveSigningCredentialNotFound) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err
+	}
+	return nil
+}
+
+func (s *ApproveSigningCredentialReq) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if value, ok := s.Reason.Get(); ok {
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     0,
+					MinLengthSet:  false,
+					MaxLength:     1000,
+					MaxLengthSet:  true,
+					Email:         false,
+					Hostname:      false,
+					Regex:         nil,
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(value)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "reason",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
 	}
 	return nil
 }
@@ -2769,14 +2803,6 @@ func (s *CompileStats) Validate() error {
 }
 
 func (s *CompleteSigningCredentialRegistrationBadRequest) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *CompleteSigningCredentialRegistrationConflict) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err
@@ -6472,43 +6498,35 @@ func (s *CreateSigningRequestReq) Validate() error {
 	return nil
 }
 
-func (s *CreateSigningRequestReqSignerConstraint) Validate() error {
-	if s == nil {
-		return validate.ErrNilPointer
-	}
-
-	var failures []validate.FieldError
-	if err := func() error {
-		if err := s.Type.Validate(); err != nil {
+func (s CreateSigningRequestReqSignerConstraint) Validate() error {
+	switch s.Type {
+	case ProvenanceGraphHumanNodeCreateSigningRequestReqSignerConstraint:
+		if err := s.ProvenanceGraphHumanNode.Validate(); err != nil {
 			return err
 		}
 		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "type",
-			Error: err,
-		})
-	}
-	if len(failures) > 0 {
-		return &validate.Error{Fields: failures}
-	}
-	return nil
-}
-
-func (s CreateSigningRequestReqSignerConstraintType) Validate() error {
-	switch s {
-	case "human":
+	case ProvenanceGraphTeamRoleNodeCreateSigningRequestReqSignerConstraint:
+		if err := s.ProvenanceGraphTeamRoleNode.Validate(); err != nil {
+			return err
+		}
 		return nil
-	case "team-role":
+	case ProvenanceGraphGroupNodeCreateSigningRequestReqSignerConstraint:
+		if err := s.ProvenanceGraphGroupNode.Validate(); err != nil {
+			return err
+		}
 		return nil
-	case "group":
+	case ProvenanceGraphSiteNodeCreateSigningRequestReqSignerConstraint:
+		if err := s.ProvenanceGraphSiteNode.Validate(); err != nil {
+			return err
+		}
 		return nil
-	case "site":
-		return nil
-	case "station":
+	case ProvenanceGraphStationNodeCreateSigningRequestReqSignerConstraint:
+		if err := s.ProvenanceGraphStationNode.Validate(); err != nil {
+			return err
+		}
 		return nil
 	default:
-		return errors.Errorf("invalid value: %v", s)
+		return errors.Errorf("invalid type %q", s.Type)
 	}
 }
 
@@ -19349,6 +19367,70 @@ func (s ProvenanceGraphEntryNodeMetaEntryType) Validate() error {
 	}
 }
 
+func (s *ProvenanceGraphGroupNode) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.Type.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "type",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s ProvenanceGraphGroupNodeType) Validate() error {
+	switch s {
+	case "group":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s *ProvenanceGraphHumanNode) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.Type.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "type",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s ProvenanceGraphHumanNodeType) Validate() error {
+	switch s {
+	case "human":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
 func (s *ProvenanceGraphKeyCompromiseNode) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
@@ -19709,6 +19791,70 @@ func (s ProvenanceGraphRenderedPackNodeMetaCreator) Validate() error {
 	}
 }
 
+func (s *ProvenanceGraphSiteNode) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.Type.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "type",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s ProvenanceGraphSiteNodeType) Validate() error {
+	switch s {
+	case "site":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s *ProvenanceGraphStationNode) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.Type.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "type",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s ProvenanceGraphStationNodeType) Validate() error {
+	switch s {
+	case "station":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
 func (s *ProvenanceGraphSupersededNode) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
@@ -19735,6 +19881,62 @@ func (s *ProvenanceGraphSupersededNode) Validate() error {
 func (s ProvenanceGraphSupersededNodeReason) Validate() error {
 	switch s {
 	case "superseded":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s *ProvenanceGraphTeamRoleNode) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.ID.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "id",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := s.Type.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "type",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s ProvenanceGraphTeamRoleNodeID) Validate() error {
+	switch s {
+	case "owner":
+		return nil
+	case "manager":
+		return nil
+	case "member":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s ProvenanceGraphTeamRoleNodeType) Validate() error {
+	switch s {
+	case "team-role":
 		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
@@ -20873,14 +21075,6 @@ func (s *RevokeDiaryGrantUnauthorized) Validate() error {
 	return nil
 }
 
-func (s *RevokeSigningCredentialConflict) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (s *RevokeSigningCredentialForbidden) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -20893,6 +21087,48 @@ func (s *RevokeSigningCredentialNotFound) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err
+	}
+	return nil
+}
+
+func (s *RevokeSigningCredentialReq) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if value, ok := s.Reason.Get(); ok {
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     0,
+					MinLengthSet:  false,
+					MaxLength:     1000,
+					MaxLengthSet:  true,
+					Email:         false,
+					Hostname:      false,
+					Regex:         nil,
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(value)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "reason",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
 	}
 	return nil
 }
@@ -25622,43 +25858,35 @@ func (s SigningRequestRequestedByType) Validate() error {
 	}
 }
 
-func (s *SigningRequestSignerConstraint) Validate() error {
-	if s == nil {
-		return validate.ErrNilPointer
-	}
-
-	var failures []validate.FieldError
-	if err := func() error {
-		if err := s.Type.Validate(); err != nil {
+func (s SigningRequestSignerConstraint) Validate() error {
+	switch s.Type {
+	case ProvenanceGraphHumanNodeSigningRequestSignerConstraint:
+		if err := s.ProvenanceGraphHumanNode.Validate(); err != nil {
 			return err
 		}
 		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "type",
-			Error: err,
-		})
-	}
-	if len(failures) > 0 {
-		return &validate.Error{Fields: failures}
-	}
-	return nil
-}
-
-func (s SigningRequestSignerConstraintType) Validate() error {
-	switch s {
-	case "human":
+	case ProvenanceGraphTeamRoleNodeSigningRequestSignerConstraint:
+		if err := s.ProvenanceGraphTeamRoleNode.Validate(); err != nil {
+			return err
+		}
 		return nil
-	case "team-role":
+	case ProvenanceGraphGroupNodeSigningRequestSignerConstraint:
+		if err := s.ProvenanceGraphGroupNode.Validate(); err != nil {
+			return err
+		}
 		return nil
-	case "group":
+	case ProvenanceGraphSiteNodeSigningRequestSignerConstraint:
+		if err := s.ProvenanceGraphSiteNode.Validate(); err != nil {
+			return err
+		}
 		return nil
-	case "site":
-		return nil
-	case "station":
+	case ProvenanceGraphStationNodeSigningRequestSignerConstraint:
+		if err := s.ProvenanceGraphStationNode.Validate(); err != nil {
+			return err
+		}
 		return nil
 	default:
-		return errors.Errorf("invalid value: %v", s)
+		return errors.Errorf("invalid type %q", s.Type)
 	}
 }
 
@@ -26509,14 +26737,6 @@ func (s *SubmitSignatureUnauthorized) Validate() error {
 	return nil
 }
 
-func (s *SuspendSigningCredentialConflict) Validate() error {
-	alias := (*ProblemDetails)(s)
-	if err := alias.Validate(); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (s *SuspendSigningCredentialForbidden) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -26529,6 +26749,48 @@ func (s *SuspendSigningCredentialNotFound) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err
+	}
+	return nil
+}
+
+func (s *SuspendSigningCredentialReq) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if value, ok := s.Reason.Get(); ok {
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     0,
+					MinLengthSet:  false,
+					MaxLength:     1000,
+					MaxLengthSet:  true,
+					Email:         false,
+					Hostname:      false,
+					Regex:         nil,
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(value)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "reason",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
 	}
 	return nil
 }

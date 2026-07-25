@@ -3905,6 +3905,9 @@
           "status": {
             "type": "string"
           },
+          "testSigningDriverEnabled": {
+            "type": "boolean"
+          },
           "timestamp": {
             "format": "date-time",
             "type": "string"
@@ -3912,7 +3915,8 @@
         },
         "required": [
           "status",
-          "timestamp"
+          "timestamp",
+          "testSigningDriverEnabled"
         ],
         "type": "object"
       },
@@ -6283,6 +6287,9 @@
               }
             ]
           },
+          "testSigningDriverEnabled": {
+            "type": "boolean"
+          },
           "timestamp": {
             "format": "date-time",
             "type": "string"
@@ -6291,6 +6298,7 @@
         "required": [
           "status",
           "timestamp",
+          "testSigningDriverEnabled",
           "components"
         ],
         "type": "object"
@@ -9806,7 +9814,10 @@
         "properties": {
           "challenge": {
             "properties": {
-              "value": {},
+              "value": {
+                "additionalProperties": {},
+                "type": "object"
+              },
               "verificationMethod": {
                 "anyOf": [
                   {
@@ -10001,49 +10012,117 @@
           "signerConstraint": {
             "anyOf": [
               {
-                "properties": {
-                  "id": {
-                    "type": "string"
-                  },
-                  "type": {
-                    "anyOf": [
-                      {
+                "anyOf": [
+                  {
+                    "properties": {
+                      "id": {
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      "type": {
                         "enum": [
                           "human"
                         ],
                         "type": "string"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "id"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "properties": {
+                      "id": {
+                        "anyOf": [
+                          {
+                            "enum": [
+                              "owner"
+                            ],
+                            "type": "string"
+                          },
+                          {
+                            "enum": [
+                              "manager"
+                            ],
+                            "type": "string"
+                          },
+                          {
+                            "enum": [
+                              "member"
+                            ],
+                            "type": "string"
+                          }
+                        ]
                       },
-                      {
+                      "type": {
                         "enum": [
                           "team-role"
                         ],
                         "type": "string"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "id"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "properties": {
+                      "id": {
+                        "format": "uuid",
+                        "type": "string"
                       },
-                      {
+                      "type": {
                         "enum": [
                           "group"
                         ],
                         "type": "string"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "id"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "properties": {
+                      "id": {
+                        "type": "string"
                       },
-                      {
+                      "type": {
                         "enum": [
                           "site"
                         ],
                         "type": "string"
+                      }
+                    },
+                    "required": [
+                      "type"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "properties": {
+                      "id": {
+                        "type": "string"
                       },
-                      {
+                      "type": {
                         "enum": [
                           "station"
                         ],
                         "type": "string"
                       }
-                    ]
+                    },
+                    "required": [
+                      "type"
+                    ],
+                    "type": "object"
                   }
-                },
-                "required": [
-                  "type"
-                ],
-                "type": "object"
+                ]
               },
               {
                 "type": "null"
@@ -14983,7 +15062,10 @@
                   },
                   "receipt": {
                     "properties": {
-                      "value": {},
+                      "value": {
+                        "additionalProperties": {},
+                        "type": "object"
+                      },
                       "verificationMethod": {
                         "anyOf": [
                           {
@@ -15064,7 +15146,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
+                  "$ref": "#/components/schemas/ConflictProblemDetails"
                 }
               }
             },
@@ -15108,6 +15190,21 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "reason": {
+                    "maxLength": 1000,
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "content": {
@@ -15153,7 +15250,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
+                  "$ref": "#/components/schemas/ConflictProblemDetails"
                 }
               }
             },
@@ -15200,6 +15297,21 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "reason": {
+                    "maxLength": 1000,
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "content": {
@@ -15245,7 +15357,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
+                  "$ref": "#/components/schemas/ConflictProblemDetails"
                 }
               }
             },
@@ -15292,6 +15404,21 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "reason": {
+                    "maxLength": 1000,
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "content": {
@@ -15337,7 +15464,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
+                  "$ref": "#/components/schemas/ConflictProblemDetails"
                 }
               }
             },
@@ -15526,49 +15653,117 @@
                     "type": "string"
                   },
                   "signerConstraint": {
-                    "properties": {
-                      "id": {
-                        "type": "string"
-                      },
-                      "type": {
-                        "anyOf": [
-                          {
+                    "anyOf": [
+                      {
+                        "properties": {
+                          "id": {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          "type": {
                             "enum": [
                               "human"
                             ],
                             "type": "string"
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "id"
+                        ],
+                        "type": "object"
+                      },
+                      {
+                        "properties": {
+                          "id": {
+                            "anyOf": [
+                              {
+                                "enum": [
+                                  "owner"
+                                ],
+                                "type": "string"
+                              },
+                              {
+                                "enum": [
+                                  "manager"
+                                ],
+                                "type": "string"
+                              },
+                              {
+                                "enum": [
+                                  "member"
+                                ],
+                                "type": "string"
+                              }
+                            ]
                           },
-                          {
+                          "type": {
                             "enum": [
                               "team-role"
                             ],
                             "type": "string"
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "id"
+                        ],
+                        "type": "object"
+                      },
+                      {
+                        "properties": {
+                          "id": {
+                            "format": "uuid",
+                            "type": "string"
                           },
-                          {
+                          "type": {
                             "enum": [
                               "group"
                             ],
                             "type": "string"
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "id"
+                        ],
+                        "type": "object"
+                      },
+                      {
+                        "properties": {
+                          "id": {
+                            "type": "string"
                           },
-                          {
+                          "type": {
                             "enum": [
                               "site"
                             ],
                             "type": "string"
+                          }
+                        },
+                        "required": [
+                          "type"
+                        ],
+                        "type": "object"
+                      },
+                      {
+                        "properties": {
+                          "id": {
+                            "type": "string"
                           },
-                          {
+                          "type": {
                             "enum": [
                               "station"
                             ],
                             "type": "string"
                           }
-                        ]
+                        },
+                        "required": [
+                          "type"
+                        ],
+                        "type": "object"
                       }
-                    },
-                    "required": [
-                      "type"
-                    ],
-                    "type": "object"
+                    ]
                   },
                   "teamId": {
                     "format": "uuid",
@@ -15901,7 +16096,10 @@
                 "properties": {
                   "receipt": {
                     "properties": {
-                      "value": {},
+                      "value": {
+                        "additionalProperties": {},
+                        "type": "object"
+                      },
                       "verificationMethod": {
                         "anyOf": [
                           {

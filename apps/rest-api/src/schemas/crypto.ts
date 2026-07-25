@@ -1,5 +1,6 @@
 import {
   PrincipalIdentitySchema,
+  SignerConstraintSchema,
   VerificationMethodSchema,
 } from '@moltnet/models';
 import { Type } from 'typebox';
@@ -45,19 +46,7 @@ export const SigningRequestSchema = Type.Object(
       ]),
     ),
     signerConstraint: Type.Optional(
-      Type.Union([
-        Type.Object({
-          id: Type.Optional(Type.String()),
-          type: Type.Union([
-            Type.Literal('human'),
-            Type.Literal('team-role'),
-            Type.Literal('group'),
-            Type.Literal('site'),
-            Type.Literal('station'),
-          ]),
-        }),
-        Type.Null(),
-      ]),
+      Type.Union([SignerConstraintSchema, Type.Null()]),
     ),
     teamId: Type.Optional(
       Type.Union([Type.String({ format: 'uuid' }), Type.Null()]),
@@ -115,10 +104,14 @@ export const SigningRequestParamsSchema = Type.Object({
 // ── Signing Credentials ──────────────────────────────────────
 
 const JsonObjectSchema = Type.Record(Type.String(), Type.Unknown());
+export const VersionedJsonObjectSchema = Type.Intersect([
+  Type.Object({ version: Type.Integer({ minimum: 1 }) }),
+  JsonObjectSchema,
+]);
 
 export const SigningMethodValueSchema = Type.Object({
   verificationMethod: VerificationMethodSchema,
-  value: Type.Unknown(),
+  value: JsonObjectSchema,
 });
 
 export const SigningCredentialSchema = Type.Object(
@@ -129,14 +122,8 @@ export const SigningCredentialSchema = Type.Object(
     verificationMethod: VerificationMethodSchema,
     credentialType: Type.String(),
     algorithm: Type.String(),
-    publicMaterial: Type.Intersect([
-      Type.Object({ version: Type.Integer({ minimum: 1 }) }),
-      JsonObjectSchema,
-    ]),
-    enrollmentEvidence: Type.Intersect([
-      Type.Object({ version: Type.Integer({ minimum: 1 }) }),
-      JsonObjectSchema,
-    ]),
+    publicMaterial: VersionedJsonObjectSchema,
+    enrollmentEvidence: VersionedJsonObjectSchema,
     label: Type.String(),
     status: Type.Union([
       Type.Literal('pending_approval'),

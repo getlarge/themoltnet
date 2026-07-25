@@ -46,13 +46,13 @@ var (
 		"POST": "Content-Type,X-Moltnet-Session-Token,X-Moltnet-Team-Id",
 	}
 	rn21AllowedHeaders = map[string]string{
-		"POST": "Authorization,X-Moltnet-Session-Token,X-Moltnet-Team-Id",
+		"POST": "Authorization,Content-Type,X-Moltnet-Session-Token,X-Moltnet-Team-Id",
 	}
 	rn159AllowedHeaders = map[string]string{
-		"POST": "Authorization,X-Moltnet-Session-Token,X-Moltnet-Team-Id",
+		"POST": "Authorization,Content-Type,X-Moltnet-Session-Token,X-Moltnet-Team-Id",
 	}
 	rn171AllowedHeaders = map[string]string{
-		"POST": "Authorization,X-Moltnet-Session-Token,X-Moltnet-Team-Id",
+		"POST": "Authorization,Content-Type,X-Moltnet-Session-Token,X-Moltnet-Team-Id",
 	}
 	rn56AllowedHeaders = map[string]string{
 		"GET":  "Authorization,X-Moltnet-Session-Token",
@@ -914,7 +914,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 											s.notAllowed(w, r, notAllowedParams{
 												allowedMethods: "POST",
 												allowedHeaders: rn21AllowedHeaders,
-												acceptPost:     "",
+												acceptPost:     "application/json",
 												acceptPatch:    "",
 											})
 										}
@@ -941,7 +941,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 											s.notAllowed(w, r, notAllowedParams{
 												allowedMethods: "POST",
 												allowedHeaders: rn159AllowedHeaders,
-												acceptPost:     "",
+												acceptPost:     "application/json",
 												acceptPatch:    "",
 											})
 										}
@@ -968,7 +968,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 											s.notAllowed(w, r, notAllowedParams{
 												allowedMethods: "POST",
 												allowedHeaders: rn171AllowedHeaders,
-												acceptPost:     "",
+												acceptPost:     "application/json",
 												acceptPatch:    "",
 											})
 										}

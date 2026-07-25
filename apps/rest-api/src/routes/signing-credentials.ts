@@ -4,6 +4,7 @@ import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { KetoNamespace, requireAuth } from '@moltnet/auth';
 import type { PrincipalIdentity, SigningCredential } from '@moltnet/database';
 import {
+  ConflictProblemDetailsSchema,
   ProblemDetailsSchema,
   TeamHeaderRequiredSchema,
   VerificationMethodSchema,
@@ -12,7 +13,10 @@ import {
   assertNoPrivateSigningMaterial,
   prepareSigningClaim,
   SigningCredentialError,
+  type SigningMethodJson,
   SigningWorkflowError,
+  toSigningMethodReceipt,
+  validateSigningCredentialPublicMaterial,
   verifySigningReceipt,
 } from '@moltnet/signing-workflows';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
@@ -24,6 +28,7 @@ import {
   SigningCredentialRegistrationSchema,
   SigningCredentialSchema,
   SigningMethodValueSchema,
+  VersionedJsonObjectSchema,
 } from '../schemas.js';
 import {
   batchInflateRowsWithCreator,
@@ -34,11 +39,32 @@ import { requireCurrentTeamId } from '../utils/require-current-team-id.js';
 const ParamsSchema = Type.Object({
   id: Type.String({ format: 'uuid' }),
 });
+const SIGNING_JSON_BODY_LIMIT = 64 * 1024;
 
-const VersionedJsonSchema = Type.Intersect([
-  Type.Object({ version: Type.Integer({ minimum: 1 }) }),
-  Type.Record(Type.String(), Type.Unknown()),
-]);
+function asSigningMethodJson(value: unknown): SigningMethodJson {
+  return value as SigningMethodJson;
+}
+
+const CREDENTIAL_TRANSITIONS = [
+  {
+    action: 'approve',
+    from: ['pending_approval'] as const,
+    to: 'active' as const,
+    operationId: 'approveSigningCredential',
+  },
+  {
+    action: 'suspend',
+    from: ['active'] as const,
+    to: 'suspended' as const,
+    operationId: 'suspendSigningCredential',
+  },
+  {
+    action: 'revoke',
+    from: ['pending_approval', 'active', 'suspended'] as const,
+    to: 'revoked' as const,
+    operationId: 'revokeSigningCredential',
+  },
+] as const;
 
 type SigningCredentialResponse = Omit<
   SigningCredential,
@@ -218,7 +244,11 @@ export async function signingCredentialRoutes(fastify: FastifyInstance) {
   server.post(
     '/crypto/signing-credentials/registrations/:id/complete',
     {
-      config: { auth: { credentialBindingScope: 'team' } },
+      config: {
+        auth: { credentialBindingScope: 'team' },
+        rateLimit: fastify.rateLimitConfig?.signing,
+        bodyLimit: SIGNING_JSON_BODY_LIMIT,
+      },
       schema: {
         operationId: 'completeSigningCredentialRegistration',
         tags: ['crypto'],
@@ -226,7 +256,7 @@ export async function signingCredentialRoutes(fastify: FastifyInstance) {
         headers: TeamHeaderRequiredSchema,
         params: ParamsSchema,
         body: Type.Object({
-          publicMaterial: VersionedJsonSchema,
+          publicMaterial: VersionedJsonObjectSchema,
           receipt: SigningMethodValueSchema,
         }),
         response: {
@@ -234,7 +264,7 @@ export async function signingCredentialRoutes(fastify: FastifyInstance) {
           400: Type.Ref(ProblemDetailsSchema.$id),
           401: Type.Ref(ProblemDetailsSchema.$id),
           403: Type.Ref(ProblemDetailsSchema.$id),
-          409: Type.Ref(ProblemDetailsSchema.$id),
+          409: Type.Ref(ConflictProblemDetailsSchema.$id),
         },
       },
     },
@@ -242,45 +272,44 @@ export async function signingCredentialRoutes(fastify: FastifyInstance) {
       const ownerHumanId = humanId(request);
       const teamId = requireCurrentTeamId(request, 'signing credentials');
       try {
-        assertNoPrivateSigningMaterial(request.body.publicMaterial);
-        const registration =
-          await fastify.signingCredentialRepository.findRegistrationById(
-            request.params.id,
-          );
-        if (
-          !registration ||
-          registration.ownerHumanId !== ownerHumanId ||
-          registration.teamId !== teamId ||
-          registration.consumedAt ||
-          registration.expiresAt <= new Date()
-        ) {
-          throw new SigningCredentialError(
-            'credential_registration_invalid',
-            'Credential registration is missing, expired, or already consumed',
-          );
-        }
-        const receiptValue =
-          request.body.receipt.value &&
-          typeof request.body.receipt.value === 'object'
-            ? request.body.receipt.value
-            : { value: request.body.receipt.value };
-        const evidence = await verifySigningReceipt({
-          verificationMethod: registration.verificationMethod,
-          requestId: registration.id,
-          credentialId: registration.id,
-          signingPayload: JSON.stringify({
-            ceremony: 'signing-credential-registration',
-            id: registration.id,
-            teamId,
-          }),
-          verifierState: registration.methodState.value as never,
-          receipt: {
-            verificationMethod: request.body.receipt.verificationMethod,
-            ...receiptValue,
-          },
-        });
         const credential = await fastify.transactionRunner.runInTransaction(
           async () => {
+            const registration =
+              await fastify.signingCredentialRepository.lockRegistrationForCompletion(
+                request.params.id,
+                ownerHumanId,
+                teamId,
+              );
+            if (!registration) {
+              throw new SigningCredentialError(
+                'credential_registration_invalid',
+                'Credential registration is missing, expired, or already consumed',
+              );
+            }
+            assertNoPrivateSigningMaterial(request.body.publicMaterial);
+            validateSigningCredentialPublicMaterial({
+              verificationMethod: registration.verificationMethod,
+              credentialType: registration.credentialType,
+              algorithm: registration.algorithm,
+              publicMaterial: asSigningMethodJson(request.body.publicMaterial),
+            });
+            const evidence = await verifySigningReceipt({
+              verificationMethod: registration.verificationMethod,
+              requestId: registration.id,
+              credentialId: registration.id,
+              signingPayload: JSON.stringify({
+                ceremony: 'signing-credential-registration',
+                id: registration.id,
+                teamId,
+              }),
+              verifierState: asSigningMethodJson(
+                registration.methodState.value,
+              ),
+              receipt: toSigningMethodReceipt({
+                verificationMethod: request.body.receipt.verificationMethod,
+                value: asSigningMethodJson(request.body.receipt.value),
+              }),
+            });
             const consumed =
               await fastify.signingCredentialRepository.consumeRegistration(
                 registration.id,
@@ -371,30 +400,14 @@ export async function signingCredentialRoutes(fastify: FastifyInstance) {
     },
   );
 
-  for (const transition of [
-    {
-      action: 'approve',
-      from: ['pending_approval'] as const,
-      to: 'active' as const,
-      operationId: 'approveSigningCredential',
-    },
-    {
-      action: 'suspend',
-      from: ['active'] as const,
-      to: 'suspended' as const,
-      operationId: 'suspendSigningCredential',
-    },
-    {
-      action: 'revoke',
-      from: ['pending_approval', 'active', 'suspended'] as const,
-      to: 'revoked' as const,
-      operationId: 'revokeSigningCredential',
-    },
-  ]) {
+  for (const transition of CREDENTIAL_TRANSITIONS) {
     server.post(
       `/crypto/signing-credentials/:id/${transition.action}`,
       {
-        config: { auth: { credentialBindingScope: 'team' } },
+        config: {
+          auth: { credentialBindingScope: 'team' },
+          rateLimit: fastify.rateLimitConfig?.signing,
+        },
         schema: {
           operationId: transition.operationId,
           tags: ['crypto'],
@@ -405,37 +418,61 @@ export async function signingCredentialRoutes(fastify: FastifyInstance) {
           ],
           headers: TeamHeaderRequiredSchema,
           params: ParamsSchema,
+          body: Type.Object({
+            reason: Type.Optional(Type.String({ maxLength: 1000 })),
+          }),
           response: {
             200: Type.Ref(SigningCredentialSchema.$id),
             401: Type.Ref(ProblemDetailsSchema.$id),
             403: Type.Ref(ProblemDetailsSchema.$id),
             404: Type.Ref(ProblemDetailsSchema.$id),
-            409: Type.Ref(ProblemDetailsSchema.$id),
+            409: Type.Ref(ConflictProblemDetailsSchema.$id),
           },
         },
       },
       async (request) => {
         const teamId = requireCurrentTeamId(request, 'signing credentials');
         await requireCredentialManager(request, teamId);
-        const credential = await fastify.signingCredentialRepository.transition(
-          {
-            id: request.params.id,
-            teamId,
-            from: [...transition.from],
-            to: transition.to,
-            approvedByHumanId:
-              transition.to === 'active' &&
-              request.authContext!.subjectType === 'human'
-                ? request.authContext!.humanId
-                : undefined,
-          },
-        );
-        if (!credential) {
+        const auth = request.authContext!;
+        const actor = {
+          kind: auth.subjectType,
+          id: auth.subjectType === 'human' ? auth.humanId : auth.identityId,
+        } as const;
+        const transitionResult =
+          await fastify.transactionRunner.runInTransaction(
+            () =>
+              fastify.signingCredentialRepository.transition({
+                id: request.params.id,
+                teamId,
+                from: [...transition.from],
+                to: transition.to,
+                approvedByHumanId:
+                  transition.to === 'active' && auth.subjectType === 'human'
+                    ? auth.humanId
+                    : undefined,
+                actor,
+                reason: request.body.reason,
+              }),
+            { name: `signing-credential-${transition.action}` },
+          );
+        if (!transitionResult) {
           throw createProblem(
             'conflict',
             `Credential cannot transition to ${transition.to}`,
           );
         }
+        const { credential, fromStatus } = transitionResult;
+        request.log.info(
+          {
+            credentialId: credential.id,
+            teamId,
+            actorIdentityId: auth.identityId,
+            actorSubjectType: auth.subjectType,
+            from: fromStatus,
+            to: transition.to,
+          },
+          `crypto.signing_credential_${transition.action}`,
+        );
         return signingCredentialToResponse(credential, fastify);
       },
     );

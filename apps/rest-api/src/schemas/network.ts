@@ -8,6 +8,7 @@ export const HealthSchema = Type.Object(
   {
     status: Type.String(),
     timestamp: DateTime,
+    testSigningDriverEnabled: Type.Boolean(),
   },
   { $id: 'Health' },
 );
@@ -22,6 +23,7 @@ export const ReadinessSchema = Type.Object(
   {
     status: Type.Union([Type.Literal('ok'), Type.Literal('degraded')]),
     timestamp: DateTime,
+    testSigningDriverEnabled: Type.Boolean(),
     components: Type.Object({
       database: ComponentStatusSchema,
       ory: ComponentStatusSchema,

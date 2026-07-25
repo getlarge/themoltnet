@@ -14,7 +14,10 @@ import {
   setSigningRequestPersistence,
   setSigningVerifier,
   signingWorkflows,
+  toSigningMethodReceipt,
+  validateSigningCredentialPublicMaterial,
   verifySigningReceipt,
+  waitForSigningResult,
 } from './signing-workflows.js';
 
 function captureThrownError(fn: () => unknown): unknown {
@@ -123,7 +126,7 @@ describe('Signing Workflows', () => {
         getPublicKey: vi.fn().mockResolvedValue(PUBLIC_KEY),
       });
       setSigningRequestPersistence({
-        updateStatus: vi.fn().mockResolvedValue(undefined),
+        completeAgentRequest: vi.fn().mockResolvedValue(undefined),
       });
     });
 
@@ -234,13 +237,13 @@ describe('Signing Workflows', () => {
     });
 
     it('completes as invalid when the selected verifier throws', async () => {
-      const updateStatus = vi.fn().mockResolvedValue(undefined);
+      const completeAgentRequest = vi.fn().mockResolvedValue(undefined);
       vi.mocked(DBOS.recv).mockResolvedValue({ signature: SIGNATURE });
       setSigningVerifier({
         verify: vi.fn().mockResolvedValue(true),
         verifyWithNonce: vi.fn().mockRejectedValue(new Error('malformed key')),
       });
-      setSigningRequestPersistence({ updateStatus });
+      setSigningRequestPersistence({ completeAgentRequest });
 
       const result = await signingWorkflows.requestSignature(
         REQUEST_ID,
@@ -249,9 +252,9 @@ describe('Signing Workflows', () => {
         NONCE,
       );
 
-      expect(updateStatus).toHaveBeenCalledWith(
-        REQUEST_ID,
+      expect(completeAgentRequest).toHaveBeenCalledWith(
         expect.objectContaining({
+          id: REQUEST_ID,
           status: 'completed',
           signature: SIGNATURE,
           valid: false,
@@ -277,7 +280,7 @@ describe('Signing Workflows', () => {
         verifyWithNonce: vi.fn().mockResolvedValue(true),
       });
       setSigningRequestPersistence({
-        updateStatus: vi.fn().mockResolvedValue(undefined),
+        completeAgentRequest: vi.fn().mockResolvedValue(undefined),
       });
       vi.mocked(DBOS.recv).mockResolvedValue({ signature: SIGNATURE });
 
@@ -358,6 +361,7 @@ describe('Signing Workflows', () => {
     it('dispatches claim preparation and receipt verification by method', async () => {
       const driver = {
         verificationMethod,
+        validatePublicMaterial: vi.fn(),
         prepareClaim: vi.fn().mockResolvedValue({
           challenge: {
             verificationMethod,
@@ -404,6 +408,7 @@ describe('Signing Workflows', () => {
     it('rejects a receipt whose discriminator does not match the request', async () => {
       registerSigningMethodDriver(verificationMethod, {
         verificationMethod,
+        validatePublicMaterial: vi.fn(),
         prepareClaim: vi.fn(),
         verify: vi.fn().mockResolvedValue(true),
         verifyReceipt: vi.fn(),
@@ -440,6 +445,92 @@ describe('Signing Workflows', () => {
           verificationMethod,
         }),
       );
+    });
+
+    it('does not promote a duck-typed verifier into a method driver', async () => {
+      registerSigningVerifier(verificationMethod, {
+        verify: vi.fn().mockResolvedValue(true),
+        validatePublicMaterial: vi.fn(),
+        prepareClaim: vi.fn(),
+        verifyReceipt: vi.fn(),
+      } as never);
+
+      await expect(prepareSigningClaim(claimInput)).rejects.toEqual(
+        expect.objectContaining({
+          code: 'claim_not_supported',
+          verificationMethod,
+        }),
+      );
+    });
+
+    it('dispatches public-material validation through the method driver', () => {
+      const validatePublicMaterial = vi.fn();
+      registerSigningMethodDriver(verificationMethod, {
+        verificationMethod,
+        validatePublicMaterial,
+        prepareClaim: vi.fn(),
+        verify: vi.fn().mockResolvedValue(true),
+        verifyReceipt: vi.fn(),
+      });
+      const input = {
+        verificationMethod,
+        credentialType: 'platform-key',
+        algorithm: 'p256',
+        publicMaterial: { version: 1 },
+      };
+
+      validateSigningCredentialPublicMaterial(input);
+
+      expect(validatePublicMaterial).toHaveBeenCalledWith(input);
+    });
+  });
+
+  describe('signing transport helpers', () => {
+    it('normalizes an object receipt without weakening its discriminator', () => {
+      expect(
+        toSigningMethodReceipt({
+          verificationMethod: 'human-hardware-previewsign',
+          value: { signature: 'proof' },
+        }),
+      ).toEqual({
+        verificationMethod: 'human-hardware-previewsign',
+        signature: 'proof',
+      });
+    });
+
+    it.each([null, [], 'proof', 1, true])(
+      'rejects a non-object receipt value: %j',
+      (value) => {
+        expect(
+          captureThrownError(() =>
+            toSigningMethodReceipt({
+              verificationMethod: 'human-hardware-previewsign',
+              value: value as never,
+            }),
+          ),
+        ).toEqual(
+          expect.objectContaining({
+            code: 'receipt_invalid',
+          }),
+        );
+      },
+    );
+
+    it('polls until a pending signing result becomes terminal', async () => {
+      const load = vi
+        .fn()
+        .mockResolvedValueOnce({ status: 'pending' })
+        .mockResolvedValueOnce({ status: 'completed' });
+
+      await expect(
+        waitForSigningResult('request-1', {
+          load,
+          initial: { status: 'pending' },
+          maxWaitMs: 100,
+          pollIntervalMs: 1,
+        }),
+      ).resolves.toEqual({ status: 'completed' });
+      expect(load).toHaveBeenCalledTimes(2);
     });
   });
 });

@@ -172,7 +172,7 @@ services:
     ports:
       - '8080:8080'
     environment:
-      NODE_ENV: production
+      NODE_ENV: test
       MOLTNET_TEST_SIGNING_DRIVER: 'true'
       PORT: '8080'
       DATABASE_URL: postgresql://moltnet:moltnet_secret@app-db:5432/moltnet

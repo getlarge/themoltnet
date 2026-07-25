@@ -1,5 +1,5 @@
 {
-  "id": "e12ccd83-20a9-42ea-aa38-33f30f97a7e2",
+  "id": "79adcb44-9764-404a-9ce0-43c3cf01b0ed",
   "prevId": "29e3cdea-c956-4efa-9b93-dd3314f8c6df",
   "version": "7",
   "dialect": "postgresql",
@@ -3705,6 +3705,178 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.signing_credential_events": {
+      "name": "signing_credential_events",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "credential_id": {
+          "name": "credential_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "team_id": {
+          "name": "team_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "actor_agent_id": {
+          "name": "actor_agent_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "actor_human_id": {
+          "name": "actor_human_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "from_status": {
+          "name": "from_status",
+          "type": "signing_credential_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "to_status": {
+          "name": "to_status",
+          "type": "signing_credential_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "signing_credential_events_credential_idx": {
+          "name": "signing_credential_events_credential_idx",
+          "columns": [
+            {
+              "expression": "credential_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": false,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "signing_credential_events_team_idx": {
+          "name": "signing_credential_events_team_idx",
+          "columns": [
+            {
+              "expression": "team_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": false,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "signing_credential_events_credential_id_signing_credentials_id_fk": {
+          "name": "signing_credential_events_credential_id_signing_credentials_id_fk",
+          "tableFrom": "signing_credential_events",
+          "tableTo": "signing_credentials",
+          "columnsFrom": [
+            "credential_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "signing_credential_events_team_id_teams_id_fk": {
+          "name": "signing_credential_events_team_id_teams_id_fk",
+          "tableFrom": "signing_credential_events",
+          "tableTo": "teams",
+          "columnsFrom": [
+            "team_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "signing_credential_events_actor_agent_id_agents_identity_id_fk": {
+          "name": "signing_credential_events_actor_agent_id_agents_identity_id_fk",
+          "tableFrom": "signing_credential_events",
+          "tableTo": "agents",
+          "columnsFrom": [
+            "actor_agent_id"
+          ],
+          "columnsTo": [
+            "identity_id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "signing_credential_events_actor_human_id_humans_id_fk": {
+          "name": "signing_credential_events_actor_human_id_humans_id_fk",
+          "tableFrom": "signing_credential_events",
+          "tableTo": "humans",
+          "columnsFrom": [
+            "actor_human_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "signing_credential_events_actor_xor": {
+          "name": "signing_credential_events_actor_xor",
+          "value": "(actor_agent_id IS NOT NULL) <> (actor_human_id IS NOT NULL)"
+        }
+      },
+      "isRLSEnabled": false
+    },
     "public.signing_credential_registrations": {
       "name": "signing_credential_registrations",
       "schema": "",
@@ -4353,6 +4525,12 @@
               "expression": "status",
               "isExpression": false,
               "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": false,
               "nulls": "last"
             }
           ],

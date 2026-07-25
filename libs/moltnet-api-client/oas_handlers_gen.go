@@ -1384,6 +1384,21 @@ func (s *Server) handleApproveSigningCredentialRequest(args [1]string, argsEscap
 	}
 
 	var rawBody []byte
+	request, rawBody, close, err := s.decodeApproveSigningCredentialRequest(r)
+	if err != nil {
+		err = &ogenerrors.DecodeRequestError{
+			OperationContext: opErrContext,
+			Err:              err,
+		}
+		defer recordError("DecodeRequest", err)
+		s.cfg.ErrorHandler(ctx, w, r, err)
+		return
+	}
+	defer func() {
+		if err := close(); err != nil {
+			recordError("CloseRequest", err)
+		}
+	}()
 
 	var response ApproveSigningCredentialRes
 	if m := s.cfg.Middleware; m != nil {
@@ -1392,7 +1407,7 @@ func (s *Server) handleApproveSigningCredentialRequest(args [1]string, argsEscap
 			OperationName:    ApproveSigningCredentialOperation,
 			OperationSummary: "",
 			OperationID:      "approveSigningCredential",
-			Body:             nil,
+			Body:             request,
 			RawBody:          rawBody,
 			Params: middleware.Parameters{
 				{
@@ -1408,7 +1423,7 @@ func (s *Server) handleApproveSigningCredentialRequest(args [1]string, argsEscap
 		}
 
 		type (
-			Request  = struct{}
+			Request  = OptApproveSigningCredentialReq
 			Params   = ApproveSigningCredentialParams
 			Response = ApproveSigningCredentialRes
 		)
@@ -1421,12 +1436,12 @@ func (s *Server) handleApproveSigningCredentialRequest(args [1]string, argsEscap
 			mreq,
 			unpackApproveSigningCredentialParams,
 			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				response, err = s.h.ApproveSigningCredential(ctx, params)
+				response, err = s.h.ApproveSigningCredential(ctx, request, params)
 				return response, err
 			},
 		)
 	} else {
-		response, err = s.h.ApproveSigningCredential(ctx, params)
+		response, err = s.h.ApproveSigningCredential(ctx, request, params)
 	}
 	if err != nil {
 		defer recordError("Internal", err)
@@ -25152,6 +25167,21 @@ func (s *Server) handleRevokeSigningCredentialRequest(args [1]string, argsEscape
 	}
 
 	var rawBody []byte
+	request, rawBody, close, err := s.decodeRevokeSigningCredentialRequest(r)
+	if err != nil {
+		err = &ogenerrors.DecodeRequestError{
+			OperationContext: opErrContext,
+			Err:              err,
+		}
+		defer recordError("DecodeRequest", err)
+		s.cfg.ErrorHandler(ctx, w, r, err)
+		return
+	}
+	defer func() {
+		if err := close(); err != nil {
+			recordError("CloseRequest", err)
+		}
+	}()
 
 	var response RevokeSigningCredentialRes
 	if m := s.cfg.Middleware; m != nil {
@@ -25160,7 +25190,7 @@ func (s *Server) handleRevokeSigningCredentialRequest(args [1]string, argsEscape
 			OperationName:    RevokeSigningCredentialOperation,
 			OperationSummary: "",
 			OperationID:      "revokeSigningCredential",
-			Body:             nil,
+			Body:             request,
 			RawBody:          rawBody,
 			Params: middleware.Parameters{
 				{
@@ -25176,7 +25206,7 @@ func (s *Server) handleRevokeSigningCredentialRequest(args [1]string, argsEscape
 		}
 
 		type (
-			Request  = struct{}
+			Request  = OptRevokeSigningCredentialReq
 			Params   = RevokeSigningCredentialParams
 			Response = RevokeSigningCredentialRes
 		)
@@ -25189,12 +25219,12 @@ func (s *Server) handleRevokeSigningCredentialRequest(args [1]string, argsEscape
 			mreq,
 			unpackRevokeSigningCredentialParams,
 			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				response, err = s.h.RevokeSigningCredential(ctx, params)
+				response, err = s.h.RevokeSigningCredential(ctx, request, params)
 				return response, err
 			},
 		)
 	} else {
-		response, err = s.h.RevokeSigningCredential(ctx, params)
+		response, err = s.h.RevokeSigningCredential(ctx, request, params)
 	}
 	if err != nil {
 		defer recordError("Internal", err)
@@ -26830,6 +26860,21 @@ func (s *Server) handleSuspendSigningCredentialRequest(args [1]string, argsEscap
 	}
 
 	var rawBody []byte
+	request, rawBody, close, err := s.decodeSuspendSigningCredentialRequest(r)
+	if err != nil {
+		err = &ogenerrors.DecodeRequestError{
+			OperationContext: opErrContext,
+			Err:              err,
+		}
+		defer recordError("DecodeRequest", err)
+		s.cfg.ErrorHandler(ctx, w, r, err)
+		return
+	}
+	defer func() {
+		if err := close(); err != nil {
+			recordError("CloseRequest", err)
+		}
+	}()
 
 	var response SuspendSigningCredentialRes
 	if m := s.cfg.Middleware; m != nil {
@@ -26838,7 +26883,7 @@ func (s *Server) handleSuspendSigningCredentialRequest(args [1]string, argsEscap
 			OperationName:    SuspendSigningCredentialOperation,
 			OperationSummary: "",
 			OperationID:      "suspendSigningCredential",
-			Body:             nil,
+			Body:             request,
 			RawBody:          rawBody,
 			Params: middleware.Parameters{
 				{
@@ -26854,7 +26899,7 @@ func (s *Server) handleSuspendSigningCredentialRequest(args [1]string, argsEscap
 		}
 
 		type (
-			Request  = struct{}
+			Request  = OptSuspendSigningCredentialReq
 			Params   = SuspendSigningCredentialParams
 			Response = SuspendSigningCredentialRes
 		)
@@ -26867,12 +26912,12 @@ func (s *Server) handleSuspendSigningCredentialRequest(args [1]string, argsEscap
 			mreq,
 			unpackSuspendSigningCredentialParams,
 			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				response, err = s.h.SuspendSigningCredential(ctx, params)
+				response, err = s.h.SuspendSigningCredential(ctx, request, params)
 				return response, err
 			},
 		)
 	} else {
-		response, err = s.h.SuspendSigningCredential(ctx, params)
+		response, err = s.h.SuspendSigningCredential(ctx, request, params)
 	}
 	if err != nil {
 		defer recordError("Internal", err)

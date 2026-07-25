@@ -49,6 +49,28 @@ describe('Health routes', () => {
       const body = response.json();
       expect(body.status).toBe('ok');
       expect(body.timestamp).toBeDefined();
+      expect(body.testSigningDriverEnabled).toBe(false);
+    });
+
+    it('exposes when the deterministic signing driver is enabled', async () => {
+      const flaggedApp = await createTestApp(
+        createMockServices(),
+        null,
+        undefined,
+        { testSigningDriverEnabled: true },
+      );
+
+      try {
+        const response = await flaggedApp.inject({
+          method: 'GET',
+          url: '/health',
+        });
+
+        expect(response.statusCode).toBe(200);
+        expect(response.json().testSigningDriverEnabled).toBe(true);
+      } finally {
+        await flaggedApp.close();
+      }
     });
   });
 

@@ -203,6 +203,8 @@ export interface AppOptions {
   pool?: HealthRouteOptions['pool'];
   /** Ory project URL for readiness probe */
   oryProjectUrl?: string;
+  /** Explicitly exposes the unsafe deterministic signing driver in health data. */
+  testSigningDriverEnabled?: boolean;
   /** Application version exposed through OpenAPI metadata. */
   version?: string;
   /**
@@ -414,6 +416,7 @@ export async function registerApiRoutes(
     pool: options.pool,
     oryProjectUrl: options.oryProjectUrl,
     talosApi: options.oryClients.apiKeys,
+    testSigningDriverEnabled: options.testSigningDriverEnabled,
   });
   await app.register(diaryRoutes);
   await app.register(diaryEntryRoutes);

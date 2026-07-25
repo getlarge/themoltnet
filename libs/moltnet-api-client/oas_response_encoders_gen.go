@@ -435,7 +435,7 @@ func encodeApproveSigningCredentialResponse(response ApproveSigningCredentialRes
 
 		return nil
 
-	case *ApproveSigningCredentialConflict:
+	case *ConflictProblemDetails:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(409)
 
@@ -1044,7 +1044,7 @@ func encodeCompleteSigningCredentialRegistrationResponse(response CompleteSignin
 
 		return nil
 
-	case *CompleteSigningCredentialRegistrationConflict:
+	case *ConflictProblemDetails:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(409)
 
@@ -7619,7 +7619,7 @@ func encodeRevokeSigningCredentialResponse(response RevokeSigningCredentialRes, 
 
 		return nil
 
-	case *RevokeSigningCredentialConflict:
+	case *ConflictProblemDetails:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(409)
 
@@ -8188,7 +8188,7 @@ func encodeSuspendSigningCredentialResponse(response SuspendSigningCredentialRes
 
 		return nil
 
-	case *SuspendSigningCredentialConflict:
+	case *ConflictProblemDetails:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(409)
 

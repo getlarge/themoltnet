@@ -433,8 +433,8 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     afterLaunch: [
       () => {
         setSigningRequestPersistence({
-          updateStatus: async (id, updates) => {
-            await signingRequestRepository.updateStatus(id, updates);
+          completeAgentRequest: async (input) => {
+            await signingRequestRepository.completeAgentRequest(input);
           },
         });
       },
@@ -484,6 +484,8 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
           taskRepository,
           runtimeSessionRepository,
           taskArtifactRepository,
+          signingCredentialRepository,
+          signingRequestRepository,
           runtimeSessionStorage,
           taskArtifactStorage,
           dataSource: getDataSource(),
@@ -690,6 +692,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     packGcConfig: config.packGc,
     pool: dbConnection.pool,
     oryProjectUrl: config.ory.ORY_PROJECT_URL,
+    testSigningDriverEnabled: config.server.MOLTNET_TEST_SIGNING_DRIVER,
     ...(rateLimitRedis ? { rateLimitRedis } : {}),
   });
 

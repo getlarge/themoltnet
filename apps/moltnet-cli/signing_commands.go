@@ -33,13 +33,9 @@ func runSigningRequestCreateCmd(opts signingRequestCreateOpts) error {
 		if err != nil {
 			return fmt.Errorf("invalid --team-id: %w", err)
 		}
-		constraintType := moltnetapi.CreateSigningRequestReqSignerConstraintType(opts.constraintType)
-		if _, err := constraintType.MarshalText(); err != nil {
-			return fmt.Errorf("invalid --constraint-type: %w", err)
-		}
-		constraint := moltnetapi.CreateSigningRequestReqSignerConstraint{Type: constraintType}
-		if opts.constraintID != "" {
-			constraint.ID = moltnetapi.NewOptString(opts.constraintID)
+		constraint, err := signingRequestConstraint(opts.constraintType, opts.constraintID)
+		if err != nil {
+			return err
 		}
 		req.VerificationMethod = moltnetapi.NewOptCreateSigningRequestReqVerificationMethod(
 			moltnetapi.CreateSigningRequestReqVerificationMethodHumanHardwarePreviewsign,
@@ -59,6 +55,53 @@ func runSigningRequestCreateCmd(opts signingRequestCreateOpts) error {
 		return formatAPIError(res)
 	}
 	return printJSONTo(opts.out, request)
+}
+
+func signingRequestConstraint(
+	constraintType, constraintID string,
+) (moltnetapi.CreateSigningRequestReqSignerConstraint, error) {
+	switch constraintType {
+	case "human":
+		id, err := uuid.Parse(constraintID)
+		if err != nil {
+			return moltnetapi.CreateSigningRequestReqSignerConstraint{},
+				fmt.Errorf("invalid human --constraint-id: %w", err)
+		}
+		return moltnetapi.NewProvenanceGraphHumanNodeCreateSigningRequestReqSignerConstraint(
+			moltnetapi.ProvenanceGraphHumanNode{
+				ID:   id,
+				Type: moltnetapi.ProvenanceGraphHumanNodeTypeHuman,
+			},
+		), nil
+	case "team-role":
+		role := moltnetapi.ProvenanceGraphTeamRoleNodeID(constraintID)
+		// MarshalText validates enum membership.
+		if _, err := role.MarshalText(); err != nil {
+			return moltnetapi.CreateSigningRequestReqSignerConstraint{},
+				fmt.Errorf("invalid team role --constraint-id: %w", err)
+		}
+		return moltnetapi.NewProvenanceGraphTeamRoleNodeCreateSigningRequestReqSignerConstraint(
+			moltnetapi.ProvenanceGraphTeamRoleNode{
+				ID:   role,
+				Type: moltnetapi.ProvenanceGraphTeamRoleNodeTypeTeamRole,
+			},
+		), nil
+	case "group":
+		id, err := uuid.Parse(constraintID)
+		if err != nil {
+			return moltnetapi.CreateSigningRequestReqSignerConstraint{},
+				fmt.Errorf("invalid group --constraint-id: %w", err)
+		}
+		return moltnetapi.NewProvenanceGraphGroupNodeCreateSigningRequestReqSignerConstraint(
+			moltnetapi.ProvenanceGraphGroupNode{
+				ID:   id,
+				Type: moltnetapi.ProvenanceGraphGroupNodeTypeGroup,
+			},
+		), nil
+	default:
+		return moltnetapi.CreateSigningRequestReqSignerConstraint{},
+			fmt.Errorf("invalid --constraint-type %q", constraintType)
+	}
 }
 
 func runSigningRequestListCmd(apiURL, credPath, scope string, out io.Writer) error {
@@ -143,17 +186,29 @@ func runSigningCredentialActionCmd(apiURL, credPath, teamID, id, action string, 
 	var res any
 	switch action {
 	case "approve":
-		res, err = client.ApproveSigningCredential(context.Background(), moltnetapi.ApproveSigningCredentialParams{
-			ID: credentialID, XMoltnetTeamID: team,
-		})
+		res, err = client.ApproveSigningCredential(
+			context.Background(),
+			moltnetapi.NewOptApproveSigningCredentialReq(moltnetapi.ApproveSigningCredentialReq{}),
+			moltnetapi.ApproveSigningCredentialParams{
+				ID: credentialID, XMoltnetTeamID: team,
+			},
+		)
 	case "suspend":
-		res, err = client.SuspendSigningCredential(context.Background(), moltnetapi.SuspendSigningCredentialParams{
-			ID: credentialID, XMoltnetTeamID: team,
-		})
+		res, err = client.SuspendSigningCredential(
+			context.Background(),
+			moltnetapi.NewOptSuspendSigningCredentialReq(moltnetapi.SuspendSigningCredentialReq{}),
+			moltnetapi.SuspendSigningCredentialParams{
+				ID: credentialID, XMoltnetTeamID: team,
+			},
+		)
 	case "revoke":
-		res, err = client.RevokeSigningCredential(context.Background(), moltnetapi.RevokeSigningCredentialParams{
-			ID: credentialID, XMoltnetTeamID: team,
-		})
+		res, err = client.RevokeSigningCredential(
+			context.Background(),
+			moltnetapi.NewOptRevokeSigningCredentialReq(moltnetapi.RevokeSigningCredentialReq{}),
+			moltnetapi.RevokeSigningCredentialParams{
+				ID: credentialID, XMoltnetTeamID: team,
+			},
+		)
 	default:
 		return fmt.Errorf("unsupported credential action %q", action)
 	}

@@ -5,6 +5,7 @@
  * Database: PostgreSQL + pgvector
  */
 
+import type { SignerConstraint } from '@moltnet/models';
 import {
   VERIFICATION_METHOD,
   VERIFICATION_METHOD_VALUES,
@@ -490,10 +491,7 @@ export interface SigningRequestRequester {
   type: 'agent' | 'human' | 'service';
 }
 
-export interface SigningRequestSignerConstraint {
-  id?: string;
-  type: 'human' | 'team-role' | 'group' | 'site' | 'station';
-}
+export type SigningRequestSignerConstraint = SignerConstraint;
 
 /**
  * Signing Credentials
@@ -558,6 +556,45 @@ export const signingCredentials = pgTable(
     check(
       'signing_credentials_owner_xor',
       sql`(owner_agent_id IS NOT NULL) <> (owner_human_id IS NOT NULL)`,
+    ),
+  ],
+);
+
+export const signingCredentialEvents = pgTable(
+  'signing_credential_events',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    credentialId: uuid('credential_id')
+      .notNull()
+      .references(() => signingCredentials.id, { onDelete: 'cascade' }),
+    teamId: uuid('team_id')
+      .notNull()
+      .references(() => teams.id, { onDelete: 'restrict' }),
+    actorAgentId: uuid('actor_agent_id').references(() => agents.identityId, {
+      onDelete: 'restrict',
+    }),
+    actorHumanId: uuid('actor_human_id').references(() => humans.id, {
+      onDelete: 'restrict',
+    }),
+    fromStatus: signingCredentialStatusEnum('from_status').notNull(),
+    toStatus: signingCredentialStatusEnum('to_status').notNull(),
+    reason: text('reason'),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index('signing_credential_events_credential_idx').on(
+      table.credentialId,
+      table.createdAt.desc(),
+    ),
+    index('signing_credential_events_team_idx').on(
+      table.teamId,
+      table.createdAt.desc(),
+    ),
+    check(
+      'signing_credential_events_actor_xor',
+      sql`(actor_agent_id IS NOT NULL) <> (actor_human_id IS NOT NULL)`,
     ),
   ],
 );
@@ -670,7 +707,11 @@ export const signingRequests = pgTable(
     // Lookup by DBOS workflow ID
     uniqueIndex('signing_requests_workflow_idx').on(table.workflowId),
     index('signing_requests_requested_by_idx').using('gin', table.requestedBy),
-    index('signing_requests_team_status_idx').on(table.teamId, table.status),
+    index('signing_requests_team_status_idx').on(
+      table.teamId,
+      table.status,
+      table.createdAt.desc(),
+    ),
     index('signing_requests_claimed_by_idx').on(
       table.claimedByHumanId,
       table.status,
@@ -1175,6 +1216,10 @@ export type AgentVoucher = typeof agentVouchers.$inferSelect;
 export type NewAgentVoucher = typeof agentVouchers.$inferInsert;
 export type SigningCredential = typeof signingCredentials.$inferSelect;
 export type NewSigningCredential = typeof signingCredentials.$inferInsert;
+export type SigningCredentialEvent =
+  typeof signingCredentialEvents.$inferSelect;
+export type NewSigningCredentialEvent =
+  typeof signingCredentialEvents.$inferInsert;
 export type SigningCredentialRegistration =
   typeof signingCredentialRegistrations.$inferSelect;
 export type NewSigningCredentialRegistration =

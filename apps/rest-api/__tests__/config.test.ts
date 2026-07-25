@@ -62,6 +62,17 @@ describe('loadServerConfig', () => {
       'Invalid Server config',
     );
   });
+
+  it('refuses the deterministic signing driver in production', () => {
+    expect(() =>
+      loadServerConfig({
+        NODE_ENV: 'production',
+        MOLTNET_TEST_SIGNING_DRIVER: 'true',
+      }),
+    ).toThrow(
+      'MOLTNET_TEST_SIGNING_DRIVER is forbidden when NODE_ENV=production',
+    );
+  });
 });
 
 // ============================================================================

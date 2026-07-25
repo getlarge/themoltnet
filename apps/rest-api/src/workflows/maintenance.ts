@@ -18,6 +18,8 @@ import {
   type NonceRepository,
   type RenderedPackRepository,
   type RuntimeSessionRepository,
+  type SigningCredentialRepository,
+  type SigningRequestRepository,
   type Task,
   type TaskArtifactRepository,
   type TaskRepository,
@@ -56,6 +58,8 @@ export interface MaintenanceDeps {
   taskRepository: TaskRepository;
   runtimeSessionRepository: RuntimeSessionRepository;
   taskArtifactRepository: TaskArtifactRepository;
+  signingCredentialRepository: SigningCredentialRepository;
+  signingRequestRepository: SigningRequestRepository;
   runtimeSessionStorage: RuntimeSessionStorage;
   taskArtifactStorage: TaskArtifactStorage;
   dataSource: DataSource;
@@ -107,6 +111,27 @@ export function initMaintenanceWorkflows(
   DBOS.registerScheduled(nonceCleanupWorkflow, {
     name: 'maintenance.nonceCleanup',
     crontab: '0 0 * * *',
+  });
+
+  const signingExpiryWorkflow = DBOS.registerWorkflow(
+    async (_scheduledTime: Date, actualTime: Date): Promise<void> => {
+      const { signingCredentialRepository, signingRequestRepository, logger } =
+        getDeps();
+      const [expiredRequests, deletedRegistrations] = await Promise.all([
+        signingRequestRepository.expireDelegated(actualTime, 500),
+        signingCredentialRepository.cleanupRegistrations(actualTime, 500),
+      ]);
+      logger.info(
+        { expiredRequests, deletedRegistrations },
+        'maintenance: signing expiry cleanup complete',
+      );
+    },
+    { name: 'maintenance.signingExpiryCleanup' },
+  );
+
+  DBOS.registerScheduled(signingExpiryWorkflow, {
+    name: 'maintenance.signingExpiryCleanup',
+    crontab: '*/5 * * * *',
   });
 
   // ── Pack GC ──────────────────────────────────────────────────

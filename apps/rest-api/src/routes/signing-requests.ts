@@ -4,27 +4,26 @@
  * Agents create signing requests, sign locally, and submit signatures.
  * Private keys never leave the agent's runtime.
  *
- * ## Authorization: agentId field comparison (no Keto)
+ * ## Authorization
  *
- * Unlike diary entries, signing requests don't use Keto relationships.
- * Ownership is enforced by comparing `signingRequest.agentId` against
- * the authenticated `identityId` from the JWT. This is sufficient because:
- * - Requests are ephemeral (configurable TTL) — Keto cleanup on expiry adds complexity for no gain
- * - Single-owner, no sharing — no viewer/editor relations needed
- * - The only permission is "am I the creator?" — a direct field comparison
- *
- * If multi-party signing or delegation is added later, introduce a
- * `SigningRequest` Keto namespace at that point.
+ * Agent Ed25519 requests remain identity-owned and use a direct `agentId`
+ * comparison. Delegated requests are team-scoped: Keto establishes team role
+ * and group membership, while the persisted signer constraint selects which
+ * eligible human may claim and complete the request.
  */
 
+import { isDeepStrictEqual } from 'node:util';
+
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
-import { KetoNamespace, requireAuth } from '@moltnet/auth';
+import { KetoNamespace, requireAuth, teamRelationToRole } from '@moltnet/auth';
 import { buildSigningBytes } from '@moltnet/crypto-service';
 import type { SigningRequest } from '@moltnet/database';
 import { DBOS, parseStatusFilter } from '@moltnet/database';
 import {
   ConflictProblemDetailsSchema,
   ProblemDetailsSchema,
+  SIGNER_CONSTRAINT_TYPE,
+  SignerConstraintSchema,
   TeamHeaderRequiredSchema,
   VERIFICATION_METHOD,
   VerificationMethodSchema,
@@ -34,10 +33,13 @@ import {
   assertSupportedSignerConstraint,
   prepareSigningClaim,
   SigningCredentialError,
+  type SigningMethodJson,
   SigningVerifierNotRegisteredError,
   SigningWorkflowError,
   signingWorkflows,
+  toSigningMethodReceipt,
   verifySigningReceipt,
+  waitForSigningResult,
 } from '@moltnet/signing-workflows';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { Type } from 'typebox';
@@ -80,56 +82,86 @@ function toSigningResponse(row: SigningRequest) {
   };
 }
 
+const SIGNING_JSON_BODY_LIMIT = 64 * 1024;
+
+function asSigningMethodJson(value: unknown): SigningMethodJson {
+  return value as SigningMethodJson;
+}
+
 function signingPayload(row: SigningRequest): string {
   return Buffer.from(buildSigningBytes(row.message, row.nonce)).toString(
     'base64',
   );
 }
 
-async function isEligibleHuman(
+interface EligibilityContext {
+  humanId: string;
+  identityId: string;
+  rolesByTeam: Map<string, ReturnType<typeof teamRelationToRole>>;
+  groupIds: Set<string>;
+  groupTeamIds: Map<string, string>;
+}
+
+async function createEligibilityContext(
   fastify: FastifyInstance,
   request: Pick<FastifyRequest, 'authContext'>,
-  row: SigningRequest,
-): Promise<boolean> {
+): Promise<EligibilityContext | null> {
   const auth = request.authContext;
-  if (!auth || auth.subjectType !== 'human' || !row.signerConstraint) {
-    return false;
-  }
-  if (
-    !row.teamId ||
-    !(await fastify.permissionChecker.canAccessTeam(
-      row.teamId,
-      auth.identityId,
-      KetoNamespace.Human,
-    ))
-  ) {
-    return false;
-  }
+  if (!auth || auth.subjectType !== 'human') return null;
+  const [roles, groupIds] = await Promise.all([
+    fastify.relationshipReader.listTeamIdsAndRolesBySubject(auth.identityId),
+    fastify.relationshipReader.listGroupIdsBySubject(auth.identityId),
+  ]);
+  const groups = await Promise.all(
+    groupIds.map((id) => fastify.groupRepository.findById(id)),
+  );
+  return {
+    humanId: auth.humanId,
+    identityId: auth.identityId,
+    rolesByTeam: new Map(
+      roles.map(({ teamId, relation }) => [
+        teamId,
+        teamRelationToRole(relation),
+      ]),
+    ),
+    groupIds: new Set(groupIds),
+    groupTeamIds: new Map(
+      groups
+        .filter((group) => group !== null)
+        .map((group) => [group.id, group.teamId]),
+    ),
+  };
+}
+
+function isEligibleHuman(
+  context: EligibilityContext | null,
+  row: SigningRequest,
+): boolean {
+  if (!context || !row.teamId || !row.signerConstraint) return false;
+  if (!context.rolesByTeam.has(row.teamId)) return false;
   const constraint = row.signerConstraint;
-  assertSupportedSignerConstraint(constraint.type);
-  if (constraint.type === 'human') {
-    return constraint.id === auth.humanId || constraint.id === auth.identityId;
+  switch (constraint.type) {
+    case SIGNER_CONSTRAINT_TYPE.Human:
+      return (
+        constraint.id === context.humanId ||
+        constraint.id === context.identityId
+      );
+    case SIGNER_CONSTRAINT_TYPE.TeamRole:
+      return context.rolesByTeam.get(row.teamId) === constraint.id;
+    case SIGNER_CONSTRAINT_TYPE.Group:
+      return (
+        context.groupIds.has(constraint.id) &&
+        context.groupTeamIds.get(constraint.id) === row.teamId
+      );
+    case SIGNER_CONSTRAINT_TYPE.Site:
+    case SIGNER_CONSTRAINT_TYPE.Station:
+      assertSupportedSignerConstraint(constraint.type);
+      return false;
+    default: {
+      const exhaustive: never = constraint;
+      return exhaustive;
+    }
   }
-  if (constraint.type === 'team-role') {
-    const roles = await fastify.relationshipReader.listTeamIdsAndRolesBySubject(
-      auth.identityId,
-    );
-    const role = roles.find(({ teamId }) => teamId === row.teamId)?.relation;
-    return role === constraint.id || role?.replace(/s$/, '') === constraint.id;
-  }
-  if (constraint.type === 'group' && constraint.id) {
-    const group = await fastify.groupRepository.findById(constraint.id);
-    if (!group || group.teamId !== row.teamId) return false;
-    const members = await fastify.relationshipReader.listGroupMembers(
-      constraint.id,
-    );
-    return members.some(
-      (member) =>
-        member.subjectNs === String(KetoNamespace.Human) &&
-        member.subjectId === auth.identityId,
-    );
-  }
-  return false;
 }
 
 export async function signingRequestRoutes(fastify: FastifyInstance) {
@@ -160,18 +192,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
           purpose: Type.Optional(
             Type.String({ minLength: 1, maxLength: 1000 }),
           ),
-          signerConstraint: Type.Optional(
-            Type.Object({
-              id: Type.Optional(Type.String()),
-              type: Type.Union([
-                Type.Literal('human'),
-                Type.Literal('team-role'),
-                Type.Literal('group'),
-                Type.Literal('site'),
-                Type.Literal('station'),
-              ]),
-            }),
-          ),
+          signerConstraint: Type.Optional(SignerConstraintSchema),
         }),
         response: {
           400: Type.Ref(ProblemDetailsSchema.$id),
@@ -260,9 +281,10 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
           created.nonce,
           created.verificationMethod,
         );
-        await fastify.signingRequestRepository.updateStatus(created.id, {
-          workflowId: workflowHandle.workflowID,
-        });
+        await fastify.signingRequestRepository.setWorkflowId(
+          created.id,
+          workflowHandle.workflowID,
+        );
       }
 
       request.log.info(
@@ -328,40 +350,41 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
       ) {
         return { items: [], total: 0, limit: limit ?? 20, offset: offset ?? 0 };
       }
-      const teamIds =
+      const eligibility =
         scope === 'signable'
-          ? await fastify.relationshipReader.listTeamIdsBySubject(
-              request.authContext!.identityId,
-            )
-          : undefined;
-      if (scope === 'signable' && teamIds?.length === 0) {
+          ? await createEligibilityContext(fastify, request)
+          : null;
+      if (scope === 'signable' && eligibility?.rolesByTeam.size === 0) {
         return { items: [], total: 0, limit: limit ?? 20, offset: offset ?? 0 };
       }
-      const result = await fastify.signingRequestRepository.list({
-        agentId:
-          scope === 'requested' ? request.authContext!.identityId : undefined,
-        teamIds,
-        status: statusFilter,
-        limit,
-        offset,
-      });
-      const items =
-        scope === 'signable'
-          ? (
-              await Promise.all(
-                result.items.map(async (item) =>
-                  (item.status === 'pending' || item.status === 'claimed') &&
-                  (await isEligibleHuman(fastify, request, item))
-                    ? item
-                    : null,
-                ),
-              )
-            ).filter((item): item is SigningRequest => item !== null)
-          : result.items;
+      const result =
+        scope === 'signable' && eligibility
+          ? await fastify.signingRequestRepository.listSignable({
+              teamRoles: [...eligibility.rolesByTeam].map(([teamId, role]) => ({
+                teamId,
+                role,
+              })),
+              humanIds: [eligibility.humanId, eligibility.identityId],
+              groups: [...eligibility.groupTeamIds].map(
+                ([groupId, teamId]) => ({ groupId, teamId }),
+              ),
+              status: statusFilter?.filter(
+                (value): value is 'pending' | 'claimed' =>
+                  value === 'pending' || value === 'claimed',
+              ),
+              limit,
+              offset,
+            })
+          : await fastify.signingRequestRepository.list({
+              agentId: request.authContext!.identityId,
+              status: statusFilter,
+              limit,
+              offset,
+            });
 
       return {
-        items: items.map(toSigningResponse),
-        total: scope === 'signable' ? items.length : result.total,
+        items: result.items.map(toSigningResponse),
+        total: result.total,
         limit: limit ?? 20,
         offset: offset ?? 0,
       };
@@ -415,7 +438,10 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
   server.post(
     '/crypto/signing-requests/:id/claim',
     {
-      config: { auth: { credentialBindingScope: 'team' } },
+      config: {
+        auth: { credentialBindingScope: 'team' },
+        rateLimit: fastify.rateLimitConfig?.signing,
+      },
       schema: {
         operationId: 'claimSigningRequest',
         tags: ['crypto'],
@@ -445,8 +471,20 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
       if (!row || row.teamId !== teamId || !row.signerConstraint) {
         throw createProblem('not-found', 'Signing request not found');
       }
+      if (
+        row.status === 'claimed' &&
+        row.claimedByHumanId === auth.humanId &&
+        row.signingCredentialId === request.body.credentialId
+      ) {
+        return toSigningResponse(row);
+      }
       try {
-        if (!(await isEligibleHuman(fastify, request, row))) {
+        if (
+          !isEligibleHuman(
+            await createEligibilityContext(fastify, request),
+            row,
+          )
+        ) {
           throw createProblem('forbidden');
         }
       } catch (error) {
@@ -474,7 +512,9 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
           requestId: row.id,
           credentialId: credential.id,
           signingPayload: signingPayload(row),
-          credentialPublicMaterial: credential.publicMaterial as never,
+          credentialPublicMaterial: asSigningMethodJson(
+            credential.publicMaterial,
+          ),
         });
         const claimed = await fastify.signingRequestRepository.claim({
           id: row.id,
@@ -509,7 +549,11 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
   server.post(
     '/crypto/signing-requests/:id/complete',
     {
-      config: { auth: { credentialBindingScope: 'team' } },
+      config: {
+        auth: { credentialBindingScope: 'team' },
+        rateLimit: fastify.rateLimitConfig?.signing,
+        bodyLimit: SIGNING_JSON_BODY_LIMIT,
+      },
       schema: {
         operationId: 'completeSigningRequest',
         tags: ['crypto'],
@@ -519,7 +563,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
         body: Type.Object({
           receipt: Type.Object({
             verificationMethod: VerificationMethodSchema,
-            value: Type.Unknown(),
+            value: Type.Record(Type.String(), Type.Unknown()),
           }),
         }),
         response: {
@@ -539,6 +583,21 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
       const row = await fastify.signingRequestRepository.findById(
         request.params.id,
       );
+      if (
+        row?.status === 'completed' &&
+        row.claimedByHumanId === auth.humanId &&
+        row.signingCredentialId &&
+        isDeepStrictEqual(row.receipt, request.body.receipt)
+      ) {
+        return toSigningResponse(row);
+      }
+      if (
+        row?.teamId === teamId &&
+        row.status === 'claimed' &&
+        row.claimedByHumanId !== auth.humanId
+      ) {
+        throw createProblem('forbidden');
+      }
       if (
         !row ||
         row.teamId !== teamId ||
@@ -567,30 +626,55 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
         );
       }
       try {
-        const receiptValue =
-          request.body.receipt.value &&
-          typeof request.body.receipt.value === 'object'
-            ? request.body.receipt.value
-            : { value: request.body.receipt.value };
-        await verifySigningReceipt({
-          verificationMethod: row.verificationMethod,
-          requestId: row.id,
-          credentialId: credential.id,
-          signingPayload: signingPayload(row),
-          credentialPublicMaterial: credential.publicMaterial as never,
-          verifierState: row.methodState.value as never,
-          receipt: {
-            verificationMethod: request.body.receipt.verificationMethod,
-            ...receiptValue,
+        const completed = await fastify.transactionRunner.runInTransaction(
+          async () => {
+            const locked =
+              await fastify.signingRequestRepository.lockClaimForCompletion({
+                id: row.id,
+                humanId: auth.humanId,
+                credentialId: credential.id,
+              });
+            if (!locked?.methodState) {
+              const current = await fastify.signingRequestRepository.findById(
+                row.id,
+              );
+              if (
+                current?.status === 'completed' &&
+                current.claimedByHumanId === auth.humanId &&
+                current.signingCredentialId === credential.id &&
+                isDeepStrictEqual(current.receipt, request.body.receipt)
+              ) {
+                return current;
+              }
+              throw createProblem(
+                'conflict',
+                'Signing request was already completed, rejected, or expired',
+              );
+            }
+            await verifySigningReceipt({
+              verificationMethod: locked.verificationMethod,
+              requestId: locked.id,
+              credentialId: credential.id,
+              signingPayload: signingPayload(locked),
+              credentialPublicMaterial: asSigningMethodJson(
+                credential.publicMaterial,
+              ),
+              verifierState: asSigningMethodJson(locked.methodState.value),
+              receipt: toSigningMethodReceipt({
+                verificationMethod: request.body.receipt.verificationMethod,
+                value: asSigningMethodJson(request.body.receipt.value),
+              }),
+            });
+            return fastify.signingRequestRepository.completeClaim({
+              id: locked.id,
+              humanId: auth.humanId,
+              credentialId: credential.id,
+              receipt: request.body.receipt,
+              valid: true,
+            });
           },
-        });
-        const completed = await fastify.signingRequestRepository.completeClaim({
-          id: row.id,
-          humanId: auth.humanId,
-          credentialId: credential.id,
-          receipt: request.body.receipt,
-          valid: true,
-        });
+          { name: 'complete-signing-request' },
+        );
         if (!completed) {
           throw createProblem(
             'conflict',
@@ -611,7 +695,10 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
   server.post(
     '/crypto/signing-requests/:id/reject',
     {
-      config: { auth: { credentialBindingScope: 'team' } },
+      config: {
+        auth: { credentialBindingScope: 'team' },
+        rateLimit: fastify.rateLimitConfig?.signing,
+      },
       schema: {
         operationId: 'rejectSigningRequest',
         tags: ['crypto'],
@@ -638,9 +725,13 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
         request.params.id,
       );
       if (!row || row.teamId !== teamId) throw createProblem('not-found');
+      const eligible = isEligibleHuman(
+        await createEligibilityContext(fastify, request),
+        row,
+      );
       if (
-        row.claimedByHumanId !== auth.humanId &&
-        !(await isEligibleHuman(fastify, request, row))
+        (row.status === 'claimed' && row.claimedByHumanId !== auth.humanId) ||
+        (row.status === 'pending' && !eligible)
       ) {
         throw createProblem('forbidden');
       }
@@ -736,22 +827,11 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
       // Send signature to the DBOS workflow
       await DBOS.send(signingRequest.workflowId, { signature }, 'signature');
 
-      // Brief poll for the result (the workflow verifies immediately)
-      const maxWaitMs = 5000;
-      const pollIntervalMs = 100;
-      const deadline = Date.now() + maxWaitMs;
-
-      let updated = signingRequest;
-      while (Date.now() < deadline) {
-        const result = await fastify.signingRequestRepository.findById(id);
-        if (result && result.status !== 'pending') {
-          updated = result;
-          break;
-        }
-        await new Promise<void>((resolve) => {
-          setTimeout(resolve, pollIntervalMs);
-        });
-      }
+      const updated = await waitForSigningResult(id, {
+        initial: signingRequest,
+        load: (requestId) =>
+          fastify.signingRequestRepository.findById(requestId),
+      });
 
       request.log.info(
         { signingId: id, valid: updated.valid },

@@ -172,6 +172,7 @@ describe('DiaryService (integration)', () => {
       listTeamMembers: vi.fn().mockResolvedValue([]),
       isTeamMember: vi.fn().mockResolvedValue(false),
       listGroupMembers: vi.fn().mockResolvedValue([]),
+      listGroupIdsBySubject: vi.fn().mockResolvedValue([]),
     };
 
     relationshipWriter = {

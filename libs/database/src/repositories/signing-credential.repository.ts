@@ -1,10 +1,24 @@
-import { and, count, desc, eq, gt, inArray, isNull } from 'drizzle-orm';
+import {
+  and,
+  count,
+  desc,
+  eq,
+  gt,
+  inArray,
+  isNotNull,
+  isNull,
+  lte,
+  ne,
+  or,
+  sql,
+} from 'drizzle-orm';
 
 import type { Database } from '../db.js';
 import {
   type NewSigningCredential,
   type NewSigningCredentialRegistration,
   type SigningCredential,
+  signingCredentialEvents,
   type SigningCredentialRegistration,
   signingCredentialRegistrations,
   signingCredentials,
@@ -61,11 +75,57 @@ export function createSigningCredentialRepository(db: Database) {
             eq(signingCredentialRegistrations.id, id),
             eq(signingCredentialRegistrations.ownerHumanId, ownerHumanId),
             isNull(signingCredentialRegistrations.consumedAt),
-            gt(signingCredentialRegistrations.expiresAt, consumedAt),
+            gt(signingCredentialRegistrations.expiresAt, sql`now()`),
           ),
         )
         .returning();
       return registration ?? null;
+    },
+
+    async lockRegistrationForCompletion(
+      id: string,
+      ownerHumanId: string,
+      teamId: string,
+    ): Promise<SigningCredentialRegistration | null> {
+      const [registration] = await getExecutor(db)
+        .select()
+        .from(signingCredentialRegistrations)
+        .where(
+          and(
+            eq(signingCredentialRegistrations.id, id),
+            eq(signingCredentialRegistrations.ownerHumanId, ownerHumanId),
+            eq(signingCredentialRegistrations.teamId, teamId),
+            isNull(signingCredentialRegistrations.consumedAt),
+            gt(signingCredentialRegistrations.expiresAt, sql`now()`),
+          ),
+        )
+        .limit(1)
+        .for('update');
+      return registration ?? null;
+    },
+
+    async cleanupRegistrations(now = new Date(), limit = 100): Promise<number> {
+      const candidates = await getExecutor(db)
+        .select({ id: signingCredentialRegistrations.id })
+        .from(signingCredentialRegistrations)
+        .where(
+          or(
+            lte(signingCredentialRegistrations.expiresAt, now),
+            isNotNull(signingCredentialRegistrations.consumedAt),
+          ),
+        )
+        .limit(limit);
+      if (candidates.length === 0) return 0;
+      const deleted = await getExecutor(db)
+        .delete(signingCredentialRegistrations)
+        .where(
+          inArray(
+            signingCredentialRegistrations.id,
+            candidates.map(({ id }) => id),
+          ),
+        )
+        .returning({ id: signingCredentialRegistrations.id });
+      return deleted.length;
     },
 
     async create(
@@ -156,8 +216,13 @@ export function createSigningCredentialRepository(db: Database) {
       from: SigningCredentialStatus[];
       to: SigningCredentialStatus;
       approvedByHumanId?: string;
+      actor: SigningCredentialOwner;
+      reason?: string;
       now?: Date;
-    }): Promise<SigningCredential | null> {
+    }): Promise<{
+      credential: SigningCredential;
+      fromStatus: SigningCredentialStatus;
+    } | null> {
       const now = input.now ?? new Date();
       const timestamps =
         input.to === 'active'
@@ -167,23 +232,59 @@ export function createSigningCredentialRepository(db: Database) {
             : input.to === 'revoked'
               ? { revokedAt: now }
               : {};
-      const [credential] = await getExecutor(db)
+      const executor = getExecutor(db);
+      const approvalSeparation =
+        input.to === 'active' && input.actor.kind === 'human'
+          ? or(
+              isNull(signingCredentials.ownerHumanId),
+              ne(signingCredentials.ownerHumanId, input.actor.id),
+            )
+          : undefined;
+      const [before] = await executor
+        .select({ status: signingCredentials.status })
+        .from(signingCredentials)
+        .where(
+          and(
+            eq(signingCredentials.id, input.id),
+            eq(signingCredentials.teamId, input.teamId),
+            inArray(signingCredentials.status, input.from),
+            approvalSeparation,
+          ),
+        )
+        .limit(1)
+        .for('update');
+      if (!before) return null;
+      const [credential] = await executor
         .update(signingCredentials)
         .set({
           status: input.to,
           updatedAt: now,
-          approvedByHumanId: input.approvedByHumanId,
+          ...(input.approvedByHumanId !== undefined
+            ? { approvedByHumanId: input.approvedByHumanId }
+            : {}),
           ...timestamps,
         })
         .where(
           and(
             eq(signingCredentials.id, input.id),
             eq(signingCredentials.teamId, input.teamId),
-            inArray(signingCredentials.status, input.from),
+            eq(signingCredentials.status, before.status),
+            approvalSeparation,
           ),
         )
         .returning();
-      return credential ?? null;
+      if (!credential) return null;
+      await executor.insert(signingCredentialEvents).values({
+        credentialId: credential.id,
+        teamId: credential.teamId,
+        actorAgentId: input.actor.kind === 'agent' ? input.actor.id : null,
+        actorHumanId: input.actor.kind === 'human' ? input.actor.id : null,
+        fromStatus: before.status,
+        toStatus: input.to,
+        reason: input.reason,
+        createdAt: now,
+      });
+      return { credential, fromStatus: before.status };
     },
   };
 }

@@ -1,5 +1,8 @@
+import { createPrivateKey } from 'node:crypto';
+
 export type SigningCredentialErrorCode =
   | 'credential_private_material_rejected'
+  | 'credential_public_material_invalid'
   | 'credential_registration_invalid'
   | 'credential_inactive'
   | 'credential_method_mismatch'
@@ -19,16 +22,47 @@ export class SigningCredentialError extends Error {
 }
 
 const PRIVATE_FIELD_NAMES = new Set([
+  'd',
+  'dp',
+  'dq',
+  'keymaterial',
+  'p',
   'private',
   'privatekey',
   'privatematerial',
+  'priv',
+  'q',
+  'qi',
   'secret',
   'secretkey',
   'seed',
+  'sk',
 ]);
+
+const PRIVATE_VALUE_PATTERN =
+  /-----BEGIN (?:ENCRYPTED )?(?:EC |RSA |OPENSSH )?PRIVATE KEY-----/i;
+const BASE64_DER_PATTERN =
+  /^(?:[A-Za-z0-9+/]{4}){8,}(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
+const MAX_MATERIAL_DEPTH = 16;
+const MAX_MATERIAL_NODES = 1000;
 
 function normalizedFieldName(name: string): string {
   return name.toLowerCase().replaceAll(/[^a-z]/g, '');
+}
+
+function containsPrivateKeyValue(value: string): boolean {
+  if (PRIVATE_VALUE_PATTERN.test(value)) return true;
+  if (!BASE64_DER_PATTERN.test(value)) return false;
+  const key = Buffer.from(value, 'base64');
+  for (const type of ['pkcs8', 'pkcs1', 'sec1'] as const) {
+    try {
+      createPrivateKey({ key, format: 'der', type });
+      return true;
+    } catch {
+      // Try the next standard private-key container.
+    }
+  }
+  return false;
 }
 
 /**
@@ -38,25 +72,70 @@ function normalizedFieldName(name: string): string {
  */
 export function assertNoPrivateSigningMaterial(
   value: unknown,
-  path = 'publicMaterial',
+  rootPath = 'publicMaterial',
 ): void {
-  if (Array.isArray(value)) {
-    value.forEach((item, index) =>
-      assertNoPrivateSigningMaterial(item, `${path}[${index}]`),
-    );
-    return;
-  }
-  if (!value || typeof value !== 'object') return;
+  const pending: Array<{
+    value: unknown;
+    depth: number;
+    path: Array<string | number>;
+  }> = [{ value, depth: 0, path: [] }];
+  let visited = 0;
 
-  for (const [key, nested] of Object.entries(value)) {
-    if (PRIVATE_FIELD_NAMES.has(normalizedFieldName(key))) {
+  while (pending.length > 0) {
+    const current = pending.pop();
+    if (!current) break;
+    visited += 1;
+    if (current.depth > MAX_MATERIAL_DEPTH || visited > MAX_MATERIAL_NODES) {
       throw new SigningCredentialError(
-        'credential_private_material_rejected',
-        `Private signing material is not accepted (${path}.${key})`,
+        'credential_public_material_invalid',
+        'Signing material exceeds the allowed JSON depth or node count',
       );
     }
-    assertNoPrivateSigningMaterial(nested, `${path}.${key}`);
+    if (
+      typeof current.value === 'string' &&
+      containsPrivateKeyValue(current.value)
+    ) {
+      throw new SigningCredentialError(
+        'credential_private_material_rejected',
+        `Private signing material is not accepted (${formatPath(rootPath, current.path)})`,
+      );
+    }
+    if (Array.isArray(current.value)) {
+      for (let index = current.value.length - 1; index >= 0; index -= 1) {
+        pending.push({
+          value: current.value[index],
+          depth: current.depth + 1,
+          path: [...current.path, index],
+        });
+      }
+      continue;
+    }
+    if (!current.value || typeof current.value !== 'object') continue;
+
+    for (const [key, nested] of Object.entries(current.value)) {
+      if (PRIVATE_FIELD_NAMES.has(normalizedFieldName(key))) {
+        throw new SigningCredentialError(
+          'credential_private_material_rejected',
+          `Private signing material is not accepted (${formatPath(rootPath, [...current.path, key])})`,
+        );
+      }
+      pending.push({
+        value: nested,
+        depth: current.depth + 1,
+        path: [...current.path, key],
+      });
+    }
   }
+}
+
+function formatPath(root: string, segments: Array<string | number>): string {
+  return segments.reduce<string>(
+    (path, segment) =>
+      typeof segment === 'number'
+        ? `${path}[${segment}]`
+        : `${path}.${segment}`,
+    root,
+  );
 }
 
 export function assertSupportedSignerConstraint(type: string): void {
