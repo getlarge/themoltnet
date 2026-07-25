@@ -134,6 +134,26 @@ describe('AgentKeysNamespace', () => {
     );
   });
 
+  it('omits the query when every filter is undefined', async () => {
+    get.mockResolvedValue({ data: { items: [], nextCursor: null } });
+
+    // An all-undefined query must serialize identically to an omitted one
+    // (query: undefined), not collapse to an empty object.
+    await namespace.list(
+      {
+        agentId: undefined,
+        status: undefined,
+        limit: undefined,
+        cursor: undefined,
+      },
+      { teamId: TEAM_ID },
+    );
+
+    expect(get).toHaveBeenCalledWith(
+      expect.objectContaining({ url: '/agent-keys', query: undefined }),
+    );
+  });
+
   it('round-trips the continuation cursor', async () => {
     get.mockResolvedValue({
       data: { items: [], nextCursor: null },
