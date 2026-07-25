@@ -309,6 +309,34 @@ describe('connect (agent-key mode)', () => {
     await expect(agentOpts.auth!()).resolves.toBe('option-key');
   });
 
+  it('lets explicit OAuth2 options win over an ambient MOLTNET_AGENT_KEY', async () => {
+    mockReadEnvCredentials.mockReturnValue({
+      clientId: undefined,
+      clientSecret: undefined,
+      apiUrl: undefined,
+      agentKey: 'ambient-key',
+    });
+
+    await connect({ clientId: 'explicit-id', clientSecret: 'explicit-secret' });
+
+    // Explicit in-code credentials must beat a stray env key: OAuth2 wins.
+    expect(MockTokenManager).toHaveBeenCalledWith(
+      expect.objectContaining({
+        clientId: 'explicit-id',
+        clientSecret: 'explicit-secret',
+      }),
+    );
+    const agentOpts = mockCreateAgent.mock.calls[0]![0];
+    expect(agentOpts.tokenManager).toBeDefined();
+  });
+
+  it('ignores a whitespace-only agent key', async () => {
+    mockReadConfig.mockResolvedValueOnce(null);
+    await expect(connect({ agentKey: '   ' })).rejects.toThrow(
+      /No credentials found/,
+    );
+  });
+
   it('resolves apiUrl from the config file in key mode', async () => {
     mockReadConfig.mockResolvedValueOnce({
       identity_id: 'id-1',

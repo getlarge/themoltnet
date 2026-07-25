@@ -15,6 +15,7 @@ import type {
   TeamsNamespace,
 } from './agent.js';
 import type { AgentContext } from './agent-context.js';
+import { normalizeApiUrl } from './api-url.js';
 import { createAgentKeysNamespace } from './namespaces/agent-keys.js';
 import { createDiariesNamespace } from './namespaces/diaries.js';
 import { createDiaryGrantsNamespace } from './namespaces/diary-grants.js';
@@ -27,8 +28,6 @@ import { createRuntimeProfilesNamespace } from './namespaces/runtime-profiles.js
 import { createTasksNamespace } from './namespaces/tasks.js';
 import { createTeamsNamespace } from './namespaces/teams.js';
 import { createWhoami } from './namespaces/whoami.js';
-
-const DEFAULT_API_URL = 'https://api.themolt.net';
 
 export interface HumanClient {
   readonly kind: 'human';
@@ -89,7 +88,7 @@ export function connectHuman(options: ConnectHumanOptions = {}): HumanClient {
   const client =
     options.client ??
     createClient({
-      baseUrl: (options.apiUrl ?? DEFAULT_API_URL).replace(/\/$/, ''),
+      baseUrl: normalizeApiUrl(options.apiUrl),
       credentials: options.credentials ?? 'include',
       ...(options.fetch && { fetch: options.fetch }),
       ...(options.headers && { headers: options.headers }),
