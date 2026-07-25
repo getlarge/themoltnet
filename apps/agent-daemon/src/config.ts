@@ -5,6 +5,8 @@
  * here, so the rest of the daemon imports typed values rather than
  * sprinkling string lookups across the codebase.
  */
+import { type DaemonAuthMode, detectAuthMode } from './lib/agent-context.js';
+
 export interface DaemonConfig {
   /** OTLP endpoint for trace export. Empty = OTel bootstrap is a no-op. */
   otelEndpoint: string;
@@ -16,6 +18,12 @@ export interface DaemonConfig {
   profilePrerequisitePath: string;
   /** Optional Pi agent dir override. Empty = daemon defaults to repo-local .pi. */
   piCodingAgentDir: string;
+  /**
+   * Which credential `connect()` will use: `agent-key` when `MOLTNET_AGENT_KEY`
+   * is set, otherwise the default `oauth2` client-credentials flow. The secret
+   * itself is never surfaced here.
+   */
+  authMode: DaemonAuthMode;
 }
 
 export function loadConfig(): DaemonConfig {
@@ -25,6 +33,7 @@ export function loadConfig(): DaemonConfig {
     profilePrerequisiteEnv: process.env,
     profilePrerequisitePath: process.env.PATH ?? '',
     piCodingAgentDir: process.env['PI_CODING_AGENT_DIR'] ?? '',
+    authMode: detectAuthMode(process.env),
   };
 }
 

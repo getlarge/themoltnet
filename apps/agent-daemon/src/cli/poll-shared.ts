@@ -15,7 +15,10 @@ import {
 } from '@themoltnet/pi-extension';
 
 import { activatePiCodingAgentDir, loadConfig } from '../config.js';
-import { resolveAgentContext } from '../lib/agent-context.js';
+import {
+  resolveAgentContext,
+  validateStartupBinding,
+} from '../lib/agent-context.js';
 import {
   createGhCliClient,
   makePrBodyAnchorWriter,
@@ -169,6 +172,13 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
   const ctx = await resolveAgentContext(baseCommon.agent, {
     agentRootDir,
   });
+  // Fail fast, before polling, on a rejected or wrong-team credential. In
+  // agent-key mode this turns an obscure mid-poll 401/403 into an actionable
+  // startup error; in OAuth2 mode it doubles as an API-reachability check.
+  const startupWhoami = await validateStartupBinding({
+    agent: ctx.agent,
+    teamId,
+  });
   const profiles = await resolveRuntimeProfiles({
     agent: ctx.agent,
     profiles: profileValues,
@@ -305,6 +315,9 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
 
   rootLogger.info(
     {
+      authMode: cfg.authMode,
+      subjectType: startupWhoami.subjectType,
+      boundTeamId: startupWhoami.credentialBinding?.boundTeamId ?? null,
       taskTypes: taskTypes.length > 0 ? taskTypes : ['*'],
       diaryIds: diaryIds.length > 0 ? diaryIds : ['*'],
       pollIntervalMs,
