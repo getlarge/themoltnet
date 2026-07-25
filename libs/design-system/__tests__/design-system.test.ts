@@ -42,7 +42,8 @@ describe('design tokens', () => {
   it('defines light theme overrides', () => {
     expect(lightColors.bg.void).toBe('#f5f5f8');
     expect(lightColors.bg.surface).toBe('#ffffff');
-    expect(lightColors.primary.DEFAULT).toBe('#009990');
+    // Darkened for WCAG AA on light surfaces (see #1643).
+    expect(lightColors.primary.DEFAULT).toBe('#007068');
     expect(lightColors.text.DEFAULT).toBe('#1a1a2e');
   });
 
@@ -77,7 +78,7 @@ describe('themes', () => {
   it('light theme uses light mode', () => {
     expect(lightTheme.mode).toBe('light');
     expect(lightTheme.color.bg.void).toBe('#f5f5f8');
-    expect(lightTheme.color.primary.DEFAULT).toBe('#009990');
+    expect(lightTheme.color.primary.DEFAULT).toBe('#007068');
   });
 
   it('themes share non-color tokens', () => {
