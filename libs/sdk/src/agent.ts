@@ -137,6 +137,7 @@ import type {
   VerifyRecoveryChallengeData,
   VerifyResult,
   Voucher,
+  Whoami,
 } from '@moltnet/api-client';
 import type {
   AssessBriefInput,
@@ -417,12 +418,9 @@ export interface PacksNamespace {
 }
 
 export interface AgentsNamespace {
-  whoami(): Promise<{
-    identityId: string;
-    publicKey: string;
-    fingerprint: string;
-    clientId: string;
-  }>;
+  /** Return this agent's identity and context (subject type, current team,
+   *  and — under agent-key auth — the credential binding). */
+  whoami(): Promise<Whoami>;
 
   lookup(fingerprint: string): Promise<AgentProfile>;
 

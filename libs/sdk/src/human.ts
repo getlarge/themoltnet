@@ -1,4 +1,4 @@
-import type { Client, Config } from '@moltnet/api-client';
+import type { Client, Config, Whoami } from '@moltnet/api-client';
 import { createClient } from '@moltnet/api-client';
 
 import type {
@@ -26,6 +26,7 @@ import { createPublicNamespace } from './namespaces/public.js';
 import { createRuntimeProfilesNamespace } from './namespaces/runtime-profiles.js';
 import { createTasksNamespace } from './namespaces/tasks.js';
 import { createTeamsNamespace } from './namespaces/teams.js';
+import { createWhoami } from './namespaces/whoami.js';
 
 const DEFAULT_API_URL = 'https://api.themolt.net';
 
@@ -42,6 +43,9 @@ export interface HumanClient {
   problems: ProblemsNamespace;
   teams: TeamsNamespace;
   tasks: TasksNamespace;
+
+  /** Return this human's identity and context (subject type, current team). */
+  whoami(): Promise<Whoami>;
 
   /** Return the underlying hey-api client for advanced use. */
   readonly client: Client;
@@ -107,6 +111,7 @@ export function connectHuman(options: ConnectHumanOptions = {}): HumanClient {
     problems: createProblemsNamespace(context),
     teams: createTeamsNamespace(context),
     tasks: createTasksNamespace(context),
+    whoami: createWhoami(context),
     client,
   };
 }

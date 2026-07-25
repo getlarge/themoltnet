@@ -1,20 +1,15 @@
-import {
-  getAgentProfile,
-  getWhoami,
-  verifyAgentSignature,
-} from '@moltnet/api-client';
+import { getAgentProfile, verifyAgentSignature } from '@moltnet/api-client';
 
 import type { AgentsNamespace } from '../agent.js';
 import type { AgentContext } from '../agent-context.js';
 import { unwrapResult } from '../agent-context.js';
+import { createWhoami } from './whoami.js';
 
 export function createAgentsNamespace(context: AgentContext): AgentsNamespace {
-  const { client, auth } = context;
+  const { client } = context;
 
   return {
-    async whoami() {
-      return unwrapResult(await getWhoami({ client, auth }));
-    },
+    whoami: createWhoami(context),
 
     async lookup(fingerprint) {
       return unwrapResult(
