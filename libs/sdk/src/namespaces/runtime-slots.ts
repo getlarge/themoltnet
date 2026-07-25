@@ -9,6 +9,7 @@ import type { RuntimeSlotsNamespace } from '../agent.js';
 import type { AgentContext } from '../agent-context.js';
 import { unwrapResult } from '../agent-context.js';
 import { MoltNetError } from '../errors.js';
+import { stripUndefinedQuery } from './query.js';
 import { requiredTeamHeaders as teamHeaders } from './team-headers.js';
 
 export function createRuntimeSlotsNamespace(
@@ -58,15 +59,12 @@ export function createRuntimeSlotsNamespace(
     },
 
     async list(query, options) {
-      const filteredQuery = Object.fromEntries(
-        Object.entries(query).filter(([, value]) => value !== undefined),
-      );
       const response = unwrapResult(
         await listRuntimeSlots({
           auth,
           client,
           headers: teamHeaders(options),
-          query: filteredQuery,
+          query: stripUndefinedQuery(query),
         }),
       );
       return response.items;

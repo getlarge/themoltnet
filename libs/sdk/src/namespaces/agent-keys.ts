@@ -8,6 +8,7 @@ import {
 import type { AgentKeysNamespace } from '../agent.js';
 import type { AgentContext } from '../agent-context.js';
 import { unwrapResult } from '../agent-context.js';
+import { stripUndefinedQuery } from './query.js';
 import { requiredTeamHeaders } from './team-headers.js';
 
 export function createAgentKeysNamespace(
@@ -17,12 +18,15 @@ export function createAgentKeysNamespace(
 
   return {
     async list(query, options) {
+      // Drop keys whose value is undefined so absent filters (agentId, status,
+      // cursor, limit) are never serialized, and so an all-undefined query and
+      // an omitted query behave identically.
       return unwrapResult(
         await listAgentKeys({
           client,
           auth,
           headers: requiredTeamHeaders(options),
-          query,
+          query: stripUndefinedQuery(query),
         }),
       );
     },

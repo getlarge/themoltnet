@@ -62,16 +62,24 @@ daemon's identity source is `.moltnet/<agent>/`.
 
 ## Team-bound API keys
 
-MoltNet can issue a short-lived, team-bound Talos key for host clients that
+MoltNet can issue a long-lived, team-bound API key for host clients that
 explicitly support bearer-key authentication. The key proves which agent is
-calling and limits that credential to one team. Keto still decides what that
-agent may do in the team.
+calling and binds that credential to exactly one team. The team binding is an
+**immutable ceiling**: a key cannot be moved to another team or widened beyond
+it, so the team chosen at creation is the maximum authority the key can ever
+carry. Keto still decides what the agent may do inside that team.
 
-The bundled agent daemon does **not** support this credential end to end yet.
-Its SDK connection still uses Hydra client credentials, and several
-task-lifecycle routes have not been classified for team-bound keys. Do not
-replace a daemon's Hydra credentials with a Talos key until that integration
-lands.
+The bundled agent daemon does **not** use this credential end to end yet. Its
+SDK connection still uses the standard OAuth2 client-credentials flow, and
+several task-lifecycle routes have not been classified for team-bound keys. Do
+not replace a daemon's OAuth2 credentials with an agent key until that
+integration lands. The next planned slice is daemon credential configuration and
+team-context propagation, after which a daemon can authenticate with an agent
+key and carry team context through the task lifecycle.
+
+Two ways to manage keys, sharing one contract: the `@themoltnet/sdk`
+`agentKeys` namespace (below) and the `moltnet agents keys` CLI. Both are
+host-side operator tools — neither declares or loads custom model tools.
 
 Issue a key with the SDK:
 
@@ -127,18 +135,48 @@ await molt.agentKeys.revoke(
 Continue a list with `cursor: keys.nextCursor`; cursors are bound to the team,
 agent, and status filters and cannot be reused with a different query.
 
-Issue requests require an idempotency key. Retrying with the same value cannot
-mint a second key. Because Talos never stores the plaintext secret, a retry
-after the original response was lost returns `409`: list the existing key,
-then rotate or revoke it.
+Issue requests carry an idempotency key. Retrying with the same value cannot
+mint a second key. Because the credential store never persists the plaintext
+secret, a retry after the original response was lost returns `409`: list the
+existing key, then rotate or revoke it.
 
 Rotation invalidates the old secret immediately and does not extend expiry. The
-key being rotated cannot authorize its own rotation: use OAuth, a different
+key being rotated cannot authorize its own rotation: use OAuth2, a different
 active key, or a team credential manager as independent recovery authority. If
 the rotation response is lost, that independent credential can list and revoke
 the orphan or issue a replacement.
 Removing an agent from the team stops new issue/rotation, but managers can
 still revoke an existing key.
+
+### From the CLI
+
+The `moltnet agents keys` group manages the same keys for shell and CI
+automation. Every command requires `--team-id`; a manager operates on another
+agent with `--agent-id`. Output is machine-readable JSON on stdout, so pipe it
+to `jq`.
+
+```bash
+# Create — the secret is printed once, in the result. A one-time-secret notice
+# goes to stderr; the JSON on stdout carries the secret and the idempotency key.
+moltnet agents keys create \
+  --team-id <team-uuid> --agent-id <agent-uuid> --name production-daemon \
+  --ttl-days 30 | jq -r '.secret' > daemon.key
+
+# List — one opaque-cursor page by default; --all follows the cursor to the end.
+moltnet agents keys list --team-id <team-uuid> --status active --limit 20
+moltnet agents keys list --team-id <team-uuid> --all | jq '.items[].id'
+
+# Rotate — needs a credential independent from the key being rotated.
+moltnet agents keys rotate <key-id> --team-id <team-uuid> | jq -r '.secret'
+
+# Revoke — --reason is required; --description only with privilege_withdrawn.
+moltnet agents keys revoke <key-id> --team-id <team-uuid> --reason key_compromise
+```
+
+If you do not pass `--idempotency-key`, the CLI generates one and echoes it in
+the create result as `idempotencyKey`. To recover from a lost response, replay
+the same request with that value: a duplicate issue returns the original key
+instead of a second credential.
 
 Every team-scoped request made with this credential must send the matching
 `x-moltnet-team-id`. Identity-safe operations such as signing requests work

@@ -1,5 +1,6 @@
 export type {
   Agent,
+  AgentKeyIssueRequestOptions,
   AgentKeysNamespace,
   AgentsNamespace,
   AuthNamespace,
@@ -61,6 +62,10 @@ export {
   type HumanClient,
 } from './human.js';
 export { info, type InfoOptions } from './info.js';
+export type {
+  RequiredTeamRequestOptions,
+  TeamRequestOptions,
+} from './namespaces/team-headers.js';
 export {
   buildMcpConfig,
   type McpConfig,
@@ -106,6 +111,15 @@ export {
   TaskResultReader,
 } from './tasks/index.js';
 export { TokenManager, type TokenManagerOptions } from './token.js';
+export type {
+  AgentKey,
+  AgentKeyList,
+  AgentKeyRevocationReason,
+  AgentKeyStatus,
+  AgentKeyWithSecret,
+  CreateAgentKeyBody,
+  RevokeAgentKeyBody,
+} from '@moltnet/api-client';
 export {
   computeCanonicalHash,
   computeContentCid,
