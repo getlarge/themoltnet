@@ -139,6 +139,11 @@ export {
   type RuntimeSlotRepository,
 } from './repositories/runtime-slot.repository.js';
 export {
+  createSigningCredentialRepository,
+  type SigningCredentialRepository,
+  type SigningCredentialStatus,
+} from './repositories/signing-credential.repository.js';
+export {
   createSigningRequestRepository,
   parseStatusFilter,
   type SigningRequestRepository,

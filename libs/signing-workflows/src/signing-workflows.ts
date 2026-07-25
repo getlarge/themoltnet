@@ -52,8 +52,69 @@ export interface SigningVerifier {
   verify(input: SigningVerificationInput): Promise<boolean>;
 }
 
+export type SigningMethodJson =
+  | boolean
+  | null
+  | number
+  | string
+  | SigningMethodJson[]
+  | { [key: string]: SigningMethodJson };
+
+export interface PrepareSigningClaimInput {
+  verificationMethod: VerificationMethod;
+  requestId: string;
+  credentialId: string;
+  signingPayload: string;
+  credentialPublicMaterial?: SigningMethodJson;
+}
+
+export interface SigningMethodChallenge {
+  verificationMethod: VerificationMethod;
+  [key: string]: SigningMethodJson;
+}
+
+export interface PreparedSigningChallenge {
+  challenge: SigningMethodChallenge;
+  verifierState: SigningMethodJson;
+}
+
+export interface SigningMethodReceipt {
+  verificationMethod: VerificationMethod;
+  [key: string]: SigningMethodJson;
+}
+
+export interface VerifySigningReceiptInput extends PrepareSigningClaimInput {
+  receipt: SigningMethodReceipt;
+  verifierState: SigningMethodJson;
+}
+
+export interface VerificationEvidence {
+  verificationMethod: VerificationMethod;
+  credentialId: string;
+  proofHash: string;
+  details?: SigningMethodJson;
+}
+
+/**
+ * A human-capable signing method extends the Phase 0 verifier with the
+ * claim-time challenge and typed receipt lifecycle. Agent Ed25519 deliberately
+ * remains a plain SigningVerifier and keeps its existing HTTP transport.
+ */
+export interface SigningMethodDriver extends SigningVerifier {
+  readonly verificationMethod: VerificationMethod;
+  prepareClaim(
+    input: PrepareSigningClaimInput,
+  ): Promise<PreparedSigningChallenge>;
+  verifyReceipt(
+    input: VerifySigningReceiptInput,
+  ): Promise<VerificationEvidence>;
+}
+
 export type SigningWorkflowErrorCode =
   | 'verifier_not_registered'
+  | 'claim_not_supported'
+  | 'receipt_method_mismatch'
+  | 'receipt_invalid'
   | 'key_lookup_not_configured'
   | 'persistence_not_configured'
   | 'workflows_not_initialized';
@@ -79,6 +140,36 @@ export class SigningVerifierNotRegisteredError extends SigningWorkflowError {
       `Signing verifier not registered for verification method: ${verificationMethod}`,
     );
     this.name = 'SigningVerifierNotRegisteredError';
+  }
+}
+
+export class SigningMethodClaimNotSupportedError extends SigningWorkflowError {
+  constructor(public readonly verificationMethod: VerificationMethod) {
+    super(
+      'claim_not_supported',
+      `Signing method does not support the claim lifecycle: ${verificationMethod}`,
+    );
+    this.name = 'SigningMethodClaimNotSupportedError';
+  }
+}
+
+export class SigningReceiptMethodMismatchError extends SigningWorkflowError {
+  constructor(
+    public readonly expectedVerificationMethod: VerificationMethod,
+    public readonly receivedVerificationMethod: VerificationMethod,
+  ) {
+    super(
+      'receipt_method_mismatch',
+      `Signing receipt method ${receivedVerificationMethod} does not match request method ${expectedVerificationMethod}`,
+    );
+    this.name = 'SigningReceiptMethodMismatchError';
+  }
+}
+
+export class SigningReceiptInvalidError extends SigningWorkflowError {
+  constructor(message = 'Signing receipt is invalid') {
+    super('receipt_invalid', message);
+    this.name = 'SigningReceiptInvalidError';
   }
 }
 
@@ -180,6 +271,19 @@ export function registerSigningVerifier(
   signingVerifierRegistry.set(verificationMethod, verifier);
 }
 
+export function registerSigningMethodDriver(
+  verificationMethod: VerificationMethod,
+  driver: SigningMethodDriver,
+): void {
+  if (driver.verificationMethod !== verificationMethod) {
+    throw new SigningReceiptMethodMismatchError(
+      verificationMethod,
+      driver.verificationMethod,
+    );
+  }
+  registerSigningVerifier(verificationMethod, driver);
+}
+
 export function isSigningVerifierRegistered(
   verificationMethod: VerificationMethod,
 ): boolean {
@@ -216,6 +320,39 @@ function getSigningVerifier(
     throw new SigningVerifierNotRegisteredError(verificationMethod);
   }
   return verifier;
+}
+
+function getSigningMethodDriver(
+  verificationMethod: VerificationMethod,
+): SigningMethodDriver {
+  const verifier = getSigningVerifier(verificationMethod);
+  if (
+    !('prepareClaim' in verifier) ||
+    typeof verifier.prepareClaim !== 'function' ||
+    !('verifyReceipt' in verifier) ||
+    typeof verifier.verifyReceipt !== 'function'
+  ) {
+    throw new SigningMethodClaimNotSupportedError(verificationMethod);
+  }
+  return verifier as SigningMethodDriver;
+}
+
+export async function prepareSigningClaim(
+  input: PrepareSigningClaimInput,
+): Promise<PreparedSigningChallenge> {
+  return getSigningMethodDriver(input.verificationMethod).prepareClaim(input);
+}
+
+export async function verifySigningReceipt(
+  input: VerifySigningReceiptInput,
+): Promise<VerificationEvidence> {
+  if (input.receipt.verificationMethod !== input.verificationMethod) {
+    throw new SigningReceiptMethodMismatchError(
+      input.verificationMethod,
+      input.receipt.verificationMethod,
+    );
+  }
+  return getSigningMethodDriver(input.verificationMethod).verifyReceipt(input);
 }
 
 function getAgentKeyLookup(): AgentKeyLookup {

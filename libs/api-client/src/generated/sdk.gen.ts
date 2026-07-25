@@ -18,6 +18,9 @@ import type {
   AppendTaskMessagesData,
   AppendTaskMessagesErrors,
   AppendTaskMessagesResponses,
+  ApproveSigningCredentialData,
+  ApproveSigningCredentialErrors,
+  ApproveSigningCredentialResponses,
   BatchDeleteDiaryEntriesData,
   BatchDeleteDiaryEntriesErrors,
   BatchDeleteDiaryEntriesResponses,
@@ -27,12 +30,24 @@ import type {
   BeginRuntimeSlotData,
   BeginRuntimeSlotErrors,
   BeginRuntimeSlotResponses,
+  BeginSigningCredentialRegistrationData,
+  BeginSigningCredentialRegistrationErrors,
+  BeginSigningCredentialRegistrationResponses,
   CancelTaskData,
   CancelTaskErrors,
   CancelTaskResponses,
+  ClaimSigningRequestData,
+  ClaimSigningRequestErrors,
+  ClaimSigningRequestResponses,
   ClaimTaskData,
   ClaimTaskErrors,
   ClaimTaskResponses,
+  CompleteSigningCredentialRegistrationData,
+  CompleteSigningCredentialRegistrationErrors,
+  CompleteSigningCredentialRegistrationResponses,
+  CompleteSigningRequestData,
+  CompleteSigningRequestErrors,
+  CompleteSigningRequestResponses,
   CompleteTaskData,
   CompleteTaskErrors,
   CompleteTaskResponses,
@@ -262,6 +277,9 @@ import type {
   ListRuntimeSlotsData,
   ListRuntimeSlotsErrors,
   ListRuntimeSlotsResponses,
+  ListSigningCredentialsData,
+  ListSigningCredentialsErrors,
+  ListSigningCredentialsResponses,
   ListSigningRequestsData,
   ListSigningRequestsErrors,
   ListSigningRequestsResponses,
@@ -298,6 +316,9 @@ import type {
   RegisterAgentData,
   RegisterAgentErrors,
   RegisterAgentResponses,
+  RejectSigningRequestData,
+  RejectSigningRequestErrors,
+  RejectSigningRequestResponses,
   RejectTransferData,
   RejectTransferErrors,
   RejectTransferResponses,
@@ -319,6 +340,9 @@ import type {
   RevokeDiaryGrantData,
   RevokeDiaryGrantErrors,
   RevokeDiaryGrantResponses,
+  RevokeSigningCredentialData,
+  RevokeSigningCredentialErrors,
+  RevokeSigningCredentialResponses,
   RotateAgentKeyData,
   RotateAgentKeyErrors,
   RotateAgentKeyResponses,
@@ -340,6 +364,9 @@ import type {
   SubmitSignatureData,
   SubmitSignatureErrors,
   SubmitSignatureResponses,
+  SuspendSigningCredentialData,
+  SuspendSigningCredentialErrors,
+  SuspendSigningCredentialResponses,
   TaskHeartbeatData,
   TaskHeartbeatErrors,
   TaskHeartbeatResponses,
@@ -645,6 +672,142 @@ export const getCryptoIdentity = <ThrowOnError extends boolean = false>(
     ...options,
   });
 
+export const listSigningCredentials = <ThrowOnError extends boolean = false>(
+  options: Options<ListSigningCredentialsData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    ListSigningCredentialsResponses,
+    ListSigningCredentialsErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/crypto/signing-credentials',
+    ...options,
+  });
+
+export const beginSigningCredentialRegistration = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<BeginSigningCredentialRegistrationData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    BeginSigningCredentialRegistrationResponses,
+    BeginSigningCredentialRegistrationErrors,
+    ThrowOnError
+  >({
+    security: [
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/crypto/signing-credentials/registrations',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+export const completeSigningCredentialRegistration = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<CompleteSigningCredentialRegistrationData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    CompleteSigningCredentialRegistrationResponses,
+    CompleteSigningCredentialRegistrationErrors,
+    ThrowOnError
+  >({
+    security: [
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/crypto/signing-credentials/registrations/{id}/complete',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+export const approveSigningCredential = <ThrowOnError extends boolean = false>(
+  options: Options<ApproveSigningCredentialData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    ApproveSigningCredentialResponses,
+    ApproveSigningCredentialErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/crypto/signing-credentials/{id}/approve',
+    ...options,
+  });
+
+export const revokeSigningCredential = <ThrowOnError extends boolean = false>(
+  options: Options<RevokeSigningCredentialData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    RevokeSigningCredentialResponses,
+    RevokeSigningCredentialErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/crypto/signing-credentials/{id}/revoke',
+    ...options,
+  });
+
+export const suspendSigningCredential = <ThrowOnError extends boolean = false>(
+  options: Options<SuspendSigningCredentialData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    SuspendSigningCredentialResponses,
+    SuspendSigningCredentialErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/crypto/signing-credentials/{id}/suspend',
+    ...options,
+  });
+
 /**
  * List signing requests for the authenticated agent.
  */
@@ -719,6 +882,78 @@ export const getSigningRequest = <ThrowOnError extends boolean = false>(
     ],
     url: '/crypto/signing-requests/{id}',
     ...options,
+  });
+
+export const claimSigningRequest = <ThrowOnError extends boolean = false>(
+  options: Options<ClaimSigningRequestData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    ClaimSigningRequestResponses,
+    ClaimSigningRequestErrors,
+    ThrowOnError
+  >({
+    security: [
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/crypto/signing-requests/{id}/claim',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+export const completeSigningRequest = <ThrowOnError extends boolean = false>(
+  options: Options<CompleteSigningRequestData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    CompleteSigningRequestResponses,
+    CompleteSigningRequestErrors,
+    ThrowOnError
+  >({
+    security: [
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/crypto/signing-requests/{id}/complete',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+export const rejectSigningRequest = <ThrowOnError extends boolean = false>(
+  options: Options<RejectSigningRequestData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    RejectSigningRequestResponses,
+    RejectSigningRequestErrors,
+    ThrowOnError
+  >({
+    security: [
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/crypto/signing-requests/{id}/reject',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
   });
 
 /**

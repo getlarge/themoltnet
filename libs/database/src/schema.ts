@@ -452,7 +452,9 @@ export const agentVouchers = pgTable(
 // Signing request status enum
 export const signingRequestStatusEnum = pgEnum('signing_request_status', [
   'pending',
+  'claimed',
   'completed',
+  'rejected',
   'expired',
 ]);
 
@@ -460,6 +462,28 @@ export const verificationMethodEnum = pgEnum(
   'verification_method',
   VERIFICATION_METHOD_VALUES,
 );
+
+export const signingCredentialStatusEnum = pgEnum('signing_credential_status', [
+  'pending_approval',
+  'active',
+  'suspended',
+  'revoked',
+]);
+
+export interface SigningCredentialPublicMaterial {
+  version: number;
+  [key: string]: unknown;
+}
+
+export interface SigningCredentialEnrollmentEvidence {
+  version: number;
+  [key: string]: unknown;
+}
+
+export interface SigningMethodValue {
+  verificationMethod: (typeof VERIFICATION_METHOD_VALUES)[number];
+  value: unknown;
+}
 
 export interface SigningRequestRequester {
   id: string;
@@ -470,6 +494,96 @@ export interface SigningRequestSignerConstraint {
   id?: string;
   type: 'human' | 'team-role' | 'group' | 'site' | 'station';
 }
+
+/**
+ * Signing Credentials
+ *
+ * Public verification material for a human-owned signing credential. The
+ * owner discriminator is intentionally explicit even though Phase 2 accepts
+ * only human ownership, so later custody models do not require a rename.
+ */
+export const signingCredentials = pgTable(
+  'signing_credentials',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    ownerType: varchar('owner_type', { length: 32 })
+      .$type<'human'>()
+      .default('human')
+      .notNull(),
+    ownerHumanId: uuid('owner_human_id')
+      .notNull()
+      .references(() => humans.id, { onDelete: 'restrict' }),
+    teamId: uuid('team_id')
+      .notNull()
+      .references(() => teams.id, { onDelete: 'restrict' }),
+    verificationMethod: verificationMethodEnum('verification_method').notNull(),
+    credentialType: varchar('credential_type', { length: 100 }).notNull(),
+    algorithm: varchar('algorithm', { length: 100 }).notNull(),
+    publicMaterial: jsonb('public_material')
+      .$type<SigningCredentialPublicMaterial>()
+      .notNull(),
+    enrollmentEvidence: jsonb('enrollment_evidence')
+      .$type<SigningCredentialEnrollmentEvidence>()
+      .notNull(),
+    label: varchar('label', { length: 255 }).notNull(),
+    status: signingCredentialStatusEnum('status')
+      .default('pending_approval')
+      .notNull(),
+    approvedByHumanId: uuid('approved_by_human_id').references(
+      () => humans.id,
+      { onDelete: 'restrict' },
+    ),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    activatedAt: timestamp('activated_at', { withTimezone: true }),
+    suspendedAt: timestamp('suspended_at', { withTimezone: true }),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+  },
+  (table) => [
+    index('signing_credentials_owner_idx').on(table.ownerHumanId, table.status),
+    index('signing_credentials_team_idx').on(table.teamId, table.status),
+    index('signing_credentials_method_idx').on(
+      table.verificationMethod,
+      table.status,
+    ),
+    check('signing_credentials_owner_human', sql`owner_type = 'human'`),
+  ],
+);
+
+/**
+ * Short-lived, single-use state for authenticated enrollment ceremonies.
+ */
+export const signingCredentialRegistrations = pgTable(
+  'signing_credential_registrations',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    ownerHumanId: uuid('owner_human_id')
+      .notNull()
+      .references(() => humans.id, { onDelete: 'cascade' }),
+    teamId: uuid('team_id')
+      .notNull()
+      .references(() => teams.id, { onDelete: 'cascade' }),
+    verificationMethod: verificationMethodEnum('verification_method').notNull(),
+    credentialType: varchar('credential_type', { length: 100 }).notNull(),
+    algorithm: varchar('algorithm', { length: 100 }).notNull(),
+    label: varchar('label', { length: 255 }).notNull(),
+    challenge: jsonb('challenge').$type<SigningMethodValue>().notNull(),
+    methodState: jsonb('method_state').$type<SigningMethodValue>().notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    consumedAt: timestamp('consumed_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index('signing_credential_registrations_owner_idx').on(table.ownerHumanId),
+    index('signing_credential_registrations_expires_idx').on(table.expiresAt),
+  ],
+);
 
 /**
  * Signing Requests Table
@@ -495,6 +609,20 @@ export const signingRequests = pgTable(
     requestedBy: jsonb('requested_by').$type<SigningRequestRequester>(),
     signerConstraint:
       jsonb('signer_constraint').$type<SigningRequestSignerConstraint>(),
+    teamId: uuid('team_id').references(() => teams.id, {
+      onDelete: 'restrict',
+    }),
+    purpose: text('purpose'),
+    claimedByHumanId: uuid('claimed_by_human_id').references(() => humans.id, {
+      onDelete: 'restrict',
+    }),
+    signingCredentialId: uuid('signing_credential_id').references(
+      () => signingCredentials.id,
+      { onDelete: 'restrict' },
+    ),
+    challenge: jsonb('challenge').$type<SigningMethodValue>(),
+    methodState: jsonb('method_state').$type<SigningMethodValue>(),
+    receipt: jsonb('receipt').$type<SigningMethodValue>(),
 
     // The message to be signed
     message: text('message').notNull(),
@@ -520,6 +648,9 @@ export const signingRequests = pgTable(
       .notNull(),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
     completedAt: timestamp('completed_at', { withTimezone: true }),
+    claimedAt: timestamp('claimed_at', { withTimezone: true }),
+    rejectedAt: timestamp('rejected_at', { withTimezone: true }),
+    rejectionReason: text('rejection_reason'),
   },
   (table) => [
     // Find requests by agent and status (common query pattern)
@@ -530,6 +661,12 @@ export const signingRequests = pgTable(
 
     // Lookup by DBOS workflow ID
     uniqueIndex('signing_requests_workflow_idx').on(table.workflowId),
+    index('signing_requests_requested_by_idx').using('gin', table.requestedBy),
+    index('signing_requests_team_status_idx').on(table.teamId, table.status),
+    index('signing_requests_claimed_by_idx').on(
+      table.claimedByHumanId,
+      table.status,
+    ),
   ],
 );
 
@@ -1028,6 +1165,12 @@ export type Human = typeof humans.$inferSelect;
 export type NewHuman = typeof humans.$inferInsert;
 export type AgentVoucher = typeof agentVouchers.$inferSelect;
 export type NewAgentVoucher = typeof agentVouchers.$inferInsert;
+export type SigningCredential = typeof signingCredentials.$inferSelect;
+export type NewSigningCredential = typeof signingCredentials.$inferInsert;
+export type SigningCredentialRegistration =
+  typeof signingCredentialRegistrations.$inferSelect;
+export type NewSigningCredentialRegistration =
+  typeof signingCredentialRegistrations.$inferInsert;
 export type SigningRequest = typeof signingRequests.$inferSelect;
 export type NewSigningRequest = typeof signingRequests.$inferInsert;
 export type EntryRelation = typeof entryRelations.$inferSelect;

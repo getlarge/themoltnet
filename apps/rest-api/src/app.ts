@@ -56,6 +56,7 @@ import { runtimeModelRoutes } from './routes/runtime-models.js';
 import { runtimeProfileRoutes } from './routes/runtime-profiles.js';
 import { runtimeSessionRoutes } from './routes/runtime-sessions.js';
 import { runtimeSlotRoutes } from './routes/runtime-slots.js';
+import { signingCredentialRoutes } from './routes/signing-credentials.js';
 import { signingRequestRoutes } from './routes/signing-requests.js';
 import { taskArtifactRoutes } from './routes/task-artifacts.js';
 import { taskRoutes } from './routes/tasks.js';
@@ -81,6 +82,7 @@ import type {
   RuntimeProfileRepository,
   RuntimeSessionRepository,
   RuntimeSlotRepository,
+  SigningCredentialRepository,
   SigningRequestRepository,
   TaskArtifactRepository,
   TaskRepository,
@@ -172,6 +174,7 @@ export interface AppOptions {
   taskService: TaskService;
   /** Signing request repository + dataSource are required together (DBOS) */
   signingRequestRepository: SigningRequestRepository;
+  signingCredentialRepository: SigningCredentialRepository;
   nonceRepository: NonceRepository;
   dataSource: DataSource;
   transactionRunner: TransactionRunner;
@@ -387,6 +390,10 @@ export async function registerApiRoutes(
   decorateSafe('taskAnalyticsService', options.taskAnalyticsService);
   decorateSafe('taskService', options.taskService);
   decorateSafe('signingRequestRepository', options.signingRequestRepository);
+  decorateSafe(
+    'signingCredentialRepository',
+    options.signingCredentialRepository,
+  );
   decorateSafe('dataSource', options.dataSource);
   decorateSafe('transactionRunner', options.transactionRunner);
 
@@ -419,6 +426,7 @@ export async function registerApiRoutes(
   });
   await app.register(cryptoRoutes);
   await app.register(signingRequestRoutes);
+  await app.register(signingCredentialRoutes);
   await app.register(recoveryRoutes, {
     recoverySecret: options.recoverySecret,
     identityClient: options.oryClients.identity,

@@ -1,78 +1,45 @@
 import {
-  claimSigningRequest,
-  completeSigningRequest,
-  createSigningRequest,
-  getSigningRequest,
-  listSigningRequests,
-  rejectSigningRequest,
-  submitSignature,
+  approveSigningCredential,
+  beginSigningCredentialRegistration,
+  completeSigningCredentialRegistration,
+  listSigningCredentials,
+  revokeSigningCredential,
+  suspendSigningCredential,
 } from '@moltnet/api-client';
 
-import type { SigningRequestsNamespace } from '../agent.js';
+import type { SigningCredentialsNamespace } from '../agent.js';
 import type { AgentContext } from '../agent-context.js';
 import { unwrapResult } from '../agent-context.js';
 import { requiredTeamHeaders } from './team-headers.js';
 
-export function createSigningRequestsNamespace(
+export function createSigningCredentialsNamespace(
   context: AgentContext,
-): SigningRequestsNamespace {
+): SigningCredentialsNamespace {
   const { client, auth } = context;
-
   return {
-    async list(query) {
+    async list(query, options) {
       return unwrapResult(
-        await listSigningRequests({
+        await listSigningCredentials({
           client,
           auth,
+          headers: requiredTeamHeaders(options),
           query,
         }),
       );
     },
-
-    async create(body) {
+    async begin(body, options) {
       return unwrapResult(
-        await createSigningRequest({
-          client,
-          auth,
-          body,
-        }),
-      );
-    },
-
-    async get(id) {
-      return unwrapResult(
-        await getSigningRequest({
-          client,
-          auth,
-          path: { id },
-        }),
-      );
-    },
-
-    async submit(id, body) {
-      return unwrapResult(
-        await submitSignature({
-          client,
-          auth,
-          path: { id },
-          body,
-        }),
-      );
-    },
-    async claim(id, body, options) {
-      return unwrapResult(
-        await claimSigningRequest({
+        await beginSigningCredentialRegistration({
           client,
           auth,
           headers: requiredTeamHeaders(options),
-          path: { id },
           body,
         }),
       );
     },
     async complete(id, body, options) {
       return unwrapResult(
-        await completeSigningRequest({
+        await completeSigningCredentialRegistration({
           client,
           auth,
           headers: requiredTeamHeaders(options),
@@ -81,14 +48,33 @@ export function createSigningRequestsNamespace(
         }),
       );
     },
-    async reject(id, body, options) {
+    async approve(id, options) {
       return unwrapResult(
-        await rejectSigningRequest({
+        await approveSigningCredential({
           client,
           auth,
           headers: requiredTeamHeaders(options),
           path: { id },
-          body,
+        }),
+      );
+    },
+    async suspend(id, options) {
+      return unwrapResult(
+        await suspendSigningCredential({
+          client,
+          auth,
+          headers: requiredTeamHeaders(options),
+          path: { id },
+        }),
+      );
+    },
+    async revoke(id, options) {
+      return unwrapResult(
+        await revokeSigningCredential({
+          client,
+          auth,
+          headers: requiredTeamHeaders(options),
+          path: { id },
         }),
       );
     },

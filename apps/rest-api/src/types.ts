@@ -33,6 +33,7 @@ export type {
   RuntimeProfileRepository,
   RuntimeSessionRepository,
   RuntimeSlotRepository,
+  SigningCredentialRepository,
   SigningRequestRepository,
   TaskArtifactRepository,
   TaskRepository,
@@ -67,6 +68,7 @@ import type {
   RuntimeProfileRepository,
   RuntimeSessionRepository,
   RuntimeSlotRepository,
+  SigningCredentialRepository,
   SigningRequestRepository,
   TaskArtifactRepository,
   TaskRepository,
@@ -116,6 +118,7 @@ declare module 'fastify' {
     taskAnalyticsService: TaskAnalyticsService;
     taskService: TaskService;
     signingRequestRepository: SigningRequestRepository;
+    signingCredentialRepository: SigningCredentialRepository;
     signingTimeoutSeconds: number;
     dataSource: DataSource;
     transactionRunner: TransactionRunner;

@@ -7,11 +7,14 @@ import {
   assertSigningVerifierRegistered,
   initSigningWorkflows,
   isSigningVerifierRegistered,
+  prepareSigningClaim,
+  registerSigningMethodDriver,
   registerSigningVerifier,
   setSigningKeyLookup,
   setSigningRequestPersistence,
   setSigningVerifier,
   signingWorkflows,
+  verifySigningReceipt,
 } from './signing-workflows.js';
 
 function captureThrownError(fn: () => unknown): unknown {
@@ -338,6 +341,103 @@ describe('Signing Workflows', () => {
           name: 'SigningVerifierNotRegisteredError',
           code: 'verifier_not_registered',
           verificationMethod: 'human-hardware-previewsign',
+        }),
+      );
+    });
+  });
+
+  describe('signing method driver registry', () => {
+    const verificationMethod = 'human-hardware-previewsign' as const;
+    const claimInput = {
+      verificationMethod,
+      requestId: '770e8400-e29b-41d4-a716-446655440002',
+      credentialId: '990e8400-e29b-41d4-a716-446655440004',
+      signingPayload: 'cGF5bG9hZA==',
+    };
+
+    it('dispatches claim preparation and receipt verification by method', async () => {
+      const driver = {
+        verificationMethod,
+        prepareClaim: vi.fn().mockResolvedValue({
+          challenge: {
+            verificationMethod,
+            ticket: 'opaque-ticket',
+          },
+          verifierState: { derivedKeyId: 'derived-key-1' },
+        }),
+        verify: vi.fn().mockResolvedValue(true),
+        verifyReceipt: vi.fn().mockResolvedValue({
+          verificationMethod,
+          credentialId: claimInput.credentialId,
+          proofHash: 'sha256:proof',
+        }),
+      };
+      registerSigningMethodDriver(verificationMethod, driver);
+
+      const prepared = await prepareSigningClaim(claimInput);
+      const evidence = await verifySigningReceipt({
+        ...claimInput,
+        verifierState: prepared.verifierState,
+        receipt: {
+          verificationMethod,
+          signature: 'p256-signature',
+        },
+      });
+
+      expect(driver.prepareClaim).toHaveBeenCalledWith(claimInput);
+      expect(driver.verifyReceipt).toHaveBeenCalledWith({
+        ...claimInput,
+        verifierState: { derivedKeyId: 'derived-key-1' },
+        receipt: {
+          verificationMethod,
+          signature: 'p256-signature',
+        },
+      });
+      expect(prepared.challenge.verificationMethod).toBe(verificationMethod);
+      expect(evidence).toEqual({
+        verificationMethod,
+        credentialId: claimInput.credentialId,
+        proofHash: 'sha256:proof',
+      });
+    });
+
+    it('rejects a receipt whose discriminator does not match the request', async () => {
+      registerSigningMethodDriver(verificationMethod, {
+        verificationMethod,
+        prepareClaim: vi.fn(),
+        verify: vi.fn().mockResolvedValue(true),
+        verifyReceipt: vi.fn(),
+      });
+
+      await expect(
+        verifySigningReceipt({
+          ...claimInput,
+          receipt: {
+            verificationMethod: 'agent-ed25519',
+            signature: 'wrong-method-signature',
+          },
+          verifierState: null,
+        }),
+      ).rejects.toEqual(
+        expect.objectContaining({
+          name: 'SigningReceiptMethodMismatchError',
+          code: 'receipt_method_mismatch',
+          expectedVerificationMethod: verificationMethod,
+          receivedVerificationMethod: 'agent-ed25519',
+        }),
+      );
+    });
+
+    it('reports when a verifier does not implement the claim lifecycle', async () => {
+      registerSigningVerifier(verificationMethod, {
+        verify: vi.fn().mockResolvedValue(true),
+      });
+
+      await expect(prepareSigningClaim(claimInput)).rejects.toEqual(
+        expect.objectContaining({
+          name: 'SigningMethodClaimNotSupportedError',
+          code: 'claim_not_supported',
+          verificationMethod,
         }),
       );
     });

@@ -3,8 +3,10 @@ import { Readable } from 'node:stream';
 import type { Client } from '@moltnet/api-client';
 import {
   acceptTransfer,
+  approveSigningCredential,
   batchDeleteDiaryEntries,
   batchDeleteTasks,
+  claimSigningRequest,
   createDiary,
   createDiaryEntry,
   createDiaryGrant,
@@ -104,6 +106,15 @@ vi.mock('@moltnet/api-client', async (importOriginal) => {
     createSigningRequest: vi.fn(),
     getSigningRequest: vi.fn(),
     submitSignature: vi.fn(),
+    claimSigningRequest: vi.fn(),
+    completeSigningRequest: vi.fn(),
+    rejectSigningRequest: vi.fn(),
+    listSigningCredentials: vi.fn(),
+    beginSigningCredentialRegistration: vi.fn(),
+    completeSigningCredentialRegistration: vi.fn(),
+    approveSigningCredential: vi.fn(),
+    suspendSigningCredential: vi.fn(),
+    revokeSigningCredential: vi.fn(),
     issueVoucher: vi.fn(),
     listActiveVouchers: vi.fn(),
     getTrustGraph: vi.fn(),
@@ -984,6 +995,49 @@ describe('Agent facade', () => {
         expect.objectContaining({
           path: { id: 'sr-1' },
           body: { signature: 'sig' },
+        }),
+      );
+    });
+
+    it('crypto.signingRequests.claim dispatches the delegated operation', async () => {
+      vi.mocked(claimSigningRequest).mockResolvedValueOnce({
+        data: { id: 'sr-1' },
+        error: undefined,
+      } as any);
+
+      await makeAgent().crypto.signingRequests.claim(
+        'sr-1',
+        {
+          credentialId: 'credential-1',
+        },
+        {
+          teamId: 'team-1',
+        },
+      );
+
+      expect(claimSigningRequest).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { id: 'sr-1' },
+          body: { credentialId: 'credential-1' },
+          headers: { 'x-moltnet-team-id': 'team-1' },
+        }),
+      );
+    });
+
+    it('crypto.signingCredentials exposes manager lifecycle with team context', async () => {
+      vi.mocked(approveSigningCredential).mockResolvedValueOnce({
+        data: { id: 'credential-1' },
+        error: undefined,
+      } as any);
+
+      await makeAgent().crypto.signingCredentials.approve('credential-1', {
+        teamId: 'team-1',
+      });
+
+      expect(approveSigningCredential).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: { id: 'credential-1' },
+          headers: { 'x-moltnet-team-id': 'team-1' },
         }),
       );
     });

@@ -40,6 +40,7 @@ import {
   createRuntimeProfileRepository,
   createRuntimeSessionRepository,
   createRuntimeSlotRepository,
+  createSigningCredentialRepository,
   createSigningRequestRepository,
   createTaskArtifactRepository,
   createTaskRepository,
@@ -66,6 +67,7 @@ import {
 import { createRuntimeSessionStorage } from '@moltnet/runtime-session-service';
 import {
   initSigningWorkflows,
+  registerSigningMethodDriver,
   setSigningKeyLookup,
   setSigningRequestPersistence,
   setSigningVerifier,
@@ -96,6 +98,7 @@ import {
   createTaskService,
   type TaskService,
 } from './services/task.service.js';
+import { createTestSigningMethodDriver } from './test-signing-method-driver.js';
 import {
   initDiaryTransferWorkflow,
   initHumanOnboardingWorkflow,
@@ -302,6 +305,9 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   const signingRequestRepository = createSigningRequestRepository(
     dbConnection.db,
   );
+  const signingCredentialRepository = createSigningCredentialRepository(
+    dbConnection.db,
+  );
   const contextPackRepository = createContextPackRepository(dbConnection.db);
   const renderedPackRepository = createRenderedPackRepository(dbConnection.db);
   const correlationSealRepository = createCorrelationSealRepository(
@@ -401,6 +407,13 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       () => {
         initSigningWorkflows();
         setSigningVerifier(cryptoService);
+        if (config.server.MOLTNET_TEST_SIGNING_DRIVER) {
+          const driver = createTestSigningMethodDriver();
+          registerSigningMethodDriver(driver.verificationMethod, driver);
+          app.log.warn(
+            'test-only signing method driver enabled; never enable this outside tests',
+          );
+        }
         setSigningKeyLookup({
           getPublicKey: async (agentId: string) => {
             const agent = await agentRepository.findByIdentityId(agentId);
@@ -615,6 +628,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     taskAnalyticsService,
     taskService,
     signingRequestRepository,
+    signingCredentialRepository,
     nonceRepository,
     dataSource,
     transactionRunner: dbosTransactionRunner,

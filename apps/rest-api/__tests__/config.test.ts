@@ -38,7 +38,11 @@ const validEnv = {
 describe('loadServerConfig', () => {
   it('parses valid config', () => {
     const config = loadServerConfig({ PORT: '3000', NODE_ENV: 'production' });
-    expect(config).toEqual({ PORT: 3000, NODE_ENV: 'production' });
+    expect(config).toEqual({
+      PORT: 3000,
+      NODE_ENV: 'production',
+      MOLTNET_TEST_SIGNING_DRIVER: false,
+    });
   });
 
   it('coerces string PORT to number', () => {

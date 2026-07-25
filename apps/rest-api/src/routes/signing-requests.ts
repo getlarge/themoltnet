@@ -18,22 +18,28 @@
  */
 
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
-import { requireAuth } from '@moltnet/auth';
+import { KetoNamespace, requireAuth } from '@moltnet/auth';
 import { buildSigningBytes } from '@moltnet/crypto-service';
 import type { SigningRequest } from '@moltnet/database';
 import { DBOS, parseStatusFilter } from '@moltnet/database';
 import {
   ConflictProblemDetailsSchema,
   ProblemDetailsSchema,
+  TeamHeaderRequiredSchema,
   VERIFICATION_METHOD,
   VerificationMethodSchema,
 } from '@moltnet/models';
 import {
   assertSigningVerifierRegistered,
+  assertSupportedSignerConstraint,
+  prepareSigningClaim,
+  SigningCredentialError,
   SigningVerifierNotRegisteredError,
+  SigningWorkflowError,
   signingWorkflows,
+  verifySigningReceipt,
 } from '@moltnet/signing-workflows';
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { Type } from 'typebox';
 
 import { createProblem } from '../problems/index.js';
@@ -43,12 +49,20 @@ import {
   SigningRequestParamsSchema,
   SigningRequestSchema,
 } from '../schemas.js';
+import { requireCurrentTeamId } from '../utils/require-current-team-id.js';
 
 function toSigningResponse(row: SigningRequest) {
   return {
     id: row.id,
     agentId: row.agentId,
     verificationMethod: row.verificationMethod,
+    requestedBy: row.requestedBy ?? null,
+    signerConstraint: row.signerConstraint ?? null,
+    teamId: row.teamId ?? null,
+    purpose: row.purpose ?? null,
+    claimedByHumanId: row.claimedByHumanId ?? null,
+    signingCredentialId: row.signingCredentialId ?? null,
+    challenge: row.challenge ?? null,
     message: row.message,
     nonce: row.nonce,
     signingInput: Buffer.from(
@@ -60,7 +74,62 @@ function toSigningResponse(row: SigningRequest) {
     createdAt: row.createdAt,
     expiresAt: row.expiresAt,
     completedAt: row.completedAt,
+    claimedAt: row.claimedAt ?? null,
+    rejectedAt: row.rejectedAt ?? null,
+    rejectionReason: row.rejectionReason ?? null,
   };
+}
+
+function signingPayload(row: SigningRequest): string {
+  return Buffer.from(buildSigningBytes(row.message, row.nonce)).toString(
+    'base64',
+  );
+}
+
+async function isEligibleHuman(
+  fastify: FastifyInstance,
+  request: Pick<FastifyRequest, 'authContext'>,
+  row: SigningRequest,
+): Promise<boolean> {
+  const auth = request.authContext;
+  if (!auth || auth.subjectType !== 'human' || !row.signerConstraint) {
+    return false;
+  }
+  if (
+    !row.teamId ||
+    !(await fastify.permissionChecker.canAccessTeam(
+      row.teamId,
+      auth.identityId,
+      KetoNamespace.Human,
+    ))
+  ) {
+    return false;
+  }
+  const constraint = row.signerConstraint;
+  assertSupportedSignerConstraint(constraint.type);
+  if (constraint.type === 'human') {
+    return constraint.id === auth.humanId || constraint.id === auth.identityId;
+  }
+  if (constraint.type === 'team-role') {
+    const roles = await fastify.relationshipReader.listTeamIdsAndRolesBySubject(
+      auth.identityId,
+    );
+    const role = roles.find(({ teamId }) => teamId === row.teamId)?.relation;
+    return role === constraint.id || role?.replace(/s$/, '') === constraint.id;
+  }
+  if (constraint.type === 'group' && constraint.id) {
+    const group = await fastify.groupRepository.findById(constraint.id);
+    if (!group || group.teamId !== row.teamId) return false;
+    const members = await fastify.relationshipReader.listGroupMembers(
+      constraint.id,
+    );
+    return members.some(
+      (member) =>
+        member.subjectNs === String(KetoNamespace.Human) &&
+        member.subjectId === auth.identityId,
+    );
+  }
+  return false;
 }
 
 export async function signingRequestRoutes(fastify: FastifyInstance) {
@@ -87,18 +156,40 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
         body: Type.Object({
           message: Type.String({ minLength: 1, maxLength: 100000 }),
           verificationMethod: Type.Optional(VerificationMethodSchema),
+          teamId: Type.Optional(Type.String({ format: 'uuid' })),
+          purpose: Type.Optional(
+            Type.String({ minLength: 1, maxLength: 1000 }),
+          ),
+          signerConstraint: Type.Optional(
+            Type.Object({
+              id: Type.Optional(Type.String()),
+              type: Type.Union([
+                Type.Literal('human'),
+                Type.Literal('team-role'),
+                Type.Literal('group'),
+                Type.Literal('site'),
+                Type.Literal('station'),
+              ]),
+            }),
+          ),
         }),
         response: {
           400: Type.Ref(ProblemDetailsSchema.$id),
           201: Type.Ref(SigningRequestSchema.$id),
           401: Type.Ref(ProblemDetailsSchema.$id),
+          403: Type.Ref(ProblemDetailsSchema.$id),
           500: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
     },
     async (request, reply) => {
-      const { message, verificationMethod = VERIFICATION_METHOD.AgentEd25519 } =
-        request.body;
+      const {
+        message,
+        verificationMethod = VERIFICATION_METHOD.AgentEd25519,
+        teamId,
+        purpose,
+        signerConstraint,
+      } = request.body;
       try {
         assertSigningVerifierRegistered(verificationMethod);
       } catch (error) {
@@ -109,6 +200,30 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
           );
         }
         throw error;
+      }
+      if (verificationMethod !== VERIFICATION_METHOD.AgentEd25519) {
+        if (!teamId || !purpose || !signerConstraint) {
+          throw createProblem(
+            'validation-failed',
+            'Delegated signing requires teamId, purpose, and signerConstraint',
+          );
+        }
+        try {
+          assertSupportedSignerConstraint(signerConstraint.type);
+        } catch (error) {
+          if (error instanceof SigningCredentialError) {
+            throw createProblem('validation-failed', error.message);
+          }
+          throw error;
+        }
+        const allowed = await fastify.permissionChecker.canAccessTeam(
+          teamId,
+          request.authContext!.identityId,
+          request.authContext!.subjectType === 'human'
+            ? KetoNamespace.Human
+            : KetoNamespace.Agent,
+        );
+        if (!allowed) throw createProblem('forbidden');
       }
 
       const agentId = request.authContext!.identityId;
@@ -121,24 +236,34 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
         message,
         expiresAt,
         verificationMethod,
+        requestedBy: {
+          id:
+            request.authContext!.subjectType === 'human'
+              ? request.authContext!.humanId
+              : request.authContext!.identityId,
+          type: request.authContext!.subjectType,
+        },
+        signerConstraint,
+        teamId,
+        purpose,
       });
 
-      // Start the DBOS workflow (must be outside runTransaction so recv/send work)
-      const workflowHandle = await DBOS.startWorkflow(
-        signingWorkflows.requestSignature,
-        { workflowID: `signing-${created.id}` },
-      )(
-        created.id,
-        agentId,
-        message,
-        created.nonce,
-        created.verificationMethod,
-      );
-
-      // Persist the workflow ID for later send() calls
-      await fastify.signingRequestRepository.updateStatus(created.id, {
-        workflowId: workflowHandle.workflowID,
-      });
+      if (verificationMethod === VERIFICATION_METHOD.AgentEd25519) {
+        // This legacy workflow call and its signing bytes remain unchanged.
+        const workflowHandle = await DBOS.startWorkflow(
+          signingWorkflows.requestSignature,
+          { workflowID: `signing-${created.id}` },
+        )(
+          created.id,
+          agentId,
+          message,
+          created.nonce,
+          created.verificationMethod,
+        );
+        await fastify.signingRequestRepository.updateStatus(created.id, {
+          workflowId: workflowHandle.workflowID,
+        });
+      }
 
       request.log.info(
         { signingId: created.id, agentId },
@@ -168,15 +293,20 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
             Type.Array(
               Type.Union([
                 Type.Literal('pending'),
+                Type.Literal('claimed'),
                 Type.Literal('completed'),
+                Type.Literal('rejected'),
                 Type.Literal('expired'),
               ]),
               {
-                maxItems: 3,
+                maxItems: 5,
                 description:
                   'Repeated status filter. Single value also accepted.',
               },
             ),
+          ),
+          scope: Type.Optional(
+            Type.Union([Type.Literal('requested'), Type.Literal('signable')]),
           ),
         }),
         response: {
@@ -188,20 +318,50 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { limit, offset, status } = request.query;
+      const { limit, offset, status, scope = 'requested' } = request.query;
 
       const statusFilter = status ? parseStatusFilter(status) : undefined;
 
-      const { items, total } = await fastify.signingRequestRepository.list({
-        agentId: request.authContext!.identityId,
+      if (
+        scope === 'signable' &&
+        request.authContext!.subjectType !== 'human'
+      ) {
+        return { items: [], total: 0, limit: limit ?? 20, offset: offset ?? 0 };
+      }
+      const teamIds =
+        scope === 'signable'
+          ? await fastify.relationshipReader.listTeamIdsBySubject(
+              request.authContext!.identityId,
+            )
+          : undefined;
+      if (scope === 'signable' && teamIds?.length === 0) {
+        return { items: [], total: 0, limit: limit ?? 20, offset: offset ?? 0 };
+      }
+      const result = await fastify.signingRequestRepository.list({
+        agentId:
+          scope === 'requested' ? request.authContext!.identityId : undefined,
+        teamIds,
         status: statusFilter,
         limit,
         offset,
       });
+      const items =
+        scope === 'signable'
+          ? (
+              await Promise.all(
+                result.items.map(async (item) =>
+                  (item.status === 'pending' || item.status === 'claimed') &&
+                  (await isEligibleHuman(fastify, request, item))
+                    ? item
+                    : null,
+                ),
+              )
+            ).filter((item): item is SigningRequest => item !== null)
+          : result.items;
 
       return {
         items: items.map(toSigningResponse),
-        total,
+        total: scope === 'signable' ? items.length : result.total,
         limit: limit ?? 20,
         offset: offset ?? 0,
       };
@@ -238,12 +398,264 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
 
       if (
         !signingRequest ||
-        signingRequest.agentId !== request.authContext!.identityId
+        (signingRequest.agentId !== request.authContext!.identityId &&
+          signingRequest.claimedByHumanId !==
+            (request.authContext!.subjectType === 'human'
+              ? request.authContext!.humanId
+              : null))
       ) {
         throw createProblem('not-found', 'Signing request not found');
       }
 
       return toSigningResponse(signingRequest);
+    },
+  );
+
+  // ── Claim Delegated Signing Request ───────────────────────────
+  server.post(
+    '/crypto/signing-requests/:id/claim',
+    {
+      config: { auth: { credentialBindingScope: 'team' } },
+      schema: {
+        operationId: 'claimSigningRequest',
+        tags: ['crypto'],
+        security: [{ sessionAuth: [] }, { cookieAuth: [] }],
+        headers: TeamHeaderRequiredSchema,
+        params: SigningRequestParamsSchema,
+        body: Type.Object({
+          credentialId: Type.String({ format: 'uuid' }),
+        }),
+        response: {
+          200: Type.Ref(SigningRequestSchema.$id),
+          400: Type.Ref(ProblemDetailsSchema.$id),
+          401: Type.Ref(ProblemDetailsSchema.$id),
+          403: Type.Ref(ProblemDetailsSchema.$id),
+          404: Type.Ref(ProblemDetailsSchema.$id),
+          409: Type.Ref(ConflictProblemDetailsSchema.$id),
+        },
+      },
+    },
+    async (request) => {
+      const auth = request.authContext!;
+      if (auth.subjectType !== 'human') throw createProblem('forbidden');
+      const teamId = requireCurrentTeamId(request, 'signing requests');
+      const row = await fastify.signingRequestRepository.findById(
+        request.params.id,
+      );
+      if (!row || row.teamId !== teamId || !row.signerConstraint) {
+        throw createProblem('not-found', 'Signing request not found');
+      }
+      try {
+        if (!(await isEligibleHuman(fastify, request, row))) {
+          throw createProblem('forbidden');
+        }
+      } catch (error) {
+        if (error instanceof SigningCredentialError) {
+          throw createProblem('validation-failed', error.message);
+        }
+        throw error;
+      }
+      const credential =
+        await fastify.signingCredentialRepository.findActiveCompatible({
+          id: request.body.credentialId,
+          ownerHumanId: auth.humanId,
+          teamId: row.teamId,
+          verificationMethod: row.verificationMethod,
+        });
+      if (!credential) {
+        throw createProblem(
+          'validation-failed',
+          'An active compatible signing credential is required',
+        );
+      }
+      try {
+        const prepared = await prepareSigningClaim({
+          verificationMethod: row.verificationMethod,
+          requestId: row.id,
+          credentialId: credential.id,
+          signingPayload: signingPayload(row),
+          credentialPublicMaterial: credential.publicMaterial as never,
+        });
+        const claimed = await fastify.signingRequestRepository.claim({
+          id: row.id,
+          humanId: auth.humanId,
+          credentialId: credential.id,
+          challenge: {
+            verificationMethod: row.verificationMethod,
+            value: prepared.challenge,
+          },
+          methodState: {
+            verificationMethod: row.verificationMethod,
+            value: prepared.verifierState,
+          },
+        });
+        if (!claimed) {
+          throw createProblem(
+            'conflict',
+            'Signing request was already claimed, completed, rejected, or expired',
+          );
+        }
+        return toSigningResponse(claimed);
+      } catch (error) {
+        if (error instanceof SigningWorkflowError) {
+          throw createProblem('validation-failed', error.message);
+        }
+        throw error;
+      }
+    },
+  );
+
+  // ── Complete Delegated Signing Request ────────────────────────
+  server.post(
+    '/crypto/signing-requests/:id/complete',
+    {
+      config: { auth: { credentialBindingScope: 'team' } },
+      schema: {
+        operationId: 'completeSigningRequest',
+        tags: ['crypto'],
+        security: [{ sessionAuth: [] }, { cookieAuth: [] }],
+        headers: TeamHeaderRequiredSchema,
+        params: SigningRequestParamsSchema,
+        body: Type.Object({
+          receipt: Type.Object({
+            verificationMethod: VerificationMethodSchema,
+            value: Type.Unknown(),
+          }),
+        }),
+        response: {
+          200: Type.Ref(SigningRequestSchema.$id),
+          400: Type.Ref(ProblemDetailsSchema.$id),
+          401: Type.Ref(ProblemDetailsSchema.$id),
+          403: Type.Ref(ProblemDetailsSchema.$id),
+          404: Type.Ref(ProblemDetailsSchema.$id),
+          409: Type.Ref(ConflictProblemDetailsSchema.$id),
+        },
+      },
+    },
+    async (request) => {
+      const auth = request.authContext!;
+      if (auth.subjectType !== 'human') throw createProblem('forbidden');
+      const teamId = requireCurrentTeamId(request, 'signing requests');
+      const row = await fastify.signingRequestRepository.findById(
+        request.params.id,
+      );
+      if (
+        !row ||
+        row.teamId !== teamId ||
+        row.status !== 'claimed' ||
+        row.claimedByHumanId !== auth.humanId ||
+        !row.signingCredentialId ||
+        !row.teamId ||
+        !row.methodState
+      ) {
+        throw createProblem(
+          'conflict',
+          'Signing request is not claimed by this human',
+        );
+      }
+      const credential =
+        await fastify.signingCredentialRepository.findActiveCompatible({
+          id: row.signingCredentialId,
+          ownerHumanId: auth.humanId,
+          teamId: row.teamId,
+          verificationMethod: row.verificationMethod,
+        });
+      if (!credential) {
+        throw createProblem(
+          'validation-failed',
+          'The claimed signing credential is no longer active',
+        );
+      }
+      try {
+        const receiptValue =
+          request.body.receipt.value &&
+          typeof request.body.receipt.value === 'object'
+            ? request.body.receipt.value
+            : { value: request.body.receipt.value };
+        await verifySigningReceipt({
+          verificationMethod: row.verificationMethod,
+          requestId: row.id,
+          credentialId: credential.id,
+          signingPayload: signingPayload(row),
+          credentialPublicMaterial: credential.publicMaterial as never,
+          verifierState: row.methodState.value as never,
+          receipt: {
+            verificationMethod: request.body.receipt.verificationMethod,
+            ...receiptValue,
+          },
+        });
+        const completed = await fastify.signingRequestRepository.completeClaim({
+          id: row.id,
+          humanId: auth.humanId,
+          credentialId: credential.id,
+          receipt: request.body.receipt,
+          valid: true,
+        });
+        if (!completed) {
+          throw createProblem(
+            'conflict',
+            'Signing request was already completed, rejected, or expired',
+          );
+        }
+        return toSigningResponse(completed);
+      } catch (error) {
+        if (error instanceof SigningWorkflowError) {
+          throw createProblem('validation-failed', error.message);
+        }
+        throw error;
+      }
+    },
+  );
+
+  // ── Reject Delegated Signing Request ──────────────────────────
+  server.post(
+    '/crypto/signing-requests/:id/reject',
+    {
+      config: { auth: { credentialBindingScope: 'team' } },
+      schema: {
+        operationId: 'rejectSigningRequest',
+        tags: ['crypto'],
+        security: [{ sessionAuth: [] }, { cookieAuth: [] }],
+        headers: TeamHeaderRequiredSchema,
+        params: SigningRequestParamsSchema,
+        body: Type.Object({
+          reason: Type.Optional(Type.String({ maxLength: 1000 })),
+        }),
+        response: {
+          200: Type.Ref(SigningRequestSchema.$id),
+          401: Type.Ref(ProblemDetailsSchema.$id),
+          403: Type.Ref(ProblemDetailsSchema.$id),
+          404: Type.Ref(ProblemDetailsSchema.$id),
+          409: Type.Ref(ConflictProblemDetailsSchema.$id),
+        },
+      },
+    },
+    async (request) => {
+      const auth = request.authContext!;
+      if (auth.subjectType !== 'human') throw createProblem('forbidden');
+      const teamId = requireCurrentTeamId(request, 'signing requests');
+      const row = await fastify.signingRequestRepository.findById(
+        request.params.id,
+      );
+      if (!row || row.teamId !== teamId) throw createProblem('not-found');
+      if (
+        row.claimedByHumanId !== auth.humanId &&
+        !(await isEligibleHuman(fastify, request, row))
+      ) {
+        throw createProblem('forbidden');
+      }
+      const rejected = await fastify.signingRequestRepository.reject({
+        id: row.id,
+        humanId: auth.humanId,
+        reason: request.body.reason,
+      });
+      if (!rejected) {
+        throw createProblem(
+          'conflict',
+          'Signing request was already completed, rejected, or expired',
+        );
+      }
+      return toSigningResponse(rejected);
     },
   );
 
@@ -285,6 +697,14 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
 
       if (!signingRequest || signingRequest.agentId !== agentId) {
         throw createProblem('not-found', 'Signing request not found');
+      }
+      if (
+        signingRequest.verificationMethod !== VERIFICATION_METHOD.AgentEd25519
+      ) {
+        throw createProblem(
+          'validation-failed',
+          'This request requires the delegated claim/complete flow; sign only supports agent-ed25519',
+        );
       }
 
       // Check expiry server-side (workflow may not have expired it yet)

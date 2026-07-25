@@ -35,6 +35,7 @@ import type {
   RuntimeProfileRepository,
   RuntimeSessionRepository,
   RuntimeSlotRepository,
+  SigningCredentialRepository,
   SigningRequestRepository,
   TaskArtifactRepository,
   TaskRepository,
@@ -176,6 +177,9 @@ export interface MockServices {
   };
   signingRequestRepository: {
     [K in keyof SigningRequestRepository]: ReturnType<typeof vi.fn>;
+  };
+  signingCredentialRepository: {
+    [K in keyof SigningCredentialRepository]: ReturnType<typeof vi.fn>;
   };
   nonceRepository: {
     [K in keyof NonceRepository]: ReturnType<typeof vi.fn>;
@@ -473,6 +477,19 @@ export function createMockServices(): MockServices {
       list: vi.fn(),
       updateStatus: vi.fn(),
       countByAgent: vi.fn(),
+      claim: vi.fn(),
+      completeClaim: vi.fn(),
+      reject: vi.fn(),
+    },
+    signingCredentialRepository: {
+      createRegistration: vi.fn(),
+      findRegistrationById: vi.fn(),
+      consumeRegistration: vi.fn(),
+      create: vi.fn(),
+      findById: vi.fn(),
+      list: vi.fn(),
+      findActiveCompatible: vi.fn(),
+      transition: vi.fn(),
     },
     nonceRepository: {
       consume: vi.fn().mockResolvedValue(true),
@@ -847,6 +864,8 @@ export async function createTestApp(
     voucherRepository: mocks.voucherRepository as unknown as VoucherRepository,
     signingRequestRepository:
       mocks.signingRequestRepository as unknown as SigningRequestRepository,
+    signingCredentialRepository:
+      mocks.signingCredentialRepository as unknown as SigningCredentialRepository,
     nonceRepository: mocks.nonceRepository as unknown as NonceRepository,
     dataSource: mocks.dataSource as unknown as DataSource,
     transactionRunner: mocks.transactionRunner as unknown as TransactionRunner,

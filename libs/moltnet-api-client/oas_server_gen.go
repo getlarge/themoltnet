@@ -40,6 +40,10 @@ type Handler interface {
 	//
 	// POST /tasks/{id}/attempts/{n}/messages
 	AppendTaskMessages(ctx context.Context, req *AppendTaskMessagesReq, params AppendTaskMessagesParams) (AppendTaskMessagesRes, error)
+	// ApproveSigningCredential implements approveSigningCredential operation.
+	//
+	// POST /crypto/signing-credentials/{id}/approve
+	ApproveSigningCredential(ctx context.Context, params ApproveSigningCredentialParams) (ApproveSigningCredentialRes, error)
 	// BatchDeleteDiaryEntries implements batchDeleteDiaryEntries operation.
 	//
 	// Delete multiple diary entries. Signed, unauthorized, and missing entries are skipped.
@@ -60,18 +64,34 @@ type Handler interface {
 	//
 	// POST /runtime-slots/begin
 	BeginRuntimeSlot(ctx context.Context, req *BeginRuntimeSlotReq, params BeginRuntimeSlotParams) (BeginRuntimeSlotRes, error)
+	// BeginSigningCredentialRegistration implements beginSigningCredentialRegistration operation.
+	//
+	// POST /crypto/signing-credentials/registrations
+	BeginSigningCredentialRegistration(ctx context.Context, req *BeginSigningCredentialRegistrationReq, params BeginSigningCredentialRegistrationParams) (BeginSigningCredentialRegistrationRes, error)
 	// CancelTask implements cancelTask operation.
 	//
 	// Cancel a task.
 	//
 	// POST /tasks/{id}/cancel
 	CancelTask(ctx context.Context, req *CancelTaskReq, params CancelTaskParams) (CancelTaskRes, error)
+	// ClaimSigningRequest implements claimSigningRequest operation.
+	//
+	// POST /crypto/signing-requests/{id}/claim
+	ClaimSigningRequest(ctx context.Context, req *ClaimSigningRequestReq, params ClaimSigningRequestParams) (ClaimSigningRequestRes, error)
 	// ClaimTask implements claimTask operation.
 	//
 	// Claim a queued task and start an attempt.
 	//
 	// POST /tasks/{id}/claim
 	ClaimTask(ctx context.Context, req OptClaimTaskReq, params ClaimTaskParams) (ClaimTaskRes, error)
+	// CompleteSigningCredentialRegistration implements completeSigningCredentialRegistration operation.
+	//
+	// POST /crypto/signing-credentials/registrations/{id}/complete
+	CompleteSigningCredentialRegistration(ctx context.Context, req *CompleteSigningCredentialRegistrationReq, params CompleteSigningCredentialRegistrationParams) (CompleteSigningCredentialRegistrationRes, error)
+	// CompleteSigningRequest implements completeSigningRequest operation.
+	//
+	// POST /crypto/signing-requests/{id}/complete
+	CompleteSigningRequest(ctx context.Context, req *CompleteSigningRequestReq, params CompleteSigningRequestParams) (CompleteSigningRequestRes, error)
 	// CompleteTask implements completeTask operation.
 	//
 	// Mark an attempt as completed with output.
@@ -560,6 +580,10 @@ type Handler interface {
 	//
 	// GET /runtime-slots
 	ListRuntimeSlots(ctx context.Context, params ListRuntimeSlotsParams) (ListRuntimeSlotsRes, error)
+	// ListSigningCredentials implements listSigningCredentials operation.
+	//
+	// GET /crypto/signing-credentials
+	ListSigningCredentials(ctx context.Context, params ListSigningCredentialsParams) (ListSigningCredentialsRes, error)
 	// ListSigningRequests implements listSigningRequests operation.
 	//
 	// List signing requests for the authenticated agent.
@@ -635,6 +659,10 @@ type Handler interface {
 	//
 	// POST /auth/register
 	RegisterAgent(ctx context.Context, req *RegisterAgentReq) (RegisterAgentRes, error)
+	// RejectSigningRequest implements rejectSigningRequest operation.
+	//
+	// POST /crypto/signing-requests/{id}/reject
+	RejectSigningRequest(ctx context.Context, req OptRejectSigningRequestReq, params RejectSigningRequestParams) (RejectSigningRequestRes, error)
 	// RejectTransfer implements rejectTransfer operation.
 	//
 	// Reject a pending diary transfer.
@@ -678,6 +706,10 @@ type Handler interface {
 	//
 	// DELETE /diaries/{id}/grants
 	RevokeDiaryGrant(ctx context.Context, req *RevokeDiaryGrantReq, params RevokeDiaryGrantParams) (RevokeDiaryGrantRes, error)
+	// RevokeSigningCredential implements revokeSigningCredential operation.
+	//
+	// POST /crypto/signing-credentials/{id}/revoke
+	RevokeSigningCredential(ctx context.Context, params RevokeSigningCredentialParams) (RevokeSigningCredentialRes, error)
 	// RotateAgentKey implements rotateAgentKey operation.
 	//
 	// Rotate an agent API key immediately. The previous secret is revoked and expiry is unchanged.
@@ -725,6 +757,10 @@ type Handler interface {
 	//
 	// POST /crypto/signing-requests/{id}/sign
 	SubmitSignature(ctx context.Context, req *SubmitSignatureReq, params SubmitSignatureParams) (SubmitSignatureRes, error)
+	// SuspendSigningCredential implements suspendSigningCredential operation.
+	//
+	// POST /crypto/signing-credentials/{id}/suspend
+	SuspendSigningCredential(ctx context.Context, params SuspendSigningCredentialParams) (SuspendSigningCredentialRes, error)
 	// TaskHeartbeat implements taskHeartbeat operation.
 	//
 	// Send a heartbeat to keep the attempt lease alive.

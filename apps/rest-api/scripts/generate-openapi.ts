@@ -81,6 +81,7 @@ async function main() {
     taskAnalyticsService: createStubService() as never,
     taskService: createStubService() as never,
     signingRequestRepository: createStubService() as never,
+    signingCredentialRepository: createStubService() as never,
     nonceRepository: createStubService() as never,
     dataSource: createStubService() as never,
     transactionRunner: createStubService() as never,

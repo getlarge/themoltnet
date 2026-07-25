@@ -21,6 +21,10 @@ type AppendTaskMessagesRes interface {
 	appendTaskMessagesRes()
 }
 
+type ApproveSigningCredentialRes interface {
+	approveSigningCredentialRes()
+}
+
 type BatchDeleteDiaryEntriesRes interface {
 	batchDeleteDiaryEntriesRes()
 }
@@ -33,12 +37,28 @@ type BeginRuntimeSlotRes interface {
 	beginRuntimeSlotRes()
 }
 
+type BeginSigningCredentialRegistrationRes interface {
+	beginSigningCredentialRegistrationRes()
+}
+
 type CancelTaskRes interface {
 	cancelTaskRes()
 }
 
+type ClaimSigningRequestRes interface {
+	claimSigningRequestRes()
+}
+
 type ClaimTaskRes interface {
 	claimTaskRes()
+}
+
+type CompleteSigningCredentialRegistrationRes interface {
+	completeSigningCredentialRegistrationRes()
+}
+
+type CompleteSigningRequestRes interface {
+	completeSigningRequestRes()
 }
 
 type CompleteTaskRes interface {
@@ -333,6 +353,10 @@ type ListRuntimeSlotsRes interface {
 	listRuntimeSlotsRes()
 }
 
+type ListSigningCredentialsRes interface {
+	listSigningCredentialsRes()
+}
+
 type ListSigningRequestsRes interface {
 	listSigningRequestsRes()
 }
@@ -381,6 +405,10 @@ type RegisterAgentRes interface {
 	registerAgentRes()
 }
 
+type RejectSigningRequestRes interface {
+	rejectSigningRequestRes()
+}
+
 type RejectTransferRes interface {
 	rejectTransferRes()
 }
@@ -409,6 +437,10 @@ type RevokeDiaryGrantRes interface {
 	revokeDiaryGrantRes()
 }
 
+type RevokeSigningCredentialRes interface {
+	revokeSigningCredentialRes()
+}
+
 type RotateAgentKeyRes interface {
 	rotateAgentKeyRes()
 }
@@ -435,6 +467,10 @@ type StartLegreffierOnboardingRes interface {
 
 type SubmitSignatureRes interface {
 	submitSignatureRes()
+}
+
+type SuspendSigningCredentialRes interface {
+	suspendSigningCredentialRes()
 }
 
 type TaskHeartbeatRes interface {

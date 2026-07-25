@@ -44,6 +44,7 @@ export const ServerConfigSchema = Type.Object({
     ],
     { default: 'development' },
   ),
+  MOLTNET_TEST_SIGNING_DRIVER: Type.Boolean({ default: false }),
 });
 
 export const DatabaseConfigSchema = Type.Object({
