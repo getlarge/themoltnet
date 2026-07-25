@@ -221,25 +221,16 @@ async function resolveTeamContext(
       ? authContext.credentialBinding?.boundTeamId
       : undefined;
 
-  if (constrainedTeamId) {
-    const credentialScope =
-      request.routeOptions.config.auth?.credentialBindingScope;
-    if (!credentialScope) {
-      const error = createAuthError(
-        'Team-bound credential is not permitted on this route',
-      );
-      error.statusCode = 403;
-      error.code = 'FORBIDDEN';
-      throw error;
-    }
-    if (credentialScope === 'team' && !requestedTeamId) {
-      const error = createAuthError(
-        'Team-bound credential requires a team header on this route',
-      );
-      error.statusCode = 403;
-      error.code = 'FORBIDDEN';
-      throw error;
-    }
+  const credentialScope =
+    request.routeOptions.config.auth?.credentialBindingScope;
+
+  if (constrainedTeamId && !credentialScope) {
+    const error = createAuthError(
+      'Team-bound credential is not permitted on this route',
+    );
+    error.statusCode = 403;
+    error.code = 'FORBIDDEN';
+    throw error;
   }
 
   if (
@@ -253,9 +244,17 @@ async function resolveTeamContext(
     throw error;
   }
 
-  // A credential binding is a ceiling, not an implicit request selection.
-  // Team-agnostic routes remain unscoped until the caller requests a team.
-  const teamId = requestedTeamId;
+  // A team-bound credential names exactly one team, so a `team`-scoped route
+  // infers it when the caller omits the header — there is nothing to
+  // disambiguate, and the binding still caps the credential to that one team
+  // (a mismatched header is rejected above; an explicitly empty header is
+  // rejected earlier). `identity`-scoped routes stay team-agnostic and never
+  // infer, so identity-safe operations keep working without a team.
+  const teamId =
+    requestedTeamId ??
+    (constrainedTeamId && credentialScope === 'team'
+      ? constrainedTeamId
+      : undefined);
 
   if (teamId) {
     const subjectNs =

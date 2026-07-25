@@ -267,7 +267,7 @@ describe('requireAuth preHandler', () => {
     expect(mockPermissionChecker.canAccessTeam).not.toHaveBeenCalled();
   });
 
-  it('requires a team header for a bound Talos key on a team route', async () => {
+  it('infers the bound team for a bound Talos key on a team route without a header', async () => {
     mockTokenValidator.resolveAuthContext.mockResolvedValue({
       ...VALID_AUTH_CONTEXT,
       credentialBinding: {
@@ -282,7 +282,7 @@ describe('requireAuth preHandler', () => {
         config: { auth: { credentialBindingScope: 'team' } },
         preHandler: [requireAuth],
       },
-      async () => ({ ok: true }),
+      async (request) => ({ authContext: request.authContext }),
     );
 
     const response = await app.inject({
@@ -291,12 +291,15 @@ describe('requireAuth preHandler', () => {
       headers: { authorization: `Bearer ${VALID_TOKEN}` },
     });
 
-    expect(response.statusCode).toBe(403);
-    expect(response.json()).toMatchObject({
-      code: 'FORBIDDEN',
-      message: 'Team-bound credential requires a team header on this route',
-    });
-    expect(mockPermissionChecker.canAccessTeam).not.toHaveBeenCalled();
+    // The binding names exactly one team, so the route resolves it without a
+    // header and still enforces membership in that single team.
+    expect(response.statusCode).toBe(200);
+    expect(response.json().authContext.currentTeamId).toBe('team-123');
+    expect(mockPermissionChecker.canAccessTeam).toHaveBeenCalledWith(
+      'team-123',
+      VALID_AUTH_CONTEXT.identityId,
+      KetoNamespace.Agent,
+    );
   });
 
   it('accepts a requested team matching the Talos key ceiling', async () => {
