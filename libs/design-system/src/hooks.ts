@@ -1,4 +1,4 @@
-import { useCallback, useContext, useState } from 'react';
+import { useCallback, useContext, useEffect, useState } from 'react';
 
 import type { MoltTheme } from './theme.js';
 import { ThemeContext } from './theme-provider.js';
@@ -50,4 +50,33 @@ export function useInteractive() {
   };
 
   return { hovered, focused, pressed, handlers };
+}
+
+/**
+ * Track the user's `prefers-reduced-motion` setting.
+ *
+ * SSR-safe: assumes no preference (returns `false`) until the browser can be
+ * queried, then subscribes to changes. Components that run non-essential
+ * animation — especially SVG SMIL, which CSS `prefers-reduced-motion` cannot
+ * disable — should read this and fall back to a static rendering when `true`.
+ */
+export function useReducedMotion(): boolean {
+  const [reduced, setReduced] = useState<boolean>(() => {
+    if (
+      typeof window === 'undefined' ||
+      typeof window.matchMedia !== 'function'
+    )
+      return false;
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  });
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return;
+    const mql = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const handler = (e: MediaQueryListEvent) => setReduced(e.matches);
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  }, []);
+
+  return reduced;
 }
