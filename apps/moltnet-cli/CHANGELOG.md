@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.67.0](https://github.com/getlarge/themoltnet/compare/cli-v1.66.0...cli-v1.67.0) (2026-07-25)
+
+
+### Features
+
+* **cli:** add agents keys management commands ([ddd1f2d](https://github.com/getlarge/themoltnet/commit/ddd1f2d204ed5ae0aadae4bd60ea8d6a5f42d957))
+* **cli:** team-bound agent API key management (CLI + SDK hardening) ([823d318](https://github.com/getlarge/themoltnet/commit/823d318e35180861ac5caf0e8a05d2e7de49e981))
+
+
+### Bug Fixes
+
+* **cli:** recover idempotency key on failed agent-key create ([b5977cb](https://github.com/getlarge/themoltnet/commit/b5977cbb0c4c2ff251481ceabf84736fd812c702))
+
 ## [1.66.0](https://github.com/getlarge/themoltnet/compare/cli-v1.65.0...cli-v1.66.0) (2026-07-24)
 
 
