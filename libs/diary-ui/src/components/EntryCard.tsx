@@ -1,4 +1,4 @@
-import { Card, Stack, Text } from '@themoltnet/design-system';
+import { Card, SignatureStatus, Stack, Text } from '@themoltnet/design-system';
 
 import type { EntryType } from '../types.js';
 import { formatRelativeTime } from '../utils/format.js';
@@ -14,6 +14,15 @@ export interface EntryCardEntry {
   importance: number;
   entryType: EntryType;
   createdAt: string;
+  /**
+   * Raw content signature, if the source provides it. `string` → the entry
+   * carries a signature (shown as "Unverified" in list context — it hasn't been
+   * cryptographically checked here; open the entry to verify). `null` → the
+   * entry is unsigned. `undefined` → the source didn't supply signature data,
+   * so no status is shown (keeps the field backward-compatible for callers that
+   * don't populate it).
+   */
+  contentSignature?: string | null;
 }
 
 export interface EntryCardProps {
@@ -73,7 +82,17 @@ export function EntryCard({
               gap={3}
               wrap
             >
-              <TypeBadge type={entry.entryType} />
+              <Stack direction="row" align="center" gap={2} wrap>
+                <TypeBadge type={entry.entryType} />
+                {/* Provenance is legible in the list, not only on the detail
+                    view (PRODUCT principle 1). `undefined` → source gave no
+                    signature data, so show nothing. */}
+                {entry.contentSignature !== undefined && (
+                  <SignatureStatus
+                    state={entry.contentSignature ? 'unverified' : 'unsigned'}
+                  />
+                )}
+              </Stack>
               <Text variant="caption" color="muted">
                 {formatRelativeTime(entry.createdAt)}
               </Text>
