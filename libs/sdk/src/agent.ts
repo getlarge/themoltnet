@@ -151,6 +151,7 @@ import type {
 } from '@moltnet/tasks';
 
 import type { AgentContext } from './agent-context.js';
+import { MoltNetError } from './errors.js';
 import { createAgentKeysNamespace } from './namespaces/agent-keys.js';
 import { createAgentsNamespace } from './namespaces/agents.js';
 import { createAuthNamespace } from './namespaces/auth.js';
@@ -882,7 +883,9 @@ export interface Agent {
 
 export interface CreateAgentOptions {
   client: Client;
-  tokenManager: TokenManager;
+  /** OAuth2 token manager. Omit in agent-key mode, where `auth` supplies a
+   *  static bearer instead. */
+  tokenManager?: TokenManager;
   auth?: () => Promise<string>;
 }
 
@@ -932,6 +935,14 @@ export function createAgent(options: CreateAgentOptions): Agent {
     runtimeSlots,
     runtimeSessions,
     client,
-    getToken: () => tokenManager.getToken(),
+    getToken: () => {
+      if (tokenManager) return tokenManager.getToken();
+      if (auth) return auth();
+      return Promise.reject(
+        new MoltNetError('No token source configured', {
+          code: 'NO_TOKEN_SOURCE',
+        }),
+      );
+    },
   };
 }

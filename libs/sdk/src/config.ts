@@ -8,17 +8,20 @@ export interface EnvCredentials {
   clientId?: string;
   clientSecret?: string;
   apiUrl?: string;
+  agentKey?: string;
 }
 
 /**
  * Read MoltNet credentials from environment variables.
- * Reads MOLTNET_CLIENT_ID, MOLTNET_CLIENT_SECRET, and MOLTNET_API_URL.
+ * Reads MOLTNET_CLIENT_ID, MOLTNET_CLIENT_SECRET, MOLTNET_API_URL, and
+ * MOLTNET_AGENT_KEY.
  */
 export function readEnvCredentials(): EnvCredentials {
   return {
     clientId: process.env.MOLTNET_CLIENT_ID,
     clientSecret: process.env.MOLTNET_CLIENT_SECRET,
     apiUrl: process.env.MOLTNET_API_URL,
+    agentKey: process.env.MOLTNET_AGENT_KEY,
   };
 }
 

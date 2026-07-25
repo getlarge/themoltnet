@@ -20,6 +20,7 @@ vi.mock('../src/config.js', () => ({
     clientId: undefined,
     clientSecret: undefined,
     apiUrl: undefined,
+    agentKey: undefined,
   })),
 }));
 
@@ -70,6 +71,7 @@ beforeEach(() => {
     clientId: undefined,
     clientSecret: undefined,
     apiUrl: undefined,
+    agentKey: undefined,
   });
 });
 
@@ -261,5 +263,65 @@ describe('connect', () => {
 
     const agentOpts = mockCreateAgent.mock.calls[0]![0];
     expect(agentOpts.auth).toBeUndefined();
+  });
+});
+
+describe('connect (agent-key mode)', () => {
+  it('uses a static bearer and skips TokenManager when agentKey option is set', async () => {
+    await connect({ agentKey: 'opaque-key', apiUrl: 'https://custom.api.net' });
+
+    expect(MockTokenManager).not.toHaveBeenCalled();
+    expect(mockCreateClient).toHaveBeenCalledWith(
+      expect.objectContaining({ baseUrl: 'https://custom.api.net' }),
+    );
+    const agentOpts = mockCreateAgent.mock.calls[0]![0];
+    expect(agentOpts.tokenManager).toBeUndefined();
+    expect(agentOpts.auth).toBeTypeOf('function');
+    await expect(agentOpts.auth!()).resolves.toBe('opaque-key');
+  });
+
+  it('reads MOLTNET_AGENT_KEY from env', async () => {
+    mockReadEnvCredentials.mockReturnValue({
+      clientId: undefined,
+      clientSecret: undefined,
+      apiUrl: undefined,
+      agentKey: 'env-key',
+    });
+
+    await connect();
+
+    expect(MockTokenManager).not.toHaveBeenCalled();
+    const agentOpts = mockCreateAgent.mock.calls[0]![0];
+    await expect(agentOpts.auth!()).resolves.toBe('env-key');
+  });
+
+  it('prefers the explicit agentKey option over the env var', async () => {
+    mockReadEnvCredentials.mockReturnValue({
+      clientId: undefined,
+      clientSecret: undefined,
+      apiUrl: undefined,
+      agentKey: 'env-key',
+    });
+
+    await connect({ agentKey: 'option-key' });
+
+    const agentOpts = mockCreateAgent.mock.calls[0]![0];
+    await expect(agentOpts.auth!()).resolves.toBe('option-key');
+  });
+
+  it('resolves apiUrl from the config file in key mode', async () => {
+    mockReadConfig.mockResolvedValueOnce({
+      identity_id: 'id-1',
+      registered_at: '2024-01-01',
+      oauth2: { client_id: 'x', client_secret: 'y' },
+      keys: { public_key: 'pk', private_key: 'sk', fingerprint: 'fp' },
+      endpoints: { api: 'https://cfg.api.net', mcp: 'mcp' },
+    });
+
+    await connect({ agentKey: 'k' });
+
+    expect(mockCreateClient).toHaveBeenCalledWith(
+      expect.objectContaining({ baseUrl: 'https://cfg.api.net' }),
+    );
   });
 });

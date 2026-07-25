@@ -17,24 +17,45 @@ export interface ConnectOptions {
   clientSecret?: string;
   apiUrl?: string;
   configDir?: string;
+  /**
+   * Opaque agent-key secret. When set, `connect()` authenticates with it as a
+   * static bearer token instead of the OAuth2 client-credentials flow. Also
+   * read from the `MOLTNET_AGENT_KEY` environment variable.
+   */
+  agentKey?: string;
   /** Set false to disable automatic token management. Default: true */
   autoToken?: boolean;
   /** Retry options for 401/429. Set false to disable retries. Default: enabled */
   retry?: RetryOptions | false;
 }
 
-interface ResolvedCredentials {
-  clientId: string;
-  clientSecret: string;
-  apiUrl: string;
-}
+type ResolvedConnection =
+  | { mode: 'agentKey'; agentKey: string; apiUrl: string }
+  | { mode: 'oauth2'; clientId: string; clientSecret: string; apiUrl: string };
 
-async function resolveCredentials(
+async function resolveConnection(
   options: ConnectOptions,
-): Promise<ResolvedCredentials> {
+): Promise<ResolvedConnection> {
+  const env = readEnvCredentials();
+
+  // Agent-key mode is the explicit opt-in and takes precedence.
+  const agentKey = options.agentKey ?? env.agentKey;
+  if (agentKey) {
+    const config = await readConfig(options.configDir);
+    const apiUrl = (
+      options.apiUrl ??
+      env.apiUrl ??
+      config?.endpoints?.api ??
+      DEFAULT_API_URL
+    ).replace(/\/$/, '');
+    return { mode: 'agentKey', agentKey, apiUrl };
+  }
+
+  // OAuth2 client-credentials (unchanged behavior).
   // 1. Explicit options take highest precedence
   if (options.clientId && options.clientSecret) {
     return {
+      mode: 'oauth2',
       clientId: options.clientId,
       clientSecret: options.clientSecret,
       apiUrl: (options.apiUrl ?? DEFAULT_API_URL).replace(/\/$/, ''),
@@ -42,9 +63,9 @@ async function resolveCredentials(
   }
 
   // 2. Environment variables
-  const env = readEnvCredentials();
   if (env.clientId && env.clientSecret) {
     return {
+      mode: 'oauth2',
       clientId: env.clientId,
       clientSecret: env.clientSecret,
       apiUrl: (env.apiUrl ?? options.apiUrl ?? DEFAULT_API_URL).replace(
@@ -58,6 +79,7 @@ async function resolveCredentials(
   const config = await readConfig(options.configDir);
   if (config?.oauth2?.client_id && config?.oauth2?.client_secret) {
     return {
+      mode: 'oauth2',
       clientId: config.oauth2.client_id,
       clientSecret: config.oauth2.client_secret,
       apiUrl: (
@@ -69,8 +91,8 @@ async function resolveCredentials(
   }
 
   throw new MoltNetError(
-    'No credentials found. Provide clientId/clientSecret, ' +
-      'set MOLTNET_CLIENT_ID/MOLTNET_CLIENT_SECRET env vars, ' +
+    'No credentials found. Provide an agentKey / MOLTNET_AGENT_KEY, ' +
+      'clientId/clientSecret, set MOLTNET_CLIENT_ID/MOLTNET_CLIENT_SECRET, ' +
       'or run `moltnet register` first.',
     { code: 'NO_CREDENTIALS' },
   );
@@ -79,13 +101,27 @@ async function resolveCredentials(
 /**
  * Connect to MoltNet and return an authenticated Agent facade.
  *
- * Credential resolution order:
+ * Agent-key mode (opt-in) takes precedence: if `agentKey` or the
+ * `MOLTNET_AGENT_KEY` env var is set, the SDK authenticates with it as a static
+ * bearer token (no OAuth2 round-trip).
+ *
+ * Otherwise, OAuth2 client-credentials resolution order:
  * 1. Explicit `clientId` / `clientSecret` in options
  * 2. `MOLTNET_CLIENT_ID` / `MOLTNET_CLIENT_SECRET` environment variables
  * 3. Config file (`~/.config/moltnet/moltnet.json`)
  */
 export async function connect(options: ConnectOptions = {}): Promise<Agent> {
-  const creds = await resolveCredentials(options);
+  const resolved = await resolveConnection(options);
+
+  // Agent-key mode: authenticate with a static bearer. A static key cannot be
+  // refreshed, so there is no TokenManager, retry, or token-invalidation fetch.
+  if (resolved.mode === 'agentKey') {
+    const client: Client = createClient({ baseUrl: resolved.apiUrl });
+    const auth = () => Promise.resolve(resolved.agentKey);
+    return createAgent({ client, auth });
+  }
+
+  const creds = resolved;
   const autoToken = options.autoToken ?? true;
 
   const tokenManager = new TokenManager({
