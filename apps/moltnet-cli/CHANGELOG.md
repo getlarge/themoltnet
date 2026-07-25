@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.68.0](https://github.com/getlarge/themoltnet/compare/cli-v1.67.0...cli-v1.68.0) (2026-07-25)
+
+
+### Features
+
+* **sdk:** agent-key auth + unified whoami (daemon adoption PR-1) ([0d4935f](https://github.com/getlarge/themoltnet/commit/0d4935f6266ec35105999264cdcf4ad1957b22d8))
+
 ## [1.67.0](https://github.com/getlarge/themoltnet/compare/cli-v1.66.0...cli-v1.67.0) (2026-07-25)
 
 

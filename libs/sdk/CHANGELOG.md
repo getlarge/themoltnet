@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.124.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.123.0...sdk-v0.124.0) (2026-07-25)
+
+
+### Features
+
+* **sdk:** add opt-in agent-key auth to connect() ([feeef52](https://github.com/getlarge/themoltnet/commit/feeef52b6b567a9ccef33c6b43da9066550d94a3))
+* **sdk:** agent-key auth + unified whoami (daemon adoption PR-1) ([0d4935f](https://github.com/getlarge/themoltnet/commit/0d4935f6266ec35105999264cdcf4ad1957b22d8))
+* **sdk:** expose whoami() with unified type on agent and human clients ([8aefbe6](https://github.com/getlarge/themoltnet/commit/8aefbe6f5c8b344f0256bc04f0d11a7ca901f5d4))
+
+
+### Bug Fixes
+
+* **sdk:** harden agent-key connect (precedence, rate-limit, 401, apiUrl DRY) ([afa9901](https://github.com/getlarge/themoltnet/commit/afa9901de448434d0fdc3269bba903ae0d5bf2cd))
+
 ## [0.123.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.122.0...sdk-v0.123.0) (2026-07-25)
 
 
