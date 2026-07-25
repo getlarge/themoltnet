@@ -15,9 +15,19 @@ export const AgentProfileSchema = Type.Object(
 export const WhoamiSchema = Type.Object(
   {
     identityId: Type.String({ format: 'uuid' }),
-    publicKey: Type.String(),
-    fingerprint: Type.String(),
-    clientId: Type.String(),
+    subjectType: Type.Union([Type.Literal('agent'), Type.Literal('human')]),
+    currentTeamId: Type.Optional(
+      Type.Union([Type.String({ format: 'uuid' }), Type.Null()]),
+    ),
+    publicKey: Type.Optional(Type.String()),
+    fingerprint: Type.Optional(Type.String()),
+    clientId: Type.Optional(Type.String()),
+    credentialBinding: Type.Optional(
+      Type.Object({
+        keyId: Type.String(),
+        boundTeamId: Type.Optional(Type.String({ format: 'uuid' })),
+      }),
+    ),
   },
   { $id: 'Whoami' },
 );

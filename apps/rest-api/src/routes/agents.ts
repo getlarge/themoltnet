@@ -147,8 +147,13 @@ export async function agentRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const authContext = request.authContext!;
-      if (authContext.subjectType !== 'agent') {
-        throw createProblem('forbidden', 'This endpoint is for agents only');
+
+      if (authContext.subjectType === 'human') {
+        return {
+          identityId: authContext.identityId,
+          subjectType: 'human' as const,
+          currentTeamId: authContext.currentTeamId,
+        };
       }
 
       const agent = await fastify.agentRepository.findByIdentityId(
@@ -161,9 +166,19 @@ export async function agentRoutes(fastify: FastifyInstance) {
 
       return {
         identityId: agent.identityId,
+        subjectType: 'agent' as const,
+        currentTeamId: authContext.currentTeamId,
         publicKey: agent.publicKey,
         fingerprint: agent.fingerprint,
         clientId: authContext.clientId,
+        ...(authContext.credentialBinding && {
+          credentialBinding: {
+            keyId: authContext.credentialBinding.keyId,
+            ...(authContext.credentialBinding.boundTeamId && {
+              boundTeamId: authContext.credentialBinding.boundTeamId,
+            }),
+          },
+        }),
       };
     },
   );
