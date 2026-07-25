@@ -97,3 +97,56 @@ describe('themes', () => {
     );
   });
 });
+
+// Guards the *semantic* foreground/background contract (not literal hex values),
+// so a future token tweak that breaks a real text/fill pair fails the build. #1643
+describe('WCAG AA contrast contracts', () => {
+  function hexToRgb(hex: string): [number, number, number] {
+    const h = hex.replace('#', '');
+    return [
+      parseInt(h.slice(0, 2), 16),
+      parseInt(h.slice(2, 4), 16),
+      parseInt(h.slice(4, 6), 16),
+    ];
+  }
+  function relLuminance(hex: string): number {
+    const srgb = hexToRgb(hex).map((c) => {
+      const s = c / 255;
+      return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * srgb[0] + 0.7152 * srgb[1] + 0.0722 * srgb[2];
+  }
+  function contrast(a: string, b: string): number {
+    const l1 = relLuminance(a);
+    const l2 = relLuminance(b);
+    return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+  }
+
+  const AA = 4.5;
+  for (const theme of [darkTheme, lightTheme]) {
+    const c = theme.color;
+    // Filled buttons render text.inverse over a solid brand/signal fill.
+    const filledButtonPairs: Array<[string, string, string]> = [
+      [`${theme.mode} primary button`, c.primary.DEFAULT, c.text.inverse],
+      [`${theme.mode} accent button`, c.accent.DEFAULT, c.text.inverse],
+      [`${theme.mode} danger button`, c.error.DEFAULT, c.text.inverse],
+    ];
+    for (const [name, bg, fg] of filledButtonPairs) {
+      it(`${name}: inverse text on fill meets AA`, () => {
+        expect(contrast(bg, fg)).toBeGreaterThanOrEqual(AA);
+      });
+    }
+
+    // Body/secondary/muted text over the base surfaces.
+    const textPairs: Array<[string, string, string]> = [
+      [`${theme.mode} body`, c.text.DEFAULT, c.bg.surface],
+      [`${theme.mode} secondary`, c.text.secondary, c.bg.surface],
+      [`${theme.mode} muted`, c.text.muted, c.bg.surface],
+    ];
+    for (const [name, fg, bg] of textPairs) {
+      it(`${name}: text on surface meets AA`, () => {
+        expect(contrast(fg, bg)).toBeGreaterThanOrEqual(AA);
+      });
+    }
+  }
+});

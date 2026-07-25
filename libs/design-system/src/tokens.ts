@@ -97,10 +97,12 @@ export const lightColors = {
     subtle: 'rgba(0, 112, 104, 0.04)',
   },
   accent: {
-    DEFAULT: '#8a6600',
+    // Dark enough that inverse text (#e8e8f0) on an accent *fill* (button) also
+    // clears AA (4.90:1), not just accent-as-text on white (5.97:1). #1643.
+    DEFAULT: '#805e00',
     hover: '#725400',
-    muted: 'rgba(138, 102, 0, 0.08)',
-    subtle: 'rgba(138, 102, 0, 0.04)',
+    muted: 'rgba(128, 94, 0, 0.08)',
+    subtle: 'rgba(128, 94, 0, 0.04)',
   },
   text: {
     DEFAULT: '#1a1a2e',
@@ -117,8 +119,10 @@ export const lightColors = {
   // Light signals darkened to meet WCAG AA as text/badges on light surfaces and
   // their muted tints; warning stays distinctly orange (vs the amber accent). #1643.
   error: {
-    DEFAULT: '#d03050',
-    muted: 'rgba(208, 48, 80, 0.08)',
+    // Dark enough that the danger button (error fill + inverse text) clears AA
+    // (4.87:1) in light theme; also fine as error text on white (5.93:1). #1643.
+    DEFAULT: '#c0223f',
+    muted: 'rgba(192, 34, 63, 0.08)',
   },
   warning: {
     DEFAULT: '#a05500',
