@@ -84774,12 +84774,8 @@ func (s *SigningCredential) encodeFields(e *jx.Encoder) {
 		e.Str(s.Label)
 	}
 	{
-		e.FieldStart("ownerHumanId")
-		json.EncodeUUID(e, s.OwnerHumanId)
-	}
-	{
-		e.FieldStart("ownerType")
-		s.OwnerType.Encode(e)
+		e.FieldStart("owner")
+		s.Owner.Encode(e)
 	}
 	{
 		e.FieldStart("publicMaterial")
@@ -84811,7 +84807,7 @@ func (s *SigningCredential) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfSigningCredential = [17]string{
+var jsonFieldsNameOfSigningCredential = [16]string{
 	0:  "activatedAt",
 	1:  "algorithm",
 	2:  "approvedByHumanId",
@@ -84820,15 +84816,14 @@ var jsonFieldsNameOfSigningCredential = [17]string{
 	5:  "enrollmentEvidence",
 	6:  "id",
 	7:  "label",
-	8:  "ownerHumanId",
-	9:  "ownerType",
-	10: "publicMaterial",
-	11: "revokedAt",
-	12: "status",
-	13: "suspendedAt",
-	14: "teamId",
-	15: "updatedAt",
-	16: "verificationMethod",
+	8:  "owner",
+	9:  "publicMaterial",
+	10: "revokedAt",
+	11: "status",
+	12: "suspendedAt",
+	13: "teamId",
+	14: "updatedAt",
+	15: "verificationMethod",
 }
 
 // Decode decodes SigningCredential from json.
@@ -84836,7 +84831,7 @@ func (s *SigningCredential) Decode(d *jx.Decoder) error {
 	if s == nil {
 		return errors.New("invalid: unable to decode SigningCredential to nil")
 	}
-	var requiredBitSet [3]uint8
+	var requiredBitSet [2]uint8
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
@@ -84930,30 +84925,18 @@ func (s *SigningCredential) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"label\"")
 			}
-		case "ownerHumanId":
+		case "owner":
 			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
-				v, err := json.DecodeUUID(d)
-				s.OwnerHumanId = v
-				if err != nil {
+				if err := s.Owner.Decode(d); err != nil {
 					return err
 				}
 				return nil
 			}(); err != nil {
-				return errors.Wrap(err, "decode field \"ownerHumanId\"")
-			}
-		case "ownerType":
-			requiredBitSet[1] |= 1 << 1
-			if err := func() error {
-				if err := s.OwnerType.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"ownerType\"")
+				return errors.Wrap(err, "decode field \"owner\"")
 			}
 		case "publicMaterial":
-			requiredBitSet[1] |= 1 << 2
+			requiredBitSet[1] |= 1 << 1
 			if err := func() error {
 				if err := s.PublicMaterial.Decode(d); err != nil {
 					return err
@@ -84963,7 +84946,7 @@ func (s *SigningCredential) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"publicMaterial\"")
 			}
 		case "revokedAt":
-			requiredBitSet[1] |= 1 << 3
+			requiredBitSet[1] |= 1 << 2
 			if err := func() error {
 				if err := s.RevokedAt.Decode(d, json.DecodeDateTime); err != nil {
 					return err
@@ -84973,7 +84956,7 @@ func (s *SigningCredential) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"revokedAt\"")
 			}
 		case "status":
-			requiredBitSet[1] |= 1 << 4
+			requiredBitSet[1] |= 1 << 3
 			if err := func() error {
 				if err := s.Status.Decode(d); err != nil {
 					return err
@@ -84983,7 +84966,7 @@ func (s *SigningCredential) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "suspendedAt":
-			requiredBitSet[1] |= 1 << 5
+			requiredBitSet[1] |= 1 << 4
 			if err := func() error {
 				if err := s.SuspendedAt.Decode(d, json.DecodeDateTime); err != nil {
 					return err
@@ -84993,7 +84976,7 @@ func (s *SigningCredential) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"suspendedAt\"")
 			}
 		case "teamId":
-			requiredBitSet[1] |= 1 << 6
+			requiredBitSet[1] |= 1 << 5
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.TeamId = v
@@ -85005,7 +84988,7 @@ func (s *SigningCredential) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"teamId\"")
 			}
 		case "updatedAt":
-			requiredBitSet[1] |= 1 << 7
+			requiredBitSet[1] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
 				s.UpdatedAt = v
@@ -85017,7 +85000,7 @@ func (s *SigningCredential) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"updatedAt\"")
 			}
 		case "verificationMethod":
-			requiredBitSet[2] |= 1 << 0
+			requiredBitSet[1] |= 1 << 7
 			if err := func() error {
 				if err := s.VerificationMethod.Decode(d); err != nil {
 					return err
@@ -85035,10 +85018,9 @@ func (s *SigningCredential) Decode(d *jx.Decoder) error {
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
-	for i, mask := range [3]uint8{
+	for i, mask := range [2]uint8{
 		0b11111111,
 		0b11111111,
-		0b00000001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -85414,40 +85396,116 @@ func (s *SigningCredentialList) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
-// Encode encodes SigningCredentialOwnerType as json.
-func (s SigningCredentialOwnerType) Encode(e *jx.Encoder) {
-	e.Str(string(s))
+// Encode encodes SigningCredentialOwner as json.
+func (s SigningCredentialOwner) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
 }
 
-// Decode decodes SigningCredentialOwnerType from json.
-func (s *SigningCredentialOwnerType) Decode(d *jx.Decoder) error {
+func (s SigningCredentialOwner) encodeFields(e *jx.Encoder) {
+	switch s.Type {
+	case AgentPrincipalSigningCredentialOwner:
+		e.FieldStart("kind")
+		e.Str("agent")
+		{
+			s := s.AgentPrincipal
+			{
+				e.FieldStart("fingerprint")
+				e.Str(s.Fingerprint)
+			}
+			{
+				e.FieldStart("identityId")
+				json.EncodeUUID(e, s.IdentityId)
+			}
+			{
+				e.FieldStart("publicKey")
+				e.Str(s.PublicKey)
+			}
+		}
+	case HumanPrincipalSigningCredentialOwner:
+		e.FieldStart("kind")
+		e.Str("human")
+		{
+			s := s.HumanPrincipal
+			{
+				e.FieldStart("humanId")
+				json.EncodeUUID(e, s.HumanId)
+			}
+			{
+				e.FieldStart("identityId")
+				s.IdentityId.Encode(e)
+			}
+		}
+	}
+}
+
+// Decode decodes SigningCredentialOwner from json.
+func (s *SigningCredentialOwner) Decode(d *jx.Decoder) error {
 	if s == nil {
-		return errors.New("invalid: unable to decode SigningCredentialOwnerType to nil")
+		return errors.New("invalid: unable to decode SigningCredentialOwner to nil")
 	}
-	v, err := d.StrBytes()
-	if err != nil {
-		return err
-	}
-	// Try to use constant string.
-	switch SigningCredentialOwnerType(v) {
-	case SigningCredentialOwnerTypeHuman:
-		*s = SigningCredentialOwnerTypeHuman
-	default:
-		*s = SigningCredentialOwnerType(v)
+	// Sum type discriminator.
+	if typ := d.Next(); typ != jx.Object {
+		return errors.Errorf("unexpected json type %q", typ)
 	}
 
+	var found bool
+	if err := d.Capture(func(d *jx.Decoder) error {
+		return d.ObjBytes(func(d *jx.Decoder, key []byte) error {
+			if found {
+				return d.Skip()
+			}
+			switch string(key) {
+			case "kind":
+				typ, err := d.Str()
+				if err != nil {
+					return err
+				}
+				switch typ {
+				case "agent":
+					s.Type = AgentPrincipalSigningCredentialOwner
+					found = true
+				case "human":
+					s.Type = HumanPrincipalSigningCredentialOwner
+					found = true
+				default:
+					return errors.Errorf("unknown type %s", typ)
+				}
+				return nil
+			}
+			return d.Skip()
+		})
+	}); err != nil {
+		return errors.Wrap(err, "capture")
+	}
+	if !found {
+		return errors.New("unable to detect sum type variant")
+	}
+	switch s.Type {
+	case AgentPrincipalSigningCredentialOwner:
+		if err := s.AgentPrincipal.Decode(d); err != nil {
+			return err
+		}
+	case HumanPrincipalSigningCredentialOwner:
+		if err := s.HumanPrincipal.Decode(d); err != nil {
+			return err
+		}
+	default:
+		return errors.Errorf("inferred invalid type: %s", s.Type)
+	}
 	return nil
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s SigningCredentialOwnerType) MarshalJSON() ([]byte, error) {
+func (s SigningCredentialOwner) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *SigningCredentialOwnerType) UnmarshalJSON(data []byte) error {
+func (s *SigningCredentialOwner) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

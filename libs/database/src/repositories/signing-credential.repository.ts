@@ -13,6 +13,18 @@ import { getExecutor } from '../transaction-context.js';
 
 export type SigningCredentialStatus = SigningCredential['status'];
 
+export interface SigningCredentialOwner {
+  kind: 'agent' | 'human';
+  id: string;
+}
+
+export type CreateSigningCredentialInput = Omit<
+  NewSigningCredential,
+  'id' | 'createdAt' | 'updatedAt' | 'ownerAgentId' | 'ownerHumanId'
+> & {
+  owner: SigningCredentialOwner;
+};
+
 export function createSigningCredentialRepository(db: Database) {
   return {
     async createRegistration(
@@ -57,11 +69,16 @@ export function createSigningCredentialRepository(db: Database) {
     },
 
     async create(
-      input: Omit<NewSigningCredential, 'id' | 'createdAt' | 'updatedAt'>,
+      input: CreateSigningCredentialInput,
     ): Promise<SigningCredential> {
+      const { owner, ...values } = input;
       const [credential] = await getExecutor(db)
         .insert(signingCredentials)
-        .values(input)
+        .values({
+          ...values,
+          ownerAgentId: owner.kind === 'agent' ? owner.id : null,
+          ownerHumanId: owner.kind === 'human' ? owner.id : null,
+        })
         .returning();
       return credential;
     },

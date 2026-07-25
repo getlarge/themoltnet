@@ -18,8 +18,8 @@ CREATE TABLE "signing_credential_registrations" (
 --> statement-breakpoint
 CREATE TABLE "signing_credentials" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"owner_type" varchar(32) DEFAULT 'human' NOT NULL,
-	"owner_human_id" uuid NOT NULL,
+	"owner_agent_id" uuid,
+	"owner_human_id" uuid,
 	"team_id" uuid NOT NULL,
 	"verification_method" "verification_method" NOT NULL,
 	"credential_type" varchar(100) NOT NULL,
@@ -34,7 +34,7 @@ CREATE TABLE "signing_credentials" (
 	"activated_at" timestamp with time zone,
 	"suspended_at" timestamp with time zone,
 	"revoked_at" timestamp with time zone,
-	CONSTRAINT "signing_credentials_owner_human" CHECK (owner_type = 'human')
+	CONSTRAINT "signing_credentials_owner_xor" CHECK ((owner_agent_id IS NOT NULL) <> (owner_human_id IS NOT NULL))
 );
 --> statement-breakpoint
 ALTER TABLE "signing_requests" ADD COLUMN "team_id" uuid;--> statement-breakpoint
@@ -49,12 +49,14 @@ ALTER TABLE "signing_requests" ADD COLUMN "rejected_at" timestamp with time zone
 ALTER TABLE "signing_requests" ADD COLUMN "rejection_reason" text;--> statement-breakpoint
 ALTER TABLE "signing_credential_registrations" ADD CONSTRAINT "signing_credential_registrations_owner_human_id_humans_id_fk" FOREIGN KEY ("owner_human_id") REFERENCES "public"."humans"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "signing_credential_registrations" ADD CONSTRAINT "signing_credential_registrations_team_id_teams_id_fk" FOREIGN KEY ("team_id") REFERENCES "public"."teams"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "signing_credentials" ADD CONSTRAINT "signing_credentials_owner_agent_id_agents_identity_id_fk" FOREIGN KEY ("owner_agent_id") REFERENCES "public"."agents"("identity_id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "signing_credentials" ADD CONSTRAINT "signing_credentials_owner_human_id_humans_id_fk" FOREIGN KEY ("owner_human_id") REFERENCES "public"."humans"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "signing_credentials" ADD CONSTRAINT "signing_credentials_team_id_teams_id_fk" FOREIGN KEY ("team_id") REFERENCES "public"."teams"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "signing_credentials" ADD CONSTRAINT "signing_credentials_approved_by_human_id_humans_id_fk" FOREIGN KEY ("approved_by_human_id") REFERENCES "public"."humans"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "signing_credential_registrations_owner_idx" ON "signing_credential_registrations" USING btree ("owner_human_id");--> statement-breakpoint
 CREATE INDEX "signing_credential_registrations_expires_idx" ON "signing_credential_registrations" USING btree ("expires_at");--> statement-breakpoint
-CREATE INDEX "signing_credentials_owner_idx" ON "signing_credentials" USING btree ("owner_human_id","status");--> statement-breakpoint
+CREATE INDEX "signing_credentials_owner_agent_idx" ON "signing_credentials" USING btree ("owner_agent_id","status") WHERE owner_agent_id IS NOT NULL;--> statement-breakpoint
+CREATE INDEX "signing_credentials_owner_human_idx" ON "signing_credentials" USING btree ("owner_human_id","status") WHERE owner_human_id IS NOT NULL;--> statement-breakpoint
 CREATE INDEX "signing_credentials_team_idx" ON "signing_credentials" USING btree ("team_id","status");--> statement-breakpoint
 CREATE INDEX "signing_credentials_method_idx" ON "signing_credentials" USING btree ("verification_method","status");--> statement-breakpoint
 ALTER TABLE "signing_requests" ADD CONSTRAINT "signing_requests_team_id_teams_id_fk" FOREIGN KEY ("team_id") REFERENCES "public"."teams"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint

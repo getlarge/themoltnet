@@ -3862,18 +3862,17 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
-        "owner_type": {
-          "name": "owner_type",
-          "type": "varchar(32)",
+        "owner_agent_id": {
+          "name": "owner_agent_id",
+          "type": "uuid",
           "primaryKey": false,
-          "notNull": true,
-          "default": "'human'"
+          "notNull": false
         },
         "owner_human_id": {
           "name": "owner_human_id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "team_id": {
           "name": "team_id",
@@ -3966,8 +3965,30 @@
         }
       },
       "indexes": {
-        "signing_credentials_owner_idx": {
-          "name": "signing_credentials_owner_idx",
+        "signing_credentials_owner_agent_idx": {
+          "name": "signing_credentials_owner_agent_idx",
+          "columns": [
+            {
+              "expression": "owner_agent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "owner_agent_id IS NOT NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "signing_credentials_owner_human_idx": {
+          "name": "signing_credentials_owner_human_idx",
           "columns": [
             {
               "expression": "owner_human_id",
@@ -3983,6 +4004,7 @@
             }
           ],
           "isUnique": false,
+          "where": "owner_human_id IS NOT NULL",
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -4031,6 +4053,19 @@
         }
       },
       "foreignKeys": {
+        "signing_credentials_owner_agent_id_agents_identity_id_fk": {
+          "name": "signing_credentials_owner_agent_id_agents_identity_id_fk",
+          "tableFrom": "signing_credentials",
+          "tableTo": "agents",
+          "columnsFrom": [
+            "owner_agent_id"
+          ],
+          "columnsTo": [
+            "identity_id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
         "signing_credentials_owner_human_id_humans_id_fk": {
           "name": "signing_credentials_owner_human_id_humans_id_fk",
           "tableFrom": "signing_credentials",
@@ -4075,9 +4110,9 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {
-        "signing_credentials_owner_human": {
-          "name": "signing_credentials_owner_human",
-          "value": "owner_type = 'human'"
+        "signing_credentials_owner_xor": {
+          "name": "signing_credentials_owner_xor",
+          "value": "(owner_agent_id IS NOT NULL) <> (owner_human_id IS NOT NULL)"
         }
       },
       "isRLSEnabled": false

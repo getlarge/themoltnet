@@ -29,7 +29,7 @@ const humanAuth: AuthContext = {
 
 const credential = {
   id: CREDENTIAL_ID,
-  ownerType: 'human' as const,
+  ownerAgentId: null,
   ownerHumanId: HUMAN_ID,
   teamId: TEAM_ID,
   verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
@@ -108,6 +108,16 @@ describe('signing credential routes', () => {
     mocks = createMockServices();
     mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
     mocks.permissionChecker.canManageTeamCredentials.mockResolvedValue(true);
+    const owner = {
+      id: HUMAN_ID,
+      identityId: OWNER_ID,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    mocks.humanRepository.findById.mockResolvedValue(owner);
+    mocks.humanRepository.findByIds.mockResolvedValue(
+      new Map([[HUMAN_ID, owner]]),
+    );
     app = await createTestApp(mocks, humanAuth);
   });
 
@@ -188,7 +198,44 @@ describe('signing credential routes', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json().status).toBe('active');
+    expect(response.json()).toMatchObject({
+      status: 'active',
+      owner: {
+        kind: 'human',
+        humanId: HUMAN_ID,
+        identityId: OWNER_ID,
+      },
+    });
+    expect(response.json()).not.toHaveProperty('ownerType');
+    expect(response.json()).not.toHaveProperty('ownerHumanId');
+  });
+
+  it('lists credentials with one discriminated owner property', async () => {
+    mocks.signingCredentialRepository.list.mockResolvedValue({
+      items: [credential],
+      total: 1,
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/crypto/signing-credentials',
+      headers: {
+        authorization: 'Bearer human-session',
+        'x-moltnet-team-id': TEAM_ID,
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().items[0]).toMatchObject({
+      owner: {
+        kind: 'human',
+        humanId: HUMAN_ID,
+        identityId: OWNER_ID,
+      },
+    });
+    expect(response.json().items[0]).not.toHaveProperty('ownerType');
+    expect(response.json().items[0]).not.toHaveProperty('ownerHumanId');
+    expect(mocks.humanRepository.findByIds).toHaveBeenCalledWith([HUMAN_ID]);
   });
 
   it('runs request → claim → receipt verification → completion', async () => {

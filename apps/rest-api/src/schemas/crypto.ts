@@ -1,4 +1,7 @@
-import { VerificationMethodSchema } from '@moltnet/models';
+import {
+  PrincipalIdentitySchema,
+  VerificationMethodSchema,
+} from '@moltnet/models';
 import { Type } from 'typebox';
 
 import { DateTime, NullableDateTime } from './atoms.js';
@@ -121,8 +124,7 @@ export const SigningMethodValueSchema = Type.Object({
 export const SigningCredentialSchema = Type.Object(
   {
     id: Type.String({ format: 'uuid' }),
-    ownerType: Type.Literal('human'),
-    ownerHumanId: Type.String({ format: 'uuid' }),
+    owner: PrincipalIdentitySchema,
     teamId: Type.String({ format: 'uuid' }),
     verificationMethod: VerificationMethodSchema,
     credentialType: Type.String(),

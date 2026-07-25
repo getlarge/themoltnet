@@ -498,21 +498,21 @@ export interface SigningRequestSignerConstraint {
 /**
  * Signing Credentials
  *
- * Public verification material for a human-owned signing credential. The
- * owner discriminator is intentionally explicit even though Phase 2 accepts
- * only human ownership, so later custody models do not require a rename.
+ * Public verification material for an owned signing credential. Phase 2
+ * accepts only human enrollment, but persistence follows the repository's
+ * principal pattern: concrete nullable FKs plus an XOR check. The API derives
+ * a discriminated `owner` DTO from whichever FK is populated.
  */
 export const signingCredentials = pgTable(
   'signing_credentials',
   {
     id: uuid('id').defaultRandom().primaryKey(),
-    ownerType: varchar('owner_type', { length: 32 })
-      .$type<'human'>()
-      .default('human')
-      .notNull(),
-    ownerHumanId: uuid('owner_human_id')
-      .notNull()
-      .references(() => humans.id, { onDelete: 'restrict' }),
+    ownerAgentId: uuid('owner_agent_id').references(() => agents.identityId, {
+      onDelete: 'restrict',
+    }),
+    ownerHumanId: uuid('owner_human_id').references(() => humans.id, {
+      onDelete: 'restrict',
+    }),
     teamId: uuid('team_id')
       .notNull()
       .references(() => teams.id, { onDelete: 'restrict' }),
@@ -544,13 +544,21 @@ export const signingCredentials = pgTable(
     revokedAt: timestamp('revoked_at', { withTimezone: true }),
   },
   (table) => [
-    index('signing_credentials_owner_idx').on(table.ownerHumanId, table.status),
+    index('signing_credentials_owner_agent_idx')
+      .on(table.ownerAgentId, table.status)
+      .where(sql`owner_agent_id IS NOT NULL`),
+    index('signing_credentials_owner_human_idx')
+      .on(table.ownerHumanId, table.status)
+      .where(sql`owner_human_id IS NOT NULL`),
     index('signing_credentials_team_idx').on(table.teamId, table.status),
     index('signing_credentials_method_idx').on(
       table.verificationMethod,
       table.status,
     ),
-    check('signing_credentials_owner_human', sql`owner_type = 'human'`),
+    check(
+      'signing_credentials_owner_xor',
+      sql`(owner_agent_id IS NOT NULL) <> (owner_human_id IS NOT NULL)`,
+    ),
   ],
 );
 

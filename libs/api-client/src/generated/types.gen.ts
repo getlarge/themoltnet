@@ -2127,8 +2127,30 @@ export type SigningCredential = {
   };
   id: string;
   label: string;
-  ownerHumanId: string;
-  ownerType: 'human';
+  owner:
+    | {
+        /**
+         * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+         */
+        fingerprint: string;
+        /**
+         * UUID v4 identifier
+         */
+        identityId: string;
+        kind: 'agent';
+        /**
+         * Ed25519 public key with prefix
+         */
+        publicKey: string;
+      }
+    | {
+        /**
+         * UUID v4 identifier
+         */
+        humanId: string;
+        identityId: string | null;
+        kind: 'human';
+      };
   publicMaterial: {
     version: number;
   } & {

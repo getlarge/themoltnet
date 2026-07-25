@@ -25155,13 +25155,13 @@ func (s *SigningCredential) Validate() error {
 		})
 	}
 	if err := func() error {
-		if err := s.OwnerType.Validate(); err != nil {
+		if err := s.Owner.Validate(); err != nil {
 			return err
 		}
 		return nil
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
-			Name:  "ownerType",
+			Name:  "owner",
 			Error: err,
 		})
 	}
@@ -25310,12 +25310,20 @@ func (s *SigningCredentialList) Validate() error {
 	return nil
 }
 
-func (s SigningCredentialOwnerType) Validate() error {
-	switch s {
-	case "human":
+func (s SigningCredentialOwner) Validate() error {
+	switch s.Type {
+	case AgentPrincipalSigningCredentialOwner:
+		if err := s.AgentPrincipal.Validate(); err != nil {
+			return err
+		}
+		return nil
+	case HumanPrincipalSigningCredentialOwner:
+		if err := s.HumanPrincipal.Validate(); err != nil {
+			return err
+		}
 		return nil
 	default:
-		return errors.Errorf("invalid value: %v", s)
+		return errors.Errorf("invalid type %q", s.Type)
 	}
 }
 

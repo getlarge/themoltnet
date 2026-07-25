@@ -33,7 +33,7 @@ const TEAM_ID = '660e8400-e29b-41d4-a716-446655440001';
 
 const credential: SigningCredential = {
   id: ID,
-  ownerType: 'human',
+  ownerAgentId: null,
   ownerHumanId: HUMAN_ID,
   teamId: TEAM_ID,
   verificationMethod: 'human-hardware-previewsign',
@@ -64,8 +64,7 @@ describe('createSigningCredentialRepository', () => {
     db.chain.returning.mockResolvedValueOnce([credential]);
 
     const result = await repository.create({
-      ownerType: 'human',
-      ownerHumanId: HUMAN_ID,
+      owner: { kind: 'human', id: HUMAN_ID },
       teamId: TEAM_ID,
       verificationMethod: 'human-hardware-previewsign',
       credentialType: 'test',
@@ -77,11 +76,40 @@ describe('createSigningCredentialRepository', () => {
     });
 
     expect(db.chain.values).toHaveBeenCalledWith(
-      expect.not.objectContaining({
-        privateKey: expect.anything(),
+      expect.objectContaining({
+        ownerAgentId: null,
+        ownerHumanId: HUMAN_ID,
       }),
     );
+    expect(db.chain.values).not.toHaveBeenCalledWith(
+      expect.objectContaining({ owner: expect.anything() }),
+    );
     expect(result).toEqual(credential);
+  });
+
+  it('maps an agent owner to the concrete agent FK', async () => {
+    db.chain.returning.mockResolvedValueOnce([
+      { ...credential, ownerAgentId: ID, ownerHumanId: null },
+    ]);
+
+    await repository.create({
+      owner: { kind: 'agent', id: ID },
+      teamId: TEAM_ID,
+      verificationMethod: 'human-hardware-previewsign',
+      credentialType: 'test',
+      algorithm: 'test',
+      publicMaterial: { version: 1, publicKey: 'public' },
+      enrollmentEvidence: { version: 1, proof: 'proof' },
+      label: 'Agent-owned test credential',
+      status: 'pending_approval',
+    });
+
+    expect(db.chain.values).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ownerAgentId: ID,
+        ownerHumanId: null,
+      }),
+    );
   });
 
   it('consumes an enrollment registration through a conditional update', async () => {

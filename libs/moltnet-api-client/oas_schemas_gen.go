@@ -45698,8 +45698,7 @@ type SigningCredential struct {
 	EnrollmentEvidence SigningCredentialEnrollmentEvidence `json:"enrollmentEvidence"`
 	ID                 uuid.UUID                           `json:"id"`
 	Label              string                              `json:"label"`
-	OwnerHumanId       uuid.UUID                           `json:"ownerHumanId"`
-	OwnerType          SigningCredentialOwnerType          `json:"ownerType"`
+	Owner              SigningCredentialOwner              `json:"owner"`
 	PublicMaterial     SigningCredentialPublicMaterial     `json:"publicMaterial"`
 	RevokedAt          NilDateTime                         `json:"revokedAt"`
 	Status             SigningCredentialStatus             `json:"status"`
@@ -45750,14 +45749,9 @@ func (s *SigningCredential) GetLabel() string {
 	return s.Label
 }
 
-// GetOwnerHumanId returns the value of OwnerHumanId.
-func (s *SigningCredential) GetOwnerHumanId() uuid.UUID {
-	return s.OwnerHumanId
-}
-
-// GetOwnerType returns the value of OwnerType.
-func (s *SigningCredential) GetOwnerType() SigningCredentialOwnerType {
-	return s.OwnerType
+// GetOwner returns the value of Owner.
+func (s *SigningCredential) GetOwner() SigningCredentialOwner {
+	return s.Owner
 }
 
 // GetPublicMaterial returns the value of PublicMaterial.
@@ -45835,14 +45829,9 @@ func (s *SigningCredential) SetLabel(val string) {
 	s.Label = val
 }
 
-// SetOwnerHumanId sets the value of OwnerHumanId.
-func (s *SigningCredential) SetOwnerHumanId(val uuid.UUID) {
-	s.OwnerHumanId = val
-}
-
-// SetOwnerType sets the value of OwnerType.
-func (s *SigningCredential) SetOwnerType(val SigningCredentialOwnerType) {
-	s.OwnerType = val
+// SetOwner sets the value of Owner.
+func (s *SigningCredential) SetOwner(val SigningCredentialOwner) {
+	s.Owner = val
 }
 
 // SetPublicMaterial sets the value of PublicMaterial.
@@ -45972,38 +45961,73 @@ func (s *SigningCredentialList) SetTotal(val float64) {
 
 func (*SigningCredentialList) listSigningCredentialsRes() {}
 
+// SigningCredentialOwner represents sum type.
+type SigningCredentialOwner struct {
+	// Type selects the active sum variant, switch on this field.
+	Type           SigningCredentialOwnerType
+	AgentPrincipal AgentPrincipal
+	HumanPrincipal HumanPrincipal
+}
+
+// SigningCredentialOwnerType is oneOf type of SigningCredentialOwner.
 type SigningCredentialOwnerType string
 
+// Possible values for SigningCredentialOwnerType.
 const (
-	SigningCredentialOwnerTypeHuman SigningCredentialOwnerType = "human"
+	AgentPrincipalSigningCredentialOwner SigningCredentialOwnerType = "agent"
+	HumanPrincipalSigningCredentialOwner SigningCredentialOwnerType = "human"
 )
 
-// AllValues returns all SigningCredentialOwnerType values.
-func (SigningCredentialOwnerType) AllValues() []SigningCredentialOwnerType {
-	return []SigningCredentialOwnerType{
-		SigningCredentialOwnerTypeHuman,
-	}
+// IsAgentPrincipal reports whether SigningCredentialOwner is AgentPrincipal.
+func (s SigningCredentialOwner) IsAgentPrincipal() bool {
+	return s.Type == AgentPrincipalSigningCredentialOwner
 }
 
-// MarshalText implements encoding.TextMarshaler.
-func (s SigningCredentialOwnerType) MarshalText() ([]byte, error) {
-	switch s {
-	case SigningCredentialOwnerTypeHuman:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
+// IsHumanPrincipal reports whether SigningCredentialOwner is HumanPrincipal.
+func (s SigningCredentialOwner) IsHumanPrincipal() bool {
+	return s.Type == HumanPrincipalSigningCredentialOwner
 }
 
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *SigningCredentialOwnerType) UnmarshalText(data []byte) error {
-	switch SigningCredentialOwnerType(data) {
-	case SigningCredentialOwnerTypeHuman:
-		*s = SigningCredentialOwnerTypeHuman
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
+// SetAgentPrincipal sets SigningCredentialOwner to AgentPrincipal.
+func (s *SigningCredentialOwner) SetAgentPrincipal(v AgentPrincipal) {
+	s.Type = AgentPrincipalSigningCredentialOwner
+	s.AgentPrincipal = v
+}
+
+// GetAgentPrincipal returns AgentPrincipal and true boolean if SigningCredentialOwner is AgentPrincipal.
+func (s SigningCredentialOwner) GetAgentPrincipal() (v AgentPrincipal, ok bool) {
+	if !s.IsAgentPrincipal() {
+		return v, false
 	}
+	return s.AgentPrincipal, true
+}
+
+// NewAgentPrincipalSigningCredentialOwner returns new SigningCredentialOwner from AgentPrincipal.
+func NewAgentPrincipalSigningCredentialOwner(v AgentPrincipal) SigningCredentialOwner {
+	var s SigningCredentialOwner
+	s.SetAgentPrincipal(v)
+	return s
+}
+
+// SetHumanPrincipal sets SigningCredentialOwner to HumanPrincipal.
+func (s *SigningCredentialOwner) SetHumanPrincipal(v HumanPrincipal) {
+	s.Type = HumanPrincipalSigningCredentialOwner
+	s.HumanPrincipal = v
+}
+
+// GetHumanPrincipal returns HumanPrincipal and true boolean if SigningCredentialOwner is HumanPrincipal.
+func (s SigningCredentialOwner) GetHumanPrincipal() (v HumanPrincipal, ok bool) {
+	if !s.IsHumanPrincipal() {
+		return v, false
+	}
+	return s.HumanPrincipal, true
+}
+
+// NewHumanPrincipalSigningCredentialOwner returns new SigningCredentialOwner from HumanPrincipal.
+func NewHumanPrincipalSigningCredentialOwner(v HumanPrincipal) SigningCredentialOwner {
+	var s SigningCredentialOwner
+	s.SetHumanPrincipal(v)
+	return s
 }
 
 // Merged schema.

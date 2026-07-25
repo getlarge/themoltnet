@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { KetoNamespace, requireAuth } from '@moltnet/auth';
+import type { PrincipalIdentity, SigningCredential } from '@moltnet/database';
 import {
   ProblemDetailsSchema,
   TeamHeaderRequiredSchema,
@@ -24,6 +25,10 @@ import {
   SigningCredentialSchema,
   SigningMethodValueSchema,
 } from '../schemas.js';
+import {
+  batchInflateRowsWithCreator,
+  inflateRowCreator,
+} from '../utils/auth-principal.js';
 import { requireCurrentTeamId } from '../utils/require-current-team-id.js';
 
 const ParamsSchema = Type.Object({
@@ -34,6 +39,48 @@ const VersionedJsonSchema = Type.Intersect([
   Type.Object({ version: Type.Integer({ minimum: 1 }) }),
   Type.Record(Type.String(), Type.Unknown()),
 ]);
+
+type SigningCredentialResponse = Omit<
+  SigningCredential,
+  'ownerAgentId' | 'ownerHumanId'
+> & {
+  owner: PrincipalIdentity;
+};
+
+async function signingCredentialToResponse(
+  credential: SigningCredential,
+  fastify: FastifyInstance,
+): Promise<SigningCredentialResponse> {
+  const { ownerAgentId, ownerHumanId, ...rest } = credential;
+  return {
+    ...rest,
+    owner: await inflateRowCreator(
+      {
+        creatorAgentId: ownerAgentId,
+        creatorHumanId: ownerHumanId,
+      },
+      fastify,
+    ),
+  };
+}
+
+async function signingCredentialsToResponse(
+  credentials: readonly SigningCredential[],
+  fastify: FastifyInstance,
+): Promise<SigningCredentialResponse[]> {
+  const rows = credentials.map(
+    ({ ownerAgentId, ownerHumanId, ...credential }) => ({
+      ...credential,
+      creatorAgentId: ownerAgentId,
+      creatorHumanId: ownerHumanId,
+    }),
+  );
+  const resolved = await batchInflateRowsWithCreator(rows, fastify);
+  return resolved.map(({ creator, ...credential }) => ({
+    ...credential,
+    owner: creator,
+  }));
+}
 
 function humanId(request: FastifyRequest): string {
   const auth = request.authContext;
@@ -246,8 +293,7 @@ export async function signingCredentialRoutes(fastify: FastifyInstance) {
               );
             }
             return fastify.signingCredentialRepository.create({
-              ownerType: 'human',
-              ownerHumanId,
+              owner: { kind: 'human', id: ownerHumanId },
               teamId,
               verificationMethod: registration.verificationMethod,
               credentialType: registration.credentialType,
@@ -263,7 +309,9 @@ export async function signingCredentialRoutes(fastify: FastifyInstance) {
           },
           { name: 'complete-signing-credential-registration' },
         );
-        return await reply.status(201).send(credential);
+        return await reply
+          .status(201)
+          .send(await signingCredentialToResponse(credential, fastify));
       } catch (error) {
         mapSigningError(error);
       }
@@ -315,7 +363,7 @@ export async function signingCredentialRoutes(fastify: FastifyInstance) {
         offset: request.query.offset,
       });
       return {
-        items,
+        items: await signingCredentialsToResponse(items, fastify),
         total,
         limit: request.query.limit ?? 20,
         offset: request.query.offset ?? 0,
@@ -388,7 +436,7 @@ export async function signingCredentialRoutes(fastify: FastifyInstance) {
             `Credential cannot transition to ${transition.to}`,
           );
         }
-        return credential;
+        return signingCredentialToResponse(credential, fastify);
       },
     );
   }
