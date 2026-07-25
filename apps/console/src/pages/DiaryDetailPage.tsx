@@ -330,6 +330,14 @@ export function DiaryDetailPage({ id }: { id: string }) {
                 onOpen={(entryId) =>
                   navigate(`/diaries/${id}/entries/${entryId}`)
                 }
+                onTagClick={(tag) =>
+                  set({
+                    ...state,
+                    tags: state.tags.includes(tag)
+                      ? state.tags
+                      : [...state.tags, tag],
+                  })
+                }
               />
             </div>
           ))}

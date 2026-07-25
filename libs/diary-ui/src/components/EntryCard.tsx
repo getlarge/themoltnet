@@ -22,9 +22,8 @@ export interface EntryCardProps {
   onOpen: (entryId: string) => void;
   /**
    * Optional tag-pivot. When provided, tags render as independent buttons that
-   * sit *beside* (not inside) the card's open action, so there is no nested
-   * interactive. Callers that don't want tag pivoting omit this and tags render
-   * as plain, non-interactive chips.
+   * sit *beside* (not inside) the open-entry action, so there is no nested
+   * interactive. Callers that omit this get plain, non-interactive chips.
    */
   onTagClick?: (tag: string) => void;
 }
@@ -45,58 +44,55 @@ export function EntryCard({
       padding="md"
       style={{ position: 'relative', height: '100%' }}
     >
-      {/* Primary action: a full-card overlay button. It is a *sibling* of the
-          tag buttons below, never their parent — so the whole card opens the
-          entry while tags remain independently focusable/clickable, with no
-          invalid nested-interactive. */}
-      <button
-        type="button"
-        onClick={() => onOpen(entry.id)}
-        aria-label={entry.title ? `Open entry: ${entry.title}` : 'Open entry'}
-        style={{
-          position: 'absolute',
-          inset: 0,
-          zIndex: 1,
-          width: '100%',
-          height: '100%',
-          margin: 0,
-          padding: 0,
-          border: 0,
-          background: 'transparent',
-          cursor: 'pointer',
-          borderRadius: 'inherit',
-        }}
-      />
       <Stack gap={3}>
-        <Stack
-          direction="row"
-          align="center"
-          justify="space-between"
-          gap={3}
-          wrap
+        {/* Open-entry action: wraps only the non-interactive header/title/body.
+            The tag buttons live *outside* this button as siblings, so there is
+            no invalid nested interactive and each tag receives its own click. */}
+        <button
+          type="button"
+          onClick={() => onOpen(entry.id)}
+          aria-label={entry.title ? `Open entry: ${entry.title}` : 'Open entry'}
+          style={{
+            display: 'block',
+            width: '100%',
+            margin: 0,
+            padding: 0,
+            border: 0,
+            background: 'transparent',
+            textAlign: 'left',
+            color: 'inherit',
+            font: 'inherit',
+            cursor: 'pointer',
+          }}
         >
-          <TypeBadge type={entry.entryType} />
-          <Text variant="caption" color="muted">
-            {formatRelativeTime(entry.createdAt)}
-          </Text>
-        </Stack>
-        {entry.title && <Text variant="h4">{entry.title}</Text>}
-        <Text color="muted" style={{ overflow: 'hidden', maxHeight: '6em' }}>
-          {entry.content}
-        </Text>
+          <Stack gap={3}>
+            <Stack
+              direction="row"
+              align="center"
+              justify="space-between"
+              gap={3}
+              wrap
+            >
+              <TypeBadge type={entry.entryType} />
+              <Text variant="caption" color="muted">
+                {formatRelativeTime(entry.createdAt)}
+              </Text>
+            </Stack>
+            {entry.title && <Text variant="h4">{entry.title}</Text>}
+            <Text
+              color="muted"
+              style={{ overflow: 'hidden', maxHeight: '6em' }}
+            >
+              {entry.content}
+            </Text>
+          </Stack>
+        </button>
         {entry.tags && entry.tags.length > 0 && (
           <Stack
             direction="row"
             gap={2}
             wrap
-            // Raise tags above the overlay action so they receive their own
-            // clicks; the rest of the card falls through to "open entry".
-            style={{
-              minWidth: 0,
-              overflow: 'hidden',
-              position: 'relative',
-              zIndex: 2,
-            }}
+            style={{ minWidth: 0, overflow: 'hidden' }}
           >
             {entry.tags.slice(0, 6).map((tag) => (
               <TagChip
