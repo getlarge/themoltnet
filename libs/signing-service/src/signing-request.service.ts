@@ -6,6 +6,7 @@ import {
   assertSigningVerifierRegistered,
   isSigningReceiptReplay,
   prepareSigningClaim,
+  SigningReceiptInvalidError,
   SigningResultTimeoutError,
   signingWorkflows,
   toSigningMethodReceipt,
@@ -441,6 +442,16 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
         return completed;
       } catch (error) {
         if (error instanceof SigningServiceError) throw error;
+        if (
+          error instanceof SigningReceiptInvalidError &&
+          error.reason === 'expired'
+        ) {
+          throw new SigningServiceError(
+            'signing_request_expired',
+            error.message,
+            { cause: error },
+          );
+        }
         mapWorkflowError(error);
       }
     },

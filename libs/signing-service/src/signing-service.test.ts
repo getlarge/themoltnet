@@ -9,6 +9,7 @@ import {
   PREVIEW_SIGN_RECEIPT_VERSION,
   type PreviewSignPublicMaterialV1,
   registerSigningMethodDriver,
+  SigningReceiptInvalidError,
 } from '@moltnet/signing-workflows';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -813,6 +814,56 @@ describe('createSigningService', () => {
 
     expect(transactionRunner.runInTransaction).toHaveBeenCalledTimes(1);
     expect(completeClaim).toHaveBeenCalledTimes(1);
+  });
+
+  it('maps an expired method receipt to signing_request_expired', async () => {
+    const claimed = {
+      ...pendingRequest(),
+      status: 'claimed' as const,
+      claimedByHumanId: human.humanId,
+      signingCredentialId: CREDENTIAL_ID,
+      methodState: {
+        verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+        value: { persisted: 'driver-state' },
+      },
+    };
+    _resetSigningWorkflowsForTesting();
+    registerSigningMethodDriver(VERIFICATION_METHOD.HumanHardwarePreviewSign, {
+      verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+      validatePublicMaterial: vi.fn(),
+      prepareClaim: vi.fn(),
+      verify: vi.fn().mockResolvedValue(false),
+      verifyReceipt: vi.fn().mockRejectedValue(
+        new SigningReceiptInvalidError('previewSign challenge has expired', {
+          reason: 'expired',
+        }),
+      ),
+    });
+    const service = createSigningService(
+      createDeps({
+        signingRequestRepository: {
+          findById: vi.fn().mockResolvedValue(claimed),
+        } as never,
+        signingCredentialRepository: {
+          findActiveCompatible: vi.fn().mockResolvedValue(activeCredential()),
+        } as never,
+      }),
+    );
+
+    await expect(
+      service.requests.complete({
+        actor: human,
+        teamId: TEAM_ID,
+        requestId: REQUEST_ID,
+        receipt: {
+          verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+          value: {
+            version: PREVIEW_SIGN_RECEIPT_VERSION,
+            signature: SIGNATURE,
+          },
+        },
+      }),
+    ).rejects.toMatchObject({ code: 'signing_request_expired' });
   });
 
   it('refuses completion after credential revocation', async () => {
