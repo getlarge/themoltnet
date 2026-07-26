@@ -131,6 +131,16 @@ export function OverviewPage() {
     (p) => p.status === 'complete',
   );
 
+  // Operational truthfulness: keep "couldn't load" distinct from "zero", and
+  // "loaded page" distinct from "team total".
+  const tasksUnavailable = hasProjectTeam && tasksQuery.isError;
+  const membershipUnavailable = hasProjectTeam && teamQuery.isError;
+  const loadedTaskCount = tasksQuery.data?.items?.length ?? 0;
+  const taskTotal = tasksQuery.data?.total ?? loadedTaskCount;
+  // The lane counts are derived from the loaded page (limit 50); flag when the
+  // team has more so the tiles aren't read as exact team-wide totals.
+  const countsArePartial = !tasksUnavailable && taskTotal > loadedTaskCount;
+
   return (
     <Stack gap={6}>
       <Stack gap={1}>
@@ -148,9 +158,7 @@ export function OverviewPage() {
       {/* Operational state — leads the page (was hidden in a disclosure). */}
       <Stack gap={3}>
         <Stack direction="row" justify="space-between" align="center" wrap>
-          <Text variant="overline" color="secondary">
-            Task activity
-          </Text>
+          <SectionHeading>Task activity</SectionHeading>
           <button
             type="button"
             onClick={() => navigate('/tasks')}
@@ -166,7 +174,30 @@ export function OverviewPage() {
             Task board →
           </button>
         </Stack>
-        {hasProjectTeam ? (
+        {!hasProjectTeam ? (
+          <Card variant="surface" padding="md">
+            <Text color="muted">
+              Task activity appears once a non-personal project team is running
+              a pilot. Choose or create one below.
+            </Text>
+          </Card>
+        ) : tasksUnavailable ? (
+          <Card variant="surface" padding="md">
+            <Stack direction="row" gap={3} align="center" wrap>
+              <Text style={{ color: theme.color.warning.DEFAULT }}>
+                Task activity couldn&apos;t be loaded — counts are unavailable,
+                not zero.
+              </Text>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => void tasksQuery.refetch()}
+              >
+                Retry
+              </Button>
+            </Stack>
+          </Card>
+        ) : (
           <div
             style={{
               display: 'grid',
@@ -178,46 +209,42 @@ export function OverviewPage() {
               count={briefing.queuedTaskCount}
               label="Queued"
               color={theme.color.info.DEFAULT}
-              onClick={() => navigate('/tasks')}
             />
             <TaskStatTile
               count={briefing.activeTaskCount}
               label="Active"
               color={theme.color.primary.DEFAULT}
-              onClick={() => navigate('/tasks')}
             />
             <TaskStatTile
               count={briefing.waitingTaskCount}
               label="Waiting"
               color={theme.color.warning.DEFAULT}
-              onClick={() => navigate('/tasks')}
             />
             <TaskStatTile
               count={briefing.completedTaskCount}
               label="Completed"
               color={theme.color.success.DEFAULT}
-              onClick={() => navigate('/tasks')}
             />
             <TaskStatTile
               count={briefing.failedTaskCount}
               label="Unsuccessful"
               color={theme.color.error.DEFAULT}
-              onClick={() => navigate('/tasks')}
             />
           </div>
-        ) : (
-          <Card variant="surface" padding="md">
-            <Text color="muted">
-              Task activity appears once a non-personal project team is running
-              a pilot. Choose or create one below.
-            </Text>
-          </Card>
+        )}
+        {countsArePartial && (
+          <Text variant="caption" color="muted">
+            Counts reflect the {loadedTaskCount} most recently loaded of{' '}
+            {taskTotal} tasks — open the task board for the full queue.
+          </Text>
         )}
         {hasProjectTeam && (
           <Text variant="caption" color="muted">
-            {briefing.agentMember
-              ? `Agent: ${briefing.agentMember.displayName} · ${briefing.agentMember.role}. Visible membership does not prove agent-daemon is running.`
-              : 'No agent in this team yet — queued work stays unclaimed until one joins.'}
+            {membershipUnavailable
+              ? "Team membership couldn't be loaded, so agent presence is unknown."
+              : briefing.agentMember
+                ? `Agent: ${briefing.agentMember.displayName} · ${briefing.agentMember.role}. Membership doesn't prove agent-daemon is running; a diary-writer grant can also authorize claims.`
+                : 'No agent is a member of this team. An agent can claim work through team membership or a diary-writer grant.'}
           </Text>
         )}
       </Stack>
@@ -235,9 +262,7 @@ export function OverviewPage() {
         </Card>
       ) : (
         <Stack gap={3}>
-          <Text variant="overline" color="secondary">
-            Pilot setup
-          </Text>
+          <SectionHeading>Pilot setup</SectionHeading>
           <Stack gap={2}>
             {briefing.phases.map((phase) => (
               <PhaseRow key={phase.id} phase={phase} onNavigate={navigate} />
@@ -267,49 +292,57 @@ export function OverviewPage() {
   );
 }
 
+/** A small uppercase section label that is also a real `<h2>`, so the page has
+ *  an h1 → h2 structure and the tile counts don't have to be headings. */
+function SectionHeading({ children }: { children: React.ReactNode }) {
+  const theme = useTheme();
+  return (
+    <h2
+      style={{
+        margin: 0,
+        fontSize: theme.font.size.xs,
+        fontWeight: theme.font.weight.medium,
+        letterSpacing: '0.08em',
+        textTransform: 'uppercase',
+        color: theme.color.text.secondary,
+      }}
+    >
+      {children}
+    </h2>
+  );
+}
+
 function TaskStatTile({
   count,
   label,
   color,
-  onClick,
 }: {
   count: number;
   label: string;
   color: string;
-  onClick: () => void;
 }) {
   const theme = useTheme();
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={`${count} ${label} — open the task board`}
-      style={{
-        display: 'block',
-        width: '100%',
-        textAlign: 'left',
-        cursor: 'pointer',
-        background: theme.color.bg.surface,
-        border: `1px solid ${theme.color.border.DEFAULT}`,
-        borderRadius: theme.radius.md,
-        padding: theme.spacing[4],
-        font: 'inherit',
-        color: 'inherit',
-        transition: `border-color ${theme.transition.fast}`,
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = theme.color.border.hover;
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = theme.color.border.DEFAULT;
-      }}
+    <Card
+      variant="surface"
+      padding="md"
+      data-testid={`task-tile-${label.toLowerCase()}`}
     >
       <Stack gap={1}>
-        {/* Value in ink; the small colored dot beside the label carries the
-            lane identity, so state never reads by color alone. */}
-        <Text variant="h2" style={{ lineHeight: theme.font.lineHeight.tight }}>
+        {/* The count is data, not a heading — otherwise screen-reader heading
+            navigation is a list of contextless numbers. The colored dot beside
+            the label carries lane identity, so state never reads by color
+            alone. */}
+        <span
+          style={{
+            fontSize: theme.font.size['3xl'],
+            fontWeight: theme.font.weight.semibold,
+            lineHeight: theme.font.lineHeight.tight,
+            color: theme.color.text.DEFAULT,
+          }}
+        >
           {count}
-        </Text>
+        </span>
         <Stack direction="row" gap={1.5} align="center">
           <span
             aria-hidden="true"
@@ -326,7 +359,7 @@ function TaskStatTile({
           </Text>
         </Stack>
       </Stack>
-    </button>
+    </Card>
   );
 }
 
@@ -376,15 +409,28 @@ function PhaseRow({
           </Text>
         </Stack>
         {external ? (
+          // A single link-capable element (Button has no href), styled to
+          // match the secondary button — no Button-inside-anchor nesting.
           <a
             href={phase.action.href}
             target="_blank"
             rel="noopener noreferrer"
-            style={{ flexShrink: 0 }}
+            style={{
+              flexShrink: 0,
+              display: 'inline-flex',
+              alignItems: 'center',
+              minHeight: '2.75rem',
+              padding: `0 ${theme.spacing[4]}`,
+              borderRadius: theme.radius.md,
+              border: `1px solid ${theme.color.border.DEFAULT}`,
+              color: theme.color.primary.DEFAULT,
+              fontSize: theme.font.size.sm,
+              fontWeight: theme.font.weight.medium,
+              textDecoration: 'none',
+              whiteSpace: 'nowrap',
+            }}
           >
-            <Button variant="secondary" size="sm">
-              {phase.action.label}
-            </Button>
+            {phase.action.label}
           </a>
         ) : (
           <Button
