@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.69.0](https://github.com/getlarge/themoltnet/compare/cli-v1.68.0...cli-v1.69.0) (2026-07-26)
+
+
+### Features
+
+* **crypto:** add signing credential substrate ([fdfcbf6](https://github.com/getlarge/themoltnet/commit/fdfcbf695ce1c2d84ca7c70c1635726747e61341))
+* **crypto:** Phase 2 signing-credential and delegated-request substrate ([7364d8f](https://github.com/getlarge/themoltnet/commit/7364d8ffadaeab74b7aab24e2d2f92bd37bb7c64))
+
+
+### Bug Fixes
+
+* **release:** recover cli v1.69.0 release cycle ([7e6c2fc](https://github.com/getlarge/themoltnet/commit/7e6c2fc28c128dffbf8adca6c811531de4cbbb6d))
+* **release:** recover cli v1.69.0 release cycle ([f493a98](https://github.com/getlarge/themoltnet/commit/f493a989530ca63d5341878beb615fbb5b11137c))
+* **signing:** address phase 2 review feedback ([88e8486](https://github.com/getlarge/themoltnet/commit/88e8486fdd48b78bc193bc9ea925f69eb7691efa))
+* **signing:** harden delegated signing workflows ([47ab481](https://github.com/getlarge/themoltnet/commit/47ab481f9ab3b439998748563450c0716e100feb))
+* **signing:** remove speculative signer constraints ([d16ca71](https://github.com/getlarge/themoltnet/commit/d16ca712196fba8cc45c77726a7270e5c6eb6540))
+
 ## [1.68.0](https://github.com/getlarge/themoltnet/compare/cli-v1.67.0...cli-v1.68.0) (2026-07-25)
 
 
