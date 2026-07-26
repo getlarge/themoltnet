@@ -40,12 +40,6 @@ describe('Nx release configuration', () => {
     ).toBeGreaterThan(1);
   });
 
-  it('supports a one-time first release to establish Nx tag history', () => {
-    expect(workflow).toContain('first-release:');
-    expect(workflow).toContain('RELEASE_ARGS+=(--first-release)');
-    expect(workflow).toContain('PUBLISH_ARGS+=(--first-release)');
-  });
-
   it('propagates dry-run mode to Docker release actions in CI', () => {
     expect(workflow).toContain(
       '- if: ${{ !inputs.dry-run }}\n        uses: docker/setup-buildx-action@v3',

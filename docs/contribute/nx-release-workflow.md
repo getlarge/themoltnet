@@ -36,20 +36,6 @@ Configured in `nx.json` under `release.groups`:
 - `docker-images`: independent Docker images built from Nx projects with
   Dockerfiles.
 
-The independent npm and Docker groups use `{projectName}-v{version}`. Scoped
-project names are interpolated literally, so their Nx tags differ from the
-historical unscoped Release Please tags. This is an intentional migration
-boundary rather than a reason to maintain one release group per project.
-
-For the first Nx production release, dispatch the workflow with
-`first-release: true`. Nx then falls back to each manifest version where the new
-tag pattern has no match and creates the first tags in the Nx namespace. Review
-that reconciliation release carefully: it may contain catch-up bumps because
-there is no prior matching Nx tag. After it succeeds, leave `first-release`
-disabled; Nx resolves all later versions from the tags created by that run.
-Historical Release Please tags remain valid history but are not inputs to the
-steady-state Nx configuration.
-
 Use groups when invoking release commands. Avoid hand-ordering projects; Nx
 should derive project ordering and dependent updates.
 
