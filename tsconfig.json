@@ -123,6 +123,9 @@
       "path": "libs/observability"
     },
     {
+      "path": "libs/orchestration"
+    },
+    {
       "path": "libs/pi-extension"
     },
     {

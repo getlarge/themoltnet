@@ -1,0 +1,36 @@
+{
+  "name": "@moltnet/orchestration",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Durable lifecycle-orchestration engine for MoltNet tasks — WorkflowContext seam (inline or Absurd), task await engine, parallel fan-out, and claimCondition joins.",
+  "license": "AGPL-3.0-only",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    },
+    "./testing": {
+      "import": "./src/testing.ts",
+      "types": "./src/testing.ts"
+    }
+  },
+  "scripts": {},
+  "dependencies": {
+    "@moltnet/tasks": "workspace:*",
+    "@themoltnet/sdk": "workspace:*",
+    "absurd-sdk": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "nx": {
+    "tags": [
+      "type:feature",
+      "scope:agent",
+      "platform:server"
+    ]
+  }
+}
