@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.125.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.124.0...sdk-v0.125.0) (2026-07-26)
+
+
+### Features
+
+* **crypto:** add signing credential substrate ([fdfcbf6](https://github.com/getlarge/themoltnet/commit/fdfcbf695ce1c2d84ca7c70c1635726747e61341))
+* **crypto:** Phase 2 signing-credential and delegated-request substrate ([7364d8f](https://github.com/getlarge/themoltnet/commit/7364d8ffadaeab74b7aab24e2d2f92bd37bb7c64))
+
+
+### Bug Fixes
+
+* **signing:** address phase 2 review feedback ([88e8486](https://github.com/getlarge/themoltnet/commit/88e8486fdd48b78bc193bc9ea925f69eb7691efa))
+
 ## [0.124.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.123.0...sdk-v0.124.0) (2026-07-25)
 
 
