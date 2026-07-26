@@ -52,6 +52,22 @@ describe('runtime-profile context recipe catalogue', () => {
     }
   });
 
+  it('returns caller-owned clones that cannot mutate the catalogue', () => {
+    const recipeId = 'run-eval-direct@v1';
+    const first = resolveRuntimeProfileContextRecipe(recipeId);
+    first[0].content = 'mutated by consumer';
+    const second = resolveRuntimeProfileContextRecipe(recipeId);
+    expect(second[0].content).not.toBe('mutated by consumer');
+  });
+
+  it('exposes frozen catalogue data', () => {
+    expect(Object.isFrozen(RUNTIME_PROFILE_CONTEXT_CATALOGUE)).toBe(true);
+    expect(Object.isFrozen(RUNTIME_PROFILE_CONTEXT_CATALOGUE.fragments)).toBe(
+      true,
+    );
+    expect(Object.isFrozen(runtimeProfileContextRecipeIds)).toBe(true);
+  });
+
   it('throws on an unknown recipe id', () => {
     expect(() =>
       resolveRuntimeProfileContextRecipe('does-not-exist@v9'),

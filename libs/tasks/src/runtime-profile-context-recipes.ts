@@ -7,15 +7,18 @@
  * one copies its fragments into the profile's `context` array and nothing else,
  * so the saved profile is indistinguishable from one an operator typed by hand.
  *
- * This is the single source of truth shared by the console (via `@themoltnet/sdk`)
- * and the docs. Fragment `content` is validated against the same {@link ContextRef}
- * schema profiles use — see runtime-profile-context-recipes.test.ts.
+ * This is the single source of truth shared by the console and the docs, both of
+ * which consume it from the browser-safe `@moltnet/tasks/context-recipes` subpath.
+ * Fragment `content` is validated against the same {@link ContextRef} schema
+ * profiles use — see runtime-profile-context-recipes.test.ts.
  */
 import type { ContextRef } from './context.js';
 
-// Re-exported so browser consumers (docs, console) can import the entry type
-// from this lean subpath without pulling the full @moltnet/tasks barrel.
+// Re-exported so browser consumers (docs, console) can import the entry type and
+// the content-length bound from this lean subpath without pulling the full
+// @moltnet/tasks barrel (which carries server task schemas).
 export type { ContextRef } from './context.js';
+export { CONTEXT_REF_MAX_CONTENT_LENGTH } from './context.js';
 
 export interface RuntimeProfileContextRecipe {
   /** One-line operator-facing summary of what the recipe installs. */
@@ -94,14 +97,30 @@ export const RUNTIME_PROFILE_CONTEXT_CATALOGUE: RuntimeProfileContextCatalogue =
     },
   };
 
+// The catalogue is a process-wide singleton. Deep-freeze it so a consumer cannot
+// mutate fragment/recipe state and change later resolutions; the resolver also
+// hands back cloned entries (below) so applied context is always caller-owned.
+function deepFreeze<T>(value: T): T {
+  if (value && typeof value === 'object') {
+    for (const key of Object.keys(value as Record<string, unknown>)) {
+      deepFreeze((value as Record<string, unknown>)[key]);
+    }
+    Object.freeze(value);
+  }
+  return value;
+}
+deepFreeze(RUNTIME_PROFILE_CONTEXT_CATALOGUE);
+
 /** Recipe ids (`<name>@v<N>`) available to apply, in catalogue order. */
-export const runtimeProfileContextRecipeIds = Object.keys(
-  RUNTIME_PROFILE_CONTEXT_CATALOGUE.recipes,
+export const runtimeProfileContextRecipeIds: readonly string[] = Object.freeze(
+  Object.keys(RUNTIME_PROFILE_CONTEXT_CATALOGUE.recipes),
 );
 
 /**
  * Resolve a recipe id into the ordered {@link ContextRef} entries it installs.
- * Throws if the recipe id or any referenced fragment is unknown.
+ * Returns fresh, caller-owned copies so applying a recipe cannot alias — let
+ * alone mutate — the shared catalogue. Throws if the recipe id or any referenced
+ * fragment is unknown.
  */
 export function resolveRuntimeProfileContextRecipe(
   recipeId: string,
@@ -117,7 +136,7 @@ export function resolveRuntimeProfileContextRecipe(
         `Runtime-profile context recipe ${recipeId} references missing fragment ${fragmentId}`,
       );
     }
-    return fragment;
+    return { ...fragment };
   });
 }
 

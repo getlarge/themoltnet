@@ -18,11 +18,10 @@
  *   pnpm exec tsx tools/db/backfill-runtime-profile-standard-engineering-context.ts
  */
 
-import { readFile } from 'node:fs/promises';
-
 import { config } from '@dotenvx/dotenvx';
 import { computeJsonCid } from '@moltnet/crypto-service';
 import { createDatabase, runtimeProfiles } from '@moltnet/database';
+import { resolveRuntimeProfileContextRecipe } from '@moltnet/tasks';
 import { sql } from 'drizzle-orm';
 
 const args = process.argv.slice(2);
@@ -34,20 +33,11 @@ const proxyPort =
 
 const STANDARD_ENGINEERING_SLUG = 'standard-engineering-v1';
 const STANDARD_ENGINEERING_RECIPE = 'standard-engineering@v1';
-const catalogueUrl = new URL(
-  '../../docs/.vitepress/theme/data/runtime-profile-contexts.json',
-  import.meta.url,
-);
 
 type ContextEntry = {
   slug: string;
   binding: 'skill' | 'context_inline' | 'prompt_prefix' | 'user_inline';
   content: string;
-};
-
-type Catalogue = {
-  fragments: Record<string, ContextEntry>;
-  recipes: Record<string, { fragments: string[] }>;
 };
 
 function resolveUrl(): string {
@@ -76,19 +66,14 @@ function resolveUrl(): string {
   return url.toString();
 }
 
-async function loadStandardEngineeringContext(): Promise<ContextEntry> {
-  const catalogue = JSON.parse(
-    await readFile(catalogueUrl, 'utf8'),
-  ) as Catalogue;
-  const recipe = catalogue.recipes[STANDARD_ENGINEERING_RECIPE];
-  if (!recipe) {
-    throw new Error(`Missing ${STANDARD_ENGINEERING_RECIPE} recipe`);
-  }
-  const fragments = recipe.fragments.map((slug) => {
-    const fragment = catalogue.fragments[slug];
-    if (!fragment) throw new Error(`Missing recipe fragment: ${slug}`);
+function loadStandardEngineeringContext(): ContextEntry {
+  const fragments = resolveRuntimeProfileContextRecipe(
+    STANDARD_ENGINEERING_RECIPE,
+  ).map((fragment) => {
     if (fragment.binding !== 'prompt_prefix') {
-      throw new Error(`Recipe fragment ${slug} must use prompt_prefix`);
+      throw new Error(
+        `Recipe fragment ${fragment.slug} must use prompt_prefix`,
+      );
     }
     return fragment.content;
   });
@@ -152,7 +137,7 @@ async function backfill(): Promise<void> {
   const { db, pool } = createDatabase(resolveUrl());
   try {
     const profiles = await db.select().from(runtimeProfiles);
-    const standardContext = await loadStandardEngineeringContext();
+    const standardContext = loadStandardEngineeringContext();
     const candidates: Array<typeof runtimeProfiles.$inferSelect> = [];
 
     for (const profile of profiles) {

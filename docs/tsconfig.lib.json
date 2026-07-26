@@ -28,6 +28,9 @@
       "path": "../libs/design-system/tsconfig.lib.json"
     },
     {
+      "path": "../libs/tasks/tsconfig.lib.json"
+    },
+    {
       "path": "../libs/sdk/tsconfig.lib.json"
     },
     {
