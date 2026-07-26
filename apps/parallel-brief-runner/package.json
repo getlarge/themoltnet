@@ -6,6 +6,12 @@
   "description": "Minimal example lifecycle: fan out N freeform briefs in parallel and join them with a server-gated summary continuation.",
   "main": "./dist/main.js",
   "types": "./dist/main.d.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
   "bin": {
     "moltnet-parallel-brief-runner": "./dist/main.js"
   },

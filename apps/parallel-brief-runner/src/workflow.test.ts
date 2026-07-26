@@ -50,7 +50,11 @@ describe('runParallelBriefs', () => {
       })),
     });
     expect(summaryBody.references).toEqual(
-      briefIds.map((taskId) => ({ taskId, role: 'context' })),
+      briefIds.map((taskId) => ({
+        taskId,
+        outputCid: `cid-${taskId}`,
+        role: 'context',
+      })),
     );
   });
 

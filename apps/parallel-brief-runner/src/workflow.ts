@@ -67,11 +67,22 @@ function buildBriefTask(
   };
 }
 
+interface BriefRef {
+  taskId: string;
+  outputCid: string;
+}
+
 function buildSummaryTask(
   input: NormalizedInput,
-  briefTaskIds: string[],
+  briefRefs: BriefRef[],
   priorSummaries: string[],
 ): CreateBody {
+  const briefText = [
+    input.summaryBrief ?? 'Synthesize the completed briefs into one summary.',
+    '',
+    'Prior brief summaries:',
+    ...priorSummaries.map((summary, index) => `${index + 1}. ${summary}`),
+  ].join('\n');
   return {
     taskType: 'freeform',
     title: 'Summarize parallel briefs',
@@ -79,17 +90,21 @@ function buildSummaryTask(
     diaryId: input.diaryId,
     correlationId: input.correlationId,
     input: {
-      brief:
-        input.summaryBrief ??
-        'Synthesize the completed briefs into one summary.',
-      priorSummaries,
+      brief: briefText,
       expectedOutput:
         'Return the combined summary in the `summary` string field.',
     },
-    references: briefTaskIds.map((taskId) => ({ taskId, role: 'context' })),
+    // Link each brief task's accepted output as a context reference (a task
+    // output reference requires its outputCid). Summaries are also inlined into
+    // the brief text since freeform input is a closed schema.
+    references: briefRefs.map(({ taskId, outputCid }) => ({
+      taskId,
+      outputCid,
+      role: 'context',
+    })),
     // Server-enforced join: the summary task stays `waiting` until every brief
     // task is completed, then is promoted to `queued` by the task-service.
-    claimCondition: joinCondition(briefTaskIds),
+    claimCondition: joinCondition(briefRefs.map((ref) => ref.taskId)),
   };
 }
 
@@ -129,11 +144,16 @@ export async function runParallelBriefs(
 
   const briefTaskIds = created.map((task) => task.id);
   const priorSummaries = results.map((result) => result.state.summary);
+  const briefRefs = results.map((result) => {
+    const { outputCid } = result.attempt;
+    if (!outputCid) {
+      throw new Error(`brief task ${result.task.id} produced no outputCid`);
+    }
+    return { taskId: result.task.id, outputCid };
+  });
 
   const summaryTask = await ctx.step('summary.create', () =>
-    deps.tasks.createTask(
-      buildSummaryTask(input, briefTaskIds, priorSummaries),
-    ),
+    deps.tasks.createTask(buildSummaryTask(input, briefRefs, priorSummaries)),
   );
   const summary = await waitForAcceptedTask(summaryTask.id, {
     tasks: deps.tasks,

@@ -71,7 +71,8 @@
       "exclude": [
         "apps/rest-api-e2e/**/*",
         "apps/mcp-server-e2e/**/*",
-        "apps/agent-daemon-e2e/**/*"
+        "apps/agent-daemon-e2e/**/*",
+        "apps/parallel-brief-runner-e2e/**/*"
       ],
       "options": {
         "ciTargetName": "test-ci",
