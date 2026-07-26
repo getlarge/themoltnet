@@ -262,7 +262,7 @@ describe('signing credential routes', () => {
     );
   });
 
-  it('rejects nested private material before persistence', async () => {
+  it('rejects private material before Ajv can strip the unknown field', async () => {
     const response = await app.inject({
       method: 'POST',
       url: `/crypto/signing-credentials/registrations/${CREDENTIAL_ID}/complete`,
@@ -272,13 +272,10 @@ describe('signing credential routes', () => {
       },
       payload: {
         publicMaterial: {
-          version: 1,
-          nested: { privateKey: 'must-not-persist' },
+          ...publicMaterial,
+          privateKey: 'must-not-persist',
         },
-        receipt: {
-          verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
-          value: {},
-        },
+        receipt: previewSignReceipt,
       },
     });
 

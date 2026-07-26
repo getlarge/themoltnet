@@ -121,7 +121,9 @@ export async function signingCredentialRoutes(fastify: FastifyInstance) {
         auth: { credentialBindingScope: 'team' },
         rateLimit: fastify.rateLimitConfig?.signing,
       },
-      preHandler: async (request) => {
+      // Inspect the parsed body before Ajv's removeAdditional pass can erase a
+      // private-material field and turn a malicious payload into a valid one.
+      preValidation: (request) => {
         rejectPrivateRegistrationMaterial(request.body);
       },
       schema: {
@@ -163,7 +165,9 @@ export async function signingCredentialRoutes(fastify: FastifyInstance) {
         auth: { credentialBindingScope: 'team' },
         rateLimit: fastify.rateLimitConfig?.signing,
       },
-      preHandler: async (request) => {
+      // Keep this before schema validation for the same removeAdditional
+      // reason as the registration-begin route above.
+      preValidation: (request) => {
         rejectPrivateRegistrationMaterial(request.body);
       },
       schema: {
