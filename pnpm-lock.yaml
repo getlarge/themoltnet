@@ -678,6 +678,9 @@ importers:
       '@moltnet/task-ui':
         specifier: workspace:*
         version: link:../../libs/task-ui
+      '@moltnet/tasks':
+        specifier: workspace:*
+        version: link:../../libs/tasks
       '@ory/client-fetch':
         specifier: 'catalog:'
         version: 1.22.63
@@ -1287,6 +1290,10 @@ importers:
         version: 5.9.3
 
   docs:
+    dependencies:
+      '@moltnet/tasks':
+        specifier: workspace:*
+        version: link:../libs/tasks
     devDependencies:
       '@moltnet/api-client':
         specifier: workspace:*
@@ -15199,7 +15206,7 @@ snapshots:
       sirv: 3.0.2
       tinyglobby: 0.2.16
       tinyrainbow: 2.0.0
-      vitest: 3.2.4(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.4)(jiti@2.7.0)(jsdom@27.4.0(@noble/hashes@2.0.1))(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
+      vitest: 3.2.4(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.4)(jiti@2.4.2)(jsdom@25.0.1)(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
 
   '@vitest/utils@3.2.4':
     dependencies:

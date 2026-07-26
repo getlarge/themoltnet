@@ -28,5 +28,8 @@
   },
   "nx": {
     "projectType": "application"
+  },
+  "dependencies": {
+    "@moltnet/tasks": "workspace:*"
   }
 }

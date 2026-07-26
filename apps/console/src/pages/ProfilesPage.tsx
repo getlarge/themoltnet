@@ -12,6 +12,11 @@ import {
   listRuntimeModelsOptions,
   listRuntimeProfilesOptions,
 } from '@moltnet/api-client/query';
+import {
+  resolveRuntimeProfileContextRecipe,
+  runtimeProfileContextRecipeDescription,
+  runtimeProfileContextRecipeIds,
+} from '@moltnet/tasks/context-recipes';
 import { useQuery } from '@tanstack/react-query';
 import {
   Badge,
@@ -22,11 +27,6 @@ import {
   Tooltip,
   useTheme,
 } from '@themoltnet/design-system';
-import {
-  resolveRuntimeProfileContextRecipe,
-  runtimeProfileContextRecipeDescription,
-  runtimeProfileContextRecipeIds,
-} from '@themoltnet/sdk';
 import { type ChangeEvent, useEffect, useMemo, useState } from 'react';
 
 import { getApiClient } from '../api.js';

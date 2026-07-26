@@ -13,6 +13,10 @@
  */
 import type { ContextRef } from './context.js';
 
+// Re-exported so browser consumers (docs, console) can import the entry type
+// from this lean subpath without pulling the full @moltnet/tasks barrel.
+export type { ContextRef } from './context.js';
+
 export interface RuntimeProfileContextRecipe {
   /** One-line operator-facing summary of what the recipe installs. */
   description: string;

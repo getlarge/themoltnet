@@ -3,7 +3,7 @@ import {
   CONTEXT_REF_MAX_CONTENT_LENGTH,
   type ContextBinding,
   RUNTIME_PROFILE_CONTEXT_CATALOGUE,
-} from '@themoltnet/sdk';
+} from '@moltnet/tasks';
 
 // The catalogue is owned by @moltnet/tasks (validated there against the
 // ContextRef TypeBox schema). This guard adds the docs-facing invariants: the
