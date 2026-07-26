@@ -1,6 +1,6 @@
 {
   "name": "@themoltnet/yubikey-preview-sign",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "description": "Experimental YubiKey previewSign enrollment, ARKG derivation, signing, and offline verification",
   "license": "MIT",

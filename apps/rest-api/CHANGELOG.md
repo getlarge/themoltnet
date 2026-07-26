@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.34.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.33.0...rest-api-v0.34.0) (2026-07-26)
+
+
+### Features
+
+* **signing:** add production previewSign server method ([ce991eb](https://github.com/getlarge/themoltnet/commit/ce991eb9d8b80f9ad1b92a85e1906ca0c817f5bf))
+* **signing:** add production previewSign server method ([582e80c](https://github.com/getlarge/themoltnet/commit/582e80ca37d3120eea701d0814cbca728ad4cefd))
+
+
+### Bug Fixes
+
+* **signing:** address previewSign security review ([a18e2cf](https://github.com/getlarge/themoltnet/commit/a18e2cfc8cae5ba3e4a3885e25ade8a32c1198d9))
+* **signing:** complete registration prevalidation hooks ([32f9131](https://github.com/getlarge/themoltnet/commit/32f913183fe3c13347395dbae51cab4d7c30c8cb))
+* **signing:** harden previewSign completion ([bf8a371](https://github.com/getlarge/themoltnet/commit/bf8a3710304bbb39ce7785d813f9689c6676a52c))
+* **signing:** reject private enrollment material before validation ([caf369a](https://github.com/getlarge/themoltnet/commit/caf369acfdedd2733b09648bb2d3f52b2fd966ae))
+
 ## [0.33.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.32.0...rest-api-v0.33.0) (2026-07-26)
 
 
