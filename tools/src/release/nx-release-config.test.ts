@@ -13,73 +13,37 @@ const workflow = readFileSync(
   'utf8',
 );
 
-const npmReleaseGroups = {
-  'agent-daemon': '@themoltnet/agent-daemon',
-  'agent-runtime': '@themoltnet/agent-runtime',
-  ctap: '@themoltnet/ctap',
-  'design-system': '@themoltnet/design-system',
-  'github-agent': '@themoltnet/github-agent',
-  legreffier: '@themoltnet/legreffier',
-  'node-red-contrib-core': '@themoltnet/node-red-contrib-core',
-  'node-red-theme': '@themoltnet/node-red-theme',
-  'pi-extension': '@themoltnet/pi-extension',
-  sdk: '@themoltnet/sdk',
-  'yubikey-preview-sign': '@themoltnet/yubikey-preview-sign',
-};
-
-const dockerReleaseGroups = {
-  console: '@moltnet/console',
-  'db-migrate': '@moltnet/database',
-  landing: '@moltnet/landing',
-  'mcp-host': '@moltnet/mcp-host',
-  'mcp-server': '@moltnet/mcp-server',
-  'rest-api': '@moltnet/rest-api',
-};
-
 describe('Nx release configuration', () => {
-  it('preserves the existing public npm tag prefixes', () => {
-    for (const [groupName, projectName] of Object.entries(npmReleaseGroups)) {
-      expect(nxConfig.release.groups[groupName]).toMatchObject({
-        projects: [projectName],
-        projectsRelationship: 'independent',
-        releaseTag: {
-          pattern: '{releaseGroupName}-v{version}',
-        },
-      });
-    }
+  it('keeps independent projects in stable artifact-type groups', () => {
+    expect(nxConfig.release.groups['npm-packages']).toMatchObject({
+      projectsRelationship: 'independent',
+      releaseTag: {
+        pattern: '{projectName}-v{version}',
+      },
+    });
+
+    expect(nxConfig.release.groups['docker-images']).toMatchObject({
+      docker: {
+        groupPreVersionCommand: 'node tools/release/docker-preversion.mjs',
+      },
+      projectsRelationship: 'independent',
+      releaseTag: {
+        pattern: '{projectName}-v{version}',
+      },
+    });
+
+    expect(
+      nxConfig.release.groups['npm-packages'].projects.length,
+    ).toBeGreaterThan(1);
+    expect(
+      nxConfig.release.groups['docker-images'].projects.length,
+    ).toBeGreaterThan(1);
   });
 
-  it('maps every Docker tag prefix to one explicit project build', () => {
-    for (const [groupName, projectName] of Object.entries(
-      dockerReleaseGroups,
-    )) {
-      expect(nxConfig.release.groups[groupName]).toMatchObject({
-        docker: {
-          groupPreVersionCommand: `node tools/release/docker-preversion.mjs --projects=${projectName}`,
-        },
-        projects: [projectName],
-        projectsRelationship: 'independent',
-        releaseTag: {
-          pattern: '{releaseGroupName}-v{version}',
-        },
-      });
-    }
-  });
-
-  it('does not derive public tags from scoped project names', () => {
-    const scopedGroups = [
-      ...Object.keys(npmReleaseGroups),
-      ...Object.keys(dockerReleaseGroups),
-    ];
-
-    for (const groupName of scopedGroups) {
-      expect(
-        nxConfig.release.groups[groupName].releaseTag.pattern,
-      ).not.toContain('{projectName}');
-    }
-
-    expect(nxConfig.release.groups['npm-packages']).toBeUndefined();
-    expect(nxConfig.release.groups['docker-images']).toBeUndefined();
+  it('supports a one-time first release to establish Nx tag history', () => {
+    expect(workflow).toContain('first-release:');
+    expect(workflow).toContain('RELEASE_ARGS+=(--first-release)');
+    expect(workflow).toContain('PUBLISH_ARGS+=(--first-release)');
   });
 
   it('propagates dry-run mode to Docker release actions in CI', () => {
@@ -101,7 +65,7 @@ describe('Nx release configuration', () => {
 
     const result = spawnSync(
       process.execPath,
-      ['tools/release/docker-preversion.mjs', '--projects=@moltnet/rest-api'],
+      ['tools/release/docker-preversion.mjs'],
       {
         cwd: workspaceRoot,
         encoding: 'utf8',
@@ -112,7 +76,7 @@ describe('Nx release configuration', () => {
     expect(result.status).toBe(0);
     expect(result.stderr).toBe('');
     expect(result.stdout).toBe(
-      'Skipping Docker pre-version build for @moltnet/rest-api during nx release dry-run.\n',
+      'Skipping Docker pre-version build during nx release dry-run.\n',
     );
   });
 });

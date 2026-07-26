@@ -181,20 +181,6 @@
       "commitMessage": "chore(release): publish {version} [skip ci]"
     },
     "groups": {
-      "agent-daemon": {
-        "projects": ["@themoltnet/agent-daemon"],
-        "projectsRelationship": "independent",
-        "releaseTag": {
-          "pattern": "{releaseGroupName}-v{version}"
-        }
-      },
-      "agent-runtime": {
-        "projects": ["@themoltnet/agent-runtime"],
-        "projectsRelationship": "independent",
-        "releaseTag": {
-          "pattern": "{releaseGroupName}-v{version}"
-        }
-      },
       "cli": {
         "projects": [
           "moltnet-cli",
@@ -211,38 +197,21 @@
           "pattern": "cli-v{version}"
         }
       },
-      "console": {
+      "docker-images": {
         "docker": {
-          "groupPreVersionCommand": "node tools/release/docker-preversion.mjs --projects=@moltnet/console"
+          "groupPreVersionCommand": "node tools/release/docker-preversion.mjs"
         },
-        "projects": ["@moltnet/console"],
+        "projects": [
+          "@moltnet/console",
+          "@moltnet/database",
+          "@moltnet/landing",
+          "@moltnet/mcp-host",
+          "@moltnet/mcp-server",
+          "@moltnet/rest-api"
+        ],
         "projectsRelationship": "independent",
         "releaseTag": {
-          "pattern": "{releaseGroupName}-v{version}"
-        }
-      },
-      "ctap": {
-        "projects": ["@themoltnet/ctap"],
-        "projectsRelationship": "independent",
-        "releaseTag": {
-          "pattern": "{releaseGroupName}-v{version}"
-        }
-      },
-      "db-migrate": {
-        "docker": {
-          "groupPreVersionCommand": "node tools/release/docker-preversion.mjs --projects=@moltnet/database"
-        },
-        "projects": ["@moltnet/database"],
-        "projectsRelationship": "independent",
-        "releaseTag": {
-          "pattern": "{releaseGroupName}-v{version}"
-        }
-      },
-      "design-system": {
-        "projects": ["@themoltnet/design-system"],
-        "projectsRelationship": "independent",
-        "releaseTag": {
-          "pattern": "{releaseGroupName}-v{version}"
+          "pattern": "{projectName}-v{version}"
         }
       },
       "github-actions": {
@@ -250,13 +219,6 @@
         "projectsRelationship": "independent",
         "releaseTag": {
           "pattern": "agent-daemon-action-v{version}"
-        }
-      },
-      "github-agent": {
-        "projects": ["@themoltnet/github-agent"],
-        "projectsRelationship": "independent",
-        "releaseTag": {
-          "pattern": "{releaseGroupName}-v{version}"
         }
       },
       "go-modules": {
@@ -270,86 +232,23 @@
           "versionActions": "./tools/src/release/go-version-actions.ts"
         }
       },
-      "landing": {
-        "docker": {
-          "groupPreVersionCommand": "node tools/release/docker-preversion.mjs --projects=@moltnet/landing"
-        },
-        "projects": ["@moltnet/landing"],
+      "npm-packages": {
+        "projects": [
+          "@themoltnet/agent-daemon",
+          "@themoltnet/agent-runtime",
+          "@themoltnet/ctap",
+          "@themoltnet/design-system",
+          "@themoltnet/github-agent",
+          "@themoltnet/legreffier",
+          "@themoltnet/node-red-contrib-core",
+          "@themoltnet/node-red-theme",
+          "@themoltnet/pi-extension",
+          "@themoltnet/sdk",
+          "@themoltnet/yubikey-preview-sign"
+        ],
         "projectsRelationship": "independent",
         "releaseTag": {
-          "pattern": "{releaseGroupName}-v{version}"
-        }
-      },
-      "legreffier": {
-        "projects": ["@themoltnet/legreffier"],
-        "projectsRelationship": "independent",
-        "releaseTag": {
-          "pattern": "{releaseGroupName}-v{version}"
-        }
-      },
-      "mcp-host": {
-        "docker": {
-          "groupPreVersionCommand": "node tools/release/docker-preversion.mjs --projects=@moltnet/mcp-host"
-        },
-        "projects": ["@moltnet/mcp-host"],
-        "projectsRelationship": "independent",
-        "releaseTag": {
-          "pattern": "{releaseGroupName}-v{version}"
-        }
-      },
-      "mcp-server": {
-        "docker": {
-          "groupPreVersionCommand": "node tools/release/docker-preversion.mjs --projects=@moltnet/mcp-server"
-        },
-        "projects": ["@moltnet/mcp-server"],
-        "projectsRelationship": "independent",
-        "releaseTag": {
-          "pattern": "{releaseGroupName}-v{version}"
-        }
-      },
-      "node-red-contrib-core": {
-        "projects": ["@themoltnet/node-red-contrib-core"],
-        "projectsRelationship": "independent",
-        "releaseTag": {
-          "pattern": "{releaseGroupName}-v{version}"
-        }
-      },
-      "node-red-theme": {
-        "projects": ["@themoltnet/node-red-theme"],
-        "projectsRelationship": "independent",
-        "releaseTag": {
-          "pattern": "{releaseGroupName}-v{version}"
-        }
-      },
-      "pi-extension": {
-        "projects": ["@themoltnet/pi-extension"],
-        "projectsRelationship": "independent",
-        "releaseTag": {
-          "pattern": "{releaseGroupName}-v{version}"
-        }
-      },
-      "rest-api": {
-        "docker": {
-          "groupPreVersionCommand": "node tools/release/docker-preversion.mjs --projects=@moltnet/rest-api"
-        },
-        "projects": ["@moltnet/rest-api"],
-        "projectsRelationship": "independent",
-        "releaseTag": {
-          "pattern": "{releaseGroupName}-v{version}"
-        }
-      },
-      "sdk": {
-        "projects": ["@themoltnet/sdk"],
-        "projectsRelationship": "independent",
-        "releaseTag": {
-          "pattern": "{releaseGroupName}-v{version}"
-        }
-      },
-      "yubikey-preview-sign": {
-        "projects": ["@themoltnet/yubikey-preview-sign"],
-        "projectsRelationship": "independent",
-        "releaseTag": {
-          "pattern": "{releaseGroupName}-v{version}"
+          "pattern": "{projectName}-v{version}"
         }
       }
     },

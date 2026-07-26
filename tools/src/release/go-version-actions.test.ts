@@ -354,7 +354,7 @@ go 1.25
         'release',
         'version',
         '--groups',
-        'rest-api',
+        'docker-images',
       ]),
     ).toBe(false);
     expect(
@@ -364,7 +364,7 @@ go 1.25
           goReleaseValidationRoots: ['apps/moltnet-cli'],
           goReleaseValidationGroups: ['go-modules', 'cli'],
         },
-        ['nx', 'release', 'version', '--groups=rest-api'],
+        ['nx', 'release', 'version', '--groups=docker-images'],
       ),
     ).toEqual([]);
   });

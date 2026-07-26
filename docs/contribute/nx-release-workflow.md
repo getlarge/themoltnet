@@ -27,24 +27,31 @@ updates. Keep the workflow filename as `release.yml` when that cleanup happens.
 
 Configured in `nx.json` under `release.groups`:
 
-- One group per published TypeScript package, named for its existing public tag
-  prefix (for example, `sdk` owns `@themoltnet/sdk` and creates
-  `sdk-v{version}`).
+- `npm-packages`: independent published TypeScript packages.
 - `cli`: fixed-version CLI family, including the Go CLI and npm wrapper
   packages.
 - `go-modules`: independent Go library modules.
 - `github-actions`: independent GitHub Actions distributed from this repo by
   tag.
-- One group per Docker image, also named for its public tag prefix (for example,
-  `rest-api` owns `@moltnet/rest-api` and creates `rest-api-v{version}`).
+- `docker-images`: independent Docker images built from Nx projects with
+  Dockerfiles.
 
-The one-project groups are intentional. Nx interpolates scoped package names
-literally for `{projectName}`, while the repository's Release Please history
-uses unscoped tag prefixes. `{releaseGroupName}-v{version}` preserves those
-public tags and lets Nx resolve the correct current version from git history.
+The independent npm and Docker groups use `{projectName}-v{version}`. Scoped
+project names are interpolated literally, so their Nx tags differ from the
+historical unscoped Release Please tags. This is an intentional migration
+boundary rather than a reason to maintain one release group per project.
 
-Use groups when invoking release commands. Nx still derives project ordering
-and dependent updates across the selected groups.
+For the first Nx production release, dispatch the workflow with
+`first-release: true`. Nx then falls back to each manifest version where the new
+tag pattern has no match and creates the first tags in the Nx namespace. Review
+that reconciliation release carefully: it may contain catch-up bumps because
+there is no prior matching Nx tag. After it succeeds, leave `first-release`
+disabled; Nx resolves all later versions from the tags created by that run.
+Historical Release Please tags remain valid history but are not inputs to the
+steady-state Nx configuration.
+
+Use groups when invoking release commands. Avoid hand-ordering projects; Nx
+should derive project ordering and dependent updates.
 
 ## Full Rehearsal
 
@@ -288,10 +295,10 @@ git clean -fd
 Use dry-runs only as a fast preflight before the full rehearsal:
 
 ```bash
-pnpm exec nx release version patch --groups sdk --dry-run --verbose
+pnpm exec nx release version patch --groups npm-packages --dry-run --verbose
 pnpm exec nx release version patch --groups go-modules,cli --dry-run --verbose
 pnpm exec nx release version patch --groups github-actions --dry-run --verbose
-NX_DRY_RUN=true pnpm exec nx release version patch --groups rest-api --dry-run --verbose
+NX_DRY_RUN=true pnpm exec nx release version patch --groups docker-images --dry-run --verbose
 ```
 
 The Docker dry-run must set `NX_DRY_RUN=true` on the parent Nx process. Nx
@@ -404,15 +411,15 @@ Do not use `pnpm --filter` for action build/test/typecheck tasks.
 
 ## Docker Images
 
-Docker releases use Nx native Docker release support. Each image release group
-owns a Docker pre-version command that passes its exact project to
-`tools/release/docker-preversion.mjs`. Selecting `rest-api`, for example, builds
-only `@moltnet/rest-api` before Nx retags it.
+Docker releases use Nx native Docker release support. The `docker-images`
+release group owns the Docker pre-version helper, so image builds only run when
+that group is selected. The helper builds the group before Nx retags images. By
+default it reads the project list from `nx.json`.
 
 Override the image list only for local debugging:
 
 ```bash
-NX_DRY_RUN=true NX_RELEASE_DOCKER_PROJECTS=@moltnet/rest-api pnpm exec nx release version patch --groups rest-api --dry-run --verbose
+NX_DRY_RUN=true NX_RELEASE_DOCKER_PROJECTS=@moltnet/rest-api pnpm exec nx release version patch --groups docker-images --dry-run --verbose
 ```
 
 ## Expected Operator Flow
