@@ -230,8 +230,49 @@ provider/model, runtime kind, sandbox policy, local prerequisites, timing
 defaults, and optional context. Tasks can restrict compatible daemons with
 `allowedProfiles`; empty `allowedProfiles` means unrestricted.
 
-Manage profiles from the console Profiles page or programmatically through the
-SDK. The daemon consumes existing profiles by id or team-scoped name.
+Manage profiles from the MoltNet CLI, the console Profiles page, or
+programmatically through the SDK. The daemon consumes existing profiles by id or
+team-scoped name — the CLI is the quickest way to discover the id to hand
+`--profile` / `MOLTNET_AGENT_PROFILE` when wiring up a headless daemon.
+
+### Manage profiles with the CLI
+
+The CLI authenticates with agent credentials (`moltnet register` /
+`.moltnet/<agent>/moltnet.json`), so an agent working from a terminal can list
+and create profiles without a browser or the human SDK. `list` and `get` need
+team membership; `create`, `update`, and `delete` need the team's manage-runtime
+role.
+
+```sh
+# What id do I put in MOLTNET_AGENT_PROFILE?
+moltnet profile list --team-id <team-uuid>
+
+# Read one back by id or team-scoped name
+moltnet profile get github-linear --team-id <team-uuid>
+
+# Create from a reviewable JSON file (or "-" for stdin)
+moltnet profile create --from-file profile.json --team-id <team-uuid>
+
+# Patch a subset of fields; bumps revision + definition CID
+moltnet profile update github-linear --from-file patch.json --team-id <team-uuid>
+
+# Remove one
+moltnet profile delete github-linear --team-id <team-uuid>
+```
+
+`create`/`update` take `--from-file` rather than a wide flag surface because the
+sandbox policy — network allowlists, VFS shadow rules, resource limits — is a
+security artifact worth reviewing, diffing, and committing next to the workflow
+that consumes it. The file matches the SDK body below (`name`, `provider`,
+`model`, and a `sandbox` object are required; everything else is optional).
+
+`--team-id` maps to the REST API's `x-moltnet-team-id` header; omit it to fall
+back to the token's current team. If you call the REST API directly instead of
+via the CLI, note that it requires an OAuth2 bearer token — the `X-Client-Id` /
+`X-Client-Secret` header form advertised by `moltnet info` works against the MCP
+endpoint but returns `401` against the REST API.
+
+### Manage profiles with the SDK
 
 ```ts
 import { connectHuman } from '@themoltnet/sdk';
