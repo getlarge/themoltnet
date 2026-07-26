@@ -92,13 +92,17 @@ describe('Signing credential and delegated request lifecycle', () => {
     signerClient = createClient({ baseUrl: harness.baseUrl });
     signerClient.interceptors.request.use((request) => {
       request.headers.set('X-Moltnet-Session-Token', signer.sessionToken);
-      request.headers.set('x-moltnet-team-id', requester.personalTeamId);
+      if (!request.headers.has('x-moltnet-team-id')) {
+        request.headers.set('x-moltnet-team-id', requester.personalTeamId);
+      }
       return request;
     });
     approverClient = createClient({ baseUrl: harness.baseUrl });
     approverClient.interceptors.request.use((request) => {
       request.headers.set('X-Moltnet-Session-Token', approver.sessionToken);
-      request.headers.set('x-moltnet-team-id', requester.personalTeamId);
+      if (!request.headers.has('x-moltnet-team-id')) {
+        request.headers.set('x-moltnet-team-id', requester.personalTeamId);
+      }
       return request;
     });
   });
