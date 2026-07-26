@@ -1,7 +1,11 @@
 SET LOCAL lock_timeout = '5s';--> statement-breakpoint
 CREATE TYPE "public"."signing_credential_status" AS ENUM('pending_approval', 'active', 'suspended', 'revoked');--> statement-breakpoint
-ALTER TYPE "public"."signing_request_status" ADD VALUE 'claimed' BEFORE 'completed';--> statement-breakpoint
-ALTER TYPE "public"."signing_request_status" ADD VALUE 'rejected' BEFORE 'expired';--> statement-breakpoint
+ALTER TABLE "signing_requests" ALTER COLUMN "status" DROP DEFAULT;--> statement-breakpoint
+ALTER TABLE "signing_requests" ALTER COLUMN "status" SET DATA TYPE text USING "status"::text;--> statement-breakpoint
+DROP TYPE "public"."signing_request_status";--> statement-breakpoint
+CREATE TYPE "public"."signing_request_status" AS ENUM('pending', 'claimed', 'completed', 'rejected', 'expired');--> statement-breakpoint
+ALTER TABLE "signing_requests" ALTER COLUMN "status" SET DATA TYPE "public"."signing_request_status" USING "status"::"public"."signing_request_status";--> statement-breakpoint
+ALTER TABLE "signing_requests" ALTER COLUMN "status" SET DEFAULT 'pending'::"public"."signing_request_status";--> statement-breakpoint
 CREATE TABLE "signing_credential_registrations" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"owner_human_id" uuid NOT NULL,

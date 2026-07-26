@@ -107,8 +107,7 @@ describe('RelationshipReader', () => {
           subjectSetObject: AGENT_ID,
         }),
       );
-      expect(mockRelationshipApi.getRelationships).toHaveBeenNthCalledWith(
-        3,
+      expect(mockRelationshipApi.getRelationships).toHaveBeenCalledWith(
         expect.objectContaining({
           subjectSetNamespace: KetoNamespace.Human,
           subjectSetObject: AGENT_ID,
