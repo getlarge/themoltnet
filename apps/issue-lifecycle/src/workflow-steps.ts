@@ -1,3 +1,10 @@
+import {
+  type TaskOutcome as OrchTaskOutcome,
+  waitForAcceptedTask as waitForAcceptedTaskGeneric,
+  waitForSignalOrSleep,
+  waitForTaskOutcome as waitForTaskOutcomeGeneric,
+} from '@moltnet/orchestration';
+
 import { parseLifecycleStateArtifact } from './artifact.js';
 import {
   approvalPromptBody,
@@ -12,82 +19,24 @@ import type { normalizeLifecycleInput } from './task-factory.js';
 import type {
   AcceptedTaskResult,
   IssueLifecycleDeps,
-  SdkTask,
-  SdkTaskAttempt,
+  LifecycleStateArtifact,
   TaskClient,
   WorkflowContext,
 } from './types.js';
 
 type NormalizedLifecycleInput = ReturnType<typeof normalizeLifecycleInput>;
 
-export type TaskOutcome =
-  | {
-      kind: 'accepted';
-      result: AcceptedTaskResult;
-    }
-  | {
-      kind: 'failed';
-      task: SdkTask;
-      attempts: SdkTaskAttempt[];
-      reason: string;
-    }
-  | {
-      kind: 'invalid_output';
-      task: SdkTask;
-      attempt: SdkTaskAttempt;
-      reason: string;
-    };
+/** Structured-log prefix preserved across the lib extraction (#1671). */
+const LOG_PREFIX = 'issue_lifecycle';
 
-function isTimeoutError(error: unknown): boolean {
-  return (
-    error instanceof Error &&
-    (error.name === 'TimeoutError' || error.constructor.name === 'TimeoutError')
-  );
-}
+export type TaskOutcome = OrchTaskOutcome<LifecycleStateArtifact>;
 
-async function waitForSignalOrSleep(args: {
-  ctx: WorkflowContext;
-  eventName: string;
-  stepName: string;
-  seconds: number;
-  logger: IssueLifecycleDeps['logger'];
-  description: string;
-}): Promise<void> {
-  if (!args.ctx.awaitEvent) {
-    await args.ctx.sleepFor(args.stepName, args.seconds);
-    return;
-  }
-  try {
-    args.logger?.info(
-      {
-        eventName: args.eventName,
-        stepName: args.stepName,
-        timeoutSec: args.seconds,
-        description: args.description,
-      },
-      'issue_lifecycle.wait.event.start',
-    );
-    await args.ctx.awaitEvent(args.eventName, {
-      stepName: args.stepName,
-      timeout: args.seconds,
-    });
-    args.logger?.info(
-      { eventName: args.eventName, description: args.description },
-      'issue_lifecycle.wait.event.received',
-    );
-  } catch (error) {
-    if (isTimeoutError(error)) {
-      args.logger?.info(
-        { eventName: args.eventName, description: args.description },
-        'issue_lifecycle.wait.event.timeout',
-      );
-      return;
-    }
-    throw error;
-  }
-}
-
-export async function waitForTaskOutcome(
+/**
+ * Lifecycle-specialized wrappers over the generic orchestration await engine:
+ * they inject the lifecycle artifact parser and preserve the `issue_lifecycle.*`
+ * log event names.
+ */
+export function waitForTaskOutcome(
   taskId: string,
   tasks: TaskClient,
   ctx: WorkflowContext,
@@ -95,94 +44,18 @@ export async function waitForTaskOutcome(
   logger: IssueLifecycleDeps['logger'],
   description: string,
 ): Promise<TaskOutcome> {
-  logger?.info(
-    { taskId, description, pollIntervalSec },
-    'issue_lifecycle.task.wait.start',
-  );
-  for (;;) {
-    const task = await tasks.getTask(taskId);
-    logger?.info(
-      {
-        taskId,
-        description,
-        status: task.status,
-        acceptedAttemptN: task.acceptedAttemptN,
-      },
-      'issue_lifecycle.task.wait.poll',
-    );
-    if (task.status === 'failed' || task.status === 'cancelled') {
-      const attempts = await tasks.listAttempts(taskId);
-      logger?.error(
-        { taskId, description, status: task.status },
-        'issue_lifecycle.task.wait.terminal_failure',
-      );
-      return {
-        kind: 'failed',
-        task,
-        attempts,
-        reason: `task ${taskId} ended with status ${task.status}`,
-      };
-    }
-    if (task.status === 'completed' && task.acceptedAttemptN !== null) {
-      const attempts = await tasks.listAttempts(taskId);
-      const attempt = attempts.find(
-        (candidate) => candidate.attemptN === task.acceptedAttemptN,
-      );
-      if (!attempt || attempt.status !== 'completed') {
-        return {
-          kind: 'failed',
-          task,
-          attempts,
-          reason: `task ${taskId} accepted attempt is not completed`,
-        };
-      }
-      logger?.info(
-        {
-          taskId,
-          description,
-          acceptedAttemptN: task.acceptedAttemptN,
-          outputCid: attempt.outputCid,
-        },
-        'issue_lifecycle.task.wait.accepted',
-      );
-      try {
-        return {
-          kind: 'accepted',
-          result: {
-            task,
-            attempt,
-            state: parseLifecycleStateArtifact(attempt.output),
-          },
-        };
-      } catch (error) {
-        const reason =
-          error instanceof Error
-            ? error.message
-            : `invalid lifecycle output: ${String(error)}`;
-        logger?.error(
-          {
-            taskId,
-            description,
-            acceptedAttemptN: task.acceptedAttemptN,
-            reason,
-          },
-          'issue_lifecycle.task.wait.invalid_output',
-        );
-        return { kind: 'invalid_output', task, attempt, reason };
-      }
-    }
-    await waitForSignalOrSleep({
-      ctx,
-      eventName: `moltnet.task.updated:${taskId}`,
-      stepName: `wait-task:${taskId}`,
-      seconds: pollIntervalSec,
-      logger,
-      description,
-    });
-  }
+  return waitForTaskOutcomeGeneric(taskId, {
+    tasks,
+    ctx,
+    pollIntervalSec,
+    parse: parseLifecycleStateArtifact,
+    logger,
+    description,
+    logPrefix: LOG_PREFIX,
+  });
 }
 
-export async function waitForAcceptedTask(
+export function waitForAcceptedTask(
   taskId: string,
   tasks: TaskClient,
   ctx: WorkflowContext,
@@ -190,16 +63,15 @@ export async function waitForAcceptedTask(
   logger: IssueLifecycleDeps['logger'],
   description: string,
 ): Promise<AcceptedTaskResult> {
-  const outcome = await waitForTaskOutcome(
-    taskId,
+  return waitForAcceptedTaskGeneric(taskId, {
     tasks,
     ctx,
     pollIntervalSec,
+    parse: parseLifecycleStateArtifact,
     logger,
     description,
-  );
-  if (outcome.kind === 'accepted') return outcome.result;
-  throw new Error(outcome.reason);
+    logPrefix: LOG_PREFIX,
+  });
 }
 
 export function logCreatedTask(
@@ -258,6 +130,7 @@ export async function waitForApprovalLabel(
       stepName: 'wait-plan-approval-label',
       seconds: input.pollIntervalSec,
       logger: deps.logger,
+      logPrefix: LOG_PREFIX,
       description: 'plan approval label',
     });
   }
@@ -384,6 +257,7 @@ export async function waitForGreenPrChecks(
       stepName: `wait-pr:${prNumber}`,
       seconds: input.pollIntervalSec,
       logger: deps.logger,
+      logPrefix: LOG_PREFIX,
       description: `PR #${prNumber} checks`,
     });
   }
@@ -439,6 +313,7 @@ export async function waitForPrMergeOrFailure(args: {
       stepName: `wait-pr-merge:${args.prNumber}`,
       seconds: args.input.pollIntervalSec,
       logger: args.deps.logger,
+      logPrefix: LOG_PREFIX,
       description: `PR #${args.prNumber} merge`,
     });
   }

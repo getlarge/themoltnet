@@ -19,6 +19,9 @@
       "path": "../../libs/tasks/tsconfig.lib.json"
     },
     {
+      "path": "../../libs/orchestration/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/crypto-service/tsconfig.lib.json"
     }
   ]
