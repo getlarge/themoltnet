@@ -1,5 +1,7 @@
 /**
- * GENERATED — DO NOT EDIT BY HAND. Run `node scripts/generate-gtfobins.mjs`.
+ * GENERATED — DO NOT EDIT BY HAND. Regenerate with
+ * `pnpm --filter @themoltnet/shell-command-analyzer run generate:gtfobins`
+ * (or `nx run @themoltnet/shell-command-analyzer:generate:gtfobins`).
  *
  * Vendored from GTFOBins (https://gtfobins.github.io/), GPL-3.0-or-later:
  *   https://github.com/GTFOBins/GTFOBins.github.io @ acd524623f9c406acedd2754ebd9c2431f3675ad

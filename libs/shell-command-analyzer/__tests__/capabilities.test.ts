@@ -96,7 +96,7 @@ describe('classifyRisk', () => {
     });
   });
 
-  describe('benign tier', () => {
+  describe('unknown tier', () => {
     for (const name of [
       'ls',
       'echo',
@@ -111,16 +111,16 @@ describe('classifyRisk', () => {
       'touch',
       'printf',
     ]) {
-      it(`classifies ${name} as benign`, () => {
+      it(`classifies ${name} as unknown`, () => {
         expect(name in GTFOBINS).toBe(false);
-        expect(classifyRisk(name)).toBe('benign');
+        expect(classifyRisk(name)).toBe('unknown');
       });
     }
 
     it('does not misclassify a name that merely starts like an interpreter', () => {
-      expect(classifyRisk('pythonic')).toBe('benign');
-      expect(classifyRisk('nodemon')).toBe('benign');
-      expect(classifyRisk('phpstorm')).toBe('benign');
+      expect(classifyRisk('pythonic')).toBe('unknown');
+      expect(classifyRisk('nodemon')).toBe('unknown');
+      expect(classifyRisk('phpstorm')).toBe('unknown');
     });
   });
 });
@@ -135,6 +135,25 @@ describe('gtfobinsFunctions', () => {
   it('returns an empty list for a non-GTFOBins binary', () => {
     expect(gtfobinsFunctions('ls')).toEqual([]);
     expect(gtfobinsFunctions('definitely-not-a-real-binary')).toEqual([]);
+  });
+
+  it('does not resolve prototype member names', () => {
+    for (const name of [
+      'constructor',
+      'toString',
+      'hasOwnProperty',
+      '__proto__',
+      'valueOf',
+    ]) {
+      expect(classifyRisk(name)).toBe('unknown');
+      expect(gtfobinsFunctions(name)).toEqual([]);
+    }
+  });
+
+  it('returns a defensive copy the caller cannot use to mutate the dataset', () => {
+    const first = gtfobinsFunctions('find') as string[];
+    first.push('mutated');
+    expect(gtfobinsFunctions('find')).not.toContain('mutated');
   });
 });
 

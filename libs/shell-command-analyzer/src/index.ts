@@ -8,15 +8,12 @@ export {
   ShellCommandAnalyzer,
   type ToolInvocation,
 } from './analyze.js';
+// Only functions and types are public — the policy tables (WRAPPERS, GTFOBINS,
+// ARBITRARY_CODE_BINARIES, …) stay internal so consumers cannot mutate the
+// classification every analyzer instance shares.
 export {
-  ARBITRARY_CODE_BINARIES,
   classifyRisk,
-  ESCAPE_FLAG_SPECS,
-  type EscapeFlagSpec,
-  FIND_EXEC_FLAGS,
   gtfobinsFunctions,
   type RiskTier,
-  WRAPPERS,
-  type WrapperSpec,
 } from './capabilities.js';
-export { GTFOBINS, GTFOBINS_SOURCE_COMMIT } from './gtfobins.generated.js';
+export { GTFOBINS_SOURCE_COMMIT } from './gtfobins.generated.js';

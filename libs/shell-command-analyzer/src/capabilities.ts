@@ -15,12 +15,15 @@
  *   {@link gtfobinsFunctions} surfaces exactly which abuse functions a binary
  *   documents. See `gtfobins.generated.ts` (regenerate with
  *   `scripts/generate-gtfobins.mjs`).
- * - `benign`: everything else.
+ * - `unknown`: not an interpreter and not catalogued by GTFOBins. This asserts
+ *   *no documented technique in our data* — NOT that the executable is safe
+ *   (a project's `./deploy.sh` or an unlisted destructive tool lands here). The
+ *   policy layer decides; the analyzer never claims affirmative safety.
  */
 
 import { GTFOBINS } from './gtfobins.generated.js';
 
-export type RiskTier = 'arbitrary-code' | 'escapable' | 'benign';
+export type RiskTier = 'arbitrary-code' | 'escapable' | 'unknown';
 
 /**
  * Interpreters and shells whose *primary purpose* is to execute arbitrary code
@@ -70,6 +73,9 @@ export const ARBITRARY_CODE_BINARIES: ReadonlySet<string> = new Set([
   'jshell',
   'irb',
   'ghci',
+  // Source/delegation builtins: run commands from a script we cannot see.
+  'source',
+  '.',
 ]);
 
 /**
@@ -86,7 +92,10 @@ const VERSIONED_INTERPRETER_RE =
  * about — *why* a tool is escapable, not just that it is.
  */
 export function gtfobinsFunctions(name: string): readonly string[] {
-  return GTFOBINS[name] ?? [];
+  // `Object.hasOwn` (not `in`/index) so prototype names like `constructor` or
+  // `toString` do not resolve to inherited members. Returns a defensive copy so
+  // callers cannot mutate the shared dataset.
+  return Object.hasOwn(GTFOBINS, name) ? [...GTFOBINS[name]] : [];
 }
 
 /** Classify a *base* executable name (directory and version suffix stripped). */
@@ -97,107 +106,218 @@ export function classifyRisk(name: string): RiskTier {
   ) {
     return 'arbitrary-code';
   }
-  if (name in GTFOBINS) {
+  if (Object.hasOwn(GTFOBINS, name)) {
     return 'escapable';
   }
-  return 'benign';
+  return 'unknown';
 }
 
 /**
  * Describes how to skip a wrapper's own options and positionals to reach the
  * command it ultimately executes.
  *
- * - `valueFlags`: flags that consume the following token as their value
- *   (so that token is not mistaken for the wrapped command).
+ * - `valueFlags`: flags that consume a value — `-u X`, `-uX`, `--user X`, or
+ *   `--user=X` — so that value is not mistaken for the wrapped command.
+ * - `booleanFlags`: flags that consume nothing.
  * - `positionalSkip`: number of leading *positional* (non-flag, non-assignment)
  *   arguments the wrapper takes before the command itself (e.g. `timeout`'s
  *   DURATION, `chroot`'s NEWROOT).
  *
- * Unknown flags are treated as booleans (consume nothing). This is permissive
- * for the rare case of an unknown *value*-taking flag; such exotic wrapper
- * usage is uncommon and can be tightened by adding the flag to `valueFlags`.
+ * Any flag not listed in either set makes the command boundary unprovable, so
+ * resolution **fails closed** rather than guessing (an unknown value-taking
+ * flag would otherwise swallow or shift the real command).
  */
 export interface WrapperSpec {
   valueFlags: ReadonlySet<string>;
+  booleanFlags: ReadonlySet<string>;
   positionalSkip: number;
 }
 
 const spec = (
   positionalSkip: number,
   valueFlags: readonly string[] = [],
+  booleanFlags: readonly string[] = [],
 ): WrapperSpec => ({
   positionalSkip,
   valueFlags: new Set(valueFlags),
+  booleanFlags: new Set(booleanFlags),
 });
 
 /**
  * Wrappers that run another command. Resolving these lets a policy see the
- * *real* executable (`sudo git push` → `git`, not `sudo`).
+ * *real* executable (`sudo git push` → `git`, not `sudo`). `command`/`builtin`
+ * are shell exec-builtins that delegate to their argument command.
  */
 export const WRAPPERS: ReadonlyMap<string, WrapperSpec> = new Map([
   [
     'sudo',
-    spec(0, [
-      '-u',
-      '--user',
-      '-g',
-      '--group',
-      '-C',
-      '--close-from',
-      '-h',
-      '--host',
-      '-p',
-      '--prompt',
-      '-r',
-      '--role',
-      '-t',
-      '--type',
-      '-U',
-      '--other-user',
-      '-R',
-      '--chroot',
-      '-D',
-      '--chdir',
-    ]),
+    spec(
+      0,
+      [
+        '-u',
+        '--user',
+        '-g',
+        '--group',
+        '-C',
+        '--close-from',
+        '-h',
+        '--host',
+        '-p',
+        '--prompt',
+        '-r',
+        '--role',
+        '-t',
+        '--type',
+        '-U',
+        '--other-user',
+        '-R',
+        '--chroot',
+        '-D',
+        '--chdir',
+        '-T',
+        '--command-timeout',
+      ],
+      [
+        '-A',
+        '--askpass',
+        '-b',
+        '--background',
+        '-E',
+        '--preserve-env',
+        '-H',
+        '--set-home',
+        '-i',
+        '--login',
+        '-K',
+        '--remove-timestamp',
+        '-k',
+        '--reset-timestamp',
+        '-l',
+        '--list',
+        '-n',
+        '--non-interactive',
+        '-P',
+        '--preserve-groups',
+        '-S',
+        '--stdin',
+        '-s',
+        '--shell',
+        '-v',
+        '--validate',
+      ],
+    ),
   ],
-  ['doas', spec(0, ['-u', '-C'])],
-  ['env', spec(0, ['-u', '--unset', '-C', '--chdir', '-S', '--split-string'])],
+  ['doas', spec(0, ['-u', '-C'], ['-n', '-s'])],
+  [
+    'env',
+    spec(
+      0,
+      ['-u', '--unset', '-C', '--chdir', '-S', '--split-string'],
+      ['-i', '--ignore-environment', '-0', '--null', '-v', '--debug'],
+    ),
+  ],
   ['nice', spec(0, ['-n', '--adjustment'])],
-  ['ionice', spec(0, ['-c', '--class', '-n', '--classdata', '-p', '--pid'])],
+  [
+    'ionice',
+    spec(0, ['-c', '--class', '-n', '--classdata', '-p', '--pid'], ['-t']),
+  ],
   ['nohup', spec(0)],
-  ['setsid', spec(0)],
+  ['setsid', spec(0, [], ['-f', '--fork', '-w', '--wait', '-c', '--ctty'])],
   ['stdbuf', spec(0, ['-i', '--input', '-o', '--output', '-e', '--error'])],
-  ['timeout', spec(1, ['-s', '--signal', '-k', '--kill-after'])],
+  [
+    'timeout',
+    spec(
+      1,
+      ['-s', '--signal', '-k', '--kill-after'],
+      ['--preserve-status', '--foreground', '-v', '--verbose'],
+    ),
+  ],
   ['chroot', spec(1, ['--userspec', '--groups'])],
-  ['flock', spec(1, ['-w', '--timeout', '-E', '--conflict-exit-code'])],
+  [
+    'flock',
+    spec(
+      1,
+      ['-w', '--timeout', '-E', '--conflict-exit-code'],
+      [
+        '-n',
+        '--nonblock',
+        '-s',
+        '--shared',
+        '-x',
+        '--exclusive',
+        '-u',
+        '--unlock',
+      ],
+    ),
+  ],
   [
     'xargs',
-    spec(0, [
-      '-I',
-      '--replace',
-      '-i',
-      '-a',
-      '--arg-file',
-      '-E',
-      '-e',
-      '--eof',
-      '-n',
-      '--max-args',
-      '-L',
-      '--max-lines',
-      '-l',
-      '-P',
-      '--max-procs',
-      '-d',
-      '--delimiter',
-      '-s',
-      '--max-chars',
-    ]),
+    spec(
+      0,
+      [
+        '-I',
+        '--replace',
+        '-i',
+        '-a',
+        '--arg-file',
+        '-E',
+        '-e',
+        '--eof',
+        '-n',
+        '--max-args',
+        '-L',
+        '--max-lines',
+        '-l',
+        '-P',
+        '--max-procs',
+        '-d',
+        '--delimiter',
+        '-s',
+        '--max-chars',
+      ],
+      [
+        '-0',
+        '--null',
+        '-p',
+        '--interactive',
+        '-r',
+        '--no-run-if-empty',
+        '-t',
+        '--verbose',
+        '-x',
+        '--exit',
+      ],
+    ),
   ],
-  ['exec', spec(0, ['-a'])],
-  ['time', spec(0, ['-o', '--output', '-f', '--format'])],
-  ['unbuffer', spec(0, ['-p'])],
-  ['watch', spec(0, ['-n', '--interval'])],
+  ['exec', spec(0, ['-a'], ['-c', '-l'])],
+  [
+    'time',
+    spec(
+      0,
+      ['-o', '--output', '-f', '--format'],
+      ['-p', '-v', '--verbose', '-a', '--append'],
+    ),
+  ],
+  ['unbuffer', spec(0, [], ['-p'])],
+  [
+    'watch',
+    spec(
+      0,
+      ['-n', '--interval'],
+      [
+        '-d',
+        '--differences',
+        '-b',
+        '--beep',
+        '-g',
+        '--chgexit',
+        '-t',
+        '--no-title',
+      ],
+    ),
+  ],
+  ['command', spec(0, [], ['-p', '-v', '-V'])],
+  ['builtin', spec(0)],
 ]);
 
 /** find primaries whose *next* argument is the command to execute. */

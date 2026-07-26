@@ -21,7 +21,13 @@
  */
 
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -30,6 +36,13 @@ const DEFAULT_COMMIT = 'acd524623f9c406acedd2754ebd9c2431f3675ad';
 const REPO = 'GTFOBins/GTFOBins.github.io';
 
 const commit = process.argv[2] ?? DEFAULT_COMMIT;
+if (!/^[0-9a-f]{40}$/.test(commit)) {
+  console.error(
+    `Refusing ref "${commit}": pass a full 40-character lowercase commit SHA ` +
+      '(pins a reproducible snapshot and avoids shell interpolation).',
+  );
+  process.exit(1);
+}
 const here = dirname(fileURLToPath(import.meta.url));
 const outFile = resolve(here, '../src/gtfobins.generated.ts');
 
@@ -92,11 +105,15 @@ function resolveFunctions(name, raw, seen = new Set()) {
 
 function download(sha) {
   const dir = mkdtempSync(join(tmpdir(), 'gtfobins-'));
+  const tarball = join(dir, 'src.tar.gz');
   const url = `https://codeload.github.com/${REPO}/tar.gz/${sha}`;
-  // curl → tar, extracting only the _gtfobins directory.
+  // Argument vectors, no shell — `sha` is already validated as a bare SHA.
+  execFileSync('curl', ['-fsSL', '-o', tarball, url], {
+    stdio: ['ignore', 'ignore', 'inherit'],
+  });
   execFileSync(
-    'sh',
-    ['-c', `curl -fsSL "${url}" | tar -xz -C "${dir}" --strip-components=1 '*/_gtfobins'`],
+    'tar',
+    ['-xzf', tarball, '-C', dir, '--strip-components=1', '*/_gtfobins'],
     { stdio: ['ignore', 'ignore', 'inherit'] },
   );
   return join(dir, '_gtfobins');
@@ -123,7 +140,9 @@ function main() {
     .join('\n');
 
   const out = `/**
- * GENERATED — DO NOT EDIT BY HAND. Run \`node scripts/generate-gtfobins.mjs\`.
+ * GENERATED — DO NOT EDIT BY HAND. Regenerate with
+ * \`pnpm --filter @themoltnet/shell-command-analyzer run generate:gtfobins\`
+ * (or \`nx run @themoltnet/shell-command-analyzer:generate:gtfobins\`).
  *
  * Vendored from GTFOBins (https://gtfobins.github.io/), GPL-3.0-or-later:
  *   https://github.com/${REPO} @ ${commit}

@@ -89,9 +89,9 @@ describe('analyzeCommand — risk classification of resolved tools', () => {
     expect(await riskOf('docker ps', 'docker')).toBe('escapable');
   });
 
-  it('tags ordinary utilities as benign', async () => {
-    expect(await riskOf('rm -rf build', 'rm')).toBe('benign');
-    expect(await riskOf('mkdir -p build', 'mkdir')).toBe('benign');
+  it('tags ordinary utilities as unknown', async () => {
+    expect(await riskOf('rm -rf build', 'rm')).toBe('unknown');
+    expect(await riskOf('mkdir -p build', 'mkdir')).toBe('unknown');
   });
 
   it('attaches GTFOBins functions to escapable tools', async () => {
@@ -327,6 +327,101 @@ describe('analyzeCommand — materialized escape flags', () => {
   });
 });
 
+describe('analyzeCommand — non-literal command positions fail closed', () => {
+  it('denies an expansion in wrapper target position', async () => {
+    await expectDeny('sudo "$CMD"');
+    await expectDeny('sudo $CMD');
+    await expectDeny('timeout 5 ${RUNNER}');
+  });
+
+  it('denies an expansion in find -exec target position', async () => {
+    await expectDeny('find . -exec $CMD {} \\;');
+  });
+
+  it('denies a backslash-escaped command name', async () => {
+    // `s\h` is really `sh`, hidden from naive text classification.
+    await expectDeny('sudo s\\h -c id');
+    await expectDeny('s\\h -c id');
+  });
+
+  it('accepts a statically single-quoted command name', async () => {
+    expect(await toolNames("sudo 'git' push")).toEqual(['sudo', 'git']);
+    expect(await toolNames("'ls' -la")).toEqual(['ls']);
+  });
+});
+
+describe('analyzeCommand — exec dispatchers', () => {
+  it('sees through command and builtin', async () => {
+    expect(await toolNames('command sh -c id')).toEqual(['command', 'sh']);
+    expect(await toolNames('command -v git')).toEqual(['command', 'git']);
+    expect(await toolNames('builtin ls')).toEqual(['builtin', 'ls']);
+  });
+
+  it('denies eval reached through command/builtin', async () => {
+    await expectDeny('builtin eval "rm -rf /"');
+    await expectDeny('command eval x');
+  });
+
+  it('tags source and . as arbitrary-code', async () => {
+    expect(await riskOf('source ./env.sh', 'source')).toBe('arbitrary-code');
+    expect(await riskOf('. ./env.sh', '.')).toBe('arbitrary-code');
+  });
+});
+
+describe('analyzeCommand — attached and unknown flags', () => {
+  it('extracts attached escape-flag forms', async () => {
+    expect(await toolNames('ssh -oProxyCommand=sh host')).toEqual([
+      'ssh',
+      'sh',
+    ]);
+    expect(await toolNames('git -ccore.sshCommand=sh fetch')).toEqual([
+      'git',
+      'sh',
+    ]);
+    expect(await toolNames('scp -Ssh a b')).toEqual(['scp', 'sh']);
+  });
+
+  it('handles attached wrapper value flags', async () => {
+    expect(await toolNames('sudo -uroot git push')).toEqual(['sudo', 'git']);
+  });
+
+  it('fails closed on an unknown wrapper option', async () => {
+    await expectDeny('sudo --totally-unknown-flag git push');
+    await expectDeny('timeout --bogus 5 git');
+  });
+
+  it('accepts known boolean wrapper flags', async () => {
+    expect(await toolNames('sudo -n git push')).toEqual(['sudo', 'git']);
+    expect(await toolNames('timeout --foreground 5 git fetch')).toEqual([
+      'timeout',
+      'git',
+    ]);
+    expect(await toolNames('sudo --command-timeout 5 git push')).toEqual([
+      'sudo',
+      'git',
+    ]);
+  });
+});
+
+describe('analyzeCommand — depth and duplication bounds', () => {
+  it('fails closed on excessive wrapper nesting', async () => {
+    await expectDeny('sudo '.repeat(40) + 'git');
+  });
+
+  it('scopes escape flags per find -exec clause without cross-duplication', async () => {
+    const result = await analyzeCommand(
+      "find . -exec tar --to-command='sh -c a' {} \\; -exec tar --to-command='sh -c b' {} \\;",
+    );
+    if (!result.ok) {
+      throw new Error(result.reason);
+    }
+    const names = result.tools.map((t) => t.name);
+    expect(names.filter((n) => n === 'tar')).toHaveLength(2);
+    expect(names.filter((n) => n === 'sh')).toHaveLength(2);
+    expect(names).not.toContain('-exec');
+  });
+});
+
 describe('analyzeCommand — fail-closed denials', () => {
   it('denies command substitution', async () => {
     expect((await expectDeny('echo $(whoami)')).ok).toBe(false);
@@ -443,6 +538,13 @@ describe('ShellCommandAnalyzer (class)', () => {
     const analyzer = new ShellCommandAnalyzer();
     await analyzer.init();
     await analyzer.init();
+    expect(analyzer.analyze('ls').ok).toBe(true);
+  });
+
+  it('serializes concurrent init() calls', async () => {
+    const analyzer = new ShellCommandAnalyzer();
+    await Promise.all([analyzer.init(), analyzer.init(), analyzer.init()]);
+    expect(analyzer.ready).toBe(true);
     expect(analyzer.analyze('ls').ok).toBe(true);
   });
 });

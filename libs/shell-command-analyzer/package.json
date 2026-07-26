@@ -35,18 +35,24 @@
       }
     }
   },
+  "browser": {
+    "./dist/default-wasm-loader.js": "./dist/default-wasm-loader.browser.js"
+  },
   "files": [
-    "dist"
+    "dist",
+    "wasm"
   ],
   "scripts": {
     "build": "tsc -b",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "generate:gtfobins": "node scripts/generate-gtfobins.mjs",
+    "wasm:sync": "node scripts/sync-wasm.mjs"
   },
   "dependencies": {
-    "tree-sitter-bash": "catalog:",
     "web-tree-sitter": "catalog:"
   },
   "devDependencies": {
+    "tree-sitter-bash": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   },
@@ -68,6 +74,14 @@
           "^production"
         ],
         "outputs": []
+      },
+      "generate:gtfobins": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "node scripts/generate-gtfobins.mjs",
+          "cwd": "libs/shell-command-analyzer"
+        }
       }
     }
   }

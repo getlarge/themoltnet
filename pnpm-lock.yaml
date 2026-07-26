@@ -2101,13 +2101,13 @@ importers:
 
   libs/shell-command-analyzer:
     dependencies:
-      tree-sitter-bash:
-        specifier: 'catalog:'
-        version: 0.25.1
       web-tree-sitter:
         specifier: 'catalog:'
         version: 0.26.11
     devDependencies:
+      tree-sitter-bash:
+        specifier: 'catalog:'
+        version: 0.25.1
       typescript:
         specifier: 'catalog:'
         version: 5.9.3

@@ -1,22 +1,21 @@
 /**
- * Node-only default resolver for the bundled `tree-sitter-bash.wasm` grammar.
+ * Node-only default resolver for the vendored `tree-sitter-bash.wasm` grammar
+ * (see `wasm/`, refreshed via `pnpm run wasm:sync`).
  *
- * This is the single module coupled to the Node runtime (`node:module`). A
- * browser build supplies the grammar wasm explicitly via
- * `initAnalyzer({ bashWasm })`, so it never imports this file. When we add a
- * browser bundle we can map this module out via package.json `browser`/bundler
- * aliasing; the isomorphic core in `analyze.ts` stays clean.
+ * This is the single module coupled to the Node runtime (`node:url`). A browser
+ * build swaps it for `default-wasm-loader.browser.ts` via the package.json
+ * `browser` field, so bundlers never pull `node:url` in; browser callers must
+ * inject the grammar with `initAnalyzer({ bashWasm })`.
  */
 
-import { createRequire } from 'node:module';
-
-const require = createRequire(import.meta.url);
+import { fileURLToPath } from 'node:url';
 
 /**
- * Absolute path to the `tree-sitter-bash.wasm` grammar shipped by the
- * `tree-sitter-bash` package. `web-tree-sitter`'s `Language.load` accepts a
- * filesystem path in Node.
+ * Filesystem path to the grammar wasm shipped in this package.
+ * `web-tree-sitter`'s `Language.load` accepts a filesystem path in Node.
  */
 export function resolveDefaultBashWasm(): string {
-  return require.resolve('tree-sitter-bash/tree-sitter-bash.wasm');
+  return fileURLToPath(
+    new URL('../wasm/tree-sitter-bash.wasm', import.meta.url),
+  );
 }

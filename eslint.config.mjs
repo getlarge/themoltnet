@@ -165,9 +165,11 @@ export default tseslint.config(
       // Standalone node dev script (spins up a local Node-RED for the
       // node-red-contrib-core nodes); same rationale as above.
       'libs/node-red-contrib-core/scripts/dev.mjs',
-      // Standalone node dev script that regenerates the vendored GTFOBins
-      // dataset; not part of the typed source graph, same rationale as above.
+      // Standalone node dev scripts that regenerate the vendored GTFOBins
+      // dataset and refresh the grammar wasm; not part of the typed source
+      // graph, same rationale as above.
       'libs/shell-command-analyzer/scripts/generate-gtfobins.mjs',
+      'libs/shell-command-analyzer/scripts/sync-wasm.mjs',
     ],
   },
 
