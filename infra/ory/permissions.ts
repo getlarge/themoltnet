@@ -218,3 +218,47 @@ class Human implements Namespace {
     act_as: (ctx: Context) => this.related.self.includes(ctx.subject),
   };
 }
+
+/**
+ * Tool namespace
+ * A pure object namespace: each object is a tool name (e.g. Tool:git, Tool:gh).
+ * It has no relations of its own — it exists so a RuntimePolicy can grant tools
+ * by pointing at Tool objects. Tool names are the authorization primitives the
+ * runtime gate matches against.
+ */
+class Tool implements Namespace {}
+
+/**
+ * RuntimePolicy namespace
+ * A team-scoped, named allow-list of tools. The SQL `runtime_policies` row holds
+ * display metadata (name, description); the authorization edges live here:
+ *   RuntimePolicy:{policyId}#team@Team:{teamId}
+ *   RuntimePolicy:{policyId}#tool@Tool:{toolName}
+ */
+class RuntimePolicy implements Namespace {
+  related: {
+    team: Team[];
+    tool: Tool[];
+  };
+
+  permits = {
+    // Administering a policy (rename, re-scope its tools) follows the owning
+    // team's runtime-admin permission — same delegation Group uses for its team.
+    manage: (ctx: Context) =>
+      this.related.team.traverse((t) => t.permits.manage_runtime(ctx)),
+  };
+}
+
+/**
+ * RuntimeProfile namespace
+ * Binds a runtime profile to the policies that gate its tool calls:
+ *   RuntimeProfile:{profileId}#policies@RuntimePolicy:{policyId}
+ * The profile's own team ownership lives in the SQL `runtime_profiles` row; this
+ * namespace exists only to hold the policy bindings, expanded at session start to
+ * resolve the profile's allowed-tools set (RuntimeProfile → policies → tools).
+ */
+class RuntimeProfile implements Namespace {
+  related: {
+    policies: RuntimePolicy[];
+  };
+}

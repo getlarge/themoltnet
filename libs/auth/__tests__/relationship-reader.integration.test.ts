@@ -15,7 +15,12 @@ import { PostgreSqlContainer } from '@testcontainers/postgresql';
 import { GenericContainer, Network, Wait } from 'testcontainers';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { KetoNamespace, TeamRelation } from '../src/keto-constants.js';
+import {
+  KetoNamespace,
+  RuntimePolicyRelation,
+  RuntimeProfileRelation,
+  TeamRelation,
+} from '../src/keto-constants.js';
 import {
   createRelationshipReader,
   type RelationshipReader,
@@ -28,6 +33,48 @@ const KETO_WRITE_PORT = 4467;
 const AGENT_ID = '550e8400-e29b-41d4-a716-446655440000';
 const TEAM_ID_1 = '880e8400-e29b-41d4-a716-446655440001';
 const TEAM_ID_2 = '880e8400-e29b-41d4-a716-446655440002';
+
+const PROFILE_ID = '990e8400-e29b-41d4-a716-4466554400a0';
+const POLICY_ID_1 = '990e8400-e29b-41d4-a716-4466554400b1';
+const POLICY_ID_2 = '990e8400-e29b-41d4-a716-4466554400b2';
+
+async function grantProfilePolicy(
+  writeApi: RelationshipApi,
+  profileId: string,
+  policyId: string,
+): Promise<void> {
+  await writeApi.createRelationship({
+    createRelationshipBody: {
+      namespace: KetoNamespace.RuntimeProfile,
+      object: profileId,
+      relation: RuntimeProfileRelation.Policies,
+      subject_set: {
+        namespace: KetoNamespace.RuntimePolicy,
+        object: policyId,
+        relation: '',
+      },
+    },
+  });
+}
+
+async function grantPolicyTool(
+  writeApi: RelationshipApi,
+  policyId: string,
+  toolName: string,
+): Promise<void> {
+  await writeApi.createRelationship({
+    createRelationshipBody: {
+      namespace: KetoNamespace.RuntimePolicy,
+      object: policyId,
+      relation: RuntimePolicyRelation.Tool,
+      subject_set: {
+        namespace: KetoNamespace.Tool,
+        object: toolName,
+        relation: '',
+      },
+    },
+  });
+}
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 // __dirname = libs/auth/__tests__ → ../../.. = repo root
@@ -194,5 +241,36 @@ describe('RelationshipReader (integration)', () => {
 
     // Assert: TEAM_ID_1 appears only once
     expect(ids.filter((id) => id === TEAM_ID_1)).toHaveLength(1);
+  });
+
+  it('returns empty policies for a profile with no bindings', async () => {
+    const policies = await reader.listRuntimeProfilePolicies(PROFILE_ID);
+    expect(policies).toEqual([]);
+  });
+
+  it('resolves allowed tools two hops: profile → policies → tools', async () => {
+    // Arrange: profile references P1 + P2; P1 grants git+gh, P2 grants gh+ls.
+    await grantProfilePolicy(writeApi, PROFILE_ID, POLICY_ID_1);
+    await grantProfilePolicy(writeApi, PROFILE_ID, POLICY_ID_2);
+    await grantPolicyTool(writeApi, POLICY_ID_1, 'git');
+    await grantPolicyTool(writeApi, POLICY_ID_1, 'gh');
+    await grantPolicyTool(writeApi, POLICY_ID_2, 'gh');
+    await grantPolicyTool(writeApi, POLICY_ID_2, 'ls');
+
+    // Act: expand the first hop, then union the tools of each policy.
+    const policies = await reader.listRuntimeProfilePolicies(PROFILE_ID);
+    const toolLists = await Promise.all(
+      policies.map((policyId) => reader.listRuntimePolicyTools(policyId)),
+    );
+    const allowedTools = [...new Set(toolLists.flat())].sort();
+
+    // Assert: both policies bound; tools unioned + de-duped across policies.
+    expect(policies.sort()).toEqual([POLICY_ID_1, POLICY_ID_2].sort());
+    expect(allowedTools).toEqual(['gh', 'git', 'ls']);
+  });
+
+  it('returns only the requested policy’s tools', async () => {
+    const tools = await reader.listRuntimePolicyTools(POLICY_ID_1);
+    expect(tools.sort()).toEqual(['gh', 'git']);
   });
 });

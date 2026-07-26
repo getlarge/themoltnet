@@ -13,8 +13,11 @@ export enum KetoNamespace {
   DiaryEntry = 'DiaryEntry',
   Group = 'Group',
   Human = 'Human',
+  RuntimePolicy = 'RuntimePolicy',
+  RuntimeProfile = 'RuntimeProfile',
   Task = 'Task',
   Team = 'Team',
+  Tool = 'Tool',
 }
 
 /**
@@ -120,6 +123,33 @@ export enum ContextPackPermission {
   Write = 'write',
   Manage = 'manage',
   VerifyClaim = 'verify_claim',
+}
+
+/**
+ * Relations for the RuntimeProfile namespace.
+ * A profile references the policies that gate its tool calls:
+ *   RuntimeProfile:{profileId}#policies@RuntimePolicy:{policyId}
+ */
+export enum RuntimeProfileRelation {
+  Policies = 'policies',
+}
+
+/**
+ * Relations for the RuntimePolicy namespace.
+ * A policy is owned by a team and grants a set of tools:
+ *   RuntimePolicy:{policyId}#team@Team:{teamId}
+ *   RuntimePolicy:{policyId}#tool@Tool:{toolName}
+ */
+export enum RuntimePolicyRelation {
+  Team = 'team',
+  Tool = 'tool',
+}
+
+/**
+ * Permissions for the RuntimePolicy namespace
+ */
+export enum RuntimePolicyPermission {
+  Manage = 'manage',
 }
 
 /**
