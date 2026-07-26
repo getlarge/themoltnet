@@ -17,6 +17,7 @@ import {
 import { type Agent, connect } from '@themoltnet/sdk';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { buildProducerVerification } from './fixtures.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
 const LIVE_LLM_FLAG = 'MOLTNET_AGENT_DAEMON_LIVE_LLM_E2E';
@@ -360,7 +361,10 @@ describeLive('Agent daemon live Ollama Cloud execution (e2e)', () => {
           ],
           recipeParams: {},
           summary: 'live retry triage e2e completed after requeue.',
-          verification: buildProducerVerification(claimedTask.task.inputCid),
+          verification: buildProducerVerification(claimedTask.task.inputCid, {
+            detail:
+              'submit tool criterion satisfied in live retry triage e2e stub',
+          }),
         };
         await reporter.finalize({ inputTokens: 1, outputTokens: 1 });
         await reporter.close();
@@ -409,21 +413,6 @@ describeLive('Agent daemon live Ollama Cloud execution (e2e)', () => {
     });
   }, 180_000);
 });
-
-function buildProducerVerification(inputCid: string) {
-  return {
-    inputCid,
-    results: [
-      {
-        id: 'submit-output',
-        kind: 'gate' as const,
-        status: 'pass' as const,
-        detail: 'submit tool criterion satisfied in live retry triage e2e stub',
-      },
-    ],
-    passed: true,
-  };
-}
 
 async function runLiveTask(input: {
   agent: Agent;
