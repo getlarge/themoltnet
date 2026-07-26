@@ -27,17 +27,24 @@ updates. Keep the workflow filename as `release.yml` when that cleanup happens.
 
 Configured in `nx.json` under `release.groups`:
 
-- `npm-packages`: independent published TypeScript packages.
+- One group per published TypeScript package, named for its existing public tag
+  prefix (for example, `sdk` owns `@themoltnet/sdk` and creates
+  `sdk-v{version}`).
 - `cli`: fixed-version CLI family, including the Go CLI and npm wrapper
   packages.
 - `go-modules`: independent Go library modules.
 - `github-actions`: independent GitHub Actions distributed from this repo by
   tag.
-- `docker-images`: independent Docker images built from Nx projects with
-  Dockerfiles.
+- One group per Docker image, also named for its public tag prefix (for example,
+  `rest-api` owns `@moltnet/rest-api` and creates `rest-api-v{version}`).
 
-Use groups when invoking release commands. Avoid hand-ordering projects; Nx
-should derive project ordering and dependent updates.
+The one-project groups are intentional. Nx interpolates scoped package names
+literally for `{projectName}`, while the repository's Release Please history
+uses unscoped tag prefixes. `{releaseGroupName}-v{version}` preserves those
+public tags and lets Nx resolve the correct current version from git history.
+
+Use groups when invoking release commands. Nx still derives project ordering
+and dependent updates across the selected groups.
 
 ## Full Rehearsal
 
@@ -281,14 +288,17 @@ git clean -fd
 Use dry-runs only as a fast preflight before the full rehearsal:
 
 ```bash
-pnpm exec nx release version patch --groups npm-packages --dry-run --verbose
+pnpm exec nx release version patch --groups sdk --dry-run --verbose
 pnpm exec nx release version patch --groups go-modules,cli --dry-run --verbose
 pnpm exec nx release version patch --groups github-actions --dry-run --verbose
-NX_DRY_RUN=true pnpm exec nx release version patch --groups docker-images --dry-run --verbose
+NX_DRY_RUN=true pnpm exec nx release version patch --groups rest-api --dry-run --verbose
 ```
 
-The Docker dry-run sets `NX_DRY_RUN=true` because `docker.preVersionCommand`
-would otherwise build images before Nx retags them.
+The Docker dry-run must set `NX_DRY_RUN=true` on the parent Nx process. Nx
+passes dry-run mode to `docker.groupPreVersionCommand`, but the Nx Docker
+version action reads it from the parent environment before deciding whether to
+run `docker tag`. The CI workflow sets this explicitly and skips Buildx setup
+for dry runs.
 
 ## Go Modules
 
@@ -394,15 +404,15 @@ Do not use `pnpm --filter` for action build/test/typecheck tasks.
 
 ## Docker Images
 
-Docker releases use Nx native Docker release support. The `docker-images`
-release group owns the Docker pre-version helper, so image builds only run when
-that group is selected. The helper builds the group before Nx retags images. By
-default it reads the project list from `nx.json`.
+Docker releases use Nx native Docker release support. Each image release group
+owns a Docker pre-version command that passes its exact project to
+`tools/release/docker-preversion.mjs`. Selecting `rest-api`, for example, builds
+only `@moltnet/rest-api` before Nx retags it.
 
 Override the image list only for local debugging:
 
 ```bash
-NX_RELEASE_DOCKER_PROJECTS=@moltnet/rest-api pnpm exec nx release version patch --groups docker-images --dry-run --verbose
+NX_DRY_RUN=true NX_RELEASE_DOCKER_PROJECTS=@moltnet/rest-api pnpm exec nx release version patch --groups rest-api --dry-run --verbose
 ```
 
 ## Expected Operator Flow
