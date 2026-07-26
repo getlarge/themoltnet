@@ -4,7 +4,7 @@ import { canonicalJsonBytes } from '@moltnet/crypto-service';
 import {
   ARKG_KEY_TYPE,
   ARKG_P256_ALGORITHM,
-  type CoseArkgSeedPublicKey,
+  type CoseArkgSeedPublicMaterial,
   type CoseEc2PublicKey,
   createPreviewSignPrehash,
   deriveArkgPublicKey,
@@ -384,7 +384,77 @@ function parseVerifierState(
       'Unsupported previewSign verifier-state version',
     );
   }
-  return state as unknown as PreviewSignVerifierStateV1;
+  const requiredString = (key: string): string => {
+    const field = state[key];
+    if (typeof field !== 'string' || field.length === 0) {
+      throw new SigningReceiptInvalidError(
+        `verifierState.${key} must be a non-empty string`,
+      );
+    }
+    return field;
+  };
+  const operation = state['operation'];
+  if (
+    operation !== 'credential-registration' &&
+    operation !== 'signing-request'
+  ) {
+    throw new SigningReceiptInvalidError(
+      'verifierState.operation is unsupported',
+    );
+  }
+  const expiresAt = requiredString('expiresAt');
+  const parsedExpiry = new Date(expiresAt);
+  if (
+    !Number.isFinite(parsedExpiry.getTime()) ||
+    parsedExpiry.toISOString() !== expiresAt
+  ) {
+    throw new SigningReceiptInvalidError(
+      'verifierState.expiresAt must be an ISO-8601 instant',
+    );
+  }
+  let derivedPublicKey: PreviewSignEc2PublicKey;
+  try {
+    derivedPublicKey = parseEc2PublicKey(
+      state['derivedPublicKey'],
+      'verifierState.derivedPublicKey',
+      ESP256_ALGORITHM,
+    );
+  } catch (error) {
+    if (error instanceof SigningCredentialError) {
+      throw new SigningReceiptInvalidError(error.message, {
+        cause: error,
+        reason: 'binding_mismatch',
+      });
+    }
+    throw error;
+  }
+  const digest = requiredString('digest');
+  const additionalArgumentsHash = requiredString('additionalArgumentsHash');
+  strictBase64Url(requiredString('publicMaterialHash'), 'publicMaterialHash', {
+    exactBytes: 32,
+  });
+  strictBase64Url(requiredString('envelope'), 'verifierState.envelope');
+  strictBase64Url(digest, 'verifierState.digest', { exactBytes: 32 });
+  strictBase64Url(additionalArgumentsHash, 'additionalArgumentsHash', {
+    exactBytes: 32,
+  });
+  return {
+    version: PREVIEW_SIGN_CHALLENGE_VERSION,
+    operation,
+    requestId: requiredString('requestId'),
+    credentialId: requiredString('credentialId'),
+    teamId: requiredString('teamId'),
+    claimantId: requiredString('claimantId'),
+    nonce: requiredString('nonce'),
+    purpose: requiredString('purpose'),
+    expiresAt,
+    signingPayload: requiredString('signingPayload'),
+    publicMaterialHash: requiredString('publicMaterialHash'),
+    envelope: requiredString('envelope'),
+    digest,
+    additionalArgumentsHash,
+    derivedPublicKey,
+  };
 }
 
 function parseReceipt(receipt: SigningMethodReceipt) {
@@ -423,9 +493,37 @@ function replayMatches(
   try {
     const parsedReceipt = parseReceipt(receipt);
     const value = record(evidence, 'previewSign evidence');
+    exactKeys(
+      value,
+      [
+        'additionalArgumentsHash',
+        'claimantId',
+        'credentialId',
+        'derivedPublicKey',
+        'digest',
+        'envelope',
+        'expiresAt',
+        'nonce',
+        'operation',
+        'proofHash',
+        'purpose',
+        'requestId',
+        'signature',
+        'teamId',
+        'verificationMethod',
+        'version',
+      ],
+      'previewSign evidence',
+    );
+    const proofHash = value['proofHash'];
+    strictBase64Url(proofHash, 'evidence.proofHash', { exactBytes: 32 });
+    const { proofHash: _proofHash, ...evidenceWithoutHash } = value;
     return (
       value['version'] === PREVIEW_SIGN_EVIDENCE_VERSION &&
-      value['signature'] === parsedReceipt.encoded
+      value['operation'] === 'signing-request' &&
+      value['verificationMethod'] === METHOD &&
+      value['signature'] === parsedReceipt.encoded &&
+      proofHash === digestBase64Url(canonicalJsonBytes(evidenceWithoutHash))
     );
   } catch {
     return false;
@@ -495,10 +593,7 @@ export function createPreviewSignSigningMethodDriver(
           bytes,
         ]),
       );
-      const seed: CoseArkgSeedPublicKey = {
-        ...binding.material.seedPublicKey,
-        encoded: '',
-      };
+      const seed: CoseArkgSeedPublicMaterial = binding.material.seedPublicKey;
       const derived = deriveArkgPublicKey(seed, ikm, context);
       const additionalArguments = Buffer.from(
         derived.additionalArguments,
@@ -559,28 +654,18 @@ export function createPreviewSignSigningMethodDriver(
         state.publicMaterialHash === materialHash &&
         state.envelope === expectedEnvelope &&
         state.digest === expectedDigest;
-      if (new Date(state.expiresAt) <= now()) {
-        throw new SigningReceiptInvalidError(
-          'previewSign challenge has expired',
-          { reason: 'expired' },
-        );
-      }
       if (!bindingsMatch) {
         throw new SigningReceiptInvalidError(
           'previewSign receipt does not match the persisted server binding',
           { reason: 'binding_mismatch' },
         );
       }
-      strictBase64Url(state.digest, 'verifierState.digest', {
-        exactBytes: 32,
-      });
-      strictBase64Url(
-        state.additionalArgumentsHash,
-        'additionalArgumentsHash',
-        {
-          exactBytes: 32,
-        },
-      );
+      if (new Date(binding.expiresAt) <= now()) {
+        throw new SigningReceiptInvalidError(
+          'previewSign challenge has expired',
+          { reason: 'expired' },
+        );
+      }
       const receipt = parseReceipt(input.receipt);
       let valid: boolean;
       try {

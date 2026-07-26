@@ -73,6 +73,7 @@ import {
   setSigningRequestPersistence,
   setSigningVerifier,
   setSigningWorkflowErrorReporter,
+  VERIFICATION_METHOD,
 } from '@moltnet/signing-workflows';
 import {
   createTaskAnalyticsService,
@@ -418,6 +419,15 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
         registerSigningMethodDriver(
           previewSignDriver.verificationMethod,
           previewSignDriver,
+        );
+        app.log.info(
+          {
+            verificationMethods: [
+              VERIFICATION_METHOD.AgentEd25519,
+              previewSignDriver.verificationMethod,
+            ],
+          },
+          'crypto.signing_methods_registered',
         );
         setSigningKeyLookup({
           getPublicKey: async (agentId: string) => {

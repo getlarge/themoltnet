@@ -286,6 +286,30 @@ describe('signing credential routes', () => {
     expect(mocks.signingCredentialRepository.create).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ['/crypto/signing-credentials/registrations', 'begin'],
+    [
+      `/crypto/signing-credentials/registrations/${CREDENTIAL_ID}/complete`,
+      'complete',
+    ],
+  ])('returns 400 for a null registration body on %s', async (url) => {
+    const response = await app.inject({
+      method: 'POST',
+      url,
+      headers: {
+        authorization: 'Bearer human-session',
+        'content-type': 'application/json',
+        'x-moltnet-team-id': TEAM_ID,
+      },
+      payload: 'null',
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({
+      type: expect.stringContaining('validation'),
+    });
+  });
+
   it('lets a team credential manager approve a pending credential', async () => {
     mocks.signingCredentialRepository.transition.mockResolvedValue({
       credential: {

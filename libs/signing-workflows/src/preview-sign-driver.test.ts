@@ -483,6 +483,47 @@ describe('previewSign production signing method driver', () => {
     expect(verifyPrehashedSignature).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ['non-ISO expiry', { expiresAt: 'not-a-date' }],
+    [
+      'off-curve derived key',
+      {
+        derivedPublicKey: {
+          kty: 2,
+          algorithm: -9,
+          curve: 1,
+          x: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+          y: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+        },
+      },
+    ],
+  ])('rejects malformed persisted %s state', async (_name, override) => {
+    const verifyPrehashedSignature = vi.fn().mockReturnValue(true);
+    const driver = createPreviewSignSigningMethodDriver({
+      randomBytes: () => IKM,
+      verifyPrehashedSignature,
+    });
+    const input = claimInput();
+    const prepared = await driver.prepareClaim(input);
+
+    await expect(
+      driver.verifyReceipt({
+        ...input,
+        verifierState: {
+          ...(prepared.verifierState as Record<string, SigningMethodJson>),
+          ...override,
+        },
+        receipt: {
+          verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+          version: PREVIEW_SIGN_RECEIPT_VERSION,
+          signature:
+            'MEUCIQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+        },
+      }),
+    ).rejects.toMatchObject({ code: 'receipt_invalid' });
+    expect(verifyPrehashedSignature).not.toHaveBeenCalled();
+  });
+
   it('preserves the verifier error as the receipt failure cause', async () => {
     const cause = new Error('malformed P-256 point');
     const driver = createPreviewSignSigningMethodDriver({
@@ -535,32 +576,52 @@ describe('previewSign production signing method driver', () => {
     ).toBe(false);
   });
 
-  it('matches only an identical versioned receipt replay', () => {
-    const driver = createPreviewSignSigningMethodDriver();
+  it('matches only an identical receipt with intact evidence bindings', async () => {
+    const driver = createPreviewSignSigningMethodDriver({
+      randomBytes: () => IKM,
+      verifyPrehashedSignature: vi.fn().mockReturnValue(true),
+    });
+    const input = claimInput();
+    const prepared = await driver.prepareClaim(input);
     const receipt = {
       verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
       version: PREVIEW_SIGN_RECEIPT_VERSION,
       signature:
         'MEUCIQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
     };
+    const verified = await driver.verifyReceipt({
+      ...input,
+      verifierState: prepared.verifierState,
+      receipt,
+    });
+    if (
+      verified.details === undefined ||
+      verified.details === null ||
+      Array.isArray(verified.details) ||
+      typeof verified.details !== 'object'
+    ) {
+      throw new Error('expected object evidence');
+    }
+    const evidence = verified.details;
 
-    expect(
-      driver.isReceiptReplay?.(receipt, {
-        version: 1,
-        signature: receipt.signature,
-      }),
-    ).toBe(true);
+    expect(driver.isReceiptReplay?.(receipt, evidence)).toBe(true);
+    expect(driver.isReceiptReplay?.({ ...receipt, version: 2 }, evidence)).toBe(
+      false,
+    );
     expect(
       driver.isReceiptReplay?.(
-        { ...receipt, version: 2 },
-        { version: 1, signature: receipt.signature },
+        {
+          ...receipt,
+          signature:
+            'MEUCIQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQ',
+        },
+        evidence,
       ),
     ).toBe(false);
     expect(
       driver.isReceiptReplay?.(receipt, {
-        version: 1,
-        signature:
-          'MEUCIQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQ',
+        ...evidence,
+        requestId: 'tampered-request',
       }),
     ).toBe(false);
   });

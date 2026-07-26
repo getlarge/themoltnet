@@ -1,3 +1,5 @@
+import { isDeepStrictEqual } from 'node:util';
+
 import { type AuthContext, teamRelationToRole } from '@moltnet/auth';
 import { buildSigningBytes } from '@moltnet/crypto-service';
 import { DBOS, type SigningRequest } from '@moltnet/database';
@@ -424,6 +426,12 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
               throw new SigningServiceError(
                 'conflict',
                 'Signing request was already completed, rejected, or expired',
+              );
+            }
+            if (!isDeepStrictEqual(locked.methodState, row.methodState)) {
+              throw new SigningServiceError(
+                'conflict',
+                'Signing request verifier state changed during completion',
               );
             }
             return deps.signingRequestRepository.completeClaim({

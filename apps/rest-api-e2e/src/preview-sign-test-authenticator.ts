@@ -52,6 +52,7 @@ function derivedPrivateKey(additionalArguments: string): Uint8Array {
 
 export function signPreviewSignChallenge(
   challenge: PreviewSignChallenge,
+  extraEntropy: Uint8Array | false = false,
 ): PreviewSignReceiptValue {
   const digest = Buffer.from(challenge.digest, 'base64url');
   if (digest.length !== 32) {
@@ -64,6 +65,7 @@ export function signPreviewSignChallenge(
       format: 'der',
       prehash: false,
       lowS: true,
+      extraEntropy,
     },
   );
   return {

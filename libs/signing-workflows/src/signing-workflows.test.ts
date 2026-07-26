@@ -14,6 +14,7 @@ import {
   setSigningRequestPersistence,
   setSigningVerifier,
   setSigningWorkflowErrorReporter,
+  SigningReceiptInvalidError,
   SigningResultTimeoutError,
   signingWorkflows,
   toSigningMethodReceipt,
@@ -418,7 +419,10 @@ describe('Signing Workflows', () => {
     });
 
     it('reports receipt-verification failures with request context', async () => {
-      const cause = new Error('malformed derived P-256 point');
+      const cause = new SigningReceiptInvalidError(
+        'malformed derived P-256 point',
+        { reason: 'signature_verification_failed' },
+      );
       const reportError = vi.fn();
       setSigningWorkflowErrorReporter(reportError);
       registerSigningMethodDriver(verificationMethod, {
@@ -443,6 +447,7 @@ describe('Signing Workflows', () => {
         operation: 'verify_receipt',
         requestId: claimInput.requestId,
         verificationMethod,
+        reason: 'signature_verification_failed',
       });
     });
 

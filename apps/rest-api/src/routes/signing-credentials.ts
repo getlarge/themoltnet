@@ -33,11 +33,14 @@ const ParamsSchema = Type.Object({
 });
 const SIGNING_JSON_BODY_LIMIT = 64 * 1024;
 
-function rejectPrivateRegistrationMaterial(body: {
-  publicMaterial?: unknown;
-}): void {
+function rejectPrivateRegistrationMaterial(body: unknown): void {
+  if (body === null || Array.isArray(body) || typeof body !== 'object') {
+    return;
+  }
   try {
-    assertNoPrivateSigningMaterial(body.publicMaterial);
+    assertNoPrivateSigningMaterial(
+      (body as { publicMaterial?: unknown }).publicMaterial,
+    );
   } catch (error) {
     if (error instanceof SigningCredentialError) {
       throw createProblem('validation-failed', error.message);

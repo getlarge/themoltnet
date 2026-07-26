@@ -13,5 +13,6 @@ export {
 export { verifyP256PrehashedSignature } from './p256-verify.js';
 export type {
   CoseArkgSeedPublicKey,
+  CoseArkgSeedPublicMaterial,
   CoseEc2PublicKey,
 } from './verify-types.js';

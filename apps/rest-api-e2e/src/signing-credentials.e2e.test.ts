@@ -340,6 +340,49 @@ describe('Signing credential and delegated request lifecycle', () => {
     expect(retry.response.status).toBe(200);
     expect(retry.data).toEqual(completed.data);
 
+    const concurrentRequest = await createSigningRequest({
+      client,
+      auth: () => requester.accessToken,
+      body: {
+        message: 'concurrent completion artifact',
+        verificationMethod: VERIFICATION_METHOD,
+        teamId: requester.personalTeamId,
+        purpose: 'Exercise atomic one-use completion',
+        signerConstraint: { type: 'human', id: signer.humanId },
+      },
+    });
+    const concurrentClaim = await claimSigningRequest({
+      client: signerClient,
+      headers: { 'x-moltnet-team-id': requester.personalTeamId },
+      path: { id: concurrentRequest.data!.id },
+      body: { credentialId: approved.data!.id },
+    });
+    const concurrentChallenge = previewSignChallenge(
+      concurrentClaim.data!.challenge,
+    );
+    const concurrentReceipts = [
+      signPreviewSignChallenge(concurrentChallenge, new Uint8Array(32).fill(1)),
+      signPreviewSignChallenge(concurrentChallenge, new Uint8Array(32).fill(2)),
+    ];
+    expect(concurrentReceipts[0]!.value.signature).not.toBe(
+      concurrentReceipts[1]!.value.signature,
+    );
+    const concurrentCompletions = await Promise.all(
+      concurrentReceipts.map((concurrentReceipt) =>
+        completeSigningRequest({
+          client: signerClient,
+          headers: { 'x-moltnet-team-id': requester.personalTeamId },
+          path: { id: concurrentRequest.data!.id },
+          body: { receipt: concurrentReceipt },
+        }),
+      ),
+    );
+    expect(
+      concurrentCompletions
+        .map(({ response }) => response.status)
+        .sort((left, right) => left - right),
+    ).toEqual([200, 409]);
+
     const expiredBeforeClaim = await createSigningRequest({
       client,
       auth: () => requester.accessToken,

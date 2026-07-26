@@ -816,6 +816,72 @@ describe('createSigningService', () => {
     expect(completeClaim).toHaveBeenCalledTimes(1);
   });
 
+  it('rejects completion when the locked verifier state changed after verification', async () => {
+    const claimed = {
+      ...pendingRequest(),
+      status: 'claimed' as const,
+      claimedByHumanId: human.humanId,
+      signingCredentialId: CREDENTIAL_ID,
+      methodState: {
+        verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+        value: { persisted: 'verified-state' },
+      },
+    };
+    const verifyReceipt = vi.fn().mockResolvedValue({
+      verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+      credentialId: CREDENTIAL_ID,
+      proofHash: 'proof-hash',
+      details: { version: 1, signature: SIGNATURE },
+    });
+    _resetSigningWorkflowsForTesting();
+    registerSigningMethodDriver(VERIFICATION_METHOD.HumanHardwarePreviewSign, {
+      verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+      validatePublicMaterial: vi.fn(),
+      prepareClaim: vi.fn(),
+      verify: vi.fn().mockResolvedValue(false),
+      verifyReceipt,
+    });
+    const completeClaim = vi.fn();
+    const service = createSigningService(
+      createDeps({
+        signingRequestRepository: {
+          findById: vi.fn().mockResolvedValue(claimed),
+          lockClaimForCompletion: vi.fn().mockResolvedValue({
+            ...claimed,
+            methodState: {
+              ...claimed.methodState,
+              value: { persisted: 'changed-state' },
+            },
+          }),
+          completeClaim,
+        } as never,
+        signingCredentialRepository: {
+          findActiveCompatible: vi.fn().mockResolvedValue(activeCredential()),
+        } as never,
+        transactionRunner: {
+          runInTransaction: vi.fn(async (task) => task()),
+        } as never,
+      }),
+    );
+
+    await expect(
+      service.requests.complete({
+        actor: human,
+        teamId: TEAM_ID,
+        requestId: REQUEST_ID,
+        receipt: {
+          verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+          value: {
+            version: PREVIEW_SIGN_RECEIPT_VERSION,
+            signature: SIGNATURE,
+          },
+        },
+      }),
+    ).rejects.toMatchObject({ code: 'conflict' });
+    expect(verifyReceipt).toHaveBeenCalledTimes(1);
+    expect(completeClaim).not.toHaveBeenCalled();
+  });
+
   it('maps an expired method receipt to signing_request_expired', async () => {
     const claimed = {
       ...pendingRequest(),

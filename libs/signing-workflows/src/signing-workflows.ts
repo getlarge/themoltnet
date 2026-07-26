@@ -307,6 +307,7 @@ let signingWorkflowErrorReporter:
         operation: 'verify_receipt' | 'verify_signature';
         requestId: string;
         verificationMethod: VerificationMethod;
+        reason?: SigningReceiptInvalidError['reason'];
       },
     ) => void)
   | null = null;
@@ -417,6 +418,9 @@ export async function verifySigningReceipt(
       operation: 'verify_receipt',
       requestId: input.requestId,
       verificationMethod: input.verificationMethod,
+      ...(error instanceof SigningReceiptInvalidError && error.reason
+        ? { reason: error.reason }
+        : {}),
     });
     throw error;
   }

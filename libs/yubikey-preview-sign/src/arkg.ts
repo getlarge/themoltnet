@@ -28,6 +28,7 @@ import {
 import { invariant } from './errors.js';
 import type {
   CoseArkgSeedPublicKey,
+  CoseArkgSeedPublicMaterial,
   CoseEc2PublicKey,
 } from './verify-types.js';
 
@@ -146,7 +147,7 @@ export interface DerivedArkgPublicKey {
 }
 
 export function deriveArkgPublicKey(
-  seed: CoseArkgSeedPublicKey,
+  seed: CoseArkgSeedPublicMaterial,
   ikm: Uint8Array,
   context: Uint8Array,
 ): DerivedArkgPublicKey {
@@ -160,23 +161,28 @@ export function deriveArkgPublicKey(
     'INVALID_INPUT',
     'ARKG context must be at most 64 bytes',
   );
+  // ARKG-Derive-Public-Key, draft-bradleylundberg-cfrg-arkg-11 §2.3:
+  // KEM-Encaps derives an ephemeral P-256 key pair from server-owned IKM.
   const ephemeralScalar = hashToScalar(
     ikm,
     concatBytes(DST_KEM_ECDH_KG, DST_KEM),
   );
   const ephemeralSecret = bigintToBytes(ephemeralScalar, 32);
   const ephemeralPublic = p256.getPublicKey(ephemeralSecret, false);
+  // §3.3: the ECDH KEM output is the shared secret for the integrity wrapper.
   const sharedSecret = p256
     .getSharedSecret(ephemeralSecret, ecPoint(seed.kemKey), true)
     .slice(1);
   const contextPrime = concatBytes(Uint8Array.of(context.length), context);
   const kemContext = concatBytes(DST_DERIVE_KEY_KEM, contextPrime);
+  // §3.2: derive the MAC key/tag that gives the ECDH ciphertext integrity.
   const macKey = hkdfSha256(
     sharedSecret,
     concatBytes(DST_KEM_HMAC_MAC, DST_KEM, kemContext),
     32,
   );
   const tag = hmac(nobleSha256, macKey, ephemeralPublic).slice(0, 16);
+  // §§2.3 and 3.2: derive ikm_tau, then the §3.1 blinding factor tau.
   const ikmTau = hkdfSha256(
     sharedSecret,
     concatBytes(DST_KEM_HMAC_SHARED, DST_KEM, kemContext),
@@ -189,6 +195,7 @@ export function deriveArkgPublicKey(
     concatBytes(DST_BL_EC, DST_BL, blindingContext),
   );
   const seedPoint = p256.Point.fromBytes(ecPoint(seed.blindingKey));
+  // §§2.3 and 3.1: pk' = BL-Blind-Public-Key(pk_bl, tau).
   const derivedPoint = seedPoint
     .add(p256.Point.BASE.multiply(tau))
     .toBytes(false);
