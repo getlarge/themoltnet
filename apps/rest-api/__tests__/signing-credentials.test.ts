@@ -18,6 +18,79 @@ const HUMAN_ID = '660e8400-e29b-41d4-a716-446655440001';
 const TEAM_ID = '770e8400-e29b-41d4-a716-446655440002';
 const CREDENTIAL_ID = '880e8400-e29b-41d4-a716-446655440003';
 const GROUP_ID = 'aa0e8400-e29b-41d4-a716-446655440005';
+const DIGEST = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+const SIGNATURE =
+  'MEUCIQCEfiAIvamLdwfaDHCI2epg4Si6E3bAHlRDC6bl2fyNXAIgaRLbpQLIurx8zaf63gYqpcGF8CsP8kTMFNu9q2B2ORY';
+
+const publicMaterial = {
+  version: 1 as const,
+  outerCredentialId: 'b3V0ZXItY3JlZGVudGlhbA',
+  outerPublicKey: {
+    kty: 2 as const,
+    algorithm: -7 as const,
+    curve: 1 as const,
+    x: 'bTvfMdDbSJiPFtRwSP3SQSPNKG5C0FEtqp9ya07PGN8',
+    y: 'Ze1CFpxpZ1-Tb_feX5vZOtvI6nMDaxbo2Qrb-r2t26c',
+  },
+  previewKeyHandle: 'cHJldmlldy1rZXktaGFuZGxl',
+  seedPublicKey: {
+    kty: -65537 as const,
+    algorithm: -65700 as const,
+    derivedAlgorithm: -9 as const,
+    blindingKey: {
+      kty: 2 as const,
+      algorithm: -7 as const,
+      curve: 1 as const,
+      x: 'bTvfMdDbSJiPFtRwSP3SQSPNKG5C0FEtqp9ya07PGN8',
+      y: 'Ze1CFpxpZ1-Tb_feX5vZOtvI6nMDaxbo2Qrb-r2t26c',
+    },
+    kemKey: {
+      kty: 2 as const,
+      algorithm: -25 as const,
+      curve: 1 as const,
+      x: 'w4u91yhhlnM_oXfkO3PP09bXLNEcwLsskjbPhaQtz_U',
+      y: '36M5weB9_N_ajXvipaPHOCmR84ff4zKx3Y2m4GIs-zU',
+    },
+  },
+};
+
+const previewSignChallenge = {
+  verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+  version: 1,
+  envelope: 'ZW52ZWxvcGU',
+  digest: DIGEST,
+  additionalArguments: 'YXJndW1lbnRz',
+  outerCredentialId: publicMaterial.outerCredentialId,
+  outerPublicKey: publicMaterial.outerPublicKey,
+  previewKeyHandle: publicMaterial.previewKeyHandle,
+};
+
+const previewSignEvidence = {
+  version: 1,
+  operation: 'signing-request' as const,
+  requestId: CREDENTIAL_ID,
+  credentialId: CREDENTIAL_ID,
+  teamId: TEAM_ID,
+  claimantId: HUMAN_ID,
+  verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+  nonce: '990e8400-e29b-41d4-a716-446655440004',
+  purpose: 'Approve production deployment',
+  expiresAt: new Date(Date.now() + 300_000).toISOString(),
+  envelope: 'ZW52ZWxvcGU',
+  digest: DIGEST,
+  additionalArgumentsHash: DIGEST,
+  derivedPublicKey: {
+    ...publicMaterial.outerPublicKey,
+    algorithm: -9,
+  },
+  signature: SIGNATURE,
+  proofHash: DIGEST,
+};
+
+const previewSignReceipt = {
+  verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+  value: { version: 1, signature: SIGNATURE },
+};
 
 const humanAuth: AuthContext = {
   subjectType: 'human',
@@ -34,10 +107,14 @@ const credential = {
   ownerHumanId: HUMAN_ID,
   teamId: TEAM_ID,
   verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
-  credentialType: 'test-only',
-  algorithm: 'test-only',
-  publicMaterial: { version: 1, publicKey: 'public' },
-  enrollmentEvidence: { version: 1, proofHash: 'proof' },
+  credentialType: 'preview-sign-arkg',
+  algorithm: 'arkg-p256-esp256',
+  publicMaterial,
+  enrollmentEvidence: {
+    ...previewSignEvidence,
+    operation: 'credential-registration' as const,
+    purpose: 'signing-credential-registration',
+  },
   label: 'Test credential',
   status: 'pending_approval' as const,
   approvedByHumanId: null,
@@ -88,17 +165,20 @@ beforeAll(() => {
     verify: vi.fn().mockResolvedValue(true),
     validatePublicMaterial: vi.fn(),
     prepareClaim: vi.fn().mockResolvedValue({
-      challenge: {
-        verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
-        challenge: 'test-challenge',
-      },
+      challenge: previewSignChallenge,
       verifierState: { expected: 'test-receipt' },
     }),
     verifyReceipt: vi.fn().mockResolvedValue({
       verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
       credentialId: CREDENTIAL_ID,
-      proofHash: 'proof',
+      proofHash: DIGEST,
+      details: previewSignEvidence,
     }),
+    isReceiptReplay: vi.fn(
+      (receipt, evidence) =>
+        receipt['signature'] === SIGNATURE &&
+        evidence['signature'] === SIGNATURE,
+    ),
   });
 });
 
@@ -120,8 +200,8 @@ describe('signing credential routes', () => {
         ownerHumanId: HUMAN_ID,
         teamId: TEAM_ID,
         verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
-        credentialType: 'test-only',
-        algorithm: 'test-only',
+        credentialType: 'preview-sign-arkg',
+        algorithm: 'arkg-p256-esp256',
         label: 'Test credential',
         challenge: {
           verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
@@ -161,8 +241,9 @@ describe('signing credential routes', () => {
       },
       payload: {
         verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
-        credentialType: 'test-only',
-        algorithm: 'test-only',
+        credentialType: 'preview-sign-arkg',
+        algorithm: 'arkg-p256-esp256',
+        publicMaterial,
         label: 'Test credential',
       },
     });
@@ -181,7 +262,7 @@ describe('signing credential routes', () => {
     );
   });
 
-  it('rejects nested private material before persistence', async () => {
+  it('rejects private material before Ajv can strip the unknown field', async () => {
     const response = await app.inject({
       method: 'POST',
       url: `/crypto/signing-credentials/registrations/${CREDENTIAL_ID}/complete`,
@@ -191,13 +272,10 @@ describe('signing credential routes', () => {
       },
       payload: {
         publicMaterial: {
-          version: 1,
-          nested: { privateKey: 'must-not-persist' },
+          ...publicMaterial,
+          privateKey: 'must-not-persist',
         },
-        receipt: {
-          verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
-          value: {},
-        },
+        receipt: previewSignReceipt,
       },
     });
 
@@ -206,6 +284,30 @@ describe('signing credential routes', () => {
       mocks.signingCredentialRepository.consumeRegistration,
     ).not.toHaveBeenCalled();
     expect(mocks.signingCredentialRepository.create).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['/crypto/signing-credentials/registrations', 'begin'],
+    [
+      `/crypto/signing-credentials/registrations/${CREDENTIAL_ID}/complete`,
+      'complete',
+    ],
+  ])('returns 400 for a null registration body on %s', async (url) => {
+    const response = await app.inject({
+      method: 'POST',
+      url,
+      headers: {
+        authorization: 'Bearer human-session',
+        'content-type': 'application/json',
+        'x-moltnet-team-id': TEAM_ID,
+      },
+      payload: 'null',
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({
+      type: expect.stringContaining('validation'),
+    });
   });
 
   it('lets a team credential manager approve a pending credential', async () => {
@@ -423,7 +525,7 @@ describe('signing credential routes', () => {
       signingCredentialId: CREDENTIAL_ID,
       challenge: {
         verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
-        value: { challenge: 'test-challenge' },
+        value: previewSignChallenge,
       },
       methodState: {
         verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
@@ -444,7 +546,7 @@ describe('signing credential routes', () => {
       status: 'completed',
       receipt: {
         verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
-        value: { receipt: 'test-receipt' },
+        value: previewSignEvidence,
       },
       valid: true,
       completedAt: new Date(),
@@ -489,10 +591,7 @@ describe('signing credential routes', () => {
         'x-moltnet-team-id': TEAM_ID,
       },
       payload: {
-        receipt: {
-          verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
-          value: { receipt: 'test-receipt' },
-        },
+        receipt: previewSignReceipt,
       },
     });
     expect(completeResponse.statusCode).toBe(200);
@@ -503,16 +602,15 @@ describe('signing credential routes', () => {
   });
 
   it('returns an identical completed request without verifying it again', async () => {
-    const receipt = {
-      verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
-      value: { receipt: 'test-receipt' },
-    };
     const completed = {
       ...createPendingRequest(),
       status: 'completed' as const,
       claimedByHumanId: HUMAN_ID,
       signingCredentialId: CREDENTIAL_ID,
-      receipt,
+      receipt: {
+        verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+        value: previewSignEvidence,
+      },
       valid: true,
       completedAt: new Date(),
     };
@@ -525,7 +623,7 @@ describe('signing credential routes', () => {
         authorization: 'Bearer human-session',
         'x-moltnet-team-id': TEAM_ID,
       },
-      payload: { receipt },
+      payload: { receipt: previewSignReceipt },
     });
 
     expect(response.statusCode).toBe(200);
@@ -714,7 +812,7 @@ describe('signing credential routes', () => {
                 receipt: {
                   verificationMethod:
                     VERIFICATION_METHOD.HumanHardwarePreviewSign,
-                  value: {},
+                  value: { version: 1, signature: SIGNATURE },
                 },
               }
             : {},

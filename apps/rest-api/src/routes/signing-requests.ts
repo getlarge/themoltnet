@@ -28,6 +28,7 @@ import type { FastifyInstance } from 'fastify';
 import { Type } from 'typebox';
 
 import {
+  CompletePreviewSignRequestSchema,
   MAX_ED25519_SIGNATURE_LENGTH,
   SigningRequestListSchema,
   SigningRequestParamsSchema,
@@ -48,6 +49,7 @@ function toSigningResponse(row: SigningRequest) {
     claimedByHumanId: row.claimedByHumanId ?? null,
     signingCredentialId: row.signingCredentialId ?? null,
     challenge: row.challenge ?? null,
+    receipt: row.receipt ?? null,
     message: row.message,
     nonce: row.nonce,
     signingInput: Buffer.from(
@@ -314,12 +316,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
         security: [{ sessionAuth: [] }, { cookieAuth: [] }],
         headers: TeamHeaderRequiredSchema,
         params: SigningRequestParamsSchema,
-        body: Type.Object({
-          receipt: Type.Object({
-            verificationMethod: VerificationMethodSchema,
-            value: Type.Record(Type.String(), Type.Unknown()),
-          }),
-        }),
+        body: CompletePreviewSignRequestSchema,
         response: {
           200: Type.Ref(SigningRequestSchema.$id),
           400: Type.Ref(ProblemDetailsSchema.$id),

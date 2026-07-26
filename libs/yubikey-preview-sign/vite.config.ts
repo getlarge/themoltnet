@@ -15,11 +15,19 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
     rollupOptions: {
-      input: { index: 'src/index.ts', verify: 'src/verify-entry.ts' },
+      input: {
+        index: 'src/index.ts',
+        protocol: 'src/protocol-entry.ts',
+        verify: 'src/verify-entry.ts',
+      },
       external: ['@themoltnet/ctap'],
     },
     rolldownOptions: {
-      input: { index: 'src/index.ts', verify: 'src/verify-entry.ts' },
+      input: {
+        index: 'src/index.ts',
+        protocol: 'src/protocol-entry.ts',
+        verify: 'src/verify-entry.ts',
+      },
       external: ['@themoltnet/ctap'],
     },
   },

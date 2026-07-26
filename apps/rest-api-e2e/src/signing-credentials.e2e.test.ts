@@ -10,6 +10,7 @@ import {
   getSigningCredential,
   listSigningCredentials,
   listSigningRequests,
+  type PreviewSignChallenge,
   rejectSigningRequest,
   revokeSigningCredential,
   suspendSigningCredential,
@@ -29,17 +30,32 @@ import {
   type TestAgent,
   type TestHuman,
 } from './helpers.js';
+import {
+  previewSignTestPublicMaterial,
+  signPreviewSignChallenge,
+} from './preview-sign-test-authenticator.js';
 import { createTestHarness, type TestHarness } from './setup.js';
 
 const VERIFICATION_METHOD = 'human-hardware-previewsign' as const;
 
-function challengeResponse(challenge: unknown): string {
-  const response = (challenge as { value?: { response?: unknown } } | undefined)
-    ?.value?.response;
-  if (typeof response !== 'string') {
-    throw new Error('test signing driver returned an invalid challenge');
+function previewSignChallenge(challenge: unknown): PreviewSignChallenge {
+  const value = (
+    challenge as
+      | {
+          verificationMethod?: unknown;
+          value?: unknown;
+        }
+      | undefined
+  )?.value;
+  if (
+    !value ||
+    typeof value !== 'object' ||
+    (value as { verificationMethod?: unknown }).verificationMethod !==
+      VERIFICATION_METHOD
+  ) {
+    throw new Error('server returned an invalid previewSign challenge');
   }
-  return response;
+  return value as PreviewSignChallenge;
 }
 
 describe('Signing credential and delegated request lifecycle', () => {
@@ -112,13 +128,15 @@ describe('Signing credential and delegated request lifecycle', () => {
   });
 
   it('enrolls, approves, claims, verifies, completes, and retires a credential', async () => {
+    const publicMaterial = previewSignTestPublicMaterial();
     const begun = await beginSigningCredentialRegistration({
       client: signerClient,
       headers: { 'x-moltnet-team-id': requester.personalTeamId },
       body: {
         verificationMethod: VERIFICATION_METHOD,
-        credentialType: 'test-only',
-        algorithm: 'test-only',
+        credentialType: 'preview-sign-arkg',
+        algorithm: 'arkg-p256-esp256',
+        publicMaterial,
         label: 'E2E delegated signer',
       },
     });
@@ -130,13 +148,12 @@ describe('Signing credential and delegated request lifecycle', () => {
       path: { id: begun.data!.id },
       body: {
         publicMaterial: {
-          version: 1,
-          nested: { privateKey: 'must-never-persist' },
-        },
-        receipt: {
-          verificationMethod: VERIFICATION_METHOD,
-          value: { response: challengeResponse(begun.data!.challenge) },
-        },
+          ...publicMaterial,
+          privateKey: 'must-never-persist',
+        } as never,
+        receipt: signPreviewSignChallenge(
+          previewSignChallenge(begun.data!.challenge),
+        ),
       },
     });
     expect(privateMaterial.response.status).toBe(400);
@@ -146,15 +163,35 @@ describe('Signing credential and delegated request lifecycle', () => {
       headers: { 'x-moltnet-team-id': requester.personalTeamId },
       path: { id: begun.data!.id },
       body: {
-        publicMaterial: { version: 1, publicKey: 'e2e-public-only' },
-        receipt: {
-          verificationMethod: VERIFICATION_METHOD,
-          value: { response: challengeResponse(begun.data!.challenge) },
-        },
+        publicMaterial,
+        receipt: signPreviewSignChallenge(
+          previewSignChallenge(begun.data!.challenge),
+        ),
       },
     });
     expect(completedEnrollment.error).toBeUndefined();
     expect(completedEnrollment.data!.status).toBe('pending_approval');
+    expect(completedEnrollment.data!.publicMaterial).toEqual(publicMaterial);
+    expect(completedEnrollment.data!.enrollmentEvidence).toMatchObject({
+      version: 1,
+      operation: 'credential-registration',
+      verificationMethod: VERIFICATION_METHOD,
+      claimantId: signer.humanId,
+      teamId: requester.personalTeamId,
+    });
+
+    const enrollmentReplay = await completeSigningCredentialRegistration({
+      client: signerClient,
+      headers: { 'x-moltnet-team-id': requester.personalTeamId },
+      path: { id: begun.data!.id },
+      body: {
+        publicMaterial,
+        receipt: signPreviewSignChallenge(
+          previewSignChallenge(begun.data!.challenge),
+        ),
+      },
+    });
+    expect(enrollmentReplay.response.status).toBe(409);
 
     const memberApproval = await approveSigningCredential({
       client: signerClient,
@@ -236,7 +273,10 @@ describe('Signing credential and delegated request lifecycle', () => {
       200, 409,
     ]);
     const claimed = claims.find(({ data }) => data !== undefined)!.data!;
-    const response = challengeResponse(claimed.challenge);
+    const challenge = previewSignChallenge(claimed.challenge);
+    expect(Buffer.from(challenge.digest, 'base64url')).toHaveLength(32);
+    expect(challenge).not.toHaveProperty('ikm');
+    const receipt = signPreviewSignChallenge(challenge);
 
     const wrongMethod = await completeSigningRequest({
       client: signerClient,
@@ -245,9 +285,9 @@ describe('Signing credential and delegated request lifecycle', () => {
       body: {
         receipt: {
           verificationMethod: 'agent-ed25519',
-          value: { response },
+          value: receipt.value,
         },
-      },
+      } as never,
     });
     expect(wrongMethod.response.status).toBe(400);
 
@@ -258,7 +298,7 @@ describe('Signing credential and delegated request lifecycle', () => {
       body: {
         receipt: {
           verificationMethod: VERIFICATION_METHOD,
-          value: { response: 'wrong' },
+          value: { version: 1, signature: 'MAYCAQECAQE' },
         },
       },
     });
@@ -269,10 +309,7 @@ describe('Signing credential and delegated request lifecycle', () => {
       headers: { 'x-moltnet-team-id': requester.personalTeamId },
       path: { id: created.data!.id },
       body: {
-        receipt: {
-          verificationMethod: VERIFICATION_METHOD,
-          value: { response },
-        },
+        receipt,
       },
     });
     expect(completed.error).toBeUndefined();
@@ -281,6 +318,15 @@ describe('Signing credential and delegated request lifecycle', () => {
       valid: true,
       claimedByHumanId: signer.humanId,
       signingCredentialId: approved.data!.id,
+      receipt: {
+        verificationMethod: VERIFICATION_METHOD,
+        value: {
+          version: 1,
+          operation: 'signing-request',
+          digest: challenge.digest,
+          signature: receipt.value.signature,
+        },
+      },
     });
 
     const retry = await completeSigningRequest({
@@ -288,14 +334,54 @@ describe('Signing credential and delegated request lifecycle', () => {
       headers: { 'x-moltnet-team-id': requester.personalTeamId },
       path: { id: created.data!.id },
       body: {
-        receipt: {
-          verificationMethod: VERIFICATION_METHOD,
-          value: { response },
-        },
+        receipt,
       },
     });
     expect(retry.response.status).toBe(200);
     expect(retry.data).toEqual(completed.data);
+
+    const concurrentRequest = await createSigningRequest({
+      client,
+      auth: () => requester.accessToken,
+      body: {
+        message: 'concurrent completion artifact',
+        verificationMethod: VERIFICATION_METHOD,
+        teamId: requester.personalTeamId,
+        purpose: 'Exercise atomic one-use completion',
+        signerConstraint: { type: 'human', id: signer.humanId },
+      },
+    });
+    const concurrentClaim = await claimSigningRequest({
+      client: signerClient,
+      headers: { 'x-moltnet-team-id': requester.personalTeamId },
+      path: { id: concurrentRequest.data!.id },
+      body: { credentialId: approved.data!.id },
+    });
+    const concurrentChallenge = previewSignChallenge(
+      concurrentClaim.data!.challenge,
+    );
+    const concurrentReceipts = [
+      signPreviewSignChallenge(concurrentChallenge, new Uint8Array(32).fill(1)),
+      signPreviewSignChallenge(concurrentChallenge, new Uint8Array(32).fill(2)),
+    ];
+    expect(concurrentReceipts[0]!.value.signature).not.toBe(
+      concurrentReceipts[1]!.value.signature,
+    );
+    const concurrentCompletions = await Promise.all(
+      concurrentReceipts.map((concurrentReceipt) =>
+        completeSigningRequest({
+          client: signerClient,
+          headers: { 'x-moltnet-team-id': requester.personalTeamId },
+          path: { id: concurrentRequest.data!.id },
+          body: { receipt: concurrentReceipt },
+        }),
+      ),
+    );
+    expect(
+      concurrentCompletions
+        .map(({ response }) => response.status)
+        .sort((left, right) => left - right),
+    ).toEqual([200, 409]);
 
     const expiredBeforeClaim = await createSigningRequest({
       client,
@@ -346,13 +432,33 @@ describe('Signing credential and delegated request lifecycle', () => {
       headers: { 'x-moltnet-team-id': requester.personalTeamId },
       path: { id: expiresAfterClaim.data!.id },
       body: {
-        receipt: {
-          verificationMethod: VERIFICATION_METHOD,
-          value: { response: challengeResponse(expiringClaim.data!.challenge) },
-        },
+        receipt: signPreviewSignChallenge(
+          previewSignChallenge(expiringClaim.data!.challenge),
+        ),
       },
     });
     expect(expiredCompletion.response.status).toBe(409);
+
+    const revokedBeforeCompletion = await createSigningRequest({
+      client,
+      auth: () => requester.accessToken,
+      body: {
+        message: 'revoked before completion',
+        verificationMethod: VERIFICATION_METHOD,
+        teamId: requester.personalTeamId,
+        purpose: 'Exercise credential revocation binding',
+        signerConstraint: { type: 'human', id: signer.humanId },
+      },
+    });
+    const revokedClaim = await claimSigningRequest({
+      client: signerClient,
+      headers: { 'x-moltnet-team-id': requester.personalTeamId },
+      path: { id: revokedBeforeCompletion.data!.id },
+      body: { credentialId: approved.data!.id },
+    });
+    const revokedReceipt = signPreviewSignChallenge(
+      previewSignChallenge(revokedClaim.data!.challenge),
+    );
 
     const suspended = await suspendSigningCredential({
       client: approverClient,
@@ -367,6 +473,14 @@ describe('Signing credential and delegated request lifecycle', () => {
       path: { id: approved.data!.id },
     });
     expect(revoked.data!.status).toBe('revoked');
+
+    const completionAfterRevoke = await completeSigningRequest({
+      client: signerClient,
+      headers: { 'x-moltnet-team-id': requester.personalTeamId },
+      path: { id: revokedBeforeCompletion.data!.id },
+      body: { receipt: revokedReceipt },
+    });
+    expect(completionAfterRevoke.response.status).toBe(400);
 
     const approveAfterRevoke = await approveSigningCredential({
       client: approverClient,
@@ -384,13 +498,15 @@ describe('Signing credential and delegated request lifecycle', () => {
   });
 
   it('rejects self-approval against the real credential lifecycle SQL', async () => {
+    const publicMaterial = previewSignTestPublicMaterial();
     const begun = await beginSigningCredentialRegistration({
       client: approverClient,
       headers: { 'x-moltnet-team-id': requester.personalTeamId },
       body: {
         verificationMethod: VERIFICATION_METHOD,
-        credentialType: 'test-only',
-        algorithm: 'test-only',
+        credentialType: 'preview-sign-arkg',
+        algorithm: 'arkg-p256-esp256',
+        publicMaterial,
         label: 'Self approval must fail',
       },
     });
@@ -399,11 +515,10 @@ describe('Signing credential and delegated request lifecycle', () => {
       headers: { 'x-moltnet-team-id': requester.personalTeamId },
       path: { id: begun.data!.id },
       body: {
-        publicMaterial: { version: 1, publicKey: 'self-approval-public' },
-        receipt: {
-          verificationMethod: VERIFICATION_METHOD,
-          value: { response: challengeResponse(begun.data!.challenge) },
-        },
+        publicMaterial,
+        receipt: signPreviewSignChallenge(
+          previewSignChallenge(begun.data!.challenge),
+        ),
       },
     });
 

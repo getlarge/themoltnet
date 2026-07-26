@@ -66,12 +66,14 @@ import {
 } from '@moltnet/observability';
 import { createRuntimeSessionStorage } from '@moltnet/runtime-session-service';
 import {
+  createPreviewSignSigningMethodDriver,
   initSigningWorkflows,
   registerSigningMethodDriver,
   setSigningKeyLookup,
   setSigningRequestPersistence,
   setSigningVerifier,
   setSigningWorkflowErrorReporter,
+  VERIFICATION_METHOD,
 } from '@moltnet/signing-workflows';
 import {
   createTaskAnalyticsService,
@@ -99,7 +101,6 @@ import {
   createTaskService,
   type TaskService,
 } from './services/task.service.js';
-import { createTestSigningMethodDriver } from './test-signing-method-driver.js';
 import {
   initDiaryTransferWorkflow,
   initHumanOnboardingWorkflow,
@@ -414,17 +415,20 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
             'crypto.signing_verifier_failed',
           );
         });
-        if (config.server.MOLTNET_TEST_SIGNING_DRIVER) {
-          const driver = createTestSigningMethodDriver();
-          registerSigningMethodDriver(driver.verificationMethod, driver);
-          app.log.warn(
-            {
-              testSigningDriver: true,
-              verificationMethod: driver.verificationMethod,
-            },
-            'test-only signing method driver enabled; never enable this outside tests',
-          );
-        }
+        const previewSignDriver = createPreviewSignSigningMethodDriver();
+        registerSigningMethodDriver(
+          previewSignDriver.verificationMethod,
+          previewSignDriver,
+        );
+        app.log.info(
+          {
+            verificationMethods: [
+              VERIFICATION_METHOD.AgentEd25519,
+              previewSignDriver.verificationMethod,
+            ],
+          },
+          'crypto.signing_methods_registered',
+        );
         setSigningKeyLookup({
           getPublicKey: async (agentId: string) => {
             const agent = await agentRepository.findByIdentityId(agentId);

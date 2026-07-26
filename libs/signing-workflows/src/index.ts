@@ -1,4 +1,13 @@
 export {
+  createPreviewSignSigningMethodDriver,
+  PREVIEW_SIGN_ALGORITHM,
+  PREVIEW_SIGN_CREDENTIAL_TYPE,
+  PREVIEW_SIGN_PUBLIC_MATERIAL_VERSION,
+  PREVIEW_SIGN_RECEIPT_VERSION,
+  type PreviewSignDriverOptions,
+  type PreviewSignPublicMaterialV1,
+} from './preview-sign-driver.js';
+export {
   assertNoPrivateSigningMaterial,
   SigningCredentialError,
   type SigningCredentialErrorCode,
@@ -9,7 +18,9 @@ export {
   assertSigningVerifierRegistered,
   Ed25519Verifier,
   initSigningWorkflows,
+  isSigningReceiptReplay,
   isSigningVerifierRegistered,
+  normalizeSigningCredentialPublicMaterial,
   type PreparedSigningChallenge,
   prepareSigningClaim,
   type PrepareSigningClaimInput,
@@ -43,6 +54,7 @@ export {
   toSigningMethodReceipt,
   type ValidateSigningCredentialInput,
   validateSigningCredentialPublicMaterial,
+  validateSigningCredentialRegistrationBinding,
   VERIFICATION_METHOD,
   VERIFICATION_METHOD_VALUES,
   type VerificationEvidence,

@@ -33,6 +33,31 @@ import { createTasksNamespace } from './namespaces/tasks.js';
 import { createTeamsNamespace } from './namespaces/teams.js';
 import { createWhoami } from './namespaces/whoami.js';
 
+export type {
+  BeginPreviewSignCredentialRegistration,
+  CompletePreviewSignCredentialRegistration,
+  CompletePreviewSignRequest,
+  PreviewSignArkgSeedPublicKey,
+  PreviewSignChallenge,
+  PreviewSignChallengeValue,
+  PreviewSignEcdhEsHkdf256PublicKey,
+  PreviewSignEs256PublicKey,
+  PreviewSignEsp256PublicKey,
+  PreviewSignEvidence,
+  PreviewSignEvidenceValue,
+  PreviewSignPublicMaterial,
+  PreviewSignReceipt,
+  PreviewSignReceiptValue,
+} from './preview-sign.js';
+export {
+  createPreviewSignReceipt,
+  type DecodedPreviewSignChallenge,
+  decodePreviewSignChallenge,
+  PREVIEW_SIGN_ALGORITHM,
+  PREVIEW_SIGN_CREDENTIAL_TYPE,
+  PREVIEW_SIGN_VERIFICATION_METHOD,
+} from './preview-sign.js';
+
 export interface HumanClient {
   readonly kind: 'human';
   agentKeys: AgentKeysNamespace;

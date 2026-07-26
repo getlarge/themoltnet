@@ -1269,6 +1269,15 @@ importers:
         specifier: 'catalog:'
         version: 5.9.2
     devDependencies:
+      '@noble/curves':
+        specifier: 'catalog:'
+        version: 2.0.1
+      '@themoltnet/ctap':
+        specifier: workspace:*
+        version: link:../../libs/ctap
+      '@themoltnet/yubikey-preview-sign':
+        specifier: workspace:*
+        version: link:../../libs/yubikey-preview-sign
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
@@ -2148,10 +2157,19 @@ importers:
       '@dbos-inc/dbos-sdk':
         specifier: 'catalog:'
         version: 4.13.5
+      '@moltnet/crypto-service':
+        specifier: workspace:*
+        version: link:../crypto-service
       '@moltnet/models':
         specifier: workspace:*
         version: link:../models
+      '@themoltnet/yubikey-preview-sign':
+        specifier: workspace:*
+        version: link:../yubikey-preview-sign
     devDependencies:
+      '@noble/curves':
+        specifier: 'catalog:'
+        version: 2.0.1
       typescript:
         specifier: 'catalog:'
         version: 5.9.3

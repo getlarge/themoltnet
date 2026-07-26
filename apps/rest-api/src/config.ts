@@ -44,7 +44,6 @@ export const ServerConfigSchema = Type.Object({
     ],
     { default: 'development' },
   ),
-  MOLTNET_TEST_SIGNING_DRIVER: Type.Boolean({ default: false }),
 });
 
 export const DatabaseConfigSchema = Type.Object({
@@ -368,11 +367,6 @@ export function loadServerConfig(
     ServerConfigSchema,
     pickEnv(ServerConfigSchema, env),
   );
-  if (config.NODE_ENV === 'production' && config.MOLTNET_TEST_SIGNING_DRIVER) {
-    throw new Error(
-      'MOLTNET_TEST_SIGNING_DRIVER is forbidden when NODE_ENV=production',
-    );
-  }
   return config;
 }
 

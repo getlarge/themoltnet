@@ -1,0 +1,44 @@
+{
+  "derivation": {
+    "additionalArguments": "owM6AAEAAiBYUZJItLpz8Xyg53BK59WGAk8Eh_xznbzavCk6xUaSIdqRsiDgTGgQdOxGkqdv-suQQ97ChH6pBg_ULaJn9mhS5jWJ8MANyI8pDWYMZaZaUMhjYSFYJHByZXZpZXdTaWduIHJldXNhYmxlIHByb3RvY29sIHZlY3Rvcg",
+    "context": "cHJldmlld1NpZ24gcmV1c2FibGUgcHJvdG9jb2wgdmVjdG9y",
+    "derivedPublicKey": {
+      "algorithm": -9,
+      "curve": 1,
+      "kty": 2,
+      "x": "VIcZQSl_hTxDvqtn4ipJcUIVePObH9NEbJ9pAR1lVq0",
+      "y": "g6XIC18N8nDAiTNJXVqgDsmBpxW5a7r8xx_yW8MCLC4"
+    }
+  },
+  "seedPublicMaterial": {
+    "algorithm": -65700,
+    "blindingKey": {
+      "algorithm": -7,
+      "curve": 1,
+      "kty": 2,
+      "x": "HhhTL9R1TALzBB2cdc6zO4P_2BrHzk_ogsyxyYvFiW4",
+      "y": "pGwxHE4v9A3ZajZT5uRURdMt_khuztdcepDGoYiBwKM"
+    },
+    "derivedAlgorithm": -9,
+    "kemKey": {
+      "algorithm": -25,
+      "curve": 1,
+      "kty": 2,
+      "x": "OtqxXWYla_Fc1xYDWz8EFETlEv7R3WTUunVZfSDjZvE",
+      "y": "VG0skKg-uroBWVCZ5fP_u9M4THSU3mdZ_dXmXvrpzGc"
+    },
+    "kty": -65537
+  },
+  "signing": {
+    "digest": "6fubsAvZ_rJinv1QTkTwsGbR_TejwRp6f8cm9stJ4dY",
+    "payload": "Y2FsbGVyLW93bmVkIHByZXZpZXdTaWduIHBheWxvYWQ",
+    "signature": "MEUCIQDJFXujcy8E3HznO1hNBj3p0TFSAMMfE1eV_q89XEznTAIgMyL_f2-q5EkhKGFP5sAuRrimzPV7SClrcy42y6ZfN_o"
+  },
+  "testOnly": {
+    "blindingSecret": "BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc",
+    "derivedPrivateKey": "GimWQOT9cdRI5OMIklBshWkqUPVD7eMUfx0LzNrN5qc",
+    "ikm": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+    "kemSecret": "CAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg"
+  },
+  "version": "preview-sign.protocol.v1"
+}

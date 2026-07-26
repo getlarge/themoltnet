@@ -61,9 +61,15 @@ export type SigningMethodJson =
   | { [key: string]: SigningMethodJson };
 
 export interface PrepareSigningClaimInput {
+  operation?: 'credential-registration' | 'signing-request';
   verificationMethod: VerificationMethod;
   requestId: string;
   credentialId: string;
+  teamId?: string;
+  claimantId?: string;
+  purpose?: string;
+  nonce?: string;
+  expiresAt?: string;
   signingPayload: string;
   credentialPublicMaterial?: SigningMethodJson;
 }
@@ -110,12 +116,23 @@ export interface VerificationEvidence {
 export interface SigningMethodDriver extends SigningVerifier {
   readonly verificationMethod: VerificationMethod;
   validatePublicMaterial(input: ValidateSigningCredentialInput): void;
+  normalizePublicMaterial?(
+    input: ValidateSigningCredentialInput,
+  ): SigningMethodJson;
+  validateRegistrationBinding?(input: {
+    publicMaterial: SigningMethodJson;
+    verifierState: SigningMethodJson;
+  }): void;
   prepareClaim(
     input: PrepareSigningClaimInput,
   ): Promise<PreparedSigningChallenge>;
   verifyReceipt(
     input: VerifySigningReceiptInput,
   ): Promise<VerificationEvidence>;
+  isReceiptReplay?(
+    receipt: SigningMethodReceipt,
+    evidence: SigningMethodJson,
+  ): boolean;
 }
 
 export type SigningWorkflowErrorCode =
@@ -136,8 +153,9 @@ export class SigningWorkflowError extends Error {
   constructor(
     public readonly code: SigningWorkflowErrorCode,
     message: string,
+    options?: ErrorOptions,
   ) {
-    super(message);
+    super(message, options);
     this.name = 'SigningWorkflowError';
   }
 }
@@ -176,10 +194,16 @@ export class SigningReceiptMethodMismatchError extends SigningWorkflowError {
 }
 
 export class SigningReceiptInvalidError extends SigningWorkflowError {
-  constructor(message = 'Signing receipt is invalid') {
-    super('receipt_invalid', message);
+  constructor(
+    message = 'Signing receipt is invalid',
+    options: { cause?: unknown; reason?: string } = {},
+  ) {
+    super('receipt_invalid', message, { cause: options.cause });
     this.name = 'SigningReceiptInvalidError';
+    this.reason = options.reason;
   }
+
+  public readonly reason?: string;
 }
 
 export class SigningResultTimeoutError extends SigningWorkflowError {
@@ -280,9 +304,10 @@ let signingWorkflowErrorReporter:
   | ((
       error: unknown,
       context: {
-        operation: 'verify_signature';
+        operation: 'verify_receipt' | 'verify_signature';
         requestId: string;
         verificationMethod: VerificationMethod;
+        reason?: SigningReceiptInvalidError['reason'];
       },
     ) => void)
   | null = null;
@@ -384,7 +409,30 @@ export async function verifySigningReceipt(
       input.receipt.verificationMethod,
     );
   }
-  return getSigningMethodDriver(input.verificationMethod).verifyReceipt(input);
+  try {
+    return await getSigningMethodDriver(input.verificationMethod).verifyReceipt(
+      input,
+    );
+  } catch (error) {
+    signingWorkflowErrorReporter?.(error, {
+      operation: 'verify_receipt',
+      requestId: input.requestId,
+      verificationMethod: input.verificationMethod,
+      ...(error instanceof SigningReceiptInvalidError && error.reason
+        ? { reason: error.reason }
+        : {}),
+    });
+    throw error;
+  }
+}
+
+export function isSigningReceiptReplay(input: {
+  verificationMethod: VerificationMethod;
+  receipt: SigningMethodReceipt;
+  evidence: SigningMethodJson;
+}): boolean {
+  const driver = getSigningMethodDriver(input.verificationMethod);
+  return driver.isReceiptReplay?.(input.receipt, input.evidence) ?? false;
 }
 
 export function validateSigningCredentialPublicMaterial(
@@ -393,6 +441,26 @@ export function validateSigningCredentialPublicMaterial(
   getSigningMethodDriver(input.verificationMethod).validatePublicMaterial(
     input,
   );
+}
+
+export function normalizeSigningCredentialPublicMaterial(
+  input: ValidateSigningCredentialInput,
+): SigningMethodJson {
+  const driver = getSigningMethodDriver(input.verificationMethod);
+  driver.validatePublicMaterial(input);
+  return driver.normalizePublicMaterial?.(input) ?? input.publicMaterial;
+}
+
+export function validateSigningCredentialRegistrationBinding(input: {
+  verificationMethod: VerificationMethod;
+  publicMaterial: SigningMethodJson;
+  verifierState: SigningMethodJson;
+}): void {
+  const driver = getSigningMethodDriver(input.verificationMethod);
+  driver.validateRegistrationBinding?.({
+    publicMaterial: input.publicMaterial,
+    verifierState: input.verifierState,
+  });
 }
 
 export function toSigningMethodReceipt(receipt: {

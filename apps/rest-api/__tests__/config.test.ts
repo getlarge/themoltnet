@@ -41,7 +41,6 @@ describe('loadServerConfig', () => {
     expect(config).toEqual({
       PORT: 3000,
       NODE_ENV: 'production',
-      MOLTNET_TEST_SIGNING_DRIVER: false,
     });
   });
 
@@ -60,17 +59,6 @@ describe('loadServerConfig', () => {
   it('rejects invalid NODE_ENV', () => {
     expect(() => loadServerConfig({ NODE_ENV: 'invalid' })).toThrow(
       'Invalid Server config',
-    );
-  });
-
-  it('refuses the deterministic signing driver in production', () => {
-    expect(() =>
-      loadServerConfig({
-        NODE_ENV: 'production',
-        MOLTNET_TEST_SIGNING_DRIVER: 'true',
-      }),
-    ).toThrow(
-      'MOLTNET_TEST_SIGNING_DRIVER is forbidden when NODE_ENV=production',
     );
   });
 });

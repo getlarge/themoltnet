@@ -1,0 +1,96 @@
+{
+  "authenticatorTestOnly": {
+    "blindingSecret": "BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc",
+    "derivedPrivate": "VjFxBrM3Zxh8WPmu1aWHlYjSHARI1xWB7XRBool8vgQ",
+    "kemSecret": "CAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg"
+  },
+  "canonicalEnvelope": "{\"audience\":\"moltnet:preview-sign\",\"claimantId\":\"aa0e8400-e29b-41d4-a716-446655440005\",\"credentialId\":\"880e8400-e29b-41d4-a716-446655440003\",\"expiresAt\":\"2030-08-01T12:05:00.000Z\",\"nonce\":\"bb0e8400-e29b-41d4-a716-446655440006\",\"operation\":\"signing-request\",\"publicMaterialHash\":\"2NEPDJjPxCnB5UK5K_fOVYaIJ0XRR2fL22p8g1SSG-o\",\"purpose\":\"Approve production deployment\",\"requestId\":\"770e8400-e29b-41d4-a716-446655440002\",\"signingPayload\":\"Y2Fub25pY2FsIHNpZ25pbmcgaW5wdXQ=\",\"teamId\":\"990e8400-e29b-41d4-a716-446655440004\",\"verificationMethod\":\"human-hardware-previewsign\",\"version\":1}",
+  "challenge": {
+    "additionalArguments": "owM6AAEAAiBYUT7hJU3uy9OoD3-nDRHinCUEh_xznbzavCk6xUaSIdqRsiDgTGgQdOxGkqdv-suQQ97ChH6pBg_ULaJn9mhS5jWJ8MANyI8pDWYMZaZaUMhjYSFYIG4W4-n33hvjmZdWaO0dY_2ZUH4zCf-DIsUkLN1ewhCA",
+    "digest": "ahRSwj6Dz52O9KxUhMr7_5QSU1J6H0qiq3qPB7ngKJ0",
+    "envelope": "eyJhdWRpZW5jZSI6Im1vbHRuZXQ6cHJldmlldy1zaWduIiwiY2xhaW1hbnRJZCI6ImFhMGU4NDAwLWUyOWItNDFkNC1hNzE2LTQ0NjY1NTQ0MDAwNSIsImNyZWRlbnRpYWxJZCI6Ijg4MGU4NDAwLWUyOWItNDFkNC1hNzE2LTQ0NjY1NTQ0MDAwMyIsImV4cGlyZXNBdCI6IjIwMzAtMDgtMDFUMTI6MDU6MDAuMDAwWiIsIm5vbmNlIjoiYmIwZTg0MDAtZTI5Yi00MWQ0LWE3MTYtNDQ2NjU1NDQwMDA2Iiwib3BlcmF0aW9uIjoic2lnbmluZy1yZXF1ZXN0IiwicHVibGljTWF0ZXJpYWxIYXNoIjoiMk5FUERKalB4Q25CNVVLNUtfZk9WWWFJSjBYUlIyZkwyMnA4ZzFTU0ctbyIsInB1cnBvc2UiOiJBcHByb3ZlIHByb2R1Y3Rpb24gZGVwbG95bWVudCIsInJlcXVlc3RJZCI6Ijc3MGU4NDAwLWUyOWItNDFkNC1hNzE2LTQ0NjY1NTQ0MDAwMiIsInNpZ25pbmdQYXlsb2FkIjoiWTJGdWIyNXBZMkZzSUhOcFoyNXBibWNnYVc1d2RYUT0iLCJ0ZWFtSWQiOiI5OTBlODQwMC1lMjliLTQxZDQtYTcxNi00NDY2NTU0NDAwMDQiLCJ2ZXJpZmljYXRpb25NZXRob2QiOiJodW1hbi1oYXJkd2FyZS1wcmV2aWV3c2lnbiIsInZlcnNpb24iOjF9",
+    "outerCredentialId": "cHJldmlldy1zaWduLXZlY3Rvci1vdXRlcg",
+    "outerPublicKey": {
+      "algorithm": -7,
+      "curve": 1,
+      "kty": 2,
+      "x": "cTX6T9k6Cdzpi79oG0v89Q58DWNU5ir7C_8qNClheGU",
+      "y": "7UwfAt25Aj7lalV-UV1qncZsEfIglg3llDNN9Yh3ZyQ"
+    },
+    "previewKeyHandle": "cHJldmlldy1zaWduLXZlY3Rvci1rZXk",
+    "verificationMethod": "human-hardware-previewsign",
+    "version": 1
+  },
+  "credential": {
+    "algorithm": "arkg-p256-esp256",
+    "credentialType": "preview-sign-arkg",
+    "publicMaterial": {
+      "outerCredentialId": "cHJldmlldy1zaWduLXZlY3Rvci1vdXRlcg",
+      "outerPublicKey": {
+        "algorithm": -7,
+        "curve": 1,
+        "kty": 2,
+        "x": "cTX6T9k6Cdzpi79oG0v89Q58DWNU5ir7C_8qNClheGU",
+        "y": "7UwfAt25Aj7lalV-UV1qncZsEfIglg3llDNN9Yh3ZyQ"
+      },
+      "previewKeyHandle": "cHJldmlldy1zaWduLXZlY3Rvci1rZXk",
+      "seedPublicKey": {
+        "algorithm": -65700,
+        "blindingKey": {
+          "algorithm": -7,
+          "curve": 1,
+          "kty": 2,
+          "x": "HhhTL9R1TALzBB2cdc6zO4P_2BrHzk_ogsyxyYvFiW4",
+          "y": "pGwxHE4v9A3ZajZT5uRURdMt_khuztdcepDGoYiBwKM"
+        },
+        "derivedAlgorithm": -9,
+        "kemKey": {
+          "algorithm": -25,
+          "curve": 1,
+          "kty": 2,
+          "x": "OtqxXWYla_Fc1xYDWz8EFETlEv7R3WTUunVZfSDjZvE",
+          "y": "VG0skKg-uroBWVCZ5fP_u9M4THSU3mdZ_dXmXvrpzGc"
+        },
+        "kty": -65537
+      },
+      "version": 1
+    },
+    "verificationMethod": "human-hardware-previewsign"
+  },
+  "receipt": {
+    "signature": "MEUCIQDtecjJfrKNwDOPsVYEIjL_zzrbSP3ROzyEd1Lmw3PEiAIgI_9qXzu0l2k6ZYvdRJuOURtr9S6RS1ExIinQQS-7tNI",
+    "verificationMethod": "human-hardware-previewsign",
+    "version": 1
+  },
+  "request": {
+    "claimantId": "aa0e8400-e29b-41d4-a716-446655440005",
+    "credentialId": "880e8400-e29b-41d4-a716-446655440003",
+    "expiresAt": "2030-08-01T12:05:00.000Z",
+    "nonce": "bb0e8400-e29b-41d4-a716-446655440006",
+    "operation": "signing-request",
+    "purpose": "Approve production deployment",
+    "requestId": "770e8400-e29b-41d4-a716-446655440002",
+    "signingPayload": "Y2Fub25pY2FsIHNpZ25pbmcgaW5wdXQ=",
+    "teamId": "990e8400-e29b-41d4-a716-446655440004",
+    "verificationMethod": "human-hardware-previewsign"
+  },
+  "serverTestOnly": {
+    "ikm": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8"
+  },
+  "verification": {
+    "proofHash": "uzxpJ3zhMoaVzwmPPZwcV9ta18rd4VTisSav045eZN4",
+    "valid": true
+  },
+  "verifierState": {
+    "additionalArgumentsHash": "NI4T7yUkWooS8MwsuF3mLRQFb0MDPH7k-SNvUNUxpuM",
+    "derivedPublicKey": {
+      "algorithm": -9,
+      "curve": 1,
+      "kty": 2,
+      "x": "oEbna4ErSNIa4l_UdNd-OFVIoF3Df88MIajeez1ecq8",
+      "y": "XQ8mCwlAn1b46Ei_9iTEQJRHhG5iVEIJvY9GZsIp6Yg"
+    },
+    "publicMaterialHash": "2NEPDJjPxCnB5UK5K_fOVYaIJ0XRR2fL22p8g1SSG-o"
+  },
+  "version": "moltnet.preview-sign-server.v1"
+}

@@ -14,7 +14,16 @@
     "./verify": {
       "import": "./src/verify-entry.ts",
       "types": "./src/verify-entry.ts"
-    }
+    },
+    "./protocol": {
+      "import": "./src/protocol-entry.ts",
+      "types": "./src/protocol-entry.ts"
+    },
+    "./test-support": {
+      "import": "./src/arkg-test-support.ts",
+      "types": "./src/arkg-test-support.ts"
+    },
+    "./vectors/preview-sign-v1.json": "./vectors/preview-sign-v1.json"
   },
   "publishConfig": {
     "exports": {
@@ -25,11 +34,17 @@
       "./verify": {
         "types": "./dist/verify.d.ts",
         "import": "./dist/verify.js"
-      }
+      },
+      "./protocol": {
+        "types": "./dist/protocol.d.ts",
+        "import": "./dist/protocol.js"
+      },
+      "./vectors/preview-sign-v1.json": "./vectors/preview-sign-v1.json"
     }
   },
   "files": [
     "dist",
+    "vectors",
     "LICENSE",
     "NOTICE",
     "README.md"
@@ -42,7 +57,7 @@
     "tags": [
       "type:client",
       "scope:identity",
-      "platform:node"
+      "platform:server"
     ]
   },
   "dependencies": {

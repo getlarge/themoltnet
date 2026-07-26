@@ -125,6 +125,14 @@ export type BatchDeleteTasksBody = {
   reason?: string;
 };
 
+export type BeginPreviewSignCredentialRegistration = {
+  algorithm: 'arkg-p256-esp256';
+  credentialType: 'preview-sign-arkg';
+  label: string;
+  publicMaterial: PreviewSignPublicMaterial;
+  verificationMethod: 'human-hardware-previewsign';
+};
+
 export type BeginRuntimeSlotBody = {
   agentName: string;
   lastAttemptN: number;
@@ -187,6 +195,15 @@ export type CompileStats = {
   entriesCompressed: number;
   entriesIncluded: number;
   totalTokens: number;
+};
+
+export type CompletePreviewSignCredentialRegistration = {
+  publicMaterial: PreviewSignPublicMaterial;
+  receipt: PreviewSignReceiptValue;
+};
+
+export type CompletePreviewSignRequest = {
+  receipt: PreviewSignReceiptValue;
 };
 
 export type CompleteTaskBody = {
@@ -1213,6 +1230,96 @@ export type NetworkInfo = {
 
 export type OutputKind = 'artifact' | 'judgment';
 
+export type PreviewSignArkgSeedPublicKey = {
+  algorithm: -65700;
+  blindingKey: PreviewSignEs256PublicKey;
+  derivedAlgorithm: -9;
+  kemKey: PreviewSignEcdhEsHkdf256PublicKey;
+  kty: -65537;
+};
+
+export type PreviewSignChallenge = {
+  additionalArguments: string;
+  digest: string;
+  envelope: string;
+  outerCredentialId: string;
+  outerPublicKey: PreviewSignEs256PublicKey;
+  previewKeyHandle: string;
+  verificationMethod: 'human-hardware-previewsign';
+  version: 1;
+};
+
+export type PreviewSignChallengeValue = {
+  value: PreviewSignChallenge;
+  verificationMethod: 'human-hardware-previewsign';
+};
+
+export type PreviewSignEcdhEsHkdf256PublicKey = {
+  algorithm: -25;
+  curve: 1;
+  kty: 2;
+  x: string;
+  y: string;
+};
+
+export type PreviewSignEs256PublicKey = {
+  algorithm: -7;
+  curve: 1;
+  kty: 2;
+  x: string;
+  y: string;
+};
+
+export type PreviewSignEsp256PublicKey = {
+  algorithm: -9;
+  curve: 1;
+  kty: 2;
+  x: string;
+  y: string;
+};
+
+export type PreviewSignEvidence = {
+  additionalArgumentsHash: string;
+  claimantId: string;
+  credentialId: string;
+  derivedPublicKey: PreviewSignEsp256PublicKey;
+  digest: string;
+  envelope: string;
+  expiresAt: string;
+  nonce: string;
+  operation: 'credential-registration' | 'signing-request';
+  proofHash: string;
+  purpose: string;
+  requestId: string;
+  signature: string;
+  teamId: string;
+  verificationMethod: 'human-hardware-previewsign';
+  version: 1;
+};
+
+export type PreviewSignEvidenceValue = {
+  value: PreviewSignEvidence;
+  verificationMethod: 'human-hardware-previewsign';
+};
+
+export type PreviewSignPublicMaterial = {
+  outerCredentialId: string;
+  outerPublicKey: PreviewSignEs256PublicKey;
+  previewKeyHandle: string;
+  seedPublicKey: PreviewSignArkgSeedPublicKey;
+  version: 1;
+};
+
+export type PreviewSignReceipt = {
+  signature: string;
+  version: 1;
+};
+
+export type PreviewSignReceiptValue = {
+  value: PreviewSignReceipt;
+  verificationMethod: 'human-hardware-previewsign';
+};
+
 export type PrincipalIdentity =
   | {
       /**
@@ -2116,15 +2223,11 @@ export type RuntimeWorkspace = {
 
 export type SigningCredential = {
   activatedAt: string | null;
-  algorithm: string;
+  algorithm: 'arkg-p256-esp256';
   approvedByHumanId: string | null;
   createdAt: string;
-  credentialType: string;
-  enrollmentEvidence: {
-    version: number;
-  } & {
-    [key: string]: unknown;
-  };
+  credentialType: 'preview-sign-arkg';
+  enrollmentEvidence: PreviewSignEvidence;
   id: string;
   label: string;
   owner:
@@ -2151,20 +2254,13 @@ export type SigningCredential = {
         identityId: string | null;
         kind: 'human';
       };
-  publicMaterial: {
-    version: number;
-  } & {
-    [key: string]: unknown;
-  };
+  publicMaterial: PreviewSignPublicMaterial;
   revokedAt: string | null;
   status: 'pending_approval' | 'active' | 'suspended' | 'revoked';
   suspendedAt: string | null;
   teamId: string;
   updatedAt: string;
-  /**
-   * Stable signing verification method identifier
-   */
-  verificationMethod: 'agent-ed25519' | 'human-hardware-previewsign';
+  verificationMethod: 'human-hardware-previewsign';
 };
 
 export type SigningCredentialList = {
@@ -2175,24 +2271,14 @@ export type SigningCredentialList = {
 };
 
 export type SigningCredentialRegistration = {
-  challenge: {
-    value: {
-      [key: string]: unknown;
-    };
-    /**
-     * Stable signing verification method identifier
-     */
-    verificationMethod: 'agent-ed25519' | 'human-hardware-previewsign';
-  };
+  challenge: PreviewSignChallengeValue;
   expiresAt: string;
   id: string;
 };
 
 export type SigningRequest = {
   agentId: string;
-  challenge?: {
-    [key: string]: unknown;
-  } | null;
+  challenge?: PreviewSignChallengeValue | null;
   claimedAt?: string | null;
   claimedByHumanId?: string | null;
   completedAt: string | null;
@@ -2202,6 +2288,7 @@ export type SigningRequest = {
   message: string;
   nonce: string;
   purpose?: string | null;
+  receipt?: PreviewSignEvidenceValue | null;
   rejectedAt?: string | null;
   rejectionReason?: string | null;
   requestedBy?: {
@@ -3472,13 +3559,11 @@ export type ListSigningCredentialsResponse =
 
 export type BeginSigningCredentialRegistrationData = {
   body: {
-    algorithm: string;
-    credentialType: string;
+    algorithm: 'arkg-p256-esp256';
+    credentialType: 'preview-sign-arkg';
     label: string;
-    /**
-     * Stable signing verification method identifier
-     */
-    verificationMethod: 'agent-ed25519' | 'human-hardware-previewsign';
+    publicMaterial: PreviewSignPublicMaterial;
+    verificationMethod: 'human-hardware-previewsign';
   };
   headers: {
     /**
@@ -3525,20 +3610,8 @@ export type BeginSigningCredentialRegistrationResponse =
 
 export type CompleteSigningCredentialRegistrationData = {
   body: {
-    publicMaterial: {
-      version: number;
-    } & {
-      [key: string]: unknown;
-    };
-    receipt: {
-      value: {
-        [key: string]: unknown;
-      };
-      /**
-       * Stable signing verification method identifier
-       */
-      verificationMethod: 'agent-ed25519' | 'human-hardware-previewsign';
-    };
+    publicMaterial: PreviewSignPublicMaterial;
+    receipt: PreviewSignReceiptValue;
   };
   headers: {
     /**
@@ -3976,15 +4049,7 @@ export type ClaimSigningRequestResponse =
 
 export type CompleteSigningRequestData = {
   body: {
-    receipt: {
-      value: {
-        [key: string]: unknown;
-      };
-      /**
-       * Stable signing verification method identifier
-       */
-      verificationMethod: 'agent-ed25519' | 'human-hardware-previewsign';
-    };
+    receipt: PreviewSignReceiptValue;
   };
   headers: {
     /**
