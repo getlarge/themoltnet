@@ -205,17 +205,24 @@ func TestProfileGetByNameResolvesViaList(t *testing.T) {
 	}
 }
 
-func TestProfileGetByNameWithoutTeamFails(t *testing.T) {
+func TestProfileGetByNameUsesCurrentTeamFallback(t *testing.T) {
 	// Arrange
 	handler := &stubProfileHandler{}
 	apiSrv, credPath := newCLICommandTestServer(t, handler)
 
-	// Act
+	// Act — no --team-id: the resolution list omits the team header so the server
+	// scopes it to the token's current team, matching the documented fallback.
 	err := runProfileGetCmd(apiSrv.URL, credPath, testProfileName, "")
 
 	// Assert
-	if err == nil {
-		t.Fatal("expected error when resolving a name without --team-id")
+	if err != nil {
+		t.Fatalf("runProfileGetCmd() error: %v", err)
+	}
+	if handler.listParams.XMoltnetTeamID.Set {
+		t.Fatalf("expected no team header on the resolution list, got %#v", handler.listParams.XMoltnetTeamID)
+	}
+	if handler.getParams.ProfileId != testProfileID {
+		t.Fatalf("expected resolved profile id %s, got %s", testProfileID, handler.getParams.ProfileId)
 	}
 }
 
@@ -314,5 +321,154 @@ func TestProfileDeleteByID(t *testing.T) {
 	}
 	if handler.deleteParams.ProfileId != testProfileID {
 		t.Fatalf("expected profile id %s, got %s", testProfileID, handler.deleteParams.ProfileId)
+	}
+}
+
+// setStdin points os.Stdin at a file holding contents for the duration of the
+// test. These tests must not run in parallel because os.Stdin is process-global.
+func setStdin(t *testing.T, contents string) {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "stdin.json")
+	if err := os.WriteFile(path, []byte(contents), 0o600); err != nil {
+		t.Fatalf("write stdin file: %v", err)
+	}
+	f, err := os.Open(path)
+	if err != nil {
+		t.Fatalf("open stdin file: %v", err)
+	}
+	orig := os.Stdin
+	os.Stdin = f
+	t.Cleanup(func() {
+		os.Stdin = orig
+		_ = f.Close()
+	})
+}
+
+func TestProfileCreateFromStdin(t *testing.T) {
+	// Arrange
+	handler := &stubProfileHandler{}
+	apiSrv, credPath := newCLICommandTestServer(t, handler)
+	setStdin(t, `{"name":"standard-engineering","provider":"anthropic","model":"claude-opus","sandbox":{}}`)
+
+	// Act
+	err := runProfileCreateCmd(apiSrv.URL, credPath, "-", "")
+
+	// Assert
+	if err != nil {
+		t.Fatalf("runProfileCreateCmd() error: %v", err)
+	}
+	if !handler.createBody.Set || handler.createBody.Value.Name != testProfileName {
+		t.Fatalf("expected create body name %q, got %#v", testProfileName, handler.createBody)
+	}
+}
+
+func TestProfileUpdateFromStdin(t *testing.T) {
+	// Arrange
+	handler := &stubProfileHandler{}
+	apiSrv, credPath := newCLICommandTestServer(t, handler)
+	setStdin(t, `{"model":"claude-sonnet"}`)
+
+	// Act
+	err := runProfileUpdateCmd(apiSrv.URL, credPath, testProfileID.String(), "-", "")
+
+	// Assert
+	if err != nil {
+		t.Fatalf("runProfileUpdateCmd() error: %v", err)
+	}
+	if !handler.updateBody.Set || !handler.updateBody.Value.Model.Set || handler.updateBody.Value.Model.Value != "claude-sonnet" {
+		t.Fatalf("expected patched model, got %#v", handler.updateBody.Value.Model)
+	}
+}
+
+// --- Root-command wiring tests ---
+//
+// These execute through NewRootCmd so that command registration, subcommand
+// dispatch, positional-argument contracts, required flags, and persistent-flag
+// propagation are exercised end to end — plumbing the handler-level tests above
+// cannot catch.
+
+func runProfileRoot(t *testing.T, handler *stubProfileHandler, args ...string) error {
+	t.Helper()
+	apiSrv, credPath := newCLICommandTestServer(t, handler)
+	root := NewRootCmd("test", "")
+	full := append([]string{"profile", args[0], "--api-url", apiSrv.URL, "--credentials", credPath}, args[1:]...)
+	_, _, err := executeCommand(root, full...)
+	return err
+}
+
+func TestProfileRootListDispatches(t *testing.T) {
+	handler := &stubProfileHandler{}
+	if err := runProfileRoot(t, handler, "list", "--team-id", testProfileTeam.String()); err != nil {
+		t.Fatalf("profile list via root: %v", err)
+	}
+	if !handler.listParams.XMoltnetTeamID.Set || handler.listParams.XMoltnetTeamID.Value != testProfileTeam {
+		t.Fatalf("expected team header propagated, got %#v", handler.listParams.XMoltnetTeamID)
+	}
+}
+
+func TestProfileRootGetDispatches(t *testing.T) {
+	handler := &stubProfileHandler{}
+	if err := runProfileRoot(t, handler, "get", testProfileID.String()); err != nil {
+		t.Fatalf("profile get via root: %v", err)
+	}
+	if handler.getParams.ProfileId != testProfileID {
+		t.Fatalf("expected profile id %s, got %s", testProfileID, handler.getParams.ProfileId)
+	}
+}
+
+func TestProfileRootCreateDispatches(t *testing.T) {
+	handler := &stubProfileHandler{}
+	file := writeTempProfileFile(t, `{"name":"standard-engineering","provider":"anthropic","model":"claude-opus","sandbox":{}}`)
+	if err := runProfileRoot(t, handler, "create", "--from-file", file, "--team-id", testProfileTeam.String()); err != nil {
+		t.Fatalf("profile create via root: %v", err)
+	}
+	if !handler.createBody.Set || handler.createBody.Value.Name != testProfileName {
+		t.Fatalf("expected create body name %q, got %#v", testProfileName, handler.createBody)
+	}
+}
+
+func TestProfileRootUpdateDispatches(t *testing.T) {
+	handler := &stubProfileHandler{}
+	file := writeTempProfileFile(t, `{"model":"claude-sonnet"}`)
+	if err := runProfileRoot(t, handler, "update", testProfileID.String(), "--from-file", file); err != nil {
+		t.Fatalf("profile update via root: %v", err)
+	}
+	if handler.updateParams.ProfileId != testProfileID {
+		t.Fatalf("expected profile id %s, got %s", testProfileID, handler.updateParams.ProfileId)
+	}
+}
+
+func TestProfileRootDeleteDispatches(t *testing.T) {
+	handler := &stubProfileHandler{}
+	if err := runProfileRoot(t, handler, "delete", testProfileID.String()); err != nil {
+		t.Fatalf("profile delete via root: %v", err)
+	}
+	if handler.deleteParams.ProfileId != testProfileID {
+		t.Fatalf("expected profile id %s, got %s", testProfileID, handler.deleteParams.ProfileId)
+	}
+}
+
+func TestProfileRootArgumentContracts(t *testing.T) {
+	cases := []struct {
+		name string
+		args []string
+	}{
+		{"get requires a positional", []string{"get"}},
+		{"delete requires a positional", []string{"delete"}},
+		{"update requires a positional", []string{"update", "--from-file", "x.json"}},
+		{"create requires --from-file", []string{"create"}},
+		{"list rejects a positional", []string{"list", "unexpected"}},
+		{"create rejects a positional", []string{"create", "unexpected", "--from-file", "x.json"}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			root := NewRootCmd("test", "")
+			// No --api-url/--credentials: a well-formed invocation would reach the
+			// network, but these must fail during cobra argument validation first.
+			_, _, err := executeCommand(root, append([]string{"profile"}, tc.args...)...)
+			if err == nil {
+				t.Fatalf("expected an argument-contract error for %q", tc.args)
+			}
+		})
 	}
 }

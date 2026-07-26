@@ -29,6 +29,7 @@ func newProfileListCmd() *cobra.Command {
 		Use:     "list",
 		Short:   "List runtime profiles for a team",
 		Example: `  moltnet profile list --team-id 6743b4b1-6b93-46e2-a048-19490f04f91a`,
+		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			credPath, _ := cmd.Flags().GetString("credentials")
 			apiURL := resolveAPIURL(cmd, credPath)
@@ -62,15 +63,22 @@ func newProfileCreateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create --from-file <path>",
 		Short: "Create a runtime profile from a JSON definition file",
-		Long: `Create a runtime profile from a JSON file matching CreateRuntimeProfileBody
-(name, provider, model, and a sandbox object are required; every other field is
-optional). Use "-" to read the definition from stdin.
+		Long: `Create a runtime profile from a JSON file matching the runtime-profile create
+schema in the API reference (POST /runtime-profiles). Name, provider, model, and
+a sandbox object are required; every other field is optional. Use "-" to read
+the definition from stdin.
 
 A JSON file is preferred over a wide flag surface because the sandbox policy —
 network allowlists, VFS shadow rules, resource limits — is a security artifact
 worth reviewing, diffing, and committing next to the workflow that consumes the
-profile.`,
+profile.
+
+Do not put secrets in the file. sandbox.env is non-secret configuration and is
+stored with the profile definition. Provider keys and other secrets belong in
+the daemon process environment, named through requiredEnv so the daemon
+forwards them into the sandbox at run time.`,
 		Example: `  moltnet profile create --from-file profile.json --team-id 6743b4b1-6b93-46e2-a048-19490f04f91a`,
+		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			credPath, _ := cmd.Flags().GetString("credentials")
 			apiURL := resolveAPIURL(cmd, credPath)
@@ -89,9 +97,14 @@ func newProfileUpdateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "update <profile-id|name> --from-file <path>",
 		Short: "Update a runtime profile from a partial JSON patch file",
-		Long: `Apply a partial update from a JSON file matching UpdateRuntimeProfileBody
-(any subset of the profile fields, at least one). Use "-" to read from stdin.
-Updating bumps the profile's revision and recomputes its definition CID.`,
+		Long: `Apply a partial update from a JSON file holding any subset of the runtime-profile
+fields (at least one), matching the runtime-profile update schema in the API
+reference (PATCH /runtime-profiles/{id}). Use "-" to read from stdin. Updating
+bumps the profile's revision and recomputes its definition CID.
+
+As with create, keep secrets out of the file: sandbox.env is non-secret
+configuration, and provider keys belong in the daemon environment named through
+requiredEnv.`,
 		Example: `  moltnet profile update 1a653eb9-7bfa-475f-b517-c070c9c25b5e --from-file patch.json`,
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {

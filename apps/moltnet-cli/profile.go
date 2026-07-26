@@ -137,20 +137,23 @@ func runProfileDeleteCmd(apiURL, credPath, ref, teamID string) error {
 
 // resolveProfileID turns a profile reference into a profile UUID. A reference
 // that parses as a UUID is used directly. Otherwise it is treated as a profile
-// name and resolved against the team's runtime profiles, which requires
-// --team-id (the get/update/delete endpoints are keyed by id, not name).
+// name and resolved by listing the team's runtime profiles and matching by name
+// (the get/update/delete endpoints are keyed by id, not name). --team-id is
+// optional here just as it is for list: when omitted, the list request carries
+// no team header and the server scopes it to the token's current team.
 func resolveProfileID(client *moltnetapi.Client, ref, teamID string) (uuid.UUID, error) {
 	if id, err := uuid.Parse(ref); err == nil {
 		return id, nil
 	}
-	if teamID == "" {
-		return uuid.Nil, fmt.Errorf("%q is not a profile UUID; pass --team-id to resolve a profile by name", ref)
+	params := moltnetapi.ListRuntimeProfilesParams{}
+	if teamID != "" {
+		team, err := parseOptUUIDFlag("team-id", teamID)
+		if err != nil {
+			return uuid.Nil, err
+		}
+		params.XMoltnetTeamID = team
 	}
-	team, err := parseOptUUIDFlag("team-id", teamID)
-	if err != nil {
-		return uuid.Nil, err
-	}
-	res, err := client.ListRuntimeProfiles(context.Background(), moltnetapi.ListRuntimeProfilesParams{XMoltnetTeamID: team})
+	res, err := client.ListRuntimeProfiles(context.Background(), params)
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("resolve profile %q: %w", ref, formatTransportError(err))
 	}
@@ -163,7 +166,11 @@ func resolveProfileID(client *moltnetapi.Client, ref, teamID string) (uuid.UUID,
 			return item.ID, nil
 		}
 	}
-	return uuid.Nil, fmt.Errorf("no runtime profile named %q in team %s", ref, teamID)
+	scope := "the token's current team"
+	if teamID != "" {
+		scope = "team " + teamID
+	}
+	return uuid.Nil, fmt.Errorf("no runtime profile named %q in %s", ref, scope)
 }
 
 // decodeProfileFile reads a JSON profile definition from path (or stdin when
