@@ -173,6 +173,10 @@ function GrantSection({
             <table
               style={{
                 width: '100%',
+                // Stable min-width so the subject/type/action columns
+                // overflow-scroll instead of colliding (design-system
+                // data-table rule 2).
+                minWidth: '24rem',
                 borderCollapse: 'collapse',
                 fontSize: theme.font.size.sm,
               }}

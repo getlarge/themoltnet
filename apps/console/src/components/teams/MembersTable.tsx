@@ -6,7 +6,6 @@ import {
   Text,
   useTheme,
 } from '@themoltnet/design-system';
-import { memo } from 'react';
 
 import { RoleBadge } from './RoleBadge.js';
 
@@ -31,8 +30,7 @@ interface MembersTableProps<T extends MemberTableEntry> {
 /**
  * Team members as a scannable table rather than a stack of cards: aligned
  * columns let an operator read identity, kind, and role down a single axis on a
- * permissions surface. Rows are memoized so a member-search keystroke doesn't
- * re-render every row.
+ * permissions surface.
  */
 export function MembersTable<T extends MemberTableEntry>({
   members,
@@ -59,6 +57,9 @@ export function MembersTable<T extends MemberTableEntry>({
         <table
           style={{
             width: '100%',
+            // Stable min-width so dense columns overflow-scroll instead of
+            // colliding on narrow viewports (design-system data-table rule 2).
+            minWidth: '34rem',
             borderCollapse: 'collapse',
             fontSize: theme.font.size.sm,
           }}
@@ -109,7 +110,7 @@ export function MembersTable<T extends MemberTableEntry>({
   );
 }
 
-const MemberTableRow = memo(function MemberTableRow({
+function MemberTableRow({
   member,
   cellPad,
   roleActionLabel,
@@ -178,4 +179,4 @@ const MemberTableRow = memo(function MemberTableRow({
       </td>
     </tr>
   );
-});
+}

@@ -47,6 +47,18 @@ export function EntryCard({
   // layout, not by a decorative accent border on the card itself.
   void view;
 
+  // Explicit provenance semantics (this is a security trust signal, so the
+  // states must not be implicit):
+  //   undefined            → source gave no signature data → show nothing
+  //   non-empty string     → a signature exists but wasn't verified here → "Unverified"
+  //   null / empty / blank  → no usable signature → "Unsigned"
+  const showSignatureStatus = entry.contentSignature !== undefined;
+  const signatureState: 'unverified' | 'unsigned' =
+    typeof entry.contentSignature === 'string' &&
+    entry.contentSignature.trim() !== ''
+      ? 'unverified'
+      : 'unsigned';
+
   return (
     <Card
       variant="surface"
@@ -85,12 +97,9 @@ export function EntryCard({
               <Stack direction="row" align="center" gap={2} wrap>
                 <TypeBadge type={entry.entryType} />
                 {/* Provenance is legible in the list, not only on the detail
-                    view (PRODUCT principle 1). `undefined` → source gave no
-                    signature data, so show nothing. */}
-                {entry.contentSignature !== undefined && (
-                  <SignatureStatus
-                    state={entry.contentSignature ? 'unverified' : 'unsigned'}
-                  />
+                    view (PRODUCT principle 1). Semantics computed above. */}
+                {showSignatureStatus && (
+                  <SignatureStatus state={signatureState} />
                 )}
               </Stack>
               <Text variant="caption" color="muted">
