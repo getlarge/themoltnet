@@ -30,6 +30,9 @@
       "path": "apps/issue-lifecycle"
     },
     {
+      "path": "apps/parallel-brief-runner"
+    },
+    {
       "path": "apps/console"
     },
     {
