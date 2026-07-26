@@ -15,16 +15,61 @@ vi.mock('@moltnet/api-client', () => ({
   deleteRuntimeProfile: (...args: unknown[]) => deleteRuntimeProfile(...args),
 }));
 
+const queryState = vi.hoisted(() => ({ profiles: [] as unknown[] }));
+
 vi.mock('@moltnet/api-client/query', () => ({
   listRuntimeProfilesOptions: () => ({
     queryKey: ['runtime-profiles'],
-    queryFn: async () => ({ items: [] }),
+    queryFn: async () => ({ items: queryState.profiles }),
   }),
   listRuntimeModelsOptions: () => ({
     queryKey: ['runtime-models'],
     queryFn: async () => ({ items: [] }),
   }),
 }));
+
+// Minimal RuntimeProfile shaped for profileToForm + the profile list.
+function makeProfile(
+  id: string,
+  name: string,
+  context: Array<{ slug: string; binding: string; content: string }>,
+) {
+  return {
+    id,
+    teamId: 'team-1',
+    name,
+    provider: 'anthropic',
+    model: 'claude-opus',
+    runtimeKind: 'gondolin_pi',
+    description: null,
+    thinkingLevel: null,
+    temperature: null,
+    topP: null,
+    topK: null,
+    maxOutputTokens: null,
+    sandbox: {},
+    sessionStorageMode: 'local',
+    workspaceStorageMode: 'local',
+    defaultWorkspaceMode: null,
+    allowedWorkspaceModes: ['none', 'shared_mount', 'dedicated_worktree'],
+    sessionTtlSec: 1800,
+    workspaceTtlSec: 1800,
+    leaseTtlSec: 300,
+    heartbeatIntervalMs: 60000,
+    maxBatchSize: 50,
+    maxTurns: 0,
+    maxBashTimeouts: 3,
+    requiredEnv: [],
+    requiredTools: [],
+    context,
+    revision: 1,
+    definitionCid: 'bafytest',
+    createdByAgentId: null,
+    createdByHumanId: null,
+    createdAt: '2026-01-01T00:00:00Z',
+    updatedAt: '2026-01-01T00:00:00Z',
+  };
+}
 
 vi.mock('../src/api.js', () => ({ getApiClient: () => ({}) }));
 vi.mock('../src/config.js', () => ({
@@ -80,6 +125,7 @@ function applyRecipe() {
 describe('ProfilesPage context editor', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    queryState.profiles = [];
   });
 
   it('applies a suggested recipe as ordinary editable entries', async () => {
@@ -158,6 +204,36 @@ describe('ProfilesPage context editor', () => {
         content: 'Run the eval and submit in the first turn.',
       },
     ]);
+  });
+
+  it('discards an unsaved advanced-JSON draft when switching profiles', async () => {
+    queryState.profiles = [
+      makeProfile('p-a', 'profile-a', [
+        { slug: 'a-entry', binding: 'prompt_prefix', content: 'A content' },
+      ]),
+      makeProfile('p-b', 'profile-b', [
+        { slug: 'b-entry', binding: 'prompt_prefix', content: 'B content' },
+      ]),
+    ];
+    renderPage();
+
+    // profile-a auto-selects; type a dirty draft into its advanced JSON editor.
+    await screen.findByText('profile-a');
+    fireEvent.click(screen.getByText('Advanced — edit as raw JSON'));
+    fireEvent.change(screen.getByLabelText('Context JSON'), {
+      target: {
+        value: '[{"slug":"stale","binding":"skill","content":"stale draft"}]',
+      },
+    });
+
+    // Switch to profile-b: the editor must remount and drop the stale draft.
+    fireEvent.click(screen.getByText('profile-b'));
+
+    await waitFor(() => {
+      const json = screen.getByLabelText('Context JSON') as HTMLTextAreaElement;
+      expect(json.value).toContain('b-entry');
+      expect(json.value).not.toContain('stale');
+    });
   });
 
   it('rejects malformed JSON in the advanced editor', async () => {

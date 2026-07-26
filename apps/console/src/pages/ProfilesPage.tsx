@@ -13,6 +13,7 @@ import {
   listRuntimeProfilesOptions,
 } from '@moltnet/api-client/query';
 import {
+  CONTEXT_REF_MAX_CONTENT_LENGTH,
   resolveRuntimeProfileContextRecipe,
   runtimeProfileContextRecipeDescription,
   runtimeProfileContextRecipeIds,
@@ -748,6 +749,10 @@ export function ProfilesPage() {
               rows={8}
             />
             <ContextEditor
+              // Key by profile identity so switching profiles (or reset) remounts
+              // the editor, discarding any unsaved advanced-JSON draft instead of
+              // letting it apply to the newly selected profile.
+              key={selectedProfileId ?? 'new'}
               entries={form.context}
               onChange={setContext}
               onApplyRecipe={applyRecipe}
@@ -1165,6 +1170,29 @@ function AdvancedContextJson({
 
 // Parse the advanced raw-JSON editor into validated entries, throwing an
 // operator-legible message on the first problem.
+// Single source of the per-entry rules, mirroring the ContextRef schema
+// (@moltnet/tasks) so the structured-submit path and the raw-JSON path can never
+// drift: slug shape/length, known binding, non-empty content, and the shared
+// content-length bound. Returns an operator-legible message or null.
+function describeContextEntryProblem(
+  entry: { slug: string; binding: string; content: string },
+  label: string,
+): string | null {
+  if (!SLUG_PATTERN.test(entry.slug)) {
+    return `${label} needs a slug of 1–64 letters, numbers, dashes, or underscores.`;
+  }
+  if (!CONTEXT_BINDINGS.some((item) => item.binding === entry.binding)) {
+    return `${label} has an unknown binding.`;
+  }
+  if (entry.content.trim().length === 0) {
+    return `${label} needs non-empty content.`;
+  }
+  if (entry.content.length > CONTEXT_REF_MAX_CONTENT_LENGTH) {
+    return `${label} content exceeds the ${CONTEXT_REF_MAX_CONTENT_LENGTH.toLocaleString()}-character limit.`;
+  }
+  return null;
+}
+
 function parseContextEntries(value: string): RuntimeProfileContext[] {
   let parsed: unknown;
   try {
@@ -1184,19 +1212,19 @@ function parseContextEntries(value: string): RuntimeProfileContext[] {
       throw new Error(`${label} must be an object.`);
     }
     const { slug, binding, content } = raw as Record<string, unknown>;
-    if (typeof slug !== 'string' || !SLUG_PATTERN.test(slug)) {
-      throw new Error(
-        `${label} needs a slug of letters, numbers, dashes, or underscores.`,
-      );
-    }
     if (
+      typeof slug !== 'string' ||
       typeof binding !== 'string' ||
-      !CONTEXT_BINDINGS.some((item) => item.binding === binding)
+      typeof content !== 'string'
     ) {
-      throw new Error(`${label} has an unknown binding.`);
+      throw new Error(`${label} needs string slug, binding, and content.`);
     }
-    if (typeof content !== 'string' || content.length === 0) {
-      throw new Error(`${label} needs non-empty content.`);
+    const problem = describeContextEntryProblem(
+      { slug, binding, content },
+      label,
+    );
+    if (problem) {
+      throw new Error(problem);
     }
     return {
       slug,
@@ -1206,21 +1234,19 @@ function parseContextEntries(value: string): RuntimeProfileContext[] {
   });
 }
 
-// Validate structured entries before submit, mirroring the server rules so the
-// operator gets an inline message instead of a 400.
+// Validate structured entries before submit, so the operator gets an inline
+// message instead of a 400.
 function assertValidContextEntries(entries: RuntimeProfileContext[]): void {
   if (entries.length > MAX_CONTEXT_ENTRIES) {
     throw new Error(`Context allows at most ${MAX_CONTEXT_ENTRIES} entries.`);
   }
   entries.forEach((entry, index) => {
-    const label = `Context entry ${index + 1}`;
-    if (!SLUG_PATTERN.test(entry.slug)) {
-      throw new Error(
-        `${label} needs a slug of letters, numbers, dashes, or underscores.`,
-      );
-    }
-    if (entry.content.trim().length === 0) {
-      throw new Error(`${label} needs non-empty content.`);
+    const problem = describeContextEntryProblem(
+      entry,
+      `Context entry ${index + 1}`,
+    );
+    if (problem) {
+      throw new Error(problem);
     }
   });
   const slugs = entries.map((entry) => entry.slug);
