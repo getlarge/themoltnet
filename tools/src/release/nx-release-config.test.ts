@@ -92,7 +92,7 @@ describe('Nx release configuration', () => {
   });
 
   it('keeps the Docker pre-version helper side-effect free in dry-run mode', () => {
-    const childEnv = {
+    const childEnv: NodeJS.ProcessEnv = {
       ...process.env,
       NX_DRY_RUN: 'true',
     };
