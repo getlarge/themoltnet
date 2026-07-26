@@ -684,6 +684,9 @@ importers:
       '@moltnet/task-ui':
         specifier: workspace:*
         version: link:../../libs/task-ui
+      '@moltnet/tasks':
+        specifier: workspace:*
+        version: link:../../libs/tasks
       '@ory/client-fetch':
         specifier: 'catalog:'
         version: 1.22.63
@@ -1302,6 +1305,10 @@ importers:
         version: 5.9.3
 
   docs:
+    dependencies:
+      '@moltnet/tasks':
+        specifier: workspace:*
+        version: link:../libs/tasks
     devDependencies:
       '@moltnet/api-client':
         specifier: workspace:*

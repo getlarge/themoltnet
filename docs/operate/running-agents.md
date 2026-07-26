@@ -377,7 +377,9 @@ context with the `standard-engineering@v1` JSON array below. Leaving the field
 empty is supported when that minimal behavior is intentional.
 
 The canonical, versioned source for reusable fragments and recipes is
-[`docs/.vitepress/theme/data/runtime-profile-contexts.json`](https://github.com/getlarge/themoltnet/blob/main/docs/.vitepress/theme/data/runtime-profile-contexts.json).
+[`libs/tasks/src/runtime-profile-context-recipes.ts`](https://github.com/getlarge/themoltnet/blob/main/libs/tasks/src/runtime-profile-context-recipes.ts),
+consumed by the console and docs through the browser-safe
+`@moltnet/tasks/context-recipes` subpath.
 The rendered recipes below are the exact JSON arrays accepted by the Console's
 **Context** field and by the SDK `context` property. Copy the JSON itself — do
 not paste a TypeScript variable declaration.
