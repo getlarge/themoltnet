@@ -502,6 +502,45 @@ describe('signing credential routes', () => {
     });
   });
 
+  it('returns an identical completed request without verifying it again', async () => {
+    const receipt = {
+      verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+      value: { receipt: 'test-receipt' },
+    };
+    const completed = {
+      ...createPendingRequest(),
+      status: 'completed' as const,
+      claimedByHumanId: HUMAN_ID,
+      signingCredentialId: CREDENTIAL_ID,
+      receipt,
+      valid: true,
+      completedAt: new Date(),
+    };
+    mocks.signingRequestRepository.findById.mockResolvedValue(completed);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/crypto/signing-requests/${completed.id}/complete`,
+      headers: {
+        authorization: 'Bearer human-session',
+        'x-moltnet-team-id': TEAM_ID,
+      },
+      payload: { receipt },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      id: completed.id,
+      status: 'completed',
+    });
+    expect(
+      mocks.signingRequestRepository.lockClaimForCompletion,
+    ).not.toHaveBeenCalled();
+    expect(
+      mocks.signingCredentialRepository.findActiveCompatible,
+    ).not.toHaveBeenCalled();
+  });
+
   it('resolves a team-role constraint through the signer team relation', async () => {
     const pending = createPendingRequest({
       id: 'manager',

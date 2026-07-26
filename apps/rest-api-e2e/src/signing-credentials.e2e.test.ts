@@ -283,7 +283,7 @@ describe('Signing credential and delegated request lifecycle', () => {
       signingCredentialId: approved.data!.id,
     });
 
-    const replay = await completeSigningRequest({
+    const retry = await completeSigningRequest({
       client: signerClient,
       headers: { 'x-moltnet-team-id': requester.personalTeamId },
       path: { id: created.data!.id },
@@ -294,7 +294,8 @@ describe('Signing credential and delegated request lifecycle', () => {
         },
       },
     });
-    expect(replay.response.status).toBe(409);
+    expect(retry.response.status).toBe(200);
+    expect(retry.data).toEqual(completed.data);
 
     const expiredBeforeClaim = await createSigningRequest({
       client,
