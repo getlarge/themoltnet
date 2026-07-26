@@ -348,6 +348,12 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
           'Signing request is not claimed by this human',
         );
       }
+      if (row.expiresAt.getTime() <= now().getTime()) {
+        throw new SigningServiceError(
+          'signing_request_expired',
+          'This signing request has expired',
+        );
+      }
       const credential =
         await deps.signingCredentialRepository.findActiveCompatible({
           id: row.signingCredentialId,

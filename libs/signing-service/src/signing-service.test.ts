@@ -866,6 +866,58 @@ describe('createSigningService', () => {
     ).rejects.toMatchObject({ code: 'signing_request_expired' });
   });
 
+  it('rejects an expired claimed row before credential or receipt verification', async () => {
+    const claimed = {
+      ...pendingRequest(),
+      status: 'claimed' as const,
+      claimedByHumanId: human.humanId,
+      signingCredentialId: CREDENTIAL_ID,
+      methodState: {
+        verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+        value: { persisted: 'driver-state' },
+      },
+    };
+    const findActiveCompatible = vi.fn().mockResolvedValue(activeCredential());
+    const verifyReceipt = vi.fn().mockResolvedValue({
+      valid: true,
+      details: { version: 1 },
+    });
+    _resetSigningWorkflowsForTesting();
+    registerSigningMethodDriver(VERIFICATION_METHOD.HumanHardwarePreviewSign, {
+      verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+      validatePublicMaterial: vi.fn(),
+      prepareClaim: vi.fn(),
+      verify: vi.fn().mockResolvedValue(false),
+      verifyReceipt,
+    });
+    const service = createSigningService(
+      createDeps({
+        now: () => new Date('2026-08-01T12:06:00.000Z'),
+        signingRequestRepository: {
+          findById: vi.fn().mockResolvedValue(claimed),
+        } as never,
+        signingCredentialRepository: { findActiveCompatible } as never,
+      }),
+    );
+
+    await expect(
+      service.requests.complete({
+        actor: human,
+        teamId: TEAM_ID,
+        requestId: REQUEST_ID,
+        receipt: {
+          verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+          value: {
+            version: PREVIEW_SIGN_RECEIPT_VERSION,
+            signature: SIGNATURE,
+          },
+        },
+      }),
+    ).rejects.toMatchObject({ code: 'signing_request_expired' });
+    expect(findActiveCompatible).not.toHaveBeenCalled();
+    expect(verifyReceipt).not.toHaveBeenCalled();
+  });
+
   it('refuses completion after credential revocation', async () => {
     const claimed = {
       ...pendingRequest(),
