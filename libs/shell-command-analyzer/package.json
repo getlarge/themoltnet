@@ -1,0 +1,88 @@
+{
+  "name": "@themoltnet/shell-command-analyzer",
+  "version": "0.0.0",
+  "license": "AGPL-3.0-only",
+  "private": true,
+  "type": "module",
+  "description": "Isomorphic static analyzer that extracts the executables a shell command runs (resolving wrappers, find -exec, …) and classifies each by risk, for tool-policy enforcement. Fails closed on statically-unresolvable commands.",
+  "keywords": [
+    "shell",
+    "bash",
+    "tree-sitter",
+    "static-analysis",
+    "security",
+    "tool-policy"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/getlarge/themoltnet.git",
+    "directory": "libs/shell-command-analyzer"
+  },
+  "homepage": "https://themolt.net",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js"
+      }
+    }
+  },
+  "browser": {
+    "./dist/default-wasm-loader.js": "./dist/default-wasm-loader.browser.js"
+  },
+  "files": [
+    "dist",
+    "wasm"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "tsc --watch",
+    "generate:gtfobins": "node scripts/generate-gtfobins.mjs",
+    "wasm:sync": "node scripts/sync-wasm.mjs"
+  },
+  "dependencies": {
+    "web-tree-sitter": "catalog:"
+  },
+  "devDependencies": {
+    "tree-sitter-bash": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "nx": {
+    "tags": [
+      "type:util",
+      "scope:tool-policy",
+      "platform:isomorphic"
+    ],
+    "targets": {
+      "typecheck": {
+        "executor": "nx:noop",
+        "dependsOn": [
+          "build"
+        ],
+        "cache": true,
+        "inputs": [
+          "production",
+          "^production"
+        ],
+        "outputs": []
+      },
+      "generate:gtfobins": {
+        "executor": "nx:run-commands",
+        "cache": false,
+        "options": {
+          "command": "node scripts/generate-gtfobins.mjs",
+          "cwd": "libs/shell-command-analyzer"
+        }
+      }
+    }
+  }
+}

@@ -138,6 +138,9 @@
       "path": "libs/sdk"
     },
     {
+      "path": "libs/shell-command-analyzer"
+    },
+    {
       "path": "libs/task-mcp-app"
     },
     {

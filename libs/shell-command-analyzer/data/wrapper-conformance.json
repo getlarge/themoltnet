@@ -1,0 +1,27 @@
+{
+  "cases": [
+    { "command": "sudo git push", "target": "git" },
+    { "command": "sudo -u deploy git push", "target": "git" },
+    { "command": "sudo --user deploy git push", "target": "git" },
+    { "command": "sudo --command-timeout 5 git push", "target": "git" },
+    { "command": "sudo -T 5 git push", "target": "git" },
+    { "command": "sudo -n git push", "target": "git" },
+    { "command": "sudo --non-interactive git push", "target": "git" },
+    { "command": "sudo -- git push", "target": "git" },
+    { "command": "env FOO=bar git status", "target": "git" },
+    { "command": "env -i PATH=/bin git status", "target": "git" },
+    { "command": "env -u EDITOR git status", "target": "git" },
+    { "command": "nohup node server.js", "target": "node" },
+    { "command": "nohup -- node server.js", "target": "node" },
+    { "command": "timeout 5 git fetch", "target": "git" },
+    { "command": "timeout -k 2 5 npm test", "target": "npm" },
+    { "command": "timeout --signal TERM 30 npm test", "target": "npm" },
+    { "command": "timeout --foreground 30 npm run build", "target": "npm" },
+    { "command": "xargs rm", "target": "rm" },
+    { "command": "xargs -I {} mv {} /dst", "target": "mv" },
+    { "command": "xargs -n 1 -P 4 curl -O", "target": "curl" },
+    { "command": "sudo -u deploy timeout 30 npm run build", "target": "npm" },
+    { "command": "nohup timeout 5 sudo git gc", "target": "git" }
+  ],
+  "description": "Cross-language conformance fixtures for shell prefix-runner (wrapper) unwrapping. Both the TypeScript @themoltnet/shell-command-analyzer and the Go github_guard (apps/moltnet-cli) must resolve each command to the same final executable `target`. This locks the shared wrapper flag tables against drift (e.g. sudo --command-timeout) while each keeps its own parser. Scoped to the wrappers both implementations know (env, nohup, sudo, timeout, xargs) and to flag forms both parse identically (separate/inline value flags, boolean flags, --, positionals, assignments). Attached short-value forms (e.g. `sudo -uroot`) are intentionally omitted: the Go guard fails closed on them while the analyzer resolves them."
+}
