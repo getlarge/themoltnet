@@ -1,3 +1,4 @@
+import { verifyP256PrehashedSignature } from '@themoltnet/yubikey-preview-sign/protocol';
 import serverVector from '@themoltnet/yubikey-preview-sign/vectors/preview-sign-server-v1.json';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -7,6 +8,7 @@ import {
   PREVIEW_SIGN_CREDENTIAL_TYPE,
   PREVIEW_SIGN_PUBLIC_MATERIAL_VERSION,
   PREVIEW_SIGN_RECEIPT_VERSION,
+  type PreviewSignEc2PublicKey,
   type PreviewSignPublicMaterialV1,
 } from './preview-sign-driver.js';
 import { SigningCredentialError } from './signing-credentials.js';
@@ -105,6 +107,15 @@ describe('previewSign production signing method driver', () => {
     };
 
     const prepared = await driver.prepareClaim(vectorInput);
+    expect(prepared.challenge).toEqual(serverVector.challenge);
+    expect(prepared.verifierState).toMatchObject(serverVector.verifierState);
+    expect(
+      verifyP256PrehashedSignature(
+        Buffer.from(serverVector.challenge.digest, 'base64url'),
+        Buffer.from(serverVector.receipt.signature, 'base64url'),
+        serverVector.verifierState.derivedPublicKey as PreviewSignEc2PublicKey,
+      ),
+    ).toBe(true);
     const evidence = await driver.verifyReceipt({
       ...vectorInput,
       verifierState: prepared.verifierState,
@@ -114,10 +125,8 @@ describe('previewSign production signing method driver', () => {
       },
     });
 
-    expect(prepared.challenge).toEqual(serverVector.challenge);
     expect(prepared.challenge).not.toHaveProperty('ikm');
     expect(prepared.verifierState).not.toHaveProperty('ikm');
-    expect(prepared.verifierState).toMatchObject(serverVector.verifierState);
     expect(
       Buffer.from(
         challengeString(prepared.challenge, 'envelope'),

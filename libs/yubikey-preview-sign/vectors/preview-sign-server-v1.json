@@ -1,14 +1,14 @@
 {
   "authenticatorTestOnly": {
     "blindingSecret": "BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc",
-    "derivedPrivate": "jRUC5kH4ZAq8K7AF1YxtuuZ7GWxxuX6CKx07oQd9GVQ",
+    "derivedPrivate": "njTB4-Qb59TWwL8lhQ2neP2AcYy5w-1Ff77GKzdwc7k",
     "kemSecret": "CAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg"
   },
-  "canonicalEnvelope": "{\"version\":1,\"audience\":\"moltnet:preview-sign\",\"operation\":\"signing-request\",\"requestId\":\"770e8400-e29b-41d4-a716-446655440002\",\"credentialId\":\"880e8400-e29b-41d4-a716-446655440003\",\"verificationMethod\":\"human-hardware-previewsign\",\"teamId\":\"990e8400-e29b-41d4-a716-446655440004\",\"claimantId\":\"aa0e8400-e29b-41d4-a716-446655440005\",\"nonce\":\"bb0e8400-e29b-41d4-a716-446655440006\",\"purpose\":\"Approve production deployment\",\"expiresAt\":\"2030-08-01T12:05:00.000Z\",\"signingPayload\":\"Y2Fub25pY2FsIHNpZ25pbmcgaW5wdXQ=\",\"publicMaterialHash\":\"f-yHatzaCwRkuv5CzluEqlxE2eMzrsWX0_32OPgjfUU\"}",
+  "canonicalEnvelope": "{\"version\":1,\"audience\":\"moltnet:preview-sign\",\"operation\":\"signing-request\",\"requestId\":\"770e8400-e29b-41d4-a716-446655440002\",\"credentialId\":\"880e8400-e29b-41d4-a716-446655440003\",\"verificationMethod\":\"human-hardware-previewsign\",\"teamId\":\"990e8400-e29b-41d4-a716-446655440004\",\"claimantId\":\"aa0e8400-e29b-41d4-a716-446655440005\",\"nonce\":\"bb0e8400-e29b-41d4-a716-446655440006\",\"purpose\":\"Approve production deployment\",\"expiresAt\":\"2030-08-01T12:05:00.000Z\",\"signingPayload\":\"Y2Fub25pY2FsIHNpZ25pbmcgaW5wdXQ=\",\"publicMaterialHash\":\"RGBUdTMlBZdvwYtFh93ADRPqf30PLqhSzD9_vas-l7w\"}",
   "challenge": {
-    "additionalArguments": "owM6AAEAAiBYUWfA4V88x4lmtFidQJMNawQEh_xznbzavCk6xUaSIdqRsiDgTGgQdOxGkqdv-suQQ97ChH6pBg_ULaJn9mhS5jWJ8MANyI8pDWYMZaZaUMhjYSFYIFNIzrCOZX3ITXPrtbbTyK70Q7KrWC7gXWTyTevwi60U",
-    "digest": "TyXgpTeYrvPmx3iquFTDPkTIZ5vNeBlkWkBlQjmqoUI",
-    "envelope": "eyJ2ZXJzaW9uIjoxLCJhdWRpZW5jZSI6Im1vbHRuZXQ6cHJldmlldy1zaWduIiwib3BlcmF0aW9uIjoic2lnbmluZy1yZXF1ZXN0IiwicmVxdWVzdElkIjoiNzcwZTg0MDAtZTI5Yi00MWQ0LWE3MTYtNDQ2NjU1NDQwMDAyIiwiY3JlZGVudGlhbElkIjoiODgwZTg0MDAtZTI5Yi00MWQ0LWE3MTYtNDQ2NjU1NDQwMDAzIiwidmVyaWZpY2F0aW9uTWV0aG9kIjoiaHVtYW4taGFyZHdhcmUtcHJldmlld3NpZ24iLCJ0ZWFtSWQiOiI5OTBlODQwMC1lMjliLTQxZDQtYTcxNi00NDY2NTU0NDAwMDQiLCJjbGFpbWFudElkIjoiYWEwZTg0MDAtZTI5Yi00MWQ0LWE3MTYtNDQ2NjU1NDQwMDA1Iiwibm9uY2UiOiJiYjBlODQwMC1lMjliLTQxZDQtYTcxNi00NDY2NTU0NDAwMDYiLCJwdXJwb3NlIjoiQXBwcm92ZSBwcm9kdWN0aW9uIGRlcGxveW1lbnQiLCJleHBpcmVzQXQiOiIyMDMwLTA4LTAxVDEyOjA1OjAwLjAwMFoiLCJzaWduaW5nUGF5bG9hZCI6IlkyRnViMjVwWTJGc0lITnBaMjVwYm1jZ2FXNXdkWFE9IiwicHVibGljTWF0ZXJpYWxIYXNoIjoiZi15SGF0emFDd1JrdXY1Q3psdUVxbHhFMmVNenJzV1gwXzMyT1BnamZVVSJ9",
+    "additionalArguments": "owM6AAEAAiBYUUPcYTN9a7YI_8SMoQIo54MEh_xznbzavCk6xUaSIdqRsiDgTGgQdOxGkqdv-suQQ97ChH6pBg_ULaJn9mhS5jWJ8MANyI8pDWYMZaZaUMhjYSFYIDZBmp8x3NX1sN9voWHJECGlvh7YLuTYU3cd_TcVyiI7",
+    "digest": "8zV3IA0vV6Gn9PJzoE4h2kg-b2JbldMI1sYFLfDc3IE",
+    "envelope": "eyJ2ZXJzaW9uIjoxLCJhdWRpZW5jZSI6Im1vbHRuZXQ6cHJldmlldy1zaWduIiwib3BlcmF0aW9uIjoic2lnbmluZy1yZXF1ZXN0IiwicmVxdWVzdElkIjoiNzcwZTg0MDAtZTI5Yi00MWQ0LWE3MTYtNDQ2NjU1NDQwMDAyIiwiY3JlZGVudGlhbElkIjoiODgwZTg0MDAtZTI5Yi00MWQ0LWE3MTYtNDQ2NjU1NDQwMDAzIiwidmVyaWZpY2F0aW9uTWV0aG9kIjoiaHVtYW4taGFyZHdhcmUtcHJldmlld3NpZ24iLCJ0ZWFtSWQiOiI5OTBlODQwMC1lMjliLTQxZDQtYTcxNi00NDY2NTU0NDAwMDQiLCJjbGFpbWFudElkIjoiYWEwZTg0MDAtZTI5Yi00MWQ0LWE3MTYtNDQ2NjU1NDQwMDA1Iiwibm9uY2UiOiJiYjBlODQwMC1lMjliLTQxZDQtYTcxNi00NDY2NTU0NDAwMDYiLCJwdXJwb3NlIjoiQXBwcm92ZSBwcm9kdWN0aW9uIGRlcGxveW1lbnQiLCJleHBpcmVzQXQiOiIyMDMwLTA4LTAxVDEyOjA1OjAwLjAwMFoiLCJzaWduaW5nUGF5bG9hZCI6IlkyRnViMjVwWTJGc0lITnBaMjVwYm1jZ2FXNXdkWFE9IiwicHVibGljTWF0ZXJpYWxIYXNoIjoiUkdCVWRUTWxCWmR2d1l0Rmg5M0FEUlBxZjMwUExxaFN6RDlfdmFzLWw3dyJ9",
     "outerCredentialId": "cHJldmlldy1zaWduLXZlY3Rvci1vdXRlcg",
     "outerPublicKey": {
       "algorithm": -7,
@@ -58,7 +58,7 @@
     "verificationMethod": "human-hardware-previewsign"
   },
   "receipt": {
-    "signature": "MEUCIQDqsyA9MWtV4Ym4gw9CYOyjlxJQByBzPK7IfO40DbkHtQIgKzAFDe4trZWFTTg3iDmy9A6Vy7KjvmcDDuWBXkhSOOE",
+    "signature": "MEUCIQDZ2_6yQEE8_gnnRvhHipCwkB8lZwq83baAUZjyrk0R1QIgF8qHbhp173e8IVEJMuRpQyMeiNn2opFQ8mpFla9q9yQ",
     "verificationMethod": "human-hardware-previewsign",
     "version": 1
   },
@@ -78,19 +78,19 @@
     "ikm": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8"
   },
   "verification": {
-    "proofHash": "tWH4M_ZvAbH9MDfv2KF03CJr4RfK-jaLoISsGqcic7U",
+    "proofHash": "6GT1WdXIbzgBEmxkmehsAx7RAKfLh59SOfcayCnE57s",
     "valid": true
   },
   "verifierState": {
-    "additionalArgumentsHash": "7Xu--U4A4V3Dx3R-v2envE7ykFj2iED_Tnd-KVrkjTE",
+    "additionalArgumentsHash": "lxg7pjY8dQzMn7DMjdRdmI6EXuBJbiMi4LI_qb994UQ",
     "derivedPublicKey": {
       "algorithm": -9,
       "curve": 1,
       "kty": 2,
-      "x": "Sp2ODHhKE-wxd4dg6VGrEob3Qnjxpj2sPcB_6BZHFX4",
-      "y": "6PbwULWUL3uGgrZcUePo-YMvmTjw7FUemWgiNAwI2DQ"
+      "x": "zspAWYUkyZuJWH7cWoCCs_Fg8EO9VIYLgebcOUsLXKo",
+      "y": "TwsJhf-ai8GKVSIDtFf1JgUovd-1ZKbzgc7A4JyqU54"
     },
-    "publicMaterialHash": "f-yHatzaCwRkuv5CzluEqlxE2eMzrsWX0_32OPgjfUU"
+    "publicMaterialHash": "RGBUdTMlBZdvwYtFh93ADRPqf30PLqhSzD9_vas-l7w"
   },
   "version": "moltnet.preview-sign-server.v1"
 }
