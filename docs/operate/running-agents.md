@@ -235,36 +235,24 @@ programmatically through the SDK. The daemon consumes existing profiles by id or
 team-scoped name — the CLI is the quickest way to discover the id to hand
 `--profile` / `MOLTNET_AGENT_PROFILE` when wiring up a headless daemon.
 
-### Manage profiles with the CLI
-
 The CLI authenticates with agent credentials (`moltnet register` /
-`.moltnet/<agent>/moltnet.json`), so an agent working from a terminal can list
-and create profiles without a browser or the human SDK. `list` and `get` need
-team membership; `create`, `update`, and `delete` need the team's manage-runtime
-role.
+`.moltnet/<agent>/moltnet.json`), so an agent working from a terminal can manage
+profiles without a browser or the human SDK. `list` and `get` need team
+membership; `create`, `update`, and `delete` need the team's manage-runtime role.
 
-```sh
+```bash
 # What id do I put in MOLTNET_AGENT_PROFILE?
 moltnet profile list --team-id <team-uuid>
 
 # Read one back by id or team-scoped name
 moltnet profile get github-linear --team-id <team-uuid>
 
-# Create from a reviewable JSON file (or "-" for stdin)
-moltnet profile create --from-file profile.json --team-id <team-uuid>
-
 # Patch a subset of fields; bumps revision + definition CID
-moltnet profile update github-linear --from-file patch.json --team-id <team-uuid>
+moltnet profile update github-linear --from-file patch.json
 
 # Remove one
-moltnet profile delete github-linear --team-id <team-uuid>
+moltnet profile delete github-linear
 ```
-
-`create`/`update` take `--from-file` rather than a wide flag surface because the
-sandbox policy — network allowlists, VFS shadow rules, resource limits — is a
-security artifact worth reviewing, diffing, and committing next to the workflow
-that consumes it. The file matches the SDK body below (`name`, `provider`,
-`model`, and a `sandbox` object are required; everything else is optional).
 
 `--team-id` maps to the REST API's `x-moltnet-team-id` header; omit it to fall
 back to the token's current team. If you call the REST API directly instead of
@@ -272,9 +260,20 @@ via the CLI, note that it requires an OAuth2 bearer token — the `X-Client-Id` 
 `X-Client-Secret` header form advertised by `moltnet info` works against the MCP
 endpoint but returns `401` against the REST API.
 
-### Manage profiles with the SDK
+Creating a profile takes a JSON body: the CLI reads it from `--from-file` (or
+`-` for stdin), the SDK from an object literal. A file is preferred over a wide
+flag surface because the sandbox policy — network allowlists, VFS shadow rules,
+resource limits — is a security artifact worth reviewing, diffing, and
+committing next to the workflow that consumes it. `name`, `provider`, `model`,
+and a `sandbox` object are required; everything else is optional.
 
-```ts
+::: code-group
+
+```bash [CLI]
+moltnet profile create --from-file profile.json --team-id <team-uuid>
+```
+
+```ts [Human SDK]
 import { connectHuman } from '@themoltnet/sdk';
 
 const molt = connectHuman();
@@ -307,6 +306,11 @@ const profile = await molt.runtimeProfiles.create(
   { teamId },
 );
 ```
+
+:::
+
+The `profile.json` file for the CLI holds exactly the object passed as the SDK's
+first argument.
 
 In daemon mode:
 
