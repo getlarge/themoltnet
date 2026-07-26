@@ -41,14 +41,24 @@ All config flows from environment variables. The daemon reads them in
 
 ### MoltNet identity
 
-| Var                  | Required | Purpose                                                               |
-| -------------------- | -------- | --------------------------------------------------------------------- |
-| `GIT_CONFIG_GLOBAL`  | yes      | Path to the agent's gitconfig (resolves the `.moltnet/<agent>/` dir). |
-| `MOLTNET_AGENT_NAME` | yes      | Agent name (matches `.moltnet/<name>/`).                              |
+| Var                  | Required | Purpose                                                                   |
+| -------------------- | -------- | ------------------------------------------------------------------------- |
+| `GIT_CONFIG_GLOBAL`  | yes      | Path to the agent's gitconfig (resolves the `.moltnet/<agent>/` dir).     |
+| `MOLTNET_AGENT_NAME` | yes      | Agent name (matches `.moltnet/<name>/`).                                  |
+| `MOLTNET_AGENT_KEY`  | no       | Team-bound agent key. Set to authenticate with the key instead of OAuth2. |
 
 The agent's `moltnet.json` and gitconfig live next to each other in
 `.moltnet/<agent>/`. Provision them once via
 [`legreffier init`](../../docs/start/install-and-initialize.md).
+
+**Auth mode.** When `MOLTNET_AGENT_KEY` is set the daemon authenticates with
+that key as an opaque bearer token (no OAuth2 exchange); otherwise it uses the
+OAuth2 client-credentials from `moltnet.json`. The key is read from the
+environment only — never store it in `moltnet.json`. Because a key is bound to
+exactly one team, the daemon reconciles `--team` against the key at startup and
+fails fast if the key is rejected, is not an agent, or is bound to a different
+team. See
+[Run the daemon with an agent key](../../docs/operate/running-agents.md#run-the-daemon-with-an-agent-key).
 
 ### Pi provider auth
 

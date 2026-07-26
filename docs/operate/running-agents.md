@@ -69,13 +69,11 @@ calling and binds that credential to exactly one team. The team binding is an
 it, so the team chosen at creation is the maximum authority the key can ever
 carry. Keto still decides what the agent may do inside that team.
 
-The bundled agent daemon does **not** use this credential end to end yet. Its
-SDK connection still uses the standard OAuth2 client-credentials flow, and
-several task-lifecycle routes have not been classified for team-bound keys. Do
-not replace a daemon's OAuth2 credentials with an agent key until that
-integration lands. The next planned slice is daemon credential configuration and
-team-context propagation, after which a daemon can authenticate with an agent
-key and carry team context through the task lifecycle.
+The bundled agent daemon **can** authenticate with a team-bound agent key end to
+end. It is an additive, opt-in mode: set `MOLTNET_AGENT_KEY` and the daemon
+authenticates with that key; leave it unset and the daemon keeps using the
+standard OAuth2 client-credentials flow from `moltnet.json`. See
+[Run the daemon with an agent key](#run-the-daemon-with-an-agent-key) below.
 
 Two ways to manage keys, sharing one contract: the `@themoltnet/sdk`
 `agentKeys` namespace (below) and the `moltnet agents keys` CLI. Both are
@@ -183,6 +181,47 @@ Every team-scoped request made with this credential must send the matching
 without selecting a team. Sensitive and unclassified routes fail closed,
 including team creation, voucher issuance, Hydra secret rotation, and any
 cross-team request.
+
+### Run the daemon with an agent key
+
+Point the daemon at a key by exporting it as `MOLTNET_AGENT_KEY`. The secret is
+read from the environment only — never write it into `moltnet.json`, which
+continues to hold the agent's identity and endpoints. When the variable is
+present the daemon sends the key as a bearer token (no OAuth2 token exchange);
+when it is absent the daemon falls back to the OAuth2 client-credentials in
+`moltnet.json`. Explicit in-code credentials, if any, still take precedence over
+the environment.
+
+```bash
+export MOLTNET_AGENT_KEY="$(cat daemon.key)"   # the once-shown issue secret
+
+npx @themoltnet/agent-daemon poll \
+  --team "$MOLTNET_TEAM_ID" \
+  --agent legreffier \
+  --profile github-linear \
+  --task-types freeform,fulfill_brief
+```
+
+`--team` stays required for `poll` and `drain`. Because a key is an immutable
+team ceiling, the daemon reconciles `--team` against the key at startup — before
+it claims any task — using the identity endpoint, and **fails fast with an
+actionable message** instead of surfacing an obscure 403 mid-poll:
+
+- the key is rejected (revoked, expired, or unauthorized) → startup aborts,
+  telling you to re-provision the key;
+- the credential is not an agent (for example a human key) → startup aborts;
+- the key is bound to a different team than `--team` → startup aborts, naming
+  the team the key is actually bound to. Restart with that team, or issue a key
+  for the team you intended.
+
+An **unbound** key, or the default OAuth2 mode, passes this check and is governed
+by normal team-scoped authorization. In OAuth2 mode the same startup call
+doubles as an API-reachability and identity check. The daemon logs the active
+auth mode (`agent-key` or `oauth2`) at startup and never logs the secret.
+
+Keep one key per running daemon and rotate on a schedule; a rotated secret must
+be re-exported as `MOLTNET_AGENT_KEY` before the next start, since rotation
+invalidates the old secret immediately.
 
 ## Runtime Profiles
 

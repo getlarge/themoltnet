@@ -48,9 +48,15 @@ declare module 'fastify' {
       /**
        * Route classification for credentials bound to one team.
        *
-       * Unclassified routes deny bound credentials. Identity-safe routes may
-       * operate without a team selection. Team routes require an explicit,
-       * matching x-moltnet-team-id header.
+       * Unclassified routes deny bound credentials. `identity` routes are
+       * team-agnostic and operate without any team selection. `team` routes
+       * resolve the bound team: an explicit `x-moltnet-team-id` header must
+       * match the binding, and when the header is omitted the binding's single
+       * team is inferred (see `resolveTeamContext`). Resolving the team is a
+       * request-context ceiling only — a handler that addresses a specific
+       * team-owned resource by id must still enforce that the resource belongs
+       * to the resolved `currentTeamId`, or a caller with cross-team access
+       * could reach a resource outside the bound team.
        */
       credentialBindingScope?: 'identity' | 'team';
     };
@@ -221,25 +227,16 @@ async function resolveTeamContext(
       ? authContext.credentialBinding?.boundTeamId
       : undefined;
 
-  if (constrainedTeamId) {
-    const credentialScope =
-      request.routeOptions.config.auth?.credentialBindingScope;
-    if (!credentialScope) {
-      const error = createAuthError(
-        'Team-bound credential is not permitted on this route',
-      );
-      error.statusCode = 403;
-      error.code = 'FORBIDDEN';
-      throw error;
-    }
-    if (credentialScope === 'team' && !requestedTeamId) {
-      const error = createAuthError(
-        'Team-bound credential requires a team header on this route',
-      );
-      error.statusCode = 403;
-      error.code = 'FORBIDDEN';
-      throw error;
-    }
+  const credentialScope =
+    request.routeOptions.config.auth?.credentialBindingScope;
+
+  if (constrainedTeamId && !credentialScope) {
+    const error = createAuthError(
+      'Team-bound credential is not permitted on this route',
+    );
+    error.statusCode = 403;
+    error.code = 'FORBIDDEN';
+    throw error;
   }
 
   if (
@@ -253,9 +250,17 @@ async function resolveTeamContext(
     throw error;
   }
 
-  // A credential binding is a ceiling, not an implicit request selection.
-  // Team-agnostic routes remain unscoped until the caller requests a team.
-  const teamId = requestedTeamId;
+  // A team-bound credential names exactly one team, so a `team`-scoped route
+  // infers it when the caller omits the header — there is nothing to
+  // disambiguate, and the binding still caps the credential to that one team
+  // (a mismatched header is rejected above; an explicitly empty header is
+  // rejected earlier). `identity`-scoped routes stay team-agnostic and never
+  // infer, so identity-safe operations keep working without a team.
+  const teamId =
+    requestedTeamId ??
+    (constrainedTeamId && credentialScope === 'team'
+      ? constrainedTeamId
+      : undefined);
 
   if (teamId) {
     const subjectNs =

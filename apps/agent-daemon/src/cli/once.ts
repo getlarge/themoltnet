@@ -13,7 +13,10 @@ import {
 } from '@themoltnet/pi-extension';
 
 import { activatePiCodingAgentDir, loadConfig } from '../config.js';
-import { resolveAgentContext } from '../lib/agent-context.js';
+import {
+  resolveAgentContext,
+  validateStartupBinding,
+} from '../lib/agent-context.js';
 import {
   createGhCliClient,
   makePrBodyAnchorWriter,
@@ -110,6 +113,12 @@ export async function runOnce(argv: string[]): Promise<number> {
   const ctx = await resolveAgentContext(initialOpts.agent, {
     agentRootDir,
   });
+  // Fail fast on a rejected or wrong-team credential before running the task.
+  // `once` allows a profile UUID without --team, so only assert the binding
+  // when a team is in scope.
+  if (values.team) {
+    await validateStartupBinding({ agent: ctx.agent, teamId: values.team });
+  }
   const profile = await resolveRuntimeProfile({
     agent: ctx.agent,
     profile: values.profile,

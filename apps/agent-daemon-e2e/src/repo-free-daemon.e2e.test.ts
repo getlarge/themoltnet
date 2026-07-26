@@ -25,6 +25,7 @@ import {
   vi,
 } from 'vitest';
 
+import { buildProducerVerification } from './fixtures.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
 const { createPiTaskExecutorMock } = vi.hoisted(() => ({
@@ -70,7 +71,10 @@ createPiTaskExecutorMock.mockImplementation(
 
       const payload = {
         summary: 'Repo-free daemon e2e completed a non-coding task.',
-        verification: buildProducerVerification(claimedTask.task.inputCid),
+        verification: buildProducerVerification(claimedTask.task.inputCid, {
+          id: 'repo-free-daemon',
+          detail: 'repo-free daemon e2e completed through runOnce',
+        }),
       };
       const output = {
         taskId: claimedTask.task.id,
@@ -197,21 +201,6 @@ describe('Agent daemon repo-free execution (e2e)', () => {
     expect(final.acceptedAttemptN).toBe(1);
   }, 60_000);
 });
-
-function buildProducerVerification(inputCid: string) {
-  return {
-    inputCid,
-    results: [
-      {
-        id: 'repo-free-daemon',
-        kind: 'gate' as const,
-        status: 'pass' as const,
-        detail: 'repo-free daemon e2e completed through runOnce',
-      },
-    ],
-    passed: true,
-  };
-}
 
 function writeAgentCredentials(input: {
   agentRoot: string;

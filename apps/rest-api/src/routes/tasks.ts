@@ -262,6 +262,36 @@ export function taskRoutes(fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
   server.addHook('preHandler', requireAuth);
 
+  // Enforce the agent-key team ceiling at the resource boundary. A team-bound
+  // key resolves its bound team as the request ceiling, but a task addressed by
+  // id could still belong to a *different* team the same agent can otherwise
+  // access — the by-id lifecycle routes authorize by identity + per-task Keto,
+  // not by the resolved team. Reject when the addressed task is outside the
+  // key's bound team so the "immutable team ceiling" holds for task execution.
+  // Only team-bound agent credentials are constrained; OAuth2 agents and humans
+  // have no binding, skip immediately, and keep their existing authorization.
+  server.addHook('preHandler', async (request) => {
+    const authContext = request.authContext;
+    if (authContext?.subjectType !== 'agent') return;
+    const boundTeamId = authContext.credentialBinding?.boundTeamId;
+    if (!boundTeamId) return;
+    const taskId = (request.params as { id?: string } | undefined)?.id;
+    if (!taskId) return;
+    // `get` is a read (canViewTask + findById); a claimant can always view, so
+    // this never rejects a legitimate operation — it only trips the ceiling.
+    const task = await fastify.taskService.get(
+      taskId,
+      authContext.identityId,
+      KetoNamespace.Agent,
+    );
+    if (task.teamId !== boundTeamId) {
+      throw createProblem(
+        'forbidden',
+        'Agent key is bound to a different team than the addressed task',
+      );
+    }
+  });
+
   // GET /tasks/schemas
   server.get(
     '/tasks/schemas',
@@ -637,7 +667,10 @@ export function taskRoutes(fastify: FastifyInstance) {
   server.get(
     '/tasks/:id',
     {
-      config: { rateLimit: fastify.rateLimitConfig.read },
+      config: {
+        rateLimit: fastify.rateLimitConfig.read,
+        auth: { credentialBindingScope: 'team' },
+      },
       schema: {
         operationId: 'getTask',
         tags: ['tasks'],
@@ -712,6 +745,7 @@ export function taskRoutes(fastify: FastifyInstance) {
   server.post(
     '/tasks/:id/claim',
     {
+      config: { auth: { credentialBindingScope: 'team' } },
       schema: {
         operationId: 'claimTask',
         tags: ['tasks'],
@@ -781,6 +815,7 @@ export function taskRoutes(fastify: FastifyInstance) {
   server.post(
     '/tasks/:id/attempts/:n/heartbeat',
     {
+      config: { auth: { credentialBindingScope: 'team' } },
       schema: {
         operationId: 'taskHeartbeat',
         tags: ['tasks'],
@@ -819,6 +854,7 @@ export function taskRoutes(fastify: FastifyInstance) {
   server.post(
     '/tasks/:id/attempts/:n/complete',
     {
+      config: { auth: { credentialBindingScope: 'team' } },
       schema: {
         operationId: 'completeTask',
         tags: ['tasks'],
@@ -868,6 +904,7 @@ export function taskRoutes(fastify: FastifyInstance) {
   server.post(
     '/tasks/:id/attempts/:n/fail',
     {
+      config: { auth: { credentialBindingScope: 'team' } },
       schema: {
         operationId: 'failTaskAttempt',
         tags: ['tasks'],
@@ -908,6 +945,7 @@ export function taskRoutes(fastify: FastifyInstance) {
   server.post(
     '/tasks/:id/attempts/:n/abort',
     {
+      config: { auth: { credentialBindingScope: 'team' } },
       schema: {
         operationId: 'abortTaskAttempt',
         tags: ['tasks'],
@@ -993,7 +1031,10 @@ export function taskRoutes(fastify: FastifyInstance) {
   server.get(
     '/tasks/:id/attempts',
     {
-      config: { rateLimit: fastify.rateLimitConfig.read },
+      config: {
+        rateLimit: fastify.rateLimitConfig.read,
+        auth: { credentialBindingScope: 'team' },
+      },
       schema: {
         operationId: 'listTaskAttempts',
         tags: ['tasks'],
@@ -1029,7 +1070,10 @@ export function taskRoutes(fastify: FastifyInstance) {
   server.get(
     '/tasks/:id/attempts/:n/messages',
     {
-      config: { rateLimit: fastify.rateLimitConfig.read },
+      config: {
+        rateLimit: fastify.rateLimitConfig.read,
+        auth: { credentialBindingScope: 'team' },
+      },
       schema: {
         operationId: 'listTaskMessages',
         tags: ['tasks'],
@@ -1071,6 +1115,7 @@ export function taskRoutes(fastify: FastifyInstance) {
   server.post(
     '/tasks/:id/attempts/:n/messages',
     {
+      config: { auth: { credentialBindingScope: 'team' } },
       schema: {
         operationId: 'appendTaskMessages',
         tags: ['tasks'],

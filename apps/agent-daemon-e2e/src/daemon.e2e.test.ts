@@ -59,6 +59,7 @@ import {
   vi,
 } from 'vitest';
 
+import { buildProducerVerification } from './fixtures.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
 const silentLogger: AgentRuntimeLogger = {
@@ -72,21 +73,6 @@ const silentLogger: AgentRuntimeLogger = {
 type RuntimeProfileSandbox = Awaited<
   ReturnType<Agent['runtimeProfiles']['get']>
 >['sandbox'];
-
-function buildProducerVerification(inputCid: string) {
-  return {
-    inputCid,
-    results: [
-      {
-        id: 'submit-output',
-        kind: 'gate' as const,
-        status: 'pass' as const,
-        detail: 'submit tool criterion satisfied in daemon e2e stub',
-      },
-    ],
-    passed: true,
-  };
-}
 
 /**
  * The realistic local-daemon scenario is "one agent, one team, one

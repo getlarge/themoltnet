@@ -1,7 +1,10 @@
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
-import { resolveAgentContext } from '../lib/agent-context.js';
+import {
+  resolveAgentContext,
+  validateStartupBinding,
+} from '../lib/agent-context.js';
 import { isHelpFlag, SYNC_SESSIONS_HELP } from '../lib/help.js';
 import {
   commonOptionDefs,
@@ -56,6 +59,8 @@ export async function runSyncSessions(argv: string[]): Promise<number> {
     values['agent-root'] ?? process.cwd(),
   );
   const ctx = await resolveAgentContext(opts.agent, { agentRootDir });
+  // Fail fast on a rejected or wrong-team credential before touching sessions.
+  await validateStartupBinding({ agent: ctx.agent, teamId: values.team });
   const stateDirs = ensureDaemonStateDirs(agentRootDir);
   const result = await syncRuntimeSessions(
     {

@@ -26,6 +26,10 @@
       "import": "./src/cli/once.ts",
       "types": "./src/cli/once.ts"
     },
+    "./lib/agent-context.js": {
+      "import": "./src/lib/agent-context.ts",
+      "types": "./src/lib/agent-context.ts"
+    },
     "./lib/daemon-slot-identity.js": {
       "import": "./src/lib/daemon-slot-identity.ts",
       "types": "./src/lib/daemon-slot-identity.ts"
