@@ -1,12 +1,14 @@
-import { readFile } from 'node:fs/promises';
-
 import {
   CONTEXT_BINDINGS,
   CONTEXT_REF_MAX_CONTENT_LENGTH,
   type ContextBinding,
-  type ContextRef,
+  RUNTIME_PROFILE_CONTEXT_CATALOGUE,
 } from '@themoltnet/sdk';
 
+// The catalogue is owned by @moltnet/tasks (validated there against the
+// ContextRef TypeBox schema). This guard adds the docs-facing invariants: the
+// catalogue version this docs build understands, and the fragment set the
+// published standard-engineering@v1 recipe promises.
 const bindings = new Set<ContextBinding>(CONTEXT_BINDINGS);
 const slugPattern = /^[a-zA-Z0-9_-]{1,64}$/;
 const requiredStandardEngineeringFragments = [
@@ -17,20 +19,7 @@ const requiredStandardEngineeringFragments = [
   'verification-and-artifacts-v1',
 ];
 
-type Catalogue = {
-  version: number;
-  fragments: Record<string, ContextRef>;
-  recipes: Record<string, { description: string; fragments: string[] }>;
-};
-
-const raw = await readFile(
-  new URL(
-    '../.vitepress/theme/data/runtime-profile-contexts.json',
-    import.meta.url,
-  ),
-  'utf8',
-);
-const catalogue = JSON.parse(raw) as Catalogue;
+const catalogue = RUNTIME_PROFILE_CONTEXT_CATALOGUE;
 
 if (catalogue.version !== 1) {
   throw new Error(
@@ -66,7 +55,7 @@ for (const [recipeId, recipe] of Object.entries(catalogue.recipes)) {
     }
     return entry;
   });
-  // The Console field calls JSON.parse and then validates RuntimeProfileContext[];
+  // The console field calls JSON.parse and then validates RuntimeProfileContext[];
   // this round trip catches non-JSON convenience syntax before documentation ships.
   if (!Array.isArray(JSON.parse(JSON.stringify(resolved)))) {
     throw new Error(`${recipeId} does not resolve to a JSON array`);
