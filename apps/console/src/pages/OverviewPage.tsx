@@ -1,14 +1,6 @@
 import { getTeamOptions, listTasksOptions } from '@moltnet/api-client/query';
 import { useQuery } from '@tanstack/react-query';
-import {
-  Badge,
-  Button,
-  Card,
-  Divider,
-  Stack,
-  Text,
-  useTheme,
-} from '@themoltnet/design-system';
+import { Button, Card, Stack, Text, useTheme } from '@themoltnet/design-system';
 import { useMemo } from 'react';
 import { useLocation } from 'wouter';
 
@@ -16,26 +8,27 @@ import { getApiClient } from '../api.js';
 import { useAuth } from '../auth/useAuth.js';
 import { getConfig } from '../config.js';
 import { useDiarySummaries } from '../diaries/hooks.js';
-import { buildTeamPilotBriefing } from '../overview/team-pilot.js';
+import {
+  buildTeamPilotBriefing,
+  type PilotPhase,
+} from '../overview/team-pilot.js';
 import { useTeam } from '../team/useTeam.js';
 
-const statusLabel = {
-  not_started: 'Not started',
-  ready: 'Ready',
-  in_progress: 'In progress',
-  needs_attention: 'Needs attention',
-  unavailable: 'Unavailable',
-  complete: 'Complete',
-} as const;
-
-const statusVariant = {
-  not_started: 'default',
-  ready: 'accent',
-  in_progress: 'primary',
-  needs_attention: 'error',
-  unavailable: 'warning',
-  complete: 'success',
-} as const;
+/**
+ * Phase status → glyph + tone. The glyph carries state so it never reads by
+ * color alone (WCAG 1.4.1).
+ */
+const PHASE_META: Record<
+  PilotPhase['status'],
+  { glyph: string; tone: 'success' | 'primary' | 'error' | 'warning' | 'muted' }
+> = {
+  complete: { glyph: '✓', tone: 'success' },
+  ready: { glyph: '→', tone: 'primary' },
+  in_progress: { glyph: '◐', tone: 'primary' },
+  needs_attention: { glyph: '!', tone: 'error' },
+  unavailable: { glyph: '?', tone: 'warning' },
+  not_started: { glyph: '○', tone: 'muted' },
+};
 
 export function OverviewPage() {
   const theme = useTheme();
@@ -131,6 +124,23 @@ export function OverviewPage() {
     );
   }
 
+  const partialError =
+    hasProjectTeam &&
+    (diariesQuery.isError || teamQuery.isError || tasksQuery.isError);
+  const allPhasesComplete = briefing.phases.every(
+    (p) => p.status === 'complete',
+  );
+
+  // Operational truthfulness: keep "couldn't load" distinct from "zero", and
+  // "loaded page" distinct from "team total".
+  const tasksUnavailable = hasProjectTeam && tasksQuery.isError;
+  const membershipUnavailable = hasProjectTeam && teamQuery.isError;
+  const loadedTaskCount = tasksQuery.data?.items?.length ?? 0;
+  const taskTotal = tasksQuery.data?.total ?? loadedTaskCount;
+  // The lane counts are derived from the loaded page (limit 50); flag when the
+  // team has more so the tiles aren't read as exact team-wide totals.
+  const countsArePartial = !tasksUnavailable && taskTotal > loadedTaskCount;
+
   return (
     <Stack gap={6}>
       <Stack gap={1}>
@@ -138,137 +148,301 @@ export function OverviewPage() {
         <Text color="muted">{briefing.summary}</Text>
       </Stack>
 
-      {hasProjectTeam &&
-        (diariesQuery.isError || teamQuery.isError || tasksQuery.isError) && (
-          <Text style={{ color: theme.color.warning.DEFAULT }}>
-            Some pilot data couldn&apos;t be loaded, so the checks below may be
-            incomplete.
+      {partialError && (
+        <Text style={{ color: theme.color.warning.DEFAULT }}>
+          Some pilot data couldn&apos;t be loaded, so the state below may be
+          incomplete.
+        </Text>
+      )}
+
+      {/* Operational state — leads the page (was hidden in a disclosure). */}
+      <Stack gap={3}>
+        <Stack direction="row" justify="space-between" align="center" wrap>
+          <SectionHeading>Task activity</SectionHeading>
+          <button
+            type="button"
+            onClick={() => navigate('/tasks')}
+            style={{
+              background: 'none',
+              border: 0,
+              padding: 0,
+              cursor: 'pointer',
+              fontSize: theme.font.size.sm,
+              color: theme.color.primary.DEFAULT,
+            }}
+          >
+            Task board →
+          </button>
+        </Stack>
+        {!hasProjectTeam ? (
+          <Card variant="surface" padding="md">
+            <Text color="muted">
+              Task activity appears once a non-personal project team is running
+              a pilot. Choose or create one below.
+            </Text>
+          </Card>
+        ) : tasksUnavailable ? (
+          <Card variant="surface" padding="md">
+            <Stack direction="row" gap={3} align="center" wrap>
+              <Text style={{ color: theme.color.warning.DEFAULT }}>
+                Task activity couldn&apos;t be loaded — counts are unavailable,
+                not zero.
+              </Text>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => void tasksQuery.refetch()}
+              >
+                Retry
+              </Button>
+            </Stack>
+          </Card>
+        ) : (
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+              gap: theme.spacing[3],
+            }}
+          >
+            <TaskStatTile
+              count={briefing.queuedTaskCount}
+              label="Queued"
+              color={theme.color.info.DEFAULT}
+            />
+            <TaskStatTile
+              count={briefing.activeTaskCount}
+              label="Active"
+              color={theme.color.primary.DEFAULT}
+            />
+            <TaskStatTile
+              count={briefing.waitingTaskCount}
+              label="Waiting"
+              color={theme.color.warning.DEFAULT}
+            />
+            <TaskStatTile
+              count={briefing.completedTaskCount}
+              label="Completed"
+              color={theme.color.success.DEFAULT}
+            />
+            <TaskStatTile
+              count={briefing.failedTaskCount}
+              label="Unsuccessful"
+              color={theme.color.error.DEFAULT}
+            />
+          </div>
+        )}
+        {countsArePartial && (
+          <Text variant="caption" color="muted">
+            Counts reflect the {loadedTaskCount} most recently loaded of{' '}
+            {taskTotal} tasks — open the task board for the full queue.
           </Text>
         )}
+        {hasProjectTeam && (
+          <Text variant="caption" color="muted">
+            {membershipUnavailable
+              ? "Team membership couldn't be loaded, so agent presence is unknown."
+              : briefing.agentMember
+                ? `Agent: ${briefing.agentMember.displayName} · ${briefing.agentMember.role}. Membership doesn't prove agent-daemon is running; a diary-writer grant can also authorize claims.`
+                : 'No agent is a member of this team. An agent can claim work through team membership or a diary-writer grant.'}
+          </Text>
+        )}
+      </Stack>
 
-      <Card variant="outlined" padding="md" glow="accent">
-        <Stack gap={2}>
-          <Stack direction="row" gap={2} align="center" wrap>
-            <Badge variant="warning">Review before queueing</Badge>
-            <Text variant="h3">Cost is not estimated or capped here</Text>
+      {/* Setup — prominent while incomplete, collapses to a summary once done. */}
+      {allPhasesComplete ? (
+        <Card variant="surface" padding="sm">
+          <Stack direction="row" gap={2} align="center">
+            <Text style={{ color: theme.color.success.DEFAULT }}>✓</Text>
+            <Text variant="caption" color="secondary">
+              Pilot setup complete — workspace, agent, and first task are all in
+              place.
+            </Text>
           </Stack>
-          <Text color="secondary">
-            MoltNet currently does not show a cost estimate or enforce a spend
-            cap for runtime tasks. Keep the first brief narrow and inspect the
-            executor profile before an agent claims it.
+        </Card>
+      ) : (
+        <Stack gap={3}>
+          <SectionHeading>Pilot setup</SectionHeading>
+          <Stack gap={2}>
+            {briefing.phases.map((phase) => (
+              <PhaseRow key={phase.id} phase={phase} onNavigate={navigate} />
+            ))}
+          </Stack>
+        </Stack>
+      )}
+
+      {/* Standing caveat — honest, but a calm note rather than a glowing banner. */}
+      <Card variant="outlined" padding="sm">
+        <Stack direction="row" gap={2} align="flex-start">
+          <Text
+            aria-hidden="true"
+            style={{ color: theme.color.warning.DEFAULT }}
+          >
+            ⚠
+          </Text>
+          <Text variant="caption" color="secondary">
+            <strong>Cost is not estimated or capped here.</strong> MoltNet
+            doesn&apos;t show a cost estimate or enforce a spend cap for runtime
+            tasks — keep the first brief narrow and inspect the executor profile
+            before an agent claims it.
           </Text>
         </Stack>
       </Card>
+    </Stack>
+  );
+}
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-          gap: theme.spacing[4],
-        }}
-      >
-        {briefing.phases.map((phase, index) => {
-          const external = phase.action.href.startsWith('http');
-          return (
-            <Card key={phase.id} variant="surface" padding="md">
-              <Stack gap={4} style={{ height: '100%' }}>
-                <Stack
-                  direction="row"
-                  justify="space-between"
-                  gap={2}
-                  align="center"
-                >
-                  <Text variant="overline" color="accent">
-                    {index + 1}. {phase.label}
-                  </Text>
-                  <Badge variant={statusVariant[phase.status]}>
-                    {statusLabel[phase.status]}
-                  </Badge>
-                </Stack>
-                <Stack gap={2} style={{ flex: 1 }}>
-                  <Text variant="h3">{phase.title}</Text>
-                  <Text color="muted">{phase.detail}</Text>
-                </Stack>
-                {external ? (
-                  <a
-                    href={phase.action.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ alignSelf: 'flex-start' }}
-                  >
-                    <Button variant="secondary" size="sm">
-                      {phase.action.label}
-                    </Button>
-                  </a>
-                ) : (
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => navigate(phase.action.href)}
-                    style={{ alignSelf: 'flex-start' }}
-                  >
-                    {phase.action.label}
-                  </Button>
-                )}
-              </Stack>
-            </Card>
-          );
-        })}
-      </div>
+/** A small uppercase section label that is also a real `<h2>`, so the page has
+ *  an h1 → h2 structure and the tile counts don't have to be headings. */
+function SectionHeading({ children }: { children: React.ReactNode }) {
+  const theme = useTheme();
+  return (
+    <h2
+      style={{
+        margin: 0,
+        fontSize: theme.font.size.xs,
+        fontWeight: theme.font.weight.medium,
+        letterSpacing: '0.08em',
+        textTransform: 'uppercase',
+        color: theme.color.text.secondary,
+      }}
+    >
+      {children}
+    </h2>
+  );
+}
 
-      <details>
-        <summary
+function TaskStatTile({
+  count,
+  label,
+  color,
+}: {
+  count: number;
+  label: string;
+  color: string;
+}) {
+  const theme = useTheme();
+  return (
+    <Card
+      variant="surface"
+      padding="md"
+      data-testid={`task-tile-${label.toLowerCase()}`}
+    >
+      <Stack gap={1}>
+        {/* The count is data, not a heading — otherwise screen-reader heading
+            navigation is a list of contextless numbers. The colored dot beside
+            the label carries lane identity, so state never reads by color
+            alone. */}
+        <span
           style={{
-            cursor: 'pointer',
-            color: theme.color.primary.DEFAULT,
-            fontWeight: 600,
+            fontSize: theme.font.size['3xl'],
+            fontWeight: theme.font.weight.semibold,
+            lineHeight: theme.font.lineHeight.tight,
+            color: theme.color.text.DEFAULT,
           }}
         >
-          Pilot checks and activity
-        </summary>
-        <Stack gap={3} style={{ marginTop: theme.spacing[4] }}>
-          <Divider />
-          <Text color="muted">
-            {hasProjectTeam && selectedTeam
-              ? `Current project team: ${selectedTeam.name}.`
-              : 'A personal team is selected. Choose a non-personal project team for a shared pilot.'}
+          {count}
+        </span>
+        <Stack direction="row" gap={1.5} align="center">
+          <span
+            aria-hidden="true"
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: theme.radius.full,
+              background: color,
+              flexShrink: 0,
+            }}
+          />
+          <Text variant="caption" color="secondary">
+            {label}
           </Text>
-          <Text color="muted">
-            {briefing.agentMember
-              ? `Team agent: ${briefing.agentMember.displayName}. Owner or manager membership is the conventional claim path, while diary writer grants can also authorize claims. Visible membership does not prove that agent-daemon is running.`
-              : 'No agent is visible in the selected project team.'}
-          </Text>
-          <Text color="muted">
-            {briefing.queuedTaskCount} queued, {briefing.activeTaskCount}{' '}
-            active, {briefing.waitingTaskCount} condition-waiting,{' '}
-            {briefing.completedTaskCount} completed, and{' '}
-            {briefing.failedTaskCount} unsuccessful in the loaded queue.
-          </Text>
-          <Stack direction="row" gap={3} wrap>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/teams')}
-            >
-              Team details
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/diaries')}
-            >
-              Diary details
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/tasks')}
-            >
-              Full task activity
-            </Button>
-          </Stack>
         </Stack>
-      </details>
-    </Stack>
+      </Stack>
+    </Card>
+  );
+}
+
+function PhaseRow({
+  phase,
+  onNavigate,
+}: {
+  phase: PilotPhase;
+  onNavigate: (href: string) => void;
+}) {
+  const theme = useTheme();
+  const meta = PHASE_META[phase.status];
+  const toneColor = {
+    success: theme.color.success.DEFAULT,
+    primary: theme.color.primary.DEFAULT,
+    error: theme.color.error.DEFAULT,
+    warning: theme.color.warning.DEFAULT,
+    muted: theme.color.text.muted,
+  }[meta.tone];
+  const external = phase.action.href.startsWith('http');
+
+  return (
+    <Card variant="surface" padding="sm">
+      <Stack direction="row" gap={3} align="center">
+        <span
+          aria-hidden="true"
+          style={{
+            width: 24,
+            height: 24,
+            flexShrink: 0,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: theme.radius.full,
+            color: toneColor,
+            fontWeight: theme.font.weight.bold,
+          }}
+        >
+          {meta.glyph}
+        </span>
+        <Stack gap={0} style={{ flex: 1, minWidth: 0 }}>
+          <Text variant="body" weight="medium">
+            {phase.title}
+          </Text>
+          <Text variant="caption" color="muted">
+            {phase.detail}
+          </Text>
+        </Stack>
+        {external ? (
+          // A single link-capable element (Button has no href), styled to
+          // match the secondary button — no Button-inside-anchor nesting.
+          <a
+            href={phase.action.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              flexShrink: 0,
+              display: 'inline-flex',
+              alignItems: 'center',
+              minHeight: '2.75rem',
+              padding: `0 ${theme.spacing[4]}`,
+              borderRadius: theme.radius.md,
+              border: `1px solid ${theme.color.border.DEFAULT}`,
+              color: theme.color.primary.DEFAULT,
+              fontSize: theme.font.size.sm,
+              fontWeight: theme.font.weight.medium,
+              textDecoration: 'none',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {phase.action.label}
+          </a>
+        ) : (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => onNavigate(phase.action.href)}
+            style={{ flexShrink: 0 }}
+          >
+            {phase.action.label}
+          </Button>
+        )}
+      </Stack>
+    </Card>
   );
 }

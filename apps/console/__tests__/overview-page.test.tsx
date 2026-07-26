@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MoltThemeProvider } from '@themoltnet/design-system';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -103,42 +103,107 @@ describe('OverviewPage', () => {
     });
   });
 
-  it('surfaces the queued-task, daemon, and cost-cap constraints', async () => {
+  it('shows the correct count on every lane tile and links to the board', async () => {
+    // A mixed-status set with a distinct count per lane so each tile is
+    // unambiguous: queued 2, active 3, waiting 1, completed 4, unsuccessful 5.
+    mocks.listTasks.mockResolvedValue({
+      items: [
+        ...Array(2).fill({ status: 'queued' }),
+        ...Array(3).fill({ status: 'running' }),
+        ...Array(1).fill({ status: 'waiting' }),
+        ...Array(4).fill({ status: 'completed' }),
+        ...Array(5).fill({ status: 'failed' }),
+      ],
+      total: 15,
+    });
+
     render(<OverviewPage />, { wrapper: Wrapper });
 
+    const expected: Array<[string, string]> = [
+      ['queued', '2'],
+      ['active', '3'],
+      ['waiting', '1'],
+      ['completed', '4'],
+      ['unsuccessful', '5'],
+    ];
+    for (const [lane, count] of expected) {
+      const tile = await screen.findByTestId(`task-tile-${lane}`);
+      expect(within(tile).getByText(count)).toBeInTheDocument();
+      expect(
+        within(tile).getByText(new RegExp(`^${lane}$`, 'i')),
+      ).toBeInTheDocument();
+    }
+
+    // The single board control navigates (tiles themselves are data, not links).
+    fireEvent.click(screen.getByRole('button', { name: 'Task board →' }));
+    expect(mocks.navigate).toHaveBeenCalledWith('/tasks');
+
+    // Cost caveat is present and no longer inside a <details>.
     expect(
-      await screen.findByRole('heading', {
-        name: 'Task waiting for an agent',
-      }),
+      screen.getByText(/Cost is not estimated or capped here/),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText(/authorized agent-daemon running to claim work/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('Cost is not estimated or capped here'),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('Pilot checks and activity').closest('details'),
-    ).not.toHaveAttribute('open');
-    expect(screen.getByText('2. Team agent')).toBeInTheDocument();
   });
 
-  it('keeps workspace and agent phases when the task query fails', async () => {
+  it('renders task activity as unavailable (not zero) when the task query fails', async () => {
     mocks.listTasks.mockRejectedValue(new Error('tasks unavailable'));
 
     render(<OverviewPage />, { wrapper: Wrapper });
 
     expect(
-      await screen.findByRole('heading', { name: 'Task status unavailable' }),
+      await screen.findByText(/counts are unavailable, not zero/i),
     ).toBeInTheDocument();
+    // No zero-tiles are shown during the outage.
+    expect(screen.queryByTestId('task-tile-queued')).not.toBeInTheDocument();
+    // The setup checklist still reflects the workspace/agent phases.
+    expect(screen.getByText('Project workspace ready')).toBeInTheDocument();
+    expect(screen.getByText('Team agent ready')).toBeInTheDocument();
+  });
+
+  it('qualifies lane counts as loaded-page when the team has more tasks than the page', async () => {
+    mocks.listTasks.mockResolvedValue({
+      items: [{ status: 'queued' }, { status: 'queued' }],
+      total: 120,
+    });
+
+    render(<OverviewPage />, { wrapper: Wrapper });
+
     expect(
-      screen.getByRole('heading', { name: 'Project workspace ready' }),
+      await screen.findByText(
+        /Counts reflect the 2 most recently loaded of 120 tasks/i,
+      ),
     ).toBeInTheDocument();
+  });
+
+  it('collapses the setup checklist to a summary once every phase is complete', async () => {
+    // Diary + agent present (from beforeEach) and a completed task ⇒ all three
+    // phases complete.
+    mocks.listTasks.mockResolvedValue({
+      items: [{ status: 'completed' }],
+      total: 1,
+    });
+
+    render(<OverviewPage />, { wrapper: Wrapper });
+
     expect(
-      screen.getByRole('heading', { name: 'Team agent ready' }),
+      await screen.findByText(/Pilot setup complete/i),
     ).toBeInTheDocument();
+    // Individual phase rows are not shown once collapsed.
+    expect(screen.queryByText('Ready a team agent')).not.toBeInTheDocument();
+  });
+
+  it('distinguishes unavailable membership from a confirmed absent agent', async () => {
+    mocks.getTeam.mockRejectedValue(new Error('members unavailable'));
+
+    render(<OverviewPage />, { wrapper: Wrapper });
+
     expect(
-      screen.queryByRole('heading', { name: 'Pilot status is unavailable' }),
+      await screen.findByText(
+        /Team membership couldn't be loaded, so agent presence is unknown/i,
+      ),
+    ).toBeInTheDocument();
+    // It must not claim there is "no agent" when membership simply failed.
+    expect(
+      screen.queryByText(/No agent is a member of this team/i),
     ).not.toBeInTheDocument();
   });
 
@@ -152,14 +217,10 @@ describe('OverviewPage', () => {
     render(<OverviewPage />, { wrapper: Wrapper });
 
     expect(
-      await screen.findByRole('heading', { name: 'Diary status unavailable' }),
+      await screen.findByText('Diary status unavailable'),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', { name: 'Team agent ready' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', { name: 'Task waiting for an agent' }),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Team agent ready')).toBeInTheDocument();
+    expect(screen.getByText('Task waiting for an agent')).toBeInTheDocument();
   });
 
   it('renders the loading state from an overridable team hook', () => {
