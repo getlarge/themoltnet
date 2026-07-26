@@ -117,6 +117,13 @@ export {
   type UpdateRuntimeModelInput,
 } from './repositories/runtime-models.repository.js';
 export {
+  type CreateRuntimePolicyInput,
+  createRuntimePolicyRepository,
+  type RuntimePolicyRepository,
+  type ToolEnforcement,
+  type UpdateRuntimePolicyInput,
+} from './repositories/runtime-policy.repository.js';
+export {
   type CreateRuntimeProfileInput,
   createRuntimeProfileRepository,
   type RuntimeProfileRepository,
