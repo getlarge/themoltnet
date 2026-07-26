@@ -123,8 +123,9 @@ export async function signingCredentialRoutes(fastify: FastifyInstance) {
       },
       // Inspect the parsed body before Ajv's removeAdditional pass can erase a
       // private-material field and turn a malicious payload into a valid one.
-      preValidation: (request) => {
+      preValidation: (request, _reply, done) => {
         rejectPrivateRegistrationMaterial(request.body);
+        done();
       },
       schema: {
         operationId: 'beginSigningCredentialRegistration',
@@ -167,8 +168,9 @@ export async function signingCredentialRoutes(fastify: FastifyInstance) {
       },
       // Keep this before schema validation for the same removeAdditional
       // reason as the registration-begin route above.
-      preValidation: (request) => {
+      preValidation: (request, _reply, done) => {
         rejectPrivateRegistrationMaterial(request.body);
+        done();
       },
       schema: {
         operationId: 'completeSigningCredentialRegistration',
