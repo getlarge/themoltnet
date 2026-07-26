@@ -16,6 +16,7 @@ function createMockDb() {
     'offset',
     'orderBy',
     'set',
+    'for',
   ]) {
     mockChain[method] = vi.fn().mockReturnValue(mockChain);
   }
@@ -41,6 +42,13 @@ const mockRequest: SigningRequest = {
   verificationMethod: 'agent-ed25519',
   requestedBy: null,
   signerConstraint: null,
+  teamId: null,
+  purpose: null,
+  claimedByHumanId: null,
+  signingCredentialId: null,
+  challenge: null,
+  methodState: null,
+  receipt: null,
   message: 'Hello, world!',
   nonce: '880e8400-e29b-41d4-a716-446655440003',
   status: 'pending',
@@ -50,6 +58,9 @@ const mockRequest: SigningRequest = {
   createdAt: new Date(),
   expiresAt: new Date(Date.now() + 5 * 60 * 1000),
   completedAt: null,
+  claimedAt: null,
+  rejectedAt: null,
+  rejectionReason: null,
 };
 
 describe('createSigningRequestRepository', () => {
@@ -149,8 +160,21 @@ describe('createSigningRequestRepository', () => {
     });
   });
 
-  describe('updateStatus', () => {
-    it('updates status and returns updated record', async () => {
+  describe('guarded agent updates', () => {
+    it('sets the workflow id only on a pending request', async () => {
+      db._chain.returning.mockResolvedValueOnce([
+        { ...mockRequest, workflowId: 'workflow-1' },
+      ]);
+
+      const result = await repo.setWorkflowId(REQUEST_ID, 'workflow-1');
+
+      expect(db._chain.set).toHaveBeenCalledWith({
+        workflowId: 'workflow-1',
+      });
+      expect(result?.workflowId).toBe('workflow-1');
+    });
+
+    it('completes only the agent workflow path', async () => {
       const updated = {
         ...mockRequest,
         status: 'completed' as const,
@@ -160,25 +184,152 @@ describe('createSigningRequestRepository', () => {
       };
       db._chain.returning.mockResolvedValueOnce([updated]);
 
-      const result = await repo.updateStatus(REQUEST_ID, {
+      const result = await repo.completeAgentRequest({
+        id: REQUEST_ID,
         status: 'completed',
         signature: 'ed25519:sig123',
         valid: true,
         completedAt: new Date(),
       });
 
-      expect(db.update).toHaveBeenCalled();
       expect(result).toEqual(updated);
     });
 
     it('returns null when request not found', async () => {
       db._chain.returning.mockResolvedValueOnce([]);
 
-      const result = await repo.updateStatus('nonexistent', {
+      const result = await repo.completeAgentRequest({
+        id: 'nonexistent',
         status: 'expired',
+        completedAt: new Date(),
       });
 
       expect(result).toBeNull();
+    });
+  });
+
+  describe('delegated lifecycle', () => {
+    it('claims a pending request with one credential atomically', async () => {
+      const claimed = {
+        ...mockRequest,
+        status: 'claimed' as const,
+        claimedByHumanId: AGENT_ID,
+        signingCredentialId: REQUEST_ID,
+      };
+      db._chain.returning.mockResolvedValueOnce([claimed]);
+
+      const result = await repo.claim({
+        id: REQUEST_ID,
+        humanId: AGENT_ID,
+        credentialId: REQUEST_ID,
+        challenge: {
+          verificationMethod: 'human-hardware-previewsign',
+          value: { challenge: 'challenge' },
+        },
+        methodState: {
+          verificationMethod: 'human-hardware-previewsign',
+          value: { nonce: 'nonce' },
+        },
+      });
+
+      expect(db._chain.set).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'claimed',
+          claimedByHumanId: AGENT_ID,
+          signingCredentialId: REQUEST_ID,
+        }),
+      );
+      expect(result).toEqual(claimed);
+    });
+
+    it('returns null when an atomic claim loses the race', async () => {
+      db._chain.returning.mockResolvedValueOnce([]);
+
+      await expect(
+        repo.claim({
+          id: REQUEST_ID,
+          humanId: AGENT_ID,
+          credentialId: REQUEST_ID,
+          challenge: {
+            verificationMethod: 'human-hardware-previewsign',
+            value: {},
+          },
+          methodState: {
+            verificationMethod: 'human-hardware-previewsign',
+            value: {},
+          },
+        }),
+      ).resolves.toBeNull();
+    });
+
+    it('completes a claimed request through the full CAS predicate', async () => {
+      const completed = {
+        ...mockRequest,
+        status: 'completed' as const,
+        claimedByHumanId: AGENT_ID,
+        signingCredentialId: REQUEST_ID,
+        receipt: {
+          verificationMethod: 'human-hardware-previewsign' as const,
+          value: { proof: 'proof' },
+        },
+        valid: true,
+      };
+      db._chain.returning.mockResolvedValueOnce([completed]);
+
+      await expect(
+        repo.completeClaim({
+          id: REQUEST_ID,
+          humanId: AGENT_ID,
+          credentialId: REQUEST_ID,
+          receipt: completed.receipt,
+          valid: true,
+        }),
+      ).resolves.toEqual(completed);
+    });
+
+    it('returns null when completion loses the CAS', async () => {
+      db._chain.returning.mockResolvedValueOnce([]);
+
+      await expect(
+        repo.completeClaim({
+          id: REQUEST_ID,
+          humanId: AGENT_ID,
+          credentialId: REQUEST_ID,
+          receipt: {
+            verificationMethod: 'human-hardware-previewsign',
+            value: {},
+          },
+          valid: true,
+        }),
+      ).resolves.toBeNull();
+    });
+
+    it('rejects an eligible pending request through CAS', async () => {
+      const rejected = {
+        ...mockRequest,
+        status: 'rejected' as const,
+        rejectedAt: new Date(),
+      };
+      db._chain.returning.mockResolvedValueOnce([rejected]);
+
+      await expect(
+        repo.reject({
+          id: REQUEST_ID,
+          humanId: AGENT_ID,
+          reason: 'declined',
+        }),
+      ).resolves.toEqual(rejected);
+    });
+
+    it('returns null when rejection loses the CAS', async () => {
+      db._chain.returning.mockResolvedValueOnce([]);
+
+      await expect(
+        repo.reject({
+          id: REQUEST_ID,
+          humanId: AGENT_ID,
+        }),
+      ).resolves.toBeNull();
     });
   });
 

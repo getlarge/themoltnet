@@ -6,7 +6,20 @@
  * submission, verifies it, and persists the result.
  */
 
-import { and, count, desc, eq, inArray } from 'drizzle-orm';
+import { SIGNER_CONSTRAINT_TYPE, VERIFICATION_METHOD } from '@moltnet/models';
+import {
+  and,
+  count,
+  desc,
+  eq,
+  gt,
+  inArray,
+  isNull,
+  lte,
+  ne,
+  or,
+  sql,
+} from 'drizzle-orm';
 
 import type { Database } from '../db.js';
 import {
@@ -16,10 +29,7 @@ import {
 } from '../schema.js';
 import { getExecutor } from '../transaction-context.js';
 
-/** Allowed values for the signing request status filter */
-const VALID_STATUSES = new Set<string>(['pending', 'completed', 'expired']);
-
-type SigningRequestStatus = 'pending' | 'completed' | 'expired';
+export type SigningRequestStatus = SigningRequest['status'];
 
 export function createSigningRequestRepository(db: Database) {
   return {
@@ -28,6 +38,10 @@ export function createSigningRequestRepository(db: Database) {
         expiresAt: Date;
         verificationMethod?: NewSigningRequest['verificationMethod'];
         workflowId?: string;
+        requestedBy?: NewSigningRequest['requestedBy'];
+        signerConstraint?: NewSigningRequest['signerConstraint'];
+        teamId?: string;
+        purpose?: string;
       },
     ): Promise<SigningRequest> {
       const [request] = await getExecutor(db)
@@ -36,8 +50,13 @@ export function createSigningRequestRepository(db: Database) {
           agentId: input.agentId,
           message: input.message,
           expiresAt: input.expiresAt,
-          verificationMethod: input.verificationMethod ?? 'agent-ed25519',
+          verificationMethod:
+            input.verificationMethod ?? VERIFICATION_METHOD.AgentEd25519,
           workflowId: input.workflowId,
+          requestedBy: input.requestedBy,
+          signerConstraint: input.signerConstraint,
+          teamId: input.teamId,
+          purpose: input.purpose,
         })
         .returning();
 
@@ -45,7 +64,7 @@ export function createSigningRequestRepository(db: Database) {
     },
 
     async findById(id: string): Promise<SigningRequest | null> {
-      const [request] = await db
+      const [request] = await getExecutor(db)
         .select()
         .from(signingRequests)
         .where(eq(signingRequests.id, id))
@@ -55,7 +74,7 @@ export function createSigningRequestRepository(db: Database) {
     },
 
     async findBySignature(signature: string): Promise<SigningRequest | null> {
-      const [request] = await db
+      const [request] = await getExecutor(db)
         .select()
         .from(signingRequests)
         .where(eq(signingRequests.signature, signature))
@@ -66,54 +85,284 @@ export function createSigningRequestRepository(db: Database) {
     },
 
     async list(options: {
-      agentId: string;
+      agentId?: string;
+      requestedBy?: { id: string; type: 'agent' | 'human' | 'service' };
+      teamIds?: string[];
       status?: SigningRequestStatus[];
+      unexpired?: boolean;
       limit?: number;
       offset?: number;
     }): Promise<{ items: SigningRequest[]; total: number }> {
-      const { agentId, status, limit = 20, offset = 0 } = options;
+      const {
+        agentId,
+        requestedBy,
+        teamIds,
+        status,
+        unexpired,
+        limit = 20,
+        offset = 0,
+      } = options;
 
-      const conditions = [eq(signingRequests.agentId, agentId)];
+      const conditions = [];
+      if (agentId) {
+        conditions.push(eq(signingRequests.agentId, agentId));
+      }
+      if (requestedBy) {
+        conditions.push(
+          sql`${signingRequests.requestedBy} @> ${JSON.stringify(requestedBy)}::jsonb`,
+        );
+      }
+      if (teamIds?.length) {
+        conditions.push(inArray(signingRequests.teamId, teamIds));
+      }
       if (status && status.length > 0) {
         conditions.push(inArray(signingRequests.status, status));
       }
+      if (unexpired) {
+        conditions.push(gt(signingRequests.expiresAt, sql`now()`));
+      }
 
-      const where = and(...conditions);
+      const where = conditions.length ? and(...conditions) : undefined;
 
+      const executor = getExecutor(db);
       const [items, [{ value: total }]] = await Promise.all([
-        db
+        executor
           .select()
           .from(signingRequests)
           .where(where)
           .orderBy(desc(signingRequests.createdAt))
           .limit(limit)
           .offset(offset),
-        db.select({ value: count() }).from(signingRequests).where(where),
+        executor.select({ value: count() }).from(signingRequests).where(where),
       ]);
 
       return { items, total };
     },
 
-    async updateStatus(
+    async listSignable(options: {
+      teamRoles: Array<{
+        teamId: string;
+        role: 'owner' | 'manager' | 'member';
+      }>;
+      humanIds: string[];
+      groups: Array<{ groupId: string; teamId: string }>;
+      status?: SigningRequestStatus[];
+      limit?: number;
+      offset?: number;
+    }): Promise<{ items: SigningRequest[]; total: number }> {
+      const {
+        teamRoles,
+        humanIds,
+        groups,
+        status = ['pending', 'claimed'],
+        limit = 20,
+        offset = 0,
+      } = options;
+      const constraintType = sql<string>`${signingRequests.signerConstraint}->>'type'`;
+      const constraintId = sql<string>`${signingRequests.signerConstraint}->>'id'`;
+      const eligible = or(
+        and(
+          eq(constraintType, SIGNER_CONSTRAINT_TYPE.Human),
+          inArray(constraintId, humanIds),
+        ),
+        ...teamRoles.map(({ teamId, role }) =>
+          and(
+            eq(signingRequests.teamId, teamId),
+            eq(constraintType, SIGNER_CONSTRAINT_TYPE.TeamRole),
+            eq(constraintId, role),
+          ),
+        ),
+        ...groups.map(({ groupId, teamId }) =>
+          and(
+            eq(signingRequests.teamId, teamId),
+            eq(constraintType, SIGNER_CONSTRAINT_TYPE.Group),
+            eq(constraintId, groupId),
+          ),
+        ),
+      );
+      const where = and(
+        inArray(
+          signingRequests.teamId,
+          teamRoles.map(({ teamId }) => teamId),
+        ),
+        inArray(signingRequests.status, status),
+        gt(signingRequests.expiresAt, sql`now()`),
+        eligible,
+      );
+      const executor = getExecutor(db);
+      const [items, [{ value: total }]] = await Promise.all([
+        executor
+          .select()
+          .from(signingRequests)
+          .where(where)
+          .orderBy(desc(signingRequests.createdAt))
+          .limit(limit)
+          .offset(offset),
+        executor.select({ value: count() }).from(signingRequests).where(where),
+      ]);
+      return { items, total };
+    },
+
+    async setWorkflowId(
       id: string,
-      updates: Partial<
-        Pick<
-          SigningRequest,
-          'status' | 'signature' | 'valid' | 'completedAt' | 'workflowId'
-        >
-      >,
+      workflowId: string,
     ): Promise<SigningRequest | null> {
       const [updated] = await getExecutor(db)
         .update(signingRequests)
-        .set(updates)
-        .where(eq(signingRequests.id, id))
+        .set({ workflowId })
+        .where(
+          and(
+            eq(signingRequests.id, id),
+            eq(signingRequests.status, 'pending'),
+            isNull(signingRequests.workflowId),
+          ),
+        )
         .returning();
 
       return updated ?? null;
     },
 
+    async completeAgentRequest(input: {
+      id: string;
+      status: 'completed' | 'expired';
+      signature?: string;
+      valid?: boolean;
+      completedAt: Date;
+    }): Promise<SigningRequest | null> {
+      const [updated] = await getExecutor(db)
+        .update(signingRequests)
+        .set({
+          status: input.status,
+          signature: input.signature,
+          valid: input.valid,
+          completedAt: input.completedAt,
+        })
+        .where(
+          and(
+            eq(signingRequests.id, input.id),
+            eq(signingRequests.status, 'pending'),
+            eq(
+              signingRequests.verificationMethod,
+              VERIFICATION_METHOD.AgentEd25519,
+            ),
+          ),
+        )
+        .returning();
+      return updated ?? null;
+    },
+
+    async claim(input: {
+      id: string;
+      humanId: string;
+      credentialId: string;
+      challenge: NonNullable<SigningRequest['challenge']>;
+      methodState: NonNullable<SigningRequest['methodState']>;
+      now?: Date;
+    }): Promise<SigningRequest | null> {
+      const now = input.now ?? new Date();
+      const [claimed] = await getExecutor(db)
+        .update(signingRequests)
+        .set({
+          status: 'claimed',
+          claimedByHumanId: input.humanId,
+          signingCredentialId: input.credentialId,
+          challenge: input.challenge,
+          methodState: input.methodState,
+          claimedAt: now,
+        })
+        .where(
+          and(
+            eq(signingRequests.id, input.id),
+            eq(signingRequests.status, 'pending'),
+            gt(signingRequests.expiresAt, sql`now()`),
+          ),
+        )
+        .returning();
+      return claimed ?? null;
+    },
+
+    async completeClaim(input: {
+      id: string;
+      humanId: string;
+      credentialId: string;
+      receipt: NonNullable<SigningRequest['receipt']>;
+      valid: boolean;
+      signature?: string;
+      now?: Date;
+    }): Promise<SigningRequest | null> {
+      const now = input.now ?? new Date();
+      const [completed] = await getExecutor(db)
+        .update(signingRequests)
+        .set({
+          status: 'completed',
+          receipt: input.receipt,
+          valid: input.valid,
+          signature: input.signature,
+          completedAt: now,
+        })
+        .where(
+          and(
+            eq(signingRequests.id, input.id),
+            eq(signingRequests.status, 'claimed'),
+            eq(signingRequests.claimedByHumanId, input.humanId),
+            eq(signingRequests.signingCredentialId, input.credentialId),
+            gt(signingRequests.expiresAt, sql`now()`),
+          ),
+        )
+        .returning();
+      return completed ?? null;
+    },
+
+    async lockClaimForCompletion(input: {
+      id: string;
+      humanId: string;
+      credentialId: string;
+    }): Promise<SigningRequest | null> {
+      const [request] = await getExecutor(db)
+        .select()
+        .from(signingRequests)
+        .where(
+          and(
+            eq(signingRequests.id, input.id),
+            eq(signingRequests.status, 'claimed'),
+            eq(signingRequests.claimedByHumanId, input.humanId),
+            eq(signingRequests.signingCredentialId, input.credentialId),
+            gt(signingRequests.expiresAt, sql`now()`),
+          ),
+        )
+        .limit(1)
+        .for('update');
+      return request ?? null;
+    },
+
+    async reject(input: {
+      id: string;
+      humanId: string;
+      reason?: string;
+      now?: Date;
+    }): Promise<SigningRequest | null> {
+      const now = input.now ?? new Date();
+      const [rejected] = await getExecutor(db)
+        .update(signingRequests)
+        .set({
+          status: 'rejected',
+          rejectedAt: now,
+          rejectionReason: input.reason,
+        })
+        .where(
+          and(
+            eq(signingRequests.id, input.id),
+            inArray(signingRequests.status, ['pending', 'claimed']),
+            sql`(${signingRequests.claimedByHumanId} IS NULL OR ${signingRequests.claimedByHumanId} = ${input.humanId})`,
+            gt(signingRequests.expiresAt, sql`now()`),
+          ),
+        )
+        .returning();
+      return rejected ?? null;
+    },
+
     async countByAgent(agentId: string): Promise<number> {
-      const [{ value }] = await db
+      const [{ value }] = await getExecutor(db)
         .select({ value: count() })
         .from(signingRequests)
         .where(
@@ -125,20 +374,40 @@ export function createSigningRequestRepository(db: Database) {
 
       return value;
     },
-  };
-}
 
-/**
- * Filter and validate status strings against the allowed enum values.
- * Returns only valid statuses, discarding empty strings and unknown values.
- */
-export function parseStatusFilter(
-  raw: string[],
-): SigningRequestStatus[] | undefined {
-  const statuses = raw
-    .map((s) => s.trim())
-    .filter((s) => VALID_STATUSES.has(s)) as SigningRequestStatus[];
-  return statuses.length > 0 ? statuses : undefined;
+    async expireDelegated(now = new Date(), limit = 100): Promise<number> {
+      const candidates = await getExecutor(db)
+        .select({ id: signingRequests.id })
+        .from(signingRequests)
+        .where(
+          and(
+            inArray(signingRequests.status, ['pending', 'claimed']),
+            ne(
+              signingRequests.verificationMethod,
+              VERIFICATION_METHOD.AgentEd25519,
+            ),
+            lte(signingRequests.expiresAt, now),
+          ),
+        )
+        .limit(limit);
+      if (candidates.length === 0) return 0;
+      const expired = await getExecutor(db)
+        .update(signingRequests)
+        .set({ status: 'expired', completedAt: now })
+        .where(
+          and(
+            inArray(
+              signingRequests.id,
+              candidates.map(({ id }) => id),
+            ),
+            inArray(signingRequests.status, ['pending', 'claimed']),
+            lte(signingRequests.expiresAt, now),
+          ),
+        )
+        .returning({ id: signingRequests.id });
+      return expired.length;
+    },
+  };
 }
 
 export type SigningRequestRepository = ReturnType<

@@ -7,11 +7,19 @@ import {
   assertSigningVerifierRegistered,
   initSigningWorkflows,
   isSigningVerifierRegistered,
+  prepareSigningClaim,
+  registerSigningMethodDriver,
   registerSigningVerifier,
   setSigningKeyLookup,
   setSigningRequestPersistence,
   setSigningVerifier,
+  setSigningWorkflowErrorReporter,
+  SigningResultTimeoutError,
   signingWorkflows,
+  toSigningMethodReceipt,
+  validateSigningCredentialPublicMaterial,
+  verifySigningReceipt,
+  waitForSigningResult,
 } from './signing-workflows.js';
 
 function captureThrownError(fn: () => unknown): unknown {
@@ -120,7 +128,7 @@ describe('Signing Workflows', () => {
         getPublicKey: vi.fn().mockResolvedValue(PUBLIC_KEY),
       });
       setSigningRequestPersistence({
-        updateStatus: vi.fn().mockResolvedValue(undefined),
+        completeAgentRequest: vi.fn().mockResolvedValue(undefined),
       });
     });
 
@@ -231,13 +239,15 @@ describe('Signing Workflows', () => {
     });
 
     it('completes as invalid when the selected verifier throws', async () => {
-      const updateStatus = vi.fn().mockResolvedValue(undefined);
+      const completeAgentRequest = vi.fn().mockResolvedValue(undefined);
+      const reportError = vi.fn();
       vi.mocked(DBOS.recv).mockResolvedValue({ signature: SIGNATURE });
       setSigningVerifier({
         verify: vi.fn().mockResolvedValue(true),
         verifyWithNonce: vi.fn().mockRejectedValue(new Error('malformed key')),
       });
-      setSigningRequestPersistence({ updateStatus });
+      setSigningRequestPersistence({ completeAgentRequest });
+      setSigningWorkflowErrorReporter(reportError);
 
       const result = await signingWorkflows.requestSignature(
         REQUEST_ID,
@@ -246,9 +256,9 @@ describe('Signing Workflows', () => {
         NONCE,
       );
 
-      expect(updateStatus).toHaveBeenCalledWith(
-        REQUEST_ID,
+      expect(completeAgentRequest).toHaveBeenCalledWith(
         expect.objectContaining({
+          id: REQUEST_ID,
           status: 'completed',
           signature: SIGNATURE,
           valid: false,
@@ -264,6 +274,14 @@ describe('Signing Workflows', () => {
         status: 'completed',
         valid: false,
       });
+      expect(reportError).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'malformed key' }),
+        {
+          operation: 'verify_signature',
+          requestId: REQUEST_ID,
+          verificationMethod: 'agent-ed25519',
+        },
+      );
     });
 
     it('throws a typed error when key lookup is not configured', async () => {
@@ -274,7 +292,7 @@ describe('Signing Workflows', () => {
         verifyWithNonce: vi.fn().mockResolvedValue(true),
       });
       setSigningRequestPersistence({
-        updateStatus: vi.fn().mockResolvedValue(undefined),
+        completeAgentRequest: vi.fn().mockResolvedValue(undefined),
       });
       vi.mocked(DBOS.recv).mockResolvedValue({ signature: SIGNATURE });
 
@@ -340,6 +358,202 @@ describe('Signing Workflows', () => {
           verificationMethod: 'human-hardware-previewsign',
         }),
       );
+    });
+  });
+
+  describe('signing method driver registry', () => {
+    const verificationMethod = 'human-hardware-previewsign' as const;
+    const claimInput = {
+      verificationMethod,
+      requestId: '770e8400-e29b-41d4-a716-446655440002',
+      credentialId: '990e8400-e29b-41d4-a716-446655440004',
+      signingPayload: 'cGF5bG9hZA==',
+    };
+
+    it('dispatches claim preparation and receipt verification by method', async () => {
+      const driver = {
+        verificationMethod,
+        validatePublicMaterial: vi.fn(),
+        prepareClaim: vi.fn().mockResolvedValue({
+          challenge: {
+            verificationMethod,
+            ticket: 'opaque-ticket',
+          },
+          verifierState: { derivedKeyId: 'derived-key-1' },
+        }),
+        verify: vi.fn().mockResolvedValue(true),
+        verifyReceipt: vi.fn().mockResolvedValue({
+          verificationMethod,
+          credentialId: claimInput.credentialId,
+          proofHash: 'sha256:proof',
+        }),
+      };
+      registerSigningMethodDriver(verificationMethod, driver);
+
+      const prepared = await prepareSigningClaim(claimInput);
+      const evidence = await verifySigningReceipt({
+        ...claimInput,
+        verifierState: prepared.verifierState,
+        receipt: {
+          verificationMethod,
+          signature: 'p256-signature',
+        },
+      });
+
+      expect(driver.prepareClaim).toHaveBeenCalledWith(claimInput);
+      expect(driver.verifyReceipt).toHaveBeenCalledWith({
+        ...claimInput,
+        verifierState: { derivedKeyId: 'derived-key-1' },
+        receipt: {
+          verificationMethod,
+          signature: 'p256-signature',
+        },
+      });
+      expect(prepared.challenge.verificationMethod).toBe(verificationMethod);
+      expect(evidence).toEqual({
+        verificationMethod,
+        credentialId: claimInput.credentialId,
+        proofHash: 'sha256:proof',
+      });
+    });
+
+    it('rejects a receipt whose discriminator does not match the request', async () => {
+      registerSigningMethodDriver(verificationMethod, {
+        verificationMethod,
+        validatePublicMaterial: vi.fn(),
+        prepareClaim: vi.fn(),
+        verify: vi.fn().mockResolvedValue(true),
+        verifyReceipt: vi.fn(),
+      });
+
+      await expect(
+        verifySigningReceipt({
+          ...claimInput,
+          receipt: {
+            verificationMethod: 'agent-ed25519',
+            signature: 'wrong-method-signature',
+          },
+          verifierState: null,
+        }),
+      ).rejects.toEqual(
+        expect.objectContaining({
+          name: 'SigningReceiptMethodMismatchError',
+          code: 'receipt_method_mismatch',
+          expectedVerificationMethod: verificationMethod,
+          receivedVerificationMethod: 'agent-ed25519',
+        }),
+      );
+    });
+
+    it('reports when a verifier does not implement the claim lifecycle', async () => {
+      registerSigningVerifier(verificationMethod, {
+        verify: vi.fn().mockResolvedValue(true),
+      });
+
+      await expect(prepareSigningClaim(claimInput)).rejects.toEqual(
+        expect.objectContaining({
+          name: 'SigningMethodClaimNotSupportedError',
+          code: 'claim_not_supported',
+          verificationMethod,
+        }),
+      );
+    });
+
+    it('does not promote a duck-typed verifier into a method driver', async () => {
+      registerSigningVerifier(verificationMethod, {
+        verify: vi.fn().mockResolvedValue(true),
+        validatePublicMaterial: vi.fn(),
+        prepareClaim: vi.fn(),
+        verifyReceipt: vi.fn(),
+      } as never);
+
+      await expect(prepareSigningClaim(claimInput)).rejects.toEqual(
+        expect.objectContaining({
+          code: 'claim_not_supported',
+          verificationMethod,
+        }),
+      );
+    });
+
+    it('dispatches public-material validation through the method driver', () => {
+      const validatePublicMaterial = vi.fn();
+      registerSigningMethodDriver(verificationMethod, {
+        verificationMethod,
+        validatePublicMaterial,
+        prepareClaim: vi.fn(),
+        verify: vi.fn().mockResolvedValue(true),
+        verifyReceipt: vi.fn(),
+      });
+      const input = {
+        verificationMethod,
+        credentialType: 'platform-key',
+        algorithm: 'p256',
+        publicMaterial: { version: 1 },
+      };
+
+      validateSigningCredentialPublicMaterial(input);
+
+      expect(validatePublicMaterial).toHaveBeenCalledWith(input);
+    });
+  });
+
+  describe('signing transport helpers', () => {
+    it('normalizes an object receipt without weakening its discriminator', () => {
+      expect(
+        toSigningMethodReceipt({
+          verificationMethod: 'human-hardware-previewsign',
+          value: { signature: 'proof' },
+        }),
+      ).toEqual({
+        verificationMethod: 'human-hardware-previewsign',
+        signature: 'proof',
+      });
+    });
+
+    it.each([null, [], 'proof', 1, true])(
+      'rejects a non-object receipt value: %j',
+      (value) => {
+        expect(
+          captureThrownError(() =>
+            toSigningMethodReceipt({
+              verificationMethod: 'human-hardware-previewsign',
+              value: value as never,
+            }),
+          ),
+        ).toEqual(
+          expect.objectContaining({
+            code: 'receipt_invalid',
+          }),
+        );
+      },
+    );
+
+    it('polls until a pending signing result becomes terminal', async () => {
+      const load = vi
+        .fn()
+        .mockResolvedValueOnce({ status: 'pending' })
+        .mockResolvedValueOnce({ status: 'completed' });
+
+      await expect(
+        waitForSigningResult('request-1', {
+          load,
+          initial: { status: 'pending' },
+          maxWaitMs: 100,
+          pollIntervalMs: 1,
+        }),
+      ).resolves.toEqual({ status: 'completed' });
+      expect(load).toHaveBeenCalledTimes(2);
+    });
+
+    it('throws a typed timeout instead of returning a pending result', async () => {
+      await expect(
+        waitForSigningResult('request-1', {
+          load: vi.fn().mockResolvedValue({ status: 'pending' }),
+          initial: { status: 'pending' },
+          maxWaitMs: 1,
+          pollIntervalMs: 1,
+        }),
+      ).rejects.toBeInstanceOf(SigningResultTimeoutError);
     });
   });
 });

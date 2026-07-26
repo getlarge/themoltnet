@@ -18,6 +18,8 @@ import {
   type NonceRepository,
   type RenderedPackRepository,
   type RuntimeSessionRepository,
+  type SigningCredentialRepository,
+  type SigningRequestRepository,
   type Task,
   type TaskArtifactRepository,
   type TaskRepository,
@@ -56,6 +58,8 @@ export interface MaintenanceDeps {
   taskRepository: TaskRepository;
   runtimeSessionRepository: RuntimeSessionRepository;
   taskArtifactRepository: TaskArtifactRepository;
+  signingCredentialRepository: SigningCredentialRepository;
+  signingRequestRepository: SigningRequestRepository;
   runtimeSessionStorage: RuntimeSessionStorage;
   taskArtifactStorage: TaskArtifactStorage;
   dataSource: DataSource;
@@ -107,6 +111,59 @@ export function initMaintenanceWorkflows(
   DBOS.registerScheduled(nonceCleanupWorkflow, {
     name: 'maintenance.nonceCleanup',
     crontab: '0 0 * * *',
+  });
+
+  const signingExpiryBatchSize = 500;
+  const expireSigningRequestsStep = DBOS.registerStep(
+    async (actualTime: Date, batchSize: number): Promise<number> => {
+      const { signingRequestRepository } = getDeps();
+      return signingRequestRepository.expireDelegated(actualTime, batchSize);
+    },
+    { name: 'maintenance.signingExpiry.expireRequests' },
+  );
+  const cleanupSigningRegistrationsStep = DBOS.registerStep(
+    async (actualTime: Date, batchSize: number): Promise<number> => {
+      const { signingCredentialRepository } = getDeps();
+      return signingCredentialRepository.cleanupRegistrations(
+        actualTime,
+        batchSize,
+      );
+    },
+    { name: 'maintenance.signingExpiry.cleanupRegistrations' },
+  );
+  const signingExpiryWorkflow = DBOS.registerWorkflow(
+    async (_scheduledTime: Date, actualTime: Date): Promise<void> => {
+      const { logger } = getDeps();
+      let expiredRequests: number;
+      let deletedRegistrations: number;
+      try {
+        [expiredRequests, deletedRegistrations] = await Promise.all([
+          expireSigningRequestsStep(actualTime, signingExpiryBatchSize),
+          cleanupSigningRegistrationsStep(actualTime, signingExpiryBatchSize),
+        ]);
+      } catch (error) {
+        logger.error(
+          { err: error },
+          'maintenance: signing expiry cleanup failed',
+        );
+        throw error;
+      }
+      const log =
+        expiredRequests === signingExpiryBatchSize ||
+        deletedRegistrations === signingExpiryBatchSize
+          ? logger.warn.bind(logger)
+          : logger.info.bind(logger);
+      log(
+        { expiredRequests, deletedRegistrations },
+        'maintenance: signing expiry cleanup complete',
+      );
+    },
+    { name: 'maintenance.signingExpiryCleanup' },
+  );
+
+  DBOS.registerScheduled(signingExpiryWorkflow, {
+    name: 'maintenance.signingExpiryCleanup',
+    crontab: '*/5 * * * *',
   });
 
   // ── Pack GC ──────────────────────────────────────────────────

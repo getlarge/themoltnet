@@ -10,10 +10,13 @@ import type {
   BatchDeleteTasksAcceptedResponse,
   BatchDeleteTasksData,
   BeginRuntimeSlotData,
+  BeginSigningCredentialRegistrationData,
   CancelTaskData,
   ClaimTaskData,
   ClaimTaskResponse,
   Client,
+  CompleteSigningCredentialRegistrationData,
+  CompleteSigningRequestData,
   CompleteTaskData,
   ContextPackResponse,
   ContextPackResponseListWithRendered,
@@ -24,6 +27,7 @@ import type {
   CreateDiaryGrantData,
   CreateDiaryGrantResponse,
   CreateRuntimeProfileData,
+  CreateSigningRequestData,
   CreateTaskData,
   CreateTeamData,
   CreateTeamInviteData,
@@ -76,6 +80,7 @@ import type {
   ListProblemTypesResponse,
   ListRuntimeSlotsData,
   ListRuntimeSlotsResponse,
+  ListSigningCredentialsData,
   ListSigningRequestsData,
   ListTaskArtifactsData,
   ListTaskMessagesData,
@@ -112,6 +117,9 @@ import type {
   RuntimeSlot,
   SearchDiaryData,
   SearchPublicFeedData,
+  SigningCredential,
+  SigningCredentialList,
+  SigningCredentialRegistration,
   SigningRequest,
   SigningRequestList,
   StageTaskArtifactData,
@@ -169,6 +177,7 @@ import { createRecoveryNamespace } from './namespaces/recovery.js';
 import { createRuntimeProfilesNamespace } from './namespaces/runtime-profiles.js';
 import { createRuntimeSessionsNamespace } from './namespaces/runtime-sessions.js';
 import { createRuntimeSlotsNamespace } from './namespaces/runtime-slots.js';
+import { createSigningCredentialsNamespace } from './namespaces/signing-credentials.js';
 import { createSigningRequestsNamespace } from './namespaces/signing-requests.js';
 import { createTasksNamespace } from './namespaces/tasks.js';
 import type { RequiredTeamRequestOptions } from './namespaces/team-headers.js';
@@ -435,14 +444,67 @@ export type SigningVerificationMethod = SigningRequest['verificationMethod'];
 export interface SigningRequestsNamespace {
   list(query?: ListSigningRequestsData['query']): Promise<SigningRequestList>;
 
-  create(body: {
-    message: string;
-    verificationMethod?: SigningVerificationMethod;
-  }): Promise<SigningRequest>;
+  create(body: CreateSigningRequestData['body']): Promise<SigningRequest>;
 
   get(id: string): Promise<SigningRequest>;
 
   submit(id: string, body: { signature: string }): Promise<SigningRequest>;
+
+  claim(
+    id: string,
+    body: { credentialId: string },
+    options: RequiredTeamRequestOptions,
+  ): Promise<SigningRequest>;
+
+  complete(
+    id: string,
+    body: CompleteSigningRequestData['body'],
+    options: RequiredTeamRequestOptions,
+  ): Promise<SigningRequest>;
+
+  reject(
+    id: string,
+    body: { reason?: string },
+    options: RequiredTeamRequestOptions,
+  ): Promise<SigningRequest>;
+}
+
+export interface SigningCredentialsNamespace {
+  list(
+    query: ListSigningCredentialsData['query'],
+    options: RequiredTeamRequestOptions,
+  ): Promise<SigningCredentialList>;
+
+  get(
+    id: string,
+    options: RequiredTeamRequestOptions,
+  ): Promise<SigningCredential>;
+
+  startRegistration(
+    body: BeginSigningCredentialRegistrationData['body'],
+    options: RequiredTeamRequestOptions,
+  ): Promise<SigningCredentialRegistration>;
+
+  completeRegistration(
+    id: string,
+    body: CompleteSigningCredentialRegistrationData['body'],
+    options: RequiredTeamRequestOptions,
+  ): Promise<SigningCredential>;
+
+  approve(
+    id: string,
+    options: RequiredTeamRequestOptions,
+  ): Promise<SigningCredential>;
+
+  suspend(
+    id: string,
+    options: RequiredTeamRequestOptions,
+  ): Promise<SigningCredential>;
+
+  revoke(
+    id: string,
+    options: RequiredTeamRequestOptions,
+  ): Promise<SigningCredential>;
 }
 
 export interface CryptoNamespace {
@@ -451,6 +513,7 @@ export interface CryptoNamespace {
   verify(body: { signature: string }): Promise<CryptoVerifyResult>;
 
   signingRequests: SigningRequestsNamespace;
+  signingCredentials: SigningCredentialsNamespace;
 }
 
 export interface VouchNamespace {
@@ -899,7 +962,12 @@ export function createAgent(options: CreateAgentOptions): Agent {
   const entries = createEntriesNamespace(context);
   const agents = createAgentsNamespace(context);
   const signingRequests = createSigningRequestsNamespace(context);
-  const crypto = createCryptoNamespace(context, signingRequests);
+  const signingCredentials = createSigningCredentialsNamespace(context);
+  const crypto = createCryptoNamespace(
+    context,
+    signingRequests,
+    signingCredentials,
+  );
   const vouch = createVouchNamespace(context);
   const authNs = createAuthNamespace(context);
   const recovery = createRecoveryNamespace(context);

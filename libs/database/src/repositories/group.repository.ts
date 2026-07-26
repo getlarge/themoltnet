@@ -6,7 +6,7 @@
  * group metadata only.
  */
 
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 
 import type { Database } from '../db.js';
 import { type Group, groups } from '../schema.js';
@@ -27,6 +27,7 @@ export interface CreateGroupInput {
 export interface GroupRepository {
   create(input: CreateGroupInput): Promise<Group>;
   findById(id: string): Promise<Group | null>;
+  findByIds(ids: readonly string[]): Promise<Map<string, Group>>;
   listByTeamId(teamId: string): Promise<Group[]>;
   delete(id: string): Promise<boolean>;
 }
@@ -64,7 +65,7 @@ export function createGroupRepository(db: Database): GroupRepository {
     },
 
     async findById(id) {
-      const [group] = await db
+      const [group] = await getExecutor(db)
         .select()
         .from(groups)
         .where(eq(groups.id, id))
@@ -72,8 +73,20 @@ export function createGroupRepository(db: Database): GroupRepository {
       return group ?? null;
     },
 
+    async findByIds(ids) {
+      if (ids.length === 0) return new Map();
+      const found = await getExecutor(db)
+        .select()
+        .from(groups)
+        .where(inArray(groups.id, [...new Set(ids)]));
+      return new Map(found.map((group) => [group.id, group]));
+    },
+
     async listByTeamId(teamId) {
-      return db.select().from(groups).where(eq(groups.teamId, teamId));
+      return getExecutor(db)
+        .select()
+        .from(groups)
+        .where(eq(groups.teamId, teamId));
     },
 
     async delete(id) {

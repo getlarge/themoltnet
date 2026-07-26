@@ -231,6 +231,13 @@
       "when": 1784898370065,
       "tag": "0032_yellow_deadpool",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1784993446476,
+      "tag": "0033_signing_credential_substrate",
+      "breakpoints": true
     }
   ],
   "version": "7"

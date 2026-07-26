@@ -74,6 +74,26 @@ func encodeAppendTaskMessagesRequest(
 	return nil
 }
 
+func encodeApproveSigningCredentialRequest(
+	req OptApproveSigningCredentialReq,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	if !req.Set {
+		// Keep request with empty body if value is not set.
+		return nil
+	}
+	e := new(jx.Encoder)
+	{
+		if req.Set {
+			req.Encode(e)
+		}
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
 func encodeBatchDeleteDiaryEntriesRequest(
 	req *BatchDeleteDiaryEntriesReq,
 	r *http.Request,
@@ -116,8 +136,36 @@ func encodeBeginRuntimeSlotRequest(
 	return nil
 }
 
+func encodeBeginSigningCredentialRegistrationRequest(
+	req *BeginSigningCredentialRegistrationReq,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
 func encodeCancelTaskRequest(
 	req *CancelTaskReq,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeClaimSigningRequestRequest(
+	req *ClaimSigningRequestReq,
 	r *http.Request,
 ) error {
 	const contentType = "application/json"
@@ -144,6 +192,34 @@ func encodeClaimTaskRequest(
 		if req.Set {
 			req.Encode(e)
 		}
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeCompleteSigningCredentialRegistrationRequest(
+	req *CompleteSigningCredentialRegistrationReq,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeCompleteSigningRequestRequest(
+	req *CompleteSigningRequestReq,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	e := new(jx.Encoder)
+	{
+		req.Encode(e)
 	}
 	encoded := e.Bytes()
 	ht.SetBody(r, bytes.NewReader(encoded), contentType)
@@ -462,6 +538,26 @@ func encodeRegisterAgentRequest(
 	return nil
 }
 
+func encodeRejectSigningRequestRequest(
+	req OptRejectSigningRequestReq,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	if !req.Set {
+		// Keep request with empty body if value is not set.
+		return nil
+	}
+	e := new(jx.Encoder)
+	{
+		if req.Set {
+			req.Encode(e)
+		}
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
 func encodeRenderContextPackRequest(
 	req *RenderContextPackReq,
 	r *http.Request,
@@ -524,6 +620,26 @@ func encodeRevokeDiaryGrantRequest(
 	return nil
 }
 
+func encodeRevokeSigningCredentialRequest(
+	req OptRevokeSigningCredentialReq,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	if !req.Set {
+		// Keep request with empty body if value is not set.
+		return nil
+	}
+	e := new(jx.Encoder)
+	{
+		if req.Set {
+			req.Encode(e)
+		}
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
 func encodeSearchDiaryRequest(
 	req OptSearchDiaryReq,
 	r *http.Request,
@@ -576,6 +692,26 @@ func encodeSubmitSignatureRequest(
 	e := new(jx.Encoder)
 	{
 		req.Encode(e)
+	}
+	encoded := e.Bytes()
+	ht.SetBody(r, bytes.NewReader(encoded), contentType)
+	return nil
+}
+
+func encodeSuspendSigningCredentialRequest(
+	req OptSuspendSigningCredentialReq,
+	r *http.Request,
+) error {
+	const contentType = "application/json"
+	if !req.Set {
+		// Keep request with empty body if value is not set.
+		return nil
+	}
+	e := new(jx.Encoder)
+	{
+		if req.Set {
+			req.Encode(e)
+		}
 	}
 	encoded := e.Bytes()
 	ht.SetBody(r, bytes.NewReader(encoded), contentType)

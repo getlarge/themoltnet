@@ -57,6 +57,8 @@ export interface RelationshipReader {
   ): Promise<boolean>;
   /** Returns all members of a group. */
   listGroupMembers(groupId: string): Promise<GroupMemberTuple[]>;
+  /** Returns all group IDs where the subject is a direct member. */
+  listGroupIdsBySubject(subjectId: string): Promise<string[]>;
   /** Returns all per-diary grants (writers + managers). */
   listDiaryGrants(diaryId: string): Promise<DiaryGrantTuple[]>;
 }
@@ -208,6 +210,37 @@ export function createRelationshipReader(
       } while (pageToken);
 
       return members;
+    },
+
+    async listGroupIdsBySubject(subjectId: string): Promise<string[]> {
+      const groupIds = new Set<string>();
+      const listNamespace = async (subjectSetNamespace: KetoNamespace) => {
+        const ids: string[] = [];
+        let pageToken: string | undefined;
+        do {
+          const result = await relationshipApi.getRelationships({
+            namespace: KetoNamespace.Group,
+            relation: GroupRelation.Members,
+            subjectSetNamespace,
+            subjectSetObject: subjectId,
+            subjectSetRelation: '',
+            pageToken,
+          });
+          for (const tuple of result.relation_tuples ?? []) {
+            if (tuple.object) ids.push(tuple.object);
+          }
+          pageToken = result.next_page_token || undefined;
+        } while (pageToken);
+        return ids;
+      };
+      const namespaceResults = await Promise.all([
+        listNamespace(KetoNamespace.Agent),
+        listNamespace(KetoNamespace.Human),
+      ]);
+      for (const ids of namespaceResults) {
+        for (const id of ids) groupIds.add(id);
+      }
+      return [...groupIds];
     },
 
     async listDiaryGrants(diaryId: string): Promise<DiaryGrantTuple[]> {

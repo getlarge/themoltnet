@@ -199,6 +199,12 @@ function makeDeps(orphans: Array<{ task: Task; attempt: TaskAttempt }>): {
     deleteObject: vi.fn().mockResolvedValue(undefined),
     deleteObjects: vi.fn().mockResolvedValue(undefined),
   };
+  const signingCredentialRepository = {
+    cleanupRegistrations: vi.fn().mockResolvedValue(0),
+  };
+  const signingRequestRepository = {
+    expireDelegated: vi.fn().mockResolvedValue(0),
+  };
   const deps = {
     nonceRepository: {} as unknown,
     contextPackRepository: {} as unknown,
@@ -206,6 +212,8 @@ function makeDeps(orphans: Array<{ task: Task; attempt: TaskAttempt }>): {
     taskRepository,
     taskArtifactRepository,
     runtimeSessionRepository,
+    signingCredentialRepository,
+    signingRequestRepository,
     taskArtifactStorage,
     runtimeSessionStorage,
     dataSource,
@@ -329,6 +337,30 @@ describe('taskOrphanSweeperWorkflow — backstop (#1077)', () => {
     );
     return DBOS;
   }
+
+  it('expires delegated requests and cleans registration state on schedule', async () => {
+    await init();
+    const { deps } = makeDeps([]);
+    const { setMaintenanceDeps: setDeps } =
+      await import('../src/workflows/maintenance.js');
+    setDeps(deps);
+    const actualTime = new Date('2026-07-25T12:00:00.000Z');
+    const workflow = registeredWorkflows['maintenance.signingExpiryCleanup'];
+    if (!workflow) throw new Error('signing expiry workflow not registered');
+
+    await workflow(actualTime, actualTime);
+
+    expect(deps.signingRequestRepository.expireDelegated).toHaveBeenCalledWith(
+      actualTime,
+      500,
+    );
+    expect(
+      deps.signingCredentialRepository.cleanupRegistrations,
+    ).toHaveBeenCalledWith(actualTime, 500);
+    expect(
+      registeredScheduled['maintenance.signingExpiryCleanup'],
+    ).toBeDefined();
+  });
 
   it('within backstop window: tries resume, counts as resumed when DBOS returns OK', async () => {
     const DBOS = await init();

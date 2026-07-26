@@ -807,6 +807,32 @@ type AppendTaskMessagesUnauthorized ProblemDetails
 
 func (*AppendTaskMessagesUnauthorized) appendTaskMessagesRes() {}
 
+type ApproveSigningCredentialForbidden ProblemDetails
+
+func (*ApproveSigningCredentialForbidden) approveSigningCredentialRes() {}
+
+type ApproveSigningCredentialNotFound ProblemDetails
+
+func (*ApproveSigningCredentialNotFound) approveSigningCredentialRes() {}
+
+type ApproveSigningCredentialReq struct {
+	Reason OptString `json:"reason"`
+}
+
+// GetReason returns the value of Reason.
+func (s *ApproveSigningCredentialReq) GetReason() OptString {
+	return s.Reason
+}
+
+// SetReason sets the value of Reason.
+func (s *ApproveSigningCredentialReq) SetReason(val OptString) {
+	s.Reason = val
+}
+
+type ApproveSigningCredentialUnauthorized ProblemDetails
+
+func (*ApproveSigningCredentialUnauthorized) approveSigningCredentialRes() {}
+
 type BatchDeleteDiaryEntriesBadRequest ProblemDetails
 
 func (*BatchDeleteDiaryEntriesBadRequest) batchDeleteDiaryEntriesRes() {}
@@ -3085,6 +3111,112 @@ func (s *BeginRuntimeSlotUnauthorizedCode) UnmarshalText(data []byte) error {
 	}
 }
 
+type BeginSigningCredentialRegistrationBadRequest ProblemDetails
+
+func (*BeginSigningCredentialRegistrationBadRequest) beginSigningCredentialRegistrationRes() {}
+
+type BeginSigningCredentialRegistrationConflict ProblemDetails
+
+func (*BeginSigningCredentialRegistrationConflict) beginSigningCredentialRegistrationRes() {}
+
+type BeginSigningCredentialRegistrationForbidden ProblemDetails
+
+func (*BeginSigningCredentialRegistrationForbidden) beginSigningCredentialRegistrationRes() {}
+
+type BeginSigningCredentialRegistrationReq struct {
+	Algorithm      string `json:"algorithm"`
+	CredentialType string `json:"credentialType"`
+	Label          string `json:"label"`
+	// Stable signing verification method identifier.
+	VerificationMethod BeginSigningCredentialRegistrationReqVerificationMethod `json:"verificationMethod"`
+}
+
+// GetAlgorithm returns the value of Algorithm.
+func (s *BeginSigningCredentialRegistrationReq) GetAlgorithm() string {
+	return s.Algorithm
+}
+
+// GetCredentialType returns the value of CredentialType.
+func (s *BeginSigningCredentialRegistrationReq) GetCredentialType() string {
+	return s.CredentialType
+}
+
+// GetLabel returns the value of Label.
+func (s *BeginSigningCredentialRegistrationReq) GetLabel() string {
+	return s.Label
+}
+
+// GetVerificationMethod returns the value of VerificationMethod.
+func (s *BeginSigningCredentialRegistrationReq) GetVerificationMethod() BeginSigningCredentialRegistrationReqVerificationMethod {
+	return s.VerificationMethod
+}
+
+// SetAlgorithm sets the value of Algorithm.
+func (s *BeginSigningCredentialRegistrationReq) SetAlgorithm(val string) {
+	s.Algorithm = val
+}
+
+// SetCredentialType sets the value of CredentialType.
+func (s *BeginSigningCredentialRegistrationReq) SetCredentialType(val string) {
+	s.CredentialType = val
+}
+
+// SetLabel sets the value of Label.
+func (s *BeginSigningCredentialRegistrationReq) SetLabel(val string) {
+	s.Label = val
+}
+
+// SetVerificationMethod sets the value of VerificationMethod.
+func (s *BeginSigningCredentialRegistrationReq) SetVerificationMethod(val BeginSigningCredentialRegistrationReqVerificationMethod) {
+	s.VerificationMethod = val
+}
+
+// Stable signing verification method identifier.
+type BeginSigningCredentialRegistrationReqVerificationMethod string
+
+const (
+	BeginSigningCredentialRegistrationReqVerificationMethodAgentEd25519             BeginSigningCredentialRegistrationReqVerificationMethod = "agent-ed25519"
+	BeginSigningCredentialRegistrationReqVerificationMethodHumanHardwarePreviewsign BeginSigningCredentialRegistrationReqVerificationMethod = "human-hardware-previewsign"
+)
+
+// AllValues returns all BeginSigningCredentialRegistrationReqVerificationMethod values.
+func (BeginSigningCredentialRegistrationReqVerificationMethod) AllValues() []BeginSigningCredentialRegistrationReqVerificationMethod {
+	return []BeginSigningCredentialRegistrationReqVerificationMethod{
+		BeginSigningCredentialRegistrationReqVerificationMethodAgentEd25519,
+		BeginSigningCredentialRegistrationReqVerificationMethodHumanHardwarePreviewsign,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s BeginSigningCredentialRegistrationReqVerificationMethod) MarshalText() ([]byte, error) {
+	switch s {
+	case BeginSigningCredentialRegistrationReqVerificationMethodAgentEd25519:
+		return []byte(s), nil
+	case BeginSigningCredentialRegistrationReqVerificationMethodHumanHardwarePreviewsign:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *BeginSigningCredentialRegistrationReqVerificationMethod) UnmarshalText(data []byte) error {
+	switch BeginSigningCredentialRegistrationReqVerificationMethod(data) {
+	case BeginSigningCredentialRegistrationReqVerificationMethodAgentEd25519:
+		*s = BeginSigningCredentialRegistrationReqVerificationMethodAgentEd25519
+		return nil
+	case BeginSigningCredentialRegistrationReqVerificationMethodHumanHardwarePreviewsign:
+		*s = BeginSigningCredentialRegistrationReqVerificationMethodHumanHardwarePreviewsign
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type BeginSigningCredentialRegistrationUnauthorized ProblemDetails
+
+func (*BeginSigningCredentialRegistrationUnauthorized) beginSigningCredentialRegistrationRes() {}
+
 type CancelTaskBadRequest ProblemDetails
 
 func (*CancelTaskBadRequest) cancelTaskRes() {}
@@ -3488,6 +3620,36 @@ func (s *ClaimConditionTaskStatusOp) UnmarshalText(data []byte) error {
 	}
 }
 
+type ClaimSigningRequestBadRequest ProblemDetails
+
+func (*ClaimSigningRequestBadRequest) claimSigningRequestRes() {}
+
+type ClaimSigningRequestForbidden ProblemDetails
+
+func (*ClaimSigningRequestForbidden) claimSigningRequestRes() {}
+
+type ClaimSigningRequestNotFound ProblemDetails
+
+func (*ClaimSigningRequestNotFound) claimSigningRequestRes() {}
+
+type ClaimSigningRequestReq struct {
+	CredentialId uuid.UUID `json:"credentialId"`
+}
+
+// GetCredentialId returns the value of CredentialId.
+func (s *ClaimSigningRequestReq) GetCredentialId() uuid.UUID {
+	return s.CredentialId
+}
+
+// SetCredentialId sets the value of CredentialId.
+func (s *ClaimSigningRequestReq) SetCredentialId(val uuid.UUID) {
+	s.CredentialId = val
+}
+
+type ClaimSigningRequestUnauthorized ProblemDetails
+
+func (*ClaimSigningRequestUnauthorized) claimSigningRequestRes() {}
+
 type ClaimTaskBadRequest ProblemDetails
 
 func (*ClaimTaskBadRequest) claimTaskRes() {}
@@ -3707,6 +3869,269 @@ func (s *CompileStats) SetEntriesIncluded(val float64) {
 func (s *CompileStats) SetTotalTokens(val float64) {
 	s.TotalTokens = val
 }
+
+type CompleteSigningCredentialRegistrationBadRequest ProblemDetails
+
+func (*CompleteSigningCredentialRegistrationBadRequest) completeSigningCredentialRegistrationRes() {}
+
+type CompleteSigningCredentialRegistrationForbidden ProblemDetails
+
+func (*CompleteSigningCredentialRegistrationForbidden) completeSigningCredentialRegistrationRes() {}
+
+type CompleteSigningCredentialRegistrationReq struct {
+	PublicMaterial CompleteSigningCredentialRegistrationReqPublicMaterial `json:"publicMaterial"`
+	Receipt        CompleteSigningCredentialRegistrationReqReceipt        `json:"receipt"`
+}
+
+// GetPublicMaterial returns the value of PublicMaterial.
+func (s *CompleteSigningCredentialRegistrationReq) GetPublicMaterial() CompleteSigningCredentialRegistrationReqPublicMaterial {
+	return s.PublicMaterial
+}
+
+// GetReceipt returns the value of Receipt.
+func (s *CompleteSigningCredentialRegistrationReq) GetReceipt() CompleteSigningCredentialRegistrationReqReceipt {
+	return s.Receipt
+}
+
+// SetPublicMaterial sets the value of PublicMaterial.
+func (s *CompleteSigningCredentialRegistrationReq) SetPublicMaterial(val CompleteSigningCredentialRegistrationReqPublicMaterial) {
+	s.PublicMaterial = val
+}
+
+// SetReceipt sets the value of Receipt.
+func (s *CompleteSigningCredentialRegistrationReq) SetReceipt(val CompleteSigningCredentialRegistrationReqReceipt) {
+	s.Receipt = val
+}
+
+// Merged schema.
+type CompleteSigningCredentialRegistrationReqPublicMaterial struct {
+	Version         int `json:"version"`
+	AdditionalProps CompleteSigningCredentialRegistrationReqPublicMaterialAdditional
+}
+
+// GetVersion returns the value of Version.
+func (s *CompleteSigningCredentialRegistrationReqPublicMaterial) GetVersion() int {
+	return s.Version
+}
+
+// GetAdditionalProps returns the value of AdditionalProps.
+func (s *CompleteSigningCredentialRegistrationReqPublicMaterial) GetAdditionalProps() CompleteSigningCredentialRegistrationReqPublicMaterialAdditional {
+	return s.AdditionalProps
+}
+
+// SetVersion sets the value of Version.
+func (s *CompleteSigningCredentialRegistrationReqPublicMaterial) SetVersion(val int) {
+	s.Version = val
+}
+
+// SetAdditionalProps sets the value of AdditionalProps.
+func (s *CompleteSigningCredentialRegistrationReqPublicMaterial) SetAdditionalProps(val CompleteSigningCredentialRegistrationReqPublicMaterialAdditional) {
+	s.AdditionalProps = val
+}
+
+type CompleteSigningCredentialRegistrationReqPublicMaterialAdditional map[string]jx.Raw
+
+func (s *CompleteSigningCredentialRegistrationReqPublicMaterialAdditional) init() CompleteSigningCredentialRegistrationReqPublicMaterialAdditional {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type CompleteSigningCredentialRegistrationReqReceipt struct {
+	Value CompleteSigningCredentialRegistrationReqReceiptValue `json:"value"`
+	// Stable signing verification method identifier.
+	VerificationMethod CompleteSigningCredentialRegistrationReqReceiptVerificationMethod `json:"verificationMethod"`
+}
+
+// GetValue returns the value of Value.
+func (s *CompleteSigningCredentialRegistrationReqReceipt) GetValue() CompleteSigningCredentialRegistrationReqReceiptValue {
+	return s.Value
+}
+
+// GetVerificationMethod returns the value of VerificationMethod.
+func (s *CompleteSigningCredentialRegistrationReqReceipt) GetVerificationMethod() CompleteSigningCredentialRegistrationReqReceiptVerificationMethod {
+	return s.VerificationMethod
+}
+
+// SetValue sets the value of Value.
+func (s *CompleteSigningCredentialRegistrationReqReceipt) SetValue(val CompleteSigningCredentialRegistrationReqReceiptValue) {
+	s.Value = val
+}
+
+// SetVerificationMethod sets the value of VerificationMethod.
+func (s *CompleteSigningCredentialRegistrationReqReceipt) SetVerificationMethod(val CompleteSigningCredentialRegistrationReqReceiptVerificationMethod) {
+	s.VerificationMethod = val
+}
+
+type CompleteSigningCredentialRegistrationReqReceiptValue map[string]jx.Raw
+
+func (s *CompleteSigningCredentialRegistrationReqReceiptValue) init() CompleteSigningCredentialRegistrationReqReceiptValue {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+// Stable signing verification method identifier.
+type CompleteSigningCredentialRegistrationReqReceiptVerificationMethod string
+
+const (
+	CompleteSigningCredentialRegistrationReqReceiptVerificationMethodAgentEd25519             CompleteSigningCredentialRegistrationReqReceiptVerificationMethod = "agent-ed25519"
+	CompleteSigningCredentialRegistrationReqReceiptVerificationMethodHumanHardwarePreviewsign CompleteSigningCredentialRegistrationReqReceiptVerificationMethod = "human-hardware-previewsign"
+)
+
+// AllValues returns all CompleteSigningCredentialRegistrationReqReceiptVerificationMethod values.
+func (CompleteSigningCredentialRegistrationReqReceiptVerificationMethod) AllValues() []CompleteSigningCredentialRegistrationReqReceiptVerificationMethod {
+	return []CompleteSigningCredentialRegistrationReqReceiptVerificationMethod{
+		CompleteSigningCredentialRegistrationReqReceiptVerificationMethodAgentEd25519,
+		CompleteSigningCredentialRegistrationReqReceiptVerificationMethodHumanHardwarePreviewsign,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s CompleteSigningCredentialRegistrationReqReceiptVerificationMethod) MarshalText() ([]byte, error) {
+	switch s {
+	case CompleteSigningCredentialRegistrationReqReceiptVerificationMethodAgentEd25519:
+		return []byte(s), nil
+	case CompleteSigningCredentialRegistrationReqReceiptVerificationMethodHumanHardwarePreviewsign:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *CompleteSigningCredentialRegistrationReqReceiptVerificationMethod) UnmarshalText(data []byte) error {
+	switch CompleteSigningCredentialRegistrationReqReceiptVerificationMethod(data) {
+	case CompleteSigningCredentialRegistrationReqReceiptVerificationMethodAgentEd25519:
+		*s = CompleteSigningCredentialRegistrationReqReceiptVerificationMethodAgentEd25519
+		return nil
+	case CompleteSigningCredentialRegistrationReqReceiptVerificationMethodHumanHardwarePreviewsign:
+		*s = CompleteSigningCredentialRegistrationReqReceiptVerificationMethodHumanHardwarePreviewsign
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type CompleteSigningCredentialRegistrationUnauthorized ProblemDetails
+
+func (*CompleteSigningCredentialRegistrationUnauthorized) completeSigningCredentialRegistrationRes() {
+}
+
+type CompleteSigningRequestBadRequest ProblemDetails
+
+func (*CompleteSigningRequestBadRequest) completeSigningRequestRes() {}
+
+type CompleteSigningRequestForbidden ProblemDetails
+
+func (*CompleteSigningRequestForbidden) completeSigningRequestRes() {}
+
+type CompleteSigningRequestNotFound ProblemDetails
+
+func (*CompleteSigningRequestNotFound) completeSigningRequestRes() {}
+
+type CompleteSigningRequestReq struct {
+	Receipt CompleteSigningRequestReqReceipt `json:"receipt"`
+}
+
+// GetReceipt returns the value of Receipt.
+func (s *CompleteSigningRequestReq) GetReceipt() CompleteSigningRequestReqReceipt {
+	return s.Receipt
+}
+
+// SetReceipt sets the value of Receipt.
+func (s *CompleteSigningRequestReq) SetReceipt(val CompleteSigningRequestReqReceipt) {
+	s.Receipt = val
+}
+
+type CompleteSigningRequestReqReceipt struct {
+	Value CompleteSigningRequestReqReceiptValue `json:"value"`
+	// Stable signing verification method identifier.
+	VerificationMethod CompleteSigningRequestReqReceiptVerificationMethod `json:"verificationMethod"`
+}
+
+// GetValue returns the value of Value.
+func (s *CompleteSigningRequestReqReceipt) GetValue() CompleteSigningRequestReqReceiptValue {
+	return s.Value
+}
+
+// GetVerificationMethod returns the value of VerificationMethod.
+func (s *CompleteSigningRequestReqReceipt) GetVerificationMethod() CompleteSigningRequestReqReceiptVerificationMethod {
+	return s.VerificationMethod
+}
+
+// SetValue sets the value of Value.
+func (s *CompleteSigningRequestReqReceipt) SetValue(val CompleteSigningRequestReqReceiptValue) {
+	s.Value = val
+}
+
+// SetVerificationMethod sets the value of VerificationMethod.
+func (s *CompleteSigningRequestReqReceipt) SetVerificationMethod(val CompleteSigningRequestReqReceiptVerificationMethod) {
+	s.VerificationMethod = val
+}
+
+type CompleteSigningRequestReqReceiptValue map[string]jx.Raw
+
+func (s *CompleteSigningRequestReqReceiptValue) init() CompleteSigningRequestReqReceiptValue {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+// Stable signing verification method identifier.
+type CompleteSigningRequestReqReceiptVerificationMethod string
+
+const (
+	CompleteSigningRequestReqReceiptVerificationMethodAgentEd25519             CompleteSigningRequestReqReceiptVerificationMethod = "agent-ed25519"
+	CompleteSigningRequestReqReceiptVerificationMethodHumanHardwarePreviewsign CompleteSigningRequestReqReceiptVerificationMethod = "human-hardware-previewsign"
+)
+
+// AllValues returns all CompleteSigningRequestReqReceiptVerificationMethod values.
+func (CompleteSigningRequestReqReceiptVerificationMethod) AllValues() []CompleteSigningRequestReqReceiptVerificationMethod {
+	return []CompleteSigningRequestReqReceiptVerificationMethod{
+		CompleteSigningRequestReqReceiptVerificationMethodAgentEd25519,
+		CompleteSigningRequestReqReceiptVerificationMethodHumanHardwarePreviewsign,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s CompleteSigningRequestReqReceiptVerificationMethod) MarshalText() ([]byte, error) {
+	switch s {
+	case CompleteSigningRequestReqReceiptVerificationMethodAgentEd25519:
+		return []byte(s), nil
+	case CompleteSigningRequestReqReceiptVerificationMethodHumanHardwarePreviewsign:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *CompleteSigningRequestReqReceiptVerificationMethod) UnmarshalText(data []byte) error {
+	switch CompleteSigningRequestReqReceiptVerificationMethod(data) {
+	case CompleteSigningRequestReqReceiptVerificationMethodAgentEd25519:
+		*s = CompleteSigningRequestReqReceiptVerificationMethodAgentEd25519
+		return nil
+	case CompleteSigningRequestReqReceiptVerificationMethodHumanHardwarePreviewsign:
+		*s = CompleteSigningRequestReqReceiptVerificationMethodHumanHardwarePreviewsign
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type CompleteSigningRequestUnauthorized ProblemDetails
+
+func (*CompleteSigningRequestUnauthorized) completeSigningRequestRes() {}
 
 type CompleteTaskForbidden ProblemDetails
 
@@ -3952,32 +4377,39 @@ func (s *ConflictProblemDetails) SetAdditionalProps(val ConflictProblemDetailsAd
 	s.AdditionalProps = val
 }
 
-func (*ConflictProblemDetails) abortTaskAttemptRes()       {}
-func (*ConflictProblemDetails) acceptTeamFoundingRes()     {}
-func (*ConflictProblemDetails) acceptTransferRes()         {}
-func (*ConflictProblemDetails) cancelTaskRes()             {}
-func (*ConflictProblemDetails) claimTaskRes()              {}
-func (*ConflictProblemDetails) completeTaskRes()           {}
-func (*ConflictProblemDetails) createDiaryEntryRes()       {}
-func (*ConflictProblemDetails) createDiaryGrantRes()       {}
-func (*ConflictProblemDetails) createGroupRes()            {}
-func (*ConflictProblemDetails) createRuntimeModelRes()     {}
-func (*ConflictProblemDetails) createRuntimeProfileRes()   {}
-func (*ConflictProblemDetails) createTaskRes()             {}
-func (*ConflictProblemDetails) failTaskAttemptRes()        {}
-func (*ConflictProblemDetails) initiateTransferRes()       {}
-func (*ConflictProblemDetails) joinTeamRes()               {}
-func (*ConflictProblemDetails) previewDiaryCustomPackRes() {}
-func (*ConflictProblemDetails) rejectTransferRes()         {}
-func (*ConflictProblemDetails) renderContextPackRes()      {}
-func (*ConflictProblemDetails) submitSignatureRes()        {}
-func (*ConflictProblemDetails) updateContextPackRes()      {}
-func (*ConflictProblemDetails) updateDiaryEntryByIdRes()   {}
-func (*ConflictProblemDetails) updateRenderedPackRes()     {}
-func (*ConflictProblemDetails) updateRuntimeModelRes()     {}
-func (*ConflictProblemDetails) updateRuntimeProfileRes()   {}
-func (*ConflictProblemDetails) updateTeamMemberRoleRes()   {}
-func (*ConflictProblemDetails) uploadTaskArtifactRes()     {}
+func (*ConflictProblemDetails) abortTaskAttemptRes()                      {}
+func (*ConflictProblemDetails) acceptTeamFoundingRes()                    {}
+func (*ConflictProblemDetails) acceptTransferRes()                        {}
+func (*ConflictProblemDetails) approveSigningCredentialRes()              {}
+func (*ConflictProblemDetails) cancelTaskRes()                            {}
+func (*ConflictProblemDetails) claimSigningRequestRes()                   {}
+func (*ConflictProblemDetails) claimTaskRes()                             {}
+func (*ConflictProblemDetails) completeSigningCredentialRegistrationRes() {}
+func (*ConflictProblemDetails) completeSigningRequestRes()                {}
+func (*ConflictProblemDetails) completeTaskRes()                          {}
+func (*ConflictProblemDetails) createDiaryEntryRes()                      {}
+func (*ConflictProblemDetails) createDiaryGrantRes()                      {}
+func (*ConflictProblemDetails) createGroupRes()                           {}
+func (*ConflictProblemDetails) createRuntimeModelRes()                    {}
+func (*ConflictProblemDetails) createRuntimeProfileRes()                  {}
+func (*ConflictProblemDetails) createTaskRes()                            {}
+func (*ConflictProblemDetails) failTaskAttemptRes()                       {}
+func (*ConflictProblemDetails) initiateTransferRes()                      {}
+func (*ConflictProblemDetails) joinTeamRes()                              {}
+func (*ConflictProblemDetails) previewDiaryCustomPackRes()                {}
+func (*ConflictProblemDetails) rejectSigningRequestRes()                  {}
+func (*ConflictProblemDetails) rejectTransferRes()                        {}
+func (*ConflictProblemDetails) renderContextPackRes()                     {}
+func (*ConflictProblemDetails) revokeSigningCredentialRes()               {}
+func (*ConflictProblemDetails) submitSignatureRes()                       {}
+func (*ConflictProblemDetails) suspendSigningCredentialRes()              {}
+func (*ConflictProblemDetails) updateContextPackRes()                     {}
+func (*ConflictProblemDetails) updateDiaryEntryByIdRes()                  {}
+func (*ConflictProblemDetails) updateRenderedPackRes()                    {}
+func (*ConflictProblemDetails) updateRuntimeModelRes()                    {}
+func (*ConflictProblemDetails) updateRuntimeProfileRes()                  {}
+func (*ConflictProblemDetails) updateTeamMemberRoleRes()                  {}
+func (*ConflictProblemDetails) uploadTaskArtifactRes()                    {}
 
 type ConflictProblemDetailsAdditional map[string]jx.Raw
 
@@ -6860,12 +7292,19 @@ type CreateSigningRequestBadRequest ProblemDetails
 
 func (*CreateSigningRequestBadRequest) createSigningRequestRes() {}
 
+type CreateSigningRequestForbidden ProblemDetails
+
+func (*CreateSigningRequestForbidden) createSigningRequestRes() {}
+
 type CreateSigningRequestInternalServerError ProblemDetails
 
 func (*CreateSigningRequestInternalServerError) createSigningRequestRes() {}
 
 type CreateSigningRequestReq struct {
-	Message string `json:"message"`
+	Message          string                                     `json:"message"`
+	Purpose          OptString                                  `json:"purpose"`
+	SignerConstraint OptCreateSigningRequestReqSignerConstraint `json:"signerConstraint"`
+	TeamId           OptUUID                                    `json:"teamId"`
 	// Stable signing verification method identifier.
 	VerificationMethod OptCreateSigningRequestReqVerificationMethod `json:"verificationMethod"`
 }
@@ -6873,6 +7312,21 @@ type CreateSigningRequestReq struct {
 // GetMessage returns the value of Message.
 func (s *CreateSigningRequestReq) GetMessage() string {
 	return s.Message
+}
+
+// GetPurpose returns the value of Purpose.
+func (s *CreateSigningRequestReq) GetPurpose() OptString {
+	return s.Purpose
+}
+
+// GetSignerConstraint returns the value of SignerConstraint.
+func (s *CreateSigningRequestReq) GetSignerConstraint() OptCreateSigningRequestReqSignerConstraint {
+	return s.SignerConstraint
+}
+
+// GetTeamId returns the value of TeamId.
+func (s *CreateSigningRequestReq) GetTeamId() OptUUID {
+	return s.TeamId
 }
 
 // GetVerificationMethod returns the value of VerificationMethod.
@@ -6885,9 +7339,121 @@ func (s *CreateSigningRequestReq) SetMessage(val string) {
 	s.Message = val
 }
 
+// SetPurpose sets the value of Purpose.
+func (s *CreateSigningRequestReq) SetPurpose(val OptString) {
+	s.Purpose = val
+}
+
+// SetSignerConstraint sets the value of SignerConstraint.
+func (s *CreateSigningRequestReq) SetSignerConstraint(val OptCreateSigningRequestReqSignerConstraint) {
+	s.SignerConstraint = val
+}
+
+// SetTeamId sets the value of TeamId.
+func (s *CreateSigningRequestReq) SetTeamId(val OptUUID) {
+	s.TeamId = val
+}
+
 // SetVerificationMethod sets the value of VerificationMethod.
 func (s *CreateSigningRequestReq) SetVerificationMethod(val OptCreateSigningRequestReqVerificationMethod) {
 	s.VerificationMethod = val
+}
+
+// CreateSigningRequestReqSignerConstraint represents sum type.
+type CreateSigningRequestReqSignerConstraint struct {
+	// Type selects the active sum variant, switch on this field.
+	Type                        CreateSigningRequestReqSignerConstraintType
+	ProvenanceGraphHumanNode    ProvenanceGraphHumanNode
+	ProvenanceGraphTeamRoleNode ProvenanceGraphTeamRoleNode
+	ProvenanceGraphGroupNode    ProvenanceGraphGroupNode
+}
+
+// CreateSigningRequestReqSignerConstraintType is oneOf type of CreateSigningRequestReqSignerConstraint.
+type CreateSigningRequestReqSignerConstraintType string
+
+// Possible values for CreateSigningRequestReqSignerConstraintType.
+const (
+	ProvenanceGraphHumanNodeCreateSigningRequestReqSignerConstraint    CreateSigningRequestReqSignerConstraintType = "human"
+	ProvenanceGraphTeamRoleNodeCreateSigningRequestReqSignerConstraint CreateSigningRequestReqSignerConstraintType = "team-role"
+	ProvenanceGraphGroupNodeCreateSigningRequestReqSignerConstraint    CreateSigningRequestReqSignerConstraintType = "group"
+)
+
+// IsProvenanceGraphHumanNode reports whether CreateSigningRequestReqSignerConstraint is ProvenanceGraphHumanNode.
+func (s CreateSigningRequestReqSignerConstraint) IsProvenanceGraphHumanNode() bool {
+	return s.Type == ProvenanceGraphHumanNodeCreateSigningRequestReqSignerConstraint
+}
+
+// IsProvenanceGraphTeamRoleNode reports whether CreateSigningRequestReqSignerConstraint is ProvenanceGraphTeamRoleNode.
+func (s CreateSigningRequestReqSignerConstraint) IsProvenanceGraphTeamRoleNode() bool {
+	return s.Type == ProvenanceGraphTeamRoleNodeCreateSigningRequestReqSignerConstraint
+}
+
+// IsProvenanceGraphGroupNode reports whether CreateSigningRequestReqSignerConstraint is ProvenanceGraphGroupNode.
+func (s CreateSigningRequestReqSignerConstraint) IsProvenanceGraphGroupNode() bool {
+	return s.Type == ProvenanceGraphGroupNodeCreateSigningRequestReqSignerConstraint
+}
+
+// SetProvenanceGraphHumanNode sets CreateSigningRequestReqSignerConstraint to ProvenanceGraphHumanNode.
+func (s *CreateSigningRequestReqSignerConstraint) SetProvenanceGraphHumanNode(v ProvenanceGraphHumanNode) {
+	s.Type = ProvenanceGraphHumanNodeCreateSigningRequestReqSignerConstraint
+	s.ProvenanceGraphHumanNode = v
+}
+
+// GetProvenanceGraphHumanNode returns ProvenanceGraphHumanNode and true boolean if CreateSigningRequestReqSignerConstraint is ProvenanceGraphHumanNode.
+func (s CreateSigningRequestReqSignerConstraint) GetProvenanceGraphHumanNode() (v ProvenanceGraphHumanNode, ok bool) {
+	if !s.IsProvenanceGraphHumanNode() {
+		return v, false
+	}
+	return s.ProvenanceGraphHumanNode, true
+}
+
+// NewProvenanceGraphHumanNodeCreateSigningRequestReqSignerConstraint returns new CreateSigningRequestReqSignerConstraint from ProvenanceGraphHumanNode.
+func NewProvenanceGraphHumanNodeCreateSigningRequestReqSignerConstraint(v ProvenanceGraphHumanNode) CreateSigningRequestReqSignerConstraint {
+	var s CreateSigningRequestReqSignerConstraint
+	s.SetProvenanceGraphHumanNode(v)
+	return s
+}
+
+// SetProvenanceGraphTeamRoleNode sets CreateSigningRequestReqSignerConstraint to ProvenanceGraphTeamRoleNode.
+func (s *CreateSigningRequestReqSignerConstraint) SetProvenanceGraphTeamRoleNode(v ProvenanceGraphTeamRoleNode) {
+	s.Type = ProvenanceGraphTeamRoleNodeCreateSigningRequestReqSignerConstraint
+	s.ProvenanceGraphTeamRoleNode = v
+}
+
+// GetProvenanceGraphTeamRoleNode returns ProvenanceGraphTeamRoleNode and true boolean if CreateSigningRequestReqSignerConstraint is ProvenanceGraphTeamRoleNode.
+func (s CreateSigningRequestReqSignerConstraint) GetProvenanceGraphTeamRoleNode() (v ProvenanceGraphTeamRoleNode, ok bool) {
+	if !s.IsProvenanceGraphTeamRoleNode() {
+		return v, false
+	}
+	return s.ProvenanceGraphTeamRoleNode, true
+}
+
+// NewProvenanceGraphTeamRoleNodeCreateSigningRequestReqSignerConstraint returns new CreateSigningRequestReqSignerConstraint from ProvenanceGraphTeamRoleNode.
+func NewProvenanceGraphTeamRoleNodeCreateSigningRequestReqSignerConstraint(v ProvenanceGraphTeamRoleNode) CreateSigningRequestReqSignerConstraint {
+	var s CreateSigningRequestReqSignerConstraint
+	s.SetProvenanceGraphTeamRoleNode(v)
+	return s
+}
+
+// SetProvenanceGraphGroupNode sets CreateSigningRequestReqSignerConstraint to ProvenanceGraphGroupNode.
+func (s *CreateSigningRequestReqSignerConstraint) SetProvenanceGraphGroupNode(v ProvenanceGraphGroupNode) {
+	s.Type = ProvenanceGraphGroupNodeCreateSigningRequestReqSignerConstraint
+	s.ProvenanceGraphGroupNode = v
+}
+
+// GetProvenanceGraphGroupNode returns ProvenanceGraphGroupNode and true boolean if CreateSigningRequestReqSignerConstraint is ProvenanceGraphGroupNode.
+func (s CreateSigningRequestReqSignerConstraint) GetProvenanceGraphGroupNode() (v ProvenanceGraphGroupNode, ok bool) {
+	if !s.IsProvenanceGraphGroupNode() {
+		return v, false
+	}
+	return s.ProvenanceGraphGroupNode, true
+}
+
+// NewProvenanceGraphGroupNodeCreateSigningRequestReqSignerConstraint returns new CreateSigningRequestReqSignerConstraint from ProvenanceGraphGroupNode.
+func NewProvenanceGraphGroupNodeCreateSigningRequestReqSignerConstraint(v ProvenanceGraphGroupNode) CreateSigningRequestReqSignerConstraint {
+	var s CreateSigningRequestReqSignerConstraint
+	s.SetProvenanceGraphGroupNode(v)
+	return s
 }
 
 // Stable signing verification method identifier.
@@ -23352,6 +23918,18 @@ func (s *GetRuntimeSessionUnauthorizedCode) UnmarshalText(data []byte) error {
 	}
 }
 
+type GetSigningCredentialForbidden ProblemDetails
+
+func (*GetSigningCredentialForbidden) getSigningCredentialRes() {}
+
+type GetSigningCredentialNotFound ProblemDetails
+
+func (*GetSigningCredentialNotFound) getSigningCredentialRes() {}
+
+type GetSigningCredentialUnauthorized ProblemDetails
+
+func (*GetSigningCredentialUnauthorized) getSigningCredentialRes() {}
+
 type GetSigningRequestBadRequest ProblemDetails
 
 func (*GetSigningRequestBadRequest) getSigningRequestRes() {}
@@ -27224,6 +27802,14 @@ func (s *ListRuntimeSlotsUnauthorizedCode) UnmarshalText(data []byte) error {
 	}
 }
 
+type ListSigningCredentialsForbidden ProblemDetails
+
+func (*ListSigningCredentialsForbidden) listSigningCredentialsRes() {}
+
+type ListSigningCredentialsUnauthorized ProblemDetails
+
+func (*ListSigningCredentialsUnauthorized) listSigningCredentialsRes() {}
+
 type ListSigningRequestsBadRequest ProblemDetails
 
 func (*ListSigningRequestsBadRequest) listSigningRequestsRes() {}
@@ -27232,11 +27818,54 @@ type ListSigningRequestsInternalServerError ProblemDetails
 
 func (*ListSigningRequestsInternalServerError) listSigningRequestsRes() {}
 
+type ListSigningRequestsScope string
+
+const (
+	ListSigningRequestsScopeRequested ListSigningRequestsScope = "requested"
+	ListSigningRequestsScopeSignable  ListSigningRequestsScope = "signable"
+)
+
+// AllValues returns all ListSigningRequestsScope values.
+func (ListSigningRequestsScope) AllValues() []ListSigningRequestsScope {
+	return []ListSigningRequestsScope{
+		ListSigningRequestsScopeRequested,
+		ListSigningRequestsScopeSignable,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ListSigningRequestsScope) MarshalText() ([]byte, error) {
+	switch s {
+	case ListSigningRequestsScopeRequested:
+		return []byte(s), nil
+	case ListSigningRequestsScopeSignable:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ListSigningRequestsScope) UnmarshalText(data []byte) error {
+	switch ListSigningRequestsScope(data) {
+	case ListSigningRequestsScopeRequested:
+		*s = ListSigningRequestsScopeRequested
+		return nil
+	case ListSigningRequestsScopeSignable:
+		*s = ListSigningRequestsScopeSignable
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 type ListSigningRequestsStatusItem string
 
 const (
 	ListSigningRequestsStatusItemPending   ListSigningRequestsStatusItem = "pending"
+	ListSigningRequestsStatusItemClaimed   ListSigningRequestsStatusItem = "claimed"
 	ListSigningRequestsStatusItemCompleted ListSigningRequestsStatusItem = "completed"
+	ListSigningRequestsStatusItemRejected  ListSigningRequestsStatusItem = "rejected"
 	ListSigningRequestsStatusItemExpired   ListSigningRequestsStatusItem = "expired"
 )
 
@@ -27244,7 +27873,9 @@ const (
 func (ListSigningRequestsStatusItem) AllValues() []ListSigningRequestsStatusItem {
 	return []ListSigningRequestsStatusItem{
 		ListSigningRequestsStatusItemPending,
+		ListSigningRequestsStatusItemClaimed,
 		ListSigningRequestsStatusItemCompleted,
+		ListSigningRequestsStatusItemRejected,
 		ListSigningRequestsStatusItemExpired,
 	}
 }
@@ -27254,7 +27885,11 @@ func (s ListSigningRequestsStatusItem) MarshalText() ([]byte, error) {
 	switch s {
 	case ListSigningRequestsStatusItemPending:
 		return []byte(s), nil
+	case ListSigningRequestsStatusItemClaimed:
+		return []byte(s), nil
 	case ListSigningRequestsStatusItemCompleted:
+		return []byte(s), nil
+	case ListSigningRequestsStatusItemRejected:
 		return []byte(s), nil
 	case ListSigningRequestsStatusItemExpired:
 		return []byte(s), nil
@@ -27269,8 +27904,14 @@ func (s *ListSigningRequestsStatusItem) UnmarshalText(data []byte) error {
 	case ListSigningRequestsStatusItemPending:
 		*s = ListSigningRequestsStatusItemPending
 		return nil
+	case ListSigningRequestsStatusItemClaimed:
+		*s = ListSigningRequestsStatusItemClaimed
+		return nil
 	case ListSigningRequestsStatusItemCompleted:
 		*s = ListSigningRequestsStatusItemCompleted
+		return nil
+	case ListSigningRequestsStatusItemRejected:
+		*s = ListSigningRequestsStatusItemRejected
 		return nil
 	case ListSigningRequestsStatusItemExpired:
 		*s = ListSigningRequestsStatusItemExpired
@@ -31568,6 +32209,52 @@ func (o OptAddGroupMemberReqSubjectNs) Or(d AddGroupMemberReqSubjectNs) AddGroup
 	return d
 }
 
+// NewOptApproveSigningCredentialReq returns new OptApproveSigningCredentialReq with value set to v.
+func NewOptApproveSigningCredentialReq(v ApproveSigningCredentialReq) OptApproveSigningCredentialReq {
+	return OptApproveSigningCredentialReq{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptApproveSigningCredentialReq is optional ApproveSigningCredentialReq.
+type OptApproveSigningCredentialReq struct {
+	Value ApproveSigningCredentialReq
+	Set   bool
+}
+
+// IsSet returns true if OptApproveSigningCredentialReq was set.
+func (o OptApproveSigningCredentialReq) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptApproveSigningCredentialReq) Reset() {
+	var v ApproveSigningCredentialReq
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptApproveSigningCredentialReq) SetTo(v ApproveSigningCredentialReq) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptApproveSigningCredentialReq) Get() (v ApproveSigningCredentialReq, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptApproveSigningCredentialReq) Or(d ApproveSigningCredentialReq) ApproveSigningCredentialReq {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptBeginRuntimeSlotReqWorkspaceKind returns new OptBeginRuntimeSlotReqWorkspaceKind with value set to v.
 func NewOptBeginRuntimeSlotReqWorkspaceKind(v BeginRuntimeSlotReqWorkspaceKind) OptBeginRuntimeSlotReqWorkspaceKind {
 	return OptBeginRuntimeSlotReqWorkspaceKind{
@@ -32764,6 +33451,52 @@ func (o OptCreateRuntimeProfileBodyWorkspaceStorageMode) Or(d CreateRuntimeProfi
 	return d
 }
 
+// NewOptCreateSigningRequestReqSignerConstraint returns new OptCreateSigningRequestReqSignerConstraint with value set to v.
+func NewOptCreateSigningRequestReqSignerConstraint(v CreateSigningRequestReqSignerConstraint) OptCreateSigningRequestReqSignerConstraint {
+	return OptCreateSigningRequestReqSignerConstraint{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptCreateSigningRequestReqSignerConstraint is optional CreateSigningRequestReqSignerConstraint.
+type OptCreateSigningRequestReqSignerConstraint struct {
+	Value CreateSigningRequestReqSignerConstraint
+	Set   bool
+}
+
+// IsSet returns true if OptCreateSigningRequestReqSignerConstraint was set.
+func (o OptCreateSigningRequestReqSignerConstraint) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptCreateSigningRequestReqSignerConstraint) Reset() {
+	var v CreateSigningRequestReqSignerConstraint
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptCreateSigningRequestReqSignerConstraint) SetTo(v CreateSigningRequestReqSignerConstraint) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptCreateSigningRequestReqSignerConstraint) Get() (v CreateSigningRequestReqSignerConstraint, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptCreateSigningRequestReqSignerConstraint) Or(d CreateSigningRequestReqSignerConstraint) CreateSigningRequestReqSignerConstraint {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptCreateSigningRequestReqVerificationMethod returns new OptCreateSigningRequestReqVerificationMethod with value set to v.
 func NewOptCreateSigningRequestReqVerificationMethod(v CreateSigningRequestReqVerificationMethod) OptCreateSigningRequestReqVerificationMethod {
 	return OptCreateSigningRequestReqVerificationMethod{
@@ -33546,6 +34279,52 @@ func (o OptListRuntimeSlotsState) Or(d ListRuntimeSlotsState) ListRuntimeSlotsSt
 	return d
 }
 
+// NewOptListSigningRequestsScope returns new OptListSigningRequestsScope with value set to v.
+func NewOptListSigningRequestsScope(v ListSigningRequestsScope) OptListSigningRequestsScope {
+	return OptListSigningRequestsScope{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptListSigningRequestsScope is optional ListSigningRequestsScope.
+type OptListSigningRequestsScope struct {
+	Value ListSigningRequestsScope
+	Set   bool
+}
+
+// IsSet returns true if OptListSigningRequestsScope was set.
+func (o OptListSigningRequestsScope) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptListSigningRequestsScope) Reset() {
+	var v ListSigningRequestsScope
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptListSigningRequestsScope) SetTo(v ListSigningRequestsScope) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptListSigningRequestsScope) Get() (v ListSigningRequestsScope, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptListSigningRequestsScope) Or(d ListSigningRequestsScope) ListSigningRequestsScope {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptNilCreateRuntimeProfileBodyDefaultWorkspaceMode returns new OptNilCreateRuntimeProfileBodyDefaultWorkspaceMode with value set to v.
 func NewOptNilCreateRuntimeProfileBodyDefaultWorkspaceMode(v CreateRuntimeProfileBodyDefaultWorkspaceMode) OptNilCreateRuntimeProfileBodyDefaultWorkspaceMode {
 	return OptNilCreateRuntimeProfileBodyDefaultWorkspaceMode{
@@ -33750,6 +34529,74 @@ func (o OptNilDaemonState) Or(d DaemonState) DaemonState {
 	return d
 }
 
+// NewOptNilDateTime returns new OptNilDateTime with value set to v.
+func NewOptNilDateTime(v time.Time) OptNilDateTime {
+	return OptNilDateTime{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptNilDateTime is optional nullable time.Time.
+type OptNilDateTime struct {
+	Value time.Time
+	Set   bool
+	Null  bool
+}
+
+// IsSet returns true if OptNilDateTime was set.
+func (o OptNilDateTime) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptNilDateTime) Reset() {
+	var v time.Time
+	o.Value = v
+	o.Set = false
+	o.Null = false
+}
+
+// SetTo sets value to v.
+func (o *OptNilDateTime) SetTo(v time.Time) {
+	o.Set = true
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o OptNilDateTime) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *OptNilDateTime) SetToNull() {
+	o.Set = true
+	o.Null = true
+	var v time.Time
+	o.Value = v
+}
+
+// IsEmpty returns true if the field was omitted from the payload (not Set and not Null).
+func (o OptNilDateTime) IsEmpty() bool {
+	return !o.Set && !o.Null
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptNilDateTime) Get() (v time.Time, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptNilDateTime) Or(d time.Time) time.Time {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptNilFloat64 returns new OptNilFloat64 with value set to v.
 func NewOptNilFloat64(v float64) OptNilFloat64 {
 	return OptNilFloat64{
@@ -33880,6 +34727,210 @@ func (o OptNilInt) Get() (v int, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptNilInt) Or(d int) int {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptNilSigningRequestChallenge returns new OptNilSigningRequestChallenge with value set to v.
+func NewOptNilSigningRequestChallenge(v SigningRequestChallenge) OptNilSigningRequestChallenge {
+	return OptNilSigningRequestChallenge{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptNilSigningRequestChallenge is optional nullable SigningRequestChallenge.
+type OptNilSigningRequestChallenge struct {
+	Value SigningRequestChallenge
+	Set   bool
+	Null  bool
+}
+
+// IsSet returns true if OptNilSigningRequestChallenge was set.
+func (o OptNilSigningRequestChallenge) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptNilSigningRequestChallenge) Reset() {
+	var v SigningRequestChallenge
+	o.Value = v
+	o.Set = false
+	o.Null = false
+}
+
+// SetTo sets value to v.
+func (o *OptNilSigningRequestChallenge) SetTo(v SigningRequestChallenge) {
+	o.Set = true
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o OptNilSigningRequestChallenge) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *OptNilSigningRequestChallenge) SetToNull() {
+	o.Set = true
+	o.Null = true
+	var v SigningRequestChallenge
+	o.Value = v
+}
+
+// IsEmpty returns true if the field was omitted from the payload (not Set and not Null).
+func (o OptNilSigningRequestChallenge) IsEmpty() bool {
+	return !o.Set && !o.Null
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptNilSigningRequestChallenge) Get() (v SigningRequestChallenge, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptNilSigningRequestChallenge) Or(d SigningRequestChallenge) SigningRequestChallenge {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptNilSigningRequestRequestedBy returns new OptNilSigningRequestRequestedBy with value set to v.
+func NewOptNilSigningRequestRequestedBy(v SigningRequestRequestedBy) OptNilSigningRequestRequestedBy {
+	return OptNilSigningRequestRequestedBy{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptNilSigningRequestRequestedBy is optional nullable SigningRequestRequestedBy.
+type OptNilSigningRequestRequestedBy struct {
+	Value SigningRequestRequestedBy
+	Set   bool
+	Null  bool
+}
+
+// IsSet returns true if OptNilSigningRequestRequestedBy was set.
+func (o OptNilSigningRequestRequestedBy) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptNilSigningRequestRequestedBy) Reset() {
+	var v SigningRequestRequestedBy
+	o.Value = v
+	o.Set = false
+	o.Null = false
+}
+
+// SetTo sets value to v.
+func (o *OptNilSigningRequestRequestedBy) SetTo(v SigningRequestRequestedBy) {
+	o.Set = true
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o OptNilSigningRequestRequestedBy) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *OptNilSigningRequestRequestedBy) SetToNull() {
+	o.Set = true
+	o.Null = true
+	var v SigningRequestRequestedBy
+	o.Value = v
+}
+
+// IsEmpty returns true if the field was omitted from the payload (not Set and not Null).
+func (o OptNilSigningRequestRequestedBy) IsEmpty() bool {
+	return !o.Set && !o.Null
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptNilSigningRequestRequestedBy) Get() (v SigningRequestRequestedBy, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptNilSigningRequestRequestedBy) Or(d SigningRequestRequestedBy) SigningRequestRequestedBy {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptNilSigningRequestSignerConstraint returns new OptNilSigningRequestSignerConstraint with value set to v.
+func NewOptNilSigningRequestSignerConstraint(v SigningRequestSignerConstraint) OptNilSigningRequestSignerConstraint {
+	return OptNilSigningRequestSignerConstraint{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptNilSigningRequestSignerConstraint is optional nullable SigningRequestSignerConstraint.
+type OptNilSigningRequestSignerConstraint struct {
+	Value SigningRequestSignerConstraint
+	Set   bool
+	Null  bool
+}
+
+// IsSet returns true if OptNilSigningRequestSignerConstraint was set.
+func (o OptNilSigningRequestSignerConstraint) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptNilSigningRequestSignerConstraint) Reset() {
+	var v SigningRequestSignerConstraint
+	o.Value = v
+	o.Set = false
+	o.Null = false
+}
+
+// SetTo sets value to v.
+func (o *OptNilSigningRequestSignerConstraint) SetTo(v SigningRequestSignerConstraint) {
+	o.Set = true
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o OptNilSigningRequestSignerConstraint) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *OptNilSigningRequestSignerConstraint) SetToNull() {
+	o.Set = true
+	o.Null = true
+	var v SigningRequestSignerConstraint
+	o.Value = v
+}
+
+// IsEmpty returns true if the field was omitted from the payload (not Set and not Null).
+func (o OptNilSigningRequestSignerConstraint) IsEmpty() bool {
+	return !o.Set && !o.Null
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptNilSigningRequestSignerConstraint) Get() (v SigningRequestSignerConstraint, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptNilSigningRequestSignerConstraint) Or(d SigningRequestSignerConstraint) SigningRequestSignerConstraint {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -34388,6 +35439,52 @@ func (o OptReadinessComponentsTalos) Or(d ReadinessComponentsTalos) ReadinessCom
 	return d
 }
 
+// NewOptRejectSigningRequestReq returns new OptRejectSigningRequestReq with value set to v.
+func NewOptRejectSigningRequestReq(v RejectSigningRequestReq) OptRejectSigningRequestReq {
+	return OptRejectSigningRequestReq{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptRejectSigningRequestReq is optional RejectSigningRequestReq.
+type OptRejectSigningRequestReq struct {
+	Value RejectSigningRequestReq
+	Set   bool
+}
+
+// IsSet returns true if OptRejectSigningRequestReq was set.
+func (o OptRejectSigningRequestReq) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptRejectSigningRequestReq) Reset() {
+	var v RejectSigningRequestReq
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptRejectSigningRequestReq) SetTo(v RejectSigningRequestReq) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptRejectSigningRequestReq) Get() (v RejectSigningRequestReq, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptRejectSigningRequestReq) Or(d RejectSigningRequestReq) RejectSigningRequestReq {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptRelationStatus returns new OptRelationStatus with value set to v.
 func NewOptRelationStatus(v RelationStatus) OptRelationStatus {
 	return OptRelationStatus{
@@ -34520,6 +35617,52 @@ func (o OptRevokeAgentKeyReq) Get() (v RevokeAgentKeyReq, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptRevokeAgentKeyReq) Or(d RevokeAgentKeyReq) RevokeAgentKeyReq {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptRevokeSigningCredentialReq returns new OptRevokeSigningCredentialReq with value set to v.
+func NewOptRevokeSigningCredentialReq(v RevokeSigningCredentialReq) OptRevokeSigningCredentialReq {
+	return OptRevokeSigningCredentialReq{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptRevokeSigningCredentialReq is optional RevokeSigningCredentialReq.
+type OptRevokeSigningCredentialReq struct {
+	Value RevokeSigningCredentialReq
+	Set   bool
+}
+
+// IsSet returns true if OptRevokeSigningCredentialReq was set.
+func (o OptRevokeSigningCredentialReq) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptRevokeSigningCredentialReq) Reset() {
+	var v RevokeSigningCredentialReq
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptRevokeSigningCredentialReq) SetTo(v RevokeSigningCredentialReq) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptRevokeSigningCredentialReq) Get() (v RevokeSigningCredentialReq, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptRevokeSigningCredentialReq) Or(d RevokeSigningCredentialReq) RevokeSigningCredentialReq {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -35442,6 +36585,52 @@ func (o OptString) Get() (v string, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptString) Or(d string) string {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptSuspendSigningCredentialReq returns new OptSuspendSigningCredentialReq with value set to v.
+func NewOptSuspendSigningCredentialReq(v SuspendSigningCredentialReq) OptSuspendSigningCredentialReq {
+	return OptSuspendSigningCredentialReq{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptSuspendSigningCredentialReq is optional SuspendSigningCredentialReq.
+type OptSuspendSigningCredentialReq struct {
+	Value SuspendSigningCredentialReq
+	Set   bool
+}
+
+// IsSet returns true if OptSuspendSigningCredentialReq was set.
+func (o OptSuspendSigningCredentialReq) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptSuspendSigningCredentialReq) Reset() {
+	var v SuspendSigningCredentialReq
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptSuspendSigningCredentialReq) SetTo(v SuspendSigningCredentialReq) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptSuspendSigningCredentialReq) Get() (v SuspendSigningCredentialReq, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptSuspendSigningCredentialReq) Or(d SuspendSigningCredentialReq) SuspendSigningCredentialReq {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -38325,6 +39514,126 @@ func (s *ProvenanceGraphEntryNodeMetaEntryType) UnmarshalText(data []byte) error
 	}
 }
 
+// Ref: #/components/schemas/ProvenanceGraphGroupNode
+type ProvenanceGraphGroupNode struct {
+	ID   uuid.UUID                    `json:"id"`
+	Type ProvenanceGraphGroupNodeType `json:"type"`
+}
+
+// GetID returns the value of ID.
+func (s *ProvenanceGraphGroupNode) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetType returns the value of Type.
+func (s *ProvenanceGraphGroupNode) GetType() ProvenanceGraphGroupNodeType {
+	return s.Type
+}
+
+// SetID sets the value of ID.
+func (s *ProvenanceGraphGroupNode) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetType sets the value of Type.
+func (s *ProvenanceGraphGroupNode) SetType(val ProvenanceGraphGroupNodeType) {
+	s.Type = val
+}
+
+type ProvenanceGraphGroupNodeType string
+
+const (
+	ProvenanceGraphGroupNodeTypeGroup ProvenanceGraphGroupNodeType = "group"
+)
+
+// AllValues returns all ProvenanceGraphGroupNodeType values.
+func (ProvenanceGraphGroupNodeType) AllValues() []ProvenanceGraphGroupNodeType {
+	return []ProvenanceGraphGroupNodeType{
+		ProvenanceGraphGroupNodeTypeGroup,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ProvenanceGraphGroupNodeType) MarshalText() ([]byte, error) {
+	switch s {
+	case ProvenanceGraphGroupNodeTypeGroup:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ProvenanceGraphGroupNodeType) UnmarshalText(data []byte) error {
+	switch ProvenanceGraphGroupNodeType(data) {
+	case ProvenanceGraphGroupNodeTypeGroup:
+		*s = ProvenanceGraphGroupNodeTypeGroup
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/ProvenanceGraphHumanNode
+type ProvenanceGraphHumanNode struct {
+	ID   uuid.UUID                    `json:"id"`
+	Type ProvenanceGraphHumanNodeType `json:"type"`
+}
+
+// GetID returns the value of ID.
+func (s *ProvenanceGraphHumanNode) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetType returns the value of Type.
+func (s *ProvenanceGraphHumanNode) GetType() ProvenanceGraphHumanNodeType {
+	return s.Type
+}
+
+// SetID sets the value of ID.
+func (s *ProvenanceGraphHumanNode) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetType sets the value of Type.
+func (s *ProvenanceGraphHumanNode) SetType(val ProvenanceGraphHumanNodeType) {
+	s.Type = val
+}
+
+type ProvenanceGraphHumanNodeType string
+
+const (
+	ProvenanceGraphHumanNodeTypeHuman ProvenanceGraphHumanNodeType = "human"
+)
+
+// AllValues returns all ProvenanceGraphHumanNodeType values.
+func (ProvenanceGraphHumanNodeType) AllValues() []ProvenanceGraphHumanNodeType {
+	return []ProvenanceGraphHumanNodeType{
+		ProvenanceGraphHumanNodeTypeHuman,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ProvenanceGraphHumanNodeType) MarshalText() ([]byte, error) {
+	switch s {
+	case ProvenanceGraphHumanNodeTypeHuman:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ProvenanceGraphHumanNodeType) UnmarshalText(data []byte) error {
+	switch ProvenanceGraphHumanNodeType(data) {
+	case ProvenanceGraphHumanNodeTypeHuman:
+		*s = ProvenanceGraphHumanNodeTypeHuman
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 // Ref: #/components/schemas/ProvenanceGraphKey_compromiseNode
 type ProvenanceGraphKeyCompromiseNode struct {
 	Reason ProvenanceGraphKeyCompromiseNodeReason `json:"reason"`
@@ -39235,6 +40544,114 @@ func (s *ProvenanceGraphSupersededNodeReason) UnmarshalText(data []byte) error {
 	}
 }
 
+// Ref: #/components/schemas/ProvenanceGraphTeam-roleNode
+type ProvenanceGraphTeamRoleNode struct {
+	ID   ProvenanceGraphTeamRoleNodeID   `json:"id"`
+	Type ProvenanceGraphTeamRoleNodeType `json:"type"`
+}
+
+// GetID returns the value of ID.
+func (s *ProvenanceGraphTeamRoleNode) GetID() ProvenanceGraphTeamRoleNodeID {
+	return s.ID
+}
+
+// GetType returns the value of Type.
+func (s *ProvenanceGraphTeamRoleNode) GetType() ProvenanceGraphTeamRoleNodeType {
+	return s.Type
+}
+
+// SetID sets the value of ID.
+func (s *ProvenanceGraphTeamRoleNode) SetID(val ProvenanceGraphTeamRoleNodeID) {
+	s.ID = val
+}
+
+// SetType sets the value of Type.
+func (s *ProvenanceGraphTeamRoleNode) SetType(val ProvenanceGraphTeamRoleNodeType) {
+	s.Type = val
+}
+
+type ProvenanceGraphTeamRoleNodeID string
+
+const (
+	ProvenanceGraphTeamRoleNodeIDOwner   ProvenanceGraphTeamRoleNodeID = "owner"
+	ProvenanceGraphTeamRoleNodeIDManager ProvenanceGraphTeamRoleNodeID = "manager"
+	ProvenanceGraphTeamRoleNodeIDMember  ProvenanceGraphTeamRoleNodeID = "member"
+)
+
+// AllValues returns all ProvenanceGraphTeamRoleNodeID values.
+func (ProvenanceGraphTeamRoleNodeID) AllValues() []ProvenanceGraphTeamRoleNodeID {
+	return []ProvenanceGraphTeamRoleNodeID{
+		ProvenanceGraphTeamRoleNodeIDOwner,
+		ProvenanceGraphTeamRoleNodeIDManager,
+		ProvenanceGraphTeamRoleNodeIDMember,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ProvenanceGraphTeamRoleNodeID) MarshalText() ([]byte, error) {
+	switch s {
+	case ProvenanceGraphTeamRoleNodeIDOwner:
+		return []byte(s), nil
+	case ProvenanceGraphTeamRoleNodeIDManager:
+		return []byte(s), nil
+	case ProvenanceGraphTeamRoleNodeIDMember:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ProvenanceGraphTeamRoleNodeID) UnmarshalText(data []byte) error {
+	switch ProvenanceGraphTeamRoleNodeID(data) {
+	case ProvenanceGraphTeamRoleNodeIDOwner:
+		*s = ProvenanceGraphTeamRoleNodeIDOwner
+		return nil
+	case ProvenanceGraphTeamRoleNodeIDManager:
+		*s = ProvenanceGraphTeamRoleNodeIDManager
+		return nil
+	case ProvenanceGraphTeamRoleNodeIDMember:
+		*s = ProvenanceGraphTeamRoleNodeIDMember
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type ProvenanceGraphTeamRoleNodeType string
+
+const (
+	ProvenanceGraphTeamRoleNodeTypeTeamRole ProvenanceGraphTeamRoleNodeType = "team-role"
+)
+
+// AllValues returns all ProvenanceGraphTeamRoleNodeType values.
+func (ProvenanceGraphTeamRoleNodeType) AllValues() []ProvenanceGraphTeamRoleNodeType {
+	return []ProvenanceGraphTeamRoleNodeType{
+		ProvenanceGraphTeamRoleNodeTypeTeamRole,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ProvenanceGraphTeamRoleNodeType) MarshalText() ([]byte, error) {
+	switch s {
+	case ProvenanceGraphTeamRoleNodeTypeTeamRole:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ProvenanceGraphTeamRoleNodeType) UnmarshalText(data []byte) error {
+	switch ProvenanceGraphTeamRoleNodeType(data) {
+	case ProvenanceGraphTeamRoleNodeTypeTeamRole:
+		*s = ProvenanceGraphTeamRoleNodeTypeTeamRole
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 // Ref: #/components/schemas/PublicFeedEntry
 type PublicFeedEntry struct {
 	Author        PublicFeedEntryAuthor    `json:"author"`
@@ -39973,6 +41390,32 @@ func (s *RegisterResponse) SetPublicKey(val string) {
 }
 
 func (*RegisterResponse) registerAgentRes() {}
+
+type RejectSigningRequestForbidden ProblemDetails
+
+func (*RejectSigningRequestForbidden) rejectSigningRequestRes() {}
+
+type RejectSigningRequestNotFound ProblemDetails
+
+func (*RejectSigningRequestNotFound) rejectSigningRequestRes() {}
+
+type RejectSigningRequestReq struct {
+	Reason OptString `json:"reason"`
+}
+
+// GetReason returns the value of Reason.
+func (s *RejectSigningRequestReq) GetReason() OptString {
+	return s.Reason
+}
+
+// SetReason sets the value of Reason.
+func (s *RejectSigningRequestReq) SetReason(val OptString) {
+	s.Reason = val
+}
+
+type RejectSigningRequestUnauthorized ProblemDetails
+
+func (*RejectSigningRequestUnauthorized) rejectSigningRequestRes() {}
 
 type RejectTransferBadRequest ProblemDetails
 
@@ -41403,6 +42846,32 @@ func (s *RevokeDiaryGrantReqSubjectNs) UnmarshalText(data []byte) error {
 type RevokeDiaryGrantUnauthorized ProblemDetails
 
 func (*RevokeDiaryGrantUnauthorized) revokeDiaryGrantRes() {}
+
+type RevokeSigningCredentialForbidden ProblemDetails
+
+func (*RevokeSigningCredentialForbidden) revokeSigningCredentialRes() {}
+
+type RevokeSigningCredentialNotFound ProblemDetails
+
+func (*RevokeSigningCredentialNotFound) revokeSigningCredentialRes() {}
+
+type RevokeSigningCredentialReq struct {
+	Reason OptString `json:"reason"`
+}
+
+// GetReason returns the value of Reason.
+func (s *RevokeSigningCredentialReq) GetReason() OptString {
+	return s.Reason
+}
+
+// SetReason sets the value of Reason.
+func (s *RevokeSigningCredentialReq) SetReason(val OptString) {
+	s.Reason = val
+}
+
+type RevokeSigningCredentialUnauthorized ProblemDetails
+
+func (*RevokeSigningCredentialUnauthorized) revokeSigningCredentialRes() {}
 
 type RotateAgentKeyBadGateway ProblemDetails
 
@@ -44649,20 +46118,625 @@ func (s *SessionAuth) SetRoles(val []string) {
 	s.Roles = val
 }
 
+// Ref: #/components/schemas/SigningCredential
+type SigningCredential struct {
+	ActivatedAt        NilDateTime                         `json:"activatedAt"`
+	Algorithm          string                              `json:"algorithm"`
+	ApprovedByHumanId  NilUUID                             `json:"approvedByHumanId"`
+	CreatedAt          time.Time                           `json:"createdAt"`
+	CredentialType     string                              `json:"credentialType"`
+	EnrollmentEvidence SigningCredentialEnrollmentEvidence `json:"enrollmentEvidence"`
+	ID                 uuid.UUID                           `json:"id"`
+	Label              string                              `json:"label"`
+	Owner              SigningCredentialOwner              `json:"owner"`
+	PublicMaterial     SigningCredentialPublicMaterial     `json:"publicMaterial"`
+	RevokedAt          NilDateTime                         `json:"revokedAt"`
+	Status             SigningCredentialStatus             `json:"status"`
+	SuspendedAt        NilDateTime                         `json:"suspendedAt"`
+	TeamId             uuid.UUID                           `json:"teamId"`
+	UpdatedAt          time.Time                           `json:"updatedAt"`
+	// Stable signing verification method identifier.
+	VerificationMethod SigningCredentialVerificationMethod `json:"verificationMethod"`
+}
+
+// GetActivatedAt returns the value of ActivatedAt.
+func (s *SigningCredential) GetActivatedAt() NilDateTime {
+	return s.ActivatedAt
+}
+
+// GetAlgorithm returns the value of Algorithm.
+func (s *SigningCredential) GetAlgorithm() string {
+	return s.Algorithm
+}
+
+// GetApprovedByHumanId returns the value of ApprovedByHumanId.
+func (s *SigningCredential) GetApprovedByHumanId() NilUUID {
+	return s.ApprovedByHumanId
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *SigningCredential) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetCredentialType returns the value of CredentialType.
+func (s *SigningCredential) GetCredentialType() string {
+	return s.CredentialType
+}
+
+// GetEnrollmentEvidence returns the value of EnrollmentEvidence.
+func (s *SigningCredential) GetEnrollmentEvidence() SigningCredentialEnrollmentEvidence {
+	return s.EnrollmentEvidence
+}
+
+// GetID returns the value of ID.
+func (s *SigningCredential) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetLabel returns the value of Label.
+func (s *SigningCredential) GetLabel() string {
+	return s.Label
+}
+
+// GetOwner returns the value of Owner.
+func (s *SigningCredential) GetOwner() SigningCredentialOwner {
+	return s.Owner
+}
+
+// GetPublicMaterial returns the value of PublicMaterial.
+func (s *SigningCredential) GetPublicMaterial() SigningCredentialPublicMaterial {
+	return s.PublicMaterial
+}
+
+// GetRevokedAt returns the value of RevokedAt.
+func (s *SigningCredential) GetRevokedAt() NilDateTime {
+	return s.RevokedAt
+}
+
+// GetStatus returns the value of Status.
+func (s *SigningCredential) GetStatus() SigningCredentialStatus {
+	return s.Status
+}
+
+// GetSuspendedAt returns the value of SuspendedAt.
+func (s *SigningCredential) GetSuspendedAt() NilDateTime {
+	return s.SuspendedAt
+}
+
+// GetTeamId returns the value of TeamId.
+func (s *SigningCredential) GetTeamId() uuid.UUID {
+	return s.TeamId
+}
+
+// GetUpdatedAt returns the value of UpdatedAt.
+func (s *SigningCredential) GetUpdatedAt() time.Time {
+	return s.UpdatedAt
+}
+
+// GetVerificationMethod returns the value of VerificationMethod.
+func (s *SigningCredential) GetVerificationMethod() SigningCredentialVerificationMethod {
+	return s.VerificationMethod
+}
+
+// SetActivatedAt sets the value of ActivatedAt.
+func (s *SigningCredential) SetActivatedAt(val NilDateTime) {
+	s.ActivatedAt = val
+}
+
+// SetAlgorithm sets the value of Algorithm.
+func (s *SigningCredential) SetAlgorithm(val string) {
+	s.Algorithm = val
+}
+
+// SetApprovedByHumanId sets the value of ApprovedByHumanId.
+func (s *SigningCredential) SetApprovedByHumanId(val NilUUID) {
+	s.ApprovedByHumanId = val
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *SigningCredential) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetCredentialType sets the value of CredentialType.
+func (s *SigningCredential) SetCredentialType(val string) {
+	s.CredentialType = val
+}
+
+// SetEnrollmentEvidence sets the value of EnrollmentEvidence.
+func (s *SigningCredential) SetEnrollmentEvidence(val SigningCredentialEnrollmentEvidence) {
+	s.EnrollmentEvidence = val
+}
+
+// SetID sets the value of ID.
+func (s *SigningCredential) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetLabel sets the value of Label.
+func (s *SigningCredential) SetLabel(val string) {
+	s.Label = val
+}
+
+// SetOwner sets the value of Owner.
+func (s *SigningCredential) SetOwner(val SigningCredentialOwner) {
+	s.Owner = val
+}
+
+// SetPublicMaterial sets the value of PublicMaterial.
+func (s *SigningCredential) SetPublicMaterial(val SigningCredentialPublicMaterial) {
+	s.PublicMaterial = val
+}
+
+// SetRevokedAt sets the value of RevokedAt.
+func (s *SigningCredential) SetRevokedAt(val NilDateTime) {
+	s.RevokedAt = val
+}
+
+// SetStatus sets the value of Status.
+func (s *SigningCredential) SetStatus(val SigningCredentialStatus) {
+	s.Status = val
+}
+
+// SetSuspendedAt sets the value of SuspendedAt.
+func (s *SigningCredential) SetSuspendedAt(val NilDateTime) {
+	s.SuspendedAt = val
+}
+
+// SetTeamId sets the value of TeamId.
+func (s *SigningCredential) SetTeamId(val uuid.UUID) {
+	s.TeamId = val
+}
+
+// SetUpdatedAt sets the value of UpdatedAt.
+func (s *SigningCredential) SetUpdatedAt(val time.Time) {
+	s.UpdatedAt = val
+}
+
+// SetVerificationMethod sets the value of VerificationMethod.
+func (s *SigningCredential) SetVerificationMethod(val SigningCredentialVerificationMethod) {
+	s.VerificationMethod = val
+}
+
+func (*SigningCredential) approveSigningCredentialRes()              {}
+func (*SigningCredential) completeSigningCredentialRegistrationRes() {}
+func (*SigningCredential) getSigningCredentialRes()                  {}
+func (*SigningCredential) revokeSigningCredentialRes()               {}
+func (*SigningCredential) suspendSigningCredentialRes()              {}
+
+// Merged schema.
+type SigningCredentialEnrollmentEvidence struct {
+	Version         int `json:"version"`
+	AdditionalProps SigningCredentialEnrollmentEvidenceAdditional
+}
+
+// GetVersion returns the value of Version.
+func (s *SigningCredentialEnrollmentEvidence) GetVersion() int {
+	return s.Version
+}
+
+// GetAdditionalProps returns the value of AdditionalProps.
+func (s *SigningCredentialEnrollmentEvidence) GetAdditionalProps() SigningCredentialEnrollmentEvidenceAdditional {
+	return s.AdditionalProps
+}
+
+// SetVersion sets the value of Version.
+func (s *SigningCredentialEnrollmentEvidence) SetVersion(val int) {
+	s.Version = val
+}
+
+// SetAdditionalProps sets the value of AdditionalProps.
+func (s *SigningCredentialEnrollmentEvidence) SetAdditionalProps(val SigningCredentialEnrollmentEvidenceAdditional) {
+	s.AdditionalProps = val
+}
+
+type SigningCredentialEnrollmentEvidenceAdditional map[string]jx.Raw
+
+func (s *SigningCredentialEnrollmentEvidenceAdditional) init() SigningCredentialEnrollmentEvidenceAdditional {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+// Ref: #/components/schemas/SigningCredentialList
+type SigningCredentialList struct {
+	Items  []SigningCredential `json:"items"`
+	Limit  float64             `json:"limit"`
+	Offset float64             `json:"offset"`
+	Total  float64             `json:"total"`
+}
+
+// GetItems returns the value of Items.
+func (s *SigningCredentialList) GetItems() []SigningCredential {
+	return s.Items
+}
+
+// GetLimit returns the value of Limit.
+func (s *SigningCredentialList) GetLimit() float64 {
+	return s.Limit
+}
+
+// GetOffset returns the value of Offset.
+func (s *SigningCredentialList) GetOffset() float64 {
+	return s.Offset
+}
+
+// GetTotal returns the value of Total.
+func (s *SigningCredentialList) GetTotal() float64 {
+	return s.Total
+}
+
+// SetItems sets the value of Items.
+func (s *SigningCredentialList) SetItems(val []SigningCredential) {
+	s.Items = val
+}
+
+// SetLimit sets the value of Limit.
+func (s *SigningCredentialList) SetLimit(val float64) {
+	s.Limit = val
+}
+
+// SetOffset sets the value of Offset.
+func (s *SigningCredentialList) SetOffset(val float64) {
+	s.Offset = val
+}
+
+// SetTotal sets the value of Total.
+func (s *SigningCredentialList) SetTotal(val float64) {
+	s.Total = val
+}
+
+func (*SigningCredentialList) listSigningCredentialsRes() {}
+
+// SigningCredentialOwner represents sum type.
+type SigningCredentialOwner struct {
+	// Type selects the active sum variant, switch on this field.
+	Type           SigningCredentialOwnerType
+	AgentPrincipal AgentPrincipal
+	HumanPrincipal HumanPrincipal
+}
+
+// SigningCredentialOwnerType is oneOf type of SigningCredentialOwner.
+type SigningCredentialOwnerType string
+
+// Possible values for SigningCredentialOwnerType.
+const (
+	AgentPrincipalSigningCredentialOwner SigningCredentialOwnerType = "agent"
+	HumanPrincipalSigningCredentialOwner SigningCredentialOwnerType = "human"
+)
+
+// IsAgentPrincipal reports whether SigningCredentialOwner is AgentPrincipal.
+func (s SigningCredentialOwner) IsAgentPrincipal() bool {
+	return s.Type == AgentPrincipalSigningCredentialOwner
+}
+
+// IsHumanPrincipal reports whether SigningCredentialOwner is HumanPrincipal.
+func (s SigningCredentialOwner) IsHumanPrincipal() bool {
+	return s.Type == HumanPrincipalSigningCredentialOwner
+}
+
+// SetAgentPrincipal sets SigningCredentialOwner to AgentPrincipal.
+func (s *SigningCredentialOwner) SetAgentPrincipal(v AgentPrincipal) {
+	s.Type = AgentPrincipalSigningCredentialOwner
+	s.AgentPrincipal = v
+}
+
+// GetAgentPrincipal returns AgentPrincipal and true boolean if SigningCredentialOwner is AgentPrincipal.
+func (s SigningCredentialOwner) GetAgentPrincipal() (v AgentPrincipal, ok bool) {
+	if !s.IsAgentPrincipal() {
+		return v, false
+	}
+	return s.AgentPrincipal, true
+}
+
+// NewAgentPrincipalSigningCredentialOwner returns new SigningCredentialOwner from AgentPrincipal.
+func NewAgentPrincipalSigningCredentialOwner(v AgentPrincipal) SigningCredentialOwner {
+	var s SigningCredentialOwner
+	s.SetAgentPrincipal(v)
+	return s
+}
+
+// SetHumanPrincipal sets SigningCredentialOwner to HumanPrincipal.
+func (s *SigningCredentialOwner) SetHumanPrincipal(v HumanPrincipal) {
+	s.Type = HumanPrincipalSigningCredentialOwner
+	s.HumanPrincipal = v
+}
+
+// GetHumanPrincipal returns HumanPrincipal and true boolean if SigningCredentialOwner is HumanPrincipal.
+func (s SigningCredentialOwner) GetHumanPrincipal() (v HumanPrincipal, ok bool) {
+	if !s.IsHumanPrincipal() {
+		return v, false
+	}
+	return s.HumanPrincipal, true
+}
+
+// NewHumanPrincipalSigningCredentialOwner returns new SigningCredentialOwner from HumanPrincipal.
+func NewHumanPrincipalSigningCredentialOwner(v HumanPrincipal) SigningCredentialOwner {
+	var s SigningCredentialOwner
+	s.SetHumanPrincipal(v)
+	return s
+}
+
+// Merged schema.
+type SigningCredentialPublicMaterial struct {
+	Version         int `json:"version"`
+	AdditionalProps SigningCredentialPublicMaterialAdditional
+}
+
+// GetVersion returns the value of Version.
+func (s *SigningCredentialPublicMaterial) GetVersion() int {
+	return s.Version
+}
+
+// GetAdditionalProps returns the value of AdditionalProps.
+func (s *SigningCredentialPublicMaterial) GetAdditionalProps() SigningCredentialPublicMaterialAdditional {
+	return s.AdditionalProps
+}
+
+// SetVersion sets the value of Version.
+func (s *SigningCredentialPublicMaterial) SetVersion(val int) {
+	s.Version = val
+}
+
+// SetAdditionalProps sets the value of AdditionalProps.
+func (s *SigningCredentialPublicMaterial) SetAdditionalProps(val SigningCredentialPublicMaterialAdditional) {
+	s.AdditionalProps = val
+}
+
+type SigningCredentialPublicMaterialAdditional map[string]jx.Raw
+
+func (s *SigningCredentialPublicMaterialAdditional) init() SigningCredentialPublicMaterialAdditional {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+// Ref: #/components/schemas/SigningCredentialRegistration
+type SigningCredentialRegistration struct {
+	Challenge SigningCredentialRegistrationChallenge `json:"challenge"`
+	ExpiresAt time.Time                              `json:"expiresAt"`
+	ID        uuid.UUID                              `json:"id"`
+}
+
+// GetChallenge returns the value of Challenge.
+func (s *SigningCredentialRegistration) GetChallenge() SigningCredentialRegistrationChallenge {
+	return s.Challenge
+}
+
+// GetExpiresAt returns the value of ExpiresAt.
+func (s *SigningCredentialRegistration) GetExpiresAt() time.Time {
+	return s.ExpiresAt
+}
+
+// GetID returns the value of ID.
+func (s *SigningCredentialRegistration) GetID() uuid.UUID {
+	return s.ID
+}
+
+// SetChallenge sets the value of Challenge.
+func (s *SigningCredentialRegistration) SetChallenge(val SigningCredentialRegistrationChallenge) {
+	s.Challenge = val
+}
+
+// SetExpiresAt sets the value of ExpiresAt.
+func (s *SigningCredentialRegistration) SetExpiresAt(val time.Time) {
+	s.ExpiresAt = val
+}
+
+// SetID sets the value of ID.
+func (s *SigningCredentialRegistration) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+func (*SigningCredentialRegistration) beginSigningCredentialRegistrationRes() {}
+
+type SigningCredentialRegistrationChallenge struct {
+	Value SigningCredentialRegistrationChallengeValue `json:"value"`
+	// Stable signing verification method identifier.
+	VerificationMethod SigningCredentialRegistrationChallengeVerificationMethod `json:"verificationMethod"`
+}
+
+// GetValue returns the value of Value.
+func (s *SigningCredentialRegistrationChallenge) GetValue() SigningCredentialRegistrationChallengeValue {
+	return s.Value
+}
+
+// GetVerificationMethod returns the value of VerificationMethod.
+func (s *SigningCredentialRegistrationChallenge) GetVerificationMethod() SigningCredentialRegistrationChallengeVerificationMethod {
+	return s.VerificationMethod
+}
+
+// SetValue sets the value of Value.
+func (s *SigningCredentialRegistrationChallenge) SetValue(val SigningCredentialRegistrationChallengeValue) {
+	s.Value = val
+}
+
+// SetVerificationMethod sets the value of VerificationMethod.
+func (s *SigningCredentialRegistrationChallenge) SetVerificationMethod(val SigningCredentialRegistrationChallengeVerificationMethod) {
+	s.VerificationMethod = val
+}
+
+type SigningCredentialRegistrationChallengeValue map[string]jx.Raw
+
+func (s *SigningCredentialRegistrationChallengeValue) init() SigningCredentialRegistrationChallengeValue {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+// Stable signing verification method identifier.
+type SigningCredentialRegistrationChallengeVerificationMethod string
+
+const (
+	SigningCredentialRegistrationChallengeVerificationMethodAgentEd25519             SigningCredentialRegistrationChallengeVerificationMethod = "agent-ed25519"
+	SigningCredentialRegistrationChallengeVerificationMethodHumanHardwarePreviewsign SigningCredentialRegistrationChallengeVerificationMethod = "human-hardware-previewsign"
+)
+
+// AllValues returns all SigningCredentialRegistrationChallengeVerificationMethod values.
+func (SigningCredentialRegistrationChallengeVerificationMethod) AllValues() []SigningCredentialRegistrationChallengeVerificationMethod {
+	return []SigningCredentialRegistrationChallengeVerificationMethod{
+		SigningCredentialRegistrationChallengeVerificationMethodAgentEd25519,
+		SigningCredentialRegistrationChallengeVerificationMethodHumanHardwarePreviewsign,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s SigningCredentialRegistrationChallengeVerificationMethod) MarshalText() ([]byte, error) {
+	switch s {
+	case SigningCredentialRegistrationChallengeVerificationMethodAgentEd25519:
+		return []byte(s), nil
+	case SigningCredentialRegistrationChallengeVerificationMethodHumanHardwarePreviewsign:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *SigningCredentialRegistrationChallengeVerificationMethod) UnmarshalText(data []byte) error {
+	switch SigningCredentialRegistrationChallengeVerificationMethod(data) {
+	case SigningCredentialRegistrationChallengeVerificationMethodAgentEd25519:
+		*s = SigningCredentialRegistrationChallengeVerificationMethodAgentEd25519
+		return nil
+	case SigningCredentialRegistrationChallengeVerificationMethodHumanHardwarePreviewsign:
+		*s = SigningCredentialRegistrationChallengeVerificationMethodHumanHardwarePreviewsign
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type SigningCredentialStatus string
+
+const (
+	SigningCredentialStatusPendingApproval SigningCredentialStatus = "pending_approval"
+	SigningCredentialStatusActive          SigningCredentialStatus = "active"
+	SigningCredentialStatusSuspended       SigningCredentialStatus = "suspended"
+	SigningCredentialStatusRevoked         SigningCredentialStatus = "revoked"
+)
+
+// AllValues returns all SigningCredentialStatus values.
+func (SigningCredentialStatus) AllValues() []SigningCredentialStatus {
+	return []SigningCredentialStatus{
+		SigningCredentialStatusPendingApproval,
+		SigningCredentialStatusActive,
+		SigningCredentialStatusSuspended,
+		SigningCredentialStatusRevoked,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s SigningCredentialStatus) MarshalText() ([]byte, error) {
+	switch s {
+	case SigningCredentialStatusPendingApproval:
+		return []byte(s), nil
+	case SigningCredentialStatusActive:
+		return []byte(s), nil
+	case SigningCredentialStatusSuspended:
+		return []byte(s), nil
+	case SigningCredentialStatusRevoked:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *SigningCredentialStatus) UnmarshalText(data []byte) error {
+	switch SigningCredentialStatus(data) {
+	case SigningCredentialStatusPendingApproval:
+		*s = SigningCredentialStatusPendingApproval
+		return nil
+	case SigningCredentialStatusActive:
+		*s = SigningCredentialStatusActive
+		return nil
+	case SigningCredentialStatusSuspended:
+		*s = SigningCredentialStatusSuspended
+		return nil
+	case SigningCredentialStatusRevoked:
+		*s = SigningCredentialStatusRevoked
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Stable signing verification method identifier.
+type SigningCredentialVerificationMethod string
+
+const (
+	SigningCredentialVerificationMethodAgentEd25519             SigningCredentialVerificationMethod = "agent-ed25519"
+	SigningCredentialVerificationMethodHumanHardwarePreviewsign SigningCredentialVerificationMethod = "human-hardware-previewsign"
+)
+
+// AllValues returns all SigningCredentialVerificationMethod values.
+func (SigningCredentialVerificationMethod) AllValues() []SigningCredentialVerificationMethod {
+	return []SigningCredentialVerificationMethod{
+		SigningCredentialVerificationMethodAgentEd25519,
+		SigningCredentialVerificationMethodHumanHardwarePreviewsign,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s SigningCredentialVerificationMethod) MarshalText() ([]byte, error) {
+	switch s {
+	case SigningCredentialVerificationMethodAgentEd25519:
+		return []byte(s), nil
+	case SigningCredentialVerificationMethodHumanHardwarePreviewsign:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *SigningCredentialVerificationMethod) UnmarshalText(data []byte) error {
+	switch SigningCredentialVerificationMethod(data) {
+	case SigningCredentialVerificationMethodAgentEd25519:
+		*s = SigningCredentialVerificationMethodAgentEd25519
+		return nil
+	case SigningCredentialVerificationMethodHumanHardwarePreviewsign:
+		*s = SigningCredentialVerificationMethodHumanHardwarePreviewsign
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 // Ref: #/components/schemas/SigningRequest
 type SigningRequest struct {
-	AgentId     uuid.UUID   `json:"agentId"`
-	CompletedAt NilDateTime `json:"completedAt"`
-	CreatedAt   time.Time   `json:"createdAt"`
-	ExpiresAt   time.Time   `json:"expiresAt"`
-	ID          uuid.UUID   `json:"id"`
-	Message     string      `json:"message"`
-	Nonce       uuid.UUID   `json:"nonce"`
-	Signature   NilString   `json:"signature"`
+	AgentId             uuid.UUID                            `json:"agentId"`
+	Challenge           OptNilSigningRequestChallenge        `json:"challenge"`
+	ClaimedAt           OptNilDateTime                       `json:"claimedAt"`
+	ClaimedByHumanId    OptNilUUID                           `json:"claimedByHumanId"`
+	CompletedAt         NilDateTime                          `json:"completedAt"`
+	CreatedAt           time.Time                            `json:"createdAt"`
+	ExpiresAt           time.Time                            `json:"expiresAt"`
+	ID                  uuid.UUID                            `json:"id"`
+	Message             string                               `json:"message"`
+	Nonce               uuid.UUID                            `json:"nonce"`
+	Purpose             OptNilString                         `json:"purpose"`
+	RejectedAt          OptNilDateTime                       `json:"rejectedAt"`
+	RejectionReason     OptNilString                         `json:"rejectionReason"`
+	RequestedBy         OptNilSigningRequestRequestedBy      `json:"requestedBy"`
+	Signature           NilString                            `json:"signature"`
+	SignerConstraint    OptNilSigningRequestSignerConstraint `json:"signerConstraint"`
+	SigningCredentialId OptNilUUID                           `json:"signingCredentialId"`
 	// Base64-encoded bytes to sign with Ed25519. Base64-decode this value, sign the raw bytes with your
 	// private key, then submit the base64 signature.
 	SigningInput string               `json:"signingInput"`
 	Status       SigningRequestStatus `json:"status"`
+	TeamId       OptNilUUID           `json:"teamId"`
 	Valid        NilBool              `json:"valid"`
 	// Stable signing verification method identifier.
 	VerificationMethod SigningRequestVerificationMethod `json:"verificationMethod"`
@@ -44671,6 +46745,21 @@ type SigningRequest struct {
 // GetAgentId returns the value of AgentId.
 func (s *SigningRequest) GetAgentId() uuid.UUID {
 	return s.AgentId
+}
+
+// GetChallenge returns the value of Challenge.
+func (s *SigningRequest) GetChallenge() OptNilSigningRequestChallenge {
+	return s.Challenge
+}
+
+// GetClaimedAt returns the value of ClaimedAt.
+func (s *SigningRequest) GetClaimedAt() OptNilDateTime {
+	return s.ClaimedAt
+}
+
+// GetClaimedByHumanId returns the value of ClaimedByHumanId.
+func (s *SigningRequest) GetClaimedByHumanId() OptNilUUID {
+	return s.ClaimedByHumanId
 }
 
 // GetCompletedAt returns the value of CompletedAt.
@@ -44703,9 +46792,39 @@ func (s *SigningRequest) GetNonce() uuid.UUID {
 	return s.Nonce
 }
 
+// GetPurpose returns the value of Purpose.
+func (s *SigningRequest) GetPurpose() OptNilString {
+	return s.Purpose
+}
+
+// GetRejectedAt returns the value of RejectedAt.
+func (s *SigningRequest) GetRejectedAt() OptNilDateTime {
+	return s.RejectedAt
+}
+
+// GetRejectionReason returns the value of RejectionReason.
+func (s *SigningRequest) GetRejectionReason() OptNilString {
+	return s.RejectionReason
+}
+
+// GetRequestedBy returns the value of RequestedBy.
+func (s *SigningRequest) GetRequestedBy() OptNilSigningRequestRequestedBy {
+	return s.RequestedBy
+}
+
 // GetSignature returns the value of Signature.
 func (s *SigningRequest) GetSignature() NilString {
 	return s.Signature
+}
+
+// GetSignerConstraint returns the value of SignerConstraint.
+func (s *SigningRequest) GetSignerConstraint() OptNilSigningRequestSignerConstraint {
+	return s.SignerConstraint
+}
+
+// GetSigningCredentialId returns the value of SigningCredentialId.
+func (s *SigningRequest) GetSigningCredentialId() OptNilUUID {
+	return s.SigningCredentialId
 }
 
 // GetSigningInput returns the value of SigningInput.
@@ -44716,6 +46835,11 @@ func (s *SigningRequest) GetSigningInput() string {
 // GetStatus returns the value of Status.
 func (s *SigningRequest) GetStatus() SigningRequestStatus {
 	return s.Status
+}
+
+// GetTeamId returns the value of TeamId.
+func (s *SigningRequest) GetTeamId() OptNilUUID {
+	return s.TeamId
 }
 
 // GetValid returns the value of Valid.
@@ -44731,6 +46855,21 @@ func (s *SigningRequest) GetVerificationMethod() SigningRequestVerificationMetho
 // SetAgentId sets the value of AgentId.
 func (s *SigningRequest) SetAgentId(val uuid.UUID) {
 	s.AgentId = val
+}
+
+// SetChallenge sets the value of Challenge.
+func (s *SigningRequest) SetChallenge(val OptNilSigningRequestChallenge) {
+	s.Challenge = val
+}
+
+// SetClaimedAt sets the value of ClaimedAt.
+func (s *SigningRequest) SetClaimedAt(val OptNilDateTime) {
+	s.ClaimedAt = val
+}
+
+// SetClaimedByHumanId sets the value of ClaimedByHumanId.
+func (s *SigningRequest) SetClaimedByHumanId(val OptNilUUID) {
+	s.ClaimedByHumanId = val
 }
 
 // SetCompletedAt sets the value of CompletedAt.
@@ -44763,9 +46902,39 @@ func (s *SigningRequest) SetNonce(val uuid.UUID) {
 	s.Nonce = val
 }
 
+// SetPurpose sets the value of Purpose.
+func (s *SigningRequest) SetPurpose(val OptNilString) {
+	s.Purpose = val
+}
+
+// SetRejectedAt sets the value of RejectedAt.
+func (s *SigningRequest) SetRejectedAt(val OptNilDateTime) {
+	s.RejectedAt = val
+}
+
+// SetRejectionReason sets the value of RejectionReason.
+func (s *SigningRequest) SetRejectionReason(val OptNilString) {
+	s.RejectionReason = val
+}
+
+// SetRequestedBy sets the value of RequestedBy.
+func (s *SigningRequest) SetRequestedBy(val OptNilSigningRequestRequestedBy) {
+	s.RequestedBy = val
+}
+
 // SetSignature sets the value of Signature.
 func (s *SigningRequest) SetSignature(val NilString) {
 	s.Signature = val
+}
+
+// SetSignerConstraint sets the value of SignerConstraint.
+func (s *SigningRequest) SetSignerConstraint(val OptNilSigningRequestSignerConstraint) {
+	s.SignerConstraint = val
+}
+
+// SetSigningCredentialId sets the value of SigningCredentialId.
+func (s *SigningRequest) SetSigningCredentialId(val OptNilUUID) {
+	s.SigningCredentialId = val
 }
 
 // SetSigningInput sets the value of SigningInput.
@@ -44778,6 +46947,11 @@ func (s *SigningRequest) SetStatus(val SigningRequestStatus) {
 	s.Status = val
 }
 
+// SetTeamId sets the value of TeamId.
+func (s *SigningRequest) SetTeamId(val OptNilUUID) {
+	s.TeamId = val
+}
+
 // SetValid sets the value of Valid.
 func (s *SigningRequest) SetValid(val NilBool) {
 	s.Valid = val
@@ -44788,9 +46962,23 @@ func (s *SigningRequest) SetVerificationMethod(val SigningRequestVerificationMet
 	s.VerificationMethod = val
 }
 
-func (*SigningRequest) createSigningRequestRes() {}
-func (*SigningRequest) getSigningRequestRes()    {}
-func (*SigningRequest) submitSignatureRes()      {}
+func (*SigningRequest) claimSigningRequestRes()    {}
+func (*SigningRequest) completeSigningRequestRes() {}
+func (*SigningRequest) createSigningRequestRes()   {}
+func (*SigningRequest) getSigningRequestRes()      {}
+func (*SigningRequest) rejectSigningRequestRes()   {}
+func (*SigningRequest) submitSignatureRes()        {}
+
+type SigningRequestChallenge map[string]jx.Raw
+
+func (s *SigningRequestChallenge) init() SigningRequestChallenge {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
 
 // Ref: #/components/schemas/SigningRequestList
 type SigningRequestList struct {
@@ -44842,11 +47030,183 @@ func (s *SigningRequestList) SetTotal(val float64) {
 
 func (*SigningRequestList) listSigningRequestsRes() {}
 
+type SigningRequestRequestedBy struct {
+	ID   string                        `json:"id"`
+	Type SigningRequestRequestedByType `json:"type"`
+}
+
+// GetID returns the value of ID.
+func (s *SigningRequestRequestedBy) GetID() string {
+	return s.ID
+}
+
+// GetType returns the value of Type.
+func (s *SigningRequestRequestedBy) GetType() SigningRequestRequestedByType {
+	return s.Type
+}
+
+// SetID sets the value of ID.
+func (s *SigningRequestRequestedBy) SetID(val string) {
+	s.ID = val
+}
+
+// SetType sets the value of Type.
+func (s *SigningRequestRequestedBy) SetType(val SigningRequestRequestedByType) {
+	s.Type = val
+}
+
+type SigningRequestRequestedByType string
+
+const (
+	SigningRequestRequestedByTypeAgent   SigningRequestRequestedByType = "agent"
+	SigningRequestRequestedByTypeHuman   SigningRequestRequestedByType = "human"
+	SigningRequestRequestedByTypeService SigningRequestRequestedByType = "service"
+)
+
+// AllValues returns all SigningRequestRequestedByType values.
+func (SigningRequestRequestedByType) AllValues() []SigningRequestRequestedByType {
+	return []SigningRequestRequestedByType{
+		SigningRequestRequestedByTypeAgent,
+		SigningRequestRequestedByTypeHuman,
+		SigningRequestRequestedByTypeService,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s SigningRequestRequestedByType) MarshalText() ([]byte, error) {
+	switch s {
+	case SigningRequestRequestedByTypeAgent:
+		return []byte(s), nil
+	case SigningRequestRequestedByTypeHuman:
+		return []byte(s), nil
+	case SigningRequestRequestedByTypeService:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *SigningRequestRequestedByType) UnmarshalText(data []byte) error {
+	switch SigningRequestRequestedByType(data) {
+	case SigningRequestRequestedByTypeAgent:
+		*s = SigningRequestRequestedByTypeAgent
+		return nil
+	case SigningRequestRequestedByTypeHuman:
+		*s = SigningRequestRequestedByTypeHuman
+		return nil
+	case SigningRequestRequestedByTypeService:
+		*s = SigningRequestRequestedByTypeService
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// SigningRequestSignerConstraint represents sum type.
+type SigningRequestSignerConstraint struct {
+	// Type selects the active sum variant, switch on this field.
+	Type                        SigningRequestSignerConstraintType
+	ProvenanceGraphHumanNode    ProvenanceGraphHumanNode
+	ProvenanceGraphTeamRoleNode ProvenanceGraphTeamRoleNode
+	ProvenanceGraphGroupNode    ProvenanceGraphGroupNode
+}
+
+// SigningRequestSignerConstraintType is oneOf type of SigningRequestSignerConstraint.
+type SigningRequestSignerConstraintType string
+
+// Possible values for SigningRequestSignerConstraintType.
+const (
+	ProvenanceGraphHumanNodeSigningRequestSignerConstraint    SigningRequestSignerConstraintType = "human"
+	ProvenanceGraphTeamRoleNodeSigningRequestSignerConstraint SigningRequestSignerConstraintType = "team-role"
+	ProvenanceGraphGroupNodeSigningRequestSignerConstraint    SigningRequestSignerConstraintType = "group"
+)
+
+// IsProvenanceGraphHumanNode reports whether SigningRequestSignerConstraint is ProvenanceGraphHumanNode.
+func (s SigningRequestSignerConstraint) IsProvenanceGraphHumanNode() bool {
+	return s.Type == ProvenanceGraphHumanNodeSigningRequestSignerConstraint
+}
+
+// IsProvenanceGraphTeamRoleNode reports whether SigningRequestSignerConstraint is ProvenanceGraphTeamRoleNode.
+func (s SigningRequestSignerConstraint) IsProvenanceGraphTeamRoleNode() bool {
+	return s.Type == ProvenanceGraphTeamRoleNodeSigningRequestSignerConstraint
+}
+
+// IsProvenanceGraphGroupNode reports whether SigningRequestSignerConstraint is ProvenanceGraphGroupNode.
+func (s SigningRequestSignerConstraint) IsProvenanceGraphGroupNode() bool {
+	return s.Type == ProvenanceGraphGroupNodeSigningRequestSignerConstraint
+}
+
+// SetProvenanceGraphHumanNode sets SigningRequestSignerConstraint to ProvenanceGraphHumanNode.
+func (s *SigningRequestSignerConstraint) SetProvenanceGraphHumanNode(v ProvenanceGraphHumanNode) {
+	s.Type = ProvenanceGraphHumanNodeSigningRequestSignerConstraint
+	s.ProvenanceGraphHumanNode = v
+}
+
+// GetProvenanceGraphHumanNode returns ProvenanceGraphHumanNode and true boolean if SigningRequestSignerConstraint is ProvenanceGraphHumanNode.
+func (s SigningRequestSignerConstraint) GetProvenanceGraphHumanNode() (v ProvenanceGraphHumanNode, ok bool) {
+	if !s.IsProvenanceGraphHumanNode() {
+		return v, false
+	}
+	return s.ProvenanceGraphHumanNode, true
+}
+
+// NewProvenanceGraphHumanNodeSigningRequestSignerConstraint returns new SigningRequestSignerConstraint from ProvenanceGraphHumanNode.
+func NewProvenanceGraphHumanNodeSigningRequestSignerConstraint(v ProvenanceGraphHumanNode) SigningRequestSignerConstraint {
+	var s SigningRequestSignerConstraint
+	s.SetProvenanceGraphHumanNode(v)
+	return s
+}
+
+// SetProvenanceGraphTeamRoleNode sets SigningRequestSignerConstraint to ProvenanceGraphTeamRoleNode.
+func (s *SigningRequestSignerConstraint) SetProvenanceGraphTeamRoleNode(v ProvenanceGraphTeamRoleNode) {
+	s.Type = ProvenanceGraphTeamRoleNodeSigningRequestSignerConstraint
+	s.ProvenanceGraphTeamRoleNode = v
+}
+
+// GetProvenanceGraphTeamRoleNode returns ProvenanceGraphTeamRoleNode and true boolean if SigningRequestSignerConstraint is ProvenanceGraphTeamRoleNode.
+func (s SigningRequestSignerConstraint) GetProvenanceGraphTeamRoleNode() (v ProvenanceGraphTeamRoleNode, ok bool) {
+	if !s.IsProvenanceGraphTeamRoleNode() {
+		return v, false
+	}
+	return s.ProvenanceGraphTeamRoleNode, true
+}
+
+// NewProvenanceGraphTeamRoleNodeSigningRequestSignerConstraint returns new SigningRequestSignerConstraint from ProvenanceGraphTeamRoleNode.
+func NewProvenanceGraphTeamRoleNodeSigningRequestSignerConstraint(v ProvenanceGraphTeamRoleNode) SigningRequestSignerConstraint {
+	var s SigningRequestSignerConstraint
+	s.SetProvenanceGraphTeamRoleNode(v)
+	return s
+}
+
+// SetProvenanceGraphGroupNode sets SigningRequestSignerConstraint to ProvenanceGraphGroupNode.
+func (s *SigningRequestSignerConstraint) SetProvenanceGraphGroupNode(v ProvenanceGraphGroupNode) {
+	s.Type = ProvenanceGraphGroupNodeSigningRequestSignerConstraint
+	s.ProvenanceGraphGroupNode = v
+}
+
+// GetProvenanceGraphGroupNode returns ProvenanceGraphGroupNode and true boolean if SigningRequestSignerConstraint is ProvenanceGraphGroupNode.
+func (s SigningRequestSignerConstraint) GetProvenanceGraphGroupNode() (v ProvenanceGraphGroupNode, ok bool) {
+	if !s.IsProvenanceGraphGroupNode() {
+		return v, false
+	}
+	return s.ProvenanceGraphGroupNode, true
+}
+
+// NewProvenanceGraphGroupNodeSigningRequestSignerConstraint returns new SigningRequestSignerConstraint from ProvenanceGraphGroupNode.
+func NewProvenanceGraphGroupNodeSigningRequestSignerConstraint(v ProvenanceGraphGroupNode) SigningRequestSignerConstraint {
+	var s SigningRequestSignerConstraint
+	s.SetProvenanceGraphGroupNode(v)
+	return s
+}
+
 type SigningRequestStatus string
 
 const (
 	SigningRequestStatusPending   SigningRequestStatus = "pending"
+	SigningRequestStatusClaimed   SigningRequestStatus = "claimed"
 	SigningRequestStatusCompleted SigningRequestStatus = "completed"
+	SigningRequestStatusRejected  SigningRequestStatus = "rejected"
 	SigningRequestStatusExpired   SigningRequestStatus = "expired"
 )
 
@@ -44854,7 +47214,9 @@ const (
 func (SigningRequestStatus) AllValues() []SigningRequestStatus {
 	return []SigningRequestStatus{
 		SigningRequestStatusPending,
+		SigningRequestStatusClaimed,
 		SigningRequestStatusCompleted,
+		SigningRequestStatusRejected,
 		SigningRequestStatusExpired,
 	}
 }
@@ -44864,7 +47226,11 @@ func (s SigningRequestStatus) MarshalText() ([]byte, error) {
 	switch s {
 	case SigningRequestStatusPending:
 		return []byte(s), nil
+	case SigningRequestStatusClaimed:
+		return []byte(s), nil
 	case SigningRequestStatusCompleted:
+		return []byte(s), nil
+	case SigningRequestStatusRejected:
 		return []byte(s), nil
 	case SigningRequestStatusExpired:
 		return []byte(s), nil
@@ -44879,8 +47245,14 @@ func (s *SigningRequestStatus) UnmarshalText(data []byte) error {
 	case SigningRequestStatusPending:
 		*s = SigningRequestStatusPending
 		return nil
+	case SigningRequestStatusClaimed:
+		*s = SigningRequestStatusClaimed
+		return nil
 	case SigningRequestStatusCompleted:
 		*s = SigningRequestStatusCompleted
+		return nil
+	case SigningRequestStatusRejected:
+		*s = SigningRequestStatusRejected
 		return nil
 	case SigningRequestStatusExpired:
 		*s = SigningRequestStatusExpired
@@ -46710,6 +49082,32 @@ func (s *Success) SetSuccess(val bool) {
 
 func (*Success) deleteDiaryEntryByIdRes() {}
 func (*Success) deleteDiaryRes()          {}
+
+type SuspendSigningCredentialForbidden ProblemDetails
+
+func (*SuspendSigningCredentialForbidden) suspendSigningCredentialRes() {}
+
+type SuspendSigningCredentialNotFound ProblemDetails
+
+func (*SuspendSigningCredentialNotFound) suspendSigningCredentialRes() {}
+
+type SuspendSigningCredentialReq struct {
+	Reason OptString `json:"reason"`
+}
+
+// GetReason returns the value of Reason.
+func (s *SuspendSigningCredentialReq) GetReason() OptString {
+	return s.Reason
+}
+
+// SetReason sets the value of Reason.
+func (s *SuspendSigningCredentialReq) SetReason(val OptString) {
+	s.Reason = val
+}
+
+type SuspendSigningCredentialUnauthorized ProblemDetails
+
+func (*SuspendSigningCredentialUnauthorized) suspendSigningCredentialRes() {}
 
 // Ref: #/components/schemas/Task
 type Task struct {

@@ -3,6 +3,7 @@ import { createClient } from '@moltnet/api-client';
 
 import type {
   AgentKeysNamespace,
+  CryptoNamespace,
   DiariesNamespace,
   DiaryGrantsNamespace,
   EntriesNamespace,
@@ -17,6 +18,7 @@ import type {
 import type { AgentContext } from './agent-context.js';
 import { normalizeApiUrl } from './api-url.js';
 import { createAgentKeysNamespace } from './namespaces/agent-keys.js';
+import { createCryptoNamespace } from './namespaces/crypto.js';
 import { createDiariesNamespace } from './namespaces/diaries.js';
 import { createDiaryGrantsNamespace } from './namespaces/diary-grants.js';
 import { createEntriesNamespace } from './namespaces/entries.js';
@@ -25,6 +27,8 @@ import { createPacksNamespace } from './namespaces/packs.js';
 import { createProblemsNamespace } from './namespaces/problems.js';
 import { createPublicNamespace } from './namespaces/public.js';
 import { createRuntimeProfilesNamespace } from './namespaces/runtime-profiles.js';
+import { createSigningCredentialsNamespace } from './namespaces/signing-credentials.js';
+import { createSigningRequestsNamespace } from './namespaces/signing-requests.js';
 import { createTasksNamespace } from './namespaces/tasks.js';
 import { createTeamsNamespace } from './namespaces/teams.js';
 import { createWhoami } from './namespaces/whoami.js';
@@ -42,6 +46,7 @@ export interface HumanClient {
   problems: ProblemsNamespace;
   teams: TeamsNamespace;
   tasks: TasksNamespace;
+  crypto: CryptoNamespace;
 
   /** Return this human's identity and context (subject type, current team). */
   whoami(): Promise<Whoami>;
@@ -96,6 +101,13 @@ export function connectHuman(options: ConnectHumanOptions = {}): HumanClient {
 
   const auth = createHumanAuth(options);
   const context: AgentContext = { client, auth };
+  const signingRequests = createSigningRequestsNamespace(context);
+  const signingCredentials = createSigningCredentialsNamespace(context);
+  const crypto = createCryptoNamespace(
+    context,
+    signingRequests,
+    signingCredentials,
+  );
 
   return {
     kind: 'human',
@@ -111,6 +123,7 @@ export function connectHuman(options: ConnectHumanOptions = {}): HumanClient {
     teams: createTeamsNamespace(context),
     tasks: createTasksNamespace(context),
     whoami: createWhoami(context),
+    crypto,
     client,
   };
 }

@@ -60,6 +60,13 @@ func (UnimplementedHandler) AppendTaskMessages(ctx context.Context, req *AppendT
 	return r, ht.ErrNotImplemented
 }
 
+// ApproveSigningCredential implements approveSigningCredential operation.
+//
+// POST /crypto/signing-credentials/{id}/approve
+func (UnimplementedHandler) ApproveSigningCredential(ctx context.Context, req OptApproveSigningCredentialReq, params ApproveSigningCredentialParams) (r ApproveSigningCredentialRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // BatchDeleteDiaryEntries implements batchDeleteDiaryEntries operation.
 //
 // Delete multiple diary entries. Signed, unauthorized, and missing entries are skipped.
@@ -91,6 +98,13 @@ func (UnimplementedHandler) BeginRuntimeSlot(ctx context.Context, req *BeginRunt
 	return r, ht.ErrNotImplemented
 }
 
+// BeginSigningCredentialRegistration implements beginSigningCredentialRegistration operation.
+//
+// POST /crypto/signing-credentials/registrations
+func (UnimplementedHandler) BeginSigningCredentialRegistration(ctx context.Context, req *BeginSigningCredentialRegistrationReq, params BeginSigningCredentialRegistrationParams) (r BeginSigningCredentialRegistrationRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // CancelTask implements cancelTask operation.
 //
 // Cancel a task.
@@ -100,12 +114,33 @@ func (UnimplementedHandler) CancelTask(ctx context.Context, req *CancelTaskReq, 
 	return r, ht.ErrNotImplemented
 }
 
+// ClaimSigningRequest implements claimSigningRequest operation.
+//
+// POST /crypto/signing-requests/{id}/claim
+func (UnimplementedHandler) ClaimSigningRequest(ctx context.Context, req *ClaimSigningRequestReq, params ClaimSigningRequestParams) (r ClaimSigningRequestRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // ClaimTask implements claimTask operation.
 //
 // Claim a queued task and start an attempt.
 //
 // POST /tasks/{id}/claim
 func (UnimplementedHandler) ClaimTask(ctx context.Context, req OptClaimTaskReq, params ClaimTaskParams) (r ClaimTaskRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// CompleteSigningCredentialRegistration implements completeSigningCredentialRegistration operation.
+//
+// POST /crypto/signing-credentials/registrations/{id}/complete
+func (UnimplementedHandler) CompleteSigningCredentialRegistration(ctx context.Context, req *CompleteSigningCredentialRegistrationReq, params CompleteSigningCredentialRegistrationParams) (r CompleteSigningCredentialRegistrationRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// CompleteSigningRequest implements completeSigningRequest operation.
+//
+// POST /crypto/signing-requests/{id}/complete
+func (UnimplementedHandler) CompleteSigningRequest(ctx context.Context, req *CompleteSigningRequestReq, params CompleteSigningRequestParams) (r CompleteSigningRequestRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -588,6 +623,13 @@ func (UnimplementedHandler) GetRuntimeSession(ctx context.Context, params GetRun
 	return r, ht.ErrNotImplemented
 }
 
+// GetSigningCredential implements getSigningCredential operation.
+//
+// GET /crypto/signing-credentials/{id}
+func (UnimplementedHandler) GetSigningCredential(ctx context.Context, params GetSigningCredentialParams) (r GetSigningCredentialRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // GetSigningRequest implements getSigningRequest operation.
 //
 // Get a specific signing request by ID.
@@ -832,6 +874,13 @@ func (UnimplementedHandler) ListRuntimeSlots(ctx context.Context, params ListRun
 	return r, ht.ErrNotImplemented
 }
 
+// ListSigningCredentials implements listSigningCredentials operation.
+//
+// GET /crypto/signing-credentials
+func (UnimplementedHandler) ListSigningCredentials(ctx context.Context, params ListSigningCredentialsParams) (r ListSigningCredentialsRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // ListSigningRequests implements listSigningRequests operation.
 //
 // List signing requests for the authenticated agent.
@@ -943,6 +992,13 @@ func (UnimplementedHandler) RegisterAgent(ctx context.Context, req *RegisterAgen
 	return r, ht.ErrNotImplemented
 }
 
+// RejectSigningRequest implements rejectSigningRequest operation.
+//
+// POST /crypto/signing-requests/{id}/reject
+func (UnimplementedHandler) RejectSigningRequest(ctx context.Context, req OptRejectSigningRequestReq, params RejectSigningRequestParams) (r RejectSigningRequestRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // RejectTransfer implements rejectTransfer operation.
 //
 // Reject a pending diary transfer.
@@ -1004,6 +1060,13 @@ func (UnimplementedHandler) RevokeAgentKey(ctx context.Context, req OptRevokeAge
 //
 // DELETE /diaries/{id}/grants
 func (UnimplementedHandler) RevokeDiaryGrant(ctx context.Context, req *RevokeDiaryGrantReq, params RevokeDiaryGrantParams) (r RevokeDiaryGrantRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// RevokeSigningCredential implements revokeSigningCredential operation.
+//
+// POST /crypto/signing-credentials/{id}/revoke
+func (UnimplementedHandler) RevokeSigningCredential(ctx context.Context, req OptRevokeSigningCredentialReq, params RevokeSigningCredentialParams) (r RevokeSigningCredentialRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -1072,6 +1135,13 @@ func (UnimplementedHandler) StartLegreffierOnboarding(ctx context.Context, req *
 //
 // POST /crypto/signing-requests/{id}/sign
 func (UnimplementedHandler) SubmitSignature(ctx context.Context, req *SubmitSignatureReq, params SubmitSignatureParams) (r SubmitSignatureRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// SuspendSigningCredential implements suspendSigningCredential operation.
+//
+// POST /crypto/signing-credentials/{id}/suspend
+func (UnimplementedHandler) SuspendSigningCredential(ctx context.Context, req OptSuspendSigningCredentialReq, params SuspendSigningCredentialParams) (r SuspendSigningCredentialRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

@@ -1,7 +1,9 @@
 import type { Client } from '@moltnet/api-client';
 import {
+  beginSigningCredentialRegistration,
   createClient,
   createDiary,
+  getSigningCredential,
   listDiaries,
   listTeams,
 } from '@moltnet/api-client';
@@ -14,7 +16,9 @@ vi.mock('@moltnet/api-client', async (importOriginal) => {
   return {
     ...actual,
     createClient: vi.fn(),
+    beginSigningCredentialRegistration: vi.fn(),
     createDiary: vi.fn(),
+    getSigningCredential: vi.fn(),
     listDiaries: vi.fn(),
     listTeams: vi.fn(),
   };
@@ -163,6 +167,61 @@ describe('Human client facade', () => {
         client: mockClient,
         auth: undefined,
         query: undefined,
+        headers: { 'x-moltnet-team-id': 'team-1' },
+      }),
+    );
+  });
+
+  it('exposes signing credential enrollment with human auth and team context', async () => {
+    vi.mocked(beginSigningCredentialRegistration).mockResolvedValueOnce({
+      data: { id: 'registration-1' },
+      error: undefined,
+    } as any);
+
+    const human = connectHuman({
+      client: mockClient,
+      sessionToken: 'human-session-token',
+    });
+
+    await human.crypto.signingCredentials.startRegistration(
+      {
+        verificationMethod: 'human-hardware-previewsign',
+        credentialType: 'test-only',
+        algorithm: 'test-only',
+        label: 'Laptop signing credential',
+      },
+      { teamId: 'team-1' },
+    );
+
+    expect(beginSigningCredentialRegistration).toHaveBeenCalledWith(
+      expect.objectContaining({
+        client: mockClient,
+        auth: expect.any(Function),
+        headers: { 'x-moltnet-team-id': 'team-1' },
+      }),
+    );
+  });
+
+  it('gets a signing credential with human auth and team context', async () => {
+    vi.mocked(getSigningCredential).mockResolvedValueOnce({
+      data: { id: 'credential-1' },
+      error: undefined,
+    } as any);
+
+    const human = connectHuman({
+      client: mockClient,
+      sessionToken: 'human-session-token',
+    });
+
+    await human.crypto.signingCredentials.get('credential-1', {
+      teamId: 'team-1',
+    });
+
+    expect(getSigningCredential).toHaveBeenCalledWith(
+      expect.objectContaining({
+        client: mockClient,
+        auth: expect.any(Function),
+        path: { id: 'credential-1' },
         headers: { 'x-moltnet-team-id': 'team-1' },
       }),
     );

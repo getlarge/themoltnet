@@ -2114,20 +2114,122 @@ export type RuntimeWorkspace = {
   worktreePath: string;
 };
 
+export type SigningCredential = {
+  activatedAt: string | null;
+  algorithm: string;
+  approvedByHumanId: string | null;
+  createdAt: string;
+  credentialType: string;
+  enrollmentEvidence: {
+    version: number;
+  } & {
+    [key: string]: unknown;
+  };
+  id: string;
+  label: string;
+  owner:
+    | {
+        /**
+         * Key fingerprint (A1B2-C3D4-E5F6-G7H8)
+         */
+        fingerprint: string;
+        /**
+         * UUID v4 identifier
+         */
+        identityId: string;
+        kind: 'agent';
+        /**
+         * Ed25519 public key with prefix
+         */
+        publicKey: string;
+      }
+    | {
+        /**
+         * UUID v4 identifier
+         */
+        humanId: string;
+        identityId: string | null;
+        kind: 'human';
+      };
+  publicMaterial: {
+    version: number;
+  } & {
+    [key: string]: unknown;
+  };
+  revokedAt: string | null;
+  status: 'pending_approval' | 'active' | 'suspended' | 'revoked';
+  suspendedAt: string | null;
+  teamId: string;
+  updatedAt: string;
+  /**
+   * Stable signing verification method identifier
+   */
+  verificationMethod: 'agent-ed25519' | 'human-hardware-previewsign';
+};
+
+export type SigningCredentialList = {
+  items: Array<SigningCredential>;
+  limit: number;
+  offset: number;
+  total: number;
+};
+
+export type SigningCredentialRegistration = {
+  challenge: {
+    value: {
+      [key: string]: unknown;
+    };
+    /**
+     * Stable signing verification method identifier
+     */
+    verificationMethod: 'agent-ed25519' | 'human-hardware-previewsign';
+  };
+  expiresAt: string;
+  id: string;
+};
+
 export type SigningRequest = {
   agentId: string;
+  challenge?: {
+    [key: string]: unknown;
+  } | null;
+  claimedAt?: string | null;
+  claimedByHumanId?: string | null;
   completedAt: string | null;
   createdAt: string;
   expiresAt: string;
   id: string;
   message: string;
   nonce: string;
+  purpose?: string | null;
+  rejectedAt?: string | null;
+  rejectionReason?: string | null;
+  requestedBy?: {
+    id: string;
+    type: 'agent' | 'human' | 'service';
+  } | null;
   signature: string | null;
+  signerConstraint?:
+    | {
+        id: string;
+        type: 'human';
+      }
+    | {
+        id: 'owner' | 'manager' | 'member';
+        type: 'team-role';
+      }
+    | {
+        id: string;
+        type: 'group';
+      }
+    | null;
+  signingCredentialId?: string | null;
   /**
    * Base64-encoded bytes to sign with Ed25519. Base64-decode this value, sign the raw bytes with your private key, then submit the base64 signature.
    */
   signingInput: string;
-  status: 'pending' | 'completed' | 'expired';
+  status: 'pending' | 'claimed' | 'completed' | 'rejected' | 'expired';
+  teamId?: string | null;
   valid: boolean | null;
   /**
    * Stable signing verification method identifier
@@ -3328,6 +3430,351 @@ export type GetCryptoIdentityResponses = {
 export type GetCryptoIdentityResponse =
   GetCryptoIdentityResponses[keyof GetCryptoIdentityResponses];
 
+export type ListSigningCredentialsData = {
+  body?: never;
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path?: never;
+  query?: {
+    limit?: number;
+    offset?: number;
+  };
+  url: '/crypto/signing-credentials';
+};
+
+export type ListSigningCredentialsErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+};
+
+export type ListSigningCredentialsError =
+  ListSigningCredentialsErrors[keyof ListSigningCredentialsErrors];
+
+export type ListSigningCredentialsResponses = {
+  /**
+   * Default Response
+   */
+  200: SigningCredentialList;
+};
+
+export type ListSigningCredentialsResponse =
+  ListSigningCredentialsResponses[keyof ListSigningCredentialsResponses];
+
+export type BeginSigningCredentialRegistrationData = {
+  body: {
+    algorithm: string;
+    credentialType: string;
+    label: string;
+    /**
+     * Stable signing verification method identifier
+     */
+    verificationMethod: 'agent-ed25519' | 'human-hardware-previewsign';
+  };
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path?: never;
+  query?: never;
+  url: '/crypto/signing-credentials/registrations';
+};
+
+export type BeginSigningCredentialRegistrationErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ProblemDetails;
+};
+
+export type BeginSigningCredentialRegistrationError =
+  BeginSigningCredentialRegistrationErrors[keyof BeginSigningCredentialRegistrationErrors];
+
+export type BeginSigningCredentialRegistrationResponses = {
+  /**
+   * Default Response
+   */
+  201: SigningCredentialRegistration;
+};
+
+export type BeginSigningCredentialRegistrationResponse =
+  BeginSigningCredentialRegistrationResponses[keyof BeginSigningCredentialRegistrationResponses];
+
+export type CompleteSigningCredentialRegistrationData = {
+  body: {
+    publicMaterial: {
+      version: number;
+    } & {
+      [key: string]: unknown;
+    };
+    receipt: {
+      value: {
+        [key: string]: unknown;
+      };
+      /**
+       * Stable signing verification method identifier
+       */
+      verificationMethod: 'agent-ed25519' | 'human-hardware-previewsign';
+    };
+  };
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/crypto/signing-credentials/registrations/{id}/complete';
+};
+
+export type CompleteSigningCredentialRegistrationErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ConflictProblemDetails;
+};
+
+export type CompleteSigningCredentialRegistrationError =
+  CompleteSigningCredentialRegistrationErrors[keyof CompleteSigningCredentialRegistrationErrors];
+
+export type CompleteSigningCredentialRegistrationResponses = {
+  /**
+   * Default Response
+   */
+  201: SigningCredential;
+};
+
+export type CompleteSigningCredentialRegistrationResponse =
+  CompleteSigningCredentialRegistrationResponses[keyof CompleteSigningCredentialRegistrationResponses];
+
+export type GetSigningCredentialData = {
+  body?: never;
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/crypto/signing-credentials/{id}';
+};
+
+export type GetSigningCredentialErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type GetSigningCredentialError =
+  GetSigningCredentialErrors[keyof GetSigningCredentialErrors];
+
+export type GetSigningCredentialResponses = {
+  /**
+   * Default Response
+   */
+  200: SigningCredential;
+};
+
+export type GetSigningCredentialResponse =
+  GetSigningCredentialResponses[keyof GetSigningCredentialResponses];
+
+export type ApproveSigningCredentialData = {
+  body?: {
+    reason?: string;
+  };
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/crypto/signing-credentials/{id}/approve';
+};
+
+export type ApproveSigningCredentialErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ConflictProblemDetails;
+};
+
+export type ApproveSigningCredentialError =
+  ApproveSigningCredentialErrors[keyof ApproveSigningCredentialErrors];
+
+export type ApproveSigningCredentialResponses = {
+  /**
+   * Default Response
+   */
+  200: SigningCredential;
+};
+
+export type ApproveSigningCredentialResponse =
+  ApproveSigningCredentialResponses[keyof ApproveSigningCredentialResponses];
+
+export type RevokeSigningCredentialData = {
+  body?: {
+    reason?: string;
+  };
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/crypto/signing-credentials/{id}/revoke';
+};
+
+export type RevokeSigningCredentialErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ConflictProblemDetails;
+};
+
+export type RevokeSigningCredentialError =
+  RevokeSigningCredentialErrors[keyof RevokeSigningCredentialErrors];
+
+export type RevokeSigningCredentialResponses = {
+  /**
+   * Default Response
+   */
+  200: SigningCredential;
+};
+
+export type RevokeSigningCredentialResponse =
+  RevokeSigningCredentialResponses[keyof RevokeSigningCredentialResponses];
+
+export type SuspendSigningCredentialData = {
+  body?: {
+    reason?: string;
+  };
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/crypto/signing-credentials/{id}/suspend';
+};
+
+export type SuspendSigningCredentialErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ConflictProblemDetails;
+};
+
+export type SuspendSigningCredentialError =
+  SuspendSigningCredentialErrors[keyof SuspendSigningCredentialErrors];
+
+export type SuspendSigningCredentialResponses = {
+  /**
+   * Default Response
+   */
+  200: SigningCredential;
+};
+
+export type SuspendSigningCredentialResponse =
+  SuspendSigningCredentialResponses[keyof SuspendSigningCredentialResponses];
+
 export type ListSigningRequestsData = {
   body?: never;
   path?: never;
@@ -3337,7 +3784,10 @@ export type ListSigningRequestsData = {
     /**
      * Repeated status filter. Single value also accepted.
      */
-    status?: Array<'pending' | 'completed' | 'expired'>;
+    status?: Array<
+      'pending' | 'claimed' | 'completed' | 'rejected' | 'expired'
+    >;
+    scope?: 'requested' | 'signable';
   };
   url: '/crypto/signing-requests';
 };
@@ -3373,6 +3823,21 @@ export type ListSigningRequestsResponse =
 export type CreateSigningRequestData = {
   body: {
     message: string;
+    purpose?: string;
+    signerConstraint?:
+      | {
+          id: string;
+          type: 'human';
+        }
+      | {
+          id: 'owner' | 'manager' | 'member';
+          type: 'team-role';
+        }
+      | {
+          id: string;
+          type: 'group';
+        };
+    teamId?: string;
     /**
      * Stable signing verification method identifier
      */
@@ -3392,6 +3857,10 @@ export type CreateSigningRequestErrors = {
    * Default Response
    */
   401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
   /**
    * Default Response
    */
@@ -3451,6 +3920,169 @@ export type GetSigningRequestResponses = {
 
 export type GetSigningRequestResponse =
   GetSigningRequestResponses[keyof GetSigningRequestResponses];
+
+export type ClaimSigningRequestData = {
+  body: {
+    credentialId: string;
+  };
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/crypto/signing-requests/{id}/claim';
+};
+
+export type ClaimSigningRequestErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ConflictProblemDetails;
+};
+
+export type ClaimSigningRequestError =
+  ClaimSigningRequestErrors[keyof ClaimSigningRequestErrors];
+
+export type ClaimSigningRequestResponses = {
+  /**
+   * Default Response
+   */
+  200: SigningRequest;
+};
+
+export type ClaimSigningRequestResponse =
+  ClaimSigningRequestResponses[keyof ClaimSigningRequestResponses];
+
+export type CompleteSigningRequestData = {
+  body: {
+    receipt: {
+      value: {
+        [key: string]: unknown;
+      };
+      /**
+       * Stable signing verification method identifier
+       */
+      verificationMethod: 'agent-ed25519' | 'human-hardware-previewsign';
+    };
+  };
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/crypto/signing-requests/{id}/complete';
+};
+
+export type CompleteSigningRequestErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ConflictProblemDetails;
+};
+
+export type CompleteSigningRequestError =
+  CompleteSigningRequestErrors[keyof CompleteSigningRequestErrors];
+
+export type CompleteSigningRequestResponses = {
+  /**
+   * Default Response
+   */
+  200: SigningRequest;
+};
+
+export type CompleteSigningRequestResponse =
+  CompleteSigningRequestResponses[keyof CompleteSigningRequestResponses];
+
+export type RejectSigningRequestData = {
+  body?: {
+    reason?: string;
+  };
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/crypto/signing-requests/{id}/reject';
+};
+
+export type RejectSigningRequestErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ConflictProblemDetails;
+};
+
+export type RejectSigningRequestError =
+  RejectSigningRequestErrors[keyof RejectSigningRequestErrors];
+
+export type RejectSigningRequestResponses = {
+  /**
+   * Default Response
+   */
+  200: SigningRequest;
+};
+
+export type RejectSigningRequestResponse =
+  RejectSigningRequestResponses[keyof RejectSigningRequestResponses];
 
 export type SubmitSignatureData = {
   body: {

@@ -33,6 +33,7 @@ export type {
   RuntimeProfileRepository,
   RuntimeSessionRepository,
   RuntimeSlotRepository,
+  SigningCredentialRepository,
   SigningRequestRepository,
   TaskArtifactRepository,
   TaskRepository,
@@ -43,6 +44,7 @@ export type {
 export type { DiaryService } from '@moltnet/diary-service';
 export type { EmbeddingService } from '@moltnet/embedding-service';
 export type { RuntimeSessionStorage } from '@moltnet/runtime-session-service';
+export type { SigningService } from '@moltnet/signing-service';
 export type { TaskAnalyticsService } from '@moltnet/task-analytics-service';
 export type { TaskArtifactStorage } from '@moltnet/task-artifact-service';
 import type {
@@ -67,6 +69,7 @@ import type {
   RuntimeProfileRepository,
   RuntimeSessionRepository,
   RuntimeSlotRepository,
+  SigningCredentialRepository,
   SigningRequestRepository,
   TaskArtifactRepository,
   TaskRepository,
@@ -77,6 +80,7 @@ import type {
 import type { DiaryService } from '@moltnet/diary-service';
 import type { EmbeddingService } from '@moltnet/embedding-service';
 import type { RuntimeSessionStorage } from '@moltnet/runtime-session-service';
+import type { SigningService } from '@moltnet/signing-service';
 import type { TaskAnalyticsService } from '@moltnet/task-analytics-service';
 import type { TaskArtifactStorage } from '@moltnet/task-artifact-service';
 
@@ -116,6 +120,8 @@ declare module 'fastify' {
     taskAnalyticsService: TaskAnalyticsService;
     taskService: TaskService;
     signingRequestRepository: SigningRequestRepository;
+    signingCredentialRepository: SigningCredentialRepository;
+    signingService: SigningService;
     signingTimeoutSeconds: number;
     dataSource: DataSource;
     transactionRunner: TransactionRunner;

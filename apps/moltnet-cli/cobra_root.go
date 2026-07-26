@@ -28,6 +28,8 @@ without human intervention.`,
 	rootCmd.AddCommand(newRegisterCmd())
 	rootCmd.AddCommand(newSSHKeyCmd())
 	rootCmd.AddCommand(newSignCmd())
+	rootCmd.AddCommand(newSigningRequestsCmd())
+	rootCmd.AddCommand(newSigningCredentialsCmd())
 	rootCmd.AddCommand(newEncryptCmd())
 	rootCmd.AddCommand(newDecryptCmd())
 	rootCmd.AddCommand(newGitCmd())

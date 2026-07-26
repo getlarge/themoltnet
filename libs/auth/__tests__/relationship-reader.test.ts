@@ -80,6 +80,42 @@ describe('RelationshipReader', () => {
     });
   });
 
+  describe('listGroupIdsBySubject', () => {
+    it('queries agent and human memberships and deduplicates groups', async () => {
+      mockRelationshipApi.getRelationships
+        .mockResolvedValueOnce({
+          relation_tuples: [{ object: TEAM_ID_1 }, { object: TEAM_ID_2 }],
+          next_page_token: 'agent-page-2',
+        })
+        .mockResolvedValueOnce({
+          relation_tuples: [{ object: TEAM_ID_1 }],
+        })
+        .mockResolvedValueOnce({
+          relation_tuples: [{ object: TEAM_ID_2 }],
+        });
+
+      await expect(reader.listGroupIdsBySubject(AGENT_ID)).resolves.toEqual([
+        TEAM_ID_1,
+        TEAM_ID_2,
+      ]);
+      expect(mockRelationshipApi.getRelationships).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          namespace: KetoNamespace.Group,
+          relation: 'members',
+          subjectSetNamespace: KetoNamespace.Agent,
+          subjectSetObject: AGENT_ID,
+        }),
+      );
+      expect(mockRelationshipApi.getRelationships).toHaveBeenCalledWith(
+        expect.objectContaining({
+          subjectSetNamespace: KetoNamespace.Human,
+          subjectSetObject: AGENT_ID,
+        }),
+      );
+    });
+  });
+
   describe('isTeamMember', () => {
     it('matches both the subject ID and namespace', async () => {
       mockRelationshipApi.getRelationships.mockResolvedValue({

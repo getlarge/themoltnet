@@ -52,8 +52,78 @@ export interface SigningVerifier {
   verify(input: SigningVerificationInput): Promise<boolean>;
 }
 
+export type SigningMethodJson =
+  | boolean
+  | null
+  | number
+  | string
+  | SigningMethodJson[]
+  | { [key: string]: SigningMethodJson };
+
+export interface PrepareSigningClaimInput {
+  verificationMethod: VerificationMethod;
+  requestId: string;
+  credentialId: string;
+  signingPayload: string;
+  credentialPublicMaterial?: SigningMethodJson;
+}
+
+export interface SigningMethodChallenge {
+  verificationMethod: VerificationMethod;
+  [key: string]: SigningMethodJson;
+}
+
+export interface PreparedSigningChallenge {
+  challenge: SigningMethodChallenge;
+  verifierState: SigningMethodJson;
+}
+
+export interface SigningMethodReceipt {
+  verificationMethod: VerificationMethod;
+  [key: string]: SigningMethodJson;
+}
+
+export interface VerifySigningReceiptInput extends PrepareSigningClaimInput {
+  receipt: SigningMethodReceipt;
+  verifierState: SigningMethodJson;
+}
+
+export interface ValidateSigningCredentialInput {
+  verificationMethod: VerificationMethod;
+  credentialType: string;
+  algorithm: string;
+  publicMaterial: SigningMethodJson;
+}
+
+export interface VerificationEvidence {
+  verificationMethod: VerificationMethod;
+  credentialId: string;
+  proofHash: string;
+  details?: SigningMethodJson;
+}
+
+/**
+ * A human-capable signing method extends the Phase 0 verifier with the
+ * claim-time challenge and typed receipt lifecycle. Agent Ed25519 deliberately
+ * remains a plain SigningVerifier and keeps its existing HTTP transport.
+ */
+export interface SigningMethodDriver extends SigningVerifier {
+  readonly verificationMethod: VerificationMethod;
+  validatePublicMaterial(input: ValidateSigningCredentialInput): void;
+  prepareClaim(
+    input: PrepareSigningClaimInput,
+  ): Promise<PreparedSigningChallenge>;
+  verifyReceipt(
+    input: VerifySigningReceiptInput,
+  ): Promise<VerificationEvidence>;
+}
+
 export type SigningWorkflowErrorCode =
   | 'verifier_not_registered'
+  | 'claim_not_supported'
+  | 'receipt_method_mismatch'
+  | 'receipt_invalid'
+  | 'signing_result_timeout'
   | 'key_lookup_not_configured'
   | 'persistence_not_configured'
   | 'workflows_not_initialized';
@@ -79,6 +149,46 @@ export class SigningVerifierNotRegisteredError extends SigningWorkflowError {
       `Signing verifier not registered for verification method: ${verificationMethod}`,
     );
     this.name = 'SigningVerifierNotRegisteredError';
+  }
+}
+
+export class SigningMethodClaimNotSupportedError extends SigningWorkflowError {
+  constructor(public readonly verificationMethod: VerificationMethod) {
+    super(
+      'claim_not_supported',
+      `Signing method does not support the claim lifecycle: ${verificationMethod}`,
+    );
+    this.name = 'SigningMethodClaimNotSupportedError';
+  }
+}
+
+export class SigningReceiptMethodMismatchError extends SigningWorkflowError {
+  constructor(
+    public readonly expectedVerificationMethod: VerificationMethod,
+    public readonly receivedVerificationMethod: VerificationMethod,
+  ) {
+    super(
+      'receipt_method_mismatch',
+      `Signing receipt method ${receivedVerificationMethod} does not match request method ${expectedVerificationMethod}`,
+    );
+    this.name = 'SigningReceiptMethodMismatchError';
+  }
+}
+
+export class SigningReceiptInvalidError extends SigningWorkflowError {
+  constructor(message = 'Signing receipt is invalid') {
+    super('receipt_invalid', message);
+    this.name = 'SigningReceiptInvalidError';
+  }
+}
+
+export class SigningResultTimeoutError extends SigningWorkflowError {
+  constructor(public readonly requestId: string) {
+    super(
+      'signing_result_timeout',
+      `Signing result is still pending for request: ${requestId}`,
+    );
+    this.name = 'SigningResultTimeoutError';
   }
 }
 
@@ -132,16 +242,13 @@ export interface AgentKeyLookup {
  * Implemented by the signing request repository.
  */
 export interface SigningRequestPersistence {
-  updateStatus(
-    id: string,
-    updates: {
-      status?: 'pending' | 'completed' | 'expired';
-      signature?: string;
-      valid?: boolean;
-      completedAt?: Date;
-      workflowId?: string;
-    },
-  ): Promise<void>;
+  completeAgentRequest(input: {
+    id: string;
+    status: 'completed' | 'expired';
+    signature?: string;
+    valid?: boolean;
+    completedAt: Date;
+  }): Promise<void>;
 }
 
 /** The envelope sent to the agent via DBOS setEvent */
@@ -162,9 +269,23 @@ export interface SigningResult {
 // Dependencies are injected at runtime before DBOS.launch()
 
 const signingVerifierRegistry = new Map<VerificationMethod, SigningVerifier>();
+const signingMethodDriverRegistry = new Map<
+  VerificationMethod,
+  SigningMethodDriver
+>();
 let agentKeyLookup: AgentKeyLookup | null = null;
 let signingRequestPersistence: SigningRequestPersistence | null = null;
 let signingTimeoutSeconds = 300; // 5 minutes default
+let signingWorkflowErrorReporter:
+  | ((
+      error: unknown,
+      context: {
+        operation: 'verify_signature';
+        requestId: string;
+        verificationMethod: VerificationMethod;
+      },
+    ) => void)
+  | null = null;
 
 export function setSigningVerifier(verifier: SignatureVerifier): void {
   registerSigningVerifier(
@@ -178,6 +299,20 @@ export function registerSigningVerifier(
   verifier: SigningVerifier,
 ): void {
   signingVerifierRegistry.set(verificationMethod, verifier);
+}
+
+export function registerSigningMethodDriver(
+  verificationMethod: VerificationMethod,
+  driver: SigningMethodDriver,
+): void {
+  if (driver.verificationMethod !== verificationMethod) {
+    throw new SigningReceiptMethodMismatchError(
+      verificationMethod,
+      driver.verificationMethod,
+    );
+  }
+  signingMethodDriverRegistry.set(verificationMethod, driver);
+  registerSigningVerifier(verificationMethod, driver);
 }
 
 export function isSigningVerifierRegistered(
@@ -208,6 +343,12 @@ export function setSigningTimeoutSeconds(seconds: number): void {
   signingTimeoutSeconds = seconds;
 }
 
+export function setSigningWorkflowErrorReporter(
+  reporter: NonNullable<typeof signingWorkflowErrorReporter>,
+): void {
+  signingWorkflowErrorReporter = reporter;
+}
+
 function getSigningVerifier(
   verificationMethod: VerificationMethod,
 ): SigningVerifier {
@@ -216,6 +357,92 @@ function getSigningVerifier(
     throw new SigningVerifierNotRegisteredError(verificationMethod);
   }
   return verifier;
+}
+
+function getSigningMethodDriver(
+  verificationMethod: VerificationMethod,
+): SigningMethodDriver {
+  const driver = signingMethodDriverRegistry.get(verificationMethod);
+  if (!driver) {
+    throw new SigningMethodClaimNotSupportedError(verificationMethod);
+  }
+  return driver;
+}
+
+export async function prepareSigningClaim(
+  input: PrepareSigningClaimInput,
+): Promise<PreparedSigningChallenge> {
+  return getSigningMethodDriver(input.verificationMethod).prepareClaim(input);
+}
+
+export async function verifySigningReceipt(
+  input: VerifySigningReceiptInput,
+): Promise<VerificationEvidence> {
+  if (input.receipt.verificationMethod !== input.verificationMethod) {
+    throw new SigningReceiptMethodMismatchError(
+      input.verificationMethod,
+      input.receipt.verificationMethod,
+    );
+  }
+  return getSigningMethodDriver(input.verificationMethod).verifyReceipt(input);
+}
+
+export function validateSigningCredentialPublicMaterial(
+  input: ValidateSigningCredentialInput,
+): void {
+  getSigningMethodDriver(input.verificationMethod).validatePublicMaterial(
+    input,
+  );
+}
+
+export function toSigningMethodReceipt(receipt: {
+  verificationMethod: VerificationMethod;
+  value: SigningMethodJson;
+}): SigningMethodReceipt {
+  if (
+    receipt.value === null ||
+    Array.isArray(receipt.value) ||
+    typeof receipt.value !== 'object'
+  ) {
+    throw new SigningReceiptInvalidError(
+      'Signing receipt value must be a JSON object',
+    );
+  }
+  return {
+    verificationMethod: receipt.verificationMethod,
+    ...receipt.value,
+  };
+}
+
+export interface WaitForSigningResultOptions<T extends { status: string }> {
+  load: (id: string) => Promise<T | null>;
+  initial: T;
+  maxWaitMs?: number;
+  pollIntervalMs?: number;
+  pendingStatus?: string;
+}
+
+export async function waitForSigningResult<T extends { status: string }>(
+  id: string,
+  {
+    load,
+    initial,
+    maxWaitMs = 5000,
+    pollIntervalMs = 100,
+    pendingStatus = 'pending',
+  }: WaitForSigningResultOptions<T>,
+): Promise<T> {
+  const deadline = Date.now() + maxWaitMs;
+  let current = initial;
+  while (Date.now() < deadline) {
+    const result = await load(id);
+    if (result) current = result;
+    if (current.status !== pendingStatus) return current;
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, pollIntervalMs);
+    });
+  }
+  throw new SigningResultTimeoutError(id);
 }
 
 function getAgentKeyLookup(): AgentKeyLookup {
@@ -277,19 +504,29 @@ export function initSigningWorkflows(): void {
 
   const verifySignatureStep = DBOS.registerStep(
     async (
+      requestId: string,
       verificationMethod: VerificationMethod,
       message: string,
       nonce: string,
       signature: string,
       publicKey: string,
     ): Promise<boolean> => {
-      return getSigningVerifier(verificationMethod).verify({
-        verificationMethod,
-        message,
-        nonce,
-        signature,
-        publicKey,
-      });
+      try {
+        return await getSigningVerifier(verificationMethod).verify({
+          verificationMethod,
+          message,
+          nonce,
+          signature,
+          publicKey,
+        });
+      } catch (error) {
+        signingWorkflowErrorReporter?.(error, {
+          operation: 'verify_signature',
+          requestId,
+          verificationMethod,
+        });
+        throw error;
+      }
     },
     {
       name: 'signing.step.verifySignature',
@@ -304,7 +541,8 @@ export function initSigningWorkflows(): void {
       signature: string | null,
       valid: boolean | null,
     ): Promise<void> => {
-      await getSigningRequestPersistence().updateStatus(requestId, {
+      await getSigningRequestPersistence().completeAgentRequest({
+        id: requestId,
         status,
         signature: signature ?? undefined,
         valid: valid ?? undefined,
@@ -369,6 +607,7 @@ export function initSigningWorkflows(): void {
         let valid: boolean;
         try {
           valid = await verifySignatureStep(
+            requestId,
             verificationMethod,
             message,
             nonce,
@@ -420,6 +659,8 @@ export const signingWorkflows = {
 export function _resetSigningWorkflowsForTesting(): void {
   _workflows = null;
   signingVerifierRegistry.clear();
+  signingMethodDriverRegistry.clear();
   agentKeyLookup = null;
   signingRequestPersistence = null;
+  signingWorkflowErrorReporter = null;
 }

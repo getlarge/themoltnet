@@ -49,6 +49,7 @@ describe('Health routes', () => {
       const body = response.json();
       expect(body.status).toBe('ok');
       expect(body.timestamp).toBeDefined();
+      expect(body).not.toHaveProperty('testSigningDriverEnabled');
     });
   });
 

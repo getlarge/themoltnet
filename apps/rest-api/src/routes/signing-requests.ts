@@ -4,51 +4,50 @@
  * Agents create signing requests, sign locally, and submit signatures.
  * Private keys never leave the agent's runtime.
  *
- * ## Authorization: agentId field comparison (no Keto)
+ * ## Authorization
  *
- * Unlike diary entries, signing requests don't use Keto relationships.
- * Ownership is enforced by comparing `signingRequest.agentId` against
- * the authenticated `identityId` from the JWT. This is sufficient because:
- * - Requests are ephemeral (configurable TTL) — Keto cleanup on expiry adds complexity for no gain
- * - Single-owner, no sharing — no viewer/editor relations needed
- * - The only permission is "am I the creator?" — a direct field comparison
- *
- * If multi-party signing or delegation is added later, introduce a
- * `SigningRequest` Keto namespace at that point.
+ * Agent Ed25519 requests remain identity-owned and use a direct `agentId`
+ * comparison. Delegated requests are team-scoped: Keto establishes team role
+ * and group membership, while the persisted signer constraint selects which
+ * eligible human may claim and complete the request.
  */
 
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { requireAuth } from '@moltnet/auth';
 import { buildSigningBytes } from '@moltnet/crypto-service';
 import type { SigningRequest } from '@moltnet/database';
-import { DBOS, parseStatusFilter } from '@moltnet/database';
 import {
   ConflictProblemDetailsSchema,
   ProblemDetailsSchema,
+  SignerConstraintSchema,
+  TeamHeaderRequiredSchema,
   VERIFICATION_METHOD,
   VerificationMethodSchema,
 } from '@moltnet/models';
-import {
-  assertSigningVerifierRegistered,
-  SigningVerifierNotRegisteredError,
-  signingWorkflows,
-} from '@moltnet/signing-workflows';
 import type { FastifyInstance } from 'fastify';
 import { Type } from 'typebox';
 
-import { createProblem } from '../problems/index.js';
 import {
   MAX_ED25519_SIGNATURE_LENGTH,
   SigningRequestListSchema,
   SigningRequestParamsSchema,
   SigningRequestSchema,
 } from '../schemas.js';
+import { requireCurrentTeamId } from '../utils/require-current-team-id.js';
+import { throwSigningServiceProblem } from '../utils/signing-service-error.js';
 
 function toSigningResponse(row: SigningRequest) {
   return {
     id: row.id,
     agentId: row.agentId,
     verificationMethod: row.verificationMethod,
+    requestedBy: row.requestedBy ?? null,
+    signerConstraint: row.signerConstraint ?? null,
+    teamId: row.teamId ?? null,
+    purpose: row.purpose ?? null,
+    claimedByHumanId: row.claimedByHumanId ?? null,
+    signingCredentialId: row.signingCredentialId ?? null,
+    challenge: row.challenge ?? null,
     message: row.message,
     nonce: row.nonce,
     signingInput: Buffer.from(
@@ -60,8 +59,13 @@ function toSigningResponse(row: SigningRequest) {
     createdAt: row.createdAt,
     expiresAt: row.expiresAt,
     completedAt: row.completedAt,
+    claimedAt: row.claimedAt ?? null,
+    rejectedAt: row.rejectedAt ?? null,
+    rejectionReason: row.rejectionReason ?? null,
   };
 }
+
+const SIGNING_JSON_BODY_LIMIT = 64 * 1024;
 
 export async function signingRequestRoutes(fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
@@ -87,64 +91,49 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
         body: Type.Object({
           message: Type.String({ minLength: 1, maxLength: 100000 }),
           verificationMethod: Type.Optional(VerificationMethodSchema),
+          teamId: Type.Optional(Type.String({ format: 'uuid' })),
+          purpose: Type.Optional(
+            Type.String({ minLength: 1, maxLength: 1000 }),
+          ),
+          signerConstraint: Type.Optional(SignerConstraintSchema),
         }),
         response: {
           400: Type.Ref(ProblemDetailsSchema.$id),
           201: Type.Ref(SigningRequestSchema.$id),
           401: Type.Ref(ProblemDetailsSchema.$id),
+          403: Type.Ref(ProblemDetailsSchema.$id),
           500: Type.Ref(ProblemDetailsSchema.$id),
         },
       },
     },
     async (request, reply) => {
-      const { message, verificationMethod = VERIFICATION_METHOD.AgentEd25519 } =
-        request.body;
+      const {
+        message,
+        verificationMethod = VERIFICATION_METHOD.AgentEd25519,
+        teamId,
+        purpose,
+        signerConstraint,
+      } = request.body;
       try {
-        assertSigningVerifierRegistered(verificationMethod);
+        const created = await fastify.signingService.requests.create({
+          actor: request.authContext!,
+          message,
+          verificationMethod,
+          teamId,
+          purpose,
+          signerConstraint,
+        });
+        request.log.info(
+          {
+            signingId: created.id,
+            agentId: request.authContext!.identityId,
+          },
+          'crypto.signature_prepared',
+        );
+        return await reply.status(201).send(toSigningResponse(created));
       } catch (error) {
-        if (error instanceof SigningVerifierNotRegisteredError) {
-          throw createProblem(
-            'validation-failed',
-            `No signing verifier is registered for verification method: ${error.verificationMethod}`,
-          );
-        }
-        throw error;
+        throwSigningServiceProblem(error);
       }
-
-      const agentId = request.authContext!.identityId;
-      const timeoutSeconds = fastify.signingTimeoutSeconds;
-      const expiresAt = new Date(Date.now() + timeoutSeconds * 1000);
-
-      // Insert the signing request row first
-      const created = await fastify.signingRequestRepository.create({
-        agentId,
-        message,
-        expiresAt,
-        verificationMethod,
-      });
-
-      // Start the DBOS workflow (must be outside runTransaction so recv/send work)
-      const workflowHandle = await DBOS.startWorkflow(
-        signingWorkflows.requestSignature,
-        { workflowID: `signing-${created.id}` },
-      )(
-        created.id,
-        agentId,
-        message,
-        created.nonce,
-        created.verificationMethod,
-      );
-
-      // Persist the workflow ID for later send() calls
-      await fastify.signingRequestRepository.updateStatus(created.id, {
-        workflowId: workflowHandle.workflowID,
-      });
-
-      request.log.info(
-        { signingId: created.id, agentId },
-        'crypto.signature_prepared',
-      );
-      return reply.status(201).send(toSigningResponse(created));
     },
   );
 
@@ -168,15 +157,20 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
             Type.Array(
               Type.Union([
                 Type.Literal('pending'),
+                Type.Literal('claimed'),
                 Type.Literal('completed'),
+                Type.Literal('rejected'),
                 Type.Literal('expired'),
               ]),
               {
-                maxItems: 3,
+                maxItems: 5,
                 description:
                   'Repeated status filter. Single value also accepted.',
               },
             ),
+          ),
+          scope: Type.Optional(
+            Type.Union([Type.Literal('requested'), Type.Literal('signable')]),
           ),
         }),
         response: {
@@ -188,23 +182,27 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { limit, offset, status } = request.query;
+      const { limit, offset, status, scope = 'requested' } = request.query;
 
-      const statusFilter = status ? parseStatusFilter(status) : undefined;
+      const statusFilter = status;
 
-      const { items, total } = await fastify.signingRequestRepository.list({
-        agentId: request.authContext!.identityId,
-        status: statusFilter,
-        limit,
-        offset,
-      });
-
-      return {
-        items: items.map(toSigningResponse),
-        total,
-        limit: limit ?? 20,
-        offset: offset ?? 0,
-      };
+      try {
+        const result = await fastify.signingService.requests.list({
+          actor: request.authContext!,
+          scope,
+          status: statusFilter,
+          limit,
+          offset,
+        });
+        return {
+          items: result.items.map(toSigningResponse),
+          total: result.total,
+          limit: limit ?? 20,
+          offset: offset ?? 0,
+        };
+      } catch (error) {
+        throwSigningServiceProblem(error);
+      }
     },
   );
 
@@ -233,17 +231,185 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { id } = request.params;
-      const signingRequest =
-        await fastify.signingRequestRepository.findById(id);
-
-      if (
-        !signingRequest ||
-        signingRequest.agentId !== request.authContext!.identityId
-      ) {
-        throw createProblem('not-found', 'Signing request not found');
+      try {
+        const signingRequest = await fastify.signingService.requests.get({
+          actor: request.authContext!,
+          requestId: id,
+        });
+        return toSigningResponse(signingRequest);
+      } catch (error) {
+        throwSigningServiceProblem(error);
       }
+    },
+  );
 
-      return toSigningResponse(signingRequest);
+  // ── Claim Delegated Signing Request ───────────────────────────
+  server.post(
+    '/crypto/signing-requests/:id/claim',
+    {
+      config: {
+        auth: { credentialBindingScope: 'team' },
+        rateLimit: fastify.rateLimitConfig?.signing,
+      },
+      schema: {
+        operationId: 'claimSigningRequest',
+        tags: ['crypto'],
+        security: [{ sessionAuth: [] }, { cookieAuth: [] }],
+        headers: TeamHeaderRequiredSchema,
+        params: SigningRequestParamsSchema,
+        body: Type.Object({
+          credentialId: Type.String({ format: 'uuid' }),
+        }),
+        response: {
+          200: Type.Ref(SigningRequestSchema.$id),
+          400: Type.Ref(ProblemDetailsSchema.$id),
+          401: Type.Ref(ProblemDetailsSchema.$id),
+          403: Type.Ref(ProblemDetailsSchema.$id),
+          404: Type.Ref(ProblemDetailsSchema.$id),
+          409: Type.Ref(ConflictProblemDetailsSchema.$id),
+        },
+      },
+    },
+    async (request) => {
+      const teamId = requireCurrentTeamId(request, 'signing requests');
+      try {
+        const claimed = await fastify.signingService.requests.claim({
+          actor: request.authContext!,
+          teamId,
+          requestId: request.params.id,
+          credentialId: request.body.credentialId,
+        });
+        request.log.info(
+          {
+            requestId: claimed.id,
+            teamId,
+            humanId:
+              request.authContext!.subjectType === 'human'
+                ? request.authContext!.humanId
+                : undefined,
+            credentialId: claimed.signingCredentialId,
+            verificationMethod: claimed.verificationMethod,
+          },
+          'crypto.signing_request_claimed',
+        );
+        return toSigningResponse(claimed);
+      } catch (error) {
+        throwSigningServiceProblem(error);
+      }
+    },
+  );
+
+  // ── Complete Delegated Signing Request ────────────────────────
+  server.post(
+    '/crypto/signing-requests/:id/complete',
+    {
+      config: {
+        auth: { credentialBindingScope: 'team' },
+        rateLimit: fastify.rateLimitConfig?.signing,
+        bodyLimit: SIGNING_JSON_BODY_LIMIT,
+      },
+      schema: {
+        operationId: 'completeSigningRequest',
+        tags: ['crypto'],
+        security: [{ sessionAuth: [] }, { cookieAuth: [] }],
+        headers: TeamHeaderRequiredSchema,
+        params: SigningRequestParamsSchema,
+        body: Type.Object({
+          receipt: Type.Object({
+            verificationMethod: VerificationMethodSchema,
+            value: Type.Record(Type.String(), Type.Unknown()),
+          }),
+        }),
+        response: {
+          200: Type.Ref(SigningRequestSchema.$id),
+          400: Type.Ref(ProblemDetailsSchema.$id),
+          401: Type.Ref(ProblemDetailsSchema.$id),
+          403: Type.Ref(ProblemDetailsSchema.$id),
+          404: Type.Ref(ProblemDetailsSchema.$id),
+          409: Type.Ref(ConflictProblemDetailsSchema.$id),
+        },
+      },
+    },
+    async (request) => {
+      const teamId = requireCurrentTeamId(request, 'signing requests');
+      try {
+        const completed = await fastify.signingService.requests.complete({
+          actor: request.authContext!,
+          teamId,
+          requestId: request.params.id,
+          receipt: request.body.receipt,
+        });
+        request.log.info(
+          {
+            requestId: completed.id,
+            teamId,
+            humanId:
+              request.authContext!.subjectType === 'human'
+                ? request.authContext!.humanId
+                : undefined,
+            credentialId: completed.signingCredentialId,
+            verificationMethod: completed.verificationMethod,
+          },
+          'crypto.signing_request_completed',
+        );
+        return toSigningResponse(completed);
+      } catch (error) {
+        throwSigningServiceProblem(error);
+      }
+    },
+  );
+
+  // ── Reject Delegated Signing Request ──────────────────────────
+  server.post(
+    '/crypto/signing-requests/:id/reject',
+    {
+      config: {
+        auth: { credentialBindingScope: 'team' },
+        rateLimit: fastify.rateLimitConfig?.signing,
+      },
+      schema: {
+        operationId: 'rejectSigningRequest',
+        tags: ['crypto'],
+        security: [{ sessionAuth: [] }, { cookieAuth: [] }],
+        headers: TeamHeaderRequiredSchema,
+        params: SigningRequestParamsSchema,
+        body: Type.Object({
+          reason: Type.Optional(Type.String({ maxLength: 1000 })),
+        }),
+        response: {
+          200: Type.Ref(SigningRequestSchema.$id),
+          401: Type.Ref(ProblemDetailsSchema.$id),
+          403: Type.Ref(ProblemDetailsSchema.$id),
+          404: Type.Ref(ProblemDetailsSchema.$id),
+          409: Type.Ref(ConflictProblemDetailsSchema.$id),
+        },
+      },
+    },
+    async (request) => {
+      const teamId = requireCurrentTeamId(request, 'signing requests');
+      try {
+        const rejected = await fastify.signingService.requests.reject({
+          actor: request.authContext!,
+          teamId,
+          requestId: request.params.id,
+          reason: request.body.reason,
+        });
+        request.log.info(
+          {
+            requestId: rejected.id,
+            teamId,
+            humanId:
+              request.authContext!.subjectType === 'human'
+                ? request.authContext!.humanId
+                : undefined,
+            verificationMethod: rejected.verificationMethod,
+          },
+          'crypto.signing_request_rejected',
+        );
+        return toSigningResponse(rejected);
+      } catch (error) {
+        throwSigningServiceProblem(error);
+      }
     },
   );
 
@@ -278,66 +444,21 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
     async (request) => {
       const { id } = request.params;
       const { signature } = request.body;
-      const agentId = request.authContext!.identityId;
-
-      const signingRequest =
-        await fastify.signingRequestRepository.findById(id);
-
-      if (!signingRequest || signingRequest.agentId !== agentId) {
-        throw createProblem('not-found', 'Signing request not found');
-      }
-
-      // Check expiry server-side (workflow may not have expired it yet)
-      if (
-        signingRequest.status === 'expired' ||
-        (signingRequest.expiresAt &&
-          new Date(signingRequest.expiresAt).getTime() <= Date.now())
-      ) {
-        throw createProblem(
-          'signing-request-expired',
-          'This signing request has expired',
+      try {
+        const updated =
+          await fastify.signingService.requests.submitAgentSignature({
+            actor: request.authContext!,
+            requestId: id,
+            signature,
+          });
+        request.log.info(
+          { signingId: id, valid: updated.valid },
+          'crypto.signature_submitted',
         );
+        return toSigningResponse(updated);
+      } catch (error) {
+        throwSigningServiceProblem(error);
       }
-
-      if (signingRequest.status === 'completed') {
-        throw createProblem(
-          'signing-request-already-completed',
-          'A signature has already been submitted for this request',
-        );
-      }
-
-      if (!signingRequest.workflowId) {
-        throw createProblem(
-          'not-found',
-          'Signing request workflow not initialized',
-        );
-      }
-
-      // Send signature to the DBOS workflow
-      await DBOS.send(signingRequest.workflowId, { signature }, 'signature');
-
-      // Brief poll for the result (the workflow verifies immediately)
-      const maxWaitMs = 5000;
-      const pollIntervalMs = 100;
-      const deadline = Date.now() + maxWaitMs;
-
-      let updated = signingRequest;
-      while (Date.now() < deadline) {
-        const result = await fastify.signingRequestRepository.findById(id);
-        if (result && result.status !== 'pending') {
-          updated = result;
-          break;
-        }
-        await new Promise<void>((resolve) => {
-          setTimeout(resolve, pollIntervalMs);
-        });
-      }
-
-      request.log.info(
-        { signingId: id, valid: updated.valid },
-        'crypto.signature_submitted',
-      );
-      return toSigningResponse(updated);
     },
   );
 }

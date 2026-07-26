@@ -1,12 +1,17 @@
 import { getCryptoIdentity, verifyCryptoSignature } from '@moltnet/api-client';
 
-import type { CryptoNamespace, SigningRequestsNamespace } from '../agent.js';
+import type {
+  CryptoNamespace,
+  SigningCredentialsNamespace,
+  SigningRequestsNamespace,
+} from '../agent.js';
 import type { AgentContext } from '../agent-context.js';
 import { unwrapResult } from '../agent-context.js';
 
 export function createCryptoNamespace(
   context: AgentContext,
   signingRequests: SigningRequestsNamespace,
+  signingCredentials: SigningCredentialsNamespace,
 ): CryptoNamespace {
   const { client, auth } = context;
 
@@ -20,5 +25,6 @@ export function createCryptoNamespace(
     },
 
     signingRequests,
+    signingCredentials,
   };
 }

@@ -15,11 +15,16 @@ import {
   acceptTransfer,
   addGroupMember,
   appendTaskMessages,
+  approveSigningCredential,
   batchDeleteDiaryEntries,
   batchDeleteTasks,
   beginRuntimeSlot,
+  beginSigningCredentialRegistration,
   cancelTask,
+  claimSigningRequest,
   claimTask,
+  completeSigningCredentialRegistration,
+  completeSigningRequest,
   completeTask,
   createAgentKey,
   createDiary,
@@ -72,6 +77,7 @@ import {
   getRuntimeModel,
   getRuntimeProfile,
   getRuntimeSession,
+  getSigningCredential,
   getSigningRequest,
   getTask,
   getTaskActivityAnalytics,
@@ -98,6 +104,7 @@ import {
   listRuntimeModels,
   listRuntimeProfiles,
   listRuntimeSlots,
+  listSigningCredentials,
   listSigningRequests,
   listTaskArtifacts,
   listTaskAttempts,
@@ -111,6 +118,7 @@ import {
   previewDiaryCustomPack,
   previewRenderedPack,
   registerAgent,
+  rejectSigningRequest,
   rejectTransfer,
   removeGroupMember,
   removeTeamMember,
@@ -118,6 +126,7 @@ import {
   requestRecoveryChallenge,
   revokeAgentKey,
   revokeDiaryGrant,
+  revokeSigningCredential,
   rotateAgentKey,
   rotateClientSecret,
   searchDiary,
@@ -125,6 +134,7 @@ import {
   stageTaskArtifact,
   startLegreffierOnboarding,
   submitSignature,
+  suspendSigningCredential,
   taskHeartbeat,
   updateContextPack,
   updateDiary,
@@ -158,6 +168,9 @@ import type {
   AppendTaskMessagesData,
   AppendTaskMessagesError,
   AppendTaskMessagesResponse,
+  ApproveSigningCredentialData,
+  ApproveSigningCredentialError,
+  ApproveSigningCredentialResponse,
   BatchDeleteDiaryEntriesData,
   BatchDeleteDiaryEntriesError,
   BatchDeleteDiaryEntriesResponse,
@@ -167,12 +180,24 @@ import type {
   BeginRuntimeSlotData,
   BeginRuntimeSlotError,
   BeginRuntimeSlotResponse,
+  BeginSigningCredentialRegistrationData,
+  BeginSigningCredentialRegistrationError,
+  BeginSigningCredentialRegistrationResponse,
   CancelTaskData,
   CancelTaskError,
   CancelTaskResponse,
+  ClaimSigningRequestData,
+  ClaimSigningRequestError,
+  ClaimSigningRequestResponse,
   ClaimTaskData,
   ClaimTaskError,
   ClaimTaskResponse2,
+  CompleteSigningCredentialRegistrationData,
+  CompleteSigningCredentialRegistrationError,
+  CompleteSigningCredentialRegistrationResponse,
+  CompleteSigningRequestData,
+  CompleteSigningRequestError,
+  CompleteSigningRequestResponse,
   CompleteTaskData,
   CompleteTaskError,
   CompleteTaskResponse,
@@ -324,6 +349,9 @@ import type {
   GetRuntimeSessionData,
   GetRuntimeSessionError,
   GetRuntimeSessionResponse,
+  GetSigningCredentialData,
+  GetSigningCredentialError,
+  GetSigningCredentialResponse,
   GetSigningRequestData,
   GetSigningRequestError,
   GetSigningRequestResponse,
@@ -401,6 +429,9 @@ import type {
   ListRuntimeSlotsData,
   ListRuntimeSlotsError,
   ListRuntimeSlotsResponse,
+  ListSigningCredentialsData,
+  ListSigningCredentialsError,
+  ListSigningCredentialsResponse,
   ListSigningRequestsData,
   ListSigningRequestsError,
   ListSigningRequestsResponse,
@@ -437,6 +468,9 @@ import type {
   RegisterAgentData,
   RegisterAgentError,
   RegisterAgentResponse,
+  RejectSigningRequestData,
+  RejectSigningRequestError,
+  RejectSigningRequestResponse,
   RejectTransferData,
   RejectTransferError,
   RejectTransferResponse,
@@ -458,6 +492,9 @@ import type {
   RevokeDiaryGrantData,
   RevokeDiaryGrantError,
   RevokeDiaryGrantResponse,
+  RevokeSigningCredentialData,
+  RevokeSigningCredentialError,
+  RevokeSigningCredentialResponse,
   RotateAgentKeyData,
   RotateAgentKeyError,
   RotateAgentKeyResponse,
@@ -479,6 +516,9 @@ import type {
   SubmitSignatureData,
   SubmitSignatureError,
   SubmitSignatureResponse,
+  SuspendSigningCredentialData,
+  SuspendSigningCredentialError,
+  SuspendSigningCredentialResponse,
   TaskHeartbeatData,
   TaskHeartbeatError,
   TaskHeartbeatResponse,
@@ -944,6 +984,223 @@ export const getCryptoIdentityOptions = (
     queryKey: getCryptoIdentityQueryKey(options),
   });
 
+export const listSigningCredentialsQueryKey = (
+  options: Options<ListSigningCredentialsData>,
+) => createQueryKey('listSigningCredentials', options);
+
+export const listSigningCredentialsOptions = (
+  options: Options<ListSigningCredentialsData>,
+) =>
+  queryOptions<
+    ListSigningCredentialsResponse,
+    ListSigningCredentialsError,
+    ListSigningCredentialsResponse,
+    ReturnType<typeof listSigningCredentialsQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await listSigningCredentials({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: listSigningCredentialsQueryKey(options),
+  });
+
+export const listSigningCredentialsInfiniteQueryKey = (
+  options: Options<ListSigningCredentialsData>,
+): QueryKey<Options<ListSigningCredentialsData>> =>
+  createQueryKey('listSigningCredentials', options, true);
+
+export const listSigningCredentialsInfiniteOptions = (
+  options: Options<ListSigningCredentialsData>,
+) =>
+  infiniteQueryOptions<
+    ListSigningCredentialsResponse,
+    ListSigningCredentialsError,
+    InfiniteData<ListSigningCredentialsResponse>,
+    QueryKey<Options<ListSigningCredentialsData>>,
+    | number
+    | Pick<
+        QueryKey<Options<ListSigningCredentialsData>>[0],
+        'body' | 'headers' | 'path' | 'query'
+      >
+  >(
+    // @ts-ignore
+    {
+      queryFn: async ({ pageParam, queryKey, signal }) => {
+        // @ts-ignore
+        const page: Pick<
+          QueryKey<Options<ListSigningCredentialsData>>[0],
+          'body' | 'headers' | 'path' | 'query'
+        > =
+          typeof pageParam === 'object'
+            ? pageParam
+            : {
+                query: {
+                  offset: pageParam,
+                },
+              };
+        const params = createInfiniteParams(queryKey, page);
+        const { data } = await listSigningCredentials({
+          ...options,
+          ...params,
+          signal,
+          throwOnError: true,
+        });
+        return data;
+      },
+      queryKey: listSigningCredentialsInfiniteQueryKey(options),
+    },
+  );
+
+export const beginSigningCredentialRegistrationMutation = (
+  options?: Partial<Options<BeginSigningCredentialRegistrationData>>,
+): UseMutationOptions<
+  BeginSigningCredentialRegistrationResponse,
+  BeginSigningCredentialRegistrationError,
+  Options<BeginSigningCredentialRegistrationData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    BeginSigningCredentialRegistrationResponse,
+    BeginSigningCredentialRegistrationError,
+    Options<BeginSigningCredentialRegistrationData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await beginSigningCredentialRegistration({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const completeSigningCredentialRegistrationMutation = (
+  options?: Partial<Options<CompleteSigningCredentialRegistrationData>>,
+): UseMutationOptions<
+  CompleteSigningCredentialRegistrationResponse,
+  CompleteSigningCredentialRegistrationError,
+  Options<CompleteSigningCredentialRegistrationData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    CompleteSigningCredentialRegistrationResponse,
+    CompleteSigningCredentialRegistrationError,
+    Options<CompleteSigningCredentialRegistrationData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await completeSigningCredentialRegistration({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const getSigningCredentialQueryKey = (
+  options: Options<GetSigningCredentialData>,
+) => createQueryKey('getSigningCredential', options);
+
+export const getSigningCredentialOptions = (
+  options: Options<GetSigningCredentialData>,
+) =>
+  queryOptions<
+    GetSigningCredentialResponse,
+    GetSigningCredentialError,
+    GetSigningCredentialResponse,
+    ReturnType<typeof getSigningCredentialQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getSigningCredential({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getSigningCredentialQueryKey(options),
+  });
+
+export const approveSigningCredentialMutation = (
+  options?: Partial<Options<ApproveSigningCredentialData>>,
+): UseMutationOptions<
+  ApproveSigningCredentialResponse,
+  ApproveSigningCredentialError,
+  Options<ApproveSigningCredentialData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    ApproveSigningCredentialResponse,
+    ApproveSigningCredentialError,
+    Options<ApproveSigningCredentialData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await approveSigningCredential({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const revokeSigningCredentialMutation = (
+  options?: Partial<Options<RevokeSigningCredentialData>>,
+): UseMutationOptions<
+  RevokeSigningCredentialResponse,
+  RevokeSigningCredentialError,
+  Options<RevokeSigningCredentialData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    RevokeSigningCredentialResponse,
+    RevokeSigningCredentialError,
+    Options<RevokeSigningCredentialData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await revokeSigningCredential({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const suspendSigningCredentialMutation = (
+  options?: Partial<Options<SuspendSigningCredentialData>>,
+): UseMutationOptions<
+  SuspendSigningCredentialResponse,
+  SuspendSigningCredentialError,
+  Options<SuspendSigningCredentialData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    SuspendSigningCredentialResponse,
+    SuspendSigningCredentialError,
+    Options<SuspendSigningCredentialData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await suspendSigningCredential({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
 export const listSigningRequestsQueryKey = (
   options?: Options<ListSigningRequestsData>,
 ) => createQueryKey('listSigningRequests', options);
@@ -1076,6 +1333,78 @@ export const getSigningRequestOptions = (
     },
     queryKey: getSigningRequestQueryKey(options),
   });
+
+export const claimSigningRequestMutation = (
+  options?: Partial<Options<ClaimSigningRequestData>>,
+): UseMutationOptions<
+  ClaimSigningRequestResponse,
+  ClaimSigningRequestError,
+  Options<ClaimSigningRequestData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    ClaimSigningRequestResponse,
+    ClaimSigningRequestError,
+    Options<ClaimSigningRequestData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await claimSigningRequest({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const completeSigningRequestMutation = (
+  options?: Partial<Options<CompleteSigningRequestData>>,
+): UseMutationOptions<
+  CompleteSigningRequestResponse,
+  CompleteSigningRequestError,
+  Options<CompleteSigningRequestData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    CompleteSigningRequestResponse,
+    CompleteSigningRequestError,
+    Options<CompleteSigningRequestData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await completeSigningRequest({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const rejectSigningRequestMutation = (
+  options?: Partial<Options<RejectSigningRequestData>>,
+): UseMutationOptions<
+  RejectSigningRequestResponse,
+  RejectSigningRequestError,
+  Options<RejectSigningRequestData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    RejectSigningRequestResponse,
+    RejectSigningRequestError,
+    Options<RejectSigningRequestData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await rejectSigningRequest({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
 
 /**
  * Submit a signature for a signing request. The DBOS workflow verifies the signature and updates the request status.
