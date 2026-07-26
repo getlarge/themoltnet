@@ -19,6 +19,10 @@
       "import": "./src/protocol-entry.ts",
       "types": "./src/protocol-entry.ts"
     },
+    "./test-support": {
+      "import": "./src/arkg-test-support.ts",
+      "types": "./src/arkg-test-support.ts"
+    },
     "./vectors/preview-sign-server-v1.json": "./vectors/preview-sign-server-v1.json"
   },
   "publishConfig": {

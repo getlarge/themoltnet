@@ -361,6 +361,34 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
         );
       }
       try {
+        const evidence = await verifySigningReceipt({
+          operation: 'signing-request',
+          verificationMethod: row.verificationMethod,
+          requestId: row.id,
+          credentialId: credential.id,
+          teamId: row.teamId ?? undefined,
+          claimantId: actor.humanId,
+          purpose: row.purpose ?? undefined,
+          nonce: row.nonce,
+          expiresAt: row.expiresAt.toISOString(),
+          signingPayload: signingPayload(row),
+          credentialPublicMaterial: asSigningMethodJson(
+            credential.publicMaterial,
+          ),
+          verifierState: asSigningMethodJson(row.methodState.value),
+          receipt: methodReceipt(),
+        });
+        if (
+          evidence.details === undefined ||
+          evidence.details === null ||
+          Array.isArray(evidence.details) ||
+          typeof evidence.details !== 'object'
+        ) {
+          throw new SigningServiceError(
+            'validation_failed',
+            'Signing method returned invalid verification evidence',
+          );
+        }
         const completed = await deps.transactionRunner.runInTransaction(
           async () => {
             const locked =
@@ -389,34 +417,6 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
               throw new SigningServiceError(
                 'conflict',
                 'Signing request was already completed, rejected, or expired',
-              );
-            }
-            const evidence = await verifySigningReceipt({
-              operation: 'signing-request',
-              verificationMethod: locked.verificationMethod,
-              requestId: locked.id,
-              credentialId: credential.id,
-              teamId: locked.teamId ?? undefined,
-              claimantId: actor.humanId,
-              purpose: locked.purpose ?? undefined,
-              nonce: locked.nonce,
-              expiresAt: locked.expiresAt.toISOString(),
-              signingPayload: signingPayload(locked),
-              credentialPublicMaterial: asSigningMethodJson(
-                credential.publicMaterial,
-              ),
-              verifierState: asSigningMethodJson(locked.methodState.value),
-              receipt: methodReceipt(),
-            });
-            if (
-              evidence.details === undefined ||
-              evidence.details === null ||
-              Array.isArray(evidence.details) ||
-              typeof evidence.details !== 'object'
-            ) {
-              throw new SigningServiceError(
-                'validation_failed',
-                'Signing method returned invalid verification evidence',
               );
             }
             return deps.signingRequestRepository.completeClaim({

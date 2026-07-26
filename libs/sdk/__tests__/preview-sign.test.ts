@@ -1,3 +1,4 @@
+import { p256 } from '@noble/curves/nist.js';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -50,6 +51,34 @@ describe('previewSign SDK helpers', () => {
         signature: 'MAYCAQECAQE',
       },
     });
+  });
+
+  it('normalizes a high-S authenticator signature before creating a receipt', () => {
+    const privateKey = new Uint8Array(32).fill(11);
+    const digest = new Uint8Array(32).fill(12);
+    const low = p256.Signature.fromBytes(
+      p256.sign(digest, privateKey, {
+        format: 'der',
+        prehash: false,
+        lowS: true,
+      }),
+      'der',
+    );
+    const high = new p256.Signature(
+      low.r,
+      p256.Point.CURVE().n - low.s,
+      low.recovery,
+    ).toBytes('der');
+
+    const receipt = createPreviewSignReceipt(high);
+    const normalized = p256.Signature.fromBytes(
+      Buffer.from(receipt.value.signature, 'base64url'),
+      'der',
+    );
+
+    expect(normalized.hasHighS()).toBe(false);
+    expect(normalized.r).toBe(low.r);
+    expect(normalized.s).toBe(low.s);
   });
 
   it('rejects a digest that is not exactly 32 bytes', () => {

@@ -3,19 +3,27 @@
  * implementation. See NOTICE for the retained BSD-2-Clause attribution.
  */
 import { p256 } from '@noble/curves/nist.js';
-import { hkdf } from '@noble/hashes/hkdf';
 import { hmac } from '@noble/hashes/hmac';
 import { sha256 as nobleSha256 } from '@noble/hashes/sha2';
 import { asMap, encodeCbor, mapBytes, mapNumber } from '@themoltnet/ctap/cbor';
 
 import {
+  DST_BL,
+  DST_BL_EC,
+  DST_DERIVE_KEY_BL,
+  DST_DERIVE_KEY_KEM,
+  DST_KEM,
+  DST_KEM_ECDH_KG,
+  DST_KEM_HMAC_MAC,
+  DST_KEM_HMAC_SHARED,
+  hashToScalar,
+  hkdfSha256,
+} from './arkg-core.js';
+import {
   bigintToBytes,
-  bytesToBigint,
   concatBytes,
   fromBase64Url,
-  sha256,
   toBase64Url,
-  utf8,
 } from './bytes.js';
 import { invariant } from './errors.js';
 import type {
@@ -27,76 +35,6 @@ export const ARKG_P256_ALGORITHM = -65700 as const;
 export const ESP256_ALGORITHM = -9 as const;
 export const ESP256_SPLIT_ARKG_PLACEHOLDER = -65539 as const;
 export const ARKG_KEY_TYPE = -65537 as const;
-
-const P256_ORDER =
-  0xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551n;
-const DST_BL = utf8('ARKG-P256');
-const DST_KEM = utf8('ARKG-ECDH.ARKG-P256');
-const DST_KEM_ECDH_KG = utf8('ARKG-KEM-ECDH-KG.');
-const DST_DERIVE_KEY_KEM = utf8('ARKG-Derive-Key-KEM.');
-const DST_KEM_HMAC_MAC = utf8('ARKG-KEM-HMAC-mac.');
-const DST_KEM_HMAC_SHARED = utf8('ARKG-KEM-HMAC-shared.');
-const DST_DERIVE_KEY_BL = utf8('ARKG-Derive-Key-BL.');
-const DST_BL_EC = utf8('ARKG-BL-EC.');
-const ZERO_PAD = new Uint8Array(64);
-
-function xor(left: Uint8Array, right: Uint8Array): Uint8Array {
-  invariant(
-    left.length === right.length,
-    'INVALID_RESPONSE',
-    'Cannot XOR unequal byte arrays',
-  );
-  return left.map((value, index) => value ^ (right[index] ?? 0));
-}
-
-function expandMessageXmd(
-  message: Uint8Array,
-  dst: Uint8Array,
-  length: number,
-): Uint8Array {
-  const blocks = Math.ceil(length / 32);
-  invariant(
-    blocks <= 255 && length <= 65535 && dst.length <= 255,
-    'INVALID_RESPONSE',
-    'Invalid ARKG hash-to-field size',
-  );
-  const dstPrime = concatBytes(dst, Uint8Array.of(dst.length));
-  const b0 = sha256(
-    concatBytes(
-      ZERO_PAD,
-      message,
-      Uint8Array.of((length >>> 8) & 0xff, length & 0xff),
-      Uint8Array.of(0),
-      dstPrime,
-    ),
-  );
-  let next = b0;
-  const output = new Uint8Array(blocks * 32);
-  for (let index = 1; index <= blocks; index += 1) {
-    const block = sha256(concatBytes(next, Uint8Array.of(index), dstPrime));
-    output.set(block, (index - 1) * 32);
-    next = xor(b0, block);
-  }
-  return output.slice(0, length);
-}
-
-function hashToScalar(message: Uint8Array, dst: Uint8Array): bigint {
-  const scalar = bytesToBigint(expandMessageXmd(message, dst, 48)) % P256_ORDER;
-  invariant(
-    scalar !== 0n,
-    'INVALID_RESPONSE',
-    'ARKG derived an invalid zero scalar',
-  );
-  return scalar;
-}
-
-function hkdfSha256(
-  input: Uint8Array,
-  info: Uint8Array,
-  length: number,
-): Uint8Array {
-  return hkdf(nobleSha256, input, new Uint8Array(), info, length);
-}
 
 function ecPoint(key: CoseEc2PublicKey): Uint8Array {
   invariant(

@@ -1,5 +1,6 @@
 import { randomBytes as nodeRandomBytes } from 'node:crypto';
 
+import { canonicalJsonBytes } from '@moltnet/crypto-service';
 import {
   ARKG_KEY_TYPE,
   ARKG_P256_ALGORITHM,
@@ -202,7 +203,13 @@ function parseEc2PublicKey(
   }
   publicMaterialBase64Url(key['x'], `${field}.x`);
   publicMaterialBase64Url(key['y'], `${field}.y`);
-  const parsed = key as unknown as PreviewSignEc2PublicKey;
+  const parsed: PreviewSignEc2PublicKey = {
+    kty: 2,
+    algorithm,
+    curve: 1,
+    x: key['x'] as string,
+    y: key['y'] as string,
+  };
   try {
     validateCoseEc2PublicKey(parsed);
   } catch {
@@ -285,10 +292,8 @@ function digestBase64Url(bytes: Uint8Array): string {
   return Buffer.from(createPreviewSignPrehash(bytes)).toString('base64url');
 }
 
-function canonicalPublicMaterial(
-  material: PreviewSignPublicMaterialV1,
-): string {
-  return JSON.stringify(material);
+function publicMaterialHash(material: PreviewSignPublicMaterialV1): string {
+  return digestBase64Url(canonicalJsonBytes(material));
 }
 
 function requireBinding(input: PrepareSigningClaimInput) {
@@ -332,24 +337,21 @@ function envelopeBytes(
   binding: ReturnType<typeof requireBinding>,
   publicMaterialHash: string,
 ): Uint8Array {
-  return Buffer.from(
-    JSON.stringify({
-      version: PREVIEW_SIGN_ENVELOPE_VERSION,
-      audience: PREVIEW_SIGN_AUDIENCE,
-      operation: binding.operation,
-      requestId: input.requestId,
-      credentialId: input.credentialId,
-      verificationMethod: METHOD,
-      teamId: binding.teamId,
-      claimantId: binding.claimantId,
-      nonce: binding.nonce,
-      purpose: binding.purpose,
-      expiresAt: binding.expiresAt,
-      signingPayload: input.signingPayload,
-      publicMaterialHash,
-    }),
-    'utf8',
-  );
+  return canonicalJsonBytes({
+    version: PREVIEW_SIGN_ENVELOPE_VERSION,
+    audience: PREVIEW_SIGN_AUDIENCE,
+    operation: binding.operation,
+    requestId: input.requestId,
+    credentialId: input.credentialId,
+    verificationMethod: METHOD,
+    teamId: binding.teamId,
+    claimantId: binding.claimantId,
+    nonce: binding.nonce,
+    purpose: binding.purpose,
+    expiresAt: binding.expiresAt,
+    signingPayload: input.signingPayload,
+    publicMaterialHash,
+  });
 }
 
 function parseVerifierState(
@@ -401,7 +403,7 @@ function parseReceipt(receipt: SigningMethodReceipt) {
     );
   }
   const signature = strictBase64Url(value['signature'], 'receipt.signature', {
-    maxBytes: 80,
+    maxBytes: 72,
   });
   if (signature.length < 8 || signature[0] !== 0x30) {
     throw new SigningReceiptInvalidError(
@@ -442,6 +444,7 @@ export function createPreviewSignSigningMethodDriver(
     verificationMethod: METHOD,
 
     async verify() {
+      // previewSign only verifies through the typed claim/receipt lifecycle.
       return false;
     },
 
@@ -459,14 +462,25 @@ export function createPreviewSignSigningMethodDriver(
       parsePublicMaterial(input.publicMaterial);
     },
 
+    normalizePublicMaterial(input) {
+      return parsePublicMaterial(input.publicMaterial);
+    },
+
+    validateRegistrationBinding(input) {
+      const material = parsePublicMaterial(input.publicMaterial);
+      const state = parseVerifierState(input.verifierState);
+      if (state.publicMaterialHash !== publicMaterialHash(material)) {
+        throw new SigningReceiptInvalidError(
+          'previewSign enrollment material does not match the persisted registration binding',
+          { reason: 'binding_mismatch' },
+        );
+      }
+    },
+
     async prepareClaim(input) {
       const binding = requireBinding(input);
-      const materialBytes = Buffer.from(
-        canonicalPublicMaterial(binding.material),
-        'utf8',
-      );
-      const publicMaterialHash = digestBase64Url(materialBytes);
-      const bytes = envelopeBytes(input, binding, publicMaterialHash);
+      const materialHash = publicMaterialHash(binding.material);
+      const bytes = envelopeBytes(input, binding, materialHash);
       const envelope = Buffer.from(bytes).toString('base64url');
       const digest = digestBase64Url(bytes);
       const ikm = Uint8Array.from(randomBytes(32));
@@ -503,7 +517,7 @@ export function createPreviewSignSigningMethodDriver(
         purpose: binding.purpose,
         expiresAt: binding.expiresAt,
         signingPayload: input.signingPayload,
-        publicMaterialHash,
+        publicMaterialHash: materialHash,
         envelope,
         digest,
         additionalArgumentsHash,
@@ -528,9 +542,7 @@ export function createPreviewSignSigningMethodDriver(
     async verifyReceipt(input): Promise<VerificationEvidence> {
       const binding = requireBinding(input);
       const state = parseVerifierState(input.verifierState);
-      const materialHash = digestBase64Url(
-        Buffer.from(canonicalPublicMaterial(binding.material), 'utf8'),
-      );
+      const materialHash = publicMaterialHash(binding.material);
       const bytes = envelopeBytes(input, binding, materialHash);
       const expectedEnvelope = Buffer.from(bytes).toString('base64url');
       const expectedDigest = digestBase64Url(bytes);
@@ -547,9 +559,16 @@ export function createPreviewSignSigningMethodDriver(
         state.publicMaterialHash === materialHash &&
         state.envelope === expectedEnvelope &&
         state.digest === expectedDigest;
-      if (!bindingsMatch || new Date(state.expiresAt) <= now()) {
+      if (new Date(state.expiresAt) <= now()) {
+        throw new SigningReceiptInvalidError(
+          'previewSign challenge has expired',
+          { reason: 'expired' },
+        );
+      }
+      if (!bindingsMatch) {
         throw new SigningReceiptInvalidError(
           'previewSign receipt does not match the persisted server binding',
+          { reason: 'binding_mismatch' },
         );
       }
       strictBase64Url(state.digest, 'verifierState.digest', {
@@ -571,14 +590,15 @@ export function createPreviewSignSigningMethodDriver(
           state.derivedPublicKey,
         );
       } catch (error) {
-        void error;
         throw new SigningReceiptInvalidError(
           'previewSign signature verification failed',
+          { cause: error, reason: 'signature_verification_failed' },
         );
       }
       if (!valid) {
         throw new SigningReceiptInvalidError(
           'previewSign signature is invalid',
+          { reason: 'signature_invalid' },
         );
       }
       const evidenceWithoutHash: Omit<PreviewSignEvidenceV1, 'proofHash'> = {
@@ -599,7 +619,7 @@ export function createPreviewSignSigningMethodDriver(
         signature: receipt.encoded,
       };
       const proofHash = digestBase64Url(
-        Buffer.from(JSON.stringify(evidenceWithoutHash), 'utf8'),
+        canonicalJsonBytes(evidenceWithoutHash),
       );
       const details: PreviewSignEvidenceV1 = {
         ...evidenceWithoutHash,

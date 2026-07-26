@@ -19695,7 +19695,7 @@ func (s *PreviewSignEvidence) Validate() error {
 		if err := (validate.String{
 			MinLength:     11,
 			MinLengthSet:  true,
-			MaxLength:     107,
+			MaxLength:     96,
 			MaxLengthSet:  true,
 			Email:         false,
 			Hostname:      false,
@@ -19924,7 +19924,7 @@ func (s *PreviewSignReceipt) Validate() error {
 		if err := (validate.String{
 			MinLength:     11,
 			MinLengthSet:  true,
-			MaxLength:     107,
+			MaxLength:     96,
 			MaxLengthSet:  true,
 			Email:         false,
 			Hostname:      false,

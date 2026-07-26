@@ -4,9 +4,10 @@ import { type AuthContext, KetoNamespace } from '@moltnet/auth';
 import type { SigningCredential, SigningRequest } from '@moltnet/database';
 import {
   assertNoPrivateSigningMaterial,
+  normalizeSigningCredentialPublicMaterial,
   prepareSigningClaim,
   toSigningMethodReceipt,
-  validateSigningCredentialPublicMaterial,
+  validateSigningCredentialRegistrationBinding,
   verifySigningReceipt,
 } from '@moltnet/signing-workflows';
 
@@ -60,13 +61,14 @@ export function createSigningCredentialService(deps: SigningServiceDeps) {
       const id = createId();
       const expiresAt = new Date(now().getTime() + REGISTRATION_TTL_MS);
       try {
-        validateSigningCredentialPublicMaterial({
-          verificationMethod: input.verificationMethod,
-          credentialType: input.credentialType,
-          algorithm: input.algorithm,
-          publicMaterial: asSigningMethodJson(input.publicMaterial),
-        });
         assertNoPrivateSigningMaterial(input.publicMaterial);
+        const normalizedPublicMaterial =
+          normalizeSigningCredentialPublicMaterial({
+            verificationMethod: input.verificationMethod,
+            credentialType: input.credentialType,
+            algorithm: input.algorithm,
+            publicMaterial: asSigningMethodJson(input.publicMaterial),
+          });
         const prepared = await prepareSigningClaim({
           operation: 'credential-registration',
           verificationMethod: input.verificationMethod,
@@ -82,7 +84,7 @@ export function createSigningCredentialService(deps: SigningServiceDeps) {
             id,
             teamId: input.teamId,
           }),
-          credentialPublicMaterial: asSigningMethodJson(input.publicMaterial),
+          credentialPublicMaterial: normalizedPublicMaterial,
         });
         const challenge = {
           verificationMethod: input.verificationMethod,
@@ -138,13 +140,21 @@ export function createSigningCredentialService(deps: SigningServiceDeps) {
                 'Credential registration is missing, expired, or already consumed',
               );
             }
-            validateSigningCredentialPublicMaterial({
-              verificationMethod: registration.verificationMethod,
-              credentialType: registration.credentialType,
-              algorithm: registration.algorithm,
-              publicMaterial: asSigningMethodJson(input.publicMaterial),
-            });
             assertNoPrivateSigningMaterial(input.publicMaterial);
+            const normalizedPublicMaterial =
+              normalizeSigningCredentialPublicMaterial({
+                verificationMethod: registration.verificationMethod,
+                credentialType: registration.credentialType,
+                algorithm: registration.algorithm,
+                publicMaterial: asSigningMethodJson(input.publicMaterial),
+              });
+            validateSigningCredentialRegistrationBinding({
+              verificationMethod: registration.verificationMethod,
+              publicMaterial: normalizedPublicMaterial,
+              verifierState: asSigningMethodJson(
+                registration.methodState.value,
+              ),
+            });
             const evidence = await verifySigningReceipt({
               verificationMethod: registration.verificationMethod,
               requestId: registration.id,
@@ -163,9 +173,7 @@ export function createSigningCredentialService(deps: SigningServiceDeps) {
               purpose: 'signing-credential-registration',
               nonce: registration.id,
               expiresAt: registration.expiresAt.toISOString(),
-              credentialPublicMaterial: asSigningMethodJson(
-                input.publicMaterial,
-              ),
+              credentialPublicMaterial: normalizedPublicMaterial,
               receipt: toSigningMethodReceipt({
                 verificationMethod: input.receipt.verificationMethod,
                 value: asSigningMethodJson(input.receipt.value),
@@ -199,7 +207,8 @@ export function createSigningCredentialService(deps: SigningServiceDeps) {
               verificationMethod: registration.verificationMethod,
               credentialType: registration.credentialType,
               algorithm: registration.algorithm,
-              publicMaterial: input.publicMaterial,
+              publicMaterial:
+                normalizedPublicMaterial as SigningCredential['publicMaterial'],
               enrollmentEvidence:
                 evidence.details as SigningCredential['enrollmentEvidence'],
               label: registration.label,

@@ -12,10 +12,12 @@
   },
   "dependencies": {
     "@dbos-inc/dbos-sdk": "catalog:",
+    "@moltnet/crypto-service": "workspace:*",
     "@moltnet/models": "workspace:*",
     "@themoltnet/yubikey-preview-sign": "workspace:*"
   },
   "devDependencies": {
+    "@noble/curves": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   },

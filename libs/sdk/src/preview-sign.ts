@@ -14,6 +14,7 @@ import type {
   PreviewSignReceipt,
   PreviewSignReceiptValue,
 } from '@moltnet/api-client';
+import { p256 } from '@noble/curves/nist.js';
 
 export type {
   BeginPreviewSignCredentialRegistration,
@@ -112,18 +113,31 @@ export function decodePreviewSignChallenge(
   };
 }
 
-/** Wrap an authenticator-produced canonical DER ESP256 signature for the API. */
+/** Wrap an authenticator-produced DER ESP256 signature for the API. */
 export function createPreviewSignReceipt(
   signature: Uint8Array | string,
 ): PreviewSignReceiptValue {
   const encoded =
     typeof signature === 'string' ? signature : encodeBase64Url(signature);
   const decoded = decodeBase64Url(encoded, 'signature');
-  if (decoded.length < 8 || decoded.length > 80 || decoded[0] !== 0x30) {
+  if (decoded.length < 8 || decoded.length > 72 || decoded[0] !== 0x30) {
     throw new TypeError('signature must be a DER-encoded ESP256 signature');
   }
+  let parsed: ReturnType<typeof p256.Signature.fromBytes>;
+  try {
+    parsed = p256.Signature.fromBytes(decoded, 'der');
+  } catch {
+    throw new TypeError('signature must be a DER-encoded ESP256 signature');
+  }
+  const normalized = parsed.hasHighS()
+    ? new p256.Signature(
+        parsed.r,
+        p256.Point.CURVE().n - parsed.s,
+        parsed.recovery,
+      ).toBytes('der')
+    : decoded;
   return {
     verificationMethod: PREVIEW_SIGN_VERIFICATION_METHOD,
-    value: { version: 1, signature: encoded },
+    value: { version: 1, signature: encodeBase64Url(normalized) },
   };
 }

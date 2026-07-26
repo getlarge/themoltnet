@@ -20,6 +20,16 @@ const Sha256Base64Url = Type.String({
   maxLength: 43,
   pattern: '^[A-Za-z0-9_-]+$',
 });
+const P256CoordinateBase64Url = Type.String({
+  minLength: 43,
+  maxLength: 43,
+  pattern: '^[A-Za-z0-9_-]+$',
+});
+const P256DerSignatureBase64Url = Type.String({
+  minLength: 11,
+  maxLength: 96,
+  pattern: '^[A-Za-z0-9_-]+$',
+});
 
 // ── Crypto ──────────────────────────────────────────────────
 
@@ -46,8 +56,8 @@ export const PreviewSignEs256PublicKeySchema = Type.Object(
     kty: Type.Literal(2),
     algorithm: Type.Literal(-7),
     curve: Type.Literal(1),
-    x: Sha256Base64Url,
-    y: Sha256Base64Url,
+    x: P256CoordinateBase64Url,
+    y: P256CoordinateBase64Url,
   },
   { $id: 'PreviewSignEs256PublicKey', additionalProperties: false },
 );
@@ -57,8 +67,8 @@ export const PreviewSignEcdhEsHkdf256PublicKeySchema = Type.Object(
     kty: Type.Literal(2),
     algorithm: Type.Literal(-25),
     curve: Type.Literal(1),
-    x: Sha256Base64Url,
-    y: Sha256Base64Url,
+    x: P256CoordinateBase64Url,
+    y: P256CoordinateBase64Url,
   },
   {
     $id: 'PreviewSignEcdhEsHkdf256PublicKey',
@@ -71,8 +81,8 @@ export const PreviewSignEsp256PublicKeySchema = Type.Object(
     kty: Type.Literal(2),
     algorithm: Type.Literal(-9),
     curve: Type.Literal(1),
-    x: Sha256Base64Url,
-    y: Sha256Base64Url,
+    x: P256CoordinateBase64Url,
+    y: P256CoordinateBase64Url,
   },
   { $id: 'PreviewSignEsp256PublicKey', additionalProperties: false },
 );
@@ -126,11 +136,7 @@ export const PreviewSignChallengeSchema = Type.Object(
 export const PreviewSignReceiptSchema = Type.Object(
   {
     version: Type.Literal(1),
-    signature: Type.String({
-      minLength: 11,
-      maxLength: 107,
-      pattern: '^[A-Za-z0-9_-]+$',
-    }),
+    signature: P256DerSignatureBase64Url,
   },
   { $id: 'PreviewSignReceipt', additionalProperties: false },
 );
@@ -156,11 +162,7 @@ export const PreviewSignEvidenceSchema = Type.Object(
     derivedPublicKey: Type.Unsafe<
       Static<typeof PreviewSignEsp256PublicKeySchema>
     >(Type.Ref(PreviewSignEsp256PublicKeySchema.$id)),
-    signature: Type.String({
-      minLength: 11,
-      maxLength: 107,
-      pattern: '^[A-Za-z0-9_-]+$',
-    }),
+    signature: P256DerSignatureBase64Url,
     proofHash: Sha256Base64Url,
   },
   { $id: 'PreviewSignEvidence', additionalProperties: false },

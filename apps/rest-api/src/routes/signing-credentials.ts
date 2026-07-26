@@ -116,11 +116,12 @@ export async function signingCredentialRoutes(fastify: FastifyInstance) {
   server.post(
     '/crypto/signing-credentials/registrations',
     {
+      bodyLimit: SIGNING_JSON_BODY_LIMIT,
       config: {
         auth: { credentialBindingScope: 'team' },
         rateLimit: fastify.rateLimitConfig?.signing,
       },
-      preValidation: async (request) => {
+      preHandler: async (request) => {
         rejectPrivateRegistrationMaterial(request.body);
       },
       schema: {
@@ -157,12 +158,12 @@ export async function signingCredentialRoutes(fastify: FastifyInstance) {
   server.post(
     '/crypto/signing-credentials/registrations/:id/complete',
     {
+      bodyLimit: SIGNING_JSON_BODY_LIMIT,
       config: {
         auth: { credentialBindingScope: 'team' },
         rateLimit: fastify.rateLimitConfig?.signing,
-        bodyLimit: SIGNING_JSON_BODY_LIMIT,
       },
-      preValidation: async (request) => {
+      preHandler: async (request) => {
         rejectPrivateRegistrationMaterial(request.body);
       },
       schema: {

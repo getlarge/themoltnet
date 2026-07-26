@@ -1,3 +1,4 @@
+import { p256 } from '@noble/curves/nist.js';
 import { verifyP256PrehashedSignature } from '@themoltnet/yubikey-preview-sign/protocol';
 import serverVector from '@themoltnet/yubikey-preview-sign/vectors/preview-sign-server-v1.json';
 import { describe, expect, it, vi } from 'vitest';
@@ -24,6 +25,23 @@ const HUMAN_ID = 'aa0e8400-e29b-41d4-a716-446655440005';
 const NONCE = 'bb0e8400-e29b-41d4-a716-446655440006';
 const EXPIRES_AT = '2026-08-01T12:05:00.000Z';
 const IKM = Uint8Array.from({ length: 32 }, (_, index) => 0x40 + index);
+const BLINDING_SECRET = new Uint8Array(32).fill(7);
+const KEM_SECRET = new Uint8Array(32).fill(8);
+const OUTER_SECRET = new Uint8Array(32).fill(9);
+
+function ec2<const Algorithm extends -25 | -7>(
+  secret: Uint8Array,
+  algorithm: Algorithm,
+): PreviewSignEc2PublicKey {
+  const point = p256.getPublicKey(secret, false);
+  return {
+    kty: 2,
+    algorithm,
+    curve: 1,
+    x: Buffer.from(point.slice(1, 33)).toString('base64url'),
+    y: Buffer.from(point.slice(33)).toString('base64url'),
+  };
+}
 
 function publicMaterial(): PreviewSignPublicMaterialV1 {
   const blindingKey = {
@@ -67,6 +85,47 @@ function claimInput() {
     expiresAt: EXPIRES_AT,
     signingPayload: Buffer.from('canonical signing input').toString('base64'),
     credentialPublicMaterial: publicMaterial(),
+  };
+}
+
+function testKeyMaterial(): PreviewSignPublicMaterialV1 {
+  return {
+    version: PREVIEW_SIGN_PUBLIC_MATERIAL_VERSION,
+    outerCredentialId: Buffer.from('outer-credential').toString('base64url'),
+    outerPublicKey: ec2(OUTER_SECRET, -7),
+    previewKeyHandle: Buffer.from('preview-key-handle').toString('base64url'),
+    seedPublicKey: {
+      kty: -65537,
+      algorithm: -65700,
+      derivedAlgorithm: -9,
+      blindingKey: ec2(BLINDING_SECRET, -7),
+      kemKey: ec2(KEM_SECRET, -25),
+    },
+  };
+}
+
+function reorderedPublicMaterial(
+  material: PreviewSignPublicMaterialV1,
+): PreviewSignPublicMaterialV1 {
+  const reorder = (key: PreviewSignEc2PublicKey): PreviewSignEc2PublicKey => ({
+    algorithm: key.algorithm,
+    curve: key.curve,
+    kty: key.kty,
+    y: key.y,
+    x: key.x,
+  });
+  return {
+    previewKeyHandle: material.previewKeyHandle,
+    seedPublicKey: {
+      kemKey: reorder(material.seedPublicKey.kemKey),
+      derivedAlgorithm: material.seedPublicKey.derivedAlgorithm,
+      blindingKey: reorder(material.seedPublicKey.blindingKey),
+      algorithm: material.seedPublicKey.algorithm,
+      kty: material.seedPublicKey.kty,
+    },
+    outerPublicKey: reorder(material.outerPublicKey),
+    outerCredentialId: material.outerCredentialId,
+    version: material.version,
   };
 }
 
@@ -191,6 +250,59 @@ describe('previewSign production signing method driver', () => {
       expect(error.code).toMatch(
         /^credential_(?:public_material_invalid|private_material_rejected)$/,
       );
+    }
+  });
+
+  it('canonicalizes equivalent public material across serializer field order', async () => {
+    const driver = createPreviewSignSigningMethodDriver({
+      randomBytes: () => IKM,
+    });
+    const input = claimInput();
+
+    const canonical = await driver.prepareClaim(input);
+    const reordered = await driver.prepareClaim({
+      ...input,
+      credentialPublicMaterial: reorderedPublicMaterial(publicMaterial()),
+    });
+
+    expect(reordered).toEqual(canonical);
+  });
+
+  it('rejects real signatures made with the outer or seed key instead of the derived claim key', async () => {
+    const driver = createPreviewSignSigningMethodDriver({
+      randomBytes: () => IKM,
+      now: () => new Date('2026-08-01T12:00:00.000Z'),
+    });
+    const input = {
+      ...claimInput(),
+      credentialPublicMaterial: testKeyMaterial(),
+    };
+    const prepared = await driver.prepareClaim(input);
+    const digest = Buffer.from(
+      challengeString(prepared.challenge, 'digest'),
+      'base64url',
+    );
+
+    for (const secret of [OUTER_SECRET, BLINDING_SECRET]) {
+      const signature = p256.sign(digest, secret, {
+        format: 'der',
+        prehash: false,
+        lowS: true,
+      });
+      await expect(
+        driver.verifyReceipt({
+          ...input,
+          verifierState: prepared.verifierState,
+          receipt: {
+            verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+            version: PREVIEW_SIGN_RECEIPT_VERSION,
+            signature: Buffer.from(signature).toString('base64url'),
+          },
+        }),
+      ).rejects.toMatchObject({
+        code: 'receipt_invalid',
+        reason: 'signature_invalid',
+      });
     }
   });
 
@@ -343,6 +455,116 @@ describe('previewSign production signing method driver', () => {
     },
   );
 
+  it('reports expiry separately from a binding mismatch', async () => {
+    const verifyPrehashedSignature = vi.fn().mockReturnValue(true);
+    const driver = createPreviewSignSigningMethodDriver({
+      randomBytes: () => IKM,
+      now: () => new Date('2026-08-01T12:06:00.000Z'),
+      verifyPrehashedSignature,
+    });
+    const input = claimInput();
+    const prepared = await driver.prepareClaim(input);
+
+    await expect(
+      driver.verifyReceipt({
+        ...input,
+        verifierState: prepared.verifierState,
+        receipt: {
+          verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+          version: PREVIEW_SIGN_RECEIPT_VERSION,
+          signature:
+            'MEUCIQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+        },
+      }),
+    ).rejects.toMatchObject({
+      code: 'receipt_invalid',
+      reason: 'expired',
+    });
+    expect(verifyPrehashedSignature).not.toHaveBeenCalled();
+  });
+
+  it('preserves the verifier error as the receipt failure cause', async () => {
+    const cause = new Error('malformed P-256 point');
+    const driver = createPreviewSignSigningMethodDriver({
+      randomBytes: () => IKM,
+      now: () => new Date('2026-08-01T12:00:00.000Z'),
+      verifyPrehashedSignature: vi.fn(() => {
+        throw cause;
+      }),
+    });
+    const input = claimInput();
+    const prepared = await driver.prepareClaim(input);
+
+    await expect(
+      driver.verifyReceipt({
+        ...input,
+        verifierState: prepared.verifierState,
+        receipt: {
+          verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+          version: PREVIEW_SIGN_RECEIPT_VERSION,
+          signature:
+            'MEUCIQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+        },
+      }),
+    ).rejects.toMatchObject({
+      code: 'receipt_invalid',
+      reason: 'signature_verification_failed',
+      cause,
+    });
+  });
+
+  it('rejects DER signatures longer than the P-256 maximum', () => {
+    const driver = createPreviewSignSigningMethodDriver();
+    const oversizedSignature = Buffer.concat([
+      Buffer.from([0x30]),
+      Buffer.alloc(72),
+    ]).toString('base64url');
+
+    expect(
+      driver.isReceiptReplay?.(
+        {
+          verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+          version: PREVIEW_SIGN_RECEIPT_VERSION,
+          signature: oversizedSignature,
+        },
+        {
+          version: 1,
+          signature: oversizedSignature,
+        },
+      ),
+    ).toBe(false);
+  });
+
+  it('matches only an identical versioned receipt replay', () => {
+    const driver = createPreviewSignSigningMethodDriver();
+    const receipt = {
+      verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+      version: PREVIEW_SIGN_RECEIPT_VERSION,
+      signature:
+        'MEUCIQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+    };
+
+    expect(
+      driver.isReceiptReplay?.(receipt, {
+        version: 1,
+        signature: receipt.signature,
+      }),
+    ).toBe(true);
+    expect(
+      driver.isReceiptReplay?.(
+        { ...receipt, version: 2 },
+        { version: 1, signature: receipt.signature },
+      ),
+    ).toBe(false);
+    expect(
+      driver.isReceiptReplay?.(receipt, {
+        version: 1,
+        signature:
+          'MEUCIQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQ',
+      }),
+    ).toBe(false);
+  });
+
   it('rejects an invalid signature against the persisted derived key', async () => {
     const driver = createPreviewSignSigningMethodDriver({
       randomBytes: () => IKM,
@@ -362,6 +584,9 @@ describe('previewSign production signing method driver', () => {
             'MEUCIQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
         },
       }),
-    ).rejects.toMatchObject({ code: 'receipt_invalid' });
+    ).rejects.toMatchObject({
+      code: 'receipt_invalid',
+      reason: 'signature_invalid',
+    });
   });
 });

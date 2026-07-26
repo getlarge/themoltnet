@@ -417,6 +417,35 @@ describe('Signing Workflows', () => {
       });
     });
 
+    it('reports receipt-verification failures with request context', async () => {
+      const cause = new Error('malformed derived P-256 point');
+      const reportError = vi.fn();
+      setSigningWorkflowErrorReporter(reportError);
+      registerSigningMethodDriver(verificationMethod, {
+        verificationMethod,
+        validatePublicMaterial: vi.fn(),
+        prepareClaim: vi.fn(),
+        verify: vi.fn().mockResolvedValue(false),
+        verifyReceipt: vi.fn().mockRejectedValue(cause),
+      });
+
+      await expect(
+        verifySigningReceipt({
+          ...claimInput,
+          verifierState: { derivedKeyId: 'derived-key-1' },
+          receipt: {
+            verificationMethod,
+            signature: 'malformed-signature',
+          },
+        }),
+      ).rejects.toBe(cause);
+      expect(reportError).toHaveBeenCalledWith(cause, {
+        operation: 'verify_receipt',
+        requestId: claimInput.requestId,
+        verificationMethod,
+      });
+    });
+
     it('rejects a receipt whose discriminator does not match the request', async () => {
       registerSigningMethodDriver(verificationMethod, {
         verificationMethod,
