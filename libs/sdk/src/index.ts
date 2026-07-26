@@ -131,6 +131,12 @@ export {
   CONTEXT_REF_MAX_CONTENT_LENGTH,
   type ContextBinding,
   type ContextRef,
+  resolveRuntimeProfileContextRecipe,
+  RUNTIME_PROFILE_CONTEXT_CATALOGUE,
+  type RuntimeProfileContextCatalogue,
+  type RuntimeProfileContextRecipe,
+  runtimeProfileContextRecipeDescription,
+  runtimeProfileContextRecipeIds,
 } from '@moltnet/tasks';
 
 import { connect } from './connect.js';
