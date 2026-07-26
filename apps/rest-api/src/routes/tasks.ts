@@ -262,6 +262,36 @@ export function taskRoutes(fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
   server.addHook('preHandler', requireAuth);
 
+  // Enforce the agent-key team ceiling at the resource boundary. A team-bound
+  // key resolves its bound team as the request ceiling, but a task addressed by
+  // id could still belong to a *different* team the same agent can otherwise
+  // access — the by-id lifecycle routes authorize by identity + per-task Keto,
+  // not by the resolved team. Reject when the addressed task is outside the
+  // key's bound team so the "immutable team ceiling" holds for task execution.
+  // Only team-bound agent credentials are constrained; OAuth2 agents and humans
+  // have no binding, skip immediately, and keep their existing authorization.
+  server.addHook('preHandler', async (request) => {
+    const authContext = request.authContext;
+    if (authContext?.subjectType !== 'agent') return;
+    const boundTeamId = authContext.credentialBinding?.boundTeamId;
+    if (!boundTeamId) return;
+    const taskId = (request.params as { id?: string } | undefined)?.id;
+    if (!taskId) return;
+    // `get` is a read (canViewTask + findById); a claimant can always view, so
+    // this never rejects a legitimate operation — it only trips the ceiling.
+    const task = await fastify.taskService.get(
+      taskId,
+      authContext.identityId,
+      KetoNamespace.Agent,
+    );
+    if (task.teamId !== boundTeamId) {
+      throw createProblem(
+        'forbidden',
+        'Agent key is bound to a different team than the addressed task',
+      );
+    }
+  });
+
   // GET /tasks/schemas
   server.get(
     '/tasks/schemas',

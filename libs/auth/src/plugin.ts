@@ -48,9 +48,15 @@ declare module 'fastify' {
       /**
        * Route classification for credentials bound to one team.
        *
-       * Unclassified routes deny bound credentials. Identity-safe routes may
-       * operate without a team selection. Team routes require an explicit,
-       * matching x-moltnet-team-id header.
+       * Unclassified routes deny bound credentials. `identity` routes are
+       * team-agnostic and operate without any team selection. `team` routes
+       * resolve the bound team: an explicit `x-moltnet-team-id` header must
+       * match the binding, and when the header is omitted the binding's single
+       * team is inferred (see `resolveTeamContext`). Resolving the team is a
+       * request-context ceiling only — a handler that addresses a specific
+       * team-owned resource by id must still enforce that the resource belongs
+       * to the resolved `currentTeamId`, or a caller with cross-team access
+       * could reach a resource outside the bound team.
        */
       credentialBindingScope?: 'identity' | 'team';
     };

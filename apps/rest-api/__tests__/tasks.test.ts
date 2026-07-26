@@ -17,6 +17,7 @@ import { startTaskDeletionWorkflow } from '../src/workflows/index.js';
 import {
   createMockServices,
   createTestApp,
+  KEY_AUTH_CONTEXT,
   OWNER_ID,
   resetMockServices,
   VALID_AUTH_CONTEXT,
@@ -827,6 +828,77 @@ describe('POST /tasks/:id/claim', () => {
     });
 
     expect(response.statusCode).toBe(409);
+  });
+});
+
+// A team-bound agent key must not reach a task outside its bound team, even on
+// the identity-authorized by-id routes. One shared preHandler enforces this for
+// every opened route family; claim (mutation) and get (read) exercise both.
+describe('team-bound agent key ceiling (task by-id routes)', () => {
+  let app: FastifyInstance;
+  let mocks: ReturnType<typeof createMockServices>;
+
+  // KEY_AUTH_CONTEXT is bound to OWNER_ID. MOCK_TASK.teamId (TEAM_ID) is a
+  // *different* team the same agent can otherwise access — the escape vector.
+  const SAME_TEAM_TASK = { ...MOCK_TASK, teamId: OWNER_ID };
+
+  beforeAll(async () => {
+    mocks = createMockServices();
+    app = await createTestApp(mocks, KEY_AUTH_CONTEXT);
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
+    resetMockServices(mocks);
+    // The key infers its bound team; canAccessTeam gates that inference.
+    mocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
+    mocks.taskService.claim.mockResolvedValue({
+      task: SAME_TEAM_TASK,
+      attempt: MOCK_ATTEMPT,
+    });
+  });
+
+  it('rejects claiming a task outside the bound team (403) without claiming', async () => {
+    mocks.taskService.get.mockResolvedValue(MOCK_TASK); // teamId != boundTeamId
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/tasks/${TASK_ID}/claim`,
+      headers: { authorization: 'Bearer test-token' },
+      payload: {},
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(mocks.taskService.claim).not.toHaveBeenCalled();
+  });
+
+  it('rejects reading a task outside the bound team (403)', async () => {
+    mocks.taskService.get.mockResolvedValue(MOCK_TASK); // teamId != boundTeamId
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/tasks/${TASK_ID}`,
+      headers: { authorization: 'Bearer test-token' },
+    });
+
+    expect(response.statusCode).toBe(403);
+  });
+
+  it('allows claiming a task inside the bound team', async () => {
+    mocks.taskService.get.mockResolvedValue(SAME_TEAM_TASK); // teamId == boundTeamId
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/tasks/${TASK_ID}/claim`,
+      headers: { authorization: 'Bearer test-token' },
+      payload: {},
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(mocks.taskService.claim).toHaveBeenCalledOnce();
   });
 });
 
