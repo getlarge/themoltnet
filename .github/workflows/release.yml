@@ -301,7 +301,8 @@ jobs:
           go-version-file: apps/moltnet-cli/go.mod
           cache: true
 
-      - uses: docker/setup-buildx-action@v3
+      - if: ${{ !inputs.dry-run }}
+        uses: docker/setup-buildx-action@v3
 
       - name: Log in to GHCR
         if: ${{ !inputs.dry-run }}
@@ -338,7 +339,7 @@ jobs:
           fi
 
           if [ '${{ inputs.dry-run }}' = 'true' ]; then
-            pnpm exec nx release --dry-run "${RELEASE_ARGS[@]}"
+            NX_DRY_RUN=true pnpm exec nx release --dry-run "${RELEASE_ARGS[@]}"
             exit 0
           fi
 

@@ -287,8 +287,11 @@ pnpm exec nx release version patch --groups github-actions --dry-run --verbose
 NX_DRY_RUN=true pnpm exec nx release version patch --groups docker-images --dry-run --verbose
 ```
 
-The Docker dry-run sets `NX_DRY_RUN=true` because `docker.preVersionCommand`
-would otherwise build images before Nx retags them.
+The Docker dry-run must set `NX_DRY_RUN=true` on the parent Nx process. Nx
+passes dry-run mode to `docker.groupPreVersionCommand`, but the Nx Docker
+version action reads it from the parent environment before deciding whether to
+run `docker tag`. The CI workflow sets this explicitly and skips Buildx setup
+for dry runs.
 
 ## Go Modules
 
@@ -402,7 +405,7 @@ default it reads the project list from `nx.json`.
 Override the image list only for local debugging:
 
 ```bash
-NX_RELEASE_DOCKER_PROJECTS=@moltnet/rest-api pnpm exec nx release version patch --groups docker-images --dry-run --verbose
+NX_DRY_RUN=true NX_RELEASE_DOCKER_PROJECTS=@moltnet/rest-api pnpm exec nx release version patch --groups docker-images --dry-run --verbose
 ```
 
 ## Expected Operator Flow
