@@ -3905,9 +3905,6 @@
           "status": {
             "type": "string"
           },
-          "testSigningDriverEnabled": {
-            "type": "boolean"
-          },
           "timestamp": {
             "format": "date-time",
             "type": "string"
@@ -3915,8 +3912,7 @@
         },
         "required": [
           "status",
-          "timestamp",
-          "testSigningDriverEnabled"
+          "timestamp"
         ],
         "type": "object"
       },
@@ -6287,9 +6283,6 @@
               }
             ]
           },
-          "testSigningDriverEnabled": {
-            "type": "boolean"
-          },
           "timestamp": {
             "format": "date-time",
             "type": "string"
@@ -6298,7 +6291,6 @@
         "required": [
           "status",
           "timestamp",
-          "testSigningDriverEnabled",
           "components"
         ],
         "type": "object"
@@ -10085,40 +10077,6 @@
                     "required": [
                       "type",
                       "id"
-                    ],
-                    "type": "object"
-                  },
-                  {
-                    "properties": {
-                      "id": {
-                        "type": "string"
-                      },
-                      "type": {
-                        "enum": [
-                          "site"
-                        ],
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "type"
-                    ],
-                    "type": "object"
-                  },
-                  {
-                    "properties": {
-                      "id": {
-                        "type": "string"
-                      },
-                      "type": {
-                        "enum": [
-                          "station"
-                        ],
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "type"
                     ],
                     "type": "object"
                   }
@@ -15166,6 +15124,88 @@
         ]
       }
     },
+    "/crypto/signing-credentials/{id}": {
+      "get": {
+        "operationId": "getSigningCredential",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Team ID (UUID) that will own the resource. Required.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SigningCredential"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "crypto"
+        ]
+      }
+    },
     "/crypto/signing-credentials/{id}/approve": {
       "post": {
         "operationId": "approveSigningCredential",
@@ -15726,40 +15766,6 @@
                         "required": [
                           "type",
                           "id"
-                        ],
-                        "type": "object"
-                      },
-                      {
-                        "properties": {
-                          "id": {
-                            "type": "string"
-                          },
-                          "type": {
-                            "enum": [
-                              "site"
-                            ],
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "type"
-                        ],
-                        "type": "object"
-                      },
-                      {
-                        "properties": {
-                          "id": {
-                            "type": "string"
-                          },
-                          "type": {
-                            "enum": [
-                              "station"
-                            ],
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "type"
                         ],
                         "type": "object"
                       }

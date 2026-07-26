@@ -41,19 +41,39 @@ const PRIVATE_FIELD_NAMES = new Set([
 
 const PRIVATE_VALUE_PATTERN =
   /-----BEGIN (?:ENCRYPTED )?(?:EC |RSA |OPENSSH )?PRIVATE KEY-----/i;
-const BASE64_DER_PATTERN =
-  /^(?:[A-Za-z0-9+/]{4}){8,}(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
+const ENCODED_KEY_PATTERN = /^[A-Za-z0-9+/_=-]+$/;
+const HEX_KEY_PATTERN = /^[0-9a-f]+$/i;
 const MAX_MATERIAL_DEPTH = 16;
 const MAX_MATERIAL_NODES = 1000;
 
 function normalizedFieldName(name: string): string {
-  return name.toLowerCase().replaceAll(/[^a-z]/g, '');
+  return name
+    .normalize('NFKC')
+    .toLowerCase()
+    .replaceAll(/[^a-z]/g, '');
 }
 
 function containsPrivateKeyValue(value: string): boolean {
   if (PRIVATE_VALUE_PATTERN.test(value)) return true;
-  if (!BASE64_DER_PATTERN.test(value)) return false;
-  const key = Buffer.from(value, 'base64');
+  const compact = value.replaceAll(/\s/g, '');
+  let key: Buffer;
+  if (
+    compact.length >= 64 &&
+    compact.length % 2 === 0 &&
+    HEX_KEY_PATTERN.test(compact)
+  ) {
+    key = Buffer.from(compact, 'hex');
+  } else if (compact.length >= 32 && ENCODED_KEY_PATTERN.test(compact)) {
+    const base64 = compact
+      .replaceAll('-', '+')
+      .replaceAll('_', '/')
+      .padEnd(Math.ceil(compact.length / 4) * 4, '=');
+    key = Buffer.from(base64, 'base64');
+  } else {
+    return false;
+  }
+  // PKCS#8, PKCS#1, and SEC1 private keys are DER SEQUENCE values.
+  if (key[0] !== 0x30) return false;
   for (const type of ['pkcs8', 'pkcs1', 'sec1'] as const) {
     try {
       createPrivateKey({ key, format: 'der', type });
@@ -101,6 +121,17 @@ export function assertNoPrivateSigningMaterial(
       );
     }
     if (Array.isArray(current.value)) {
+      if (
+        (current.value.length === 32 || current.value.length === 64) &&
+        current.value.every(
+          (item) => Number.isInteger(item) && item >= 0 && item <= 255,
+        )
+      ) {
+        throw new SigningCredentialError(
+          'credential_private_material_rejected',
+          `Raw key bytes are not accepted (${formatPath(rootPath, current.path)})`,
+        );
+      }
       for (let index = current.value.length - 1; index >= 0; index -= 1) {
         pending.push({
           value: current.value[index],
@@ -113,6 +144,12 @@ export function assertNoPrivateSigningMaterial(
     if (!current.value || typeof current.value !== 'object') continue;
 
     for (const [key, nested] of Object.entries(current.value)) {
+      if (!/^[\x20-\x7e]+$/.test(key)) {
+        throw new SigningCredentialError(
+          'credential_public_material_invalid',
+          `Signing material field names must be ASCII (${formatPath(rootPath, [...current.path, key])})`,
+        );
+      }
       if (PRIVATE_FIELD_NAMES.has(normalizedFieldName(key))) {
         throw new SigningCredentialError(
           'credential_private_material_rejected',

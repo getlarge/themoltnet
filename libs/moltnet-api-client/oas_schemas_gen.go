@@ -7366,8 +7366,6 @@ type CreateSigningRequestReqSignerConstraint struct {
 	ProvenanceGraphHumanNode    ProvenanceGraphHumanNode
 	ProvenanceGraphTeamRoleNode ProvenanceGraphTeamRoleNode
 	ProvenanceGraphGroupNode    ProvenanceGraphGroupNode
-	ProvenanceGraphSiteNode     ProvenanceGraphSiteNode
-	ProvenanceGraphStationNode  ProvenanceGraphStationNode
 }
 
 // CreateSigningRequestReqSignerConstraintType is oneOf type of CreateSigningRequestReqSignerConstraint.
@@ -7378,8 +7376,6 @@ const (
 	ProvenanceGraphHumanNodeCreateSigningRequestReqSignerConstraint    CreateSigningRequestReqSignerConstraintType = "human"
 	ProvenanceGraphTeamRoleNodeCreateSigningRequestReqSignerConstraint CreateSigningRequestReqSignerConstraintType = "team-role"
 	ProvenanceGraphGroupNodeCreateSigningRequestReqSignerConstraint    CreateSigningRequestReqSignerConstraintType = "group"
-	ProvenanceGraphSiteNodeCreateSigningRequestReqSignerConstraint     CreateSigningRequestReqSignerConstraintType = "site"
-	ProvenanceGraphStationNodeCreateSigningRequestReqSignerConstraint  CreateSigningRequestReqSignerConstraintType = "station"
 )
 
 // IsProvenanceGraphHumanNode reports whether CreateSigningRequestReqSignerConstraint is ProvenanceGraphHumanNode.
@@ -7395,16 +7391,6 @@ func (s CreateSigningRequestReqSignerConstraint) IsProvenanceGraphTeamRoleNode()
 // IsProvenanceGraphGroupNode reports whether CreateSigningRequestReqSignerConstraint is ProvenanceGraphGroupNode.
 func (s CreateSigningRequestReqSignerConstraint) IsProvenanceGraphGroupNode() bool {
 	return s.Type == ProvenanceGraphGroupNodeCreateSigningRequestReqSignerConstraint
-}
-
-// IsProvenanceGraphSiteNode reports whether CreateSigningRequestReqSignerConstraint is ProvenanceGraphSiteNode.
-func (s CreateSigningRequestReqSignerConstraint) IsProvenanceGraphSiteNode() bool {
-	return s.Type == ProvenanceGraphSiteNodeCreateSigningRequestReqSignerConstraint
-}
-
-// IsProvenanceGraphStationNode reports whether CreateSigningRequestReqSignerConstraint is ProvenanceGraphStationNode.
-func (s CreateSigningRequestReqSignerConstraint) IsProvenanceGraphStationNode() bool {
-	return s.Type == ProvenanceGraphStationNodeCreateSigningRequestReqSignerConstraint
 }
 
 // SetProvenanceGraphHumanNode sets CreateSigningRequestReqSignerConstraint to ProvenanceGraphHumanNode.
@@ -7467,48 +7453,6 @@ func (s CreateSigningRequestReqSignerConstraint) GetProvenanceGraphGroupNode() (
 func NewProvenanceGraphGroupNodeCreateSigningRequestReqSignerConstraint(v ProvenanceGraphGroupNode) CreateSigningRequestReqSignerConstraint {
 	var s CreateSigningRequestReqSignerConstraint
 	s.SetProvenanceGraphGroupNode(v)
-	return s
-}
-
-// SetProvenanceGraphSiteNode sets CreateSigningRequestReqSignerConstraint to ProvenanceGraphSiteNode.
-func (s *CreateSigningRequestReqSignerConstraint) SetProvenanceGraphSiteNode(v ProvenanceGraphSiteNode) {
-	s.Type = ProvenanceGraphSiteNodeCreateSigningRequestReqSignerConstraint
-	s.ProvenanceGraphSiteNode = v
-}
-
-// GetProvenanceGraphSiteNode returns ProvenanceGraphSiteNode and true boolean if CreateSigningRequestReqSignerConstraint is ProvenanceGraphSiteNode.
-func (s CreateSigningRequestReqSignerConstraint) GetProvenanceGraphSiteNode() (v ProvenanceGraphSiteNode, ok bool) {
-	if !s.IsProvenanceGraphSiteNode() {
-		return v, false
-	}
-	return s.ProvenanceGraphSiteNode, true
-}
-
-// NewProvenanceGraphSiteNodeCreateSigningRequestReqSignerConstraint returns new CreateSigningRequestReqSignerConstraint from ProvenanceGraphSiteNode.
-func NewProvenanceGraphSiteNodeCreateSigningRequestReqSignerConstraint(v ProvenanceGraphSiteNode) CreateSigningRequestReqSignerConstraint {
-	var s CreateSigningRequestReqSignerConstraint
-	s.SetProvenanceGraphSiteNode(v)
-	return s
-}
-
-// SetProvenanceGraphStationNode sets CreateSigningRequestReqSignerConstraint to ProvenanceGraphStationNode.
-func (s *CreateSigningRequestReqSignerConstraint) SetProvenanceGraphStationNode(v ProvenanceGraphStationNode) {
-	s.Type = ProvenanceGraphStationNodeCreateSigningRequestReqSignerConstraint
-	s.ProvenanceGraphStationNode = v
-}
-
-// GetProvenanceGraphStationNode returns ProvenanceGraphStationNode and true boolean if CreateSigningRequestReqSignerConstraint is ProvenanceGraphStationNode.
-func (s CreateSigningRequestReqSignerConstraint) GetProvenanceGraphStationNode() (v ProvenanceGraphStationNode, ok bool) {
-	if !s.IsProvenanceGraphStationNode() {
-		return v, false
-	}
-	return s.ProvenanceGraphStationNode, true
-}
-
-// NewProvenanceGraphStationNodeCreateSigningRequestReqSignerConstraint returns new CreateSigningRequestReqSignerConstraint from ProvenanceGraphStationNode.
-func NewProvenanceGraphStationNodeCreateSigningRequestReqSignerConstraint(v ProvenanceGraphStationNode) CreateSigningRequestReqSignerConstraint {
-	var s CreateSigningRequestReqSignerConstraint
-	s.SetProvenanceGraphStationNode(v)
 	return s
 }
 
@@ -23974,6 +23918,18 @@ func (s *GetRuntimeSessionUnauthorizedCode) UnmarshalText(data []byte) error {
 	}
 }
 
+type GetSigningCredentialForbidden ProblemDetails
+
+func (*GetSigningCredentialForbidden) getSigningCredentialRes() {}
+
+type GetSigningCredentialNotFound ProblemDetails
+
+func (*GetSigningCredentialNotFound) getSigningCredentialRes() {}
+
+type GetSigningCredentialUnauthorized ProblemDetails
+
+func (*GetSigningCredentialUnauthorized) getSigningCredentialRes() {}
+
 type GetSigningRequestBadRequest ProblemDetails
 
 func (*GetSigningRequestBadRequest) getSigningRequestRes() {}
@@ -24415,19 +24371,13 @@ func (*GetWhoamiUnauthorized) getWhoamiRes() {}
 
 // Ref: #/components/schemas/Health
 type Health struct {
-	Status                   string    `json:"status"`
-	TestSigningDriverEnabled bool      `json:"testSigningDriverEnabled"`
-	Timestamp                time.Time `json:"timestamp"`
+	Status    string    `json:"status"`
+	Timestamp time.Time `json:"timestamp"`
 }
 
 // GetStatus returns the value of Status.
 func (s *Health) GetStatus() string {
 	return s.Status
-}
-
-// GetTestSigningDriverEnabled returns the value of TestSigningDriverEnabled.
-func (s *Health) GetTestSigningDriverEnabled() bool {
-	return s.TestSigningDriverEnabled
 }
 
 // GetTimestamp returns the value of Timestamp.
@@ -24438,11 +24388,6 @@ func (s *Health) GetTimestamp() time.Time {
 // SetStatus sets the value of Status.
 func (s *Health) SetStatus(val string) {
 	s.Status = val
-}
-
-// SetTestSigningDriverEnabled sets the value of TestSigningDriverEnabled.
-func (s *Health) SetTestSigningDriverEnabled(val bool) {
-	s.TestSigningDriverEnabled = val
 }
 
 // SetTimestamp sets the value of Timestamp.
@@ -40550,126 +40495,6 @@ func NewHumanPrincipalProvenanceGraphRenderedPackNodeMetaCreator(v HumanPrincipa
 	return s
 }
 
-// Ref: #/components/schemas/ProvenanceGraphSiteNode
-type ProvenanceGraphSiteNode struct {
-	ID   OptString                   `json:"id"`
-	Type ProvenanceGraphSiteNodeType `json:"type"`
-}
-
-// GetID returns the value of ID.
-func (s *ProvenanceGraphSiteNode) GetID() OptString {
-	return s.ID
-}
-
-// GetType returns the value of Type.
-func (s *ProvenanceGraphSiteNode) GetType() ProvenanceGraphSiteNodeType {
-	return s.Type
-}
-
-// SetID sets the value of ID.
-func (s *ProvenanceGraphSiteNode) SetID(val OptString) {
-	s.ID = val
-}
-
-// SetType sets the value of Type.
-func (s *ProvenanceGraphSiteNode) SetType(val ProvenanceGraphSiteNodeType) {
-	s.Type = val
-}
-
-type ProvenanceGraphSiteNodeType string
-
-const (
-	ProvenanceGraphSiteNodeTypeSite ProvenanceGraphSiteNodeType = "site"
-)
-
-// AllValues returns all ProvenanceGraphSiteNodeType values.
-func (ProvenanceGraphSiteNodeType) AllValues() []ProvenanceGraphSiteNodeType {
-	return []ProvenanceGraphSiteNodeType{
-		ProvenanceGraphSiteNodeTypeSite,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s ProvenanceGraphSiteNodeType) MarshalText() ([]byte, error) {
-	switch s {
-	case ProvenanceGraphSiteNodeTypeSite:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *ProvenanceGraphSiteNodeType) UnmarshalText(data []byte) error {
-	switch ProvenanceGraphSiteNodeType(data) {
-	case ProvenanceGraphSiteNodeTypeSite:
-		*s = ProvenanceGraphSiteNodeTypeSite
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-// Ref: #/components/schemas/ProvenanceGraphStationNode
-type ProvenanceGraphStationNode struct {
-	ID   OptString                      `json:"id"`
-	Type ProvenanceGraphStationNodeType `json:"type"`
-}
-
-// GetID returns the value of ID.
-func (s *ProvenanceGraphStationNode) GetID() OptString {
-	return s.ID
-}
-
-// GetType returns the value of Type.
-func (s *ProvenanceGraphStationNode) GetType() ProvenanceGraphStationNodeType {
-	return s.Type
-}
-
-// SetID sets the value of ID.
-func (s *ProvenanceGraphStationNode) SetID(val OptString) {
-	s.ID = val
-}
-
-// SetType sets the value of Type.
-func (s *ProvenanceGraphStationNode) SetType(val ProvenanceGraphStationNodeType) {
-	s.Type = val
-}
-
-type ProvenanceGraphStationNodeType string
-
-const (
-	ProvenanceGraphStationNodeTypeStation ProvenanceGraphStationNodeType = "station"
-)
-
-// AllValues returns all ProvenanceGraphStationNodeType values.
-func (ProvenanceGraphStationNodeType) AllValues() []ProvenanceGraphStationNodeType {
-	return []ProvenanceGraphStationNodeType{
-		ProvenanceGraphStationNodeTypeStation,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s ProvenanceGraphStationNodeType) MarshalText() ([]byte, error) {
-	switch s {
-	case ProvenanceGraphStationNodeTypeStation:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *ProvenanceGraphStationNodeType) UnmarshalText(data []byte) error {
-	switch ProvenanceGraphStationNodeType(data) {
-	case ProvenanceGraphStationNodeTypeStation:
-		*s = ProvenanceGraphStationNodeTypeStation
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
 // Ref: #/components/schemas/ProvenanceGraphSupersededNode
 type ProvenanceGraphSupersededNode struct {
 	Reason ProvenanceGraphSupersededNodeReason `json:"reason"`
@@ -41059,10 +40884,9 @@ func (*PublicSearchResponse) searchPublicFeedRes() {}
 
 // Ref: #/components/schemas/Readiness
 type Readiness struct {
-	Components               ReadinessComponents `json:"components"`
-	Status                   ReadinessStatus     `json:"status"`
-	TestSigningDriverEnabled bool                `json:"testSigningDriverEnabled"`
-	Timestamp                time.Time           `json:"timestamp"`
+	Components ReadinessComponents `json:"components"`
+	Status     ReadinessStatus     `json:"status"`
+	Timestamp  time.Time           `json:"timestamp"`
 }
 
 // GetComponents returns the value of Components.
@@ -41073,11 +40897,6 @@ func (s *Readiness) GetComponents() ReadinessComponents {
 // GetStatus returns the value of Status.
 func (s *Readiness) GetStatus() ReadinessStatus {
 	return s.Status
-}
-
-// GetTestSigningDriverEnabled returns the value of TestSigningDriverEnabled.
-func (s *Readiness) GetTestSigningDriverEnabled() bool {
-	return s.TestSigningDriverEnabled
 }
 
 // GetTimestamp returns the value of Timestamp.
@@ -41093,11 +40912,6 @@ func (s *Readiness) SetComponents(val ReadinessComponents) {
 // SetStatus sets the value of Status.
 func (s *Readiness) SetStatus(val ReadinessStatus) {
 	s.Status = val
-}
-
-// SetTestSigningDriverEnabled sets the value of TestSigningDriverEnabled.
-func (s *Readiness) SetTestSigningDriverEnabled(val bool) {
-	s.TestSigningDriverEnabled = val
 }
 
 // SetTimestamp sets the value of Timestamp.
@@ -46487,6 +46301,7 @@ func (s *SigningCredential) SetVerificationMethod(val SigningCredentialVerificat
 
 func (*SigningCredential) approveSigningCredentialRes()              {}
 func (*SigningCredential) completeSigningCredentialRegistrationRes() {}
+func (*SigningCredential) getSigningCredentialRes()                  {}
 func (*SigningCredential) revokeSigningCredentialRes()               {}
 func (*SigningCredential) suspendSigningCredentialRes()              {}
 
@@ -47295,8 +47110,6 @@ type SigningRequestSignerConstraint struct {
 	ProvenanceGraphHumanNode    ProvenanceGraphHumanNode
 	ProvenanceGraphTeamRoleNode ProvenanceGraphTeamRoleNode
 	ProvenanceGraphGroupNode    ProvenanceGraphGroupNode
-	ProvenanceGraphSiteNode     ProvenanceGraphSiteNode
-	ProvenanceGraphStationNode  ProvenanceGraphStationNode
 }
 
 // SigningRequestSignerConstraintType is oneOf type of SigningRequestSignerConstraint.
@@ -47307,8 +47120,6 @@ const (
 	ProvenanceGraphHumanNodeSigningRequestSignerConstraint    SigningRequestSignerConstraintType = "human"
 	ProvenanceGraphTeamRoleNodeSigningRequestSignerConstraint SigningRequestSignerConstraintType = "team-role"
 	ProvenanceGraphGroupNodeSigningRequestSignerConstraint    SigningRequestSignerConstraintType = "group"
-	ProvenanceGraphSiteNodeSigningRequestSignerConstraint     SigningRequestSignerConstraintType = "site"
-	ProvenanceGraphStationNodeSigningRequestSignerConstraint  SigningRequestSignerConstraintType = "station"
 )
 
 // IsProvenanceGraphHumanNode reports whether SigningRequestSignerConstraint is ProvenanceGraphHumanNode.
@@ -47324,16 +47135,6 @@ func (s SigningRequestSignerConstraint) IsProvenanceGraphTeamRoleNode() bool {
 // IsProvenanceGraphGroupNode reports whether SigningRequestSignerConstraint is ProvenanceGraphGroupNode.
 func (s SigningRequestSignerConstraint) IsProvenanceGraphGroupNode() bool {
 	return s.Type == ProvenanceGraphGroupNodeSigningRequestSignerConstraint
-}
-
-// IsProvenanceGraphSiteNode reports whether SigningRequestSignerConstraint is ProvenanceGraphSiteNode.
-func (s SigningRequestSignerConstraint) IsProvenanceGraphSiteNode() bool {
-	return s.Type == ProvenanceGraphSiteNodeSigningRequestSignerConstraint
-}
-
-// IsProvenanceGraphStationNode reports whether SigningRequestSignerConstraint is ProvenanceGraphStationNode.
-func (s SigningRequestSignerConstraint) IsProvenanceGraphStationNode() bool {
-	return s.Type == ProvenanceGraphStationNodeSigningRequestSignerConstraint
 }
 
 // SetProvenanceGraphHumanNode sets SigningRequestSignerConstraint to ProvenanceGraphHumanNode.
@@ -47396,48 +47197,6 @@ func (s SigningRequestSignerConstraint) GetProvenanceGraphGroupNode() (v Provena
 func NewProvenanceGraphGroupNodeSigningRequestSignerConstraint(v ProvenanceGraphGroupNode) SigningRequestSignerConstraint {
 	var s SigningRequestSignerConstraint
 	s.SetProvenanceGraphGroupNode(v)
-	return s
-}
-
-// SetProvenanceGraphSiteNode sets SigningRequestSignerConstraint to ProvenanceGraphSiteNode.
-func (s *SigningRequestSignerConstraint) SetProvenanceGraphSiteNode(v ProvenanceGraphSiteNode) {
-	s.Type = ProvenanceGraphSiteNodeSigningRequestSignerConstraint
-	s.ProvenanceGraphSiteNode = v
-}
-
-// GetProvenanceGraphSiteNode returns ProvenanceGraphSiteNode and true boolean if SigningRequestSignerConstraint is ProvenanceGraphSiteNode.
-func (s SigningRequestSignerConstraint) GetProvenanceGraphSiteNode() (v ProvenanceGraphSiteNode, ok bool) {
-	if !s.IsProvenanceGraphSiteNode() {
-		return v, false
-	}
-	return s.ProvenanceGraphSiteNode, true
-}
-
-// NewProvenanceGraphSiteNodeSigningRequestSignerConstraint returns new SigningRequestSignerConstraint from ProvenanceGraphSiteNode.
-func NewProvenanceGraphSiteNodeSigningRequestSignerConstraint(v ProvenanceGraphSiteNode) SigningRequestSignerConstraint {
-	var s SigningRequestSignerConstraint
-	s.SetProvenanceGraphSiteNode(v)
-	return s
-}
-
-// SetProvenanceGraphStationNode sets SigningRequestSignerConstraint to ProvenanceGraphStationNode.
-func (s *SigningRequestSignerConstraint) SetProvenanceGraphStationNode(v ProvenanceGraphStationNode) {
-	s.Type = ProvenanceGraphStationNodeSigningRequestSignerConstraint
-	s.ProvenanceGraphStationNode = v
-}
-
-// GetProvenanceGraphStationNode returns ProvenanceGraphStationNode and true boolean if SigningRequestSignerConstraint is ProvenanceGraphStationNode.
-func (s SigningRequestSignerConstraint) GetProvenanceGraphStationNode() (v ProvenanceGraphStationNode, ok bool) {
-	if !s.IsProvenanceGraphStationNode() {
-		return v, false
-	}
-	return s.ProvenanceGraphStationNode, true
-}
-
-// NewProvenanceGraphStationNodeSigningRequestSignerConstraint returns new SigningRequestSignerConstraint from ProvenanceGraphStationNode.
-func NewProvenanceGraphStationNodeSigningRequestSignerConstraint(v ProvenanceGraphStationNode) SigningRequestSignerConstraint {
-	var s SigningRequestSignerConstraint
-	s.SetProvenanceGraphStationNode(v)
 	return s
 }
 

@@ -253,6 +253,10 @@ type GetRuntimeSessionRes interface {
 	getRuntimeSessionRes()
 }
 
+type GetSigningCredentialRes interface {
+	getSigningCredentialRes()
+}
+
 type GetSigningRequestRes interface {
 	getSigningRequestRes()
 }

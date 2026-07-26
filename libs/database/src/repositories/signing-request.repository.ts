@@ -6,7 +6,7 @@
  * submission, verifies it, and persists the result.
  */
 
-import { VERIFICATION_METHOD } from '@moltnet/models';
+import { SIGNER_CONSTRAINT_TYPE, VERIFICATION_METHOD } from '@moltnet/models';
 import {
   and,
   count,
@@ -28,15 +28,6 @@ import {
   signingRequests,
 } from '../schema.js';
 import { getExecutor } from '../transaction-context.js';
-
-/** Allowed values for the signing request status filter */
-const VALID_STATUSES = new Set<string>([
-  'pending',
-  'claimed',
-  'completed',
-  'rejected',
-  'expired',
-]);
 
 export type SigningRequestStatus = SigningRequest['status'];
 
@@ -73,7 +64,7 @@ export function createSigningRequestRepository(db: Database) {
     },
 
     async findById(id: string): Promise<SigningRequest | null> {
-      const [request] = await db
+      const [request] = await getExecutor(db)
         .select()
         .from(signingRequests)
         .where(eq(signingRequests.id, id))
@@ -83,7 +74,7 @@ export function createSigningRequestRepository(db: Database) {
     },
 
     async findBySignature(signature: string): Promise<SigningRequest | null> {
-      const [request] = await db
+      const [request] = await getExecutor(db)
         .select()
         .from(signingRequests)
         .where(eq(signingRequests.signature, signature))
@@ -133,15 +124,16 @@ export function createSigningRequestRepository(db: Database) {
 
       const where = conditions.length ? and(...conditions) : undefined;
 
+      const executor = getExecutor(db);
       const [items, [{ value: total }]] = await Promise.all([
-        db
+        executor
           .select()
           .from(signingRequests)
           .where(where)
           .orderBy(desc(signingRequests.createdAt))
           .limit(limit)
           .offset(offset),
-        db.select({ value: count() }).from(signingRequests).where(where),
+        executor.select({ value: count() }).from(signingRequests).where(where),
       ]);
 
       return { items, total };
@@ -169,18 +161,21 @@ export function createSigningRequestRepository(db: Database) {
       const constraintType = sql<string>`${signingRequests.signerConstraint}->>'type'`;
       const constraintId = sql<string>`${signingRequests.signerConstraint}->>'id'`;
       const eligible = or(
-        and(eq(constraintType, 'human'), inArray(constraintId, humanIds)),
+        and(
+          eq(constraintType, SIGNER_CONSTRAINT_TYPE.Human),
+          inArray(constraintId, humanIds),
+        ),
         ...teamRoles.map(({ teamId, role }) =>
           and(
             eq(signingRequests.teamId, teamId),
-            eq(constraintType, 'team-role'),
+            eq(constraintType, SIGNER_CONSTRAINT_TYPE.TeamRole),
             eq(constraintId, role),
           ),
         ),
         ...groups.map(({ groupId, teamId }) =>
           and(
             eq(signingRequests.teamId, teamId),
-            eq(constraintType, 'group'),
+            eq(constraintType, SIGNER_CONSTRAINT_TYPE.Group),
             eq(constraintId, groupId),
           ),
         ),
@@ -279,7 +274,7 @@ export function createSigningRequestRepository(db: Database) {
           and(
             eq(signingRequests.id, input.id),
             eq(signingRequests.status, 'pending'),
-            gt(signingRequests.expiresAt, now),
+            gt(signingRequests.expiresAt, sql`now()`),
           ),
         )
         .returning();
@@ -359,7 +354,7 @@ export function createSigningRequestRepository(db: Database) {
             eq(signingRequests.id, input.id),
             inArray(signingRequests.status, ['pending', 'claimed']),
             sql`(${signingRequests.claimedByHumanId} IS NULL OR ${signingRequests.claimedByHumanId} = ${input.humanId})`,
-            gt(signingRequests.expiresAt, now),
+            gt(signingRequests.expiresAt, sql`now()`),
           ),
         )
         .returning();
@@ -367,7 +362,7 @@ export function createSigningRequestRepository(db: Database) {
     },
 
     async countByAgent(agentId: string): Promise<number> {
-      const [{ value }] = await db
+      const [{ value }] = await getExecutor(db)
         .select({ value: count() })
         .from(signingRequests)
         .where(
@@ -413,19 +408,6 @@ export function createSigningRequestRepository(db: Database) {
       return expired.length;
     },
   };
-}
-
-/**
- * Filter and validate status strings against the allowed enum values.
- * Returns only valid statuses, discarding empty strings and unknown values.
- */
-export function parseStatusFilter(
-  raw: string[],
-): SigningRequestStatus[] | undefined {
-  const statuses = raw
-    .map((s) => s.trim())
-    .filter((s) => VALID_STATUSES.has(s)) as SigningRequestStatus[];
-  return statuses.length > 0 ? statuses : undefined;
 }
 
 export type SigningRequestRepository = ReturnType<

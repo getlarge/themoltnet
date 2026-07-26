@@ -29,9 +29,9 @@ func runSigningRequestCreateCmd(opts signingRequestCreateOpts) error {
 		if opts.teamID == "" || opts.purpose == "" || opts.constraintType == "" {
 			return fmt.Errorf("delegated signing requires --team-id, --purpose, and --constraint-type")
 		}
-		teamID, err := uuid.Parse(opts.teamID)
+		teamID, err := parseTeamID(opts.teamID)
 		if err != nil {
-			return fmt.Errorf("invalid --team-id: %w", err)
+			return err
 		}
 		constraint, err := signingRequestConstraint(opts.constraintType, opts.constraintID)
 		if err != nil {
@@ -149,9 +149,9 @@ func runSigningRequestGetCmd(apiURL, credPath, id string, out io.Writer) error {
 }
 
 func runSigningCredentialListCmd(apiURL, credPath, teamID string, out io.Writer) error {
-	team, err := uuid.Parse(teamID)
+	team, err := parseTeamID(teamID)
 	if err != nil {
-		return fmt.Errorf("invalid --team-id: %w", err)
+		return err
 	}
 	client, err := newClientFromCreds(apiURL, credPath)
 	if err != nil {
@@ -170,10 +170,39 @@ func runSigningCredentialListCmd(apiURL, credPath, teamID string, out io.Writer)
 	return printJSONTo(out, list)
 }
 
-func runSigningCredentialActionCmd(apiURL, credPath, teamID, id, action string, out io.Writer) error {
-	team, err := uuid.Parse(teamID)
+func runSigningCredentialGetCmd(apiURL, credPath, teamID, id string, out io.Writer) error {
+	team, err := parseTeamID(teamID)
 	if err != nil {
-		return fmt.Errorf("invalid --team-id: %w", err)
+		return err
+	}
+	credentialID, err := uuid.Parse(id)
+	if err != nil {
+		return fmt.Errorf("invalid signing credential ID: %w", err)
+	}
+	client, err := newClientFromCreds(apiURL, credPath)
+	if err != nil {
+		return err
+	}
+	res, err := client.GetSigningCredential(
+		context.Background(),
+		moltnetapi.GetSigningCredentialParams{
+			ID: credentialID, XMoltnetTeamID: team,
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("get signing credential: %w", formatTransportError(err))
+	}
+	credential, ok := res.(*moltnetapi.SigningCredential)
+	if !ok {
+		return formatAPIError(res)
+	}
+	return printJSONTo(out, credential)
+}
+
+func runSigningCredentialActionCmd(apiURL, credPath, teamID, id, action string, out io.Writer) error {
+	team, err := parseTeamID(teamID)
+	if err != nil {
+		return err
 	}
 	credentialID, err := uuid.Parse(id)
 	if err != nil {

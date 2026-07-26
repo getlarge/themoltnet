@@ -13,6 +13,8 @@ import {
   setSigningKeyLookup,
   setSigningRequestPersistence,
   setSigningVerifier,
+  setSigningWorkflowErrorReporter,
+  SigningResultTimeoutError,
   signingWorkflows,
   toSigningMethodReceipt,
   validateSigningCredentialPublicMaterial,
@@ -238,12 +240,14 @@ describe('Signing Workflows', () => {
 
     it('completes as invalid when the selected verifier throws', async () => {
       const completeAgentRequest = vi.fn().mockResolvedValue(undefined);
+      const reportError = vi.fn();
       vi.mocked(DBOS.recv).mockResolvedValue({ signature: SIGNATURE });
       setSigningVerifier({
         verify: vi.fn().mockResolvedValue(true),
         verifyWithNonce: vi.fn().mockRejectedValue(new Error('malformed key')),
       });
       setSigningRequestPersistence({ completeAgentRequest });
+      setSigningWorkflowErrorReporter(reportError);
 
       const result = await signingWorkflows.requestSignature(
         REQUEST_ID,
@@ -270,6 +274,14 @@ describe('Signing Workflows', () => {
         status: 'completed',
         valid: false,
       });
+      expect(reportError).toHaveBeenCalledWith(
+        expect.objectContaining({ message: 'malformed key' }),
+        {
+          operation: 'verify_signature',
+          requestId: REQUEST_ID,
+          verificationMethod: 'agent-ed25519',
+        },
+      );
     });
 
     it('throws a typed error when key lookup is not configured', async () => {
@@ -531,6 +543,17 @@ describe('Signing Workflows', () => {
         }),
       ).resolves.toEqual({ status: 'completed' });
       expect(load).toHaveBeenCalledTimes(2);
+    });
+
+    it('throws a typed timeout instead of returning a pending result', async () => {
+      await expect(
+        waitForSigningResult('request-1', {
+          load: vi.fn().mockResolvedValue({ status: 'pending' }),
+          initial: { status: 'pending' },
+          maxWaitMs: 1,
+          pollIntervalMs: 1,
+        }),
+      ).rejects.toBeInstanceOf(SigningResultTimeoutError);
     });
   });
 });

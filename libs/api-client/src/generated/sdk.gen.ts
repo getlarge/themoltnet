@@ -200,6 +200,9 @@ import type {
   GetRuntimeSessionData,
   GetRuntimeSessionErrors,
   GetRuntimeSessionResponses,
+  GetSigningCredentialData,
+  GetSigningCredentialErrors,
+  GetSigningCredentialResponses,
   GetSigningRequestData,
   GetSigningRequestErrors,
   GetSigningRequestResponses,
@@ -743,6 +746,27 @@ export const completeSigningCredentialRegistration = <
       'Content-Type': 'application/json',
       ...options.headers,
     },
+  });
+
+export const getSigningCredential = <ThrowOnError extends boolean = false>(
+  options: Options<GetSigningCredentialData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetSigningCredentialResponses,
+    GetSigningCredentialErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/crypto/signing-credentials/{id}',
+    ...options,
   });
 
 export const approveSigningCredential = <ThrowOnError extends boolean = false>(

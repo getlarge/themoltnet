@@ -101,6 +101,13 @@ func (h *stubSigningCommandsHandler) ListSigningCredentials(
 	}, nil
 }
 
+func (h *stubSigningCommandsHandler) GetSigningCredential(
+	_ context.Context,
+	_ moltnetapi.GetSigningCredentialParams,
+) (moltnetapi.GetSigningCredentialRes, error) {
+	return signingCommandCredential(), nil
+}
+
 func (h *stubSigningCommandsHandler) ApproveSigningCredential(
 	_ context.Context,
 	_ moltnetapi.OptApproveSigningCredentialReq,
@@ -214,6 +221,34 @@ func TestSigningCredentialCommands(t *testing.T) {
 	t.Run("list rejects invalid team", func(t *testing.T) {
 		if err := runSigningCredentialListCmd(server.URL, credentials, "bad-team", &bytes.Buffer{}); err == nil {
 			t.Fatal("expected invalid team id error")
+		}
+	})
+
+	t.Run("get credential", func(t *testing.T) {
+		var out bytes.Buffer
+		if err := runSigningCredentialGetCmd(
+			server.URL,
+			credentials,
+			signingCommandTeamID.String(),
+			signingCommandCredentialID.String(),
+			&out,
+		); err != nil {
+			t.Fatalf("get signing credential: %v", err)
+		}
+		if !strings.Contains(out.String(), signingCommandCredentialID.String()) {
+			t.Fatalf("expected credential output, got %q", out.String())
+		}
+	})
+
+	t.Run("get rejects invalid credential id", func(t *testing.T) {
+		if err := runSigningCredentialGetCmd(
+			server.URL,
+			credentials,
+			signingCommandTeamID.String(),
+			"bad-id",
+			&bytes.Buffer{},
+		); err == nil {
+			t.Fatal("expected invalid credential id error")
 		}
 	})
 

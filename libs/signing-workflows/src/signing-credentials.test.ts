@@ -65,15 +65,55 @@ describe('signing credential guards', () => {
     );
   });
 
-  it('rejects a base64-encoded DER private key value', () => {
+  it.each([
+    {
+      name: 'base64',
+      encode: (value: Buffer) => value.toString('base64'),
+    },
+    {
+      name: 'base64url',
+      encode: (value: Buffer) => value.toString('base64url'),
+    },
+    {
+      name: 'whitespace-padded base64',
+      encode: (value: Buffer) => `\n${value.toString('base64')}\t`,
+    },
+    {
+      name: 'hex',
+      encode: (value: Buffer) => value.toString('hex'),
+    },
+  ])('rejects a $name DER private key value', ({ encode }) => {
     const { privateKey } = generateKeyPairSync('ed25519');
-    const encoded = privateKey
-      .export({ format: 'der', type: 'pkcs8' })
-      .toString('base64');
+    const encoded = encode(privateKey.export({ format: 'der', type: 'pkcs8' }));
 
     expect(
       captureThrownError(() =>
         assertNoPrivateSigningMaterial({ version: 1, publicKey: encoded }),
+      ),
+    ).toEqual(
+      expect.objectContaining({
+        code: 'credential_private_material_rejected',
+      }),
+    );
+  });
+
+  it('rejects suspicious Unicode field names and raw key bytes', () => {
+    expect(
+      captureThrownError(() =>
+        assertNoPrivateSigningMaterial({ version: 1, ᴅ: 'private-scalar' }),
+      ),
+    ).toEqual(
+      expect.objectContaining({
+        code: 'credential_public_material_invalid',
+      }),
+    );
+
+    expect(
+      captureThrownError(() =>
+        assertNoPrivateSigningMaterial({
+          version: 1,
+          material: Array.from({ length: 32 }, (_, index) => index),
+        }),
       ),
     ).toEqual(
       expect.objectContaining({

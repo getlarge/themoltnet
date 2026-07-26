@@ -77,6 +77,7 @@ import {
   getRuntimeModel,
   getRuntimeProfile,
   getRuntimeSession,
+  getSigningCredential,
   getSigningRequest,
   getTask,
   getTaskActivityAnalytics,
@@ -348,6 +349,9 @@ import type {
   GetRuntimeSessionData,
   GetRuntimeSessionError,
   GetRuntimeSessionResponse,
+  GetSigningCredentialData,
+  GetSigningCredentialError,
+  GetSigningCredentialResponse,
   GetSigningRequestData,
   GetSigningRequestError,
   GetSigningRequestResponse,
@@ -1099,6 +1103,31 @@ export const completeSigningCredentialRegistrationMutation = (
   };
   return mutationOptions;
 };
+
+export const getSigningCredentialQueryKey = (
+  options: Options<GetSigningCredentialData>,
+) => createQueryKey('getSigningCredential', options);
+
+export const getSigningCredentialOptions = (
+  options: Options<GetSigningCredentialData>,
+) =>
+  queryOptions<
+    GetSigningCredentialResponse,
+    GetSigningCredentialError,
+    GetSigningCredentialResponse,
+    ReturnType<typeof getSigningCredentialQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getSigningCredential({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getSigningCredentialQueryKey(options),
+  });
 
 export const approveSigningCredentialMutation = (
   options?: Partial<Options<ApproveSigningCredentialData>>,

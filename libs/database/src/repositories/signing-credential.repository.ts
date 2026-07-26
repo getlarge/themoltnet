@@ -23,9 +23,10 @@ import {
   signingCredentialRegistrations,
   signingCredentials,
 } from '../schema.js';
-import { getExecutor } from '../transaction-context.js';
+import { getExecutor, hasActiveTransaction } from '../transaction-context.js';
 
 export type SigningCredentialStatus = SigningCredential['status'];
+export const SIGNING_REGISTRATION_RETENTION_MS = 24 * 60 * 60 * 1000;
 
 export interface SigningCredentialOwner {
   kind: 'agent' | 'human';
@@ -104,14 +105,22 @@ export function createSigningCredentialRepository(db: Database) {
       return registration ?? null;
     },
 
-    async cleanupRegistrations(now = new Date(), limit = 100): Promise<number> {
+    async cleanupRegistrations(
+      now = new Date(),
+      limit = 100,
+      consumedRetentionMs = SIGNING_REGISTRATION_RETENTION_MS,
+    ): Promise<number> {
+      const consumedBefore = new Date(now.getTime() - consumedRetentionMs);
       const candidates = await getExecutor(db)
         .select({ id: signingCredentialRegistrations.id })
         .from(signingCredentialRegistrations)
         .where(
           or(
             lte(signingCredentialRegistrations.expiresAt, now),
-            isNotNull(signingCredentialRegistrations.consumedAt),
+            and(
+              isNotNull(signingCredentialRegistrations.consumedAt),
+              lte(signingCredentialRegistrations.consumedAt, consumedBefore),
+            ),
           ),
         )
         .limit(limit);
@@ -140,6 +149,18 @@ export function createSigningCredentialRepository(db: Database) {
           ownerHumanId: owner.kind === 'human' ? owner.id : null,
         })
         .returning();
+      await getExecutor(db)
+        .insert(signingCredentialEvents)
+        .values({
+          credentialId: credential.id,
+          teamId: credential.teamId,
+          actorAgentId: owner.kind === 'agent' ? owner.id : null,
+          actorHumanId: owner.kind === 'human' ? owner.id : null,
+          fromStatus: credential.status,
+          toStatus: credential.status,
+          reason: 'credential_enrolled',
+          createdAt: credential.createdAt,
+        });
       return credential;
     },
 
@@ -223,6 +244,12 @@ export function createSigningCredentialRepository(db: Database) {
       credential: SigningCredential;
       fromStatus: SigningCredentialStatus;
     } | null> {
+      if (input.to === 'active' && input.actor.kind !== 'human') return null;
+      if (!hasActiveTransaction()) {
+        throw new Error(
+          'signingCredentialRepository.transition must be called inside a TransactionRunner-managed transaction; FOR UPDATE has no effect outside one',
+        );
+      }
       const now = input.now ?? new Date();
       const timestamps =
         input.to === 'active'

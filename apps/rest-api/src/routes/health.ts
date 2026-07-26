@@ -20,7 +20,6 @@ export interface HealthRouteOptions {
   pool?: HealthPool;
   oryProjectUrl?: string;
   talosApi?: Pick<ApiKeysApi, 'getJwks'>;
-  testSigningDriverEnabled?: boolean;
 }
 
 interface ComponentResult {
@@ -135,7 +134,6 @@ export async function healthRoutes(
       return {
         status: 'ok',
         timestamp: new Date().toISOString(),
-        testSigningDriverEnabled: opts.testSigningDriverEnabled ?? false,
       };
     },
   );
@@ -181,7 +179,6 @@ export async function healthRoutes(
       const body = {
         status: allOk ? ('ok' as const) : ('degraded' as const),
         timestamp: new Date().toISOString(),
-        testSigningDriverEnabled: opts.testSigningDriverEnabled ?? false,
         components: { database, ory, ...(talos ? { talos } : {}) },
       };
 

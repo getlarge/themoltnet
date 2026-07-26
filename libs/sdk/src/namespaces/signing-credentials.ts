@@ -2,6 +2,7 @@ import {
   approveSigningCredential,
   beginSigningCredentialRegistration,
   completeSigningCredentialRegistration,
+  getSigningCredential,
   listSigningCredentials,
   revokeSigningCredential,
   suspendSigningCredential,
@@ -27,7 +28,17 @@ export function createSigningCredentialsNamespace(
         }),
       );
     },
-    async begin(body, options) {
+    async get(id, options) {
+      return unwrapResult(
+        await getSigningCredential({
+          client,
+          auth,
+          headers: requiredTeamHeaders(options),
+          path: { id },
+        }),
+      );
+    },
+    async startRegistration(body, options) {
       return unwrapResult(
         await beginSigningCredentialRegistration({
           client,
@@ -37,7 +48,7 @@ export function createSigningCredentialsNamespace(
         }),
       );
     },
-    async complete(id, body, options) {
+    async completeRegistration(id, body, options) {
       return unwrapResult(
         await completeSigningCredentialRegistration({
           client,

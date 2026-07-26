@@ -386,6 +386,7 @@ export function createMockServices(): MockServices {
     groupRepository: {
       create: vi.fn(),
       findById: vi.fn(),
+      findByIds: vi.fn().mockResolvedValue(new Map()),
       listByTeamId: vi.fn().mockResolvedValue([]),
       delete: vi.fn(),
     },
@@ -752,7 +753,6 @@ export async function createTestApp(
     pool?: { query(sql: string): Promise<unknown> };
     oryProjectUrl?: string;
     talosApi?: { getJwks(): Promise<unknown> };
-    testSigningDriverEnabled?: boolean;
   },
   /**
    * Override how a bearer token resolves to an AuthContext. Defaults to always
@@ -921,7 +921,6 @@ export async function createTestApp(
     },
     pool: healthOptions?.pool,
     oryProjectUrl: healthOptions?.oryProjectUrl,
-    testSigningDriverEnabled: healthOptions?.testSigningDriverEnabled,
     ...(logger !== undefined ? { logger } : {}),
   });
 

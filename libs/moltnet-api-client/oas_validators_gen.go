@@ -6515,16 +6515,6 @@ func (s CreateSigningRequestReqSignerConstraint) Validate() error {
 			return err
 		}
 		return nil
-	case ProvenanceGraphSiteNodeCreateSigningRequestReqSignerConstraint:
-		if err := s.ProvenanceGraphSiteNode.Validate(); err != nil {
-			return err
-		}
-		return nil
-	case ProvenanceGraphStationNodeCreateSigningRequestReqSignerConstraint:
-		if err := s.ProvenanceGraphStationNode.Validate(); err != nil {
-			return err
-		}
-		return nil
 	default:
 		return errors.Errorf("invalid type %q", s.Type)
 	}
@@ -14665,6 +14655,30 @@ func (s GetRuntimeSessionUnauthorizedCode) Validate() error {
 	}
 }
 
+func (s *GetSigningCredentialForbidden) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *GetSigningCredentialNotFound) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *GetSigningCredentialUnauthorized) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *GetSigningRequestBadRequest) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -19788,70 +19802,6 @@ func (s ProvenanceGraphRenderedPackNodeMetaCreator) Validate() error {
 		return nil
 	default:
 		return errors.Errorf("invalid type %q", s.Type)
-	}
-}
-
-func (s *ProvenanceGraphSiteNode) Validate() error {
-	if s == nil {
-		return validate.ErrNilPointer
-	}
-
-	var failures []validate.FieldError
-	if err := func() error {
-		if err := s.Type.Validate(); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "type",
-			Error: err,
-		})
-	}
-	if len(failures) > 0 {
-		return &validate.Error{Fields: failures}
-	}
-	return nil
-}
-
-func (s ProvenanceGraphSiteNodeType) Validate() error {
-	switch s {
-	case "site":
-		return nil
-	default:
-		return errors.Errorf("invalid value: %v", s)
-	}
-}
-
-func (s *ProvenanceGraphStationNode) Validate() error {
-	if s == nil {
-		return validate.ErrNilPointer
-	}
-
-	var failures []validate.FieldError
-	if err := func() error {
-		if err := s.Type.Validate(); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "type",
-			Error: err,
-		})
-	}
-	if len(failures) > 0 {
-		return &validate.Error{Fields: failures}
-	}
-	return nil
-}
-
-func (s ProvenanceGraphStationNodeType) Validate() error {
-	switch s {
-	case "station":
-		return nil
-	default:
-		return errors.Errorf("invalid value: %v", s)
 	}
 }
 
@@ -25872,16 +25822,6 @@ func (s SigningRequestSignerConstraint) Validate() error {
 		return nil
 	case ProvenanceGraphGroupNodeSigningRequestSignerConstraint:
 		if err := s.ProvenanceGraphGroupNode.Validate(); err != nil {
-			return err
-		}
-		return nil
-	case ProvenanceGraphSiteNodeSigningRequestSignerConstraint:
-		if err := s.ProvenanceGraphSiteNode.Validate(); err != nil {
-			return err
-		}
-		return nil
-	case ProvenanceGraphStationNodeSigningRequestSignerConstraint:
-		if err := s.ProvenanceGraphStationNode.Validate(); err != nil {
 			return err
 		}
 		return nil

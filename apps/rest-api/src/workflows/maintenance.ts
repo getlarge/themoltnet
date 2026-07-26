@@ -113,15 +113,47 @@ export function initMaintenanceWorkflows(
     crontab: '0 0 * * *',
   });
 
+  const signingExpiryBatchSize = 500;
+  const expireSigningRequestsStep = DBOS.registerStep(
+    async (actualTime: Date, batchSize: number): Promise<number> => {
+      const { signingRequestRepository } = getDeps();
+      return signingRequestRepository.expireDelegated(actualTime, batchSize);
+    },
+    { name: 'maintenance.signingExpiry.expireRequests' },
+  );
+  const cleanupSigningRegistrationsStep = DBOS.registerStep(
+    async (actualTime: Date, batchSize: number): Promise<number> => {
+      const { signingCredentialRepository } = getDeps();
+      return signingCredentialRepository.cleanupRegistrations(
+        actualTime,
+        batchSize,
+      );
+    },
+    { name: 'maintenance.signingExpiry.cleanupRegistrations' },
+  );
   const signingExpiryWorkflow = DBOS.registerWorkflow(
     async (_scheduledTime: Date, actualTime: Date): Promise<void> => {
-      const { signingCredentialRepository, signingRequestRepository, logger } =
-        getDeps();
-      const [expiredRequests, deletedRegistrations] = await Promise.all([
-        signingRequestRepository.expireDelegated(actualTime, 500),
-        signingCredentialRepository.cleanupRegistrations(actualTime, 500),
-      ]);
-      logger.info(
+      const { logger } = getDeps();
+      let expiredRequests: number;
+      let deletedRegistrations: number;
+      try {
+        [expiredRequests, deletedRegistrations] = await Promise.all([
+          expireSigningRequestsStep(actualTime, signingExpiryBatchSize),
+          cleanupSigningRegistrationsStep(actualTime, signingExpiryBatchSize),
+        ]);
+      } catch (error) {
+        logger.error(
+          { err: error },
+          'maintenance: signing expiry cleanup failed',
+        );
+        throw error;
+      }
+      const log =
+        expiredRequests === signingExpiryBatchSize ||
+        deletedRegistrations === signingExpiryBatchSize
+          ? logger.warn.bind(logger)
+          : logger.info.bind(logger);
+      log(
         { expiredRequests, deletedRegistrations },
         'maintenance: signing expiry cleanup complete',
       );

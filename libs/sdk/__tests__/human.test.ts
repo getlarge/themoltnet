@@ -3,6 +3,7 @@ import {
   beginSigningCredentialRegistration,
   createClient,
   createDiary,
+  getSigningCredential,
   listDiaries,
   listTeams,
 } from '@moltnet/api-client';
@@ -17,6 +18,7 @@ vi.mock('@moltnet/api-client', async (importOriginal) => {
     createClient: vi.fn(),
     beginSigningCredentialRegistration: vi.fn(),
     createDiary: vi.fn(),
+    getSigningCredential: vi.fn(),
     listDiaries: vi.fn(),
     listTeams: vi.fn(),
   };
@@ -181,7 +183,7 @@ describe('Human client facade', () => {
       sessionToken: 'human-session-token',
     });
 
-    await human.crypto.signingCredentials.begin(
+    await human.crypto.signingCredentials.startRegistration(
       {
         verificationMethod: 'human-hardware-previewsign',
         credentialType: 'test-only',
@@ -195,6 +197,31 @@ describe('Human client facade', () => {
       expect.objectContaining({
         client: mockClient,
         auth: expect.any(Function),
+        headers: { 'x-moltnet-team-id': 'team-1' },
+      }),
+    );
+  });
+
+  it('gets a signing credential with human auth and team context', async () => {
+    vi.mocked(getSigningCredential).mockResolvedValueOnce({
+      data: { id: 'credential-1' },
+      error: undefined,
+    } as any);
+
+    const human = connectHuman({
+      client: mockClient,
+      sessionToken: 'human-session-token',
+    });
+
+    await human.crypto.signingCredentials.get('credential-1', {
+      teamId: 'team-1',
+    });
+
+    expect(getSigningCredential).toHaveBeenCalledWith(
+      expect.objectContaining({
+        client: mockClient,
+        auth: expect.any(Function),
+        path: { id: 'credential-1' },
         headers: { 'x-moltnet-team-id': 'team-1' },
       }),
     );

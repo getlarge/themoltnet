@@ -30,6 +30,7 @@ func TestSigningRequestCreateRequiresMessage(t *testing.T) {
 func TestSigningCredentialCommandsRequireTeam(t *testing.T) {
 	for _, args := range [][]string{
 		{"signing-credentials", "list"},
+		{"signing-credentials", "get", signingCommandCredentialID.String()},
 		{"signing-credentials", "approve", signingCommandCredentialID.String()},
 		{"signing-credentials", "suspend", signingCommandCredentialID.String()},
 		{"signing-credentials", "revoke", signingCommandCredentialID.String()},

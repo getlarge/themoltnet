@@ -71,6 +71,7 @@ import {
   setSigningKeyLookup,
   setSigningRequestPersistence,
   setSigningVerifier,
+  setSigningWorkflowErrorReporter,
 } from '@moltnet/signing-workflows';
 import {
   createTaskAnalyticsService,
@@ -407,10 +408,20 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       () => {
         initSigningWorkflows();
         setSigningVerifier(cryptoService);
+        setSigningWorkflowErrorReporter((error, context) => {
+          app.log.error(
+            { err: error, ...context },
+            'crypto.signing_verifier_failed',
+          );
+        });
         if (config.server.MOLTNET_TEST_SIGNING_DRIVER) {
           const driver = createTestSigningMethodDriver();
           registerSigningMethodDriver(driver.verificationMethod, driver);
           app.log.warn(
+            {
+              testSigningDriver: true,
+              verificationMethod: driver.verificationMethod,
+            },
             'test-only signing method driver enabled; never enable this outside tests',
           );
         }
@@ -434,7 +445,17 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       () => {
         setSigningRequestPersistence({
           completeAgentRequest: async (input) => {
-            await signingRequestRepository.completeAgentRequest(input);
+            const updated =
+              await signingRequestRepository.completeAgentRequest(input);
+            if (!updated) {
+              app.log.warn(
+                {
+                  requestId: input.id,
+                  attemptedStatus: input.status,
+                },
+                'crypto.signing_request_terminal_transition_skipped',
+              );
+            }
           },
         });
       },
@@ -692,7 +713,6 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     packGcConfig: config.packGc,
     pool: dbConnection.pool,
     oryProjectUrl: config.ory.ORY_PROJECT_URL,
-    testSigningDriverEnabled: config.server.MOLTNET_TEST_SIGNING_DRIVER,
     ...(rateLimitRedis ? { rateLimitRedis } : {}),
   });
 

@@ -496,10 +496,10 @@ export type SigningRequestSignerConstraint = SignerConstraint;
 /**
  * Signing Credentials
  *
- * Public verification material for an owned signing credential. Phase 2
- * accepts only human enrollment, but persistence follows the repository's
- * principal pattern: concrete nullable FKs plus an XOR check. The API derives
- * a discriminated `owner` DTO from whichever FK is populated.
+ * Public verification material for an owned signing credential. Persistence
+ * follows the repository's principal pattern: concrete nullable FKs plus an
+ * XOR check. The API currently enforces human-only enrollment and derives a
+ * discriminated `owner` DTO from whichever FK is populated.
  */
 export const signingCredentials = pgTable(
   'signing_credentials',
@@ -715,6 +715,26 @@ export const signingRequests = pgTable(
     index('signing_requests_claimed_by_idx').on(
       table.claimedByHumanId,
       table.status,
+    ),
+    index('signing_requests_delegated_expires_idx')
+      .on(table.expiresAt)
+      .where(
+        sql`status IN ('pending', 'claimed') AND verification_method <> 'agent-ed25519'`,
+      ),
+    index('signing_requests_signer_constraint_idx')
+      .on(sql`(signer_constraint->>'type')`, sql`(signer_constraint->>'id')`)
+      .where(sql`status IN ('pending', 'claimed')`),
+    check(
+      'signing_requests_delegated_context',
+      sql`verification_method = 'agent-ed25519' OR (team_id IS NOT NULL AND requested_by IS NOT NULL AND signer_constraint IS NOT NULL)`,
+    ),
+    check(
+      'signing_requests_claimed_state',
+      sql`status <> 'claimed' OR (claimed_by_human_id IS NOT NULL AND signing_credential_id IS NOT NULL AND challenge IS NOT NULL AND method_state IS NOT NULL AND claimed_at IS NOT NULL)`,
+    ),
+    check(
+      'signing_requests_rejected_state',
+      sql`status <> 'rejected' OR (team_id IS NOT NULL AND rejected_at IS NOT NULL)`,
     ),
   ],
 );

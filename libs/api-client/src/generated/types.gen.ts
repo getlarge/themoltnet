@@ -906,7 +906,6 @@ export type FinishRuntimeSlotBody = {
 
 export type Health = {
   status: string;
-  testSigningDriverEnabled: boolean;
   timestamp: string;
 };
 
@@ -1540,7 +1539,6 @@ export type Readiness = {
     };
   };
   status: 'ok' | 'degraded';
-  testSigningDriverEnabled: boolean;
   timestamp: string;
 };
 
@@ -2223,14 +2221,6 @@ export type SigningRequest = {
     | {
         id: string;
         type: 'group';
-      }
-    | {
-        id?: string;
-        type: 'site';
-      }
-    | {
-        id?: string;
-        type: 'station';
       }
     | null;
   signingCredentialId?: string | null;
@@ -3595,6 +3585,49 @@ export type CompleteSigningCredentialRegistrationResponses = {
 export type CompleteSigningCredentialRegistrationResponse =
   CompleteSigningCredentialRegistrationResponses[keyof CompleteSigningCredentialRegistrationResponses];
 
+export type GetSigningCredentialData = {
+  body?: never;
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path: {
+    id: string;
+  };
+  query?: never;
+  url: '/crypto/signing-credentials/{id}';
+};
+
+export type GetSigningCredentialErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type GetSigningCredentialError =
+  GetSigningCredentialErrors[keyof GetSigningCredentialErrors];
+
+export type GetSigningCredentialResponses = {
+  /**
+   * Default Response
+   */
+  200: SigningCredential;
+};
+
+export type GetSigningCredentialResponse =
+  GetSigningCredentialResponses[keyof GetSigningCredentialResponses];
+
 export type ApproveSigningCredentialData = {
   body?: {
     reason?: string;
@@ -3803,14 +3836,6 @@ export type CreateSigningRequestData = {
       | {
           id: string;
           type: 'group';
-        }
-      | {
-          id?: string;
-          type: 'site';
-        }
-      | {
-          id?: string;
-          type: 'station';
         };
     teamId?: string;
     /**

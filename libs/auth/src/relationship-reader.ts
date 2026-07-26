@@ -214,10 +214,8 @@ export function createRelationshipReader(
 
     async listGroupIdsBySubject(subjectId: string): Promise<string[]> {
       const groupIds = new Set<string>();
-      for (const subjectSetNamespace of [
-        KetoNamespace.Agent,
-        KetoNamespace.Human,
-      ]) {
+      const listNamespace = async (subjectSetNamespace: KetoNamespace) => {
+        const ids: string[] = [];
         let pageToken: string | undefined;
         do {
           const result = await relationshipApi.getRelationships({
@@ -229,10 +227,18 @@ export function createRelationshipReader(
             pageToken,
           });
           for (const tuple of result.relation_tuples ?? []) {
-            if (tuple.object) groupIds.add(tuple.object);
+            if (tuple.object) ids.push(tuple.object);
           }
           pageToken = result.next_page_token || undefined;
         } while (pageToken);
+        return ids;
+      };
+      const namespaceResults = await Promise.all([
+        listNamespace(KetoNamespace.Agent),
+        listNamespace(KetoNamespace.Human),
+      ]);
+      for (const ids of namespaceResults) {
+        for (const id of ids) groupIds.add(id);
       }
       return [...groupIds];
     },

@@ -40,6 +40,7 @@ const ParamsSchema = Type.Object({
   id: Type.String({ format: 'uuid' }),
 });
 const SIGNING_JSON_BODY_LIMIT = 64 * 1024;
+const SIGNING_CREDENTIAL_REGISTRATION_TTL_MS = 5 * 60 * 1000;
 
 function asSigningMethodJson(value: unknown): SigningMethodJson {
   return value as SigningMethodJson;
@@ -203,7 +204,9 @@ export async function signingCredentialRoutes(fastify: FastifyInstance) {
         throw createProblem('forbidden', 'Team access is required');
 
       const id = randomUUID();
-      const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+      const expiresAt = new Date(
+        Date.now() + SIGNING_CREDENTIAL_REGISTRATION_TTL_MS,
+      );
       try {
         const prepared = await prepareSigningClaim({
           verificationMethod: request.body.verificationMethod,
@@ -286,13 +289,13 @@ export async function signingCredentialRoutes(fastify: FastifyInstance) {
                 'Credential registration is missing, expired, or already consumed',
               );
             }
-            assertNoPrivateSigningMaterial(request.body.publicMaterial);
             validateSigningCredentialPublicMaterial({
               verificationMethod: registration.verificationMethod,
               credentialType: registration.credentialType,
               algorithm: registration.algorithm,
               publicMaterial: asSigningMethodJson(request.body.publicMaterial),
             });
+            assertNoPrivateSigningMaterial(request.body.publicMaterial);
             const evidence = await verifySigningReceipt({
               verificationMethod: registration.verificationMethod,
               requestId: registration.id,
@@ -400,6 +403,52 @@ export async function signingCredentialRoutes(fastify: FastifyInstance) {
     },
   );
 
+  server.get(
+    '/crypto/signing-credentials/:id',
+    {
+      config: {
+        auth: { credentialBindingScope: 'team' },
+        rateLimit: fastify.rateLimitConfig.read,
+      },
+      schema: {
+        operationId: 'getSigningCredential',
+        tags: ['crypto'],
+        security: [{ bearerAuth: [] }, { sessionAuth: [] }, { cookieAuth: [] }],
+        headers: TeamHeaderRequiredSchema,
+        params: ParamsSchema,
+        response: {
+          200: Type.Ref(SigningCredentialSchema.$id),
+          401: Type.Ref(ProblemDetailsSchema.$id),
+          403: Type.Ref(ProblemDetailsSchema.$id),
+          404: Type.Ref(ProblemDetailsSchema.$id),
+        },
+      },
+    },
+    async (request) => {
+      const teamId = requireCurrentTeamId(request, 'signing credentials');
+      const credential = await fastify.signingCredentialRepository.findById(
+        request.params.id,
+      );
+      if (!credential || credential.teamId !== teamId) {
+        throw createProblem('not-found', 'Signing credential not found');
+      }
+      const auth = request.authContext!;
+      const manager = await fastify.permissionChecker.canManageTeamCredentials(
+        teamId,
+        auth.identityId,
+        subjectNamespace(request),
+      );
+      if (
+        !manager &&
+        (auth.subjectType !== 'human' ||
+          credential.ownerHumanId !== auth.humanId)
+      ) {
+        throw createProblem('forbidden');
+      }
+      return signingCredentialToResponse(credential, fastify);
+    },
+  );
+
   for (const transition of CREDENTIAL_TRANSITIONS) {
     server.post(
       `/crypto/signing-credentials/:id/${transition.action}`,
@@ -432,6 +481,15 @@ export async function signingCredentialRoutes(fastify: FastifyInstance) {
       },
       async (request) => {
         const teamId = requireCurrentTeamId(request, 'signing credentials');
+        if (
+          transition.to === 'active' &&
+          request.authContext!.subjectType !== 'human'
+        ) {
+          throw createProblem(
+            'forbidden',
+            'Credential approval requires a human credential manager',
+          );
+        }
         await requireCredentialManager(request, teamId);
         const auth = request.authContext!;
         const actor = {

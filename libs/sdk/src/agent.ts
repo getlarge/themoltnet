@@ -475,12 +475,17 @@ export interface SigningCredentialsNamespace {
     options: RequiredTeamRequestOptions,
   ): Promise<SigningCredentialList>;
 
-  begin(
+  get(
+    id: string,
+    options: RequiredTeamRequestOptions,
+  ): Promise<SigningCredential>;
+
+  startRegistration(
     body: BeginSigningCredentialRegistrationData['body'],
     options: RequiredTeamRequestOptions,
   ): Promise<SigningCredentialRegistration>;
 
-  complete(
+  completeRegistration(
     id: string,
     body: CompleteSigningCredentialRegistrationData['body'],
     options: RequiredTeamRequestOptions,

@@ -1,3 +1,4 @@
+SET LOCAL lock_timeout = '5s';--> statement-breakpoint
 CREATE TYPE "public"."signing_credential_status" AS ENUM('pending_approval', 'active', 'suspended', 'revoked');--> statement-breakpoint
 ALTER TYPE "public"."signing_request_status" ADD VALUE 'claimed' BEFORE 'completed';--> statement-breakpoint
 ALTER TYPE "public"."signing_request_status" ADD VALUE 'rejected' BEFORE 'expired';--> statement-breakpoint
@@ -60,6 +61,9 @@ ALTER TABLE "signing_requests" ADD COLUMN "receipt" jsonb;--> statement-breakpoi
 ALTER TABLE "signing_requests" ADD COLUMN "claimed_at" timestamp with time zone;--> statement-breakpoint
 ALTER TABLE "signing_requests" ADD COLUMN "rejected_at" timestamp with time zone;--> statement-breakpoint
 ALTER TABLE "signing_requests" ADD COLUMN "rejection_reason" text;--> statement-breakpoint
+ALTER TABLE "signing_requests" ADD CONSTRAINT "signing_requests_delegated_context" CHECK (verification_method = 'agent-ed25519' OR (team_id IS NOT NULL AND requested_by IS NOT NULL AND signer_constraint IS NOT NULL)) NOT VALID;--> statement-breakpoint
+ALTER TABLE "signing_requests" ADD CONSTRAINT "signing_requests_claimed_state" CHECK (status <> 'claimed' OR (claimed_by_human_id IS NOT NULL AND signing_credential_id IS NOT NULL AND challenge IS NOT NULL AND method_state IS NOT NULL AND claimed_at IS NOT NULL)) NOT VALID;--> statement-breakpoint
+ALTER TABLE "signing_requests" ADD CONSTRAINT "signing_requests_rejected_state" CHECK (status <> 'rejected' OR (team_id IS NOT NULL AND rejected_at IS NOT NULL)) NOT VALID;--> statement-breakpoint
 ALTER TABLE "signing_credential_registrations" ADD CONSTRAINT "signing_credential_registrations_owner_human_id_humans_id_fk" FOREIGN KEY ("owner_human_id") REFERENCES "public"."humans"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "signing_credential_registrations" ADD CONSTRAINT "signing_credential_registrations_team_id_teams_id_fk" FOREIGN KEY ("team_id") REFERENCES "public"."teams"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "signing_credentials" ADD CONSTRAINT "signing_credentials_owner_agent_id_agents_identity_id_fk" FOREIGN KEY ("owner_agent_id") REFERENCES "public"."agents"("identity_id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
@@ -84,7 +88,11 @@ ALTER TABLE "signing_requests" ADD CONSTRAINT "signing_requests_signing_credenti
 ALTER TABLE "signing_requests" VALIDATE CONSTRAINT "signing_requests_team_id_teams_id_fk";--> statement-breakpoint
 ALTER TABLE "signing_requests" VALIDATE CONSTRAINT "signing_requests_claimed_by_human_id_humans_id_fk";--> statement-breakpoint
 ALTER TABLE "signing_requests" VALIDATE CONSTRAINT "signing_requests_signing_credential_id_signing_credentials_id_fk";--> statement-breakpoint
-SET LOCAL lock_timeout = '5s';--> statement-breakpoint
+ALTER TABLE "signing_requests" VALIDATE CONSTRAINT "signing_requests_delegated_context";--> statement-breakpoint
+ALTER TABLE "signing_requests" VALIDATE CONSTRAINT "signing_requests_claimed_state";--> statement-breakpoint
+ALTER TABLE "signing_requests" VALIDATE CONSTRAINT "signing_requests_rejected_state";--> statement-breakpoint
 CREATE INDEX "signing_requests_requested_by_idx" ON "signing_requests" USING gin ("requested_by");--> statement-breakpoint
 CREATE INDEX "signing_requests_team_status_idx" ON "signing_requests" USING btree ("team_id","status","created_at" DESC NULLS LAST);--> statement-breakpoint
-CREATE INDEX "signing_requests_claimed_by_idx" ON "signing_requests" USING btree ("claimed_by_human_id","status");
+CREATE INDEX "signing_requests_claimed_by_idx" ON "signing_requests" USING btree ("claimed_by_human_id","status");--> statement-breakpoint
+CREATE INDEX "signing_requests_delegated_expires_idx" ON "signing_requests" USING btree ("expires_at") WHERE status IN ('pending', 'claimed') AND verification_method <> 'agent-ed25519';--> statement-breakpoint
+CREATE INDEX "signing_requests_signer_constraint_idx" ON "signing_requests" USING btree ((signer_constraint->>'type'),(signer_constraint->>'id')) WHERE status IN ('pending', 'claimed');

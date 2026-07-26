@@ -3,6 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Database } from '../src/db.js';
 import { createSigningCredentialRepository } from '../src/repositories/signing-credential.repository.js';
 import type { SigningCredential } from '../src/schema.js';
+import {
+  createDrizzleTransactionRunner,
+  type TransactionRunner,
+} from '../src/transaction-context.js';
 
 function createMockDb() {
   const chain: Record<string, ReturnType<typeof vi.fn>> = {};
@@ -25,7 +29,11 @@ function createMockDb() {
     select: vi.fn().mockReturnValue(chain),
     update: vi.fn().mockReturnValue(chain),
     delete: vi.fn().mockReturnValue(chain),
+    transaction: vi.fn(),
   };
+  db.transaction.mockImplementation(
+    async (callback: (tx: typeof db) => Promise<unknown>) => callback(db),
+  );
   return { db: db as unknown as Database, chain };
 }
 
@@ -56,10 +64,12 @@ const credential: SigningCredential = {
 describe('createSigningCredentialRepository', () => {
   let db: ReturnType<typeof createMockDb>;
   let repository: ReturnType<typeof createSigningCredentialRepository>;
+  let transactionRunner: TransactionRunner;
 
   beforeEach(() => {
     db = createMockDb();
     repository = createSigningCredentialRepository(db.db);
+    transactionRunner = createDrizzleTransactionRunner(db.db);
   });
 
   it('creates a pending-approval human credential', async () => {
@@ -85,6 +95,15 @@ describe('createSigningCredentialRepository', () => {
     );
     expect(db.chain.values).not.toHaveBeenCalledWith(
       expect.objectContaining({ owner: expect.anything() }),
+    );
+    expect(db.chain.values).toHaveBeenCalledWith(
+      expect.objectContaining({
+        credentialId: ID,
+        actorHumanId: HUMAN_ID,
+        fromStatus: 'pending_approval',
+        toStatus: 'pending_approval',
+        reason: 'credential_enrolled',
+      }),
     );
     expect(result).toEqual(credential);
   });
@@ -131,14 +150,16 @@ describe('createSigningCredentialRepository', () => {
       { ...credential, status: 'active' },
     ]);
 
-    const result = await repository.transition({
-      id: ID,
-      teamId: TEAM_ID,
-      from: ['pending_approval'],
-      to: 'active',
-      approvedByHumanId: HUMAN_ID,
-      actor: { kind: 'human', id: ID },
-    });
+    const result = await transactionRunner.runInTransaction(() =>
+      repository.transition({
+        id: ID,
+        teamId: TEAM_ID,
+        from: ['pending_approval'],
+        to: 'active',
+        approvedByHumanId: HUMAN_ID,
+        actor: { kind: 'human', id: ID },
+      }),
+    );
 
     expect(db.chain.set).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -161,13 +182,15 @@ describe('createSigningCredentialRepository', () => {
       },
     ]);
 
-    await repository.transition({
-      id: ID,
-      teamId: TEAM_ID,
-      from: ['active'],
-      to: 'suspended',
-      actor: { kind: 'agent', id: ID },
-    });
+    await transactionRunner.runInTransaction(() =>
+      repository.transition({
+        id: ID,
+        teamId: TEAM_ID,
+        from: ['active'],
+        to: 'suspended',
+        actor: { kind: 'agent', id: ID },
+      }),
+    );
 
     expect(db.chain.set).toHaveBeenCalledWith(
       expect.not.objectContaining({ approvedByHumanId: expect.anything() }),
@@ -178,16 +201,47 @@ describe('createSigningCredentialRepository', () => {
     db.chain.for.mockResolvedValueOnce([]);
 
     await expect(
+      transactionRunner.runInTransaction(() =>
+        repository.transition({
+          id: ID,
+          teamId: TEAM_ID,
+          from: ['pending_approval'],
+          to: 'active',
+          approvedByHumanId: HUMAN_ID,
+          actor: { kind: 'human', id: HUMAN_ID },
+        }),
+      ),
+    ).resolves.toBeNull();
+
+    expect(db.db.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects approval by an agent at the repository boundary', async () => {
+    await expect(
       repository.transition({
         id: ID,
         teamId: TEAM_ID,
         from: ['pending_approval'],
         to: 'active',
-        approvedByHumanId: HUMAN_ID,
-        actor: { kind: 'human', id: HUMAN_ID },
+        actor: { kind: 'agent', id: ID },
       }),
     ).resolves.toBeNull();
 
+    expect(db.db.select).not.toHaveBeenCalled();
     expect(db.db.update).not.toHaveBeenCalled();
+  });
+
+  it('requires an active transaction for lifecycle transitions', async () => {
+    await expect(
+      repository.transition({
+        id: ID,
+        teamId: TEAM_ID,
+        from: ['active'],
+        to: 'suspended',
+        actor: { kind: 'human', id: ID },
+      }),
+    ).rejects.toThrow('TransactionRunner-managed transaction');
+
+    expect(db.db.select).not.toHaveBeenCalled();
   });
 });

@@ -123,6 +123,7 @@ export type SigningWorkflowErrorCode =
   | 'claim_not_supported'
   | 'receipt_method_mismatch'
   | 'receipt_invalid'
+  | 'signing_result_timeout'
   | 'key_lookup_not_configured'
   | 'persistence_not_configured'
   | 'workflows_not_initialized';
@@ -178,6 +179,16 @@ export class SigningReceiptInvalidError extends SigningWorkflowError {
   constructor(message = 'Signing receipt is invalid') {
     super('receipt_invalid', message);
     this.name = 'SigningReceiptInvalidError';
+  }
+}
+
+export class SigningResultTimeoutError extends SigningWorkflowError {
+  constructor(public readonly requestId: string) {
+    super(
+      'signing_result_timeout',
+      `Signing result is still pending for request: ${requestId}`,
+    );
+    this.name = 'SigningResultTimeoutError';
   }
 }
 
@@ -265,6 +276,16 @@ const signingMethodDriverRegistry = new Map<
 let agentKeyLookup: AgentKeyLookup | null = null;
 let signingRequestPersistence: SigningRequestPersistence | null = null;
 let signingTimeoutSeconds = 300; // 5 minutes default
+let signingWorkflowErrorReporter:
+  | ((
+      error: unknown,
+      context: {
+        operation: 'verify_signature';
+        requestId: string;
+        verificationMethod: VerificationMethod;
+      },
+    ) => void)
+  | null = null;
 
 export function setSigningVerifier(verifier: SignatureVerifier): void {
   registerSigningVerifier(
@@ -320,6 +341,12 @@ export function setSigningRequestPersistence(
 
 export function setSigningTimeoutSeconds(seconds: number): void {
   signingTimeoutSeconds = seconds;
+}
+
+export function setSigningWorkflowErrorReporter(
+  reporter: NonNullable<typeof signingWorkflowErrorReporter>,
+): void {
+  signingWorkflowErrorReporter = reporter;
 }
 
 function getSigningVerifier(
@@ -415,7 +442,7 @@ export async function waitForSigningResult<T extends { status: string }>(
       setTimeout(resolve, pollIntervalMs);
     });
   }
-  return current;
+  throw new SigningResultTimeoutError(id);
 }
 
 function getAgentKeyLookup(): AgentKeyLookup {
@@ -477,19 +504,29 @@ export function initSigningWorkflows(): void {
 
   const verifySignatureStep = DBOS.registerStep(
     async (
+      requestId: string,
       verificationMethod: VerificationMethod,
       message: string,
       nonce: string,
       signature: string,
       publicKey: string,
     ): Promise<boolean> => {
-      return getSigningVerifier(verificationMethod).verify({
-        verificationMethod,
-        message,
-        nonce,
-        signature,
-        publicKey,
-      });
+      try {
+        return await getSigningVerifier(verificationMethod).verify({
+          verificationMethod,
+          message,
+          nonce,
+          signature,
+          publicKey,
+        });
+      } catch (error) {
+        signingWorkflowErrorReporter?.(error, {
+          operation: 'verify_signature',
+          requestId,
+          verificationMethod,
+        });
+        throw error;
+      }
     },
     {
       name: 'signing.step.verifySignature',
@@ -570,6 +607,7 @@ export function initSigningWorkflows(): void {
         let valid: boolean;
         try {
           valid = await verifySignatureStep(
+            requestId,
             verificationMethod,
             message,
             nonce,
@@ -624,4 +662,5 @@ export function _resetSigningWorkflowsForTesting(): void {
   signingMethodDriverRegistry.clear();
   agentKeyLookup = null;
   signingRequestPersistence = null;
+  signingWorkflowErrorReporter = null;
 }

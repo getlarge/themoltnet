@@ -623,6 +623,13 @@ func (UnimplementedHandler) GetRuntimeSession(ctx context.Context, params GetRun
 	return r, ht.ErrNotImplemented
 }
 
+// GetSigningCredential implements getSigningCredential operation.
+//
+// GET /crypto/signing-credentials/{id}
+func (UnimplementedHandler) GetSigningCredential(ctx context.Context, params GetSigningCredentialParams) (r GetSigningCredentialRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // GetSigningRequest implements getSigningRequest operation.
 //
 // Get a specific signing request by ID.

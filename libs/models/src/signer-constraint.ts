@@ -1,5 +1,7 @@
 import { type Static, Type } from 'typebox';
 
+import { TeamRoleSchema } from './schemas.js';
+
 export const SIGNER_CONSTRAINT_TYPE = {
   Human: 'human',
   TeamRole: 'team-role',
@@ -19,8 +21,7 @@ export const SIGNER_CONSTRAINT_TYPE_VALUES = [
   SIGNER_CONSTRAINT_TYPE.Station,
 ] as const satisfies readonly SignerConstraintType[];
 
-export const SIGNER_TEAM_ROLE_VALUES = ['owner', 'manager', 'member'] as const;
-export type SignerTeamRole = (typeof SIGNER_TEAM_ROLE_VALUES)[number];
+export type SignerTeamRole = Static<typeof TeamRoleSchema>;
 
 export const SignerConstraintTypeSchema = Type.Union(
   SIGNER_CONSTRAINT_TYPE_VALUES.map((value) => Type.Literal(value)),
@@ -33,19 +34,11 @@ export const SignerConstraintSchema = Type.Union([
   }),
   Type.Object({
     type: Type.Literal(SIGNER_CONSTRAINT_TYPE.TeamRole),
-    id: Type.Union(SIGNER_TEAM_ROLE_VALUES.map((value) => Type.Literal(value))),
+    id: TeamRoleSchema,
   }),
   Type.Object({
     type: Type.Literal(SIGNER_CONSTRAINT_TYPE.Group),
     id: Type.String({ format: 'uuid' }),
-  }),
-  Type.Object({
-    type: Type.Literal(SIGNER_CONSTRAINT_TYPE.Site),
-    id: Type.Optional(Type.String()),
-  }),
-  Type.Object({
-    type: Type.Literal(SIGNER_CONSTRAINT_TYPE.Station),
-    id: Type.Optional(Type.String()),
   }),
 ]);
 

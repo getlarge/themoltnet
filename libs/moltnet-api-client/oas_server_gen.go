@@ -415,6 +415,10 @@ type Handler interface {
 	//
 	// GET /runtime-sessions/{taskId}/{attemptN}
 	GetRuntimeSession(ctx context.Context, params GetRuntimeSessionParams) (GetRuntimeSessionRes, error)
+	// GetSigningCredential implements getSigningCredential operation.
+	//
+	// GET /crypto/signing-credentials/{id}
+	GetSigningCredential(ctx context.Context, params GetSigningCredentialParams) (GetSigningCredentialRes, error)
 	// GetSigningRequest implements getSigningRequest operation.
 	//
 	// Get a specific signing request by ID.

@@ -17429,30 +17429,6 @@ func (s CreateSigningRequestReqSignerConstraint) encodeFields(e *jx.Encoder) {
 				json.EncodeUUID(e, s.ID)
 			}
 		}
-	case ProvenanceGraphSiteNodeCreateSigningRequestReqSignerConstraint:
-		e.FieldStart("type")
-		e.Str("site")
-		{
-			s := s.ProvenanceGraphSiteNode
-			{
-				if s.ID.Set {
-					e.FieldStart("id")
-					s.ID.Encode(e)
-				}
-			}
-		}
-	case ProvenanceGraphStationNodeCreateSigningRequestReqSignerConstraint:
-		e.FieldStart("type")
-		e.Str("station")
-		{
-			s := s.ProvenanceGraphStationNode
-			{
-				if s.ID.Set {
-					e.FieldStart("id")
-					s.ID.Encode(e)
-				}
-			}
-		}
 	}
 }
 
@@ -17488,12 +17464,6 @@ func (s *CreateSigningRequestReqSignerConstraint) Decode(d *jx.Decoder) error {
 				case "group":
 					s.Type = ProvenanceGraphGroupNodeCreateSigningRequestReqSignerConstraint
 					found = true
-				case "site":
-					s.Type = ProvenanceGraphSiteNodeCreateSigningRequestReqSignerConstraint
-					found = true
-				case "station":
-					s.Type = ProvenanceGraphStationNodeCreateSigningRequestReqSignerConstraint
-					found = true
 				default:
 					return errors.Errorf("unknown type %s", typ)
 				}
@@ -17518,14 +17488,6 @@ func (s *CreateSigningRequestReqSignerConstraint) Decode(d *jx.Decoder) error {
 		}
 	case ProvenanceGraphGroupNodeCreateSigningRequestReqSignerConstraint:
 		if err := s.ProvenanceGraphGroupNode.Decode(d); err != nil {
-			return err
-		}
-	case ProvenanceGraphSiteNodeCreateSigningRequestReqSignerConstraint:
-		if err := s.ProvenanceGraphSiteNode.Decode(d); err != nil {
-			return err
-		}
-	case ProvenanceGraphStationNodeCreateSigningRequestReqSignerConstraint:
-		if err := s.ProvenanceGraphStationNode.Decode(d); err != nil {
 			return err
 		}
 	default:
@@ -45564,6 +45526,120 @@ func (s *GetRuntimeSessionUnauthorizedCode) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes GetSigningCredentialForbidden as json.
+func (s *GetSigningCredentialForbidden) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes GetSigningCredentialForbidden from json.
+func (s *GetSigningCredentialForbidden) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetSigningCredentialForbidden to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = GetSigningCredentialForbidden(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *GetSigningCredentialForbidden) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetSigningCredentialForbidden) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes GetSigningCredentialNotFound as json.
+func (s *GetSigningCredentialNotFound) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes GetSigningCredentialNotFound from json.
+func (s *GetSigningCredentialNotFound) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetSigningCredentialNotFound to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = GetSigningCredentialNotFound(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *GetSigningCredentialNotFound) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetSigningCredentialNotFound) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes GetSigningCredentialUnauthorized as json.
+func (s *GetSigningCredentialUnauthorized) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes GetSigningCredentialUnauthorized from json.
+func (s *GetSigningCredentialUnauthorized) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetSigningCredentialUnauthorized to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = GetSigningCredentialUnauthorized(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *GetSigningCredentialUnauthorized) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetSigningCredentialUnauthorized) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes GetSigningRequestBadRequest as json.
 func (s *GetSigningRequestBadRequest) Encode(e *jx.Encoder) {
 	unwrapped := (*ProblemDetails)(s)
@@ -46851,19 +46927,14 @@ func (s *Health) encodeFields(e *jx.Encoder) {
 		e.Str(s.Status)
 	}
 	{
-		e.FieldStart("testSigningDriverEnabled")
-		e.Bool(s.TestSigningDriverEnabled)
-	}
-	{
 		e.FieldStart("timestamp")
 		json.EncodeDateTime(e, s.Timestamp)
 	}
 }
 
-var jsonFieldsNameOfHealth = [3]string{
+var jsonFieldsNameOfHealth = [2]string{
 	0: "status",
-	1: "testSigningDriverEnabled",
-	2: "timestamp",
+	1: "timestamp",
 }
 
 // Decode decodes Health from json.
@@ -46887,20 +46958,8 @@ func (s *Health) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
-		case "testSigningDriverEnabled":
-			requiredBitSet[0] |= 1 << 1
-			if err := func() error {
-				v, err := d.Bool()
-				s.TestSigningDriverEnabled = bool(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"testSigningDriverEnabled\"")
-			}
 		case "timestamp":
-			requiredBitSet[0] |= 1 << 2
+			requiredBitSet[0] |= 1 << 1
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
 				s.Timestamp = v
@@ -46921,7 +46980,7 @@ func (s *Health) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000111,
+		0b00000011,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -72538,304 +72597,6 @@ func (s *ProvenanceGraphRenderedPackNodeMetaCreator) UnmarshalJSON(data []byte) 
 }
 
 // Encode implements json.Marshaler.
-func (s *ProvenanceGraphSiteNode) Encode(e *jx.Encoder) {
-	e.ObjStart()
-	s.encodeFields(e)
-	e.ObjEnd()
-}
-
-// encodeFields encodes fields.
-func (s *ProvenanceGraphSiteNode) encodeFields(e *jx.Encoder) {
-	{
-		if s.ID.Set {
-			e.FieldStart("id")
-			s.ID.Encode(e)
-		}
-	}
-	{
-		e.FieldStart("type")
-		s.Type.Encode(e)
-	}
-}
-
-var jsonFieldsNameOfProvenanceGraphSiteNode = [2]string{
-	0: "id",
-	1: "type",
-}
-
-// Decode decodes ProvenanceGraphSiteNode from json.
-func (s *ProvenanceGraphSiteNode) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode ProvenanceGraphSiteNode to nil")
-	}
-	var requiredBitSet [1]uint8
-
-	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
-		switch string(k) {
-		case "id":
-			if err := func() error {
-				s.ID.Reset()
-				if err := s.ID.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"id\"")
-			}
-		case "type":
-			requiredBitSet[0] |= 1 << 1
-			if err := func() error {
-				if err := s.Type.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"type\"")
-			}
-		default:
-			return d.Skip()
-		}
-		return nil
-	}); err != nil {
-		return errors.Wrap(err, "decode ProvenanceGraphSiteNode")
-	}
-	// Validate required fields.
-	var failures []validate.FieldError
-	for i, mask := range [1]uint8{
-		0b00000010,
-	} {
-		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
-			// Mask only required fields and check equality to mask using XOR.
-			//
-			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
-			// Bits of fields which would be set are actually bits of missed fields.
-			missed := bits.OnesCount8(result)
-			for bitN := 0; bitN < missed; bitN++ {
-				bitIdx := bits.TrailingZeros8(result)
-				fieldIdx := i*8 + bitIdx
-				var name string
-				if fieldIdx < len(jsonFieldsNameOfProvenanceGraphSiteNode) {
-					name = jsonFieldsNameOfProvenanceGraphSiteNode[fieldIdx]
-				} else {
-					name = strconv.Itoa(fieldIdx)
-				}
-				failures = append(failures, validate.FieldError{
-					Name:  name,
-					Error: validate.ErrFieldRequired,
-				})
-				// Reset bit.
-				result &^= 1 << bitIdx
-			}
-		}
-	}
-	if len(failures) > 0 {
-		return &validate.Error{Fields: failures}
-	}
-
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *ProvenanceGraphSiteNode) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *ProvenanceGraphSiteNode) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes ProvenanceGraphSiteNodeType as json.
-func (s ProvenanceGraphSiteNodeType) Encode(e *jx.Encoder) {
-	e.Str(string(s))
-}
-
-// Decode decodes ProvenanceGraphSiteNodeType from json.
-func (s *ProvenanceGraphSiteNodeType) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode ProvenanceGraphSiteNodeType to nil")
-	}
-	v, err := d.StrBytes()
-	if err != nil {
-		return err
-	}
-	// Try to use constant string.
-	switch ProvenanceGraphSiteNodeType(v) {
-	case ProvenanceGraphSiteNodeTypeSite:
-		*s = ProvenanceGraphSiteNodeTypeSite
-	default:
-		*s = ProvenanceGraphSiteNodeType(v)
-	}
-
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s ProvenanceGraphSiteNodeType) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *ProvenanceGraphSiteNodeType) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode implements json.Marshaler.
-func (s *ProvenanceGraphStationNode) Encode(e *jx.Encoder) {
-	e.ObjStart()
-	s.encodeFields(e)
-	e.ObjEnd()
-}
-
-// encodeFields encodes fields.
-func (s *ProvenanceGraphStationNode) encodeFields(e *jx.Encoder) {
-	{
-		if s.ID.Set {
-			e.FieldStart("id")
-			s.ID.Encode(e)
-		}
-	}
-	{
-		e.FieldStart("type")
-		s.Type.Encode(e)
-	}
-}
-
-var jsonFieldsNameOfProvenanceGraphStationNode = [2]string{
-	0: "id",
-	1: "type",
-}
-
-// Decode decodes ProvenanceGraphStationNode from json.
-func (s *ProvenanceGraphStationNode) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode ProvenanceGraphStationNode to nil")
-	}
-	var requiredBitSet [1]uint8
-
-	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
-		switch string(k) {
-		case "id":
-			if err := func() error {
-				s.ID.Reset()
-				if err := s.ID.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"id\"")
-			}
-		case "type":
-			requiredBitSet[0] |= 1 << 1
-			if err := func() error {
-				if err := s.Type.Decode(d); err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"type\"")
-			}
-		default:
-			return d.Skip()
-		}
-		return nil
-	}); err != nil {
-		return errors.Wrap(err, "decode ProvenanceGraphStationNode")
-	}
-	// Validate required fields.
-	var failures []validate.FieldError
-	for i, mask := range [1]uint8{
-		0b00000010,
-	} {
-		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
-			// Mask only required fields and check equality to mask using XOR.
-			//
-			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
-			// Bits of fields which would be set are actually bits of missed fields.
-			missed := bits.OnesCount8(result)
-			for bitN := 0; bitN < missed; bitN++ {
-				bitIdx := bits.TrailingZeros8(result)
-				fieldIdx := i*8 + bitIdx
-				var name string
-				if fieldIdx < len(jsonFieldsNameOfProvenanceGraphStationNode) {
-					name = jsonFieldsNameOfProvenanceGraphStationNode[fieldIdx]
-				} else {
-					name = strconv.Itoa(fieldIdx)
-				}
-				failures = append(failures, validate.FieldError{
-					Name:  name,
-					Error: validate.ErrFieldRequired,
-				})
-				// Reset bit.
-				result &^= 1 << bitIdx
-			}
-		}
-	}
-	if len(failures) > 0 {
-		return &validate.Error{Fields: failures}
-	}
-
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s *ProvenanceGraphStationNode) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *ProvenanceGraphStationNode) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes ProvenanceGraphStationNodeType as json.
-func (s ProvenanceGraphStationNodeType) Encode(e *jx.Encoder) {
-	e.Str(string(s))
-}
-
-// Decode decodes ProvenanceGraphStationNodeType from json.
-func (s *ProvenanceGraphStationNodeType) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode ProvenanceGraphStationNodeType to nil")
-	}
-	v, err := d.StrBytes()
-	if err != nil {
-		return err
-	}
-	// Try to use constant string.
-	switch ProvenanceGraphStationNodeType(v) {
-	case ProvenanceGraphStationNodeTypeStation:
-		*s = ProvenanceGraphStationNodeTypeStation
-	default:
-		*s = ProvenanceGraphStationNodeType(v)
-	}
-
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s ProvenanceGraphStationNodeType) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *ProvenanceGraphStationNodeType) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode implements json.Marshaler.
 func (s *ProvenanceGraphSupersededNode) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
@@ -73807,20 +73568,15 @@ func (s *Readiness) encodeFields(e *jx.Encoder) {
 		s.Status.Encode(e)
 	}
 	{
-		e.FieldStart("testSigningDriverEnabled")
-		e.Bool(s.TestSigningDriverEnabled)
-	}
-	{
 		e.FieldStart("timestamp")
 		json.EncodeDateTime(e, s.Timestamp)
 	}
 }
 
-var jsonFieldsNameOfReadiness = [4]string{
+var jsonFieldsNameOfReadiness = [3]string{
 	0: "components",
 	1: "status",
-	2: "testSigningDriverEnabled",
-	3: "timestamp",
+	2: "timestamp",
 }
 
 // Decode decodes Readiness from json.
@@ -73852,20 +73608,8 @@ func (s *Readiness) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
-		case "testSigningDriverEnabled":
-			requiredBitSet[0] |= 1 << 2
-			if err := func() error {
-				v, err := d.Bool()
-				s.TestSigningDriverEnabled = bool(v)
-				if err != nil {
-					return err
-				}
-				return nil
-			}(); err != nil {
-				return errors.Wrap(err, "decode field \"testSigningDriverEnabled\"")
-			}
 		case "timestamp":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
 				s.Timestamp = v
@@ -73886,7 +73630,7 @@ func (s *Readiness) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00001111,
+		0b00000111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -87992,30 +87736,6 @@ func (s SigningRequestSignerConstraint) encodeFields(e *jx.Encoder) {
 				json.EncodeUUID(e, s.ID)
 			}
 		}
-	case ProvenanceGraphSiteNodeSigningRequestSignerConstraint:
-		e.FieldStart("type")
-		e.Str("site")
-		{
-			s := s.ProvenanceGraphSiteNode
-			{
-				if s.ID.Set {
-					e.FieldStart("id")
-					s.ID.Encode(e)
-				}
-			}
-		}
-	case ProvenanceGraphStationNodeSigningRequestSignerConstraint:
-		e.FieldStart("type")
-		e.Str("station")
-		{
-			s := s.ProvenanceGraphStationNode
-			{
-				if s.ID.Set {
-					e.FieldStart("id")
-					s.ID.Encode(e)
-				}
-			}
-		}
 	}
 }
 
@@ -88051,12 +87771,6 @@ func (s *SigningRequestSignerConstraint) Decode(d *jx.Decoder) error {
 				case "group":
 					s.Type = ProvenanceGraphGroupNodeSigningRequestSignerConstraint
 					found = true
-				case "site":
-					s.Type = ProvenanceGraphSiteNodeSigningRequestSignerConstraint
-					found = true
-				case "station":
-					s.Type = ProvenanceGraphStationNodeSigningRequestSignerConstraint
-					found = true
 				default:
 					return errors.Errorf("unknown type %s", typ)
 				}
@@ -88081,14 +87795,6 @@ func (s *SigningRequestSignerConstraint) Decode(d *jx.Decoder) error {
 		}
 	case ProvenanceGraphGroupNodeSigningRequestSignerConstraint:
 		if err := s.ProvenanceGraphGroupNode.Decode(d); err != nil {
-			return err
-		}
-	case ProvenanceGraphSiteNodeSigningRequestSignerConstraint:
-		if err := s.ProvenanceGraphSiteNode.Decode(d); err != nil {
-			return err
-		}
-	case ProvenanceGraphStationNodeSigningRequestSignerConstraint:
-		if err := s.ProvenanceGraphStationNode.Decode(d); err != nil {
 			return err
 		}
 	default:

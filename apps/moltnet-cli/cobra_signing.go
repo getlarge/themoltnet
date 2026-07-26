@@ -89,7 +89,24 @@ func newSigningCredentialsCmd() *cobra.Command {
 	}
 	list.Flags().String("team-id", "", "Team UUID (required)")
 	_ = list.MarkFlagRequired("team-id")
-	cmd.AddCommand(list)
+	get := &cobra.Command{
+		Use:   "get <credential-id>",
+		Short: "Get one signing credential",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			credPath := flagString(cmd, "credentials")
+			return runSigningCredentialGetCmd(
+				resolveAPIURL(cmd, credPath),
+				credPath,
+				flagString(cmd, "team-id"),
+				args[0],
+				cmd.OutOrStdout(),
+			)
+		},
+	}
+	get.Flags().String("team-id", "", "Team UUID (required)")
+	_ = get.MarkFlagRequired("team-id")
+	cmd.AddCommand(list, get)
 
 	for _, action := range []string{"approve", "suspend", "revoke"} {
 		action := action

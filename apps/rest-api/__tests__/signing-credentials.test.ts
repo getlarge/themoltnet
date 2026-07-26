@@ -11,6 +11,7 @@ import {
   createTestApp,
   type MockServices,
   OWNER_ID,
+  VALID_AUTH_CONTEXT,
 } from './helpers.js';
 
 const HUMAN_ID = '660e8400-e29b-41d4-a716-446655440001';
@@ -241,6 +242,27 @@ describe('signing credential routes', () => {
     expect(response.json()).not.toHaveProperty('ownerHumanId');
   });
 
+  it('forbids an agent credential manager from approving a credential', async () => {
+    const agentApp = await createTestApp(mocks, {
+      ...VALID_AUTH_CONTEXT,
+      currentTeamId: TEAM_ID,
+    });
+
+    const response = await agentApp.inject({
+      method: 'POST',
+      url: `/crypto/signing-credentials/${CREDENTIAL_ID}/approve`,
+      headers: {
+        authorization: 'Bearer agent-token',
+        'x-moltnet-team-id': TEAM_ID,
+      },
+      payload: {},
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(mocks.signingCredentialRepository.transition).not.toHaveBeenCalled();
+    await agentApp.close();
+  });
+
   it.each(['approve', 'suspend', 'revoke'])(
     'forbids a non-credential-manager from %s',
     async (action) => {
@@ -291,6 +313,47 @@ describe('signing credential routes', () => {
     expect(mocks.humanRepository.findByIds).toHaveBeenCalledWith([HUMAN_ID]);
   });
 
+  it('gets a credential by id with its discriminated owner', async () => {
+    mocks.signingCredentialRepository.findById.mockResolvedValue(credential);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/crypto/signing-credentials/${CREDENTIAL_ID}`,
+      headers: {
+        authorization: 'Bearer human-session',
+        'x-moltnet-team-id': TEAM_ID,
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      id: CREDENTIAL_ID,
+      owner: {
+        kind: 'human',
+        humanId: HUMAN_ID,
+        identityId: OWNER_ID,
+      },
+    });
+  });
+
+  it('does not reveal a credential from another team', async () => {
+    mocks.signingCredentialRepository.findById.mockResolvedValue({
+      ...credential,
+      teamId: '990e8400-e29b-41d4-a716-446655440009',
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/crypto/signing-credentials/${CREDENTIAL_ID}`,
+      headers: {
+        authorization: 'Bearer human-session',
+        'x-moltnet-team-id': TEAM_ID,
+      },
+    });
+
+    expect(response.statusCode).toBe(404);
+  });
+
   it('lists signable requests with SQL-backed pagination and total', async () => {
     const pending = createPendingRequest({
       id: GROUP_ID,
@@ -299,10 +362,9 @@ describe('signing credential routes', () => {
     mocks.relationshipReader.listGroupIdsBySubject.mockResolvedValue([
       GROUP_ID,
     ]);
-    mocks.groupRepository.findById.mockResolvedValue({
-      id: GROUP_ID,
-      teamId: TEAM_ID,
-    });
+    mocks.groupRepository.findByIds.mockResolvedValue(
+      new Map([[GROUP_ID, { id: GROUP_ID, teamId: TEAM_ID }]]),
+    );
     mocks.signingRequestRepository.listSignable.mockResolvedValue({
       items: [pending],
       total: 47,
@@ -467,14 +529,21 @@ describe('signing credential routes', () => {
   it('resolves a group constraint through team-scoped Keto membership', async () => {
     const pending = createPendingRequest({ id: GROUP_ID, type: 'group' });
     mocks.signingRequestRepository.findById.mockResolvedValue(pending);
-    mocks.groupRepository.findById.mockResolvedValue({
-      id: GROUP_ID,
-      name: 'Release approvers',
-      teamId: TEAM_ID,
-      creatorAgentId: OWNER_ID,
-      creatorHumanId: null,
-      createdAt: new Date(),
-    });
+    mocks.groupRepository.findByIds.mockResolvedValue(
+      new Map([
+        [
+          GROUP_ID,
+          {
+            id: GROUP_ID,
+            name: 'Release approvers',
+            teamId: TEAM_ID,
+            creatorAgentId: OWNER_ID,
+            creatorHumanId: null,
+            createdAt: new Date(),
+          },
+        ],
+      ]),
+    );
     mocks.relationshipReader.listGroupIdsBySubject.mockResolvedValue([
       GROUP_ID,
     ]);
@@ -504,6 +573,7 @@ describe('signing credential routes', () => {
     expect(mocks.relationshipReader.listGroupIdsBySubject).toHaveBeenCalledWith(
       OWNER_ID,
     );
+    expect(mocks.groupRepository.findByIds).toHaveBeenCalledWith([GROUP_ID]);
   });
 
   it('rejects a claim when no active compatible credential exists', async () => {

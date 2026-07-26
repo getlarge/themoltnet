@@ -18,7 +18,7 @@ import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import { KetoNamespace, requireAuth, teamRelationToRole } from '@moltnet/auth';
 import { buildSigningBytes } from '@moltnet/crypto-service';
 import type { SigningRequest } from '@moltnet/database';
-import { DBOS, parseStatusFilter } from '@moltnet/database';
+import { DBOS } from '@moltnet/database';
 import {
   ConflictProblemDetailsSchema,
   ProblemDetailsSchema,
@@ -30,10 +30,10 @@ import {
 } from '@moltnet/models';
 import {
   assertSigningVerifierRegistered,
-  assertSupportedSignerConstraint,
   prepareSigningClaim,
   SigningCredentialError,
   type SigningMethodJson,
+  SigningResultTimeoutError,
   SigningVerifierNotRegisteredError,
   SigningWorkflowError,
   signingWorkflows,
@@ -112,9 +112,7 @@ async function createEligibilityContext(
     fastify.relationshipReader.listTeamIdsAndRolesBySubject(auth.identityId),
     fastify.relationshipReader.listGroupIdsBySubject(auth.identityId),
   ]);
-  const groups = await Promise.all(
-    groupIds.map((id) => fastify.groupRepository.findById(id)),
-  );
+  const groups = await fastify.groupRepository.findByIds(groupIds);
   return {
     humanId: auth.humanId,
     identityId: auth.identityId,
@@ -126,9 +124,7 @@ async function createEligibilityContext(
     ),
     groupIds: new Set(groupIds),
     groupTeamIds: new Map(
-      groups
-        .filter((group) => group !== null)
-        .map((group) => [group.id, group.teamId]),
+      [...groups.values()].map((group) => [group.id, group.teamId]),
     ),
   };
 }
@@ -153,15 +149,52 @@ function isEligibleHuman(
         context.groupIds.has(constraint.id) &&
         context.groupTeamIds.get(constraint.id) === row.teamId
       );
-    case SIGNER_CONSTRAINT_TYPE.Site:
-    case SIGNER_CONSTRAINT_TYPE.Station:
-      assertSupportedSignerConstraint(constraint.type);
-      return false;
     default: {
       const exhaustive: never = constraint;
       return exhaustive;
     }
   }
+}
+
+type CompletionClaimClassification =
+  | 'idempotent'
+  | 'forbidden'
+  | 'conflict'
+  | 'ok';
+
+function classifyCompletionClaim(
+  row: SigningRequest | null,
+  humanId: string,
+  teamId: string,
+  receipt: unknown,
+): CompletionClaimClassification {
+  if (
+    row?.teamId === teamId &&
+    row.status === 'completed' &&
+    row.claimedByHumanId === humanId &&
+    row.signingCredentialId &&
+    isDeepStrictEqual(row.receipt, receipt)
+  ) {
+    return 'idempotent';
+  }
+  if (
+    row?.teamId === teamId &&
+    row.status === 'claimed' &&
+    row.claimedByHumanId !== humanId
+  ) {
+    return 'forbidden';
+  }
+  if (
+    !row ||
+    row.teamId !== teamId ||
+    row.status !== 'claimed' ||
+    row.claimedByHumanId !== humanId ||
+    !row.signingCredentialId ||
+    !row.methodState
+  ) {
+    return 'conflict';
+  }
+  return 'ok';
 }
 
 export async function signingRequestRoutes(fastify: FastifyInstance) {
@@ -228,14 +261,6 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
             'validation-failed',
             'Delegated signing requires teamId, purpose, and signerConstraint',
           );
-        }
-        try {
-          assertSupportedSignerConstraint(signerConstraint.type);
-        } catch (error) {
-          if (error instanceof SigningCredentialError) {
-            throw createProblem('validation-failed', error.message);
-          }
-          throw error;
         }
         const allowed = await fastify.permissionChecker.canAccessTeam(
           teamId,
@@ -342,7 +367,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
     async (request) => {
       const { limit, offset, status, scope = 'requested' } = request.query;
 
-      const statusFilter = status ? parseStatusFilter(status) : undefined;
+      const statusFilter = status;
 
       if (
         scope === 'signable' &&
@@ -474,7 +499,8 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
       if (
         row.status === 'claimed' &&
         row.claimedByHumanId === auth.humanId &&
-        row.signingCredentialId === request.body.credentialId
+        row.signingCredentialId === request.body.credentialId &&
+        row.expiresAt > new Date()
       ) {
         return toSigningResponse(row);
       }
@@ -535,6 +561,16 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
             'Signing request was already claimed, completed, rejected, or expired',
           );
         }
+        request.log.info(
+          {
+            requestId: claimed.id,
+            teamId,
+            humanId: auth.humanId,
+            credentialId: credential.id,
+            verificationMethod: claimed.verificationMethod,
+          },
+          'crypto.signing_request_claimed',
+        );
         return toSigningResponse(claimed);
       } catch (error) {
         if (error instanceof SigningWorkflowError) {
@@ -583,28 +619,23 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
       const row = await fastify.signingRequestRepository.findById(
         request.params.id,
       );
-      if (
-        row?.status === 'completed' &&
-        row.claimedByHumanId === auth.humanId &&
-        row.signingCredentialId &&
-        isDeepStrictEqual(row.receipt, request.body.receipt)
-      ) {
+      const classification = classifyCompletionClaim(
+        row,
+        auth.humanId,
+        teamId,
+        request.body.receipt,
+      );
+      if (classification === 'idempotent' && row) {
         return toSigningResponse(row);
       }
-      if (
-        row?.teamId === teamId &&
-        row.status === 'claimed' &&
-        row.claimedByHumanId !== auth.humanId
-      ) {
+      if (classification === 'forbidden') {
         throw createProblem('forbidden');
       }
       if (
+        classification === 'conflict' ||
         !row ||
-        row.teamId !== teamId ||
-        row.status !== 'claimed' ||
-        row.claimedByHumanId !== auth.humanId ||
-        !row.signingCredentialId ||
         !row.teamId ||
+        !row.signingCredentialId ||
         !row.methodState
       ) {
         throw createProblem(
@@ -681,6 +712,16 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
             'Signing request was already completed, rejected, or expired',
           );
         }
+        request.log.info(
+          {
+            requestId: completed.id,
+            teamId,
+            humanId: auth.humanId,
+            credentialId: credential.id,
+            verificationMethod: completed.verificationMethod,
+          },
+          'crypto.signing_request_completed',
+        );
         return toSigningResponse(completed);
       } catch (error) {
         if (error instanceof SigningWorkflowError) {
@@ -746,6 +787,15 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
           'Signing request was already completed, rejected, or expired',
         );
       }
+      request.log.info(
+        {
+          requestId: rejected.id,
+          teamId,
+          humanId: auth.humanId,
+          verificationMethod: rejected.verificationMethod,
+        },
+        'crypto.signing_request_rejected',
+      );
       return toSigningResponse(rejected);
     },
   );
@@ -827,11 +877,22 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
       // Send signature to the DBOS workflow
       await DBOS.send(signingRequest.workflowId, { signature }, 'signature');
 
-      const updated = await waitForSigningResult(id, {
-        initial: signingRequest,
-        load: (requestId) =>
-          fastify.signingRequestRepository.findById(requestId),
-      });
+      let updated: SigningRequest;
+      try {
+        updated = await waitForSigningResult(id, {
+          initial: signingRequest,
+          load: (requestId) =>
+            fastify.signingRequestRepository.findById(requestId),
+        });
+      } catch (error) {
+        if (error instanceof SigningResultTimeoutError) {
+          throw createProblem(
+            'conflict',
+            'Signature was accepted but verification is still pending; retry the request',
+          );
+        }
+        throw error;
+      }
 
       request.log.info(
         { signingId: id, valid: updated.valid },
