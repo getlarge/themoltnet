@@ -4,7 +4,6 @@ import { describe, expect, it } from 'vitest';
 
 import {
   assertNoPrivateSigningMaterial,
-  assertSupportedSignerConstraint,
   SigningCredentialError,
 } from './signing-credentials.js';
 
@@ -146,13 +145,4 @@ describe('signing credential guards', () => {
       }),
     ).not.toThrow();
   });
-
-  it.each(['site', 'station'])(
-    'returns a typed capability error for %s constraints',
-    (type) => {
-      expect(() => assertSupportedSignerConstraint(type)).toThrowError(
-        SigningCredentialError,
-      );
-    },
-  );
 });

@@ -7,7 +7,6 @@ export type SigningCredentialErrorCode =
   | 'credential_inactive'
   | 'credential_method_mismatch'
   | 'credential_lifecycle_conflict'
-  | 'signer_constraint_unsupported'
   | 'signing_request_claim_conflict'
   | 'signing_request_receipt_invalid';
 
@@ -173,13 +172,4 @@ function formatPath(root: string, segments: Array<string | number>): string {
         : `${path}.${segment}`,
     root,
   );
-}
-
-export function assertSupportedSignerConstraint(type: string): void {
-  if (type === 'site' || type === 'station') {
-    throw new SigningCredentialError(
-      'signer_constraint_unsupported',
-      `Signer constraint ${type} is not supported in this phase`,
-    );
-  }
 }

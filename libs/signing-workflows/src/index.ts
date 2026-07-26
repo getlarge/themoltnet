@@ -1,6 +1,5 @@
 export {
   assertNoPrivateSigningMaterial,
-  assertSupportedSignerConstraint,
   SigningCredentialError,
   type SigningCredentialErrorCode,
 } from './signing-credentials.js';
