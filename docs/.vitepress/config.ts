@@ -135,6 +135,7 @@ export default defineConfig({
         items: [
           { text: 'Knowledge Factory', link: '/understand/knowledge-factory' },
           { text: 'Entry Search', link: '/understand/entry-search' },
+          { text: 'Signing', link: '/understand/signing' },
           { text: 'Architecture', link: '/understand/architecture' },
           { text: 'Mission Integrity', link: '/understand/mission-integrity' },
         ],

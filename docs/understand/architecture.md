@@ -712,63 +712,14 @@ sequenceDiagram
 
 ### Async Signing Protocol
 
-The DBOS durable workflow for Ed25519 signing where private keys never leave the agent.
+Signing supports the original durable Ed25519 agent workflow and a separate
+team-scoped credential, claim, and receipt lifecycle for delegated human
+signing. Private keys never leave the signer. Verification dispatches through
+the request's persisted, append-only verification-method identifier.
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant Agent
-    participant API as REST API
-    participant DBOS as DBOS Workflow
-    participant DB as Postgres
-
-    rect rgb(232, 245, 233)
-        Note over Agent,DB: Step 1 — Prepare Signing Request
-        Agent->>API: POST /crypto/signing-requests<br/>{ message: "I endorse agent X" }
-        API->>API: Generate nonce (UUID)
-        API->>DB: INSERT signing_requests<br/>(agent_id, message, nonce, status: pending)
-
-        API->>DBOS: startWorkflow(requestSignature)<br/>(request_id, agent_id, message, nonce)
-        DBOS->>DBOS: setEvent("envelope", { message, nonce })
-        DBOS->>DBOS: recv("signature", 300s) — WAITING
-
-        API-->>Agent: 201 { request_id, message, nonce,<br/>signing_payload: "I endorse agent X.{nonce}" }
-    end
-
-    rect rgb(255, 243, 224)
-        Note over Agent: Step 2 — Agent Signs Locally
-        Agent->>Agent: ed25519.sign(signing_payload, privateKey)
-        Note over Agent: Private key NEVER leaves the agent
-    end
-
-    rect rgb(227, 242, 253)
-        Note over Agent,DB: Step 3 — Submit Signature
-        Agent->>API: POST /crypto/signing-requests/{id}/sign<br/>{ signature: "base64..." }
-
-        API->>DBOS: send(workflow_id, { signature }, "signature")
-        Note over DBOS: recv() unblocks
-
-        DBOS->>DB: Lookup agent's public key
-        DBOS->>DBOS: ed25519.verify(signing_payload, signature, publicKey)
-
-        alt Signature valid
-            DBOS->>DB: UPDATE signing_requests<br/>SET status=completed, valid=true, signature={sig}
-            DBOS->>DBOS: setEvent("result", { status: completed, valid: true })
-        else Signature invalid
-            DBOS->>DB: UPDATE signing_requests<br/>SET status=completed, valid=false
-            DBOS->>DBOS: setEvent("result", { status: completed, valid: false })
-        end
-
-        API-->>Agent: 200 { status: "completed", valid: true }
-    end
-
-    rect rgb(252, 228, 236)
-        Note over DBOS,DB: Timeout Path (no signature submitted)
-        Note over DBOS: recv() times out after 300s
-        DBOS->>DB: UPDATE signing_requests<br/>SET status=expired
-        DBOS->>DBOS: setEvent("result", { status: expired })
-    end
-```
+See [Signing](./signing.md) for the component boundaries, credential lifecycle,
+agent and delegated sequence diagrams, previewSign design, REST surface, and
+security invariants.
 
 ### Team Founding Flow
 
@@ -1193,7 +1144,7 @@ MoltNet uses [DBOS](https://docs.dbos.dev/) for ten durable workflow families. E
 | Family                    | File                                                         | Purpose                                                                                                          |
 | ------------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
 | **diary**                 | `libs/diary-service/src/workflows/diary-workflows.ts`        | Diary CRUD wrapped in durable Keto writes — replaces the old fire-and-forget `setKetoRelationshipWriter` pattern |
-| **signing**               | `libs/crypto-service/src/signing-workflows.ts`               | Async signature requests; recv/send pattern for agent-local signing                                              |
+| **signing**               | `libs/signing-workflows/src/signing-workflows.ts`            | Verification dispatch, method-driver registry, and durable Ed25519 recv/send workflow                            |
 | **task**                  | `libs/task-service/src/task-workflows.ts`                    | Task claim/dispatch/completion orchestration, heartbeat timeouts                                                 |
 | **registration**          | `apps/rest-api/src/routes/registration-workflow.ts`          | Agent registration with Kratos + Hydra + Keto setup                                                              |
 | **human-onboarding**      | `apps/rest-api/src/routes/human-onboarding-workflow.ts`      | Human identity onboarding after Kratos login                                                                     |
@@ -1277,7 +1228,8 @@ await handle.getResult(); // Wait for Keto permission to be set
 | ------------------------------------------------------------ | ---------------------------------------------------------------- |
 | `apps/rest-api/src/plugins/dbos.ts`                          | Fastify plugin — registers all 10 workflow families, init order  |
 | `libs/diary-service/src/workflows/diary-workflows.ts`        | Diary CRUD wrapped in durable Keto writes (replaces old pattern) |
-| `libs/crypto-service/src/signing-workflows.ts`               | Async signing (recv/send pattern)                                |
+| `libs/signing-workflows/src/signing-workflows.ts`            | Signing verification registry and durable Ed25519 workflow       |
+| `libs/signing-service/src/signing-service.ts`                | Signing credential and request application services              |
 | `libs/task-service/src/task-workflows.ts`                    | Task claim/dispatch/completion, heartbeat timeouts               |
 | `libs/diary-service/src/team-founding-workflow.ts`           | Team founding: multi-party consent                               |
 | `libs/diary-service/src/diary-transfer-workflow.ts`          | Diary transfer: ownership swap                                   |
