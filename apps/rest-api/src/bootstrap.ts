@@ -37,6 +37,7 @@ import {
   createNonceRepository,
   createRenderedPackRepository,
   createRuntimeModelRepository,
+  createRuntimePolicyRepository,
   createRuntimeProfileRepository,
   createRuntimeSessionRepository,
   createRuntimeSlotRepository,
@@ -301,6 +302,9 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   );
   const taskArtifactRepository = createTaskArtifactRepository(dbConnection.db);
   const runtimeModelRepository = createRuntimeModelRepository(dbConnection.db);
+  const runtimePolicyRepository = createRuntimePolicyRepository(
+    dbConnection.db,
+  );
   const groupRepository = createGroupRepository(dbConnection.db);
   const voucherRepository = createVoucherRepository(dbConnection.db);
   const signingRequestRepository = createSigningRequestRepository(
@@ -647,6 +651,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     taskArtifactMaxBytes: config.taskArtifactStorage.TASK_ARTIFACT_MAX_BYTES,
     runtimeSlotRepository,
     runtimeModelRepository,
+    runtimePolicyRepository,
     taskRepository,
     taskAnalyticsService,
     taskService,

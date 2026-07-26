@@ -32,6 +32,7 @@
     "@fastify/type-provider-typebox": "catalog:",
     "@huggingface/transformers": "catalog:",
     "@moltnet/agent-key-service": "workspace:*",
+    "@moltnet/runtime-policy-service": "workspace:*",
     "@moltnet/auth": "workspace:*",
     "@moltnet/context-distill": "workspace:*",
     "@moltnet/context-pack-service": "workspace:*",

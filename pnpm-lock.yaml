@@ -1102,6 +1102,9 @@ importers:
       '@moltnet/observability':
         specifier: workspace:*
         version: link:../../libs/observability
+      '@moltnet/runtime-policy-service':
+        specifier: workspace:*
+        version: link:../../libs/runtime-policy-service
       '@moltnet/runtime-session-service':
         specifier: workspace:*
         version: link:../../libs/runtime-session-service
