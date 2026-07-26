@@ -129,6 +129,9 @@
       "path": "libs/runtime-session-service"
     },
     {
+      "path": "libs/signing-service"
+    },
+    {
       "path": "libs/signing-workflows"
     },
     {

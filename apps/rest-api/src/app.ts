@@ -17,6 +17,7 @@ import {
   type TokenValidator,
 } from '@moltnet/auth';
 import type { RuntimeSessionStorage } from '@moltnet/runtime-session-service';
+import { createSigningService } from '@moltnet/signing-service';
 import type { TaskAnalyticsService } from '@moltnet/task-analytics-service';
 import type { TaskArtifactStorage } from '@moltnet/task-artifact-service';
 import scalarApiReference from '@scalar/fastify-api-reference';
@@ -393,6 +394,18 @@ export async function registerApiRoutes(
   decorateSafe(
     'signingCredentialRepository',
     options.signingCredentialRepository,
+  );
+  decorateSafe(
+    'signingService',
+    createSigningService({
+      signingRequestRepository: options.signingRequestRepository,
+      signingCredentialRepository: options.signingCredentialRepository,
+      transactionRunner: options.transactionRunner,
+      permissionChecker: options.permissionChecker,
+      relationshipReader: options.relationshipReader,
+      groupRepository: options.groupRepository,
+      signingTimeoutSeconds: options.signingTimeoutSeconds ?? 300,
+    }),
   );
   decorateSafe('dataSource', options.dataSource);
   decorateSafe('transactionRunner', options.transactionRunner);

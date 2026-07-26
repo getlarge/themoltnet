@@ -24,13 +24,10 @@
       "path": "../../libs/tasks/tsconfig.lib.json"
     },
     {
-      "path": "../../libs/task-workflows/tsconfig.lib.json"
-    },
-    {
       "path": "../../libs/task-service/tsconfig.lib.json"
     },
     {
-      "path": "../../libs/signing-workflows/tsconfig.lib.json"
+      "path": "../../libs/signing-service/tsconfig.lib.json"
     },
     {
       "path": "../../libs/models/tsconfig.lib.json"
@@ -45,10 +42,19 @@
       "path": "../../libs/context-distill/tsconfig.lib.json"
     },
     {
+      "path": "../../libs/agent-key-service/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/bootstrap/tsconfig.lib.json"
     },
     {
       "path": "../../libs/api-client/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/task-workflows/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/signing-workflows/tsconfig.lib.json"
     },
     {
       "path": "../../libs/observability/tsconfig.lib.json"
@@ -69,16 +75,13 @@
       "path": "../../libs/context-pack-service/tsconfig.lib.json"
     },
     {
-      "path": "../../libs/auth/tsconfig.lib.json"
-    },
-    {
-      "path": "../../libs/agent-key-service/tsconfig.lib.json"
-    },
-    {
       "path": "../../libs/database/tsconfig.lib.json"
     },
     {
       "path": "../../libs/diary-service/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/auth/tsconfig.lib.json"
     }
   ]
 }
