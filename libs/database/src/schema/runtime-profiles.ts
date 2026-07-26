@@ -82,6 +82,9 @@ export function defineRuntimeProfilesTable({
         .array()
         .notNull()
         .default(sql`'{}'::text[]`),
+      toolEnforcement: varchar('tool_enforcement', { length: 16 })
+        .notNull()
+        .default('off'),
       context: jsonb('context')
         .notNull()
         .default(sql`'[]'::jsonb`),
@@ -165,6 +168,10 @@ export function defineRuntimeProfilesTable({
       check(
         'runtime_profiles_default_workspace_mode_allowed',
         sql`default_workspace_mode IS NULL OR default_workspace_mode = ANY(allowed_workspace_modes)`,
+      ),
+      check(
+        'runtime_profiles_tool_enforcement_valid',
+        sql`tool_enforcement = ANY(ARRAY['off','watch','enforce']::text[])`,
       ),
     ],
   );
