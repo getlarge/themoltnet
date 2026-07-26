@@ -41,6 +41,7 @@ export function createSigningCredentialService(deps: SigningServiceDeps) {
       verificationMethod: VerificationMethod;
       credentialType: string;
       algorithm: string;
+      publicMaterial: SigningCredential['publicMaterial'];
       label: string;
     }) {
       const actor = requireHuman(
@@ -59,15 +60,29 @@ export function createSigningCredentialService(deps: SigningServiceDeps) {
       const id = createId();
       const expiresAt = new Date(now().getTime() + REGISTRATION_TTL_MS);
       try {
+        validateSigningCredentialPublicMaterial({
+          verificationMethod: input.verificationMethod,
+          credentialType: input.credentialType,
+          algorithm: input.algorithm,
+          publicMaterial: asSigningMethodJson(input.publicMaterial),
+        });
+        assertNoPrivateSigningMaterial(input.publicMaterial);
         const prepared = await prepareSigningClaim({
+          operation: 'credential-registration',
           verificationMethod: input.verificationMethod,
           requestId: id,
           credentialId: id,
+          teamId: input.teamId,
+          claimantId: actor.humanId,
+          purpose: 'signing-credential-registration',
+          nonce: id,
+          expiresAt: expiresAt.toISOString(),
           signingPayload: JSON.stringify({
             ceremony: 'signing-credential-registration',
             id,
             teamId: input.teamId,
           }),
+          credentialPublicMaterial: asSigningMethodJson(input.publicMaterial),
         });
         const challenge = {
           verificationMethod: input.verificationMethod,
@@ -142,6 +157,15 @@ export function createSigningCredentialService(deps: SigningServiceDeps) {
               verifierState: asSigningMethodJson(
                 registration.methodState.value,
               ),
+              operation: 'credential-registration',
+              teamId: input.teamId,
+              claimantId: actor.humanId,
+              purpose: 'signing-credential-registration',
+              nonce: registration.id,
+              expiresAt: registration.expiresAt.toISOString(),
+              credentialPublicMaterial: asSigningMethodJson(
+                input.publicMaterial,
+              ),
               receipt: toSigningMethodReceipt({
                 verificationMethod: input.receipt.verificationMethod,
                 value: asSigningMethodJson(input.receipt.value),
@@ -158,6 +182,17 @@ export function createSigningCredentialService(deps: SigningServiceDeps) {
                 'Credential registration was already consumed',
               );
             }
+            if (
+              evidence.details === undefined ||
+              evidence.details === null ||
+              Array.isArray(evidence.details) ||
+              typeof evidence.details !== 'object'
+            ) {
+              throw new SigningServiceError(
+                'validation_failed',
+                'Signing method returned invalid enrollment evidence',
+              );
+            }
             return deps.signingCredentialRepository.create({
               owner: { kind: 'human', id: actor.humanId },
               teamId: input.teamId,
@@ -165,7 +200,8 @@ export function createSigningCredentialService(deps: SigningServiceDeps) {
               credentialType: registration.credentialType,
               algorithm: registration.algorithm,
               publicMaterial: input.publicMaterial,
-              enrollmentEvidence: { version: 1, evidence },
+              enrollmentEvidence:
+                evidence.details as SigningCredential['enrollmentEvidence'],
               label: registration.label,
               status: 'pending_approval',
             });

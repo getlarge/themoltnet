@@ -5,17 +5,21 @@ import {
   ConflictProblemDetailsSchema,
   ProblemDetailsSchema,
   TeamHeaderRequiredSchema,
-  VerificationMethodSchema,
 } from '@moltnet/models';
+import {
+  assertNoPrivateSigningMaterial,
+  SigningCredentialError,
+} from '@moltnet/signing-workflows';
 import type { FastifyInstance } from 'fastify';
 import { Type } from 'typebox';
 
+import { createProblem } from '../problems/index.js';
 import {
+  BeginPreviewSignCredentialRegistrationSchema,
+  CompletePreviewSignCredentialRegistrationSchema,
   SigningCredentialListSchema,
   SigningCredentialRegistrationSchema,
   SigningCredentialSchema,
-  SigningMethodValueSchema,
-  VersionedJsonObjectSchema,
 } from '../schemas.js';
 import {
   batchInflateRowsWithCreator,
@@ -28,6 +32,19 @@ const ParamsSchema = Type.Object({
   id: Type.String({ format: 'uuid' }),
 });
 const SIGNING_JSON_BODY_LIMIT = 64 * 1024;
+
+function rejectPrivateRegistrationMaterial(body: {
+  publicMaterial?: unknown;
+}): void {
+  try {
+    assertNoPrivateSigningMaterial(body.publicMaterial);
+  } catch (error) {
+    if (error instanceof SigningCredentialError) {
+      throw createProblem('validation-failed', error.message);
+    }
+    throw error;
+  }
+}
 
 const CREDENTIAL_TRANSITIONS = [
   {
@@ -103,17 +120,15 @@ export async function signingCredentialRoutes(fastify: FastifyInstance) {
         auth: { credentialBindingScope: 'team' },
         rateLimit: fastify.rateLimitConfig?.signing,
       },
+      preValidation: async (request) => {
+        rejectPrivateRegistrationMaterial(request.body);
+      },
       schema: {
         operationId: 'beginSigningCredentialRegistration',
         tags: ['crypto'],
         security: [{ sessionAuth: [] }, { cookieAuth: [] }],
         headers: TeamHeaderRequiredSchema,
-        body: Type.Object({
-          verificationMethod: VerificationMethodSchema,
-          credentialType: Type.String({ minLength: 1, maxLength: 100 }),
-          algorithm: Type.String({ minLength: 1, maxLength: 100 }),
-          label: Type.String({ minLength: 1, maxLength: 255 }),
-        }),
+        body: BeginPreviewSignCredentialRegistrationSchema,
         response: {
           201: Type.Ref(SigningCredentialRegistrationSchema.$id),
           400: Type.Ref(ProblemDetailsSchema.$id),
@@ -147,16 +162,16 @@ export async function signingCredentialRoutes(fastify: FastifyInstance) {
         rateLimit: fastify.rateLimitConfig?.signing,
         bodyLimit: SIGNING_JSON_BODY_LIMIT,
       },
+      preValidation: async (request) => {
+        rejectPrivateRegistrationMaterial(request.body);
+      },
       schema: {
         operationId: 'completeSigningCredentialRegistration',
         tags: ['crypto'],
         security: [{ sessionAuth: [] }, { cookieAuth: [] }],
         headers: TeamHeaderRequiredSchema,
         params: ParamsSchema,
-        body: Type.Object({
-          publicMaterial: VersionedJsonObjectSchema,
-          receipt: SigningMethodValueSchema,
-        }),
+        body: CompletePreviewSignCredentialRegistrationSchema,
         response: {
           201: Type.Ref(SigningCredentialSchema.$id),
           400: Type.Ref(ProblemDetailsSchema.$id),

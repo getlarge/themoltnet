@@ -1,6 +1,16 @@
 import type { AuthContext } from '@moltnet/auth';
 import { VERIFICATION_METHOD } from '@moltnet/models';
-import { describe, expect, it, vi } from 'vitest';
+import {
+  _resetSigningWorkflowsForTesting,
+  createPreviewSignSigningMethodDriver,
+  PREVIEW_SIGN_ALGORITHM,
+  PREVIEW_SIGN_CREDENTIAL_TYPE,
+  PREVIEW_SIGN_PUBLIC_MATERIAL_VERSION,
+  PREVIEW_SIGN_RECEIPT_VERSION,
+  type PreviewSignPublicMaterialV1,
+  registerSigningMethodDriver,
+} from '@moltnet/signing-workflows';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createSigningService } from './signing-service.js';
 import type { SigningServiceDeps } from './signing-service.types.js';
@@ -9,7 +19,50 @@ import type { SigningServiceError } from './signing-service-error.js';
 const agent = {
   subjectType: 'agent',
   identityId: 'agent-identity',
-} as AuthContext;
+} as Extract<AuthContext, { subjectType: 'agent' }>;
+
+const human = {
+  subjectType: 'human',
+  identityId: 'human-identity',
+  humanId: 'human-id',
+} as Extract<AuthContext, { subjectType: 'human' }>;
+
+const TEAM_ID = 'team-id';
+const REGISTRATION_ID = 'registration-id';
+const REQUEST_ID = 'request-id';
+const CREDENTIAL_ID = 'credential-id';
+const IKM = Uint8Array.from({ length: 32 }, (_, index) => 0x40 + index);
+const SIGNATURE =
+  'MEUCIQCEfiAIvamLdwfaDHCI2epg4Si6E3bAHlRDC6bl2fyNXAIgaRLbpQLIurx8zaf63gYqpcGF8CsP8kTMFNu9q2B2ORY';
+
+function publicMaterial(): PreviewSignPublicMaterialV1 {
+  const blindingKey = {
+    kty: 2 as const,
+    algorithm: -7,
+    curve: 1 as const,
+    x: 'bTvfMdDbSJiPFtRwSP3SQSPNKG5C0FEtqp9ya07PGN8',
+    y: 'Ze1CFpxpZ1-Tb_feX5vZOtvI6nMDaxbo2Qrb-r2t26c',
+  };
+  return {
+    version: PREVIEW_SIGN_PUBLIC_MATERIAL_VERSION,
+    outerCredentialId: 'b3V0ZXItY3JlZGVudGlhbA',
+    outerPublicKey: blindingKey,
+    previewKeyHandle: 'cHJldmlldy1rZXktaGFuZGxl',
+    seedPublicKey: {
+      kty: -65537,
+      algorithm: -65700,
+      derivedAlgorithm: -9,
+      blindingKey,
+      kemKey: {
+        kty: 2,
+        algorithm: -25,
+        curve: 1,
+        x: 'w4u91yhhlnM_oXfkO3PP09bXLNEcwLsskjbPhaQtz_U',
+        y: '36M5weB9_N_ajXvipaPHOCmR84ff4zKx3Y2m4GIs-zU',
+      },
+    },
+  };
+}
 
 function createDeps(
   overrides: Partial<SigningServiceDeps> = {},
@@ -31,7 +84,67 @@ function createDeps(
   };
 }
 
+function pendingRequest() {
+  return {
+    id: REQUEST_ID,
+    agentId: 'requester-agent',
+    verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+    requestedBy: { id: 'requester-agent', type: 'agent' as const },
+    signerConstraint: { id: human.humanId, type: 'human' as const },
+    teamId: TEAM_ID,
+    purpose: 'Approve production deployment',
+    claimedByHumanId: null,
+    signingCredentialId: null,
+    challenge: null,
+    methodState: null,
+    receipt: null,
+    message: 'deployment-cid',
+    nonce: 'request-nonce',
+    status: 'pending' as const,
+    signature: null,
+    valid: null,
+    workflowId: null,
+    createdAt: new Date('2026-08-01T12:00:00.000Z'),
+    expiresAt: new Date('2026-08-01T12:05:00.000Z'),
+    completedAt: null,
+    claimedAt: null,
+    rejectedAt: null,
+    rejectionReason: null,
+  };
+}
+
+function activeCredential() {
+  return {
+    id: CREDENTIAL_ID,
+    ownerAgentId: null,
+    ownerHumanId: human.humanId,
+    teamId: TEAM_ID,
+    verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+    credentialType: PREVIEW_SIGN_CREDENTIAL_TYPE,
+    algorithm: PREVIEW_SIGN_ALGORITHM,
+    publicMaterial: publicMaterial(),
+    enrollmentEvidence: { version: 1 },
+    label: 'Production key',
+    status: 'active' as const,
+    approvedByHumanId: 'manager-id',
+    createdAt: new Date('2026-08-01T11:00:00.000Z'),
+    updatedAt: new Date('2026-08-01T11:05:00.000Z'),
+    activatedAt: new Date('2026-08-01T11:05:00.000Z'),
+    suspendedAt: null,
+    revokedAt: null,
+  };
+}
+
 describe('createSigningService', () => {
+  beforeEach(() => {
+    _resetSigningWorkflowsForTesting();
+    const driver = createPreviewSignSigningMethodDriver({
+      randomBytes: () => IKM,
+      verifyPrehashedSignature: vi.fn().mockReturnValue(true),
+    });
+    registerSigningMethodDriver(driver.verificationMethod, driver);
+  });
+
   it('keeps signing credentials and signing requests behind one boundary', () => {
     const service = createSigningService(createDeps());
 
@@ -95,5 +208,423 @@ describe('createSigningService', () => {
       code: 'forbidden',
     } satisfies Partial<SigningServiceError>);
     expect(transition).not.toHaveBeenCalled();
+  });
+
+  it('begins typed previewSign enrollment with public material bound server-side', async () => {
+    const createRegistration = vi.fn(async (input) => input);
+    const service = createSigningService(
+      createDeps({
+        createId: () => REGISTRATION_ID,
+        now: () => new Date('2026-08-01T12:00:00.000Z'),
+        signingCredentialRepository: { createRegistration } as never,
+      }),
+    );
+
+    const registration = await service.credentials.beginRegistration({
+      actor: human,
+      teamId: TEAM_ID,
+      verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+      credentialType: PREVIEW_SIGN_CREDENTIAL_TYPE,
+      algorithm: PREVIEW_SIGN_ALGORITHM,
+      publicMaterial: publicMaterial(),
+      label: 'Production key',
+    });
+
+    expect(registration.challenge).toMatchObject({
+      verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+      value: {
+        version: 1,
+        outerCredentialId: publicMaterial().outerCredentialId,
+        previewKeyHandle: publicMaterial().previewKeyHandle,
+      },
+    });
+    expect(registration.challenge.value).not.toHaveProperty('ikm');
+    expect(createRegistration).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ownerHumanId: human.humanId,
+        teamId: TEAM_ID,
+        credentialType: PREVIEW_SIGN_CREDENTIAL_TYPE,
+        algorithm: PREVIEW_SIGN_ALGORITHM,
+        methodState: {
+          verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+          value: expect.not.objectContaining({ ikm: expect.anything() }),
+        },
+      }),
+    );
+  });
+
+  it('rejects malformed previewSign material before creating a registration', async () => {
+    const createRegistration = vi.fn();
+    const service = createSigningService(
+      createDeps({
+        signingCredentialRepository: { createRegistration } as never,
+      }),
+    );
+
+    await expect(
+      service.credentials.beginRegistration({
+        actor: human,
+        teamId: TEAM_ID,
+        verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+        credentialType: PREVIEW_SIGN_CREDENTIAL_TYPE,
+        algorithm: PREVIEW_SIGN_ALGORITHM,
+        publicMaterial: {
+          ...publicMaterial(),
+          seedPublicKey: {
+            ...publicMaterial().seedPublicKey,
+            derivedAlgorithm: -7,
+          },
+        },
+        label: 'Malformed key',
+      }),
+    ).rejects.toMatchObject({ code: 'validation_failed' });
+    expect(createRegistration).not.toHaveBeenCalled();
+  });
+
+  it('verifies enrollment proof before atomically persisting normalized evidence', async () => {
+    const now = new Date('2026-08-01T12:00:00.000Z');
+    const createRegistration = vi.fn(async (input) => input);
+    const create = vi.fn(async (input) => ({
+      id: 'credential-id',
+      ...input,
+    }));
+    const consumeRegistration = vi.fn(async (id) => ({ id }));
+    const transactionRunner = {
+      runInTransaction: vi.fn(async (task) => task()),
+    };
+    const deps = createDeps({
+      createId: () => REGISTRATION_ID,
+      now: () => now,
+      signingCredentialRepository: {
+        createRegistration,
+        create,
+        consumeRegistration,
+      } as never,
+      transactionRunner: transactionRunner as never,
+    });
+    const service = createSigningService(deps);
+    await service.credentials.beginRegistration({
+      actor: human,
+      teamId: TEAM_ID,
+      verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+      credentialType: PREVIEW_SIGN_CREDENTIAL_TYPE,
+      algorithm: PREVIEW_SIGN_ALGORITHM,
+      publicMaterial: publicMaterial(),
+      label: 'Production key',
+    });
+    const registration = createRegistration.mock.calls[0]?.[0];
+    deps.signingCredentialRepository.lockRegistrationForCompletion = vi
+      .fn()
+      .mockResolvedValue({
+        ...registration,
+        createdAt: now,
+        consumedAt: null,
+      });
+
+    await service.credentials.completeRegistration({
+      actor: human,
+      teamId: TEAM_ID,
+      registrationId: REGISTRATION_ID,
+      publicMaterial: publicMaterial(),
+      receipt: {
+        verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+        value: {
+          version: PREVIEW_SIGN_RECEIPT_VERSION,
+          signature: SIGNATURE,
+        },
+      },
+    });
+
+    expect(transactionRunner.runInTransaction).toHaveBeenCalledTimes(1);
+    expect(consumeRegistration).toHaveBeenCalledWith(
+      REGISTRATION_ID,
+      human.humanId,
+    );
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        publicMaterial: publicMaterial(),
+        enrollmentEvidence: expect.objectContaining({
+          version: 1,
+          requestId: REGISTRATION_ID,
+          credentialId: REGISTRATION_ID,
+          signature: SIGNATURE,
+        }),
+        status: 'pending_approval',
+      }),
+    );
+  });
+
+  it('rejects enrollment material substitution, expiry, and replay', async () => {
+    const lockRegistrationForCompletion = vi.fn().mockResolvedValue(null);
+    const consumeRegistration = vi.fn();
+    const create = vi.fn();
+    const service = createSigningService(
+      createDeps({
+        signingCredentialRepository: {
+          lockRegistrationForCompletion,
+          consumeRegistration,
+          create,
+        } as never,
+        transactionRunner: {
+          runInTransaction: vi.fn(async (task) => task()),
+        } as never,
+      }),
+    );
+
+    await expect(
+      service.credentials.completeRegistration({
+        actor: human,
+        teamId: TEAM_ID,
+        registrationId: REGISTRATION_ID,
+        publicMaterial: publicMaterial(),
+        receipt: {
+          verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+          value: {
+            version: PREVIEW_SIGN_RECEIPT_VERSION,
+            signature: SIGNATURE,
+          },
+        },
+      }),
+    ).rejects.toMatchObject({ code: 'conflict' });
+    expect(consumeRegistration).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it('derives and persists one previewSign verifier state at atomic claim', async () => {
+    const pending = pendingRequest();
+    const claim = vi.fn(async (input) => ({
+      ...pending,
+      status: 'claimed' as const,
+      claimedByHumanId: human.humanId,
+      signingCredentialId: CREDENTIAL_ID,
+      challenge: input.challenge,
+      methodState: input.methodState,
+      claimedAt: new Date('2026-08-01T12:01:00.000Z'),
+    }));
+    const service = createSigningService(
+      createDeps({
+        now: () => new Date('2026-08-01T12:01:00.000Z'),
+        signingRequestRepository: {
+          findById: vi.fn().mockResolvedValue(pending),
+          claim,
+        } as never,
+        signingCredentialRepository: {
+          findActiveCompatible: vi.fn().mockResolvedValue(activeCredential()),
+        } as never,
+        relationshipReader: {
+          listTeamIdsAndRolesBySubject: vi
+            .fn()
+            .mockResolvedValue([{ teamId: TEAM_ID, relation: 'members' }]),
+          listGroupIdsBySubject: vi.fn().mockResolvedValue([]),
+        } as never,
+        groupRepository: {
+          findByIds: vi.fn().mockResolvedValue(new Map()),
+        } as never,
+      }),
+    );
+
+    const claimed = await service.requests.claim({
+      actor: human,
+      teamId: TEAM_ID,
+      requestId: REQUEST_ID,
+      credentialId: CREDENTIAL_ID,
+    });
+
+    expect(claimed.challenge).toMatchObject({
+      verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+      value: {
+        version: 1,
+        outerCredentialId: publicMaterial().outerCredentialId,
+        previewKeyHandle: publicMaterial().previewKeyHandle,
+      },
+    });
+    expect(claimed.challenge?.value).not.toHaveProperty('ikm');
+    expect(claimed.methodState?.value).not.toHaveProperty('ikm');
+    expect(claim).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns an existing claim without deriving a second ARKG key', async () => {
+    const prepareRandom = vi.fn(() => IKM);
+    _resetSigningWorkflowsForTesting();
+    const driver = createPreviewSignSigningMethodDriver({
+      randomBytes: prepareRandom,
+      verifyPrehashedSignature: vi.fn().mockReturnValue(true),
+    });
+    registerSigningMethodDriver(driver.verificationMethod, driver);
+    const alreadyClaimed = {
+      ...pendingRequest(),
+      status: 'claimed' as const,
+      claimedByHumanId: human.humanId,
+      signingCredentialId: CREDENTIAL_ID,
+      challenge: {
+        verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+        value: { version: 1, digest: 'existing' },
+      },
+      methodState: {
+        verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+        value: { version: 1, derivedPublicKey: 'existing' },
+      },
+      claimedAt: new Date('2026-08-01T12:01:00.000Z'),
+    };
+    const findActiveCompatible = vi.fn();
+    const claim = vi.fn();
+    const service = createSigningService(
+      createDeps({
+        now: () => new Date('2026-08-01T12:02:00.000Z'),
+        signingRequestRepository: {
+          findById: vi.fn().mockResolvedValue(alreadyClaimed),
+          claim,
+        } as never,
+        signingCredentialRepository: { findActiveCompatible } as never,
+      }),
+    );
+
+    await expect(
+      service.requests.claim({
+        actor: human,
+        teamId: TEAM_ID,
+        requestId: REQUEST_ID,
+        credentialId: CREDENTIAL_ID,
+      }),
+    ).resolves.toBe(alreadyClaimed);
+    expect(prepareRandom).not.toHaveBeenCalled();
+    expect(findActiveCompatible).not.toHaveBeenCalled();
+    expect(claim).not.toHaveBeenCalled();
+  });
+
+  it('stores normalized immutable evidence through atomic completion', async () => {
+    const pending = pendingRequest();
+    const claimInput: { challenge?: unknown; methodState?: unknown } = {};
+    const claim = vi.fn(async (input) => {
+      Object.assign(claimInput, input);
+      return {
+        ...pending,
+        status: 'claimed' as const,
+        claimedByHumanId: human.humanId,
+        signingCredentialId: CREDENTIAL_ID,
+        challenge: input.challenge,
+        methodState: input.methodState,
+        claimedAt: new Date('2026-08-01T12:01:00.000Z'),
+      };
+    });
+    const completeClaim = vi.fn(async (input) => ({
+      ...pending,
+      status: 'completed' as const,
+      claimedByHumanId: human.humanId,
+      signingCredentialId: CREDENTIAL_ID,
+      challenge: claimInput.challenge,
+      methodState: claimInput.methodState,
+      receipt: input.receipt,
+      valid: true,
+      completedAt: new Date('2026-08-01T12:02:00.000Z'),
+    }));
+    const signingRequestRepository = {
+      findById: vi.fn().mockResolvedValue(pending),
+      claim,
+      lockClaimForCompletion: vi.fn(),
+      completeClaim,
+    };
+    const service = createSigningService(
+      createDeps({
+        now: () => new Date('2026-08-01T12:01:00.000Z'),
+        signingRequestRepository: signingRequestRepository as never,
+        signingCredentialRepository: {
+          findActiveCompatible: vi.fn().mockResolvedValue(activeCredential()),
+        } as never,
+        relationshipReader: {
+          listTeamIdsAndRolesBySubject: vi
+            .fn()
+            .mockResolvedValue([{ teamId: TEAM_ID, relation: 'members' }]),
+          listGroupIdsBySubject: vi.fn().mockResolvedValue([]),
+        } as never,
+        groupRepository: {
+          findByIds: vi.fn().mockResolvedValue(new Map()),
+        } as never,
+        transactionRunner: {
+          runInTransaction: vi.fn(async (task) => task()),
+        } as never,
+      }),
+    );
+    const claimed = await service.requests.claim({
+      actor: human,
+      teamId: TEAM_ID,
+      requestId: REQUEST_ID,
+      credentialId: CREDENTIAL_ID,
+    });
+    signingRequestRepository.findById.mockResolvedValue(claimed);
+    signingRequestRepository.lockClaimForCompletion.mockResolvedValue(claimed);
+
+    await service.requests.complete({
+      actor: human,
+      teamId: TEAM_ID,
+      requestId: REQUEST_ID,
+      receipt: {
+        verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+        value: {
+          version: PREVIEW_SIGN_RECEIPT_VERSION,
+          signature: SIGNATURE,
+        },
+      },
+    });
+
+    expect(completeClaim).toHaveBeenCalledWith(
+      expect.objectContaining({
+        receipt: {
+          verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+          value: expect.objectContaining({
+            version: 1,
+            requestId: REQUEST_ID,
+            credentialId: CREDENTIAL_ID,
+            teamId: TEAM_ID,
+            claimantId: human.humanId,
+            nonce: pending.nonce,
+            purpose: pending.purpose,
+            signature: SIGNATURE,
+          }),
+        },
+        valid: true,
+      }),
+    );
+  });
+
+  it('refuses completion after credential revocation', async () => {
+    const claimed = {
+      ...pendingRequest(),
+      status: 'claimed' as const,
+      claimedByHumanId: human.humanId,
+      signingCredentialId: CREDENTIAL_ID,
+      methodState: {
+        verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+        value: { version: 1 },
+      },
+    };
+    const lockClaimForCompletion = vi.fn();
+    const service = createSigningService(
+      createDeps({
+        signingRequestRepository: {
+          findById: vi.fn().mockResolvedValue(claimed),
+          lockClaimForCompletion,
+        } as never,
+        signingCredentialRepository: {
+          findActiveCompatible: vi.fn().mockResolvedValue(null),
+        } as never,
+      }),
+    );
+
+    await expect(
+      service.requests.complete({
+        actor: human,
+        teamId: TEAM_ID,
+        requestId: REQUEST_ID,
+        receipt: {
+          verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+          value: {
+            version: PREVIEW_SIGN_RECEIPT_VERSION,
+            signature: SIGNATURE,
+          },
+        },
+      }),
+    ).rejects.toMatchObject({ code: 'validation_failed' });
+    expect(lockClaimForCompletion).not.toHaveBeenCalled();
   });
 });

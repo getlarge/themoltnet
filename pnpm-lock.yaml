@@ -1269,6 +1269,12 @@ importers:
         specifier: 'catalog:'
         version: 5.9.2
     devDependencies:
+      '@noble/curves':
+        specifier: 'catalog:'
+        version: 2.0.1
+      '@themoltnet/ctap':
+        specifier: workspace:*
+        version: link:../../libs/ctap
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
@@ -2151,6 +2157,9 @@ importers:
       '@moltnet/models':
         specifier: workspace:*
         version: link:../models
+      '@themoltnet/yubikey-preview-sign':
+        specifier: workspace:*
+        version: link:../yubikey-preview-sign
     devDependencies:
       typescript:
         specifier: 'catalog:'

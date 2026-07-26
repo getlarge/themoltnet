@@ -1,11 +1,10 @@
-import { isDeepStrictEqual } from 'node:util';
-
 import { type AuthContext, teamRelationToRole } from '@moltnet/auth';
 import { buildSigningBytes } from '@moltnet/crypto-service';
 import { DBOS, type SigningRequest } from '@moltnet/database';
 import { SIGNER_CONSTRAINT_TYPE, VERIFICATION_METHOD } from '@moltnet/models';
 import {
   assertSigningVerifierRegistered,
+  isSigningReceiptReplay,
   prepareSigningClaim,
   SigningResultTimeoutError,
   signingWorkflows,
@@ -258,9 +257,15 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
       }
       try {
         const prepared = await prepareSigningClaim({
+          operation: 'signing-request',
           verificationMethod: row.verificationMethod,
           requestId: row.id,
           credentialId: credential.id,
+          teamId: row.teamId,
+          claimantId: actor.humanId,
+          purpose: row.purpose ?? undefined,
+          nonce: row.nonce,
+          expiresAt: row.expiresAt.toISOString(),
           signingPayload: signingPayload(row),
           credentialPublicMaterial: asSigningMethodJson(
             credential.publicMaterial,
@@ -303,12 +308,22 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
     }) {
       const actor = requireHuman(input.actor);
       const row = await deps.signingRequestRepository.findById(input.requestId);
+      const methodReceipt = () =>
+        toSigningMethodReceipt({
+          verificationMethod: input.receipt.verificationMethod,
+          value: asSigningMethodJson(input.receipt.value),
+        });
       if (
         row?.teamId === input.teamId &&
         row.status === 'completed' &&
         row.claimedByHumanId === actor.humanId &&
         row.signingCredentialId &&
-        isDeepStrictEqual(row.receipt, input.receipt)
+        row.receipt &&
+        isSigningReceiptReplay({
+          verificationMethod: row.verificationMethod,
+          receipt: methodReceipt(),
+          evidence: asSigningMethodJson(row.receipt.value),
+        })
       ) {
         return row;
       }
@@ -362,7 +377,12 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
                 current?.status === 'completed' &&
                 current.claimedByHumanId === actor.humanId &&
                 current.signingCredentialId === credential.id &&
-                isDeepStrictEqual(current.receipt, input.receipt)
+                current.receipt &&
+                isSigningReceiptReplay({
+                  verificationMethod: current.verificationMethod,
+                  receipt: methodReceipt(),
+                  evidence: asSigningMethodJson(current.receipt.value),
+                })
               ) {
                 return current;
               }
@@ -371,25 +391,42 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
                 'Signing request was already completed, rejected, or expired',
               );
             }
-            await verifySigningReceipt({
+            const evidence = await verifySigningReceipt({
+              operation: 'signing-request',
               verificationMethod: locked.verificationMethod,
               requestId: locked.id,
               credentialId: credential.id,
+              teamId: locked.teamId ?? undefined,
+              claimantId: actor.humanId,
+              purpose: locked.purpose ?? undefined,
+              nonce: locked.nonce,
+              expiresAt: locked.expiresAt.toISOString(),
               signingPayload: signingPayload(locked),
               credentialPublicMaterial: asSigningMethodJson(
                 credential.publicMaterial,
               ),
               verifierState: asSigningMethodJson(locked.methodState.value),
-              receipt: toSigningMethodReceipt({
-                verificationMethod: input.receipt.verificationMethod,
-                value: asSigningMethodJson(input.receipt.value),
-              }),
+              receipt: methodReceipt(),
             });
+            if (
+              evidence.details === undefined ||
+              evidence.details === null ||
+              Array.isArray(evidence.details) ||
+              typeof evidence.details !== 'object'
+            ) {
+              throw new SigningServiceError(
+                'validation_failed',
+                'Signing method returned invalid verification evidence',
+              );
+            }
             return deps.signingRequestRepository.completeClaim({
               id: locked.id,
               humanId: actor.humanId,
               credentialId: credential.id,
-              receipt: input.receipt,
+              receipt: {
+                verificationMethod: locked.verificationMethod,
+                value: evidence.details,
+              },
               valid: true,
             });
           },

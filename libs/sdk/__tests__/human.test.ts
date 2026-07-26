@@ -186,8 +186,39 @@ describe('Human client facade', () => {
     await human.crypto.signingCredentials.startRegistration(
       {
         verificationMethod: 'human-hardware-previewsign',
-        credentialType: 'test-only',
-        algorithm: 'test-only',
+        credentialType: 'preview-sign-arkg',
+        algorithm: 'arkg-p256-esp256',
+        publicMaterial: {
+          version: 1,
+          outerCredentialId: 'Y3JlZGVudGlhbA',
+          outerPublicKey: {
+            kty: 2,
+            algorithm: -7,
+            curve: 1,
+            x: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+            y: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+          },
+          previewKeyHandle: 'a2V5LWhhbmRsZQ',
+          seedPublicKey: {
+            kty: -65537,
+            algorithm: -65700,
+            derivedAlgorithm: -9,
+            blindingKey: {
+              kty: 2,
+              algorithm: -7,
+              curve: 1,
+              x: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+              y: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+            },
+            kemKey: {
+              kty: 2,
+              algorithm: -25,
+              curve: 1,
+              x: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+              y: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+            },
+          },
+        },
         label: 'Laptop signing credential',
       },
       { teamId: 'team-1' },

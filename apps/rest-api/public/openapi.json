@@ -505,6 +505,45 @@
         ],
         "type": "object"
       },
+      "BeginPreviewSignCredentialRegistration": {
+        "additionalProperties": false,
+        "properties": {
+          "algorithm": {
+            "enum": [
+              "arkg-p256-esp256"
+            ],
+            "type": "string"
+          },
+          "credentialType": {
+            "enum": [
+              "preview-sign-arkg"
+            ],
+            "type": "string"
+          },
+          "label": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "publicMaterial": {
+            "$ref": "#/components/schemas/PreviewSignPublicMaterial"
+          },
+          "verificationMethod": {
+            "enum": [
+              "human-hardware-previewsign"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "verificationMethod",
+          "credentialType",
+          "algorithm",
+          "publicMaterial",
+          "label"
+        ],
+        "type": "object"
+      },
       "BeginRuntimeSlotBody": {
         "additionalProperties": false,
         "properties": {
@@ -782,6 +821,34 @@
           "compressionRatio",
           "budgetUtilization",
           "elapsedMs"
+        ],
+        "type": "object"
+      },
+      "CompletePreviewSignCredentialRegistration": {
+        "additionalProperties": false,
+        "properties": {
+          "publicMaterial": {
+            "$ref": "#/components/schemas/PreviewSignPublicMaterial"
+          },
+          "receipt": {
+            "$ref": "#/components/schemas/PreviewSignReceiptValue"
+          }
+        },
+        "required": [
+          "publicMaterial",
+          "receipt"
+        ],
+        "type": "object"
+      },
+      "CompletePreviewSignRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "receipt": {
+            "$ref": "#/components/schemas/PreviewSignReceiptValue"
+          }
+        },
+        "required": [
+          "receipt"
         ],
         "type": "object"
       },
@@ -5075,6 +5142,460 @@
             "type": "string"
           }
         ]
+      },
+      "PreviewSignArkgSeedPublicKey": {
+        "additionalProperties": false,
+        "properties": {
+          "algorithm": {
+            "enum": [
+              -65700
+            ],
+            "type": "number"
+          },
+          "blindingKey": {
+            "$ref": "#/components/schemas/PreviewSignEs256PublicKey"
+          },
+          "derivedAlgorithm": {
+            "enum": [
+              -9
+            ],
+            "type": "number"
+          },
+          "kemKey": {
+            "$ref": "#/components/schemas/PreviewSignEcdhEsHkdf256PublicKey"
+          },
+          "kty": {
+            "enum": [
+              -65537
+            ],
+            "type": "number"
+          }
+        },
+        "required": [
+          "kty",
+          "algorithm",
+          "derivedAlgorithm",
+          "blindingKey",
+          "kemKey"
+        ],
+        "type": "object"
+      },
+      "PreviewSignChallenge": {
+        "additionalProperties": false,
+        "properties": {
+          "additionalArguments": {
+            "maxLength": 5462,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "type": "string"
+          },
+          "digest": {
+            "maxLength": 43,
+            "minLength": 43,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "type": "string"
+          },
+          "envelope": {
+            "maxLength": 5462,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "type": "string"
+          },
+          "outerCredentialId": {
+            "maxLength": 5462,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "type": "string"
+          },
+          "outerPublicKey": {
+            "$ref": "#/components/schemas/PreviewSignEs256PublicKey"
+          },
+          "previewKeyHandle": {
+            "maxLength": 5462,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "type": "string"
+          },
+          "verificationMethod": {
+            "enum": [
+              "human-hardware-previewsign"
+            ],
+            "type": "string"
+          },
+          "version": {
+            "enum": [
+              1
+            ],
+            "type": "number"
+          }
+        },
+        "required": [
+          "verificationMethod",
+          "version",
+          "envelope",
+          "digest",
+          "additionalArguments",
+          "outerCredentialId",
+          "outerPublicKey",
+          "previewKeyHandle"
+        ],
+        "type": "object"
+      },
+      "PreviewSignChallengeValue": {
+        "additionalProperties": false,
+        "properties": {
+          "value": {
+            "$ref": "#/components/schemas/PreviewSignChallenge"
+          },
+          "verificationMethod": {
+            "enum": [
+              "human-hardware-previewsign"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "verificationMethod",
+          "value"
+        ],
+        "type": "object"
+      },
+      "PreviewSignEcdhEsHkdf256PublicKey": {
+        "additionalProperties": false,
+        "properties": {
+          "algorithm": {
+            "enum": [
+              -25
+            ],
+            "type": "number"
+          },
+          "curve": {
+            "enum": [
+              1
+            ],
+            "type": "number"
+          },
+          "kty": {
+            "enum": [
+              2
+            ],
+            "type": "number"
+          },
+          "x": {
+            "maxLength": 43,
+            "minLength": 43,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "type": "string"
+          },
+          "y": {
+            "maxLength": 43,
+            "minLength": 43,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kty",
+          "algorithm",
+          "curve",
+          "x",
+          "y"
+        ],
+        "type": "object"
+      },
+      "PreviewSignEs256PublicKey": {
+        "additionalProperties": false,
+        "properties": {
+          "algorithm": {
+            "enum": [
+              -7
+            ],
+            "type": "number"
+          },
+          "curve": {
+            "enum": [
+              1
+            ],
+            "type": "number"
+          },
+          "kty": {
+            "enum": [
+              2
+            ],
+            "type": "number"
+          },
+          "x": {
+            "maxLength": 43,
+            "minLength": 43,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "type": "string"
+          },
+          "y": {
+            "maxLength": 43,
+            "minLength": 43,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kty",
+          "algorithm",
+          "curve",
+          "x",
+          "y"
+        ],
+        "type": "object"
+      },
+      "PreviewSignEsp256PublicKey": {
+        "additionalProperties": false,
+        "properties": {
+          "algorithm": {
+            "enum": [
+              -9
+            ],
+            "type": "number"
+          },
+          "curve": {
+            "enum": [
+              1
+            ],
+            "type": "number"
+          },
+          "kty": {
+            "enum": [
+              2
+            ],
+            "type": "number"
+          },
+          "x": {
+            "maxLength": 43,
+            "minLength": 43,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "type": "string"
+          },
+          "y": {
+            "maxLength": 43,
+            "minLength": 43,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kty",
+          "algorithm",
+          "curve",
+          "x",
+          "y"
+        ],
+        "type": "object"
+      },
+      "PreviewSignEvidence": {
+        "additionalProperties": false,
+        "properties": {
+          "additionalArgumentsHash": {
+            "maxLength": 43,
+            "minLength": 43,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "type": "string"
+          },
+          "claimantId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "credentialId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "derivedPublicKey": {
+            "$ref": "#/components/schemas/PreviewSignEsp256PublicKey"
+          },
+          "digest": {
+            "maxLength": 43,
+            "minLength": 43,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "type": "string"
+          },
+          "envelope": {
+            "maxLength": 5462,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "nonce": {
+            "type": "string"
+          },
+          "operation": {
+            "anyOf": [
+              {
+                "enum": [
+                  "credential-registration"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "signing-request"
+                ],
+                "type": "string"
+              }
+            ]
+          },
+          "proofHash": {
+            "maxLength": 43,
+            "minLength": 43,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "type": "string"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "requestId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "signature": {
+            "maxLength": 107,
+            "minLength": 11,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "type": "string"
+          },
+          "teamId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "verificationMethod": {
+            "enum": [
+              "human-hardware-previewsign"
+            ],
+            "type": "string"
+          },
+          "version": {
+            "enum": [
+              1
+            ],
+            "type": "number"
+          }
+        },
+        "required": [
+          "version",
+          "operation",
+          "requestId",
+          "credentialId",
+          "teamId",
+          "claimantId",
+          "verificationMethod",
+          "nonce",
+          "purpose",
+          "expiresAt",
+          "envelope",
+          "digest",
+          "additionalArgumentsHash",
+          "derivedPublicKey",
+          "signature",
+          "proofHash"
+        ],
+        "type": "object"
+      },
+      "PreviewSignEvidenceValue": {
+        "additionalProperties": false,
+        "properties": {
+          "value": {
+            "$ref": "#/components/schemas/PreviewSignEvidence"
+          },
+          "verificationMethod": {
+            "enum": [
+              "human-hardware-previewsign"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "verificationMethod",
+          "value"
+        ],
+        "type": "object"
+      },
+      "PreviewSignPublicMaterial": {
+        "additionalProperties": false,
+        "properties": {
+          "outerCredentialId": {
+            "maxLength": 5462,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "type": "string"
+          },
+          "outerPublicKey": {
+            "$ref": "#/components/schemas/PreviewSignEs256PublicKey"
+          },
+          "previewKeyHandle": {
+            "maxLength": 5462,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "type": "string"
+          },
+          "seedPublicKey": {
+            "$ref": "#/components/schemas/PreviewSignArkgSeedPublicKey"
+          },
+          "version": {
+            "enum": [
+              1
+            ],
+            "type": "number"
+          }
+        },
+        "required": [
+          "version",
+          "outerCredentialId",
+          "outerPublicKey",
+          "previewKeyHandle",
+          "seedPublicKey"
+        ],
+        "type": "object"
+      },
+      "PreviewSignReceipt": {
+        "additionalProperties": false,
+        "properties": {
+          "signature": {
+            "maxLength": 107,
+            "minLength": 11,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "type": "string"
+          },
+          "version": {
+            "enum": [
+              1
+            ],
+            "type": "number"
+          }
+        },
+        "required": [
+          "version",
+          "signature"
+        ],
+        "type": "object"
+      },
+      "PreviewSignReceiptValue": {
+        "additionalProperties": false,
+        "properties": {
+          "value": {
+            "$ref": "#/components/schemas/PreviewSignReceipt"
+          },
+          "verificationMethod": {
+            "enum": [
+              "human-hardware-previewsign"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "verificationMethod",
+          "value"
+        ],
+        "type": "object"
       },
       "PrincipalIdentity": {
         "anyOf": [
@@ -9539,6 +10060,9 @@
             ]
           },
           "algorithm": {
+            "enum": [
+              "arkg-p256-esp256"
+            ],
             "type": "string"
           },
           "approvedByHumanId": {
@@ -9557,27 +10081,13 @@
             "type": "string"
           },
           "credentialType": {
+            "enum": [
+              "preview-sign-arkg"
+            ],
             "type": "string"
           },
           "enrollmentEvidence": {
-            "allOf": [
-              {
-                "properties": {
-                  "version": {
-                    "minimum": 1,
-                    "type": "integer"
-                  }
-                },
-                "required": [
-                  "version"
-                ],
-                "type": "object"
-              },
-              {
-                "additionalProperties": {},
-                "type": "object"
-              }
-            ]
+            "$ref": "#/components/schemas/PreviewSignEvidence"
           },
           "id": {
             "format": "uuid",
@@ -9661,24 +10171,7 @@
             }
           },
           "publicMaterial": {
-            "allOf": [
-              {
-                "properties": {
-                  "version": {
-                    "minimum": 1,
-                    "type": "integer"
-                  }
-                },
-                "required": [
-                  "version"
-                ],
-                "type": "object"
-              },
-              {
-                "additionalProperties": {},
-                "type": "object"
-              }
-            ]
+            "$ref": "#/components/schemas/PreviewSignPublicMaterial"
           },
           "revokedAt": {
             "anyOf": [
@@ -9739,21 +10232,10 @@
             "type": "string"
           },
           "verificationMethod": {
-            "anyOf": [
-              {
-                "enum": [
-                  "agent-ed25519"
-                ],
-                "type": "string"
-              },
-              {
-                "enum": [
-                  "human-hardware-previewsign"
-                ],
-                "type": "string"
-              }
+            "enum": [
+              "human-hardware-previewsign"
             ],
-            "description": "Stable signing verification method identifier"
+            "type": "string"
           }
         },
         "required": [
@@ -9805,34 +10287,7 @@
       "SigningCredentialRegistration": {
         "properties": {
           "challenge": {
-            "properties": {
-              "value": {
-                "additionalProperties": {},
-                "type": "object"
-              },
-              "verificationMethod": {
-                "anyOf": [
-                  {
-                    "enum": [
-                      "agent-ed25519"
-                    ],
-                    "type": "string"
-                  },
-                  {
-                    "enum": [
-                      "human-hardware-previewsign"
-                    ],
-                    "type": "string"
-                  }
-                ],
-                "description": "Stable signing verification method identifier"
-              }
-            },
-            "required": [
-              "verificationMethod",
-              "value"
-            ],
-            "type": "object"
+            "$ref": "#/components/schemas/PreviewSignChallengeValue"
           },
           "expiresAt": {
             "format": "date-time",
@@ -9859,8 +10314,7 @@
           "challenge": {
             "anyOf": [
               {
-                "additionalProperties": {},
-                "type": "object"
+                "$ref": "#/components/schemas/PreviewSignChallengeValue"
               },
               {
                 "type": "null"
@@ -9923,6 +10377,16 @@
             "anyOf": [
               {
                 "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "receipt": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PreviewSignEvidenceValue"
               },
               {
                 "type": "null"
@@ -14858,15 +15322,18 @@
           "content": {
             "application/json": {
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "algorithm": {
-                    "maxLength": 100,
-                    "minLength": 1,
+                    "enum": [
+                      "arkg-p256-esp256"
+                    ],
                     "type": "string"
                   },
                   "credentialType": {
-                    "maxLength": 100,
-                    "minLength": 1,
+                    "enum": [
+                      "preview-sign-arkg"
+                    ],
                     "type": "string"
                   },
                   "label": {
@@ -14874,28 +15341,21 @@
                     "minLength": 1,
                     "type": "string"
                   },
+                  "publicMaterial": {
+                    "$ref": "#/components/schemas/PreviewSignPublicMaterial"
+                  },
                   "verificationMethod": {
-                    "anyOf": [
-                      {
-                        "enum": [
-                          "agent-ed25519"
-                        ],
-                        "type": "string"
-                      },
-                      {
-                        "enum": [
-                          "human-hardware-previewsign"
-                        ],
-                        "type": "string"
-                      }
+                    "enum": [
+                      "human-hardware-previewsign"
                     ],
-                    "description": "Stable signing verification method identifier"
+                    "type": "string"
                   }
                 },
                 "required": [
                   "verificationMethod",
                   "credentialType",
                   "algorithm",
+                  "publicMaterial",
                   "label"
                 ],
                 "type": "object"
@@ -14997,56 +15457,13 @@
           "content": {
             "application/json": {
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "publicMaterial": {
-                    "allOf": [
-                      {
-                        "properties": {
-                          "version": {
-                            "minimum": 1,
-                            "type": "integer"
-                          }
-                        },
-                        "required": [
-                          "version"
-                        ],
-                        "type": "object"
-                      },
-                      {
-                        "additionalProperties": {},
-                        "type": "object"
-                      }
-                    ]
+                    "$ref": "#/components/schemas/PreviewSignPublicMaterial"
                   },
                   "receipt": {
-                    "properties": {
-                      "value": {
-                        "additionalProperties": {},
-                        "type": "object"
-                      },
-                      "verificationMethod": {
-                        "anyOf": [
-                          {
-                            "enum": [
-                              "agent-ed25519"
-                            ],
-                            "type": "string"
-                          },
-                          {
-                            "enum": [
-                              "human-hardware-previewsign"
-                            ],
-                            "type": "string"
-                          }
-                        ],
-                        "description": "Stable signing verification method identifier"
-                      }
-                    },
-                    "required": [
-                      "verificationMethod",
-                      "value"
-                    ],
-                    "type": "object"
+                    "$ref": "#/components/schemas/PreviewSignReceiptValue"
                   }
                 },
                 "required": [
@@ -16099,36 +16516,10 @@
           "content": {
             "application/json": {
               "schema": {
+                "additionalProperties": false,
                 "properties": {
                   "receipt": {
-                    "properties": {
-                      "value": {
-                        "additionalProperties": {},
-                        "type": "object"
-                      },
-                      "verificationMethod": {
-                        "anyOf": [
-                          {
-                            "enum": [
-                              "agent-ed25519"
-                            ],
-                            "type": "string"
-                          },
-                          {
-                            "enum": [
-                              "human-hardware-previewsign"
-                            ],
-                            "type": "string"
-                          }
-                        ],
-                        "description": "Stable signing verification method identifier"
-                      }
-                    },
-                    "required": [
-                      "verificationMethod",
-                      "value"
-                    ],
-                    "type": "object"
+                    "$ref": "#/components/schemas/PreviewSignReceiptValue"
                   }
                 },
                 "required": [

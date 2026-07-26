@@ -1,3 +1,4 @@
+export * from './preview-sign-driver.js';
 export {
   assertNoPrivateSigningMaterial,
   SigningCredentialError,
@@ -9,6 +10,7 @@ export {
   assertSigningVerifierRegistered,
   Ed25519Verifier,
   initSigningWorkflows,
+  isSigningReceiptReplay,
   isSigningVerifierRegistered,
   type PreparedSigningChallenge,
   prepareSigningClaim,

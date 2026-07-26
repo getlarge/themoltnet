@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"strings"
 	"testing"
 	"time"
@@ -10,6 +11,75 @@ import (
 	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
 	"github.com/google/uuid"
 )
+
+func decodeSigningFixture[T any](value string) T {
+	var decoded T
+	if err := json.Unmarshal([]byte(value), &decoded); err != nil {
+		panic(err)
+	}
+	return decoded
+}
+
+func signingCommandPublicMaterial() moltnetapi.PreviewSignPublicMaterial {
+	return decodeSigningFixture[moltnetapi.PreviewSignPublicMaterial](`{
+		"version": 1,
+		"outerCredentialId": "Y3JlZGVudGlhbA",
+		"outerPublicKey": {
+			"kty": 2,
+			"algorithm": -7,
+			"curve": 1,
+			"x": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+			"y": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+		},
+		"previewKeyHandle": "a2V5LWhhbmRsZQ",
+		"seedPublicKey": {
+			"kty": -65537,
+			"algorithm": -65700,
+			"derivedAlgorithm": -9,
+			"blindingKey": {
+				"kty": 2,
+				"algorithm": -7,
+				"curve": 1,
+				"x": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+				"y": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+			},
+			"kemKey": {
+				"kty": 2,
+				"algorithm": -25,
+				"curve": 1,
+				"x": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+				"y": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+			}
+		}
+	}`)
+}
+
+func signingCommandEvidence() moltnetapi.PreviewSignEvidence {
+	return decodeSigningFixture[moltnetapi.PreviewSignEvidence](`{
+		"version": 1,
+		"operation": "credential-registration",
+		"requestId": "00000000-0000-0000-0000-000000000102",
+		"credentialId": "00000000-0000-0000-0000-000000000102",
+		"teamId": "00000000-0000-0000-0000-000000000103",
+		"claimantId": "00000000-0000-0000-0000-000000000104",
+		"verificationMethod": "human-hardware-previewsign",
+		"nonce": "00000000-0000-0000-0000-000000000105",
+		"purpose": "signing-credential-registration",
+		"expiresAt": "2030-08-01T12:05:00Z",
+		"envelope": "ZW52ZWxvcGU",
+		"digest": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+		"additionalArgumentsHash": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+		"derivedPublicKey": {
+			"kty": 2,
+			"algorithm": -9,
+			"curve": 1,
+			"x": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+			"y": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+		},
+		"signature": "MAYCAQECAQE",
+		"proofHash": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+	}`)
+}
 
 type stubSigningCommandsHandler struct {
 	moltnetapi.UnimplementedHandler
@@ -51,12 +121,12 @@ func signingCommandCredential() *moltnetapi.SigningCredential {
 		TeamId:             signingCommandTeamID,
 		Owner:              owner,
 		VerificationMethod: moltnetapi.SigningCredentialVerificationMethodHumanHardwarePreviewsign,
-		CredentialType:     "platform-key",
-		Algorithm:          "p256",
+		CredentialType:     moltnetapi.SigningCredentialCredentialTypePreviewSignArkg,
+		Algorithm:          moltnetapi.SigningCredentialAlgorithmArkgP256Esp256,
 		Label:              "Laptop key",
 		Status:             moltnetapi.SigningCredentialStatusActive,
-		PublicMaterial:     moltnetapi.SigningCredentialPublicMaterial{Version: 1},
-		EnrollmentEvidence: moltnetapi.SigningCredentialEnrollmentEvidence{Version: 1},
+		PublicMaterial:     signingCommandPublicMaterial(),
+		EnrollmentEvidence: signingCommandEvidence(),
 		CreatedAt:          time.Now(),
 		UpdatedAt:          time.Now(),
 	}

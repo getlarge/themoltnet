@@ -6,3 +6,13 @@ export interface CoseEc2PublicKey {
   x: string;
   y: string;
 }
+
+/** Browser-safe ARKG seed public material consumed by server-side derivation. */
+export interface CoseArkgSeedPublicKey {
+  kty: -65537;
+  algorithm: -65700;
+  derivedAlgorithm: -9;
+  blindingKey: CoseEc2PublicKey;
+  kemKey: CoseEc2PublicKey;
+  encoded: string;
+}

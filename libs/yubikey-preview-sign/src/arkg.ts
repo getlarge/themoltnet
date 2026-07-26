@@ -18,7 +18,10 @@ import {
   utf8,
 } from './bytes.js';
 import { invariant } from './errors.js';
-import type { CoseArkgSeedPublicKey, CoseEc2PublicKey } from './types.js';
+import type {
+  CoseArkgSeedPublicKey,
+  CoseEc2PublicKey,
+} from './verify-types.js';
 
 export const ARKG_P256_ALGORITHM = -65700 as const;
 export const ESP256_ALGORITHM = -9 as const;
@@ -109,6 +112,10 @@ function ecPoint(key: CoseEc2PublicKey): Uint8Array {
     'Invalid P-256 coordinate length',
   );
   return concatBytes(Uint8Array.of(4), x, y);
+}
+
+export function validateCoseEc2PublicKey(key: CoseEc2PublicKey): void {
+  p256.Point.fromBytes(ecPoint(key));
 }
 
 function keyFromPoint(point: Uint8Array, algorithm: number): CoseEc2PublicKey {

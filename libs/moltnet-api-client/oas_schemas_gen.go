@@ -3124,20 +3124,20 @@ type BeginSigningCredentialRegistrationForbidden ProblemDetails
 func (*BeginSigningCredentialRegistrationForbidden) beginSigningCredentialRegistrationRes() {}
 
 type BeginSigningCredentialRegistrationReq struct {
-	Algorithm      string `json:"algorithm"`
-	CredentialType string `json:"credentialType"`
-	Label          string `json:"label"`
-	// Stable signing verification method identifier.
+	Algorithm          BeginSigningCredentialRegistrationReqAlgorithm          `json:"algorithm"`
+	CredentialType     BeginSigningCredentialRegistrationReqCredentialType     `json:"credentialType"`
+	Label              string                                                  `json:"label"`
+	PublicMaterial     PreviewSignPublicMaterial                               `json:"publicMaterial"`
 	VerificationMethod BeginSigningCredentialRegistrationReqVerificationMethod `json:"verificationMethod"`
 }
 
 // GetAlgorithm returns the value of Algorithm.
-func (s *BeginSigningCredentialRegistrationReq) GetAlgorithm() string {
+func (s *BeginSigningCredentialRegistrationReq) GetAlgorithm() BeginSigningCredentialRegistrationReqAlgorithm {
 	return s.Algorithm
 }
 
 // GetCredentialType returns the value of CredentialType.
-func (s *BeginSigningCredentialRegistrationReq) GetCredentialType() string {
+func (s *BeginSigningCredentialRegistrationReq) GetCredentialType() BeginSigningCredentialRegistrationReqCredentialType {
 	return s.CredentialType
 }
 
@@ -3146,18 +3146,23 @@ func (s *BeginSigningCredentialRegistrationReq) GetLabel() string {
 	return s.Label
 }
 
+// GetPublicMaterial returns the value of PublicMaterial.
+func (s *BeginSigningCredentialRegistrationReq) GetPublicMaterial() PreviewSignPublicMaterial {
+	return s.PublicMaterial
+}
+
 // GetVerificationMethod returns the value of VerificationMethod.
 func (s *BeginSigningCredentialRegistrationReq) GetVerificationMethod() BeginSigningCredentialRegistrationReqVerificationMethod {
 	return s.VerificationMethod
 }
 
 // SetAlgorithm sets the value of Algorithm.
-func (s *BeginSigningCredentialRegistrationReq) SetAlgorithm(val string) {
+func (s *BeginSigningCredentialRegistrationReq) SetAlgorithm(val BeginSigningCredentialRegistrationReqAlgorithm) {
 	s.Algorithm = val
 }
 
 // SetCredentialType sets the value of CredentialType.
-func (s *BeginSigningCredentialRegistrationReq) SetCredentialType(val string) {
+func (s *BeginSigningCredentialRegistrationReq) SetCredentialType(val BeginSigningCredentialRegistrationReqCredentialType) {
 	s.CredentialType = val
 }
 
@@ -3166,23 +3171,93 @@ func (s *BeginSigningCredentialRegistrationReq) SetLabel(val string) {
 	s.Label = val
 }
 
+// SetPublicMaterial sets the value of PublicMaterial.
+func (s *BeginSigningCredentialRegistrationReq) SetPublicMaterial(val PreviewSignPublicMaterial) {
+	s.PublicMaterial = val
+}
+
 // SetVerificationMethod sets the value of VerificationMethod.
 func (s *BeginSigningCredentialRegistrationReq) SetVerificationMethod(val BeginSigningCredentialRegistrationReqVerificationMethod) {
 	s.VerificationMethod = val
 }
 
-// Stable signing verification method identifier.
+type BeginSigningCredentialRegistrationReqAlgorithm string
+
+const (
+	BeginSigningCredentialRegistrationReqAlgorithmArkgP256Esp256 BeginSigningCredentialRegistrationReqAlgorithm = "arkg-p256-esp256"
+)
+
+// AllValues returns all BeginSigningCredentialRegistrationReqAlgorithm values.
+func (BeginSigningCredentialRegistrationReqAlgorithm) AllValues() []BeginSigningCredentialRegistrationReqAlgorithm {
+	return []BeginSigningCredentialRegistrationReqAlgorithm{
+		BeginSigningCredentialRegistrationReqAlgorithmArkgP256Esp256,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s BeginSigningCredentialRegistrationReqAlgorithm) MarshalText() ([]byte, error) {
+	switch s {
+	case BeginSigningCredentialRegistrationReqAlgorithmArkgP256Esp256:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *BeginSigningCredentialRegistrationReqAlgorithm) UnmarshalText(data []byte) error {
+	switch BeginSigningCredentialRegistrationReqAlgorithm(data) {
+	case BeginSigningCredentialRegistrationReqAlgorithmArkgP256Esp256:
+		*s = BeginSigningCredentialRegistrationReqAlgorithmArkgP256Esp256
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type BeginSigningCredentialRegistrationReqCredentialType string
+
+const (
+	BeginSigningCredentialRegistrationReqCredentialTypePreviewSignArkg BeginSigningCredentialRegistrationReqCredentialType = "preview-sign-arkg"
+)
+
+// AllValues returns all BeginSigningCredentialRegistrationReqCredentialType values.
+func (BeginSigningCredentialRegistrationReqCredentialType) AllValues() []BeginSigningCredentialRegistrationReqCredentialType {
+	return []BeginSigningCredentialRegistrationReqCredentialType{
+		BeginSigningCredentialRegistrationReqCredentialTypePreviewSignArkg,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s BeginSigningCredentialRegistrationReqCredentialType) MarshalText() ([]byte, error) {
+	switch s {
+	case BeginSigningCredentialRegistrationReqCredentialTypePreviewSignArkg:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *BeginSigningCredentialRegistrationReqCredentialType) UnmarshalText(data []byte) error {
+	switch BeginSigningCredentialRegistrationReqCredentialType(data) {
+	case BeginSigningCredentialRegistrationReqCredentialTypePreviewSignArkg:
+		*s = BeginSigningCredentialRegistrationReqCredentialTypePreviewSignArkg
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 type BeginSigningCredentialRegistrationReqVerificationMethod string
 
 const (
-	BeginSigningCredentialRegistrationReqVerificationMethodAgentEd25519             BeginSigningCredentialRegistrationReqVerificationMethod = "agent-ed25519"
 	BeginSigningCredentialRegistrationReqVerificationMethodHumanHardwarePreviewsign BeginSigningCredentialRegistrationReqVerificationMethod = "human-hardware-previewsign"
 )
 
 // AllValues returns all BeginSigningCredentialRegistrationReqVerificationMethod values.
 func (BeginSigningCredentialRegistrationReqVerificationMethod) AllValues() []BeginSigningCredentialRegistrationReqVerificationMethod {
 	return []BeginSigningCredentialRegistrationReqVerificationMethod{
-		BeginSigningCredentialRegistrationReqVerificationMethodAgentEd25519,
 		BeginSigningCredentialRegistrationReqVerificationMethodHumanHardwarePreviewsign,
 	}
 }
@@ -3190,8 +3265,6 @@ func (BeginSigningCredentialRegistrationReqVerificationMethod) AllValues() []Beg
 // MarshalText implements encoding.TextMarshaler.
 func (s BeginSigningCredentialRegistrationReqVerificationMethod) MarshalText() ([]byte, error) {
 	switch s {
-	case BeginSigningCredentialRegistrationReqVerificationMethodAgentEd25519:
-		return []byte(s), nil
 	case BeginSigningCredentialRegistrationReqVerificationMethodHumanHardwarePreviewsign:
 		return []byte(s), nil
 	default:
@@ -3202,9 +3275,6 @@ func (s BeginSigningCredentialRegistrationReqVerificationMethod) MarshalText() (
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (s *BeginSigningCredentialRegistrationReqVerificationMethod) UnmarshalText(data []byte) error {
 	switch BeginSigningCredentialRegistrationReqVerificationMethod(data) {
-	case BeginSigningCredentialRegistrationReqVerificationMethodAgentEd25519:
-		*s = BeginSigningCredentialRegistrationReqVerificationMethodAgentEd25519
-		return nil
 	case BeginSigningCredentialRegistrationReqVerificationMethodHumanHardwarePreviewsign:
 		*s = BeginSigningCredentialRegistrationReqVerificationMethodHumanHardwarePreviewsign
 		return nil
@@ -3879,144 +3949,28 @@ type CompleteSigningCredentialRegistrationForbidden ProblemDetails
 func (*CompleteSigningCredentialRegistrationForbidden) completeSigningCredentialRegistrationRes() {}
 
 type CompleteSigningCredentialRegistrationReq struct {
-	PublicMaterial CompleteSigningCredentialRegistrationReqPublicMaterial `json:"publicMaterial"`
-	Receipt        CompleteSigningCredentialRegistrationReqReceipt        `json:"receipt"`
+	PublicMaterial PreviewSignPublicMaterial `json:"publicMaterial"`
+	Receipt        PreviewSignReceiptValue   `json:"receipt"`
 }
 
 // GetPublicMaterial returns the value of PublicMaterial.
-func (s *CompleteSigningCredentialRegistrationReq) GetPublicMaterial() CompleteSigningCredentialRegistrationReqPublicMaterial {
+func (s *CompleteSigningCredentialRegistrationReq) GetPublicMaterial() PreviewSignPublicMaterial {
 	return s.PublicMaterial
 }
 
 // GetReceipt returns the value of Receipt.
-func (s *CompleteSigningCredentialRegistrationReq) GetReceipt() CompleteSigningCredentialRegistrationReqReceipt {
+func (s *CompleteSigningCredentialRegistrationReq) GetReceipt() PreviewSignReceiptValue {
 	return s.Receipt
 }
 
 // SetPublicMaterial sets the value of PublicMaterial.
-func (s *CompleteSigningCredentialRegistrationReq) SetPublicMaterial(val CompleteSigningCredentialRegistrationReqPublicMaterial) {
+func (s *CompleteSigningCredentialRegistrationReq) SetPublicMaterial(val PreviewSignPublicMaterial) {
 	s.PublicMaterial = val
 }
 
 // SetReceipt sets the value of Receipt.
-func (s *CompleteSigningCredentialRegistrationReq) SetReceipt(val CompleteSigningCredentialRegistrationReqReceipt) {
+func (s *CompleteSigningCredentialRegistrationReq) SetReceipt(val PreviewSignReceiptValue) {
 	s.Receipt = val
-}
-
-// Merged schema.
-type CompleteSigningCredentialRegistrationReqPublicMaterial struct {
-	Version         int `json:"version"`
-	AdditionalProps CompleteSigningCredentialRegistrationReqPublicMaterialAdditional
-}
-
-// GetVersion returns the value of Version.
-func (s *CompleteSigningCredentialRegistrationReqPublicMaterial) GetVersion() int {
-	return s.Version
-}
-
-// GetAdditionalProps returns the value of AdditionalProps.
-func (s *CompleteSigningCredentialRegistrationReqPublicMaterial) GetAdditionalProps() CompleteSigningCredentialRegistrationReqPublicMaterialAdditional {
-	return s.AdditionalProps
-}
-
-// SetVersion sets the value of Version.
-func (s *CompleteSigningCredentialRegistrationReqPublicMaterial) SetVersion(val int) {
-	s.Version = val
-}
-
-// SetAdditionalProps sets the value of AdditionalProps.
-func (s *CompleteSigningCredentialRegistrationReqPublicMaterial) SetAdditionalProps(val CompleteSigningCredentialRegistrationReqPublicMaterialAdditional) {
-	s.AdditionalProps = val
-}
-
-type CompleteSigningCredentialRegistrationReqPublicMaterialAdditional map[string]jx.Raw
-
-func (s *CompleteSigningCredentialRegistrationReqPublicMaterialAdditional) init() CompleteSigningCredentialRegistrationReqPublicMaterialAdditional {
-	m := *s
-	if m == nil {
-		m = map[string]jx.Raw{}
-		*s = m
-	}
-	return m
-}
-
-type CompleteSigningCredentialRegistrationReqReceipt struct {
-	Value CompleteSigningCredentialRegistrationReqReceiptValue `json:"value"`
-	// Stable signing verification method identifier.
-	VerificationMethod CompleteSigningCredentialRegistrationReqReceiptVerificationMethod `json:"verificationMethod"`
-}
-
-// GetValue returns the value of Value.
-func (s *CompleteSigningCredentialRegistrationReqReceipt) GetValue() CompleteSigningCredentialRegistrationReqReceiptValue {
-	return s.Value
-}
-
-// GetVerificationMethod returns the value of VerificationMethod.
-func (s *CompleteSigningCredentialRegistrationReqReceipt) GetVerificationMethod() CompleteSigningCredentialRegistrationReqReceiptVerificationMethod {
-	return s.VerificationMethod
-}
-
-// SetValue sets the value of Value.
-func (s *CompleteSigningCredentialRegistrationReqReceipt) SetValue(val CompleteSigningCredentialRegistrationReqReceiptValue) {
-	s.Value = val
-}
-
-// SetVerificationMethod sets the value of VerificationMethod.
-func (s *CompleteSigningCredentialRegistrationReqReceipt) SetVerificationMethod(val CompleteSigningCredentialRegistrationReqReceiptVerificationMethod) {
-	s.VerificationMethod = val
-}
-
-type CompleteSigningCredentialRegistrationReqReceiptValue map[string]jx.Raw
-
-func (s *CompleteSigningCredentialRegistrationReqReceiptValue) init() CompleteSigningCredentialRegistrationReqReceiptValue {
-	m := *s
-	if m == nil {
-		m = map[string]jx.Raw{}
-		*s = m
-	}
-	return m
-}
-
-// Stable signing verification method identifier.
-type CompleteSigningCredentialRegistrationReqReceiptVerificationMethod string
-
-const (
-	CompleteSigningCredentialRegistrationReqReceiptVerificationMethodAgentEd25519             CompleteSigningCredentialRegistrationReqReceiptVerificationMethod = "agent-ed25519"
-	CompleteSigningCredentialRegistrationReqReceiptVerificationMethodHumanHardwarePreviewsign CompleteSigningCredentialRegistrationReqReceiptVerificationMethod = "human-hardware-previewsign"
-)
-
-// AllValues returns all CompleteSigningCredentialRegistrationReqReceiptVerificationMethod values.
-func (CompleteSigningCredentialRegistrationReqReceiptVerificationMethod) AllValues() []CompleteSigningCredentialRegistrationReqReceiptVerificationMethod {
-	return []CompleteSigningCredentialRegistrationReqReceiptVerificationMethod{
-		CompleteSigningCredentialRegistrationReqReceiptVerificationMethodAgentEd25519,
-		CompleteSigningCredentialRegistrationReqReceiptVerificationMethodHumanHardwarePreviewsign,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s CompleteSigningCredentialRegistrationReqReceiptVerificationMethod) MarshalText() ([]byte, error) {
-	switch s {
-	case CompleteSigningCredentialRegistrationReqReceiptVerificationMethodAgentEd25519:
-		return []byte(s), nil
-	case CompleteSigningCredentialRegistrationReqReceiptVerificationMethodHumanHardwarePreviewsign:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *CompleteSigningCredentialRegistrationReqReceiptVerificationMethod) UnmarshalText(data []byte) error {
-	switch CompleteSigningCredentialRegistrationReqReceiptVerificationMethod(data) {
-	case CompleteSigningCredentialRegistrationReqReceiptVerificationMethodAgentEd25519:
-		*s = CompleteSigningCredentialRegistrationReqReceiptVerificationMethodAgentEd25519
-		return nil
-	case CompleteSigningCredentialRegistrationReqReceiptVerificationMethodHumanHardwarePreviewsign:
-		*s = CompleteSigningCredentialRegistrationReqReceiptVerificationMethodHumanHardwarePreviewsign
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
 }
 
 type CompleteSigningCredentialRegistrationUnauthorized ProblemDetails
@@ -4037,96 +3991,17 @@ type CompleteSigningRequestNotFound ProblemDetails
 func (*CompleteSigningRequestNotFound) completeSigningRequestRes() {}
 
 type CompleteSigningRequestReq struct {
-	Receipt CompleteSigningRequestReqReceipt `json:"receipt"`
+	Receipt PreviewSignReceiptValue `json:"receipt"`
 }
 
 // GetReceipt returns the value of Receipt.
-func (s *CompleteSigningRequestReq) GetReceipt() CompleteSigningRequestReqReceipt {
+func (s *CompleteSigningRequestReq) GetReceipt() PreviewSignReceiptValue {
 	return s.Receipt
 }
 
 // SetReceipt sets the value of Receipt.
-func (s *CompleteSigningRequestReq) SetReceipt(val CompleteSigningRequestReqReceipt) {
+func (s *CompleteSigningRequestReq) SetReceipt(val PreviewSignReceiptValue) {
 	s.Receipt = val
-}
-
-type CompleteSigningRequestReqReceipt struct {
-	Value CompleteSigningRequestReqReceiptValue `json:"value"`
-	// Stable signing verification method identifier.
-	VerificationMethod CompleteSigningRequestReqReceiptVerificationMethod `json:"verificationMethod"`
-}
-
-// GetValue returns the value of Value.
-func (s *CompleteSigningRequestReqReceipt) GetValue() CompleteSigningRequestReqReceiptValue {
-	return s.Value
-}
-
-// GetVerificationMethod returns the value of VerificationMethod.
-func (s *CompleteSigningRequestReqReceipt) GetVerificationMethod() CompleteSigningRequestReqReceiptVerificationMethod {
-	return s.VerificationMethod
-}
-
-// SetValue sets the value of Value.
-func (s *CompleteSigningRequestReqReceipt) SetValue(val CompleteSigningRequestReqReceiptValue) {
-	s.Value = val
-}
-
-// SetVerificationMethod sets the value of VerificationMethod.
-func (s *CompleteSigningRequestReqReceipt) SetVerificationMethod(val CompleteSigningRequestReqReceiptVerificationMethod) {
-	s.VerificationMethod = val
-}
-
-type CompleteSigningRequestReqReceiptValue map[string]jx.Raw
-
-func (s *CompleteSigningRequestReqReceiptValue) init() CompleteSigningRequestReqReceiptValue {
-	m := *s
-	if m == nil {
-		m = map[string]jx.Raw{}
-		*s = m
-	}
-	return m
-}
-
-// Stable signing verification method identifier.
-type CompleteSigningRequestReqReceiptVerificationMethod string
-
-const (
-	CompleteSigningRequestReqReceiptVerificationMethodAgentEd25519             CompleteSigningRequestReqReceiptVerificationMethod = "agent-ed25519"
-	CompleteSigningRequestReqReceiptVerificationMethodHumanHardwarePreviewsign CompleteSigningRequestReqReceiptVerificationMethod = "human-hardware-previewsign"
-)
-
-// AllValues returns all CompleteSigningRequestReqReceiptVerificationMethod values.
-func (CompleteSigningRequestReqReceiptVerificationMethod) AllValues() []CompleteSigningRequestReqReceiptVerificationMethod {
-	return []CompleteSigningRequestReqReceiptVerificationMethod{
-		CompleteSigningRequestReqReceiptVerificationMethodAgentEd25519,
-		CompleteSigningRequestReqReceiptVerificationMethodHumanHardwarePreviewsign,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s CompleteSigningRequestReqReceiptVerificationMethod) MarshalText() ([]byte, error) {
-	switch s {
-	case CompleteSigningRequestReqReceiptVerificationMethodAgentEd25519:
-		return []byte(s), nil
-	case CompleteSigningRequestReqReceiptVerificationMethodHumanHardwarePreviewsign:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *CompleteSigningRequestReqReceiptVerificationMethod) UnmarshalText(data []byte) error {
-	switch CompleteSigningRequestReqReceiptVerificationMethod(data) {
-	case CompleteSigningRequestReqReceiptVerificationMethodAgentEd25519:
-		*s = CompleteSigningRequestReqReceiptVerificationMethodAgentEd25519
-		return nil
-	case CompleteSigningRequestReqReceiptVerificationMethodHumanHardwarePreviewsign:
-		*s = CompleteSigningRequestReqReceiptVerificationMethodHumanHardwarePreviewsign
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
 }
 
 type CompleteSigningRequestUnauthorized ProblemDetails
@@ -34733,57 +34608,57 @@ func (o OptNilInt) Or(d int) int {
 	return d
 }
 
-// NewOptNilSigningRequestChallenge returns new OptNilSigningRequestChallenge with value set to v.
-func NewOptNilSigningRequestChallenge(v SigningRequestChallenge) OptNilSigningRequestChallenge {
-	return OptNilSigningRequestChallenge{
+// NewOptNilPreviewSignChallengeValue returns new OptNilPreviewSignChallengeValue with value set to v.
+func NewOptNilPreviewSignChallengeValue(v PreviewSignChallengeValue) OptNilPreviewSignChallengeValue {
+	return OptNilPreviewSignChallengeValue{
 		Value: v,
 		Set:   true,
 	}
 }
 
-// OptNilSigningRequestChallenge is optional nullable SigningRequestChallenge.
-type OptNilSigningRequestChallenge struct {
-	Value SigningRequestChallenge
+// OptNilPreviewSignChallengeValue is optional nullable PreviewSignChallengeValue.
+type OptNilPreviewSignChallengeValue struct {
+	Value PreviewSignChallengeValue
 	Set   bool
 	Null  bool
 }
 
-// IsSet returns true if OptNilSigningRequestChallenge was set.
-func (o OptNilSigningRequestChallenge) IsSet() bool { return o.Set }
+// IsSet returns true if OptNilPreviewSignChallengeValue was set.
+func (o OptNilPreviewSignChallengeValue) IsSet() bool { return o.Set }
 
 // Reset unsets value.
-func (o *OptNilSigningRequestChallenge) Reset() {
-	var v SigningRequestChallenge
+func (o *OptNilPreviewSignChallengeValue) Reset() {
+	var v PreviewSignChallengeValue
 	o.Value = v
 	o.Set = false
 	o.Null = false
 }
 
 // SetTo sets value to v.
-func (o *OptNilSigningRequestChallenge) SetTo(v SigningRequestChallenge) {
+func (o *OptNilPreviewSignChallengeValue) SetTo(v PreviewSignChallengeValue) {
 	o.Set = true
 	o.Null = false
 	o.Value = v
 }
 
 // IsNull returns true if value is Null.
-func (o OptNilSigningRequestChallenge) IsNull() bool { return o.Null }
+func (o OptNilPreviewSignChallengeValue) IsNull() bool { return o.Null }
 
 // SetToNull sets value to null.
-func (o *OptNilSigningRequestChallenge) SetToNull() {
+func (o *OptNilPreviewSignChallengeValue) SetToNull() {
 	o.Set = true
 	o.Null = true
-	var v SigningRequestChallenge
+	var v PreviewSignChallengeValue
 	o.Value = v
 }
 
 // IsEmpty returns true if the field was omitted from the payload (not Set and not Null).
-func (o OptNilSigningRequestChallenge) IsEmpty() bool {
+func (o OptNilPreviewSignChallengeValue) IsEmpty() bool {
 	return !o.Set && !o.Null
 }
 
 // Get returns value and boolean that denotes whether value was set.
-func (o OptNilSigningRequestChallenge) Get() (v SigningRequestChallenge, ok bool) {
+func (o OptNilPreviewSignChallengeValue) Get() (v PreviewSignChallengeValue, ok bool) {
 	if o.Null {
 		return v, false
 	}
@@ -34794,7 +34669,75 @@ func (o OptNilSigningRequestChallenge) Get() (v SigningRequestChallenge, ok bool
 }
 
 // Or returns value if set, or given parameter if does not.
-func (o OptNilSigningRequestChallenge) Or(d SigningRequestChallenge) SigningRequestChallenge {
+func (o OptNilPreviewSignChallengeValue) Or(d PreviewSignChallengeValue) PreviewSignChallengeValue {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptNilPreviewSignEvidenceValue returns new OptNilPreviewSignEvidenceValue with value set to v.
+func NewOptNilPreviewSignEvidenceValue(v PreviewSignEvidenceValue) OptNilPreviewSignEvidenceValue {
+	return OptNilPreviewSignEvidenceValue{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptNilPreviewSignEvidenceValue is optional nullable PreviewSignEvidenceValue.
+type OptNilPreviewSignEvidenceValue struct {
+	Value PreviewSignEvidenceValue
+	Set   bool
+	Null  bool
+}
+
+// IsSet returns true if OptNilPreviewSignEvidenceValue was set.
+func (o OptNilPreviewSignEvidenceValue) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptNilPreviewSignEvidenceValue) Reset() {
+	var v PreviewSignEvidenceValue
+	o.Value = v
+	o.Set = false
+	o.Null = false
+}
+
+// SetTo sets value to v.
+func (o *OptNilPreviewSignEvidenceValue) SetTo(v PreviewSignEvidenceValue) {
+	o.Set = true
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o OptNilPreviewSignEvidenceValue) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *OptNilPreviewSignEvidenceValue) SetToNull() {
+	o.Set = true
+	o.Null = true
+	var v PreviewSignEvidenceValue
+	o.Value = v
+}
+
+// IsEmpty returns true if the field was omitted from the payload (not Set and not Null).
+func (o OptNilPreviewSignEvidenceValue) IsEmpty() bool {
+	return !o.Set && !o.Null
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptNilPreviewSignEvidenceValue) Get() (v PreviewSignEvidenceValue, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptNilPreviewSignEvidenceValue) Or(d PreviewSignEvidenceValue) PreviewSignEvidenceValue {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -38641,6 +38584,1096 @@ func (s *PreviewRenderedPackReq) SetRenderedMarkdown(val OptString) {
 type PreviewRenderedPackUnauthorized ProblemDetails
 
 func (*PreviewRenderedPackUnauthorized) previewRenderedPackRes() {}
+
+// Ref: #/components/schemas/PreviewSignArkgSeedPublicKey
+type PreviewSignArkgSeedPublicKey struct {
+	Algorithm        PreviewSignArkgSeedPublicKeyAlgorithm        `json:"algorithm"`
+	BlindingKey      PreviewSignEs256PublicKey                    `json:"blindingKey"`
+	DerivedAlgorithm PreviewSignArkgSeedPublicKeyDerivedAlgorithm `json:"derivedAlgorithm"`
+	KemKey           PreviewSignEcdhEsHkdf256PublicKey            `json:"kemKey"`
+	Kty              PreviewSignArkgSeedPublicKeyKty              `json:"kty"`
+}
+
+// GetAlgorithm returns the value of Algorithm.
+func (s *PreviewSignArkgSeedPublicKey) GetAlgorithm() PreviewSignArkgSeedPublicKeyAlgorithm {
+	return s.Algorithm
+}
+
+// GetBlindingKey returns the value of BlindingKey.
+func (s *PreviewSignArkgSeedPublicKey) GetBlindingKey() PreviewSignEs256PublicKey {
+	return s.BlindingKey
+}
+
+// GetDerivedAlgorithm returns the value of DerivedAlgorithm.
+func (s *PreviewSignArkgSeedPublicKey) GetDerivedAlgorithm() PreviewSignArkgSeedPublicKeyDerivedAlgorithm {
+	return s.DerivedAlgorithm
+}
+
+// GetKemKey returns the value of KemKey.
+func (s *PreviewSignArkgSeedPublicKey) GetKemKey() PreviewSignEcdhEsHkdf256PublicKey {
+	return s.KemKey
+}
+
+// GetKty returns the value of Kty.
+func (s *PreviewSignArkgSeedPublicKey) GetKty() PreviewSignArkgSeedPublicKeyKty {
+	return s.Kty
+}
+
+// SetAlgorithm sets the value of Algorithm.
+func (s *PreviewSignArkgSeedPublicKey) SetAlgorithm(val PreviewSignArkgSeedPublicKeyAlgorithm) {
+	s.Algorithm = val
+}
+
+// SetBlindingKey sets the value of BlindingKey.
+func (s *PreviewSignArkgSeedPublicKey) SetBlindingKey(val PreviewSignEs256PublicKey) {
+	s.BlindingKey = val
+}
+
+// SetDerivedAlgorithm sets the value of DerivedAlgorithm.
+func (s *PreviewSignArkgSeedPublicKey) SetDerivedAlgorithm(val PreviewSignArkgSeedPublicKeyDerivedAlgorithm) {
+	s.DerivedAlgorithm = val
+}
+
+// SetKemKey sets the value of KemKey.
+func (s *PreviewSignArkgSeedPublicKey) SetKemKey(val PreviewSignEcdhEsHkdf256PublicKey) {
+	s.KemKey = val
+}
+
+// SetKty sets the value of Kty.
+func (s *PreviewSignArkgSeedPublicKey) SetKty(val PreviewSignArkgSeedPublicKeyKty) {
+	s.Kty = val
+}
+
+type PreviewSignArkgSeedPublicKeyAlgorithm float64
+
+const (
+	PreviewSignArkgSeedPublicKeyAlgorithmMinus65700 PreviewSignArkgSeedPublicKeyAlgorithm = -65700
+)
+
+// AllValues returns all PreviewSignArkgSeedPublicKeyAlgorithm values.
+func (PreviewSignArkgSeedPublicKeyAlgorithm) AllValues() []PreviewSignArkgSeedPublicKeyAlgorithm {
+	return []PreviewSignArkgSeedPublicKeyAlgorithm{
+		PreviewSignArkgSeedPublicKeyAlgorithmMinus65700,
+	}
+}
+
+type PreviewSignArkgSeedPublicKeyDerivedAlgorithm float64
+
+const (
+	PreviewSignArkgSeedPublicKeyDerivedAlgorithmMinus9 PreviewSignArkgSeedPublicKeyDerivedAlgorithm = -9
+)
+
+// AllValues returns all PreviewSignArkgSeedPublicKeyDerivedAlgorithm values.
+func (PreviewSignArkgSeedPublicKeyDerivedAlgorithm) AllValues() []PreviewSignArkgSeedPublicKeyDerivedAlgorithm {
+	return []PreviewSignArkgSeedPublicKeyDerivedAlgorithm{
+		PreviewSignArkgSeedPublicKeyDerivedAlgorithmMinus9,
+	}
+}
+
+type PreviewSignArkgSeedPublicKeyKty float64
+
+const (
+	PreviewSignArkgSeedPublicKeyKtyMinus65537 PreviewSignArkgSeedPublicKeyKty = -65537
+)
+
+// AllValues returns all PreviewSignArkgSeedPublicKeyKty values.
+func (PreviewSignArkgSeedPublicKeyKty) AllValues() []PreviewSignArkgSeedPublicKeyKty {
+	return []PreviewSignArkgSeedPublicKeyKty{
+		PreviewSignArkgSeedPublicKeyKtyMinus65537,
+	}
+}
+
+// Ref: #/components/schemas/PreviewSignChallenge
+type PreviewSignChallenge struct {
+	AdditionalArguments string                                 `json:"additionalArguments"`
+	Digest              string                                 `json:"digest"`
+	Envelope            string                                 `json:"envelope"`
+	OuterCredentialId   string                                 `json:"outerCredentialId"`
+	OuterPublicKey      PreviewSignEs256PublicKey              `json:"outerPublicKey"`
+	PreviewKeyHandle    string                                 `json:"previewKeyHandle"`
+	VerificationMethod  PreviewSignChallengeVerificationMethod `json:"verificationMethod"`
+	Version             PreviewSignChallengeVersion            `json:"version"`
+}
+
+// GetAdditionalArguments returns the value of AdditionalArguments.
+func (s *PreviewSignChallenge) GetAdditionalArguments() string {
+	return s.AdditionalArguments
+}
+
+// GetDigest returns the value of Digest.
+func (s *PreviewSignChallenge) GetDigest() string {
+	return s.Digest
+}
+
+// GetEnvelope returns the value of Envelope.
+func (s *PreviewSignChallenge) GetEnvelope() string {
+	return s.Envelope
+}
+
+// GetOuterCredentialId returns the value of OuterCredentialId.
+func (s *PreviewSignChallenge) GetOuterCredentialId() string {
+	return s.OuterCredentialId
+}
+
+// GetOuterPublicKey returns the value of OuterPublicKey.
+func (s *PreviewSignChallenge) GetOuterPublicKey() PreviewSignEs256PublicKey {
+	return s.OuterPublicKey
+}
+
+// GetPreviewKeyHandle returns the value of PreviewKeyHandle.
+func (s *PreviewSignChallenge) GetPreviewKeyHandle() string {
+	return s.PreviewKeyHandle
+}
+
+// GetVerificationMethod returns the value of VerificationMethod.
+func (s *PreviewSignChallenge) GetVerificationMethod() PreviewSignChallengeVerificationMethod {
+	return s.VerificationMethod
+}
+
+// GetVersion returns the value of Version.
+func (s *PreviewSignChallenge) GetVersion() PreviewSignChallengeVersion {
+	return s.Version
+}
+
+// SetAdditionalArguments sets the value of AdditionalArguments.
+func (s *PreviewSignChallenge) SetAdditionalArguments(val string) {
+	s.AdditionalArguments = val
+}
+
+// SetDigest sets the value of Digest.
+func (s *PreviewSignChallenge) SetDigest(val string) {
+	s.Digest = val
+}
+
+// SetEnvelope sets the value of Envelope.
+func (s *PreviewSignChallenge) SetEnvelope(val string) {
+	s.Envelope = val
+}
+
+// SetOuterCredentialId sets the value of OuterCredentialId.
+func (s *PreviewSignChallenge) SetOuterCredentialId(val string) {
+	s.OuterCredentialId = val
+}
+
+// SetOuterPublicKey sets the value of OuterPublicKey.
+func (s *PreviewSignChallenge) SetOuterPublicKey(val PreviewSignEs256PublicKey) {
+	s.OuterPublicKey = val
+}
+
+// SetPreviewKeyHandle sets the value of PreviewKeyHandle.
+func (s *PreviewSignChallenge) SetPreviewKeyHandle(val string) {
+	s.PreviewKeyHandle = val
+}
+
+// SetVerificationMethod sets the value of VerificationMethod.
+func (s *PreviewSignChallenge) SetVerificationMethod(val PreviewSignChallengeVerificationMethod) {
+	s.VerificationMethod = val
+}
+
+// SetVersion sets the value of Version.
+func (s *PreviewSignChallenge) SetVersion(val PreviewSignChallengeVersion) {
+	s.Version = val
+}
+
+// Ref: #/components/schemas/PreviewSignChallengeValue
+type PreviewSignChallengeValue struct {
+	Value              PreviewSignChallenge                        `json:"value"`
+	VerificationMethod PreviewSignChallengeValueVerificationMethod `json:"verificationMethod"`
+}
+
+// GetValue returns the value of Value.
+func (s *PreviewSignChallengeValue) GetValue() PreviewSignChallenge {
+	return s.Value
+}
+
+// GetVerificationMethod returns the value of VerificationMethod.
+func (s *PreviewSignChallengeValue) GetVerificationMethod() PreviewSignChallengeValueVerificationMethod {
+	return s.VerificationMethod
+}
+
+// SetValue sets the value of Value.
+func (s *PreviewSignChallengeValue) SetValue(val PreviewSignChallenge) {
+	s.Value = val
+}
+
+// SetVerificationMethod sets the value of VerificationMethod.
+func (s *PreviewSignChallengeValue) SetVerificationMethod(val PreviewSignChallengeValueVerificationMethod) {
+	s.VerificationMethod = val
+}
+
+type PreviewSignChallengeValueVerificationMethod string
+
+const (
+	PreviewSignChallengeValueVerificationMethodHumanHardwarePreviewsign PreviewSignChallengeValueVerificationMethod = "human-hardware-previewsign"
+)
+
+// AllValues returns all PreviewSignChallengeValueVerificationMethod values.
+func (PreviewSignChallengeValueVerificationMethod) AllValues() []PreviewSignChallengeValueVerificationMethod {
+	return []PreviewSignChallengeValueVerificationMethod{
+		PreviewSignChallengeValueVerificationMethodHumanHardwarePreviewsign,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s PreviewSignChallengeValueVerificationMethod) MarshalText() ([]byte, error) {
+	switch s {
+	case PreviewSignChallengeValueVerificationMethodHumanHardwarePreviewsign:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *PreviewSignChallengeValueVerificationMethod) UnmarshalText(data []byte) error {
+	switch PreviewSignChallengeValueVerificationMethod(data) {
+	case PreviewSignChallengeValueVerificationMethodHumanHardwarePreviewsign:
+		*s = PreviewSignChallengeValueVerificationMethodHumanHardwarePreviewsign
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type PreviewSignChallengeVerificationMethod string
+
+const (
+	PreviewSignChallengeVerificationMethodHumanHardwarePreviewsign PreviewSignChallengeVerificationMethod = "human-hardware-previewsign"
+)
+
+// AllValues returns all PreviewSignChallengeVerificationMethod values.
+func (PreviewSignChallengeVerificationMethod) AllValues() []PreviewSignChallengeVerificationMethod {
+	return []PreviewSignChallengeVerificationMethod{
+		PreviewSignChallengeVerificationMethodHumanHardwarePreviewsign,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s PreviewSignChallengeVerificationMethod) MarshalText() ([]byte, error) {
+	switch s {
+	case PreviewSignChallengeVerificationMethodHumanHardwarePreviewsign:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *PreviewSignChallengeVerificationMethod) UnmarshalText(data []byte) error {
+	switch PreviewSignChallengeVerificationMethod(data) {
+	case PreviewSignChallengeVerificationMethodHumanHardwarePreviewsign:
+		*s = PreviewSignChallengeVerificationMethodHumanHardwarePreviewsign
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type PreviewSignChallengeVersion float64
+
+const (
+	PreviewSignChallengeVersion1 PreviewSignChallengeVersion = 1
+)
+
+// AllValues returns all PreviewSignChallengeVersion values.
+func (PreviewSignChallengeVersion) AllValues() []PreviewSignChallengeVersion {
+	return []PreviewSignChallengeVersion{
+		PreviewSignChallengeVersion1,
+	}
+}
+
+// Ref: #/components/schemas/PreviewSignEcdhEsHkdf256PublicKey
+type PreviewSignEcdhEsHkdf256PublicKey struct {
+	Algorithm PreviewSignEcdhEsHkdf256PublicKeyAlgorithm `json:"algorithm"`
+	Curve     PreviewSignEcdhEsHkdf256PublicKeyCurve     `json:"curve"`
+	Kty       PreviewSignEcdhEsHkdf256PublicKeyKty       `json:"kty"`
+	X         string                                     `json:"x"`
+	Y         string                                     `json:"y"`
+}
+
+// GetAlgorithm returns the value of Algorithm.
+func (s *PreviewSignEcdhEsHkdf256PublicKey) GetAlgorithm() PreviewSignEcdhEsHkdf256PublicKeyAlgorithm {
+	return s.Algorithm
+}
+
+// GetCurve returns the value of Curve.
+func (s *PreviewSignEcdhEsHkdf256PublicKey) GetCurve() PreviewSignEcdhEsHkdf256PublicKeyCurve {
+	return s.Curve
+}
+
+// GetKty returns the value of Kty.
+func (s *PreviewSignEcdhEsHkdf256PublicKey) GetKty() PreviewSignEcdhEsHkdf256PublicKeyKty {
+	return s.Kty
+}
+
+// GetX returns the value of X.
+func (s *PreviewSignEcdhEsHkdf256PublicKey) GetX() string {
+	return s.X
+}
+
+// GetY returns the value of Y.
+func (s *PreviewSignEcdhEsHkdf256PublicKey) GetY() string {
+	return s.Y
+}
+
+// SetAlgorithm sets the value of Algorithm.
+func (s *PreviewSignEcdhEsHkdf256PublicKey) SetAlgorithm(val PreviewSignEcdhEsHkdf256PublicKeyAlgorithm) {
+	s.Algorithm = val
+}
+
+// SetCurve sets the value of Curve.
+func (s *PreviewSignEcdhEsHkdf256PublicKey) SetCurve(val PreviewSignEcdhEsHkdf256PublicKeyCurve) {
+	s.Curve = val
+}
+
+// SetKty sets the value of Kty.
+func (s *PreviewSignEcdhEsHkdf256PublicKey) SetKty(val PreviewSignEcdhEsHkdf256PublicKeyKty) {
+	s.Kty = val
+}
+
+// SetX sets the value of X.
+func (s *PreviewSignEcdhEsHkdf256PublicKey) SetX(val string) {
+	s.X = val
+}
+
+// SetY sets the value of Y.
+func (s *PreviewSignEcdhEsHkdf256PublicKey) SetY(val string) {
+	s.Y = val
+}
+
+type PreviewSignEcdhEsHkdf256PublicKeyAlgorithm float64
+
+const (
+	PreviewSignEcdhEsHkdf256PublicKeyAlgorithmMinus25 PreviewSignEcdhEsHkdf256PublicKeyAlgorithm = -25
+)
+
+// AllValues returns all PreviewSignEcdhEsHkdf256PublicKeyAlgorithm values.
+func (PreviewSignEcdhEsHkdf256PublicKeyAlgorithm) AllValues() []PreviewSignEcdhEsHkdf256PublicKeyAlgorithm {
+	return []PreviewSignEcdhEsHkdf256PublicKeyAlgorithm{
+		PreviewSignEcdhEsHkdf256PublicKeyAlgorithmMinus25,
+	}
+}
+
+type PreviewSignEcdhEsHkdf256PublicKeyCurve float64
+
+const (
+	PreviewSignEcdhEsHkdf256PublicKeyCurve1 PreviewSignEcdhEsHkdf256PublicKeyCurve = 1
+)
+
+// AllValues returns all PreviewSignEcdhEsHkdf256PublicKeyCurve values.
+func (PreviewSignEcdhEsHkdf256PublicKeyCurve) AllValues() []PreviewSignEcdhEsHkdf256PublicKeyCurve {
+	return []PreviewSignEcdhEsHkdf256PublicKeyCurve{
+		PreviewSignEcdhEsHkdf256PublicKeyCurve1,
+	}
+}
+
+type PreviewSignEcdhEsHkdf256PublicKeyKty float64
+
+const (
+	PreviewSignEcdhEsHkdf256PublicKeyKty2 PreviewSignEcdhEsHkdf256PublicKeyKty = 2
+)
+
+// AllValues returns all PreviewSignEcdhEsHkdf256PublicKeyKty values.
+func (PreviewSignEcdhEsHkdf256PublicKeyKty) AllValues() []PreviewSignEcdhEsHkdf256PublicKeyKty {
+	return []PreviewSignEcdhEsHkdf256PublicKeyKty{
+		PreviewSignEcdhEsHkdf256PublicKeyKty2,
+	}
+}
+
+// Ref: #/components/schemas/PreviewSignEs256PublicKey
+type PreviewSignEs256PublicKey struct {
+	Algorithm PreviewSignEs256PublicKeyAlgorithm `json:"algorithm"`
+	Curve     PreviewSignEs256PublicKeyCurve     `json:"curve"`
+	Kty       PreviewSignEs256PublicKeyKty       `json:"kty"`
+	X         string                             `json:"x"`
+	Y         string                             `json:"y"`
+}
+
+// GetAlgorithm returns the value of Algorithm.
+func (s *PreviewSignEs256PublicKey) GetAlgorithm() PreviewSignEs256PublicKeyAlgorithm {
+	return s.Algorithm
+}
+
+// GetCurve returns the value of Curve.
+func (s *PreviewSignEs256PublicKey) GetCurve() PreviewSignEs256PublicKeyCurve {
+	return s.Curve
+}
+
+// GetKty returns the value of Kty.
+func (s *PreviewSignEs256PublicKey) GetKty() PreviewSignEs256PublicKeyKty {
+	return s.Kty
+}
+
+// GetX returns the value of X.
+func (s *PreviewSignEs256PublicKey) GetX() string {
+	return s.X
+}
+
+// GetY returns the value of Y.
+func (s *PreviewSignEs256PublicKey) GetY() string {
+	return s.Y
+}
+
+// SetAlgorithm sets the value of Algorithm.
+func (s *PreviewSignEs256PublicKey) SetAlgorithm(val PreviewSignEs256PublicKeyAlgorithm) {
+	s.Algorithm = val
+}
+
+// SetCurve sets the value of Curve.
+func (s *PreviewSignEs256PublicKey) SetCurve(val PreviewSignEs256PublicKeyCurve) {
+	s.Curve = val
+}
+
+// SetKty sets the value of Kty.
+func (s *PreviewSignEs256PublicKey) SetKty(val PreviewSignEs256PublicKeyKty) {
+	s.Kty = val
+}
+
+// SetX sets the value of X.
+func (s *PreviewSignEs256PublicKey) SetX(val string) {
+	s.X = val
+}
+
+// SetY sets the value of Y.
+func (s *PreviewSignEs256PublicKey) SetY(val string) {
+	s.Y = val
+}
+
+type PreviewSignEs256PublicKeyAlgorithm float64
+
+const (
+	PreviewSignEs256PublicKeyAlgorithmMinus7 PreviewSignEs256PublicKeyAlgorithm = -7
+)
+
+// AllValues returns all PreviewSignEs256PublicKeyAlgorithm values.
+func (PreviewSignEs256PublicKeyAlgorithm) AllValues() []PreviewSignEs256PublicKeyAlgorithm {
+	return []PreviewSignEs256PublicKeyAlgorithm{
+		PreviewSignEs256PublicKeyAlgorithmMinus7,
+	}
+}
+
+type PreviewSignEs256PublicKeyCurve float64
+
+const (
+	PreviewSignEs256PublicKeyCurve1 PreviewSignEs256PublicKeyCurve = 1
+)
+
+// AllValues returns all PreviewSignEs256PublicKeyCurve values.
+func (PreviewSignEs256PublicKeyCurve) AllValues() []PreviewSignEs256PublicKeyCurve {
+	return []PreviewSignEs256PublicKeyCurve{
+		PreviewSignEs256PublicKeyCurve1,
+	}
+}
+
+type PreviewSignEs256PublicKeyKty float64
+
+const (
+	PreviewSignEs256PublicKeyKty2 PreviewSignEs256PublicKeyKty = 2
+)
+
+// AllValues returns all PreviewSignEs256PublicKeyKty values.
+func (PreviewSignEs256PublicKeyKty) AllValues() []PreviewSignEs256PublicKeyKty {
+	return []PreviewSignEs256PublicKeyKty{
+		PreviewSignEs256PublicKeyKty2,
+	}
+}
+
+// Ref: #/components/schemas/PreviewSignEsp256PublicKey
+type PreviewSignEsp256PublicKey struct {
+	Algorithm PreviewSignEsp256PublicKeyAlgorithm `json:"algorithm"`
+	Curve     PreviewSignEsp256PublicKeyCurve     `json:"curve"`
+	Kty       PreviewSignEsp256PublicKeyKty       `json:"kty"`
+	X         string                              `json:"x"`
+	Y         string                              `json:"y"`
+}
+
+// GetAlgorithm returns the value of Algorithm.
+func (s *PreviewSignEsp256PublicKey) GetAlgorithm() PreviewSignEsp256PublicKeyAlgorithm {
+	return s.Algorithm
+}
+
+// GetCurve returns the value of Curve.
+func (s *PreviewSignEsp256PublicKey) GetCurve() PreviewSignEsp256PublicKeyCurve {
+	return s.Curve
+}
+
+// GetKty returns the value of Kty.
+func (s *PreviewSignEsp256PublicKey) GetKty() PreviewSignEsp256PublicKeyKty {
+	return s.Kty
+}
+
+// GetX returns the value of X.
+func (s *PreviewSignEsp256PublicKey) GetX() string {
+	return s.X
+}
+
+// GetY returns the value of Y.
+func (s *PreviewSignEsp256PublicKey) GetY() string {
+	return s.Y
+}
+
+// SetAlgorithm sets the value of Algorithm.
+func (s *PreviewSignEsp256PublicKey) SetAlgorithm(val PreviewSignEsp256PublicKeyAlgorithm) {
+	s.Algorithm = val
+}
+
+// SetCurve sets the value of Curve.
+func (s *PreviewSignEsp256PublicKey) SetCurve(val PreviewSignEsp256PublicKeyCurve) {
+	s.Curve = val
+}
+
+// SetKty sets the value of Kty.
+func (s *PreviewSignEsp256PublicKey) SetKty(val PreviewSignEsp256PublicKeyKty) {
+	s.Kty = val
+}
+
+// SetX sets the value of X.
+func (s *PreviewSignEsp256PublicKey) SetX(val string) {
+	s.X = val
+}
+
+// SetY sets the value of Y.
+func (s *PreviewSignEsp256PublicKey) SetY(val string) {
+	s.Y = val
+}
+
+type PreviewSignEsp256PublicKeyAlgorithm float64
+
+const (
+	PreviewSignEsp256PublicKeyAlgorithmMinus9 PreviewSignEsp256PublicKeyAlgorithm = -9
+)
+
+// AllValues returns all PreviewSignEsp256PublicKeyAlgorithm values.
+func (PreviewSignEsp256PublicKeyAlgorithm) AllValues() []PreviewSignEsp256PublicKeyAlgorithm {
+	return []PreviewSignEsp256PublicKeyAlgorithm{
+		PreviewSignEsp256PublicKeyAlgorithmMinus9,
+	}
+}
+
+type PreviewSignEsp256PublicKeyCurve float64
+
+const (
+	PreviewSignEsp256PublicKeyCurve1 PreviewSignEsp256PublicKeyCurve = 1
+)
+
+// AllValues returns all PreviewSignEsp256PublicKeyCurve values.
+func (PreviewSignEsp256PublicKeyCurve) AllValues() []PreviewSignEsp256PublicKeyCurve {
+	return []PreviewSignEsp256PublicKeyCurve{
+		PreviewSignEsp256PublicKeyCurve1,
+	}
+}
+
+type PreviewSignEsp256PublicKeyKty float64
+
+const (
+	PreviewSignEsp256PublicKeyKty2 PreviewSignEsp256PublicKeyKty = 2
+)
+
+// AllValues returns all PreviewSignEsp256PublicKeyKty values.
+func (PreviewSignEsp256PublicKeyKty) AllValues() []PreviewSignEsp256PublicKeyKty {
+	return []PreviewSignEsp256PublicKeyKty{
+		PreviewSignEsp256PublicKeyKty2,
+	}
+}
+
+// Ref: #/components/schemas/PreviewSignEvidence
+type PreviewSignEvidence struct {
+	AdditionalArgumentsHash string                                `json:"additionalArgumentsHash"`
+	ClaimantId              uuid.UUID                             `json:"claimantId"`
+	CredentialId            uuid.UUID                             `json:"credentialId"`
+	DerivedPublicKey        PreviewSignEsp256PublicKey            `json:"derivedPublicKey"`
+	Digest                  string                                `json:"digest"`
+	Envelope                string                                `json:"envelope"`
+	ExpiresAt               time.Time                             `json:"expiresAt"`
+	Nonce                   string                                `json:"nonce"`
+	Operation               PreviewSignEvidenceOperation          `json:"operation"`
+	ProofHash               string                                `json:"proofHash"`
+	Purpose                 string                                `json:"purpose"`
+	RequestId               uuid.UUID                             `json:"requestId"`
+	Signature               string                                `json:"signature"`
+	TeamId                  uuid.UUID                             `json:"teamId"`
+	VerificationMethod      PreviewSignEvidenceVerificationMethod `json:"verificationMethod"`
+	Version                 PreviewSignEvidenceVersion            `json:"version"`
+}
+
+// GetAdditionalArgumentsHash returns the value of AdditionalArgumentsHash.
+func (s *PreviewSignEvidence) GetAdditionalArgumentsHash() string {
+	return s.AdditionalArgumentsHash
+}
+
+// GetClaimantId returns the value of ClaimantId.
+func (s *PreviewSignEvidence) GetClaimantId() uuid.UUID {
+	return s.ClaimantId
+}
+
+// GetCredentialId returns the value of CredentialId.
+func (s *PreviewSignEvidence) GetCredentialId() uuid.UUID {
+	return s.CredentialId
+}
+
+// GetDerivedPublicKey returns the value of DerivedPublicKey.
+func (s *PreviewSignEvidence) GetDerivedPublicKey() PreviewSignEsp256PublicKey {
+	return s.DerivedPublicKey
+}
+
+// GetDigest returns the value of Digest.
+func (s *PreviewSignEvidence) GetDigest() string {
+	return s.Digest
+}
+
+// GetEnvelope returns the value of Envelope.
+func (s *PreviewSignEvidence) GetEnvelope() string {
+	return s.Envelope
+}
+
+// GetExpiresAt returns the value of ExpiresAt.
+func (s *PreviewSignEvidence) GetExpiresAt() time.Time {
+	return s.ExpiresAt
+}
+
+// GetNonce returns the value of Nonce.
+func (s *PreviewSignEvidence) GetNonce() string {
+	return s.Nonce
+}
+
+// GetOperation returns the value of Operation.
+func (s *PreviewSignEvidence) GetOperation() PreviewSignEvidenceOperation {
+	return s.Operation
+}
+
+// GetProofHash returns the value of ProofHash.
+func (s *PreviewSignEvidence) GetProofHash() string {
+	return s.ProofHash
+}
+
+// GetPurpose returns the value of Purpose.
+func (s *PreviewSignEvidence) GetPurpose() string {
+	return s.Purpose
+}
+
+// GetRequestId returns the value of RequestId.
+func (s *PreviewSignEvidence) GetRequestId() uuid.UUID {
+	return s.RequestId
+}
+
+// GetSignature returns the value of Signature.
+func (s *PreviewSignEvidence) GetSignature() string {
+	return s.Signature
+}
+
+// GetTeamId returns the value of TeamId.
+func (s *PreviewSignEvidence) GetTeamId() uuid.UUID {
+	return s.TeamId
+}
+
+// GetVerificationMethod returns the value of VerificationMethod.
+func (s *PreviewSignEvidence) GetVerificationMethod() PreviewSignEvidenceVerificationMethod {
+	return s.VerificationMethod
+}
+
+// GetVersion returns the value of Version.
+func (s *PreviewSignEvidence) GetVersion() PreviewSignEvidenceVersion {
+	return s.Version
+}
+
+// SetAdditionalArgumentsHash sets the value of AdditionalArgumentsHash.
+func (s *PreviewSignEvidence) SetAdditionalArgumentsHash(val string) {
+	s.AdditionalArgumentsHash = val
+}
+
+// SetClaimantId sets the value of ClaimantId.
+func (s *PreviewSignEvidence) SetClaimantId(val uuid.UUID) {
+	s.ClaimantId = val
+}
+
+// SetCredentialId sets the value of CredentialId.
+func (s *PreviewSignEvidence) SetCredentialId(val uuid.UUID) {
+	s.CredentialId = val
+}
+
+// SetDerivedPublicKey sets the value of DerivedPublicKey.
+func (s *PreviewSignEvidence) SetDerivedPublicKey(val PreviewSignEsp256PublicKey) {
+	s.DerivedPublicKey = val
+}
+
+// SetDigest sets the value of Digest.
+func (s *PreviewSignEvidence) SetDigest(val string) {
+	s.Digest = val
+}
+
+// SetEnvelope sets the value of Envelope.
+func (s *PreviewSignEvidence) SetEnvelope(val string) {
+	s.Envelope = val
+}
+
+// SetExpiresAt sets the value of ExpiresAt.
+func (s *PreviewSignEvidence) SetExpiresAt(val time.Time) {
+	s.ExpiresAt = val
+}
+
+// SetNonce sets the value of Nonce.
+func (s *PreviewSignEvidence) SetNonce(val string) {
+	s.Nonce = val
+}
+
+// SetOperation sets the value of Operation.
+func (s *PreviewSignEvidence) SetOperation(val PreviewSignEvidenceOperation) {
+	s.Operation = val
+}
+
+// SetProofHash sets the value of ProofHash.
+func (s *PreviewSignEvidence) SetProofHash(val string) {
+	s.ProofHash = val
+}
+
+// SetPurpose sets the value of Purpose.
+func (s *PreviewSignEvidence) SetPurpose(val string) {
+	s.Purpose = val
+}
+
+// SetRequestId sets the value of RequestId.
+func (s *PreviewSignEvidence) SetRequestId(val uuid.UUID) {
+	s.RequestId = val
+}
+
+// SetSignature sets the value of Signature.
+func (s *PreviewSignEvidence) SetSignature(val string) {
+	s.Signature = val
+}
+
+// SetTeamId sets the value of TeamId.
+func (s *PreviewSignEvidence) SetTeamId(val uuid.UUID) {
+	s.TeamId = val
+}
+
+// SetVerificationMethod sets the value of VerificationMethod.
+func (s *PreviewSignEvidence) SetVerificationMethod(val PreviewSignEvidenceVerificationMethod) {
+	s.VerificationMethod = val
+}
+
+// SetVersion sets the value of Version.
+func (s *PreviewSignEvidence) SetVersion(val PreviewSignEvidenceVersion) {
+	s.Version = val
+}
+
+type PreviewSignEvidenceOperation string
+
+const (
+	PreviewSignEvidenceOperationCredentialRegistration PreviewSignEvidenceOperation = "credential-registration"
+	PreviewSignEvidenceOperationSigningRequest         PreviewSignEvidenceOperation = "signing-request"
+)
+
+// AllValues returns all PreviewSignEvidenceOperation values.
+func (PreviewSignEvidenceOperation) AllValues() []PreviewSignEvidenceOperation {
+	return []PreviewSignEvidenceOperation{
+		PreviewSignEvidenceOperationCredentialRegistration,
+		PreviewSignEvidenceOperationSigningRequest,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s PreviewSignEvidenceOperation) MarshalText() ([]byte, error) {
+	switch s {
+	case PreviewSignEvidenceOperationCredentialRegistration:
+		return []byte(s), nil
+	case PreviewSignEvidenceOperationSigningRequest:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *PreviewSignEvidenceOperation) UnmarshalText(data []byte) error {
+	switch PreviewSignEvidenceOperation(data) {
+	case PreviewSignEvidenceOperationCredentialRegistration:
+		*s = PreviewSignEvidenceOperationCredentialRegistration
+		return nil
+	case PreviewSignEvidenceOperationSigningRequest:
+		*s = PreviewSignEvidenceOperationSigningRequest
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/PreviewSignEvidenceValue
+type PreviewSignEvidenceValue struct {
+	Value              PreviewSignEvidence                        `json:"value"`
+	VerificationMethod PreviewSignEvidenceValueVerificationMethod `json:"verificationMethod"`
+}
+
+// GetValue returns the value of Value.
+func (s *PreviewSignEvidenceValue) GetValue() PreviewSignEvidence {
+	return s.Value
+}
+
+// GetVerificationMethod returns the value of VerificationMethod.
+func (s *PreviewSignEvidenceValue) GetVerificationMethod() PreviewSignEvidenceValueVerificationMethod {
+	return s.VerificationMethod
+}
+
+// SetValue sets the value of Value.
+func (s *PreviewSignEvidenceValue) SetValue(val PreviewSignEvidence) {
+	s.Value = val
+}
+
+// SetVerificationMethod sets the value of VerificationMethod.
+func (s *PreviewSignEvidenceValue) SetVerificationMethod(val PreviewSignEvidenceValueVerificationMethod) {
+	s.VerificationMethod = val
+}
+
+type PreviewSignEvidenceValueVerificationMethod string
+
+const (
+	PreviewSignEvidenceValueVerificationMethodHumanHardwarePreviewsign PreviewSignEvidenceValueVerificationMethod = "human-hardware-previewsign"
+)
+
+// AllValues returns all PreviewSignEvidenceValueVerificationMethod values.
+func (PreviewSignEvidenceValueVerificationMethod) AllValues() []PreviewSignEvidenceValueVerificationMethod {
+	return []PreviewSignEvidenceValueVerificationMethod{
+		PreviewSignEvidenceValueVerificationMethodHumanHardwarePreviewsign,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s PreviewSignEvidenceValueVerificationMethod) MarshalText() ([]byte, error) {
+	switch s {
+	case PreviewSignEvidenceValueVerificationMethodHumanHardwarePreviewsign:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *PreviewSignEvidenceValueVerificationMethod) UnmarshalText(data []byte) error {
+	switch PreviewSignEvidenceValueVerificationMethod(data) {
+	case PreviewSignEvidenceValueVerificationMethodHumanHardwarePreviewsign:
+		*s = PreviewSignEvidenceValueVerificationMethodHumanHardwarePreviewsign
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type PreviewSignEvidenceVerificationMethod string
+
+const (
+	PreviewSignEvidenceVerificationMethodHumanHardwarePreviewsign PreviewSignEvidenceVerificationMethod = "human-hardware-previewsign"
+)
+
+// AllValues returns all PreviewSignEvidenceVerificationMethod values.
+func (PreviewSignEvidenceVerificationMethod) AllValues() []PreviewSignEvidenceVerificationMethod {
+	return []PreviewSignEvidenceVerificationMethod{
+		PreviewSignEvidenceVerificationMethodHumanHardwarePreviewsign,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s PreviewSignEvidenceVerificationMethod) MarshalText() ([]byte, error) {
+	switch s {
+	case PreviewSignEvidenceVerificationMethodHumanHardwarePreviewsign:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *PreviewSignEvidenceVerificationMethod) UnmarshalText(data []byte) error {
+	switch PreviewSignEvidenceVerificationMethod(data) {
+	case PreviewSignEvidenceVerificationMethodHumanHardwarePreviewsign:
+		*s = PreviewSignEvidenceVerificationMethodHumanHardwarePreviewsign
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type PreviewSignEvidenceVersion float64
+
+const (
+	PreviewSignEvidenceVersion1 PreviewSignEvidenceVersion = 1
+)
+
+// AllValues returns all PreviewSignEvidenceVersion values.
+func (PreviewSignEvidenceVersion) AllValues() []PreviewSignEvidenceVersion {
+	return []PreviewSignEvidenceVersion{
+		PreviewSignEvidenceVersion1,
+	}
+}
+
+// Ref: #/components/schemas/PreviewSignPublicMaterial
+type PreviewSignPublicMaterial struct {
+	OuterCredentialId string                           `json:"outerCredentialId"`
+	OuterPublicKey    PreviewSignEs256PublicKey        `json:"outerPublicKey"`
+	PreviewKeyHandle  string                           `json:"previewKeyHandle"`
+	SeedPublicKey     PreviewSignArkgSeedPublicKey     `json:"seedPublicKey"`
+	Version           PreviewSignPublicMaterialVersion `json:"version"`
+}
+
+// GetOuterCredentialId returns the value of OuterCredentialId.
+func (s *PreviewSignPublicMaterial) GetOuterCredentialId() string {
+	return s.OuterCredentialId
+}
+
+// GetOuterPublicKey returns the value of OuterPublicKey.
+func (s *PreviewSignPublicMaterial) GetOuterPublicKey() PreviewSignEs256PublicKey {
+	return s.OuterPublicKey
+}
+
+// GetPreviewKeyHandle returns the value of PreviewKeyHandle.
+func (s *PreviewSignPublicMaterial) GetPreviewKeyHandle() string {
+	return s.PreviewKeyHandle
+}
+
+// GetSeedPublicKey returns the value of SeedPublicKey.
+func (s *PreviewSignPublicMaterial) GetSeedPublicKey() PreviewSignArkgSeedPublicKey {
+	return s.SeedPublicKey
+}
+
+// GetVersion returns the value of Version.
+func (s *PreviewSignPublicMaterial) GetVersion() PreviewSignPublicMaterialVersion {
+	return s.Version
+}
+
+// SetOuterCredentialId sets the value of OuterCredentialId.
+func (s *PreviewSignPublicMaterial) SetOuterCredentialId(val string) {
+	s.OuterCredentialId = val
+}
+
+// SetOuterPublicKey sets the value of OuterPublicKey.
+func (s *PreviewSignPublicMaterial) SetOuterPublicKey(val PreviewSignEs256PublicKey) {
+	s.OuterPublicKey = val
+}
+
+// SetPreviewKeyHandle sets the value of PreviewKeyHandle.
+func (s *PreviewSignPublicMaterial) SetPreviewKeyHandle(val string) {
+	s.PreviewKeyHandle = val
+}
+
+// SetSeedPublicKey sets the value of SeedPublicKey.
+func (s *PreviewSignPublicMaterial) SetSeedPublicKey(val PreviewSignArkgSeedPublicKey) {
+	s.SeedPublicKey = val
+}
+
+// SetVersion sets the value of Version.
+func (s *PreviewSignPublicMaterial) SetVersion(val PreviewSignPublicMaterialVersion) {
+	s.Version = val
+}
+
+type PreviewSignPublicMaterialVersion float64
+
+const (
+	PreviewSignPublicMaterialVersion1 PreviewSignPublicMaterialVersion = 1
+)
+
+// AllValues returns all PreviewSignPublicMaterialVersion values.
+func (PreviewSignPublicMaterialVersion) AllValues() []PreviewSignPublicMaterialVersion {
+	return []PreviewSignPublicMaterialVersion{
+		PreviewSignPublicMaterialVersion1,
+	}
+}
+
+// Ref: #/components/schemas/PreviewSignReceipt
+type PreviewSignReceipt struct {
+	Signature string                    `json:"signature"`
+	Version   PreviewSignReceiptVersion `json:"version"`
+}
+
+// GetSignature returns the value of Signature.
+func (s *PreviewSignReceipt) GetSignature() string {
+	return s.Signature
+}
+
+// GetVersion returns the value of Version.
+func (s *PreviewSignReceipt) GetVersion() PreviewSignReceiptVersion {
+	return s.Version
+}
+
+// SetSignature sets the value of Signature.
+func (s *PreviewSignReceipt) SetSignature(val string) {
+	s.Signature = val
+}
+
+// SetVersion sets the value of Version.
+func (s *PreviewSignReceipt) SetVersion(val PreviewSignReceiptVersion) {
+	s.Version = val
+}
+
+// Ref: #/components/schemas/PreviewSignReceiptValue
+type PreviewSignReceiptValue struct {
+	Value              PreviewSignReceipt                        `json:"value"`
+	VerificationMethod PreviewSignReceiptValueVerificationMethod `json:"verificationMethod"`
+}
+
+// GetValue returns the value of Value.
+func (s *PreviewSignReceiptValue) GetValue() PreviewSignReceipt {
+	return s.Value
+}
+
+// GetVerificationMethod returns the value of VerificationMethod.
+func (s *PreviewSignReceiptValue) GetVerificationMethod() PreviewSignReceiptValueVerificationMethod {
+	return s.VerificationMethod
+}
+
+// SetValue sets the value of Value.
+func (s *PreviewSignReceiptValue) SetValue(val PreviewSignReceipt) {
+	s.Value = val
+}
+
+// SetVerificationMethod sets the value of VerificationMethod.
+func (s *PreviewSignReceiptValue) SetVerificationMethod(val PreviewSignReceiptValueVerificationMethod) {
+	s.VerificationMethod = val
+}
+
+type PreviewSignReceiptValueVerificationMethod string
+
+const (
+	PreviewSignReceiptValueVerificationMethodHumanHardwarePreviewsign PreviewSignReceiptValueVerificationMethod = "human-hardware-previewsign"
+)
+
+// AllValues returns all PreviewSignReceiptValueVerificationMethod values.
+func (PreviewSignReceiptValueVerificationMethod) AllValues() []PreviewSignReceiptValueVerificationMethod {
+	return []PreviewSignReceiptValueVerificationMethod{
+		PreviewSignReceiptValueVerificationMethodHumanHardwarePreviewsign,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s PreviewSignReceiptValueVerificationMethod) MarshalText() ([]byte, error) {
+	switch s {
+	case PreviewSignReceiptValueVerificationMethodHumanHardwarePreviewsign:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *PreviewSignReceiptValueVerificationMethod) UnmarshalText(data []byte) error {
+	switch PreviewSignReceiptValueVerificationMethod(data) {
+	case PreviewSignReceiptValueVerificationMethodHumanHardwarePreviewsign:
+		*s = PreviewSignReceiptValueVerificationMethodHumanHardwarePreviewsign
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type PreviewSignReceiptVersion float64
+
+const (
+	PreviewSignReceiptVersion1 PreviewSignReceiptVersion = 1
+)
+
+// AllValues returns all PreviewSignReceiptVersion values.
+func (PreviewSignReceiptVersion) AllValues() []PreviewSignReceiptVersion {
+	return []PreviewSignReceiptVersion{
+		PreviewSignReceiptVersion1,
+	}
+}
 
 // Ref: #/components/schemas/ProblemDetails
 type ProblemDetails struct {
@@ -46121,21 +47154,20 @@ func (s *SessionAuth) SetRoles(val []string) {
 // Ref: #/components/schemas/SigningCredential
 type SigningCredential struct {
 	ActivatedAt        NilDateTime                         `json:"activatedAt"`
-	Algorithm          string                              `json:"algorithm"`
+	Algorithm          SigningCredentialAlgorithm          `json:"algorithm"`
 	ApprovedByHumanId  NilUUID                             `json:"approvedByHumanId"`
 	CreatedAt          time.Time                           `json:"createdAt"`
-	CredentialType     string                              `json:"credentialType"`
-	EnrollmentEvidence SigningCredentialEnrollmentEvidence `json:"enrollmentEvidence"`
+	CredentialType     SigningCredentialCredentialType     `json:"credentialType"`
+	EnrollmentEvidence PreviewSignEvidence                 `json:"enrollmentEvidence"`
 	ID                 uuid.UUID                           `json:"id"`
 	Label              string                              `json:"label"`
 	Owner              SigningCredentialOwner              `json:"owner"`
-	PublicMaterial     SigningCredentialPublicMaterial     `json:"publicMaterial"`
+	PublicMaterial     PreviewSignPublicMaterial           `json:"publicMaterial"`
 	RevokedAt          NilDateTime                         `json:"revokedAt"`
 	Status             SigningCredentialStatus             `json:"status"`
 	SuspendedAt        NilDateTime                         `json:"suspendedAt"`
 	TeamId             uuid.UUID                           `json:"teamId"`
 	UpdatedAt          time.Time                           `json:"updatedAt"`
-	// Stable signing verification method identifier.
 	VerificationMethod SigningCredentialVerificationMethod `json:"verificationMethod"`
 }
 
@@ -46145,7 +47177,7 @@ func (s *SigningCredential) GetActivatedAt() NilDateTime {
 }
 
 // GetAlgorithm returns the value of Algorithm.
-func (s *SigningCredential) GetAlgorithm() string {
+func (s *SigningCredential) GetAlgorithm() SigningCredentialAlgorithm {
 	return s.Algorithm
 }
 
@@ -46160,12 +47192,12 @@ func (s *SigningCredential) GetCreatedAt() time.Time {
 }
 
 // GetCredentialType returns the value of CredentialType.
-func (s *SigningCredential) GetCredentialType() string {
+func (s *SigningCredential) GetCredentialType() SigningCredentialCredentialType {
 	return s.CredentialType
 }
 
 // GetEnrollmentEvidence returns the value of EnrollmentEvidence.
-func (s *SigningCredential) GetEnrollmentEvidence() SigningCredentialEnrollmentEvidence {
+func (s *SigningCredential) GetEnrollmentEvidence() PreviewSignEvidence {
 	return s.EnrollmentEvidence
 }
 
@@ -46185,7 +47217,7 @@ func (s *SigningCredential) GetOwner() SigningCredentialOwner {
 }
 
 // GetPublicMaterial returns the value of PublicMaterial.
-func (s *SigningCredential) GetPublicMaterial() SigningCredentialPublicMaterial {
+func (s *SigningCredential) GetPublicMaterial() PreviewSignPublicMaterial {
 	return s.PublicMaterial
 }
 
@@ -46225,7 +47257,7 @@ func (s *SigningCredential) SetActivatedAt(val NilDateTime) {
 }
 
 // SetAlgorithm sets the value of Algorithm.
-func (s *SigningCredential) SetAlgorithm(val string) {
+func (s *SigningCredential) SetAlgorithm(val SigningCredentialAlgorithm) {
 	s.Algorithm = val
 }
 
@@ -46240,12 +47272,12 @@ func (s *SigningCredential) SetCreatedAt(val time.Time) {
 }
 
 // SetCredentialType sets the value of CredentialType.
-func (s *SigningCredential) SetCredentialType(val string) {
+func (s *SigningCredential) SetCredentialType(val SigningCredentialCredentialType) {
 	s.CredentialType = val
 }
 
 // SetEnrollmentEvidence sets the value of EnrollmentEvidence.
-func (s *SigningCredential) SetEnrollmentEvidence(val SigningCredentialEnrollmentEvidence) {
+func (s *SigningCredential) SetEnrollmentEvidence(val PreviewSignEvidence) {
 	s.EnrollmentEvidence = val
 }
 
@@ -46265,7 +47297,7 @@ func (s *SigningCredential) SetOwner(val SigningCredentialOwner) {
 }
 
 // SetPublicMaterial sets the value of PublicMaterial.
-func (s *SigningCredential) SetPublicMaterial(val SigningCredentialPublicMaterial) {
+func (s *SigningCredential) SetPublicMaterial(val PreviewSignPublicMaterial) {
 	s.PublicMaterial = val
 }
 
@@ -46305,41 +47337,72 @@ func (*SigningCredential) getSigningCredentialRes()                  {}
 func (*SigningCredential) revokeSigningCredentialRes()               {}
 func (*SigningCredential) suspendSigningCredentialRes()              {}
 
-// Merged schema.
-type SigningCredentialEnrollmentEvidence struct {
-	Version         int `json:"version"`
-	AdditionalProps SigningCredentialEnrollmentEvidenceAdditional
-}
+type SigningCredentialAlgorithm string
 
-// GetVersion returns the value of Version.
-func (s *SigningCredentialEnrollmentEvidence) GetVersion() int {
-	return s.Version
-}
+const (
+	SigningCredentialAlgorithmArkgP256Esp256 SigningCredentialAlgorithm = "arkg-p256-esp256"
+)
 
-// GetAdditionalProps returns the value of AdditionalProps.
-func (s *SigningCredentialEnrollmentEvidence) GetAdditionalProps() SigningCredentialEnrollmentEvidenceAdditional {
-	return s.AdditionalProps
-}
-
-// SetVersion sets the value of Version.
-func (s *SigningCredentialEnrollmentEvidence) SetVersion(val int) {
-	s.Version = val
-}
-
-// SetAdditionalProps sets the value of AdditionalProps.
-func (s *SigningCredentialEnrollmentEvidence) SetAdditionalProps(val SigningCredentialEnrollmentEvidenceAdditional) {
-	s.AdditionalProps = val
-}
-
-type SigningCredentialEnrollmentEvidenceAdditional map[string]jx.Raw
-
-func (s *SigningCredentialEnrollmentEvidenceAdditional) init() SigningCredentialEnrollmentEvidenceAdditional {
-	m := *s
-	if m == nil {
-		m = map[string]jx.Raw{}
-		*s = m
+// AllValues returns all SigningCredentialAlgorithm values.
+func (SigningCredentialAlgorithm) AllValues() []SigningCredentialAlgorithm {
+	return []SigningCredentialAlgorithm{
+		SigningCredentialAlgorithmArkgP256Esp256,
 	}
-	return m
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s SigningCredentialAlgorithm) MarshalText() ([]byte, error) {
+	switch s {
+	case SigningCredentialAlgorithmArkgP256Esp256:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *SigningCredentialAlgorithm) UnmarshalText(data []byte) error {
+	switch SigningCredentialAlgorithm(data) {
+	case SigningCredentialAlgorithmArkgP256Esp256:
+		*s = SigningCredentialAlgorithmArkgP256Esp256
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type SigningCredentialCredentialType string
+
+const (
+	SigningCredentialCredentialTypePreviewSignArkg SigningCredentialCredentialType = "preview-sign-arkg"
+)
+
+// AllValues returns all SigningCredentialCredentialType values.
+func (SigningCredentialCredentialType) AllValues() []SigningCredentialCredentialType {
+	return []SigningCredentialCredentialType{
+		SigningCredentialCredentialTypePreviewSignArkg,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s SigningCredentialCredentialType) MarshalText() ([]byte, error) {
+	switch s {
+	case SigningCredentialCredentialTypePreviewSignArkg:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *SigningCredentialCredentialType) UnmarshalText(data []byte) error {
+	switch SigningCredentialCredentialType(data) {
+	case SigningCredentialCredentialTypePreviewSignArkg:
+		*s = SigningCredentialCredentialTypePreviewSignArkg
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
 }
 
 // Ref: #/components/schemas/SigningCredentialList
@@ -46461,52 +47524,15 @@ func NewHumanPrincipalSigningCredentialOwner(v HumanPrincipal) SigningCredential
 	return s
 }
 
-// Merged schema.
-type SigningCredentialPublicMaterial struct {
-	Version         int `json:"version"`
-	AdditionalProps SigningCredentialPublicMaterialAdditional
-}
-
-// GetVersion returns the value of Version.
-func (s *SigningCredentialPublicMaterial) GetVersion() int {
-	return s.Version
-}
-
-// GetAdditionalProps returns the value of AdditionalProps.
-func (s *SigningCredentialPublicMaterial) GetAdditionalProps() SigningCredentialPublicMaterialAdditional {
-	return s.AdditionalProps
-}
-
-// SetVersion sets the value of Version.
-func (s *SigningCredentialPublicMaterial) SetVersion(val int) {
-	s.Version = val
-}
-
-// SetAdditionalProps sets the value of AdditionalProps.
-func (s *SigningCredentialPublicMaterial) SetAdditionalProps(val SigningCredentialPublicMaterialAdditional) {
-	s.AdditionalProps = val
-}
-
-type SigningCredentialPublicMaterialAdditional map[string]jx.Raw
-
-func (s *SigningCredentialPublicMaterialAdditional) init() SigningCredentialPublicMaterialAdditional {
-	m := *s
-	if m == nil {
-		m = map[string]jx.Raw{}
-		*s = m
-	}
-	return m
-}
-
 // Ref: #/components/schemas/SigningCredentialRegistration
 type SigningCredentialRegistration struct {
-	Challenge SigningCredentialRegistrationChallenge `json:"challenge"`
-	ExpiresAt time.Time                              `json:"expiresAt"`
-	ID        uuid.UUID                              `json:"id"`
+	Challenge PreviewSignChallengeValue `json:"challenge"`
+	ExpiresAt time.Time                 `json:"expiresAt"`
+	ID        uuid.UUID                 `json:"id"`
 }
 
 // GetChallenge returns the value of Challenge.
-func (s *SigningCredentialRegistration) GetChallenge() SigningCredentialRegistrationChallenge {
+func (s *SigningCredentialRegistration) GetChallenge() PreviewSignChallengeValue {
 	return s.Challenge
 }
 
@@ -46521,7 +47547,7 @@ func (s *SigningCredentialRegistration) GetID() uuid.UUID {
 }
 
 // SetChallenge sets the value of Challenge.
-func (s *SigningCredentialRegistration) SetChallenge(val SigningCredentialRegistrationChallenge) {
+func (s *SigningCredentialRegistration) SetChallenge(val PreviewSignChallengeValue) {
 	s.Challenge = val
 }
 
@@ -46536,85 +47562,6 @@ func (s *SigningCredentialRegistration) SetID(val uuid.UUID) {
 }
 
 func (*SigningCredentialRegistration) beginSigningCredentialRegistrationRes() {}
-
-type SigningCredentialRegistrationChallenge struct {
-	Value SigningCredentialRegistrationChallengeValue `json:"value"`
-	// Stable signing verification method identifier.
-	VerificationMethod SigningCredentialRegistrationChallengeVerificationMethod `json:"verificationMethod"`
-}
-
-// GetValue returns the value of Value.
-func (s *SigningCredentialRegistrationChallenge) GetValue() SigningCredentialRegistrationChallengeValue {
-	return s.Value
-}
-
-// GetVerificationMethod returns the value of VerificationMethod.
-func (s *SigningCredentialRegistrationChallenge) GetVerificationMethod() SigningCredentialRegistrationChallengeVerificationMethod {
-	return s.VerificationMethod
-}
-
-// SetValue sets the value of Value.
-func (s *SigningCredentialRegistrationChallenge) SetValue(val SigningCredentialRegistrationChallengeValue) {
-	s.Value = val
-}
-
-// SetVerificationMethod sets the value of VerificationMethod.
-func (s *SigningCredentialRegistrationChallenge) SetVerificationMethod(val SigningCredentialRegistrationChallengeVerificationMethod) {
-	s.VerificationMethod = val
-}
-
-type SigningCredentialRegistrationChallengeValue map[string]jx.Raw
-
-func (s *SigningCredentialRegistrationChallengeValue) init() SigningCredentialRegistrationChallengeValue {
-	m := *s
-	if m == nil {
-		m = map[string]jx.Raw{}
-		*s = m
-	}
-	return m
-}
-
-// Stable signing verification method identifier.
-type SigningCredentialRegistrationChallengeVerificationMethod string
-
-const (
-	SigningCredentialRegistrationChallengeVerificationMethodAgentEd25519             SigningCredentialRegistrationChallengeVerificationMethod = "agent-ed25519"
-	SigningCredentialRegistrationChallengeVerificationMethodHumanHardwarePreviewsign SigningCredentialRegistrationChallengeVerificationMethod = "human-hardware-previewsign"
-)
-
-// AllValues returns all SigningCredentialRegistrationChallengeVerificationMethod values.
-func (SigningCredentialRegistrationChallengeVerificationMethod) AllValues() []SigningCredentialRegistrationChallengeVerificationMethod {
-	return []SigningCredentialRegistrationChallengeVerificationMethod{
-		SigningCredentialRegistrationChallengeVerificationMethodAgentEd25519,
-		SigningCredentialRegistrationChallengeVerificationMethodHumanHardwarePreviewsign,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s SigningCredentialRegistrationChallengeVerificationMethod) MarshalText() ([]byte, error) {
-	switch s {
-	case SigningCredentialRegistrationChallengeVerificationMethodAgentEd25519:
-		return []byte(s), nil
-	case SigningCredentialRegistrationChallengeVerificationMethodHumanHardwarePreviewsign:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *SigningCredentialRegistrationChallengeVerificationMethod) UnmarshalText(data []byte) error {
-	switch SigningCredentialRegistrationChallengeVerificationMethod(data) {
-	case SigningCredentialRegistrationChallengeVerificationMethodAgentEd25519:
-		*s = SigningCredentialRegistrationChallengeVerificationMethodAgentEd25519
-		return nil
-	case SigningCredentialRegistrationChallengeVerificationMethodHumanHardwarePreviewsign:
-		*s = SigningCredentialRegistrationChallengeVerificationMethodHumanHardwarePreviewsign
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
 
 type SigningCredentialStatus string
 
@@ -46671,18 +47618,15 @@ func (s *SigningCredentialStatus) UnmarshalText(data []byte) error {
 	}
 }
 
-// Stable signing verification method identifier.
 type SigningCredentialVerificationMethod string
 
 const (
-	SigningCredentialVerificationMethodAgentEd25519             SigningCredentialVerificationMethod = "agent-ed25519"
 	SigningCredentialVerificationMethodHumanHardwarePreviewsign SigningCredentialVerificationMethod = "human-hardware-previewsign"
 )
 
 // AllValues returns all SigningCredentialVerificationMethod values.
 func (SigningCredentialVerificationMethod) AllValues() []SigningCredentialVerificationMethod {
 	return []SigningCredentialVerificationMethod{
-		SigningCredentialVerificationMethodAgentEd25519,
 		SigningCredentialVerificationMethodHumanHardwarePreviewsign,
 	}
 }
@@ -46690,8 +47634,6 @@ func (SigningCredentialVerificationMethod) AllValues() []SigningCredentialVerifi
 // MarshalText implements encoding.TextMarshaler.
 func (s SigningCredentialVerificationMethod) MarshalText() ([]byte, error) {
 	switch s {
-	case SigningCredentialVerificationMethodAgentEd25519:
-		return []byte(s), nil
 	case SigningCredentialVerificationMethodHumanHardwarePreviewsign:
 		return []byte(s), nil
 	default:
@@ -46702,9 +47644,6 @@ func (s SigningCredentialVerificationMethod) MarshalText() ([]byte, error) {
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (s *SigningCredentialVerificationMethod) UnmarshalText(data []byte) error {
 	switch SigningCredentialVerificationMethod(data) {
-	case SigningCredentialVerificationMethodAgentEd25519:
-		*s = SigningCredentialVerificationMethodAgentEd25519
-		return nil
 	case SigningCredentialVerificationMethodHumanHardwarePreviewsign:
 		*s = SigningCredentialVerificationMethodHumanHardwarePreviewsign
 		return nil
@@ -46716,7 +47655,7 @@ func (s *SigningCredentialVerificationMethod) UnmarshalText(data []byte) error {
 // Ref: #/components/schemas/SigningRequest
 type SigningRequest struct {
 	AgentId             uuid.UUID                            `json:"agentId"`
-	Challenge           OptNilSigningRequestChallenge        `json:"challenge"`
+	Challenge           OptNilPreviewSignChallengeValue      `json:"challenge"`
 	ClaimedAt           OptNilDateTime                       `json:"claimedAt"`
 	ClaimedByHumanId    OptNilUUID                           `json:"claimedByHumanId"`
 	CompletedAt         NilDateTime                          `json:"completedAt"`
@@ -46726,6 +47665,7 @@ type SigningRequest struct {
 	Message             string                               `json:"message"`
 	Nonce               uuid.UUID                            `json:"nonce"`
 	Purpose             OptNilString                         `json:"purpose"`
+	Receipt             OptNilPreviewSignEvidenceValue       `json:"receipt"`
 	RejectedAt          OptNilDateTime                       `json:"rejectedAt"`
 	RejectionReason     OptNilString                         `json:"rejectionReason"`
 	RequestedBy         OptNilSigningRequestRequestedBy      `json:"requestedBy"`
@@ -46748,7 +47688,7 @@ func (s *SigningRequest) GetAgentId() uuid.UUID {
 }
 
 // GetChallenge returns the value of Challenge.
-func (s *SigningRequest) GetChallenge() OptNilSigningRequestChallenge {
+func (s *SigningRequest) GetChallenge() OptNilPreviewSignChallengeValue {
 	return s.Challenge
 }
 
@@ -46795,6 +47735,11 @@ func (s *SigningRequest) GetNonce() uuid.UUID {
 // GetPurpose returns the value of Purpose.
 func (s *SigningRequest) GetPurpose() OptNilString {
 	return s.Purpose
+}
+
+// GetReceipt returns the value of Receipt.
+func (s *SigningRequest) GetReceipt() OptNilPreviewSignEvidenceValue {
+	return s.Receipt
 }
 
 // GetRejectedAt returns the value of RejectedAt.
@@ -46858,7 +47803,7 @@ func (s *SigningRequest) SetAgentId(val uuid.UUID) {
 }
 
 // SetChallenge sets the value of Challenge.
-func (s *SigningRequest) SetChallenge(val OptNilSigningRequestChallenge) {
+func (s *SigningRequest) SetChallenge(val OptNilPreviewSignChallengeValue) {
 	s.Challenge = val
 }
 
@@ -46905,6 +47850,11 @@ func (s *SigningRequest) SetNonce(val uuid.UUID) {
 // SetPurpose sets the value of Purpose.
 func (s *SigningRequest) SetPurpose(val OptNilString) {
 	s.Purpose = val
+}
+
+// SetReceipt sets the value of Receipt.
+func (s *SigningRequest) SetReceipt(val OptNilPreviewSignEvidenceValue) {
+	s.Receipt = val
 }
 
 // SetRejectedAt sets the value of RejectedAt.
@@ -46968,17 +47918,6 @@ func (*SigningRequest) createSigningRequestRes()   {}
 func (*SigningRequest) getSigningRequestRes()      {}
 func (*SigningRequest) rejectSigningRequestRes()   {}
 func (*SigningRequest) submitSignatureRes()        {}
-
-type SigningRequestChallenge map[string]jx.Raw
-
-func (s *SigningRequestChallenge) init() SigningRequestChallenge {
-	m := *s
-	if m == nil {
-		m = map[string]jx.Raw{}
-		*s = m
-	}
-	return m
-}
 
 // Ref: #/components/schemas/SigningRequestList
 type SigningRequestList struct {

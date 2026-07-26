@@ -12,7 +12,8 @@
   },
   "dependencies": {
     "@dbos-inc/dbos-sdk": "catalog:",
-    "@moltnet/models": "workspace:*"
+    "@moltnet/models": "workspace:*",
+    "@themoltnet/yubikey-preview-sign": "workspace:*"
   },
   "devDependencies": {
     "typescript": "catalog:",

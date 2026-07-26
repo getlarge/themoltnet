@@ -61,9 +61,15 @@ export type SigningMethodJson =
   | { [key: string]: SigningMethodJson };
 
 export interface PrepareSigningClaimInput {
+  operation?: 'credential-registration' | 'signing-request';
   verificationMethod: VerificationMethod;
   requestId: string;
   credentialId: string;
+  teamId?: string;
+  claimantId?: string;
+  purpose?: string;
+  nonce?: string;
+  expiresAt?: string;
   signingPayload: string;
   credentialPublicMaterial?: SigningMethodJson;
 }
@@ -116,6 +122,10 @@ export interface SigningMethodDriver extends SigningVerifier {
   verifyReceipt(
     input: VerifySigningReceiptInput,
   ): Promise<VerificationEvidence>;
+  isReceiptReplay?(
+    receipt: SigningMethodReceipt,
+    evidence: SigningMethodJson,
+  ): boolean;
 }
 
 export type SigningWorkflowErrorCode =
@@ -385,6 +395,15 @@ export async function verifySigningReceipt(
     );
   }
   return getSigningMethodDriver(input.verificationMethod).verifyReceipt(input);
+}
+
+export function isSigningReceiptReplay(input: {
+  verificationMethod: VerificationMethod;
+  receipt: SigningMethodReceipt;
+  evidence: SigningMethodJson;
+}): boolean {
+  const driver = getSigningMethodDriver(input.verificationMethod);
+  return driver.isReceiptReplay?.(input.receipt, input.evidence) ?? false;
 }
 
 export function validateSigningCredentialPublicMaterial(

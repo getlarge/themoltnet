@@ -8,12 +8,14 @@
     "@moltnet/bootstrap": "workspace:*",
     "@moltnet/crypto-service": "workspace:*",
     "@moltnet/database": "workspace:*",
-    "@themoltnet/sdk": "workspace:*",
     "@ory/client-fetch": "catalog:",
+    "@themoltnet/sdk": "workspace:*",
     "drizzle-orm": "catalog:",
     "ioredis": "catalog:"
   },
   "devDependencies": {
+    "@noble/curves": "catalog:",
+    "@themoltnet/ctap": "workspace:*",
     "typescript": "catalog:",
     "vitest": "catalog:"
   },
