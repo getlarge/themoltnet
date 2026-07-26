@@ -226,7 +226,6 @@ describe('signing credential routes', () => {
         authorization: 'Bearer human-session',
         'x-moltnet-team-id': TEAM_ID,
       },
-      payload: {},
     });
 
     expect(response.statusCode).toBe(200);
@@ -242,6 +241,21 @@ describe('signing credential routes', () => {
     expect(response.json()).not.toHaveProperty('ownerHumanId');
   });
 
+  it('returns a lifecycle conflict for a bodyless transition', async () => {
+    mocks.signingCredentialRepository.transition.mockResolvedValue(null);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/crypto/signing-credentials/${CREDENTIAL_ID}/approve`,
+      headers: {
+        authorization: 'Bearer human-session',
+        'x-moltnet-team-id': TEAM_ID,
+      },
+    });
+
+    expect(response.statusCode).toBe(409);
+  });
+
   it('forbids an agent credential manager from approving a credential', async () => {
     const agentApp = await createTestApp(mocks, {
       ...VALID_AUTH_CONTEXT,
@@ -255,7 +269,6 @@ describe('signing credential routes', () => {
         authorization: 'Bearer agent-token',
         'x-moltnet-team-id': TEAM_ID,
       },
-      payload: {},
     });
 
     expect(response.statusCode).toBe(403);

@@ -457,6 +457,10 @@ export async function signingCredentialRoutes(fastify: FastifyInstance) {
           auth: { credentialBindingScope: 'team' },
           rateLimit: fastify.rateLimitConfig?.signing,
         },
+        preValidation: (request, _reply, done) => {
+          request.body ??= {};
+          done();
+        },
         schema: {
           operationId: transition.operationId,
           tags: ['crypto'],
@@ -467,9 +471,11 @@ export async function signingCredentialRoutes(fastify: FastifyInstance) {
           ],
           headers: TeamHeaderRequiredSchema,
           params: ParamsSchema,
-          body: Type.Object({
-            reason: Type.Optional(Type.String({ maxLength: 1000 })),
-          }),
+          body: Type.Optional(
+            Type.Object({
+              reason: Type.Optional(Type.String({ maxLength: 1000 })),
+            }),
+          ),
           response: {
             200: Type.Ref(SigningCredentialSchema.$id),
             401: Type.Ref(ProblemDetailsSchema.$id),
@@ -509,7 +515,7 @@ export async function signingCredentialRoutes(fastify: FastifyInstance) {
                     ? auth.humanId
                     : undefined,
                 actor,
-                reason: request.body.reason,
+                reason: request.body?.reason,
               }),
             { name: `signing-credential-${transition.action}` },
           );
