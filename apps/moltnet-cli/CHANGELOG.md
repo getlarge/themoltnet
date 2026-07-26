@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.70.0](https://github.com/getlarge/themoltnet/compare/cli-v1.69.0...cli-v1.70.0) (2026-07-26)
+
+
+### Features
+
+* **cli:** add moltnet profile command group ([a8d3bdb](https://github.com/getlarge/themoltnet/commit/a8d3bdb3312848762767c5524b24e28ee9de5931))
+* **cli:** add moltnet profile command group ([#1626](https://github.com/getlarge/themoltnet/issues/1626)) ([435d19b](https://github.com/getlarge/themoltnet/commit/435d19ba2b45f5976dd19027e7ae98a7e9207f76))
+* **shell-command-analyzer:** isomorphic static shell command analyzer ([d76d512](https://github.com/getlarge/themoltnet/commit/d76d512f548cbfebd7e7e7a9963f51fbeb42cc99))
+* **signing:** add production previewSign server method ([ce991eb](https://github.com/getlarge/themoltnet/commit/ce991eb9d8b80f9ad1b92a85e1906ca0c817f5bf))
+* **signing:** add production previewSign server method ([582e80c](https://github.com/getlarge/themoltnet/commit/582e80ca37d3120eea701d0814cbca728ad4cefd))
+
+
+### Bug Fixes
+
+* **cli:** address profile command review findings ([8891c59](https://github.com/getlarge/themoltnet/commit/8891c592578579cd97ac08f7f89c4d3012908e75))
+* **shell-command-analyzer:** address review — fail-closed resolver, GTFOBins/browser hardening, cross-language conformance ([215ecad](https://github.com/getlarge/themoltnet/commit/215ecaddf320dbd1d5dbecd01eafb5ffd0a9a353))
+
 ## [1.69.0](https://github.com/getlarge/themoltnet/compare/cli-v1.68.0...cli-v1.69.0) (2026-07-26)
 
 

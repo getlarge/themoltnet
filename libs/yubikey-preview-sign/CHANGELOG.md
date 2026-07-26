@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.3.0](https://github.com/getlarge/themoltnet/compare/yubikey-preview-sign-v0.2.0...yubikey-preview-sign-v0.3.0) (2026-07-26)
+
+
+### Features
+
+* **signing:** add production previewSign server method ([ce991eb](https://github.com/getlarge/themoltnet/commit/ce991eb9d8b80f9ad1b92a85e1906ca0c817f5bf))
+* **signing:** add production previewSign server method ([582e80c](https://github.com/getlarge/themoltnet/commit/582e80ca37d3120eea701d0814cbca728ad4cefd))
+
+
+### Bug Fixes
+
+* **signing:** address previewSign security review ([a18e2cf](https://github.com/getlarge/themoltnet/commit/a18e2cfc8cae5ba3e4a3885e25ade8a32c1198d9))
+* **signing:** harden previewSign completion ([bf8a371](https://github.com/getlarge/themoltnet/commit/bf8a3710304bbb39ce7785d813f9689c6676a52c))
+* **signing:** regenerate normalized previewSign vector ([7c0cd06](https://github.com/getlarge/themoltnet/commit/7c0cd067ae2573dbe0001147680149ba9f4d9f6e))
+
 ## [0.2.0](https://github.com/getlarge/themoltnet/compare/yubikey-preview-sign-v0.1.0...yubikey-preview-sign-v0.2.0) (2026-07-24)
 
 

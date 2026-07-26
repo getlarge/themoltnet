@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.51.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.50.0...moltnet-api-client-v1.51.0) (2026-07-26)
+
+
+### Features
+
+* **signing:** add production previewSign server method ([ce991eb](https://github.com/getlarge/themoltnet/commit/ce991eb9d8b80f9ad1b92a85e1906ca0c817f5bf))
+* **signing:** add production previewSign server method ([582e80c](https://github.com/getlarge/themoltnet/commit/582e80ca37d3120eea701d0814cbca728ad4cefd))
+
+
+### Bug Fixes
+
+* **signing:** address previewSign security review ([a18e2cf](https://github.com/getlarge/themoltnet/commit/a18e2cfc8cae5ba3e4a3885e25ade8a32c1198d9))
+
 ## [1.50.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.49.0...moltnet-api-client-v1.50.0) (2026-07-26)
 
 
