@@ -1,8 +1,8 @@
 import { p256 } from '@noble/curves/nist.js';
 import { verifyP256PrehashedSignature } from '@themoltnet/yubikey-preview-sign/protocol';
-import serverVector from '@themoltnet/yubikey-preview-sign/vectors/preview-sign-server-v1.json';
 import { describe, expect, it, vi } from 'vitest';
 
+import serverVector from './fixtures/preview-sign-server-v1.json';
 import {
   createPreviewSignSigningMethodDriver,
   PREVIEW_SIGN_ALGORITHM,

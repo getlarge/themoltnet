@@ -23,7 +23,7 @@
       "import": "./src/arkg-test-support.ts",
       "types": "./src/arkg-test-support.ts"
     },
-    "./vectors/preview-sign-server-v1.json": "./vectors/preview-sign-server-v1.json"
+    "./vectors/preview-sign-v1.json": "./vectors/preview-sign-v1.json"
   },
   "publishConfig": {
     "exports": {
@@ -39,7 +39,7 @@
         "types": "./dist/protocol.d.ts",
         "import": "./dist/protocol.js"
       },
-      "./vectors/preview-sign-server-v1.json": "./vectors/preview-sign-server-v1.json"
+      "./vectors/preview-sign-v1.json": "./vectors/preview-sign-v1.json"
     }
   },
   "files": [

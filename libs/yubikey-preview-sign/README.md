@@ -27,7 +27,7 @@ import {
 ```
 
 `createPreviewSignPrehash(payload)` is exactly SHA-256 of `payload`. It adds no
-MoltNet prefix, wire-version marker, or CBOR envelope. The deprecated
+application prefix, wire-version marker, or CBOR envelope. The deprecated
 `createPreviewSignDigestV1` name remains as an alias for compatibility.
 `signDigest` accepts exactly 32 bytes and the YubiKey signs those bytes as-is;
 the offline verifier therefore does not hash them again.
@@ -38,13 +38,15 @@ so signature bytes have one stable representation.
 
 Each signature derives a fresh ESP256 child key from the enrolled ARKG seed.
 
-The package publishes the deterministic Phase 3 server interoperability vector
-at `@themoltnet/yubikey-preview-sign/vectors/preview-sign-server-v1.json`. Its
-`serverTestOnly` and `authenticatorTestOnly` fields are fixed test secrets for
-reproducing ARKG derivation and must never be used as enrollment material.
-Production callers generate fresh IKM server-side, persist only the derived
-public key and verifier state, and return only the public additional arguments.
-IKM is never part of the public challenge, enrollment material, verifier state,
-receipt, or normalized evidence. The canonical server envelope and lifecycle
-are documented in the
-[MoltNet signing architecture guide](https://github.com/getlarge/themoltnet/blob/main/docs/understand/signing.md).
+The package publishes a deterministic, application-neutral interoperability
+vector at
+`@themoltnet/yubikey-preview-sign/vectors/preview-sign-v1.json`. It covers ARKG
+public-key derivation, the exact previewSign prehash, and ESP256 verification.
+Values under `testOnly` are fixed secrets for reproducing the vector and must
+never be used as enrollment or production key material.
+
+Applications own their signing envelope, identity model, authorization,
+lifecycle, persistence, and replay policy. Production server integrations
+generate fresh IKM, persist the derived public key and verifier-only state, and
+send only the public ARKG additional arguments to the authenticator. IKM must
+not cross the application boundary in a challenge, receipt, or evidence record.
