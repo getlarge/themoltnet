@@ -82,6 +82,12 @@ export const RUNTIME_PROFILE_CONTEXT_CATALOGUE: RuntimeProfileContextCatalogue =
           '# Verification and artifacts\n\n- Run relevant verification before submitting. When task facts include `successCriteria`, assess them honestly in the generated verification contract; a fail or skip with evidence is better than a fabricated pass.\n- The registered submit-output tool owns the exact agent submission schema and validation recovery. Use that schema; do not invent a JSON shape in prose.\n- Upload large files, binary files, logs, reports, screenshots, traces, bundles, or datasets before submitting. Include artifact metadata only where the typed submit contract permits it.\n- If the task depends on prior artifacts, list and download the exact referenced artifact before judging or continuing that work.',
         slug: 'verification-and-artifacts-v1',
       },
+      'verification-and-artifacts-v2': {
+        binding: 'prompt_prefix',
+        content:
+          '# Verification and artifacts\n\n- Run relevant verification before submitting. When task facts include `successCriteria`, assess them honestly in the generated verification contract; a fail or skip with evidence is better than a fabricated pass.\n- The registered submit-output tool owns the exact agent submission schema and validation recovery. Use that schema; do not invent a JSON shape in prose.\n- Upload only task-relevant artifacts, and inspect each before uploading. Never upload secrets, credentials, API keys, auth tokens or headers, .env files, or personal or customer data; redact sensitive values, and prefer minimal, sanitized excerpts over whole logs, bundles, or datasets. Include artifact metadata only where the typed submit contract permits it.\n- If the task depends on prior artifacts, list and download the exact referenced artifact before judging or continuing that work.',
+        slug: 'verification-and-artifacts-v2',
+      },
     },
     recipes: {
       'artifact-planner@v1': {
@@ -103,6 +109,17 @@ export const RUNTIME_PROFILE_CONTEXT_CATALOGUE: RuntimeProfileContextCatalogue =
           'accountable-delivery-v1',
           'judgment-diary-v1',
           'verification-and-artifacts-v1',
+        ],
+      },
+      'standard-engineering@v2': {
+        description:
+          'Full opt-in engineering guidance (recommended). Same as v1 with hardened artifact-upload rules: task-relevant, inspected, and redacted uploads only — never secrets or PII.',
+        fragments: [
+          'proactive-memory-v1',
+          'task-diary-discipline-v1',
+          'accountable-delivery-v1',
+          'judgment-diary-v1',
+          'verification-and-artifacts-v2',
         ],
       },
     },
