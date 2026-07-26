@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.31.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.30.5...agent-daemon-v0.31.0) (2026-07-26)
+
+
+### Features
+
+* **agent-daemon:** adopt opt-in agent-key auth with startup team validation ([2efb87e](https://github.com/getlarge/themoltnet/commit/2efb87eb3f3a0730066cbc18bb689ef9bdb3df6a))
+* **agent-daemon:** adopt opt-in agent-key auth with startup team validation ([#1348](https://github.com/getlarge/themoltnet/issues/1348) PR-2) ([3284552](https://github.com/getlarge/themoltnet/commit/3284552c95bcb487544d74f7110439d3557a5447))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.36.4
+    * @themoltnet/pi-extension bumped to 0.35.4
+    * @themoltnet/sdk bumped to 0.125.0
+
 ## [0.30.5](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.30.4...agent-daemon-v0.30.5) (2026-07-25)
 
 

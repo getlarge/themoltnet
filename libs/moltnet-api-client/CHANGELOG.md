@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.50.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.49.0...moltnet-api-client-v1.50.0) (2026-07-26)
+
+
+### Features
+
+* **crypto:** add signing credential substrate ([fdfcbf6](https://github.com/getlarge/themoltnet/commit/fdfcbf695ce1c2d84ca7c70c1635726747e61341))
+* **crypto:** Phase 2 signing-credential and delegated-request substrate ([7364d8f](https://github.com/getlarge/themoltnet/commit/7364d8ffadaeab74b7aab24e2d2f92bd37bb7c64))
+
+
+### Bug Fixes
+
+* **crypto:** model signing credential owners as principals ([5786876](https://github.com/getlarge/themoltnet/commit/5786876a5312f91c5a79f229858b09d67cd8c32b))
+* **signing:** address phase 2 review feedback ([88e8486](https://github.com/getlarge/themoltnet/commit/88e8486fdd48b78bc193bc9ea925f69eb7691efa))
+* **signing:** harden delegated signing workflows ([47ab481](https://github.com/getlarge/themoltnet/commit/47ab481f9ab3b439998748563450c0716e100feb))
+
 ## [1.49.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.48.0...moltnet-api-client-v1.49.0) (2026-07-25)
 
 
