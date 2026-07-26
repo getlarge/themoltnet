@@ -14,6 +14,7 @@ import {
 } from '@moltnet/api-client/query';
 import { useQuery } from '@tanstack/react-query';
 import {
+  Badge,
   Button,
   Card,
   Stack,
@@ -22,12 +23,11 @@ import {
   useTheme,
 } from '@themoltnet/design-system';
 import {
-  type ChangeEvent,
-  Fragment,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+  resolveRuntimeProfileContextRecipe,
+  runtimeProfileContextRecipeDescription,
+  runtimeProfileContextRecipeIds,
+} from '@themoltnet/sdk';
+import { type ChangeEvent, useEffect, useMemo, useState } from 'react';
 
 import { getApiClient } from '../api.js';
 import { getConfig } from '../config.js';
@@ -72,8 +72,13 @@ interface ProfileFormState {
   allowedWorkspaceModes: RuntimeProfileWorkspaceMode[];
   requiredEnv: string;
   requiredTools: string;
-  contextJson: string;
+  context: RuntimeProfileContext[];
 }
+
+/** Maximum context entries a runtime profile accepts (RuntimeProfile.context maxItems). */
+const MAX_CONTEXT_ENTRIES = 5;
+const CONTEXT_BINDING_DEFAULT: RuntimeProfileContext['binding'] =
+  'prompt_prefix';
 
 const EMPTY_FORM: ProfileFormState = {
   name: '',
@@ -99,29 +104,11 @@ const EMPTY_FORM: ProfileFormState = {
   allowedWorkspaceModes: ['none', 'shared_mount', 'dedicated_worktree'],
   requiredEnv: '',
   requiredTools: '',
-  contextJson: '[]',
+  context: [],
 };
 
 const RUNTIME_PROFILE_DOCS_HREF = `${getConfig().docsUrl}/operate/running-agents#runtime-profiles`;
 const NEW_PROFILE_ID = '__new_runtime_profile__';
-const CONTEXT_JSON_EXAMPLE = JSON.stringify(
-  [
-    {
-      slug: 'repo-rules',
-      binding: 'skill',
-      content:
-        '---\nname: repo-rules\ndescription: Repository operating rules\n---\nUse pnpm and Nx. Keep migrations and generated clients in sync.',
-    },
-    {
-      slug: 'api-contract',
-      binding: 'context_inline',
-      content:
-        'Preserve backward-compatible response shapes unless the task explicitly asks for a breaking API change.',
-    },
-  ],
-  null,
-  2,
-);
 
 const FIELD_HELP = {
   sessionTtlSec:
@@ -195,6 +182,7 @@ export function ProfilesPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [contextNotice, setContextNotice] = useState<string | null>(null);
 
   const profilesQuery = useQuery({
     ...listRuntimeProfilesOptions({
@@ -253,6 +241,7 @@ export function ProfilesPage() {
     if (selectedProfile) {
       setForm(profileToForm(selectedProfile));
       setFormError(null);
+      setContextNotice(null);
     }
   }, [selectedProfile]);
 
@@ -284,6 +273,47 @@ export function ProfilesPage() {
     setSelectedProfileId(NEW_PROFILE_ID);
     setForm(EMPTY_FORM);
     setFormError(null);
+    setContextNotice(null);
+  }
+
+  function setContext(next: RuntimeProfileContext[]) {
+    updateField('context', next);
+    setContextNotice(null);
+  }
+
+  // Merge a suggested recipe into the current context entries without
+  // overwriting operator work: entries whose slug already exists are skipped,
+  // and the profile's 5-entry cap is respected. The outcome is reported so the
+  // operator can see exactly what changed and why.
+  function applyRecipe(recipeId: string) {
+    const additions = resolveRuntimeProfileContextRecipe(
+      recipeId,
+    ) as RuntimeProfileContext[];
+    setForm((current) => {
+      const existingSlugs = new Set(current.context.map((entry) => entry.slug));
+      const fresh = additions.filter((entry) => !existingSlugs.has(entry.slug));
+      const skipped = additions.length - fresh.length;
+      const room = MAX_CONTEXT_ENTRIES - current.context.length;
+      const added = fresh.slice(0, Math.max(0, room));
+      const overflow = fresh.length - added.length;
+
+      const parts: string[] = [];
+      parts.push(
+        added.length === 1
+          ? `Added 1 entry from ${recipeId}.`
+          : `Added ${added.length} entries from ${recipeId}.`,
+      );
+      if (skipped > 0) {
+        parts.push(`Skipped ${skipped} already present (kept your version).`);
+      }
+      if (overflow > 0) {
+        parts.push(
+          `${overflow} not added — the ${MAX_CONTEXT_ENTRIES}-entry limit was reached.`,
+        );
+      }
+      setContextNotice(parts.join(' '));
+      return { ...current, context: [...current.context, ...added] };
+    });
   }
 
   async function saveProfile() {
@@ -717,17 +747,11 @@ export function ProfilesPage() {
               onChange={(value) => updateField('sandboxJson', value)}
               rows={8}
             />
-            <LabeledTextarea
-              label="Injected context"
-              help={FIELD_HELP.contextJson}
-              value={form.contextJson}
-              onChange={(value) => updateField('contextJson', value)}
-              rows={5}
-            />
-            <ContextReference
-              onInsertExample={() =>
-                updateField('contextJson', CONTEXT_JSON_EXAMPLE)
-              }
+            <ContextEditor
+              entries={form.context}
+              onChange={setContext}
+              onApplyRecipe={applyRecipe}
+              notice={contextNotice}
             />
 
             {formError ? (
@@ -776,23 +800,48 @@ export function ProfilesPage() {
   );
 }
 
-function ContextReference({
-  onInsertExample,
+const SLUG_PATTERN = /^[a-zA-Z0-9_-]{1,64}$/;
+
+function bindingDelivery(binding: string): string {
+  return (
+    CONTEXT_BINDINGS.find((item) => item.binding === binding)?.delivery ?? ''
+  );
+}
+
+function panelStyle(theme: ReturnType<typeof useTheme>): React.CSSProperties {
+  return {
+    border: `1px solid ${theme.color.border.DEFAULT}`,
+    borderRadius: theme.radius.md,
+    padding: theme.spacing[3],
+    background: theme.color.bg.surface,
+  };
+}
+
+// Primary context surface: a structured list of entries with a suggested-recipe
+// picker above and a raw-JSON escape hatch below. The parent owns the entries
+// array; this component only edits it.
+function ContextEditor({
+  entries,
+  onChange,
+  onApplyRecipe,
+  notice,
 }: {
-  onInsertExample: () => void;
+  entries: RuntimeProfileContext[];
+  onChange: (entries: RuntimeProfileContext[]) => void;
+  onApplyRecipe: (recipeId: string) => void;
+  notice: string | null;
 }) {
   const theme = useTheme();
+  const atCap = entries.length >= MAX_CONTEXT_ENTRIES;
+
+  function updateEntry(index: number, patch: Partial<RuntimeProfileContext>) {
+    onChange(
+      entries.map((entry, i) => (i === index ? { ...entry, ...patch } : entry)),
+    );
+  }
+
   return (
-    <div
-      style={{
-        display: 'grid',
-        gap: theme.spacing[2],
-        border: `1px solid ${theme.color.border.DEFAULT}`,
-        borderRadius: theme.radius.md,
-        padding: theme.spacing[3],
-        background: theme.color.bg.surface,
-      }}
-    >
+    <Stack gap={3}>
       <Stack
         direction="row"
         justify="space-between"
@@ -800,33 +849,387 @@ function ContextReference({
         gap={2}
         wrap
       >
-        <Text variant="caption" color="muted">
-          Context entries are optional. Each entry needs slug, binding, and
-          content.
-        </Text>
-        <Button variant="secondary" size="sm" onClick={onInsertExample}>
-          Insert example
-        </Button>
+        <FieldLabel label="Injected context" help={FIELD_HELP.contextJson} />
+        <Badge variant={atCap ? 'warning' : 'default'}>
+          {entries.length} / {MAX_CONTEXT_ENTRIES}
+        </Badge>
       </Stack>
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'minmax(8rem, 0.4fr) minmax(12rem, 1fr)',
-          gap: theme.spacing[2],
-          fontSize: theme.font.size.sm,
-        }}
+
+      <SuggestedContextsPicker onApply={onApplyRecipe} disabled={atCap} />
+
+      {notice ? (
+        <Text variant="caption" color="muted">
+          {notice}
+        </Text>
+      ) : null}
+
+      {entries.length === 0 ? (
+        <div style={panelStyle(theme)}>
+          <Text variant="caption" color="muted">
+            No context entries yet. Apply a suggested recipe above, or add one
+            manually — each entry needs a slug, a binding, and content.
+          </Text>
+        </div>
+      ) : (
+        <Stack gap={2}>
+          {entries.map((entry, index) => (
+            <ContextEntryRow
+              // Rows are positional and never reordered; the parent replaces the
+              // whole array on every edit, so the index is a stable key here.
+              key={index}
+              index={index}
+              entry={entry}
+              onChange={(patch) => updateEntry(index, patch)}
+              onRemove={() => onChange(entries.filter((_, i) => i !== index))}
+            />
+          ))}
+        </Stack>
+      )}
+
+      <Stack
+        direction="row"
+        justify="space-between"
+        align="center"
+        gap={2}
+        wrap
       >
-        {CONTEXT_BINDINGS.map((item) => (
-          <Fragment key={item.binding}>
-            <code style={{ color: theme.color.text.DEFAULT }}>
-              {item.binding}
-            </code>
-            <Text variant="caption">{item.delivery}</Text>
-          </Fragment>
-        ))}
-      </div>
+        <Button
+          variant="secondary"
+          size="sm"
+          disabled={atCap}
+          onClick={() =>
+            onChange([
+              ...entries,
+              { slug: '', binding: CONTEXT_BINDING_DEFAULT, content: '' },
+            ])
+          }
+        >
+          Add entry
+        </Button>
+        {atCap ? (
+          <Text variant="caption" color="muted">
+            Maximum {MAX_CONTEXT_ENTRIES} entries reached.
+          </Text>
+        ) : null}
+      </Stack>
+
+      <AdvancedContextJson entries={entries} onApply={onChange} />
+    </Stack>
+  );
+}
+
+function SuggestedContextsPicker({
+  onApply,
+  disabled,
+}: {
+  onApply: (recipeId: string) => void;
+  disabled: boolean;
+}) {
+  const theme = useTheme();
+  const [recipeId, setRecipeId] = useState(
+    runtimeProfileContextRecipeIds[0] ?? '',
+  );
+  if (runtimeProfileContextRecipeIds.length === 0) return null;
+  const description = recipeId
+    ? runtimeProfileContextRecipeDescription(recipeId)
+    : '';
+
+  return (
+    <div style={panelStyle(theme)}>
+      <Stack gap={2}>
+        <Stack direction="row" align="end" gap={2} wrap>
+          <label
+            style={{
+              display: 'grid',
+              gap: theme.spacing[1],
+              flex: '1 1 16rem',
+              minWidth: 0,
+            }}
+          >
+            <FieldLabel
+              label="Suggested contexts"
+              help="Apply a versioned starter recipe. Its entries are copied in as ordinary, editable context — no preset id or hidden behavior is stored on the profile."
+            />
+            <select
+              aria-label="Suggested context recipe"
+              value={recipeId}
+              onChange={(event) => setRecipeId(event.target.value)}
+              style={fieldStyle(theme)}
+            >
+              {runtimeProfileContextRecipeIds.map((id) => (
+                <option key={id} value={id}>
+                  {id}
+                </option>
+              ))}
+            </select>
+          </label>
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={disabled || !recipeId}
+            onClick={() => recipeId && onApply(recipeId)}
+          >
+            Apply
+          </Button>
+        </Stack>
+        {description ? (
+          <Text variant="caption" color="muted">
+            {description}
+          </Text>
+        ) : null}
+        {disabled ? (
+          <Text variant="caption" color="muted">
+            Remove an entry to apply another recipe.
+          </Text>
+        ) : null}
+      </Stack>
     </div>
   );
+}
+
+function ContextEntryRow({
+  index,
+  entry,
+  onChange,
+  onRemove,
+}: {
+  index: number;
+  entry: RuntimeProfileContext;
+  onChange: (patch: Partial<RuntimeProfileContext>) => void;
+  onRemove: () => void;
+}) {
+  const theme = useTheme();
+  const position = index + 1;
+  return (
+    <div style={panelStyle(theme)}>
+      <Stack gap={2}>
+        <Stack direction="row" gap={2} align="end" wrap>
+          <label
+            style={{
+              display: 'grid',
+              gap: theme.spacing[1],
+              flex: '2 1 12rem',
+              minWidth: 0,
+            }}
+          >
+            <FieldLabel label={`Slug ${position}`} />
+            <input
+              aria-label={`Context slug ${position}`}
+              value={entry.slug}
+              placeholder="repo-rules"
+              onChange={(event) => onChange({ slug: event.target.value })}
+              style={{
+                ...fieldStyle(theme),
+                fontFamily: theme.font.family.mono,
+              }}
+            />
+          </label>
+          <label
+            style={{
+              display: 'grid',
+              gap: theme.spacing[1],
+              flex: '1 1 10rem',
+              minWidth: 0,
+            }}
+          >
+            <FieldLabel label="Binding" />
+            <select
+              aria-label={`Context binding ${position}`}
+              value={entry.binding}
+              onChange={(event) =>
+                onChange({
+                  binding: event.target
+                    .value as RuntimeProfileContext['binding'],
+                })
+              }
+              style={fieldStyle(theme)}
+            >
+              {CONTEXT_BINDINGS.map((item) => (
+                <option key={item.binding} value={item.binding}>
+                  {item.binding}
+                </option>
+              ))}
+            </select>
+          </label>
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label={`Remove context entry ${position}`}
+            onClick={onRemove}
+          >
+            Remove
+          </Button>
+        </Stack>
+        <label style={{ display: 'grid', gap: theme.spacing[1] }}>
+          <FieldLabel label="Content" help={bindingDelivery(entry.binding)} />
+          <textarea
+            aria-label={`Context content ${position}`}
+            value={entry.content}
+            rows={4}
+            onChange={(event) => onChange({ content: event.target.value })}
+            style={{
+              ...fieldStyle(theme),
+              fontFamily: theme.font.family.mono,
+              resize: 'vertical',
+            }}
+          />
+        </label>
+      </Stack>
+    </div>
+  );
+}
+
+// Raw-JSON escape hatch. The structured entries stay the source of truth; this
+// disclosure mirrors them and only writes back when the operator applies a
+// valid edit, so a malformed draft can never silently corrupt the form.
+function AdvancedContextJson({
+  entries,
+  onApply,
+}: {
+  entries: RuntimeProfileContext[];
+  onApply: (entries: RuntimeProfileContext[]) => void;
+}) {
+  const theme = useTheme();
+  const serialized = useMemo(() => JSON.stringify(entries, null, 2), [entries]);
+  const [draft, setDraft] = useState(serialized);
+  const [dirty, setDirty] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!dirty) setDraft(serialized);
+  }, [serialized, dirty]);
+
+  function apply() {
+    try {
+      onApply(parseContextEntries(draft));
+      setDirty(false);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Invalid context JSON.');
+    }
+  }
+
+  return (
+    <details style={panelStyle(theme)}>
+      <summary style={{ cursor: 'pointer' }}>
+        <Text variant="caption" color="muted">
+          Advanced — edit as raw JSON
+        </Text>
+      </summary>
+      <Stack gap={2} style={{ marginTop: theme.spacing[2] }}>
+        <textarea
+          aria-label="Context JSON"
+          value={draft}
+          rows={8}
+          onChange={(event) => {
+            setDraft(event.target.value);
+            setDirty(true);
+          }}
+          style={{
+            ...fieldStyle(theme),
+            fontFamily: theme.font.family.mono,
+            resize: 'vertical',
+          }}
+        />
+        {error ? (
+          <Text variant="caption" style={{ color: theme.color.error.DEFAULT }}>
+            {error}
+          </Text>
+        ) : null}
+        <Stack direction="row" gap={2}>
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={!dirty}
+            onClick={apply}
+          >
+            Apply JSON
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={!dirty}
+            onClick={() => {
+              setDraft(serialized);
+              setDirty(false);
+              setError(null);
+            }}
+          >
+            Revert
+          </Button>
+        </Stack>
+      </Stack>
+    </details>
+  );
+}
+
+// Parse the advanced raw-JSON editor into validated entries, throwing an
+// operator-legible message on the first problem.
+function parseContextEntries(value: string): RuntimeProfileContext[] {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value);
+  } catch {
+    throw new Error('Context must be valid JSON.');
+  }
+  if (!Array.isArray(parsed)) {
+    throw new Error('Context must be a JSON array of entries.');
+  }
+  if (parsed.length > MAX_CONTEXT_ENTRIES) {
+    throw new Error(`Context allows at most ${MAX_CONTEXT_ENTRIES} entries.`);
+  }
+  return parsed.map((raw, index) => {
+    const label = `Entry ${index + 1}`;
+    if (typeof raw !== 'object' || raw === null) {
+      throw new Error(`${label} must be an object.`);
+    }
+    const { slug, binding, content } = raw as Record<string, unknown>;
+    if (typeof slug !== 'string' || !SLUG_PATTERN.test(slug)) {
+      throw new Error(
+        `${label} needs a slug of letters, numbers, dashes, or underscores.`,
+      );
+    }
+    if (
+      typeof binding !== 'string' ||
+      !CONTEXT_BINDINGS.some((item) => item.binding === binding)
+    ) {
+      throw new Error(`${label} has an unknown binding.`);
+    }
+    if (typeof content !== 'string' || content.length === 0) {
+      throw new Error(`${label} needs non-empty content.`);
+    }
+    return {
+      slug,
+      binding: binding as RuntimeProfileContext['binding'],
+      content,
+    };
+  });
+}
+
+// Validate structured entries before submit, mirroring the server rules so the
+// operator gets an inline message instead of a 400.
+function assertValidContextEntries(entries: RuntimeProfileContext[]): void {
+  if (entries.length > MAX_CONTEXT_ENTRIES) {
+    throw new Error(`Context allows at most ${MAX_CONTEXT_ENTRIES} entries.`);
+  }
+  entries.forEach((entry, index) => {
+    const label = `Context entry ${index + 1}`;
+    if (!SLUG_PATTERN.test(entry.slug)) {
+      throw new Error(
+        `${label} needs a slug of letters, numbers, dashes, or underscores.`,
+      );
+    }
+    if (entry.content.trim().length === 0) {
+      throw new Error(`${label} needs non-empty content.`);
+    }
+  });
+  const slugs = entries.map((entry) => entry.slug);
+  const duplicate = slugs.find((slug, index) => slugs.indexOf(slug) !== index);
+  if (duplicate) {
+    throw new Error(
+      `Context entry slug "${duplicate}" is used more than once.`,
+    );
+  }
 }
 
 function LabeledSelect({
@@ -1115,7 +1518,7 @@ function profileToForm(profile: RuntimeProfile): ProfileFormState {
     allowedWorkspaceModes: profile.allowedWorkspaceModes,
     requiredEnv: profile.requiredEnv.join(', '),
     requiredTools: profile.requiredTools.join(', '),
-    contextJson: JSON.stringify(profile.context, null, 2),
+    context: profile.context,
   };
 }
 
@@ -1160,13 +1563,8 @@ function buildProfileBody(form: ProfileFormState): CreateRuntimeProfileBody {
           },
         }
       : sandbox;
-  const context = parseJson<RuntimeProfileContext[]>(
-    form.contextJson,
-    'Context JSON',
-  );
-  if (!Array.isArray(context)) {
-    throw new Error('Context JSON must be an array.');
-  }
+  const context = form.context;
+  assertValidContextEntries(context);
   if (form.allowedWorkspaceModes.length === 0) {
     throw new Error('Allowed workspace modes must include at least one mode.');
   }
