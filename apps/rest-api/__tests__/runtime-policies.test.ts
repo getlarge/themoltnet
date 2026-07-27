@@ -78,14 +78,11 @@ describe('runtime tool-policy routes', () => {
         }),
       );
       expect(
-        mocks.relationshipWriter.grantRuntimePolicyTeam,
-      ).toHaveBeenCalledWith(POLICY_ID, TEAM_ID);
-      expect(
-        mocks.relationshipWriter.grantRuntimePolicyTool,
-      ).toHaveBeenCalledWith(POLICY_ID, 'git');
-      expect(
-        mocks.relationshipWriter.grantRuntimePolicyTool,
-      ).toHaveBeenCalledWith(POLICY_ID, 'gh');
+        mocks.relationshipWriter.writeRuntimePolicyEdges,
+      ).toHaveBeenCalledWith(POLICY_ID, {
+        teamId: TEAM_ID,
+        addTools: ['git', 'gh'],
+      });
     });
 
     it('rejects requests without a team header', async () => {
@@ -247,8 +244,11 @@ describe('runtime tool-policy routes', () => {
 
       expect(response.statusCode).toBe(204);
       expect(
-        mocks.relationshipWriter.grantRuntimeProfilePolicy,
-      ).toHaveBeenCalledWith(PROFILE_ID, POLICY_ID);
+        mocks.relationshipWriter.writeRuntimeProfilePolicyEdges,
+      ).toHaveBeenCalledWith(PROFILE_ID, {
+        addPolicyIds: [POLICY_ID],
+        removePolicyIds: [],
+      });
     });
 
     it('rejects binding a policy from another team', async () => {

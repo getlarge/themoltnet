@@ -115,15 +115,30 @@ export interface RelationshipWriter {
   ): Promise<void>;
   removeTaskClaimant(taskId: string, agentId: string): Promise<void>;
   // Runtime tool-policy relations
-  grantRuntimePolicyTeam(policyId: string, teamId: string): Promise<void>;
-  grantRuntimePolicyTool(policyId: string, toolName: string): Promise<void>;
-  removeRuntimePolicyTool(policyId: string, toolName: string): Promise<void>;
+  /**
+   * Insert/delete a policy's `team` + `tool` edges in a single Keto patch.
+   * No-op when there are no deltas.
+   */
+  writeRuntimePolicyEdges(
+    policyId: string,
+    edges: {
+      teamId?: string;
+      addTools?: readonly string[];
+      removeTools?: readonly string[];
+    },
+  ): Promise<void>;
   /** Removes every tuple owned by a policy object (team + tool edges). */
   removeRuntimePolicyRelations(policyId: string): Promise<void>;
-  grantRuntimeProfilePolicy(profileId: string, policyId: string): Promise<void>;
-  removeRuntimeProfilePolicy(
+  /**
+   * Insert/delete a profile's `policies` bindings in a single Keto patch.
+   * No-op when there are no deltas.
+   */
+  writeRuntimeProfilePolicyEdges(
     profileId: string,
-    policyId: string,
+    edges: {
+      addPolicyIds?: readonly string[];
+      removePolicyIds?: readonly string[];
+    },
   ): Promise<void>;
 }
 
@@ -607,54 +622,44 @@ export function createRelationshipWriter(
       });
     },
 
-    async grantRuntimePolicyTeam(
+    async writeRuntimePolicyEdges(
       policyId: string,
-      teamId: string,
+      edges: {
+        teamId?: string;
+        addTools?: readonly string[];
+        removeTools?: readonly string[];
+      },
     ): Promise<void> {
-      await relationshipApi.createRelationship({
-        createRelationshipBody: {
-          namespace: KetoNamespace.RuntimePolicy,
-          object: policyId,
-          relation: RuntimePolicyRelation.Team,
-          subject_set: {
-            namespace: KetoNamespace.Team,
-            object: teamId,
-            relation: '',
+      const relationshipPatch = [];
+      if (edges.teamId) {
+        relationshipPatch.push({
+          action: 'insert' as const,
+          relation_tuple: {
+            namespace: KetoNamespace.RuntimePolicy,
+            object: policyId,
+            relation: RuntimePolicyRelation.Team,
+            subject_set: {
+              namespace: KetoNamespace.Team,
+              object: edges.teamId,
+              relation: '',
+            },
           },
-        },
-      });
-    },
-
-    async grantRuntimePolicyTool(
-      policyId: string,
-      toolName: string,
-    ): Promise<void> {
-      await relationshipApi.createRelationship({
-        createRelationshipBody: {
-          namespace: KetoNamespace.RuntimePolicy,
-          object: policyId,
-          relation: RuntimePolicyRelation.Tool,
-          subject_set: {
-            namespace: KetoNamespace.Tool,
-            object: toolName,
-            relation: '',
-          },
-        },
-      });
-    },
-
-    async removeRuntimePolicyTool(
-      policyId: string,
-      toolName: string,
-    ): Promise<void> {
-      await relationshipApi.deleteRelationships({
-        namespace: KetoNamespace.RuntimePolicy,
-        object: policyId,
-        relation: RuntimePolicyRelation.Tool,
-        subjectSetNamespace: KetoNamespace.Tool,
-        subjectSetObject: toolName,
-        subjectSetRelation: '',
-      });
+        });
+      }
+      for (const toolName of edges.addTools ?? []) {
+        relationshipPatch.push({
+          action: 'insert' as const,
+          relation_tuple: toolTuple(policyId, toolName),
+        });
+      }
+      for (const toolName of edges.removeTools ?? []) {
+        relationshipPatch.push({
+          action: 'delete' as const,
+          relation_tuple: toolTuple(policyId, toolName),
+        });
+      }
+      if (relationshipPatch.length === 0) return;
+      await relationshipApi.patchRelationships({ relationshipPatch });
     },
 
     async removeRuntimePolicyRelations(policyId: string): Promise<void> {
@@ -664,36 +669,51 @@ export function createRelationshipWriter(
       });
     },
 
-    async grantRuntimeProfilePolicy(
+    async writeRuntimeProfilePolicyEdges(
       profileId: string,
-      policyId: string,
+      edges: {
+        addPolicyIds?: readonly string[];
+        removePolicyIds?: readonly string[];
+      },
     ): Promise<void> {
-      await relationshipApi.createRelationship({
-        createRelationshipBody: {
-          namespace: KetoNamespace.RuntimeProfile,
-          object: profileId,
-          relation: RuntimeProfileRelation.Policies,
-          subject_set: {
-            namespace: KetoNamespace.RuntimePolicy,
-            object: policyId,
-            relation: '',
-          },
-        },
-      });
+      const relationshipPatch = [
+        ...(edges.addPolicyIds ?? []).map((policyId) => ({
+          action: 'insert' as const,
+          relation_tuple: profilePolicyTuple(profileId, policyId),
+        })),
+        ...(edges.removePolicyIds ?? []).map((policyId) => ({
+          action: 'delete' as const,
+          relation_tuple: profilePolicyTuple(profileId, policyId),
+        })),
+      ];
+      if (relationshipPatch.length === 0) return;
+      await relationshipApi.patchRelationships({ relationshipPatch });
     },
+  };
+}
 
-    async removeRuntimeProfilePolicy(
-      profileId: string,
-      policyId: string,
-    ): Promise<void> {
-      await relationshipApi.deleteRelationships({
-        namespace: KetoNamespace.RuntimeProfile,
-        object: profileId,
-        relation: RuntimeProfileRelation.Policies,
-        subjectSetNamespace: KetoNamespace.RuntimePolicy,
-        subjectSetObject: policyId,
-        subjectSetRelation: '',
-      });
+function toolTuple(policyId: string, toolName: string) {
+  return {
+    namespace: KetoNamespace.RuntimePolicy,
+    object: policyId,
+    relation: RuntimePolicyRelation.Tool,
+    subject_set: {
+      namespace: KetoNamespace.Tool,
+      object: toolName,
+      relation: '',
+    },
+  };
+}
+
+function profilePolicyTuple(profileId: string, policyId: string) {
+  return {
+    namespace: KetoNamespace.RuntimeProfile,
+    object: profileId,
+    relation: RuntimeProfileRelation.Policies,
+    subject_set: {
+      namespace: KetoNamespace.RuntimePolicy,
+      object: policyId,
+      relation: '',
     },
   };
 }

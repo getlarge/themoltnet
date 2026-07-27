@@ -54,6 +54,11 @@ export interface ResolveSessionToolPolicyInput {
  * `enforce` **fails closed** (empty allow-set → every non-`off` tool is
  * blocked); `watch` fails open (empty allow-set → every tool is audited but
  * allowed).
+ *
+ * The result is a **session-start snapshot**: it is resolved once and cached for
+ * the session's lifetime. Policy edits made while a task is running do not take
+ * effect until the next session — a deliberate trade-off (one resolution per
+ * session, stable enforcement for the run) accepted over re-fetching per call.
  */
 export async function resolveSessionToolPolicy(
   input: ResolveSessionToolPolicyInput,

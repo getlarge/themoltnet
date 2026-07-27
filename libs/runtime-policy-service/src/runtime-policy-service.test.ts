@@ -50,12 +50,9 @@ function makeService() {
     listRuntimePolicyTools: vi.fn(),
   };
   const writer = {
-    grantRuntimePolicyTeam: vi.fn(),
-    grantRuntimePolicyTool: vi.fn(),
-    removeRuntimePolicyTool: vi.fn(),
+    writeRuntimePolicyEdges: vi.fn(),
     removeRuntimePolicyRelations: vi.fn(),
-    grantRuntimeProfilePolicy: vi.fn(),
-    removeRuntimeProfilePolicy: vi.fn(),
+    writeRuntimeProfilePolicyEdges: vi.fn(),
   };
   const permissionChecker = {
     canManageTeamRuntime: vi.fn().mockResolvedValue(true),
@@ -151,20 +148,12 @@ describe('createRuntimePolicyService', () => {
         description: 'CI tools',
         createdByAgentId: 'agent-1',
       });
-      // Keto: team edge + one tool edge per de-duped tool.
-      expect(ctx.writer.grantRuntimePolicyTeam).toHaveBeenCalledWith(
-        'pol-1',
-        TEAM_ID,
-      );
-      expect(ctx.writer.grantRuntimePolicyTool).toHaveBeenCalledWith(
-        'pol-1',
-        'git',
-      );
-      expect(ctx.writer.grantRuntimePolicyTool).toHaveBeenCalledWith(
-        'pol-1',
-        'gh',
-      );
-      expect(ctx.writer.grantRuntimePolicyTool).toHaveBeenCalledTimes(2);
+      // Keto: team edge + de-duped tool edges in a single batch patch.
+      expect(ctx.writer.writeRuntimePolicyEdges).toHaveBeenCalledWith('pol-1', {
+        teamId: TEAM_ID,
+        addTools: ['git', 'gh'],
+      });
+      expect(ctx.writer.writeRuntimePolicyEdges).toHaveBeenCalledTimes(1);
       expect(result.tools).toEqual(['git', 'gh']);
     });
 
@@ -237,14 +226,10 @@ describe('createRuntimePolicyService', () => {
       expect(ctx.repo.update).toHaveBeenCalledWith('pol-1', TEAM_ID, {
         name: 'ci-2',
       });
-      expect(ctx.writer.removeRuntimePolicyTool).toHaveBeenCalledWith(
-        'pol-1',
-        'git',
-      );
-      expect(ctx.writer.grantRuntimePolicyTool).toHaveBeenCalledWith(
-        'pol-1',
-        'gh',
-      );
+      expect(ctx.writer.writeRuntimePolicyEdges).toHaveBeenCalledWith('pol-1', {
+        addTools: ['gh'],
+        removeTools: ['git'],
+      });
       expect(result.name).toBe('ci-2');
       expect(result.tools).toEqual(['gh']);
     });
@@ -298,16 +283,14 @@ describe('createRuntimePolicyService', () => {
         subject: AGENT_SUBJECT,
       });
 
-      expect(ctx.writer.removeRuntimeProfilePolicy).toHaveBeenCalledWith(
+      // Single batch patch: add P3, remove P1.
+      expect(ctx.writer.writeRuntimeProfilePolicyEdges).toHaveBeenCalledWith(
         'prof-1',
-        'P1',
+        { addPolicyIds: ['P3'], removePolicyIds: ['P1'] },
       );
-      expect(ctx.writer.grantRuntimeProfilePolicy).toHaveBeenCalledWith(
-        'prof-1',
-        'P3',
+      expect(ctx.writer.writeRuntimeProfilePolicyEdges).toHaveBeenCalledTimes(
+        1,
       );
-      expect(ctx.writer.removeRuntimeProfilePolicy).toHaveBeenCalledTimes(1);
-      expect(ctx.writer.grantRuntimeProfilePolicy).toHaveBeenCalledTimes(1);
     });
 
     it('rejects binding a policy from another team', async () => {
@@ -320,7 +303,7 @@ describe('createRuntimePolicyService', () => {
           subject: AGENT_SUBJECT,
         }),
       ).rejects.toMatchObject({ statusCode: 400 });
-      expect(ctx.writer.grantRuntimeProfilePolicy).not.toHaveBeenCalled();
+      expect(ctx.writer.writeRuntimeProfilePolicyEdges).not.toHaveBeenCalled();
     });
 
     it('throws not-found when the profile is not in the team', async () => {

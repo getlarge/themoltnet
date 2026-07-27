@@ -171,13 +171,10 @@ export function createRuntimePolicyService(deps: RuntimePolicyServiceDeps) {
         ...creator,
       });
 
-      await deps.relationshipWriter.grantRuntimePolicyTeam(
-        row.id,
-        input.teamId,
-      );
-      for (const tool of tools) {
-        await deps.relationshipWriter.grantRuntimePolicyTool(row.id, tool);
-      }
+      await deps.relationshipWriter.writeRuntimePolicyEdges(row.id, {
+        teamId: input.teamId,
+        addTools: tools,
+      });
 
       return { ...toRuntimePolicy(row), tools };
     },
@@ -228,12 +225,10 @@ export function createRuntimePolicyService(deps: RuntimePolicyServiceDeps) {
         'removeTools',
       );
       const addTools = normalizeToolNames(patch.addTools ?? [], 'addTools');
-      for (const tool of removeTools) {
-        await deps.relationshipWriter.removeRuntimePolicyTool(id, tool);
-      }
-      for (const tool of addTools) {
-        await deps.relationshipWriter.grantRuntimePolicyTool(id, tool);
-      }
+      await deps.relationshipWriter.writeRuntimePolicyEdges(id, {
+        addTools,
+        removeTools,
+      });
 
       const tools = await deps.relationshipReader.listRuntimePolicyTools(id);
       return { ...toRuntimePolicy(row), tools };
@@ -291,18 +286,10 @@ export function createRuntimePolicyService(deps: RuntimePolicyServiceDeps) {
       const toRemove = current.filter((id) => !desiredSet.has(id));
       const toAdd = desired.filter((id) => !currentSet.has(id));
 
-      for (const policyId of toRemove) {
-        await deps.relationshipWriter.removeRuntimeProfilePolicy(
-          profileId,
-          policyId,
-        );
-      }
-      for (const policyId of toAdd) {
-        await deps.relationshipWriter.grantRuntimeProfilePolicy(
-          profileId,
-          policyId,
-        );
-      }
+      await deps.relationshipWriter.writeRuntimeProfilePolicyEdges(profileId, {
+        addPolicyIds: toAdd,
+        removePolicyIds: toRemove,
+      });
     },
 
     /**
