@@ -94,11 +94,35 @@ team/agent/profile relation, and keeps the SQL row small.
 - `runtime_profiles.tool_enforcement` (SQL) — the `off`/`watch`/`enforce` mode
   for the profile.
 
-In prose: a runtime profile references its bound **policies**, each policy
-references its granted **tools**, and resolving a profile's allowed-tool set
-walks profile → policies → tools and unions the tool names. Grants are durable
-relations, **not** per-session tuples — a task's short-lived authority is
-computed from these relations at session start, never written back into Keto.
+A runtime profile references its bound **policies**, each policy references its
+granted **tools**, and resolving a profile's allowed-tool set walks profile →
+policies → tools and unions the tool names — in the example below, the profile
+allows `{find, git, grep, read}`:
+
+```mermaid
+graph LR
+    RP["RuntimeProfile<br/>mode: enforce"]
+    POL1["RuntimePolicy<br/>field-inspector"]
+    POL2["RuntimePolicy<br/>git-ops"]
+    T1(["read"])
+    T2(["grep"])
+    T3(["find"])
+    T4(["git"])
+    RP -->|policies| POL1
+    RP -->|policies| POL2
+    POL1 -->|tool| T1
+    POL1 -->|tool| T2
+    POL1 -->|tool| T3
+    POL2 -->|tool| T4
+    style RP fill:#e3f2fd,stroke:#1565c0
+    style POL1 fill:#f3e5f5,stroke:#6a1b9a
+    style POL2 fill:#f3e5f5,stroke:#6a1b9a
+```
+
+The `mode` lives on the profile row (`runtime_profiles.tool_enforcement`, SQL);
+the `policies` and `tool` edges are Keto relations. Grants are durable relations,
+**not** per-session tuples — a task's short-lived authority is computed from them
+at session start, never written back into Keto.
 
 ### How tools are extracted from a command
 
