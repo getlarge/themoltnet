@@ -11,6 +11,11 @@ export interface DialogProps {
   ariaLabel?: string;
   ariaDescribedBy?: string;
   closeLabel?: string;
+  /**
+   * Whether Escape and the title-bar close button may dismiss the dialog.
+   * Set to false only when losing the dialog state would be irreversible.
+   */
+  dismissible?: boolean;
 }
 
 export function Dialog({
@@ -22,6 +27,7 @@ export function Dialog({
   ariaLabel,
   ariaDescribedBy,
   closeLabel = 'Close',
+  dismissible = true,
 }: DialogProps) {
   const theme = useTheme();
   const ref = useRef<HTMLDialogElement>(null);
@@ -69,7 +75,7 @@ export function Dialog({
     };
     const handleCancel = (event: Event) => {
       event.preventDefault();
-      onClose();
+      if (dismissible) onClose();
     };
     dialog.addEventListener('close', handleClose);
     dialog.addEventListener('cancel', handleCancel);
@@ -77,7 +83,7 @@ export function Dialog({
       dialog.removeEventListener('close', handleClose);
       dialog.removeEventListener('cancel', handleCancel);
     };
-  }, [onClose]);
+  }, [dismissible, onClose]);
 
   if (!rendered) return null;
 
@@ -126,22 +132,24 @@ export function Dialog({
             >
               {title}
             </span>
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label={closeLabel}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: theme.color.text.muted,
-                cursor: 'pointer',
-                fontSize: theme.font.size.lg,
-                padding: theme.spacing[1],
-                lineHeight: 1,
-              }}
-            >
-              ✕
-            </button>
+            {dismissible ? (
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label={closeLabel}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: theme.color.text.muted,
+                  cursor: 'pointer',
+                  fontSize: theme.font.size.lg,
+                  padding: theme.spacing[1],
+                  lineHeight: 1,
+                }}
+              >
+                ✕
+              </button>
+            ) : null}
           </div>
         )}
         {children}

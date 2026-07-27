@@ -71,6 +71,28 @@ describe('Dialog', () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 
+  it('prevents irreversible dialogs from being dismissed', () => {
+    const onClose = vi.fn();
+    renderWithTheme(
+      <Dialog
+        open
+        onClose={onClose}
+        title="One-time secret"
+        dismissible={false}
+      >
+        <p>Store this now.</p>
+      </Dialog>,
+    );
+
+    const dialog = screen.getByRole('dialog');
+    fireEvent(dialog, new Event('cancel', { cancelable: true }));
+
+    expect(onClose).not.toHaveBeenCalled();
+    expect(
+      screen.queryByRole('button', { name: /close/i }),
+    ).not.toBeInTheDocument();
+  });
+
   it('renders title when provided', () => {
     renderWithTheme(
       <Dialog open onClose={() => {}} title="My Dialog">
