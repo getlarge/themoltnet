@@ -213,6 +213,11 @@ func evaluateGitHubGuardScript(
 		return ""
 	}
 
+	// Resolve statically determinable variables once for this script scope so a
+	// scoped token or endpoint referenced via `$VAR` can be verified without
+	// executing anything. Nested shells re-resolve against their own scope.
+	shellVars := collectStaticShellVars(file)
+
 	var denial string
 	syntax.Walk(file, func(node syntax.Node) bool {
 		if denial != "" || node == nil {
@@ -223,7 +228,7 @@ func evaluateGitHubGuardScript(
 			return true
 		}
 
-		executable, args, scopedToken, ok := parseShellInvocation(call, guardCtx.CredentialsPath)
+		executable, args, scopedToken, ok := parseShellInvocation(call, guardCtx.CredentialsPath, shellVars)
 		if !ok {
 			return true
 		}
@@ -389,17 +394,17 @@ func permissionAllowsWrite(level string) bool {
 	}
 }
 
-func parseShellInvocation(call *syntax.CallExpr, credentialsPath string) (string, []string, bool, bool) {
+func parseShellInvocation(call *syntax.CallExpr, credentialsPath string, vars map[string]string) (string, []string, bool, bool) {
 	scopedToken := false
 	for _, assign := range call.Assigns {
-		if assign.Name != nil && assign.Name.Value == "GH_TOKEN" && isMoltnetTokenWord(assign.Value, credentialsPath) {
+		if assign.Name != nil && assign.Name.Value == "GH_TOKEN" && isMoltnetTokenWord(assign.Value, credentialsPath, vars) {
 			scopedToken = true
 		}
 	}
 
 	words := call.Args
 	for len(words) > 0 {
-		executable, ok := staticShellWord(words[0])
+		executable, ok := staticShellWord(words[0], vars)
 		if !ok {
 			return "", nil, false, false
 		}
@@ -407,7 +412,7 @@ func parseShellInvocation(call *syntax.CallExpr, credentialsPath string) (string
 		case "command":
 			words = words[1:]
 			for len(words) > 0 {
-				arg, literal := staticShellWord(words[0])
+				arg, literal := staticShellWord(words[0], vars)
 				if !literal || !strings.HasPrefix(arg, "-") {
 					break
 				}
@@ -418,13 +423,13 @@ func parseShellInvocation(call *syntax.CallExpr, credentialsPath string) (string
 			words = words[1:]
 			for len(words) > 0 {
 				if name, value, assignment := shellAssignmentWord(words[0]); assignment {
-					if name == "GH_TOKEN" && isMoltnetTokenParts(value, credentialsPath) {
+					if name == "GH_TOKEN" && isMoltnetTokenParts(value, credentialsPath, vars) {
 						scopedToken = true
 					}
 					words = words[1:]
 					continue
 				}
-				arg, literal := staticShellWord(words[0])
+				arg, literal := staticShellWord(words[0], vars)
 				if !literal {
 					return "", nil, false, false
 				}
@@ -459,13 +464,13 @@ func parseShellInvocation(call *syntax.CallExpr, credentialsPath string) (string
 	if len(words) == 0 {
 		return "", nil, false, false
 	}
-	executable, ok := staticShellWord(words[0])
+	executable, ok := staticShellWord(words[0], vars)
 	if !ok {
 		return "", nil, false, false
 	}
 	args := make([]string, 0, len(words)-1)
 	for _, word := range words[1:] {
-		arg, literal := staticShellWord(word)
+		arg, literal := staticShellWord(word, vars)
 		if !literal {
 			return executable, nil, scopedToken, true
 		}
@@ -607,14 +612,14 @@ func commandFromArgs(original string, args []string) (string, []string, bool) {
 	return args[0], args[1:], true
 }
 
-func staticShellWord(word *syntax.Word) (string, bool) {
+func staticShellWord(word *syntax.Word, vars map[string]string) (string, bool) {
 	if word == nil {
 		return "", false
 	}
-	return staticShellParts(word.Parts)
+	return staticShellParts(word.Parts, vars)
 }
 
-func staticShellParts(parts []syntax.WordPart) (string, bool) {
+func staticShellParts(parts []syntax.WordPart, vars map[string]string) (string, bool) {
 	var value strings.Builder
 	for _, part := range parts {
 		switch part := part.(type) {
@@ -623,16 +628,89 @@ func staticShellParts(parts []syntax.WordPart) (string, bool) {
 		case *syntax.SglQuoted:
 			value.WriteString(part.Value)
 		case *syntax.DblQuoted:
-			quoted, ok := staticShellParts(part.Parts)
+			quoted, ok := staticShellParts(part.Parts, vars)
 			if !ok {
 				return "", false
 			}
 			value.WriteString(quoted)
+		case *syntax.ParamExp:
+			// Resolve only a plain $NAME / ${NAME} against variables the script
+			// assigned to statically determinable values earlier. Any operator
+			// form (${#x}, ${x:-y}, ${x[i]}, …) or an unresolved name stays
+			// opaque, so dynamic input keeps failing closed. Substituting a
+			// known-literal value can only make a command more classifiable; it
+			// can never turn a write into a read.
+			name, ok := staticParamName(part)
+			if !ok {
+				return "", false
+			}
+			resolved, ok := vars[name]
+			if !ok {
+				return "", false
+			}
+			value.WriteString(resolved)
 		default:
 			return "", false
 		}
 	}
 	return value.String(), true
+}
+
+// staticParamName returns the variable name of a bare $NAME / ${NAME}
+// expansion, rejecting every operator form so only trivially substitutable
+// references resolve.
+func staticParamName(exp *syntax.ParamExp) (string, bool) {
+	if exp == nil || exp.Param == nil {
+		return "", false
+	}
+	if exp.Excl || exp.Length || exp.Width || exp.IsSet ||
+		exp.Flags != nil || exp.NestedParam != nil ||
+		exp.Index != nil || exp.Slice != nil || exp.Repl != nil ||
+		exp.Exp != nil || exp.Names != 0 || len(exp.Modifiers) != 0 {
+		return "", false
+	}
+	return exp.Param.Value, true
+}
+
+// collectStaticShellVars resolves top-level `NAME=value` assignments whose
+// right-hand side is statically determinable, so later `$NAME` references can
+// be verified without executing anything. A name assigned more than once
+// anywhere in the script (including inside a conditional such as the case-esac
+// in the canonical token snippet) is treated as opaque, because its runtime
+// value cannot be pinned. Command substitutions, arrays, appends and indexed
+// assignments never resolve.
+func collectStaticShellVars(file *syntax.File) map[string]string {
+	counts := map[string]int{}
+	syntax.Walk(file, func(node syntax.Node) bool {
+		if assign, ok := node.(*syntax.Assign); ok && assign.Name != nil {
+			counts[assign.Name.Value]++
+		}
+		return true
+	})
+
+	vars := map[string]string{}
+	for _, stmt := range file.Stmts {
+		call, ok := stmt.Cmd.(*syntax.CallExpr)
+		if !ok || len(call.Args) != 0 || len(call.Assigns) == 0 {
+			continue
+		}
+		for _, assign := range call.Assigns {
+			if assign.Name == nil || assign.Append || assign.Naked ||
+				assign.Index != nil || assign.Array != nil || assign.Value == nil {
+				continue
+			}
+			name := assign.Name.Value
+			if counts[name] != 1 {
+				continue
+			}
+			resolved, ok := staticShellParts(assign.Value.Parts, vars)
+			if !ok {
+				continue
+			}
+			vars[name] = resolved
+		}
+	}
+	return vars
 }
 
 func shellAssignmentWord(word *syntax.Word) (string, []syntax.WordPart, bool) {
@@ -656,14 +734,14 @@ func shellAssignmentWord(word *syntax.Word) (string, []syntax.WordPart, bool) {
 	return name, parts, true
 }
 
-func isMoltnetTokenWord(word *syntax.Word, credentialsPath string) bool {
+func isMoltnetTokenWord(word *syntax.Word, credentialsPath string, vars map[string]string) bool {
 	if word == nil {
 		return false
 	}
-	return isMoltnetTokenParts(word.Parts, credentialsPath)
+	return isMoltnetTokenParts(word.Parts, credentialsPath, vars)
 }
 
-func isMoltnetTokenParts(parts []syntax.WordPart, credentialsPath string) bool {
+func isMoltnetTokenParts(parts []syntax.WordPart, credentialsPath string, vars map[string]string) bool {
 	if len(parts) == 1 {
 		if quoted, ok := parts[0].(*syntax.DblQuoted); ok {
 			parts = quoted.Parts
@@ -684,7 +762,7 @@ func isMoltnetTokenParts(parts []syntax.WordPart, credentialsPath string) bool {
 	if !ok || len(call.Assigns) != 0 {
 		return false
 	}
-	executable, args, _, ok := parseShellInvocation(call, credentialsPath)
+	executable, args, _, ok := parseShellInvocation(call, credentialsPath, vars)
 	if !ok {
 		return false
 	}
