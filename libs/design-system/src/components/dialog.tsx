@@ -14,6 +14,8 @@ export interface DialogProps {
   /**
    * Whether Escape and the title-bar close button may dismiss the dialog.
    * Set to false only when losing the dialog state would be irreversible.
+   * Children must then provide an explicit, keyboard-accessible completion
+   * action so the user cannot become trapped in the dialog.
    */
   dismissible?: boolean;
 }

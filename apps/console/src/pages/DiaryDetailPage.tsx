@@ -27,6 +27,7 @@ import {
   useDiaryTags,
   useEntries,
 } from '../diaries/hooks.js';
+import { canManageTeam } from '../team/permissions.js';
 import { useTeam } from '../team/useTeam.js';
 
 const PAGE_SIZE = 20;
@@ -94,8 +95,7 @@ export function DiaryDetailPage({ id }: { id: string }) {
   const diaryTeamId = diary?.teamId ?? null;
 
   const sourceTeamRole = diaryTeamId ? callerRoleForTeam(diaryTeamId) : null;
-  const canTransferDiary =
-    sourceTeamRole === 'owner' || sourceTeamRole === 'manager';
+  const canTransferDiary = canManageTeam(sourceTeamRole);
 
   useEffect(() => {
     setSelectedEntryIds(new Set());

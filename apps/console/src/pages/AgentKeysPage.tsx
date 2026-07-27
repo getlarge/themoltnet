@@ -4,15 +4,18 @@ import {
   type AgentKeyStatus,
   type AgentKeyWithSecret,
   createAgentKey,
-  listAgentKeys,
   revokeAgentKey,
   rotateAgentKey,
 } from '@moltnet/api-client';
 import {
-  listAgentKeysOptions,
+  listAgentKeysInfiniteOptions,
   listTeamMembersOptions,
 } from '@moltnet/api-client/query';
-import { useQuery } from '@tanstack/react-query';
+import {
+  useInfiniteQuery,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import {
   Badge,
   Button,
@@ -24,10 +27,11 @@ import {
   Text,
   useTheme,
 } from '@themoltnet/design-system';
-import { useEffect, useMemo, useState } from 'react';
+import { memo, useCallback, useMemo, useRef, useState } from 'react';
 
 import { getApiClient } from '../api.js';
 import { getApiErrorDetail } from '../api-error.js';
+import { canManageRuntime, TEAM_HEADER } from '../team/permissions.js';
 import { useTeam } from '../team/useTeam.js';
 
 interface CreateKeyForm {
@@ -54,15 +58,12 @@ const REVOCATION_REASONS: Array<{
 
 export function AgentKeysPage() {
   const theme = useTheme();
+  const queryClient = useQueryClient();
   const { selectedTeam, error: teamError, refreshTeams } = useTeam();
   const teamId = selectedTeam?.id;
-  const canManage =
-    selectedTeam?.role === 'owner' || selectedTeam?.role === 'manager';
+  const canManage = canManageRuntime(selectedTeam?.role);
   const [agentFilter, setAgentFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<AgentKeyStatus | ''>('');
-  const [cursor, setCursor] = useState<string | null>(null);
-  const [keys, setKeys] = useState<AgentKey[]>([]);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [createIdempotencyKey, setCreateIdempotencyKey] = useState<
     string | null
@@ -70,6 +71,9 @@ export function AgentKeysPage() {
   const [createForm, setCreateForm] =
     useState<CreateKeyForm>(EMPTY_CREATE_FORM);
   const [rotateTarget, setRotateTarget] = useState<AgentKey | null>(null);
+  const [rotateAttemptToken, setRotateAttemptToken] = useState<string | null>(
+    null,
+  );
   const [revokeTarget, setRevokeTarget] = useState<AgentKey | null>(null);
   const [revokeReason, setRevokeReason] =
     useState<AgentKeyRevocationReason>('superseded');
@@ -79,7 +83,10 @@ export function AgentKeysPage() {
   );
   const [secretStored, setSecretStored] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [refreshWarning, setRefreshWarning] = useState<string | null>(null);
   const [isMutating, setIsMutating] = useState(false);
+  const mutationInFlightRef = useRef(false);
+  const dispatchedRotateTokenRef = useRef<string | null>(null);
 
   const membersQuery = useQuery({
     ...listTeamMembersOptions({
@@ -100,37 +107,79 @@ export function AgentKeysPage() {
     [agents],
   );
 
-  const keysQuery = useQuery({
-    ...listAgentKeysOptions({
-      client: getApiClient(),
-      headers: { 'x-moltnet-team-id': teamId ?? '' },
-      query: {
-        agentId: agentFilter || undefined,
-        status: statusFilter || undefined,
-        cursor: cursor ?? undefined,
-        limit: 50,
-      },
-    }),
-    enabled: Boolean(teamId),
+  const keysOptions = listAgentKeysInfiniteOptions({
+    client: getApiClient(),
+    headers: { [TEAM_HEADER]: teamId ?? '' },
+    query: {
+      agentId: agentFilter || undefined,
+      status: statusFilter || undefined,
+      limit: 50,
+    },
   });
+  const keysQuery = useInfiniteQuery({
+    ...keysOptions,
+    enabled: Boolean(teamId),
+    initialPageParam: {
+      headers: { [TEAM_HEADER]: teamId ?? '' },
+      query: {},
+    },
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+  });
+  const keys = useMemo(() => {
+    const unique = new Map<string, AgentKey>();
+    for (const page of keysQuery.data?.pages ?? []) {
+      for (const key of page.items) unique.set(key.id, key);
+    }
+    return [...unique.values()];
+  }, [keysQuery.data]);
 
-  useEffect(() => {
-    setCursor(null);
-    setKeys([]);
-    setNextCursor(null);
-    setActionError(null);
-  }, [agentFilter, statusFilter, teamId]);
-
-  useEffect(() => {
-    const page = keysQuery.data;
-    if (!page) return;
-    setKeys((current) => {
-      if (!cursor) return page.items;
-      const known = new Set(current.map((key) => key.id));
-      return [...current, ...page.items.filter((key) => !known.has(key.id))];
+  async function refreshKeysAfterMutation() {
+    setRefreshWarning(null);
+    await queryClient.invalidateQueries({
+      queryKey: keysOptions.queryKey,
+      refetchType: 'none',
     });
-    setNextCursor(page.nextCursor);
-  }, [cursor, keysQuery.data]);
+    const refreshResult = await keysQuery.refetch();
+    if (refreshResult.error) {
+      setRefreshWarning(
+        'The key change succeeded, but the list could not refresh. Retry the list before making another change.',
+      );
+    }
+  }
+
+  function beginMutation(): boolean {
+    if (mutationInFlightRef.current) return false;
+    mutationInFlightRef.current = true;
+    setIsMutating(true);
+    setActionError(null);
+    setRefreshWarning(null);
+    return true;
+  }
+
+  function endMutation() {
+    mutationInFlightRef.current = false;
+    setIsMutating(false);
+  }
+
+  const openRotateDialog = useCallback((key: AgentKey) => {
+    const token = crypto.randomUUID();
+    dispatchedRotateTokenRef.current = null;
+    setActionError(null);
+    setRotateAttemptToken(token);
+    setRotateTarget(key);
+  }, []);
+
+  const closeRotateDialog = useCallback(() => {
+    if (mutationInFlightRef.current) return;
+    setRotateTarget(null);
+    setRotateAttemptToken(null);
+    dispatchedRotateTokenRef.current = null;
+  }, []);
+
+  const openRevokeDialog = useCallback((key: AgentKey) => {
+    setActionError(null);
+    setRevokeTarget(key);
+  }, []);
 
   function openCreateDialog() {
     setCreateForm({
@@ -142,37 +191,16 @@ export function AgentKeysPage() {
     setCreateOpen(true);
   }
 
-  async function reloadKeys() {
-    if (!teamId) return;
-    const result = await listAgentKeys({
-      client: getApiClient(),
-      headers: { 'x-moltnet-team-id': teamId },
-      query: {
-        agentId: agentFilter || undefined,
-        status: statusFilter || undefined,
-        limit: 50,
-      },
-    });
-    if (result.error || !result.data) {
-      throw new Error(
-        getApiErrorDetail(result.error, 'Failed to reload agent keys.'),
-      );
-    }
-    setCursor(null);
-    setKeys(result.data.items);
-    setNextCursor(result.data.nextCursor);
-  }
-
   async function createKey() {
     if (
       !teamId ||
       !createForm.agentId ||
       !createForm.name.trim() ||
-      !createIdempotencyKey
+      !createIdempotencyKey ||
+      !beginMutation()
     )
       return;
-    setIsMutating(true);
-    setActionError(null);
+    let succeeded = false;
     try {
       const ttlDays = createForm.ttlDays
         ? Number(createForm.ttlDays)
@@ -180,7 +208,7 @@ export function AgentKeysPage() {
       const result = await createAgentKey({
         client: getApiClient(),
         headers: {
-          'x-moltnet-team-id': teamId,
+          [TEAM_HEADER]: teamId,
           'idempotency-key': createIdempotencyKey,
         },
         body: {
@@ -197,22 +225,30 @@ export function AgentKeysPage() {
       setCreateOpen(false);
       setCreateIdempotencyKey(null);
       revealSecret(result.data);
-      await reloadKeys();
+      succeeded = true;
     } catch (error) {
       setActionError(getApiErrorDetail(error, 'Failed to create agent key.'));
     } finally {
-      setIsMutating(false);
+      endMutation();
     }
+    if (succeeded) await refreshKeysAfterMutation();
   }
 
   async function rotateKey() {
-    if (!teamId || !rotateTarget) return;
-    setIsMutating(true);
-    setActionError(null);
+    if (
+      !teamId ||
+      !rotateTarget ||
+      !rotateAttemptToken ||
+      dispatchedRotateTokenRef.current === rotateAttemptToken ||
+      !beginMutation()
+    )
+      return;
+    dispatchedRotateTokenRef.current = rotateAttemptToken;
+    let succeeded = false;
     try {
       const result = await rotateAgentKey({
         client: getApiClient(),
-        headers: { 'x-moltnet-team-id': teamId },
+        headers: { [TEAM_HEADER]: teamId },
         path: { keyId: rotateTarget.id },
       });
       if (result.error || !result.data) {
@@ -221,19 +257,21 @@ export function AgentKeysPage() {
         );
       }
       setRotateTarget(null);
+      setRotateAttemptToken(null);
       revealSecret(result.data);
-      await reloadKeys();
+      succeeded = true;
     } catch (error) {
+      dispatchedRotateTokenRef.current = null;
       setActionError(getApiErrorDetail(error, 'Failed to rotate agent key.'));
     } finally {
-      setIsMutating(false);
+      endMutation();
     }
+    if (succeeded) await refreshKeysAfterMutation();
   }
 
   async function revokeKey() {
-    if (!teamId || !revokeTarget) return;
-    setIsMutating(true);
-    setActionError(null);
+    if (!teamId || !revokeTarget || !beginMutation()) return;
+    let succeeded = false;
     try {
       const body =
         revokeReason === 'privilege_withdrawn'
@@ -244,7 +282,7 @@ export function AgentKeysPage() {
           : { reason: revokeReason };
       const result = await revokeAgentKey({
         client: getApiClient(),
-        headers: { 'x-moltnet-team-id': teamId },
+        headers: { [TEAM_HEADER]: teamId },
         path: { keyId: revokeTarget.id },
         body,
       });
@@ -256,12 +294,13 @@ export function AgentKeysPage() {
       setRevokeTarget(null);
       setRevokeReason('superseded');
       setRevokeDescription('');
-      await reloadKeys();
+      succeeded = true;
     } catch (error) {
       setActionError(getApiErrorDetail(error, 'Failed to revoke agent key.'));
     } finally {
-      setIsMutating(false);
+      endMutation();
     }
+    if (succeeded) await refreshKeysAfterMutation();
   }
 
   function revealSecret(result: AgentKeyWithSecret) {
@@ -361,21 +400,21 @@ export function AgentKeysPage() {
           keys={keys}
           agentNames={agentNames}
           rotating={isMutating}
-          onRotate={setRotateTarget}
-          onRevoke={setRevokeTarget}
+          onRotate={openRotateDialog}
+          onRevoke={openRevokeDialog}
           canManage={canManage}
         />
       )}
 
-      {nextCursor ? (
+      {keysQuery.hasNextPage ? (
         <div>
           <Button
             variant="secondary"
             size="sm"
-            disabled={keysQuery.isFetching}
-            onClick={() => setCursor(nextCursor)}
+            disabled={keysQuery.isFetchingNextPage}
+            onClick={() => void keysQuery.fetchNextPage()}
           >
-            {keysQuery.isFetching ? 'Loading…' : 'Load more'}
+            {keysQuery.isFetchingNextPage ? 'Loading…' : 'Load more'}
           </Button>
         </div>
       ) : null}
@@ -387,6 +426,26 @@ export function AgentKeysPage() {
           </Text>
         </div>
       ) : null}
+      {refreshWarning ? (
+        <div role="status">
+          <Stack direction="row" gap={2} align="center" wrap>
+            <Text
+              variant="caption"
+              style={{ color: theme.color.warning.DEFAULT }}
+            >
+              {refreshWarning}
+            </Text>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => void refreshKeysAfterMutation()}
+              disabled={keysQuery.isFetching}
+            >
+              Retry list
+            </Button>
+          </Stack>
+        </div>
+      ) : null}
       {!canManage ? (
         <Text variant="caption" color="muted">
           You can inspect keys, but changing them requires the team
@@ -394,131 +453,40 @@ export function AgentKeysPage() {
         </Text>
       ) : null}
 
-      <Dialog
+      <CreateKeyDialog
         open={createOpen}
+        agents={agents}
+        form={createForm}
+        isMutating={isMutating}
+        onFormChange={setCreateForm}
         onClose={() => {
+          if (mutationInFlightRef.current) return;
           setCreateOpen(false);
           setCreateIdempotencyKey(null);
         }}
-        title="Create agent key"
-      >
-        <Stack gap={4}>
-          <SelectField
-            label="Agent"
-            value={createForm.agentId}
-            onChange={(agentId) =>
-              setCreateForm((current) => ({ ...current, agentId }))
-            }
-            options={agents.map((agent) => ({
-              value: agent.subjectId,
-              label: agent.displayName,
-            }))}
-          />
-          <Input
-            label="Key name"
-            hint="Use a deployment-specific name, such as production-daemon."
-            value={createForm.name}
-            onChange={(event) =>
-              setCreateForm((current) => ({
-                ...current,
-                name: event.target.value,
-              }))
-            }
-          />
-          <Input
-            label="Lifetime in days"
-            hint="Leave blank to use the server default."
-            type="number"
-            min={1}
-            value={createForm.ttlDays}
-            onChange={(event) =>
-              setCreateForm((current) => ({
-                ...current,
-                ttlDays: event.target.value,
-              }))
-            }
-          />
-          <Stack direction="row" gap={2} justify="flex-end">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setCreateOpen(false);
-                setCreateIdempotencyKey(null);
-              }}
-              disabled={isMutating}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="accent"
-              size="sm"
-              onClick={() => void createKey()}
-              disabled={
-                isMutating || !createForm.agentId || !createForm.name.trim()
-              }
-            >
-              {isMutating ? 'Creating…' : 'Create key'}
-            </Button>
-          </Stack>
-        </Stack>
-      </Dialog>
+        onSubmit={() => void createKey()}
+      />
 
-      <ConfirmDialog
-        open={rotateTarget !== null}
-        title="Rotate agent key?"
-        message={`Rotate “${rotateTarget?.name ?? ''}”? Existing deployments using its current secret will stop authenticating.`}
-        confirmLabel={isMutating ? 'Rotating…' : 'Rotate key'}
-        destructive
-        onCancel={() => setRotateTarget(null)}
+      <RotateKeyDialog
+        target={rotateTarget}
+        isMutating={isMutating}
+        onCancel={closeRotateDialog}
         onConfirm={() => void rotateKey()}
       />
 
-      <Dialog
-        open={revokeTarget !== null}
-        onClose={() => setRevokeTarget(null)}
-        title="Revoke agent key"
-      >
-        <Stack gap={4}>
-          <Text color="muted">
-            Revoke “{revokeTarget?.name ?? ''}”. This takes effect immediately
-            and cannot be undone.
-          </Text>
-          <SelectField
-            label="Reason"
-            value={revokeReason}
-            onChange={(value) =>
-              setRevokeReason(value as AgentKeyRevocationReason)
-            }
-            options={REVOCATION_REASONS}
-          />
-          {revokeReason === 'privilege_withdrawn' ? (
-            <Input
-              label="Description"
-              value={revokeDescription}
-              onChange={(event) => setRevokeDescription(event.target.value)}
-            />
-          ) : null}
-          <Stack direction="row" gap={2} justify="flex-end">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setRevokeTarget(null)}
-              disabled={isMutating}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="danger"
-              size="sm"
-              onClick={() => void revokeKey()}
-              disabled={isMutating}
-            >
-              {isMutating ? 'Revoking…' : 'Revoke key'}
-            </Button>
-          </Stack>
-        </Stack>
-      </Dialog>
+      <RevokeKeyDialog
+        target={revokeTarget}
+        reason={revokeReason}
+        description={revokeDescription}
+        isMutating={isMutating}
+        onReasonChange={setRevokeReason}
+        onDescriptionChange={setRevokeDescription}
+        onCancel={() => {
+          if (mutationInFlightRef.current) return;
+          setRevokeTarget(null);
+        }}
+        onConfirm={() => void revokeKey()}
+      />
 
       <OneTimeSecretDialog
         result={secretResult}
@@ -530,7 +498,165 @@ export function AgentKeysPage() {
   );
 }
 
-function KeyTable({
+function CreateKeyDialog({
+  open,
+  agents,
+  form,
+  isMutating,
+  onFormChange,
+  onClose,
+  onSubmit,
+}: {
+  open: boolean;
+  agents: Array<{ subjectId: string; displayName: string }>;
+  form: CreateKeyForm;
+  isMutating: boolean;
+  onFormChange: (form: CreateKeyForm) => void;
+  onClose: () => void;
+  onSubmit: () => void;
+}) {
+  return (
+    <Dialog open={open} onClose={onClose} title="Create agent key">
+      <Stack gap={4}>
+        <SelectField
+          label="Agent"
+          value={form.agentId}
+          onChange={(agentId) => onFormChange({ ...form, agentId })}
+          options={agents.map((agent) => ({
+            value: agent.subjectId,
+            label: agent.displayName,
+          }))}
+        />
+        <Input
+          label="Key name"
+          hint="Use a deployment-specific name, such as production-daemon."
+          value={form.name}
+          onChange={(event) =>
+            onFormChange({ ...form, name: event.target.value })
+          }
+        />
+        <Input
+          label="Lifetime in days"
+          hint="Leave blank to use the server default."
+          type="number"
+          min={1}
+          value={form.ttlDays}
+          onChange={(event) =>
+            onFormChange({ ...form, ttlDays: event.target.value })
+          }
+        />
+        <Stack direction="row" gap={2} justify="flex-end">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            disabled={isMutating}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="accent"
+            size="sm"
+            onClick={onSubmit}
+            disabled={isMutating || !form.agentId || !form.name.trim()}
+          >
+            {isMutating ? 'Creating…' : 'Create key'}
+          </Button>
+        </Stack>
+      </Stack>
+    </Dialog>
+  );
+}
+
+function RotateKeyDialog({
+  target,
+  isMutating,
+  onCancel,
+  onConfirm,
+}: {
+  target: AgentKey | null;
+  isMutating: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <ConfirmDialog
+      open={target !== null}
+      title="Rotate agent key?"
+      message={`Rotate “${target?.name ?? ''}”? Existing deployments using its current secret will stop authenticating.`}
+      confirmLabel={isMutating ? 'Rotating…' : 'Rotate key'}
+      destructive
+      onCancel={onCancel}
+      onConfirm={onConfirm}
+    />
+  );
+}
+
+function RevokeKeyDialog({
+  target,
+  reason,
+  description,
+  isMutating,
+  onReasonChange,
+  onDescriptionChange,
+  onCancel,
+  onConfirm,
+}: {
+  target: AgentKey | null;
+  reason: AgentKeyRevocationReason;
+  description: string;
+  isMutating: boolean;
+  onReasonChange: (reason: AgentKeyRevocationReason) => void;
+  onDescriptionChange: (description: string) => void;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <Dialog open={target !== null} onClose={onCancel} title="Revoke agent key">
+      <Stack gap={4}>
+        <Text color="muted">
+          Revoke “{target?.name ?? ''}”. This takes effect immediately and
+          cannot be undone.
+        </Text>
+        <SelectField
+          label="Reason"
+          value={reason}
+          onChange={(value) =>
+            onReasonChange(value as AgentKeyRevocationReason)
+          }
+          options={REVOCATION_REASONS}
+        />
+        {reason === 'privilege_withdrawn' ? (
+          <Input
+            label="Description"
+            value={description}
+            onChange={(event) => onDescriptionChange(event.target.value)}
+          />
+        ) : null}
+        <Stack direction="row" gap={2} justify="flex-end">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onCancel}
+            disabled={isMutating}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="danger"
+            size="sm"
+            onClick={onConfirm}
+            disabled={isMutating}
+          >
+            {isMutating ? 'Revoking…' : 'Revoke key'}
+          </Button>
+        </Stack>
+      </Stack>
+    </Dialog>
+  );
+}
+
+const KeyTable = memo(function KeyTable({
   keys,
   agentNames,
   rotating,
@@ -546,21 +672,33 @@ function KeyTable({
   canManage: boolean;
 }) {
   const theme = useTheme();
+  const styles = useMemo(
+    () => ({
+      wrapper: { overflowX: 'auto' } as const,
+      table: {
+        width: '100%',
+        minWidth: 820,
+        borderCollapse: 'collapse' as const,
+        color: theme.color.text.DEFAULT,
+      },
+      headerCell: headerCellStyle(theme),
+      bodyCell: bodyCellStyle(theme),
+      code: {
+        fontFamily: theme.font.family.mono,
+        color: theme.color.text.muted,
+        fontSize: theme.font.size.xs,
+      },
+    }),
+    [theme],
+  );
   return (
-    <div style={{ overflowX: 'auto' }}>
-      <table
-        style={{
-          width: '100%',
-          minWidth: 820,
-          borderCollapse: 'collapse',
-          color: theme.color.text.DEFAULT,
-        }}
-      >
+    <div style={styles.wrapper}>
+      <table style={styles.table}>
         <thead>
           <tr>
             {['Name', 'Agent', 'Status', 'Expires', 'Last used', 'Actions'].map(
               (label) => (
-                <th key={label} scope="col" style={headerCellStyle(theme)}>
+                <th key={label} scope="col" style={styles.headerCell}>
                   {label}
                 </th>
               ),
@@ -570,34 +708,23 @@ function KeyTable({
         <tbody>
           {keys.map((key) => (
             <tr key={key.id}>
-              <td style={bodyCellStyle(theme)}>
+              <td style={styles.bodyCell}>
                 <Stack gap={1}>
                   <Text weight="medium">{key.name}</Text>
-                  <code
-                    title={key.id}
-                    style={{
-                      fontFamily: theme.font.family.mono,
-                      color: theme.color.text.muted,
-                      fontSize: theme.font.size.xs,
-                    }}
-                  >
+                  <code title={key.id} style={styles.code}>
                     {shortId(key.id)}
                   </code>
                 </Stack>
               </td>
-              <td style={bodyCellStyle(theme)}>
+              <td style={styles.bodyCell}>
                 {agentNames.get(key.agentId) ?? shortId(key.agentId)}
               </td>
-              <td style={bodyCellStyle(theme)}>
+              <td style={styles.bodyCell}>
                 <Badge variant={statusVariant(key.status)}>{key.status}</Badge>
               </td>
-              <td style={bodyCellStyle(theme)}>
-                {formatTimestamp(key.expiresAt)}
-              </td>
-              <td style={bodyCellStyle(theme)}>
-                {formatTimestamp(key.lastUsedAt)}
-              </td>
-              <td style={bodyCellStyle(theme)}>
+              <td style={styles.bodyCell}>{formatTimestamp(key.expiresAt)}</td>
+              <td style={styles.bodyCell}>{formatTimestamp(key.lastUsedAt)}</td>
+              <td style={styles.bodyCell}>
                 {key.status === 'active' ? (
                   <Stack direction="row" gap={2}>
                     <Button
@@ -629,7 +756,7 @@ function KeyTable({
       </table>
     </div>
   );
-}
+});
 
 function OneTimeSecretDialog({
   result,

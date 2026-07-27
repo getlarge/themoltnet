@@ -23,9 +23,8 @@ import { type KeyboardEvent, useEffect, useMemo, useState } from 'react';
 import { getApiClient } from '../api.js';
 import { getApiErrorDetail } from '../api-error.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
+import { canManageRuntime, TEAM_HEADER } from '../team/permissions.js';
 import { useTeam } from '../team/useTeam.js';
-
-const NEW_POLICY_ID = '__new_runtime_policy__';
 
 interface PolicyForm {
   name: string;
@@ -39,14 +38,20 @@ const EMPTY_POLICY: PolicyForm = {
   tools: [],
 };
 
+type PolicySelection =
+  | { kind: 'none' }
+  | { kind: 'create' }
+  | { kind: 'existing'; id: string };
+
 export function RuntimePoliciesPage() {
   const theme = useTheme();
   const isMobile = useIsMobile();
   const { selectedTeam, error: teamError, refreshTeams } = useTeam();
   const teamId = selectedTeam?.id;
-  const canManage =
-    selectedTeam?.role === 'owner' || selectedTeam?.role === 'manager';
-  const [selectedPolicyId, setSelectedPolicyId] = useState<string | null>(null);
+  const canManage = canManageRuntime(selectedTeam?.role);
+  const [selection, setSelection] = useState<PolicySelection>({
+    kind: 'none',
+  });
   const [form, setForm] = useState<PolicyForm>(EMPTY_POLICY);
   const [formError, setFormError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -55,7 +60,7 @@ export function RuntimePoliciesPage() {
   const policiesQuery = useQuery({
     ...listRuntimePoliciesOptions({
       client: getApiClient(),
-      headers: { 'x-moltnet-team-id': teamId ?? '' },
+      headers: { [TEAM_HEADER]: teamId ?? '' },
     }),
     enabled: Boolean(teamId),
   });
@@ -63,30 +68,30 @@ export function RuntimePoliciesPage() {
     () => policiesQuery.data?.items ?? [],
     [policiesQuery.data],
   );
-  const isCreating = selectedPolicyId === NEW_POLICY_ID;
+  const isCreating = selection.kind === 'create';
   const selectedSummary = policies.find(
-    (policy) => policy.id === selectedPolicyId,
+    (policy) => selection.kind === 'existing' && policy.id === selection.id,
   );
   const policyQuery = useQuery({
     ...getRuntimePolicyOptions({
       client: getApiClient(),
-      headers: { 'x-moltnet-team-id': teamId ?? '' },
+      headers: { [TEAM_HEADER]: teamId ?? '' },
       path: { policyId: selectedSummary?.id ?? '' },
     }),
     enabled: Boolean(teamId && selectedSummary),
   });
 
   useEffect(() => {
-    setSelectedPolicyId(null);
+    setSelection({ kind: 'none' });
     setForm(EMPTY_POLICY);
     setFormError(null);
   }, [teamId]);
 
   useEffect(() => {
-    if (!selectedPolicyId && policies.length > 0) {
-      setSelectedPolicyId(policies[0].id);
+    if (selection.kind === 'none' && policies.length > 0) {
+      setSelection({ kind: 'existing', id: policies[0].id });
     }
-  }, [policies, selectedPolicyId]);
+  }, [policies, selection.kind]);
 
   useEffect(() => {
     if (policyQuery.data) {
@@ -96,13 +101,13 @@ export function RuntimePoliciesPage() {
   }, [policyQuery.data]);
 
   function startNewPolicy() {
-    setSelectedPolicyId(NEW_POLICY_ID);
+    setSelection({ kind: 'create' });
     setForm(EMPTY_POLICY);
     setFormError(null);
   }
 
   function selectPolicy(policyId: string) {
-    setSelectedPolicyId(policyId);
+    setSelection({ kind: 'existing', id: policyId });
     setFormError(null);
   }
 
@@ -114,7 +119,7 @@ export function RuntimePoliciesPage() {
       const result = isCreating
         ? await createRuntimePolicy({
             client: getApiClient(),
-            headers: { 'x-moltnet-team-id': teamId },
+            headers: { [TEAM_HEADER]: teamId },
             body: {
               name: form.name.trim(),
               description: form.description.trim() || undefined,
@@ -123,7 +128,7 @@ export function RuntimePoliciesPage() {
           })
         : await updateRuntimePolicy({
             client: getApiClient(),
-            headers: { 'x-moltnet-team-id': teamId },
+            headers: { [TEAM_HEADER]: teamId },
             path: { policyId: selectedSummary?.id ?? '' },
             body: policyUpdateBody(policyQuery.data, form),
           });
@@ -132,11 +137,22 @@ export function RuntimePoliciesPage() {
           getApiErrorDetail(result.error, 'Failed to save tool policy.'),
         );
       }
-      setSelectedPolicyId(result.data.id);
+      setSelection({ kind: 'existing', id: result.data.id });
       setForm(policyToForm(result.data));
-      await policiesQuery.refetch();
+      const listRefresh = await policiesQuery.refetch();
+      if (listRefresh.error) {
+        setFormError(
+          'The policy was saved, but the policy list could not refresh. Retry the list before making another change.',
+        );
+        return;
+      }
       if (!isCreating) {
-        await policyQuery.refetch();
+        const detailRefresh = await policyQuery.refetch();
+        if (detailRefresh.error) {
+          setFormError(
+            'The policy was saved, but its details could not refresh. Retry the policy details before making another change.',
+          );
+        }
       }
     } catch (error) {
       setFormError(getApiErrorDetail(error, 'Failed to save tool policy.'));
@@ -152,7 +168,7 @@ export function RuntimePoliciesPage() {
     try {
       const result = await deleteRuntimePolicy({
         client: getApiClient(),
-        headers: { 'x-moltnet-team-id': teamId },
+        headers: { [TEAM_HEADER]: teamId },
         path: { policyId: selectedSummary.id },
       });
       if (result.error) {
@@ -161,9 +177,22 @@ export function RuntimePoliciesPage() {
         );
       }
       setDeleteOpen(false);
-      setSelectedPolicyId(null);
-      setForm(EMPTY_POLICY);
-      await policiesQuery.refetch();
+      const refreshed = await policiesQuery.refetch();
+      if (refreshed.error) {
+        setSelection({ kind: 'none' });
+        setForm(EMPTY_POLICY);
+        setFormError(
+          'The policy was deleted, but the policy list could not refresh. Retry the list before making another change.',
+        );
+        return;
+      }
+      const nextPolicy = refreshed.data?.items.find(
+        (policy) => policy.id !== selectedSummary.id,
+      );
+      setSelection(
+        nextPolicy ? { kind: 'existing', id: nextPolicy.id } : { kind: 'none' },
+      );
+      if (!nextPolicy) setForm(EMPTY_POLICY);
     } catch (error) {
       setFormError(getApiErrorDetail(error, 'Failed to delete tool policy.'));
     } finally {
@@ -229,7 +258,8 @@ export function RuntimePoliciesPage() {
             />
           ) : (
             policies.map((policy) => {
-              const active = policy.id === selectedPolicyId;
+              const active =
+                selection.kind === 'existing' && policy.id === selection.id;
               return (
                 <button
                   key={policy.id}
@@ -288,6 +318,11 @@ export function RuntimePoliciesPage() {
 
             {!isCreating && selectedSummary && policyQuery.isLoading ? (
               <Text color="muted">Loading policy details…</Text>
+            ) : !isCreating && selectedSummary && policyQuery.error ? (
+              <RetryState
+                message="Failed to load tool policy details."
+                retry={() => void policyQuery.refetch()}
+              />
             ) : !isCreating && !selectedSummary ? (
               <Text color="muted">
                 Choose a policy from the list or create a new one.

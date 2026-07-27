@@ -40,8 +40,10 @@ vi.mock('@moltnet/api-client/query', () => ({
     queryKey: ['runtime-policies'],
     queryFn: async () => ({ items: queryState.policies }),
   }),
-  getRuntimeProfilePoliciesOptions: () => ({
-    queryKey: ['runtime-profile-policies'],
+  getRuntimeProfilePoliciesOptions: (options: {
+    path: { profileId: string };
+  }) => ({
+    queryKey: ['runtime-profile-policies', options.path.profileId],
     queryFn: async () => ({ policyIds: queryState.policyIds }),
   }),
   getRuntimeProfileAllowedToolsOptions: () => ({
@@ -120,13 +122,16 @@ function renderPage() {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  return render(
-    <QueryClientProvider client={client}>
-      <MoltThemeProvider mode="dark">
-        <ProfilesPage />
-      </MoltThemeProvider>
-    </QueryClientProvider>,
-  );
+  return {
+    client,
+    ...render(
+      <QueryClientProvider client={client}>
+        <MoltThemeProvider mode="dark">
+          <ProfilesPage />
+        </MoltThemeProvider>
+      </QueryClientProvider>,
+    ),
+  };
 }
 
 const STANDARD_ENGINEERING_SLUGS = [
@@ -409,6 +414,61 @@ describe('ProfilesPage context editor', () => {
     expect(
       screen.getByText(/changing it requires the team manage-runtime role/i),
     ).toBeVisible();
+    expect(setRuntimeProfilePolicies).not.toHaveBeenCalled();
+    expect(updateRuntimeProfile).not.toHaveBeenCalled();
+  });
+
+  it('preserves unsaved policy choices during a background refetch', async () => {
+    queryState.profiles = [makeProfile('p-a', 'profile-a', [])];
+    queryState.policies = [
+      {
+        id: 'policy-1',
+        teamId: 'team-1',
+        name: 'reader',
+        description: 'Read-only tools',
+        createdAt: '2026-01-01T00:00:00Z',
+        updatedAt: '2026-01-01T00:00:00Z',
+      },
+    ];
+    const { client } = renderPage();
+    const checkbox = await screen.findByRole('checkbox', { name: /reader/i });
+    fireEvent.click(checkbox);
+    expect(checkbox).toBeChecked();
+
+    await client.refetchQueries({
+      queryKey: ['runtime-profile-policies', 'p-a'],
+    });
+
+    expect(checkbox).toBeChecked();
+  });
+
+  it('preserves the draft and skips enforcement when binding fails', async () => {
+    queryState.profiles = [makeProfile('p-a', 'profile-a', [])];
+    queryState.policies = [
+      {
+        id: 'policy-1',
+        teamId: 'team-1',
+        name: 'reader',
+        description: 'Read-only tools',
+        createdAt: '2026-01-01T00:00:00Z',
+        updatedAt: '2026-01-01T00:00:00Z',
+      },
+    ];
+    setRuntimeProfilePolicies.mockResolvedValue({
+      data: undefined,
+      error: { detail: 'Binding update rejected' },
+    });
+
+    renderPage();
+    const checkbox = await screen.findByRole('checkbox', { name: /reader/i });
+    fireEvent.click(checkbox);
+    fireEvent.click(screen.getByRole('radio', { name: /watch/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save tool access' }));
+
+    expect(await screen.findByText('Binding update rejected')).toBeVisible();
+    expect(checkbox).toBeChecked();
+    expect(screen.getByRole('radio', { name: /watch/i })).toBeChecked();
+    expect(updateRuntimeProfile).not.toHaveBeenCalled();
   });
 
   it('reports partial failure when bindings save but enforcement does not', async () => {
@@ -438,7 +498,11 @@ describe('ProfilesPage context editor', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save tool access' }));
 
     expect(
-      await screen.findByText('Enforcement update rejected'),
+      await screen.findByText(/Enforcement update rejected/),
+    ).toBeVisible();
+    expect(screen.getByRole('radio', { name: /off/i })).toBeChecked();
+    expect(
+      screen.getByText(/saved policy bindings and current mode.*reloaded/i),
     ).toBeVisible();
     expect(setRuntimeProfilePolicies).toHaveBeenCalledTimes(1);
     expect(updateRuntimeProfile).toHaveBeenCalledTimes(1);

@@ -4,6 +4,7 @@ import { type ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { RuntimeNavigation } from '../src/components/RuntimeNavigation.js';
+import { legacyProfilesDestination } from '../src/runtime-routes.js';
 
 const routerState = vi.hoisted(() => ({
   location: '/runtime/profiles',
@@ -45,5 +46,11 @@ describe('RuntimeNavigation', () => {
       ['/runtime/policies'],
       ['/runtime/agent-keys'],
     ]);
+  });
+
+  it('preserves query and hash context in legacy profile redirects', () => {
+    expect(
+      legacyProfilesDestination('?team=team-1&tab=access', '#policy'),
+    ).toBe('/runtime/profiles?team=team-1&tab=access#policy');
   });
 });

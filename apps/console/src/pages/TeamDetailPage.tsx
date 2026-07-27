@@ -37,6 +37,7 @@ import { InviteCard } from '../components/teams/InviteCard.js';
 import { MembersTable } from '../components/teams/MembersTable.js';
 import { PendingTransfersPanel } from '../components/teams/PendingTransfersPanel.js';
 import { TeamDiaryCard } from '../components/teams/TeamDiaryCard.js';
+import { canManageTeam } from '../team/permissions.js';
 import { useTeam } from '../team/useTeam.js';
 
 type TeamDetail = GetTeamResponses[200];
@@ -85,7 +86,7 @@ export function TeamDetailPage({ id }: { id: string }) {
 
   const callerTeam = teams.find((t) => t.id === id);
   const callerRole = callerTeam?.role ?? 'member';
-  const canManage = callerRole === 'owner' || callerRole === 'manager';
+  const canManage = canManageTeam(callerRole);
 
   // Personal teams don't host groups or invites — exclude from allowed tabs so
   // direct links like `?tab=groups` on a personal team fall back to 'members'.

@@ -24,6 +24,7 @@ const apiMocks = vi.hoisted(() => ({
 const queryState = vi.hoisted(() => ({
   role: 'owner' as 'owner' | 'manager' | 'member',
   listError: null as Error | null,
+  detailError: null as Error | null,
   policies: [] as unknown[],
   policyDetails: new Map<string, unknown>(),
 }));
@@ -39,8 +40,10 @@ vi.mock('@moltnet/api-client/query', () => ({
   }),
   getRuntimePolicyOptions: (options: { path: { policyId: string } }) => ({
     queryKey: ['runtime-policy', options.path.policyId],
-    queryFn: async () =>
-      queryState.policyDetails.get(options.path.policyId) ?? null,
+    queryFn: async () => {
+      if (queryState.detailError) throw queryState.detailError;
+      return queryState.policyDetails.get(options.path.policyId) ?? null;
+    },
   }),
 }));
 vi.mock('../src/api.js', () => ({ getApiClient: () => ({}) }));
@@ -100,6 +103,7 @@ describe('RuntimePoliciesPage', () => {
     vi.clearAllMocks();
     queryState.role = 'owner';
     queryState.listError = null;
+    queryState.detailError = null;
     setPolicies();
   });
 
@@ -220,6 +224,28 @@ describe('RuntimePoliciesPage', () => {
     );
   });
 
+  it('selects from the refreshed list only after a policy is deleted', async () => {
+    const deleted = makePolicy({ id: 'policy-delete', name: 'obsolete' });
+    const remaining = makePolicy({ id: 'policy-keep', name: 'keeper' });
+    setPolicies(deleted, remaining);
+    apiMocks.deleteRuntimePolicy.mockImplementation(async () => {
+      setPolicies(remaining);
+      return { data: undefined, error: null };
+    });
+
+    renderPage();
+    await screen.findByDisplayValue('obsolete');
+    fireEvent.click(screen.getByRole('button', { name: 'Delete policy' }));
+    fireEvent.click(
+      within(
+        screen.getByRole('dialog', { name: 'Delete tool policy?' }),
+      ).getByRole('button', { name: 'Delete policy' }),
+    );
+
+    expect(await screen.findByDisplayValue('keeper')).toBeVisible();
+    expect(screen.queryByDisplayValue('obsolete')).not.toBeInTheDocument();
+  });
+
   it('keeps policy definitions visible but read-only for team members', async () => {
     queryState.role = 'member';
     setPolicies(
@@ -245,6 +271,9 @@ describe('RuntimePoliciesPage', () => {
     expect(
       screen.getByText(/changing them requires the team manage-runtime role/i),
     ).toBeVisible();
+    expect(apiMocks.createRuntimePolicy).not.toHaveBeenCalled();
+    expect(apiMocks.updateRuntimePolicy).not.toHaveBeenCalled();
+    expect(apiMocks.deleteRuntimePolicy).not.toHaveBeenCalled();
   });
 
   it('surfaces API errors without discarding the policy draft', async () => {
@@ -277,5 +306,20 @@ describe('RuntimePoliciesPage', () => {
     queryState.listError = null;
     fireEvent.click(within(alert).getByRole('button', { name: 'Retry' }));
     await screen.findByText('No tool policies yet');
+  });
+
+  it('surfaces a policy-detail failure and supports retry', async () => {
+    setPolicies(makePolicy({ id: 'policy-detail', name: 'reader' }));
+    queryState.detailError = new Error('details unavailable');
+
+    renderPage();
+    const alert = await screen.findByRole('alert');
+    expect(
+      within(alert).getByText('Failed to load tool policy details.'),
+    ).toBeVisible();
+
+    queryState.detailError = null;
+    fireEvent.click(within(alert).getByRole('button', { name: 'Retry' }));
+    expect(await screen.findByDisplayValue('reader')).toBeVisible();
   });
 });

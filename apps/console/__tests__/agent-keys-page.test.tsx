@@ -22,7 +22,6 @@ import { AgentKeysPage } from '../src/pages/AgentKeysPage.js';
 
 const apiMocks = vi.hoisted(() => ({
   createAgentKey: vi.fn(),
-  listAgentKeys: vi.fn(),
   revokeAgentKey: vi.fn(),
   rotateAgentKey: vi.fn(),
 }));
@@ -59,18 +58,24 @@ vi.mock('@moltnet/api-client/query', () => ({
       };
     },
   }),
-  listAgentKeysOptions: (options: {
+  listAgentKeysInfiniteOptions: (options: {
     query: {
       agentId?: string;
-      cursor?: string;
       status?: string;
     };
   }) => ({
     queryKey: ['agent-keys', options.query],
-    queryFn: async () => {
-      queryState.queryCalls.push(options.query);
+    queryFn: async ({
+      pageParam,
+    }: {
+      pageParam?: string | { query?: { cursor?: string } };
+    }) => {
+      const cursor =
+        typeof pageParam === 'string' ? pageParam : pageParam?.query?.cursor;
+      const query = { ...options.query, cursor };
+      queryState.queryCalls.push(query);
       if (queryState.keyError) throw queryState.keyError;
-      return options.query.cursor ? queryState.nextPage : queryState.firstPage;
+      return cursor ? queryState.nextPage : queryState.firstPage;
     },
   }),
 }));
@@ -179,10 +184,6 @@ describe('AgentKeysPage', () => {
     queryState.firstPage = { items: [], nextCursor: null };
     queryState.nextPage = { items: [], nextCursor: null };
     queryState.queryCalls = [];
-    apiMocks.listAgentKeys.mockResolvedValue({
-      data: { items: [], nextCursor: null },
-      error: null,
-    });
   });
 
   it('requires explicit storage acknowledgement before clearing a new secret', async () => {
@@ -271,6 +272,54 @@ describe('AgentKeysPage', () => {
     );
   });
 
+  it('keeps the rotate dialog recoverable when rotation fails', async () => {
+    const key = makeKey({ id: 'key-rotate-error', name: 'rotate-error' });
+    queryState.firstPage = { items: [key], nextCursor: null };
+    apiMocks.rotateAgentKey.mockResolvedValue({
+      data: undefined,
+      error: { detail: 'Rotation was rejected' },
+    });
+
+    renderPage();
+    await screen.findByText('rotate-error');
+    fireEvent.click(screen.getByRole('button', { name: 'Rotate' }));
+    const dialog = screen.getByRole('dialog', { name: 'Rotate agent key?' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Rotate key' }));
+
+    expect(await screen.findByText('Rotation was rejected')).toBeVisible();
+    expect(dialog).toBeVisible();
+    expect(
+      screen.queryByRole('dialog', { name: 'Store this secret now' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('dispatches at most one rotate request per confirmation', async () => {
+    const key = makeKey({ id: 'key-rotate-once', name: 'rotate-once' });
+    queryState.firstPage = { items: [key], nextCursor: null };
+    let finishRotation: ((value: unknown) => void) | undefined;
+    apiMocks.rotateAgentKey.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finishRotation = resolve;
+        }),
+    );
+
+    renderPage();
+    await screen.findByText('rotate-once');
+    fireEvent.click(screen.getByRole('button', { name: 'Rotate' }));
+    const confirm = screen.getByRole('dialog', { name: 'Rotate agent key?' });
+    const rotate = within(confirm).getByRole('button', { name: 'Rotate key' });
+    fireEvent.click(rotate);
+    fireEvent.click(rotate);
+
+    expect(apiMocks.rotateAgentKey).toHaveBeenCalledTimes(1);
+    finishRotation?.({
+      data: makeSecret(key, 'molt_rotate_once'),
+      error: null,
+    });
+    await screen.findByRole('dialog', { name: 'Store this secret now' });
+  });
+
   it('revokes a key with the selected typed reason and description', async () => {
     const key = makeKey({ id: 'key-revoke', name: 'revoke-daemon' });
     queryState.firstPage = { items: [key], nextCursor: null };
@@ -304,13 +353,59 @@ describe('AgentKeysPage', () => {
     );
   });
 
+  it('keeps the revoke dialog and reason when revocation fails', async () => {
+    const key = makeKey({ id: 'key-revoke-error', name: 'revoke-error' });
+    queryState.firstPage = { items: [key], nextCursor: null };
+    apiMocks.revokeAgentKey.mockResolvedValue({
+      data: undefined,
+      error: { detail: 'Revocation was rejected' },
+    });
+
+    renderPage();
+    await screen.findByText('revoke-error');
+    fireEvent.click(screen.getByRole('button', { name: 'Revoke' }));
+    const dialog = screen.getByRole('dialog', { name: 'Revoke agent key' });
+    fireEvent.change(within(dialog).getByLabelText('Reason'), {
+      target: { value: 'key_compromise' },
+    });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Revoke key' }));
+
+    expect(await screen.findByText('Revocation was rejected')).toBeVisible();
+    expect(dialog).toBeVisible();
+    expect(within(dialog).getByLabelText('Reason')).toHaveValue(
+      'key_compromise',
+    );
+  });
+
+  it('separates a successful mutation from a failed list refresh', async () => {
+    const key = makeKey({ id: 'key-created', name: 'refresh-warning' });
+    apiMocks.createAgentKey.mockImplementation(async () => {
+      queryState.keyError = new Error('refresh unavailable');
+      return { data: makeSecret(key), error: null };
+    });
+
+    renderPage();
+    const dialog = await openCreateDialog('refresh-warning');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Create key' }));
+
+    await screen.findByRole('dialog', { name: 'Store this secret now' });
+    expect(
+      await screen.findByText(/key change succeeded.*could not refresh/i),
+    ).toBeVisible();
+    expect(
+      screen.queryByText('Failed to create agent key.'),
+    ).not.toBeInTheDocument();
+    expect(apiMocks.createAgentKey).toHaveBeenCalledTimes(1);
+  });
+
   it('accumulates cursor pages and scopes list queries to filters', async () => {
+    const first = makeKey({ id: 'key-first', name: 'first-daemon' });
     queryState.firstPage = {
-      items: [makeKey({ id: 'key-first', name: 'first-daemon' })],
+      items: [first],
       nextCursor: 'cursor-2',
     };
     queryState.nextPage = {
-      items: [makeKey({ id: 'key-second', name: 'second-daemon' })],
+      items: [first, makeKey({ id: 'key-second', name: 'second-daemon' })],
       nextCursor: null,
     };
 
@@ -318,7 +413,7 @@ describe('AgentKeysPage', () => {
     await screen.findByText('first-daemon');
     fireEvent.click(screen.getByRole('button', { name: 'Load more' }));
     await screen.findByText('second-daemon');
-    expect(screen.getByText('first-daemon')).toBeInTheDocument();
+    expect(screen.getAllByText('first-daemon')).toHaveLength(1);
 
     fireEvent.change(screen.getByLabelText('Agent'), {
       target: { value: 'agent-1' },
@@ -353,6 +448,9 @@ describe('AgentKeysPage', () => {
     expect(
       screen.getByText(/changing them requires the team manage-runtime role/i),
     ).toBeInTheDocument();
+    expect(apiMocks.createAgentKey).not.toHaveBeenCalled();
+    expect(apiMocks.rotateAgentKey).not.toHaveBeenCalled();
+    expect(apiMocks.revokeAgentKey).not.toHaveBeenCalled();
   });
 
   it('offers a retry when the team key list fails', async () => {

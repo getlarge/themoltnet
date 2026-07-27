@@ -20,6 +20,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { getApiClient } from '../api.js';
 import { getApiErrorDetail } from '../api-error.js';
+import { canManageRuntime, TEAM_HEADER } from '../team/permissions.js';
 import { useTeam } from '../team/useTeam.js';
 
 type EnforcementMode = RuntimeProfile['toolEnforcement'];
@@ -57,12 +58,12 @@ export function ProfileToolAccess({
   const theme = useTheme();
   const { selectedTeam } = useTeam();
   const teamId = selectedTeam?.id;
-  const canManage =
-    selectedTeam?.role === 'owner' || selectedTeam?.role === 'manager';
+  const canManage = canManageRuntime(selectedTeam?.role);
   const [mode, setMode] = useState<EnforcementMode>(
     profile.toolEnforcement ?? 'off',
   );
   const [selectedPolicyIds, setSelectedPolicyIds] = useState<string[]>([]);
+  const [draftProfileId, setDraftProfileId] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -70,14 +71,14 @@ export function ProfileToolAccess({
   const policiesQuery = useQuery({
     ...listRuntimePoliciesOptions({
       client: getApiClient(),
-      headers: { 'x-moltnet-team-id': teamId ?? '' },
+      headers: { [TEAM_HEADER]: teamId ?? '' },
     }),
     enabled: Boolean(teamId),
   });
   const bindingsQuery = useQuery({
     ...getRuntimeProfilePoliciesOptions({
       client: getApiClient(),
-      headers: { 'x-moltnet-team-id': teamId ?? '' },
+      headers: { [TEAM_HEADER]: teamId ?? '' },
       path: { profileId: profile.id },
     }),
     enabled: Boolean(teamId),
@@ -85,7 +86,7 @@ export function ProfileToolAccess({
   const allowedToolsQuery = useQuery({
     ...getRuntimeProfileAllowedToolsOptions({
       client: getApiClient(),
-      headers: { 'x-moltnet-team-id': teamId ?? '' },
+      headers: { [TEAM_HEADER]: teamId ?? '' },
       path: { profileId: profile.id },
     }),
     enabled: Boolean(teamId),
@@ -99,15 +100,21 @@ export function ProfileToolAccess({
 
   useEffect(() => {
     setMode(profile.toolEnforcement ?? 'off');
-    setSaveError(null);
-    setSaveNotice(null);
-  }, [profile.id, profile.toolEnforcement]);
+  }, [profile.toolEnforcement]);
 
   useEffect(() => {
-    if (bindingsQuery.data) {
+    setSelectedPolicyIds([]);
+    setDraftProfileId(null);
+    setSaveError(null);
+    setSaveNotice(null);
+  }, [profile.id]);
+
+  useEffect(() => {
+    if (bindingsQuery.data && draftProfileId !== profile.id) {
       setSelectedPolicyIds(bindingsQuery.data.policyIds);
+      setDraftProfileId(profile.id);
     }
-  }, [bindingsQuery.data]);
+  }, [bindingsQuery.data, draftProfileId, profile.id]);
 
   function togglePolicy(policyId: string) {
     setSelectedPolicyIds((current) =>
@@ -126,7 +133,7 @@ export function ProfileToolAccess({
     try {
       const bindingResult = await setRuntimeProfilePolicies({
         client: getApiClient(),
-        headers: { 'x-moltnet-team-id': teamId },
+        headers: { [TEAM_HEADER]: teamId },
         path: { profileId: profile.id },
         body: { policyIds: selectedPolicyIds },
       });
@@ -139,7 +146,6 @@ export function ProfileToolAccess({
         );
       }
       bindingsSaved = true;
-      await allowedToolsQuery.refetch();
 
       const profileResult = await updateRuntimeProfile({
         client: getApiClient(),
@@ -160,16 +166,26 @@ export function ProfileToolAccess({
         allowedToolsQuery.refetch(),
         onProfileUpdated(),
       ]);
+      setDraftProfileId(profile.id);
       setSaveNotice(
         'Tool access saved. New policy snapshots apply when the next runtime session starts.',
       );
     } catch (error) {
+      if (bindingsSaved) {
+        setMode(profile.toolEnforcement ?? 'off');
+        await Promise.allSettled([
+          bindingsQuery.refetch(),
+          allowedToolsQuery.refetch(),
+          onProfileUpdated(),
+        ]);
+        setDraftProfileId(profile.id);
+      }
       setSaveError(
         bindingsSaved
-          ? getApiErrorDetail(
+          ? `${getApiErrorDetail(
               error,
               'Policies were saved, but enforcement mode was not updated.',
-            )
+            )} The saved policy bindings and current mode have been reloaded; review them before retrying.`
           : getApiErrorDetail(error, 'Failed to save tool access.'),
       );
     } finally {

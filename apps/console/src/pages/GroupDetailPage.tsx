@@ -23,6 +23,7 @@ import {
   AddGroupMemberDialog,
 } from '../components/teams/AddGroupMemberDialog.js';
 import { MemberRow } from '../components/teams/MemberRow.js';
+import { canManageTeam } from '../team/permissions.js';
 import { useTeam } from '../team/useTeam.js';
 
 type Group = GetGroupResponses[200];
@@ -45,7 +46,7 @@ export function GroupDetailPage({ groupId }: { groupId: string }) {
 
   const callerTeam = group ? teams.find((t) => t.id === group.teamId) : null;
   const callerRole = callerTeam?.role ?? 'member';
-  const canManage = callerRole === 'owner' || callerRole === 'manager';
+  const canManage = canManageTeam(callerRole);
 
   const loadGroup = useCallback(async () => {
     setError(null);

@@ -22,6 +22,7 @@ import { TaskDetailPage } from './pages/TaskDetailPage.js';
 import { TasksPage } from './pages/TasksPage.js';
 import { TeamDetailPage } from './pages/TeamDetailPage.js';
 import { TeamsPage } from './pages/TeamsPage.js';
+import { legacyProfilesDestination } from './runtime-routes.js';
 
 export function App() {
   const signingEnabled = Boolean(getConfig().signerUrl);
@@ -95,7 +96,10 @@ export function App() {
 function LegacyProfilesRedirect() {
   const [, navigate] = useLocation();
   useEffect(() => {
-    navigate('/runtime/profiles', { replace: true });
+    navigate(
+      legacyProfilesDestination(window.location.search, window.location.hash),
+      { replace: true },
+    );
   }, [navigate]);
   return null;
 }
