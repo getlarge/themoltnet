@@ -1,4 +1,7 @@
-import { UuidSchema } from '@moltnet/models';
+import {
+  ToolEnforcementSchema as CanonicalToolEnforcementSchema,
+  UuidSchema,
+} from '@moltnet/models';
 import { Type } from 'typebox';
 
 const TOOL_NAME_PATTERN = '^[a-zA-Z0-9_.:-]{1,128}$';
@@ -10,14 +13,10 @@ const ToolNameSchema = Type.String({
   description: 'A tool identifier, e.g. an executable name like "git".',
 });
 
-export const ToolEnforcementSchema = Type.Union(
-  [Type.Literal('off'), Type.Literal('watch'), Type.Literal('enforce')],
-  {
-    $id: 'ToolEnforcement',
-    description:
-      'Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed tools, fail-closed).',
-  },
-);
+export const ToolEnforcementSchema = {
+  ...CanonicalToolEnforcementSchema,
+  $id: 'ToolEnforcement',
+};
 
 export const RuntimePolicySchema = Type.Object(
   {

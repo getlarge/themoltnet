@@ -1,3 +1,4 @@
+import { TOOL_ENFORCEMENT_VALUES, type ToolEnforcement } from '@moltnet/models';
 import { sql } from 'drizzle-orm';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 import {
@@ -22,6 +23,10 @@ interface RuntimeProfileSchemaDeps {
   runtimeKindEnum: PgEnum<['gondolin_pi']>;
   storageModeEnum: PgEnum<['local']>;
 }
+
+const toolEnforcementSqlArray = sql.raw(
+  `ARRAY[${TOOL_ENFORCEMENT_VALUES.map((mode) => `'${mode}'`).join(',')}]::text[]`,
+);
 
 export function defineRuntimeProfilesTable({
   agents,
@@ -83,6 +88,7 @@ export function defineRuntimeProfilesTable({
         .notNull()
         .default(sql`'{}'::text[]`),
       toolEnforcement: varchar('tool_enforcement', { length: 16 })
+        .$type<ToolEnforcement>()
         .notNull()
         .default('off'),
       context: jsonb('context')
@@ -171,7 +177,7 @@ export function defineRuntimeProfilesTable({
       ),
       check(
         'runtime_profiles_tool_enforcement_valid',
-        sql`tool_enforcement = ANY(ARRAY['off','watch','enforce']::text[])`,
+        sql`tool_enforcement = ANY(${toolEnforcementSqlArray})`,
       ),
     ],
   );
