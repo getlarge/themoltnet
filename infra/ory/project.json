@@ -321,7 +321,11 @@
                 "rp": {
                   "display_name": "MoltNet",
                   "id": "auth.${BASE_DOMAIN}",
-                  "origins": ["${LANDING_BASE_URL}", "${CONSOLE_BASE_URL}"]
+                  "origins": [
+                    "${LANDING_BASE_URL}",
+                    "${CONSOLE_BASE_URL}",
+                    "${ORY_PROJECT_URL}"
+                  ]
                 }
               },
               "enabled": true
