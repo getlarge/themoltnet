@@ -2,6 +2,30 @@ import { describe, expect, it } from 'vitest';
 
 import { inlineContext } from './context.js';
 import { parallelTasks } from './parallel.js';
+import type { WorkflowContext } from './types.js';
+
+/**
+ * A durable-like context that memoizes each `step` by name (like Absurd): a
+ * repeat call with the same name returns the cached result without re-running
+ * the body, and concurrent calls with the same name share one in-flight run.
+ */
+function memoizingContext(): WorkflowContext {
+  const cache = new Map<string, unknown>();
+  const inflight = new Map<string, Promise<unknown>>();
+  return {
+    async step<T>(name: string, fn: () => Promise<T>): Promise<T> {
+      if (cache.has(name)) return cache.get(name) as T;
+      const existing = inflight.get(name);
+      if (existing) return existing as Promise<T>;
+      const run = fn();
+      inflight.set(name, run);
+      const value = await run;
+      cache.set(name, value);
+      return value;
+    },
+    sleepFor: () => Promise.resolve(),
+  };
+}
 
 const tick = () =>
   new Promise<void>((resolve) => {
@@ -102,5 +126,48 @@ describe('parallelTasks', () => {
     });
 
     expect(maxActive).toBe(5);
+  });
+});
+
+describe('parallelTasks durability (memoized/replayed ctx)', () => {
+  it('does not re-create tasks on durable replay', async () => {
+    const ctx = memoizingContext();
+    let creates = 0;
+    const args = {
+      ctx,
+      items: ['a', 'b'],
+      createStepName: (item: string) => `create.${item}`,
+      create: (item: string) => {
+        creates += 1;
+        return Promise.resolve({ id: `id-${item}` });
+      },
+      awaitResult: (created: { id: string }) => Promise.resolve(created.id),
+    };
+    const first = await parallelTasks(args);
+    // Replaying with the SAME ctx must reuse the cached create checkpoints.
+    const second = await parallelTasks(args);
+    expect(creates).toBe(2); // created once each; not re-created on replay
+    expect(first.created).toEqual(second.created);
+    expect(first.results).toEqual(['id-a', 'id-b']);
+  });
+
+  it('collides when createStepName is not unique (uniqueness is required)', async () => {
+    const ctx = memoizingContext();
+    let creates = 0;
+    const { created } = await parallelTasks({
+      ctx,
+      items: ['a', 'b', 'c'],
+      // BAD: a constant step name for every item.
+      createStepName: () => 'create',
+      create: (item: string) => {
+        creates += 1;
+        return Promise.resolve({ id: `id-${item}` });
+      },
+      awaitResult: (created: { id: string }) => Promise.resolve(created.id),
+    });
+    // The shared checkpoint name makes every item resolve to the first create —
+    // exactly why createStepName must be unique per item.
+    expect(creates).toBe(1);
+    expect(created).toEqual([{ id: 'id-a' }, { id: 'id-a' }, { id: 'id-a' }]);
   });
 });
