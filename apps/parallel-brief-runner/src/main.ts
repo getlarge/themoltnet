@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { parseArgs } from 'node:util';
 
 import { createSdkTaskClient } from '@moltnet/orchestration';
 import { connect } from '@themoltnet/sdk';
@@ -36,59 +37,31 @@ function positiveInt(raw: string, flag: string): number {
   return value;
 }
 
-function parseArgs(argv: string[]): CliConfig {
-  const briefs: string[] = [];
-  let teamId = '';
-  let diaryId = '';
-  let summaryBrief: string | undefined;
-  let queueName: string | undefined;
-  let agentDir: string | undefined;
-  let pollIntervalSec: number | undefined;
-  let concurrency: number | undefined;
+function parseCliConfig(argv: string[]): CliConfig {
+  const { values } = parseArgs({
+    args: argv,
+    options: {
+      help: { type: 'boolean', short: 'h' },
+      team: { type: 'string' },
+      diary: { type: 'string' },
+      brief: { type: 'string', multiple: true },
+      summary: { type: 'string' },
+      queue: { type: 'string' },
+      'agent-dir': { type: 'string' },
+      'poll-interval': { type: 'string' },
+      concurrency: { type: 'string' },
+    },
+    allowPositionals: false,
+    strict: true,
+  });
 
-  for (let i = 0; i < argv.length; i += 1) {
-    const arg = argv[i];
-    const next = () => {
-      const value = argv[i + 1];
-      if (value === undefined) throw new Error(`missing value for ${arg}`);
-      i += 1;
-      return value;
-    };
-    switch (arg) {
-      case '--help':
-      case '-h':
-        // eslint-disable-next-line no-console
-        console.log(HELP);
-        process.exit(0);
-        break;
-      case '--team':
-        teamId = next();
-        break;
-      case '--diary':
-        diaryId = next();
-        break;
-      case '--brief':
-        briefs.push(next());
-        break;
-      case '--summary':
-        summaryBrief = next();
-        break;
-      case '--queue':
-        queueName = next();
-        break;
-      case '--agent-dir':
-        agentDir = next();
-        break;
-      case '--poll-interval':
-        pollIntervalSec = positiveInt(next(), '--poll-interval');
-        break;
-      case '--concurrency':
-        concurrency = positiveInt(next(), '--concurrency');
-        break;
-      default:
-        throw new Error(`unknown argument: ${arg}`);
-    }
+  if (values.help) {
+    // eslint-disable-next-line no-console
+    console.log(HELP);
+    process.exit(0);
   }
+
+  const briefs = values.brief ?? [];
 
   // Read the credential-bearing Postgres URL from a protected env var rather
   // than argv, so it is not exposed through shell history or process listings.
@@ -96,8 +69,8 @@ function parseArgs(argv: string[]): CliConfig {
   // eslint-disable-next-line no-restricted-syntax -- CLI reads DB URL secret from env by design (PR #1674)
   const databaseUrl = process.env.PARALLEL_BRIEFS_DATABASE_URL ?? '';
 
-  if (!teamId) throw new Error('--team is required');
-  if (!diaryId) throw new Error('--diary is required');
+  if (!values.team) throw new Error('--team is required');
+  if (!values.diary) throw new Error('--diary is required');
   if (!databaseUrl) {
     throw new Error(
       'PARALLEL_BRIEFS_DATABASE_URL environment variable is required',
@@ -107,22 +80,28 @@ function parseArgs(argv: string[]): CliConfig {
 
   return {
     databaseUrl,
-    queueName,
-    agentDir,
+    queueName: values.queue,
+    agentDir: values['agent-dir'],
     input: {
-      teamId,
-      diaryId,
+      teamId: values.team,
+      diaryId: values.diary,
       briefs,
-      summaryBrief,
+      summaryBrief: values.summary,
       correlationId: randomUUID(),
-      pollIntervalSec,
-      concurrency,
+      pollIntervalSec:
+        values['poll-interval'] === undefined
+          ? undefined
+          : positiveInt(values['poll-interval'], '--poll-interval'),
+      concurrency:
+        values.concurrency === undefined
+          ? undefined
+          : positiveInt(values.concurrency, '--concurrency'),
     },
   };
 }
 
 async function main(): Promise<number> {
-  const cfg = parseArgs(process.argv.slice(2));
+  const cfg = parseCliConfig(process.argv.slice(2));
   const logger = pino({ name: 'parallel-brief-runner' });
   const agent = await connect(
     cfg.agentDir ? { configDir: cfg.agentDir } : undefined,
