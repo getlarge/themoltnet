@@ -144,6 +144,7 @@ async function createTaskForSelectedDiary() {
 <template>
   <RunAsMeExample
     title="Create a task"
+    :heading-level="2"
     :output="output"
     :error="error"
     :is-running="isRunning || diariesLoading"

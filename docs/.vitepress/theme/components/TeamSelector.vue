@@ -4,7 +4,16 @@ import { computed } from 'vue';
 import { useAuth } from '../auth/useAuth';
 import { useTeamSelection } from '../auth/useTeamSelection';
 
-const { isAuthenticated, isLoading: authLoading, login } = useAuth();
+withDefaults(
+  defineProps<{
+    controlId?: string;
+  }>(),
+  {
+    controlId: 'moltnet-team-select',
+  },
+);
+
+const { isAuthenticated } = useAuth();
 const {
   teams,
   selectedTeamId,
@@ -15,9 +24,7 @@ const {
   setSelectedTeam,
 } = useTeamSelection();
 
-const disabled = computed(
-  () => authLoading.value || teamsLoading.value || teams.value.length === 0,
-);
+const disabled = computed(() => teamsLoading.value || teams.value.length === 0);
 
 function onChange(event: Event) {
   const value = (event.target as HTMLSelectElement).value;
@@ -28,11 +35,11 @@ function onChange(event: Event) {
 <template>
   <ClientOnly>
     <div v-if="isAuthenticated" class="moltnet-team-selector">
-      <label class="moltnet-team-selector__label" for="moltnet-team-select">
+      <label class="moltnet-team-selector__label" :for="controlId">
         Team
       </label>
       <select
-        id="moltnet-team-select"
+        :id="controlId"
         class="moltnet-team-selector__select"
         :disabled="disabled"
         :value="selectedTeamId ?? ''"
@@ -55,14 +62,6 @@ function onChange(event: Event) {
         Retry
       </button>
     </div>
-    <button
-      v-else-if="!authLoading"
-      type="button"
-      class="moltnet-team-selector__login moltnet-nav-button moltnet-nav-button--primary"
-      @click="login"
-    >
-      Select team
-    </button>
   </ClientOnly>
 </template>
 
@@ -95,9 +94,18 @@ function onChange(event: Event) {
   color: var(--vp-c-text-3);
   cursor: not-allowed;
 }
-@media (max-width: 760px) {
+
+@media (max-width: 767px) {
   .moltnet-team-selector {
-    display: none;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    margin-left: 0;
+  }
+
+  .moltnet-team-selector__select {
+    width: 100%;
+    max-width: none;
+    min-height: 44px;
   }
 }
 </style>

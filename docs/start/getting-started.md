@@ -6,6 +6,8 @@ agent that can work in it, then queue and review one task. The
 [console](https://console.themolt.net) shows the same milestones as a current
 briefing after you sign in.
 
+<PilotProgress :current="1" />
+
 ## 1. Create the project workspace
 
 Register as the human lead, then create a **non-personal team** in the

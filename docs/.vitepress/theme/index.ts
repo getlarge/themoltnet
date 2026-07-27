@@ -2,23 +2,54 @@ import './vars.css';
 import './custom.css';
 
 import type { Theme } from 'vitepress';
-import { useData } from 'vitepress';
+import { useData, useRoute } from 'vitepress';
 import DefaultTheme from 'vitepress/theme';
 import { createMermaidRenderer } from 'vitepress-mermaid-renderer';
-import { defineComponent, h, nextTick, onMounted, watch } from 'vue';
+import {
+  computed,
+  defineAsyncComponent,
+  defineComponent,
+  h,
+  nextTick,
+  onMounted,
+  watch,
+} from 'vue';
 
-import AdoptionDashboard from './components/AdoptionDashboard.vue';
-import InteractiveDiaryExample from './components/InteractiveDiaryExample.vue';
-import InteractiveEntriesExample from './components/InteractiveEntriesExample.vue';
-import InteractivePacksExample from './components/InteractivePacksExample.vue';
-import InteractiveTasksExample from './components/InteractiveTasksExample.vue';
-import InteractiveTeamsExample from './components/InteractiveTeamsExample.vue';
-import LoginButton from './components/LoginButton.vue';
-import RunAsMeExample from './components/RunAsMeExample.vue';
-import RuntimeProfileContextRecipe from './components/RuntimeProfileContextRecipe.vue';
-import TeamSelector from './components/TeamSelector.vue';
-import UserCard from './components/UserCard.vue';
-import UserGreeting from './components/UserGreeting.vue';
+const InteractiveDiaryExample = defineAsyncComponent(
+  () => import('./components/InteractiveDiaryExample.vue'),
+);
+const InteractiveEntriesExample = defineAsyncComponent(
+  () => import('./components/InteractiveEntriesExample.vue'),
+);
+const InteractivePacksExample = defineAsyncComponent(
+  () => import('./components/InteractivePacksExample.vue'),
+);
+const InteractiveTasksExample = defineAsyncComponent(
+  () => import('./components/InteractiveTasksExample.vue'),
+);
+const InteractiveTeamsExample = defineAsyncComponent(
+  () => import('./components/InteractiveTeamsExample.vue'),
+);
+const LoginButton = defineAsyncComponent(
+  () => import('./components/LoginButton.vue'),
+);
+const PilotProgress = defineAsyncComponent(
+  () => import('./components/PilotProgress.vue'),
+);
+const RuntimeProfileContextRecipe = defineAsyncComponent(
+  () => import('./components/RuntimeProfileContextRecipe.vue'),
+);
+const TeamSelector = defineAsyncComponent(
+  () => import('./components/TeamSelector.vue'),
+);
+
+const sessionRoutes = new Set([
+  '/start/install-and-initialize',
+  '/use/context-packs',
+  '/use/entries',
+  '/use/tasks-and-runtime',
+  '/use/teams',
+]);
 
 const mermaidConfig = (isDark: boolean) =>
   ({
@@ -36,6 +67,10 @@ export default {
     name: 'MoltNetDocsLayout',
     setup() {
       const { isDark } = useData();
+      const route = useRoute();
+      const showSessionControls = computed(() =>
+        sessionRoutes.has(route.path.replace(/\/$/, '') || '/'),
+      );
 
       // `createMermaidRenderer` returns a singleton — the first call sets up
       // the DOM observer and route listeners; subsequent calls reconfigure it.
@@ -43,32 +78,69 @@ export default {
       const initMermaid = () =>
         createMermaidRenderer(mermaidConfig(isDark.value));
 
-      onMounted(() => nextTick(initMermaid));
+      const syncPageSemantics = () => {
+        const home = document.querySelector('.VPHome');
+        if (home) home.setAttribute('role', 'main');
+
+        const navigationRoots = document.querySelectorAll('.VPNav, .VPSidebar');
+        navigationRoots.forEach((root) => {
+          root
+            .querySelectorAll('a[aria-current="page"]')
+            .forEach((link) => link.removeAttribute('aria-current'));
+          root
+            .querySelectorAll(
+              'a.VPLink.active, .VPSidebarItem.is-active > .item > a.VPLink',
+            )
+            .forEach((link) => link.setAttribute('aria-current', 'page'));
+        });
+      };
+
+      const sessionControls = (location: 'desktop' | 'mobile') =>
+        showSessionControls.value
+          ? h(
+              'div',
+              {
+                class: [
+                  'moltnet-nav-controls',
+                  `moltnet-nav-controls--${location}`,
+                ],
+              },
+              [
+                h(TeamSelector, {
+                  controlId: `moltnet-team-select-${location}`,
+                }),
+                h(LoginButton),
+              ],
+            )
+          : null;
+
+      onMounted(() =>
+        nextTick(() => {
+          initMermaid();
+          syncPageSemantics();
+        }),
+      );
       watch(isDark, () => nextTick(initMermaid));
+      watch(
+        () => route.path,
+        () => nextTick(syncPageSemantics),
+      );
 
       return () =>
         h(DefaultTheme.Layout, null, {
-          'nav-bar-content-after': () =>
-            h('div', { class: 'moltnet-nav-controls' }, [
-              h(TeamSelector),
-              h(LoginButton),
-            ]),
-          'home-hero-actions-after': () => h(UserGreeting),
-          'home-features-after': () => h(AdoptionDashboard),
+          'nav-bar-content-after': () => sessionControls('desktop'),
+          'nav-screen-content-after': () => sessionControls('mobile'),
         });
     },
   }),
   enhanceApp({ app }) {
-    app.component('AdoptionDashboard', AdoptionDashboard);
     app.component('InteractiveDiaryExample', InteractiveDiaryExample);
     app.component('InteractiveEntriesExample', InteractiveEntriesExample);
     app.component('InteractivePacksExample', InteractivePacksExample);
     app.component('InteractiveTasksExample', InteractiveTasksExample);
     app.component('InteractiveTeamsExample', InteractiveTeamsExample);
-    app.component('UserCard', UserCard);
-    app.component('UserGreeting', UserGreeting);
+    app.component('PilotProgress', PilotProgress);
     app.component('LoginButton', LoginButton);
-    app.component('RunAsMeExample', RunAsMeExample);
     app.component('RuntimeProfileContextRecipe', RuntimeProfileContextRecipe);
     app.component('TeamSelector', TeamSelector);
   },

@@ -4,6 +4,8 @@ Start by choosing which identity will perform the work. MoltNet supports both
 human users and agent identities, but most CLI examples in these docs run as an
 agent.
 
+<PilotProgress :current="2" />
+
 ## Agent vs human identity flows
 
 MoltNet deliberately uses different identities for unattended agents and

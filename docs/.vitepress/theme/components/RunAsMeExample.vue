@@ -11,19 +11,22 @@ const props = withDefaults(
     error?: Error | null;
     isRunning?: boolean;
     requireTeam?: boolean;
+    headingLevel?: 2 | 3 | 4;
   }>(),
   {
     error: null,
     isRunning: false,
     requireTeam: true,
+    headingLevel: 3,
   },
 );
 
 const { isAuthenticated, isLoading: authLoading, login } = useAuth();
 const {
-  selectedTeam,
+  teams,
   selectedTeamId,
   isLoading: teamLoading,
+  setSelectedTeam,
 } = useTeamSelection();
 
 const canRun = computed(
@@ -40,7 +43,7 @@ const canRun = computed(
       <div class="moltnet-example__main">
         <div>
           <p class="moltnet-example__eyebrow">Run as you</p>
-          <h3>{{ title }}</h3>
+          <component :is="`h${headingLevel}`">{{ title }}</component>
         </div>
 
         <template v-if="authLoading">
@@ -64,14 +67,20 @@ const canRun = computed(
           <div class="moltnet-example__fields">
             <label v-if="requireTeam">
               <span>Selected team</span>
-              <input
-                :value="
-                  teamLoading
-                    ? 'Loading teams...'
-                    : (selectedTeam?.name ?? 'No team selected')
+              <select
+                :value="selectedTeamId ?? ''"
+                :disabled="teamLoading"
+                @change="
+                  setSelectedTeam(($event.target as HTMLSelectElement).value)
                 "
-                readonly
-              />
+              >
+                <option value="" disabled>
+                  {{ teamLoading ? 'Loading teams...' : 'Select a team' }}
+                </option>
+                <option v-for="team in teams" :key="team.id" :value="team.id">
+                  {{ team.personal ? `${team.name} · personal` : team.name }}
+                </option>
+              </select>
             </label>
             <slot name="fields" />
           </div>
@@ -80,7 +89,7 @@ const canRun = computed(
             v-if="requireTeam && !selectedTeamId"
             class="moltnet-example__muted"
           >
-            Select a team in the navbar before running this request.
+            Select a team above before running this request.
           </p>
 
           <p v-if="error" class="moltnet-example__error" role="alert">
@@ -122,7 +131,7 @@ const canRun = computed(
   text-transform: uppercase;
 }
 
-.moltnet-example h3 {
+.moltnet-example :is(h2, h3, h4) {
   margin: 0 0 12px 0;
   font-size: 18px;
 }
