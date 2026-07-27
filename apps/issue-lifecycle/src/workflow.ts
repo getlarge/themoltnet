@@ -1,3 +1,5 @@
+import { inlineContext, parallelTasks } from '@moltnet/orchestration';
+
 import { isReviewPassed } from './artifact.js';
 import {
   acceptedStatusLine,
@@ -40,15 +42,6 @@ import {
   SupervisorRecommendationError,
   waitForLifecycleTask,
 } from './workflow-supervisor.js';
-
-const inlineContext: WorkflowContext = {
-  step(_name, fn) {
-    return fn();
-  },
-  sleepFor() {
-    return Promise.resolve();
-  },
-};
 
 export async function runGithubIssueLifecycle(
   rawInput: IssueLifecycleInput,
@@ -635,32 +628,36 @@ export async function runGithubIssueLifecycle(
     await updateStatus();
 
     const reviewKinds = ['complexity', 'functional', 'security'] as const;
-    const reviewTasks = await Promise.all(
-      reviewKinds.map((kind) =>
-        ctx.step(`task.pr-review.${kind}.${attempt}.create`, async () => {
-          const body = await buildPrReviewTask({
-            input,
-            issue,
-            implementationTaskId: impl.task.id,
-            implementationAttempt: impl.attempt,
-            prNumber: linkedPrNumber,
-            kind,
-          });
-          const task = await deps.tasks.createTask(body);
-          logCreatedTask(deps.logger, `pr-review.${kind}.${attempt}`, task);
-          return { kind, task };
-        }),
-      ),
-    );
-    setStatusLine(statusLines, {
-      key: 'pr-review',
-      label: 'Agent PR reviews',
-      status: 'running',
-      summary: 'Complexity, functional, and security reviews created',
-    });
-    await updateStatus();
-    reviewResults = await Promise.all(
-      reviewTasks.map(async ({ kind, task }) => {
+    // Fan out the independent agent PR reviews via the shared orchestration
+    // primitive: create all review tasks (durably, one checkpoint each), then
+    // await them. `onCreated` fires once every review task id exists.
+    const reviewFanOut = await parallelTasks({
+      ctx,
+      items: reviewKinds,
+      createStepName: (kind) => `task.pr-review.${kind}.${attempt}.create`,
+      create: async (kind) => {
+        const body = await buildPrReviewTask({
+          input,
+          issue,
+          implementationTaskId: impl.task.id,
+          implementationAttempt: impl.attempt,
+          prNumber: linkedPrNumber,
+          kind,
+        });
+        const task = await deps.tasks.createTask(body);
+        logCreatedTask(deps.logger, `pr-review.${kind}.${attempt}`, task);
+        return { kind, task };
+      },
+      onCreated: async () => {
+        setStatusLine(statusLines, {
+          key: 'pr-review',
+          label: 'Agent PR reviews',
+          status: 'running',
+          summary: 'Complexity, functional, and security reviews created',
+        });
+        await updateStatus();
+      },
+      awaitResult: async ({ kind, task }) => {
         const result = await waitForTrackedLifecycleTask({
           taskId: task.id,
           step: `pr-review.${kind}.${attempt}`,
@@ -680,8 +677,9 @@ export async function runGithubIssueLifecycle(
           'issue_lifecycle.pr_review.accepted',
         );
         return result;
-      }),
-    );
+      },
+    });
+    reviewResults = reviewFanOut.results;
     setStatusLine(statusLines, {
       key: 'pr-review',
       label: 'Agent PR reviews',

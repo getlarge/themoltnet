@@ -91,8 +91,16 @@ export type TaskMessageKind = Static<typeof TaskMessageKind>;
 const Uuid = Type.String({ format: 'uuid' });
 const Cid = Type.String({ minLength: 1 });
 const IsoTimestamp = Type.String({ format: 'date-time' });
-const MAX_CLAIM_CONDITION_BRANCHES = 8;
-const MAX_CLAIM_CONDITION_STATUSES = 8;
+
+/**
+ * Canonical claim-condition bounds. Single source of truth consumed by the wire
+ * schema here, the server-side depth validator (`libs/task-service`), and
+ * downstream builders (`@moltnet/orchestration` `joinCondition`) so limits can
+ * never drift into conditions the server rejects.
+ */
+export const MAX_CLAIM_CONDITION_BRANCHES = 8;
+export const MAX_CLAIM_CONDITION_STATUSES = 8;
+export const MAX_CLAIM_CONDITION_DEPTH = 4;
 
 /**
  * Daemon-asserted runtime state stamped onto a `TaskAttemptSummary` at

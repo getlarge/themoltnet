@@ -1,11 +1,16 @@
-import type { Agent, CreateTaskBody } from '@themoltnet/sdk';
+import type {
+  AcceptedTaskResult as OrchAcceptedTaskResult,
+  TaskClient,
+} from '@moltnet/orchestration';
 
 import type { LifecycleConfig } from './lifecycle-config.js';
 
-export type SdkTask = Awaited<ReturnType<Agent['tasks']['get']>>;
-export type SdkTaskAttempt = Awaited<
-  ReturnType<Agent['tasks']['listAttempts']>
->[number];
+export type {
+  SdkTask,
+  SdkTaskAttempt,
+  TaskClient,
+  WorkflowContext,
+} from '@moltnet/orchestration';
 
 export type LifecyclePhase =
   | 'triaging'
@@ -106,38 +111,6 @@ export interface GithubClient {
   getPullRequest(repo: string, prNumber: number): Promise<PullRequestStatus>;
 }
 
-export interface TaskClient {
-  /**
-   * Create a task. `teamId` is carried alongside the body here and split into
-   * the SDK's team-context option by the client implementation; the rest is
-   * the task create body.
-   */
-  createTask(body: CreateTaskBody & { teamId: string }): Promise<SdkTask>;
-  getTask(id: string): Promise<SdkTask>;
-  listAttempts(id: string): Promise<SdkTaskAttempt[]>;
-  listMessages?(
-    id: string,
-    attemptN: number,
-  ): Promise<
-    Array<{
-      seq: number;
-      kind: string;
-      payload: unknown;
-      timestamp?: string;
-    }>
-  >;
-}
-
-export interface WorkflowContext {
-  step<T>(name: string, fn: () => Promise<T>): Promise<T>;
-  sleepFor(name: string, seconds: number): Promise<void>;
-  awaitEvent?(
-    eventName: string,
-    options?: { stepName?: string; timeout?: number },
-  ): Promise<unknown>;
-  emitEvent?(eventName: string, payload?: unknown): Promise<void>;
-}
-
 export interface IssueLifecycleDeps {
   tasks: TaskClient;
   github: GithubClient;
@@ -171,8 +144,5 @@ export interface LifecycleStateArtifact {
   evidence?: Array<Record<string, unknown>>;
 }
 
-export interface AcceptedTaskResult {
-  task: SdkTask;
-  attempt: SdkTaskAttempt;
-  state: LifecycleStateArtifact;
-}
+/** Accepted-task result specialized to the lifecycle state artifact. */
+export type AcceptedTaskResult = OrchAcceptedTaskResult<LifecycleStateArtifact>;
