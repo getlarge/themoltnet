@@ -90,8 +90,8 @@ console.
 
 ### Absurd Database Setup
 
-`absurd-sdk` does not install its own Postgres schema. The database passed to
-`--database-url` must already be initialized with `absurdctl`; otherwise startup
+`absurd-sdk` does not install its own Postgres schema. The database at
+`ISSUE_LIFECYCLE_DATABASE_URL` must already be initialized with `absurdctl`; otherwise startup
 fails when the app calls `app.createQueue(...)` and Postgres cannot find
 Absurd's `absurd.create_queue(...)` function.
 
@@ -282,20 +282,20 @@ Defaults:
 Development form:
 
 ```bash
-pnpm --filter @themoltnet/issue-lifecycle cli \
+ISSUE_LIFECYCLE_DATABASE_URL="postgres://…" \
+  pnpm --filter @themoltnet/issue-lifecycle cli \
   --repo getlarge/themoltnet \
-  --issue 1327 \
-  --database-url "$ISSUE_LIFECYCLE_DATABASE_URL"
+  --issue 1327
 ```
 
 Built form:
 
 ```bash
 pnpm exec nx run @themoltnet/issue-lifecycle:build
-node apps/issue-lifecycle/dist/main.js \
+ISSUE_LIFECYCLE_DATABASE_URL="postgres://…" \
+  node apps/issue-lifecycle/dist/main.js \
   --repo getlarge/themoltnet \
-  --issue 1327 \
-  --database-url "$ISSUE_LIFECYCLE_DATABASE_URL"
+  --issue 1327
 ```
 
 Useful options:
@@ -362,10 +362,10 @@ server defaults to `selfDeclared`).
 See [`profiles.example.json`](./profiles.example.json) for a full template:
 
 ```bash
-node apps/issue-lifecycle/dist/main.js \
+ISSUE_LIFECYCLE_DATABASE_URL="postgres://…" \
+  node apps/issue-lifecycle/dist/main.js \
   --repo getlarge/themoltnet \
   --issue 1327 \
-  --database-url "$ISSUE_LIFECYCLE_DATABASE_URL" \
   --profiles-config ./my-profiles.json
 ```
 

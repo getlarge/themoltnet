@@ -16,12 +16,16 @@ const UUID_RE =
 
 const ISSUE_LIFECYCLE_HELP = `moltnet-issue-lifecycle — drive a GitHub issue through the MoltNet task lifecycle.
 
-Usage: moltnet-issue-lifecycle --repo <owner/repo> --issue <n> [flags]
+Usage: ISSUE_LIFECYCLE_DATABASE_URL=<url> moltnet-issue-lifecycle --repo <owner/repo> --issue <n> [flags]
 
 Required:
   --repo <owner/repo>        GitHub repository
   --issue <n>                issue number (positive integer)
-  --database-url <url>       Absurd queue database (or ISSUE_LIFECYCLE_DATABASE_URL)
+
+Environment:
+  ISSUE_LIFECYCLE_DATABASE_URL  Absurd queue database URL — read from the
+                                environment, not argv, so the credential is not
+                                exposed via shell history or process listings
 
 Common flags:
   --agent <name>             activated MoltNet agent dir under .moltnet/ (default: legreffier)
@@ -128,7 +132,6 @@ export function parseCliConfig(argv = process.argv.slice(2)): CliConfig {
       'diary-id': { type: 'string' },
       'correlation-id': { type: 'string' },
       'console-url': { type: 'string' },
-      'database-url': { type: 'string' },
       'queue-name': { type: 'string', default: 'issue-lifecycle' },
       'approval-label': { type: 'string' },
       'ready-for-review-label': { type: 'string' },
@@ -178,8 +181,9 @@ export function parseCliConfig(argv = process.argv.slice(2)): CliConfig {
     throw new Error('--max-pr-pending-polls must be a positive integer');
   }
 
-  const databaseUrl =
-    values['database-url'] ?? process.env.ISSUE_LIFECYCLE_DATABASE_URL;
+  // Read the credential-bearing Absurd DB URL from the environment only, never
+  // from argv, so it is not exposed via shell history or process listings.
+  const databaseUrl = process.env.ISSUE_LIFECYCLE_DATABASE_URL;
   const consoleUrl =
     values['console-url'] ??
     process.env.ISSUE_LIFECYCLE_CONSOLE_URL ??
@@ -205,10 +209,7 @@ export function parseCliConfig(argv = process.argv.slice(2)): CliConfig {
     repoRoot,
     agentName,
     agentDir,
-    databaseUrl: requireString(
-      databaseUrl,
-      '--database-url or ISSUE_LIFECYCLE_DATABASE_URL',
-    ),
+    databaseUrl: requireString(databaseUrl, 'ISSUE_LIFECYCLE_DATABASE_URL'),
     queueName: values['queue-name'],
     ...github,
     githubEnv: { ...process.env },
