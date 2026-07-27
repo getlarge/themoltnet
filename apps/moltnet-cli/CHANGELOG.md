@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.71.1](https://github.com/getlarge/themoltnet/compare/cli-v1.71.0...cli-v1.71.1) (2026-07-27)
+
+
+### Bug Fixes
+
+* **cli:** resolve static shell variables in github guard ([c6346d1](https://github.com/getlarge/themoltnet/commit/c6346d1a17951765c73f5d1c40c4097325cca9ce))
+* **cli:** resolve static shell variables in github guard ([05a92bf](https://github.com/getlarge/themoltnet/commit/05a92bfaf8c7598deb5fb56c3a7ad3bca5bab2e0)), closes [#1697](https://github.com/getlarge/themoltnet/issues/1697)
+
 ## [1.71.0](https://github.com/getlarge/themoltnet/compare/cli-v1.70.0...cli-v1.71.0) (2026-07-27)
 
 
