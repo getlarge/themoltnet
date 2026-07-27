@@ -88,6 +88,10 @@
       "component": "sdk",
       "release-type": "node"
     },
+    "libs/shell-command-analyzer": {
+      "component": "shell-command-analyzer",
+      "release-type": "node"
+    },
     "libs/yubikey-preview-sign": {
       "bump-minor-pre-major": true,
       "component": "yubikey-preview-sign",

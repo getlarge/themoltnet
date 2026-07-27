@@ -30,7 +30,7 @@ on:
       republish:
         description: >
           Comma-separated packages to re-publish from existing draft releases.
-          Valid values: sdk, ctap, yubikey-preview-sign, github-agent, legreffier, cli, api-client, dspy-adapters, skill, design-system, pi-extension, agent-runtime, node-red-theme, agent-daemon
+          Valid values: sdk, ctap, yubikey-preview-sign, github-agent, legreffier, cli, api-client, dspy-adapters, skill, design-system, pi-extension, shell-command-analyzer, agent-runtime, node-red-theme, agent-daemon
         required: false
         type: string
 
@@ -87,6 +87,8 @@ jobs:
       agent-runtime-tag-name: ${{ steps.release.outputs['libs/agent-runtime--tag_name'] }}
       pi-extension-release-created: ${{ steps.release.outputs['libs/pi-extension--release_created'] }}
       pi-extension-tag-name: ${{ steps.release.outputs['libs/pi-extension--tag_name'] }}
+      shell-command-analyzer-release-created: ${{ steps.release.outputs['libs/shell-command-analyzer--release_created'] }}
+      shell-command-analyzer-tag-name: ${{ steps.release.outputs['libs/shell-command-analyzer--tag_name'] }}
       node-red-release-created: ${{ steps.release.outputs['libs/node-red-contrib-core--release_created'] }}
       node-red-tag-name: ${{ steps.release.outputs['libs/node-red-contrib-core--tag_name'] }}
       node-red-theme-release-created: ${{ steps.release.outputs['libs/node-red-theme--release_created'] }}
@@ -138,6 +140,8 @@ jobs:
       agent-runtime-tag: ${{ steps.resolve.outputs.agent-runtime-tag }}
       pi-extension: ${{ steps.resolve.outputs.pi-extension }}
       pi-extension-tag: ${{ steps.resolve.outputs.pi-extension-tag }}
+      shell-command-analyzer: ${{ steps.resolve.outputs.shell-command-analyzer }}
+      shell-command-analyzer-tag: ${{ steps.resolve.outputs.shell-command-analyzer-tag }}
       node-red: ${{ steps.resolve.outputs.node-red }}
       node-red-tag: ${{ steps.resolve.outputs.node-red-tag }}
       node-red-theme: ${{ steps.resolve.outputs.node-red-theme }}
@@ -178,6 +182,8 @@ jobs:
           RP_AGENT_RUNTIME_TAG: ${{ needs.release-please.outputs.agent-runtime-tag-name }}
           RP_PI_EXTENSION_CREATED: ${{ needs.release-please.outputs.pi-extension-release-created }}
           RP_PI_EXTENSION_TAG: ${{ needs.release-please.outputs.pi-extension-tag-name }}
+          RP_SHELL_ANALYZER_CREATED: ${{ needs.release-please.outputs.shell-command-analyzer-release-created }}
+          RP_SHELL_ANALYZER_TAG: ${{ needs.release-please.outputs.shell-command-analyzer-tag-name }}
           RP_NODE_RED_CREATED: ${{ needs.release-please.outputs.node-red-release-created }}
           RP_NODE_RED_TAG: ${{ needs.release-please.outputs.node-red-tag-name }}
           RP_NODE_RED_THEME_CREATED: ${{ needs.release-please.outputs.node-red-theme-release-created }}
@@ -242,6 +248,7 @@ jobs:
           resolve "design-system" "$RP_DESIGN_SYSTEM_CREATED" "$RP_DESIGN_SYSTEM_TAG" "design-system"
           resolve "agent-runtime" "$RP_AGENT_RUNTIME_CREATED" "$RP_AGENT_RUNTIME_TAG" "agent-runtime"
           resolve "pi-extension" "$RP_PI_EXTENSION_CREATED" "$RP_PI_EXTENSION_TAG" "pi-extension"
+          resolve "shell-command-analyzer" "$RP_SHELL_ANALYZER_CREATED" "$RP_SHELL_ANALYZER_TAG" "shell-command-analyzer"
           resolve "node-red"     "$RP_NODE_RED_CREATED"  "$RP_NODE_RED_TAG"  "node-red-contrib-core"
           resolve "node-red-theme" "$RP_NODE_RED_THEME_CREATED" "$RP_NODE_RED_THEME_TAG" "node-red-theme"
           resolve "agent-daemon" "$RP_AGENT_DAEMON_CREATED" "$RP_AGENT_DAEMON_TAG" "agent-daemon"
@@ -1025,9 +1032,50 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  publish-shell-command-analyzer:
+    name: Publish Shell Command Analyzer to npm
+    needs: resolve-publish
+    if: ${{ always() && needs.resolve-publish.outputs.shell-command-analyzer == 'true' && !failure() && !cancelled() }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm exec nx run @themoltnet/shell-command-analyzer:build
+
+      - run: pnpm exec nx run @themoltnet/shell-command-analyzer:test
+
+      - run: pnpm exec nx run @themoltnet/shell-command-analyzer:check:pack
+
+      - name: Publish @themoltnet/shell-command-analyzer
+        uses: nick-fields/retry@v4.0.0
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: pnpm --filter @themoltnet/shell-command-analyzer publish --no-git-checks --access public --provenance
+
+      - name: Publish Shell Command Analyzer release
+        run: gh release edit "${{ needs.resolve-publish.outputs.shell-command-analyzer-tag }}" --draft=false
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   publish-pi-extension:
     name: Publish Pi Extension to npm
-    needs: [resolve-publish, publish-agent-runtime]
+    needs:
+      [resolve-publish, publish-agent-runtime, publish-shell-command-analyzer]
     if: ${{ always() && needs.resolve-publish.outputs.pi-extension == 'true' && !failure() && !cancelled() }}
     runs-on: ubuntu-latest
     permissions:
