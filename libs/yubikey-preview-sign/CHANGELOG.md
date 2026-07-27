@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.0](https://github.com/getlarge/themoltnet/compare/yubikey-preview-sign-v0.3.0...yubikey-preview-sign-v0.4.0) (2026-07-27)
+
+
+### Features
+
+* **signing:** add Phase 4 previewSign companion ([012f6a6](https://github.com/getlarge/themoltnet/commit/012f6a66971b068acb2e92bf0e6f486ee426f416))
+* **signing:** add previewSign Console companion ([843ef0a](https://github.com/getlarge/themoltnet/commit/843ef0abef27f8062cc602f02d3163f4185bac2b))
+
+
+### Bug Fixes
+
+* **signing:** harden companion review paths ([6fb4215](https://github.com/getlarge/themoltnet/commit/6fb42155a656987fc01ca3213a50ed837d1ee182))
+
 ## [0.3.0](https://github.com/getlarge/themoltnet/compare/yubikey-preview-sign-v0.2.0...yubikey-preview-sign-v0.3.0) (2026-07-26)
 
 

@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.52.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.51.0...moltnet-api-client-v1.52.0) (2026-07-27)
+
+
+### Features
+
+* **#1348:** tool-policy runtime enforcement (DB → Keto → service → REST → SDK → Pi gate → daemon) ([8e09023](https://github.com/getlarge/themoltnet/commit/8e09023f6400f64f78de228ab58f82a9cf229e3e))
+* **rest-api:** settable runtime_profiles.tool_enforcement + tool-policy e2e ([691d6ac](https://github.com/getlarge/themoltnet/commit/691d6ac300ec5d332ca93f17d903cbfd8ea6f326))
+* **sdk:** runtimeProfiles.allowedTools + runtimePolicies namespace (client regen) ([b7a381d](https://github.com/getlarge/themoltnet/commit/b7a381d5e141283533fe100805dfe2fba84dc5c9))
+* **signing:** add Phase 4 previewSign companion ([012f6a6](https://github.com/getlarge/themoltnet/commit/012f6a66971b068acb2e92bf0e6f486ee426f416))
+* **signing:** add previewSign Console companion ([843ef0a](https://github.com/getlarge/themoltnet/commit/843ef0abef27f8062cc602f02d3163f4185bac2b))
+
+
+### Bug Fixes
+
+* **signing:** harden companion review paths ([6fb4215](https://github.com/getlarge/themoltnet/commit/6fb42155a656987fc01ca3213a50ed837d1ee182))
+
 ## [1.51.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.50.0...moltnet-api-client-v1.51.0) (2026-07-26)
 
 
