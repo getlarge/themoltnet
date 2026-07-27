@@ -1,4 +1,17 @@
 import {
+  PreviewSignArkgSeedPublicKeySchema,
+  PreviewSignBase64UrlSchema,
+  PreviewSignChallengeOperationSchema,
+  PreviewSignChallengeSchema,
+  PreviewSignChallengeValueSchema,
+  PreviewSignEcdhEsHkdf256PublicKeySchema,
+  PreviewSignEs256PublicKeySchema,
+  PreviewSignEsp256PublicKeySchema,
+  PreviewSignP256DerSignatureBase64UrlSchema,
+  PreviewSignPublicMaterialSchema,
+  PreviewSignReceiptSchema,
+  PreviewSignReceiptValueSchema,
+  PreviewSignSha256Base64UrlSchema,
   PrincipalIdentitySchema,
   SignerConstraintSchema,
   VerificationMethodSchema,
@@ -10,26 +23,31 @@ import { DateTime, NullableDateTime } from './atoms.js';
 const PREVIEW_SIGN_METHOD = 'human-hardware-previewsign';
 const PREVIEW_SIGN_CREDENTIAL_TYPE = 'preview-sign-arkg';
 const PREVIEW_SIGN_ALGORITHM = 'arkg-p256-esp256';
-const Base64Url = Type.String({
-  minLength: 1,
-  maxLength: 5462,
-  pattern: '^[A-Za-z0-9_-]+$',
-});
-const Sha256Base64Url = Type.String({
-  minLength: 43,
-  maxLength: 43,
-  pattern: '^[A-Za-z0-9_-]+$',
-});
-const P256CoordinateBase64Url = Type.String({
-  minLength: 43,
-  maxLength: 43,
-  pattern: '^[A-Za-z0-9_-]+$',
-});
-const P256DerSignatureBase64Url = Type.String({
-  minLength: 11,
-  maxLength: 96,
-  pattern: '^[A-Za-z0-9_-]+$',
-});
+const Base64Url = Type.Unsafe<Static<typeof PreviewSignBase64UrlSchema>>(
+  Type.Ref('PreviewSignBase64Url'),
+);
+const Sha256Base64Url = Type.Unsafe<
+  Static<typeof PreviewSignSha256Base64UrlSchema>
+>(Type.Ref('PreviewSignSha256Base64Url'));
+const P256DerSignatureBase64Url = Type.Unsafe<
+  Static<typeof PreviewSignP256DerSignatureBase64UrlSchema>
+>(Type.Ref('PreviewSignP256DerSignatureBase64Url'));
+
+export {
+  PreviewSignArkgSeedPublicKeySchema,
+  PreviewSignBase64UrlSchema,
+  PreviewSignChallengeOperationSchema,
+  PreviewSignChallengeSchema,
+  PreviewSignChallengeValueSchema,
+  PreviewSignEcdhEsHkdf256PublicKeySchema,
+  PreviewSignEs256PublicKeySchema,
+  PreviewSignEsp256PublicKeySchema,
+  PreviewSignP256DerSignatureBase64UrlSchema,
+  PreviewSignPublicMaterialSchema,
+  PreviewSignReceiptSchema,
+  PreviewSignReceiptValueSchema,
+  PreviewSignSha256Base64UrlSchema,
+};
 
 // ── Crypto ──────────────────────────────────────────────────
 
@@ -51,96 +69,6 @@ export const CryptoIdentitySchema = Type.Object(
 
 // ── Signing Requests ─────────────────────────────────────────
 
-export const PreviewSignEs256PublicKeySchema = Type.Object(
-  {
-    kty: Type.Literal(2),
-    algorithm: Type.Literal(-7),
-    curve: Type.Literal(1),
-    x: P256CoordinateBase64Url,
-    y: P256CoordinateBase64Url,
-  },
-  { $id: 'PreviewSignEs256PublicKey', additionalProperties: false },
-);
-
-export const PreviewSignEcdhEsHkdf256PublicKeySchema = Type.Object(
-  {
-    kty: Type.Literal(2),
-    algorithm: Type.Literal(-25),
-    curve: Type.Literal(1),
-    x: P256CoordinateBase64Url,
-    y: P256CoordinateBase64Url,
-  },
-  {
-    $id: 'PreviewSignEcdhEsHkdf256PublicKey',
-    additionalProperties: false,
-  },
-);
-
-export const PreviewSignEsp256PublicKeySchema = Type.Object(
-  {
-    kty: Type.Literal(2),
-    algorithm: Type.Literal(-9),
-    curve: Type.Literal(1),
-    x: P256CoordinateBase64Url,
-    y: P256CoordinateBase64Url,
-  },
-  { $id: 'PreviewSignEsp256PublicKey', additionalProperties: false },
-);
-
-export const PreviewSignArkgSeedPublicKeySchema = Type.Object(
-  {
-    kty: Type.Literal(-65537),
-    algorithm: Type.Literal(-65700),
-    derivedAlgorithm: Type.Literal(-9),
-    blindingKey: Type.Unsafe<Static<typeof PreviewSignEs256PublicKeySchema>>(
-      Type.Ref(PreviewSignEs256PublicKeySchema.$id),
-    ),
-    kemKey: Type.Unsafe<Static<typeof PreviewSignEcdhEsHkdf256PublicKeySchema>>(
-      Type.Ref(PreviewSignEcdhEsHkdf256PublicKeySchema.$id),
-    ),
-  },
-  { $id: 'PreviewSignArkgSeedPublicKey', additionalProperties: false },
-);
-
-export const PreviewSignPublicMaterialSchema = Type.Object(
-  {
-    version: Type.Literal(1),
-    outerCredentialId: Base64Url,
-    outerPublicKey: Type.Unsafe<Static<typeof PreviewSignEs256PublicKeySchema>>(
-      Type.Ref(PreviewSignEs256PublicKeySchema.$id),
-    ),
-    previewKeyHandle: Base64Url,
-    seedPublicKey: Type.Unsafe<
-      Static<typeof PreviewSignArkgSeedPublicKeySchema>
-    >(Type.Ref(PreviewSignArkgSeedPublicKeySchema.$id)),
-  },
-  { $id: 'PreviewSignPublicMaterial', additionalProperties: false },
-);
-
-export const PreviewSignChallengeSchema = Type.Object(
-  {
-    verificationMethod: Type.Literal(PREVIEW_SIGN_METHOD),
-    version: Type.Literal(1),
-    envelope: Base64Url,
-    digest: Sha256Base64Url,
-    additionalArguments: Base64Url,
-    outerCredentialId: Base64Url,
-    outerPublicKey: Type.Unsafe<Static<typeof PreviewSignEs256PublicKeySchema>>(
-      Type.Ref(PreviewSignEs256PublicKeySchema.$id),
-    ),
-    previewKeyHandle: Base64Url,
-  },
-  { $id: 'PreviewSignChallenge', additionalProperties: false },
-);
-
-export const PreviewSignReceiptSchema = Type.Object(
-  {
-    version: Type.Literal(1),
-    signature: P256DerSignatureBase64Url,
-  },
-  { $id: 'PreviewSignReceipt', additionalProperties: false },
-);
-
 export const PreviewSignEvidenceSchema = Type.Object(
   {
     version: Type.Literal(1),
@@ -161,31 +89,38 @@ export const PreviewSignEvidenceSchema = Type.Object(
     additionalArgumentsHash: Sha256Base64Url,
     derivedPublicKey: Type.Unsafe<
       Static<typeof PreviewSignEsp256PublicKeySchema>
-    >(Type.Ref(PreviewSignEsp256PublicKeySchema.$id)),
+    >(Type.Ref('PreviewSignEsp256PublicKey')),
     signature: P256DerSignatureBase64Url,
     proofHash: Sha256Base64Url,
   },
   { $id: 'PreviewSignEvidence', additionalProperties: false },
 );
 
-export const PreviewSignChallengeValueSchema = Type.Object(
+export const ValidatePreviewSignChallengeSchema = Type.Object(
   {
-    verificationMethod: Type.Literal(PREVIEW_SIGN_METHOD),
-    value: Type.Unsafe<Static<typeof PreviewSignChallengeSchema>>(
-      Type.Ref(PreviewSignChallengeSchema.$id),
+    version: Type.Literal(1),
+    operation: Type.Unsafe<Static<typeof PreviewSignChallengeOperationSchema>>(
+      Type.Ref('PreviewSignChallengeOperation'),
+    ),
+    resourceId: Type.String({ format: 'uuid' }),
+    challenge: Type.Unsafe<Static<typeof PreviewSignChallengeValueSchema>>(
+      Type.Ref('PreviewSignChallengeValue'),
     ),
   },
-  { $id: 'PreviewSignChallengeValue', additionalProperties: false },
+  {
+    $id: 'ValidatePreviewSignChallenge',
+    additionalProperties: false,
+  },
 );
 
-export const PreviewSignReceiptValueSchema = Type.Object(
+export const PreviewSignChallengeValidationSchema = Type.Object(
   {
-    verificationMethod: Type.Literal(PREVIEW_SIGN_METHOD),
-    value: Type.Unsafe<Static<typeof PreviewSignReceiptSchema>>(
-      Type.Ref(PreviewSignReceiptSchema.$id),
-    ),
+    valid: Type.Literal(true),
   },
-  { $id: 'PreviewSignReceiptValue', additionalProperties: false },
+  {
+    $id: 'PreviewSignChallengeValidation',
+    additionalProperties: false,
+  },
 );
 
 export const PreviewSignEvidenceValueSchema = Type.Object(
@@ -232,7 +167,7 @@ export const SigningRequestSchema = Type.Object(
     challenge: Type.Optional(
       Type.Union([
         Type.Unsafe<Static<typeof PreviewSignChallengeValueSchema>>(
-          Type.Ref(PreviewSignChallengeValueSchema.$id),
+          Type.Ref('PreviewSignChallengeValue'),
         ),
         Type.Null(),
       ]),
@@ -296,7 +231,7 @@ export const SigningCredentialSchema = Type.Object(
     credentialType: Type.Literal(PREVIEW_SIGN_CREDENTIAL_TYPE),
     algorithm: Type.Literal(PREVIEW_SIGN_ALGORITHM),
     publicMaterial: Type.Unsafe<Static<typeof PreviewSignPublicMaterialSchema>>(
-      Type.Ref(PreviewSignPublicMaterialSchema.$id),
+      Type.Ref('PreviewSignPublicMaterial'),
     ),
     enrollmentEvidence: Type.Unsafe<Static<typeof PreviewSignEvidenceSchema>>(
       Type.Ref(PreviewSignEvidenceSchema.$id),
@@ -335,7 +270,7 @@ export const SigningCredentialRegistrationSchema = Type.Object(
   {
     id: Type.String({ format: 'uuid' }),
     challenge: Type.Unsafe<Static<typeof PreviewSignChallengeValueSchema>>(
-      Type.Ref(PreviewSignChallengeValueSchema.$id),
+      Type.Ref('PreviewSignChallengeValue'),
     ),
     expiresAt: DateTime,
   },
@@ -348,7 +283,7 @@ export const BeginPreviewSignCredentialRegistrationSchema = Type.Object(
     credentialType: Type.Literal(PREVIEW_SIGN_CREDENTIAL_TYPE),
     algorithm: Type.Literal(PREVIEW_SIGN_ALGORITHM),
     publicMaterial: Type.Unsafe<Static<typeof PreviewSignPublicMaterialSchema>>(
-      Type.Ref(PreviewSignPublicMaterialSchema.$id),
+      Type.Ref('PreviewSignPublicMaterial'),
     ),
     label: Type.String({ minLength: 1, maxLength: 255 }),
   },
@@ -361,10 +296,10 @@ export const BeginPreviewSignCredentialRegistrationSchema = Type.Object(
 export const CompletePreviewSignCredentialRegistrationSchema = Type.Object(
   {
     publicMaterial: Type.Unsafe<Static<typeof PreviewSignPublicMaterialSchema>>(
-      Type.Ref(PreviewSignPublicMaterialSchema.$id),
+      Type.Ref('PreviewSignPublicMaterial'),
     ),
     receipt: Type.Unsafe<Static<typeof PreviewSignReceiptValueSchema>>(
-      Type.Ref(PreviewSignReceiptValueSchema.$id),
+      Type.Ref('PreviewSignReceiptValue'),
     ),
   },
   {
@@ -376,7 +311,7 @@ export const CompletePreviewSignCredentialRegistrationSchema = Type.Object(
 export const CompletePreviewSignRequestSchema = Type.Object(
   {
     receipt: Type.Unsafe<Static<typeof PreviewSignReceiptValueSchema>>(
-      Type.Ref(PreviewSignReceiptValueSchema.$id),
+      Type.Ref('PreviewSignReceiptValue'),
     ),
   },
   { $id: 'CompletePreviewSignRequest', additionalProperties: false },

@@ -1,0 +1,59 @@
+{
+  "name": "@moltnet/signer",
+  "version": "0.1.0",
+  "license": "AGPL-3.0-only",
+  "description": "Private loopback companion for MoltNet previewSign ceremonies.",
+  "private": true,
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/getlarge/themoltnet.git",
+    "directory": "apps/moltnet-signer"
+  },
+  "homepage": "https://themolt.net",
+  "main": "./dist/main.js",
+  "bin": {
+    "moltnet-signer": "./dist/main.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "vite build",
+    "start": "node dist/main.js",
+    "test": "vitest run",
+    "check:pack": "tsx ../../tools/src/check-pack.ts --package . && pnpm run smoke:pack",
+    "smoke:pack": "tsx ../../tools/src/smoke-pack.ts --package . --bin moltnet-signer --args --help --expect \"local previewSign companion\""
+  },
+  "nx": {
+    "projectType": "application",
+    "tags": [
+      "type:app",
+      "scope:identity",
+      "platform:node"
+    ]
+  },
+  "dependencies": {
+    "@fastify/cors": "catalog:",
+    "@fastify/helmet": "catalog:",
+    "@fastify/type-provider-typebox": "catalog:",
+    "fastify": "catalog:",
+    "node-hid": "catalog:",
+    "pino": "catalog:",
+    "typebox": "catalog:"
+  },
+  "devDependencies": {
+    "@moltnet/crypto-service": "workspace:*",
+    "@moltnet/models": "workspace:*",
+    "@themoltnet/yubikey-preview-sign": "workspace:*",
+    "@types/node": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  }
+}

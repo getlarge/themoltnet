@@ -13,6 +13,7 @@
     "moltnet": "bin/moltnet.js"
   },
   "scripts": {
+    "check:pack": "tsx ../../tools/src/check-pack.ts --package .",
     "postinstall": "node install.js"
   },
   "files": [
@@ -29,6 +30,9 @@
     "@themoltnet/cli-linux-x64": "workspace:*",
     "@themoltnet/cli-win32-arm64": "workspace:*",
     "@themoltnet/cli-win32-x64": "workspace:*"
+  },
+  "devDependencies": {
+    "tsx": "catalog:"
   },
   "nx": {
     "tags": [

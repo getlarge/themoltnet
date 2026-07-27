@@ -68720,6 +68720,39 @@ func (s *OptUpdateTaskMetadataReq) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes ValidatePreviewSignChallenge as json.
+func (o OptValidatePreviewSignChallenge) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes ValidatePreviewSignChallenge from json.
+func (o *OptValidatePreviewSignChallenge) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptValidatePreviewSignChallenge to nil")
+	}
+	o.Set = true
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptValidatePreviewSignChallenge) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptValidatePreviewSignChallenge) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode encodes VerifyResultSigner as json.
 func (o OptVerifyResultSigner) Encode(e *jx.Encoder) {
 	if !o.Set {
@@ -69925,6 +69958,46 @@ func (s *PreviewSignArkgSeedPublicKeyKty) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes PreviewSignBase64Url as json.
+func (s PreviewSignBase64Url) Encode(e *jx.Encoder) {
+	unwrapped := string(s)
+
+	e.Str(unwrapped)
+}
+
+// Decode decodes PreviewSignBase64Url from json.
+func (s *PreviewSignBase64Url) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode PreviewSignBase64Url to nil")
+	}
+	var unwrapped string
+	if err := func() error {
+		v, err := d.Str()
+		unwrapped = string(v)
+		if err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = PreviewSignBase64Url(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s PreviewSignBase64Url) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *PreviewSignBase64Url) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode implements json.Marshaler.
 func (s *PreviewSignChallenge) Encode(e *jx.Encoder) {
 	e.ObjStart()
@@ -69936,19 +70009,19 @@ func (s *PreviewSignChallenge) Encode(e *jx.Encoder) {
 func (s *PreviewSignChallenge) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("additionalArguments")
-		e.Str(s.AdditionalArguments)
+		s.AdditionalArguments.Encode(e)
 	}
 	{
 		e.FieldStart("digest")
-		e.Str(s.Digest)
+		s.Digest.Encode(e)
 	}
 	{
 		e.FieldStart("envelope")
-		e.Str(s.Envelope)
+		s.Envelope.Encode(e)
 	}
 	{
 		e.FieldStart("outerCredentialId")
-		e.Str(s.OuterCredentialId)
+		s.OuterCredentialId.Encode(e)
 	}
 	{
 		e.FieldStart("outerPublicKey")
@@ -69956,7 +70029,7 @@ func (s *PreviewSignChallenge) encodeFields(e *jx.Encoder) {
 	}
 	{
 		e.FieldStart("previewKeyHandle")
-		e.Str(s.PreviewKeyHandle)
+		s.PreviewKeyHandle.Encode(e)
 	}
 	{
 		e.FieldStart("verificationMethod")
@@ -69991,9 +70064,7 @@ func (s *PreviewSignChallenge) Decode(d *jx.Decoder) error {
 		case "additionalArguments":
 			requiredBitSet[0] |= 1 << 0
 			if err := func() error {
-				v, err := d.Str()
-				s.AdditionalArguments = string(v)
-				if err != nil {
+				if err := s.AdditionalArguments.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -70003,9 +70074,7 @@ func (s *PreviewSignChallenge) Decode(d *jx.Decoder) error {
 		case "digest":
 			requiredBitSet[0] |= 1 << 1
 			if err := func() error {
-				v, err := d.Str()
-				s.Digest = string(v)
-				if err != nil {
+				if err := s.Digest.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -70015,9 +70084,7 @@ func (s *PreviewSignChallenge) Decode(d *jx.Decoder) error {
 		case "envelope":
 			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
-				v, err := d.Str()
-				s.Envelope = string(v)
-				if err != nil {
+				if err := s.Envelope.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -70027,9 +70094,7 @@ func (s *PreviewSignChallenge) Decode(d *jx.Decoder) error {
 		case "outerCredentialId":
 			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
-				v, err := d.Str()
-				s.OuterCredentialId = string(v)
-				if err != nil {
+				if err := s.OuterCredentialId.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -70049,9 +70114,7 @@ func (s *PreviewSignChallenge) Decode(d *jx.Decoder) error {
 		case "previewKeyHandle":
 			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
-				v, err := d.Str()
-				s.PreviewKeyHandle = string(v)
-				if err != nil {
+				if err := s.PreviewKeyHandle.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -70130,6 +70193,172 @@ func (s *PreviewSignChallenge) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *PreviewSignChallenge) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes PreviewSignChallengeOperation as json.
+func (s PreviewSignChallengeOperation) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes PreviewSignChallengeOperation from json.
+func (s *PreviewSignChallengeOperation) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode PreviewSignChallengeOperation to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch PreviewSignChallengeOperation(v) {
+	case PreviewSignChallengeOperationCredentialRegistration:
+		*s = PreviewSignChallengeOperationCredentialRegistration
+	case PreviewSignChallengeOperationSigningRequest:
+		*s = PreviewSignChallengeOperationSigningRequest
+	default:
+		*s = PreviewSignChallengeOperation(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s PreviewSignChallengeOperation) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *PreviewSignChallengeOperation) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *PreviewSignChallengeValidation) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *PreviewSignChallengeValidation) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("valid")
+		s.Valid.Encode(e)
+	}
+}
+
+var jsonFieldsNameOfPreviewSignChallengeValidation = [1]string{
+	0: "valid",
+}
+
+// Decode decodes PreviewSignChallengeValidation from json.
+func (s *PreviewSignChallengeValidation) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode PreviewSignChallengeValidation to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "valid":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Valid.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"valid\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode PreviewSignChallengeValidation")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfPreviewSignChallengeValidation) {
+					name = jsonFieldsNameOfPreviewSignChallengeValidation[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *PreviewSignChallengeValidation) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *PreviewSignChallengeValidation) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes PreviewSignChallengeValidationValid as json.
+func (s PreviewSignChallengeValidationValid) Encode(e *jx.Encoder) {
+	e.Bool(bool(s))
+}
+
+// Decode decodes PreviewSignChallengeValidationValid from json.
+func (s *PreviewSignChallengeValidationValid) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode PreviewSignChallengeValidationValid to nil")
+	}
+	v, err := d.Bool()
+	if err != nil {
+		return err
+	}
+	*s = PreviewSignChallengeValidationValid(v)
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s PreviewSignChallengeValidationValid) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *PreviewSignChallengeValidationValid) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -70374,11 +70603,11 @@ func (s *PreviewSignEcdhEsHkdf256PublicKey) encodeFields(e *jx.Encoder) {
 	}
 	{
 		e.FieldStart("x")
-		e.Str(s.X)
+		s.X.Encode(e)
 	}
 	{
 		e.FieldStart("y")
-		e.Str(s.Y)
+		s.Y.Encode(e)
 	}
 }
 
@@ -70432,9 +70661,7 @@ func (s *PreviewSignEcdhEsHkdf256PublicKey) Decode(d *jx.Decoder) error {
 		case "x":
 			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
-				v, err := d.Str()
-				s.X = string(v)
-				if err != nil {
+				if err := s.X.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -70444,9 +70671,7 @@ func (s *PreviewSignEcdhEsHkdf256PublicKey) Decode(d *jx.Decoder) error {
 		case "y":
 			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
-				v, err := d.Str()
-				s.Y = string(v)
-				if err != nil {
+				if err := s.Y.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -70628,11 +70853,11 @@ func (s *PreviewSignEs256PublicKey) encodeFields(e *jx.Encoder) {
 	}
 	{
 		e.FieldStart("x")
-		e.Str(s.X)
+		s.X.Encode(e)
 	}
 	{
 		e.FieldStart("y")
-		e.Str(s.Y)
+		s.Y.Encode(e)
 	}
 }
 
@@ -70686,9 +70911,7 @@ func (s *PreviewSignEs256PublicKey) Decode(d *jx.Decoder) error {
 		case "x":
 			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
-				v, err := d.Str()
-				s.X = string(v)
-				if err != nil {
+				if err := s.X.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -70698,9 +70921,7 @@ func (s *PreviewSignEs256PublicKey) Decode(d *jx.Decoder) error {
 		case "y":
 			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
-				v, err := d.Str()
-				s.Y = string(v)
-				if err != nil {
+				if err := s.Y.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -70882,11 +71103,11 @@ func (s *PreviewSignEsp256PublicKey) encodeFields(e *jx.Encoder) {
 	}
 	{
 		e.FieldStart("x")
-		e.Str(s.X)
+		s.X.Encode(e)
 	}
 	{
 		e.FieldStart("y")
-		e.Str(s.Y)
+		s.Y.Encode(e)
 	}
 }
 
@@ -70940,9 +71161,7 @@ func (s *PreviewSignEsp256PublicKey) Decode(d *jx.Decoder) error {
 		case "x":
 			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
-				v, err := d.Str()
-				s.X = string(v)
-				if err != nil {
+				if err := s.X.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -70952,9 +71171,7 @@ func (s *PreviewSignEsp256PublicKey) Decode(d *jx.Decoder) error {
 		case "y":
 			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
-				v, err := d.Str()
-				s.Y = string(v)
-				if err != nil {
+				if err := s.Y.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -71124,7 +71341,7 @@ func (s *PreviewSignEvidence) Encode(e *jx.Encoder) {
 func (s *PreviewSignEvidence) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("additionalArgumentsHash")
-		e.Str(s.AdditionalArgumentsHash)
+		s.AdditionalArgumentsHash.Encode(e)
 	}
 	{
 		e.FieldStart("claimantId")
@@ -71140,11 +71357,11 @@ func (s *PreviewSignEvidence) encodeFields(e *jx.Encoder) {
 	}
 	{
 		e.FieldStart("digest")
-		e.Str(s.Digest)
+		s.Digest.Encode(e)
 	}
 	{
 		e.FieldStart("envelope")
-		e.Str(s.Envelope)
+		s.Envelope.Encode(e)
 	}
 	{
 		e.FieldStart("expiresAt")
@@ -71160,7 +71377,7 @@ func (s *PreviewSignEvidence) encodeFields(e *jx.Encoder) {
 	}
 	{
 		e.FieldStart("proofHash")
-		e.Str(s.ProofHash)
+		s.ProofHash.Encode(e)
 	}
 	{
 		e.FieldStart("purpose")
@@ -71172,7 +71389,7 @@ func (s *PreviewSignEvidence) encodeFields(e *jx.Encoder) {
 	}
 	{
 		e.FieldStart("signature")
-		e.Str(s.Signature)
+		s.Signature.Encode(e)
 	}
 	{
 		e.FieldStart("teamId")
@@ -71219,9 +71436,7 @@ func (s *PreviewSignEvidence) Decode(d *jx.Decoder) error {
 		case "additionalArgumentsHash":
 			requiredBitSet[0] |= 1 << 0
 			if err := func() error {
-				v, err := d.Str()
-				s.AdditionalArgumentsHash = string(v)
-				if err != nil {
+				if err := s.AdditionalArgumentsHash.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -71265,9 +71480,7 @@ func (s *PreviewSignEvidence) Decode(d *jx.Decoder) error {
 		case "digest":
 			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
-				v, err := d.Str()
-				s.Digest = string(v)
-				if err != nil {
+				if err := s.Digest.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -71277,9 +71490,7 @@ func (s *PreviewSignEvidence) Decode(d *jx.Decoder) error {
 		case "envelope":
 			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
-				v, err := d.Str()
-				s.Envelope = string(v)
-				if err != nil {
+				if err := s.Envelope.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -71323,9 +71534,7 @@ func (s *PreviewSignEvidence) Decode(d *jx.Decoder) error {
 		case "proofHash":
 			requiredBitSet[1] |= 1 << 1
 			if err := func() error {
-				v, err := d.Str()
-				s.ProofHash = string(v)
-				if err != nil {
+				if err := s.ProofHash.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -71359,9 +71568,7 @@ func (s *PreviewSignEvidence) Decode(d *jx.Decoder) error {
 		case "signature":
 			requiredBitSet[1] |= 1 << 4
 			if err := func() error {
-				v, err := d.Str()
-				s.Signature = string(v)
-				if err != nil {
+				if err := s.Signature.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -71714,6 +71921,46 @@ func (s *PreviewSignEvidenceVersion) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes PreviewSignP256DerSignatureBase64Url as json.
+func (s PreviewSignP256DerSignatureBase64Url) Encode(e *jx.Encoder) {
+	unwrapped := string(s)
+
+	e.Str(unwrapped)
+}
+
+// Decode decodes PreviewSignP256DerSignatureBase64Url from json.
+func (s *PreviewSignP256DerSignatureBase64Url) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode PreviewSignP256DerSignatureBase64Url to nil")
+	}
+	var unwrapped string
+	if err := func() error {
+		v, err := d.Str()
+		unwrapped = string(v)
+		if err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = PreviewSignP256DerSignatureBase64Url(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s PreviewSignP256DerSignatureBase64Url) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *PreviewSignP256DerSignatureBase64Url) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode implements json.Marshaler.
 func (s *PreviewSignPublicMaterial) Encode(e *jx.Encoder) {
 	e.ObjStart()
@@ -71725,7 +71972,7 @@ func (s *PreviewSignPublicMaterial) Encode(e *jx.Encoder) {
 func (s *PreviewSignPublicMaterial) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("outerCredentialId")
-		e.Str(s.OuterCredentialId)
+		s.OuterCredentialId.Encode(e)
 	}
 	{
 		e.FieldStart("outerPublicKey")
@@ -71733,7 +71980,7 @@ func (s *PreviewSignPublicMaterial) encodeFields(e *jx.Encoder) {
 	}
 	{
 		e.FieldStart("previewKeyHandle")
-		e.Str(s.PreviewKeyHandle)
+		s.PreviewKeyHandle.Encode(e)
 	}
 	{
 		e.FieldStart("seedPublicKey")
@@ -71765,9 +72012,7 @@ func (s *PreviewSignPublicMaterial) Decode(d *jx.Decoder) error {
 		case "outerCredentialId":
 			requiredBitSet[0] |= 1 << 0
 			if err := func() error {
-				v, err := d.Str()
-				s.OuterCredentialId = string(v)
-				if err != nil {
+				if err := s.OuterCredentialId.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -71787,9 +72032,7 @@ func (s *PreviewSignPublicMaterial) Decode(d *jx.Decoder) error {
 		case "previewKeyHandle":
 			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
-				v, err := d.Str()
-				s.PreviewKeyHandle = string(v)
-				if err != nil {
+				if err := s.PreviewKeyHandle.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -71915,7 +72158,7 @@ func (s *PreviewSignReceipt) Encode(e *jx.Encoder) {
 func (s *PreviewSignReceipt) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("signature")
-		e.Str(s.Signature)
+		s.Signature.Encode(e)
 	}
 	{
 		e.FieldStart("version")
@@ -71940,9 +72183,7 @@ func (s *PreviewSignReceipt) Decode(d *jx.Decoder) error {
 		case "signature":
 			requiredBitSet[0] |= 1 << 0
 			if err := func() error {
-				v, err := d.Str()
-				s.Signature = string(v)
-				if err != nil {
+				if err := s.Signature.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -72190,6 +72431,46 @@ func (s PreviewSignReceiptVersion) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *PreviewSignReceiptVersion) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes PreviewSignSha256Base64Url as json.
+func (s PreviewSignSha256Base64Url) Encode(e *jx.Encoder) {
+	unwrapped := string(s)
+
+	e.Str(unwrapped)
+}
+
+// Decode decodes PreviewSignSha256Base64Url from json.
+func (s *PreviewSignSha256Base64Url) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode PreviewSignSha256Base64Url to nil")
+	}
+	var unwrapped string
+	if err := func() error {
+		v, err := d.Str()
+		unwrapped = string(v)
+		if err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = PreviewSignSha256Base64Url(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s PreviewSignSha256Base64Url) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *PreviewSignSha256Base64Url) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -110591,6 +110872,293 @@ func (s UploadTaskArtifactUnauthorizedCode) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *UploadTaskArtifactUnauthorizedCode) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *ValidatePreviewSignChallenge) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *ValidatePreviewSignChallenge) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("challenge")
+		s.Challenge.Encode(e)
+	}
+	{
+		e.FieldStart("operation")
+		s.Operation.Encode(e)
+	}
+	{
+		e.FieldStart("resourceId")
+		json.EncodeUUID(e, s.ResourceId)
+	}
+	{
+		e.FieldStart("version")
+		s.Version.Encode(e)
+	}
+}
+
+var jsonFieldsNameOfValidatePreviewSignChallenge = [4]string{
+	0: "challenge",
+	1: "operation",
+	2: "resourceId",
+	3: "version",
+}
+
+// Decode decodes ValidatePreviewSignChallenge from json.
+func (s *ValidatePreviewSignChallenge) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ValidatePreviewSignChallenge to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "challenge":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				if err := s.Challenge.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"challenge\"")
+			}
+		case "operation":
+			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				if err := s.Operation.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"operation\"")
+			}
+		case "resourceId":
+			requiredBitSet[0] |= 1 << 2
+			if err := func() error {
+				v, err := json.DecodeUUID(d)
+				s.ResourceId = v
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"resourceId\"")
+			}
+		case "version":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				if err := s.Version.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"version\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode ValidatePreviewSignChallenge")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00001111,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfValidatePreviewSignChallenge) {
+					name = jsonFieldsNameOfValidatePreviewSignChallenge[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ValidatePreviewSignChallenge) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ValidatePreviewSignChallenge) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ValidatePreviewSignChallengeBadRequest as json.
+func (s *ValidatePreviewSignChallengeBadRequest) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ValidatePreviewSignChallengeBadRequest from json.
+func (s *ValidatePreviewSignChallengeBadRequest) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ValidatePreviewSignChallengeBadRequest to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ValidatePreviewSignChallengeBadRequest(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ValidatePreviewSignChallengeBadRequest) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ValidatePreviewSignChallengeBadRequest) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ValidatePreviewSignChallengeNotFound as json.
+func (s *ValidatePreviewSignChallengeNotFound) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ValidatePreviewSignChallengeNotFound from json.
+func (s *ValidatePreviewSignChallengeNotFound) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ValidatePreviewSignChallengeNotFound to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ValidatePreviewSignChallengeNotFound(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ValidatePreviewSignChallengeNotFound) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ValidatePreviewSignChallengeNotFound) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ValidatePreviewSignChallengeTooManyRequests as json.
+func (s *ValidatePreviewSignChallengeTooManyRequests) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes ValidatePreviewSignChallengeTooManyRequests from json.
+func (s *ValidatePreviewSignChallengeTooManyRequests) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ValidatePreviewSignChallengeTooManyRequests to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = ValidatePreviewSignChallengeTooManyRequests(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ValidatePreviewSignChallengeTooManyRequests) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ValidatePreviewSignChallengeTooManyRequests) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes ValidatePreviewSignChallengeVersion as json.
+func (s ValidatePreviewSignChallengeVersion) Encode(e *jx.Encoder) {
+	e.Float64(float64(s))
+}
+
+// Decode decodes ValidatePreviewSignChallengeVersion from json.
+func (s *ValidatePreviewSignChallengeVersion) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ValidatePreviewSignChallengeVersion to nil")
+	}
+	v, err := d.Float64()
+	if err != nil {
+		return err
+	}
+	*s = ValidatePreviewSignChallengeVersion(v)
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s ValidatePreviewSignChallengeVersion) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ValidatePreviewSignChallengeVersion) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

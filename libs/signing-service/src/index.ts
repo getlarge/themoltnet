@@ -1,3 +1,7 @@
+export type {
+  SigningChallengeOperation,
+  ValidateSigningChallengeInput,
+} from './signing-challenge-validation.service.js';
 export {
   createSigningService,
   type SigningService,

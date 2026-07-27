@@ -37,6 +37,75 @@ const seed: CoseArkgSeedPublicKey = {
 };
 
 describe('PreviewSignClient', () => {
+  it('signs a prepared digest with caller-supplied ARKG arguments unchanged', async () => {
+    const outerSecret = new Uint8Array(32).fill(11);
+    const outerPublic = p256.getPublicKey(outerSecret, false);
+    const previewSecret = fromHex(
+      '775d7fe9a6dfba43ce671cb38afca3d272c4d14aff97bd67559eb500a092e5e7',
+    );
+    const digest = sha256(utf8('server-owned approval action'));
+    const additionalArguments = Uint8Array.of(9, 8, 7, 6);
+    const client = new PreviewSignClient({
+      connect: async () => ({
+        device: {
+          id: 'test-device',
+          path: '/test',
+          vendorId: 0x1050,
+          productId: 1,
+        },
+        async cbor(command, request) {
+          expect(command).toBe(0x02);
+          const decoded = asMap(decodeCbor(request!));
+          const extension = asMap(asMap(decoded.get(4)).get('previewSign'));
+          expect(mapBytes(extension, 6, 'digest')).toEqual(digest);
+          expect(mapBytes(extension, 7, 'additional arguments')).toEqual(
+            additionalArguments,
+          );
+          const previewSignature = p256.sign(digest, previewSecret, {
+            format: 'der',
+            prehash: false,
+          });
+          const authData = concatBytes(
+            sha256(utf8('preview-sign.local')),
+            Uint8Array.of(0x85),
+            new Uint8Array(4),
+            encodeCbor(
+              new Map([['previewSign', new Map([[6, previewSignature]])]]),
+            ),
+          );
+          const outerSignature = p256.sign(
+            concatBytes(authData, mapBytes(decoded, 2, 'client data hash')),
+            outerSecret,
+            { format: 'der' },
+          );
+          return encodeCbor(
+            new Map<unknown, unknown>([
+              [2, authData],
+              [3, outerSignature],
+            ]),
+          );
+        },
+        async close() {},
+      }),
+    });
+
+    const signature = await client.signPreparedDigest({
+      digest,
+      additionalArguments,
+      outerCredentialId: Uint8Array.of(1, 2, 3),
+      outerPublicKey: publicEc2(outerPublic, -7),
+      previewKeyHandle: Uint8Array.of(4, 5, 6),
+      presence: PreviewSignPresence.RequireUserVerification,
+    });
+
+    expect(
+      p256.verify(signature, digest, p256.getPublicKey(previewSecret), {
+        format: 'der',
+        prehash: false,
+      }),
+    ).toBe(true);
+  });
+
   it('signs an exact digest with a fresh derived key and verifies offline', async () => {
     const outerSecret = new Uint8Array(32).fill(11);
     const outerPublic = p256.getPublicKey(outerSecret, false);

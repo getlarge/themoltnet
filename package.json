@@ -47,7 +47,7 @@
     "ory:backup": "node infra/ory/backup.mjs",
     "generate:client": "pnpm exec nx run @moltnet/api-client:generate",
     "generate": "pnpm run generate:openapi && pnpm run generate:client && pnpm run go:generate && pnpm run go:fmt && prettier --write libs/api-client/src/generated/",
-    "check:pack": "tsx tools/src/check-pack.ts",
+    "check:pack": "pnpm exec nx run-many -t check:pack",
     "check:actionlint": "github-actionlint -shellcheck= -pyflakes= .github/workflows/*.yml",
     "check:quickstart": "pnpm exec nx run @moltnet/tools:check-quickstart",
     "check:vite-aliases": "tsx tools/src/check-vite-alias-exports.ts",

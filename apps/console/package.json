@@ -16,6 +16,7 @@
     "@themoltnet/design-system": "workspace:*",
     "react": "catalog:",
     "react-dom": "catalog:",
+    "typebox": "catalog:",
     "wouter": "catalog:"
   },
   "devDependencies": {

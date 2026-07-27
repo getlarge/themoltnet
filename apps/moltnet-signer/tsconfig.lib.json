@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "outDir": "./out-tsc",
+    "rootDir": "./src",
+    "tsBuildInfoFile": "./out-tsc/tsconfig.tsbuildinfo",
+    "types": ["node"]
+  },
+  "exclude": ["src/**/*.test.ts"],
+  "extends": "../../tsconfig.json",
+  "include": ["src/**/*.ts"],
+  "references": [
+    {
+      "path": "../../libs/yubikey-preview-sign/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/models/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/crypto-service/tsconfig.lib.json"
+    }
+  ]
+}

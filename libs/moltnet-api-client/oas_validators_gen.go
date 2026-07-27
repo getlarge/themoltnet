@@ -19331,6 +19331,26 @@ func (s PreviewSignArkgSeedPublicKeyKty) Validate() error {
 	}
 }
 
+func (s PreviewSignBase64Url) Validate() error {
+	alias := (string)(s)
+	if err := (validate.String{
+		MinLength:     1,
+		MinLengthSet:  true,
+		MaxLength:     5462,
+		MaxLengthSet:  true,
+		Email:         false,
+		Hostname:      false,
+		Regex:         regexMap["^[A-Za-z0-9_-]+$"],
+		MinNumeric:    0,
+		MinNumericSet: false,
+		MaxNumeric:    0,
+		MaxNumericSet: false,
+	}).Validate(string(alias)); err != nil {
+		return errors.Wrap(err, "string")
+	}
+	return nil
+}
+
 func (s *PreviewSignChallenge) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
@@ -19338,20 +19358,8 @@ func (s *PreviewSignChallenge) Validate() error {
 
 	var failures []validate.FieldError
 	if err := func() error {
-		if err := (validate.String{
-			MinLength:     1,
-			MinLengthSet:  true,
-			MaxLength:     5462,
-			MaxLengthSet:  true,
-			Email:         false,
-			Hostname:      false,
-			Regex:         regexMap["^[A-Za-z0-9_-]+$"],
-			MinNumeric:    0,
-			MinNumericSet: false,
-			MaxNumeric:    0,
-			MaxNumericSet: false,
-		}).Validate(string(s.AdditionalArguments)); err != nil {
-			return errors.Wrap(err, "string")
+		if err := s.AdditionalArguments.Validate(); err != nil {
+			return err
 		}
 		return nil
 	}(); err != nil {
@@ -19361,20 +19369,8 @@ func (s *PreviewSignChallenge) Validate() error {
 		})
 	}
 	if err := func() error {
-		if err := (validate.String{
-			MinLength:     43,
-			MinLengthSet:  true,
-			MaxLength:     43,
-			MaxLengthSet:  true,
-			Email:         false,
-			Hostname:      false,
-			Regex:         regexMap["^[A-Za-z0-9_-]+$"],
-			MinNumeric:    0,
-			MinNumericSet: false,
-			MaxNumeric:    0,
-			MaxNumericSet: false,
-		}).Validate(string(s.Digest)); err != nil {
-			return errors.Wrap(err, "string")
+		if err := s.Digest.Validate(); err != nil {
+			return err
 		}
 		return nil
 	}(); err != nil {
@@ -19384,20 +19380,8 @@ func (s *PreviewSignChallenge) Validate() error {
 		})
 	}
 	if err := func() error {
-		if err := (validate.String{
-			MinLength:     1,
-			MinLengthSet:  true,
-			MaxLength:     5462,
-			MaxLengthSet:  true,
-			Email:         false,
-			Hostname:      false,
-			Regex:         regexMap["^[A-Za-z0-9_-]+$"],
-			MinNumeric:    0,
-			MinNumericSet: false,
-			MaxNumeric:    0,
-			MaxNumericSet: false,
-		}).Validate(string(s.Envelope)); err != nil {
-			return errors.Wrap(err, "string")
+		if err := s.Envelope.Validate(); err != nil {
+			return err
 		}
 		return nil
 	}(); err != nil {
@@ -19407,20 +19391,8 @@ func (s *PreviewSignChallenge) Validate() error {
 		})
 	}
 	if err := func() error {
-		if err := (validate.String{
-			MinLength:     1,
-			MinLengthSet:  true,
-			MaxLength:     5462,
-			MaxLengthSet:  true,
-			Email:         false,
-			Hostname:      false,
-			Regex:         regexMap["^[A-Za-z0-9_-]+$"],
-			MinNumeric:    0,
-			MinNumericSet: false,
-			MaxNumeric:    0,
-			MaxNumericSet: false,
-		}).Validate(string(s.OuterCredentialId)); err != nil {
-			return errors.Wrap(err, "string")
+		if err := s.OuterCredentialId.Validate(); err != nil {
+			return err
 		}
 		return nil
 	}(); err != nil {
@@ -19441,20 +19413,8 @@ func (s *PreviewSignChallenge) Validate() error {
 		})
 	}
 	if err := func() error {
-		if err := (validate.String{
-			MinLength:     1,
-			MinLengthSet:  true,
-			MaxLength:     5462,
-			MaxLengthSet:  true,
-			Email:         false,
-			Hostname:      false,
-			Regex:         regexMap["^[A-Za-z0-9_-]+$"],
-			MinNumeric:    0,
-			MinNumericSet: false,
-			MaxNumeric:    0,
-			MaxNumericSet: false,
-		}).Validate(string(s.PreviewKeyHandle)); err != nil {
-			return errors.Wrap(err, "string")
+		if err := s.PreviewKeyHandle.Validate(); err != nil {
+			return err
 		}
 		return nil
 	}(); err != nil {
@@ -19489,6 +19449,49 @@ func (s *PreviewSignChallenge) Validate() error {
 		return &validate.Error{Fields: failures}
 	}
 	return nil
+}
+
+func (s PreviewSignChallengeOperation) Validate() error {
+	switch s {
+	case "credential-registration":
+		return nil
+	case "signing-request":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s *PreviewSignChallengeValidation) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.Valid.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "valid",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s PreviewSignChallengeValidationValid) Validate() error {
+	switch s {
+	case true:
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
 }
 
 func (s *PreviewSignChallengeValue) Validate() error {
@@ -19592,20 +19595,8 @@ func (s *PreviewSignEcdhEsHkdf256PublicKey) Validate() error {
 		})
 	}
 	if err := func() error {
-		if err := (validate.String{
-			MinLength:     43,
-			MinLengthSet:  true,
-			MaxLength:     43,
-			MaxLengthSet:  true,
-			Email:         false,
-			Hostname:      false,
-			Regex:         regexMap["^[A-Za-z0-9_-]+$"],
-			MinNumeric:    0,
-			MinNumericSet: false,
-			MaxNumeric:    0,
-			MaxNumericSet: false,
-		}).Validate(string(s.X)); err != nil {
-			return errors.Wrap(err, "string")
+		if err := s.X.Validate(); err != nil {
+			return err
 		}
 		return nil
 	}(); err != nil {
@@ -19615,20 +19606,8 @@ func (s *PreviewSignEcdhEsHkdf256PublicKey) Validate() error {
 		})
 	}
 	if err := func() error {
-		if err := (validate.String{
-			MinLength:     43,
-			MinLengthSet:  true,
-			MaxLength:     43,
-			MaxLengthSet:  true,
-			Email:         false,
-			Hostname:      false,
-			Regex:         regexMap["^[A-Za-z0-9_-]+$"],
-			MinNumeric:    0,
-			MinNumericSet: false,
-			MaxNumeric:    0,
-			MaxNumericSet: false,
-		}).Validate(string(s.Y)); err != nil {
-			return errors.Wrap(err, "string")
+		if err := s.Y.Validate(); err != nil {
+			return err
 		}
 		return nil
 	}(); err != nil {
@@ -19710,20 +19689,8 @@ func (s *PreviewSignEs256PublicKey) Validate() error {
 		})
 	}
 	if err := func() error {
-		if err := (validate.String{
-			MinLength:     43,
-			MinLengthSet:  true,
-			MaxLength:     43,
-			MaxLengthSet:  true,
-			Email:         false,
-			Hostname:      false,
-			Regex:         regexMap["^[A-Za-z0-9_-]+$"],
-			MinNumeric:    0,
-			MinNumericSet: false,
-			MaxNumeric:    0,
-			MaxNumericSet: false,
-		}).Validate(string(s.X)); err != nil {
-			return errors.Wrap(err, "string")
+		if err := s.X.Validate(); err != nil {
+			return err
 		}
 		return nil
 	}(); err != nil {
@@ -19733,20 +19700,8 @@ func (s *PreviewSignEs256PublicKey) Validate() error {
 		})
 	}
 	if err := func() error {
-		if err := (validate.String{
-			MinLength:     43,
-			MinLengthSet:  true,
-			MaxLength:     43,
-			MaxLengthSet:  true,
-			Email:         false,
-			Hostname:      false,
-			Regex:         regexMap["^[A-Za-z0-9_-]+$"],
-			MinNumeric:    0,
-			MinNumericSet: false,
-			MaxNumeric:    0,
-			MaxNumericSet: false,
-		}).Validate(string(s.Y)); err != nil {
-			return errors.Wrap(err, "string")
+		if err := s.Y.Validate(); err != nil {
+			return err
 		}
 		return nil
 	}(); err != nil {
@@ -19828,20 +19783,8 @@ func (s *PreviewSignEsp256PublicKey) Validate() error {
 		})
 	}
 	if err := func() error {
-		if err := (validate.String{
-			MinLength:     43,
-			MinLengthSet:  true,
-			MaxLength:     43,
-			MaxLengthSet:  true,
-			Email:         false,
-			Hostname:      false,
-			Regex:         regexMap["^[A-Za-z0-9_-]+$"],
-			MinNumeric:    0,
-			MinNumericSet: false,
-			MaxNumeric:    0,
-			MaxNumericSet: false,
-		}).Validate(string(s.X)); err != nil {
-			return errors.Wrap(err, "string")
+		if err := s.X.Validate(); err != nil {
+			return err
 		}
 		return nil
 	}(); err != nil {
@@ -19851,20 +19794,8 @@ func (s *PreviewSignEsp256PublicKey) Validate() error {
 		})
 	}
 	if err := func() error {
-		if err := (validate.String{
-			MinLength:     43,
-			MinLengthSet:  true,
-			MaxLength:     43,
-			MaxLengthSet:  true,
-			Email:         false,
-			Hostname:      false,
-			Regex:         regexMap["^[A-Za-z0-9_-]+$"],
-			MinNumeric:    0,
-			MinNumericSet: false,
-			MaxNumeric:    0,
-			MaxNumericSet: false,
-		}).Validate(string(s.Y)); err != nil {
-			return errors.Wrap(err, "string")
+		if err := s.Y.Validate(); err != nil {
+			return err
 		}
 		return nil
 	}(); err != nil {
@@ -19913,20 +19844,8 @@ func (s *PreviewSignEvidence) Validate() error {
 
 	var failures []validate.FieldError
 	if err := func() error {
-		if err := (validate.String{
-			MinLength:     43,
-			MinLengthSet:  true,
-			MaxLength:     43,
-			MaxLengthSet:  true,
-			Email:         false,
-			Hostname:      false,
-			Regex:         regexMap["^[A-Za-z0-9_-]+$"],
-			MinNumeric:    0,
-			MinNumericSet: false,
-			MaxNumeric:    0,
-			MaxNumericSet: false,
-		}).Validate(string(s.AdditionalArgumentsHash)); err != nil {
-			return errors.Wrap(err, "string")
+		if err := s.AdditionalArgumentsHash.Validate(); err != nil {
+			return err
 		}
 		return nil
 	}(); err != nil {
@@ -19947,20 +19866,8 @@ func (s *PreviewSignEvidence) Validate() error {
 		})
 	}
 	if err := func() error {
-		if err := (validate.String{
-			MinLength:     43,
-			MinLengthSet:  true,
-			MaxLength:     43,
-			MaxLengthSet:  true,
-			Email:         false,
-			Hostname:      false,
-			Regex:         regexMap["^[A-Za-z0-9_-]+$"],
-			MinNumeric:    0,
-			MinNumericSet: false,
-			MaxNumeric:    0,
-			MaxNumericSet: false,
-		}).Validate(string(s.Digest)); err != nil {
-			return errors.Wrap(err, "string")
+		if err := s.Digest.Validate(); err != nil {
+			return err
 		}
 		return nil
 	}(); err != nil {
@@ -19970,20 +19877,8 @@ func (s *PreviewSignEvidence) Validate() error {
 		})
 	}
 	if err := func() error {
-		if err := (validate.String{
-			MinLength:     1,
-			MinLengthSet:  true,
-			MaxLength:     5462,
-			MaxLengthSet:  true,
-			Email:         false,
-			Hostname:      false,
-			Regex:         regexMap["^[A-Za-z0-9_-]+$"],
-			MinNumeric:    0,
-			MinNumericSet: false,
-			MaxNumeric:    0,
-			MaxNumericSet: false,
-		}).Validate(string(s.Envelope)); err != nil {
-			return errors.Wrap(err, "string")
+		if err := s.Envelope.Validate(); err != nil {
+			return err
 		}
 		return nil
 	}(); err != nil {
@@ -20004,20 +19899,8 @@ func (s *PreviewSignEvidence) Validate() error {
 		})
 	}
 	if err := func() error {
-		if err := (validate.String{
-			MinLength:     43,
-			MinLengthSet:  true,
-			MaxLength:     43,
-			MaxLengthSet:  true,
-			Email:         false,
-			Hostname:      false,
-			Regex:         regexMap["^[A-Za-z0-9_-]+$"],
-			MinNumeric:    0,
-			MinNumericSet: false,
-			MaxNumeric:    0,
-			MaxNumericSet: false,
-		}).Validate(string(s.ProofHash)); err != nil {
-			return errors.Wrap(err, "string")
+		if err := s.ProofHash.Validate(); err != nil {
+			return err
 		}
 		return nil
 	}(); err != nil {
@@ -20027,20 +19910,8 @@ func (s *PreviewSignEvidence) Validate() error {
 		})
 	}
 	if err := func() error {
-		if err := (validate.String{
-			MinLength:     11,
-			MinLengthSet:  true,
-			MaxLength:     96,
-			MaxLengthSet:  true,
-			Email:         false,
-			Hostname:      false,
-			Regex:         regexMap["^[A-Za-z0-9_-]+$"],
-			MinNumeric:    0,
-			MinNumericSet: false,
-			MaxNumeric:    0,
-			MaxNumericSet: false,
-		}).Validate(string(s.Signature)); err != nil {
-			return errors.Wrap(err, "string")
+		if err := s.Signature.Validate(); err != nil {
+			return err
 		}
 		return nil
 	}(); err != nil {
@@ -20149,6 +20020,26 @@ func (s PreviewSignEvidenceVersion) Validate() error {
 	}
 }
 
+func (s PreviewSignP256DerSignatureBase64Url) Validate() error {
+	alias := (string)(s)
+	if err := (validate.String{
+		MinLength:     11,
+		MinLengthSet:  true,
+		MaxLength:     96,
+		MaxLengthSet:  true,
+		Email:         false,
+		Hostname:      false,
+		Regex:         regexMap["^[A-Za-z0-9_-]+$"],
+		MinNumeric:    0,
+		MinNumericSet: false,
+		MaxNumeric:    0,
+		MaxNumericSet: false,
+	}).Validate(string(alias)); err != nil {
+		return errors.Wrap(err, "string")
+	}
+	return nil
+}
+
 func (s *PreviewSignPublicMaterial) Validate() error {
 	if s == nil {
 		return validate.ErrNilPointer
@@ -20156,20 +20047,8 @@ func (s *PreviewSignPublicMaterial) Validate() error {
 
 	var failures []validate.FieldError
 	if err := func() error {
-		if err := (validate.String{
-			MinLength:     1,
-			MinLengthSet:  true,
-			MaxLength:     5462,
-			MaxLengthSet:  true,
-			Email:         false,
-			Hostname:      false,
-			Regex:         regexMap["^[A-Za-z0-9_-]+$"],
-			MinNumeric:    0,
-			MinNumericSet: false,
-			MaxNumeric:    0,
-			MaxNumericSet: false,
-		}).Validate(string(s.OuterCredentialId)); err != nil {
-			return errors.Wrap(err, "string")
+		if err := s.OuterCredentialId.Validate(); err != nil {
+			return err
 		}
 		return nil
 	}(); err != nil {
@@ -20190,20 +20069,8 @@ func (s *PreviewSignPublicMaterial) Validate() error {
 		})
 	}
 	if err := func() error {
-		if err := (validate.String{
-			MinLength:     1,
-			MinLengthSet:  true,
-			MaxLength:     5462,
-			MaxLengthSet:  true,
-			Email:         false,
-			Hostname:      false,
-			Regex:         regexMap["^[A-Za-z0-9_-]+$"],
-			MinNumeric:    0,
-			MinNumericSet: false,
-			MaxNumeric:    0,
-			MaxNumericSet: false,
-		}).Validate(string(s.PreviewKeyHandle)); err != nil {
-			return errors.Wrap(err, "string")
+		if err := s.PreviewKeyHandle.Validate(); err != nil {
+			return err
 		}
 		return nil
 	}(); err != nil {
@@ -20256,20 +20123,8 @@ func (s *PreviewSignReceipt) Validate() error {
 
 	var failures []validate.FieldError
 	if err := func() error {
-		if err := (validate.String{
-			MinLength:     11,
-			MinLengthSet:  true,
-			MaxLength:     96,
-			MaxLengthSet:  true,
-			Email:         false,
-			Hostname:      false,
-			Regex:         regexMap["^[A-Za-z0-9_-]+$"],
-			MinNumeric:    0,
-			MinNumericSet: false,
-			MaxNumeric:    0,
-			MaxNumericSet: false,
-		}).Validate(string(s.Signature)); err != nil {
-			return errors.Wrap(err, "string")
+		if err := s.Signature.Validate(); err != nil {
+			return err
 		}
 		return nil
 	}(); err != nil {
@@ -20345,6 +20200,26 @@ func (s PreviewSignReceiptVersion) Validate() error {
 	default:
 		return errors.Errorf("invalid value: %v", s)
 	}
+}
+
+func (s PreviewSignSha256Base64Url) Validate() error {
+	alias := (string)(s)
+	if err := (validate.String{
+		MinLength:     43,
+		MinLengthSet:  true,
+		MaxLength:     43,
+		MaxLengthSet:  true,
+		Email:         false,
+		Hostname:      false,
+		Regex:         regexMap["^[A-Za-z0-9_-]+$"],
+		MinNumeric:    0,
+		MinNumericSet: false,
+		MaxNumeric:    0,
+		MaxNumericSet: false,
+	}).Validate(string(alias)); err != nil {
+		return errors.Wrap(err, "string")
+	}
+	return nil
 }
 
 func (s *ProblemDetails) Validate() error {
@@ -35851,6 +35726,84 @@ func (s UploadTaskArtifactUnauthorizedCode) Validate() error {
 	case "DIARY_TRANSFER_NOT_FOUND":
 		return nil
 	case "DIARY_TRANSFER_ALREADY_RESOLVED":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s *ValidatePreviewSignChallenge) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if err := s.Challenge.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "challenge",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := s.Operation.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "operation",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := s.Version.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "version",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
+func (s *ValidatePreviewSignChallengeBadRequest) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *ValidatePreviewSignChallengeNotFound) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *ValidatePreviewSignChallengeTooManyRequests) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s ValidatePreviewSignChallengeVersion) Validate() error {
+	switch s {
+	case 1:
 		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)

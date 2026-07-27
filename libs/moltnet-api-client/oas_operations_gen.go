@@ -150,6 +150,7 @@ const (
 	UpdateTeamMemberRoleOperation                  OperationName = "UpdateTeamMemberRole"
 	UploadRuntimeSessionOperation                  OperationName = "UploadRuntimeSession"
 	UploadTaskArtifactOperation                    OperationName = "UploadTaskArtifact"
+	ValidatePreviewSignChallengeOperation          OperationName = "ValidatePreviewSignChallenge"
 	VerifyAgentSignatureOperation                  OperationName = "VerifyAgentSignature"
 	VerifyCryptoSignatureOperation                 OperationName = "VerifyCryptoSignature"
 	VerifyDiaryEntryByIdOperation                  OperationName = "VerifyDiaryEntryById"

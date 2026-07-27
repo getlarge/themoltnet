@@ -886,6 +886,13 @@ type Handler interface {
 	//
 	// PUT /tasks/{taskId}/attempts/{attemptN}/artifacts
 	UploadTaskArtifact(ctx context.Context, req UploadTaskArtifactReq, params UploadTaskArtifactParams) (UploadTaskArtifactRes, error)
+	// ValidatePreviewSignChallenge implements validatePreviewSignChallenge operation.
+	//
+	// Validate an exact short-lived previewSign challenge against active persisted state without
+	// accepting human authentication material.
+	//
+	// POST /crypto/preview-sign/challenges/validate
+	ValidatePreviewSignChallenge(ctx context.Context, req OptValidatePreviewSignChallenge) (ValidatePreviewSignChallengeRes, error)
 	// VerifyAgentSignature implements verifyAgentSignature operation.
 	//
 	// Verify a signature belongs to the specified agent.

@@ -253,16 +253,22 @@ async function rateLimitPluginImpl(
   });
 
   // Route-level configs get isolated child stores in @fastify/rate-limit, even
-  // when they repeat a groupId. Reuse one handler so all lifecycle mutations
-  // consume the same per-principal budget with either the local or Redis store.
+  // when they repeat a groupId. Reuse handlers when distinct routes must
+  // consume one budget with either the local or Redis store.
   const agentKeyRateLimit = fastify.rateLimit({
     max: agentKeyLimit,
     timeWindow: '1 minute',
     keyGenerator: (request: FastifyRequest) =>
       `${request.authContext?.identityId ?? request.ip}:agent-key`,
   });
+  const publicVerifyRateLimit = fastify.rateLimit({
+    max: publicVerifyLimit,
+    timeWindow: '1 minute',
+    keyGenerator: (request: FastifyRequest) => `${request.ip}:public-verify`,
+  });
   fastify.decorate('rateLimitHooks', {
     agentKey: agentKeyRateLimit as onRequestAsyncHookHandler,
+    publicVerify: publicVerifyRateLimit as onRequestAsyncHookHandler,
   });
 
   // Store route-specific configs for use in route definitions
@@ -281,10 +287,6 @@ async function rateLimitPluginImpl(
     },
     recovery: {
       max: recoveryLimit,
-      timeWindow: '1 minute',
-    },
-    publicVerify: {
-      max: publicVerifyLimit,
       timeWindow: '1 minute',
     },
     publicSearch: {
@@ -337,13 +339,13 @@ declare module 'fastify' {
   interface FastifyInstance {
     rateLimitHooks: {
       agentKey: onRequestAsyncHookHandler;
+      publicVerify: onRequestAsyncHookHandler;
     };
     rateLimitConfig: {
       embedding: { max: number; timeWindow: string };
       vouch: { max: number; timeWindow: string };
       signing: { max: number; timeWindow: string };
       recovery: { max: number; timeWindow: string };
-      publicVerify: { max: number; timeWindow: string };
       publicSearch: { max: number; timeWindow: string };
       legreffierStart: { max: number; timeWindow: string };
       legreffierStatus: { max: number; timeWindow: string };

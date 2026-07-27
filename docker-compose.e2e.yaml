@@ -198,10 +198,11 @@ services:
       RATE_LIMIT_AGENT_KEY: '10000'
       RATE_LIMIT_TASK_ARTIFACT_UPLOAD: '10000'
       RATE_LIMIT_RECOVERY: '10000'
-      # Deliberately LOW so the rate-limit e2e suite can trip a real 429 with a
-      # handful of requests. /crypto/verify (the only consumer of this bucket) is
-      # used by no other e2e suite, so this does not affect sibling suites.
-      RATE_LIMIT_PUBLIC_VERIFY: '5'
+      # High enough for the full suite's legitimate verification traffic. The
+      # adversarial rate-limit e2e seeds its isolated Redis counter immediately
+      # below this limit, proving a real shared-bucket 429 without poisoning
+      # sibling Ed25519 and previewSign tests.
+      RATE_LIMIT_PUBLIC_VERIFY: '10000'
       RATE_LIMIT_PUBLIC_SEARCH: '10000'
       RATE_LIMIT_LEGREFFIER_START: '10000'
       RATE_LIMIT_REGISTRATION: '10000'
@@ -270,6 +271,7 @@ services:
       KRATOS_PUBLIC_URL: http://localhost:4433
       API_BASE_URL: http://localhost:8080
       CONSOLE_BASE_URL: http://localhost:5174
+      SIGNER_BASE_URL: http://127.0.0.1:17373
     depends_on:
       rest-api:
         condition: service_healthy

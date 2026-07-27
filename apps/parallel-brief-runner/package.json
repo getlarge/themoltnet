@@ -26,7 +26,9 @@
     "start": "node dist/main.js",
     "build": "vite build",
     "typecheck": "tsc -b --emitDeclarationOnly",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "check:pack": "tsx ../../tools/src/check-pack.ts --package . && pnpm run smoke:pack",
+    "smoke:pack": "tsx ../../tools/src/smoke-pack.ts --package . --bin moltnet-parallel-brief-runner --args --help --expect \"fan out N freeform briefs\""
   },
   "dependencies": {
     "@themoltnet/sdk": "workspace:*",

@@ -48,6 +48,7 @@ import { type HealthRouteOptions, healthRoutes } from './routes/health.js';
 import { hookRoutes } from './routes/hooks.js';
 import { oauth2Routes } from './routes/oauth2.js';
 import { packRoutes } from './routes/packs.js';
+import { previewSignChallengeRoutes } from './routes/preview-sign-challenges.js';
 import { problemRoutes } from './routes/problems.js';
 import { publicRoutes } from './routes/public.js';
 import { recoveryRoutes } from './routes/recovery.js';
@@ -442,6 +443,7 @@ export async function registerApiRoutes(
     talosApi: options.oryClients.apiKeys,
   });
   await app.register(cryptoRoutes);
+  await app.register(previewSignChallengeRoutes);
   await app.register(signingRequestRoutes);
   await app.register(signingCredentialRoutes);
   await app.register(recoveryRoutes, {

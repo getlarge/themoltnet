@@ -1250,15 +1250,25 @@ export type PreviewSignArkgSeedPublicKey = {
   kty: -65537;
 };
 
+export type PreviewSignBase64Url = string;
+
 export type PreviewSignChallenge = {
-  additionalArguments: string;
-  digest: string;
-  envelope: string;
-  outerCredentialId: string;
+  additionalArguments: PreviewSignBase64Url;
+  digest: PreviewSignSha256Base64Url;
+  envelope: PreviewSignBase64Url;
+  outerCredentialId: PreviewSignBase64Url;
   outerPublicKey: PreviewSignEs256PublicKey;
-  previewKeyHandle: string;
+  previewKeyHandle: PreviewSignBase64Url;
   verificationMethod: 'human-hardware-previewsign';
   version: 1;
+};
+
+export type PreviewSignChallengeOperation =
+  | 'credential-registration'
+  | 'signing-request';
+
+export type PreviewSignChallengeValidation = {
+  valid: true;
 };
 
 export type PreviewSignChallengeValue = {
@@ -1270,40 +1280,40 @@ export type PreviewSignEcdhEsHkdf256PublicKey = {
   algorithm: -25;
   curve: 1;
   kty: 2;
-  x: string;
-  y: string;
+  x: PreviewSignSha256Base64Url;
+  y: PreviewSignSha256Base64Url;
 };
 
 export type PreviewSignEs256PublicKey = {
   algorithm: -7;
   curve: 1;
   kty: 2;
-  x: string;
-  y: string;
+  x: PreviewSignSha256Base64Url;
+  y: PreviewSignSha256Base64Url;
 };
 
 export type PreviewSignEsp256PublicKey = {
   algorithm: -9;
   curve: 1;
   kty: 2;
-  x: string;
-  y: string;
+  x: PreviewSignSha256Base64Url;
+  y: PreviewSignSha256Base64Url;
 };
 
 export type PreviewSignEvidence = {
-  additionalArgumentsHash: string;
+  additionalArgumentsHash: PreviewSignSha256Base64Url;
   claimantId: string;
   credentialId: string;
   derivedPublicKey: PreviewSignEsp256PublicKey;
-  digest: string;
-  envelope: string;
+  digest: PreviewSignSha256Base64Url;
+  envelope: PreviewSignBase64Url;
   expiresAt: string;
   nonce: string;
   operation: 'credential-registration' | 'signing-request';
-  proofHash: string;
+  proofHash: PreviewSignSha256Base64Url;
   purpose: string;
   requestId: string;
-  signature: string;
+  signature: PreviewSignP256DerSignatureBase64Url;
   teamId: string;
   verificationMethod: 'human-hardware-previewsign';
   version: 1;
@@ -1314,16 +1324,18 @@ export type PreviewSignEvidenceValue = {
   verificationMethod: 'human-hardware-previewsign';
 };
 
+export type PreviewSignP256DerSignatureBase64Url = string;
+
 export type PreviewSignPublicMaterial = {
-  outerCredentialId: string;
+  outerCredentialId: PreviewSignBase64Url;
   outerPublicKey: PreviewSignEs256PublicKey;
-  previewKeyHandle: string;
+  previewKeyHandle: PreviewSignBase64Url;
   seedPublicKey: PreviewSignArkgSeedPublicKey;
   version: 1;
 };
 
 export type PreviewSignReceipt = {
-  signature: string;
+  signature: PreviewSignP256DerSignatureBase64Url;
   version: 1;
 };
 
@@ -1331,6 +1343,8 @@ export type PreviewSignReceiptValue = {
   value: PreviewSignReceipt;
   verificationMethod: 'human-hardware-previewsign';
 };
+
+export type PreviewSignSha256Base64Url = string;
 
 export type PrincipalIdentity =
   | {
@@ -2978,6 +2992,13 @@ export type UploadTaskArtifactQuery = {
   title: string;
 };
 
+export type ValidatePreviewSignChallenge = {
+  challenge: PreviewSignChallengeValue;
+  operation: PreviewSignChallengeOperation;
+  resourceId: string;
+  version: 1;
+};
+
 export type ValidationError = {
   code?: string;
   field: string;
@@ -3586,6 +3607,41 @@ export type GetCryptoIdentityResponses = {
 
 export type GetCryptoIdentityResponse =
   GetCryptoIdentityResponses[keyof GetCryptoIdentityResponses];
+
+export type ValidatePreviewSignChallengeData = {
+  body?: ValidatePreviewSignChallenge;
+  path?: never;
+  query?: never;
+  url: '/crypto/preview-sign/challenges/validate';
+};
+
+export type ValidatePreviewSignChallengeErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+};
+
+export type ValidatePreviewSignChallengeError =
+  ValidatePreviewSignChallengeErrors[keyof ValidatePreviewSignChallengeErrors];
+
+export type ValidatePreviewSignChallengeResponses = {
+  /**
+   * Default Response
+   */
+  200: PreviewSignChallengeValidation;
+};
+
+export type ValidatePreviewSignChallengeResponse =
+  ValidatePreviewSignChallengeResponses[keyof ValidatePreviewSignChallengeResponses];
 
 export type ListSigningCredentialsData = {
   body?: never;

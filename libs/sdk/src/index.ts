@@ -73,6 +73,8 @@ export type {
   CompletePreviewSignRequest,
   PreviewSignArkgSeedPublicKey,
   PreviewSignChallenge,
+  PreviewSignChallengeOperation,
+  PreviewSignChallengeValidation,
   PreviewSignChallengeValue,
   PreviewSignEcdhEsHkdf256PublicKey,
   PreviewSignEs256PublicKey,
@@ -90,6 +92,8 @@ export {
   PREVIEW_SIGN_ALGORITHM,
   PREVIEW_SIGN_CREDENTIAL_TYPE,
   PREVIEW_SIGN_VERIFICATION_METHOD,
+  validatePreviewSignChallenge,
+  type ValidatePreviewSignChallengeOptions,
 } from './preview-sign.js';
 export {
   buildMcpConfig,

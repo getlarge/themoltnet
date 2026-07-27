@@ -11,9 +11,12 @@ export interface AppConfig {
   consoleUrl: string;
   /** Public documentation site. Optional; defaults to https://docs.themolt.net. */
   docsUrl: string;
+  /** Local signer companion. Never receives browser credentials. */
+  signerUrl?: string;
 }
 
 const DEFAULT_DOCS_URL = 'https://docs.themolt.net';
+const DEFAULT_SIGNER_URL = 'http://127.0.0.1:17373';
 
 function normalizeUrl(value: string | undefined): string | undefined {
   const trimmed = value?.trim();
@@ -28,6 +31,7 @@ export function getConfig(): AppConfig {
   // docsUrl is non-critical: fall back to the public default rather than
   // requiring it in injected runtime config (keeps existing /config.js valid).
   const docsUrl = normalizeUrl(injected?.docsUrl) || DEFAULT_DOCS_URL;
+  const signerUrl = normalizeUrl(injected?.signerUrl);
 
   if (injectedKratosUrl && injectedApiBaseUrl && injectedConsoleUrl) {
     return {
@@ -35,6 +39,7 @@ export function getConfig(): AppConfig {
       apiBaseUrl: injectedApiBaseUrl,
       consoleUrl: injectedConsoleUrl,
       docsUrl,
+      signerUrl,
     };
   }
 
@@ -55,5 +60,7 @@ export function getConfig(): AppConfig {
     consoleUrl:
       normalizeUrl(import.meta.env.VITE_CONSOLE_URL) || 'http://localhost:5174',
     docsUrl: normalizeUrl(import.meta.env.VITE_DOCS_URL) || DEFAULT_DOCS_URL,
+    signerUrl:
+      normalizeUrl(import.meta.env.VITE_SIGNER_URL) || DEFAULT_SIGNER_URL,
   };
 }

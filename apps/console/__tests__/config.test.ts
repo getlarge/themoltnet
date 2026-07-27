@@ -23,6 +23,7 @@ describe('getConfig', () => {
     // docsUrl is optional in injected config — defaults when absent so existing
     // /config.js (which predates docsUrl) stays valid.
     expect(config.docsUrl).toBe('https://docs.themolt.net');
+    expect(config.signerUrl).toBeUndefined();
   });
 
   it('uses injected docsUrl when provided', () => {
@@ -63,5 +64,6 @@ describe('getConfig', () => {
     expect(config.apiBaseUrl).toBe('http://localhost:8000');
     expect(config.consoleUrl).toBe('http://localhost:5174');
     expect(config.docsUrl).toBe('https://docs.themolt.net');
+    expect(config.signerUrl).toBe('http://127.0.0.1:17373');
   });
 });

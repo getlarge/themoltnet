@@ -5254,41 +5254,32 @@
         ],
         "type": "object"
       },
+      "PreviewSignBase64Url": {
+        "maxLength": 5462,
+        "minLength": 1,
+        "pattern": "^[A-Za-z0-9_-]+$",
+        "type": "string"
+      },
       "PreviewSignChallenge": {
         "additionalProperties": false,
         "properties": {
           "additionalArguments": {
-            "maxLength": 5462,
-            "minLength": 1,
-            "pattern": "^[A-Za-z0-9_-]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/PreviewSignBase64Url"
           },
           "digest": {
-            "maxLength": 43,
-            "minLength": 43,
-            "pattern": "^[A-Za-z0-9_-]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/PreviewSignSha256Base64Url"
           },
           "envelope": {
-            "maxLength": 5462,
-            "minLength": 1,
-            "pattern": "^[A-Za-z0-9_-]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/PreviewSignBase64Url"
           },
           "outerCredentialId": {
-            "maxLength": 5462,
-            "minLength": 1,
-            "pattern": "^[A-Za-z0-9_-]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/PreviewSignBase64Url"
           },
           "outerPublicKey": {
             "$ref": "#/components/schemas/PreviewSignEs256PublicKey"
           },
           "previewKeyHandle": {
-            "maxLength": 5462,
-            "minLength": 1,
-            "pattern": "^[A-Za-z0-9_-]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/PreviewSignBase64Url"
           },
           "verificationMethod": {
             "enum": [
@@ -5312,6 +5303,37 @@
           "outerCredentialId",
           "outerPublicKey",
           "previewKeyHandle"
+        ],
+        "type": "object"
+      },
+      "PreviewSignChallengeOperation": {
+        "anyOf": [
+          {
+            "enum": [
+              "credential-registration"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "signing-request"
+            ],
+            "type": "string"
+          }
+        ]
+      },
+      "PreviewSignChallengeValidation": {
+        "additionalProperties": false,
+        "properties": {
+          "valid": {
+            "enum": [
+              true
+            ],
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "valid"
         ],
         "type": "object"
       },
@@ -5356,16 +5378,10 @@
             "type": "number"
           },
           "x": {
-            "maxLength": 43,
-            "minLength": 43,
-            "pattern": "^[A-Za-z0-9_-]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/PreviewSignSha256Base64Url"
           },
           "y": {
-            "maxLength": 43,
-            "minLength": 43,
-            "pattern": "^[A-Za-z0-9_-]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/PreviewSignSha256Base64Url"
           }
         },
         "required": [
@@ -5399,16 +5415,10 @@
             "type": "number"
           },
           "x": {
-            "maxLength": 43,
-            "minLength": 43,
-            "pattern": "^[A-Za-z0-9_-]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/PreviewSignSha256Base64Url"
           },
           "y": {
-            "maxLength": 43,
-            "minLength": 43,
-            "pattern": "^[A-Za-z0-9_-]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/PreviewSignSha256Base64Url"
           }
         },
         "required": [
@@ -5442,16 +5452,10 @@
             "type": "number"
           },
           "x": {
-            "maxLength": 43,
-            "minLength": 43,
-            "pattern": "^[A-Za-z0-9_-]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/PreviewSignSha256Base64Url"
           },
           "y": {
-            "maxLength": 43,
-            "minLength": 43,
-            "pattern": "^[A-Za-z0-9_-]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/PreviewSignSha256Base64Url"
           }
         },
         "required": [
@@ -5467,10 +5471,7 @@
         "additionalProperties": false,
         "properties": {
           "additionalArgumentsHash": {
-            "maxLength": 43,
-            "minLength": 43,
-            "pattern": "^[A-Za-z0-9_-]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/PreviewSignSha256Base64Url"
           },
           "claimantId": {
             "format": "uuid",
@@ -5484,16 +5485,10 @@
             "$ref": "#/components/schemas/PreviewSignEsp256PublicKey"
           },
           "digest": {
-            "maxLength": 43,
-            "minLength": 43,
-            "pattern": "^[A-Za-z0-9_-]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/PreviewSignSha256Base64Url"
           },
           "envelope": {
-            "maxLength": 5462,
-            "minLength": 1,
-            "pattern": "^[A-Za-z0-9_-]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/PreviewSignBase64Url"
           },
           "expiresAt": {
             "format": "date-time",
@@ -5519,10 +5514,7 @@
             ]
           },
           "proofHash": {
-            "maxLength": 43,
-            "minLength": 43,
-            "pattern": "^[A-Za-z0-9_-]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/PreviewSignSha256Base64Url"
           },
           "purpose": {
             "type": "string"
@@ -5532,10 +5524,7 @@
             "type": "string"
           },
           "signature": {
-            "maxLength": 96,
-            "minLength": 11,
-            "pattern": "^[A-Za-z0-9_-]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/PreviewSignP256DerSignatureBase64Url"
           },
           "teamId": {
             "format": "uuid",
@@ -5593,23 +5582,23 @@
         ],
         "type": "object"
       },
+      "PreviewSignP256DerSignatureBase64Url": {
+        "maxLength": 96,
+        "minLength": 11,
+        "pattern": "^[A-Za-z0-9_-]+$",
+        "type": "string"
+      },
       "PreviewSignPublicMaterial": {
         "additionalProperties": false,
         "properties": {
           "outerCredentialId": {
-            "maxLength": 5462,
-            "minLength": 1,
-            "pattern": "^[A-Za-z0-9_-]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/PreviewSignBase64Url"
           },
           "outerPublicKey": {
             "$ref": "#/components/schemas/PreviewSignEs256PublicKey"
           },
           "previewKeyHandle": {
-            "maxLength": 5462,
-            "minLength": 1,
-            "pattern": "^[A-Za-z0-9_-]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/PreviewSignBase64Url"
           },
           "seedPublicKey": {
             "$ref": "#/components/schemas/PreviewSignArkgSeedPublicKey"
@@ -5634,10 +5623,7 @@
         "additionalProperties": false,
         "properties": {
           "signature": {
-            "maxLength": 96,
-            "minLength": 11,
-            "pattern": "^[A-Za-z0-9_-]+$",
-            "type": "string"
+            "$ref": "#/components/schemas/PreviewSignP256DerSignatureBase64Url"
           },
           "version": {
             "enum": [
@@ -5670,6 +5656,12 @@
           "value"
         ],
         "type": "object"
+      },
+      "PreviewSignSha256Base64Url": {
+        "maxLength": 43,
+        "minLength": 43,
+        "pattern": "^[A-Za-z0-9_-]+$",
+        "type": "string"
       },
       "PrincipalIdentity": {
         "anyOf": [
@@ -14108,6 +14100,34 @@
         ],
         "type": "object"
       },
+      "ValidatePreviewSignChallenge": {
+        "additionalProperties": false,
+        "properties": {
+          "challenge": {
+            "$ref": "#/components/schemas/PreviewSignChallengeValue"
+          },
+          "operation": {
+            "$ref": "#/components/schemas/PreviewSignChallengeOperation"
+          },
+          "resourceId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "version": {
+            "enum": [
+              1
+            ],
+            "type": "number"
+          }
+        },
+        "required": [
+          "version",
+          "operation",
+          "resourceId",
+          "challenge"
+        ],
+        "type": "object"
+      },
       "ValidationError": {
         "additionalProperties": false,
         "properties": {
@@ -15574,6 +15594,67 @@
             "cookieAuth": []
           }
         ],
+        "tags": [
+          "crypto"
+        ]
+      }
+    },
+    "/crypto/preview-sign/challenges/validate": {
+      "post": {
+        "description": "Validate an exact short-lived previewSign challenge against active persisted state without accepting human authentication material.",
+        "operationId": "validatePreviewSignChallenge",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValidatePreviewSignChallenge"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreviewSignChallengeValidation"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [],
         "tags": [
           "crypto"
         ]

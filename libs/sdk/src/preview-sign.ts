@@ -4,6 +4,8 @@ import type {
   CompletePreviewSignRequest,
   PreviewSignArkgSeedPublicKey,
   PreviewSignChallenge,
+  PreviewSignChallengeOperation,
+  PreviewSignChallengeValidation,
   PreviewSignChallengeValue,
   PreviewSignEcdhEsHkdf256PublicKey,
   PreviewSignEs256PublicKey,
@@ -14,7 +16,14 @@ import type {
   PreviewSignReceipt,
   PreviewSignReceiptValue,
 } from '@moltnet/api-client';
+import {
+  createClient,
+  validatePreviewSignChallenge as validatePreviewSignChallengeRequest,
+} from '@moltnet/api-client';
 import { p256 } from '@noble/curves/nist.js';
+
+import { unwrapResult } from './agent-context.js';
+import { normalizeApiUrl } from './api-url.js';
 
 export type {
   BeginPreviewSignCredentialRegistration,
@@ -22,6 +31,8 @@ export type {
   CompletePreviewSignRequest,
   PreviewSignArkgSeedPublicKey,
   PreviewSignChallenge,
+  PreviewSignChallengeOperation,
+  PreviewSignChallengeValidation,
   PreviewSignChallengeValue,
   PreviewSignEcdhEsHkdf256PublicKey,
   PreviewSignEs256PublicKey,
@@ -140,4 +151,40 @@ export function createPreviewSignReceipt(
     verificationMethod: PREVIEW_SIGN_VERIFICATION_METHOD,
     value: { version: 1, signature: encodeBase64Url(normalized) },
   };
+}
+
+export interface ValidatePreviewSignChallengeOptions {
+  apiUrl?: string;
+  fetch?: typeof fetch;
+  operation: PreviewSignChallengeOperation;
+  resourceId: string;
+  challenge: PreviewSignChallengeValue;
+}
+
+/**
+ * Ask MoltNet whether an exact previewSign challenge still matches active
+ * persisted state.
+ *
+ * This call is intentionally tokenless and always omits browser credentials.
+ * It returns only `{ valid: true }` and never returns resource metadata.
+ */
+export async function validatePreviewSignChallenge(
+  options: ValidatePreviewSignChallengeOptions,
+): Promise<PreviewSignChallengeValidation> {
+  const client = createClient({
+    baseUrl: normalizeApiUrl(options.apiUrl),
+    credentials: 'omit',
+    ...(options.fetch && { fetch: options.fetch }),
+  });
+  return unwrapResult(
+    await validatePreviewSignChallengeRequest({
+      client,
+      body: {
+        version: 1,
+        operation: options.operation,
+        resourceId: options.resourceId,
+        challenge: options.challenge,
+      },
+    }),
+  );
 }

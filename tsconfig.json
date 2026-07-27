@@ -21,6 +21,9 @@
       "path": "apps/yubikey-signer-demo"
     },
     {
+      "path": "apps/moltnet-signer"
+    },
+    {
       "path": "apps/agent-daemon"
     },
     {
