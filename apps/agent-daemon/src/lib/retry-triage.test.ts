@@ -19,6 +19,30 @@ const BASE_INPUT = {
 };
 
 describe('retry triage classification', () => {
+  it('keeps executor_threw non-retryable without consulting LLM triage', async () => {
+    let called = false;
+    const result = await classifyAttemptFailure({
+      ...BASE_INPUT,
+      error: {
+        code: 'executor_threw',
+        message: 'failed to access guest workspace',
+        retryable: false,
+      },
+      triage: () => {
+        called = true;
+        return Promise.resolve({
+          decision: 'retry',
+          confidence: 'high',
+          reason: 'Would retry if called.',
+        });
+      },
+    });
+
+    expect(called).toBe(false);
+    expect(result.source).toBe('explicit');
+    expect(result.error.retryable).toBe(false);
+  });
+
   it('marks transient provider messages retryable without LLM triage', async () => {
     const error: TaskError = {
       code: 'llm_api_error',
@@ -36,6 +60,22 @@ describe('retry triage classification', () => {
       confidence: 'high',
       reason: 'Matched deterministic retry policy.',
     });
+  });
+
+  it('classifies transient provider failures before attempt exhaustion', async () => {
+    const result = await classifyAttemptFailure({
+      ...BASE_INPUT,
+      remainingAttempts: 0,
+      error: {
+        code: 'llm_api_error',
+        message: 'provider returned 503 service unavailable',
+        retryable: false,
+      },
+    });
+
+    expect(result.source).toBe('deterministic');
+    expect(result.error.retryable).toBe(true);
+    expect(result.error.retry?.source).toBe('deterministic');
   });
 
   it('keeps submit validation failures non-retryable after in-session retries are exhausted', () => {
