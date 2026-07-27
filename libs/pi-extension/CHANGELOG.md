@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.36.1](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.36.0...pi-extension-v0.36.1) (2026-07-27)
+
+
+### Bug Fixes
+
+* **agent-daemon:** isolate sessions, reap worktrees, and layer retries ([61b9571](https://github.com/getlarge/themoltnet/commit/61b9571a50a182ac112c393576e4710ef1e6d797))
+
 ## [0.36.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.35.5...pi-extension-v0.36.0) (2026-07-27)
 
 

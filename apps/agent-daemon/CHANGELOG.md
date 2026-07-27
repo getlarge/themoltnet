@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.32.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.32.0...agent-daemon-v0.32.1) (2026-07-27)
+
+
+### Bug Fixes
+
+* **agent-daemon:** harden session lifecycle cleanup ([27d6151](https://github.com/getlarge/themoltnet/commit/27d6151b7f8e1ace5a07ab021e4e9d597c004400))
+* **agent-daemon:** isolate sessions, reap worktrees, and layer retries ([61b9571](https://github.com/getlarge/themoltnet/commit/61b9571a50a182ac112c393576e4710ef1e6d797))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/pi-extension bumped to 0.36.1
+
 ## [0.32.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.31.1...agent-daemon-v0.32.0) (2026-07-27)
 
 
