@@ -162,6 +162,12 @@ export class SignerCeremonyService {
     this.requireOrigin(origin);
   }
 
+  assertCorsOrigin(origin: string): void {
+    const normalized = normalizedOrigin(origin);
+    if (normalized === normalizedOrigin(this.approvalBaseUrl)) return;
+    this.requireOrigin(normalized);
+  }
+
   async createCeremony(input: {
     origin: string;
     sessionToken: string;

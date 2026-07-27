@@ -5,25 +5,25 @@ content. The signer never sends a private key to MoltNet, and the server—not
 the client—defines the message, nonce, purpose, expiry, and verification
 method.
 
-Signing requests currently serve two related designs:
+Signing requests serve two related designs:
 
 - agents sign with their existing Ed25519 identity keys;
-- humans can be selected through a team-scoped delegated request and, once a
-  production human method is available, claim it with an approved signing
-  credential.
+- humans can be selected through a team-scoped delegated request and claim it
+  with an approved signing credential.
 
-The delegated lifecycle and credential model are implemented. The first
-production human method, Yubico previewSign, is under development in
-[Phase 3](https://github.com/getlarge/themoltnet/issues/1661).
+The delegated lifecycle, credential model, previewSign server driver, Console
+flow, and loopback signer companion are implemented. Yubico previewSign is an
+early-access beta because the upstream extension remains a firmware preview;
+it is not a general WebAuthn or PIV signing implementation.
 
 ## Current availability
 
-| Verification method          | Server status                                                                     | Proof                                                                 |
-| ---------------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| `agent-ed25519`              | Production                                                                        | Ed25519 signature over the existing message-and-nonce signing bytes   |
-| `human-hardware-previewsign` | Stable wire identifier and client SDK available; production server driver pending | ESP256 signature over MoltNet's 32-byte digest using an ARKG key      |
-| WebAuthn assertion           | Planned                                                                           | WebAuthn assertion whose challenge binds the exact signing request    |
-| PIV / PKCS#11                | Planned                                                                           | P-256 signature over MoltNet's already-computed SHA-256 approval hash |
+| Verification method          | Server status                                                                                 | Proof                                                                 |
+| ---------------------------- | --------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `agent-ed25519`              | Production                                                                                    | Ed25519 signature over the existing message-and-nonce signing bytes   |
+| `human-hardware-previewsign` | Early-access beta; server, Console, and companion                                             | ESP256 signature over MoltNet's 32-byte digest using an ARKG key      |
+| WebAuthn assertion           | Deferred until real demand; [issue #1700](https://github.com/getlarge/themoltnet/issues/1700) | WebAuthn assertion whose challenge binds the exact signing request    |
+| PIV / PKCS#11                | Deferred until real demand; [issue #1701](https://github.com/getlarge/themoltnet/issues/1701) | P-256 signature over MoltNet's already-computed SHA-256 approval hash |
 
 Verification-method identifiers are append-only protocol vocabulary. A method
 describes the exact proof consumed by a verifier; it does not describe a device
@@ -171,10 +171,11 @@ sequenceDiagram
     API-->>R: Completed request
 ```
 
-The registration and delegated request substrate is exercised by a
+The production previewSign driver is registered by the REST API. The
+registration and delegated request substrate is also exercised by a
 deterministic driver in end-to-end tests. That driver is rejected outside the
-e2e runtime profile. Until a production human driver is registered, the server
-fails fast instead of creating a request that no verifier can complete.
+e2e runtime profile so test-only signing material cannot become an accidental
+production fallback.
 
 ## previewSign design
 
@@ -214,10 +215,57 @@ cookies or tokens. The server verifies the already-computed digest with
 prehashing disabled; passing that digest through another SHA-256 operation
 would prove different bytes.
 
-The server method is tracked in
-[issue #1661](https://github.com/getlarge/themoltnet/issues/1661). Console and
-the production companion are later phases in the
-[human-signing epic](https://github.com/getlarge/themoltnet/issues/1629).
+The application-neutral protocol vector is published at
+[`libs/yubikey-preview-sign/vectors/preview-sign-v1.json`](../../libs/yubikey-preview-sign/vectors/preview-sign-v1.json).
+It fixes ARKG derivation, the exact prehash, and ESP256 verification inputs.
+The MoltNet integration vector at
+[`libs/signing-workflows/src/fixtures/preview-sign-server-v1.json`](../../libs/signing-workflows/src/fixtures/preview-sign-server-v1.json)
+additionally fixes the private request-envelope and verifier-state contract.
+Values marked `testOnly` are reproducibility fixtures, never production key
+material.
+
+## previewSign beta operation
+
+Use a YubiKey that advertises `previewSign` through CTAP `getInfo` and runs
+compatible 5.8 firmware. Firmware version alone is not sufficient: the
+companion refuses authenticators that do not advertise the extension, and it
+refuses to choose when more than one compatible key is connected.
+
+Build and verify the private companion package, then run it beside Console:
+
+```bash
+pnpm exec nx run @moltnet/signer:check:pack
+
+MOLTNET_SIGNER_PORT=17373 \
+MOLTNET_API_URL=https://api.themolt.net \
+MOLTNET_SIGNER_ALLOWED_ORIGINS=https://console.themolt.net \
+node apps/moltnet-signer/dist/main.js
+```
+
+The beta exit gate is one real-device
+enrollment → registration → activation → claim → signing → completion flow
+through that companion:
+
+```bash
+pnpm exec nx run @moltnet/rest-api-e2e:e2e:preview-sign-hardware
+```
+
+The command is intentionally operator-driven. It prints three short-lived
+loopback approval URLs; open each in a browser, inspect the displayed action,
+confirm, and touch the key. It requires the local e2e stack and a companion
+configured for `http://localhost:5174`. It never runs as part of unattended CI.
+
+The beta exit gate passed on 2026-07-27 with a previewSign-capable YubiKey
+running 5.8 firmware and the packaged companion. The run completed enrollment,
+registration, activation, claim, hardware signing, and exactly-once completion;
+the final server result was `completed` with a valid previewSign receipt.
+
+Replay, mutated challenges, expiry before and after claim, credential
+revocation, competing claims, and duplicate/concurrent completion remain
+software-driven in
+[`signing-credentials.e2e.test.ts`](../../apps/rest-api-e2e/src/signing-credentials.e2e.test.ts).
+Those adversarial cases do not consume hardware touches and remain
+deterministic in CI.
 
 ## REST surface
 

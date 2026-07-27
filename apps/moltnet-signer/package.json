@@ -42,6 +42,7 @@
     "@fastify/cors": "catalog:",
     "@fastify/helmet": "catalog:",
     "@fastify/type-provider-typebox": "catalog:",
+    "@themoltnet/design-system": "workspace:*",
     "fastify": "catalog:",
     "node-hid": "catalog:",
     "pino": "catalog:",

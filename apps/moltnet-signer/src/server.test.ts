@@ -239,7 +239,8 @@ describe('loopback signer server', () => {
         'sec-fetch-site': 'cross-site',
       },
     });
-    expect(approvalResponse.body).toContain('Sign exact action');
+    expect(approvalResponse.body).toContain('Enroll this YubiKey');
+    expect(approvalResponse.body).toContain('MoltNet Signer');
     expect(approvalResponse.body).toContain(
       '&lt;script&gt;Operator key&lt;/script&gt;',
     );
@@ -259,6 +260,7 @@ describe('loopback signer server', () => {
         accept: 'text/html',
         'content-type': 'application/x-www-form-urlencoded',
         host: '127.0.0.1:17373',
+        origin: 'http://127.0.0.1:17373',
         'sec-fetch-site': 'cross-site',
       },
       payload: new URLSearchParams({
@@ -274,7 +276,7 @@ describe('loopback signer server', () => {
         accept: 'text/html',
         'content-type': 'application/x-www-form-urlencoded',
         host: '127.0.0.1:17373',
-        'sec-fetch-site': 'same-origin',
+        origin: 'null',
       },
       payload: new URLSearchParams({
         confirmationToken: confirmationToken ?? '',
