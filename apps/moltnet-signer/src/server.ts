@@ -128,12 +128,15 @@ export function createSignerServer(
     maxAge: 600,
     methods: ['GET', 'POST', 'OPTIONS'],
     origin: (origin, callback) => {
-      if (!origin) {
+      // Safari may serialize a same-origin loopback form navigation as the
+      // opaque Origin value `null`. It does not need a CORS response; the
+      // route's one-time confirmation token remains mandatory.
+      if (!origin || origin === 'null') {
         callback(null, false);
         return;
       }
       try {
-        service.assertOrigin(origin);
+        service.assertCorsOrigin(origin);
         callback(null, true);
       } catch (error) {
         callback(error as Error, false);
@@ -283,7 +286,7 @@ export function createSignerServer(
         },
       },
       async (request, reply) => {
-        requireSameOriginConfirmation(request);
+        rejectCrossSiteConfirmation(request);
         if (!(request.body instanceof URLSearchParams)) {
           throw new SignerCeremonyError(
             'confirmation_invalid',
@@ -351,13 +354,21 @@ function requireApprovalNavigation(request: FastifyRequest): void {
   }
 }
 
-function requireSameOriginConfirmation(request: FastifyRequest): void {
-  if (request.headers['sec-fetch-site'] !== 'same-origin') {
-    throw new SignerCeremonyError(
-      'origin_not_allowed',
-      'Confirmation must come from the approval page',
-    );
+function rejectCrossSiteConfirmation(request: FastifyRequest): void {
+  // The one-time confirmation token is the primary CSRF control. Safari may
+  // omit Fetch Metadata on same-origin form submissions, so only reject an
+  // explicit cross-site signal here instead of requiring the header.
+  const site = request.headers['sec-fetch-site'];
+  if (site === 'cross-site') {
+    rejectConfirmationOrigin();
   }
+}
+
+function rejectConfirmationOrigin(): never {
+  throw new SignerCeremonyError(
+    'origin_not_allowed',
+    'Confirmation must come from the approval page',
+  );
 }
 
 function requireLoopbackHost(request: FastifyRequest): void {

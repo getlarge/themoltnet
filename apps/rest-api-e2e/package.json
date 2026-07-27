@@ -50,6 +50,15 @@
           "cwd": "apps/rest-api-e2e"
         },
         "outputs": []
+      },
+      "e2e:preview-sign-hardware": {
+        "cache": false,
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "MOLTNET_PREVIEW_SIGN_HARDWARE=1 vitest run --config vitest.config.ts src/preview-sign-hardware.e2e.test.ts",
+          "cwd": "apps/rest-api-e2e"
+        },
+        "outputs": []
       }
     }
   }

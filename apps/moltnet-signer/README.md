@@ -18,8 +18,10 @@ pnpm exec nx run @moltnet/signer:check:pack
 ```
 
 The package smoke test creates a private tarball, installs it in a temporary
-directory, and runs `moltnet-signer --help`. The app remains private and is not
-published to npm.
+directory, and runs `moltnet-signer --help`. This is the packaging proof used
+by the previewSign beta gate. The packaged hardware gate passed on 2026-07-27
+with a previewSign-capable YubiKey running 5.8 firmware. The app remains private
+and is not published to npm.
 
 ## Start
 
@@ -72,6 +74,37 @@ Nothing is persisted locally.
 The companion does not accept arbitrary bytes. It revalidates the complete
 challenge with the trusted API immediately before HID access and passes the
 server's exact 32-byte digest and ARKG arguments to previewSign.
+
+## Real-device beta gate
+
+Start the local e2e stack, build and package-check this app, then start the
+companion with the e2e API and Console origins:
+
+```bash
+pnpm run e2e:up
+pnpm exec nx run @moltnet/signer:check:pack
+
+MOLTNET_SIGNER_PORT=17373 \
+MOLTNET_API_URL=http://127.0.0.1:8080 \
+MOLTNET_SIGNER_ALLOWED_ORIGINS=http://localhost:5174 \
+node apps/moltnet-signer/dist/main.js
+```
+
+In another terminal, run the opt-in hardware gate:
+
+```bash
+pnpm exec nx run @moltnet/rest-api-e2e:e2e:preview-sign-hardware
+```
+
+Open each printed approval URL in a browser, verify the action, confirm it, and
+touch the key. The gate creates real Ory-backed signer and approver sessions
+plus an agent requester, then proves enrollment, registration, activation,
+claim, device signing, and exactly-once server completion. It emits only a
+method/status summary on success.
+
+Replay, expiry, revocation, competing-claim, and duplicate-completion coverage
+stays in the deterministic REST E2E suite. Do not repeat those adversarial
+cases against a physical key.
 
 ## Troubleshooting
 
