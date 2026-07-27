@@ -80,6 +80,11 @@
       "component": "node-red-theme",
       "release-type": "node"
     },
+    "libs/orchestration": {
+      "bump-minor-pre-major": true,
+      "component": "tasks-orchestrator",
+      "release-type": "node"
+    },
     "libs/pi-extension": {
       "component": "pi-extension",
       "release-type": "node"

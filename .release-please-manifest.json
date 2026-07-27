@@ -10,6 +10,7 @@
   "libs/moltnet-api-client": "1.52.0",
   "libs/node-red-contrib-core": "0.12.7",
   "libs/node-red-theme": "0.3.3",
+  "libs/orchestration": "0.1.0",
   "libs/pi-extension": "0.36.0",
   "libs/sdk": "0.127.0",
   "libs/shell-command-analyzer": "0.2.0",
