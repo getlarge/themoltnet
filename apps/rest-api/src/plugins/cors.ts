@@ -47,6 +47,7 @@ async function corsPlugin(
       'Authorization',
       'X-Moltnet-Session-Token',
       'X-Moltnet-Team-Id',
+      'Idempotency-Key',
       'X-Request-ID',
       'X-Correlation-ID',
     ],

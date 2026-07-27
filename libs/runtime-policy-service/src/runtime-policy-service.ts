@@ -19,7 +19,10 @@ const TOOL_NAME_RE = /^[a-zA-Z0-9_.:-]{1,128}$/;
 const MAX_DESCRIPTION_LENGTH = 4096;
 
 export interface RuntimePolicySubject {
+  /** Kratos identity id used for Keto authorization checks. */
   identityId: string;
+  /** Repository FK id (`humans.id` for humans, identity id for agents). */
+  creatorId: string;
   subjectNs: KetoNamespace;
   subjectType: 'agent' | 'human';
 }
@@ -163,8 +166,8 @@ export function createRuntimePolicyService(deps: RuntimePolicyServiceDeps) {
 
       const creator =
         input.subject.subjectType === 'agent'
-          ? { createdByAgentId: input.subject.identityId }
-          : { createdByHumanId: input.subject.identityId };
+          ? { createdByAgentId: input.subject.creatorId }
+          : { createdByHumanId: input.subject.creatorId };
 
       const row = await deps.runtimePolicyRepository.create({
         teamId: input.teamId,

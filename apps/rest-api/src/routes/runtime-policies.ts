@@ -7,8 +7,11 @@ import {
   TeamHeaderRequiredSchema,
   ValidationProblemDetailsSchema,
 } from '@moltnet/models';
-import { createRuntimePolicyService } from '@moltnet/runtime-policy-service';
-import type { FastifyInstance } from 'fastify';
+import {
+  createRuntimePolicyService,
+  type RuntimePolicySubject,
+} from '@moltnet/runtime-policy-service';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { type Static, Type } from 'typebox';
 
 import { createConflictProblem } from '../problems/index.js';
@@ -21,6 +24,7 @@ import {
   SetProfilePoliciesBodySchema,
   UpdateRuntimePolicyBodySchema,
 } from '../schemas.js';
+import { authContextToCreator } from '../utils/auth-principal.js';
 import { requireCurrentTeamId } from '../utils/require-current-team-id.js';
 import { requireKetoSubject } from '../utils/require-keto-subject.js';
 
@@ -39,6 +43,17 @@ const SECURITY: Array<Record<string, string[]>> = [
   { sessionAuth: [] },
   { cookieAuth: [] },
 ];
+
+function runtimePolicySubject(
+  request: FastifyRequest,
+): RuntimePolicySubject {
+  const subject = requireKetoSubject(request);
+  const creator = authContextToCreator(request);
+  return {
+    ...subject,
+    creatorId: creator.id,
+  };
+}
 
 export async function runtimePolicyRoutes(fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
@@ -81,7 +96,7 @@ export async function runtimePolicyRoutes(fastify: FastifyInstance) {
           name: body.name,
           description: body.description,
           tools: body.tools ?? [],
-          subject: requireKetoSubject(request),
+          subject: runtimePolicySubject(request),
         });
         return await reply.status(201).send(policy);
       } catch (err) {
@@ -120,7 +135,7 @@ export async function runtimePolicyRoutes(fastify: FastifyInstance) {
       const teamId = requireCurrentTeamId(request, 'runtime policies');
       const items = await policies.list({
         teamId,
-        subject: requireKetoSubject(request),
+        subject: runtimePolicySubject(request),
       });
       return { items };
     },
@@ -152,7 +167,7 @@ export async function runtimePolicyRoutes(fastify: FastifyInstance) {
       const teamId = requireCurrentTeamId(request, 'runtime policies');
       return policies.get(request.params.policyId, {
         teamId,
-        subject: requireKetoSubject(request),
+        subject: runtimePolicySubject(request),
       });
     },
   );
@@ -185,7 +200,7 @@ export async function runtimePolicyRoutes(fastify: FastifyInstance) {
       try {
         return await policies.update(request.params.policyId, body, {
           teamId,
-          subject: requireKetoSubject(request),
+          subject: runtimePolicySubject(request),
         });
       } catch (err) {
         if (err instanceof UniqueViolationError) {
@@ -222,7 +237,7 @@ export async function runtimePolicyRoutes(fastify: FastifyInstance) {
       const teamId = requireCurrentTeamId(request, 'runtime policies');
       await policies.delete(request.params.policyId, {
         teamId,
-        subject: requireKetoSubject(request),
+        subject: runtimePolicySubject(request),
       });
       return reply.status(204).send(null);
     },
@@ -254,7 +269,7 @@ export async function runtimePolicyRoutes(fastify: FastifyInstance) {
       const teamId = requireCurrentTeamId(request, 'runtime policies');
       return policies.getProfilePolicies(request.params.profileId, {
         teamId,
-        subject: requireKetoSubject(request),
+        subject: runtimePolicySubject(request),
       });
     },
   );
@@ -287,7 +302,7 @@ export async function runtimePolicyRoutes(fastify: FastifyInstance) {
       await policies.setProfilePolicies(
         request.params.profileId,
         body.policyIds,
-        { teamId, subject: requireKetoSubject(request) },
+        { teamId, subject: runtimePolicySubject(request) },
       );
       return reply.status(204).send(null);
     },
