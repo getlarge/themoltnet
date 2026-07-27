@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.36.2](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.36.1...pi-extension-v0.36.2) (2026-07-27)
+
+
+### Bug Fixes
+
+* **pi:** retry provider 5xx errors in-session ([be7c457](https://github.com/getlarge/themoltnet/commit/be7c457f4ecd5ce4a49f1aefe0362fc153adf0a1))
+* **pi:** retry provider 5xx errors in-session ([5379764](https://github.com/getlarge/themoltnet/commit/53797649063fc0bbae44a57dae426da29583f89b))
+
 ## [0.36.1](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.36.0...pi-extension-v0.36.1) (2026-07-27)
 
 
