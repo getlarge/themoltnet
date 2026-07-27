@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.36.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.35.5...pi-extension-v0.36.0) (2026-07-27)
+
+
+### Features
+
+* **#1348:** tool-policy runtime enforcement (DB → Keto → service → REST → SDK → Pi gate → daemon) ([8e09023](https://github.com/getlarge/themoltnet/commit/8e09023f6400f64f78de228ab58f82a9cf229e3e))
+* **agent-daemon:** wire tool_call gate into the daemon runtime ([68aafb7](https://github.com/getlarge/themoltnet/commit/68aafb7b36f4a44e69652a70aaa8947ffd9c78c1))
+* **pi-extension:** tool_call enforcement engine (gate + resolver + extension) ([e3b4f92](https://github.com/getlarge/themoltnet/commit/e3b4f9204ff90b4b46ca0076d1bb1bca2a2b0308))
+
+
+### Bug Fixes
+
+* **pi-extension:** review batch 2 — arbitrary-code fail-closed + subagent gate ([bd451d0](https://github.com/getlarge/themoltnet/commit/bd451d01fd7b30d6d1ca69c5e4301efd14c0cc89))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.36.6
+    * @themoltnet/sdk bumped to 0.127.0
+
 ## [0.35.5](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.35.4...pi-extension-v0.35.5) (2026-07-26)
 
 

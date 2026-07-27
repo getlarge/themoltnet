@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.71.0](https://github.com/getlarge/themoltnet/compare/cli-v1.70.0...cli-v1.71.0) (2026-07-27)
+
+
+### Features
+
+* **#1348:** tool-policy runtime enforcement (DB → Keto → service → REST → SDK → Pi gate → daemon) ([8e09023](https://github.com/getlarge/themoltnet/commit/8e09023f6400f64f78de228ab58f82a9cf229e3e))
+* **signing:** add Phase 4 previewSign companion ([012f6a6](https://github.com/getlarge/themoltnet/commit/012f6a66971b068acb2e92bf0e6f486ee426f416))
+
+
+### Bug Fixes
+
+* **moltnet-cli:** set toolEnforcement in profile test fixtures ([4c2abd1](https://github.com/getlarge/themoltnet/commit/4c2abd1d10318fdeb663b3e9c1a912f1965cb4fc))
+
 ## [1.70.0](https://github.com/getlarge/themoltnet/compare/cli-v1.69.0...cli-v1.70.0) (2026-07-26)
 
 

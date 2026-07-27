@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.127.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.126.0...sdk-v0.127.0) (2026-07-27)
+
+
+### Features
+
+* **#1348:** tool-policy runtime enforcement (DB → Keto → service → REST → SDK → Pi gate → daemon) ([8e09023](https://github.com/getlarge/themoltnet/commit/8e09023f6400f64f78de228ab58f82a9cf229e3e))
+* **sdk:** runtimeProfiles.allowedTools + runtimePolicies namespace (client regen) ([b7a381d](https://github.com/getlarge/themoltnet/commit/b7a381d5e141283533fe100805dfe2fba84dc5c9))
+* **signing:** add Phase 4 previewSign companion ([012f6a6](https://github.com/getlarge/themoltnet/commit/012f6a66971b068acb2e92bf0e6f486ee426f416))
+* **signing:** add previewSign Console companion ([843ef0a](https://github.com/getlarge/themoltnet/commit/843ef0abef27f8062cc602f02d3163f4185bac2b))
+
 ## [0.126.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.125.0...sdk-v0.126.0) (2026-07-26)
 
 

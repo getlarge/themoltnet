@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.32.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.31.1...agent-daemon-v0.32.0) (2026-07-27)
+
+
+### Features
+
+* **#1348:** tool-policy runtime enforcement (DB → Keto → service → REST → SDK → Pi gate → daemon) ([8e09023](https://github.com/getlarge/themoltnet/commit/8e09023f6400f64f78de228ab58f82a9cf229e3e))
+* **agent-daemon:** wire tool_call gate into the daemon runtime ([68aafb7](https://github.com/getlarge/themoltnet/commit/68aafb7b36f4a44e69652a70aaa8947ffd9c78c1))
+
+
+### Bug Fixes
+
+* **pi-extension:** review batch 2 — arbitrary-code fail-closed + subagent gate ([bd451d0](https://github.com/getlarge/themoltnet/commit/bd451d01fd7b30d6d1ca69c5e4301efd14c0cc89))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.36.6
+    * @themoltnet/pi-extension bumped to 0.36.0
+    * @themoltnet/sdk bumped to 0.127.0
+
 ## [0.31.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.31.0...agent-daemon-v0.31.1) (2026-07-26)
 
 
