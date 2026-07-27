@@ -89,13 +89,16 @@ function renderPage() {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  return render(
-    <QueryClientProvider client={client}>
-      <MoltThemeProvider mode="dark">
-        <RuntimePoliciesPage />
-      </MoltThemeProvider>
-    </QueryClientProvider>,
-  );
+  return {
+    client,
+    ...render(
+      <QueryClientProvider client={client}>
+        <MoltThemeProvider mode="dark">
+          <RuntimePoliciesPage />
+        </MoltThemeProvider>
+      </QueryClientProvider>,
+    ),
+  };
 }
 
 describe('RuntimePoliciesPage', () => {
@@ -167,7 +170,14 @@ describe('RuntimePoliciesPage', () => {
       error: null,
     });
 
-    renderPage();
+    const { client } = renderPage();
+    const allowedToolsKey = [
+      {
+        _id: 'getRuntimeProfileAllowedTools',
+        path: { profileId: 'profile-1' },
+      },
+    ] as const;
+    client.setQueryData(allowedToolsKey, { allowedTools: ['read'] });
     await screen.findByDisplayValue('reader');
     fireEvent.change(screen.getByLabelText('Name'), {
       target: { value: 'inspector' },
@@ -194,6 +204,9 @@ describe('RuntimePoliciesPage', () => {
           },
         }),
       ),
+    );
+    await waitFor(() =>
+      expect(client.getQueryState(allowedToolsKey)?.isInvalidated).toBe(true),
     );
   });
 

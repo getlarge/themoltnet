@@ -8,7 +8,7 @@ import {
   getRuntimePolicyOptions,
   listRuntimePoliciesOptions,
 } from '@moltnet/api-client/query';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Badge,
   Button,
@@ -38,6 +38,10 @@ const EMPTY_POLICY: PolicyForm = {
   tools: [],
 };
 
+const ALLOWED_TOOLS_QUERY_ROOT = [
+  { _id: 'getRuntimeProfileAllowedTools' },
+] as const;
+
 type PolicySelection =
   | { kind: 'none' }
   | { kind: 'create' }
@@ -46,6 +50,7 @@ type PolicySelection =
 export function RuntimePoliciesPage() {
   const theme = useTheme();
   const isMobile = useIsMobile();
+  const queryClient = useQueryClient();
   const { selectedTeam, error: teamError, refreshTeams } = useTeam();
   const teamId = selectedTeam?.id;
   const canManage = canManageRuntime(selectedTeam?.role);
@@ -139,6 +144,9 @@ export function RuntimePoliciesPage() {
       }
       setSelection({ kind: 'existing', id: result.data.id });
       setForm(policyToForm(result.data));
+      await queryClient.invalidateQueries({
+        queryKey: ALLOWED_TOOLS_QUERY_ROOT,
+      });
       const listRefresh = await policiesQuery.refetch();
       if (listRefresh.error) {
         setFormError(
@@ -177,6 +185,9 @@ export function RuntimePoliciesPage() {
         );
       }
       setDeleteOpen(false);
+      await queryClient.invalidateQueries({
+        queryKey: ALLOWED_TOOLS_QUERY_ROOT,
+      });
       const refreshed = await policiesQuery.refetch();
       if (refreshed.error) {
         setSelection({ kind: 'none' });
