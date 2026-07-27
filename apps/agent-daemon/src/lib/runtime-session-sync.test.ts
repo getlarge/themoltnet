@@ -228,6 +228,7 @@ function makeDeps(input: {
       lastAttemptN: 1,
       lastTaskId: TASK_ID,
       runtimeProfileId: PROFILE_ID,
+      state: 'idle',
       taskType: 'freeform',
     },
     session: {

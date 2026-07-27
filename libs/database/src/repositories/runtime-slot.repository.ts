@@ -202,11 +202,16 @@ export function createRuntimeSlotRepository(db: Database) {
     runtimeProfileId: string,
   ): Promise<number> {
     const [profile] = await getExecutor(db)
-      .select({ sessionTtlSec: runtimeProfiles.sessionTtlSec })
+      .select({
+        sessionTtlSec: runtimeProfiles.sessionTtlSec,
+        workspaceTtlSec: runtimeProfiles.workspaceTtlSec,
+      })
       .from(runtimeProfiles)
       .where(eq(runtimeProfiles.id, runtimeProfileId))
       .limit(1);
-    return profile?.sessionTtlSec ?? DEFAULT_RUNTIME_SLOT_TTL_SEC;
+    return profile
+      ? Math.min(profile.sessionTtlSec, profile.workspaceTtlSec)
+      : DEFAULT_RUNTIME_SLOT_TTL_SEC;
   }
 
   async function resolveSlotLifetimeSecForIdentity(

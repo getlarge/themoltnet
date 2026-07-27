@@ -184,13 +184,17 @@ export class AutoParentMemoryProvider extends MemoryProvider {
  * Resolve the main worktree root (where .moltnet/ lives — it's untracked,
  * only exists in the main worktree, not in git worktrees).
  */
-export function findMainWorktree(): string {
+export function findMainWorktree(startPath = process.cwd()): string {
   let output: string;
   try {
-    output = execFileSync('git', ['worktree', 'list', '--porcelain'], {
-      encoding: 'utf8',
-      stdio: 'pipe',
-    });
+    output = execFileSync(
+      'git',
+      ['-C', startPath, 'worktree', 'list', '--porcelain'],
+      {
+        encoding: 'utf8',
+        stdio: 'pipe',
+      },
+    );
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     throw new Error(

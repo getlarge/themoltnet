@@ -137,6 +137,67 @@ describe('createExecutionPlanCache', () => {
     }
   });
 
+  it('hydrates a retry from the previous attempt into a fresh workspace', async () => {
+    const mountRoot = mkdtempSync(join(tmpdir(), 'daemon-exec-plan-retry-'));
+    tempRoots.push(mountRoot);
+    const stateDirs = {
+      rootDir: join(mountRoot, '.moltnet', 'd'),
+      piSessionsDir: join(mountRoot, '.moltnet', 'd', 'pi-sessions'),
+    };
+    const priorSessionDir = join(stateDirs.piSessionsDir, 'prior-attempt');
+    mkdirSync(priorSessionDir, { recursive: true });
+    const priorSessionPath = join(priorSessionDir, 'session.jsonl');
+    writeFileSync(priorSessionPath, '{}\n');
+
+    const slotStore = new InMemoryRuntimeSlotStore();
+    await slotStore.beginSlot({
+      teamId: TEAM_ID,
+      agentName: 'a',
+      runtimeProfileId: PROFILE_ID,
+      provider: 'p',
+      model: 'm',
+      slotKey: 'prior',
+      taskType: 'freeform',
+      sessionDir: priorSessionDir,
+      sessionPath: priorSessionPath,
+      workspaceId: 'daemon-task-retry-attempt-1',
+      worktreePath: join(mountRoot, '.worktrees', 'prior'),
+      worktreeBranch: 'task/freeform-11111111',
+      lastTaskId: '11111111-1111-4111-8111-111111111111',
+      lastAttemptN: 1,
+    });
+    const cache = createExecutionPlanCache({
+      stateDirs,
+      slotIdentity: {
+        agentName: 'a',
+        runtimeInstanceId: 'worker-b',
+        runtimeProfileId: PROFILE_ID,
+      },
+      warmSessionTtlSec: 300,
+      slotRegistry: slotStore,
+    });
+
+    const plan = await cache.getOrCreate({
+      attemptN: 2,
+      task: {
+        id: '11111111-1111-4111-8111-111111111111',
+        teamId: TEAM_ID,
+        taskType: 'freeform',
+        correlationId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        input: {
+          brief: 'resume after provider failure',
+          execution: { workspace: 'dedicated_worktree' },
+        },
+      } as unknown as Task,
+    });
+
+    expect(plan.workspaceId).toBe(
+      'daemon-task-11111111-1111-4111-8111-111111111111-attempt-2',
+    );
+    expect(plan.worktreeBranch).toBe('task/freeform-11111111');
+    expect(plan.sessionPersistence?.forkFromSessionPath).toBe(priorSessionPath);
+  });
+
   it('copies producer scratch workspace into a fresh judge scratch workspace and forks its session', async () => {
     const mountRoot = mkdtempSync(join(tmpdir(), 'daemon-exec-plan-'));
     tempRoots.push(mountRoot);
@@ -356,7 +417,9 @@ describe('createExecutionPlanCache', () => {
     });
 
     expect(plan.workspaceMode).toBe('dedicated_worktree');
-    expect(plan.workspaceId).toBe('task-parent');
+    expect(plan.workspaceId).toBe(
+      'daemon-task-22222222-2222-4222-8222-222222222222-attempt-1',
+    );
     expect(plan.worktreeBranch).toBe('feat/parent');
     expect(plan.sessionPersistence?.forkFromSessionPath).toBe(
       producerSessionPath,
@@ -574,7 +637,7 @@ describe('createExecutionPlanCache', () => {
 
     expect(plan.workspaceMode).toBe('dedicated_worktree');
     expect(plan.workspaceId).toBe(
-      'extend-11111111-1111-4111-8111-111111111111-attempt-1',
+      'daemon-task-22222222-2222-4222-8222-222222222222-attempt-1',
     );
     expect(plan.worktreeBranch).toBe('feat/parent');
     expect(plan.worktreeBaseRef).toBeUndefined();

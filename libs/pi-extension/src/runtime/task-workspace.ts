@@ -82,7 +82,7 @@ export function prepareTaskWorkspace(
     };
   }
 
-  const mainRepo = findMainWorktreeForDedicatedTask();
+  const mainRepo = findMainWorktreeForDedicatedTask(requestedMountPath);
   const workspaceId = executionPlan?.workspaceId ?? `task-${task.id}`;
   const worktreeDir = resolveTaskWorktreePath(mainRepo, workspaceId);
 
@@ -215,9 +215,9 @@ function gitRefExists(mainRepo: string, ref: string): boolean {
   }
 }
 
-function findMainWorktreeForDedicatedTask(): string {
+function findMainWorktreeForDedicatedTask(startPath: string): string {
   try {
-    return findMainWorktree();
+    return findMainWorktree(startPath);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     throw new Error(

@@ -38,6 +38,7 @@ export interface ListedRuntimeSlotContext {
     lastAttemptN: number;
     lastTaskId: string;
     runtimeProfileId: string | null;
+    state: 'active' | 'idle';
     taskType: string;
   };
   session: ResolvedRuntimeSlotContext['session'];
@@ -137,6 +138,7 @@ export function createExecutionPlanCache(args: {
         args.slotIdentity,
         args.warmSessionTtlSec,
         args.workspacePolicy,
+        claimedTask.attemptN,
       );
       const plan = await maybeAttachWarmSlotContext(
         claimedTask,
@@ -218,7 +220,6 @@ type WarmSlotResolution =
       kind: 'found';
       producerSlot: ResolvedRuntimeSlotContext;
       sessionPath: string;
-      workspacePath: string;
     }
   | {
       kind: 'remote-session';
@@ -287,16 +288,10 @@ async function resolveWarmSlot(
       );
   if (!sourceSessionPath) return { kind: 'no-session-path' };
 
-  const copiedWorkspaceSource = resolveProducerWorkspaceCopySource(
-    producerContext,
-    stateDirs,
-  );
-
   return {
     kind: 'found',
     producerSlot: producerContext,
     sessionPath: sourceSessionPath,
-    workspacePath: copiedWorkspaceSource,
   };
 }
 
@@ -319,7 +314,15 @@ async function maybeAttachWarmSlotContext(
       }
     ).continueFrom;
 
-    if (!continueFrom) return basePlan;
+    if (!continueFrom) {
+      return maybeAttachRetrySession(
+        claimedTask,
+        basePlan,
+        stateDirs,
+        slotRegistry,
+        runtimeSessionStore,
+      );
+    }
 
     const resolution = await resolveWarmSlot(
       slotRegistry,
@@ -376,7 +379,7 @@ async function maybeAttachWarmSlotContext(
         ...basePlan,
         workspaceMode: 'dedicated_worktree',
         workspaceId: recoveredBranch
-          ? `extend-${continueFrom.taskId}-attempt-${continueFrom.attemptN}`
+          ? buildAttemptWorkspaceId(claimedTask)
           : null,
         worktreeBranch: recoveredBranch,
         sessionPersistence: {
@@ -424,8 +427,10 @@ async function maybeAttachWarmSlotContext(
       };
     }
 
-    // extend (default): share the parent's branch/workspace. The producer slot
-    // has already been resolved and checked against local session state.
+    // Extend (default): continue on the parent's branch in a fresh attempt
+    // worktree. The producer's attempt-scoped worktree is disposed when its
+    // executor finishes; only the branch and checkpointed session cross the
+    // attempt boundary.
     //
     // A null workspace here is legitimate, not a degraded continuation: it
     // means the producer ran in shared_mount (no dedicated worktree), so there
@@ -435,14 +440,14 @@ async function maybeAttachWarmSlotContext(
     return {
       ...basePlan,
       workspaceMode: 'dedicated_worktree',
-      workspaceId: resolution.producerSlot.workspace?.workspaceId ?? null,
+      workspaceId: parentBranch ? buildAttemptWorkspaceId(claimedTask) : null,
       worktreeBranch: parentBranch,
       sessionPersistence: {
         sessionDir,
         forkFromSessionPath: resolution.sessionPath,
       },
-      // Importantly: NO workspaceSeed. Continuation mounts the parent's
-      // worktree branch directly via worktreeBranch; we do not copy.
+      // Importantly: NO workspaceSeed. Git recreates the checkout from the
+      // parent's branch; the producer directory itself is not retained.
     };
   }
 
@@ -498,11 +503,61 @@ async function maybeAttachWarmSlotContext(
     worktreeBranch: null,
     workspaceKind: 'scratch',
     workspaceSeed: {
-      copyFromPath: resolution.workspacePath,
+      copyFromPath: resolveProducerWorkspaceCopySource(
+        resolution.producerSlot,
+        stateDirs,
+      ),
       source: 'producer',
     },
     sessionPersistence: {
       sessionDir: `${stateDirs.piSessionsDir}/judge-${claimedTask.task.id}-attempt-${claimedTask.attemptN}`,
+      forkFromSessionPath: resolution.sessionPath,
+    },
+  };
+}
+
+function buildAttemptWorkspaceId(claimedTask: CachedTask): string {
+  return `daemon-task-${claimedTask.task.id}-attempt-${claimedTask.attemptN}`;
+}
+
+async function maybeAttachRetrySession(
+  claimedTask: CachedTask,
+  basePlan: DaemonTaskExecutionPlan,
+  stateDirs: DaemonStateDirs,
+  slotRegistry: RuntimeSlotStore,
+  runtimeSessionStore: RuntimeSessionStore,
+): Promise<DaemonTaskExecutionPlan> {
+  if (claimedTask.attemptN <= 1 || !basePlan.sessionPersistence?.sessionDir) {
+    return basePlan;
+  }
+
+  const resolution = await resolveWarmSlot(
+    slotRegistry,
+    runtimeSessionStore,
+    claimedTask.task.teamId,
+    claimedTask.task.id,
+    claimedTask.attemptN - 1,
+    stateDirs,
+  );
+  if (resolution.kind === 'missing' || resolution.kind === 'no-session-path') {
+    return basePlan;
+  }
+
+  const sourceSessionDir = dirname(resolution.sessionPath);
+  const targetSessionDir = basePlan.sessionPersistence.sessionDir;
+  if (sourceSessionDir === targetSessionDir) {
+    return basePlan;
+  }
+
+  return {
+    ...basePlan,
+    worktreeBranch:
+      resolution.kind === 'found'
+        ? (resolution.producerSlot.workspace?.worktreeBranch ??
+          basePlan.worktreeBranch)
+        : basePlan.worktreeBranch,
+    sessionPersistence: {
+      sessionDir: targetSessionDir,
       forkFromSessionPath: resolution.sessionPath,
     },
   };

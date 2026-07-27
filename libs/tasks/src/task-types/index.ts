@@ -264,7 +264,7 @@ export const BUILT_IN_TASK_TYPES = {
     outputKind: 'artifact',
     resumable: true,
     workspaceMode: 'shared_mount',
-    workspaceScope: 'session',
+    workspaceScope: 'attempt',
     sessionScope: 'correlation',
     acceptsInputWorkspaceOverride: true,
     requiresReferences: false,

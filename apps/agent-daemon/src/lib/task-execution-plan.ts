@@ -57,6 +57,7 @@ export function buildDaemonTaskExecutionPlan(
   identity: DaemonSlotIdentity,
   warmSessionTtlSec: number,
   runtimeProfileWorkspacePolicy: RuntimeProfileWorkspacePolicy = {},
+  attemptN?: number,
 ): DaemonTaskExecutionPlan {
   const descriptor = deriveTaskSessionDescriptor(task);
   const workspaceMode = resolveTaskWorkspaceMode(
@@ -64,7 +65,10 @@ export function buildDaemonTaskExecutionPlan(
     descriptor.policy,
     runtimeProfileWorkspacePolicy,
   );
-  const slotKey = warmSessionTtlSec > 0 ? descriptor.sessionKey : null;
+  const slotKey =
+    warmSessionTtlSec > 0 && descriptor.sessionKey
+      ? buildRuntimeSlotKey(descriptor.sessionKey, identity.runtimeInstanceId)
+      : null;
   const workspaceScope =
     slotKey !== null ? descriptor.policy.workspaceScope : 'attempt';
   const slotId = slotKey ? buildDaemonSlotId(identity, slotKey) : null;
@@ -78,6 +82,7 @@ export function buildDaemonTaskExecutionPlan(
           sessionKey: slotId,
           workspaceScope,
           sessionPersistence: sessionDir ? { sessionDir } : null,
+          attemptN,
         })
       : null;
 
@@ -98,14 +103,26 @@ export function buildDaemonSlotId(
   identity: DaemonSlotIdentity,
   slotKey: string,
 ): string {
-  return [
+  const parts = [
     'agent',
     slugSlotIdentityComponent(identity.agentName),
     'profile',
     slugSlotIdentityComponent(identity.runtimeProfileId),
-    'key',
-    slotKey,
-  ].join(':');
+  ];
+  if (identity.runtimeInstanceId) {
+    parts.push('worker', slugSlotIdentityComponent(identity.runtimeInstanceId));
+  }
+  parts.push('key', slotKey);
+  return parts.join(':');
+}
+
+function buildRuntimeSlotKey(
+  logicalSessionKey: string,
+  runtimeInstanceId: string | undefined,
+): string {
+  return runtimeInstanceId
+    ? `${logicalSessionKey}:worker:${slugSlotIdentityComponent(runtimeInstanceId)}`
+    : logicalSessionKey;
 }
 
 function slugSlotIdentityComponent(input: string): string {
@@ -242,6 +259,7 @@ function resolveTaskWorkspaceId(
     sessionKey: string | null;
     workspaceScope: 'attempt' | 'session';
     sessionPersistence?: { sessionDir: string } | null;
+    attemptN?: number;
   },
 ): string {
   if (
@@ -250,5 +268,7 @@ function resolveTaskWorkspaceId(
   ) {
     return `session-${encodeURIComponent(executionPlan.sessionKey)}`;
   }
-  return `task-${task.id}`;
+  return executionPlan.attemptN
+    ? `daemon-task-${task.id}-attempt-${executionPlan.attemptN}`
+    : `task-${task.id}`;
 }

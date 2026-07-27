@@ -8,6 +8,50 @@ describe('buildDaemonTaskExecutionPlan', () => {
     runtimeProfileId: 'dddddddd-0000-4000-8000-000000000004',
   } as const;
 
+  it('isolates concurrent workers while keeping the logical correlation key', () => {
+    const task = {
+      id: '11111111-1111-4111-8111-111111111111',
+      taskType: 'freeform',
+      title: null,
+      correlationId: '22222222-2222-4222-8222-222222222222',
+      input: {
+        brief: 'Fix the daemon',
+        execution: { workspace: 'dedicated_worktree' },
+      },
+    } as const;
+    const state = {
+      rootDir: '/repo/.moltnet/d',
+      piSessionsDir: '/repo/.moltnet/d/pi-sessions',
+    };
+
+    const workerA = buildDaemonTaskExecutionPlan(
+      task,
+      state,
+      { ...identity, runtimeInstanceId: 'worker-a' },
+      1800,
+      {},
+      1,
+    );
+    const workerB = buildDaemonTaskExecutionPlan(
+      task,
+      state,
+      { ...identity, runtimeInstanceId: 'worker-b' },
+      1800,
+      {},
+      1,
+    );
+
+    expect(workerA.descriptor.sessionKey).toBe(workerB.descriptor.sessionKey);
+    expect(workerA.slotKey).not.toBe(workerB.slotKey);
+    expect(workerA.sessionPersistence?.sessionDir).not.toBe(
+      workerB.sessionPersistence?.sessionDir,
+    );
+    expect(workerA.workspaceScope).toBe('attempt');
+    expect(workerA.workspaceId).toBe(
+      'daemon-task-11111111-1111-4111-8111-111111111111-attempt-1',
+    );
+  });
+
   it('maps resumable fulfill_brief tasks to a persistent Pi session dir', () => {
     const out = buildDaemonTaskExecutionPlan(
       {
@@ -222,11 +266,16 @@ describe('buildDaemonTaskExecutionPlan', () => {
       },
       identity,
       1800,
+      {},
+      1,
     );
 
     expect(out.workspaceMode).toBe('dedicated_worktree');
     expect(out.worktreeBranch).toBe('task/freeform-bbbbbbbb');
-    expect(out.workspaceScope).toBe('session');
+    expect(out.workspaceScope).toBe('attempt');
+    expect(out.workspaceId).toBe(
+      'daemon-task-bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb-attempt-1',
+    );
   });
 
   it('honors freeform input.execution.workspace=none as scratch_mount', () => {
@@ -247,11 +296,16 @@ describe('buildDaemonTaskExecutionPlan', () => {
       },
       identity,
       1800,
+      {},
+      1,
     );
 
     expect(out.workspaceMode).toBe('scratch_mount');
     expect(out.worktreeBranch).toBeNull();
-    expect(out.workspaceScope).toBe('session');
+    expect(out.workspaceScope).toBe('attempt');
+    expect(out.workspaceId).toBe(
+      'daemon-task-dddddddd-dddd-4ddd-8ddd-dddddddddddd-attempt-1',
+    );
   });
 
   it('uses the runtime profile default when task input has no workspace override', () => {
@@ -273,11 +327,12 @@ describe('buildDaemonTaskExecutionPlan', () => {
         defaultWorkspaceMode: 'none',
         allowedWorkspaceModes: ['none', 'shared_mount'],
       },
+      1,
     );
 
     expect(out.workspaceMode).toBe('scratch_mount');
     expect(out.workspaceId).toBe(
-      'session-agent%3Alegreffier%3Aprofile%3Adddddddd-0000-4000-8000-000000000004%3Akey%3Afreeform%3Acorrelation%3A11111111-2222-4333-8444-555555555555',
+      'daemon-task-ffffffff-ffff-4fff-8fff-ffffffffffff-attempt-1',
     );
   });
 

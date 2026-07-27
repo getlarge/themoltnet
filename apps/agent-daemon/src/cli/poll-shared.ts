@@ -23,7 +23,10 @@ import {
   createGhCliClient,
   makePrBodyAnchorWriter,
 } from '../lib/correlation.js';
-import type { DaemonSlotIdentity } from '../lib/daemon-slot-identity.js';
+import {
+  createRuntimeInstanceId,
+  type DaemonSlotIdentity,
+} from '../lib/daemon-slot-identity.js';
 import {
   createExecutionPlanCache,
   ProducerContextResolutionError,
@@ -48,6 +51,7 @@ import {
   validateRuntimeProfilePrerequisites,
 } from '../lib/runtime-profile.js';
 import { createRuntimeProfileRetryTriage } from '../lib/runtime-profile-retry-triage.js';
+import { reapRuntimeSlotResources } from '../lib/runtime-resource-reaper.js';
 import {
   applyRuntimeSessionUploadFailure,
   createApiRuntimeSessionStore,
@@ -183,7 +187,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     agent: ctx.agent,
     profiles: profileValues,
     teamId,
-    cwd: process.cwd(),
+    cwd: ctx.agentRootDir,
   });
   for (const profile of profiles) {
     validateRuntimeProfilePrerequisites(
@@ -199,6 +203,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
   const sourceAttemptResolver = createApiSourceAttemptResolver({
     agent: ctx.agent,
   });
+  const runtimeInstanceId = createRuntimeInstanceId();
   const runtimes = new Map<string, ProfileRuntime>();
   for (const profile of profiles) {
     const common = parseCommonOptions(values, {
@@ -221,6 +226,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     const slotIdentity: DaemonSlotIdentity = {
       agentName: common.agent,
       runtimeProfileId: profile.id,
+      runtimeInstanceId,
     };
     const executionPlans = createExecutionPlanCache({
       stateDirs,
@@ -351,6 +357,51 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     },
     'agent-daemon.starting',
   );
+
+  let reaperRunning = false;
+  const reapRuntimeResources = async () => {
+    if (reaperRunning) return;
+    reaperRunning = true;
+    try {
+      for (const profile of profiles) {
+        const selected = requireRuntime(runtimes, profile.id);
+        const result = await reapRuntimeSlotResources(
+          {
+            runtimeSlotStore: slotRegistry,
+            taskReader: ctx.agent.tasks,
+          },
+          {
+            agentName: selected.common.agent,
+            mainWorktree: resolveMainWorktree(selected.sandbox.rootDir),
+            runtimeProfileId: profile.id,
+            sessionRootDir: selected.stateDirs.piSessionsDir,
+            scratchRootDir: join(selected.stateDirs.rootDir, 'task-workspaces'),
+            teamId,
+          },
+        );
+        if (
+          result.removedSessions > 0 ||
+          result.removedWorkspaces > 0 ||
+          result.failed > 0 ||
+          result.unsafePaths > 0
+        ) {
+          rootLogger.info(
+            { ...result, runtimeProfileId: profile.id },
+            'agent-daemon.runtime_resources_reaped',
+          );
+        }
+      }
+    } catch (err) {
+      rootLogger.warn({ err }, 'agent-daemon.runtime_resource_reap_failed');
+    } finally {
+      reaperRunning = false;
+    }
+  };
+  await reapRuntimeResources();
+  const reaperTimer = setInterval(() => {
+    void reapRuntimeResources();
+  }, 60_000);
+  reaperTimer.unref();
 
   const outputs: TaskOutput[] = [];
   try {
@@ -590,6 +641,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
             workspaceId: executionPlan.workspaceId,
             worktreePath: resolveRecordedWorkspacePath(
               stateDirs.rootDir,
+              sandbox.rootDir,
               executionPlan,
             ),
             worktreeBranch: executionPlan.worktreeBranch,
@@ -665,6 +717,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     const anyFailed = drained.some((o) => o.status !== 'completed');
     return anyFailed ? 1 : 0;
   } finally {
+    clearInterval(reaperTimer);
     signalHandlers.dispose();
     await slotRegistry.close();
     await otelShutdown();
@@ -674,6 +727,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
 
 function resolveRecordedWorkspacePath(
   stateRootDir: string,
+  mountPath: string,
   executionPlan: {
     workspaceId: string | null;
     workspaceMode: 'shared_mount' | 'dedicated_worktree' | 'scratch_mount';
@@ -682,7 +736,19 @@ function resolveRecordedWorkspacePath(
   if (!executionPlan.workspaceId) return null;
   return executionPlan.workspaceMode === 'scratch_mount'
     ? join(stateRootDir, 'task-workspaces', executionPlan.workspaceId)
-    : join(findMainWorktree(), '.worktrees', executionPlan.workspaceId);
+    : join(
+        findMainWorktree(mountPath),
+        '.worktrees',
+        executionPlan.workspaceId,
+      );
+}
+
+function resolveMainWorktree(mountPath: string): string | null {
+  try {
+    return findMainWorktree(mountPath);
+  } catch {
+    return null;
+  }
 }
 
 function runtimeForClaimedTask(

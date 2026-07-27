@@ -116,6 +116,7 @@ export function createApiRuntimeSlotStore(args: {
           lastAttemptN: resolved.slot.lastAttemptN,
           lastTaskId: resolved.slot.lastTaskId,
           runtimeProfileId: resolved.slot.runtimeProfileId,
+          state: resolved.slot.state,
           taskType: resolved.slot.taskType,
         },
         session: resolved.slot.sessionDir
