@@ -13,11 +13,13 @@ import type { ParallelBriefsInput } from './types.js';
 const HELP = `moltnet-parallel-brief-runner — fan out N freeform briefs in parallel and join them with a server-gated summary continuation.
 
 Usage:
-  moltnet-parallel-brief-runner --team <uuid> --diary <uuid> --database-url <url> \\
+  PARALLEL_BRIEFS_DATABASE_URL=<url> moltnet-parallel-brief-runner --team <uuid> --diary <uuid> \\
     --brief "first brief" --brief "second brief" [--summary "how to combine"] \\
     [--queue <name>] [--agent-dir <path>] [--poll-interval <sec>] [--concurrency <n>]
 
-Repeat --brief for each parallel task. Requires an Absurd-initialized Postgres at --database-url.`;
+Repeat --brief for each parallel task. The Absurd-initialized Postgres URL is read
+from the PARALLEL_BRIEFS_DATABASE_URL environment variable — not argv — so the
+credential is not exposed via shell history or process listings.`;
 
 interface CliConfig {
   databaseUrl: string;
@@ -30,7 +32,6 @@ function parseArgs(argv: string[]): CliConfig {
   const briefs: string[] = [];
   let teamId = '';
   let diaryId = '';
-  let databaseUrl = '';
   let summaryBrief: string | undefined;
   let queueName: string | undefined;
   let agentDir: string | undefined;
@@ -58,9 +59,6 @@ function parseArgs(argv: string[]): CliConfig {
       case '--diary':
         diaryId = next();
         break;
-      case '--database-url':
-        databaseUrl = next();
-        break;
       case '--brief':
         briefs.push(next());
         break;
@@ -84,9 +82,19 @@ function parseArgs(argv: string[]): CliConfig {
     }
   }
 
+  // Read the credential-bearing Postgres URL from a protected env var rather
+  // than argv, so it is not exposed through shell history or process listings.
+  // This CLI entrypoint has no config module; env is the secret source here.
+  // eslint-disable-next-line no-restricted-syntax -- CLI reads DB URL secret from env by design (PR #1674)
+  const databaseUrl = process.env.PARALLEL_BRIEFS_DATABASE_URL ?? '';
+
   if (!teamId) throw new Error('--team is required');
   if (!diaryId) throw new Error('--diary is required');
-  if (!databaseUrl) throw new Error('--database-url is required');
+  if (!databaseUrl) {
+    throw new Error(
+      'PARALLEL_BRIEFS_DATABASE_URL environment variable is required',
+    );
+  }
   if (briefs.length === 0) throw new Error('at least one --brief is required');
 
   return {

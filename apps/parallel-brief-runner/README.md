@@ -39,18 +39,19 @@ freeform output. The summary task additionally receives the brief task outputs a
 ## CLI
 
 ```bash
-pnpm --filter @themoltnet/parallel-brief-runner cli \
+PARALLEL_BRIEFS_DATABASE_URL="postgres://…" \
+  pnpm --filter @themoltnet/parallel-brief-runner cli \
   --team <uuid> --diary <uuid> \
-  --database-url "$PARALLEL_BRIEFS_DATABASE_URL" \
   --brief "summarize the auth module" \
   --brief "summarize the task-service" \
   --summary "produce a combined architecture note"
 ```
 
-The `--database-url` must point at an Absurd-initialized Postgres (`absurdctl init`
-
-- `absurdctl create-queue parallel-briefs`), the same setup documented in
-  `apps/issue-lifecycle/README.md`.
+The Postgres URL is read from the `PARALLEL_BRIEFS_DATABASE_URL` environment
+variable (not argv, so the credential is not exposed via shell history or
+process listings). It must point at an Absurd-initialized Postgres (`absurdctl
+init` + `absurdctl create-queue parallel-briefs`), the same setup documented in
+`apps/issue-lifecycle/README.md`.
 
 ## Tests
 
