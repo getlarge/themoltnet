@@ -21,13 +21,14 @@ import {
   sql,
 } from 'drizzle-orm';
 
+import { acquireTransactionAdvisoryLock } from '../advisory-lock.js';
 import type { Database } from '../db.js';
 import {
   type NewSigningRequest,
   type SigningRequest,
   signingRequests,
 } from '../schema.js';
-import { getExecutor, hasActiveTransaction } from '../transaction-context.js';
+import { getExecutor } from '../transaction-context.js';
 
 export type SigningRequestStatus = SigningRequest['status'];
 
@@ -362,20 +363,25 @@ export function createSigningRequestRepository(db: Database) {
     },
 
     async acquirePendingCreateLock(agentId: string): Promise<void> {
-      if (!hasActiveTransaction()) {
-        throw new Error(
-          'acquirePendingCreateLock must be called inside a TransactionRunner-managed transaction; pg_advisory_xact_lock has no effect outside one',
-        );
-      }
-      const key = `signing-request:create:${agentId}`;
-      await getExecutor(db).execute(
-        sql`SELECT pg_advisory_xact_lock(hashtextextended(${key}::text, 0::bigint))`,
+      await acquireTransactionAdvisoryLock(
+        db,
+        'signing-request:create',
+        agentId,
+        'acquirePendingCreateLock',
       );
     },
 
-    async countActivePendingByAgent(agentId: string): Promise<number> {
-      const [{ value }] = await getExecutor(db)
-        .select({ value: count() })
+    async getActivePendingSummaryByAgent(agentId: string): Promise<{
+      count: number;
+      earliestExpiresAt: Date | null;
+    }> {
+      const [summary] = await getExecutor(db)
+        .select({
+          count: count(),
+          earliestExpiresAt: sql<
+            string | null
+          >`min(${signingRequests.expiresAt})`,
+        })
         .from(signingRequests)
         .where(
           and(
@@ -385,7 +391,13 @@ export function createSigningRequestRepository(db: Database) {
           ),
         );
 
-      return value;
+      return {
+        count: summary.count,
+        earliestExpiresAt:
+          summary.earliestExpiresAt === null
+            ? null
+            : new Date(summary.earliestExpiresAt),
+      };
     },
 
     async expireDelegated(now = new Date(), limit = 100): Promise<number> {

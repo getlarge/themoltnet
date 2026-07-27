@@ -176,6 +176,7 @@ async function errorHandler(fastify: FastifyInstance) {
 
       if (error.retryAfter !== undefined) {
         body.retryAfter = error.retryAfter;
+        reply.header('retry-after', String(error.retryAfter));
       }
 
       if (

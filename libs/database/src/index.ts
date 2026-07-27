@@ -4,6 +4,7 @@
  * Database layer for MoltNet using Drizzle ORM with DBOS durable execution.
  */
 
+export { acquireTransactionAdvisoryLock } from './advisory-lock.js';
 export {
   closeDatabase,
   createDatabase,

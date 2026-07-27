@@ -62,6 +62,7 @@ vi.mock('@moltnet/signing-workflows', async (importOriginal) => {
 const OWNER_ID = '550e8400-e29b-41d4-a716-446655440000';
 const OTHER_AGENT_ID = '660e8400-e29b-41d4-a716-446655440001';
 const REQUEST_ID = '990e8400-e29b-41d4-a716-446655440010';
+const MAX_PENDING_SIGNING_REQUESTS = 10;
 
 const VALID_AUTH_CONTEXT: AuthContext = {
   subjectType: 'agent',
@@ -101,8 +102,12 @@ function createSigningRepo() {
     findById: vi.fn(),
     list: vi.fn(),
     setWorkflowId: vi.fn(),
+    completeAgentRequest: vi.fn(),
     acquirePendingCreateLock: vi.fn(),
-    countActivePendingByAgent: vi.fn().mockResolvedValue(0),
+    getActivePendingSummaryByAgent: vi.fn().mockResolvedValue({
+      count: 0,
+      earliestExpiresAt: null,
+    }),
   };
 }
 
@@ -158,6 +163,7 @@ function createApp(
     } as unknown as VoucherRepository,
     signingRequestRepository:
       signingRepo as unknown as SigningRequestRepository,
+    maxPendingSigningRequests: MAX_PENDING_SIGNING_REQUESTS,
     dataSource: {
       client: { __mock: 'transactionalClient' },
       runTransaction: vi.fn().mockImplementation(async (fn) => fn()),
@@ -222,6 +228,7 @@ describe('Signing request routes', () => {
   let signingRepo: ReturnType<typeof createSigningRepo>;
 
   beforeEach(async () => {
+    vi.mocked(DBOS.startWorkflow).mockClear();
     signingRepo = createSigningRepo();
     app = await createApp(signingRepo);
   });
@@ -281,7 +288,10 @@ describe('Signing request routes', () => {
     });
 
     it('returns 429 when the durable pending cap is reached', async () => {
-      signingRepo.countActivePendingByAgent.mockResolvedValue(10);
+      signingRepo.getActivePendingSummaryByAgent.mockResolvedValue({
+        count: MAX_PENDING_SIGNING_REQUESTS,
+        earliestExpiresAt: new Date(Date.now() + 120_000),
+      });
 
       const response = await app.inject({
         method: 'POST',
@@ -291,9 +301,13 @@ describe('Signing request routes', () => {
       });
 
       expect(response.statusCode).toBe(429);
-      expect(response.json()).toEqual(
+      const body = response.json();
+      expect(Number(response.headers['retry-after'])).toBeGreaterThan(0);
+      expect(Number(response.headers['retry-after'])).toBeLessThanOrEqual(120);
+      expect(body).toEqual(
         expect.objectContaining({
           code: 'SIGNING_REQUEST_LIMIT_REACHED',
+          retryAfter: Number(response.headers['retry-after']),
         }),
       );
       expect(signingRepo.create).not.toHaveBeenCalled();

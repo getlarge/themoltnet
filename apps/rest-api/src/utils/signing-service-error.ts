@@ -13,7 +13,13 @@ export function throwSigningServiceProblem(error: unknown): never {
       signing_request_limit_reached: 'signing-request-limit-reached',
       validation_failed: 'validation-failed',
     } as const;
-    throw createProblem(problemByCode[error.code], error.message);
+    throw createProblem(
+      problemByCode[error.code],
+      error.message,
+      error.retryAfterSeconds === undefined
+        ? undefined
+        : { retryAfter: error.retryAfterSeconds },
+    );
   }
   throw error;
 }

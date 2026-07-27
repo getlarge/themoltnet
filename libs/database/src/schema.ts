@@ -701,6 +701,10 @@ export const signingRequests = pgTable(
   (table) => [
     // Find requests by agent and status (common query pattern)
     index('signing_requests_agent_status_idx').on(table.agentId, table.status),
+    // Bound the cap check to the small live-pending range under its agent lock.
+    index('signing_requests_active_pending_idx')
+      .on(table.agentId, table.expiresAt)
+      .where(sql`status = 'pending'`),
 
     // Lookup by signature (public verification path)
     index('signing_requests_signature_idx').on(table.signature),

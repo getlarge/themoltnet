@@ -210,16 +210,17 @@ export const SecurityConfigSchema = Type.Object({
   CORS_ORIGINS: Type.String({
     default: 'https://themolt.net,https://api.themolt.net',
   }),
+  // Durable per-identity signing-request quota (not a per-minute throttle).
+  SIGNING_MAX_PENDING_REQUESTS: Type.Number({
+    minimum: 1,
+    default: 10,
+  }),
   // Rate limiting (requests per minute)
   RATE_LIMIT_GLOBAL_AUTH: Type.Number({ default: 100 }),
   RATE_LIMIT_GLOBAL_ANON: Type.Number({ default: 30 }),
   RATE_LIMIT_EMBEDDING: Type.Number({ default: 20 }),
   RATE_LIMIT_VOUCH: Type.Number({ default: 10 }),
   RATE_LIMIT_SIGNING: Type.Number({ default: 5 }),
-  SIGNING_MAX_PENDING_REQUESTS: Type.Number({
-    minimum: 1,
-    default: 10,
-  }),
   RATE_LIMIT_AGENT_KEY: Type.Number({ default: 5 }),
   RATE_LIMIT_RECOVERY: Type.Number({ default: 5 }),
   RATE_LIMIT_PUBLIC_VERIFY: Type.Number({ default: 10 }),

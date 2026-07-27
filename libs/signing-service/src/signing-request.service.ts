@@ -49,6 +49,24 @@ function requester(actor: AuthContext) {
   } as const;
 }
 
+async function startAgentSigningWorkflow(input: {
+  id: string;
+  agentId: string;
+  message: string;
+  nonce: string;
+  verificationMethod: VerificationMethod;
+}) {
+  return DBOS.startWorkflow(signingWorkflows.requestSignature, {
+    workflowID: `signing-${input.id}`,
+  })(
+    input.id,
+    input.agentId,
+    input.message,
+    input.nonce,
+    input.verificationMethod,
+  );
+}
+
 export function createSigningRequestService(deps: SigningServiceDeps) {
   const now = deps.now ?? (() => new Date());
 
@@ -136,17 +154,28 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
       const expiresAt = new Date(
         now().getTime() + deps.signingTimeoutSeconds * 1000,
       );
+      // The lock is acquired before this READ COMMITTED query. That isolation
+      // level is required so a waiter observes the previous lock holder's
+      // committed insert before deciding whether capacity remains.
       const created = await deps.transactionRunner.runInTransaction(
         async () => {
           await deps.signingRequestRepository.acquirePendingCreateLock(agentId);
           const pending =
-            await deps.signingRequestRepository.countActivePendingByAgent(
+            await deps.signingRequestRepository.getActivePendingSummaryByAgent(
               agentId,
             );
-          if (pending >= deps.maxPendingSigningRequests) {
+          if (pending.count >= deps.maxPendingSigningRequests) {
+            const earliestExpiry = pending.earliestExpiresAt?.getTime();
+            const retryAfterSeconds = earliestExpiry
+              ? Math.max(
+                  1,
+                  Math.ceil((earliestExpiry - now().getTime()) / 1000),
+                )
+              : undefined;
             throw new SigningServiceError(
               'signing_request_limit_reached',
-              `At most ${deps.maxPendingSigningRequests} active pending signing requests are allowed`,
+              `At most ${deps.maxPendingSigningRequests} active pending signing requests are allowed; retry after the nearest pending request expires`,
+              { retryAfterSeconds },
             );
           }
           return deps.signingRequestRepository.create({
@@ -164,21 +193,43 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
       );
 
       if (input.verificationMethod === VERIFICATION_METHOD.AgentEd25519) {
-        // This legacy workflow call and its signing bytes remain unchanged.
-        const workflowHandle = await DBOS.startWorkflow(
-          signingWorkflows.requestSignature,
-          { workflowID: `signing-${created.id}` },
-        )(
-          created.id,
-          agentId,
-          input.message,
-          created.nonce,
-          created.verificationMethod,
-        );
-        await deps.signingRequestRepository.setWorkflowId(
-          created.id,
-          workflowHandle.workflowID,
-        );
+        try {
+          // This legacy workflow call and its signing bytes remain unchanged.
+          const workflowHandle = await (
+            deps.startAgentSigningWorkflow ?? startAgentSigningWorkflow
+          )({
+            id: created.id,
+            agentId,
+            message: input.message,
+            nonce: created.nonce,
+            verificationMethod: created.verificationMethod,
+          });
+          await deps.signingRequestRepository.setWorkflowId(
+            created.id,
+            workflowHandle.workflowID,
+          );
+        } catch (err) {
+          let cleanupError: unknown;
+          try {
+            await deps.signingRequestRepository.completeAgentRequest({
+              id: created.id,
+              status: 'expired',
+              completedAt: now(),
+            });
+          } catch (cleanupFailure) {
+            cleanupError = cleanupFailure;
+          }
+          deps.logger?.error(
+            {
+              err,
+              signingId: created.id,
+              agentId,
+              cleanupError,
+            },
+            'signing_request.workflow_start_failed',
+          );
+          throw err;
+        }
       }
       return created;
     },

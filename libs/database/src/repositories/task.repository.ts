@@ -16,6 +16,7 @@ import {
 } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
+import { acquireTransactionAdvisoryLock } from '../advisory-lock.js';
 import type { Database } from '../db.js';
 import {
   correlationSeals,
@@ -485,13 +486,11 @@ export function createTaskRepository(db: Database) {
     },
 
     async acquireTaskCreateGuardLock(lockKey: string): Promise<void> {
-      if (!hasActiveTransaction()) {
-        throw new Error(
-          'acquireTaskCreateGuardLock must be called inside a TransactionRunner-managed transaction; pg_advisory_xact_lock has no effect outside one',
-        );
-      }
-      await getExecutor(db).execute(
-        sql`SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}::text, 0::bigint))`,
+      await acquireTransactionAdvisoryLock(
+        db,
+        'task:create-guard',
+        lockKey,
+        'acquireTaskCreateGuardLock',
       );
     },
 

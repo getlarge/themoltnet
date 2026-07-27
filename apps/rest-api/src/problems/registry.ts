@@ -164,7 +164,7 @@ export const problemTypes: Record<string, ProblemType> = {
       'The requester already has the maximum number of active pending signing requests.',
     commonCauses: [
       'Previous signing requests are still pending',
-      'Wait for pending requests to complete or expire',
+      'Use Retry-After to wait for the nearest pending request to expire',
     ],
   },
   conflict: {

@@ -7,13 +7,20 @@ export type SigningServiceErrorCode =
   | 'signing_request_limit_reached'
   | 'validation_failed';
 
+export interface SigningServiceErrorOptions extends ErrorOptions {
+  retryAfterSeconds?: number;
+}
+
 export class SigningServiceError extends Error {
+  readonly retryAfterSeconds?: number;
+
   constructor(
     readonly code: SigningServiceErrorCode,
     message: string,
-    options?: ErrorOptions,
+    options?: SigningServiceErrorOptions,
   ) {
     super(message, options);
     this.name = 'SigningServiceError';
+    this.retryAfterSeconds = options?.retryAfterSeconds;
   }
 }

@@ -412,6 +412,7 @@ export async function registerApiRoutes(
       groupRepository: options.groupRepository,
       signingTimeoutSeconds: options.signingTimeoutSeconds ?? 300,
       maxPendingSigningRequests: options.maxPendingSigningRequests ?? 10,
+      logger: app.log,
     }),
   );
   decorateSafe('dataSource', options.dataSource);

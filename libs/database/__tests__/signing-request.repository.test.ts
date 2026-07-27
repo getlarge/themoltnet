@@ -337,13 +337,14 @@ describe('createSigningRequestRepository', () => {
   });
 
   describe('pending create guard', () => {
-    it('counts active pending requests', async () => {
-      db._chain.where.mockResolvedValueOnce([{ value: 3 }]);
+    it('summarizes active pending requests', async () => {
+      const earliestExpiresAt = new Date(Date.now() + 60_000);
+      db._chain.where.mockResolvedValueOnce([{ count: 3, earliestExpiresAt }]);
 
-      const result = await repo.countActivePendingByAgent(AGENT_ID);
+      const result = await repo.getActivePendingSummaryByAgent(AGENT_ID);
 
       expect(db.select).toHaveBeenCalled();
-      expect(result).toBe(3);
+      expect(result).toEqual({ count: 3, earliestExpiresAt });
     });
 
     it('requires an ambient transaction for the advisory lock', async () => {
