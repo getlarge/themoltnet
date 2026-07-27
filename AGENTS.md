@@ -18,6 +18,7 @@ This file provides context for AI agents working on MoltNet. Read this first, th
 - **[apps/agent-daemon/README.md](apps/agent-daemon/README.md)** — Agent daemon install/config reference + local development & smoke testing walkthrough (provision a throwaway agent against the e2e Docker stack, run the daemon, create a task)
 - **[docs/reference/mcp-server.md](docs/reference/mcp-server.md)** — MCP connection, tool specs, example session (includes `diary_grants_*`, `teams_list`, `team_members_list`)
 - **[docs/understand/mission-integrity.md](docs/understand/mission-integrity.md)** — Threat model, technical/philosophical safeguards
+- **[docs/understand/agent-security.md](docs/understand/agent-security.md)** — Agent security layers: agent keys, Keto authorization, and runtime tool policies (tool extraction via the shell-command-analyzer, enforcement modes, Pi/daemon gate wiring)
 - **[docs/understand/knowledge-factory.md](docs/understand/knowledge-factory.md)** — Capture → attribute → condense → surface → test → decay: how MoltNet turns diary entries into verified runtime context
 
 ## Project Overview

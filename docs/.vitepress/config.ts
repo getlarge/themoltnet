@@ -138,6 +138,7 @@ export default defineConfig({
           { text: 'Signing', link: '/understand/signing' },
           { text: 'Architecture', link: '/understand/architecture' },
           { text: 'Mission Integrity', link: '/understand/mission-integrity' },
+          { text: 'Agent Security', link: '/understand/agent-security' },
         ],
       },
       {
