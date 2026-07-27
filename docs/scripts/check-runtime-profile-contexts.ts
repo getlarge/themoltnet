@@ -74,27 +74,6 @@ if (
   );
 }
 
-// v2 keeps the v1 workflow fragments but swaps in the hardened verification
-// fragment (task-relevant, inspected, redacted uploads — never secrets or PII).
-const requiredStandardEngineeringV2Fragments = [
-  'proactive-memory-v1',
-  'task-diary-discipline-v1',
-  'accountable-delivery-v1',
-  'judgment-diary-v1',
-  'verification-and-artifacts-v2',
-];
-const standardEngineeringV2 = catalogue.recipes['standard-engineering@v2'];
-if (
-  !standardEngineeringV2 ||
-  requiredStandardEngineeringV2Fragments.some(
-    (fragment) => !standardEngineeringV2.fragments.includes(fragment),
-  )
-) {
-  throw new Error(
-    'standard-engineering@v2 must retain the workflow fragments and the hardened verification-and-artifacts-v2 fragment',
-  );
-}
-
 console.log(
   `Validated ${Object.keys(catalogue.recipes).length} runtime-profile context recipes.`,
 );

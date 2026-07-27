@@ -50,32 +50,17 @@ describe('runtime-profile context recipe catalogue', () => {
     expect(planner.content).not.toContain('lockfile');
   });
 
-  it('keeps standard-engineering@v1 pinned and adds a hardened @v2', () => {
-    expect(runtimeProfileContextRecipeIds).toContain('standard-engineering@v2');
-
-    // @v1 stays byte-identical to what was backfilled onto deployed profiles.
-    const v1 = resolveRuntimeProfileContextRecipe('standard-engineering@v1');
-    const v1Verification = v1.find(
+  it('carries hardened artifact-upload guidance in standard-engineering', () => {
+    const entries = resolveRuntimeProfileContextRecipe(
+      'standard-engineering@v1',
+    );
+    const verification = entries.find(
       (e) => e.slug === 'verification-and-artifacts-v1',
     );
-    expect(v1Verification?.content).toContain(
-      'Upload large files, binary files, logs',
-    );
-
-    // @v2 swaps in the hardened verification fragment and nothing else.
-    const v2 = resolveRuntimeProfileContextRecipe('standard-engineering@v2');
-    expect(v2.map((e) => e.slug)).toEqual([
-      'proactive-memory-v1',
-      'task-diary-discipline-v1',
-      'accountable-delivery-v1',
-      'judgment-diary-v1',
-      'verification-and-artifacts-v2',
-    ]);
-    const v2Verification = v2.find(
-      (e) => e.slug === 'verification-and-artifacts-v2',
-    );
-    expect(v2Verification?.content).toContain('Never upload secrets');
-    expect(v2Verification?.content).not.toContain('Upload large files');
+    // The verification fragment prohibits uploading secrets/PII (hardened in
+    // place; the resync tool propagates this to already-seeded profiles).
+    expect(verification?.content).toContain('Never upload secrets');
+    expect(verification?.content).not.toContain('Upload large files');
   });
 
   it('resolves every recipe to a valid, applyable context array', () => {
