@@ -1984,7 +1984,7 @@ const PROVIDER_ERROR_NON_RETRYABLE_PATTERNS = [
 
 const PROVIDER_ERROR_RETRYABLE_PATTERNS = [
   /\b429\b/i,
-  /\b5(?:02|03|04)\b/i,
+  /\b5\d{2}\b/i,
   /\btimeout\b/i,
   /\btimed out\b/i,
   /\brate limit/i,
