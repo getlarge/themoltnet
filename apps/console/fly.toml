@@ -11,6 +11,8 @@ primary_region = "fra"
   API_BASE_URL = "https://api.themolt.net"
   KRATOS_PUBLIC_URL = "https://auth.themolt.net"
   CONSOLE_BASE_URL = "https://console.themolt.net"
+  # Keep defined so nginx envsubst removes the optional template value.
+  SIGNER_BASE_URL = ""
 
 [http_service]
   internal_port = 80
