@@ -162,7 +162,11 @@ describe('Tool-policy enforcement (daemon)', () => {
       enforcement: 'off',
       logger: noopLogger,
     });
-    expect(policy).toEqual({ enforcement: 'off', allowedTools: new Set() });
+    expect(policy).toEqual({
+      enforcement: 'off',
+      allowedTools: new Set(),
+      degraded: false,
+    });
 
     expect(
       decideToolCall({
@@ -184,9 +188,12 @@ describe('Tool-policy enforcement (daemon)', () => {
       enforcement: 'enforce',
       logger: noopLogger,
     });
+    // A 404 is a resolve failure → degraded fallback, not a resolved-empty
+    // policy.
     expect(policy).toEqual({
       enforcement: 'enforce',
       allowedTools: new Set(),
+      degraded: true,
     });
     expect(
       decideToolCall({
