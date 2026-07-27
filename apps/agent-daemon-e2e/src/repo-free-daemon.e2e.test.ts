@@ -2,7 +2,6 @@ import { randomUUID } from 'node:crypto';
 import {
   mkdirSync,
   mkdtempSync,
-  realpathSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
@@ -191,10 +190,13 @@ describe('Agent daemon repo-free execution (e2e)', () => {
     expect(createPiTaskExecutorMock.mock.calls[0][0]).toMatchObject({
       agentName,
       agentRootDir: agentRoot,
-      mountPath: realpathSync(sandboxRoot),
+      mountPath: agentRoot,
       provider: 'anthropic',
       model: 'claude-sonnet-4-5',
     });
+    expect(createPiTaskExecutorMock.mock.calls[0][0].mountPath).not.toBe(
+      sandboxRoot,
+    );
 
     const final = await agent.tasks.get(created.id);
     expect(final.status).toBe('completed');
