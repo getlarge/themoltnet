@@ -1,0 +1,48 @@
+{
+  "name": "@themoltnet/orchestration-e2e",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@moltnet/orchestration": "workspace:*",
+    "pg": "catalog:"
+  },
+  "devDependencies": {
+    "@types/pg": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "nx": {
+    "projectType": "application",
+    "tags": [
+      "type:e2e",
+      "scope:agent",
+      "platform:cli"
+    ],
+    "implicitDependencies": [
+      "@moltnet/orchestration"
+    ],
+    "targets": {
+      "e2e": {
+        "cache": true,
+        "executor": "nx:run-commands",
+        "inputs": [
+          "default",
+          "^production",
+          "{projectRoot}/vitest.config.ts",
+          "{projectRoot}/src/**/*",
+          {
+            "externalDependencies": [
+              "vitest"
+            ]
+          }
+        ],
+        "options": {
+          "command": "vitest run --config vitest.config.ts",
+          "cwd": "apps/orchestration-e2e"
+        },
+        "outputs": []
+      }
+    }
+  }
+}

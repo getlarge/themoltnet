@@ -39,6 +39,9 @@
       "path": "apps/parallel-brief-runner-e2e"
     },
     {
+      "path": "apps/orchestration-e2e"
+    },
+    {
       "path": "apps/console"
     },
     {

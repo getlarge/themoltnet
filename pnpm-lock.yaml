@@ -1107,6 +1107,25 @@ importers:
         specifier: 'catalog:'
         version: 3.2.4(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.4)(jiti@2.7.0)(jsdom@27.4.0(@noble/hashes@2.0.1))(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
 
+  apps/orchestration-e2e:
+    dependencies:
+      '@moltnet/orchestration':
+        specifier: workspace:*
+        version: link:../../libs/orchestration
+      pg:
+        specifier: 'catalog:'
+        version: 8.18.0
+    devDependencies:
+      '@types/pg':
+        specifier: 'catalog:'
+        version: 8.16.0
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.4(@types/debug@4.1.13)(@types/node@25.1.0)(@vitest/ui@3.2.4)(jiti@2.7.0)(jsdom@27.4.0(@noble/hashes@2.0.1))(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
+
   apps/parallel-brief-runner:
     dependencies:
       '@themoltnet/sdk':
