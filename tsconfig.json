@@ -208,6 +208,9 @@
     },
     {
       "path": "docs"
+    },
+    {
+      "path": "libs/agent-eval"
     }
   ]
 }
