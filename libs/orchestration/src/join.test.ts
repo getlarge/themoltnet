@@ -106,11 +106,12 @@ describe('joinCondition', () => {
       statuses: ['completed', 'failed'],
     });
     expect(condition.op).toBe('any');
-    const leaf = condition.op === 'any' ? condition.conditions[0] : condition;
-    // Drill to a leaf and check its statuses.
-    const anyLeaf = collectLeafStatuses(condition)[0];
-    expect(anyLeaf).toEqual(['completed', 'failed']);
-    expect(leaf).toBeDefined();
+    // Every leaf carries the requested statuses.
+    const leafStatuses = collectLeafStatuses(condition);
+    expect(leafStatuses).toHaveLength(9);
+    for (const s of leafStatuses) {
+      expect(s).toEqual(['completed', 'failed']);
+    }
   });
 
   it('deduplicates statuses', () => {

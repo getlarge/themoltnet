@@ -28,6 +28,14 @@ interface CliConfig {
   input: ParallelBriefsInput;
 }
 
+function positiveInt(raw: string, flag: string): number {
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value <= 0) {
+    throw new Error(`${flag} must be a positive integer (got "${raw}")`);
+  }
+  return value;
+}
+
 function parseArgs(argv: string[]): CliConfig {
   const briefs: string[] = [];
   let teamId = '';
@@ -72,10 +80,10 @@ function parseArgs(argv: string[]): CliConfig {
         agentDir = next();
         break;
       case '--poll-interval':
-        pollIntervalSec = Number(next());
+        pollIntervalSec = positiveInt(next(), '--poll-interval');
         break;
       case '--concurrency':
-        concurrency = Number(next());
+        concurrency = positiveInt(next(), '--concurrency');
         break;
       default:
         throw new Error(`unknown argument: ${arg}`);
