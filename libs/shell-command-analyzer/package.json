@@ -1,8 +1,7 @@
 {
   "name": "@themoltnet/shell-command-analyzer",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "license": "AGPL-3.0-only",
-  "private": true,
   "type": "module",
   "description": "Isomorphic static analyzer that extracts the executables a shell command runs (resolving wrappers, find -exec, …) and classifies each by risk, for tool-policy enforcement. Fails closed on statically-unresolvable commands.",
   "keywords": [
@@ -46,7 +45,8 @@
     "build": "tsc -b",
     "dev": "tsc --watch",
     "generate:gtfobins": "node scripts/generate-gtfobins.mjs",
-    "wasm:sync": "node scripts/sync-wasm.mjs"
+    "wasm:sync": "node scripts/sync-wasm.mjs",
+    "check:pack": "tsx ../../tools/src/check-pack.ts --package ."
   },
   "dependencies": {
     "web-tree-sitter": "catalog:"
