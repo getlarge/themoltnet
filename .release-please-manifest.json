@@ -12,7 +12,7 @@
   "libs/node-red-theme": "0.3.3",
   "libs/pi-extension": "0.35.5",
   "libs/sdk": "0.126.0",
-  "libs/shell-command-analyzer": "0.1.0",
+  "libs/shell-command-analyzer": "0.2.0",
   "libs/yubikey-preview-sign": "0.3.0",
   "packages/cli": "1.70.0",
   "packages/cli/npm/darwin-arm64": "1.70.0",

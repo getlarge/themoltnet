@@ -1,6 +1,6 @@
 {
   "name": "@themoltnet/shell-command-analyzer",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "license": "AGPL-3.0-only",
   "type": "module",
   "description": "Isomorphic static analyzer that extracts the executables a shell command runs (resolving wrappers, find -exec, …) and classifies each by risk, for tool-policy enforcement. Fails closed on statically-unresolvable commands.",
