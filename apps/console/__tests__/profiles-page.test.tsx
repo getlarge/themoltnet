@@ -8,14 +8,24 @@ import { ProfilesPage } from '../src/pages/ProfilesPage.js';
 const createRuntimeProfile = vi.fn();
 const updateRuntimeProfile = vi.fn();
 const deleteRuntimeProfile = vi.fn();
+const setRuntimeProfilePolicies = vi.fn();
 
 vi.mock('@moltnet/api-client', () => ({
   createRuntimeProfile: (...args: unknown[]) => createRuntimeProfile(...args),
   updateRuntimeProfile: (...args: unknown[]) => updateRuntimeProfile(...args),
   deleteRuntimeProfile: (...args: unknown[]) => deleteRuntimeProfile(...args),
+  setRuntimeProfilePolicies: (...args: unknown[]) =>
+    setRuntimeProfilePolicies(...args),
 }));
 
-const queryState = vi.hoisted(() => ({ profiles: [] as unknown[] }));
+const queryState = vi.hoisted(() => ({
+  role: 'owner' as 'owner' | 'manager' | 'member',
+  profiles: [] as unknown[],
+  policies: [] as unknown[],
+  policyIds: [] as string[],
+  allowedTools: [] as string[],
+  allowedToolsEnforcement: 'off' as 'off' | 'watch' | 'enforce',
+}));
 
 vi.mock('@moltnet/api-client/query', () => ({
   listRuntimeProfilesOptions: () => ({
@@ -25,6 +35,23 @@ vi.mock('@moltnet/api-client/query', () => ({
   listRuntimeModelsOptions: () => ({
     queryKey: ['runtime-models'],
     queryFn: async () => ({ items: [] }),
+  }),
+  listRuntimePoliciesOptions: () => ({
+    queryKey: ['runtime-policies'],
+    queryFn: async () => ({ items: queryState.policies }),
+  }),
+  getRuntimeProfilePoliciesOptions: (options: {
+    path: { profileId: string };
+  }) => ({
+    queryKey: ['runtime-profile-policies', options.path.profileId],
+    queryFn: async () => ({ policyIds: queryState.policyIds }),
+  }),
+  getRuntimeProfileAllowedToolsOptions: () => ({
+    queryKey: ['runtime-profile-allowed-tools'],
+    queryFn: async () => ({
+      allowedTools: queryState.allowedTools,
+      enforcement: queryState.allowedToolsEnforcement,
+    }),
   }),
 }));
 
@@ -68,6 +95,7 @@ function makeProfile(
     createdByHumanId: null,
     createdAt: '2026-01-01T00:00:00Z',
     updatedAt: '2026-01-01T00:00:00Z',
+    toolEnforcement: 'off',
   };
 }
 
@@ -85,7 +113,7 @@ vi.mock('../src/team/useTeam.js', () => ({
       name: 'Team One',
       personal: false,
       status: 'active',
-      role: 'owner',
+      role: queryState.role,
     },
   }),
 }));
@@ -94,13 +122,16 @@ function renderPage() {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  return render(
-    <QueryClientProvider client={client}>
-      <MoltThemeProvider mode="dark">
-        <ProfilesPage />
-      </MoltThemeProvider>
-    </QueryClientProvider>,
-  );
+  return {
+    client,
+    ...render(
+      <QueryClientProvider client={client}>
+        <MoltThemeProvider mode="dark">
+          <ProfilesPage />
+        </MoltThemeProvider>
+      </QueryClientProvider>,
+    ),
+  };
 }
 
 const STANDARD_ENGINEERING_SLUGS = [
@@ -125,7 +156,12 @@ function applyRecipe() {
 describe('ProfilesPage context editor', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    queryState.role = 'owner';
     queryState.profiles = [];
+    queryState.policies = [];
+    queryState.policyIds = [];
+    queryState.allowedTools = [];
+    queryState.allowedToolsEnforcement = 'off';
   });
 
   it('applies a suggested recipe as ordinary editable entries', async () => {
@@ -266,5 +302,209 @@ describe('ProfilesPage context editor', () => {
     expect(screen.getByLabelText('Context content 1')).toHaveValue(
       'Use pnpm and Nx.',
     );
+  });
+
+  it('binds policies before updating profile enforcement', async () => {
+    queryState.profiles = [makeProfile('p-a', 'profile-a', [])];
+    queryState.policies = [
+      {
+        id: 'policy-1',
+        teamId: 'team-1',
+        name: 'reader',
+        description: 'Read-only tools',
+        createdAt: '2026-01-01T00:00:00Z',
+        updatedAt: '2026-01-01T00:00:00Z',
+      },
+    ];
+    setRuntimeProfilePolicies.mockResolvedValue({
+      data: undefined,
+      error: null,
+    });
+    updateRuntimeProfile.mockResolvedValue({
+      data: makeProfile('p-a', 'profile-a', []),
+      error: null,
+    });
+
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('checkbox', { name: /reader/i }));
+    fireEvent.click(screen.getByRole('radio', { name: /watch/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save tool access' }));
+
+    await waitFor(() =>
+      expect(setRuntimeProfilePolicies).toHaveBeenCalledTimes(1),
+    );
+    await waitFor(() => expect(updateRuntimeProfile).toHaveBeenCalledTimes(1));
+    expect(setRuntimeProfilePolicies.mock.invocationCallOrder[0]).toBeLessThan(
+      updateRuntimeProfile.mock.invocationCallOrder[0],
+    );
+    expect(setRuntimeProfilePolicies).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: { policyIds: ['policy-1'] },
+      }),
+    );
+    expect(updateRuntimeProfile).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: { toolEnforcement: 'watch' },
+      }),
+    );
+  });
+
+  it('surfaces the resolved union and persisted enforcement mode', async () => {
+    queryState.profiles = [
+      {
+        ...makeProfile('p-a', 'profile-a', []),
+        toolEnforcement: 'enforce',
+      },
+    ];
+    queryState.policies = [
+      {
+        id: 'policy-1',
+        teamId: 'team-1',
+        name: 'inspector',
+        description: 'Inspection tools',
+        createdAt: '2026-01-01T00:00:00Z',
+        updatedAt: '2026-01-01T00:00:00Z',
+      },
+    ];
+    queryState.policyIds = ['policy-1'];
+    queryState.allowedTools = ['grep', 'read'];
+    queryState.allowedToolsEnforcement = 'enforce';
+
+    renderPage();
+
+    expect(
+      await screen.findByRole('radio', { name: /enforce/i }),
+    ).toBeChecked();
+    await waitFor(() =>
+      expect(
+        screen.getByRole('checkbox', { name: /inspector/i }),
+      ).toBeChecked(),
+    );
+    expect(screen.getByText('grep')).toBeVisible();
+    expect(screen.getByText('read')).toBeVisible();
+    expect(
+      screen.getByText(/snapshotted by the next runtime session/i),
+    ).toBeInTheDocument();
+  });
+
+  it('keeps tool access visible but immutable without manage-runtime', async () => {
+    queryState.role = 'member';
+    queryState.profiles = [makeProfile('p-a', 'profile-a', [])];
+    queryState.policies = [
+      {
+        id: 'policy-1',
+        teamId: 'team-1',
+        name: 'reader',
+        description: 'Read-only tools',
+        createdAt: '2026-01-01T00:00:00Z',
+        updatedAt: '2026-01-01T00:00:00Z',
+      },
+    ];
+
+    renderPage();
+
+    expect(
+      await screen.findByRole('checkbox', { name: /reader/i }),
+    ).toBeDisabled();
+    expect(screen.getByRole('radio', { name: /off/i })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'Save tool access' }),
+    ).toBeDisabled();
+    expect(
+      screen.getByText(/changing it requires the team manage-runtime role/i),
+    ).toBeVisible();
+    expect(setRuntimeProfilePolicies).not.toHaveBeenCalled();
+    expect(updateRuntimeProfile).not.toHaveBeenCalled();
+  });
+
+  it('preserves unsaved policy choices during a background refetch', async () => {
+    queryState.profiles = [makeProfile('p-a', 'profile-a', [])];
+    queryState.policies = [
+      {
+        id: 'policy-1',
+        teamId: 'team-1',
+        name: 'reader',
+        description: 'Read-only tools',
+        createdAt: '2026-01-01T00:00:00Z',
+        updatedAt: '2026-01-01T00:00:00Z',
+      },
+    ];
+    const { client } = renderPage();
+    const checkbox = await screen.findByRole('checkbox', { name: /reader/i });
+    fireEvent.click(checkbox);
+    expect(checkbox).toBeChecked();
+
+    await client.refetchQueries({
+      queryKey: ['runtime-profile-policies', 'p-a'],
+    });
+
+    expect(checkbox).toBeChecked();
+  });
+
+  it('preserves the draft and skips enforcement when binding fails', async () => {
+    queryState.profiles = [makeProfile('p-a', 'profile-a', [])];
+    queryState.policies = [
+      {
+        id: 'policy-1',
+        teamId: 'team-1',
+        name: 'reader',
+        description: 'Read-only tools',
+        createdAt: '2026-01-01T00:00:00Z',
+        updatedAt: '2026-01-01T00:00:00Z',
+      },
+    ];
+    setRuntimeProfilePolicies.mockResolvedValue({
+      data: undefined,
+      error: { detail: 'Binding update rejected' },
+    });
+
+    renderPage();
+    const checkbox = await screen.findByRole('checkbox', { name: /reader/i });
+    fireEvent.click(checkbox);
+    fireEvent.click(screen.getByRole('radio', { name: /watch/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save tool access' }));
+
+    expect(await screen.findByText('Binding update rejected')).toBeVisible();
+    expect(checkbox).toBeChecked();
+    expect(screen.getByRole('radio', { name: /watch/i })).toBeChecked();
+    expect(updateRuntimeProfile).not.toHaveBeenCalled();
+  });
+
+  it('reports partial failure when bindings save but enforcement does not', async () => {
+    queryState.profiles = [makeProfile('p-a', 'profile-a', [])];
+    queryState.policies = [
+      {
+        id: 'policy-1',
+        teamId: 'team-1',
+        name: 'reader',
+        description: 'Read-only tools',
+        createdAt: '2026-01-01T00:00:00Z',
+        updatedAt: '2026-01-01T00:00:00Z',
+      },
+    ];
+    setRuntimeProfilePolicies.mockResolvedValue({
+      data: undefined,
+      error: null,
+    });
+    updateRuntimeProfile.mockResolvedValue({
+      data: undefined,
+      error: { detail: 'Enforcement update rejected' },
+    });
+
+    renderPage();
+    fireEvent.click(await screen.findByRole('checkbox', { name: /reader/i }));
+    fireEvent.click(screen.getByRole('radio', { name: /watch/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save tool access' }));
+
+    expect(
+      await screen.findByText(/Enforcement update rejected/),
+    ).toBeVisible();
+    expect(screen.getByRole('radio', { name: /off/i })).toBeChecked();
+    expect(
+      screen.getByText(/saved policy bindings and current mode.*reloaded/i),
+    ).toBeVisible();
+    expect(setRuntimeProfilePolicies).toHaveBeenCalledTimes(1);
+    expect(updateRuntimeProfile).toHaveBeenCalledTimes(1);
   });
 });

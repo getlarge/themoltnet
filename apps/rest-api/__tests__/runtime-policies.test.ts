@@ -5,6 +5,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import {
   createMockServices,
   createTestApp,
+  HUMAN_AUTH_CONTEXT,
   OWNER_ID,
   resetMockServices,
   VALID_AUTH_CONTEXT,
@@ -161,6 +162,44 @@ describe('runtime tool-policy routes', () => {
       expect(mocks.runtimePolicyRepository.listByTeam).toHaveBeenCalledWith(
         TEAM_ID,
       );
+    });
+
+    it('uses the internal human id for the creator foreign key', async () => {
+      const identityId = 'aaaaaaaa-0000-0000-0000-000000000001';
+      const humanId = 'aaaaaaaa-0000-0000-0000-000000000002';
+      const humanMocks = createMockServices();
+      resetMockServices(humanMocks);
+      humanMocks.permissionChecker.canAccessTeam.mockResolvedValue(true);
+      humanMocks.permissionChecker.canManageTeamRuntime.mockResolvedValue(true);
+      humanMocks.runtimePolicyRepository.create.mockResolvedValue(
+        policyRow({
+          createdByAgentId: null,
+          createdByHumanId: humanId,
+        }),
+      );
+      const humanApp = await createTestApp(humanMocks, {
+        ...HUMAN_AUTH_CONTEXT,
+        identityId,
+        humanId,
+      });
+
+      try {
+        const response = await humanApp.inject({
+          method: 'POST',
+          url: '/runtime-policies',
+          headers: TEAM_HEADERS,
+          payload: { name: 'ci', tools: [] },
+        });
+
+        expect(response.statusCode).toBe(201);
+        expect(humanMocks.runtimePolicyRepository.create).toHaveBeenCalledWith(
+          expect.objectContaining({
+            createdByHumanId: humanId,
+          }),
+        );
+      } finally {
+        await humanApp.close();
+      }
     });
   });
 

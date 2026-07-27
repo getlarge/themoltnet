@@ -1,6 +1,7 @@
 import type { TaskStatus } from '@moltnet/api-client';
 
 import { statusToLane } from '../tasks/status.js';
+import { canManageTeam } from '../team/permissions.js';
 
 export interface PilotTeam {
   id: string;
@@ -160,8 +161,7 @@ function buildAgentPhase({
   }
 
   if (agentMember) {
-    const conventionalAccess =
-      agentMember.role === 'owner' || agentMember.role === 'manager';
+    const conventionalAccess = canManageTeam(agentMember.role);
     return {
       id: 'agent',
       label: 'Team agent',

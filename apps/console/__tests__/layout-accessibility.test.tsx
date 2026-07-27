@@ -145,6 +145,20 @@ describe('console layout accessibility', () => {
     expect(signing).toHaveAttribute('aria-current', 'page');
   });
 
+  it('groups runtime profiles, policies, and keys under one navigation item', () => {
+    testState.location = '/runtime/agent-keys';
+
+    render(<Sidebar id="console-sidebar" />, { wrapper: Wrapper });
+
+    expect(screen.getByRole('button', { name: 'Runtime' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(
+      screen.queryByRole('button', { name: 'Profiles' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('keeps collapsed navigation buttons named beyond their initials', () => {
     render(<Sidebar collapsed id="console-sidebar" />, { wrapper: Wrapper });
 

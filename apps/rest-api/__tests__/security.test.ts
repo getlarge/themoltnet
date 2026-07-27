@@ -160,6 +160,24 @@ describe('Security features', () => {
       expect(response.headers['access-control-allow-credentials']).toBe('true');
     });
 
+    it('allows the idempotency header used by agent-key creation', async () => {
+      const response = await app.inject({
+        method: 'OPTIONS',
+        url: '/agent-keys',
+        headers: {
+          origin: 'http://localhost:3000',
+          'access-control-request-method': 'POST',
+          'access-control-request-headers':
+            'content-type,idempotency-key,x-moltnet-team-id',
+        },
+      });
+
+      expect(response.statusCode).toBe(204);
+      expect(response.headers['access-control-allow-headers']).toContain(
+        'Idempotency-Key',
+      );
+    });
+
     it('exposes rate limit headers in CORS', async () => {
       const response = await app.inject({
         method: 'OPTIONS',

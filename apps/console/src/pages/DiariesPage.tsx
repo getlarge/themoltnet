@@ -5,6 +5,7 @@ import { useLocation } from 'wouter';
 import { CreateDiaryDialog } from '../components/diaries/CreateDiaryDialog.js';
 import { DiaryCard } from '../components/diaries/DiaryCard.js';
 import { useDiarySummaries } from '../diaries/hooks.js';
+import { canManageTeam } from '../team/permissions.js';
 import { useTeam } from '../team/useTeam.js';
 
 export function DiariesPage() {
@@ -19,8 +20,7 @@ export function DiariesPage() {
     error,
     refetch,
   } = useDiarySummaries(selectedTeam?.id ?? null);
-  const canCreateDiary =
-    selectedTeam?.role === 'owner' || selectedTeam?.role === 'manager';
+  const canCreateDiary = canManageTeam(selectedTeam?.role);
 
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();

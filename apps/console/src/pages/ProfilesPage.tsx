@@ -31,6 +31,7 @@ import {
 import { type ChangeEvent, useEffect, useMemo, useState } from 'react';
 
 import { getApiClient } from '../api.js';
+import { ProfileToolAccess } from '../components/ProfileToolAccess.js';
 import { getConfig } from '../config.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { useTeam } from '../team/useTeam.js';
@@ -758,6 +759,12 @@ export function ProfilesPage() {
               onApplyRecipe={applyRecipe}
               notice={contextNotice}
             />
+            {selectedProfile ? (
+              <ProfileToolAccess
+                profile={selectedProfile}
+                onProfileUpdated={() => profilesQuery.refetch()}
+              />
+            ) : null}
 
             {formError ? (
               <Text

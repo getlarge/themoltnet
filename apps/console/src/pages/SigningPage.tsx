@@ -10,6 +10,7 @@ import {
 import { useMemo, useState } from 'react';
 
 import { useSigningController } from '../signing/useSigningController.js';
+import { canManageTeam } from '../team/permissions.js';
 import { useTeam } from '../team/useTeam.js';
 
 export function SigningPage() {
@@ -29,8 +30,7 @@ export function SigningPage() {
     [controller.credentials],
   );
   const selectedCredential = activeCredentials[0];
-  const isManager =
-    selectedTeam?.role === 'owner' || selectedTeam?.role === 'manager';
+  const isManager = canManageTeam(selectedTeam?.role);
   const disabled = controller.pendingAction !== null;
 
   function closeReview() {

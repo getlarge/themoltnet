@@ -1,8 +1,10 @@
-import { Route, Switch } from 'wouter';
+import { useEffect } from 'react';
+import { Route, Switch, useLocation } from 'wouter';
 
 import { AuthGuard } from './auth/AuthGuard.js';
 import { getConfig } from './config.js';
 import { DashboardLayout } from './layout/DashboardLayout.js';
+import { AgentKeysPage } from './pages/AgentKeysPage.js';
 import { DiariesPage } from './pages/DiariesPage.js';
 import { DiaryDetailPage } from './pages/DiaryDetailPage.js';
 import { DiaryExplorePage } from './pages/DiaryExplorePage.js';
@@ -11,6 +13,8 @@ import { GroupDetailPage } from './pages/GroupDetailPage.js';
 import { NotFoundPage } from './pages/NotFoundPage.js';
 import { OverviewPage } from './pages/OverviewPage.js';
 import { ProfilesPage } from './pages/ProfilesPage.js';
+import { RuntimePage } from './pages/RuntimePage.js';
+import { RuntimePoliciesPage } from './pages/RuntimePoliciesPage.js';
 import { SigningPage } from './pages/SigningPage.js';
 import { TaskAnalyticsPage } from './pages/TaskAnalyticsPage.js';
 import { TaskAttemptPage } from './pages/TaskAttemptPage.js';
@@ -18,6 +22,7 @@ import { TaskDetailPage } from './pages/TaskDetailPage.js';
 import { TasksPage } from './pages/TasksPage.js';
 import { TeamDetailPage } from './pages/TeamDetailPage.js';
 import { TeamsPage } from './pages/TeamsPage.js';
+import { legacyProfilesDestination } from './runtime-routes.js';
 
 export function App() {
   const signingEnabled = Boolean(getConfig().signerUrl);
@@ -54,7 +59,23 @@ export function App() {
             {(params: { id: string }) => <TaskDetailPage id={params.id} />}
           </Route>
           <Route path="/tasks" component={TasksPage} />
-          <Route path="/profiles" component={ProfilesPage} />
+          <Route path="/profiles" component={LegacyProfilesRedirect} />
+          <Route path="/runtime" component={LegacyProfilesRedirect} />
+          <Route path="/runtime/profiles">
+            <RuntimePage>
+              <ProfilesPage />
+            </RuntimePage>
+          </Route>
+          <Route path="/runtime/policies">
+            <RuntimePage>
+              <RuntimePoliciesPage />
+            </RuntimePage>
+          </Route>
+          <Route path="/runtime/agent-keys">
+            <RuntimePage>
+              <AgentKeysPage />
+            </RuntimePage>
+          </Route>
           {signingEnabled && <Route path="/signing" component={SigningPage} />}
           <Route path="/teams" component={TeamsPage} />
           <Route path="/teams/:id">
@@ -70,4 +91,15 @@ export function App() {
       </DashboardLayout>
     </AuthGuard>
   );
+}
+
+function LegacyProfilesRedirect() {
+  const [, navigate] = useLocation();
+  useEffect(() => {
+    navigate(
+      legacyProfilesDestination(window.location.search, window.location.hash),
+      { replace: true },
+    );
+  }, [navigate]);
+  return null;
 }
