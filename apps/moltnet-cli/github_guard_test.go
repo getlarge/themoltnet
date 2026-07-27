@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"mvdan.cc/sh/v3/syntax"
 )
 
 func staticGuardContext(mode string) githubGuardContext {
@@ -587,6 +589,111 @@ func TestGitHubGuardCobraPath(t *testing.T) {
 	}
 	if decoded.HookSpecificOutput.PermissionDecision != "deny" {
 		t.Fatalf("unexpected guard output: %#v", decoded)
+	}
+}
+
+func TestEvaluateGitHubGuard_StaticVariablesResolveScopedWrites(t *testing.T) {
+	t.Parallel()
+	// Every command assigns its credentials/endpoint/payload/body through shell
+	// variables with statically determinable values, then performs a scoped gh
+	// write. These are the natural agent forms that issue #1697 unblocks — most
+	// importantly submitting a line-anchored PR review via the reviews endpoint.
+	permissions := guardPermissions(map[string]string{
+		"issues":        "write",
+		"pull_requests": "write",
+		"contents":      "write",
+	})
+	commands := []string{
+		// Scoped token credentials path supplied via $CREDS.
+		`CREDS=/repo/.moltnet/test-agent/moltnet.json; GH_TOKEN=$(moltnet github token --credentials "$CREDS") gh api --method POST repos/o/r/pulls/1/reviews --input /tmp/review.json`,
+		// Both the token creds and the --input payload path via variables, plus --jq.
+		`CREDS=/repo/.moltnet/test-agent/moltnet.json; JSON=/tmp/review.json; GH_TOKEN=$(moltnet github token --credentials "$CREDS") gh api --method POST repos/o/r/pulls/1/reviews --input "$JSON" --jq .html_url`,
+		// Endpoint itself supplied via a resolved variable.
+		`EP=repos/o/r/pulls/1/reviews; GH_TOKEN=$(moltnet github token --credentials /repo/.moltnet/test-agent/moltnet.json) gh api --method POST "$EP" --input /tmp/review.json`,
+		// Chained variable resolution for the credentials path.
+		`ROOT=/repo/.moltnet; CREDS="$ROOT/test-agent/moltnet.json"; GH_TOKEN=$(moltnet github token --credentials "$CREDS") gh pr comment 1 --body ok`,
+		// Body supplied via a variable on a pr review.
+		`BODY=looks-good; GH_TOKEN=$(moltnet github token --credentials /repo/.moltnet/test-agent/moltnet.json) gh pr review 1 --comment --body "$BODY"`,
+		// ${NAME} brace form for the credentials path.
+		`CREDS=/repo/.moltnet/test-agent/moltnet.json; GH_TOKEN=$(moltnet github token --credentials "${CREDS}") gh issue create --title t --body b`,
+	}
+	for _, command := range commands {
+		t.Run(command, func(t *testing.T) {
+			if reason := evaluateGitHubGuard(command, staticGuardContext("agent"), permissions); reason != "" {
+				t.Fatalf("expected variable-resolved scoped write to allow, got denial: %s", reason)
+			}
+		})
+	}
+}
+
+func TestEvaluateGitHubGuard_UnresolvableVariablesStayClosed(t *testing.T) {
+	t.Parallel()
+	// Resolution never weakens the guard: a variable it cannot statically pin
+	// stays opaque, so the write is denied exactly as before the fix.
+	permissions := guardPermissions(map[string]string{
+		"issues":        "write",
+		"pull_requests": "write",
+		"contents":      "write",
+	})
+	commands := []string{
+		// Credentials path resolves to a *different* agent — must not authorize.
+		`CREDS=/repo/.moltnet/other-agent/moltnet.json; GH_TOKEN=$(moltnet github token --credentials "$CREDS") gh pr create`,
+		// $CREDS is never assigned in the script.
+		`GH_TOKEN=$(moltnet github token --credentials "$CREDS") gh pr create`,
+		// Multiply-assigned name is poisoned to opaque (models a conditional
+		// reassignment such as the case-esac in the canonical token snippet).
+		`CREDS=/repo/.moltnet/test-agent/moltnet.json; CREDS=/tmp/evil; GH_TOKEN=$(moltnet github token --credentials "$CREDS") gh pr create`,
+		// Command-substitution-derived value (e.g. $(dirname …)) never resolves.
+		`CREDS="$(dirname /repo/.moltnet/test-agent/gitconfig)/moltnet.json"; GH_TOKEN=$(moltnet github token --credentials "$CREDS") gh pr create`,
+		// Conditional reassignment inside case-esac: CFG assigned twice → opaque,
+		// so the documented $(dirname "$CFG") snippet remains unverifiable.
+		`CFG=/repo/.moltnet/test-agent/gitconfig; case "$CFG" in /*) ;; *) CFG=/other ;; esac; CREDS="$CFG"; GH_TOKEN=$(moltnet github token --credentials "$CREDS") gh pr create`,
+		// Endpoint via an unresolved variable stays unmappable (ghUnknown).
+		`GH_TOKEN=$(moltnet github token --credentials /repo/.moltnet/test-agent/moltnet.json) gh api --method POST "$ENDPOINT" --input /tmp/x.json`,
+		// Operator expansion (${x:-default}) is not statically substituted.
+		`GH_TOKEN=$(moltnet github token --credentials "${CREDS:-/repo/.moltnet/test-agent/moltnet.json}") gh pr create`,
+	}
+	for _, command := range commands {
+		t.Run(command, func(t *testing.T) {
+			if reason := evaluateGitHubGuard(command, staticGuardContext("agent"), permissions); reason == "" {
+				t.Fatalf("expected unresolved variable to deny: %s", command)
+			}
+		})
+	}
+}
+
+func TestCollectStaticShellVars(t *testing.T) {
+	t.Parallel()
+	parse := func(command string) map[string]string {
+		file, err := syntax.NewParser(syntax.Variant(syntax.LangBash)).Parse(strings.NewReader(command), "hook")
+		if err != nil {
+			t.Fatalf("parse %q: %v", command, err)
+		}
+		return collectStaticShellVars(file)
+	}
+
+	got := parse(`ROOT=/repo/.moltnet; CREDS="$ROOT/test-agent/moltnet.json"; NAME='x'`)
+	want := map[string]string{
+		"ROOT":  "/repo/.moltnet",
+		"CREDS": "/repo/.moltnet/test-agent/moltnet.json",
+		"NAME":  "x",
+	}
+	for name, value := range want {
+		if got[name] != value {
+			t.Errorf("var %q = %q, want %q", name, got[name], value)
+		}
+	}
+
+	for name, command := range map[string]string{
+		"command substitution": `CREDS="$(dirname /x)/y"`,
+		"reassigned":           `CREDS=/a; CREDS=/b`,
+		"appended":             `CREDS=/a; CREDS+=/b`,
+		"nested only":          `if true; then CREDS=/a; fi`,
+		"operator expansion":   `CREDS="${OTHER:-/a}"`,
+	} {
+		if _, ok := parse(command)["CREDS"]; ok {
+			t.Errorf("%s: expected CREDS to stay opaque for %q", name, command)
+		}
 	}
 }
 
