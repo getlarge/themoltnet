@@ -2354,7 +2354,8 @@
                 ],
                 "type": "string"
               }
-            ]
+            ],
+            "description": "Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed tools, fail-closed)."
           },
           "topK": {
             "anyOf": [
@@ -8702,7 +8703,8 @@
                 ],
                 "type": "string"
               }
-            ]
+            ],
+            "description": "Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed tools, fail-closed)."
           },
           "topK": {
             "anyOf": [
@@ -9367,7 +9369,8 @@
                       ],
                       "type": "string"
                     }
-                  ]
+                  ],
+                  "description": "Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed tools, fail-closed)."
                 },
                 "topK": {
                   "anyOf": [
@@ -13957,7 +13960,8 @@
                 ],
                 "type": "string"
               }
-            ]
+            ],
+            "description": "Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed tools, fail-closed)."
           },
           "topK": {
             "anyOf": [

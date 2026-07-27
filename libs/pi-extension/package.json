@@ -48,14 +48,14 @@
   "dependencies": {
     "@earendil-works/gondolin": "catalog:",
     "@opentelemetry/api": "catalog:",
-    "typebox": "catalog:",
     "@themoltnet/agent-runtime": "workspace:*",
     "@themoltnet/sdk": "workspace:*",
-    "@themoltnet/shell-command-analyzer": "workspace:*"
+    "@themoltnet/shell-command-analyzer": "workspace:*",
+    "typebox": "catalog:"
   },
   "peerDependencies": {
-    "@earendil-works/pi-coding-agent": ">=0.74.0",
-    "@earendil-works/pi-ai": ">=0.74.0"
+    "@earendil-works/pi-ai": ">=0.74.0",
+    "@earendil-works/pi-coding-agent": ">=0.74.0"
   },
   "peerDependenciesMeta": {
     "@earendil-works/pi-coding-agent": {
@@ -66,9 +66,10 @@
     }
   },
   "devDependencies": {
-    "@moltnet/crypto-service": "workspace:*",
     "@earendil-works/pi-ai": "catalog:",
     "@earendil-works/pi-coding-agent": "catalog:",
+    "@moltnet/crypto-service": "workspace:*",
+    "@moltnet/models": "workspace:*",
     "@opentelemetry/sdk-metrics": "catalog:",
     "@opentelemetry/sdk-trace-base": "catalog:",
     "@types/node": "catalog:",

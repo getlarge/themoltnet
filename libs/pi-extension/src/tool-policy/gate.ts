@@ -1,10 +1,10 @@
+import type { ToolEnforcement } from '@moltnet/models';
 import type {
   CommandAnalysis,
   RiskTier,
 } from '@themoltnet/shell-command-analyzer';
 
-/** Enforcement mode resolved for the session's runtime profile. */
-export type ToolEnforcement = 'off' | 'watch' | 'enforce';
+export type { ToolEnforcement } from '@moltnet/models';
 
 export interface GateInput {
   /** Pi tool name (e.g. 'bash', 'read', 'write', or a custom tool id). */

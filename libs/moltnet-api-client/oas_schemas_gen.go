@@ -6164,11 +6164,13 @@ type CreateRuntimeProfileBody struct {
 	SessionTtlSec         OptInt                                              `json:"sessionTtlSec"`
 	Temperature           OptNilFloat64                                       `json:"temperature"`
 	ThinkingLevel         OptNilCreateRuntimeProfileBodyThinkingLevel         `json:"thinkingLevel"`
-	ToolEnforcement       OptCreateRuntimeProfileBodyToolEnforcement          `json:"toolEnforcement"`
-	TopK                  OptNilInt                                           `json:"topK"`
-	TopP                  OptNilFloat64                                       `json:"topP"`
-	WorkspaceStorageMode  OptCreateRuntimeProfileBodyWorkspaceStorageMode     `json:"workspaceStorageMode"`
-	WorkspaceTtlSec       OptInt                                              `json:"workspaceTtlSec"`
+	// Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed
+	// tools, fail-closed).
+	ToolEnforcement      OptCreateRuntimeProfileBodyToolEnforcement      `json:"toolEnforcement"`
+	TopK                 OptNilInt                                       `json:"topK"`
+	TopP                 OptNilFloat64                                   `json:"topP"`
+	WorkspaceStorageMode OptCreateRuntimeProfileBodyWorkspaceStorageMode `json:"workspaceStorageMode"`
+	WorkspaceTtlSec      OptInt                                          `json:"workspaceTtlSec"`
 }
 
 // GetAllowedWorkspaceModes returns the value of AllowedWorkspaceModes.
@@ -7203,6 +7205,8 @@ func (s *CreateRuntimeProfileBodyThinkingLevel) UnmarshalText(data []byte) error
 	}
 }
 
+// Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed
+// tools, fail-closed).
 type CreateRuntimeProfileBodyToolEnforcement string
 
 const (
@@ -45241,12 +45245,14 @@ type RuntimeProfile struct {
 	TeamId                uuid.UUID                                 `json:"teamId"`
 	Temperature           NilFloat64                                `json:"temperature"`
 	ThinkingLevel         NilRuntimeProfileThinkingLevel            `json:"thinkingLevel"`
-	ToolEnforcement       RuntimeProfileToolEnforcement             `json:"toolEnforcement"`
-	TopK                  NilInt                                    `json:"topK"`
-	TopP                  NilFloat64                                `json:"topP"`
-	UpdatedAt             time.Time                                 `json:"updatedAt"`
-	WorkspaceStorageMode  RuntimeProfileWorkspaceStorageMode        `json:"workspaceStorageMode"`
-	WorkspaceTtlSec       int                                       `json:"workspaceTtlSec"`
+	// Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed
+	// tools, fail-closed).
+	ToolEnforcement      RuntimeProfileToolEnforcement      `json:"toolEnforcement"`
+	TopK                 NilInt                             `json:"topK"`
+	TopP                 NilFloat64                         `json:"topP"`
+	UpdatedAt            time.Time                          `json:"updatedAt"`
+	WorkspaceStorageMode RuntimeProfileWorkspaceStorageMode `json:"workspaceStorageMode"`
+	WorkspaceTtlSec      int                                `json:"workspaceTtlSec"`
 }
 
 // GetAllowedWorkspaceModes returns the value of AllowedWorkspaceModes.
@@ -45826,12 +45832,14 @@ type RuntimeProfileListResponseItemsItem struct {
 	TeamId                uuid.UUID                                                      `json:"teamId"`
 	Temperature           NilFloat64                                                     `json:"temperature"`
 	ThinkingLevel         NilRuntimeProfileListResponseItemsItemThinkingLevel            `json:"thinkingLevel"`
-	ToolEnforcement       RuntimeProfileListResponseItemsItemToolEnforcement             `json:"toolEnforcement"`
-	TopK                  NilInt                                                         `json:"topK"`
-	TopP                  NilFloat64                                                     `json:"topP"`
-	UpdatedAt             time.Time                                                      `json:"updatedAt"`
-	WorkspaceStorageMode  RuntimeProfileListResponseItemsItemWorkspaceStorageMode        `json:"workspaceStorageMode"`
-	WorkspaceTtlSec       int                                                            `json:"workspaceTtlSec"`
+	// Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed
+	// tools, fail-closed).
+	ToolEnforcement      RuntimeProfileListResponseItemsItemToolEnforcement      `json:"toolEnforcement"`
+	TopK                 NilInt                                                  `json:"topK"`
+	TopP                 NilFloat64                                              `json:"topP"`
+	UpdatedAt            time.Time                                               `json:"updatedAt"`
+	WorkspaceStorageMode RuntimeProfileListResponseItemsItemWorkspaceStorageMode `json:"workspaceStorageMode"`
+	WorkspaceTtlSec      int                                                     `json:"workspaceTtlSec"`
 }
 
 // GetAllowedWorkspaceModes returns the value of AllowedWorkspaceModes.
@@ -46946,6 +46954,8 @@ func (s *RuntimeProfileListResponseItemsItemThinkingLevel) UnmarshalText(data []
 	}
 }
 
+// Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed
+// tools, fail-closed).
 type RuntimeProfileListResponseItemsItemToolEnforcement string
 
 const (
@@ -47646,6 +47656,8 @@ func (s *RuntimeProfileThinkingLevel) UnmarshalText(data []byte) error {
 	}
 }
 
+// Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed
+// tools, fail-closed).
 type RuntimeProfileToolEnforcement string
 
 const (
@@ -54749,11 +54761,13 @@ type UpdateRuntimeProfileBody struct {
 	SessionTtlSec         OptInt                                              `json:"sessionTtlSec"`
 	Temperature           OptNilFloat64                                       `json:"temperature"`
 	ThinkingLevel         OptNilUpdateRuntimeProfileBodyThinkingLevel         `json:"thinkingLevel"`
-	ToolEnforcement       OptUpdateRuntimeProfileBodyToolEnforcement          `json:"toolEnforcement"`
-	TopK                  OptNilInt                                           `json:"topK"`
-	TopP                  OptNilFloat64                                       `json:"topP"`
-	WorkspaceStorageMode  OptUpdateRuntimeProfileBodyWorkspaceStorageMode     `json:"workspaceStorageMode"`
-	WorkspaceTtlSec       OptInt                                              `json:"workspaceTtlSec"`
+	// Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed
+	// tools, fail-closed).
+	ToolEnforcement      OptUpdateRuntimeProfileBodyToolEnforcement      `json:"toolEnforcement"`
+	TopK                 OptNilInt                                       `json:"topK"`
+	TopP                 OptNilFloat64                                   `json:"topP"`
+	WorkspaceStorageMode OptUpdateRuntimeProfileBodyWorkspaceStorageMode `json:"workspaceStorageMode"`
+	WorkspaceTtlSec      OptInt                                          `json:"workspaceTtlSec"`
 }
 
 // GetAllowedWorkspaceModes returns the value of AllowedWorkspaceModes.
@@ -55788,6 +55802,8 @@ func (s *UpdateRuntimeProfileBodyThinkingLevel) UnmarshalText(data []byte) error
 	}
 }
 
+// Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed
+// tools, fail-closed).
 type UpdateRuntimeProfileBodyToolEnforcement string
 
 const (

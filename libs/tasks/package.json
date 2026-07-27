@@ -21,8 +21,9 @@
     "dev": "tsc --watch"
   },
   "dependencies": {
-    "typebox": "catalog:",
-    "multiformats": "catalog:"
+    "@moltnet/models": "workspace:*",
+    "multiformats": "catalog:",
+    "typebox": "catalog:"
   },
   "devDependencies": {
     "typescript": "catalog:",

@@ -1,3 +1,4 @@
+import type { ToolEnforcement } from '@moltnet/models';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 
 import type { Database } from '../db.js';
@@ -10,7 +11,7 @@ import {
 import { getExecutor } from '../transaction-context.js';
 import { translateUniqueViolation } from '../unique-violation.js';
 
-export type ToolEnforcement = 'off' | 'watch' | 'enforce';
+export type { ToolEnforcement } from '@moltnet/models';
 
 /** Hard cap on a single team's policy listing (bounds response size). */
 export const RUNTIME_POLICY_LIST_LIMIT = 500;
@@ -168,7 +169,7 @@ export function createRuntimePolicyRepository(db: Database) {
           ),
         )
         .limit(1);
-      return row ? (row.toolEnforcement as ToolEnforcement) : null;
+      return row?.toolEnforcement ?? null;
     },
 
     /** Team-scoped existence check used before binding policies to a profile. */

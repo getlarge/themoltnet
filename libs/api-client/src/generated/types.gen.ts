@@ -574,6 +574,9 @@ export type CreateRuntimeProfileBody = {
     | 'high'
     | 'xhigh'
     | null;
+  /**
+   * Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed tools, fail-closed).
+   */
   toolEnforcement?: 'off' | 'watch' | 'enforce';
   topK?: number | null;
   topP?: null | number;
@@ -2045,6 +2048,9 @@ export type RuntimeProfile = {
   teamId: string;
   temperature: null | number;
   thinkingLevel: 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | null;
+  /**
+   * Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed tools, fail-closed).
+   */
   toolEnforcement: 'off' | 'watch' | 'enforce';
   topK: number | null;
   topP: null | number;
@@ -2139,6 +2145,9 @@ export type RuntimeProfileListResponse = {
       | 'high'
       | 'xhigh'
       | null;
+    /**
+     * Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed tools, fail-closed).
+     */
     toolEnforcement: 'off' | 'watch' | 'enforce';
     topK: number | null;
     topP: null | number;
@@ -2966,6 +2975,9 @@ export type UpdateRuntimeProfileBody = {
     | 'high'
     | 'xhigh'
     | null;
+  /**
+   * Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed tools, fail-closed).
+   */
   toolEnforcement?: 'off' | 'watch' | 'enforce';
   topK?: number | null;
   topP?: null | number;
