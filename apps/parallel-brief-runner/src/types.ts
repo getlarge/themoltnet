@@ -7,7 +7,13 @@ export interface ParallelBriefsInput {
   briefs: string[];
   /** Instruction for the joining summary task. */
   summaryBrief?: string;
-  correlationId?: string;
+  /**
+   * Caller-persisted correlation id tying the fan-out together. Required and
+   * never generated inside the workflow: a durable replay after a partial
+   * checkpoint must reuse the same id, so it must be fixed before the run starts
+   * (the CLI generates it once at parse time, before spawn).
+   */
+  correlationId: string;
   pollIntervalSec?: number;
   /** Optional bound on how many brief tasks are awaited concurrently. */
   concurrency?: number;

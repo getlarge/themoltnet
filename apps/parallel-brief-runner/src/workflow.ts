@@ -1,9 +1,9 @@
-import { randomUUID } from 'node:crypto';
-
 import {
   inlineContext,
   joinCondition,
+  MAX_JOIN_TASKS,
   parallelTasks,
+  type SdkTask,
   type TaskClient,
   waitForAcceptedTask,
   type WorkflowContext,
@@ -32,11 +32,24 @@ export function normalizeParallelBriefsInput(
   if (input.briefs.length === 0) {
     throw new Error('parallel-brief-runner requires at least one brief');
   }
+  // Validate the fan-in against the joinCondition ceiling BEFORE creating any
+  // tasks, so an oversized run fails fast instead of after producing completed
+  // brief tasks that can never be joined.
+  if (input.briefs.length > MAX_JOIN_TASKS) {
+    throw new Error(
+      `parallel-brief-runner supports at most ${MAX_JOIN_TASKS} briefs (got ${input.briefs.length})`,
+    );
+  }
+  // correlationId is a required, caller-persisted input — never generated inside
+  // the (durable) workflow. Generating it here would let a replay after a
+  // partial checkpoint reuse earlier tasks under one id while later steps use
+  // another.
+  if (!input.correlationId) {
+    throw new Error('parallel-brief-runner requires a correlationId');
+  }
   return {
     ...input,
-    // A missing correlationId is generated once here; in durable runs the CLI
-    // sets it before spawn so replay reuses the persisted value deterministically.
-    correlationId: input.correlationId ?? randomUUID(),
+    correlationId: input.correlationId,
     pollIntervalSec: input.pollIntervalSec ?? DEFAULT_POLL_INTERVAL_SEC,
   };
 }
@@ -67,22 +80,10 @@ function buildBriefTask(
   };
 }
 
-interface BriefRef {
-  taskId: string;
-  outputCid: string;
-}
-
 function buildSummaryTask(
   input: NormalizedInput,
-  briefRefs: BriefRef[],
-  priorSummaries: string[],
+  briefTaskIds: string[],
 ): CreateBody {
-  const briefText = [
-    input.summaryBrief ?? 'Synthesize the completed briefs into one summary.',
-    '',
-    'Prior brief summaries:',
-    ...priorSummaries.map((summary, index) => `${index + 1}. ${summary}`),
-  ].join('\n');
   return {
     taskType: 'freeform',
     title: 'Summarize parallel briefs',
@@ -90,27 +91,28 @@ function buildSummaryTask(
     diaryId: input.diaryId,
     correlationId: input.correlationId,
     input: {
-      brief: briefText,
+      brief:
+        input.summaryBrief ??
+        'Synthesize the completed briefs into one summary.',
+      briefTaskIds,
       expectedOutput:
         'Return the combined summary in the `summary` string field.',
     },
-    // Link each brief task's accepted output as a context reference (a task
-    // output reference requires its outputCid). Summaries are also inlined into
-    // the brief text since freeform input is a closed schema.
-    references: briefRefs.map(({ taskId, outputCid }) => ({
-      taskId,
-      outputCid,
-      role: 'context',
-    })),
-    // Server-enforced join: the summary task stays `waiting` until every brief
-    // task is completed, then is promoted to `queued` by the task-service.
-    claimCondition: joinCondition(briefRefs.map((ref) => ref.taskId)),
+    // Server-enforced join. This task is created UP FRONT — before the briefs
+    // finish — so it starts `waiting` and is promoted to `queued` by the
+    // task-service only once every brief is completed; that promotion is what
+    // actually exercises the gate. No output references here: the briefs have no
+    // accepted output/outputCid at creation time (a task-output ref requires an
+    // outputCid), so the join alone expresses the dependency.
+    claimCondition: joinCondition(briefTaskIds),
   };
 }
 
 /**
- * Fan out one freeform task per brief, then create a single summary
- * continuation gated on all of them via a `joinCondition`. Demonstrates the two
+ * Fan out one freeform task per brief, declare a single summary continuation
+ * up front (gated on all briefs via a `joinCondition`), then await both. The
+ * summary is created before the briefs complete so its `waiting -> queued`
+ * server-side join transition is genuinely exercised. Demonstrates the two
  * orchestration primitives (`parallelTasks` + `joinCondition`) end to end.
  */
 export async function runParallelBriefs(
@@ -124,12 +126,25 @@ export async function runParallelBriefs(
     `${LOG_PREFIX}.start`,
   );
 
+  let summaryTask: SdkTask | undefined;
   const { created, results } = await parallelTasks({
     ctx,
     items: input.briefs,
     createStepName: (_brief, index) => `brief.${index}.create`,
     create: (brief, index) =>
       deps.tasks.createTask(buildBriefTask(input, brief, index)),
+    // Every brief task id now exists but none has completed — declare the
+    // joined summary continuation here so it starts `waiting`.
+    onCreated: async (briefs) => {
+      summaryTask = await ctx.step('summary.create', () =>
+        deps.tasks.createTask(
+          buildSummaryTask(
+            input,
+            briefs.map((task) => task.id),
+          ),
+        ),
+      );
+    },
     awaitResult: (task) =>
       waitForAcceptedTask(task.id, {
         tasks: deps.tasks,
@@ -142,19 +157,9 @@ export async function runParallelBriefs(
     concurrency: input.concurrency,
   });
 
-  const briefTaskIds = created.map((task) => task.id);
-  const priorSummaries = results.map((result) => result.state.summary);
-  const briefRefs = results.map((result) => {
-    const { outputCid } = result.attempt;
-    if (!outputCid) {
-      throw new Error(`brief task ${result.task.id} produced no outputCid`);
-    }
-    return { taskId: result.task.id, outputCid };
-  });
-
-  const summaryTask = await ctx.step('summary.create', () =>
-    deps.tasks.createTask(buildSummaryTask(input, briefRefs, priorSummaries)),
-  );
+  if (!summaryTask) {
+    throw new Error('summary task was not created by onCreated');
+  }
   const summary = await waitForAcceptedTask(summaryTask.id, {
     tasks: deps.tasks,
     ctx,
@@ -170,9 +175,9 @@ export async function runParallelBriefs(
   );
   return {
     correlationId: input.correlationId,
-    results: briefTaskIds.map((taskId, index) => ({
-      taskId,
-      summary: priorSummaries[index],
+    results: created.map((task, index) => ({
+      taskId: task.id,
+      summary: results[index].state.summary,
     })),
     summaryTaskId: summaryTask.id,
     summary: summary.state.summary,

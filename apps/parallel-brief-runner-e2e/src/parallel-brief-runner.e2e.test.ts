@@ -126,35 +126,43 @@ describe('parallel-brief-runner e2e', () => {
       sleepingContext,
     );
 
-    // 1. The three brief tasks appear — claim + complete each.
-    const briefList = await pollUntil(
+    const isBrief = (t: { title?: string | null }) =>
+      t.title?.startsWith('Brief') ?? false;
+    const isSummary = (t: { title?: string | null }) =>
+      t.title === 'Summarize parallel briefs';
+
+    // 1. Wait until all three briefs AND the up-front summary task exist.
+    const initial = await pollUntil(
       () => agent.tasks.list({ correlationId }, { teamId }),
       (r) =>
-        r.items.filter((t) => t.title?.startsWith('Brief')).length ===
-        input.briefs.length,
-    );
-    const briefTasks = briefList.items.filter((t) =>
-      t.title?.startsWith('Brief'),
-    );
-    await Promise.all(
-      briefTasks.map((t, i) =>
-        executeFreeform(t.id, t.inputCid, `brief summary ${i}`),
-      ),
+        r.items.filter(isBrief).length === input.briefs.length &&
+        r.items.some(isSummary),
     );
 
-    // 2. The summary task (gated by joinCondition over the briefs) appears and
-    //    is claimable (not `waiting`) once the briefs are complete.
-    const summaryList = await pollUntil(
-      () => agent.tasks.list({ correlationId }, { teamId }),
-      (r) => {
-        const s = r.items.find((t) => t.title === 'Summarize parallel briefs');
-        return !!s && s.status !== 'waiting';
-      },
-    );
-    const summaryTask = summaryList.items.find(
-      (t) => t.title === 'Summarize parallel briefs',
-    );
+    // 2. The summary was declared up front and is gated by the joinCondition, so
+    //    before any brief completes it must be `waiting` (the server-enforced
+    //    join has not been satisfied yet).
+    const summaryTask = initial.items.find(isSummary);
     if (!summaryTask) throw new Error('summary task not found');
+    expect(summaryTask.status).toBe('waiting');
+
+    // 3. Complete every brief (the test plays the executing agent).
+    await Promise.all(
+      initial.items
+        .filter(isBrief)
+        .map((t, i) => executeFreeform(t.id, t.inputCid, `brief summary ${i}`)),
+    );
+
+    // 4. Now that all briefs are completed, the task-service must promote the
+    //    summary out of `waiting` (waiting -> queued). This is the transition
+    //    the join actually exercises.
+    const promoted = await pollUntil(
+      () => agent.tasks.get(summaryTask.id),
+      (t) => t.status !== 'waiting',
+    );
+    expect(promoted.status).not.toBe('waiting');
+
+    // 5. Complete the (now claimable) summary.
     await executeFreeform(
       summaryTask.id,
       summaryTask.inputCid,
