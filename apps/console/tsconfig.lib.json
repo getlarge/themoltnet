@@ -32,6 +32,9 @@
       "path": "../../libs/tasks/tsconfig.lib.json"
     },
     {
+      "path": "../../libs/signer-api-client/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/models/tsconfig.lib.json"
     },
     {

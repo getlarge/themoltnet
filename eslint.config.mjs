@@ -158,6 +158,7 @@ export default tseslint.config(
       // Local Node-RED dev userDir created by the dev runner (runtime artifact).
       '**/.node-red-dev/**',
       'libs/api-client/src/generated/**',
+      'libs/signer-api-client/src/generated/**',
       'infra/ory/permissions.ts',
       // Standalone node script invoked from a Dockerfile; not part of the
       // typed source graph and lacks the Node globals declared for src/.

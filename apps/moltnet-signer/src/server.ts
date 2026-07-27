@@ -1,9 +1,16 @@
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
+import type { SignerCeremonyRequest } from '@moltnet/models';
 import {
+  SignerCeremonyParamsSchema,
   SignerCeremonyRequestSchema,
+  SignerCeremonyResultSchema,
+  SignerCeremonySchema,
+  SignerOperationSchema,
+  SignerProblemSchema,
   signerProtocolSchemaContext,
+  SignerSessionSchema,
 } from '@moltnet/models';
 import Fastify, {
   type FastifyBaseLogger,
@@ -11,7 +18,7 @@ import Fastify, {
   type FastifyInstance,
   type FastifyRequest,
 } from 'fastify';
-import { Type } from 'typebox';
+import { type TSchema, Type } from 'typebox';
 
 import { renderApprovalPage, renderResultPage } from './approval-page.js';
 import {
@@ -20,17 +27,23 @@ import {
 } from './ceremony-service.js';
 
 const BODY_LIMIT = 16 * 1024;
-const SESSION_HEADER = 'x-moltnet-signer-session';
+export const SESSION_HEADER = 'x-moltnet-signer-session';
 
-const CeremonyParamsSchema = Type.Object(
-  {
-    ceremonyId: Type.String({ minLength: 1 }),
-  },
-  { additionalProperties: false },
-);
+export function signerSchemaId(schema: TSchema): string {
+  const id = (schema as { $id?: unknown }).$id;
+  if (typeof id !== 'string' || id.length === 0) {
+    throw new Error('Signer protocol schemas must have an identifier');
+  }
+  return id;
+}
+
+function schemaRef(schema: TSchema) {
+  return Type.Ref(signerSchemaId(schema));
+}
 
 export interface CreateSignerServerOptions {
   logger?: FastifyBaseLogger;
+  registerOpenApi?: (app: FastifyInstance) => void;
 }
 
 export function createSignerServer(
@@ -53,6 +66,7 @@ export function createSignerServer(
     ? Fastify({ ...serverOptions, loggerInstance: options.logger })
     : Fastify(serverOptions);
   app.server.headersTimeout = 12_000;
+  options.registerOpenApi?.(app);
 
   for (const schema of Object.values(signerProtocolSchemaContext)) {
     app.addSchema(schema);
@@ -144,78 +158,152 @@ export function createSignerServer(
     referrerPolicy: { policy: 'no-referrer' },
   });
 
-  const server = app.withTypeProvider<TypeBoxTypeProvider>();
+  app.after(() => {
+    const server = app.withTypeProvider<TypeBoxTypeProvider>();
 
-  server.get('/health', () => ({ status: 'ok' }));
+    server.get('/health', { schema: { hide: true } }, () => ({
+      status: 'ok',
+    }));
 
-  server.post('/v1/sessions', async (request, reply) => {
-    const origin = requireOrigin(request);
-    return reply.code(201).send(service.createSession({ origin }));
-  });
+    server.post(
+      '/v1/sessions',
+      {
+        schema: {
+          operationId: 'createSignerSession',
+          tags: ['signer'],
+          description:
+            'Create a short-lived signer capability bound to the browser Origin header.',
+          response: {
+            201: schemaRef(SignerSessionSchema),
+            400: schemaRef(SignerProblemSchema),
+            403: schemaRef(SignerProblemSchema),
+          },
+        },
+      },
+      async (request, reply) => {
+        const origin = requireOrigin(request);
+        return reply.code(201).send(service.createSession({ origin }));
+      },
+    );
 
-  server.post(
-    '/v1/ceremonies',
-    { schema: { body: SignerCeremonyRequestSchema } },
-    async (request, reply) => {
-      const ceremony = await service.createCeremony({
-        origin: requireOrigin(request),
-        sessionToken: requireSessionHeader(request),
-        request: request.body,
-      });
-      return reply.code(201).send(ceremony);
-    },
-  );
+    server.post(
+      '/v1/ceremonies',
+      {
+        schema: {
+          operationId: 'createSignerCeremony',
+          tags: ['signer'],
+          description:
+            'Create an enrollment or previewSign ceremony for explicit local approval.',
+          security: [{ signerSession: [] }],
+          body: Type.Unsafe<SignerCeremonyRequest>(
+            Type.Object(
+              {
+                version: Type.Literal(1),
+                operation: schemaRef(SignerOperationSchema),
+              },
+              {
+                allOf: [schemaRef(SignerCeremonyRequestSchema)],
+              },
+            ),
+          ),
+          response: {
+            201: schemaRef(SignerCeremonySchema),
+            400: schemaRef(SignerProblemSchema),
+            401: schemaRef(SignerProblemSchema),
+            403: schemaRef(SignerProblemSchema),
+            409: schemaRef(SignerProblemSchema),
+            502: schemaRef(SignerProblemSchema),
+            503: schemaRef(SignerProblemSchema),
+            504: schemaRef(SignerProblemSchema),
+          },
+        },
+      },
+      async (request, reply) => {
+        const ceremony = await service.createCeremony({
+          origin: requireOrigin(request),
+          sessionToken: requireSessionHeader(request),
+          request: request.body,
+        });
+        return reply.code(201).send(ceremony);
+      },
+    );
 
-  server.get(
-    '/v1/ceremonies/:ceremonyId/result',
-    { schema: { params: CeremonyParamsSchema } },
-    (request) =>
-      service.getResult({
-        ceremonyId: request.params.ceremonyId,
-        origin: requireOrigin(request),
-        sessionToken: requireSessionHeader(request),
-      }),
-  );
-
-  server.get(
-    '/ceremonies/:ceremonyId',
-    { schema: { params: CeremonyParamsSchema } },
-    async (request, reply) => {
-      requireApprovalNavigation(request);
-      const approval = service.getApproval(request.params.ceremonyId);
-      return reply.type('text/html; charset=utf-8').send(
-        renderApprovalPage({
+    server.get(
+      '/v1/ceremonies/:ceremonyId/result',
+      {
+        schema: {
+          operationId: 'getSignerCeremonyResult',
+          tags: ['signer'],
+          description: 'Read the current result of a signer ceremony.',
+          security: [{ signerSession: [] }],
+          params: SignerCeremonyParamsSchema,
+          response: {
+            200: schemaRef(SignerCeremonyResultSchema),
+            400: schemaRef(SignerProblemSchema),
+            401: schemaRef(SignerProblemSchema),
+            403: schemaRef(SignerProblemSchema),
+            409: schemaRef(SignerProblemSchema),
+          },
+        },
+      },
+      (request) =>
+        service.getResult({
           ceremonyId: request.params.ceremonyId,
-          ...approval,
+          origin: requireOrigin(request),
+          sessionToken: requireSessionHeader(request),
         }),
-      );
-    },
-  );
+    );
 
-  server.post(
-    '/ceremonies/:ceremonyId/confirm',
-    { schema: { params: CeremonyParamsSchema } },
-    async (request, reply) => {
-      requireSameOriginConfirmation(request);
-      if (!(request.body instanceof URLSearchParams)) {
-        throw new SignerCeremonyError(
-          'confirmation_invalid',
-          'Confirmation form is invalid',
+    server.get(
+      '/ceremonies/:ceremonyId',
+      {
+        schema: {
+          hide: true,
+          params: SignerCeremonyParamsSchema,
+        },
+      },
+      async (request, reply) => {
+        requireApprovalNavigation(request);
+        const approval = service.getApproval(request.params.ceremonyId);
+        return reply.type('text/html; charset=utf-8').send(
+          renderApprovalPage({
+            ceremonyId: request.params.ceremonyId,
+            ...approval,
+          }),
         );
-      }
-      await service.confirmCeremony({
-        ceremonyId: request.params.ceremonyId,
-        confirmationToken: request.body.get('confirmationToken') ?? '',
-      });
-      return reply.type('text/html; charset=utf-8').send(
-        renderResultPage({
-          title: 'Action signed',
-          message: 'The signed receipt is ready for the Console.',
-          success: true,
-        }),
-      );
-    },
-  );
+      },
+    );
+
+    server.post(
+      '/ceremonies/:ceremonyId/confirm',
+      {
+        schema: {
+          hide: true,
+          params: SignerCeremonyParamsSchema,
+        },
+      },
+      async (request, reply) => {
+        requireSameOriginConfirmation(request);
+        if (!(request.body instanceof URLSearchParams)) {
+          throw new SignerCeremonyError(
+            'confirmation_invalid',
+            'Confirmation form is invalid',
+          );
+        }
+        await service.confirmCeremony({
+          ceremonyId: request.params.ceremonyId,
+          confirmationToken: request.body.get('confirmationToken') ?? '',
+        });
+        return reply.type('text/html; charset=utf-8').send(
+          renderResultPage({
+            title: 'Action signed',
+            message: 'The signed receipt is ready for the Console.',
+            success: true,
+          }),
+        );
+      },
+    );
+  });
 
   app.setNotFoundHandler(async (_request, reply) =>
     reply.code(404).send({

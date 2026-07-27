@@ -24,6 +24,7 @@
   },
   "scripts": {
     "build": "vite build",
+    "generate:openapi": "tsx scripts/generate-openapi.ts",
     "start": "node dist/main.js",
     "test": "vitest run",
     "check:pack": "tsx ../../tools/src/check-pack.ts --package . && pnpm run smoke:pack",
@@ -47,6 +48,7 @@
     "typebox": "catalog:"
   },
   "devDependencies": {
+    "@fastify/swagger": "catalog:",
     "@moltnet/crypto-service": "workspace:*",
     "@moltnet/models": "workspace:*",
     "@themoltnet/yubikey-preview-sign": "workspace:*",

@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { SignerCeremonyService } from './ceremony-service.js';
+import { registerSignerOpenApi } from './openapi.js';
 import { createSignerServer } from './server.js';
 
 const CONSOLE_ORIGIN = 'https://console.themolt.net';
@@ -19,7 +20,7 @@ afterEach(async () => {
   );
 });
 
-async function fixture() {
+async function fixture(options: { openapi?: boolean } = {}) {
   let sequence = 0;
   const service = new SignerCeremonyService({
     allowedOrigins: [CONSOLE_ORIGIN],
@@ -63,7 +64,9 @@ async function fixture() {
     validateChallenge: vi.fn(() => Promise.resolve({ valid: true as const })),
     randomToken: () => `test-capability-${++sequence}`,
   });
-  const server = createSignerServer(service);
+  const server = createSignerServer(service, {
+    ...(options.openapi ? { registerOpenApi: registerSignerOpenApi } : {}),
+  });
   fixtures.push({ server, service });
   await server.ready();
   return { server };
@@ -83,6 +86,99 @@ async function createSession(server: FastifyInstance): Promise<string> {
 }
 
 describe('loopback signer server', () => {
+  it('does not register OpenAPI tooling in the production server', async () => {
+    const { server } = await fixture();
+
+    expect('swagger' in server).toBe(false);
+  });
+
+  it('publishes only the typed JSON protocol used by Console', async () => {
+    const { server } = await fixture({ openapi: true });
+    const spec = (
+      server as unknown as {
+        swagger(): {
+          components?: {
+            schemas?: Record<string, unknown>;
+            securitySchemes?: Record<string, unknown>;
+          };
+          paths?: Record<string, unknown>;
+        };
+      }
+    ).swagger();
+
+    expect(Object.keys(spec.paths ?? {}).sort()).toEqual([
+      '/v1/ceremonies',
+      '/v1/ceremonies/{ceremonyId}/result',
+      '/v1/sessions',
+    ]);
+    expect(spec.paths).toMatchObject({
+      '/v1/sessions': {
+        post: {
+          operationId: 'createSignerSession',
+          responses: {
+            201: {
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/SignerSession' },
+                },
+              },
+            },
+          },
+        },
+      },
+      '/v1/ceremonies': {
+        post: {
+          operationId: 'createSignerCeremony',
+          requestBody: {
+            required: true,
+          },
+          security: [{ signerSession: [] }],
+          responses: {
+            201: {
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/SignerCeremony' },
+                },
+              },
+            },
+          },
+        },
+      },
+      '/v1/ceremonies/{ceremonyId}/result': {
+        get: {
+          operationId: 'getSignerCeremonyResult',
+          responses: {
+            200: {
+              content: {
+                'application/json': {
+                  schema: {
+                    $ref: '#/components/schemas/SignerCeremonyResult',
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+    for (const schemaName of [
+      'SignerCeremony',
+      'SignerCeremonyRequest',
+      'SignerCeremonyResult',
+      'SignerProblem',
+      'SignerSession',
+    ]) {
+      expect(spec.components?.schemas).toHaveProperty(schemaName);
+    }
+    expect(spec.components?.securitySchemes).toMatchObject({
+      signerSession: {
+        in: 'header',
+        name: 'x-moltnet-signer-session',
+        type: 'apiKey',
+      },
+    });
+  });
+
   it('serves the Fastify application through its loopback listener', async () => {
     const { server } = await fixture();
     const address = await server.listen({ host: '127.0.0.1', port: 0 });
@@ -269,6 +365,31 @@ describe('loopback signer server', () => {
     expect(wrongContentType.statusCode).toBe(400);
     expect(wrongContentType.json()).toMatchObject({
       code: 'ceremony_invalid',
+    });
+  });
+
+  it('rejects a missing signer session with the documented typed error', async () => {
+    const { server } = await fixture();
+    const response = await server.inject({
+      method: 'POST',
+      url: '/v1/ceremonies',
+      headers: {
+        'content-type': 'application/json',
+        host: '127.0.0.1:17373',
+        origin: CONSOLE_ORIGIN,
+      },
+      payload: {
+        version: 1,
+        operation: 'credential-enrollment',
+        label: 'Operator key',
+        teamId: '770e8400-e29b-41d4-a716-446655440002',
+      },
+    });
+
+    expect(response.statusCode).toBe(401);
+    expect(response.json()).toEqual({
+      code: 'session_invalid',
+      message: 'Signer session is required',
     });
   });
 

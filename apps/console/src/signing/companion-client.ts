@@ -10,9 +10,14 @@ import {
   signerProtocolSchemaContext,
   SignerSessionSchema,
 } from '@moltnet/models';
+import {
+  createClient,
+  createSignerCeremony,
+  createSignerSession,
+  getSignerCeremonyResult,
+  type RequestResult,
+} from '@moltnet/signer-api-client';
 import { Value } from 'typebox/value';
-
-const SESSION_HEADER = 'x-moltnet-signer-session';
 
 export interface SignerCompanionClient {
   connect(): Promise<SignerSession>;
@@ -28,13 +33,16 @@ export interface SignerCompanionClient {
 }
 
 export class SignerCompanionError extends Error {
+  public readonly status: number | undefined;
+
   constructor(
     public readonly code: string,
     message: string,
-    options?: ErrorOptions,
+    options?: ErrorOptions & { status?: number },
   ) {
     super(message, options);
     this.name = 'SignerCompanionError';
+    this.status = options?.status;
   }
 }
 
@@ -46,54 +54,22 @@ export function createSignerCompanionClient(options: {
   const baseUrl = loopbackUrl(options.baseUrl);
   const fetchImpl = options.fetch ?? fetch;
   const requestTimeoutMs = options.requestTimeoutMs ?? 5_000;
+  const transport = createClient({
+    baseUrl: baseUrl.href,
+    credentials: 'omit',
+    fetch: fetchImpl,
+    redirect: 'error',
+  });
   let session: SignerSession | null = null;
 
-  async function request(
-    path: string,
-    init: RequestInit,
-    includeSession: boolean,
-  ): Promise<unknown> {
-    const headers = new Headers(init.headers);
-    headers.set('accept', 'application/json');
-    if (includeSession) {
-      if (!session || Date.parse(session.expiresAt) <= Date.now()) {
-        throw new SignerCompanionError(
-          'session_invalid',
-          'Signer companion session is not connected',
-        );
-      }
-      headers.set(SESSION_HEADER, session.token);
-    }
-    let response: Response;
-    try {
-      response = await fetchImpl(new URL(path, baseUrl), {
-        ...init,
-        credentials: 'omit',
-        redirect: 'error',
-        headers,
-        signal: combineSignals(init.signal, requestTimeoutMs),
-      });
-    } catch (error) {
-      throw new SignerCompanionError(
-        error instanceof DOMException && error.name === 'TimeoutError'
-          ? 'request_timeout'
-          : 'companion_unavailable',
-        'Local signer companion is unavailable',
-        { cause: error },
-      );
-    }
-    const body: unknown = await response.json().catch(() => null);
-    if (!response.ok) {
-      throw new SignerCompanionError(
-        problemCode(body) ?? `http_${response.status}`,
-        problemMessage(body) ?? 'Signer companion request failed',
-      );
-    }
-    return body;
-  }
-
   async function connect(): Promise<SignerSession> {
-    const body = await request('/v1/sessions', { method: 'POST' }, false);
+    const body = await unwrapTransport(
+      createSignerSession({
+        client: transport,
+        headers: { accept: 'application/json' },
+        signal: combineSignals(undefined, requestTimeoutMs),
+      }),
+    );
     session = parseSession(body);
     return session;
   }
@@ -102,14 +78,15 @@ export function createSignerCompanionClient(options: {
     ceremonyRequest: SignerCeremonyRequest,
   ): Promise<SignerCeremony> {
     if (!session) await connect();
-    const body = await request(
-      '/v1/ceremonies',
-      {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(ceremonyRequest),
-      },
-      true,
+    const token = activeSessionToken(session);
+    const body = await unwrapTransport(
+      createSignerCeremony({
+        auth: token,
+        body: ceremonyRequest,
+        client: transport,
+        headers: { accept: 'application/json' },
+        signal: combineSignals(undefined, requestTimeoutMs),
+      }),
     );
     return parseCeremony(body);
   }
@@ -118,10 +95,15 @@ export function createSignerCompanionClient(options: {
     ceremonyId: string,
     options: { signal?: AbortSignal } = {},
   ): Promise<SignerCeremonyResult> {
-    const body = await request(
-      `/v1/ceremonies/${encodeURIComponent(ceremonyId)}/result`,
-      { method: 'GET', signal: options.signal },
-      true,
+    const token = activeSessionToken(session);
+    const body = await unwrapTransport(
+      getSignerCeremonyResult({
+        auth: token,
+        client: transport,
+        headers: { accept: 'application/json' },
+        path: { ceremonyId },
+        signal: combineSignals(options.signal, requestTimeoutMs),
+      }),
     );
     return parseResult(body);
   }
@@ -145,6 +127,63 @@ export function createSignerCompanionClient(options: {
   }
 
   return { connect, createCeremony, getResult, waitForResult };
+}
+
+function activeSessionToken(session: SignerSession | null): string {
+  if (!session || Date.parse(session.expiresAt) <= Date.now()) {
+    throw new SignerCompanionError(
+      'session_invalid',
+      'Signer companion session is not connected',
+    );
+  }
+  return session.token;
+}
+
+type TransportRequest<T> = RequestResult<
+  { response: T },
+  { error: unknown },
+  false
+>;
+
+async function unwrapTransport<T>(request: TransportRequest<T>): Promise<T> {
+  let result: Awaited<typeof request>;
+  try {
+    result = await request;
+  } catch (error) {
+    throw unavailableError(error);
+  }
+  if (result.error !== undefined) {
+    if (!result.response) {
+      throw unavailableError(result.error);
+    }
+    throw new SignerCompanionError(
+      problemCode(result.error) ?? `http_${result.response.status}`,
+      problemMessage(result.error) ??
+        textErrorMessage(result.error) ??
+        'Signer companion request failed',
+      {
+        cause: result.error,
+        status: result.response.status,
+      },
+    );
+  }
+  if (result.data === undefined) {
+    throw new SignerCompanionError(
+      'invalid_response',
+      'Signer companion returned an empty response',
+    );
+  }
+  return result.data;
+}
+
+function unavailableError(error: unknown): SignerCompanionError {
+  return new SignerCompanionError(
+    error instanceof DOMException && error.name === 'TimeoutError'
+      ? 'request_timeout'
+      : 'companion_unavailable',
+    'Local signer companion is unavailable',
+    { cause: error },
+  );
 }
 
 function loopbackUrl(value: string): URL {
@@ -236,6 +275,12 @@ function problemCode(value: unknown): string | undefined {
   return undefined;
 }
 
+function textErrorMessage(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const message = value.trim();
+  return message.length > 0 ? message : undefined;
+}
+
 function combineSignals(
   signal: AbortSignal | null | undefined,
   timeoutMs: number,
@@ -250,14 +295,14 @@ function abortableDelay(
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const onAbort = () => {
-      window.clearTimeout(timeout);
+      globalThis.clearTimeout(timeout);
       reject(
         signal?.reason instanceof Error
           ? signal.reason
           : new DOMException('The operation was aborted', 'AbortError'),
       );
     };
-    const timeout = window.setTimeout(() => {
+    const timeout = globalThis.setTimeout(() => {
       signal?.removeEventListener('abort', onAbort);
       resolve();
     }, milliseconds);
