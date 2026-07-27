@@ -91,14 +91,29 @@ func BuildSigningBytes(message, nonce string) []byte {
 
 // SignForRequest signs a (message, nonce) pair using BuildSigningBytes.
 func SignForRequest(message, nonce, privateKeyBase64 string) (string, error) {
-	seed, err := base64.StdEncoding.DecodeString(privateKeyBase64)
+	seed, err := decodeEd25519Seed(privateKeyBase64)
 	if err != nil {
-		return "", fmt.Errorf("decode private key: %w", err)
+		return "", err
 	}
 	priv := ed25519.NewKeyFromSeed(seed)
 	signingBytes := BuildSigningBytes(message, nonce)
 	sig := ed25519.Sign(priv, signingBytes)
 	return base64.StdEncoding.EncodeToString(sig), nil
+}
+
+func decodeEd25519Seed(privateKeyBase64 string) ([]byte, error) {
+	seed, err := base64.StdEncoding.DecodeString(privateKeyBase64)
+	if err != nil {
+		return nil, fmt.Errorf("decode private key: %w", err)
+	}
+	if len(seed) != ed25519.SeedSize {
+		return nil, fmt.Errorf(
+			"private key seed must be %d bytes, got %d",
+			ed25519.SeedSize,
+			len(seed),
+		)
+	}
+	return seed, nil
 }
 
 // VerifyForRequest verifies a signature produced by SignForRequest.

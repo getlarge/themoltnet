@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
+	"os"
 	"strings"
 
 	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
@@ -108,6 +110,13 @@ func formatProblemDetails(status int, title, detail string, hasDetail bool) erro
 	}
 	if msg == "" {
 		msg = fmt.Sprintf("HTTP %d", status)
+	}
+	if status == http.StatusUnauthorized &&
+		strings.TrimSpace(os.Getenv(agentKeyEnv)) != "" {
+		msg += fmt.Sprintf(
+			" (agent-key authentication selected by %s; OAuth2 fallback is disabled)",
+			agentKeyEnv,
+		)
 	}
 	return fmt.Errorf("API error (HTTP %d): %s", status, msg)
 }

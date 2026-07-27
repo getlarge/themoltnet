@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -226,6 +227,42 @@ func TestRunSignRequestIDUsesAgentKeyWithLocalSigningCredentials(t *testing.T) {
 	}
 	if handler.gotSig != stdout.String() {
 		t.Error("submitted signature does not match stdout")
+	}
+}
+
+func TestRunSignRequestIDRejectsMissingLocalSigningKey(t *testing.T) {
+	credPath := filepath.Join(t.TempDir(), "moltnet.json")
+	if _, err := WriteConfigTo(&CredentialsFile{
+		IdentityID: "test-identity",
+	}, credPath); err != nil {
+		t.Fatalf("write credentials: %v", err)
+	}
+
+	t.Setenv(agentKeyEnv, "agent-key-secret")
+	err := runSignCmd(
+		&bytes.Buffer{},
+		credPath,
+		"https://api.example.com",
+		"",
+		uuid.NewString(),
+		nil,
+	)
+	if err == nil {
+		t.Fatal("expected missing signing key error")
+	}
+	if !strings.Contains(err.Error(), "invalid Ed25519 private key") ||
+		!strings.Contains(err.Error(), "moltnet register") {
+		t.Errorf("error = %q, want actionable signing-key diagnostic", err)
+	}
+}
+
+func TestSignRawBytesRejectsInvalidSeedLength(t *testing.T) {
+	_, err := signRawBytes([]byte("hello"), "")
+	if err == nil {
+		t.Fatal("expected invalid seed error")
+	}
+	if !strings.Contains(err.Error(), "must be 32 bytes") {
+		t.Errorf("error = %q, want seed-length diagnostic", err)
 	}
 }
 

@@ -254,6 +254,9 @@ func signAndCreateEntry(
 	importance int,
 	signed bool,
 ) (*commitResult, error) {
+	if err := validateSigningCredentials(creds); err != nil {
+		return nil, err
+	}
 	ctx := context.Background()
 	entryType := moltnetapi.CreateDiaryEntryReqEntryTypeProcedural
 

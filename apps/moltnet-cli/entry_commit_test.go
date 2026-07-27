@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -391,6 +392,25 @@ func TestSignAndCreateEntry_Unsigned(t *testing.T) {
 	}
 	if handler.gotCreateReq.ContentHash.Set {
 		t.Error("unsigned mode should not set contentHash")
+	}
+}
+
+func TestSignAndCreateEntryRejectsMissingKeyBeforeAPISideEffects(t *testing.T) {
+	_, err := signAndCreateEntry(
+		nil,
+		&CredentialsFile{},
+		"test payload",
+		testDiaryID,
+		"Test Title",
+		[]string{"tag1"},
+		5,
+		true,
+	)
+	if err == nil {
+		t.Fatal("expected missing signing key error")
+	}
+	if !strings.Contains(err.Error(), "invalid Ed25519 private key") {
+		t.Errorf("error = %q, want signing-key diagnostic", err)
 	}
 }
 

@@ -3,15 +3,15 @@ package main
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 
 	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
 	"github.com/ogen-go/ogen/ogenerrors"
 )
-
-const agentKeyEnv = "MOLTNET_AGENT_KEY"
 
 type bearerTokenFunc func(context.Context) (string, error)
 
@@ -58,19 +58,6 @@ func (s *bearerSecuritySource) SessionAuth(_ context.Context, _ moltnetapi.Opera
 	return moltnetapi.SessionAuth{}, ogenerrors.ErrSkipClientSecurity
 }
 
-// newAuthedClient builds a moltnetapi.Client authenticated via the TokenManager.
-// The underlying HTTP client uses a retry transport: 429 on all methods,
-// 408/5xx on idempotent methods only (GET, HEAD, OPTIONS, PUT).
-func newAuthedClient(apiURL string, tm *TokenManager) (*moltnetapi.Client, error) {
-	return newBearerClient(
-		apiURL,
-		func(_ context.Context) (string, error) {
-			return tm.GetToken()
-		},
-		tm.httpClient,
-	)
-}
-
 // newBearerClient builds a generated client around one bearer-token callback.
 // The callback keeps credential resolution out of the generated API client and
 // lets OAuth2 and static agent keys share the same ogen security adapter.
@@ -95,6 +82,9 @@ func newBearerClient(
 // or blank, the existing OAuth2 client_credentials flow is used.
 func newAuthenticatedClient(apiURL, credPath string) (*moltnetapi.Client, error) {
 	if agentKey := strings.TrimSpace(os.Getenv(agentKeyEnv)); agentKey != "" {
+		if err := validateAgentKeyAPIURL(apiURL); err != nil {
+			return nil, err
+		}
 		return newBearerClient(
 			apiURL,
 			func(_ context.Context) (string, error) {
@@ -106,11 +96,55 @@ func newAuthenticatedClient(apiURL, credPath string) (*moltnetapi.Client, error)
 
 	creds, err := loadCredentials(credPath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf(
+			"OAuth2 credentials unavailable: %w; set %s for agent-key authentication",
+			err,
+			agentKeyEnv,
+		)
 	}
 	if creds.OAuth2.ClientID == "" || creds.OAuth2.ClientSecret == "" {
-		return nil, fmt.Errorf("credentials missing client_id or client_secret — run 'moltnet register'")
+		return nil, fmt.Errorf(
+			"credentials missing client_id or client_secret — run 'moltnet register' or set %s",
+			agentKeyEnv,
+		)
 	}
 	tm := NewTokenManager(apiURL, creds.OAuth2.ClientID, creds.OAuth2.ClientSecret)
-	return newAuthedClient(apiURL, tm)
+	return newBearerClient(
+		apiURL,
+		func(_ context.Context) (string, error) {
+			return tm.GetToken()
+		},
+		tm.httpClient,
+	)
+}
+
+// validateAgentKeyAPIURL prevents a long-lived agent key from being sent over
+// plaintext transport. HTTP remains available for local development and e2e
+// stacks on loopback only.
+func validateAgentKeyAPIURL(apiURL string) error {
+	parsed, err := url.Parse(apiURL)
+	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
+		return fmt.Errorf(
+			"%s requires an absolute API URL, got %q",
+			agentKeyEnv,
+			apiURL,
+		)
+	}
+	if strings.EqualFold(parsed.Scheme, "https") {
+		return nil
+	}
+	if strings.EqualFold(parsed.Scheme, "http") {
+		host := parsed.Hostname()
+		if strings.EqualFold(host, "localhost") {
+			return nil
+		}
+		if ip := net.ParseIP(host); ip != nil && ip.IsLoopback() {
+			return nil
+		}
+	}
+	return fmt.Errorf(
+		"%s refuses to send an agent key to insecure API URL %q; use HTTPS or an HTTP loopback address",
+		agentKeyEnv,
+		apiURL,
+	)
 }

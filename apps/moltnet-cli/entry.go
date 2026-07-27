@@ -85,6 +85,9 @@ func runEntryCreateSignedCmd(apiURL, credPath, diaryID, content, title, entryTyp
 	if err != nil {
 		return err
 	}
+	if err := validateSigningCredentials(creds); err != nil {
+		return err
+	}
 	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err

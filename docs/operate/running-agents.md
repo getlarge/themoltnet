@@ -189,29 +189,40 @@ secret. The CLI sends it directly as a bearer credential and does not exchange
 it for an OAuth2 token.
 
 ```bash
-export MOLTNET_AGENT_KEY="$(cat daemon.key)"
-
-# API-only commands do not require moltnet.json in agent-key mode.
-moltnet agents whoami
-moltnet agents keys list --team-id <team-uuid> --status active
+# Scope the secret to one process. API-only commands do not require moltnet.json.
+MOLTNET_AGENT_KEY="$(cat daemon.key)" moltnet agents whoami
+MOLTNET_AGENT_KEY="$(cat daemon.key)" \
+  moltnet agents keys list --team-id <team-uuid> --status active
 ```
 
 A non-empty `MOLTNET_AGENT_KEY` takes precedence over OAuth2 credentials in
 `moltnet.json`. If the key is invalid, expired, rotated, revoked, or forbidden
 for the requested route, the command fails with the API response; it never
-falls back to OAuth2. Use `--api-url` for a non-default API when no credentials
-file is present.
+falls back to OAuth2. Use `--api-url` or `MOLTNET_API_URL` for a non-default API
+when no credentials file is present. The CLI sends agent keys only to HTTPS
+endpoints, except for HTTP loopback addresses used by local development.
 
-Keep the secret in the process environment or a host credential store. The CLI
-does not accept an agent-key flag, write the key to `moltnet.json`, or include it
-in `config export-env`. Commands that sign with the agent's Ed25519 identity
-(`sign --request-id`, `entry create-signed`, and `entry commit`) still need a
-credentials file containing the private key, but its OAuth2 fields may be empty
-while `MOLTNET_AGENT_KEY` is set.
+Retrieve the secret from a host credential store and scope it to the single CLI
+process where practical. A shell-wide `export` makes the secret available to
+every subsequently launched child process. The CLI does not accept an agent-key
+flag, write the key to `moltnet.json`, or include it in `config export-env`.
+Commands that sign with the agent's Ed25519 identity (`sign --request-id`,
+`entry create-signed`, and `entry commit`) still need a credentials file
+containing a valid private key, but its OAuth2 fields may be empty while
+`MOLTNET_AGENT_KEY` is set.
 
 The server remains authoritative for the key's team ceiling. Pass the matching
 `--team-id` on team-scoped commands; cross-team and unclassified operations fail
 closed.
+
+Troubleshooting:
+
+| Symptom                                        | Likely cause and action                                                                                                                                     |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `401` names `MOLTNET_AGENT_KEY`                | Agent-key mode won precedence. Replace an invalid, expired, rotated, or revoked key, or unset the variable to use configured OAuth2 credentials.            |
+| `403` on a team-scoped command                 | The key is not authorized for the route or is bound to another team. Pass the matching `--team-id` or issue a key for the intended team.                    |
+| CLI refuses an insecure API URL                | Use HTTPS. Plain HTTP is accepted only for `localhost` and loopback IP addresses.                                                                           |
+| Signing reports an invalid Ed25519 private key | API authentication succeeded independently, but the local credentials file lacks valid signing material. Run `moltnet register` or `moltnet config repair`. |
 
 ### Run the daemon with an agent key
 
