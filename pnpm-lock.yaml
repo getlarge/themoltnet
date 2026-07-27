@@ -1996,6 +1996,9 @@ importers:
       '@themoltnet/sdk':
         specifier: workspace:*
         version: link:../sdk
+      '@themoltnet/shell-command-analyzer':
+        specifier: workspace:*
+        version: link:../shell-command-analyzer
       typebox:
         specifier: 'catalog:'
         version: 1.2.8
