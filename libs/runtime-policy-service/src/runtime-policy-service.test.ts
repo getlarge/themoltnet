@@ -9,6 +9,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   createRuntimePolicyService,
+  type RuntimePolicyServiceDeps,
   type RuntimePolicySubject,
 } from './runtime-policy-service.js';
 
@@ -37,9 +38,10 @@ function policyRow(overrides: Record<string, unknown> = {}) {
 function makeService() {
   const repo = {
     create: vi.fn(),
-    findById: vi.fn(),
     findByIdForTeam: vi.fn(),
     listByTeam: vi.fn(),
+    findExistingIdsForTeam: vi.fn(),
+    lockProfileBindings: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
     getProfileEnforcement: vi.fn(),
@@ -57,13 +59,25 @@ function makeService() {
   const permissionChecker = {
     canManageTeamRuntime: vi.fn().mockResolvedValue(true),
   };
+  const transactionRunner = {
+    runInTransaction: vi.fn(async (fn: () => Promise<unknown>) => fn()),
+  };
   const service = createRuntimePolicyService({
     runtimePolicyRepository: repo as unknown as RuntimePolicyRepository,
     relationshipReader: reader as unknown as RelationshipReader,
     relationshipWriter: writer as unknown as RelationshipWriter,
     permissionChecker: permissionChecker as unknown as PermissionChecker,
+    transactionRunner:
+      transactionRunner as unknown as RuntimePolicyServiceDeps['transactionRunner'],
   });
-  return { service, repo, reader, writer, permissionChecker };
+  return {
+    service,
+    repo,
+    reader,
+    writer,
+    permissionChecker,
+    transactionRunner,
+  };
 }
 
 describe('createRuntimePolicyService', () => {
@@ -247,20 +261,26 @@ describe('createRuntimePolicyService', () => {
   });
 
   describe('delete', () => {
-    it('deletes the row then removes its Keto relations', async () => {
+    it('revokes Keto relations before deleting the row', async () => {
+      ctx.repo.findByIdForTeam.mockResolvedValue(policyRow());
       ctx.repo.delete.mockResolvedValue(true);
       await ctx.service.delete('pol-1', {
         teamId: TEAM_ID,
         subject: AGENT_SUBJECT,
       });
-      expect(ctx.repo.delete).toHaveBeenCalledWith('pol-1', TEAM_ID);
+      // Keto revoke must happen before the SQL delete (fail-closed / retryable).
+      const revokeOrder =
+        ctx.writer.removeRuntimePolicyRelations.mock.invocationCallOrder[0];
+      const deleteOrder = ctx.repo.delete.mock.invocationCallOrder[0];
+      expect(revokeOrder).toBeLessThan(deleteOrder);
       expect(ctx.writer.removeRuntimePolicyRelations).toHaveBeenCalledWith(
         'pol-1',
       );
+      expect(ctx.repo.delete).toHaveBeenCalledWith('pol-1', TEAM_ID);
     });
 
-    it('throws not-found (and skips Keto) when the row is absent', async () => {
-      ctx.repo.delete.mockResolvedValue(false);
+    it('throws not-found (and skips Keto) when the policy is absent', async () => {
+      ctx.repo.findByIdForTeam.mockResolvedValue(null);
       await expect(
         ctx.service.delete('pol-x', {
           teamId: TEAM_ID,
@@ -268,13 +288,14 @@ describe('createRuntimePolicyService', () => {
         }),
       ).rejects.toMatchObject({ statusCode: 404 });
       expect(ctx.writer.removeRuntimePolicyRelations).not.toHaveBeenCalled();
+      expect(ctx.repo.delete).not.toHaveBeenCalled();
     });
   });
 
   describe('setProfilePolicies', () => {
-    it('diffs current vs desired bindings', async () => {
+    it('locks, diffs current vs desired, and batch-writes', async () => {
       ctx.repo.profileExistsForTeam.mockResolvedValue(true);
-      ctx.repo.findByIdForTeam.mockResolvedValue(policyRow());
+      ctx.repo.findExistingIdsForTeam.mockResolvedValue(new Set(['P2', 'P3']));
       // Currently bound: P1, P2. Desired: P2, P3 → remove P1, add P3.
       ctx.reader.listRuntimeProfilePolicies.mockResolvedValue(['P1', 'P2']);
 
@@ -283,19 +304,22 @@ describe('createRuntimePolicyService', () => {
         subject: AGENT_SUBJECT,
       });
 
+      expect(ctx.transactionRunner.runInTransaction).toHaveBeenCalledTimes(1);
+      expect(ctx.repo.lockProfileBindings).toHaveBeenCalledWith('prof-1');
+      expect(ctx.repo.findExistingIdsForTeam).toHaveBeenCalledWith(
+        ['P2', 'P3'],
+        TEAM_ID,
+      );
       // Single batch patch: add P3, remove P1.
       expect(ctx.writer.writeRuntimeProfilePolicyEdges).toHaveBeenCalledWith(
         'prof-1',
         { addPolicyIds: ['P3'], removePolicyIds: ['P1'] },
       );
-      expect(ctx.writer.writeRuntimeProfilePolicyEdges).toHaveBeenCalledTimes(
-        1,
-      );
     });
 
     it('rejects binding a policy from another team', async () => {
       ctx.repo.profileExistsForTeam.mockResolvedValue(true);
-      ctx.repo.findByIdForTeam.mockResolvedValue(null); // policy not in team
+      ctx.repo.findExistingIdsForTeam.mockResolvedValue(new Set()); // none in team
 
       await expect(
         ctx.service.setProfilePolicies('prof-1', ['foreign-policy'], {
@@ -310,6 +334,28 @@ describe('createRuntimePolicyService', () => {
       ctx.repo.profileExistsForTeam.mockResolvedValue(false);
       await expect(
         ctx.service.setProfilePolicies('prof-x', [], {
+          teamId: TEAM_ID,
+          subject: AGENT_SUBJECT,
+        }),
+      ).rejects.toMatchObject({ statusCode: 404 });
+    });
+  });
+
+  describe('getProfilePolicies', () => {
+    it('returns the bound policy ids for a team profile', async () => {
+      ctx.repo.profileExistsForTeam.mockResolvedValue(true);
+      ctx.reader.listRuntimeProfilePolicies.mockResolvedValue(['P1', 'P2']);
+      const result = await ctx.service.getProfilePolicies('prof-1', {
+        teamId: TEAM_ID,
+        subject: AGENT_SUBJECT,
+      });
+      expect(result).toEqual({ policyIds: ['P1', 'P2'] });
+    });
+
+    it('throws not-found when the profile is not in the team', async () => {
+      ctx.repo.profileExistsForTeam.mockResolvedValue(false);
+      await expect(
+        ctx.service.getProfilePolicies('prof-x', {
           teamId: TEAM_ID,
           subject: AGENT_SUBJECT,
         }),

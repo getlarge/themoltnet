@@ -261,6 +261,10 @@ type GetRuntimeProfileAllowedToolsRes interface {
 	getRuntimeProfileAllowedToolsRes()
 }
 
+type GetRuntimeProfilePoliciesRes interface {
+	getRuntimeProfilePoliciesRes()
+}
+
 type GetRuntimeProfileRes interface {
 	getRuntimeProfileRes()
 }

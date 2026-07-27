@@ -651,9 +651,10 @@ export function createMockServices(): MockServices {
     },
     runtimePolicyRepository: {
       create: vi.fn(),
-      findById: vi.fn(),
       findByIdForTeam: vi.fn(),
       listByTeam: vi.fn().mockResolvedValue([]),
+      findExistingIdsForTeam: vi.fn().mockResolvedValue(new Set()),
+      lockProfileBindings: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
       getProfileEnforcement: vi.fn(),

@@ -22520,6 +22520,18 @@ type GetRuntimeProfileNotFound ProblemDetails
 
 func (*GetRuntimeProfileNotFound) getRuntimeProfileRes() {}
 
+type GetRuntimeProfilePoliciesForbidden ProblemDetails
+
+func (*GetRuntimeProfilePoliciesForbidden) getRuntimeProfilePoliciesRes() {}
+
+type GetRuntimeProfilePoliciesNotFound ProblemDetails
+
+func (*GetRuntimeProfilePoliciesNotFound) getRuntimeProfilePoliciesRes() {}
+
+type GetRuntimeProfilePoliciesUnauthorized ProblemDetails
+
+func (*GetRuntimeProfilePoliciesUnauthorized) getRuntimeProfilePoliciesRes() {}
+
 type GetRuntimeProfileUnauthorized ProblemDetails
 
 func (*GetRuntimeProfileUnauthorized) getRuntimeProfileRes() {}
@@ -43868,18 +43880,18 @@ func NewStringRuntimeModelListResponseItemsItemCapabilitiesItem(v string) Runtim
 
 // Ref: #/components/schemas/RuntimePolicy
 type RuntimePolicy struct {
-	CreatedAt   NilDateTime `json:"createdAt"`
-	Description NilString   `json:"description"`
+	CreatedAt   time.Time `json:"createdAt"`
+	Description NilString `json:"description"`
 	// UUID v4 identifier.
 	ID   uuid.UUID `json:"id"`
 	Name string    `json:"name"`
 	// UUID v4 identifier.
-	TeamId    uuid.UUID   `json:"teamId"`
-	UpdatedAt NilDateTime `json:"updatedAt"`
+	TeamId    uuid.UUID `json:"teamId"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 // GetCreatedAt returns the value of CreatedAt.
-func (s *RuntimePolicy) GetCreatedAt() NilDateTime {
+func (s *RuntimePolicy) GetCreatedAt() time.Time {
 	return s.CreatedAt
 }
 
@@ -43904,12 +43916,12 @@ func (s *RuntimePolicy) GetTeamId() uuid.UUID {
 }
 
 // GetUpdatedAt returns the value of UpdatedAt.
-func (s *RuntimePolicy) GetUpdatedAt() NilDateTime {
+func (s *RuntimePolicy) GetUpdatedAt() time.Time {
 	return s.UpdatedAt
 }
 
 // SetCreatedAt sets the value of CreatedAt.
-func (s *RuntimePolicy) SetCreatedAt(val NilDateTime) {
+func (s *RuntimePolicy) SetCreatedAt(val time.Time) {
 	s.CreatedAt = val
 }
 
@@ -43934,7 +43946,7 @@ func (s *RuntimePolicy) SetTeamId(val uuid.UUID) {
 }
 
 // SetUpdatedAt sets the value of UpdatedAt.
-func (s *RuntimePolicy) SetUpdatedAt(val NilDateTime) {
+func (s *RuntimePolicy) SetUpdatedAt(val time.Time) {
 	s.UpdatedAt = val
 }
 
@@ -43957,19 +43969,19 @@ func (*RuntimePolicyList) listRuntimePoliciesRes() {}
 
 // Ref: #/components/schemas/RuntimePolicyWithTools
 type RuntimePolicyWithTools struct {
-	CreatedAt   NilDateTime `json:"createdAt"`
-	Description NilString   `json:"description"`
+	CreatedAt   time.Time `json:"createdAt"`
+	Description NilString `json:"description"`
 	// UUID v4 identifier.
 	ID   uuid.UUID `json:"id"`
 	Name string    `json:"name"`
 	// UUID v4 identifier.
-	TeamId    uuid.UUID   `json:"teamId"`
-	Tools     []string    `json:"tools"`
-	UpdatedAt NilDateTime `json:"updatedAt"`
+	TeamId    uuid.UUID `json:"teamId"`
+	Tools     []string  `json:"tools"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 // GetCreatedAt returns the value of CreatedAt.
-func (s *RuntimePolicyWithTools) GetCreatedAt() NilDateTime {
+func (s *RuntimePolicyWithTools) GetCreatedAt() time.Time {
 	return s.CreatedAt
 }
 
@@ -43999,12 +44011,12 @@ func (s *RuntimePolicyWithTools) GetTools() []string {
 }
 
 // GetUpdatedAt returns the value of UpdatedAt.
-func (s *RuntimePolicyWithTools) GetUpdatedAt() NilDateTime {
+func (s *RuntimePolicyWithTools) GetUpdatedAt() time.Time {
 	return s.UpdatedAt
 }
 
 // SetCreatedAt sets the value of CreatedAt.
-func (s *RuntimePolicyWithTools) SetCreatedAt(val NilDateTime) {
+func (s *RuntimePolicyWithTools) SetCreatedAt(val time.Time) {
 	s.CreatedAt = val
 }
 
@@ -44034,7 +44046,7 @@ func (s *RuntimePolicyWithTools) SetTools(val []string) {
 }
 
 // SetUpdatedAt sets the value of UpdatedAt.
-func (s *RuntimePolicyWithTools) SetUpdatedAt(val NilDateTime) {
+func (s *RuntimePolicyWithTools) SetUpdatedAt(val time.Time) {
 	s.UpdatedAt = val
 }
 
@@ -45858,6 +45870,23 @@ func (s *RuntimeProfileListResponseItemsItemWorkspaceStorageMode) UnmarshalText(
 		return errors.Errorf("invalid value: %q", data)
 	}
 }
+
+// Ref: #/components/schemas/RuntimeProfilePoliciesResponse
+type RuntimeProfilePoliciesResponse struct {
+	PolicyIds []uuid.UUID `json:"policyIds"`
+}
+
+// GetPolicyIds returns the value of PolicyIds.
+func (s *RuntimeProfilePoliciesResponse) GetPolicyIds() []uuid.UUID {
+	return s.PolicyIds
+}
+
+// SetPolicyIds sets the value of PolicyIds.
+func (s *RuntimeProfilePoliciesResponse) SetPolicyIds(val []uuid.UUID) {
+	s.PolicyIds = val
+}
+
+func (*RuntimeProfilePoliciesResponse) getRuntimeProfilePoliciesRes() {}
 
 // Ref: #/components/schemas/RuntimeProfileRef
 type RuntimeProfileRef struct {

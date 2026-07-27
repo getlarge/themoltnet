@@ -650,6 +650,15 @@ func (UnimplementedHandler) GetRuntimeProfileAllowedTools(ctx context.Context, p
 	return r, ht.ErrNotImplemented
 }
 
+// GetRuntimeProfilePolicies implements getRuntimeProfilePolicies operation.
+//
+// List the tool-policy IDs bound to a runtime profile.
+//
+// GET /runtime-profiles/{profileId}/policies
+func (UnimplementedHandler) GetRuntimeProfilePolicies(ctx context.Context, params GetRuntimeProfilePoliciesParams) (r GetRuntimeProfilePoliciesRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // GetRuntimeSession implements getRuntimeSession operation.
 //
 // Get metadata for the durable team-scoped runtime session for a task attempt.

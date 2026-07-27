@@ -25,8 +25,8 @@ export const RuntimePolicySchema = Type.Object(
     teamId: UuidSchema,
     name: Type.String(),
     description: Type.Union([Type.String(), Type.Null()]),
-    createdAt: Type.Union([Type.String({ format: 'date-time' }), Type.Null()]),
-    updatedAt: Type.Union([Type.String({ format: 'date-time' }), Type.Null()]),
+    createdAt: Type.String({ format: 'date-time' }),
+    updatedAt: Type.String({ format: 'date-time' }),
   },
   { $id: 'RuntimePolicy' },
 );
@@ -37,8 +37,8 @@ export const RuntimePolicyWithToolsSchema = Type.Object(
     teamId: UuidSchema,
     name: Type.String(),
     description: Type.Union([Type.String(), Type.Null()]),
-    createdAt: Type.Union([Type.String({ format: 'date-time' }), Type.Null()]),
-    updatedAt: Type.Union([Type.String({ format: 'date-time' }), Type.Null()]),
+    createdAt: Type.String({ format: 'date-time' }),
+    updatedAt: Type.String({ format: 'date-time' }),
     tools: Type.Array(ToolNameSchema),
   },
   { $id: 'RuntimePolicyWithTools' },
@@ -53,11 +53,12 @@ export const CreateRuntimePolicyBodySchema = Type.Object(
   {
     name: Type.String({ minLength: 1, maxLength: 100, pattern: '\\S' }),
     description: Type.Optional(Type.String({ maxLength: 4096 })),
-    tools: Type.Optional(Type.Array(ToolNameSchema)),
+    tools: Type.Optional(Type.Array(ToolNameSchema, { maxItems: 500 })),
   },
-  { $id: 'CreateRuntimePolicyBody' },
+  { $id: 'CreateRuntimePolicyBody', additionalProperties: false },
 );
 
+// Rejects unknown keys (catches misspelled fields) and empty no-op patches.
 export const UpdateRuntimePolicyBodySchema = Type.Object(
   {
     name: Type.Optional(
@@ -66,15 +67,24 @@ export const UpdateRuntimePolicyBodySchema = Type.Object(
     description: Type.Optional(
       Type.Union([Type.String({ maxLength: 4096 }), Type.Null()]),
     ),
-    addTools: Type.Optional(Type.Array(ToolNameSchema)),
-    removeTools: Type.Optional(Type.Array(ToolNameSchema)),
+    addTools: Type.Optional(Type.Array(ToolNameSchema, { maxItems: 500 })),
+    removeTools: Type.Optional(Type.Array(ToolNameSchema, { maxItems: 500 })),
   },
-  { $id: 'UpdateRuntimePolicyBody' },
+  {
+    $id: 'UpdateRuntimePolicyBody',
+    additionalProperties: false,
+    minProperties: 1,
+  },
 );
 
 export const SetProfilePoliciesBodySchema = Type.Object(
+  { policyIds: Type.Array(UuidSchema, { maxItems: 200 }) },
+  { $id: 'SetProfilePoliciesBody', additionalProperties: false },
+);
+
+export const RuntimeProfilePoliciesResponseSchema = Type.Object(
   { policyIds: Type.Array(UuidSchema) },
-  { $id: 'SetProfilePoliciesBody' },
+  { $id: 'RuntimeProfilePoliciesResponse' },
 );
 
 export const AllowedToolsResponseSchema = Type.Object(
@@ -93,5 +103,6 @@ export const runtimePolicySchemas = [
   CreateRuntimePolicyBodySchema,
   UpdateRuntimePolicyBodySchema,
   SetProfilePoliciesBodySchema,
+  RuntimeProfilePoliciesResponseSchema,
   AllowedToolsResponseSchema,
 ];

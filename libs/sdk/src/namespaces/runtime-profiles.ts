@@ -3,6 +3,7 @@ import {
   deleteRuntimeProfile,
   getRuntimeProfile,
   getRuntimeProfileAllowedTools,
+  getRuntimeProfilePolicies,
   listRuntimeProfiles,
   setRuntimeProfilePolicies,
   updateRuntimeProfile,
@@ -90,6 +91,17 @@ export function createRuntimeProfilesNamespace(
       if (result.error) {
         unwrapResult(result);
       }
+    },
+
+    async getPolicies(profileId, options) {
+      return unwrapResult(
+        await getRuntimeProfilePolicies({
+          client,
+          auth,
+          path: { profileId },
+          headers: requiredTeamHeaders(options),
+        }),
+      );
     },
   };
 }

@@ -433,6 +433,12 @@ type Handler interface {
 	//
 	// GET /runtime-profiles/{profileId}/allowed-tools
 	GetRuntimeProfileAllowedTools(ctx context.Context, params GetRuntimeProfileAllowedToolsParams) (GetRuntimeProfileAllowedToolsRes, error)
+	// GetRuntimeProfilePolicies implements getRuntimeProfilePolicies operation.
+	//
+	// List the tool-policy IDs bound to a runtime profile.
+	//
+	// GET /runtime-profiles/{profileId}/policies
+	GetRuntimeProfilePolicies(ctx context.Context, params GetRuntimeProfilePoliciesParams) (GetRuntimeProfilePoliciesRes, error)
 	// GetRuntimeSession implements getRuntimeSession operation.
 	//
 	// Get metadata for the durable team-scoped runtime session for a task attempt.

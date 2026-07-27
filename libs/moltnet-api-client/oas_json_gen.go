@@ -15120,7 +15120,7 @@ func (s *CreateRuntimePolicyBody) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"tools\"")
 			}
 		default:
-			return d.Skip()
+			return errors.Errorf("unexpected field %q", k)
 		}
 		return nil
 	}); err != nil {
@@ -44366,6 +44366,120 @@ func (s *GetRuntimeProfileNotFound) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *GetRuntimeProfileNotFound) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes GetRuntimeProfilePoliciesForbidden as json.
+func (s *GetRuntimeProfilePoliciesForbidden) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes GetRuntimeProfilePoliciesForbidden from json.
+func (s *GetRuntimeProfilePoliciesForbidden) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetRuntimeProfilePoliciesForbidden to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = GetRuntimeProfilePoliciesForbidden(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *GetRuntimeProfilePoliciesForbidden) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetRuntimeProfilePoliciesForbidden) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes GetRuntimeProfilePoliciesNotFound as json.
+func (s *GetRuntimeProfilePoliciesNotFound) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes GetRuntimeProfilePoliciesNotFound from json.
+func (s *GetRuntimeProfilePoliciesNotFound) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetRuntimeProfilePoliciesNotFound to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = GetRuntimeProfilePoliciesNotFound(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *GetRuntimeProfilePoliciesNotFound) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetRuntimeProfilePoliciesNotFound) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes GetRuntimeProfilePoliciesUnauthorized as json.
+func (s *GetRuntimeProfilePoliciesUnauthorized) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes GetRuntimeProfilePoliciesUnauthorized from json.
+func (s *GetRuntimeProfilePoliciesUnauthorized) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode GetRuntimeProfilePoliciesUnauthorized to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = GetRuntimeProfilePoliciesUnauthorized(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *GetRuntimeProfilePoliciesUnauthorized) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *GetRuntimeProfilePoliciesUnauthorized) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -81445,7 +81559,7 @@ func (s *RuntimePolicy) Encode(e *jx.Encoder) {
 func (s *RuntimePolicy) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("createdAt")
-		s.CreatedAt.Encode(e, json.EncodeDateTime)
+		json.EncodeDateTime(e, s.CreatedAt)
 	}
 	{
 		e.FieldStart("description")
@@ -81465,7 +81579,7 @@ func (s *RuntimePolicy) encodeFields(e *jx.Encoder) {
 	}
 	{
 		e.FieldStart("updatedAt")
-		s.UpdatedAt.Encode(e, json.EncodeDateTime)
+		json.EncodeDateTime(e, s.UpdatedAt)
 	}
 }
 
@@ -81490,7 +81604,9 @@ func (s *RuntimePolicy) Decode(d *jx.Decoder) error {
 		case "createdAt":
 			requiredBitSet[0] |= 1 << 0
 			if err := func() error {
-				if err := s.CreatedAt.Decode(d, json.DecodeDateTime); err != nil {
+				v, err := json.DecodeDateTime(d)
+				s.CreatedAt = v
+				if err != nil {
 					return err
 				}
 				return nil
@@ -81546,7 +81662,9 @@ func (s *RuntimePolicy) Decode(d *jx.Decoder) error {
 		case "updatedAt":
 			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
-				if err := s.UpdatedAt.Decode(d, json.DecodeDateTime); err != nil {
+				v, err := json.DecodeDateTime(d)
+				s.UpdatedAt = v
+				if err != nil {
 					return err
 				}
 				return nil
@@ -81726,7 +81844,7 @@ func (s *RuntimePolicyWithTools) Encode(e *jx.Encoder) {
 func (s *RuntimePolicyWithTools) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("createdAt")
-		s.CreatedAt.Encode(e, json.EncodeDateTime)
+		json.EncodeDateTime(e, s.CreatedAt)
 	}
 	{
 		e.FieldStart("description")
@@ -81754,7 +81872,7 @@ func (s *RuntimePolicyWithTools) encodeFields(e *jx.Encoder) {
 	}
 	{
 		e.FieldStart("updatedAt")
-		s.UpdatedAt.Encode(e, json.EncodeDateTime)
+		json.EncodeDateTime(e, s.UpdatedAt)
 	}
 }
 
@@ -81780,7 +81898,9 @@ func (s *RuntimePolicyWithTools) Decode(d *jx.Decoder) error {
 		case "createdAt":
 			requiredBitSet[0] |= 1 << 0
 			if err := func() error {
-				if err := s.CreatedAt.Decode(d, json.DecodeDateTime); err != nil {
+				v, err := json.DecodeDateTime(d)
+				s.CreatedAt = v
+				if err != nil {
 					return err
 				}
 				return nil
@@ -81856,7 +81976,9 @@ func (s *RuntimePolicyWithTools) Decode(d *jx.Decoder) error {
 		case "updatedAt":
 			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
-				if err := s.UpdatedAt.Decode(d, json.DecodeDateTime); err != nil {
+				v, err := json.DecodeDateTime(d)
+				s.UpdatedAt = v
+				if err != nil {
 					return err
 				}
 				return nil
@@ -85176,6 +85298,114 @@ func (s *RuntimeProfileListResponseItemsItemWorkspaceStorageMode) UnmarshalJSON(
 }
 
 // Encode implements json.Marshaler.
+func (s *RuntimeProfilePoliciesResponse) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *RuntimeProfilePoliciesResponse) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("policyIds")
+		e.ArrStart()
+		for _, elem := range s.PolicyIds {
+			json.EncodeUUID(e, elem)
+		}
+		e.ArrEnd()
+	}
+}
+
+var jsonFieldsNameOfRuntimeProfilePoliciesResponse = [1]string{
+	0: "policyIds",
+}
+
+// Decode decodes RuntimeProfilePoliciesResponse from json.
+func (s *RuntimeProfilePoliciesResponse) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode RuntimeProfilePoliciesResponse to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "policyIds":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				s.PolicyIds = make([]uuid.UUID, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem uuid.UUID
+					v, err := json.DecodeUUID(d)
+					elem = v
+					if err != nil {
+						return err
+					}
+					s.PolicyIds = append(s.PolicyIds, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"policyIds\"")
+			}
+		default:
+			return d.Skip()
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode RuntimeProfilePoliciesResponse")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfRuntimeProfilePoliciesResponse) {
+					name = jsonFieldsNameOfRuntimeProfilePoliciesResponse[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *RuntimeProfilePoliciesResponse) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *RuntimeProfilePoliciesResponse) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
 func (s *RuntimeProfileRef) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
@@ -87150,7 +87380,7 @@ func (s *SetProfilePoliciesBody) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"policyIds\"")
 			}
 		default:
-			return d.Skip()
+			return errors.Errorf("unexpected field %q", k)
 		}
 		return nil
 	}); err != nil {
@@ -101103,8 +101333,10 @@ func (s *UpdateRuntimePolicyBody) Decode(d *jx.Decoder) error {
 	if s == nil {
 		return errors.New("invalid: unable to decode UpdateRuntimePolicyBody to nil")
 	}
+	var propertiesCount int
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		propertiesCount++
 		switch string(k) {
 		case "addTools":
 			if err := func() error {
@@ -101165,11 +101397,20 @@ func (s *UpdateRuntimePolicyBody) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"removeTools\"")
 			}
 		default:
-			return d.Skip()
+			return errors.Errorf("unexpected field %q", k)
 		}
 		return nil
 	}); err != nil {
 		return errors.Wrap(err, "decode UpdateRuntimePolicyBody")
+	}
+	// Validate properties count.
+	if err := (validate.Object{
+		MinProperties:    1,
+		MinPropertiesSet: true,
+		MaxProperties:    0,
+		MaxPropertiesSet: false,
+	}).ValidateProperties(propertiesCount); err != nil {
+		return errors.Wrap(err, "object")
 	}
 
 	return nil

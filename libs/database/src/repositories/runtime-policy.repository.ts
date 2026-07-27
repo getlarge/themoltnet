@@ -1,4 +1,4 @@
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 
 import type { Database } from '../db.js';
 import {
@@ -11,6 +11,9 @@ import { getExecutor } from '../transaction-context.js';
 import { translateUniqueViolation } from '../unique-violation.js';
 
 export type ToolEnforcement = 'off' | 'watch' | 'enforce';
+
+/** Hard cap on a single team's policy listing (bounds response size). */
+export const RUNTIME_POLICY_LIST_LIMIT = 500;
 
 export type CreateRuntimePolicyInput = Omit<
   NewRuntimePolicy,
@@ -54,15 +57,6 @@ export function createRuntimePolicyRepository(db: Database) {
       }
     },
 
-    async findById(id: string): Promise<RuntimePolicy | null> {
-      const [row] = await getExecutor(db)
-        .select()
-        .from(runtimePolicies)
-        .where(eq(runtimePolicies.id, id))
-        .limit(1);
-      return row ?? null;
-    },
-
     /** Team-scoped read: returns the policy only if it belongs to `teamId`. */
     async findByIdForTeam(
       id: string,
@@ -83,7 +77,40 @@ export function createRuntimePolicyRepository(db: Database) {
         .select()
         .from(runtimePolicies)
         .where(eq(runtimePolicies.teamId, teamId))
-        .orderBy(runtimePolicies.name);
+        .orderBy(runtimePolicies.name)
+        .limit(RUNTIME_POLICY_LIST_LIMIT);
+    },
+
+    /**
+     * Returns the subset of `ids` that exist in `teamId`, as a Set. One query —
+     * used to validate a profile→policy binding set without N round trips.
+     */
+    async findExistingIdsForTeam(
+      ids: readonly string[],
+      teamId: string,
+    ): Promise<Set<string>> {
+      if (ids.length === 0) return new Set();
+      const rows = await getExecutor(db)
+        .select({ id: runtimePolicies.id })
+        .from(runtimePolicies)
+        .where(
+          and(
+            eq(runtimePolicies.teamId, teamId),
+            inArray(runtimePolicies.id, [...ids]),
+          ),
+        );
+      return new Set(rows.map((row) => row.id));
+    },
+
+    /**
+     * Serialize concurrent binding replacements for a profile with a
+     * transaction-scoped Postgres advisory lock (released on commit/rollback).
+     * MUST be called inside a transaction.
+     */
+    async lockProfileBindings(profileId: string): Promise<void> {
+      await getExecutor(db).execute(
+        sql`SELECT pg_advisory_xact_lock(hashtextextended(${profileId}, 0))`,
+      );
     },
 
     async update(

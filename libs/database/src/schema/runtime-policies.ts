@@ -2,7 +2,6 @@ import { sql } from 'drizzle-orm';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 import {
   check,
-  index,
   pgTable,
   text,
   timestamp,
@@ -65,7 +64,6 @@ export function defineRuntimePoliciesTable({
         table.teamId,
         table.name,
       ),
-      index('runtime_policies_team_idx').on(table.teamId),
       check(
         'runtime_policies_creator_xor',
         sql`(created_by_agent_id IS NOT NULL) <> (created_by_human_id IS NOT NULL)`,

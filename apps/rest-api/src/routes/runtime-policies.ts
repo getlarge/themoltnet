@@ -20,6 +20,7 @@ import {
   CreateRuntimePolicyBodySchema,
   RuntimePolicyListSchema,
   RuntimePolicyWithToolsSchema,
+  RuntimeProfilePoliciesResponseSchema,
   SetProfilePoliciesBodySchema,
   UpdateRuntimePolicyBodySchema,
 } from '../schemas.js';
@@ -59,6 +60,7 @@ export async function runtimePolicyRoutes(fastify: FastifyInstance) {
     relationshipReader: fastify.relationshipReader,
     relationshipWriter: fastify.relationshipWriter,
     permissionChecker: fastify.permissionChecker,
+    transactionRunner: fastify.transactionRunner,
   });
   server.addHook('preHandler', requireAuth);
 
@@ -236,6 +238,37 @@ export async function runtimePolicyRoutes(fastify: FastifyInstance) {
         subject: authSubject(request),
       });
       return reply.status(204).send(null);
+    },
+  );
+
+  server.get(
+    '/runtime-profiles/:profileId/policies',
+    {
+      config: {
+        auth: { credentialBindingScope: 'team' },
+        rateLimit: fastify.rateLimitConfig.read,
+      },
+      schema: {
+        operationId: 'getRuntimeProfilePolicies',
+        tags: ['runtime-policies'],
+        description: 'List the tool-policy IDs bound to a runtime profile.',
+        security: SECURITY,
+        headers: TeamHeaderRequiredSchema,
+        params: ProfileParamsSchema,
+        response: {
+          200: Type.Ref(RuntimeProfilePoliciesResponseSchema.$id),
+          401: Type.Ref(ProblemDetailsSchema.$id),
+          403: Type.Ref(ProblemDetailsSchema.$id),
+          404: Type.Ref(ProblemDetailsSchema.$id),
+        },
+      },
+    },
+    async (request) => {
+      const teamId = requireCurrentTeamId(request, 'runtime policies');
+      return policies.getProfilePolicies(request.params.profileId, {
+        teamId,
+        subject: authSubject(request),
+      });
     },
   );
 

@@ -1820,7 +1820,7 @@ export type RuntimeModelParams = {
 };
 
 export type RuntimePolicy = {
-  createdAt: string | null;
+  createdAt: string;
   description: string | null;
   /**
    * UUID v4 identifier
@@ -1831,7 +1831,7 @@ export type RuntimePolicy = {
    * UUID v4 identifier
    */
   teamId: string;
-  updatedAt: string | null;
+  updatedAt: string;
 };
 
 export type RuntimePolicyList = {
@@ -1839,7 +1839,7 @@ export type RuntimePolicyList = {
 };
 
 export type RuntimePolicyWithTools = {
-  createdAt: string | null;
+  createdAt: string;
   description: string | null;
   /**
    * UUID v4 identifier
@@ -1851,7 +1851,7 @@ export type RuntimePolicyWithTools = {
    */
   teamId: string;
   tools: Array<string>;
-  updatedAt: string | null;
+  updatedAt: string;
 };
 
 export type RuntimeProfile = {
@@ -2025,6 +2025,10 @@ export type RuntimeProfileListResponse = {
     workspaceStorageMode: 'local';
     workspaceTtlSec: number;
   }>;
+};
+
+export type RuntimeProfilePoliciesResponse = {
+  policyIds: Array<string>;
 };
 
 export type RuntimeProfileRef = {
@@ -7968,6 +7972,49 @@ export type GetRuntimeProfileAllowedToolsResponses = {
 
 export type GetRuntimeProfileAllowedToolsResponse =
   GetRuntimeProfileAllowedToolsResponses[keyof GetRuntimeProfileAllowedToolsResponses];
+
+export type GetRuntimeProfilePoliciesData = {
+  body?: never;
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path: {
+    profileId: string;
+  };
+  query?: never;
+  url: '/runtime-profiles/{profileId}/policies';
+};
+
+export type GetRuntimeProfilePoliciesErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type GetRuntimeProfilePoliciesError =
+  GetRuntimeProfilePoliciesErrors[keyof GetRuntimeProfilePoliciesErrors];
+
+export type GetRuntimeProfilePoliciesResponses = {
+  /**
+   * Default Response
+   */
+  200: RuntimeProfilePoliciesResponse;
+};
+
+export type GetRuntimeProfilePoliciesResponse =
+  GetRuntimeProfilePoliciesResponses[keyof GetRuntimeProfilePoliciesResponses];
 
 export type SetRuntimeProfilePoliciesData = {
   body?: SetProfilePoliciesBody;

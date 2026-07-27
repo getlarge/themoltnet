@@ -8,6 +8,7 @@ import type {
   RuntimePolicy as RuntimePolicyRow,
   RuntimePolicyRepository,
   ToolEnforcement,
+  TransactionRunner,
 } from '@moltnet/database';
 
 import { createProblem, createValidationProblem } from './problems.js';
@@ -28,8 +29,8 @@ export interface RuntimePolicy {
   teamId: string;
   name: string;
   description: string | null;
-  createdAt: string | null;
-  updatedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface RuntimePolicyWithTools extends RuntimePolicy {
@@ -46,6 +47,7 @@ export interface RuntimePolicyServiceDeps {
   relationshipReader: RelationshipReader;
   relationshipWriter: RelationshipWriter;
   permissionChecker: PermissionChecker;
+  transactionRunner: TransactionRunner;
 }
 
 export interface CreateRuntimePolicyInput {
@@ -79,8 +81,8 @@ function toRuntimePolicy(row: RuntimePolicyRow): RuntimePolicy {
     teamId: row.teamId,
     name: row.name,
     description: row.description ?? null,
-    createdAt: row.createdAt?.toISOString() ?? null,
-    updatedAt: row.updatedAt?.toISOString() ?? null,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
   };
 }
 
@@ -236,15 +238,14 @@ export function createRuntimePolicyService(deps: RuntimePolicyServiceDeps) {
 
     async delete(id: string, input: TeamScopedInput): Promise<void> {
       await assertCanManageRuntime(input.subject, input.teamId);
-      const deleted = await deps.runtimePolicyRepository.delete(
-        id,
-        input.teamId,
-      );
-      if (!deleted) throw createProblem('not-found');
-      // Remove the policy's own edges (team + tools). Any inbound
-      // RuntimeProfile#policies binding to this id is left dangling but resolves
-      // to no tools, so enforcement stays fail-closed until it is re-bound.
-      await deps.relationshipWriter.removeRuntimePolicyRelations(id);
+      const existing = await requirePolicyForTeam(id, input.teamId);
+      // Revoke Keto grants FIRST (idempotent), then delete the SQL row. If the
+      // Keto call fails the row remains, so the operation is safely retryable —
+      // this avoids a "deleted" policy whose grants keep authorizing tools.
+      await deps.relationshipWriter.removeRuntimePolicyRelations(existing.id);
+      // Any inbound RuntimeProfile#policies binding to this id is left dangling
+      // but resolves to no tools (fail-closed) until it is re-bound.
+      await deps.runtimePolicyRepository.delete(existing.id, input.teamId);
     },
 
     async setProfilePolicies(
@@ -253,43 +254,76 @@ export function createRuntimePolicyService(deps: RuntimePolicyServiceDeps) {
       input: TeamScopedInput,
     ): Promise<void> {
       await assertCanManageRuntime(input.subject, input.teamId);
+      const desired = [...new Set(policyIds)];
+
+      // Serialize concurrent replacements for the same profile: a transaction
+      // holds a profile-scoped advisory lock across the read/diff/write so two
+      // replacements can't interleave and leave the union of both requests.
+      await deps.transactionRunner.runInTransaction(
+        async () => {
+          await deps.runtimePolicyRepository.lockProfileBindings(profileId);
+
+          const profileExists =
+            await deps.runtimePolicyRepository.profileExistsForTeam(
+              profileId,
+              input.teamId,
+            );
+          if (!profileExists) throw createProblem('not-found');
+
+          // Validate every desired policy belongs to the team in ONE query.
+          const existingIds =
+            await deps.runtimePolicyRepository.findExistingIdsForTeam(
+              desired,
+              input.teamId,
+            );
+          const missing = desired.filter((id) => !existingIds.has(id));
+          if (missing.length > 0) {
+            throw createValidationProblem(
+              [
+                {
+                  field: 'policyIds',
+                  message: `Policies do not exist in this team: ${missing.join(', ')}`,
+                },
+              ],
+              'Unknown runtime policy',
+            );
+          }
+
+          const current =
+            await deps.relationshipReader.listRuntimeProfilePolicies(profileId);
+          const currentSet = new Set(current);
+          const desiredSet = new Set(desired);
+          const toRemove = current.filter((id) => !desiredSet.has(id));
+          const toAdd = desired.filter((id) => !currentSet.has(id));
+
+          await deps.relationshipWriter.writeRuntimeProfilePolicyEdges(
+            profileId,
+            { addPolicyIds: toAdd, removePolicyIds: toRemove },
+          );
+        },
+        { name: 'setProfilePolicies' },
+      );
+    },
+
+    /**
+     * Read the policy IDs currently bound to a profile (team-scoped). Lets a
+     * client inspect and safely edit a profile's bindings rather than only
+     * seeing the flattened allowed-tool union.
+     */
+    async getProfilePolicies(
+      profileId: string,
+      input: TeamScopedInput,
+    ): Promise<{ policyIds: string[] }> {
+      await assertCanManageRuntime(input.subject, input.teamId);
       const profileExists =
         await deps.runtimePolicyRepository.profileExistsForTeam(
           profileId,
           input.teamId,
         );
       if (!profileExists) throw createProblem('not-found');
-
-      const desired = [...new Set(policyIds)];
-      for (const policyId of desired) {
-        const policy = await deps.runtimePolicyRepository.findByIdForTeam(
-          policyId,
-          input.teamId,
-        );
-        if (!policy) {
-          throw createValidationProblem(
-            [
-              {
-                field: 'policyIds',
-                message: `Policy ${policyId} does not exist in this team`,
-              },
-            ],
-            'Unknown runtime policy',
-          );
-        }
-      }
-
-      const current =
+      const policyIds =
         await deps.relationshipReader.listRuntimeProfilePolicies(profileId);
-      const currentSet = new Set(current);
-      const desiredSet = new Set(desired);
-      const toRemove = current.filter((id) => !desiredSet.has(id));
-      const toAdd = desired.filter((id) => !currentSet.has(id));
-
-      await deps.relationshipWriter.writeRuntimeProfilePolicyEdges(profileId, {
-        addPolicyIds: toAdd,
-        removePolicyIds: toRemove,
-      });
+      return { policyIds };
     },
 
     /**

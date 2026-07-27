@@ -4784,6 +4784,17 @@ func (s *CreateRuntimePolicyBody) Validate() error {
 		})
 	}
 	if err := func() error {
+		if s.Tools == nil {
+			return nil // optional
+		}
+		if err := (validate.Array{
+			MinLength:    0,
+			MinLengthSet: false,
+			MaxLength:    500,
+			MaxLengthSet: true,
+		}).ValidateLength(len(s.Tools)); err != nil {
+			return errors.Wrap(err, "array")
+		}
 		var failures []validate.FieldError
 		for i, elem := range s.Tools {
 			if err := func() error {
@@ -14276,6 +14287,30 @@ func (s *GetRuntimeProfileAllowedToolsUnauthorized) Validate() error {
 }
 
 func (s *GetRuntimeProfileNotFound) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *GetRuntimeProfilePoliciesForbidden) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *GetRuntimeProfilePoliciesNotFound) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *GetRuntimeProfilePoliciesUnauthorized) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
 		return err
@@ -24462,6 +24497,29 @@ func (s RuntimeProfileListResponseItemsItemWorkspaceStorageMode) Validate() erro
 	}
 }
 
+func (s *RuntimeProfilePoliciesResponse) Validate() error {
+	if s == nil {
+		return validate.ErrNilPointer
+	}
+
+	var failures []validate.FieldError
+	if err := func() error {
+		if s.PolicyIds == nil {
+			return errors.New("nil is invalid value")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "policyIds",
+			Error: err,
+		})
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+	return nil
+}
+
 func (s RuntimeProfileRuntimeKind) Validate() error {
 	switch s {
 	case "gondolin_pi":
@@ -25755,6 +25813,14 @@ func (s *SetProfilePoliciesBody) Validate() error {
 	if err := func() error {
 		if s.PolicyIds == nil {
 			return errors.New("nil is invalid value")
+		}
+		if err := (validate.Array{
+			MinLength:    0,
+			MinLengthSet: false,
+			MaxLength:    200,
+			MaxLengthSet: true,
+		}).ValidateLength(len(s.PolicyIds)); err != nil {
+			return errors.Wrap(err, "array")
 		}
 		return nil
 	}(); err != nil {
@@ -31031,6 +31097,17 @@ func (s *UpdateRuntimePolicyBody) Validate() error {
 
 	var failures []validate.FieldError
 	if err := func() error {
+		if s.AddTools == nil {
+			return nil // optional
+		}
+		if err := (validate.Array{
+			MinLength:    0,
+			MinLengthSet: false,
+			MaxLength:    500,
+			MaxLengthSet: true,
+		}).ValidateLength(len(s.AddTools)); err != nil {
+			return errors.Wrap(err, "array")
+		}
 		var failures []validate.FieldError
 		for i, elem := range s.AddTools {
 			if err := func() error {
@@ -31128,6 +31205,17 @@ func (s *UpdateRuntimePolicyBody) Validate() error {
 		})
 	}
 	if err := func() error {
+		if s.RemoveTools == nil {
+			return nil // optional
+		}
+		if err := (validate.Array{
+			MinLength:    0,
+			MinLengthSet: false,
+			MaxLength:    500,
+			MaxLengthSet: true,
+		}).ValidateLength(len(s.RemoveTools)); err != nil {
+			return errors.Wrap(err, "array")
+		}
 		var failures []validate.FieldError
 		for i, elem := range s.RemoveTools {
 			if err := func() error {

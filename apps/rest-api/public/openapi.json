@@ -1776,6 +1776,7 @@
         "type": "object"
       },
       "CreateRuntimePolicyBody": {
+        "additionalProperties": false,
         "properties": {
           "description": {
             "maxLength": 4096,
@@ -1795,6 +1796,7 @@
               "pattern": "^[a-zA-Z0-9_.:-]{1,128}$",
               "type": "string"
             },
+            "maxItems": 500,
             "type": "array"
           }
         },
@@ -7545,15 +7547,8 @@
       "RuntimePolicy": {
         "properties": {
           "createdAt": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "format": "date-time",
+            "type": "string"
           },
           "description": {
             "anyOf": [
@@ -7579,15 +7574,8 @@
             "type": "string"
           },
           "updatedAt": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "format": "date-time",
+            "type": "string"
           }
         },
         "required": [
@@ -7617,15 +7605,8 @@
       "RuntimePolicyWithTools": {
         "properties": {
           "createdAt": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "format": "date-time",
+            "type": "string"
           },
           "description": {
             "anyOf": [
@@ -7661,15 +7642,8 @@
             "type": "array"
           },
           "updatedAt": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "format": "date-time",
+            "type": "string"
           }
         },
         "required": [
@@ -8968,6 +8942,22 @@
         ],
         "type": "object"
       },
+      "RuntimeProfilePoliciesResponse": {
+        "properties": {
+          "policyIds": {
+            "items": {
+              "description": "UUID v4 identifier",
+              "format": "uuid",
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "policyIds"
+        ],
+        "type": "object"
+      },
       "RuntimeProfileRef": {
         "additionalProperties": false,
         "properties": {
@@ -9785,6 +9775,7 @@
         "type": "object"
       },
       "SetProfilePoliciesBody": {
+        "additionalProperties": false,
         "properties": {
           "policyIds": {
             "items": {
@@ -9792,6 +9783,7 @@
               "format": "uuid",
               "type": "string"
             },
+            "maxItems": 200,
             "type": "array"
           }
         },
@@ -12981,6 +12973,8 @@
         "type": "object"
       },
       "UpdateRuntimePolicyBody": {
+        "additionalProperties": false,
+        "minProperties": 1,
         "properties": {
           "addTools": {
             "items": {
@@ -12990,6 +12984,7 @@
               "pattern": "^[a-zA-Z0-9_.:-]{1,128}$",
               "type": "string"
             },
+            "maxItems": 500,
             "type": "array"
           },
           "description": {
@@ -13017,6 +13012,7 @@
               "pattern": "^[a-zA-Z0-9_.:-]{1,128}$",
               "type": "string"
             },
+            "maxItems": 500,
             "type": "array"
           }
         },
@@ -26245,6 +26241,87 @@
       }
     },
     "/runtime-profiles/{profileId}/policies": {
+      "get": {
+        "description": "List the tool-policy IDs bound to a runtime profile.",
+        "operationId": "getRuntimeProfilePolicies",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "profileId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Team ID (UUID) that will own the resource. Required.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeProfilePoliciesResponse"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "runtime-policies"
+        ]
+      },
       "put": {
         "description": "Replace the set of tool policies bound to a runtime profile.",
         "operationId": "setRuntimeProfilePolicies",

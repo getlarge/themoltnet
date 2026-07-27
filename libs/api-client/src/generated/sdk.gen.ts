@@ -208,6 +208,9 @@ import type {
   GetRuntimeProfileAllowedToolsResponses,
   GetRuntimeProfileData,
   GetRuntimeProfileErrors,
+  GetRuntimeProfilePoliciesData,
+  GetRuntimeProfilePoliciesErrors,
+  GetRuntimeProfilePoliciesResponses,
   GetRuntimeProfileResponses,
   GetRuntimeSessionData,
   GetRuntimeSessionErrors,
@@ -2752,6 +2755,30 @@ export const getRuntimeProfileAllowedTools = <
       },
     ],
     url: '/runtime-profiles/{profileId}/allowed-tools',
+    ...options,
+  });
+
+/**
+ * List the tool-policy IDs bound to a runtime profile.
+ */
+export const getRuntimeProfilePolicies = <ThrowOnError extends boolean = false>(
+  options: Options<GetRuntimeProfilePoliciesData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetRuntimeProfilePoliciesResponses,
+    GetRuntimeProfilePoliciesErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/runtime-profiles/{profileId}/policies',
     ...options,
   });
 

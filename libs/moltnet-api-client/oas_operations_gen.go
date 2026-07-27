@@ -76,6 +76,7 @@ const (
 	GetRuntimePolicyOperation                      OperationName = "GetRuntimePolicy"
 	GetRuntimeProfileOperation                     OperationName = "GetRuntimeProfile"
 	GetRuntimeProfileAllowedToolsOperation         OperationName = "GetRuntimeProfileAllowedTools"
+	GetRuntimeProfilePoliciesOperation             OperationName = "GetRuntimeProfilePolicies"
 	GetRuntimeSessionOperation                     OperationName = "GetRuntimeSession"
 	GetSigningCredentialOperation                  OperationName = "GetSigningCredential"
 	GetSigningRequestOperation                     OperationName = "GetSigningRequest"

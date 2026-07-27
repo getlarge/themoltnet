@@ -117,6 +117,7 @@ import type {
   RuntimePolicyWithTools,
   RuntimeProfile,
   RuntimeProfileListResponse,
+  RuntimeProfilePoliciesResponse,
   RuntimeSession,
   RuntimeSlot,
   SearchDiaryData,
@@ -638,6 +639,12 @@ export interface RuntimeProfilesNamespace {
     policyIds: string[],
     options: RequiredTeamRequestOptions,
   ): Promise<void>;
+
+  /** Read the tool-policy IDs currently bound to a profile. Team-scoped. */
+  getPolicies(
+    profileId: string,
+    options: RequiredTeamRequestOptions,
+  ): Promise<RuntimeProfilePoliciesResponse>;
 }
 
 /**

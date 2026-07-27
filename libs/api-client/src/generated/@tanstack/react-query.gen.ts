@@ -80,6 +80,7 @@ import {
   getRuntimePolicy,
   getRuntimeProfile,
   getRuntimeProfileAllowedTools,
+  getRuntimeProfilePolicies,
   getRuntimeSession,
   getSigningCredential,
   getSigningRequest,
@@ -364,6 +365,9 @@ import type {
   GetRuntimeProfileAllowedToolsResponse,
   GetRuntimeProfileData,
   GetRuntimeProfileError,
+  GetRuntimeProfilePoliciesData,
+  GetRuntimeProfilePoliciesError,
+  GetRuntimeProfilePoliciesResponse,
   GetRuntimeProfileResponse,
   GetRuntimeSessionData,
   GetRuntimeSessionError,
@@ -3729,6 +3733,34 @@ export const getRuntimeProfileAllowedToolsOptions = (
       return data;
     },
     queryKey: getRuntimeProfileAllowedToolsQueryKey(options),
+  });
+
+export const getRuntimeProfilePoliciesQueryKey = (
+  options: Options<GetRuntimeProfilePoliciesData>,
+) => createQueryKey('getRuntimeProfilePolicies', options);
+
+/**
+ * List the tool-policy IDs bound to a runtime profile.
+ */
+export const getRuntimeProfilePoliciesOptions = (
+  options: Options<GetRuntimeProfilePoliciesData>,
+) =>
+  queryOptions<
+    GetRuntimeProfilePoliciesResponse,
+    GetRuntimeProfilePoliciesError,
+    GetRuntimeProfilePoliciesResponse,
+    ReturnType<typeof getRuntimeProfilePoliciesQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getRuntimeProfilePolicies({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getRuntimeProfilePoliciesQueryKey(options),
   });
 
 /**

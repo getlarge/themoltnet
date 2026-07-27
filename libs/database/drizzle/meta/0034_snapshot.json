@@ -2595,21 +2595,6 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
-        },
-        "runtime_policies_team_idx": {
-          "name": "runtime_policies_team_idx",
-          "columns": [
-            {
-              "expression": "team_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
         }
       },
       "foreignKeys": {

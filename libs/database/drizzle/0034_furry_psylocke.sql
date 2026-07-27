@@ -16,5 +16,4 @@ ALTER TABLE "runtime_policies" ADD CONSTRAINT "runtime_policies_team_id_teams_id
 ALTER TABLE "runtime_policies" ADD CONSTRAINT "runtime_policies_created_by_agent_id_agents_identity_id_fk" FOREIGN KEY ("created_by_agent_id") REFERENCES "public"."agents"("identity_id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "runtime_policies" ADD CONSTRAINT "runtime_policies_created_by_human_id_humans_id_fk" FOREIGN KEY ("created_by_human_id") REFERENCES "public"."humans"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 CREATE UNIQUE INDEX "runtime_policies_team_name_idx" ON "runtime_policies" USING btree ("team_id","name");--> statement-breakpoint
-CREATE INDEX "runtime_policies_team_idx" ON "runtime_policies" USING btree ("team_id");--> statement-breakpoint
 ALTER TABLE "runtime_profiles" ADD CONSTRAINT "runtime_profiles_tool_enforcement_valid" CHECK (tool_enforcement = ANY(ARRAY['off','watch','enforce']::text[]));

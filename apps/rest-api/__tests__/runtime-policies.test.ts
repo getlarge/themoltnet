@@ -198,6 +198,9 @@ describe('runtime tool-policy routes', () => {
 
   describe('DELETE /runtime-policies/:policyId', () => {
     it('deletes the policy and removes its Keto relations', async () => {
+      mocks.runtimePolicyRepository.findByIdForTeam.mockResolvedValue(
+        policyRow(),
+      );
       mocks.runtimePolicyRepository.delete.mockResolvedValue(true);
 
       const response = await app.inject({
@@ -213,7 +216,7 @@ describe('runtime tool-policy routes', () => {
     });
 
     it('returns 404 when the policy is absent', async () => {
-      mocks.runtimePolicyRepository.delete.mockResolvedValue(false);
+      mocks.runtimePolicyRepository.findByIdForTeam.mockResolvedValue(null);
 
       const response = await app.inject({
         method: 'DELETE',
@@ -230,8 +233,8 @@ describe('runtime tool-policy routes', () => {
       mocks.runtimePolicyRepository.profileExistsForTeam.mockResolvedValue(
         true,
       );
-      mocks.runtimePolicyRepository.findByIdForTeam.mockResolvedValue(
-        policyRow(),
+      mocks.runtimePolicyRepository.findExistingIdsForTeam.mockResolvedValue(
+        new Set([POLICY_ID]),
       );
       mocks.relationshipReader.listRuntimeProfilePolicies.mockResolvedValue([]);
 
@@ -255,7 +258,9 @@ describe('runtime tool-policy routes', () => {
       mocks.runtimePolicyRepository.profileExistsForTeam.mockResolvedValue(
         true,
       );
-      mocks.runtimePolicyRepository.findByIdForTeam.mockResolvedValue(null);
+      mocks.runtimePolicyRepository.findExistingIdsForTeam.mockResolvedValue(
+        new Set(),
+      );
 
       const response = await app.inject({
         method: 'PUT',
@@ -265,6 +270,24 @@ describe('runtime tool-policy routes', () => {
       });
 
       expect(response.statusCode).toBe(400);
+    });
+
+    it('reads the bound policy ids', async () => {
+      mocks.runtimePolicyRepository.profileExistsForTeam.mockResolvedValue(
+        true,
+      );
+      mocks.relationshipReader.listRuntimeProfilePolicies.mockResolvedValue([
+        POLICY_ID,
+      ]);
+
+      const response = await app.inject({
+        method: 'GET',
+        url: `/runtime-profiles/${PROFILE_ID}/policies`,
+        headers: TEAM_HEADERS,
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toEqual({ policyIds: [POLICY_ID] });
     });
   });
 
