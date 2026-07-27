@@ -14,6 +14,7 @@ import {
   rejectSigningRequest,
   revokeSigningCredential,
   suspendSigningCredential,
+  validatePreviewSignChallenge,
 } from '@moltnet/api-client';
 import {
   createRelationshipWriter,
@@ -141,6 +142,16 @@ describe('Signing credential and delegated request lifecycle', () => {
       },
     });
     expect(begun.error).toBeUndefined();
+    const registrationValidation = await validatePreviewSignChallenge({
+      client,
+      body: {
+        version: 1,
+        operation: 'credential-registration',
+        resourceId: begun.data!.id,
+        challenge: begun.data!.challenge,
+      },
+    });
+    expect(registrationValidation.data).toEqual({ valid: true });
 
     const privateMaterial = await completeSigningCredentialRegistration({
       client: signerClient,
@@ -179,6 +190,16 @@ describe('Signing credential and delegated request lifecycle', () => {
       claimantId: signer.humanId,
       teamId: requester.personalTeamId,
     });
+    const consumedRegistrationValidation = await validatePreviewSignChallenge({
+      client,
+      body: {
+        version: 1,
+        operation: 'credential-registration',
+        resourceId: begun.data!.id,
+        challenge: begun.data!.challenge,
+      },
+    });
+    expect(consumedRegistrationValidation.response.status).toBe(404);
 
     const enrollmentReplay = await completeSigningCredentialRegistration({
       client: signerClient,
@@ -276,6 +297,32 @@ describe('Signing credential and delegated request lifecycle', () => {
     const challenge = previewSignChallenge(claimed.challenge);
     expect(Buffer.from(challenge.digest, 'base64url')).toHaveLength(32);
     expect(challenge).not.toHaveProperty('ikm');
+    const claimedValidation = await validatePreviewSignChallenge({
+      client,
+      body: {
+        version: 1,
+        operation: 'signing-request',
+        resourceId: claimed.id,
+        challenge: claimed.challenge!,
+      },
+    });
+    expect(claimedValidation.data).toEqual({ valid: true });
+    const mutatedValidation = await validatePreviewSignChallenge({
+      client,
+      body: {
+        version: 1,
+        operation: 'signing-request',
+        resourceId: claimed.id,
+        challenge: {
+          ...claimed.challenge!,
+          value: {
+            ...claimed.challenge!.value,
+            digest: 'A'.repeat(43),
+          },
+        },
+      },
+    });
+    expect(mutatedValidation.response.status).toBe(404);
     const receipt = signPreviewSignChallenge(challenge);
 
     const wrongMethod = await completeSigningRequest({
@@ -328,6 +375,16 @@ describe('Signing credential and delegated request lifecycle', () => {
         },
       },
     });
+    const completedValidation = await validatePreviewSignChallenge({
+      client,
+      body: {
+        version: 1,
+        operation: 'signing-request',
+        resourceId: claimed.id,
+        challenge: claimed.challenge!,
+      },
+    });
+    expect(completedValidation.response.status).toBe(404);
 
     const retry = await completeSigningRequest({
       client: signerClient,
@@ -473,6 +530,16 @@ describe('Signing credential and delegated request lifecycle', () => {
       path: { id: approved.data!.id },
     });
     expect(revoked.data!.status).toBe('revoked');
+    const revokedValidation = await validatePreviewSignChallenge({
+      client,
+      body: {
+        version: 1,
+        operation: 'signing-request',
+        resourceId: revokedClaim.data!.id,
+        challenge: revokedClaim.data!.challenge!,
+      },
+    });
+    expect(revokedValidation.response.status).toBe(404);
 
     const completionAfterRevoke = await completeSigningRequest({
       client: signerClient,

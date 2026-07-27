@@ -3,6 +3,7 @@ export * from './client.js';
 export * from './digest.js';
 export { PreviewSignError, type PreviewSignErrorCode } from './errors.js';
 export {
+  normalizeP256DerSignature,
   verifyP256PrehashedSignature,
   verifyP256Signature,
 } from './p256-verify.js';

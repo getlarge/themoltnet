@@ -1,10 +1,11 @@
 import { p256 } from '@noble/curves/nist.js';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   createPreviewSignReceipt,
   decodePreviewSignChallenge,
   PREVIEW_SIGN_VERIFICATION_METHOD,
+  validatePreviewSignChallenge,
 } from '../src/preview-sign.js';
 
 describe('previewSign SDK helpers', () => {
@@ -100,5 +101,52 @@ describe('previewSign SDK helpers', () => {
         previewKeyHandle: 'a2V5LWhhbmRsZQ',
       }),
     ).toThrow(/exactly 32 bytes/u);
+  });
+
+  it('validates a challenge without sending credentials or auth headers', async () => {
+    const fetchMock = vi.fn<typeof fetch>(async () =>
+      Response.json({ valid: true }),
+    );
+    const challenge = {
+      verificationMethod: PREVIEW_SIGN_VERIFICATION_METHOD,
+      value: {
+        verificationMethod: PREVIEW_SIGN_VERIFICATION_METHOD,
+        version: 1 as const,
+        envelope: 'ZW52ZWxvcGU',
+        digest: 'A'.repeat(43),
+        additionalArguments: 'YXJndW1lbnRz',
+        outerCredentialId: 'Y3JlZGVudGlhbA',
+        outerPublicKey: {
+          kty: 2 as const,
+          algorithm: -7 as const,
+          curve: 1 as const,
+          x: 'B'.repeat(43),
+          y: 'C'.repeat(43),
+        },
+        previewKeyHandle: 'a2V5LWhhbmRsZQ',
+      },
+    };
+
+    await expect(
+      validatePreviewSignChallenge({
+        apiUrl: 'https://api.themolt.net',
+        fetch: fetchMock,
+        operation: 'signing-request',
+        resourceId: '770e8400-e29b-41d4-a716-446655440002',
+        challenge,
+      }),
+    ).resolves.toEqual({ valid: true });
+
+    const [input, init] = fetchMock.mock.calls[0]!;
+    const httpRequest =
+      input instanceof Request ? input : new Request(input, init);
+    expect(httpRequest.credentials).toBe('omit');
+    expect(httpRequest.headers.has('authorization')).toBe(false);
+    await expect(httpRequest.clone().json()).resolves.toEqual({
+      version: 1,
+      operation: 'signing-request',
+      resourceId: '770e8400-e29b-41d4-a716-446655440002',
+      challenge,
+    });
   });
 });

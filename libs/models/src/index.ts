@@ -9,4 +9,5 @@ export * from './problem-details.js';
 export * from './provenance-graph.js';
 export * from './schemas.js';
 export * from './signer-constraint.js';
+export * from './signer-protocol.js';
 export * from './verification-method.js';

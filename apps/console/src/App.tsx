@@ -10,6 +10,7 @@ import { GroupDetailPage } from './pages/GroupDetailPage.js';
 import { NotFoundPage } from './pages/NotFoundPage.js';
 import { OverviewPage } from './pages/OverviewPage.js';
 import { ProfilesPage } from './pages/ProfilesPage.js';
+import { SigningPage } from './pages/SigningPage.js';
 import { TaskAnalyticsPage } from './pages/TaskAnalyticsPage.js';
 import { TaskAttemptPage } from './pages/TaskAttemptPage.js';
 import { TaskDetailPage } from './pages/TaskDetailPage.js';
@@ -52,6 +53,7 @@ export function App() {
           </Route>
           <Route path="/tasks" component={TasksPage} />
           <Route path="/profiles" component={ProfilesPage} />
+          <Route path="/signing" component={SigningPage} />
           <Route path="/teams" component={TeamsPage} />
           <Route path="/teams/:id">
             {(params: { id: string }) => <TeamDetailPage id={params.id} />}

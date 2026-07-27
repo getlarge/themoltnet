@@ -199,9 +199,9 @@ services:
       RATE_LIMIT_TASK_ARTIFACT_UPLOAD: '10000'
       RATE_LIMIT_RECOVERY: '10000'
       # Deliberately LOW so the rate-limit e2e suite can trip a real 429 with a
-      # handful of requests. /crypto/verify (the only consumer of this bucket) is
-      # used by no other e2e suite, so this does not affect sibling suites.
-      RATE_LIMIT_PUBLIC_VERIFY: '5'
+      # handful of requests, but high enough for the previewSign lifecycle
+      # matrix, whose route-local bucket exercises six distinct persisted states.
+      RATE_LIMIT_PUBLIC_VERIFY: '10'
       RATE_LIMIT_PUBLIC_SEARCH: '10000'
       RATE_LIMIT_LEGREFFIER_START: '10000'
       RATE_LIMIT_REGISTRATION: '10000'
@@ -270,6 +270,7 @@ services:
       KRATOS_PUBLIC_URL: http://localhost:4433
       API_BASE_URL: http://localhost:8080
       CONSOLE_BASE_URL: http://localhost:5174
+      SIGNER_BASE_URL: http://127.0.0.1:17373
     depends_on:
       rest-api:
         condition: service_healthy

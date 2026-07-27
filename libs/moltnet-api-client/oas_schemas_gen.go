@@ -38707,6 +38707,52 @@ func (o OptUpdateTaskMetadataReq) Or(d UpdateTaskMetadataReq) UpdateTaskMetadata
 	return d
 }
 
+// NewOptValidatePreviewSignChallenge returns new OptValidatePreviewSignChallenge with value set to v.
+func NewOptValidatePreviewSignChallenge(v ValidatePreviewSignChallenge) OptValidatePreviewSignChallenge {
+	return OptValidatePreviewSignChallenge{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptValidatePreviewSignChallenge is optional ValidatePreviewSignChallenge.
+type OptValidatePreviewSignChallenge struct {
+	Value ValidatePreviewSignChallenge
+	Set   bool
+}
+
+// IsSet returns true if OptValidatePreviewSignChallenge was set.
+func (o OptValidatePreviewSignChallenge) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptValidatePreviewSignChallenge) Reset() {
+	var v ValidatePreviewSignChallenge
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptValidatePreviewSignChallenge) SetTo(v ValidatePreviewSignChallenge) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptValidatePreviewSignChallenge) Get() (v ValidatePreviewSignChallenge, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptValidatePreviewSignChallenge) Or(d ValidatePreviewSignChallenge) ValidatePreviewSignChallenge {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptVerifyResultSigner returns new OptVerifyResultSigner with value set to v.
 func NewOptVerifyResultSigner(v VerifyResultSigner) OptVerifyResultSigner {
 	return OptVerifyResultSigner{
@@ -39198,6 +39244,78 @@ func (s *PreviewSignChallenge) SetVerificationMethod(val PreviewSignChallengeVer
 // SetVersion sets the value of Version.
 func (s *PreviewSignChallenge) SetVersion(val PreviewSignChallengeVersion) {
 	s.Version = val
+}
+
+// Ref: #/components/schemas/PreviewSignChallengeOperation
+type PreviewSignChallengeOperation string
+
+const (
+	PreviewSignChallengeOperationCredentialRegistration PreviewSignChallengeOperation = "credential-registration"
+	PreviewSignChallengeOperationSigningRequest         PreviewSignChallengeOperation = "signing-request"
+)
+
+// AllValues returns all PreviewSignChallengeOperation values.
+func (PreviewSignChallengeOperation) AllValues() []PreviewSignChallengeOperation {
+	return []PreviewSignChallengeOperation{
+		PreviewSignChallengeOperationCredentialRegistration,
+		PreviewSignChallengeOperationSigningRequest,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s PreviewSignChallengeOperation) MarshalText() ([]byte, error) {
+	switch s {
+	case PreviewSignChallengeOperationCredentialRegistration:
+		return []byte(s), nil
+	case PreviewSignChallengeOperationSigningRequest:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *PreviewSignChallengeOperation) UnmarshalText(data []byte) error {
+	switch PreviewSignChallengeOperation(data) {
+	case PreviewSignChallengeOperationCredentialRegistration:
+		*s = PreviewSignChallengeOperationCredentialRegistration
+		return nil
+	case PreviewSignChallengeOperationSigningRequest:
+		*s = PreviewSignChallengeOperationSigningRequest
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/PreviewSignChallengeValidation
+type PreviewSignChallengeValidation struct {
+	Valid PreviewSignChallengeValidationValid `json:"valid"`
+}
+
+// GetValid returns the value of Valid.
+func (s *PreviewSignChallengeValidation) GetValid() PreviewSignChallengeValidationValid {
+	return s.Valid
+}
+
+// SetValid sets the value of Valid.
+func (s *PreviewSignChallengeValidation) SetValid(val PreviewSignChallengeValidationValid) {
+	s.Valid = val
+}
+
+func (*PreviewSignChallengeValidation) validatePreviewSignChallengeRes() {}
+
+type PreviewSignChallengeValidationValid bool
+
+const (
+	PreviewSignChallengeValidationValidTrue PreviewSignChallengeValidationValid = true
+)
+
+// AllValues returns all PreviewSignChallengeValidationValid values.
+func (PreviewSignChallengeValidationValid) AllValues() []PreviewSignChallengeValidationValid {
+	return []PreviewSignChallengeValidationValid{
+		PreviewSignChallengeValidationValidTrue,
+	}
 }
 
 // Ref: #/components/schemas/PreviewSignChallengeValue
@@ -59950,6 +60068,79 @@ func (s *UploadTaskArtifactUnauthorizedCode) UnmarshalText(data []byte) error {
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/ValidatePreviewSignChallenge
+type ValidatePreviewSignChallenge struct {
+	Challenge  PreviewSignChallengeValue           `json:"challenge"`
+	Operation  PreviewSignChallengeOperation       `json:"operation"`
+	ResourceId uuid.UUID                           `json:"resourceId"`
+	Version    ValidatePreviewSignChallengeVersion `json:"version"`
+}
+
+// GetChallenge returns the value of Challenge.
+func (s *ValidatePreviewSignChallenge) GetChallenge() PreviewSignChallengeValue {
+	return s.Challenge
+}
+
+// GetOperation returns the value of Operation.
+func (s *ValidatePreviewSignChallenge) GetOperation() PreviewSignChallengeOperation {
+	return s.Operation
+}
+
+// GetResourceId returns the value of ResourceId.
+func (s *ValidatePreviewSignChallenge) GetResourceId() uuid.UUID {
+	return s.ResourceId
+}
+
+// GetVersion returns the value of Version.
+func (s *ValidatePreviewSignChallenge) GetVersion() ValidatePreviewSignChallengeVersion {
+	return s.Version
+}
+
+// SetChallenge sets the value of Challenge.
+func (s *ValidatePreviewSignChallenge) SetChallenge(val PreviewSignChallengeValue) {
+	s.Challenge = val
+}
+
+// SetOperation sets the value of Operation.
+func (s *ValidatePreviewSignChallenge) SetOperation(val PreviewSignChallengeOperation) {
+	s.Operation = val
+}
+
+// SetResourceId sets the value of ResourceId.
+func (s *ValidatePreviewSignChallenge) SetResourceId(val uuid.UUID) {
+	s.ResourceId = val
+}
+
+// SetVersion sets the value of Version.
+func (s *ValidatePreviewSignChallenge) SetVersion(val ValidatePreviewSignChallengeVersion) {
+	s.Version = val
+}
+
+type ValidatePreviewSignChallengeBadRequest ProblemDetails
+
+func (*ValidatePreviewSignChallengeBadRequest) validatePreviewSignChallengeRes() {}
+
+type ValidatePreviewSignChallengeNotFound ProblemDetails
+
+func (*ValidatePreviewSignChallengeNotFound) validatePreviewSignChallengeRes() {}
+
+type ValidatePreviewSignChallengeTooManyRequests ProblemDetails
+
+func (*ValidatePreviewSignChallengeTooManyRequests) validatePreviewSignChallengeRes() {}
+
+type ValidatePreviewSignChallengeVersion float64
+
+const (
+	ValidatePreviewSignChallengeVersion1 ValidatePreviewSignChallengeVersion = 1
+)
+
+// AllValues returns all ValidatePreviewSignChallengeVersion values.
+func (ValidatePreviewSignChallengeVersion) AllValues() []ValidatePreviewSignChallengeVersion {
+	return []ValidatePreviewSignChallengeVersion{
+		ValidatePreviewSignChallengeVersion1,
 	}
 }
 

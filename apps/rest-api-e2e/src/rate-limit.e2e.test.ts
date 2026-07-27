@@ -42,7 +42,7 @@ const READ_LIMIT = 7000;
 const GLOBAL_AUTH_LIMIT = 10000;
 
 // Must match RATE_LIMIT_PUBLIC_VERIFY in docker-compose.e2e.yaml.
-const PUBLIC_VERIFY_LIMIT = 5;
+const PUBLIC_VERIFY_LIMIT = 10;
 
 // An unknown signature: the handler returns 200 { valid: false } without needing
 // real crypto, so each call exercises the rate limiter, not the verify logic.

@@ -160,6 +160,22 @@ function activeCredential() {
   };
 }
 
+function companionChallenge() {
+  return {
+    verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+    value: {
+      verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+      version: 1,
+      envelope: 'ZW52ZWxvcGU',
+      digest: 'ZGlnaWVzdA',
+      additionalArguments: 'YXJrZy1hcmdz',
+      outerCredentialId: 'b3V0ZXItY3JlZGVudGlhbA',
+      outerPublicKey: publicMaterial().outerPublicKey,
+      previewKeyHandle: 'cHJldmlldy1rZXktaGFuZGxl',
+    },
+  };
+}
+
 describe('createSigningService', () => {
   beforeEach(() => {
     _resetSigningWorkflowsForTesting();
@@ -175,7 +191,195 @@ describe('createSigningService', () => {
 
     expect(service.credentials).toBeDefined();
     expect(service.requests).toBeDefined();
+    expect(service.challengeValidation).toBeDefined();
   });
+
+  it('validates an exact unconsumed registration challenge without an auth context', async () => {
+    const challenge = companionChallenge();
+    const findRegistrationById = vi.fn().mockResolvedValue({
+      id: REGISTRATION_ID,
+      ownerHumanId: human.humanId,
+      teamId: TEAM_ID,
+      verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+      credentialType: PREVIEW_SIGN_CREDENTIAL_TYPE,
+      algorithm: PREVIEW_SIGN_ALGORITHM,
+      label: 'Production key',
+      challenge,
+      methodState: {
+        verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+        value: {},
+      },
+      expiresAt: new Date('2026-08-01T12:05:00.000Z'),
+      consumedAt: null,
+      createdAt: new Date('2026-08-01T12:00:00.000Z'),
+    });
+    const deps = createDeps({
+      now: () => new Date('2026-08-01T12:01:00.000Z'),
+      signingCredentialRepository: { findRegistrationById } as never,
+    });
+    const service = createSigningService(deps);
+
+    await expect(
+      service.challengeValidation.validateChallenge({
+        operation: 'credential-registration',
+        resourceId: REGISTRATION_ID,
+        challenge,
+      }),
+    ).resolves.toEqual({ valid: true });
+    expect(deps.permissionChecker.canAccessTeam).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['missing registration', null],
+    [
+      'consumed registration',
+      {
+        consumedAt: new Date('2026-08-01T12:00:30.000Z'),
+        expiresAt: new Date('2026-08-01T12:05:00.000Z'),
+      },
+    ],
+    [
+      'expired registration',
+      {
+        consumedAt: null,
+        expiresAt: new Date('2026-08-01T12:00:30.000Z'),
+      },
+    ],
+  ])('returns one uniform error for an invalid %s', async (_name, state) => {
+    const challenge = companionChallenge();
+    const findRegistrationById = vi.fn().mockResolvedValue(
+      state && {
+        id: REGISTRATION_ID,
+        verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+        challenge,
+        ...state,
+      },
+    );
+    const service = createSigningService(
+      createDeps({
+        now: () => new Date('2026-08-01T12:01:00.000Z'),
+        signingCredentialRepository: { findRegistrationById } as never,
+      }),
+    );
+
+    await expect(
+      service.challengeValidation.validateChallenge({
+        operation: 'credential-registration',
+        resourceId: REGISTRATION_ID,
+        challenge,
+      }),
+    ).rejects.toMatchObject({
+      name: 'SigningServiceError',
+      code: 'not_found',
+      message: 'Signing challenge is not valid',
+    });
+  });
+
+  it('rejects a mutated challenge with the same uniform error', async () => {
+    const challenge = companionChallenge();
+    const service = createSigningService(
+      createDeps({
+        now: () => new Date('2026-08-01T12:01:00.000Z'),
+        signingCredentialRepository: {
+          findRegistrationById: vi.fn().mockResolvedValue({
+            id: REGISTRATION_ID,
+            verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+            challenge,
+            consumedAt: null,
+            expiresAt: new Date('2026-08-01T12:05:00.000Z'),
+          }),
+        } as never,
+      }),
+    );
+
+    await expect(
+      service.challengeValidation.validateChallenge({
+        operation: 'credential-registration',
+        resourceId: REGISTRATION_ID,
+        challenge: {
+          ...challenge,
+          value: { ...challenge.value, digest: 'bXV0YXRlZA' },
+        },
+      }),
+    ).rejects.toMatchObject({
+      code: 'not_found',
+      message: 'Signing challenge is not valid',
+    });
+  });
+
+  it('validates only a claimed request with its still-active bound credential', async () => {
+    const challenge = companionChallenge();
+    const credential = activeCredential();
+    const request = {
+      ...pendingRequest(),
+      status: 'claimed' as const,
+      claimedByHumanId: human.humanId,
+      signingCredentialId: credential.id,
+      challenge,
+      methodState: {
+        verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+        value: {},
+      },
+      claimedAt: new Date('2026-08-01T12:00:30.000Z'),
+    };
+    const findActiveCompatible = vi.fn().mockResolvedValue(credential);
+    const service = createSigningService(
+      createDeps({
+        now: () => new Date('2026-08-01T12:01:00.000Z'),
+        signingRequestRepository: {
+          findById: vi.fn().mockResolvedValue(request),
+        } as never,
+        signingCredentialRepository: { findActiveCompatible } as never,
+      }),
+    );
+
+    await expect(
+      service.challengeValidation.validateChallenge({
+        operation: 'signing-request',
+        resourceId: REQUEST_ID,
+        challenge,
+      }),
+    ).resolves.toEqual({ valid: true });
+    expect(findActiveCompatible).toHaveBeenCalledWith({
+      id: credential.id,
+      ownerHumanId: human.humanId,
+      teamId: TEAM_ID,
+      verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+    });
+  });
+
+  it.each(['pending', 'completed', 'rejected', 'expired'] as const)(
+    'rejects a request in %s state before credential lookup',
+    async (status) => {
+      const challenge = companionChallenge();
+      const findActiveCompatible = vi.fn();
+      const service = createSigningService(
+        createDeps({
+          now: () => new Date('2026-08-01T12:01:00.000Z'),
+          signingRequestRepository: {
+            findById: vi.fn().mockResolvedValue({
+              ...pendingRequest(),
+              status,
+              challenge,
+            }),
+          } as never,
+          signingCredentialRepository: { findActiveCompatible } as never,
+        }),
+      );
+
+      await expect(
+        service.challengeValidation.validateChallenge({
+          operation: 'signing-request',
+          resourceId: REQUEST_ID,
+          challenge,
+        }),
+      ).rejects.toMatchObject({
+        code: 'not_found',
+        message: 'Signing challenge is not valid',
+      });
+      expect(findActiveCompatible).not.toHaveBeenCalled();
+    },
+  );
 
   it('returns no signable requests for an agent without querying storage', async () => {
     const deps = createDeps();

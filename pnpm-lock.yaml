@@ -705,6 +705,9 @@ importers:
       react-dom:
         specifier: 'catalog:'
         version: 19.2.4(react@19.2.4)
+      typebox:
+        specifier: 'catalog:'
+        version: 1.2.8
       wouter:
         specifier: 'catalog:'
         version: 3.9.0(react@19.2.4)
@@ -1054,6 +1057,40 @@ importers:
       vitest:
         specifier: 'catalog:'
         version: 3.2.4(@types/debug@4.1.13)(@types/node@25.1.0)(@vitest/ui@3.2.4)(jiti@2.7.0)(jsdom@27.4.0(@noble/hashes@2.0.1))(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
+
+  apps/moltnet-signer:
+    dependencies:
+      node-hid:
+        specifier: 'catalog:'
+        version: 3.4.0
+      typebox:
+        specifier: 'catalog:'
+        version: 1.2.8
+    devDependencies:
+      '@moltnet/crypto-service':
+        specifier: workspace:*
+        version: link:../../libs/crypto-service
+      '@moltnet/models':
+        specifier: workspace:*
+        version: link:../../libs/models
+      '@themoltnet/yubikey-preview-sign':
+        specifier: workspace:*
+        version: link:../../libs/yubikey-preview-sign
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.19.19
+      tsx:
+        specifier: 'catalog:'
+        version: 4.21.0
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vite:
+        specifier: 'catalog:'
+        version: 8.0.3(@types/node@22.19.19)(esbuild@0.27.2)(jiti@2.7.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.4(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.4)(jiti@2.7.0)(jsdom@27.4.0(@noble/hashes@2.0.1))(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
 
   apps/parallel-brief-runner:
     dependencies:

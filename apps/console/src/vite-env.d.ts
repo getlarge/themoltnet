@@ -5,6 +5,7 @@ interface MoltNetConfig {
   apiBaseUrl: string;
   consoleUrl: string;
   docsUrl?: string;
+  signerUrl?: string;
 }
 
 interface Window {
@@ -16,6 +17,7 @@ interface ImportMetaEnv {
   readonly VITE_API_BASE_URL?: string;
   readonly VITE_CONSOLE_URL?: string;
   readonly VITE_DOCS_URL?: string;
+  readonly VITE_SIGNER_URL?: string;
 }
 
 interface ImportMeta {

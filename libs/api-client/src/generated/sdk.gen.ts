@@ -430,6 +430,9 @@ import type {
   UploadTaskArtifactData,
   UploadTaskArtifactErrors,
   UploadTaskArtifactResponses,
+  ValidatePreviewSignChallengeData,
+  ValidatePreviewSignChallengeErrors,
+  ValidatePreviewSignChallengeResponses,
   VerifyAgentSignatureData,
   VerifyAgentSignatureErrors,
   VerifyAgentSignatureResponses,
@@ -697,6 +700,27 @@ export const getCryptoIdentity = <ThrowOnError extends boolean = false>(
     ],
     url: '/crypto/identity',
     ...options,
+  });
+
+/**
+ * Validate an exact short-lived previewSign challenge against active persisted state without accepting human authentication material.
+ */
+export const validatePreviewSignChallenge = <
+  ThrowOnError extends boolean = false,
+>(
+  options?: Options<ValidatePreviewSignChallengeData, ThrowOnError>,
+) =>
+  (options?.client ?? client).post<
+    ValidatePreviewSignChallengeResponses,
+    ValidatePreviewSignChallengeErrors,
+    ThrowOnError
+  >({
+    url: '/crypto/preview-sign/challenges/validate',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    },
   });
 
 export const listSigningCredentials = <ThrowOnError extends boolean = false>(

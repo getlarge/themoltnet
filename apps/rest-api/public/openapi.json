@@ -5315,6 +5315,37 @@
         ],
         "type": "object"
       },
+      "PreviewSignChallengeOperation": {
+        "anyOf": [
+          {
+            "enum": [
+              "credential-registration"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "signing-request"
+            ],
+            "type": "string"
+          }
+        ]
+      },
+      "PreviewSignChallengeValidation": {
+        "additionalProperties": false,
+        "properties": {
+          "valid": {
+            "enum": [
+              true
+            ],
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "valid"
+        ],
+        "type": "object"
+      },
       "PreviewSignChallengeValue": {
         "additionalProperties": false,
         "properties": {
@@ -14108,6 +14139,34 @@
         ],
         "type": "object"
       },
+      "ValidatePreviewSignChallenge": {
+        "additionalProperties": false,
+        "properties": {
+          "challenge": {
+            "$ref": "#/components/schemas/PreviewSignChallengeValue"
+          },
+          "operation": {
+            "$ref": "#/components/schemas/PreviewSignChallengeOperation"
+          },
+          "resourceId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "version": {
+            "enum": [
+              1
+            ],
+            "type": "number"
+          }
+        },
+        "required": [
+          "version",
+          "operation",
+          "resourceId",
+          "challenge"
+        ],
+        "type": "object"
+      },
       "ValidationError": {
         "additionalProperties": false,
         "properties": {
@@ -15574,6 +15633,67 @@
             "cookieAuth": []
           }
         ],
+        "tags": [
+          "crypto"
+        ]
+      }
+    },
+    "/crypto/preview-sign/challenges/validate": {
+      "post": {
+        "description": "Validate an exact short-lived previewSign challenge against active persisted state without accepting human authentication material.",
+        "operationId": "validatePreviewSignChallenge",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValidatePreviewSignChallenge"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreviewSignChallengeValidation"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [],
         "tags": [
           "crypto"
         ]

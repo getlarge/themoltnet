@@ -22,6 +22,7 @@ const navItems: NavItem[] = [
   { label: 'Tasks', path: '/tasks' },
   { label: 'Analytics', path: '/tasks/analytics' },
   { label: 'Profiles', path: '/profiles' },
+  { label: 'Signing', path: '/signing' },
   { label: 'Teams', path: '/teams' },
 ];
 

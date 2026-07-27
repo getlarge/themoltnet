@@ -1326,6 +1326,16 @@ func (UnimplementedHandler) UploadTaskArtifact(ctx context.Context, req UploadTa
 	return r, ht.ErrNotImplemented
 }
 
+// ValidatePreviewSignChallenge implements validatePreviewSignChallenge operation.
+//
+// Validate an exact short-lived previewSign challenge against active persisted state without
+// accepting human authentication material.
+//
+// POST /crypto/preview-sign/challenges/validate
+func (UnimplementedHandler) ValidatePreviewSignChallenge(ctx context.Context, req OptValidatePreviewSignChallenge) (r ValidatePreviewSignChallengeRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // VerifyAgentSignature implements verifyAgentSignature operation.
 //
 // Verify a signature belongs to the specified agent.

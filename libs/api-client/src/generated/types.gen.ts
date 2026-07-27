@@ -1261,6 +1261,14 @@ export type PreviewSignChallenge = {
   version: 1;
 };
 
+export type PreviewSignChallengeOperation =
+  | 'credential-registration'
+  | 'signing-request';
+
+export type PreviewSignChallengeValidation = {
+  valid: true;
+};
+
 export type PreviewSignChallengeValue = {
   value: PreviewSignChallenge;
   verificationMethod: 'human-hardware-previewsign';
@@ -2978,6 +2986,13 @@ export type UploadTaskArtifactQuery = {
   title: string;
 };
 
+export type ValidatePreviewSignChallenge = {
+  challenge: PreviewSignChallengeValue;
+  operation: PreviewSignChallengeOperation;
+  resourceId: string;
+  version: 1;
+};
+
 export type ValidationError = {
   code?: string;
   field: string;
@@ -3586,6 +3601,41 @@ export type GetCryptoIdentityResponses = {
 
 export type GetCryptoIdentityResponse =
   GetCryptoIdentityResponses[keyof GetCryptoIdentityResponses];
+
+export type ValidatePreviewSignChallengeData = {
+  body?: ValidatePreviewSignChallenge;
+  path?: never;
+  query?: never;
+  url: '/crypto/preview-sign/challenges/validate';
+};
+
+export type ValidatePreviewSignChallengeErrors = {
+  /**
+   * Default Response
+   */
+  400: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+};
+
+export type ValidatePreviewSignChallengeError =
+  ValidatePreviewSignChallengeErrors[keyof ValidatePreviewSignChallengeErrors];
+
+export type ValidatePreviewSignChallengeResponses = {
+  /**
+   * Default Response
+   */
+  200: PreviewSignChallengeValidation;
+};
+
+export type ValidatePreviewSignChallengeResponse =
+  ValidatePreviewSignChallengeResponses[keyof ValidatePreviewSignChallengeResponses];
 
 export type ListSigningCredentialsData = {
   body?: never;

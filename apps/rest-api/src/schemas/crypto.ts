@@ -178,6 +178,38 @@ export const PreviewSignChallengeValueSchema = Type.Object(
   { $id: 'PreviewSignChallengeValue', additionalProperties: false },
 );
 
+export const PreviewSignChallengeOperationSchema = Type.Union(
+  [Type.Literal('credential-registration'), Type.Literal('signing-request')],
+  { $id: 'PreviewSignChallengeOperation' },
+);
+
+export const ValidatePreviewSignChallengeSchema = Type.Object(
+  {
+    version: Type.Literal(1),
+    operation: Type.Unsafe<Static<typeof PreviewSignChallengeOperationSchema>>(
+      Type.Ref(PreviewSignChallengeOperationSchema.$id),
+    ),
+    resourceId: Type.String({ format: 'uuid' }),
+    challenge: Type.Unsafe<Static<typeof PreviewSignChallengeValueSchema>>(
+      Type.Ref(PreviewSignChallengeValueSchema.$id),
+    ),
+  },
+  {
+    $id: 'ValidatePreviewSignChallenge',
+    additionalProperties: false,
+  },
+);
+
+export const PreviewSignChallengeValidationSchema = Type.Object(
+  {
+    valid: Type.Literal(true),
+  },
+  {
+    $id: 'PreviewSignChallengeValidation',
+    additionalProperties: false,
+  },
+);
+
 export const PreviewSignReceiptValueSchema = Type.Object(
   {
     verificationMethod: Type.Literal(PREVIEW_SIGN_METHOD),

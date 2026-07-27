@@ -18,13 +18,17 @@ import {
   utf8,
 } from './bytes.js';
 import { invariant } from './errors.js';
-import { verifyP256PrehashedSignature } from './p256-verify.js';
+import {
+  normalizeP256DerSignature,
+  verifyP256PrehashedSignature,
+} from './p256-verify.js';
 import {
   DEFAULT_PREVIEW_SIGN_RP_ID,
   DEFAULT_PREVIEW_SIGN_RP_NAME,
   PreviewSignCtapClient,
 } from './preview-sign.js';
 import type {
+  CoseEc2PublicKey,
   DeviceDescriptor,
   EnrollmentRecordV1,
   PreviewSignCapabilities,
@@ -55,6 +59,16 @@ export interface SignDigestInput {
 export interface SignDigestResult {
   signature: Uint8Array;
   verificationKey: VerificationKeyRecordV1;
+}
+
+export interface SignPreparedDigestInput {
+  digest: Uint8Array;
+  additionalArguments: Uint8Array;
+  outerCredentialId: Uint8Array;
+  outerPublicKey: CoseEc2PublicKey;
+  previewKeyHandle: Uint8Array;
+  deviceId?: string;
+  presence?: PreviewSignPresence;
 }
 
 export class PreviewSignClient {
@@ -196,6 +210,39 @@ export class PreviewSignClient {
         publicKey: derived.publicKey,
       },
     };
+  }
+
+  /**
+   * Sign a pre-derived ARKG operation without deriving or exposing IKM.
+   *
+   * The caller owns the protocol that produced the exact 32-byte digest and
+   * ARKG additional arguments. Both byte strings are passed to the
+   * authenticator unchanged.
+   */
+  async signPreparedDigest(
+    input: SignPreparedDigestInput,
+  ): Promise<Uint8Array> {
+    invariant(
+      input.digest.length === 32,
+      'INVALID_INPUT',
+      'Digest must be 32 bytes',
+    );
+    invariant(
+      input.additionalArguments.length > 0,
+      'INVALID_INPUT',
+      'ARKG additional arguments must not be empty',
+    );
+    const signature = await this.withCtapClient(input.deviceId, (client) =>
+      client.signByCredential({
+        outerCredentialId: input.outerCredentialId,
+        outerPublicKey: input.outerPublicKey,
+        previewKeyHandle: input.previewKeyHandle,
+        toBeSigned: input.digest,
+        additionalArguments: input.additionalArguments,
+        presence: input.presence ?? PreviewSignPresence.RequireUserPresence,
+      }),
+    );
+    return normalizeP256DerSignature(signature);
   }
 
   verifyDigest(input: {

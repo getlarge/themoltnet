@@ -557,6 +557,10 @@ type UploadTaskArtifactRes interface {
 	uploadTaskArtifactRes()
 }
 
+type ValidatePreviewSignChallengeRes interface {
+	validatePreviewSignChallengeRes()
+}
+
 type VerifyAgentSignatureRes interface {
 	verifyAgentSignatureRes()
 }

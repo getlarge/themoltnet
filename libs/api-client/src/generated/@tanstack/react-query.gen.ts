@@ -155,6 +155,7 @@ import {
   updateTeamMemberRole,
   uploadRuntimeSession,
   uploadTaskArtifact,
+  validatePreviewSignChallenge,
   verifyAgentSignature,
   verifyCryptoSignature,
   verifyDiaryEntryById,
@@ -587,6 +588,9 @@ import type {
   UploadTaskArtifactData,
   UploadTaskArtifactError,
   UploadTaskArtifactResponse,
+  ValidatePreviewSignChallengeData,
+  ValidatePreviewSignChallengeError,
+  ValidatePreviewSignChallengeResponse,
   VerifyAgentSignatureData,
   VerifyAgentSignatureError,
   VerifyAgentSignatureResponse,
@@ -1015,6 +1019,33 @@ export const getCryptoIdentityOptions = (
     },
     queryKey: getCryptoIdentityQueryKey(options),
   });
+
+/**
+ * Validate an exact short-lived previewSign challenge against active persisted state without accepting human authentication material.
+ */
+export const validatePreviewSignChallengeMutation = (
+  options?: Partial<Options<ValidatePreviewSignChallengeData>>,
+): UseMutationOptions<
+  ValidatePreviewSignChallengeResponse,
+  ValidatePreviewSignChallengeError,
+  Options<ValidatePreviewSignChallengeData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    ValidatePreviewSignChallengeResponse,
+    ValidatePreviewSignChallengeError,
+    Options<ValidatePreviewSignChallengeData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await validatePreviewSignChallenge({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
 
 export const listSigningCredentialsQueryKey = (
   options: Options<ListSigningCredentialsData>,
