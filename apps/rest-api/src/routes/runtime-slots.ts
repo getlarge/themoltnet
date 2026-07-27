@@ -1,5 +1,5 @@
 import { type TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
-import { KetoNamespace, requireAuth } from '@moltnet/auth';
+import { requireAuth } from '@moltnet/auth';
 import {
   ConflictProblemDetailsSchema,
   ProblemDetailsSchema,
@@ -24,25 +24,7 @@ import {
   serializeRuntimeSlot,
 } from '../services/runtime-slots.js';
 import { requireCurrentTeamId } from '../utils/require-current-team-id.js';
-
-function authSubject(request: {
-  authContext: {
-    identityId: string;
-    subjectType: 'agent' | 'human';
-    currentTeamId: string | null;
-  } | null;
-}) {
-  const auth = request.authContext;
-  if (!auth) {
-    throw createProblem('unauthorized', 'Authentication context missing');
-  }
-  return {
-    identityId: auth.identityId,
-    subjectNs:
-      auth.subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent,
-    subjectType: auth.subjectType,
-  };
-}
+import { requireKetoSubject } from '../utils/require-keto-subject.js';
 
 export async function runtimeSlotRoutes(fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
@@ -78,7 +60,8 @@ export async function runtimeSlotRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectNs, subjectType } = authSubject(request);
+      const { identityId, subjectNs, subjectType } =
+        requireKetoSubject(request);
       if (subjectType !== 'agent') {
         throw createProblem(
           'forbidden',
@@ -120,7 +103,8 @@ export async function runtimeSlotRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectNs, subjectType } = authSubject(request);
+      const { identityId, subjectNs, subjectType } =
+        requireKetoSubject(request);
       if (subjectType !== 'agent') {
         throw createProblem(
           'forbidden',
@@ -163,7 +147,7 @@ export async function runtimeSlotRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectNs } = authSubject(request);
+      const { identityId, subjectNs } = requireKetoSubject(request);
       const teamId = requireCurrentTeamId(request, 'runtime slots');
       const items = await runtimeSlots.list({
         identityId,
@@ -200,7 +184,7 @@ export async function runtimeSlotRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectNs } = authSubject(request);
+      const { identityId, subjectNs } = requireKetoSubject(request);
       const teamId = requireCurrentTeamId(request, 'runtime slots');
       const resolved = await runtimeSlots.findLatest({
         identityId,

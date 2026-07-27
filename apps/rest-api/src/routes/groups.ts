@@ -28,6 +28,7 @@ import { Type } from 'typebox';
 
 import { createConflictProblem, createProblem } from '../problems/index.js';
 import { authContextToCreator } from '../utils/auth-principal.js';
+import { requireKetoSubject } from '../utils/require-keto-subject.js';
 
 // ── Routes ─────────────────────────────────────────────────────
 
@@ -59,9 +60,7 @@ export async function groupRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { id } = request.params;
-      const { identityId, subjectType } = request.authContext!;
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
 
       const canManageMembers =
         await fastify.permissionChecker.canManageTeamMembers(
@@ -150,9 +149,7 @@ export async function groupRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { id } = request.params;
-      const { identityId, subjectType } = request.authContext!;
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
 
       const canAccess = await fastify.permissionChecker.canAccessTeam(
         id,
@@ -194,9 +191,7 @@ export async function groupRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { groupId } = request.params;
-      const { identityId, subjectType } = request.authContext!;
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
 
       const group = await fastify.groupRepository.findById(groupId);
       if (!group) throw createProblem('not-found');
@@ -245,9 +240,7 @@ export async function groupRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { groupId } = request.params;
-      const { identityId, subjectType } = request.authContext!;
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
 
       const group = await fastify.groupRepository.findById(groupId);
       if (!group) throw createProblem('not-found');
@@ -297,9 +290,7 @@ export async function groupRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { groupId } = request.params;
-      const { identityId, subjectType } = request.authContext!;
-      const callerNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
 
       const group = await fastify.groupRepository.findById(groupId);
       if (!group) throw createProblem('not-found');
@@ -362,9 +353,7 @@ export async function groupRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { groupId } = request.params;
-      const { identityId, subjectType } = request.authContext!;
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
 
       const group = await fastify.groupRepository.findById(groupId);
       if (!group) throw createProblem('not-found');
@@ -409,9 +398,7 @@ export async function groupRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { groupId, subjectId } = request.params;
-      const { identityId, subjectType } = request.authContext!;
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
 
       const group = await fastify.groupRepository.findById(groupId);
       if (!group) throw createProblem('not-found');

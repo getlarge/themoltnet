@@ -1,5 +1,5 @@
 import { type TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
-import { KetoNamespace, requireAuth, TEAM_HEADER } from '@moltnet/auth';
+import { requireAuth, TEAM_HEADER } from '@moltnet/auth';
 import type { RuntimeModel } from '@moltnet/database';
 import { UniqueViolationError } from '@moltnet/database';
 import {
@@ -19,23 +19,7 @@ import {
   UpdateRuntimeModelBodySchema,
 } from '../schemas.js';
 import { authContextToCreator } from '../utils/auth-principal.js';
-
-function authSubject(request: {
-  authContext: {
-    identityId: string;
-    subjectType: 'agent' | 'human';
-    currentTeamId: string | null;
-  } | null;
-}) {
-  const auth = request.authContext;
-  if (!auth)
-    throw createProblem('unauthorized', 'Authentication context missing');
-  return {
-    identityId: auth.identityId,
-    subjectNs:
-      auth.subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent,
-  };
-}
+import { requireKetoSubject } from '../utils/require-keto-subject.js';
 
 /**
  * `x-moltnet-team-id` is optional for the catalog: without it, only global
@@ -140,7 +124,7 @@ export async function runtimeModelRoutes(fastify: FastifyInstance) {
           `${TEAM_HEADER} header is required: runtime model creation is team-scoped`,
         );
       }
-      const { identityId, subjectNs } = authSubject(request);
+      const { identityId, subjectNs } = requireKetoSubject(request);
       const canManage = await fastify.permissionChecker.canManageTeamRuntime(
         teamId,
         identityId,
@@ -204,7 +188,7 @@ export async function runtimeModelRoutes(fastify: FastifyInstance) {
       // Team-scoped entries: caller must be able to access the team.
       // Global entries: any authenticated caller can read.
       if (row.teamId) {
-        const { identityId, subjectNs } = authSubject(request);
+        const { identityId, subjectNs } = requireKetoSubject(request);
         const canAccess = await fastify.permissionChecker.canAccessTeam(
           row.teamId,
           identityId,
@@ -248,7 +232,7 @@ export async function runtimeModelRoutes(fastify: FastifyInstance) {
           'Global catalog entries are not modifiable via the public API',
         );
       }
-      const { identityId, subjectNs } = authSubject(request);
+      const { identityId, subjectNs } = requireKetoSubject(request);
       const canManage = await fastify.permissionChecker.canManageTeamRuntime(
         existing.teamId,
         identityId,
@@ -325,7 +309,7 @@ export async function runtimeModelRoutes(fastify: FastifyInstance) {
           'Global catalog entries are not deletable via the public API',
         );
       }
-      const { identityId, subjectNs } = authSubject(request);
+      const { identityId, subjectNs } = requireKetoSubject(request);
       const canManage = await fastify.permissionChecker.canManageTeamRuntime(
         existing.teamId,
         identityId,

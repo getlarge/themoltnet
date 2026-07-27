@@ -1,5 +1,5 @@
 import { type TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
-import { KetoNamespace, requireAuth } from '@moltnet/auth';
+import { requireAuth } from '@moltnet/auth';
 import {
   ProblemDetailsSchema,
   TeamHeaderRequiredSchema,
@@ -19,25 +19,7 @@ import type { FastifyInstance } from 'fastify';
 
 import { createProblem } from '../problems/index.js';
 import { requireCurrentTeamId } from '../utils/require-current-team-id.js';
-
-function authSubject(request: {
-  authContext: {
-    identityId: string;
-    subjectType: 'agent' | 'human';
-    currentTeamId: string | null;
-  } | null;
-}) {
-  const auth = request.authContext;
-  if (!auth) {
-    throw createProblem('unauthorized', 'Authentication context missing');
-  }
-  return {
-    identityId: auth.identityId,
-    subjectNs:
-      auth.subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent,
-    subjectType: auth.subjectType,
-  };
-}
+import { requireKetoSubject } from '../utils/require-keto-subject.js';
 
 export async function runtimeSessionRoutes(fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
@@ -95,7 +77,8 @@ export async function runtimeSessionRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectNs, subjectType } = authSubject(request);
+      const { identityId, subjectNs, subjectType } =
+        requireKetoSubject(request);
       if (subjectType !== 'agent') {
         throw createProblem(
           'forbidden',
@@ -141,7 +124,7 @@ export async function runtimeSessionRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectNs } = authSubject(request);
+      const { identityId, subjectNs } = requireKetoSubject(request);
       const session = await runtimeSessions.getMetadata({
         attemptN: request.params.attemptN,
         identityId,
@@ -186,7 +169,7 @@ export async function runtimeSessionRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { identityId, subjectNs } = authSubject(request);
+      const { identityId, subjectNs } = requireKetoSubject(request);
       const { object, session, stream } = await runtimeSessions.download({
         attemptN: request.params.attemptN,
         identityId,

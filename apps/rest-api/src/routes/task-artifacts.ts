@@ -1,5 +1,5 @@
 import { type TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
-import { KetoNamespace, requireAuth } from '@moltnet/auth';
+import { requireAuth } from '@moltnet/auth';
 import {
   ConflictProblemDetailsSchema,
   ProblemDetailsSchema,
@@ -33,25 +33,7 @@ import {
   createValidationProblem,
 } from '../problems/index.js';
 import { requireCurrentTeamId } from '../utils/require-current-team-id.js';
-
-function authSubject(request: {
-  authContext: {
-    identityId: string;
-    subjectType: 'agent' | 'human';
-    currentTeamId: string | null;
-  } | null;
-}) {
-  const auth = request.authContext;
-  if (!auth) {
-    throw createProblem('unauthorized', 'Authentication context missing');
-  }
-  return {
-    identityId: auth.identityId,
-    subjectNs:
-      auth.subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent,
-    subjectType: auth.subjectType,
-  };
-}
+import { requireKetoSubject } from '../utils/require-keto-subject.js';
 
 function toArtifactProblem(
   error: TaskArtifactServiceError,
@@ -148,7 +130,8 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectNs, subjectType } = authSubject(request);
+      const { identityId, subjectNs, subjectType } =
+        requireKetoSubject(request);
       if (subjectType !== 'agent') {
         throw createProblem(
           'forbidden',
@@ -221,7 +204,7 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
     async (request) => {
       // Unlike attempt-output uploads, staging is open to humans: task
       // proposers (Diary write) may be human and attach inputs via the API.
-      const { identityId, subjectNs } = authSubject(request);
+      const { identityId, subjectNs } = requireKetoSubject(request);
       try {
         return await taskArtifacts.stageUpload({
           body: request.body,
@@ -268,7 +251,7 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectNs } = authSubject(request);
+      const { identityId, subjectNs } = requireKetoSubject(request);
       try {
         const result = await taskArtifacts.listForTask({
           cursor: request.query.cursor,
@@ -345,7 +328,7 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { identityId, subjectNs } = authSubject(request);
+      const { identityId, subjectNs } = requireKetoSubject(request);
       try {
         const { artifact, stream } = await taskArtifacts.downloadForTask({
           cid: request.params.cid,
@@ -424,7 +407,7 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { identityId, subjectNs } = authSubject(request);
+      const { identityId, subjectNs } = requireKetoSubject(request);
       try {
         const { artifact, stream } = await taskArtifacts.download({
           attemptN: request.params.attemptN,

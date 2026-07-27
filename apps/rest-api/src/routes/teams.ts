@@ -49,6 +49,7 @@ import { Type } from 'typebox';
 
 import { createProblem } from '../problems/index.js';
 import { authContextToCreator } from '../utils/auth-principal.js';
+import { requireKetoSubject } from '../utils/require-keto-subject.js';
 import {
   FOUNDING_ACCEPT_EVENT,
   teamFoundingWorkflow,
@@ -270,9 +271,7 @@ export function teamRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { identityId, subjectType } = getAuthContext(request);
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
       const { name, foundingMembers } = request.body;
 
       const creator = authContextToCreator(request);
@@ -453,9 +452,7 @@ export function teamRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { id } = request.params;
-      const { identityId, subjectType } = getAuthContext(request);
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
 
       const canAccess = await fastify.permissionChecker.canAccessTeam(
         id,
@@ -507,9 +504,7 @@ export function teamRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { id } = request.params;
-      const { identityId, subjectType } = getAuthContext(request);
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
 
       const canManage = await fastify.permissionChecker.canManageTeam(
         id,
@@ -574,9 +569,7 @@ export function teamRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { id } = request.params;
-      const { identityId, subjectType } = getAuthContext(request);
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
 
       const canAccess = await fastify.permissionChecker.canAccessTeam(
         id,
@@ -616,9 +609,7 @@ export function teamRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { id, subjectId } = request.params;
-      const { identityId, subjectType } = getAuthContext(request);
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
 
       const canManageMembers =
         await fastify.permissionChecker.canManageTeamMembers(
@@ -699,9 +690,7 @@ export function teamRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { id, subjectId } = request.params;
-      const { identityId, subjectType } = getAuthContext(request);
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
 
       const canManageMembers =
         await fastify.permissionChecker.canManageTeamMembers(
@@ -761,9 +750,7 @@ export function teamRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { id } = request.params;
-      const { identityId, subjectType } = getAuthContext(request);
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
 
       const canManageMembers =
         await fastify.permissionChecker.canManageTeamMembers(
@@ -823,9 +810,7 @@ export function teamRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { id } = request.params;
-      const { identityId, subjectType } = getAuthContext(request);
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
 
       const canManageMembers =
         await fastify.permissionChecker.canManageTeamMembers(
@@ -872,9 +857,7 @@ export function teamRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { id, inviteId } = request.params;
-      const { identityId, subjectType } = getAuthContext(request);
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
 
       const canManageMembers =
         await fastify.permissionChecker.canManageTeamMembers(
@@ -914,8 +897,7 @@ export function teamRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const authContext = getAuthContext(request);
-      const { identityId } = authContext;
+      const { identityId, subjectNs: ns } = requireKetoSubject(request);
       const { code } = request.body;
 
       const invite = await fastify.teamRepository.findInviteByCode(code);
@@ -955,10 +937,6 @@ export function teamRoutes(fastify: FastifyInstance) {
         throw createProblem('invite-exhausted');
       }
 
-      const ns =
-        authContext.subjectType === 'human'
-          ? KetoNamespace.Human
-          : KetoNamespace.Agent;
       try {
         if (existingMember) {
           await rewriteTeamRole(
