@@ -39,6 +39,7 @@ jobs:
       e2e-mcp: ${{ steps.compute.outputs.e2e-mcp }}
       e2e-go-cli: ${{ steps.compute.outputs.e2e-go-cli }}
       e2e-cpp-sdk: ${{ steps.compute.outputs.e2e-cpp-sdk }}
+      e2e-orchestration: ${{ steps.compute.outputs.e2e-orchestration }}
       e2e-any: ${{ steps.compute.outputs.e2e-any }}
       landing: ${{ steps.compute.outputs.landing }}
       agents-matrix: ${{ steps.matrix.outputs.matrix }}
@@ -157,6 +158,16 @@ jobs:
             echo "e2e-cpp-sdk=true" >> "$GITHUB_OUTPUT"
           else
             echo "e2e-cpp-sdk=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          # Orchestration durability: a standalone suite that only needs the
+          # Absurd Postgres (issue-lifecycle-db + its migrate sibling), NOT the
+          # app-image stack. Its own lightweight job (below) keeps it off the
+          # long e2e-node/rest-api job and out of the *_IMAGE dependency.
+          if contains "@themoltnet/orchestration-e2e"; then
+            echo "e2e-orchestration=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "e2e-orchestration=false" >> "$GITHUB_OUTPUT"
           fi
 
           # e2e-any: true iff any suite should run. The e2e stack images
@@ -1231,6 +1242,57 @@ jobs:
       - name: Docker Compose logs
         if: failure() && needs.affected.outputs.e2e-cpp-sdk == 'true'
         run: docker compose -f docker-compose.e2e.yaml logs --tail=50
+
+  # Standalone durability suite for @moltnet/orchestration. Unlike the other
+  # e2e jobs it needs only the Absurd Postgres (issue-lifecycle-db + its migrate
+  # sibling, built locally from infra/absurd/Dockerfile), NOT the five app
+  # images — so it does not `needs: orchestrator`, skips GHCR/*_IMAGE, and only
+  # brings up those two services. Runs in parallel with the other e2e jobs.
+  e2e-orchestration:
+    name: E2E Tests (Orchestration)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    needs: [affected]
+    env:
+      # Absurd Postgres host port from docker-compose.base.yaml. globalSetup
+      # defaults to this same URL; pinned here to match the other e2e jobs'
+      # belt-and-suspenders connection-string pinning.
+      ORCHESTRATION_ABSURD_URL: postgresql://issue_lifecycle:issue_lifecycle_secret@localhost:55434/issue_lifecycle
+    steps:
+      - name: Skip if Orchestration E2E not affected
+        if: needs.affected.outputs.e2e-orchestration != 'true'
+        run: echo "Orchestration E2E project not affected; E2E Tests (Orchestration) not required."
+
+      - uses: actions/checkout@v6
+        if: needs.affected.outputs.e2e-orchestration == 'true'
+      - uses: pnpm/action-setup@v5
+        if: needs.affected.outputs.e2e-orchestration == 'true'
+      - uses: actions/setup-node@v6
+        if: needs.affected.outputs.e2e-orchestration == 'true'
+        with:
+          node-version: 22.19.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+        if: needs.affected.outputs.e2e-orchestration == 'true'
+      - name: Start Absurd Postgres and run migrations
+        if: needs.affected.outputs.e2e-orchestration == 'true'
+        env:
+          COMPOSE_DISABLE_ENV_FILE: true
+        # Wait for the DB to be healthy, then run the migrate service to
+        # completion (installs the Absurd schema the durability tests need
+        # before they create queues). `run` returns the migration's exit code,
+        # so a failed migration fails the step.
+        run: |
+          docker compose -f docker-compose.e2e.yaml up -d --wait issue-lifecycle-db
+          docker compose -f docker-compose.e2e.yaml run --rm --build issue-lifecycle-db-migrate
+      - name: Run Orchestration Durability E2E tests
+        if: needs.affected.outputs.e2e-orchestration == 'true'
+        run: pnpm exec nx run @themoltnet/orchestration-e2e:e2e
+      - name: Docker Compose logs
+        if: failure() && needs.affected.outputs.e2e-orchestration == 'true'
+        run: docker compose -f docker-compose.e2e.yaml logs --tail=50 issue-lifecycle-db issue-lifecycle-db-migrate
 
   go-otel-extension:
     # The oryintrospectionauth extension deliberately lives OUTSIDE go.work

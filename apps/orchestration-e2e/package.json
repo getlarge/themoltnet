@@ -1,16 +1,14 @@
 {
-  "name": "@themoltnet/parallel-brief-runner-e2e",
+  "name": "@themoltnet/orchestration-e2e",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "dependencies": {
-    "@moltnet/bootstrap": "workspace:*",
-    "@moltnet/crypto-service": "workspace:*",
     "@moltnet/orchestration": "workspace:*",
-    "@themoltnet/parallel-brief-runner": "workspace:*",
-    "@themoltnet/sdk": "workspace:*"
+    "pg": "catalog:"
   },
   "devDependencies": {
+    "@types/pg": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   },
@@ -22,7 +20,7 @@
       "platform:cli"
     ],
     "implicitDependencies": [
-      "@themoltnet/parallel-brief-runner"
+      "@moltnet/orchestration"
     ],
     "targets": {
       "e2e": {
@@ -41,7 +39,7 @@
         ],
         "options": {
           "command": "vitest run --config vitest.config.ts",
-          "cwd": "apps/parallel-brief-runner-e2e"
+          "cwd": "apps/orchestration-e2e"
         },
         "outputs": []
       }
