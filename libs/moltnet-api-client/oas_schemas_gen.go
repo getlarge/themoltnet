@@ -1218,6 +1218,7 @@ const (
 	BeginRuntimeSlotBadRequestCodeSERIALIZATIONEXHAUSTED         BeginRuntimeSlotBadRequestCode = "SERIALIZATION_EXHAUSTED"
 	BeginRuntimeSlotBadRequestCodeSIGNINGREQUESTEXPIRED          BeginRuntimeSlotBadRequestCode = "SIGNING_REQUEST_EXPIRED"
 	BeginRuntimeSlotBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED BeginRuntimeSlotBadRequestCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	BeginRuntimeSlotBadRequestCodeSIGNINGREQUESTLIMITREACHED     BeginRuntimeSlotBadRequestCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	BeginRuntimeSlotBadRequestCodeREGISTRATIONFAILED             BeginRuntimeSlotBadRequestCode = "REGISTRATION_FAILED"
 	BeginRuntimeSlotBadRequestCodeUPSTREAMERROR                  BeginRuntimeSlotBadRequestCode = "UPSTREAM_ERROR"
 	BeginRuntimeSlotBadRequestCodeSERVICEUNAVAILABLE             BeginRuntimeSlotBadRequestCode = "SERVICE_UNAVAILABLE"
@@ -1251,6 +1252,7 @@ func (BeginRuntimeSlotBadRequestCode) AllValues() []BeginRuntimeSlotBadRequestCo
 		BeginRuntimeSlotBadRequestCodeSERIALIZATIONEXHAUSTED,
 		BeginRuntimeSlotBadRequestCodeSIGNINGREQUESTEXPIRED,
 		BeginRuntimeSlotBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED,
+		BeginRuntimeSlotBadRequestCodeSIGNINGREQUESTLIMITREACHED,
 		BeginRuntimeSlotBadRequestCodeREGISTRATIONFAILED,
 		BeginRuntimeSlotBadRequestCodeUPSTREAMERROR,
 		BeginRuntimeSlotBadRequestCodeSERVICEUNAVAILABLE,
@@ -1297,6 +1299,8 @@ func (s BeginRuntimeSlotBadRequestCode) MarshalText() ([]byte, error) {
 	case BeginRuntimeSlotBadRequestCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case BeginRuntimeSlotBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case BeginRuntimeSlotBadRequestCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case BeginRuntimeSlotBadRequestCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -1374,6 +1378,9 @@ func (s *BeginRuntimeSlotBadRequestCode) UnmarshalText(data []byte) error {
 		return nil
 	case BeginRuntimeSlotBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = BeginRuntimeSlotBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case BeginRuntimeSlotBadRequestCodeSIGNINGREQUESTLIMITREACHED:
+		*s = BeginRuntimeSlotBadRequestCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case BeginRuntimeSlotBadRequestCodeREGISTRATIONFAILED:
 		*s = BeginRuntimeSlotBadRequestCodeREGISTRATIONFAILED
@@ -1546,6 +1553,7 @@ const (
 	BeginRuntimeSlotConflictCodeSERIALIZATIONEXHAUSTED         BeginRuntimeSlotConflictCode = "SERIALIZATION_EXHAUSTED"
 	BeginRuntimeSlotConflictCodeSIGNINGREQUESTEXPIRED          BeginRuntimeSlotConflictCode = "SIGNING_REQUEST_EXPIRED"
 	BeginRuntimeSlotConflictCodeSIGNINGREQUESTALREADYCOMPLETED BeginRuntimeSlotConflictCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	BeginRuntimeSlotConflictCodeSIGNINGREQUESTLIMITREACHED     BeginRuntimeSlotConflictCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	BeginRuntimeSlotConflictCodeREGISTRATIONFAILED             BeginRuntimeSlotConflictCode = "REGISTRATION_FAILED"
 	BeginRuntimeSlotConflictCodeUPSTREAMERROR                  BeginRuntimeSlotConflictCode = "UPSTREAM_ERROR"
 	BeginRuntimeSlotConflictCodeSERVICEUNAVAILABLE             BeginRuntimeSlotConflictCode = "SERVICE_UNAVAILABLE"
@@ -1579,6 +1587,7 @@ func (BeginRuntimeSlotConflictCode) AllValues() []BeginRuntimeSlotConflictCode {
 		BeginRuntimeSlotConflictCodeSERIALIZATIONEXHAUSTED,
 		BeginRuntimeSlotConflictCodeSIGNINGREQUESTEXPIRED,
 		BeginRuntimeSlotConflictCodeSIGNINGREQUESTALREADYCOMPLETED,
+		BeginRuntimeSlotConflictCodeSIGNINGREQUESTLIMITREACHED,
 		BeginRuntimeSlotConflictCodeREGISTRATIONFAILED,
 		BeginRuntimeSlotConflictCodeUPSTREAMERROR,
 		BeginRuntimeSlotConflictCodeSERVICEUNAVAILABLE,
@@ -1625,6 +1634,8 @@ func (s BeginRuntimeSlotConflictCode) MarshalText() ([]byte, error) {
 	case BeginRuntimeSlotConflictCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case BeginRuntimeSlotConflictCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case BeginRuntimeSlotConflictCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case BeginRuntimeSlotConflictCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -1702,6 +1713,9 @@ func (s *BeginRuntimeSlotConflictCode) UnmarshalText(data []byte) error {
 		return nil
 	case BeginRuntimeSlotConflictCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = BeginRuntimeSlotConflictCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case BeginRuntimeSlotConflictCodeSIGNINGREQUESTLIMITREACHED:
+		*s = BeginRuntimeSlotConflictCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case BeginRuntimeSlotConflictCodeREGISTRATIONFAILED:
 		*s = BeginRuntimeSlotConflictCodeREGISTRATIONFAILED
@@ -1862,6 +1876,7 @@ const (
 	BeginRuntimeSlotForbiddenCodeSERIALIZATIONEXHAUSTED         BeginRuntimeSlotForbiddenCode = "SERIALIZATION_EXHAUSTED"
 	BeginRuntimeSlotForbiddenCodeSIGNINGREQUESTEXPIRED          BeginRuntimeSlotForbiddenCode = "SIGNING_REQUEST_EXPIRED"
 	BeginRuntimeSlotForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED BeginRuntimeSlotForbiddenCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	BeginRuntimeSlotForbiddenCodeSIGNINGREQUESTLIMITREACHED     BeginRuntimeSlotForbiddenCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	BeginRuntimeSlotForbiddenCodeREGISTRATIONFAILED             BeginRuntimeSlotForbiddenCode = "REGISTRATION_FAILED"
 	BeginRuntimeSlotForbiddenCodeUPSTREAMERROR                  BeginRuntimeSlotForbiddenCode = "UPSTREAM_ERROR"
 	BeginRuntimeSlotForbiddenCodeSERVICEUNAVAILABLE             BeginRuntimeSlotForbiddenCode = "SERVICE_UNAVAILABLE"
@@ -1895,6 +1910,7 @@ func (BeginRuntimeSlotForbiddenCode) AllValues() []BeginRuntimeSlotForbiddenCode
 		BeginRuntimeSlotForbiddenCodeSERIALIZATIONEXHAUSTED,
 		BeginRuntimeSlotForbiddenCodeSIGNINGREQUESTEXPIRED,
 		BeginRuntimeSlotForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED,
+		BeginRuntimeSlotForbiddenCodeSIGNINGREQUESTLIMITREACHED,
 		BeginRuntimeSlotForbiddenCodeREGISTRATIONFAILED,
 		BeginRuntimeSlotForbiddenCodeUPSTREAMERROR,
 		BeginRuntimeSlotForbiddenCodeSERVICEUNAVAILABLE,
@@ -1941,6 +1957,8 @@ func (s BeginRuntimeSlotForbiddenCode) MarshalText() ([]byte, error) {
 	case BeginRuntimeSlotForbiddenCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case BeginRuntimeSlotForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case BeginRuntimeSlotForbiddenCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case BeginRuntimeSlotForbiddenCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -2018,6 +2036,9 @@ func (s *BeginRuntimeSlotForbiddenCode) UnmarshalText(data []byte) error {
 		return nil
 	case BeginRuntimeSlotForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = BeginRuntimeSlotForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case BeginRuntimeSlotForbiddenCodeSIGNINGREQUESTLIMITREACHED:
+		*s = BeginRuntimeSlotForbiddenCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case BeginRuntimeSlotForbiddenCodeREGISTRATIONFAILED:
 		*s = BeginRuntimeSlotForbiddenCodeREGISTRATIONFAILED
@@ -2178,6 +2199,7 @@ const (
 	BeginRuntimeSlotNotFoundCodeSERIALIZATIONEXHAUSTED         BeginRuntimeSlotNotFoundCode = "SERIALIZATION_EXHAUSTED"
 	BeginRuntimeSlotNotFoundCodeSIGNINGREQUESTEXPIRED          BeginRuntimeSlotNotFoundCode = "SIGNING_REQUEST_EXPIRED"
 	BeginRuntimeSlotNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED BeginRuntimeSlotNotFoundCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	BeginRuntimeSlotNotFoundCodeSIGNINGREQUESTLIMITREACHED     BeginRuntimeSlotNotFoundCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	BeginRuntimeSlotNotFoundCodeREGISTRATIONFAILED             BeginRuntimeSlotNotFoundCode = "REGISTRATION_FAILED"
 	BeginRuntimeSlotNotFoundCodeUPSTREAMERROR                  BeginRuntimeSlotNotFoundCode = "UPSTREAM_ERROR"
 	BeginRuntimeSlotNotFoundCodeSERVICEUNAVAILABLE             BeginRuntimeSlotNotFoundCode = "SERVICE_UNAVAILABLE"
@@ -2211,6 +2233,7 @@ func (BeginRuntimeSlotNotFoundCode) AllValues() []BeginRuntimeSlotNotFoundCode {
 		BeginRuntimeSlotNotFoundCodeSERIALIZATIONEXHAUSTED,
 		BeginRuntimeSlotNotFoundCodeSIGNINGREQUESTEXPIRED,
 		BeginRuntimeSlotNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED,
+		BeginRuntimeSlotNotFoundCodeSIGNINGREQUESTLIMITREACHED,
 		BeginRuntimeSlotNotFoundCodeREGISTRATIONFAILED,
 		BeginRuntimeSlotNotFoundCodeUPSTREAMERROR,
 		BeginRuntimeSlotNotFoundCodeSERVICEUNAVAILABLE,
@@ -2257,6 +2280,8 @@ func (s BeginRuntimeSlotNotFoundCode) MarshalText() ([]byte, error) {
 	case BeginRuntimeSlotNotFoundCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case BeginRuntimeSlotNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case BeginRuntimeSlotNotFoundCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case BeginRuntimeSlotNotFoundCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -2334,6 +2359,9 @@ func (s *BeginRuntimeSlotNotFoundCode) UnmarshalText(data []byte) error {
 		return nil
 	case BeginRuntimeSlotNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = BeginRuntimeSlotNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case BeginRuntimeSlotNotFoundCodeSIGNINGREQUESTLIMITREACHED:
+		*s = BeginRuntimeSlotNotFoundCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case BeginRuntimeSlotNotFoundCodeREGISTRATIONFAILED:
 		*s = BeginRuntimeSlotNotFoundCodeREGISTRATIONFAILED
@@ -2932,6 +2960,7 @@ const (
 	BeginRuntimeSlotUnauthorizedCodeSERIALIZATIONEXHAUSTED         BeginRuntimeSlotUnauthorizedCode = "SERIALIZATION_EXHAUSTED"
 	BeginRuntimeSlotUnauthorizedCodeSIGNINGREQUESTEXPIRED          BeginRuntimeSlotUnauthorizedCode = "SIGNING_REQUEST_EXPIRED"
 	BeginRuntimeSlotUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED BeginRuntimeSlotUnauthorizedCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	BeginRuntimeSlotUnauthorizedCodeSIGNINGREQUESTLIMITREACHED     BeginRuntimeSlotUnauthorizedCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	BeginRuntimeSlotUnauthorizedCodeREGISTRATIONFAILED             BeginRuntimeSlotUnauthorizedCode = "REGISTRATION_FAILED"
 	BeginRuntimeSlotUnauthorizedCodeUPSTREAMERROR                  BeginRuntimeSlotUnauthorizedCode = "UPSTREAM_ERROR"
 	BeginRuntimeSlotUnauthorizedCodeSERVICEUNAVAILABLE             BeginRuntimeSlotUnauthorizedCode = "SERVICE_UNAVAILABLE"
@@ -2965,6 +2994,7 @@ func (BeginRuntimeSlotUnauthorizedCode) AllValues() []BeginRuntimeSlotUnauthoriz
 		BeginRuntimeSlotUnauthorizedCodeSERIALIZATIONEXHAUSTED,
 		BeginRuntimeSlotUnauthorizedCodeSIGNINGREQUESTEXPIRED,
 		BeginRuntimeSlotUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED,
+		BeginRuntimeSlotUnauthorizedCodeSIGNINGREQUESTLIMITREACHED,
 		BeginRuntimeSlotUnauthorizedCodeREGISTRATIONFAILED,
 		BeginRuntimeSlotUnauthorizedCodeUPSTREAMERROR,
 		BeginRuntimeSlotUnauthorizedCodeSERVICEUNAVAILABLE,
@@ -3011,6 +3041,8 @@ func (s BeginRuntimeSlotUnauthorizedCode) MarshalText() ([]byte, error) {
 	case BeginRuntimeSlotUnauthorizedCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case BeginRuntimeSlotUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case BeginRuntimeSlotUnauthorizedCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case BeginRuntimeSlotUnauthorizedCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -3088,6 +3120,9 @@ func (s *BeginRuntimeSlotUnauthorizedCode) UnmarshalText(data []byte) error {
 		return nil
 	case BeginRuntimeSlotUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = BeginRuntimeSlotUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case BeginRuntimeSlotUnauthorizedCodeSIGNINGREQUESTLIMITREACHED:
+		*s = BeginRuntimeSlotUnauthorizedCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case BeginRuntimeSlotUnauthorizedCodeREGISTRATIONFAILED:
 		*s = BeginRuntimeSlotUnauthorizedCodeREGISTRATIONFAILED
@@ -4343,6 +4378,7 @@ const (
 	ConflictProblemDetailsCodeSERIALIZATIONEXHAUSTED         ConflictProblemDetailsCode = "SERIALIZATION_EXHAUSTED"
 	ConflictProblemDetailsCodeSIGNINGREQUESTEXPIRED          ConflictProblemDetailsCode = "SIGNING_REQUEST_EXPIRED"
 	ConflictProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED ConflictProblemDetailsCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	ConflictProblemDetailsCodeSIGNINGREQUESTLIMITREACHED     ConflictProblemDetailsCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	ConflictProblemDetailsCodeREGISTRATIONFAILED             ConflictProblemDetailsCode = "REGISTRATION_FAILED"
 	ConflictProblemDetailsCodeUPSTREAMERROR                  ConflictProblemDetailsCode = "UPSTREAM_ERROR"
 	ConflictProblemDetailsCodeSERVICEUNAVAILABLE             ConflictProblemDetailsCode = "SERVICE_UNAVAILABLE"
@@ -4376,6 +4412,7 @@ func (ConflictProblemDetailsCode) AllValues() []ConflictProblemDetailsCode {
 		ConflictProblemDetailsCodeSERIALIZATIONEXHAUSTED,
 		ConflictProblemDetailsCodeSIGNINGREQUESTEXPIRED,
 		ConflictProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED,
+		ConflictProblemDetailsCodeSIGNINGREQUESTLIMITREACHED,
 		ConflictProblemDetailsCodeREGISTRATIONFAILED,
 		ConflictProblemDetailsCodeUPSTREAMERROR,
 		ConflictProblemDetailsCodeSERVICEUNAVAILABLE,
@@ -4422,6 +4459,8 @@ func (s ConflictProblemDetailsCode) MarshalText() ([]byte, error) {
 	case ConflictProblemDetailsCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case ConflictProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case ConflictProblemDetailsCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case ConflictProblemDetailsCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -4499,6 +4538,9 @@ func (s *ConflictProblemDetailsCode) UnmarshalText(data []byte) error {
 		return nil
 	case ConflictProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = ConflictProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case ConflictProblemDetailsCodeSIGNINGREQUESTLIMITREACHED:
+		*s = ConflictProblemDetailsCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case ConflictProblemDetailsCodeREGISTRATIONFAILED:
 		*s = ConflictProblemDetailsCodeREGISTRATIONFAILED
@@ -7506,6 +7548,10 @@ func (s *CreateSigningRequestReqVerificationMethod) UnmarshalText(data []byte) e
 		return errors.Errorf("invalid value: %q", data)
 	}
 }
+
+type CreateSigningRequestTooManyRequests ProblemDetails
+
+func (*CreateSigningRequestTooManyRequests) createSigningRequestRes() {}
 
 type CreateSigningRequestUnauthorized ProblemDetails
 
@@ -11924,6 +11970,7 @@ const (
 	DownloadRuntimeSessionBadRequestCodeSERIALIZATIONEXHAUSTED         DownloadRuntimeSessionBadRequestCode = "SERIALIZATION_EXHAUSTED"
 	DownloadRuntimeSessionBadRequestCodeSIGNINGREQUESTEXPIRED          DownloadRuntimeSessionBadRequestCode = "SIGNING_REQUEST_EXPIRED"
 	DownloadRuntimeSessionBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED DownloadRuntimeSessionBadRequestCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	DownloadRuntimeSessionBadRequestCodeSIGNINGREQUESTLIMITREACHED     DownloadRuntimeSessionBadRequestCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	DownloadRuntimeSessionBadRequestCodeREGISTRATIONFAILED             DownloadRuntimeSessionBadRequestCode = "REGISTRATION_FAILED"
 	DownloadRuntimeSessionBadRequestCodeUPSTREAMERROR                  DownloadRuntimeSessionBadRequestCode = "UPSTREAM_ERROR"
 	DownloadRuntimeSessionBadRequestCodeSERVICEUNAVAILABLE             DownloadRuntimeSessionBadRequestCode = "SERVICE_UNAVAILABLE"
@@ -11957,6 +12004,7 @@ func (DownloadRuntimeSessionBadRequestCode) AllValues() []DownloadRuntimeSession
 		DownloadRuntimeSessionBadRequestCodeSERIALIZATIONEXHAUSTED,
 		DownloadRuntimeSessionBadRequestCodeSIGNINGREQUESTEXPIRED,
 		DownloadRuntimeSessionBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED,
+		DownloadRuntimeSessionBadRequestCodeSIGNINGREQUESTLIMITREACHED,
 		DownloadRuntimeSessionBadRequestCodeREGISTRATIONFAILED,
 		DownloadRuntimeSessionBadRequestCodeUPSTREAMERROR,
 		DownloadRuntimeSessionBadRequestCodeSERVICEUNAVAILABLE,
@@ -12003,6 +12051,8 @@ func (s DownloadRuntimeSessionBadRequestCode) MarshalText() ([]byte, error) {
 	case DownloadRuntimeSessionBadRequestCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case DownloadRuntimeSessionBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionBadRequestCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case DownloadRuntimeSessionBadRequestCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -12080,6 +12130,9 @@ func (s *DownloadRuntimeSessionBadRequestCode) UnmarshalText(data []byte) error 
 		return nil
 	case DownloadRuntimeSessionBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = DownloadRuntimeSessionBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case DownloadRuntimeSessionBadRequestCodeSIGNINGREQUESTLIMITREACHED:
+		*s = DownloadRuntimeSessionBadRequestCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case DownloadRuntimeSessionBadRequestCodeREGISTRATIONFAILED:
 		*s = DownloadRuntimeSessionBadRequestCodeREGISTRATIONFAILED
@@ -12240,6 +12293,7 @@ const (
 	DownloadRuntimeSessionForbiddenCodeSERIALIZATIONEXHAUSTED         DownloadRuntimeSessionForbiddenCode = "SERIALIZATION_EXHAUSTED"
 	DownloadRuntimeSessionForbiddenCodeSIGNINGREQUESTEXPIRED          DownloadRuntimeSessionForbiddenCode = "SIGNING_REQUEST_EXPIRED"
 	DownloadRuntimeSessionForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED DownloadRuntimeSessionForbiddenCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	DownloadRuntimeSessionForbiddenCodeSIGNINGREQUESTLIMITREACHED     DownloadRuntimeSessionForbiddenCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	DownloadRuntimeSessionForbiddenCodeREGISTRATIONFAILED             DownloadRuntimeSessionForbiddenCode = "REGISTRATION_FAILED"
 	DownloadRuntimeSessionForbiddenCodeUPSTREAMERROR                  DownloadRuntimeSessionForbiddenCode = "UPSTREAM_ERROR"
 	DownloadRuntimeSessionForbiddenCodeSERVICEUNAVAILABLE             DownloadRuntimeSessionForbiddenCode = "SERVICE_UNAVAILABLE"
@@ -12273,6 +12327,7 @@ func (DownloadRuntimeSessionForbiddenCode) AllValues() []DownloadRuntimeSessionF
 		DownloadRuntimeSessionForbiddenCodeSERIALIZATIONEXHAUSTED,
 		DownloadRuntimeSessionForbiddenCodeSIGNINGREQUESTEXPIRED,
 		DownloadRuntimeSessionForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED,
+		DownloadRuntimeSessionForbiddenCodeSIGNINGREQUESTLIMITREACHED,
 		DownloadRuntimeSessionForbiddenCodeREGISTRATIONFAILED,
 		DownloadRuntimeSessionForbiddenCodeUPSTREAMERROR,
 		DownloadRuntimeSessionForbiddenCodeSERVICEUNAVAILABLE,
@@ -12319,6 +12374,8 @@ func (s DownloadRuntimeSessionForbiddenCode) MarshalText() ([]byte, error) {
 	case DownloadRuntimeSessionForbiddenCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case DownloadRuntimeSessionForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionForbiddenCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case DownloadRuntimeSessionForbiddenCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -12396,6 +12453,9 @@ func (s *DownloadRuntimeSessionForbiddenCode) UnmarshalText(data []byte) error {
 		return nil
 	case DownloadRuntimeSessionForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = DownloadRuntimeSessionForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case DownloadRuntimeSessionForbiddenCodeSIGNINGREQUESTLIMITREACHED:
+		*s = DownloadRuntimeSessionForbiddenCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case DownloadRuntimeSessionForbiddenCodeREGISTRATIONFAILED:
 		*s = DownloadRuntimeSessionForbiddenCodeREGISTRATIONFAILED
@@ -12556,6 +12616,7 @@ const (
 	DownloadRuntimeSessionNotFoundCodeSERIALIZATIONEXHAUSTED         DownloadRuntimeSessionNotFoundCode = "SERIALIZATION_EXHAUSTED"
 	DownloadRuntimeSessionNotFoundCodeSIGNINGREQUESTEXPIRED          DownloadRuntimeSessionNotFoundCode = "SIGNING_REQUEST_EXPIRED"
 	DownloadRuntimeSessionNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED DownloadRuntimeSessionNotFoundCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	DownloadRuntimeSessionNotFoundCodeSIGNINGREQUESTLIMITREACHED     DownloadRuntimeSessionNotFoundCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	DownloadRuntimeSessionNotFoundCodeREGISTRATIONFAILED             DownloadRuntimeSessionNotFoundCode = "REGISTRATION_FAILED"
 	DownloadRuntimeSessionNotFoundCodeUPSTREAMERROR                  DownloadRuntimeSessionNotFoundCode = "UPSTREAM_ERROR"
 	DownloadRuntimeSessionNotFoundCodeSERVICEUNAVAILABLE             DownloadRuntimeSessionNotFoundCode = "SERVICE_UNAVAILABLE"
@@ -12589,6 +12650,7 @@ func (DownloadRuntimeSessionNotFoundCode) AllValues() []DownloadRuntimeSessionNo
 		DownloadRuntimeSessionNotFoundCodeSERIALIZATIONEXHAUSTED,
 		DownloadRuntimeSessionNotFoundCodeSIGNINGREQUESTEXPIRED,
 		DownloadRuntimeSessionNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED,
+		DownloadRuntimeSessionNotFoundCodeSIGNINGREQUESTLIMITREACHED,
 		DownloadRuntimeSessionNotFoundCodeREGISTRATIONFAILED,
 		DownloadRuntimeSessionNotFoundCodeUPSTREAMERROR,
 		DownloadRuntimeSessionNotFoundCodeSERVICEUNAVAILABLE,
@@ -12635,6 +12697,8 @@ func (s DownloadRuntimeSessionNotFoundCode) MarshalText() ([]byte, error) {
 	case DownloadRuntimeSessionNotFoundCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case DownloadRuntimeSessionNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionNotFoundCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case DownloadRuntimeSessionNotFoundCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -12712,6 +12776,9 @@ func (s *DownloadRuntimeSessionNotFoundCode) UnmarshalText(data []byte) error {
 		return nil
 	case DownloadRuntimeSessionNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = DownloadRuntimeSessionNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case DownloadRuntimeSessionNotFoundCodeSIGNINGREQUESTLIMITREACHED:
+		*s = DownloadRuntimeSessionNotFoundCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case DownloadRuntimeSessionNotFoundCodeREGISTRATIONFAILED:
 		*s = DownloadRuntimeSessionNotFoundCodeREGISTRATIONFAILED
@@ -12889,6 +12956,7 @@ const (
 	DownloadRuntimeSessionServiceUnavailableCodeSERIALIZATIONEXHAUSTED         DownloadRuntimeSessionServiceUnavailableCode = "SERIALIZATION_EXHAUSTED"
 	DownloadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTEXPIRED          DownloadRuntimeSessionServiceUnavailableCode = "SIGNING_REQUEST_EXPIRED"
 	DownloadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED DownloadRuntimeSessionServiceUnavailableCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	DownloadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTLIMITREACHED     DownloadRuntimeSessionServiceUnavailableCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	DownloadRuntimeSessionServiceUnavailableCodeREGISTRATIONFAILED             DownloadRuntimeSessionServiceUnavailableCode = "REGISTRATION_FAILED"
 	DownloadRuntimeSessionServiceUnavailableCodeUPSTREAMERROR                  DownloadRuntimeSessionServiceUnavailableCode = "UPSTREAM_ERROR"
 	DownloadRuntimeSessionServiceUnavailableCodeSERVICEUNAVAILABLE             DownloadRuntimeSessionServiceUnavailableCode = "SERVICE_UNAVAILABLE"
@@ -12922,6 +12990,7 @@ func (DownloadRuntimeSessionServiceUnavailableCode) AllValues() []DownloadRuntim
 		DownloadRuntimeSessionServiceUnavailableCodeSERIALIZATIONEXHAUSTED,
 		DownloadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTEXPIRED,
 		DownloadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED,
+		DownloadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTLIMITREACHED,
 		DownloadRuntimeSessionServiceUnavailableCodeREGISTRATIONFAILED,
 		DownloadRuntimeSessionServiceUnavailableCodeUPSTREAMERROR,
 		DownloadRuntimeSessionServiceUnavailableCodeSERVICEUNAVAILABLE,
@@ -12968,6 +13037,8 @@ func (s DownloadRuntimeSessionServiceUnavailableCode) MarshalText() ([]byte, err
 	case DownloadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case DownloadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case DownloadRuntimeSessionServiceUnavailableCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -13045,6 +13116,9 @@ func (s *DownloadRuntimeSessionServiceUnavailableCode) UnmarshalText(data []byte
 		return nil
 	case DownloadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = DownloadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case DownloadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTLIMITREACHED:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case DownloadRuntimeSessionServiceUnavailableCodeREGISTRATIONFAILED:
 		*s = DownloadRuntimeSessionServiceUnavailableCodeREGISTRATIONFAILED
@@ -13205,6 +13279,7 @@ const (
 	DownloadRuntimeSessionUnauthorizedCodeSERIALIZATIONEXHAUSTED         DownloadRuntimeSessionUnauthorizedCode = "SERIALIZATION_EXHAUSTED"
 	DownloadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTEXPIRED          DownloadRuntimeSessionUnauthorizedCode = "SIGNING_REQUEST_EXPIRED"
 	DownloadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED DownloadRuntimeSessionUnauthorizedCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	DownloadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTLIMITREACHED     DownloadRuntimeSessionUnauthorizedCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	DownloadRuntimeSessionUnauthorizedCodeREGISTRATIONFAILED             DownloadRuntimeSessionUnauthorizedCode = "REGISTRATION_FAILED"
 	DownloadRuntimeSessionUnauthorizedCodeUPSTREAMERROR                  DownloadRuntimeSessionUnauthorizedCode = "UPSTREAM_ERROR"
 	DownloadRuntimeSessionUnauthorizedCodeSERVICEUNAVAILABLE             DownloadRuntimeSessionUnauthorizedCode = "SERVICE_UNAVAILABLE"
@@ -13238,6 +13313,7 @@ func (DownloadRuntimeSessionUnauthorizedCode) AllValues() []DownloadRuntimeSessi
 		DownloadRuntimeSessionUnauthorizedCodeSERIALIZATIONEXHAUSTED,
 		DownloadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTEXPIRED,
 		DownloadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED,
+		DownloadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTLIMITREACHED,
 		DownloadRuntimeSessionUnauthorizedCodeREGISTRATIONFAILED,
 		DownloadRuntimeSessionUnauthorizedCodeUPSTREAMERROR,
 		DownloadRuntimeSessionUnauthorizedCodeSERVICEUNAVAILABLE,
@@ -13284,6 +13360,8 @@ func (s DownloadRuntimeSessionUnauthorizedCode) MarshalText() ([]byte, error) {
 	case DownloadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case DownloadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case DownloadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case DownloadRuntimeSessionUnauthorizedCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -13361,6 +13439,9 @@ func (s *DownloadRuntimeSessionUnauthorizedCode) UnmarshalText(data []byte) erro
 		return nil
 	case DownloadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = DownloadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case DownloadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTLIMITREACHED:
+		*s = DownloadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case DownloadRuntimeSessionUnauthorizedCodeREGISTRATIONFAILED:
 		*s = DownloadRuntimeSessionUnauthorizedCodeREGISTRATIONFAILED
@@ -13533,6 +13614,7 @@ const (
 	DownloadTaskArtifactBadRequestCodeSERIALIZATIONEXHAUSTED         DownloadTaskArtifactBadRequestCode = "SERIALIZATION_EXHAUSTED"
 	DownloadTaskArtifactBadRequestCodeSIGNINGREQUESTEXPIRED          DownloadTaskArtifactBadRequestCode = "SIGNING_REQUEST_EXPIRED"
 	DownloadTaskArtifactBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED DownloadTaskArtifactBadRequestCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	DownloadTaskArtifactBadRequestCodeSIGNINGREQUESTLIMITREACHED     DownloadTaskArtifactBadRequestCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	DownloadTaskArtifactBadRequestCodeREGISTRATIONFAILED             DownloadTaskArtifactBadRequestCode = "REGISTRATION_FAILED"
 	DownloadTaskArtifactBadRequestCodeUPSTREAMERROR                  DownloadTaskArtifactBadRequestCode = "UPSTREAM_ERROR"
 	DownloadTaskArtifactBadRequestCodeSERVICEUNAVAILABLE             DownloadTaskArtifactBadRequestCode = "SERVICE_UNAVAILABLE"
@@ -13566,6 +13648,7 @@ func (DownloadTaskArtifactBadRequestCode) AllValues() []DownloadTaskArtifactBadR
 		DownloadTaskArtifactBadRequestCodeSERIALIZATIONEXHAUSTED,
 		DownloadTaskArtifactBadRequestCodeSIGNINGREQUESTEXPIRED,
 		DownloadTaskArtifactBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED,
+		DownloadTaskArtifactBadRequestCodeSIGNINGREQUESTLIMITREACHED,
 		DownloadTaskArtifactBadRequestCodeREGISTRATIONFAILED,
 		DownloadTaskArtifactBadRequestCodeUPSTREAMERROR,
 		DownloadTaskArtifactBadRequestCodeSERVICEUNAVAILABLE,
@@ -13612,6 +13695,8 @@ func (s DownloadTaskArtifactBadRequestCode) MarshalText() ([]byte, error) {
 	case DownloadTaskArtifactBadRequestCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case DownloadTaskArtifactBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case DownloadTaskArtifactBadRequestCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case DownloadTaskArtifactBadRequestCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -13689,6 +13774,9 @@ func (s *DownloadTaskArtifactBadRequestCode) UnmarshalText(data []byte) error {
 		return nil
 	case DownloadTaskArtifactBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = DownloadTaskArtifactBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case DownloadTaskArtifactBadRequestCodeSIGNINGREQUESTLIMITREACHED:
+		*s = DownloadTaskArtifactBadRequestCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case DownloadTaskArtifactBadRequestCodeREGISTRATIONFAILED:
 		*s = DownloadTaskArtifactBadRequestCodeREGISTRATIONFAILED
@@ -13861,6 +13949,7 @@ const (
 	DownloadTaskArtifactByCidBadRequestCodeSERIALIZATIONEXHAUSTED         DownloadTaskArtifactByCidBadRequestCode = "SERIALIZATION_EXHAUSTED"
 	DownloadTaskArtifactByCidBadRequestCodeSIGNINGREQUESTEXPIRED          DownloadTaskArtifactByCidBadRequestCode = "SIGNING_REQUEST_EXPIRED"
 	DownloadTaskArtifactByCidBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED DownloadTaskArtifactByCidBadRequestCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	DownloadTaskArtifactByCidBadRequestCodeSIGNINGREQUESTLIMITREACHED     DownloadTaskArtifactByCidBadRequestCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	DownloadTaskArtifactByCidBadRequestCodeREGISTRATIONFAILED             DownloadTaskArtifactByCidBadRequestCode = "REGISTRATION_FAILED"
 	DownloadTaskArtifactByCidBadRequestCodeUPSTREAMERROR                  DownloadTaskArtifactByCidBadRequestCode = "UPSTREAM_ERROR"
 	DownloadTaskArtifactByCidBadRequestCodeSERVICEUNAVAILABLE             DownloadTaskArtifactByCidBadRequestCode = "SERVICE_UNAVAILABLE"
@@ -13894,6 +13983,7 @@ func (DownloadTaskArtifactByCidBadRequestCode) AllValues() []DownloadTaskArtifac
 		DownloadTaskArtifactByCidBadRequestCodeSERIALIZATIONEXHAUSTED,
 		DownloadTaskArtifactByCidBadRequestCodeSIGNINGREQUESTEXPIRED,
 		DownloadTaskArtifactByCidBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED,
+		DownloadTaskArtifactByCidBadRequestCodeSIGNINGREQUESTLIMITREACHED,
 		DownloadTaskArtifactByCidBadRequestCodeREGISTRATIONFAILED,
 		DownloadTaskArtifactByCidBadRequestCodeUPSTREAMERROR,
 		DownloadTaskArtifactByCidBadRequestCodeSERVICEUNAVAILABLE,
@@ -13940,6 +14030,8 @@ func (s DownloadTaskArtifactByCidBadRequestCode) MarshalText() ([]byte, error) {
 	case DownloadTaskArtifactByCidBadRequestCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case DownloadTaskArtifactByCidBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidBadRequestCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case DownloadTaskArtifactByCidBadRequestCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -14017,6 +14109,9 @@ func (s *DownloadTaskArtifactByCidBadRequestCode) UnmarshalText(data []byte) err
 		return nil
 	case DownloadTaskArtifactByCidBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = DownloadTaskArtifactByCidBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case DownloadTaskArtifactByCidBadRequestCodeSIGNINGREQUESTLIMITREACHED:
+		*s = DownloadTaskArtifactByCidBadRequestCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case DownloadTaskArtifactByCidBadRequestCodeREGISTRATIONFAILED:
 		*s = DownloadTaskArtifactByCidBadRequestCodeREGISTRATIONFAILED
@@ -14177,6 +14272,7 @@ const (
 	DownloadTaskArtifactByCidForbiddenCodeSERIALIZATIONEXHAUSTED         DownloadTaskArtifactByCidForbiddenCode = "SERIALIZATION_EXHAUSTED"
 	DownloadTaskArtifactByCidForbiddenCodeSIGNINGREQUESTEXPIRED          DownloadTaskArtifactByCidForbiddenCode = "SIGNING_REQUEST_EXPIRED"
 	DownloadTaskArtifactByCidForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED DownloadTaskArtifactByCidForbiddenCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	DownloadTaskArtifactByCidForbiddenCodeSIGNINGREQUESTLIMITREACHED     DownloadTaskArtifactByCidForbiddenCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	DownloadTaskArtifactByCidForbiddenCodeREGISTRATIONFAILED             DownloadTaskArtifactByCidForbiddenCode = "REGISTRATION_FAILED"
 	DownloadTaskArtifactByCidForbiddenCodeUPSTREAMERROR                  DownloadTaskArtifactByCidForbiddenCode = "UPSTREAM_ERROR"
 	DownloadTaskArtifactByCidForbiddenCodeSERVICEUNAVAILABLE             DownloadTaskArtifactByCidForbiddenCode = "SERVICE_UNAVAILABLE"
@@ -14210,6 +14306,7 @@ func (DownloadTaskArtifactByCidForbiddenCode) AllValues() []DownloadTaskArtifact
 		DownloadTaskArtifactByCidForbiddenCodeSERIALIZATIONEXHAUSTED,
 		DownloadTaskArtifactByCidForbiddenCodeSIGNINGREQUESTEXPIRED,
 		DownloadTaskArtifactByCidForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED,
+		DownloadTaskArtifactByCidForbiddenCodeSIGNINGREQUESTLIMITREACHED,
 		DownloadTaskArtifactByCidForbiddenCodeREGISTRATIONFAILED,
 		DownloadTaskArtifactByCidForbiddenCodeUPSTREAMERROR,
 		DownloadTaskArtifactByCidForbiddenCodeSERVICEUNAVAILABLE,
@@ -14256,6 +14353,8 @@ func (s DownloadTaskArtifactByCidForbiddenCode) MarshalText() ([]byte, error) {
 	case DownloadTaskArtifactByCidForbiddenCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case DownloadTaskArtifactByCidForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidForbiddenCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case DownloadTaskArtifactByCidForbiddenCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -14333,6 +14432,9 @@ func (s *DownloadTaskArtifactByCidForbiddenCode) UnmarshalText(data []byte) erro
 		return nil
 	case DownloadTaskArtifactByCidForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = DownloadTaskArtifactByCidForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case DownloadTaskArtifactByCidForbiddenCodeSIGNINGREQUESTLIMITREACHED:
+		*s = DownloadTaskArtifactByCidForbiddenCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case DownloadTaskArtifactByCidForbiddenCodeREGISTRATIONFAILED:
 		*s = DownloadTaskArtifactByCidForbiddenCodeREGISTRATIONFAILED
@@ -14493,6 +14595,7 @@ const (
 	DownloadTaskArtifactByCidNotFoundCodeSERIALIZATIONEXHAUSTED         DownloadTaskArtifactByCidNotFoundCode = "SERIALIZATION_EXHAUSTED"
 	DownloadTaskArtifactByCidNotFoundCodeSIGNINGREQUESTEXPIRED          DownloadTaskArtifactByCidNotFoundCode = "SIGNING_REQUEST_EXPIRED"
 	DownloadTaskArtifactByCidNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED DownloadTaskArtifactByCidNotFoundCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	DownloadTaskArtifactByCidNotFoundCodeSIGNINGREQUESTLIMITREACHED     DownloadTaskArtifactByCidNotFoundCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	DownloadTaskArtifactByCidNotFoundCodeREGISTRATIONFAILED             DownloadTaskArtifactByCidNotFoundCode = "REGISTRATION_FAILED"
 	DownloadTaskArtifactByCidNotFoundCodeUPSTREAMERROR                  DownloadTaskArtifactByCidNotFoundCode = "UPSTREAM_ERROR"
 	DownloadTaskArtifactByCidNotFoundCodeSERVICEUNAVAILABLE             DownloadTaskArtifactByCidNotFoundCode = "SERVICE_UNAVAILABLE"
@@ -14526,6 +14629,7 @@ func (DownloadTaskArtifactByCidNotFoundCode) AllValues() []DownloadTaskArtifactB
 		DownloadTaskArtifactByCidNotFoundCodeSERIALIZATIONEXHAUSTED,
 		DownloadTaskArtifactByCidNotFoundCodeSIGNINGREQUESTEXPIRED,
 		DownloadTaskArtifactByCidNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED,
+		DownloadTaskArtifactByCidNotFoundCodeSIGNINGREQUESTLIMITREACHED,
 		DownloadTaskArtifactByCidNotFoundCodeREGISTRATIONFAILED,
 		DownloadTaskArtifactByCidNotFoundCodeUPSTREAMERROR,
 		DownloadTaskArtifactByCidNotFoundCodeSERVICEUNAVAILABLE,
@@ -14572,6 +14676,8 @@ func (s DownloadTaskArtifactByCidNotFoundCode) MarshalText() ([]byte, error) {
 	case DownloadTaskArtifactByCidNotFoundCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case DownloadTaskArtifactByCidNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidNotFoundCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case DownloadTaskArtifactByCidNotFoundCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -14649,6 +14755,9 @@ func (s *DownloadTaskArtifactByCidNotFoundCode) UnmarshalText(data []byte) error
 		return nil
 	case DownloadTaskArtifactByCidNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = DownloadTaskArtifactByCidNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case DownloadTaskArtifactByCidNotFoundCodeSIGNINGREQUESTLIMITREACHED:
+		*s = DownloadTaskArtifactByCidNotFoundCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case DownloadTaskArtifactByCidNotFoundCodeREGISTRATIONFAILED:
 		*s = DownloadTaskArtifactByCidNotFoundCodeREGISTRATIONFAILED
@@ -14885,6 +14994,7 @@ const (
 	DownloadTaskArtifactByCidServiceUnavailableCodeSERIALIZATIONEXHAUSTED         DownloadTaskArtifactByCidServiceUnavailableCode = "SERIALIZATION_EXHAUSTED"
 	DownloadTaskArtifactByCidServiceUnavailableCodeSIGNINGREQUESTEXPIRED          DownloadTaskArtifactByCidServiceUnavailableCode = "SIGNING_REQUEST_EXPIRED"
 	DownloadTaskArtifactByCidServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED DownloadTaskArtifactByCidServiceUnavailableCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	DownloadTaskArtifactByCidServiceUnavailableCodeSIGNINGREQUESTLIMITREACHED     DownloadTaskArtifactByCidServiceUnavailableCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	DownloadTaskArtifactByCidServiceUnavailableCodeREGISTRATIONFAILED             DownloadTaskArtifactByCidServiceUnavailableCode = "REGISTRATION_FAILED"
 	DownloadTaskArtifactByCidServiceUnavailableCodeUPSTREAMERROR                  DownloadTaskArtifactByCidServiceUnavailableCode = "UPSTREAM_ERROR"
 	DownloadTaskArtifactByCidServiceUnavailableCodeSERVICEUNAVAILABLE             DownloadTaskArtifactByCidServiceUnavailableCode = "SERVICE_UNAVAILABLE"
@@ -14918,6 +15028,7 @@ func (DownloadTaskArtifactByCidServiceUnavailableCode) AllValues() []DownloadTas
 		DownloadTaskArtifactByCidServiceUnavailableCodeSERIALIZATIONEXHAUSTED,
 		DownloadTaskArtifactByCidServiceUnavailableCodeSIGNINGREQUESTEXPIRED,
 		DownloadTaskArtifactByCidServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED,
+		DownloadTaskArtifactByCidServiceUnavailableCodeSIGNINGREQUESTLIMITREACHED,
 		DownloadTaskArtifactByCidServiceUnavailableCodeREGISTRATIONFAILED,
 		DownloadTaskArtifactByCidServiceUnavailableCodeUPSTREAMERROR,
 		DownloadTaskArtifactByCidServiceUnavailableCodeSERVICEUNAVAILABLE,
@@ -14964,6 +15075,8 @@ func (s DownloadTaskArtifactByCidServiceUnavailableCode) MarshalText() ([]byte, 
 	case DownloadTaskArtifactByCidServiceUnavailableCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case DownloadTaskArtifactByCidServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case DownloadTaskArtifactByCidServiceUnavailableCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -15041,6 +15154,9 @@ func (s *DownloadTaskArtifactByCidServiceUnavailableCode) UnmarshalText(data []b
 		return nil
 	case DownloadTaskArtifactByCidServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = DownloadTaskArtifactByCidServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case DownloadTaskArtifactByCidServiceUnavailableCodeSIGNINGREQUESTLIMITREACHED:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case DownloadTaskArtifactByCidServiceUnavailableCodeREGISTRATIONFAILED:
 		*s = DownloadTaskArtifactByCidServiceUnavailableCodeREGISTRATIONFAILED
@@ -15201,6 +15317,7 @@ const (
 	DownloadTaskArtifactByCidUnauthorizedCodeSERIALIZATIONEXHAUSTED         DownloadTaskArtifactByCidUnauthorizedCode = "SERIALIZATION_EXHAUSTED"
 	DownloadTaskArtifactByCidUnauthorizedCodeSIGNINGREQUESTEXPIRED          DownloadTaskArtifactByCidUnauthorizedCode = "SIGNING_REQUEST_EXPIRED"
 	DownloadTaskArtifactByCidUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED DownloadTaskArtifactByCidUnauthorizedCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	DownloadTaskArtifactByCidUnauthorizedCodeSIGNINGREQUESTLIMITREACHED     DownloadTaskArtifactByCidUnauthorizedCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	DownloadTaskArtifactByCidUnauthorizedCodeREGISTRATIONFAILED             DownloadTaskArtifactByCidUnauthorizedCode = "REGISTRATION_FAILED"
 	DownloadTaskArtifactByCidUnauthorizedCodeUPSTREAMERROR                  DownloadTaskArtifactByCidUnauthorizedCode = "UPSTREAM_ERROR"
 	DownloadTaskArtifactByCidUnauthorizedCodeSERVICEUNAVAILABLE             DownloadTaskArtifactByCidUnauthorizedCode = "SERVICE_UNAVAILABLE"
@@ -15234,6 +15351,7 @@ func (DownloadTaskArtifactByCidUnauthorizedCode) AllValues() []DownloadTaskArtif
 		DownloadTaskArtifactByCidUnauthorizedCodeSERIALIZATIONEXHAUSTED,
 		DownloadTaskArtifactByCidUnauthorizedCodeSIGNINGREQUESTEXPIRED,
 		DownloadTaskArtifactByCidUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED,
+		DownloadTaskArtifactByCidUnauthorizedCodeSIGNINGREQUESTLIMITREACHED,
 		DownloadTaskArtifactByCidUnauthorizedCodeREGISTRATIONFAILED,
 		DownloadTaskArtifactByCidUnauthorizedCodeUPSTREAMERROR,
 		DownloadTaskArtifactByCidUnauthorizedCodeSERVICEUNAVAILABLE,
@@ -15280,6 +15398,8 @@ func (s DownloadTaskArtifactByCidUnauthorizedCode) MarshalText() ([]byte, error)
 	case DownloadTaskArtifactByCidUnauthorizedCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case DownloadTaskArtifactByCidUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case DownloadTaskArtifactByCidUnauthorizedCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -15357,6 +15477,9 @@ func (s *DownloadTaskArtifactByCidUnauthorizedCode) UnmarshalText(data []byte) e
 		return nil
 	case DownloadTaskArtifactByCidUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = DownloadTaskArtifactByCidUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case DownloadTaskArtifactByCidUnauthorizedCodeSIGNINGREQUESTLIMITREACHED:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case DownloadTaskArtifactByCidUnauthorizedCodeREGISTRATIONFAILED:
 		*s = DownloadTaskArtifactByCidUnauthorizedCodeREGISTRATIONFAILED
@@ -15517,6 +15640,7 @@ const (
 	DownloadTaskArtifactForbiddenCodeSERIALIZATIONEXHAUSTED         DownloadTaskArtifactForbiddenCode = "SERIALIZATION_EXHAUSTED"
 	DownloadTaskArtifactForbiddenCodeSIGNINGREQUESTEXPIRED          DownloadTaskArtifactForbiddenCode = "SIGNING_REQUEST_EXPIRED"
 	DownloadTaskArtifactForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED DownloadTaskArtifactForbiddenCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	DownloadTaskArtifactForbiddenCodeSIGNINGREQUESTLIMITREACHED     DownloadTaskArtifactForbiddenCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	DownloadTaskArtifactForbiddenCodeREGISTRATIONFAILED             DownloadTaskArtifactForbiddenCode = "REGISTRATION_FAILED"
 	DownloadTaskArtifactForbiddenCodeUPSTREAMERROR                  DownloadTaskArtifactForbiddenCode = "UPSTREAM_ERROR"
 	DownloadTaskArtifactForbiddenCodeSERVICEUNAVAILABLE             DownloadTaskArtifactForbiddenCode = "SERVICE_UNAVAILABLE"
@@ -15550,6 +15674,7 @@ func (DownloadTaskArtifactForbiddenCode) AllValues() []DownloadTaskArtifactForbi
 		DownloadTaskArtifactForbiddenCodeSERIALIZATIONEXHAUSTED,
 		DownloadTaskArtifactForbiddenCodeSIGNINGREQUESTEXPIRED,
 		DownloadTaskArtifactForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED,
+		DownloadTaskArtifactForbiddenCodeSIGNINGREQUESTLIMITREACHED,
 		DownloadTaskArtifactForbiddenCodeREGISTRATIONFAILED,
 		DownloadTaskArtifactForbiddenCodeUPSTREAMERROR,
 		DownloadTaskArtifactForbiddenCodeSERVICEUNAVAILABLE,
@@ -15596,6 +15721,8 @@ func (s DownloadTaskArtifactForbiddenCode) MarshalText() ([]byte, error) {
 	case DownloadTaskArtifactForbiddenCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case DownloadTaskArtifactForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case DownloadTaskArtifactForbiddenCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case DownloadTaskArtifactForbiddenCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -15673,6 +15800,9 @@ func (s *DownloadTaskArtifactForbiddenCode) UnmarshalText(data []byte) error {
 		return nil
 	case DownloadTaskArtifactForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = DownloadTaskArtifactForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case DownloadTaskArtifactForbiddenCodeSIGNINGREQUESTLIMITREACHED:
+		*s = DownloadTaskArtifactForbiddenCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case DownloadTaskArtifactForbiddenCodeREGISTRATIONFAILED:
 		*s = DownloadTaskArtifactForbiddenCodeREGISTRATIONFAILED
@@ -15833,6 +15963,7 @@ const (
 	DownloadTaskArtifactNotFoundCodeSERIALIZATIONEXHAUSTED         DownloadTaskArtifactNotFoundCode = "SERIALIZATION_EXHAUSTED"
 	DownloadTaskArtifactNotFoundCodeSIGNINGREQUESTEXPIRED          DownloadTaskArtifactNotFoundCode = "SIGNING_REQUEST_EXPIRED"
 	DownloadTaskArtifactNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED DownloadTaskArtifactNotFoundCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	DownloadTaskArtifactNotFoundCodeSIGNINGREQUESTLIMITREACHED     DownloadTaskArtifactNotFoundCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	DownloadTaskArtifactNotFoundCodeREGISTRATIONFAILED             DownloadTaskArtifactNotFoundCode = "REGISTRATION_FAILED"
 	DownloadTaskArtifactNotFoundCodeUPSTREAMERROR                  DownloadTaskArtifactNotFoundCode = "UPSTREAM_ERROR"
 	DownloadTaskArtifactNotFoundCodeSERVICEUNAVAILABLE             DownloadTaskArtifactNotFoundCode = "SERVICE_UNAVAILABLE"
@@ -15866,6 +15997,7 @@ func (DownloadTaskArtifactNotFoundCode) AllValues() []DownloadTaskArtifactNotFou
 		DownloadTaskArtifactNotFoundCodeSERIALIZATIONEXHAUSTED,
 		DownloadTaskArtifactNotFoundCodeSIGNINGREQUESTEXPIRED,
 		DownloadTaskArtifactNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED,
+		DownloadTaskArtifactNotFoundCodeSIGNINGREQUESTLIMITREACHED,
 		DownloadTaskArtifactNotFoundCodeREGISTRATIONFAILED,
 		DownloadTaskArtifactNotFoundCodeUPSTREAMERROR,
 		DownloadTaskArtifactNotFoundCodeSERVICEUNAVAILABLE,
@@ -15912,6 +16044,8 @@ func (s DownloadTaskArtifactNotFoundCode) MarshalText() ([]byte, error) {
 	case DownloadTaskArtifactNotFoundCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case DownloadTaskArtifactNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case DownloadTaskArtifactNotFoundCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case DownloadTaskArtifactNotFoundCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -15989,6 +16123,9 @@ func (s *DownloadTaskArtifactNotFoundCode) UnmarshalText(data []byte) error {
 		return nil
 	case DownloadTaskArtifactNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = DownloadTaskArtifactNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case DownloadTaskArtifactNotFoundCodeSIGNINGREQUESTLIMITREACHED:
+		*s = DownloadTaskArtifactNotFoundCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case DownloadTaskArtifactNotFoundCodeREGISTRATIONFAILED:
 		*s = DownloadTaskArtifactNotFoundCodeREGISTRATIONFAILED
@@ -16225,6 +16362,7 @@ const (
 	DownloadTaskArtifactServiceUnavailableCodeSERIALIZATIONEXHAUSTED         DownloadTaskArtifactServiceUnavailableCode = "SERIALIZATION_EXHAUSTED"
 	DownloadTaskArtifactServiceUnavailableCodeSIGNINGREQUESTEXPIRED          DownloadTaskArtifactServiceUnavailableCode = "SIGNING_REQUEST_EXPIRED"
 	DownloadTaskArtifactServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED DownloadTaskArtifactServiceUnavailableCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	DownloadTaskArtifactServiceUnavailableCodeSIGNINGREQUESTLIMITREACHED     DownloadTaskArtifactServiceUnavailableCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	DownloadTaskArtifactServiceUnavailableCodeREGISTRATIONFAILED             DownloadTaskArtifactServiceUnavailableCode = "REGISTRATION_FAILED"
 	DownloadTaskArtifactServiceUnavailableCodeUPSTREAMERROR                  DownloadTaskArtifactServiceUnavailableCode = "UPSTREAM_ERROR"
 	DownloadTaskArtifactServiceUnavailableCodeSERVICEUNAVAILABLE             DownloadTaskArtifactServiceUnavailableCode = "SERVICE_UNAVAILABLE"
@@ -16258,6 +16396,7 @@ func (DownloadTaskArtifactServiceUnavailableCode) AllValues() []DownloadTaskArti
 		DownloadTaskArtifactServiceUnavailableCodeSERIALIZATIONEXHAUSTED,
 		DownloadTaskArtifactServiceUnavailableCodeSIGNINGREQUESTEXPIRED,
 		DownloadTaskArtifactServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED,
+		DownloadTaskArtifactServiceUnavailableCodeSIGNINGREQUESTLIMITREACHED,
 		DownloadTaskArtifactServiceUnavailableCodeREGISTRATIONFAILED,
 		DownloadTaskArtifactServiceUnavailableCodeUPSTREAMERROR,
 		DownloadTaskArtifactServiceUnavailableCodeSERVICEUNAVAILABLE,
@@ -16304,6 +16443,8 @@ func (s DownloadTaskArtifactServiceUnavailableCode) MarshalText() ([]byte, error
 	case DownloadTaskArtifactServiceUnavailableCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case DownloadTaskArtifactServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case DownloadTaskArtifactServiceUnavailableCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case DownloadTaskArtifactServiceUnavailableCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -16381,6 +16522,9 @@ func (s *DownloadTaskArtifactServiceUnavailableCode) UnmarshalText(data []byte) 
 		return nil
 	case DownloadTaskArtifactServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = DownloadTaskArtifactServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case DownloadTaskArtifactServiceUnavailableCodeSIGNINGREQUESTLIMITREACHED:
+		*s = DownloadTaskArtifactServiceUnavailableCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case DownloadTaskArtifactServiceUnavailableCodeREGISTRATIONFAILED:
 		*s = DownloadTaskArtifactServiceUnavailableCodeREGISTRATIONFAILED
@@ -16541,6 +16685,7 @@ const (
 	DownloadTaskArtifactUnauthorizedCodeSERIALIZATIONEXHAUSTED         DownloadTaskArtifactUnauthorizedCode = "SERIALIZATION_EXHAUSTED"
 	DownloadTaskArtifactUnauthorizedCodeSIGNINGREQUESTEXPIRED          DownloadTaskArtifactUnauthorizedCode = "SIGNING_REQUEST_EXPIRED"
 	DownloadTaskArtifactUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED DownloadTaskArtifactUnauthorizedCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	DownloadTaskArtifactUnauthorizedCodeSIGNINGREQUESTLIMITREACHED     DownloadTaskArtifactUnauthorizedCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	DownloadTaskArtifactUnauthorizedCodeREGISTRATIONFAILED             DownloadTaskArtifactUnauthorizedCode = "REGISTRATION_FAILED"
 	DownloadTaskArtifactUnauthorizedCodeUPSTREAMERROR                  DownloadTaskArtifactUnauthorizedCode = "UPSTREAM_ERROR"
 	DownloadTaskArtifactUnauthorizedCodeSERVICEUNAVAILABLE             DownloadTaskArtifactUnauthorizedCode = "SERVICE_UNAVAILABLE"
@@ -16574,6 +16719,7 @@ func (DownloadTaskArtifactUnauthorizedCode) AllValues() []DownloadTaskArtifactUn
 		DownloadTaskArtifactUnauthorizedCodeSERIALIZATIONEXHAUSTED,
 		DownloadTaskArtifactUnauthorizedCodeSIGNINGREQUESTEXPIRED,
 		DownloadTaskArtifactUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED,
+		DownloadTaskArtifactUnauthorizedCodeSIGNINGREQUESTLIMITREACHED,
 		DownloadTaskArtifactUnauthorizedCodeREGISTRATIONFAILED,
 		DownloadTaskArtifactUnauthorizedCodeUPSTREAMERROR,
 		DownloadTaskArtifactUnauthorizedCodeSERVICEUNAVAILABLE,
@@ -16620,6 +16766,8 @@ func (s DownloadTaskArtifactUnauthorizedCode) MarshalText() ([]byte, error) {
 	case DownloadTaskArtifactUnauthorizedCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case DownloadTaskArtifactUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case DownloadTaskArtifactUnauthorizedCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case DownloadTaskArtifactUnauthorizedCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -16697,6 +16845,9 @@ func (s *DownloadTaskArtifactUnauthorizedCode) UnmarshalText(data []byte) error 
 		return nil
 	case DownloadTaskArtifactUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = DownloadTaskArtifactUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case DownloadTaskArtifactUnauthorizedCodeSIGNINGREQUESTLIMITREACHED:
+		*s = DownloadTaskArtifactUnauthorizedCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case DownloadTaskArtifactUnauthorizedCodeREGISTRATIONFAILED:
 		*s = DownloadTaskArtifactUnauthorizedCodeREGISTRATIONFAILED
@@ -17579,6 +17730,7 @@ const (
 	FindLatestRuntimeSlotForAttemptBadRequestCodeSERIALIZATIONEXHAUSTED         FindLatestRuntimeSlotForAttemptBadRequestCode = "SERIALIZATION_EXHAUSTED"
 	FindLatestRuntimeSlotForAttemptBadRequestCodeSIGNINGREQUESTEXPIRED          FindLatestRuntimeSlotForAttemptBadRequestCode = "SIGNING_REQUEST_EXPIRED"
 	FindLatestRuntimeSlotForAttemptBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED FindLatestRuntimeSlotForAttemptBadRequestCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	FindLatestRuntimeSlotForAttemptBadRequestCodeSIGNINGREQUESTLIMITREACHED     FindLatestRuntimeSlotForAttemptBadRequestCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	FindLatestRuntimeSlotForAttemptBadRequestCodeREGISTRATIONFAILED             FindLatestRuntimeSlotForAttemptBadRequestCode = "REGISTRATION_FAILED"
 	FindLatestRuntimeSlotForAttemptBadRequestCodeUPSTREAMERROR                  FindLatestRuntimeSlotForAttemptBadRequestCode = "UPSTREAM_ERROR"
 	FindLatestRuntimeSlotForAttemptBadRequestCodeSERVICEUNAVAILABLE             FindLatestRuntimeSlotForAttemptBadRequestCode = "SERVICE_UNAVAILABLE"
@@ -17612,6 +17764,7 @@ func (FindLatestRuntimeSlotForAttemptBadRequestCode) AllValues() []FindLatestRun
 		FindLatestRuntimeSlotForAttemptBadRequestCodeSERIALIZATIONEXHAUSTED,
 		FindLatestRuntimeSlotForAttemptBadRequestCodeSIGNINGREQUESTEXPIRED,
 		FindLatestRuntimeSlotForAttemptBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED,
+		FindLatestRuntimeSlotForAttemptBadRequestCodeSIGNINGREQUESTLIMITREACHED,
 		FindLatestRuntimeSlotForAttemptBadRequestCodeREGISTRATIONFAILED,
 		FindLatestRuntimeSlotForAttemptBadRequestCodeUPSTREAMERROR,
 		FindLatestRuntimeSlotForAttemptBadRequestCodeSERVICEUNAVAILABLE,
@@ -17658,6 +17811,8 @@ func (s FindLatestRuntimeSlotForAttemptBadRequestCode) MarshalText() ([]byte, er
 	case FindLatestRuntimeSlotForAttemptBadRequestCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case FindLatestRuntimeSlotForAttemptBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case FindLatestRuntimeSlotForAttemptBadRequestCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -17735,6 +17890,9 @@ func (s *FindLatestRuntimeSlotForAttemptBadRequestCode) UnmarshalText(data []byt
 		return nil
 	case FindLatestRuntimeSlotForAttemptBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeSIGNINGREQUESTLIMITREACHED:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case FindLatestRuntimeSlotForAttemptBadRequestCodeREGISTRATIONFAILED:
 		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeREGISTRATIONFAILED
@@ -17895,6 +18053,7 @@ const (
 	FindLatestRuntimeSlotForAttemptForbiddenCodeSERIALIZATIONEXHAUSTED         FindLatestRuntimeSlotForAttemptForbiddenCode = "SERIALIZATION_EXHAUSTED"
 	FindLatestRuntimeSlotForAttemptForbiddenCodeSIGNINGREQUESTEXPIRED          FindLatestRuntimeSlotForAttemptForbiddenCode = "SIGNING_REQUEST_EXPIRED"
 	FindLatestRuntimeSlotForAttemptForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED FindLatestRuntimeSlotForAttemptForbiddenCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	FindLatestRuntimeSlotForAttemptForbiddenCodeSIGNINGREQUESTLIMITREACHED     FindLatestRuntimeSlotForAttemptForbiddenCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	FindLatestRuntimeSlotForAttemptForbiddenCodeREGISTRATIONFAILED             FindLatestRuntimeSlotForAttemptForbiddenCode = "REGISTRATION_FAILED"
 	FindLatestRuntimeSlotForAttemptForbiddenCodeUPSTREAMERROR                  FindLatestRuntimeSlotForAttemptForbiddenCode = "UPSTREAM_ERROR"
 	FindLatestRuntimeSlotForAttemptForbiddenCodeSERVICEUNAVAILABLE             FindLatestRuntimeSlotForAttemptForbiddenCode = "SERVICE_UNAVAILABLE"
@@ -17928,6 +18087,7 @@ func (FindLatestRuntimeSlotForAttemptForbiddenCode) AllValues() []FindLatestRunt
 		FindLatestRuntimeSlotForAttemptForbiddenCodeSERIALIZATIONEXHAUSTED,
 		FindLatestRuntimeSlotForAttemptForbiddenCodeSIGNINGREQUESTEXPIRED,
 		FindLatestRuntimeSlotForAttemptForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED,
+		FindLatestRuntimeSlotForAttemptForbiddenCodeSIGNINGREQUESTLIMITREACHED,
 		FindLatestRuntimeSlotForAttemptForbiddenCodeREGISTRATIONFAILED,
 		FindLatestRuntimeSlotForAttemptForbiddenCodeUPSTREAMERROR,
 		FindLatestRuntimeSlotForAttemptForbiddenCodeSERVICEUNAVAILABLE,
@@ -17974,6 +18134,8 @@ func (s FindLatestRuntimeSlotForAttemptForbiddenCode) MarshalText() ([]byte, err
 	case FindLatestRuntimeSlotForAttemptForbiddenCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case FindLatestRuntimeSlotForAttemptForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case FindLatestRuntimeSlotForAttemptForbiddenCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -18051,6 +18213,9 @@ func (s *FindLatestRuntimeSlotForAttemptForbiddenCode) UnmarshalText(data []byte
 		return nil
 	case FindLatestRuntimeSlotForAttemptForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeSIGNINGREQUESTLIMITREACHED:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case FindLatestRuntimeSlotForAttemptForbiddenCodeREGISTRATIONFAILED:
 		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeREGISTRATIONFAILED
@@ -18211,6 +18376,7 @@ const (
 	FindLatestRuntimeSlotForAttemptNotFoundCodeSERIALIZATIONEXHAUSTED         FindLatestRuntimeSlotForAttemptNotFoundCode = "SERIALIZATION_EXHAUSTED"
 	FindLatestRuntimeSlotForAttemptNotFoundCodeSIGNINGREQUESTEXPIRED          FindLatestRuntimeSlotForAttemptNotFoundCode = "SIGNING_REQUEST_EXPIRED"
 	FindLatestRuntimeSlotForAttemptNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED FindLatestRuntimeSlotForAttemptNotFoundCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	FindLatestRuntimeSlotForAttemptNotFoundCodeSIGNINGREQUESTLIMITREACHED     FindLatestRuntimeSlotForAttemptNotFoundCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	FindLatestRuntimeSlotForAttemptNotFoundCodeREGISTRATIONFAILED             FindLatestRuntimeSlotForAttemptNotFoundCode = "REGISTRATION_FAILED"
 	FindLatestRuntimeSlotForAttemptNotFoundCodeUPSTREAMERROR                  FindLatestRuntimeSlotForAttemptNotFoundCode = "UPSTREAM_ERROR"
 	FindLatestRuntimeSlotForAttemptNotFoundCodeSERVICEUNAVAILABLE             FindLatestRuntimeSlotForAttemptNotFoundCode = "SERVICE_UNAVAILABLE"
@@ -18244,6 +18410,7 @@ func (FindLatestRuntimeSlotForAttemptNotFoundCode) AllValues() []FindLatestRunti
 		FindLatestRuntimeSlotForAttemptNotFoundCodeSERIALIZATIONEXHAUSTED,
 		FindLatestRuntimeSlotForAttemptNotFoundCodeSIGNINGREQUESTEXPIRED,
 		FindLatestRuntimeSlotForAttemptNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED,
+		FindLatestRuntimeSlotForAttemptNotFoundCodeSIGNINGREQUESTLIMITREACHED,
 		FindLatestRuntimeSlotForAttemptNotFoundCodeREGISTRATIONFAILED,
 		FindLatestRuntimeSlotForAttemptNotFoundCodeUPSTREAMERROR,
 		FindLatestRuntimeSlotForAttemptNotFoundCodeSERVICEUNAVAILABLE,
@@ -18290,6 +18457,8 @@ func (s FindLatestRuntimeSlotForAttemptNotFoundCode) MarshalText() ([]byte, erro
 	case FindLatestRuntimeSlotForAttemptNotFoundCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case FindLatestRuntimeSlotForAttemptNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case FindLatestRuntimeSlotForAttemptNotFoundCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -18367,6 +18536,9 @@ func (s *FindLatestRuntimeSlotForAttemptNotFoundCode) UnmarshalText(data []byte)
 		return nil
 	case FindLatestRuntimeSlotForAttemptNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeSIGNINGREQUESTLIMITREACHED:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case FindLatestRuntimeSlotForAttemptNotFoundCodeREGISTRATIONFAILED:
 		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeREGISTRATIONFAILED
@@ -18924,6 +19096,7 @@ const (
 	FindLatestRuntimeSlotForAttemptUnauthorizedCodeSERIALIZATIONEXHAUSTED         FindLatestRuntimeSlotForAttemptUnauthorizedCode = "SERIALIZATION_EXHAUSTED"
 	FindLatestRuntimeSlotForAttemptUnauthorizedCodeSIGNINGREQUESTEXPIRED          FindLatestRuntimeSlotForAttemptUnauthorizedCode = "SIGNING_REQUEST_EXPIRED"
 	FindLatestRuntimeSlotForAttemptUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED FindLatestRuntimeSlotForAttemptUnauthorizedCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	FindLatestRuntimeSlotForAttemptUnauthorizedCodeSIGNINGREQUESTLIMITREACHED     FindLatestRuntimeSlotForAttemptUnauthorizedCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	FindLatestRuntimeSlotForAttemptUnauthorizedCodeREGISTRATIONFAILED             FindLatestRuntimeSlotForAttemptUnauthorizedCode = "REGISTRATION_FAILED"
 	FindLatestRuntimeSlotForAttemptUnauthorizedCodeUPSTREAMERROR                  FindLatestRuntimeSlotForAttemptUnauthorizedCode = "UPSTREAM_ERROR"
 	FindLatestRuntimeSlotForAttemptUnauthorizedCodeSERVICEUNAVAILABLE             FindLatestRuntimeSlotForAttemptUnauthorizedCode = "SERVICE_UNAVAILABLE"
@@ -18957,6 +19130,7 @@ func (FindLatestRuntimeSlotForAttemptUnauthorizedCode) AllValues() []FindLatestR
 		FindLatestRuntimeSlotForAttemptUnauthorizedCodeSERIALIZATIONEXHAUSTED,
 		FindLatestRuntimeSlotForAttemptUnauthorizedCodeSIGNINGREQUESTEXPIRED,
 		FindLatestRuntimeSlotForAttemptUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED,
+		FindLatestRuntimeSlotForAttemptUnauthorizedCodeSIGNINGREQUESTLIMITREACHED,
 		FindLatestRuntimeSlotForAttemptUnauthorizedCodeREGISTRATIONFAILED,
 		FindLatestRuntimeSlotForAttemptUnauthorizedCodeUPSTREAMERROR,
 		FindLatestRuntimeSlotForAttemptUnauthorizedCodeSERVICEUNAVAILABLE,
@@ -19003,6 +19177,8 @@ func (s FindLatestRuntimeSlotForAttemptUnauthorizedCode) MarshalText() ([]byte, 
 	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -19080,6 +19256,9 @@ func (s *FindLatestRuntimeSlotForAttemptUnauthorizedCode) UnmarshalText(data []b
 		return nil
 	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeSIGNINGREQUESTLIMITREACHED:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeREGISTRATIONFAILED:
 		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeREGISTRATIONFAILED
@@ -19252,6 +19431,7 @@ const (
 	FinishRuntimeSlotBadRequestCodeSERIALIZATIONEXHAUSTED         FinishRuntimeSlotBadRequestCode = "SERIALIZATION_EXHAUSTED"
 	FinishRuntimeSlotBadRequestCodeSIGNINGREQUESTEXPIRED          FinishRuntimeSlotBadRequestCode = "SIGNING_REQUEST_EXPIRED"
 	FinishRuntimeSlotBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED FinishRuntimeSlotBadRequestCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	FinishRuntimeSlotBadRequestCodeSIGNINGREQUESTLIMITREACHED     FinishRuntimeSlotBadRequestCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	FinishRuntimeSlotBadRequestCodeREGISTRATIONFAILED             FinishRuntimeSlotBadRequestCode = "REGISTRATION_FAILED"
 	FinishRuntimeSlotBadRequestCodeUPSTREAMERROR                  FinishRuntimeSlotBadRequestCode = "UPSTREAM_ERROR"
 	FinishRuntimeSlotBadRequestCodeSERVICEUNAVAILABLE             FinishRuntimeSlotBadRequestCode = "SERVICE_UNAVAILABLE"
@@ -19285,6 +19465,7 @@ func (FinishRuntimeSlotBadRequestCode) AllValues() []FinishRuntimeSlotBadRequest
 		FinishRuntimeSlotBadRequestCodeSERIALIZATIONEXHAUSTED,
 		FinishRuntimeSlotBadRequestCodeSIGNINGREQUESTEXPIRED,
 		FinishRuntimeSlotBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED,
+		FinishRuntimeSlotBadRequestCodeSIGNINGREQUESTLIMITREACHED,
 		FinishRuntimeSlotBadRequestCodeREGISTRATIONFAILED,
 		FinishRuntimeSlotBadRequestCodeUPSTREAMERROR,
 		FinishRuntimeSlotBadRequestCodeSERVICEUNAVAILABLE,
@@ -19331,6 +19512,8 @@ func (s FinishRuntimeSlotBadRequestCode) MarshalText() ([]byte, error) {
 	case FinishRuntimeSlotBadRequestCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case FinishRuntimeSlotBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case FinishRuntimeSlotBadRequestCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case FinishRuntimeSlotBadRequestCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -19408,6 +19591,9 @@ func (s *FinishRuntimeSlotBadRequestCode) UnmarshalText(data []byte) error {
 		return nil
 	case FinishRuntimeSlotBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = FinishRuntimeSlotBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case FinishRuntimeSlotBadRequestCodeSIGNINGREQUESTLIMITREACHED:
+		*s = FinishRuntimeSlotBadRequestCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case FinishRuntimeSlotBadRequestCodeREGISTRATIONFAILED:
 		*s = FinishRuntimeSlotBadRequestCodeREGISTRATIONFAILED
@@ -19580,6 +19766,7 @@ const (
 	FinishRuntimeSlotConflictCodeSERIALIZATIONEXHAUSTED         FinishRuntimeSlotConflictCode = "SERIALIZATION_EXHAUSTED"
 	FinishRuntimeSlotConflictCodeSIGNINGREQUESTEXPIRED          FinishRuntimeSlotConflictCode = "SIGNING_REQUEST_EXPIRED"
 	FinishRuntimeSlotConflictCodeSIGNINGREQUESTALREADYCOMPLETED FinishRuntimeSlotConflictCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	FinishRuntimeSlotConflictCodeSIGNINGREQUESTLIMITREACHED     FinishRuntimeSlotConflictCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	FinishRuntimeSlotConflictCodeREGISTRATIONFAILED             FinishRuntimeSlotConflictCode = "REGISTRATION_FAILED"
 	FinishRuntimeSlotConflictCodeUPSTREAMERROR                  FinishRuntimeSlotConflictCode = "UPSTREAM_ERROR"
 	FinishRuntimeSlotConflictCodeSERVICEUNAVAILABLE             FinishRuntimeSlotConflictCode = "SERVICE_UNAVAILABLE"
@@ -19613,6 +19800,7 @@ func (FinishRuntimeSlotConflictCode) AllValues() []FinishRuntimeSlotConflictCode
 		FinishRuntimeSlotConflictCodeSERIALIZATIONEXHAUSTED,
 		FinishRuntimeSlotConflictCodeSIGNINGREQUESTEXPIRED,
 		FinishRuntimeSlotConflictCodeSIGNINGREQUESTALREADYCOMPLETED,
+		FinishRuntimeSlotConflictCodeSIGNINGREQUESTLIMITREACHED,
 		FinishRuntimeSlotConflictCodeREGISTRATIONFAILED,
 		FinishRuntimeSlotConflictCodeUPSTREAMERROR,
 		FinishRuntimeSlotConflictCodeSERVICEUNAVAILABLE,
@@ -19659,6 +19847,8 @@ func (s FinishRuntimeSlotConflictCode) MarshalText() ([]byte, error) {
 	case FinishRuntimeSlotConflictCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case FinishRuntimeSlotConflictCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case FinishRuntimeSlotConflictCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case FinishRuntimeSlotConflictCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -19736,6 +19926,9 @@ func (s *FinishRuntimeSlotConflictCode) UnmarshalText(data []byte) error {
 		return nil
 	case FinishRuntimeSlotConflictCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = FinishRuntimeSlotConflictCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case FinishRuntimeSlotConflictCodeSIGNINGREQUESTLIMITREACHED:
+		*s = FinishRuntimeSlotConflictCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case FinishRuntimeSlotConflictCodeREGISTRATIONFAILED:
 		*s = FinishRuntimeSlotConflictCodeREGISTRATIONFAILED
@@ -19896,6 +20089,7 @@ const (
 	FinishRuntimeSlotForbiddenCodeSERIALIZATIONEXHAUSTED         FinishRuntimeSlotForbiddenCode = "SERIALIZATION_EXHAUSTED"
 	FinishRuntimeSlotForbiddenCodeSIGNINGREQUESTEXPIRED          FinishRuntimeSlotForbiddenCode = "SIGNING_REQUEST_EXPIRED"
 	FinishRuntimeSlotForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED FinishRuntimeSlotForbiddenCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	FinishRuntimeSlotForbiddenCodeSIGNINGREQUESTLIMITREACHED     FinishRuntimeSlotForbiddenCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	FinishRuntimeSlotForbiddenCodeREGISTRATIONFAILED             FinishRuntimeSlotForbiddenCode = "REGISTRATION_FAILED"
 	FinishRuntimeSlotForbiddenCodeUPSTREAMERROR                  FinishRuntimeSlotForbiddenCode = "UPSTREAM_ERROR"
 	FinishRuntimeSlotForbiddenCodeSERVICEUNAVAILABLE             FinishRuntimeSlotForbiddenCode = "SERVICE_UNAVAILABLE"
@@ -19929,6 +20123,7 @@ func (FinishRuntimeSlotForbiddenCode) AllValues() []FinishRuntimeSlotForbiddenCo
 		FinishRuntimeSlotForbiddenCodeSERIALIZATIONEXHAUSTED,
 		FinishRuntimeSlotForbiddenCodeSIGNINGREQUESTEXPIRED,
 		FinishRuntimeSlotForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED,
+		FinishRuntimeSlotForbiddenCodeSIGNINGREQUESTLIMITREACHED,
 		FinishRuntimeSlotForbiddenCodeREGISTRATIONFAILED,
 		FinishRuntimeSlotForbiddenCodeUPSTREAMERROR,
 		FinishRuntimeSlotForbiddenCodeSERVICEUNAVAILABLE,
@@ -19975,6 +20170,8 @@ func (s FinishRuntimeSlotForbiddenCode) MarshalText() ([]byte, error) {
 	case FinishRuntimeSlotForbiddenCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case FinishRuntimeSlotForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case FinishRuntimeSlotForbiddenCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case FinishRuntimeSlotForbiddenCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -20052,6 +20249,9 @@ func (s *FinishRuntimeSlotForbiddenCode) UnmarshalText(data []byte) error {
 		return nil
 	case FinishRuntimeSlotForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = FinishRuntimeSlotForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case FinishRuntimeSlotForbiddenCodeSIGNINGREQUESTLIMITREACHED:
+		*s = FinishRuntimeSlotForbiddenCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case FinishRuntimeSlotForbiddenCodeREGISTRATIONFAILED:
 		*s = FinishRuntimeSlotForbiddenCodeREGISTRATIONFAILED
@@ -20212,6 +20412,7 @@ const (
 	FinishRuntimeSlotNotFoundCodeSERIALIZATIONEXHAUSTED         FinishRuntimeSlotNotFoundCode = "SERIALIZATION_EXHAUSTED"
 	FinishRuntimeSlotNotFoundCodeSIGNINGREQUESTEXPIRED          FinishRuntimeSlotNotFoundCode = "SIGNING_REQUEST_EXPIRED"
 	FinishRuntimeSlotNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED FinishRuntimeSlotNotFoundCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	FinishRuntimeSlotNotFoundCodeSIGNINGREQUESTLIMITREACHED     FinishRuntimeSlotNotFoundCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	FinishRuntimeSlotNotFoundCodeREGISTRATIONFAILED             FinishRuntimeSlotNotFoundCode = "REGISTRATION_FAILED"
 	FinishRuntimeSlotNotFoundCodeUPSTREAMERROR                  FinishRuntimeSlotNotFoundCode = "UPSTREAM_ERROR"
 	FinishRuntimeSlotNotFoundCodeSERVICEUNAVAILABLE             FinishRuntimeSlotNotFoundCode = "SERVICE_UNAVAILABLE"
@@ -20245,6 +20446,7 @@ func (FinishRuntimeSlotNotFoundCode) AllValues() []FinishRuntimeSlotNotFoundCode
 		FinishRuntimeSlotNotFoundCodeSERIALIZATIONEXHAUSTED,
 		FinishRuntimeSlotNotFoundCodeSIGNINGREQUESTEXPIRED,
 		FinishRuntimeSlotNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED,
+		FinishRuntimeSlotNotFoundCodeSIGNINGREQUESTLIMITREACHED,
 		FinishRuntimeSlotNotFoundCodeREGISTRATIONFAILED,
 		FinishRuntimeSlotNotFoundCodeUPSTREAMERROR,
 		FinishRuntimeSlotNotFoundCodeSERVICEUNAVAILABLE,
@@ -20291,6 +20493,8 @@ func (s FinishRuntimeSlotNotFoundCode) MarshalText() ([]byte, error) {
 	case FinishRuntimeSlotNotFoundCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case FinishRuntimeSlotNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case FinishRuntimeSlotNotFoundCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case FinishRuntimeSlotNotFoundCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -20368,6 +20572,9 @@ func (s *FinishRuntimeSlotNotFoundCode) UnmarshalText(data []byte) error {
 		return nil
 	case FinishRuntimeSlotNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = FinishRuntimeSlotNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case FinishRuntimeSlotNotFoundCodeSIGNINGREQUESTLIMITREACHED:
+		*s = FinishRuntimeSlotNotFoundCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case FinishRuntimeSlotNotFoundCodeREGISTRATIONFAILED:
 		*s = FinishRuntimeSlotNotFoundCodeREGISTRATIONFAILED
@@ -20852,6 +21059,7 @@ const (
 	FinishRuntimeSlotUnauthorizedCodeSERIALIZATIONEXHAUSTED         FinishRuntimeSlotUnauthorizedCode = "SERIALIZATION_EXHAUSTED"
 	FinishRuntimeSlotUnauthorizedCodeSIGNINGREQUESTEXPIRED          FinishRuntimeSlotUnauthorizedCode = "SIGNING_REQUEST_EXPIRED"
 	FinishRuntimeSlotUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED FinishRuntimeSlotUnauthorizedCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	FinishRuntimeSlotUnauthorizedCodeSIGNINGREQUESTLIMITREACHED     FinishRuntimeSlotUnauthorizedCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	FinishRuntimeSlotUnauthorizedCodeREGISTRATIONFAILED             FinishRuntimeSlotUnauthorizedCode = "REGISTRATION_FAILED"
 	FinishRuntimeSlotUnauthorizedCodeUPSTREAMERROR                  FinishRuntimeSlotUnauthorizedCode = "UPSTREAM_ERROR"
 	FinishRuntimeSlotUnauthorizedCodeSERVICEUNAVAILABLE             FinishRuntimeSlotUnauthorizedCode = "SERVICE_UNAVAILABLE"
@@ -20885,6 +21093,7 @@ func (FinishRuntimeSlotUnauthorizedCode) AllValues() []FinishRuntimeSlotUnauthor
 		FinishRuntimeSlotUnauthorizedCodeSERIALIZATIONEXHAUSTED,
 		FinishRuntimeSlotUnauthorizedCodeSIGNINGREQUESTEXPIRED,
 		FinishRuntimeSlotUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED,
+		FinishRuntimeSlotUnauthorizedCodeSIGNINGREQUESTLIMITREACHED,
 		FinishRuntimeSlotUnauthorizedCodeREGISTRATIONFAILED,
 		FinishRuntimeSlotUnauthorizedCodeUPSTREAMERROR,
 		FinishRuntimeSlotUnauthorizedCodeSERVICEUNAVAILABLE,
@@ -20931,6 +21140,8 @@ func (s FinishRuntimeSlotUnauthorizedCode) MarshalText() ([]byte, error) {
 	case FinishRuntimeSlotUnauthorizedCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case FinishRuntimeSlotUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case FinishRuntimeSlotUnauthorizedCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case FinishRuntimeSlotUnauthorizedCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -21008,6 +21219,9 @@ func (s *FinishRuntimeSlotUnauthorizedCode) UnmarshalText(data []byte) error {
 		return nil
 	case FinishRuntimeSlotUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = FinishRuntimeSlotUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case FinishRuntimeSlotUnauthorizedCodeSIGNINGREQUESTLIMITREACHED:
+		*s = FinishRuntimeSlotUnauthorizedCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case FinishRuntimeSlotUnauthorizedCodeREGISTRATIONFAILED:
 		*s = FinishRuntimeSlotUnauthorizedCodeREGISTRATIONFAILED
@@ -22103,6 +22317,7 @@ const (
 	GetProblemTypeTypeRateLimitExceeded              GetProblemTypeType = "rate-limit-exceeded"
 	GetProblemTypeTypeSigningRequestExpired          GetProblemTypeType = "signing-request-expired"
 	GetProblemTypeTypeSigningRequestAlreadyCompleted GetProblemTypeType = "signing-request-already-completed"
+	GetProblemTypeTypeSigningRequestLimitReached     GetProblemTypeType = "signing-request-limit-reached"
 	GetProblemTypeTypeConflict                       GetProblemTypeType = "conflict"
 	GetProblemTypeTypeRegistrationFailed             GetProblemTypeType = "registration-failed"
 	GetProblemTypeTypeUpstreamError                  GetProblemTypeType = "upstream-error"
@@ -22136,6 +22351,7 @@ func (GetProblemTypeType) AllValues() []GetProblemTypeType {
 		GetProblemTypeTypeRateLimitExceeded,
 		GetProblemTypeTypeSigningRequestExpired,
 		GetProblemTypeTypeSigningRequestAlreadyCompleted,
+		GetProblemTypeTypeSigningRequestLimitReached,
 		GetProblemTypeTypeConflict,
 		GetProblemTypeTypeRegistrationFailed,
 		GetProblemTypeTypeUpstreamError,
@@ -22181,6 +22397,8 @@ func (s GetProblemTypeType) MarshalText() ([]byte, error) {
 	case GetProblemTypeTypeSigningRequestExpired:
 		return []byte(s), nil
 	case GetProblemTypeTypeSigningRequestAlreadyCompleted:
+		return []byte(s), nil
+	case GetProblemTypeTypeSigningRequestLimitReached:
 		return []byte(s), nil
 	case GetProblemTypeTypeConflict:
 		return []byte(s), nil
@@ -22257,6 +22475,9 @@ func (s *GetProblemTypeType) UnmarshalText(data []byte) error {
 		return nil
 	case GetProblemTypeTypeSigningRequestAlreadyCompleted:
 		*s = GetProblemTypeTypeSigningRequestAlreadyCompleted
+		return nil
+	case GetProblemTypeTypeSigningRequestLimitReached:
+		*s = GetProblemTypeTypeSigningRequestLimitReached
 		return nil
 	case GetProblemTypeTypeConflict:
 		*s = GetProblemTypeTypeConflict
@@ -22532,6 +22753,7 @@ const (
 	GetRuntimeSessionBadRequestCodeSERIALIZATIONEXHAUSTED         GetRuntimeSessionBadRequestCode = "SERIALIZATION_EXHAUSTED"
 	GetRuntimeSessionBadRequestCodeSIGNINGREQUESTEXPIRED          GetRuntimeSessionBadRequestCode = "SIGNING_REQUEST_EXPIRED"
 	GetRuntimeSessionBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED GetRuntimeSessionBadRequestCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	GetRuntimeSessionBadRequestCodeSIGNINGREQUESTLIMITREACHED     GetRuntimeSessionBadRequestCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	GetRuntimeSessionBadRequestCodeREGISTRATIONFAILED             GetRuntimeSessionBadRequestCode = "REGISTRATION_FAILED"
 	GetRuntimeSessionBadRequestCodeUPSTREAMERROR                  GetRuntimeSessionBadRequestCode = "UPSTREAM_ERROR"
 	GetRuntimeSessionBadRequestCodeSERVICEUNAVAILABLE             GetRuntimeSessionBadRequestCode = "SERVICE_UNAVAILABLE"
@@ -22565,6 +22787,7 @@ func (GetRuntimeSessionBadRequestCode) AllValues() []GetRuntimeSessionBadRequest
 		GetRuntimeSessionBadRequestCodeSERIALIZATIONEXHAUSTED,
 		GetRuntimeSessionBadRequestCodeSIGNINGREQUESTEXPIRED,
 		GetRuntimeSessionBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED,
+		GetRuntimeSessionBadRequestCodeSIGNINGREQUESTLIMITREACHED,
 		GetRuntimeSessionBadRequestCodeREGISTRATIONFAILED,
 		GetRuntimeSessionBadRequestCodeUPSTREAMERROR,
 		GetRuntimeSessionBadRequestCodeSERVICEUNAVAILABLE,
@@ -22611,6 +22834,8 @@ func (s GetRuntimeSessionBadRequestCode) MarshalText() ([]byte, error) {
 	case GetRuntimeSessionBadRequestCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case GetRuntimeSessionBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case GetRuntimeSessionBadRequestCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case GetRuntimeSessionBadRequestCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -22688,6 +22913,9 @@ func (s *GetRuntimeSessionBadRequestCode) UnmarshalText(data []byte) error {
 		return nil
 	case GetRuntimeSessionBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = GetRuntimeSessionBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case GetRuntimeSessionBadRequestCodeSIGNINGREQUESTLIMITREACHED:
+		*s = GetRuntimeSessionBadRequestCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case GetRuntimeSessionBadRequestCodeREGISTRATIONFAILED:
 		*s = GetRuntimeSessionBadRequestCodeREGISTRATIONFAILED
@@ -22848,6 +23076,7 @@ const (
 	GetRuntimeSessionForbiddenCodeSERIALIZATIONEXHAUSTED         GetRuntimeSessionForbiddenCode = "SERIALIZATION_EXHAUSTED"
 	GetRuntimeSessionForbiddenCodeSIGNINGREQUESTEXPIRED          GetRuntimeSessionForbiddenCode = "SIGNING_REQUEST_EXPIRED"
 	GetRuntimeSessionForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED GetRuntimeSessionForbiddenCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	GetRuntimeSessionForbiddenCodeSIGNINGREQUESTLIMITREACHED     GetRuntimeSessionForbiddenCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	GetRuntimeSessionForbiddenCodeREGISTRATIONFAILED             GetRuntimeSessionForbiddenCode = "REGISTRATION_FAILED"
 	GetRuntimeSessionForbiddenCodeUPSTREAMERROR                  GetRuntimeSessionForbiddenCode = "UPSTREAM_ERROR"
 	GetRuntimeSessionForbiddenCodeSERVICEUNAVAILABLE             GetRuntimeSessionForbiddenCode = "SERVICE_UNAVAILABLE"
@@ -22881,6 +23110,7 @@ func (GetRuntimeSessionForbiddenCode) AllValues() []GetRuntimeSessionForbiddenCo
 		GetRuntimeSessionForbiddenCodeSERIALIZATIONEXHAUSTED,
 		GetRuntimeSessionForbiddenCodeSIGNINGREQUESTEXPIRED,
 		GetRuntimeSessionForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED,
+		GetRuntimeSessionForbiddenCodeSIGNINGREQUESTLIMITREACHED,
 		GetRuntimeSessionForbiddenCodeREGISTRATIONFAILED,
 		GetRuntimeSessionForbiddenCodeUPSTREAMERROR,
 		GetRuntimeSessionForbiddenCodeSERVICEUNAVAILABLE,
@@ -22927,6 +23157,8 @@ func (s GetRuntimeSessionForbiddenCode) MarshalText() ([]byte, error) {
 	case GetRuntimeSessionForbiddenCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case GetRuntimeSessionForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case GetRuntimeSessionForbiddenCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case GetRuntimeSessionForbiddenCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -23004,6 +23236,9 @@ func (s *GetRuntimeSessionForbiddenCode) UnmarshalText(data []byte) error {
 		return nil
 	case GetRuntimeSessionForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = GetRuntimeSessionForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case GetRuntimeSessionForbiddenCodeSIGNINGREQUESTLIMITREACHED:
+		*s = GetRuntimeSessionForbiddenCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case GetRuntimeSessionForbiddenCodeREGISTRATIONFAILED:
 		*s = GetRuntimeSessionForbiddenCodeREGISTRATIONFAILED
@@ -23164,6 +23399,7 @@ const (
 	GetRuntimeSessionNotFoundCodeSERIALIZATIONEXHAUSTED         GetRuntimeSessionNotFoundCode = "SERIALIZATION_EXHAUSTED"
 	GetRuntimeSessionNotFoundCodeSIGNINGREQUESTEXPIRED          GetRuntimeSessionNotFoundCode = "SIGNING_REQUEST_EXPIRED"
 	GetRuntimeSessionNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED GetRuntimeSessionNotFoundCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	GetRuntimeSessionNotFoundCodeSIGNINGREQUESTLIMITREACHED     GetRuntimeSessionNotFoundCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	GetRuntimeSessionNotFoundCodeREGISTRATIONFAILED             GetRuntimeSessionNotFoundCode = "REGISTRATION_FAILED"
 	GetRuntimeSessionNotFoundCodeUPSTREAMERROR                  GetRuntimeSessionNotFoundCode = "UPSTREAM_ERROR"
 	GetRuntimeSessionNotFoundCodeSERVICEUNAVAILABLE             GetRuntimeSessionNotFoundCode = "SERVICE_UNAVAILABLE"
@@ -23197,6 +23433,7 @@ func (GetRuntimeSessionNotFoundCode) AllValues() []GetRuntimeSessionNotFoundCode
 		GetRuntimeSessionNotFoundCodeSERIALIZATIONEXHAUSTED,
 		GetRuntimeSessionNotFoundCodeSIGNINGREQUESTEXPIRED,
 		GetRuntimeSessionNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED,
+		GetRuntimeSessionNotFoundCodeSIGNINGREQUESTLIMITREACHED,
 		GetRuntimeSessionNotFoundCodeREGISTRATIONFAILED,
 		GetRuntimeSessionNotFoundCodeUPSTREAMERROR,
 		GetRuntimeSessionNotFoundCodeSERVICEUNAVAILABLE,
@@ -23243,6 +23480,8 @@ func (s GetRuntimeSessionNotFoundCode) MarshalText() ([]byte, error) {
 	case GetRuntimeSessionNotFoundCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case GetRuntimeSessionNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case GetRuntimeSessionNotFoundCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case GetRuntimeSessionNotFoundCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -23320,6 +23559,9 @@ func (s *GetRuntimeSessionNotFoundCode) UnmarshalText(data []byte) error {
 		return nil
 	case GetRuntimeSessionNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = GetRuntimeSessionNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case GetRuntimeSessionNotFoundCodeSIGNINGREQUESTLIMITREACHED:
+		*s = GetRuntimeSessionNotFoundCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case GetRuntimeSessionNotFoundCodeREGISTRATIONFAILED:
 		*s = GetRuntimeSessionNotFoundCodeREGISTRATIONFAILED
@@ -23773,6 +24015,7 @@ const (
 	GetRuntimeSessionUnauthorizedCodeSERIALIZATIONEXHAUSTED         GetRuntimeSessionUnauthorizedCode = "SERIALIZATION_EXHAUSTED"
 	GetRuntimeSessionUnauthorizedCodeSIGNINGREQUESTEXPIRED          GetRuntimeSessionUnauthorizedCode = "SIGNING_REQUEST_EXPIRED"
 	GetRuntimeSessionUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED GetRuntimeSessionUnauthorizedCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	GetRuntimeSessionUnauthorizedCodeSIGNINGREQUESTLIMITREACHED     GetRuntimeSessionUnauthorizedCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	GetRuntimeSessionUnauthorizedCodeREGISTRATIONFAILED             GetRuntimeSessionUnauthorizedCode = "REGISTRATION_FAILED"
 	GetRuntimeSessionUnauthorizedCodeUPSTREAMERROR                  GetRuntimeSessionUnauthorizedCode = "UPSTREAM_ERROR"
 	GetRuntimeSessionUnauthorizedCodeSERVICEUNAVAILABLE             GetRuntimeSessionUnauthorizedCode = "SERVICE_UNAVAILABLE"
@@ -23806,6 +24049,7 @@ func (GetRuntimeSessionUnauthorizedCode) AllValues() []GetRuntimeSessionUnauthor
 		GetRuntimeSessionUnauthorizedCodeSERIALIZATIONEXHAUSTED,
 		GetRuntimeSessionUnauthorizedCodeSIGNINGREQUESTEXPIRED,
 		GetRuntimeSessionUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED,
+		GetRuntimeSessionUnauthorizedCodeSIGNINGREQUESTLIMITREACHED,
 		GetRuntimeSessionUnauthorizedCodeREGISTRATIONFAILED,
 		GetRuntimeSessionUnauthorizedCodeUPSTREAMERROR,
 		GetRuntimeSessionUnauthorizedCodeSERVICEUNAVAILABLE,
@@ -23852,6 +24096,8 @@ func (s GetRuntimeSessionUnauthorizedCode) MarshalText() ([]byte, error) {
 	case GetRuntimeSessionUnauthorizedCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case GetRuntimeSessionUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case GetRuntimeSessionUnauthorizedCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case GetRuntimeSessionUnauthorizedCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -23929,6 +24175,9 @@ func (s *GetRuntimeSessionUnauthorizedCode) UnmarshalText(data []byte) error {
 		return nil
 	case GetRuntimeSessionUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = GetRuntimeSessionUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case GetRuntimeSessionUnauthorizedCodeSIGNINGREQUESTLIMITREACHED:
+		*s = GetRuntimeSessionUnauthorizedCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case GetRuntimeSessionUnauthorizedCodeREGISTRATIONFAILED:
 		*s = GetRuntimeSessionUnauthorizedCodeREGISTRATIONFAILED
@@ -24831,6 +25080,7 @@ const (
 	InjectionConflictProblemDetailsCodeSERIALIZATIONEXHAUSTED         InjectionConflictProblemDetailsCode = "SERIALIZATION_EXHAUSTED"
 	InjectionConflictProblemDetailsCodeSIGNINGREQUESTEXPIRED          InjectionConflictProblemDetailsCode = "SIGNING_REQUEST_EXPIRED"
 	InjectionConflictProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED InjectionConflictProblemDetailsCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	InjectionConflictProblemDetailsCodeSIGNINGREQUESTLIMITREACHED     InjectionConflictProblemDetailsCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	InjectionConflictProblemDetailsCodeREGISTRATIONFAILED             InjectionConflictProblemDetailsCode = "REGISTRATION_FAILED"
 	InjectionConflictProblemDetailsCodeUPSTREAMERROR                  InjectionConflictProblemDetailsCode = "UPSTREAM_ERROR"
 	InjectionConflictProblemDetailsCodeSERVICEUNAVAILABLE             InjectionConflictProblemDetailsCode = "SERVICE_UNAVAILABLE"
@@ -24864,6 +25114,7 @@ func (InjectionConflictProblemDetailsCode) AllValues() []InjectionConflictProble
 		InjectionConflictProblemDetailsCodeSERIALIZATIONEXHAUSTED,
 		InjectionConflictProblemDetailsCodeSIGNINGREQUESTEXPIRED,
 		InjectionConflictProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED,
+		InjectionConflictProblemDetailsCodeSIGNINGREQUESTLIMITREACHED,
 		InjectionConflictProblemDetailsCodeREGISTRATIONFAILED,
 		InjectionConflictProblemDetailsCodeUPSTREAMERROR,
 		InjectionConflictProblemDetailsCodeSERVICEUNAVAILABLE,
@@ -24910,6 +25161,8 @@ func (s InjectionConflictProblemDetailsCode) MarshalText() ([]byte, error) {
 	case InjectionConflictProblemDetailsCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case InjectionConflictProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case InjectionConflictProblemDetailsCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case InjectionConflictProblemDetailsCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -24987,6 +25240,9 @@ func (s *InjectionConflictProblemDetailsCode) UnmarshalText(data []byte) error {
 		return nil
 	case InjectionConflictProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = InjectionConflictProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case InjectionConflictProblemDetailsCodeSIGNINGREQUESTLIMITREACHED:
+		*s = InjectionConflictProblemDetailsCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case InjectionConflictProblemDetailsCodeREGISTRATIONFAILED:
 		*s = InjectionConflictProblemDetailsCodeREGISTRATIONFAILED
@@ -26265,6 +26521,7 @@ const (
 	ListRuntimeSlotsBadRequestCodeSERIALIZATIONEXHAUSTED         ListRuntimeSlotsBadRequestCode = "SERIALIZATION_EXHAUSTED"
 	ListRuntimeSlotsBadRequestCodeSIGNINGREQUESTEXPIRED          ListRuntimeSlotsBadRequestCode = "SIGNING_REQUEST_EXPIRED"
 	ListRuntimeSlotsBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED ListRuntimeSlotsBadRequestCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	ListRuntimeSlotsBadRequestCodeSIGNINGREQUESTLIMITREACHED     ListRuntimeSlotsBadRequestCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	ListRuntimeSlotsBadRequestCodeREGISTRATIONFAILED             ListRuntimeSlotsBadRequestCode = "REGISTRATION_FAILED"
 	ListRuntimeSlotsBadRequestCodeUPSTREAMERROR                  ListRuntimeSlotsBadRequestCode = "UPSTREAM_ERROR"
 	ListRuntimeSlotsBadRequestCodeSERVICEUNAVAILABLE             ListRuntimeSlotsBadRequestCode = "SERVICE_UNAVAILABLE"
@@ -26298,6 +26555,7 @@ func (ListRuntimeSlotsBadRequestCode) AllValues() []ListRuntimeSlotsBadRequestCo
 		ListRuntimeSlotsBadRequestCodeSERIALIZATIONEXHAUSTED,
 		ListRuntimeSlotsBadRequestCodeSIGNINGREQUESTEXPIRED,
 		ListRuntimeSlotsBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED,
+		ListRuntimeSlotsBadRequestCodeSIGNINGREQUESTLIMITREACHED,
 		ListRuntimeSlotsBadRequestCodeREGISTRATIONFAILED,
 		ListRuntimeSlotsBadRequestCodeUPSTREAMERROR,
 		ListRuntimeSlotsBadRequestCodeSERVICEUNAVAILABLE,
@@ -26344,6 +26602,8 @@ func (s ListRuntimeSlotsBadRequestCode) MarshalText() ([]byte, error) {
 	case ListRuntimeSlotsBadRequestCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case ListRuntimeSlotsBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case ListRuntimeSlotsBadRequestCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case ListRuntimeSlotsBadRequestCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -26421,6 +26681,9 @@ func (s *ListRuntimeSlotsBadRequestCode) UnmarshalText(data []byte) error {
 		return nil
 	case ListRuntimeSlotsBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = ListRuntimeSlotsBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case ListRuntimeSlotsBadRequestCodeSIGNINGREQUESTLIMITREACHED:
+		*s = ListRuntimeSlotsBadRequestCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case ListRuntimeSlotsBadRequestCodeREGISTRATIONFAILED:
 		*s = ListRuntimeSlotsBadRequestCodeREGISTRATIONFAILED
@@ -26581,6 +26844,7 @@ const (
 	ListRuntimeSlotsForbiddenCodeSERIALIZATIONEXHAUSTED         ListRuntimeSlotsForbiddenCode = "SERIALIZATION_EXHAUSTED"
 	ListRuntimeSlotsForbiddenCodeSIGNINGREQUESTEXPIRED          ListRuntimeSlotsForbiddenCode = "SIGNING_REQUEST_EXPIRED"
 	ListRuntimeSlotsForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED ListRuntimeSlotsForbiddenCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	ListRuntimeSlotsForbiddenCodeSIGNINGREQUESTLIMITREACHED     ListRuntimeSlotsForbiddenCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	ListRuntimeSlotsForbiddenCodeREGISTRATIONFAILED             ListRuntimeSlotsForbiddenCode = "REGISTRATION_FAILED"
 	ListRuntimeSlotsForbiddenCodeUPSTREAMERROR                  ListRuntimeSlotsForbiddenCode = "UPSTREAM_ERROR"
 	ListRuntimeSlotsForbiddenCodeSERVICEUNAVAILABLE             ListRuntimeSlotsForbiddenCode = "SERVICE_UNAVAILABLE"
@@ -26614,6 +26878,7 @@ func (ListRuntimeSlotsForbiddenCode) AllValues() []ListRuntimeSlotsForbiddenCode
 		ListRuntimeSlotsForbiddenCodeSERIALIZATIONEXHAUSTED,
 		ListRuntimeSlotsForbiddenCodeSIGNINGREQUESTEXPIRED,
 		ListRuntimeSlotsForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED,
+		ListRuntimeSlotsForbiddenCodeSIGNINGREQUESTLIMITREACHED,
 		ListRuntimeSlotsForbiddenCodeREGISTRATIONFAILED,
 		ListRuntimeSlotsForbiddenCodeUPSTREAMERROR,
 		ListRuntimeSlotsForbiddenCodeSERVICEUNAVAILABLE,
@@ -26660,6 +26925,8 @@ func (s ListRuntimeSlotsForbiddenCode) MarshalText() ([]byte, error) {
 	case ListRuntimeSlotsForbiddenCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case ListRuntimeSlotsForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case ListRuntimeSlotsForbiddenCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case ListRuntimeSlotsForbiddenCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -26737,6 +27004,9 @@ func (s *ListRuntimeSlotsForbiddenCode) UnmarshalText(data []byte) error {
 		return nil
 	case ListRuntimeSlotsForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = ListRuntimeSlotsForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case ListRuntimeSlotsForbiddenCodeSIGNINGREQUESTLIMITREACHED:
+		*s = ListRuntimeSlotsForbiddenCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case ListRuntimeSlotsForbiddenCodeREGISTRATIONFAILED:
 		*s = ListRuntimeSlotsForbiddenCodeREGISTRATIONFAILED
@@ -26897,6 +27167,7 @@ const (
 	ListRuntimeSlotsNotFoundCodeSERIALIZATIONEXHAUSTED         ListRuntimeSlotsNotFoundCode = "SERIALIZATION_EXHAUSTED"
 	ListRuntimeSlotsNotFoundCodeSIGNINGREQUESTEXPIRED          ListRuntimeSlotsNotFoundCode = "SIGNING_REQUEST_EXPIRED"
 	ListRuntimeSlotsNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED ListRuntimeSlotsNotFoundCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	ListRuntimeSlotsNotFoundCodeSIGNINGREQUESTLIMITREACHED     ListRuntimeSlotsNotFoundCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	ListRuntimeSlotsNotFoundCodeREGISTRATIONFAILED             ListRuntimeSlotsNotFoundCode = "REGISTRATION_FAILED"
 	ListRuntimeSlotsNotFoundCodeUPSTREAMERROR                  ListRuntimeSlotsNotFoundCode = "UPSTREAM_ERROR"
 	ListRuntimeSlotsNotFoundCodeSERVICEUNAVAILABLE             ListRuntimeSlotsNotFoundCode = "SERVICE_UNAVAILABLE"
@@ -26930,6 +27201,7 @@ func (ListRuntimeSlotsNotFoundCode) AllValues() []ListRuntimeSlotsNotFoundCode {
 		ListRuntimeSlotsNotFoundCodeSERIALIZATIONEXHAUSTED,
 		ListRuntimeSlotsNotFoundCodeSIGNINGREQUESTEXPIRED,
 		ListRuntimeSlotsNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED,
+		ListRuntimeSlotsNotFoundCodeSIGNINGREQUESTLIMITREACHED,
 		ListRuntimeSlotsNotFoundCodeREGISTRATIONFAILED,
 		ListRuntimeSlotsNotFoundCodeUPSTREAMERROR,
 		ListRuntimeSlotsNotFoundCodeSERVICEUNAVAILABLE,
@@ -26976,6 +27248,8 @@ func (s ListRuntimeSlotsNotFoundCode) MarshalText() ([]byte, error) {
 	case ListRuntimeSlotsNotFoundCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case ListRuntimeSlotsNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case ListRuntimeSlotsNotFoundCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case ListRuntimeSlotsNotFoundCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -27053,6 +27327,9 @@ func (s *ListRuntimeSlotsNotFoundCode) UnmarshalText(data []byte) error {
 		return nil
 	case ListRuntimeSlotsNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = ListRuntimeSlotsNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case ListRuntimeSlotsNotFoundCodeSIGNINGREQUESTLIMITREACHED:
+		*s = ListRuntimeSlotsNotFoundCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case ListRuntimeSlotsNotFoundCodeREGISTRATIONFAILED:
 		*s = ListRuntimeSlotsNotFoundCodeREGISTRATIONFAILED
@@ -27665,6 +27942,7 @@ const (
 	ListRuntimeSlotsUnauthorizedCodeSERIALIZATIONEXHAUSTED         ListRuntimeSlotsUnauthorizedCode = "SERIALIZATION_EXHAUSTED"
 	ListRuntimeSlotsUnauthorizedCodeSIGNINGREQUESTEXPIRED          ListRuntimeSlotsUnauthorizedCode = "SIGNING_REQUEST_EXPIRED"
 	ListRuntimeSlotsUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED ListRuntimeSlotsUnauthorizedCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	ListRuntimeSlotsUnauthorizedCodeSIGNINGREQUESTLIMITREACHED     ListRuntimeSlotsUnauthorizedCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	ListRuntimeSlotsUnauthorizedCodeREGISTRATIONFAILED             ListRuntimeSlotsUnauthorizedCode = "REGISTRATION_FAILED"
 	ListRuntimeSlotsUnauthorizedCodeUPSTREAMERROR                  ListRuntimeSlotsUnauthorizedCode = "UPSTREAM_ERROR"
 	ListRuntimeSlotsUnauthorizedCodeSERVICEUNAVAILABLE             ListRuntimeSlotsUnauthorizedCode = "SERVICE_UNAVAILABLE"
@@ -27698,6 +27976,7 @@ func (ListRuntimeSlotsUnauthorizedCode) AllValues() []ListRuntimeSlotsUnauthoriz
 		ListRuntimeSlotsUnauthorizedCodeSERIALIZATIONEXHAUSTED,
 		ListRuntimeSlotsUnauthorizedCodeSIGNINGREQUESTEXPIRED,
 		ListRuntimeSlotsUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED,
+		ListRuntimeSlotsUnauthorizedCodeSIGNINGREQUESTLIMITREACHED,
 		ListRuntimeSlotsUnauthorizedCodeREGISTRATIONFAILED,
 		ListRuntimeSlotsUnauthorizedCodeUPSTREAMERROR,
 		ListRuntimeSlotsUnauthorizedCodeSERVICEUNAVAILABLE,
@@ -27744,6 +28023,8 @@ func (s ListRuntimeSlotsUnauthorizedCode) MarshalText() ([]byte, error) {
 	case ListRuntimeSlotsUnauthorizedCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case ListRuntimeSlotsUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case ListRuntimeSlotsUnauthorizedCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case ListRuntimeSlotsUnauthorizedCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -27821,6 +28102,9 @@ func (s *ListRuntimeSlotsUnauthorizedCode) UnmarshalText(data []byte) error {
 		return nil
 	case ListRuntimeSlotsUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = ListRuntimeSlotsUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case ListRuntimeSlotsUnauthorizedCodeSIGNINGREQUESTLIMITREACHED:
+		*s = ListRuntimeSlotsUnauthorizedCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case ListRuntimeSlotsUnauthorizedCodeREGISTRATIONFAILED:
 		*s = ListRuntimeSlotsUnauthorizedCodeREGISTRATIONFAILED
@@ -28116,6 +28400,7 @@ const (
 	ListTaskArtifactsBadRequestCodeSERIALIZATIONEXHAUSTED         ListTaskArtifactsBadRequestCode = "SERIALIZATION_EXHAUSTED"
 	ListTaskArtifactsBadRequestCodeSIGNINGREQUESTEXPIRED          ListTaskArtifactsBadRequestCode = "SIGNING_REQUEST_EXPIRED"
 	ListTaskArtifactsBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED ListTaskArtifactsBadRequestCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	ListTaskArtifactsBadRequestCodeSIGNINGREQUESTLIMITREACHED     ListTaskArtifactsBadRequestCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	ListTaskArtifactsBadRequestCodeREGISTRATIONFAILED             ListTaskArtifactsBadRequestCode = "REGISTRATION_FAILED"
 	ListTaskArtifactsBadRequestCodeUPSTREAMERROR                  ListTaskArtifactsBadRequestCode = "UPSTREAM_ERROR"
 	ListTaskArtifactsBadRequestCodeSERVICEUNAVAILABLE             ListTaskArtifactsBadRequestCode = "SERVICE_UNAVAILABLE"
@@ -28149,6 +28434,7 @@ func (ListTaskArtifactsBadRequestCode) AllValues() []ListTaskArtifactsBadRequest
 		ListTaskArtifactsBadRequestCodeSERIALIZATIONEXHAUSTED,
 		ListTaskArtifactsBadRequestCodeSIGNINGREQUESTEXPIRED,
 		ListTaskArtifactsBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED,
+		ListTaskArtifactsBadRequestCodeSIGNINGREQUESTLIMITREACHED,
 		ListTaskArtifactsBadRequestCodeREGISTRATIONFAILED,
 		ListTaskArtifactsBadRequestCodeUPSTREAMERROR,
 		ListTaskArtifactsBadRequestCodeSERVICEUNAVAILABLE,
@@ -28195,6 +28481,8 @@ func (s ListTaskArtifactsBadRequestCode) MarshalText() ([]byte, error) {
 	case ListTaskArtifactsBadRequestCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case ListTaskArtifactsBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case ListTaskArtifactsBadRequestCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case ListTaskArtifactsBadRequestCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -28272,6 +28560,9 @@ func (s *ListTaskArtifactsBadRequestCode) UnmarshalText(data []byte) error {
 		return nil
 	case ListTaskArtifactsBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = ListTaskArtifactsBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case ListTaskArtifactsBadRequestCodeSIGNINGREQUESTLIMITREACHED:
+		*s = ListTaskArtifactsBadRequestCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case ListTaskArtifactsBadRequestCodeREGISTRATIONFAILED:
 		*s = ListTaskArtifactsBadRequestCodeREGISTRATIONFAILED
@@ -28432,6 +28723,7 @@ const (
 	ListTaskArtifactsForbiddenCodeSERIALIZATIONEXHAUSTED         ListTaskArtifactsForbiddenCode = "SERIALIZATION_EXHAUSTED"
 	ListTaskArtifactsForbiddenCodeSIGNINGREQUESTEXPIRED          ListTaskArtifactsForbiddenCode = "SIGNING_REQUEST_EXPIRED"
 	ListTaskArtifactsForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED ListTaskArtifactsForbiddenCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	ListTaskArtifactsForbiddenCodeSIGNINGREQUESTLIMITREACHED     ListTaskArtifactsForbiddenCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	ListTaskArtifactsForbiddenCodeREGISTRATIONFAILED             ListTaskArtifactsForbiddenCode = "REGISTRATION_FAILED"
 	ListTaskArtifactsForbiddenCodeUPSTREAMERROR                  ListTaskArtifactsForbiddenCode = "UPSTREAM_ERROR"
 	ListTaskArtifactsForbiddenCodeSERVICEUNAVAILABLE             ListTaskArtifactsForbiddenCode = "SERVICE_UNAVAILABLE"
@@ -28465,6 +28757,7 @@ func (ListTaskArtifactsForbiddenCode) AllValues() []ListTaskArtifactsForbiddenCo
 		ListTaskArtifactsForbiddenCodeSERIALIZATIONEXHAUSTED,
 		ListTaskArtifactsForbiddenCodeSIGNINGREQUESTEXPIRED,
 		ListTaskArtifactsForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED,
+		ListTaskArtifactsForbiddenCodeSIGNINGREQUESTLIMITREACHED,
 		ListTaskArtifactsForbiddenCodeREGISTRATIONFAILED,
 		ListTaskArtifactsForbiddenCodeUPSTREAMERROR,
 		ListTaskArtifactsForbiddenCodeSERVICEUNAVAILABLE,
@@ -28511,6 +28804,8 @@ func (s ListTaskArtifactsForbiddenCode) MarshalText() ([]byte, error) {
 	case ListTaskArtifactsForbiddenCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case ListTaskArtifactsForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case ListTaskArtifactsForbiddenCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case ListTaskArtifactsForbiddenCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -28588,6 +28883,9 @@ func (s *ListTaskArtifactsForbiddenCode) UnmarshalText(data []byte) error {
 		return nil
 	case ListTaskArtifactsForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = ListTaskArtifactsForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case ListTaskArtifactsForbiddenCodeSIGNINGREQUESTLIMITREACHED:
+		*s = ListTaskArtifactsForbiddenCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case ListTaskArtifactsForbiddenCodeREGISTRATIONFAILED:
 		*s = ListTaskArtifactsForbiddenCodeREGISTRATIONFAILED
@@ -28748,6 +29046,7 @@ const (
 	ListTaskArtifactsNotFoundCodeSERIALIZATIONEXHAUSTED         ListTaskArtifactsNotFoundCode = "SERIALIZATION_EXHAUSTED"
 	ListTaskArtifactsNotFoundCodeSIGNINGREQUESTEXPIRED          ListTaskArtifactsNotFoundCode = "SIGNING_REQUEST_EXPIRED"
 	ListTaskArtifactsNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED ListTaskArtifactsNotFoundCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	ListTaskArtifactsNotFoundCodeSIGNINGREQUESTLIMITREACHED     ListTaskArtifactsNotFoundCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	ListTaskArtifactsNotFoundCodeREGISTRATIONFAILED             ListTaskArtifactsNotFoundCode = "REGISTRATION_FAILED"
 	ListTaskArtifactsNotFoundCodeUPSTREAMERROR                  ListTaskArtifactsNotFoundCode = "UPSTREAM_ERROR"
 	ListTaskArtifactsNotFoundCodeSERVICEUNAVAILABLE             ListTaskArtifactsNotFoundCode = "SERVICE_UNAVAILABLE"
@@ -28781,6 +29080,7 @@ func (ListTaskArtifactsNotFoundCode) AllValues() []ListTaskArtifactsNotFoundCode
 		ListTaskArtifactsNotFoundCodeSERIALIZATIONEXHAUSTED,
 		ListTaskArtifactsNotFoundCodeSIGNINGREQUESTEXPIRED,
 		ListTaskArtifactsNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED,
+		ListTaskArtifactsNotFoundCodeSIGNINGREQUESTLIMITREACHED,
 		ListTaskArtifactsNotFoundCodeREGISTRATIONFAILED,
 		ListTaskArtifactsNotFoundCodeUPSTREAMERROR,
 		ListTaskArtifactsNotFoundCodeSERVICEUNAVAILABLE,
@@ -28827,6 +29127,8 @@ func (s ListTaskArtifactsNotFoundCode) MarshalText() ([]byte, error) {
 	case ListTaskArtifactsNotFoundCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case ListTaskArtifactsNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case ListTaskArtifactsNotFoundCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case ListTaskArtifactsNotFoundCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -28904,6 +29206,9 @@ func (s *ListTaskArtifactsNotFoundCode) UnmarshalText(data []byte) error {
 		return nil
 	case ListTaskArtifactsNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = ListTaskArtifactsNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case ListTaskArtifactsNotFoundCodeSIGNINGREQUESTLIMITREACHED:
+		*s = ListTaskArtifactsNotFoundCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case ListTaskArtifactsNotFoundCodeREGISTRATIONFAILED:
 		*s = ListTaskArtifactsNotFoundCodeREGISTRATIONFAILED
@@ -29237,6 +29542,7 @@ const (
 	ListTaskArtifactsUnauthorizedCodeSERIALIZATIONEXHAUSTED         ListTaskArtifactsUnauthorizedCode = "SERIALIZATION_EXHAUSTED"
 	ListTaskArtifactsUnauthorizedCodeSIGNINGREQUESTEXPIRED          ListTaskArtifactsUnauthorizedCode = "SIGNING_REQUEST_EXPIRED"
 	ListTaskArtifactsUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED ListTaskArtifactsUnauthorizedCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	ListTaskArtifactsUnauthorizedCodeSIGNINGREQUESTLIMITREACHED     ListTaskArtifactsUnauthorizedCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	ListTaskArtifactsUnauthorizedCodeREGISTRATIONFAILED             ListTaskArtifactsUnauthorizedCode = "REGISTRATION_FAILED"
 	ListTaskArtifactsUnauthorizedCodeUPSTREAMERROR                  ListTaskArtifactsUnauthorizedCode = "UPSTREAM_ERROR"
 	ListTaskArtifactsUnauthorizedCodeSERVICEUNAVAILABLE             ListTaskArtifactsUnauthorizedCode = "SERVICE_UNAVAILABLE"
@@ -29270,6 +29576,7 @@ func (ListTaskArtifactsUnauthorizedCode) AllValues() []ListTaskArtifactsUnauthor
 		ListTaskArtifactsUnauthorizedCodeSERIALIZATIONEXHAUSTED,
 		ListTaskArtifactsUnauthorizedCodeSIGNINGREQUESTEXPIRED,
 		ListTaskArtifactsUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED,
+		ListTaskArtifactsUnauthorizedCodeSIGNINGREQUESTLIMITREACHED,
 		ListTaskArtifactsUnauthorizedCodeREGISTRATIONFAILED,
 		ListTaskArtifactsUnauthorizedCodeUPSTREAMERROR,
 		ListTaskArtifactsUnauthorizedCodeSERVICEUNAVAILABLE,
@@ -29316,6 +29623,8 @@ func (s ListTaskArtifactsUnauthorizedCode) MarshalText() ([]byte, error) {
 	case ListTaskArtifactsUnauthorizedCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case ListTaskArtifactsUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case ListTaskArtifactsUnauthorizedCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case ListTaskArtifactsUnauthorizedCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -29393,6 +29702,9 @@ func (s *ListTaskArtifactsUnauthorizedCode) UnmarshalText(data []byte) error {
 		return nil
 	case ListTaskArtifactsUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = ListTaskArtifactsUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case ListTaskArtifactsUnauthorizedCodeSIGNINGREQUESTLIMITREACHED:
+		*s = ListTaskArtifactsUnauthorizedCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case ListTaskArtifactsUnauthorizedCodeREGISTRATIONFAILED:
 		*s = ListTaskArtifactsUnauthorizedCodeREGISTRATIONFAILED
@@ -40337,6 +40649,7 @@ const (
 	ProblemDetailsCodeSERIALIZATIONEXHAUSTED         ProblemDetailsCode = "SERIALIZATION_EXHAUSTED"
 	ProblemDetailsCodeSIGNINGREQUESTEXPIRED          ProblemDetailsCode = "SIGNING_REQUEST_EXPIRED"
 	ProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED ProblemDetailsCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	ProblemDetailsCodeSIGNINGREQUESTLIMITREACHED     ProblemDetailsCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	ProblemDetailsCodeREGISTRATIONFAILED             ProblemDetailsCode = "REGISTRATION_FAILED"
 	ProblemDetailsCodeUPSTREAMERROR                  ProblemDetailsCode = "UPSTREAM_ERROR"
 	ProblemDetailsCodeSERVICEUNAVAILABLE             ProblemDetailsCode = "SERVICE_UNAVAILABLE"
@@ -40370,6 +40683,7 @@ func (ProblemDetailsCode) AllValues() []ProblemDetailsCode {
 		ProblemDetailsCodeSERIALIZATIONEXHAUSTED,
 		ProblemDetailsCodeSIGNINGREQUESTEXPIRED,
 		ProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED,
+		ProblemDetailsCodeSIGNINGREQUESTLIMITREACHED,
 		ProblemDetailsCodeREGISTRATIONFAILED,
 		ProblemDetailsCodeUPSTREAMERROR,
 		ProblemDetailsCodeSERVICEUNAVAILABLE,
@@ -40416,6 +40730,8 @@ func (s ProblemDetailsCode) MarshalText() ([]byte, error) {
 	case ProblemDetailsCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case ProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case ProblemDetailsCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case ProblemDetailsCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -40493,6 +40809,9 @@ func (s *ProblemDetailsCode) UnmarshalText(data []byte) error {
 		return nil
 	case ProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = ProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case ProblemDetailsCodeSIGNINGREQUESTLIMITREACHED:
+		*s = ProblemDetailsCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case ProblemDetailsCodeREGISTRATIONFAILED:
 		*s = ProblemDetailsCodeREGISTRATIONFAILED
@@ -49256,6 +49575,7 @@ const (
 	StageTaskArtifactBadRequestCodeSERIALIZATIONEXHAUSTED         StageTaskArtifactBadRequestCode = "SERIALIZATION_EXHAUSTED"
 	StageTaskArtifactBadRequestCodeSIGNINGREQUESTEXPIRED          StageTaskArtifactBadRequestCode = "SIGNING_REQUEST_EXPIRED"
 	StageTaskArtifactBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED StageTaskArtifactBadRequestCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	StageTaskArtifactBadRequestCodeSIGNINGREQUESTLIMITREACHED     StageTaskArtifactBadRequestCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	StageTaskArtifactBadRequestCodeREGISTRATIONFAILED             StageTaskArtifactBadRequestCode = "REGISTRATION_FAILED"
 	StageTaskArtifactBadRequestCodeUPSTREAMERROR                  StageTaskArtifactBadRequestCode = "UPSTREAM_ERROR"
 	StageTaskArtifactBadRequestCodeSERVICEUNAVAILABLE             StageTaskArtifactBadRequestCode = "SERVICE_UNAVAILABLE"
@@ -49289,6 +49609,7 @@ func (StageTaskArtifactBadRequestCode) AllValues() []StageTaskArtifactBadRequest
 		StageTaskArtifactBadRequestCodeSERIALIZATIONEXHAUSTED,
 		StageTaskArtifactBadRequestCodeSIGNINGREQUESTEXPIRED,
 		StageTaskArtifactBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED,
+		StageTaskArtifactBadRequestCodeSIGNINGREQUESTLIMITREACHED,
 		StageTaskArtifactBadRequestCodeREGISTRATIONFAILED,
 		StageTaskArtifactBadRequestCodeUPSTREAMERROR,
 		StageTaskArtifactBadRequestCodeSERVICEUNAVAILABLE,
@@ -49335,6 +49656,8 @@ func (s StageTaskArtifactBadRequestCode) MarshalText() ([]byte, error) {
 	case StageTaskArtifactBadRequestCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case StageTaskArtifactBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case StageTaskArtifactBadRequestCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case StageTaskArtifactBadRequestCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -49412,6 +49735,9 @@ func (s *StageTaskArtifactBadRequestCode) UnmarshalText(data []byte) error {
 		return nil
 	case StageTaskArtifactBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = StageTaskArtifactBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case StageTaskArtifactBadRequestCodeSIGNINGREQUESTLIMITREACHED:
+		*s = StageTaskArtifactBadRequestCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case StageTaskArtifactBadRequestCodeREGISTRATIONFAILED:
 		*s = StageTaskArtifactBadRequestCodeREGISTRATIONFAILED
@@ -49572,6 +49898,7 @@ const (
 	StageTaskArtifactForbiddenCodeSERIALIZATIONEXHAUSTED         StageTaskArtifactForbiddenCode = "SERIALIZATION_EXHAUSTED"
 	StageTaskArtifactForbiddenCodeSIGNINGREQUESTEXPIRED          StageTaskArtifactForbiddenCode = "SIGNING_REQUEST_EXPIRED"
 	StageTaskArtifactForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED StageTaskArtifactForbiddenCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	StageTaskArtifactForbiddenCodeSIGNINGREQUESTLIMITREACHED     StageTaskArtifactForbiddenCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	StageTaskArtifactForbiddenCodeREGISTRATIONFAILED             StageTaskArtifactForbiddenCode = "REGISTRATION_FAILED"
 	StageTaskArtifactForbiddenCodeUPSTREAMERROR                  StageTaskArtifactForbiddenCode = "UPSTREAM_ERROR"
 	StageTaskArtifactForbiddenCodeSERVICEUNAVAILABLE             StageTaskArtifactForbiddenCode = "SERVICE_UNAVAILABLE"
@@ -49605,6 +49932,7 @@ func (StageTaskArtifactForbiddenCode) AllValues() []StageTaskArtifactForbiddenCo
 		StageTaskArtifactForbiddenCodeSERIALIZATIONEXHAUSTED,
 		StageTaskArtifactForbiddenCodeSIGNINGREQUESTEXPIRED,
 		StageTaskArtifactForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED,
+		StageTaskArtifactForbiddenCodeSIGNINGREQUESTLIMITREACHED,
 		StageTaskArtifactForbiddenCodeREGISTRATIONFAILED,
 		StageTaskArtifactForbiddenCodeUPSTREAMERROR,
 		StageTaskArtifactForbiddenCodeSERVICEUNAVAILABLE,
@@ -49651,6 +49979,8 @@ func (s StageTaskArtifactForbiddenCode) MarshalText() ([]byte, error) {
 	case StageTaskArtifactForbiddenCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case StageTaskArtifactForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case StageTaskArtifactForbiddenCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case StageTaskArtifactForbiddenCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -49728,6 +50058,9 @@ func (s *StageTaskArtifactForbiddenCode) UnmarshalText(data []byte) error {
 		return nil
 	case StageTaskArtifactForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = StageTaskArtifactForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case StageTaskArtifactForbiddenCodeSIGNINGREQUESTLIMITREACHED:
+		*s = StageTaskArtifactForbiddenCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case StageTaskArtifactForbiddenCodeREGISTRATIONFAILED:
 		*s = StageTaskArtifactForbiddenCodeREGISTRATIONFAILED
@@ -49888,6 +50221,7 @@ const (
 	StageTaskArtifactNotFoundCodeSERIALIZATIONEXHAUSTED         StageTaskArtifactNotFoundCode = "SERIALIZATION_EXHAUSTED"
 	StageTaskArtifactNotFoundCodeSIGNINGREQUESTEXPIRED          StageTaskArtifactNotFoundCode = "SIGNING_REQUEST_EXPIRED"
 	StageTaskArtifactNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED StageTaskArtifactNotFoundCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	StageTaskArtifactNotFoundCodeSIGNINGREQUESTLIMITREACHED     StageTaskArtifactNotFoundCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	StageTaskArtifactNotFoundCodeREGISTRATIONFAILED             StageTaskArtifactNotFoundCode = "REGISTRATION_FAILED"
 	StageTaskArtifactNotFoundCodeUPSTREAMERROR                  StageTaskArtifactNotFoundCode = "UPSTREAM_ERROR"
 	StageTaskArtifactNotFoundCodeSERVICEUNAVAILABLE             StageTaskArtifactNotFoundCode = "SERVICE_UNAVAILABLE"
@@ -49921,6 +50255,7 @@ func (StageTaskArtifactNotFoundCode) AllValues() []StageTaskArtifactNotFoundCode
 		StageTaskArtifactNotFoundCodeSERIALIZATIONEXHAUSTED,
 		StageTaskArtifactNotFoundCodeSIGNINGREQUESTEXPIRED,
 		StageTaskArtifactNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED,
+		StageTaskArtifactNotFoundCodeSIGNINGREQUESTLIMITREACHED,
 		StageTaskArtifactNotFoundCodeREGISTRATIONFAILED,
 		StageTaskArtifactNotFoundCodeUPSTREAMERROR,
 		StageTaskArtifactNotFoundCodeSERVICEUNAVAILABLE,
@@ -49967,6 +50302,8 @@ func (s StageTaskArtifactNotFoundCode) MarshalText() ([]byte, error) {
 	case StageTaskArtifactNotFoundCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case StageTaskArtifactNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case StageTaskArtifactNotFoundCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case StageTaskArtifactNotFoundCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -50044,6 +50381,9 @@ func (s *StageTaskArtifactNotFoundCode) UnmarshalText(data []byte) error {
 		return nil
 	case StageTaskArtifactNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = StageTaskArtifactNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case StageTaskArtifactNotFoundCodeSIGNINGREQUESTLIMITREACHED:
+		*s = StageTaskArtifactNotFoundCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case StageTaskArtifactNotFoundCodeREGISTRATIONFAILED:
 		*s = StageTaskArtifactNotFoundCodeREGISTRATIONFAILED
@@ -50257,6 +50597,7 @@ const (
 	StageTaskArtifactServiceUnavailableCodeSERIALIZATIONEXHAUSTED         StageTaskArtifactServiceUnavailableCode = "SERIALIZATION_EXHAUSTED"
 	StageTaskArtifactServiceUnavailableCodeSIGNINGREQUESTEXPIRED          StageTaskArtifactServiceUnavailableCode = "SIGNING_REQUEST_EXPIRED"
 	StageTaskArtifactServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED StageTaskArtifactServiceUnavailableCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	StageTaskArtifactServiceUnavailableCodeSIGNINGREQUESTLIMITREACHED     StageTaskArtifactServiceUnavailableCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	StageTaskArtifactServiceUnavailableCodeREGISTRATIONFAILED             StageTaskArtifactServiceUnavailableCode = "REGISTRATION_FAILED"
 	StageTaskArtifactServiceUnavailableCodeUPSTREAMERROR                  StageTaskArtifactServiceUnavailableCode = "UPSTREAM_ERROR"
 	StageTaskArtifactServiceUnavailableCodeSERVICEUNAVAILABLE             StageTaskArtifactServiceUnavailableCode = "SERVICE_UNAVAILABLE"
@@ -50290,6 +50631,7 @@ func (StageTaskArtifactServiceUnavailableCode) AllValues() []StageTaskArtifactSe
 		StageTaskArtifactServiceUnavailableCodeSERIALIZATIONEXHAUSTED,
 		StageTaskArtifactServiceUnavailableCodeSIGNINGREQUESTEXPIRED,
 		StageTaskArtifactServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED,
+		StageTaskArtifactServiceUnavailableCodeSIGNINGREQUESTLIMITREACHED,
 		StageTaskArtifactServiceUnavailableCodeREGISTRATIONFAILED,
 		StageTaskArtifactServiceUnavailableCodeUPSTREAMERROR,
 		StageTaskArtifactServiceUnavailableCodeSERVICEUNAVAILABLE,
@@ -50336,6 +50678,8 @@ func (s StageTaskArtifactServiceUnavailableCode) MarshalText() ([]byte, error) {
 	case StageTaskArtifactServiceUnavailableCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case StageTaskArtifactServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case StageTaskArtifactServiceUnavailableCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case StageTaskArtifactServiceUnavailableCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -50413,6 +50757,9 @@ func (s *StageTaskArtifactServiceUnavailableCode) UnmarshalText(data []byte) err
 		return nil
 	case StageTaskArtifactServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = StageTaskArtifactServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case StageTaskArtifactServiceUnavailableCodeSIGNINGREQUESTLIMITREACHED:
+		*s = StageTaskArtifactServiceUnavailableCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case StageTaskArtifactServiceUnavailableCodeREGISTRATIONFAILED:
 		*s = StageTaskArtifactServiceUnavailableCodeREGISTRATIONFAILED
@@ -50573,6 +50920,7 @@ const (
 	StageTaskArtifactUnauthorizedCodeSERIALIZATIONEXHAUSTED         StageTaskArtifactUnauthorizedCode = "SERIALIZATION_EXHAUSTED"
 	StageTaskArtifactUnauthorizedCodeSIGNINGREQUESTEXPIRED          StageTaskArtifactUnauthorizedCode = "SIGNING_REQUEST_EXPIRED"
 	StageTaskArtifactUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED StageTaskArtifactUnauthorizedCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	StageTaskArtifactUnauthorizedCodeSIGNINGREQUESTLIMITREACHED     StageTaskArtifactUnauthorizedCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	StageTaskArtifactUnauthorizedCodeREGISTRATIONFAILED             StageTaskArtifactUnauthorizedCode = "REGISTRATION_FAILED"
 	StageTaskArtifactUnauthorizedCodeUPSTREAMERROR                  StageTaskArtifactUnauthorizedCode = "UPSTREAM_ERROR"
 	StageTaskArtifactUnauthorizedCodeSERVICEUNAVAILABLE             StageTaskArtifactUnauthorizedCode = "SERVICE_UNAVAILABLE"
@@ -50606,6 +50954,7 @@ func (StageTaskArtifactUnauthorizedCode) AllValues() []StageTaskArtifactUnauthor
 		StageTaskArtifactUnauthorizedCodeSERIALIZATIONEXHAUSTED,
 		StageTaskArtifactUnauthorizedCodeSIGNINGREQUESTEXPIRED,
 		StageTaskArtifactUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED,
+		StageTaskArtifactUnauthorizedCodeSIGNINGREQUESTLIMITREACHED,
 		StageTaskArtifactUnauthorizedCodeREGISTRATIONFAILED,
 		StageTaskArtifactUnauthorizedCodeUPSTREAMERROR,
 		StageTaskArtifactUnauthorizedCodeSERVICEUNAVAILABLE,
@@ -50652,6 +51001,8 @@ func (s StageTaskArtifactUnauthorizedCode) MarshalText() ([]byte, error) {
 	case StageTaskArtifactUnauthorizedCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case StageTaskArtifactUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case StageTaskArtifactUnauthorizedCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case StageTaskArtifactUnauthorizedCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -50729,6 +51080,9 @@ func (s *StageTaskArtifactUnauthorizedCode) UnmarshalText(data []byte) error {
 		return nil
 	case StageTaskArtifactUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = StageTaskArtifactUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case StageTaskArtifactUnauthorizedCodeSIGNINGREQUESTLIMITREACHED:
+		*s = StageTaskArtifactUnauthorizedCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case StageTaskArtifactUnauthorizedCodeREGISTRATIONFAILED:
 		*s = StageTaskArtifactUnauthorizedCodeREGISTRATIONFAILED
@@ -56179,6 +56533,7 @@ const (
 	UploadRuntimeSessionBadRequestCodeSERIALIZATIONEXHAUSTED         UploadRuntimeSessionBadRequestCode = "SERIALIZATION_EXHAUSTED"
 	UploadRuntimeSessionBadRequestCodeSIGNINGREQUESTEXPIRED          UploadRuntimeSessionBadRequestCode = "SIGNING_REQUEST_EXPIRED"
 	UploadRuntimeSessionBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED UploadRuntimeSessionBadRequestCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	UploadRuntimeSessionBadRequestCodeSIGNINGREQUESTLIMITREACHED     UploadRuntimeSessionBadRequestCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	UploadRuntimeSessionBadRequestCodeREGISTRATIONFAILED             UploadRuntimeSessionBadRequestCode = "REGISTRATION_FAILED"
 	UploadRuntimeSessionBadRequestCodeUPSTREAMERROR                  UploadRuntimeSessionBadRequestCode = "UPSTREAM_ERROR"
 	UploadRuntimeSessionBadRequestCodeSERVICEUNAVAILABLE             UploadRuntimeSessionBadRequestCode = "SERVICE_UNAVAILABLE"
@@ -56212,6 +56567,7 @@ func (UploadRuntimeSessionBadRequestCode) AllValues() []UploadRuntimeSessionBadR
 		UploadRuntimeSessionBadRequestCodeSERIALIZATIONEXHAUSTED,
 		UploadRuntimeSessionBadRequestCodeSIGNINGREQUESTEXPIRED,
 		UploadRuntimeSessionBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED,
+		UploadRuntimeSessionBadRequestCodeSIGNINGREQUESTLIMITREACHED,
 		UploadRuntimeSessionBadRequestCodeREGISTRATIONFAILED,
 		UploadRuntimeSessionBadRequestCodeUPSTREAMERROR,
 		UploadRuntimeSessionBadRequestCodeSERVICEUNAVAILABLE,
@@ -56258,6 +56614,8 @@ func (s UploadRuntimeSessionBadRequestCode) MarshalText() ([]byte, error) {
 	case UploadRuntimeSessionBadRequestCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case UploadRuntimeSessionBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case UploadRuntimeSessionBadRequestCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case UploadRuntimeSessionBadRequestCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -56335,6 +56693,9 @@ func (s *UploadRuntimeSessionBadRequestCode) UnmarshalText(data []byte) error {
 		return nil
 	case UploadRuntimeSessionBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = UploadRuntimeSessionBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case UploadRuntimeSessionBadRequestCodeSIGNINGREQUESTLIMITREACHED:
+		*s = UploadRuntimeSessionBadRequestCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case UploadRuntimeSessionBadRequestCodeREGISTRATIONFAILED:
 		*s = UploadRuntimeSessionBadRequestCodeREGISTRATIONFAILED
@@ -56495,6 +56856,7 @@ const (
 	UploadRuntimeSessionConflictCodeSERIALIZATIONEXHAUSTED         UploadRuntimeSessionConflictCode = "SERIALIZATION_EXHAUSTED"
 	UploadRuntimeSessionConflictCodeSIGNINGREQUESTEXPIRED          UploadRuntimeSessionConflictCode = "SIGNING_REQUEST_EXPIRED"
 	UploadRuntimeSessionConflictCodeSIGNINGREQUESTALREADYCOMPLETED UploadRuntimeSessionConflictCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	UploadRuntimeSessionConflictCodeSIGNINGREQUESTLIMITREACHED     UploadRuntimeSessionConflictCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	UploadRuntimeSessionConflictCodeREGISTRATIONFAILED             UploadRuntimeSessionConflictCode = "REGISTRATION_FAILED"
 	UploadRuntimeSessionConflictCodeUPSTREAMERROR                  UploadRuntimeSessionConflictCode = "UPSTREAM_ERROR"
 	UploadRuntimeSessionConflictCodeSERVICEUNAVAILABLE             UploadRuntimeSessionConflictCode = "SERVICE_UNAVAILABLE"
@@ -56528,6 +56890,7 @@ func (UploadRuntimeSessionConflictCode) AllValues() []UploadRuntimeSessionConfli
 		UploadRuntimeSessionConflictCodeSERIALIZATIONEXHAUSTED,
 		UploadRuntimeSessionConflictCodeSIGNINGREQUESTEXPIRED,
 		UploadRuntimeSessionConflictCodeSIGNINGREQUESTALREADYCOMPLETED,
+		UploadRuntimeSessionConflictCodeSIGNINGREQUESTLIMITREACHED,
 		UploadRuntimeSessionConflictCodeREGISTRATIONFAILED,
 		UploadRuntimeSessionConflictCodeUPSTREAMERROR,
 		UploadRuntimeSessionConflictCodeSERVICEUNAVAILABLE,
@@ -56574,6 +56937,8 @@ func (s UploadRuntimeSessionConflictCode) MarshalText() ([]byte, error) {
 	case UploadRuntimeSessionConflictCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case UploadRuntimeSessionConflictCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case UploadRuntimeSessionConflictCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case UploadRuntimeSessionConflictCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -56651,6 +57016,9 @@ func (s *UploadRuntimeSessionConflictCode) UnmarshalText(data []byte) error {
 		return nil
 	case UploadRuntimeSessionConflictCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = UploadRuntimeSessionConflictCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case UploadRuntimeSessionConflictCodeSIGNINGREQUESTLIMITREACHED:
+		*s = UploadRuntimeSessionConflictCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case UploadRuntimeSessionConflictCodeREGISTRATIONFAILED:
 		*s = UploadRuntimeSessionConflictCodeREGISTRATIONFAILED
@@ -56811,6 +57179,7 @@ const (
 	UploadRuntimeSessionForbiddenCodeSERIALIZATIONEXHAUSTED         UploadRuntimeSessionForbiddenCode = "SERIALIZATION_EXHAUSTED"
 	UploadRuntimeSessionForbiddenCodeSIGNINGREQUESTEXPIRED          UploadRuntimeSessionForbiddenCode = "SIGNING_REQUEST_EXPIRED"
 	UploadRuntimeSessionForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED UploadRuntimeSessionForbiddenCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	UploadRuntimeSessionForbiddenCodeSIGNINGREQUESTLIMITREACHED     UploadRuntimeSessionForbiddenCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	UploadRuntimeSessionForbiddenCodeREGISTRATIONFAILED             UploadRuntimeSessionForbiddenCode = "REGISTRATION_FAILED"
 	UploadRuntimeSessionForbiddenCodeUPSTREAMERROR                  UploadRuntimeSessionForbiddenCode = "UPSTREAM_ERROR"
 	UploadRuntimeSessionForbiddenCodeSERVICEUNAVAILABLE             UploadRuntimeSessionForbiddenCode = "SERVICE_UNAVAILABLE"
@@ -56844,6 +57213,7 @@ func (UploadRuntimeSessionForbiddenCode) AllValues() []UploadRuntimeSessionForbi
 		UploadRuntimeSessionForbiddenCodeSERIALIZATIONEXHAUSTED,
 		UploadRuntimeSessionForbiddenCodeSIGNINGREQUESTEXPIRED,
 		UploadRuntimeSessionForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED,
+		UploadRuntimeSessionForbiddenCodeSIGNINGREQUESTLIMITREACHED,
 		UploadRuntimeSessionForbiddenCodeREGISTRATIONFAILED,
 		UploadRuntimeSessionForbiddenCodeUPSTREAMERROR,
 		UploadRuntimeSessionForbiddenCodeSERVICEUNAVAILABLE,
@@ -56890,6 +57260,8 @@ func (s UploadRuntimeSessionForbiddenCode) MarshalText() ([]byte, error) {
 	case UploadRuntimeSessionForbiddenCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case UploadRuntimeSessionForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case UploadRuntimeSessionForbiddenCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case UploadRuntimeSessionForbiddenCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -56967,6 +57339,9 @@ func (s *UploadRuntimeSessionForbiddenCode) UnmarshalText(data []byte) error {
 		return nil
 	case UploadRuntimeSessionForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = UploadRuntimeSessionForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case UploadRuntimeSessionForbiddenCodeSIGNINGREQUESTLIMITREACHED:
+		*s = UploadRuntimeSessionForbiddenCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case UploadRuntimeSessionForbiddenCodeREGISTRATIONFAILED:
 		*s = UploadRuntimeSessionForbiddenCodeREGISTRATIONFAILED
@@ -57127,6 +57502,7 @@ const (
 	UploadRuntimeSessionNotFoundCodeSERIALIZATIONEXHAUSTED         UploadRuntimeSessionNotFoundCode = "SERIALIZATION_EXHAUSTED"
 	UploadRuntimeSessionNotFoundCodeSIGNINGREQUESTEXPIRED          UploadRuntimeSessionNotFoundCode = "SIGNING_REQUEST_EXPIRED"
 	UploadRuntimeSessionNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED UploadRuntimeSessionNotFoundCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	UploadRuntimeSessionNotFoundCodeSIGNINGREQUESTLIMITREACHED     UploadRuntimeSessionNotFoundCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	UploadRuntimeSessionNotFoundCodeREGISTRATIONFAILED             UploadRuntimeSessionNotFoundCode = "REGISTRATION_FAILED"
 	UploadRuntimeSessionNotFoundCodeUPSTREAMERROR                  UploadRuntimeSessionNotFoundCode = "UPSTREAM_ERROR"
 	UploadRuntimeSessionNotFoundCodeSERVICEUNAVAILABLE             UploadRuntimeSessionNotFoundCode = "SERVICE_UNAVAILABLE"
@@ -57160,6 +57536,7 @@ func (UploadRuntimeSessionNotFoundCode) AllValues() []UploadRuntimeSessionNotFou
 		UploadRuntimeSessionNotFoundCodeSERIALIZATIONEXHAUSTED,
 		UploadRuntimeSessionNotFoundCodeSIGNINGREQUESTEXPIRED,
 		UploadRuntimeSessionNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED,
+		UploadRuntimeSessionNotFoundCodeSIGNINGREQUESTLIMITREACHED,
 		UploadRuntimeSessionNotFoundCodeREGISTRATIONFAILED,
 		UploadRuntimeSessionNotFoundCodeUPSTREAMERROR,
 		UploadRuntimeSessionNotFoundCodeSERVICEUNAVAILABLE,
@@ -57206,6 +57583,8 @@ func (s UploadRuntimeSessionNotFoundCode) MarshalText() ([]byte, error) {
 	case UploadRuntimeSessionNotFoundCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case UploadRuntimeSessionNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case UploadRuntimeSessionNotFoundCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case UploadRuntimeSessionNotFoundCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -57283,6 +57662,9 @@ func (s *UploadRuntimeSessionNotFoundCode) UnmarshalText(data []byte) error {
 		return nil
 	case UploadRuntimeSessionNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = UploadRuntimeSessionNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case UploadRuntimeSessionNotFoundCodeSIGNINGREQUESTLIMITREACHED:
+		*s = UploadRuntimeSessionNotFoundCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case UploadRuntimeSessionNotFoundCodeREGISTRATIONFAILED:
 		*s = UploadRuntimeSessionNotFoundCodeREGISTRATIONFAILED
@@ -57751,6 +58133,7 @@ const (
 	UploadRuntimeSessionServiceUnavailableCodeSERIALIZATIONEXHAUSTED         UploadRuntimeSessionServiceUnavailableCode = "SERIALIZATION_EXHAUSTED"
 	UploadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTEXPIRED          UploadRuntimeSessionServiceUnavailableCode = "SIGNING_REQUEST_EXPIRED"
 	UploadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED UploadRuntimeSessionServiceUnavailableCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	UploadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTLIMITREACHED     UploadRuntimeSessionServiceUnavailableCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	UploadRuntimeSessionServiceUnavailableCodeREGISTRATIONFAILED             UploadRuntimeSessionServiceUnavailableCode = "REGISTRATION_FAILED"
 	UploadRuntimeSessionServiceUnavailableCodeUPSTREAMERROR                  UploadRuntimeSessionServiceUnavailableCode = "UPSTREAM_ERROR"
 	UploadRuntimeSessionServiceUnavailableCodeSERVICEUNAVAILABLE             UploadRuntimeSessionServiceUnavailableCode = "SERVICE_UNAVAILABLE"
@@ -57784,6 +58167,7 @@ func (UploadRuntimeSessionServiceUnavailableCode) AllValues() []UploadRuntimeSes
 		UploadRuntimeSessionServiceUnavailableCodeSERIALIZATIONEXHAUSTED,
 		UploadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTEXPIRED,
 		UploadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED,
+		UploadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTLIMITREACHED,
 		UploadRuntimeSessionServiceUnavailableCodeREGISTRATIONFAILED,
 		UploadRuntimeSessionServiceUnavailableCodeUPSTREAMERROR,
 		UploadRuntimeSessionServiceUnavailableCodeSERVICEUNAVAILABLE,
@@ -57830,6 +58214,8 @@ func (s UploadRuntimeSessionServiceUnavailableCode) MarshalText() ([]byte, error
 	case UploadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case UploadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case UploadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case UploadRuntimeSessionServiceUnavailableCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -57907,6 +58293,9 @@ func (s *UploadRuntimeSessionServiceUnavailableCode) UnmarshalText(data []byte) 
 		return nil
 	case UploadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = UploadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case UploadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTLIMITREACHED:
+		*s = UploadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case UploadRuntimeSessionServiceUnavailableCodeREGISTRATIONFAILED:
 		*s = UploadRuntimeSessionServiceUnavailableCodeREGISTRATIONFAILED
@@ -58115,6 +58504,7 @@ const (
 	UploadRuntimeSessionUnauthorizedCodeSERIALIZATIONEXHAUSTED         UploadRuntimeSessionUnauthorizedCode = "SERIALIZATION_EXHAUSTED"
 	UploadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTEXPIRED          UploadRuntimeSessionUnauthorizedCode = "SIGNING_REQUEST_EXPIRED"
 	UploadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED UploadRuntimeSessionUnauthorizedCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	UploadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTLIMITREACHED     UploadRuntimeSessionUnauthorizedCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	UploadRuntimeSessionUnauthorizedCodeREGISTRATIONFAILED             UploadRuntimeSessionUnauthorizedCode = "REGISTRATION_FAILED"
 	UploadRuntimeSessionUnauthorizedCodeUPSTREAMERROR                  UploadRuntimeSessionUnauthorizedCode = "UPSTREAM_ERROR"
 	UploadRuntimeSessionUnauthorizedCodeSERVICEUNAVAILABLE             UploadRuntimeSessionUnauthorizedCode = "SERVICE_UNAVAILABLE"
@@ -58148,6 +58538,7 @@ func (UploadRuntimeSessionUnauthorizedCode) AllValues() []UploadRuntimeSessionUn
 		UploadRuntimeSessionUnauthorizedCodeSERIALIZATIONEXHAUSTED,
 		UploadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTEXPIRED,
 		UploadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED,
+		UploadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTLIMITREACHED,
 		UploadRuntimeSessionUnauthorizedCodeREGISTRATIONFAILED,
 		UploadRuntimeSessionUnauthorizedCodeUPSTREAMERROR,
 		UploadRuntimeSessionUnauthorizedCodeSERVICEUNAVAILABLE,
@@ -58194,6 +58585,8 @@ func (s UploadRuntimeSessionUnauthorizedCode) MarshalText() ([]byte, error) {
 	case UploadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case UploadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case UploadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case UploadRuntimeSessionUnauthorizedCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -58271,6 +58664,9 @@ func (s *UploadRuntimeSessionUnauthorizedCode) UnmarshalText(data []byte) error 
 		return nil
 	case UploadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = UploadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case UploadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTLIMITREACHED:
+		*s = UploadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case UploadRuntimeSessionUnauthorizedCodeREGISTRATIONFAILED:
 		*s = UploadRuntimeSessionUnauthorizedCodeREGISTRATIONFAILED
@@ -58443,6 +58839,7 @@ const (
 	UploadTaskArtifactBadRequestCodeSERIALIZATIONEXHAUSTED         UploadTaskArtifactBadRequestCode = "SERIALIZATION_EXHAUSTED"
 	UploadTaskArtifactBadRequestCodeSIGNINGREQUESTEXPIRED          UploadTaskArtifactBadRequestCode = "SIGNING_REQUEST_EXPIRED"
 	UploadTaskArtifactBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED UploadTaskArtifactBadRequestCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	UploadTaskArtifactBadRequestCodeSIGNINGREQUESTLIMITREACHED     UploadTaskArtifactBadRequestCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	UploadTaskArtifactBadRequestCodeREGISTRATIONFAILED             UploadTaskArtifactBadRequestCode = "REGISTRATION_FAILED"
 	UploadTaskArtifactBadRequestCodeUPSTREAMERROR                  UploadTaskArtifactBadRequestCode = "UPSTREAM_ERROR"
 	UploadTaskArtifactBadRequestCodeSERVICEUNAVAILABLE             UploadTaskArtifactBadRequestCode = "SERVICE_UNAVAILABLE"
@@ -58476,6 +58873,7 @@ func (UploadTaskArtifactBadRequestCode) AllValues() []UploadTaskArtifactBadReque
 		UploadTaskArtifactBadRequestCodeSERIALIZATIONEXHAUSTED,
 		UploadTaskArtifactBadRequestCodeSIGNINGREQUESTEXPIRED,
 		UploadTaskArtifactBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED,
+		UploadTaskArtifactBadRequestCodeSIGNINGREQUESTLIMITREACHED,
 		UploadTaskArtifactBadRequestCodeREGISTRATIONFAILED,
 		UploadTaskArtifactBadRequestCodeUPSTREAMERROR,
 		UploadTaskArtifactBadRequestCodeSERVICEUNAVAILABLE,
@@ -58522,6 +58920,8 @@ func (s UploadTaskArtifactBadRequestCode) MarshalText() ([]byte, error) {
 	case UploadTaskArtifactBadRequestCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case UploadTaskArtifactBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case UploadTaskArtifactBadRequestCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case UploadTaskArtifactBadRequestCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -58599,6 +58999,9 @@ func (s *UploadTaskArtifactBadRequestCode) UnmarshalText(data []byte) error {
 		return nil
 	case UploadTaskArtifactBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = UploadTaskArtifactBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case UploadTaskArtifactBadRequestCodeSIGNINGREQUESTLIMITREACHED:
+		*s = UploadTaskArtifactBadRequestCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case UploadTaskArtifactBadRequestCodeREGISTRATIONFAILED:
 		*s = UploadTaskArtifactBadRequestCodeREGISTRATIONFAILED
@@ -58759,6 +59162,7 @@ const (
 	UploadTaskArtifactForbiddenCodeSERIALIZATIONEXHAUSTED         UploadTaskArtifactForbiddenCode = "SERIALIZATION_EXHAUSTED"
 	UploadTaskArtifactForbiddenCodeSIGNINGREQUESTEXPIRED          UploadTaskArtifactForbiddenCode = "SIGNING_REQUEST_EXPIRED"
 	UploadTaskArtifactForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED UploadTaskArtifactForbiddenCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	UploadTaskArtifactForbiddenCodeSIGNINGREQUESTLIMITREACHED     UploadTaskArtifactForbiddenCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	UploadTaskArtifactForbiddenCodeREGISTRATIONFAILED             UploadTaskArtifactForbiddenCode = "REGISTRATION_FAILED"
 	UploadTaskArtifactForbiddenCodeUPSTREAMERROR                  UploadTaskArtifactForbiddenCode = "UPSTREAM_ERROR"
 	UploadTaskArtifactForbiddenCodeSERVICEUNAVAILABLE             UploadTaskArtifactForbiddenCode = "SERVICE_UNAVAILABLE"
@@ -58792,6 +59196,7 @@ func (UploadTaskArtifactForbiddenCode) AllValues() []UploadTaskArtifactForbidden
 		UploadTaskArtifactForbiddenCodeSERIALIZATIONEXHAUSTED,
 		UploadTaskArtifactForbiddenCodeSIGNINGREQUESTEXPIRED,
 		UploadTaskArtifactForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED,
+		UploadTaskArtifactForbiddenCodeSIGNINGREQUESTLIMITREACHED,
 		UploadTaskArtifactForbiddenCodeREGISTRATIONFAILED,
 		UploadTaskArtifactForbiddenCodeUPSTREAMERROR,
 		UploadTaskArtifactForbiddenCodeSERVICEUNAVAILABLE,
@@ -58838,6 +59243,8 @@ func (s UploadTaskArtifactForbiddenCode) MarshalText() ([]byte, error) {
 	case UploadTaskArtifactForbiddenCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case UploadTaskArtifactForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case UploadTaskArtifactForbiddenCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case UploadTaskArtifactForbiddenCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -58915,6 +59322,9 @@ func (s *UploadTaskArtifactForbiddenCode) UnmarshalText(data []byte) error {
 		return nil
 	case UploadTaskArtifactForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = UploadTaskArtifactForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case UploadTaskArtifactForbiddenCodeSIGNINGREQUESTLIMITREACHED:
+		*s = UploadTaskArtifactForbiddenCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case UploadTaskArtifactForbiddenCodeREGISTRATIONFAILED:
 		*s = UploadTaskArtifactForbiddenCodeREGISTRATIONFAILED
@@ -59075,6 +59485,7 @@ const (
 	UploadTaskArtifactNotFoundCodeSERIALIZATIONEXHAUSTED         UploadTaskArtifactNotFoundCode = "SERIALIZATION_EXHAUSTED"
 	UploadTaskArtifactNotFoundCodeSIGNINGREQUESTEXPIRED          UploadTaskArtifactNotFoundCode = "SIGNING_REQUEST_EXPIRED"
 	UploadTaskArtifactNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED UploadTaskArtifactNotFoundCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	UploadTaskArtifactNotFoundCodeSIGNINGREQUESTLIMITREACHED     UploadTaskArtifactNotFoundCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	UploadTaskArtifactNotFoundCodeREGISTRATIONFAILED             UploadTaskArtifactNotFoundCode = "REGISTRATION_FAILED"
 	UploadTaskArtifactNotFoundCodeUPSTREAMERROR                  UploadTaskArtifactNotFoundCode = "UPSTREAM_ERROR"
 	UploadTaskArtifactNotFoundCodeSERVICEUNAVAILABLE             UploadTaskArtifactNotFoundCode = "SERVICE_UNAVAILABLE"
@@ -59108,6 +59519,7 @@ func (UploadTaskArtifactNotFoundCode) AllValues() []UploadTaskArtifactNotFoundCo
 		UploadTaskArtifactNotFoundCodeSERIALIZATIONEXHAUSTED,
 		UploadTaskArtifactNotFoundCodeSIGNINGREQUESTEXPIRED,
 		UploadTaskArtifactNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED,
+		UploadTaskArtifactNotFoundCodeSIGNINGREQUESTLIMITREACHED,
 		UploadTaskArtifactNotFoundCodeREGISTRATIONFAILED,
 		UploadTaskArtifactNotFoundCodeUPSTREAMERROR,
 		UploadTaskArtifactNotFoundCodeSERVICEUNAVAILABLE,
@@ -59154,6 +59566,8 @@ func (s UploadTaskArtifactNotFoundCode) MarshalText() ([]byte, error) {
 	case UploadTaskArtifactNotFoundCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case UploadTaskArtifactNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case UploadTaskArtifactNotFoundCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case UploadTaskArtifactNotFoundCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -59231,6 +59645,9 @@ func (s *UploadTaskArtifactNotFoundCode) UnmarshalText(data []byte) error {
 		return nil
 	case UploadTaskArtifactNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = UploadTaskArtifactNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case UploadTaskArtifactNotFoundCodeSIGNINGREQUESTLIMITREACHED:
+		*s = UploadTaskArtifactNotFoundCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case UploadTaskArtifactNotFoundCodeREGISTRATIONFAILED:
 		*s = UploadTaskArtifactNotFoundCodeREGISTRATIONFAILED
@@ -59554,6 +59971,7 @@ const (
 	UploadTaskArtifactServiceUnavailableCodeSERIALIZATIONEXHAUSTED         UploadTaskArtifactServiceUnavailableCode = "SERIALIZATION_EXHAUSTED"
 	UploadTaskArtifactServiceUnavailableCodeSIGNINGREQUESTEXPIRED          UploadTaskArtifactServiceUnavailableCode = "SIGNING_REQUEST_EXPIRED"
 	UploadTaskArtifactServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED UploadTaskArtifactServiceUnavailableCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	UploadTaskArtifactServiceUnavailableCodeSIGNINGREQUESTLIMITREACHED     UploadTaskArtifactServiceUnavailableCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	UploadTaskArtifactServiceUnavailableCodeREGISTRATIONFAILED             UploadTaskArtifactServiceUnavailableCode = "REGISTRATION_FAILED"
 	UploadTaskArtifactServiceUnavailableCodeUPSTREAMERROR                  UploadTaskArtifactServiceUnavailableCode = "UPSTREAM_ERROR"
 	UploadTaskArtifactServiceUnavailableCodeSERVICEUNAVAILABLE             UploadTaskArtifactServiceUnavailableCode = "SERVICE_UNAVAILABLE"
@@ -59587,6 +60005,7 @@ func (UploadTaskArtifactServiceUnavailableCode) AllValues() []UploadTaskArtifact
 		UploadTaskArtifactServiceUnavailableCodeSERIALIZATIONEXHAUSTED,
 		UploadTaskArtifactServiceUnavailableCodeSIGNINGREQUESTEXPIRED,
 		UploadTaskArtifactServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED,
+		UploadTaskArtifactServiceUnavailableCodeSIGNINGREQUESTLIMITREACHED,
 		UploadTaskArtifactServiceUnavailableCodeREGISTRATIONFAILED,
 		UploadTaskArtifactServiceUnavailableCodeUPSTREAMERROR,
 		UploadTaskArtifactServiceUnavailableCodeSERVICEUNAVAILABLE,
@@ -59633,6 +60052,8 @@ func (s UploadTaskArtifactServiceUnavailableCode) MarshalText() ([]byte, error) 
 	case UploadTaskArtifactServiceUnavailableCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case UploadTaskArtifactServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case UploadTaskArtifactServiceUnavailableCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case UploadTaskArtifactServiceUnavailableCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -59710,6 +60131,9 @@ func (s *UploadTaskArtifactServiceUnavailableCode) UnmarshalText(data []byte) er
 		return nil
 	case UploadTaskArtifactServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = UploadTaskArtifactServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case UploadTaskArtifactServiceUnavailableCodeSIGNINGREQUESTLIMITREACHED:
+		*s = UploadTaskArtifactServiceUnavailableCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case UploadTaskArtifactServiceUnavailableCodeREGISTRATIONFAILED:
 		*s = UploadTaskArtifactServiceUnavailableCodeREGISTRATIONFAILED
@@ -59870,6 +60294,7 @@ const (
 	UploadTaskArtifactUnauthorizedCodeSERIALIZATIONEXHAUSTED         UploadTaskArtifactUnauthorizedCode = "SERIALIZATION_EXHAUSTED"
 	UploadTaskArtifactUnauthorizedCodeSIGNINGREQUESTEXPIRED          UploadTaskArtifactUnauthorizedCode = "SIGNING_REQUEST_EXPIRED"
 	UploadTaskArtifactUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED UploadTaskArtifactUnauthorizedCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	UploadTaskArtifactUnauthorizedCodeSIGNINGREQUESTLIMITREACHED     UploadTaskArtifactUnauthorizedCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	UploadTaskArtifactUnauthorizedCodeREGISTRATIONFAILED             UploadTaskArtifactUnauthorizedCode = "REGISTRATION_FAILED"
 	UploadTaskArtifactUnauthorizedCodeUPSTREAMERROR                  UploadTaskArtifactUnauthorizedCode = "UPSTREAM_ERROR"
 	UploadTaskArtifactUnauthorizedCodeSERVICEUNAVAILABLE             UploadTaskArtifactUnauthorizedCode = "SERVICE_UNAVAILABLE"
@@ -59903,6 +60328,7 @@ func (UploadTaskArtifactUnauthorizedCode) AllValues() []UploadTaskArtifactUnauth
 		UploadTaskArtifactUnauthorizedCodeSERIALIZATIONEXHAUSTED,
 		UploadTaskArtifactUnauthorizedCodeSIGNINGREQUESTEXPIRED,
 		UploadTaskArtifactUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED,
+		UploadTaskArtifactUnauthorizedCodeSIGNINGREQUESTLIMITREACHED,
 		UploadTaskArtifactUnauthorizedCodeREGISTRATIONFAILED,
 		UploadTaskArtifactUnauthorizedCodeUPSTREAMERROR,
 		UploadTaskArtifactUnauthorizedCodeSERVICEUNAVAILABLE,
@@ -59949,6 +60375,8 @@ func (s UploadTaskArtifactUnauthorizedCode) MarshalText() ([]byte, error) {
 	case UploadTaskArtifactUnauthorizedCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case UploadTaskArtifactUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case UploadTaskArtifactUnauthorizedCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case UploadTaskArtifactUnauthorizedCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -60026,6 +60454,9 @@ func (s *UploadTaskArtifactUnauthorizedCode) UnmarshalText(data []byte) error {
 		return nil
 	case UploadTaskArtifactUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = UploadTaskArtifactUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case UploadTaskArtifactUnauthorizedCodeSIGNINGREQUESTLIMITREACHED:
+		*s = UploadTaskArtifactUnauthorizedCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case UploadTaskArtifactUnauthorizedCodeREGISTRATIONFAILED:
 		*s = UploadTaskArtifactUnauthorizedCodeREGISTRATIONFAILED
@@ -60321,6 +60752,7 @@ const (
 	ValidationProblemDetailsCodeSERIALIZATIONEXHAUSTED         ValidationProblemDetailsCode = "SERIALIZATION_EXHAUSTED"
 	ValidationProblemDetailsCodeSIGNINGREQUESTEXPIRED          ValidationProblemDetailsCode = "SIGNING_REQUEST_EXPIRED"
 	ValidationProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED ValidationProblemDetailsCode = "SIGNING_REQUEST_ALREADY_COMPLETED"
+	ValidationProblemDetailsCodeSIGNINGREQUESTLIMITREACHED     ValidationProblemDetailsCode = "SIGNING_REQUEST_LIMIT_REACHED"
 	ValidationProblemDetailsCodeREGISTRATIONFAILED             ValidationProblemDetailsCode = "REGISTRATION_FAILED"
 	ValidationProblemDetailsCodeUPSTREAMERROR                  ValidationProblemDetailsCode = "UPSTREAM_ERROR"
 	ValidationProblemDetailsCodeSERVICEUNAVAILABLE             ValidationProblemDetailsCode = "SERVICE_UNAVAILABLE"
@@ -60354,6 +60786,7 @@ func (ValidationProblemDetailsCode) AllValues() []ValidationProblemDetailsCode {
 		ValidationProblemDetailsCodeSERIALIZATIONEXHAUSTED,
 		ValidationProblemDetailsCodeSIGNINGREQUESTEXPIRED,
 		ValidationProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED,
+		ValidationProblemDetailsCodeSIGNINGREQUESTLIMITREACHED,
 		ValidationProblemDetailsCodeREGISTRATIONFAILED,
 		ValidationProblemDetailsCodeUPSTREAMERROR,
 		ValidationProblemDetailsCodeSERVICEUNAVAILABLE,
@@ -60400,6 +60833,8 @@ func (s ValidationProblemDetailsCode) MarshalText() ([]byte, error) {
 	case ValidationProblemDetailsCodeSIGNINGREQUESTEXPIRED:
 		return []byte(s), nil
 	case ValidationProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED:
+		return []byte(s), nil
+	case ValidationProblemDetailsCodeSIGNINGREQUESTLIMITREACHED:
 		return []byte(s), nil
 	case ValidationProblemDetailsCodeREGISTRATIONFAILED:
 		return []byte(s), nil
@@ -60477,6 +60912,9 @@ func (s *ValidationProblemDetailsCode) UnmarshalText(data []byte) error {
 		return nil
 	case ValidationProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = ValidationProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED
+		return nil
+	case ValidationProblemDetailsCodeSIGNINGREQUESTLIMITREACHED:
+		*s = ValidationProblemDetailsCodeSIGNINGREQUESTLIMITREACHED
 		return nil
 	case ValidationProblemDetailsCodeREGISTRATIONFAILED:
 		*s = ValidationProblemDetailsCodeREGISTRATIONFAILED

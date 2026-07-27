@@ -1016,6 +1016,8 @@ func (s BeginRuntimeSlotBadRequestCode) Validate() error {
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
 		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
+		return nil
 	case "REGISTRATION_FAILED":
 		return nil
 	case "UPSTREAM_ERROR":
@@ -1122,6 +1124,8 @@ func (s BeginRuntimeSlotConflictCode) Validate() error {
 	case "SIGNING_REQUEST_EXPIRED":
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
+		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
 		return nil
 	case "REGISTRATION_FAILED":
 		return nil
@@ -1230,6 +1234,8 @@ func (s BeginRuntimeSlotForbiddenCode) Validate() error {
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
 		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
+		return nil
 	case "REGISTRATION_FAILED":
 		return nil
 	case "UPSTREAM_ERROR":
@@ -1336,6 +1342,8 @@ func (s BeginRuntimeSlotNotFoundCode) Validate() error {
 	case "SIGNING_REQUEST_EXPIRED":
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
+		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
 		return nil
 	case "REGISTRATION_FAILED":
 		return nil
@@ -2065,6 +2073,8 @@ func (s BeginRuntimeSlotUnauthorizedCode) Validate() error {
 	case "SIGNING_REQUEST_EXPIRED":
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
+		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
 		return nil
 	case "REGISTRATION_FAILED":
 		return nil
@@ -3182,6 +3192,8 @@ func (s ConflictProblemDetailsCode) Validate() error {
 	case "SIGNING_REQUEST_EXPIRED":
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
+		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
 		return nil
 	case "REGISTRATION_FAILED":
 		return nil
@@ -6656,6 +6668,14 @@ func (s CreateSigningRequestReqVerificationMethod) Validate() error {
 	}
 }
 
+func (s *CreateSigningRequestTooManyRequests) Validate() error {
+	alias := (*ProblemDetails)(s)
+	if err := alias.Validate(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *CreateSigningRequestUnauthorized) Validate() error {
 	alias := (*ProblemDetails)(s)
 	if err := alias.Validate(); err != nil {
@@ -9362,6 +9382,8 @@ func (s DownloadRuntimeSessionBadRequestCode) Validate() error {
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
 		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
+		return nil
 	case "REGISTRATION_FAILED":
 		return nil
 	case "UPSTREAM_ERROR":
@@ -9468,6 +9490,8 @@ func (s DownloadRuntimeSessionForbiddenCode) Validate() error {
 	case "SIGNING_REQUEST_EXPIRED":
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
+		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
 		return nil
 	case "REGISTRATION_FAILED":
 		return nil
@@ -9576,6 +9600,8 @@ func (s DownloadRuntimeSessionNotFoundCode) Validate() error {
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
 		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
+		return nil
 	case "REGISTRATION_FAILED":
 		return nil
 	case "UPSTREAM_ERROR":
@@ -9683,6 +9709,8 @@ func (s DownloadRuntimeSessionServiceUnavailableCode) Validate() error {
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
 		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
+		return nil
 	case "REGISTRATION_FAILED":
 		return nil
 	case "UPSTREAM_ERROR":
@@ -9789,6 +9817,8 @@ func (s DownloadRuntimeSessionUnauthorizedCode) Validate() error {
 	case "SIGNING_REQUEST_EXPIRED":
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
+		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
 		return nil
 	case "REGISTRATION_FAILED":
 		return nil
@@ -9908,6 +9938,8 @@ func (s DownloadTaskArtifactBadRequestCode) Validate() error {
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
 		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
+		return nil
 	case "REGISTRATION_FAILED":
 		return nil
 	case "UPSTREAM_ERROR":
@@ -10026,6 +10058,8 @@ func (s DownloadTaskArtifactByCidBadRequestCode) Validate() error {
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
 		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
+		return nil
 	case "REGISTRATION_FAILED":
 		return nil
 	case "UPSTREAM_ERROR":
@@ -10132,6 +10166,8 @@ func (s DownloadTaskArtifactByCidForbiddenCode) Validate() error {
 	case "SIGNING_REQUEST_EXPIRED":
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
+		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
 		return nil
 	case "REGISTRATION_FAILED":
 		return nil
@@ -10240,6 +10276,8 @@ func (s DownloadTaskArtifactByCidNotFoundCode) Validate() error {
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
 		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
+		return nil
 	case "REGISTRATION_FAILED":
 		return nil
 	case "UPSTREAM_ERROR":
@@ -10346,6 +10384,8 @@ func (s DownloadTaskArtifactByCidServiceUnavailableCode) Validate() error {
 	case "SIGNING_REQUEST_EXPIRED":
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
+		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
 		return nil
 	case "REGISTRATION_FAILED":
 		return nil
@@ -10454,6 +10494,8 @@ func (s DownloadTaskArtifactByCidUnauthorizedCode) Validate() error {
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
 		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
+		return nil
 	case "REGISTRATION_FAILED":
 		return nil
 	case "UPSTREAM_ERROR":
@@ -10560,6 +10602,8 @@ func (s DownloadTaskArtifactForbiddenCode) Validate() error {
 	case "SIGNING_REQUEST_EXPIRED":
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
+		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
 		return nil
 	case "REGISTRATION_FAILED":
 		return nil
@@ -10668,6 +10712,8 @@ func (s DownloadTaskArtifactNotFoundCode) Validate() error {
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
 		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
+		return nil
 	case "REGISTRATION_FAILED":
 		return nil
 	case "UPSTREAM_ERROR":
@@ -10775,6 +10821,8 @@ func (s DownloadTaskArtifactServiceUnavailableCode) Validate() error {
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
 		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
+		return nil
 	case "REGISTRATION_FAILED":
 		return nil
 	case "UPSTREAM_ERROR":
@@ -10881,6 +10929,8 @@ func (s DownloadTaskArtifactUnauthorizedCode) Validate() error {
 	case "SIGNING_REQUEST_EXPIRED":
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
+		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
 		return nil
 	case "REGISTRATION_FAILED":
 		return nil
@@ -11469,6 +11519,8 @@ func (s FindLatestRuntimeSlotForAttemptBadRequestCode) Validate() error {
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
 		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
+		return nil
 	case "REGISTRATION_FAILED":
 		return nil
 	case "UPSTREAM_ERROR":
@@ -11576,6 +11628,8 @@ func (s FindLatestRuntimeSlotForAttemptForbiddenCode) Validate() error {
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
 		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
+		return nil
 	case "REGISTRATION_FAILED":
 		return nil
 	case "UPSTREAM_ERROR":
@@ -11682,6 +11736,8 @@ func (s FindLatestRuntimeSlotForAttemptNotFoundCode) Validate() error {
 	case "SIGNING_REQUEST_EXPIRED":
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
+		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
 		return nil
 	case "REGISTRATION_FAILED":
 		return nil
@@ -12278,6 +12334,8 @@ func (s FindLatestRuntimeSlotForAttemptUnauthorizedCode) Validate() error {
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
 		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
+		return nil
 	case "REGISTRATION_FAILED":
 		return nil
 	case "UPSTREAM_ERROR":
@@ -12396,6 +12454,8 @@ func (s FinishRuntimeSlotBadRequestCode) Validate() error {
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
 		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
+		return nil
 	case "REGISTRATION_FAILED":
 		return nil
 	case "UPSTREAM_ERROR":
@@ -12502,6 +12562,8 @@ func (s FinishRuntimeSlotConflictCode) Validate() error {
 	case "SIGNING_REQUEST_EXPIRED":
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
+		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
 		return nil
 	case "REGISTRATION_FAILED":
 		return nil
@@ -12610,6 +12672,8 @@ func (s FinishRuntimeSlotForbiddenCode) Validate() error {
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
 		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
+		return nil
 	case "REGISTRATION_FAILED":
 		return nil
 	case "UPSTREAM_ERROR":
@@ -12716,6 +12780,8 @@ func (s FinishRuntimeSlotNotFoundCode) Validate() error {
 	case "SIGNING_REQUEST_EXPIRED":
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
+		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
 		return nil
 	case "REGISTRATION_FAILED":
 		return nil
@@ -13271,6 +13337,8 @@ func (s FinishRuntimeSlotUnauthorizedCode) Validate() error {
 	case "SIGNING_REQUEST_EXPIRED":
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
+		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
 		return nil
 	case "REGISTRATION_FAILED":
 		return nil
@@ -13991,6 +14059,8 @@ func (s GetProblemTypeType) Validate() error {
 		return nil
 	case "signing-request-already-completed":
 		return nil
+	case "signing-request-limit-reached":
+		return nil
 	case "conflict":
 		return nil
 	case "registration-failed":
@@ -14311,6 +14381,8 @@ func (s GetRuntimeSessionBadRequestCode) Validate() error {
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
 		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
+		return nil
 	case "REGISTRATION_FAILED":
 		return nil
 	case "UPSTREAM_ERROR":
@@ -14418,6 +14490,8 @@ func (s GetRuntimeSessionForbiddenCode) Validate() error {
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
 		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
+		return nil
 	case "REGISTRATION_FAILED":
 		return nil
 	case "UPSTREAM_ERROR":
@@ -14524,6 +14598,8 @@ func (s GetRuntimeSessionNotFoundCode) Validate() error {
 	case "SIGNING_REQUEST_EXPIRED":
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
+		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
 		return nil
 	case "REGISTRATION_FAILED":
 		return nil
@@ -14840,6 +14916,8 @@ func (s GetRuntimeSessionUnauthorizedCode) Validate() error {
 	case "SIGNING_REQUEST_EXPIRED":
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
+		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
 		return nil
 	case "REGISTRATION_FAILED":
 		return nil
@@ -15324,6 +15402,8 @@ func (s InjectionConflictProblemDetailsCode) Validate() error {
 	case "SIGNING_REQUEST_EXPIRED":
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
+		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
 		return nil
 	case "REGISTRATION_FAILED":
 		return nil
@@ -16343,6 +16423,8 @@ func (s ListRuntimeSlotsBadRequestCode) Validate() error {
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
 		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
+		return nil
 	case "REGISTRATION_FAILED":
 		return nil
 	case "UPSTREAM_ERROR":
@@ -16450,6 +16532,8 @@ func (s ListRuntimeSlotsForbiddenCode) Validate() error {
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
 		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
+		return nil
 	case "REGISTRATION_FAILED":
 		return nil
 	case "UPSTREAM_ERROR":
@@ -16556,6 +16640,8 @@ func (s ListRuntimeSlotsNotFoundCode) Validate() error {
 	case "SIGNING_REQUEST_EXPIRED":
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
+		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
 		return nil
 	case "REGISTRATION_FAILED":
 		return nil
@@ -17203,6 +17289,8 @@ func (s ListRuntimeSlotsUnauthorizedCode) Validate() error {
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
 		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
+		return nil
 	case "REGISTRATION_FAILED":
 		return nil
 	case "UPSTREAM_ERROR":
@@ -17389,6 +17477,8 @@ func (s ListTaskArtifactsBadRequestCode) Validate() error {
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
 		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
+		return nil
 	case "REGISTRATION_FAILED":
 		return nil
 	case "UPSTREAM_ERROR":
@@ -17496,6 +17586,8 @@ func (s ListTaskArtifactsForbiddenCode) Validate() error {
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
 		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
+		return nil
 	case "REGISTRATION_FAILED":
 		return nil
 	case "UPSTREAM_ERROR":
@@ -17602,6 +17694,8 @@ func (s ListTaskArtifactsNotFoundCode) Validate() error {
 	case "SIGNING_REQUEST_EXPIRED":
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
+		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
 		return nil
 	case "REGISTRATION_FAILED":
 		return nil
@@ -17962,6 +18056,8 @@ func (s ListTaskArtifactsUnauthorizedCode) Validate() error {
 	case "SIGNING_REQUEST_EXPIRED":
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
+		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
 		return nil
 	case "REGISTRATION_FAILED":
 		return nil
@@ -20293,6 +20389,8 @@ func (s ProblemDetailsCode) Validate() error {
 	case "SIGNING_REQUEST_EXPIRED":
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
+		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
 		return nil
 	case "REGISTRATION_FAILED":
 		return nil
@@ -27338,6 +27436,8 @@ func (s StageTaskArtifactBadRequestCode) Validate() error {
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
 		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
+		return nil
 	case "REGISTRATION_FAILED":
 		return nil
 	case "UPSTREAM_ERROR":
@@ -27445,6 +27545,8 @@ func (s StageTaskArtifactForbiddenCode) Validate() error {
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
 		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
+		return nil
 	case "REGISTRATION_FAILED":
 		return nil
 	case "UPSTREAM_ERROR":
@@ -27551,6 +27653,8 @@ func (s StageTaskArtifactNotFoundCode) Validate() error {
 	case "SIGNING_REQUEST_EXPIRED":
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
+		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
 		return nil
 	case "REGISTRATION_FAILED":
 		return nil
@@ -27738,6 +27842,8 @@ func (s StageTaskArtifactServiceUnavailableCode) Validate() error {
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
 		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
+		return nil
 	case "REGISTRATION_FAILED":
 		return nil
 	case "UPSTREAM_ERROR":
@@ -27844,6 +27950,8 @@ func (s StageTaskArtifactUnauthorizedCode) Validate() error {
 	case "SIGNING_REQUEST_EXPIRED":
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
+		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
 		return nil
 	case "REGISTRATION_FAILED":
 		return nil
@@ -34211,6 +34319,8 @@ func (s UploadRuntimeSessionBadRequestCode) Validate() error {
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
 		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
+		return nil
 	case "REGISTRATION_FAILED":
 		return nil
 	case "UPSTREAM_ERROR":
@@ -34317,6 +34427,8 @@ func (s UploadRuntimeSessionConflictCode) Validate() error {
 	case "SIGNING_REQUEST_EXPIRED":
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
+		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
 		return nil
 	case "REGISTRATION_FAILED":
 		return nil
@@ -34425,6 +34537,8 @@ func (s UploadRuntimeSessionForbiddenCode) Validate() error {
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
 		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
+		return nil
 	case "REGISTRATION_FAILED":
 		return nil
 	case "UPSTREAM_ERROR":
@@ -34531,6 +34645,8 @@ func (s UploadRuntimeSessionNotFoundCode) Validate() error {
 	case "SIGNING_REQUEST_EXPIRED":
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
+		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
 		return nil
 	case "REGISTRATION_FAILED":
 		return nil
@@ -34848,6 +34964,8 @@ func (s UploadRuntimeSessionServiceUnavailableCode) Validate() error {
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
 		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
+		return nil
 	case "REGISTRATION_FAILED":
 		return nil
 	case "UPSTREAM_ERROR":
@@ -34968,6 +35086,8 @@ func (s UploadRuntimeSessionUnauthorizedCode) Validate() error {
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
 		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
+		return nil
 	case "REGISTRATION_FAILED":
 		return nil
 	case "UPSTREAM_ERROR":
@@ -35086,6 +35206,8 @@ func (s UploadTaskArtifactBadRequestCode) Validate() error {
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
 		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
+		return nil
 	case "REGISTRATION_FAILED":
 		return nil
 	case "UPSTREAM_ERROR":
@@ -35193,6 +35315,8 @@ func (s UploadTaskArtifactForbiddenCode) Validate() error {
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
 		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
+		return nil
 	case "REGISTRATION_FAILED":
 		return nil
 	case "UPSTREAM_ERROR":
@@ -35299,6 +35423,8 @@ func (s UploadTaskArtifactNotFoundCode) Validate() error {
 	case "SIGNING_REQUEST_EXPIRED":
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
+		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
 		return nil
 	case "REGISTRATION_FAILED":
 		return nil
@@ -35590,6 +35716,8 @@ func (s UploadTaskArtifactServiceUnavailableCode) Validate() error {
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
 		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
+		return nil
 	case "REGISTRATION_FAILED":
 		return nil
 	case "UPSTREAM_ERROR":
@@ -35696,6 +35824,8 @@ func (s UploadTaskArtifactUnauthorizedCode) Validate() error {
 	case "SIGNING_REQUEST_EXPIRED":
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
+		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
 		return nil
 	case "REGISTRATION_FAILED":
 		return nil
@@ -35892,6 +36022,8 @@ func (s ValidationProblemDetailsCode) Validate() error {
 	case "SIGNING_REQUEST_EXPIRED":
 		return nil
 	case "SIGNING_REQUEST_ALREADY_COMPLETED":
+		return nil
+	case "SIGNING_REQUEST_LIMIT_REACHED":
 		return nil
 	case "REGISTRATION_FAILED":
 		return nil
