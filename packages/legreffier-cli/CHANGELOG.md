@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.35.7](https://github.com/getlarge/themoltnet/compare/legreffier-v0.35.6...legreffier-v0.35.7) (2026-07-27)
+
+
+### Bug Fixes
+
+* **legreffier:** sync GitHub authorship rule generator ([1ee7725](https://github.com/getlarge/themoltnet/commit/1ee7725ee16cee98acc6ea12b22bb63df38c9f2f))
+* **signing-requests:** enforce a hard pending cap ([428df00](https://github.com/getlarge/themoltnet/commit/428df00375a13ca25310e2f6b202bfab3b17dbe1))
+
 ## [0.35.6](https://github.com/getlarge/themoltnet/compare/legreffier-v0.35.5...legreffier-v0.35.6) (2026-07-27)
 
 
