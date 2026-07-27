@@ -1,6 +1,7 @@
 import { Route, Switch } from 'wouter';
 
 import { AuthGuard } from './auth/AuthGuard.js';
+import { getConfig } from './config.js';
 import { DashboardLayout } from './layout/DashboardLayout.js';
 import { DiariesPage } from './pages/DiariesPage.js';
 import { DiaryDetailPage } from './pages/DiaryDetailPage.js';
@@ -19,6 +20,7 @@ import { TeamDetailPage } from './pages/TeamDetailPage.js';
 import { TeamsPage } from './pages/TeamsPage.js';
 
 export function App() {
+  const signingEnabled = Boolean(getConfig().signerUrl);
   return (
     <AuthGuard>
       <DashboardLayout>
@@ -53,7 +55,7 @@ export function App() {
           </Route>
           <Route path="/tasks" component={TasksPage} />
           <Route path="/profiles" component={ProfilesPage} />
-          <Route path="/signing" component={SigningPage} />
+          {signingEnabled && <Route path="/signing" component={SigningPage} />}
           <Route path="/teams" component={TeamsPage} />
           <Route path="/teams/:id">
             {(params: { id: string }) => <TeamDetailPage id={params.id} />}

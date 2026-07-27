@@ -73,4 +73,30 @@ describe('challenge validator', () => {
       }),
     ).rejects.toThrow(/trusted HTTPS/u);
   });
+
+  it('classifies persisted-state rejection as terminal and overload as retryable', async () => {
+    const rejected = createChallengeValidator(
+      vi.fn<typeof fetch>(() =>
+        Promise.resolve(new Response(null, { status: 404 })),
+      ),
+    );
+    const overloaded = createChallengeValidator(
+      vi.fn<typeof fetch>(() =>
+        Promise.resolve(new Response(null, { status: 503 })),
+      ),
+    );
+    const input = {
+      apiUrl: 'https://api.themolt.net',
+      operation: 'signing-request' as const,
+      resourceId: '770e8400-e29b-41d4-a716-446655440002',
+      challenge: {} as never,
+    };
+
+    await expect(rejected(input)).rejects.toMatchObject({
+      code: 'challenge_invalid',
+    });
+    await expect(overloaded(input)).rejects.toMatchObject({
+      code: 'server_unavailable',
+    });
+  });
 });

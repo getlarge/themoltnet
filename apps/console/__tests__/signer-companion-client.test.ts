@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { createSignerCompanionClient } from '../src/signing/companion-client.js';
+import {
+  createSignerCompanionClient,
+  SignerCompanionError,
+} from '../src/signing/companion-client.js';
 
 describe('signer companion client', () => {
   it('never serializes browser credentials or authorization material to loopback', async () => {
@@ -65,5 +68,44 @@ describe('signer companion client', () => {
         baseUrl: 'https://signer.attacker.example',
       }),
     ).toThrow(/loopback/u);
+  });
+
+  it('preserves typed companion error codes for actionable remediation', async () => {
+    const client = createSignerCompanionClient({
+      baseUrl: 'http://127.0.0.1:17373',
+      fetch: vi.fn<typeof fetch>(() =>
+        Promise.resolve(
+          Response.json(
+            { code: 'device_timeout', message: 'Reconnect the key' },
+            { status: 504 },
+          ),
+        ),
+      ),
+    });
+
+    await expect(client.connect()).rejects.toEqual(
+      new SignerCompanionError('device_timeout', 'Reconnect the key'),
+    );
+  });
+
+  it('bounds an unavailable loopback request', async () => {
+    const client = createSignerCompanionClient({
+      baseUrl: 'http://127.0.0.1:17373',
+      requestTimeoutMs: 10,
+      fetch: vi.fn<typeof fetch>(
+        (_input, init) =>
+          new Promise((_resolve, reject) => {
+            init?.signal?.addEventListener(
+              'abort',
+              () => reject(init.signal?.reason),
+              { once: true },
+            );
+          }),
+      ),
+    });
+
+    await expect(client.connect()).rejects.toMatchObject({
+      code: 'request_timeout',
+    });
   });
 });

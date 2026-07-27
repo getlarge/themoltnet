@@ -15,7 +15,7 @@ import {
   listSigningRequestsOptions,
 } from '@moltnet/api-client/query';
 import { useQuery } from '@tanstack/react-query';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { getApiClient } from '../api.js';
 import { getConfig } from '../config.js';
@@ -23,6 +23,7 @@ import { useTeam } from '../team/useTeam.js';
 import {
   createSignerCompanionClient,
   type SignerCompanionClient,
+  SignerCompanionError,
 } from './companion-client.js';
 
 export type CompanionStatus = 'connecting' | 'connected' | 'unavailable';
@@ -36,11 +37,17 @@ export type SigningAction =
   | 'revoke'
   | null;
 
+export interface SigningControllerError {
+  code: string;
+  message: string;
+  remediation: string;
+}
+
 export interface SigningController {
   credentials: SigningCredential[];
   requests: SigningRequest[];
   isLoading: boolean;
-  error: string | null;
+  error: SigningControllerError | null;
   pendingAction: SigningAction;
   companionStatus: CompanionStatus;
   enroll(label: string): Promise<void>;
@@ -55,14 +62,18 @@ export interface SigningController {
 export function useSigningController(): SigningController {
   const { selectedTeam } = useTeam();
   const teamId = selectedTeam?.id;
+  const currentTeamId = useRef(teamId);
+  currentTeamId.current = teamId;
   const [pendingAction, setPendingAction] = useState<SigningAction>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<SigningControllerError | null>(
+    null,
+  );
   const [companionStatus, setCompanionStatus] =
     useState<CompanionStatus>('connecting');
   const companion = useMemo(
     () =>
       createSignerCompanionClient({
-        baseUrl: getConfig().signerUrl,
+        baseUrl: requiredSignerUrl(),
       }),
     [],
   );
@@ -102,9 +113,11 @@ export function useSigningController(): SigningController {
     };
   }, [companion]);
 
+  const refetchCredentials = credentialsQuery.refetch;
+  const refetchRequests = requestsQuery.refetch;
   const refresh = useCallback(async () => {
-    await Promise.all([credentialsQuery.refetch(), requestsQuery.refetch()]);
-  }, [credentialsQuery, requestsQuery]);
+    await Promise.all([refetchCredentials(), refetchRequests()]);
+  }, [refetchCredentials, refetchRequests]);
 
   const run = useCallback(
     async (action: Exclude<SigningAction, null>, task: () => Promise<void>) => {
@@ -114,7 +127,7 @@ export function useSigningController(): SigningController {
         await task();
         await refresh();
       } catch (error) {
-        setActionError(errorMessage(error));
+        setActionError(describeError(error));
         throw error;
       } finally {
         setPendingAction(null);
@@ -127,6 +140,7 @@ export function useSigningController(): SigningController {
     async (label: string) =>
       run('enroll', async () => {
         if (!teamId) throw new Error('Select a team before enrolling');
+        const ceremonyTeamId = teamId;
         const popup = openCompanionWindow();
         try {
           const enrollment = await companion.createCeremony({
@@ -140,6 +154,7 @@ export function useSigningController(): SigningController {
             companion,
             enrollment.id,
           );
+          assertTeamUnchanged(currentTeamId.current, ceremonyTeamId);
           if (
             enrollmentResult.status !== 'completed' ||
             enrollmentResult.operation !== 'credential-enrollment'
@@ -182,6 +197,7 @@ export function useSigningController(): SigningController {
           ) {
             throw new Error('Credential registration proof did not complete');
           }
+          assertTeamUnchanged(currentTeamId.current, ceremonyTeamId);
           const completion = await completeSigningCredentialRegistration({
             client: getApiClient(),
             headers: { 'x-moltnet-team-id': teamId },
@@ -205,6 +221,7 @@ export function useSigningController(): SigningController {
     async (request: SigningRequest, credentialId: string) =>
       run('sign', async () => {
         if (!teamId) throw new Error('Select a team before signing');
+        const ceremonyTeamId = teamId;
         const popup = openCompanionWindow();
         try {
           const claimResponse = await claimSigningRequest({
@@ -237,6 +254,7 @@ export function useSigningController(): SigningController {
           ) {
             throw new Error('Signing ceremony did not complete');
           }
+          assertTeamUnchanged(currentTeamId.current, ceremonyTeamId);
           const completion = await completeSigningRequest({
             client: getApiClient(),
             headers: { 'x-moltnet-team-id': teamId },
@@ -307,7 +325,11 @@ export function useSigningController(): SigningController {
     error:
       actionError ??
       (credentialsQuery.error || requestsQuery.error
-        ? 'Unable to load signing data'
+        ? {
+            code: 'signing_data_unavailable',
+            message: 'Unable to load signing data',
+            remediation: 'Refresh the page and try again.',
+          }
         : null),
     pendingAction,
     companionStatus,
@@ -319,6 +341,12 @@ export function useSigningController(): SigningController {
     revoke: (credential) => lifecycle('revoke', credential),
     refresh,
   };
+}
+
+function requiredSignerUrl(): string {
+  const signerUrl = getConfig().signerUrl;
+  if (!signerUrl) throw new Error('Local signer is not enabled');
+  return signerUrl;
 }
 
 async function completedResult(
@@ -334,7 +362,9 @@ async function completedResult(
     const result = await companion.waitForResult(ceremonyId, {
       signal: controller.signal,
     });
-    if (result.status === 'failed') throw new Error(result.message);
+    if (result.status === 'failed') {
+      throw new SignerCompanionError(result.code, result.message);
+    }
     return result;
   } finally {
     window.clearTimeout(timeout);
@@ -375,6 +405,32 @@ function problemMessage(value: unknown): string | undefined {
   return undefined;
 }
 
-function errorMessage(value: unknown): string {
-  return value instanceof Error ? value.message : 'Signing action failed';
+function assertTeamUnchanged(
+  currentTeamId: string | undefined,
+  ceremonyTeamId: string,
+): void {
+  if (currentTeamId !== ceremonyTeamId) {
+    throw new SignerCompanionError(
+      'team_changed',
+      'The selected team changed during approval',
+    );
+  }
+}
+
+function describeError(value: unknown): SigningControllerError {
+  const message =
+    value instanceof Error ? value.message : 'Signing action failed';
+  const code =
+    value instanceof SignerCompanionError ? value.code : 'signing_failed';
+  const remediation =
+    code === 'request_timeout' || code === 'companion_unavailable'
+      ? 'Start the local signer companion, reconnect the security key, and retry.'
+      : code === 'device_timeout' || code === 'device_failed'
+        ? 'Reconnect the security key, reopen the approval window, and retry.'
+        : code === 'team_changed'
+          ? 'Return to the original team before starting a new signing action.'
+          : code === 'ceremony_expired'
+            ? 'Start the signing action again to receive a fresh challenge.'
+            : 'Review the message, then retry the action.';
+  return { code, message, remediation };
 }

@@ -69958,6 +69958,46 @@ func (s *PreviewSignArkgSeedPublicKeyKty) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes PreviewSignBase64Url as json.
+func (s PreviewSignBase64Url) Encode(e *jx.Encoder) {
+	unwrapped := string(s)
+
+	e.Str(unwrapped)
+}
+
+// Decode decodes PreviewSignBase64Url from json.
+func (s *PreviewSignBase64Url) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode PreviewSignBase64Url to nil")
+	}
+	var unwrapped string
+	if err := func() error {
+		v, err := d.Str()
+		unwrapped = string(v)
+		if err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = PreviewSignBase64Url(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s PreviewSignBase64Url) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *PreviewSignBase64Url) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode implements json.Marshaler.
 func (s *PreviewSignChallenge) Encode(e *jx.Encoder) {
 	e.ObjStart()
@@ -69969,19 +70009,19 @@ func (s *PreviewSignChallenge) Encode(e *jx.Encoder) {
 func (s *PreviewSignChallenge) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("additionalArguments")
-		e.Str(s.AdditionalArguments)
+		s.AdditionalArguments.Encode(e)
 	}
 	{
 		e.FieldStart("digest")
-		e.Str(s.Digest)
+		s.Digest.Encode(e)
 	}
 	{
 		e.FieldStart("envelope")
-		e.Str(s.Envelope)
+		s.Envelope.Encode(e)
 	}
 	{
 		e.FieldStart("outerCredentialId")
-		e.Str(s.OuterCredentialId)
+		s.OuterCredentialId.Encode(e)
 	}
 	{
 		e.FieldStart("outerPublicKey")
@@ -69989,7 +70029,7 @@ func (s *PreviewSignChallenge) encodeFields(e *jx.Encoder) {
 	}
 	{
 		e.FieldStart("previewKeyHandle")
-		e.Str(s.PreviewKeyHandle)
+		s.PreviewKeyHandle.Encode(e)
 	}
 	{
 		e.FieldStart("verificationMethod")
@@ -70024,9 +70064,7 @@ func (s *PreviewSignChallenge) Decode(d *jx.Decoder) error {
 		case "additionalArguments":
 			requiredBitSet[0] |= 1 << 0
 			if err := func() error {
-				v, err := d.Str()
-				s.AdditionalArguments = string(v)
-				if err != nil {
+				if err := s.AdditionalArguments.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -70036,9 +70074,7 @@ func (s *PreviewSignChallenge) Decode(d *jx.Decoder) error {
 		case "digest":
 			requiredBitSet[0] |= 1 << 1
 			if err := func() error {
-				v, err := d.Str()
-				s.Digest = string(v)
-				if err != nil {
+				if err := s.Digest.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -70048,9 +70084,7 @@ func (s *PreviewSignChallenge) Decode(d *jx.Decoder) error {
 		case "envelope":
 			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
-				v, err := d.Str()
-				s.Envelope = string(v)
-				if err != nil {
+				if err := s.Envelope.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -70060,9 +70094,7 @@ func (s *PreviewSignChallenge) Decode(d *jx.Decoder) error {
 		case "outerCredentialId":
 			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
-				v, err := d.Str()
-				s.OuterCredentialId = string(v)
-				if err != nil {
+				if err := s.OuterCredentialId.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -70082,9 +70114,7 @@ func (s *PreviewSignChallenge) Decode(d *jx.Decoder) error {
 		case "previewKeyHandle":
 			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
-				v, err := d.Str()
-				s.PreviewKeyHandle = string(v)
-				if err != nil {
+				if err := s.PreviewKeyHandle.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -70573,11 +70603,11 @@ func (s *PreviewSignEcdhEsHkdf256PublicKey) encodeFields(e *jx.Encoder) {
 	}
 	{
 		e.FieldStart("x")
-		e.Str(s.X)
+		s.X.Encode(e)
 	}
 	{
 		e.FieldStart("y")
-		e.Str(s.Y)
+		s.Y.Encode(e)
 	}
 }
 
@@ -70631,9 +70661,7 @@ func (s *PreviewSignEcdhEsHkdf256PublicKey) Decode(d *jx.Decoder) error {
 		case "x":
 			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
-				v, err := d.Str()
-				s.X = string(v)
-				if err != nil {
+				if err := s.X.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -70643,9 +70671,7 @@ func (s *PreviewSignEcdhEsHkdf256PublicKey) Decode(d *jx.Decoder) error {
 		case "y":
 			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
-				v, err := d.Str()
-				s.Y = string(v)
-				if err != nil {
+				if err := s.Y.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -70827,11 +70853,11 @@ func (s *PreviewSignEs256PublicKey) encodeFields(e *jx.Encoder) {
 	}
 	{
 		e.FieldStart("x")
-		e.Str(s.X)
+		s.X.Encode(e)
 	}
 	{
 		e.FieldStart("y")
-		e.Str(s.Y)
+		s.Y.Encode(e)
 	}
 }
 
@@ -70885,9 +70911,7 @@ func (s *PreviewSignEs256PublicKey) Decode(d *jx.Decoder) error {
 		case "x":
 			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
-				v, err := d.Str()
-				s.X = string(v)
-				if err != nil {
+				if err := s.X.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -70897,9 +70921,7 @@ func (s *PreviewSignEs256PublicKey) Decode(d *jx.Decoder) error {
 		case "y":
 			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
-				v, err := d.Str()
-				s.Y = string(v)
-				if err != nil {
+				if err := s.Y.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -71081,11 +71103,11 @@ func (s *PreviewSignEsp256PublicKey) encodeFields(e *jx.Encoder) {
 	}
 	{
 		e.FieldStart("x")
-		e.Str(s.X)
+		s.X.Encode(e)
 	}
 	{
 		e.FieldStart("y")
-		e.Str(s.Y)
+		s.Y.Encode(e)
 	}
 }
 
@@ -71139,9 +71161,7 @@ func (s *PreviewSignEsp256PublicKey) Decode(d *jx.Decoder) error {
 		case "x":
 			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
-				v, err := d.Str()
-				s.X = string(v)
-				if err != nil {
+				if err := s.X.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -71151,9 +71171,7 @@ func (s *PreviewSignEsp256PublicKey) Decode(d *jx.Decoder) error {
 		case "y":
 			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
-				v, err := d.Str()
-				s.Y = string(v)
-				if err != nil {
+				if err := s.Y.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -71323,7 +71341,7 @@ func (s *PreviewSignEvidence) Encode(e *jx.Encoder) {
 func (s *PreviewSignEvidence) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("additionalArgumentsHash")
-		e.Str(s.AdditionalArgumentsHash)
+		s.AdditionalArgumentsHash.Encode(e)
 	}
 	{
 		e.FieldStart("claimantId")
@@ -71339,11 +71357,11 @@ func (s *PreviewSignEvidence) encodeFields(e *jx.Encoder) {
 	}
 	{
 		e.FieldStart("digest")
-		e.Str(s.Digest)
+		s.Digest.Encode(e)
 	}
 	{
 		e.FieldStart("envelope")
-		e.Str(s.Envelope)
+		s.Envelope.Encode(e)
 	}
 	{
 		e.FieldStart("expiresAt")
@@ -71359,7 +71377,7 @@ func (s *PreviewSignEvidence) encodeFields(e *jx.Encoder) {
 	}
 	{
 		e.FieldStart("proofHash")
-		e.Str(s.ProofHash)
+		s.ProofHash.Encode(e)
 	}
 	{
 		e.FieldStart("purpose")
@@ -71371,7 +71389,7 @@ func (s *PreviewSignEvidence) encodeFields(e *jx.Encoder) {
 	}
 	{
 		e.FieldStart("signature")
-		e.Str(s.Signature)
+		s.Signature.Encode(e)
 	}
 	{
 		e.FieldStart("teamId")
@@ -71418,9 +71436,7 @@ func (s *PreviewSignEvidence) Decode(d *jx.Decoder) error {
 		case "additionalArgumentsHash":
 			requiredBitSet[0] |= 1 << 0
 			if err := func() error {
-				v, err := d.Str()
-				s.AdditionalArgumentsHash = string(v)
-				if err != nil {
+				if err := s.AdditionalArgumentsHash.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -71464,9 +71480,7 @@ func (s *PreviewSignEvidence) Decode(d *jx.Decoder) error {
 		case "digest":
 			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
-				v, err := d.Str()
-				s.Digest = string(v)
-				if err != nil {
+				if err := s.Digest.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -71476,9 +71490,7 @@ func (s *PreviewSignEvidence) Decode(d *jx.Decoder) error {
 		case "envelope":
 			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
-				v, err := d.Str()
-				s.Envelope = string(v)
-				if err != nil {
+				if err := s.Envelope.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -71522,9 +71534,7 @@ func (s *PreviewSignEvidence) Decode(d *jx.Decoder) error {
 		case "proofHash":
 			requiredBitSet[1] |= 1 << 1
 			if err := func() error {
-				v, err := d.Str()
-				s.ProofHash = string(v)
-				if err != nil {
+				if err := s.ProofHash.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -71558,9 +71568,7 @@ func (s *PreviewSignEvidence) Decode(d *jx.Decoder) error {
 		case "signature":
 			requiredBitSet[1] |= 1 << 4
 			if err := func() error {
-				v, err := d.Str()
-				s.Signature = string(v)
-				if err != nil {
+				if err := s.Signature.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -71913,6 +71921,46 @@ func (s *PreviewSignEvidenceVersion) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
+// Encode encodes PreviewSignP256DerSignatureBase64Url as json.
+func (s PreviewSignP256DerSignatureBase64Url) Encode(e *jx.Encoder) {
+	unwrapped := string(s)
+
+	e.Str(unwrapped)
+}
+
+// Decode decodes PreviewSignP256DerSignatureBase64Url from json.
+func (s *PreviewSignP256DerSignatureBase64Url) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode PreviewSignP256DerSignatureBase64Url to nil")
+	}
+	var unwrapped string
+	if err := func() error {
+		v, err := d.Str()
+		unwrapped = string(v)
+		if err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = PreviewSignP256DerSignatureBase64Url(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s PreviewSignP256DerSignatureBase64Url) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *PreviewSignP256DerSignatureBase64Url) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
 // Encode implements json.Marshaler.
 func (s *PreviewSignPublicMaterial) Encode(e *jx.Encoder) {
 	e.ObjStart()
@@ -71924,7 +71972,7 @@ func (s *PreviewSignPublicMaterial) Encode(e *jx.Encoder) {
 func (s *PreviewSignPublicMaterial) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("outerCredentialId")
-		e.Str(s.OuterCredentialId)
+		s.OuterCredentialId.Encode(e)
 	}
 	{
 		e.FieldStart("outerPublicKey")
@@ -71932,7 +71980,7 @@ func (s *PreviewSignPublicMaterial) encodeFields(e *jx.Encoder) {
 	}
 	{
 		e.FieldStart("previewKeyHandle")
-		e.Str(s.PreviewKeyHandle)
+		s.PreviewKeyHandle.Encode(e)
 	}
 	{
 		e.FieldStart("seedPublicKey")
@@ -71964,9 +72012,7 @@ func (s *PreviewSignPublicMaterial) Decode(d *jx.Decoder) error {
 		case "outerCredentialId":
 			requiredBitSet[0] |= 1 << 0
 			if err := func() error {
-				v, err := d.Str()
-				s.OuterCredentialId = string(v)
-				if err != nil {
+				if err := s.OuterCredentialId.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -71986,9 +72032,7 @@ func (s *PreviewSignPublicMaterial) Decode(d *jx.Decoder) error {
 		case "previewKeyHandle":
 			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
-				v, err := d.Str()
-				s.PreviewKeyHandle = string(v)
-				if err != nil {
+				if err := s.PreviewKeyHandle.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -72114,7 +72158,7 @@ func (s *PreviewSignReceipt) Encode(e *jx.Encoder) {
 func (s *PreviewSignReceipt) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("signature")
-		e.Str(s.Signature)
+		s.Signature.Encode(e)
 	}
 	{
 		e.FieldStart("version")
@@ -72139,9 +72183,7 @@ func (s *PreviewSignReceipt) Decode(d *jx.Decoder) error {
 		case "signature":
 			requiredBitSet[0] |= 1 << 0
 			if err := func() error {
-				v, err := d.Str()
-				s.Signature = string(v)
-				if err != nil {
+				if err := s.Signature.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -72389,6 +72431,46 @@ func (s PreviewSignReceiptVersion) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *PreviewSignReceiptVersion) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes PreviewSignSha256Base64Url as json.
+func (s PreviewSignSha256Base64Url) Encode(e *jx.Encoder) {
+	unwrapped := string(s)
+
+	e.Str(unwrapped)
+}
+
+// Decode decodes PreviewSignSha256Base64Url from json.
+func (s *PreviewSignSha256Base64Url) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode PreviewSignSha256Base64Url to nil")
+	}
+	var unwrapped string
+	if err := func() error {
+		v, err := d.Str()
+		unwrapped = string(v)
+		if err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = PreviewSignSha256Base64Url(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s PreviewSignSha256Base64Url) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *PreviewSignSha256Base64Url) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

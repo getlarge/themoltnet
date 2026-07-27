@@ -6,24 +6,26 @@
  * black-box run can verify: that an exhausted bucket returns a 429 with the
  * documented Problem Details body AND the standard rate-limit headers.
  *
- * Target: POST /crypto/verify, which is public (IP-keyed) and carries its own
- * `publicVerify` per-route bucket. The e2e stack sets RATE_LIMIT_PUBLIC_VERIFY
- * very low (see docker-compose.e2e.yaml) and NO other e2e suite calls this
- * endpoint, so this suite can exhaust the bucket deterministically without
- * touching any sibling suite's budget.
+ * Target: the three public verification routes, which share one IP-keyed
+ * `publicVerify` budget. The e2e stack keeps the real limit high enough for
+ * sibling suites; this file seeds its isolated Redis counter immediately below
+ * the limit so it can prove cross-route sharing and the 429 contract without
+ * poisoning unrelated verification tests.
  *
  * Per-identity isolation and multi-token coalescing are covered by the
  * integration test (rate-limit-keying.test.ts) — they need low per-identity
  * limits that would break sibling e2e suites if applied to the shared stack.
  *
- * NOTE: keep this the only suite that hits /crypto/verify. The bucket is a
- * 1-minute window; exhausting it here is fine because nothing else depends on it.
+ * The before/after hooks clear the e2e-only Redis namespace so this adversarial
+ * test cannot leak state into earlier or later suites.
  */
 
 import {
   createClient,
   createTask,
   listTasks,
+  validatePreviewSignChallenge,
+  verifyAgentSignature,
   verifyCryptoSignature,
 } from '@moltnet/api-client';
 import { Redis } from 'ioredis';
@@ -41,12 +43,34 @@ const REDIS_NAMESPACE = 'moltnet-rl-';
 const READ_LIMIT = 7000;
 const GLOBAL_AUTH_LIMIT = 10000;
 
-// Must match RATE_LIMIT_PUBLIC_VERIFY in docker-compose.e2e.yaml.
-const PUBLIC_VERIFY_LIMIT = 10;
+// Must match RATE_LIMIT_PUBLIC_VERIFY in docker-compose.e2e.yaml. Keep this
+// above the full suite's legitimate verification traffic.
+const PUBLIC_VERIFY_LIMIT = 10_000;
 
 // An unknown signature: the handler returns 200 { valid: false } without needing
 // real crypto, so each call exercises the rate limiter, not the verify logic.
 const DUMMY_SIGNATURE = 'a'.repeat(88);
+const UNKNOWN_FINGERPRINT = 'AAAA-BBBB-CCCC-DDDD';
+const UNKNOWN_REQUEST_ID = '660e8400-e29b-41d4-a716-446655440001';
+const UNKNOWN_CHALLENGE = {
+  verificationMethod: 'human-hardware-previewsign' as const,
+  value: {
+    verificationMethod: 'human-hardware-previewsign' as const,
+    version: 1 as const,
+    envelope: 'ZW52ZWxvcGU',
+    digest: 'A'.repeat(43),
+    additionalArguments: 'YXJndW1lbnRz',
+    outerCredentialId: 'Y3JlZGVudGlhbA',
+    outerPublicKey: {
+      kty: 2 as const,
+      algorithm: -7 as const,
+      curve: 1 as const,
+      x: 'B'.repeat(43),
+      y: 'C'.repeat(43),
+    },
+    previewKeyHandle: 'aGFuZGxl',
+  },
+};
 
 async function clearE2eRateLimitKeys(): Promise<void> {
   const redis = new Redis({ host: '127.0.0.1', port: REDIS_HOST_PORT });
@@ -65,6 +89,7 @@ describe('Rate limiting (429 contract)', () => {
   let client: ReturnType<typeof createClient>;
 
   beforeAll(async () => {
+    await clearE2eRateLimitKeys();
     harness = await createTestHarness();
     client = createClient({ baseUrl: harness.baseUrl });
   });
@@ -74,32 +99,51 @@ describe('Rate limiting (429 contract)', () => {
     await harness?.teardown();
   });
 
-  it('returns 200 up to the limit, then a 429 with RFC 9457 body + rate-limit headers', async () => {
-    // Exhaust the publicVerify bucket. The first PUBLIC_VERIFY_LIMIT requests
-    // succeed; the next is throttled.
-    const statuses: number[] = [];
-    let throttledBody: Record<string, unknown> | undefined;
-    let throttledHeaders: Headers | undefined;
+  it('shares one seeded budget across all public verification routes and returns RFC 9457 on 429', async () => {
+    // Create the shared counter through previewSign validation. Its uniform 404
+    // still counts, and gives the test the exact Redis key chosen for this
+    // Docker client's proxy-aware IP.
+    const validation = await validatePreviewSignChallenge({
+      client,
+      body: {
+        version: 1,
+        operation: 'signing-request',
+        resourceId: UNKNOWN_REQUEST_ID,
+        challenge: UNKNOWN_CHALLENGE,
+      },
+    });
+    expect(validation.response.status).toBe(404);
 
-    for (let i = 0; i < PUBLIC_VERIFY_LIMIT + 1; i++) {
-      const { error, response } = await verifyCryptoSignature({
-        client,
-        body: { signature: DUMMY_SIGNATURE },
-      });
-      statuses.push(response.status);
-      if (response.status === 429) {
-        throttledBody = error as Record<string, unknown>;
-        throttledHeaders = response.headers;
-        break;
-      }
+    const redis = new Redis({ host: '127.0.0.1', port: REDIS_HOST_PORT });
+    try {
+      const keys = await redis.keys(`${REDIS_NAMESPACE}*public-verify`);
+      expect(keys).toHaveLength(1);
+      const [key] = keys;
+      const ttl = await redis.pttl(key);
+      expect(ttl).toBeGreaterThan(0);
+      await redis.set(key, PUBLIC_VERIFY_LIMIT - 1, 'PX', ttl);
+    } finally {
+      await redis.quit();
     }
 
-    // We hit a 429 within limit+1 requests.
-    expect(statuses).toContain(429);
-    // Everything before the 429 was a normal 200.
-    expect(statuses.slice(0, -1).every((s) => s === 200)).toBe(true);
-    expect(throttledBody).toBeDefined();
-    expect(throttledHeaders).toBeDefined();
+    // The legacy crypto route consumes the final token. If validation had a
+    // separate child store, this would report limit-1 remaining instead of 0.
+    const crypto = await verifyCryptoSignature({
+      client,
+      body: { signature: DUMMY_SIGNATURE },
+    });
+    expect(crypto.response.status).toBe(200);
+    expect(crypto.response.headers.get('x-ratelimit-remaining')).toBe('0');
+
+    // The agent lookup route must see the same exhausted counter.
+    const throttled = await verifyAgentSignature({
+      client,
+      path: { fingerprint: UNKNOWN_FINGERPRINT },
+      body: { signature: DUMMY_SIGNATURE },
+    });
+    expect(throttled.response.status).toBe(429);
+    const throttledBody = throttled.error as Record<string, unknown>;
+    const throttledHeaders = throttled.response.headers;
 
     // RFC 9457 Problem Details body.
     expect(throttledBody).toMatchObject({
@@ -107,26 +151,25 @@ describe('Rate limiting (429 contract)', () => {
       code: 'RATE_LIMIT_EXCEEDED',
       title: 'Rate Limit Exceeded',
     });
-    expect(typeof throttledBody!.detail).toBe('string');
-    expect(throttledBody!.retryAfter).toBeTypeOf('number');
+    expect(typeof throttledBody.detail).toBe('string');
+    expect(throttledBody.retryAfter).toBeTypeOf('number');
 
     // Standard rate-limit + retry-after headers so clients can back off.
-    expect(throttledHeaders!.get('retry-after')).toBeTruthy();
-    expect(throttledHeaders!.get('x-ratelimit-limit')).toBe(
+    expect(throttledHeaders.get('retry-after')).toBeTruthy();
+    expect(throttledHeaders.get('x-ratelimit-limit')).toBe(
       String(PUBLIC_VERIFY_LIMIT),
     );
-    expect(throttledHeaders!.get('x-ratelimit-remaining')).toBe('0');
-    expect(throttledHeaders!.get('x-ratelimit-reset')).toBeTruthy();
+    expect(throttledHeaders.get('x-ratelimit-remaining')).toBe('0');
+    expect(throttledHeaders.get('x-ratelimit-reset')).toBeTruthy();
   });
 
-  it('never throttles allowlisted paths (/health) even past the limit', async () => {
+  it('never attaches rate limiting to allowlisted paths (/health)', async () => {
     // /health is in RATE_LIMIT_ALLOWLIST, so it bypasses BOTH the pre-resolve
-    // throttle and the main limiter. Hammer it well past any per-route limit and
-    // confirm every call is 200 — proving the configurable allowList exempts it.
+    // throttle and the main limiter. The preceding test leaves the public
+    // verification counter exhausted; health must remain available without
+    // consuming or reporting any budget.
     const results = await Promise.all(
-      Array.from({ length: PUBLIC_VERIFY_LIMIT * 3 }, () =>
-        fetch(`${harness.baseUrl}/health`),
-      ),
+      Array.from({ length: 3 }, () => fetch(`${harness.baseUrl}/health`)),
     );
     expect(results.every((r) => r.status === 200)).toBe(true);
     // And no rate-limit headers are attached to an allowlisted response.

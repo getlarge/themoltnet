@@ -62,9 +62,8 @@ export async function agentRoutes(fastify: FastifyInstance) {
   server.post(
     '/agents/:fingerprint/verify',
     {
-      config: {
-        rateLimit: fastify.rateLimitConfig?.publicVerify,
-      },
+      config: { rateLimitBucket: 'public-verify' },
+      onRequest: fastify.rateLimitHooks.publicVerify,
       schema: {
         operationId: 'verifyAgentSignature',
         tags: ['agents'],

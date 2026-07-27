@@ -128,4 +128,29 @@ describe('previewSign device adapter', () => {
     );
     expect(client.enroll).not.toHaveBeenCalled();
   });
+
+  it('bounds a hung device operation with a typed timeout', async () => {
+    vi.useFakeTimers();
+    try {
+      const client = clientFixture();
+      client.listDevices.mockImplementationOnce(
+        () => new Promise<never>(() => {}),
+      );
+      const device = createPreviewSignDevice(
+        client as unknown as PreviewSignClient,
+        { timeoutMs: 1_000 },
+      );
+
+      const enrollment = device.enroll('Operator key');
+      const expectation = expect(enrollment).rejects.toMatchObject({
+        code: 'device_timeout',
+      });
+      await vi.advanceTimersByTimeAsync(1_000);
+
+      await expectation;
+      expect(client.enroll).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

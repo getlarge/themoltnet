@@ -17,19 +17,35 @@ const SESSION_HEADER = 'x-moltnet-signer-session';
 export interface SignerCompanionClient {
   connect(): Promise<SignerSession>;
   createCeremony(request: SignerCeremonyRequest): Promise<SignerCeremony>;
-  getResult(ceremonyId: string): Promise<SignerCeremonyResult>;
+  getResult(
+    ceremonyId: string,
+    options?: { signal?: AbortSignal },
+  ): Promise<SignerCeremonyResult>;
   waitForResult(
     ceremonyId: string,
     options?: { signal?: AbortSignal; pollIntervalMs?: number },
   ): Promise<Exclude<SignerCeremonyResult, { status: 'pending' }>>;
 }
 
+export class SignerCompanionError extends Error {
+  constructor(
+    public readonly code: string,
+    message: string,
+    options?: ErrorOptions,
+  ) {
+    super(message, options);
+    this.name = 'SignerCompanionError';
+  }
+}
+
 export function createSignerCompanionClient(options: {
   baseUrl: string;
   fetch?: typeof fetch;
+  requestTimeoutMs?: number;
 }): SignerCompanionClient {
   const baseUrl = loopbackUrl(options.baseUrl);
   const fetchImpl = options.fetch ?? fetch;
+  const requestTimeoutMs = options.requestTimeoutMs ?? 5_000;
   let session: SignerSession | null = null;
 
   async function request(
@@ -41,19 +57,35 @@ export function createSignerCompanionClient(options: {
     headers.set('accept', 'application/json');
     if (includeSession) {
       if (!session || Date.parse(session.expiresAt) <= Date.now()) {
-        throw new Error('Signer companion session is not connected');
+        throw new SignerCompanionError(
+          'session_invalid',
+          'Signer companion session is not connected',
+        );
       }
       headers.set(SESSION_HEADER, session.token);
     }
-    const response = await fetchImpl(new URL(path, baseUrl), {
-      ...init,
-      credentials: 'omit',
-      redirect: 'error',
-      headers,
-    });
+    let response: Response;
+    try {
+      response = await fetchImpl(new URL(path, baseUrl), {
+        ...init,
+        credentials: 'omit',
+        redirect: 'error',
+        headers,
+        signal: combineSignals(init.signal, requestTimeoutMs),
+      });
+    } catch (error) {
+      throw new SignerCompanionError(
+        error instanceof DOMException && error.name === 'TimeoutError'
+          ? 'request_timeout'
+          : 'companion_unavailable',
+        'Local signer companion is unavailable',
+        { cause: error },
+      );
+    }
     const body: unknown = await response.json().catch(() => null);
     if (!response.ok) {
-      throw new Error(
+      throw new SignerCompanionError(
+        problemCode(body) ?? `http_${response.status}`,
         problemMessage(body) ?? 'Signer companion request failed',
       );
     }
@@ -82,10 +114,13 @@ export function createSignerCompanionClient(options: {
     return parseCeremony(body);
   }
 
-  async function getResult(ceremonyId: string): Promise<SignerCeremonyResult> {
+  async function getResult(
+    ceremonyId: string,
+    options: { signal?: AbortSignal } = {},
+  ): Promise<SignerCeremonyResult> {
     const body = await request(
       `/v1/ceremonies/${encodeURIComponent(ceremonyId)}/result`,
-      { method: 'GET' },
+      { method: 'GET', signal: options.signal },
       true,
     );
     return parseResult(body);
@@ -103,7 +138,7 @@ export function createSignerCompanionClient(options: {
   ): Promise<Exclude<SignerCeremonyResult, { status: 'pending' }>> {
     while (true) {
       signal?.throwIfAborted();
-      const result = await getResult(ceremonyId);
+      const result = await getResult(ceremonyId, { signal });
       if (result.status !== 'pending') return result;
       await abortableDelay(pollIntervalMs, signal);
     }
@@ -189,23 +224,43 @@ function problemMessage(value: unknown): string | undefined {
   return undefined;
 }
 
+function problemCode(value: unknown): string | undefined {
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    !Array.isArray(value) &&
+    typeof (value as { code?: unknown }).code === 'string'
+  ) {
+    return (value as { code: string }).code;
+  }
+  return undefined;
+}
+
+function combineSignals(
+  signal: AbortSignal | null | undefined,
+  timeoutMs: number,
+): AbortSignal {
+  const timeout = AbortSignal.timeout(timeoutMs);
+  return signal ? AbortSignal.any([signal, timeout]) : timeout;
+}
+
 function abortableDelay(
   milliseconds: number,
   signal?: AbortSignal,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
-    const timeout = window.setTimeout(resolve, milliseconds);
-    signal?.addEventListener(
-      'abort',
-      () => {
-        window.clearTimeout(timeout);
-        reject(
-          signal.reason instanceof Error
-            ? signal.reason
-            : new DOMException('The operation was aborted', 'AbortError'),
-        );
-      },
-      { once: true },
-    );
+    const onAbort = () => {
+      window.clearTimeout(timeout);
+      reject(
+        signal?.reason instanceof Error
+          ? signal.reason
+          : new DOMException('The operation was aborted', 'AbortError'),
+      );
+    };
+    const timeout = window.setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort);
+      resolve();
+    }, milliseconds);
+    signal?.addEventListener('abort', onAbort, { once: true });
   });
 }

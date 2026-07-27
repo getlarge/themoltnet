@@ -9,6 +9,39 @@ import { createSignerServer } from './server.js';
 const CONSOLE_ORIGIN = 'https://console.themolt.net';
 const servers: ReturnType<typeof createSignerServer>[] = [];
 
+function rawRequest(
+  url: string,
+  options: {
+    method?: string;
+    headers?: Record<string, string>;
+    body?: string;
+  } = {},
+): Promise<{
+  body: string;
+  headers: Record<string, string | string[] | undefined>;
+  status: number | undefined;
+}> {
+  return new Promise((resolve, reject) => {
+    const request = httpRequest(
+      url,
+      { method: options.method, headers: options.headers },
+      (response) => {
+        const chunks: Buffer[] = [];
+        response.on('data', (chunk: Buffer) => chunks.push(chunk));
+        response.on('end', () =>
+          resolve({
+            body: Buffer.concat(chunks).toString(),
+            headers: response.headers,
+            status: response.statusCode,
+          }),
+        );
+      },
+    );
+    request.on('error', reject);
+    request.end(options.body);
+  });
+}
+
 afterEach(async () => {
   await Promise.all(
     servers.splice(0).map(
@@ -112,17 +145,60 @@ describe('loopback signer server', () => {
       id: string;
     };
 
-    const approvalResponse = await fetch(
+    const approvalResponse = await rawRequest(
       `${baseUrl}/ceremonies/${ceremony.id}`,
-      { headers: { accept: 'text/html' } },
+      {
+        headers: {
+          accept: 'text/html',
+          'sec-fetch-dest': 'document',
+          'sec-fetch-mode': 'navigate',
+          'sec-fetch-site': 'cross-site',
+        },
+      },
     );
-    const approval = await approvalResponse.text();
+    const approval = approvalResponse.body;
     expect(approval).toContain('Sign exact action');
     expect(approval).toContain('&lt;script&gt;Operator key&lt;/script&gt;');
     expect(approval).not.toContain('<script>');
-    expect(approvalResponse.headers.get('content-security-policy')).toContain(
+    expect(approvalResponse.headers['content-security-policy']).toContain(
       "form-action 'self'",
     );
+    const confirmationToken = approval.match(
+      /name="confirmationToken" value="([^"]+)"/u,
+    )?.[1];
+    expect(confirmationToken).toBeDefined();
+
+    const crossSiteConfirmation = await rawRequest(
+      `${baseUrl}/ceremonies/${ceremony.id}/confirm`,
+      {
+        method: 'POST',
+        headers: {
+          accept: 'text/html',
+          'content-type': 'application/x-www-form-urlencoded',
+          'sec-fetch-site': 'cross-site',
+        },
+        body: new URLSearchParams({
+          confirmationToken: confirmationToken ?? '',
+        }).toString(),
+      },
+    );
+    expect(crossSiteConfirmation.status).toBe(403);
+
+    const confirmation = await rawRequest(
+      `${baseUrl}/ceremonies/${ceremony.id}/confirm`,
+      {
+        method: 'POST',
+        headers: {
+          accept: 'text/html',
+          'content-type': 'application/x-www-form-urlencoded',
+          'sec-fetch-site': 'same-origin',
+        },
+        body: new URLSearchParams({
+          confirmationToken: confirmationToken ?? '',
+        }).toString(),
+      },
+    );
+    expect(confirmation.status).toBe(200);
   });
 
   it('rejects unapproved origins and non-loopback Host headers', async () => {
@@ -132,6 +208,10 @@ describe('loopback signer server', () => {
       headers: { origin: 'https://attacker.example' },
     });
     expect(originResponse.status).toBe(403);
+    const missingOriginResponse = await fetch(`${baseUrl}/v1/sessions`, {
+      method: 'POST',
+    });
+    expect(missingOriginResponse.status).toBe(403);
     const preflightResponse = await fetch(`${baseUrl}/v1/ceremonies`, {
       method: 'OPTIONS',
       headers: {

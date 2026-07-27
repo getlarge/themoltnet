@@ -1,4 +1,7 @@
-import type { ChallengeValidationInput } from './ceremony-service.js';
+import {
+  type ChallengeValidationInput,
+  SignerCeremonyError,
+} from './ceremony-service.js';
 
 export function createChallengeValidator(fetchImpl: typeof fetch = fetch) {
   return async (input: ChallengeValidationInput): Promise<{ valid: true }> => {
@@ -9,6 +12,7 @@ export function createChallengeValidator(fetchImpl: typeof fetch = fetch) {
         method: 'POST',
         credentials: 'omit',
         redirect: 'error',
+        signal: AbortSignal.timeout(5_000),
         headers: {
           accept: 'application/json',
           'content-type': 'application/json',
@@ -22,7 +26,16 @@ export function createChallengeValidator(fetchImpl: typeof fetch = fetch) {
       },
     );
     if (!response.ok) {
-      throw new Error('Server rejected the signing challenge');
+      if (response.status === 400 || response.status === 404) {
+        throw new SignerCeremonyError(
+          'challenge_invalid',
+          'Server rejected the signing challenge',
+        );
+      }
+      throw new SignerCeremonyError(
+        'server_unavailable',
+        'Signing server is temporarily unavailable; retry approval',
+      );
     }
     const result: unknown = await response.json();
     if (

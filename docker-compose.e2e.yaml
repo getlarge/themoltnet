@@ -198,10 +198,11 @@ services:
       RATE_LIMIT_AGENT_KEY: '10000'
       RATE_LIMIT_TASK_ARTIFACT_UPLOAD: '10000'
       RATE_LIMIT_RECOVERY: '10000'
-      # Deliberately LOW so the rate-limit e2e suite can trip a real 429 with a
-      # handful of requests, but high enough for the previewSign lifecycle
-      # matrix, whose route-local bucket exercises six distinct persisted states.
-      RATE_LIMIT_PUBLIC_VERIFY: '10'
+      # High enough for the full suite's legitimate verification traffic. The
+      # adversarial rate-limit e2e seeds its isolated Redis counter immediately
+      # below this limit, proving a real shared-bucket 429 without poisoning
+      # sibling Ed25519 and previewSign tests.
+      RATE_LIMIT_PUBLIC_VERIFY: '10000'
       RATE_LIMIT_PUBLIC_SEARCH: '10000'
       RATE_LIMIT_LEGREFFIER_START: '10000'
       RATE_LIMIT_REGISTRATION: '10000'

@@ -1,5 +1,20 @@
 import { type Static, type TSchema, Type } from 'typebox';
 
+import {
+  PreviewSignArkgSeedPublicKeySchema,
+  PreviewSignBase64UrlSchema,
+  PreviewSignChallengeOperationSchema,
+  PreviewSignChallengeSchema,
+  PreviewSignChallengeValueSchema,
+  PreviewSignEcdhEsHkdf256PublicKeySchema,
+  PreviewSignEs256PublicKeySchema,
+  PreviewSignPublicMaterialSchema,
+  PreviewSignReceiptSchema,
+  PreviewSignReceiptValueSchema,
+  previewSignSchemaContext,
+  PreviewSignSha256Base64UrlSchema,
+} from './preview-sign.js';
+
 function schemaRef(schema: TSchema) {
   const id = schemaId(schema);
   return Type.Ref(id);
@@ -13,19 +28,8 @@ function schemaId(schema: TSchema): string {
   return id;
 }
 
-export const SignerBase64UrlSchema = Type.String({
-  $id: 'SignerBase64Url',
-  minLength: 1,
-  maxLength: 5462,
-  pattern: '^[A-Za-z0-9_-]+$',
-});
-
-export const SignerSha256Base64UrlSchema = Type.String({
-  $id: 'SignerSha256Base64Url',
-  minLength: 43,
-  maxLength: 43,
-  pattern: '^[A-Za-z0-9_-]+$',
-});
+export const SignerBase64UrlSchema = PreviewSignBase64UrlSchema;
+export const SignerSha256Base64UrlSchema = PreviewSignSha256Base64UrlSchema;
 
 export const SignerUuidSchema = Type.String({
   $id: 'SignerUuid',
@@ -42,110 +46,17 @@ export const SignerOperationSchema = Type.Union(
   { $id: 'SignerOperation' },
 );
 
-export const SignerChallengeOperationSchema = Type.Union(
-  [Type.Literal('credential-registration'), Type.Literal('signing-request')],
-  { $id: 'SignerChallengeOperation' },
-);
-
-export const SignerEs256PublicKeySchema = Type.Object(
-  {
-    kty: Type.Literal(2),
-    algorithm: Type.Literal(-7),
-    curve: Type.Literal(1),
-    x: Type.Unsafe<Static<typeof SignerSha256Base64UrlSchema>>(
-      schemaRef(SignerSha256Base64UrlSchema),
-    ),
-    y: Type.Unsafe<Static<typeof SignerSha256Base64UrlSchema>>(
-      schemaRef(SignerSha256Base64UrlSchema),
-    ),
-  },
-  { $id: 'SignerEs256PublicKey', additionalProperties: false },
-);
-
-export const SignerEcdhEsHkdf256PublicKeySchema = Type.Object(
-  {
-    kty: Type.Literal(2),
-    algorithm: Type.Literal(-25),
-    curve: Type.Literal(1),
-    x: Type.Unsafe<Static<typeof SignerSha256Base64UrlSchema>>(
-      schemaRef(SignerSha256Base64UrlSchema),
-    ),
-    y: Type.Unsafe<Static<typeof SignerSha256Base64UrlSchema>>(
-      schemaRef(SignerSha256Base64UrlSchema),
-    ),
-  },
-  { $id: 'SignerEcdhEsHkdf256PublicKey', additionalProperties: false },
-);
-
-export const SignerArkgSeedPublicKeySchema = Type.Object(
-  {
-    kty: Type.Literal(-65537),
-    algorithm: Type.Literal(-65700),
-    derivedAlgorithm: Type.Literal(-9),
-    blindingKey: Type.Unsafe<Static<typeof SignerEs256PublicKeySchema>>(
-      schemaRef(SignerEs256PublicKeySchema),
-    ),
-    kemKey: Type.Unsafe<Static<typeof SignerEcdhEsHkdf256PublicKeySchema>>(
-      schemaRef(SignerEcdhEsHkdf256PublicKeySchema),
-    ),
-  },
-  { $id: 'SignerArkgSeedPublicKey', additionalProperties: false },
-);
-
-export const SignerPreviewSignPublicMaterialSchema = Type.Object(
-  {
-    version: Type.Literal(1),
-    outerCredentialId: Type.Unsafe<Static<typeof SignerBase64UrlSchema>>(
-      schemaRef(SignerBase64UrlSchema),
-    ),
-    outerPublicKey: Type.Unsafe<Static<typeof SignerEs256PublicKeySchema>>(
-      schemaRef(SignerEs256PublicKeySchema),
-    ),
-    previewKeyHandle: Type.Unsafe<Static<typeof SignerBase64UrlSchema>>(
-      schemaRef(SignerBase64UrlSchema),
-    ),
-    seedPublicKey: Type.Unsafe<Static<typeof SignerArkgSeedPublicKeySchema>>(
-      schemaRef(SignerArkgSeedPublicKeySchema),
-    ),
-  },
-  { $id: 'SignerPreviewSignPublicMaterial', additionalProperties: false },
-);
-
-export const SignerPreviewSignChallengeSchema = Type.Object(
-  {
-    verificationMethod: Type.Literal('human-hardware-previewsign'),
-    version: Type.Literal(1),
-    envelope: Type.Unsafe<Static<typeof SignerBase64UrlSchema>>(
-      schemaRef(SignerBase64UrlSchema),
-    ),
-    digest: Type.Unsafe<Static<typeof SignerSha256Base64UrlSchema>>(
-      schemaRef(SignerSha256Base64UrlSchema),
-    ),
-    additionalArguments: Type.Unsafe<Static<typeof SignerBase64UrlSchema>>(
-      schemaRef(SignerBase64UrlSchema),
-    ),
-    outerCredentialId: Type.Unsafe<Static<typeof SignerBase64UrlSchema>>(
-      schemaRef(SignerBase64UrlSchema),
-    ),
-    outerPublicKey: Type.Unsafe<Static<typeof SignerEs256PublicKeySchema>>(
-      schemaRef(SignerEs256PublicKeySchema),
-    ),
-    previewKeyHandle: Type.Unsafe<Static<typeof SignerBase64UrlSchema>>(
-      schemaRef(SignerBase64UrlSchema),
-    ),
-  },
-  { $id: 'SignerPreviewSignChallenge', additionalProperties: false },
-);
-
-export const SignerPreviewSignChallengeValueSchema = Type.Object(
-  {
-    verificationMethod: Type.Literal('human-hardware-previewsign'),
-    value: Type.Unsafe<Static<typeof SignerPreviewSignChallengeSchema>>(
-      schemaRef(SignerPreviewSignChallengeSchema),
-    ),
-  },
-  { $id: 'SignerPreviewSignChallengeValue', additionalProperties: false },
-);
+export const SignerChallengeOperationSchema =
+  PreviewSignChallengeOperationSchema;
+export const SignerEs256PublicKeySchema = PreviewSignEs256PublicKeySchema;
+export const SignerEcdhEsHkdf256PublicKeySchema =
+  PreviewSignEcdhEsHkdf256PublicKeySchema;
+export const SignerArkgSeedPublicKeySchema = PreviewSignArkgSeedPublicKeySchema;
+export const SignerPreviewSignPublicMaterialSchema =
+  PreviewSignPublicMaterialSchema;
+export const SignerPreviewSignChallengeSchema = PreviewSignChallengeSchema;
+export const SignerPreviewSignChallengeValueSchema =
+  PreviewSignChallengeValueSchema;
 
 export const SignerSessionSchema = Type.Object(
   {
@@ -236,25 +147,8 @@ export const SignerEnrollmentResultSchema = Type.Object(
   { $id: 'SignerEnrollmentResult', additionalProperties: false },
 );
 
-export const SignerReceiptValueSchema = Type.Object(
-  {
-    version: Type.Literal(1),
-    signature: Type.Unsafe<Static<typeof SignerBase64UrlSchema>>(
-      schemaRef(SignerBase64UrlSchema),
-    ),
-  },
-  { $id: 'SignerReceiptValue', additionalProperties: false },
-);
-
-export const SignerReceiptSchema = Type.Object(
-  {
-    verificationMethod: Type.Literal('human-hardware-previewsign'),
-    value: Type.Unsafe<Static<typeof SignerReceiptValueSchema>>(
-      schemaRef(SignerReceiptValueSchema),
-    ),
-  },
-  { $id: 'SignerReceipt', additionalProperties: false },
-);
+export const SignerReceiptValueSchema = PreviewSignReceiptSchema;
+export const SignerReceiptSchema = PreviewSignReceiptValueSchema;
 
 export const SignerSignatureResultSchema = Type.Object(
   {
@@ -303,21 +197,9 @@ export const SignerCeremonyResultSchema = Type.Union(
 
 /** TypeBox reference context in dependency order for standalone validators. */
 export const signerProtocolSchemaContext = {
-  [schemaId(SignerBase64UrlSchema)]: SignerBase64UrlSchema,
-  [schemaId(SignerSha256Base64UrlSchema)]: SignerSha256Base64UrlSchema,
+  ...previewSignSchemaContext,
   [schemaId(SignerUuidSchema)]: SignerUuidSchema,
   [schemaId(SignerOperationSchema)]: SignerOperationSchema,
-  [schemaId(SignerChallengeOperationSchema)]: SignerChallengeOperationSchema,
-  [schemaId(SignerEs256PublicKeySchema)]: SignerEs256PublicKeySchema,
-  [schemaId(SignerEcdhEsHkdf256PublicKeySchema)]:
-    SignerEcdhEsHkdf256PublicKeySchema,
-  [schemaId(SignerArkgSeedPublicKeySchema)]: SignerArkgSeedPublicKeySchema,
-  [schemaId(SignerPreviewSignPublicMaterialSchema)]:
-    SignerPreviewSignPublicMaterialSchema,
-  [schemaId(SignerPreviewSignChallengeSchema)]:
-    SignerPreviewSignChallengeSchema,
-  [schemaId(SignerPreviewSignChallengeValueSchema)]:
-    SignerPreviewSignChallengeValueSchema,
   [schemaId(SignerSessionSchema)]: SignerSessionSchema,
   [schemaId(SignerEnrollmentCeremonyRequestSchema)]:
     SignerEnrollmentCeremonyRequestSchema,
@@ -327,8 +209,6 @@ export const signerProtocolSchemaContext = {
   [schemaId(SignerCeremonySchema)]: SignerCeremonySchema,
   [schemaId(SignerPendingResultSchema)]: SignerPendingResultSchema,
   [schemaId(SignerEnrollmentResultSchema)]: SignerEnrollmentResultSchema,
-  [schemaId(SignerReceiptValueSchema)]: SignerReceiptValueSchema,
-  [schemaId(SignerReceiptSchema)]: SignerReceiptSchema,
   [schemaId(SignerSignatureResultSchema)]: SignerSignatureResultSchema,
   [schemaId(SignerFailedResultSchema)]: SignerFailedResultSchema,
   [schemaId(SignerCeremonyResultSchema)]: SignerCeremonyResultSchema,

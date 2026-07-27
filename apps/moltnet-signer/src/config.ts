@@ -1,40 +1,69 @@
+import { Type } from 'typebox';
+import { Value } from 'typebox/value';
+
+export const SignerEnvironmentSchema = Type.Object(
+  {
+    MOLTNET_SIGNER_PORT: Type.Number({ minimum: 1, maximum: 65_535 }),
+    MOLTNET_SIGNER_ALLOWED_ORIGINS: Type.String({
+      default: 'https://console.themolt.net',
+      minLength: 1,
+    }),
+    MOLTNET_API_URL: Type.String({
+      default: 'https://api.themolt.net',
+      minLength: 1,
+    }),
+    MOLTNET_SIGNER_DEVICE_TIMEOUT_MS: Type.Number({
+      default: 75_000,
+      minimum: 1_000,
+      maximum: 240_000,
+    }),
+    MOLTNET_SIGNER_LOG_FILE: Type.Optional(Type.String({ minLength: 1 })),
+  },
+  { additionalProperties: false },
+);
+
 export interface SignerConfig {
   allowedOrigins: string[];
   apiUrl: string;
   approvalBaseUrl: string;
+  deviceTimeoutMs: number;
   host: string;
+  logFile?: string;
   port: number;
 }
 
 export function getSignerConfig(
   env: Record<string, string | undefined> = process.env,
 ): SignerConfig {
+  const raw = Object.fromEntries(
+    Object.keys(SignerEnvironmentSchema.properties)
+      .filter((key) => env[key] !== undefined && env[key] !== '')
+      .map((key) => [key, env[key]]),
+  );
+  const converted = Value.Convert(SignerEnvironmentSchema, raw);
+  const config = Value.Default(SignerEnvironmentSchema, converted);
+  if (!Value.Check(SignerEnvironmentSchema, config)) {
+    const details = [...Value.Errors(SignerEnvironmentSchema, config)]
+      .map((error) => `  - ${error.instancePath}: ${error.message}`)
+      .join('\n');
+    throw new Error(`Invalid signer config:\n${details}`);
+  }
+
   const host = '127.0.0.1';
-  const port = integerEnv(env['MOLTNET_SIGNER_PORT']);
-  const allowedOrigins = (
-    env['MOLTNET_SIGNER_ALLOWED_ORIGINS'] ??
-    'https://console.themolt.net,http://localhost:5173'
-  )
-    .split(',')
+  const allowedOrigins = config.MOLTNET_SIGNER_ALLOWED_ORIGINS.split(',')
     .map((origin) => origin.trim())
     .filter(Boolean);
+  if (allowedOrigins.length === 0) {
+    throw new Error('Invalid signer config:\n  - allowed origins are required');
+  }
 
   return {
     allowedOrigins,
-    apiUrl: env['MOLTNET_API_URL'] ?? 'https://api.themolt.net',
-    approvalBaseUrl: `http://${host}:${port}`,
+    apiUrl: config.MOLTNET_API_URL,
+    approvalBaseUrl: `http://${host}:${config.MOLTNET_SIGNER_PORT}`,
+    deviceTimeoutMs: config.MOLTNET_SIGNER_DEVICE_TIMEOUT_MS,
     host,
-    port,
+    logFile: config.MOLTNET_SIGNER_LOG_FILE,
+    port: config.MOLTNET_SIGNER_PORT,
   };
-}
-
-function integerEnv(raw: string | undefined): number {
-  if (raw === undefined) {
-    throw new Error('MOLTNET_SIGNER_PORT is required');
-  }
-  const value = Number(raw);
-  if (!Number.isInteger(value) || value < 1 || value > 65_535) {
-    throw new Error('MOLTNET_SIGNER_PORT must be a valid TCP port');
-  }
-  return value;
 }

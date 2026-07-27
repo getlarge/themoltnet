@@ -50,9 +50,11 @@ export function SigningPage() {
 
       <div
         role="status"
+        aria-live="polite"
         style={{
           display: 'flex',
           alignItems: 'center',
+          flexWrap: 'wrap',
           gap: theme.spacing[2],
           padding: `${theme.spacing[2]} ${theme.spacing[3]}`,
           border: `1px solid ${
@@ -77,6 +79,14 @@ export function SigningPage() {
             ? 'Connecting to companion'
             : 'Companion unavailable'}
       </div>
+      {controller.companionStatus === 'unavailable' ? (
+        <div id="companion-help">
+          <Text color="muted">
+            Start the local signer companion, then refresh before using a
+            security key.
+          </Text>
+        </div>
+      ) : null}
 
       {controller.error ? (
         <div
@@ -88,7 +98,20 @@ export function SigningPage() {
             background: theme.color.bg.surface,
           }}
         >
-          <Text>{controller.error}</Text>
+          <Stack gap={1}>
+            <Text
+              style={{
+                fontWeight: theme.font.weight.semibold,
+              }}
+            >
+              Signing action stopped
+            </Text>
+            <Text>{controller.error.message}</Text>
+            <Text color="muted">{controller.error.remediation}</Text>
+            <Text color="muted" mono style={{ fontSize: theme.font.size.sm }}>
+              Error code: {controller.error.code}
+            </Text>
+          </Stack>
         </div>
       ) : null}
 
@@ -129,7 +152,8 @@ export function SigningPage() {
                   key={request.id}
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: 'minmax(0, 1fr) minmax(170px, auto)',
+                    gridTemplateColumns:
+                      'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
                     gap: theme.spacing[5],
                     padding: `${theme.spacing[5]} 0`,
                     borderBottom: `1px solid ${theme.color.border.DEFAULT}`,
@@ -155,19 +179,37 @@ export function SigningPage() {
                       <dt style={{ color: theme.color.text.muted }}>
                         Requester
                       </dt>
-                      <dd style={{ margin: 0 }}>
+                      <dd
+                        style={{
+                          margin: 0,
+                          overflowWrap: 'anywhere',
+                          fontFamily: theme.font.family.mono,
+                        }}
+                      >
                         {request.requestedBy?.id ?? request.agentId}
                       </dd>
                       <dt style={{ color: theme.color.text.muted }}>
                         Intended signer
                       </dt>
-                      <dd style={{ margin: 0 }}>
+                      <dd
+                        style={{
+                          margin: 0,
+                          overflowWrap: 'anywhere',
+                          fontFamily: theme.font.family.mono,
+                        }}
+                      >
                         {request.signerConstraint
                           ? `${request.signerConstraint.type}: ${request.signerConstraint.id}`
                           : 'Unspecified'}
                       </dd>
                       <dt style={{ color: theme.color.text.muted }}>Method</dt>
-                      <dd style={{ margin: 0 }}>
+                      <dd
+                        style={{
+                          margin: 0,
+                          overflowWrap: 'anywhere',
+                          fontFamily: theme.font.family.mono,
+                        }}
+                      >
                         {request.verificationMethod}
                       </dd>
                       <dt style={{ color: theme.color.text.muted }}>Status</dt>
@@ -182,6 +224,11 @@ export function SigningPage() {
                   </Stack>
                   <Stack gap={2} justify="center">
                     <Button
+                      aria-describedby={
+                        controller.companionStatus === 'unavailable'
+                          ? 'companion-help'
+                          : undefined
+                      }
                       disabled={
                         disabled ||
                         !selectedCredential ||
@@ -236,6 +283,7 @@ export function SigningPage() {
             style={{
               display: 'flex',
               alignItems: 'end',
+              flexWrap: 'wrap',
               gap: theme.spacing[3],
               maxWidth: 640,
             }}
@@ -424,7 +472,15 @@ function CredentialRow({
     <tr>
       <td style={cellStyle}>{credential.label}</td>
       <td style={cellStyle}>{credential.status.replace('_', ' ')}</td>
-      <td style={cellStyle}>{credential.verificationMethod}</td>
+      <td
+        style={{
+          ...cellStyle,
+          overflowWrap: 'anywhere',
+          fontFamily: theme.font.family.mono,
+        }}
+      >
+        {credential.verificationMethod}
+      </td>
       <td style={cellStyle}>{formatDate(credential.createdAt)}</td>
       <td style={cellStyle}>
         {isManager ? (

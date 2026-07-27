@@ -1,7 +1,11 @@
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
-import { ProblemDetailsSchema } from '@moltnet/models';
+import {
+  previewSignSchemaContext,
+  ProblemDetailsSchema,
+} from '@moltnet/models';
 import type { FastifyInstance } from 'fastify';
 import { type Static, Type } from 'typebox';
+import { Value } from 'typebox/value';
 
 import { createProblem } from '../problems/index.js';
 import {
@@ -12,22 +16,7 @@ import { throwSigningServiceProblem } from '../utils/signing-service-error.js';
 
 const CHALLENGE_VALIDATION_BODY_LIMIT = 16 * 1024;
 
-function exactKeys(
-  value: unknown,
-  expected: readonly string[],
-): value is Record<string, unknown> {
-  if (value === null || Array.isArray(value) || typeof value !== 'object') {
-    return false;
-  }
-  const actual = Object.keys(value).sort();
-  const wanted = [...expected].sort();
-  return (
-    actual.length === wanted.length &&
-    actual.every((key, index) => key === wanted[index])
-  );
-}
-
-function rejectUnsupportedValidationPayload(request: {
+function rejectAuthenticationMaterial(request: {
   body: unknown;
   headers: Record<string, unknown>;
 }): void {
@@ -42,42 +31,18 @@ function rejectUnsupportedValidationPayload(request: {
     );
   }
   if (
-    !exactKeys(request.body, [
-      'challenge',
-      'operation',
-      'resourceId',
-      'version',
-    ])
+    !Value.Check(
+      {
+        ...previewSignSchemaContext,
+        ValidatePreviewSignChallenge: ValidatePreviewSignChallengeSchema,
+      },
+      ValidatePreviewSignChallengeSchema,
+      request.body,
+    )
   ) {
     throw createProblem(
       'validation-failed',
       'Signing companion validation contains unsupported or missing fields',
-    );
-  }
-  const challenge = request.body['challenge'];
-  if (!exactKeys(challenge, ['value', 'verificationMethod'])) {
-    throw createProblem(
-      'validation-failed',
-      'Signing companion challenge contains unsupported or missing fields',
-    );
-  }
-  const value = challenge['value'];
-  if (
-    !exactKeys(value, [
-      'additionalArguments',
-      'digest',
-      'envelope',
-      'outerCredentialId',
-      'outerPublicKey',
-      'previewKeyHandle',
-      'verificationMethod',
-      'version',
-    ]) ||
-    !exactKeys(value['outerPublicKey'], ['algorithm', 'curve', 'kty', 'x', 'y'])
-  ) {
-    throw createProblem(
-      'validation-failed',
-      'Signing companion challenge contains unsupported or missing fields',
     );
   }
 }
@@ -95,11 +60,10 @@ export async function previewSignChallengeRoutes(fastify: FastifyInstance) {
     '/crypto/preview-sign/challenges/validate',
     {
       bodyLimit: CHALLENGE_VALIDATION_BODY_LIMIT,
-      config: {
-        rateLimit: fastify.rateLimitConfig.publicVerify,
-      },
+      config: { rateLimitBucket: 'public-verify' },
+      onRequest: fastify.rateLimitHooks.publicVerify,
       preValidation: (request, _reply, done) => {
-        rejectUnsupportedValidationPayload(request);
+        rejectAuthenticationMaterial(request);
         done();
       },
       schema: {

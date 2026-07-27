@@ -14,6 +14,7 @@ const testState = vi.hoisted(() => ({
   location: '/tasks',
   navigate: vi.fn(),
   search: '',
+  signerUrl: undefined as string | undefined,
 }));
 
 const apiMocks = vi.hoisted(() => ({
@@ -62,6 +63,7 @@ vi.mock('../src/config.js', () => ({
   getConfig: () => ({
     docsUrl: 'https://docs.example.com',
     kratosUrl: 'https://auth.example.com',
+    signerUrl: testState.signerUrl,
   }),
 }));
 
@@ -87,6 +89,7 @@ describe('console layout accessibility', () => {
     testState.isTablet = false;
     testState.location = '/tasks';
     testState.search = '';
+    testState.signerUrl = undefined;
     testState.navigate.mockReset();
     apiMocks.getTeam.mockReset();
     apiMocks.listDiaries.mockReset();
@@ -127,6 +130,19 @@ describe('console layout accessibility', () => {
 
     const tasks = screen.getByRole('button', { name: 'Tasks' });
     expect(tasks.getAttribute('aria-current')).toBe('page');
+    expect(
+      screen.queryByRole('button', { name: 'Signing' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows signing navigation only when the companion feature is enabled', () => {
+    testState.signerUrl = 'http://127.0.0.1:17373';
+    testState.location = '/signing';
+
+    render(<Sidebar id="console-sidebar" />, { wrapper: Wrapper });
+
+    const signing = screen.getByRole('button', { name: 'Signing' });
+    expect(signing).toHaveAttribute('aria-current', 'page');
   });
 
   it('keeps collapsed navigation buttons named beyond their initials', () => {

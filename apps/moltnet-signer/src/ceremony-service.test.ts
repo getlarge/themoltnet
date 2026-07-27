@@ -89,6 +89,17 @@ function device() {
   } satisfies SignerDevice;
 }
 
+function expectCeremonyError(action: () => unknown, code: string): void {
+  let error: unknown;
+  try {
+    action();
+  } catch (caught) {
+    error = caught;
+  }
+  expect(error).toBeInstanceOf(SignerCeremonyError);
+  expect(error).toMatchObject({ code });
+}
+
 function signingCeremonyRequest() {
   return {
     version: 1 as const,
@@ -104,6 +115,8 @@ function signingCeremonyRequest() {
 function makeService(options: {
   signerDevice?: SignerDevice;
   validateChallenge?: () => Promise<{ valid: true }>;
+  now?: () => Date;
+  randomToken?: () => string;
 }) {
   let sequence = 0;
   return new SignerCeremonyService({
@@ -113,8 +126,8 @@ function makeService(options: {
     validateChallenge:
       options.validateChallenge ??
       vi.fn(() => Promise.resolve({ valid: true as const })),
-    now: () => NOW,
-    randomToken: () => `test-token-${++sequence}`,
+    now: options.now ?? (() => NOW),
+    randomToken: options.randomToken ?? (() => `test-token-${++sequence}`),
   });
 }
 
@@ -205,19 +218,18 @@ describe('SignerCeremonyService', () => {
       serverVector.challenge.digest,
     );
     expect(signerDevice.signPreparedDigest).toHaveBeenCalledWith({
-      digest: Buffer.from(serverVector.challenge.digest, 'base64url'),
-      additionalArguments: Buffer.from(
-        serverVector.challenge.additionalArguments,
-        'base64url',
+      digest: Uint8Array.from(
+        Buffer.from(serverVector.challenge.digest, 'base64url'),
       ),
-      outerCredentialId: Buffer.from(
-        serverVector.challenge.outerCredentialId,
-        'base64url',
+      additionalArguments: Uint8Array.from(
+        Buffer.from(serverVector.challenge.additionalArguments, 'base64url'),
+      ),
+      outerCredentialId: Uint8Array.from(
+        Buffer.from(serverVector.challenge.outerCredentialId, 'base64url'),
       ),
       outerPublicKey: serverVector.challenge.outerPublicKey,
-      previewKeyHandle: Buffer.from(
-        serverVector.challenge.previewKeyHandle,
-        'base64url',
+      previewKeyHandle: Uint8Array.from(
+        Buffer.from(serverVector.challenge.previewKeyHandle, 'base64url'),
       ),
     });
     expect(
@@ -317,5 +329,215 @@ describe('SignerCeremonyService', () => {
     expect(result).not.toHaveProperty('attestation');
     expect(result).not.toHaveProperty('device');
     expect(result).not.toHaveProperty('ikm');
+  });
+
+  it('restores approval with a fresh token after a retryable validation failure', async () => {
+    const validateChallenge = vi
+      .fn(() => Promise.resolve({ valid: true as const }))
+      .mockResolvedValueOnce({ valid: true })
+      .mockRejectedValueOnce(new Error('temporary network failure'))
+      .mockResolvedValueOnce({ valid: true });
+    const service = makeService({ validateChallenge });
+    const session = service.createSession({ origin: CONSOLE_ORIGIN });
+    const ceremony = await service.createCeremony({
+      origin: CONSOLE_ORIGIN,
+      sessionToken: session.token,
+      request: signingCeremonyRequest(),
+    });
+    const firstApproval = service.getApproval(ceremony.id);
+
+    await expect(
+      service.confirmCeremony({
+        ceremonyId: ceremony.id,
+        confirmationToken: firstApproval.confirmationToken,
+      }),
+    ).rejects.toMatchObject({ code: 'server_unavailable' });
+
+    const retryApproval = service.getApproval(ceremony.id);
+    expect(retryApproval.confirmationToken).not.toBe(
+      firstApproval.confirmationToken,
+    );
+    await expect(
+      service.confirmCeremony({
+        ceremonyId: ceremony.id,
+        confirmationToken: retryApproval.confirmationToken,
+      }),
+    ).resolves.toBeUndefined();
+  });
+
+  it('rejects replay and delivers a terminal result only once', async () => {
+    const service = makeService({});
+    const session = service.createSession({ origin: CONSOLE_ORIGIN });
+    const ceremony = await service.createCeremony({
+      origin: CONSOLE_ORIGIN,
+      sessionToken: session.token,
+      request: signingCeremonyRequest(),
+    });
+    const approval = service.getApproval(ceremony.id);
+
+    await service.confirmCeremony({
+      ceremonyId: ceremony.id,
+      confirmationToken: approval.confirmationToken,
+    });
+    await expect(
+      service.confirmCeremony({
+        ceremonyId: ceremony.id,
+        confirmationToken: approval.confirmationToken,
+      }),
+    ).rejects.toMatchObject({ code: 'confirmation_invalid' });
+    expectCeremonyError(
+      () => service.getApproval(ceremony.id),
+      'ceremony_completed',
+    );
+
+    expect(
+      service.getResult({
+        ceremonyId: ceremony.id,
+        origin: CONSOLE_ORIGIN,
+        sessionToken: session.token,
+      }),
+    ).toMatchObject({ status: 'completed' });
+    expectCeremonyError(
+      () =>
+        service.getResult({
+          ceremonyId: ceremony.id,
+          origin: CONSOLE_ORIGIN,
+          sessionToken: session.token,
+        }),
+      'ceremony_invalid',
+    );
+  });
+
+  it('rejects cross-origin and cross-session result access', async () => {
+    const service = makeService({});
+    const owner = service.createSession({ origin: CONSOLE_ORIGIN });
+    const other = service.createSession({ origin: CONSOLE_ORIGIN });
+    const ceremony = await service.createCeremony({
+      origin: CONSOLE_ORIGIN,
+      sessionToken: owner.token,
+      request: signingCeremonyRequest(),
+    });
+
+    expectCeremonyError(
+      () =>
+        service.getResult({
+          ceremonyId: ceremony.id,
+          origin: CONSOLE_ORIGIN,
+          sessionToken: other.token,
+        }),
+      'ceremony_invalid',
+    );
+    expectCeremonyError(
+      () =>
+        service.getResult({
+          ceremonyId: ceremony.id,
+          origin: 'https://attacker.example',
+          sessionToken: owner.token,
+        }),
+      'origin_not_allowed',
+    );
+  });
+
+  it('expires sessions and ceremonies without retaining their capabilities', async () => {
+    let now = new Date(NOW);
+    const tokens = [
+      'reused-session-token',
+      'ceremony-token-1',
+      'confirmation-token-1',
+      'reused-session-token',
+    ];
+    const service = makeService({
+      now: () => now,
+      randomToken: () => tokens.shift() ?? 'fallback-token',
+    });
+    const session = service.createSession({ origin: CONSOLE_ORIGIN });
+    const ceremony = await service.createCeremony({
+      origin: CONSOLE_ORIGIN,
+      sessionToken: session.token,
+      request: signingCeremonyRequest(),
+    });
+
+    now = new Date(NOW.getTime() + 5 * 60 * 1000 + 1);
+    expect(
+      service.getResult({
+        ceremonyId: ceremony.id,
+        origin: CONSOLE_ORIGIN,
+        sessionToken: session.token,
+      }),
+    ).toMatchObject({ status: 'failed', code: 'ceremony_expired' });
+    expectCeremonyError(
+      () =>
+        service.getResult({
+          ceremonyId: ceremony.id,
+          origin: CONSOLE_ORIGIN,
+          sessionToken: session.token,
+        }),
+      'ceremony_invalid',
+    );
+
+    now = new Date(NOW.getTime() + 10 * 60 * 1000 + 1);
+    await expect(
+      service.createCeremony({
+        origin: CONSOLE_ORIGIN,
+        sessionToken: session.token,
+        request: signingCeremonyRequest(),
+      }),
+    ).rejects.toMatchObject({ code: 'session_invalid' });
+    expect(service.createSession({ origin: CONSOLE_ORIGIN }).token).toBe(
+      'reused-session-token',
+    );
+  });
+
+  it('shows the effective ceremony expiry instead of a later envelope expiry', async () => {
+    const request = signingCeremonyRequest();
+    const envelope = JSON.parse(
+      Buffer.from(request.challenge.value.envelope, 'base64url').toString(
+        'utf8',
+      ),
+    ) as Record<string, unknown>;
+    const envelopeBytes = Buffer.from(
+      canonicalJsonBytes({
+        ...envelope,
+        expiresAt: new Date(NOW.getTime() + 10 * 60 * 1000).toISOString(),
+      }),
+    );
+    request.challenge.value = {
+      ...request.challenge.value,
+      envelope: envelopeBytes.toString('base64url'),
+      digest: createHash('sha256').update(envelopeBytes).digest('base64url'),
+    };
+    const service = makeService({});
+    const session = service.createSession({ origin: CONSOLE_ORIGIN });
+
+    const ceremony = await service.createCeremony({
+      origin: CONSOLE_ORIGIN,
+      sessionToken: session.token,
+      request,
+    });
+
+    expect(service.getApproval(ceremony.id).display.expiresAt).toBe(
+      ceremony.expiresAt,
+    );
+  });
+
+  it('rejects malformed DER returned by the authenticator', async () => {
+    const signerDevice = device();
+    vi.mocked(signerDevice.signPreparedDigest).mockResolvedValueOnce(
+      Buffer.from([0x30, 0x06, 0x02, 0x01, 0x01, 0x02, 0x02, 0, 1]),
+    );
+    const service = makeService({ signerDevice });
+    const session = service.createSession({ origin: CONSOLE_ORIGIN });
+    const ceremony = await service.createCeremony({
+      origin: CONSOLE_ORIGIN,
+      sessionToken: session.token,
+      request: signingCeremonyRequest(),
+    });
+
+    await expect(
+      service.confirmCeremony({
+        ceremonyId: ceremony.id,
+        confirmationToken: service.getApproval(ceremony.id).confirmationToken,
+      }),
+    ).rejects.toMatchObject({ code: 'device_failed' });
   });
 });

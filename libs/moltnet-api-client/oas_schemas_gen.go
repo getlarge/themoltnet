@@ -39154,35 +39154,37 @@ func (PreviewSignArkgSeedPublicKeyKty) AllValues() []PreviewSignArkgSeedPublicKe
 	}
 }
 
+type PreviewSignBase64Url string
+
 // Ref: #/components/schemas/PreviewSignChallenge
 type PreviewSignChallenge struct {
-	AdditionalArguments string                                 `json:"additionalArguments"`
-	Digest              string                                 `json:"digest"`
-	Envelope            string                                 `json:"envelope"`
-	OuterCredentialId   string                                 `json:"outerCredentialId"`
+	AdditionalArguments PreviewSignBase64Url                   `json:"additionalArguments"`
+	Digest              PreviewSignSha256Base64Url             `json:"digest"`
+	Envelope            PreviewSignBase64Url                   `json:"envelope"`
+	OuterCredentialId   PreviewSignBase64Url                   `json:"outerCredentialId"`
 	OuterPublicKey      PreviewSignEs256PublicKey              `json:"outerPublicKey"`
-	PreviewKeyHandle    string                                 `json:"previewKeyHandle"`
+	PreviewKeyHandle    PreviewSignBase64Url                   `json:"previewKeyHandle"`
 	VerificationMethod  PreviewSignChallengeVerificationMethod `json:"verificationMethod"`
 	Version             PreviewSignChallengeVersion            `json:"version"`
 }
 
 // GetAdditionalArguments returns the value of AdditionalArguments.
-func (s *PreviewSignChallenge) GetAdditionalArguments() string {
+func (s *PreviewSignChallenge) GetAdditionalArguments() PreviewSignBase64Url {
 	return s.AdditionalArguments
 }
 
 // GetDigest returns the value of Digest.
-func (s *PreviewSignChallenge) GetDigest() string {
+func (s *PreviewSignChallenge) GetDigest() PreviewSignSha256Base64Url {
 	return s.Digest
 }
 
 // GetEnvelope returns the value of Envelope.
-func (s *PreviewSignChallenge) GetEnvelope() string {
+func (s *PreviewSignChallenge) GetEnvelope() PreviewSignBase64Url {
 	return s.Envelope
 }
 
 // GetOuterCredentialId returns the value of OuterCredentialId.
-func (s *PreviewSignChallenge) GetOuterCredentialId() string {
+func (s *PreviewSignChallenge) GetOuterCredentialId() PreviewSignBase64Url {
 	return s.OuterCredentialId
 }
 
@@ -39192,7 +39194,7 @@ func (s *PreviewSignChallenge) GetOuterPublicKey() PreviewSignEs256PublicKey {
 }
 
 // GetPreviewKeyHandle returns the value of PreviewKeyHandle.
-func (s *PreviewSignChallenge) GetPreviewKeyHandle() string {
+func (s *PreviewSignChallenge) GetPreviewKeyHandle() PreviewSignBase64Url {
 	return s.PreviewKeyHandle
 }
 
@@ -39207,22 +39209,22 @@ func (s *PreviewSignChallenge) GetVersion() PreviewSignChallengeVersion {
 }
 
 // SetAdditionalArguments sets the value of AdditionalArguments.
-func (s *PreviewSignChallenge) SetAdditionalArguments(val string) {
+func (s *PreviewSignChallenge) SetAdditionalArguments(val PreviewSignBase64Url) {
 	s.AdditionalArguments = val
 }
 
 // SetDigest sets the value of Digest.
-func (s *PreviewSignChallenge) SetDigest(val string) {
+func (s *PreviewSignChallenge) SetDigest(val PreviewSignSha256Base64Url) {
 	s.Digest = val
 }
 
 // SetEnvelope sets the value of Envelope.
-func (s *PreviewSignChallenge) SetEnvelope(val string) {
+func (s *PreviewSignChallenge) SetEnvelope(val PreviewSignBase64Url) {
 	s.Envelope = val
 }
 
 // SetOuterCredentialId sets the value of OuterCredentialId.
-func (s *PreviewSignChallenge) SetOuterCredentialId(val string) {
+func (s *PreviewSignChallenge) SetOuterCredentialId(val PreviewSignBase64Url) {
 	s.OuterCredentialId = val
 }
 
@@ -39232,7 +39234,7 @@ func (s *PreviewSignChallenge) SetOuterPublicKey(val PreviewSignEs256PublicKey) 
 }
 
 // SetPreviewKeyHandle sets the value of PreviewKeyHandle.
-func (s *PreviewSignChallenge) SetPreviewKeyHandle(val string) {
+func (s *PreviewSignChallenge) SetPreviewKeyHandle(val PreviewSignBase64Url) {
 	s.PreviewKeyHandle = val
 }
 
@@ -39430,8 +39432,8 @@ type PreviewSignEcdhEsHkdf256PublicKey struct {
 	Algorithm PreviewSignEcdhEsHkdf256PublicKeyAlgorithm `json:"algorithm"`
 	Curve     PreviewSignEcdhEsHkdf256PublicKeyCurve     `json:"curve"`
 	Kty       PreviewSignEcdhEsHkdf256PublicKeyKty       `json:"kty"`
-	X         string                                     `json:"x"`
-	Y         string                                     `json:"y"`
+	X         PreviewSignSha256Base64Url                 `json:"x"`
+	Y         PreviewSignSha256Base64Url                 `json:"y"`
 }
 
 // GetAlgorithm returns the value of Algorithm.
@@ -39450,12 +39452,12 @@ func (s *PreviewSignEcdhEsHkdf256PublicKey) GetKty() PreviewSignEcdhEsHkdf256Pub
 }
 
 // GetX returns the value of X.
-func (s *PreviewSignEcdhEsHkdf256PublicKey) GetX() string {
+func (s *PreviewSignEcdhEsHkdf256PublicKey) GetX() PreviewSignSha256Base64Url {
 	return s.X
 }
 
 // GetY returns the value of Y.
-func (s *PreviewSignEcdhEsHkdf256PublicKey) GetY() string {
+func (s *PreviewSignEcdhEsHkdf256PublicKey) GetY() PreviewSignSha256Base64Url {
 	return s.Y
 }
 
@@ -39475,12 +39477,12 @@ func (s *PreviewSignEcdhEsHkdf256PublicKey) SetKty(val PreviewSignEcdhEsHkdf256P
 }
 
 // SetX sets the value of X.
-func (s *PreviewSignEcdhEsHkdf256PublicKey) SetX(val string) {
+func (s *PreviewSignEcdhEsHkdf256PublicKey) SetX(val PreviewSignSha256Base64Url) {
 	s.X = val
 }
 
 // SetY sets the value of Y.
-func (s *PreviewSignEcdhEsHkdf256PublicKey) SetY(val string) {
+func (s *PreviewSignEcdhEsHkdf256PublicKey) SetY(val PreviewSignSha256Base64Url) {
 	s.Y = val
 }
 
@@ -39528,8 +39530,8 @@ type PreviewSignEs256PublicKey struct {
 	Algorithm PreviewSignEs256PublicKeyAlgorithm `json:"algorithm"`
 	Curve     PreviewSignEs256PublicKeyCurve     `json:"curve"`
 	Kty       PreviewSignEs256PublicKeyKty       `json:"kty"`
-	X         string                             `json:"x"`
-	Y         string                             `json:"y"`
+	X         PreviewSignSha256Base64Url         `json:"x"`
+	Y         PreviewSignSha256Base64Url         `json:"y"`
 }
 
 // GetAlgorithm returns the value of Algorithm.
@@ -39548,12 +39550,12 @@ func (s *PreviewSignEs256PublicKey) GetKty() PreviewSignEs256PublicKeyKty {
 }
 
 // GetX returns the value of X.
-func (s *PreviewSignEs256PublicKey) GetX() string {
+func (s *PreviewSignEs256PublicKey) GetX() PreviewSignSha256Base64Url {
 	return s.X
 }
 
 // GetY returns the value of Y.
-func (s *PreviewSignEs256PublicKey) GetY() string {
+func (s *PreviewSignEs256PublicKey) GetY() PreviewSignSha256Base64Url {
 	return s.Y
 }
 
@@ -39573,12 +39575,12 @@ func (s *PreviewSignEs256PublicKey) SetKty(val PreviewSignEs256PublicKeyKty) {
 }
 
 // SetX sets the value of X.
-func (s *PreviewSignEs256PublicKey) SetX(val string) {
+func (s *PreviewSignEs256PublicKey) SetX(val PreviewSignSha256Base64Url) {
 	s.X = val
 }
 
 // SetY sets the value of Y.
-func (s *PreviewSignEs256PublicKey) SetY(val string) {
+func (s *PreviewSignEs256PublicKey) SetY(val PreviewSignSha256Base64Url) {
 	s.Y = val
 }
 
@@ -39626,8 +39628,8 @@ type PreviewSignEsp256PublicKey struct {
 	Algorithm PreviewSignEsp256PublicKeyAlgorithm `json:"algorithm"`
 	Curve     PreviewSignEsp256PublicKeyCurve     `json:"curve"`
 	Kty       PreviewSignEsp256PublicKeyKty       `json:"kty"`
-	X         string                              `json:"x"`
-	Y         string                              `json:"y"`
+	X         PreviewSignSha256Base64Url          `json:"x"`
+	Y         PreviewSignSha256Base64Url          `json:"y"`
 }
 
 // GetAlgorithm returns the value of Algorithm.
@@ -39646,12 +39648,12 @@ func (s *PreviewSignEsp256PublicKey) GetKty() PreviewSignEsp256PublicKeyKty {
 }
 
 // GetX returns the value of X.
-func (s *PreviewSignEsp256PublicKey) GetX() string {
+func (s *PreviewSignEsp256PublicKey) GetX() PreviewSignSha256Base64Url {
 	return s.X
 }
 
 // GetY returns the value of Y.
-func (s *PreviewSignEsp256PublicKey) GetY() string {
+func (s *PreviewSignEsp256PublicKey) GetY() PreviewSignSha256Base64Url {
 	return s.Y
 }
 
@@ -39671,12 +39673,12 @@ func (s *PreviewSignEsp256PublicKey) SetKty(val PreviewSignEsp256PublicKeyKty) {
 }
 
 // SetX sets the value of X.
-func (s *PreviewSignEsp256PublicKey) SetX(val string) {
+func (s *PreviewSignEsp256PublicKey) SetX(val PreviewSignSha256Base64Url) {
 	s.X = val
 }
 
 // SetY sets the value of Y.
-func (s *PreviewSignEsp256PublicKey) SetY(val string) {
+func (s *PreviewSignEsp256PublicKey) SetY(val PreviewSignSha256Base64Url) {
 	s.Y = val
 }
 
@@ -39721,26 +39723,26 @@ func (PreviewSignEsp256PublicKeyKty) AllValues() []PreviewSignEsp256PublicKeyKty
 
 // Ref: #/components/schemas/PreviewSignEvidence
 type PreviewSignEvidence struct {
-	AdditionalArgumentsHash string                                `json:"additionalArgumentsHash"`
+	AdditionalArgumentsHash PreviewSignSha256Base64Url            `json:"additionalArgumentsHash"`
 	ClaimantId              uuid.UUID                             `json:"claimantId"`
 	CredentialId            uuid.UUID                             `json:"credentialId"`
 	DerivedPublicKey        PreviewSignEsp256PublicKey            `json:"derivedPublicKey"`
-	Digest                  string                                `json:"digest"`
-	Envelope                string                                `json:"envelope"`
+	Digest                  PreviewSignSha256Base64Url            `json:"digest"`
+	Envelope                PreviewSignBase64Url                  `json:"envelope"`
 	ExpiresAt               time.Time                             `json:"expiresAt"`
 	Nonce                   string                                `json:"nonce"`
 	Operation               PreviewSignEvidenceOperation          `json:"operation"`
-	ProofHash               string                                `json:"proofHash"`
+	ProofHash               PreviewSignSha256Base64Url            `json:"proofHash"`
 	Purpose                 string                                `json:"purpose"`
 	RequestId               uuid.UUID                             `json:"requestId"`
-	Signature               string                                `json:"signature"`
+	Signature               PreviewSignP256DerSignatureBase64Url  `json:"signature"`
 	TeamId                  uuid.UUID                             `json:"teamId"`
 	VerificationMethod      PreviewSignEvidenceVerificationMethod `json:"verificationMethod"`
 	Version                 PreviewSignEvidenceVersion            `json:"version"`
 }
 
 // GetAdditionalArgumentsHash returns the value of AdditionalArgumentsHash.
-func (s *PreviewSignEvidence) GetAdditionalArgumentsHash() string {
+func (s *PreviewSignEvidence) GetAdditionalArgumentsHash() PreviewSignSha256Base64Url {
 	return s.AdditionalArgumentsHash
 }
 
@@ -39760,12 +39762,12 @@ func (s *PreviewSignEvidence) GetDerivedPublicKey() PreviewSignEsp256PublicKey {
 }
 
 // GetDigest returns the value of Digest.
-func (s *PreviewSignEvidence) GetDigest() string {
+func (s *PreviewSignEvidence) GetDigest() PreviewSignSha256Base64Url {
 	return s.Digest
 }
 
 // GetEnvelope returns the value of Envelope.
-func (s *PreviewSignEvidence) GetEnvelope() string {
+func (s *PreviewSignEvidence) GetEnvelope() PreviewSignBase64Url {
 	return s.Envelope
 }
 
@@ -39785,7 +39787,7 @@ func (s *PreviewSignEvidence) GetOperation() PreviewSignEvidenceOperation {
 }
 
 // GetProofHash returns the value of ProofHash.
-func (s *PreviewSignEvidence) GetProofHash() string {
+func (s *PreviewSignEvidence) GetProofHash() PreviewSignSha256Base64Url {
 	return s.ProofHash
 }
 
@@ -39800,7 +39802,7 @@ func (s *PreviewSignEvidence) GetRequestId() uuid.UUID {
 }
 
 // GetSignature returns the value of Signature.
-func (s *PreviewSignEvidence) GetSignature() string {
+func (s *PreviewSignEvidence) GetSignature() PreviewSignP256DerSignatureBase64Url {
 	return s.Signature
 }
 
@@ -39820,7 +39822,7 @@ func (s *PreviewSignEvidence) GetVersion() PreviewSignEvidenceVersion {
 }
 
 // SetAdditionalArgumentsHash sets the value of AdditionalArgumentsHash.
-func (s *PreviewSignEvidence) SetAdditionalArgumentsHash(val string) {
+func (s *PreviewSignEvidence) SetAdditionalArgumentsHash(val PreviewSignSha256Base64Url) {
 	s.AdditionalArgumentsHash = val
 }
 
@@ -39840,12 +39842,12 @@ func (s *PreviewSignEvidence) SetDerivedPublicKey(val PreviewSignEsp256PublicKey
 }
 
 // SetDigest sets the value of Digest.
-func (s *PreviewSignEvidence) SetDigest(val string) {
+func (s *PreviewSignEvidence) SetDigest(val PreviewSignSha256Base64Url) {
 	s.Digest = val
 }
 
 // SetEnvelope sets the value of Envelope.
-func (s *PreviewSignEvidence) SetEnvelope(val string) {
+func (s *PreviewSignEvidence) SetEnvelope(val PreviewSignBase64Url) {
 	s.Envelope = val
 }
 
@@ -39865,7 +39867,7 @@ func (s *PreviewSignEvidence) SetOperation(val PreviewSignEvidenceOperation) {
 }
 
 // SetProofHash sets the value of ProofHash.
-func (s *PreviewSignEvidence) SetProofHash(val string) {
+func (s *PreviewSignEvidence) SetProofHash(val PreviewSignSha256Base64Url) {
 	s.ProofHash = val
 }
 
@@ -39880,7 +39882,7 @@ func (s *PreviewSignEvidence) SetRequestId(val uuid.UUID) {
 }
 
 // SetSignature sets the value of Signature.
-func (s *PreviewSignEvidence) SetSignature(val string) {
+func (s *PreviewSignEvidence) SetSignature(val PreviewSignP256DerSignatureBase64Url) {
 	s.Signature = val
 }
 
@@ -40047,17 +40049,19 @@ func (PreviewSignEvidenceVersion) AllValues() []PreviewSignEvidenceVersion {
 	}
 }
 
+type PreviewSignP256DerSignatureBase64Url string
+
 // Ref: #/components/schemas/PreviewSignPublicMaterial
 type PreviewSignPublicMaterial struct {
-	OuterCredentialId string                           `json:"outerCredentialId"`
+	OuterCredentialId PreviewSignBase64Url             `json:"outerCredentialId"`
 	OuterPublicKey    PreviewSignEs256PublicKey        `json:"outerPublicKey"`
-	PreviewKeyHandle  string                           `json:"previewKeyHandle"`
+	PreviewKeyHandle  PreviewSignBase64Url             `json:"previewKeyHandle"`
 	SeedPublicKey     PreviewSignArkgSeedPublicKey     `json:"seedPublicKey"`
 	Version           PreviewSignPublicMaterialVersion `json:"version"`
 }
 
 // GetOuterCredentialId returns the value of OuterCredentialId.
-func (s *PreviewSignPublicMaterial) GetOuterCredentialId() string {
+func (s *PreviewSignPublicMaterial) GetOuterCredentialId() PreviewSignBase64Url {
 	return s.OuterCredentialId
 }
 
@@ -40067,7 +40071,7 @@ func (s *PreviewSignPublicMaterial) GetOuterPublicKey() PreviewSignEs256PublicKe
 }
 
 // GetPreviewKeyHandle returns the value of PreviewKeyHandle.
-func (s *PreviewSignPublicMaterial) GetPreviewKeyHandle() string {
+func (s *PreviewSignPublicMaterial) GetPreviewKeyHandle() PreviewSignBase64Url {
 	return s.PreviewKeyHandle
 }
 
@@ -40082,7 +40086,7 @@ func (s *PreviewSignPublicMaterial) GetVersion() PreviewSignPublicMaterialVersio
 }
 
 // SetOuterCredentialId sets the value of OuterCredentialId.
-func (s *PreviewSignPublicMaterial) SetOuterCredentialId(val string) {
+func (s *PreviewSignPublicMaterial) SetOuterCredentialId(val PreviewSignBase64Url) {
 	s.OuterCredentialId = val
 }
 
@@ -40092,7 +40096,7 @@ func (s *PreviewSignPublicMaterial) SetOuterPublicKey(val PreviewSignEs256Public
 }
 
 // SetPreviewKeyHandle sets the value of PreviewKeyHandle.
-func (s *PreviewSignPublicMaterial) SetPreviewKeyHandle(val string) {
+func (s *PreviewSignPublicMaterial) SetPreviewKeyHandle(val PreviewSignBase64Url) {
 	s.PreviewKeyHandle = val
 }
 
@@ -40121,12 +40125,12 @@ func (PreviewSignPublicMaterialVersion) AllValues() []PreviewSignPublicMaterialV
 
 // Ref: #/components/schemas/PreviewSignReceipt
 type PreviewSignReceipt struct {
-	Signature string                    `json:"signature"`
-	Version   PreviewSignReceiptVersion `json:"version"`
+	Signature PreviewSignP256DerSignatureBase64Url `json:"signature"`
+	Version   PreviewSignReceiptVersion            `json:"version"`
 }
 
 // GetSignature returns the value of Signature.
-func (s *PreviewSignReceipt) GetSignature() string {
+func (s *PreviewSignReceipt) GetSignature() PreviewSignP256DerSignatureBase64Url {
 	return s.Signature
 }
 
@@ -40136,7 +40140,7 @@ func (s *PreviewSignReceipt) GetVersion() PreviewSignReceiptVersion {
 }
 
 // SetSignature sets the value of Signature.
-func (s *PreviewSignReceipt) SetSignature(val string) {
+func (s *PreviewSignReceipt) SetSignature(val PreviewSignP256DerSignatureBase64Url) {
 	s.Signature = val
 }
 
@@ -40217,6 +40221,8 @@ func (PreviewSignReceiptVersion) AllValues() []PreviewSignReceiptVersion {
 		PreviewSignReceiptVersion1,
 	}
 }
+
+type PreviewSignSha256Base64Url string
 
 // Ref: #/components/schemas/ProblemDetails
 type ProblemDetails struct {

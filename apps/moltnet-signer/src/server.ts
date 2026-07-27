@@ -81,6 +81,7 @@ async function handleRequest(
     }
     const approvalMatch = url.pathname.match(/^\/ceremonies\/([^/]+)$/u);
     if (request.method === 'GET' && approvalMatch) {
+      requireApprovalNavigation(request);
       const ceremonyId = decodePathSegment(approvalMatch);
       const approval = service.getApproval(ceremonyId);
       html(response, 200, renderApprovalPage({ ceremonyId, ...approval }));
@@ -90,6 +91,7 @@ async function handleRequest(
       /^\/ceremonies\/([^/]+)\/confirm$/u,
     );
     if (request.method === 'POST' && confirmMatch) {
+      requireSameOriginConfirmation(request);
       const body = await readForm(request);
       await service.confirmCeremony({
         ceremonyId: decodePathSegment(confirmMatch),
@@ -134,6 +136,31 @@ async function handleRequest(
         message: signerError.message,
       });
     }
+  }
+}
+
+function requireApprovalNavigation(request: IncomingMessage): void {
+  const site = request.headers['sec-fetch-site'];
+  const mode = request.headers['sec-fetch-mode'];
+  const destination = request.headers['sec-fetch-dest'];
+  if (
+    (site !== 'cross-site' && site !== 'same-origin' && site !== 'none') ||
+    mode !== 'navigate' ||
+    destination !== 'document'
+  ) {
+    throw new SignerCeremonyError(
+      'origin_not_allowed',
+      'Approval must be opened as a browser navigation',
+    );
+  }
+}
+
+function requireSameOriginConfirmation(request: IncomingMessage): void {
+  if (request.headers['sec-fetch-site'] !== 'same-origin') {
+    throw new SignerCeremonyError(
+      'origin_not_allowed',
+      'Confirmation must come from the approval page',
+    );
   }
 }
 
@@ -280,5 +307,7 @@ function statusFor(error: SignerCeremonyError): number {
     return 400;
   }
   if (error.code === 'device_failed') return 502;
+  if (error.code === 'device_timeout') return 504;
+  if (error.code === 'server_unavailable') return 503;
   return 409;
 }

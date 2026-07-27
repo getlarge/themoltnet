@@ -39,10 +39,14 @@ export interface SidebarProps {
 export function Sidebar({ collapsed = false, id }: SidebarProps) {
   const theme = useTheme();
   const [location, navigate] = useLocation();
+  const signingEnabled = Boolean(getConfig().signerUrl);
+  const availableNavItems = navItems.filter(
+    (item) => item.path !== '/signing' || signingEnabled,
+  );
 
   // Only the most specific matching nav item highlights, so visiting
   // /tasks/analytics lights up "Analytics", not also the "Tasks" prefix.
-  const activePath = navItems
+  const activePath = availableNavItems
     .filter((item) => isActive(location, item.path))
     .reduce<
       string | null
@@ -64,7 +68,6 @@ export function Sidebar({ collapsed = false, id }: SidebarProps) {
         borderRight: `1px solid ${theme.color.border.DEFAULT}`,
         background: theme.color.bg.void,
         flexShrink: 0,
-        transition: `width ${theme.transition.fast}`,
         overflow: 'hidden',
       }}
     >
@@ -111,7 +114,7 @@ export function Sidebar({ collapsed = false, id }: SidebarProps) {
       {/* Nav items */}
       <nav aria-label="Primary">
         <Stack gap={1}>
-          {navItems.map((item) => {
+          {availableNavItems.map((item) => {
             const active = item.path === activePath;
 
             return (

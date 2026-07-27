@@ -36,9 +36,13 @@ const controllerState = {
   credentials: [credential],
   requests: [request],
   isLoading: false,
-  error: null as string | null,
+  error: null as {
+    code: string;
+    message: string;
+    remediation: string;
+  } | null,
   pendingAction: null,
-  companionStatus: 'connected' as const,
+  companionStatus: 'connected' as 'connected' | 'connecting' | 'unavailable',
   enroll,
   sign,
   reject,
@@ -69,6 +73,7 @@ function Wrapper({ children }: { children: ReactNode }) {
 describe('SigningPage', () => {
   beforeEach(() => {
     controllerState.error = null;
+    controllerState.companionStatus = 'connected';
     for (const mock of [
       enroll,
       sign,
@@ -160,16 +165,34 @@ describe('SigningPage', () => {
   });
 
   it('announces a typed failure without removing the retryable request', () => {
-    controllerState.error = 'The signing challenge expired';
+    controllerState.error = {
+      code: 'ceremony_expired',
+      message: 'The signing challenge expired',
+      remediation: 'Start the signing action again.',
+    };
 
     render(<SigningPage />, { wrapper: Wrapper });
 
     expect(screen.getByRole('alert')).toHaveTextContent(
-      'The signing challenge expired',
+      'Signing action stoppedThe signing challenge expiredStart the signing action again.Error code: ceremony_expired',
     );
     expect(screen.getByText('Approve production deployment')).toBeVisible();
     expect(
       screen.getByRole('button', { name: 'Review and sign request' }),
     ).toBeEnabled();
+  });
+
+  it('explains how to recover when the local companion is unavailable', () => {
+    controllerState.companionStatus = 'unavailable';
+
+    render(<SigningPage />, { wrapper: Wrapper });
+
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Companion unavailable',
+    );
+    expect(screen.getByText(/Start the local signer companion/i)).toBeVisible();
+    expect(
+      screen.getByRole('button', { name: 'Review and sign request' }),
+    ).toHaveAttribute('aria-describedby', 'companion-help');
   });
 });

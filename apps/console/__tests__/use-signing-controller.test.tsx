@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
   reject: vi.fn(),
   revoke: vi.fn(),
   suspend: vi.fn(),
+  selectedTeamId: '770e8400-e29b-41d4-a716-446655440002',
   useQuery: vi.fn(),
   waitForResult: vi.fn(),
 }));
@@ -52,7 +53,7 @@ vi.mock('../src/config.js', () => ({
 vi.mock('../src/team/useTeam.js', () => ({
   useTeam: () => ({
     selectedTeam: {
-      id: '770e8400-e29b-41d4-a716-446655440002',
+      id: mocks.selectedTeamId,
       name: 'Production',
       role: 'owner',
     },
@@ -60,6 +61,14 @@ vi.mock('../src/team/useTeam.js', () => ({
 }));
 
 vi.mock('../src/signing/companion-client.js', () => ({
+  SignerCompanionError: class SignerCompanionError extends Error {
+    constructor(
+      public readonly code: string,
+      message: string,
+    ) {
+      super(message);
+    }
+  },
   createSignerCompanionClient: () => ({
     connect: mocks.connect,
     createCeremony: mocks.createCeremony,
@@ -126,6 +135,7 @@ function popupFixture() {
 describe('useSigningController', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.selectedTeamId = teamId;
     mocks.connect.mockResolvedValue({
       version: 1,
       token: 'process-capability',
@@ -311,5 +321,57 @@ describe('useSigningController', () => {
     expect(mocks.approve).toHaveBeenCalled();
     expect(mocks.suspend).toHaveBeenCalled();
     expect(mocks.revoke).toHaveBeenCalled();
+  });
+
+  it('refuses completion when the selected team changes during approval', async () => {
+    const popup = popupFixture();
+    vi.spyOn(window, 'open').mockReturnValue(popup as unknown as Window);
+    const request = {
+      id: requestId,
+      teamId,
+      verificationMethod: 'human-hardware-previewsign' as const,
+    };
+    let resolveResult:
+      | ((value: {
+          version: 1;
+          status: 'completed';
+          operation: 'signing-request';
+          receipt: typeof receipt;
+        }) => void)
+      | undefined;
+    mocks.claim.mockResolvedValue({
+      data: { ...request, challenge },
+    });
+    mocks.createCeremony.mockResolvedValue({
+      version: 1,
+      id: 'signature',
+      operation: 'signing-request',
+      approvalUrl: 'http://127.0.0.1:17373/ceremonies/signature',
+      expiresAt: '2030-08-01T12:05:00.000Z',
+    });
+    mocks.waitForResult.mockReturnValue(
+      new Promise((resolve) => {
+        resolveResult = resolve;
+      }),
+    );
+    const { result, rerender } = renderHook(() => useSigningController());
+
+    let signing: Promise<void>;
+    act(() => {
+      signing = result.current.sign(request as never, credentialId);
+    });
+    await waitFor(() => expect(mocks.waitForResult).toHaveBeenCalled());
+    mocks.selectedTeamId = '990e8400-e29b-41d4-a716-446655440009';
+    rerender();
+    resolveResult?.({
+      version: 1,
+      status: 'completed',
+      operation: 'signing-request',
+      receipt,
+    });
+
+    await expect(signing!).rejects.toMatchObject({ code: 'team_changed' });
+    expect(mocks.completeRequest).not.toHaveBeenCalled();
+    expect(popup.close).toHaveBeenCalled();
   });
 });

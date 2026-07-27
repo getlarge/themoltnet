@@ -79,7 +79,7 @@ describe('previewSign challenge validation route', () => {
     ).toHaveBeenCalledWith(REGISTRATION_ID);
   });
 
-  it('rejects auth material and unsupported fields before repository access', async () => {
+  it('rejects auth material before repository access', async () => {
     const response = await app.inject({
       method: 'POST',
       url: '/crypto/preview-sign/challenges/validate',
@@ -89,7 +89,30 @@ describe('previewSign challenge validation route', () => {
         operation: 'credential-registration',
         resourceId: REGISTRATION_ID,
         challenge,
-        accessToken: 'must-not-cross-loopback',
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(
+      mocks.signingCredentialRepository.findRegistrationById,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('rejects unknown nested challenge fields through the TypeBox contract', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/crypto/preview-sign/challenges/validate',
+      payload: {
+        version: 1,
+        operation: 'credential-registration',
+        resourceId: REGISTRATION_ID,
+        challenge: {
+          ...challenge,
+          value: {
+            ...challenge.value,
+            clientChosenDigest: 'must-not-be-accepted',
+          },
+        },
       },
     });
 

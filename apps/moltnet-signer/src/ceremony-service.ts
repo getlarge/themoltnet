@@ -1,5 +1,3 @@
-import { createHash, timingSafeEqual } from 'node:crypto';
-
 import { canonicalJsonBytes } from '@moltnet/crypto-service';
 import {
   type SignerCeremony,
@@ -11,11 +9,23 @@ import {
   signerProtocolSchemaContext,
   type SignerSession,
 } from '@moltnet/models';
-import type { CoseEc2PublicKey } from '@themoltnet/yubikey-preview-sign';
+import {
+  bytesEqual,
+  type CoseEc2PublicKey,
+  fromBase64Url,
+  normalizeP256DerSignature,
+  sha256,
+  toBase64Url,
+  utf8,
+} from '@themoltnet/yubikey-preview-sign';
 import { Value } from 'typebox/value';
+
+import type { SignerLogger } from './logger.js';
 
 const SESSION_TTL_MS = 10 * 60 * 1000;
 const CEREMONY_TTL_MS = 5 * 60 * 1000;
+const RESULT_TTL_MS = 60 * 1000;
+const SWEEP_INTERVAL_MS = 30 * 1000;
 const PREVIEW_SIGN_AUDIENCE = 'moltnet:preview-sign';
 const PREVIEW_SIGN_METHOD = 'human-hardware-previewsign';
 const UUID_PATTERN =
@@ -65,6 +75,7 @@ export interface SignerCeremonyServiceOptions {
   validateChallenge(input: ChallengeValidationInput): Promise<{ valid: true }>;
   now?: () => Date;
   randomToken: () => string;
+  logger?: Pick<SignerLogger, 'info' | 'warn'>;
 }
 
 export interface SignerApprovalDisplay {
@@ -88,12 +99,14 @@ interface CeremonyState {
   id: string;
   origin: string;
   sessionToken: string;
-  request: SignerCeremonyRequest;
-  approval: SignerApprovalDisplay;
+  operation: SignerCeremonyRequest['operation'];
+  request?: SignerCeremonyRequest;
+  approval?: SignerApprovalDisplay;
   confirmationToken?: string;
   expiresAt: Date;
   result: SignerCeremonyResult;
   confirmed: boolean;
+  terminalAt?: Date;
 }
 
 export type SignerCeremonyErrorCode =
@@ -104,7 +117,9 @@ export type SignerCeremonyErrorCode =
   | 'challenge_invalid'
   | 'confirmation_invalid'
   | 'ceremony_completed'
-  | 'device_failed';
+  | 'device_failed'
+  | 'device_timeout'
+  | 'server_unavailable';
 
 export class SignerCeremonyError extends Error {
   constructor(
@@ -123,6 +138,7 @@ export class SignerCeremonyService {
   private readonly ceremonies = new Map<string, CeremonyState>();
   private readonly now: () => Date;
   private readonly approvalBaseUrl: string;
+  private readonly sweepTimer: NodeJS.Timeout;
 
   constructor(private readonly options: SignerCeremonyServiceOptions) {
     this.allowedOrigins = new Set(
@@ -130,11 +146,14 @@ export class SignerCeremonyService {
     );
     this.now = options.now ?? (() => new Date());
     this.approvalBaseUrl = options.approvalBaseUrl ?? 'http://127.0.0.1:17373';
+    this.sweepTimer = setInterval(() => this.sweepExpired(), SWEEP_INTERVAL_MS);
+    this.sweepTimer.unref();
   }
 
   createSession(input: { origin: string }): SignerSession {
+    this.sweepExpired();
     const origin = this.requireOrigin(input.origin);
-    const token = this.uniqueToken(this.sessions);
+    const token = this.uniqueCapability();
     const expiresAt = new Date(this.now().getTime() + SESSION_TTL_MS);
     this.sessions.set(token, { origin, expiresAt });
     return { version: 1, token, expiresAt: expiresAt.toISOString() };
@@ -149,6 +168,7 @@ export class SignerCeremonyService {
     sessionToken: string;
     request: SignerCeremonyRequest;
   }): Promise<SignerCeremony> {
+    this.sweepExpired();
     const origin = this.requireOrigin(input.origin);
     this.requireSession(input.sessionToken, origin);
     if (
@@ -193,7 +213,7 @@ export class SignerCeremonyService {
         action: envelope.purpose,
         audience: envelope.audience,
         claimantId: envelope.claimantId,
-        expiresAt: envelope.expiresAt,
+        expiresAt: expiresAt.toISOString(),
         operation: envelope.operation,
         resourceId: envelope.requestId,
         signingPayload: envelope.signingPayload,
@@ -202,14 +222,15 @@ export class SignerCeremonyService {
       };
     }
 
-    const id = this.uniqueToken(this.ceremonies);
-    const confirmationToken = this.options.randomToken();
+    const id = this.uniqueCapability();
+    const confirmationToken = this.uniqueCapability();
     const state: CeremonyState = {
       id,
       origin,
       sessionToken: input.sessionToken,
       request: input.request,
       approval,
+      operation: input.request.operation,
       confirmationToken,
       expiresAt,
       result: {
@@ -220,6 +241,10 @@ export class SignerCeremonyService {
       confirmed: false,
     };
     this.ceremonies.set(id, state);
+    this.options.logger?.info('ceremony.created', {
+      ceremonyId: id,
+      operation: input.request.operation,
+    });
     return {
       version: 1,
       id,
@@ -233,9 +258,16 @@ export class SignerCeremonyService {
     display: SignerApprovalDisplay;
     confirmationToken: string;
   } {
+    this.sweepExpired();
     const ceremony = this.requireCeremony(ceremonyId);
     this.requireCeremonyFresh(ceremony);
     if (!ceremony.confirmationToken || ceremony.confirmed) {
+      throw new SignerCeremonyError(
+        'ceremony_completed',
+        'Ceremony has already been confirmed',
+      );
+    }
+    if (!ceremony.approval) {
       throw new SignerCeremonyError(
         'ceremony_completed',
         'Ceremony has already been confirmed',
@@ -251,6 +283,7 @@ export class SignerCeremonyService {
     ceremonyId: string;
     confirmationToken: string;
   }): Promise<void> {
+    this.sweepExpired();
     const ceremony = this.requireCeremony(input.ceremonyId);
     this.requireCeremonyFresh(ceremony);
     if (
@@ -266,33 +299,46 @@ export class SignerCeremonyService {
 
     ceremony.confirmed = true;
     ceremony.confirmationToken = undefined;
+    this.options.logger?.info('ceremony.confirming', {
+      ceremonyId: ceremony.id,
+      operation: ceremony.operation,
+    });
+    const request = ceremony.request;
+    if (!request) {
+      throw new SignerCeremonyError(
+        'ceremony_completed',
+        'Ceremony has already been confirmed',
+      );
+    }
+    let deviceStarted = false;
     try {
-      if (ceremony.request.operation === 'credential-enrollment') {
-        const publicMaterial = await this.options.device.enroll(
-          ceremony.request.label,
-        );
+      if (request.operation === 'credential-enrollment') {
+        deviceStarted = true;
+        const publicMaterial = await this.options.device.enroll(request.label);
         ceremony.result = {
           version: 1,
           status: 'completed',
           operation: 'credential-enrollment',
           publicMaterial,
         };
+        this.markTerminal(ceremony);
         return;
       }
 
       const envelope = parseChallenge(
-        ceremony.request.operation,
-        ceremony.request.resourceId,
-        ceremony.request.challenge,
+        request.operation,
+        request.resourceId,
+        request.challenge,
         this.now(),
       );
       await this.options.validateChallenge({
         apiUrl: this.options.apiUrl,
-        operation: ceremony.request.operation,
-        resourceId: ceremony.request.resourceId,
-        challenge: ceremony.request.challenge,
+        operation: request.operation,
+        resourceId: request.resourceId,
+        challenge: request.challenge,
       });
-      const challenge = ceremony.request.challenge.value;
+      const challenge = request.challenge.value;
+      deviceStarted = true;
       const signature = await this.options.device.signPreparedDigest({
         digest: strictBase64Url(challenge.digest, 'digest', 32),
         additionalArguments: strictBase64Url(
@@ -309,14 +355,14 @@ export class SignerCeremonyService {
           'previewKeyHandle',
         ),
       });
-      if (
-        signature.length < 8 ||
-        signature.length > 72 ||
-        signature[0] !== 0x30
-      ) {
+      let normalizedSignature: Uint8Array;
+      try {
+        normalizedSignature = normalizeP256DerSignature(signature);
+      } catch (error) {
         throw new SignerCeremonyError(
           'device_failed',
           'Authenticator returned an invalid signature',
+          { cause: error },
         );
       }
       ceremony.result = {
@@ -327,26 +373,44 @@ export class SignerCeremonyService {
           verificationMethod: PREVIEW_SIGN_METHOD,
           value: {
             version: 1,
-            signature: Buffer.from(signature).toString('base64url'),
+            signature: toBase64Url(normalizedSignature),
           },
         },
       };
+      this.markTerminal(ceremony);
     } catch (error) {
       const signerError =
         error instanceof SignerCeremonyError
           ? error
           : new SignerCeremonyError(
-              'device_failed',
-              'Signing ceremony failed',
+              deviceStarted ? 'device_failed' : 'server_unavailable',
+              deviceStarted
+                ? 'Authenticator operation failed; retry approval'
+                : 'Signing server is temporarily unavailable; retry approval',
               { cause: error },
             );
+      if (
+        signerError.code === 'device_failed' ||
+        signerError.code === 'device_timeout' ||
+        signerError.code === 'server_unavailable'
+      ) {
+        ceremony.confirmed = false;
+        ceremony.confirmationToken = this.uniqueCapability();
+        this.options.logger?.warn('ceremony.retryable_failure', {
+          ceremonyId: ceremony.id,
+          operation: ceremony.operation,
+          code: signerError.code,
+        });
+        throw signerError;
+      }
       ceremony.result = {
         version: 1,
         status: 'failed',
-        operation: ceremony.request.operation,
+        operation: ceremony.operation,
         code: signerError.code,
         message: signerError.message,
       };
+      this.markTerminal(ceremony);
       throw signerError;
     }
   }
@@ -356,6 +420,7 @@ export class SignerCeremonyService {
     origin: string;
     sessionToken: string;
   }): SignerCeremonyResult {
+    this.sweepExpired();
     const origin = this.requireOrigin(input.origin);
     this.requireSession(input.sessionToken, origin);
     const ceremony = this.requireCeremony(input.ceremonyId);
@@ -368,19 +433,22 @@ export class SignerCeremonyService {
         'Ceremony is not available',
       );
     }
-    if (
-      ceremony.result.status === 'pending' &&
-      ceremony.expiresAt.getTime() <= this.now().getTime()
-    ) {
-      ceremony.result = {
-        version: 1,
-        status: 'failed',
-        operation: ceremony.request.operation,
-        code: 'ceremony_expired',
-        message: 'Ceremony has expired',
-      };
+    const result = structuredClone(ceremony.result);
+    if (result.status !== 'pending') {
+      this.ceremonies.delete(ceremony.id);
+      this.options.logger?.info('ceremony.delivered', {
+        ceremonyId: ceremony.id,
+        operation: ceremony.operation,
+        code: result.status === 'failed' ? result.code : undefined,
+      });
     }
-    return structuredClone(ceremony.result);
+    return result;
+  }
+
+  dispose(): void {
+    clearInterval(this.sweepTimer);
+    this.sessions.clear();
+    this.ceremonies.clear();
   }
 
   private requireOrigin(value: string): string {
@@ -435,15 +503,78 @@ export class SignerCeremonyService {
     }
   }
 
-  private uniqueToken<T>(map: ReadonlyMap<string, T>): string {
+  private uniqueCapability(): string {
     for (let attempt = 0; attempt < 5; attempt += 1) {
       const token = this.options.randomToken();
-      if (token.length >= 8 && !map.has(token)) return token;
+      if (
+        token.length >= 8 &&
+        !this.sessions.has(token) &&
+        !this.ceremonies.has(token) &&
+        ![...this.ceremonies.values()].some(
+          (ceremony) => ceremony.confirmationToken === token,
+        )
+      ) {
+        return token;
+      }
     }
     throw new SignerCeremonyError(
       'ceremony_invalid',
       'Unable to allocate a ceremony token',
     );
+  }
+
+  private markTerminal(ceremony: CeremonyState): void {
+    ceremony.confirmed = true;
+    ceremony.confirmationToken = undefined;
+    ceremony.request = undefined;
+    ceremony.approval = undefined;
+    ceremony.terminalAt = this.now();
+    this.options.logger?.info(
+      ceremony.result.status === 'completed'
+        ? 'ceremony.completed'
+        : 'ceremony.terminal_failure',
+      {
+        ceremonyId: ceremony.id,
+        operation: ceremony.operation,
+        code:
+          ceremony.result.status === 'failed'
+            ? ceremony.result.code
+            : undefined,
+      },
+    );
+  }
+
+  private sweepExpired(): void {
+    const now = this.now();
+    for (const [token, session] of this.sessions) {
+      if (session.expiresAt.getTime() <= now.getTime()) {
+        this.sessions.delete(token);
+      }
+    }
+    for (const [id, ceremony] of this.ceremonies) {
+      if (
+        ceremony.result.status === 'pending' &&
+        ceremony.expiresAt.getTime() <= now.getTime()
+      ) {
+        ceremony.result = {
+          version: 1,
+          status: 'failed',
+          operation: ceremony.operation,
+          code: 'ceremony_expired',
+          message: 'Ceremony has expired',
+        };
+        this.markTerminal(ceremony);
+      } else if (
+        ceremony.terminalAt &&
+        ceremony.terminalAt.getTime() + RESULT_TTL_MS <= now.getTime()
+      ) {
+        this.ceremonies.delete(id);
+        this.options.logger?.info('ceremony.evicted', {
+          ceremonyId: ceremony.id,
+          operation: ceremony.operation,
+        });
+      }
+    }
   }
 }
 
@@ -476,11 +607,16 @@ function strictBase64Url(
       `${label} is not canonical base64url`,
     );
   }
-  const decoded = Buffer.from(value, 'base64url');
-  if (
-    decoded.toString('base64url') !== value ||
-    (exactBytes !== undefined && decoded.length !== exactBytes)
-  ) {
+  let decoded: Uint8Array;
+  try {
+    decoded = fromBase64Url(value, label);
+  } catch {
+    throw new SignerCeremonyError(
+      'challenge_invalid',
+      `${label} is not canonical base64url`,
+    );
+  }
+  if (exactBytes !== undefined && decoded.length !== exactBytes) {
     throw new SignerCeremonyError(
       'challenge_invalid',
       `${label} is not canonical base64url`,
@@ -507,8 +643,8 @@ function parseChallenge(
   }
   const envelopeBytes = strictBase64Url(challenge.envelope, 'envelope');
   const digest = strictBase64Url(challenge.digest, 'digest', 32);
-  const computedDigest = createHash('sha256').update(envelopeBytes).digest();
-  if (!timingSafeEqual(digest, computedDigest)) {
+  const computedDigest = sha256(envelopeBytes);
+  if (!bytesEqual(digest, computedDigest)) {
     throw new SignerCeremonyError(
       'challenge_invalid',
       'Envelope digest does not match',
@@ -549,7 +685,7 @@ function parseChallenge(
   if (
     Object.keys(parsed).length !== expectedKeys.length ||
     !expectedKeys.every((key) => Object.hasOwn(parsed, key)) ||
-    !Buffer.from(canonicalJsonBytes(parsed)).equals(envelopeBytes)
+    !bytesEqual(canonicalJsonBytes(parsed), envelopeBytes)
   ) {
     throw new SignerCeremonyError(
       'challenge_invalid',
@@ -615,10 +751,5 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function secretEquals(left: string, right: string): boolean {
-  const leftBytes = Buffer.from(left);
-  const rightBytes = Buffer.from(right);
-  return (
-    leftBytes.length === rightBytes.length &&
-    timingSafeEqual(leftBytes, rightBytes)
-  );
+  return bytesEqual(utf8(left), utf8(right));
 }

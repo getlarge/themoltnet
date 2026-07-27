@@ -29,16 +29,22 @@ const DATABASE_URL =
 
 const HYDRA_ADMIN_URL =
   process.env['ORY_HYDRA_ADMIN_URL'] ?? 'http://localhost:4445';
+const HYDRA_PUBLIC_URL =
+  process.env['ORY_HYDRA_PUBLIC_URL'] ?? 'http://localhost:4444';
 const KETO_READ_URL =
   process.env['ORY_KETO_PUBLIC_URL'] ?? 'http://localhost:4466';
 const KETO_WRITE_URL =
   process.env['ORY_KETO_ADMIN_URL'] ?? 'http://localhost:4467';
 const KRATOS_ADMIN_URL =
   process.env['ORY_KRATOS_ADMIN_URL'] ?? 'http://localhost:4434';
+const KRATOS_PUBLIC_URL =
+  process.env['ORY_KRATOS_PUBLIC_URL'] ?? 'http://localhost:4433';
+const REST_API_URL = process.env['SERVER_BASE_URL'] ?? 'http://localhost:8080';
 
 // Resolve repo root for docker compose -f path
 const REPO_ROOT = resolve(import.meta.dirname, '../../..');
 const COMPOSE_FILE = resolve(REPO_ROOT, 'docker-compose.e2e.yaml');
+const COMPOSE_OVERRIDE_FILE = process.env['E2E_COMPOSE_OVERRIDE_FILE'];
 
 // ── Helpers ───────────────────────────────────────────────────────
 
@@ -68,7 +74,7 @@ async function bootstrapSponsorAgent(): Promise<string> {
       mode: 'split',
       kratosAdminUrl: KRATOS_ADMIN_URL,
       hydraAdminUrl: HYDRA_ADMIN_URL,
-      hydraPublicUrl: 'http://localhost:4444',
+      hydraPublicUrl: HYDRA_PUBLIC_URL,
       ketoReadUrl: KETO_READ_URL,
       ketoWriteUrl: KETO_WRITE_URL,
     },
@@ -107,12 +113,14 @@ function restartRestApi(sponsorAgentId: string): void {
   process.env['SPONSOR_AGENT_ID'] = sponsorAgentId;
   process.env['COMPOSE_DISABLE_ENV_FILE'] = 'true';
 
+  const composeFiles = [COMPOSE_FILE, COMPOSE_OVERRIDE_FILE]
+    .filter((file): file is string => Boolean(file))
+    .flatMap((file) => ['-f', file]);
   execFileSync(
     'docker',
     [
       'compose',
-      '-f',
-      COMPOSE_FILE,
+      ...composeFiles,
       'up',
       '-d',
       '--no-deps',
@@ -129,10 +137,10 @@ export default async function setup() {
   console.log('[E2E Setup] Waiting for services to be healthy...');
 
   await Promise.all([
-    waitForHealthy('http://localhost:4433/health/alive'), // Kratos
-    waitForHealthy('http://localhost:4444/health/alive'), // Hydra
-    waitForHealthy('http://localhost:4466/health/alive'), // Keto
-    waitForHealthy('http://localhost:8080/health'), // REST API
+    waitForHealthy(new URL('/health/alive', KRATOS_PUBLIC_URL).href),
+    waitForHealthy(new URL('/health/alive', HYDRA_PUBLIC_URL).href),
+    waitForHealthy(new URL('/health/alive', KETO_READ_URL).href),
+    waitForHealthy(new URL('/health', REST_API_URL).href),
   ]);
 
   console.log('[E2E Setup] All services ready');
@@ -149,7 +157,7 @@ export default async function setup() {
 
     // Wait for rest-api to become healthy again after restart
     console.log('[E2E Setup] Waiting for rest-api to recover...');
-    await waitForHealthy('http://localhost:8080/health');
+    await waitForHealthy(new URL('/health', REST_API_URL).href);
     console.log('[E2E Setup] rest-api healthy with SPONSOR_AGENT_ID');
   } else {
     console.log(
