@@ -155,6 +155,32 @@ The gate turns that analysis into a decision:
 - **Any resolved executable not listed** — blocked in `enforce`, audited in
   `watch`.
 
+Every fail-closed path funnels into one "would-block" decision that the mode then
+resolves — blocked in `enforce`, audited-but-allowed in `watch`:
+
+```mermaid
+flowchart TD
+    CALL["tool_call"] --> MODE{"enforcement mode?"}
+    MODE -->|off| ALLOW["Allow"]
+    MODE -->|"watch / enforce"| KIND{"bash command?"}
+    KIND -->|"no — structured tool"| LISTED{"tool name<br/>in allow-set?"}
+    KIND -->|yes| RES{"statically<br/>resolvable?"}
+    RES -->|no| FENCE["would-block"]
+    RES -->|yes| ARB{"arbitrary-code<br/>interpreter?"}
+    ARB -->|"yes — even if listed"| FENCE
+    ARB -->|no| ALLEXEC{"every executable<br/>in allow-set?"}
+    ALLEXEC -->|yes| ALLOW
+    ALLEXEC -->|no| FENCE
+    LISTED -->|yes| ALLOW
+    LISTED -->|no| FENCE
+    FENCE --> FMODE{"mode?"}
+    FMODE -->|enforce| BLOCK["Block<br/>(fail-closed)"]
+    FMODE -->|watch| AUDIT["Audit + allow<br/>(logged as would-block)"]
+    style ALLOW fill:#e8f5e9,stroke:#2E7D32
+    style AUDIT fill:#fff8e1,stroke:#f9a825
+    style BLOCK fill:#ffebee,stroke:#c62828
+```
+
 ::: warning Known limitation
 The `escapable` tier is currently allow-list-only: a listed `git` / `find` /
 `tar` is allowed and is **not** additionally fail-closed, even though such a
