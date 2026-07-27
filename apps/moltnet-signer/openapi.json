@@ -1,0 +1,911 @@
+{
+  "components": {
+    "schemas": {
+      "PreviewSignArkgSeedPublicKey": {
+        "additionalProperties": false,
+        "properties": {
+          "algorithm": {
+            "enum": [
+              -65700
+            ],
+            "type": "number"
+          },
+          "blindingKey": {
+            "$ref": "#/components/schemas/PreviewSignEs256PublicKey"
+          },
+          "derivedAlgorithm": {
+            "enum": [
+              -9
+            ],
+            "type": "number"
+          },
+          "kemKey": {
+            "$ref": "#/components/schemas/PreviewSignEcdhEsHkdf256PublicKey"
+          },
+          "kty": {
+            "enum": [
+              -65537
+            ],
+            "type": "number"
+          }
+        },
+        "required": [
+          "kty",
+          "algorithm",
+          "derivedAlgorithm",
+          "blindingKey",
+          "kemKey"
+        ],
+        "type": "object"
+      },
+      "PreviewSignBase64Url": {
+        "maxLength": 5462,
+        "minLength": 1,
+        "pattern": "^[A-Za-z0-9_-]+$",
+        "type": "string"
+      },
+      "PreviewSignChallenge": {
+        "additionalProperties": false,
+        "properties": {
+          "additionalArguments": {
+            "$ref": "#/components/schemas/PreviewSignBase64Url"
+          },
+          "digest": {
+            "$ref": "#/components/schemas/PreviewSignSha256Base64Url"
+          },
+          "envelope": {
+            "$ref": "#/components/schemas/PreviewSignBase64Url"
+          },
+          "outerCredentialId": {
+            "$ref": "#/components/schemas/PreviewSignBase64Url"
+          },
+          "outerPublicKey": {
+            "$ref": "#/components/schemas/PreviewSignEs256PublicKey"
+          },
+          "previewKeyHandle": {
+            "$ref": "#/components/schemas/PreviewSignBase64Url"
+          },
+          "verificationMethod": {
+            "enum": [
+              "human-hardware-previewsign"
+            ],
+            "type": "string"
+          },
+          "version": {
+            "enum": [
+              1
+            ],
+            "type": "number"
+          }
+        },
+        "required": [
+          "verificationMethod",
+          "version",
+          "envelope",
+          "digest",
+          "additionalArguments",
+          "outerCredentialId",
+          "outerPublicKey",
+          "previewKeyHandle"
+        ],
+        "type": "object"
+      },
+      "PreviewSignChallengeOperation": {
+        "anyOf": [
+          {
+            "enum": [
+              "credential-registration"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "signing-request"
+            ],
+            "type": "string"
+          }
+        ]
+      },
+      "PreviewSignChallengeValue": {
+        "additionalProperties": false,
+        "properties": {
+          "value": {
+            "$ref": "#/components/schemas/PreviewSignChallenge"
+          },
+          "verificationMethod": {
+            "enum": [
+              "human-hardware-previewsign"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "verificationMethod",
+          "value"
+        ],
+        "type": "object"
+      },
+      "PreviewSignEcdhEsHkdf256PublicKey": {
+        "additionalProperties": false,
+        "properties": {
+          "algorithm": {
+            "enum": [
+              -25
+            ],
+            "type": "number"
+          },
+          "curve": {
+            "enum": [
+              1
+            ],
+            "type": "number"
+          },
+          "kty": {
+            "enum": [
+              2
+            ],
+            "type": "number"
+          },
+          "x": {
+            "$ref": "#/components/schemas/PreviewSignSha256Base64Url"
+          },
+          "y": {
+            "$ref": "#/components/schemas/PreviewSignSha256Base64Url"
+          }
+        },
+        "required": [
+          "kty",
+          "algorithm",
+          "curve",
+          "x",
+          "y"
+        ],
+        "type": "object"
+      },
+      "PreviewSignEs256PublicKey": {
+        "additionalProperties": false,
+        "properties": {
+          "algorithm": {
+            "enum": [
+              -7
+            ],
+            "type": "number"
+          },
+          "curve": {
+            "enum": [
+              1
+            ],
+            "type": "number"
+          },
+          "kty": {
+            "enum": [
+              2
+            ],
+            "type": "number"
+          },
+          "x": {
+            "$ref": "#/components/schemas/PreviewSignSha256Base64Url"
+          },
+          "y": {
+            "$ref": "#/components/schemas/PreviewSignSha256Base64Url"
+          }
+        },
+        "required": [
+          "kty",
+          "algorithm",
+          "curve",
+          "x",
+          "y"
+        ],
+        "type": "object"
+      },
+      "PreviewSignEsp256PublicKey": {
+        "additionalProperties": false,
+        "properties": {
+          "algorithm": {
+            "enum": [
+              -9
+            ],
+            "type": "number"
+          },
+          "curve": {
+            "enum": [
+              1
+            ],
+            "type": "number"
+          },
+          "kty": {
+            "enum": [
+              2
+            ],
+            "type": "number"
+          },
+          "x": {
+            "$ref": "#/components/schemas/PreviewSignSha256Base64Url"
+          },
+          "y": {
+            "$ref": "#/components/schemas/PreviewSignSha256Base64Url"
+          }
+        },
+        "required": [
+          "kty",
+          "algorithm",
+          "curve",
+          "x",
+          "y"
+        ],
+        "type": "object"
+      },
+      "PreviewSignP256DerSignatureBase64Url": {
+        "maxLength": 96,
+        "minLength": 11,
+        "pattern": "^[A-Za-z0-9_-]+$",
+        "type": "string"
+      },
+      "PreviewSignPublicMaterial": {
+        "additionalProperties": false,
+        "properties": {
+          "outerCredentialId": {
+            "$ref": "#/components/schemas/PreviewSignBase64Url"
+          },
+          "outerPublicKey": {
+            "$ref": "#/components/schemas/PreviewSignEs256PublicKey"
+          },
+          "previewKeyHandle": {
+            "$ref": "#/components/schemas/PreviewSignBase64Url"
+          },
+          "seedPublicKey": {
+            "$ref": "#/components/schemas/PreviewSignArkgSeedPublicKey"
+          },
+          "version": {
+            "enum": [
+              1
+            ],
+            "type": "number"
+          }
+        },
+        "required": [
+          "version",
+          "outerCredentialId",
+          "outerPublicKey",
+          "previewKeyHandle",
+          "seedPublicKey"
+        ],
+        "type": "object"
+      },
+      "PreviewSignReceipt": {
+        "additionalProperties": false,
+        "properties": {
+          "signature": {
+            "$ref": "#/components/schemas/PreviewSignP256DerSignatureBase64Url"
+          },
+          "version": {
+            "enum": [
+              1
+            ],
+            "type": "number"
+          }
+        },
+        "required": [
+          "version",
+          "signature"
+        ],
+        "type": "object"
+      },
+      "PreviewSignReceiptValue": {
+        "additionalProperties": false,
+        "properties": {
+          "value": {
+            "$ref": "#/components/schemas/PreviewSignReceipt"
+          },
+          "verificationMethod": {
+            "enum": [
+              "human-hardware-previewsign"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "verificationMethod",
+          "value"
+        ],
+        "type": "object"
+      },
+      "PreviewSignSha256Base64Url": {
+        "maxLength": 43,
+        "minLength": 43,
+        "pattern": "^[A-Za-z0-9_-]+$",
+        "type": "string"
+      },
+      "SignerCeremony": {
+        "additionalProperties": false,
+        "properties": {
+          "approvalUrl": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string"
+          },
+          "id": {
+            "$ref": "#/components/schemas/PreviewSignBase64Url"
+          },
+          "operation": {
+            "$ref": "#/components/schemas/SignerOperation"
+          },
+          "version": {
+            "enum": [
+              1
+            ],
+            "type": "number"
+          }
+        },
+        "required": [
+          "version",
+          "id",
+          "operation",
+          "approvalUrl",
+          "expiresAt"
+        ],
+        "type": "object"
+      },
+      "SignerCeremonyParams": {
+        "additionalProperties": false,
+        "properties": {
+          "ceremonyId": {
+            "$ref": "#/components/schemas/PreviewSignBase64Url"
+          }
+        },
+        "required": [
+          "ceremonyId"
+        ],
+        "type": "object"
+      },
+      "SignerCeremonyRequest": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/SignerEnrollmentCeremonyRequest"
+          },
+          {
+            "$ref": "#/components/schemas/SignerChallengeCeremonyRequest"
+          }
+        ]
+      },
+      "SignerCeremonyResult": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/SignerPendingResult"
+          },
+          {
+            "$ref": "#/components/schemas/SignerEnrollmentResult"
+          },
+          {
+            "$ref": "#/components/schemas/SignerSignatureResult"
+          },
+          {
+            "$ref": "#/components/schemas/SignerFailedResult"
+          }
+        ]
+      },
+      "SignerChallengeCeremonyRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "challenge": {
+            "$ref": "#/components/schemas/PreviewSignChallengeValue"
+          },
+          "operation": {
+            "$ref": "#/components/schemas/PreviewSignChallengeOperation"
+          },
+          "resourceId": {
+            "$ref": "#/components/schemas/SignerUuid"
+          },
+          "version": {
+            "enum": [
+              1
+            ],
+            "type": "number"
+          }
+        },
+        "required": [
+          "version",
+          "operation",
+          "resourceId",
+          "challenge"
+        ],
+        "type": "object"
+      },
+      "SignerEnrollmentCeremonyRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "operation": {
+            "enum": [
+              "credential-enrollment"
+            ],
+            "type": "string"
+          },
+          "teamId": {
+            "$ref": "#/components/schemas/SignerUuid"
+          },
+          "version": {
+            "enum": [
+              1
+            ],
+            "type": "number"
+          }
+        },
+        "required": [
+          "version",
+          "operation",
+          "label",
+          "teamId"
+        ],
+        "type": "object"
+      },
+      "SignerEnrollmentResult": {
+        "additionalProperties": false,
+        "properties": {
+          "operation": {
+            "enum": [
+              "credential-enrollment"
+            ],
+            "type": "string"
+          },
+          "publicMaterial": {
+            "$ref": "#/components/schemas/PreviewSignPublicMaterial"
+          },
+          "status": {
+            "enum": [
+              "completed"
+            ],
+            "type": "string"
+          },
+          "version": {
+            "enum": [
+              1
+            ],
+            "type": "number"
+          }
+        },
+        "required": [
+          "version",
+          "status",
+          "operation",
+          "publicMaterial"
+        ],
+        "type": "object"
+      },
+      "SignerFailedResult": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "operation": {
+            "$ref": "#/components/schemas/SignerOperation"
+          },
+          "status": {
+            "enum": [
+              "failed"
+            ],
+            "type": "string"
+          },
+          "version": {
+            "enum": [
+              1
+            ],
+            "type": "number"
+          }
+        },
+        "required": [
+          "version",
+          "status",
+          "operation",
+          "code",
+          "message"
+        ],
+        "type": "object"
+      },
+      "SignerOperation": {
+        "anyOf": [
+          {
+            "enum": [
+              "credential-enrollment"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "credential-registration"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "signing-request"
+            ],
+            "type": "string"
+          }
+        ]
+      },
+      "SignerPendingResult": {
+        "additionalProperties": false,
+        "properties": {
+          "operation": {
+            "$ref": "#/components/schemas/SignerOperation"
+          },
+          "status": {
+            "enum": [
+              "pending"
+            ],
+            "type": "string"
+          },
+          "version": {
+            "enum": [
+              1
+            ],
+            "type": "number"
+          }
+        },
+        "required": [
+          "version",
+          "status",
+          "operation"
+        ],
+        "type": "object"
+      },
+      "SignerProblem": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "message": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "type": "object"
+      },
+      "SignerSession": {
+        "additionalProperties": false,
+        "properties": {
+          "expiresAt": {
+            "type": "string"
+          },
+          "token": {
+            "$ref": "#/components/schemas/PreviewSignBase64Url"
+          },
+          "version": {
+            "enum": [
+              1
+            ],
+            "type": "number"
+          }
+        },
+        "required": [
+          "version",
+          "token",
+          "expiresAt"
+        ],
+        "type": "object"
+      },
+      "SignerSignatureResult": {
+        "additionalProperties": false,
+        "properties": {
+          "operation": {
+            "$ref": "#/components/schemas/PreviewSignChallengeOperation"
+          },
+          "receipt": {
+            "$ref": "#/components/schemas/PreviewSignReceiptValue"
+          },
+          "status": {
+            "enum": [
+              "completed"
+            ],
+            "type": "string"
+          },
+          "version": {
+            "enum": [
+              1
+            ],
+            "type": "number"
+          }
+        },
+        "required": [
+          "version",
+          "status",
+          "operation",
+          "receipt"
+        ],
+        "type": "object"
+      },
+      "SignerUuid": {
+        "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+        "type": "string"
+      }
+    },
+    "securitySchemes": {
+      "signerSession": {
+        "description": "Short-lived, origin-bound signer companion capability.",
+        "in": "header",
+        "name": "x-moltnet-signer-session",
+        "type": "apiKey"
+      }
+    }
+  },
+  "info": {
+    "description": "Private loopback protocol between MoltNet Console and the local signer companion.",
+    "title": "MoltNet signer companion API",
+    "version": "1.0.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/v1/ceremonies": {
+      "post": {
+        "description": "Create an enrollment or previewSign ceremony for explicit local approval.",
+        "operationId": "createSignerCeremony",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SignerCeremonyRequest"
+                  }
+                ],
+                "properties": {
+                  "operation": {
+                    "$ref": "#/components/schemas/SignerOperation"
+                  },
+                  "version": {
+                    "enum": [
+                      1
+                    ],
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "version",
+                  "operation"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignerCeremony"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignerProblem"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignerProblem"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignerProblem"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignerProblem"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignerProblem"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignerProblem"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "504": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignerProblem"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "signerSession": []
+          }
+        ],
+        "tags": [
+          "signer"
+        ]
+      }
+    },
+    "/v1/ceremonies/{ceremonyId}/result": {
+      "get": {
+        "description": "Read the current result of a signer ceremony.",
+        "operationId": "getSignerCeremonyResult",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ceremonyId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/PreviewSignBase64Url"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignerCeremonyResult"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignerProblem"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignerProblem"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignerProblem"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignerProblem"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "signerSession": []
+          }
+        ],
+        "tags": [
+          "signer"
+        ]
+      }
+    },
+    "/v1/sessions": {
+      "post": {
+        "description": "Create a short-lived signer capability bound to the browser Origin header.",
+        "operationId": "createSignerSession",
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignerSession"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignerProblem"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignerProblem"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "tags": [
+          "signer"
+        ]
+      }
+    }
+  },
+  "servers": [
+    {
+      "description": "Local signer companion",
+      "url": "http://127.0.0.1:{port}",
+      "variables": {
+        "port": {
+          "default": "17373",
+          "description": "Ephemeral or explicitly configured loopback port"
+        }
+      }
+    }
+  ]
+}

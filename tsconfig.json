@@ -78,6 +78,9 @@
       "path": "libs/api-client"
     },
     {
+      "path": "libs/signer-api-client"
+    },
+    {
       "path": "libs/auth"
     },
     {

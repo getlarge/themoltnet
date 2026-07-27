@@ -58,6 +58,23 @@ export const SignerPreviewSignChallengeSchema = PreviewSignChallengeSchema;
 export const SignerPreviewSignChallengeValueSchema =
   PreviewSignChallengeValueSchema;
 
+export const SignerProblemSchema = Type.Object(
+  {
+    code: Type.String({ minLength: 1 }),
+    message: Type.String({ minLength: 1 }),
+  },
+  { $id: 'SignerProblem', additionalProperties: false },
+);
+
+export const SignerCeremonyParamsSchema = Type.Object(
+  {
+    ceremonyId: Type.Unsafe<Static<typeof SignerBase64UrlSchema>>(
+      schemaRef(SignerBase64UrlSchema),
+    ),
+  },
+  { $id: 'SignerCeremonyParams', additionalProperties: false },
+);
+
 export const SignerSessionSchema = Type.Object(
   {
     version: Type.Literal(1),
@@ -200,6 +217,8 @@ export const signerProtocolSchemaContext = {
   ...previewSignSchemaContext,
   [schemaId(SignerUuidSchema)]: SignerUuidSchema,
   [schemaId(SignerOperationSchema)]: SignerOperationSchema,
+  [schemaId(SignerProblemSchema)]: SignerProblemSchema,
+  [schemaId(SignerCeremonyParamsSchema)]: SignerCeremonyParamsSchema,
   [schemaId(SignerSessionSchema)]: SignerSessionSchema,
   [schemaId(SignerEnrollmentCeremonyRequestSchema)]:
     SignerEnrollmentCeremonyRequestSchema,
@@ -220,6 +239,8 @@ export type SignerPreviewSignPublicMaterial = Static<
 export type SignerPreviewSignChallengeValue = Static<
   typeof SignerPreviewSignChallengeValueSchema
 >;
+export type SignerProblem = Static<typeof SignerProblemSchema>;
+export type SignerCeremonyParams = Static<typeof SignerCeremonyParamsSchema>;
 export type SignerSession = Static<typeof SignerSessionSchema>;
 export type SignerCeremonyRequest = Static<typeof SignerCeremonyRequestSchema>;
 export type SignerCeremony = Static<typeof SignerCeremonySchema>;

@@ -24,6 +24,7 @@
   },
   "scripts": {
     "build": "vite build",
+    "generate:openapi": "tsx scripts/generate-openapi.ts",
     "start": "node dist/main.js",
     "test": "vitest run",
     "check:pack": "tsx ../../tools/src/check-pack.ts --package . && pnpm run smoke:pack",
@@ -40,6 +41,7 @@
   "dependencies": {
     "@fastify/cors": "catalog:",
     "@fastify/helmet": "catalog:",
+    "@fastify/swagger": "catalog:",
     "@fastify/type-provider-typebox": "catalog:",
     "fastify": "catalog:",
     "node-hid": "catalog:",
