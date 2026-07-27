@@ -135,7 +135,7 @@
       "path": "libs/observability"
     },
     {
-      "path": "libs/orchestration"
+      "path": "libs/tasks-orchestrator"
     },
     {
       "path": "libs/pi-extension"

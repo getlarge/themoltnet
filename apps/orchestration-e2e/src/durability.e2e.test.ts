@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
  * service in docker-compose.e2e.yaml). This proves the property the whole
  * `@themoltnet/tasks-orchestrator` design rests on — that completed `ctx.step`
  * checkpoints are replayed from Absurd's store and NOT re-executed when a run is
- * retried after a mid-run failure. The unit suites in `libs/orchestration` cover
+ * retried after a mid-run failure. The unit suites in `libs/tasks-orchestrator` cover
  * the same primitives with `inlineContext` / a fake memoizing ctx; only a real
  * Absurd worker can prove the checkpoint store actually behaves this way.
  *

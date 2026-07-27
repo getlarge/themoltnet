@@ -64,8 +64,8 @@ jobs:
     outputs:
       sdk-release-created: ${{ steps.release.outputs['libs/sdk--release_created'] }}
       sdk-tag-name: ${{ steps.release.outputs['libs/sdk--tag_name'] }}
-      tasks-orchestrator-release-created: ${{ steps.release.outputs['libs/orchestration--release_created'] }}
-      tasks-orchestrator-tag-name: ${{ steps.release.outputs['libs/orchestration--tag_name'] }}
+      tasks-orchestrator-release-created: ${{ steps.release.outputs['libs/tasks-orchestrator--release_created'] }}
+      tasks-orchestrator-tag-name: ${{ steps.release.outputs['libs/tasks-orchestrator--tag_name'] }}
       ctap-release-created: ${{ steps.release.outputs['libs/ctap--release_created'] }}
       ctap-tag-name: ${{ steps.release.outputs['libs/ctap--tag_name'] }}
       yubikey-preview-sign-release-created: ${{ steps.release.outputs['libs/yubikey-preview-sign--release_created'] }}

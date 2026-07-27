@@ -80,11 +80,6 @@
       "component": "node-red-theme",
       "release-type": "node"
     },
-    "libs/orchestration": {
-      "bump-minor-pre-major": true,
-      "component": "tasks-orchestrator",
-      "release-type": "node"
-    },
     "libs/pi-extension": {
       "component": "pi-extension",
       "release-type": "node"
@@ -95,6 +90,11 @@
     },
     "libs/shell-command-analyzer": {
       "component": "shell-command-analyzer",
+      "release-type": "node"
+    },
+    "libs/tasks-orchestrator": {
+      "bump-minor-pre-major": true,
+      "component": "tasks-orchestrator",
       "release-type": "node"
     },
     "libs/yubikey-preview-sign": {
