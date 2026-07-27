@@ -1,0 +1,1 @@
+CREATE INDEX "signing_requests_active_pending_idx" ON "signing_requests" USING btree ("agent_id","expires_at") WHERE status = 'pending';

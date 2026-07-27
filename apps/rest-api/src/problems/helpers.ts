@@ -9,6 +9,7 @@ interface ProblemError extends Error {
   validationErrors?: ValidationError[];
   /** RFC 9457 extension members merged into the problem+json body. */
   extensions?: Record<string, unknown>;
+  retryAfter?: number;
 }
 
 /**
@@ -46,6 +47,9 @@ export function createProblem(
   error.detail = detail;
   if (extensions) {
     error.extensions = extensions;
+    if (typeof extensions.retryAfter === 'number') {
+      error.retryAfter = extensions.retryAfter;
+    }
   }
   return error;
 }

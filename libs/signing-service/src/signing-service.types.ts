@@ -5,6 +5,11 @@ import type {
   SigningRequestRepository,
   TransactionRunner,
 } from '@moltnet/database';
+import type { VerificationMethod } from '@moltnet/models';
+
+export interface SigningServiceLogger {
+  error(fields: Record<string, unknown>, message: string): void;
+}
 
 export interface SigningServiceDeps {
   signingCredentialRepository: SigningCredentialRepository;
@@ -14,6 +19,15 @@ export interface SigningServiceDeps {
   relationshipReader: RelationshipReader;
   groupRepository: GroupRepository;
   signingTimeoutSeconds: number;
+  maxPendingSigningRequests: number;
+  logger?: SigningServiceLogger;
+  startAgentSigningWorkflow?: (input: {
+    id: string;
+    agentId: string;
+    message: string;
+    nonce: string;
+    verificationMethod: VerificationMethod;
+  }) => Promise<{ workflowID: string }>;
   now?: () => Date;
   createId?: () => string;
 }

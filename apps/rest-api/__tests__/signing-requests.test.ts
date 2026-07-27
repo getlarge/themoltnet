@@ -10,7 +10,9 @@ import { DBOS } from '@moltnet/database';
 import type * as SigningWorkflowModule from '@moltnet/signing-workflows';
 import {
   assertSigningVerifierRegistered,
+  SigningResultTimeoutError,
   SigningVerifierNotRegisteredError,
+  waitForSigningResult,
 } from '@moltnet/signing-workflows';
 import type { FastifyInstance } from 'fastify';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -53,12 +55,14 @@ vi.mock('@moltnet/signing-workflows', async (importOriginal) => {
     signingWorkflows: {
       requestSignature: vi.fn(),
     },
+    waitForSigningResult: vi.fn(original.waitForSigningResult),
   };
 });
 
 const OWNER_ID = '550e8400-e29b-41d4-a716-446655440000';
 const OTHER_AGENT_ID = '660e8400-e29b-41d4-a716-446655440001';
 const REQUEST_ID = '990e8400-e29b-41d4-a716-446655440010';
+const MAX_PENDING_SIGNING_REQUESTS = 10;
 
 const VALID_AUTH_CONTEXT: AuthContext = {
   subjectType: 'agent',
@@ -98,7 +102,12 @@ function createSigningRepo() {
     findById: vi.fn(),
     list: vi.fn(),
     setWorkflowId: vi.fn(),
-    countByAgent: vi.fn(),
+    completeAgentRequest: vi.fn(),
+    acquirePendingCreateLock: vi.fn(),
+    getActivePendingSummaryByAgent: vi.fn().mockResolvedValue({
+      count: 0,
+      earliestExpiresAt: null,
+    }),
   };
 }
 
@@ -154,6 +163,7 @@ function createApp(
     } as unknown as VoucherRepository,
     signingRequestRepository:
       signingRepo as unknown as SigningRequestRepository,
+    maxPendingSigningRequests: MAX_PENDING_SIGNING_REQUESTS,
     dataSource: {
       client: { __mock: 'transactionalClient' },
       runTransaction: vi.fn().mockImplementation(async (fn) => fn()),
@@ -218,6 +228,7 @@ describe('Signing request routes', () => {
   let signingRepo: ReturnType<typeof createSigningRepo>;
 
   beforeEach(async () => {
+    vi.mocked(DBOS.startWorkflow).mockClear();
     signingRepo = createSigningRepo();
     app = await createApp(signingRepo);
   });
@@ -274,6 +285,33 @@ describe('Signing request routes', () => {
       });
 
       expect(response.statusCode).toBe(401);
+    });
+
+    it('returns 429 when the durable pending cap is reached', async () => {
+      signingRepo.getActivePendingSummaryByAgent.mockResolvedValue({
+        count: MAX_PENDING_SIGNING_REQUESTS,
+        earliestExpiresAt: new Date(Date.now() + 120_000),
+      });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/crypto/signing-requests',
+        headers: { authorization: 'Bearer test-token' },
+        payload: { message: 'One request too many' },
+      });
+
+      expect(response.statusCode).toBe(429);
+      const body = response.json();
+      expect(Number(response.headers['retry-after'])).toBeGreaterThan(0);
+      expect(Number(response.headers['retry-after'])).toBeLessThanOrEqual(120);
+      expect(body).toEqual(
+        expect.objectContaining({
+          code: 'SIGNING_REQUEST_LIMIT_REACHED',
+          retryAfter: Number(response.headers['retry-after']),
+        }),
+      );
+      expect(signingRepo.create).not.toHaveBeenCalled();
+      expect(DBOS.startWorkflow).not.toHaveBeenCalled();
     });
 
     it('rejects a verification method with no registered verifier', async () => {
@@ -447,6 +485,31 @@ describe('Signing request routes', () => {
         code: 'SIGNING_REQUEST_EXPIRED',
         conflict: {},
       });
+    });
+
+    it('returns 409 with polling guidance when verification is still pending', async () => {
+      const pending = createMockSigningRequest();
+      signingRepo.findById.mockResolvedValue(pending);
+      vi.mocked(waitForSigningResult).mockRejectedValueOnce(
+        new SigningResultTimeoutError(REQUEST_ID),
+      );
+
+      const response = await app.inject({
+        method: 'POST',
+        url: `/crypto/signing-requests/${REQUEST_ID}/sign`,
+        headers: { authorization: 'Bearer test-token' },
+        payload: { signature: 'ed25519:sig123' },
+      });
+
+      expect(response.statusCode).toBe(409);
+      expect(response.json()).toEqual(
+        expect.objectContaining({
+          code: 'CONFLICT',
+          detail: expect.stringContaining(
+            `GET /crypto/signing-requests/${REQUEST_ID}`,
+          ),
+        }),
+      );
     });
 
     it('returns 409 for already completed request', async () => {

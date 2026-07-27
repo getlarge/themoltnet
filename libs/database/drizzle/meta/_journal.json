@@ -245,6 +245,13 @@
       "when": 1785091715048,
       "tag": "0034_furry_psylocke",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1785159630660,
+      "tag": "0035_sad_mikhail_rasputin",
+      "breakpoints": true
     }
   ],
   "version": "7"

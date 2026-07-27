@@ -21,6 +21,7 @@ import {
   sql,
 } from 'drizzle-orm';
 
+import { acquireTransactionAdvisoryLock } from '../advisory-lock.js';
 import type { Database } from '../db.js';
 import {
   type NewSigningRequest,
@@ -361,18 +362,42 @@ export function createSigningRequestRepository(db: Database) {
       return rejected ?? null;
     },
 
-    async countByAgent(agentId: string): Promise<number> {
-      const [{ value }] = await getExecutor(db)
-        .select({ value: count() })
+    async acquirePendingCreateLock(agentId: string): Promise<void> {
+      await acquireTransactionAdvisoryLock(
+        db,
+        'signing-request:create',
+        agentId,
+        'acquirePendingCreateLock',
+      );
+    },
+
+    async getActivePendingSummaryByAgent(agentId: string): Promise<{
+      count: number;
+      earliestExpiresAt: Date | null;
+    }> {
+      const [summary] = await getExecutor(db)
+        .select({
+          count: count(),
+          earliestExpiresAt: sql<
+            string | null
+          >`min(${signingRequests.expiresAt})`,
+        })
         .from(signingRequests)
         .where(
           and(
             eq(signingRequests.agentId, agentId),
             eq(signingRequests.status, 'pending'),
+            gt(signingRequests.expiresAt, sql`now()`),
           ),
         );
 
-      return value;
+      return {
+        count: summary.count,
+        earliestExpiresAt:
+          summary.earliestExpiresAt === null
+            ? null
+            : new Date(summary.earliestExpiresAt),
+      };
     },
 
     async expireDelegated(now = new Date(), limit = 100): Promise<number> {

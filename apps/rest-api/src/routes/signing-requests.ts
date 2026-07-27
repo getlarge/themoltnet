@@ -104,6 +104,7 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
           201: Type.Ref(SigningRequestSchema.$id),
           401: Type.Ref(ProblemDetailsSchema.$id),
           403: Type.Ref(ProblemDetailsSchema.$id),
+          429: Type.Ref(ProblemDetailsSchema.$id),
           500: Type.Ref(ProblemDetailsSchema.$id),
         },
       },

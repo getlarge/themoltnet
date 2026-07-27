@@ -184,6 +184,7 @@ export interface AppOptions {
   dataSource: DataSource;
   transactionRunner: TransactionRunner;
   signingTimeoutSeconds?: number;
+  maxPendingSigningRequests?: number;
   permissionChecker: PermissionChecker;
   relationshipReader: RelationshipReader;
   relationshipWriter: RelationshipWriter;
@@ -410,6 +411,8 @@ export async function registerApiRoutes(
       relationshipReader: options.relationshipReader,
       groupRepository: options.groupRepository,
       signingTimeoutSeconds: options.signingTimeoutSeconds ?? 300,
+      maxPendingSigningRequests: options.maxPendingSigningRequests ?? 10,
+      logger: app.log,
     }),
   );
   decorateSafe('dataSource', options.dataSource);

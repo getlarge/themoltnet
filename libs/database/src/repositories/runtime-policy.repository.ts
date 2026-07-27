@@ -1,5 +1,6 @@
 import { and, eq, inArray, sql } from 'drizzle-orm';
 
+import { acquireTransactionAdvisoryLock } from '../advisory-lock.js';
 import type { Database } from '../db.js';
 import {
   type NewRuntimePolicy,
@@ -108,8 +109,11 @@ export function createRuntimePolicyRepository(db: Database) {
      * MUST be called inside a transaction.
      */
     async lockProfileBindings(profileId: string): Promise<void> {
-      await getExecutor(db).execute(
-        sql`SELECT pg_advisory_xact_lock(hashtextextended(${profileId}, 0))`,
+      await acquireTransactionAdvisoryLock(
+        db,
+        'runtime-policy:profile-bindings',
+        profileId,
+        'lockProfileBindings',
       );
     },
 

@@ -630,6 +630,12 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   });
 
   // ── REST API routes ────────────────────────────────────────────
+  app.log.info(
+    {
+      maxPendingSigningRequests: config.security.SIGNING_MAX_PENDING_REQUESTS,
+    },
+    'signing_request.pending_cap_configured',
+  );
   await registerApiRoutes(app, {
     diaryService,
     diaryEntryRepository,
@@ -664,6 +670,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     nonceRepository,
     dataSource,
     transactionRunner: dbosTransactionRunner,
+    maxPendingSigningRequests: config.security.SIGNING_MAX_PENDING_REQUESTS,
     permissionChecker,
     relationshipReader,
     relationshipWriter,

@@ -7,15 +7,16 @@
  * triggered it (the task service composes both writes inside one
  * DB transaction via `getExecutor(db)`).
  */
-import { eq, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 
+import { acquireTransactionAdvisoryLock } from '../advisory-lock.js';
 import type { Database } from '../db.js';
 import {
   type CorrelationSeal,
   correlationSeals,
   type NewCorrelationSeal,
 } from '../schema.js';
-import { getExecutor, hasActiveTransaction } from '../transaction-context.js';
+import { getExecutor } from '../transaction-context.js';
 
 export function createCorrelationSealRepository(db: Database) {
   return {
@@ -37,13 +38,11 @@ export function createCorrelationSealRepository(db: Database) {
      * skipping serialization.
      */
     async acquireCorrelationLock(correlationId: string): Promise<void> {
-      if (!hasActiveTransaction()) {
-        throw new Error(
-          'acquireCorrelationLock must be called inside a TransactionRunner-managed transaction; pg_advisory_xact_lock has no effect outside one',
-        );
-      }
-      await getExecutor(db).execute(
-        sql`SELECT pg_advisory_xact_lock(hashtextextended(${correlationId}::text, 0::bigint))`,
+      await acquireTransactionAdvisoryLock(
+        db,
+        'correlation-seal',
+        correlationId,
+        'acquireCorrelationLock',
       );
     },
 

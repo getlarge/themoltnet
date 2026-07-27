@@ -23,6 +23,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createAgent, type TestAgent } from './helpers.js';
 import { createTestHarness, type TestHarness } from './setup.js';
 
+const MAX_PENDING_SIGNING_REQUESTS = 10;
+
 describe('Signing requests', () => {
   let harness: TestHarness;
   let client: Client;
@@ -43,6 +45,24 @@ describe('Signing requests', () => {
     await harness?.teardown();
   });
 
+  async function completeRequest(
+    request: { id: string; message: string; nonce: string },
+    signer: TestAgent,
+  ) {
+    const signature = await cryptoService.signWithNonce(
+      request.message,
+      request.nonce,
+      signer.keyPair.privateKey,
+    );
+    const { error } = await submitSignature({
+      client,
+      auth: () => signer.accessToken,
+      path: { id: request.id },
+      body: { signature },
+    });
+    expect(error).toBeUndefined();
+  }
+
   // ── Create ──────────────────────────────────────────────────
 
   it('creates a signing request', async () => {
@@ -59,6 +79,7 @@ describe('Signing requests', () => {
     expect(data!.status).toBe('pending');
     expect(data!.agentId).toBe(agent.identityId);
     expect(data!.expiresAt).toBeDefined();
+    await completeRequest(data!, agent);
   });
 
   it('rejects unauthenticated create', async () => {
@@ -71,9 +92,44 @@ describe('Signing requests', () => {
     expect(response.status).toBe(401);
   });
 
+  it('enforces the pending cap across concurrent create requests', async () => {
+    const cappedAgent = await createAgent({
+      baseUrl: harness.baseUrl,
+      db: harness.db,
+      bootstrapIdentityId: harness.bootstrapIdentityId,
+    });
+
+    const results = await Promise.all(
+      Array.from({ length: MAX_PENDING_SIGNING_REQUESTS + 1 }, (_, index) =>
+        createSigningRequest({
+          client,
+          auth: () => cappedAgent.accessToken,
+          body: { message: `Concurrent cap request ${index}` },
+        }),
+      ),
+    );
+
+    const successful = results.filter(
+      ({ response }) => response.status === 201,
+    );
+    const rejected = results.filter(({ response }) => response.status === 429);
+    expect(successful).toHaveLength(MAX_PENDING_SIGNING_REQUESTS);
+    expect(rejected).toHaveLength(1);
+    expect(rejected[0]!.error).toEqual(
+      expect.objectContaining({
+        code: 'SIGNING_REQUEST_LIMIT_REACHED',
+      }),
+    );
+  });
+
   // ── List ────────────────────────────────────────────────────
 
   it('lists signing requests for the agent', async () => {
+    const { data: seed } = await createSigningRequest({
+      client,
+      auth: () => agent.accessToken,
+      body: { message: 'List seed' },
+    });
     const { data, error } = await listSigningRequests({
       client,
       auth: () => agent.accessToken,
@@ -82,9 +138,15 @@ describe('Signing requests', () => {
     expect(error).toBeUndefined();
     expect(data!.items.length).toBeGreaterThanOrEqual(1);
     expect(data!.total).toBeGreaterThanOrEqual(1);
+    await completeRequest(seed!, agent);
   });
 
   it('filters by status', async () => {
+    const { data: seed } = await createSigningRequest({
+      client,
+      auth: () => agent.accessToken,
+      body: { message: 'Pending status seed' },
+    });
     const { data, error } = await listSigningRequests({
       client,
       auth: () => agent.accessToken,
@@ -95,6 +157,7 @@ describe('Signing requests', () => {
     for (const item of data!.items) {
       expect(item.status).toBe('pending');
     }
+    await completeRequest(seed!, agent);
   });
 
   it('filters by multiple repeated status query params', async () => {
@@ -135,6 +198,7 @@ describe('Signing requests', () => {
         (item) => item.status === 'pending' || item.status === 'completed',
       ),
     ).toBe(true);
+    await completeRequest(pending!, agent);
   });
 
   // ── Get ─────────────────────────────────────────────────────
@@ -155,6 +219,7 @@ describe('Signing requests', () => {
     expect(error).toBeUndefined();
     expect(data!.id).toBe(created!.id);
     expect(data!.message).toBe('Get test');
+    await completeRequest(created!, agent);
   });
 
   it('returns 404 for non-existent request', async () => {

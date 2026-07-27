@@ -4195,6 +4195,8 @@ func (s *BeginRuntimeSlotBadRequestCode) Decode(d *jx.Decoder) error {
 		*s = BeginRuntimeSlotBadRequestCodeSIGNINGREQUESTEXPIRED
 	case BeginRuntimeSlotBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = BeginRuntimeSlotBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED
+	case BeginRuntimeSlotBadRequestCodeSIGNINGREQUESTLIMITREACHED:
+		*s = BeginRuntimeSlotBadRequestCodeSIGNINGREQUESTLIMITREACHED
 	case BeginRuntimeSlotBadRequestCodeREGISTRATIONFAILED:
 		*s = BeginRuntimeSlotBadRequestCodeREGISTRATIONFAILED
 	case BeginRuntimeSlotBadRequestCodeUPSTREAMERROR:
@@ -4558,6 +4560,8 @@ func (s *BeginRuntimeSlotConflictCode) Decode(d *jx.Decoder) error {
 		*s = BeginRuntimeSlotConflictCodeSIGNINGREQUESTEXPIRED
 	case BeginRuntimeSlotConflictCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = BeginRuntimeSlotConflictCodeSIGNINGREQUESTALREADYCOMPLETED
+	case BeginRuntimeSlotConflictCodeSIGNINGREQUESTLIMITREACHED:
+		*s = BeginRuntimeSlotConflictCodeSIGNINGREQUESTLIMITREACHED
 	case BeginRuntimeSlotConflictCodeREGISTRATIONFAILED:
 		*s = BeginRuntimeSlotConflictCodeREGISTRATIONFAILED
 	case BeginRuntimeSlotConflictCodeUPSTREAMERROR:
@@ -4906,6 +4910,8 @@ func (s *BeginRuntimeSlotForbiddenCode) Decode(d *jx.Decoder) error {
 		*s = BeginRuntimeSlotForbiddenCodeSIGNINGREQUESTEXPIRED
 	case BeginRuntimeSlotForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = BeginRuntimeSlotForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED
+	case BeginRuntimeSlotForbiddenCodeSIGNINGREQUESTLIMITREACHED:
+		*s = BeginRuntimeSlotForbiddenCodeSIGNINGREQUESTLIMITREACHED
 	case BeginRuntimeSlotForbiddenCodeREGISTRATIONFAILED:
 		*s = BeginRuntimeSlotForbiddenCodeREGISTRATIONFAILED
 	case BeginRuntimeSlotForbiddenCodeUPSTREAMERROR:
@@ -5254,6 +5260,8 @@ func (s *BeginRuntimeSlotNotFoundCode) Decode(d *jx.Decoder) error {
 		*s = BeginRuntimeSlotNotFoundCodeSIGNINGREQUESTEXPIRED
 	case BeginRuntimeSlotNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = BeginRuntimeSlotNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED
+	case BeginRuntimeSlotNotFoundCodeSIGNINGREQUESTLIMITREACHED:
+		*s = BeginRuntimeSlotNotFoundCodeSIGNINGREQUESTLIMITREACHED
 	case BeginRuntimeSlotNotFoundCodeREGISTRATIONFAILED:
 		*s = BeginRuntimeSlotNotFoundCodeREGISTRATIONFAILED
 	case BeginRuntimeSlotNotFoundCodeUPSTREAMERROR:
@@ -6362,6 +6370,8 @@ func (s *BeginRuntimeSlotUnauthorizedCode) Decode(d *jx.Decoder) error {
 		*s = BeginRuntimeSlotUnauthorizedCodeSIGNINGREQUESTEXPIRED
 	case BeginRuntimeSlotUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = BeginRuntimeSlotUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED
+	case BeginRuntimeSlotUnauthorizedCodeSIGNINGREQUESTLIMITREACHED:
+		*s = BeginRuntimeSlotUnauthorizedCodeSIGNINGREQUESTLIMITREACHED
 	case BeginRuntimeSlotUnauthorizedCodeREGISTRATIONFAILED:
 		*s = BeginRuntimeSlotUnauthorizedCodeREGISTRATIONFAILED
 	case BeginRuntimeSlotUnauthorizedCodeUPSTREAMERROR:
@@ -10060,6 +10070,8 @@ func (s *ConflictProblemDetailsCode) Decode(d *jx.Decoder) error {
 		*s = ConflictProblemDetailsCodeSIGNINGREQUESTEXPIRED
 	case ConflictProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = ConflictProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED
+	case ConflictProblemDetailsCodeSIGNINGREQUESTLIMITREACHED:
+		*s = ConflictProblemDetailsCodeSIGNINGREQUESTLIMITREACHED
 	case ConflictProblemDetailsCodeREGISTRATIONFAILED:
 		*s = ConflictProblemDetailsCodeREGISTRATIONFAILED
 	case ConflictProblemDetailsCodeUPSTREAMERROR:
@@ -17444,6 +17456,44 @@ func (s CreateSigningRequestReqVerificationMethod) MarshalJSON() ([]byte, error)
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *CreateSigningRequestReqVerificationMethod) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateSigningRequestTooManyRequests as json.
+func (s *CreateSigningRequestTooManyRequests) Encode(e *jx.Encoder) {
+	unwrapped := (*ProblemDetails)(s)
+
+	unwrapped.Encode(e)
+}
+
+// Decode decodes CreateSigningRequestTooManyRequests from json.
+func (s *CreateSigningRequestTooManyRequests) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateSigningRequestTooManyRequests to nil")
+	}
+	var unwrapped ProblemDetails
+	if err := func() error {
+		if err := unwrapped.Decode(d); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return errors.Wrap(err, "alias")
+	}
+	*s = CreateSigningRequestTooManyRequests(unwrapped)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *CreateSigningRequestTooManyRequests) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateSigningRequestTooManyRequests) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -28574,6 +28624,8 @@ func (s *DownloadRuntimeSessionBadRequestCode) Decode(d *jx.Decoder) error {
 		*s = DownloadRuntimeSessionBadRequestCodeSIGNINGREQUESTEXPIRED
 	case DownloadRuntimeSessionBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = DownloadRuntimeSessionBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED
+	case DownloadRuntimeSessionBadRequestCodeSIGNINGREQUESTLIMITREACHED:
+		*s = DownloadRuntimeSessionBadRequestCodeSIGNINGREQUESTLIMITREACHED
 	case DownloadRuntimeSessionBadRequestCodeREGISTRATIONFAILED:
 		*s = DownloadRuntimeSessionBadRequestCodeREGISTRATIONFAILED
 	case DownloadRuntimeSessionBadRequestCodeUPSTREAMERROR:
@@ -28922,6 +28974,8 @@ func (s *DownloadRuntimeSessionForbiddenCode) Decode(d *jx.Decoder) error {
 		*s = DownloadRuntimeSessionForbiddenCodeSIGNINGREQUESTEXPIRED
 	case DownloadRuntimeSessionForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = DownloadRuntimeSessionForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED
+	case DownloadRuntimeSessionForbiddenCodeSIGNINGREQUESTLIMITREACHED:
+		*s = DownloadRuntimeSessionForbiddenCodeSIGNINGREQUESTLIMITREACHED
 	case DownloadRuntimeSessionForbiddenCodeREGISTRATIONFAILED:
 		*s = DownloadRuntimeSessionForbiddenCodeREGISTRATIONFAILED
 	case DownloadRuntimeSessionForbiddenCodeUPSTREAMERROR:
@@ -29270,6 +29324,8 @@ func (s *DownloadRuntimeSessionNotFoundCode) Decode(d *jx.Decoder) error {
 		*s = DownloadRuntimeSessionNotFoundCodeSIGNINGREQUESTEXPIRED
 	case DownloadRuntimeSessionNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = DownloadRuntimeSessionNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED
+	case DownloadRuntimeSessionNotFoundCodeSIGNINGREQUESTLIMITREACHED:
+		*s = DownloadRuntimeSessionNotFoundCodeSIGNINGREQUESTLIMITREACHED
 	case DownloadRuntimeSessionNotFoundCodeREGISTRATIONFAILED:
 		*s = DownloadRuntimeSessionNotFoundCodeREGISTRATIONFAILED
 	case DownloadRuntimeSessionNotFoundCodeUPSTREAMERROR:
@@ -29618,6 +29674,8 @@ func (s *DownloadRuntimeSessionServiceUnavailableCode) Decode(d *jx.Decoder) err
 		*s = DownloadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTEXPIRED
 	case DownloadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = DownloadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED
+	case DownloadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTLIMITREACHED:
+		*s = DownloadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTLIMITREACHED
 	case DownloadRuntimeSessionServiceUnavailableCodeREGISTRATIONFAILED:
 		*s = DownloadRuntimeSessionServiceUnavailableCodeREGISTRATIONFAILED
 	case DownloadRuntimeSessionServiceUnavailableCodeUPSTREAMERROR:
@@ -29966,6 +30024,8 @@ func (s *DownloadRuntimeSessionUnauthorizedCode) Decode(d *jx.Decoder) error {
 		*s = DownloadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTEXPIRED
 	case DownloadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = DownloadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED
+	case DownloadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTLIMITREACHED:
+		*s = DownloadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTLIMITREACHED
 	case DownloadRuntimeSessionUnauthorizedCodeREGISTRATIONFAILED:
 		*s = DownloadRuntimeSessionUnauthorizedCodeREGISTRATIONFAILED
 	case DownloadRuntimeSessionUnauthorizedCodeUPSTREAMERROR:
@@ -30341,6 +30401,8 @@ func (s *DownloadTaskArtifactBadRequestCode) Decode(d *jx.Decoder) error {
 		*s = DownloadTaskArtifactBadRequestCodeSIGNINGREQUESTEXPIRED
 	case DownloadTaskArtifactBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = DownloadTaskArtifactBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED
+	case DownloadTaskArtifactBadRequestCodeSIGNINGREQUESTLIMITREACHED:
+		*s = DownloadTaskArtifactBadRequestCodeSIGNINGREQUESTLIMITREACHED
 	case DownloadTaskArtifactBadRequestCodeREGISTRATIONFAILED:
 		*s = DownloadTaskArtifactBadRequestCodeREGISTRATIONFAILED
 	case DownloadTaskArtifactBadRequestCodeUPSTREAMERROR:
@@ -30716,6 +30778,8 @@ func (s *DownloadTaskArtifactByCidBadRequestCode) Decode(d *jx.Decoder) error {
 		*s = DownloadTaskArtifactByCidBadRequestCodeSIGNINGREQUESTEXPIRED
 	case DownloadTaskArtifactByCidBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = DownloadTaskArtifactByCidBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED
+	case DownloadTaskArtifactByCidBadRequestCodeSIGNINGREQUESTLIMITREACHED:
+		*s = DownloadTaskArtifactByCidBadRequestCodeSIGNINGREQUESTLIMITREACHED
 	case DownloadTaskArtifactByCidBadRequestCodeREGISTRATIONFAILED:
 		*s = DownloadTaskArtifactByCidBadRequestCodeREGISTRATIONFAILED
 	case DownloadTaskArtifactByCidBadRequestCodeUPSTREAMERROR:
@@ -31064,6 +31128,8 @@ func (s *DownloadTaskArtifactByCidForbiddenCode) Decode(d *jx.Decoder) error {
 		*s = DownloadTaskArtifactByCidForbiddenCodeSIGNINGREQUESTEXPIRED
 	case DownloadTaskArtifactByCidForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = DownloadTaskArtifactByCidForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED
+	case DownloadTaskArtifactByCidForbiddenCodeSIGNINGREQUESTLIMITREACHED:
+		*s = DownloadTaskArtifactByCidForbiddenCodeSIGNINGREQUESTLIMITREACHED
 	case DownloadTaskArtifactByCidForbiddenCodeREGISTRATIONFAILED:
 		*s = DownloadTaskArtifactByCidForbiddenCodeREGISTRATIONFAILED
 	case DownloadTaskArtifactByCidForbiddenCodeUPSTREAMERROR:
@@ -31412,6 +31478,8 @@ func (s *DownloadTaskArtifactByCidNotFoundCode) Decode(d *jx.Decoder) error {
 		*s = DownloadTaskArtifactByCidNotFoundCodeSIGNINGREQUESTEXPIRED
 	case DownloadTaskArtifactByCidNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = DownloadTaskArtifactByCidNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED
+	case DownloadTaskArtifactByCidNotFoundCodeSIGNINGREQUESTLIMITREACHED:
+		*s = DownloadTaskArtifactByCidNotFoundCodeSIGNINGREQUESTLIMITREACHED
 	case DownloadTaskArtifactByCidNotFoundCodeREGISTRATIONFAILED:
 		*s = DownloadTaskArtifactByCidNotFoundCodeREGISTRATIONFAILED
 	case DownloadTaskArtifactByCidNotFoundCodeUPSTREAMERROR:
@@ -31760,6 +31828,8 @@ func (s *DownloadTaskArtifactByCidServiceUnavailableCode) Decode(d *jx.Decoder) 
 		*s = DownloadTaskArtifactByCidServiceUnavailableCodeSIGNINGREQUESTEXPIRED
 	case DownloadTaskArtifactByCidServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = DownloadTaskArtifactByCidServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED
+	case DownloadTaskArtifactByCidServiceUnavailableCodeSIGNINGREQUESTLIMITREACHED:
+		*s = DownloadTaskArtifactByCidServiceUnavailableCodeSIGNINGREQUESTLIMITREACHED
 	case DownloadTaskArtifactByCidServiceUnavailableCodeREGISTRATIONFAILED:
 		*s = DownloadTaskArtifactByCidServiceUnavailableCodeREGISTRATIONFAILED
 	case DownloadTaskArtifactByCidServiceUnavailableCodeUPSTREAMERROR:
@@ -32108,6 +32178,8 @@ func (s *DownloadTaskArtifactByCidUnauthorizedCode) Decode(d *jx.Decoder) error 
 		*s = DownloadTaskArtifactByCidUnauthorizedCodeSIGNINGREQUESTEXPIRED
 	case DownloadTaskArtifactByCidUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = DownloadTaskArtifactByCidUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED
+	case DownloadTaskArtifactByCidUnauthorizedCodeSIGNINGREQUESTLIMITREACHED:
+		*s = DownloadTaskArtifactByCidUnauthorizedCodeSIGNINGREQUESTLIMITREACHED
 	case DownloadTaskArtifactByCidUnauthorizedCodeREGISTRATIONFAILED:
 		*s = DownloadTaskArtifactByCidUnauthorizedCodeREGISTRATIONFAILED
 	case DownloadTaskArtifactByCidUnauthorizedCodeUPSTREAMERROR:
@@ -32456,6 +32528,8 @@ func (s *DownloadTaskArtifactForbiddenCode) Decode(d *jx.Decoder) error {
 		*s = DownloadTaskArtifactForbiddenCodeSIGNINGREQUESTEXPIRED
 	case DownloadTaskArtifactForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = DownloadTaskArtifactForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED
+	case DownloadTaskArtifactForbiddenCodeSIGNINGREQUESTLIMITREACHED:
+		*s = DownloadTaskArtifactForbiddenCodeSIGNINGREQUESTLIMITREACHED
 	case DownloadTaskArtifactForbiddenCodeREGISTRATIONFAILED:
 		*s = DownloadTaskArtifactForbiddenCodeREGISTRATIONFAILED
 	case DownloadTaskArtifactForbiddenCodeUPSTREAMERROR:
@@ -32804,6 +32878,8 @@ func (s *DownloadTaskArtifactNotFoundCode) Decode(d *jx.Decoder) error {
 		*s = DownloadTaskArtifactNotFoundCodeSIGNINGREQUESTEXPIRED
 	case DownloadTaskArtifactNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = DownloadTaskArtifactNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED
+	case DownloadTaskArtifactNotFoundCodeSIGNINGREQUESTLIMITREACHED:
+		*s = DownloadTaskArtifactNotFoundCodeSIGNINGREQUESTLIMITREACHED
 	case DownloadTaskArtifactNotFoundCodeREGISTRATIONFAILED:
 		*s = DownloadTaskArtifactNotFoundCodeREGISTRATIONFAILED
 	case DownloadTaskArtifactNotFoundCodeUPSTREAMERROR:
@@ -33152,6 +33228,8 @@ func (s *DownloadTaskArtifactServiceUnavailableCode) Decode(d *jx.Decoder) error
 		*s = DownloadTaskArtifactServiceUnavailableCodeSIGNINGREQUESTEXPIRED
 	case DownloadTaskArtifactServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = DownloadTaskArtifactServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED
+	case DownloadTaskArtifactServiceUnavailableCodeSIGNINGREQUESTLIMITREACHED:
+		*s = DownloadTaskArtifactServiceUnavailableCodeSIGNINGREQUESTLIMITREACHED
 	case DownloadTaskArtifactServiceUnavailableCodeREGISTRATIONFAILED:
 		*s = DownloadTaskArtifactServiceUnavailableCodeREGISTRATIONFAILED
 	case DownloadTaskArtifactServiceUnavailableCodeUPSTREAMERROR:
@@ -33500,6 +33578,8 @@ func (s *DownloadTaskArtifactUnauthorizedCode) Decode(d *jx.Decoder) error {
 		*s = DownloadTaskArtifactUnauthorizedCodeSIGNINGREQUESTEXPIRED
 	case DownloadTaskArtifactUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = DownloadTaskArtifactUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED
+	case DownloadTaskArtifactUnauthorizedCodeSIGNINGREQUESTLIMITREACHED:
+		*s = DownloadTaskArtifactUnauthorizedCodeSIGNINGREQUESTLIMITREACHED
 	case DownloadTaskArtifactUnauthorizedCodeREGISTRATIONFAILED:
 		*s = DownloadTaskArtifactUnauthorizedCodeREGISTRATIONFAILED
 	case DownloadTaskArtifactUnauthorizedCodeUPSTREAMERROR:
@@ -35493,6 +35573,8 @@ func (s *FindLatestRuntimeSlotForAttemptBadRequestCode) Decode(d *jx.Decoder) er
 		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeSIGNINGREQUESTEXPIRED
 	case FindLatestRuntimeSlotForAttemptBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED
+	case FindLatestRuntimeSlotForAttemptBadRequestCodeSIGNINGREQUESTLIMITREACHED:
+		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeSIGNINGREQUESTLIMITREACHED
 	case FindLatestRuntimeSlotForAttemptBadRequestCodeREGISTRATIONFAILED:
 		*s = FindLatestRuntimeSlotForAttemptBadRequestCodeREGISTRATIONFAILED
 	case FindLatestRuntimeSlotForAttemptBadRequestCodeUPSTREAMERROR:
@@ -35841,6 +35923,8 @@ func (s *FindLatestRuntimeSlotForAttemptForbiddenCode) Decode(d *jx.Decoder) err
 		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeSIGNINGREQUESTEXPIRED
 	case FindLatestRuntimeSlotForAttemptForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED
+	case FindLatestRuntimeSlotForAttemptForbiddenCodeSIGNINGREQUESTLIMITREACHED:
+		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeSIGNINGREQUESTLIMITREACHED
 	case FindLatestRuntimeSlotForAttemptForbiddenCodeREGISTRATIONFAILED:
 		*s = FindLatestRuntimeSlotForAttemptForbiddenCodeREGISTRATIONFAILED
 	case FindLatestRuntimeSlotForAttemptForbiddenCodeUPSTREAMERROR:
@@ -36189,6 +36273,8 @@ func (s *FindLatestRuntimeSlotForAttemptNotFoundCode) Decode(d *jx.Decoder) erro
 		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeSIGNINGREQUESTEXPIRED
 	case FindLatestRuntimeSlotForAttemptNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED
+	case FindLatestRuntimeSlotForAttemptNotFoundCodeSIGNINGREQUESTLIMITREACHED:
+		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeSIGNINGREQUESTLIMITREACHED
 	case FindLatestRuntimeSlotForAttemptNotFoundCodeREGISTRATIONFAILED:
 		*s = FindLatestRuntimeSlotForAttemptNotFoundCodeREGISTRATIONFAILED
 	case FindLatestRuntimeSlotForAttemptNotFoundCodeUPSTREAMERROR:
@@ -37299,6 +37385,8 @@ func (s *FindLatestRuntimeSlotForAttemptUnauthorizedCode) Decode(d *jx.Decoder) 
 		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeSIGNINGREQUESTEXPIRED
 	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED
+	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeSIGNINGREQUESTLIMITREACHED:
+		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeSIGNINGREQUESTLIMITREACHED
 	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeREGISTRATIONFAILED:
 		*s = FindLatestRuntimeSlotForAttemptUnauthorizedCodeREGISTRATIONFAILED
 	case FindLatestRuntimeSlotForAttemptUnauthorizedCodeUPSTREAMERROR:
@@ -37674,6 +37762,8 @@ func (s *FinishRuntimeSlotBadRequestCode) Decode(d *jx.Decoder) error {
 		*s = FinishRuntimeSlotBadRequestCodeSIGNINGREQUESTEXPIRED
 	case FinishRuntimeSlotBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = FinishRuntimeSlotBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED
+	case FinishRuntimeSlotBadRequestCodeSIGNINGREQUESTLIMITREACHED:
+		*s = FinishRuntimeSlotBadRequestCodeSIGNINGREQUESTLIMITREACHED
 	case FinishRuntimeSlotBadRequestCodeREGISTRATIONFAILED:
 		*s = FinishRuntimeSlotBadRequestCodeREGISTRATIONFAILED
 	case FinishRuntimeSlotBadRequestCodeUPSTREAMERROR:
@@ -38037,6 +38127,8 @@ func (s *FinishRuntimeSlotConflictCode) Decode(d *jx.Decoder) error {
 		*s = FinishRuntimeSlotConflictCodeSIGNINGREQUESTEXPIRED
 	case FinishRuntimeSlotConflictCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = FinishRuntimeSlotConflictCodeSIGNINGREQUESTALREADYCOMPLETED
+	case FinishRuntimeSlotConflictCodeSIGNINGREQUESTLIMITREACHED:
+		*s = FinishRuntimeSlotConflictCodeSIGNINGREQUESTLIMITREACHED
 	case FinishRuntimeSlotConflictCodeREGISTRATIONFAILED:
 		*s = FinishRuntimeSlotConflictCodeREGISTRATIONFAILED
 	case FinishRuntimeSlotConflictCodeUPSTREAMERROR:
@@ -38385,6 +38477,8 @@ func (s *FinishRuntimeSlotForbiddenCode) Decode(d *jx.Decoder) error {
 		*s = FinishRuntimeSlotForbiddenCodeSIGNINGREQUESTEXPIRED
 	case FinishRuntimeSlotForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = FinishRuntimeSlotForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED
+	case FinishRuntimeSlotForbiddenCodeSIGNINGREQUESTLIMITREACHED:
+		*s = FinishRuntimeSlotForbiddenCodeSIGNINGREQUESTLIMITREACHED
 	case FinishRuntimeSlotForbiddenCodeREGISTRATIONFAILED:
 		*s = FinishRuntimeSlotForbiddenCodeREGISTRATIONFAILED
 	case FinishRuntimeSlotForbiddenCodeUPSTREAMERROR:
@@ -38733,6 +38827,8 @@ func (s *FinishRuntimeSlotNotFoundCode) Decode(d *jx.Decoder) error {
 		*s = FinishRuntimeSlotNotFoundCodeSIGNINGREQUESTEXPIRED
 	case FinishRuntimeSlotNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = FinishRuntimeSlotNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED
+	case FinishRuntimeSlotNotFoundCodeSIGNINGREQUESTLIMITREACHED:
+		*s = FinishRuntimeSlotNotFoundCodeSIGNINGREQUESTLIMITREACHED
 	case FinishRuntimeSlotNotFoundCodeREGISTRATIONFAILED:
 		*s = FinishRuntimeSlotNotFoundCodeREGISTRATIONFAILED
 	case FinishRuntimeSlotNotFoundCodeUPSTREAMERROR:
@@ -39696,6 +39792,8 @@ func (s *FinishRuntimeSlotUnauthorizedCode) Decode(d *jx.Decoder) error {
 		*s = FinishRuntimeSlotUnauthorizedCodeSIGNINGREQUESTEXPIRED
 	case FinishRuntimeSlotUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = FinishRuntimeSlotUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED
+	case FinishRuntimeSlotUnauthorizedCodeSIGNINGREQUESTLIMITREACHED:
+		*s = FinishRuntimeSlotUnauthorizedCodeSIGNINGREQUESTLIMITREACHED
 	case FinishRuntimeSlotUnauthorizedCodeREGISTRATIONFAILED:
 		*s = FinishRuntimeSlotUnauthorizedCodeREGISTRATIONFAILED
 	case FinishRuntimeSlotUnauthorizedCodeUPSTREAMERROR:
@@ -44345,6 +44443,8 @@ func (s *GetRuntimeSessionBadRequestCode) Decode(d *jx.Decoder) error {
 		*s = GetRuntimeSessionBadRequestCodeSIGNINGREQUESTEXPIRED
 	case GetRuntimeSessionBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = GetRuntimeSessionBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED
+	case GetRuntimeSessionBadRequestCodeSIGNINGREQUESTLIMITREACHED:
+		*s = GetRuntimeSessionBadRequestCodeSIGNINGREQUESTLIMITREACHED
 	case GetRuntimeSessionBadRequestCodeREGISTRATIONFAILED:
 		*s = GetRuntimeSessionBadRequestCodeREGISTRATIONFAILED
 	case GetRuntimeSessionBadRequestCodeUPSTREAMERROR:
@@ -44693,6 +44793,8 @@ func (s *GetRuntimeSessionForbiddenCode) Decode(d *jx.Decoder) error {
 		*s = GetRuntimeSessionForbiddenCodeSIGNINGREQUESTEXPIRED
 	case GetRuntimeSessionForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = GetRuntimeSessionForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED
+	case GetRuntimeSessionForbiddenCodeSIGNINGREQUESTLIMITREACHED:
+		*s = GetRuntimeSessionForbiddenCodeSIGNINGREQUESTLIMITREACHED
 	case GetRuntimeSessionForbiddenCodeREGISTRATIONFAILED:
 		*s = GetRuntimeSessionForbiddenCodeREGISTRATIONFAILED
 	case GetRuntimeSessionForbiddenCodeUPSTREAMERROR:
@@ -45041,6 +45143,8 @@ func (s *GetRuntimeSessionNotFoundCode) Decode(d *jx.Decoder) error {
 		*s = GetRuntimeSessionNotFoundCodeSIGNINGREQUESTEXPIRED
 	case GetRuntimeSessionNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = GetRuntimeSessionNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED
+	case GetRuntimeSessionNotFoundCodeSIGNINGREQUESTLIMITREACHED:
+		*s = GetRuntimeSessionNotFoundCodeSIGNINGREQUESTLIMITREACHED
 	case GetRuntimeSessionNotFoundCodeREGISTRATIONFAILED:
 		*s = GetRuntimeSessionNotFoundCodeREGISTRATIONFAILED
 	case GetRuntimeSessionNotFoundCodeUPSTREAMERROR:
@@ -45831,6 +45935,8 @@ func (s *GetRuntimeSessionUnauthorizedCode) Decode(d *jx.Decoder) error {
 		*s = GetRuntimeSessionUnauthorizedCodeSIGNINGREQUESTEXPIRED
 	case GetRuntimeSessionUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = GetRuntimeSessionUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED
+	case GetRuntimeSessionUnauthorizedCodeSIGNINGREQUESTLIMITREACHED:
+		*s = GetRuntimeSessionUnauthorizedCodeSIGNINGREQUESTLIMITREACHED
 	case GetRuntimeSessionUnauthorizedCodeREGISTRATIONFAILED:
 		*s = GetRuntimeSessionUnauthorizedCodeREGISTRATIONFAILED
 	case GetRuntimeSessionUnauthorizedCodeUPSTREAMERROR:
@@ -48477,6 +48583,8 @@ func (s *InjectionConflictProblemDetailsCode) Decode(d *jx.Decoder) error {
 		*s = InjectionConflictProblemDetailsCodeSIGNINGREQUESTEXPIRED
 	case InjectionConflictProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = InjectionConflictProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED
+	case InjectionConflictProblemDetailsCodeSIGNINGREQUESTLIMITREACHED:
+		*s = InjectionConflictProblemDetailsCodeSIGNINGREQUESTLIMITREACHED
 	case InjectionConflictProblemDetailsCodeREGISTRATIONFAILED:
 		*s = InjectionConflictProblemDetailsCodeREGISTRATIONFAILED
 	case InjectionConflictProblemDetailsCodeUPSTREAMERROR:
@@ -53103,6 +53211,8 @@ func (s *ListRuntimeSlotsBadRequestCode) Decode(d *jx.Decoder) error {
 		*s = ListRuntimeSlotsBadRequestCodeSIGNINGREQUESTEXPIRED
 	case ListRuntimeSlotsBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = ListRuntimeSlotsBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED
+	case ListRuntimeSlotsBadRequestCodeSIGNINGREQUESTLIMITREACHED:
+		*s = ListRuntimeSlotsBadRequestCodeSIGNINGREQUESTLIMITREACHED
 	case ListRuntimeSlotsBadRequestCodeREGISTRATIONFAILED:
 		*s = ListRuntimeSlotsBadRequestCodeREGISTRATIONFAILED
 	case ListRuntimeSlotsBadRequestCodeUPSTREAMERROR:
@@ -53451,6 +53561,8 @@ func (s *ListRuntimeSlotsForbiddenCode) Decode(d *jx.Decoder) error {
 		*s = ListRuntimeSlotsForbiddenCodeSIGNINGREQUESTEXPIRED
 	case ListRuntimeSlotsForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = ListRuntimeSlotsForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED
+	case ListRuntimeSlotsForbiddenCodeSIGNINGREQUESTLIMITREACHED:
+		*s = ListRuntimeSlotsForbiddenCodeSIGNINGREQUESTLIMITREACHED
 	case ListRuntimeSlotsForbiddenCodeREGISTRATIONFAILED:
 		*s = ListRuntimeSlotsForbiddenCodeREGISTRATIONFAILED
 	case ListRuntimeSlotsForbiddenCodeUPSTREAMERROR:
@@ -53799,6 +53911,8 @@ func (s *ListRuntimeSlotsNotFoundCode) Decode(d *jx.Decoder) error {
 		*s = ListRuntimeSlotsNotFoundCodeSIGNINGREQUESTEXPIRED
 	case ListRuntimeSlotsNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = ListRuntimeSlotsNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED
+	case ListRuntimeSlotsNotFoundCodeSIGNINGREQUESTLIMITREACHED:
+		*s = ListRuntimeSlotsNotFoundCodeSIGNINGREQUESTLIMITREACHED
 	case ListRuntimeSlotsNotFoundCodeREGISTRATIONFAILED:
 		*s = ListRuntimeSlotsNotFoundCodeREGISTRATIONFAILED
 	case ListRuntimeSlotsNotFoundCodeUPSTREAMERROR:
@@ -55015,6 +55129,8 @@ func (s *ListRuntimeSlotsUnauthorizedCode) Decode(d *jx.Decoder) error {
 		*s = ListRuntimeSlotsUnauthorizedCodeSIGNINGREQUESTEXPIRED
 	case ListRuntimeSlotsUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = ListRuntimeSlotsUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED
+	case ListRuntimeSlotsUnauthorizedCodeSIGNINGREQUESTLIMITREACHED:
+		*s = ListRuntimeSlotsUnauthorizedCodeSIGNINGREQUESTLIMITREACHED
 	case ListRuntimeSlotsUnauthorizedCodeREGISTRATIONFAILED:
 		*s = ListRuntimeSlotsUnauthorizedCodeREGISTRATIONFAILED
 	case ListRuntimeSlotsUnauthorizedCodeUPSTREAMERROR:
@@ -55580,6 +55696,8 @@ func (s *ListTaskArtifactsBadRequestCode) Decode(d *jx.Decoder) error {
 		*s = ListTaskArtifactsBadRequestCodeSIGNINGREQUESTEXPIRED
 	case ListTaskArtifactsBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = ListTaskArtifactsBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED
+	case ListTaskArtifactsBadRequestCodeSIGNINGREQUESTLIMITREACHED:
+		*s = ListTaskArtifactsBadRequestCodeSIGNINGREQUESTLIMITREACHED
 	case ListTaskArtifactsBadRequestCodeREGISTRATIONFAILED:
 		*s = ListTaskArtifactsBadRequestCodeREGISTRATIONFAILED
 	case ListTaskArtifactsBadRequestCodeUPSTREAMERROR:
@@ -55928,6 +56046,8 @@ func (s *ListTaskArtifactsForbiddenCode) Decode(d *jx.Decoder) error {
 		*s = ListTaskArtifactsForbiddenCodeSIGNINGREQUESTEXPIRED
 	case ListTaskArtifactsForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = ListTaskArtifactsForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED
+	case ListTaskArtifactsForbiddenCodeSIGNINGREQUESTLIMITREACHED:
+		*s = ListTaskArtifactsForbiddenCodeSIGNINGREQUESTLIMITREACHED
 	case ListTaskArtifactsForbiddenCodeREGISTRATIONFAILED:
 		*s = ListTaskArtifactsForbiddenCodeREGISTRATIONFAILED
 	case ListTaskArtifactsForbiddenCodeUPSTREAMERROR:
@@ -56276,6 +56396,8 @@ func (s *ListTaskArtifactsNotFoundCode) Decode(d *jx.Decoder) error {
 		*s = ListTaskArtifactsNotFoundCodeSIGNINGREQUESTEXPIRED
 	case ListTaskArtifactsNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = ListTaskArtifactsNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED
+	case ListTaskArtifactsNotFoundCodeSIGNINGREQUESTLIMITREACHED:
+		*s = ListTaskArtifactsNotFoundCodeSIGNINGREQUESTLIMITREACHED
 	case ListTaskArtifactsNotFoundCodeREGISTRATIONFAILED:
 		*s = ListTaskArtifactsNotFoundCodeREGISTRATIONFAILED
 	case ListTaskArtifactsNotFoundCodeUPSTREAMERROR:
@@ -57038,6 +57160,8 @@ func (s *ListTaskArtifactsUnauthorizedCode) Decode(d *jx.Decoder) error {
 		*s = ListTaskArtifactsUnauthorizedCodeSIGNINGREQUESTEXPIRED
 	case ListTaskArtifactsUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = ListTaskArtifactsUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED
+	case ListTaskArtifactsUnauthorizedCodeSIGNINGREQUESTLIMITREACHED:
+		*s = ListTaskArtifactsUnauthorizedCodeSIGNINGREQUESTLIMITREACHED
 	case ListTaskArtifactsUnauthorizedCodeREGISTRATIONFAILED:
 		*s = ListTaskArtifactsUnauthorizedCodeREGISTRATIONFAILED
 	case ListTaskArtifactsUnauthorizedCodeUPSTREAMERROR:
@@ -72773,6 +72897,8 @@ func (s *ProblemDetailsCode) Decode(d *jx.Decoder) error {
 		*s = ProblemDetailsCodeSIGNINGREQUESTEXPIRED
 	case ProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = ProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED
+	case ProblemDetailsCodeSIGNINGREQUESTLIMITREACHED:
+		*s = ProblemDetailsCodeSIGNINGREQUESTLIMITREACHED
 	case ProblemDetailsCodeREGISTRATIONFAILED:
 		*s = ProblemDetailsCodeREGISTRATIONFAILED
 	case ProblemDetailsCodeUPSTREAMERROR:
@@ -92084,6 +92210,8 @@ func (s *StageTaskArtifactBadRequestCode) Decode(d *jx.Decoder) error {
 		*s = StageTaskArtifactBadRequestCodeSIGNINGREQUESTEXPIRED
 	case StageTaskArtifactBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = StageTaskArtifactBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED
+	case StageTaskArtifactBadRequestCodeSIGNINGREQUESTLIMITREACHED:
+		*s = StageTaskArtifactBadRequestCodeSIGNINGREQUESTLIMITREACHED
 	case StageTaskArtifactBadRequestCodeREGISTRATIONFAILED:
 		*s = StageTaskArtifactBadRequestCodeREGISTRATIONFAILED
 	case StageTaskArtifactBadRequestCodeUPSTREAMERROR:
@@ -92432,6 +92560,8 @@ func (s *StageTaskArtifactForbiddenCode) Decode(d *jx.Decoder) error {
 		*s = StageTaskArtifactForbiddenCodeSIGNINGREQUESTEXPIRED
 	case StageTaskArtifactForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = StageTaskArtifactForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED
+	case StageTaskArtifactForbiddenCodeSIGNINGREQUESTLIMITREACHED:
+		*s = StageTaskArtifactForbiddenCodeSIGNINGREQUESTLIMITREACHED
 	case StageTaskArtifactForbiddenCodeREGISTRATIONFAILED:
 		*s = StageTaskArtifactForbiddenCodeREGISTRATIONFAILED
 	case StageTaskArtifactForbiddenCodeUPSTREAMERROR:
@@ -92780,6 +92910,8 @@ func (s *StageTaskArtifactNotFoundCode) Decode(d *jx.Decoder) error {
 		*s = StageTaskArtifactNotFoundCodeSIGNINGREQUESTEXPIRED
 	case StageTaskArtifactNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = StageTaskArtifactNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED
+	case StageTaskArtifactNotFoundCodeSIGNINGREQUESTLIMITREACHED:
+		*s = StageTaskArtifactNotFoundCodeSIGNINGREQUESTLIMITREACHED
 	case StageTaskArtifactNotFoundCodeREGISTRATIONFAILED:
 		*s = StageTaskArtifactNotFoundCodeREGISTRATIONFAILED
 	case StageTaskArtifactNotFoundCodeUPSTREAMERROR:
@@ -93258,6 +93390,8 @@ func (s *StageTaskArtifactServiceUnavailableCode) Decode(d *jx.Decoder) error {
 		*s = StageTaskArtifactServiceUnavailableCodeSIGNINGREQUESTEXPIRED
 	case StageTaskArtifactServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = StageTaskArtifactServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED
+	case StageTaskArtifactServiceUnavailableCodeSIGNINGREQUESTLIMITREACHED:
+		*s = StageTaskArtifactServiceUnavailableCodeSIGNINGREQUESTLIMITREACHED
 	case StageTaskArtifactServiceUnavailableCodeREGISTRATIONFAILED:
 		*s = StageTaskArtifactServiceUnavailableCodeREGISTRATIONFAILED
 	case StageTaskArtifactServiceUnavailableCodeUPSTREAMERROR:
@@ -93606,6 +93740,8 @@ func (s *StageTaskArtifactUnauthorizedCode) Decode(d *jx.Decoder) error {
 		*s = StageTaskArtifactUnauthorizedCodeSIGNINGREQUESTEXPIRED
 	case StageTaskArtifactUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = StageTaskArtifactUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED
+	case StageTaskArtifactUnauthorizedCodeSIGNINGREQUESTLIMITREACHED:
+		*s = StageTaskArtifactUnauthorizedCodeSIGNINGREQUESTLIMITREACHED
 	case StageTaskArtifactUnauthorizedCodeREGISTRATIONFAILED:
 		*s = StageTaskArtifactUnauthorizedCodeREGISTRATIONFAILED
 	case StageTaskArtifactUnauthorizedCodeUPSTREAMERROR:
@@ -106584,6 +106720,8 @@ func (s *UploadRuntimeSessionBadRequestCode) Decode(d *jx.Decoder) error {
 		*s = UploadRuntimeSessionBadRequestCodeSIGNINGREQUESTEXPIRED
 	case UploadRuntimeSessionBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = UploadRuntimeSessionBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED
+	case UploadRuntimeSessionBadRequestCodeSIGNINGREQUESTLIMITREACHED:
+		*s = UploadRuntimeSessionBadRequestCodeSIGNINGREQUESTLIMITREACHED
 	case UploadRuntimeSessionBadRequestCodeREGISTRATIONFAILED:
 		*s = UploadRuntimeSessionBadRequestCodeREGISTRATIONFAILED
 	case UploadRuntimeSessionBadRequestCodeUPSTREAMERROR:
@@ -106932,6 +107070,8 @@ func (s *UploadRuntimeSessionConflictCode) Decode(d *jx.Decoder) error {
 		*s = UploadRuntimeSessionConflictCodeSIGNINGREQUESTEXPIRED
 	case UploadRuntimeSessionConflictCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = UploadRuntimeSessionConflictCodeSIGNINGREQUESTALREADYCOMPLETED
+	case UploadRuntimeSessionConflictCodeSIGNINGREQUESTLIMITREACHED:
+		*s = UploadRuntimeSessionConflictCodeSIGNINGREQUESTLIMITREACHED
 	case UploadRuntimeSessionConflictCodeREGISTRATIONFAILED:
 		*s = UploadRuntimeSessionConflictCodeREGISTRATIONFAILED
 	case UploadRuntimeSessionConflictCodeUPSTREAMERROR:
@@ -107280,6 +107420,8 @@ func (s *UploadRuntimeSessionForbiddenCode) Decode(d *jx.Decoder) error {
 		*s = UploadRuntimeSessionForbiddenCodeSIGNINGREQUESTEXPIRED
 	case UploadRuntimeSessionForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = UploadRuntimeSessionForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED
+	case UploadRuntimeSessionForbiddenCodeSIGNINGREQUESTLIMITREACHED:
+		*s = UploadRuntimeSessionForbiddenCodeSIGNINGREQUESTLIMITREACHED
 	case UploadRuntimeSessionForbiddenCodeREGISTRATIONFAILED:
 		*s = UploadRuntimeSessionForbiddenCodeREGISTRATIONFAILED
 	case UploadRuntimeSessionForbiddenCodeUPSTREAMERROR:
@@ -107628,6 +107770,8 @@ func (s *UploadRuntimeSessionNotFoundCode) Decode(d *jx.Decoder) error {
 		*s = UploadRuntimeSessionNotFoundCodeSIGNINGREQUESTEXPIRED
 	case UploadRuntimeSessionNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = UploadRuntimeSessionNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED
+	case UploadRuntimeSessionNotFoundCodeSIGNINGREQUESTLIMITREACHED:
+		*s = UploadRuntimeSessionNotFoundCodeSIGNINGREQUESTLIMITREACHED
 	case UploadRuntimeSessionNotFoundCodeREGISTRATIONFAILED:
 		*s = UploadRuntimeSessionNotFoundCodeREGISTRATIONFAILED
 	case UploadRuntimeSessionNotFoundCodeUPSTREAMERROR:
@@ -108418,6 +108562,8 @@ func (s *UploadRuntimeSessionServiceUnavailableCode) Decode(d *jx.Decoder) error
 		*s = UploadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTEXPIRED
 	case UploadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = UploadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED
+	case UploadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTLIMITREACHED:
+		*s = UploadRuntimeSessionServiceUnavailableCodeSIGNINGREQUESTLIMITREACHED
 	case UploadRuntimeSessionServiceUnavailableCodeREGISTRATIONFAILED:
 		*s = UploadRuntimeSessionServiceUnavailableCodeREGISTRATIONFAILED
 	case UploadRuntimeSessionServiceUnavailableCodeUPSTREAMERROR:
@@ -108766,6 +108912,8 @@ func (s *UploadRuntimeSessionUnauthorizedCode) Decode(d *jx.Decoder) error {
 		*s = UploadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTEXPIRED
 	case UploadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = UploadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED
+	case UploadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTLIMITREACHED:
+		*s = UploadRuntimeSessionUnauthorizedCodeSIGNINGREQUESTLIMITREACHED
 	case UploadRuntimeSessionUnauthorizedCodeREGISTRATIONFAILED:
 		*s = UploadRuntimeSessionUnauthorizedCodeREGISTRATIONFAILED
 	case UploadRuntimeSessionUnauthorizedCodeUPSTREAMERROR:
@@ -109141,6 +109289,8 @@ func (s *UploadTaskArtifactBadRequestCode) Decode(d *jx.Decoder) error {
 		*s = UploadTaskArtifactBadRequestCodeSIGNINGREQUESTEXPIRED
 	case UploadTaskArtifactBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = UploadTaskArtifactBadRequestCodeSIGNINGREQUESTALREADYCOMPLETED
+	case UploadTaskArtifactBadRequestCodeSIGNINGREQUESTLIMITREACHED:
+		*s = UploadTaskArtifactBadRequestCodeSIGNINGREQUESTLIMITREACHED
 	case UploadTaskArtifactBadRequestCodeREGISTRATIONFAILED:
 		*s = UploadTaskArtifactBadRequestCodeREGISTRATIONFAILED
 	case UploadTaskArtifactBadRequestCodeUPSTREAMERROR:
@@ -109489,6 +109639,8 @@ func (s *UploadTaskArtifactForbiddenCode) Decode(d *jx.Decoder) error {
 		*s = UploadTaskArtifactForbiddenCodeSIGNINGREQUESTEXPIRED
 	case UploadTaskArtifactForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = UploadTaskArtifactForbiddenCodeSIGNINGREQUESTALREADYCOMPLETED
+	case UploadTaskArtifactForbiddenCodeSIGNINGREQUESTLIMITREACHED:
+		*s = UploadTaskArtifactForbiddenCodeSIGNINGREQUESTLIMITREACHED
 	case UploadTaskArtifactForbiddenCodeREGISTRATIONFAILED:
 		*s = UploadTaskArtifactForbiddenCodeREGISTRATIONFAILED
 	case UploadTaskArtifactForbiddenCodeUPSTREAMERROR:
@@ -109837,6 +109989,8 @@ func (s *UploadTaskArtifactNotFoundCode) Decode(d *jx.Decoder) error {
 		*s = UploadTaskArtifactNotFoundCodeSIGNINGREQUESTEXPIRED
 	case UploadTaskArtifactNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = UploadTaskArtifactNotFoundCodeSIGNINGREQUESTALREADYCOMPLETED
+	case UploadTaskArtifactNotFoundCodeSIGNINGREQUESTLIMITREACHED:
+		*s = UploadTaskArtifactNotFoundCodeSIGNINGREQUESTLIMITREACHED
 	case UploadTaskArtifactNotFoundCodeREGISTRATIONFAILED:
 		*s = UploadTaskArtifactNotFoundCodeREGISTRATIONFAILED
 	case UploadTaskArtifactNotFoundCodeUPSTREAMERROR:
@@ -110478,6 +110632,8 @@ func (s *UploadTaskArtifactServiceUnavailableCode) Decode(d *jx.Decoder) error {
 		*s = UploadTaskArtifactServiceUnavailableCodeSIGNINGREQUESTEXPIRED
 	case UploadTaskArtifactServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = UploadTaskArtifactServiceUnavailableCodeSIGNINGREQUESTALREADYCOMPLETED
+	case UploadTaskArtifactServiceUnavailableCodeSIGNINGREQUESTLIMITREACHED:
+		*s = UploadTaskArtifactServiceUnavailableCodeSIGNINGREQUESTLIMITREACHED
 	case UploadTaskArtifactServiceUnavailableCodeREGISTRATIONFAILED:
 		*s = UploadTaskArtifactServiceUnavailableCodeREGISTRATIONFAILED
 	case UploadTaskArtifactServiceUnavailableCodeUPSTREAMERROR:
@@ -110826,6 +110982,8 @@ func (s *UploadTaskArtifactUnauthorizedCode) Decode(d *jx.Decoder) error {
 		*s = UploadTaskArtifactUnauthorizedCodeSIGNINGREQUESTEXPIRED
 	case UploadTaskArtifactUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = UploadTaskArtifactUnauthorizedCodeSIGNINGREQUESTALREADYCOMPLETED
+	case UploadTaskArtifactUnauthorizedCodeSIGNINGREQUESTLIMITREACHED:
+		*s = UploadTaskArtifactUnauthorizedCodeSIGNINGREQUESTLIMITREACHED
 	case UploadTaskArtifactUnauthorizedCodeREGISTRATIONFAILED:
 		*s = UploadTaskArtifactUnauthorizedCodeREGISTRATIONFAILED
 	case UploadTaskArtifactUnauthorizedCodeUPSTREAMERROR:
@@ -111618,6 +111776,8 @@ func (s *ValidationProblemDetailsCode) Decode(d *jx.Decoder) error {
 		*s = ValidationProblemDetailsCodeSIGNINGREQUESTEXPIRED
 	case ValidationProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED:
 		*s = ValidationProblemDetailsCodeSIGNINGREQUESTALREADYCOMPLETED
+	case ValidationProblemDetailsCodeSIGNINGREQUESTLIMITREACHED:
+		*s = ValidationProblemDetailsCodeSIGNINGREQUESTLIMITREACHED
 	case ValidationProblemDetailsCodeREGISTRATIONFAILED:
 		*s = ValidationProblemDetailsCodeREGISTRATIONFAILED
 	case ValidationProblemDetailsCodeUPSTREAMERROR:

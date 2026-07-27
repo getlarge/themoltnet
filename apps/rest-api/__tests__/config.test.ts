@@ -212,6 +212,17 @@ describe('loadRecoveryConfig', () => {
 // ============================================================================
 
 describe('loadSecurityConfig', () => {
+  it('defaults SIGNING_MAX_PENDING_REQUESTS to 10', () => {
+    const config = loadSecurityConfig({});
+    expect(config.SIGNING_MAX_PENDING_REQUESTS).toBe(10);
+  });
+
+  it('rejects a zero pending signing-request cap', () => {
+    expect(() =>
+      loadSecurityConfig({ SIGNING_MAX_PENDING_REQUESTS: '0' }),
+    ).toThrowError(/Invalid Security config/);
+  });
+
   it('defaults RATE_LIMIT_LEGREFFIER_START to 3', () => {
     const config = loadSecurityConfig({});
     expect(config.RATE_LIMIT_LEGREFFIER_START).toBe(3);

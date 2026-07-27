@@ -9,6 +9,7 @@ import {
   PREVIEW_SIGN_RECEIPT_VERSION,
   type PreviewSignPublicMaterialV1,
   registerSigningMethodDriver,
+  setSigningVerifier,
   SigningReceiptInvalidError,
 } from '@moltnet/signing-workflows';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -35,6 +36,7 @@ const CREDENTIAL_ID = 'credential-id';
 const IKM = Uint8Array.from({ length: 32 }, (_, index) => 0x40 + index);
 const SIGNATURE =
   'MEUCIQCEfiAIvamLdwfaDHCI2epg4Si6E3bAHlRDC6bl2fyNXAIgaRLbpQLIurx8zaf63gYqpcGF8CsP8kTMFNu9q2B2ORY';
+const MAX_PENDING_SIGNING_REQUESTS = 10;
 
 function publicMaterial(): PreviewSignPublicMaterialV1 {
   const blindingKey = {
@@ -105,6 +107,7 @@ function createDeps(
     relationshipReader: {} as never,
     groupRepository: {} as never,
     signingTimeoutSeconds: 300,
+    maxPendingSigningRequests: MAX_PENDING_SIGNING_REQUESTS,
     ...overrides,
   };
 }
@@ -184,6 +187,10 @@ describe('createSigningService', () => {
       verifyPrehashedSignature: vi.fn().mockReturnValue(true),
     });
     registerSigningMethodDriver(driver.verificationMethod, driver);
+    setSigningVerifier({
+      verify: vi.fn().mockResolvedValue(true),
+      verifyWithNonce: vi.fn().mockResolvedValue(true),
+    });
   });
 
   it('keeps signing credentials and signing requests behind one boundary', () => {
@@ -413,6 +420,156 @@ describe('createSigningService', () => {
       code: 'validation_failed',
     } satisfies Partial<SigningServiceError>);
     expect(create).not.toHaveBeenCalled();
+  });
+
+  it('rejects creation when the requester has reached the pending cap', async () => {
+    const acquirePendingCreateLock = vi.fn().mockResolvedValue(undefined);
+    const getActivePendingSummaryByAgent = vi.fn().mockResolvedValue({
+      count: MAX_PENDING_SIGNING_REQUESTS,
+      earliestExpiresAt: new Date('2026-08-01T12:02:00.000Z'),
+    });
+    const create = vi.fn();
+    const transactionRunner = {
+      runInTransaction: vi.fn(async (task) => task()),
+    };
+    const service = createSigningService(
+      createDeps({
+        signingRequestRepository: {
+          acquirePendingCreateLock,
+          getActivePendingSummaryByAgent,
+          create,
+        } as never,
+        transactionRunner: transactionRunner as never,
+      }),
+    );
+
+    await expect(
+      service.requests.create({
+        actor: agent,
+        message: 'approve release',
+        verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+        teamId: TEAM_ID,
+        purpose: 'Release approval',
+        signerConstraint: { id: human.humanId, type: 'human' },
+      }),
+    ).rejects.toMatchObject({
+      name: 'SigningServiceError',
+      code: 'signing_request_limit_reached',
+    } satisfies Partial<SigningServiceError>);
+    expect(transactionRunner.runInTransaction).toHaveBeenCalledWith(
+      expect.any(Function),
+      { name: 'create-signing-request' },
+    );
+    expect(acquirePendingCreateLock).toHaveBeenCalledWith(agent.identityId);
+    expect(getActivePendingSummaryByAgent).toHaveBeenCalledWith(
+      agent.identityId,
+    );
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it('creates below the pending cap inside the guarded transaction', async () => {
+    const created = pendingRequest();
+    const acquirePendingCreateLock = vi.fn().mockResolvedValue(undefined);
+    const getActivePendingSummaryByAgent = vi.fn().mockResolvedValue({
+      count: MAX_PENDING_SIGNING_REQUESTS - 1,
+      earliestExpiresAt: new Date('2026-08-01T12:02:00.000Z'),
+    });
+    const create = vi.fn().mockResolvedValue(created);
+    const transactionRunner = {
+      runInTransaction: vi.fn(async (task) => task()),
+    };
+    const service = createSigningService(
+      createDeps({
+        signingRequestRepository: {
+          acquirePendingCreateLock,
+          getActivePendingSummaryByAgent,
+          create,
+        } as never,
+        transactionRunner: transactionRunner as never,
+      }),
+    );
+
+    await expect(
+      service.requests.create({
+        actor: agent,
+        message: 'approve release',
+        verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+        teamId: TEAM_ID,
+        purpose: 'Release approval',
+        signerConstraint: { id: human.humanId, type: 'human' },
+      }),
+    ).resolves.toBe(created);
+    expect(acquirePendingCreateLock).toHaveBeenCalledBefore(
+      getActivePendingSummaryByAgent,
+    );
+    expect(getActivePendingSummaryByAgent).toHaveBeenCalledBefore(create);
+  });
+
+  it('expires and logs an agent request when workflow startup fails', async () => {
+    const now = new Date('2026-08-01T12:00:00.000Z');
+    const created = {
+      ...pendingRequest(),
+      agentId: agent.identityId,
+      verificationMethod: VERIFICATION_METHOD.AgentEd25519,
+      requestedBy: { id: agent.identityId, type: 'agent' as const },
+    };
+    const startupError = new Error('DBOS unavailable');
+    const startAgentSigningWorkflow = vi.fn().mockRejectedValue(startupError);
+    const completeAgentRequest = vi.fn().mockResolvedValue({
+      ...created,
+      status: 'expired',
+      completedAt: now,
+    });
+    const logger = { error: vi.fn() };
+    const service = createSigningService(
+      createDeps({
+        now: () => now,
+        logger,
+        startAgentSigningWorkflow,
+        signingRequestRepository: {
+          acquirePendingCreateLock: vi.fn(),
+          getActivePendingSummaryByAgent: vi.fn().mockResolvedValue({
+            count: 0,
+            earliestExpiresAt: null,
+          }),
+          create: vi.fn().mockResolvedValue(created),
+          completeAgentRequest,
+        } as never,
+        transactionRunner: {
+          runInTransaction: vi.fn(async (task) => task()),
+        } as never,
+      }),
+    );
+
+    await expect(
+      service.requests.create({
+        actor: agent,
+        message: created.message,
+        verificationMethod: VERIFICATION_METHOD.AgentEd25519,
+      }),
+    ).rejects.toBe(startupError);
+
+    expect(completeAgentRequest).toHaveBeenCalledWith({
+      id: created.id,
+      status: 'expired',
+      completedAt: now,
+    });
+    expect(startAgentSigningWorkflow).toHaveBeenCalledWith({
+      id: created.id,
+      agentId: agent.identityId,
+      message: created.message,
+      nonce: created.nonce,
+      verificationMethod: VERIFICATION_METHOD.AgentEd25519,
+    });
+    expect(logger.error).toHaveBeenCalledWith(
+      {
+        err: startupError,
+        signingId: created.id,
+        agentId: agent.identityId,
+        cleanupError: undefined,
+      },
+      'signing_request.workflow_start_failed',
+    );
   });
 
   it('requires a human actor to approve a credential', async () => {
