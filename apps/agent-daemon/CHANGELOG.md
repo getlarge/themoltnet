@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.32.2](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.32.1...agent-daemon-v0.32.2) (2026-07-27)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/pi-extension bumped to 0.36.2
+
 ## [0.32.1](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.32.0...agent-daemon-v0.32.1) (2026-07-27)
 
 
