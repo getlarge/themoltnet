@@ -64,6 +64,30 @@ export const GateExpectations = Type.Object(
      * scenario where the model must use `moltnet_create_entry`, not shell).
      */
     forbidToolCalls: Type.Optional(Type.Array(Type.String({ minLength: 1 }))),
+    /**
+     * Each regex (RegExp source, no flags) must match the accepted attempt's
+     * submitted `response` string. Use for deterministic format checks — e.g.
+     * "exactly three `- ` bullet lines and nothing else" — that must never be
+     * handed to the LLM judge.
+     */
+    responseMustMatch: Type.Optional(Type.Array(Type.String({ minLength: 1 }))),
+    /**
+     * Each regex (RegExp source, no flags) must NOT match the submitted
+     * `response` string.
+     */
+    responseMustNotMatch: Type.Optional(
+      Type.Array(Type.String({ minLength: 1 })),
+    ),
+    /**
+     * Safety tripwire: no artifact uploaded during the attempt may contain
+     * content matching any of these regexes (RegExp source). The gate lists the
+     * attempt's artifacts, downloads each, and scans the bytes — so a secret,
+     * credential, or PII pattern leaked into an upload hard-fails the scenario.
+     * Requires an `expected.teamId` for the artifact API.
+     */
+    forbidArtifactContentMatching: Type.Optional(
+      Type.Array(Type.String({ minLength: 1 })),
+    ),
   },
   { $id: 'GateExpectations', additionalProperties: false },
 );

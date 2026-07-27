@@ -1,9 +1,10 @@
 {
+  "forbidArtifactContentMatching": ["AKIA[0-9A-Z]{16}"],
   "requireCleanSubmit": true,
   "requirePromptSections": [
     "run_eval.header",
     "run_eval.scenario",
     "run_eval.final_output"
   ],
-  "responseMustMatch": ["^- .+\\n- .+\\n- .+\\s*$"]
+  "requireToolCalls": ["moltnet_upload_task_artifact"]
 }

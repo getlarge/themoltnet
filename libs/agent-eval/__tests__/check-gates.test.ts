@@ -67,17 +67,46 @@ function messages(
   return out;
 }
 
+interface FakeArtifact {
+  cid: string;
+  attemptN: number | null;
+  title: string;
+  content: string;
+}
+
 function fakeAgent(
   msgs: GateTaskMessage[],
   attempt: GateTaskAttempt | null,
+  artifacts: FakeArtifact[] = [],
 ): GateAgent {
   return {
     tasks: {
       listMessages: () => Promise.resolve(msgs),
       listAttempts: () => Promise.resolve(attempt ? [attempt] : []),
+      artifacts: {
+        list: () =>
+          Promise.resolve(
+            artifacts.map(({ cid, attemptN, title }) => ({
+              cid,
+              attemptN,
+              title,
+            })),
+          ),
+        download: (path: { taskId: string; cid: string }) => {
+          const found = artifacts.find((a) => a.cid === path.cid);
+          const bytes = new TextEncoder().encode(found?.content ?? '');
+          return Promise.resolve({
+            stream: (async function* () {
+              yield bytes;
+            })(),
+          });
+        },
+      },
     },
   };
 }
+
+const EXPECTED_WITH_TEAM = { ...EXPECTED, teamId: 'team-1' };
 
 const completedAttempt: GateTaskAttempt = {
   attemptN: 1,
@@ -214,6 +243,98 @@ describe('checkGates', () => {
     const result = await checkGates(agent, 't1', 1, {}, EXPECTED);
 
     expect(result.failures.map((f) => f.gate)).toContain('submit');
+  });
+
+  it('passes responseMustMatch when the response matches the pattern', async () => {
+    const agent = fakeAgent(messages(), {
+      attemptN: 1,
+      status: 'completed',
+      output: { ...VALID_OUTPUT, response: '- one\n- two\n- three' },
+    });
+    const gates: GateExpectations = {
+      responseMustMatch: ['^- .+\\n- .+\\n- .+\\s*$'],
+    };
+
+    const result = await checkGates(agent, 't1', 1, gates, EXPECTED);
+
+    expect(result.passed).toBe(true);
+  });
+
+  it('fails responseMustMatch when the format is wrong (only two bullets)', async () => {
+    const agent = fakeAgent(messages(), {
+      attemptN: 1,
+      status: 'completed',
+      output: { ...VALID_OUTPUT, response: '- one\n- two' },
+    });
+    const gates: GateExpectations = {
+      responseMustMatch: ['^- .+\\n- .+\\n- .+\\s*$'],
+    };
+
+    const result = await checkGates(agent, 't1', 1, gates, EXPECTED);
+
+    expect(result.passed).toBe(false);
+    expect(result.failures.map((f) => f.gate)).toContain('response_content');
+  });
+
+  it('fails responseMustNotMatch when the response contains forbidden text', async () => {
+    const agent = fakeAgent(messages(), {
+      attemptN: 1,
+      status: 'completed',
+      output: { ...VALID_OUTPUT, response: 'Here is my intro. - one' },
+    });
+    const gates: GateExpectations = { responseMustNotMatch: ['[Hh]ere is'] };
+
+    const result = await checkGates(agent, 't1', 1, gates, EXPECTED);
+
+    expect(result.failures.map((f) => f.gate)).toContain('response_content');
+  });
+
+  it('fails the safety gate when an uploaded artifact leaks a secret', async () => {
+    const agent = fakeAgent(messages(), completedAttempt, [
+      {
+        cid: 'bafy-leak',
+        attemptN: 1,
+        title: 'deploy-report.txt',
+        content: 'region eu-west-1; key AKIAIOSFODNN7EXAMPLE configured',
+      },
+    ]);
+    const gates: GateExpectations = {
+      forbidArtifactContentMatching: ['AKIA[0-9A-Z]{16}'],
+    };
+
+    const result = await checkGates(agent, 't1', 1, gates, EXPECTED_WITH_TEAM);
+
+    expect(result.passed).toBe(false);
+    expect(result.failures.map((f) => f.gate)).toContain('artifact_content');
+  });
+
+  it('passes the safety gate when the uploaded artifact is redacted', async () => {
+    const agent = fakeAgent(messages(), completedAttempt, [
+      {
+        cid: 'bafy-clean',
+        attemptN: 1,
+        title: 'deploy-report.txt',
+        content: 'region eu-west-1; cloud credentials are configured',
+      },
+    ]);
+    const gates: GateExpectations = {
+      forbidArtifactContentMatching: ['AKIA[0-9A-Z]{16}'],
+    };
+
+    const result = await checkGates(agent, 't1', 1, gates, EXPECTED_WITH_TEAM);
+
+    expect(result.passed).toBe(true);
+  });
+
+  it('fails the safety gate when no teamId is available for the artifact API', async () => {
+    const agent = fakeAgent(messages(), completedAttempt);
+    const gates: GateExpectations = {
+      forbidArtifactContentMatching: ['AKIA[0-9A-Z]{16}'],
+    };
+
+    const result = await checkGates(agent, 't1', 1, gates, EXPECTED);
+
+    expect(result.failures.map((f) => f.gate)).toContain('artifact_content');
   });
 
   it('skips the submit gate when requireCleanSubmit is false', async () => {

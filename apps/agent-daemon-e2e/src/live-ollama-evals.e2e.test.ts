@@ -192,7 +192,7 @@ describeLive('Agent daemon evals-v2 gate smoke (live Ollama, e2e)', () => {
         task.id,
         acceptedAttemptN,
         scenario.gates,
-        { model: LIVE_MODEL, workspace: scenario.execution.workspace },
+        { model: LIVE_MODEL, workspace: scenario.execution.workspace, teamId },
       );
       expect(
         result.failures,

@@ -162,6 +162,7 @@ async function main(): Promise<void> {
         checkGates(agent, producer.taskId, producer.attemptN, scenario.gates, {
           model,
           workspace: scenario.execution.workspace,
+          teamId,
         }),
       runJudge: async (scenario, producer) => {
         const judgeTask = await agent.tasks.create(
