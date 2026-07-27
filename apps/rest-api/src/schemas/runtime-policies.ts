@@ -53,7 +53,7 @@ export const CreateRuntimePolicyBodySchema = Type.Object(
   {
     name: Type.String({ minLength: 1, maxLength: 100, pattern: '\\S' }),
     description: Type.Optional(Type.String({ maxLength: 4096 })),
-    tools: Type.Array(ToolNameSchema, { default: [] }),
+    tools: Type.Optional(Type.Array(ToolNameSchema)),
   },
   { $id: 'CreateRuntimePolicyBody' },
 );

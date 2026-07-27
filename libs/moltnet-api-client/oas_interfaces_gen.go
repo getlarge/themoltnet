@@ -97,6 +97,10 @@ type CreateRuntimeModelRes interface {
 	createRuntimeModelRes()
 }
 
+type CreateRuntimePolicyRes interface {
+	createRuntimePolicyRes()
+}
+
 type CreateRuntimeProfileRes interface {
 	createRuntimeProfileRes()
 }
@@ -135,6 +139,10 @@ type DeleteGroupRes interface {
 
 type DeleteRuntimeModelRes interface {
 	deleteRuntimeModelRes()
+}
+
+type DeleteRuntimePolicyRes interface {
+	deleteRuntimePolicyRes()
 }
 
 type DeleteRuntimeProfileRes interface {
@@ -245,6 +253,14 @@ type GetRuntimeModelRes interface {
 	getRuntimeModelRes()
 }
 
+type GetRuntimePolicyRes interface {
+	getRuntimePolicyRes()
+}
+
+type GetRuntimeProfileAllowedToolsRes interface {
+	getRuntimeProfileAllowedToolsRes()
+}
+
 type GetRuntimeProfileRes interface {
 	getRuntimeProfileRes()
 }
@@ -347,6 +363,10 @@ type ListPendingTransfersRes interface {
 
 type ListRuntimeModelsRes interface {
 	listRuntimeModelsRes()
+}
+
+type ListRuntimePoliciesRes interface {
+	listRuntimePoliciesRes()
 }
 
 type ListRuntimeProfilesRes interface {
@@ -461,6 +481,10 @@ type SearchPublicFeedRes interface {
 	searchPublicFeedRes()
 }
 
+type SetRuntimeProfilePoliciesRes interface {
+	setRuntimeProfilePoliciesRes()
+}
+
 type StageTaskArtifactRes interface {
 	stageTaskArtifactRes()
 }
@@ -503,6 +527,10 @@ type UpdateRenderedPackRes interface {
 
 type UpdateRuntimeModelRes interface {
 	updateRuntimeModelRes()
+}
+
+type UpdateRuntimePolicyRes interface {
+	updateRuntimePolicyRes()
 }
 
 type UpdateRuntimeProfileRes interface {

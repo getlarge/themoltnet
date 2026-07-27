@@ -91,7 +91,7 @@ export async function runtimePolicyRoutes(fastify: FastifyInstance) {
           teamId,
           name: body.name,
           description: body.description,
-          tools: body.tools,
+          tools: body.tools ?? [],
           subject: authSubject(request),
         });
         return await reply.status(201).send(policy);
