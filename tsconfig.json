@@ -33,6 +33,9 @@
       "path": "apps/issue-lifecycle"
     },
     {
+      "path": "apps/multi-lens-review"
+    },
+    {
       "path": "apps/parallel-brief-runner"
     },
     {

@@ -1,0 +1,54 @@
+{
+  "name": "@themoltnet/multi-lens-review",
+  "version": "0.1.0",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "description": "Fan out N specialist code reviews (security, correctness, performance, test-coverage) in parallel and join them into one server-gated verdict.",
+  "main": "./dist/main.js",
+  "types": "./dist/main.d.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "bin": {
+    "moltnet-multi-lens-review": "./dist/main.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "cli": "tsx src/main.ts",
+    "start": "node dist/main.js",
+    "build": "vite build",
+    "typecheck": "tsc -b --emitDeclarationOnly",
+    "lint": "eslint .",
+    "check:pack": "tsx ../../tools/src/check-pack.ts --package . && pnpm run smoke:pack",
+    "smoke:pack": "tsx ../../tools/src/smoke-pack.ts --package . --bin moltnet-multi-lens-review --args --help --expect \"fan out N specialist code reviews\""
+  },
+  "dependencies": {
+    "@themoltnet/sdk": "workspace:*",
+    "absurd-sdk": "catalog:",
+    "pino": "catalog:"
+  },
+  "devDependencies": {
+    "@themoltnet/tasks-orchestrator": "workspace:*",
+    "@types/node": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  },
+  "nx": {
+    "projectType": "application",
+    "tags": [
+      "type:app",
+      "scope:agent",
+      "platform:cli"
+    ]
+  }
+}
