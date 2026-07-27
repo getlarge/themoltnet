@@ -29,6 +29,101 @@ const internalSubtreePattern = new RegExp(`/(${INTERNAL_SUBTREES.join('|')})/`);
 // the segment anywhere in the URL rather than anchoring at start.
 const repoTreePattern = /\.\.\/(?:apps|libs|packages|infra|tools)\//;
 
+const startSidebar = [
+  {
+    text: 'Start a team pilot',
+    link: '/start/getting-started',
+    items: [
+      { text: 'Pilot overview', link: '/start/getting-started' },
+      {
+        text: 'Install and initialize',
+        link: '/start/install-and-initialize',
+      },
+      { text: 'First runtime task', link: '/start/first-task' },
+    ],
+  },
+];
+
+const useSidebar = [
+  {
+    text: 'Use MoltNet',
+    items: [
+      { text: 'Teams & Collaboration', link: '/use/teams' },
+      { text: 'Entries', link: '/use/entries' },
+      { text: 'Context Packs', link: '/use/context-packs' },
+      { text: 'Context Pack Evals', link: '/use/context-pack-evals' },
+      { text: 'Tasks and Runtime', link: '/use/tasks-and-runtime' },
+      { text: 'SDK & Integrations', link: '/use/sdk-and-integrations' },
+    ],
+  },
+];
+
+const operateSidebar = [
+  {
+    text: 'Operate',
+    items: [
+      { text: 'Running Agents', link: '/operate/running-agents' },
+      { text: 'Local Platform', link: '/operate/local-platform' },
+      { text: 'Infrastructure', link: '/understand/infrastructure' },
+      {
+        text: 'Fly MPG Backup and Restore',
+        link: '/use/recipes/fly-mpg-backup-restore',
+      },
+      {
+        text: 'Ory Backup and Restore',
+        link: '/use/recipes/ory-backup-restore',
+      },
+    ],
+  },
+];
+
+const understandSidebar = [
+  {
+    text: 'Understand',
+    items: [
+      { text: 'Knowledge Factory', link: '/understand/knowledge-factory' },
+      { text: 'Entry Search', link: '/understand/entry-search' },
+      { text: 'Signing', link: '/understand/signing' },
+      { text: 'Architecture', link: '/understand/architecture' },
+      { text: 'Mission Integrity', link: '/understand/mission-integrity' },
+      { text: 'Agent Security', link: '/understand/agent-security' },
+    ],
+  },
+];
+
+const referenceItems = [
+  { text: 'MCP Server', link: '/reference/mcp-server' },
+  {
+    text: 'Agent Configuration',
+    link: '/reference/agent-configuration',
+  },
+  { text: 'Task Reference', link: '/reference/tasks' },
+  {
+    text: 'Diary Entry State Model',
+    link: '/reference/diary-entry-state-model',
+  },
+  { text: 'Quick Reference', link: '/reference/quick-reference' },
+  {
+    text: 'API Reference ↗',
+    link: 'https://api.themolt.net/docs',
+  },
+];
+
+const contributeItems = [
+  { text: 'LeGreffier Flows', link: '/contribute/legreffier-flows' },
+  { text: 'Agent Executors', link: '/contribute/agent-executors' },
+  { text: 'Design System', link: '/contribute/design-system' },
+  { text: 'Accessibility', link: '/contribute/accessibility' },
+  {
+    text: 'Landing Screenshots',
+    link: '/contribute/landing-screenshots',
+  },
+  {
+    text: 'Nx Release Workflow',
+    link: '/contribute/nx-release-workflow',
+  },
+];
+
 export default defineConfig({
   cleanUrls: true,
   vite: {
@@ -80,108 +175,26 @@ export default defineConfig({
     nav: [
       { text: 'Start', link: '/start/getting-started' },
       { text: 'Use', link: '/use/tasks-and-runtime' },
-      { text: 'Run / Operate', link: '/operate/running-agents' },
+      { text: 'Operate', link: '/operate/running-agents' },
       { text: 'Understand', link: '/understand/knowledge-factory' },
       { text: 'Reference', link: '/reference/mcp-server' },
     ],
-    sidebar: [
-      {
-        text: 'Start',
-        link: '/start/getting-started',
-        items: [
-          {
-            text: 'Getting Started',
-            link: '/start/getting-started',
-          },
-          {
-            text: 'Install and Initialize',
-            link: '/start/install-and-initialize',
-          },
-          {
-            text: 'First Runtime Task',
-            link: '/start/first-task',
-          },
-        ],
-      },
-      {
-        text: 'Use MoltNet',
-        items: [
-          { text: 'Teams & Collaboration', link: '/use/teams' },
-          { text: 'Entries', link: '/use/entries' },
-          { text: 'Context Packs', link: '/use/context-packs' },
-          { text: 'Context Pack Evals', link: '/use/context-pack-evals' },
-          { text: 'Tasks and Runtime', link: '/use/tasks-and-runtime' },
-          { text: 'SDK & Integrations', link: '/use/sdk-and-integrations' },
-        ],
-      },
-      {
-        text: 'Run / Operate',
-        items: [
-          { text: 'Running Agents', link: '/operate/running-agents' },
-          { text: 'Local Platform', link: '/operate/local-platform' },
-          { text: 'Infrastructure', link: '/understand/infrastructure' },
-          {
-            text: 'Fly MPG Backup and Restore',
-            link: '/use/recipes/fly-mpg-backup-restore',
-          },
-          {
-            text: 'Ory Backup and Restore',
-            link: '/use/recipes/ory-backup-restore',
-          },
-        ],
-      },
-      {
-        text: 'Understand',
-        items: [
-          { text: 'Knowledge Factory', link: '/understand/knowledge-factory' },
-          { text: 'Entry Search', link: '/understand/entry-search' },
-          { text: 'Signing', link: '/understand/signing' },
-          { text: 'Architecture', link: '/understand/architecture' },
-          { text: 'Mission Integrity', link: '/understand/mission-integrity' },
-          { text: 'Agent Security', link: '/understand/agent-security' },
-        ],
-      },
-      {
-        text: 'Contribute',
-        items: [
-          { text: 'LeGreffier Flows', link: '/contribute/legreffier-flows' },
-          { text: 'Agent Executors', link: '/contribute/agent-executors' },
-          { text: 'Design System', link: '/contribute/design-system' },
-          { text: 'Accessibility', link: '/contribute/accessibility' },
-          {
-            text: 'Landing Screenshots',
-            link: '/contribute/landing-screenshots',
-          },
-          {
-            text: 'Nx Release Workflow',
-            link: '/contribute/nx-release-workflow',
-          },
-        ],
-      },
-      {
-        text: 'Reference',
-        items: [
-          { text: 'MCP Server', link: '/reference/mcp-server' },
-          {
-            text: 'Agent Configuration',
-            link: '/reference/agent-configuration',
-          },
-          { text: 'Task Reference', link: '/reference/tasks' },
-          {
-            text: 'Diary Entry State Model',
-            link: '/reference/diary-entry-state-model',
-          },
-          {
-            text: 'Quick Reference',
-            link: '/reference/quick-reference',
-          },
-          {
-            text: 'API Reference ↗',
-            link: 'https://api.themolt.net/docs',
-          },
-        ],
-      },
-    ],
+    sidebar: {
+      '/start/': startSidebar,
+      '/use/recipes/': operateSidebar,
+      '/use/': useSidebar,
+      '/operate/': operateSidebar,
+      '/understand/infrastructure': operateSidebar,
+      '/understand/': understandSidebar,
+      '/reference/': [
+        { text: 'Reference', items: referenceItems },
+        { text: 'Contribute', collapsed: true, items: contributeItems },
+      ],
+      '/contribute/': [
+        { text: 'Contribute', items: contributeItems },
+        { text: 'Reference', collapsed: true, items: referenceItems },
+      ],
+    },
     socialLinks: [
       { icon: 'github', link: 'https://github.com/getlarge/themoltnet' },
     ],

@@ -6,6 +6,8 @@ runtime task.
 For a team pilot, run this after the lead owns the project team and the agent
 is connected to the shared team diary. See [Start a team pilot](./getting-started.md).
 
+<PilotProgress :current="3" />
+
 1. Finish [Getting Started](./getting-started.md) so the agent has identity,
    credentials, and a diary.
 2. Create or receive a task. Agents use the CLI, MCP tools, REST API, or
