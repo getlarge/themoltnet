@@ -70,6 +70,7 @@ import type { ToolEnforcement } from '../tool-policy/gate.js';
 import {
   createToolPolicyExtension,
   resolveSessionToolPolicy,
+  type ToolPolicyLogger,
 } from '../tool-policy/session-policy.js';
 import { activateAgentEnv, resumeVm } from '../vm-manager.js';
 import { buildAgentSession } from './agent-session-factory.js';
@@ -395,6 +396,13 @@ export interface ExecutePiTaskOptions {
    * contracts. See #1106.
    */
   subagentContractRegistry?: SubagentContractRegistry;
+  /**
+   * Structured logger for tool-policy resolution/gate events. The daemon passes
+   * its task-bound pino child so these lines carry taskId/attemptN and join the
+   * run's NDJSON stream. When omitted, tool-policy events fall back to raw
+   * NDJSON on stderr (single-process / test callers). See #1348.
+   */
+  toolPolicyLogger?: ToolPolicyLogger;
 }
 
 /**
@@ -887,6 +895,47 @@ export async function executePiTask(
       });
       const injectedSkills = injectedContext.skills;
 
+      // Resolve the runtime profile's tool-policy allow-set and build the
+      // `tool_call` gate. Skipped in `off` mode; a resolve failure fails closed
+      // in `enforce` (empty allow-set blocks everything). Built BEFORE the
+      // subagent tool so the same gate factory can be propagated into subagent
+      // sessions — otherwise a subagent would run un-gated (bypass, #1348 B2).
+      const toolPolicyExtensions: ReturnType<
+        typeof createToolPolicyExtension
+      >[] = [];
+      if (
+        opts.runtimeProfileId &&
+        opts.toolEnforcement &&
+        opts.toolEnforcement !== 'off'
+      ) {
+        // Prefer the daemon's task-bound structured logger; fall back to raw
+        // NDJSON on stderr for single-process / test callers.
+        const toolPolicyLogger: ToolPolicyLogger = opts.toolPolicyLogger ?? {
+          debug: () => {},
+          info: (obj: Record<string, unknown>, msg: string) =>
+            console.error(JSON.stringify({ level: 'info', msg, ...obj })),
+          warn: (obj: Record<string, unknown>, msg: string) =>
+            console.error(JSON.stringify({ level: 'warn', msg, ...obj })),
+        };
+        const [analyzer, policy] = await Promise.all([
+          ShellCommandAnalyzer.create(),
+          resolveSessionToolPolicy({
+            agent: moltnetAgent,
+            profileId: opts.runtimeProfileId,
+            teamId: taskTeamId,
+            enforcement: opts.toolEnforcement,
+            logger: toolPolicyLogger,
+          }),
+        ]);
+        toolPolicyExtensions.push(
+          createToolPolicyExtension({
+            policy,
+            analyzer,
+            logger: toolPolicyLogger,
+          }),
+        );
+      }
+
       // Subagent custom tool — registered only when the task type opts
       // in via TaskTypeEntry.usesSubagents (#1087). The subagent
       // inherits Gondolin + moltnet_* tools but NOT this task's
@@ -916,45 +965,13 @@ export async function executePiTask(
           // for the parent session via `wireSessionAbort`) to every
           // in-flight subagent's inner session.abort(). Closes #1090.
           parentCancelSignal: reporter.cancelSignal,
+          // Gate subagent sessions with the SAME tool policy as the parent.
+          // Without this, delegating to a subagent would escape enforcement
+          // entirely (#1348 B2). Empty in `off` mode → subagents run un-gated,
+          // matching the parent.
+          extraExtensionFactories: toolPolicyExtensions,
         });
         parentSubagentTools.push(subagentHandle.tool);
-      }
-
-      // Resolve the runtime profile's tool-policy allow-set and build the
-      // `tool_call` gate. Skipped in `off` mode; a resolve failure fails closed
-      // in `enforce` (empty allow-set blocks everything).
-      const toolPolicyExtensions: ReturnType<
-        typeof createToolPolicyExtension
-      >[] = [];
-      if (
-        opts.runtimeProfileId &&
-        opts.toolEnforcement &&
-        opts.toolEnforcement !== 'off'
-      ) {
-        const toolPolicyLogger = {
-          debug: () => {},
-          info: (obj: Record<string, unknown>, msg: string) =>
-            console.error(JSON.stringify({ level: 'info', msg, ...obj })),
-          warn: (obj: Record<string, unknown>, msg: string) =>
-            console.error(JSON.stringify({ level: 'warn', msg, ...obj })),
-        };
-        const [analyzer, policy] = await Promise.all([
-          ShellCommandAnalyzer.create(),
-          resolveSessionToolPolicy({
-            agent: moltnetAgent,
-            profileId: opts.runtimeProfileId,
-            teamId: taskTeamId,
-            enforcement: opts.toolEnforcement,
-            logger: toolPolicyLogger,
-          }),
-        ]);
-        toolPolicyExtensions.push(
-          createToolPolicyExtension({
-            policy,
-            analyzer,
-            logger: toolPolicyLogger,
-          }),
-        );
       }
 
       session = await buildAgentSession({

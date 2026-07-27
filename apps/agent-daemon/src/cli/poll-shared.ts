@@ -616,6 +616,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
           toolEnforcement: profile.toolEnforcement,
           makeExecutionPlan: (task) => executionPlans.getOrCreate(task),
           makeOnTurnEvent: makeTurnEventHandlerFactory(taskLogger),
+          toolPolicyLogger: taskLogger,
           maxTurns: common.maxTurns,
           maxBashTimeouts: common.maxBashTimeouts,
         });

@@ -15,9 +15,28 @@ import {
 export interface SessionToolPolicy {
   enforcement: ToolEnforcement;
   allowedTools: ReadonlySet<string>;
+  /**
+   * `true` when the allow-set is a **degraded fallback** — the allowed-tools
+   * fetch failed or timed out and this policy is the fail-closed/fail-open
+   * default, NOT the operator's actual configuration. An intentional
+   * empty-but-resolved policy (e.g. a profile with no bound tools) has
+   * `degraded: false`. Surfaced in every audit/block log so an operator can tell
+   * "blocked because the policy is empty" from "blocked because we couldn't read
+   * the policy". `off` and successful resolutions are never degraded.
+   */
+  degraded: boolean;
 }
 
-interface Logger {
+/** Default deadline for the allowed-tools fetch before we fall back. */
+export const DEFAULT_RESOLVE_TIMEOUT_MS = 5_000;
+
+/**
+ * Structured logger the resolver and gate emit to. Deliberately the pino
+ * `(obj, msg)` shape so the daemon can pass a task-bound pino child directly —
+ * every tool-policy line then carries the daemon's taskId/attemptN context and
+ * lands in the same NDJSON stream as the rest of the run.
+ */
+export interface ToolPolicyLogger {
   debug: (obj: Record<string, unknown>, msg: string) => void;
   info: (obj: Record<string, unknown>, msg: string) => void;
   warn: (obj: Record<string, unknown>, msg: string) => void;
@@ -43,7 +62,14 @@ export interface ResolveSessionToolPolicyInput {
    * allowed-tools fetch fails.
    */
   enforcement: ToolEnforcement;
-  logger: Logger;
+  logger: ToolPolicyLogger;
+  /**
+   * Deadline for the allowed-tools fetch. A hung API call must not stall session
+   * start-up indefinitely, so on timeout we abort and fall back to the
+   * mode-appropriate degraded policy. Defaults to
+   * {@link DEFAULT_RESOLVE_TIMEOUT_MS}; `0`/negative disables the deadline.
+   */
+  timeoutMs?: number;
 }
 
 /**
@@ -64,17 +90,21 @@ export async function resolveSessionToolPolicy(
   input: ResolveSessionToolPolicyInput,
 ): Promise<SessionToolPolicy> {
   if (input.enforcement === 'off') {
-    return { enforcement: 'off', allowedTools: new Set() };
+    return { enforcement: 'off', allowedTools: new Set(), degraded: false };
   }
 
+  const timeoutMs = input.timeoutMs ?? DEFAULT_RESOLVE_TIMEOUT_MS;
   try {
-    const resolved = await input.agent.runtimeProfiles.allowedTools(
-      input.profileId,
-      { teamId: input.teamId },
+    const resolved = await withTimeout(
+      input.agent.runtimeProfiles.allowedTools(input.profileId, {
+        teamId: input.teamId,
+      }),
+      timeoutMs,
     );
     return {
       enforcement: resolved.enforcement,
       allowedTools: new Set(resolved.allowedTools),
+      degraded: false,
     };
   } catch (err) {
     input.logger.warn(
@@ -83,13 +113,54 @@ export async function resolveSessionToolPolicy(
         profileId: input.profileId,
         teamId: input.teamId,
         enforcement: input.enforcement,
+        timedOut: err instanceof ToolPolicyResolveTimeoutError,
         failClosed: input.enforcement === 'enforce',
       },
       'tool_policy.resolve_failed',
     );
-    // Fail closed in enforce (empty allow-set blocks everything); in watch the
-    // empty set audits every call but proceeds.
-    return { enforcement: input.enforcement, allowedTools: new Set() };
+    // Degraded fallback. Fail closed in enforce (empty allow-set blocks
+    // everything); in watch the empty set audits every call but proceeds. The
+    // `degraded` flag lets the gate distinguish this from a resolved-empty
+    // policy in its audit/block logs.
+    return {
+      enforcement: input.enforcement,
+      allowedTools: new Set(),
+      degraded: true,
+    };
+  }
+}
+
+/** Thrown when the allowed-tools fetch exceeds its deadline. */
+export class ToolPolicyResolveTimeoutError extends Error {
+  constructor(timeoutMs: number) {
+    super(`tool-policy resolution timed out after ${timeoutMs}ms`);
+    this.name = 'ToolPolicyResolveTimeoutError';
+  }
+}
+
+/**
+ * Reject with {@link ToolPolicyResolveTimeoutError} if `promise` does not settle
+ * within `timeoutMs`. A non-positive `timeoutMs` disables the deadline. The
+ * underlying request is not cancelled — it is an idempotent GET whose result is
+ * simply abandoned — but the timer is always cleared so it never keeps the
+ * process alive.
+ */
+async function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+): Promise<T> {
+  if (!(timeoutMs > 0)) return promise;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<never>((_resolve, reject) => {
+    timer = setTimeout(
+      () => reject(new ToolPolicyResolveTimeoutError(timeoutMs)),
+      timeoutMs,
+    );
+  });
+  try {
+    return await Promise.race([promise, deadline]);
+  } finally {
+    if (timer) clearTimeout(timer);
   }
 }
 
@@ -118,7 +189,7 @@ export function decideForEvent(
 export interface ToolPolicyExtensionDeps {
   policy: SessionToolPolicy;
   analyzer: ShellCommandAnalyzer;
-  logger: Logger;
+  logger: ToolPolicyLogger;
 }
 
 /**
@@ -139,7 +210,12 @@ export function createToolPolicyExtension(deps: ToolPolicyExtensionDeps) {
 
       if ('audit' in decision) {
         deps.logger.info(
-          { toolName: event.toolName, toolCallId: event.toolCallId, decision },
+          {
+            toolName: event.toolName,
+            toolCallId: event.toolCallId,
+            degraded: deps.policy.degraded,
+            decision,
+          },
           'tool_policy.audit',
         );
         return;
@@ -149,6 +225,9 @@ export function createToolPolicyExtension(deps: ToolPolicyExtensionDeps) {
         {
           toolName: event.toolName,
           toolCallId: event.toolCallId,
+          // Degraded → blocked because the policy could not be read, not because
+          // the operator's policy disallows this tool. Critical for triage.
+          degraded: deps.policy.degraded,
           reason: decision.reason,
         },
         'tool_policy.blocked',

@@ -36,6 +36,15 @@ function agentFailing(): AllowedToolsClient {
   };
 }
 
+/** Agent whose fetch never settles — exercises the resolver's deadline. */
+function agentHanging(): AllowedToolsClient {
+  return {
+    runtimeProfiles: {
+      allowedTools: vi.fn().mockReturnValue(new Promise<never>(() => {})),
+    },
+  };
+}
+
 beforeEach(() => vi.clearAllMocks());
 
 describe('resolveSessionToolPolicy', () => {
@@ -48,21 +57,26 @@ describe('resolveSessionToolPolicy', () => {
       agent,
       enforcement: 'off',
     });
-    expect(policy).toEqual({ enforcement: 'off', allowedTools: new Set() });
+    expect(policy).toEqual({
+      enforcement: 'off',
+      allowedTools: new Set(),
+      degraded: false,
+    });
     expect(agent.runtimeProfiles.allowedTools).not.toHaveBeenCalled();
   });
 
-  it('resolves the allow-set from the API for enforce', async () => {
+  it('resolves the allow-set from the API for enforce (not degraded)', async () => {
     const policy = await resolveSessionToolPolicy({
       ...params,
       agent: agentReturning('enforce', ['git', 'gh']),
       enforcement: 'enforce',
     });
     expect(policy.enforcement).toBe('enforce');
+    expect(policy.degraded).toBe(false);
     expect([...policy.allowedTools].sort()).toEqual(['gh', 'git']);
   });
 
-  it('fails closed (empty allow-set) when the fetch fails in enforce', async () => {
+  it('fails closed and marks degraded when the fetch fails in enforce', async () => {
     const policy = await resolveSessionToolPolicy({
       ...params,
       agent: agentFailing(),
@@ -71,17 +85,40 @@ describe('resolveSessionToolPolicy', () => {
     expect(policy).toEqual({
       enforcement: 'enforce',
       allowedTools: new Set(),
+      degraded: true,
     });
     expect(logger.warn).toHaveBeenCalled();
   });
 
-  it('fails open-ish (audits) when the fetch fails in watch', async () => {
+  it('fails open-ish (audits) and marks degraded when the fetch fails in watch', async () => {
     const policy = await resolveSessionToolPolicy({
       ...params,
       agent: agentFailing(),
       enforcement: 'watch',
     });
-    expect(policy).toEqual({ enforcement: 'watch', allowedTools: new Set() });
+    expect(policy).toEqual({
+      enforcement: 'watch',
+      allowedTools: new Set(),
+      degraded: true,
+    });
+  });
+
+  it('times out a hung fetch and falls back to the degraded enforce policy', async () => {
+    const policy = await resolveSessionToolPolicy({
+      ...params,
+      agent: agentHanging(),
+      enforcement: 'enforce',
+      timeoutMs: 5,
+    });
+    expect(policy).toEqual({
+      enforcement: 'enforce',
+      allowedTools: new Set(),
+      degraded: true,
+    });
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({ timedOut: true, failClosed: true }),
+      'tool_policy.resolve_failed',
+    );
   });
 });
 
@@ -143,7 +180,7 @@ describe('createToolPolicyExtension', () => {
 
   it('registers no handler in off mode', () => {
     const on = registerHandler({
-      policy: { enforcement: 'off', allowedTools: new Set() },
+      policy: { enforcement: 'off', allowedTools: new Set(), degraded: false },
       analyzer,
       logger,
     });
@@ -154,6 +191,7 @@ describe('createToolPolicyExtension', () => {
     const policy: SessionToolPolicy = {
       enforcement: 'enforce',
       allowedTools: new Set(['git']),
+      degraded: false,
     };
     const on = registerHandler({ policy, analyzer, logger });
     const handler = on.mock.calls[0][1] as (e: ToolCallEvent) => unknown;
@@ -161,6 +199,10 @@ describe('createToolPolicyExtension', () => {
     const blocked = handler(toolCall('bash', { command: 'git push | curl x' }));
     expect(blocked).toMatchObject({ block: true });
     expect((blocked as { reason: string }).reason).toContain('curl');
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({ degraded: false }),
+      'tool_policy.blocked',
+    );
 
     const allowed = handler(toolCall('bash', { command: 'git status' }));
     expect(allowed).toBeUndefined();
@@ -168,7 +210,11 @@ describe('createToolPolicyExtension', () => {
 
   it('audits (allows) a disallowed tool in watch', () => {
     const on = registerHandler({
-      policy: { enforcement: 'watch', allowedTools: new Set(['git']) },
+      policy: {
+        enforcement: 'watch',
+        allowedTools: new Set(['git']),
+        degraded: false,
+      },
       analyzer,
       logger,
     });
@@ -184,7 +230,11 @@ describe('createToolPolicyExtension', () => {
 
   it('blocks an unresolvable bash command in enforce (fail-closed)', () => {
     const on = registerHandler({
-      policy: { enforcement: 'enforce', allowedTools: new Set(['git']) },
+      policy: {
+        enforcement: 'enforce',
+        allowedTools: new Set(['git']),
+        degraded: false,
+      },
       analyzer,
       logger,
     });
@@ -192,5 +242,25 @@ describe('createToolPolicyExtension', () => {
     expect(handler(toolCall('bash', { command: 'eval "$X"' }))).toMatchObject({
       block: true,
     });
+  });
+
+  it('flags degraded:true in the block log when the policy is a fallback', () => {
+    const on = registerHandler({
+      policy: {
+        enforcement: 'enforce',
+        allowedTools: new Set(),
+        degraded: true,
+      },
+      analyzer,
+      logger,
+    });
+    const handler = on.mock.calls[0][1] as (e: ToolCallEvent) => unknown;
+    expect(handler(toolCall('write', { path: 'x' }))).toMatchObject({
+      block: true,
+    });
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({ degraded: true }),
+      'tool_policy.blocked',
+    );
   });
 });

@@ -35,6 +35,7 @@
 import type { Api, Model } from '@earendil-works/pi-ai';
 import type {
   AgentSession,
+  ExtensionAPI,
   ToolDefinition,
 } from '@earendil-works/pi-coding-agent';
 import { defineTool } from '@earendil-works/pi-coding-agent';
@@ -173,6 +174,17 @@ export interface CreateSubagentToolArgs {
    * with whatever stubs they need.
    */
   contractRegistry: SubagentContractRegistry;
+
+  /**
+   * Extra pi extension factories every subagent session registers — chiefly the
+   * tool-policy `tool_call` gate. A subagent runs in its own `AgentSession`, so
+   * without re-registering the gate here it would execute tools un-checked,
+   * escaping the parent's enforcement (#1348 B2). Empty/undefined when tool
+   * enforcement is `off`, so subagents then match the parent's un-gated
+   * behaviour. The factories are read-only closures, safe to share across the
+   * parent and every subagent session.
+   */
+  extraExtensionFactories?: ((pi: ExtensionAPI) => void)[];
 }
 
 const DEFAULT_SUBAGENT_TIMEOUT_MS = 5 * 60 * 1000;
@@ -333,6 +345,9 @@ export function createSubagentTool(
         // No injected skills for subagents — they get only what their
         // task description tells them.
         skillsOverride: () => ({ skills: [], diagnostics: [] }),
+        // Re-register the parent's tool-policy gate on the subagent session so
+        // delegated work is enforced identically (#1348 B2).
+        extraExtensionFactories: args.extraExtensionFactories,
         otelSpanAttrs: {
           'moltnet.task.id': args.parentTaskId,
           'moltnet.task.type': args.parentTaskType,

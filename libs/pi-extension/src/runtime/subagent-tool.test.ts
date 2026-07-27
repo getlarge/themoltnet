@@ -215,6 +215,21 @@ describe('createSubagentTool', () => {
     expect(factory.innerSubmitInvocations).toBe(1);
   });
 
+  it('propagates the tool-policy gate factories into the subagent session (#1348 B2)', async () => {
+    // A subagent runs in its own AgentSession; the gate must be re-registered
+    // there or delegated work would execute un-enforced.
+    const payload = { verdict: 'ok', score: 0.5 };
+    const factory = makeFakeSessionFactory(payload);
+    const gate = vi.fn();
+    const handle = createSubagentTool({
+      ...stubArgs(),
+      buildAgentSession: factory.build,
+      extraExtensionFactories: [gate],
+    });
+    await callOuter(handle.tool, { task: 'grade', output_schema: 'sample' });
+    expect(factory.capturedBuildArgs?.extraExtensionFactories).toEqual([gate]);
+  });
+
   it('increments getCallCount across multiple successful calls', async () => {
     // Successive parent invocations should accrue. The handle's
     // counter is read by execute-pi-task to emit a per-attempt

