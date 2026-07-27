@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { SignerCeremonyService } from './ceremony-service.js';
+import { registerSignerOpenApi } from './openapi.js';
 import { createSignerServer } from './server.js';
 
 const CONSOLE_ORIGIN = 'https://console.themolt.net';
@@ -19,7 +20,7 @@ afterEach(async () => {
   );
 });
 
-async function fixture() {
+async function fixture(options: { openapi?: boolean } = {}) {
   let sequence = 0;
   const service = new SignerCeremonyService({
     allowedOrigins: [CONSOLE_ORIGIN],
@@ -63,7 +64,9 @@ async function fixture() {
     validateChallenge: vi.fn(() => Promise.resolve({ valid: true as const })),
     randomToken: () => `test-capability-${++sequence}`,
   });
-  const server = createSignerServer(service);
+  const server = createSignerServer(service, {
+    ...(options.openapi ? { registerOpenApi: registerSignerOpenApi } : {}),
+  });
   fixtures.push({ server, service });
   await server.ready();
   return { server };
@@ -83,8 +86,14 @@ async function createSession(server: FastifyInstance): Promise<string> {
 }
 
 describe('loopback signer server', () => {
-  it('publishes only the typed JSON protocol used by Console', async () => {
+  it('does not register OpenAPI tooling in the production server', async () => {
     const { server } = await fixture();
+
+    expect('swagger' in server).toBe(false);
+  });
+
+  it('publishes only the typed JSON protocol used by Console', async () => {
+    const { server } = await fixture({ openapi: true });
     const spec = (
       server as unknown as {
         swagger(): {

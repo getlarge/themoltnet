@@ -3,6 +3,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import type { SignerCeremonyService } from '../src/ceremony-service.js';
+import { registerSignerOpenApi } from '../src/openapi.js';
 import { createSignerServer } from '../src/server.js';
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
@@ -32,7 +33,9 @@ function createStubService(): SignerCeremonyService {
 
 async function main(): Promise<void> {
   const outputPath = process.argv[2] || defaultOutputPath;
-  const app = createSignerServer(createStubService());
+  const app = createSignerServer(createStubService(), {
+    registerOpenApi: registerSignerOpenApi,
+  });
   await app.ready();
 
   const json = `${JSON.stringify(sortKeysDeep(app.swagger()), null, 2)}\n`;

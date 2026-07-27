@@ -41,7 +41,6 @@
   "dependencies": {
     "@fastify/cors": "catalog:",
     "@fastify/helmet": "catalog:",
-    "@fastify/swagger": "catalog:",
     "@fastify/type-provider-typebox": "catalog:",
     "fastify": "catalog:",
     "node-hid": "catalog:",
@@ -49,6 +48,7 @@
     "typebox": "catalog:"
   },
   "devDependencies": {
+    "@fastify/swagger": "catalog:",
     "@moltnet/crypto-service": "workspace:*",
     "@moltnet/models": "workspace:*",
     "@themoltnet/yubikey-preview-sign": "workspace:*",

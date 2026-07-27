@@ -2,10 +2,7 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
-import {
-  createSignerCompanionClient,
-  SignerCompanionError,
-} from '../src/signing/companion-client.js';
+import { createSignerCompanionClient } from '../src/signing/companion-client.js';
 
 describe('signer companion client', () => {
   it('never serializes browser credentials or authorization material to loopback', async () => {
@@ -114,7 +111,7 @@ describe('signer companion client', () => {
     ).rejects.toThrow('Signer companion returned an invalid ceremony');
   });
 
-  it('rejects redirects in the generated transport', async () => {
+  it('configures the generated transport to reject redirects', async () => {
     const fetchMock = vi.fn<typeof fetch>((input, init) => {
       const redirect =
         input instanceof Request ? input.redirect : init?.redirect;
@@ -151,9 +148,32 @@ describe('signer companion client', () => {
       ),
     });
 
-    await expect(client.connect()).rejects.toEqual(
-      new SignerCompanionError('device_timeout', 'Reconnect the key'),
-    );
+    await expect(client.connect()).rejects.toMatchObject({
+      code: 'device_timeout',
+      message: 'Reconnect the key',
+      status: 504,
+    });
+  });
+
+  it('preserves status and non-JSON response context for diagnostics', async () => {
+    const client = createSignerCompanionClient({
+      baseUrl: 'http://127.0.0.1:17373',
+      fetch: vi.fn<typeof fetch>(() =>
+        Promise.resolve(
+          new Response('stale signer companion', {
+            status: 502,
+            headers: { 'content-type': 'text/plain' },
+          }),
+        ),
+      ),
+    });
+
+    await expect(client.connect()).rejects.toMatchObject({
+      cause: 'stale signer companion',
+      code: 'http_502',
+      message: 'stale signer companion',
+      status: 502,
+    });
   });
 
   it('bounds an unavailable loopback request', async () => {
@@ -177,7 +197,7 @@ describe('signer companion client', () => {
     });
   });
 
-  it('propagates caller aborts while polling', async () => {
+  it('propagates caller aborts during a result request', async () => {
     const controller = new AbortController();
     const fetchMock = vi
       .fn<typeof fetch>()
@@ -219,5 +239,51 @@ describe('signer companion client', () => {
     await expect(result).rejects.toMatchObject({
       code: 'companion_unavailable',
     });
+  });
+
+  it('stops polling when the caller aborts between requests', async () => {
+    vi.useFakeTimers();
+    try {
+      const fetchMock = vi
+        .fn<typeof fetch>()
+        .mockResolvedValueOnce(
+          Response.json(
+            {
+              version: 1,
+              token: 'process-capability',
+              expiresAt: '2030-08-01T12:05:00.000Z',
+            },
+            { status: 201 },
+          ),
+        )
+        .mockResolvedValueOnce(
+          Response.json({
+            version: 1,
+            status: 'pending',
+            operation: 'credential-enrollment',
+          }),
+        );
+      const client = createSignerCompanionClient({
+        baseUrl: 'http://127.0.0.1:17373',
+        fetch: fetchMock,
+      });
+      const controller = new AbortController();
+      const reason = new DOMException('Stopped', 'AbortError');
+      await client.connect();
+
+      const result = client.waitForResult('ceremony-id', {
+        signal: controller.signal,
+        pollIntervalMs: 1_000,
+      });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      controller.abort(reason);
+
+      await expect(result).rejects.toBe(reason);
+      await vi.advanceTimersByTimeAsync(1_000);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

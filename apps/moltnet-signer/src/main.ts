@@ -6,7 +6,7 @@ import { SignerCeremonyService } from './ceremony-service.js';
 import { createChallengeValidator } from './challenge-validator.js';
 import { getSignerConfig } from './config.js';
 import { createPreviewSignDevice } from './device.js';
-import { createSignerServer } from './server.js';
+import { createSignerServer, SESSION_HEADER } from './server.js';
 
 if (process.argv.includes('--help') || process.argv.includes('-h')) {
   process.stdout.write(`MoltNet local previewSign companion
@@ -54,8 +54,8 @@ async function startSigner(): Promise<void> {
       name: 'moltnet-signer',
       redact: {
         paths: [
-          'req.headers.x-moltnet-signer-session',
-          'request.headers.x-moltnet-signer-session',
+          `req.headers.${SESSION_HEADER}`,
+          `request.headers.${SESSION_HEADER}`,
           '*.additionalArguments',
           '*.challenge',
           '*.digest',

@@ -15,6 +15,7 @@ import {
   createSignerCeremony,
   createSignerSession,
   getSignerCeremonyResult,
+  type RequestResult,
 } from '@moltnet/signer-api-client';
 import { Value } from 'typebox/value';
 
@@ -32,13 +33,16 @@ export interface SignerCompanionClient {
 }
 
 export class SignerCompanionError extends Error {
+  public readonly status: number | undefined;
+
   constructor(
     public readonly code: string,
     message: string,
-    options?: ErrorOptions,
+    options?: ErrorOptions & { status?: number },
   ) {
     super(message, options);
     this.name = 'SignerCompanionError';
+    this.status = options?.status;
   }
 }
 
@@ -135,44 +139,33 @@ function activeSessionToken(session: SignerSession | null): string {
   return session.token;
 }
 
-async function unwrapTransport<T>(
-  request: Promise<
-    | {
-        data: T;
-        error?: undefined;
-        response: Response;
-      }
-    | {
-        data?: undefined;
-        error: unknown;
-        response?: Response;
-      }
-  >,
-): Promise<T> {
-  let result:
-    | {
-        data: T;
-        error?: undefined;
-        response: Response;
-      }
-    | {
-        data?: undefined;
-        error: unknown;
-        response?: Response;
-      };
+type TransportRequest<T> = RequestResult<
+  { response: T },
+  { error: unknown },
+  false
+>;
+
+async function unwrapTransport<T>(request: TransportRequest<T>): Promise<T> {
+  let result: Awaited<typeof request>;
   try {
     result = await request;
   } catch (error) {
     throw unavailableError(error);
   }
   if (result.error !== undefined) {
-    if (result.response) {
-      throw new SignerCompanionError(
-        problemCode(result.error) ?? `http_${result.response.status}`,
-        problemMessage(result.error) ?? 'Signer companion request failed',
-      );
+    if (!result.response) {
+      throw unavailableError(result.error);
     }
-    throw unavailableError(result.error);
+    throw new SignerCompanionError(
+      problemCode(result.error) ?? `http_${result.response.status}`,
+      problemMessage(result.error) ??
+        textErrorMessage(result.error) ??
+        'Signer companion request failed',
+      {
+        cause: result.error,
+        status: result.response.status,
+      },
+    );
   }
   if (result.data === undefined) {
     throw new SignerCompanionError(
@@ -282,6 +275,12 @@ function problemCode(value: unknown): string | undefined {
   return undefined;
 }
 
+function textErrorMessage(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const message = value.trim();
+  return message.length > 0 ? message : undefined;
+}
+
 function combineSignals(
   signal: AbortSignal | null | undefined,
   timeoutMs: number,
@@ -296,14 +295,14 @@ function abortableDelay(
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const onAbort = () => {
-      window.clearTimeout(timeout);
+      globalThis.clearTimeout(timeout);
       reject(
         signal?.reason instanceof Error
           ? signal.reason
           : new DOMException('The operation was aborted', 'AbortError'),
       );
     };
-    const timeout = window.setTimeout(() => {
+    const timeout = globalThis.setTimeout(() => {
       signal?.removeEventListener('abort', onAbort);
       resolve();
     }, milliseconds);

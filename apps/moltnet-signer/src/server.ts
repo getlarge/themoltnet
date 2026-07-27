@@ -1,6 +1,5 @@
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
-import swagger from '@fastify/swagger';
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import type { SignerCeremonyRequest } from '@moltnet/models';
 import {
@@ -28,9 +27,9 @@ import {
 } from './ceremony-service.js';
 
 const BODY_LIMIT = 16 * 1024;
-const SESSION_HEADER = 'x-moltnet-signer-session';
+export const SESSION_HEADER = 'x-moltnet-signer-session';
 
-function schemaId(schema: TSchema): string {
+export function signerSchemaId(schema: TSchema): string {
   const id = (schema as { $id?: unknown }).$id;
   if (typeof id !== 'string' || id.length === 0) {
     throw new Error('Signer protocol schemas must have an identifier');
@@ -39,11 +38,12 @@ function schemaId(schema: TSchema): string {
 }
 
 function schemaRef(schema: TSchema) {
-  return Type.Ref(schemaId(schema));
+  return Type.Ref(signerSchemaId(schema));
 }
 
 export interface CreateSignerServerOptions {
   logger?: FastifyBaseLogger;
+  registerOpenApi?: (app: FastifyInstance) => void;
 }
 
 export function createSignerServer(
@@ -66,46 +66,7 @@ export function createSignerServer(
     ? Fastify({ ...serverOptions, loggerInstance: options.logger })
     : Fastify(serverOptions);
   app.server.headersTimeout = 12_000;
-
-  void app.register(swagger, {
-    openapi: {
-      openapi: '3.1.0',
-      info: {
-        title: 'MoltNet signer companion API',
-        description:
-          'Private loopback protocol between MoltNet Console and the local signer companion.',
-        version: '1.0.0',
-      },
-      servers: [
-        {
-          url: 'http://127.0.0.1:{port}',
-          description: 'Local signer companion',
-          variables: {
-            port: {
-              default: '17373',
-              description: 'Ephemeral or explicitly configured loopback port',
-            },
-          },
-        },
-      ],
-      components: {
-        securitySchemes: {
-          signerSession: {
-            type: 'apiKey',
-            in: 'header',
-            name: SESSION_HEADER,
-            description:
-              'Short-lived, origin-bound signer companion capability.',
-          },
-        },
-      },
-    },
-    refResolver: {
-      buildLocalReference(json) {
-        return schemaId(json);
-      },
-    },
-  });
+  options.registerOpenApi?.(app);
 
   for (const schema of Object.values(signerProtocolSchemaContext)) {
     app.addSchema(schema);
