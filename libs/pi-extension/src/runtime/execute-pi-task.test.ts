@@ -147,6 +147,11 @@ describe('provider error same-session retry helpers', () => {
 
   it('retries generic and transient provider diagnostics', () => {
     expect(shouldRetryProviderErrorMessage(null)).toBe(true);
+    expect(
+      shouldRetryProviderErrorMessage(
+        '500 "Internal Server Error (ref: 0405cf74-1a7c-4dba-90eb-380ba278f306)"',
+      ),
+    ).toBe(true);
     expect(shouldRetryProviderErrorMessage('provider returned 503')).toBe(true);
     expect(shouldRetryProviderErrorMessage('request timed out')).toBe(true);
     expect(shouldRetryProviderErrorMessage('EAI_AGAIN DNS lookup failed')).toBe(
@@ -246,7 +251,8 @@ describe('provider error same-session retry helpers', () => {
           prompts.length === 1
             ? {
                 llmAbort: true,
-                llmErrorMessage: 'provider returned 503 unavailable',
+                llmErrorMessage:
+                  '500 "Internal Server Error (ref: 0405cf74-1a7c-4dba-90eb-380ba278f306)"',
               }
             : { llmAbort: false, llmErrorMessage: null };
       },
