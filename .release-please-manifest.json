@@ -13,6 +13,7 @@
   "libs/pi-extension": "0.36.0",
   "libs/sdk": "0.127.0",
   "libs/shell-command-analyzer": "0.2.0",
+  "libs/tasks-orchestrator": "0.1.0",
   "libs/yubikey-preview-sign": "0.4.0",
   "packages/cli": "1.71.0",
   "packages/cli/npm/darwin-arm64": "1.71.0",

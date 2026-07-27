@@ -92,6 +92,11 @@
       "component": "shell-command-analyzer",
       "release-type": "node"
     },
+    "libs/tasks-orchestrator": {
+      "bump-minor-pre-major": true,
+      "component": "tasks-orchestrator",
+      "release-type": "node"
+    },
     "libs/yubikey-preview-sign": {
       "bump-minor-pre-major": true,
       "component": "yubikey-preview-sign",

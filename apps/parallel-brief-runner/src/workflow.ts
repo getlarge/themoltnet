@@ -7,7 +7,7 @@ import {
   type TaskClient,
   waitForAcceptedTask,
   type WorkflowContext,
-} from '@moltnet/orchestration';
+} from '@themoltnet/tasks-orchestrator';
 
 import type {
   BriefState,

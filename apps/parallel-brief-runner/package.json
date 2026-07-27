@@ -36,7 +36,7 @@
     "pino": "catalog:"
   },
   "devDependencies": {
-    "@moltnet/orchestration": "workspace:*",
+    "@themoltnet/tasks-orchestrator": "workspace:*",
     "@types/node": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",

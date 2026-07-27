@@ -1,4 +1,4 @@
-import { inlineContext, parallelTasks } from '@moltnet/orchestration';
+import { inlineContext, parallelTasks } from '@themoltnet/tasks-orchestrator';
 
 import { isReviewPassed } from './artifact.js';
 import {

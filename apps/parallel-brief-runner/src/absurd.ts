@@ -1,4 +1,4 @@
-import { createOrchestrationAbsurdApp } from '@moltnet/orchestration';
+import { createOrchestrationAbsurdApp } from '@themoltnet/tasks-orchestrator';
 import type { Absurd } from 'absurd-sdk';
 
 import type { ParallelBriefsDeps, ParallelBriefsInput } from './types.js';

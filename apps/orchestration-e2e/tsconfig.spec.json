@@ -10,7 +10,7 @@
   "include": ["src/**/*.ts", "vitest.config.ts"],
   "references": [
     {
-      "path": "../../libs/orchestration/tsconfig.lib.json"
+      "path": "../../libs/tasks-orchestrator/tsconfig.lib.json"
     }
   ]
 }

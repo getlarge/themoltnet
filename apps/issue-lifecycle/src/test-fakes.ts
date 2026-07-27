@@ -1,4 +1,7 @@
-import { type FakeTaskOutput, FakeTasks } from '@moltnet/orchestration/testing';
+import {
+  type FakeTaskOutput,
+  FakeTasks,
+} from '@themoltnet/tasks-orchestrator/testing';
 
 import type {
   GithubClient,
@@ -6,8 +9,8 @@ import type {
   PullRequestStatus,
 } from './types.js';
 
-export type { FakeTaskOutput } from '@moltnet/orchestration/testing';
-export { FakeTasks } from '@moltnet/orchestration/testing';
+export type { FakeTaskOutput } from '@themoltnet/tasks-orchestrator/testing';
+export { FakeTasks } from '@themoltnet/tasks-orchestrator/testing';
 
 /**
  * Wrap a plain lifecycle state body into the freeform artifact envelope the

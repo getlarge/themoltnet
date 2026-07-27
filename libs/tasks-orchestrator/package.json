@@ -1,10 +1,15 @@
 {
-  "name": "@moltnet/orchestration",
+  "name": "@themoltnet/tasks-orchestrator",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "description": "Durable lifecycle-orchestration engine for MoltNet tasks — WorkflowContext seam (inline or Absurd), task await engine, parallel fan-out, and claimCondition joins.",
   "license": "AGPL-3.0-only",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "!dist/.dts"
+  ],
   "exports": {
     ".": {
       "import": "./src/index.ts",
@@ -15,15 +20,31 @@
       "types": "./src/testing.ts"
     }
   },
-  "scripts": {},
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js"
+      },
+      "./testing": {
+        "types": "./dist/testing.d.ts",
+        "import": "./dist/testing.js"
+      }
+    }
+  },
+  "scripts": {
+    "check:pack": "tsx ../../tools/src/check-pack.ts --package ."
+  },
   "dependencies": {
-    "@moltnet/tasks": "workspace:*",
     "@themoltnet/sdk": "workspace:*",
     "absurd-sdk": "catalog:"
   },
   "devDependencies": {
+    "@moltnet/tasks": "workspace:*",
     "@types/node": "catalog:",
     "typescript": "catalog:",
+    "vite": "catalog:",
+    "vite-plugin-dts": "catalog:",
     "vitest": "catalog:"
   },
   "nx": {

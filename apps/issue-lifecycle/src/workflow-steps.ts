@@ -3,7 +3,7 @@ import {
   waitForAcceptedTask as waitForAcceptedTaskGeneric,
   waitForSignalOrSleep,
   waitForTaskOutcome as waitForTaskOutcomeGeneric,
-} from '@moltnet/orchestration';
+} from '@themoltnet/tasks-orchestrator';
 
 import { parseLifecycleStateArtifact } from './artifact.js';
 import {

@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { parseArgs } from 'node:util';
 
-import { createSdkTaskClient } from '@moltnet/orchestration';
 import { connect } from '@themoltnet/sdk';
+import { createSdkTaskClient } from '@themoltnet/tasks-orchestrator';
 import pino from 'pino';
 
 import {

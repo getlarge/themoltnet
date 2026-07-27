@@ -2,15 +2,15 @@ import {
   createOrchestrationAbsurdApp,
   parallelTasks,
   type WorkflowContext,
-} from '@moltnet/orchestration';
+} from '@themoltnet/tasks-orchestrator';
 import { describe, expect, it } from 'vitest';
 
 /**
  * Durability E2E against a REAL Absurd Postgres (the `issue-lifecycle-db`
  * service in docker-compose.e2e.yaml). This proves the property the whole
- * `@moltnet/orchestration` design rests on — that completed `ctx.step`
+ * `@themoltnet/tasks-orchestrator` design rests on — that completed `ctx.step`
  * checkpoints are replayed from Absurd's store and NOT re-executed when a run is
- * retried after a mid-run failure. The unit suites in `libs/orchestration` cover
+ * retried after a mid-run failure. The unit suites in `libs/tasks-orchestrator` cover
  * the same primitives with `inlineContext` / a fake memoizing ctx; only a real
  * Absurd worker can prove the checkpoint store actually behaves this way.
  *
