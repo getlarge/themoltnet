@@ -8,14 +8,22 @@ import { ProfilesPage } from '../src/pages/ProfilesPage.js';
 const createRuntimeProfile = vi.fn();
 const updateRuntimeProfile = vi.fn();
 const deleteRuntimeProfile = vi.fn();
+const setRuntimeProfilePolicies = vi.fn();
 
 vi.mock('@moltnet/api-client', () => ({
   createRuntimeProfile: (...args: unknown[]) => createRuntimeProfile(...args),
   updateRuntimeProfile: (...args: unknown[]) => updateRuntimeProfile(...args),
   deleteRuntimeProfile: (...args: unknown[]) => deleteRuntimeProfile(...args),
+  setRuntimeProfilePolicies: (...args: unknown[]) =>
+    setRuntimeProfilePolicies(...args),
 }));
 
-const queryState = vi.hoisted(() => ({ profiles: [] as unknown[] }));
+const queryState = vi.hoisted(() => ({
+  profiles: [] as unknown[],
+  policies: [] as unknown[],
+  policyIds: [] as string[],
+  allowedTools: [] as string[],
+}));
 
 vi.mock('@moltnet/api-client/query', () => ({
   listRuntimeProfilesOptions: () => ({
@@ -25,6 +33,21 @@ vi.mock('@moltnet/api-client/query', () => ({
   listRuntimeModelsOptions: () => ({
     queryKey: ['runtime-models'],
     queryFn: async () => ({ items: [] }),
+  }),
+  listRuntimePoliciesOptions: () => ({
+    queryKey: ['runtime-policies'],
+    queryFn: async () => ({ items: queryState.policies }),
+  }),
+  getRuntimeProfilePoliciesOptions: () => ({
+    queryKey: ['runtime-profile-policies'],
+    queryFn: async () => ({ policyIds: queryState.policyIds }),
+  }),
+  getRuntimeProfileAllowedToolsOptions: () => ({
+    queryKey: ['runtime-profile-allowed-tools'],
+    queryFn: async () => ({
+      allowedTools: queryState.allowedTools,
+      enforcement: 'off',
+    }),
   }),
 }));
 
@@ -68,6 +91,7 @@ function makeProfile(
     createdByHumanId: null,
     createdAt: '2026-01-01T00:00:00Z',
     updatedAt: '2026-01-01T00:00:00Z',
+    toolEnforcement: 'off',
   };
 }
 
@@ -126,6 +150,9 @@ describe('ProfilesPage context editor', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     queryState.profiles = [];
+    queryState.policies = [];
+    queryState.policyIds = [];
+    queryState.allowedTools = [];
   });
 
   it('applies a suggested recipe as ordinary editable entries', async () => {
@@ -265,6 +292,52 @@ describe('ProfilesPage context editor', () => {
     expect(screen.getByDisplayValue('repo-rules')).toBeInTheDocument();
     expect(screen.getByLabelText('Context content 1')).toHaveValue(
       'Use pnpm and Nx.',
+    );
+  });
+
+  it('binds policies before updating profile enforcement', async () => {
+    queryState.profiles = [makeProfile('p-a', 'profile-a', [])];
+    queryState.policies = [
+      {
+        id: 'policy-1',
+        teamId: 'team-1',
+        name: 'reader',
+        description: 'Read-only tools',
+        createdAt: '2026-01-01T00:00:00Z',
+        updatedAt: '2026-01-01T00:00:00Z',
+      },
+    ];
+    setRuntimeProfilePolicies.mockResolvedValue({
+      data: undefined,
+      error: null,
+    });
+    updateRuntimeProfile.mockResolvedValue({
+      data: makeProfile('p-a', 'profile-a', []),
+      error: null,
+    });
+
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('checkbox', { name: /reader/i }));
+    fireEvent.click(screen.getByRole('radio', { name: /watch/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save tool access' }));
+
+    await waitFor(() =>
+      expect(setRuntimeProfilePolicies).toHaveBeenCalledTimes(1),
+    );
+    await waitFor(() => expect(updateRuntimeProfile).toHaveBeenCalledTimes(1));
+    expect(setRuntimeProfilePolicies.mock.invocationCallOrder[0]).toBeLessThan(
+      updateRuntimeProfile.mock.invocationCallOrder[0],
+    );
+    expect(setRuntimeProfilePolicies).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: { policyIds: ['policy-1'] },
+      }),
+    );
+    expect(updateRuntimeProfile).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: { toolEnforcement: 'watch' },
+      }),
     );
   });
 });
