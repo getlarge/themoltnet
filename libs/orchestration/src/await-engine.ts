@@ -35,7 +35,7 @@ export async function waitForSignalOrSleep(args: {
     return;
   }
   try {
-    args.logger?.info(
+    args.logger?.debug?.(
       {
         eventName: args.eventName,
         stepName: args.stepName,
@@ -48,13 +48,13 @@ export async function waitForSignalOrSleep(args: {
       stepName: args.stepName,
       timeout: args.seconds,
     });
-    args.logger?.info(
+    args.logger?.debug?.(
       { eventName: args.eventName, description: args.description },
       `${prefix}.wait.event.received`,
     );
   } catch (error) {
     if (isTimeoutError(error)) {
-      args.logger?.info(
+      args.logger?.debug?.(
         { eventName: args.eventName, description: args.description },
         `${prefix}.wait.event.timeout`,
       );
@@ -96,7 +96,7 @@ export async function waitForTaskOutcome<TState>(
   );
   for (;;) {
     const task = await tasks.getTask(taskId);
-    logger?.info(
+    logger?.debug?.(
       {
         taskId,
         description,

@@ -9,8 +9,14 @@ export type SdkTaskAttempt = Awaited<
   ReturnType<Agent['tasks']['listAttempts']>
 >[number];
 
-/** Minimal logger surface; a Pino logger or `console` both satisfy it. */
-export type Logger = Pick<Console, 'info' | 'warn' | 'error'>;
+/**
+ * Minimal logger surface; a Pino logger or `console` both satisfy it. `debug`
+ * is optional: the await engine routes high-frequency per-poll records to it so
+ * a long fan-out doesn't flood `info`; loggers without `debug` simply drop them.
+ */
+export type Logger = Pick<Console, 'info' | 'warn' | 'error'> & {
+  debug?: Console['debug'];
+};
 
 export interface TaskMessage {
   seq: number;

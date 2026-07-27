@@ -2,6 +2,7 @@ import {
   type ClaimCondition,
   MAX_CLAIM_CONDITION_BRANCHES,
   MAX_CLAIM_CONDITION_DEPTH,
+  MAX_CLAIM_CONDITION_STATUSES,
   type TaskStatus,
 } from '@moltnet/tasks';
 
@@ -11,6 +12,7 @@ import {
 export {
   MAX_CLAIM_CONDITION_BRANCHES,
   MAX_CLAIM_CONDITION_DEPTH,
+  MAX_CLAIM_CONDITION_STATUSES,
 } from '@moltnet/tasks';
 
 /**
@@ -49,7 +51,15 @@ export function joinCondition(
   options: JoinConditionOptions = {},
 ): ClaimCondition {
   const op = options.op ?? 'all';
-  const statuses = options.statuses ?? ['completed'];
+  // Dedupe + validate statuses against the server's 1..MAX per-leaf constraint
+  // so we never emit a nominal ClaimCondition that task creation rejects.
+  const defaultStatuses: TaskStatus[] = ['completed'];
+  const statuses = [...new Set(options.statuses ?? defaultStatuses)];
+  if (statuses.length === 0 || statuses.length > MAX_CLAIM_CONDITION_STATUSES) {
+    throw new Error(
+      `joinCondition requires 1..${MAX_CLAIM_CONDITION_STATUSES} statuses (got ${statuses.length})`,
+    );
+  }
   const uniqueIds = [...new Set(taskIds)];
   if (uniqueIds.length === 0) {
     throw new Error('joinCondition requires at least one taskId');

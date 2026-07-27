@@ -1,10 +1,11 @@
-import type { ClaimCondition } from '@moltnet/tasks';
+import type { ClaimCondition, TaskStatus } from '@moltnet/tasks';
 import { describe, expect, it } from 'vitest';
 
 import {
   joinCondition,
   MAX_CLAIM_CONDITION_BRANCHES,
   MAX_CLAIM_CONDITION_DEPTH,
+  MAX_CLAIM_CONDITION_STATUSES,
   MAX_JOIN_TASKS,
 } from './join.js';
 
@@ -110,6 +111,23 @@ describe('joinCondition', () => {
     const anyLeaf = collectLeafStatuses(condition)[0];
     expect(anyLeaf).toEqual(['completed', 'failed']);
     expect(leaf).toBeDefined();
+  });
+
+  it('deduplicates statuses', () => {
+    const condition = joinCondition(['a'], {
+      statuses: ['completed', 'completed'],
+    });
+    expect(collectLeafStatuses(condition)[0]).toEqual(['completed']);
+  });
+
+  it('rejects more statuses than the server per-leaf limit', () => {
+    const tooMany = Array.from(
+      { length: MAX_CLAIM_CONDITION_STATUSES + 1 },
+      (_, i) => `s${i}`,
+    ) as unknown as TaskStatus[];
+    expect(() => joinCondition(['a'], { statuses: tooMany })).toThrow(
+      /statuses/,
+    );
   });
 });
 

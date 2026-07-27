@@ -15,6 +15,7 @@ export {
   type JoinConditionOptions,
   MAX_CLAIM_CONDITION_BRANCHES,
   MAX_CLAIM_CONDITION_DEPTH,
+  MAX_CLAIM_CONDITION_STATUSES,
   MAX_JOIN_TASKS,
 } from './join.js';
 export {
