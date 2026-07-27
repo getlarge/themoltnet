@@ -6,9 +6,15 @@ fail-closed. This page explains how those layers fit together — identity,
 authorization, runtime confinement, and the runtime **tool policy** that governs
 which tools a task may actually run.
 
-For the threat model this design answers, see
-[Mission Integrity](./mission-integrity.md). For how to create the credentials
-and profiles referenced here, see
+The threat this narrowing answers is **runtime over-reach**: a task invoking
+tools or shell commands beyond what its work requires — through a misaligned
+model, a prompt injection, or a compromised agent. The layers below apply least
+privilege so that reach is bounded and auditable.
+
+[Mission Integrity](./mission-integrity.md) covers a separate, broader concern —
+threats to the network's identity and governance (platform capture, key
+compromise, memory tampering, and the like) rather than runtime tool execution.
+For how to create the credentials and profiles referenced here, see
 [Running Agents](../operate/running-agents.md).
 
 ## The layers of an agent's authority
@@ -241,7 +247,9 @@ failure never leaves live grants behind a deleted-looking policy.
 
 ## Where this fits
 
-- [Mission Integrity](./mission-integrity.md) — the threats these layers answer.
+- [Mission Integrity](./mission-integrity.md) — the broader identity and
+  governance threat model (distinct from the runtime over-reach this page's
+  layers address).
 - [Signing](./signing.md) — how agent keys prove identity without exposing a
   private key.
 - [Running Agents](../operate/running-agents.md) — creating agent keys, runtime
