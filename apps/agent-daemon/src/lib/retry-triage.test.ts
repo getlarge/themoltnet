@@ -62,7 +62,7 @@ describe('retry triage classification', () => {
     });
   });
 
-  it('classifies transient provider failures before attempt exhaustion', async () => {
+  it('records attempt exhaustion after deterministic provider classification', async () => {
     const result = await classifyAttemptFailure({
       ...BASE_INPUT,
       remainingAttempts: 0,
@@ -73,9 +73,14 @@ describe('retry triage classification', () => {
       },
     });
 
-    expect(result.source).toBe('deterministic');
-    expect(result.error.retryable).toBe(true);
-    expect(result.error.retry?.source).toBe('deterministic');
+    expect(result.source).toBe('attempts_exhausted');
+    expect(result.error.retryable).toBe(false);
+    expect(result.error.retry).toMatchObject({
+      source: 'attempts_exhausted',
+    });
+    expect(result.error.retry?.reason).toContain(
+      'Deterministic policy classified the failure as retryable.',
+    );
   });
 
   it('keeps submit validation failures non-retryable after in-session retries are exhausted', () => {

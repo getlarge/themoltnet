@@ -103,17 +103,14 @@ export function buildDaemonSlotId(
   identity: DaemonSlotIdentity,
   slotKey: string,
 ): string {
-  const parts = [
+  return [
     'agent',
     slugSlotIdentityComponent(identity.agentName),
     'profile',
     slugSlotIdentityComponent(identity.runtimeProfileId),
-  ];
-  if (identity.runtimeInstanceId) {
-    parts.push('worker', slugSlotIdentityComponent(identity.runtimeInstanceId));
-  }
-  parts.push('key', slotKey);
-  return parts.join(':');
+    'key',
+    slotKey,
+  ].join(':');
 }
 
 function buildRuntimeSlotKey(
@@ -123,6 +120,15 @@ function buildRuntimeSlotKey(
   return runtimeInstanceId
     ? `${logicalSessionKey}:worker:${slugSlotIdentityComponent(runtimeInstanceId)}`
     : logicalSessionKey;
+}
+
+export function runtimeSlotKeyBelongsToInstance(
+  slotKey: string,
+  runtimeInstanceId: string,
+): boolean {
+  return slotKey.endsWith(
+    `:worker:${slugSlotIdentityComponent(runtimeInstanceId)}`,
+  );
 }
 
 function slugSlotIdentityComponent(input: string): string {

@@ -43,6 +43,9 @@ describe('buildDaemonTaskExecutionPlan', () => {
 
     expect(workerA.descriptor.sessionKey).toBe(workerB.descriptor.sessionKey);
     expect(workerA.slotKey).not.toBe(workerB.slotKey);
+    expect(workerA.slotKey).toContain(':worker:worker-a');
+    expect(workerA.slotId).toContain(':key:');
+    expect(workerA.slotId?.match(/worker-a/g)).toHaveLength(1);
     expect(workerA.sessionPersistence?.sessionDir).not.toBe(
       workerB.sessionPersistence?.sessionDir,
     );

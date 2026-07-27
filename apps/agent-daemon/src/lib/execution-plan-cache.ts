@@ -38,6 +38,7 @@ export interface ListedRuntimeSlotContext {
     lastAttemptN: number;
     lastTaskId: string;
     runtimeProfileId: string | null;
+    slotKey: string;
     state: 'active' | 'idle';
     taskType: string;
   };
@@ -552,6 +553,7 @@ async function maybeAttachRetrySession(
   return {
     ...basePlan,
     worktreeBranch:
+      basePlan.workspaceMode === 'dedicated_worktree' &&
       resolution.kind === 'found'
         ? (resolution.producerSlot.workspace?.worktreeBranch ??
           basePlan.worktreeBranch)

@@ -159,10 +159,11 @@ export async function runOnce(argv: string[]): Promise<number> {
   const sourceAttemptResolver = createApiSourceAttemptResolver({
     agent: ctx.agent,
   });
+  const runtimeInstanceId = createRuntimeInstanceId();
   const slotIdentity: DaemonSlotIdentity = {
     agentName: opts.agent,
     runtimeProfileId: profile.id,
-    runtimeInstanceId: createRuntimeInstanceId(),
+    runtimeInstanceId,
   };
   const executionPlans = createExecutionPlanCache({
     stateDirs,
@@ -241,27 +242,36 @@ export async function runOnce(argv: string[]): Promise<number> {
     },
     'agent-daemon.starting',
   );
-  const reaped = await reapRuntimeSlotResources(
-    {
-      runtimeSlotStore: slotRegistry,
-      taskReader: ctx.agent.tasks,
-    },
-    {
-      agentName: opts.agent,
-      mainWorktree: resolveMainWorktree(sandbox.rootDir),
-      runtimeProfileId: profile.id,
-      sessionRootDir: stateDirs.piSessionsDir,
-      scratchRootDir: join(stateDirs.rootDir, 'task-workspaces'),
-      teamId: profile.teamId,
-    },
-  );
-  if (
-    reaped.removedSessions > 0 ||
-    reaped.removedWorkspaces > 0 ||
-    reaped.failed > 0 ||
-    reaped.unsafePaths > 0
-  ) {
-    rootLogger.info(reaped, 'agent-daemon.runtime_resources_reaped');
+  try {
+    const reaped = await reapRuntimeSlotResources(
+      {
+        onIssue: (issue) => {
+          rootLogger.warn(issue, 'agent-daemon.runtime_resource_reap_issue');
+        },
+        runtimeSlotStore: slotRegistry,
+        taskReader: ctx.agent.tasks,
+      },
+      {
+        agentName: opts.agent,
+        mainWorktree: resolveMainWorktree(sandbox.rootDir),
+        runtimeInstanceId,
+        runtimeProfileId: profile.id,
+        sessionRootDir: stateDirs.piSessionsDir,
+        scratchRootDir: join(stateDirs.rootDir, 'task-workspaces'),
+        teamId: profile.teamId,
+      },
+    );
+    if (
+      reaped.removedSessions > 0 ||
+      reaped.removedWorkspaces > 0 ||
+      reaped.failed > 0 ||
+      reaped.unsafePaths > 0 ||
+      reaped.truncated
+    ) {
+      rootLogger.info(reaped, 'agent-daemon.runtime_resources_reaped');
+    }
+  } catch (err) {
+    rootLogger.warn({ err }, 'agent-daemon.runtime_resource_reap_failed');
   }
 
   // Wire SIGTERM/SIGINT for cooperative shutdown. GitHub-hosted runners

@@ -367,12 +367,19 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         const selected = requireRuntime(runtimes, profile.id);
         const result = await reapRuntimeSlotResources(
           {
+            onIssue: (issue) => {
+              rootLogger.warn(
+                { ...issue, runtimeProfileId: profile.id },
+                'agent-daemon.runtime_resource_reap_issue',
+              );
+            },
             runtimeSlotStore: slotRegistry,
             taskReader: ctx.agent.tasks,
           },
           {
             agentName: selected.common.agent,
             mainWorktree: resolveMainWorktree(selected.sandbox.rootDir),
+            runtimeInstanceId,
             runtimeProfileId: profile.id,
             sessionRootDir: selected.stateDirs.piSessionsDir,
             scratchRootDir: join(selected.stateDirs.rootDir, 'task-workspaces'),
@@ -383,7 +390,8 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
           result.removedSessions > 0 ||
           result.removedWorkspaces > 0 ||
           result.failed > 0 ||
-          result.unsafePaths > 0
+          result.unsafePaths > 0 ||
+          result.truncated
         ) {
           rootLogger.info(
             { ...result, runtimeProfileId: profile.id },

@@ -110,6 +110,26 @@ export async function classifyAttemptFailure(
   input: RetryTriageInput & { triage?: RetryTriage },
 ): Promise<ClassifiedAttemptFailure> {
   const deterministic = classifyDeterministically(input.error);
+  if (
+    input.remainingAttempts !== null &&
+    input.remainingAttempts !== undefined &&
+    input.remainingAttempts <= 0
+  ) {
+    const deterministicReason =
+      deterministic === 'ambiguous'
+        ? ''
+        : ` Deterministic policy classified the failure as ${deterministic}.`;
+    return {
+      error: withRetryInfo(input.error, {
+        retryable: false,
+        source: 'attempts_exhausted',
+        reason: `Attempt budget exhausted at attempt ${input.attemptN}${
+          input.maxAttempts ? ` of ${input.maxAttempts}` : ''
+        }.${deterministicReason}`,
+      }),
+      source: 'attempts_exhausted',
+    };
+  }
   if (deterministic !== 'ambiguous') {
     const retryable = deterministic === 'retryable';
     const source =
@@ -126,24 +146,6 @@ export async function classifyAttemptFailure(
       }),
       source,
     };
-  }
-
-  if (
-    input.remainingAttempts !== null &&
-    input.remainingAttempts !== undefined
-  ) {
-    if (input.remainingAttempts <= 0) {
-      return {
-        error: withRetryInfo(input.error, {
-          retryable: false,
-          source: 'attempts_exhausted',
-          reason: `Attempt budget exhausted at attempt ${input.attemptN}${
-            input.maxAttempts ? ` of ${input.maxAttempts}` : ''
-          }.`,
-        }),
-        source: 'attempts_exhausted',
-      };
-    }
   }
 
   if (!input.triage) {
