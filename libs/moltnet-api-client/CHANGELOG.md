@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.52.1](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.52.0...moltnet-api-client-v1.52.1) (2026-07-27)
+
+
+### Bug Fixes
+
+* **api-client:** regenerate Go client ([5cec7a7](https://github.com/getlarge/themoltnet/commit/5cec7a7511a5f7ae4a193aee0cfd097eb8a3b946))
+* **signing-requests:** enforce a hard pending cap ([428df00](https://github.com/getlarge/themoltnet/commit/428df00375a13ca25310e2f6b202bfab3b17dbe1))
+
 ## [1.52.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.51.0...moltnet-api-client-v1.52.0) (2026-07-27)
 
 

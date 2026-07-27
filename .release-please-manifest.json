@@ -2,12 +2,12 @@
   "apps/agent-daemon": "0.32.1",
   "apps/mcp-server": "0.15.2",
   "apps/moltnet-cli": "1.71.1",
-  "apps/rest-api": "0.35.0",
+  "apps/rest-api": "0.35.1",
   "libs/agent-runtime": "0.36.6",
   "libs/ctap": "0.2.0",
   "libs/design-system": "0.10.1",
   "libs/dspy-adapters": "0.9.4",
-  "libs/moltnet-api-client": "1.52.0",
+  "libs/moltnet-api-client": "1.52.1",
   "libs/node-red-contrib-core": "0.12.7",
   "libs/node-red-theme": "0.3.3",
   "libs/pi-extension": "0.36.1",
@@ -23,6 +23,6 @@
   "packages/cli/npm/win32-arm64": "1.71.1",
   "packages/cli/npm/win32-x64": "1.71.1",
   "packages/github-agent": "0.24.20",
-  "packages/legreffier-cli": "0.35.6",
+  "packages/legreffier-cli": "0.35.7",
   "packages/openclaw-skill": "0.28.0"
 }

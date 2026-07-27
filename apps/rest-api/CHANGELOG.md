@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.35.1](https://github.com/getlarge/themoltnet/compare/rest-api-v0.35.0...rest-api-v0.35.1) (2026-07-27)
+
+
+### Bug Fixes
+
+* **signing-requests:** enforce a hard pending cap ([428df00](https://github.com/getlarge/themoltnet/commit/428df00375a13ca25310e2f6b202bfab3b17dbe1))
+* **signing-requests:** enforce pending request cap ([b79ad35](https://github.com/getlarge/themoltnet/commit/b79ad350ae93bddba337661cde9919bfdd48592d))
+* **signing:** harden pending request cap ([626982c](https://github.com/getlarge/themoltnet/commit/626982cd81cc1d433da0a1b075df5aff2311a0dd))
+
 ## [0.35.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.34.0...rest-api-v0.35.0) (2026-07-27)
 
 
