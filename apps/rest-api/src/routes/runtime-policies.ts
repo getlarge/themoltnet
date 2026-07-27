@@ -44,9 +44,7 @@ const SECURITY: Array<Record<string, string[]>> = [
   { cookieAuth: [] },
 ];
 
-function runtimePolicySubject(
-  request: FastifyRequest,
-): RuntimePolicySubject {
+function runtimePolicySubject(request: FastifyRequest): RuntimePolicySubject {
   const subject = requireKetoSubject(request);
   const creator = authContextToCreator(request);
   return {
