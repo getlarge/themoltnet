@@ -32,10 +32,16 @@ func NewTokenManager(apiURL, clientID, clientSecret string) *TokenManager {
 		clientID:           clientID,
 		clientSecret:       clientSecret,
 		earlyExpirySeconds: 30,
-		httpClient: &http.Client{
-			Timeout:   30 * time.Second,
-			Transport: NewRetryTransport(nil, nil),
-		},
+		httpClient:         newAPIHTTPClient(),
+	}
+}
+
+// newAPIHTTPClient provides the common timeout and retry policy used by both
+// OAuth2 and static agent-key clients.
+func newAPIHTTPClient() *http.Client {
+	return &http.Client{
+		Timeout:   30 * time.Second,
+		Transport: NewRetryTransport(nil, nil),
 	}
 }
 

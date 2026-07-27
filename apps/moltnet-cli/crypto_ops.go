@@ -9,7 +9,7 @@ import (
 
 // runCryptoIdentityCmd is the flag-free business logic for crypto identity.
 func runCryptoIdentityCmd(apiURL, credPath string) error {
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -26,7 +26,7 @@ func runCryptoIdentityCmd(apiURL, credPath string) error {
 
 // runCryptoVerifyCmd is the flag-free business logic for crypto verify.
 func runCryptoVerifyCmd(apiURL, credPath, signature string) error {
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}

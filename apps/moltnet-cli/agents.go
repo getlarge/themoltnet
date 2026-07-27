@@ -12,7 +12,7 @@ import (
 
 // runAgentsWhoamiCmd is the flag-free business logic for agents whoami.
 func runAgentsWhoamiCmd(apiURL, credPath string) error {
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -29,7 +29,7 @@ func runAgentsWhoamiCmd(apiURL, credPath string) error {
 
 // runAgentsLookupCmd is the flag-free business logic for agents lookup.
 func runAgentsLookupCmd(apiURL, credPath, fingerprint string) error {
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}

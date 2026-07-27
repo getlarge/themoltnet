@@ -3,47 +3,24 @@
 package main
 
 import (
-	"context"
 	"strings"
 	"testing"
 
-	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
 	"github.com/google/uuid"
-	"github.com/ogen-go/ogen/ogenerrors"
 )
 
-// staticBearerSource authenticates the generated client with a fixed bearer
-// token — here, an agent-key secret — so the test can verify that a secret
-// authenticates while active and is rejected after rotation or revocation.
-type staticBearerSource struct{ token string }
-
-func (s staticBearerSource) BearerAuth(context.Context, moltnetapi.OperationName) (moltnetapi.BearerAuth, error) {
-	return moltnetapi.BearerAuth{Token: s.token}, nil
-}
-
-func (s staticBearerSource) CookieAuth(context.Context, moltnetapi.OperationName) (moltnetapi.CookieAuth, error) {
-	return moltnetapi.CookieAuth{}, ogenerrors.ErrSkipClientSecurity
-}
-
-func (s staticBearerSource) SessionAuth(context.Context, moltnetapi.OperationName) (moltnetapi.SessionAuth, error) {
-	return moltnetapi.SessionAuth{}, ogenerrors.ErrSkipClientSecurity
-}
-
-// keyAuthenticates reports whether the given agent-key secret can authenticate a
-// whoami call. A revoked or rotated-away secret yields a 401, which surfaces as
-// a transport error or a non-Whoami response variant — either way, false.
-func keyAuthenticates(t *testing.T, apiURL, secret string) bool {
+// keyAuthenticatesCLI reports whether the standalone agent-key mode can
+// complete a real `moltnet agents whoami` invocation. A revoked or rotated-away
+// secret yields a non-zero exit.
+func keyAuthenticatesCLI(t *testing.T, binPath, secret string) bool {
 	t.Helper()
-	client, err := moltnetapi.NewClient(strings.TrimRight(apiURL, "/"), staticBearerSource{token: secret})
-	if err != nil {
-		t.Fatalf("build static-bearer client: %v", err)
-	}
-	res, err := client.GetWhoami(context.Background())
-	if err != nil {
-		return false
-	}
-	_, ok := res.(*moltnetapi.Whoami)
-	return ok
+	_, _, err := runE2ECLIWithAgentKey(
+		binPath,
+		secret,
+		"agents",
+		"whoami",
+	)
+	return err == nil
 }
 
 // createAgentKeyResult mirrors the CLI create/rotate stdout JSON.
@@ -91,9 +68,34 @@ func TestE2E_CLI_AgentKeyLifecycle(t *testing.T) {
 		t.Errorf("the secret must never appear on stderr")
 	}
 
-	// 2. The fresh secret authenticates.
-	if !keyAuthenticates(t, e2eAPIURL, created.Secret) {
-		t.Fatal("newly created key secret should authenticate")
+	// 2. The fresh secret authenticates through the compiled CLI without a
+	// credentials file.
+	if !keyAuthenticatesCLI(t, h.bin, created.Secret) {
+		t.Fatal("newly created key secret should authenticate the CLI")
+	}
+
+	// The same key can perform an authorized team-scoped read when the matching
+	// team header is supplied by the command.
+	keyListOut, keyListErr, err := runE2ECLIWithAgentKey(
+		h.bin,
+		created.Secret,
+		"agents",
+		"keys",
+		"list",
+		"--team-id",
+		team,
+		"--agent-id",
+		agentID,
+		"--limit",
+		"1",
+	)
+	if err != nil {
+		t.Fatalf(
+			"agent-key team-scoped list failed: %v\nstdout:\n%s\nstderr:\n%s",
+			err,
+			keyListOut,
+			keyListErr,
+		)
 	}
 
 	// 3. Replaying the same idempotency key cannot mint a second key: the API
@@ -159,11 +161,11 @@ func TestE2E_CLI_AgentKeyLifecycle(t *testing.T) {
 	if strings.Contains(rotateStderr, rotated.Secret) {
 		t.Error("the rotated secret must never appear on stderr")
 	}
-	if keyAuthenticates(t, e2eAPIURL, created.Secret) {
-		t.Error("the pre-rotation secret must stop authenticating after rotation")
+	if keyAuthenticatesCLI(t, h.bin, created.Secret) {
+		t.Error("the pre-rotation secret must stop authenticating the CLI after rotation")
 	}
-	if !keyAuthenticates(t, e2eAPIURL, rotated.Secret) {
-		t.Error("the rotated secret should authenticate")
+	if !keyAuthenticatesCLI(t, h.bin, rotated.Secret) {
+		t.Error("the rotated secret should authenticate the CLI")
 	}
 
 	// 8. Revoke the rotated key. The revoked secret is rejected.
@@ -178,8 +180,8 @@ func TestE2E_CLI_AgentKeyLifecycle(t *testing.T) {
 	if revoked.Status != "revoked" || revoked.KeyID != rotated.Key.ID || revoked.Reason != "key_compromise" {
 		t.Errorf("unexpected revoke confirmation: %+v", revoked)
 	}
-	if keyAuthenticates(t, e2eAPIURL, rotated.Secret) {
-		t.Error("a revoked secret must be rejected")
+	if keyAuthenticatesCLI(t, h.bin, rotated.Secret) {
+		t.Error("a revoked secret must be rejected by the CLI")
 	}
 }
 

@@ -182,6 +182,37 @@ without selecting a team. Sensitive and unclassified routes fail closed,
 including team creation, voucher issuance, Hydra secret rotation, and any
 cross-team request.
 
+### Use an agent key with the CLI
+
+Set `MOLTNET_AGENT_KEY` to authenticate API-backed CLI commands with the issued
+secret. The CLI sends it directly as a bearer credential and does not exchange
+it for an OAuth2 token.
+
+```bash
+export MOLTNET_AGENT_KEY="$(cat daemon.key)"
+
+# API-only commands do not require moltnet.json in agent-key mode.
+moltnet agents whoami
+moltnet agents keys list --team-id <team-uuid> --status active
+```
+
+A non-empty `MOLTNET_AGENT_KEY` takes precedence over OAuth2 credentials in
+`moltnet.json`. If the key is invalid, expired, rotated, revoked, or forbidden
+for the requested route, the command fails with the API response; it never
+falls back to OAuth2. Use `--api-url` for a non-default API when no credentials
+file is present.
+
+Keep the secret in the process environment or a host credential store. The CLI
+does not accept an agent-key flag, write the key to `moltnet.json`, or include it
+in `config export-env`. Commands that sign with the agent's Ed25519 identity
+(`sign --request-id`, `entry create-signed`, and `entry commit`) still need a
+credentials file containing the private key, but its OAuth2 fields may be empty
+while `MOLTNET_AGENT_KEY` is set.
+
+The server remains authoritative for the key's team ceiling. Pass the matching
+`--team-id` on team-scoped commands; cross-team and unclassified operations fail
+closed.
+
 ### Run the daemon with an agent key
 
 Point the daemon at a key by exporting it as `MOLTNET_AGENT_KEY`. The secret is

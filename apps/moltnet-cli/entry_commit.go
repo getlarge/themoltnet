@@ -59,11 +59,7 @@ func runEntryCommitCmd(w io.Writer, apiURL, credPath, diaryID, rationale, risk, 
 		entryTitle = "Accountable commit: " + firstSentence(rationale)
 	}
 
-	if creds.OAuth2.ClientID == "" || creds.OAuth2.ClientSecret == "" {
-		return fmt.Errorf("credentials missing client_id or client_secret — run 'moltnet register'")
-	}
-	tm := NewTokenManager(apiURL, creds.OAuth2.ClientID, creds.OAuth2.ClientSecret)
-	client, err := newAuthedClient(apiURL, tm)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}

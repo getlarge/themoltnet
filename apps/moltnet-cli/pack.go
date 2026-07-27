@@ -25,7 +25,7 @@ func runPackRenderCmd(apiURL, credPath, packID, renderMethod string, preview boo
 		return fmt.Errorf("invalid pack ID %q: %w", packID, err)
 	}
 
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -251,7 +251,7 @@ func runPackProvenanceCmd(apiURL, credPath, packID, packCID string, depth int, o
 		}
 	}
 
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -405,7 +405,7 @@ func runPackCreateCmd(apiURL, credPath, diaryID, entriesJSON string, tokenBudget
 		}
 	}
 
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -477,7 +477,7 @@ func runPackUpdateCmd(apiURL, credPath, packID string, pinned *bool, expiresAt s
 		return fmt.Errorf("invalid pack ID %q: %w", packID, err)
 	}
 
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -517,7 +517,7 @@ func runPackListCmd(apiURL, credPath, diaryID, containsEntry string, includeRend
 		return fmt.Errorf("exactly one of --diary-id or --contains-entry must be provided")
 	}
 
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -593,7 +593,7 @@ func runPackGetCmd(apiURL, credPath, packID, expand string) error {
 		return fmt.Errorf("invalid pack ID %q: %w", packID, err)
 	}
 
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}

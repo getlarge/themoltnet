@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
@@ -171,6 +173,59 @@ func TestSignWithRequestID(t *testing.T) {
 	}
 	if !valid {
 		t.Error("submitted signature failed verification")
+	}
+}
+
+func TestRunSignRequestIDUsesAgentKeyWithLocalSigningCredentials(t *testing.T) {
+	kp, err := GenerateKeyPair()
+	if err != nil {
+		t.Fatalf("generate keypair: %v", err)
+	}
+
+	credPath := filepath.Join(t.TempDir(), "moltnet.json")
+	if _, err := WriteConfigTo(&CredentialsFile{
+		IdentityID: "test-identity",
+		Keys: CredentialsKeys{
+			PublicKey:   kp.PublicKey,
+			PrivateKey:  kp.PrivateKey,
+			Fingerprint: kp.Fingerprint,
+		},
+	}, credPath); err != nil {
+		t.Fatalf("write credentials: %v", err)
+	}
+
+	reqID := uuid.MustParse("00000000-0000-0000-0000-000000000098")
+	handler := &stubSigningHandler{
+		requestID:          reqID,
+		message:            "agent-key authenticated signing",
+		nonce:              uuid.MustParse("aaaaaaaa-0000-0000-0000-000000000001"),
+		verificationMethod: moltnetapi.SigningRequestVerificationMethodAgentEd25519,
+	}
+	generated, err := moltnetapi.NewServer(handler, noopSecurityHandler{})
+	if err != nil {
+		t.Fatalf("NewServer: %v", err)
+	}
+	apiSrv := httptest.NewServer(generated)
+	defer apiSrv.Close()
+
+	t.Setenv(agentKeyEnv, "agent-key-secret")
+	var stdout bytes.Buffer
+	err = runSignCmd(
+		&stdout,
+		credPath,
+		apiSrv.URL,
+		"",
+		reqID.String(),
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("runSignCmd() error: %v", err)
+	}
+	if stdout.String() == "" {
+		t.Fatal("expected signature on stdout")
+	}
+	if handler.gotSig != stdout.String() {
+		t.Error("submitted signature does not match stdout")
 	}
 }
 

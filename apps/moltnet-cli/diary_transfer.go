@@ -21,7 +21,7 @@ func runDiaryTransferInitiateCmd(apiURL, credPath, diaryID, destinationTeamID st
 		return fmt.Errorf("invalid destination team ID %q: %w", destinationTeamID, err)
 	}
 
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -41,7 +41,7 @@ func runDiaryTransferInitiateCmd(apiURL, credPath, diaryID, destinationTeamID st
 // runDiaryTransferListCmd lists pending transfers where the caller owns the
 // destination team.
 func runDiaryTransferListCmd(apiURL, credPath string) error {
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -65,7 +65,7 @@ func runDiaryTransferAcceptCmd(apiURL, credPath, transferID string) error {
 		return fmt.Errorf("invalid transfer ID %q: %w", transferID, err)
 	}
 
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -89,7 +89,7 @@ func runDiaryTransferRejectCmd(apiURL, credPath, transferID string) error {
 		return fmt.Errorf("invalid transfer ID %q: %w", transferID, err)
 	}
 
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}

@@ -168,7 +168,7 @@ func runRenderedPackToSkill(apiURL, credPath, id, outDir string) error {
 		return fmt.Errorf("invalid --id %q: %w", id, err)
 	}
 
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}

@@ -72,7 +72,7 @@ func runRenderedPacksJudgeLocal(
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return fmt.Errorf("auth failed: %w", err)
 	}

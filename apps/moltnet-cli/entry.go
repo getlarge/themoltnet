@@ -19,7 +19,7 @@ func runEntryCreateCmd(apiURL, credPath, diaryID, content, title, entryType, tag
 		return fmt.Errorf("invalid diary ID %q: %w", diaryID, err)
 	}
 
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -85,7 +85,7 @@ func runEntryCreateSignedCmd(apiURL, credPath, diaryID, content, title, entryTyp
 	if err != nil {
 		return err
 	}
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -147,7 +147,7 @@ func runEntryListCmd(apiURL, credPath, diaryID, ids, tags, excludeTags, entryTyp
 		return fmt.Errorf("invalid diary ID %q: %w", diaryID, err)
 	}
 
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -196,7 +196,7 @@ func runEntryGetCmd(apiURL, credPath, entryID, expand string, depth int) error {
 		return fmt.Errorf("invalid entry ID %q: %w", entryID, err)
 	}
 
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -232,7 +232,7 @@ func runEntryUpdateCmd(apiURL, credPath, entryID, content, title, entryType, tag
 		return fmt.Errorf("invalid entry ID %q: %w", entryID, err)
 	}
 
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -276,7 +276,7 @@ func runEntryDeleteCmd(apiURL, credPath, entryID string) error {
 		return fmt.Errorf("invalid entry ID %q: %w", entryID, err)
 	}
 
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -361,7 +361,7 @@ func runEntrySearchCmd(apiURL, credPath string, opts entrySearchOptions) error {
 	if !hasEntrySearchCriteria(req) {
 		return fmt.Errorf("entry search: provide --query or at least one filter flag")
 	}
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -400,7 +400,7 @@ func runEntryVerifyCmd(apiURL, credPath, entryID string) error {
 		return fmt.Errorf("invalid entry ID %q: %w", entryID, err)
 	}
 
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}

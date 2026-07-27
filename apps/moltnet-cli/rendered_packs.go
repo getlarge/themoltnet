@@ -15,7 +15,7 @@ func runRenderedPacksList(apiURL, credPath, diaryID string, limit, offset int, s
 		return fmt.Errorf("invalid diary ID %q: %w", diaryID, err)
 	}
 
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -57,7 +57,7 @@ func runRenderedPacksGet(apiURL, credPath, id string) error {
 		return fmt.Errorf("invalid --id: %w", err)
 	}
 
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return fmt.Errorf("auth failed: %w", err)
 	}
@@ -84,7 +84,7 @@ func runRenderedPacksUpdate(apiURL, credPath, id string, pinned *bool, expiresAt
 		return fmt.Errorf("invalid --id %q: %w", id, err)
 	}
 
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}

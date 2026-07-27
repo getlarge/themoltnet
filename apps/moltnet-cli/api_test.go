@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"testing"
 	"time"
 
 	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
 	"github.com/google/uuid"
+	"github.com/ogen-go/ogen/ogenerrors"
 )
 
 // newTestServer builds a token stub and an ogen-generated API server backed by
@@ -66,8 +68,9 @@ func (noopSecurityHandler) HandleSessionAuth(_ context.Context, _ moltnetapi.Ope
 	return context.Background(), nil
 }
 
-// TestTokenSecuritySource verifies that GetToken is called and the Bearer header is set.
-func TestTokenSecuritySource(t *testing.T) {
+// TestBearerSecuritySource verifies that OAuth token resolution is lazy and
+// the resulting access token is exposed through the bearer scheme only.
+func TestBearerSecuritySource(t *testing.T) {
 	called := false
 	tokenSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		called = true
@@ -81,7 +84,11 @@ func TestTokenSecuritySource(t *testing.T) {
 	defer tokenSrv.Close()
 
 	tm := NewTokenManager(tokenSrv.URL, "cid", "csec")
-	src := &tokenSecuritySource{tm: tm}
+	src := &bearerSecuritySource{
+		token: func(_ context.Context) (string, error) {
+			return tm.GetToken()
+		},
+	}
 
 	bearer, err := src.BearerAuth(context.Background(), moltnetapi.GetWhoamiOperation)
 	if err != nil {
@@ -93,10 +100,17 @@ func TestTokenSecuritySource(t *testing.T) {
 	if !called {
 		t.Error("expected token server to be called")
 	}
+	if _, err := src.CookieAuth(context.Background(), moltnetapi.GetWhoamiOperation); err != ogenerrors.ErrSkipClientSecurity {
+		t.Errorf("CookieAuth() error = %v, want ErrSkipClientSecurity", err)
+	}
+	if _, err := src.SessionAuth(context.Background(), moltnetapi.GetWhoamiOperation); err != ogenerrors.ErrSkipClientSecurity {
+		t.Errorf("SessionAuth() error = %v, want ErrSkipClientSecurity", err)
+	}
 }
 
-// TestTokenSecuritySourceCached verifies that the token is cached on the second call.
-func TestTokenSecuritySourceCached(t *testing.T) {
+// TestBearerSecuritySourceCachesOAuthToken verifies that the TokenManager still
+// caches OAuth access tokens behind the shared bearer adapter.
+func TestBearerSecuritySourceCachesOAuthToken(t *testing.T) {
 	callCount := 0
 	tokenSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		callCount++
@@ -110,7 +124,11 @@ func TestTokenSecuritySourceCached(t *testing.T) {
 	defer tokenSrv.Close()
 
 	tm := NewTokenManager(tokenSrv.URL, "cid", "csec")
-	src := &tokenSecuritySource{tm: tm}
+	src := &bearerSecuritySource{
+		token: func(_ context.Context) (string, error) {
+			return tm.GetToken()
+		},
+	}
 
 	for i := 0; i < 3; i++ {
 		if _, err := src.BearerAuth(context.Background(), moltnetapi.GetWhoamiOperation); err != nil {
@@ -155,4 +173,89 @@ func TestNewAuthedClientCallsAPI(t *testing.T) {
 		t.Errorf("expected identity_id=%s, got %s", wantID, whoami.IdentityId)
 	}
 	_ = time.Now() // ensure time import used
+}
+
+func TestNewAuthenticatedClientUsesStandaloneAgentKey(t *testing.T) {
+	t.Setenv(agentKeyEnv, "  opaque-agent-key  ")
+	t.Setenv("HOME", t.TempDir())
+
+	wantID := uuid.MustParse("00000000-0000-0000-0000-000000000002")
+	generated, err := moltnetapi.NewServer(
+		&stubWhoamiHandler{identityID: wantID},
+		noopSecurityHandler{},
+	)
+	if err != nil {
+		t.Fatalf("NewServer: %v", err)
+	}
+
+	var authorization string
+	apiSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authorization = r.Header.Get("Authorization")
+		generated.ServeHTTP(w, r)
+	}))
+	defer apiSrv.Close()
+
+	client, err := newAuthenticatedClient(
+		apiSrv.URL,
+		filepath.Join(t.TempDir(), "missing-moltnet.json"),
+	)
+	if err != nil {
+		t.Fatalf("newAuthenticatedClient() error: %v", err)
+	}
+	res, err := client.GetWhoami(context.Background())
+	if err != nil {
+		t.Fatalf("GetWhoami() error: %v", err)
+	}
+	if _, ok := res.(*moltnetapi.Whoami); !ok {
+		t.Fatalf("expected *Whoami, got %T", res)
+	}
+	if authorization != "Bearer opaque-agent-key" {
+		t.Errorf("Authorization = %q, want static agent-key bearer", authorization)
+	}
+}
+
+func TestNewAuthenticatedClientBlankAgentKeyFallsBackToOAuth(t *testing.T) {
+	t.Setenv(agentKeyEnv, "   ")
+
+	wantID := uuid.MustParse("00000000-0000-0000-0000-000000000003")
+	generated, err := moltnetapi.NewServer(
+		&stubWhoamiHandler{identityID: wantID},
+		noopSecurityHandler{},
+	)
+	if err != nil {
+		t.Fatalf("NewServer: %v", err)
+	}
+
+	tokenCalls := 0
+	var authorization string
+	apiSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/oauth2/token" {
+			tokenCalls++
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]any{ //nolint:errcheck
+				"access_token": "oauth-access-token",
+				"token_type":   "Bearer",
+				"expires_in":   3600,
+			})
+			return
+		}
+		authorization = r.Header.Get("Authorization")
+		generated.ServeHTTP(w, r)
+	}))
+	defer apiSrv.Close()
+
+	credPath := writeCredsWithAPI(t, apiSrv.URL)
+	client, err := newAuthenticatedClient(apiSrv.URL, credPath)
+	if err != nil {
+		t.Fatalf("newAuthenticatedClient() error: %v", err)
+	}
+	if _, err := client.GetWhoami(context.Background()); err != nil {
+		t.Fatalf("GetWhoami() error: %v", err)
+	}
+	if tokenCalls != 1 {
+		t.Errorf("OAuth token calls = %d, want 1", tokenCalls)
+	}
+	if authorization != "Bearer oauth-access-token" {
+		t.Errorf("Authorization = %q, want OAuth bearer", authorization)
+	}
 }

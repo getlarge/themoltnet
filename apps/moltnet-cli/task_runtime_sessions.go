@@ -44,7 +44,7 @@ type taskRuntimeSessionDownloadOpts struct {
 }
 
 func runTaskRuntimeSessionGetCmd(opts taskRuntimeSessionGetOpts) error {
-	client, err := newClientFromCreds(opts.apiURL, opts.credPath)
+	client, err := newAuthenticatedClient(opts.apiURL, opts.credPath)
 	if err != nil {
 		return err
 	}
@@ -83,7 +83,7 @@ func buildGetRuntimeSessionParams(opts taskRuntimeSessionGetOpts) (moltnetapi.Ge
 }
 
 func runTaskRuntimeSessionUploadCmd(opts taskRuntimeSessionUploadOpts) error {
-	client, err := newClientFromCreds(opts.apiURL, opts.credPath)
+	client, err := newAuthenticatedClient(opts.apiURL, opts.credPath)
 	if err != nil {
 		return err
 	}
@@ -155,7 +155,7 @@ func buildUploadRuntimeSessionParams(opts taskRuntimeSessionUploadOpts) (moltnet
 }
 
 func runTaskRuntimeSessionDownloadCmd(opts taskRuntimeSessionDownloadOpts) error {
-	client, err := newClientFromCreds(opts.apiURL, opts.credPath)
+	client, err := newAuthenticatedClient(opts.apiURL, opts.credPath)
 	if err != nil {
 		return err
 	}

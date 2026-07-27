@@ -74,7 +74,7 @@ func runRelationsCreateCmd(apiURL, credPath, entryID, targetID, relation, status
 		return err
 	}
 
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -112,7 +112,7 @@ func runRelationsListCmd(apiURL, credPath, entryID, relation, status, direction 
 		return fmt.Errorf("invalid entry ID %q: %w", entryID, err)
 	}
 
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -164,7 +164,7 @@ func runRelationsUpdateCmd(apiURL, credPath, relationID, status string) error {
 		return err
 	}
 
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -188,7 +188,7 @@ func runRelationsDeleteCmd(apiURL, credPath, relationID string) error {
 		return fmt.Errorf("invalid relation ID %q: %w", relationID, err)
 	}
 
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}

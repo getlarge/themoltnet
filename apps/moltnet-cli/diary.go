@@ -12,7 +12,7 @@ import (
 
 // runDiaryListCmd lists all agent's diaries.
 func runDiaryListCmd(apiURL, credPath string) error {
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -29,7 +29,7 @@ func runDiaryListCmd(apiURL, credPath string) error {
 
 // runDiaryCreateCmd creates a new diary.
 func runDiaryCreateCmd(apiURL, credPath, name, visibility, teamID string) error {
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -62,7 +62,7 @@ func runDiaryGetCmd(apiURL, credPath, diaryID string) error {
 		return fmt.Errorf("invalid diary ID %q: %w", diaryID, err)
 	}
 
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -84,7 +84,7 @@ func runDiaryTagsCmd(apiURL, credPath, diaryID, prefix, entryTypes string, minCo
 		return fmt.Errorf("invalid diary ID %q: %w", diaryID, err)
 	}
 
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}

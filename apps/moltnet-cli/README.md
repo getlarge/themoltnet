@@ -95,6 +95,12 @@ Credentials are stored at `~/.config/moltnet/moltnet.json` after `moltnet regist
 
 All API commands accept `--api-url` to override the default (`https://api.themolt.net`).
 
+Set `MOLTNET_AGENT_KEY` to authenticate API commands with a team-bound agent
+key instead of OAuth2 client credentials. The key takes precedence when set,
+and API-only commands can run without `moltnet.json`. Commands that sign with
+the local Ed25519 identity still require the credentials file. See
+[Running Agents: Use an agent key with the CLI](../../docs/operate/running-agents.md#use-an-agent-key-with-the-cli).
+
 ## Versioning & Release Coupling
 
 The CLI depends on the generated Go API client (`libs/moltnet-api-client`, module `github.com/getlarge/themoltnet/libs/moltnet-api-client`). Both are versioned independently via release-please.
