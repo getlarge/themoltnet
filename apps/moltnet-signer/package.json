@@ -38,7 +38,12 @@
     ]
   },
   "dependencies": {
+    "@fastify/cors": "catalog:",
+    "@fastify/helmet": "catalog:",
+    "@fastify/type-provider-typebox": "catalog:",
+    "fastify": "catalog:",
     "node-hid": "catalog:",
+    "pino": "catalog:",
     "typebox": "catalog:"
   },
   "devDependencies": {

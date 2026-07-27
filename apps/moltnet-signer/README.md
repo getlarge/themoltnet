@@ -42,10 +42,11 @@ MOLTNET_SIGNER_ALLOWED_ORIGINS=http://localhost:5173 \
 node apps/moltnet-signer/dist/main.js
 ```
 
-Startup prints the loopback URL, which is the port-discovery signal:
+Startup emits a structured Pino record containing the loopback URL, which is
+the port-discovery signal:
 
 ```text
-MoltNet signer listening on http://127.0.0.1:17373
+{"level":30,"address":"http://127.0.0.1:17373","msg":"server.listening"}
 ```
 
 Set Console's `SIGNER_URL` (container/runtime config) or

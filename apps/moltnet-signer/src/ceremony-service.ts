@@ -18,9 +18,8 @@ import {
   toBase64Url,
   utf8,
 } from '@themoltnet/yubikey-preview-sign';
+import type { FastifyBaseLogger } from 'fastify';
 import { Value } from 'typebox/value';
-
-import type { SignerLogger } from './logger.js';
 
 const SESSION_TTL_MS = 10 * 60 * 1000;
 const CEREMONY_TTL_MS = 5 * 60 * 1000;
@@ -75,7 +74,7 @@ export interface SignerCeremonyServiceOptions {
   validateChallenge(input: ChallengeValidationInput): Promise<{ valid: true }>;
   now?: () => Date;
   randomToken: () => string;
-  logger?: Pick<SignerLogger, 'info' | 'warn'>;
+  logger?: Pick<FastifyBaseLogger, 'info' | 'warn'>;
 }
 
 export interface SignerApprovalDisplay {
@@ -241,10 +240,13 @@ export class SignerCeremonyService {
       confirmed: false,
     };
     this.ceremonies.set(id, state);
-    this.options.logger?.info('ceremony.created', {
-      ceremonyId: id,
-      operation: input.request.operation,
-    });
+    this.options.logger?.info(
+      {
+        ceremonyId: id,
+        operation: input.request.operation,
+      },
+      'ceremony.created',
+    );
     return {
       version: 1,
       id,
@@ -299,10 +301,13 @@ export class SignerCeremonyService {
 
     ceremony.confirmed = true;
     ceremony.confirmationToken = undefined;
-    this.options.logger?.info('ceremony.confirming', {
-      ceremonyId: ceremony.id,
-      operation: ceremony.operation,
-    });
+    this.options.logger?.info(
+      {
+        ceremonyId: ceremony.id,
+        operation: ceremony.operation,
+      },
+      'ceremony.confirming',
+    );
     const request = ceremony.request;
     if (!request) {
       throw new SignerCeremonyError(
@@ -396,11 +401,14 @@ export class SignerCeremonyService {
       ) {
         ceremony.confirmed = false;
         ceremony.confirmationToken = this.uniqueCapability();
-        this.options.logger?.warn('ceremony.retryable_failure', {
-          ceremonyId: ceremony.id,
-          operation: ceremony.operation,
-          code: signerError.code,
-        });
+        this.options.logger?.warn(
+          {
+            ceremonyId: ceremony.id,
+            operation: ceremony.operation,
+            code: signerError.code,
+          },
+          'ceremony.retryable_failure',
+        );
         throw signerError;
       }
       ceremony.result = {
@@ -436,11 +444,14 @@ export class SignerCeremonyService {
     const result = structuredClone(ceremony.result);
     if (result.status !== 'pending') {
       this.ceremonies.delete(ceremony.id);
-      this.options.logger?.info('ceremony.delivered', {
-        ceremonyId: ceremony.id,
-        operation: ceremony.operation,
-        code: result.status === 'failed' ? result.code : undefined,
-      });
+      this.options.logger?.info(
+        {
+          ceremonyId: ceremony.id,
+          operation: ceremony.operation,
+          code: result.status === 'failed' ? result.code : undefined,
+        },
+        'ceremony.delivered',
+      );
     }
     return result;
   }
@@ -530,9 +541,6 @@ export class SignerCeremonyService {
     ceremony.approval = undefined;
     ceremony.terminalAt = this.now();
     this.options.logger?.info(
-      ceremony.result.status === 'completed'
-        ? 'ceremony.completed'
-        : 'ceremony.terminal_failure',
       {
         ceremonyId: ceremony.id,
         operation: ceremony.operation,
@@ -541,6 +549,9 @@ export class SignerCeremonyService {
             ? ceremony.result.code
             : undefined,
       },
+      ceremony.result.status === 'completed'
+        ? 'ceremony.completed'
+        : 'ceremony.terminal_failure',
     );
   }
 
@@ -569,10 +580,13 @@ export class SignerCeremonyService {
         ceremony.terminalAt.getTime() + RESULT_TTL_MS <= now.getTime()
       ) {
         this.ceremonies.delete(id);
-        this.options.logger?.info('ceremony.evicted', {
-          ceremonyId: ceremony.id,
-          operation: ceremony.operation,
-        });
+        this.options.logger?.info(
+          {
+            ceremonyId: ceremony.id,
+            operation: ceremony.operation,
+          },
+          'ceremony.evicted',
+        );
       }
     }
   }

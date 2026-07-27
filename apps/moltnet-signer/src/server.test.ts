@@ -1,58 +1,21 @@
-import { request as httpRequest } from 'node:http';
-import type { AddressInfo } from 'node:net';
-
+import type { FastifyInstance } from 'fastify';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { SignerCeremonyService } from './ceremony-service.js';
 import { createSignerServer } from './server.js';
 
 const CONSOLE_ORIGIN = 'https://console.themolt.net';
-const servers: ReturnType<typeof createSignerServer>[] = [];
-
-function rawRequest(
-  url: string,
-  options: {
-    method?: string;
-    headers?: Record<string, string>;
-    body?: string;
-  } = {},
-): Promise<{
-  body: string;
-  headers: Record<string, string | string[] | undefined>;
-  status: number | undefined;
-}> {
-  return new Promise((resolve, reject) => {
-    const request = httpRequest(
-      url,
-      { method: options.method, headers: options.headers },
-      (response) => {
-        const chunks: Buffer[] = [];
-        response.on('data', (chunk: Buffer) => chunks.push(chunk));
-        response.on('end', () =>
-          resolve({
-            body: Buffer.concat(chunks).toString(),
-            headers: response.headers,
-            status: response.statusCode,
-          }),
-        );
-      },
-    );
-    request.on('error', reject);
-    request.end(options.body);
-  });
-}
+const fixtures: {
+  server: FastifyInstance;
+  service: SignerCeremonyService;
+}[] = [];
 
 afterEach(async () => {
   await Promise.all(
-    servers.splice(0).map(
-      (server) =>
-        new Promise<void>((resolve, reject) => {
-          server.close((error) => {
-            if (error) reject(error);
-            else resolve();
-          });
-        }),
-    ),
+    fixtures.splice(0).map(async ({ server, service }) => {
+      service.dispose();
+      await server.close();
+    }),
   );
 });
 
@@ -101,143 +64,249 @@ async function fixture() {
     randomToken: () => `test-capability-${++sequence}`,
   });
   const server = createSignerServer(service);
-  servers.push(server);
-  await new Promise<void>((resolve) => {
-    server.listen(0, '127.0.0.1', () => {
-      resolve();
-    });
+  fixtures.push({ server, service });
+  await server.ready();
+  return { server };
+}
+
+async function createSession(server: FastifyInstance): Promise<string> {
+  const response = await server.inject({
+    method: 'POST',
+    url: '/v1/sessions',
+    headers: {
+      host: '127.0.0.1:17373',
+      origin: CONSOLE_ORIGIN,
+    },
   });
-  const address = server.address() as AddressInfo;
-  return {
-    baseUrl: `http://127.0.0.1:${address.port}`,
-  };
+  expect(response.statusCode).toBe(201);
+  return response.json<{ token: string }>().token;
 }
 
 describe('loopback signer server', () => {
-  it('binds an origin to a capability and keeps approval on its own page', async () => {
-    const { baseUrl } = await fixture();
-    const sessionResponse = await fetch(`${baseUrl}/v1/sessions`, {
+  it('serves the Fastify application through its loopback listener', async () => {
+    const { server } = await fixture();
+    const address = await server.listen({ host: '127.0.0.1', port: 0 });
+
+    const health = await fetch(`${address}/health`);
+    expect(health.status).toBe(200);
+    await expect(health.json()).resolves.toEqual({ status: 'ok' });
+
+    const deniedSession = await fetch(`${address}/v1/sessions`, {
       method: 'POST',
-      headers: { origin: CONSOLE_ORIGIN },
     });
-    expect(sessionResponse.status).toBe(201);
-    expect(sessionResponse.headers.get('access-control-allow-origin')).toBe(
+    expect(deniedSession.status).toBe(403);
+  });
+
+  it('binds an origin to a capability and keeps approval on its own page', async () => {
+    const { server } = await fixture();
+    const sessionResponse = await server.inject({
+      method: 'POST',
+      url: '/v1/sessions',
+      headers: {
+        host: '127.0.0.1:17373',
+        origin: CONSOLE_ORIGIN,
+      },
+    });
+    expect(sessionResponse.statusCode).toBe(201);
+    expect(sessionResponse.headers['access-control-allow-origin']).toBe(
       CONSOLE_ORIGIN,
     );
-    const session = (await sessionResponse.json()) as { token: string };
+    const session = sessionResponse.json<{ token: string }>();
 
-    const ceremonyResponse = await fetch(`${baseUrl}/v1/ceremonies`, {
+    const ceremonyResponse = await server.inject({
       method: 'POST',
+      url: '/v1/ceremonies',
       headers: {
         'content-type': 'application/json',
+        host: 'localhost:17373',
         origin: CONSOLE_ORIGIN,
         'x-moltnet-signer-session': session.token,
       },
-      body: JSON.stringify({
+      payload: {
         version: 1,
         operation: 'credential-enrollment',
         label: '<script>Operator key</script>',
         teamId: '770e8400-e29b-41d4-a716-446655440002',
-      }),
-    });
-    expect(ceremonyResponse.status).toBe(201);
-    const ceremony = (await ceremonyResponse.json()) as {
-      id: string;
-    };
-
-    const approvalResponse = await rawRequest(
-      `${baseUrl}/ceremonies/${ceremony.id}`,
-      {
-        headers: {
-          accept: 'text/html',
-          'sec-fetch-dest': 'document',
-          'sec-fetch-mode': 'navigate',
-          'sec-fetch-site': 'cross-site',
-        },
       },
+    });
+    expect(ceremonyResponse.statusCode).toBe(201);
+    const ceremony = ceremonyResponse.json<{ id: string }>();
+
+    const approvalResponse = await server.inject({
+      method: 'GET',
+      url: `/ceremonies/${ceremony.id}`,
+      headers: {
+        accept: 'text/html',
+        host: '[::1]:17373',
+        'sec-fetch-dest': 'document',
+        'sec-fetch-mode': 'navigate',
+        'sec-fetch-site': 'cross-site',
+      },
+    });
+    expect(approvalResponse.body).toContain('Sign exact action');
+    expect(approvalResponse.body).toContain(
+      '&lt;script&gt;Operator key&lt;/script&gt;',
     );
-    const approval = approvalResponse.body;
-    expect(approval).toContain('Sign exact action');
-    expect(approval).toContain('&lt;script&gt;Operator key&lt;/script&gt;');
-    expect(approval).not.toContain('<script>');
+    expect(approvalResponse.body).not.toContain('<script>');
     expect(approvalResponse.headers['content-security-policy']).toContain(
       "form-action 'self'",
     );
-    const confirmationToken = approval.match(
+    const confirmationToken = approvalResponse.body.match(
       /name="confirmationToken" value="([^"]+)"/u,
     )?.[1];
     expect(confirmationToken).toBeDefined();
 
-    const crossSiteConfirmation = await rawRequest(
-      `${baseUrl}/ceremonies/${ceremony.id}/confirm`,
-      {
-        method: 'POST',
-        headers: {
-          accept: 'text/html',
-          'content-type': 'application/x-www-form-urlencoded',
-          'sec-fetch-site': 'cross-site',
-        },
-        body: new URLSearchParams({
-          confirmationToken: confirmationToken ?? '',
-        }).toString(),
+    const crossSiteConfirmation = await server.inject({
+      method: 'POST',
+      url: `/ceremonies/${ceremony.id}/confirm`,
+      headers: {
+        accept: 'text/html',
+        'content-type': 'application/x-www-form-urlencoded',
+        host: '127.0.0.1:17373',
+        'sec-fetch-site': 'cross-site',
       },
-    );
-    expect(crossSiteConfirmation.status).toBe(403);
+      payload: new URLSearchParams({
+        confirmationToken: confirmationToken ?? '',
+      }).toString(),
+    });
+    expect(crossSiteConfirmation.statusCode).toBe(403);
 
-    const confirmation = await rawRequest(
-      `${baseUrl}/ceremonies/${ceremony.id}/confirm`,
-      {
-        method: 'POST',
-        headers: {
-          accept: 'text/html',
-          'content-type': 'application/x-www-form-urlencoded',
-          'sec-fetch-site': 'same-origin',
-        },
-        body: new URLSearchParams({
-          confirmationToken: confirmationToken ?? '',
-        }).toString(),
+    const confirmation = await server.inject({
+      method: 'POST',
+      url: `/ceremonies/${ceremony.id}/confirm`,
+      headers: {
+        accept: 'text/html',
+        'content-type': 'application/x-www-form-urlencoded',
+        host: '127.0.0.1:17373',
+        'sec-fetch-site': 'same-origin',
       },
-    );
-    expect(confirmation.status).toBe(200);
+      payload: new URLSearchParams({
+        confirmationToken: confirmationToken ?? '',
+      }).toString(),
+    });
+    expect(confirmation.statusCode).toBe(200);
   });
 
-  it('rejects unapproved origins and non-loopback Host headers', async () => {
-    const { baseUrl } = await fixture();
-    const originResponse = await fetch(`${baseUrl}/v1/sessions`, {
+  it('rejects unapproved origins, preflights, and non-loopback Host headers', async () => {
+    const { server } = await fixture();
+    const originResponse = await server.inject({
       method: 'POST',
-      headers: { origin: 'https://attacker.example' },
-    });
-    expect(originResponse.status).toBe(403);
-    const missingOriginResponse = await fetch(`${baseUrl}/v1/sessions`, {
-      method: 'POST',
-    });
-    expect(missingOriginResponse.status).toBe(403);
-    const preflightResponse = await fetch(`${baseUrl}/v1/ceremonies`, {
-      method: 'OPTIONS',
+      url: '/v1/sessions',
       headers: {
+        host: '127.0.0.1:17373',
+        origin: 'https://attacker.example',
+      },
+    });
+    expect(originResponse.statusCode).toBe(403);
+
+    const missingOriginResponse = await server.inject({
+      method: 'POST',
+      url: '/v1/sessions',
+      headers: { host: '127.0.0.1:17373' },
+    });
+    expect(missingOriginResponse.statusCode).toBe(403);
+
+    const preflightResponse = await server.inject({
+      method: 'OPTIONS',
+      url: '/v1/ceremonies',
+      headers: {
+        host: '127.0.0.1:17373',
         origin: 'https://attacker.example',
         'access-control-request-method': 'POST',
       },
     });
-    expect(preflightResponse.status).toBe(403);
-    expect(preflightResponse.headers.has('access-control-allow-origin')).toBe(
-      false,
+    expect(preflightResponse.statusCode).toBe(403);
+    expect(preflightResponse.headers).not.toHaveProperty(
+      'access-control-allow-origin',
     );
 
-    const hostStatus = await new Promise<number | undefined>(
-      (resolve, reject) => {
-        const request = httpRequest(
-          `${baseUrl}/health`,
-          { headers: { host: 'attacker.example' } },
-          (response) => {
-            response.resume();
-            response.on('end', () => resolve(response.statusCode));
-          },
-        );
-        request.on('error', reject);
-        request.end();
+    const hostResponse = await server.inject({
+      method: 'GET',
+      url: '/health',
+      headers: { host: 'attacker.example' },
+    });
+    expect(hostResponse.statusCode).toBe(400);
+  });
+
+  it('rejects malformed, oversized, and non-JSON ceremony bodies', async () => {
+    const { server } = await fixture();
+    const token = await createSession(server);
+    const headers = {
+      host: '127.0.0.1:17373',
+      origin: CONSOLE_ORIGIN,
+      'x-moltnet-signer-session': token,
+    };
+
+    const malformed = await server.inject({
+      method: 'POST',
+      url: '/v1/ceremonies',
+      headers: { ...headers, 'content-type': 'application/json' },
+      payload: '{"version":',
+    });
+    expect(malformed.statusCode).toBe(400);
+    expect(malformed.json()).toMatchObject({ code: 'ceremony_invalid' });
+
+    const oversized = await server.inject({
+      method: 'POST',
+      url: '/v1/ceremonies',
+      headers: { ...headers, 'content-type': 'application/json' },
+      payload: JSON.stringify({
+        version: 1,
+        operation: 'credential-enrollment',
+        label: 'x'.repeat(17 * 1024),
+        teamId: '770e8400-e29b-41d4-a716-446655440002',
+      }),
+    });
+    expect(oversized.statusCode).toBe(400);
+    expect(oversized.json()).toMatchObject({ code: 'ceremony_invalid' });
+
+    const wrongContentType = await server.inject({
+      method: 'POST',
+      url: '/v1/ceremonies',
+      headers: { ...headers, 'content-type': 'text/plain' },
+      payload: '{}',
+    });
+    expect(wrongContentType.statusCode).toBe(400);
+    expect(wrongContentType.json()).toMatchObject({
+      code: 'ceremony_invalid',
+    });
+  });
+
+  it('rejects unknown and additional ceremony fields', async () => {
+    const { server } = await fixture();
+    const token = await createSession(server);
+    const response = await server.inject({
+      method: 'POST',
+      url: '/v1/ceremonies',
+      headers: {
+        'content-type': 'application/json',
+        host: '127.0.0.1:17373',
+        origin: CONSOLE_ORIGIN,
+        'x-moltnet-signer-session': token,
       },
-    );
-    expect(hostStatus).toBe(400);
+      payload: {
+        version: 1,
+        operation: 'credential-enrollment',
+        label: 'Operator key',
+        teamId: '770e8400-e29b-41d4-a716-446655440002',
+        digest: 'client-selected-signing-input',
+      },
+    });
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toMatchObject({ code: 'ceremony_invalid' });
+
+    const unknown = await server.inject({
+      method: 'POST',
+      url: '/not-a-signer-route',
+      headers: {
+        host: '127.0.0.1:17373',
+        origin: CONSOLE_ORIGIN,
+      },
+    });
+    expect(unknown.statusCode).toBe(404);
+    expect(unknown.json()).toEqual({
+      code: 'not_found',
+      message: 'Route is not available',
+    });
   });
 });

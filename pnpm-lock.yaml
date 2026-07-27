@@ -1060,9 +1060,24 @@ importers:
 
   apps/moltnet-signer:
     dependencies:
+      '@fastify/cors':
+        specifier: 'catalog:'
+        version: 11.2.0
+      '@fastify/helmet':
+        specifier: 'catalog:'
+        version: 13.0.2
+      '@fastify/type-provider-typebox':
+        specifier: 'catalog:'
+        version: 6.1.0(typebox@1.2.8)
+      fastify:
+        specifier: 'catalog:'
+        version: 5.8.5
       node-hid:
         specifier: 'catalog:'
         version: 3.4.0
+      pino:
+        specifier: 'catalog:'
+        version: 10.3.1
       typebox:
         specifier: 'catalog:'
         version: 1.2.8

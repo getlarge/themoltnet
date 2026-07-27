@@ -1,10 +1,11 @@
 import { randomBytes } from 'node:crypto';
 
+import pino from 'pino';
+
 import { SignerCeremonyService } from './ceremony-service.js';
 import { createChallengeValidator } from './challenge-validator.js';
 import { getSignerConfig } from './config.js';
 import { createPreviewSignDevice } from './device.js';
-import { createSignerLogger } from './logger.js';
 import { createSignerServer } from './server.js';
 
 if (process.argv.includes('--help') || process.argv.includes('-h')) {
@@ -19,12 +20,55 @@ Configuration:
   MOLTNET_SIGNER_ALLOWED_ORIGINS  Comma-separated exact Console origins
 `);
 } else {
-  startSigner();
+  void startSigner().catch((error: unknown) => {
+    const logger = pino(
+      { name: 'moltnet-signer' },
+      pino.destination({ dest: 2, sync: false }),
+    );
+    logger.fatal(
+      { code: error instanceof Error ? error.name : 'UnknownError' },
+      'server.start_failed',
+    );
+    process.exitCode = 1;
+  });
 }
 
-function startSigner(): void {
+async function startSigner(): Promise<void> {
   const config = getSignerConfig();
-  const logger = createSignerLogger(config.logFile);
+  const destinations = [
+    pino.destination({ dest: 2, sync: false }),
+    ...(config.logFile
+      ? [
+          pino.destination({
+            append: true,
+            dest: config.logFile,
+            mkdir: true,
+            mode: 0o600,
+            sync: false,
+          }),
+        ]
+      : []),
+  ];
+  const logger = pino(
+    {
+      name: 'moltnet-signer',
+      redact: {
+        paths: [
+          'req.headers.x-moltnet-signer-session',
+          'request.headers.x-moltnet-signer-session',
+          '*.additionalArguments',
+          '*.challenge',
+          '*.digest',
+          '*.envelope',
+          '*.receipt',
+          '*.signature',
+          '*.token',
+        ],
+        remove: true,
+      },
+    },
+    pino.multistream(destinations.map((stream) => ({ stream }))),
+  );
   const service = new SignerCeremonyService({
     allowedOrigins: config.allowedOrigins,
     apiUrl: config.apiUrl,
@@ -36,39 +80,52 @@ function startSigner(): void {
     randomToken: () => randomBytes(32).toString('base64url'),
     logger,
   });
-  const server = createSignerServer(service);
-  server.requestTimeout = 10_000;
-  server.headersTimeout = 12_000;
-  server.keepAliveTimeout = 5_000;
-  server.listen(config.port, config.host, () => {
-    logger.info('server.listening');
+  const server = createSignerServer(service, { logger });
+  const address = await server.listen({
+    port: config.port,
+    host: config.host,
   });
-  server.on('error', () => {
-    logger.error('server.error');
-  });
+  logger.info(
+    {
+      address,
+      allowedOriginCount: config.allowedOrigins.length,
+    },
+    'server.listening',
+  );
 
-  const shutdown = () => {
+  let shutdownPromise: Promise<void> | undefined;
+  const shutdown = (): Promise<void> => {
+    if (shutdownPromise) return shutdownPromise;
     service.dispose();
-    server.close((error) => {
-      if (error) {
-        logger.error('server.shutdown_failed');
+    shutdownPromise = server
+      .close()
+      .catch((error: unknown) => {
+        logger.error(
+          { code: error instanceof Error ? error.name : 'UnknownError' },
+          'server.shutdown_failed',
+        );
         process.exitCode = 1;
-      }
-      logger.close();
-    });
+      })
+      .finally(() => {
+        for (const destination of destinations) destination.end();
+      });
+    return shutdownPromise;
   };
   process.once('uncaughtException', (error) => {
-    logger.error('process.uncaught_exception', { code: error.name });
+    logger.fatal({ code: error.name }, 'process.uncaught_exception');
     process.exitCode = 1;
-    shutdown();
+    void shutdown();
   });
   process.once('unhandledRejection', (reason) => {
-    logger.error('process.unhandled_rejection', {
-      code: reason instanceof Error ? reason.name : 'UnknownRejection',
-    });
+    logger.fatal(
+      {
+        code: reason instanceof Error ? reason.name : 'UnknownRejection',
+      },
+      'process.unhandled_rejection',
+    );
     process.exitCode = 1;
-    shutdown();
+    void shutdown();
   });
-  process.once('SIGINT', shutdown);
-  process.once('SIGTERM', shutdown);
+  process.once('SIGINT', () => void shutdown());
+  process.once('SIGTERM', () => void shutdown());
 }

@@ -1,10 +1,17 @@
+import cors from '@fastify/cors';
+import helmet from '@fastify/helmet';
+import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import {
-  createServer,
-  type IncomingMessage,
-  type ServerResponse,
-} from 'node:http';
-
-import type { SignerCeremonyRequest } from '@moltnet/models';
+  SignerCeremonyRequestSchema,
+  signerProtocolSchemaContext,
+} from '@moltnet/models';
+import Fastify, {
+  type FastifyBaseLogger,
+  type FastifyError,
+  type FastifyInstance,
+  type FastifyRequest,
+} from 'fastify';
+import { Type } from 'typebox';
 
 import { renderApprovalPage, renderResultPage } from './approval-page.js';
 import {
@@ -15,131 +22,232 @@ import {
 const BODY_LIMIT = 16 * 1024;
 const SESSION_HEADER = 'x-moltnet-signer-session';
 
-export function createSignerServer(service: SignerCeremonyService) {
-  return createServer((request, response) => {
-    void handleRequest(service, request, response);
-  });
+const CeremonyParamsSchema = Type.Object(
+  {
+    ceremonyId: Type.String({ minLength: 1 }),
+  },
+  { additionalProperties: false },
+);
+
+export interface CreateSignerServerOptions {
+  logger?: FastifyBaseLogger;
 }
 
-async function handleRequest(
+export function createSignerServer(
   service: SignerCeremonyService,
-  request: IncomingMessage,
-  response: ServerResponse,
-): Promise<void> {
-  setSecurityHeaders(response);
-  try {
+  options: CreateSignerServerOptions = {},
+): FastifyInstance {
+  const serverOptions = {
+    ajv: {
+      customOptions: {
+        coerceTypes: false as const,
+        removeAdditional: false as const,
+      },
+    },
+    bodyLimit: BODY_LIMIT,
+    connectionTimeout: 10_000,
+    keepAliveTimeout: 5_000,
+    requestTimeout: 10_000,
+  };
+  const app = options.logger
+    ? Fastify({ ...serverOptions, loggerInstance: options.logger })
+    : Fastify(serverOptions);
+  app.server.headersTimeout = 12_000;
+
+  for (const schema of Object.values(signerProtocolSchemaContext)) {
+    app.addSchema(schema);
+  }
+
+  app.removeContentTypeParser('application/json');
+  app.addContentTypeParser(
+    'application/json',
+    { parseAs: 'buffer' },
+    (_request, body, done) => {
+      try {
+        const json = new TextDecoder('utf-8', { fatal: true }).decode(
+          typeof body === 'string' ? Buffer.from(body) : body,
+        );
+        done(null, JSON.parse(json));
+      } catch {
+        done(
+          new SignerCeremonyError(
+            'ceremony_invalid',
+            'Request body must be valid UTF-8 JSON',
+          ),
+          undefined,
+        );
+      }
+    },
+  );
+  app.addContentTypeParser(
+    'application/x-www-form-urlencoded',
+    { parseAs: 'buffer' },
+    (_request, body, done) => {
+      try {
+        const form = new TextDecoder('utf-8', { fatal: true }).decode(
+          typeof body === 'string' ? Buffer.from(body) : body,
+        );
+        done(null, new URLSearchParams(form));
+      } catch {
+        done(
+          new SignerCeremonyError(
+            'confirmation_invalid',
+            'Confirmation form is invalid',
+          ),
+          undefined,
+        );
+      }
+    },
+  );
+
+  app.addHook('onRequest', (request, _reply, done) => {
     requireLoopbackHost(request);
-    const url = new URL(request.url ?? '/', 'http://127.0.0.1');
-    if (request.method === 'OPTIONS') {
-      const origin = requireOrigin(request);
-      service.assertOrigin(origin);
-      setCors(response, origin);
-      response.writeHead(204);
-      response.end();
-      return;
-    }
-    if (request.method === 'GET' && url.pathname === '/health') {
-      json(response, 200, { status: 'ok' });
-      return;
-    }
-    if (request.method === 'POST' && url.pathname === '/v1/sessions') {
-      const origin = requireOrigin(request);
-      setCors(response, origin);
-      json(response, 201, service.createSession({ origin }));
-      return;
-    }
-    if (request.method === 'POST' && url.pathname === '/v1/ceremonies') {
-      const origin = requireOrigin(request);
-      setCors(response, origin);
-      const sessionToken = requireSessionHeader(request);
-      const body = await readJson(request);
+    done();
+  });
+  app.addHook('onSend', async (_request, reply, payload) => {
+    reply.header('cache-control', 'no-store');
+    return payload;
+  });
+
+  void app.register(cors, {
+    allowedHeaders: ['content-type', SESSION_HEADER],
+    maxAge: 600,
+    methods: ['GET', 'POST', 'OPTIONS'],
+    origin: (origin, callback) => {
+      if (!origin) {
+        callback(null, false);
+        return;
+      }
+      try {
+        service.assertOrigin(origin);
+        callback(null, true);
+      } catch (error) {
+        callback(error as Error, false);
+      }
+    },
+  });
+  void app.register(helmet, {
+    contentSecurityPolicy: {
+      useDefaults: false,
+      directives: {
+        baseUri: ["'none'"],
+        defaultSrc: ["'none'"],
+        formAction: ["'self'"],
+        frameAncestors: ["'none'"],
+        styleSrc: ["'unsafe-inline'"],
+      },
+    },
+    crossOriginEmbedderPolicy: false,
+    crossOriginOpenerPolicy: false,
+    crossOriginResourcePolicy: { policy: 'same-origin' },
+    hsts: false,
+    referrerPolicy: { policy: 'no-referrer' },
+  });
+
+  const server = app.withTypeProvider<TypeBoxTypeProvider>();
+
+  server.get('/health', () => ({ status: 'ok' }));
+
+  server.post('/v1/sessions', async (request, reply) => {
+    const origin = requireOrigin(request);
+    return reply.code(201).send(service.createSession({ origin }));
+  });
+
+  server.post(
+    '/v1/ceremonies',
+    { schema: { body: SignerCeremonyRequestSchema } },
+    async (request, reply) => {
       const ceremony = await service.createCeremony({
-        origin,
-        sessionToken,
-        request: body as SignerCeremonyRequest,
+        origin: requireOrigin(request),
+        sessionToken: requireSessionHeader(request),
+        request: request.body,
       });
-      json(response, 201, ceremony);
-      return;
-    }
-    const resultMatch = url.pathname.match(
-      /^\/v1\/ceremonies\/([^/]+)\/result$/u,
-    );
-    if (request.method === 'GET' && resultMatch) {
-      const ceremonyId = decodePathSegment(resultMatch);
-      const origin = requireOrigin(request);
-      setCors(response, origin);
-      json(
-        response,
-        200,
-        service.getResult({
-          ceremonyId,
-          origin,
-          sessionToken: requireSessionHeader(request),
+      return reply.code(201).send(ceremony);
+    },
+  );
+
+  server.get(
+    '/v1/ceremonies/:ceremonyId/result',
+    { schema: { params: CeremonyParamsSchema } },
+    (request) =>
+      service.getResult({
+        ceremonyId: request.params.ceremonyId,
+        origin: requireOrigin(request),
+        sessionToken: requireSessionHeader(request),
+      }),
+  );
+
+  server.get(
+    '/ceremonies/:ceremonyId',
+    { schema: { params: CeremonyParamsSchema } },
+    async (request, reply) => {
+      requireApprovalNavigation(request);
+      const approval = service.getApproval(request.params.ceremonyId);
+      return reply.type('text/html; charset=utf-8').send(
+        renderApprovalPage({
+          ceremonyId: request.params.ceremonyId,
+          ...approval,
         }),
       );
-      return;
-    }
-    const approvalMatch = url.pathname.match(/^\/ceremonies\/([^/]+)$/u);
-    if (request.method === 'GET' && approvalMatch) {
-      requireApprovalNavigation(request);
-      const ceremonyId = decodePathSegment(approvalMatch);
-      const approval = service.getApproval(ceremonyId);
-      html(response, 200, renderApprovalPage({ ceremonyId, ...approval }));
-      return;
-    }
-    const confirmMatch = url.pathname.match(
-      /^\/ceremonies\/([^/]+)\/confirm$/u,
-    );
-    if (request.method === 'POST' && confirmMatch) {
+    },
+  );
+
+  server.post(
+    '/ceremonies/:ceremonyId/confirm',
+    { schema: { params: CeremonyParamsSchema } },
+    async (request, reply) => {
       requireSameOriginConfirmation(request);
-      const body = await readForm(request);
+      if (!(request.body instanceof URLSearchParams)) {
+        throw new SignerCeremonyError(
+          'confirmation_invalid',
+          'Confirmation form is invalid',
+        );
+      }
       await service.confirmCeremony({
-        ceremonyId: decodePathSegment(confirmMatch),
-        confirmationToken: body.get('confirmationToken') ?? '',
+        ceremonyId: request.params.ceremonyId,
+        confirmationToken: request.body.get('confirmationToken') ?? '',
       });
-      html(
-        response,
-        200,
+      return reply.type('text/html; charset=utf-8').send(
         renderResultPage({
           title: 'Action signed',
           message: 'The signed receipt is ready for the Console.',
           success: true,
         }),
       );
-      return;
-    }
-    json(response, 404, {
+    },
+  );
+
+  app.setNotFoundHandler(async (_request, reply) =>
+    reply.code(404).send({
       code: 'not_found',
       message: 'Route is not available',
-    });
-  } catch (error) {
-    const signerError =
-      error instanceof SignerCeremonyError
-        ? error
-        : new SignerCeremonyError('ceremony_invalid', 'Request is not valid', {
-            cause: error,
-          });
-    const acceptsHtml = request.headers.accept?.includes('text/html') === true;
-    if (acceptsHtml) {
-      html(
-        response,
-        statusFor(signerError),
-        renderResultPage({
-          title: 'Signing stopped',
-          message: signerError.message,
-          success: false,
-        }),
-      );
-    } else {
-      json(response, statusFor(signerError), {
-        code: signerError.code,
-        message: signerError.message,
-      });
+    }),
+  );
+  app.setErrorHandler(async (error, request, reply) => {
+    const signerError = normalizeError(error, request);
+    const status = statusFor(signerError);
+    if (request.headers.accept?.includes('text/html') === true) {
+      return reply
+        .code(status)
+        .type('text/html; charset=utf-8')
+        .send(
+          renderResultPage({
+            title: 'Signing stopped',
+            message: signerError.message,
+            success: false,
+          }),
+        );
     }
-  }
+    return reply.code(status).send({
+      code: signerError.code,
+      message: signerError.message,
+    });
+  });
+
+  return app;
 }
 
-function requireApprovalNavigation(request: IncomingMessage): void {
+function requireApprovalNavigation(request: FastifyRequest): void {
   const site = request.headers['sec-fetch-site'];
   const mode = request.headers['sec-fetch-mode'];
   const destination = request.headers['sec-fetch-dest'];
@@ -155,7 +263,7 @@ function requireApprovalNavigation(request: IncomingMessage): void {
   }
 }
 
-function requireSameOriginConfirmation(request: IncomingMessage): void {
+function requireSameOriginConfirmation(request: FastifyRequest): void {
   if (request.headers['sec-fetch-site'] !== 'same-origin') {
     throw new SignerCeremonyError(
       'origin_not_allowed',
@@ -164,31 +272,36 @@ function requireSameOriginConfirmation(request: IncomingMessage): void {
   }
 }
 
-function decodePathSegment(match: RegExpMatchArray): string {
-  const encoded = match[1];
-  if (encoded === undefined) {
+function requireLoopbackHost(request: FastifyRequest): void {
+  const host = request.headers.host;
+  if (!host) {
     throw new SignerCeremonyError(
       'ceremony_invalid',
-      'Ceremony identifier is missing',
+      'Host header is required',
     );
   }
-  return decodeURIComponent(encoded);
-}
-
-function requireLoopbackHost(request: IncomingMessage): void {
-  const host = request.headers.host;
-  if (!host) throw new Error('Missing Host header');
-  const url = new URL(`http://${host}`);
+  let hostname: string;
+  try {
+    hostname = new URL(`http://${host}`).hostname;
+  } catch {
+    throw new SignerCeremonyError(
+      'ceremony_invalid',
+      'Host header must identify loopback',
+    );
+  }
   if (
-    url.hostname !== '127.0.0.1' &&
-    url.hostname !== 'localhost' &&
-    url.hostname !== '[::1]'
+    hostname !== '127.0.0.1' &&
+    hostname !== 'localhost' &&
+    hostname !== '[::1]'
   ) {
-    throw new Error('Host must be loopback');
+    throw new SignerCeremonyError(
+      'ceremony_invalid',
+      'Host header must identify loopback',
+    );
   }
 }
 
-function requireOrigin(request: IncomingMessage): string {
+function requireOrigin(request: FastifyRequest): string {
   const origin = request.headers.origin;
   if (!origin) {
     throw new SignerCeremonyError('origin_not_allowed', 'Origin is required');
@@ -196,7 +309,7 @@ function requireOrigin(request: IncomingMessage): string {
   return origin;
 }
 
-function requireSessionHeader(request: IncomingMessage): string {
+function requireSessionHeader(request: FastifyRequest): string {
   const token = request.headers[SESSION_HEADER];
   if (typeof token !== 'string' || token.length === 0) {
     throw new SignerCeremonyError(
@@ -207,92 +320,46 @@ function requireSessionHeader(request: IncomingMessage): string {
   return token;
 }
 
-async function readJson(request: IncomingMessage): Promise<unknown> {
-  if (request.headers['content-type']?.split(';')[0] !== 'application/json') {
-    throw new SignerCeremonyError(
+function normalizeError(
+  error: unknown,
+  request: FastifyRequest,
+): SignerCeremonyError {
+  if (error instanceof SignerCeremonyError) return error;
+  const fastifyError = error as Partial<FastifyError>;
+  if (fastifyError.validation) {
+    return new SignerCeremonyError(
       'ceremony_invalid',
-      'Content-Type must be application/json',
+      'Ceremony request is invalid',
+      { cause: error },
     );
   }
-  const bytes = await readBody(request);
-  try {
-    return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
-  } catch {
-    throw new SignerCeremonyError(
+  if (fastifyError.code === 'FST_ERR_CTP_BODY_TOO_LARGE') {
+    return new SignerCeremonyError(
       'ceremony_invalid',
-      'Request body must be valid UTF-8 JSON',
+      'Request body is too large',
+      { cause: error },
     );
   }
-}
-
-async function readForm(request: IncomingMessage): Promise<URLSearchParams> {
   if (
-    request.headers['content-type']?.split(';')[0] !==
-    'application/x-www-form-urlencoded'
+    fastifyError.code === 'FST_ERR_CTP_INVALID_MEDIA_TYPE' &&
+    request.url.endsWith('/confirm')
   ) {
-    throw new SignerCeremonyError(
+    return new SignerCeremonyError(
       'confirmation_invalid',
       'Confirmation form is invalid',
+      { cause: error },
     );
   }
-  return new URLSearchParams(
-    new TextDecoder('utf-8', { fatal: true }).decode(await readBody(request)),
-  );
-}
-
-async function readBody(request: IncomingMessage): Promise<Uint8Array> {
-  const chunks: Uint8Array[] = [];
-  let length = 0;
-  for await (const chunk of request) {
-    const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-    length += bytes.length;
-    if (length > BODY_LIMIT) {
-      request.destroy();
-      throw new SignerCeremonyError(
-        'ceremony_invalid',
-        'Request body is too large',
-      );
-    }
-    chunks.push(bytes);
+  if (fastifyError.code === 'FST_ERR_CTP_INVALID_MEDIA_TYPE') {
+    return new SignerCeremonyError(
+      'ceremony_invalid',
+      'Content-Type must be application/json',
+      { cause: error },
+    );
   }
-  return Buffer.concat(chunks);
-}
-
-function setCors(response: ServerResponse, origin: string): void {
-  response.setHeader('access-control-allow-origin', origin);
-  response.setHeader(
-    'access-control-allow-headers',
-    `content-type, ${SESSION_HEADER}`,
-  );
-  response.setHeader('access-control-allow-methods', 'GET, POST, OPTIONS');
-  response.setHeader('access-control-max-age', '600');
-  response.setHeader('vary', 'Origin');
-}
-
-function setSecurityHeaders(response: ServerResponse): void {
-  response.setHeader(
-    'content-security-policy',
-    "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
-  );
-  response.setHeader('cross-origin-resource-policy', 'same-origin');
-  response.setHeader('referrer-policy', 'no-referrer');
-  response.setHeader('x-content-type-options', 'nosniff');
-  response.setHeader('x-frame-options', 'DENY');
-  response.setHeader('cache-control', 'no-store');
-}
-
-function json(response: ServerResponse, status: number, body: unknown): void {
-  response.writeHead(status, {
-    'content-type': 'application/json; charset=utf-8',
+  return new SignerCeremonyError('ceremony_invalid', 'Request is not valid', {
+    cause: error,
   });
-  response.end(JSON.stringify(body));
-}
-
-function html(response: ServerResponse, status: number, body: string): void {
-  response.writeHead(status, {
-    'content-type': 'text/html; charset=utf-8',
-  });
-  response.end(body);
 }
 
 function statusFor(error: SignerCeremonyError): number {
