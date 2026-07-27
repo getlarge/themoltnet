@@ -1,4 +1,4 @@
-import type { Logger, TaskClient } from '@moltnet/orchestration';
+import type { Logger, TaskClient } from '@themoltnet/tasks-orchestrator';
 
 export interface ParallelBriefsInput {
   teamId: string;

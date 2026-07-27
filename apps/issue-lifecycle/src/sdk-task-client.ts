@@ -1,1 +1,1 @@
-export { createSdkTaskClient } from '@moltnet/orchestration';
+export { createSdkTaskClient } from '@themoltnet/tasks-orchestrator';

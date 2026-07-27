@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@moltnet/orchestration": "workspace:*",
+    "@themoltnet/tasks-orchestrator": "workspace:*",
     "pg": "catalog:"
   },
   "devDependencies": {
@@ -20,7 +20,7 @@
       "platform:cli"
     ],
     "implicitDependencies": [
-      "@moltnet/orchestration"
+      "@themoltnet/tasks-orchestrator"
     ],
     "targets": {
       "e2e": {

@@ -95,7 +95,7 @@ const IsoTimestamp = Type.String({ format: 'date-time' });
 /**
  * Canonical claim-condition bounds. Single source of truth consumed by the wire
  * schema here, the server-side depth validator (`libs/task-service`), and
- * downstream builders (`@moltnet/orchestration` `joinCondition`) so limits can
+ * downstream builders (`@themoltnet/tasks-orchestrator` `joinCondition`) so limits can
  * never drift into conditions the server rejects.
  */
 export const MAX_CLAIM_CONDITION_BRANCHES = 8;

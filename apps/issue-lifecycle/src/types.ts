@@ -1,7 +1,7 @@
 import type {
   AcceptedTaskResult as OrchAcceptedTaskResult,
   TaskClient,
-} from '@moltnet/orchestration';
+} from '@themoltnet/tasks-orchestrator';
 
 import type { LifecycleConfig } from './lifecycle-config.js';
 
@@ -10,7 +10,7 @@ export type {
   SdkTaskAttempt,
   TaskClient,
   WorkflowContext,
-} from '@moltnet/orchestration';
+} from '@themoltnet/tasks-orchestrator';
 
 export type LifecyclePhase =
   | 'triaging'

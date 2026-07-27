@@ -1,7 +1,7 @@
 /**
  * Orchestration E2E Global Setup — Absurd Postgres readiness.
  *
- * The durability suite proves that `@moltnet/orchestration`'s `ctx.step`
+ * The durability suite proves that `@themoltnet/tasks-orchestrator`'s `ctx.step`
  * checkpoints replay from a REAL Absurd store after a mid-run crash. That needs
  * an Absurd-initialized Postgres — the `issue-lifecycle-db` service in
  * docker-compose.e2e.yaml, whose `issue-lifecycle-db-migrate` sibling installs

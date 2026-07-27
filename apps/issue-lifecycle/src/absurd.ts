@@ -1,4 +1,4 @@
-import { createOrchestrationAbsurdApp } from '@moltnet/orchestration';
+import { createOrchestrationAbsurdApp } from '@themoltnet/tasks-orchestrator';
 import type { Absurd } from 'absurd-sdk';
 
 import type { IssueLifecycleDeps, IssueLifecycleInput } from './types.js';

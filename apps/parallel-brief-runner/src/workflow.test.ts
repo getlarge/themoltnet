@@ -1,5 +1,5 @@
-import { MAX_JOIN_TASKS } from '@moltnet/orchestration';
-import { FakeTasks } from '@moltnet/orchestration/testing';
+import { MAX_JOIN_TASKS } from '@themoltnet/tasks-orchestrator';
+import { FakeTasks } from '@themoltnet/tasks-orchestrator/testing';
 import { describe, expect, it } from 'vitest';
 
 import { runParallelBriefs } from './workflow.js';
