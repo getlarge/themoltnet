@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.36.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.35.1...rest-api-v0.36.0) (2026-07-27)
+
+
+### Features
+
+* **console:** manage runtime security and agent keys ([ad1e433](https://github.com/getlarge/themoltnet/commit/ad1e4332ed07446af0170bb1437451ac2de558eb))
+
+
+### Bug Fixes
+
+* **rest-api:** format runtime policy subject ([0474b3d](https://github.com/getlarge/themoltnet/commit/0474b3d40b8327fbefbb6580304ccfd54d9d6e43))
+
 ## [0.35.1](https://github.com/getlarge/themoltnet/compare/rest-api-v0.35.0...rest-api-v0.35.1) (2026-07-27)
 
 

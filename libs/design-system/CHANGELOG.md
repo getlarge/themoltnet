@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.11.0](https://github.com/getlarge/themoltnet/compare/design-system-v0.10.1...design-system-v0.11.0) (2026-07-27)
+
+
+### Features
+
+* **console:** manage runtime security and agent keys ([ad1e433](https://github.com/getlarge/themoltnet/commit/ad1e4332ed07446af0170bb1437451ac2de558eb))
+* **design-system:** support protected dialogs ([59e67a1](https://github.com/getlarge/themoltnet/commit/59e67a1d23b9f59ce9b2dab19d8d31a63f06c3a3))
+
+
+### Bug Fixes
+
+* **console:** harden runtime security management ([804406a](https://github.com/getlarge/themoltnet/commit/804406aba1bfdd5112f7e93527c84a881edf7c16))
+
 ## [0.10.1](https://github.com/getlarge/themoltnet/compare/design-system-v0.10.0...design-system-v0.10.1) (2026-07-25)
 
 
