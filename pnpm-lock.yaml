@@ -662,6 +662,9 @@ importers:
       '@themoltnet/sdk':
         specifier: workspace:*
         version: link:../../libs/sdk
+      '@themoltnet/shell-command-analyzer':
+        specifier: workspace:*
+        version: link:../../libs/shell-command-analyzer
     devDependencies:
       typescript:
         specifier: 'catalog:'

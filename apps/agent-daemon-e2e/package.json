@@ -10,7 +10,8 @@
     "@themoltnet/agent-daemon": "workspace:*",
     "@themoltnet/agent-runtime": "workspace:*",
     "@themoltnet/pi-extension": "workspace:*",
-    "@themoltnet/sdk": "workspace:*"
+    "@themoltnet/sdk": "workspace:*",
+    "@themoltnet/shell-command-analyzer": "workspace:*"
   },
   "devDependencies": {
     "typescript": "catalog:",
