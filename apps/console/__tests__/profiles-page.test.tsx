@@ -19,10 +19,12 @@ vi.mock('@moltnet/api-client', () => ({
 }));
 
 const queryState = vi.hoisted(() => ({
+  role: 'owner' as 'owner' | 'manager' | 'member',
   profiles: [] as unknown[],
   policies: [] as unknown[],
   policyIds: [] as string[],
   allowedTools: [] as string[],
+  allowedToolsEnforcement: 'off' as 'off' | 'watch' | 'enforce',
 }));
 
 vi.mock('@moltnet/api-client/query', () => ({
@@ -46,7 +48,7 @@ vi.mock('@moltnet/api-client/query', () => ({
     queryKey: ['runtime-profile-allowed-tools'],
     queryFn: async () => ({
       allowedTools: queryState.allowedTools,
-      enforcement: 'off',
+      enforcement: queryState.allowedToolsEnforcement,
     }),
   }),
 }));
@@ -109,7 +111,7 @@ vi.mock('../src/team/useTeam.js', () => ({
       name: 'Team One',
       personal: false,
       status: 'active',
-      role: 'owner',
+      role: queryState.role,
     },
   }),
 }));
@@ -149,10 +151,12 @@ function applyRecipe() {
 describe('ProfilesPage context editor', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    queryState.role = 'owner';
     queryState.profiles = [];
     queryState.policies = [];
     queryState.policyIds = [];
     queryState.allowedTools = [];
+    queryState.allowedToolsEnforcement = 'off';
   });
 
   it('applies a suggested recipe as ordinary editable entries', async () => {
@@ -339,5 +343,104 @@ describe('ProfilesPage context editor', () => {
         body: { toolEnforcement: 'watch' },
       }),
     );
+  });
+
+  it('surfaces the resolved union and persisted enforcement mode', async () => {
+    queryState.profiles = [
+      {
+        ...makeProfile('p-a', 'profile-a', []),
+        toolEnforcement: 'enforce',
+      },
+    ];
+    queryState.policies = [
+      {
+        id: 'policy-1',
+        teamId: 'team-1',
+        name: 'inspector',
+        description: 'Inspection tools',
+        createdAt: '2026-01-01T00:00:00Z',
+        updatedAt: '2026-01-01T00:00:00Z',
+      },
+    ];
+    queryState.policyIds = ['policy-1'];
+    queryState.allowedTools = ['grep', 'read'];
+    queryState.allowedToolsEnforcement = 'enforce';
+
+    renderPage();
+
+    expect(
+      await screen.findByRole('radio', { name: /enforce/i }),
+    ).toBeChecked();
+    await waitFor(() =>
+      expect(
+        screen.getByRole('checkbox', { name: /inspector/i }),
+      ).toBeChecked(),
+    );
+    expect(screen.getByText('grep')).toBeVisible();
+    expect(screen.getByText('read')).toBeVisible();
+    expect(
+      screen.getByText(/snapshotted by the next runtime session/i),
+    ).toBeInTheDocument();
+  });
+
+  it('keeps tool access visible but immutable without manage-runtime', async () => {
+    queryState.role = 'member';
+    queryState.profiles = [makeProfile('p-a', 'profile-a', [])];
+    queryState.policies = [
+      {
+        id: 'policy-1',
+        teamId: 'team-1',
+        name: 'reader',
+        description: 'Read-only tools',
+        createdAt: '2026-01-01T00:00:00Z',
+        updatedAt: '2026-01-01T00:00:00Z',
+      },
+    ];
+
+    renderPage();
+
+    expect(
+      await screen.findByRole('checkbox', { name: /reader/i }),
+    ).toBeDisabled();
+    expect(screen.getByRole('radio', { name: /off/i })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'Save tool access' }),
+    ).toBeDisabled();
+    expect(
+      screen.getByText(/changing it requires the team manage-runtime role/i),
+    ).toBeVisible();
+  });
+
+  it('reports partial failure when bindings save but enforcement does not', async () => {
+    queryState.profiles = [makeProfile('p-a', 'profile-a', [])];
+    queryState.policies = [
+      {
+        id: 'policy-1',
+        teamId: 'team-1',
+        name: 'reader',
+        description: 'Read-only tools',
+        createdAt: '2026-01-01T00:00:00Z',
+        updatedAt: '2026-01-01T00:00:00Z',
+      },
+    ];
+    setRuntimeProfilePolicies.mockResolvedValue({
+      data: undefined,
+      error: null,
+    });
+    updateRuntimeProfile.mockResolvedValue({
+      data: undefined,
+      error: { detail: 'Enforcement update rejected' },
+    });
+
+    renderPage();
+    fireEvent.click(await screen.findByRole('checkbox', { name: /reader/i }));
+    fireEvent.click(screen.getByRole('radio', { name: /watch/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save tool access' }));
+
+    expect(
+      await screen.findByText('Enforcement update rejected'),
+    ).toBeVisible();
+    expect(setRuntimeProfilePolicies).toHaveBeenCalledTimes(1);
+    expect(updateRuntimeProfile).toHaveBeenCalledTimes(1);
   });
 });
