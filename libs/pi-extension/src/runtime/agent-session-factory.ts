@@ -34,6 +34,7 @@ import {
   type AgentSession,
   createAgentSession,
   DefaultResourceLoader,
+  type ExtensionAPI,
   type LoadSkillsResult,
   SessionManager,
   type ToolDefinition,
@@ -77,6 +78,12 @@ export interface BuildAgentSessionArgs {
   /** Agent name for `gen_ai.agent.name` on the root span. */
   agentName: string;
   /**
+   * Extra pi extension factories appended after the always-on telemetry (and
+   * model-options) extensions — e.g. the tool-policy `tool_call` gate. Each is a
+   * plain `(pi) => void` registrar, same shape as the OTel extension.
+   */
+  extraExtensionFactories?: ((pi: ExtensionAPI) => void)[];
+  /**
    * Parent sessions may persist their conversation history in a daemon-owned
    * directory. Subagents should leave this unset and stay in-memory.
    */
@@ -111,9 +118,13 @@ export async function buildAgentSession(
     topK: args.topK,
     maxOutputTokens: args.maxOutputTokens,
   };
-  const extensionFactories = hasPiModelOptions(modelOptions)
-    ? [piOtelExtension, createPiModelOptionsExtension(modelOptions)]
-    : [piOtelExtension];
+  const extensionFactories = [
+    piOtelExtension,
+    ...(hasPiModelOptions(modelOptions)
+      ? [createPiModelOptionsExtension(modelOptions)]
+      : []),
+    ...(args.extraExtensionFactories ?? []),
+  ];
 
   const resourceLoader = new DefaultResourceLoader({
     cwd: args.cwdPath,

@@ -4,6 +4,7 @@ import { delimiter, isAbsolute, resolve } from 'node:path';
 import type {
   RuntimeProfileContext,
   RuntimeProfileThinkingLevel,
+  RuntimeProfileToolEnforcement,
   RuntimeProfileWorkspaceMode,
 } from '@moltnet/tasks';
 import type { SandboxConfig } from '@themoltnet/pi-extension';
@@ -33,6 +34,7 @@ export interface ResolvedRuntimeProfile {
   allowedWorkspaceModes: RuntimeProfileWorkspaceMode[];
   requiredEnv: string[];
   requiredTools: string[];
+  toolEnforcement: RuntimeProfileToolEnforcement;
   context: RuntimeProfileContext[];
   sandboxConfig: SandboxConfig;
   mountPath: string;
@@ -99,6 +101,7 @@ export async function resolveRuntimeProfile(options: {
     allowedWorkspaceModes: profile.allowedWorkspaceModes,
     requiredEnv: profile.requiredEnv,
     requiredTools: profile.requiredTools,
+    toolEnforcement: profile.toolEnforcement,
     context: profile.context ?? [],
     sandboxConfig: profile.sandbox,
     mountPath: resolve(options.cwd),

@@ -48,6 +48,7 @@ import {
   validateTaskOutput,
 } from '@themoltnet/agent-runtime';
 import { connect } from '@themoltnet/sdk';
+import { ShellCommandAnalyzer } from '@themoltnet/shell-command-analyzer';
 
 import {
   createMoltNetTools,
@@ -65,6 +66,11 @@ import {
   executeGondolinGrep,
   toGuestPath,
 } from '../tool-operations.js';
+import type { ToolEnforcement } from '../tool-policy/gate.js';
+import {
+  createToolPolicyExtension,
+  resolveSessionToolPolicy,
+} from '../tool-policy/session-policy.js';
 import { activateAgentEnv, resumeVm } from '../vm-manager.js';
 import { buildAgentSession } from './agent-session-factory.js';
 import type { PiTaskExecutionPlanFactory } from './execution-plan.js';
@@ -249,6 +255,14 @@ export interface ExecutePiTaskOptions {
    * claim. Task entries override profile entries with the same slug.
    */
   runtimeProfileContext?: readonly ContextRef[];
+  /**
+   * Runtime profile id, used to resolve the tool-policy allow-set at session
+   * start. Required together with a non-`off` `toolEnforcement` for the
+   * `tool_call` gate to run.
+   */
+  runtimeProfileId?: string;
+  /** Tool-policy enforcement mode for the selected runtime profile. */
+  toolEnforcement?: ToolEnforcement;
   /**
    * Forwarded to `buildTaskUserPrompt` for per-type builders. Static
    * across tasks. Today no built-in builder needs per-task `extras` —
@@ -906,6 +920,43 @@ export async function executePiTask(
         parentSubagentTools.push(subagentHandle.tool);
       }
 
+      // Resolve the runtime profile's tool-policy allow-set and build the
+      // `tool_call` gate. Skipped in `off` mode; a resolve failure fails closed
+      // in `enforce` (empty allow-set blocks everything).
+      const toolPolicyExtensions: ReturnType<
+        typeof createToolPolicyExtension
+      >[] = [];
+      if (
+        opts.runtimeProfileId &&
+        opts.toolEnforcement &&
+        opts.toolEnforcement !== 'off'
+      ) {
+        const toolPolicyLogger = {
+          debug: () => {},
+          info: (obj: Record<string, unknown>, msg: string) =>
+            console.error(JSON.stringify({ level: 'info', msg, ...obj })),
+          warn: (obj: Record<string, unknown>, msg: string) =>
+            console.error(JSON.stringify({ level: 'warn', msg, ...obj })),
+        };
+        const [analyzer, policy] = await Promise.all([
+          ShellCommandAnalyzer.create(),
+          resolveSessionToolPolicy({
+            agent: moltnetAgent,
+            profileId: opts.runtimeProfileId,
+            teamId: taskTeamId,
+            enforcement: opts.toolEnforcement,
+            logger: toolPolicyLogger,
+          }),
+        ]);
+        toolPolicyExtensions.push(
+          createToolPolicyExtension({
+            policy,
+            analyzer,
+            logger: toolPolicyLogger,
+          }),
+        );
+      }
+
       session = await buildAgentSession({
         mountPath,
         cwdPath,
@@ -933,6 +984,7 @@ export async function executePiTask(
           'moltnet.task.type': task.taskType,
         },
         sessionPersistence: executionPlan?.sessionPersistence ?? undefined,
+        extraExtensionFactories: toolPolicyExtensions,
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
