@@ -72,9 +72,13 @@ html:root {
   align-items: center;
 }
 
+.moltnet-nav-controls--mobile {
+  display: none;
+}
+
 .moltnet-nav-button {
   appearance: none;
-  height: 30px;
+  min-height: 32px;
   border: 1px solid var(--vp-c-border);
   border-radius: 6px;
   background: transparent;
@@ -102,6 +106,32 @@ html:root {
 
 .moltnet-nav-button--primary:hover {
   background: var(--vp-c-brand-soft);
+}
+
+@media (max-width: 1179px) {
+  .moltnet-nav-controls--desktop {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .moltnet-nav-controls--mobile {
+    display: grid;
+    gap: 16px;
+    margin-top: 24px;
+    border-top: 1px solid var(--vp-c-divider);
+    padding-top: 24px;
+  }
+
+  .moltnet-nav-controls--mobile .moltnet-nav-button {
+    min-height: 44px;
+  }
+}
+
+@media (pointer: coarse) {
+  .moltnet-nav-button {
+    min-height: 44px;
+  }
 }
 
 /* Home hero gradient using brand colors */
