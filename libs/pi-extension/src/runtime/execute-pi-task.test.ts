@@ -32,6 +32,7 @@ import {
   computeProviderErrorRetryDelay,
   createGondolinToolDefinitions,
   createSessionTurnState,
+  DEFAULT_PROVIDER_ERROR_RETRIES,
   describeToolErrorMessage,
   formatProviderErrorRetryNotification,
   formatProviderErrorRetryStatus,
@@ -140,6 +141,10 @@ describe('createGondolinToolDefinitions', () => {
 });
 
 describe('provider error same-session retry helpers', () => {
+  it('uses four same-session retries before spending another task attempt', () => {
+    expect(DEFAULT_PROVIDER_ERROR_RETRIES).toBe(4);
+  });
+
   it('retries generic and transient provider diagnostics', () => {
     expect(shouldRetryProviderErrorMessage(null)).toBe(true);
     expect(shouldRetryProviderErrorMessage('provider returned 503')).toBe(true);

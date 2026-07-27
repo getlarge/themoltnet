@@ -15,6 +15,8 @@ describe('runtime slots', () => {
           lastAttemptN: 1,
           lastTaskId: 'aaaaaaaa-0000-0000-0000-000000000001',
           runtimeProfileId: 'dddddddd-0000-4000-8000-000000000004',
+          slotKey: 'freeform:correlation:test:worker:test-worker',
+          state: 'idle',
           sessionDir: '/tmp/session',
           sessionPath: '/tmp/session/1.jsonl',
           taskType: 'freeform',
@@ -127,6 +129,7 @@ describe('runtime slots', () => {
     expect(listed[0]?.slot).toMatchObject({
       lastAttemptN: 1,
       lastTaskId: 'aaaaaaaa-0000-0000-0000-000000000001',
+      slotKey: 'freeform:correlation:test:worker:test-worker',
       taskType: 'freeform',
     });
   });

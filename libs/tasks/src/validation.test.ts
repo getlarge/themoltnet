@@ -937,9 +937,9 @@ describe('taskTypeWorkspaceScope', () => {
     expect(taskTypeWorkspaceScope('fulfill_brief')).toBe('session');
   });
 
-  it('keeps review/judge built-ins attempt-scoped while freeform and run_eval are session-scoped', () => {
+  it('keeps disposable built-ins attempt-scoped while run_eval is session-scoped', () => {
     expect(taskTypeWorkspaceScope('assess_brief')).toBe('attempt');
-    expect(taskTypeWorkspaceScope('freeform')).toBe('session');
+    expect(taskTypeWorkspaceScope('freeform')).toBe('attempt');
     expect(taskTypeWorkspaceScope('pr_review')).toBe('attempt');
     expect(taskTypeWorkspaceScope('run_eval')).toBe('session');
     expect(taskTypeWorkspaceScope('judge_eval_attempt')).toBe('attempt');

@@ -156,8 +156,9 @@ registered task type; unknown task-type names remain invalid.
   provider key referenced by `.pi/models.json`, for example `OLLAMA_API_KEY`.
 - `ssh-keygen` on `PATH`.
 - A runtime profile in the target team. The profile supplies provider, model,
-  sandbox policy, and runtime defaults. The daemon mounts the current working
-  directory as the VM workspace root.
+  sandbox policy, and runtime defaults. The daemon resolves the configured
+  agent root and uses that checkout as the VM workspace root, regardless of
+  the shell directory from which the command was launched.
 
 For `themoltnet`, prefer a profile sandbox equivalent to this minimal policy:
 
@@ -202,6 +203,26 @@ producer slot/workspace metadata; if the daemon cannot resolve the required
 producer context, the judge fails with `producer_context_missing`.
 Repo-specific `resumeCommands` that should not run in scratch mode must still
 be guarded with `when.workspaceMode`.
+
+### Runtime resource lifecycle
+
+Each daemon process creates a unique runtime lane. Two polling processes using
+the same agent, runtime profile, and task correlation therefore write to
+different local Pi session directories and cannot race on the same slot.
+
+`freeform` Pi context remains correlation-scoped, but its checkout is
+attempt-scoped. Every attempt gets a fresh `daemon-task-<id>-attempt-<n>`
+workspace; retries and explicit continuations fork the previous checkpointed
+Pi session into that new workspace. The executor removes attempt workspaces on
+normal completion. At startup, and once per minute while polling, the daemon
+also reaps expired idle slots and terminal crash-orphans. Cleanup is restricted
+to daemon-owned session, scratch, and `.worktrees` roots.
+
+Provider failures are retried in the active Pi session before the daemon spends
+a task attempt. The default is four same-session retries. If those fail,
+deterministic retry classification runs before attempt-budget handling;
+`executor_threw` is always treated as an implementation/setup failure and is
+never promoted to another task attempt.
 
 ### 1. Start the local stack
 

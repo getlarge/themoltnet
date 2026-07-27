@@ -22,6 +22,7 @@ import { describe, expect, it } from 'vitest';
 import { prepareTaskWorkspace } from './runtime/task-workspace.js';
 import {
   AutoParentMemoryProvider,
+  findMainWorktree,
   loadCredentials,
   resolveVmAgentDir,
   rewriteGitconfigPaths,
@@ -618,6 +619,22 @@ describe('dedicated worktree mount topology', () => {
       stdio: 'pipe',
     }).trim();
   }
+
+  it('discovers the main worktree from the requested mount path', () => {
+    const repoRoot = mkdtempSync(path.join(tmpdir(), 'pi-worktree-root-'));
+    const nestedMount = path.join(repoRoot, 'apps', 'daemon');
+
+    try {
+      runGit(repoRoot, ['init']);
+      mkdirSync(nestedMount, { recursive: true });
+
+      expect(realpathSync(findMainWorktree(nestedMount))).toBe(
+        realpathSync(repoRoot),
+      );
+    } finally {
+      rmSync(repoRoot, { recursive: true, force: true });
+    }
+  });
 
   it('keeps normal absolute git metadata when host and guest paths match', () => {
     const repoRoot = mkdtempSync(path.join(tmpdir(), 'pi-worktree-repro-'));

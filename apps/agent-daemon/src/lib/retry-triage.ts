@@ -48,6 +48,10 @@ const RETRYABLE_CODES = new Set([
 
 const NON_RETRYABLE_CODES = new Set([
   'bad_api_key',
+  // AgentRuntime only emits this when an executor violates its resolve-with-
+  // failure contract by throwing. Treat it as a setup/implementation defect;
+  // a probabilistic triage model must not promote it to a fresh attempt.
+  'executor_threw',
   'invalid_api_key',
   'invalid_model',
   // Hitting the turn cap is usually a deterministic model/workload/tool-loop
@@ -105,25 +109,27 @@ const NON_RETRYABLE_MESSAGE_PATTERNS = [
 export async function classifyAttemptFailure(
   input: RetryTriageInput & { triage?: RetryTriage },
 ): Promise<ClassifiedAttemptFailure> {
+  const deterministic = classifyDeterministically(input.error);
   if (
     input.remainingAttempts !== null &&
-    input.remainingAttempts !== undefined
+    input.remainingAttempts !== undefined &&
+    input.remainingAttempts <= 0
   ) {
-    if (input.remainingAttempts <= 0) {
-      return {
-        error: withRetryInfo(input.error, {
-          retryable: false,
-          source: 'attempts_exhausted',
-          reason: `Attempt budget exhausted at attempt ${input.attemptN}${
-            input.maxAttempts ? ` of ${input.maxAttempts}` : ''
-          }.`,
-        }),
+    const deterministicReason =
+      deterministic === 'ambiguous'
+        ? ''
+        : ` Deterministic policy classified the failure as ${deterministic}.`;
+    return {
+      error: withRetryInfo(input.error, {
+        retryable: false,
         source: 'attempts_exhausted',
-      };
-    }
+        reason: `Attempt budget exhausted at attempt ${input.attemptN}${
+          input.maxAttempts ? ` of ${input.maxAttempts}` : ''
+        }.${deterministicReason}`,
+      }),
+      source: 'attempts_exhausted',
+    };
   }
-
-  const deterministic = classifyDeterministically(input.error);
   if (deterministic !== 'ambiguous') {
     const retryable = deterministic === 'retryable';
     const source =

@@ -21,7 +21,10 @@ import {
   createGhCliClient,
   makePrBodyAnchorWriter,
 } from '../lib/correlation.js';
-import type { DaemonSlotIdentity } from '../lib/daemon-slot-identity.js';
+import {
+  createRuntimeInstanceId,
+  type DaemonSlotIdentity,
+} from '../lib/daemon-slot-identity.js';
 import {
   createExecutionPlanCache,
   ProducerContextResolutionError,
@@ -44,6 +47,7 @@ import {
   validateRuntimeProfilePrerequisites,
 } from '../lib/runtime-profile.js';
 import { createRuntimeProfileRetryTriage } from '../lib/runtime-profile-retry-triage.js';
+import { reapRuntimeSlotResources } from '../lib/runtime-resource-reaper.js';
 import {
   applyRuntimeSessionUploadFailure,
   createApiRuntimeSessionStore,
@@ -123,7 +127,7 @@ export async function runOnce(argv: string[]): Promise<number> {
     agent: ctx.agent,
     profile: values.profile,
     teamId: values.team,
-    cwd: process.cwd(),
+    cwd: ctx.agentRootDir,
   });
   validateRuntimeProfilePrerequisites(
     profile,
@@ -155,9 +159,11 @@ export async function runOnce(argv: string[]): Promise<number> {
   const sourceAttemptResolver = createApiSourceAttemptResolver({
     agent: ctx.agent,
   });
+  const runtimeInstanceId = createRuntimeInstanceId();
   const slotIdentity: DaemonSlotIdentity = {
     agentName: opts.agent,
     runtimeProfileId: profile.id,
+    runtimeInstanceId,
   };
   const executionPlans = createExecutionPlanCache({
     stateDirs,
@@ -236,6 +242,37 @@ export async function runOnce(argv: string[]): Promise<number> {
     },
     'agent-daemon.starting',
   );
+  try {
+    const reaped = await reapRuntimeSlotResources(
+      {
+        onIssue: (issue) => {
+          rootLogger.warn(issue, 'agent-daemon.runtime_resource_reap_issue');
+        },
+        runtimeSlotStore: slotRegistry,
+        taskReader: ctx.agent.tasks,
+      },
+      {
+        agentName: opts.agent,
+        mainWorktree: resolveMainWorktree(sandbox.rootDir),
+        runtimeInstanceId,
+        runtimeProfileId: profile.id,
+        sessionRootDir: stateDirs.piSessionsDir,
+        scratchRootDir: join(stateDirs.rootDir, 'task-workspaces'),
+        teamId: profile.teamId,
+      },
+    );
+    if (
+      reaped.removedSessions > 0 ||
+      reaped.removedWorkspaces > 0 ||
+      reaped.failed > 0 ||
+      reaped.unsafePaths > 0 ||
+      reaped.truncated
+    ) {
+      rootLogger.info(reaped, 'agent-daemon.runtime_resources_reaped');
+    }
+  } catch (err) {
+    rootLogger.warn({ err }, 'agent-daemon.runtime_resource_reap_failed');
+  }
 
   // Wire SIGTERM/SIGINT for cooperative shutdown. GitHub-hosted runners
   // send SIGTERM 5 minutes before `timeout-minutes` expires (then
@@ -364,6 +401,7 @@ export async function runOnce(argv: string[]): Promise<number> {
           workspaceId: executionPlan.workspaceId,
           worktreePath: resolveRecordedWorkspacePath(
             stateDirs.rootDir,
+            sandbox.rootDir,
             executionPlan,
           ),
           worktreeBranch: executionPlan.worktreeBranch,
@@ -511,6 +549,7 @@ export async function runOnce(argv: string[]): Promise<number> {
 
 function resolveRecordedWorkspacePath(
   stateRootDir: string,
+  mountPath: string,
   executionPlan: {
     workspaceId: string | null;
     workspaceMode: 'shared_mount' | 'dedicated_worktree' | 'scratch_mount';
@@ -519,5 +558,17 @@ function resolveRecordedWorkspacePath(
   if (!executionPlan.workspaceId) return null;
   return executionPlan.workspaceMode === 'scratch_mount'
     ? join(stateRootDir, 'task-workspaces', executionPlan.workspaceId)
-    : join(findMainWorktree(), '.worktrees', executionPlan.workspaceId);
+    : join(
+        findMainWorktree(mountPath),
+        '.worktrees',
+        executionPlan.workspaceId,
+      );
+}
+
+function resolveMainWorktree(mountPath: string): string | null {
+  try {
+    return findMainWorktree(mountPath);
+  } catch {
+    return null;
+  }
 }

@@ -361,7 +361,7 @@ export interface ExecutePiTaskOptions {
    * distinct from daemon attempt retry: the active session keeps its context and
    * receives a short continuation prompt.
    *
-   * Default `2`. Set to `0` to disable.
+   * Default `4`. Set to `0` to disable.
    */
   maxProviderErrorRetries?: number;
   /** Base delay for same-session provider-error retries. Default `2000`. */
@@ -404,6 +404,8 @@ export interface ExecutePiTaskOptions {
    */
   toolPolicyLogger?: ToolPolicyLogger;
 }
+
+export const DEFAULT_PROVIDER_ERROR_RETRIES = 4;
 
 /**
  * Factory that builds a pi-specific `executeTask` function suitable for
@@ -1100,7 +1102,8 @@ export async function executePiTask(
           llmAbort: turnState.llmAbort,
           llmErrorMessage: turnState.llmErrorMessage,
         }),
-        maxRetries: opts.maxProviderErrorRetries ?? 2,
+        maxRetries:
+          opts.maxProviderErrorRetries ?? DEFAULT_PROVIDER_ERROR_RETRIES,
         baseDelayMs: opts.providerErrorRetryBaseDelayMs ?? 2_000,
         maxDelayMs: opts.providerErrorRetryMaxDelayMs ?? 30_000,
         retryPrompt: opts.providerErrorRetryPrompt ?? 'Go on',

@@ -17,11 +17,11 @@ describe('BUILT_IN_TASK_TYPES — freeform', () => {
     expect(entry.validateOutput).toBeDefined();
   });
 
-  it('opts into worktree override, session scope, and resumability', () => {
+  it('opts into worktree override, disposable workspaces, and resumability', () => {
     const entry = BUILT_IN_TASK_TYPES[FREEFORM_TYPE];
     expect(entry.resumable).toBe(true);
     expect(entry.workspaceMode).toBe('shared_mount');
-    expect(entry.workspaceScope).toBe('session');
+    expect(entry.workspaceScope).toBe('attempt');
     expect(entry.sessionScope).toBe('correlation');
     expect(entry.acceptsInputWorkspaceOverride).toBe(true);
   });
