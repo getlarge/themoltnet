@@ -3,6 +3,7 @@ import {
   type ClaimCondition,
   ClaimCondition as ClaimConditionSchema,
   ClaimConditionDefinition,
+  MAX_CLAIM_CONDITION_DEPTH,
   TaskStatus as TaskStatusSchema,
   type TaskValidationError,
 } from '@moltnet/tasks';
@@ -11,8 +12,6 @@ import { Value } from 'typebox/value';
 function formatField(prefix: string, path: string): string {
   return path ? `${prefix}${path}` : prefix;
 }
-
-const MAX_CLAIM_CONDITION_DEPTH = 4;
 
 export function validateClaimConditionShape(
   condition: unknown,

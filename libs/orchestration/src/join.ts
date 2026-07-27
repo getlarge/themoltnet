@@ -1,12 +1,22 @@
-import type { ClaimCondition, TaskStatus } from '@moltnet/tasks';
+import {
+  type ClaimCondition,
+  MAX_CLAIM_CONDITION_BRANCHES,
+  MAX_CLAIM_CONDITION_DEPTH,
+  type TaskStatus,
+} from '@moltnet/tasks';
 
-/** Max branches per `all`/`any` group, enforced server-side. */
-export const MAX_CLAIM_CONDITION_BRANCHES = 8;
-/** Max claim-condition nesting depth, enforced server-side (root = depth 1). */
-export const MAX_CLAIM_CONDITION_DEPTH = 4;
+// Re-export the canonical claim-condition bounds (owned by @moltnet/tasks) so
+// consumers of this lib get a single source of truth that cannot drift from the
+// server-enforced limits.
+export {
+  MAX_CLAIM_CONDITION_BRANCHES,
+  MAX_CLAIM_CONDITION_DEPTH,
+} from '@moltnet/tasks';
+
 /**
  * Largest flat fan-in a balanced tree can express within the depth ceiling:
- * leaves live at depth 4, so with 3 group levels that is 8^3 = 512.
+ * leaves live at depth {@link MAX_CLAIM_CONDITION_DEPTH}, so with 3 group levels
+ * that is 8^3 = 512.
  */
 export const MAX_JOIN_TASKS =
   MAX_CLAIM_CONDITION_BRANCHES ** (MAX_CLAIM_CONDITION_DEPTH - 1);
