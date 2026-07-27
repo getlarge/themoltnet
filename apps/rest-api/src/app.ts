@@ -54,6 +54,7 @@ import { recoveryRoutes } from './routes/recovery.js';
 import { registrationRoutes } from './routes/registration.js';
 import { renderedPackRoutes } from './routes/rendered-packs.js';
 import { runtimeModelRoutes } from './routes/runtime-models.js';
+import { runtimePolicyRoutes } from './routes/runtime-policies.js';
 import { runtimeProfileRoutes } from './routes/runtime-profiles.js';
 import { runtimeSessionRoutes } from './routes/runtime-sessions.js';
 import { runtimeSlotRoutes } from './routes/runtime-slots.js';
@@ -80,6 +81,7 @@ import type {
   NonceRepository,
   RenderedPackRepository,
   RuntimeModelRepository,
+  RuntimePolicyRepository,
   RuntimeProfileRepository,
   RuntimeSessionRepository,
   RuntimeSlotRepository,
@@ -170,6 +172,7 @@ export interface AppOptions {
   taskArtifactStorage: TaskArtifactStorage;
   runtimeSlotRepository: RuntimeSlotRepository;
   runtimeModelRepository: RuntimeModelRepository;
+  runtimePolicyRepository: RuntimePolicyRepository;
   taskRepository: TaskRepository;
   taskAnalyticsService: TaskAnalyticsService;
   taskService: TaskService;
@@ -382,6 +385,7 @@ export async function registerApiRoutes(
   decorateSafe('taskArtifactStorage', options.taskArtifactStorage);
   decorateSafe('runtimeSlotRepository', options.runtimeSlotRepository);
   decorateSafe('runtimeModelRepository', options.runtimeModelRepository);
+  decorateSafe('runtimePolicyRepository', options.runtimePolicyRepository);
   decorateSafe('relationshipReader', options.relationshipReader);
   decorateSafe('signingTimeoutSeconds', options.signingTimeoutSeconds ?? 300);
   decorateSafe('packGcConfig', options.packGcConfig);
@@ -453,6 +457,7 @@ export async function registerApiRoutes(
   await app.register(taskArtifactRoutes);
   await app.register(runtimeProfileRoutes);
   await app.register(runtimeModelRoutes);
+  await app.register(runtimePolicyRoutes);
   await app.register(vouchRoutes);
   await app.register(publicRoutes);
   await app.register(taskRoutes);

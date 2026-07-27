@@ -75,6 +75,9 @@ import type {
   CreateRuntimeModelData,
   CreateRuntimeModelErrors,
   CreateRuntimeModelResponses,
+  CreateRuntimePolicyData,
+  CreateRuntimePolicyErrors,
+  CreateRuntimePolicyResponses,
   CreateRuntimeProfileData,
   CreateRuntimeProfileErrors,
   CreateRuntimeProfileResponses,
@@ -105,6 +108,9 @@ import type {
   DeleteRuntimeModelData,
   DeleteRuntimeModelErrors,
   DeleteRuntimeModelResponses,
+  DeleteRuntimePolicyData,
+  DeleteRuntimePolicyErrors,
+  DeleteRuntimePolicyResponses,
   DeleteRuntimeProfileData,
   DeleteRuntimeProfileErrors,
   DeleteRuntimeProfileResponses,
@@ -194,8 +200,17 @@ import type {
   GetRuntimeModelData,
   GetRuntimeModelErrors,
   GetRuntimeModelResponses,
+  GetRuntimePolicyData,
+  GetRuntimePolicyErrors,
+  GetRuntimePolicyResponses,
+  GetRuntimeProfileAllowedToolsData,
+  GetRuntimeProfileAllowedToolsErrors,
+  GetRuntimeProfileAllowedToolsResponses,
   GetRuntimeProfileData,
   GetRuntimeProfileErrors,
+  GetRuntimeProfilePoliciesData,
+  GetRuntimeProfilePoliciesErrors,
+  GetRuntimeProfilePoliciesResponses,
   GetRuntimeProfileResponses,
   GetRuntimeSessionData,
   GetRuntimeSessionErrors,
@@ -274,6 +289,9 @@ import type {
   ListRuntimeModelsData,
   ListRuntimeModelsErrors,
   ListRuntimeModelsResponses,
+  ListRuntimePoliciesData,
+  ListRuntimePoliciesErrors,
+  ListRuntimePoliciesResponses,
   ListRuntimeProfilesData,
   ListRuntimeProfilesErrors,
   ListRuntimeProfilesResponses,
@@ -358,6 +376,9 @@ import type {
   SearchPublicFeedData,
   SearchPublicFeedErrors,
   SearchPublicFeedResponses,
+  SetRuntimeProfilePoliciesData,
+  SetRuntimeProfilePoliciesErrors,
+  SetRuntimeProfilePoliciesResponses,
   StageTaskArtifactData,
   StageTaskArtifactErrors,
   StageTaskArtifactResponses,
@@ -391,6 +412,9 @@ import type {
   UpdateRuntimeModelData,
   UpdateRuntimeModelErrors,
   UpdateRuntimeModelResponses,
+  UpdateRuntimePolicyData,
+  UpdateRuntimePolicyErrors,
+  UpdateRuntimePolicyResponses,
   UpdateRuntimeProfileData,
   UpdateRuntimeProfileErrors,
   UpdateRuntimeProfileResponses,
@@ -2453,6 +2477,134 @@ export const updateRuntimeModel = <ThrowOnError extends boolean = false>(
   });
 
 /**
+ * List tool policies for the active team.
+ */
+export const listRuntimePolicies = <ThrowOnError extends boolean = false>(
+  options: Options<ListRuntimePoliciesData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    ListRuntimePoliciesResponses,
+    ListRuntimePoliciesErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/runtime-policies',
+    ...options,
+  });
+
+/**
+ * Create a team-scoped tool policy granting a set of tools.
+ */
+export const createRuntimePolicy = <ThrowOnError extends boolean = false>(
+  options: Options<CreateRuntimePolicyData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    CreateRuntimePolicyResponses,
+    CreateRuntimePolicyErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/runtime-policies',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Delete a tool policy and its tool grants.
+ */
+export const deleteRuntimePolicy = <ThrowOnError extends boolean = false>(
+  options: Options<DeleteRuntimePolicyData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    DeleteRuntimePolicyResponses,
+    DeleteRuntimePolicyErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/runtime-policies/{policyId}',
+    ...options,
+  });
+
+/**
+ * Get one tool policy with its granted tools.
+ */
+export const getRuntimePolicy = <ThrowOnError extends boolean = false>(
+  options: Options<GetRuntimePolicyData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetRuntimePolicyResponses,
+    GetRuntimePolicyErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/runtime-policies/{policyId}',
+    ...options,
+  });
+
+/**
+ * Rename a policy and/or add/remove granted tools.
+ */
+export const updateRuntimePolicy = <ThrowOnError extends boolean = false>(
+  options: Options<UpdateRuntimePolicyData, ThrowOnError>,
+) =>
+  (options.client ?? client).patch<
+    UpdateRuntimePolicyResponses,
+    UpdateRuntimePolicyErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/runtime-policies/{policyId}',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
  * List runtime profiles for the active team context.
  */
 export const listRuntimeProfiles = <ThrowOnError extends boolean = false>(
@@ -2573,6 +2725,84 @@ export const updateRuntimeProfile = <ThrowOnError extends boolean = false>(
       },
     ],
     url: '/runtime-profiles/{profileId}',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Resolve a runtime profile enforcement mode and its allowed-tool set (union of bound policies).
+ */
+export const getRuntimeProfileAllowedTools = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<GetRuntimeProfileAllowedToolsData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetRuntimeProfileAllowedToolsResponses,
+    GetRuntimeProfileAllowedToolsErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/runtime-profiles/{profileId}/allowed-tools',
+    ...options,
+  });
+
+/**
+ * List the tool-policy IDs bound to a runtime profile.
+ */
+export const getRuntimeProfilePolicies = <ThrowOnError extends boolean = false>(
+  options: Options<GetRuntimeProfilePoliciesData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetRuntimeProfilePoliciesResponses,
+    GetRuntimeProfilePoliciesErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/runtime-profiles/{profileId}/policies',
+    ...options,
+  });
+
+/**
+ * Replace the set of tool policies bound to a runtime profile.
+ */
+export const setRuntimeProfilePolicies = <ThrowOnError extends boolean = false>(
+  options: Options<SetRuntimeProfilePoliciesData, ThrowOnError>,
+) =>
+  (options.client ?? client).put<
+    SetRuntimeProfilePoliciesResponses,
+    SetRuntimeProfilePoliciesErrors,
+    ThrowOnError
+  >({
+    security: [
+      { scheme: 'bearer', type: 'http' },
+      { name: 'X-Moltnet-Session-Token', type: 'apiKey' },
+      {
+        in: 'cookie',
+        name: 'ory_kratos_session',
+        type: 'apiKey',
+      },
+    ],
+    url: '/runtime-profiles/{profileId}/policies',
     ...options,
     headers: {
       'Content-Type': 'application/json',

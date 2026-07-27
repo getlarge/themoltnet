@@ -88,6 +88,11 @@ export type AgentProfile = {
   publicKey: string;
 };
 
+export type AllowedToolsResponse = {
+  allowedTools: Array<string>;
+  enforcement: ToolEnforcement;
+};
+
 export type AppendMessagesBody = {
   messages: Array<{
     kind: TaskMessageKind;
@@ -493,6 +498,12 @@ export type CreateRuntimeModelBody = {
   provider: string;
 };
 
+export type CreateRuntimePolicyBody = {
+  description?: string;
+  name: string;
+  tools?: Array<string>;
+};
+
 export type CreateRuntimeProfileBody = {
   allowedWorkspaceModes?: Array<'none' | 'shared_mount' | 'dedicated_worktree'>;
   context?: Array<{
@@ -563,6 +574,7 @@ export type CreateRuntimeProfileBody = {
     | 'high'
     | 'xhigh'
     | null;
+  toolEnforcement?: 'off' | 'watch' | 'enforce';
   topK?: number | null;
   topP?: null | number;
   workspaceStorageMode?: 'local';
@@ -1914,6 +1926,41 @@ export type RuntimeModelParams = {
   modelId: string;
 };
 
+export type RuntimePolicy = {
+  createdAt: string;
+  description: string | null;
+  /**
+   * UUID v4 identifier
+   */
+  id: string;
+  name: string;
+  /**
+   * UUID v4 identifier
+   */
+  teamId: string;
+  updatedAt: string;
+};
+
+export type RuntimePolicyList = {
+  items: Array<RuntimePolicy>;
+};
+
+export type RuntimePolicyWithTools = {
+  createdAt: string;
+  description: string | null;
+  /**
+   * UUID v4 identifier
+   */
+  id: string;
+  name: string;
+  /**
+   * UUID v4 identifier
+   */
+  teamId: string;
+  tools: Array<string>;
+  updatedAt: string;
+};
+
 export type RuntimeProfile = {
   allowedWorkspaceModes: Array<'none' | 'shared_mount' | 'dedicated_worktree'>;
   context: Array<{
@@ -1984,6 +2031,7 @@ export type RuntimeProfile = {
   teamId: string;
   temperature: null | number;
   thinkingLevel: 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | null;
+  toolEnforcement: 'off' | 'watch' | 'enforce';
   topK: number | null;
   topP: null | number;
   updatedAt: string;
@@ -2077,12 +2125,17 @@ export type RuntimeProfileListResponse = {
       | 'high'
       | 'xhigh'
       | null;
+    toolEnforcement: 'off' | 'watch' | 'enforce';
     topK: number | null;
     topP: null | number;
     updatedAt: string;
     workspaceStorageMode: 'local';
     workspaceTtlSec: number;
   }>;
+};
+
+export type RuntimeProfilePoliciesResponse = {
+  policyIds: Array<string>;
 };
 
 export type RuntimeProfileRef = {
@@ -2219,6 +2272,10 @@ export type RuntimeWorkspace = {
   workspaceId: string;
   worktreeBranch: string | null;
   worktreePath: string;
+};
+
+export type SetProfilePoliciesBody = {
+  policyIds: Array<string>;
 };
 
 export type SigningCredential = {
@@ -2802,6 +2859,11 @@ export type TaskUsage = {
   toolCalls?: number;
 };
 
+/**
+ * Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed tools, fail-closed).
+ */
+export type ToolEnforcement = 'off' | 'watch' | 'enforce';
+
 export type UpdateRuntimeModelBody = {
   capabilities?: {
     [key: string]: boolean | number | string;
@@ -2811,6 +2873,13 @@ export type UpdateRuntimeModelBody = {
   isActive?: boolean;
   model?: string;
   provider?: string;
+};
+
+export type UpdateRuntimePolicyBody = {
+  addTools?: Array<string>;
+  description?: string | null;
+  name?: string;
+  removeTools?: Array<string>;
 };
 
 export type UpdateRuntimeProfileBody = {
@@ -2883,6 +2952,7 @@ export type UpdateRuntimeProfileBody = {
     | 'high'
     | 'xhigh'
     | null;
+  toolEnforcement?: 'off' | 'watch' | 'enforce';
   topK?: number | null;
   topP?: null | number;
   workspaceStorageMode?: 'local';
@@ -7501,6 +7571,225 @@ export type UpdateRuntimeModelResponses = {
 export type UpdateRuntimeModelResponse =
   UpdateRuntimeModelResponses[keyof UpdateRuntimeModelResponses];
 
+export type ListRuntimePoliciesData = {
+  body?: never;
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path?: never;
+  query?: never;
+  url: '/runtime-policies';
+};
+
+export type ListRuntimePoliciesErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+};
+
+export type ListRuntimePoliciesError =
+  ListRuntimePoliciesErrors[keyof ListRuntimePoliciesErrors];
+
+export type ListRuntimePoliciesResponses = {
+  /**
+   * Default Response
+   */
+  200: RuntimePolicyList;
+};
+
+export type ListRuntimePoliciesResponse =
+  ListRuntimePoliciesResponses[keyof ListRuntimePoliciesResponses];
+
+export type CreateRuntimePolicyData = {
+  body?: CreateRuntimePolicyBody;
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path?: never;
+  query?: never;
+  url: '/runtime-policies';
+};
+
+export type CreateRuntimePolicyErrors = {
+  /**
+   * Default Response
+   */
+  400: ValidationProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ConflictProblemDetails;
+};
+
+export type CreateRuntimePolicyError =
+  CreateRuntimePolicyErrors[keyof CreateRuntimePolicyErrors];
+
+export type CreateRuntimePolicyResponses = {
+  /**
+   * Default Response
+   */
+  201: RuntimePolicyWithTools;
+};
+
+export type CreateRuntimePolicyResponse =
+  CreateRuntimePolicyResponses[keyof CreateRuntimePolicyResponses];
+
+export type DeleteRuntimePolicyData = {
+  body?: never;
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path: {
+    policyId: string;
+  };
+  query?: never;
+  url: '/runtime-policies/{policyId}';
+};
+
+export type DeleteRuntimePolicyErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type DeleteRuntimePolicyError =
+  DeleteRuntimePolicyErrors[keyof DeleteRuntimePolicyErrors];
+
+export type DeleteRuntimePolicyResponses = {
+  /**
+   * Default Response
+   */
+  204: void;
+};
+
+export type DeleteRuntimePolicyResponse =
+  DeleteRuntimePolicyResponses[keyof DeleteRuntimePolicyResponses];
+
+export type GetRuntimePolicyData = {
+  body?: never;
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path: {
+    policyId: string;
+  };
+  query?: never;
+  url: '/runtime-policies/{policyId}';
+};
+
+export type GetRuntimePolicyErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type GetRuntimePolicyError =
+  GetRuntimePolicyErrors[keyof GetRuntimePolicyErrors];
+
+export type GetRuntimePolicyResponses = {
+  /**
+   * Default Response
+   */
+  200: RuntimePolicyWithTools;
+};
+
+export type GetRuntimePolicyResponse =
+  GetRuntimePolicyResponses[keyof GetRuntimePolicyResponses];
+
+export type UpdateRuntimePolicyData = {
+  body?: UpdateRuntimePolicyBody;
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path: {
+    policyId: string;
+  };
+  query?: never;
+  url: '/runtime-policies/{policyId}';
+};
+
+export type UpdateRuntimePolicyErrors = {
+  /**
+   * Default Response
+   */
+  400: ValidationProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ConflictProblemDetails;
+};
+
+export type UpdateRuntimePolicyError =
+  UpdateRuntimePolicyErrors[keyof UpdateRuntimePolicyErrors];
+
+export type UpdateRuntimePolicyResponses = {
+  /**
+   * Default Response
+   */
+  200: RuntimePolicyWithTools;
+};
+
+export type UpdateRuntimePolicyResponse =
+  UpdateRuntimePolicyResponses[keyof UpdateRuntimePolicyResponses];
+
 export type ListRuntimeProfilesData = {
   body?: never;
   headers?: {
@@ -7705,6 +7994,139 @@ export type UpdateRuntimeProfileResponses = {
 
 export type UpdateRuntimeProfileResponse =
   UpdateRuntimeProfileResponses[keyof UpdateRuntimeProfileResponses];
+
+export type GetRuntimeProfileAllowedToolsData = {
+  body?: never;
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path: {
+    profileId: string;
+  };
+  query?: never;
+  url: '/runtime-profiles/{profileId}/allowed-tools';
+};
+
+export type GetRuntimeProfileAllowedToolsErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type GetRuntimeProfileAllowedToolsError =
+  GetRuntimeProfileAllowedToolsErrors[keyof GetRuntimeProfileAllowedToolsErrors];
+
+export type GetRuntimeProfileAllowedToolsResponses = {
+  /**
+   * Default Response
+   */
+  200: AllowedToolsResponse;
+};
+
+export type GetRuntimeProfileAllowedToolsResponse =
+  GetRuntimeProfileAllowedToolsResponses[keyof GetRuntimeProfileAllowedToolsResponses];
+
+export type GetRuntimeProfilePoliciesData = {
+  body?: never;
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path: {
+    profileId: string;
+  };
+  query?: never;
+  url: '/runtime-profiles/{profileId}/policies';
+};
+
+export type GetRuntimeProfilePoliciesErrors = {
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type GetRuntimeProfilePoliciesError =
+  GetRuntimeProfilePoliciesErrors[keyof GetRuntimeProfilePoliciesErrors];
+
+export type GetRuntimeProfilePoliciesResponses = {
+  /**
+   * Default Response
+   */
+  200: RuntimeProfilePoliciesResponse;
+};
+
+export type GetRuntimeProfilePoliciesResponse =
+  GetRuntimeProfilePoliciesResponses[keyof GetRuntimeProfilePoliciesResponses];
+
+export type SetRuntimeProfilePoliciesData = {
+  body?: SetProfilePoliciesBody;
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path: {
+    profileId: string;
+  };
+  query?: never;
+  url: '/runtime-profiles/{profileId}/policies';
+};
+
+export type SetRuntimeProfilePoliciesErrors = {
+  /**
+   * Default Response
+   */
+  400: ValidationProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+};
+
+export type SetRuntimeProfilePoliciesError =
+  SetRuntimeProfilePoliciesErrors[keyof SetRuntimeProfilePoliciesErrors];
+
+export type SetRuntimeProfilePoliciesResponses = {
+  /**
+   * Default Response
+   */
+  204: void;
+};
+
+export type SetRuntimeProfilePoliciesResponse =
+  SetRuntimeProfilePoliciesResponses[keyof SetRuntimeProfilePoliciesResponses];
 
 export type GetRuntimeSessionData = {
   body?: never;

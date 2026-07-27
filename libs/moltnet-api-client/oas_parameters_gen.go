@@ -1869,6 +1869,62 @@ func decodeCreateRuntimeModelParams(args [0]string, argsEscaped bool, r *http.Re
 	return params, nil
 }
 
+// CreateRuntimePolicyParams is parameters of createRuntimePolicy operation.
+type CreateRuntimePolicyParams struct {
+	// Team ID (UUID) that will own the resource. Required.
+	XMoltnetTeamID uuid.UUID
+}
+
+func unpackCreateRuntimePolicyParams(packed middleware.Parameters) (params CreateRuntimePolicyParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+		}
+		params.XMoltnetTeamID = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeCreateRuntimePolicyParams(args [0]string, argsEscaped bool, r *http.Request) (params CreateRuntimePolicyParams, _ error) {
+	h := uri.NewHeaderDecoder(r.Header)
+	// Decode header: x-moltnet-team-id.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.XMoltnetTeamID = c
+				return nil
+			}); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // CreateRuntimeProfileParams is parameters of createRuntimeProfile operation.
 type CreateRuntimeProfileParams struct {
 	// Team ID (UUID) for scoping the request. Optional.
@@ -2427,6 +2483,115 @@ func decodeDeleteRuntimeModelParams(args [1]string, argsEscaped bool, r *http.Re
 		return params, &ogenerrors.DecodeParamError{
 			Name: "modelId",
 			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// DeleteRuntimePolicyParams is parameters of deleteRuntimePolicy operation.
+type DeleteRuntimePolicyParams struct {
+	PolicyId uuid.UUID
+	// Team ID (UUID) that will own the resource. Required.
+	XMoltnetTeamID uuid.UUID
+}
+
+func unpackDeleteRuntimePolicyParams(packed middleware.Parameters) (params DeleteRuntimePolicyParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "policyId",
+			In:   "path",
+		}
+		params.PolicyId = packed[key].(uuid.UUID)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+		}
+		params.XMoltnetTeamID = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeDeleteRuntimePolicyParams(args [1]string, argsEscaped bool, r *http.Request) (params DeleteRuntimePolicyParams, _ error) {
+	h := uri.NewHeaderDecoder(r.Header)
+	// Decode path: policyId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "policyId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.PolicyId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "policyId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	// Decode header: x-moltnet-team-id.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.XMoltnetTeamID = c
+				return nil
+			}); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "x-moltnet-team-id",
+			In:   "header",
 			Err:  err,
 		}
 	}
@@ -5484,6 +5649,115 @@ func decodeGetRuntimeModelParams(args [1]string, argsEscaped bool, r *http.Reque
 	return params, nil
 }
 
+// GetRuntimePolicyParams is parameters of getRuntimePolicy operation.
+type GetRuntimePolicyParams struct {
+	PolicyId uuid.UUID
+	// Team ID (UUID) that will own the resource. Required.
+	XMoltnetTeamID uuid.UUID
+}
+
+func unpackGetRuntimePolicyParams(packed middleware.Parameters) (params GetRuntimePolicyParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "policyId",
+			In:   "path",
+		}
+		params.PolicyId = packed[key].(uuid.UUID)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+		}
+		params.XMoltnetTeamID = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeGetRuntimePolicyParams(args [1]string, argsEscaped bool, r *http.Request) (params GetRuntimePolicyParams, _ error) {
+	h := uri.NewHeaderDecoder(r.Header)
+	// Decode path: policyId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "policyId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.PolicyId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "policyId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	// Decode header: x-moltnet-team-id.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.XMoltnetTeamID = c
+				return nil
+			}); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // GetRuntimeProfileParams is parameters of getRuntimeProfile operation.
 type GetRuntimeProfileParams struct {
 	ProfileId uuid.UUID
@@ -5543,6 +5817,224 @@ func decodeGetRuntimeProfileParams(args [1]string, argsEscaped bool, r *http.Req
 		return params, &ogenerrors.DecodeParamError{
 			Name: "profileId",
 			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// GetRuntimeProfileAllowedToolsParams is parameters of getRuntimeProfileAllowedTools operation.
+type GetRuntimeProfileAllowedToolsParams struct {
+	ProfileId uuid.UUID
+	// Team ID (UUID) that will own the resource. Required.
+	XMoltnetTeamID uuid.UUID
+}
+
+func unpackGetRuntimeProfileAllowedToolsParams(packed middleware.Parameters) (params GetRuntimeProfileAllowedToolsParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "profileId",
+			In:   "path",
+		}
+		params.ProfileId = packed[key].(uuid.UUID)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+		}
+		params.XMoltnetTeamID = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeGetRuntimeProfileAllowedToolsParams(args [1]string, argsEscaped bool, r *http.Request) (params GetRuntimeProfileAllowedToolsParams, _ error) {
+	h := uri.NewHeaderDecoder(r.Header)
+	// Decode path: profileId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "profileId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ProfileId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "profileId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	// Decode header: x-moltnet-team-id.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.XMoltnetTeamID = c
+				return nil
+			}); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// GetRuntimeProfilePoliciesParams is parameters of getRuntimeProfilePolicies operation.
+type GetRuntimeProfilePoliciesParams struct {
+	ProfileId uuid.UUID
+	// Team ID (UUID) that will own the resource. Required.
+	XMoltnetTeamID uuid.UUID
+}
+
+func unpackGetRuntimeProfilePoliciesParams(packed middleware.Parameters) (params GetRuntimeProfilePoliciesParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "profileId",
+			In:   "path",
+		}
+		params.ProfileId = packed[key].(uuid.UUID)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+		}
+		params.XMoltnetTeamID = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeGetRuntimeProfilePoliciesParams(args [1]string, argsEscaped bool, r *http.Request) (params GetRuntimeProfilePoliciesParams, _ error) {
+	h := uri.NewHeaderDecoder(r.Header)
+	// Decode path: profileId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "profileId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ProfileId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "profileId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	// Decode header: x-moltnet-team-id.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.XMoltnetTeamID = c
+				return nil
+			}); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "x-moltnet-team-id",
+			In:   "header",
 			Err:  err,
 		}
 	}
@@ -9978,6 +10470,62 @@ func decodeListRuntimeModelsParams(args [0]string, argsEscaped bool, r *http.Req
 			}); err != nil {
 				return err
 			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// ListRuntimePoliciesParams is parameters of listRuntimePolicies operation.
+type ListRuntimePoliciesParams struct {
+	// Team ID (UUID) that will own the resource. Required.
+	XMoltnetTeamID uuid.UUID
+}
+
+func unpackListRuntimePoliciesParams(packed middleware.Parameters) (params ListRuntimePoliciesParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+		}
+		params.XMoltnetTeamID = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeListRuntimePoliciesParams(args [0]string, argsEscaped bool, r *http.Request) (params ListRuntimePoliciesParams, _ error) {
+	h := uri.NewHeaderDecoder(r.Header)
+	// Decode header: x-moltnet-team-id.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.XMoltnetTeamID = c
+				return nil
+			}); err != nil {
+				return err
+			}
+		} else {
+			return err
 		}
 		return nil
 	}(); err != nil {
@@ -14475,6 +15023,115 @@ func decodeSearchPublicFeedParams(args [0]string, argsEscaped bool, r *http.Requ
 	return params, nil
 }
 
+// SetRuntimeProfilePoliciesParams is parameters of setRuntimeProfilePolicies operation.
+type SetRuntimeProfilePoliciesParams struct {
+	ProfileId uuid.UUID
+	// Team ID (UUID) that will own the resource. Required.
+	XMoltnetTeamID uuid.UUID
+}
+
+func unpackSetRuntimeProfilePoliciesParams(packed middleware.Parameters) (params SetRuntimeProfilePoliciesParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "profileId",
+			In:   "path",
+		}
+		params.ProfileId = packed[key].(uuid.UUID)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+		}
+		params.XMoltnetTeamID = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeSetRuntimeProfilePoliciesParams(args [1]string, argsEscaped bool, r *http.Request) (params SetRuntimeProfilePoliciesParams, _ error) {
+	h := uri.NewHeaderDecoder(r.Header)
+	// Decode path: profileId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "profileId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.ProfileId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "profileId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	// Decode header: x-moltnet-team-id.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.XMoltnetTeamID = c
+				return nil
+			}); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // StageTaskArtifactParams is parameters of stageTaskArtifact operation.
 type StageTaskArtifactParams struct {
 	ContentType     OptString `json:",omitempty,omitzero"`
@@ -15435,6 +16092,115 @@ func decodeUpdateRuntimeModelParams(args [1]string, argsEscaped bool, r *http.Re
 		return params, &ogenerrors.DecodeParamError{
 			Name: "modelId",
 			In:   "path",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// UpdateRuntimePolicyParams is parameters of updateRuntimePolicy operation.
+type UpdateRuntimePolicyParams struct {
+	PolicyId uuid.UUID
+	// Team ID (UUID) that will own the resource. Required.
+	XMoltnetTeamID uuid.UUID
+}
+
+func unpackUpdateRuntimePolicyParams(packed middleware.Parameters) (params UpdateRuntimePolicyParams) {
+	{
+		key := middleware.ParameterKey{
+			Name: "policyId",
+			In:   "path",
+		}
+		params.PolicyId = packed[key].(uuid.UUID)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "x-moltnet-team-id",
+			In:   "header",
+		}
+		params.XMoltnetTeamID = packed[key].(uuid.UUID)
+	}
+	return params
+}
+
+func decodeUpdateRuntimePolicyParams(args [1]string, argsEscaped bool, r *http.Request) (params UpdateRuntimePolicyParams, _ error) {
+	h := uri.NewHeaderDecoder(r.Header)
+	// Decode path: policyId.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "policyId",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.PolicyId = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "policyId",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	// Decode header: x-moltnet-team-id.
+	if err := func() error {
+		cfg := uri.HeaderParameterDecodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.HasParam(cfg); err == nil {
+			if err := h.DecodeParam(cfg, func(d uri.Decoder) error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToUUID(val)
+				if err != nil {
+					return err
+				}
+
+				params.XMoltnetTeamID = c
+				return nil
+			}); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "x-moltnet-team-id",
+			In:   "header",
 			Err:  err,
 		}
 	}

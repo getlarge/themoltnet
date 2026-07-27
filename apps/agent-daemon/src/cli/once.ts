@@ -307,9 +307,12 @@ export async function runOnce(argv: string[]): Promise<number> {
       sandboxConfig: sandbox.config,
       forwardEnv: profile.requiredEnv,
       runtimeProfileContext: profile.context,
+      runtimeProfileId: profile.id,
+      toolEnforcement: profile.toolEnforcement,
       makeExecutionPlan: (claimedTask) =>
         executionPlans.getOrCreate(claimedTask),
       onTurnEvent: makeTurnEventHandler(rootLogger, { taskId }),
+      toolPolicyLogger: rootLogger,
       maxTurns: opts.maxTurns,
       maxBashTimeouts: opts.maxBashTimeouts,
     });

@@ -30,6 +30,7 @@ export type {
   NonceRepository,
   RenderedPackRepository,
   RuntimeModelRepository,
+  RuntimePolicyRepository,
   RuntimeProfileRepository,
   RuntimeSessionRepository,
   RuntimeSlotRepository,
@@ -66,6 +67,7 @@ import type {
   HumanRepository,
   RenderedPackRepository,
   RuntimeModelRepository,
+  RuntimePolicyRepository,
   RuntimeProfileRepository,
   RuntimeSessionRepository,
   RuntimeSlotRepository,
@@ -113,6 +115,7 @@ declare module 'fastify' {
     taskArtifactStorage: TaskArtifactStorage;
     runtimeSlotRepository: RuntimeSlotRepository;
     runtimeModelRepository: RuntimeModelRepository;
+    runtimePolicyRepository: RuntimePolicyRepository;
     permissionChecker: PermissionChecker;
     relationshipReader: RelationshipReader;
     relationshipWriter: RelationshipWriter;

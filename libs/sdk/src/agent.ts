@@ -4,6 +4,7 @@ import type {
   AgentKeyList,
   AgentKeyWithSecret,
   AgentProfile,
+  AllowedToolsResponse,
   AppendTaskMessagesData,
   BatchDeleteDiaryEntriesData,
   BatchDeleteResponse,
@@ -26,6 +27,7 @@ import type {
   CreateDiaryEntryData,
   CreateDiaryGrantData,
   CreateDiaryGrantResponse,
+  CreateRuntimePolicyData,
   CreateRuntimeProfileData,
   CreateSigningRequestData,
   CreateTaskData,
@@ -111,8 +113,11 @@ import type {
   RevokeDiaryGrantData,
   RevokeDiaryGrantResponse,
   RotateSecretResponse,
+  RuntimePolicyList,
+  RuntimePolicyWithTools,
   RuntimeProfile,
   RuntimeProfileListResponse,
+  RuntimeProfilePoliciesResponse,
   RuntimeSession,
   RuntimeSlot,
   SearchDiaryData,
@@ -137,6 +142,7 @@ import type {
   UpdateDiaryData,
   UpdateDiaryEntryByIdData,
   UpdateRenderedPackData,
+  UpdateRuntimePolicyData,
   UpdateRuntimeProfileData,
   UpdateTeamMemberRoleData,
   UpdateTeamMemberRoleResponse,
@@ -174,6 +180,7 @@ import { createPacksNamespace } from './namespaces/packs.js';
 import { createProblemsNamespace } from './namespaces/problems.js';
 import { createPublicNamespace } from './namespaces/public.js';
 import { createRecoveryNamespace } from './namespaces/recovery.js';
+import { createRuntimePoliciesNamespace } from './namespaces/runtime-policies.js';
 import { createRuntimeProfilesNamespace } from './namespaces/runtime-profiles.js';
 import { createRuntimeSessionsNamespace } from './namespaces/runtime-sessions.js';
 import { createRuntimeSlotsNamespace } from './namespaces/runtime-slots.js';
@@ -615,6 +622,56 @@ export interface RuntimeProfilesNamespace {
   ): Promise<RuntimeProfile>;
 
   delete(profileId: string): Promise<void>;
+
+  /**
+   * Resolve a profile's tool-enforcement mode and its allowed-tool set (the
+   * union of tools across every bound policy). The runtime reads this at session
+   * start to gate `tool_call`s. Team-scoped.
+   */
+  allowedTools(
+    profileId: string,
+    options: RequiredTeamRequestOptions,
+  ): Promise<AllowedToolsResponse>;
+
+  /** Replace the set of tool policies bound to a profile. Team-scoped. */
+  setPolicies(
+    profileId: string,
+    policyIds: string[],
+    options: RequiredTeamRequestOptions,
+  ): Promise<void>;
+
+  /** Read the tool-policy IDs currently bound to a profile. Team-scoped. */
+  getPolicies(
+    profileId: string,
+    options: RequiredTeamRequestOptions,
+  ): Promise<RuntimeProfilePoliciesResponse>;
+}
+
+/**
+ * Team-scoped tool policies: named allow-lists of tools, bound to runtime
+ * profiles to gate `tool_call`s at runtime. All operations require an active
+ * team context (via `options.teamId` or default client headers).
+ */
+export interface RuntimePoliciesNamespace {
+  create(
+    body: CreateRuntimePolicyData['body'],
+    options: RequiredTeamRequestOptions,
+  ): Promise<RuntimePolicyWithTools>;
+
+  list(options: RequiredTeamRequestOptions): Promise<RuntimePolicyList>;
+
+  get(
+    policyId: string,
+    options: RequiredTeamRequestOptions,
+  ): Promise<RuntimePolicyWithTools>;
+
+  update(
+    policyId: string,
+    body: UpdateRuntimePolicyData['body'],
+    options: RequiredTeamRequestOptions,
+  ): Promise<RuntimePolicyWithTools>;
+
+  delete(policyId: string, options: RequiredTeamRequestOptions): Promise<void>;
 }
 
 export interface DiaryGrantsNamespace {
@@ -927,6 +984,7 @@ export interface Agent {
   problems: ProblemsNamespace;
   teams: TeamsNamespace;
   runtimeProfiles: RuntimeProfilesNamespace;
+  runtimePolicies: RuntimePoliciesNamespace;
   tasks: TasksNamespace;
   runtimeSlots: RuntimeSlotsNamespace;
   runtimeSessions: RuntimeSessionsNamespace;
@@ -976,6 +1034,7 @@ export function createAgent(options: CreateAgentOptions): Agent {
   const problemsNs = createProblemsNamespace(context);
   const teams = createTeamsNamespace(context);
   const runtimeProfiles = createRuntimeProfilesNamespace(context);
+  const runtimePolicies = createRuntimePoliciesNamespace(context);
   const tasks = createTasksNamespace(context);
   const runtimeSlots = createRuntimeSlotsNamespace(context);
   const runtimeSessions = createRuntimeSessionsNamespace(context);
@@ -997,6 +1056,7 @@ export function createAgent(options: CreateAgentOptions): Agent {
     problems: problemsNs,
     teams,
     runtimeProfiles,
+    runtimePolicies,
     tasks,
     runtimeSlots,
     runtimeSessions,

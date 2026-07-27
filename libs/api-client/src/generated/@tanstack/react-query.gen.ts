@@ -34,6 +34,7 @@ import {
   createEntryRelation,
   createGroup,
   createRuntimeModel,
+  createRuntimePolicy,
   createRuntimeProfile,
   createSigningRequest,
   createTask,
@@ -44,6 +45,7 @@ import {
   deleteEntryRelation,
   deleteGroup,
   deleteRuntimeModel,
+  deleteRuntimePolicy,
   deleteRuntimeProfile,
   deleteTeam,
   deleteTeamInvite,
@@ -75,7 +77,10 @@ import {
   getReadiness,
   getRenderedPackById,
   getRuntimeModel,
+  getRuntimePolicy,
   getRuntimeProfile,
+  getRuntimeProfileAllowedTools,
+  getRuntimeProfilePolicies,
   getRuntimeSession,
   getSigningCredential,
   getSigningRequest,
@@ -102,6 +107,7 @@ import {
   listPendingTransfers,
   listProblemTypes,
   listRuntimeModels,
+  listRuntimePolicies,
   listRuntimeProfiles,
   listRuntimeSlots,
   listSigningCredentials,
@@ -131,6 +137,7 @@ import {
   rotateClientSecret,
   searchDiary,
   searchPublicFeed,
+  setRuntimeProfilePolicies,
   stageTaskArtifact,
   startLegreffierOnboarding,
   submitSignature,
@@ -142,6 +149,7 @@ import {
   updateEntryRelationStatus,
   updateRenderedPack,
   updateRuntimeModel,
+  updateRuntimePolicy,
   updateRuntimeProfile,
   updateTaskMetadata,
   updateTeamMemberRole,
@@ -225,6 +233,9 @@ import type {
   CreateRuntimeModelData,
   CreateRuntimeModelError,
   CreateRuntimeModelResponse,
+  CreateRuntimePolicyData,
+  CreateRuntimePolicyError,
+  CreateRuntimePolicyResponse,
   CreateRuntimeProfileData,
   CreateRuntimeProfileError,
   CreateRuntimeProfileResponse,
@@ -255,6 +266,9 @@ import type {
   DeleteRuntimeModelData,
   DeleteRuntimeModelError,
   DeleteRuntimeModelResponse,
+  DeleteRuntimePolicyData,
+  DeleteRuntimePolicyError,
+  DeleteRuntimePolicyResponse,
   DeleteRuntimeProfileData,
   DeleteRuntimeProfileError,
   DeleteRuntimeProfileResponse,
@@ -343,8 +357,17 @@ import type {
   GetRuntimeModelData,
   GetRuntimeModelError,
   GetRuntimeModelResponse,
+  GetRuntimePolicyData,
+  GetRuntimePolicyError,
+  GetRuntimePolicyResponse,
+  GetRuntimeProfileAllowedToolsData,
+  GetRuntimeProfileAllowedToolsError,
+  GetRuntimeProfileAllowedToolsResponse,
   GetRuntimeProfileData,
   GetRuntimeProfileError,
+  GetRuntimeProfilePoliciesData,
+  GetRuntimeProfilePoliciesError,
+  GetRuntimeProfilePoliciesResponse,
   GetRuntimeProfileResponse,
   GetRuntimeSessionData,
   GetRuntimeSessionError,
@@ -423,6 +446,9 @@ import type {
   ListRuntimeModelsData,
   ListRuntimeModelsError,
   ListRuntimeModelsResponse,
+  ListRuntimePoliciesData,
+  ListRuntimePoliciesError,
+  ListRuntimePoliciesResponse,
   ListRuntimeProfilesData,
   ListRuntimeProfilesError,
   ListRuntimeProfilesResponse,
@@ -507,6 +533,9 @@ import type {
   SearchPublicFeedData,
   SearchPublicFeedError,
   SearchPublicFeedResponse,
+  SetRuntimeProfilePoliciesData,
+  SetRuntimeProfilePoliciesError,
+  SetRuntimeProfilePoliciesResponse,
   StageTaskArtifactData,
   StageTaskArtifactError,
   StageTaskArtifactResponse,
@@ -540,6 +569,9 @@ import type {
   UpdateRuntimeModelData,
   UpdateRuntimeModelError,
   UpdateRuntimeModelResponse,
+  UpdateRuntimePolicyData,
+  UpdateRuntimePolicyError,
+  UpdateRuntimePolicyResponse,
   UpdateRuntimeProfileData,
   UpdateRuntimeProfileError,
   UpdateRuntimeProfileResponse,
@@ -3401,6 +3433,143 @@ export const updateRuntimeModelMutation = (
   return mutationOptions;
 };
 
+export const listRuntimePoliciesQueryKey = (
+  options: Options<ListRuntimePoliciesData>,
+) => createQueryKey('listRuntimePolicies', options);
+
+/**
+ * List tool policies for the active team.
+ */
+export const listRuntimePoliciesOptions = (
+  options: Options<ListRuntimePoliciesData>,
+) =>
+  queryOptions<
+    ListRuntimePoliciesResponse,
+    ListRuntimePoliciesError,
+    ListRuntimePoliciesResponse,
+    ReturnType<typeof listRuntimePoliciesQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await listRuntimePolicies({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: listRuntimePoliciesQueryKey(options),
+  });
+
+/**
+ * Create a team-scoped tool policy granting a set of tools.
+ */
+export const createRuntimePolicyMutation = (
+  options?: Partial<Options<CreateRuntimePolicyData>>,
+): UseMutationOptions<
+  CreateRuntimePolicyResponse,
+  CreateRuntimePolicyError,
+  Options<CreateRuntimePolicyData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    CreateRuntimePolicyResponse,
+    CreateRuntimePolicyError,
+    Options<CreateRuntimePolicyData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await createRuntimePolicy({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+/**
+ * Delete a tool policy and its tool grants.
+ */
+export const deleteRuntimePolicyMutation = (
+  options?: Partial<Options<DeleteRuntimePolicyData>>,
+): UseMutationOptions<
+  DeleteRuntimePolicyResponse,
+  DeleteRuntimePolicyError,
+  Options<DeleteRuntimePolicyData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    DeleteRuntimePolicyResponse,
+    DeleteRuntimePolicyError,
+    Options<DeleteRuntimePolicyData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await deleteRuntimePolicy({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const getRuntimePolicyQueryKey = (
+  options: Options<GetRuntimePolicyData>,
+) => createQueryKey('getRuntimePolicy', options);
+
+/**
+ * Get one tool policy with its granted tools.
+ */
+export const getRuntimePolicyOptions = (
+  options: Options<GetRuntimePolicyData>,
+) =>
+  queryOptions<
+    GetRuntimePolicyResponse,
+    GetRuntimePolicyError,
+    GetRuntimePolicyResponse,
+    ReturnType<typeof getRuntimePolicyQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getRuntimePolicy({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getRuntimePolicyQueryKey(options),
+  });
+
+/**
+ * Rename a policy and/or add/remove granted tools.
+ */
+export const updateRuntimePolicyMutation = (
+  options?: Partial<Options<UpdateRuntimePolicyData>>,
+): UseMutationOptions<
+  UpdateRuntimePolicyResponse,
+  UpdateRuntimePolicyError,
+  Options<UpdateRuntimePolicyData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    UpdateRuntimePolicyResponse,
+    UpdateRuntimePolicyError,
+    Options<UpdateRuntimePolicyData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await updateRuntimePolicy({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
 export const listRuntimeProfilesQueryKey = (
   options?: Options<ListRuntimeProfilesData>,
 ) => createQueryKey('listRuntimeProfiles', options);
@@ -3528,6 +3697,89 @@ export const updateRuntimeProfileMutation = (
   > = {
     mutationFn: async (fnOptions) => {
       const { data } = await updateRuntimeProfile({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+export const getRuntimeProfileAllowedToolsQueryKey = (
+  options: Options<GetRuntimeProfileAllowedToolsData>,
+) => createQueryKey('getRuntimeProfileAllowedTools', options);
+
+/**
+ * Resolve a runtime profile enforcement mode and its allowed-tool set (union of bound policies).
+ */
+export const getRuntimeProfileAllowedToolsOptions = (
+  options: Options<GetRuntimeProfileAllowedToolsData>,
+) =>
+  queryOptions<
+    GetRuntimeProfileAllowedToolsResponse,
+    GetRuntimeProfileAllowedToolsError,
+    GetRuntimeProfileAllowedToolsResponse,
+    ReturnType<typeof getRuntimeProfileAllowedToolsQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getRuntimeProfileAllowedTools({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getRuntimeProfileAllowedToolsQueryKey(options),
+  });
+
+export const getRuntimeProfilePoliciesQueryKey = (
+  options: Options<GetRuntimeProfilePoliciesData>,
+) => createQueryKey('getRuntimeProfilePolicies', options);
+
+/**
+ * List the tool-policy IDs bound to a runtime profile.
+ */
+export const getRuntimeProfilePoliciesOptions = (
+  options: Options<GetRuntimeProfilePoliciesData>,
+) =>
+  queryOptions<
+    GetRuntimeProfilePoliciesResponse,
+    GetRuntimeProfilePoliciesError,
+    GetRuntimeProfilePoliciesResponse,
+    ReturnType<typeof getRuntimeProfilePoliciesQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getRuntimeProfilePolicies({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getRuntimeProfilePoliciesQueryKey(options),
+  });
+
+/**
+ * Replace the set of tool policies bound to a runtime profile.
+ */
+export const setRuntimeProfilePoliciesMutation = (
+  options?: Partial<Options<SetRuntimeProfilePoliciesData>>,
+): UseMutationOptions<
+  SetRuntimeProfilePoliciesResponse,
+  SetRuntimeProfilePoliciesError,
+  Options<SetRuntimeProfilePoliciesData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    SetRuntimeProfilePoliciesResponse,
+    SetRuntimeProfilePoliciesError,
+    Options<SetRuntimeProfilePoliciesData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await setRuntimeProfilePolicies({
         ...options,
         ...fnOptions,
         throwOnError: true,

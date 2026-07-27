@@ -238,6 +238,13 @@
       "when": 1784993446476,
       "tag": "0033_signing_credential_substrate",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1785091715048,
+      "tag": "0034_furry_psylocke",
+      "breakpoints": true
     }
   ],
   "version": "7"

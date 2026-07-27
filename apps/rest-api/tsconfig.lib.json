@@ -45,6 +45,9 @@
       "path": "../../libs/agent-key-service/tsconfig.lib.json"
     },
     {
+      "path": "../../libs/runtime-policy-service/tsconfig.lib.json"
+    },
+    {
       "path": "../../libs/bootstrap/tsconfig.lib.json"
     },
     {

@@ -1,0 +1,30 @@
+{
+  "name": "@moltnet/runtime-policy-service",
+  "version": "0.1.0",
+  "license": "AGPL-3.0-only",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "dependencies": {
+    "@moltnet/auth": "workspace:*",
+    "@moltnet/database": "workspace:*",
+    "@moltnet/models": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "nx": {
+    "tags": [
+      "type:feature",
+      "scope:agent",
+      "platform:server"
+    ]
+  }
+}

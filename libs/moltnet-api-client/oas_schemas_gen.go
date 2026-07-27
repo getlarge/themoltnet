@@ -713,6 +713,34 @@ func (s *AgentProfile) SetPublicKey(val string) {
 
 func (*AgentProfile) getAgentProfileRes() {}
 
+// Ref: #/components/schemas/AllowedToolsResponse
+type AllowedToolsResponse struct {
+	AllowedTools []string        `json:"allowedTools"`
+	Enforcement  ToolEnforcement `json:"enforcement"`
+}
+
+// GetAllowedTools returns the value of AllowedTools.
+func (s *AllowedToolsResponse) GetAllowedTools() []string {
+	return s.AllowedTools
+}
+
+// GetEnforcement returns the value of Enforcement.
+func (s *AllowedToolsResponse) GetEnforcement() ToolEnforcement {
+	return s.Enforcement
+}
+
+// SetAllowedTools sets the value of AllowedTools.
+func (s *AllowedToolsResponse) SetAllowedTools(val []string) {
+	s.AllowedTools = val
+}
+
+// SetEnforcement sets the value of Enforcement.
+func (s *AllowedToolsResponse) SetEnforcement(val ToolEnforcement) {
+	s.Enforcement = val
+}
+
+func (*AllowedToolsResponse) getRuntimeProfileAllowedToolsRes() {}
+
 // Ref: #/components/schemas/AppendMessagesResponse
 type AppendMessagesResponse struct {
 	Count int `json:"count"`
@@ -4266,6 +4294,7 @@ func (*ConflictProblemDetails) createDiaryEntryRes()                      {}
 func (*ConflictProblemDetails) createDiaryGrantRes()                      {}
 func (*ConflictProblemDetails) createGroupRes()                           {}
 func (*ConflictProblemDetails) createRuntimeModelRes()                    {}
+func (*ConflictProblemDetails) createRuntimePolicyRes()                   {}
 func (*ConflictProblemDetails) createRuntimeProfileRes()                  {}
 func (*ConflictProblemDetails) createTaskRes()                            {}
 func (*ConflictProblemDetails) failTaskAttemptRes()                       {}
@@ -4282,6 +4311,7 @@ func (*ConflictProblemDetails) updateContextPackRes()                     {}
 func (*ConflictProblemDetails) updateDiaryEntryByIdRes()                  {}
 func (*ConflictProblemDetails) updateRenderedPackRes()                    {}
 func (*ConflictProblemDetails) updateRuntimeModelRes()                    {}
+func (*ConflictProblemDetails) updateRuntimePolicyRes()                   {}
 func (*ConflictProblemDetails) updateRuntimeProfileRes()                  {}
 func (*ConflictProblemDetails) updateTeamMemberRoleRes()                  {}
 func (*ConflictProblemDetails) uploadTaskArtifactRes()                    {}
@@ -6062,6 +6092,51 @@ type CreateRuntimeModelUnauthorized ProblemDetails
 
 func (*CreateRuntimeModelUnauthorized) createRuntimeModelRes() {}
 
+// Ref: #/components/schemas/CreateRuntimePolicyBody
+type CreateRuntimePolicyBody struct {
+	Description OptString `json:"description"`
+	Name        string    `json:"name"`
+	Tools       []string  `json:"tools"`
+}
+
+// GetDescription returns the value of Description.
+func (s *CreateRuntimePolicyBody) GetDescription() OptString {
+	return s.Description
+}
+
+// GetName returns the value of Name.
+func (s *CreateRuntimePolicyBody) GetName() string {
+	return s.Name
+}
+
+// GetTools returns the value of Tools.
+func (s *CreateRuntimePolicyBody) GetTools() []string {
+	return s.Tools
+}
+
+// SetDescription sets the value of Description.
+func (s *CreateRuntimePolicyBody) SetDescription(val OptString) {
+	s.Description = val
+}
+
+// SetName sets the value of Name.
+func (s *CreateRuntimePolicyBody) SetName(val string) {
+	s.Name = val
+}
+
+// SetTools sets the value of Tools.
+func (s *CreateRuntimePolicyBody) SetTools(val []string) {
+	s.Tools = val
+}
+
+type CreateRuntimePolicyForbidden ProblemDetails
+
+func (*CreateRuntimePolicyForbidden) createRuntimePolicyRes() {}
+
+type CreateRuntimePolicyUnauthorized ProblemDetails
+
+func (*CreateRuntimePolicyUnauthorized) createRuntimePolicyRes() {}
+
 type CreateRuntimeProfileBadRequest ProblemDetails
 
 func (*CreateRuntimeProfileBadRequest) createRuntimeProfileRes() {}
@@ -6089,6 +6164,7 @@ type CreateRuntimeProfileBody struct {
 	SessionTtlSec         OptInt                                              `json:"sessionTtlSec"`
 	Temperature           OptNilFloat64                                       `json:"temperature"`
 	ThinkingLevel         OptNilCreateRuntimeProfileBodyThinkingLevel         `json:"thinkingLevel"`
+	ToolEnforcement       OptCreateRuntimeProfileBodyToolEnforcement          `json:"toolEnforcement"`
 	TopK                  OptNilInt                                           `json:"topK"`
 	TopP                  OptNilFloat64                                       `json:"topP"`
 	WorkspaceStorageMode  OptCreateRuntimeProfileBodyWorkspaceStorageMode     `json:"workspaceStorageMode"`
@@ -6198,6 +6274,11 @@ func (s *CreateRuntimeProfileBody) GetTemperature() OptNilFloat64 {
 // GetThinkingLevel returns the value of ThinkingLevel.
 func (s *CreateRuntimeProfileBody) GetThinkingLevel() OptNilCreateRuntimeProfileBodyThinkingLevel {
 	return s.ThinkingLevel
+}
+
+// GetToolEnforcement returns the value of ToolEnforcement.
+func (s *CreateRuntimeProfileBody) GetToolEnforcement() OptCreateRuntimeProfileBodyToolEnforcement {
+	return s.ToolEnforcement
 }
 
 // GetTopK returns the value of TopK.
@@ -6323,6 +6404,11 @@ func (s *CreateRuntimeProfileBody) SetTemperature(val OptNilFloat64) {
 // SetThinkingLevel sets the value of ThinkingLevel.
 func (s *CreateRuntimeProfileBody) SetThinkingLevel(val OptNilCreateRuntimeProfileBodyThinkingLevel) {
 	s.ThinkingLevel = val
+}
+
+// SetToolEnforcement sets the value of ToolEnforcement.
+func (s *CreateRuntimeProfileBody) SetToolEnforcement(val OptCreateRuntimeProfileBodyToolEnforcement) {
+	s.ToolEnforcement = val
 }
 
 // SetTopK sets the value of TopK.
@@ -7111,6 +7197,54 @@ func (s *CreateRuntimeProfileBodyThinkingLevel) UnmarshalText(data []byte) error
 		return nil
 	case CreateRuntimeProfileBodyThinkingLevelXhigh:
 		*s = CreateRuntimeProfileBodyThinkingLevelXhigh
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type CreateRuntimeProfileBodyToolEnforcement string
+
+const (
+	CreateRuntimeProfileBodyToolEnforcementOff     CreateRuntimeProfileBodyToolEnforcement = "off"
+	CreateRuntimeProfileBodyToolEnforcementWatch   CreateRuntimeProfileBodyToolEnforcement = "watch"
+	CreateRuntimeProfileBodyToolEnforcementEnforce CreateRuntimeProfileBodyToolEnforcement = "enforce"
+)
+
+// AllValues returns all CreateRuntimeProfileBodyToolEnforcement values.
+func (CreateRuntimeProfileBodyToolEnforcement) AllValues() []CreateRuntimeProfileBodyToolEnforcement {
+	return []CreateRuntimeProfileBodyToolEnforcement{
+		CreateRuntimeProfileBodyToolEnforcementOff,
+		CreateRuntimeProfileBodyToolEnforcementWatch,
+		CreateRuntimeProfileBodyToolEnforcementEnforce,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s CreateRuntimeProfileBodyToolEnforcement) MarshalText() ([]byte, error) {
+	switch s {
+	case CreateRuntimeProfileBodyToolEnforcementOff:
+		return []byte(s), nil
+	case CreateRuntimeProfileBodyToolEnforcementWatch:
+		return []byte(s), nil
+	case CreateRuntimeProfileBodyToolEnforcementEnforce:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *CreateRuntimeProfileBodyToolEnforcement) UnmarshalText(data []byte) error {
+	switch CreateRuntimeProfileBodyToolEnforcement(data) {
+	case CreateRuntimeProfileBodyToolEnforcementOff:
+		*s = CreateRuntimeProfileBodyToolEnforcementOff
+		return nil
+	case CreateRuntimeProfileBodyToolEnforcementWatch:
+		*s = CreateRuntimeProfileBodyToolEnforcementWatch
+		return nil
+	case CreateRuntimeProfileBodyToolEnforcementEnforce:
+		*s = CreateRuntimeProfileBodyToolEnforcementEnforce
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -8450,6 +8584,23 @@ func (*DeleteRuntimeModelNotFound) deleteRuntimeModelRes() {}
 type DeleteRuntimeModelUnauthorized ProblemDetails
 
 func (*DeleteRuntimeModelUnauthorized) deleteRuntimeModelRes() {}
+
+type DeleteRuntimePolicyForbidden ProblemDetails
+
+func (*DeleteRuntimePolicyForbidden) deleteRuntimePolicyRes() {}
+
+// DeleteRuntimePolicyNoContent is response for DeleteRuntimePolicy operation.
+type DeleteRuntimePolicyNoContent struct{}
+
+func (*DeleteRuntimePolicyNoContent) deleteRuntimePolicyRes() {}
+
+type DeleteRuntimePolicyNotFound ProblemDetails
+
+func (*DeleteRuntimePolicyNotFound) deleteRuntimePolicyRes() {}
+
+type DeleteRuntimePolicyUnauthorized ProblemDetails
+
+func (*DeleteRuntimePolicyUnauthorized) deleteRuntimePolicyRes() {}
 
 type DeleteRuntimeProfileForbidden ProblemDetails
 
@@ -22216,9 +22367,45 @@ type GetRuntimeModelUnauthorized ProblemDetails
 
 func (*GetRuntimeModelUnauthorized) getRuntimeModelRes() {}
 
+type GetRuntimePolicyForbidden ProblemDetails
+
+func (*GetRuntimePolicyForbidden) getRuntimePolicyRes() {}
+
+type GetRuntimePolicyNotFound ProblemDetails
+
+func (*GetRuntimePolicyNotFound) getRuntimePolicyRes() {}
+
+type GetRuntimePolicyUnauthorized ProblemDetails
+
+func (*GetRuntimePolicyUnauthorized) getRuntimePolicyRes() {}
+
+type GetRuntimeProfileAllowedToolsForbidden ProblemDetails
+
+func (*GetRuntimeProfileAllowedToolsForbidden) getRuntimeProfileAllowedToolsRes() {}
+
+type GetRuntimeProfileAllowedToolsNotFound ProblemDetails
+
+func (*GetRuntimeProfileAllowedToolsNotFound) getRuntimeProfileAllowedToolsRes() {}
+
+type GetRuntimeProfileAllowedToolsUnauthorized ProblemDetails
+
+func (*GetRuntimeProfileAllowedToolsUnauthorized) getRuntimeProfileAllowedToolsRes() {}
+
 type GetRuntimeProfileNotFound ProblemDetails
 
 func (*GetRuntimeProfileNotFound) getRuntimeProfileRes() {}
+
+type GetRuntimeProfilePoliciesForbidden ProblemDetails
+
+func (*GetRuntimeProfilePoliciesForbidden) getRuntimeProfilePoliciesRes() {}
+
+type GetRuntimeProfilePoliciesNotFound ProblemDetails
+
+func (*GetRuntimeProfilePoliciesNotFound) getRuntimeProfilePoliciesRes() {}
+
+type GetRuntimeProfilePoliciesUnauthorized ProblemDetails
+
+func (*GetRuntimeProfilePoliciesUnauthorized) getRuntimeProfilePoliciesRes() {}
 
 type GetRuntimeProfileUnauthorized ProblemDetails
 
@@ -25936,6 +26123,14 @@ func (s *ListProblemTypesOKItem) SetTitle(val OptString) {
 func (s *ListProblemTypesOKItem) SetType(val OptURI) {
 	s.Type = val
 }
+
+type ListRuntimePoliciesForbidden ProblemDetails
+
+func (*ListRuntimePoliciesForbidden) listRuntimePoliciesRes() {}
+
+type ListRuntimePoliciesUnauthorized ProblemDetails
+
+func (*ListRuntimePoliciesUnauthorized) listRuntimePoliciesRes() {}
 
 type ListRuntimeProfilesForbidden ProblemDetails
 
@@ -32728,6 +32923,52 @@ func (o OptCreateRuntimeModelBodyCapabilities) Or(d CreateRuntimeModelBodyCapabi
 	return d
 }
 
+// NewOptCreateRuntimePolicyBody returns new OptCreateRuntimePolicyBody with value set to v.
+func NewOptCreateRuntimePolicyBody(v CreateRuntimePolicyBody) OptCreateRuntimePolicyBody {
+	return OptCreateRuntimePolicyBody{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptCreateRuntimePolicyBody is optional CreateRuntimePolicyBody.
+type OptCreateRuntimePolicyBody struct {
+	Value CreateRuntimePolicyBody
+	Set   bool
+}
+
+// IsSet returns true if OptCreateRuntimePolicyBody was set.
+func (o OptCreateRuntimePolicyBody) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptCreateRuntimePolicyBody) Reset() {
+	var v CreateRuntimePolicyBody
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptCreateRuntimePolicyBody) SetTo(v CreateRuntimePolicyBody) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptCreateRuntimePolicyBody) Get() (v CreateRuntimePolicyBody, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptCreateRuntimePolicyBody) Or(d CreateRuntimePolicyBody) CreateRuntimePolicyBody {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptCreateRuntimeProfileBody returns new OptCreateRuntimeProfileBody with value set to v.
 func NewOptCreateRuntimeProfileBody(v CreateRuntimeProfileBody) OptCreateRuntimeProfileBody {
 	return OptCreateRuntimeProfileBody{
@@ -33274,6 +33515,52 @@ func (o OptCreateRuntimeProfileBodySessionStorageMode) Get() (v CreateRuntimePro
 
 // Or returns value if set, or given parameter if does not.
 func (o OptCreateRuntimeProfileBodySessionStorageMode) Or(d CreateRuntimeProfileBodySessionStorageMode) CreateRuntimeProfileBodySessionStorageMode {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptCreateRuntimeProfileBodyToolEnforcement returns new OptCreateRuntimeProfileBodyToolEnforcement with value set to v.
+func NewOptCreateRuntimeProfileBodyToolEnforcement(v CreateRuntimeProfileBodyToolEnforcement) OptCreateRuntimeProfileBodyToolEnforcement {
+	return OptCreateRuntimeProfileBodyToolEnforcement{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptCreateRuntimeProfileBodyToolEnforcement is optional CreateRuntimeProfileBodyToolEnforcement.
+type OptCreateRuntimeProfileBodyToolEnforcement struct {
+	Value CreateRuntimeProfileBodyToolEnforcement
+	Set   bool
+}
+
+// IsSet returns true if OptCreateRuntimeProfileBodyToolEnforcement was set.
+func (o OptCreateRuntimeProfileBodyToolEnforcement) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptCreateRuntimeProfileBodyToolEnforcement) Reset() {
+	var v CreateRuntimeProfileBodyToolEnforcement
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptCreateRuntimeProfileBodyToolEnforcement) SetTo(v CreateRuntimeProfileBodyToolEnforcement) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptCreateRuntimeProfileBodyToolEnforcement) Get() (v CreateRuntimeProfileBodyToolEnforcement, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptCreateRuntimeProfileBodyToolEnforcement) Or(d CreateRuntimeProfileBodyToolEnforcement) CreateRuntimeProfileBodyToolEnforcement {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -36488,6 +36775,52 @@ func (o OptSearchDiaryReq) Or(d SearchDiaryReq) SearchDiaryReq {
 	return d
 }
 
+// NewOptSetProfilePoliciesBody returns new OptSetProfilePoliciesBody with value set to v.
+func NewOptSetProfilePoliciesBody(v SetProfilePoliciesBody) OptSetProfilePoliciesBody {
+	return OptSetProfilePoliciesBody{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptSetProfilePoliciesBody is optional SetProfilePoliciesBody.
+type OptSetProfilePoliciesBody struct {
+	Value SetProfilePoliciesBody
+	Set   bool
+}
+
+// IsSet returns true if OptSetProfilePoliciesBody was set.
+func (o OptSetProfilePoliciesBody) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptSetProfilePoliciesBody) Reset() {
+	var v SetProfilePoliciesBody
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptSetProfilePoliciesBody) SetTo(v SetProfilePoliciesBody) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptSetProfilePoliciesBody) Get() (v SetProfilePoliciesBody, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptSetProfilePoliciesBody) Or(d SetProfilePoliciesBody) SetProfilePoliciesBody {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptString returns new OptString with value set to v.
 func NewOptString(v string) OptString {
 	return OptString{
@@ -37592,6 +37925,52 @@ func (o OptUpdateRuntimeModelBodyCapabilities) Or(d UpdateRuntimeModelBodyCapabi
 	return d
 }
 
+// NewOptUpdateRuntimePolicyBody returns new OptUpdateRuntimePolicyBody with value set to v.
+func NewOptUpdateRuntimePolicyBody(v UpdateRuntimePolicyBody) OptUpdateRuntimePolicyBody {
+	return OptUpdateRuntimePolicyBody{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptUpdateRuntimePolicyBody is optional UpdateRuntimePolicyBody.
+type OptUpdateRuntimePolicyBody struct {
+	Value UpdateRuntimePolicyBody
+	Set   bool
+}
+
+// IsSet returns true if OptUpdateRuntimePolicyBody was set.
+func (o OptUpdateRuntimePolicyBody) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptUpdateRuntimePolicyBody) Reset() {
+	var v UpdateRuntimePolicyBody
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptUpdateRuntimePolicyBody) SetTo(v UpdateRuntimePolicyBody) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptUpdateRuntimePolicyBody) Get() (v UpdateRuntimePolicyBody, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptUpdateRuntimePolicyBody) Or(d UpdateRuntimePolicyBody) UpdateRuntimePolicyBody {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptUpdateRuntimeProfileBody returns new OptUpdateRuntimeProfileBody with value set to v.
 func NewOptUpdateRuntimeProfileBody(v UpdateRuntimeProfileBody) OptUpdateRuntimeProfileBody {
 	return OptUpdateRuntimeProfileBody{
@@ -38184,6 +38563,52 @@ func (o OptUpdateRuntimeProfileBodySessionStorageMode) Get() (v UpdateRuntimePro
 
 // Or returns value if set, or given parameter if does not.
 func (o OptUpdateRuntimeProfileBodySessionStorageMode) Or(d UpdateRuntimeProfileBodySessionStorageMode) UpdateRuntimeProfileBodySessionStorageMode {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptUpdateRuntimeProfileBodyToolEnforcement returns new OptUpdateRuntimeProfileBodyToolEnforcement with value set to v.
+func NewOptUpdateRuntimeProfileBodyToolEnforcement(v UpdateRuntimeProfileBodyToolEnforcement) OptUpdateRuntimeProfileBodyToolEnforcement {
+	return OptUpdateRuntimeProfileBodyToolEnforcement{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptUpdateRuntimeProfileBodyToolEnforcement is optional UpdateRuntimeProfileBodyToolEnforcement.
+type OptUpdateRuntimeProfileBodyToolEnforcement struct {
+	Value UpdateRuntimeProfileBodyToolEnforcement
+	Set   bool
+}
+
+// IsSet returns true if OptUpdateRuntimeProfileBodyToolEnforcement was set.
+func (o OptUpdateRuntimeProfileBodyToolEnforcement) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptUpdateRuntimeProfileBodyToolEnforcement) Reset() {
+	var v UpdateRuntimeProfileBodyToolEnforcement
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptUpdateRuntimeProfileBodyToolEnforcement) SetTo(v UpdateRuntimeProfileBodyToolEnforcement) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptUpdateRuntimeProfileBodyToolEnforcement) Get() (v UpdateRuntimeProfileBodyToolEnforcement, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptUpdateRuntimeProfileBodyToolEnforcement) Or(d UpdateRuntimeProfileBodyToolEnforcement) UpdateRuntimeProfileBodyToolEnforcement {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -44486,6 +44911,182 @@ func NewStringRuntimeModelListResponseItemsItemCapabilitiesItem(v string) Runtim
 	return s
 }
 
+// Ref: #/components/schemas/RuntimePolicy
+type RuntimePolicy struct {
+	CreatedAt   time.Time `json:"createdAt"`
+	Description NilString `json:"description"`
+	// UUID v4 identifier.
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+	// UUID v4 identifier.
+	TeamId    uuid.UUID `json:"teamId"`
+	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *RuntimePolicy) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetDescription returns the value of Description.
+func (s *RuntimePolicy) GetDescription() NilString {
+	return s.Description
+}
+
+// GetID returns the value of ID.
+func (s *RuntimePolicy) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetName returns the value of Name.
+func (s *RuntimePolicy) GetName() string {
+	return s.Name
+}
+
+// GetTeamId returns the value of TeamId.
+func (s *RuntimePolicy) GetTeamId() uuid.UUID {
+	return s.TeamId
+}
+
+// GetUpdatedAt returns the value of UpdatedAt.
+func (s *RuntimePolicy) GetUpdatedAt() time.Time {
+	return s.UpdatedAt
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *RuntimePolicy) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetDescription sets the value of Description.
+func (s *RuntimePolicy) SetDescription(val NilString) {
+	s.Description = val
+}
+
+// SetID sets the value of ID.
+func (s *RuntimePolicy) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetName sets the value of Name.
+func (s *RuntimePolicy) SetName(val string) {
+	s.Name = val
+}
+
+// SetTeamId sets the value of TeamId.
+func (s *RuntimePolicy) SetTeamId(val uuid.UUID) {
+	s.TeamId = val
+}
+
+// SetUpdatedAt sets the value of UpdatedAt.
+func (s *RuntimePolicy) SetUpdatedAt(val time.Time) {
+	s.UpdatedAt = val
+}
+
+// Ref: #/components/schemas/RuntimePolicyList
+type RuntimePolicyList struct {
+	Items []RuntimePolicy `json:"items"`
+}
+
+// GetItems returns the value of Items.
+func (s *RuntimePolicyList) GetItems() []RuntimePolicy {
+	return s.Items
+}
+
+// SetItems sets the value of Items.
+func (s *RuntimePolicyList) SetItems(val []RuntimePolicy) {
+	s.Items = val
+}
+
+func (*RuntimePolicyList) listRuntimePoliciesRes() {}
+
+// Ref: #/components/schemas/RuntimePolicyWithTools
+type RuntimePolicyWithTools struct {
+	CreatedAt   time.Time `json:"createdAt"`
+	Description NilString `json:"description"`
+	// UUID v4 identifier.
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+	// UUID v4 identifier.
+	TeamId    uuid.UUID `json:"teamId"`
+	Tools     []string  `json:"tools"`
+	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+// GetCreatedAt returns the value of CreatedAt.
+func (s *RuntimePolicyWithTools) GetCreatedAt() time.Time {
+	return s.CreatedAt
+}
+
+// GetDescription returns the value of Description.
+func (s *RuntimePolicyWithTools) GetDescription() NilString {
+	return s.Description
+}
+
+// GetID returns the value of ID.
+func (s *RuntimePolicyWithTools) GetID() uuid.UUID {
+	return s.ID
+}
+
+// GetName returns the value of Name.
+func (s *RuntimePolicyWithTools) GetName() string {
+	return s.Name
+}
+
+// GetTeamId returns the value of TeamId.
+func (s *RuntimePolicyWithTools) GetTeamId() uuid.UUID {
+	return s.TeamId
+}
+
+// GetTools returns the value of Tools.
+func (s *RuntimePolicyWithTools) GetTools() []string {
+	return s.Tools
+}
+
+// GetUpdatedAt returns the value of UpdatedAt.
+func (s *RuntimePolicyWithTools) GetUpdatedAt() time.Time {
+	return s.UpdatedAt
+}
+
+// SetCreatedAt sets the value of CreatedAt.
+func (s *RuntimePolicyWithTools) SetCreatedAt(val time.Time) {
+	s.CreatedAt = val
+}
+
+// SetDescription sets the value of Description.
+func (s *RuntimePolicyWithTools) SetDescription(val NilString) {
+	s.Description = val
+}
+
+// SetID sets the value of ID.
+func (s *RuntimePolicyWithTools) SetID(val uuid.UUID) {
+	s.ID = val
+}
+
+// SetName sets the value of Name.
+func (s *RuntimePolicyWithTools) SetName(val string) {
+	s.Name = val
+}
+
+// SetTeamId sets the value of TeamId.
+func (s *RuntimePolicyWithTools) SetTeamId(val uuid.UUID) {
+	s.TeamId = val
+}
+
+// SetTools sets the value of Tools.
+func (s *RuntimePolicyWithTools) SetTools(val []string) {
+	s.Tools = val
+}
+
+// SetUpdatedAt sets the value of UpdatedAt.
+func (s *RuntimePolicyWithTools) SetUpdatedAt(val time.Time) {
+	s.UpdatedAt = val
+}
+
+func (*RuntimePolicyWithTools) createRuntimePolicyRes() {}
+func (*RuntimePolicyWithTools) getRuntimePolicyRes()    {}
+func (*RuntimePolicyWithTools) updateRuntimePolicyRes() {}
+
 // Ref: #/components/schemas/RuntimeProfile
 type RuntimeProfile struct {
 	AllowedWorkspaceModes []RuntimeProfileAllowedWorkspaceModesItem `json:"allowedWorkspaceModes"`
@@ -44516,6 +45117,7 @@ type RuntimeProfile struct {
 	TeamId                uuid.UUID                                 `json:"teamId"`
 	Temperature           NilFloat64                                `json:"temperature"`
 	ThinkingLevel         NilRuntimeProfileThinkingLevel            `json:"thinkingLevel"`
+	ToolEnforcement       RuntimeProfileToolEnforcement             `json:"toolEnforcement"`
 	TopK                  NilInt                                    `json:"topK"`
 	TopP                  NilFloat64                                `json:"topP"`
 	UpdatedAt             time.Time                                 `json:"updatedAt"`
@@ -44661,6 +45263,11 @@ func (s *RuntimeProfile) GetTemperature() NilFloat64 {
 // GetThinkingLevel returns the value of ThinkingLevel.
 func (s *RuntimeProfile) GetThinkingLevel() NilRuntimeProfileThinkingLevel {
 	return s.ThinkingLevel
+}
+
+// GetToolEnforcement returns the value of ToolEnforcement.
+func (s *RuntimeProfile) GetToolEnforcement() RuntimeProfileToolEnforcement {
+	return s.ToolEnforcement
 }
 
 // GetTopK returns the value of TopK.
@@ -44826,6 +45433,11 @@ func (s *RuntimeProfile) SetTemperature(val NilFloat64) {
 // SetThinkingLevel sets the value of ThinkingLevel.
 func (s *RuntimeProfile) SetThinkingLevel(val NilRuntimeProfileThinkingLevel) {
 	s.ThinkingLevel = val
+}
+
+// SetToolEnforcement sets the value of ToolEnforcement.
+func (s *RuntimeProfile) SetToolEnforcement(val RuntimeProfileToolEnforcement) {
+	s.ToolEnforcement = val
 }
 
 // SetTopK sets the value of TopK.
@@ -45090,6 +45702,7 @@ type RuntimeProfileListResponseItemsItem struct {
 	TeamId                uuid.UUID                                                      `json:"teamId"`
 	Temperature           NilFloat64                                                     `json:"temperature"`
 	ThinkingLevel         NilRuntimeProfileListResponseItemsItemThinkingLevel            `json:"thinkingLevel"`
+	ToolEnforcement       RuntimeProfileListResponseItemsItemToolEnforcement             `json:"toolEnforcement"`
 	TopK                  NilInt                                                         `json:"topK"`
 	TopP                  NilFloat64                                                     `json:"topP"`
 	UpdatedAt             time.Time                                                      `json:"updatedAt"`
@@ -45235,6 +45848,11 @@ func (s *RuntimeProfileListResponseItemsItem) GetTemperature() NilFloat64 {
 // GetThinkingLevel returns the value of ThinkingLevel.
 func (s *RuntimeProfileListResponseItemsItem) GetThinkingLevel() NilRuntimeProfileListResponseItemsItemThinkingLevel {
 	return s.ThinkingLevel
+}
+
+// GetToolEnforcement returns the value of ToolEnforcement.
+func (s *RuntimeProfileListResponseItemsItem) GetToolEnforcement() RuntimeProfileListResponseItemsItemToolEnforcement {
+	return s.ToolEnforcement
 }
 
 // GetTopK returns the value of TopK.
@@ -45400,6 +46018,11 @@ func (s *RuntimeProfileListResponseItemsItem) SetTemperature(val NilFloat64) {
 // SetThinkingLevel sets the value of ThinkingLevel.
 func (s *RuntimeProfileListResponseItemsItem) SetThinkingLevel(val NilRuntimeProfileListResponseItemsItemThinkingLevel) {
 	s.ThinkingLevel = val
+}
+
+// SetToolEnforcement sets the value of ToolEnforcement.
+func (s *RuntimeProfileListResponseItemsItem) SetToolEnforcement(val RuntimeProfileListResponseItemsItemToolEnforcement) {
+	s.ToolEnforcement = val
 }
 
 // SetTopK sets the value of TopK.
@@ -46199,6 +46822,54 @@ func (s *RuntimeProfileListResponseItemsItemThinkingLevel) UnmarshalText(data []
 	}
 }
 
+type RuntimeProfileListResponseItemsItemToolEnforcement string
+
+const (
+	RuntimeProfileListResponseItemsItemToolEnforcementOff     RuntimeProfileListResponseItemsItemToolEnforcement = "off"
+	RuntimeProfileListResponseItemsItemToolEnforcementWatch   RuntimeProfileListResponseItemsItemToolEnforcement = "watch"
+	RuntimeProfileListResponseItemsItemToolEnforcementEnforce RuntimeProfileListResponseItemsItemToolEnforcement = "enforce"
+)
+
+// AllValues returns all RuntimeProfileListResponseItemsItemToolEnforcement values.
+func (RuntimeProfileListResponseItemsItemToolEnforcement) AllValues() []RuntimeProfileListResponseItemsItemToolEnforcement {
+	return []RuntimeProfileListResponseItemsItemToolEnforcement{
+		RuntimeProfileListResponseItemsItemToolEnforcementOff,
+		RuntimeProfileListResponseItemsItemToolEnforcementWatch,
+		RuntimeProfileListResponseItemsItemToolEnforcementEnforce,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s RuntimeProfileListResponseItemsItemToolEnforcement) MarshalText() ([]byte, error) {
+	switch s {
+	case RuntimeProfileListResponseItemsItemToolEnforcementOff:
+		return []byte(s), nil
+	case RuntimeProfileListResponseItemsItemToolEnforcementWatch:
+		return []byte(s), nil
+	case RuntimeProfileListResponseItemsItemToolEnforcementEnforce:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *RuntimeProfileListResponseItemsItemToolEnforcement) UnmarshalText(data []byte) error {
+	switch RuntimeProfileListResponseItemsItemToolEnforcement(data) {
+	case RuntimeProfileListResponseItemsItemToolEnforcementOff:
+		*s = RuntimeProfileListResponseItemsItemToolEnforcementOff
+		return nil
+	case RuntimeProfileListResponseItemsItemToolEnforcementWatch:
+		*s = RuntimeProfileListResponseItemsItemToolEnforcementWatch
+		return nil
+	case RuntimeProfileListResponseItemsItemToolEnforcementEnforce:
+		*s = RuntimeProfileListResponseItemsItemToolEnforcementEnforce
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 type RuntimeProfileListResponseItemsItemWorkspaceStorageMode string
 
 const (
@@ -46232,6 +46903,23 @@ func (s *RuntimeProfileListResponseItemsItemWorkspaceStorageMode) UnmarshalText(
 		return errors.Errorf("invalid value: %q", data)
 	}
 }
+
+// Ref: #/components/schemas/RuntimeProfilePoliciesResponse
+type RuntimeProfilePoliciesResponse struct {
+	PolicyIds []uuid.UUID `json:"policyIds"`
+}
+
+// GetPolicyIds returns the value of PolicyIds.
+func (s *RuntimeProfilePoliciesResponse) GetPolicyIds() []uuid.UUID {
+	return s.PolicyIds
+}
+
+// SetPolicyIds sets the value of PolicyIds.
+func (s *RuntimeProfilePoliciesResponse) SetPolicyIds(val []uuid.UUID) {
+	s.PolicyIds = val
+}
+
+func (*RuntimeProfilePoliciesResponse) getRuntimeProfilePoliciesRes() {}
 
 // Ref: #/components/schemas/RuntimeProfileRef
 type RuntimeProfileRef struct {
@@ -46834,6 +47522,54 @@ func (s *RuntimeProfileThinkingLevel) UnmarshalText(data []byte) error {
 	}
 }
 
+type RuntimeProfileToolEnforcement string
+
+const (
+	RuntimeProfileToolEnforcementOff     RuntimeProfileToolEnforcement = "off"
+	RuntimeProfileToolEnforcementWatch   RuntimeProfileToolEnforcement = "watch"
+	RuntimeProfileToolEnforcementEnforce RuntimeProfileToolEnforcement = "enforce"
+)
+
+// AllValues returns all RuntimeProfileToolEnforcement values.
+func (RuntimeProfileToolEnforcement) AllValues() []RuntimeProfileToolEnforcement {
+	return []RuntimeProfileToolEnforcement{
+		RuntimeProfileToolEnforcementOff,
+		RuntimeProfileToolEnforcementWatch,
+		RuntimeProfileToolEnforcementEnforce,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s RuntimeProfileToolEnforcement) MarshalText() ([]byte, error) {
+	switch s {
+	case RuntimeProfileToolEnforcementOff:
+		return []byte(s), nil
+	case RuntimeProfileToolEnforcementWatch:
+		return []byte(s), nil
+	case RuntimeProfileToolEnforcementEnforce:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *RuntimeProfileToolEnforcement) UnmarshalText(data []byte) error {
+	switch RuntimeProfileToolEnforcement(data) {
+	case RuntimeProfileToolEnforcementOff:
+		*s = RuntimeProfileToolEnforcementOff
+		return nil
+	case RuntimeProfileToolEnforcementWatch:
+		*s = RuntimeProfileToolEnforcementWatch
+		return nil
+	case RuntimeProfileToolEnforcementEnforce:
+		*s = RuntimeProfileToolEnforcementEnforce
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 type RuntimeProfileWorkspaceStorageMode string
 
 const (
@@ -47150,6 +47886,38 @@ func (s *SessionAuth) SetAPIKey(val string) {
 func (s *SessionAuth) SetRoles(val []string) {
 	s.Roles = val
 }
+
+// Ref: #/components/schemas/SetProfilePoliciesBody
+type SetProfilePoliciesBody struct {
+	PolicyIds []uuid.UUID `json:"policyIds"`
+}
+
+// GetPolicyIds returns the value of PolicyIds.
+func (s *SetProfilePoliciesBody) GetPolicyIds() []uuid.UUID {
+	return s.PolicyIds
+}
+
+// SetPolicyIds sets the value of PolicyIds.
+func (s *SetProfilePoliciesBody) SetPolicyIds(val []uuid.UUID) {
+	s.PolicyIds = val
+}
+
+type SetRuntimeProfilePoliciesForbidden ProblemDetails
+
+func (*SetRuntimeProfilePoliciesForbidden) setRuntimeProfilePoliciesRes() {}
+
+// SetRuntimeProfilePoliciesNoContent is response for SetRuntimeProfilePolicies operation.
+type SetRuntimeProfilePoliciesNoContent struct{}
+
+func (*SetRuntimeProfilePoliciesNoContent) setRuntimeProfilePoliciesRes() {}
+
+type SetRuntimeProfilePoliciesNotFound ProblemDetails
+
+func (*SetRuntimeProfilePoliciesNotFound) setRuntimeProfilePoliciesRes() {}
+
+type SetRuntimeProfilePoliciesUnauthorized ProblemDetails
+
+func (*SetRuntimeProfilePoliciesUnauthorized) setRuntimeProfilePoliciesRes() {}
 
 // Ref: #/components/schemas/SigningCredential
 type SigningCredential struct {
@@ -53145,6 +53913,57 @@ func (s *TaskUsage) SetToolCalls(val OptInt) {
 	s.ToolCalls = val
 }
 
+// Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed
+// tools, fail-closed).
+// Ref: #/components/schemas/ToolEnforcement
+type ToolEnforcement string
+
+const (
+	ToolEnforcementOff     ToolEnforcement = "off"
+	ToolEnforcementWatch   ToolEnforcement = "watch"
+	ToolEnforcementEnforce ToolEnforcement = "enforce"
+)
+
+// AllValues returns all ToolEnforcement values.
+func (ToolEnforcement) AllValues() []ToolEnforcement {
+	return []ToolEnforcement{
+		ToolEnforcementOff,
+		ToolEnforcementWatch,
+		ToolEnforcementEnforce,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s ToolEnforcement) MarshalText() ([]byte, error) {
+	switch s {
+	case ToolEnforcementOff:
+		return []byte(s), nil
+	case ToolEnforcementWatch:
+		return []byte(s), nil
+	case ToolEnforcementEnforce:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *ToolEnforcement) UnmarshalText(data []byte) error {
+	switch ToolEnforcement(data) {
+	case ToolEnforcementOff:
+		*s = ToolEnforcementOff
+		return nil
+	case ToolEnforcementWatch:
+		*s = ToolEnforcementWatch
+		return nil
+	case ToolEnforcementEnforce:
+		*s = ToolEnforcementEnforce
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 type UpdateContextPackBadRequest ProblemDetails
 
 func (*UpdateContextPackBadRequest) updateContextPackRes() {}
@@ -53719,6 +54538,66 @@ type UpdateRuntimeModelUnauthorized ProblemDetails
 
 func (*UpdateRuntimeModelUnauthorized) updateRuntimeModelRes() {}
 
+// Ref: #/components/schemas/UpdateRuntimePolicyBody
+type UpdateRuntimePolicyBody struct {
+	AddTools    []string     `json:"addTools"`
+	Description OptNilString `json:"description"`
+	Name        OptString    `json:"name"`
+	RemoveTools []string     `json:"removeTools"`
+}
+
+// GetAddTools returns the value of AddTools.
+func (s *UpdateRuntimePolicyBody) GetAddTools() []string {
+	return s.AddTools
+}
+
+// GetDescription returns the value of Description.
+func (s *UpdateRuntimePolicyBody) GetDescription() OptNilString {
+	return s.Description
+}
+
+// GetName returns the value of Name.
+func (s *UpdateRuntimePolicyBody) GetName() OptString {
+	return s.Name
+}
+
+// GetRemoveTools returns the value of RemoveTools.
+func (s *UpdateRuntimePolicyBody) GetRemoveTools() []string {
+	return s.RemoveTools
+}
+
+// SetAddTools sets the value of AddTools.
+func (s *UpdateRuntimePolicyBody) SetAddTools(val []string) {
+	s.AddTools = val
+}
+
+// SetDescription sets the value of Description.
+func (s *UpdateRuntimePolicyBody) SetDescription(val OptNilString) {
+	s.Description = val
+}
+
+// SetName sets the value of Name.
+func (s *UpdateRuntimePolicyBody) SetName(val OptString) {
+	s.Name = val
+}
+
+// SetRemoveTools sets the value of RemoveTools.
+func (s *UpdateRuntimePolicyBody) SetRemoveTools(val []string) {
+	s.RemoveTools = val
+}
+
+type UpdateRuntimePolicyForbidden ProblemDetails
+
+func (*UpdateRuntimePolicyForbidden) updateRuntimePolicyRes() {}
+
+type UpdateRuntimePolicyNotFound ProblemDetails
+
+func (*UpdateRuntimePolicyNotFound) updateRuntimePolicyRes() {}
+
+type UpdateRuntimePolicyUnauthorized ProblemDetails
+
+func (*UpdateRuntimePolicyUnauthorized) updateRuntimePolicyRes() {}
+
 type UpdateRuntimeProfileBadRequest ProblemDetails
 
 func (*UpdateRuntimeProfileBadRequest) updateRuntimeProfileRes() {}
@@ -53746,6 +54625,7 @@ type UpdateRuntimeProfileBody struct {
 	SessionTtlSec         OptInt                                              `json:"sessionTtlSec"`
 	Temperature           OptNilFloat64                                       `json:"temperature"`
 	ThinkingLevel         OptNilUpdateRuntimeProfileBodyThinkingLevel         `json:"thinkingLevel"`
+	ToolEnforcement       OptUpdateRuntimeProfileBodyToolEnforcement          `json:"toolEnforcement"`
 	TopK                  OptNilInt                                           `json:"topK"`
 	TopP                  OptNilFloat64                                       `json:"topP"`
 	WorkspaceStorageMode  OptUpdateRuntimeProfileBodyWorkspaceStorageMode     `json:"workspaceStorageMode"`
@@ -53855,6 +54735,11 @@ func (s *UpdateRuntimeProfileBody) GetTemperature() OptNilFloat64 {
 // GetThinkingLevel returns the value of ThinkingLevel.
 func (s *UpdateRuntimeProfileBody) GetThinkingLevel() OptNilUpdateRuntimeProfileBodyThinkingLevel {
 	return s.ThinkingLevel
+}
+
+// GetToolEnforcement returns the value of ToolEnforcement.
+func (s *UpdateRuntimeProfileBody) GetToolEnforcement() OptUpdateRuntimeProfileBodyToolEnforcement {
+	return s.ToolEnforcement
 }
 
 // GetTopK returns the value of TopK.
@@ -53980,6 +54865,11 @@ func (s *UpdateRuntimeProfileBody) SetTemperature(val OptNilFloat64) {
 // SetThinkingLevel sets the value of ThinkingLevel.
 func (s *UpdateRuntimeProfileBody) SetThinkingLevel(val OptNilUpdateRuntimeProfileBodyThinkingLevel) {
 	s.ThinkingLevel = val
+}
+
+// SetToolEnforcement sets the value of ToolEnforcement.
+func (s *UpdateRuntimeProfileBody) SetToolEnforcement(val OptUpdateRuntimeProfileBodyToolEnforcement) {
+	s.ToolEnforcement = val
 }
 
 // SetTopK sets the value of TopK.
@@ -54768,6 +55658,54 @@ func (s *UpdateRuntimeProfileBodyThinkingLevel) UnmarshalText(data []byte) error
 		return nil
 	case UpdateRuntimeProfileBodyThinkingLevelXhigh:
 		*s = UpdateRuntimeProfileBodyThinkingLevelXhigh
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type UpdateRuntimeProfileBodyToolEnforcement string
+
+const (
+	UpdateRuntimeProfileBodyToolEnforcementOff     UpdateRuntimeProfileBodyToolEnforcement = "off"
+	UpdateRuntimeProfileBodyToolEnforcementWatch   UpdateRuntimeProfileBodyToolEnforcement = "watch"
+	UpdateRuntimeProfileBodyToolEnforcementEnforce UpdateRuntimeProfileBodyToolEnforcement = "enforce"
+)
+
+// AllValues returns all UpdateRuntimeProfileBodyToolEnforcement values.
+func (UpdateRuntimeProfileBodyToolEnforcement) AllValues() []UpdateRuntimeProfileBodyToolEnforcement {
+	return []UpdateRuntimeProfileBodyToolEnforcement{
+		UpdateRuntimeProfileBodyToolEnforcementOff,
+		UpdateRuntimeProfileBodyToolEnforcementWatch,
+		UpdateRuntimeProfileBodyToolEnforcementEnforce,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s UpdateRuntimeProfileBodyToolEnforcement) MarshalText() ([]byte, error) {
+	switch s {
+	case UpdateRuntimeProfileBodyToolEnforcementOff:
+		return []byte(s), nil
+	case UpdateRuntimeProfileBodyToolEnforcementWatch:
+		return []byte(s), nil
+	case UpdateRuntimeProfileBodyToolEnforcementEnforce:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *UpdateRuntimeProfileBodyToolEnforcement) UnmarshalText(data []byte) error {
+	switch UpdateRuntimeProfileBodyToolEnforcement(data) {
+	case UpdateRuntimeProfileBodyToolEnforcementOff:
+		*s = UpdateRuntimeProfileBodyToolEnforcementOff
+		return nil
+	case UpdateRuntimeProfileBodyToolEnforcementWatch:
+		*s = UpdateRuntimeProfileBodyToolEnforcementWatch
+		return nil
+	case UpdateRuntimeProfileBodyToolEnforcementEnforce:
+		*s = UpdateRuntimeProfileBodyToolEnforcementEnforce
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -59145,16 +60083,19 @@ func (s *ValidationProblemDetails) SetAdditionalProps(val ValidationProblemDetai
 	s.AdditionalProps = val
 }
 
-func (*ValidationProblemDetails) batchDeleteTasksRes()         {}
-func (*ValidationProblemDetails) completeTaskRes()             {}
-func (*ValidationProblemDetails) createAgentKeyRes()           {}
-func (*ValidationProblemDetails) createTaskRes()               {}
-func (*ValidationProblemDetails) getTaskActivityAnalyticsRes() {}
-func (*ValidationProblemDetails) listAgentKeysRes()            {}
-func (*ValidationProblemDetails) listTasksRes()                {}
-func (*ValidationProblemDetails) revokeAgentKeyRes()           {}
-func (*ValidationProblemDetails) rotateAgentKeyRes()           {}
-func (*ValidationProblemDetails) updateTaskMetadataRes()       {}
+func (*ValidationProblemDetails) batchDeleteTasksRes()          {}
+func (*ValidationProblemDetails) completeTaskRes()              {}
+func (*ValidationProblemDetails) createAgentKeyRes()            {}
+func (*ValidationProblemDetails) createRuntimePolicyRes()       {}
+func (*ValidationProblemDetails) createTaskRes()                {}
+func (*ValidationProblemDetails) getTaskActivityAnalyticsRes()  {}
+func (*ValidationProblemDetails) listAgentKeysRes()             {}
+func (*ValidationProblemDetails) listTasksRes()                 {}
+func (*ValidationProblemDetails) revokeAgentKeyRes()            {}
+func (*ValidationProblemDetails) rotateAgentKeyRes()            {}
+func (*ValidationProblemDetails) setRuntimeProfilePoliciesRes() {}
+func (*ValidationProblemDetails) updateRuntimePolicyRes()       {}
+func (*ValidationProblemDetails) updateTaskMetadataRes()        {}
 
 type ValidationProblemDetailsAdditional map[string]jx.Raw
 

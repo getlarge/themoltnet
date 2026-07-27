@@ -32,6 +32,7 @@ import type {
   HumanRepository,
   NonceRepository,
   RuntimeModelRepository,
+  RuntimePolicyRepository,
   RuntimeProfileRepository,
   RuntimeSessionRepository,
   RuntimeSlotRepository,
@@ -289,6 +290,9 @@ export interface MockServices {
   };
   runtimeModelRepository: {
     [K in keyof RuntimeModelRepository]: ReturnType<typeof vi.fn>;
+  };
+  runtimePolicyRepository: {
+    [K in keyof RuntimePolicyRepository]: ReturnType<typeof vi.fn>;
   };
   relationshipReader: {
     [K in keyof RelationshipReader]: ReturnType<typeof vi.fn>;
@@ -559,6 +563,9 @@ export function createMockServices(): MockServices {
       removeTaskRelations: vi.fn(),
       removeTaskRelationsBatch: vi.fn(),
       removeTaskClaimant: vi.fn(),
+      writeRuntimePolicyEdges: vi.fn(),
+      removeRuntimePolicyRelations: vi.fn(),
+      writeRuntimeProfilePolicyEdges: vi.fn(),
     },
     dataSource: {
       client: { __mock: 'transactionalClient' },
@@ -642,6 +649,17 @@ export function createMockServices(): MockServices {
       update: vi.fn(),
       delete: vi.fn(),
     },
+    runtimePolicyRepository: {
+      create: vi.fn(),
+      findByIdForTeam: vi.fn(),
+      listByTeam: vi.fn().mockResolvedValue([]),
+      findExistingIdsForTeam: vi.fn().mockResolvedValue(new Set()),
+      lockProfileBindings: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+      getProfileEnforcement: vi.fn(),
+      profileExistsForTeam: vi.fn(),
+    },
     relationshipReader: {
       listTeamIdsBySubject: vi.fn().mockResolvedValue([]),
       listTeamIdsAndRolesBySubject: vi.fn().mockResolvedValue([]),
@@ -649,6 +667,8 @@ export function createMockServices(): MockServices {
       isTeamMember: vi.fn().mockResolvedValue(false),
       listGroupMembers: vi.fn().mockResolvedValue([]),
       listGroupIdsBySubject: vi.fn().mockResolvedValue([]),
+      listRuntimeProfilePolicies: vi.fn().mockResolvedValue([]),
+      listRuntimePolicyTools: vi.fn().mockResolvedValue([]),
     },
     taskRepository: {
       create: vi.fn(),
@@ -907,6 +927,8 @@ export async function createTestApp(
       mocks.runtimeSlotRepository as unknown as RuntimeSlotRepository,
     runtimeModelRepository:
       mocks.runtimeModelRepository as unknown as RuntimeModelRepository,
+    runtimePolicyRepository:
+      mocks.runtimePolicyRepository as unknown as RuntimePolicyRepository,
     groupRepository: mocks.groupRepository as never,
     relationshipReader: mocks.relationshipReader as never,
     hydraPublicUrl: 'http://hydra-mock:4444',

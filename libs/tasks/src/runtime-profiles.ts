@@ -30,6 +30,20 @@ export type RuntimeProfileWorkspaceMode = Static<
   typeof RuntimeProfileWorkspaceMode
 >;
 
+/**
+ * Tool-policy enforcement mode for the profile's runtime `tool_call` gate:
+ * `off` (inert), `watch` (audit only), `enforce` (block disallowed tools,
+ * fail-closed). Read by the daemon via `GET /runtime-profiles/:id/allowed-tools`.
+ */
+export const RuntimeProfileToolEnforcement = Type.Union([
+  Type.Literal('off'),
+  Type.Literal('watch'),
+  Type.Literal('enforce'),
+]);
+export type RuntimeProfileToolEnforcement = Static<
+  typeof RuntimeProfileToolEnforcement
+>;
+
 export const RuntimeProfileAllowedWorkspaceModes = Type.Array(
   RuntimeProfileWorkspaceMode,
   {
@@ -321,6 +335,7 @@ export const RuntimeProfile = Type.Object(
     maxBatchSize: RuntimeProfileMaxBatchSize,
     maxTurns: RuntimeProfileMaxTurns,
     maxBashTimeouts: RuntimeProfileMaxBashTimeouts,
+    toolEnforcement: RuntimeProfileToolEnforcement,
     requiredEnv: Type.Array(RuntimeProfileEnvName, { maxItems: 100 }),
     requiredTools: Type.Array(RuntimeProfileToolName, { maxItems: 100 }),
     context: Type.Array(RuntimeProfileContext, { maxItems: 5 }),

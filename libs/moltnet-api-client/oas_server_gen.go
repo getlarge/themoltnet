@@ -150,6 +150,12 @@ type Handler interface {
 	//
 	// POST /runtime-models
 	CreateRuntimeModel(ctx context.Context, req OptCreateRuntimeModelBody, params CreateRuntimeModelParams) (CreateRuntimeModelRes, error)
+	// CreateRuntimePolicy implements createRuntimePolicy operation.
+	//
+	// Create a team-scoped tool policy granting a set of tools.
+	//
+	// POST /runtime-policies
+	CreateRuntimePolicy(ctx context.Context, req OptCreateRuntimePolicyBody, params CreateRuntimePolicyParams) (CreateRuntimePolicyRes, error)
 	// CreateRuntimeProfile implements createRuntimeProfile operation.
 	//
 	// Create a runtime profile for the active team context.
@@ -212,6 +218,12 @@ type Handler interface {
 	//
 	// DELETE /runtime-models/{modelId}
 	DeleteRuntimeModel(ctx context.Context, params DeleteRuntimeModelParams) (DeleteRuntimeModelRes, error)
+	// DeleteRuntimePolicy implements deleteRuntimePolicy operation.
+	//
+	// Delete a tool policy and its tool grants.
+	//
+	// DELETE /runtime-policies/{policyId}
+	DeleteRuntimePolicy(ctx context.Context, params DeleteRuntimePolicyParams) (DeleteRuntimePolicyRes, error)
 	// DeleteRuntimeProfile implements deleteRuntimeProfile operation.
 	//
 	// Delete one runtime profile.
@@ -403,12 +415,30 @@ type Handler interface {
 	//
 	// GET /runtime-models/{modelId}
 	GetRuntimeModel(ctx context.Context, params GetRuntimeModelParams) (GetRuntimeModelRes, error)
+	// GetRuntimePolicy implements getRuntimePolicy operation.
+	//
+	// Get one tool policy with its granted tools.
+	//
+	// GET /runtime-policies/{policyId}
+	GetRuntimePolicy(ctx context.Context, params GetRuntimePolicyParams) (GetRuntimePolicyRes, error)
 	// GetRuntimeProfile implements getRuntimeProfile operation.
 	//
 	// Get one runtime profile.
 	//
 	// GET /runtime-profiles/{profileId}
 	GetRuntimeProfile(ctx context.Context, params GetRuntimeProfileParams) (GetRuntimeProfileRes, error)
+	// GetRuntimeProfileAllowedTools implements getRuntimeProfileAllowedTools operation.
+	//
+	// Resolve a runtime profile enforcement mode and its allowed-tool set (union of bound policies).
+	//
+	// GET /runtime-profiles/{profileId}/allowed-tools
+	GetRuntimeProfileAllowedTools(ctx context.Context, params GetRuntimeProfileAllowedToolsParams) (GetRuntimeProfileAllowedToolsRes, error)
+	// GetRuntimeProfilePolicies implements getRuntimeProfilePolicies operation.
+	//
+	// List the tool-policy IDs bound to a runtime profile.
+	//
+	// GET /runtime-profiles/{profileId}/policies
+	GetRuntimeProfilePolicies(ctx context.Context, params GetRuntimeProfilePoliciesParams) (GetRuntimeProfilePoliciesRes, error)
 	// GetRuntimeSession implements getRuntimeSession operation.
 	//
 	// Get metadata for the durable team-scoped runtime session for a task attempt.
@@ -572,6 +602,12 @@ type Handler interface {
 	//
 	// GET /runtime-models
 	ListRuntimeModels(ctx context.Context, params ListRuntimeModelsParams) (ListRuntimeModelsRes, error)
+	// ListRuntimePolicies implements listRuntimePolicies operation.
+	//
+	// List tool policies for the active team.
+	//
+	// GET /runtime-policies
+	ListRuntimePolicies(ctx context.Context, params ListRuntimePoliciesParams) (ListRuntimePoliciesRes, error)
 	// ListRuntimeProfiles implements listRuntimeProfiles operation.
 	//
 	// List runtime profiles for the active team context.
@@ -739,6 +775,12 @@ type Handler interface {
 	//
 	// GET /public/feed/search
 	SearchPublicFeed(ctx context.Context, params SearchPublicFeedParams) (SearchPublicFeedRes, error)
+	// SetRuntimeProfilePolicies implements setRuntimeProfilePolicies operation.
+	//
+	// Replace the set of tool policies bound to a runtime profile.
+	//
+	// PUT /runtime-profiles/{profileId}/policies
+	SetRuntimeProfilePolicies(ctx context.Context, req OptSetProfilePoliciesBody, params SetRuntimeProfilePoliciesParams) (SetRuntimeProfilePoliciesRes, error)
 	// StageTaskArtifact implements stageTaskArtifact operation.
 	//
 	// Stage immutable content-addressed artifact bytes for later binding as task input artifacts via
@@ -808,6 +850,12 @@ type Handler interface {
 	//
 	// PATCH /runtime-models/{modelId}
 	UpdateRuntimeModel(ctx context.Context, req OptUpdateRuntimeModelBody, params UpdateRuntimeModelParams) (UpdateRuntimeModelRes, error)
+	// UpdateRuntimePolicy implements updateRuntimePolicy operation.
+	//
+	// Rename a policy and/or add/remove granted tools.
+	//
+	// PATCH /runtime-policies/{policyId}
+	UpdateRuntimePolicy(ctx context.Context, req OptUpdateRuntimePolicyBody, params UpdateRuntimePolicyParams) (UpdateRuntimePolicyRes, error)
 	// UpdateRuntimeProfile implements updateRuntimeProfile operation.
 	//
 	// Update one runtime profile.

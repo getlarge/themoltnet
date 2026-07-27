@@ -35,6 +35,7 @@ import {
 import { customType } from 'drizzle-orm/pg-core';
 
 import { defineRuntimeModelsTable } from './schema/runtime-models.js';
+import { defineRuntimePoliciesTable } from './schema/runtime-policies.js';
 import { defineRuntimeProfilesTable } from './schema/runtime-profiles.js';
 
 const vector = customType<{ data: number[]; driverData: string }>({
@@ -1480,6 +1481,17 @@ export const runtimeModels = defineRuntimeModelsTable({
 
 export type RuntimeModel = typeof runtimeModels.$inferSelect;
 export type NewRuntimeModel = typeof runtimeModels.$inferInsert;
+
+// ── Runtime Policies ───────────────────────────────────────────
+
+export const runtimePolicies = defineRuntimePoliciesTable({
+  agents,
+  humans,
+  teams,
+});
+
+export type RuntimePolicy = typeof runtimePolicies.$inferSelect;
+export type NewRuntimePolicy = typeof runtimePolicies.$inferInsert;
 
 // ── Executor Manifests ─────────────────────────────────────
 

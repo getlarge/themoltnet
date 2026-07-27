@@ -1,0 +1,108 @@
+import { UuidSchema } from '@moltnet/models';
+import { Type } from 'typebox';
+
+const TOOL_NAME_PATTERN = '^[a-zA-Z0-9_.:-]{1,128}$';
+
+const ToolNameSchema = Type.String({
+  minLength: 1,
+  maxLength: 128,
+  pattern: TOOL_NAME_PATTERN,
+  description: 'A tool identifier, e.g. an executable name like "git".',
+});
+
+export const ToolEnforcementSchema = Type.Union(
+  [Type.Literal('off'), Type.Literal('watch'), Type.Literal('enforce')],
+  {
+    $id: 'ToolEnforcement',
+    description:
+      'Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed tools, fail-closed).',
+  },
+);
+
+export const RuntimePolicySchema = Type.Object(
+  {
+    id: UuidSchema,
+    teamId: UuidSchema,
+    name: Type.String(),
+    description: Type.Union([Type.String(), Type.Null()]),
+    createdAt: Type.String({ format: 'date-time' }),
+    updatedAt: Type.String({ format: 'date-time' }),
+  },
+  { $id: 'RuntimePolicy' },
+);
+
+export const RuntimePolicyWithToolsSchema = Type.Object(
+  {
+    id: UuidSchema,
+    teamId: UuidSchema,
+    name: Type.String(),
+    description: Type.Union([Type.String(), Type.Null()]),
+    createdAt: Type.String({ format: 'date-time' }),
+    updatedAt: Type.String({ format: 'date-time' }),
+    tools: Type.Array(ToolNameSchema),
+  },
+  { $id: 'RuntimePolicyWithTools' },
+);
+
+export const RuntimePolicyListSchema = Type.Object(
+  { items: Type.Array(Type.Ref(RuntimePolicySchema.$id)) },
+  { $id: 'RuntimePolicyList' },
+);
+
+export const CreateRuntimePolicyBodySchema = Type.Object(
+  {
+    name: Type.String({ minLength: 1, maxLength: 100, pattern: '\\S' }),
+    description: Type.Optional(Type.String({ maxLength: 4096 })),
+    tools: Type.Optional(Type.Array(ToolNameSchema, { maxItems: 500 })),
+  },
+  { $id: 'CreateRuntimePolicyBody', additionalProperties: false },
+);
+
+// Rejects unknown keys (catches misspelled fields) and empty no-op patches.
+export const UpdateRuntimePolicyBodySchema = Type.Object(
+  {
+    name: Type.Optional(
+      Type.String({ minLength: 1, maxLength: 100, pattern: '\\S' }),
+    ),
+    description: Type.Optional(
+      Type.Union([Type.String({ maxLength: 4096 }), Type.Null()]),
+    ),
+    addTools: Type.Optional(Type.Array(ToolNameSchema, { maxItems: 500 })),
+    removeTools: Type.Optional(Type.Array(ToolNameSchema, { maxItems: 500 })),
+  },
+  {
+    $id: 'UpdateRuntimePolicyBody',
+    additionalProperties: false,
+    minProperties: 1,
+  },
+);
+
+export const SetProfilePoliciesBodySchema = Type.Object(
+  { policyIds: Type.Array(UuidSchema, { maxItems: 200 }) },
+  { $id: 'SetProfilePoliciesBody', additionalProperties: false },
+);
+
+export const RuntimeProfilePoliciesResponseSchema = Type.Object(
+  { policyIds: Type.Array(UuidSchema) },
+  { $id: 'RuntimeProfilePoliciesResponse' },
+);
+
+export const AllowedToolsResponseSchema = Type.Object(
+  {
+    enforcement: Type.Ref(ToolEnforcementSchema.$id),
+    allowedTools: Type.Array(ToolNameSchema),
+  },
+  { $id: 'AllowedToolsResponse' },
+);
+
+export const runtimePolicySchemas = [
+  ToolEnforcementSchema,
+  RuntimePolicySchema,
+  RuntimePolicyWithToolsSchema,
+  RuntimePolicyListSchema,
+  CreateRuntimePolicyBodySchema,
+  UpdateRuntimePolicyBodySchema,
+  SetProfilePoliciesBodySchema,
+  RuntimeProfilePoliciesResponseSchema,
+  AllowedToolsResponseSchema,
+];

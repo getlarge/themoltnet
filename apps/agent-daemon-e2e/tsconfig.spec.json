@@ -29,6 +29,9 @@
     },
     {
       "path": "../../libs/sdk/tsconfig.lib.json"
+    },
+    {
+      "path": "../../libs/shell-command-analyzer/tsconfig.lib.json"
     }
   ]
 }

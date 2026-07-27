@@ -229,6 +229,15 @@ func (UnimplementedHandler) CreateRuntimeModel(ctx context.Context, req OptCreat
 	return r, ht.ErrNotImplemented
 }
 
+// CreateRuntimePolicy implements createRuntimePolicy operation.
+//
+// Create a team-scoped tool policy granting a set of tools.
+//
+// POST /runtime-policies
+func (UnimplementedHandler) CreateRuntimePolicy(ctx context.Context, req OptCreateRuntimePolicyBody, params CreateRuntimePolicyParams) (r CreateRuntimePolicyRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // CreateRuntimeProfile implements createRuntimeProfile operation.
 //
 // Create a runtime profile for the active team context.
@@ -318,6 +327,15 @@ func (UnimplementedHandler) DeleteGroup(ctx context.Context, params DeleteGroupP
 //
 // DELETE /runtime-models/{modelId}
 func (UnimplementedHandler) DeleteRuntimeModel(ctx context.Context, params DeleteRuntimeModelParams) (r DeleteRuntimeModelRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// DeleteRuntimePolicy implements deleteRuntimePolicy operation.
+//
+// Delete a tool policy and its tool grants.
+//
+// DELETE /runtime-policies/{policyId}
+func (UnimplementedHandler) DeleteRuntimePolicy(ctx context.Context, params DeleteRuntimePolicyParams) (r DeleteRuntimePolicyRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -605,12 +623,39 @@ func (UnimplementedHandler) GetRuntimeModel(ctx context.Context, params GetRunti
 	return r, ht.ErrNotImplemented
 }
 
+// GetRuntimePolicy implements getRuntimePolicy operation.
+//
+// Get one tool policy with its granted tools.
+//
+// GET /runtime-policies/{policyId}
+func (UnimplementedHandler) GetRuntimePolicy(ctx context.Context, params GetRuntimePolicyParams) (r GetRuntimePolicyRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // GetRuntimeProfile implements getRuntimeProfile operation.
 //
 // Get one runtime profile.
 //
 // GET /runtime-profiles/{profileId}
 func (UnimplementedHandler) GetRuntimeProfile(ctx context.Context, params GetRuntimeProfileParams) (r GetRuntimeProfileRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetRuntimeProfileAllowedTools implements getRuntimeProfileAllowedTools operation.
+//
+// Resolve a runtime profile enforcement mode and its allowed-tool set (union of bound policies).
+//
+// GET /runtime-profiles/{profileId}/allowed-tools
+func (UnimplementedHandler) GetRuntimeProfileAllowedTools(ctx context.Context, params GetRuntimeProfileAllowedToolsParams) (r GetRuntimeProfileAllowedToolsRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// GetRuntimeProfilePolicies implements getRuntimeProfilePolicies operation.
+//
+// List the tool-policy IDs bound to a runtime profile.
+//
+// GET /runtime-profiles/{profileId}/policies
+func (UnimplementedHandler) GetRuntimeProfilePolicies(ctx context.Context, params GetRuntimeProfilePoliciesParams) (r GetRuntimeProfilePoliciesRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -853,6 +898,15 @@ func (UnimplementedHandler) ListProblemTypes(ctx context.Context) (r []ListProbl
 //
 // GET /runtime-models
 func (UnimplementedHandler) ListRuntimeModels(ctx context.Context, params ListRuntimeModelsParams) (r ListRuntimeModelsRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// ListRuntimePolicies implements listRuntimePolicies operation.
+//
+// List tool policies for the active team.
+//
+// GET /runtime-policies
+func (UnimplementedHandler) ListRuntimePolicies(ctx context.Context, params ListRuntimePoliciesParams) (r ListRuntimePoliciesRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -1107,6 +1161,15 @@ func (UnimplementedHandler) SearchPublicFeed(ctx context.Context, params SearchP
 	return r, ht.ErrNotImplemented
 }
 
+// SetRuntimeProfilePolicies implements setRuntimeProfilePolicies operation.
+//
+// Replace the set of tool policies bound to a runtime profile.
+//
+// PUT /runtime-profiles/{profileId}/policies
+func (UnimplementedHandler) SetRuntimeProfilePolicies(ctx context.Context, req OptSetProfilePoliciesBody, params SetRuntimeProfilePoliciesParams) (r SetRuntimeProfilePoliciesRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // StageTaskArtifact implements stageTaskArtifact operation.
 //
 // Stage immutable content-addressed artifact bytes for later binding as task input artifacts via
@@ -1206,6 +1269,15 @@ func (UnimplementedHandler) UpdateRenderedPack(ctx context.Context, req OptUpdat
 //
 // PATCH /runtime-models/{modelId}
 func (UnimplementedHandler) UpdateRuntimeModel(ctx context.Context, req OptUpdateRuntimeModelBody, params UpdateRuntimeModelParams) (r UpdateRuntimeModelRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// UpdateRuntimePolicy implements updateRuntimePolicy operation.
+//
+// Rename a policy and/or add/remove granted tools.
+//
+// PATCH /runtime-policies/{policyId}
+func (UnimplementedHandler) UpdateRuntimePolicy(ctx context.Context, req OptUpdateRuntimePolicyBody, params UpdateRuntimePolicyParams) (r UpdateRuntimePolicyRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

@@ -12,6 +12,8 @@ import {
   DiaryRelation,
   GroupRelation,
   KetoNamespace,
+  RuntimePolicyRelation,
+  RuntimeProfileRelation,
 } from './keto-constants.js';
 import {
   normalizeTeamRelation,
@@ -61,6 +63,44 @@ export interface RelationshipReader {
   listGroupIdsBySubject(subjectId: string): Promise<string[]>;
   /** Returns all per-diary grants (writers + managers). */
   listDiaryGrants(diaryId: string): Promise<DiaryGrantTuple[]>;
+  /** Returns the RuntimePolicy IDs bound to a runtime profile. */
+  listRuntimeProfilePolicies(profileId: string): Promise<string[]>;
+  /** Returns the tool names granted by a runtime policy. */
+  listRuntimePolicyTools(policyId: string): Promise<string[]>;
+}
+
+/**
+ * Collects the `subject_set.object` of every tuple for a given
+ * (namespace, object, relation), following pagination. Used by the
+ * RuntimeProfile → policies → tools expand.
+ */
+async function listSubjectSetObjects(
+  relationshipApi: RelationshipApi,
+  params: {
+    namespace: KetoNamespace;
+    object: string;
+    relation: string;
+  },
+): Promise<string[]> {
+  const objects: string[] = [];
+  let pageToken: string | undefined;
+
+  do {
+    const result = await relationshipApi.getRelationships({
+      namespace: params.namespace,
+      object: params.object,
+      relation: params.relation,
+      pageToken,
+    });
+    for (const tuple of result.relation_tuples ?? []) {
+      if (tuple.subject_set?.object) {
+        objects.push(tuple.subject_set.object);
+      }
+    }
+    pageToken = result.next_page_token || undefined;
+  } while (pageToken);
+
+  return [...new Set(objects)];
 }
 
 async function paginateTeamRoles(
@@ -273,6 +313,22 @@ export function createRelationshipReader(
       }
 
       return grants;
+    },
+
+    async listRuntimeProfilePolicies(profileId: string): Promise<string[]> {
+      return listSubjectSetObjects(relationshipApi, {
+        namespace: KetoNamespace.RuntimeProfile,
+        object: profileId,
+        relation: RuntimeProfileRelation.Policies,
+      });
+    },
+
+    async listRuntimePolicyTools(policyId: string): Promise<string[]> {
+      return listSubjectSetObjects(relationshipApi, {
+        namespace: KetoNamespace.RuntimePolicy,
+        object: policyId,
+        relation: RuntimePolicyRelation.Tool,
+      });
     },
   };
 }

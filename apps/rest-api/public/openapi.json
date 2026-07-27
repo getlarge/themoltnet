@@ -330,6 +330,28 @@
         ],
         "type": "object"
       },
+      "AllowedToolsResponse": {
+        "properties": {
+          "allowedTools": {
+            "items": {
+              "description": "A tool identifier, e.g. an executable name like \"git\".",
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9_.:-]{1,128}$",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "enforcement": {
+            "$ref": "#/components/schemas/ToolEnforcement"
+          }
+        },
+        "required": [
+          "enforcement",
+          "allowedTools"
+        ],
+        "type": "object"
+      },
       "AppendMessagesBody": {
         "properties": {
           "messages": {
@@ -1820,6 +1842,36 @@
         ],
         "type": "object"
       },
+      "CreateRuntimePolicyBody": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "maxLength": 4096,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          "tools": {
+            "items": {
+              "description": "A tool identifier, e.g. an executable name like \"git\".",
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9_.:-]{1,128}$",
+              "type": "string"
+            },
+            "maxItems": 500,
+            "type": "array"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
       "CreateRuntimeProfileBody": {
         "additionalProperties": false,
         "properties": {
@@ -2279,6 +2331,28 @@
               },
               {
                 "type": "null"
+              }
+            ]
+          },
+          "toolEnforcement": {
+            "anyOf": [
+              {
+                "enum": [
+                  "off"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "watch"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "enforce"
+                ],
+                "type": "string"
               }
             ]
           },
@@ -7991,6 +8065,119 @@
         ],
         "type": "object"
       },
+      "RuntimePolicy": {
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "description": "UUID v4 identifier",
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "teamId": {
+            "description": "UUID v4 identifier",
+            "format": "uuid",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "teamId",
+          "name",
+          "description",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
+      "RuntimePolicyList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RuntimePolicy"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "RuntimePolicyWithTools": {
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "description": "UUID v4 identifier",
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "teamId": {
+            "description": "UUID v4 identifier",
+            "format": "uuid",
+            "type": "string"
+          },
+          "tools": {
+            "items": {
+              "description": "A tool identifier, e.g. an executable name like \"git\".",
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9_.:-]{1,128}$",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "teamId",
+          "name",
+          "description",
+          "createdAt",
+          "updatedAt",
+          "tools"
+        ],
+        "type": "object"
+      },
       "RuntimeProfile": {
         "additionalProperties": false,
         "properties": {
@@ -8503,6 +8690,28 @@
               }
             ]
           },
+          "toolEnforcement": {
+            "anyOf": [
+              {
+                "enum": [
+                  "off"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "watch"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "enforce"
+                ],
+                "type": "string"
+              }
+            ]
+          },
           "topK": {
             "anyOf": [
               {
@@ -8568,6 +8777,7 @@
           "maxBatchSize",
           "maxTurns",
           "maxBashTimeouts",
+          "toolEnforcement",
           "requiredEnv",
           "requiredTools",
           "context",
@@ -9145,6 +9355,28 @@
                     }
                   ]
                 },
+                "toolEnforcement": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "off"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "enum": [
+                        "watch"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "enum": [
+                        "enforce"
+                      ],
+                      "type": "string"
+                    }
+                  ]
+                },
                 "topK": {
                   "anyOf": [
                     {
@@ -9210,6 +9442,7 @@
                 "maxBatchSize",
                 "maxTurns",
                 "maxBashTimeouts",
+                "toolEnforcement",
                 "requiredEnv",
                 "requiredTools",
                 "context",
@@ -9227,6 +9460,22 @@
         },
         "required": [
           "items"
+        ],
+        "type": "object"
+      },
+      "RuntimeProfilePoliciesResponse": {
+        "properties": {
+          "policyIds": {
+            "items": {
+              "description": "UUID v4 identifier",
+              "format": "uuid",
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "policyIds"
         ],
         "type": "object"
       },
@@ -10043,6 +10292,24 @@
           "kind",
           "createdAtMs",
           "lastUsedAtMs"
+        ],
+        "type": "object"
+      },
+      "SetProfilePoliciesBody": {
+        "additionalProperties": false,
+        "properties": {
+          "policyIds": {
+            "items": {
+              "description": "UUID v4 identifier",
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 200,
+            "type": "array"
+          }
+        },
+        "required": [
+          "policyIds"
         ],
         "type": "object"
       },
@@ -13098,6 +13365,29 @@
         ],
         "type": "object"
       },
+      "ToolEnforcement": {
+        "anyOf": [
+          {
+            "enum": [
+              "off"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "watch"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "enforce"
+            ],
+            "type": "string"
+          }
+        ],
+        "description": "Runtime tool-policy enforcement mode: off (inert), watch (audit only), enforce (block disallowed tools, fail-closed)."
+      },
       "UpdateRuntimeModelBody": {
         "additionalProperties": false,
         "minProperties": 1,
@@ -13142,6 +13432,52 @@
             "minLength": 1,
             "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,99}$",
             "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateRuntimePolicyBody": {
+        "additionalProperties": false,
+        "minProperties": 1,
+        "properties": {
+          "addTools": {
+            "items": {
+              "description": "A tool identifier, e.g. an executable name like \"git\".",
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9_.:-]{1,128}$",
+              "type": "string"
+            },
+            "maxItems": 500,
+            "type": "array"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 4096,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          "removeTools": {
+            "items": {
+              "description": "A tool identifier, e.g. an executable name like \"git\".",
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9_.:-]{1,128}$",
+              "type": "string"
+            },
+            "maxItems": 500,
+            "type": "array"
           }
         },
         "type": "object"
@@ -13606,6 +13942,28 @@
               },
               {
                 "type": "null"
+              }
+            ]
+          },
+          "toolEnforcement": {
+            "anyOf": [
+              {
+                "enum": [
+                  "off"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "watch"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "enforce"
+                ],
+                "type": "string"
               }
             ]
           },
@@ -25366,6 +25724,428 @@
         ]
       }
     },
+    "/runtime-policies": {
+      "get": {
+        "description": "List tool policies for the active team.",
+        "operationId": "listRuntimePolicies",
+        "parameters": [
+          {
+            "description": "Team ID (UUID) that will own the resource. Required.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimePolicyList"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "runtime-policies"
+        ]
+      },
+      "post": {
+        "description": "Create a team-scoped tool policy granting a set of tools.",
+        "operationId": "createRuntimePolicy",
+        "parameters": [
+          {
+            "description": "Team ID (UUID) that will own the resource. Required.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRuntimePolicyBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimePolicyWithTools"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "runtime-policies"
+        ]
+      }
+    },
+    "/runtime-policies/{policyId}": {
+      "delete": {
+        "description": "Delete a tool policy and its tool grants.",
+        "operationId": "deleteRuntimePolicy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "policyId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Team ID (UUID) that will own the resource. Required.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "runtime-policies"
+        ]
+      },
+      "get": {
+        "description": "Get one tool policy with its granted tools.",
+        "operationId": "getRuntimePolicy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "policyId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Team ID (UUID) that will own the resource. Required.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimePolicyWithTools"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "runtime-policies"
+        ]
+      },
+      "patch": {
+        "description": "Rename a policy and/or add/remove granted tools.",
+        "operationId": "updateRuntimePolicy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "policyId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Team ID (UUID) that will own the resource. Required.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRuntimePolicyBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimePolicyWithTools"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "runtime-policies"
+        ]
+      }
+    },
     "/runtime-profiles": {
       "get": {
         "description": "List runtime profiles for the active team context.",
@@ -25765,6 +26545,265 @@
         ],
         "tags": [
           "runtime-profiles"
+        ]
+      }
+    },
+    "/runtime-profiles/{profileId}/allowed-tools": {
+      "get": {
+        "description": "Resolve a runtime profile enforcement mode and its allowed-tool set (union of bound policies).",
+        "operationId": "getRuntimeProfileAllowedTools",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "profileId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Team ID (UUID) that will own the resource. Required.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AllowedToolsResponse"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "runtime-policies"
+        ]
+      }
+    },
+    "/runtime-profiles/{profileId}/policies": {
+      "get": {
+        "description": "List the tool-policy IDs bound to a runtime profile.",
+        "operationId": "getRuntimeProfilePolicies",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "profileId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Team ID (UUID) that will own the resource. Required.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuntimeProfilePoliciesResponse"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "runtime-policies"
+        ]
+      },
+      "put": {
+        "description": "Replace the set of tool policies bound to a runtime profile.",
+        "operationId": "setRuntimeProfilePolicies",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "profileId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Team ID (UUID) that will own the resource. Required.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetProfilePoliciesBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "runtime-policies"
         ]
       }
     },

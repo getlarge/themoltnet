@@ -26,6 +26,9 @@
       "path": "../sdk/tsconfig.lib.json"
     },
     {
+      "path": "../shell-command-analyzer/tsconfig.lib.json"
+    },
+    {
       "path": "../agent-runtime/tsconfig.lib.json"
     },
     {

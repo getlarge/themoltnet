@@ -2,14 +2,17 @@ import {
   createRuntimeProfile,
   deleteRuntimeProfile,
   getRuntimeProfile,
+  getRuntimeProfileAllowedTools,
+  getRuntimeProfilePolicies,
   listRuntimeProfiles,
+  setRuntimeProfilePolicies,
   updateRuntimeProfile,
 } from '@moltnet/api-client';
 
 import type { RuntimeProfilesNamespace } from '../agent.js';
 import type { AgentContext } from '../agent-context.js';
 import { unwrapResult } from '../agent-context.js';
-import { teamHeaders } from './team-headers.js';
+import { requiredTeamHeaders, teamHeaders } from './team-headers.js';
 
 export function createRuntimeProfilesNamespace(
   context: AgentContext,
@@ -64,6 +67,41 @@ export function createRuntimeProfilesNamespace(
       if (result.error) {
         unwrapResult(result);
       }
+    },
+
+    async allowedTools(profileId, options) {
+      return unwrapResult(
+        await getRuntimeProfileAllowedTools({
+          client,
+          auth,
+          path: { profileId },
+          headers: requiredTeamHeaders(options),
+        }),
+      );
+    },
+
+    async setPolicies(profileId, policyIds, options) {
+      const result = await setRuntimeProfilePolicies({
+        client,
+        auth,
+        path: { profileId },
+        headers: requiredTeamHeaders(options),
+        body: { policyIds },
+      });
+      if (result.error) {
+        unwrapResult(result);
+      }
+    },
+
+    async getPolicies(profileId, options) {
+      return unwrapResult(
+        await getRuntimeProfilePolicies({
+          client,
+          auth,
+          path: { profileId },
+          headers: requiredTeamHeaders(options),
+        }),
+      );
     },
   };
 }

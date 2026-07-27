@@ -34,6 +34,7 @@ export type UpdateRuntimeProfileInput = Partial<
     | 'maxBatchSize'
     | 'maxTurns'
     | 'maxBashTimeouts'
+    | 'toolEnforcement'
     | 'requiredEnv'
     | 'requiredTools'
     | 'context'

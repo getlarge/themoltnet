@@ -574,3 +574,17 @@ export type {
   TurnEventHandler,
   TurnEventKind,
 } from './runtime/task-event-emitter.js';
+export {
+  decideToolCall,
+  type GateDecision,
+  type GateInput,
+  type ToolEnforcement,
+} from './tool-policy/gate.js';
+export {
+  type AllowedToolsClient,
+  createToolPolicyExtension,
+  decideForEvent,
+  resolveSessionToolPolicy,
+  type SessionToolPolicy,
+  type ToolPolicyExtensionDeps,
+} from './tool-policy/session-policy.js';
