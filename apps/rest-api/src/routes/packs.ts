@@ -1,5 +1,5 @@
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
-import { KetoNamespace, requireAuth } from '@moltnet/auth';
+import { requireAuth } from '@moltnet/auth';
 import {
   compress,
   type CompressionLevel,
@@ -38,6 +38,7 @@ import {
   PackUpdateBodySchema,
 } from '../schemas.js';
 import { authContextToCreator } from '../utils/auth-principal.js';
+import { requireKetoSubject } from '../utils/require-keto-subject.js';
 import { buildPackProvenanceGraph } from './pack-provenance.js';
 
 interface SelectedEntry {
@@ -344,16 +345,13 @@ export async function packRoutes(fastify: FastifyInstance) {
     },
     persist: boolean,
   ) => {
-    const subjectNs =
-      request.authContext.subjectType === 'human'
-        ? KetoNamespace.Human
-        : KetoNamespace.Agent;
+    const { identityId, subjectNs } = requireKetoSubject(request);
 
     let diary: Awaited<ReturnType<typeof fastify.diaryService.findDiary>>;
     try {
       diary = await fastify.diaryService.findDiary(
         request.params.id,
-        request.authContext.identityId,
+        identityId,
         subjectNs,
       );
     } catch (err) {
@@ -521,9 +519,7 @@ export async function packRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectType } = request.authContext!;
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
 
       let pack;
       try {
@@ -581,9 +577,7 @@ export async function packRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectType } = request.authContext!;
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
 
       let pack;
       try {
@@ -640,9 +634,7 @@ export async function packRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectType } = request.authContext!;
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
 
       try {
         return await fastify.contextPackService.diffPacks({
@@ -680,9 +672,7 @@ export async function packRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectType } = request.authContext!;
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
 
       try {
         return await fastify.contextPackService.diffPacks({
@@ -720,9 +710,7 @@ export async function packRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectType } = request.authContext!;
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
 
       if (request.query.diaryId && request.query.containsEntry) {
         throw createProblem(
@@ -825,9 +813,7 @@ export async function packRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectType } = request.authContext!;
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
 
       try {
         return await fastify.contextPackService.getPackById({
@@ -937,9 +923,7 @@ export async function packRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectType } = request.authContext!;
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
 
       try {
         return await fastify.contextPackService.listPacksByDiary({
@@ -982,9 +966,7 @@ export async function packRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectType } = request.authContext!;
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
 
       const pack = await fastify.contextPackRepository.findById(
         request.params.id,

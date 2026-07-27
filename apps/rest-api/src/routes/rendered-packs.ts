@@ -1,5 +1,5 @@
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
-import { KetoNamespace, requireAuth } from '@moltnet/auth';
+import { requireAuth } from '@moltnet/auth';
 import { PackServiceError } from '@moltnet/context-pack-service';
 import {
   ConflictProblemDetailsSchema,
@@ -22,6 +22,7 @@ import {
   RenderPackPreviewBodySchema,
 } from '../schemas.js';
 import { authContextToCreator } from '../utils/auth-principal.js';
+import { requireKetoSubject } from '../utils/require-keto-subject.js';
 
 function translatePackServiceError(err: PackServiceError): never {
   switch (err.code) {
@@ -76,9 +77,7 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
           ? request.body.renderedMarkdown
           : undefined;
 
-      const { identityId, subjectType } = request.authContext!;
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
 
       try {
         const canRead = await fastify.permissionChecker.canReadPack(
@@ -146,9 +145,7 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
           ? request.body.renderedMarkdown
           : undefined;
 
-      const { identityId, subjectType } = request.authContext!;
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
 
       try {
         const canWrite = await fastify.permissionChecker.canWritePack(
@@ -212,9 +209,7 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectType } = request.authContext!;
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
 
       try {
         return await fastify.contextPackService.getLatestRenderedPack({
@@ -264,9 +259,7 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectType } = request.authContext!;
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
 
       try {
         return await fastify.contextPackService.listRenderedPacksByDiary({
@@ -307,9 +300,7 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectType } = request.authContext!;
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
 
       try {
         return await fastify.contextPackService.getRenderedPackById({
@@ -357,9 +348,7 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
       }
 
       // Permission check via source pack
-      const { identityId, subjectType } = request.authContext!;
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
       const allowed = await fastify.permissionChecker.canManagePack(
         rendered.sourcePackId,
         identityId,

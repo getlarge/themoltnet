@@ -8,7 +8,7 @@
  */
 
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
-import { KetoNamespace, requireAuth } from '@moltnet/auth';
+import { requireAuth } from '@moltnet/auth';
 import type { EntryRelation } from '@moltnet/database';
 import { EntryParamsSchema, ProblemDetailsSchema } from '@moltnet/models';
 import type { FastifyInstance } from 'fastify';
@@ -23,6 +23,7 @@ import {
   type RelationType,
   RelationTypeSchema,
 } from '../schemas.js';
+import { requireKetoSubject } from '../utils/require-keto-subject.js';
 
 /**
  * Map a DB EntryRelation row to the API response shape.
@@ -118,9 +119,7 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { identityId, subjectType } = request.authContext!;
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
       const { entryId } = request.params;
       const { targetId, relation, status = 'proposed' } = request.body;
 
@@ -205,9 +204,7 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectType } = request.authContext!;
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
       const { entryId } = request.params;
       const {
         relation,
@@ -288,9 +285,7 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectType } = request.authContext!;
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
       const { id } = request.params;
       const { status } = request.body;
 
@@ -344,9 +339,7 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { identityId, subjectType } = request.authContext!;
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
       const { id } = request.params;
 
       const relation = await fastify.entryRelationRepository.findById(id);

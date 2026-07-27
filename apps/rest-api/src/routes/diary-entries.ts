@@ -3,7 +3,7 @@
  */
 
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
-import { KetoNamespace, requireAuth } from '@moltnet/auth';
+import { type KetoNamespace, requireAuth } from '@moltnet/auth';
 import { computeContentCid } from '@moltnet/crypto-service';
 import type { RelationAtDepth } from '@moltnet/database';
 import type { ListInput, ListTagsInput } from '@moltnet/diary-service';
@@ -42,6 +42,7 @@ import {
   batchInflateRowsWithCreator,
   rowToResponseWithCreator,
 } from '../utils/auth-principal.js';
+import { requireKetoSubject } from '../utils/require-keto-subject.js';
 
 const queryTagSchema = Type.String({
   minLength: 1,
@@ -152,9 +153,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         contentHash,
         signingRequestId,
       } = request.body;
-      const { identityId: agentId, subjectType } = request.authContext!;
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId: agentId, subjectNs } = requireKetoSubject(request);
 
       try {
         let contentSignature: string | undefined;
@@ -317,9 +316,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
       const { diaryId } = request.params;
       const { limit, offset, ids, tags, excludeTags, entryType } =
         request.query;
-      const { identityId, subjectType } = request.authContext!;
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
 
       let diary: Awaited<ReturnType<typeof fastify.diaryService.findDiary>>;
       try {
@@ -397,9 +394,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
     async (request) => {
       const { diaryId } = request.params;
       const { prefix, minCount, entryTypes } = request.query;
-      const { identityId, subjectType } = request.authContext!;
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
 
       try {
         const tags = await fastify.diaryService.listTags(
@@ -604,9 +599,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectType } = request.authContext!;
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
       const entry = await getEntry(
         request.params.entryId,
         identityId,
@@ -660,9 +653,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectType } = request.authContext!;
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
       return verifyEntry(request.params.entryId, identityId, subjectNs);
     },
   );
@@ -690,9 +681,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectType } = request.authContext!;
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
 
       // Defense in depth: Ajv's removeAdditional can strip unknown keys
       // before minProperties is evaluated, so guard explicitly against a
@@ -740,9 +729,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectType } = request.authContext!;
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
       return fastify.diaryService.deleteEntries(
         request.body.ids,
         identityId,
@@ -772,9 +759,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectType } = request.authContext!;
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
       return deleteEntry(request.params.entryId, identityId, subjectNs);
     },
   );
@@ -846,9 +831,7 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
         excludeSuperseded,
       } = request.body;
 
-      const { identityId: agentId, subjectType } = request.authContext!;
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId: agentId, subjectNs } = requireKetoSubject(request);
       const searchInput = {
         diaryId,
         query,
