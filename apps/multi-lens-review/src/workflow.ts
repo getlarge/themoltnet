@@ -114,8 +114,9 @@ function buildReviewTask(input: NormalizedInput, lens: string): CreateBody {
     teamId: input.teamId,
     diaryId: input.diaryId,
     correlationId: input.correlationId,
+    // The freeform `input` schema is strict (additionalProperties: false); the
+    // lens lives in the brief prompt, not as an extra field.
     input: {
-      lens,
       brief: buildReviewPrompt(input, lens),
       expectedOutput:
         'Return the review markdown in the `summary` string field.',
@@ -144,9 +145,10 @@ function buildSynthesisTask(
     teamId: input.teamId,
     diaryId: input.diaryId,
     correlationId: input.correlationId,
+    // Review task ids are embedded in the brief text (the freeform `input`
+    // schema forbids extra fields), so a tool-using agent can still fetch them.
     input: {
       brief,
-      reviewTaskIds,
       expectedOutput: 'Return the verdict in the `summary` string field.',
     },
     // Server-enforced join. Created UP FRONT — before the reviews finish — so it
