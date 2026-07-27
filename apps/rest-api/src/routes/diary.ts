@@ -46,6 +46,7 @@ import {
   inflateCreator,
   rowToResponseWithCreator,
 } from '../utils/auth-principal.js';
+import { requireKetoSubject } from '../utils/require-keto-subject.js';
 import {
   diaryTransferWorkflow,
   TRANSFER_DECISION_EVENT,
@@ -107,9 +108,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { identityId, subjectType } = request.authContext!;
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
       const { name, visibility } = request.body;
 
       const teamId = request.authContext!.currentTeamId;
@@ -210,9 +209,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { id } = request.params;
-      const { identityId, subjectType } = request.authContext!;
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
       try {
         const diary = await fastify.diaryService.findDiary(
           id,
@@ -261,9 +258,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { id } = request.params;
-      const { identityId, subjectType } = request.authContext!;
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
 
       // Defense in depth: Ajv's removeAdditional can strip unknown keys
       // before minProperties is evaluated, so guard explicitly against a
@@ -321,9 +316,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { id } = request.params;
-      const { identityId, subjectType } = request.authContext!;
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
 
       try {
         const deleted = await fastify.diaryService.deleteDiary(
@@ -368,9 +361,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { id } = request.params;
-      const { identityId, subjectType } = request.authContext!;
-      const callerNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
 
       const canManage = await fastify.permissionChecker.canManageDiary(
         id,
@@ -453,9 +444,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { id } = request.params;
-      const { identityId, subjectType } = request.authContext!;
-      const callerNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
 
       const canRead = await fastify.permissionChecker.canReadDiary(
         id,
@@ -499,9 +488,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const { id } = request.params;
-      const { identityId, subjectType } = request.authContext!;
-      const callerNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
 
       const canManage = await fastify.permissionChecker.canManageDiary(
         id,
@@ -560,9 +547,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { id } = request.params;
-      const { identityId, subjectType } = request.authContext!;
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
 
       // Must have diary manage permission
       const canManage = await fastify.permissionChecker.canManageDiary(
@@ -710,9 +695,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { transferId } = request.params;
-      const { identityId, subjectType } = request.authContext!;
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
 
       const transfer =
         await fastify.diaryTransferRepository.findById(transferId);
@@ -773,9 +756,7 @@ export async function diaryRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const { transferId } = request.params;
-      const { identityId, subjectType } = request.authContext!;
-      const subjectNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs } = requireKetoSubject(request);
 
       const transfer =
         await fastify.diaryTransferRepository.findById(transferId);

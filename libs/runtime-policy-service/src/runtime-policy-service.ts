@@ -7,13 +7,13 @@ import type {
 import type {
   RuntimePolicy as RuntimePolicyRow,
   RuntimePolicyRepository,
-  ToolEnforcement,
   TransactionRunner,
 } from '@moltnet/database';
+import type { ToolEnforcement } from '@moltnet/models';
 
 import { createProblem, createValidationProblem } from './problems.js';
 
-export type { ToolEnforcement };
+export type { ToolEnforcement } from '@moltnet/models';
 
 const TOOL_NAME_RE = /^[a-zA-Z0-9_.:-]{1,128}$/;
 const MAX_DESCRIPTION_LENGTH = 4096;

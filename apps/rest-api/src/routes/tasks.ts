@@ -53,6 +53,7 @@ import {
 import { TaskServiceError } from '../services/task.service.js';
 import { authContextToCreator } from '../utils/auth-principal.js';
 import { requireCurrentTeamId } from '../utils/require-current-team-id.js';
+import { requireKetoSubject } from '../utils/require-keto-subject.js';
 import { startTaskDeletionWorkflow } from '../workflows/index.js';
 
 type BatchDeleteTasksBody = Static<typeof BatchDeleteTasksBodySchema>;
@@ -104,19 +105,6 @@ function toTaskAnalyticsProblem(error: TaskAnalyticsServiceError) {
         error.message,
       );
   }
-}
-
-function getAuthContext(request: {
-  authContext: {
-    identityId: string;
-    subjectType: 'agent' | 'human';
-  } | null;
-}) {
-  const authContext = request.authContext;
-  if (!authContext) {
-    throw createProblem('unauthorized', 'Authentication context missing');
-  }
-  return authContext;
 }
 
 function rate(numerator: number, denominator: number): number {
@@ -351,10 +339,12 @@ export function taskRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { identityId, subjectType } = getAuthContext(request);
+      const {
+        identityId,
+        subjectNs: callerNs,
+        subjectType,
+      } = requireKetoSubject(request);
       const teamId = requireCurrentTeamId(request, 'tasks');
-      const callerNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
       try {
         const normalised = normalizeTaskCreateRequest(request.body);
         await validateAllowedProfiles(
@@ -418,10 +408,8 @@ export function taskRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectType } = getAuthContext(request);
+      const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
       const teamId = requireCurrentTeamId(request, 'tasks');
-      const callerNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
       try {
         return await fastify.taskService.list({
           teamId,
@@ -475,9 +463,11 @@ export function taskRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { identityId, subjectType } = getAuthContext(request);
-      const callerNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const {
+        identityId,
+        subjectNs: callerNs,
+        subjectType,
+      } = requireKetoSubject(request);
       try {
         const force = request.body.force ?? false;
         const plan = await fastify.taskService.planDeleteMany({
@@ -629,10 +619,8 @@ export function taskRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectType } = getAuthContext(request);
+      const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
       const teamId = requireCurrentTeamId(request, 'task analytics');
-      const callerNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
       const completedBefore = request.query.completedBefore
         ? new Date(request.query.completedBefore)
         : new Date();
@@ -686,9 +674,7 @@ export function taskRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectType } = getAuthContext(request);
-      const callerNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
       try {
         return await fastify.taskService.get(
           request.params.id,
@@ -724,9 +710,7 @@ export function taskRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectType } = getAuthContext(request);
-      const callerNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
       try {
         return await fastify.taskService.updateMetadata(request.params.id, {
           ...('title' in request.body ? { title: request.body.title } : {}),
@@ -777,9 +761,7 @@ export function taskRoutes(fastify: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      const { identityId, subjectType } = getAuthContext(request);
-      const callerNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
       try {
         const result = await fastify.taskService.claim(
           request.params.id,
@@ -832,9 +814,7 @@ export function taskRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectType } = getAuthContext(request);
-      const callerNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
       try {
         return await fastify.taskService.heartbeat(
           request.params.id,
@@ -873,9 +853,7 @@ export function taskRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectType } = getAuthContext(request);
-      const callerNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
       try {
         return await fastify.taskService.complete(
           request.params.id,
@@ -923,9 +901,7 @@ export function taskRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectType } = getAuthContext(request);
-      const callerNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
       try {
         return await fastify.taskService.failAttempt(
           request.params.id,
@@ -967,9 +943,7 @@ export function taskRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectType } = getAuthContext(request);
-      const callerNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
       try {
         return await fastify.taskService.abort(
           request.params.id,
@@ -1007,9 +981,7 @@ export function taskRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectType } = getAuthContext(request);
-      const callerNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
       try {
         return await fastify.taskService.cancel(
           request.params.id,
@@ -1050,9 +1022,7 @@ export function taskRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectType } = getAuthContext(request);
-      const callerNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
       try {
         return await fastify.taskService.listAttempts(
           request.params.id,
@@ -1090,9 +1060,7 @@ export function taskRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectType } = getAuthContext(request);
-      const callerNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
       try {
         return await fastify.taskService.listMessages(
           request.params.id,
@@ -1133,9 +1101,7 @@ export function taskRoutes(fastify: FastifyInstance) {
       },
     },
     async (request) => {
-      const { identityId, subjectType } = getAuthContext(request);
-      const callerNs =
-        subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent;
+      const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
       try {
         return await fastify.taskService.appendMessages(
           request.params.id,

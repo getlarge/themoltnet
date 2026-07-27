@@ -3,7 +3,7 @@ import {
   type AgentKeySubject,
   createAgentKeyService,
 } from '@moltnet/agent-key-service';
-import { KetoNamespace, requireAuth } from '@moltnet/auth';
+import { requireAuth } from '@moltnet/auth';
 import {
   ProblemDetailsSchema,
   TeamHeaderRequiredSchema,
@@ -24,6 +24,7 @@ import {
 } from '../schemas.js';
 import { requestAbortSignal } from '../utils/request-abort-signal.js';
 import { requireCurrentTeamId } from '../utils/require-current-team-id.js';
+import { requireKetoSubject } from '../utils/require-keto-subject.js';
 
 interface AgentKeyRoutesOptions {
   talosApi?: Pick<
@@ -40,13 +41,10 @@ function authSubject(request: FastifyRequest): AgentKeySubject {
   const auth = request.authContext;
   if (!auth) throw createProblem('unauthorized');
   return {
-    identityId: auth.identityId,
+    ...requireKetoSubject(request),
     ...(auth.subjectType === 'agent' && auth.credentialBinding
       ? { credentialKeyId: auth.credentialBinding.keyId }
       : {}),
-    subjectType: auth.subjectType,
-    subjectNs:
-      auth.subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent,
   };
 }
 

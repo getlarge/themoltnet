@@ -1,5 +1,5 @@
 import { type TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
-import { KetoNamespace, requireAuth } from '@moltnet/auth';
+import { requireAuth } from '@moltnet/auth';
 import { computeJsonCid } from '@moltnet/crypto-service';
 import type { RuntimeProfile as RuntimeProfile } from '@moltnet/database';
 import { UniqueViolationError } from '@moltnet/database';
@@ -29,28 +29,12 @@ import {
 } from '../schemas.js';
 import { authContextToCreator } from '../utils/auth-principal.js';
 import { requireCurrentTeamId } from '../utils/require-current-team-id.js';
+import { requireKetoSubject } from '../utils/require-keto-subject.js';
 
 const ProfileParamsSchema = Type.Object(
   { profileId: Type.String({ format: 'uuid' }) },
   { $id: 'RuntimeProfileParams' },
 );
-
-function authSubject(request: {
-  authContext: {
-    identityId: string;
-    subjectType: 'agent' | 'human';
-    currentTeamId: string | null;
-  } | null;
-}) {
-  const auth = request.authContext;
-  if (!auth)
-    throw createProblem('unauthorized', 'Authentication context missing');
-  return {
-    identityId: auth.identityId,
-    subjectNs:
-      auth.subjectType === 'human' ? KetoNamespace.Human : KetoNamespace.Agent,
-  };
-}
 
 function normalizeList(values: readonly string[] | undefined): string[] {
   return [...new Set((values ?? []).map((v) => v.trim()).filter(Boolean))];
@@ -297,7 +281,7 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
     },
     async (request) => {
       const teamId = requireCurrentTeamId(request, 'runtime profiles');
-      const { identityId, subjectNs } = authSubject(request);
+      const { identityId, subjectNs } = requireKetoSubject(request);
       const canAccess = await fastify.permissionChecker.canAccessTeam(
         teamId,
         identityId,
@@ -333,7 +317,7 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const teamId = requireCurrentTeamId(request, 'runtime profiles');
-      const { identityId, subjectNs } = authSubject(request);
+      const { identityId, subjectNs } = requireKetoSubject(request);
       const canManage = await fastify.permissionChecker.canManageTeamRuntime(
         teamId,
         identityId,
@@ -425,7 +409,7 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
         request.params.profileId,
       );
       if (!row) throw createProblem('not-found');
-      const { identityId, subjectNs } = authSubject(request);
+      const { identityId, subjectNs } = requireKetoSubject(request);
       const canAccess = await fastify.permissionChecker.canAccessTeam(
         row.teamId,
         identityId,
@@ -462,7 +446,7 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
         request.params.profileId,
       );
       if (!existing) throw createProblem('not-found');
-      const { identityId, subjectNs } = authSubject(request);
+      const { identityId, subjectNs } = requireKetoSubject(request);
       const canManage = await fastify.permissionChecker.canManageTeamRuntime(
         existing.teamId,
         identityId,
@@ -577,7 +561,7 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
         request.params.profileId,
       );
       if (!row) throw createProblem('not-found');
-      const { identityId, subjectNs } = authSubject(request);
+      const { identityId, subjectNs } = requireKetoSubject(request);
       const canManage = await fastify.permissionChecker.canManageTeamRuntime(
         row.teamId,
         identityId,

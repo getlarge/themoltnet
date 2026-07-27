@@ -11,6 +11,8 @@ import {
   PaginatedResponseSchema,
   PublicKeySchema,
   SignRequestSchema,
+  TOOL_ENFORCEMENT_VALUES,
+  ToolEnforcementSchema,
   UpdateDiaryEntrySchema,
   VerifyRequestSchema,
   VisibilitySchema,
@@ -30,6 +32,18 @@ beforeAll(() => {
 });
 
 describe('Common schemas', () => {
+  describe('ToolEnforcementSchema', () => {
+    it('accepts every canonical enforcement mode', () => {
+      for (const mode of TOOL_ENFORCEMENT_VALUES) {
+        expect(Value.Check(ToolEnforcementSchema, mode)).toBe(true);
+      }
+    });
+
+    it('rejects values outside the canonical enforcement modes', () => {
+      expect(Value.Check(ToolEnforcementSchema, 'audit')).toBe(false);
+    });
+  });
+
   describe('PublicKeySchema', () => {
     it('accepts valid ed25519 keys', () => {
       expect(Value.Check(PublicKeySchema, 'ed25519:AAAA+/bbbb==')).toBe(true);

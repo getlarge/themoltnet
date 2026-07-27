@@ -1,3 +1,4 @@
+import { type ToolEnforcement, ToolEnforcementSchema } from '@moltnet/models';
 import { type Static, Type } from 'typebox';
 
 export const RuntimeProfileName = Type.String({
@@ -35,14 +36,8 @@ export type RuntimeProfileWorkspaceMode = Static<
  * `off` (inert), `watch` (audit only), `enforce` (block disallowed tools,
  * fail-closed). Read by the daemon via `GET /runtime-profiles/:id/allowed-tools`.
  */
-export const RuntimeProfileToolEnforcement = Type.Union([
-  Type.Literal('off'),
-  Type.Literal('watch'),
-  Type.Literal('enforce'),
-]);
-export type RuntimeProfileToolEnforcement = Static<
-  typeof RuntimeProfileToolEnforcement
->;
+export const RuntimeProfileToolEnforcement = ToolEnforcementSchema;
+export type RuntimeProfileToolEnforcement = ToolEnforcement;
 
 export const RuntimeProfileAllowedWorkspaceModes = Type.Array(
   RuntimeProfileWorkspaceMode,
