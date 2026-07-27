@@ -664,6 +664,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     nonceRepository,
     dataSource,
     transactionRunner: dbosTransactionRunner,
+    maxPendingSigningRequests: config.security.SIGNING_MAX_PENDING_REQUESTS,
     permissionChecker,
     relationshipReader,
     relationshipWriter,

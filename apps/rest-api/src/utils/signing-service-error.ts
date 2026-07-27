@@ -10,6 +10,7 @@ export function throwSigningServiceProblem(error: unknown): never {
       not_found: 'not-found',
       signing_request_already_completed: 'signing-request-already-completed',
       signing_request_expired: 'signing-request-expired',
+      signing_request_limit_reached: 'signing-request-limit-reached',
       validation_failed: 'validation-failed',
     } as const;
     throw createProblem(problemByCode[error.code], error.message);

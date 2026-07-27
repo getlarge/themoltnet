@@ -10,7 +10,9 @@ import { DBOS } from '@moltnet/database';
 import type * as SigningWorkflowModule from '@moltnet/signing-workflows';
 import {
   assertSigningVerifierRegistered,
+  SigningResultTimeoutError,
   SigningVerifierNotRegisteredError,
+  waitForSigningResult,
 } from '@moltnet/signing-workflows';
 import type { FastifyInstance } from 'fastify';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -53,6 +55,7 @@ vi.mock('@moltnet/signing-workflows', async (importOriginal) => {
     signingWorkflows: {
       requestSignature: vi.fn(),
     },
+    waitForSigningResult: vi.fn(original.waitForSigningResult),
   };
 });
 
@@ -98,7 +101,8 @@ function createSigningRepo() {
     findById: vi.fn(),
     list: vi.fn(),
     setWorkflowId: vi.fn(),
-    countByAgent: vi.fn(),
+    acquirePendingCreateLock: vi.fn(),
+    countActivePendingByAgent: vi.fn().mockResolvedValue(0),
   };
 }
 
@@ -276,6 +280,26 @@ describe('Signing request routes', () => {
       expect(response.statusCode).toBe(401);
     });
 
+    it('returns 429 when the durable pending cap is reached', async () => {
+      signingRepo.countActivePendingByAgent.mockResolvedValue(10);
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/crypto/signing-requests',
+        headers: { authorization: 'Bearer test-token' },
+        payload: { message: 'One request too many' },
+      });
+
+      expect(response.statusCode).toBe(429);
+      expect(response.json()).toEqual(
+        expect.objectContaining({
+          code: 'SIGNING_REQUEST_LIMIT_REACHED',
+        }),
+      );
+      expect(signingRepo.create).not.toHaveBeenCalled();
+      expect(DBOS.startWorkflow).not.toHaveBeenCalled();
+    });
+
     it('rejects a verification method with no registered verifier', async () => {
       vi.mocked(assertSigningVerifierRegistered).mockImplementationOnce(
         (method) => {
@@ -447,6 +471,31 @@ describe('Signing request routes', () => {
         code: 'SIGNING_REQUEST_EXPIRED',
         conflict: {},
       });
+    });
+
+    it('returns 409 with polling guidance when verification is still pending', async () => {
+      const pending = createMockSigningRequest();
+      signingRepo.findById.mockResolvedValue(pending);
+      vi.mocked(waitForSigningResult).mockRejectedValueOnce(
+        new SigningResultTimeoutError(REQUEST_ID),
+      );
+
+      const response = await app.inject({
+        method: 'POST',
+        url: `/crypto/signing-requests/${REQUEST_ID}/sign`,
+        headers: { authorization: 'Bearer test-token' },
+        payload: { signature: 'ed25519:sig123' },
+      });
+
+      expect(response.statusCode).toBe(409);
+      expect(response.json()).toEqual(
+        expect.objectContaining({
+          code: 'CONFLICT',
+          detail: expect.stringContaining(
+            `GET /crypto/signing-requests/${REQUEST_ID}`,
+          ),
+        }),
+      );
     });
 
     it('returns 409 for already completed request', async () => {

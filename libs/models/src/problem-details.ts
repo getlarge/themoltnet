@@ -15,6 +15,7 @@ export const ProblemCodeSchema = Type.Union([
   Type.Literal('SERIALIZATION_EXHAUSTED'),
   Type.Literal('SIGNING_REQUEST_EXPIRED'),
   Type.Literal('SIGNING_REQUEST_ALREADY_COMPLETED'),
+  Type.Literal('SIGNING_REQUEST_LIMIT_REACHED'),
   Type.Literal('REGISTRATION_FAILED'),
   Type.Literal('UPSTREAM_ERROR'),
   Type.Literal('SERVICE_UNAVAILABLE'),

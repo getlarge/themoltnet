@@ -105,6 +105,7 @@ function createDeps(
     relationshipReader: {} as never,
     groupRepository: {} as never,
     signingTimeoutSeconds: 300,
+    maxPendingSigningRequests: 10,
     ...overrides,
   };
 }
@@ -413,6 +414,81 @@ describe('createSigningService', () => {
       code: 'validation_failed',
     } satisfies Partial<SigningServiceError>);
     expect(create).not.toHaveBeenCalled();
+  });
+
+  it('rejects creation when the requester has reached the pending cap', async () => {
+    const acquirePendingCreateLock = vi.fn().mockResolvedValue(undefined);
+    const countActivePendingByAgent = vi.fn().mockResolvedValue(10);
+    const create = vi.fn();
+    const transactionRunner = {
+      runInTransaction: vi.fn(async (task) => task()),
+    };
+    const service = createSigningService(
+      createDeps({
+        signingRequestRepository: {
+          acquirePendingCreateLock,
+          countActivePendingByAgent,
+          create,
+        } as never,
+        transactionRunner: transactionRunner as never,
+      }),
+    );
+
+    await expect(
+      service.requests.create({
+        actor: agent,
+        message: 'approve release',
+        verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+        teamId: TEAM_ID,
+        purpose: 'Release approval',
+        signerConstraint: { id: human.humanId, type: 'human' },
+      }),
+    ).rejects.toMatchObject({
+      name: 'SigningServiceError',
+      code: 'signing_request_limit_reached',
+    } satisfies Partial<SigningServiceError>);
+    expect(transactionRunner.runInTransaction).toHaveBeenCalledWith(
+      expect.any(Function),
+      { name: 'create-signing-request' },
+    );
+    expect(acquirePendingCreateLock).toHaveBeenCalledWith(agent.identityId);
+    expect(countActivePendingByAgent).toHaveBeenCalledWith(agent.identityId);
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it('creates below the pending cap inside the guarded transaction', async () => {
+    const created = pendingRequest();
+    const acquirePendingCreateLock = vi.fn().mockResolvedValue(undefined);
+    const countActivePendingByAgent = vi.fn().mockResolvedValue(9);
+    const create = vi.fn().mockResolvedValue(created);
+    const transactionRunner = {
+      runInTransaction: vi.fn(async (task) => task()),
+    };
+    const service = createSigningService(
+      createDeps({
+        signingRequestRepository: {
+          acquirePendingCreateLock,
+          countActivePendingByAgent,
+          create,
+        } as never,
+        transactionRunner: transactionRunner as never,
+      }),
+    );
+
+    await expect(
+      service.requests.create({
+        actor: agent,
+        message: 'approve release',
+        verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+        teamId: TEAM_ID,
+        purpose: 'Release approval',
+        signerConstraint: { id: human.humanId, type: 'human' },
+      }),
+    ).resolves.toBe(created);
+    expect(acquirePendingCreateLock).toHaveBeenCalledBefore(
+      countActivePendingByAgent,
+    );
+    expect(countActivePendingByAgent).toHaveBeenCalledBefore(create);
   });
 
   it('requires a human actor to approve a credential', async () => {

@@ -27,7 +27,7 @@ import {
   type SigningRequest,
   signingRequests,
 } from '../schema.js';
-import { getExecutor } from '../transaction-context.js';
+import { getExecutor, hasActiveTransaction } from '../transaction-context.js';
 
 export type SigningRequestStatus = SigningRequest['status'];
 
@@ -361,7 +361,19 @@ export function createSigningRequestRepository(db: Database) {
       return rejected ?? null;
     },
 
-    async countByAgent(agentId: string): Promise<number> {
+    async acquirePendingCreateLock(agentId: string): Promise<void> {
+      if (!hasActiveTransaction()) {
+        throw new Error(
+          'acquirePendingCreateLock must be called inside a TransactionRunner-managed transaction; pg_advisory_xact_lock has no effect outside one',
+        );
+      }
+      const key = `signing-request:create:${agentId}`;
+      await getExecutor(db).execute(
+        sql`SELECT pg_advisory_xact_lock(hashtextextended(${key}::text, 0::bigint))`,
+      );
+    },
+
+    async countActivePendingByAgent(agentId: string): Promise<number> {
       const [{ value }] = await getExecutor(db)
         .select({ value: count() })
         .from(signingRequests)
@@ -369,6 +381,7 @@ export function createSigningRequestRepository(db: Database) {
           and(
             eq(signingRequests.agentId, agentId),
             eq(signingRequests.status, 'pending'),
+            gt(signingRequests.expiresAt, sql`now()`),
           ),
         );
 

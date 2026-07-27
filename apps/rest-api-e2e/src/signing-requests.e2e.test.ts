@@ -71,6 +71,36 @@ describe('Signing requests', () => {
     expect(response.status).toBe(401);
   });
 
+  it('enforces the pending cap across concurrent create requests', async () => {
+    const cappedAgent = await createAgent({
+      baseUrl: harness.baseUrl,
+      db: harness.db,
+      bootstrapIdentityId: harness.bootstrapIdentityId,
+    });
+
+    const results = await Promise.all(
+      Array.from({ length: 5 }, (_, index) =>
+        createSigningRequest({
+          client,
+          auth: () => cappedAgent.accessToken,
+          body: { message: `Concurrent cap request ${index}` },
+        }),
+      ),
+    );
+
+    const successful = results.filter(
+      ({ response }) => response.status === 201,
+    );
+    const rejected = results.filter(({ response }) => response.status === 429);
+    expect(successful).toHaveLength(4);
+    expect(rejected).toHaveLength(1);
+    expect(rejected[0]!.error).toEqual(
+      expect.objectContaining({
+        code: 'SIGNING_REQUEST_LIMIT_REACHED',
+      }),
+    );
+  });
+
   // ── List ────────────────────────────────────────────────────
 
   it('lists signing requests for the agent', async () => {

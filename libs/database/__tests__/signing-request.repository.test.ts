@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Database } from '../src/db.js';
 import { createSigningRequestRepository } from '../src/repositories/signing-request.repository.js';
 import type { SigningRequest } from '../src/schema.js';
+import { createDrizzleTransactionRunner } from '../src/transaction-context.js';
 
 function createMockDb() {
   const mockChain: Record<string, ReturnType<typeof vi.fn>> = {};
@@ -27,6 +28,8 @@ function createMockDb() {
     insert: vi.fn().mockReturnValue(mockChain),
     select: vi.fn().mockReturnValue(mockChain),
     update: vi.fn().mockReturnValue(mockChain),
+    execute: vi.fn().mockResolvedValue({ rows: [] }),
+    transaction: vi.fn(async (task) => task(db)),
     _chain: mockChain,
   };
 
@@ -333,14 +336,31 @@ describe('createSigningRequestRepository', () => {
     });
   });
 
-  describe('countByAgent', () => {
-    it('returns count of pending requests', async () => {
+  describe('pending create guard', () => {
+    it('counts active pending requests', async () => {
       db._chain.where.mockResolvedValueOnce([{ value: 3 }]);
 
-      const result = await repo.countByAgent(AGENT_ID);
+      const result = await repo.countActivePendingByAgent(AGENT_ID);
 
       expect(db.select).toHaveBeenCalled();
       expect(result).toBe(3);
+    });
+
+    it('requires an ambient transaction for the advisory lock', async () => {
+      await expect(
+        repo.acquirePendingCreateLock(AGENT_ID),
+      ).rejects.toThrowError(/must be called inside/);
+      expect(db.execute).not.toHaveBeenCalled();
+    });
+
+    it('acquires the advisory lock inside a managed transaction', async () => {
+      const transactionRunner = createDrizzleTransactionRunner(db);
+
+      await transactionRunner.runInTransaction(() =>
+        repo.acquirePendingCreateLock(AGENT_ID),
+      );
+
+      expect(db.execute).toHaveBeenCalledTimes(1);
     });
   });
 });

@@ -155,6 +155,18 @@ export const problemTypes: Record<string, ProblemType> = {
       'The workflow already processed a signature for this request',
     ],
   },
+  'signing-request-limit-reached': {
+    slug: 'signing-request-limit-reached',
+    code: 'SIGNING_REQUEST_LIMIT_REACHED',
+    status: 429,
+    title: 'Signing Request Limit Reached',
+    description:
+      'The requester already has the maximum number of active pending signing requests.',
+    commonCauses: [
+      'Previous signing requests are still pending',
+      'Wait for pending requests to complete or expire',
+    ],
+  },
   conflict: {
     slug: 'conflict',
     code: 'CONFLICT',

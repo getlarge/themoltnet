@@ -1019,6 +1019,12 @@
                   },
                   {
                     "enum": [
+                      "SIGNING_REQUEST_LIMIT_REACHED"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
                       "REGISTRATION_FAILED"
                     ],
                     "type": "string"
@@ -4217,6 +4223,12 @@
                       },
                       {
                         "enum": [
+                          "SIGNING_REQUEST_LIMIT_REACHED"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "enum": [
                           "REGISTRATION_FAILED"
                         ],
                         "type": "string"
@@ -5817,6 +5829,12 @@
               {
                 "enum": [
                   "SIGNING_REQUEST_ALREADY_COMPLETED"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "SIGNING_REQUEST_LIMIT_REACHED"
                 ],
                 "type": "string"
               },
@@ -14234,6 +14252,12 @@
                   },
                   {
                     "enum": [
+                      "SIGNING_REQUEST_LIMIT_REACHED"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "enum": [
                       "REGISTRATION_FAILED"
                     ],
                     "type": "string"
@@ -16690,6 +16714,16 @@
             "description": "Default Response"
           },
           "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "429": {
             "content": {
               "application/json": {
                 "schema": {
@@ -24257,6 +24291,12 @@
                 },
                 {
                   "enum": [
+                    "signing-request-limit-reached"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
                     "conflict"
                   ],
                   "type": "string"
@@ -27158,6 +27198,12 @@
                             },
                             {
                               "enum": [
+                                "SIGNING_REQUEST_LIMIT_REACHED"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
                                 "REGISTRATION_FAILED"
                               ],
                               "type": "string"
@@ -27383,6 +27429,12 @@
                         },
                         {
                           "enum": [
+                            "SIGNING_REQUEST_LIMIT_REACHED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "REGISTRATION_FAILED"
                           ],
                           "type": "string"
@@ -27592,6 +27644,12 @@
                         },
                         {
                           "enum": [
+                            "SIGNING_REQUEST_LIMIT_REACHED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "REGISTRATION_FAILED"
                           ],
                           "type": "string"
@@ -27796,6 +27854,12 @@
                         {
                           "enum": [
                             "SIGNING_REQUEST_ALREADY_COMPLETED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SIGNING_REQUEST_LIMIT_REACHED"
                           ],
                           "type": "string"
                         },
@@ -28076,6 +28140,12 @@
                             },
                             {
                               "enum": [
+                                "SIGNING_REQUEST_LIMIT_REACHED"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
                                 "REGISTRATION_FAILED"
                               ],
                               "type": "string"
@@ -28301,6 +28371,12 @@
                         },
                         {
                           "enum": [
+                            "SIGNING_REQUEST_LIMIT_REACHED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "REGISTRATION_FAILED"
                           ],
                           "type": "string"
@@ -28505,6 +28581,12 @@
                         {
                           "enum": [
                             "SIGNING_REQUEST_ALREADY_COMPLETED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SIGNING_REQUEST_LIMIT_REACHED"
                           ],
                           "type": "string"
                         },
@@ -28719,6 +28801,12 @@
                         },
                         {
                           "enum": [
+                            "SIGNING_REQUEST_LIMIT_REACHED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "REGISTRATION_FAILED"
                           ],
                           "type": "string"
@@ -28923,6 +29011,12 @@
                         {
                           "enum": [
                             "SIGNING_REQUEST_ALREADY_COMPLETED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SIGNING_REQUEST_LIMIT_REACHED"
                           ],
                           "type": "string"
                         },
@@ -29400,6 +29494,12 @@
                             },
                             {
                               "enum": [
+                                "SIGNING_REQUEST_LIMIT_REACHED"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
                                 "REGISTRATION_FAILED"
                               ],
                               "type": "string"
@@ -29625,6 +29725,12 @@
                         },
                         {
                           "enum": [
+                            "SIGNING_REQUEST_LIMIT_REACHED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "REGISTRATION_FAILED"
                           ],
                           "type": "string"
@@ -29829,6 +29935,12 @@
                         {
                           "enum": [
                             "SIGNING_REQUEST_ALREADY_COMPLETED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SIGNING_REQUEST_LIMIT_REACHED"
                           ],
                           "type": "string"
                         },
@@ -30043,6 +30155,12 @@
                         },
                         {
                           "enum": [
+                            "SIGNING_REQUEST_LIMIT_REACHED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "REGISTRATION_FAILED"
                           ],
                           "type": "string"
@@ -30252,6 +30370,12 @@
                         },
                         {
                           "enum": [
+                            "SIGNING_REQUEST_LIMIT_REACHED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "REGISTRATION_FAILED"
                           ],
                           "type": "string"
@@ -30456,6 +30580,12 @@
                         {
                           "enum": [
                             "SIGNING_REQUEST_ALREADY_COMPLETED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SIGNING_REQUEST_LIMIT_REACHED"
                           ],
                           "type": "string"
                         },
@@ -30998,6 +31128,12 @@
                             },
                             {
                               "enum": [
+                                "SIGNING_REQUEST_LIMIT_REACHED"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
                                 "REGISTRATION_FAILED"
                               ],
                               "type": "string"
@@ -31223,6 +31359,12 @@
                         },
                         {
                           "enum": [
+                            "SIGNING_REQUEST_LIMIT_REACHED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "REGISTRATION_FAILED"
                           ],
                           "type": "string"
@@ -31432,6 +31574,12 @@
                         },
                         {
                           "enum": [
+                            "SIGNING_REQUEST_LIMIT_REACHED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "REGISTRATION_FAILED"
                           ],
                           "type": "string"
@@ -31636,6 +31784,12 @@
                         {
                           "enum": [
                             "SIGNING_REQUEST_ALREADY_COMPLETED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SIGNING_REQUEST_LIMIT_REACHED"
                           ],
                           "type": "string"
                         },
@@ -32130,6 +32284,12 @@
                             },
                             {
                               "enum": [
+                                "SIGNING_REQUEST_LIMIT_REACHED"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
                                 "REGISTRATION_FAILED"
                               ],
                               "type": "string"
@@ -32355,6 +32515,12 @@
                         },
                         {
                           "enum": [
+                            "SIGNING_REQUEST_LIMIT_REACHED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "REGISTRATION_FAILED"
                           ],
                           "type": "string"
@@ -32559,6 +32725,12 @@
                         {
                           "enum": [
                             "SIGNING_REQUEST_ALREADY_COMPLETED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SIGNING_REQUEST_LIMIT_REACHED"
                           ],
                           "type": "string"
                         },
@@ -32773,6 +32945,12 @@
                         },
                         {
                           "enum": [
+                            "SIGNING_REQUEST_LIMIT_REACHED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "REGISTRATION_FAILED"
                           ],
                           "type": "string"
@@ -32979,6 +33157,12 @@
                             {
                               "enum": [
                                 "SIGNING_REQUEST_ALREADY_COMPLETED"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "SIGNING_REQUEST_LIMIT_REACHED"
                               ],
                               "type": "string"
                             },
@@ -33442,6 +33626,12 @@
                             },
                             {
                               "enum": [
+                                "SIGNING_REQUEST_LIMIT_REACHED"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
                                 "REGISTRATION_FAILED"
                               ],
                               "type": "string"
@@ -33667,6 +33857,12 @@
                         },
                         {
                           "enum": [
+                            "SIGNING_REQUEST_LIMIT_REACHED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "REGISTRATION_FAILED"
                           ],
                           "type": "string"
@@ -33871,6 +34067,12 @@
                         {
                           "enum": [
                             "SIGNING_REQUEST_ALREADY_COMPLETED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SIGNING_REQUEST_LIMIT_REACHED"
                           ],
                           "type": "string"
                         },
@@ -34085,6 +34287,12 @@
                         },
                         {
                           "enum": [
+                            "SIGNING_REQUEST_LIMIT_REACHED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "REGISTRATION_FAILED"
                           ],
                           "type": "string"
@@ -34291,6 +34499,12 @@
                             {
                               "enum": [
                                 "SIGNING_REQUEST_ALREADY_COMPLETED"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
+                                "SIGNING_REQUEST_LIMIT_REACHED"
                               ],
                               "type": "string"
                             },
@@ -34803,6 +35017,12 @@
                             },
                             {
                               "enum": [
+                                "SIGNING_REQUEST_LIMIT_REACHED"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
                                 "REGISTRATION_FAILED"
                               ],
                               "type": "string"
@@ -35028,6 +35248,12 @@
                         },
                         {
                           "enum": [
+                            "SIGNING_REQUEST_LIMIT_REACHED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "REGISTRATION_FAILED"
                           ],
                           "type": "string"
@@ -35237,6 +35463,12 @@
                         },
                         {
                           "enum": [
+                            "SIGNING_REQUEST_LIMIT_REACHED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "REGISTRATION_FAILED"
                           ],
                           "type": "string"
@@ -35441,6 +35673,12 @@
                         {
                           "enum": [
                             "SIGNING_REQUEST_ALREADY_COMPLETED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SIGNING_REQUEST_LIMIT_REACHED"
                           ],
                           "type": "string"
                         },
@@ -35756,6 +35994,12 @@
                             },
                             {
                               "enum": [
+                                "SIGNING_REQUEST_LIMIT_REACHED"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
                                 "REGISTRATION_FAILED"
                               ],
                               "type": "string"
@@ -35981,6 +36225,12 @@
                         },
                         {
                           "enum": [
+                            "SIGNING_REQUEST_LIMIT_REACHED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "REGISTRATION_FAILED"
                           ],
                           "type": "string"
@@ -36185,6 +36435,12 @@
                         {
                           "enum": [
                             "SIGNING_REQUEST_ALREADY_COMPLETED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SIGNING_REQUEST_LIMIT_REACHED"
                           ],
                           "type": "string"
                         },
@@ -36399,6 +36655,12 @@
                         },
                         {
                           "enum": [
+                            "SIGNING_REQUEST_LIMIT_REACHED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "REGISTRATION_FAILED"
                           ],
                           "type": "string"
@@ -36603,6 +36865,12 @@
                         {
                           "enum": [
                             "SIGNING_REQUEST_ALREADY_COMPLETED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SIGNING_REQUEST_LIMIT_REACHED"
                           ],
                           "type": "string"
                         },
@@ -39072,6 +39340,12 @@
                             },
                             {
                               "enum": [
+                                "SIGNING_REQUEST_LIMIT_REACHED"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
                                 "REGISTRATION_FAILED"
                               ],
                               "type": "string"
@@ -39297,6 +39571,12 @@
                         },
                         {
                           "enum": [
+                            "SIGNING_REQUEST_LIMIT_REACHED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "REGISTRATION_FAILED"
                           ],
                           "type": "string"
@@ -39506,6 +39786,12 @@
                         },
                         {
                           "enum": [
+                            "SIGNING_REQUEST_LIMIT_REACHED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "REGISTRATION_FAILED"
                           ],
                           "type": "string"
@@ -39710,6 +39996,12 @@
                         {
                           "enum": [
                             "SIGNING_REQUEST_ALREADY_COMPLETED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SIGNING_REQUEST_LIMIT_REACHED"
                           ],
                           "type": "string"
                         },
@@ -40017,6 +40309,12 @@
                             },
                             {
                               "enum": [
+                                "SIGNING_REQUEST_LIMIT_REACHED"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
                                 "REGISTRATION_FAILED"
                               ],
                               "type": "string"
@@ -40242,6 +40540,12 @@
                         },
                         {
                           "enum": [
+                            "SIGNING_REQUEST_LIMIT_REACHED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "REGISTRATION_FAILED"
                           ],
                           "type": "string"
@@ -40446,6 +40750,12 @@
                         {
                           "enum": [
                             "SIGNING_REQUEST_ALREADY_COMPLETED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SIGNING_REQUEST_LIMIT_REACHED"
                           ],
                           "type": "string"
                         },
@@ -40660,6 +40970,12 @@
                         },
                         {
                           "enum": [
+                            "SIGNING_REQUEST_LIMIT_REACHED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "REGISTRATION_FAILED"
                           ],
                           "type": "string"
@@ -40864,6 +41180,12 @@
                         {
                           "enum": [
                             "SIGNING_REQUEST_ALREADY_COMPLETED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SIGNING_REQUEST_LIMIT_REACHED"
                           ],
                           "type": "string"
                         },
@@ -41298,6 +41620,12 @@
                             },
                             {
                               "enum": [
+                                "SIGNING_REQUEST_LIMIT_REACHED"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
                                 "REGISTRATION_FAILED"
                               ],
                               "type": "string"
@@ -41523,6 +41851,12 @@
                         },
                         {
                           "enum": [
+                            "SIGNING_REQUEST_LIMIT_REACHED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "REGISTRATION_FAILED"
                           ],
                           "type": "string"
@@ -41732,6 +42066,12 @@
                         },
                         {
                           "enum": [
+                            "SIGNING_REQUEST_LIMIT_REACHED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "REGISTRATION_FAILED"
                           ],
                           "type": "string"
@@ -41936,6 +42276,12 @@
                         {
                           "enum": [
                             "SIGNING_REQUEST_ALREADY_COMPLETED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SIGNING_REQUEST_LIMIT_REACHED"
                           ],
                           "type": "string"
                         },
@@ -42155,6 +42501,12 @@
                         {
                           "enum": [
                             "SIGNING_REQUEST_ALREADY_COMPLETED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SIGNING_REQUEST_LIMIT_REACHED"
                           ],
                           "type": "string"
                         },
@@ -42471,6 +42823,12 @@
                             },
                             {
                               "enum": [
+                                "SIGNING_REQUEST_LIMIT_REACHED"
+                              ],
+                              "type": "string"
+                            },
+                            {
+                              "enum": [
                                 "REGISTRATION_FAILED"
                               ],
                               "type": "string"
@@ -42696,6 +43054,12 @@
                         },
                         {
                           "enum": [
+                            "SIGNING_REQUEST_LIMIT_REACHED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "REGISTRATION_FAILED"
                           ],
                           "type": "string"
@@ -42900,6 +43264,12 @@
                         {
                           "enum": [
                             "SIGNING_REQUEST_ALREADY_COMPLETED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SIGNING_REQUEST_LIMIT_REACHED"
                           ],
                           "type": "string"
                         },
@@ -43114,6 +43484,12 @@
                         },
                         {
                           "enum": [
+                            "SIGNING_REQUEST_LIMIT_REACHED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
                             "REGISTRATION_FAILED"
                           ],
                           "type": "string"
@@ -43318,6 +43694,12 @@
                         {
                           "enum": [
                             "SIGNING_REQUEST_ALREADY_COMPLETED"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "SIGNING_REQUEST_LIMIT_REACHED"
                           ],
                           "type": "string"
                         },

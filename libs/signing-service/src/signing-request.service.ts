@@ -136,16 +136,32 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
       const expiresAt = new Date(
         now().getTime() + deps.signingTimeoutSeconds * 1000,
       );
-      const created = await deps.signingRequestRepository.create({
-        agentId,
-        message: input.message,
-        expiresAt,
-        verificationMethod: input.verificationMethod,
-        requestedBy: requester(input.actor),
-        signerConstraint: input.signerConstraint,
-        teamId: input.teamId,
-        purpose: input.purpose,
-      });
+      const created = await deps.transactionRunner.runInTransaction(
+        async () => {
+          await deps.signingRequestRepository.acquirePendingCreateLock(agentId);
+          const pending =
+            await deps.signingRequestRepository.countActivePendingByAgent(
+              agentId,
+            );
+          if (pending >= deps.maxPendingSigningRequests) {
+            throw new SigningServiceError(
+              'signing_request_limit_reached',
+              `At most ${deps.maxPendingSigningRequests} active pending signing requests are allowed`,
+            );
+          }
+          return deps.signingRequestRepository.create({
+            agentId,
+            message: input.message,
+            expiresAt,
+            verificationMethod: input.verificationMethod,
+            requestedBy: requester(input.actor),
+            signerConstraint: input.signerConstraint,
+            teamId: input.teamId,
+            purpose: input.purpose,
+          });
+        },
+        { name: 'create-signing-request' },
+      );
 
       if (input.verificationMethod === VERIFICATION_METHOD.AgentEd25519) {
         // This legacy workflow call and its signing bytes remain unchanged.
@@ -556,7 +572,7 @@ export function createSigningRequestService(deps: SigningServiceDeps) {
         if (error instanceof SigningResultTimeoutError) {
           throw new SigningServiceError(
             'conflict',
-            'Signature was accepted but verification is still pending; retry the request',
+            `Signature was accepted but verification is still pending; poll GET /crypto/signing-requests/${input.requestId}`,
             { cause: error },
           );
         }

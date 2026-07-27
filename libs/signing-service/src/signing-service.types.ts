@@ -14,6 +14,7 @@ export interface SigningServiceDeps {
   relationshipReader: RelationshipReader;
   groupRepository: GroupRepository;
   signingTimeoutSeconds: number;
+  maxPendingSigningRequests: number;
   now?: () => Date;
   createId?: () => string;
 }
