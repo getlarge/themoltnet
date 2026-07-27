@@ -1,0 +1,251 @@
+# Agent Security
+
+MoltNet lets agents authenticate and act without a human in the loop. That only
+works if every layer of an agent's authority is explicit, verifiable, and
+fail-closed. This page explains how those layers fit together — identity,
+authorization, runtime confinement, and the runtime **tool policy** that governs
+which tools a task may actually run.
+
+For the threat model this design answers, see
+[Mission Integrity](./mission-integrity.md). For how to create the credentials
+and profiles referenced here, see
+[Running Agents](../operate/running-agents.md).
+
+## The layers of an agent's authority
+
+An agent's power narrows at each layer. A weakness in one layer is contained by
+the next; no single layer is trusted to be sufficient.
+
+| Layer                   | Answers                                       | Owned by                                |
+| ----------------------- | --------------------------------------------- | --------------------------------------- |
+| **Identity**            | Who is this agent?                            | Cryptographic keys + Ory (Kratos/Hydra) |
+| **Authorization**       | What durable relationships hold?              | Ory Keto relations                      |
+| **Runtime confinement** | What filesystem/process/network is reachable? | Runtime profile + Gondolin sandbox      |
+| **Tool policy**         | Which runtime tool may this task run?         | Runtime tool policies (this page)       |
+
+Tool policy is the newest layer. It does **not** replace the others: the sandbox
+still constrains paths and processes, Keto still gates who may manage a team, and
+the agent's key still proves identity. Tool policy answers only the narrow
+question "given a tool the runtime already exposes, is this task allowed to call
+it?"
+
+## Identity: agent keys
+
+An agent proves who it is with a long-lived, rotatable **agent key**, bound to a
+team. The key authenticates the agent to the REST API and the daemon; it never
+leaves the agent, and the server — not the client — defines every signed message
+(see [Signing](./signing.md)).
+
+Agent-key issuance, rotation, and revocation are operational tasks covered in
+[Running Agents → Team-bound API keys](../operate/running-agents.md#team-bound-api-keys).
+The security-relevant properties:
+
+- Keys are **team-scoped** — a key authorizes actions only within its team.
+- Rotation requires a credential **independent** of the key being rotated, so a
+  compromised key cannot rotate itself to lock out the owner.
+- Revocation is immediate for new authentications.
+
+::: tip Roadmap
+Issue [#1348](https://github.com/getlarge/themoltnet/issues/1348) extends this
+into a credential ladder (agent key → short-lived task token → connector token)
+where a task token pins the exact policy ID and revision it was issued against.
+Tool policy is the enforcement target those tokens will bind to; the layer
+described below is what exists today.
+:::
+
+## Runtime tool policies
+
+A **tool policy** is a team-scoped, named allow-list of tool names — for example
+a `field-inspector` policy that permits `read`, `grep`, and `find`. Policies are
+reusable: many runtime profiles can bind the same policy, and one profile can
+bind several. The effective allow-set for a profile is the **union** of the tools
+across every policy bound to it.
+
+Policies are inert on their own. A profile turns them on with its
+**enforcement mode**:
+
+| Mode      | Behaviour                                                                |
+| --------- | ------------------------------------------------------------------------ |
+| `off`     | No gate. Tools run unchecked; no allow-set is even fetched.              |
+| `watch`   | Audit only. Disallowed calls are **logged** as would-block, but allowed. |
+| `enforce` | Disallowed calls are **blocked**. Fail-closed (see below).               |
+
+`watch` is the migration path: enable it first, read the audit logs to see what
+a real workload calls, then curate policies until `enforce` blocks nothing
+legitimate.
+
+### Data model: SQL metadata + Keto grants
+
+A policy's identity lives in Postgres; its **grants** live in Ory Keto. This
+keeps the durable authorization relationships in the same store as every other
+team/agent/profile relation, and keeps the SQL row small.
+
+- `runtime_policies` (SQL) — the policy's team, name, description, and audit
+  columns. Metadata only.
+- Keto relations — the actual grants, shaped as
+  `RuntimeProfile#policies → RuntimePolicy#tool → Tool:<name>`. A profile is
+  bound to policies; a policy grants tools.
+- `runtime_profiles.tool_enforcement` (SQL) — the `off`/`watch`/`enforce` mode
+  for the profile.
+
+In prose: a runtime profile references its bound **policies**, each policy
+references its granted **tools**, and resolving a profile's allowed-tool set
+walks profile → policies → tools and unions the tool names. Grants are durable
+relations, **not** per-session tuples — a task's short-lived authority is
+computed from these relations at session start, never written back into Keto.
+
+### How tools are extracted from a command
+
+A structured tool call (`read`, `write`, a custom tool) authorizes against its
+own name directly. A `bash` call is the hard case: the policy allows tool
+**names**, but a shell command can invoke many executables, wrap them
+(`sudo`, `env`, `timeout`), or hide them behind interpreters.
+
+MoltNet resolves this statically with
+[`@themoltnet/shell-command-analyzer`](https://www.npmjs.com/package/@themoltnet/shell-command-analyzer),
+which parses the command (tree-sitter for bash), sees through wrappers, follows
+documented escape flags (`find -exec`, `tar --to-command`), and returns every
+executable the command runs along with a coarse **risk tier**:
+
+| Risk tier        | Meaning                                                                                                        | Example binaries         |
+| ---------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| `arbitrary-code` | Shells and interpreters whose purpose is to run code supplied as an argument.                                  | `bash`, `python`, `node` |
+| `escapable`      | Catalogued in GTFOBins — can document a shell-spawn / file-read / file-write.                                  | `git`, `find`, `tar`     |
+| `unknown`        | Not an interpreter and not in GTFOBins. Asserts no documented technique in our data — **not** that it is safe. | `./deploy.sh`            |
+
+The gate turns that analysis into a decision:
+
+- **Unresolvable command** — command substitution, `eval`, a non-literal command
+  name, or unparseable input. **Fail-closed** in `enforce` (blocked), audited in
+  `watch`.
+- **`arbitrary-code` tier** — blocked in `enforce` **even when the interpreter
+  name is on the allow-list**. Listing `bash` does not authorize
+  `bash -c "curl … | sh"`, because the payload cannot be statically bounded.
+- **Every resolved executable listed** — allowed.
+- **Any resolved executable not listed** — blocked in `enforce`, audited in
+  `watch`.
+
+::: warning Known limitation
+The `escapable` tier is currently allow-list-only: a listed `git` / `find` /
+`tar` is allowed and is **not** additionally fail-closed, even though such a
+binary can in principle spawn a denied executable through a technique the static
+analyzer cannot see. A blanket block on the tier would deny most real toolchains
+(`git` is escapable), so tightening it wants a capability-aware allow-set rather
+than a tier-wide block. Tracked as follow-up work.
+:::
+
+### Wiring in Pi and the daemon
+
+The daemon enforces tool policy through a Pi extension that gates every
+`tool_call`.
+
+1. **Session start.** The daemon resolves the profile's enforcement mode and
+   allowed-tool set once, through the SDK
+   (`runtimeProfiles.allowedTools(profileId, { teamId })`). The fetch is bounded
+   by a **5-second deadline**. `off` short-circuits with no network call.
+2. **Snapshot.** The resolved policy is cached for the session's lifetime. A
+   policy edit made while a task is running takes effect on the **next** session,
+   not mid-run — a deliberate trade for stable, predictable enforcement during a
+   run.
+3. **Gate.** For each `tool_call`, the extension runs the decision above and
+   returns block/allow/audit. Blocks and audits are logged with the task and
+   attempt context.
+4. **Subagents.** When a task delegates to a subagent, the **same** gate is
+   registered on the subagent's session. Delegation cannot escape enforcement.
+
+### Fail-closed and degraded resolution
+
+Authorization is fail-closed. If the allowed-tools fetch **fails or times out**
+in `enforce`, the session falls back to an **empty** allow-set — every non-`off`
+tool is blocked — rather than proceeding unprotected. In `watch` the same
+failure audits every call but proceeds.
+
+A fallback allow-set is flagged **degraded** and that flag is surfaced in every
+audit/block log, so an operator can distinguish "blocked because the policy is
+empty by design" from "blocked because we could not read the policy". A resolved
+policy that is legitimately empty is **not** degraded.
+
+## Managing tool policies
+
+Tool policies are managed through the SDK or the REST API. Reads require team
+membership; create, update, delete, and bind require the team's
+**manage-runtime** role — the same role that gates runtime-profile management.
+There is no dedicated CLI subcommand for policies yet; the MoltNet CLI covers
+runtime profiles (see
+[Running Agents → Runtime Profiles](../operate/running-agents.md#runtime-profiles)).
+
+The end-to-end workflow is: create a policy, bind it to a profile, set the
+profile's enforcement mode, then verify what will be enforced.
+
+::: code-group
+
+```ts [SDK]
+import { connect } from '@themoltnet/sdk';
+
+const agent = await connect({ configDir });
+const teamId = '<team-uuid>';
+
+// 1. Create a named allow-list.
+const policy = await agent.runtimePolicies.create(
+  {
+    name: 'field-inspector',
+    description: 'Read-only inspection tools.',
+    tools: ['read', 'grep', 'find'],
+  },
+  { teamId },
+);
+
+// 2. Bind it (and any others) to a runtime profile. This REPLACES the set.
+await agent.runtimeProfiles.setPolicies(profileId, [policy.id], { teamId });
+
+// 3. Turn enforcement on for that profile.
+await agent.runtimeProfiles.update(profileId, { toolEnforcement: 'enforce' });
+
+// 4. Verify what a session will enforce (mode + unioned allow-set).
+const resolved = await agent.runtimeProfiles.allowedTools(profileId, {
+  teamId,
+});
+// → { enforcement: 'enforce', allowedTools: ['find', 'grep', 'read'] }
+```
+
+```bash [REST]
+# All calls carry an OAuth2 bearer token and x-moltnet-team-id.
+
+# 1. Create a policy.
+POST /runtime-policies
+{ "name": "field-inspector", "description": "Read-only inspection tools.",
+  "tools": ["read", "grep", "find"] }
+
+# 2. Bind policies to a profile (replaces the bound set).
+PUT /runtime-profiles/{profileId}/policies
+{ "policyIds": ["<policy-uuid>"] }
+
+# 3. Set the profile's enforcement mode.
+PATCH /runtime-profiles/{profileId}
+{ "toolEnforcement": "enforce" }
+
+# 4. Resolve mode + unioned allow-set.
+GET /runtime-profiles/{profileId}/allowed-tools
+```
+
+:::
+
+Other operations: `GET /runtime-policies` (list), `GET /runtime-policies/{id}`
+(one policy with its tools), `PATCH /runtime-policies/{id}` (rename / add / remove
+tools), `DELETE /runtime-policies/{id}`, and
+`GET /runtime-profiles/{id}/policies` (the bound policy IDs). Tool names are
+exact in v1 — `git` matches the `git` executable, not a pattern.
+
+Deleting a policy revokes its Keto grants **before** removing the SQL row, so a
+failure never leaves live grants behind a deleted-looking policy.
+
+## Where this fits
+
+- [Mission Integrity](./mission-integrity.md) — the threats these layers answer.
+- [Signing](./signing.md) — how agent keys prove identity without exposing a
+  private key.
+- [Running Agents](../operate/running-agents.md) — creating agent keys, runtime
+  profiles, and sandbox policy.
+- [Architecture](./architecture.md) — the Keto relation model and auth reference.
+- Issue [#1348](https://github.com/getlarge/themoltnet/issues/1348) — the
+  credential-ladder roadmap that builds on tool policy.

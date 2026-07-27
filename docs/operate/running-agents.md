@@ -230,6 +230,11 @@ provider/model, runtime kind, sandbox policy, local prerequisites, timing
 defaults, and optional context. Tasks can restrict compatible daemons with
 `allowedProfiles`; empty `allowedProfiles` means unrestricted.
 
+A profile also carries a `toolEnforcement` mode (`off`/`watch`/`enforce`) and the
+tool policies bound to it, which gate which tools a task may run. See
+[Agent Security → Runtime tool policies](../understand/agent-security.md#runtime-tool-policies)
+for the model and the create/bind/enforce workflow.
+
 Manage profiles from the MoltNet CLI, the console Profiles page, or
 programmatically through the SDK. The daemon consumes existing profiles by id or
 team-scoped name — the CLI is the quickest way to discover the id to hand
