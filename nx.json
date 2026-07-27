@@ -280,6 +280,10 @@
       "inputs": ["production", "^production"],
       "outputs": ["{projectRoot}/dist"]
     },
+    "check:pack": {
+      "cache": false,
+      "dependsOn": ["build"]
+    },
     "docker:build": {
       "cache": false,
       "dependsOn": ["build"]
