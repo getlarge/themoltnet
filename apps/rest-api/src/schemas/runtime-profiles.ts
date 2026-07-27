@@ -15,6 +15,7 @@ import {
   RuntimeProfileNullableTopK,
   RuntimeProfileNullableTopP,
   RuntimeProfileSandbox,
+  RuntimeProfileToolEnforcement,
   RuntimeProfileToolName,
   RuntimeProfileWorkspaceMode,
 } from '@moltnet/tasks';
@@ -48,6 +49,7 @@ export const CreateRuntimeProfileBodySchema = Type.Object(
     maxBatchSize: Type.Optional(RuntimeProfileMaxBatchSize),
     maxTurns: Type.Optional(RuntimeProfileMaxTurns),
     maxBashTimeouts: Type.Optional(RuntimeProfileMaxBashTimeouts),
+    toolEnforcement: Type.Optional(RuntimeProfileToolEnforcement),
     requiredEnv: Type.Optional(
       Type.Array(RuntimeProfileEnvName, { maxItems: 100 }),
     ),

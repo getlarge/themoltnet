@@ -557,6 +557,7 @@ export type CreateRuntimeProfileBody = {
     | 'high'
     | 'xhigh'
     | null;
+  toolEnforcement?: 'off' | 'watch' | 'enforce';
   topK?: number | null;
   topP?: null | number;
   workspaceStorageMode?: 'local';
@@ -1923,6 +1924,7 @@ export type RuntimeProfile = {
   teamId: string;
   temperature: null | number;
   thinkingLevel: 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | null;
+  toolEnforcement: 'off' | 'watch' | 'enforce';
   topK: number | null;
   topP: null | number;
   updatedAt: string;
@@ -2016,6 +2018,7 @@ export type RuntimeProfileListResponse = {
       | 'high'
       | 'xhigh'
       | null;
+    toolEnforcement: 'off' | 'watch' | 'enforce';
     topK: number | null;
     topP: null | number;
     updatedAt: string;
@@ -2858,6 +2861,7 @@ export type UpdateRuntimeProfileBody = {
     | 'high'
     | 'xhigh'
     | null;
+  toolEnforcement?: 'off' | 'watch' | 'enforce';
   topK?: number | null;
   topP?: null | number;
   workspaceStorageMode?: 'local';

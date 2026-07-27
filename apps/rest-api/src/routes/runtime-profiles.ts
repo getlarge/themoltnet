@@ -12,6 +12,7 @@ import type { RuntimeProfileWorkspaceMode } from '@moltnet/tasks';
 import {
   RuntimeProfile as RuntimeProfileSchema,
   type RuntimeProfileThinkingLevel,
+  type RuntimeProfileToolEnforcement,
 } from '@moltnet/tasks';
 import type { FastifyInstance } from 'fastify';
 import { type Static, Type } from 'typebox';
@@ -194,6 +195,8 @@ function serializeProfile(
     maxBatchSize: row.maxBatchSize,
     maxTurns: row.maxTurns,
     maxBashTimeouts: row.maxBashTimeouts,
+    toolEnforcement:
+      (row.toolEnforcement as RuntimeProfileToolEnforcement | null) ?? 'off',
     requiredEnv: row.requiredEnv,
     requiredTools: row.requiredTools,
     context: row.context as Static<typeof RuntimeProfileSchema>['context'],
@@ -376,6 +379,7 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
           maxBatchSize: body.maxBatchSize ?? 50,
           maxTurns: body.maxTurns ?? 0,
           maxBashTimeouts: body.maxBashTimeouts ?? 3,
+          toolEnforcement: body.toolEnforcement ?? 'off',
           requiredEnv: normalizeList(body.requiredEnv),
           requiredTools: normalizeList(body.requiredTools),
           context: body.context ?? [],
@@ -523,10 +527,16 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
         allowedWorkspaceModes: next.allowedWorkspaceModes ?? [],
       });
       const definitionCid = await computeProfileDefinitionCid(next);
+      // tool_enforcement is an operational policy toggle, not part of the
+      // profile's behavioral definition, so it is patched directly and excluded
+      // from the definition CID.
+      const toolEnforcement =
+        'toolEnforcement' in body ? (body.toolEnforcement ?? 'off') : undefined;
       try {
         const row = await fastify.runtimeProfileRepository.update(existing.id, {
           ...next,
           definitionCid,
+          ...(toolEnforcement ? { toolEnforcement } : {}),
         });
         if (!row) throw createProblem('not-found');
         return serializeProfile(row);

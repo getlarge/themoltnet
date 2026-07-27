@@ -2265,6 +2265,28 @@
               }
             ]
           },
+          "toolEnforcement": {
+            "anyOf": [
+              {
+                "enum": [
+                  "off"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "watch"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "enforce"
+                ],
+                "type": "string"
+              }
+            ]
+          },
           "topK": {
             "anyOf": [
               {
@@ -8173,6 +8195,28 @@
               }
             ]
           },
+          "toolEnforcement": {
+            "anyOf": [
+              {
+                "enum": [
+                  "off"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "watch"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "enforce"
+                ],
+                "type": "string"
+              }
+            ]
+          },
           "topK": {
             "anyOf": [
               {
@@ -8238,6 +8282,7 @@
           "maxBatchSize",
           "maxTurns",
           "maxBashTimeouts",
+          "toolEnforcement",
           "requiredEnv",
           "requiredTools",
           "context",
@@ -8815,6 +8860,28 @@
                     }
                   ]
                 },
+                "toolEnforcement": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "off"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "enum": [
+                        "watch"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "enum": [
+                        "enforce"
+                      ],
+                      "type": "string"
+                    }
+                  ]
+                },
                 "topK": {
                   "anyOf": [
                     {
@@ -8880,6 +8947,7 @@
                 "maxBatchSize",
                 "maxTurns",
                 "maxBashTimeouts",
+                "toolEnforcement",
                 "requiredEnv",
                 "requiredTools",
                 "context",
@@ -13414,6 +13482,28 @@
               },
               {
                 "type": "null"
+              }
+            ]
+          },
+          "toolEnforcement": {
+            "anyOf": [
+              {
+                "enum": [
+                  "off"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "watch"
+                ],
+                "type": "string"
+              },
+              {
+                "enum": [
+                  "enforce"
+                ],
+                "type": "string"
               }
             ]
           },

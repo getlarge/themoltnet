@@ -5434,6 +5434,24 @@ func (s *CreateRuntimeProfileBody) Validate() error {
 		})
 	}
 	if err := func() error {
+		if value, ok := s.ToolEnforcement.Get(); ok {
+			if err := func() error {
+				if err := value.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "toolEnforcement",
+			Error: err,
+		})
+	}
+	if err := func() error {
 		if value, ok := s.TopK.Get(); ok {
 			if err := func() error {
 				if err := (validate.Int{
@@ -6515,6 +6533,19 @@ func (s CreateRuntimeProfileBodyThinkingLevel) Validate() error {
 	case "high":
 		return nil
 	case "xhigh":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s CreateRuntimeProfileBodyToolEnforcement) Validate() error {
+	switch s {
+	case "off":
+		return nil
+	case "watch":
+		return nil
+	case "enforce":
 		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
@@ -22499,6 +22530,17 @@ func (s *RuntimeProfile) Validate() error {
 		})
 	}
 	if err := func() error {
+		if err := s.ToolEnforcement.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "toolEnforcement",
+			Error: err,
+		})
+	}
+	if err := func() error {
 		if value, ok := s.TopK.Get(); ok {
 			if err := func() error {
 				if err := (validate.Int{
@@ -23310,6 +23352,17 @@ func (s *RuntimeProfileListResponseItemsItem) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "thinkingLevel",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := s.ToolEnforcement.Validate(); err != nil {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "toolEnforcement",
 			Error: err,
 		})
 	}
@@ -24387,6 +24440,19 @@ func (s RuntimeProfileListResponseItemsItemThinkingLevel) Validate() error {
 	}
 }
 
+func (s RuntimeProfileListResponseItemsItemToolEnforcement) Validate() error {
+	switch s {
+	case "off":
+		return nil
+	case "watch":
+		return nil
+	case "enforce":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
 func (s RuntimeProfileListResponseItemsItemWorkspaceStorageMode) Validate() error {
 	switch s {
 	case "local":
@@ -25260,6 +25326,19 @@ func (s RuntimeProfileThinkingLevel) Validate() error {
 	case "high":
 		return nil
 	case "xhigh":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s RuntimeProfileToolEnforcement) Validate() error {
+	switch s {
+	case "off":
+		return nil
+	case "watch":
+		return nil
+	case "enforce":
 		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
@@ -31735,6 +31814,24 @@ func (s *UpdateRuntimeProfileBody) Validate() error {
 		})
 	}
 	if err := func() error {
+		if value, ok := s.ToolEnforcement.Get(); ok {
+			if err := func() error {
+				if err := value.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "toolEnforcement",
+			Error: err,
+		})
+	}
+	if err := func() error {
 		if value, ok := s.TopK.Get(); ok {
 			if err := func() error {
 				if err := (validate.Int{
@@ -32816,6 +32913,19 @@ func (s UpdateRuntimeProfileBodyThinkingLevel) Validate() error {
 	case "high":
 		return nil
 	case "xhigh":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s UpdateRuntimeProfileBodyToolEnforcement) Validate() error {
+	switch s {
+	case "off":
+		return nil
+	case "watch":
+		return nil
+	case "enforce":
 		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
