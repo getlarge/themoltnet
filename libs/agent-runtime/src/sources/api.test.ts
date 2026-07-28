@@ -22,6 +22,11 @@ describe('ApiTaskSource', () => {
         attemptN: 3,
         claimedByAgentId: '33333333-3333-4333-8333-333333333333',
         runtimeId: null,
+        leaseId: '44444444-4444-4444-8444-444444444444',
+        runtimeProfileId: '55555555-5555-4555-8555-555555555555',
+        runtimeProfileRevision: 1,
+        policySnapshotHash:
+          'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
         claimedAt: '2026-04-23T10:00:00Z',
         startedAt: null,
         completedAt: null,
@@ -80,6 +85,11 @@ describe('ApiTaskSource', () => {
         attemptN: 1,
         claimedByAgentId: '33333333-3333-4333-8333-333333333333',
         runtimeId: null,
+        leaseId: '44444444-4444-4444-8444-444444444444',
+        runtimeProfileId: profileId,
+        runtimeProfileRevision: 1,
+        policySnapshotHash:
+          'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
         claimedAt: '2026-04-23T10:00:00Z',
         startedAt: null,
         completedAt: null,

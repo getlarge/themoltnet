@@ -91,7 +91,7 @@ function setup(input?: {
         input && 'snapshot' in input ? input.snapshot : snapshot(),
       ),
   };
-  const logger = { warn: vi.fn() };
+  const logger = { info: vi.fn(), warn: vi.fn() };
   const denialCounter = { add: vi.fn() };
   const provider = createMoltNetTaskAuthorityProvider({
     taskRepository: taskRepository as unknown as Pick<
@@ -124,6 +124,7 @@ async function expectDenied(
   context: ReturnType<typeof setup>,
   reason: string,
   authorityRequest = request,
+  logLevel: 'info' | 'warn' = 'warn',
 ) {
   await expect(
     context.provider.authorizeTask(authorityRequest),
@@ -131,7 +132,7 @@ async function expectDenied(
     allowed: false,
     reason,
   });
-  expect(context.logger.warn).toHaveBeenCalledWith(
+  expect(context.logger[logLevel]).toHaveBeenCalledWith(
     {
       reason,
       taskId: authorityRequest.taskId,
@@ -141,6 +142,8 @@ async function expectDenied(
     },
     'Task authority denied',
   );
+  const otherLogLevel = logLevel === 'info' ? 'warn' : 'info';
+  expect(context.logger[otherLogLevel]).not.toHaveBeenCalled();
   expect(context.denialCounter.add).toHaveBeenCalledWith(1, { reason });
 }
 
@@ -162,6 +165,7 @@ describe('MoltNet TaskAuthorityProvider', () => {
         policySnapshotHash: SNAPSHOT_HASH,
       },
     });
+    expect(logger.info).not.toHaveBeenCalled();
     expect(logger.warn).not.toHaveBeenCalled();
     expect(denialCounter.add).not.toHaveBeenCalled();
   });
@@ -206,6 +210,8 @@ describe('MoltNet TaskAuthorityProvider', () => {
       await expectDenied(
         setup({ attempt: attempt({ status }) }),
         'attempt_inactive',
+        request,
+        'info',
       );
     },
   );
@@ -215,7 +221,12 @@ describe('MoltNet TaskAuthorityProvider', () => {
     task({ claimExpiresAt: null }),
     task({ claimExpiresAt: new Date('2026-07-28T11:59:59Z') }),
   ])('denies an inactive task lease', async (inactiveTask) => {
-    await expectDenied(setup({ task: inactiveTask }), 'lease_inactive');
+    await expectDenied(
+      setup({ task: inactiveTask }),
+      'lease_inactive',
+      request,
+      'info',
+    );
   });
 
   it.each([

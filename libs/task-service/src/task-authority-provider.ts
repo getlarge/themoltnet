@@ -4,7 +4,6 @@ import type {
 } from '@moltnet/database';
 import {
   findUnavailableRuntimeCapabilities,
-  GONDOLIN_PI_RUNTIME_KIND,
   RUNTIME_KINDS,
   type RuntimeKind,
   TOOL_ENFORCEMENT_VALUES,
@@ -21,12 +20,12 @@ import type {
   TaskAuthorityRequest,
 } from '@themoltnet/credential-broker';
 
+import type { Logger } from './task-service.types.js';
+
 export interface MoltNetTaskAuthorityProviderDeps {
   taskRepository: Pick<TaskRepository, 'findById' | 'findAttempt'>;
   runtimePolicySnapshotRepository: RuntimePolicySnapshotRepository;
-  logger: {
-    warn(context: Record<string, unknown>, message: string): void;
-  };
+  logger: Pick<Logger, 'info' | 'warn'>;
   denialCounter: {
     add(value: number, attributes: { reason: string }): void;
   };
@@ -50,7 +49,11 @@ export function createMoltNetTaskAuthorityProvider(
     reason: string,
   ): TaskAuthorityDecision => {
     try {
-      deps.logger.warn(
+      const logLevel =
+        reason === 'attempt_inactive' || reason === 'lease_inactive'
+          ? 'info'
+          : 'warn';
+      deps.logger[logLevel](
         {
           reason,
           taskId: request.taskId,
@@ -159,7 +162,7 @@ export function createMoltNetTaskAuthorityProvider(
           taskId: request.taskId,
           attemptN: request.attemptN,
           leaseId: attempt.leaseId,
-          runtimeKind: GONDOLIN_PI_RUNTIME_KIND,
+          runtimeKind: snapshot.runtimeKind,
           capabilityManifestVersion: snapshot.capabilityManifestVersion,
           runtimeProfileId: attempt.runtimeProfileId,
           runtimeProfileRevision: attempt.runtimeProfileRevision,
