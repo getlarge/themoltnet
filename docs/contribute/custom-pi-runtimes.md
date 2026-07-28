@@ -5,7 +5,8 @@ the executable implementation: Pi tools, extensions, and the Gondolin VM
 template. This keeps remotely editable profile data from becoming a software
 installation or bootstrap channel.
 
-Start from [`examples/custom-pi-runtime`](../../examples/custom-pi-runtime/README.md).
+Start from
+[`examples/custom-pi-runtime`](https://github.com/getlarge/themoltnet/tree/main/examples/custom-pi-runtime).
 The core API is deliberately small:
 
 ```ts

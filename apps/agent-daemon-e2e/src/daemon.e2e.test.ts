@@ -1403,9 +1403,8 @@ describe('Agent daemon (e2e)', () => {
     it('resolves a remote runtime profile and claims only matching pinned tasks', async () => {
       const profileName = `daemon-e2e-${randomUUID()}`;
       const allowedProfile = await createProfile(profileName, {
-        snapshot: { allowedHosts: ['api.github.com'] },
         network: {
-          allowedHosts: ['api.linear.app'],
+          allowedHosts: ['api.github.com', 'api.linear.app'],
           allowedInternalHosts: ['onboard-api.internal'],
         },
         resources: { cpus: 4, memory: '4G' },
@@ -1483,7 +1482,14 @@ describe('Agent daemon (e2e)', () => {
         });
 
         expect(() =>
-          validateRuntimeProfilePrerequisites(resolved, {}, ''),
+          validateRuntimeProfilePrerequisites(
+            resolved,
+            {},
+            {
+              tools: [],
+              executables: [],
+            },
+          ),
         ).toThrow(/prerequisites are not satisfied/);
 
         const taskAfterValidationFailure = await agent.tasks.get(pinned.id);

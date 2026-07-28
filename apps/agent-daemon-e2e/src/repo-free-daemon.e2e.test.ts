@@ -155,9 +155,7 @@ describe('Agent daemon repo-free execution (e2e)', () => {
         leaseTtlSec: 300,
         heartbeatIntervalMs: 15_000,
         maxBatchSize: 10,
-        sandbox: {
-          resumeCommands: [],
-        },
+        sandbox: {},
       },
       { teamId },
     );
