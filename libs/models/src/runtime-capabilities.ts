@@ -1,5 +1,8 @@
-export const RUNTIME_KINDS = ['gondolin_pi'] as const;
+export const GONDOLIN_PI_RUNTIME_KIND = 'gondolin_pi' as const;
+export const RUNTIME_KINDS = [GONDOLIN_PI_RUNTIME_KIND] as const;
 export type RuntimeKind = (typeof RUNTIME_KINDS)[number];
+
+export const SHA256_HASH_STRING_LENGTH = 71;
 
 export interface RuntimeCapabilityManifest {
   runtimeKind: RuntimeKind;
@@ -79,7 +82,7 @@ const GONDOLIN_PI_CAPABILITIES = [
 ] as const;
 
 export const GONDOLIN_PI_CAPABILITY_MANIFEST = Object.freeze({
-  runtimeKind: 'gondolin_pi',
+  runtimeKind: GONDOLIN_PI_RUNTIME_KIND,
   version: 'gondolin_pi:v1',
   capabilities: Object.freeze([...new Set(GONDOLIN_PI_CAPABILITIES)].sort()),
 }) satisfies RuntimeCapabilityManifest;

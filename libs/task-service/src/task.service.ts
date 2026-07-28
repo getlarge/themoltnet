@@ -212,7 +212,8 @@ export function createTaskService(deps: TaskServiceDeps) {
       const allowedProfiles = (row.allowedProfiles ?? []) as {
         profileId: string;
       }[];
-      const selectedProfileId = executorAttestation.profileId;
+      const selectedProfileId =
+        executorAttestation.profileId?.trim() || undefined;
       let selectedProfile: Awaited<
         ReturnType<typeof runtimeProfileRepository.findById>
       > = null;
@@ -238,14 +239,15 @@ export function createTaskService(deps: TaskServiceDeps) {
         }
       }
       let pinnedAuthority: Awaited<
-        ReturnType<typeof runtimePolicyService.resolveAllowedTools>
+        ReturnType<typeof runtimePolicyService.resolvePinnedAllowedTools>
       > | null = null;
       if (selectedProfileId) {
         try {
-          pinnedAuthority = await runtimePolicyService.resolveAllowedTools({
-            profileId: selectedProfileId,
-            teamId: row.teamId,
-          });
+          pinnedAuthority =
+            await runtimePolicyService.resolvePinnedAllowedTools({
+              profileId: selectedProfileId,
+              teamId: row.teamId,
+            });
         } catch {
           throw new TaskServiceError(
             'conflict',

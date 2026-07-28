@@ -13,6 +13,7 @@ import {
   normalizeShellCommandRules,
   ShellCommandIdentifierError,
 } from '@moltnet/auth';
+import { canonicalJson } from '@moltnet/crypto-service';
 import type {
   RuntimePolicy as RuntimePolicyRow,
   RuntimePolicyRepository,
@@ -22,6 +23,7 @@ import type {
 import {
   findUnavailableRuntimeCapabilities,
   getRuntimeCapabilityManifest,
+  GONDOLIN_PI_RUNTIME_KIND,
   type RuntimeKind,
   type ToolEnforcement,
 } from '@moltnet/models';
@@ -215,15 +217,9 @@ export function canonicalEffectivePolicySnapshot(input: {
 export function hashEffectivePolicySnapshot(
   snapshot: EffectivePolicySnapshotV1,
 ): string {
-  const canonical = JSON.stringify({
-    version: snapshot.version,
-    runtimeKind: snapshot.runtimeKind,
-    capabilityManifestVersion: snapshot.capabilityManifestVersion,
-    enforcement: snapshot.enforcement,
-    allowedTools: snapshot.allowedTools,
-    allowedShellCommands: snapshot.allowedShellCommands,
-  });
-  return `sha256:${createHash('sha256').update(canonical).digest('hex')}`;
+  return `sha256:${createHash('sha256')
+    .update(canonicalJson(snapshot))
+    .digest('hex')}`;
 }
 
 function requireName(name: string): string {
@@ -290,6 +286,59 @@ export function createRuntimePolicyService(deps: RuntimePolicyServiceDeps) {
     if (!allowed) throw createProblem('forbidden');
   }
 
+  async function resolveEffectivePolicy(
+    input: ResolveAllowedToolsInput,
+    persistSnapshot: boolean,
+  ): Promise<AllowedTools> {
+    const profileContext =
+      await deps.runtimePolicyRepository.getProfilePolicyContext(
+        input.profileId,
+        input.teamId,
+      );
+    if (profileContext === null) throw createProblem('not-found');
+
+    const policyIds = await deps.relationshipReader.listRuntimeProfilePolicies(
+      input.profileId,
+    );
+    const grants = await readPolicyGrants(policyIds);
+    const allowedTools = [...new Set(grants.tools)].sort();
+    const allowedShellCommands = decodeStoredShellCommands(
+      grants.shellCommands,
+    );
+    validateRuntimeCapabilities(
+      profileContext.runtimeKind,
+      allowedTools,
+      'allowedTools',
+    );
+    const snapshot = canonicalEffectivePolicySnapshot({
+      runtimeKind: profileContext.runtimeKind,
+      enforcement: profileContext.enforcement,
+      allowedTools,
+      allowedShellCommands,
+    });
+    const policySnapshotHash = hashEffectivePolicySnapshot(snapshot);
+    if (persistSnapshot) {
+      await deps.runtimePolicySnapshotRepository.upsert({
+        hash: policySnapshotHash,
+        schemaVersion: snapshot.version,
+        runtimeKind: snapshot.runtimeKind,
+        capabilityManifestVersion: snapshot.capabilityManifestVersion,
+        enforcement: snapshot.enforcement,
+        allowedTools: snapshot.allowedTools,
+        allowedShellCommands: snapshot.allowedShellCommands,
+      });
+    }
+    return {
+      enforcement: profileContext.enforcement,
+      allowedTools,
+      allowedShellCommands,
+      runtimeKind: profileContext.runtimeKind,
+      capabilityManifestVersion: snapshot.capabilityManifestVersion,
+      runtimeProfileRevision: profileContext.revision,
+      policySnapshotHash,
+    };
+  }
+
   async function requirePolicyForTeam(
     id: string,
     teamId: string,
@@ -311,7 +360,7 @@ export function createRuntimePolicyService(deps: RuntimePolicyServiceDeps) {
         input.shellCommands ?? [],
         'shellCommands',
       );
-      validateRuntimeCapabilities('gondolin_pi', tools, 'tools');
+      validateRuntimeCapabilities(GONDOLIN_PI_RUNTIME_KIND, tools, 'tools');
 
       const creator =
         input.subject.subjectType === 'agent'
@@ -403,7 +452,11 @@ export function createRuntimePolicyService(deps: RuntimePolicyServiceDeps) {
               ...addTools,
             ]),
           ].sort();
-          validateRuntimeCapabilities('gondolin_pi', finalTools, 'addTools');
+          validateRuntimeCapabilities(
+            GONDOLIN_PI_RUNTIME_KIND,
+            finalTools,
+            'addTools',
+          );
           const finalShellCommands = normalizeShellCommandRules([
             ...decodeStoredShellCommands(currentCommandIds).filter(
               (rule) => !removedCommandIds.has(encodeShellCommandRule(rule)),
@@ -563,57 +616,24 @@ export function createRuntimePolicyService(deps: RuntimePolicyServiceDeps) {
     /**
      * Resolve a profile's effective allow-set: its enforcement mode plus the
      * union of tools across every bound policy. Team-scoped — a profile that
-     * does not belong to `teamId` resolves to not-found (fail-closed).
+     * does not belong to `teamId` resolves to not-found (fail-closed). This
+     * read is intentionally available to team-bound runtimes and does not
+     * persist a snapshot; snapshots are materialized only while claiming.
      */
     async resolveAllowedTools(
       input: ResolveAllowedToolsInput,
     ): Promise<AllowedTools> {
-      const profileContext =
-        await deps.runtimePolicyRepository.getProfilePolicyContext(
-          input.profileId,
-          input.teamId,
-        );
-      if (profileContext === null) throw createProblem('not-found');
+      return resolveEffectivePolicy(input, false);
+    },
 
-      const policyIds =
-        await deps.relationshipReader.listRuntimeProfilePolicies(
-          input.profileId,
-        );
-      const grants = await readPolicyGrants(policyIds);
-      const allowedTools = [...new Set(grants.tools)].sort();
-      const allowedShellCommands = decodeStoredShellCommands(
-        grants.shellCommands,
-      );
-      validateRuntimeCapabilities(
-        profileContext.runtimeKind,
-        allowedTools,
-        'allowedTools',
-      );
-      const snapshot = canonicalEffectivePolicySnapshot({
-        runtimeKind: profileContext.runtimeKind,
-        enforcement: profileContext.enforcement,
-        allowedTools,
-        allowedShellCommands,
-      });
-      const policySnapshotHash = hashEffectivePolicySnapshot(snapshot);
-      await deps.runtimePolicySnapshotRepository.persist({
-        hash: policySnapshotHash,
-        schemaVersion: snapshot.version,
-        runtimeKind: snapshot.runtimeKind,
-        capabilityManifestVersion: snapshot.capabilityManifestVersion,
-        enforcement: snapshot.enforcement,
-        allowedTools: snapshot.allowedTools,
-        allowedShellCommands: snapshot.allowedShellCommands,
-      });
-      return {
-        enforcement: profileContext.enforcement,
-        allowedTools,
-        allowedShellCommands,
-        runtimeKind: profileContext.runtimeKind,
-        capabilityManifestVersion: snapshot.capabilityManifestVersion,
-        runtimeProfileRevision: profileContext.revision,
-        policySnapshotHash,
-      };
+    /**
+     * Resolve and immutably persist the exact authority selected for a new
+     * task attempt. This is the only service operation that writes snapshots.
+     */
+    async resolvePinnedAllowedTools(
+      input: ResolveAllowedToolsInput,
+    ): Promise<AllowedTools> {
+      return resolveEffectivePolicy(input, true);
     },
   };
 }

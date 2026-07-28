@@ -3,6 +3,14 @@ import type {
   TaskRepository,
 } from '@moltnet/database';
 import {
+  findUnavailableRuntimeCapabilities,
+  GONDOLIN_PI_RUNTIME_KIND,
+  RUNTIME_KINDS,
+  type RuntimeKind,
+  TOOL_ENFORCEMENT_VALUES,
+  type ToolEnforcement,
+} from '@moltnet/models';
+import {
   canonicalEffectivePolicySnapshot,
   EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION,
   hashEffectivePolicySnapshot,
@@ -16,18 +24,52 @@ import type {
 export interface MoltNetTaskAuthorityProviderDeps {
   taskRepository: Pick<TaskRepository, 'findById' | 'findAttempt'>;
   runtimePolicySnapshotRepository: RuntimePolicySnapshotRepository;
+  logger: {
+    warn(context: Record<string, unknown>, message: string): void;
+  };
+  denialCounter: {
+    add(value: number, attributes: { reason: string }): void;
+  };
   now?: () => Date;
 }
 
-const deny = (reason: string): TaskAuthorityDecision => ({
-  allowed: false,
-  reason,
-});
+function isRuntimeKind(value: string): value is RuntimeKind {
+  return (RUNTIME_KINDS as readonly string[]).includes(value);
+}
+
+function isToolEnforcement(value: string): value is ToolEnforcement {
+  return (TOOL_ENFORCEMENT_VALUES as readonly string[]).includes(value);
+}
 
 export function createMoltNetTaskAuthorityProvider(
   deps: MoltNetTaskAuthorityProviderDeps,
 ): TaskAuthorityProvider {
   const now = deps.now ?? (() => new Date());
+  const deny = (
+    request: TaskAuthorityRequest,
+    reason: string,
+  ): TaskAuthorityDecision => {
+    try {
+      deps.logger.warn(
+        {
+          reason,
+          taskId: request.taskId,
+          attemptN: request.attemptN,
+          agentId: request.agentId,
+          teamId: request.teamId,
+        },
+        'Task authority denied',
+      );
+    } catch {
+      // Authorization must remain fail-closed if telemetry is unavailable.
+    }
+    try {
+      deps.denialCounter.add(1, { reason });
+    } catch {
+      // Authorization must remain fail-closed if telemetry is unavailable.
+    }
+    return { allowed: false, reason };
+  };
 
   return {
     async authorizeTask(
@@ -37,20 +79,27 @@ export function createMoltNetTaskAuthorityProvider(
         deps.taskRepository.findById(request.taskId),
         deps.taskRepository.findAttempt(request.taskId, request.attemptN),
       ]);
-      if (!task || !attempt) return deny('task_attempt_not_found');
-      if (task.teamId !== request.teamId) return deny('team_mismatch');
+      if (!task || !attempt) {
+        return deny(request, 'task_attempt_not_found');
+      }
+      if (task.teamId !== request.teamId) {
+        return deny(request, 'team_mismatch');
+      }
       if (
         attempt.claimedByAgentId !== request.agentId ||
         task.claimAgentId !== request.agentId
       ) {
-        return deny('claimant_mismatch');
+        return deny(request, 'claimant_mismatch');
+      }
+      if (attempt.status !== 'claimed' && attempt.status !== 'running') {
+        return deny(request, 'attempt_inactive');
       }
       if (
         (task.status !== 'dispatched' && task.status !== 'running') ||
         !task.claimExpiresAt ||
         task.claimExpiresAt.getTime() <= now().getTime()
       ) {
-        return deny('lease_inactive');
+        return deny(request, 'lease_inactive');
       }
       if (
         !attempt.leaseId ||
@@ -58,32 +107,46 @@ export function createMoltNetTaskAuthorityProvider(
         !attempt.runtimeProfileRevision ||
         !attempt.policySnapshotHash
       ) {
-        return deny('authority_binding_missing');
+        return deny(request, 'authority_binding_missing');
       }
 
       const snapshot = await deps.runtimePolicySnapshotRepository.findByHash(
         attempt.policySnapshotHash,
       );
-      if (!snapshot) return deny('policy_snapshot_missing');
+      if (!snapshot) return deny(request, 'policy_snapshot_missing');
+      if (snapshot.schemaVersion !== EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION) {
+        return deny(request, 'schema_version_mismatch');
+      }
       if (
-        snapshot.schemaVersion !== EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION ||
-        snapshot.runtimeKind !== 'gondolin_pi' ||
-        !['off', 'watch', 'enforce'].includes(snapshot.enforcement)
+        !isRuntimeKind(snapshot.runtimeKind) ||
+        !isToolEnforcement(snapshot.enforcement)
       ) {
-        return deny('authority_binding_inconsistent');
+        return deny(request, 'authority_binding_invalid');
+      }
+      if (
+        findUnavailableRuntimeCapabilities(
+          snapshot.runtimeKind,
+          snapshot.allowedTools,
+        ).length > 0
+      ) {
+        return deny(request, 'authority_binding_invalid');
       }
       const canonical = canonicalEffectivePolicySnapshot({
-        runtimeKind: snapshot.runtimeKind as 'gondolin_pi',
-        enforcement: snapshot.enforcement as 'off' | 'watch' | 'enforce',
+        runtimeKind: snapshot.runtimeKind,
+        enforcement: snapshot.enforcement,
         allowedTools: snapshot.allowedTools,
       });
       if (
         canonical.capabilityManifestVersion !==
-          snapshot.capabilityManifestVersion ||
+        snapshot.capabilityManifestVersion
+      ) {
+        return deny(request, 'manifest_version_superseded');
+      }
+      if (
         hashEffectivePolicySnapshot(canonical) !== snapshot.hash ||
         snapshot.hash !== attempt.policySnapshotHash
       ) {
-        return deny('authority_binding_inconsistent');
+        return deny(request, 'snapshot_hash_mismatch');
       }
 
       return {
@@ -96,7 +159,7 @@ export function createMoltNetTaskAuthorityProvider(
           taskId: request.taskId,
           attemptN: request.attemptN,
           leaseId: attempt.leaseId,
-          runtimeKind: snapshot.runtimeKind,
+          runtimeKind: GONDOLIN_PI_RUNTIME_KIND,
           capabilityManifestVersion: snapshot.capabilityManifestVersion,
           runtimeProfileId: attempt.runtimeProfileId,
           runtimeProfileRevision: attempt.runtimeProfileRevision,

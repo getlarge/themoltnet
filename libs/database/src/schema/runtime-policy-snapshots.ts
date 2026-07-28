@@ -1,3 +1,4 @@
+import { SHA256_HASH_STRING_LENGTH } from '@moltnet/models';
 import { sql } from 'drizzle-orm';
 import { check, pgTable, text, timestamp, varchar } from 'drizzle-orm/pg-core';
 
@@ -12,7 +13,9 @@ import { check, pgTable, text, timestamp, varchar } from 'drizzle-orm/pg-core';
 export const runtimePolicySnapshots = pgTable(
   'runtime_policy_snapshots',
   {
-    hash: varchar('hash', { length: 71 }).primaryKey(),
+    hash: varchar('hash', {
+      length: SHA256_HASH_STRING_LENGTH,
+    }).primaryKey(),
     schemaVersion: varchar('schema_version', { length: 32 }).notNull(),
     runtimeKind: varchar('runtime_kind', { length: 64 }).notNull(),
     capabilityManifestVersion: varchar('capability_manifest_version', {

@@ -146,6 +146,18 @@ describe('runtime tool-policy routes', () => {
       expect(mocks.runtimePolicyRepository.create).not.toHaveBeenCalled();
     });
 
+    it('rejects a tool name with a trailing line break', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/runtime-policies',
+        headers: TEAM_HEADERS,
+        payload: { name: 'ci', tools: ['git\n'] },
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(mocks.runtimePolicyRepository.create).not.toHaveBeenCalled();
+    });
+
     it('rejects capabilities absent from the runtime manifest', async () => {
       const response = await app.inject({
         method: 'POST',
@@ -423,8 +435,8 @@ describe('runtime tool-policy routes', () => {
         policySnapshotHash: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
       });
       expect(
-        mocks.runtimePolicySnapshotRepository.persist,
-      ).toHaveBeenCalledOnce();
+        mocks.runtimePolicySnapshotRepository.upsert,
+      ).not.toHaveBeenCalled();
     });
 
     it('returns 404 when the profile is not in the team', async () => {

@@ -200,7 +200,7 @@ const stepConfig = {
 };
 
 let workflowDeps: TaskWorkflowDeps | null = null;
-let _workflows: {
+type ConfiguredTaskWorkflows = {
   startAttemptWorkflow: (
     taskId: string,
     attemptN: number,
@@ -215,7 +215,9 @@ let _workflows: {
     runtimeProfileRevision?: number | null,
     policySnapshotHash?: string | null,
   ) => Promise<TaskAttemptFinalEvent>;
-} | null = null;
+};
+
+let _workflows: ConfiguredTaskWorkflows | null = null;
 
 function getDeps(): TaskWorkflowDeps {
   if (!workflowDeps) {
@@ -771,18 +773,7 @@ export const taskWorkflows = new Proxy(
       return _workflows[prop as keyof typeof _workflows];
     },
   },
-) as {
-  startAttemptWorkflow: (
-    taskId: string,
-    attemptN: number,
-    agentId: string,
-    workflowId: string,
-    leaseTtlSec: number,
-    claimedExecutorFingerprint?: string | null,
-    dispatchTimeoutSecOverride?: number | null,
-    runningTimeoutSecOverride?: number | null,
-  ) => Promise<TaskAttemptFinalEvent>;
-};
+) as ConfiguredTaskWorkflows;
 
 /** @internal Reset module state for testing. */
 export function _resetTaskWorkflowsForTesting(): void {

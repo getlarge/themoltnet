@@ -45,12 +45,12 @@ describe('RuntimePolicySnapshotRepository (integration)', () => {
   });
 
   it('reuses identical content and rejects different content at the same hash', async () => {
-    const created = await repo.persist(snapshot);
-    const reused = await repo.persist(snapshot);
+    const created = await repo.upsert(snapshot);
+    const reused = await repo.upsert(snapshot);
 
     expect(reused).toEqual(created);
     await expect(
-      repo.persist({ ...snapshot, allowedTools: ['write'] }),
+      repo.upsert({ ...snapshot, allowedTools: ['write'] }),
     ).rejects.toThrow(/hash collision/);
     await expect(repo.findByHash(snapshot.hash)).resolves.toEqual(created);
   });
