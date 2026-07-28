@@ -67,6 +67,10 @@ export interface EnqueueTaskAttemptWorkflowInput {
   workflowId: string;
   leaseTtlSec: number;
   claimedExecutorFingerprint: string | null;
+  leaseId?: string | null;
+  runtimeProfileId?: string | null;
+  runtimeProfileRevision?: number | null;
+  policySnapshotHash?: string | null;
   dispatchTimeoutSec: number | null;
   runningTimeoutSec: number | null;
 }
@@ -180,6 +184,10 @@ export async function enqueueTaskAttemptWorkflow(
       input.claimedExecutorFingerprint,
       input.dispatchTimeoutSec,
       input.runningTimeoutSec,
+      input.leaseId,
+      input.runtimeProfileId,
+      input.runtimeProfileRevision,
+      input.policySnapshotHash,
     ],
   });
 }
@@ -202,6 +210,10 @@ let _workflows: {
     claimedExecutorFingerprint?: string | null,
     dispatchTimeoutSecOverride?: number | null,
     runningTimeoutSecOverride?: number | null,
+    leaseId?: string | null,
+    runtimeProfileId?: string | null,
+    runtimeProfileRevision?: number | null,
+    policySnapshotHash?: string | null,
   ) => Promise<TaskAttemptFinalEvent>;
 } | null = null;
 
@@ -236,6 +248,10 @@ export function initTaskWorkflows(): void {
       agentId: string,
       workflowId: string,
       claimedExecutorFingerprint?: string | null,
+      leaseId?: string | null,
+      runtimeProfileId?: string | null,
+      runtimeProfileRevision?: number | null,
+      policySnapshotHash?: string | null,
     ): Promise<void> => {
       await getDeps().createAttempt({
         taskId,
@@ -244,6 +260,10 @@ export function initTaskWorkflows(): void {
         workflowId,
         status: 'claimed',
         claimedExecutorFingerprint: claimedExecutorFingerprint ?? null,
+        leaseId: leaseId ?? null,
+        runtimeProfileId: runtimeProfileId ?? null,
+        runtimeProfileRevision: runtimeProfileRevision ?? null,
+        policySnapshotHash: policySnapshotHash ?? null,
       });
     },
     { name: 'task.step.insertAttempt', ...stepConfig },
@@ -329,6 +349,10 @@ export function initTaskWorkflows(): void {
         claimedExecutorFingerprint?: string | null,
         dispatchTimeoutSecOverride?: number | null,
         runningTimeoutSecOverride?: number | null,
+        leaseId?: string | null,
+        runtimeProfileId?: string | null,
+        runtimeProfileRevision?: number | null,
+        policySnapshotHash?: string | null,
       ): Promise<TaskAttemptFinalEvent> => {
         const dispatchTimeoutSec =
           dispatchTimeoutSecOverride ?? DEFAULT_DISPATCH_TIMEOUT_SECONDS;
@@ -341,6 +365,10 @@ export function initTaskWorkflows(): void {
           agentId,
           workflowId,
           claimedExecutorFingerprint,
+          leaseId,
+          runtimeProfileId,
+          runtimeProfileRevision,
+          policySnapshotHash,
         );
         await dispatchTaskStep(taskId, agentId, leaseTtlSec);
         await DBOS.setEvent<TaskAttemptClaimedEvent>('claimed', {

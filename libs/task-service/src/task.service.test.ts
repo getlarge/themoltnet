@@ -289,6 +289,18 @@ interface Mocks {
       } | null>
     >;
   };
+  runtimePolicyService: {
+    resolveAllowedTools: Mock<
+      (input: { profileId: string; teamId: string }) => Promise<{
+        enforcement: 'enforce';
+        allowedTools: string[];
+        runtimeKind: 'gondolin_pi';
+        capabilityManifestVersion: string;
+        runtimeProfileRevision: number;
+        policySnapshotHash: string;
+      }>
+    >;
+  };
   contextPackRepository: {
     findById: Mock<(id: string) => Promise<null>>;
   };
@@ -568,6 +580,16 @@ function makeMocks(
           teamId: TEAM_ID,
           runtimeKind: 'gondolin_pi',
         }),
+    },
+    runtimePolicyService: {
+      resolveAllowedTools: vi.fn().mockResolvedValue({
+        enforcement: 'enforce',
+        allowedTools: ['read'],
+        runtimeKind: 'gondolin_pi',
+        capabilityManifestVersion: 'gondolin_pi:v1',
+        runtimeProfileRevision: 7,
+        policySnapshotHash: `sha256:${'a'.repeat(64)}`,
+      }),
     },
     contextPackRepository: {
       findById: vi.fn<(id: string) => Promise<null>>().mockResolvedValue(null),
@@ -961,6 +983,51 @@ describe('createTaskService.claim — runtime profile attestation', () => {
     expect(mocks.relationshipWriter.grantTaskClaimant).toHaveBeenCalledWith(
       JUDGE_TASK,
       AGENT_ID,
+    );
+  });
+
+  it('pins immutable runtime authority in the claim workflow input', async () => {
+    const enqueueWorkflowInCurrentTransaction = vi
+      .fn()
+      .mockResolvedValue({ workflowId: `task:${JUDGE_TASK}:attempt:1` });
+    vi.spyOn(DBOS, 'getEvent').mockResolvedValue({
+      taskId: JUDGE_TASK,
+      attemptN: 1,
+    });
+    service = createTaskService({
+      ...(mocks as unknown as Parameters<typeof createTaskService>[0]),
+      enqueueWorkflowInCurrentTransaction,
+    });
+
+    await service.claim(JUDGE_TASK, AGENT_ID, KetoNamespace.Agent, 30, {
+      profileId: PROFILE_ID,
+    });
+
+    expect(mocks.runtimePolicyService.resolveAllowedTools).toHaveBeenCalledWith(
+      {
+        profileId: PROFILE_ID,
+        teamId: TEAM_ID,
+      },
+    );
+    expect(enqueueWorkflowInCurrentTransaction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        positionalArgs: [
+          JUDGE_TASK,
+          1,
+          AGENT_ID,
+          `task:${JUDGE_TASK}:attempt:1`,
+          30,
+          null,
+          null,
+          null,
+          expect.stringMatching(
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+          ),
+          PROFILE_ID,
+          7,
+          `sha256:${'a'.repeat(64)}`,
+        ],
+      }),
     );
   });
 

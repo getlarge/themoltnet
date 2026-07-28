@@ -1,4 +1,5 @@
 import type { ToolEnforcement } from '@moltnet/models';
+import type { RuntimeKind } from '@moltnet/models';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 
 import { acquireTransactionAdvisoryLock } from '../advisory-lock.js';
@@ -13,6 +14,12 @@ import { getExecutor } from '../transaction-context.js';
 import { translateUniqueViolation } from '../unique-violation.js';
 
 export type { ToolEnforcement } from '@moltnet/models';
+
+export interface RuntimeProfilePolicyContext {
+  runtimeKind: RuntimeKind;
+  revision: number;
+  enforcement: ToolEnforcement;
+}
 
 /** Hard cap on a single team's policy listing (bounds response size). */
 export const RUNTIME_POLICY_LIST_LIMIT = 500;
@@ -172,12 +179,16 @@ export function createRuntimePolicyRepository(db: Database) {
      * `null` when the profile does not exist or belongs to a different team —
      * the caller treats null as not-found (fail-closed team scoping).
      */
-    async getProfileEnforcement(
+    async getProfilePolicyContext(
       profileId: string,
       teamId: string,
-    ): Promise<ToolEnforcement | null> {
+    ): Promise<RuntimeProfilePolicyContext | null> {
       const [row] = await getExecutor(db)
-        .select({ toolEnforcement: runtimeProfiles.toolEnforcement })
+        .select({
+          runtimeKind: runtimeProfiles.runtimeKind,
+          revision: runtimeProfiles.revision,
+          enforcement: runtimeProfiles.toolEnforcement,
+        })
         .from(runtimeProfiles)
         .where(
           and(
@@ -186,7 +197,7 @@ export function createRuntimePolicyRepository(db: Database) {
           ),
         )
         .limit(1);
-      return row?.toolEnforcement ?? null;
+      return row ?? null;
     },
 
     /** Team-scoped existence check used before binding policies to a profile. */

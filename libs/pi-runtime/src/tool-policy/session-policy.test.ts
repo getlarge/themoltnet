@@ -28,6 +28,8 @@ function agentReturning(
         enforcement,
         allowedTools,
         allowedShellCommands,
+        runtimeKind: 'gondolin_pi',
+        capabilityManifestVersion: 'gondolin_pi:v1',
       }),
     },
   };
@@ -102,6 +104,37 @@ describe('resolveSessionToolPolicy', () => {
       degraded: true,
     });
     expect(logger.warn).toHaveBeenCalled();
+  });
+
+  it('fails closed when the daemon manifest differs from the resolved policy', async () => {
+    const agent = agentReturning('enforce', ['git']);
+    vi.mocked(agent.runtimeProfiles.allowedTools).mockResolvedValue({
+      enforcement: 'enforce',
+      allowedTools: ['git'],
+      runtimeKind: 'gondolin_pi',
+      capabilityManifestVersion: 'gondolin_pi:v2',
+    });
+
+    const policy = await resolveSessionToolPolicy({
+      ...params,
+      agent,
+      enforcement: 'enforce',
+    });
+
+    expect(policy).toEqual({
+      enforcement: 'enforce',
+      allowedTools: new Set(),
+      degraded: true,
+    });
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        err: expect.objectContaining({
+          name: 'RuntimeCapabilityManifestMismatchError',
+        }),
+        failClosed: true,
+      }),
+      'tool_policy.resolve_failed',
+    );
   });
 
   it('fails open-ish (audits) and marks degraded when the fetch fails in watch', async () => {

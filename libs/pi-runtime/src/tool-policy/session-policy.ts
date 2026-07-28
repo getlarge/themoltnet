@@ -3,6 +3,7 @@ import type {
   ToolCallEvent,
   ToolCallEventResult,
 } from '@earendil-works/pi-coding-agent';
+import { getRuntimeCapabilityManifest } from '@moltnet/models';
 import type { ShellCommandAnalyzer } from '@themoltnet/shell-command-analyzer';
 
 import {
@@ -54,6 +55,8 @@ export interface AllowedToolsClient {
       enforcement: ToolEnforcement;
       allowedTools: string[];
       allowedShellCommands: Array<{ argvPrefix: string[] }>;
+      runtimeKind: string;
+      capabilityManifestVersion: string;
     }>;
   };
 }
@@ -113,6 +116,18 @@ export async function resolveSessionToolPolicy(
       timeoutMs,
     );
     const shellCommands = resolved.allowedShellCommands ?? [];
+    const manifest = getRuntimeCapabilityManifest('gondolin_pi');
+    if (
+      resolved.runtimeKind !== manifest.runtimeKind ||
+      resolved.capabilityManifestVersion !== manifest.version
+    ) {
+      throw new RuntimeCapabilityManifestMismatchError({
+        expectedRuntimeKind: manifest.runtimeKind,
+        expectedVersion: manifest.version,
+        receivedRuntimeKind: resolved.runtimeKind,
+        receivedVersion: resolved.capabilityManifestVersion,
+      });
+    }
     return {
       enforcement: resolved.enforcement,
       allowedTools: new Set(resolved.allowedTools),
@@ -160,6 +175,22 @@ export class ToolPolicyResolveTimeoutError extends Error {
   constructor(timeoutMs: number) {
     super(`tool-policy resolution timed out after ${timeoutMs}ms`);
     this.name = 'ToolPolicyResolveTimeoutError';
+  }
+}
+
+export class RuntimeCapabilityManifestMismatchError extends Error {
+  constructor(input: {
+    expectedRuntimeKind: string;
+    expectedVersion: string;
+    receivedRuntimeKind: string;
+    receivedVersion: string;
+  }) {
+    super(
+      `runtime capability manifest mismatch: expected ` +
+        `${input.expectedRuntimeKind}/${input.expectedVersion}, received ` +
+        `${input.receivedRuntimeKind}/${input.receivedVersion}`,
+    );
+    this.name = 'RuntimeCapabilityManifestMismatchError';
   }
 }
 
