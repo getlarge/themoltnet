@@ -120,6 +120,7 @@ describe('PollingApiTaskSource', () => {
   });
 
   it('logs why drain exits before any task is claimed', async () => {
+    vi.useFakeTimers();
     const info = vi.fn();
     const logger: AgentRuntimeLogger = {
       ...silentLogger,
@@ -136,20 +137,28 @@ describe('PollingApiTaskSource', () => {
       correlationId: 'run-empty',
       leaseTtlSec: 60,
       stopWhenEmpty: true,
+      waitForFirstTaskMs: 100,
+      pollIntervalMs: 10,
+      maxPollIntervalMs: 10,
       logger,
     });
 
-    await expect(src.claim()).resolves.toBeNull();
+    const pending = src.claim();
+    await vi.advanceTimersByTimeAsync(110);
+    await expect(pending).resolves.toBeNull();
     expect(info).toHaveBeenCalledWith(
       expect.objectContaining({
         correlationId: 'run-empty',
         reason: 'first_task_timeout',
+        hasClaimedTask: false,
       }),
       'polling-api.drain_complete',
     );
+    vi.useRealTimers();
   });
 
   it('logs why drain exits after the post-task idle grace', async () => {
+    vi.useFakeTimers();
     const info = vi.fn();
     const logger: AgentRuntimeLogger = {
       ...silentLogger,
@@ -173,19 +182,25 @@ describe('PollingApiTaskSource', () => {
       correlationId: 'run-drained',
       leaseTtlSec: 60,
       stopWhenEmpty: true,
-      waitAfterTaskMs: 0,
+      waitAfterTaskMs: 100,
+      pollIntervalMs: 10,
+      maxPollIntervalMs: 10,
       logger,
     });
 
     await expect(src.claim()).resolves.toMatchObject({ task: { id: task.id } });
-    await expect(src.claim()).resolves.toBeNull();
+    const pending = src.claim();
+    await vi.advanceTimersByTimeAsync(110);
+    await expect(pending).resolves.toBeNull();
     expect(info).toHaveBeenCalledWith(
       expect.objectContaining({
         correlationId: 'run-drained',
         reason: 'post_task_idle',
+        hasClaimedTask: true,
       }),
       'polling-api.drain_complete',
     );
+    vi.useRealTimers();
   });
 
   it('forwards correlationId to the task list filter', async () => {

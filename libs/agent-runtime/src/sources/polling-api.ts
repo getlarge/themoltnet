@@ -358,6 +358,7 @@ export class PollingApiTaskSource implements TaskSource {
               {
                 correlationId: this.opts.correlationId,
                 reason: 'first_task_timeout',
+                hasClaimedTask: false,
                 elapsedWaitMs: now - this.startedAtMs,
               },
               'polling-api.drain_complete',
@@ -374,6 +375,7 @@ export class PollingApiTaskSource implements TaskSource {
               {
                 correlationId: this.opts.correlationId,
                 reason: 'post_task_idle',
+                hasClaimedTask: true,
                 elapsedWaitMs: now - this.emptySinceMs,
               },
               'polling-api.drain_complete',
