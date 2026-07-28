@@ -1,5 +1,10 @@
-import { KetoNamespace } from '@moltnet/auth';
-import { KeyStatus, KeyVisibility, RevocationReason } from '@ory/client-fetch';
+import { AGENT_CREDENTIAL_SCOPES, KetoNamespace } from '@moltnet/auth';
+import {
+  type IssuedApiKey,
+  KeyStatus,
+  KeyVisibility,
+  RevocationReason,
+} from '@ory/client-fetch';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -7,6 +12,8 @@ import {
   type AgentKeySubject,
   createAgentKeyService,
 } from './agent-key-service.js';
+
+type TalosApi = NonNullable<AgentKeyServiceDeps['talosApi']>;
 
 const TEAM_ID = 'aaaaaaaa-0000-4000-8000-000000000001';
 const OTHER_TEAM_ID = 'bbbbbbbb-0000-4000-8000-000000000002';
@@ -27,7 +34,7 @@ const subject: AgentKeySubject = {
   subjectType: 'agent',
 };
 
-function issuedKey(overrides: Record<string, unknown> = {}) {
+function issuedKey(overrides: Partial<IssuedApiKey> = {}): IssuedApiKey {
   return {
     key_id: KEY_ID,
     actor_id: AGENT_ID,
@@ -47,11 +54,11 @@ function issuedKey(overrides: Record<string, unknown> = {}) {
 
 describe('agent key service', () => {
   const talosApi = {
-    adminGetIssuedApiKey: vi.fn(),
-    adminIssueApiKey: vi.fn(),
-    adminListIssuedApiKeys: vi.fn(),
-    adminRevokeIssuedApiKey: vi.fn(),
-    adminRotateIssuedApiKey: vi.fn(),
+    adminGetIssuedApiKey: vi.fn<TalosApi['adminGetIssuedApiKey']>(),
+    adminIssueApiKey: vi.fn<TalosApi['adminIssueApiKey']>(),
+    adminListIssuedApiKeys: vi.fn<TalosApi['adminListIssuedApiKeys']>(),
+    adminRevokeIssuedApiKey: vi.fn<TalosApi['adminRevokeIssuedApiKey']>(),
+    adminRotateIssuedApiKey: vi.fn<TalosApi['adminRotateIssuedApiKey']>(),
   };
   const agentRepository = {
     findByIdentityId: vi.fn(),
@@ -97,28 +104,20 @@ describe('agent key service', () => {
       key: { agentId: AGENT_ID, teamId: TEAM_ID },
       secret: 'ory_ak_secret',
     });
-    expect(talosApi.adminIssueApiKey).toHaveBeenNthCalledWith(
-      1,
-      {
-        issueApiKeyRequest: expect.objectContaining({
-          actor_id: AGENT_ID,
-          name: 'daemon',
-          request_id: expect.any(String),
-          scopes: expect.arrayContaining([
-            'diary:read',
-            'diary:write',
-            'team:read',
-          ]),
-          visibility: KeyVisibility.KeyVisibilitySecret,
-          metadata: {
-            schema_version: 1,
-            subject_type: 'agent',
-            team_id: TEAM_ID,
-          },
-        }),
+    const firstRequest =
+      talosApi.adminIssueApiKey.mock.calls[0]?.[0].issueApiKeyRequest;
+    expect(firstRequest).toMatchObject({
+      actor_id: AGENT_ID,
+      name: 'daemon',
+      scopes: [...AGENT_CREDENTIAL_SCOPES],
+      visibility: KeyVisibility.KeyVisibilitySecret,
+      metadata: {
+        schema_version: 1,
+        subject_type: 'agent',
+        team_id: TEAM_ID,
       },
-      undefined,
-    );
+    });
+    expect(typeof firstRequest?.request_id).toBe('string');
     expect(
       talosApi.adminIssueApiKey.mock.calls[0]?.[0].issueApiKeyRequest
         .request_id,
@@ -244,20 +243,17 @@ describe('agent key service', () => {
     });
 
     expect(result.key.id).toBe(ROTATED_KEY_ID);
-    expect(talosApi.adminRotateIssuedApiKey).toHaveBeenCalledWith(
-      {
-        keyId: KEY_ID,
-        adminRotateIssuedApiKeyBody: expect.objectContaining({
-          visibility: KeyVisibility.KeyVisibilitySecret,
-          metadata: {
-            schema_version: 1,
-            subject_type: 'agent',
-            team_id: TEAM_ID,
-          },
-        }),
+    expect(talosApi.adminRotateIssuedApiKey.mock.calls[0]?.[0]).toMatchObject({
+      keyId: KEY_ID,
+      adminRotateIssuedApiKeyBody: {
+        visibility: KeyVisibility.KeyVisibilitySecret,
+        metadata: {
+          schema_version: 1,
+          subject_type: 'agent',
+          team_id: TEAM_ID,
+        },
       },
-      undefined,
-    );
+    });
   });
 
   it('hides an existing key from an unauthorized agent', async () => {

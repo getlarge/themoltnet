@@ -27,7 +27,7 @@ const { createPiTaskExecutorMock } = vi.hoisted(() => ({
 }));
 
 vi.mock('@themoltnet/pi-extension', async (importOriginal) => {
-  const actual = await importOriginal();
+  const actual = await importOriginal<Record<string, unknown>>();
   return {
     ...actual,
     createPiTaskExecutor: createPiTaskExecutorMock,
@@ -182,16 +182,21 @@ describe('Agent daemon repo-free execution (e2e)', () => {
     }
 
     expect(createPiTaskExecutorMock).toHaveBeenCalledTimes(1);
-    expect(createPiTaskExecutorMock.mock.calls[0][0]).toMatchObject({
+    const executorOptions = createPiTaskExecutorMock.mock.calls[0]?.[0] as {
+      agentName: string;
+      agentRootDir: string;
+      mountPath: string;
+      provider: string;
+      model: string;
+    };
+    expect(executorOptions).toMatchObject({
       agentName,
       agentRootDir: agentRoot,
       mountPath: agentRoot,
       provider: 'anthropic',
       model: 'claude-sonnet-4-5',
     });
-    expect(createPiTaskExecutorMock.mock.calls[0][0].mountPath).not.toBe(
-      sandboxRoot,
-    );
+    expect(executorOptions.mountPath).not.toBe(sandboxRoot);
 
     const final = await agent.tasks.get(created.id);
     expect(final.status).toBe('completed');

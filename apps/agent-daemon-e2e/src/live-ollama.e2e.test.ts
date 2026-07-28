@@ -404,15 +404,14 @@ describeLive('Agent daemon live Ollama Cloud execution (e2e)', () => {
     expect(final.status).toBe('completed');
     expect(final.acceptedAttemptN).toBe(2);
     const attempts = await agent.tasks.listAttempts(created.id);
-    expect(attempts.find((attempt) => attempt.attemptN === 1)).toMatchObject({
-      status: 'failed',
-      error: expect.objectContaining({
-        retryable: true,
-        retry: expect.objectContaining({
-          source: 'triage',
-          decision: 'retry',
-        }),
-      }),
+    const failedAttempt = attempts.find((attempt) => attempt.attemptN === 1);
+    expect(failedAttempt?.status).toBe('failed');
+    expect(failedAttempt?.error).toMatchObject({
+      retryable: true,
+      retry: {
+        source: 'triage',
+        decision: 'retry',
+      },
     });
   }, 180_000);
 });

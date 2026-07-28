@@ -35,7 +35,7 @@
     "tags": [
       "type:app",
       "scope:identity",
-      "platform:node"
+      "platform:server"
     ]
   },
   "dependencies": {

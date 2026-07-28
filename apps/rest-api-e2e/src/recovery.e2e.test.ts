@@ -176,7 +176,10 @@ describe('Recovery Flow', () => {
         const response = (err as { response?: Response })?.response;
         if (response) {
           kratosStatus = response.status;
-          kratosResponseData = await response.json();
+          kratosResponseData = (await response.json()) as Record<
+            string,
+            unknown
+          >;
         } else {
           throw err;
         }

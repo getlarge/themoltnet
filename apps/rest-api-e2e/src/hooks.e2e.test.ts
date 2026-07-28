@@ -60,7 +60,7 @@ describe('Webhook Handlers (Agent)', () => {
       );
 
       expect(resp.status).toBe(200);
-      const body = await resp.json();
+      const body = (await resp.json()) as { success: boolean };
       expect(body.success).toBe(true);
     });
 
@@ -83,7 +83,9 @@ describe('Webhook Handlers (Agent)', () => {
       );
 
       expect(resp.status).toBe(400);
-      const body = await resp.json();
+      const body = (await resp.json()) as {
+        messages: Array<{ instance_ptr: string }>;
+      };
       expect(body.messages[0].instance_ptr).toBe('#/traits/public_key');
     });
 
@@ -129,7 +131,9 @@ describe('Webhook Handlers (Agent)', () => {
       );
 
       expect(resp.status).toBe(200);
-      const body = await resp.json();
+      const body = (await resp.json()) as {
+        session: { access_token: Record<string, unknown> };
+      };
       expect(body.session.access_token).toBeDefined();
       expect(body.session.access_token['moltnet:identity_id']).toBe(
         agent.identityId,
@@ -159,7 +163,7 @@ describe('Webhook Handlers (Agent)', () => {
       );
 
       expect(resp.status).toBe(500);
-      const body = await resp.json();
+      const body = (await resp.json()) as { error: string };
       expect(body.error).toBe('enrichment_failed');
     });
 

@@ -751,12 +751,11 @@ describe('Tasks API', () => {
       });
 
       expect(response.status).toBe(400);
-      expect(error).toMatchObject({
-        code: 'VALIDATION_FAILED',
-        errors: expect.arrayContaining([
-          expect.objectContaining({ field: 'output/packId' }),
-        ]),
-      });
+      expect(error?.code).toBe('VALIDATION_FAILED');
+      const validationErrors = error?.errors as
+        | Array<{ field?: string }>
+        | undefined;
+      expect(validationErrors?.[0]?.field).toBe('output/packId');
     });
 
     it('lists the completed attempt', async () => {
@@ -814,9 +813,7 @@ describe('Tasks API', () => {
       });
 
       expect(response.status).toBe(409);
-      expect(error).toMatchObject({
-        detail: expect.stringMatching(/heartbeat/i),
-      });
+      expect(error?.detail).toMatch(/heartbeat/i);
 
       // Task is still claimed; recovery path is to call /heartbeat then retry.
       const { data: still } = await getTask({
@@ -849,9 +846,7 @@ describe('Tasks API', () => {
       });
 
       expect(response.status).toBe(409);
-      expect(error).toMatchObject({
-        detail: expect.stringMatching(/heartbeat/i),
-      });
+      expect(error?.detail).toMatch(/heartbeat/i);
     });
 
     it('completes successfully when heartbeat is sent first', async () => {
@@ -2356,13 +2351,15 @@ describe('Tasks API', () => {
         },
       });
       expect(claimantCleanup.error).toBeUndefined();
-      expect(claimantCleanup.data).toEqual({
+      expect(claimantCleanup.data).toMatchObject({
         workflowId: null,
-        operationId: expect.stringMatching(/^task-delete:[a-f0-9]{64}$/),
         status: 'noop',
         accepted: [],
         skipped: [taskId],
       });
+      expect(claimantCleanup.data?.operationId).toMatch(
+        /^task-delete:[a-f0-9]{64}$/,
+      );
 
       const stillVisible = await getTask({
         client,
@@ -2437,13 +2434,12 @@ describe('Tasks API', () => {
       expect(second.response.status).toBe(202);
 
       const responses = [first.data!, second.data!];
-      expect(responses).toContainEqual(
-        expect.objectContaining({
-          workflowId: expect.any(String),
-          accepted: [task.data!.id],
-          skipped: [],
-        }),
+      const acceptedResponse = responses.find(
+        (response) =>
+          response.accepted[0] === task.data!.id &&
+          response.skipped.length === 0,
       );
+      expect(typeof acceptedResponse?.workflowId).toBe('string');
       for (const response of responses) {
         expect(response.accepted.length + response.skipped.length).toBe(1);
         expect([...response.accepted, ...response.skipped]).toEqual([

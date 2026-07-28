@@ -275,14 +275,9 @@ describe('tasks_continue server-side validation matrix', () => {
       `expected 201, got ${response.status} ${firstValidationMessage(error)}`,
     ).toBeUndefined();
     expect(response.status).toBe(201);
-    expect(data!.input).toEqual(
-      expect.objectContaining({
-        continueFrom: expect.objectContaining({
-          taskId: sourceId,
-          attemptN,
-        }),
-      }),
-    );
+    expect(data!.input).toMatchObject({
+      continueFrom: { taskId: sourceId, attemptN },
+    });
   }, 60_000);
 
   it('2. source missing — random UUID → 400 with not-found wording', async () => {
@@ -387,15 +382,9 @@ describe('tasks_continue server-side validation matrix', () => {
       `expected 201, got ${response.status} ${firstValidationMessage(error)}`,
     ).toBeUndefined();
     expect(response.status).toBe(201);
-    expect(data!.input).toEqual(
-      expect.objectContaining({
-        continueFrom: expect.objectContaining({
-          taskId: sourceId,
-          attemptN,
-          mode: 'fork',
-        }),
-      }),
-    );
+    expect(data!.input).toMatchObject({
+      continueFrom: { taskId: sourceId, attemptN, mode: 'fork' },
+    });
   }, 60_000);
 
   it('6. daemonState null on completion → continuation accepted', async () => {
@@ -417,11 +406,9 @@ describe('tasks_continue server-side validation matrix', () => {
       `expected 201, got ${response.status} ${firstValidationMessage(error)}`,
     ).toBeUndefined();
     expect(response.status).toBe(201);
-    expect(data!.input).toEqual(
-      expect.objectContaining({
-        continueFrom: expect.objectContaining({ taskId: sourceId, attemptN }),
-      }),
-    );
+    expect(data!.input).toMatchObject({
+      continueFrom: { taskId: sourceId, attemptN },
+    });
   }, 60_000);
 
   it('7. expired slotResumableUntil + durable session → continuation accepted', async () => {
@@ -444,11 +431,9 @@ describe('tasks_continue server-side validation matrix', () => {
       `expected 201, got ${response.status} ${firstValidationMessage(error)}`,
     ).toBeUndefined();
     expect(response.status).toBe(201);
-    expect(data!.input).toEqual(
-      expect.objectContaining({
-        continueFrom: expect.objectContaining({ taskId: sourceId, attemptN }),
-      }),
-    );
+    expect(data!.input).toMatchObject({
+      continueFrom: { taskId: sourceId, attemptN },
+    });
   }, 60_000);
 
   it('8. correlationId auto-generated when omitted', async () => {

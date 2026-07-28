@@ -102,11 +102,7 @@ const moduleBoundaryOptions = {
     // browser marker.
     {
       sourceTag: 'platform:server',
-      onlyDependOnLibsWithTags: [
-        'platform:server',
-        'platform:node',
-        'platform:isomorphic',
-      ],
+      onlyDependOnLibsWithTags: ['platform:server', 'platform:isomorphic'],
       bannedExternalImports: ['react-dom', 'react-dom/*'],
     },
     // CLI binaries can use server, cli, extension, and isomorphic libs.
@@ -116,7 +112,6 @@ const moduleBoundaryOptions = {
       onlyDependOnLibsWithTags: [
         'platform:cli',
         'platform:server',
-        'platform:node',
         'platform:extension',
         'platform:isomorphic',
       ],
@@ -128,7 +123,6 @@ const moduleBoundaryOptions = {
         'platform:extension',
         'platform:cli',
         'platform:server',
-        'platform:node',
         'platform:isomorphic',
       ],
     },
@@ -220,7 +214,7 @@ export default tseslint.config(
   // package.json `nx.tags` block. Tag dimensions:
   //   type:     app | feature | runtime | data-access | client | ui | util | tool
   //   scope:    identity | diary | crypto | agent | task | platform | public | tooling | shared
-  //   platform: server | browser | cli | node | extension | isomorphic
+  //   platform: server | browser | cli | extension | isomorphic
   //
   // Rules below encode the layered architecture. The lang:go tag exists for Go
   // projects (handled by golangci-lint depguard, not this rule).
@@ -409,12 +403,6 @@ export default tseslint.config(
       'no-console': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-non-null-assertion': 'off',
-      '@typescript-eslint/no-unsafe-argument': 'off',
-      '@typescript-eslint/no-unsafe-assignment': 'off',
-      '@typescript-eslint/no-unsafe-call': 'off',
-      '@typescript-eslint/no-unsafe-member-access': 'off',
-      '@typescript-eslint/no-unsafe-return': 'off',
-      '@typescript-eslint/unbound-method': 'off',
     },
   },
 );

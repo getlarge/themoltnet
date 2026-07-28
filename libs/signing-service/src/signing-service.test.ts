@@ -38,6 +38,26 @@ const SIGNATURE =
   'MEUCIQCEfiAIvamLdwfaDHCI2epg4Si6E3bAHlRDC6bl2fyNXAIgaRLbpQLIurx8zaf63gYqpcGF8CsP8kTMFNu9q2B2ORY';
 const MAX_PENDING_SIGNING_REQUESTS = 10;
 
+type CreateRegistrationInput = Parameters<
+  SigningServiceDeps['signingCredentialRepository']['createRegistration']
+>[0];
+type CreateCredentialInput = Parameters<
+  SigningServiceDeps['signingCredentialRepository']['create']
+>[0];
+type ConsumeRegistrationInput = Parameters<
+  SigningServiceDeps['signingCredentialRepository']['consumeRegistration']
+>[0];
+type ClaimRequestInput = Parameters<
+  SigningServiceDeps['signingRequestRepository']['claim']
+>[0];
+type CompleteClaimInput = Parameters<
+  SigningServiceDeps['signingRequestRepository']['completeClaim']
+>[0];
+
+async function runInTransaction<T>(task: () => Promise<T>): Promise<T> {
+  return task();
+}
+
 function publicMaterial(): PreviewSignPublicMaterialV1 {
   const blindingKey = {
     kty: 2 as const,
@@ -220,8 +240,13 @@ describe('createSigningService', () => {
       consumedAt: null,
       createdAt: new Date('2026-08-01T12:00:00.000Z'),
     });
+    const canAccessTeam = vi.fn().mockResolvedValue(true);
     const deps = createDeps({
       now: () => new Date('2026-08-01T12:01:00.000Z'),
+      permissionChecker: {
+        canAccessTeam,
+        canManageTeamCredentials: vi.fn().mockResolvedValue(false),
+      } as never,
       signingCredentialRepository: { findRegistrationById } as never,
     });
     const service = createSigningService(deps);
@@ -233,7 +258,7 @@ describe('createSigningService', () => {
         challenge,
       }),
     ).resolves.toEqual({ valid: true });
-    expect(deps.permissionChecker.canAccessTeam).not.toHaveBeenCalled();
+    expect(canAccessTeam).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -389,7 +414,10 @@ describe('createSigningService', () => {
   );
 
   it('returns no signable requests for an agent without querying storage', async () => {
-    const deps = createDeps();
+    const list = vi.fn().mockResolvedValue({ items: [], total: 0 });
+    const deps = createDeps({
+      signingRequestRepository: { list } as never,
+    });
     const service = createSigningService(deps);
 
     const result = await service.requests.list({
@@ -398,7 +426,7 @@ describe('createSigningService', () => {
     });
 
     expect(result).toEqual({ items: [], total: 0 });
-    expect(deps.signingRequestRepository.list).not.toHaveBeenCalled();
+    expect(list).not.toHaveBeenCalled();
   });
 
   it('validates delegated request metadata before repository writes', async () => {
@@ -430,7 +458,7 @@ describe('createSigningService', () => {
     });
     const create = vi.fn();
     const transactionRunner = {
-      runInTransaction: vi.fn(async (task) => task()),
+      runInTransaction: vi.fn(runInTransaction),
     };
     const service = createSigningService(
       createDeps({
@@ -476,7 +504,7 @@ describe('createSigningService', () => {
     });
     const create = vi.fn().mockResolvedValue(created);
     const transactionRunner = {
-      runInTransaction: vi.fn(async (task) => task()),
+      runInTransaction: vi.fn(runInTransaction),
     };
     const service = createSigningService(
       createDeps({
@@ -536,7 +564,7 @@ describe('createSigningService', () => {
           completeAgentRequest,
         } as never,
         transactionRunner: {
-          runInTransaction: vi.fn(async (task) => task()),
+          runInTransaction: vi.fn(runInTransaction),
         } as never,
       }),
     );
@@ -597,7 +625,9 @@ describe('createSigningService', () => {
   });
 
   it('begins typed previewSign enrollment with public material bound server-side', async () => {
-    const createRegistration = vi.fn(async (input) => input);
+    const createRegistration = vi.fn(
+      async (input: CreateRegistrationInput) => input,
+    );
     const service = createSigningService(
       createDeps({
         createId: () => REGISTRATION_ID,
@@ -625,18 +655,17 @@ describe('createSigningService', () => {
       },
     });
     expect(registration.challenge.value).not.toHaveProperty('ikm');
-    expect(createRegistration).toHaveBeenCalledWith(
-      expect.objectContaining({
-        ownerHumanId: human.humanId,
-        teamId: TEAM_ID,
-        credentialType: PREVIEW_SIGN_CREDENTIAL_TYPE,
-        algorithm: PREVIEW_SIGN_ALGORITHM,
-        methodState: {
-          verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
-          value: expect.not.objectContaining({ ikm: expect.anything() }),
-        },
-      }),
-    );
+    const persistedRegistration = createRegistration.mock.calls[0]?.[0];
+    expect(persistedRegistration).toMatchObject({
+      ownerHumanId: human.humanId,
+      teamId: TEAM_ID,
+      credentialType: PREVIEW_SIGN_CREDENTIAL_TYPE,
+      algorithm: PREVIEW_SIGN_ALGORITHM,
+      methodState: {
+        verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+      },
+    });
+    expect(persistedRegistration?.methodState.value).not.toHaveProperty('ikm');
   });
 
   it('rejects malformed previewSign material before creating a registration', async () => {
@@ -669,14 +698,18 @@ describe('createSigningService', () => {
 
   it('verifies enrollment proof before atomically persisting normalized evidence', async () => {
     const now = new Date('2026-08-01T12:00:00.000Z');
-    const createRegistration = vi.fn(async (input) => input);
-    const create = vi.fn(async (input) => ({
+    const createRegistration = vi.fn(
+      async (input: CreateRegistrationInput) => input,
+    );
+    const create = vi.fn(async (input: CreateCredentialInput) => ({
       id: 'credential-id',
       ...input,
     }));
-    const consumeRegistration = vi.fn(async (id) => ({ id }));
+    const consumeRegistration = vi.fn(async (id: ConsumeRegistrationInput) => ({
+      id,
+    }));
     const transactionRunner = {
-      runInTransaction: vi.fn(async (task) => task()),
+      runInTransaction: vi.fn(runInTransaction),
     };
     const deps = createDeps({
       createId: () => REGISTRATION_ID,
@@ -726,24 +759,24 @@ describe('createSigningService', () => {
       REGISTRATION_ID,
       human.humanId,
     );
-    expect(create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        publicMaterial: publicMaterial(),
-        enrollmentEvidence: expect.objectContaining({
-          version: 1,
-          requestId: REGISTRATION_ID,
-          credentialId: REGISTRATION_ID,
-          signature: SIGNATURE,
-        }),
-        status: 'pending_approval',
-      }),
-    );
+    expect(create.mock.calls[0]?.[0]).toMatchObject({
+      publicMaterial: publicMaterial(),
+      enrollmentEvidence: {
+        version: 1,
+        requestId: REGISTRATION_ID,
+        credentialId: REGISTRATION_ID,
+        signature: SIGNATURE,
+      },
+      status: 'pending_approval',
+    });
   });
 
   it('accepts equivalent enrollment material reconstructed by another serializer', async () => {
     const now = new Date('2026-08-01T12:00:00.000Z');
-    const createRegistration = vi.fn(async (input) => input);
-    const create = vi.fn(async (input) => ({
+    const createRegistration = vi.fn(
+      async (input: CreateRegistrationInput) => input,
+    );
+    const create = vi.fn(async (input: CreateCredentialInput) => ({
       id: CREDENTIAL_ID,
       ...input,
     }));
@@ -753,10 +786,12 @@ describe('createSigningService', () => {
       signingCredentialRepository: {
         createRegistration,
         create,
-        consumeRegistration: vi.fn(async (id) => ({ id })),
+        consumeRegistration: vi.fn(async (id: ConsumeRegistrationInput) => ({
+          id,
+        })),
       } as never,
       transactionRunner: {
-        runInTransaction: vi.fn(async (task) => task()),
+        runInTransaction: vi.fn(runInTransaction),
       } as never,
     });
     const service = createSigningService(deps);
@@ -808,7 +843,9 @@ describe('createSigningService', () => {
     });
     registerSigningMethodDriver(driver.verificationMethod, driver);
     const now = new Date('2026-08-01T12:00:00.000Z');
-    const createRegistration = vi.fn(async (input) => input);
+    const createRegistration = vi.fn(
+      async (input: CreateRegistrationInput) => input,
+    );
     const create = vi.fn();
     const consumeRegistration = vi.fn();
     const deps = createDeps({
@@ -820,7 +857,7 @@ describe('createSigningService', () => {
         consumeRegistration,
       } as never,
       transactionRunner: {
-        runInTransaction: vi.fn(async (task) => task()),
+        runInTransaction: vi.fn(runInTransaction),
       } as never,
     });
     const service = createSigningService(deps);
@@ -879,7 +916,7 @@ describe('createSigningService', () => {
           create,
         } as never,
         transactionRunner: {
-          runInTransaction: vi.fn(async (task) => task()),
+          runInTransaction: vi.fn(runInTransaction),
         } as never,
       }),
     );
@@ -905,7 +942,7 @@ describe('createSigningService', () => {
 
   it('derives and persists one previewSign verifier state at atomic claim', async () => {
     const pending = pendingRequest();
-    const claim = vi.fn(async (input) => ({
+    const claim = vi.fn(async (input: ClaimRequestInput) => ({
       ...pending,
       status: 'claimed' as const,
       claimedByHumanId: human.humanId,
@@ -1008,7 +1045,7 @@ describe('createSigningService', () => {
   it('stores normalized immutable evidence through atomic completion', async () => {
     const pending = pendingRequest();
     const claimInput: { challenge?: unknown; methodState?: unknown } = {};
-    const claim = vi.fn(async (input) => {
+    const claim = vi.fn(async (input: ClaimRequestInput) => {
       Object.assign(claimInput, input);
       return {
         ...pending,
@@ -1020,7 +1057,7 @@ describe('createSigningService', () => {
         claimedAt: new Date('2026-08-01T12:01:00.000Z'),
       };
     });
-    const completeClaim = vi.fn(async (input) => ({
+    const completeClaim = vi.fn(async (input: CompleteClaimInput) => ({
       ...pending,
       status: 'completed' as const,
       claimedByHumanId: human.humanId,
@@ -1054,7 +1091,7 @@ describe('createSigningService', () => {
           findByIds: vi.fn().mockResolvedValue(new Map()),
         } as never,
         transactionRunner: {
-          runInTransaction: vi.fn(async (task) => task()),
+          runInTransaction: vi.fn(runInTransaction),
         } as never,
       }),
     );
@@ -1080,24 +1117,22 @@ describe('createSigningService', () => {
       },
     });
 
-    expect(completeClaim).toHaveBeenCalledWith(
-      expect.objectContaining({
-        receipt: {
-          verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
-          value: expect.objectContaining({
-            version: 1,
-            requestId: REQUEST_ID,
-            credentialId: CREDENTIAL_ID,
-            teamId: TEAM_ID,
-            claimantId: human.humanId,
-            nonce: pending.nonce,
-            purpose: pending.purpose,
-            signature: SIGNATURE,
-          }),
+    expect(completeClaim.mock.calls[0]?.[0]).toMatchObject({
+      receipt: {
+        verificationMethod: VERIFICATION_METHOD.HumanHardwarePreviewSign,
+        value: {
+          version: 1,
+          requestId: REQUEST_ID,
+          credentialId: CREDENTIAL_ID,
+          teamId: TEAM_ID,
+          claimantId: human.humanId,
+          nonce: pending.nonce,
+          purpose: pending.purpose,
+          signature: SIGNATURE,
         },
-        valid: true,
-      }),
-    );
+      },
+      valid: true,
+    });
   });
 
   it('verifies a receipt before locking and persists evidence inside the transaction', async () => {
@@ -1126,7 +1161,7 @@ describe('createSigningService', () => {
       verifyReceipt,
     });
     let inTransaction = false;
-    const completeClaim = vi.fn(async (input) => {
+    const completeClaim = vi.fn(async (input: CompleteClaimInput) => {
       expect(inTransaction).toBe(true);
       return {
         ...claimed,
@@ -1136,7 +1171,7 @@ describe('createSigningService', () => {
       };
     });
     const transactionRunner = {
-      runInTransaction: vi.fn(async (task) => {
+      runInTransaction: vi.fn(async <T>(task: () => Promise<T>) => {
         expect(verifyReceipt).toHaveBeenCalledTimes(1);
         inTransaction = true;
         try {
@@ -1220,7 +1255,7 @@ describe('createSigningService', () => {
           findActiveCompatible: vi.fn().mockResolvedValue(activeCredential()),
         } as never,
         transactionRunner: {
-          runInTransaction: vi.fn(async (task) => task()),
+          runInTransaction: vi.fn(runInTransaction),
         } as never,
       }),
     );

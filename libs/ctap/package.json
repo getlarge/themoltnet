@@ -40,7 +40,7 @@
     "tags": [
       "type:client",
       "scope:identity",
-      "platform:node"
+      "platform:server"
     ]
   },
   "dependencies": {

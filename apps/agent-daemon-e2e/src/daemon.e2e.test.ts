@@ -482,17 +482,16 @@ describe('Agent daemon (e2e)', () => {
     expect(final.status).toBe('completed');
     expect(final.acceptedAttemptN).toBe(2);
     const attempts = await agent.tasks.listAttempts(created.id);
-    expect(attempts.find((attempt) => attempt.attemptN === 1)).toMatchObject({
-      status: 'failed',
-      error: expect.objectContaining({
-        code: 'executor_unexpected_error',
-        retryable: true,
-        retry: expect.objectContaining({
-          source: 'triage',
-          decision: 'retry',
-          confidence: 'medium',
-        }),
-      }),
+    const failedAttempt = attempts.find((attempt) => attempt.attemptN === 1);
+    expect(failedAttempt?.status).toBe('failed');
+    expect(failedAttempt?.error).toMatchObject({
+      code: 'executor_unexpected_error',
+      retryable: true,
+      retry: {
+        source: 'triage',
+        decision: 'retry',
+        confidence: 'medium',
+      },
     });
   }, 60_000);
 
@@ -555,7 +554,7 @@ describe('Agent daemon (e2e)', () => {
       detail: 'Complete workflow timed out waiting for result',
     });
     const complete = vi.fn().mockRejectedValue(timeout);
-    const failAttempt = vi.fn(agent.tasks.failAttempt);
+    const failAttempt = vi.fn(agent.tasks.failAttempt.bind(agent.tasks));
     const timeoutAgent = {
       ...agent,
       tasks: {
