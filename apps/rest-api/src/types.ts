@@ -31,6 +31,7 @@ export type {
   RenderedPackRepository,
   RuntimeModelRepository,
   RuntimePolicyRepository,
+  RuntimePolicySnapshotRepository,
   RuntimeProfileRepository,
   RuntimeSessionRepository,
   RuntimeSlotRepository,
@@ -68,6 +69,7 @@ import type {
   RenderedPackRepository,
   RuntimeModelRepository,
   RuntimePolicyRepository,
+  RuntimePolicySnapshotRepository,
   RuntimeProfileRepository,
   RuntimeSessionRepository,
   RuntimeSlotRepository,
@@ -116,6 +118,7 @@ declare module 'fastify' {
     runtimeSlotRepository: RuntimeSlotRepository;
     runtimeModelRepository: RuntimeModelRepository;
     runtimePolicyRepository: RuntimePolicyRepository;
+    runtimePolicySnapshotRepository: RuntimePolicySnapshotRepository;
     permissionChecker: PermissionChecker;
     relationshipReader: RelationshipReader;
     relationshipWriter: RelationshipWriter;

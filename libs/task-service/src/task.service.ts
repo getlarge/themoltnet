@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 import { KetoNamespace } from '@moltnet/auth';
 import { computeJsonCid } from '@moltnet/crypto-service';
 import {
@@ -47,6 +49,7 @@ export function createTaskService(deps: TaskServiceDeps) {
     taskRepository,
     agentRepository,
     runtimeProfileRepository,
+    runtimePolicyService,
     permissionChecker,
     relationshipWriter,
     transactionRunner,
@@ -204,9 +207,26 @@ export function createTaskService(deps: TaskServiceDeps) {
           );
         }
       }
+      let pinnedAuthority: Awaited<
+        ReturnType<typeof runtimePolicyService.resolveAllowedTools>
+      > | null = null;
+      if (selectedProfileId) {
+        try {
+          pinnedAuthority = await runtimePolicyService.resolveAllowedTools({
+            profileId: selectedProfileId,
+            teamId: row.teamId,
+          });
+        } catch {
+          throw new TaskServiceError(
+            'conflict',
+            'Runtime profile authority could not be resolved',
+          );
+        }
+      }
 
       const attemptN = attemptCount + 1;
       const workflowId = taskWorkflowId(taskId, attemptN);
+      const leaseId = pinnedAuthority ? randomUUID() : null;
       const claimedExecutor = await verifyExecutorForPhase({
         phase: 'claim',
         task: row,
@@ -260,6 +280,11 @@ export function createTaskService(deps: TaskServiceDeps) {
               workflowId,
               leaseTtlSec,
               claimedExecutorFingerprint: claimedExecutor?.fingerprint ?? null,
+              leaseId,
+              runtimeProfileId: selectedProfileId ?? null,
+              runtimeProfileRevision:
+                pinnedAuthority?.runtimeProfileRevision ?? null,
+              policySnapshotHash: pinnedAuthority?.policySnapshotHash ?? null,
               dispatchTimeoutSec: row.dispatchTimeoutSec ?? null,
               runningTimeoutSec: row.runningTimeoutSec ?? null,
             },

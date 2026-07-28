@@ -36,7 +36,18 @@ import { customType } from 'drizzle-orm/pg-core';
 
 import { defineRuntimeModelsTable } from './schema/runtime-models.js';
 import { defineRuntimePoliciesTable } from './schema/runtime-policies.js';
+import {
+  type NewRuntimePolicySnapshot,
+  type RuntimePolicySnapshot,
+  runtimePolicySnapshots,
+} from './schema/runtime-policy-snapshots.js';
 import { defineRuntimeProfilesTable } from './schema/runtime-profiles.js';
+
+export {
+  type NewRuntimePolicySnapshot,
+  type RuntimePolicySnapshot,
+  runtimePolicySnapshots,
+};
 
 const vector = customType<{ data: number[]; driverData: string }>({
   dataType() {
@@ -1497,6 +1508,8 @@ export const runtimePolicies = defineRuntimePoliciesTable({
 export type RuntimePolicy = typeof runtimePolicies.$inferSelect;
 export type NewRuntimePolicy = typeof runtimePolicies.$inferInsert;
 
+// ── Runtime Policy Snapshots ─────────────────────────────────
+
 // ── Executor Manifests ─────────────────────────────────────
 
 export const executorManifests = pgTable(
@@ -1560,6 +1573,14 @@ export const taskAttempts = pgTable(
     claimedByAgentId: uuid('claimed_by_agent_id')
       .notNull()
       .references(() => agents.identityId, { onDelete: 'restrict' }),
+    leaseId: uuid('lease_id'),
+    // Historical authority binding: intentionally not an FK so deleting a
+    // mutable profile cannot erase or block cleanup of immutable attempts.
+    runtimeProfileId: uuid('runtime_profile_id'),
+    runtimeProfileRevision: integer('runtime_profile_revision'),
+    policySnapshotHash: varchar('policy_snapshot_hash', {
+      length: 71,
+    }).references(() => runtimePolicySnapshots.hash, { onDelete: 'restrict' }),
     // FK to agent_runtimes added in PR 7
     runtimeId: uuid('runtime_id'),
     // Deterministic DBOS workflow ID: task:{taskId}:attempt:{n}
@@ -1600,6 +1621,24 @@ export const taskAttempts = pgTable(
       .on(table.completedExecutorFingerprint)
       .where(sql`completed_executor_fingerprint IS NOT NULL`),
     uniqueIndex('task_attempts_workflow_idx').on(table.workflowId),
+    uniqueIndex('task_attempts_lease_idx')
+      .on(table.leaseId)
+      .where(sql`lease_id IS NOT NULL`),
+    check(
+      'task_attempts_authority_binding_all_or_none',
+      sql`(
+        lease_id IS NULL
+        AND runtime_profile_id IS NULL
+        AND runtime_profile_revision IS NULL
+        AND policy_snapshot_hash IS NULL
+      ) OR (
+        lease_id IS NOT NULL
+        AND runtime_profile_id IS NOT NULL
+        AND runtime_profile_revision IS NOT NULL
+        AND runtime_profile_revision > 0
+        AND policy_snapshot_hash IS NOT NULL
+      )`,
+    ),
   ],
 );
 

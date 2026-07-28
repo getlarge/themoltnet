@@ -37,6 +37,7 @@ import {
   createMoltNetTools,
   HOST_EXEC_DEFAULT_BASE_ENV,
 } from './moltnet/tools.js';
+import { assertGondolinPiToolDefinitions } from './runtime/capability-manifest.js';
 import type { ProviderErrorRetryUi } from './runtime/execute-pi-task.js';
 import { buildWorkspaceMountInstructions } from './runtime/runtime-instructor.js';
 import { ensureSnapshot, type SandboxConfig } from './snapshot.js';
@@ -365,6 +366,16 @@ export default function moltnetExtension(pi: ExtensionAPI) {
     hostExecBaseEnv,
   });
 
+  assertGondolinPiToolDefinitions([
+    localRead,
+    localWrite,
+    localEdit,
+    localBash,
+    localLs,
+    localFind,
+    localGrep,
+    ...moltnetTools,
+  ]);
   for (const tool of moltnetTools) {
     pi.registerTool(tool);
   }
@@ -585,6 +596,7 @@ export {
   createToolPolicyExtension,
   decideForEvent,
   resolveSessionToolPolicy,
+  RuntimeCapabilityManifestMismatchError,
   type SessionToolPolicy,
   type ToolPolicyExtensionDeps,
 } from './tool-policy/session-policy.js';

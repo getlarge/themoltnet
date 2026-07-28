@@ -83,6 +83,7 @@ import type {
   RenderedPackRepository,
   RuntimeModelRepository,
   RuntimePolicyRepository,
+  RuntimePolicySnapshotRepository,
   RuntimeProfileRepository,
   RuntimeSessionRepository,
   RuntimeSlotRepository,
@@ -174,6 +175,7 @@ export interface AppOptions {
   runtimeSlotRepository: RuntimeSlotRepository;
   runtimeModelRepository: RuntimeModelRepository;
   runtimePolicyRepository: RuntimePolicyRepository;
+  runtimePolicySnapshotRepository: RuntimePolicySnapshotRepository;
   taskRepository: TaskRepository;
   taskAnalyticsService: TaskAnalyticsService;
   taskService: TaskService;
@@ -388,6 +390,10 @@ export async function registerApiRoutes(
   decorateSafe('runtimeSlotRepository', options.runtimeSlotRepository);
   decorateSafe('runtimeModelRepository', options.runtimeModelRepository);
   decorateSafe('runtimePolicyRepository', options.runtimePolicyRepository);
+  decorateSafe(
+    'runtimePolicySnapshotRepository',
+    options.runtimePolicySnapshotRepository,
+  );
   decorateSafe('relationshipReader', options.relationshipReader);
   decorateSafe('signingTimeoutSeconds', options.signingTimeoutSeconds ?? 300);
   decorateSafe('packGcConfig', options.packGcConfig);

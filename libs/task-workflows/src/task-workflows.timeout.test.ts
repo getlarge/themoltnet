@@ -212,6 +212,10 @@ describe('enqueueTaskAttemptWorkflow', () => {
         'executor-fingerprint',
         120,
         600,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
       ],
     });
   });

@@ -74,6 +74,7 @@ import {
 } from '../tool-policy/session-policy.js';
 import { activateAgentEnv, resumeVm } from '../vm-manager.js';
 import { buildAgentSession } from './agent-session-factory.js';
+import { assertGondolinPiToolDefinitions } from './capability-manifest.js';
 import type { PiTaskExecutionPlanFactory } from './execution-plan.js';
 import type { PiThinkingLevel } from './pi-thinking-level.js';
 import {
@@ -184,7 +185,7 @@ export function createGondolinToolDefinitions(config: {
 }): ToolDefinition[] {
   const { vm, cwdPath, guestWorkspace } = config;
   const grepTool = createGrepToolDefinition(cwdPath);
-  return [
+  const tools = [
     createReadToolDefinition(cwdPath, {
       operations: createGondolinReadOps(vm, cwdPath, guestWorkspace),
     }),
@@ -213,6 +214,8 @@ export function createGondolinToolDefinitions(config: {
       },
     },
   ] as unknown as ToolDefinition[];
+  assertGondolinPiToolDefinitions(tools);
+  return tools;
 }
 
 export interface ExecutePiTaskOptions {
@@ -976,6 +979,13 @@ export async function executePiTask(
         parentSubagentTools.push(subagentHandle.tool);
       }
 
+      const sessionTools = [
+        ...gondolinCustomTools,
+        ...moltnetTools,
+        ...submitTools,
+        ...parentSubagentTools,
+      ];
+      assertGondolinPiToolDefinitions(sessionTools);
       session = await buildAgentSession({
         mountPath,
         cwdPath,
@@ -987,12 +997,7 @@ export async function executePiTask(
         topK: opts.topK,
         maxOutputTokens: opts.maxOutputTokens,
         agentName: opts.agentName,
-        customTools: [
-          ...gondolinCustomTools,
-          ...moltnetTools,
-          ...submitTools,
-          ...parentSubagentTools,
-        ],
+        customTools: sessionTools,
         appendSystemPrompt,
         skillsOverride: () => ({ skills: injectedSkills, diagnostics: [] }),
         // MoltNet-specific span attrs only — pi's OTel extension owns

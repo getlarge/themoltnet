@@ -38,6 +38,7 @@ import {
   createRenderedPackRepository,
   createRuntimeModelRepository,
   createRuntimePolicyRepository,
+  createRuntimePolicySnapshotRepository,
   createRuntimeProfileRepository,
   createRuntimeSessionRepository,
   createRuntimeSlotRepository,
@@ -65,6 +66,7 @@ import {
   type ObservabilityContext,
   observabilityPlugin,
 } from '@moltnet/observability';
+import { createRuntimePolicyService } from '@moltnet/runtime-policy-service';
 import { createRuntimeSessionStorage } from '@moltnet/runtime-session-service';
 import {
   createPreviewSignSigningMethodDriver,
@@ -306,6 +308,9 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
   const runtimePolicyRepository = createRuntimePolicyRepository(
     dbConnection.db,
   );
+  const runtimePolicySnapshotRepository = createRuntimePolicySnapshotRepository(
+    dbConnection.db,
+  );
   const groupRepository = createGroupRepository(dbConnection.db);
   const voucherRepository = createVoucherRepository(dbConnection.db);
   const signingRequestRepository = createSigningRequestRepository(
@@ -366,6 +371,14 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
 
   await initTaskTypeRegistry();
   const transactionRunner = createDrizzleTransactionRunner(dbConnection.db);
+  const runtimePolicyService = createRuntimePolicyService({
+    runtimePolicyRepository,
+    runtimePolicySnapshotRepository,
+    relationshipReader,
+    relationshipWriter,
+    permissionChecker,
+    transactionRunner,
+  });
   const taskAnalyticsService: TaskAnalyticsService = createTaskAnalyticsService(
     {
       taskRepository,
@@ -382,6 +395,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     diaryRepository,
     agentRepository,
     runtimeProfileRepository,
+    runtimePolicyService,
     contextPackRepository,
     renderedPackRepository,
     correlationSealRepository,
@@ -662,6 +676,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     runtimeSlotRepository,
     runtimeModelRepository,
     runtimePolicyRepository,
+    runtimePolicySnapshotRepository,
     taskRepository,
     taskAnalyticsService,
     taskService,

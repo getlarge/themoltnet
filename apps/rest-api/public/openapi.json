@@ -342,13 +342,36 @@
             },
             "type": "array"
           },
+          "capabilityManifestVersion": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
           "enforcement": {
             "$ref": "#/components/schemas/ToolEnforcement"
+          },
+          "policySnapshotHash": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "runtimeKind": {
+            "enum": [
+              "gondolin_pi"
+            ],
+            "type": "string"
+          },
+          "runtimeProfileRevision": {
+            "minimum": 1,
+            "type": "integer"
           }
         },
         "required": [
           "enforcement",
-          "allowedTools"
+          "allowedTools",
+          "runtimeKind",
+          "capabilityManifestVersion",
+          "runtimeProfileRevision",
+          "policySnapshotHash"
         ],
         "type": "object"
       },
@@ -12548,6 +12571,17 @@
               }
             ]
           },
+          "leaseId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "output": {
             "anyOf": [
               {
@@ -12570,11 +12604,44 @@
               }
             ]
           },
+          "policySnapshotHash": {
+            "anyOf": [
+              {
+                "pattern": "^sha256:[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "runtimeId": {
             "anyOf": [
               {
                 "format": "uuid",
                 "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "runtimeProfileId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "runtimeProfileRevision": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
               },
               {
                 "type": "null"
@@ -12701,6 +12768,10 @@
           "taskId",
           "attemptN",
           "claimedByAgentId",
+          "leaseId",
+          "runtimeProfileId",
+          "runtimeProfileRevision",
+          "policySnapshotHash",
           "runtimeId",
           "claimedAt",
           "startedAt",

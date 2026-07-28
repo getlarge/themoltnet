@@ -432,6 +432,16 @@ export const TaskAttempt = Type.Object(
     taskId: Uuid,
     attemptN: Type.Number({ minimum: 1 }),
     claimedByAgentId: Uuid,
+    leaseId: Type.Union([Uuid, Type.Null()]),
+    runtimeProfileId: Type.Union([Uuid, Type.Null()]),
+    runtimeProfileRevision: Type.Union([
+      Type.Integer({ minimum: 1 }),
+      Type.Null(),
+    ]),
+    policySnapshotHash: Type.Union([
+      Type.String({ pattern: '^sha256:[0-9a-f]{64}$' }),
+      Type.Null(),
+    ]),
     runtimeId: Type.Union([Uuid, Type.Null()]),
     claimedAt: IsoTimestamp,
     startedAt: Type.Union([IsoTimestamp, Type.Null()]),

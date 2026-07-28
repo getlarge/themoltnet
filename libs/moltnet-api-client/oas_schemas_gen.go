@@ -715,8 +715,12 @@ func (*AgentProfile) getAgentProfileRes() {}
 
 // Ref: #/components/schemas/AllowedToolsResponse
 type AllowedToolsResponse struct {
-	AllowedTools []string        `json:"allowedTools"`
-	Enforcement  ToolEnforcement `json:"enforcement"`
+	AllowedTools              []string                        `json:"allowedTools"`
+	CapabilityManifestVersion string                          `json:"capabilityManifestVersion"`
+	Enforcement               ToolEnforcement                 `json:"enforcement"`
+	PolicySnapshotHash        string                          `json:"policySnapshotHash"`
+	RuntimeKind               AllowedToolsResponseRuntimeKind `json:"runtimeKind"`
+	RuntimeProfileRevision    int                             `json:"runtimeProfileRevision"`
 }
 
 // GetAllowedTools returns the value of AllowedTools.
@@ -724,9 +728,29 @@ func (s *AllowedToolsResponse) GetAllowedTools() []string {
 	return s.AllowedTools
 }
 
+// GetCapabilityManifestVersion returns the value of CapabilityManifestVersion.
+func (s *AllowedToolsResponse) GetCapabilityManifestVersion() string {
+	return s.CapabilityManifestVersion
+}
+
 // GetEnforcement returns the value of Enforcement.
 func (s *AllowedToolsResponse) GetEnforcement() ToolEnforcement {
 	return s.Enforcement
+}
+
+// GetPolicySnapshotHash returns the value of PolicySnapshotHash.
+func (s *AllowedToolsResponse) GetPolicySnapshotHash() string {
+	return s.PolicySnapshotHash
+}
+
+// GetRuntimeKind returns the value of RuntimeKind.
+func (s *AllowedToolsResponse) GetRuntimeKind() AllowedToolsResponseRuntimeKind {
+	return s.RuntimeKind
+}
+
+// GetRuntimeProfileRevision returns the value of RuntimeProfileRevision.
+func (s *AllowedToolsResponse) GetRuntimeProfileRevision() int {
+	return s.RuntimeProfileRevision
 }
 
 // SetAllowedTools sets the value of AllowedTools.
@@ -734,12 +758,66 @@ func (s *AllowedToolsResponse) SetAllowedTools(val []string) {
 	s.AllowedTools = val
 }
 
+// SetCapabilityManifestVersion sets the value of CapabilityManifestVersion.
+func (s *AllowedToolsResponse) SetCapabilityManifestVersion(val string) {
+	s.CapabilityManifestVersion = val
+}
+
 // SetEnforcement sets the value of Enforcement.
 func (s *AllowedToolsResponse) SetEnforcement(val ToolEnforcement) {
 	s.Enforcement = val
 }
 
+// SetPolicySnapshotHash sets the value of PolicySnapshotHash.
+func (s *AllowedToolsResponse) SetPolicySnapshotHash(val string) {
+	s.PolicySnapshotHash = val
+}
+
+// SetRuntimeKind sets the value of RuntimeKind.
+func (s *AllowedToolsResponse) SetRuntimeKind(val AllowedToolsResponseRuntimeKind) {
+	s.RuntimeKind = val
+}
+
+// SetRuntimeProfileRevision sets the value of RuntimeProfileRevision.
+func (s *AllowedToolsResponse) SetRuntimeProfileRevision(val int) {
+	s.RuntimeProfileRevision = val
+}
+
 func (*AllowedToolsResponse) getRuntimeProfileAllowedToolsRes() {}
+
+type AllowedToolsResponseRuntimeKind string
+
+const (
+	AllowedToolsResponseRuntimeKindGondolinPi AllowedToolsResponseRuntimeKind = "gondolin_pi"
+)
+
+// AllValues returns all AllowedToolsResponseRuntimeKind values.
+func (AllowedToolsResponseRuntimeKind) AllValues() []AllowedToolsResponseRuntimeKind {
+	return []AllowedToolsResponseRuntimeKind{
+		AllowedToolsResponseRuntimeKindGondolinPi,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s AllowedToolsResponseRuntimeKind) MarshalText() ([]byte, error) {
+	switch s {
+	case AllowedToolsResponseRuntimeKindGondolinPi:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *AllowedToolsResponseRuntimeKind) UnmarshalText(data []byte) error {
+	switch AllowedToolsResponseRuntimeKind(data) {
+	case AllowedToolsResponseRuntimeKindGondolinPi:
+		*s = AllowedToolsResponseRuntimeKindGondolinPi
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
 
 // Ref: #/components/schemas/AppendMessagesResponse
 type AppendMessagesResponse struct {
@@ -52308,9 +52386,13 @@ type TaskAttempt struct {
 	ContentSignature             NilString                               `json:"contentSignature"`
 	DaemonState                  NilTaskAttemptDaemonState               `json:"daemonState"`
 	Error                        NilTaskAttemptError                     `json:"error"`
+	LeaseId                      NilUUID                                 `json:"leaseId"`
 	Output                       NilTaskAttemptOutput                    `json:"output"`
 	OutputCid                    NilString                               `json:"outputCid"`
+	PolicySnapshotHash           NilString                               `json:"policySnapshotHash"`
 	RuntimeId                    NilUUID                                 `json:"runtimeId"`
+	RuntimeProfileId             NilUUID                                 `json:"runtimeProfileId"`
+	RuntimeProfileRevision       NilInt                                  `json:"runtimeProfileRevision"`
 	SignedAt                     NilDateTime                             `json:"signedAt"`
 	StartedAt                    NilDateTime                             `json:"startedAt"`
 	Status                       TaskAttemptStatus                       `json:"status"`
@@ -52373,6 +52455,11 @@ func (s *TaskAttempt) GetError() NilTaskAttemptError {
 	return s.Error
 }
 
+// GetLeaseId returns the value of LeaseId.
+func (s *TaskAttempt) GetLeaseId() NilUUID {
+	return s.LeaseId
+}
+
 // GetOutput returns the value of Output.
 func (s *TaskAttempt) GetOutput() NilTaskAttemptOutput {
 	return s.Output
@@ -52383,9 +52470,24 @@ func (s *TaskAttempt) GetOutputCid() NilString {
 	return s.OutputCid
 }
 
+// GetPolicySnapshotHash returns the value of PolicySnapshotHash.
+func (s *TaskAttempt) GetPolicySnapshotHash() NilString {
+	return s.PolicySnapshotHash
+}
+
 // GetRuntimeId returns the value of RuntimeId.
 func (s *TaskAttempt) GetRuntimeId() NilUUID {
 	return s.RuntimeId
+}
+
+// GetRuntimeProfileId returns the value of RuntimeProfileId.
+func (s *TaskAttempt) GetRuntimeProfileId() NilUUID {
+	return s.RuntimeProfileId
+}
+
+// GetRuntimeProfileRevision returns the value of RuntimeProfileRevision.
+func (s *TaskAttempt) GetRuntimeProfileRevision() NilInt {
+	return s.RuntimeProfileRevision
 }
 
 // GetSignedAt returns the value of SignedAt.
@@ -52468,6 +52570,11 @@ func (s *TaskAttempt) SetError(val NilTaskAttemptError) {
 	s.Error = val
 }
 
+// SetLeaseId sets the value of LeaseId.
+func (s *TaskAttempt) SetLeaseId(val NilUUID) {
+	s.LeaseId = val
+}
+
 // SetOutput sets the value of Output.
 func (s *TaskAttempt) SetOutput(val NilTaskAttemptOutput) {
 	s.Output = val
@@ -52478,9 +52585,24 @@ func (s *TaskAttempt) SetOutputCid(val NilString) {
 	s.OutputCid = val
 }
 
+// SetPolicySnapshotHash sets the value of PolicySnapshotHash.
+func (s *TaskAttempt) SetPolicySnapshotHash(val NilString) {
+	s.PolicySnapshotHash = val
+}
+
 // SetRuntimeId sets the value of RuntimeId.
 func (s *TaskAttempt) SetRuntimeId(val NilUUID) {
 	s.RuntimeId = val
+}
+
+// SetRuntimeProfileId sets the value of RuntimeProfileId.
+func (s *TaskAttempt) SetRuntimeProfileId(val NilUUID) {
+	s.RuntimeProfileId = val
+}
+
+// SetRuntimeProfileRevision sets the value of RuntimeProfileRevision.
+func (s *TaskAttempt) SetRuntimeProfileRevision(val NilInt) {
+	s.RuntimeProfileRevision = val
 }
 
 // SetSignedAt sets the value of SignedAt.

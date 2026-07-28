@@ -2208,14 +2208,34 @@ func (s *AllowedToolsResponse) encodeFields(e *jx.Encoder) {
 		e.ArrEnd()
 	}
 	{
+		e.FieldStart("capabilityManifestVersion")
+		e.Str(s.CapabilityManifestVersion)
+	}
+	{
 		e.FieldStart("enforcement")
 		s.Enforcement.Encode(e)
 	}
+	{
+		e.FieldStart("policySnapshotHash")
+		e.Str(s.PolicySnapshotHash)
+	}
+	{
+		e.FieldStart("runtimeKind")
+		s.RuntimeKind.Encode(e)
+	}
+	{
+		e.FieldStart("runtimeProfileRevision")
+		e.Int(s.RuntimeProfileRevision)
+	}
 }
 
-var jsonFieldsNameOfAllowedToolsResponse = [2]string{
+var jsonFieldsNameOfAllowedToolsResponse = [6]string{
 	0: "allowedTools",
-	1: "enforcement",
+	1: "capabilityManifestVersion",
+	2: "enforcement",
+	3: "policySnapshotHash",
+	4: "runtimeKind",
+	5: "runtimeProfileRevision",
 }
 
 // Decode decodes AllowedToolsResponse from json.
@@ -2247,8 +2267,20 @@ func (s *AllowedToolsResponse) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"allowedTools\"")
 			}
-		case "enforcement":
+		case "capabilityManifestVersion":
 			requiredBitSet[0] |= 1 << 1
+			if err := func() error {
+				v, err := d.Str()
+				s.CapabilityManifestVersion = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"capabilityManifestVersion\"")
+			}
+		case "enforcement":
+			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				if err := s.Enforcement.Decode(d); err != nil {
 					return err
@@ -2256,6 +2288,40 @@ func (s *AllowedToolsResponse) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"enforcement\"")
+			}
+		case "policySnapshotHash":
+			requiredBitSet[0] |= 1 << 3
+			if err := func() error {
+				v, err := d.Str()
+				s.PolicySnapshotHash = string(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"policySnapshotHash\"")
+			}
+		case "runtimeKind":
+			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				if err := s.RuntimeKind.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"runtimeKind\"")
+			}
+		case "runtimeProfileRevision":
+			requiredBitSet[0] |= 1 << 5
+			if err := func() error {
+				v, err := d.Int()
+				s.RuntimeProfileRevision = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"runtimeProfileRevision\"")
 			}
 		default:
 			return d.Skip()
@@ -2267,7 +2333,7 @@ func (s *AllowedToolsResponse) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000011,
+		0b00111111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -2309,6 +2375,44 @@ func (s *AllowedToolsResponse) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *AllowedToolsResponse) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes AllowedToolsResponseRuntimeKind as json.
+func (s AllowedToolsResponseRuntimeKind) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes AllowedToolsResponseRuntimeKind from json.
+func (s *AllowedToolsResponseRuntimeKind) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode AllowedToolsResponseRuntimeKind to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch AllowedToolsResponseRuntimeKind(v) {
+	case AllowedToolsResponseRuntimeKindGondolinPi:
+		*s = AllowedToolsResponseRuntimeKindGondolinPi
+	default:
+		*s = AllowedToolsResponseRuntimeKind(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s AllowedToolsResponseRuntimeKind) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *AllowedToolsResponseRuntimeKind) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -97040,6 +97144,10 @@ func (s *TaskAttempt) encodeFields(e *jx.Encoder) {
 		s.Error.Encode(e)
 	}
 	{
+		e.FieldStart("leaseId")
+		s.LeaseId.Encode(e)
+	}
+	{
 		e.FieldStart("output")
 		s.Output.Encode(e)
 	}
@@ -97048,8 +97156,20 @@ func (s *TaskAttempt) encodeFields(e *jx.Encoder) {
 		s.OutputCid.Encode(e)
 	}
 	{
+		e.FieldStart("policySnapshotHash")
+		s.PolicySnapshotHash.Encode(e)
+	}
+	{
 		e.FieldStart("runtimeId")
 		s.RuntimeId.Encode(e)
+	}
+	{
+		e.FieldStart("runtimeProfileId")
+		s.RuntimeProfileId.Encode(e)
+	}
+	{
+		e.FieldStart("runtimeProfileRevision")
+		s.RuntimeProfileRevision.Encode(e)
 	}
 	{
 		e.FieldStart("signedAt")
@@ -97073,7 +97193,7 @@ func (s *TaskAttempt) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfTaskAttempt = [19]string{
+var jsonFieldsNameOfTaskAttempt = [23]string{
 	0:  "attemptN",
 	1:  "claimedAt",
 	2:  "claimedByAgentId",
@@ -97085,14 +97205,18 @@ var jsonFieldsNameOfTaskAttempt = [19]string{
 	8:  "contentSignature",
 	9:  "daemonState",
 	10: "error",
-	11: "output",
-	12: "outputCid",
-	13: "runtimeId",
-	14: "signedAt",
-	15: "startedAt",
-	16: "status",
-	17: "taskId",
-	18: "usage",
+	11: "leaseId",
+	12: "output",
+	13: "outputCid",
+	14: "policySnapshotHash",
+	15: "runtimeId",
+	16: "runtimeProfileId",
+	17: "runtimeProfileRevision",
+	18: "signedAt",
+	19: "startedAt",
+	20: "status",
+	21: "taskId",
+	22: "usage",
 }
 
 // Decode decodes TaskAttempt from json.
@@ -97220,8 +97344,18 @@ func (s *TaskAttempt) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"error\"")
 			}
-		case "output":
+		case "leaseId":
 			requiredBitSet[1] |= 1 << 3
+			if err := func() error {
+				if err := s.LeaseId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"leaseId\"")
+			}
+		case "output":
+			requiredBitSet[1] |= 1 << 4
 			if err := func() error {
 				if err := s.Output.Decode(d); err != nil {
 					return err
@@ -97231,7 +97365,7 @@ func (s *TaskAttempt) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"output\"")
 			}
 		case "outputCid":
-			requiredBitSet[1] |= 1 << 4
+			requiredBitSet[1] |= 1 << 5
 			if err := func() error {
 				if err := s.OutputCid.Decode(d); err != nil {
 					return err
@@ -97240,8 +97374,18 @@ func (s *TaskAttempt) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"outputCid\"")
 			}
+		case "policySnapshotHash":
+			requiredBitSet[1] |= 1 << 6
+			if err := func() error {
+				if err := s.PolicySnapshotHash.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"policySnapshotHash\"")
+			}
 		case "runtimeId":
-			requiredBitSet[1] |= 1 << 5
+			requiredBitSet[1] |= 1 << 7
 			if err := func() error {
 				if err := s.RuntimeId.Decode(d); err != nil {
 					return err
@@ -97250,8 +97394,28 @@ func (s *TaskAttempt) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"runtimeId\"")
 			}
+		case "runtimeProfileId":
+			requiredBitSet[2] |= 1 << 0
+			if err := func() error {
+				if err := s.RuntimeProfileId.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"runtimeProfileId\"")
+			}
+		case "runtimeProfileRevision":
+			requiredBitSet[2] |= 1 << 1
+			if err := func() error {
+				if err := s.RuntimeProfileRevision.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"runtimeProfileRevision\"")
+			}
 		case "signedAt":
-			requiredBitSet[1] |= 1 << 6
+			requiredBitSet[2] |= 1 << 2
 			if err := func() error {
 				if err := s.SignedAt.Decode(d, json.DecodeDateTime); err != nil {
 					return err
@@ -97261,7 +97425,7 @@ func (s *TaskAttempt) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"signedAt\"")
 			}
 		case "startedAt":
-			requiredBitSet[1] |= 1 << 7
+			requiredBitSet[2] |= 1 << 3
 			if err := func() error {
 				if err := s.StartedAt.Decode(d, json.DecodeDateTime); err != nil {
 					return err
@@ -97271,7 +97435,7 @@ func (s *TaskAttempt) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"startedAt\"")
 			}
 		case "status":
-			requiredBitSet[2] |= 1 << 0
+			requiredBitSet[2] |= 1 << 4
 			if err := func() error {
 				if err := s.Status.Decode(d); err != nil {
 					return err
@@ -97281,7 +97445,7 @@ func (s *TaskAttempt) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "taskId":
-			requiredBitSet[2] |= 1 << 1
+			requiredBitSet[2] |= 1 << 5
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.TaskId = v
@@ -97293,7 +97457,7 @@ func (s *TaskAttempt) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"taskId\"")
 			}
 		case "usage":
-			requiredBitSet[2] |= 1 << 2
+			requiredBitSet[2] |= 1 << 6
 			if err := func() error {
 				if err := s.Usage.Decode(d); err != nil {
 					return err
@@ -97314,7 +97478,7 @@ func (s *TaskAttempt) Decode(d *jx.Decoder) error {
 	for i, mask := range [3]uint8{
 		0b11111111,
 		0b11111111,
-		0b00000111,
+		0b01111111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
