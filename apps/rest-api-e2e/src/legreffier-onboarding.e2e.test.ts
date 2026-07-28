@@ -14,7 +14,6 @@
 import type {
   Client,
   GetLegreffierOnboardingStatusResponse,
-  StartLegreffierOnboardingResponse,
 } from '@moltnet/api-client';
 import {
   createClient,
@@ -197,7 +196,7 @@ describe('LeGreffier onboarding', () => {
         return;
       }
 
-      const { workflowId } = startData as StartLegreffierOnboardingResponse;
+      const { workflowId } = startData;
       expect(workflowId).toBeTruthy();
 
       // Assert: initial status is awaiting_github

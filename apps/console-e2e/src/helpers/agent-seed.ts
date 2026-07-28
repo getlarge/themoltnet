@@ -21,6 +21,7 @@
  * agent identity is load-bearing for what's under test.
  */
 
+// eslint-disable-next-line @nx/enforce-module-boundaries -- Browser e2e setup runs in Node and provisions agents through the server bootstrap.
 import { createE2EAgentHarness, type GenesisAgent } from '@moltnet/bootstrap';
 import { computeJsonCid } from '@moltnet/crypto-service';
 import { type Agent, connect } from '@themoltnet/sdk';

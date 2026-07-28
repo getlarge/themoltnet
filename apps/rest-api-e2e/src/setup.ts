@@ -12,6 +12,7 @@
  */
 
 import { createOryClients, type OryClients } from '@moltnet/auth';
+// eslint-disable-next-line @nx/enforce-module-boundaries -- Rest API e2e setup provisions the live server through the CLI-tagged bootstrap harness.
 import {
   type BootstrapConfig,
   bootstrapGenesisAgents,

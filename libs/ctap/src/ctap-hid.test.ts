@@ -9,6 +9,7 @@ import {
   type HidProvider,
   listFidoDevices,
 } from './ctap-hid.js';
+import { CtapError } from './errors.js';
 
 const TEST_CHANNEL = 0x01020304;
 const CTAPHID_INIT = 0x86;
@@ -23,6 +24,19 @@ type ResponseScenario =
   | 'presence-timeout'
   | 'processing-timeout'
   | 'read-timeout';
+
+async function captureCtapError(
+  operation: () => Promise<unknown>,
+): Promise<CtapError> {
+  try {
+    await operation();
+    throw new Error('Expected CTAP operation to fail');
+  } catch (error) {
+    expect(error).toBeInstanceOf(CtapError);
+    if (!(error instanceof CtapError)) throw error;
+    return error;
+  }
+}
 
 function scriptedProvider(
   options: {
@@ -274,10 +288,12 @@ describe('CTAPHID framing', () => {
       provider: scriptedProvider({ scenario: 'presence-timeout' }),
     });
 
-    await expect(transport.cbor(0x04, undefined, 2)).rejects.toMatchObject({
+    const error = await captureCtapError(() =>
+      transport.cbor(0x04, undefined, 2),
+    );
+    expect(error).toMatchObject({
       code: 'USER_PRESENCE_TIMEOUT',
       details: {
-        deviceId: expect.any(String),
         command: CTAPHID_CBOR,
         timeoutMs: 2,
         receivedPacket: true,
@@ -285,6 +301,7 @@ describe('CTAPHID framing', () => {
         keepaliveStatusName: 'UP_NEEDED',
       },
     });
+    expect(typeof error.details?.deviceId).toBe('string');
     await transport.close();
   });
 
@@ -293,10 +310,12 @@ describe('CTAPHID framing', () => {
       provider: scriptedProvider({ scenario: 'processing-timeout' }),
     });
 
-    await expect(transport.cbor(0x04, undefined, 2)).rejects.toMatchObject({
+    const error = await captureCtapError(() =>
+      transport.cbor(0x04, undefined, 2),
+    );
+    expect(error).toMatchObject({
       code: 'TRANSPORT_ERROR',
       details: {
-        deviceId: expect.any(String),
         command: CTAPHID_CBOR,
         timeoutMs: 2,
         receivedPacket: true,
@@ -304,6 +323,7 @@ describe('CTAPHID framing', () => {
         keepaliveStatusName: 'PROCESSING',
       },
     });
+    expect(typeof error.details?.deviceId).toBe('string');
     await transport.close();
   });
 
@@ -312,16 +332,19 @@ describe('CTAPHID framing', () => {
       provider: scriptedProvider({ scenario: 'read-timeout' }),
     });
 
-    await expect(transport.cbor(0x04, undefined, 2)).rejects.toMatchObject({
+    const error = await captureCtapError(() =>
+      transport.cbor(0x04, undefined, 2),
+    );
+    expect(error).toMatchObject({
       code: 'TRANSPORT_ERROR',
       details: {
-        deviceId: expect.any(String),
         command: CTAPHID_CBOR,
         timeoutMs: 2,
         receivedPacket: false,
         keepaliveSeen: false,
       },
     });
+    expect(typeof error.details?.deviceId).toBe('string');
     await transport.close();
   });
 });

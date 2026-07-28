@@ -4,6 +4,9 @@ export default [
   ...baseConfig,
   {
     files: ['**/*.ts'],
-    rules: {},
+    rules: {
+      // The daemon harness owns its process-level test configuration.
+      'no-restricted-syntax': 'off',
+    },
   },
 ];

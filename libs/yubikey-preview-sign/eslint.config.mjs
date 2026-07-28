@@ -1,26 +1,5 @@
-import baseConfig from '../../eslint.config.mjs';
-import nxPlugin from '@nx/eslint-plugin';
+import baseConfig, {
+  createNxDependencyChecksConfig,
+} from '../../eslint.config.mjs';
 
-export default [
-  ...baseConfig,
-  {
-    files: ['**/*.json'],
-    plugins: {
-      '@nx': nxPlugin,
-    },
-    rules: {
-      '@nx/dependency-checks': [
-        'error',
-        {
-          ignoredFiles: [
-            '{projectRoot}/eslint.config.{js,cjs,mjs,ts,cts,mts}',
-            '{projectRoot}/vite.config.{js,ts,mjs,mts}',
-          ],
-        },
-      ],
-    },
-    languageOptions: {
-      parser: await import('jsonc-eslint-parser'),
-    },
-  },
-];
+export default [...baseConfig, createNxDependencyChecksConfig()];

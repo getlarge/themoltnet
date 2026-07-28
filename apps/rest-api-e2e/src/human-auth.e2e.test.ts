@@ -169,7 +169,9 @@ describe('Human Authentication E2E', { timeout: 60_000 }, () => {
       );
 
       expect(resp.status).toBe(400);
-      const body = await resp.json();
+      const body = (await resp.json()) as {
+        messages: Array<{ messages: Array<{ id: number }> }>;
+      };
       expect(body.messages).toHaveLength(1);
       expect(body.messages[0].messages[0].id).toBe(4000010);
     });
@@ -231,7 +233,9 @@ describe('Human Authentication E2E', { timeout: 60_000 }, () => {
       );
 
       expect(resp.status).toBe(200);
-      const body = await resp.json();
+      const body = (await resp.json()) as {
+        identity: { metadata_public: { human_id: unknown } };
+      };
       expect(body.identity.metadata_public.human_id).toBeDefined();
       expect(typeof body.identity.metadata_public.human_id).toBe('string');
     });
@@ -277,7 +281,7 @@ describe('Human Authentication E2E', { timeout: 60_000 }, () => {
       });
 
       expect(resp.status).toBe(200);
-      const body = await resp.json();
+      const body = (await resp.json()) as { success: boolean };
       expect(body.success).toBe(true);
     });
 
@@ -299,7 +303,7 @@ describe('Human Authentication E2E', { timeout: 60_000 }, () => {
       });
 
       expect(resp.status).toBe(200);
-      const body = await resp.json();
+      const body = (await resp.json()) as { success: boolean };
       expect(body.success).toBe(true);
     });
 
@@ -357,7 +361,9 @@ describe('Human Authentication E2E', { timeout: 60_000 }, () => {
       );
 
       expect(resp.status).toBe(200);
-      const body = await resp.json();
+      const body = (await resp.json()) as {
+        session: { access_token: Record<string, unknown> };
+      };
       expect(body.session.access_token['moltnet:identity_id']).toBe(
         human.identityId,
       );
@@ -397,7 +403,7 @@ describe('Human Authentication E2E', { timeout: 60_000 }, () => {
       );
 
       expect(resp.status).toBe(403);
-      const body = await resp.json();
+      const body = (await resp.json()) as { error: string };
       expect(body.error).toBe('identity_not_found');
     });
 

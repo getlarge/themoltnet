@@ -4,6 +4,9 @@ export default [
   ...baseConfig,
   {
     files: ['**/*.ts'],
-    rules: {},
+    rules: {
+      // E2E setup owns its process-level test configuration.
+      'no-restricted-syntax': 'off',
+    },
   },
 ];

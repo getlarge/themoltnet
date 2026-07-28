@@ -149,7 +149,10 @@ describe('Tool-policy enforcement (daemon)', () => {
       allowedTools: policy.allowedTools,
       analyze,
     });
-    expect(decision).toMatchObject({ audit: expect.any(String) });
+    expect('audit' in decision).toBe(true);
+    if ('audit' in decision) {
+      expect(typeof decision.audit).toBe('string');
+    }
   });
 
   it('off: short-circuits (no fetch) and allows everything', async () => {
