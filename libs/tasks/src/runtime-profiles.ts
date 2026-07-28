@@ -22,10 +22,15 @@ export const RuntimeProfileToolName = Type.String({
 });
 export type RuntimeProfileToolName = Static<typeof RuntimeProfileToolName>;
 
+export const RUNTIME_PROFILE_RUNTIME_KIND_PATTERN = '^[a-z][a-z0-9._-]{0,99}$';
+export const RUNTIME_PROFILE_RUNTIME_KIND_REGEXP = new RegExp(
+  RUNTIME_PROFILE_RUNTIME_KIND_PATTERN,
+);
+
 export const RuntimeProfileRuntimeKind = Type.String({
   minLength: 1,
   maxLength: 100,
-  pattern: '^[a-z][a-z0-9._-]*$',
+  pattern: RUNTIME_PROFILE_RUNTIME_KIND_PATTERN,
 });
 export type RuntimeProfileRuntimeKind = Static<
   typeof RuntimeProfileRuntimeKind
@@ -251,6 +256,7 @@ export type RuntimeProfileMaxBashTimeouts = Static<
 
 export const RuntimeProfile = Type.Object(
   {
+    definitionVersion: Type.Integer({ minimum: 1, maximum: 2 }),
     id: Type.String({ format: 'uuid' }),
     teamId: Type.String({ format: 'uuid' }),
     name: RuntimeProfileName,

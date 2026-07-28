@@ -213,3 +213,26 @@ export async function persistExecutorVerification(
     evidence: verified.verification.evidence,
   });
 }
+
+export function assertExecutorContinuity(input: {
+  claimedFingerprint: string | null;
+  completedFingerprint: string | null;
+}): void {
+  if (
+    input.claimedFingerprint &&
+    input.completedFingerprint !== input.claimedFingerprint
+  ) {
+    throw new TaskServiceError(
+      'conflict',
+      'Executor fingerprint changed between claim and completion',
+      [
+        {
+          field: 'executorFingerprint',
+          message:
+            `Expected the claimed executor ${input.claimedFingerprint}, ` +
+            `received ${input.completedFingerprint ?? 'no completion attestation'}`,
+        },
+      ],
+    );
+  }
+}

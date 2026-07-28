@@ -3,6 +3,8 @@ import {
   createPiTaskExecutor,
   defineGondolinTemplate,
   definePiRuntime,
+  GONDOLIN_TOOL_NAMES,
+  MOLTNET_TOOL_NAMES,
   type PiRuntimeDefinition,
 } from '@themoltnet/pi-runtime';
 import { createExecutorAttestor } from '@themoltnet/sdk';
@@ -10,54 +12,45 @@ import { createExecutorAttestor } from '@themoltnet/sdk';
 import type { DaemonRuntimeAdapter, PreparedDaemonRuntime } from './runtime.js';
 
 export const PI_KERNEL_TOOL_NAMES = [
-  'read',
-  'write',
-  'edit',
-  'bash',
-  'ls',
-  'find',
-  'grep',
+  ...GONDOLIN_TOOL_NAMES,
   'subagent',
-  'moltnet_pack_get',
-  'moltnet_pack_create',
-  'moltnet_pack_provenance',
-  'moltnet_pack_render',
-  'moltnet_rendered_pack_list',
-  'moltnet_rendered_pack_get',
-  'moltnet_diary_tags',
-  'moltnet_list_entries',
-  'moltnet_get_entry',
-  'moltnet_search_entries',
-  'moltnet_create_entry',
-  'moltnet_get_task',
-  'moltnet_list_task_attempts',
-  'moltnet_list_task_messages',
-  'moltnet_upload_task_artifact',
-  'moltnet_list_task_artifacts',
-  'moltnet_download_task_artifact',
-  'moltnet_review_session_errors',
-  'moltnet_host_exec',
+  ...MOLTNET_TOOL_NAMES,
 ] as const;
 
 export function createPiDaemonAdapter(
   runtime: PiRuntimeDefinition,
 ): DaemonRuntimeAdapter {
-  let resolvedTemplate:
-    | Awaited<ReturnType<PiRuntimeDefinition['vm']['resolve']>>
-    | undefined;
+  const templateCache = new Map<
+    string,
+    Promise<Awaited<ReturnType<PiRuntimeDefinition['vm']['resolve']>>>
+  >();
+
+  const resolveTemplate = (onProgress?: (message: string) => void) => {
+    const key = `${runtime.vm.id}\0${runtime.vm.version}`;
+    const cached = templateCache.get(key);
+    if (cached) return cached;
+    const pending = runtime.vm.resolve({ onProgress });
+    templateCache.set(key, pending);
+    void pending.catch(() => templateCache.delete(key));
+    return pending;
+  };
 
   return {
     runtimeKind: runtime.runtimeKind,
     async prepare(input): Promise<PreparedDaemonRuntime> {
+      if (input.profile.definitionVersion !== 2) {
+        throw new Error(
+          `Runtime profile ${input.profile.id} uses unsupported definition version ${input.profile.definitionVersion}; ` +
+            'export and backfill it to version 2 before polling.',
+        );
+      }
       if (input.profile.runtimeKind !== runtime.runtimeKind) {
         throw new Error(
           `Runtime profile ${input.profile.id} requires "${input.profile.runtimeKind}", ` +
             `but this daemon adapter provides "${runtime.runtimeKind}".`,
         );
       }
-      resolvedTemplate ??= await runtime.vm.resolve({
-        onProgress: input.onProgress,
-      });
+      const resolvedTemplate = await resolveTemplate(input.onProgress);
       const manifest = await buildPiExecutorManifest({
         runtime,
         profile: input.profile,
@@ -84,6 +77,13 @@ export function createPiDaemonAdapter(
         createTaskExecutor: (options) =>
           createPiTaskExecutor({
             ...options,
+            sandboxConfig: {
+              ...options.sandboxConfig,
+              // VM construction and resume provisioning are operator-owned.
+              // Never execute legacy profile-supplied provisioning fields.
+              snapshot: undefined,
+              resumeCommands: undefined,
+            },
             runtimeDefinition: runtime,
             resolvedVmTemplate: resolvedTemplate,
           }),

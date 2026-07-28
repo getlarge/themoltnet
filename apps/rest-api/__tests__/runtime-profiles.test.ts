@@ -15,6 +15,7 @@ const PROFILE_ID = 'dddddddd-0000-0000-0000-000000000004';
 
 function mockProfile(overrides: Partial<RuntimeProfile> = {}): RuntimeProfile {
   return {
+    definitionVersion: 2,
     id: PROFILE_ID,
     teamId: TEAM_ID,
     name: 'linear-github',
@@ -41,6 +42,7 @@ function mockProfile(overrides: Partial<RuntimeProfile> = {}): RuntimeProfile {
     maxBashTimeouts: 3,
     requiredEnv: ['LINEAR_API_KEY', 'GITHUB_TOKEN'],
     requiredTools: ['linear.issue.get', 'github.pr.create'],
+    requiredExecutables: [],
     context: [
       {
         slug: 'linear-github-workflow',
@@ -172,6 +174,7 @@ describe('runtime profile routes', () => {
     });
     expect(mocks.runtimeProfileRepository.create).toHaveBeenCalledWith(
       expect.objectContaining({
+        definitionVersion: 2,
         teamId: TEAM_ID,
         provider: 'anthropic',
         model: 'claude-sonnet-4-5',
@@ -458,6 +461,32 @@ describe('runtime profile routes', () => {
         name: 'deploy-bot',
       }),
     );
+  });
+
+  it('refuses to patch a legacy profile before the v2 backfill', async () => {
+    mocks.permissionChecker.canManageTeamRuntime.mockResolvedValue(true);
+    mocks.runtimeProfileRepository.findById.mockResolvedValue(
+      mockProfile({ definitionVersion: 1 }),
+    );
+
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/runtime-profiles/${PROFILE_ID}`,
+      headers: { authorization: 'Bearer test-token' },
+      payload: { model: 'Claude-Opus-4-1' },
+    });
+
+    expect(response.statusCode).toBe(409);
+    expect(response.json()).toMatchObject({
+      code: 'CONFLICT',
+      conflict: {
+        target: {
+          resource: 'runtime-profile',
+          id: PROFILE_ID,
+        },
+      },
+    });
+    expect(mocks.runtimeProfileRepository.update).not.toHaveBeenCalled();
   });
 
   it('preserves model options when update omits them', async () => {

@@ -19,6 +19,7 @@ import {
 } from '@moltnet/tasks';
 
 import {
+  assertExecutorContinuity,
   persistExecutorVerification,
   verifyExecutorForPhase,
 } from './executor-attestation.js';
@@ -490,6 +491,10 @@ export function createTaskService(deps: TaskServiceDeps) {
           `Attempt ${attemptN} is already in terminal state: ${attempt.status}`,
         );
       }
+      assertExecutorContinuity({
+        claimedFingerprint: attempt.claimedExecutorFingerprint,
+        completedFingerprint: body.executorFingerprint ?? null,
+      });
 
       // Pass `task.input` so per-type validators can run cross-field
       // rules (e.g. "verification is required when input.successCriteria

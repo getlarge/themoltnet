@@ -5,7 +5,12 @@ import baseConfig, {
 export default [
   ...baseConfig,
   createNxDependencyChecksConfig({
-    ignoredDependencies: ['@earendil-works/pi-ai', '@moltnet/crypto-service'],
+    ignoredDependencies: [
+      '@earendil-works/pi-ai',
+      '@moltnet/crypto-service',
+      // Private workspace package bundled into the published Vite output.
+      '@moltnet/tasks',
+    ],
   }),
   {
     files: ['src/**/*.ts'],

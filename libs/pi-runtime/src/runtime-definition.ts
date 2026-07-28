@@ -5,6 +5,7 @@ import type {
   ToolDefinition,
 } from '@earendil-works/pi-coding-agent';
 import { computeJsonCid } from '@moltnet/crypto-service';
+import { RUNTIME_PROFILE_RUNTIME_KIND_REGEXP } from '@moltnet/tasks';
 import type { ClaimedTask, TaskReporter } from '@themoltnet/agent-runtime';
 import type { Agent } from '@themoltnet/sdk';
 
@@ -245,7 +246,7 @@ export function definePiRuntime(
 ): PiRuntimeDefinition {
   assertStableId(options.id, 'runtime id');
   assertStableId(options.version, 'runtime version');
-  assertStableId(options.runtimeKind ?? 'gondolin_pi', 'runtime kind');
+  assertRuntimeKind(options.runtimeKind ?? 'gondolin_pi');
 
   const names = new Map<string, string>();
   for (const tool of options.tools ?? []) {
@@ -432,6 +433,9 @@ export function isToolVisible(
   policy?: { enforcement: ToolEnforcement; allowedTools: ReadonlySet<string> },
 ): boolean {
   if (!policy || policy.enforcement !== 'enforce') return true;
+  // Bash remains model-visible so ShellCommandAnalyzer can enforce the
+  // executable-level policy at the command boundary. Hiding it here would
+  // bypass that finer-grained gate rather than strengthening enforcement.
   if (name === 'bash') return true;
   return policy.allowedTools.has(name);
 }
@@ -505,5 +509,11 @@ function assertToolName(name: string): void {
 function assertStableId(value: string, label: string): void {
   if (!/^[a-zA-Z0-9][a-zA-Z0-9_.:/-]{0,127}$/.test(value)) {
     throw new Error(`Invalid ${label} "${value}"`);
+  }
+}
+
+function assertRuntimeKind(value: string): void {
+  if (!RUNTIME_PROFILE_RUNTIME_KIND_REGEXP.test(value)) {
+    throw new Error(`Invalid runtime kind "${value}"`);
   }
 }

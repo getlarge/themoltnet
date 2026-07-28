@@ -55,7 +55,7 @@ import {
   ApiTaskSource,
   PollingApiTaskSource,
 } from '@themoltnet/agent-runtime';
-import { resolveTaskWorktreePath } from '@themoltnet/pi-extension';
+import { resolveTaskWorktreePath } from '@themoltnet/pi-runtime';
 import { type Agent, connect, MoltNetError } from '@themoltnet/sdk';
 import {
   afterAll,

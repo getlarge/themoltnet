@@ -36,6 +36,7 @@ export function defineRuntimeProfilesTable({
   return pgTable(
     'runtime_profiles',
     {
+      definitionVersion: integer('definition_version').notNull().default(1),
       id: uuid('id').defaultRandom().primaryKey(),
       teamId: uuid('team_id')
         .notNull()
@@ -184,6 +185,10 @@ export function defineRuntimeProfilesTable({
       check(
         'runtime_profiles_runtime_kind_valid',
         sql`runtime_kind ~ '^[a-z][a-z0-9._-]{0,99}$'`,
+      ),
+      check(
+        'runtime_profiles_definition_version_valid',
+        sql`definition_version IN (1, 2)`,
       ),
     ],
   );

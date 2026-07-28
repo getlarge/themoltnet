@@ -2,7 +2,11 @@ import type { Task } from '@themoltnet/agent-runtime';
 import { buildTaskUserPrompt } from '@themoltnet/agent-runtime';
 import { describe, expect, it } from 'vitest';
 
-import { createMoltNetTools, type MoltNetToolsConfig } from './tools.js';
+import {
+  createMoltNetTools,
+  MOLTNET_TOOL_NAMES,
+  type MoltNetToolsConfig,
+} from './tools.js';
 
 const noopConfig: MoltNetToolsConfig = {
   getAgent: () => null,
@@ -187,4 +191,12 @@ describe('pack-pipeline prompts only reference exposed tools', () => {
       ).toEqual([]);
     });
   }
+});
+
+describe('MoltNet tool inventory', () => {
+  it('matches the tools created by the factory', () => {
+    expect([...exposedToolNames()].sort()).toEqual(
+      [...MOLTNET_TOOL_NAMES].sort(),
+    );
+  });
 });

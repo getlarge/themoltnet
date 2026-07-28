@@ -153,6 +153,7 @@ function serializeProfile(
   row: RuntimeProfile,
 ): Static<typeof RuntimeProfileSchema> {
   return {
+    definitionVersion: row.definitionVersion as 1 | 2,
     id: row.id,
     teamId: row.teamId,
     name: row.name,
@@ -316,6 +317,7 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
       const definitionCid = await computeProfileDefinitionCid(body);
       try {
         const row = await fastify.runtimeProfileRepository.create({
+          definitionVersion: 2,
           teamId,
           name: body.name,
           description: body.description ?? null,
@@ -430,6 +432,17 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
         subjectNs,
       );
       if (!canManage) throw createProblem('forbidden');
+      if (existing.definitionVersion !== 2) {
+        throw createConflictProblem(
+          'This legacy runtime profile must be exported and backfilled to definition version 2 before it can be updated',
+          {
+            target: {
+              resource: 'runtime-profile',
+              id: existing.id,
+            },
+          },
+        );
+      }
       const body = request.body as Static<
         typeof UpdateRuntimeProfileBodySchema
       >;

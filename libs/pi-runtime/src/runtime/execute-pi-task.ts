@@ -55,6 +55,16 @@ import {
   HOST_EXEC_DEFAULT_BASE_ENV,
   type HostExecAutoApproveConfig,
 } from '../moltnet/tools.js';
+
+export const GONDOLIN_TOOL_NAMES = [
+  'read',
+  'write',
+  'edit',
+  'bash',
+  'ls',
+  'find',
+  'grep',
+] as const;
 import {
   enabledPiToolNames,
   filterModelVisibleTools,

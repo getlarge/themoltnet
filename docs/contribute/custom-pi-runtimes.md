@@ -61,7 +61,16 @@ Runtime authors do not copy `executePiTask` or the polling loop.
 
 ## Profile v2 migration
 
-After applying migration `0036`, preview legacy profile changes:
+Apply migrations `0036` and `0037` before deploying profile-v2 writers.
+Migration `0036` intentionally retains the retired enum type so a rolling
+deployment never depends on an immediately destructive type drop. Migration
+`0037` marks existing profiles as definition version 1; new API writes use
+version 2.
+
+Quiesce legacy daemons before the backfill. A v2 daemon deliberately refuses
+definition-v1 profiles, and the REST API refuses to patch them, so no old
+snapshot or resume provisioning can execute or be silently preserved during
+the transition. Preview legacy profile changes:
 
 ```bash
 pnpm backfill:runtime-profiles-v2
@@ -78,4 +87,10 @@ pnpm backfill:runtime-profiles-v2 -- --apply --export ./runtime-profiles-v1.json
 provisioning. The export is written mode `0600`; keep it out of version control.
 The backfill moves legacy `requiredTools` into `requiredExecutables`, clears the
 logical tool list, removes provisioning from sandbox policy, recomputes the v2
-definition CID, and increments the profile revision.
+definition CID, sets `definitionVersion` to 2, and increments the profile
+revision. Before opening its transaction it reads the mode-`0600` export back,
+parses it, and verifies the exported profile count and IDs.
+
+The Pi peer dependency versions are intentionally exact. Pi loads extensions
+against concrete `pi-ai` and `pi-coding-agent` APIs, so runtime authors should
+upgrade those pins only with the loader smoke test and runtime suite.

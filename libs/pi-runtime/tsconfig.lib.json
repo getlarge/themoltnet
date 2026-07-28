@@ -19,6 +19,9 @@
   "include": ["src"],
   "references": [
     {
+      "path": "../tasks/tsconfig.lib.json"
+    },
+    {
       "path": "../shell-command-analyzer/tsconfig.lib.json"
     },
     {

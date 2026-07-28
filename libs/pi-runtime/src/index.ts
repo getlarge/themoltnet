@@ -1,6 +1,7 @@
 export {
   createMoltNetTools,
   HOST_EXEC_DEFAULT_BASE_ENV,
+  MOLTNET_TOOL_NAMES,
   type MoltNetToolsConfig,
   type TrackedError,
 } from './moltnet/tools.js';
@@ -11,6 +12,7 @@ export {
   createPiTaskExecutor,
   executePiTask,
   type ExecutePiTaskOptions,
+  GONDOLIN_TOOL_NAMES,
   type PiSessionPersistencePlan,
   type PiTaskExecutionPlan,
   type PiTaskExecutionPlanFactory,
@@ -53,7 +55,36 @@ export type {
   TurnEventHandler,
   TurnEventKind,
 } from './runtime/task-event-emitter.js';
-export * from './runtime-definition.js';
+export {
+  buildPiExecutorManifest,
+  defineGondolinTemplate,
+  type DefineGondolinTemplateOptions,
+  definePiExtension,
+  definePiRuntime,
+  type DefinePiRuntimeOptions,
+  definePiTool,
+  enabledPiToolNames,
+  filterModelVisibleTools,
+  type GondolinTemplateDefinition,
+  type GondolinTemplateResolveContext,
+  isKernelTool,
+  isToolVisible,
+  materializePiExtensions,
+  materializePiTools,
+  PI_EXECUTOR_MANIFEST_VERSION,
+  PI_RUNTIME_DEFINITION_VERSION,
+  type PiExecutorManifest,
+  type PiExtensionContribution,
+  type PiExtensionFactory,
+  type PiExtensionOptions,
+  type PiRuntimeDefinition,
+  type PiToolContext,
+  type PiToolContribution,
+  type PiToolDescriptor,
+  type PiToolFactoryOptions,
+  type PiToolScope,
+  type ResolvedGondolinTemplate,
+} from './runtime-definition.js';
 export type {
   EnsureSnapshotOptions,
   ResumeCommand,

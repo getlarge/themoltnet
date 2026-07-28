@@ -6,13 +6,16 @@ import type {
   RuntimeProfileToolEnforcement,
   RuntimeProfileWorkspaceMode,
 } from '@moltnet/tasks';
+import { RuntimeProfileSandbox } from '@moltnet/tasks';
 import type { SandboxConfig } from '@themoltnet/pi-runtime';
 import type { Agent } from '@themoltnet/sdk';
+import { Value } from 'typebox/value';
 
 type RuntimeProfile = Awaited<ReturnType<Agent['runtimeProfiles']['get']>>;
 
 export interface ResolvedRuntimeProfile {
   id: string;
+  definitionVersion: number;
   name: string;
   teamId: string;
   runtimeKind: string;
@@ -84,9 +87,21 @@ export async function resolveRuntimeProfile(options: {
       `Runtime profile "${options.profile}" belongs to team ${profile.teamId}, not ${options.teamId}.`,
     );
   }
+  if (profile.definitionVersion !== 2) {
+    throw new Error(
+      `Runtime profile "${profile.name}" uses legacy definition version ${profile.definitionVersion}. ` +
+        'Export and run the runtime profile v2 backfill before starting this daemon.',
+    );
+  }
+  if (!Value.Check(RuntimeProfileSandbox, profile.sandbox)) {
+    throw new Error(
+      `Runtime profile "${profile.name}" contains sandbox fields that are not valid for definition version 2.`,
+    );
+  }
 
   return {
     id: profile.id,
+    definitionVersion: profile.definitionVersion,
     name: profile.name,
     teamId: profile.teamId,
     runtimeKind: profile.runtimeKind,

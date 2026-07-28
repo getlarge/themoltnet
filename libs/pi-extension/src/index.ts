@@ -503,7 +503,3 @@ export default function moltnetExtension(pi: ExtensionAPI) {
   registerResolveIssueCommand(pi, state);
   registerMoltnetReflectCommand(pi, state);
 }
-
-// Compatibility bridge for existing programmatic consumers. New headless
-// runtimes should import these APIs directly from @themoltnet/pi-runtime.
-export * from '@themoltnet/pi-runtime';

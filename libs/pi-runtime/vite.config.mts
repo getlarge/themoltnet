@@ -5,7 +5,7 @@ export default defineConfig({
   plugins: [
     dts({
       rollupTypes: true,
-      bundledPackages: ['@moltnet/models'],
+      bundledPackages: ['@moltnet/models', '@moltnet/tasks'],
       tsconfigPath: './tsconfig.lib.json',
       include: ['src/**/*.ts'],
       exclude: ['src/**/*.test.ts'],

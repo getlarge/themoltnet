@@ -1979,6 +1979,7 @@ export type RuntimeProfile = {
   createdByHumanId: string | null;
   defaultWorkspaceMode: 'none' | 'shared_mount' | 'dedicated_worktree' | null;
   definitionCid: string;
+  definitionVersion: number;
   description: string | null;
   heartbeatIntervalMs: number;
   id: string;
@@ -2052,6 +2053,7 @@ export type RuntimeProfileListResponse = {
     createdByHumanId: string | null;
     defaultWorkspaceMode: 'none' | 'shared_mount' | 'dedicated_worktree' | null;
     definitionCid: string;
+    definitionVersion: number;
     description: string | null;
     heartbeatIntervalMs: number;
     id: string;

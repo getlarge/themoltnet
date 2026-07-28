@@ -2082,7 +2082,7 @@
           "runtimeKind": {
             "maxLength": 100,
             "minLength": 1,
-            "pattern": "^[a-z][a-z0-9._-]*$",
+            "pattern": "^[a-z][a-z0-9._-]{0,99}$",
             "type": "string"
           },
           "sandbox": {
@@ -8244,6 +8244,11 @@
             "minLength": 1,
             "type": "string"
           },
+          "definitionVersion": {
+            "maximum": 2,
+            "minimum": 1,
+            "type": "integer"
+          },
           "description": {
             "anyOf": [
               {
@@ -8349,7 +8354,7 @@
           "runtimeKind": {
             "maxLength": 100,
             "minLength": 1,
-            "pattern": "^[a-z][a-z0-9._-]*$",
+            "pattern": "^[a-z][a-z0-9._-]{0,99}$",
             "type": "string"
           },
           "sandbox": {
@@ -8585,6 +8590,7 @@
           }
         },
         "required": [
+          "definitionVersion",
           "id",
           "teamId",
           "name",
@@ -8821,6 +8827,11 @@
                   "minLength": 1,
                   "type": "string"
                 },
+                "definitionVersion": {
+                  "maximum": 2,
+                  "minimum": 1,
+                  "type": "integer"
+                },
                 "description": {
                   "anyOf": [
                     {
@@ -8926,7 +8937,7 @@
                 "runtimeKind": {
                   "maxLength": 100,
                   "minLength": 1,
-                  "pattern": "^[a-z][a-z0-9._-]*$",
+                  "pattern": "^[a-z][a-z0-9._-]{0,99}$",
                   "type": "string"
                 },
                 "sandbox": {
@@ -9162,6 +9173,7 @@
                 }
               },
               "required": [
+                "definitionVersion",
                 "id",
                 "teamId",
                 "name",
@@ -13332,7 +13344,7 @@
           "runtimeKind": {
             "maxLength": 100,
             "minLength": 1,
-            "pattern": "^[a-z][a-z0-9._-]*$",
+            "pattern": "^[a-z][a-z0-9._-]{0,99}$",
             "type": "string"
           },
           "sandbox": {

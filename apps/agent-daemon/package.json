@@ -131,7 +131,8 @@
     "@themoltnet/pi-runtime": "workspace:*",
     "@themoltnet/sdk": "workspace:*",
     "pino": "catalog:",
-    "pino-pretty": "catalog:"
+    "pino-pretty": "catalog:",
+    "typebox": "catalog:"
   },
   "devDependencies": {
     "@moltnet/bootstrap": "workspace:*",

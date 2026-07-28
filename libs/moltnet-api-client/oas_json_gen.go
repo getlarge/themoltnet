@@ -83742,6 +83742,10 @@ func (s *RuntimeProfile) encodeFields(e *jx.Encoder) {
 		e.Str(s.DefinitionCid)
 	}
 	{
+		e.FieldStart("definitionVersion")
+		e.Int(s.DefinitionVersion)
+	}
+	{
 		e.FieldStart("description")
 		s.Description.Encode(e)
 	}
@@ -83867,7 +83871,7 @@ func (s *RuntimeProfile) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfRuntimeProfile = [35]string{
+var jsonFieldsNameOfRuntimeProfile = [36]string{
 	0:  "allowedWorkspaceModes",
 	1:  "context",
 	2:  "createdAt",
@@ -83875,34 +83879,35 @@ var jsonFieldsNameOfRuntimeProfile = [35]string{
 	4:  "createdByHumanId",
 	5:  "defaultWorkspaceMode",
 	6:  "definitionCid",
-	7:  "description",
-	8:  "heartbeatIntervalMs",
-	9:  "id",
-	10: "leaseTtlSec",
-	11: "maxBashTimeouts",
-	12: "maxBatchSize",
-	13: "maxOutputTokens",
-	14: "maxTurns",
-	15: "model",
-	16: "name",
-	17: "provider",
-	18: "requiredEnv",
-	19: "requiredExecutables",
-	20: "requiredTools",
-	21: "revision",
-	22: "runtimeKind",
-	23: "sandbox",
-	24: "sessionStorageMode",
-	25: "sessionTtlSec",
-	26: "teamId",
-	27: "temperature",
-	28: "thinkingLevel",
-	29: "toolEnforcement",
-	30: "topK",
-	31: "topP",
-	32: "updatedAt",
-	33: "workspaceStorageMode",
-	34: "workspaceTtlSec",
+	7:  "definitionVersion",
+	8:  "description",
+	9:  "heartbeatIntervalMs",
+	10: "id",
+	11: "leaseTtlSec",
+	12: "maxBashTimeouts",
+	13: "maxBatchSize",
+	14: "maxOutputTokens",
+	15: "maxTurns",
+	16: "model",
+	17: "name",
+	18: "provider",
+	19: "requiredEnv",
+	20: "requiredExecutables",
+	21: "requiredTools",
+	22: "revision",
+	23: "runtimeKind",
+	24: "sandbox",
+	25: "sessionStorageMode",
+	26: "sessionTtlSec",
+	27: "teamId",
+	28: "temperature",
+	29: "thinkingLevel",
+	30: "toolEnforcement",
+	31: "topK",
+	32: "topP",
+	33: "updatedAt",
+	34: "workspaceStorageMode",
+	35: "workspaceTtlSec",
 }
 
 // Decode decodes RuntimeProfile from json.
@@ -84004,8 +84009,20 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"definitionCid\"")
 			}
-		case "description":
+		case "definitionVersion":
 			requiredBitSet[0] |= 1 << 7
+			if err := func() error {
+				v, err := d.Int()
+				s.DefinitionVersion = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"definitionVersion\"")
+			}
+		case "description":
+			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
 				if err := s.Description.Decode(d); err != nil {
 					return err
@@ -84015,7 +84032,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"description\"")
 			}
 		case "heartbeatIntervalMs":
-			requiredBitSet[1] |= 1 << 0
+			requiredBitSet[1] |= 1 << 1
 			if err := func() error {
 				v, err := d.Int()
 				s.HeartbeatIntervalMs = int(v)
@@ -84027,7 +84044,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"heartbeatIntervalMs\"")
 			}
 		case "id":
-			requiredBitSet[1] |= 1 << 1
+			requiredBitSet[1] |= 1 << 2
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.ID = v
@@ -84039,7 +84056,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"id\"")
 			}
 		case "leaseTtlSec":
-			requiredBitSet[1] |= 1 << 2
+			requiredBitSet[1] |= 1 << 3
 			if err := func() error {
 				v, err := d.Int()
 				s.LeaseTtlSec = int(v)
@@ -84051,7 +84068,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"leaseTtlSec\"")
 			}
 		case "maxBashTimeouts":
-			requiredBitSet[1] |= 1 << 3
+			requiredBitSet[1] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.MaxBashTimeouts = int(v)
@@ -84063,7 +84080,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"maxBashTimeouts\"")
 			}
 		case "maxBatchSize":
-			requiredBitSet[1] |= 1 << 4
+			requiredBitSet[1] |= 1 << 5
 			if err := func() error {
 				v, err := d.Int()
 				s.MaxBatchSize = int(v)
@@ -84075,7 +84092,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"maxBatchSize\"")
 			}
 		case "maxOutputTokens":
-			requiredBitSet[1] |= 1 << 5
+			requiredBitSet[1] |= 1 << 6
 			if err := func() error {
 				if err := s.MaxOutputTokens.Decode(d); err != nil {
 					return err
@@ -84085,7 +84102,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"maxOutputTokens\"")
 			}
 		case "maxTurns":
-			requiredBitSet[1] |= 1 << 6
+			requiredBitSet[1] |= 1 << 7
 			if err := func() error {
 				v, err := d.Int()
 				s.MaxTurns = int(v)
@@ -84097,7 +84114,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"maxTurns\"")
 			}
 		case "model":
-			requiredBitSet[1] |= 1 << 7
+			requiredBitSet[2] |= 1 << 0
 			if err := func() error {
 				v, err := d.Str()
 				s.Model = string(v)
@@ -84109,7 +84126,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"model\"")
 			}
 		case "name":
-			requiredBitSet[2] |= 1 << 0
+			requiredBitSet[2] |= 1 << 1
 			if err := func() error {
 				v, err := d.Str()
 				s.Name = string(v)
@@ -84121,7 +84138,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"name\"")
 			}
 		case "provider":
-			requiredBitSet[2] |= 1 << 1
+			requiredBitSet[2] |= 1 << 2
 			if err := func() error {
 				v, err := d.Str()
 				s.Provider = string(v)
@@ -84133,7 +84150,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"provider\"")
 			}
 		case "requiredEnv":
-			requiredBitSet[2] |= 1 << 2
+			requiredBitSet[2] |= 1 << 3
 			if err := func() error {
 				s.RequiredEnv = make([]string, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -84153,7 +84170,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"requiredEnv\"")
 			}
 		case "requiredExecutables":
-			requiredBitSet[2] |= 1 << 3
+			requiredBitSet[2] |= 1 << 4
 			if err := func() error {
 				s.RequiredExecutables = make([]string, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -84173,7 +84190,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"requiredExecutables\"")
 			}
 		case "requiredTools":
-			requiredBitSet[2] |= 1 << 4
+			requiredBitSet[2] |= 1 << 5
 			if err := func() error {
 				s.RequiredTools = make([]string, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -84193,7 +84210,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"requiredTools\"")
 			}
 		case "revision":
-			requiredBitSet[2] |= 1 << 5
+			requiredBitSet[2] |= 1 << 6
 			if err := func() error {
 				v, err := d.Int()
 				s.Revision = int(v)
@@ -84205,7 +84222,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"revision\"")
 			}
 		case "runtimeKind":
-			requiredBitSet[2] |= 1 << 6
+			requiredBitSet[2] |= 1 << 7
 			if err := func() error {
 				v, err := d.Str()
 				s.RuntimeKind = string(v)
@@ -84217,7 +84234,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"runtimeKind\"")
 			}
 		case "sandbox":
-			requiredBitSet[2] |= 1 << 7
+			requiredBitSet[3] |= 1 << 0
 			if err := func() error {
 				if err := s.Sandbox.Decode(d); err != nil {
 					return err
@@ -84227,7 +84244,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"sandbox\"")
 			}
 		case "sessionStorageMode":
-			requiredBitSet[3] |= 1 << 0
+			requiredBitSet[3] |= 1 << 1
 			if err := func() error {
 				if err := s.SessionStorageMode.Decode(d); err != nil {
 					return err
@@ -84237,7 +84254,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"sessionStorageMode\"")
 			}
 		case "sessionTtlSec":
-			requiredBitSet[3] |= 1 << 1
+			requiredBitSet[3] |= 1 << 2
 			if err := func() error {
 				v, err := d.Int()
 				s.SessionTtlSec = int(v)
@@ -84249,7 +84266,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"sessionTtlSec\"")
 			}
 		case "teamId":
-			requiredBitSet[3] |= 1 << 2
+			requiredBitSet[3] |= 1 << 3
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.TeamId = v
@@ -84261,7 +84278,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"teamId\"")
 			}
 		case "temperature":
-			requiredBitSet[3] |= 1 << 3
+			requiredBitSet[3] |= 1 << 4
 			if err := func() error {
 				if err := s.Temperature.Decode(d); err != nil {
 					return err
@@ -84271,7 +84288,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"temperature\"")
 			}
 		case "thinkingLevel":
-			requiredBitSet[3] |= 1 << 4
+			requiredBitSet[3] |= 1 << 5
 			if err := func() error {
 				if err := s.ThinkingLevel.Decode(d); err != nil {
 					return err
@@ -84281,7 +84298,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"thinkingLevel\"")
 			}
 		case "toolEnforcement":
-			requiredBitSet[3] |= 1 << 5
+			requiredBitSet[3] |= 1 << 6
 			if err := func() error {
 				if err := s.ToolEnforcement.Decode(d); err != nil {
 					return err
@@ -84291,7 +84308,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"toolEnforcement\"")
 			}
 		case "topK":
-			requiredBitSet[3] |= 1 << 6
+			requiredBitSet[3] |= 1 << 7
 			if err := func() error {
 				if err := s.TopK.Decode(d); err != nil {
 					return err
@@ -84301,7 +84318,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"topK\"")
 			}
 		case "topP":
-			requiredBitSet[3] |= 1 << 7
+			requiredBitSet[4] |= 1 << 0
 			if err := func() error {
 				if err := s.TopP.Decode(d); err != nil {
 					return err
@@ -84311,7 +84328,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"topP\"")
 			}
 		case "updatedAt":
-			requiredBitSet[4] |= 1 << 0
+			requiredBitSet[4] |= 1 << 1
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
 				s.UpdatedAt = v
@@ -84323,7 +84340,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"updatedAt\"")
 			}
 		case "workspaceStorageMode":
-			requiredBitSet[4] |= 1 << 1
+			requiredBitSet[4] |= 1 << 2
 			if err := func() error {
 				if err := s.WorkspaceStorageMode.Decode(d); err != nil {
 					return err
@@ -84333,7 +84350,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"workspaceStorageMode\"")
 			}
 		case "workspaceTtlSec":
-			requiredBitSet[4] |= 1 << 2
+			requiredBitSet[4] |= 1 << 3
 			if err := func() error {
 				v, err := d.Int()
 				s.WorkspaceTtlSec = int(v)
@@ -84358,7 +84375,7 @@ func (s *RuntimeProfile) Decode(d *jx.Decoder) error {
 		0b11111111,
 		0b11111111,
 		0b11111111,
-		0b00000111,
+		0b00001111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -84812,6 +84829,10 @@ func (s *RuntimeProfileListResponseItemsItem) encodeFields(e *jx.Encoder) {
 		e.Str(s.DefinitionCid)
 	}
 	{
+		e.FieldStart("definitionVersion")
+		e.Int(s.DefinitionVersion)
+	}
+	{
 		e.FieldStart("description")
 		s.Description.Encode(e)
 	}
@@ -84937,7 +84958,7 @@ func (s *RuntimeProfileListResponseItemsItem) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfRuntimeProfileListResponseItemsItem = [35]string{
+var jsonFieldsNameOfRuntimeProfileListResponseItemsItem = [36]string{
 	0:  "allowedWorkspaceModes",
 	1:  "context",
 	2:  "createdAt",
@@ -84945,34 +84966,35 @@ var jsonFieldsNameOfRuntimeProfileListResponseItemsItem = [35]string{
 	4:  "createdByHumanId",
 	5:  "defaultWorkspaceMode",
 	6:  "definitionCid",
-	7:  "description",
-	8:  "heartbeatIntervalMs",
-	9:  "id",
-	10: "leaseTtlSec",
-	11: "maxBashTimeouts",
-	12: "maxBatchSize",
-	13: "maxOutputTokens",
-	14: "maxTurns",
-	15: "model",
-	16: "name",
-	17: "provider",
-	18: "requiredEnv",
-	19: "requiredExecutables",
-	20: "requiredTools",
-	21: "revision",
-	22: "runtimeKind",
-	23: "sandbox",
-	24: "sessionStorageMode",
-	25: "sessionTtlSec",
-	26: "teamId",
-	27: "temperature",
-	28: "thinkingLevel",
-	29: "toolEnforcement",
-	30: "topK",
-	31: "topP",
-	32: "updatedAt",
-	33: "workspaceStorageMode",
-	34: "workspaceTtlSec",
+	7:  "definitionVersion",
+	8:  "description",
+	9:  "heartbeatIntervalMs",
+	10: "id",
+	11: "leaseTtlSec",
+	12: "maxBashTimeouts",
+	13: "maxBatchSize",
+	14: "maxOutputTokens",
+	15: "maxTurns",
+	16: "model",
+	17: "name",
+	18: "provider",
+	19: "requiredEnv",
+	20: "requiredExecutables",
+	21: "requiredTools",
+	22: "revision",
+	23: "runtimeKind",
+	24: "sandbox",
+	25: "sessionStorageMode",
+	26: "sessionTtlSec",
+	27: "teamId",
+	28: "temperature",
+	29: "thinkingLevel",
+	30: "toolEnforcement",
+	31: "topK",
+	32: "topP",
+	33: "updatedAt",
+	34: "workspaceStorageMode",
+	35: "workspaceTtlSec",
 }
 
 // Decode decodes RuntimeProfileListResponseItemsItem from json.
@@ -85074,8 +85096,20 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"definitionCid\"")
 			}
-		case "description":
+		case "definitionVersion":
 			requiredBitSet[0] |= 1 << 7
+			if err := func() error {
+				v, err := d.Int()
+				s.DefinitionVersion = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"definitionVersion\"")
+			}
+		case "description":
+			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
 				if err := s.Description.Decode(d); err != nil {
 					return err
@@ -85085,7 +85119,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"description\"")
 			}
 		case "heartbeatIntervalMs":
-			requiredBitSet[1] |= 1 << 0
+			requiredBitSet[1] |= 1 << 1
 			if err := func() error {
 				v, err := d.Int()
 				s.HeartbeatIntervalMs = int(v)
@@ -85097,7 +85131,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"heartbeatIntervalMs\"")
 			}
 		case "id":
-			requiredBitSet[1] |= 1 << 1
+			requiredBitSet[1] |= 1 << 2
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.ID = v
@@ -85109,7 +85143,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"id\"")
 			}
 		case "leaseTtlSec":
-			requiredBitSet[1] |= 1 << 2
+			requiredBitSet[1] |= 1 << 3
 			if err := func() error {
 				v, err := d.Int()
 				s.LeaseTtlSec = int(v)
@@ -85121,7 +85155,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"leaseTtlSec\"")
 			}
 		case "maxBashTimeouts":
-			requiredBitSet[1] |= 1 << 3
+			requiredBitSet[1] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.MaxBashTimeouts = int(v)
@@ -85133,7 +85167,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"maxBashTimeouts\"")
 			}
 		case "maxBatchSize":
-			requiredBitSet[1] |= 1 << 4
+			requiredBitSet[1] |= 1 << 5
 			if err := func() error {
 				v, err := d.Int()
 				s.MaxBatchSize = int(v)
@@ -85145,7 +85179,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"maxBatchSize\"")
 			}
 		case "maxOutputTokens":
-			requiredBitSet[1] |= 1 << 5
+			requiredBitSet[1] |= 1 << 6
 			if err := func() error {
 				if err := s.MaxOutputTokens.Decode(d); err != nil {
 					return err
@@ -85155,7 +85189,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"maxOutputTokens\"")
 			}
 		case "maxTurns":
-			requiredBitSet[1] |= 1 << 6
+			requiredBitSet[1] |= 1 << 7
 			if err := func() error {
 				v, err := d.Int()
 				s.MaxTurns = int(v)
@@ -85167,7 +85201,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"maxTurns\"")
 			}
 		case "model":
-			requiredBitSet[1] |= 1 << 7
+			requiredBitSet[2] |= 1 << 0
 			if err := func() error {
 				v, err := d.Str()
 				s.Model = string(v)
@@ -85179,7 +85213,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"model\"")
 			}
 		case "name":
-			requiredBitSet[2] |= 1 << 0
+			requiredBitSet[2] |= 1 << 1
 			if err := func() error {
 				v, err := d.Str()
 				s.Name = string(v)
@@ -85191,7 +85225,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"name\"")
 			}
 		case "provider":
-			requiredBitSet[2] |= 1 << 1
+			requiredBitSet[2] |= 1 << 2
 			if err := func() error {
 				v, err := d.Str()
 				s.Provider = string(v)
@@ -85203,7 +85237,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"provider\"")
 			}
 		case "requiredEnv":
-			requiredBitSet[2] |= 1 << 2
+			requiredBitSet[2] |= 1 << 3
 			if err := func() error {
 				s.RequiredEnv = make([]string, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -85223,7 +85257,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"requiredEnv\"")
 			}
 		case "requiredExecutables":
-			requiredBitSet[2] |= 1 << 3
+			requiredBitSet[2] |= 1 << 4
 			if err := func() error {
 				s.RequiredExecutables = make([]string, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -85243,7 +85277,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"requiredExecutables\"")
 			}
 		case "requiredTools":
-			requiredBitSet[2] |= 1 << 4
+			requiredBitSet[2] |= 1 << 5
 			if err := func() error {
 				s.RequiredTools = make([]string, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -85263,7 +85297,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"requiredTools\"")
 			}
 		case "revision":
-			requiredBitSet[2] |= 1 << 5
+			requiredBitSet[2] |= 1 << 6
 			if err := func() error {
 				v, err := d.Int()
 				s.Revision = int(v)
@@ -85275,7 +85309,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"revision\"")
 			}
 		case "runtimeKind":
-			requiredBitSet[2] |= 1 << 6
+			requiredBitSet[2] |= 1 << 7
 			if err := func() error {
 				v, err := d.Str()
 				s.RuntimeKind = string(v)
@@ -85287,7 +85321,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"runtimeKind\"")
 			}
 		case "sandbox":
-			requiredBitSet[2] |= 1 << 7
+			requiredBitSet[3] |= 1 << 0
 			if err := func() error {
 				if err := s.Sandbox.Decode(d); err != nil {
 					return err
@@ -85297,7 +85331,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"sandbox\"")
 			}
 		case "sessionStorageMode":
-			requiredBitSet[3] |= 1 << 0
+			requiredBitSet[3] |= 1 << 1
 			if err := func() error {
 				if err := s.SessionStorageMode.Decode(d); err != nil {
 					return err
@@ -85307,7 +85341,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"sessionStorageMode\"")
 			}
 		case "sessionTtlSec":
-			requiredBitSet[3] |= 1 << 1
+			requiredBitSet[3] |= 1 << 2
 			if err := func() error {
 				v, err := d.Int()
 				s.SessionTtlSec = int(v)
@@ -85319,7 +85353,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"sessionTtlSec\"")
 			}
 		case "teamId":
-			requiredBitSet[3] |= 1 << 2
+			requiredBitSet[3] |= 1 << 3
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.TeamId = v
@@ -85331,7 +85365,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"teamId\"")
 			}
 		case "temperature":
-			requiredBitSet[3] |= 1 << 3
+			requiredBitSet[3] |= 1 << 4
 			if err := func() error {
 				if err := s.Temperature.Decode(d); err != nil {
 					return err
@@ -85341,7 +85375,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"temperature\"")
 			}
 		case "thinkingLevel":
-			requiredBitSet[3] |= 1 << 4
+			requiredBitSet[3] |= 1 << 5
 			if err := func() error {
 				if err := s.ThinkingLevel.Decode(d); err != nil {
 					return err
@@ -85351,7 +85385,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"thinkingLevel\"")
 			}
 		case "toolEnforcement":
-			requiredBitSet[3] |= 1 << 5
+			requiredBitSet[3] |= 1 << 6
 			if err := func() error {
 				if err := s.ToolEnforcement.Decode(d); err != nil {
 					return err
@@ -85361,7 +85395,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"toolEnforcement\"")
 			}
 		case "topK":
-			requiredBitSet[3] |= 1 << 6
+			requiredBitSet[3] |= 1 << 7
 			if err := func() error {
 				if err := s.TopK.Decode(d); err != nil {
 					return err
@@ -85371,7 +85405,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"topK\"")
 			}
 		case "topP":
-			requiredBitSet[3] |= 1 << 7
+			requiredBitSet[4] |= 1 << 0
 			if err := func() error {
 				if err := s.TopP.Decode(d); err != nil {
 					return err
@@ -85381,7 +85415,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"topP\"")
 			}
 		case "updatedAt":
-			requiredBitSet[4] |= 1 << 0
+			requiredBitSet[4] |= 1 << 1
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
 				s.UpdatedAt = v
@@ -85393,7 +85427,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"updatedAt\"")
 			}
 		case "workspaceStorageMode":
-			requiredBitSet[4] |= 1 << 1
+			requiredBitSet[4] |= 1 << 2
 			if err := func() error {
 				if err := s.WorkspaceStorageMode.Decode(d); err != nil {
 					return err
@@ -85403,7 +85437,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"workspaceStorageMode\"")
 			}
 		case "workspaceTtlSec":
-			requiredBitSet[4] |= 1 << 2
+			requiredBitSet[4] |= 1 << 3
 			if err := func() error {
 				v, err := d.Int()
 				s.WorkspaceTtlSec = int(v)
@@ -85428,7 +85462,7 @@ func (s *RuntimeProfileListResponseItemsItem) Decode(d *jx.Decoder) error {
 		0b11111111,
 		0b11111111,
 		0b11111111,
-		0b00000111,
+		0b00001111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.

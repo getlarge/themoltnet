@@ -1,13 +1,13 @@
-import { writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
-import { computeJsonCid } from '@moltnet/crypto-service';
 import { createDatabase, runtimeProfiles } from '@moltnet/database';
-import {
-  type RuntimeProfileDefinitionV2Input,
-  runtimeProfileDefinitionV2Payload,
-} from '@moltnet/tasks';
 import { eq } from 'drizzle-orm';
+
+import {
+  planRuntimeProfileV2Backfill,
+  verifyRuntimeProfileExport,
+} from './runtime-profile-v2-backfill.js';
 
 const args = new Set(process.argv.slice(2));
 const apply = args.has('--apply');
@@ -21,46 +21,7 @@ if (!databaseUrl) throw new Error('DATABASE_URL is required');
 const { db, pool } = createDatabase(databaseUrl);
 try {
   const rows = await db.select().from(runtimeProfiles);
-  const plans = await Promise.all(
-    rows.map(async (row) => {
-      const sandbox = { ...(row.sandbox as Record<string, unknown>) };
-      const legacyProvisioning = {
-        snapshot: sandbox.snapshot,
-        resumeCommands: sandbox.resumeCommands,
-      };
-      delete sandbox.snapshot;
-      delete sandbox.resumeCommands;
-      const requiredExecutables =
-        row.requiredExecutables.length > 0
-          ? row.requiredExecutables
-          : row.requiredTools;
-      const requiredTools =
-        row.requiredExecutables.length > 0 ? row.requiredTools : [];
-      const next = {
-        ...row,
-        sandbox,
-        requiredTools,
-        requiredExecutables,
-      };
-      const definitionCid = await computeJsonCid(
-        runtimeProfileDefinitionV2Payload(
-          next as unknown as RuntimeProfileDefinitionV2Input,
-        ),
-      );
-      return {
-        row,
-        next,
-        legacyProvisioning,
-        definitionCid,
-        changed:
-          definitionCid !== row.definitionCid ||
-          legacyProvisioning.snapshot !== undefined ||
-          legacyProvisioning.resumeCommands !== undefined ||
-          requiredTools.length !== row.requiredTools.length ||
-          requiredExecutables.length !== row.requiredExecutables.length,
-      };
-    }),
-  );
+  const plans = await Promise.all(rows.map(planRuntimeProfileV2Backfill));
   const changed = plans.filter((plan) => plan.changed);
   const hasProvisioning = plans.some(
     (plan) =>
@@ -98,22 +59,25 @@ try {
       );
     }
     if (exportPath) {
+      const resolvedExportPath = resolve(exportPath);
+      const exportedProfiles = plans.map((plan) => ({
+        id: plan.row.id,
+        name: plan.row.name,
+        definitionVersion: plan.row.definitionVersion,
+        definitionCid: plan.row.definitionCid,
+        requiredTools: plan.row.requiredTools,
+        requiredExecutables: plan.row.requiredExecutables,
+        provisioning: plan.legacyProvisioning,
+      }));
       await writeFile(
-        resolve(exportPath),
-        JSON.stringify(
-          plans.map((plan) => ({
-            id: plan.row.id,
-            name: plan.row.name,
-            definitionCid: plan.row.definitionCid,
-            requiredTools: plan.row.requiredTools,
-            requiredExecutables: plan.row.requiredExecutables,
-            provisioning: plan.legacyProvisioning,
-          })),
-          null,
-          2,
-        ),
+        resolvedExportPath,
+        JSON.stringify(exportedProfiles, null, 2),
         { mode: 0o600 },
       );
+      const persistedExport = JSON.parse(
+        await readFile(resolvedExportPath, 'utf8'),
+      ) as unknown;
+      verifyRuntimeProfileExport(persistedExport, rows);
     }
     await db.transaction(async (tx) => {
       for (const plan of changed) {
@@ -121,6 +85,7 @@ try {
           .update(runtimeProfiles)
           .set({
             sandbox: plan.next.sandbox,
+            definitionVersion: 2,
             requiredTools: plan.next.requiredTools,
             requiredExecutables: plan.next.requiredExecutables,
             definitionCid: plan.definitionCid,
