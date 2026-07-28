@@ -11,6 +11,7 @@
   "libs/node-red-contrib-core": "0.12.7",
   "libs/node-red-theme": "0.3.4",
   "libs/pi-extension": "0.36.3",
+  "libs/pi-runtime": "0.1.0",
   "libs/sdk": "0.127.0",
   "libs/shell-command-analyzer": "0.2.0",
   "libs/tasks-orchestrator": "0.2.0",

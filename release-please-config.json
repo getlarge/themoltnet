@@ -84,6 +84,10 @@
       "component": "pi-extension",
       "release-type": "node"
     },
+    "libs/pi-runtime": {
+      "component": "pi-runtime",
+      "release-type": "node"
+    },
     "libs/sdk": {
       "component": "sdk",
       "release-type": "node"

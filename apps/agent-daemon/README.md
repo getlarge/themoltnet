@@ -185,8 +185,8 @@ flows that need fast first installs, prewarm the store explicitly with
 `pnpm fetch` after the sandbox is available instead of putting that network
 operation in every resume.
 
-If a resume step assumes `/workspace` is a repo checkout, gate it on
-`resumeCommands[].when.workspaceMode` rather than on task type. Use:
+If a local runtime template resume step assumes `/workspace` is a repo
+checkout, gate it on `when.workspaceMode` rather than on task type. Use:
 
 - `shared_mount` / `dedicated_worktree` for repo-aware bootstrap
 - `scratch_mount` to skip repo-specific steps when the task runs in an empty
@@ -201,8 +201,8 @@ runtime-session storage when producer slot/workspace metadata is available but
 the local session file is unavailable. Workspace copying still depends on
 producer slot/workspace metadata; if the daemon cannot resolve the required
 producer context, the judge fails with `producer_context_missing`.
-Repo-specific `resumeCommands` that should not run in scratch mode must still
-be guarded with `when.workspaceMode`.
+Repo-specific template resume commands that should not run in scratch mode must
+still be guarded with `when.workspaceMode`.
 
 ### Runtime resource lifecycle
 
