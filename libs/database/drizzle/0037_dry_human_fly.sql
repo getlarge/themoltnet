@@ -1,2 +1,0 @@
-ALTER TABLE "runtime_profiles" ADD COLUMN "definition_version" integer DEFAULT 1 NOT NULL;--> statement-breakpoint
-ALTER TABLE "runtime_profiles" ADD CONSTRAINT "runtime_profiles_definition_version_valid" CHECK (definition_version IN (1, 2));
