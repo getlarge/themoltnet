@@ -1,0 +1,229 @@
+name: Multi-lens deep review
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, ready_for_review]
+
+permissions: {}
+
+concurrency:
+  group: multi-lens-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  prepare:
+    if: |
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.user.login != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    environment: legreffier
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      base-sha: ${{ steps.prepare.outputs.base-sha }}
+      correlation-id: ${{ steps.prepare.outputs.correlation-id }}
+      head-sha: ${{ steps.prepare.outputs.head-sha }}
+      pr-number: ${{ steps.prepare.outputs.pr-number }}
+      profile: ${{ steps.prepare.outputs.profile }}
+    steps:
+      # pull_request_target has access to protected environment secrets. Only
+      # checkout the trusted base revision; the PR diff remains untrusted data.
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+
+      - name: Fetch and validate the untrusted PR diff
+        id: prepare
+        uses: actions/github-script@v8
+        env:
+          REVIEW_PROFILE: ${{ vars.MOLTNET_MULTI_LENS_REVIEW_PROFILE }}
+        with:
+          script: |
+            const crypto = require('node:crypto');
+            const fs = require('node:fs');
+            const pr = context.payload.pull_request;
+            const response = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number,
+              mediaType: { format: 'diff' },
+            });
+            const diff = String(response.data);
+            const maxBytes = 512 * 1024;
+            if (Buffer.byteLength(diff, 'utf8') > maxBytes) {
+              core.setFailed(`PR diff exceeds the ${maxBytes}-byte review limit`);
+              return;
+            }
+            fs.writeFileSync('pull-request.diff', diff, { mode: 0o600 });
+
+            const seed = `${context.repo.owner}/${context.repo.repo}:${pr.number}:${pr.head.sha}`;
+            const bytes = crypto.createHash('sha256').update(seed).digest().subarray(0, 16);
+            bytes[6] = (bytes[6] & 0x0f) | 0x50;
+            bytes[8] = (bytes[8] & 0x3f) | 0x80;
+            const hex = bytes.toString('hex');
+            const correlationId =
+              `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-` +
+              `${hex.slice(16, 20)}-${hex.slice(20)}`;
+
+            if (!process.env.REVIEW_PROFILE) {
+              core.setFailed('MOLTNET_MULTI_LENS_REVIEW_PROFILE is not configured');
+              return;
+            }
+            core.setOutput('base-sha', pr.base.sha);
+            core.setOutput('correlation-id', correlationId);
+            core.setOutput('head-sha', pr.head.sha);
+            core.setOutput('pr-number', String(pr.number));
+            core.setOutput('profile', process.env.REVIEW_PROFILE);
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: multi-lens-review-diff
+          path: pull-request.diff
+          if-no-files-found: error
+          retention-days: 1
+
+  orchestrate:
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: legreffier
+    permissions:
+      contents: read
+      pull-requests: write
+    env:
+      MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
+      MOLTNET_AGENT_NAME: ${{ vars.MOLTNET_AGENT_NAME }}
+      MOLTNET_API_URL: ${{ vars.MOLTNET_API_URL }}
+      MOLTNET_TEAM_ID: ${{ vars.MOLTNET_TEAM_ID }}
+      MOLTNET_DIARY_ID: ${{ vars.MOLTNET_DIARY_ID }}
+      MULTI_LENS_REVIEW_DATABASE_URL: ${{ secrets.MULTI_LENS_REVIEW_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.prepare.outputs.base-sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@v7
+        with:
+          name: multi-lens-review-diff
+          path: ${{ runner.temp }}/multi-lens-review
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec nx run @themoltnet/multi-lens-review:build
+
+      - name: Orchestrate reviews and synthesis
+        id: review
+        env:
+          CORRELATION_ID: ${{ needs.prepare.outputs.correlation-id }}
+          PROFILE: ${{ needs.prepare.outputs.profile }}
+          PR_NUMBER: ${{ needs.prepare.outputs.pr-number }}
+          HEAD_SHA: ${{ needs.prepare.outputs.head-sha }}
+        run: |
+          set -euo pipefail
+          result="$RUNNER_TEMP/multi-lens-review-result.json"
+          node apps/multi-lens-review/dist/main.js \
+            --team "$MOLTNET_TEAM_ID" \
+            --diary "$MOLTNET_DIARY_ID" \
+            --target "$GITHUB_REPOSITORY pull request #$PR_NUMBER at $HEAD_SHA" \
+            --diff-file "$RUNNER_TEMP/multi-lens-review/pull-request.diff" \
+            --profile "$PROFILE" \
+            --correlation-id "$CORRELATION_ID" \
+            > "$result"
+          echo "result=$result" >> "$GITHUB_OUTPUT"
+
+      - name: Upsert consolidated review comment
+        if: always()
+        uses: actions/github-script@v8
+        env:
+          RESULT_PATH: ${{ steps.review.outputs.result }}
+          REVIEW_OUTCOME: ${{ steps.review.outcome }}
+          CORRELATION_ID: ${{ needs.prepare.outputs.correlation-id }}
+        with:
+          script: |
+            const fs = require('node:fs');
+            const marker = '<!-- moltnet:multi-lens-review -->';
+            let body;
+            if (process.env.REVIEW_OUTCOME === 'success' && process.env.RESULT_PATH) {
+              const payload = JSON.parse(fs.readFileSync(process.env.RESULT_PATH, 'utf8'));
+              const output = payload.result ?? payload.output ?? payload;
+              const verdict = output.verdict ?? output.value?.verdict;
+              body = verdict
+                ? `${marker}\n## MoltNet multi-lens review\n\n${verdict}\n\n` +
+                  `_Run: \`${process.env.CORRELATION_ID}\`_`
+                : `${marker}\n## MoltNet multi-lens review\n\n` +
+                  `The review completed, but its verdict payload was not recognized. ` +
+                  `Run: \`${process.env.CORRELATION_ID}\`.`;
+            } else {
+              body = `${marker}\n## MoltNet multi-lens review\n\n` +
+                `The review run failed. See the workflow logs for correlation ` +
+                `\`${process.env.CORRELATION_ID}\`.`;
+            }
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              per_page: 100,
+            });
+            const existing = comments.find(comment =>
+              comment.user?.type === 'Bot' && comment.body?.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+  review-workers:
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        worker: [1, 2, 3, 4]
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    environment: legreffier
+    permissions:
+      contents: read
+    env:
+      MOLTNET_AGENT_KEY: ${{ secrets.MOLTNET_AGENT_KEY }}
+      MOLTNET_AGENT_NAME: ${{ vars.MOLTNET_AGENT_NAME }}
+      MOLTNET_API_URL: ${{ vars.MOLTNET_API_URL }}
+      MOLTNET_TEAM_ID: ${{ vars.MOLTNET_TEAM_ID }}
+      OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.prepare.outputs.base-sha }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Drain this review run
+        uses: ./packages/agent-daemon-action
+        with:
+          agent-name: ${{ vars.MOLTNET_AGENT_NAME }}
+          mode: drain
+          task-types: freeform
+          correlation-id: ${{ needs.prepare.outputs.correlation-id }}
+          wait-for-first-task-sec: '300'
+          wait-after-task-sec: '300'
+          profile: ${{ needs.prepare.outputs.profile }}
+          daemon-version: workspace
