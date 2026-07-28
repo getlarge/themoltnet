@@ -337,6 +337,9 @@ import type {
   RegisterAgentData,
   RegisterAgentErrors,
   RegisterAgentResponses,
+  RegisterExecutorManifestData,
+  RegisterExecutorManifestErrors,
+  RegisterExecutorManifestResponses,
   RejectSigningRequestData,
   RejectSigningRequestErrors,
   RejectSigningRequestResponses,
@@ -1709,6 +1712,26 @@ export const verifyDiaryEntryById = <ThrowOnError extends boolean = false>(
     ],
     url: '/entries/{entryId}/verify',
     ...options,
+  });
+
+/**
+ * Register an agent-signed executor manifest for fingerprint-only task claims.
+ */
+export const registerExecutorManifest = <ThrowOnError extends boolean = false>(
+  options: Options<RegisterExecutorManifestData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    RegisterExecutorManifestResponses,
+    RegisterExecutorManifestErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/executor-manifests/register',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
   });
 
 /**

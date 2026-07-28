@@ -119,6 +119,7 @@ const (
 	PreviewDiaryCustomPackOperation                OperationName = "PreviewDiaryCustomPack"
 	PreviewRenderedPackOperation                   OperationName = "PreviewRenderedPack"
 	RegisterAgentOperation                         OperationName = "RegisterAgent"
+	RegisterExecutorManifestOperation              OperationName = "RegisterExecutorManifest"
 	RejectSigningRequestOperation                  OperationName = "RejectSigningRequest"
 	RejectTransferOperation                        OperationName = "RejectTransfer"
 	RemoveGroupMemberOperation                     OperationName = "RemoveGroupMember"

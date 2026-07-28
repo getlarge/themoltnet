@@ -1,9 +1,9 @@
 import type { Task } from '@moltnet/tasks';
 
 export interface ExecutorAttestationFields {
-  executorManifest: Record<string, unknown>;
+  executorManifest?: Record<string, unknown>;
   executorFingerprint: string;
-  executorSignature: string;
+  executorSignature?: string;
 }
 
 export type CreateClaimAttestation = (input: {

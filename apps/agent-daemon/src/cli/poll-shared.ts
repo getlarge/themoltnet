@@ -230,6 +230,9 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       tools: prepared.tools,
       executables: prepared.executables,
     });
+    await ctx.agent.tasks.registerExecutorManifest(
+      await prepared.attestor.registration(),
+    );
     preparedRuntimes.set(profile.id, prepared);
   }
   const slotRegistry = createApiRuntimeSlotStore({ agent: ctx.agent });
@@ -473,11 +476,13 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         waitAfterTaskMs: waitAfterTaskSec * 1_000,
         debug: baseCommon.debug,
         logger: rootLogger,
-        createClaimAttestation: ({ taskId, profileId }) =>
-          requireRuntime(
-            runtimes,
-            profileId ?? profiles[0].id,
-          ).preparedRuntime.attestor.claim(taskId),
+        executorFingerprints: Object.fromEntries(
+          profiles.map((profile) => [
+            profile.id,
+            requireRuntime(runtimes, profile.id).preparedRuntime.attestor
+              .fingerprint,
+          ]),
+        ),
         // Warm-resume affinity: skip continuations whose source warm
         // session is neither remotely durable nor locally available.
         slotRegistry,

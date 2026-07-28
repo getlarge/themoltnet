@@ -1542,6 +1542,36 @@ export type ExecutorManifestVerification =
 export type NewExecutorManifestVerification =
   typeof executorManifestVerifications.$inferInsert;
 
+export const executorManifestRegistrations = pgTable(
+  'executor_manifest_registrations',
+  {
+    fingerprint: varchar('fingerprint', { length: 100 })
+      .notNull()
+      .references(() => executorManifests.fingerprint, {
+        onDelete: 'cascade',
+      }),
+    agentIdentityId: uuid('agent_identity_id')
+      .notNull()
+      .references(() => agents.identityId, { onDelete: 'cascade' }),
+    signature: text('signature').notNull(),
+    registeredAt: timestamp('registered_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.fingerprint, table.agentIdentityId] }),
+    index('executor_manifest_registrations_agent_idx').on(
+      table.agentIdentityId,
+      table.registeredAt,
+    ),
+  ],
+);
+
+export type ExecutorManifestRegistration =
+  typeof executorManifestRegistrations.$inferSelect;
+export type NewExecutorManifestRegistration =
+  typeof executorManifestRegistrations.$inferInsert;
+
 // ── Task Attempts ──────────────────────────────────────────
 
 export const taskAttempts = pgTable(

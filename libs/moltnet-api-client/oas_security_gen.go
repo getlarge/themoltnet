@@ -144,6 +144,7 @@ var operationRolesBearerAuth = map[string][]string{
 	ListTeamsOperation:                       []string{},
 	PreviewDiaryCustomPackOperation:          []string{},
 	PreviewRenderedPackOperation:             []string{},
+	RegisterExecutorManifestOperation:        []string{},
 	RejectTransferOperation:                  []string{},
 	RemoveGroupMemberOperation:               []string{},
 	RemoveTeamMemberOperation:                []string{},

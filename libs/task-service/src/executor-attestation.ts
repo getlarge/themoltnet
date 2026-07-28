@@ -1,6 +1,7 @@
 import {
   buildExecutorClaimAttestationPayload,
   buildExecutorCompleteAttestationPayload,
+  buildExecutorRegistrationAttestationPayload,
   canonicalJson,
   computeExecutorManifestCid,
   EXECUTOR_MANIFEST_SCHEMA_VERSION,
@@ -16,6 +17,7 @@ import type {
 import { TaskServiceError } from './task-service.shared.js';
 import type {
   ExecutorAttestationInput,
+  ExecutorRegistrationInput,
   VerifiedExecutorAttestation,
 } from './task-service.types.js';
 import { TRUST_LEVEL_TO_WIRE } from './wire-mappers.js';
@@ -26,6 +28,104 @@ const TRUST_ORDER: Record<ExecutorTrustLevel, number> = {
   releaseVerifiedTool: 2,
   sandboxAttested: 3,
 };
+
+async function upsertAndAssertExecutorManifest(input: {
+  executorManifest: Record<string, unknown>;
+  executorFingerprint: string;
+  taskRepository: TaskRepository;
+}): Promise<void> {
+  await input.taskRepository.upsertExecutorManifest({
+    fingerprint: input.executorFingerprint,
+    manifest: input.executorManifest,
+    schemaVersion:
+      typeof input.executorManifest.schemaVersion === 'string'
+        ? input.executorManifest.schemaVersion
+        : EXECUTOR_MANIFEST_SCHEMA_VERSION,
+  });
+
+  const stored = await input.taskRepository.findExecutorManifest(
+    input.executorFingerprint,
+  );
+  if (
+    stored &&
+    canonicalJson(stored.manifest) !== canonicalJson(input.executorManifest)
+  ) {
+    throw new TaskServiceError(
+      'conflict',
+      'executorFingerprint already maps to a different manifest',
+    );
+  }
+}
+
+export async function registerExecutorManifest(input: {
+  callerId: string;
+  registration: ExecutorRegistrationInput;
+  taskRepository: TaskRepository;
+  agentRepository: AgentRepository;
+}): Promise<{ executorFingerprint: string }> {
+  const { executorManifest, executorFingerprint, executorSignature } =
+    input.registration;
+  let computed: string;
+  try {
+    computed = computeExecutorManifestCid(executorManifest);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new TaskServiceError('invalid', message, [
+      { field: 'executorManifest', message },
+    ]);
+  }
+  if (computed !== executorFingerprint) {
+    throw new TaskServiceError(
+      'invalid',
+      'executorFingerprint does not match executorManifest',
+      [
+        {
+          field: 'executorFingerprint',
+          message: `Expected ${computed} for the supplied executorManifest`,
+        },
+      ],
+    );
+  }
+
+  const agent = await input.agentRepository.findByIdentityId(input.callerId);
+  if (!agent) throw new TaskServiceError('not_found', 'Agent not found');
+  const valid = await verifyExecutorAttestation(
+    buildExecutorRegistrationAttestationPayload({ executorFingerprint }),
+    executorSignature,
+    agent.publicKey,
+  );
+  if (!valid) {
+    throw new TaskServiceError(
+      'invalid',
+      'executorSignature is not valid for executor registration',
+      [
+        {
+          field: 'executorSignature',
+          message: 'executorSignature verification failed',
+        },
+      ],
+    );
+  }
+
+  await upsertAndAssertExecutorManifest({
+    executorManifest,
+    executorFingerprint,
+    taskRepository: input.taskRepository,
+  });
+  await input.taskRepository.upsertExecutorManifestRegistration({
+    fingerprint: executorFingerprint,
+    agentIdentityId: input.callerId,
+    signature: executorSignature,
+  });
+  await input.taskRepository.upsertExecutorManifestVerification({
+    fingerprint: executorFingerprint,
+    trustLevel: 'agent_signed',
+    status: 'verified',
+    evidence: { phase: 'register', signerAgentId: input.callerId },
+  });
+
+  return { executorFingerprint };
+}
 
 export async function verifyExecutorForPhase(input: {
   phase: 'claim' | 'complete';
@@ -61,6 +161,52 @@ export async function verifyExecutorForPhase(input: {
 
   const { executorManifest, executorFingerprint, executorSignature } =
     input.attestation;
+  if (
+    input.phase === 'claim' &&
+    executorFingerprint &&
+    executorManifest === undefined &&
+    executorSignature === undefined
+  ) {
+    if (TRUST_ORDER[requiredTrustLevel] >= TRUST_ORDER.releaseVerifiedTool) {
+      throw new TaskServiceError(
+        'invalid',
+        `executor trust level '${requiredTrustLevel}' is not yet implemented`,
+      );
+    }
+    const registration =
+      await input.taskRepository.findExecutorManifestRegistration(
+        executorFingerprint,
+        input.callerId,
+      );
+    if (!registration) {
+      throw new TaskServiceError(
+        'invalid',
+        'Executor fingerprint is not registered for the claiming agent',
+        [
+          {
+            field: 'executorFingerprint',
+            message:
+              'Register the signed executor manifest before claiming by fingerprint',
+          },
+        ],
+      );
+    }
+    const stored =
+      await input.taskRepository.findExecutorManifest(executorFingerprint);
+    if (!stored) {
+      throw new TaskServiceError(
+        'conflict',
+        'Registered executor manifest could not be resolved',
+      );
+    }
+    return {
+      fingerprint: executorFingerprint,
+      verification: {
+        trustLevel: 'agent_signed',
+        evidence: { phase: 'register', signerAgentId: input.callerId },
+      },
+    };
+  }
   if (!executorManifest || !executorFingerprint) {
     throw new TaskServiceError(
       'invalid',
@@ -177,26 +323,11 @@ export async function verifyExecutorForPhase(input: {
     );
   }
 
-  await input.taskRepository.upsertExecutorManifest({
-    fingerprint: executorFingerprint,
-    manifest: executorManifest,
-    schemaVersion:
-      typeof executorManifest.schemaVersion === 'string'
-        ? executorManifest.schemaVersion
-        : EXECUTOR_MANIFEST_SCHEMA_VERSION,
+  await upsertAndAssertExecutorManifest({
+    executorManifest,
+    executorFingerprint,
+    taskRepository: input.taskRepository,
   });
-
-  const stored =
-    await input.taskRepository.findExecutorManifest(executorFingerprint);
-  if (
-    stored &&
-    canonicalJson(stored.manifest) !== canonicalJson(executorManifest)
-  ) {
-    throw new TaskServiceError(
-      'conflict',
-      'executorFingerprint already maps to a different manifest',
-    );
-  }
 
   return { fingerprint: executorFingerprint, verification };
 }

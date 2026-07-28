@@ -21,6 +21,7 @@ import {
 import {
   assertExecutorContinuity,
   persistExecutorVerification,
+  registerExecutorManifest as registerExecutorManifestAttestation,
   verifyExecutorForPhase,
 } from './executor-attestation.js';
 import { createTaskConditionHelpers } from './task-conditions.js';
@@ -38,6 +39,7 @@ import {
 } from './task-service.shared.js';
 import type {
   ExecutorAttestationInput,
+  ExecutorRegistrationInput,
   TaskServiceDeps,
 } from './task-service.types.js';
 import { createAsyncValidationContextFactory } from './task-validation-context.js';
@@ -115,6 +117,29 @@ export function createTaskService(deps: TaskServiceDeps) {
     ),
 
     ...createTaskQueryService(deps),
+
+    async registerExecutorManifest(
+      callerId: string,
+      callerNs: KetoNamespace,
+      registration: ExecutorRegistrationInput,
+    ): Promise<{ executorFingerprint: string }> {
+      if (callerNs !== KetoNamespace.Agent) {
+        throw new TaskServiceError(
+          'invalid',
+          'Only agents may register executor manifests',
+        );
+      }
+      return transactionRunner.runInTransaction(
+        () =>
+          registerExecutorManifestAttestation({
+            callerId,
+            registration,
+            taskRepository,
+            agentRepository,
+          }),
+        { name: 'executor.manifest.register' },
+      );
+    },
 
     async claim(
       taskId: string,

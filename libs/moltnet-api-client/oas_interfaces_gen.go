@@ -433,6 +433,10 @@ type RegisterAgentRes interface {
 	registerAgentRes()
 }
 
+type RegisterExecutorManifestRes interface {
+	registerExecutorManifestRes()
+}
+
 type RejectSigningRequestRes interface {
 	rejectSigningRequestRes()
 }

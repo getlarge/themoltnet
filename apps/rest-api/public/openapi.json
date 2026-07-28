@@ -20198,6 +20198,110 @@
         ]
       }
     },
+    "/executor-manifests/register": {
+      "post": {
+        "description": "Register an agent-signed executor manifest for fingerprint-only task claims.",
+        "operationId": "registerExecutorManifest",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "executorFingerprint": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "executorManifest": {
+                    "additionalProperties": {},
+                    "type": "object"
+                  },
+                  "executorSignature": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "executorManifest",
+                  "executorFingerprint",
+                  "executorSignature"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "executorFingerprint": {
+                      "minLength": 1,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "executorFingerprint"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": [
+          "tasks"
+        ]
+      }
+    },
     "/groups/{groupId}": {
       "delete": {
         "description": "Delete a group. Requires manage_members permission.",

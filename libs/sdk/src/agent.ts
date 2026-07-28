@@ -100,6 +100,8 @@ import type {
   PublicSearchResponse,
   RecoveryChallengeResponse,
   RecoveryVerifyResponse,
+  RegisterExecutorManifestData,
+  RegisterExecutorManifestResponse,
   RejectTransferResponses,
   RemoveTeamMemberResponse,
   RenderContextPackData,
@@ -721,6 +723,10 @@ export interface TasksNamespace {
   schemas(): Promise<ListTaskSchemasResponse>;
 
   artifacts: TaskArtifactsNamespace;
+
+  registerExecutorManifest(
+    body: RegisterExecutorManifestData['body'],
+  ): Promise<RegisterExecutorManifestResponse>;
 
   list(
     query: ListTasksData['query'],

@@ -5610,6 +5610,53 @@ export type VerifyDiaryEntryByIdResponses = {
 export type VerifyDiaryEntryByIdResponse =
   VerifyDiaryEntryByIdResponses[keyof VerifyDiaryEntryByIdResponses];
 
+export type RegisterExecutorManifestData = {
+  body: {
+    executorFingerprint: string;
+    executorManifest: {
+      [key: string]: unknown;
+    };
+    executorSignature: string;
+  };
+  path?: never;
+  query?: never;
+  url: '/executor-manifests/register';
+};
+
+export type RegisterExecutorManifestErrors = {
+  /**
+   * Default Response
+   */
+  400: ValidationProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ConflictProblemDetails;
+};
+
+export type RegisterExecutorManifestError =
+  RegisterExecutorManifestErrors[keyof RegisterExecutorManifestErrors];
+
+export type RegisterExecutorManifestResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    executorFingerprint: string;
+  };
+};
+
+export type RegisterExecutorManifestResponse =
+  RegisterExecutorManifestResponses[keyof RegisterExecutorManifestResponses];
+
 export type DeleteGroupData = {
   body?: never;
   path: {

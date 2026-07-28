@@ -18,6 +18,7 @@ import {
   listTaskMessages,
   listTasks,
   listTaskSchemas,
+  registerExecutorManifest,
   stageTaskArtifact,
   taskHeartbeat,
   uploadTaskArtifact,
@@ -60,6 +61,12 @@ export function createTasksNamespace(context: AgentContext): TasksNamespace {
   return {
     async schemas() {
       return unwrapResult(await listTaskSchemas({ client, auth }));
+    },
+
+    async registerExecutorManifest(body) {
+      return unwrapResult(
+        await registerExecutorManifest({ client, auth, body }),
+      );
     },
 
     artifacts: {

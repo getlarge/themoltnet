@@ -43,6 +43,8 @@ import {
   ListMessagesQuerySchema,
   ListTaskSchemasResponseSchema,
   ListTasksQuerySchema,
+  RegisterExecutorManifestBodySchema,
+  RegisterExecutorManifestResponseSchema,
   TaskActivityAnalyticsQuerySchema,
   TaskActivityAnalyticsResponseSchema,
   TaskAttemptParamsSchema,
@@ -718,6 +720,42 @@ export function taskRoutes(fastify: FastifyInstance) {
           callerId: identityId,
           callerNs,
         });
+      } catch (error) {
+        if (error instanceof TaskServiceError) throw toTaskProblem(error);
+        throw error;
+      }
+    },
+  );
+
+  // POST /executor-manifests/register
+  server.post(
+    '/executor-manifests/register',
+    {
+      config: { auth: { credentialBindingScope: 'identity' } },
+      schema: {
+        operationId: 'registerExecutorManifest',
+        tags: ['tasks'],
+        description:
+          'Register an agent-signed executor manifest for fingerprint-only task claims.',
+        security: [{ bearerAuth: [] }],
+        body: RegisterExecutorManifestBodySchema,
+        response: {
+          200: RegisterExecutorManifestResponseSchema,
+          400: Type.Ref(ValidationProblemDetailsSchema.$id),
+          401: Type.Ref(ProblemDetailsSchema.$id),
+          404: Type.Ref(ProblemDetailsSchema.$id),
+          409: Type.Ref(ConflictProblemDetailsSchema.$id),
+        },
+      },
+    },
+    async (request) => {
+      const { identityId, subjectNs: callerNs } = requireKetoSubject(request);
+      try {
+        return await fastify.taskService.registerExecutorManifest(
+          identityId,
+          callerNs,
+          request.body,
+        );
       } catch (error) {
         if (error instanceof TaskServiceError) throw toTaskProblem(error);
         throw error;

@@ -51,6 +51,12 @@ export interface ExecutorAttestationInput {
   profileId?: string;
 }
 
+export interface ExecutorRegistrationInput {
+  executorManifest: Record<string, unknown>;
+  executorFingerprint: string;
+  executorSignature: string;
+}
+
 export interface VerifiedExecutorAttestation {
   fingerprint: string;
   verification?: {

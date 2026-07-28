@@ -52,8 +52,13 @@ At startup the daemon:
 2. resolves the local VM template;
 3. verifies `requiredTools` against the model-visible tool inventory and
    `requiredExecutables` against the template inventory;
-4. signs the executor manifest for claim;
+4. signs and registers the executor manifest once, then references its
+   fingerprint when claiming candidates;
 5. signs the same fingerprint with the terminal output CID at completion.
+
+Registration binds the manifest fingerprint to the authenticated agent. A
+claim lost to a `409` race therefore does not require another signature or
+upload the manifest again.
 
 The daemon still owns task routing, leases, heartbeats, cancellation, warm
 sessions, continuation state, retries, output validation, and finalization.

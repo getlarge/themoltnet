@@ -141,6 +141,9 @@ export async function runOnce(
     tools: preparedRuntime.tools,
     executables: preparedRuntime.executables,
   });
+  await ctx.agent.tasks.registerExecutorManifest(
+    await preparedRuntime.attestor.registration(),
+  );
   opts = parseCommonOptions(values, {
     runtimeDefaults: {
       leaseTtlSec: profile.leaseTtlSec,
@@ -471,8 +474,7 @@ export async function runOnce(
         taskId,
         leaseTtlSec: opts.leaseTtlSec,
         profileId: profile.id,
-        createClaimAttestation: ({ taskId }) =>
-          preparedRuntime.attestor.claim(taskId),
+        executorFingerprint: preparedRuntime.attestor.fingerprint,
       }),
       makeReporter: () =>
         new ApiTaskReporter({

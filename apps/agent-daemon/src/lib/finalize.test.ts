@@ -141,6 +141,8 @@ describe('finalizeTask', () => {
       executorAttestor: {
         manifest: {},
         fingerprint: 'bafkreiexecutor',
+        registration: vi.fn(),
+        reference: vi.fn(),
         claim: vi.fn(),
         complete,
       },

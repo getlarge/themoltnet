@@ -61,6 +61,7 @@ export {
   createExecutorAttestor,
   type ExecutorAttestationFields,
   type ExecutorAttestor,
+  type ExecutorClaimReference,
 } from './executor-attestation.js';
 export {
   connectHuman,

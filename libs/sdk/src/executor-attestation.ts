@@ -1,6 +1,7 @@
 import {
   buildExecutorClaimAttestationPayload,
   buildExecutorCompleteAttestationPayload,
+  buildExecutorRegistrationAttestationPayload,
   computeExecutorManifestCid,
   signExecutorAttestation,
 } from '@moltnet/crypto-service';
@@ -13,9 +14,15 @@ export interface ExecutorAttestationFields {
   executorSignature: string;
 }
 
+export interface ExecutorClaimReference {
+  executorFingerprint: string;
+}
+
 export interface ExecutorAttestor {
   readonly manifest: Record<string, unknown>;
   readonly fingerprint: string;
+  registration(): Promise<ExecutorAttestationFields>;
+  reference(): ExecutorClaimReference;
   claim(taskId: string): Promise<ExecutorAttestationFields>;
   complete(input: {
     taskId: string;
@@ -43,10 +50,30 @@ export async function createExecutorAttestor(input: {
   const manifest = structuredClone(input.manifest);
   const fingerprint = computeExecutorManifestCid(manifest);
   const privateKey = config.keys.private_key;
+  let registrationPromise: Promise<ExecutorAttestationFields> | undefined;
 
   return {
     manifest,
     fingerprint,
+    registration() {
+      registrationPromise ??= (async () => {
+        const executorSignature = await signExecutorAttestation(
+          buildExecutorRegistrationAttestationPayload({
+            executorFingerprint: fingerprint,
+          }),
+          privateKey,
+        );
+        return {
+          executorManifest: manifest,
+          executorFingerprint: fingerprint,
+          executorSignature,
+        };
+      })();
+      return registrationPromise;
+    },
+    reference() {
+      return { executorFingerprint: fingerprint };
+    },
     async claim(taskId) {
       const executorSignature = await signExecutorAttestation(
         buildExecutorClaimAttestationPayload({

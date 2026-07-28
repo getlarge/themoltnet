@@ -4336,6 +4336,7 @@ func (*ConflictProblemDetails) failTaskAttemptRes()                       {}
 func (*ConflictProblemDetails) initiateTransferRes()                      {}
 func (*ConflictProblemDetails) joinTeamRes()                              {}
 func (*ConflictProblemDetails) previewDiaryCustomPackRes()                {}
+func (*ConflictProblemDetails) registerExecutorManifestRes()              {}
 func (*ConflictProblemDetails) rejectSigningRequestRes()                  {}
 func (*ConflictProblemDetails) rejectTransferRes()                        {}
 func (*ConflictProblemDetails) renderContextPackRes()                     {}
@@ -42514,6 +42515,77 @@ func (s *RegisterAgentReq) SetVoucherCode(val string) {
 	s.VoucherCode = val
 }
 
+type RegisterExecutorManifestNotFound ProblemDetails
+
+func (*RegisterExecutorManifestNotFound) registerExecutorManifestRes() {}
+
+type RegisterExecutorManifestOK struct {
+	ExecutorFingerprint string `json:"executorFingerprint"`
+}
+
+// GetExecutorFingerprint returns the value of ExecutorFingerprint.
+func (s *RegisterExecutorManifestOK) GetExecutorFingerprint() string {
+	return s.ExecutorFingerprint
+}
+
+// SetExecutorFingerprint sets the value of ExecutorFingerprint.
+func (s *RegisterExecutorManifestOK) SetExecutorFingerprint(val string) {
+	s.ExecutorFingerprint = val
+}
+
+func (*RegisterExecutorManifestOK) registerExecutorManifestRes() {}
+
+type RegisterExecutorManifestReq struct {
+	ExecutorFingerprint string                                      `json:"executorFingerprint"`
+	ExecutorManifest    RegisterExecutorManifestReqExecutorManifest `json:"executorManifest"`
+	ExecutorSignature   string                                      `json:"executorSignature"`
+}
+
+// GetExecutorFingerprint returns the value of ExecutorFingerprint.
+func (s *RegisterExecutorManifestReq) GetExecutorFingerprint() string {
+	return s.ExecutorFingerprint
+}
+
+// GetExecutorManifest returns the value of ExecutorManifest.
+func (s *RegisterExecutorManifestReq) GetExecutorManifest() RegisterExecutorManifestReqExecutorManifest {
+	return s.ExecutorManifest
+}
+
+// GetExecutorSignature returns the value of ExecutorSignature.
+func (s *RegisterExecutorManifestReq) GetExecutorSignature() string {
+	return s.ExecutorSignature
+}
+
+// SetExecutorFingerprint sets the value of ExecutorFingerprint.
+func (s *RegisterExecutorManifestReq) SetExecutorFingerprint(val string) {
+	s.ExecutorFingerprint = val
+}
+
+// SetExecutorManifest sets the value of ExecutorManifest.
+func (s *RegisterExecutorManifestReq) SetExecutorManifest(val RegisterExecutorManifestReqExecutorManifest) {
+	s.ExecutorManifest = val
+}
+
+// SetExecutorSignature sets the value of ExecutorSignature.
+func (s *RegisterExecutorManifestReq) SetExecutorSignature(val string) {
+	s.ExecutorSignature = val
+}
+
+type RegisterExecutorManifestReqExecutorManifest map[string]jx.Raw
+
+func (s *RegisterExecutorManifestReqExecutorManifest) init() RegisterExecutorManifestReqExecutorManifest {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type RegisterExecutorManifestUnauthorized ProblemDetails
+
+func (*RegisterExecutorManifestUnauthorized) registerExecutorManifestRes() {}
+
 // Ref: #/components/schemas/RegisterResponse
 type RegisterResponse struct {
 	ClientId     string    `json:"clientId"`
@@ -59259,6 +59331,7 @@ func (*ValidationProblemDetails) createTaskRes()                {}
 func (*ValidationProblemDetails) getTaskActivityAnalyticsRes()  {}
 func (*ValidationProblemDetails) listAgentKeysRes()             {}
 func (*ValidationProblemDetails) listTasksRes()                 {}
+func (*ValidationProblemDetails) registerExecutorManifestRes()  {}
 func (*ValidationProblemDetails) revokeAgentKeyRes()            {}
 func (*ValidationProblemDetails) rotateAgentKeyRes()            {}
 func (*ValidationProblemDetails) setRuntimeProfilePoliciesRes() {}

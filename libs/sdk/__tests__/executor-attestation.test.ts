@@ -47,9 +47,20 @@ describe('createExecutorAttestor', () => {
     const attestor = await createExecutorAttestor({ manifest, configDir });
     manifest.runtime.version = 'mutated';
 
+    const registration = await attestor.registration();
+    const repeatedRegistration = await attestor.registration();
     const first = await attestor.claim('task-1');
     const second = await attestor.claim('task-1');
 
+    expect(repeatedRegistration).toBe(registration);
+    expect(registration.executorFingerprint).toBe(attestor.fingerprint);
+    expect(registration.executorManifest).toEqual({
+      schemaVersion: 'moltnet:executor-manifest:v1',
+      runtime: { id: 'custom', version: '1' },
+    });
+    expect(attestor.reference()).toEqual({
+      executorFingerprint: attestor.fingerprint,
+    });
     expect(first).toEqual(second);
     expect(first.executorManifest).toEqual({
       schemaVersion: 'moltnet:executor-manifest:v1',

@@ -11,7 +11,9 @@ export interface ApiTaskSourceOptions {
   taskId: string;
   leaseTtlSec?: number;
   profileId?: string;
-  /** Produces the agent-signed executor manifest attached to this claim. */
+  /** Fingerprint of a manifest registered once for this agent. */
+  executorFingerprint?: string;
+  /** Legacy inline attestation hook for callers without registration support. */
   createClaimAttestation?: CreateClaimAttestation;
 }
 
@@ -23,12 +25,20 @@ export class ApiTaskSource implements TaskSource {
   async claim(): Promise<ClaimedTask | null> {
     if (this.claimed) return null;
 
-    const { agent, taskId, leaseTtlSec, profileId, createClaimAttestation } =
-      this.opts;
-    const attestation = await createClaimAttestation?.({
+    const {
+      agent,
       taskId,
-      ...(profileId ? { profileId } : {}),
-    });
+      leaseTtlSec,
+      profileId,
+      executorFingerprint,
+      createClaimAttestation,
+    } = this.opts;
+    const attestation = executorFingerprint
+      ? { executorFingerprint }
+      : await createClaimAttestation?.({
+          taskId,
+          ...(profileId ? { profileId } : {}),
+        });
     const result = await agent.tasks.claim(taskId, {
       ...(leaseTtlSec ? { leaseTtlSec } : {}),
       ...(profileId ? { profileId } : {}),

@@ -236,6 +236,22 @@ export const ClaimTaskBodySchema = Type.Object(
   { $id: 'ClaimTaskBody' },
 );
 
+export const RegisterExecutorManifestBodySchema = Type.Object(
+  {
+    executorManifest: Type.Record(Type.String(), Type.Unknown()),
+    executorFingerprint: Type.String({ minLength: 1 }),
+    executorSignature: Type.String({ minLength: 1 }),
+  },
+  { $id: 'RegisterExecutorManifestBody' },
+);
+
+export const RegisterExecutorManifestResponseSchema = Type.Object(
+  {
+    executorFingerprint: Type.String({ minLength: 1 }),
+  },
+  { $id: 'RegisterExecutorManifestResponse' },
+);
+
 export const HeartbeatBodySchema = Type.Object(
   {
     leaseTtlSec: Type.Optional(Type.Integer({ minimum: 1, maximum: 3600 })),
