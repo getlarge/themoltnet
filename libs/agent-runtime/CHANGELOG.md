@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.37.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.36.6...agent-runtime-v0.37.0) (2026-07-28)
+
+
+### Features
+
+* **agent-daemon:** support correlated drain workers ([003fe70](https://github.com/getlarge/themoltnet/commit/003fe706c44cfebf75a56ba5242e6207e93c4a5d))
+* run profile-routed multi-lens PR reviews ([00aab3d](https://github.com/getlarge/themoltnet/commit/00aab3d381bd6dbb13ed101f3eed153e93d98bce))
+
+
+### Bug Fixes
+
+* **daemon:** redact runtime secrets on output ([b5e240e](https://github.com/getlarge/themoltnet/commit/b5e240eec17c987ba42c9edb9c4fdd91d0e59aa8))
+
 ## [0.36.6](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.36.5...agent-runtime-v0.36.6) (2026-07-27)
 
 
