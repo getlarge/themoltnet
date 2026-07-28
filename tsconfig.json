@@ -36,9 +36,6 @@
       "path": "apps/multi-lens-review"
     },
     {
-      "path": "apps/parallel-brief-runner"
-    },
-    {
       "path": "apps/orchestration-e2e"
     },
     {
