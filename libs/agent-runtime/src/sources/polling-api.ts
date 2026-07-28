@@ -199,6 +199,8 @@ export interface PollingApiTaskSourceOptions {
    * can execute every registered task type.
    */
   taskTypes?: string[];
+  /** Restrict candidates to one orchestration/run correlation id. */
+  correlationId?: string;
   /**
    * Selected runtime profile id. When set, forwarded to the list endpoint
    * so the server returns unrestricted tasks plus tasks allowing this
@@ -236,6 +238,17 @@ export interface PollingApiTaskSourceOptions {
    * `drain` daemon mode for batch eval runs.
    */
   stopWhenEmpty?: boolean;
+  /**
+   * In drain mode, keep polling an initially empty queue for this long before
+   * returning null. Once one task has been claimed, normal drain semantics
+   * resume and the first confirmed empty queue ends the run.
+   */
+  waitForFirstTaskMs?: number;
+  /**
+   * In drain mode, require the queue to remain empty for this long after at
+   * least one task has been claimed before returning null.
+   */
+  waitAfterTaskMs?: number;
   /**
    * Runtime slot store used for the claim-time affinity filter on
    * `freeform.continueFrom` tasks. When omitted, the affinity filter is a
@@ -291,6 +304,9 @@ export class PollingApiTaskSource implements TaskSource {
   private readonly maxBackoffMs: number;
   private readonly listLimit: number;
   private readonly logger: AgentRuntimeLogger;
+  private readonly firstTaskDeadlineMs: number;
+  private hasClaimedTask = false;
+  private emptySinceMs: number | undefined;
 
   constructor(private readonly opts: PollingApiTaskSourceOptions) {
     this.minBackoffMs = opts.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS;
@@ -303,6 +319,8 @@ export class PollingApiTaskSource implements TaskSource {
     }
     this.listLimit = opts.listLimit ?? DEFAULT_LIST_LIMIT;
     this.currentBackoffMs = this.minBackoffMs;
+    this.firstTaskDeadlineMs =
+      Date.now() + Math.max(0, opts.waitForFirstTaskMs ?? 0);
     // Bind teamId once so every log line from this source carries it.
     const base = opts.logger ?? pino({ name: 'polling-api-source' });
     this.logger = base.child({ teamId: opts.teamId });
@@ -319,6 +337,8 @@ export class PollingApiTaskSource implements TaskSource {
         hadListError = hadListError || page.hadListError;
         const claimed = await this.tryClaimOne(page.candidates);
         if (claimed) {
+          this.hasClaimedTask = true;
+          this.emptySinceMs = undefined;
           this.currentBackoffMs = this.minBackoffMs;
           return claimed;
         }
@@ -328,7 +348,20 @@ export class PollingApiTaskSource implements TaskSource {
       // claimable candidates. A transient list failure is indeterminate;
       // keep polling so a 5xx on the API doesn't masquerade as a drained
       // queue and exit the daemon early.
-      if (this.opts.stopWhenEmpty && !hadListError) return null;
+      if (this.opts.stopWhenEmpty && !hadListError) {
+        const now = Date.now();
+        if (!this.hasClaimedTask) {
+          if (now >= this.firstTaskDeadlineMs) return null;
+        } else {
+          this.emptySinceMs ??= now;
+          if (
+            now - this.emptySinceMs >=
+            Math.max(0, this.opts.waitAfterTaskMs ?? 0)
+          ) {
+            return null;
+          }
+        }
+      }
       await this.sleepWithBackoff();
     }
     return null;
@@ -368,6 +401,9 @@ export class PollingApiTaskSource implements TaskSource {
           {
             status: 'queued' satisfies TaskStatus,
             ...(taskTypes ? { taskTypes } : {}),
+            ...(this.opts.correlationId
+              ? { correlationId: this.opts.correlationId }
+              : {}),
             ...(profile.profileId ? { profileId: profile.profileId } : {}),
             ...(cursors.get(key) ? { cursor: cursors.get(key) } : {}),
             limit: this.listLimit,
@@ -383,6 +419,7 @@ export class PollingApiTaskSource implements TaskSource {
           this.logger.debug(
             {
               taskTypes,
+              correlationId: this.opts.correlationId,
               profileId: profile.profileId,
               total: result.total,
               returned: result.items.length,
@@ -461,6 +498,7 @@ export class PollingApiTaskSource implements TaskSource {
           {
             err,
             taskTypes: this.opts.taskTypes,
+            correlationId: this.opts.correlationId,
             profileId: profile.profileId,
           },
           'polling-api.list_failed',

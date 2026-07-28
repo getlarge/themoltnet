@@ -99,7 +99,10 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       ...commonOptionDefs(),
       team: { type: 'string' },
       'task-types': { type: 'string' },
+      'correlation-id': { type: 'string' },
       'diary-ids': { type: 'string' },
+      'wait-for-first-task-sec': { type: 'string' },
+      'wait-after-task-sec': { type: 'string' },
       'poll-interval-ms': { type: 'string' },
       'max-poll-interval-ms': { type: 'string' },
       'list-limit': { type: 'string' },
@@ -152,6 +155,26 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     30_000,
   );
   const listLimit = optionalPositiveInt(values['list-limit'], 'list-limit', 10);
+  const waitForFirstTaskSec = optionalNonNegativeInt(
+    values['wait-for-first-task-sec'],
+    'wait-for-first-task-sec',
+    0,
+  );
+  const waitAfterTaskSec = optionalNonNegativeInt(
+    values['wait-after-task-sec'],
+    'wait-after-task-sec',
+    0,
+  );
+  if (
+    !opts.stopWhenEmpty &&
+    (waitForFirstTaskSec > 0 || waitAfterTaskSec > 0)
+  ) {
+    console.error(
+      `[${opts.modeLabel}] --wait-for-first-task-sec and ` +
+        '--wait-after-task-sec are only valid with drain.',
+    );
+    return 1;
+  }
 
   if (values.sandbox) {
     console.error(
@@ -175,6 +198,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
   );
   const ctx = await resolveAgentContext(baseCommon.agent, {
     agentRootDir,
+    allowMissingConfig: cfg.authMode === 'agent-key',
   });
   // Fail fast, before polling, on a rejected or wrong-team credential. In
   // agent-key mode this turns an obscure mid-poll 401/403 into an actionable
@@ -325,6 +349,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       subjectType: startupWhoami.subjectType,
       boundTeamId: startupWhoami.credentialBinding?.boundTeamId ?? null,
       taskTypes: taskTypes.length > 0 ? taskTypes : ['*'],
+      correlationId: values['correlation-id'] ?? null,
       diaryIds: diaryIds.length > 0 ? diaryIds : ['*'],
       pollIntervalMs,
       maxPollIntervalMs,
@@ -419,6 +444,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         agent: ctx.agent,
         teamId,
         taskTypes: taskTypes.length > 0 ? taskTypes : undefined,
+        correlationId: values['correlation-id'],
         profiles: profiles.map((profile) => ({
           profileId: profile.id,
           leaseTtlSec: requireRuntime(runtimes, profile.id).common.leaseTtlSec,
@@ -430,6 +456,8 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         maxPollIntervalMs,
         signal: abort.signal,
         stopWhenEmpty: opts.stopWhenEmpty,
+        waitForFirstTaskMs: waitForFirstTaskSec * 1_000,
+        waitAfterTaskMs: waitAfterTaskSec * 1_000,
         debug: baseCommon.debug,
         logger: rootLogger,
         // Warm-resume affinity: skip continuations whose source warm
@@ -805,6 +833,21 @@ function optionalPositiveInt(
   const v = Number(raw);
   if (!Number.isInteger(v) || v < 1) {
     throw new Error(`Invalid --${name} "${raw}": must be a positive integer`);
+  }
+  return v;
+}
+
+function optionalNonNegativeInt(
+  raw: string | undefined,
+  name: string,
+  defaultValue: number,
+): number {
+  if (raw === undefined) return defaultValue;
+  const v = Number(raw);
+  if (!Number.isInteger(v) || v < 0) {
+    throw new Error(
+      `Invalid --${name} "${raw}": must be a non-negative integer`,
+    );
   }
   return v;
 }

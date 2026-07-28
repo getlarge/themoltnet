@@ -124,7 +124,7 @@ export async function validateStartupBinding(options: {
  */
 export async function resolveAgentContext(
   agentName: string,
-  options: { agentRootDir?: string } = {},
+  options: { agentRootDir?: string; allowMissingConfig?: boolean } = {},
 ): Promise<DaemonAgentContext> {
   if (!/^[a-zA-Z0-9_-]+$/.test(agentName)) {
     throw new Error(
@@ -138,6 +138,13 @@ export async function resolveAgentContext(
       const agent = await connect({ configDir: agentDir });
       return { agentDir, agentRootDir: rootDir, agent };
     }
+  }
+
+  if (options.allowMissingConfig) {
+    const rootDir = roots[0] ?? process.cwd();
+    const agentDir = join(rootDir, '.moltnet', agentName);
+    const agent = await connect({ configDir: agentDir });
+    return { agentDir, agentRootDir: rootDir, agent };
   }
 
   const tried = roots.map((root) => join(root, '.moltnet', agentName));
