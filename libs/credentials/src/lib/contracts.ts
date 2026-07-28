@@ -10,10 +10,13 @@ const Identifier = Type.String({
   maxLength: 255,
   pattern: '^[A-Za-z0-9][A-Za-z0-9._:/-]*$',
 });
+// Credential identifiers deliberately require an RFC 4122 version and variant.
+// Keep this public package independent from the private @moltnet/models package.
 const Uuid = Type.String({
   pattern:
     '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$',
 });
+const Timestamp = Type.String({ format: 'date-time' });
 
 export const TaskCredentialClaims = Type.Object(
   {
@@ -79,7 +82,7 @@ export const CredentialEvidenceEvent = Type.Object(
       Type.Literal('connector_completed'),
       Type.Literal('connector_failed'),
     ]),
-    occurredAt: Type.String({ format: 'date-time' }),
+    occurredAt: Timestamp,
     outcome: Type.Union([Type.Literal('allow'), Type.Literal('deny')]),
     reason: Identifier,
     agentId: Type.Optional(Uuid),
@@ -91,6 +94,8 @@ export const CredentialEvidenceEvent = Type.Object(
     resourceId: Type.Optional(Identifier),
     grantId: Type.Optional(Uuid),
     grantRevision: Type.Optional(Type.Integer({ minimum: 1 })),
+    credentialJti: Type.Optional(Identifier),
+    credentialKid: Type.Optional(Identifier),
   },
   { $id: 'MoltNetCredentialEvidenceEventV1', additionalProperties: false },
 );
@@ -102,10 +107,15 @@ export const CredentialAuthorizationError = Type.Object(
     code: Type.Union([
       Type.Literal('credential_invalid'),
       Type.Literal('credential_expired'),
+      Type.Literal('credential_signature_invalid'),
+      Type.Literal('credential_verification_unavailable'),
       Type.Literal('credential_binding_mismatch'),
       Type.Literal('authority_denied'),
       Type.Literal('authority_unavailable'),
       Type.Literal('derivation_failed'),
+      Type.Literal('derivation_rejected'),
+      Type.Literal('derivation_unavailable'),
+      Type.Literal('evidence_unavailable'),
       Type.Literal('ttl_exhausted'),
       Type.Literal('gateway_denied'),
     ]),

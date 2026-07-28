@@ -1,6 +1,7 @@
 import {
   type ConnectorCredentialClaims,
   CREDENTIAL_CLAIM_NAMESPACE,
+  CREDENTIAL_CONTRACT_VERSION,
   CredentialError,
   type CredentialEvidenceEvent,
   isConnectorCredentialClaims,
@@ -85,6 +86,8 @@ export interface DeriveTokenInput {
 export interface DerivedToken {
   token: string;
   expiresAt: Date;
+  jti?: string;
+  kid?: string;
 }
 
 export interface TokenDeriver {
@@ -104,19 +107,49 @@ export interface CredentialBrokerOptions {
   connectorAuthority?: ConnectorAuthorityProvider;
   taskCredentialVerifier?: TaskCredentialVerifier;
   tokenDeriver: TokenDeriver;
-  evidence?: EvidenceSink;
+  evidence: EvidenceSink;
   clock?: BrokerClock;
   taskTtlCeilingSeconds?: number;
   connectorTtlCeilingSeconds?: number;
 }
 
-export interface IssuedCredential {
-  token: string;
-  expiresAt: Date;
-  binding: TaskCredentialClaims | ConnectorCredentialClaims;
+export interface IssueTaskCredentialRequest extends TaskAuthorityRequest {
+  agentCredential: string;
 }
 
-const noopEvidence: EvidenceSink = { emit: () => Promise.resolve() };
+export interface IssueConnectorCredentialRequest {
+  taskCredential: string;
+  task: TaskCredentialBinding;
+  grantId: string;
+  connectorId: string;
+  operation: string;
+  resourceId: string;
+}
+
+export interface IssuedCredential<
+  TClaims extends TaskCredentialClaims | ConnectorCredentialClaims,
+> {
+  token: string;
+  expiresAt: Date;
+  claims: TClaims;
+}
+
+export interface CredentialBroker {
+  issueTaskCredential(
+    request: IssueTaskCredentialRequest,
+  ): Promise<IssuedCredential<TaskCredentialClaims>>;
+  issueConnectorCredential(
+    request: IssueConnectorCredentialRequest,
+  ): Promise<IssuedCredential<ConnectorCredentialClaims>>;
+}
+
+export const DEFAULT_TASK_TTL_CEILING_SECONDS = 900;
+export const DEFAULT_CONNECTOR_TTL_CEILING_SECONDS = 300;
+export const TASK_CREDENTIAL_SCOPE = 'moltnet:task' as const;
+export const CONNECTOR_CREDENTIAL_SCOPE = 'moltnet:connector' as const;
+export const DERIVED_LIFETIME_SKEW_MS = 1_000;
+export const MINIMUM_USABLE_DERIVED_LIFETIME_MS = 1_000;
+
 const systemClock: BrokerClock = { now: () => new Date() };
 const SAFE_REASON = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,254}$/;
 
@@ -138,6 +171,10 @@ function ttlSeconds(now: Date, expiries: Date[], ceiling: number): number {
   return ttl;
 }
 
+function isValidDate(value: unknown): value is Date {
+  return value instanceof Date && Number.isFinite(value.getTime());
+}
+
 function evidenceBase(
   now: Date,
   event: CredentialEvidenceEvent['event'],
@@ -148,7 +185,7 @@ function evidenceBase(
   'version' | 'event' | 'occurredAt' | 'outcome' | 'reason'
 > {
   return {
-    version: 1,
+    version: CREDENTIAL_CONTRACT_VERSION,
     event,
     occurredAt: now.toISOString(),
     outcome,
@@ -156,11 +193,35 @@ function evidenceBase(
   };
 }
 
+async function emitEvidence(
+  evidence: EvidenceSink,
+  event: CredentialEvidenceEvent,
+  required: boolean,
+): Promise<void> {
+  try {
+    await evidence.emit(event);
+  } catch {
+    if (required) {
+      throw new CredentialError(
+        'evidence_unavailable',
+        'Credential evidence sink is unavailable',
+      );
+    }
+  }
+}
+
+function credentialEvidenceBindings(derived: DerivedToken) {
+  return {
+    ...(derived.jti ? { credentialJti: derived.jti } : {}),
+    ...(derived.kid ? { credentialKid: derived.kid } : {}),
+  };
+}
+
 function canonicalTaskClaims(
   claims: Omit<TaskCredentialClaims, 'version' | 'kind'>,
 ): TaskCredentialClaims {
   const canonical: TaskCredentialClaims = {
-    version: 1,
+    version: CREDENTIAL_CONTRACT_VERSION,
     kind: 'task',
     agentId: claims.agentId,
     teamId: claims.teamId,
@@ -209,7 +270,7 @@ function canonicalConnectorClaims(input: {
   resourceId: string;
 }): ConnectorCredentialClaims {
   const canonical: ConnectorCredentialClaims = {
-    version: 1,
+    version: CREDENTIAL_CONTRACT_VERSION,
     kind: 'connector',
     task: {
       agentId: input.task.agentId,
@@ -274,24 +335,28 @@ function validateVerifiedTask(
 
 function validateDerivedLifetime(
   derived: DerivedToken,
-  now: Date,
+  comparisonTime: Date,
   ttl: number,
 ): void {
   if (
     typeof derived.token !== 'string' ||
     derived.token.length === 0 ||
-    !(derived.expiresAt instanceof Date)
+    !isValidDate(derived.expiresAt) ||
+    (derived.jti !== undefined &&
+      (typeof derived.jti !== 'string' || derived.jti.length === 0)) ||
+    (derived.kid !== undefined &&
+      (typeof derived.kid !== 'string' || derived.kid.length === 0))
   ) {
     throw new CredentialError(
       'derivation_failed',
       'Credential derivation returned an invalid result',
     );
   }
-  const remainingMs = derived.expiresAt.getTime() - now.getTime();
+  const remainingMs = derived.expiresAt.getTime() - comparisonTime.getTime();
   if (
     !Number.isFinite(remainingMs) ||
-    remainingMs < 1_000 ||
-    remainingMs > ttl * 1_000 + 1_000
+    remainingMs < MINIMUM_USABLE_DERIVED_LIFETIME_MS ||
+    remainingMs > ttl * 1_000 + DERIVED_LIFETIME_SKEW_MS
   ) {
     throw new CredentialError(
       'derivation_failed',
@@ -300,15 +365,16 @@ function validateDerivedLifetime(
   }
 }
 
-export function createCredentialBroker(options: CredentialBrokerOptions) {
+export function createCredentialBroker(
+  options: CredentialBrokerOptions,
+): CredentialBroker {
   const clock = options.clock ?? systemClock;
-  const evidence = options.evidence ?? noopEvidence;
+  const evidence = options.evidence;
 
   return {
     async issueTaskCredential(
-      request: TaskAuthorityRequest & { agentCredential: string },
-    ): Promise<IssuedCredential> {
-      const now = clock.now();
+      request: IssueTaskCredentialRequest,
+    ): Promise<IssuedCredential<TaskCredentialClaims>> {
       if (!options.taskAuthority) {
         throw new CredentialError(
           'authority_unavailable',
@@ -325,91 +391,135 @@ export function createCredentialBroker(options: CredentialBrokerOptions) {
       try {
         decision = await options.taskAuthority.authorizeTask(authorityRequest);
       } catch {
-        await evidence.emit({
-          ...evidenceBase(
-            now,
-            'task_credential_denied',
-            'deny',
-            'authority_unavailable',
-          ),
-          agentId: request.agentId,
-          teamId: request.teamId,
-          taskId: request.taskId,
-          attemptN: request.attemptN,
-        });
+        await emitEvidence(
+          evidence,
+          {
+            ...evidenceBase(
+              clock.now(),
+              'task_credential_denied',
+              'deny',
+              'authority_unavailable',
+            ),
+            agentId: request.agentId,
+            teamId: request.teamId,
+            taskId: request.taskId,
+            attemptN: request.attemptN,
+          },
+          false,
+        );
         throw new CredentialError(
           'authority_unavailable',
           'Task authority is unavailable',
         );
       }
       if (!decision.allowed) {
-        await evidence.emit({
-          ...evidenceBase(
-            now,
-            'task_credential_denied',
-            'deny',
-            safeReason(decision.reason, 'authority_denied'),
-          ),
-          agentId: request.agentId,
-          teamId: request.teamId,
-          taskId: request.taskId,
-          attemptN: request.attemptN,
-        });
+        await emitEvidence(
+          evidence,
+          {
+            ...evidenceBase(
+              clock.now(),
+              'task_credential_denied',
+              'deny',
+              safeReason(decision.reason, 'authority_denied'),
+            ),
+            agentId: request.agentId,
+            teamId: request.teamId,
+            taskId: request.taskId,
+            attemptN: request.attemptN,
+          },
+          false,
+        );
         throw new CredentialError('authority_denied', 'Task authority denied');
       }
-      let binding: TaskCredentialClaims;
+      let claims: TaskCredentialClaims;
       try {
-        binding = canonicalTaskClaims(decision.claims);
-        assertTaskAuthorityBinding(binding, authorityRequest);
+        claims = canonicalTaskClaims(decision.claims);
+        assertTaskAuthorityBinding(claims, authorityRequest);
+        if (!isValidDate(decision.leaseExpiresAt)) {
+          throw new CredentialError(
+            'authority_denied',
+            'Task authority returned an invalid lease expiry',
+          );
+        }
       } catch {
-        await evidence.emit({
-          ...evidenceBase(
-            now,
-            'task_credential_denied',
-            'deny',
-            'authority_invalid',
-          ),
-          agentId: request.agentId,
-          teamId: request.teamId,
-          taskId: request.taskId,
-          attemptN: request.attemptN,
-        });
+        await emitEvidence(
+          evidence,
+          {
+            ...evidenceBase(
+              clock.now(),
+              'task_credential_denied',
+              'deny',
+              'authority_invalid',
+            ),
+            agentId: request.agentId,
+            teamId: request.teamId,
+            taskId: request.taskId,
+            attemptN: request.attemptN,
+          },
+          false,
+        );
         throw new CredentialError(
           'authority_denied',
           'Task authority returned an invalid decision',
         );
       }
+      const authorityTime = clock.now();
       const ttl = ttlSeconds(
-        now,
+        authorityTime,
         [decision.leaseExpiresAt],
-        options.taskTtlCeilingSeconds ?? 900,
+        options.taskTtlCeilingSeconds ?? DEFAULT_TASK_TTL_CEILING_SECONDS,
       );
-      const derived = await options.tokenDeriver.derive({
-        parentCredential: request.agentCredential,
-        customClaims: { [CREDENTIAL_CLAIM_NAMESPACE]: binding },
-        ttlSeconds: ttl,
-        scopes: ['moltnet:task'],
-      });
-      validateDerivedLifetime(derived, now, ttl);
-      await evidence.emit({
-        ...evidenceBase(now, 'task_credential_issued', 'allow', 'issued'),
-        agentId: binding.agentId,
-        teamId: binding.teamId,
-        taskId: binding.taskId,
-        attemptN: binding.attemptN,
-      });
-      return { ...derived, binding };
+      let derived: DerivedToken;
+      try {
+        derived = await options.tokenDeriver.derive({
+          parentCredential: request.agentCredential,
+          customClaims: { [CREDENTIAL_CLAIM_NAMESPACE]: claims },
+          ttlSeconds: ttl,
+          scopes: [TASK_CREDENTIAL_SCOPE],
+        });
+        validateDerivedLifetime(derived, clock.now(), ttl);
+      } catch (error) {
+        await emitEvidence(
+          evidence,
+          {
+            ...evidenceBase(
+              clock.now(),
+              'task_credential_denied',
+              'deny',
+              error instanceof CredentialError
+                ? error.code
+                : 'derivation_failed',
+            ),
+            ...taskEvidenceBindings(claims),
+          },
+          false,
+        );
+        if (error instanceof CredentialError) throw error;
+        throw new CredentialError(
+          'derivation_failed',
+          'Credential derivation failed',
+        );
+      }
+      await emitEvidence(
+        evidence,
+        {
+          ...evidenceBase(
+            clock.now(),
+            'task_credential_issued',
+            'allow',
+            'issued',
+          ),
+          ...taskEvidenceBindings(claims),
+          ...credentialEvidenceBindings(derived),
+        },
+        true,
+      );
+      return { ...derived, claims };
     },
 
-    async issueConnectorCredential(request: {
-      taskCredential: string;
-      task: TaskCredentialBinding;
-      grantId: string;
-      connectorId: string;
-      operation: string;
-      resourceId: string;
-    }): Promise<IssuedCredential> {
-      const now = clock.now();
+    async issueConnectorCredential(
+      request: IssueConnectorCredentialRequest,
+    ): Promise<IssuedCredential<ConnectorCredentialClaims>> {
       if (!options.connectorAuthority) {
         throw new CredentialError(
           'authority_unavailable',
@@ -429,13 +539,56 @@ export function createCredentialBroker(options: CredentialBrokerOptions) {
           request.task,
         );
       } catch (error) {
-        if (error instanceof CredentialError) throw error;
-        throw new CredentialError(
-          'credential_invalid',
-          'Task credential verification failed',
+        const credentialError =
+          error instanceof CredentialError
+            ? error
+            : new CredentialError(
+                'credential_invalid',
+                'Task credential verification failed',
+              );
+        await emitEvidence(
+          evidence,
+          {
+            ...evidenceBase(
+              clock.now(),
+              'connector_credential_denied',
+              'deny',
+              credentialError.code,
+            ),
+            ...request.task,
+            connectorId: request.connectorId,
+            operation: request.operation,
+            resourceId: request.resourceId,
+            grantId: request.grantId,
+          },
+          false,
         );
+        throw credentialError;
       }
-      validateVerifiedTask(verifiedTask, request.task);
+      try {
+        validateVerifiedTask(verifiedTask, request.task);
+      } catch (error) {
+        await emitEvidence(
+          evidence,
+          {
+            ...evidenceBase(
+              clock.now(),
+              'connector_credential_denied',
+              'deny',
+              error instanceof CredentialError
+                ? error.code
+                : 'credential_invalid',
+            ),
+            ...request.task,
+            connectorId: request.connectorId,
+            operation: request.operation,
+            resourceId: request.resourceId,
+            grantId: request.grantId,
+          },
+          false,
+        );
+        throw error;
+      }
       const authorityRequest: ConnectorAuthorityRequest = {
         task: verifiedTask.claims,
         grantId: request.grantId,
@@ -448,46 +601,54 @@ export function createCredentialBroker(options: CredentialBrokerOptions) {
         decision =
           await options.connectorAuthority.authorizeConnector(authorityRequest);
       } catch {
-        await evidence.emit({
-          ...evidenceBase(
-            now,
-            'connector_credential_denied',
-            'deny',
-            'authority_unavailable',
-          ),
-          ...taskEvidenceBindings(verifiedTask.claims),
-          connectorId: request.connectorId,
-          operation: request.operation,
-          resourceId: request.resourceId,
-          grantId: request.grantId,
-        });
+        await emitEvidence(
+          evidence,
+          {
+            ...evidenceBase(
+              clock.now(),
+              'connector_credential_denied',
+              'deny',
+              'authority_unavailable',
+            ),
+            ...taskEvidenceBindings(verifiedTask.claims),
+            connectorId: request.connectorId,
+            operation: request.operation,
+            resourceId: request.resourceId,
+            grantId: request.grantId,
+          },
+          false,
+        );
         throw new CredentialError(
           'authority_unavailable',
           'Connector authority is unavailable',
         );
       }
       if (!decision.allowed) {
-        await evidence.emit({
-          ...evidenceBase(
-            now,
-            'connector_credential_denied',
-            'deny',
-            safeReason(decision.reason, 'authority_denied'),
-          ),
-          ...taskEvidenceBindings(verifiedTask.claims),
-          connectorId: request.connectorId,
-          operation: request.operation,
-          resourceId: request.resourceId,
-          grantId: request.grantId,
-        });
+        await emitEvidence(
+          evidence,
+          {
+            ...evidenceBase(
+              clock.now(),
+              'connector_credential_denied',
+              'deny',
+              safeReason(decision.reason, 'authority_denied'),
+            ),
+            ...taskEvidenceBindings(verifiedTask.claims),
+            connectorId: request.connectorId,
+            operation: request.operation,
+            resourceId: request.resourceId,
+            grantId: request.grantId,
+          },
+          false,
+        );
         throw new CredentialError(
           'authority_denied',
           'Connector authority denied',
         );
       }
-      let binding: ConnectorCredentialClaims;
+      let claims: ConnectorCredentialClaims;
       try {
-        binding = canonicalConnectorClaims({
+        claims = canonicalConnectorClaims({
           task: verifiedTask.claims,
           taskJti: verifiedTask.jti,
           grantId: request.grantId,
@@ -496,20 +657,33 @@ export function createCredentialBroker(options: CredentialBrokerOptions) {
           operation: request.operation,
           resourceId: request.resourceId,
         });
+        if (
+          decision.authorityExpiresAt !== undefined &&
+          !isValidDate(decision.authorityExpiresAt)
+        ) {
+          throw new CredentialError(
+            'authority_denied',
+            'Connector authority returned an invalid expiry',
+          );
+        }
       } catch {
-        await evidence.emit({
-          ...evidenceBase(
-            now,
-            'connector_credential_denied',
-            'deny',
-            'authority_invalid',
-          ),
-          ...taskEvidenceBindings(verifiedTask.claims),
-          connectorId: request.connectorId,
-          operation: request.operation,
-          resourceId: request.resourceId,
-          grantId: request.grantId,
-        });
+        await emitEvidence(
+          evidence,
+          {
+            ...evidenceBase(
+              clock.now(),
+              'connector_credential_denied',
+              'deny',
+              'authority_invalid',
+            ),
+            ...taskEvidenceBindings(verifiedTask.claims),
+            connectorId: request.connectorId,
+            operation: request.operation,
+            resourceId: request.resourceId,
+            grantId: request.grantId,
+          },
+          false,
+        );
         throw new CredentialError(
           'authority_denied',
           'Connector authority returned an invalid decision',
@@ -519,28 +693,69 @@ export function createCredentialBroker(options: CredentialBrokerOptions) {
       if (decision.authorityExpiresAt) {
         expiries.push(decision.authorityExpiresAt);
       }
+      const authorityTime = clock.now();
       const ttl = ttlSeconds(
-        now,
+        authorityTime,
         expiries,
-        options.connectorTtlCeilingSeconds ?? 300,
+        options.connectorTtlCeilingSeconds ??
+          DEFAULT_CONNECTOR_TTL_CEILING_SECONDS,
       );
-      const derived = await options.tokenDeriver.derive({
-        parentCredential: request.taskCredential,
-        customClaims: { [CREDENTIAL_CLAIM_NAMESPACE]: binding },
-        ttlSeconds: ttl,
-        scopes: ['moltnet:connector'],
-      });
-      validateDerivedLifetime(derived, now, ttl);
-      await evidence.emit({
-        ...evidenceBase(now, 'connector_credential_issued', 'allow', 'issued'),
-        ...taskEvidenceBindings(verifiedTask.claims),
-        connectorId: binding.connectorId,
-        operation: binding.operation,
-        resourceId: binding.resourceId,
-        grantId: binding.grantId,
-        grantRevision: binding.grantRevision,
-      });
-      return { ...derived, binding };
+      let derived: DerivedToken;
+      try {
+        derived = await options.tokenDeriver.derive({
+          parentCredential: request.taskCredential,
+          customClaims: { [CREDENTIAL_CLAIM_NAMESPACE]: claims },
+          ttlSeconds: ttl,
+          scopes: [CONNECTOR_CREDENTIAL_SCOPE],
+        });
+        validateDerivedLifetime(derived, clock.now(), ttl);
+      } catch (error) {
+        await emitEvidence(
+          evidence,
+          {
+            ...evidenceBase(
+              clock.now(),
+              'connector_credential_denied',
+              'deny',
+              error instanceof CredentialError
+                ? error.code
+                : 'derivation_failed',
+            ),
+            ...taskEvidenceBindings(verifiedTask.claims),
+            connectorId: claims.connectorId,
+            operation: claims.operation,
+            resourceId: claims.resourceId,
+            grantId: claims.grantId,
+            grantRevision: claims.grantRevision,
+          },
+          false,
+        );
+        if (error instanceof CredentialError) throw error;
+        throw new CredentialError(
+          'derivation_failed',
+          'Credential derivation failed',
+        );
+      }
+      await emitEvidence(
+        evidence,
+        {
+          ...evidenceBase(
+            clock.now(),
+            'connector_credential_issued',
+            'allow',
+            'issued',
+          ),
+          ...taskEvidenceBindings(verifiedTask.claims),
+          connectorId: claims.connectorId,
+          operation: claims.operation,
+          resourceId: claims.resourceId,
+          grantId: claims.grantId,
+          grantRevision: claims.grantRevision,
+          ...credentialEvidenceBindings(derived),
+        },
+        true,
+      );
+      return { ...derived, claims };
     },
   };
 }

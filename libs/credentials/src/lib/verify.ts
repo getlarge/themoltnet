@@ -1,6 +1,6 @@
 import {
   createRemoteJWKSet,
-  decodeJwt,
+  errors,
   type JWTPayload,
   jwtVerify,
   type JWTVerifyGetKey,
@@ -17,17 +17,29 @@ import {
 } from './contracts.js';
 import { CredentialError } from './errors.js';
 
-export interface CredentialBindingExpectation {
+export const CREDENTIAL_JWT_ALGORITHM = 'EdDSA' as const;
+export const DEFAULT_CLOCK_TOLERANCE_SECONDS = 5;
+export const JWKS_TIMEOUT_MS = 5_000;
+export const JWKS_CACHE_MAX_AGE_MS = 300_000;
+export const JWKS_COOLDOWN_MS = 30_000;
+
+interface CommonTaskBindingExpectation {
   agentId?: string;
   teamId?: string;
   taskId?: string;
   attemptN?: number;
   leaseId?: string;
+}
+
+export interface TaskCredentialBindingExpectation extends CommonTaskBindingExpectation {
   runtimeKind?: string;
   capabilityManifestVersion?: string;
   runtimeProfileId?: string;
   runtimeProfileRevision?: number;
   policySnapshotHash?: string;
+}
+
+export interface ConnectorCredentialBindingExpectation extends CommonTaskBindingExpectation {
   connectorId?: string;
   operation?: string;
   resourceId?: string;
@@ -36,14 +48,29 @@ export interface CredentialBindingExpectation {
   parentTaskJti?: string;
 }
 
-export interface CredentialVerificationOptions {
+interface CredentialVerificationBase {
   issuer: string;
-  jwksUrl?: string | URL;
-  keyResolver?: JWTVerifyGetKey;
-  algorithms?: string[];
   clockToleranceSeconds?: number;
-  expected: CredentialBindingExpectation;
 }
+
+export type CredentialVerificationKeySource =
+  | { jwksUrl: string | URL; keyResolver?: never }
+  | { keyResolver: JWTVerifyGetKey; jwksUrl?: never };
+
+export type TaskCredentialVerificationOptions = CredentialVerificationBase &
+  CredentialVerificationKeySource & {
+    expected: TaskCredentialBindingExpectation;
+  };
+
+export type ConnectorCredentialVerificationOptions =
+  CredentialVerificationBase &
+    CredentialVerificationKeySource & {
+      expected: ConnectorCredentialBindingExpectation;
+    };
+
+type CredentialVerificationOptions =
+  | TaskCredentialVerificationOptions
+  | ConnectorCredentialVerificationOptions;
 
 export interface VerifiedCredential<TClaims> {
   claims: TClaims;
@@ -52,22 +79,66 @@ export interface VerifiedCredential<TClaims> {
   expiresAt: Date;
   issuedAt: Date;
   jti: string;
-  protectedHeader: { alg?: string; kid?: string };
+  protectedHeader: { alg: string; kid: string };
+}
+
+const remoteResolvers = new Map<string, JWTVerifyGetKey>();
+
+function failClosedResolver(resolver: JWTVerifyGetKey): JWTVerifyGetKey {
+  return async (protectedHeader, token) => {
+    try {
+      return await resolver(protectedHeader, token);
+    } catch (error) {
+      if (error instanceof errors.JOSEError) throw error;
+      throw new CredentialError(
+        'credential_verification_unavailable',
+        'Credential verification key service is unavailable',
+      );
+    }
+  };
 }
 
 function getResolver(options: CredentialVerificationOptions): JWTVerifyGetKey {
-  if (options.keyResolver) return options.keyResolver;
-  if (!options.jwksUrl) {
-    throw new CredentialError(
-      'credential_invalid',
-      'A trusted JWKS URL or key resolver is required',
+  if (options.keyResolver) return failClosedResolver(options.keyResolver);
+  const url = new URL(options.jwksUrl);
+  const cacheKey = url.href;
+  const cached = remoteResolvers.get(cacheKey);
+  if (cached) return cached;
+
+  // jose is intentionally separate from the Ory RS256 fast-jwt stack:
+  // Talos publishes Ed25519/OKP keys and this public package needs portable,
+  // dependency-free remote-JWKS selection and rotation support.
+  const resolver = failClosedResolver(
+    createRemoteJWKSet(url, {
+      timeoutDuration: JWKS_TIMEOUT_MS,
+      cacheMaxAge: JWKS_CACHE_MAX_AGE_MS,
+      cooldownDuration: JWKS_COOLDOWN_MS,
+    }),
+  );
+  remoteResolvers.set(cacheKey, resolver);
+  return resolver;
+}
+
+function verificationFailure(error: unknown): CredentialError {
+  if (error instanceof errors.JWTExpired) {
+    return new CredentialError('credential_expired', 'Credential has expired');
+  }
+  if (error instanceof errors.JWSSignatureVerificationFailed) {
+    return new CredentialError(
+      'credential_signature_invalid',
+      'Credential signature is invalid',
     );
   }
-  return createRemoteJWKSet(new URL(options.jwksUrl), {
-    timeoutDuration: 5_000,
-    cacheMaxAge: 300_000,
-    cooldownDuration: 30_000,
-  });
+  if (error instanceof errors.JWKSTimeout) {
+    return new CredentialError(
+      'credential_verification_unavailable',
+      'Credential verification key service is unavailable',
+    );
+  }
+  return new CredentialError(
+    'credential_invalid',
+    'Credential verification failed',
+  );
 }
 
 function requireStandardClaims(payload: JWTPayload) {
@@ -106,7 +177,7 @@ type TaskBindingClaims = Pick<
 
 function validateCommonTaskBindings(
   claims: TaskBindingClaims,
-  expected: CredentialBindingExpectation,
+  expected: CommonTaskBindingExpectation,
 ): void {
   if (expected.agentId !== undefined && claims.agentId !== expected.agentId)
     mismatch('agent');
@@ -122,7 +193,7 @@ function validateCommonTaskBindings(
 
 function validateTaskBindings(
   claims: TaskClaims,
-  expected: CredentialBindingExpectation,
+  expected: TaskCredentialBindingExpectation,
 ): void {
   validateCommonTaskBindings(claims, expected);
   if (
@@ -154,7 +225,7 @@ function validateTaskBindings(
 
 function validateConnectorBindings(
   claims: ConnectorClaims,
-  expected: CredentialBindingExpectation,
+  expected: ConnectorCredentialBindingExpectation,
 ): void {
   validateCommonTaskBindings(claims.task, expected);
   if (
@@ -194,8 +265,9 @@ async function verify<TClaims>(
   try {
     const jwtOptions: JWTVerifyOptions = {
       issuer: options.issuer,
-      algorithms: options.algorithms ?? ['EdDSA'],
-      clockTolerance: options.clockToleranceSeconds ?? 5,
+      algorithms: [CREDENTIAL_JWT_ALGORITHM],
+      clockTolerance:
+        options.clockToleranceSeconds ?? DEFAULT_CLOCK_TOLERANCE_SECONDS,
       requiredClaims: ['iss', 'sub', 'exp', 'iat', 'jti'],
     };
     const result = await jwtVerify(token, getResolver(options), jwtOptions);
@@ -221,12 +293,18 @@ async function verify<TClaims>(
     if (kind === 'task') {
       const taskClaims = custom as TaskClaims;
       if (standard.subject !== taskClaims.agentId) mismatch('subject');
-      validateTaskBindings(taskClaims, options.expected);
+      validateTaskBindings(
+        taskClaims,
+        options.expected as TaskCredentialBindingExpectation,
+      );
     } else {
       const connectorClaims = custom as ConnectorClaims;
       if (standard.subject !== connectorClaims.task.agentId)
         mismatch('subject');
-      validateConnectorBindings(connectorClaims, options.expected);
+      validateConnectorBindings(
+        connectorClaims,
+        options.expected as ConnectorCredentialBindingExpectation,
+      );
     }
     return {
       claims: custom as TClaims,
@@ -238,35 +316,20 @@ async function verify<TClaims>(
     };
   } catch (error) {
     if (error instanceof CredentialError) throw error;
-    const code =
-      error instanceof Error && error.name === 'JWTExpired'
-        ? 'credential_expired'
-        : 'credential_invalid';
-    throw new CredentialError(code, 'Credential verification failed');
-  }
-}
-
-export function parseCredentialPayload(token: string): JWTPayload {
-  try {
-    return decodeJwt(token);
-  } catch {
-    throw new CredentialError(
-      'credential_invalid',
-      'Credential is not a compact JWT',
-    );
+    throw verificationFailure(error);
   }
 }
 
 export function verifyTaskCredential(
   token: string,
-  options: CredentialVerificationOptions,
+  options: TaskCredentialVerificationOptions,
 ): Promise<VerifiedCredential<TaskClaims>> {
   return verify<TaskClaims>(token, 'task', options);
 }
 
 export function verifyConnectorCredential(
   token: string,
-  options: CredentialVerificationOptions,
+  options: ConnectorCredentialVerificationOptions,
 ): Promise<VerifiedCredential<ConnectorClaims>> {
   return verify<ConnectorClaims>(token, 'connector', options);
 }

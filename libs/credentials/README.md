@@ -29,13 +29,20 @@ algorithm, expiry, required standard claims, credential kind, namespaced claim
 schema, subject-to-agent binding, and every supplied binding expectation.
 Remote JWKS lookups have bounded timeouts and caches.
 
+`jose` is intentional here rather than reuse of MoltNet's internal
+`fast-jwt`/`get-jwks` Ory verifier. Talos publishes Ed25519/OKP keys, while this
+public package needs portable remote-JWKS selection and rotation without
+product-internal dependencies.
+
 The v1 Talos integration does not rely on a caller-selected `aud` claim.
 Connector gateways must validate the exact issuer and `connectorId`. This is
 not standards-equivalent audience restriction and must not be presented as
 arbitrary third-party JWT federation.
 
-Parsing without verification is available only for diagnostics through
-`parseCredentialPayload`; it never establishes authority.
+The URL-keyed nested claim is deliberately distinct from MoltNet's existing
+flat `moltnet:*` OAuth enrichment claims. Credential schemas, evidence event
+names, and authorization codes are closed for v1; changing those unions
+requires an explicit contract-version decision.
 
 ## Development
 

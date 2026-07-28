@@ -3,7 +3,11 @@ import type {
   VerifiedCredential,
 } from '@themoltnet/credentials';
 
-import { createCredentialBroker, type TokenDeriver } from '../index.js';
+import {
+  createCredentialBroker,
+  type EvidenceSink,
+  type TokenDeriver,
+} from '../index.js';
 
 const taskClaims: TaskCredentialClaims = {
   version: 1,
@@ -37,6 +41,8 @@ const taskBinding = {
   attemptN: taskClaims.attemptN,
 };
 
+const noopEvidence: EvidenceSink = { emit: () => Promise.resolve() };
+
 describe('credential broker', () => {
   it('constructs canonical task claims and caps TTL at the lease', async () => {
     const derive = vi.fn<TokenDeriver['derive']>().mockResolvedValue({
@@ -55,6 +61,7 @@ describe('credential broker', () => {
     });
     const broker = createCredentialBroker({
       clock: { now: () => new Date('2026-01-01T00:00:00Z') },
+      evidence: noopEvidence,
       taskTtlCeilingSeconds: 300,
       tokenDeriver: { derive },
       taskAuthority: { authorizeTask },
@@ -93,6 +100,7 @@ describe('credential broker', () => {
   it('rejects a task-authority decision bound to a different claimant', async () => {
     const derive = vi.fn<TokenDeriver['derive']>();
     const broker = createCredentialBroker({
+      evidence: noopEvidence,
       tokenDeriver: { derive },
       taskAuthority: {
         authorizeTask: vi.fn().mockResolvedValue({
@@ -154,6 +162,7 @@ describe('credential broker', () => {
     const verify = vi.fn().mockResolvedValue(verifiedTask);
     const broker = createCredentialBroker({
       clock: { now: () => new Date('2026-01-01T00:00:00Z') },
+      evidence: noopEvidence,
       connectorTtlCeilingSeconds: 300,
       tokenDeriver: { derive },
       taskCredentialVerifier: { verify },
@@ -177,12 +186,12 @@ describe('credential broker', () => {
       resourceId: 'sensor-17',
     });
 
-    expect(issued.binding).not.toHaveProperty('injectedClaim');
+    expect(issued.claims).not.toHaveProperty('injectedClaim');
     expect(verify).toHaveBeenCalledWith('task.jwt', taskBinding);
     expect(derive).toHaveBeenCalledWith({
       parentCredential: 'task.jwt',
       customClaims: {
-        'https://themolt.net/claims/credentials/v1': issued.binding,
+        'https://themolt.net/claims/credentials/v1': issued.claims,
       },
       ttlSeconds: 60,
       scopes: ['moltnet:connector'],
@@ -218,6 +227,7 @@ describe('credential broker', () => {
     const authorizeConnector = vi.fn();
     const derive = vi.fn<TokenDeriver['derive']>();
     const broker = createCredentialBroker({
+      evidence: noopEvidence,
       tokenDeriver: { derive },
       taskCredentialVerifier: {
         verify: vi.fn().mockRejectedValue(new Error('task.jwt echoed')),
@@ -240,5 +250,226 @@ describe('credential broker', () => {
     });
     expect(authorizeConnector).not.toHaveBeenCalled();
     expect(derive).not.toHaveBeenCalled();
+  });
+
+  it('clamps task TTL to the configured ceiling', async () => {
+    const derive = vi.fn<TokenDeriver['derive']>().mockResolvedValue({
+      token: 'derived.jwt',
+      expiresAt: new Date('2026-01-01T00:05:00Z'),
+    });
+    const broker = createCredentialBroker({
+      clock: { now: () => new Date('2026-01-01T00:00:00Z') },
+      evidence: noopEvidence,
+      taskTtlCeilingSeconds: 300,
+      tokenDeriver: { derive },
+      taskAuthority: {
+        authorizeTask: vi.fn().mockResolvedValue({
+          allowed: true,
+          reason: 'active_lease',
+          leaseExpiresAt: new Date('2026-01-01T00:10:00Z'),
+          claims: taskClaims,
+        }),
+      },
+    });
+
+    await broker.issueTaskCredential({
+      agentCredential: 'parent-secret',
+      ...taskBinding,
+    });
+
+    expect(derive).toHaveBeenCalledWith(
+      expect.objectContaining({ ttlSeconds: 300 }),
+    );
+  });
+
+  it('validates derived lifetime against a clock sampled after derivation', async () => {
+    const times = [
+      new Date('2026-01-01T00:00:00Z'),
+      new Date('2026-01-01T00:00:02Z'),
+      new Date('2026-01-01T00:00:02Z'),
+    ];
+    const now = vi.fn(() => times.shift() ?? times.at(-1)!);
+    const broker = createCredentialBroker({
+      clock: { now },
+      evidence: noopEvidence,
+      taskTtlCeilingSeconds: 60,
+      tokenDeriver: {
+        derive: vi.fn().mockResolvedValue({
+          token: 'derived.jwt',
+          expiresAt: new Date('2026-01-01T00:01:02Z'),
+        }),
+      },
+      taskAuthority: {
+        authorizeTask: vi.fn().mockResolvedValue({
+          allowed: true,
+          reason: 'active_lease',
+          leaseExpiresAt: new Date('2026-01-01T00:10:00Z'),
+          claims: taskClaims,
+        }),
+      },
+    });
+
+    await expect(
+      broker.issueTaskCredential({
+        agentCredential: 'parent-secret',
+        ...taskBinding,
+      }),
+    ).resolves.toMatchObject({ token: 'derived.jwt' });
+  });
+
+  it('rejects a verifier result bound to a different task', async () => {
+    const authorizeConnector = vi.fn();
+    const derive = vi.fn<TokenDeriver['derive']>();
+    const broker = createCredentialBroker({
+      evidence: noopEvidence,
+      tokenDeriver: { derive },
+      taskCredentialVerifier: {
+        verify: vi.fn().mockResolvedValue({
+          ...verifiedTask,
+          claims: {
+            ...verifiedTask.claims,
+            taskId: 'ffffffff-ffff-4fff-8fff-ffffffffffff',
+          },
+        }),
+      },
+      connectorAuthority: { authorizeConnector },
+    });
+
+    await expect(
+      broker.issueConnectorCredential({
+        taskCredential: 'task.jwt',
+        task: taskBinding,
+        grantId: 'ffffffff-ffff-4fff-8fff-ffffffffffff',
+        connectorId: 'plant-readonly',
+        operation: 'read',
+        resourceId: 'sensor-17',
+      }),
+    ).rejects.toMatchObject({ code: 'credential_binding_mismatch' });
+    expect(authorizeConnector).not.toHaveBeenCalled();
+    expect(derive).not.toHaveBeenCalled();
+  });
+
+  it('rejects a malformed lease expiry with a typed error', async () => {
+    const derive = vi.fn<TokenDeriver['derive']>();
+    const broker = createCredentialBroker({
+      evidence: noopEvidence,
+      tokenDeriver: { derive },
+      taskAuthority: {
+        authorizeTask: vi.fn().mockResolvedValue({
+          allowed: true,
+          reason: 'active_lease',
+          leaseExpiresAt: undefined,
+          claims: taskClaims,
+        }),
+      },
+    });
+
+    await expect(
+      broker.issueTaskCredential({
+        agentCredential: 'parent-secret',
+        ...taskBinding,
+      }),
+    ).rejects.toMatchObject({
+      code: 'authority_denied',
+      message: 'Task authority returned an invalid decision',
+    });
+    expect(derive).not.toHaveBeenCalled();
+  });
+
+  it('does not let evidence failure mask an authority denial', async () => {
+    const broker = createCredentialBroker({
+      evidence: {
+        emit: vi.fn().mockRejectedValue(new Error('sink echoed parent-secret')),
+      },
+      tokenDeriver: { derive: vi.fn() },
+      taskAuthority: {
+        authorizeTask: vi.fn().mockResolvedValue({
+          allowed: false,
+          reason: 'grant_inactive',
+        }),
+      },
+    });
+
+    await expect(
+      broker.issueTaskCredential({
+        agentCredential: 'parent-secret',
+        ...taskBinding,
+      }),
+    ).rejects.toMatchObject({
+      code: 'authority_denied',
+      message: 'Task authority denied',
+    });
+  });
+
+  it('emits token correlation metadata and current event time', async () => {
+    const emit = vi.fn().mockResolvedValue(undefined);
+    const times = [
+      new Date('2026-01-01T00:00:00Z'),
+      new Date('2026-01-01T00:00:01Z'),
+      new Date('2026-01-01T00:00:03Z'),
+    ];
+    const broker = createCredentialBroker({
+      clock: { now: () => times.shift() ?? new Date('2026-01-01T00:00:03Z') },
+      evidence: { emit },
+      taskTtlCeilingSeconds: 60,
+      tokenDeriver: {
+        derive: vi.fn().mockResolvedValue({
+          token: 'derived.jwt',
+          expiresAt: new Date('2026-01-01T00:01:01Z'),
+          jti: 'derived-jti',
+          kid: 'derived-kid',
+        }),
+      },
+      taskAuthority: {
+        authorizeTask: vi.fn().mockResolvedValue({
+          allowed: true,
+          reason: 'active_lease',
+          leaseExpiresAt: new Date('2026-01-01T00:10:00Z'),
+          claims: taskClaims,
+        }),
+      },
+    });
+
+    await broker.issueTaskCredential({
+      agentCredential: 'parent-secret',
+      ...taskBinding,
+    });
+
+    expect(emit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        occurredAt: '2026-01-01T00:00:03.000Z',
+        credentialJti: 'derived-jti',
+        credentialKid: 'derived-kid',
+      }),
+    );
+  });
+
+  it('fails issuance when required evidence cannot be recorded', async () => {
+    const broker = createCredentialBroker({
+      clock: { now: () => new Date('2026-01-01T00:00:00Z') },
+      evidence: { emit: vi.fn().mockRejectedValue(new Error('sink down')) },
+      taskTtlCeilingSeconds: 60,
+      tokenDeriver: {
+        derive: vi.fn().mockResolvedValue({
+          token: 'derived.jwt',
+          expiresAt: new Date('2026-01-01T00:01:00Z'),
+        }),
+      },
+      taskAuthority: {
+        authorizeTask: vi.fn().mockResolvedValue({
+          allowed: true,
+          reason: 'active_lease',
+          leaseExpiresAt: new Date('2026-01-01T00:10:00Z'),
+          claims: taskClaims,
+        }),
+      },
+    });
+
+    await expect(
+      broker.issueTaskCredential({
+        agentCredential: 'parent-secret',
+        ...taskBinding,
+      }),
+    ).rejects.toMatchObject({ code: 'evidence_unavailable' });
   });
 });
