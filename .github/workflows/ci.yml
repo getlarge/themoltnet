@@ -249,6 +249,10 @@ jobs:
       NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
       NX_BASE: ${{ needs.affected.outputs.base }}
       NX_HEAD: ${{ needs.affected.outputs.head }}
+      # check:pack runs on these distributed workers, so its pre-merge
+      # registry-smoke guard must be present here rather than only on the
+      # orchestrator process that schedules the task.
+      MOLTNET_SKIP_REGISTRY_SMOKE: '1'
       # Tag for the distributed docker:build (configuration=ci) push. Must match
       # what the e2e jobs pull (REST_API_IMAGE=...:ci-<sha> etc.).
       NX_DOCKER_CI_TAG: ci-${{ github.sha }}
