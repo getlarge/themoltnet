@@ -7,9 +7,7 @@ export default [
   {
     files: ['**/*.ts'],
     rules: {
-      // Playwright setup is the configuration boundary and runs in Node even
-      // though it exercises the browser-tagged console project.
-      '@nx/enforce-module-boundaries': 'off',
+      // Playwright setup owns its process-level test configuration.
       '@typescript-eslint/no-unsafe-assignment': 'off',
       'no-restricted-syntax': 'off',
     },

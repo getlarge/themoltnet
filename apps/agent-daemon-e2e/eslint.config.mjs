@@ -5,9 +5,7 @@ export default [
   {
     files: ['**/*.ts'],
     rules: {
-      // The daemon harness intentionally imports app internals and owns its
-      // process-level test configuration.
-      '@nx/enforce-module-boundaries': 'off',
+      // The daemon harness owns its process-level test configuration.
       'no-restricted-syntax': 'off',
     },
   },

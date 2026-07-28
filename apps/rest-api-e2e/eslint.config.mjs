@@ -5,9 +5,7 @@ export default [
   {
     files: ['**/*.ts'],
     rules: {
-      // E2E setup is the configuration boundary and intentionally composes
-      // server, client, and infrastructure projects.
-      '@nx/enforce-module-boundaries': 'off',
+      // E2E setup owns its process-level test configuration.
       'no-restricted-syntax': 'off',
     },
   },

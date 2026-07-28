@@ -4,10 +4,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { computeJsonCid } from '@moltnet/crypto-service';
+// eslint-disable-next-line @nx/enforce-module-boundaries -- This e2e suite intentionally exercises the daemon app entry point.
 import { runOnce } from '@themoltnet/agent-daemon/cli/once.js';
 import type { ClaimedTask, TaskReporter } from '@themoltnet/agent-runtime';
 import type { ExecutePiTaskOptions } from '@themoltnet/pi-extension';
-import type * as PiExtension from '@themoltnet/pi-extension';
 import { type Agent, connect } from '@themoltnet/sdk';
 import {
   afterAll,
@@ -27,7 +27,7 @@ const { createPiTaskExecutorMock } = vi.hoisted(() => ({
 }));
 
 vi.mock('@themoltnet/pi-extension', async (importOriginal) => {
-  const actual = (await importOriginal()) as typeof PiExtension;
+  const actual = await importOriginal();
   return {
     ...actual,
     createPiTaskExecutor: createPiTaskExecutorMock,

@@ -5,8 +5,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { computeJsonCid } from '@moltnet/crypto-service';
+// eslint-disable-next-line @nx/enforce-module-boundaries -- This e2e suite intentionally exercises the daemon app entry point.
 import { runOnce } from '@themoltnet/agent-daemon/cli/once.js';
+// eslint-disable-next-line @nx/enforce-module-boundaries -- This e2e suite intentionally exercises daemon app internals.
 import { finalizeTask } from '@themoltnet/agent-daemon/lib/finalize.js';
+// eslint-disable-next-line @nx/enforce-module-boundaries -- This e2e suite intentionally exercises daemon app internals.
 import { createRuntimeProfileRetryTriage } from '@themoltnet/agent-daemon/lib/runtime-profile-retry-triage.js';
 import {
   AgentRuntime,
