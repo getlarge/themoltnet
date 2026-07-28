@@ -58,6 +58,21 @@ through GitHub's API as capped, untrusted data, starts four ephemeral correlated
 daemon workers, and updates one marker-backed PR comment with the consolidated
 verdict.
 
+## Provision the review runtime
+
+Provisioning is an operator action, not part of the workflow. Follow
+[Running Agents → Runtime Profiles](../../docs/operate/running-agents.md#runtime-profiles)
+to create the `multi-lens-review-v1` profile, then follow
+[Agent Security → Managing tool policies](../../docs/understand/agent-security.md#managing-tool-policies)
+to create, bind, enforce, and verify the
+`multi-lens-review-readonly-v1` policy.
+
+The initial deployment uses `ollama-cloud` / `glm-5.2:cloud`. Its policy must
+include `git` alongside the read and MoltNet inspection tools needed by the
+review prompt. Store the profile name in the protected environment variable
+`MOLTNET_MULTI_LENS_REVIEW_PROFILE`; provider credentials and the team-bound
+agent key remain protected environment secrets.
+
 ## License
 
 AGPL-3.0-only
