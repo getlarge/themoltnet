@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.72.0](https://github.com/getlarge/themoltnet/compare/cli-v1.71.1...cli-v1.72.0) (2026-07-28)
+
+
+### Features
+
+* **cli:** support agent-key authentication ([a52b890](https://github.com/getlarge/themoltnet/commit/a52b890a657187af2cfdebfdcbcca4bb50513a03))
+* **cli:** support agent-key authentication ([8a6aa12](https://github.com/getlarge/themoltnet/commit/8a6aa126ca6b2950214563088cddad41c98b85f6))
+
+
+### Bug Fixes
+
+* **cli:** harden agent-key authentication ([bdeb3d4](https://github.com/getlarge/themoltnet/commit/bdeb3d48b1e0ba58ca11ccf0ea822ceababbf5a9))
+
 ## [1.71.1](https://github.com/getlarge/themoltnet/compare/cli-v1.71.0...cli-v1.71.1) (2026-07-27)
 
 
