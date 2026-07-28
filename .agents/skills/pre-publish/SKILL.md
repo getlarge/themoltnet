@@ -38,7 +38,28 @@ not marked `"private": true`. Current published packages:
 
 ## Checklist
 
-### 1. Workspace dependency placement
+### 1. Provenance repository metadata
+
+Every publishable package must identify this GitHub repository and its exact
+directory in the monorepo:
+
+```json
+"repository": {
+  "type": "git",
+  "url": "git+https://github.com/getlarge/themoltnet.git",
+  "directory": "libs/<package-directory>"
+}
+```
+
+Use the actual `apps/`, `libs/`, or `packages/` path for `directory`. npm
+trusted publishing validates `repository.url` against the GitHub Actions OIDC
+provenance. Missing or mismatched metadata passes tarball creation but fails the
+registry PUT with `E422 Error verifying sigstore provenance bundle`.
+
+`check:pack` validates the canonical repository URL and matching monorepo
+directory for every publishable package.
+
+### 2. Workspace dependency placement
 
 Private workspace packages (`@moltnet/*`) must NEVER appear in `dependencies`
 of a publishable package. They are not published to npm and will cause
@@ -60,7 +81,7 @@ under `dependencies`.
 in `dependencies` — pnpm rewrites `workspace:*` to concrete versions on
 publish.
 
-### 2. Build produces a valid bundle
+### 3. Build produces a valid bundle
 
 For bundled packages (Vite SSR), verify the bundle doesn't contain runtime
 imports to private workspace packages:
@@ -75,7 +96,7 @@ grep '@moltnet/' <package>/dist/index.js
 
 Expected: zero matches. All `@moltnet/*` code should be inlined.
 
-### 3. Run check:pack
+### 4. Run check:pack
 
 ```bash
 pnpm --filter <package> run check:pack
@@ -88,8 +109,9 @@ This validates:
 - No `src/` files leak into the tarball
 - No `@moltnet/` imports in `.d.ts` files
 - No `@moltnet/` packages in `dependencies`
+- Canonical npm provenance repository URL and monorepo directory
 
-### 4. Verify the tarball contents
+### 5. Verify the tarball contents
 
 ```bash
 npm pack --dry-run --json 2>/dev/null | jq '.[0].files[].path'
@@ -100,7 +122,7 @@ Check that:
 - Only expected files are included (typically `dist/` and `package.json`)
 - No source files, test files, or config files leaked
 
-### 5. Test install (optional but recommended for major releases)
+### 6. Test install (optional but recommended for major releases)
 
 ```bash
 npm pack
@@ -111,6 +133,22 @@ node -e "import('<package-name>')"
 ```
 
 ## Common mistakes and how they happen
+
+### Missing repository metadata (the tasks-orchestrator incident)
+
+**What happened**: `@themoltnet/tasks-orchestrator@0.2.0` built, tested, and
+passed the old `check:pack`, but all three npm publish attempts failed with
+`E422`. The Sigstore provenance bundle identified
+`https://github.com/getlarge/themoltnet`, while the packed `package.json` had
+no `repository.url`.
+
+**Why it was not caught**: The validator checked tarball contents and private
+workspace dependency leaks, but not metadata consumed by npm trusted
+publishing.
+
+**Prevention**: Copy the canonical repository object when making any package
+publishable. Run `check:pack` before merge; it now checks both the repository
+URL and the package directory.
 
 ### Workspace deps in dependencies (the legreffier incident)
 
@@ -156,8 +194,12 @@ it belongs in `devDependencies`, not `dependencies`.
 
 ## Integration with CI
 
-The `check:pack` step runs in the release workflow before `pnpm publish`.
-If it fails, the publish is blocked. This is the last line of defense.
+The `check:pack` target runs in the affected pre-merge CI graph and again in the
+release workflow before `pnpm publish`. Pre-merge CI sets
+`MOLTNET_SKIP_REGISTRY_SMOKE=1` because a coordinated release may reference a
+workspace version that is not on npm yet; it still runs the tarball, declaration
+and provenance checks. Release jobs run the registry install smokes after their
+dependency packages publish and remain the last line of defense.
 
 ```yaml
 # From .github/workflows/release.yml

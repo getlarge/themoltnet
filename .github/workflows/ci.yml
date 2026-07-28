@@ -249,6 +249,10 @@ jobs:
       NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
       NX_BASE: ${{ needs.affected.outputs.base }}
       NX_HEAD: ${{ needs.affected.outputs.head }}
+      # check:pack runs on these distributed workers, so its pre-merge
+      # registry-smoke guard must be present here rather than only on the
+      # orchestrator process that schedules the task.
+      MOLTNET_SKIP_REGISTRY_SMOKE: '1'
       # Tag for the distributed docker:build (configuration=ci) push. Must match
       # what the e2e jobs pull (REST_API_IMAGE=...:ci-<sha> etc.).
       NX_DOCKER_CI_TAG: ci-${{ github.sha }}
@@ -403,7 +407,7 @@ jobs:
           echo "::error::nx-cloud start-ci-run failed after 3 attempts"
           exit 1
 
-      # Single distributed graph: lint/typecheck/test-ci/build AND
+      # Single distributed graph: lint/typecheck/test-ci/build/check:pack AND
       # docker:build (configuration=ci) all enter the SAME `nx affected` wave,
       # so Docker image builds run CONCURRENTLY with the rest across the agent
       # pool instead of waiting for the lint/test graph to drain first. Each
@@ -420,9 +424,14 @@ jobs:
       # @nx/vitest). Projects without per-file atomization (Go, vitest libs
       # without a config) declare test-ci as a noop depending on test, so a
       # single -t test-ci covers everything.
-      - name: Run affected lint, typecheck, test-ci, build, docker:build
+      - name: Run affected lint, typecheck, test-ci, build, check:pack, docker:build
         if: needs.affected.outputs.has-agents == 'true'
-        run: pnpm exec nx affected -t lint typecheck test-ci build docker:build --configuration=ci
+        env:
+          # Registry install smokes require coordinated workspace dependencies
+          # to have published first. Release jobs run those smokes in order;
+          # pre-merge CI still runs every package's tarball checks.
+          MOLTNET_SKIP_REGISTRY_SMOKE: '1'
+        run: pnpm exec nx affected -t lint typecheck test-ci build check:pack docker:build --configuration=ci
 
       # On main, refresh the moving :ci-main fallback for ALL e2e images (not
       # just affected) so PR e2e runs always have a complete, up-to-date image

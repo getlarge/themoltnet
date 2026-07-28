@@ -2,6 +2,11 @@
   "name": "@themoltnet/multi-lens-review",
   "version": "0.1.0",
   "license": "AGPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/getlarge/themoltnet.git",
+    "directory": "apps/multi-lens-review"
+  },
   "type": "module",
   "description": "Fan out N specialist code reviews (security, correctness, performance, test-coverage) in parallel and join them into one server-gated verdict.",
   "main": "./dist/main.js",

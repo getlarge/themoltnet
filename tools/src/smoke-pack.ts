@@ -31,6 +31,11 @@
  *   --args     args passed to the bin (default "--help"); everything after
  *              --args until --expect is treated as bin args
  *   --expect   substring that must appear in the bin's output (required)
+ *
+ * Set MOLTNET_SKIP_REGISTRY_SMOKE=1 in pre-merge CI. A coordinated release can
+ * reference another workspace package version that is not on npm yet, so the
+ * clean registry install is only valid in release jobs after dependency
+ * packages publish. The preceding tarball checks still run in pre-merge CI.
  */
 import { spawnSync } from 'node:child_process';
 import {
@@ -73,6 +78,13 @@ function parseFlags(argv: string[]): {
 }
 
 const { pkg, bin, args, expect } = parseFlags(process.argv.slice(2));
+
+if (process.env.MOLTNET_SKIP_REGISTRY_SMOKE === '1') {
+  process.stdout.write(
+    'Skipped registry install smoke (MOLTNET_SKIP_REGISTRY_SMOKE=1)\n',
+  );
+  process.exit(0);
+}
 
 if (!bin) {
   process.stderr.write('FAIL: --bin <name> is required\n');

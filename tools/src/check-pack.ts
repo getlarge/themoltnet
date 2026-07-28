@@ -8,6 +8,7 @@
  *   2. dist/index.d.ts is included
  *   3. no source files (src/) leak into the tarball
  *   4. no @moltnet/* workspace packages in published dependencies
+ *   5. npm provenance repository metadata matches this GitHub monorepo
  *
  * The individual checks are exported as pure functions (each returns an array
  * of error strings, empty = pass) so project-specific scripts can compose them
@@ -22,7 +23,7 @@
 import { execSync } from 'node:child_process';
 import type { Dirent } from 'node:fs';
 import { readdirSync, readFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { join, relative, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
 const root = new URL('../..', import.meta.url).pathname.replace(/\/$/, '');
@@ -31,6 +32,9 @@ interface PackEntry {
   path: string;
   size: number;
 }
+
+const repositoryUrlPattern =
+  /^(?:git\+)?https:\/\/github\.com\/getlarge\/themoltnet(?:\.git)?$/;
 
 /**
  * Run `npm pack --dry-run --json` in `pkgDir` and return the tarball entry
@@ -160,6 +164,46 @@ export function checkNoPrivateWorkspaceDeps(
     : [];
 }
 
+/**
+ * Assert npm provenance metadata identifies this repository and the package's
+ * directory inside the monorepo.
+ */
+export function checkRepositoryMetadata(
+  pkg: Record<string, unknown>,
+  expectedDirectory: string,
+): string[] {
+  const repository = pkg.repository;
+  if (
+    !repository ||
+    typeof repository !== 'object' ||
+    Array.isArray(repository)
+  ) {
+    return [
+      `repository metadata missing (npm provenance requires the canonical repository object for ${expectedDirectory})`,
+    ];
+  }
+
+  const metadata = repository as Record<string, unknown>;
+  const errors: string[] = [];
+  if (metadata.type !== 'git') {
+    errors.push('repository.type must be "git"');
+  }
+  if (
+    typeof metadata.url !== 'string' ||
+    !repositoryUrlPattern.test(metadata.url)
+  ) {
+    errors.push(
+      'repository.url must identify https://github.com/getlarge/themoltnet',
+    );
+  }
+  if (metadata.directory !== expectedDirectory) {
+    errors.push(
+      `repository.directory must be "${expectedDirectory}" (got ${JSON.stringify(metadata.directory)})`,
+    );
+  }
+  return errors;
+}
+
 function checkPackage(pkgDir: string): boolean {
   const pkgPath = join(pkgDir, 'package.json');
   let pkg: Record<string, unknown>;
@@ -200,6 +244,10 @@ function checkPackage(pkgDir: string): boolean {
     ...checkNoSrcLeak(paths),
     ...checkNoWorkspaceDtsLeak(pkgDir, paths),
     ...checkNoPrivateWorkspaceDeps(pkg),
+    ...checkRepositoryMetadata(
+      pkg,
+      relative(root, pkgDir).replaceAll('\\', '/'),
+    ),
   ];
 
   if (errors.length > 0) {
