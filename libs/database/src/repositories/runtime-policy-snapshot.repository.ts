@@ -14,10 +14,43 @@ export type CreateRuntimePolicySnapshotInput = Omit<
 >;
 
 export function createRuntimePolicySnapshotRepository(db: Database) {
+  async function findByHash(
+    hash: string,
+  ): Promise<RuntimePolicySnapshot | null> {
+    const [row] = await getExecutor(db)
+      .select()
+      .from(runtimePolicySnapshots)
+      .where(eq(runtimePolicySnapshots.hash, hash))
+      .limit(1);
+    return row ?? null;
+  }
+
+  function assertSameContent(
+    existing: RuntimePolicySnapshot,
+    input: CreateRuntimePolicySnapshotInput,
+  ): RuntimePolicySnapshot {
+    const sameContent =
+      existing.schemaVersion === input.schemaVersion &&
+      existing.runtimeKind === input.runtimeKind &&
+      existing.capabilityManifestVersion === input.capabilityManifestVersion &&
+      existing.enforcement === input.enforcement &&
+      JSON.stringify(existing.allowedTools) ===
+        JSON.stringify(input.allowedTools);
+    if (!sameContent) {
+      throw new Error(
+        `Runtime policy snapshot hash collision for ${input.hash}`,
+      );
+    }
+    return existing;
+  }
+
   return {
-    async persist(
+    async upsert(
       input: CreateRuntimePolicySnapshotInput,
     ): Promise<RuntimePolicySnapshot> {
+      const existing = await findByHash(input.hash);
+      if (existing) return assertSameContent(existing, input);
+
       const [created] = await getExecutor(db)
         .insert(runtimePolicySnapshots)
         .values(input)
@@ -25,34 +58,16 @@ export function createRuntimePolicySnapshotRepository(db: Database) {
         .returning();
       if (created) return created;
 
-      const existing = await this.findByHash(input.hash);
-      if (!existing) {
-        throw new Error('Runtime policy snapshot persistence failed');
-      }
-      const sameContent =
-        existing.schemaVersion === input.schemaVersion &&
-        existing.runtimeKind === input.runtimeKind &&
-        existing.capabilityManifestVersion ===
-          input.capabilityManifestVersion &&
-        existing.enforcement === input.enforcement &&
-        JSON.stringify(existing.allowedTools) ===
-          JSON.stringify(input.allowedTools);
-      if (!sameContent) {
+      const concurrent = await findByHash(input.hash);
+      if (!concurrent) {
         throw new Error(
-          `Runtime policy snapshot hash collision for ${input.hash}`,
+          `Runtime policy snapshot persistence failed for ${input.hash}`,
         );
       }
-      return existing;
+      return assertSameContent(concurrent, input);
     },
 
-    async findByHash(hash: string): Promise<RuntimePolicySnapshot | null> {
-      const [row] = await getExecutor(db)
-        .select()
-        .from(runtimePolicySnapshots)
-        .where(eq(runtimePolicySnapshots.hash, hash))
-        .limit(1);
-      return row ?? null;
-    },
+    findByHash,
   };
 }
 

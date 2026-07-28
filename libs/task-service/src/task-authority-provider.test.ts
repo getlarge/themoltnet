@@ -44,6 +44,7 @@ function attempt(overrides: Partial<TaskAttempt> = {}): TaskAttempt {
   return {
     taskId: TASK_ID,
     attemptN: 1,
+    status: 'running',
     claimedByAgentId: AGENT_ID,
     leaseId: LEASE_ID,
     runtimeProfileId: PROFILE_ID,
@@ -74,12 +75,24 @@ function setup(input?: {
   snapshot?: RuntimePolicySnapshot | null;
 }) {
   const taskRepository = {
-    findById: vi.fn().mockResolvedValue(input?.task ?? task()),
-    findAttempt: vi.fn().mockResolvedValue(input?.attempt ?? attempt()),
+    findById: vi
+      .fn()
+      .mockResolvedValue(input && 'task' in input ? input.task : task()),
+    findAttempt: vi
+      .fn()
+      .mockResolvedValue(
+        input && 'attempt' in input ? input.attempt : attempt(),
+      ),
   };
   const snapshotRepository = {
-    findByHash: vi.fn().mockResolvedValue(input?.snapshot ?? snapshot()),
+    findByHash: vi
+      .fn()
+      .mockResolvedValue(
+        input && 'snapshot' in input ? input.snapshot : snapshot(),
+      ),
   };
+  const logger = { warn: vi.fn() };
+  const denialCounter = { add: vi.fn() };
   const provider = createMoltNetTaskAuthorityProvider({
     taskRepository: taskRepository as unknown as Pick<
       TaskRepository,
@@ -87,9 +100,17 @@ function setup(input?: {
     >,
     runtimePolicySnapshotRepository:
       snapshotRepository as unknown as RuntimePolicySnapshotRepository,
+    logger,
+    denialCounter,
     now: () => NOW,
   });
-  return { provider, taskRepository, snapshotRepository };
+  return {
+    provider,
+    taskRepository,
+    snapshotRepository,
+    logger,
+    denialCounter,
+  };
 }
 
 const request = {
@@ -99,9 +120,33 @@ const request = {
   attemptN: 1,
 };
 
+async function expectDenied(
+  context: ReturnType<typeof setup>,
+  reason: string,
+  authorityRequest = request,
+) {
+  await expect(
+    context.provider.authorizeTask(authorityRequest),
+  ).resolves.toEqual({
+    allowed: false,
+    reason,
+  });
+  expect(context.logger.warn).toHaveBeenCalledWith(
+    {
+      reason,
+      taskId: authorityRequest.taskId,
+      attemptN: authorityRequest.attemptN,
+      agentId: authorityRequest.agentId,
+      teamId: authorityRequest.teamId,
+    },
+    'Task authority denied',
+  );
+  expect(context.denialCounter.add).toHaveBeenCalledWith(1, { reason });
+}
+
 describe('MoltNet TaskAuthorityProvider', () => {
   it('returns only canonical claims from the immutable attempt binding', async () => {
-    const { provider } = setup();
+    const { provider, logger, denialCounter } = setup();
 
     await expect(provider.authorizeTask(request)).resolves.toEqual({
       allowed: true,
@@ -117,59 +162,134 @@ describe('MoltNet TaskAuthorityProvider', () => {
         policySnapshotHash: SNAPSHOT_HASH,
       },
     });
+    expect(logger.warn).not.toHaveBeenCalled();
+    expect(denialCounter.add).not.toHaveBeenCalled();
+  });
+
+  it('denies missing tasks and attempts', async () => {
+    await expectDenied(
+      setup({ task: null }),
+      'task_attempt_not_found',
+      request,
+    );
+    await expectDenied(
+      setup({ attempt: null }),
+      'task_attempt_not_found',
+      request,
+    );
+  });
+
+  it('denies mismatched team and claimant bindings', async () => {
+    await expectDenied(setup(), 'team_mismatch', {
+      ...request,
+      teamId: OTHER_TEAM_ID,
+    });
+    await expectDenied(
+      setup({ attempt: attempt({ claimedByAgentId: OTHER_AGENT_ID }) }),
+      'claimant_mismatch',
+    );
+    await expectDenied(
+      setup({ task: task({ claimAgentId: OTHER_AGENT_ID }) }),
+      'claimant_mismatch',
+    );
   });
 
   it.each([
-    ['team_mismatch', { ...request, teamId: OTHER_TEAM_ID }],
-    ['claimant_mismatch', { ...request, agentId: OTHER_AGENT_ID }],
-    ['task_attempt_not_found', { ...request, attemptN: 2 }],
-  ])('denies %s requests', async (reason, mismatchedRequest) => {
-    const { provider, taskRepository } = setup();
-    if (reason === 'task_attempt_not_found') {
-      taskRepository.findAttempt.mockResolvedValue(null);
-    }
-    await expect(provider.authorizeTask(mismatchedRequest)).resolves.toEqual({
-      allowed: false,
-      reason,
-    });
+    'completed',
+    'failed',
+    'cancelled',
+    'aborted',
+    'timed_out',
+  ] as const)(
+    'denies a %s attempt even while its task lease is active',
+    async (status) => {
+      await expectDenied(
+        setup({ attempt: attempt({ status }) }),
+        'attempt_inactive',
+      );
+    },
+  );
+
+  it.each([
+    task({ status: 'queued' }),
+    task({ claimExpiresAt: null }),
+    task({ claimExpiresAt: new Date('2026-07-28T11:59:59Z') }),
+  ])('denies an inactive task lease', async (inactiveTask) => {
+    await expectDenied(setup({ task: inactiveTask }), 'lease_inactive');
   });
 
-  it('denies an inactive or expired lease', async () => {
-    const { provider } = setup({
-      task: task({ claimExpiresAt: new Date('2026-07-28T11:59:59Z') }),
-    });
-    await expect(provider.authorizeTask(request)).resolves.toEqual({
-      allowed: false,
-      reason: 'lease_inactive',
-    });
-  });
-
-  it('denies legacy attempts without a complete pinned authority', async () => {
-    const { provider } = setup({
-      attempt: attempt({ policySnapshotHash: null }),
-    });
-    await expect(provider.authorizeTask(request)).resolves.toEqual({
-      allowed: false,
-      reason: 'authority_binding_missing',
-    });
+  it.each([
+    { leaseId: null },
+    { runtimeProfileId: null },
+    { runtimeProfileRevision: null },
+    { policySnapshotHash: null },
+  ])('denies an incomplete pinned authority: %o', async (missingBinding) => {
+    await expectDenied(
+      setup({ attempt: attempt(missingBinding) }),
+      'authority_binding_missing',
+    );
   });
 
   it('denies a missing immutable snapshot', async () => {
-    const { provider, snapshotRepository } = setup();
-    snapshotRepository.findByHash.mockResolvedValue(null);
-    await expect(provider.authorizeTask(request)).resolves.toEqual({
-      allowed: false,
-      reason: 'policy_snapshot_missing',
-    });
+    await expectDenied(setup({ snapshot: null }), 'policy_snapshot_missing');
   });
 
-  it('denies snapshot content inconsistent with its pinned hash', async () => {
-    const { provider } = setup({
-      snapshot: snapshot({ allowedTools: ['write'] }),
+  it('denies an unsupported snapshot schema version', async () => {
+    await expectDenied(
+      setup({ snapshot: snapshot({ schemaVersion: 'v999' }) }),
+      'schema_version_mismatch',
+    );
+  });
+
+  it.each([
+    { runtimeKind: 'unknown_runtime' },
+    { enforcement: 'unknown_enforcement' },
+    { allowedTools: ['customer_dynamic_tool'] },
+  ])('denies invalid snapshot authority: %o', async (invalidBinding) => {
+    await expectDenied(
+      setup({ snapshot: snapshot(invalidBinding) }),
+      'authority_binding_invalid',
+    );
+  });
+
+  it('denies a superseded capability manifest version', async () => {
+    await expectDenied(
+      setup({
+        snapshot: snapshot({
+          capabilityManifestVersion: 'gondolin_pi:v0',
+        }),
+      }),
+      'manifest_version_superseded',
+    );
+  });
+
+  it('denies snapshot content inconsistent with its content hash', async () => {
+    await expectDenied(
+      setup({ snapshot: snapshot({ allowedTools: ['write'] }) }),
+      'snapshot_hash_mismatch',
+    );
+  });
+
+  it('denies a self-consistent snapshot that differs from the attempt pin', async () => {
+    const otherCanonical = canonicalEffectivePolicySnapshot({
+      runtimeKind: 'gondolin_pi',
+      enforcement: 'watch',
+      allowedTools: ['read'],
     });
-    await expect(provider.authorizeTask(request)).resolves.toEqual({
-      allowed: false,
-      reason: 'authority_binding_inconsistent',
-    });
+    const otherHash = hashEffectivePolicySnapshot(otherCanonical);
+
+    await expectDenied(
+      setup({
+        snapshot: snapshot({
+          hash: otherHash,
+          schemaVersion: otherCanonical.version,
+          runtimeKind: otherCanonical.runtimeKind,
+          capabilityManifestVersion: otherCanonical.capabilityManifestVersion,
+          enforcement: otherCanonical.enforcement,
+          allowedTools: otherCanonical.allowedTools,
+        }),
+      }),
+      'snapshot_hash_mismatch',
+    );
   });
 });

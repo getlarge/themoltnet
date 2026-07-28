@@ -1,10 +1,12 @@
 import {
+  GONDOLIN_PI_RUNTIME_KIND,
+  SHA256_HASH_STRING_LENGTH,
   ToolEnforcementSchema as CanonicalToolEnforcementSchema,
   UuidSchema,
 } from '@moltnet/models';
 import { Type } from 'typebox';
 
-const TOOL_NAME_PATTERN = '^[a-zA-Z0-9_.:-]{1,128}$';
+const TOOL_NAME_PATTERN = '^(?!.*[\\r\\n])[a-zA-Z0-9_.:-]{1,128}$';
 
 const ToolNameSchema = Type.String({
   minLength: 1,
@@ -90,11 +92,12 @@ export const AllowedToolsResponseSchema = Type.Object(
   {
     enforcement: Type.Ref(ToolEnforcementSchema.$id),
     allowedTools: Type.Array(ToolNameSchema),
-    runtimeKind: Type.Literal('gondolin_pi'),
+    runtimeKind: Type.Literal(GONDOLIN_PI_RUNTIME_KIND),
     capabilityManifestVersion: Type.String({ minLength: 1, maxLength: 128 }),
     runtimeProfileRevision: Type.Integer({ minimum: 1 }),
     policySnapshotHash: Type.String({
       pattern: '^sha256:[0-9a-f]{64}$',
+      maxLength: SHA256_HASH_STRING_LENGTH,
     }),
   },
   { $id: 'AllowedToolsResponse' },

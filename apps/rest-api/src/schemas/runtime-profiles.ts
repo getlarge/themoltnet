@@ -1,3 +1,4 @@
+import { GONDOLIN_PI_RUNTIME_KIND } from '@moltnet/models';
 import {
   RuntimeProfile,
   RuntimeProfileAllowedWorkspaceModes,
@@ -32,7 +33,7 @@ export const CreateRuntimeProfileBodySchema = Type.Object(
     topP: Type.Optional(RuntimeProfileNullableTopP),
     topK: Type.Optional(RuntimeProfileNullableTopK),
     maxOutputTokens: Type.Optional(RuntimeProfileNullableMaxOutputTokens),
-    runtimeKind: Type.Optional(Type.Literal('gondolin_pi')),
+    runtimeKind: Type.Optional(Type.Literal(GONDOLIN_PI_RUNTIME_KIND)),
     sandbox: RuntimeProfileSandbox,
     sessionStorageMode: Type.Optional(Type.Literal('local')),
     workspaceStorageMode: Type.Optional(Type.Literal('local')),

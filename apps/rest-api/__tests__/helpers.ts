@@ -666,7 +666,7 @@ export function createMockServices(): MockServices {
       profileExistsForTeam: vi.fn(),
     },
     runtimePolicySnapshotRepository: {
-      persist: vi.fn(),
+      upsert: vi.fn(),
       findByHash: vi.fn(),
     },
     relationshipReader: {

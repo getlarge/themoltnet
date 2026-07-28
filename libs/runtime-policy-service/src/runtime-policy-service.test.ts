@@ -55,8 +55,8 @@ function makeService() {
     profileExistsForTeam: vi.fn(),
   };
   const snapshotRepo = {
-    persist: vi
-      .fn<RuntimePolicySnapshotRepository['persist']>()
+    upsert: vi
+      .fn<RuntimePolicySnapshotRepository['upsert']>()
       .mockImplementation((input) =>
         Promise.resolve({ ...input, createdAt: NOW } as RuntimePolicySnapshot),
       ),
@@ -137,10 +137,27 @@ describe('createRuntimePolicyService', () => {
         'R',
         TEAM_ID,
       );
-      expect(ctx.snapshotRepo.persist).toHaveBeenCalledWith(
+      expect(ctx.snapshotRepo.upsert).not.toHaveBeenCalled();
+    });
+
+    it('persists the immutable snapshot only for claim-time resolution', async () => {
+      ctx.repo.getProfilePolicyContext.mockResolvedValue({
+        runtimeKind: 'gondolin_pi',
+        revision: 3,
+        enforcement: 'enforce',
+      });
+      ctx.reader.listRuntimeProfilePolicies.mockResolvedValue(['P1']);
+      ctx.reader.listRuntimePolicyTools.mockResolvedValue(['git']);
+
+      const result = await ctx.service.resolvePinnedAllowedTools({
+        profileId: 'R',
+        teamId: TEAM_ID,
+      });
+
+      expect(ctx.snapshotRepo.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
           hash: result.policySnapshotHash,
-          allowedTools: ['gh', 'git', 'ls'],
+          allowedTools: ['git'],
         }),
       );
     });
@@ -171,6 +188,23 @@ describe('createRuntimePolicyService', () => {
           teamId: TEAM_ID,
         }),
       ).rejects.toMatchObject({ statusCode: 404 });
+    });
+
+    it('rejects tool names containing line breaks before normalization', async () => {
+      ctx.repo.getProfilePolicyContext.mockResolvedValue({
+        runtimeKind: 'gondolin_pi',
+        revision: 1,
+        enforcement: 'enforce',
+      });
+      ctx.reader.listRuntimeProfilePolicies.mockResolvedValue(['P1']);
+      ctx.reader.listRuntimePolicyTools.mockResolvedValue(['git\n']);
+
+      await expect(
+        ctx.service.resolveAllowedTools({
+          profileId: 'R',
+          teamId: TEAM_ID,
+        }),
+      ).rejects.toMatchObject({ statusCode: 400 });
     });
   });
 

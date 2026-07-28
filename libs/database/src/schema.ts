@@ -5,7 +5,10 @@
  * Database: PostgreSQL + pgvector
  */
 
-import type { SignerConstraint } from '@moltnet/models';
+import {
+  SHA256_HASH_STRING_LENGTH,
+  type SignerConstraint,
+} from '@moltnet/models';
 import {
   VERIFICATION_METHOD,
   VERIFICATION_METHOD_VALUES,
@@ -1579,7 +1582,7 @@ export const taskAttempts = pgTable(
     runtimeProfileId: uuid('runtime_profile_id'),
     runtimeProfileRevision: integer('runtime_profile_revision'),
     policySnapshotHash: varchar('policy_snapshot_hash', {
-      length: 71,
+      length: SHA256_HASH_STRING_LENGTH,
     }).references(() => runtimePolicySnapshots.hash, { onDelete: 'restrict' }),
     // FK to agent_runtimes added in PR 7
     runtimeId: uuid('runtime_id'),

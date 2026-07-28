@@ -337,7 +337,7 @@
               "description": "A tool identifier, e.g. an executable name like \"git\".",
               "maxLength": 128,
               "minLength": 1,
-              "pattern": "^[a-zA-Z0-9_.:-]{1,128}$",
+              "pattern": "^(?!.*[\\r\\n])[a-zA-Z0-9_.:-]{1,128}$",
               "type": "string"
             },
             "type": "array"
@@ -351,6 +351,7 @@
             "$ref": "#/components/schemas/ToolEnforcement"
           },
           "policySnapshotHash": {
+            "maxLength": 71,
             "pattern": "^sha256:[0-9a-f]{64}$",
             "type": "string"
           },
@@ -1889,7 +1890,7 @@
               "description": "A tool identifier, e.g. an executable name like \"git\".",
               "maxLength": 128,
               "minLength": 1,
-              "pattern": "^[a-zA-Z0-9_.:-]{1,128}$",
+              "pattern": "^(?!.*[\\r\\n])[a-zA-Z0-9_.:-]{1,128}$",
               "type": "string"
             },
             "maxItems": 500,
@@ -8191,7 +8192,7 @@
               "description": "A tool identifier, e.g. an executable name like \"git\".",
               "maxLength": 128,
               "minLength": 1,
-              "pattern": "^[a-zA-Z0-9_.:-]{1,128}$",
+              "pattern": "^(?!.*[\\r\\n])[a-zA-Z0-9_.:-]{1,128}$",
               "type": "string"
             },
             "type": "array"
@@ -13529,7 +13530,7 @@
               "description": "A tool identifier, e.g. an executable name like \"git\".",
               "maxLength": 128,
               "minLength": 1,
-              "pattern": "^[a-zA-Z0-9_.:-]{1,128}$",
+              "pattern": "^(?!.*[\\r\\n])[a-zA-Z0-9_.:-]{1,128}$",
               "type": "string"
             },
             "maxItems": 500,
@@ -13557,7 +13558,7 @@
               "description": "A tool identifier, e.g. an executable name like \"git\".",
               "maxLength": 128,
               "minLength": 1,
-              "pattern": "^[a-zA-Z0-9_.:-]{1,128}$",
+              "pattern": "^(?!.*[\\r\\n])[a-zA-Z0-9_.:-]{1,128}$",
               "type": "string"
             },
             "maxItems": 500,

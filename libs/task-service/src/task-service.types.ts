@@ -83,7 +83,7 @@ export interface TaskServiceDeps {
   diaryRepository: DiaryRepository;
   agentRepository: AgentRepository;
   runtimeProfileRepository: RuntimeProfileRepository;
-  runtimePolicyService: Pick<RuntimePolicyService, 'resolveAllowedTools'>;
+  runtimePolicyService: Pick<RuntimePolicyService, 'resolvePinnedAllowedTools'>;
   contextPackRepository: ContextPackRepository;
   renderedPackRepository: RenderedPackRepository;
   correlationSealRepository: CorrelationSealRepository;

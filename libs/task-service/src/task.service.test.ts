@@ -272,7 +272,7 @@ interface Mocks {
     >;
   };
   runtimePolicyService: {
-    resolveAllowedTools: Mock<
+    resolvePinnedAllowedTools: Mock<
       (input: { profileId: string; teamId: string }) => Promise<{
         enforcement: 'enforce';
         allowedTools: string[];
@@ -530,7 +530,7 @@ function makeMocks(
         .mockResolvedValue({ id: PROFILE_ID, teamId: TEAM_ID }),
     },
     runtimePolicyService: {
-      resolveAllowedTools: vi.fn().mockResolvedValue({
+      resolvePinnedAllowedTools: vi.fn().mockResolvedValue({
         enforcement: 'enforce',
         allowedTools: ['read'],
         runtimeKind: 'gondolin_pi',
@@ -888,12 +888,12 @@ describe('createTaskService.claim — runtime profile attestation', () => {
       profileId: PROFILE_ID,
     });
 
-    expect(mocks.runtimePolicyService.resolveAllowedTools).toHaveBeenCalledWith(
-      {
-        profileId: PROFILE_ID,
-        teamId: TEAM_ID,
-      },
-    );
+    expect(
+      mocks.runtimePolicyService.resolvePinnedAllowedTools,
+    ).toHaveBeenCalledWith({
+      profileId: PROFILE_ID,
+      teamId: TEAM_ID,
+    });
     expect(enqueueWorkflowInCurrentTransaction).toHaveBeenCalledWith(
       expect.objectContaining({
         positionalArgs: [
@@ -911,6 +911,47 @@ describe('createTaskService.claim — runtime profile attestation', () => {
           PROFILE_ID,
           7,
           `sha256:${'a'.repeat(64)}`,
+        ],
+      }),
+    );
+  });
+
+  it('normalizes a blank profile ID to an unbound claim', async () => {
+    const enqueueWorkflowInCurrentTransaction = vi
+      .fn()
+      .mockResolvedValue({ workflowId: `task:${JUDGE_TASK}:attempt:1` });
+    vi.spyOn(DBOS, 'getEvent').mockResolvedValue({
+      taskId: JUDGE_TASK,
+      attemptN: 1,
+    });
+    service = createTaskService({
+      ...(mocks as unknown as Parameters<typeof createTaskService>[0]),
+      enqueueWorkflowInCurrentTransaction,
+    });
+
+    await service.claim(JUDGE_TASK, AGENT_ID, KetoNamespace.Agent, 30, {
+      profileId: '  ',
+    });
+
+    expect(mocks.runtimeProfileRepository.findById).not.toHaveBeenCalled();
+    expect(
+      mocks.runtimePolicyService.resolvePinnedAllowedTools,
+    ).not.toHaveBeenCalled();
+    expect(enqueueWorkflowInCurrentTransaction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        positionalArgs: [
+          JUDGE_TASK,
+          1,
+          AGENT_ID,
+          `task:${JUDGE_TASK}:attempt:1`,
+          30,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
         ],
       }),
     );

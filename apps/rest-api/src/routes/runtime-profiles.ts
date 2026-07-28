@@ -5,6 +5,7 @@ import type { RuntimeProfile as RuntimeProfile } from '@moltnet/database';
 import { UniqueViolationError } from '@moltnet/database';
 import {
   ConflictProblemDetailsSchema,
+  GONDOLIN_PI_RUNTIME_KIND,
   ProblemDetailsSchema,
   TeamHeaderOptionalSchema,
 } from '@moltnet/models';
@@ -164,7 +165,7 @@ function serializeProfile(
     topP: row.topP ?? null,
     topK: row.topK ?? null,
     maxOutputTokens: row.maxOutputTokens ?? null,
-    runtimeKind: 'gondolin_pi',
+    runtimeKind: GONDOLIN_PI_RUNTIME_KIND,
     sandbox: row.sandbox as Record<string, unknown>,
     sessionStorageMode: 'local',
     workspaceStorageMode: 'local',
