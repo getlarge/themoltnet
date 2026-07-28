@@ -2175,9 +2175,6 @@ importers:
       '@themoltnet/sdk':
         specifier: workspace:*
         version: link:../sdk
-      typebox:
-        specifier: 'catalog:'
-        version: 1.2.8
     devDependencies:
       '@earendil-works/pi-ai':
         specifier: 'catalog:'
