@@ -15,6 +15,7 @@ import {
 } from '@themoltnet/pi-extension';
 
 import { activatePiCodingAgentDir, loadConfig } from '../config.js';
+import { abortActiveAttemptOnSignal } from '../lib/abort-active-attempt.js';
 import {
   resolveAgentContext,
   validateStartupBinding,
@@ -59,6 +60,7 @@ import {
   resolveRuntimeSessionKind,
 } from '../lib/runtime-sessions.js';
 import { createApiRuntimeSlotStore } from '../lib/runtime-slots.js';
+import { redactRequiredEnvValues } from '../lib/secret-redaction.js';
 import { resolveLatestPiSessionPath } from '../lib/session-files.js';
 import { installShutdownSignalHandlers } from '../lib/shutdown-signal.js';
 import { createApiSourceAttemptResolver } from '../lib/source-attempts.js';
@@ -320,26 +322,26 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       runtime?.stop(`agent-daemon received ${signal}`);
       // Abort the active attempt rather than letting it lease-expire. The
       // task requeues for another daemon / retry; it is NOT cancelled.
-      if (active === null) return;
-      const { taskId, attemptN } = active;
-      void ctx.agent.tasks
-        .abortAttempt(taskId, attemptN, {
-          reason: `runner_${signal.toLowerCase()}`,
-        })
-        .catch((err: unknown) => {
+      void abortActiveAttemptOnSignal({
+        active,
+        signal,
+        abortAttempt: (taskId, attemptN, body) =>
+          ctx.agent.tasks.abortAttempt(taskId, attemptN, body),
+        logFailure: (err, current) => {
           try {
             rootLogger.warn(
               {
                 err: err instanceof Error ? err.message : String(err),
-                taskId,
-                attemptN,
+                taskId: current.taskId,
+                attemptN: current.attemptN,
               },
               'agent-daemon.abort_on_signal_failed',
             );
           } catch {
             // best-effort logging; never block SIGKILL deadline
           }
-        });
+        },
+      });
     },
   });
 
@@ -494,7 +496,11 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
           claimedTask.task.id,
           claimedTask.attemptN,
         );
-        let terminalOutput = output;
+        let terminalOutput = redactRequiredEnvValues(
+          output,
+          selected.profile.requiredEnv,
+          cfg.profilePrerequisiteEnv,
+        );
         if (resolved?.session?.sessionDir) {
           try {
             const parentSession = await resolveParentRuntimeSession(
@@ -520,7 +526,10 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
               },
               'agent-daemon.runtime_session_upload_failed',
             );
-            terminalOutput = applyRuntimeSessionUploadFailure(output, err);
+            terminalOutput = applyRuntimeSessionUploadFailure(
+              terminalOutput,
+              err,
+            );
           }
         }
         return finalizeTask(ctx.agent, terminalOutput, {

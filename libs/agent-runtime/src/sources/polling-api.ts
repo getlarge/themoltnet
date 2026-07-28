@@ -304,6 +304,7 @@ export class PollingApiTaskSource implements TaskSource {
   private readonly maxBackoffMs: number;
   private readonly listLimit: number;
   private readonly logger: AgentRuntimeLogger;
+  private readonly startedAtMs: number;
   private readonly firstTaskDeadlineMs: number;
   private hasClaimedTask = false;
   private emptySinceMs: number | undefined;
@@ -319,8 +320,9 @@ export class PollingApiTaskSource implements TaskSource {
     }
     this.listLimit = opts.listLimit ?? DEFAULT_LIST_LIMIT;
     this.currentBackoffMs = this.minBackoffMs;
+    this.startedAtMs = Date.now();
     this.firstTaskDeadlineMs =
-      Date.now() + Math.max(0, opts.waitForFirstTaskMs ?? 0);
+      this.startedAtMs + Math.max(0, opts.waitForFirstTaskMs ?? 0);
     // Bind teamId once so every log line from this source carries it.
     const base = opts.logger ?? pino({ name: 'polling-api-source' });
     this.logger = base.child({ teamId: opts.teamId });
@@ -351,13 +353,31 @@ export class PollingApiTaskSource implements TaskSource {
       if (this.opts.stopWhenEmpty && !hadListError) {
         const now = Date.now();
         if (!this.hasClaimedTask) {
-          if (now >= this.firstTaskDeadlineMs) return null;
+          if (now >= this.firstTaskDeadlineMs) {
+            this.logger.info(
+              {
+                correlationId: this.opts.correlationId,
+                reason: 'first_task_timeout',
+                elapsedWaitMs: now - this.startedAtMs,
+              },
+              'polling-api.drain_complete',
+            );
+            return null;
+          }
         } else {
           this.emptySinceMs ??= now;
           if (
             now - this.emptySinceMs >=
             Math.max(0, this.opts.waitAfterTaskMs ?? 0)
           ) {
+            this.logger.info(
+              {
+                correlationId: this.opts.correlationId,
+                reason: 'post_task_idle',
+                elapsedWaitMs: now - this.emptySinceMs,
+              },
+              'polling-api.drain_complete',
+            );
             return null;
           }
         }

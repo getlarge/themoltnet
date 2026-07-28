@@ -119,6 +119,75 @@ describe('PollingApiTaskSource', () => {
     await expect(src.claim()).resolves.toBeNull();
   });
 
+  it('logs why drain exits before any task is claimed', async () => {
+    const info = vi.fn();
+    const logger: AgentRuntimeLogger = {
+      ...silentLogger,
+      info,
+      child: () => silentLogger,
+    };
+    logger.child = () => logger;
+    const list = vi
+      .fn<TasksNamespace['list']>()
+      .mockResolvedValue({ items: [], total: 0 });
+    const src = new PollingApiTaskSource({
+      agent: makeAgent(list, vi.fn()),
+      teamId: 't',
+      correlationId: 'run-empty',
+      leaseTtlSec: 60,
+      stopWhenEmpty: true,
+      logger,
+    });
+
+    await expect(src.claim()).resolves.toBeNull();
+    expect(info).toHaveBeenCalledWith(
+      expect.objectContaining({
+        correlationId: 'run-empty',
+        reason: 'first_task_timeout',
+      }),
+      'polling-api.drain_complete',
+    );
+  });
+
+  it('logs why drain exits after the post-task idle grace', async () => {
+    const info = vi.fn();
+    const logger: AgentRuntimeLogger = {
+      ...silentLogger,
+      info,
+      child: () => silentLogger,
+    };
+    logger.child = () => logger;
+    const task = makeFulfillBriefTask({ status: 'queued' });
+    const list = vi
+      .fn<TasksNamespace['list']>()
+      .mockResolvedValueOnce({ items: [task], total: 1 })
+      .mockResolvedValue({ items: [], total: 0 });
+    const claim = vi.fn<TasksNamespace['claim']>().mockResolvedValue({
+      task,
+      attempt: { taskId: task.id, attemptN: 1 } as never,
+      traceHeaders: {},
+    });
+    const src = new PollingApiTaskSource({
+      agent: makeAgent(list, claim),
+      teamId: 't',
+      correlationId: 'run-drained',
+      leaseTtlSec: 60,
+      stopWhenEmpty: true,
+      waitAfterTaskMs: 0,
+      logger,
+    });
+
+    await expect(src.claim()).resolves.toMatchObject({ task: { id: task.id } });
+    await expect(src.claim()).resolves.toBeNull();
+    expect(info).toHaveBeenCalledWith(
+      expect.objectContaining({
+        correlationId: 'run-drained',
+        reason: 'post_task_idle',
+      }),
+      'polling-api.drain_complete',
+    );
+  });
+
   it('forwards correlationId to the task list filter', async () => {
     const list = vi
       .fn<TasksNamespace['list']>()
