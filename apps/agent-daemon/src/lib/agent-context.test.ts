@@ -87,6 +87,26 @@ describe('resolveAgentContext', () => {
       rmSync(gitRoot, { recursive: true, force: true });
     }
   });
+
+  it('connects without moltnet.json when agent-key mode permits it', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'daemon-agent-key-root-'));
+    execFileSyncMock.mockImplementation(() => {
+      throw new Error('not a git repo');
+    });
+
+    try {
+      const ctx = await resolveAgentContext('legreffier', {
+        agentRootDir: root,
+        allowMissingConfig: true,
+      });
+
+      const agentDir = join(root, '.moltnet', 'legreffier');
+      expect(ctx.agentDir).toBe(agentDir);
+      expect(connectMock).toHaveBeenCalledWith({ configDir: agentDir });
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
 });
 
 describe('detectAuthMode', () => {

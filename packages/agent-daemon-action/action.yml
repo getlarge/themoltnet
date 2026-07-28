@@ -49,6 +49,26 @@ inputs:
     description: 'Daemon mode: once | drain. poll is disallowed in CI for cost reasons.'
     required: false
     default: 'once'
+  task-types:
+    description: 'Comma-separated task types to claim in drain mode.'
+    required: false
+    default: ''
+  correlation-id:
+    description: 'Restrict drain-mode claims to one orchestration correlation id.'
+    required: false
+    default: ''
+  wait-for-first-task-sec:
+    description: >
+      In drain mode, wait this many seconds for the first matching task before
+      treating an empty queue as drained.
+    required: false
+    default: '0'
+  wait-after-task-sec:
+    description: >
+      In drain mode, require the queue to remain empty for this many seconds
+      after a claimed task before exiting.
+    required: false
+    default: '0'
   profile:
     description: >
       Runtime profile UUID or name. Forwarded to `agent-daemon --profile`.
@@ -56,7 +76,9 @@ inputs:
     required: false
     default: ''
   daemon-version:
-    description: 'npm semver range for @themoltnet/agent-daemon (passed to npx).'
+    description: >
+      npm semver range for @themoltnet/agent-daemon, or "workspace" to build
+      and run the daemon from the checked-out repository.
     required: false
     default: 'latest'
   running-timeout-sec:
@@ -234,6 +256,19 @@ runs:
           echo "::error::MOLTNET_AGENT_NAME is required (set as env on the caller step or pass agent-name input)" >&2
           exit 1
         fi
+        AGENT_DIR="$GITHUB_WORKSPACE/.moltnet/$MOLTNET_AGENT_NAME"
+        if [ -n "${MOLTNET_AGENT_KEY:-}" ]; then
+          # Agent-key auth is deliberately configless: the SDK reads the key
+          # and API URL from env, and the daemon accepts a missing moltnet.json
+          # in this mode. Keep a stable agent dir for logs/state only.
+          mkdir -p "$AGENT_DIR"
+          {
+            echo "MOLTNET_AGENT_DIR=$AGENT_DIR"
+            echo "MOLTNET_AGENT_NAME=$MOLTNET_AGENT_NAME"
+          } >> "$GITHUB_ENV"
+          echo "::notice::Using configless MoltNet agent-key authentication"
+          exit 0
+        fi
         if [ -n "${MOLTNET_GITHUB_APP_PRIVATE_KEY:-}" ]; then
           pem_normalized="${MOLTNET_GITHUB_APP_PRIVATE_KEY#"${MOLTNET_GITHUB_APP_PRIVATE_KEY%%[![:space:]]*}"}"
           pem_normalized="${pem_normalized%"${pem_normalized##*[![:space:]]}"}"
@@ -265,7 +300,6 @@ runs:
         npx -y @themoltnet/cli config init-from-env \
           --dir "$GITHUB_WORKSPACE" \
           --agent "$MOLTNET_AGENT_NAME"
-        AGENT_DIR="$GITHUB_WORKSPACE/.moltnet/$MOLTNET_AGENT_NAME"
         {
           echo "GIT_CONFIG_GLOBAL=$AGENT_DIR/gitconfig"
           echo "MOLTNET_AGENT_DIR=$AGENT_DIR"
@@ -464,7 +498,12 @@ runs:
         ' "$TASK_SPEC_PATH")
 
         CREDS="$GITHUB_WORKSPACE/.moltnet/$MOLTNET_AGENT_NAME/moltnet.json"
-        if [ ! -f "$CREDS" ]; then
+        credential_args=()
+        if [ -n "${MOLTNET_AGENT_KEY:-}" ]; then
+          echo "::notice::Creating task with configless agent-key authentication"
+        elif [ -f "$CREDS" ]; then
+          credential_args+=(--credentials "$CREDS")
+        else
           echo "::error::moltnet credentials not found at $CREDS"
           exit 1
         fi
@@ -498,7 +537,7 @@ runs:
           --input-file "$INPUT_PATH" \
           --output id \
           --api-url "${MOLTNET_API_URL:-https://api.themolt.net}" \
-          --credentials "$CREDS" \
+          "${credential_args[@]}" \
           "${flags[@]}")
         echo "::notice::Created task $TASK_ID (correlationId=$CORRELATION_ID)"
         echo "task-id=$TASK_ID" >> "$GITHUB_OUTPUT"
@@ -529,9 +568,19 @@ runs:
       env:
         TASK_ID: ${{ inputs.task-id || steps.create-task.outputs.task-id || steps.dispatch.outputs.task-id }}
         PROFILE_OVERRIDE: ${{ inputs.profile }}
+        TASK_TYPES: ${{ inputs.task-types }}
+        CORRELATION_ID: ${{ inputs.correlation-id }}
+        WAIT_FOR_FIRST_TASK_SEC: ${{ inputs.wait-for-first-task-sec }}
+        WAIT_AFTER_TASK_SEC: ${{ inputs.wait-after-task-sec }}
+        DAEMON_VERSION: ${{ inputs.daemon-version }}
+        DAEMON_MODE: ${{ inputs.mode }}
       run: |
         set -euo pipefail
-        if [ -z "${TASK_ID:-}" ]; then
+        if [ "$DAEMON_MODE" != "once" ] && [ "$DAEMON_MODE" != "drain" ]; then
+          echo "::error::mode must be once or drain, got '$DAEMON_MODE'" >&2
+          exit 1
+        fi
+        if [ "$DAEMON_MODE" = "once" ] && [ -z "${TASK_ID:-}" ]; then
           echo "::warning::no task id resolved; nothing to run"
           echo "task-id=" >> "$GITHUB_OUTPUT"
           exit 0
@@ -543,20 +592,37 @@ runs:
           echo "::error::profile is required (set the action's \`profile\` input or MOLTNET_AGENT_PROFILE env)" >&2
           exit 1
         fi
-        echo "task-id=$TASK_ID" >> "$GITHUB_OUTPUT"
+        echo "task-id=${TASK_ID:-}" >> "$GITHUB_OUTPUT"
 
         daemon_args=(
-          "${{ inputs.mode }}"
-          --task-id "$TASK_ID"
+          "$DAEMON_MODE"
           --agent "$MOLTNET_AGENT_NAME"
           --profile "$PROFILE"
         )
+        if [ "$DAEMON_MODE" = "once" ]; then
+          daemon_args+=(--task-id "$TASK_ID")
+        else
+          if [ -n "$TASK_TYPES" ]; then
+            daemon_args+=(--task-types "$TASK_TYPES")
+          fi
+          if [ -n "$CORRELATION_ID" ]; then
+            daemon_args+=(--correlation-id "$CORRELATION_ID")
+          fi
+          daemon_args+=(--wait-for-first-task-sec "$WAIT_FOR_FIRST_TASK_SEC")
+          daemon_args+=(--wait-after-task-sec "$WAIT_AFTER_TASK_SEC")
+        fi
         if [ -n "${MOLTNET_TEAM_ID:-}" ]; then
           daemon_args+=(--team "$MOLTNET_TEAM_ID")
         fi
 
-        npx -y @themoltnet/agent-daemon@${{ inputs.daemon-version }} \
-          "${daemon_args[@]}"
+        if [ "$DAEMON_VERSION" = "workspace" ]; then
+          pnpm exec nx run @themoltnet/agent-daemon:build
+          node "$GITHUB_WORKSPACE/apps/agent-daemon/dist/main.js" \
+            "${daemon_args[@]}"
+        else
+          npx -y "@themoltnet/agent-daemon@$DAEMON_VERSION" \
+            "${daemon_args[@]}"
+        fi
 
     # Save the gondolin snapshot built by the daemon. `if: always()`
     # so we still upload the snapshot when the LLM call fails post-

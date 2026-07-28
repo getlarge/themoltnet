@@ -15,6 +15,7 @@ import {
 } from '@themoltnet/pi-extension';
 
 import { activatePiCodingAgentDir, loadConfig } from '../config.js';
+import { abortActiveAttemptOnSignal } from '../lib/abort-active-attempt.js';
 import {
   resolveAgentContext,
   validateStartupBinding,
@@ -59,6 +60,7 @@ import {
   resolveRuntimeSessionKind,
 } from '../lib/runtime-sessions.js';
 import { createApiRuntimeSlotStore } from '../lib/runtime-slots.js';
+import { redactRequiredEnvValues } from '../lib/secret-redaction.js';
 import { resolveLatestPiSessionPath } from '../lib/session-files.js';
 import { installShutdownSignalHandlers } from '../lib/shutdown-signal.js';
 import { createApiSourceAttemptResolver } from '../lib/source-attempts.js';
@@ -99,7 +101,10 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       ...commonOptionDefs(),
       team: { type: 'string' },
       'task-types': { type: 'string' },
+      'correlation-id': { type: 'string' },
       'diary-ids': { type: 'string' },
+      'wait-for-first-task-sec': { type: 'string' },
+      'wait-after-task-sec': { type: 'string' },
       'poll-interval-ms': { type: 'string' },
       'max-poll-interval-ms': { type: 'string' },
       'list-limit': { type: 'string' },
@@ -152,6 +157,26 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     30_000,
   );
   const listLimit = optionalPositiveInt(values['list-limit'], 'list-limit', 10);
+  const waitForFirstTaskSec = optionalNonNegativeInt(
+    values['wait-for-first-task-sec'],
+    'wait-for-first-task-sec',
+    0,
+  );
+  const waitAfterTaskSec = optionalNonNegativeInt(
+    values['wait-after-task-sec'],
+    'wait-after-task-sec',
+    0,
+  );
+  if (
+    !opts.stopWhenEmpty &&
+    (waitForFirstTaskSec > 0 || waitAfterTaskSec > 0)
+  ) {
+    console.error(
+      `[${opts.modeLabel}] --wait-for-first-task-sec and ` +
+        '--wait-after-task-sec are only valid with drain.',
+    );
+    return 1;
+  }
 
   if (values.sandbox) {
     console.error(
@@ -175,6 +200,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
   );
   const ctx = await resolveAgentContext(baseCommon.agent, {
     agentRootDir,
+    allowMissingConfig: cfg.authMode === 'agent-key',
   });
   // Fail fast, before polling, on a rejected or wrong-team credential. In
   // agent-key mode this turns an obscure mid-poll 401/403 into an actionable
@@ -296,26 +322,26 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       runtime?.stop(`agent-daemon received ${signal}`);
       // Abort the active attempt rather than letting it lease-expire. The
       // task requeues for another daemon / retry; it is NOT cancelled.
-      if (active === null) return;
-      const { taskId, attemptN } = active;
-      void ctx.agent.tasks
-        .abortAttempt(taskId, attemptN, {
-          reason: `runner_${signal.toLowerCase()}`,
-        })
-        .catch((err: unknown) => {
+      void abortActiveAttemptOnSignal({
+        active,
+        signal,
+        abortAttempt: (taskId, attemptN, body) =>
+          ctx.agent.tasks.abortAttempt(taskId, attemptN, body),
+        logFailure: (err, current) => {
           try {
             rootLogger.warn(
               {
                 err: err instanceof Error ? err.message : String(err),
-                taskId,
-                attemptN,
+                taskId: current.taskId,
+                attemptN: current.attemptN,
               },
               'agent-daemon.abort_on_signal_failed',
             );
           } catch {
             // best-effort logging; never block SIGKILL deadline
           }
-        });
+        },
+      });
     },
   });
 
@@ -325,6 +351,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       subjectType: startupWhoami.subjectType,
       boundTeamId: startupWhoami.credentialBinding?.boundTeamId ?? null,
       taskTypes: taskTypes.length > 0 ? taskTypes : ['*'],
+      correlationId: values['correlation-id'] ?? null,
       diaryIds: diaryIds.length > 0 ? diaryIds : ['*'],
       pollIntervalMs,
       maxPollIntervalMs,
@@ -419,6 +446,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         agent: ctx.agent,
         teamId,
         taskTypes: taskTypes.length > 0 ? taskTypes : undefined,
+        correlationId: values['correlation-id'],
         profiles: profiles.map((profile) => ({
           profileId: profile.id,
           leaseTtlSec: requireRuntime(runtimes, profile.id).common.leaseTtlSec,
@@ -430,6 +458,8 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         maxPollIntervalMs,
         signal: abort.signal,
         stopWhenEmpty: opts.stopWhenEmpty,
+        waitForFirstTaskMs: waitForFirstTaskSec * 1_000,
+        waitAfterTaskMs: waitAfterTaskSec * 1_000,
         debug: baseCommon.debug,
         logger: rootLogger,
         // Warm-resume affinity: skip continuations whose source warm
@@ -466,7 +496,11 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
           claimedTask.task.id,
           claimedTask.attemptN,
         );
-        let terminalOutput = output;
+        let terminalOutput = redactRequiredEnvValues(
+          output,
+          selected.profile.requiredEnv,
+          cfg.profilePrerequisiteEnv,
+        );
         if (resolved?.session?.sessionDir) {
           try {
             const parentSession = await resolveParentRuntimeSession(
@@ -492,7 +526,10 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
               },
               'agent-daemon.runtime_session_upload_failed',
             );
-            terminalOutput = applyRuntimeSessionUploadFailure(output, err);
+            terminalOutput = applyRuntimeSessionUploadFailure(
+              terminalOutput,
+              err,
+            );
           }
         }
         return finalizeTask(ctx.agent, terminalOutput, {
@@ -805,6 +842,21 @@ function optionalPositiveInt(
   const v = Number(raw);
   if (!Number.isInteger(v) || v < 1) {
     throw new Error(`Invalid --${name} "${raw}": must be a positive integer`);
+  }
+  return v;
+}
+
+function optionalNonNegativeInt(
+  raw: string | undefined,
+  name: string,
+  defaultValue: number,
+): number {
+  if (raw === undefined) return defaultValue;
+  const v = Number(raw);
+  if (!Number.isInteger(v) || v < 0) {
+    throw new Error(
+      `Invalid --${name} "${raw}": must be a non-negative integer`,
+    );
   }
   return v;
 }

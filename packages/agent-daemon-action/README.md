@@ -2,7 +2,7 @@
 
 GitHub composite action that runs
 [`@themoltnet/agent-daemon`](../../apps/agent-daemon) against a MoltNet task.
-Three modes:
+Four invocation shapes:
 
 1. **Mention-driven dispatch** _(default)_ — leave `task-id` empty. On an
    `issue_comment` trigger the action parses the comment for
@@ -17,6 +17,11 @@ Three modes:
    merged with the action's `tags` input and forwarded to `moltnet task create`.
 3. **Explicit task** — supply `task-id`. The action skips task creation
    and runs the daemon against the provided id.
+4. **Correlated drain** — set `mode: drain`, `task-types`, and
+   `correlation-id`. No task id is required. `wait-for-first-task-sec` prevents
+   an ephemeral worker from exiting before a parallel orchestrator creates the
+   run's first task. `wait-after-task-sec` keeps it alive across dependency
+   gaps before follow-up tasks are queued.
 
 ## Usage
 
@@ -29,6 +34,10 @@ Three modes:
     skip-validation: 'false' # only applies with task-spec-path
     max-attempts: '2' # optional task-level retry budget
     mode: once # once | drain (poll disallowed in CI)
+    task-types: freeform # drain only
+    correlation-id: ${{ needs.prepare.outputs.correlation-id }} # drain only
+    wait-for-first-task-sec: '300' # drain only
+    wait-after-task-sec: '300' # drain only
     daemon-version: latest
     # Required — runtime profile UUID or team-scoped name.
     # Equivalently set MOLTNET_AGENT_PROFILE on `env:` below.
@@ -105,12 +114,18 @@ The caller workflow owns the `environment:` binding and maps environment
 variables/secrets into `env:`. This action only consumes the inherited process
 environment; it does not and cannot choose a GitHub Environment.
 
+For CI-only workers, `MOLTNET_AGENT_KEY` is an alternative to the OAuth and
+identity-materialization fields below. When it is present, the action uses the
+SDK's configless agent-key path and does not create `moltnet.json`; set
+`MOLTNET_AGENT_NAME`, `MOLTNET_TEAM_ID`, and `MOLTNET_API_URL` alongside it.
+
 The exception is `MOLTNET_AGENT_ALLOWLIST` — see [Multi-agent
 routing](#multi-agent-routing) below.
 
 | Name                                                                                                                                  | Kind     | Purpose                                                                                                                                                                                                                                           |
 | ------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `MOLTNET_AGENT_NAME`                                                                                                                  | variable | Agent name (matches `.moltnet/<name>/`).                                                                                                                                                                                                          |
+| `MOLTNET_AGENT_KEY`                                                                                                                   | secret   | _Alternative to OAuth fields._ Revocable agent bearer key, preferably bound to `MOLTNET_TEAM_ID`. Enables configless CI daemon startup.                                                                                                           |
 | `MOLTNET_IDENTITY_ID`                                                                                                                 | secret   | Agent's MoltNet identity UUID.                                                                                                                                                                                                                    |
 | `MOLTNET_CLIENT_ID`                                                                                                                   | secret   | OAuth2 client id. The SDK reads it from env and runs the client_credentials flow.                                                                                                                                                                 |
 | `MOLTNET_CLIENT_SECRET`                                                                                                               | secret   | OAuth2 client secret.                                                                                                                                                                                                                             |

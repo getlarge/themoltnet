@@ -78,6 +78,7 @@ Optional:
   --task-types <csv>          Whitelist of task types to claim. Default:
                               accept any registered type. Known types:
                               ${knownTaskTypesList()}
+  --correlation-id <uuid>     Restrict claims to one orchestration run.
   --diary-ids <csv>           Further client-side filter on task.diaryId.
   --poll-interval-ms <n>      Idle backoff floor. Default: 2000.
   --max-poll-interval-ms <n>  Idle backoff ceiling. Default: 30000.
@@ -134,6 +135,12 @@ ${COMMON_REQUIRED_FLAGS}
 
 Optional:
   --task-types <csv>          Whitelist. Known types: ${knownTaskTypesList()}
+  --correlation-id <uuid>     Restrict claims to one orchestration run.
+  --wait-for-first-task-sec <n>
+                              Wait this long for an initially empty run before
+                              exiting. After the first claim, exit on empty.
+  --wait-after-task-sec <n>   Require the queue to remain empty for this long
+                              after a claim before exiting.
   --diary-ids <csv>           Diary filter.
   --poll-interval-ms <n>      Default: 2000.
   --max-poll-interval-ms <n>  Default: 30000.

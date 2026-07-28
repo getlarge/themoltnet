@@ -119,6 +119,182 @@ describe('PollingApiTaskSource', () => {
     await expect(src.claim()).resolves.toBeNull();
   });
 
+  it('logs why drain exits before any task is claimed', async () => {
+    vi.useFakeTimers();
+    const info = vi.fn();
+    const logger: AgentRuntimeLogger = {
+      ...silentLogger,
+      info,
+      child: () => silentLogger,
+    };
+    logger.child = () => logger;
+    const list = vi
+      .fn<TasksNamespace['list']>()
+      .mockResolvedValue({ items: [], total: 0 });
+    const src = new PollingApiTaskSource({
+      agent: makeAgent(list, vi.fn()),
+      teamId: 't',
+      correlationId: 'run-empty',
+      leaseTtlSec: 60,
+      stopWhenEmpty: true,
+      waitForFirstTaskMs: 100,
+      pollIntervalMs: 10,
+      maxPollIntervalMs: 10,
+      logger,
+    });
+
+    const pending = src.claim();
+    await vi.advanceTimersByTimeAsync(110);
+    await expect(pending).resolves.toBeNull();
+    expect(info).toHaveBeenCalledWith(
+      expect.objectContaining({
+        correlationId: 'run-empty',
+        reason: 'first_task_timeout',
+        hasClaimedTask: false,
+      }),
+      'polling-api.drain_complete',
+    );
+    vi.useRealTimers();
+  });
+
+  it('logs why drain exits after the post-task idle grace', async () => {
+    vi.useFakeTimers();
+    const info = vi.fn();
+    const logger: AgentRuntimeLogger = {
+      ...silentLogger,
+      info,
+      child: () => silentLogger,
+    };
+    logger.child = () => logger;
+    const task = makeFulfillBriefTask({ status: 'queued' });
+    const list = vi
+      .fn<TasksNamespace['list']>()
+      .mockResolvedValueOnce({ items: [task], total: 1 })
+      .mockResolvedValue({ items: [], total: 0 });
+    const claim = vi.fn<TasksNamespace['claim']>().mockResolvedValue({
+      task,
+      attempt: { taskId: task.id, attemptN: 1 } as never,
+      traceHeaders: {},
+    });
+    const src = new PollingApiTaskSource({
+      agent: makeAgent(list, claim),
+      teamId: 't',
+      correlationId: 'run-drained',
+      leaseTtlSec: 60,
+      stopWhenEmpty: true,
+      waitAfterTaskMs: 100,
+      pollIntervalMs: 10,
+      maxPollIntervalMs: 10,
+      logger,
+    });
+
+    await expect(src.claim()).resolves.toMatchObject({ task: { id: task.id } });
+    const pending = src.claim();
+    await vi.advanceTimersByTimeAsync(110);
+    await expect(pending).resolves.toBeNull();
+    expect(info).toHaveBeenCalledWith(
+      expect.objectContaining({
+        correlationId: 'run-drained',
+        reason: 'post_task_idle',
+        hasClaimedTask: true,
+      }),
+      'polling-api.drain_complete',
+    );
+    vi.useRealTimers();
+  });
+
+  it('forwards correlationId to the task list filter', async () => {
+    const list = vi
+      .fn<TasksNamespace['list']>()
+      .mockResolvedValue({ items: [], total: 0 });
+
+    const src = new PollingApiTaskSource({
+      agent: makeAgent(list, vi.fn()),
+      teamId: 't',
+      correlationId: 'run-1721',
+      leaseTtlSec: 60,
+      stopWhenEmpty: true,
+    });
+
+    await expect(src.claim()).resolves.toBeNull();
+    expect(list).toHaveBeenCalledWith(
+      {
+        status: 'queued',
+        correlationId: 'run-1721',
+        limit: 10,
+      },
+      { teamId: 't' },
+    );
+  });
+
+  it('waits for the first correlated task before applying drain-on-empty', async () => {
+    const task = makeFulfillBriefTask({ status: 'queued' });
+    const list = vi
+      .fn<TasksNamespace['list']>()
+      .mockResolvedValueOnce({ items: [], total: 0 })
+      .mockResolvedValueOnce({ items: [task], total: 1 });
+    const claim = vi.fn<TasksNamespace['claim']>().mockResolvedValue({
+      task,
+      attempt: { taskId: task.id, attemptN: 1 } as never,
+      traceHeaders: {},
+    });
+
+    const src = new PollingApiTaskSource({
+      agent: makeAgent(list, claim),
+      teamId: 't',
+      leaseTtlSec: 60,
+      stopWhenEmpty: true,
+      waitForFirstTaskMs: 1_000,
+      pollIntervalMs: 1,
+      maxPollIntervalMs: 1,
+    });
+
+    const result = await src.claim();
+    expect(result?.task.id).toBe(task.id);
+    expect(list).toHaveBeenCalledTimes(2);
+  });
+
+  it('waits across an empty dependency gap after claiming a task', async () => {
+    const first = makeFulfillBriefTask({
+      id: '11111111-1111-4111-8111-111111111111',
+      status: 'queued',
+    });
+    const followUp = makeFulfillBriefTask({
+      id: '22222222-2222-4222-8222-222222222222',
+      status: 'queued',
+    });
+    const list = vi
+      .fn<TasksNamespace['list']>()
+      .mockResolvedValueOnce({ items: [first], total: 1 })
+      .mockResolvedValueOnce({ items: [], total: 0 })
+      .mockResolvedValueOnce({ items: [followUp], total: 1 });
+    const claim = vi
+      .fn<TasksNamespace['claim']>()
+      .mockImplementation(async (taskId) => ({
+        task: taskId === first.id ? first : followUp,
+        attempt: { taskId, attemptN: 1 } as never,
+        traceHeaders: {},
+      }));
+
+    const src = new PollingApiTaskSource({
+      agent: makeAgent(list, claim),
+      teamId: 't',
+      leaseTtlSec: 60,
+      stopWhenEmpty: true,
+      waitAfterTaskMs: 100,
+      pollIntervalMs: 1,
+      maxPollIntervalMs: 1,
+    });
+
+    await expect(src.claim()).resolves.toMatchObject({
+      task: { id: first.id },
+    });
+    await expect(src.claim()).resolves.toMatchObject({
+      task: { id: followUp.id },
+    });
+    expect(list).toHaveBeenCalledTimes(3);
+  });
+
   it('does NOT exit drain mode on a transient list error — keeps polling until queue is confirmed empty', async () => {
     // First list call rejects (transient 5xx), second call returns empty.
     // Drain mode must keep polling through the error rather than treating

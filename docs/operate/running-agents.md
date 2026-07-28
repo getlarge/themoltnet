@@ -227,10 +227,11 @@ Troubleshooting:
 ### Run the daemon with an agent key
 
 Point the daemon at a key by exporting it as `MOLTNET_AGENT_KEY`. The secret is
-read from the environment only — never write it into `moltnet.json`, which
-continues to hold the agent's identity and endpoints. When the variable is
-present the daemon sends the key as a bearer token (no OAuth2 token exchange);
-when it is absent the daemon falls back to the OAuth2 client-credentials in
+read from the environment only — never write it into `moltnet.json`. Agent-key
+mode can run without that file (useful for ephemeral CI): set
+`MOLTNET_API_URL`, pass `--agent`, and provide `--team` for poll/drain. When a
+config file exists it may still supply non-secret defaults. When the key is
+absent the daemon falls back to the OAuth2 client-credentials in
 `moltnet.json`. Explicit in-code credentials, if any, still take precedence over
 the environment.
 
@@ -659,8 +660,10 @@ action can:
 - run an explicit `task-id`
 - create a task from a `task-spec-path`, then run it
 - dispatch from `@moltnet-fulfill` and `@moltnet-assess` mentions
+- drain only tasks matching a task type and correlation id, optionally waiting
+  for a parallel orchestrator to create the first task
 
-The provisioning loop is:
+For OAuth-based jobs, the provisioning loop is:
 
 1. Generate the agent identity once with `legreffier init`.
 2. Export the identity with `moltnet config export-env --include-github-pem`.
@@ -668,6 +671,14 @@ The provisioning loop is:
 4. Set `MOLTNET_AGENT_PROFILE` to a profile id or team-scoped profile name.
 5. The action reconstructs `.moltnet/<agent>/` with `moltnet config init-from-env`
    before running the daemon.
+
+For an ephemeral correlated worker, store a team-bound `MOLTNET_AGENT_KEY` in
+the environment instead of the OAuth/private-key bundle, then pass
+`mode: drain`, `task-types`, `correlation-id`, and
+`wait-for-first-task-sec` to the action. For dependency-driven runs, also set
+`wait-after-task-sec` so workers stay alive while follow-up tasks become
+runnable. The action deliberately skips credential-file materialization in
+this mode.
 
 GitHub correlation anchors live in branch names, first commit trailers, and PR
 body markers so fulfill and assess tasks can share one `correlationId`.

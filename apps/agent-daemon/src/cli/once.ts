@@ -13,6 +13,7 @@ import {
 } from '@themoltnet/pi-extension';
 
 import { activatePiCodingAgentDir, loadConfig } from '../config.js';
+import { abortActiveAttemptOnSignal } from '../lib/abort-active-attempt.js';
 import {
   resolveAgentContext,
   validateStartupBinding,
@@ -55,6 +56,7 @@ import {
   resolveRuntimeSessionKind,
 } from '../lib/runtime-sessions.js';
 import { createApiRuntimeSlotStore } from '../lib/runtime-slots.js';
+import { redactRequiredEnvValues } from '../lib/secret-redaction.js';
 import { resolveLatestPiSessionPath } from '../lib/session-files.js';
 import { installShutdownSignalHandlers } from '../lib/shutdown-signal.js';
 import { createApiSourceAttemptResolver } from '../lib/source-attempts.js';
@@ -295,17 +297,17 @@ export async function runOnce(argv: string[]): Promise<number> {
       runtime?.stop(`agent-daemon received ${signal}`);
       // No attempt in flight (claim loop idle / already settled): nothing
       // to abort, and the server has no running attempt to target.
-      if (activeAttemptN === null) return;
-      const attemptN = activeAttemptN;
       // Fire-and-forget: abort reaches the workflow and surfaces back
       // through the reporter's `cancelSignal`, which pi-extension uses
       // to abort the LLM session. We don't await — SIGKILL deadline is
       // 5 min away and the executor needs every second.
-      void ctx.agent.tasks
-        .abortAttempt(taskId, attemptN, {
-          reason: `runner_${signal.toLowerCase()}`,
-        })
-        .catch((err: unknown) => {
+      void abortActiveAttemptOnSignal({
+        active:
+          activeAttemptN === null ? null : { taskId, attemptN: activeAttemptN },
+        signal,
+        abortAttempt: (activeTaskId, attemptN, body) =>
+          ctx.agent.tasks.abortAttempt(activeTaskId, attemptN, body),
+        logFailure: (err, current) => {
           // Abort-on-already-terminal returns a 4xx; ignore. Other
           // errors are visible in the daemon log but shouldn't block
           // SIGKILL — the server's lease check is the backstop.
@@ -313,8 +315,8 @@ export async function runOnce(argv: string[]): Promise<number> {
             rootLogger.warn(
               {
                 err: err instanceof Error ? err.message : String(err),
-                taskId,
-                attemptN,
+                taskId: current.taskId,
+                attemptN: current.attemptN,
               },
               'agent-daemon.abort_on_signal_failed',
             );
@@ -325,7 +327,8 @@ export async function runOnce(argv: string[]): Promise<number> {
                 '\n',
             );
           }
-        });
+        },
+      });
     },
   });
 
@@ -486,7 +489,11 @@ export async function runOnce(argv: string[]): Promise<number> {
           claimedTask.task.id,
           claimedTask.attemptN,
         );
-        let terminalOutput = output;
+        let terminalOutput = redactRequiredEnvValues(
+          output,
+          profile.requiredEnv,
+          cfg.profilePrerequisiteEnv,
+        );
         if (resolved?.session?.sessionDir) {
           try {
             const parentSession = await resolveParentRuntimeSession(
@@ -512,7 +519,10 @@ export async function runOnce(argv: string[]): Promise<number> {
               },
               'agent-daemon.runtime_session_upload_failed',
             );
-            terminalOutput = applyRuntimeSessionUploadFailure(output, err);
+            terminalOutput = applyRuntimeSessionUploadFailure(
+              terminalOutput,
+              err,
+            );
           }
         }
         return finalizeTask(ctx.agent, terminalOutput, {
