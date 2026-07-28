@@ -628,5 +628,8 @@ describe('effective policy snapshot hashing', () => {
     expect(hashEffectivePolicySnapshot(first)).toBe(
       hashEffectivePolicySnapshot(second),
     );
+    expect(hashEffectivePolicySnapshot(first)).toBe(
+      'sha256:af0925235fa11f26096706b98ea55d9e641483f8bdf0107f45e4157ed26549ab',
+    );
   });
 });
