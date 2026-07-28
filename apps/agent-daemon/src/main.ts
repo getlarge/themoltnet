@@ -4,8 +4,20 @@ import './instrumentation.js';
 
 import { runAgentDaemonCli } from './cli.js';
 import { defaultPiDaemonAdapter } from './pi.js';
+import {
+  extractRuntimeModule,
+  loadDaemonRuntimeAdapter,
+} from './runtime-loader.js';
 
-runAgentDaemonCli({ runtime: defaultPiDaemonAdapter })
+async function main(): Promise<number> {
+  const selection = extractRuntimeModule(process.argv.slice(2));
+  const runtime = selection.specifier
+    ? await loadDaemonRuntimeAdapter(selection.specifier)
+    : defaultPiDaemonAdapter;
+  return runAgentDaemonCli({ runtime, argv: selection.argv });
+}
+
+main()
   .then((code) => {
     process.exitCode = code;
   })

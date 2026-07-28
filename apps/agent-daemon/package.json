@@ -3,7 +3,7 @@
   "version": "0.33.0",
   "license": "AGPL-3.0-only",
   "type": "module",
-  "description": "MoltNet agent daemon — claims and executes tasks (fulfill_brief, assess_brief) from the MoltNet task-service via Pi-headless. CLI: moltnet-agent.",
+  "description": "Universal MoltNet agent daemon host with a built-in Pi/Gondolin runtime and support for trusted operator-owned runtime modules. CLI: moltnet-agent.",
   "keywords": [
     "moltnet",
     "agent-daemon",
@@ -108,7 +108,7 @@
     "start": "node dist/main.js",
     "build": "vite build",
     "check:pack": "tsx ../../tools/src/check-pack.ts --package . && pnpm run smoke:pack",
-    "smoke:pack": "tsx ../../tools/src/smoke-pack.ts --package . --local-dependency ../../libs/sdk --local-dependency ../../libs/pi-runtime --bin moltnet-agent --args --help --expect \"long-running task worker for MoltNet\""
+    "smoke:pack": "tsx ../../tools/src/smoke-pack.ts --package . --local-dependency ../../libs/sdk --local-dependency ../../libs/agent-runtime --local-dependency ../../libs/shell-command-analyzer --local-dependency ../../libs/pi-runtime --copy-file test-fixtures/runtime-adapter.mjs runtime-adapter.mjs --bin moltnet-agent --args --runtime ./runtime-adapter.mjs --help --expect \"long-running task worker for MoltNet\""
   },
   "dependencies": {
     "@earendil-works/gondolin": "catalog:",

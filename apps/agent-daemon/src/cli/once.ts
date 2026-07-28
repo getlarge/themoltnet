@@ -60,7 +60,10 @@ import { createApiSourceAttemptResolver } from '../lib/source-attempts.js';
 import { ensureDaemonStateDirs } from '../lib/state-dir.js';
 import { makeTurnEventHandler } from '../lib/turn-event-logger.js';
 import { defaultPiDaemonAdapter } from '../pi.js';
-import type { DaemonRuntimeAdapter } from '../runtime.js';
+import {
+  assertRuntimeAdapterSupportsProfile,
+  type DaemonRuntimeAdapter,
+} from '../runtime.js';
 
 export async function runOnce(
   argv: string[],
@@ -133,6 +136,7 @@ export async function runOnce(
     teamId: values.team,
     cwd: ctx.agentRootDir,
   });
+  assertRuntimeAdapterSupportsProfile(runtimeAdapter, profile);
   const preparedRuntime = await runtimeAdapter.prepare({
     profile,
     configDir: ctx.agentDir,

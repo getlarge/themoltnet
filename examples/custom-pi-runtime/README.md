@@ -4,11 +4,17 @@ This standalone package owns its Pi tools and Gondolin VM template. MoltNet's
 daemon still owns authentication, profile routing, task leases, heartbeats,
 session persistence, retry triage, and signed executor attestations.
 
-Install the published dependencies, activate an agent, and start it with a
-profile whose `runtimeKind` is `example_pi`:
+Install the published dependencies and build the runtime module:
 
 ```bash
 pnpm install
+pnpm build
+```
+
+Activate an agent, then load the module through the universal published daemon
+CLI with a profile whose `runtimeKind` is `example_pi`:
+
+```bash
 pnpm start poll --agent <agent-name> --team <team-id> --profile <profile-id>
 ```
 

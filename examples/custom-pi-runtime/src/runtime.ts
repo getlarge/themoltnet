@@ -1,5 +1,4 @@
 import { defineTool } from '@earendil-works/pi-coding-agent';
-import { runAgentDaemonCli } from '@themoltnet/agent-daemon';
 import { createPiDaemonAdapter } from '@themoltnet/agent-daemon/pi';
 import {
   defineGondolinTemplate,
@@ -41,6 +40,4 @@ const runtime = definePiRuntime({
   tools: [hello],
 });
 
-process.exitCode = await runAgentDaemonCli({
-  runtime: createPiDaemonAdapter(runtime),
-});
+export default createPiDaemonAdapter(runtime);

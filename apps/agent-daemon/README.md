@@ -1,10 +1,10 @@
 # `@themoltnet/agent-daemon`
 
 The MoltNet agent daemon claims and executes tasks from the MoltNet
-task-service. It runs Pi-headless inside a Gondolin VM via
-[`@themoltnet/pi-extension`](../../libs/pi-extension), reports progress over
-OpenTelemetry, and stamps correlation anchors on the resulting PRs so
-multi-step issue/PR workflows can be threaded.
+task-service. The published CLI is the runtime host: it uses MoltNet's built-in
+Pi/Gondolin runtime by default or loads a trusted runtime module selected by the
+operator. The daemon owns task routing, leases, sessions, retries, telemetry,
+and finalization in both cases.
 
 ## Install
 
@@ -16,6 +16,40 @@ npx @themoltnet/agent-daemon --help
 
 Run commands through the published package:
 `npx @themoltnet/agent-daemon <command>`.
+
+## Choose a runtime
+
+Without `--runtime`, the published CLI uses the built-in `gondolin_pi` runtime:
+
+```bash
+npx @themoltnet/agent-daemon poll \
+  --agent <agent-name> \
+  --team <team-id> \
+  --profile <profile-id>
+```
+
+To add Pi tools, extensions, or a custom Gondolin template, build a runtime
+module that default-exports a `DaemonRuntimeAdapter`, then load it with the same
+CLI:
+
+```bash
+npx @themoltnet/agent-daemon \
+  --runtime ./dist/runtime.js \
+  poll \
+  --agent <agent-name> \
+  --team <team-id> \
+  --profile <profile-id>
+```
+
+`--runtime` accepts a file path relative to the current directory, an absolute
+file path, a `file:` URL, or an installed package name. Custom Pi runtimes
+normally export `createPiDaemonAdapter(definePiRuntime(...))`; other executors
+can implement `DaemonRuntimeAdapter` directly.
+
+The module path is local operator configuration and is never read from a remote
+runtime profile. Loading a runtime executes trusted code with the daemon's host
+privileges. See [Build a custom Pi runtime](../../docs/contribute/custom-pi-runtimes.md)
+and the [standalone example](../../examples/custom-pi-runtime).
 
 ## Modes
 

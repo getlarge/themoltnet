@@ -64,9 +64,10 @@ import { createApiSourceAttemptResolver } from '../lib/source-attempts.js';
 import { ensureDaemonStateDirs } from '../lib/state-dir.js';
 import { makeTurnEventHandlerFactory } from '../lib/turn-event-logger.js';
 import { defaultPiDaemonAdapter } from '../pi.js';
-import type {
-  DaemonRuntimeAdapter,
-  PreparedDaemonRuntime,
+import {
+  assertRuntimeAdapterSupportsProfile,
+  type DaemonRuntimeAdapter,
+  type PreparedDaemonRuntime,
 } from '../runtime.js';
 
 export interface PollSharedArgs {
@@ -222,6 +223,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
   const runtimeAdapter = opts.runtimeAdapter ?? defaultPiDaemonAdapter;
   const preparedRuntimes = new Map<string, PreparedDaemonRuntime>();
   for (const profile of profiles) {
+    assertRuntimeAdapterSupportsProfile(runtimeAdapter, profile);
     const prepared = await runtimeAdapter.prepare({
       profile,
       configDir: ctx.agentDir,

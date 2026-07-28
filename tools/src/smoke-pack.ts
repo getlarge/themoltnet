@@ -33,6 +33,8 @@
  *   --expect   substring that must appear in the bin's output (required)
  *   --local-dependency package directory to pack and install alongside the
  *                      target (repeatable; useful before a first publish)
+ *   --copy-file source and destination paths for a fixture copied into the
+ *               clean consumer project before the bin runs (repeatable)
  *
  * Set MOLTNET_SKIP_REGISTRY_SMOKE=1 in pre-merge CI. A coordinated release can
  * reference another workspace package version that is not on npm yet, so the
@@ -41,14 +43,16 @@
  */
 import { spawnSync } from 'node:child_process';
 import {
+  copyFileSync,
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import process from 'node:process';
 
 function parseFlags(argv: string[]): {
@@ -57,11 +61,13 @@ function parseFlags(argv: string[]): {
   args: string[];
   expect: string;
   localDependencies: string[];
+  copiedFiles: Array<{ source: string; destination: string }>;
 } {
   let pkg = '.';
   let bin = '';
   let expect = '';
   const localDependencies: string[] = [];
+  const copiedFiles: Array<{ source: string; destination: string }> = [];
   const args: string[] = [];
   for (let i = 0; i < argv.length; i++) {
     const flag = argv[i];
@@ -69,13 +75,22 @@ function parseFlags(argv: string[]): {
     else if (flag === '--bin') bin = argv[++i];
     else if (flag === '--expect') expect = argv[++i];
     else if (flag === '--local-dependency') localDependencies.push(argv[++i]);
-    else if (flag === '--args') {
+    else if (flag === '--copy-file') {
+      copiedFiles.push({
+        source: argv[++i],
+        destination: argv[++i],
+      });
+    } else if (flag === '--args') {
       // consume the rest until the next recognised flag
       while (
         i + 1 < argv.length &&
-        !['--package', '--bin', '--expect', '--local-dependency'].includes(
-          argv[i + 1],
-        )
+        ![
+          '--package',
+          '--bin',
+          '--expect',
+          '--local-dependency',
+          '--copy-file',
+        ].includes(argv[i + 1])
       ) {
         args.push(argv[++i]);
       }
@@ -87,10 +102,11 @@ function parseFlags(argv: string[]): {
     args: args.length ? args : ['--help'],
     expect,
     localDependencies,
+    copiedFiles,
   };
 }
 
-const { pkg, bin, args, expect, localDependencies } = parseFlags(
+const { pkg, bin, args, expect, localDependencies, copiedFiles } = parseFlags(
   process.argv.slice(2),
 );
 
@@ -210,6 +226,22 @@ if (install.status !== 0) {
   const out = `${install.stdout}${install.stderr}`;
   cleanup();
   fail('npm install of the packed tarball failed', out);
+}
+
+for (const { source, destination } of copiedFiles) {
+  const sourcePath = resolve(pkgDir, source);
+  const destinationPath = resolve(installDir, destination);
+  const relativeDestination = relative(installDir, destinationPath);
+  if (relativeDestination.startsWith('..') || isAbsolute(relativeDestination)) {
+    cleanup();
+    fail(`fixture destination must stay inside the consumer project`);
+  }
+  if (!existsSync(sourcePath)) {
+    cleanup();
+    fail(`fixture source ${sourcePath} does not exist`);
+  }
+  mkdirSync(dirname(destinationPath), { recursive: true });
+  copyFileSync(sourcePath, destinationPath);
 }
 
 // 3. Run the bin. This loads the full module graph, evaluating every top-level

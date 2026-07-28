@@ -25,3 +25,15 @@ export interface DaemonRuntimeAdapter {
     onProgress?: (message: string) => void;
   }): Promise<PreparedDaemonRuntime>;
 }
+
+export function assertRuntimeAdapterSupportsProfile(
+  adapter: DaemonRuntimeAdapter,
+  profile: { id: string; runtimeKind: string },
+): void {
+  if (profile.runtimeKind !== adapter.runtimeKind) {
+    throw new Error(
+      `Runtime profile ${profile.id} requires "${profile.runtimeKind}", ` +
+        `but this daemon adapter provides "${adapter.runtimeKind}".`,
+    );
+  }
+}

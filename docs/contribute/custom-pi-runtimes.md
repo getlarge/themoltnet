@@ -7,7 +7,8 @@ installation or bootstrap channel.
 
 Start from
 [`examples/custom-pi-runtime`](https://github.com/getlarge/themoltnet/tree/main/examples/custom-pi-runtime).
-The core API is deliberately small:
+The runtime module default-exports the adapter consumed by the universal daemon
+CLI:
 
 ```ts
 const runtime = definePiRuntime({
@@ -27,9 +28,36 @@ const runtime = definePiRuntime({
   extensions: [definePiExtension(myExtension)],
 });
 
-await runAgentDaemonCli({
-  runtime: createPiDaemonAdapter(runtime),
-});
+export default createPiDaemonAdapter(runtime);
+```
+
+Build the module, then run it through the published daemon:
+
+```bash
+npx @themoltnet/agent-daemon \
+  --runtime ./dist/runtime.js \
+  poll \
+  --agent <agent-name> \
+  --team <team-id> \
+  --profile <profile-id>
+```
+
+The runtime can also be an installed package name. Package resolution starts
+from the operator's current project, so the runtime and its dependencies remain
+under local deployment control. If the package uses conditional exports, expose
+its runtime entry through the `default` condition so Node can resolve it from
+the host CLI:
+
+```json
+{
+  "exports": {
+    ".": {
+      "default": "./dist/runtime.js",
+      "import": "./dist/runtime.js",
+      "types": "./dist/runtime.d.ts"
+    }
+  }
+}
 ```
 
 `definePiTool` accepts a normal Pi `ToolDefinition` or a factory that receives
@@ -63,15 +91,20 @@ upload the manifest again.
 
 The daemon still owns task routing, leases, heartbeats, cancellation, warm
 sessions, continuation state, retries, output validation, and finalization.
-Runtime authors do not copy `executePiTask` or the polling loop.
+Runtime authors do not create a launcher or copy `executePiTask` or the polling
+loop.
+
+`--runtime` is intentionally local-only. A remote profile selects
+`runtimeKind` and declares requirements, but cannot name, install, or update a
+runtime module. The loaded adapter must match the selected profile's
+`runtimeKind`.
 
 ## Profile v2 migration
 
-Apply migrations `0036` and `0037` before deploying profile-v2 writers.
-Migration `0036` intentionally retains the retired enum type so a rolling
-deployment never depends on an immediately destructive type drop. Migration
-`0037` marks existing profiles as definition version 1; new API writes use
-version 2.
+Apply migration `0036` before deploying profile-v2 writers. It intentionally
+retains the retired enum type so a rolling deployment never depends on an
+immediately destructive type drop. Existing profiles remain definition version
+1; new API writes use version 2.
 
 Quiesce legacy daemons before the backfill. A v2 daemon deliberately refuses
 definition-v1 profiles, and the REST API refuses to patch them, so no old
