@@ -18,7 +18,8 @@ import (
 )
 
 var regexMap = map[string]ogenregex.Regexp{
-	"\\S": ogenregex.MustCompile("\\S"),
+	"\\S":                                    ogenregex.MustCompile("\\S"),
+	"^(?!.*[\\r\\n])[a-zA-Z0-9_.:-]{1,128}$": ogenregex.MustCompile("^(?!.*[\\r\\n])[a-zA-Z0-9_.:-]{1,128}$"),
 	"^(?:\\*\\.)?(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)(?:\\.(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?))*$": ogenregex.MustCompile("^(?:\\*\\.)?(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)(?:\\.(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?))*$"),
 	"^[0-9]+[KMG]?$": ogenregex.MustCompile("^[0-9]+[KMG]?$"),
 	"^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$": ogenregex.MustCompile("^[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}$"),
