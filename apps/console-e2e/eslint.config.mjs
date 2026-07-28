@@ -6,6 +6,12 @@ export default [
   ...baseConfig,
   {
     files: ['**/*.ts'],
-    rules: {},
+    rules: {
+      // Playwright setup is the configuration boundary and runs in Node even
+      // though it exercises the browser-tagged console project.
+      '@nx/enforce-module-boundaries': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      'no-restricted-syntax': 'off',
+    },
   },
 ];

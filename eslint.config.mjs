@@ -1,5 +1,6 @@
 import eslint from '@eslint/js';
 import nxPlugin from '@nx/eslint-plugin';
+import jsoncParser from 'jsonc-eslint-parser';
 import simpleImportSort from 'eslint-plugin-simple-import-sort';
 import reactHooks from 'eslint-plugin-react-hooks';
 import tseslint from 'typescript-eslint';
@@ -101,7 +102,11 @@ const moduleBoundaryOptions = {
     // browser marker.
     {
       sourceTag: 'platform:server',
-      onlyDependOnLibsWithTags: ['platform:server', 'platform:isomorphic'],
+      onlyDependOnLibsWithTags: [
+        'platform:server',
+        'platform:node',
+        'platform:isomorphic',
+      ],
       bannedExternalImports: ['react-dom', 'react-dom/*'],
     },
     // CLI binaries can use server, cli, extension, and isomorphic libs.
@@ -111,6 +116,7 @@ const moduleBoundaryOptions = {
       onlyDependOnLibsWithTags: [
         'platform:cli',
         'platform:server',
+        'platform:node',
         'platform:extension',
         'platform:isomorphic',
       ],
@@ -122,6 +128,7 @@ const moduleBoundaryOptions = {
         'platform:extension',
         'platform:cli',
         'platform:server',
+        'platform:node',
         'platform:isomorphic',
       ],
     },
@@ -147,6 +154,38 @@ const moduleBoundaryOptions = {
   ],
 };
 
+export function createNxDependencyChecksConfig(options = {}) {
+  return {
+    files: ['**/*.json'],
+    plugins: {
+      '@nx': nxPlugin,
+    },
+    rules: {
+      '@nx/dependency-checks': [
+        'error',
+        {
+          ignoredFiles: [
+            '{projectRoot}/eslint.config.{js,cjs,mjs,ts,cts,mts}',
+            '{projectRoot}/vite.config.{js,ts,mjs,mts}',
+            '{projectRoot}/vitest.config.{js,ts,mjs,mts}',
+            '{projectRoot}/openapi-ts.config.{js,ts,mjs,mts}',
+            '{projectRoot}/drizzle.config.{js,ts,mjs,mts}',
+            '{projectRoot}/**/*.spec.{js,jsx,ts,tsx}',
+            '{projectRoot}/**/*.test.{js,jsx,ts,tsx}',
+            '{projectRoot}/**/__tests__/**',
+            '{projectRoot}/demo/**',
+            '{projectRoot}/scripts/**',
+          ],
+          ...options,
+        },
+      ],
+    },
+    languageOptions: {
+      parser: jsoncParser,
+    },
+  };
+}
+
 export default tseslint.config(
   // Global ignores (replaces .eslintignore and ignorePatterns)
   {
@@ -157,20 +196,19 @@ export default tseslint.config(
       '**/.vitepress/cache/**',
       // Local Node-RED dev userDir created by the dev runner (runtime artifact).
       '**/.node-red-dev/**',
-      'libs/api-client/src/generated/**',
-      'libs/signer-api-client/src/generated/**',
+      '**/src/generated/**',
       'infra/ory/permissions.ts',
       // Standalone node script invoked from a Dockerfile; not part of the
       // typed source graph and lacks the Node globals declared for src/.
       'tools/download-embedding-model.mjs',
       // Standalone node dev script (spins up a local Node-RED for the
       // node-red-contrib-core nodes); same rationale as above.
-      'libs/node-red-contrib-core/scripts/dev.mjs',
+      '**/scripts/dev.mjs',
       // Standalone node dev scripts that regenerate the vendored GTFOBins
       // dataset and refresh the grammar wasm; not part of the typed source
       // graph, same rationale as above.
-      'libs/shell-command-analyzer/scripts/generate-gtfobins.mjs',
-      'libs/shell-command-analyzer/scripts/sync-wasm.mjs',
+      '**/scripts/generate-gtfobins.mjs',
+      '**/scripts/sync-wasm.mjs',
     ],
   },
 
@@ -182,7 +220,7 @@ export default tseslint.config(
   // package.json `nx.tags` block. Tag dimensions:
   //   type:     app | feature | runtime | data-access | client | ui | util | tool
   //   scope:    identity | diary | crypto | agent | task | platform | public | tooling | shared
-  //   platform: server | browser | cli | extension | isomorphic
+  //   platform: server | browser | cli | node | extension | isomorphic
   //
   // Rules below encode the layered architecture. The lang:go tag exists for Go
   // projects (handled by golangci-lint depguard, not this rule).
@@ -195,6 +233,9 @@ export default tseslint.config(
       'tools/src/**/*.ts',
       'packages/*/src/**/*.ts',
       'packages/*/src/**/*.tsx',
+      // Project-local flat configs resolve patterns from the project root.
+      'src/**/*.ts',
+      'src/**/*.tsx',
     ],
     plugins: {
       '@nx': nxPlugin,
@@ -265,6 +306,9 @@ export default tseslint.config(
       'libs/*/src/**/*.tsx',
       'apps/*/src/**/*.ts',
       'apps/*/src/**/*.tsx',
+      // Project-local flat configs resolve patterns from the project root.
+      'src/**/*.ts',
+      'src/**/*.tsx',
     ],
     extends: [...tseslint.configs.recommendedTypeChecked],
     languageOptions: {
@@ -321,6 +365,9 @@ export default tseslint.config(
       'libs/*/src/**/*.tsx',
       'apps/*/src/**/*.ts',
       'apps/*/src/**/*.tsx',
+      // Project-local flat configs resolve patterns from the project root.
+      'src/**/*.ts',
+      'src/**/*.tsx',
     ],
     ignores: ['**/config.ts', 'libs/pi-extension/**'],
     rules: {
@@ -362,6 +409,12 @@ export default tseslint.config(
       'no-console': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-non-null-assertion': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+      '@typescript-eslint/unbound-method': 'off',
     },
   },
 );

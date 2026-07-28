@@ -1,6 +1,8 @@
 import jsxA11y from 'eslint-plugin-jsx-a11y';
 
-import baseConfig from '../../eslint.config.mjs';
+import baseConfig, {
+  createNxDependencyChecksConfig,
+} from '../../eslint.config.mjs';
 
 export default [
   ...baseConfig,
@@ -17,4 +19,5 @@ export default [
       ...jsxA11y.flatConfigs.recommended.rules,
     },
   },
+  createNxDependencyChecksConfig(),
 ];
