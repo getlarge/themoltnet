@@ -403,7 +403,7 @@ jobs:
           echo "::error::nx-cloud start-ci-run failed after 3 attempts"
           exit 1
 
-      # Single distributed graph: lint/typecheck/test-ci/build AND
+      # Single distributed graph: lint/typecheck/test-ci/build/check:pack AND
       # docker:build (configuration=ci) all enter the SAME `nx affected` wave,
       # so Docker image builds run CONCURRENTLY with the rest across the agent
       # pool instead of waiting for the lint/test graph to drain first. Each
@@ -420,9 +420,14 @@ jobs:
       # @nx/vitest). Projects without per-file atomization (Go, vitest libs
       # without a config) declare test-ci as a noop depending on test, so a
       # single -t test-ci covers everything.
-      - name: Run affected lint, typecheck, test-ci, build, docker:build
+      - name: Run affected lint, typecheck, test-ci, build, check:pack, docker:build
         if: needs.affected.outputs.has-agents == 'true'
-        run: pnpm exec nx affected -t lint typecheck test-ci build docker:build --configuration=ci
+        env:
+          # Registry install smokes require coordinated workspace dependencies
+          # to have published first. Release jobs run those smokes in order;
+          # pre-merge CI still runs every package's tarball checks.
+          MOLTNET_SKIP_REGISTRY_SMOKE: '1'
+        run: pnpm exec nx affected -t lint typecheck test-ci build check:pack docker:build --configuration=ci
 
       # On main, refresh the moving :ci-main fallback for ALL e2e images (not
       # just affected) so PR e2e runs always have a complete, up-to-date image
