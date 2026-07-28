@@ -18,6 +18,13 @@ export interface RuntimeProfileRouting {
   synthesisProfileId?: string;
 }
 
+/** Metadata for a staged diff bound to each specialist task as input. */
+export interface ReviewDiffArtifact {
+  cid: string;
+  title: string;
+  contentType: string;
+}
+
 export interface MultiLensReviewInput {
   teamId: string;
   diaryId: string;
@@ -29,8 +36,10 @@ export interface MultiLensReviewInput {
   correlationId: string;
   /** What to review — a description, path(s), or context for the reviewers. */
   target: string;
-  /** Optional diff text embedded verbatim in each review prompt. */
+  /** Optional inline diff for library callers. Prefer {@link diffArtifact}. */
   diff?: string;
+  /** Staged diff metadata, bound once to each specialist review task. */
+  diffArtifact?: ReviewDiffArtifact;
   /** One review lens per parallel task. Defaults to {@link DEFAULT_LENSES}. */
   lenses?: string[];
   /** Instruction override for the joining synthesis task. */

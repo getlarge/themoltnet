@@ -12,13 +12,17 @@ under Absurd.
 
 ## How it works
 
-1. One `freeform` review task per lens is created (each prompted to report only
-   that lens's issues over the target/diff).
+1. The capped PR diff is staged once as a MoltNet input artifact, then the same
+   CID is bound to one `freeform` review task per lens. Prompt bodies contain
+   only artifact metadata, not repeated diff bytes.
 2. A synthesis continuation is declared **up front**, gated on all review task
    ids via a `joinCondition` — so it starts `waiting` and is promoted to
    `queued` only once every review is `completed`.
 3. The orchestrator awaits the reviews and the synthesis, then returns the
    per-lens findings plus the consolidated verdict.
+
+Every created task has a one-hour server expiry as a backstop for hard runner
+termination. Normal failed runs also cancel their remaining correlated tasks.
 
 The review and synthesis tasks are executed by agent-daemon workers draining the
 MoltNet task queue.
@@ -69,7 +73,10 @@ to create, bind, enforce, and verify the
 
 The initial deployment uses `ollama-cloud` / `glm-5.2:cloud`. Its policy must
 include `git` alongside the read and MoltNet inspection tools needed by the
-review prompt. Store the profile name in the protected environment variable
+review prompt. This deliberately accepts the current `git` escape surface until
+[argument-aware tool matching lands in #1725](https://github.com/getlarge/themoltnet/issues/1725);
+the daemon redacts exact required-environment secret values from terminal task
+outputs as defense in depth. Store the profile name in the protected environment variable
 `MOLTNET_MULTI_LENS_REVIEW_PROFILE`; provider credentials and the team-bound
 agent key remain protected environment secrets.
 

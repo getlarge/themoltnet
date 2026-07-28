@@ -7,6 +7,7 @@ import type {
 import { FakeTasks } from '@themoltnet/tasks-orchestrator/testing';
 import { describe, expect, it, vi } from 'vitest';
 
+import { MAX_REVIEW_DIFF_BYTES } from './diff-artifact.js';
 import { runMultiLensReview } from './workflow.js';
 
 /** Ids FakeTasks assigns, in creation order. */
@@ -275,6 +276,105 @@ describe('runMultiLensReview', () => {
     );
     const reviewInput = tasks.created[0].input as { brief: string };
     expect(reviewInput.brief).toContain('DIFF-MARKER');
+  });
+
+  it('binds one staged diff CID to every review without copying bytes into prompts', async () => {
+    const tasks = new FakeTasks([
+      { summary: 'r1' },
+      { summary: 'r2' },
+      { summary: 'v' },
+    ]);
+    await runMultiLensReview(
+      {
+        teamId: 't',
+        diaryId: 'd',
+        correlationId: 'artifact-review',
+        target: 'x',
+        lenses: ['security', 'correctness'],
+        diffArtifact: {
+          cid: 'bafkreidiff',
+          title: 'pull-request.diff',
+          contentType: 'text/x-diff',
+        },
+      },
+      { tasks },
+    );
+
+    for (const review of tasks.created.slice(0, 2)) {
+      expect(review.references).toEqual([
+        {
+          taskId: null,
+          role: 'context',
+          artifact: {
+            cid: 'bafkreidiff',
+            kind: 'input',
+            title: 'pull-request.diff',
+            contentType: 'text/x-diff',
+          },
+        },
+      ]);
+      expect((review.input as { brief: string }).brief).toContain(
+        'moltnet_download_task_artifact',
+      );
+    }
+    expect(tasks.created[2].references).toBeUndefined();
+  });
+
+  it('sets a one-hour expiry backstop on review and synthesis tasks', async () => {
+    const tasks = new FakeTasks([{ summary: 'r' }, { summary: 'v' }]);
+    await runMultiLensReview(
+      {
+        teamId: 't',
+        diaryId: 'd',
+        correlationId: 'expiring-review',
+        target: 'x',
+        lenses: ['security'],
+      },
+      { tasks },
+    );
+
+    expect(tasks.created.map((task) => task.expiresInSec)).toEqual([
+      3_600, 3_600,
+    ]);
+  });
+
+  it('rejects an oversized inline diff before creating tasks', async () => {
+    const tasks = new FakeTasks([]);
+    await expect(
+      runMultiLensReview(
+        {
+          teamId: 't',
+          diaryId: 'd',
+          correlationId: 'oversized-review',
+          target: 'x',
+          diff: 'x'.repeat(MAX_REVIEW_DIFF_BYTES + 1),
+        },
+        { tasks },
+      ),
+    ).rejects.toThrow(/exceeds the .*byte limit/);
+    expect(tasks.created).toHaveLength(0);
+  });
+
+  it('rejects simultaneous inline and staged diffs', async () => {
+    const tasks = new FakeTasks([]);
+    await expect(
+      runMultiLensReview(
+        {
+          teamId: 't',
+          diaryId: 'd',
+          correlationId: 'ambiguous-review',
+          target: 'x',
+          diff: 'inline',
+          diffArtifact: {
+            cid: 'bafkreidiff',
+            title: 'pull-request.diff',
+            contentType: 'text/x-diff',
+          },
+        },
+        { tasks },
+      ),
+    ).rejects.toThrow(/either diff or diffArtifact/);
+    expect(tasks.created).toHaveLength(0);
   });
 
   it('pins review and synthesis tasks to the routed runtime profiles', async () => {

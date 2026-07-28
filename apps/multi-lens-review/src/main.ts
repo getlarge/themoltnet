@@ -10,7 +10,9 @@ import {
   MULTI_LENS_REVIEW_TASK,
 } from './absurd.js';
 import { currentProcessEnv, HELP, parseCliConfig } from './config.js';
+import { stageReviewDiff } from './diff-artifact.js';
 import { resolveRuntimeProfileRouting } from './profile-routing.js';
+import { cancelCorrelatedTasks } from './run-cleanup.js';
 
 async function main(): Promise<number> {
   const parsed = parseCliConfig(process.argv.slice(2), {
@@ -38,31 +40,14 @@ async function main(): Promise<number> {
       cfg.profileRoutingRefs,
     );
   }
-  const TERMINAL_STATUSES = new Set([
-    'completed',
-    'failed',
-    'cancelled',
-    'aborted',
-    'timed_out',
-  ]);
-  // Cancel every non-terminal task sharing the correlation id (used to clean up
-  // a failed run's orphaned synthesis + in-flight reviews).
-  const cancelRun = async (correlationId: string): Promise<number> => {
-    const { items } = await agent.tasks.list({ correlationId }, { teamId });
-    let cancelled = 0;
-    for (const task of items) {
-      if (TERMINAL_STATUSES.has(task.status)) continue;
-      try {
-        await agent.tasks.cancel(task.id, {
-          reason: 'multi-lens-review run aborted',
-        });
-        cancelled += 1;
-      } catch {
-        // best-effort cleanup — ignore per-task cancel failures
-      }
-    }
-    return cancelled;
-  };
+  if (cfg.input.diff) {
+    cfg.input.diffArtifact = await stageReviewDiff(
+      agent,
+      teamId,
+      cfg.input.diff,
+    );
+    cfg.input.diff = undefined;
+  }
   const queueName = cfg.queueName ?? 'multi-lens-review';
   const app = createMultiLensReviewAbsurdApp({
     databaseUrl: cfg.databaseUrl,
@@ -94,7 +79,11 @@ async function main(): Promise<number> {
       // `waiting` forever) plus any in-flight reviews. Done here, at the terminal
       // outcome, NOT inside the workflow: a per-attempt cancel would cancel tasks
       // that an Absurd retry then replays via `ctx.step`.
-      const cancelled = await cancelRun(cfg.input.correlationId).catch(() => 0);
+      const cancelled = await cancelCorrelatedTasks(
+        agent,
+        teamId,
+        cfg.input.correlationId,
+      ).catch(() => 0);
       logger.warn(
         { correlationId: cfg.input.correlationId, cancelled },
         'multi_lens_review.run.cancelled',
