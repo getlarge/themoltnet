@@ -1,14 +1,20 @@
 package main
 
-import "github.com/spf13/cobra"
+import (
+	"os"
+	"strings"
+
+	"github.com/spf13/cobra"
+)
 
 // resolveAPIURL returns the effective MoltNet API base URL for a command.
 //
 // Precedence (highest first):
 //  1. --api-url, if explicitly set by the user on this invocation.
-//  2. endpoints.api from the resolved credentials file (credPath, or the
+//  2. MOLTNET_API_URL, if non-blank.
+//  3. endpoints.api from the resolved credentials file (credPath, or the
 //     auto-discovered default when credPath is empty).
-//  3. defaultAPIURL.
+//  4. defaultAPIURL.
 //
 // This exists so the credentials file is self-contained: an agent bootstrapped
 // against a non-default API (e.g. localhost) does not need to also remember
@@ -26,6 +32,9 @@ func resolveAPIURL(cmd *cobra.Command, credPath string) string {
 		if f := cmd.Flag("api-url"); f != nil && f.Changed {
 			return f.Value.String()
 		}
+	}
+	if apiURL := strings.TrimSpace(os.Getenv(apiURLEnv)); apiURL != "" {
+		return apiURL
 	}
 
 	var creds *CredentialsFile

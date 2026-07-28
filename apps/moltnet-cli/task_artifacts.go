@@ -64,7 +64,7 @@ type taskArtifactsDownloadOpts struct {
 }
 
 func runTaskArtifactsStageCmd(opts taskArtifactsStageOpts) error {
-	client, err := newClientFromCreds(opts.apiURL, opts.credPath)
+	client, err := newAuthenticatedClient(opts.apiURL, opts.credPath)
 	if err != nil {
 		return err
 	}
@@ -109,7 +109,7 @@ func buildStageTaskArtifactParams(opts taskArtifactsStageOpts) (moltnetapi.Stage
 }
 
 func runTaskArtifactsListCmd(opts taskArtifactsListOpts) error {
-	client, err := newClientFromCreds(opts.apiURL, opts.credPath)
+	client, err := newAuthenticatedClient(opts.apiURL, opts.credPath)
 	if err != nil {
 		return err
 	}
@@ -154,7 +154,7 @@ func buildListTaskArtifactsParams(opts taskArtifactsListOpts) (moltnetapi.ListTa
 }
 
 func runTaskArtifactsUploadCmd(opts taskArtifactsUploadOpts) error {
-	client, err := newClientFromCreds(opts.apiURL, opts.credPath)
+	client, err := newAuthenticatedClient(opts.apiURL, opts.credPath)
 	if err != nil {
 		return err
 	}
@@ -214,7 +214,7 @@ func buildUploadTaskArtifactParams(opts taskArtifactsUploadOpts) (moltnetapi.Upl
 }
 
 func runTaskArtifactsDownloadCmd(opts taskArtifactsDownloadOpts) error {
-	client, err := newClientFromCreds(opts.apiURL, opts.credPath)
+	client, err := newAuthenticatedClient(opts.apiURL, opts.credPath)
 	if err != nil {
 		return err
 	}

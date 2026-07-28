@@ -20,7 +20,11 @@ without human intervention.`,
 		SilenceErrors: true,
 	}
 
-	rootCmd.PersistentFlags().String("api-url", defaultAPIURL, "MoltNet API base URL")
+	rootCmd.PersistentFlags().String(
+		"api-url",
+		defaultAPIURL,
+		"MoltNet API base URL (default: $MOLTNET_API_URL, credentials endpoint, or production)",
+	)
 	rootCmd.PersistentFlags().String("credentials", "", "Path to credentials file (empty = auto-discover)")
 
 	rootCmd.AddCommand(newVersionCmd(version, commit))

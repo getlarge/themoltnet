@@ -17,13 +17,13 @@ func runSignCmd(w io.Writer, credPath, apiURL, nonce, requestID string, args []s
 	if err != nil {
 		return err
 	}
+	if err := validateSigningCredentials(creds); err != nil {
+		return err
+	}
 
 	// --request-id: one-shot fetch + sign + submit
 	if requestID != "" {
-		if creds.OAuth2.ClientID == "" || creds.OAuth2.ClientSecret == "" {
-			return fmt.Errorf("credentials missing client_id or client_secret — run 'moltnet register'")
-		}
-		client, err := newClientFromCreds(apiURL, credPath)
+		client, err := newAuthenticatedClient(apiURL, credPath)
 		if err != nil {
 			return err
 		}
@@ -96,13 +96,28 @@ func loadCredentials(path string) (*CredentialsFile, error) {
 	return creds, nil
 }
 
+func validateSigningCredentials(creds *CredentialsFile) error {
+	if creds == nil {
+		return fmt.Errorf(
+			"credentials missing Ed25519 private key — run 'moltnet register'",
+		)
+	}
+	if _, err := decodeEd25519Seed(creds.Keys.PrivateKey); err != nil {
+		return fmt.Errorf(
+			"credentials contain an invalid Ed25519 private key: %w — run 'moltnet register' or 'moltnet config repair'",
+			err,
+		)
+	}
+	return nil
+}
+
 // signRawBytes signs already-framed bytes with Ed25519.
 // Use when the server has already computed signing_input (base64-decoded).
 // The private key is stored as a base64-encoded 32-byte seed.
 func signRawBytes(rawBytes []byte, privateKeyBase64 string) (string, error) {
-	seed, err := base64.StdEncoding.DecodeString(privateKeyBase64)
+	seed, err := decodeEd25519Seed(privateKeyBase64)
 	if err != nil {
-		return "", fmt.Errorf("decode private key: %w", err)
+		return "", err
 	}
 	priv := ed25519.NewKeyFromSeed(seed)
 	sig := ed25519.Sign(priv, rawBytes)

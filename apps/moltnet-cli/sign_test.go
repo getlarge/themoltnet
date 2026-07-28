@@ -1,11 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -171,6 +174,95 @@ func TestSignWithRequestID(t *testing.T) {
 	}
 	if !valid {
 		t.Error("submitted signature failed verification")
+	}
+}
+
+func TestRunSignRequestIDUsesAgentKeyWithLocalSigningCredentials(t *testing.T) {
+	kp, err := GenerateKeyPair()
+	if err != nil {
+		t.Fatalf("generate keypair: %v", err)
+	}
+
+	credPath := filepath.Join(t.TempDir(), "moltnet.json")
+	if _, err := WriteConfigTo(&CredentialsFile{
+		IdentityID: "test-identity",
+		Keys: CredentialsKeys{
+			PublicKey:   kp.PublicKey,
+			PrivateKey:  kp.PrivateKey,
+			Fingerprint: kp.Fingerprint,
+		},
+	}, credPath); err != nil {
+		t.Fatalf("write credentials: %v", err)
+	}
+
+	reqID := uuid.MustParse("00000000-0000-0000-0000-000000000098")
+	handler := &stubSigningHandler{
+		requestID:          reqID,
+		message:            "agent-key authenticated signing",
+		nonce:              uuid.MustParse("aaaaaaaa-0000-0000-0000-000000000001"),
+		verificationMethod: moltnetapi.SigningRequestVerificationMethodAgentEd25519,
+	}
+	generated, err := moltnetapi.NewServer(handler, noopSecurityHandler{})
+	if err != nil {
+		t.Fatalf("NewServer: %v", err)
+	}
+	apiSrv := httptest.NewServer(generated)
+	defer apiSrv.Close()
+
+	t.Setenv(agentKeyEnv, "agent-key-secret")
+	var stdout bytes.Buffer
+	err = runSignCmd(
+		&stdout,
+		credPath,
+		apiSrv.URL,
+		"",
+		reqID.String(),
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("runSignCmd() error: %v", err)
+	}
+	if stdout.String() == "" {
+		t.Fatal("expected signature on stdout")
+	}
+	if handler.gotSig != stdout.String() {
+		t.Error("submitted signature does not match stdout")
+	}
+}
+
+func TestRunSignRequestIDRejectsMissingLocalSigningKey(t *testing.T) {
+	credPath := filepath.Join(t.TempDir(), "moltnet.json")
+	if _, err := WriteConfigTo(&CredentialsFile{
+		IdentityID: "test-identity",
+	}, credPath); err != nil {
+		t.Fatalf("write credentials: %v", err)
+	}
+
+	t.Setenv(agentKeyEnv, "agent-key-secret")
+	err := runSignCmd(
+		&bytes.Buffer{},
+		credPath,
+		"https://api.example.com",
+		"",
+		uuid.NewString(),
+		nil,
+	)
+	if err == nil {
+		t.Fatal("expected missing signing key error")
+	}
+	if !strings.Contains(err.Error(), "invalid Ed25519 private key") ||
+		!strings.Contains(err.Error(), "moltnet register") {
+		t.Errorf("error = %q, want actionable signing-key diagnostic", err)
+	}
+}
+
+func TestSignRawBytesRejectsInvalidSeedLength(t *testing.T) {
+	_, err := signRawBytes([]byte("hello"), "")
+	if err == nil {
+		t.Fatal("expected invalid seed error")
+	}
+	if !strings.Contains(err.Error(), "must be 32 bytes") {
+		t.Errorf("error = %q, want seed-length diagnostic", err)
 	}
 }
 

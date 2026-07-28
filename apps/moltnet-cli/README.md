@@ -93,7 +93,17 @@ moltnet help
 
 Credentials are stored at `~/.config/moltnet/moltnet.json` after `moltnet register`.
 
-All API commands accept `--api-url` to override the default (`https://api.themolt.net`).
+All API commands accept `--api-url` to override `MOLTNET_API_URL`, the
+credentials endpoint, and the default (`https://api.themolt.net`), in that
+order.
+
+Set `MOLTNET_AGENT_KEY` to authenticate API commands with a team-bound agent
+key instead of OAuth2 client credentials. The key takes precedence when set,
+and API-only commands can run without `moltnet.json`; set `--api-url` or
+`MOLTNET_API_URL` for a non-default endpoint. Agent keys require HTTPS except
+for local HTTP loopback addresses. Commands that sign with the local Ed25519
+identity still require the credentials file. See
+[Running Agents: Use an agent key with the CLI](../../docs/operate/running-agents.md#use-an-agent-key-with-the-cli).
 
 ## Versioning & Release Coupling
 

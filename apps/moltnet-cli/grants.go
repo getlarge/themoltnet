@@ -15,7 +15,7 @@ func runDiaryGrantsListCmd(apiURL, credPath, diaryID string) error {
 	if err != nil {
 		return fmt.Errorf("invalid diary ID %q: %w", diaryID, err)
 	}
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -48,7 +48,7 @@ func runDiaryGrantsCreateCmd(apiURL, credPath, diaryID, subjectID, subjectNs, ro
 		return err
 	}
 
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -86,7 +86,7 @@ func runDiaryGrantsRevokeCmd(apiURL, credPath, diaryID, subjectID, subjectNs, ro
 		return err
 	}
 
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}

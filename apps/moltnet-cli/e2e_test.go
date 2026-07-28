@@ -74,7 +74,13 @@ func TestMain(m *testing.M) {
 
 	// Create authenticated client
 	tm := NewTokenManager(e2eAPIURL, e2eCreds.OAuth2.ClientID, e2eCreds.OAuth2.ClientSecret)
-	e2eClient, err = newAuthedClient(e2eAPIURL, tm)
+	e2eClient, err = newBearerClient(
+		e2eAPIURL,
+		func(_ context.Context) (string, error) {
+			return tm.GetToken()
+		},
+		tm.httpClient,
+	)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "E2E setup: create client: %v\n", err)
 		os.Exit(1)

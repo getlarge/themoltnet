@@ -12,7 +12,9 @@ import (
 // --api-url / --credentials persistent flags the real root command exposes.
 // Tests use this to exercise resolveAPIURL under controlled flag state without
 // pulling in the entire root command tree.
-func newCmdWithAPIFlag() *cobra.Command {
+func newCmdWithAPIFlag(t *testing.T) *cobra.Command {
+	t.Helper()
+	t.Setenv(apiURLEnv, "")
 	cmd := &cobra.Command{Use: "test"}
 	cmd.Flags().String("api-url", defaultAPIURL, "MoltNet API base URL")
 	cmd.Flags().String("credentials", "", "Path to credentials file")
@@ -35,7 +37,7 @@ func writeCredsWithAPI(t *testing.T, api string) string {
 
 func TestResolveAPIURL_ExplicitFlagWins(t *testing.T) {
 	credPath := writeCredsWithAPI(t, "http://localhost:8080")
-	cmd := newCmdWithAPIFlag()
+	cmd := newCmdWithAPIFlag(t)
 	if err := cmd.Flags().Set("api-url", "https://explicit.example.com"); err != nil {
 		t.Fatalf("set flag: %v", err)
 	}
@@ -48,7 +50,7 @@ func TestResolveAPIURL_ExplicitFlagWins(t *testing.T) {
 
 func TestResolveAPIURL_CredentialsUsedWhenFlagUnchanged(t *testing.T) {
 	credPath := writeCredsWithAPI(t, "http://localhost:8080")
-	cmd := newCmdWithAPIFlag()
+	cmd := newCmdWithAPIFlag(t)
 
 	got := resolveAPIURL(cmd, credPath)
 	if got != "http://localhost:8080" {
@@ -60,7 +62,7 @@ func TestResolveAPIURL_DefaultWhenNoCredentials(t *testing.T) {
 	// Isolate the auto-discovered ReadConfig() lookup from the developer's
 	// real ~/.config/moltnet/moltnet.json by pointing HOME at an empty dir.
 	t.Setenv("HOME", t.TempDir())
-	cmd := newCmdWithAPIFlag()
+	cmd := newCmdWithAPIFlag(t)
 
 	got := resolveAPIURL(cmd, "")
 	if got != defaultAPIURL {
@@ -76,7 +78,7 @@ func TestResolveAPIURL_DefaultWhenCredentialsMissingEndpoint(t *testing.T) {
 	if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
 		t.Fatalf("write creds: %v", err)
 	}
-	cmd := newCmdWithAPIFlag()
+	cmd := newCmdWithAPIFlag(t)
 
 	got := resolveAPIURL(cmd, path)
 	if got != defaultAPIURL {
@@ -85,7 +87,7 @@ func TestResolveAPIURL_DefaultWhenCredentialsMissingEndpoint(t *testing.T) {
 }
 
 func TestResolveAPIURL_NonexistentCredPathFallsBackToDefault(t *testing.T) {
-	cmd := newCmdWithAPIFlag()
+	cmd := newCmdWithAPIFlag(t)
 
 	got := resolveAPIURL(cmd, "/nonexistent/path/to/moltnet.json")
 	if got != defaultAPIURL {
@@ -99,7 +101,7 @@ func TestResolveAPIURL_ExplicitFlagBeatsCredentialsEvenWhenEqualToDefault(t *tes
 	// credentials file. This is why we check cmd.Flags().Changed() rather
 	// than comparing the flag value to defaultAPIURL.
 	credPath := writeCredsWithAPI(t, "http://localhost:8080")
-	cmd := newCmdWithAPIFlag()
+	cmd := newCmdWithAPIFlag(t)
 	if err := cmd.Flags().Set("api-url", defaultAPIURL); err != nil {
 		t.Fatalf("set flag: %v", err)
 	}
@@ -107,5 +109,29 @@ func TestResolveAPIURL_ExplicitFlagBeatsCredentialsEvenWhenEqualToDefault(t *tes
 	got := resolveAPIURL(cmd, credPath)
 	if got != defaultAPIURL {
 		t.Errorf("explicit flag (even when equal to default) should win, got %q", got)
+	}
+}
+
+func TestResolveAPIURL_EnvironmentBeatsCredentials(t *testing.T) {
+	credPath := writeCredsWithAPI(t, "https://credentials.example.com")
+	cmd := newCmdWithAPIFlag(t)
+	t.Setenv(apiURLEnv, "  https://environment.example.com  ")
+
+	got := resolveAPIURL(cmd, credPath)
+	if got != "https://environment.example.com" {
+		t.Errorf("expected %s to win, got %q", apiURLEnv, got)
+	}
+}
+
+func TestResolveAPIURL_ExplicitFlagBeatsEnvironment(t *testing.T) {
+	cmd := newCmdWithAPIFlag(t)
+	t.Setenv(apiURLEnv, "https://environment.example.com")
+	if err := cmd.Flags().Set("api-url", "https://explicit.example.com"); err != nil {
+		t.Fatalf("set flag: %v", err)
+	}
+
+	got := resolveAPIURL(cmd, "")
+	if got != "https://explicit.example.com" {
+		t.Errorf("explicit flag should beat %s, got %q", apiURLEnv, got)
 	}
 }

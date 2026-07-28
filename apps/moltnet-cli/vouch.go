@@ -9,7 +9,7 @@ import (
 
 // runVouchIssueCmd is the flag-free business logic for vouch issue.
 func runVouchIssueCmd(apiURL, credPath string) error {
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -26,7 +26,7 @@ func runVouchIssueCmd(apiURL, credPath string) error {
 
 // runVouchListCmd is the flag-free business logic for vouch list.
 func runVouchListCmd(apiURL, credPath string) error {
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}

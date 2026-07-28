@@ -15,7 +15,7 @@ type signingRequestCreateOpts struct {
 }
 
 func runSigningRequestCreateCmd(opts signingRequestCreateOpts) error {
-	client, err := newClientFromCreds(opts.apiURL, opts.credPath)
+	client, err := newAuthenticatedClient(opts.apiURL, opts.credPath)
 	if err != nil {
 		return err
 	}
@@ -105,7 +105,7 @@ func signingRequestConstraint(
 }
 
 func runSigningRequestListCmd(apiURL, credPath, scope string, out io.Writer) error {
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -133,7 +133,7 @@ func runSigningRequestGetCmd(apiURL, credPath, id string, out io.Writer) error {
 	if err != nil {
 		return fmt.Errorf("invalid signing request ID: %w", err)
 	}
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -153,7 +153,7 @@ func runSigningCredentialListCmd(apiURL, credPath, teamID string, out io.Writer)
 	if err != nil {
 		return err
 	}
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -179,7 +179,7 @@ func runSigningCredentialGetCmd(apiURL, credPath, teamID, id string, out io.Writ
 	if err != nil {
 		return fmt.Errorf("invalid signing credential ID: %w", err)
 	}
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -208,7 +208,7 @@ func runSigningCredentialActionCmd(apiURL, credPath, teamID, id, action string, 
 	if err != nil {
 		return fmt.Errorf("invalid signing credential ID: %w", err)
 	}
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}

@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
+	"strings"
 	"testing"
-	"time"
 
 	moltnetapi "github.com/getlarge/themoltnet/libs/moltnet-api-client"
 	"github.com/google/uuid"
+	"github.com/ogen-go/ogen/ogenerrors"
 )
 
 // newTestServer builds a token stub and an ogen-generated API server backed by
@@ -35,9 +37,15 @@ func newTestServer(t *testing.T, h moltnetapi.Handler) (*httptest.Server, *httpt
 	apiSrv := httptest.NewServer(apiSrv_gen)
 
 	tm := NewTokenManager(tokenSrv.URL, "cid", "csec")
-	client, err := newAuthedClient(apiSrv.URL, tm)
+	client, err := newBearerClient(
+		apiSrv.URL,
+		func(_ context.Context) (string, error) {
+			return tm.GetToken()
+		},
+		tm.httpClient,
+	)
 	if err != nil {
-		t.Fatalf("newAuthedClient: %v", err)
+		t.Fatalf("newBearerClient: %v", err)
 	}
 
 	t.Cleanup(func() {
@@ -66,8 +74,9 @@ func (noopSecurityHandler) HandleSessionAuth(_ context.Context, _ moltnetapi.Ope
 	return context.Background(), nil
 }
 
-// TestTokenSecuritySource verifies that GetToken is called and the Bearer header is set.
-func TestTokenSecuritySource(t *testing.T) {
+// TestBearerSecuritySource verifies that OAuth token resolution is lazy and
+// the resulting access token is exposed through the bearer scheme only.
+func TestBearerSecuritySource(t *testing.T) {
 	called := false
 	tokenSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		called = true
@@ -81,7 +90,11 @@ func TestTokenSecuritySource(t *testing.T) {
 	defer tokenSrv.Close()
 
 	tm := NewTokenManager(tokenSrv.URL, "cid", "csec")
-	src := &tokenSecuritySource{tm: tm}
+	src := &bearerSecuritySource{
+		token: func(_ context.Context) (string, error) {
+			return tm.GetToken()
+		},
+	}
 
 	bearer, err := src.BearerAuth(context.Background(), moltnetapi.GetWhoamiOperation)
 	if err != nil {
@@ -93,10 +106,17 @@ func TestTokenSecuritySource(t *testing.T) {
 	if !called {
 		t.Error("expected token server to be called")
 	}
+	if _, err := src.CookieAuth(context.Background(), moltnetapi.GetWhoamiOperation); err != ogenerrors.ErrSkipClientSecurity {
+		t.Errorf("CookieAuth() error = %v, want ErrSkipClientSecurity", err)
+	}
+	if _, err := src.SessionAuth(context.Background(), moltnetapi.GetWhoamiOperation); err != ogenerrors.ErrSkipClientSecurity {
+		t.Errorf("SessionAuth() error = %v, want ErrSkipClientSecurity", err)
+	}
 }
 
-// TestTokenSecuritySourceCached verifies that the token is cached on the second call.
-func TestTokenSecuritySourceCached(t *testing.T) {
+// TestBearerSecuritySourceCachesOAuthToken verifies that the TokenManager still
+// caches OAuth access tokens behind the shared bearer adapter.
+func TestBearerSecuritySourceCachesOAuthToken(t *testing.T) {
 	callCount := 0
 	tokenSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		callCount++
@@ -110,7 +130,11 @@ func TestTokenSecuritySourceCached(t *testing.T) {
 	defer tokenSrv.Close()
 
 	tm := NewTokenManager(tokenSrv.URL, "cid", "csec")
-	src := &tokenSecuritySource{tm: tm}
+	src := &bearerSecuritySource{
+		token: func(_ context.Context) (string, error) {
+			return tm.GetToken()
+		},
+	}
 
 	for i := 0; i < 3; i++ {
 		if _, err := src.BearerAuth(context.Background(), moltnetapi.GetWhoamiOperation); err != nil {
@@ -138,8 +162,8 @@ func (h *stubWhoamiHandler) GetWhoami(_ context.Context) (moltnetapi.GetWhoamiRe
 	}, nil
 }
 
-// TestNewAuthedClientCallsAPI is an integration smoke-test using the generated server stub.
-func TestNewAuthedClientCallsAPI(t *testing.T) {
+// TestNewBearerClientCallsAPI is an integration smoke-test using the generated server stub.
+func TestNewBearerClientCallsAPI(t *testing.T) {
 	wantID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
 	_, _, client := newTestServer(t, &stubWhoamiHandler{identityID: wantID})
 
@@ -154,5 +178,197 @@ func TestNewAuthedClientCallsAPI(t *testing.T) {
 	if whoami.IdentityId != wantID {
 		t.Errorf("expected identity_id=%s, got %s", wantID, whoami.IdentityId)
 	}
-	_ = time.Now() // ensure time import used
+}
+
+func TestNewAuthenticatedClientUsesStandaloneAgentKey(t *testing.T) {
+	// Agent-key secrets never contain surrounding whitespace. Normalizing here
+	// makes command substitution from a newline-terminated secret file safe and
+	// matches the SDK's environment handling.
+	t.Setenv(agentKeyEnv, "  opaque-agent-key  ")
+	t.Setenv("HOME", t.TempDir())
+
+	wantID := uuid.MustParse("00000000-0000-0000-0000-000000000002")
+	generated, err := moltnetapi.NewServer(
+		&stubWhoamiHandler{identityID: wantID},
+		noopSecurityHandler{},
+	)
+	if err != nil {
+		t.Fatalf("NewServer: %v", err)
+	}
+
+	var authorization string
+	apiSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authorization = r.Header.Get("Authorization")
+		generated.ServeHTTP(w, r)
+	}))
+	defer apiSrv.Close()
+
+	client, err := newAuthenticatedClient(
+		apiSrv.URL,
+		filepath.Join(t.TempDir(), "missing-moltnet.json"),
+	)
+	if err != nil {
+		t.Fatalf("newAuthenticatedClient() error: %v", err)
+	}
+	res, err := client.GetWhoami(context.Background())
+	if err != nil {
+		t.Fatalf("GetWhoami() error: %v", err)
+	}
+	if _, ok := res.(*moltnetapi.Whoami); !ok {
+		t.Fatalf("expected *Whoami, got %T", res)
+	}
+	if authorization != "Bearer opaque-agent-key" {
+		t.Errorf("Authorization = %q, want static agent-key bearer", authorization)
+	}
+}
+
+func TestNewAuthenticatedClientBlankAgentKeyFallsBackToOAuth(t *testing.T) {
+	t.Setenv(agentKeyEnv, "   ")
+
+	wantID := uuid.MustParse("00000000-0000-0000-0000-000000000003")
+	generated, err := moltnetapi.NewServer(
+		&stubWhoamiHandler{identityID: wantID},
+		noopSecurityHandler{},
+	)
+	if err != nil {
+		t.Fatalf("NewServer: %v", err)
+	}
+
+	tokenCalls := 0
+	var authorization string
+	apiSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/oauth2/token" {
+			tokenCalls++
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]any{ //nolint:errcheck
+				"access_token": "oauth-access-token",
+				"token_type":   "Bearer",
+				"expires_in":   3600,
+			})
+			return
+		}
+		authorization = r.Header.Get("Authorization")
+		generated.ServeHTTP(w, r)
+	}))
+	defer apiSrv.Close()
+
+	credPath := writeCredsWithAPI(t, apiSrv.URL)
+	client, err := newAuthenticatedClient(apiSrv.URL, credPath)
+	if err != nil {
+		t.Fatalf("newAuthenticatedClient() error: %v", err)
+	}
+	if _, err := client.GetWhoami(context.Background()); err != nil {
+		t.Fatalf("GetWhoami() error: %v", err)
+	}
+	if tokenCalls != 1 {
+		t.Errorf("OAuth token calls = %d, want 1", tokenCalls)
+	}
+	if authorization != "Bearer oauth-access-token" {
+		t.Errorf("Authorization = %q, want OAuth bearer", authorization)
+	}
+}
+
+func TestNewAuthenticatedClientRejectedAgentKeyNeverFallsBackToOAuth(t *testing.T) {
+	t.Setenv(agentKeyEnv, "rejected-agent-key")
+
+	tokenCalls := 0
+	var authorization string
+	apiSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/oauth2/token" {
+			tokenCalls++
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]any{ //nolint:errcheck
+				"access_token": "oauth-access-token",
+				"token_type":   "Bearer",
+				"expires_in":   3600,
+			})
+			return
+		}
+		authorization = r.Header.Get("Authorization")
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(map[string]any{ //nolint:errcheck
+			"type":   "about:blank",
+			"title":  "Unauthorized",
+			"status": http.StatusUnauthorized,
+			"code":   "UNAUTHORIZED",
+		})
+	}))
+	defer apiSrv.Close()
+
+	credPath := writeCredsWithAPI(t, apiSrv.URL)
+	client, err := newAuthenticatedClient(apiSrv.URL, credPath)
+	if err != nil {
+		t.Fatalf("newAuthenticatedClient() error: %v", err)
+	}
+	res, err := client.GetWhoami(context.Background())
+	if err != nil {
+		t.Fatalf("GetWhoami() transport error: %v", err)
+	}
+	if tokenCalls != 0 {
+		t.Errorf("OAuth token calls = %d, want 0", tokenCalls)
+	}
+	if authorization != "Bearer rejected-agent-key" {
+		t.Errorf("Authorization = %q, want authoritative agent key", authorization)
+	}
+	formatted := formatAPIError(res)
+	if !strings.Contains(formatted.Error(), agentKeyEnv) ||
+		!strings.Contains(formatted.Error(), "OAuth2 fallback is disabled") {
+		t.Errorf("rejection error = %q, want agent-key mode diagnostic", formatted)
+	}
+}
+
+func TestValidateAgentKeyAPIURL(t *testing.T) {
+	tests := []struct {
+		name    string
+		apiURL  string
+		wantErr bool
+	}{
+		{name: "https", apiURL: "https://api.example.com"},
+		{name: "localhost http", apiURL: "http://localhost:8080"},
+		{name: "IPv4 loopback http", apiURL: "http://127.0.0.2:8080"},
+		{name: "IPv6 loopback http", apiURL: "http://[::1]:8080"},
+		{name: "remote http", apiURL: "http://api.example.com", wantErr: true},
+		{name: "relative URL", apiURL: "api.example.com", wantErr: true},
+		{name: "unsupported scheme", apiURL: "ftp://api.example.com", wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateAgentKeyAPIURL(tt.apiURL)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("validateAgentKeyAPIURL(%q) error = %v, wantErr %v", tt.apiURL, err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestNewAuthenticatedClientRejectsInsecureRemoteAgentKeyEndpoint(t *testing.T) {
+	t.Setenv(agentKeyEnv, "opaque-agent-key")
+
+	_, err := newAuthenticatedClient(
+		"http://api.example.com",
+		filepath.Join(t.TempDir(), "missing-moltnet.json"),
+	)
+	if err == nil {
+		t.Fatal("expected insecure endpoint error")
+	}
+	if !strings.Contains(err.Error(), "use HTTPS") ||
+		!strings.Contains(err.Error(), agentKeyEnv) {
+		t.Errorf("error = %q, want agent-key HTTPS diagnostic", err)
+	}
+}
+
+func TestNewAuthenticatedClientMissingOAuthCredentialsNamesAgentKeyOption(t *testing.T) {
+	t.Setenv(agentKeyEnv, "")
+	t.Setenv("HOME", t.TempDir())
+
+	_, err := newAuthenticatedClient(defaultAPIURL, "")
+	if err == nil {
+		t.Fatal("expected missing credentials error")
+	}
+	if !strings.Contains(err.Error(), agentKeyEnv) ||
+		!strings.Contains(err.Error(), "moltnet register") {
+		t.Errorf("error = %q, want both authentication options", err)
+	}
 }

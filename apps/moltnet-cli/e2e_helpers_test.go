@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -78,23 +79,44 @@ func runE2ECLI(
 	credsPath string,
 	args ...string,
 ) (stdout string, stderr string, runErr error) {
+	return runE2eCLIWithAuth(binPath, credsPath, "", args...)
+}
+
+// runE2ECLIWithAgentKey invokes the compiled CLI with a standalone agent key
+// and deliberately omits --credentials. This proves API-only commands do not
+// depend on moltnet.json when key authentication is active.
+func runE2ECLIWithAgentKey(
+	binPath string,
+	agentKey string,
+	args ...string,
+) (stdout string, stderr string, runErr error) {
+	return runE2eCLIWithAuth(binPath, "", agentKey, args...)
+}
+
+func runE2eCLIWithAuth(
+	binPath string,
+	credsPath string,
+	agentKey string,
+	args ...string,
+) (stdout string, stderr string, runErr error) {
 	ctx, cancel := context.WithTimeout(context.Background(), e2eCLIInvocationTimeout)
 	defer cancel()
 
-	fullArgs := append(
-		[]string{
-			"--api-url", e2eAPIURL,
-			"--credentials", credsPath,
-		},
-		args...,
-	)
+	fullArgs := []string{"--api-url", e2eAPIURL}
+	if credsPath != "" {
+		fullArgs = append(fullArgs, "--credentials", credsPath)
+	}
+	fullArgs = append(fullArgs, args...)
 
 	cmd := exec.CommandContext(ctx, binPath, fullArgs...)
 	var outBuf bytes.Buffer
 	var errBuf bytes.Buffer
 	cmd.Stdout = &outBuf
 	cmd.Stderr = &errBuf
-	cmd.Env = os.Environ()
+	cmd.Env = withoutEnv(os.Environ(), agentKeyEnv)
+	if agentKey != "" {
+		cmd.Env = append(cmd.Env, agentKeyEnv+"="+agentKey)
+	}
 	runErr = cmd.Run()
 	if ctx.Err() == context.DeadlineExceeded {
 		runErr = fmt.Errorf(
@@ -104,4 +126,15 @@ func runE2ECLI(
 		)
 	}
 	return outBuf.String(), errBuf.String(), runErr
+}
+
+func withoutEnv(env []string, name string) []string {
+	prefix := name + "="
+	filtered := make([]string, 0, len(env))
+	for _, value := range env {
+		if !strings.HasPrefix(value, prefix) {
+			filtered = append(filtered, value)
+		}
+	}
+	return filtered
 }

@@ -16,7 +16,7 @@ import (
 // runProfileListCmd lists runtime profiles for a team. The team header is
 // optional; when omitted the server falls back to the token's current team.
 func runProfileListCmd(apiURL, credPath, teamID string) error {
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -41,7 +41,7 @@ func runProfileListCmd(apiURL, credPath, teamID string) error {
 
 // runProfileGetCmd fetches a single runtime profile by id or name.
 func runProfileGetCmd(apiURL, credPath, ref, teamID string) error {
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -66,7 +66,7 @@ func runProfileCreateCmd(apiURL, credPath, fromFile, teamID string) error {
 	if err := decodeProfileFile(fromFile, &body); err != nil {
 		return err
 	}
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -95,7 +95,7 @@ func runProfileUpdateCmd(apiURL, credPath, ref, fromFile, teamID string) error {
 	if err := decodeProfileFile(fromFile, &body); err != nil {
 		return err
 	}
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}
@@ -116,7 +116,7 @@ func runProfileUpdateCmd(apiURL, credPath, ref, fromFile, teamID string) error {
 
 // runProfileDeleteCmd deletes a runtime profile by id or name.
 func runProfileDeleteCmd(apiURL, credPath, ref, teamID string) error {
-	client, err := newClientFromCreds(apiURL, credPath)
+	client, err := newAuthenticatedClient(apiURL, credPath)
 	if err != nil {
 		return err
 	}

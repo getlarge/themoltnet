@@ -24,7 +24,7 @@ type taskSchemasGetOpts struct {
 }
 
 func runTaskSchemasListCmd(opts taskSchemasListOpts) error {
-	client, err := newClientFromCreds(opts.apiURL, opts.credPath)
+	client, err := newAuthenticatedClient(opts.apiURL, opts.credPath)
 	if err != nil {
 		return err
 	}
@@ -59,7 +59,7 @@ func runTaskSchemasListWithClient(ctx context.Context, client *moltnetapi.Client
 }
 
 func runTaskSchemasGetCmd(opts taskSchemasGetOpts) error {
-	client, err := newClientFromCreds(opts.apiURL, opts.credPath)
+	client, err := newAuthenticatedClient(opts.apiURL, opts.credPath)
 	if err != nil {
 		return err
 	}
