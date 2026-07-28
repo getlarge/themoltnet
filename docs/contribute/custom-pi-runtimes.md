@@ -99,36 +99,16 @@ loop.
 runtime module. The loaded adapter must match the selected profile's
 `runtimeKind`.
 
-## Profile v2 migration
+## Deployment
 
-Apply migration `0036` before deploying profile-v2 writers. It intentionally
-retains the retired enum type so a rolling deployment never depends on an
-immediately destructive type drop. Existing profiles remain definition version
-1; new API writes use version 2.
+Apply migration `0036` before deploying runtime-kind or executable-requirement
+writers. It changes `runtimeKind` from a fixed enum to a validated string and
+adds `requiredExecutables`.
 
-Quiesce legacy daemons before the backfill. A v2 daemon deliberately refuses
-definition-v1 profiles, and the REST API refuses to patch them, so no old
-snapshot or resume provisioning can execute or be silently preserved during
-the transition. Preview legacy profile changes:
-
-```bash
-pnpm backfill:runtime-profiles-v2
-```
-
-The dry run exits with status 2 when changes are pending. Apply only after
-reviewing them:
-
-```bash
-pnpm backfill:runtime-profiles-v2 -- --apply --export ./runtime-profiles-v1.json
-```
-
-`--export` is mandatory when any profile still contains snapshot or resume
-provisioning. The export is written mode `0600`; keep it out of version control.
-The backfill moves legacy `requiredTools` into `requiredExecutables`, clears the
-logical tool list, removes provisioning from sandbox policy, recomputes the v2
-definition CID, sets `definitionVersion` to 2, and increments the profile
-revision. Before opening its transaction it reads the mode-`0600` export back,
-parses it, and verifies the exported profile count and IDs.
+Remote sandbox provisioning was never part of the supported deployment path,
+so there is no versioned profile format or provisioning backfill. The API and
+daemon validate the current policy-only sandbox shape directly. Snapshot setup
+and resume commands belong exclusively to the trusted local runtime module.
 
 The Pi peer dependency versions are intentionally exact. Pi loads extensions
 against concrete `pi-ai` and `pi-coding-agent` APIs, so runtime authors should

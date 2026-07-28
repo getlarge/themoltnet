@@ -44894,7 +44894,6 @@ type RuntimeProfile struct {
 	CreatedByHumanId      NilUUID                                   `json:"createdByHumanId"`
 	DefaultWorkspaceMode  NilRuntimeProfileDefaultWorkspaceMode     `json:"defaultWorkspaceMode"`
 	DefinitionCid         string                                    `json:"definitionCid"`
-	DefinitionVersion     int                                       `json:"definitionVersion"`
 	Description           NilString                                 `json:"description"`
 	HeartbeatIntervalMs   int                                       `json:"heartbeatIntervalMs"`
 	ID                    uuid.UUID                                 `json:"id"`
@@ -44960,11 +44959,6 @@ func (s *RuntimeProfile) GetDefaultWorkspaceMode() NilRuntimeProfileDefaultWorks
 // GetDefinitionCid returns the value of DefinitionCid.
 func (s *RuntimeProfile) GetDefinitionCid() string {
 	return s.DefinitionCid
-}
-
-// GetDefinitionVersion returns the value of DefinitionVersion.
-func (s *RuntimeProfile) GetDefinitionVersion() int {
-	return s.DefinitionVersion
 }
 
 // GetDescription returns the value of Description.
@@ -45140,11 +45134,6 @@ func (s *RuntimeProfile) SetDefaultWorkspaceMode(val NilRuntimeProfileDefaultWor
 // SetDefinitionCid sets the value of DefinitionCid.
 func (s *RuntimeProfile) SetDefinitionCid(val string) {
 	s.DefinitionCid = val
-}
-
-// SetDefinitionVersion sets the value of DefinitionVersion.
-func (s *RuntimeProfile) SetDefinitionVersion(val int) {
-	s.DefinitionVersion = val
 }
 
 // SetDescription sets the value of Description.
@@ -45503,7 +45492,6 @@ type RuntimeProfileListResponseItemsItem struct {
 	CreatedByHumanId      NilUUID                                                        `json:"createdByHumanId"`
 	DefaultWorkspaceMode  NilRuntimeProfileListResponseItemsItemDefaultWorkspaceMode     `json:"defaultWorkspaceMode"`
 	DefinitionCid         string                                                         `json:"definitionCid"`
-	DefinitionVersion     int                                                            `json:"definitionVersion"`
 	Description           NilString                                                      `json:"description"`
 	HeartbeatIntervalMs   int                                                            `json:"heartbeatIntervalMs"`
 	ID                    uuid.UUID                                                      `json:"id"`
@@ -45569,11 +45557,6 @@ func (s *RuntimeProfileListResponseItemsItem) GetDefaultWorkspaceMode() NilRunti
 // GetDefinitionCid returns the value of DefinitionCid.
 func (s *RuntimeProfileListResponseItemsItem) GetDefinitionCid() string {
 	return s.DefinitionCid
-}
-
-// GetDefinitionVersion returns the value of DefinitionVersion.
-func (s *RuntimeProfileListResponseItemsItem) GetDefinitionVersion() int {
-	return s.DefinitionVersion
 }
 
 // GetDescription returns the value of Description.
@@ -45749,11 +45732,6 @@ func (s *RuntimeProfileListResponseItemsItem) SetDefaultWorkspaceMode(val NilRun
 // SetDefinitionCid sets the value of DefinitionCid.
 func (s *RuntimeProfileListResponseItemsItem) SetDefinitionCid(val string) {
 	s.DefinitionCid = val
-}
-
-// SetDefinitionVersion sets the value of DefinitionVersion.
-func (s *RuntimeProfileListResponseItemsItem) SetDefinitionVersion(val int) {
-	s.DefinitionVersion = val
 }
 
 // SetDescription sets the value of Description.

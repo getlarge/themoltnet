@@ -15,7 +15,6 @@ type RuntimeProfile = Awaited<ReturnType<Agent['runtimeProfiles']['get']>>;
 
 export interface ResolvedRuntimeProfile {
   id: string;
-  definitionVersion: number;
   name: string;
   teamId: string;
   runtimeKind: string;
@@ -87,21 +86,14 @@ export async function resolveRuntimeProfile(options: {
       `Runtime profile "${options.profile}" belongs to team ${profile.teamId}, not ${options.teamId}.`,
     );
   }
-  if (profile.definitionVersion !== 2) {
-    throw new Error(
-      `Runtime profile "${profile.name}" uses legacy definition version ${profile.definitionVersion}. ` +
-        'Export and run the runtime profile v2 backfill before starting this daemon.',
-    );
-  }
   if (!Value.Check(RuntimeProfileSandbox, profile.sandbox)) {
     throw new Error(
-      `Runtime profile "${profile.name}" contains sandbox fields that are not valid for definition version 2.`,
+      `Runtime profile "${profile.name}" contains unsupported sandbox fields.`,
     );
   }
 
   return {
     id: profile.id,
-    definitionVersion: profile.definitionVersion,
     name: profile.name,
     teamId: profile.teamId,
     runtimeKind: profile.runtimeKind,

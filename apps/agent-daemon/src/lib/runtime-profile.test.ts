@@ -9,7 +9,6 @@ import {
 } from './runtime-profile.js';
 
 const profile = {
-  definitionVersion: 2,
   id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   name: 'github-linear',
   teamId: 'team-1',
@@ -76,7 +75,6 @@ describe('resolveRuntimeProfile', () => {
 
     expect(get).toHaveBeenCalledWith(profile.id);
     expect(result).toEqual({
-      definitionVersion: 2,
       id: profile.id,
       name: profile.name,
       teamId: 'team-1',
@@ -108,22 +106,7 @@ describe('resolveRuntimeProfile', () => {
     });
   });
 
-  it('rejects legacy profile definitions before execution', async () => {
-    const get = vi.fn().mockResolvedValue({
-      ...profile,
-      definitionVersion: 1,
-    });
-
-    await expect(
-      resolveRuntimeProfile({
-        agent: makeAgent({ get }),
-        profile: profile.id,
-        cwd: '/tmp/workspace',
-      }),
-    ).rejects.toThrow(/legacy definition version 1/);
-  });
-
-  it('rejects v2 sandbox provisioning fields', async () => {
+  it('rejects unsupported sandbox provisioning fields', async () => {
     const get = vi.fn().mockResolvedValue({
       ...profile,
       sandbox: { ...profile.sandbox, resumeCommands: ['echo unsafe'] },
@@ -135,7 +118,7 @@ describe('resolveRuntimeProfile', () => {
         profile: profile.id,
         cwd: '/tmp/workspace',
       }),
-    ).rejects.toThrow(/sandbox fields.*not valid/);
+    ).rejects.toThrow(/unsupported sandbox fields/);
   });
 
   it('resolves a unique profile name within a team', async () => {

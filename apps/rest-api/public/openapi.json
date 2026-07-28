@@ -8244,11 +8244,6 @@
             "minLength": 1,
             "type": "string"
           },
-          "definitionVersion": {
-            "maximum": 2,
-            "minimum": 1,
-            "type": "integer"
-          },
           "description": {
             "anyOf": [
               {
@@ -8590,7 +8585,6 @@
           }
         },
         "required": [
-          "definitionVersion",
           "id",
           "teamId",
           "name",
@@ -8826,11 +8820,6 @@
                   "maxLength": 100,
                   "minLength": 1,
                   "type": "string"
-                },
-                "definitionVersion": {
-                  "maximum": 2,
-                  "minimum": 1,
-                  "type": "integer"
                 },
                 "description": {
                   "anyOf": [
@@ -9173,7 +9162,6 @@
                 }
               },
               "required": [
-                "definitionVersion",
                 "id",
                 "teamId",
                 "name",

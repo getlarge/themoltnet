@@ -1,5 +1,5 @@
 {
-  "id": "3ee239bb-6bb8-47ab-ab1f-54f40b894296",
+  "id": "e1cba99a-82f3-4e93-9e4e-d01770ee8479",
   "prevId": "e2ee4fdc-253b-467a-9797-a0997e77571f",
   "version": "7",
   "dialect": "postgresql",
@@ -2752,13 +2752,6 @@
       "name": "runtime_profiles",
       "schema": "",
       "columns": {
-        "definition_version": {
-          "name": "definition_version",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "default": 1
-        },
         "id": {
           "name": "id",
           "type": "uuid",
@@ -3150,10 +3143,6 @@
         "runtime_profiles_runtime_kind_valid": {
           "name": "runtime_profiles_runtime_kind_valid",
           "value": "runtime_kind ~ '^[a-z][a-z0-9._-]{0,99}$'"
-        },
-        "runtime_profiles_definition_version_valid": {
-          "name": "runtime_profiles_definition_version_valid",
-          "value": "definition_version IN (1, 2)"
         }
       },
       "isRLSEnabled": false

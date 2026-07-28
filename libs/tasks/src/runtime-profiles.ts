@@ -256,7 +256,6 @@ export type RuntimeProfileMaxBashTimeouts = Static<
 
 export const RuntimeProfile = Type.Object(
   {
-    definitionVersion: Type.Integer({ minimum: 1, maximum: 2 }),
     id: Type.String({ format: 'uuid' }),
     teamId: Type.String({ format: 'uuid' }),
     name: RuntimeProfileName,
@@ -306,7 +305,7 @@ export const RuntimeProfile = Type.Object(
 );
 export type RuntimeProfile = Static<typeof RuntimeProfile>;
 
-export interface RuntimeProfileDefinitionV2Input {
+export interface RuntimeProfileDefinitionInput {
   name: string;
   description?: string | null;
   provider: string;
@@ -335,16 +334,16 @@ export interface RuntimeProfileDefinitionV2Input {
   context?: unknown[];
 }
 
-/** Canonical behavioral payload hashed into a runtime profile v2 CID. */
-export function runtimeProfileDefinitionV2Payload(
-  input: RuntimeProfileDefinitionV2Input,
+/** Canonical behavioral payload hashed into a runtime profile CID. */
+export function runtimeProfileDefinitionPayload(
+  input: RuntimeProfileDefinitionInput,
 ): Record<string, unknown> {
   const list = (values: readonly string[] | undefined) =>
     [
       ...new Set((values ?? []).map((value) => value.trim()).filter(Boolean)),
     ].sort();
   return {
-    v: 'moltnet:runtime-profile:v2',
+    kind: 'moltnet:runtime-profile',
     name: input.name,
     description: input.description ?? null,
     provider: input.provider.toLowerCase(),

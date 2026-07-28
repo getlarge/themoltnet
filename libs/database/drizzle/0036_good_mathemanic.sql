@@ -8,13 +8,9 @@ CREATE TABLE "executor_manifest_registrations" (
 --> statement-breakpoint
 ALTER TABLE "runtime_profiles" ALTER COLUMN "runtime_kind" SET DATA TYPE varchar(100);--> statement-breakpoint
 ALTER TABLE "runtime_profiles" ALTER COLUMN "runtime_kind" SET DEFAULT 'gondolin_pi';--> statement-breakpoint
-ALTER TABLE "runtime_profiles" ADD COLUMN "definition_version" integer DEFAULT 1 NOT NULL;--> statement-breakpoint
 ALTER TABLE "runtime_profiles" ADD COLUMN "required_executables" text[] DEFAULT '{}'::text[] NOT NULL;--> statement-breakpoint
 ALTER TABLE "executor_manifest_registrations" ADD CONSTRAINT "executor_manifest_registrations_fingerprint_executor_manifests_fingerprint_fk" FOREIGN KEY ("fingerprint") REFERENCES "public"."executor_manifests"("fingerprint") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "executor_manifest_registrations" ADD CONSTRAINT "executor_manifest_registrations_agent_identity_id_agents_identity_id_fk" FOREIGN KEY ("agent_identity_id") REFERENCES "public"."agents"("identity_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "executor_manifest_registrations_agent_idx" ON "executor_manifest_registrations" USING btree ("agent_identity_id","registered_at");--> statement-breakpoint
 ALTER TABLE "runtime_profiles" ADD CONSTRAINT "runtime_profiles_runtime_kind_valid" CHECK (runtime_kind ~ '^[a-z][a-z0-9._-]{0,99}$');--> statement-breakpoint
-ALTER TABLE "runtime_profiles" ADD CONSTRAINT "runtime_profiles_definition_version_valid" CHECK (definition_version IN (1, 2));
--- The now-unused enum is intentionally retained during the rolling upgrade.
--- Drop it in a later cleanup migration once every deployment has crossed
--- the varchar runtime-kind boundary.
+DROP TYPE "public"."runtime_profile_runtime_kind";

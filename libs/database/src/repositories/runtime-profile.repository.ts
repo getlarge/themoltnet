@@ -21,7 +21,6 @@ export type UpdateRuntimeProfileInput = Partial<
     | 'description'
     | 'provider'
     | 'model'
-    | 'definitionVersion'
     | 'runtimeKind'
     | 'sandbox'
     | 'sessionStorageMode'

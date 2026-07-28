@@ -99,6 +99,7 @@
       "plugin": "@nx/docker"
     },
     {
+      "exclude": ["examples/custom-pi-runtime/**/*"],
       "options": {
         "typecheck": {
           "targetName": "typecheck"

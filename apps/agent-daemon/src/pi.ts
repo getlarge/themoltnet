@@ -38,12 +38,6 @@ export function createPiDaemonAdapter(
   return {
     runtimeKind: runtime.runtimeKind,
     async prepare(input): Promise<PreparedDaemonRuntime> {
-      if (input.profile.definitionVersion !== 2) {
-        throw new Error(
-          `Runtime profile ${input.profile.id} uses unsupported definition version ${input.profile.definitionVersion}; ` +
-            'export and backfill it to version 2 before polling.',
-        );
-      }
       if (input.profile.runtimeKind !== runtime.runtimeKind) {
         throw new Error(
           `Runtime profile ${input.profile.id} requires "${input.profile.runtimeKind}", ` +

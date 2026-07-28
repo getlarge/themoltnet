@@ -11,7 +11,7 @@ import {
 import type { RuntimeProfileWorkspaceMode } from '@moltnet/tasks';
 import {
   RuntimeProfile as RuntimeProfileSchema,
-  runtimeProfileDefinitionV2Payload,
+  runtimeProfileDefinitionPayload,
   type RuntimeProfileThinkingLevel,
   type RuntimeProfileToolEnforcement,
 } from '@moltnet/tasks';
@@ -153,7 +153,6 @@ function serializeProfile(
   row: RuntimeProfile,
 ): Static<typeof RuntimeProfileSchema> {
   return {
-    definitionVersion: row.definitionVersion as 1 | 2,
     id: row.id,
     teamId: row.teamId,
     name: row.name,
@@ -228,7 +227,7 @@ type ProfileDefinitionInput = {
 async function computeProfileDefinitionCid(
   input: ProfileDefinitionInput,
 ): Promise<string> {
-  return computeJsonCid(runtimeProfileDefinitionV2Payload(input));
+  return computeJsonCid(runtimeProfileDefinitionPayload(input));
 }
 
 export async function runtimeProfileRoutes(fastify: FastifyInstance) {
@@ -317,7 +316,6 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
       const definitionCid = await computeProfileDefinitionCid(body);
       try {
         const row = await fastify.runtimeProfileRepository.create({
-          definitionVersion: 2,
           teamId,
           name: body.name,
           description: body.description ?? null,
@@ -432,17 +430,6 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
         subjectNs,
       );
       if (!canManage) throw createProblem('forbidden');
-      if (existing.definitionVersion !== 2) {
-        throw createConflictProblem(
-          'This legacy runtime profile must be exported and backfilled to definition version 2 before it can be updated',
-          {
-            target: {
-              resource: 'runtime-profile',
-              id: existing.id,
-            },
-          },
-        );
-      }
       const body = request.body as Static<
         typeof UpdateRuntimeProfileBodySchema
       >;

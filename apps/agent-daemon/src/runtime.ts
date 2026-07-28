@@ -16,7 +16,6 @@ export interface DaemonRuntimeAdapter {
   prepare(input: {
     profile: {
       id: string;
-      definitionVersion: number;
       definitionCid: string;
       runtimeKind: string;
       sandboxConfig: ExecutePiTaskOptions['sandboxConfig'];
