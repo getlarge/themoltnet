@@ -1,9 +1,9 @@
 {
-  "name": "@themoltnet/parallel-brief-runner",
+  "name": "@themoltnet/multi-lens-review",
   "version": "0.1.0",
   "license": "AGPL-3.0-only",
   "type": "module",
-  "description": "Minimal example lifecycle: fan out N freeform briefs in parallel and join them with a server-gated summary continuation.",
+  "description": "Fan out N specialist code reviews (security, correctness, performance, test-coverage) in parallel and join them into one server-gated verdict.",
   "main": "./dist/main.js",
   "types": "./dist/main.d.ts",
   "exports": {
@@ -13,7 +13,7 @@
     }
   },
   "bin": {
-    "moltnet-parallel-brief-runner": "./dist/main.js"
+    "moltnet-multi-lens-review": "./dist/main.js"
   },
   "files": [
     "dist"
@@ -28,7 +28,7 @@
     "typecheck": "tsc -b --emitDeclarationOnly",
     "lint": "eslint .",
     "check:pack": "tsx ../../tools/src/check-pack.ts --package . && pnpm run smoke:pack",
-    "smoke:pack": "tsx ../../tools/src/smoke-pack.ts --package . --bin moltnet-parallel-brief-runner --args --help --expect \"fan out N freeform briefs\""
+    "smoke:pack": "tsx ../../tools/src/smoke-pack.ts --package . --bin moltnet-multi-lens-review --args --help --expect \"fan out N specialist code reviews\""
   },
   "dependencies": {
     "@themoltnet/sdk": "workspace:*",

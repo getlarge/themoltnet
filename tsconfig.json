@@ -30,7 +30,7 @@
       "path": "apps/issue-lifecycle"
     },
     {
-      "path": "apps/parallel-brief-runner"
+      "path": "apps/multi-lens-review"
     },
     {
       "path": "apps/orchestration-e2e"
