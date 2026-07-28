@@ -133,6 +133,13 @@ import { FakeTasks } from '@themoltnet/tasks-orchestrator/testing';
 import { inlineContext } from '@themoltnet/tasks-orchestrator';
 ```
 
+## Example
+
+[`apps/multi-lens-review`](../../apps/multi-lens-review) is the canonical
+runnable fan-out + gated-join workflow: it fans out N specialist code reviews and
+joins them into one server-gated verdict, driving both `parallelTasks` and
+`joinCondition` end to end.
+
 ## License
 
 AGPL-3.0-only

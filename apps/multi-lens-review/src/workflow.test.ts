@@ -1,4 +1,3 @@
-import { MAX_JOIN_TASKS } from '@themoltnet/tasks-orchestrator';
 import { FakeTasks } from '@themoltnet/tasks-orchestrator/testing';
 import { describe, expect, it } from 'vitest';
 
@@ -107,19 +106,56 @@ describe('runMultiLensReview', () => {
     expect(tasks.created).toHaveLength(0);
   });
 
-  it('rejects a fan-in larger than the join ceiling before creating any tasks', async () => {
+  it('rejects more than the practical lens cap before creating any tasks', async () => {
     const tasks = new FakeTasks([]);
-    const lenses = Array.from(
-      { length: MAX_JOIN_TASKS + 1 },
-      (_v, i) => `lens-${i}`,
-    );
+    const lenses = Array.from({ length: 9 }, (_v, i) => `lens-${i}`);
     await expect(
       runMultiLensReview(
         { teamId: 't', diaryId: 'd', correlationId: 'c', target: 'x', lenses },
         { tasks },
       ),
-    ).rejects.toThrow(/at most/);
+    ).rejects.toThrow(/at most 8/);
     expect(tasks.created).toHaveLength(0);
+  });
+
+  it('deduplicates repeated lenses so a run cannot be amplified', async () => {
+    const tasks = new FakeTasks([{ summary: 's' }, { summary: 'v' }]);
+    const out = await runMultiLensReview(
+      {
+        teamId: 't',
+        diaryId: 'd',
+        correlationId: 'c',
+        target: 'x',
+        lenses: ['security', 'security', 'security'],
+      },
+      { tasks },
+    );
+    expect(out.reviews.map((r) => r.lens)).toEqual(['security']);
+    // one review + one synthesis
+    expect(tasks.created).toHaveLength(2);
+  });
+
+  it('propagates the failure when a review output is malformed', async () => {
+    // Second review output lacks `summary` → parse throws → the fan-out rejects.
+    // (Cleanup of the orphaned synthesis is handled at the terminal outcome in
+    // main.ts, not in the workflow — a per-attempt cancel would fight replay.)
+    const tasks = new FakeTasks([
+      { summary: 'ok' },
+      {},
+      { summary: 'never reached' },
+    ]);
+    await expect(
+      runMultiLensReview(
+        {
+          teamId: 't',
+          diaryId: 'd',
+          correlationId: 'corr-fail',
+          target: 'x',
+          lenses: ['security', 'correctness'],
+        },
+        { tasks },
+      ),
+    ).rejects.toThrow(/missing string `summary`/);
   });
 
   it('requires a correlationId', async () => {

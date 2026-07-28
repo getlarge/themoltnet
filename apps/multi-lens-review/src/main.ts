@@ -19,9 +19,12 @@ Usage:
     --target "libs/foo — the change in bar.ts" \\
     [--diff "<diff text>" | --diff-file <path>] \\
     [--lens security --lens correctness ...] [--synthesis "how to consolidate"] \\
+    [--correlation-id <uuid>] \\
     [--queue <name>] [--agent-dir <path>] [--poll-interval <sec>] [--concurrency <n>]
 
-Repeat --lens to override the default lenses. The Absurd-initialized Postgres URL
+Repeat --lens to override the default lenses. Pass --correlation-id to resume a
+run after a crash (rerun with the SAME id — the Absurd idempotency key is derived
+from it, so completed steps replay instead of re-fanning-out). The Postgres URL
 is read from the MULTI_LENS_REVIEW_DATABASE_URL environment variable — not argv —
 so the credential is not exposed via shell history or process listings.`;
 
@@ -52,6 +55,7 @@ function parseCliConfig(argv: string[]): CliConfig {
       'diff-file': { type: 'string' },
       lens: { type: 'string', multiple: true },
       synthesis: { type: 'string' },
+      'correlation-id': { type: 'string' },
       queue: { type: 'string' },
       'agent-dir': { type: 'string' },
       'poll-interval': { type: 'string' },
@@ -99,7 +103,9 @@ function parseCliConfig(argv: string[]): CliConfig {
       diff,
       lenses: values.lens,
       synthesisBrief: values.synthesis,
-      correlationId: randomUUID(),
+      // Caller-persistable so a crashed run can be resumed by rerunning with the
+      // same id; defaults to a fresh uuid.
+      correlationId: values['correlation-id'] ?? randomUUID(),
       pollIntervalSec:
         values['poll-interval'] === undefined
           ? undefined
@@ -118,6 +124,32 @@ async function main(): Promise<number> {
   const agent = await connect(
     cfg.agentDir ? { configDir: cfg.agentDir } : undefined,
   );
+  const teamId = cfg.input.teamId;
+  const TERMINAL_STATUSES = new Set([
+    'completed',
+    'failed',
+    'cancelled',
+    'aborted',
+    'timed_out',
+  ]);
+  // Cancel every non-terminal task sharing the correlation id (used to clean up
+  // a failed run's orphaned synthesis + in-flight reviews).
+  const cancelRun = async (correlationId: string): Promise<number> => {
+    const { items } = await agent.tasks.list({ correlationId }, { teamId });
+    let cancelled = 0;
+    for (const task of items) {
+      if (TERMINAL_STATUSES.has(task.status)) continue;
+      try {
+        await agent.tasks.cancel(task.id, {
+          reason: 'multi-lens-review run aborted',
+        });
+        cancelled += 1;
+      } catch {
+        // best-effort cleanup — ignore per-task cancel failures
+      }
+    }
+    return cancelled;
+  };
   const queueName = cfg.queueName ?? 'multi-lens-review';
   const app = createMultiLensReviewAbsurdApp({
     databaseUrl: cfg.databaseUrl,
@@ -127,6 +159,12 @@ async function main(): Promise<number> {
   let worker: Awaited<ReturnType<typeof app.startWorker>> | null = null;
   try {
     await app.createQueue(queueName);
+    // Emit the correlation id BEFORE spawning so an operator can capture it and
+    // resume with `--correlation-id` if the spawn/await is interrupted.
+    logger.info(
+      { correlationId: cfg.input.correlationId },
+      'multi_lens_review.correlation',
+    );
     const spawned = await app.spawn(MULTI_LENS_REVIEW_TASK, cfg.input, {
       queue: queueName,
       idempotencyKey: `multi-lens-review:${cfg.input.correlationId}`,
@@ -137,6 +175,18 @@ async function main(): Promise<number> {
     );
     worker = await app.startWorker({ concurrency: 1 });
     const result = await app.awaitTaskResult(spawned.taskID);
+    if (result.state !== 'completed') {
+      // Terminal failure (after all orchestration attempts): best-effort cancel
+      // the run's orphaned tasks — the up-front server-gated synthesis (left
+      // `waiting` forever) plus any in-flight reviews. Done here, at the terminal
+      // outcome, NOT inside the workflow: a per-attempt cancel would cancel tasks
+      // that an Absurd retry then replays via `ctx.step`.
+      const cancelled = await cancelRun(cfg.input.correlationId).catch(() => 0);
+      logger.warn(
+        { correlationId: cfg.input.correlationId, cancelled },
+        'multi_lens_review.run.cancelled',
+      );
+    }
     // eslint-disable-next-line no-console
     console.log(JSON.stringify(result, null, 2));
     return result.state === 'completed' ? 0 : 1;
