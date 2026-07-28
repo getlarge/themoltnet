@@ -8,6 +8,16 @@ export const DEFAULT_LENSES = [
   'test-coverage',
 ] as const;
 
+/**
+ * Runtime-profile affinity for the review fan-out. The default applies to
+ * every task unless a lens or the synthesis task has an explicit override.
+ */
+export interface RuntimeProfileRouting {
+  defaultProfileId: string;
+  lensProfileIds?: Record<string, string>;
+  synthesisProfileId?: string;
+}
+
 export interface MultiLensReviewInput {
   teamId: string;
   diaryId: string;
@@ -25,6 +35,8 @@ export interface MultiLensReviewInput {
   lenses?: string[];
   /** Instruction override for the joining synthesis task. */
   synthesisBrief?: string;
+  /** Optional runtime-profile affinity for review and synthesis tasks. */
+  profileRouting?: RuntimeProfileRouting;
   pollIntervalSec?: number;
   /** Optional bound on how many review tasks are awaited concurrently. */
   concurrency?: number;

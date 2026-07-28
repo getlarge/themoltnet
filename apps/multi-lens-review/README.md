@@ -30,16 +30,33 @@ MULTI_LENS_REVIEW_DATABASE_URL=<absurd-postgres-url> \
   moltnet-multi-lens-review \
     --team <team-uuid> --diary <diary-uuid> \
     --target "libs/foo — the change in bar.ts" \
-    --diff-file /tmp/change.diff        # or --diff "<inline diff>"
+    --diff-file /tmp/change.diff \
+    --profile multi-lens-review-v1      # UUID or team-scoped name
 
 # override the lenses:
 #   --lens security --lens correctness
+# route selected work to specialized profiles:
+#   --lens-profile security=security-specialist-v1
+#   --synthesis-profile review-lead-v1
 # tune fan-out awaiting:
 #   --concurrency 2 --poll-interval 10
 ```
 
 The Absurd Postgres URL is read from `MULTI_LENS_REVIEW_DATABASE_URL` (not argv)
 so the credential is not exposed via shell history or process listings.
+
+`--profile` resolves the profile once and pins every created task through
+`allowedProfiles`. `--lens-profile <lens>=<profile>` and
+`--synthesis-profile <profile>` are optional overrides; this lets the workflow
+start with one reviewed execution contract and later route individual lenses to
+models that are better suited to them.
+
+The repository workflow
+[`multi-lens-review.yml`](../../.github/workflows/multi-lens-review.yml) runs
+against trusted base code on `pull_request_target`. It fetches the PR diff
+through GitHub's API as capped, untrusted data, starts four ephemeral correlated
+daemon workers, and updates one marker-backed PR comment with the consolidated
+verdict.
 
 ## License
 

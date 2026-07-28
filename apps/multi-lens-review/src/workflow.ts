@@ -34,6 +34,14 @@ interface NormalizedInput extends MultiLensReviewInput {
   pollIntervalSec: number;
 }
 
+function normalizedProfileId(profileId: string, label: string): string {
+  const value = profileId.trim();
+  if (!value) {
+    throw new Error(`multi-lens-review requires a non-empty ${label}`);
+  }
+  return value;
+}
+
 export function normalizeMultiLensReviewInput(
   input: MultiLensReviewInput,
 ): NormalizedInput {
@@ -61,9 +69,45 @@ export function normalizeMultiLensReviewInput(
   if (!input.correlationId) {
     throw new Error('multi-lens-review requires a correlationId');
   }
+  let profileRouting = input.profileRouting;
+  if (profileRouting) {
+    const knownLenses = new Set(lenses);
+    const lensProfileIds = Object.fromEntries(
+      Object.entries(profileRouting.lensProfileIds ?? {}).map(
+        ([rawLens, rawProfileId]) => {
+          const lens = rawLens.trim();
+          if (!knownLenses.has(lens)) {
+            throw new Error(
+              `multi-lens-review profile routing references unknown lens "${lens}"`,
+            );
+          }
+          return [
+            lens,
+            normalizedProfileId(rawProfileId, `profile id for lens "${lens}"`),
+          ];
+        },
+      ),
+    );
+    profileRouting = {
+      defaultProfileId: normalizedProfileId(
+        profileRouting.defaultProfileId,
+        'default profile id',
+      ),
+      ...(Object.keys(lensProfileIds).length > 0 ? { lensProfileIds } : {}),
+      ...(profileRouting.synthesisProfileId
+        ? {
+            synthesisProfileId: normalizedProfileId(
+              profileRouting.synthesisProfileId,
+              'synthesis profile id',
+            ),
+          }
+        : {}),
+    };
+  }
   return {
     ...input,
     lenses,
+    profileRouting,
     correlationId: input.correlationId,
     pollIntervalSec: input.pollIntervalSec ?? DEFAULT_POLL_INTERVAL_SEC,
   };
@@ -116,6 +160,9 @@ function buildReviewPrompt(input: NormalizedInput, lens: string): string {
 }
 
 function buildReviewTask(input: NormalizedInput, lens: string): CreateBody {
+  const selectedProfileId =
+    input.profileRouting?.lensProfileIds?.[lens] ??
+    input.profileRouting?.defaultProfileId;
   return {
     taskType: 'freeform',
     title: `Review (${lens})`,
@@ -129,6 +176,9 @@ function buildReviewTask(input: NormalizedInput, lens: string): CreateBody {
       expectedOutput:
         'Return the review markdown in the `summary` string field.',
     },
+    ...(selectedProfileId
+      ? { allowedProfiles: [{ profileId: selectedProfileId }] }
+      : {}),
   };
 }
 
@@ -161,6 +211,9 @@ function buildSynthesisTask(
   input: NormalizedInput,
   reviewTaskIds: string[],
 ): CreateBody {
+  const selectedProfileId =
+    input.profileRouting?.synthesisProfileId ??
+    input.profileRouting?.defaultProfileId;
   return {
     taskType: 'freeform',
     title: 'Consolidated review verdict',
@@ -177,6 +230,9 @@ function buildSynthesisTask(
     // starts `waiting` and is promoted to `queued` by the task-service only once
     // every review is completed; that promotion is what exercises the gate.
     claimCondition: joinCondition(reviewTaskIds),
+    ...(selectedProfileId
+      ? { allowedProfiles: [{ profileId: selectedProfileId }] }
+      : {}),
   };
 }
 
