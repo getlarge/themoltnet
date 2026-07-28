@@ -498,7 +498,12 @@ runs:
         ' "$TASK_SPEC_PATH")
 
         CREDS="$GITHUB_WORKSPACE/.moltnet/$MOLTNET_AGENT_NAME/moltnet.json"
-        if [ ! -f "$CREDS" ]; then
+        credential_args=()
+        if [ -n "${MOLTNET_AGENT_KEY:-}" ]; then
+          echo "::notice::Creating task with configless agent-key authentication"
+        elif [ -f "$CREDS" ]; then
+          credential_args+=(--credentials "$CREDS")
+        else
           echo "::error::moltnet credentials not found at $CREDS"
           exit 1
         fi
@@ -532,7 +537,7 @@ runs:
           --input-file "$INPUT_PATH" \
           --output id \
           --api-url "${MOLTNET_API_URL:-https://api.themolt.net}" \
-          --credentials "$CREDS" \
+          "${credential_args[@]}" \
           "${flags[@]}")
         echo "::notice::Created task $TASK_ID (correlationId=$CORRELATION_ID)"
         echo "task-id=$TASK_ID" >> "$GITHUB_OUTPUT"

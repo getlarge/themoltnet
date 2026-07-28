@@ -52,7 +52,8 @@ jobs:
               mediaType: { format: 'diff' },
             });
             const diff = String(response.data);
-            const maxBytes = 512 * 1024;
+            // Keep this aligned with MAX_REVIEW_DIFF_BYTES in the orchestrator.
+            const maxBytes = 128 * 1024;
             if (Buffer.byteLength(diff, 'utf8') > maxBytes) {
               core.setFailed(`PR diff exceeds the ${maxBytes}-byte review limit`);
               return;
@@ -144,10 +145,16 @@ jobs:
           RESULT_PATH: ${{ steps.review.outputs.result }}
           REVIEW_OUTCOME: ${{ steps.review.outcome }}
           CORRELATION_ID: ${{ needs.prepare.outputs.correlation-id }}
+          HEAD_SHA: ${{ needs.prepare.outputs.head-sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         with:
           script: |
             const fs = require('node:fs');
             const marker = '<!-- moltnet:multi-lens-review -->';
+            const runDetails =
+              `Head: \`${process.env.HEAD_SHA}\` · ` +
+              `[workflow run](${process.env.RUN_URL}) · ` +
+              `Correlation: \`${process.env.CORRELATION_ID}\``;
             let body;
             if (process.env.REVIEW_OUTCOME === 'success' && process.env.RESULT_PATH) {
               const payload = JSON.parse(fs.readFileSync(process.env.RESULT_PATH, 'utf8'));
@@ -155,21 +162,23 @@ jobs:
               const verdict = output.verdict ?? output.value?.verdict;
               body = verdict
                 ? `${marker}\n## MoltNet multi-lens review\n\n${verdict}\n\n` +
-                  `_Run: \`${process.env.CORRELATION_ID}\`_`
+                  `_${runDetails}_`
                 : `${marker}\n## MoltNet multi-lens review\n\n` +
                   `The review completed, but its verdict payload was not recognized. ` +
-                  `Run: \`${process.env.CORRELATION_ID}\`.`;
+                  `${runDetails}.`;
             } else {
               body = `${marker}\n## MoltNet multi-lens review\n\n` +
-                `The review run failed. See the workflow logs for correlation ` +
-                `\`${process.env.CORRELATION_ID}\`.`;
+                `The review run failed. ${runDetails}.`;
             }
-            const { data: comments } = await github.rest.issues.listComments({
+            const comments = await github.paginate(
+              github.rest.issues.listComments,
+              {
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
               per_page: 100,
-            });
+              },
+            );
             const existing = comments.find(comment =>
               comment.user?.type === 'Bot' && comment.body?.includes(marker));
             if (existing) {
@@ -205,6 +214,10 @@ jobs:
       MOLTNET_API_URL: ${{ vars.MOLTNET_API_URL }}
       MOLTNET_TEAM_ID: ${{ vars.MOLTNET_TEAM_ID }}
       OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
+      # Absurd may need time to create the first task; dependency gaps after a
+      # completed lens are shorter and use a separate idle grace.
+      REVIEW_WORKER_STARTUP_GRACE_SEC: '900'
+      REVIEW_WORKER_IDLE_GRACE_SEC: '300'
     steps:
       - uses: actions/checkout@v6
         with:
@@ -223,7 +236,7 @@ jobs:
           mode: drain
           task-types: freeform
           correlation-id: ${{ needs.prepare.outputs.correlation-id }}
-          wait-for-first-task-sec: '300'
-          wait-after-task-sec: '300'
+          wait-for-first-task-sec: ${{ env.REVIEW_WORKER_STARTUP_GRACE_SEC }}
+          wait-after-task-sec: ${{ env.REVIEW_WORKER_IDLE_GRACE_SEC }}
           profile: ${{ needs.prepare.outputs.profile }}
           daemon-version: workspace
