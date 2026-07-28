@@ -41,7 +41,22 @@ describe('Talos token deriver', () => {
       deriveTokenRequest: {
         algorithm: 'TOKEN_ALGORITHM_JWT',
         credential: 'parent-secret',
-        custom_claims: expect.any(Object),
+        custom_claims: {
+          'https://themolt.net/claims/credentials/v1': {
+            version: 1,
+            kind: 'task',
+            agentId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+            teamId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+            taskId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+            attemptN: 1,
+            leaseId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+            runtimeKind: 'pi',
+            capabilityManifestVersion: 'pi-v1',
+            runtimeProfileId: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+            runtimeProfileRevision: 1,
+            policySnapshotHash: `sha256:${'a'.repeat(64)}`,
+          },
+        },
         scopes: ['moltnet:task'],
         ttl: '60s',
       },

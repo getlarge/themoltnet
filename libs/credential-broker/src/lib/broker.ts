@@ -116,7 +116,7 @@ export interface IssuedCredential {
   binding: TaskCredentialClaims | ConnectorCredentialClaims;
 }
 
-const noopEvidence: EvidenceSink = { emit: async () => undefined };
+const noopEvidence: EvidenceSink = { emit: () => Promise.resolve() };
 const systemClock: BrokerClock = { now: () => new Date() };
 const SAFE_REASON = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,254}$/;
 

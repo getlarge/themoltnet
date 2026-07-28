@@ -1,14 +1,12 @@
 /// <reference types='vitest' />
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
-import { nxViteTsPaths } from '@nx/vite/plugins/nx-tsconfig-paths.plugin';
 import { nxCopyAssetsPlugin } from '@nx/vite/plugins/nx-copy-assets.plugin';
 
 export default defineConfig(() => ({
   root: import.meta.dirname,
   cacheDir: '../../node_modules/.vite/libs/credential-broker',
   plugins: [
-    nxViteTsPaths(),
     nxCopyAssetsPlugin(['*.md']),
     dts({
       rollupTypes: true,
@@ -17,10 +15,6 @@ export default defineConfig(() => ({
       exclude: ['src/**/*.spec.ts'],
     }),
   ],
-  // Uncomment this if you are using workers.
-  // worker: {
-  //   plugins: () => [ nxViteTsPaths() ],
-  // },
   // Configuration for building your library.
   // See: https://vite.dev/guide/build.html#library-mode
   build: {
