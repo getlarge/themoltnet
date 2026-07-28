@@ -93,6 +93,12 @@
       "path": "libs/context-pack-service"
     },
     {
+      "path": "libs/credential-broker"
+    },
+    {
+      "path": "libs/credentials"
+    },
+    {
       "path": "libs/crypto-service"
     },
     {
