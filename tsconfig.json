@@ -147,6 +147,9 @@
       "path": "libs/pi-extension"
     },
     {
+      "path": "libs/pi-runtime"
+    },
+    {
       "path": "libs/runtime-session-service"
     },
     {

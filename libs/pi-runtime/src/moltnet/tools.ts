@@ -17,10 +17,17 @@ import type { ToolDefinition } from '@earendil-works/pi-coding-agent';
 import { defineTool } from '@earendil-works/pi-coding-agent';
 import type { connect } from '@themoltnet/sdk';
 
-import type { TrackedError } from '../commands/types.js';
 import { type ExpandedPack, renderPhase6Markdown } from './render-phase6.js';
 
 type MoltNetAgent = Awaited<ReturnType<typeof connect>>;
+
+export interface TrackedError {
+  toolName: string;
+  toolCallId: string;
+  input: Record<string, unknown>;
+  error: string;
+  timestamp: number;
+}
 
 /**
  * Active-task context. When present, `moltnet_create_entry` is forced to

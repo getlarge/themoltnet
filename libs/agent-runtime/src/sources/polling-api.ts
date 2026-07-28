@@ -7,7 +7,11 @@ import { MoltNetError } from '@themoltnet/sdk';
 import { pino } from 'pino';
 
 import type { AgentRuntimeLogger } from '../runtime.js';
-import type { ClaimedTask, TaskSource } from './types.js';
+import type {
+  ClaimedTask,
+  CreateClaimAttestation,
+  TaskSource,
+} from './types.js';
 
 /**
  * Structural shape of the runtime slot store needed by the affinity filter.
@@ -207,6 +211,8 @@ export interface PollingApiTaskSourceOptions {
    * profile.
    */
   profileId?: string;
+  /** Produces the agent-signed executor manifest attached to each claim. */
+  createClaimAttestation?: CreateClaimAttestation;
   /**
    * Ordered runtime profiles this source can claim with. The first profile
    * that sees a task wins, so unrestricted tasks use the first profile and
@@ -537,9 +543,14 @@ export class PollingApiTaskSource implements TaskSource {
       if (this.aborted()) return null;
       const { task, profile } = candidate;
       try {
+        const attestation = await this.opts.createClaimAttestation?.({
+          taskId: task.id,
+          ...(profile.profileId ? { profileId: profile.profileId } : {}),
+        });
         const result = await this.opts.agent.tasks.claim(task.id, {
           leaseTtlSec: profile.leaseTtlSec ?? this.opts.leaseTtlSec,
           ...(profile.profileId ? { profileId: profile.profileId } : {}),
+          ...attestation,
         });
         if (this.opts.debug) {
           this.logger.debug(

@@ -1,12 +1,18 @@
 import type { Agent } from '@themoltnet/sdk';
 
-import type { ClaimedTask, TaskSource } from './types.js';
+import type {
+  ClaimedTask,
+  CreateClaimAttestation,
+  TaskSource,
+} from './types.js';
 
 export interface ApiTaskSourceOptions {
   agent: Agent;
   taskId: string;
   leaseTtlSec?: number;
   profileId?: string;
+  /** Produces the agent-signed executor manifest attached to this claim. */
+  createClaimAttestation?: CreateClaimAttestation;
 }
 
 export class ApiTaskSource implements TaskSource {
@@ -17,10 +23,16 @@ export class ApiTaskSource implements TaskSource {
   async claim(): Promise<ClaimedTask | null> {
     if (this.claimed) return null;
 
-    const { agent, taskId, leaseTtlSec, profileId } = this.opts;
+    const { agent, taskId, leaseTtlSec, profileId, createClaimAttestation } =
+      this.opts;
+    const attestation = await createClaimAttestation?.({
+      taskId,
+      ...(profileId ? { profileId } : {}),
+    });
     const result = await agent.tasks.claim(taskId, {
       ...(leaseTtlSec ? { leaseTtlSec } : {}),
       ...(profileId ? { profileId } : {}),
+      ...attestation,
     });
 
     this.claimed = true;

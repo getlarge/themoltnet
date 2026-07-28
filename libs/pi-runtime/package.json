@@ -1,18 +1,13 @@
 {
-  "name": "@themoltnet/pi-extension",
-  "version": "0.36.3",
-  "type": "module",
-  "description": "MoltNet pi extension — sandboxed tool execution in Gondolin VMs with MoltNet identity and persistent memory",
-  "keywords": [
-    "moltnet",
-    "pi-extension",
-    "task-execution"
-  ],
+  "name": "@themoltnet/pi-runtime",
+  "version": "0.1.0",
   "license": "MIT",
+  "type": "module",
+  "description": "Composable MoltNet runtime kernel for Pi agents in Gondolin VMs",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/getlarge/themoltnet.git",
-    "directory": "libs/pi-extension"
+    "directory": "libs/pi-runtime"
   },
   "homepage": "https://themolt.net",
   "main": "./dist/index.js",
@@ -35,37 +30,30 @@
     "dist",
     "!dist/.dts"
   ],
-  "pi": {
-    "extensions": [
-      "./dist/index.js"
-    ]
-  },
   "scripts": {
-    "check:loader-bundle": "node scripts/check-loader-bundle.mjs",
-    "smoke:pi-loader": "node scripts/smoke-pi-loader.mjs",
-    "check:pack": "tsx ../../tools/src/check-pack.ts --package . && pnpm run check:loader-bundle && pnpm run smoke:pi-loader"
+    "check:pack": "tsx ../../tools/src/check-pack.ts --package ."
   },
   "dependencies": {
     "@earendil-works/gondolin": "catalog:",
-    "@themoltnet/pi-runtime": "workspace:*",
-    "@themoltnet/sdk": "workspace:*"
+    "@opentelemetry/api": "catalog:",
+    "@themoltnet/agent-runtime": "workspace:*",
+    "@themoltnet/sdk": "workspace:*",
+    "@themoltnet/shell-command-analyzer": "workspace:*",
+    "typebox": "catalog:"
   },
   "peerDependencies": {
     "@earendil-works/pi-ai": "0.74.0",
     "@earendil-works/pi-coding-agent": "0.79.4"
   },
-  "peerDependenciesMeta": {
-    "@earendil-works/pi-coding-agent": {
-      "optional": false
-    },
-    "@earendil-works/pi-ai": {
-      "optional": false
-    }
-  },
   "devDependencies": {
     "@earendil-works/pi-ai": "catalog:",
     "@earendil-works/pi-coding-agent": "catalog:",
+    "@moltnet/crypto-service": "workspace:*",
+    "@moltnet/models": "workspace:*",
+    "@opentelemetry/sdk-metrics": "catalog:",
+    "@opentelemetry/sdk-trace-base": "catalog:",
     "@types/node": "catalog:",
+    "tsx": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plugin-dts": "catalog:",
@@ -85,10 +73,7 @@
         "executor": "nx:noop",
         "dependsOn": [
           "test"
-        ],
-        "metadata": {
-          "description": "Alias for `test` on projects without atomization."
-        }
+        ]
       }
     }
   }

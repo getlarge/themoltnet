@@ -2059,6 +2059,16 @@
             "maxItems": 100,
             "type": "array"
           },
+          "requiredExecutables": {
+            "items": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9._/-]+$",
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
           "requiredTools": {
             "items": {
               "maxLength": 128,
@@ -2070,9 +2080,9 @@
             "type": "array"
           },
           "runtimeKind": {
-            "enum": [
-              "gondolin_pi"
-            ],
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[a-z][a-z0-9._-]*$",
             "type": "string"
           },
           "sandbox": {
@@ -2136,106 +2146,6 @@
                     "minLength": 2,
                     "pattern": "^[0-9]+[KMG]?$",
                     "type": "string"
-                  }
-                },
-                "type": "object"
-              },
-              "resumeCommands": {
-                "items": {
-                  "anyOf": [
-                    {
-                      "maxLength": 4096,
-                      "minLength": 1,
-                      "type": "string"
-                    },
-                    {
-                      "additionalProperties": false,
-                      "properties": {
-                        "retries": {
-                          "maximum": 5,
-                          "minimum": 0,
-                          "type": "integer"
-                        },
-                        "retryBackoffMs": {
-                          "maximum": 60000,
-                          "minimum": 0,
-                          "type": "integer"
-                        },
-                        "run": {
-                          "maxLength": 4096,
-                          "minLength": 1,
-                          "type": "string"
-                        },
-                        "when": {
-                          "additionalProperties": false,
-                          "properties": {
-                            "workspaceMode": {
-                              "items": {
-                                "anyOf": [
-                                  {
-                                    "enum": [
-                                      "shared_mount"
-                                    ],
-                                    "type": "string"
-                                  },
-                                  {
-                                    "enum": [
-                                      "dedicated_worktree"
-                                    ],
-                                    "type": "string"
-                                  },
-                                  {
-                                    "enum": [
-                                      "scratch_mount"
-                                    ],
-                                    "type": "string"
-                                  }
-                                ]
-                              },
-                              "maxItems": 3,
-                              "minItems": 1,
-                              "type": "array"
-                            }
-                          },
-                          "type": "object"
-                        }
-                      },
-                      "required": [
-                        "run"
-                      ],
-                      "type": "object"
-                    }
-                  ]
-                },
-                "maxItems": 30,
-                "type": "array"
-              },
-              "snapshot": {
-                "additionalProperties": false,
-                "properties": {
-                  "allowedHosts": {
-                    "items": {
-                      "maxLength": 255,
-                      "minLength": 1,
-                      "type": "string"
-                    },
-                    "maxItems": 50,
-                    "type": "array"
-                  },
-                  "overlaySize": {
-                    "maxLength": 16,
-                    "minLength": 2,
-                    "pattern": "^[0-9]+[KMGTP]?$",
-                    "type": "string"
-                  },
-                  "setupCommands": {
-                    "items": {
-                      "maxLength": 4096,
-                      "minLength": 1,
-                      "type": "string"
-                    },
-                    "maxItems": 20,
-                    "type": "array"
                   }
                 },
                 "type": "object"
@@ -8412,6 +8322,16 @@
             "maxItems": 100,
             "type": "array"
           },
+          "requiredExecutables": {
+            "items": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9._/-]+$",
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
           "requiredTools": {
             "items": {
               "maxLength": 128,
@@ -8427,9 +8347,9 @@
             "type": "integer"
           },
           "runtimeKind": {
-            "enum": [
-              "gondolin_pi"
-            ],
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[a-z][a-z0-9._-]*$",
             "type": "string"
           },
           "sandbox": {
@@ -8493,106 +8413,6 @@
                     "minLength": 2,
                     "pattern": "^[0-9]+[KMG]?$",
                     "type": "string"
-                  }
-                },
-                "type": "object"
-              },
-              "resumeCommands": {
-                "items": {
-                  "anyOf": [
-                    {
-                      "maxLength": 4096,
-                      "minLength": 1,
-                      "type": "string"
-                    },
-                    {
-                      "additionalProperties": false,
-                      "properties": {
-                        "retries": {
-                          "maximum": 5,
-                          "minimum": 0,
-                          "type": "integer"
-                        },
-                        "retryBackoffMs": {
-                          "maximum": 60000,
-                          "minimum": 0,
-                          "type": "integer"
-                        },
-                        "run": {
-                          "maxLength": 4096,
-                          "minLength": 1,
-                          "type": "string"
-                        },
-                        "when": {
-                          "additionalProperties": false,
-                          "properties": {
-                            "workspaceMode": {
-                              "items": {
-                                "anyOf": [
-                                  {
-                                    "enum": [
-                                      "shared_mount"
-                                    ],
-                                    "type": "string"
-                                  },
-                                  {
-                                    "enum": [
-                                      "dedicated_worktree"
-                                    ],
-                                    "type": "string"
-                                  },
-                                  {
-                                    "enum": [
-                                      "scratch_mount"
-                                    ],
-                                    "type": "string"
-                                  }
-                                ]
-                              },
-                              "maxItems": 3,
-                              "minItems": 1,
-                              "type": "array"
-                            }
-                          },
-                          "type": "object"
-                        }
-                      },
-                      "required": [
-                        "run"
-                      ],
-                      "type": "object"
-                    }
-                  ]
-                },
-                "maxItems": 30,
-                "type": "array"
-              },
-              "snapshot": {
-                "additionalProperties": false,
-                "properties": {
-                  "allowedHosts": {
-                    "items": {
-                      "maxLength": 255,
-                      "minLength": 1,
-                      "type": "string"
-                    },
-                    "maxItems": 50,
-                    "type": "array"
-                  },
-                  "overlaySize": {
-                    "maxLength": 16,
-                    "minLength": 2,
-                    "pattern": "^[0-9]+[KMGTP]?$",
-                    "type": "string"
-                  },
-                  "setupCommands": {
-                    "items": {
-                      "maxLength": 4096,
-                      "minLength": 1,
-                      "type": "string"
-                    },
-                    "maxItems": 20,
-                    "type": "array"
                   }
                 },
                 "type": "object"
@@ -8792,6 +8612,7 @@
           "toolEnforcement",
           "requiredEnv",
           "requiredTools",
+          "requiredExecutables",
           "context",
           "revision",
           "definitionCid",
@@ -9078,6 +8899,16 @@
                   "maxItems": 100,
                   "type": "array"
                 },
+                "requiredExecutables": {
+                  "items": {
+                    "maxLength": 128,
+                    "minLength": 1,
+                    "pattern": "^[a-zA-Z0-9._/-]+$",
+                    "type": "string"
+                  },
+                  "maxItems": 100,
+                  "type": "array"
+                },
                 "requiredTools": {
                   "items": {
                     "maxLength": 128,
@@ -9093,9 +8924,9 @@
                   "type": "integer"
                 },
                 "runtimeKind": {
-                  "enum": [
-                    "gondolin_pi"
-                  ],
+                  "maxLength": 100,
+                  "minLength": 1,
+                  "pattern": "^[a-z][a-z0-9._-]*$",
                   "type": "string"
                 },
                 "sandbox": {
@@ -9159,106 +8990,6 @@
                           "minLength": 2,
                           "pattern": "^[0-9]+[KMG]?$",
                           "type": "string"
-                        }
-                      },
-                      "type": "object"
-                    },
-                    "resumeCommands": {
-                      "items": {
-                        "anyOf": [
-                          {
-                            "maxLength": 4096,
-                            "minLength": 1,
-                            "type": "string"
-                          },
-                          {
-                            "additionalProperties": false,
-                            "properties": {
-                              "retries": {
-                                "maximum": 5,
-                                "minimum": 0,
-                                "type": "integer"
-                              },
-                              "retryBackoffMs": {
-                                "maximum": 60000,
-                                "minimum": 0,
-                                "type": "integer"
-                              },
-                              "run": {
-                                "maxLength": 4096,
-                                "minLength": 1,
-                                "type": "string"
-                              },
-                              "when": {
-                                "additionalProperties": false,
-                                "properties": {
-                                  "workspaceMode": {
-                                    "items": {
-                                      "anyOf": [
-                                        {
-                                          "enum": [
-                                            "shared_mount"
-                                          ],
-                                          "type": "string"
-                                        },
-                                        {
-                                          "enum": [
-                                            "dedicated_worktree"
-                                          ],
-                                          "type": "string"
-                                        },
-                                        {
-                                          "enum": [
-                                            "scratch_mount"
-                                          ],
-                                          "type": "string"
-                                        }
-                                      ]
-                                    },
-                                    "maxItems": 3,
-                                    "minItems": 1,
-                                    "type": "array"
-                                  }
-                                },
-                                "type": "object"
-                              }
-                            },
-                            "required": [
-                              "run"
-                            ],
-                            "type": "object"
-                          }
-                        ]
-                      },
-                      "maxItems": 30,
-                      "type": "array"
-                    },
-                    "snapshot": {
-                      "additionalProperties": false,
-                      "properties": {
-                        "allowedHosts": {
-                          "items": {
-                            "maxLength": 255,
-                            "minLength": 1,
-                            "type": "string"
-                          },
-                          "maxItems": 50,
-                          "type": "array"
-                        },
-                        "overlaySize": {
-                          "maxLength": 16,
-                          "minLength": 2,
-                          "pattern": "^[0-9]+[KMGTP]?$",
-                          "type": "string"
-                        },
-                        "setupCommands": {
-                          "items": {
-                            "maxLength": 4096,
-                            "minLength": 1,
-                            "type": "string"
-                          },
-                          "maxItems": 20,
-                          "type": "array"
                         }
                       },
                       "type": "object"
@@ -9458,6 +9189,7 @@
                 "toolEnforcement",
                 "requiredEnv",
                 "requiredTools",
+                "requiredExecutables",
                 "context",
                 "revision",
                 "definitionCid",
@@ -9566,106 +9298,6 @@
                 "minLength": 2,
                 "pattern": "^[0-9]+[KMG]?$",
                 "type": "string"
-              }
-            },
-            "type": "object"
-          },
-          "resumeCommands": {
-            "items": {
-              "anyOf": [
-                {
-                  "maxLength": 4096,
-                  "minLength": 1,
-                  "type": "string"
-                },
-                {
-                  "additionalProperties": false,
-                  "properties": {
-                    "retries": {
-                      "maximum": 5,
-                      "minimum": 0,
-                      "type": "integer"
-                    },
-                    "retryBackoffMs": {
-                      "maximum": 60000,
-                      "minimum": 0,
-                      "type": "integer"
-                    },
-                    "run": {
-                      "maxLength": 4096,
-                      "minLength": 1,
-                      "type": "string"
-                    },
-                    "when": {
-                      "additionalProperties": false,
-                      "properties": {
-                        "workspaceMode": {
-                          "items": {
-                            "anyOf": [
-                              {
-                                "enum": [
-                                  "shared_mount"
-                                ],
-                                "type": "string"
-                              },
-                              {
-                                "enum": [
-                                  "dedicated_worktree"
-                                ],
-                                "type": "string"
-                              },
-                              {
-                                "enum": [
-                                  "scratch_mount"
-                                ],
-                                "type": "string"
-                              }
-                            ]
-                          },
-                          "maxItems": 3,
-                          "minItems": 1,
-                          "type": "array"
-                        }
-                      },
-                      "type": "object"
-                    }
-                  },
-                  "required": [
-                    "run"
-                  ],
-                  "type": "object"
-                }
-              ]
-            },
-            "maxItems": 30,
-            "type": "array"
-          },
-          "snapshot": {
-            "additionalProperties": false,
-            "properties": {
-              "allowedHosts": {
-                "items": {
-                  "maxLength": 255,
-                  "minLength": 1,
-                  "type": "string"
-                },
-                "maxItems": 50,
-                "type": "array"
-              },
-              "overlaySize": {
-                "maxLength": 16,
-                "minLength": 2,
-                "pattern": "^[0-9]+[KMGTP]?$",
-                "type": "string"
-              },
-              "setupCommands": {
-                "items": {
-                  "maxLength": 4096,
-                  "minLength": 1,
-                  "type": "string"
-                },
-                "maxItems": 20,
-                "type": "array"
               }
             },
             "type": "object"
@@ -13677,6 +13309,16 @@
             "maxItems": 100,
             "type": "array"
           },
+          "requiredExecutables": {
+            "items": {
+              "maxLength": 128,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9._/-]+$",
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
           "requiredTools": {
             "items": {
               "maxLength": 128,
@@ -13688,9 +13330,9 @@
             "type": "array"
           },
           "runtimeKind": {
-            "enum": [
-              "gondolin_pi"
-            ],
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[a-z][a-z0-9._-]*$",
             "type": "string"
           },
           "sandbox": {
@@ -13754,106 +13396,6 @@
                     "minLength": 2,
                     "pattern": "^[0-9]+[KMG]?$",
                     "type": "string"
-                  }
-                },
-                "type": "object"
-              },
-              "resumeCommands": {
-                "items": {
-                  "anyOf": [
-                    {
-                      "maxLength": 4096,
-                      "minLength": 1,
-                      "type": "string"
-                    },
-                    {
-                      "additionalProperties": false,
-                      "properties": {
-                        "retries": {
-                          "maximum": 5,
-                          "minimum": 0,
-                          "type": "integer"
-                        },
-                        "retryBackoffMs": {
-                          "maximum": 60000,
-                          "minimum": 0,
-                          "type": "integer"
-                        },
-                        "run": {
-                          "maxLength": 4096,
-                          "minLength": 1,
-                          "type": "string"
-                        },
-                        "when": {
-                          "additionalProperties": false,
-                          "properties": {
-                            "workspaceMode": {
-                              "items": {
-                                "anyOf": [
-                                  {
-                                    "enum": [
-                                      "shared_mount"
-                                    ],
-                                    "type": "string"
-                                  },
-                                  {
-                                    "enum": [
-                                      "dedicated_worktree"
-                                    ],
-                                    "type": "string"
-                                  },
-                                  {
-                                    "enum": [
-                                      "scratch_mount"
-                                    ],
-                                    "type": "string"
-                                  }
-                                ]
-                              },
-                              "maxItems": 3,
-                              "minItems": 1,
-                              "type": "array"
-                            }
-                          },
-                          "type": "object"
-                        }
-                      },
-                      "required": [
-                        "run"
-                      ],
-                      "type": "object"
-                    }
-                  ]
-                },
-                "maxItems": 30,
-                "type": "array"
-              },
-              "snapshot": {
-                "additionalProperties": false,
-                "properties": {
-                  "allowedHosts": {
-                    "items": {
-                      "maxLength": 255,
-                      "minLength": 1,
-                      "type": "string"
-                    },
-                    "maxItems": 50,
-                    "type": "array"
-                  },
-                  "overlaySize": {
-                    "maxLength": 16,
-                    "minLength": 2,
-                    "pattern": "^[0-9]+[KMGTP]?$",
-                    "type": "string"
-                  },
-                  "setupCommands": {
-                    "items": {
-                      "maxLength": 4096,
-                      "minLength": 1,
-                      "type": "string"
-                    },
-                    "maxItems": 20,
-                    "type": "array"
                   }
                 },
                 "type": "object"

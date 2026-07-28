@@ -115,6 +115,8 @@ export interface CreateSubagentToolArgs {
    * for filtering. The subagent appends its own submit tool.
    */
   inheritedCustomTools: ToolDefinition[];
+  /** Exact enforce-mode tool allowlist inherited from the parent session. */
+  tools?: string[];
   /**
    * The parent runtime instructor verbatim. Subagents prepend it to
    * their own short "you are a subagent" preamble so the same
@@ -341,6 +343,9 @@ export function createSubagentTool(
         maxOutputTokens: args.maxOutputTokens,
         agentName: args.agentName,
         customTools: [...args.inheritedCustomTools, submitTool],
+        tools: args.tools
+          ? [...new Set([...args.tools, SUBAGENT_SUBMIT_TOOL_NAME])]
+          : undefined,
         appendSystemPrompt: [args.parentRuntimeInstructor, subagentInstructor],
         // No injected skills for subagents — they get only what their
         // task description tells them.

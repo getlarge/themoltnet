@@ -1,5 +1,16 @@
 import type { Task } from '@moltnet/tasks';
 
+export interface ExecutorAttestationFields {
+  executorManifest: Record<string, unknown>;
+  executorFingerprint: string;
+  executorSignature: string;
+}
+
+export type CreateClaimAttestation = (input: {
+  taskId: string;
+  profileId?: string;
+}) => Promise<ExecutorAttestationFields>;
+
 export interface ClaimedTask {
   /** The claimed task payload itself. */
   task: Task;

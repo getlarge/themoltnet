@@ -55,6 +55,14 @@ import {
   HOST_EXEC_DEFAULT_BASE_ENV,
   type HostExecAutoApproveConfig,
 } from '../moltnet/tools.js';
+import {
+  enabledPiToolNames,
+  filterModelVisibleTools,
+  materializePiExtensions,
+  materializePiTools,
+  type PiRuntimeDefinition,
+  type ResolvedGondolinTemplate,
+} from '../runtime-definition.js';
 import { ensureSnapshot, type SandboxConfig } from '../snapshot.js';
 import {
   createGondolinBashOps,
@@ -403,6 +411,15 @@ export interface ExecutePiTaskOptions {
    * NDJSON on stderr (single-process / test callers). See #1348.
    */
   toolPolicyLogger?: ToolPolicyLogger;
+  /** Trusted, statically imported operator runtime contributions. */
+  runtimeDefinition?: PiRuntimeDefinition;
+  /**
+   * Pre-resolved local VM template. Daemons resolve this before polling so
+   * profile requirements and executor attestation can be checked before claim.
+   */
+  resolvedVmTemplate?: ResolvedGondolinTemplate;
+  /** Internal/lower-level lazy template resolver used by executor factories. */
+  resolveVmTemplate?: () => Promise<ResolvedGondolinTemplate>;
 }
 
 export const DEFAULT_PROVIDER_ERROR_RETRIES = 4;
@@ -415,7 +432,10 @@ export const DEFAULT_PROVIDER_ERROR_RETRIES = 4;
 export function createPiTaskExecutor(
   opts: ExecutePiTaskOptions,
 ): (claimedTask: ClaimedTask, reporter: TaskReporter) => Promise<TaskOutput> {
-  let cachedCheckpoint: string | null = opts.checkpointPath ?? null;
+  let cachedTemplate: ResolvedGondolinTemplate | null =
+    opts.resolvedVmTemplate ?? null;
+  let cachedCheckpoint: string | null =
+    opts.checkpointPath ?? cachedTemplate?.checkpointPath ?? null;
 
   return async (claimedTask, reporter) => {
     const reporterWasOpened = !reporter.cancelSignal.aborted;
@@ -430,17 +450,37 @@ export function createPiTaskExecutor(
       checkpointPath: cachedCheckpoint ?? undefined,
       resolveCheckpointPath: async () => {
         if (!cachedCheckpoint) {
-          cachedCheckpoint = await ensureSnapshot({
-            config: opts.sandboxConfig?.snapshot,
-            onProgress:
-              opts.onSnapshotProgress ??
-              ((m) => {
-                process.stderr.write(`[snapshot] ${m}\n`);
-              }),
-          });
+          if (opts.runtimeDefinition) {
+            cachedTemplate = await opts.runtimeDefinition.vm.resolve({
+              onProgress: opts.onSnapshotProgress,
+            });
+            cachedCheckpoint = cachedTemplate.checkpointPath;
+          } else {
+            cachedCheckpoint = await ensureSnapshot({
+              config: opts.sandboxConfig?.snapshot,
+              onProgress:
+                opts.onSnapshotProgress ??
+                ((m) => {
+                  process.stderr.write(`[snapshot] ${m}\n`);
+                }),
+            });
+          }
         }
         return cachedCheckpoint;
       },
+      resolveVmTemplate: async () => {
+        if (!cachedTemplate) {
+          if (!opts.runtimeDefinition) {
+            throw new Error('No Pi runtime definition configured');
+          }
+          cachedTemplate = await opts.runtimeDefinition.vm.resolve({
+            onProgress: opts.onSnapshotProgress,
+          });
+          cachedCheckpoint = cachedTemplate.checkpointPath;
+        }
+        return cachedTemplate;
+      },
+      resolvedVmTemplate: cachedTemplate ?? opts.resolvedVmTemplate,
       reporterAlreadyOpened: reporterWasOpened,
     });
   };
@@ -579,8 +619,17 @@ export async function executePiTask(
     // Resolve the snapshot after the reporter has been opened so build
     // failures can surface as task messages instead of only daemon logs.
     let checkpointPath: string;
+    let resolvedVmTemplate = opts.resolvedVmTemplate;
     try {
+      if (!resolvedVmTemplate && opts.runtimeDefinition) {
+        resolvedVmTemplate = opts.resolveVmTemplate
+          ? await opts.resolveVmTemplate()
+          : await opts.runtimeDefinition.vm.resolve({
+              onProgress: opts.onSnapshotProgress,
+            });
+      }
       checkpointPath =
+        resolvedVmTemplate?.checkpointPath ??
         opts.checkpointPath ??
         (opts.resolveCheckpointPath
           ? await opts.resolveCheckpointPath()
@@ -612,7 +661,13 @@ export async function executePiTask(
 
     try {
       const sandboxConfig = applyExecutionPlanSandboxOverrides(
-        opts.sandboxConfig,
+        resolvedVmTemplate
+          ? {
+              ...opts.sandboxConfig,
+              snapshot: undefined,
+              resumeCommands: [...resolvedVmTemplate.resumeCommands],
+            }
+          : opts.sandboxConfig,
         executionPlan,
       );
       managed = await resumeVm({
@@ -905,6 +960,9 @@ export async function executePiTask(
       const toolPolicyExtensions: ReturnType<
         typeof createToolPolicyExtension
       >[] = [];
+      let resolvedToolPolicy:
+        | Awaited<ReturnType<typeof resolveSessionToolPolicy>>
+        | undefined;
       if (
         opts.runtimeProfileId &&
         opts.toolEnforcement &&
@@ -929,6 +987,7 @@ export async function executePiTask(
             logger: toolPolicyLogger,
           }),
         ]);
+        resolvedToolPolicy = policy;
         toolPolicyExtensions.push(
           createToolPolicyExtension({
             policy,
@@ -937,6 +996,51 @@ export async function executePiTask(
           }),
         );
       }
+
+      const runtimeToolContext = {
+        agent: moltnetAgent,
+        claimedTask,
+        reporter,
+        vm: managed.vm,
+        cwdPath,
+        guestWorkspace: managed.guestWorkspace,
+      };
+      const runtimeParentTools = opts.runtimeDefinition
+        ? await materializePiTools({
+            runtime: opts.runtimeDefinition,
+            context: runtimeToolContext,
+            target: 'parent',
+            policy: resolvedToolPolicy,
+          })
+        : [];
+      const runtimeSubagentTools = opts.runtimeDefinition
+        ? await materializePiTools({
+            runtime: opts.runtimeDefinition,
+            context: runtimeToolContext,
+            target: 'subagent',
+            policy: resolvedToolPolicy,
+          })
+        : [];
+      const runtimeParentExtensions = opts.runtimeDefinition
+        ? await materializePiExtensions({
+            runtime: opts.runtimeDefinition,
+            context: runtimeToolContext,
+            target: 'parent',
+            policy: resolvedToolPolicy,
+          })
+        : [];
+      const runtimeSubagentExtensions = opts.runtimeDefinition
+        ? await materializePiExtensions({
+            runtime: opts.runtimeDefinition,
+            context: runtimeToolContext,
+            target: 'subagent',
+            policy: resolvedToolPolicy,
+          })
+        : [];
+      const visibleBaseTools = filterModelVisibleTools(
+        [...gondolinCustomTools, ...moltnetTools],
+        resolvedToolPolicy,
+      );
 
       // Subagent custom tool — registered only when the task type opts
       // in via TaskTypeEntry.usesSubagents (#1087). The subagent
@@ -956,7 +1060,14 @@ export async function executePiTask(
           topK: opts.topK,
           maxOutputTokens: opts.maxOutputTokens,
           agentName: opts.agentName,
-          inheritedCustomTools: [...gondolinCustomTools, ...moltnetTools],
+          inheritedCustomTools: [...visibleBaseTools, ...runtimeSubagentTools],
+          tools: enabledPiToolNames({
+            tools: [...visibleBaseTools, ...runtimeSubagentTools],
+            extensions: opts.runtimeDefinition?.extensions.filter(
+              (extension) => extension.scope === 'parent_and_subagents',
+            ),
+            policy: resolvedToolPolicy,
+          }),
           parentRuntimeInstructor: runtimeKernel,
           parentTaskId: task.id,
           parentTaskType: task.taskType,
@@ -971,11 +1082,20 @@ export async function executePiTask(
           // Without this, delegating to a subagent would escape enforcement
           // entirely (#1348 B2). Empty in `off` mode → subagents run un-gated,
           // matching the parent.
-          extraExtensionFactories: toolPolicyExtensions,
+          extraExtensionFactories: [
+            ...runtimeSubagentExtensions,
+            ...toolPolicyExtensions,
+          ],
         });
         parentSubagentTools.push(subagentHandle.tool);
       }
 
+      const parentTools = [
+        ...visibleBaseTools,
+        ...runtimeParentTools,
+        ...submitTools,
+        ...parentSubagentTools,
+      ];
       session = await buildAgentSession({
         mountPath,
         cwdPath,
@@ -987,12 +1107,12 @@ export async function executePiTask(
         topK: opts.topK,
         maxOutputTokens: opts.maxOutputTokens,
         agentName: opts.agentName,
-        customTools: [
-          ...gondolinCustomTools,
-          ...moltnetTools,
-          ...submitTools,
-          ...parentSubagentTools,
-        ],
+        customTools: parentTools,
+        tools: enabledPiToolNames({
+          tools: parentTools,
+          extensions: opts.runtimeDefinition?.extensions,
+          policy: resolvedToolPolicy,
+        }),
         appendSystemPrompt,
         skillsOverride: () => ({ skills: injectedSkills, diagnostics: [] }),
         // MoltNet-specific span attrs only — pi's OTel extension owns
@@ -1003,7 +1123,10 @@ export async function executePiTask(
           'moltnet.task.type': task.taskType,
         },
         sessionPersistence: executionPlan?.sessionPersistence ?? undefined,
-        extraExtensionFactories: toolPolicyExtensions,
+        extraExtensionFactories: [
+          ...runtimeParentExtensions,
+          ...toolPolicyExtensions,
+        ],
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);

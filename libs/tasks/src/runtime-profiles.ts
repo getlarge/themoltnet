@@ -22,6 +22,15 @@ export const RuntimeProfileToolName = Type.String({
 });
 export type RuntimeProfileToolName = Static<typeof RuntimeProfileToolName>;
 
+export const RuntimeProfileRuntimeKind = Type.String({
+  minLength: 1,
+  maxLength: 100,
+  pattern: '^[a-z][a-z0-9._-]*$',
+});
+export type RuntimeProfileRuntimeKind = Static<
+  typeof RuntimeProfileRuntimeKind
+>;
+
 export const RuntimeProfileWorkspaceMode = Type.Union([
   Type.Literal('none'),
   Type.Literal('shared_mount'),
@@ -104,40 +113,6 @@ export type RuntimeProfileNullableMaxOutputTokens = Static<
   typeof RuntimeProfileNullableMaxOutputTokens
 >;
 
-const SandboxResumeCommandWhenSchema = Type.Object(
-  {
-    workspaceMode: Type.Optional(
-      Type.Array(
-        Type.Union([
-          Type.Literal('shared_mount'),
-          Type.Literal('dedicated_worktree'),
-          Type.Literal('scratch_mount'),
-        ]),
-        { minItems: 1, maxItems: 3 },
-      ),
-    ),
-  },
-  { additionalProperties: false },
-);
-
-export const RuntimeProfileSandboxResumeCommand = Type.Union([
-  Type.String({ minLength: 1, maxLength: 4096 }),
-  Type.Object(
-    {
-      run: Type.String({ minLength: 1, maxLength: 4096 }),
-      when: Type.Optional(SandboxResumeCommandWhenSchema),
-      retries: Type.Optional(Type.Integer({ minimum: 0, maximum: 5 })),
-      retryBackoffMs: Type.Optional(
-        Type.Integer({ minimum: 0, maximum: 60_000 }),
-      ),
-    },
-    { additionalProperties: false },
-  ),
-]);
-export type RuntimeProfileSandboxResumeCommand = Static<
-  typeof RuntimeProfileSandboxResumeCommand
->;
-
 export const RuntimeProfileAllowedHost = Type.String({
   minLength: 1,
   maxLength: 255,
@@ -150,30 +125,6 @@ export type RuntimeProfileAllowedHost = Static<
 
 export const RuntimeProfileSandbox = Type.Object(
   {
-    snapshot: Type.Optional(
-      Type.Object(
-        {
-          setupCommands: Type.Optional(
-            Type.Array(Type.String({ minLength: 1, maxLength: 4096 }), {
-              maxItems: 20,
-            }),
-          ),
-          allowedHosts: Type.Optional(
-            Type.Array(Type.String({ minLength: 1, maxLength: 255 }), {
-              maxItems: 50,
-            }),
-          ),
-          overlaySize: Type.Optional(
-            Type.String({
-              minLength: 2,
-              maxLength: 16,
-              pattern: '^[0-9]+[KMGTP]?$',
-            }),
-          ),
-        },
-        { additionalProperties: false },
-      ),
-    ),
     network: Type.Optional(
       Type.Object(
         {
@@ -186,9 +137,6 @@ export const RuntimeProfileSandbox = Type.Object(
         },
         { additionalProperties: false },
       ),
-    ),
-    resumeCommands: Type.Optional(
-      Type.Array(RuntimeProfileSandboxResumeCommand, { maxItems: 30 }),
     ),
     vfs: Type.Optional(
       Type.Object(
@@ -314,7 +262,7 @@ export const RuntimeProfile = Type.Object(
     topP: RuntimeProfileNullableTopP,
     topK: RuntimeProfileNullableTopK,
     maxOutputTokens: RuntimeProfileNullableMaxOutputTokens,
-    runtimeKind: Type.Literal('gondolin_pi'),
+    runtimeKind: RuntimeProfileRuntimeKind,
     sandbox: RuntimeProfileSandbox,
     sessionStorageMode: Type.Literal('local'),
     workspaceStorageMode: Type.Literal('local'),
@@ -333,6 +281,7 @@ export const RuntimeProfile = Type.Object(
     toolEnforcement: RuntimeProfileToolEnforcement,
     requiredEnv: Type.Array(RuntimeProfileEnvName, { maxItems: 100 }),
     requiredTools: Type.Array(RuntimeProfileToolName, { maxItems: 100 }),
+    requiredExecutables: Type.Array(RuntimeProfileToolName, { maxItems: 100 }),
     context: Type.Array(RuntimeProfileContext, { maxItems: 5 }),
     revision: Type.Integer({ minimum: 1 }),
     definitionCid: Type.String({ minLength: 1, maxLength: 100 }),
@@ -350,3 +299,79 @@ export const RuntimeProfile = Type.Object(
   { $id: 'RuntimeProfile', additionalProperties: false },
 );
 export type RuntimeProfile = Static<typeof RuntimeProfile>;
+
+export interface RuntimeProfileDefinitionV2Input {
+  name: string;
+  description?: string | null;
+  provider: string;
+  model: string;
+  thinkingLevel?: string | null;
+  temperature?: number | null;
+  topP?: number | null;
+  topK?: number | null;
+  maxOutputTokens?: number | null;
+  runtimeKind?: string;
+  sandbox: unknown;
+  sessionStorageMode?: 'local';
+  workspaceStorageMode?: 'local';
+  defaultWorkspaceMode?: string | null;
+  allowedWorkspaceModes?: string[];
+  sessionTtlSec?: number;
+  workspaceTtlSec?: number;
+  leaseTtlSec?: number;
+  heartbeatIntervalMs?: number;
+  maxBatchSize?: number;
+  maxTurns?: number;
+  maxBashTimeouts?: number;
+  requiredEnv?: string[];
+  requiredTools?: string[];
+  requiredExecutables?: string[];
+  context?: unknown[];
+}
+
+/** Canonical behavioral payload hashed into a runtime profile v2 CID. */
+export function runtimeProfileDefinitionV2Payload(
+  input: RuntimeProfileDefinitionV2Input,
+): Record<string, unknown> {
+  const list = (values: readonly string[] | undefined) =>
+    [
+      ...new Set((values ?? []).map((value) => value.trim()).filter(Boolean)),
+    ].sort();
+  return {
+    v: 'moltnet:runtime-profile:v2',
+    name: input.name,
+    description: input.description ?? null,
+    provider: input.provider.toLowerCase(),
+    model: input.model.toLowerCase(),
+    thinkingLevel: input.thinkingLevel ?? null,
+    temperature: input.temperature ?? null,
+    topP: input.topP ?? null,
+    topK: input.topK ?? null,
+    maxOutputTokens: input.maxOutputTokens ?? null,
+    runtimeKind: input.runtimeKind ?? 'gondolin_pi',
+    sandbox: input.sandbox,
+    sessionStorageMode: input.sessionStorageMode ?? 'local',
+    workspaceStorageMode: input.workspaceStorageMode ?? 'local',
+    defaultWorkspaceMode: input.defaultWorkspaceMode ?? null,
+    allowedWorkspaceModes: [
+      ...new Set(
+        input.allowedWorkspaceModes ?? [
+          'none',
+          'shared_mount',
+          'dedicated_worktree',
+        ],
+      ),
+    ],
+    sessionTtlSec: input.sessionTtlSec ?? 1800,
+    workspaceTtlSec: input.workspaceTtlSec ?? 1800,
+    leaseTtlSec: input.leaseTtlSec ?? 300,
+    heartbeatIntervalMs: input.heartbeatIntervalMs ?? 60_000,
+    maxBatchSize: input.maxBatchSize ?? 50,
+    maxTurns: input.maxTurns ?? 0,
+    maxBashTimeouts: input.maxBashTimeouts ?? 3,
+    requiredEnv: list(input.requiredEnv),
+    requiredTools: list(input.requiredTools),
+    requiredExecutables: list(input.requiredExecutables),
+    context: input.context ?? [],
+  };
+}

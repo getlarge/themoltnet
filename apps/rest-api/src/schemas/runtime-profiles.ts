@@ -14,6 +14,7 @@ import {
   RuntimeProfileNullableThinkingLevel,
   RuntimeProfileNullableTopK,
   RuntimeProfileNullableTopP,
+  RuntimeProfileRuntimeKind,
   RuntimeProfileSandbox,
   RuntimeProfileToolEnforcement,
   RuntimeProfileToolName,
@@ -32,7 +33,7 @@ export const CreateRuntimeProfileBodySchema = Type.Object(
     topP: Type.Optional(RuntimeProfileNullableTopP),
     topK: Type.Optional(RuntimeProfileNullableTopK),
     maxOutputTokens: Type.Optional(RuntimeProfileNullableMaxOutputTokens),
-    runtimeKind: Type.Optional(Type.Literal('gondolin_pi')),
+    runtimeKind: Type.Optional(RuntimeProfileRuntimeKind),
     sandbox: RuntimeProfileSandbox,
     sessionStorageMode: Type.Optional(Type.Literal('local')),
     workspaceStorageMode: Type.Optional(Type.Literal('local')),
@@ -54,6 +55,9 @@ export const CreateRuntimeProfileBodySchema = Type.Object(
       Type.Array(RuntimeProfileEnvName, { maxItems: 100 }),
     ),
     requiredTools: Type.Optional(
+      Type.Array(RuntimeProfileToolName, { maxItems: 100 }),
+    ),
+    requiredExecutables: Type.Optional(
       Type.Array(RuntimeProfileToolName, { maxItems: 100 }),
     ),
     context: Type.Optional(Type.Array(RuntimeProfileContext, { maxItems: 5 })),

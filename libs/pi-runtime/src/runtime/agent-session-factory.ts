@@ -68,6 +68,12 @@ export interface BuildAgentSessionArgs {
   maxOutputTokens?: number | null;
   /** Pre-built customTools array. Caller composes Gondolin + MoltNet + submit tools. */
   customTools: ToolDefinition[];
+  /**
+   * Exact model-visible tool allowlist. Omit for Pi's default behavior.
+   * Enforce-mode runtimes pass this so denied built-ins are not reconstructed
+   * behind the custom-tool overrides.
+   */
+  tools?: string[];
   /** System-prompt fragments appended after pi's defaults. Parent passes the
    *  runtime instructor; subagents pass their narrower variant. */
   appendSystemPrompt: string[];
@@ -148,6 +154,7 @@ export async function buildAgentSession(
     cwd: args.cwdPath,
     model: args.modelHandle,
     thinkingLevel: args.thinkingLevel ?? undefined,
+    tools: args.tools,
     customTools: args.customTools,
     sessionManager,
     resourceLoader,

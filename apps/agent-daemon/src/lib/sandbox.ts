@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, isAbsolute, resolve } from 'node:path';
 
-import type { SandboxConfig } from '@themoltnet/pi-extension';
+import type { SandboxConfig } from '@themoltnet/pi-runtime';
 
 export interface ResolvedSandbox {
   config: SandboxConfig;

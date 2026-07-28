@@ -9,11 +9,6 @@ export default defineConfig({
       tsconfigPath: './tsconfig.lib.json',
       include: ['src/**/*.ts'],
       exclude: ['src/**/*.test.ts'],
-      compilerOptions: {
-        paths: {
-          '@themoltnet/agent-runtime': ['../agent-runtime/dist/index.d.ts'],
-        },
-      },
     }),
   ],
   build: {
@@ -32,7 +27,7 @@ export default defineConfig({
     // Bundle private workspace packages (@moltnet/crypto-service) into the
     // JS output. Bundle TypeBox too: Pi's extension loader rewrites a narrow
     // set of TypeBox specifiers and currently does not handle typebox/format.
-    // @themoltnet/agent-runtime and @themoltnet/sdk are published packages and
+    // @themoltnet/pi-runtime and @themoltnet/sdk are published packages and
     // stay external.
     noExternal: [/^@moltnet\//, /^typebox(?:\/.*)?$/],
   },

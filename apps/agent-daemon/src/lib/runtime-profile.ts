@@ -1,5 +1,4 @@
-import { accessSync, constants } from 'node:fs';
-import { delimiter, isAbsolute, resolve } from 'node:path';
+import { resolve } from 'node:path';
 
 import type {
   RuntimeProfileContext,
@@ -7,7 +6,7 @@ import type {
   RuntimeProfileToolEnforcement,
   RuntimeProfileWorkspaceMode,
 } from '@moltnet/tasks';
-import type { SandboxConfig } from '@themoltnet/pi-extension';
+import type { SandboxConfig } from '@themoltnet/pi-runtime';
 import type { Agent } from '@themoltnet/sdk';
 
 type RuntimeProfile = Awaited<ReturnType<Agent['runtimeProfiles']['get']>>;
@@ -16,6 +15,8 @@ export interface ResolvedRuntimeProfile {
   id: string;
   name: string;
   teamId: string;
+  runtimeKind: string;
+  definitionCid: string;
   provider: string;
   model: string;
   thinkingLevel: RuntimeProfileThinkingLevel | null;
@@ -34,6 +35,7 @@ export interface ResolvedRuntimeProfile {
   allowedWorkspaceModes: RuntimeProfileWorkspaceMode[];
   requiredEnv: string[];
   requiredTools: string[];
+  requiredExecutables: string[];
   toolEnforcement: RuntimeProfileToolEnforcement;
   context: RuntimeProfileContext[];
   sandboxConfig: SandboxConfig;
@@ -46,11 +48,15 @@ export class RuntimeProfilePrerequisiteError extends Error {
     public readonly profileName: string,
     public readonly missingEnv: readonly string[],
     public readonly missingTools: readonly string[],
+    public readonly missingExecutables: readonly string[],
   ) {
     const parts = [
       missingEnv.length > 0 ? `missing env: ${missingEnv.join(', ')}` : null,
       missingTools.length > 0
         ? `missing tools: ${missingTools.join(', ')}`
+        : null,
+      missingExecutables.length > 0
+        ? `missing guest executables: ${missingExecutables.join(', ')}`
         : null,
     ].filter(Boolean);
     super(
@@ -83,6 +89,8 @@ export async function resolveRuntimeProfile(options: {
     id: profile.id,
     name: profile.name,
     teamId: profile.teamId,
+    runtimeKind: profile.runtimeKind,
+    definitionCid: profile.definitionCid,
     provider: profile.provider,
     model: profile.model,
     thinkingLevel: profile.thinkingLevel ?? null,
@@ -101,6 +109,7 @@ export async function resolveRuntimeProfile(options: {
     allowedWorkspaceModes: profile.allowedWorkspaceModes,
     requiredEnv: profile.requiredEnv,
     requiredTools: profile.requiredTools,
+    requiredExecutables: profile.requiredExecutables,
     toolEnforcement: profile.toolEnforcement,
     context: profile.context ?? [],
     sandboxConfig: profile.sandbox,
@@ -134,20 +143,33 @@ export async function resolveRuntimeProfiles(options: {
 export function validateRuntimeProfilePrerequisites(
   profile: Pick<
     ResolvedRuntimeProfile,
-    'name' | 'requiredEnv' | 'requiredTools'
+    'name' | 'requiredEnv' | 'requiredTools' | 'requiredExecutables'
   >,
   env: NodeJS.ProcessEnv,
-  pathValue: string,
+  inventory?: {
+    tools?: readonly string[];
+    executables?: readonly string[];
+  },
 ): void {
   const missingEnv = profile.requiredEnv.filter((name) => !env[name]);
+  const available = new Set(inventory?.tools ?? []);
+  const executableInventory = new Set(inventory?.executables ?? []);
   const missingTools = profile.requiredTools.filter(
-    (tool) => !isExecutableOnPath(tool, pathValue),
+    (tool) => !available.has(tool),
   );
-  if (missingEnv.length > 0 || missingTools.length > 0) {
+  const missingExecutables = profile.requiredExecutables.filter(
+    (executable) => !executableInventory.has(executable),
+  );
+  if (
+    missingEnv.length > 0 ||
+    missingTools.length > 0 ||
+    missingExecutables.length > 0
+  ) {
     throw new RuntimeProfilePrerequisiteError(
       profile.name,
       missingEnv,
       missingTools,
+      missingExecutables,
     );
   }
 }
@@ -202,28 +224,4 @@ async function resolveProfileByName(options: {
     topK: profile.topK ?? null,
     maxOutputTokens: profile.maxOutputTokens ?? null,
   };
-}
-
-function isExecutableOnPath(
-  tool: string,
-  pathValue: string | undefined,
-): boolean {
-  if (tool.includes('/')) {
-    return isExecutable(isAbsolute(tool) ? tool : resolve(process.cwd(), tool));
-  }
-
-  for (const dir of (pathValue ?? '').split(delimiter)) {
-    if (!dir) continue;
-    if (isExecutable(resolve(dir, tool))) return true;
-  }
-  return false;
-}
-
-function isExecutable(path: string): boolean {
-  try {
-    accessSync(path, constants.X_OK);
-    return true;
-  } catch {
-    return false;
-  }
 }

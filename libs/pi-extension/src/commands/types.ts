@@ -3,6 +3,7 @@ import type {
   ExtensionAPI,
   ExtensionContext,
 } from '@earendil-works/pi-coding-agent';
+import type { TrackedError } from '@themoltnet/pi-runtime';
 import type { connect } from '@themoltnet/sdk';
 
 export interface SessionMeta {
@@ -16,13 +17,7 @@ export interface SessionMeta {
   durationMin: number;
 }
 
-export interface TrackedError {
-  toolName: string;
-  toolCallId: string;
-  input: Record<string, unknown>;
-  error: string;
-  timestamp: number;
-}
+export type { TrackedError } from '@themoltnet/pi-runtime';
 
 export interface ExtensionState {
   vm: VM | null;

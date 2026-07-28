@@ -244,6 +244,7 @@
           "@themoltnet/node-red-contrib-core",
           "@themoltnet/node-red-theme",
           "@themoltnet/pi-extension",
+          "@themoltnet/pi-runtime",
           "@themoltnet/sdk",
           "@themoltnet/yubikey-preview-sign"
         ],

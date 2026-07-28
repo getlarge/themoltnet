@@ -47,6 +47,7 @@
     "generate:signer-openapi": "pnpm exec nx run @moltnet/signer:generate:openapi",
     "ory:backup": "node infra/ory/backup.mjs",
     "generate:client": "pnpm exec nx run @moltnet/api-client:generate",
+    "backfill:runtime-profiles-v2": "pnpm --filter @moltnet/tools backfill:runtime-profiles-v2",
     "generate:signer-client": "pnpm exec nx run @moltnet/signer-api-client:generate",
     "generate": "pnpm run generate:openapi && pnpm run generate:signer-openapi && pnpm run generate:client && pnpm run generate:signer-client && pnpm run go:generate && pnpm run go:fmt && prettier --write libs/api-client/src/generated/ libs/signer-api-client/src/generated/",
     "check:pack": "pnpm exec nx run-many -t check:pack",

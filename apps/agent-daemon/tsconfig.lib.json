@@ -33,7 +33,7 @@
       "path": "../../libs/sdk/tsconfig.lib.json"
     },
     {
-      "path": "../../libs/pi-extension/tsconfig.lib.json"
+      "path": "../../libs/pi-runtime/tsconfig.lib.json"
     },
     {
       "path": "../../libs/agent-runtime/tsconfig.lib.json"

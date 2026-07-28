@@ -25,10 +25,10 @@ catalogs:
       specifier: ^0.9.1
       version: 0.9.1
     '@earendil-works/pi-ai':
-      specifier: ^0.74.0
+      specifier: 0.74.0
       version: 0.74.0
     '@earendil-works/pi-coding-agent':
-      specifier: ^0.79.4
+      specifier: 0.79.4
       version: 0.79.4
     '@eslint/js':
       specifier: ^9.39.4
@@ -601,9 +601,9 @@ importers:
       '@themoltnet/agent-runtime':
         specifier: workspace:*
         version: link:../../libs/agent-runtime
-      '@themoltnet/pi-extension':
+      '@themoltnet/pi-runtime':
         specifier: workspace:*
-        version: link:../../libs/pi-extension
+        version: link:../../libs/pi-runtime
       '@themoltnet/sdk':
         specifier: workspace:*
         version: link:../../libs/sdk
@@ -635,6 +635,9 @@ importers:
       vite:
         specifier: 'catalog:'
         version: 8.0.3(@types/node@25.1.0)(esbuild@0.27.2)(jiti@2.7.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
+      vite-plugin-dts:
+        specifier: 'catalog:'
+        version: 4.5.4(@types/node@25.1.0)(rollup@4.60.1)(typescript@5.9.3)(vite@8.0.3(@types/node@25.1.0)(esbuild@0.27.2)(jiti@2.7.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4))
       vitest:
         specifier: 'catalog:'
         version: 3.2.4(@types/debug@4.1.13)(@types/node@25.1.0)(@vitest/ui@3.2.4)(jiti@2.7.0)(jsdom@27.4.0(@noble/hashes@2.0.1))(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
@@ -2160,6 +2163,43 @@ importers:
       '@earendil-works/gondolin':
         specifier: 'catalog:'
         version: 0.9.1
+      '@themoltnet/pi-runtime':
+        specifier: workspace:*
+        version: link:../pi-runtime
+      '@themoltnet/sdk':
+        specifier: workspace:*
+        version: link:../sdk
+      typebox:
+        specifier: 'catalog:'
+        version: 1.2.8
+    devDependencies:
+      '@earendil-works/pi-ai':
+        specifier: 'catalog:'
+        version: 0.74.0(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(ws@8.21.0)(zod@4.4.3)
+      '@earendil-works/pi-coding-agent':
+        specifier: 'catalog:'
+        version: 0.79.4(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(ws@8.21.0)(zod@4.4.3)
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.19.19
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vite:
+        specifier: 'catalog:'
+        version: 8.0.3(@types/node@22.19.19)(esbuild@0.27.2)(jiti@2.7.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
+      vite-plugin-dts:
+        specifier: 'catalog:'
+        version: 4.5.4(@types/node@22.19.19)(rollup@4.60.1)(typescript@5.9.3)(vite@8.0.3(@types/node@22.19.19)(esbuild@0.27.2)(jiti@2.7.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4))
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.4(@types/debug@4.1.13)(@types/node@22.19.19)(@vitest/ui@3.2.4)(jiti@2.7.0)(jsdom@27.4.0(@noble/hashes@2.0.1))(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.8.4)
+
+  libs/pi-runtime:
+    dependencies:
+      '@earendil-works/gondolin':
+        specifier: 'catalog:'
+        version: 0.9.1
       '@opentelemetry/api':
         specifier: 'catalog:'
         version: 1.9.0
@@ -2197,6 +2237,9 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 22.19.19
+      tsx:
+        specifier: 'catalog:'
+        version: 4.21.0
       typescript:
         specifier: 'catalog:'
         version: 5.9.3

@@ -163,11 +163,6 @@ export const taskMessageKindEnum = pgEnum('task_message_kind', [
 
 export const outputKindEnum = pgEnum('output_kind', ['artifact', 'judgment']);
 
-export const runtimeProfileRuntimeKindEnum = pgEnum(
-  'runtime_profile_runtime_kind',
-  ['gondolin_pi'],
-);
-
 export const runtimeProfileStorageModeEnum = pgEnum(
   'runtime_profile_storage_mode',
   ['local'],
@@ -1468,7 +1463,6 @@ export const runtimeProfiles = defineRuntimeProfilesTable({
   agents,
   humans,
   teams,
-  runtimeKindEnum: runtimeProfileRuntimeKindEnum,
   storageModeEnum: runtimeProfileStorageModeEnum,
 });
 

@@ -12,6 +12,8 @@ const profile = {
   id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   name: 'github-linear',
   teamId: 'team-1',
+  runtimeKind: 'gondolin_pi',
+  definitionCid: 'bafkreiprofile',
   provider: 'anthropic',
   model: 'claude-sonnet-4-5',
   thinkingLevel: 'high' as const,
@@ -30,6 +32,7 @@ const profile = {
   allowedWorkspaceModes: ['none', 'dedicated_worktree'],
   requiredEnv: [],
   requiredTools: [],
+  requiredExecutables: [],
   context: [
     {
       slug: 'repo-rules',
@@ -38,7 +41,6 @@ const profile = {
     },
   ],
   sandbox: {
-    snapshot: { allowedHosts: ['api.github.com'] },
     network: {
       allowedHosts: ['api.linear.app'],
       allowedInternalHosts: ['onboard-api.internal'],
@@ -76,6 +78,8 @@ describe('resolveRuntimeProfile', () => {
       id: profile.id,
       name: profile.name,
       teamId: 'team-1',
+      runtimeKind: 'gondolin_pi',
+      definitionCid: 'bafkreiprofile',
       provider: 'anthropic',
       model: 'claude-sonnet-4-5',
       thinkingLevel: 'high',
@@ -94,6 +98,7 @@ describe('resolveRuntimeProfile', () => {
       allowedWorkspaceModes: ['none', 'dedicated_worktree'],
       requiredEnv: [],
       requiredTools: [],
+      requiredExecutables: [],
       context: profile.context,
       sandboxConfig: profile.sandbox,
       mountPath: '/tmp/workspace',
@@ -173,10 +178,11 @@ describe('resolveRuntimeProfile', () => {
       {
         name: 'github-linear',
         requiredEnv: ['GITHUB_TOKEN'],
-        requiredTools: [process.execPath],
+        requiredTools: ['read'],
+        requiredExecutables: ['git'],
       },
       { GITHUB_TOKEN: 'token' },
-      '/usr/bin:/bin',
+      { tools: ['read'], executables: ['git'] },
     );
   });
 
@@ -187,9 +193,10 @@ describe('resolveRuntimeProfile', () => {
           name: 'github-linear',
           requiredEnv: ['LINEAR_API_KEY', 'GITHUB_TOKEN'],
           requiredTools: ['definitely-not-installed-moltnet-tool'],
+          requiredExecutables: [],
         },
         { GITHUB_TOKEN: 'token' },
-        '/usr/bin:/bin',
+        { tools: [], executables: [] },
       ),
     ).toThrow(RuntimeProfilePrerequisiteError);
     expect(() =>
@@ -197,11 +204,14 @@ describe('resolveRuntimeProfile', () => {
         {
           name: 'github-linear',
           requiredEnv: ['LINEAR_API_KEY'],
-          requiredTools: ['definitely-not-installed-moltnet-tool'],
+          requiredTools: [],
+          requiredExecutables: ['definitely-not-installed-moltnet-tool'],
         },
         {},
-        '/usr/bin:/bin',
+        { tools: [], executables: [] },
       ),
-    ).toThrow(/missing env: LINEAR_API_KEY; missing tools/);
+    ).toThrow(
+      /missing env: LINEAR_API_KEY; missing guest executables: definitely-not-installed-moltnet-tool/,
+    );
   });
 });

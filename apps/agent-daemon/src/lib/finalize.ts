@@ -1,6 +1,6 @@
 import type { Task, TaskOutput } from '@moltnet/tasks';
-import { redactRetryTriageSecrets } from '@themoltnet/pi-extension';
-import type { Agent, TasksNamespace } from '@themoltnet/sdk';
+import { redactRetryTriageSecrets } from '@themoltnet/pi-runtime';
+import type { Agent, ExecutorAttestor, TasksNamespace } from '@themoltnet/sdk';
 import { MoltNetError } from '@themoltnet/sdk';
 
 import {
@@ -48,6 +48,8 @@ export interface FinalizeContext {
   slot?: { expiresAtMs: number | null } | null;
   retryTriage?: RetryTriage;
   writeCorrelationAnchors?: WriteCorrelationAnchors;
+  /** Signs the executor manifest together with the terminal output CID. */
+  executorAttestor?: ExecutorAttestor;
   /**
    * Structured logger. `fields` is merged into the log record (pino-style)
    * so the daemon emits queryable classification verdicts and error
@@ -127,6 +129,11 @@ export async function finalizeTask(
       const daemonState = ctx.task
         ? buildDaemonStateForComplete(ctx.task.taskType, ctx.slot ?? null)
         : null;
+      const attestation = await ctx.executorAttestor?.complete({
+        taskId: output.taskId,
+        attemptN: output.attemptN,
+        outputCid: output.outputCid,
+      });
       await agent.tasks.complete(output.taskId, output.attemptN, {
         output: output.output,
         outputCid: output.outputCid,
@@ -135,6 +142,7 @@ export async function finalizeTask(
           ? { contentSignature: output.contentSignature }
           : {}),
         ...(daemonState ? { daemonState } : {}),
+        ...attestation,
       });
     } catch (err) {
       if (isCompleteWorkflowResultTimeout(err)) {

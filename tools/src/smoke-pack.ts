@@ -31,6 +31,8 @@
  *   --args     args passed to the bin (default "--help"); everything after
  *              --args until --expect is treated as bin args
  *   --expect   substring that must appear in the bin's output (required)
+ *   --local-dependency package directory to pack and install alongside the
+ *                      target (repeatable; useful before a first publish)
  *
  * Set MOLTNET_SKIP_REGISTRY_SMOKE=1 in pre-merge CI. A coordinated release can
  * reference another workspace package version that is not on npm yet, so the
@@ -54,30 +56,43 @@ function parseFlags(argv: string[]): {
   bin: string;
   args: string[];
   expect: string;
+  localDependencies: string[];
 } {
   let pkg = '.';
   let bin = '';
   let expect = '';
+  const localDependencies: string[] = [];
   const args: string[] = [];
   for (let i = 0; i < argv.length; i++) {
     const flag = argv[i];
     if (flag === '--package') pkg = argv[++i];
     else if (flag === '--bin') bin = argv[++i];
     else if (flag === '--expect') expect = argv[++i];
+    else if (flag === '--local-dependency') localDependencies.push(argv[++i]);
     else if (flag === '--args') {
       // consume the rest until the next recognised flag
       while (
         i + 1 < argv.length &&
-        !['--package', '--bin', '--expect'].includes(argv[i + 1])
+        !['--package', '--bin', '--expect', '--local-dependency'].includes(
+          argv[i + 1],
+        )
       ) {
         args.push(argv[++i]);
       }
     }
   }
-  return { pkg, bin, args: args.length ? args : ['--help'], expect };
+  return {
+    pkg,
+    bin,
+    args: args.length ? args : ['--help'],
+    expect,
+    localDependencies,
+  };
 }
 
-const { pkg, bin, args, expect } = parseFlags(process.argv.slice(2));
+const { pkg, bin, args, expect, localDependencies } = parseFlags(
+  process.argv.slice(2),
+);
 
 if (process.env.MOLTNET_SKIP_REGISTRY_SMOKE === '1') {
   process.stdout.write(
@@ -144,6 +159,28 @@ if (!tarball || !existsSync(tarball)) {
   fail('could not locate packed tarball', pack.stdout);
 }
 
+const localTarballs = localDependencies.map((dependency) => {
+  const dependencyDir = resolve(pkgDir, dependency);
+  const packed = spawnSync(
+    'pnpm',
+    ['pack', '--pack-destination', packDest, '--json'],
+    { cwd: dependencyDir, encoding: 'utf8', env: process.env },
+  );
+  if (packed.status !== 0) {
+    rmSync(packDest, { recursive: true, force: true });
+    fail(
+      `pnpm pack failed for local dependency ${dependency}`,
+      `${packed.stdout}${packed.stderr}`,
+    );
+  }
+  const output = JSON.parse(packed.stdout.trim()) as { filename: string };
+  const path = existsSync(output.filename)
+    ? output.filename
+    : join(packDest, output.filename);
+  if (!existsSync(path)) fail(`could not locate local dependency tarball`);
+  return path;
+});
+
 // 2. Install the tarball into a throwaway dir so all deps resolve from the
 //    registry — the genuine `npx`/`npm i -g` consumer experience.
 const installDir = mkdtempSync(join(tmpdir(), 'smoke-run-'));
@@ -159,7 +196,14 @@ function cleanup(): void {
 
 const install = spawnSync(
   'npm',
-  ['install', tarball, '--no-audit', '--no-fund', '--loglevel=error'],
+  [
+    'install',
+    ...localTarballs,
+    tarball,
+    '--no-audit',
+    '--no-fund',
+    '--loglevel=error',
+  ],
   { cwd: installDir, encoding: 'utf8', env: process.env },
 );
 if (install.status !== 0) {

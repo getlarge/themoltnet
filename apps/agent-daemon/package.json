@@ -15,12 +15,20 @@
     "directory": "apps/agent-daemon"
   },
   "homepage": "https://themolt.net",
-  "main": "./dist/main.js",
-  "types": "./dist/main.d.ts",
+  "main": "./dist/cli.js",
+  "types": "./dist/cli.d.ts",
   "exports": {
     ".": {
-      "import": "./src/main.ts",
-      "types": "./src/main.ts"
+      "import": "./src/cli.ts",
+      "types": "./src/cli.ts"
+    },
+    "./runtime": {
+      "import": "./src/runtime.ts",
+      "types": "./src/runtime.ts"
+    },
+    "./pi": {
+      "import": "./src/pi.ts",
+      "types": "./src/pi.ts"
     },
     "./cli/once.js": {
       "import": "./src/cli/once.ts",
@@ -70,8 +78,16 @@
   "publishConfig": {
     "exports": {
       ".": {
-        "types": "./dist/main.d.ts",
-        "import": "./dist/main.js"
+        "types": "./dist/cli.d.ts",
+        "import": "./dist/cli.js"
+      },
+      "./runtime": {
+        "types": "./dist/runtime.d.ts",
+        "import": "./dist/runtime.js"
+      },
+      "./pi": {
+        "types": "./dist/pi.d.ts",
+        "import": "./dist/pi.js"
       }
     }
   },
@@ -79,7 +95,9 @@
     "moltnet-agent": "./dist/main.js"
   },
   "files": [
-    "dist"
+    "dist/*.js",
+    "dist/*.d.ts",
+    "dist/*.d.ts.map"
   ],
   "engines": {
     "node": ">=22"
@@ -90,7 +108,7 @@
     "start": "node dist/main.js",
     "build": "vite build",
     "check:pack": "tsx ../../tools/src/check-pack.ts --package . && pnpm run smoke:pack",
-    "smoke:pack": "tsx ../../tools/src/smoke-pack.ts --package . --bin moltnet-agent --args --help --expect \"long-running task worker for MoltNet\""
+    "smoke:pack": "tsx ../../tools/src/smoke-pack.ts --package . --local-dependency ../../libs/sdk --local-dependency ../../libs/pi-runtime --bin moltnet-agent --args --help --expect \"long-running task worker for MoltNet\""
   },
   "dependencies": {
     "@earendil-works/gondolin": "catalog:",
@@ -110,7 +128,7 @@
     "@opentelemetry/sdk-trace-node": "catalog:",
     "@opentelemetry/semantic-conventions": "catalog:",
     "@themoltnet/agent-runtime": "workspace:*",
-    "@themoltnet/pi-extension": "workspace:*",
+    "@themoltnet/pi-runtime": "workspace:*",
     "@themoltnet/sdk": "workspace:*",
     "pino": "catalog:",
     "pino-pretty": "catalog:"
@@ -123,6 +141,7 @@
     "tsx": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
+    "vite-plugin-dts": "catalog:",
     "vitest": "catalog:"
   },
   "nx": {

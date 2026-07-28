@@ -55,6 +55,7 @@ interface ProfileFormState {
   description: string;
   provider: string;
   model: string;
+  runtimeKind: string;
   thinkingLevel: RuntimeProfileThinkingLevel | '';
   temperature: string;
   topP: string;
@@ -74,6 +75,7 @@ interface ProfileFormState {
   allowedWorkspaceModes: RuntimeProfileWorkspaceMode[];
   requiredEnv: string;
   requiredTools: string;
+  requiredExecutables: string;
   context: RuntimeProfileContext[];
 }
 
@@ -87,6 +89,7 @@ const EMPTY_FORM: ProfileFormState = {
   description: '',
   provider: '',
   model: '',
+  runtimeKind: 'gondolin_pi',
   thinkingLevel: '',
   temperature: '',
   topP: '',
@@ -106,6 +109,7 @@ const EMPTY_FORM: ProfileFormState = {
   allowedWorkspaceModes: ['none', 'shared_mount', 'dedicated_worktree'],
   requiredEnv: '',
   requiredTools: '',
+  requiredExecutables: '',
   context: [],
 };
 
@@ -142,7 +146,11 @@ const FIELD_HELP = {
   requiredEnv:
     'Comma-separated environment variables that must be present before this daemon can run the profile.',
   requiredTools:
-    'Comma-separated executables or paths that must be available before this daemon can run the profile.',
+    'Comma-separated Pi tool names that must be exposed by the selected runtime.',
+  requiredExecutables:
+    'Comma-separated commands that must exist inside the runtime VM template.',
+  runtimeKind:
+    'Stable runtime adapter identifier. The daemon only claims this profile when it has a matching adapter.',
   runtimeAllowedHosts:
     'Comma-separated public hostnames the VM may reach over HTTP or HTTPS. Private, loopback, and link-local resolutions remain blocked to prevent SSRF and DNS rebinding.',
   runtimeAllowedInternalHosts:
@@ -535,6 +543,14 @@ export function ProfilesPage() {
                 list="runtime-profile-model-options"
                 required
               />
+              <LabeledInput
+                label="Runtime kind"
+                help={FIELD_HELP.runtimeKind}
+                value={form.runtimeKind}
+                onChange={(value) => updateField('runtimeKind', value)}
+                placeholder="gondolin_pi"
+                required
+              />
               <LabeledSelect
                 label="Thinking level"
                 help={FIELD_HELP.thinkingLevel}
@@ -722,6 +738,13 @@ export function ProfilesPage() {
                 help={FIELD_HELP.requiredTools}
                 value={form.requiredTools}
                 onChange={(value) => updateField('requiredTools', value)}
+                placeholder="read, write, edit, bash"
+              />
+              <LabeledInput
+                label="Required guest executables"
+                help={FIELD_HELP.requiredExecutables}
+                value={form.requiredExecutables}
+                onChange={(value) => updateField('requiredExecutables', value)}
                 placeholder="git, gh, pnpm"
               />
               <LabeledInput
@@ -1528,6 +1551,7 @@ function profileToForm(profile: RuntimeProfile): ProfileFormState {
     description: profile.description ?? '',
     provider: profile.provider,
     model: profile.model,
+    runtimeKind: profile.runtimeKind,
     thinkingLevel: profile.thinkingLevel ?? '',
     temperature:
       profile.temperature === null ? '' : String(profile.temperature),
@@ -1551,6 +1575,7 @@ function profileToForm(profile: RuntimeProfile): ProfileFormState {
     allowedWorkspaceModes: profile.allowedWorkspaceModes,
     requiredEnv: profile.requiredEnv.join(', '),
     requiredTools: profile.requiredTools.join(', '),
+    requiredExecutables: (profile.requiredExecutables ?? []).join(', '),
     context: profile.context,
   };
 }
@@ -1627,7 +1652,7 @@ function buildProfileBody(form: ProfileFormState): CreateRuntimeProfileBody {
       form.maxOutputTokens,
       'Max output tokens',
     ),
-    runtimeKind: 'gondolin_pi',
+    runtimeKind: requireText(form.runtimeKind, 'Runtime kind'),
     sandbox: sandboxWithNetwork,
     sessionStorageMode: 'local',
     workspaceStorageMode: 'local',
@@ -1651,6 +1676,7 @@ function buildProfileBody(form: ProfileFormState): CreateRuntimeProfileBody {
     ),
     requiredEnv: parseCsv(form.requiredEnv),
     requiredTools: parseCsv(form.requiredTools),
+    requiredExecutables: parseCsv(form.requiredExecutables),
     context,
   };
 }
