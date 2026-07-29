@@ -304,7 +304,7 @@ describeLive('Agent daemon live Ollama Cloud execution (e2e)', () => {
     }
   }, 900_000);
 
-  it('uses live Pi retry triage to requeue an ambiguous failed attempt', async () => {
+  it('persists and honors a live Pi retry-triage decision', async () => {
     const created = await agent.tasks.create(
       {
         taskType: 'curate_pack',
@@ -408,20 +408,34 @@ describeLive('Agent daemon live Ollama Cloud execution (e2e)', () => {
 
     await runtime.start();
 
-    expect(seenAttempts).toEqual([1, 2]);
-    const final = await agent.tasks.get(created.id);
-    expect(final.status).toBe('completed');
-    expect(final.acceptedAttemptN).toBe(2);
     const attempts = await agent.tasks.listAttempts(created.id);
     const failedAttempt = attempts.find((attempt) => attempt.attemptN === 1);
     expect(failedAttempt?.status).toBe('failed');
-    expect(failedAttempt?.error).toMatchObject({
-      retryable: true,
-      retry: {
-        source: 'triage',
-        decision: 'retry',
-      },
-    });
+    const retry = failedAttempt?.error?.retry;
+    expect(retry?.source).toBe('triage');
+    expect(['retry', 'do_not_retry']).toContain(retry?.decision);
+    expect(['low', 'medium', 'high']).toContain(retry?.confidence);
+    expect(retry?.reason?.trim() ?? '').not.toHaveLength(0);
+
+    // The deterministic E2E above owns the exact retry-policy assertion.
+    // This live integration test instead proves that runtime behavior honors
+    // whichever valid policy verdict the external triage model produced.
+    const shouldRetry =
+      retry?.decision === 'retry' &&
+      (retry.confidence === 'medium' || retry.confidence === 'high');
+    const final = await agent.tasks.get(created.id);
+
+    if (shouldRetry) {
+      expect(failedAttempt?.error?.retryable).toBe(true);
+      expect(seenAttempts).toEqual([1, 2]);
+      expect(final.status).toBe('completed');
+      expect(final.acceptedAttemptN).toBe(2);
+    } else {
+      expect(failedAttempt?.error?.retryable).toBe(false);
+      expect(seenAttempts).toEqual([1]);
+      expect(final.status).toBe('failed');
+      expect(final.acceptedAttemptN).toBeNull();
+    }
   }, 180_000);
 });
 
