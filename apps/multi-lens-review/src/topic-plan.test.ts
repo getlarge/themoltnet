@@ -7,6 +7,7 @@ import {
   MAX_SPECIALIST_TASKS,
   MAX_TOPICS,
   parseTopicPlanJson,
+  plannerLaneBudgetGuidance,
   validateTopicPlan,
 } from './topic-plan.js';
 import type { ReviewTopic, TopicPlan } from './types.js';
@@ -16,6 +17,23 @@ function plan(topics: ReviewTopic[]): TopicPlan {
 }
 
 describe('topic plan validation', () => {
+  it('derives an actionable lane budget from trusted manifest classification', () => {
+    const guidance = plannerLaneBudgetGuidance(
+      reviewManifest(['src/a.ts', 'src/b.ts'], {
+        requiresPlanning: true,
+        requiredLanes: ['correctness', 'dry-codebase-fit', 'security', 'tests'],
+      }),
+      ['operability'],
+    );
+
+    expect(guidance).toContain(
+      '2 reviewable file(s) currently require at least 5 lane task(s)',
+    );
+    expect(guidance).toContain('at most 6 such topics can fit');
+    expect(guidance).toContain('Use an empty `lanes` array');
+    expect(guidance).not.toContain('src/');
+  });
+
   it('adds mandatory and trusted classified lanes that a planner omits', () => {
     const manifest = reviewManifest(['src/a.ts'], {
       requiresPlanning: true,

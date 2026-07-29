@@ -140,6 +140,57 @@ function laneUnion(
   return REVIEW_LANES.filter((lane) => lanes.has(lane));
 }
 
+/**
+ * Turn trusted file classification into an actionable planner budget without
+ * encoding repository or ecosystem conventions. Exclusions remain the
+ * planner's semantic decision; this only explains the cost of files that stay.
+ */
+export function plannerLaneBudgetGuidance(
+  manifest: ReviewManifest,
+  requestedLanes: readonly ReviewLane[] = [],
+): string {
+  const baseLanes = new Set<ReviewLane>([
+    ...MANDATORY_REVIEW_LANES,
+    ...requestedLanes,
+  ]);
+  const groups = new Map<string, { count: number; lanes: ReviewLane[] }>();
+
+  for (const file of manifest.files.filter(
+    (candidate) => candidate.reviewable,
+  )) {
+    const laneSet = new Set<ReviewLane>([...baseLanes, ...file.requiredLanes]);
+    const lanes = REVIEW_LANES.filter((lane) => laneSet.has(lane));
+    const key = lanes.join(',');
+    const group = groups.get(key);
+    groups.set(key, { count: (group?.count ?? 0) + 1, lanes });
+  }
+
+  const orderedGroups = [...groups.values()].sort(
+    (left, right) =>
+      right.lanes.length - left.lanes.length || right.count - left.count,
+  );
+  const peakLaneCount = orderedGroups[0]?.lanes.length ?? baseLanes.size;
+  const peakFileCount = orderedGroups
+    .filter((group) => group.lanes.length === peakLaneCount)
+    .reduce((total, group) => total + group.count, 0);
+  const maximumPeakTopics =
+    peakLaneCount === 0
+      ? MAX_TOPICS
+      : Math.floor(MAX_SPECIALIST_TASKS / peakLaneCount);
+
+  return [
+    'Trusted lane-budget guide (recalculate after semantic exclusions):',
+    `- A topic costs the size of the union of its primary files' required lanes, the mandatory lanes, globally requested lanes, and planner-added lanes. The final sum across topics must be <= ${MAX_SPECIALIST_TASKS}.`,
+    `- Mandatory/global base lanes: ${REVIEW_LANES.filter((lane) => baseLanes.has(lane)).join(', ')}.`,
+    ...orderedGroups.map(
+      (group) =>
+        `- ${group.count} reviewable file(s) currently require at least ${group.lanes.length} lane task(s): ${group.lanes.join(', ')}.`,
+    ),
+    `- ${peakFileCount} file(s) have the peak ${peakLaneCount}-lane cost. Any topic containing one costs at least ${peakLaneCount} tasks, so at most ${maximumPeakTopics} such topics can fit before accounting for other topics.`,
+    '- Before submitting, write a topic-cost ledger in scratch, sum every normalized topic cost, and merge semantically related files until the sum fits. Use an empty `lanes` array unless adding a truly optional lane; trusted required lanes are added automatically.',
+  ].join('\n');
+}
+
 export function validateTopicPlan(
   plan: TopicPlan,
   manifest: ReviewManifest,

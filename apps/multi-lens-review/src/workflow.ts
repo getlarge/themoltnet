@@ -20,6 +20,7 @@ import {
   coverageLedgerForPlan,
   deterministicTopicPlan,
   parseTopicPlanJson,
+  plannerLaneBudgetGuidance,
   removeExcludedFilesFromPlan,
   topicByteSize,
   validateTopicPlan,
@@ -295,7 +296,8 @@ function buildPlannerTask(input: NormalizedInput): CreateBody {
     `Known lanes: ${REVIEW_LANES.join(', ')}.`,
     'Every file not listed in excludedFiles must appear exactly once in primaryFiles. Do not put excluded files in primaryFiles or contextFiles, and never repeat a primary file as context in the same topic. Exclude only files for which you can cite concrete content evidence or a specific producer/consumer relationship; merely restating a path, suffix, directory, or lockfile name is not evidence. Authored migration and configuration changes can be reviewable even when related outputs are derived.',
     'Use at most 12 topics, 12 primary files/topic, 6 context files/topic, and 32 total topic×lane tasks. Compute the task total after unioning each topic’s requested lanes with every primary file’s requiredLanes from the manifest plus mandatory correctness and dry-codebase-fit. Keep topics under 64 KiB; a singleton may be up to 128 KiB.',
-    'Correctness and dry-codebase-fit are mandatory and trusted code will add all manifest-required lanes. Add a lane only when necessary; you cannot remove required lanes.',
+    plannerLaneBudgetGuidance(manifest, input.requestedLanes),
+    'Correctness and dry-codebase-fit are mandatory and trusted code will add all manifest-required lanes. The `lanes` field requests only additional optional lanes: use [] unless adding one that is not already required. You cannot remove required lanes.',
     'Submit this TopicPlan JSON through submit_freeform_output. Its accepted output artifact is the planner contract consumed by trusted validation and the gated design preflight.',
   ].join('\n\n');
   const task = baseTask(input, 'Plan bounded review topics');

@@ -249,6 +249,10 @@ describe('runMultiLensReview', () => {
     );
     expect(tasks.created[0].input.brief).toContain('src/change.ts');
     expect(tasks.created[0].input.brief).toContain('bafkrei-file-0');
+    expect(tasks.created[0].input.brief).toContain('Trusted lane-budget guide');
+    expect(tasks.created[0].input.brief).toContain(
+      'Use an empty `lanes` array',
+    );
   });
 
   it('cannot approve failed required lanes or incomplete lane coverage', async () => {
