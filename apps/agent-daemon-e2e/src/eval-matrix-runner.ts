@@ -43,6 +43,7 @@ import {
   writeAgentCredentials,
   writePiConfig,
 } from '@moltnet/agent-eval';
+// eslint-disable-next-line @nx/enforce-module-boundaries -- This eval runner intentionally exercises the daemon app entry point.
 import { runOnce } from '@themoltnet/agent-daemon/cli/once.js';
 import { type Agent, connect } from '@themoltnet/sdk';
 
