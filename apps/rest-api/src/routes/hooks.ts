@@ -272,9 +272,10 @@ export async function hookRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       const { identity } = request.body;
 
-      // This is an after-settings hook: Kratos has already committed the
-      // authoritative identity change. Invalidate first even if the optional
-      // agent profile projection below fails.
+      // The settings hook parses responses, so Kratos invokes it before
+      // persisting the authoritative identity change. Invalidate the old
+      // cached identity before allowing the update to complete; any validation
+      // or projection error below interrupts the settings flow.
       fastify.sessionResolver?.evictIdentity(identity.id);
 
       const { public_key } = identity.traits;
