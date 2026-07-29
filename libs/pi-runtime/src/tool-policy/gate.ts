@@ -52,13 +52,14 @@ export type GateDecision =
 
 export interface MatchedShellCommand {
   executable: string;
-  argvPrefix: readonly string[];
+  argvPrefixFingerprint: string;
+  argvPrefixLength: number;
 }
 
 /**
- * Secret-safe metadata for a shell invocation that did not match policy.
- * argv values are deliberately never logged; the fingerprint distinguishes
- * invocations without disclosing literal arguments.
+ * Literal-free metadata for a shell invocation that did not match policy.
+ * argv values are deliberately omitted; the fingerprint distinguishes
+ * invocations without placing literal arguments in the decision.
  */
 export interface MissingShellCommand {
   executable: string;
@@ -144,10 +145,9 @@ export function decideToolCall(input: GateInput): GateDecision {
         matchesArgvPrefix(tool.argv, rule.argvPrefix),
       );
       if (!matched) return true;
-      matchedShellCommands.push({
-        executable: tool.name,
-        argvPrefix: matched.argvPrefix,
-      });
+      matchedShellCommands.push(
+        toMatchedShellCommand(tool.name, matched.argvPrefix),
+      );
       return false;
     })
     .map(toMissingShellCommand);
@@ -162,11 +162,16 @@ export function decideToolCall(input: GateInput): GateDecision {
       'shell output redirection requires broad executable permission',
       'would block shell output redirection under scoped command policy',
       [...new Set(matchedShellCommands.map(({ executable }) => executable))],
-      matchedShellCommands.map(({ executable, argvPrefix }) =>
-        toMissingShellCommand({
-          name: executable,
-          argv: argvPrefix,
-          risk: 'unknown',
+      matchedShellCommands.map(
+        ({
+          executable,
+          argvPrefixFingerprint,
+          argvPrefixLength,
+        }): MissingShellCommand => ({
+          executable,
+          argvFingerprint: argvPrefixFingerprint,
+          argvLength: argvPrefixLength,
+          dynamicTokenCount: 0,
         }),
       ),
     );
@@ -190,18 +195,32 @@ export function decideToolCall(input: GateInput): GateDecision {
   );
 }
 
-function toMissingShellCommand(tool: ResolvedTool): MissingShellCommand {
-  const fingerprint = createHash('sha256')
+function fingerprintArgv(argv: readonly (string | null)[]): string {
+  return `sha256:${createHash('sha256')
     .update(
       JSON.stringify(
-        tool.argv.map((token) => (token === null ? { dynamic: true } : token)),
+        argv.map((token) => (token === null ? { dynamic: true } : token)),
       ),
     )
     .digest('hex')
-    .slice(0, 16);
+    .slice(0, 16)}`;
+}
+
+function toMatchedShellCommand(
+  executable: string,
+  argvPrefix: readonly string[],
+): MatchedShellCommand {
+  return {
+    executable,
+    argvPrefixFingerprint: fingerprintArgv(argvPrefix),
+    argvPrefixLength: argvPrefix.length,
+  };
+}
+
+function toMissingShellCommand(tool: ResolvedTool): MissingShellCommand {
   return {
     executable: tool.name,
-    argvFingerprint: `sha256:${fingerprint}`,
+    argvFingerprint: fingerprintArgv(tool.argv),
     argvLength: tool.argv.length,
     dynamicTokenCount: tool.argv.filter((token) => token === null).length,
   };

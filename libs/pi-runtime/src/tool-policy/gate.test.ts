@@ -137,11 +137,52 @@ describe('decideToolCall', () => {
       ).toMatchObject({
         allow: true,
         matchedShellCommands: [
-          { executable: 'git', argvPrefix: ['git', subcommand] },
+          {
+            executable: 'git',
+            argvPrefixFingerprint: expect.stringMatching(
+              /^sha256:[0-9a-f]{16}$/,
+            ),
+            argvPrefixLength: 2,
+          },
         ],
       });
     },
   );
+
+  it('does not expose matched configured prefix tokens in decisions', () => {
+    const secret = 'authorization: bearer top-secret';
+    const decision = decideToolCall(
+      base({
+        toolName: 'bash',
+        command: `gh api --header "${secret}" /user`,
+        allowedShellCommands: [
+          { argvPrefix: ['gh', 'api', '--header', secret] },
+        ],
+        analyze: analyzerOf({
+          [`gh api --header "${secret}" /user`]: {
+            tools: [
+              {
+                name: 'gh',
+                argv: ['gh', 'api', '--header', secret, '/user'],
+              },
+            ],
+          },
+        }),
+      }),
+    );
+
+    expect(decision).toMatchObject({
+      allow: true,
+      matchedShellCommands: [
+        {
+          executable: 'gh',
+          argvPrefixFingerprint: expect.stringMatching(/^sha256:[0-9a-f]{16}$/),
+          argvPrefixLength: 4,
+        },
+      ],
+    });
+    expect(JSON.stringify(decision)).not.toContain(secret);
+  });
 
   it.each(['commit', 'push', 'reset', 'checkout'])(
     'bash: rejects git %s outside scoped rules',

@@ -269,6 +269,57 @@ describe('createToolPolicyExtension', () => {
     });
   });
 
+  it('does not log literal tokens from a matched configured prefix', () => {
+    const secret = 'authorization: bearer top-secret';
+    const command = `gh api --header "${secret}" /user`;
+    const scopedAnalyzer = {
+      analyze: vi.fn().mockReturnValue({
+        ok: true,
+        command,
+        ast: '',
+        tools: [
+          {
+            name: 'gh',
+            argv: ['gh', 'api', '--header', secret, '/user'],
+            risk: 'unknown',
+            capabilities: [],
+            raw: command,
+          },
+        ],
+      }),
+    } as unknown as ShellCommandAnalyzer;
+    const on = registerHandler({
+      policy: {
+        enforcement: 'enforce',
+        allowedTools: new Set(),
+        allowedShellCommands: [
+          { argvPrefix: ['gh', 'api', '--header', secret] },
+        ],
+        degraded: false,
+      },
+      analyzer: scopedAnalyzer,
+      logger,
+    });
+    const handler = on.mock.calls[0][1] as (e: ToolCallEvent) => unknown;
+
+    expect(handler(toolCall('bash', { command }))).toBeUndefined();
+    expect(logger.debug).toHaveBeenCalledWith(
+      expect.objectContaining({
+        matchedShellCommands: [
+          expect.objectContaining({
+            executable: 'gh',
+            argvPrefixFingerprint: expect.stringMatching(
+              /^sha256:[0-9a-f]{16}$/,
+            ),
+            argvPrefixLength: 4,
+          }),
+        ],
+      }),
+      'tool_policy.shell_command_allowed',
+    );
+    expect(JSON.stringify(logger.debug.mock.calls)).not.toContain(secret);
+  });
+
   it('flags degraded:true in the block log when the policy is a fallback', () => {
     const on = registerHandler({
       policy: {

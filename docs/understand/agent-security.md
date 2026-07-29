@@ -330,9 +330,11 @@ Shell-command authorization is not proof that a permitted command is read-only.
 A command's behavior can depend on its arguments, configuration, environment,
 filesystem, network, and the executable itself. Sandboxing, least-privilege
 credentials, and credential isolation remain defense in depth. Authorization
-logs include the executable, matched configured prefixes, or secret-safe
-missing-invocation metadata (token count, dynamic-token count, and a truncated
-fingerprint), but never raw argv, which may contain secrets.
+logs omit literal invocation arguments and configured prefix tokens. They record
+executable names and literal-free metadata: token counts, dynamic-token counts,
+and truncated SHA-256 fingerprints for correlation. Those fingerprints are
+operational identifiers, not a confidentiality boundary, so authorization logs
+must still be treated as security-sensitive.
 
 Deleting a policy revokes its Keto grants **before** removing the SQL row, so a
 failure never leaves live grants behind a deleted-looking policy.
