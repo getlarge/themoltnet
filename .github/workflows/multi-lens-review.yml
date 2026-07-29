@@ -1,22 +1,25 @@
 name: Multi-lens deep review
 
 on:
+  issue_comment:
+    types: [created]
   pull_request_target:
-    types: [opened, reopened, synchronize, ready_for_review]
+    types: [ready_for_review]
 
 permissions: {}
 
 concurrency:
-  group: multi-lens-review-${{ github.event.pull_request.number }}
+  group: multi-lens-review-${{ github.event.pull_request.number || github.event.issue.number }}
   cancel-in-progress: true
 
 jobs:
   prepare:
     if: |
-      github.event.pull_request.draft == false &&
-      github.event.pull_request.head.repo.full_name == github.repository &&
-      github.event.pull_request.head.ref != 'codeboarding/sync' &&
-      github.event.pull_request.user.login != 'dependabot[bot]'
+      (github.event_name == 'issue_comment' &&
+        github.event.issue.pull_request != null &&
+        contains(github.event.comment.body, '@legreffier /multi-lens-review') &&
+        !endsWith(github.event.comment.user.login, '[bot]')) ||
+      (github.event_name == 'pull_request_target')
     runs-on: ubuntu-latest
     environment: legreffier
     permissions:
@@ -29,13 +32,6 @@ jobs:
       pr-number: ${{ steps.prepare.outputs.pr-number }}
       profile: ${{ steps.prepare.outputs.profile }}
     steps:
-      # pull_request_target has access to protected environment secrets. Only
-      # checkout the trusted base revision; the PR diff remains untrusted data.
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ github.event.pull_request.base.sha }}
-          persist-credentials: false
-
       - name: Fetch and validate the untrusted PR diff
         id: prepare
         uses: actions/github-script@v8
@@ -45,11 +41,27 @@ jobs:
           script: |
             const crypto = require('node:crypto');
             const fs = require('node:fs');
-            const pr = context.payload.pull_request;
+            const pullNumber =
+              context.eventName === 'issue_comment'
+                ? context.payload.issue.number
+                : context.payload.pull_request.number;
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pullNumber,
+            });
+            if (pr.head.repo.full_name !== `${context.repo.owner}/${context.repo.repo}`) {
+              core.setFailed('Multi-lens review only runs for same-repository pull requests');
+              return;
+            }
+            if (pr.head.ref === 'codeboarding/sync' || pr.user.login === 'dependabot[bot]') {
+              core.setFailed(`Multi-lens review is disabled for ${pr.head.ref}`);
+              return;
+            }
             const response = await github.rest.pulls.get({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              pull_number: pr.number,
+              pull_number: pullNumber,
               mediaType: { format: 'diff' },
             });
             const diff = String(response.data);
