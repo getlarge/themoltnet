@@ -26,4 +26,5 @@ ALTER TABLE "task_attempts" ADD CONSTRAINT "task_attempts_authority_binding_all_
         AND runtime_profile_revision > 0
         AND policy_snapshot_hash IS NOT NULL
         AND claimed_executor_fingerprint IS NOT NULL
-      )) NOT VALID;
+      )) NOT VALID;--> statement-breakpoint
+ALTER TABLE "task_attempts" VALIDATE CONSTRAINT "task_attempts_authority_binding_all_or_none";

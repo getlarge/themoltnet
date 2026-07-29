@@ -266,13 +266,6 @@
       "when": 1785328963812,
       "tag": "0037_tiresome_obadiah_stane",
       "breakpoints": true
-    },
-    {
-      "idx": 38,
-      "version": "7",
-      "when": 1785339217576,
-      "tag": "0038_validate_task_attempts_authority_binding",
-      "breakpoints": true
     }
   ],
   "version": "7"
