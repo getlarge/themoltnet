@@ -14,8 +14,11 @@
     "@moltnet/auth": "workspace:*",
     "@moltnet/crypto-service": "workspace:*",
     "@moltnet/database": "workspace:*",
+    "@moltnet/models": "workspace:*",
+    "@moltnet/runtime-policy-service": "workspace:*",
     "@moltnet/task-workflows": "workspace:*",
-    "@moltnet/tasks": "workspace:*"
+    "@moltnet/tasks": "workspace:*",
+    "@themoltnet/credential-broker": "workspace:*"
   },
   "devDependencies": {
     "typebox": "catalog:",

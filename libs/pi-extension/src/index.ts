@@ -368,6 +368,16 @@ export default function moltnetExtension(pi: ExtensionAPI) {
     hostExecBaseEnv,
   });
 
+  assertGondolinPiToolDefinitions([
+    localRead,
+    localWrite,
+    localEdit,
+    localBash,
+    localLs,
+    localFind,
+    localGrep,
+    ...moltnetTools,
+  ]);
   for (const tool of moltnetTools) {
     pi.registerTool(tool);
   }

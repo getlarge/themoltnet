@@ -1164,35 +1164,8 @@ func (h *stubTailHandler) ListTaskMessages(_ context.Context, params moltnetapi.
 
 func TestRunTaskTailCmd_TerminatesOnTerminalStatus(t *testing.T) {
 	h := &stubTailHandler{
-		terminalAfter: 2, // first GetTask says running; second says completed
-		listAttemptResp: []moltnetapi.TaskAttempt{
-			func() moltnetapi.TaskAttempt {
-				a := moltnetapi.TaskAttempt{
-					TaskId:           uuid.MustParse("11111111-1111-4111-8111-111111111111"),
-					AttemptN:         1,
-					ClaimedByAgentId: uuid.MustParse("44444444-4444-4444-8444-444444444444"),
-					ClaimedAt:        time.Now().Add(-time.Minute),
-					Status:           moltnetapi.TaskAttemptStatusRunning,
-				}
-				// Optional fields are typed as Nil<T>; defaults pass an
-				// empty string through and the response-side min-length
-				// validator rejects it. Explicitly null them out.
-				a.ClaimedExecutorFingerprint.SetToNull()
-				a.CompletedExecutorFingerprint.SetToNull()
-				a.OutputCid.SetToNull()
-				a.ContentSignature.SetToNull()
-				a.ClaimedExecutorManifest.SetToNull()
-				a.CompletedExecutorManifest.SetToNull()
-				a.Output.SetToNull()
-				a.Error.SetToNull()
-				a.Usage.SetToNull()
-				a.RuntimeId.SetToNull()
-				a.CompletedAt.SetToNull()
-				a.SignedAt.SetToNull()
-				a.StartedAt.SetToNull()
-				return a
-			}(),
-		},
+		terminalAfter:   2, // first GetTask says running; second says completed
+		listAttemptResp: []moltnetapi.TaskAttempt{validRunningAttempt()},
 		// All existing backlog messages exist before tail attaches —
 		// default mode must skip them entirely. After they're skipped
 		// the loop checks GetTask, which returns terminal on the
@@ -1398,6 +1371,10 @@ func validRunningAttempt() moltnetapi.TaskAttempt {
 		ClaimedAt:        time.Now().Add(-time.Minute),
 		Status:           moltnetapi.TaskAttemptStatusRunning,
 	}
+	a.LeaseId.SetTo(uuid.MustParse("55555555-5555-4555-8555-555555555555"))
+	a.RuntimeProfileId.SetTo(uuid.MustParse("66666666-6666-4666-8666-666666666666"))
+	a.RuntimeProfileRevision.SetTo(1)
+	a.PolicySnapshotHash.SetTo("sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 	a.ClaimedExecutorFingerprint.SetToNull()
 	a.CompletedExecutorFingerprint.SetToNull()
 	a.OutputCid.SetToNull()

@@ -12,6 +12,7 @@ import type {
   TaskRepository,
   TransactionRunner,
 } from '@moltnet/database';
+import type { RuntimePolicyService } from '@moltnet/runtime-policy-service';
 import type { TransactionalWorkflowEnqueue } from '@moltnet/task-workflows';
 import type { ClaimCondition } from '@moltnet/tasks';
 
@@ -89,6 +90,7 @@ export interface TaskServiceDeps {
   diaryRepository: DiaryRepository;
   agentRepository: AgentRepository;
   runtimeProfileRepository: RuntimeProfileRepository;
+  runtimePolicyService: Pick<RuntimePolicyService, 'resolvePinnedAllowedTools'>;
   contextPackRepository: ContextPackRepository;
   renderedPackRepository: RenderedPackRepository;
   correlationSealRepository: CorrelationSealRepository;

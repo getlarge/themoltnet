@@ -92,6 +92,7 @@ import {
 } from '../tool-policy/session-policy.js';
 import { activateAgentEnv, resumeVm } from '../vm-manager.js';
 import { buildAgentSession } from './agent-session-factory.js';
+import { assertGondolinPiToolDefinitions } from './capability-manifest.js';
 import type { PiTaskExecutionPlanFactory } from './execution-plan.js';
 import type { PiThinkingLevel } from './pi-thinking-level.js';
 import {
@@ -202,7 +203,7 @@ export function createGondolinToolDefinitions(config: {
 }): ToolDefinition[] {
   const { vm, cwdPath, guestWorkspace } = config;
   const grepTool = createGrepToolDefinition(cwdPath);
-  return [
+  const tools = [
     createReadToolDefinition(cwdPath, {
       operations: createGondolinReadOps(vm, cwdPath, guestWorkspace),
     }),
@@ -231,6 +232,8 @@ export function createGondolinToolDefinitions(config: {
       },
     },
   ] as unknown as ToolDefinition[];
+  assertGondolinPiToolDefinitions(tools);
+  return tools;
 }
 
 export interface ExecutePiTaskOptions {

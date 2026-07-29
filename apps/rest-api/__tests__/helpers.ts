@@ -33,6 +33,7 @@ import type {
   NonceRepository,
   RuntimeModelRepository,
   RuntimePolicyRepository,
+  RuntimePolicySnapshotRepository,
   RuntimeProfileRepository,
   RuntimeSessionRepository,
   RuntimeSlotRepository,
@@ -293,6 +294,9 @@ export interface MockServices {
   };
   runtimePolicyRepository: {
     [K in keyof RuntimePolicyRepository]: ReturnType<typeof vi.fn>;
+  };
+  runtimePolicySnapshotRepository: {
+    [K in keyof RuntimePolicySnapshotRepository]: ReturnType<typeof vi.fn>;
   };
   relationshipReader: {
     [K in keyof RelationshipReader]: ReturnType<typeof vi.fn>;
@@ -658,8 +662,12 @@ export function createMockServices(): MockServices {
       lockProfileBindings: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
-      getProfileEnforcement: vi.fn(),
+      getProfilePolicyContext: vi.fn(),
       profileExistsForTeam: vi.fn(),
+    },
+    runtimePolicySnapshotRepository: {
+      upsert: vi.fn(),
+      findByHash: vi.fn(),
     },
     relationshipReader: {
       listTeamIdsBySubject: vi.fn().mockResolvedValue([]),
@@ -930,6 +938,8 @@ export async function createTestApp(
       mocks.runtimeModelRepository as unknown as RuntimeModelRepository,
     runtimePolicyRepository:
       mocks.runtimePolicyRepository as unknown as RuntimePolicyRepository,
+    runtimePolicySnapshotRepository:
+      mocks.runtimePolicySnapshotRepository as unknown as RuntimePolicySnapshotRepository,
     groupRepository: mocks.groupRepository as never,
     relationshipReader: mocks.relationshipReader as never,
     hydraPublicUrl: 'http://hydra-mock:4444',

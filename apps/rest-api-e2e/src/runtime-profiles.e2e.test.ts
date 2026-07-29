@@ -18,6 +18,7 @@ import {
   getTask,
   joinTeam,
   listRuntimeProfiles,
+  listTaskAttempts,
   listTasks,
   registerExecutorManifest,
   updateRuntimeProfile,
@@ -538,6 +539,38 @@ describe('Runtime Profiles API', () => {
     expect(allowedProfileClaim.error).toBeUndefined();
     expect(allowedProfileClaim.response.status).toBe(200);
     expect(allowedProfileClaim.data!.task.id).toBe(task!.id);
+    const pinnedAttempt = allowedProfileClaim.data!.attempt;
+    expect(pinnedAttempt).toMatchObject({
+      runtimeProfileId: allowedProfile!.id,
+      runtimeProfileRevision: 1,
+    });
+    expect(pinnedAttempt.leaseId).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+    );
+    expect(pinnedAttempt.policySnapshotHash).toMatch(/^sha256:[0-9a-f]{64}$/);
+
+    const { data: updatedProfile, error: updateError } =
+      await updateRuntimeProfile({
+        client,
+        auth: () => owner.accessToken,
+        path: { profileId: allowedProfile!.id },
+        body: { model: 'claude-opus-4-1' },
+      });
+    expect(updateError).toBeUndefined();
+    expect(updatedProfile!.revision).toBe(2);
+
+    const { data: attempts, error: attemptsError } = await listTaskAttempts({
+      client,
+      auth: () => owner.accessToken,
+      path: { id: task!.id },
+    });
+    expect(attemptsError).toBeUndefined();
+    expect(attempts![0]).toMatchObject({
+      runtimeProfileId: allowedProfile!.id,
+      runtimeProfileRevision: 1,
+      leaseId: pinnedAttempt.leaseId,
+      policySnapshotHash: pinnedAttempt.policySnapshotHash,
+    });
   });
 
   it('requires team context for collection operations', async () => {

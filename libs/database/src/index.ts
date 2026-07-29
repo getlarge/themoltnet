@@ -121,9 +121,15 @@ export {
   type CreateRuntimePolicyInput,
   createRuntimePolicyRepository,
   type RuntimePolicyRepository,
+  type RuntimeProfilePolicyContext,
   type ToolEnforcement,
   type UpdateRuntimePolicyInput,
 } from './repositories/runtime-policy.repository.js';
+export {
+  type CreateRuntimePolicySnapshotInput,
+  createRuntimePolicySnapshotRepository,
+  type RuntimePolicySnapshotRepository,
+} from './repositories/runtime-policy-snapshot.repository.js';
 export {
   type CreateRuntimeProfileInput,
   createRuntimeProfileRepository,

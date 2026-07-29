@@ -90,7 +90,11 @@ export type AgentProfile = {
 
 export type AllowedToolsResponse = {
   allowedTools: Array<string>;
+  capabilityManifestVersion: string;
   enforcement: ToolEnforcement;
+  policySnapshotHash: string;
+  runtimeKind: 'gondolin_pi';
+  runtimeProfileRevision: number;
 };
 
 export type AppendMessagesBody = {
@@ -2660,11 +2664,15 @@ export type TaskAttempt = {
     retryable?: boolean;
     stack?: string;
   } | null;
+  leaseId: string | null;
   output: {
     [key: string]: unknown;
   } | null;
   outputCid: string | null;
+  policySnapshotHash: string | null;
   runtimeId: string | null;
+  runtimeProfileId: string | null;
+  runtimeProfileRevision: number | null;
   signedAt: string | null;
   startedAt: string | null;
   status:

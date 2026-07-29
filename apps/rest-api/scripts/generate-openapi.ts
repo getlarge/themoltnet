@@ -77,6 +77,8 @@ async function main() {
     taskArtifactStorage: createStubService() as never,
     runtimeSlotRepository: createStubService() as never,
     runtimeModelRepository: createStubService() as never,
+    runtimePolicyRepository: createStubService() as never,
+    runtimePolicySnapshotRepository: createStubService() as never,
     taskRepository: createStubService() as never,
     taskAnalyticsService: createStubService() as never,
     taskService: createStubService() as never,

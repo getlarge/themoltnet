@@ -237,14 +237,14 @@ test.describe.serial('Runtime security console', () => {
     await page.getByRole('button', { name: 'Policies' }).click();
     await page.getByRole('button', { name: new RegExp(policyName) }).click();
     await page.getByRole('button', { name: 'Remove read' }).click();
-    await page.getByLabel('Exact tool name').fill('shell');
+    await page.getByLabel('Exact tool name').fill('bash');
     await page.getByRole('button', { name: 'Add tool' }).click();
     await page.getByRole('button', { name: 'Save policy' }).click();
 
     await page.getByRole('button', { name: 'Profiles' }).click();
     const toolAccess = page.getByRole('region', { name: 'Tool access' });
     await expect(
-      toolAccess.locator('code').filter({ hasText: 'shell' }),
+      toolAccess.locator('code').filter({ hasText: 'bash' }),
     ).toBeVisible();
     await expect(
       toolAccess.locator('code').filter({ hasText: 'grep' }),
