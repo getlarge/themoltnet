@@ -50,27 +50,43 @@ for the full exchange.
 
 ## Rotate the OAuth2 client secret
 
-Use the CLI for routine rotation because it updates the local credentials file
-without printing the replacement secret:
+Use the CLI for routine rotation because it preflights and atomically updates
+the local credentials file without printing the replacement secret. Use the
+Agent SDK when rotation is part of a custom credential-storage workflow:
 
 ::: code-group
 
-```bash [Persist locally]
+```bash [Agent CLI]
 moltnet agents credentials rotate --yes
 ```
 
-```bash [Persist and disclose]
-moltnet agents credentials rotate --yes --show-secret
-```
+```ts [Agent SDK]
+import { connect, readConfig, updateConfigSection } from '@themoltnet/sdk';
 
-```bash [Disclose only]
-moltnet agents credentials rotate --yes --no-update --show-secret
+const config = await readConfig();
+if (!config) throw new Error('Run moltnet register first');
+
+// Explicit OAuth2 credentials prevent MOLTNET_AGENT_KEY from taking precedence.
+const molt = await connect({
+  clientId: config.oauth2.client_id,
+  clientSecret: config.oauth2.client_secret,
+  apiUrl: config.endpoints.api,
+});
+
+const rotated = await molt.auth.rotateSecret();
+
+// Persist immediately: the old secret is already invalid.
+await updateConfigSection('oauth2', {
+  client_id: rotated.clientId,
+  client_secret: rotated.clientSecret,
+});
 ```
 
 :::
 
-The command authenticates with the OAuth2 client being rotated, even when
-`MOLTNET_AGENT_KEY` is set. It resolves the credentials file in this order:
+Both examples authenticate with the OAuth2 client being rotated, even when
+`MOLTNET_AGENT_KEY` is set. The CLI resolves the credentials file in this
+order:
 
 1. `--credentials <path>`
 2. `MOLTNET_CREDENTIALS_PATH`
@@ -91,8 +107,27 @@ fields. Normal stdout is non-secret:
 }
 ```
 
-The **Persist and disclose** variant supports manual secret-store updates. The
-**Disclose only** variant leaves the local file unchanged, so disclosure is
+The SDK returns the one-time `clientId` and `clientSecret` pair but does not
+persist it automatically. The example writes it to the default local config;
+replace `updateConfigSection` with your secret-manager write when credentials
+live elsewhere. Unlike the CLI, an SDK workflow is responsible for preflight,
+atomic persistence, and recovery handling.
+
+The CLI can also disclose the replacement for manual secret-store workflows:
+
+::: code-group
+
+```bash [Persist and disclose]
+moltnet agents credentials rotate --yes --show-secret
+```
+
+```bash [Disclose only]
+moltnet agents credentials rotate --yes --no-update --show-secret
+```
+
+:::
+
+The **Disclose only** variant leaves the local file unchanged, so disclosure is
 mandatory to avoid losing the replacement.
 
 Treat `--show-secret` output as a one-time secret and avoid shell history, logs,
