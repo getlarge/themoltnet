@@ -1021,10 +1021,14 @@ exact when configured, but remains optional because existing Ory token
 acquisition paths do not consistently request an `aud` claim.
 
 Opaque Ory tokens (`ory_at_` and `ory_ht_`) always use Hydra introspection.
-JWT-shaped tokens use local verification first and fall back to introspection
-when their signature, claims, key selection, or JWKS lookup fails. JWKS
-timeouts and upstream failures produce secret-safe diagnostics; tokens and raw
-upstream errors are never logged.
+JWT-shaped tokens use local verification first. They fall back to introspection
+only when a key ID is not yet present locally or the remote JWKS is unavailable,
+which preserves availability during key rotation and transient outages.
+Definitive algorithm, signature, issuer, audience, expiry, not-before, and token
+format failures reject locally; introspection cannot override those policies.
+JWKS and introspection failures produce secret-safe diagnostics, and a
+low-cardinality `auth.token.validation.total` counter distinguishes validation
+reasons and fallback events. Tokens and raw upstream errors are never logged.
 
 Talos task and connector credentials also use `jose`, but their verifier is a
 separate trust domain in `@themoltnet/credentials`: it hard-pins `EdDSA` and
@@ -1044,7 +1048,11 @@ On 2026-07-29, three same-runtime runs of 10,000 sequential validations after
 | Verifier            | Range (operations/second) | Median | Relative median |
 | ------------------- | ------------------------- | ------ | --------------- |
 | `fast-jwt` baseline | 9,401–9,712               | 9,655  | 1.00×           |
-| `jose`              | 27,159–28,807             | 28,082 | 2.91×           |
+| `jose`              | 28,694–29,290             | 29,175 | 3.02×           |
+
+The `fast-jwt` row was captured from the pre-migration base revision
+`e1ced0b0`; the command above reproduces the `jose` row on this branch. Both
+runs used the same benchmark file and warm-cache iteration settings.
 
 `@getlarge/fastify-mcp` owns a separate MCP authentication implementation and
 is intentionally unchanged by this migration. Its transitive

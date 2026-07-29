@@ -12,6 +12,7 @@ const API_AUDIENCE = 'https://api.themolt.net';
 const CLIENT_ID = 'hydra-client-uuid';
 const IDENTITY_ID = '550e8400-e29b-41d4-a716-446655440000';
 const OPAQUE_TOKEN = 'ory_at_valid_token_123';
+const PRIVATE_MARKER = 'never-log-this-claim';
 
 const MOLTNET_CLAIMS = {
   'moltnet:fingerprint': 'A1B2-C3D4-E5F6-07A8',
@@ -97,12 +98,14 @@ async function createTestJwt(
     expiresAt?: number;
     extraClaims?: Record<string, unknown>;
     kid?: string | null;
+    notBefore?: number;
   } = {},
 ): Promise<string> {
   const now = Math.floor(Date.now() / 1_000);
   const jwt = new SignJWT({
     client_id: CLIENT_ID,
     ...MOLTNET_CLAIMS,
+    private_marker: PRIVATE_MARKER,
     scope: 'diary:read diary:write',
     ...options.extraClaims,
   })
@@ -118,7 +121,30 @@ async function createTestJwt(
   if (options.audience) {
     jwt.setAudience(options.audience);
   }
+  if (options.notBefore) {
+    jwt.setNotBefore(options.notBefore);
+  }
   return jwt.sign(fixture.privateKey);
+}
+
+function createUnsignedNoneJwt(issuer: string): string {
+  const now = Math.floor(Date.now() / 1_000);
+  const header = Buffer.from(
+    JSON.stringify({ alg: 'none', typ: 'JWT' }),
+  ).toString('base64url');
+  const payload = Buffer.from(
+    JSON.stringify({
+      client_id: CLIENT_ID,
+      exp: now + 3_600,
+      iat: now,
+      iss: issuer,
+      ...MOLTNET_CLAIMS,
+      private_marker: PRIVATE_MARKER,
+      scope: 'diary:read diary:write',
+      sub: CLIENT_ID,
+    }),
+  ).toString('base64url');
+  return `${header}.${payload}.`;
 }
 
 async function startJwksServer(initialKeys: JWK[]): Promise<TestJwksServer> {
@@ -192,7 +218,10 @@ describe('TokenValidator jose JWT verification', () => {
     try {
       const oauth2Api = createMockOAuth2Api();
       oauth2Api.introspectOAuth2Token.mockResolvedValue({ active: false });
-      const validator = createValidator(oauth2Api, server);
+      const onValidationEvent = vi.fn();
+      const validator = createValidator(oauth2Api, server, {
+        onValidationEvent,
+      });
       const token = await createTestJwt(rs256A, server.issuer);
 
       const first = await validator.resolveAuthContext(token);
@@ -202,6 +231,11 @@ describe('TokenValidator jose JWT verification', () => {
       expect(second).toEqual(EXPECTED_AUTH_CONTEXT);
       expect(server.requestCount()).toBe(1);
       expect(oauth2Api.introspectOAuth2Token).not.toHaveBeenCalled();
+      expect(onValidationEvent).toHaveBeenCalledTimes(2);
+      expect(onValidationEvent).toHaveBeenLastCalledWith({
+        credentialType: 'ory-jwt',
+        reason: 'credential_accepted',
+      });
     } finally {
       await server.close();
     }
@@ -231,6 +265,7 @@ describe('TokenValidator jose JWT verification', () => {
   it.each([
     {
       name: 'wrong issuer',
+      reason: 'claim_validation_failed',
       token: (server: TestJwksServer) =>
         createTestJwt(rs256A, `${server.issuer}/wrong`, {
           audience: API_AUDIENCE,
@@ -238,6 +273,7 @@ describe('TokenValidator jose JWT verification', () => {
     },
     {
       name: 'wrong audience',
+      reason: 'claim_validation_failed',
       token: (server: TestJwksServer) =>
         createTestJwt(rs256A, server.issuer, {
           audience: 'https://other.example.com',
@@ -245,10 +281,12 @@ describe('TokenValidator jose JWT verification', () => {
     },
     {
       name: 'missing audience',
+      reason: 'claim_validation_failed',
       token: (server: TestJwksServer) => createTestJwt(rs256A, server.issuer),
     },
     {
       name: 'invalid signature',
+      reason: 'signature_invalid',
       token: (server: TestJwksServer) =>
         createTestJwt(rs256B, server.issuer, {
           audience: API_AUDIENCE,
@@ -257,6 +295,7 @@ describe('TokenValidator jose JWT verification', () => {
     },
     {
       name: 'expired token',
+      reason: 'credential_expired',
       token: (server: TestJwksServer) =>
         createTestJwt(rs256A, server.issuer, {
           audience: API_AUDIENCE,
@@ -264,27 +303,159 @@ describe('TokenValidator jose JWT verification', () => {
         }),
     },
     {
-      name: 'unknown key ID',
+      name: 'future not-before claim',
+      reason: 'claim_validation_failed',
       token: (server: TestJwksServer) =>
-        createTestJwt(rs256B, server.issuer, {
+        createTestJwt(rs256A, server.issuer, {
+          audience: API_AUDIENCE,
+          notBefore: Math.floor(Date.now() / 1_000) + 3_600,
+        }),
+    },
+    {
+      name: 'ES256 algorithm',
+      reason: 'algorithm_rejected',
+      token: (server: TestJwksServer) =>
+        createTestJwt(es256, server.issuer, {
           audience: API_AUDIENCE,
         }),
     },
-  ])('falls back to introspection for $name', async ({ token }) => {
+    {
+      name: 'none algorithm',
+      reason: 'algorithm_rejected',
+      token: (server: TestJwksServer) =>
+        Promise.resolve(createUnsignedNoneJwt(server.issuer)),
+    },
+    {
+      name: 'malformed compact JWT',
+      reason: 'token_invalid',
+      token: (_server: TestJwksServer) =>
+        Promise.resolve('header.payload.signature'),
+    },
+  ])(
+    'rejects $name without introspection fallback',
+    async ({ reason, token }) => {
+      const server = await startJwksServer([rs256A.publicJwk, es256.publicJwk]);
+      try {
+        const oauth2Api = createMockOAuth2Api();
+        oauth2Api.introspectOAuth2Token.mockResolvedValue(
+          activeIntrospection(),
+        );
+        const logger = { debug: vi.fn(), warn: vi.fn() };
+        const onValidationEvent = vi.fn();
+        const validator = createValidator(oauth2Api, server, {
+          allowedAudiences: [API_AUDIENCE],
+          jwksCooldownMs: 0,
+          logger,
+          onValidationEvent,
+        });
+        const rejectedToken = await token(server);
+
+        const result = await validator.resolveAuthContext(rejectedToken);
+
+        expect(result).toBeNull();
+        expect(oauth2Api.introspectOAuth2Token).not.toHaveBeenCalled();
+        expect(logger.debug).toHaveBeenCalledWith(
+          expect.objectContaining({
+            credentialType: 'ory-jwt',
+            reason,
+          }),
+          'Ory JWT rejected',
+        );
+        expect(onValidationEvent).toHaveBeenCalledWith({
+          credentialType: 'ory-jwt',
+          reason,
+        });
+        const serializedLogs = JSON.stringify([
+          ...logger.debug.mock.calls,
+          ...logger.warn.mock.calls,
+        ]);
+        expect(serializedLogs).not.toContain(rejectedToken);
+        expect(serializedLogs).not.toContain(PRIVATE_MARKER);
+      } finally {
+        await server.close();
+      }
+    },
+  );
+
+  it('falls back to introspection for an unknown key ID', async () => {
     const server = await startJwksServer([rs256A.publicJwk]);
     try {
       const oauth2Api = createMockOAuth2Api();
       oauth2Api.introspectOAuth2Token.mockResolvedValue(activeIntrospection());
+      const logger = { debug: vi.fn(), warn: vi.fn() };
+      const onValidationEvent = vi.fn();
       const validator = createValidator(oauth2Api, server, {
         allowedAudiences: [API_AUDIENCE],
         jwksCooldownMs: 0,
+        logger,
+        onValidationEvent,
+      });
+      const token = await createTestJwt(rs256B, server.issuer, {
+        audience: API_AUDIENCE,
       });
 
-      const result = await validator.resolveAuthContext(await token(server));
+      const result = await validator.resolveAuthContext(token);
 
       expect(result).toEqual(EXPECTED_AUTH_CONTEXT);
       expect(oauth2Api.introspectOAuth2Token).toHaveBeenCalledOnce();
+      expect(onValidationEvent).toHaveBeenCalledWith({
+        credentialType: 'ory-jwt',
+        reason: 'jwks_key_not_found',
+      });
+      expect(onValidationEvent).toHaveBeenCalledWith({
+        credentialType: 'ory-jwt',
+        reason: 'introspection_fallback',
+      });
+      const serializedLogs = JSON.stringify([
+        ...logger.debug.mock.calls,
+        ...logger.warn.mock.calls,
+      ]);
+      expect(serializedLogs).not.toContain(token);
+      expect(serializedLogs).not.toContain(PRIVATE_MARKER);
     } finally {
+      await server.close();
+    }
+  });
+
+  it('classifies unexpected verifier failures without introspection', async () => {
+    const server = await startJwksServer([rs256A.publicJwk]);
+    try {
+      const oauth2Api = createMockOAuth2Api();
+      oauth2Api.introspectOAuth2Token.mockResolvedValue(activeIntrospection());
+      const logger = { debug: vi.fn(), warn: vi.fn() };
+      const onValidationEvent = vi.fn();
+      const validator = createValidator(oauth2Api, server, {
+        logger,
+        onValidationEvent,
+      });
+      const token = await createTestJwt(rs256A, server.issuer);
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockRejectedValue(new Error('never-log-this-error')),
+      );
+
+      const result = await validator.resolveAuthContext(token);
+
+      expect(result).toBeNull();
+      expect(oauth2Api.introspectOAuth2Token).not.toHaveBeenCalled();
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          credentialType: 'ory-jwt',
+          errorType: 'Error',
+          reason: 'unexpected',
+        }),
+        'Ory JWT verification failed unexpectedly',
+      );
+      expect(onValidationEvent).toHaveBeenCalledWith({
+        credentialType: 'ory-jwt',
+        reason: 'unexpected',
+      });
+      const serializedLogs = JSON.stringify(logger.warn.mock.calls);
+      expect(serializedLogs).not.toContain(token);
+      expect(serializedLogs).not.toContain(PRIVATE_MARKER);
+      expect(serializedLogs).not.toContain('never-log-this-error');
+    } finally {
+      vi.unstubAllGlobals();
       await server.close();
     }
   });
@@ -300,7 +471,8 @@ describe('TokenValidator jose JWT verification', () => {
 
       const result = await validator.resolveAuthContext(token);
 
-      expect(result).toEqual(EXPECTED_AUTH_CONTEXT);
+      expect(result).toBeNull();
+      expect(oauth2Api.introspectOAuth2Token).not.toHaveBeenCalled();
       expect(logger.debug).toHaveBeenCalledWith(
         expect.objectContaining({
           credentialType: 'ory-jwt',
@@ -344,13 +516,13 @@ describe('TokenValidator jose JWT verification', () => {
       const oauth2Api = createMockOAuth2Api();
       oauth2Api.introspectOAuth2Token.mockResolvedValue(activeIntrospection());
       const logger = { debug: vi.fn(), warn: vi.fn() };
+      const onValidationEvent = vi.fn();
       const validator = createValidator(oauth2Api, server, {
         jwksTimeoutMs: 10,
         logger,
+        onValidationEvent,
       });
-      const token = await createTestJwt(rs256A, server.issuer, {
-        extraClaims: { private_marker: 'never-log-this-token' },
-      });
+      const token = await createTestJwt(rs256A, server.issuer);
 
       const result = await validator.resolveAuthContext(token);
 
@@ -362,9 +534,20 @@ describe('TokenValidator jose JWT verification', () => {
         }),
         'Ory JWT verification unavailable',
       );
-      const serializedLogs = JSON.stringify(logger.warn.mock.calls);
+      expect(onValidationEvent).toHaveBeenCalledWith({
+        credentialType: 'ory-jwt',
+        reason: 'jwks_unavailable',
+      });
+      expect(onValidationEvent).toHaveBeenCalledWith({
+        credentialType: 'ory-jwt',
+        reason: 'introspection_fallback',
+      });
+      const serializedLogs = JSON.stringify([
+        ...logger.debug.mock.calls,
+        ...logger.warn.mock.calls,
+      ]);
       expect(serializedLogs).not.toContain(token);
-      expect(serializedLogs).not.toContain('never-log-this-token');
+      expect(serializedLogs).not.toContain(PRIVATE_MARKER);
     } finally {
       await server.close();
     }
@@ -395,12 +578,63 @@ describe('TokenValidator jose JWT verification', () => {
     }
   });
 
+  it('logs secret-safe telemetry when introspection is unavailable', async () => {
+    const server = await startJwksServer([rs256A.publicJwk]);
+    server.setMode('unavailable');
+    try {
+      const oauth2Api = createMockOAuth2Api();
+      oauth2Api.introspectOAuth2Token.mockRejectedValue(
+        Object.assign(new Error('never-log-this-introspection-error'), {
+          cause: { code: 'ECONNRESET' },
+          name: 'ResponseError',
+          response: { status: 503 },
+        }),
+      );
+      const logger = { debug: vi.fn(), warn: vi.fn() };
+      const onValidationEvent = vi.fn();
+      const validator = createValidator(oauth2Api, server, {
+        logger,
+        onValidationEvent,
+      });
+      const token = await createTestJwt(rs256A, server.issuer);
+
+      const result = await validator.resolveAuthContext(token);
+
+      expect(result).toBeNull();
+      expect(logger.warn).toHaveBeenCalledWith(
+        {
+          causeCode: 'ECONNRESET',
+          credentialType: 'ory-jwt',
+          errorType: 'ResponseError',
+          reason: 'introspection_unavailable',
+          status: 503,
+        },
+        'Ory token introspection unavailable',
+      );
+      expect(onValidationEvent).toHaveBeenCalledWith({
+        credentialType: 'ory-jwt',
+        reason: 'introspection_unavailable',
+      });
+      const serializedLogs = JSON.stringify(logger.warn.mock.calls);
+      expect(serializedLogs).not.toContain(token);
+      expect(serializedLogs).not.toContain(PRIVATE_MARKER);
+      expect(serializedLogs).not.toContain(
+        'never-log-this-introspection-error',
+      );
+    } finally {
+      await server.close();
+    }
+  });
+
   it('routes opaque Ory tokens directly to introspection', async () => {
     const server = await startJwksServer([rs256A.publicJwk]);
     try {
       const oauth2Api = createMockOAuth2Api();
       oauth2Api.introspectOAuth2Token.mockResolvedValue(activeIntrospection());
-      const validator = createValidator(oauth2Api, server);
+      const onValidationEvent = vi.fn();
+      const validator = createValidator(oauth2Api, server, {
+        onValidationEvent,
+      });
 
       const result = await validator.resolveAuthContext(OPAQUE_TOKEN);
 
@@ -408,6 +642,10 @@ describe('TokenValidator jose JWT verification', () => {
       expect(server.requestCount()).toBe(0);
       expect(oauth2Api.introspectOAuth2Token).toHaveBeenCalledWith({
         token: OPAQUE_TOKEN,
+      });
+      expect(onValidationEvent).toHaveBeenCalledWith({
+        credentialType: 'ory-opaque',
+        reason: 'credential_accepted',
       });
     } finally {
       await server.close();

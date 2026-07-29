@@ -89,6 +89,7 @@ import {
   setTaskWorkflowDeps,
 } from '@moltnet/task-workflows';
 import { initTaskTypeRegistry } from '@moltnet/tasks';
+import { metrics as metricsApi } from '@opentelemetry/api';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { Redis } from 'ioredis';
 
@@ -607,8 +608,16 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     ttlDays: config.packGc?.PACK_GC_COMPILE_TTL_DAYS ?? 7,
   });
 
+  const tokenValidationCounter = metricsApi
+    .getMeter('moltnet-rest-api')
+    .createCounter('auth.token.validation.total', {
+      description: 'Authentication token validation events by outcome',
+    });
   const tokenValidator = createTokenValidator(oryClients.oauth2, {
     jwksUri: `${oryUrls.hydraPublicUrl}/.well-known/jwks.json`,
+    allowedIssuers: [new URL(oryUrls.hydraPublicUrl).origin],
+    // Existing Ory token acquisition paths do not consistently include `aud`.
+    // Enable allowedAudiences only after issuance is uniformly resource-bound.
     talosApi: oryClients.apiKeys,
     resolveTalosAgent: async (identityId) => {
       const [agent, identity] = await Promise.all([
@@ -623,6 +632,12 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       };
     },
     logger: app.log,
+    onValidationEvent: ({ credentialType, reason }) => {
+      tokenValidationCounter.add(1, {
+        'auth.credential_type': credentialType,
+        'auth.validation.reason': reason,
+      });
+    },
   });
 
   const sessionResolver = createSessionResolver(oryClients.frontend, {

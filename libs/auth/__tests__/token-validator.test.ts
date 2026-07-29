@@ -104,14 +104,41 @@ describe('TokenValidator', () => {
         expect(result).toEqual({ active: false });
       });
 
-      it('returns inactive result when introspection request fails', async () => {
+      it('returns inactive and logs safely when introspection fails', async () => {
+        const logger = createMockLogger();
+        const onValidationEvent = vi.fn();
+        validator = createTokenValidator(mockOAuth2Api as any, {
+          logger,
+          onValidationEvent,
+        });
         mockOAuth2Api.introspectOAuth2Token.mockRejectedValue(
-          new Error('Network error'),
+          Object.assign(new Error('never-log-this-upstream-error'), {
+            cause: { code: 'ECONNRESET' },
+            name: 'ResponseError',
+            response: { status: 503 },
+          }),
         );
 
         const result = await validator.introspect(OPAQUE_TOKEN);
 
         expect(result).toEqual({ active: false });
+        expect(logger.warn).toHaveBeenCalledWith(
+          {
+            causeCode: 'ECONNRESET',
+            credentialType: 'ory-token',
+            errorType: 'ResponseError',
+            reason: 'introspection_unavailable',
+            status: 503,
+          },
+          'Ory token introspection unavailable',
+        );
+        expect(onValidationEvent).toHaveBeenCalledWith({
+          credentialType: 'ory-token',
+          reason: 'introspection_unavailable',
+        });
+        const serializedLogs = JSON.stringify(logger.warn.mock.calls);
+        expect(serializedLogs).not.toContain(OPAQUE_TOKEN);
+        expect(serializedLogs).not.toContain('never-log-this-upstream-error');
       });
 
       it('handles token with empty scope string', async () => {
@@ -194,6 +221,8 @@ describe('TokenValidator', () => {
       });
 
       it('uses introspection for JWT-shaped tokens when no JWKS configured', async () => {
+        // This only covers token-shape routing. Real JWT cryptography and
+        // claim enforcement live in token-validator-jwt.test.ts.
         const jwtToken = 'header.payload.signature';
         mockOAuth2Api.introspectOAuth2Token.mockResolvedValue({
           active: true,
@@ -263,6 +292,8 @@ describe('TokenValidator', () => {
       });
 
       it('returns null when getOAuth2Client fails', async () => {
+        const logger = createMockLogger();
+        validator = createTokenValidator(mockOAuth2Api as any, { logger });
         mockOAuth2Api.introspectOAuth2Token.mockResolvedValue({
           active: true,
           client_id: VALID_CLIENT_ID,
@@ -271,12 +302,29 @@ describe('TokenValidator', () => {
         });
 
         mockOAuth2Api.getOAuth2Client.mockRejectedValue(
-          new Error('Client not found'),
+          Object.assign(new Error('never-log-this-client-error'), {
+            cause: { code: 'ECONNRESET' },
+            name: 'ResponseError',
+            response: { status: 503 },
+          }),
         );
 
         const result = await validator.resolveAuthContext(OPAQUE_TOKEN);
 
         expect(result).toBeNull();
+        expect(logger.warn).toHaveBeenCalledWith(
+          {
+            causeCode: 'ECONNRESET',
+            credentialType: 'ory-client-metadata',
+            errorType: 'ResponseError',
+            reason: 'metadata_lookup_unavailable',
+            status: 503,
+          },
+          'Ory client metadata unavailable',
+        );
+        const serializedLogs = JSON.stringify(logger.warn.mock.calls);
+        expect(serializedLogs).not.toContain(OPAQUE_TOKEN);
+        expect(serializedLogs).not.toContain('never-log-this-client-error');
       });
 
       it('returns null when client_id is missing from introspection', async () => {

@@ -3,7 +3,8 @@
  *
  * Validates OAuth2 access tokens using two strategies:
  * - Opaque tokens (Ory prefix `ory_at_`, `ory_ht_`): introspection via Ory Hydra
- * - JWTs (three dot-separated segments): local JWKS verification, with introspection fallback
+ * - JWTs (three dot-separated segments): local JWKS verification, with
+ *   introspection fallback only for transient JWKS failures
  *
  * Then resolves the full AuthContext for authenticated requests.
  */
@@ -28,9 +29,9 @@ import type {
 export interface TokenValidatorConfig {
   /** Ory Hydra JWKS URI (e.g. https://<project>.projects.oryapis.com/.well-known/jwks.json) */
   jwksUri?: string;
-  /** Allowed issuer(s) for JWT validation */
+  /** Exact issuer allowlist. Empty/omitted uses the JWKS origin. */
   allowedIssuers?: string[];
-  /** Allowed audience(s) for JWT validation */
+  /** Exact audience allowlist. Empty/omitted disables audience validation. */
   allowedAudiences?: string[];
   /** JWKS cache TTL in ms (default: 600_000 = 10 minutes) */
   cacheTtl?: number;
@@ -44,6 +45,8 @@ export interface TokenValidatorConfig {
   resolveTalosAgent?: TalosAgentResolver;
   /** Secret-safe authentication diagnostics. */
   logger?: TokenValidatorLogger;
+  /** Low-cardinality validation event sink (for example, an OTel counter). */
+  onValidationEvent?: (event: TokenValidationEvent) => void;
 }
 
 export interface TalosAgentIdentity {
@@ -59,6 +62,25 @@ export type TalosAgentResolver = (
 export interface TokenValidatorLogger {
   debug: (obj: unknown, msg?: string) => void;
   warn: (obj: unknown, msg?: string) => void;
+}
+
+export type TokenValidationReason =
+  | 'algorithm_rejected'
+  | 'claim_validation_failed'
+  | 'credential_accepted'
+  | 'credential_expired'
+  | 'credential_inactive'
+  | 'introspection_fallback'
+  | 'introspection_unavailable'
+  | 'jwks_key_not_found'
+  | 'jwks_unavailable'
+  | 'signature_invalid'
+  | 'token_invalid'
+  | 'unexpected';
+
+export interface TokenValidationEvent {
+  credentialType: 'ory-jwt' | 'ory-opaque' | 'ory-token';
+  reason: TokenValidationReason;
 }
 
 export interface TokenValidator {
@@ -112,16 +134,40 @@ function summarizeOryError(error: unknown): {
 
 type JwtFailureSummary = {
   errorType: string;
-  reason:
+  reason: Extract<
+    TokenValidationReason,
     | 'algorithm_rejected'
     | 'claim_validation_failed'
     | 'credential_expired'
     | 'jwks_key_not_found'
     | 'jwks_unavailable'
     | 'signature_invalid'
-    | 'token_invalid';
+    | 'token_invalid'
+    | 'unexpected'
+  >;
   claim?: string;
 };
+
+type JwtValidationResult =
+  | { failure: JwtFailureSummary; result: IntrospectionResult }
+  | { result: IntrospectionResult };
+
+const JWKS_NETWORK_ERROR_CODES = new Set([
+  'EAI_AGAIN',
+  'ECONNREFUSED',
+  'ECONNRESET',
+  'ENETUNREACH',
+  'ENOTFOUND',
+  'ETIMEDOUT',
+]);
+
+function getCauseCode(error: unknown): string | undefined {
+  if (typeof error !== 'object' || error === null) return undefined;
+  const cause = (error as { cause?: unknown }).cause;
+  if (typeof cause !== 'object' || cause === null) return undefined;
+  const code = (cause as { code?: unknown }).code;
+  return typeof code === 'string' ? code : undefined;
+}
 
 function summarizeJwtError(error: unknown): JwtFailureSummary {
   if (error instanceof errors.JWTExpired) {
@@ -155,13 +201,25 @@ function summarizeJwtError(error: unknown): JwtFailureSummary {
       reason: 'jwks_key_not_found',
     };
   }
+  const isTimeout = error instanceof errors.JWKSTimeout;
+  const isRemoteJwksResponseError =
+    error instanceof errors.JOSEError && error.constructor === errors.JOSEError;
+  const causeCode = getCauseCode(error);
+  const isNetworkFailure =
+    causeCode !== undefined && JWKS_NETWORK_ERROR_CODES.has(causeCode);
   if (
-    error instanceof errors.JWKSTimeout ||
-    (error instanceof errors.JOSEError && error.code === 'ERR_JOSE_GENERIC')
+    isTimeout ||
+    isRemoteJwksResponseError ||
+    isNetworkFailure ||
+    error instanceof errors.JWKInvalid ||
+    error instanceof errors.JWKSInvalid
   ) {
     return {
-      errorType:
-        error instanceof errors.JWKSTimeout ? 'JWKSTimeout' : 'JOSEError',
+      errorType: isTimeout
+        ? 'JWKSTimeout'
+        : error instanceof Error
+          ? error.constructor.name
+          : 'UnknownError',
       reason: 'jwks_unavailable',
     };
   }
@@ -178,13 +236,19 @@ function summarizeJwtError(error: unknown): JwtFailureSummary {
       typeof error.constructor?.name === 'string'
         ? error.constructor.name
         : 'UnknownError',
-    reason: 'jwks_unavailable',
+    reason: 'unexpected',
   };
 }
 
 function isJwtToken(token: string): boolean {
-  const parts = token.split('.');
-  return parts.length === 3 && parts.every((part) => part.length > 0);
+  const firstDot = token.indexOf('.');
+  if (firstDot <= 0) return false;
+  const secondDot = token.indexOf('.', firstDot + 1);
+  return secondDot > firstDot + 1 && token.indexOf('.', secondDot + 1) === -1;
+}
+
+function shouldIntrospectJwtFailure(reason: JwtFailureSummary['reason']) {
+  return reason === 'jwks_key_not_found' || reason === 'jwks_unavailable';
 }
 
 function extractAuthContextFromClaims(
@@ -241,6 +305,7 @@ async function fetchClientMetadata(
   oauth2Api: OAuth2Api,
   clientId: string,
   scopes: string[],
+  logger: TokenValidatorLogger,
 ): Promise<AuthContext | null> {
   try {
     const client = await oauth2Api.getOAuth2Client({
@@ -290,7 +355,15 @@ async function fetchClientMetadata(
       scopes,
       currentTeamId: null,
     } satisfies AgentAuthContext;
-  } catch {
+  } catch (error) {
+    logger.warn(
+      {
+        credentialType: 'ory-client-metadata',
+        reason: 'metadata_lookup_unavailable',
+        ...summarizeOryError(error),
+      },
+      'Ory client metadata unavailable',
+    );
     return null;
   }
 }
@@ -303,6 +376,20 @@ export function createTokenValidator(
   const logger = config?.logger ?? {
     debug: () => undefined,
     warn: () => undefined,
+  };
+  const recordValidationEvent = (event: TokenValidationEvent) => {
+    try {
+      config?.onValidationEvent?.(event);
+    } catch (error) {
+      logger.warn(
+        {
+          credentialType: event.credentialType,
+          reason: 'telemetry_recording_failed',
+          ...summarizeOryError(error),
+        },
+        'Token validation telemetry unavailable',
+      );
+    }
   };
 
   async function resolveTalosApiKey(
@@ -477,15 +564,26 @@ export function createTokenValidator(
     };
   }
 
-  async function introspect(token: string): Promise<IntrospectionResult> {
+  async function introspectToken(
+    token: string,
+    credentialType: TokenValidationEvent['credentialType'],
+  ): Promise<IntrospectionResult> {
     try {
       const data = await oauth2Api.introspectOAuth2Token({ token });
 
       if (!data.active) {
+        recordValidationEvent({
+          credentialType,
+          reason: 'credential_inactive',
+        });
         return { active: false };
       }
 
       const scopes = data.scope ? data.scope.split(' ').filter(Boolean) : [];
+      recordValidationEvent({
+        credentialType,
+        reason: 'credential_accepted',
+      });
 
       return {
         active: true,
@@ -494,14 +592,31 @@ export function createTokenValidator(
         expiresAt: data.exp,
         ext: (data.ext as Record<string, unknown>) ?? {},
       };
-    } catch {
+    } catch (error) {
+      const errorSummary = summarizeOryError(error);
+      recordValidationEvent({
+        credentialType,
+        reason: 'introspection_unavailable',
+      });
+      logger.warn(
+        {
+          credentialType,
+          reason: 'introspection_unavailable',
+          ...errorSummary,
+        },
+        'Ory token introspection unavailable',
+      );
       return { active: false };
     }
   }
 
-  async function validateJwt(token: string): Promise<IntrospectionResult> {
+  async function introspect(token: string): Promise<IntrospectionResult> {
+    return introspectToken(token, 'ory-token');
+  }
+
+  async function validateJwt(token: string): Promise<JwtValidationResult> {
     if (!verifyJwt) {
-      return { active: false };
+      return { result: { active: false } };
     }
 
     try {
@@ -524,20 +639,30 @@ export function createTokenValidator(
       // produced the IntrospectionResult. Guard against non-plain-object
       // values — `payload.ext` is JSON, so it could be an array, primitive,
       // or null; only a plain object should be merged.
-      const nestedExt: Record<string, unknown> =
+      const nestedExt =
         payload.ext !== null &&
         typeof payload.ext === 'object' &&
         !Array.isArray(payload.ext)
           ? (payload.ext as Record<string, unknown>)
-          : {};
-      const flatExt = { ...payload, ...nestedExt };
+          : null;
+      const flatExt =
+        nestedExt && Object.keys(nestedExt).length > 0
+          ? { ...payload, ...nestedExt }
+          : (payload as Record<string, unknown>);
+
+      recordValidationEvent({
+        credentialType: 'ory-jwt',
+        reason: 'credential_accepted',
+      });
 
       return {
-        active: true,
-        clientId,
-        scopes,
-        expiresAt: payload.exp,
-        ext: flatExt,
+        result: {
+          active: true,
+          clientId,
+          scopes,
+          expiresAt: payload.exp,
+          ext: flatExt,
+        },
       };
     } catch (error) {
       const failure = summarizeJwtError(error);
@@ -545,12 +670,18 @@ export function createTokenValidator(
         credentialType: 'ory-jwt',
         ...failure,
       };
+      recordValidationEvent({
+        credentialType: 'ory-jwt',
+        reason: failure.reason,
+      });
       if (failure.reason === 'jwks_unavailable') {
         logger.warn(logContext, 'Ory JWT verification unavailable');
+      } else if (failure.reason === 'unexpected') {
+        logger.warn(logContext, 'Ory JWT verification failed unexpectedly');
       } else {
         logger.debug(logContext, 'Ory JWT rejected');
       }
-      return { active: false };
+      return { failure, result: { active: false } };
     }
   }
 
@@ -569,14 +700,23 @@ export function createTokenValidator(
       let result: IntrospectionResult;
 
       if (isOpaqueToken(token)) {
-        result = await introspect(token);
+        result = await introspectToken(token, 'ory-opaque');
       } else if (verifyJwt && isJwtToken(token)) {
-        result = await validateJwt(token);
-        if (!result.active) {
-          result = await introspect(token);
+        const jwtValidation = await validateJwt(token);
+        result = jwtValidation.result;
+        if (
+          !result.active &&
+          'failure' in jwtValidation &&
+          shouldIntrospectJwtFailure(jwtValidation.failure.reason)
+        ) {
+          recordValidationEvent({
+            credentialType: 'ory-jwt',
+            reason: 'introspection_fallback',
+          });
+          result = await introspectToken(token, 'ory-jwt');
         }
       } else {
-        result = await introspect(token);
+        result = await introspectToken(token, 'ory-token');
       }
 
       if (!result.active) {
@@ -596,7 +736,7 @@ export function createTokenValidator(
       }
 
       // Fallback: fetch client metadata from Hydra
-      return fetchClientMetadata(oauth2Api, clientId, scopes);
+      return fetchClientMetadata(oauth2Api, clientId, scopes, logger);
     },
   };
 }
