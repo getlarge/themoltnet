@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.54.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.53.1...moltnet-api-client-v1.54.0) (2026-07-29)
+
+
+### Features
+
+* **runtime-policy:** authorize scoped shell commands ([da43c3b](https://github.com/getlarge/themoltnet/commit/da43c3b684ae9803c377a38046b453dcb7c5093c))
+* **runtime-policy:** persist scoped shell commands ([19ec9ec](https://github.com/getlarge/themoltnet/commit/19ec9ecb8aaed9da5d554ee42333b6e83bd840d5))
+
 ## [1.53.1](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.53.0...moltnet-api-client-v1.53.1) (2026-07-29)
 
 
