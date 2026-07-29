@@ -146,6 +146,36 @@ describe('runtime tool-policy routes', () => {
       expect(mocks.runtimePolicyRepository.create).not.toHaveBeenCalled();
     });
 
+    it('rejects a tool name with a trailing line break', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/runtime-policies',
+        headers: TEAM_HEADERS,
+        payload: { name: 'ci', tools: ['git\n'] },
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(mocks.runtimePolicyRepository.create).not.toHaveBeenCalled();
+    });
+
+    it('accepts operator-owned custom runtime tool names', async () => {
+      mocks.runtimePolicyRepository.create.mockResolvedValue(
+        policyRow({ name: 'dynamic' }),
+      );
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/runtime-policies',
+        headers: TEAM_HEADERS,
+        payload: { name: 'dynamic', tools: ['customer_dynamic_tool'] },
+      });
+
+      expect(response.statusCode).toBe(201);
+      expect(response.json()).toMatchObject({
+        tools: ['customer_dynamic_tool'],
+      });
+    });
+
     it('maps a duplicate policy name to 409', async () => {
       mocks.runtimePolicyRepository.create.mockRejectedValue(
         new UniqueViolationError({
@@ -301,9 +331,17 @@ describe('runtime tool-policy routes', () => {
       mocks.runtimePolicyRepository.profileExistsForTeam.mockResolvedValue(
         true,
       );
+      mocks.runtimePolicyRepository.getProfilePolicyContext.mockResolvedValue({
+        runtimeKind: 'gondolin_pi',
+        revision: 1,
+        enforcement: 'enforce',
+      });
       mocks.runtimePolicyRepository.findExistingIdsForTeam.mockResolvedValue(
         new Set([POLICY_ID]),
       );
+      mocks.relationshipReader.listRuntimePolicyTools.mockResolvedValue([
+        'git',
+      ]);
       mocks.relationshipReader.listRuntimeProfilePolicies.mockResolvedValue([]);
 
       const response = await app.inject({
@@ -326,6 +364,11 @@ describe('runtime tool-policy routes', () => {
       mocks.runtimePolicyRepository.profileExistsForTeam.mockResolvedValue(
         true,
       );
+      mocks.runtimePolicyRepository.getProfilePolicyContext.mockResolvedValue({
+        runtimeKind: 'gondolin_pi',
+        revision: 1,
+        enforcement: 'enforce',
+      });
       mocks.runtimePolicyRepository.findExistingIdsForTeam.mockResolvedValue(
         new Set(),
       );
@@ -361,9 +404,11 @@ describe('runtime tool-policy routes', () => {
 
   describe('GET /runtime-profiles/:profileId/allowed-tools', () => {
     it('resolves enforcement + the unioned allowed-tool set', async () => {
-      mocks.runtimePolicyRepository.getProfileEnforcement.mockResolvedValue(
-        'enforce',
-      );
+      mocks.runtimePolicyRepository.getProfilePolicyContext.mockResolvedValue({
+        runtimeKind: 'gondolin_pi',
+        revision: 4,
+        enforcement: 'enforce',
+      });
       mocks.relationshipReader.listRuntimeProfilePolicies.mockResolvedValue([
         'P1',
         'P2',
@@ -383,18 +428,24 @@ describe('runtime tool-policy routes', () => {
       });
 
       expect(response.statusCode).toBe(200);
-      expect(response.json()).toEqual({
+      expect(response.json()).toMatchObject({
         enforcement: 'enforce',
         allowedTools: ['gh', 'git', 'ls'],
         allowedShellCommands: [
           { argvPrefix: ['gh', 'pr', 'view'] },
           { argvPrefix: ['npm', 'run', 'test:unit'] },
         ],
+        runtimeKind: 'gondolin_pi',
+        runtimeProfileRevision: 4,
+        policySnapshotHash: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
       });
+      expect(
+        mocks.runtimePolicySnapshotRepository.upsert,
+      ).not.toHaveBeenCalled();
     });
 
     it('returns 404 when the profile is not in the team', async () => {
-      mocks.runtimePolicyRepository.getProfileEnforcement.mockResolvedValue(
+      mocks.runtimePolicyRepository.getProfilePolicyContext.mockResolvedValue(
         null,
       );
 

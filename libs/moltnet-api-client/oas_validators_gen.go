@@ -542,7 +542,7 @@ func (s *AllowedToolsResponse) Validate() error {
 					MaxLengthSet:  true,
 					Email:         false,
 					Hostname:      false,
-					Regex:         regexMap["^[a-zA-Z0-9_.:-]{1,128}$"],
+					Regex:         regexMap["^(?!.*[\\r\\n])[a-zA-Z0-9_.:-]{1,128}$"],
 					MinNumeric:    0,
 					MinNumericSet: false,
 					MaxNumeric:    0,
@@ -576,6 +576,73 @@ func (s *AllowedToolsResponse) Validate() error {
 	}(); err != nil {
 		failures = append(failures, validate.FieldError{
 			Name:  "enforcement",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.String{
+			MinLength:     0,
+			MinLengthSet:  false,
+			MaxLength:     71,
+			MaxLengthSet:  true,
+			Email:         false,
+			Hostname:      false,
+			Regex:         regexMap["^sha256:[0-9a-f]{64}$"],
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.PolicySnapshotHash)); err != nil {
+			return errors.Wrap(err, "string")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "policySnapshotHash",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.String{
+			MinLength:     1,
+			MinLengthSet:  true,
+			MaxLength:     100,
+			MaxLengthSet:  true,
+			Email:         false,
+			Hostname:      false,
+			Regex:         regexMap["^[a-z][a-z0-9._-]{0,99}$"],
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.RuntimeKind)); err != nil {
+			return errors.Wrap(err, "string")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "runtimeKind",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if err := (validate.Int{
+			MinSet:        true,
+			Min:           1,
+			MaxSet:        false,
+			Max:           0,
+			MinExclusive:  false,
+			MaxExclusive:  false,
+			MultipleOfSet: false,
+			MultipleOf:    0,
+			Pattern:       nil,
+		}).Validate(int64(s.RuntimeProfileRevision)); err != nil {
+			return errors.Wrap(err, "int")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "runtimeProfileRevision",
 			Error: err,
 		})
 	}
@@ -5319,7 +5386,7 @@ func (s *CreateRuntimePolicyBody) Validate() error {
 					MaxLengthSet:  true,
 					Email:         false,
 					Hostname:      false,
-					Regex:         regexMap["^[a-zA-Z0-9_.:-]{1,128}$"],
+					Regex:         regexMap["^(?!.*[\\r\\n])[a-zA-Z0-9_.:-]{1,128}$"],
 					MinNumeric:    0,
 					MinNumericSet: false,
 					MaxNumeric:    0,
@@ -25703,7 +25770,7 @@ func (s *RuntimePolicyWithTools) Validate() error {
 					MaxLengthSet:  true,
 					Email:         false,
 					Hostname:      false,
-					Regex:         regexMap["^[a-zA-Z0-9_.:-]{1,128}$"],
+					Regex:         regexMap["^(?!.*[\\r\\n])[a-zA-Z0-9_.:-]{1,128}$"],
 					MinNumeric:    0,
 					MinNumericSet: false,
 					MaxNumeric:    0,
@@ -32032,6 +32099,64 @@ func (s *TaskAttempt) Validate() error {
 		})
 	}
 	if err := func() error {
+		if value, ok := s.PolicySnapshotHash.Get(); ok {
+			if err := func() error {
+				if err := (validate.String{
+					MinLength:     0,
+					MinLengthSet:  false,
+					MaxLength:     0,
+					MaxLengthSet:  false,
+					Email:         false,
+					Hostname:      false,
+					Regex:         regexMap["^sha256:[0-9a-f]{64}$"],
+					MinNumeric:    0,
+					MinNumericSet: false,
+					MaxNumeric:    0,
+					MaxNumericSet: false,
+				}).Validate(string(value)); err != nil {
+					return errors.Wrap(err, "string")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "policySnapshotHash",
+			Error: err,
+		})
+	}
+	if err := func() error {
+		if value, ok := s.RuntimeProfileRevision.Get(); ok {
+			if err := func() error {
+				if err := (validate.Int{
+					MinSet:        true,
+					Min:           1,
+					MaxSet:        false,
+					Max:           0,
+					MinExclusive:  false,
+					MaxExclusive:  false,
+					MultipleOfSet: false,
+					MultipleOf:    0,
+					Pattern:       nil,
+				}).Validate(int64(value)); err != nil {
+					return errors.Wrap(err, "int")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "runtimeProfileRevision",
+			Error: err,
+		})
+	}
+	if err := func() error {
 		if err := s.Status.Validate(); err != nil {
 			return err
 		}
@@ -34576,7 +34701,7 @@ func (s *UpdateRuntimePolicyBody) Validate() error {
 					MaxLengthSet:  true,
 					Email:         false,
 					Hostname:      false,
-					Regex:         regexMap["^[a-zA-Z0-9_.:-]{1,128}$"],
+					Regex:         regexMap["^(?!.*[\\r\\n])[a-zA-Z0-9_.:-]{1,128}$"],
 					MinNumeric:    0,
 					MinNumericSet: false,
 					MaxNumeric:    0,
@@ -34720,7 +34845,7 @@ func (s *UpdateRuntimePolicyBody) Validate() error {
 					MaxLengthSet:  true,
 					Email:         false,
 					Hostname:      false,
-					Regex:         regexMap["^[a-zA-Z0-9_.:-]{1,128}$"],
+					Regex:         regexMap["^(?!.*[\\r\\n])[a-zA-Z0-9_.:-]{1,128}$"],
 					MinNumeric:    0,
 					MinNumericSet: false,
 					MaxNumeric:    0,

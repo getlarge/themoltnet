@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 import { KetoNamespace } from '@moltnet/auth';
 import { computeJsonCid } from '@moltnet/crypto-service';
 import {
@@ -51,6 +53,7 @@ export function createTaskService(deps: TaskServiceDeps) {
     taskRepository,
     agentRepository,
     runtimeProfileRepository,
+    runtimePolicyService,
     permissionChecker,
     relationshipWriter,
     transactionRunner,
@@ -209,7 +212,8 @@ export function createTaskService(deps: TaskServiceDeps) {
       const allowedProfiles = (row.allowedProfiles ?? []) as {
         profileId: string;
       }[];
-      const selectedProfileId = executorAttestation.profileId;
+      const selectedProfileId =
+        executorAttestation.profileId?.trim() || undefined;
       let selectedProfile: Awaited<
         ReturnType<typeof runtimeProfileRepository.findById>
       > = null;
@@ -234,7 +238,9 @@ export function createTaskService(deps: TaskServiceDeps) {
           );
         }
       }
-
+      let pinnedAuthority: Awaited<
+        ReturnType<typeof runtimePolicyService.resolvePinnedAllowedTools>
+      > | null = null;
       const attemptN = attemptCount + 1;
       const workflowId = taskWorkflowId(taskId, attemptN);
       const claimedExecutor = await verifyExecutorForPhase({
@@ -252,7 +258,50 @@ export function createTaskService(deps: TaskServiceDeps) {
           executor: claimedExecutor,
           profile: selectedProfile,
         });
+        try {
+          pinnedAuthority =
+            await runtimePolicyService.resolvePinnedAllowedTools({
+              profileId: selectedProfile.id,
+              teamId: row.teamId,
+            });
+        } catch (error) {
+          logger.error(
+            {
+              taskId,
+              attemptN,
+              profileId: selectedProfile.id,
+              teamId: row.teamId,
+              err: error,
+            },
+            'task.claim.authority_resolution_failed',
+          );
+          const statusCode =
+            typeof error === 'object' &&
+            error !== null &&
+            'statusCode' in error &&
+            typeof error.statusCode === 'number'
+              ? error.statusCode
+              : null;
+          throw new TaskServiceError(
+            statusCode === 404 || statusCode === 409
+              ? 'conflict'
+              : 'unavailable',
+            'Runtime profile authority could not be resolved',
+            undefined,
+            { cause: error },
+          );
+        }
+        if (
+          pinnedAuthority.runtimeProfileRevision !== selectedProfile.revision ||
+          pinnedAuthority.runtimeKind !== selectedProfile.runtimeKind
+        ) {
+          throw new TaskServiceError(
+            'conflict',
+            'Runtime profile changed while claim authority was being pinned',
+          );
+        }
       }
+      const leaseId = pinnedAuthority ? randomUUID() : null;
 
       // CAS update: atomically move status from 'queued' → 'dispatched' (Issue 1).
       // For freeform continuations (#1287), serialise concurrent claim
@@ -296,6 +345,11 @@ export function createTaskService(deps: TaskServiceDeps) {
               workflowId,
               leaseTtlSec,
               claimedExecutorFingerprint: claimedExecutor?.fingerprint ?? null,
+              leaseId,
+              runtimeProfileId: selectedProfileId ?? null,
+              runtimeProfileRevision:
+                pinnedAuthority?.runtimeProfileRevision ?? null,
+              policySnapshotHash: pinnedAuthority?.policySnapshotHash ?? null,
               dispatchTimeoutSec: row.dispatchTimeoutSec ?? null,
               runningTimeoutSec: row.runningTimeoutSec ?? null,
             },

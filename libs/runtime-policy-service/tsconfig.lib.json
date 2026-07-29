@@ -32,6 +32,9 @@
       "path": "../database/tsconfig.lib.json"
     },
     {
+      "path": "../crypto-service/tsconfig.lib.json"
+    },
+    {
       "path": "../auth/tsconfig.lib.json"
     }
   ]

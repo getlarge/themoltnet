@@ -54,6 +54,7 @@ export interface AllowedToolsClient {
       enforcement: ToolEnforcement;
       allowedTools: string[];
       allowedShellCommands: Array<{ argvPrefix: string[] }>;
+      runtimeKind: string;
     }>;
   };
 }
@@ -62,6 +63,8 @@ export interface ResolveSessionToolPolicyInput {
   agent: AllowedToolsClient;
   profileId: string;
   teamId: string;
+  /** Runtime kind supplied by the trusted daemon adapter for this session. */
+  runtimeKind: string;
   /**
    * The profile's enforcement mode, already known to the daemon from the
    * resolved runtime profile. Used to decide fail-open vs fail-closed when the
@@ -113,6 +116,12 @@ export async function resolveSessionToolPolicy(
       timeoutMs,
     );
     const shellCommands = resolved.allowedShellCommands ?? [];
+    if (resolved.runtimeKind !== input.runtimeKind) {
+      throw new RuntimeKindMismatchError({
+        expectedRuntimeKind: input.runtimeKind,
+        receivedRuntimeKind: resolved.runtimeKind,
+      });
+    }
     return {
       enforcement: resolved.enforcement,
       allowedTools: new Set(resolved.allowedTools),
@@ -160,6 +169,19 @@ export class ToolPolicyResolveTimeoutError extends Error {
   constructor(timeoutMs: number) {
     super(`tool-policy resolution timed out after ${timeoutMs}ms`);
     this.name = 'ToolPolicyResolveTimeoutError';
+  }
+}
+
+export class RuntimeKindMismatchError extends Error {
+  constructor(input: {
+    expectedRuntimeKind: string;
+    receivedRuntimeKind: string;
+  }) {
+    super(
+      `runtime kind mismatch: expected ${input.expectedRuntimeKind}, ` +
+        `received ${input.receivedRuntimeKind}`,
+    );
+    this.name = 'RuntimeKindMismatchError';
   }
 }
 

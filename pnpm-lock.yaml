@@ -2267,6 +2267,9 @@ importers:
       '@moltnet/auth':
         specifier: workspace:*
         version: link:../auth
+      '@moltnet/crypto-service':
+        specifier: workspace:*
+        version: link:../crypto-service
       '@moltnet/database':
         specifier: workspace:*
         version: link:../database
@@ -2513,12 +2516,21 @@ importers:
       '@moltnet/database':
         specifier: workspace:*
         version: link:../database
+      '@moltnet/models':
+        specifier: workspace:*
+        version: link:../models
+      '@moltnet/runtime-policy-service':
+        specifier: workspace:*
+        version: link:../runtime-policy-service
       '@moltnet/task-workflows':
         specifier: workspace:*
         version: link:../task-workflows
       '@moltnet/tasks':
         specifier: workspace:*
         version: link:../tasks
+      '@themoltnet/credential-broker':
+        specifier: workspace:*
+        version: link:../credential-broker
     devDependencies:
       typebox:
         specifier: 'catalog:'

@@ -57,6 +57,7 @@ export async function runtimePolicyRoutes(fastify: FastifyInstance) {
   const server = fastify.withTypeProvider<TypeBoxTypeProvider>();
   const policies = createRuntimePolicyService({
     runtimePolicyRepository: fastify.runtimePolicyRepository,
+    runtimePolicySnapshotRepository: fastify.runtimePolicySnapshotRepository,
     relationshipReader: fastify.relationshipReader,
     relationshipWriter: fastify.relationshipWriter,
     permissionChecker: fastify.permissionChecker,

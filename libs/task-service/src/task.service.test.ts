@@ -33,6 +33,7 @@ const RUN_TASK = '11111111-1111-1111-1111-111111111111';
 const JUDGE_TASK = '22222222-2222-2222-2222-222222222222';
 const CORRELATION = '99999999-9999-9999-9999-999999999999';
 const PROFILE_ID = '33333333-3333-4333-8333-333333333333';
+const PROFILE_DEFINITION_CID = 'bafkreiprofile';
 const OTHER_TEAM_ID = '00000000-0000-0000-0000-000000000002';
 
 function rubric() {
@@ -286,7 +287,22 @@ interface Mocks {
         id: string;
         teamId: string;
         runtimeKind: string;
+        revision: number;
+        definitionCid: string;
+        requiredTools: string[];
+        requiredExecutables: string[];
       } | null>
+    >;
+  };
+  runtimePolicyService: {
+    resolvePinnedAllowedTools: Mock<
+      (input: { profileId: string; teamId: string }) => Promise<{
+        enforcement: 'enforce';
+        allowedTools: string[];
+        runtimeKind: string;
+        runtimeProfileRevision: number;
+        policySnapshotHash: string;
+      }>
     >;
   };
   contextPackRepository: {
@@ -561,13 +577,30 @@ function makeMocks(
             id: string;
             teamId: string;
             runtimeKind: string;
+            revision: number;
+            definitionCid: string;
+            requiredTools: string[];
+            requiredExecutables: string[];
           } | null>
         >()
         .mockResolvedValue({
           id: PROFILE_ID,
           teamId: TEAM_ID,
           runtimeKind: 'gondolin_pi',
+          revision: 7,
+          definitionCid: PROFILE_DEFINITION_CID,
+          requiredTools: [],
+          requiredExecutables: [],
         }),
+    },
+    runtimePolicyService: {
+      resolvePinnedAllowedTools: vi.fn().mockResolvedValue({
+        enforcement: 'enforce',
+        allowedTools: ['read'],
+        runtimeKind: 'gondolin_pi',
+        runtimeProfileRevision: 7,
+        policySnapshotHash: `sha256:${'a'.repeat(64)}`,
+      }),
     },
     contextPackRepository: {
       findById: vi.fn<(id: string) => Promise<null>>().mockResolvedValue(null),
@@ -804,6 +837,10 @@ describe('createTaskService.claim — runtime profile attestation', () => {
       id: PROFILE_ID,
       teamId: OTHER_TEAM_ID,
       runtimeKind: 'gondolin_pi',
+      revision: 7,
+      definitionCid: PROFILE_DEFINITION_CID,
+      requiredTools: [],
+      requiredExecutables: [],
     });
 
     await expect(
@@ -878,7 +915,10 @@ describe('createTaskService.claim — runtime profile attestation', () => {
     );
     const executorManifest = {
       schemaVersion: 'moltnet:executor-manifest:v1',
-      profile: { id: PROFILE_ID },
+      profile: {
+        id: PROFILE_ID,
+        definitionCid: PROFILE_DEFINITION_CID,
+      },
       runtime: { kind: 'other_runtime' },
     };
     const executorFingerprint = computeExecutorManifestCid(executorManifest);
@@ -897,6 +937,113 @@ describe('createTaskService.claim — runtime profile attestation', () => {
 
     expect(mocks.taskRepository.claimIfQueued).not.toHaveBeenCalled();
   });
+
+  it.each([
+    {
+      runtimeProfileRevision: 8,
+      runtimeKind: 'gondolin_pi',
+      changedField: 'revision',
+    },
+    {
+      runtimeProfileRevision: 7,
+      runtimeKind: 'custom_pi',
+      changedField: 'runtime kind',
+    },
+  ])(
+    'rejects a claim when the profile $changedField changes while authority is pinned',
+    async ({ runtimeProfileRevision, runtimeKind }) => {
+      mocks.runtimePolicyService.resolvePinnedAllowedTools.mockResolvedValue({
+        enforcement: 'enforce',
+        allowedTools: ['read'],
+        runtimeKind,
+        runtimeProfileRevision,
+        policySnapshotHash: `sha256:${'b'.repeat(64)}`,
+      });
+      const executorManifest = {
+        schemaVersion: 'moltnet:executor-manifest:v1',
+        profile: {
+          id: PROFILE_ID,
+          definitionCid: PROFILE_DEFINITION_CID,
+        },
+        runtime: { kind: 'gondolin_pi' },
+        tools: [],
+        extensions: [],
+        executables: [],
+      };
+      const executorFingerprint = computeExecutorManifestCid(executorManifest);
+
+      await expect(
+        service.claim(JUDGE_TASK, AGENT_ID, KetoNamespace.Agent, 30, {
+          profileId: PROFILE_ID,
+          executorManifest,
+          executorFingerprint,
+        }),
+      ).rejects.toMatchObject({
+        code: 'conflict',
+        message:
+          'Runtime profile changed while claim authority was being pinned',
+      });
+
+      expect(mocks.taskRepository.claimIfQueued).not.toHaveBeenCalled();
+      expect(mocks.enqueueWorkflowInCurrentTransaction).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    {
+      upstreamError: Object.assign(new Error('profile deleted'), {
+        statusCode: 404,
+      }),
+      expectedCode: 'conflict',
+    },
+    {
+      upstreamError: new Error('keto unavailable'),
+      expectedCode: 'unavailable',
+    },
+  ])(
+    'classifies authority resolution failures as $expectedCode and preserves the cause',
+    async ({ upstreamError, expectedCode }) => {
+      mocks.runtimePolicyService.resolvePinnedAllowedTools.mockRejectedValue(
+        upstreamError,
+      );
+      const executorManifest = {
+        schemaVersion: 'moltnet:executor-manifest:v1',
+        profile: {
+          id: PROFILE_ID,
+          definitionCid: PROFILE_DEFINITION_CID,
+        },
+        runtime: { kind: 'gondolin_pi' },
+        tools: [],
+        extensions: [],
+        executables: [],
+      };
+      const executorFingerprint = computeExecutorManifestCid(executorManifest);
+
+      await expect(
+        service.claim(JUDGE_TASK, AGENT_ID, KetoNamespace.Agent, 30, {
+          profileId: PROFILE_ID,
+          executorManifest,
+          executorFingerprint,
+        }),
+      ).rejects.toMatchObject({
+        code: expectedCode,
+        message: 'Runtime profile authority could not be resolved',
+        cause: upstreamError,
+      });
+
+      expect(mocks.logger.error).toHaveBeenCalledWith(
+        {
+          taskId: JUDGE_TASK,
+          attemptN: 1,
+          profileId: PROFILE_ID,
+          teamId: TEAM_ID,
+          err: upstreamError,
+        },
+        'task.claim.authority_resolution_failed',
+      );
+      expect(mocks.taskRepository.claimIfQueued).not.toHaveBeenCalled();
+    },
+  );
 
   it('expires an elapsed queued task before claiming it', async () => {
     const expiredQueued = {
@@ -961,6 +1108,107 @@ describe('createTaskService.claim — runtime profile attestation', () => {
     expect(mocks.relationshipWriter.grantTaskClaimant).toHaveBeenCalledWith(
       JUDGE_TASK,
       AGENT_ID,
+    );
+  });
+
+  it('pins immutable runtime authority in the claim workflow input', async () => {
+    const enqueueWorkflowInCurrentTransaction = vi
+      .fn()
+      .mockResolvedValue({ workflowId: `task:${JUDGE_TASK}:attempt:1` });
+    vi.spyOn(DBOS, 'getEvent').mockResolvedValue({
+      taskId: JUDGE_TASK,
+      attemptN: 1,
+    });
+    service = createTaskService({
+      ...(mocks as unknown as Parameters<typeof createTaskService>[0]),
+      enqueueWorkflowInCurrentTransaction,
+    });
+
+    const executorManifest = {
+      schemaVersion: 'moltnet:executor-manifest:v1',
+      profile: {
+        id: PROFILE_ID,
+        definitionCid: PROFILE_DEFINITION_CID,
+      },
+      runtime: { kind: 'gondolin_pi' },
+      tools: [],
+      extensions: [],
+      executables: [],
+    };
+    const executorFingerprint = computeExecutorManifestCid(executorManifest);
+
+    await service.claim(JUDGE_TASK, AGENT_ID, KetoNamespace.Agent, 30, {
+      profileId: PROFILE_ID,
+      executorManifest,
+      executorFingerprint,
+    });
+
+    expect(
+      mocks.runtimePolicyService.resolvePinnedAllowedTools,
+    ).toHaveBeenCalledWith({
+      profileId: PROFILE_ID,
+      teamId: TEAM_ID,
+    });
+    expect(enqueueWorkflowInCurrentTransaction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        positionalArgs: [
+          JUDGE_TASK,
+          1,
+          AGENT_ID,
+          `task:${JUDGE_TASK}:attempt:1`,
+          30,
+          executorFingerprint,
+          null,
+          null,
+          expect.stringMatching(
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+          ),
+          PROFILE_ID,
+          7,
+          `sha256:${'a'.repeat(64)}`,
+        ],
+      }),
+    );
+  });
+
+  it('normalizes a blank profile ID to an unbound claim', async () => {
+    const enqueueWorkflowInCurrentTransaction = vi
+      .fn()
+      .mockResolvedValue({ workflowId: `task:${JUDGE_TASK}:attempt:1` });
+    vi.spyOn(DBOS, 'getEvent').mockResolvedValue({
+      taskId: JUDGE_TASK,
+      attemptN: 1,
+    });
+    service = createTaskService({
+      ...(mocks as unknown as Parameters<typeof createTaskService>[0]),
+      enqueueWorkflowInCurrentTransaction,
+    });
+
+    await service.claim(JUDGE_TASK, AGENT_ID, KetoNamespace.Agent, 30, {
+      profileId: '  ',
+    });
+
+    expect(mocks.runtimeProfileRepository.findById).not.toHaveBeenCalled();
+    expect(
+      mocks.runtimePolicyService.resolvePinnedAllowedTools,
+    ).not.toHaveBeenCalled();
+    expect(enqueueWorkflowInCurrentTransaction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        positionalArgs: [
+          JUDGE_TASK,
+          1,
+          AGENT_ID,
+          `task:${JUDGE_TASK}:attempt:1`,
+          30,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+        ],
+      }),
     );
   });
 

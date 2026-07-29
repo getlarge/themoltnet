@@ -343,19 +343,37 @@
               "description": "A tool identifier, e.g. an executable name like \"git\".",
               "maxLength": 128,
               "minLength": 1,
-              "pattern": "^[a-zA-Z0-9_.:-]{1,128}$",
+              "pattern": "^(?!.*[\\r\\n])[a-zA-Z0-9_.:-]{1,128}$",
               "type": "string"
             },
             "type": "array"
           },
           "enforcement": {
             "$ref": "#/components/schemas/ToolEnforcement"
+          },
+          "policySnapshotHash": {
+            "maxLength": 71,
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "runtimeKind": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[a-z][a-z0-9._-]{0,99}$",
+            "type": "string"
+          },
+          "runtimeProfileRevision": {
+            "minimum": 1,
+            "type": "integer"
           }
         },
         "required": [
           "enforcement",
           "allowedTools",
-          "allowedShellCommands"
+          "allowedShellCommands",
+          "runtimeKind",
+          "runtimeProfileRevision",
+          "policySnapshotHash"
         ],
         "type": "object"
       },
@@ -1885,7 +1903,7 @@
               "description": "A tool identifier, e.g. an executable name like \"git\".",
               "maxLength": 128,
               "minLength": 1,
-              "pattern": "^[a-zA-Z0-9_.:-]{1,128}$",
+              "pattern": "^(?!.*[\\r\\n])[a-zA-Z0-9_.:-]{1,128}$",
               "type": "string"
             },
             "maxItems": 500,
@@ -8113,7 +8131,7 @@
               "description": "A tool identifier, e.g. an executable name like \"git\".",
               "maxLength": 128,
               "minLength": 1,
-              "pattern": "^[a-zA-Z0-9_.:-]{1,128}$",
+              "pattern": "^(?!.*[\\r\\n])[a-zA-Z0-9_.:-]{1,128}$",
               "type": "string"
             },
             "type": "array"
@@ -12237,6 +12255,17 @@
               }
             ]
           },
+          "leaseId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "output": {
             "anyOf": [
               {
@@ -12259,11 +12288,44 @@
               }
             ]
           },
+          "policySnapshotHash": {
+            "anyOf": [
+              {
+                "pattern": "^sha256:[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "runtimeId": {
             "anyOf": [
               {
                 "format": "uuid",
                 "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "runtimeProfileId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "runtimeProfileRevision": {
+            "anyOf": [
+              {
+                "minimum": 1,
+                "type": "integer"
               },
               {
                 "type": "null"
@@ -12390,6 +12452,10 @@
           "taskId",
           "attemptN",
           "claimedByAgentId",
+          "leaseId",
+          "runtimeProfileId",
+          "runtimeProfileRevision",
+          "policySnapshotHash",
           "runtimeId",
           "claimedAt",
           "startedAt",
@@ -13154,7 +13220,7 @@
               "description": "A tool identifier, e.g. an executable name like \"git\".",
               "maxLength": 128,
               "minLength": 1,
-              "pattern": "^[a-zA-Z0-9_.:-]{1,128}$",
+              "pattern": "^(?!.*[\\r\\n])[a-zA-Z0-9_.:-]{1,128}$",
               "type": "string"
             },
             "maxItems": 500,
@@ -13189,7 +13255,7 @@
               "description": "A tool identifier, e.g. an executable name like \"git\".",
               "maxLength": 128,
               "minLength": 1,
-              "pattern": "^[a-zA-Z0-9_.:-]{1,128}$",
+              "pattern": "^(?!.*[\\r\\n])[a-zA-Z0-9_.:-]{1,128}$",
               "type": "string"
             },
             "maxItems": 500,

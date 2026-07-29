@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 import type {
   KetoNamespace,
   PermissionChecker,
@@ -11,9 +13,11 @@ import {
   normalizeShellCommandRules,
   ShellCommandIdentifierError,
 } from '@moltnet/auth';
+import { canonicalJson } from '@moltnet/crypto-service';
 import type {
   RuntimePolicy as RuntimePolicyRow,
   RuntimePolicyRepository,
+  RuntimePolicySnapshotRepository,
   TransactionRunner,
 } from '@moltnet/database';
 import type { ToolEnforcement } from '@moltnet/models';
@@ -52,10 +56,14 @@ export interface AllowedTools {
   enforcement: ToolEnforcement;
   allowedTools: string[];
   allowedShellCommands: ShellCommandRule[];
+  runtimeKind: string;
+  runtimeProfileRevision: number;
+  policySnapshotHash: string;
 }
 
 export interface RuntimePolicyServiceDeps {
   runtimePolicyRepository: RuntimePolicyRepository;
+  runtimePolicySnapshotRepository: RuntimePolicySnapshotRepository;
   relationshipReader: RelationshipReader;
   relationshipWriter: RelationshipWriter;
   permissionChecker: PermissionChecker;
@@ -148,6 +156,42 @@ function decodeStoredShellCommands(
   );
 }
 
+export const EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION =
+  'effective-policy:v1' as const;
+
+export interface EffectivePolicySnapshotV1 {
+  version: typeof EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION;
+  runtimeKind: string;
+  enforcement: ToolEnforcement;
+  allowedTools: string[];
+  allowedShellCommands: ShellCommandRule[];
+}
+
+export function canonicalEffectivePolicySnapshot(input: {
+  runtimeKind: string;
+  enforcement: ToolEnforcement;
+  allowedTools: readonly string[];
+  allowedShellCommands: readonly ShellCommandRule[];
+}): EffectivePolicySnapshotV1 {
+  return {
+    version: EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION,
+    runtimeKind: input.runtimeKind,
+    enforcement: input.enforcement,
+    allowedTools: [...new Set(input.allowedTools)].sort(),
+    allowedShellCommands: normalizeShellCommandRules(
+      input.allowedShellCommands,
+    ),
+  };
+}
+
+export function hashEffectivePolicySnapshot(
+  snapshot: EffectivePolicySnapshotV1,
+): string {
+  return `sha256:${createHash('sha256')
+    .update(canonicalJson(snapshot))
+    .digest('hex')}`;
+}
+
 function requireName(name: string): string {
   const trimmed = name.trim();
   if (!trimmed) {
@@ -210,6 +254,80 @@ export function createRuntimePolicyService(deps: RuntimePolicyServiceDeps) {
       subject.subjectNs,
     );
     if (!allowed) throw createProblem('forbidden');
+  }
+
+  async function resolveEffectivePolicy(
+    input: ResolveAllowedToolsInput,
+    persistSnapshot: boolean,
+  ): Promise<AllowedTools> {
+    async function readEffectivePolicy() {
+      const profileContext =
+        await deps.runtimePolicyRepository.getProfilePolicyContext(
+          input.profileId,
+          input.teamId,
+        );
+      if (profileContext === null) throw createProblem('not-found');
+
+      const policyIds = [
+        ...new Set(
+          await deps.relationshipReader.listRuntimeProfilePolicies(
+            input.profileId,
+          ),
+        ),
+      ].sort();
+      const grants = await readPolicyGrants(policyIds);
+      const allowedTools = normalizeToolNames(grants.tools, 'allowedTools');
+      const allowedShellCommands = decodeStoredShellCommands(
+        grants.shellCommands,
+      );
+      return {
+        profileContext,
+        snapshot: canonicalEffectivePolicySnapshot({
+          runtimeKind: profileContext.runtimeKind,
+          enforcement: profileContext.enforcement,
+          allowedTools,
+          allowedShellCommands,
+        }),
+      };
+    }
+
+    let resolved = await readEffectivePolicy();
+    if (persistSnapshot) {
+      const confirmation = await readEffectivePolicy();
+      if (
+        resolved.profileContext.revision !==
+          confirmation.profileContext.revision ||
+        canonicalJson(resolved.snapshot) !==
+          canonicalJson(confirmation.snapshot)
+      ) {
+        throw createProblem(
+          'conflict',
+          'Runtime policy changed while claim authority was being resolved',
+        );
+      }
+      resolved = confirmation;
+    }
+
+    const { profileContext, snapshot } = resolved;
+    const policySnapshotHash = hashEffectivePolicySnapshot(snapshot);
+    if (persistSnapshot) {
+      await deps.runtimePolicySnapshotRepository.upsert({
+        hash: policySnapshotHash,
+        schemaVersion: snapshot.version,
+        runtimeKind: snapshot.runtimeKind,
+        enforcement: snapshot.enforcement,
+        allowedTools: snapshot.allowedTools,
+        allowedShellCommands: snapshot.allowedShellCommands,
+      });
+    }
+    return {
+      enforcement: profileContext.enforcement,
+      allowedTools: snapshot.allowedTools,
+      allowedShellCommands: snapshot.allowedShellCommands,
+      runtimeKind: profileContext.runtimeKind,
+      runtimeProfileRevision: profileContext.revision,
+      policySnapshotHash,
+    };
   }
 
   async function requirePolicyForTeam(
@@ -465,28 +583,24 @@ export function createRuntimePolicyService(deps: RuntimePolicyServiceDeps) {
     /**
      * Resolve a profile's effective allow-set: its enforcement mode plus the
      * union of tools across every bound policy. Team-scoped — a profile that
-     * does not belong to `teamId` resolves to not-found (fail-closed).
+     * does not belong to `teamId` resolves to not-found (fail-closed). This
+     * read is intentionally available to team-bound runtimes and does not
+     * persist a snapshot; snapshots are materialized only while claiming.
      */
     async resolveAllowedTools(
       input: ResolveAllowedToolsInput,
     ): Promise<AllowedTools> {
-      const enforcement =
-        await deps.runtimePolicyRepository.getProfileEnforcement(
-          input.profileId,
-          input.teamId,
-        );
-      if (enforcement === null) throw createProblem('not-found');
+      return resolveEffectivePolicy(input, false);
+    },
 
-      const policyIds =
-        await deps.relationshipReader.listRuntimeProfilePolicies(
-          input.profileId,
-        );
-      const grants = await readPolicyGrants(policyIds);
-      const allowedTools = [...new Set(grants.tools)].sort();
-      const allowedShellCommands = decodeStoredShellCommands(
-        grants.shellCommands,
-      );
-      return { enforcement, allowedTools, allowedShellCommands };
+    /**
+     * Resolve and immutably persist the exact authority selected for a new
+     * task attempt. This is the only service operation that writes snapshots.
+     */
+    async resolvePinnedAllowedTools(
+      input: ResolveAllowedToolsInput,
+    ): Promise<AllowedTools> {
+      return resolveEffectivePolicy(input, true);
     },
   };
 }

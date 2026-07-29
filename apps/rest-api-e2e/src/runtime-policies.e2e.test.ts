@@ -233,6 +233,11 @@ describe('Runtime Tool Policies API', () => {
     expect(allowed!.allowedShellCommands).toEqual([
       { argvPrefix: ['gh', 'pr', 'view'] },
     ]);
+    expect(allowed).toMatchObject({
+      runtimeKind: 'gondolin_pi',
+      runtimeProfileRevision: 1,
+    });
+    expect(allowed!.policySnapshotHash).toMatch(/^sha256:[0-9a-f]{64}$/);
 
     // Rebinding to a single policy narrows the allow-set.
     await setRuntimeProfilePolicies({
@@ -274,11 +279,25 @@ describe('Runtime Tool Policies API', () => {
       headers: { 'x-moltnet-team-id': owner.personalTeamId },
       path: { profileId: profile!.id },
     });
-    expect(allowed).toEqual({
+    expect(allowed).toMatchObject({
       enforcement: 'off',
       allowedTools: [],
       allowedShellCommands: [],
+      runtimeKind: 'gondolin_pi',
+      runtimeProfileRevision: 1,
     });
+    expect(allowed!.policySnapshotHash).toMatch(/^sha256:[0-9a-f]{64}$/);
+  });
+
+  it('accepts operator-owned custom runtime tool names', async () => {
+    const { response, data, error } = await createPolicy(
+      `custom-${Date.now()}`,
+      ['customer_dynamic_tool'],
+    );
+
+    expect(response.status).toBe(201);
+    expect(error).toBeUndefined();
+    expect(data?.tools).toEqual(['customer_dynamic_tool']);
   });
 
   it('rejects duplicate policy names within a team', async () => {

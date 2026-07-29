@@ -229,7 +229,7 @@ function canonicalTaskClaims(
     attemptN: claims.attemptN,
     leaseId: claims.leaseId,
     runtimeKind: claims.runtimeKind,
-    capabilityManifestVersion: claims.capabilityManifestVersion,
+    executorManifestFingerprint: claims.executorManifestFingerprint,
     runtimeProfileId: claims.runtimeProfileId,
     runtimeProfileRevision: claims.runtimeProfileRevision,
     policySnapshotHash: claims.policySnapshotHash,

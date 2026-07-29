@@ -18,6 +18,9 @@ describe('assertExecutorCompatibleWithRuntimeProfile', () => {
   const profile = {
     id: '11111111-1111-4111-8111-111111111111',
     runtimeKind: 'custom_pi',
+    definitionCid: 'bafkreiprofile',
+    requiredTools: ['review', 'extension_tool'],
+    requiredExecutables: ['git'],
   };
 
   it('accepts an executor prepared for the selected profile and runtime kind', () => {
@@ -26,8 +29,14 @@ describe('assertExecutorCompatibleWithRuntimeProfile', () => {
         executor: {
           fingerprint: 'bafkrei-compatible',
           manifest: {
-            profile: { id: profile.id },
+            profile: {
+              id: profile.id,
+              definitionCid: profile.definitionCid,
+            },
             runtime: { kind: profile.runtimeKind },
+            tools: [{ name: 'review' }],
+            extensions: [{ declaredTools: ['extension_tool'] }],
+            executables: ['git'],
           },
         },
         profile,
@@ -50,7 +59,10 @@ describe('assertExecutorCompatibleWithRuntimeProfile', () => {
         executor: {
           fingerprint: 'bafkrei-other-profile',
           manifest: {
-            profile: { id: '22222222-2222-4222-8222-222222222222' },
+            profile: {
+              id: '22222222-2222-4222-8222-222222222222',
+              definitionCid: profile.definitionCid,
+            },
             runtime: { kind: profile.runtimeKind },
           },
         },
@@ -65,13 +77,52 @@ describe('assertExecutorCompatibleWithRuntimeProfile', () => {
         executor: {
           fingerprint: 'bafkrei-other-runtime',
           manifest: {
-            profile: { id: profile.id },
+            profile: {
+              id: profile.id,
+              definitionCid: profile.definitionCid,
+            },
             runtime: { kind: 'other_runtime' },
           },
         },
         profile,
       }),
     ).toThrow(/runtime kind does not match/);
+  });
+
+  it('rejects an executor prepared for another profile revision', () => {
+    expect(() =>
+      assertExecutorCompatibleWithRuntimeProfile({
+        executor: {
+          fingerprint: 'bafkrei-other-revision',
+          manifest: {
+            profile: { id: profile.id, definitionCid: 'bafkreiold' },
+            runtime: { kind: profile.runtimeKind },
+          },
+        },
+        profile,
+      }),
+    ).toThrow(/profile revision/);
+  });
+
+  it('rejects an executor missing required tools or executables', () => {
+    expect(() =>
+      assertExecutorCompatibleWithRuntimeProfile({
+        executor: {
+          fingerprint: 'bafkrei-missing-requirements',
+          manifest: {
+            profile: {
+              id: profile.id,
+              definitionCid: profile.definitionCid,
+            },
+            runtime: { kind: profile.runtimeKind },
+            tools: [{ name: 'review' }],
+            extensions: [],
+            executables: [],
+          },
+        },
+        profile,
+      }),
+    ).toThrow(/does not satisfy/);
   });
 });
 
@@ -101,6 +152,118 @@ describe('assertExecutorContinuity', () => {
         completedFingerprint: null,
       }),
     ).not.toThrow();
+  });
+});
+
+describe('verifyExecutorForPhase agent-signed enforcement', () => {
+  const callerId = '11111111-1111-4111-8111-111111111111';
+  const taskId = '22222222-2222-4222-8222-222222222222';
+  const executorManifest = {
+    schemaVersion: 'moltnet:executor-manifest:v1',
+    runtime: { id: 'pi', version: '1' },
+  };
+  const executorFingerprint = computeExecutorManifestCid(executorManifest);
+
+  it('rejects missing executor evidence when agent-signed trust is required', async () => {
+    await expect(
+      verifyExecutorForPhase({
+        phase: 'claim',
+        task: {
+          id: taskId,
+          requiredExecutorTrustLevel: 'agent_signed',
+        } as Task,
+        callerId,
+        attemptN: null,
+        outputCid: null,
+        attestation: {},
+        taskRepository: {} as TaskRepository,
+        agentRepository: {} as AgentRepository,
+      }),
+    ).rejects.toThrow(/Executor attestation is required/);
+  });
+
+  it('rejects a manifest without the required executor signature', async () => {
+    await expect(
+      verifyExecutorForPhase({
+        phase: 'claim',
+        task: {
+          id: taskId,
+          requiredExecutorTrustLevel: 'agent_signed',
+        } as Task,
+        callerId,
+        attemptN: null,
+        outputCid: null,
+        attestation: { executorManifest, executorFingerprint },
+        taskRepository: {} as TaskRepository,
+        agentRepository: {} as AgentRepository,
+      }),
+    ).rejects.toThrow(/executorSignature is required/);
+  });
+
+  it('rejects a tampered executor signature', async () => {
+    const keys = await cryptoService.generateKeyPair();
+    const upsertExecutorManifest = vi.fn();
+    const taskRepository = {
+      upsertExecutorManifest,
+    } as unknown as TaskRepository;
+    const agentRepository = {
+      findByIdentityId: vi.fn().mockResolvedValue({
+        identityId: callerId,
+        publicKey: keys.publicKey,
+      }),
+    } as unknown as AgentRepository;
+
+    await expect(
+      verifyExecutorForPhase({
+        phase: 'claim',
+        task: {
+          id: taskId,
+          requiredExecutorTrustLevel: 'agent_signed',
+        } as Task,
+        callerId,
+        attemptN: null,
+        outputCid: null,
+        attestation: {
+          executorManifest,
+          executorFingerprint,
+          executorSignature: Buffer.alloc(64).toString('base64'),
+        },
+        taskRepository,
+        agentRepository,
+      }),
+    ).rejects.toThrow(/executorSignature is not valid/);
+    expect(upsertExecutorManifest).not.toHaveBeenCalled();
+  });
+
+  it('rejects a stored manifest that conflicts with its fingerprint', async () => {
+    const taskRepository = {
+      upsertExecutorManifest: vi.fn().mockResolvedValue(undefined),
+      findExecutorManifest: vi.fn().mockResolvedValue({
+        fingerprint: executorFingerprint,
+        manifest: {
+          schemaVersion: 'moltnet:executor-manifest:v1',
+          runtime: { id: 'different', version: '1' },
+        },
+      }),
+    } as unknown as TaskRepository;
+
+    await expect(
+      verifyExecutorForPhase({
+        phase: 'claim',
+        task: {
+          id: taskId,
+          requiredExecutorTrustLevel: 'self_declared',
+        } as Task,
+        callerId,
+        attemptN: null,
+        outputCid: null,
+        attestation: { executorManifest, executorFingerprint },
+        taskRepository,
+        agentRepository: {} as AgentRepository,
+      }),
+    ).rejects.toThrow(
+      /executorFingerprint already maps to a different manifest/,
+    );
   });
 });
 

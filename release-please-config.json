@@ -38,6 +38,16 @@
       "component": "agent-runtime",
       "release-type": "node"
     },
+    "libs/credential-broker": {
+      "bump-minor-pre-major": true,
+      "component": "credential-broker",
+      "release-type": "node"
+    },
+    "libs/credentials": {
+      "bump-minor-pre-major": true,
+      "component": "credentials",
+      "release-type": "node"
+    },
     "libs/ctap": {
       "bump-minor-pre-major": true,
       "component": "ctap",

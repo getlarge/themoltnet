@@ -993,6 +993,7 @@ export async function executePiTask(
             agent: moltnetAgent,
             profileId: opts.runtimeProfileId,
             teamId: taskTeamId,
+            runtimeKind: opts.runtimeDefinition?.runtimeKind ?? 'gondolin_pi',
             enforcement: opts.toolEnforcement,
             logger: toolPolicyLogger,
           }),

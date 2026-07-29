@@ -33,7 +33,7 @@ interface CommonTaskBindingExpectation {
 
 export interface TaskCredentialBindingExpectation extends CommonTaskBindingExpectation {
   runtimeKind?: string;
-  capabilityManifestVersion?: string;
+  executorManifestFingerprint?: string;
   runtimeProfileId?: string;
   runtimeProfileRevision?: number;
   policySnapshotHash?: string;
@@ -201,10 +201,10 @@ function validateTaskBindings(
   )
     mismatch('runtime kind');
   if (
-    expected.capabilityManifestVersion !== undefined &&
-    claims.capabilityManifestVersion !== expected.capabilityManifestVersion
+    expected.executorManifestFingerprint !== undefined &&
+    claims.executorManifestFingerprint !== expected.executorManifestFingerprint
   )
-    mismatch('capability manifest');
+    mismatch('executor manifest');
   if (
     expected.runtimeProfileId !== undefined &&
     claims.runtimeProfileId !== expected.runtimeProfileId

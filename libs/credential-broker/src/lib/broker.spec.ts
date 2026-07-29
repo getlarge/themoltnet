@@ -18,7 +18,7 @@ const taskClaims: TaskCredentialClaims = {
   attemptN: 1,
   leaseId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
   runtimeKind: 'pi',
-  capabilityManifestVersion: 'pi-v1',
+  executorManifestFingerprint: 'bafkreiexecutor',
   runtimeProfileId: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
   runtimeProfileRevision: 3,
   policySnapshotHash: `sha256:${'a'.repeat(64)}`,

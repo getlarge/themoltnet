@@ -4,11 +4,17 @@ import type {
   RelationshipWriter,
 } from '@moltnet/auth';
 import { KetoNamespace } from '@moltnet/auth';
-import type { RuntimePolicyRepository } from '@moltnet/database';
+import type {
+  RuntimePolicyRepository,
+  RuntimePolicySnapshot,
+  RuntimePolicySnapshotRepository,
+} from '@moltnet/database';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  canonicalEffectivePolicySnapshot,
   createRuntimePolicyService,
+  hashEffectivePolicySnapshot,
   type RuntimePolicyServiceDeps,
   type RuntimePolicySubject,
 } from './runtime-policy-service.js';
@@ -46,13 +52,21 @@ function makeService() {
     lockProfileBindings: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
-    getProfileEnforcement: vi.fn(),
+    getProfilePolicyContext: vi.fn(),
     profileExistsForTeam: vi.fn(),
+  };
+  const snapshotRepo = {
+    upsert: vi
+      .fn<RuntimePolicySnapshotRepository['upsert']>()
+      .mockImplementation((input) =>
+        Promise.resolve({ ...input, createdAt: NOW } as RuntimePolicySnapshot),
+      ),
+    findByHash: vi.fn(),
   };
   const reader = {
     listRuntimeProfilePolicies: vi.fn(),
-    listRuntimePolicyTools: vi.fn(),
-    listRuntimePolicyShellCommands: vi.fn(),
+    listRuntimePolicyTools: vi.fn().mockResolvedValue([]),
+    listRuntimePolicyShellCommands: vi.fn().mockResolvedValue([]),
   };
   const writer = {
     writeRuntimePolicyEdges: vi.fn(),
@@ -67,6 +81,8 @@ function makeService() {
   };
   const service = createRuntimePolicyService({
     runtimePolicyRepository: repo as unknown as RuntimePolicyRepository,
+    runtimePolicySnapshotRepository:
+      snapshotRepo as unknown as RuntimePolicySnapshotRepository,
     relationshipReader: reader as unknown as RelationshipReader,
     relationshipWriter: writer as unknown as RelationshipWriter,
     permissionChecker: permissionChecker as unknown as PermissionChecker,
@@ -76,6 +92,7 @@ function makeService() {
   return {
     service,
     repo,
+    snapshotRepo,
     reader,
     writer,
     permissionChecker,
@@ -93,10 +110,14 @@ describe('createRuntimePolicyService', () => {
   describe('resolveAllowedTools', () => {
     it('unions tools across bound policies and reads enforcement', async () => {
       // Arrange
-      ctx.repo.getProfileEnforcement.mockResolvedValue('enforce');
+      ctx.repo.getProfilePolicyContext.mockResolvedValue({
+        runtimeKind: 'gondolin_pi',
+        revision: 3,
+        enforcement: 'enforce',
+      });
       ctx.reader.listRuntimeProfilePolicies.mockResolvedValue(['P1', 'P2']);
-      ctx.reader.listRuntimePolicyTools.mockImplementation(
-        async (id: string) => (id === 'P1' ? ['git', 'gh'] : ['gh', 'ls']),
+      ctx.reader.listRuntimePolicyTools.mockImplementation((id: string) =>
+        Promise.resolve(id === 'P1' ? ['git', 'gh'] : ['gh', 'ls']),
       );
       ctx.reader.listRuntimePolicyShellCommands.mockImplementation(
         async (id: string) =>
@@ -110,19 +131,129 @@ describe('createRuntimePolicyService', () => {
       });
 
       // Assert: enforcement passed through; tools unioned + de-duped + sorted.
-      expect(result).toEqual({
+      expect(result).toMatchObject({
         enforcement: 'enforce',
         allowedTools: ['gh', 'git', 'ls'],
         allowedShellCommands: [
           { argvPrefix: ['gh', 'pr', 'view'] },
           { argvPrefix: ['git', 'diff'] },
         ],
+        runtimeKind: 'gondolin_pi',
+        runtimeProfileRevision: 3,
       });
-      expect(ctx.repo.getProfileEnforcement).toHaveBeenCalledWith('R', TEAM_ID);
+      expect(result.policySnapshotHash).toMatch(/^sha256:[0-9a-f]{64}$/);
+      expect(ctx.repo.getProfilePolicyContext).toHaveBeenCalledWith(
+        'R',
+        TEAM_ID,
+      );
+      expect(ctx.snapshotRepo.upsert).not.toHaveBeenCalled();
+    });
+
+    it('rejects a claim-time snapshot when shell command scopes change between reads', async () => {
+      ctx.repo.getProfilePolicyContext.mockResolvedValue({
+        runtimeKind: 'gondolin_pi',
+        revision: 3,
+        enforcement: 'enforce',
+      });
+      ctx.reader.listRuntimeProfilePolicies.mockResolvedValue(['P1']);
+      ctx.reader.listRuntimePolicyTools.mockResolvedValue(['bash']);
+      ctx.reader.listRuntimePolicyShellCommands
+        .mockResolvedValueOnce(['v1/git/diff'])
+        .mockResolvedValueOnce(['v1/git/status']);
+
+      await expect(
+        ctx.service.resolvePinnedAllowedTools({
+          profileId: 'R',
+          teamId: TEAM_ID,
+        }),
+      ).rejects.toMatchObject({
+        statusCode: 409,
+        detail:
+          'Runtime policy changed while claim authority was being resolved',
+      });
+
+      expect(ctx.snapshotRepo.upsert).not.toHaveBeenCalled();
+    });
+
+    it('persists the immutable snapshot only for claim-time resolution', async () => {
+      ctx.repo.getProfilePolicyContext.mockResolvedValue({
+        runtimeKind: 'gondolin_pi',
+        revision: 3,
+        enforcement: 'enforce',
+      });
+      ctx.reader.listRuntimeProfilePolicies.mockResolvedValue(['P1']);
+      ctx.reader.listRuntimePolicyTools.mockResolvedValue(['git']);
+
+      const result = await ctx.service.resolvePinnedAllowedTools({
+        profileId: 'R',
+        teamId: TEAM_ID,
+      });
+
+      expect(ctx.snapshotRepo.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          hash: result.policySnapshotHash,
+          allowedTools: ['git'],
+          allowedShellCommands: [],
+        }),
+      );
+      expect(ctx.repo.getProfilePolicyContext).toHaveBeenCalledTimes(2);
+    });
+
+    it('rejects a claim-time snapshot when policy tools change between reads', async () => {
+      ctx.repo.getProfilePolicyContext.mockResolvedValue({
+        runtimeKind: 'gondolin_pi',
+        revision: 3,
+        enforcement: 'enforce',
+      });
+      ctx.reader.listRuntimeProfilePolicies.mockResolvedValue(['P1']);
+      ctx.reader.listRuntimePolicyTools
+        .mockResolvedValueOnce(['git', 'write'])
+        .mockResolvedValueOnce(['git']);
+
+      await expect(
+        ctx.service.resolvePinnedAllowedTools({
+          profileId: 'R',
+          teamId: TEAM_ID,
+        }),
+      ).rejects.toMatchObject({
+        statusCode: 409,
+        detail:
+          'Runtime policy changed while claim authority was being resolved',
+      });
+
+      expect(ctx.snapshotRepo.upsert).not.toHaveBeenCalled();
+    });
+
+    it('rejects a claim-time snapshot when profile context changes between reads', async () => {
+      ctx.repo.getProfilePolicyContext
+        .mockResolvedValueOnce({
+          runtimeKind: 'gondolin_pi',
+          revision: 3,
+          enforcement: 'enforce',
+        })
+        .mockResolvedValueOnce({
+          runtimeKind: 'custom_pi',
+          revision: 4,
+          enforcement: 'watch',
+        });
+      ctx.reader.listRuntimeProfilePolicies.mockResolvedValue([]);
+
+      await expect(
+        ctx.service.resolvePinnedAllowedTools({
+          profileId: 'R',
+          teamId: TEAM_ID,
+        }),
+      ).rejects.toMatchObject({ statusCode: 409 });
+
+      expect(ctx.snapshotRepo.upsert).not.toHaveBeenCalled();
     });
 
     it('returns enforcement + empty tools when no policies are bound', async () => {
-      ctx.repo.getProfileEnforcement.mockResolvedValue('off');
+      ctx.repo.getProfilePolicyContext.mockResolvedValue({
+        runtimeKind: 'gondolin_pi',
+        revision: 1,
+        enforcement: 'off',
+      });
       ctx.reader.listRuntimeProfilePolicies.mockResolvedValue([]);
 
       const result = await ctx.service.resolveAllowedTools({
@@ -130,17 +261,24 @@ describe('createRuntimePolicyService', () => {
         teamId: TEAM_ID,
       });
 
-      expect(result).toEqual({
+      expect(result).toMatchObject({
         enforcement: 'off',
         allowedTools: [],
         allowedShellCommands: [],
+        runtimeKind: 'gondolin_pi',
+        runtimeProfileRevision: 1,
       });
+      expect(result.policySnapshotHash).toMatch(/^sha256:[0-9a-f]{64}$/);
       expect(ctx.reader.listRuntimePolicyTools).not.toHaveBeenCalled();
       expect(ctx.reader.listRuntimePolicyShellCommands).not.toHaveBeenCalled();
     });
 
     it('fails closed when a stored shell command identifier is malformed', async () => {
-      ctx.repo.getProfileEnforcement.mockResolvedValue('enforce');
+      ctx.repo.getProfilePolicyContext.mockResolvedValue({
+        runtimeKind: 'gondolin_pi',
+        revision: 1,
+        enforcement: 'enforce',
+      });
       ctx.reader.listRuntimeProfilePolicies.mockResolvedValue(['P1']);
       ctx.reader.listRuntimePolicyTools.mockResolvedValue([]);
       ctx.reader.listRuntimePolicyShellCommands.mockResolvedValue([
@@ -156,7 +294,7 @@ describe('createRuntimePolicyService', () => {
     });
 
     it('throws not-found when the profile is not in the team', async () => {
-      ctx.repo.getProfileEnforcement.mockResolvedValue(null);
+      ctx.repo.getProfilePolicyContext.mockResolvedValue(null);
 
       await expect(
         ctx.service.resolveAllowedTools({
@@ -164,6 +302,23 @@ describe('createRuntimePolicyService', () => {
           teamId: TEAM_ID,
         }),
       ).rejects.toMatchObject({ statusCode: 404 });
+    });
+
+    it('rejects tool names containing line breaks before normalization', async () => {
+      ctx.repo.getProfilePolicyContext.mockResolvedValue({
+        runtimeKind: 'gondolin_pi',
+        revision: 1,
+        enforcement: 'enforce',
+      });
+      ctx.reader.listRuntimeProfilePolicies.mockResolvedValue(['P1']);
+      ctx.reader.listRuntimePolicyTools.mockResolvedValue(['git\n']);
+
+      await expect(
+        ctx.service.resolveAllowedTools({
+          profileId: 'R',
+          teamId: TEAM_ID,
+        }),
+      ).rejects.toMatchObject({ statusCode: 400 });
     });
   });
 
@@ -273,6 +428,23 @@ describe('createRuntimePolicyService', () => {
       expect(ctx.repo.create).not.toHaveBeenCalled();
     });
 
+    it('accepts custom runtime tool names without a server-owned catalogue', async () => {
+      ctx.repo.create.mockResolvedValue(policyRow());
+
+      await expect(
+        ctx.service.create({
+          teamId: TEAM_ID,
+          name: 'ci',
+          tools: ['customer_dynamic_tool'],
+          subject: AGENT_SUBJECT,
+        }),
+      ).resolves.toMatchObject({ tools: ['customer_dynamic_tool'] });
+      expect(ctx.writer.writeRuntimePolicyEdges).toHaveBeenCalledWith('pol-1', {
+        teamId: TEAM_ID,
+        addTools: ['customer_dynamic_tool'],
+      });
+    });
+
     it('rejects an empty name', async () => {
       await expect(
         ctx.service.create({
@@ -337,6 +509,23 @@ describe('createRuntimePolicyService', () => {
         ),
       ).rejects.toMatchObject({ statusCode: 404 });
     });
+
+    it('allows updates for operator-owned custom runtime tools', async () => {
+      ctx.repo.findByIdForTeam.mockResolvedValue(policyRow());
+      ctx.repo.update.mockResolvedValue(policyRow({ name: 'custom' }));
+      ctx.reader.listRuntimePolicyTools.mockResolvedValue(['git']);
+
+      await expect(
+        ctx.service.update(
+          'pol-1',
+          { name: 'custom', addTools: ['customer_dynamic_tool'] },
+          { teamId: TEAM_ID, subject: AGENT_SUBJECT },
+        ),
+      ).resolves.toMatchObject({
+        tools: ['customer_dynamic_tool', 'git'],
+      });
+      expect(ctx.writer.writeRuntimePolicyEdges).toHaveBeenCalled();
+    });
   });
 
   describe('delete', () => {
@@ -374,6 +563,11 @@ describe('createRuntimePolicyService', () => {
   describe('setProfilePolicies', () => {
     it('locks, diffs current vs desired, and batch-writes', async () => {
       ctx.repo.profileExistsForTeam.mockResolvedValue(true);
+      ctx.repo.getProfilePolicyContext.mockResolvedValue({
+        runtimeKind: 'gondolin_pi',
+        revision: 2,
+        enforcement: 'enforce',
+      });
       ctx.repo.findExistingIdsForTeam.mockResolvedValue(new Set(['P2', 'P3']));
       // Currently bound: P1, P2. Desired: P2, P3 → remove P1, add P3.
       ctx.reader.listRuntimeProfilePolicies.mockResolvedValue(['P1', 'P2']);
@@ -398,6 +592,11 @@ describe('createRuntimePolicyService', () => {
 
     it('rejects binding a policy from another team', async () => {
       ctx.repo.profileExistsForTeam.mockResolvedValue(true);
+      ctx.repo.getProfilePolicyContext.mockResolvedValue({
+        runtimeKind: 'gondolin_pi',
+        revision: 2,
+        enforcement: 'enforce',
+      });
       ctx.repo.findExistingIdsForTeam.mockResolvedValue(new Set()); // none in team
 
       await expect(
@@ -407,6 +606,31 @@ describe('createRuntimePolicyService', () => {
         }),
       ).rejects.toMatchObject({ statusCode: 400 });
       expect(ctx.writer.writeRuntimeProfilePolicyEdges).not.toHaveBeenCalled();
+    });
+
+    it('binds policies containing operator-owned custom runtime tools', async () => {
+      ctx.repo.profileExistsForTeam.mockResolvedValue(true);
+      ctx.repo.getProfilePolicyContext.mockResolvedValue({
+        runtimeKind: 'gondolin_pi',
+        revision: 2,
+        enforcement: 'enforce',
+      });
+      ctx.repo.findExistingIdsForTeam.mockResolvedValue(new Set(['P2']));
+      ctx.reader.listRuntimePolicyTools.mockResolvedValue([
+        'customer_dynamic_tool',
+      ]);
+      ctx.reader.listRuntimeProfilePolicies.mockResolvedValue([]);
+
+      await expect(
+        ctx.service.setProfilePolicies('prof-1', ['P2'], {
+          teamId: TEAM_ID,
+          subject: AGENT_SUBJECT,
+        }),
+      ).resolves.toBeUndefined();
+      expect(ctx.writer.writeRuntimeProfilePolicyEdges).toHaveBeenCalledWith(
+        'prof-1',
+        { addPolicyIds: ['P2'], removePolicyIds: [] },
+      );
     });
 
     it('throws not-found when the profile is not in the team', async () => {
@@ -469,5 +693,78 @@ describe('createRuntimePolicyService', () => {
       expect(result).toHaveLength(1);
       expect(ctx.reader.listRuntimePolicyTools).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe('effective policy snapshot hashing', () => {
+  it('is stable across tool order and duplicates', () => {
+    const first = canonicalEffectivePolicySnapshot({
+      runtimeKind: 'gondolin_pi',
+      enforcement: 'enforce',
+      allowedTools: ['git', 'read', 'git'],
+      allowedShellCommands: [
+        { argvPrefix: ['git', 'diff'] },
+        { argvPrefix: ['git', 'diff'] },
+      ],
+    });
+    const second = canonicalEffectivePolicySnapshot({
+      runtimeKind: 'gondolin_pi',
+      enforcement: 'enforce',
+      allowedTools: ['read', 'git'],
+      allowedShellCommands: [{ argvPrefix: ['git', 'diff'] }],
+    });
+
+    expect(first.allowedTools).toEqual(['git', 'read']);
+    expect(hashEffectivePolicySnapshot(first)).toBe(
+      hashEffectivePolicySnapshot(second),
+    );
+    expect(hashEffectivePolicySnapshot(first)).toBe(
+      'sha256:b7edae997658459ed86632f4d5197676391b39516aca28294241fe179a685a74',
+    );
+  });
+
+  it('canonicalizes distinct shell-command rules independent of order', () => {
+    const first = canonicalEffectivePolicySnapshot({
+      runtimeKind: 'gondolin_pi',
+      enforcement: 'enforce',
+      allowedTools: ['git'],
+      allowedShellCommands: [
+        { argvPrefix: ['git', 'diff'] },
+        { argvPrefix: ['gh', 'pr', 'view'] },
+      ],
+    });
+    const second = canonicalEffectivePolicySnapshot({
+      runtimeKind: 'gondolin_pi',
+      enforcement: 'enforce',
+      allowedTools: ['git'],
+      allowedShellCommands: [
+        { argvPrefix: ['gh', 'pr', 'view'] },
+        { argvPrefix: ['git', 'diff'] },
+      ],
+    });
+
+    expect(first.allowedShellCommands).toEqual(second.allowedShellCommands);
+    expect(hashEffectivePolicySnapshot(first)).toBe(
+      hashEffectivePolicySnapshot(second),
+    );
+  });
+
+  it('changes the hash when shell-command authority changes', () => {
+    const original = canonicalEffectivePolicySnapshot({
+      runtimeKind: 'gondolin_pi',
+      enforcement: 'enforce',
+      allowedTools: ['git'],
+      allowedShellCommands: [{ argvPrefix: ['gh', 'pr', 'view'] }],
+    });
+    const changed = canonicalEffectivePolicySnapshot({
+      runtimeKind: 'gondolin_pi',
+      enforcement: 'enforce',
+      allowedTools: ['git'],
+      allowedShellCommands: [{ argvPrefix: ['gh', 'pr', 'list'] }],
+    });
+
+    expect(hashEffectivePolicySnapshot(original)).not.toBe(
+      hashEffectivePolicySnapshot(changed),
+    );
   });
 });
