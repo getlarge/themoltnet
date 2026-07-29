@@ -12,6 +12,7 @@ import {
   uploadTaskArtifact,
 } from '@moltnet/api-client';
 import { createE2EAgentHarness } from '@moltnet/bootstrap';
+import { computeExecutorManifestCid } from '@moltnet/crypto-service';
 import { buildCuratePack } from '@themoltnet/sdk';
 
 const outputPath =
@@ -120,6 +121,30 @@ async function main() {
         `Failed to create e2e runtime profile: ${JSON.stringify(profileError)}`,
       );
     }
+    const executorManifest = {
+      schemaVersion: 'moltnet:executor-manifest:v1',
+      runtime: {
+        kind: profile.runtimeKind,
+        engine: 'native',
+        sandbox: 'none',
+        id: 'cpp-sdk-e2e',
+        version: '1',
+      },
+      profile: {
+        id: profile.id,
+        definitionCid: profile.definitionCid,
+      },
+      vm: {
+        templateId: 'cpp-sdk-e2e',
+        templateVersion: '1',
+        templateFingerprint: 'bafyreicpp-sdk-e2e',
+        guestAssetBuildId: 'cpp-sdk-e2e',
+      },
+      tools: [],
+      extensions: [],
+      executables: [],
+    };
+    const executorFingerprint = computeExecutorManifestCid(executorManifest);
 
     const profiledTaskBody = buildCuratePack({
       diaryId: agent.privateDiaryId,
@@ -180,7 +205,12 @@ async function main() {
       client,
       auth: () => agent.accessToken,
       path: { id: claimedTask.id },
-      body: { leaseTtlSec: 60, profileId: profile.id },
+      body: {
+        leaseTtlSec: 60,
+        profileId: profile.id,
+        executorManifest,
+        executorFingerprint,
+      },
     });
 
     if (claimError || !claim) {

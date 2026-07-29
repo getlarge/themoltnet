@@ -21,7 +21,13 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { computeBytesCid, computeJsonCid } from '@moltnet/crypto-service';
+import {
+  buildExecutorRegistrationAttestationPayload,
+  computeBytesCid,
+  computeExecutorManifestCid,
+  computeJsonCid,
+  signExecutorAttestation,
+} from '@moltnet/crypto-service';
 // eslint-disable-next-line @nx/enforce-module-boundaries -- This e2e suite intentionally exercises daemon app internals.
 import type { DaemonSlotIdentity } from '@themoltnet/agent-daemon/lib/daemon-slot-identity.js';
 // eslint-disable-next-line @nx/enforce-module-boundaries -- This e2e suite intentionally exercises daemon app internals.
@@ -94,6 +100,7 @@ describe('Agent daemon (e2e)', () => {
   let agent: Agent;
   let teamId: string;
   let diaryId: string;
+  let agentPrivateKey: string;
   const tempRoots: string[] = [];
 
   beforeAll(async () => {
@@ -106,6 +113,7 @@ describe('Agent daemon (e2e)', () => {
     });
     teamId = creds.personalTeamId;
     diaryId = creds.privateDiaryId;
+    agentPrivateKey = creds.keyPair.privateKey;
   }, 120_000);
 
   afterEach(() => {
@@ -1432,6 +1440,43 @@ describe('Agent daemon (e2e)', () => {
         expect(resolved.maxBatchSize).toBe(10);
         expect(resolved.sandboxConfig).toEqual(allowedProfile.sandbox);
 
+        const executorManifest = {
+          schemaVersion: 'moltnet:executor-manifest:v1',
+          runtime: {
+            kind: resolved.runtimeKind,
+            engine: 'pi',
+            sandbox: 'gondolin',
+            id: 'agent-daemon-e2e',
+            version: '1',
+          },
+          profile: {
+            id: resolved.id,
+            definitionCid: resolved.definitionCid,
+          },
+          vm: {
+            templateId: 'agent-daemon-e2e',
+            templateVersion: '1',
+            templateFingerprint: 'bafyreidaemon-e2e-template',
+            guestAssetBuildId: 'agent-daemon-e2e',
+          },
+          tools: [],
+          extensions: [],
+          executables: [],
+        };
+        const executorFingerprint =
+          computeExecutorManifestCid(executorManifest);
+        const executorSignature = await signExecutorAttestation(
+          buildExecutorRegistrationAttestationPayload({
+            executorFingerprint,
+          }),
+          agentPrivateKey,
+        );
+        await agent.tasks.registerExecutorManifest({
+          executorManifest,
+          executorFingerprint,
+          executorSignature,
+        });
+
         const source = new PollingApiTaskSource({
           agent,
           teamId,
@@ -1440,6 +1485,9 @@ describe('Agent daemon (e2e)', () => {
           leaseTtlSec: resolved.leaseTtlSec,
           stopWhenEmpty: true,
           logger: silentLogger,
+          executorFingerprints: {
+            [resolved.id]: executorFingerprint,
+          },
         });
 
         const claimed = await source.claim();

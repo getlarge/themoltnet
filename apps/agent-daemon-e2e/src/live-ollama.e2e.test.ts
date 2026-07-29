@@ -54,6 +54,9 @@ describeLive('Agent daemon live Ollama Cloud execution (e2e)', () => {
   let agentName: string;
   let clientId: string;
   let clientSecret: string;
+  let publicKey: string;
+  let privateKey: string;
+  let fingerprint: string;
   const tempRoots: string[] = [];
 
   beforeAll(async () => {
@@ -68,6 +71,9 @@ describeLive('Agent daemon live Ollama Cloud execution (e2e)', () => {
     agentName = creds.name;
     clientId = creds.clientId;
     clientSecret = creds.clientSecret;
+    publicKey = creds.keyPair.publicKey;
+    privateKey = creds.keyPair.privateKey;
+    fingerprint = creds.keyPair.fingerprint;
     teamId = creds.personalTeamId;
     diaryId = creds.privateDiaryId;
     agent = await connect({
@@ -95,6 +101,9 @@ describeLive('Agent daemon live Ollama Cloud execution (e2e)', () => {
       apiUrl: harness.restApiUrl,
       clientId,
       clientSecret,
+      publicKey,
+      privateKey,
+      fingerprint,
     });
     writePiConfig(piDir);
 
@@ -519,6 +528,9 @@ function writeAgentCredentials(input: {
   agentName: string;
   clientId: string;
   clientSecret: string;
+  publicKey: string;
+  privateKey: string;
+  fingerprint: string;
   apiUrl: string;
 }): void {
   const agentDir = join(input.agentRoot, '.moltnet', input.agentName);
@@ -534,9 +546,9 @@ function writeAgentCredentials(input: {
           client_secret: input.clientSecret,
         },
         keys: {
-          public_key: 'ed25519:e2e',
-          private_key: 'ed25519:e2e',
-          fingerprint: 'E2E-LIVE-OLLAMA',
+          public_key: input.publicKey,
+          private_key: input.privateKey,
+          fingerprint: input.fingerprint,
         },
         endpoints: {
           api: input.apiUrl,

@@ -53,6 +53,7 @@ test.describe.serial('Continue task from console', () => {
   let sourceTaskId: string;
   let sourceAttemptN: number;
   let allowedProfileId: string;
+  let allowedProfileDefinitionCid: string;
 
   test.afterAll(async () => {
     await agentCtx?.teardown();
@@ -129,6 +130,7 @@ test.describe.serial('Continue task from console', () => {
       );
     }
     allowedProfileId = profile.data.id;
+    allowedProfileDefinitionCid = profile.data.definitionCid;
 
     // Create a diary inside the shared team so both the human (owner)
     // and the agent (member) can read tasks against it. The agent's
@@ -178,6 +180,29 @@ test.describe.serial('Continue task from console', () => {
       correlationId,
       allowedProfiles: [{ profileId: allowedProfileId }],
       claimProfileId: allowedProfileId,
+      executorManifest: {
+        schemaVersion: 'moltnet:executor-manifest:v1',
+        runtime: {
+          kind: 'gondolin_pi',
+          engine: 'pi',
+          sandbox: 'gondolin',
+          id: 'console-task-continue-e2e',
+          version: '1',
+        },
+        profile: {
+          id: allowedProfileId,
+          definitionCid: allowedProfileDefinitionCid,
+        },
+        vm: {
+          templateId: 'console-task-continue-e2e',
+          templateVersion: '1',
+          templateFingerprint: 'bafyreiconsole-task-continue-e2e',
+          guestAssetBuildId: 'console-task-continue-e2e',
+        },
+        tools: [],
+        extensions: [],
+        executables: [],
+      },
       requiredExecutorTrustLevel: 'selfDeclared',
     });
     sourceTaskId = seeded.taskId;

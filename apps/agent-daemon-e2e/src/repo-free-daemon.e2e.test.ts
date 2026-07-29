@@ -26,7 +26,7 @@ const { createPiTaskExecutorMock } = vi.hoisted(() => ({
   createPiTaskExecutorMock: vi.fn(),
 }));
 
-vi.mock('@themoltnet/pi-extension', async (importOriginal) => {
+vi.mock('@themoltnet/pi-runtime', async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
   return {
     ...actual,
@@ -93,6 +93,9 @@ describe('Agent daemon repo-free execution (e2e)', () => {
   let agentName: string;
   let clientId: string;
   let clientSecret: string;
+  let publicKey: string;
+  let privateKey: string;
+  let fingerprint: string;
   const tempRoots: string[] = [];
 
   beforeAll(async () => {
@@ -101,6 +104,9 @@ describe('Agent daemon repo-free execution (e2e)', () => {
     agentName = creds.name;
     clientId = creds.clientId;
     clientSecret = creds.clientSecret;
+    publicKey = creds.keyPair.publicKey;
+    privateKey = creds.keyPair.privateKey;
+    fingerprint = creds.keyPair.fingerprint;
     teamId = creds.personalTeamId;
     diaryId = creds.privateDiaryId;
     agent = await connect({
@@ -131,6 +137,9 @@ describe('Agent daemon repo-free execution (e2e)', () => {
       agentName,
       clientId,
       clientSecret,
+      publicKey,
+      privateKey,
+      fingerprint,
       apiUrl: harness.restApiUrl,
     });
 
@@ -207,6 +216,9 @@ function writeAgentCredentials(input: {
   agentName: string;
   clientId: string;
   clientSecret: string;
+  publicKey: string;
+  privateKey: string;
+  fingerprint: string;
   apiUrl: string;
 }): void {
   const agentDir = join(input.agentRoot, '.moltnet', input.agentName);
@@ -222,9 +234,9 @@ function writeAgentCredentials(input: {
           client_secret: input.clientSecret,
         },
         keys: {
-          public_key: 'ed25519:e2e',
-          private_key: 'ed25519:e2e',
-          fingerprint: 'E2E-REPO-FREE',
+          public_key: input.publicKey,
+          private_key: input.privateKey,
+          fingerprint: input.fingerprint,
         },
         endpoints: {
           api: input.apiUrl,

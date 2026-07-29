@@ -23,7 +23,10 @@
 
 // eslint-disable-next-line @nx/enforce-module-boundaries -- Browser e2e setup runs in Node and provisions agents through the server bootstrap.
 import { createE2EAgentHarness, type GenesisAgent } from '@moltnet/bootstrap';
-import { computeJsonCid } from '@moltnet/crypto-service';
+import {
+  computeExecutorManifestCid,
+  computeJsonCid,
+} from '@moltnet/crypto-service';
 import { type Agent, connect } from '@themoltnet/sdk';
 
 export interface SeedCompletedFreeformOptions {
@@ -44,6 +47,8 @@ export interface SeedCompletedFreeformOptions {
   allowedProfiles?: { profileId: string }[];
   /** Profile attestation to send when claiming a profile-pinned task. */
   claimProfileId?: string;
+  /** Executor evidence to bind to a profile-aware claim and completion. */
+  executorManifest?: Record<string, unknown>;
   requiredExecutorTrustLevel?:
     | 'selfDeclared'
     | 'agentSigned'
@@ -83,6 +88,7 @@ export async function seedCompletedFreeformAttempt(
     correlationId,
     allowedProfiles,
     claimProfileId,
+    executorManifest,
     requiredExecutorTrustLevel,
     slotTtlMs = 60 * 60 * 1000,
   } = options;
@@ -102,9 +108,15 @@ export async function seedCompletedFreeformAttempt(
     { teamId },
   );
 
+  const executorFingerprint = executorManifest
+    ? computeExecutorManifestCid(executorManifest)
+    : undefined;
   const claimed = await agent.tasks.claim(created.id, {
     leaseTtlSec: 120,
     ...(claimProfileId ? { profileId: claimProfileId } : {}),
+    ...(executorManifest && executorFingerprint
+      ? { executorManifest, executorFingerprint }
+      : {}),
   });
   const attemptN = claimed.attempt.attemptN;
   // Heartbeat flips claimed → running. /complete returns 409 otherwise.
@@ -131,6 +143,9 @@ export async function seedCompletedFreeformAttempt(
   const slotResumableUntil = new Date(Date.now() + slotTtlMs).toISOString();
 
   await agent.tasks.complete(created.id, attemptN, {
+    ...(executorManifest && executorFingerprint
+      ? { executorManifest, executorFingerprint }
+      : {}),
     output,
     outputCid,
     usage: { inputTokens: 1, outputTokens: 1 },

@@ -1675,6 +1675,9 @@ importers:
       '@moltnet/bootstrap':
         specifier: workspace:*
         version: link:../bootstrap
+      '@moltnet/crypto-service':
+        specifier: workspace:*
+        version: link:../crypto-service
       '@themoltnet/sdk':
         specifier: workspace:*
         version: link:../sdk
