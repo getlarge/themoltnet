@@ -938,11 +938,11 @@ jobs:
         env:
           COMPOSE_DISABLE_ENV_FILE: true
         run: docker compose -f docker-compose.e2e.yaml up -d
-      - name: Run pi-extension VM integration tests
+      - name: Run pi-runtime VM integration tests
         if: needs.affected.outputs.e2e-agent-daemon == 'true'
         env:
           MOLTNET_PI_VM_INTEGRATION: '1'
-        run: pnpm exec nx run @themoltnet/pi-extension:test-ci--src/vm-manager.integration.test.ts
+        run: pnpm exec nx run @themoltnet/pi-runtime:test-ci--src/vm-manager.integration.test.ts
       - name: Run agent-daemon E2E tests
         if: needs.affected.outputs.e2e-agent-daemon == 'true'
         run: pnpm exec nx run @themoltnet/agent-daemon-e2e:e2e
