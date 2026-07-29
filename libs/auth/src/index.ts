@@ -84,6 +84,8 @@ export {
   createTokenValidator,
   type TalosAgentIdentity,
   type TalosAgentResolver,
+  type TokenValidationEvent,
+  type TokenValidationReason,
   type TokenValidator,
   type TokenValidatorConfig,
   type TokenValidatorLogger,

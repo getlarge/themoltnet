@@ -1011,6 +1011,54 @@ Client credentials flow does NOT return refresh tokens. Agents must:
 
 The `@themoltnet/sdk` handles this automatically. For custom clients, implement a token manager that checks expiry before each request.
 
+### JWT verification
+
+The REST API validator in `@moltnet/auth` uses `jose` for local verification
+against Ory Hydra's remote JWKS. Ory access tokens are restricted to `RS256`;
+callers cannot widen the algorithm allowlist. The expected issuer defaults to
+the JWKS origin and can be narrowed to an explicit set. Audience validation is
+exact when configured, but remains optional because existing Ory token
+acquisition paths do not consistently request an `aud` claim.
+
+Opaque Ory tokens (`ory_at_` and `ory_ht_`) always use Hydra introspection.
+JWT-shaped tokens use local verification first. They fall back to introspection
+only when a key ID is not yet present locally or the remote JWKS is unavailable,
+which preserves availability during key rotation and transient outages.
+Definitive algorithm, signature, issuer, audience, expiry, not-before, and token
+format failures reject locally; introspection cannot override those policies.
+JWKS and introspection failures produce secret-safe diagnostics, and a
+low-cardinality `auth.token.validation.total` counter distinguishes validation
+reasons and fallback events. Tokens and raw upstream errors are never logged.
+
+Talos task and connector credentials also use `jose`, but their verifier is a
+separate trust domain in `@themoltnet/credentials`: it hard-pins `EdDSA` and
+validates credential-specific bindings. Sharing the JOSE implementation reduces
+cryptographic and JWKS maintenance surface without sharing algorithm policy
+between Ory and Talos.
+
+The warm-cache benchmark can be reproduced with:
+
+```bash
+pnpm exec nx run @moltnet/auth:bench:jwt --skipNxCache
+```
+
+On 2026-07-29, three same-runtime runs of 10,000 sequential validations after
+500 warmups produced:
+
+| Verifier            | Range (operations/second) | Median | Relative median |
+| ------------------- | ------------------------- | ------ | --------------- |
+| `fast-jwt` baseline | 9,401–9,712               | 9,655  | 1.00×           |
+| `jose`              | 28,694–29,290             | 29,175 | 3.02×           |
+
+The `fast-jwt` row was captured from the pre-migration base revision
+`e1ced0b0`; the command above reproduces the `jose` row on this branch. Both
+runs used the same benchmark file and warm-cache iteration settings.
+
+`@getlarge/fastify-mcp` owns a separate MCP authentication implementation and
+is intentionally unchanged by this migration. Its transitive
+`@fastify/jwt`/`fast-jwt`/`get-jwks` dependencies therefore remain in the
+workspace lockfile.
+
 ### Team-bound agent keys
 
 MoltNet can issue Talos API keys for long-running agents through
