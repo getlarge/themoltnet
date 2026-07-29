@@ -2,6 +2,7 @@
  * Ory webhook handler routes (internal — hidden from public OpenAPI spec)
  *
  * POST /hooks/kratos/after-registration — Kratos after-registration webhook
+ * POST /hooks/kratos/validate-settings — Kratos pre-persist settings validation
  * POST /hooks/kratos/after-settings — Kratos after-settings webhook
  * POST /hooks/hydra/token-exchange — Hydra token exchange webhook
  */
@@ -10,7 +11,6 @@ import crypto from 'node:crypto';
 
 import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import type { OryClients } from '@moltnet/auth';
-import { cryptoService } from '@moltnet/crypto-service';
 import { DBOS, type HumanRepository } from '@moltnet/database';
 import type { IdentityApi } from '@ory/client-fetch';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
@@ -242,42 +242,44 @@ export async function hookRoutes(fastify: FastifyInstance) {
     },
   );
 
-  // ── Kratos After Settings ──────────────────────────────────
+  const SettingsWebhookBodySchema = Type.Object(
+    {
+      identity: Type.Object(
+        {
+          id: Type.String(),
+          traits: Type.Object(
+            {
+              public_key: Type.Optional(Type.String()),
+            },
+            { additionalProperties: true },
+          ),
+        },
+        { additionalProperties: true },
+      ),
+    },
+    { additionalProperties: true },
+  );
+
+  // ── Kratos Settings Validation (Pre-Persist) ──────────────
   server.post(
-    '/hooks/kratos/after-settings',
+    '/hooks/kratos/validate-settings',
     {
       schema: {
-        operationId: 'kratosAfterSettings',
+        operationId: 'kratosValidateSettings',
         tags: ['X-HIDDEN'],
-        body: Type.Object(
-          {
-            identity: Type.Object(
-              {
-                id: Type.String(),
-                traits: Type.Object(
-                  {
-                    public_key: Type.String(),
-                  },
-                  { additionalProperties: true },
-                ),
-              },
-              { additionalProperties: true },
-            ),
-          },
-          { additionalProperties: true },
-        ),
+        body: SettingsWebhookBodySchema,
       },
       preHandler: [webhookAuth],
     },
     async (request, reply) => {
-      const { identity } = request.body;
+      const { public_key } = request.body.identity.traits;
+      if (public_key === undefined) {
+        return reply.status(200).send({ success: true });
+      }
 
-      const { public_key } = identity.traits;
-
-      // ── Validate public_key format and Ed25519 key bytes ──────────
       let settingsKeyBytes: Uint8Array;
       try {
-        settingsKeyBytes = cryptoService.parsePublicKey(public_key);
+        settingsKeyBytes = fastify.cryptoService.parsePublicKey(public_key);
       } catch {
         return reply
           .status(400)
@@ -302,16 +304,68 @@ export async function hookRoutes(fastify: FastifyInstance) {
           );
       }
 
-      const settingsFingerprint =
-        cryptoService.generateFingerprint(settingsKeyBytes);
-
-      await fastify.agentRepository.upsert({
-        identityId: identity.id,
-        publicKey: public_key,
-        fingerprint: settingsFingerprint,
-      });
-
       return reply.status(200).send({ success: true });
+    },
+  );
+
+  // ── Kratos Settings Side Effects (Post-Persist) ───────────
+  server.post(
+    '/hooks/kratos/after-settings',
+    {
+      schema: {
+        operationId: 'kratosAfterSettings',
+        tags: ['X-HIDDEN'],
+        body: SettingsWebhookBodySchema,
+      },
+      preHandler: [webhookAuth],
+    },
+    async (request, reply) => {
+      const { identity } = request.body;
+      const { public_key } = identity.traits;
+
+      try {
+        // This hook is configured as non-interrupting and non-parsing, so
+        // Kratos invokes it only after the identity change is authoritative.
+        fastify.sessionResolver?.evictIdentity(identity.id);
+
+        if (public_key !== undefined) {
+          // The pre-persist hook already validated this key. Re-parse it here
+          // to keep this idempotent projection independent from request-local
+          // state.
+          const settingsKeyBytes =
+            fastify.cryptoService.parsePublicKey(public_key);
+          if (settingsKeyBytes.length !== 32) {
+            throw new Error(
+              `Validated public key has ${settingsKeyBytes.length} bytes`,
+            );
+          }
+
+          const settingsFingerprint =
+            fastify.cryptoService.generateFingerprint(settingsKeyBytes);
+
+          await fastify.agentRepository.upsert({
+            identityId: identity.id,
+            publicKey: public_key,
+            fingerprint: settingsFingerprint,
+          });
+        }
+
+        return await reply.status(200).send({ success: true });
+      } catch (err) {
+        fastify.log.error(
+          { err, identity_id: identity.id },
+          'Post-settings projection failed unexpectedly',
+        );
+        return reply
+          .status(500)
+          .send(
+            oryValidationError(
+              '#/',
+              5000002,
+              'Settings were saved, but dependent state could not be updated.',
+            ),
+          );
+      }
     },
   );
 

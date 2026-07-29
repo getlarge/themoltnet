@@ -173,6 +173,7 @@ export async function registrationRoutes(fastify: FastifyInstance) {
             client_secret: newSecret,
           },
         });
+        fastify.tokenValidator.evictOAuthClient(clientId);
 
         return {
           clientId,

@@ -806,6 +806,7 @@ export async function createTestApp(
         identity_id: OWNER_ID,
       },
     }),
+    setOAuth2Client: vi.fn().mockResolvedValue(undefined),
   } as unknown as OryClients['oauth2'];
 
   const mockIdentityApi = {

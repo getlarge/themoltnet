@@ -1,12 +1,13 @@
 /**
  * E2E: Ory webhook handlers (agent paths)
  *
- * Tests the after-settings and token-exchange webhook endpoints
+ * Tests the settings validation, after-settings, and token-exchange endpoints
  * for agent subjects. Human-specific webhook tests are in
  * human-auth.e2e.test.ts.
  */
 
 import { cryptoService } from '@moltnet/crypto-service';
+import { createAgentRepository } from '@moltnet/database';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createAgent, type TestAgent } from './helpers.js';
@@ -19,6 +20,7 @@ import {
 describe('Webhook Handlers (Agent)', () => {
   let harness: TestHarness;
   let agent: TestAgent;
+  let agentRepository: ReturnType<typeof createAgentRepository>;
 
   beforeAll(async () => {
     harness = await createTestHarness();
@@ -28,16 +30,126 @@ describe('Webhook Handlers (Agent)', () => {
       db: harness.db,
       bootstrapIdentityId: harness.bootstrapIdentityId,
     });
+    agentRepository = createAgentRepository(harness.db);
   });
 
   afterAll(async () => {
     await harness?.teardown();
   });
 
-  // ── After Settings (Key Rotation) ───────────────────────────
+  // ── Settings Validation (Pre-Persist) ───────────────────────
+
+  describe('POST /hooks/kratos/validate-settings', () => {
+    it('accepts a valid key without updating the agent projection', async () => {
+      const before = await agentRepository.findByIdentityId(agent.identityId);
+      const newKeyPair = await cryptoService.generateKeyPair();
+
+      const resp = await fetch(
+        `${harness.baseUrl}/hooks/kratos/validate-settings`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-ory-api-key': WEBHOOK_API_KEY,
+          },
+          body: JSON.stringify({
+            identity: {
+              id: agent.identityId,
+              traits: {
+                public_key: newKeyPair.publicKey,
+              },
+            },
+          }),
+        },
+      );
+
+      expect(resp.status).toBe(200);
+      const body = (await resp.json()) as { success: boolean };
+      expect(body.success).toBe(true);
+
+      const after = await agentRepository.findByIdentityId(agent.identityId);
+      expect(after).toEqual(before);
+    });
+
+    it('rejects invalid public key format', async () => {
+      const resp = await fetch(
+        `${harness.baseUrl}/hooks/kratos/validate-settings`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-ory-api-key': WEBHOOK_API_KEY,
+          },
+          body: JSON.stringify({
+            identity: {
+              id: agent.identityId,
+              traits: { public_key: 'invalid-format' },
+            },
+          }),
+        },
+      );
+
+      expect(resp.status).toBe(400);
+      const body = (await resp.json()) as {
+        messages: Array<{ instance_ptr: string }>;
+      };
+      expect(body.messages[0].instance_ptr).toBe('#/traits/public_key');
+    });
+
+    it('rejects a public key with the wrong decoded length', async () => {
+      const resp = await fetch(
+        `${harness.baseUrl}/hooks/kratos/validate-settings`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-ory-api-key': WEBHOOK_API_KEY,
+          },
+          body: JSON.stringify({
+            identity: {
+              id: agent.identityId,
+              traits: {
+                public_key: `ed25519:${Buffer.alloc(31).toString('base64')}`,
+              },
+            },
+          }),
+        },
+      );
+
+      expect(resp.status).toBe(400);
+      const body = (await resp.json()) as {
+        messages: Array<{
+          instance_ptr: string;
+          messages: Array<{ text: string }>;
+        }>;
+      };
+      expect(body.messages[0].instance_ptr).toBe('#/traits/public_key');
+      expect(body.messages[0].messages[0].text).toContain('exactly 32 bytes');
+    });
+
+    it('rejects missing webhook API key', async () => {
+      const resp = await fetch(
+        `${harness.baseUrl}/hooks/kratos/validate-settings`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            identity: {
+              id: agent.identityId,
+              traits: { public_key: agent.keyPair.publicKey },
+            },
+          }),
+        },
+      );
+
+      expect(resp.status).toBe(403);
+    });
+  });
+
+  // ── After Settings (Post-Persist Key Projection) ────────────
 
   describe('POST /hooks/kratos/after-settings', () => {
-    it('updates agent key on settings change', async () => {
+    it('updates the persisted agent key and fingerprint', async () => {
       const newKeyPair = await cryptoService.generateKeyPair();
 
       const resp = await fetch(
@@ -62,9 +174,13 @@ describe('Webhook Handlers (Agent)', () => {
       expect(resp.status).toBe(200);
       const body = (await resp.json()) as { success: boolean };
       expect(body.success).toBe(true);
+
+      const updated = await agentRepository.findByIdentityId(agent.identityId);
+      expect(updated?.publicKey).toBe(newKeyPair.publicKey);
+      expect(updated?.fingerprint).toBe(newKeyPair.fingerprint);
     });
 
-    it('rejects invalid public key format', async () => {
+    it('returns an Ory error envelope for invalid post-persist state', async () => {
       const resp = await fetch(
         `${harness.baseUrl}/hooks/kratos/after-settings`,
         {
@@ -82,11 +198,11 @@ describe('Webhook Handlers (Agent)', () => {
         },
       );
 
-      expect(resp.status).toBe(400);
+      expect(resp.status).toBe(500);
       const body = (await resp.json()) as {
-        messages: Array<{ instance_ptr: string }>;
+        messages: Array<{ messages: Array<{ id: number }> }>;
       };
-      expect(body.messages[0].instance_ptr).toBe('#/traits/public_key');
+      expect(body.messages[0].messages[0].id).toBe(5000002);
     });
 
     it('rejects missing webhook API key', async () => {

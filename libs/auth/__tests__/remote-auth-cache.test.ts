@@ -1,10 +1,23 @@
-import { describe, expect, it, vi } from 'vitest';
+import { metrics as metricsApi } from '@opentelemetry/api';
+import { MeterProvider, MetricReader } from '@opentelemetry/sdk-metrics';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  createRemoteAuthMetrics,
   RemoteAuthCache,
   type RemoteAuthMetrics,
 } from '../src/remote-auth-cache.js';
 import type { AgentAuthContext } from '../src/types.js';
+
+class TestMetricReader extends MetricReader {
+  protected async onShutdown(): Promise<void> {}
+
+  protected async onForceFlush(): Promise<void> {}
+}
+
+afterEach(() => {
+  metricsApi.disable();
+});
 
 const context: AgentAuthContext = {
   subjectType: 'agent',
@@ -311,5 +324,39 @@ describe('RemoteAuthCache', () => {
     expect(JSON.stringify(metrics.recordCacheAccess.mock.calls)).not.toContain(
       'raw-secret',
     );
+  });
+});
+
+describe('createRemoteAuthMetrics', () => {
+  it('records bounded upstream status buckets', async () => {
+    const reader = new TestMetricReader();
+    const provider = new MeterProvider({ readers: [reader] });
+    metricsApi.setGlobalMeterProvider(provider);
+    const metrics = createRemoteAuthMetrics();
+
+    metrics.recordUpstreamRequest(
+      'oauth2.introspect',
+      'unavailable',
+      undefined,
+    );
+    metrics.recordUpstreamRequest('oauth2.introspect', 'rate_limited', 429);
+    metrics.recordUpstreamRequest('oauth2.introspect', 'invalid', 401);
+    metrics.recordUpstreamRequest('oauth2.introspect', 'unavailable', 503);
+    metrics.recordUpstreamRequest('oauth2.introspect', 'success', 200);
+
+    const { resourceMetrics } = await reader.collect();
+    const metric = resourceMetrics.scopeMetrics
+      .flatMap((scope) => scope.metrics)
+      .find(
+        (candidate) =>
+          candidate.descriptor.name === 'auth.remote.upstream.requests',
+      );
+    const statuses = metric?.dataPoints
+      .map((point) => point.attributes.status)
+      .sort();
+
+    expect(statuses).toEqual(['429', '4xx', '5xx', 'network', 'other']);
+
+    await provider.shutdown();
   });
 });

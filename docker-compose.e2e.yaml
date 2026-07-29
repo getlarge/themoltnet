@@ -76,6 +76,10 @@ services:
       SELFSERVICE_FLOWS_REGISTRATION_AFTER_PASSWORD_HOOKS_0_CONFIG_URL: http://rest-api:8080/hooks/kratos/after-registration
       SELFSERVICE_FLOWS_LOGIN_AFTER_OIDC_HOOKS_0_CONFIG_URL: http://rest-api:8080/hooks/kratos/after-login
       SELFSERVICE_FLOWS_LOGIN_AFTER_PASSWORD_HOOKS_0_CONFIG_URL: http://rest-api:8080/hooks/kratos/after-login
+      SELFSERVICE_FLOWS_SETTINGS_AFTER_PASSWORD_HOOKS_0_CONFIG_URL: http://rest-api:8080/hooks/kratos/validate-settings
+      SELFSERVICE_FLOWS_SETTINGS_AFTER_PASSWORD_HOOKS_1_CONFIG_URL: http://rest-api:8080/hooks/kratos/after-settings
+      SELFSERVICE_FLOWS_SETTINGS_AFTER_PROFILE_HOOKS_0_CONFIG_URL: http://rest-api:8080/hooks/kratos/validate-settings
+      SELFSERVICE_FLOWS_SETTINGS_AFTER_PROFILE_HOOKS_1_CONFIG_URL: http://rest-api:8080/hooks/kratos/after-settings
     depends_on:
       kratos-migrate:
         condition: service_completed_successfully

@@ -43,6 +43,13 @@ export const ProblemDetailsSchema = Type.Object(
     code: ProblemCodeSchema,
     detail: Type.Optional(Type.String()),
     instance: Type.Optional(Type.String()),
+    retryAfter: Type.Optional(
+      Type.Integer({
+        minimum: 0,
+        description:
+          'Non-negative delay in seconds before retrying, matching the Retry-After response header when present.',
+      }),
+    ),
   },
   // RFC 9457 §3 — problem details MAY contain extension members beyond the
   // standard fields. Routes that need structured detail (e.g. listing

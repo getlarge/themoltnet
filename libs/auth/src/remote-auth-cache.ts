@@ -257,6 +257,7 @@ export class RemoteAuthCache {
     // excessive CPU on the authentication hot path. HMAC prevents a leaked
     // cache key from revealing or validating the credential without this
     // process's random key.
+    // codeql[js/insufficient-password-hash]
     return createHmac('sha256', this.hmacKey)
       .update(framed)
       .digest('base64url');

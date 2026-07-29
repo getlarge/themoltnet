@@ -1174,13 +1174,16 @@ func (s *BearerAuth) SetRoles(val []string) {
 
 // Merged schema.
 type BeginRuntimeSlotBadRequest struct {
-	Code            BeginRuntimeSlotBadRequestCode `json:"code"`
-	Detail          OptString                      `json:"detail"`
-	Instance        OptString                      `json:"instance"`
-	Status          int                            `json:"status"`
-	Title           string                         `json:"title"`
-	Type            url.URL                        `json:"type"`
-	Errors          []ValidationError              `json:"errors"`
+	Code     BeginRuntimeSlotBadRequestCode `json:"code"`
+	Detail   OptString                      `json:"detail"`
+	Instance OptString                      `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt            `json:"retryAfter"`
+	Status          int               `json:"status"`
+	Title           string            `json:"title"`
+	Type            url.URL           `json:"type"`
+	Errors          []ValidationError `json:"errors"`
 	AdditionalProps BeginRuntimeSlotBadRequestAdditional
 }
 
@@ -1197,6 +1200,11 @@ func (s *BeginRuntimeSlotBadRequest) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *BeginRuntimeSlotBadRequest) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *BeginRuntimeSlotBadRequest) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -1237,6 +1245,11 @@ func (s *BeginRuntimeSlotBadRequest) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *BeginRuntimeSlotBadRequest) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *BeginRuntimeSlotBadRequest) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -1509,13 +1522,16 @@ func (s *BeginRuntimeSlotBadRequestCode) UnmarshalText(data []byte) error {
 
 // Merged schema.
 type BeginRuntimeSlotConflict struct {
-	Code            BeginRuntimeSlotConflictCode `json:"code"`
-	Detail          OptString                    `json:"detail"`
-	Instance        OptString                    `json:"instance"`
-	Status          int                          `json:"status"`
-	Title           string                       `json:"title"`
-	Type            url.URL                      `json:"type"`
-	Conflict        ConflictError                `json:"conflict"`
+	Code     BeginRuntimeSlotConflictCode `json:"code"`
+	Detail   OptString                    `json:"detail"`
+	Instance OptString                    `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt        `json:"retryAfter"`
+	Status          int           `json:"status"`
+	Title           string        `json:"title"`
+	Type            url.URL       `json:"type"`
+	Conflict        ConflictError `json:"conflict"`
 	AdditionalProps BeginRuntimeSlotConflictAdditional
 }
 
@@ -1532,6 +1548,11 @@ func (s *BeginRuntimeSlotConflict) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *BeginRuntimeSlotConflict) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *BeginRuntimeSlotConflict) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -1572,6 +1593,11 @@ func (s *BeginRuntimeSlotConflict) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *BeginRuntimeSlotConflict) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *BeginRuntimeSlotConflict) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -1843,12 +1869,15 @@ func (s *BeginRuntimeSlotConflictCode) UnmarshalText(data []byte) error {
 }
 
 type BeginRuntimeSlotForbidden struct {
-	Code            BeginRuntimeSlotForbiddenCode `json:"code"`
-	Detail          OptString                     `json:"detail"`
-	Instance        OptString                     `json:"instance"`
-	Status          int                           `json:"status"`
-	Title           string                        `json:"title"`
-	Type            url.URL                       `json:"type"`
+	Code     BeginRuntimeSlotForbiddenCode `json:"code"`
+	Detail   OptString                     `json:"detail"`
+	Instance OptString                     `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt  `json:"retryAfter"`
+	Status          int     `json:"status"`
+	Title           string  `json:"title"`
+	Type            url.URL `json:"type"`
 	AdditionalProps BeginRuntimeSlotForbiddenAdditional
 }
 
@@ -1865,6 +1894,11 @@ func (s *BeginRuntimeSlotForbidden) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *BeginRuntimeSlotForbidden) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *BeginRuntimeSlotForbidden) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -1900,6 +1934,11 @@ func (s *BeginRuntimeSlotForbidden) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *BeginRuntimeSlotForbidden) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *BeginRuntimeSlotForbidden) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -2166,12 +2205,15 @@ func (s *BeginRuntimeSlotForbiddenCode) UnmarshalText(data []byte) error {
 }
 
 type BeginRuntimeSlotNotFound struct {
-	Code            BeginRuntimeSlotNotFoundCode `json:"code"`
-	Detail          OptString                    `json:"detail"`
-	Instance        OptString                    `json:"instance"`
-	Status          int                          `json:"status"`
-	Title           string                       `json:"title"`
-	Type            url.URL                      `json:"type"`
+	Code     BeginRuntimeSlotNotFoundCode `json:"code"`
+	Detail   OptString                    `json:"detail"`
+	Instance OptString                    `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt  `json:"retryAfter"`
+	Status          int     `json:"status"`
+	Title           string  `json:"title"`
+	Type            url.URL `json:"type"`
 	AdditionalProps BeginRuntimeSlotNotFoundAdditional
 }
 
@@ -2188,6 +2230,11 @@ func (s *BeginRuntimeSlotNotFound) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *BeginRuntimeSlotNotFound) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *BeginRuntimeSlotNotFound) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -2223,6 +2270,11 @@ func (s *BeginRuntimeSlotNotFound) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *BeginRuntimeSlotNotFound) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *BeginRuntimeSlotNotFound) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -2935,12 +2987,15 @@ type BeginRuntimeSlotTooManyRequests ProblemDetails
 func (*BeginRuntimeSlotTooManyRequests) beginRuntimeSlotRes() {}
 
 type BeginRuntimeSlotUnauthorized struct {
-	Code            BeginRuntimeSlotUnauthorizedCode `json:"code"`
-	Detail          OptString                        `json:"detail"`
-	Instance        OptString                        `json:"instance"`
-	Status          int                              `json:"status"`
-	Title           string                           `json:"title"`
-	Type            url.URL                          `json:"type"`
+	Code     BeginRuntimeSlotUnauthorizedCode `json:"code"`
+	Detail   OptString                        `json:"detail"`
+	Instance OptString                        `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt  `json:"retryAfter"`
+	Status          int     `json:"status"`
+	Title           string  `json:"title"`
+	Type            url.URL `json:"type"`
 	AdditionalProps BeginRuntimeSlotUnauthorizedAdditional
 }
 
@@ -2957,6 +3012,11 @@ func (s *BeginRuntimeSlotUnauthorized) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *BeginRuntimeSlotUnauthorized) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *BeginRuntimeSlotUnauthorized) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -2992,6 +3052,11 @@ func (s *BeginRuntimeSlotUnauthorized) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *BeginRuntimeSlotUnauthorized) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *BeginRuntimeSlotUnauthorized) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -4367,13 +4432,16 @@ func (s *ConflictError) SetTarget(val OptConflictTarget) {
 // Merged schema.
 // Ref: #/components/schemas/ConflictProblemDetails
 type ConflictProblemDetails struct {
-	Code            ConflictProblemDetailsCode `json:"code"`
-	Detail          OptString                  `json:"detail"`
-	Instance        OptString                  `json:"instance"`
-	Status          int                        `json:"status"`
-	Title           string                     `json:"title"`
-	Type            url.URL                    `json:"type"`
-	Conflict        ConflictError              `json:"conflict"`
+	Code     ConflictProblemDetailsCode `json:"code"`
+	Detail   OptString                  `json:"detail"`
+	Instance OptString                  `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt        `json:"retryAfter"`
+	Status          int           `json:"status"`
+	Title           string        `json:"title"`
+	Type            url.URL       `json:"type"`
+	Conflict        ConflictError `json:"conflict"`
 	AdditionalProps ConflictProblemDetailsAdditional
 }
 
@@ -4390,6 +4458,11 @@ func (s *ConflictProblemDetails) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *ConflictProblemDetails) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *ConflictProblemDetails) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -4430,6 +4503,11 @@ func (s *ConflictProblemDetails) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *ConflictProblemDetails) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *ConflictProblemDetails) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -11934,13 +12012,16 @@ func (*DiffContextPacksByIdUnauthorized) diffContextPacksByIdRes() {}
 
 // Merged schema.
 type DownloadRuntimeSessionBadRequest struct {
-	Code            DownloadRuntimeSessionBadRequestCode `json:"code"`
-	Detail          OptString                            `json:"detail"`
-	Instance        OptString                            `json:"instance"`
-	Status          int                                  `json:"status"`
-	Title           string                               `json:"title"`
-	Type            url.URL                              `json:"type"`
-	Errors          []ValidationError                    `json:"errors"`
+	Code     DownloadRuntimeSessionBadRequestCode `json:"code"`
+	Detail   OptString                            `json:"detail"`
+	Instance OptString                            `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt            `json:"retryAfter"`
+	Status          int               `json:"status"`
+	Title           string            `json:"title"`
+	Type            url.URL           `json:"type"`
+	Errors          []ValidationError `json:"errors"`
 	AdditionalProps DownloadRuntimeSessionBadRequestAdditional
 }
 
@@ -11957,6 +12038,11 @@ func (s *DownloadRuntimeSessionBadRequest) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *DownloadRuntimeSessionBadRequest) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *DownloadRuntimeSessionBadRequest) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -11997,6 +12083,11 @@ func (s *DownloadRuntimeSessionBadRequest) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *DownloadRuntimeSessionBadRequest) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *DownloadRuntimeSessionBadRequest) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -12268,12 +12359,15 @@ func (s *DownloadRuntimeSessionBadRequestCode) UnmarshalText(data []byte) error 
 }
 
 type DownloadRuntimeSessionForbidden struct {
-	Code            DownloadRuntimeSessionForbiddenCode `json:"code"`
-	Detail          OptString                           `json:"detail"`
-	Instance        OptString                           `json:"instance"`
-	Status          int                                 `json:"status"`
-	Title           string                              `json:"title"`
-	Type            url.URL                             `json:"type"`
+	Code     DownloadRuntimeSessionForbiddenCode `json:"code"`
+	Detail   OptString                           `json:"detail"`
+	Instance OptString                           `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt  `json:"retryAfter"`
+	Status          int     `json:"status"`
+	Title           string  `json:"title"`
+	Type            url.URL `json:"type"`
 	AdditionalProps DownloadRuntimeSessionForbiddenAdditional
 }
 
@@ -12290,6 +12384,11 @@ func (s *DownloadRuntimeSessionForbidden) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *DownloadRuntimeSessionForbidden) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *DownloadRuntimeSessionForbidden) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -12325,6 +12424,11 @@ func (s *DownloadRuntimeSessionForbidden) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *DownloadRuntimeSessionForbidden) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *DownloadRuntimeSessionForbidden) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -12591,12 +12695,15 @@ func (s *DownloadRuntimeSessionForbiddenCode) UnmarshalText(data []byte) error {
 }
 
 type DownloadRuntimeSessionNotFound struct {
-	Code            DownloadRuntimeSessionNotFoundCode `json:"code"`
-	Detail          OptString                          `json:"detail"`
-	Instance        OptString                          `json:"instance"`
-	Status          int                                `json:"status"`
-	Title           string                             `json:"title"`
-	Type            url.URL                            `json:"type"`
+	Code     DownloadRuntimeSessionNotFoundCode `json:"code"`
+	Detail   OptString                          `json:"detail"`
+	Instance OptString                          `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt  `json:"retryAfter"`
+	Status          int     `json:"status"`
+	Title           string  `json:"title"`
+	Type            url.URL `json:"type"`
 	AdditionalProps DownloadRuntimeSessionNotFoundAdditional
 }
 
@@ -12613,6 +12720,11 @@ func (s *DownloadRuntimeSessionNotFound) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *DownloadRuntimeSessionNotFound) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *DownloadRuntimeSessionNotFound) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -12648,6 +12760,11 @@ func (s *DownloadRuntimeSessionNotFound) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *DownloadRuntimeSessionNotFound) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *DownloadRuntimeSessionNotFound) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -12931,12 +13048,15 @@ func (s DownloadRuntimeSessionOK) Read(p []byte) (n int, err error) {
 func (*DownloadRuntimeSessionOK) downloadRuntimeSessionRes() {}
 
 type DownloadRuntimeSessionServiceUnavailable struct {
-	Code            DownloadRuntimeSessionServiceUnavailableCode `json:"code"`
-	Detail          OptString                                    `json:"detail"`
-	Instance        OptString                                    `json:"instance"`
-	Status          int                                          `json:"status"`
-	Title           string                                       `json:"title"`
-	Type            url.URL                                      `json:"type"`
+	Code     DownloadRuntimeSessionServiceUnavailableCode `json:"code"`
+	Detail   OptString                                    `json:"detail"`
+	Instance OptString                                    `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt  `json:"retryAfter"`
+	Status          int     `json:"status"`
+	Title           string  `json:"title"`
+	Type            url.URL `json:"type"`
 	AdditionalProps DownloadRuntimeSessionServiceUnavailableAdditional
 }
 
@@ -12953,6 +13073,11 @@ func (s *DownloadRuntimeSessionServiceUnavailable) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *DownloadRuntimeSessionServiceUnavailable) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *DownloadRuntimeSessionServiceUnavailable) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -12988,6 +13113,11 @@ func (s *DownloadRuntimeSessionServiceUnavailable) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *DownloadRuntimeSessionServiceUnavailable) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *DownloadRuntimeSessionServiceUnavailable) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -13254,12 +13384,15 @@ func (s *DownloadRuntimeSessionServiceUnavailableCode) UnmarshalText(data []byte
 }
 
 type DownloadRuntimeSessionUnauthorized struct {
-	Code            DownloadRuntimeSessionUnauthorizedCode `json:"code"`
-	Detail          OptString                              `json:"detail"`
-	Instance        OptString                              `json:"instance"`
-	Status          int                                    `json:"status"`
-	Title           string                                 `json:"title"`
-	Type            url.URL                                `json:"type"`
+	Code     DownloadRuntimeSessionUnauthorizedCode `json:"code"`
+	Detail   OptString                              `json:"detail"`
+	Instance OptString                              `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt  `json:"retryAfter"`
+	Status          int     `json:"status"`
+	Title           string  `json:"title"`
+	Type            url.URL `json:"type"`
 	AdditionalProps DownloadRuntimeSessionUnauthorizedAdditional
 }
 
@@ -13276,6 +13409,11 @@ func (s *DownloadRuntimeSessionUnauthorized) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *DownloadRuntimeSessionUnauthorized) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *DownloadRuntimeSessionUnauthorized) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -13311,6 +13449,11 @@ func (s *DownloadRuntimeSessionUnauthorized) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *DownloadRuntimeSessionUnauthorized) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *DownloadRuntimeSessionUnauthorized) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -13578,13 +13721,16 @@ func (s *DownloadRuntimeSessionUnauthorizedCode) UnmarshalText(data []byte) erro
 
 // Merged schema.
 type DownloadTaskArtifactBadRequest struct {
-	Code            DownloadTaskArtifactBadRequestCode `json:"code"`
-	Detail          OptString                          `json:"detail"`
-	Instance        OptString                          `json:"instance"`
-	Status          int                                `json:"status"`
-	Title           string                             `json:"title"`
-	Type            url.URL                            `json:"type"`
-	Errors          []ValidationError                  `json:"errors"`
+	Code     DownloadTaskArtifactBadRequestCode `json:"code"`
+	Detail   OptString                          `json:"detail"`
+	Instance OptString                          `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt            `json:"retryAfter"`
+	Status          int               `json:"status"`
+	Title           string            `json:"title"`
+	Type            url.URL           `json:"type"`
+	Errors          []ValidationError `json:"errors"`
 	AdditionalProps DownloadTaskArtifactBadRequestAdditional
 }
 
@@ -13601,6 +13747,11 @@ func (s *DownloadTaskArtifactBadRequest) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *DownloadTaskArtifactBadRequest) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *DownloadTaskArtifactBadRequest) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -13641,6 +13792,11 @@ func (s *DownloadTaskArtifactBadRequest) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *DownloadTaskArtifactBadRequest) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *DownloadTaskArtifactBadRequest) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -13913,13 +14069,16 @@ func (s *DownloadTaskArtifactBadRequestCode) UnmarshalText(data []byte) error {
 
 // Merged schema.
 type DownloadTaskArtifactByCidBadRequest struct {
-	Code            DownloadTaskArtifactByCidBadRequestCode `json:"code"`
-	Detail          OptString                               `json:"detail"`
-	Instance        OptString                               `json:"instance"`
-	Status          int                                     `json:"status"`
-	Title           string                                  `json:"title"`
-	Type            url.URL                                 `json:"type"`
-	Errors          []ValidationError                       `json:"errors"`
+	Code     DownloadTaskArtifactByCidBadRequestCode `json:"code"`
+	Detail   OptString                               `json:"detail"`
+	Instance OptString                               `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt            `json:"retryAfter"`
+	Status          int               `json:"status"`
+	Title           string            `json:"title"`
+	Type            url.URL           `json:"type"`
+	Errors          []ValidationError `json:"errors"`
 	AdditionalProps DownloadTaskArtifactByCidBadRequestAdditional
 }
 
@@ -13936,6 +14095,11 @@ func (s *DownloadTaskArtifactByCidBadRequest) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *DownloadTaskArtifactByCidBadRequest) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *DownloadTaskArtifactByCidBadRequest) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -13976,6 +14140,11 @@ func (s *DownloadTaskArtifactByCidBadRequest) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *DownloadTaskArtifactByCidBadRequest) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *DownloadTaskArtifactByCidBadRequest) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -14247,12 +14416,15 @@ func (s *DownloadTaskArtifactByCidBadRequestCode) UnmarshalText(data []byte) err
 }
 
 type DownloadTaskArtifactByCidForbidden struct {
-	Code            DownloadTaskArtifactByCidForbiddenCode `json:"code"`
-	Detail          OptString                              `json:"detail"`
-	Instance        OptString                              `json:"instance"`
-	Status          int                                    `json:"status"`
-	Title           string                                 `json:"title"`
-	Type            url.URL                                `json:"type"`
+	Code     DownloadTaskArtifactByCidForbiddenCode `json:"code"`
+	Detail   OptString                              `json:"detail"`
+	Instance OptString                              `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt  `json:"retryAfter"`
+	Status          int     `json:"status"`
+	Title           string  `json:"title"`
+	Type            url.URL `json:"type"`
 	AdditionalProps DownloadTaskArtifactByCidForbiddenAdditional
 }
 
@@ -14269,6 +14441,11 @@ func (s *DownloadTaskArtifactByCidForbidden) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *DownloadTaskArtifactByCidForbidden) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *DownloadTaskArtifactByCidForbidden) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -14304,6 +14481,11 @@ func (s *DownloadTaskArtifactByCidForbidden) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *DownloadTaskArtifactByCidForbidden) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *DownloadTaskArtifactByCidForbidden) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -14570,12 +14752,15 @@ func (s *DownloadTaskArtifactByCidForbiddenCode) UnmarshalText(data []byte) erro
 }
 
 type DownloadTaskArtifactByCidNotFound struct {
-	Code            DownloadTaskArtifactByCidNotFoundCode `json:"code"`
-	Detail          OptString                             `json:"detail"`
-	Instance        OptString                             `json:"instance"`
-	Status          int                                   `json:"status"`
-	Title           string                                `json:"title"`
-	Type            url.URL                               `json:"type"`
+	Code     DownloadTaskArtifactByCidNotFoundCode `json:"code"`
+	Detail   OptString                             `json:"detail"`
+	Instance OptString                             `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt  `json:"retryAfter"`
+	Status          int     `json:"status"`
+	Title           string  `json:"title"`
+	Type            url.URL `json:"type"`
 	AdditionalProps DownloadTaskArtifactByCidNotFoundAdditional
 }
 
@@ -14592,6 +14777,11 @@ func (s *DownloadTaskArtifactByCidNotFound) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *DownloadTaskArtifactByCidNotFound) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *DownloadTaskArtifactByCidNotFound) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -14627,6 +14817,11 @@ func (s *DownloadTaskArtifactByCidNotFound) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *DownloadTaskArtifactByCidNotFound) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *DownloadTaskArtifactByCidNotFound) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -14969,12 +15164,15 @@ func (s *DownloadTaskArtifactByCidOKHeaders) SetResponse(val DownloadTaskArtifac
 func (*DownloadTaskArtifactByCidOKHeaders) downloadTaskArtifactByCidRes() {}
 
 type DownloadTaskArtifactByCidServiceUnavailable struct {
-	Code            DownloadTaskArtifactByCidServiceUnavailableCode `json:"code"`
-	Detail          OptString                                       `json:"detail"`
-	Instance        OptString                                       `json:"instance"`
-	Status          int                                             `json:"status"`
-	Title           string                                          `json:"title"`
-	Type            url.URL                                         `json:"type"`
+	Code     DownloadTaskArtifactByCidServiceUnavailableCode `json:"code"`
+	Detail   OptString                                       `json:"detail"`
+	Instance OptString                                       `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt  `json:"retryAfter"`
+	Status          int     `json:"status"`
+	Title           string  `json:"title"`
+	Type            url.URL `json:"type"`
 	AdditionalProps DownloadTaskArtifactByCidServiceUnavailableAdditional
 }
 
@@ -14991,6 +15189,11 @@ func (s *DownloadTaskArtifactByCidServiceUnavailable) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *DownloadTaskArtifactByCidServiceUnavailable) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *DownloadTaskArtifactByCidServiceUnavailable) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -15026,6 +15229,11 @@ func (s *DownloadTaskArtifactByCidServiceUnavailable) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *DownloadTaskArtifactByCidServiceUnavailable) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *DownloadTaskArtifactByCidServiceUnavailable) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -15292,12 +15500,15 @@ func (s *DownloadTaskArtifactByCidServiceUnavailableCode) UnmarshalText(data []b
 }
 
 type DownloadTaskArtifactByCidUnauthorized struct {
-	Code            DownloadTaskArtifactByCidUnauthorizedCode `json:"code"`
-	Detail          OptString                                 `json:"detail"`
-	Instance        OptString                                 `json:"instance"`
-	Status          int                                       `json:"status"`
-	Title           string                                    `json:"title"`
-	Type            url.URL                                   `json:"type"`
+	Code     DownloadTaskArtifactByCidUnauthorizedCode `json:"code"`
+	Detail   OptString                                 `json:"detail"`
+	Instance OptString                                 `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt  `json:"retryAfter"`
+	Status          int     `json:"status"`
+	Title           string  `json:"title"`
+	Type            url.URL `json:"type"`
 	AdditionalProps DownloadTaskArtifactByCidUnauthorizedAdditional
 }
 
@@ -15314,6 +15525,11 @@ func (s *DownloadTaskArtifactByCidUnauthorized) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *DownloadTaskArtifactByCidUnauthorized) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *DownloadTaskArtifactByCidUnauthorized) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -15349,6 +15565,11 @@ func (s *DownloadTaskArtifactByCidUnauthorized) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *DownloadTaskArtifactByCidUnauthorized) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *DownloadTaskArtifactByCidUnauthorized) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -15615,12 +15836,15 @@ func (s *DownloadTaskArtifactByCidUnauthorizedCode) UnmarshalText(data []byte) e
 }
 
 type DownloadTaskArtifactForbidden struct {
-	Code            DownloadTaskArtifactForbiddenCode `json:"code"`
-	Detail          OptString                         `json:"detail"`
-	Instance        OptString                         `json:"instance"`
-	Status          int                               `json:"status"`
-	Title           string                            `json:"title"`
-	Type            url.URL                           `json:"type"`
+	Code     DownloadTaskArtifactForbiddenCode `json:"code"`
+	Detail   OptString                         `json:"detail"`
+	Instance OptString                         `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt  `json:"retryAfter"`
+	Status          int     `json:"status"`
+	Title           string  `json:"title"`
+	Type            url.URL `json:"type"`
 	AdditionalProps DownloadTaskArtifactForbiddenAdditional
 }
 
@@ -15637,6 +15861,11 @@ func (s *DownloadTaskArtifactForbidden) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *DownloadTaskArtifactForbidden) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *DownloadTaskArtifactForbidden) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -15672,6 +15901,11 @@ func (s *DownloadTaskArtifactForbidden) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *DownloadTaskArtifactForbidden) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *DownloadTaskArtifactForbidden) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -15938,12 +16172,15 @@ func (s *DownloadTaskArtifactForbiddenCode) UnmarshalText(data []byte) error {
 }
 
 type DownloadTaskArtifactNotFound struct {
-	Code            DownloadTaskArtifactNotFoundCode `json:"code"`
-	Detail          OptString                        `json:"detail"`
-	Instance        OptString                        `json:"instance"`
-	Status          int                              `json:"status"`
-	Title           string                           `json:"title"`
-	Type            url.URL                          `json:"type"`
+	Code     DownloadTaskArtifactNotFoundCode `json:"code"`
+	Detail   OptString                        `json:"detail"`
+	Instance OptString                        `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt  `json:"retryAfter"`
+	Status          int     `json:"status"`
+	Title           string  `json:"title"`
+	Type            url.URL `json:"type"`
 	AdditionalProps DownloadTaskArtifactNotFoundAdditional
 }
 
@@ -15960,6 +16197,11 @@ func (s *DownloadTaskArtifactNotFound) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *DownloadTaskArtifactNotFound) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *DownloadTaskArtifactNotFound) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -15995,6 +16237,11 @@ func (s *DownloadTaskArtifactNotFound) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *DownloadTaskArtifactNotFound) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *DownloadTaskArtifactNotFound) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -16337,12 +16584,15 @@ func (s *DownloadTaskArtifactOKHeaders) SetResponse(val DownloadTaskArtifactOK) 
 func (*DownloadTaskArtifactOKHeaders) downloadTaskArtifactRes() {}
 
 type DownloadTaskArtifactServiceUnavailable struct {
-	Code            DownloadTaskArtifactServiceUnavailableCode `json:"code"`
-	Detail          OptString                                  `json:"detail"`
-	Instance        OptString                                  `json:"instance"`
-	Status          int                                        `json:"status"`
-	Title           string                                     `json:"title"`
-	Type            url.URL                                    `json:"type"`
+	Code     DownloadTaskArtifactServiceUnavailableCode `json:"code"`
+	Detail   OptString                                  `json:"detail"`
+	Instance OptString                                  `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt  `json:"retryAfter"`
+	Status          int     `json:"status"`
+	Title           string  `json:"title"`
+	Type            url.URL `json:"type"`
 	AdditionalProps DownloadTaskArtifactServiceUnavailableAdditional
 }
 
@@ -16359,6 +16609,11 @@ func (s *DownloadTaskArtifactServiceUnavailable) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *DownloadTaskArtifactServiceUnavailable) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *DownloadTaskArtifactServiceUnavailable) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -16394,6 +16649,11 @@ func (s *DownloadTaskArtifactServiceUnavailable) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *DownloadTaskArtifactServiceUnavailable) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *DownloadTaskArtifactServiceUnavailable) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -16660,12 +16920,15 @@ func (s *DownloadTaskArtifactServiceUnavailableCode) UnmarshalText(data []byte) 
 }
 
 type DownloadTaskArtifactUnauthorized struct {
-	Code            DownloadTaskArtifactUnauthorizedCode `json:"code"`
-	Detail          OptString                            `json:"detail"`
-	Instance        OptString                            `json:"instance"`
-	Status          int                                  `json:"status"`
-	Title           string                               `json:"title"`
-	Type            url.URL                              `json:"type"`
+	Code     DownloadTaskArtifactUnauthorizedCode `json:"code"`
+	Detail   OptString                            `json:"detail"`
+	Instance OptString                            `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt  `json:"retryAfter"`
+	Status          int     `json:"status"`
+	Title           string  `json:"title"`
+	Type            url.URL `json:"type"`
 	AdditionalProps DownloadTaskArtifactUnauthorizedAdditional
 }
 
@@ -16682,6 +16945,11 @@ func (s *DownloadTaskArtifactUnauthorized) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *DownloadTaskArtifactUnauthorized) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *DownloadTaskArtifactUnauthorized) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -16717,6 +16985,11 @@ func (s *DownloadTaskArtifactUnauthorized) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *DownloadTaskArtifactUnauthorized) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *DownloadTaskArtifactUnauthorized) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -17702,13 +17975,16 @@ func (*FailTaskAttemptUnauthorized) failTaskAttemptRes() {}
 
 // Merged schema.
 type FindLatestRuntimeSlotForAttemptBadRequest struct {
-	Code            FindLatestRuntimeSlotForAttemptBadRequestCode `json:"code"`
-	Detail          OptString                                     `json:"detail"`
-	Instance        OptString                                     `json:"instance"`
-	Status          int                                           `json:"status"`
-	Title           string                                        `json:"title"`
-	Type            url.URL                                       `json:"type"`
-	Errors          []ValidationError                             `json:"errors"`
+	Code     FindLatestRuntimeSlotForAttemptBadRequestCode `json:"code"`
+	Detail   OptString                                     `json:"detail"`
+	Instance OptString                                     `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt            `json:"retryAfter"`
+	Status          int               `json:"status"`
+	Title           string            `json:"title"`
+	Type            url.URL           `json:"type"`
+	Errors          []ValidationError `json:"errors"`
 	AdditionalProps FindLatestRuntimeSlotForAttemptBadRequestAdditional
 }
 
@@ -17725,6 +18001,11 @@ func (s *FindLatestRuntimeSlotForAttemptBadRequest) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *FindLatestRuntimeSlotForAttemptBadRequest) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *FindLatestRuntimeSlotForAttemptBadRequest) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -17765,6 +18046,11 @@ func (s *FindLatestRuntimeSlotForAttemptBadRequest) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *FindLatestRuntimeSlotForAttemptBadRequest) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *FindLatestRuntimeSlotForAttemptBadRequest) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -18036,12 +18322,15 @@ func (s *FindLatestRuntimeSlotForAttemptBadRequestCode) UnmarshalText(data []byt
 }
 
 type FindLatestRuntimeSlotForAttemptForbidden struct {
-	Code            FindLatestRuntimeSlotForAttemptForbiddenCode `json:"code"`
-	Detail          OptString                                    `json:"detail"`
-	Instance        OptString                                    `json:"instance"`
-	Status          int                                          `json:"status"`
-	Title           string                                       `json:"title"`
-	Type            url.URL                                      `json:"type"`
+	Code     FindLatestRuntimeSlotForAttemptForbiddenCode `json:"code"`
+	Detail   OptString                                    `json:"detail"`
+	Instance OptString                                    `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt  `json:"retryAfter"`
+	Status          int     `json:"status"`
+	Title           string  `json:"title"`
+	Type            url.URL `json:"type"`
 	AdditionalProps FindLatestRuntimeSlotForAttemptForbiddenAdditional
 }
 
@@ -18058,6 +18347,11 @@ func (s *FindLatestRuntimeSlotForAttemptForbidden) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *FindLatestRuntimeSlotForAttemptForbidden) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *FindLatestRuntimeSlotForAttemptForbidden) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -18093,6 +18387,11 @@ func (s *FindLatestRuntimeSlotForAttemptForbidden) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *FindLatestRuntimeSlotForAttemptForbidden) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *FindLatestRuntimeSlotForAttemptForbidden) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -18359,12 +18658,15 @@ func (s *FindLatestRuntimeSlotForAttemptForbiddenCode) UnmarshalText(data []byte
 }
 
 type FindLatestRuntimeSlotForAttemptNotFound struct {
-	Code            FindLatestRuntimeSlotForAttemptNotFoundCode `json:"code"`
-	Detail          OptString                                   `json:"detail"`
-	Instance        OptString                                   `json:"instance"`
-	Status          int                                         `json:"status"`
-	Title           string                                      `json:"title"`
-	Type            url.URL                                     `json:"type"`
+	Code     FindLatestRuntimeSlotForAttemptNotFoundCode `json:"code"`
+	Detail   OptString                                   `json:"detail"`
+	Instance OptString                                   `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt  `json:"retryAfter"`
+	Status          int     `json:"status"`
+	Title           string  `json:"title"`
+	Type            url.URL `json:"type"`
 	AdditionalProps FindLatestRuntimeSlotForAttemptNotFoundAdditional
 }
 
@@ -18381,6 +18683,11 @@ func (s *FindLatestRuntimeSlotForAttemptNotFound) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *FindLatestRuntimeSlotForAttemptNotFound) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *FindLatestRuntimeSlotForAttemptNotFound) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -18416,6 +18723,11 @@ func (s *FindLatestRuntimeSlotForAttemptNotFound) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *FindLatestRuntimeSlotForAttemptNotFound) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *FindLatestRuntimeSlotForAttemptNotFound) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -19087,12 +19399,15 @@ type FindLatestRuntimeSlotForAttemptTooManyRequests ProblemDetails
 func (*FindLatestRuntimeSlotForAttemptTooManyRequests) findLatestRuntimeSlotForAttemptRes() {}
 
 type FindLatestRuntimeSlotForAttemptUnauthorized struct {
-	Code            FindLatestRuntimeSlotForAttemptUnauthorizedCode `json:"code"`
-	Detail          OptString                                       `json:"detail"`
-	Instance        OptString                                       `json:"instance"`
-	Status          int                                             `json:"status"`
-	Title           string                                          `json:"title"`
-	Type            url.URL                                         `json:"type"`
+	Code     FindLatestRuntimeSlotForAttemptUnauthorizedCode `json:"code"`
+	Detail   OptString                                       `json:"detail"`
+	Instance OptString                                       `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt  `json:"retryAfter"`
+	Status          int     `json:"status"`
+	Title           string  `json:"title"`
+	Type            url.URL `json:"type"`
 	AdditionalProps FindLatestRuntimeSlotForAttemptUnauthorizedAdditional
 }
 
@@ -19109,6 +19424,11 @@ func (s *FindLatestRuntimeSlotForAttemptUnauthorized) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *FindLatestRuntimeSlotForAttemptUnauthorized) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *FindLatestRuntimeSlotForAttemptUnauthorized) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -19144,6 +19464,11 @@ func (s *FindLatestRuntimeSlotForAttemptUnauthorized) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *FindLatestRuntimeSlotForAttemptUnauthorized) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *FindLatestRuntimeSlotForAttemptUnauthorized) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -19411,13 +19736,16 @@ func (s *FindLatestRuntimeSlotForAttemptUnauthorizedCode) UnmarshalText(data []b
 
 // Merged schema.
 type FinishRuntimeSlotBadRequest struct {
-	Code            FinishRuntimeSlotBadRequestCode `json:"code"`
-	Detail          OptString                       `json:"detail"`
-	Instance        OptString                       `json:"instance"`
-	Status          int                             `json:"status"`
-	Title           string                          `json:"title"`
-	Type            url.URL                         `json:"type"`
-	Errors          []ValidationError               `json:"errors"`
+	Code     FinishRuntimeSlotBadRequestCode `json:"code"`
+	Detail   OptString                       `json:"detail"`
+	Instance OptString                       `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt            `json:"retryAfter"`
+	Status          int               `json:"status"`
+	Title           string            `json:"title"`
+	Type            url.URL           `json:"type"`
+	Errors          []ValidationError `json:"errors"`
 	AdditionalProps FinishRuntimeSlotBadRequestAdditional
 }
 
@@ -19434,6 +19762,11 @@ func (s *FinishRuntimeSlotBadRequest) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *FinishRuntimeSlotBadRequest) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *FinishRuntimeSlotBadRequest) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -19474,6 +19807,11 @@ func (s *FinishRuntimeSlotBadRequest) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *FinishRuntimeSlotBadRequest) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *FinishRuntimeSlotBadRequest) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -19746,13 +20084,16 @@ func (s *FinishRuntimeSlotBadRequestCode) UnmarshalText(data []byte) error {
 
 // Merged schema.
 type FinishRuntimeSlotConflict struct {
-	Code            FinishRuntimeSlotConflictCode `json:"code"`
-	Detail          OptString                     `json:"detail"`
-	Instance        OptString                     `json:"instance"`
-	Status          int                           `json:"status"`
-	Title           string                        `json:"title"`
-	Type            url.URL                       `json:"type"`
-	Conflict        ConflictError                 `json:"conflict"`
+	Code     FinishRuntimeSlotConflictCode `json:"code"`
+	Detail   OptString                     `json:"detail"`
+	Instance OptString                     `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt        `json:"retryAfter"`
+	Status          int           `json:"status"`
+	Title           string        `json:"title"`
+	Type            url.URL       `json:"type"`
+	Conflict        ConflictError `json:"conflict"`
 	AdditionalProps FinishRuntimeSlotConflictAdditional
 }
 
@@ -19769,6 +20110,11 @@ func (s *FinishRuntimeSlotConflict) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *FinishRuntimeSlotConflict) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *FinishRuntimeSlotConflict) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -19809,6 +20155,11 @@ func (s *FinishRuntimeSlotConflict) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *FinishRuntimeSlotConflict) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *FinishRuntimeSlotConflict) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -20080,12 +20431,15 @@ func (s *FinishRuntimeSlotConflictCode) UnmarshalText(data []byte) error {
 }
 
 type FinishRuntimeSlotForbidden struct {
-	Code            FinishRuntimeSlotForbiddenCode `json:"code"`
-	Detail          OptString                      `json:"detail"`
-	Instance        OptString                      `json:"instance"`
-	Status          int                            `json:"status"`
-	Title           string                         `json:"title"`
-	Type            url.URL                        `json:"type"`
+	Code     FinishRuntimeSlotForbiddenCode `json:"code"`
+	Detail   OptString                      `json:"detail"`
+	Instance OptString                      `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt  `json:"retryAfter"`
+	Status          int     `json:"status"`
+	Title           string  `json:"title"`
+	Type            url.URL `json:"type"`
 	AdditionalProps FinishRuntimeSlotForbiddenAdditional
 }
 
@@ -20102,6 +20456,11 @@ func (s *FinishRuntimeSlotForbidden) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *FinishRuntimeSlotForbidden) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *FinishRuntimeSlotForbidden) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -20137,6 +20496,11 @@ func (s *FinishRuntimeSlotForbidden) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *FinishRuntimeSlotForbidden) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *FinishRuntimeSlotForbidden) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -20403,12 +20767,15 @@ func (s *FinishRuntimeSlotForbiddenCode) UnmarshalText(data []byte) error {
 }
 
 type FinishRuntimeSlotNotFound struct {
-	Code            FinishRuntimeSlotNotFoundCode `json:"code"`
-	Detail          OptString                     `json:"detail"`
-	Instance        OptString                     `json:"instance"`
-	Status          int                           `json:"status"`
-	Title           string                        `json:"title"`
-	Type            url.URL                       `json:"type"`
+	Code     FinishRuntimeSlotNotFoundCode `json:"code"`
+	Detail   OptString                     `json:"detail"`
+	Instance OptString                     `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt  `json:"retryAfter"`
+	Status          int     `json:"status"`
+	Title           string  `json:"title"`
+	Type            url.URL `json:"type"`
 	AdditionalProps FinishRuntimeSlotNotFoundAdditional
 }
 
@@ -20425,6 +20792,11 @@ func (s *FinishRuntimeSlotNotFound) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *FinishRuntimeSlotNotFound) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *FinishRuntimeSlotNotFound) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -20460,6 +20832,11 @@ func (s *FinishRuntimeSlotNotFound) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *FinishRuntimeSlotNotFound) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *FinishRuntimeSlotNotFound) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -21058,12 +21435,15 @@ type FinishRuntimeSlotTooManyRequests ProblemDetails
 func (*FinishRuntimeSlotTooManyRequests) finishRuntimeSlotRes() {}
 
 type FinishRuntimeSlotUnauthorized struct {
-	Code            FinishRuntimeSlotUnauthorizedCode `json:"code"`
-	Detail          OptString                         `json:"detail"`
-	Instance        OptString                         `json:"instance"`
-	Status          int                               `json:"status"`
-	Title           string                            `json:"title"`
-	Type            url.URL                           `json:"type"`
+	Code     FinishRuntimeSlotUnauthorizedCode `json:"code"`
+	Detail   OptString                         `json:"detail"`
+	Instance OptString                         `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt  `json:"retryAfter"`
+	Status          int     `json:"status"`
+	Title           string  `json:"title"`
+	Type            url.URL `json:"type"`
 	AdditionalProps FinishRuntimeSlotUnauthorizedAdditional
 }
 
@@ -21080,6 +21460,11 @@ func (s *FinishRuntimeSlotUnauthorized) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *FinishRuntimeSlotUnauthorized) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *FinishRuntimeSlotUnauthorized) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -21115,6 +21500,11 @@ func (s *FinishRuntimeSlotUnauthorized) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *FinishRuntimeSlotUnauthorized) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *FinishRuntimeSlotUnauthorized) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -22853,13 +23243,16 @@ func (*GetRuntimeProfileUnauthorized) getRuntimeProfileRes() {}
 
 // Merged schema.
 type GetRuntimeSessionBadRequest struct {
-	Code            GetRuntimeSessionBadRequestCode `json:"code"`
-	Detail          OptString                       `json:"detail"`
-	Instance        OptString                       `json:"instance"`
-	Status          int                             `json:"status"`
-	Title           string                          `json:"title"`
-	Type            url.URL                         `json:"type"`
-	Errors          []ValidationError               `json:"errors"`
+	Code     GetRuntimeSessionBadRequestCode `json:"code"`
+	Detail   OptString                       `json:"detail"`
+	Instance OptString                       `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt            `json:"retryAfter"`
+	Status          int               `json:"status"`
+	Title           string            `json:"title"`
+	Type            url.URL           `json:"type"`
+	Errors          []ValidationError `json:"errors"`
 	AdditionalProps GetRuntimeSessionBadRequestAdditional
 }
 
@@ -22876,6 +23269,11 @@ func (s *GetRuntimeSessionBadRequest) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *GetRuntimeSessionBadRequest) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *GetRuntimeSessionBadRequest) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -22916,6 +23314,11 @@ func (s *GetRuntimeSessionBadRequest) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *GetRuntimeSessionBadRequest) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *GetRuntimeSessionBadRequest) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -23187,12 +23590,15 @@ func (s *GetRuntimeSessionBadRequestCode) UnmarshalText(data []byte) error {
 }
 
 type GetRuntimeSessionForbidden struct {
-	Code            GetRuntimeSessionForbiddenCode `json:"code"`
-	Detail          OptString                      `json:"detail"`
-	Instance        OptString                      `json:"instance"`
-	Status          int                            `json:"status"`
-	Title           string                         `json:"title"`
-	Type            url.URL                        `json:"type"`
+	Code     GetRuntimeSessionForbiddenCode `json:"code"`
+	Detail   OptString                      `json:"detail"`
+	Instance OptString                      `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt  `json:"retryAfter"`
+	Status          int     `json:"status"`
+	Title           string  `json:"title"`
+	Type            url.URL `json:"type"`
 	AdditionalProps GetRuntimeSessionForbiddenAdditional
 }
 
@@ -23209,6 +23615,11 @@ func (s *GetRuntimeSessionForbidden) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *GetRuntimeSessionForbidden) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *GetRuntimeSessionForbidden) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -23244,6 +23655,11 @@ func (s *GetRuntimeSessionForbidden) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *GetRuntimeSessionForbidden) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *GetRuntimeSessionForbidden) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -23510,12 +23926,15 @@ func (s *GetRuntimeSessionForbiddenCode) UnmarshalText(data []byte) error {
 }
 
 type GetRuntimeSessionNotFound struct {
-	Code            GetRuntimeSessionNotFoundCode `json:"code"`
-	Detail          OptString                     `json:"detail"`
-	Instance        OptString                     `json:"instance"`
-	Status          int                           `json:"status"`
-	Title           string                        `json:"title"`
-	Type            url.URL                       `json:"type"`
+	Code     GetRuntimeSessionNotFoundCode `json:"code"`
+	Detail   OptString                     `json:"detail"`
+	Instance OptString                     `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt  `json:"retryAfter"`
+	Status          int     `json:"status"`
+	Title           string  `json:"title"`
+	Type            url.URL `json:"type"`
 	AdditionalProps GetRuntimeSessionNotFoundAdditional
 }
 
@@ -23532,6 +23951,11 @@ func (s *GetRuntimeSessionNotFound) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *GetRuntimeSessionNotFound) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *GetRuntimeSessionNotFound) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -23567,6 +23991,11 @@ func (s *GetRuntimeSessionNotFound) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *GetRuntimeSessionNotFound) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *GetRuntimeSessionNotFound) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -24134,12 +24563,15 @@ type GetRuntimeSessionTooManyRequests ProblemDetails
 func (*GetRuntimeSessionTooManyRequests) getRuntimeSessionRes() {}
 
 type GetRuntimeSessionUnauthorized struct {
-	Code            GetRuntimeSessionUnauthorizedCode `json:"code"`
-	Detail          OptString                         `json:"detail"`
-	Instance        OptString                         `json:"instance"`
-	Status          int                               `json:"status"`
-	Title           string                            `json:"title"`
-	Type            url.URL                           `json:"type"`
+	Code     GetRuntimeSessionUnauthorizedCode `json:"code"`
+	Detail   OptString                         `json:"detail"`
+	Instance OptString                         `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt  `json:"retryAfter"`
+	Status          int     `json:"status"`
+	Title           string  `json:"title"`
+	Type            url.URL `json:"type"`
 	AdditionalProps GetRuntimeSessionUnauthorizedAdditional
 }
 
@@ -24156,6 +24588,11 @@ func (s *GetRuntimeSessionUnauthorized) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *GetRuntimeSessionUnauthorized) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *GetRuntimeSessionUnauthorized) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -24191,6 +24628,11 @@ func (s *GetRuntimeSessionUnauthorized) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *GetRuntimeSessionUnauthorized) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *GetRuntimeSessionUnauthorized) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -25233,9 +25675,12 @@ func (*InitiateTransferUnauthorized) initiateTransferRes() {}
 // Merged schema.
 // Ref: #/components/schemas/InjectionConflictProblemDetails
 type InjectionConflictProblemDetails struct {
-	Code            InjectionConflictProblemDetailsCode          `json:"code"`
-	Detail          OptString                                    `json:"detail"`
-	Instance        OptString                                    `json:"instance"`
+	Code     InjectionConflictProblemDetailsCode `json:"code"`
+	Detail   OptString                           `json:"detail"`
+	Instance OptString                           `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt                                       `json:"retryAfter"`
 	Status          int                                          `json:"status"`
 	Title           string                                       `json:"title"`
 	Type            url.URL                                      `json:"type"`
@@ -25257,6 +25702,11 @@ func (s *InjectionConflictProblemDetails) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *InjectionConflictProblemDetails) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *InjectionConflictProblemDetails) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -25302,6 +25752,11 @@ func (s *InjectionConflictProblemDetails) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *InjectionConflictProblemDetails) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *InjectionConflictProblemDetails) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -26825,13 +27280,16 @@ func (*ListRuntimeProfilesUnauthorized) listRuntimeProfilesRes() {}
 
 // Merged schema.
 type ListRuntimeSlotsBadRequest struct {
-	Code            ListRuntimeSlotsBadRequestCode `json:"code"`
-	Detail          OptString                      `json:"detail"`
-	Instance        OptString                      `json:"instance"`
-	Status          int                            `json:"status"`
-	Title           string                         `json:"title"`
-	Type            url.URL                        `json:"type"`
-	Errors          []ValidationError              `json:"errors"`
+	Code     ListRuntimeSlotsBadRequestCode `json:"code"`
+	Detail   OptString                      `json:"detail"`
+	Instance OptString                      `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt            `json:"retryAfter"`
+	Status          int               `json:"status"`
+	Title           string            `json:"title"`
+	Type            url.URL           `json:"type"`
+	Errors          []ValidationError `json:"errors"`
 	AdditionalProps ListRuntimeSlotsBadRequestAdditional
 }
 
@@ -26848,6 +27306,11 @@ func (s *ListRuntimeSlotsBadRequest) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *ListRuntimeSlotsBadRequest) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *ListRuntimeSlotsBadRequest) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -26888,6 +27351,11 @@ func (s *ListRuntimeSlotsBadRequest) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *ListRuntimeSlotsBadRequest) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *ListRuntimeSlotsBadRequest) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -27159,12 +27627,15 @@ func (s *ListRuntimeSlotsBadRequestCode) UnmarshalText(data []byte) error {
 }
 
 type ListRuntimeSlotsForbidden struct {
-	Code            ListRuntimeSlotsForbiddenCode `json:"code"`
-	Detail          OptString                     `json:"detail"`
-	Instance        OptString                     `json:"instance"`
-	Status          int                           `json:"status"`
-	Title           string                        `json:"title"`
-	Type            url.URL                       `json:"type"`
+	Code     ListRuntimeSlotsForbiddenCode `json:"code"`
+	Detail   OptString                     `json:"detail"`
+	Instance OptString                     `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt  `json:"retryAfter"`
+	Status          int     `json:"status"`
+	Title           string  `json:"title"`
+	Type            url.URL `json:"type"`
 	AdditionalProps ListRuntimeSlotsForbiddenAdditional
 }
 
@@ -27181,6 +27652,11 @@ func (s *ListRuntimeSlotsForbidden) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *ListRuntimeSlotsForbidden) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *ListRuntimeSlotsForbidden) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -27216,6 +27692,11 @@ func (s *ListRuntimeSlotsForbidden) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *ListRuntimeSlotsForbidden) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *ListRuntimeSlotsForbidden) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -27482,12 +27963,15 @@ func (s *ListRuntimeSlotsForbiddenCode) UnmarshalText(data []byte) error {
 }
 
 type ListRuntimeSlotsNotFound struct {
-	Code            ListRuntimeSlotsNotFoundCode `json:"code"`
-	Detail          OptString                    `json:"detail"`
-	Instance        OptString                    `json:"instance"`
-	Status          int                          `json:"status"`
-	Title           string                       `json:"title"`
-	Type            url.URL                      `json:"type"`
+	Code     ListRuntimeSlotsNotFoundCode `json:"code"`
+	Detail   OptString                    `json:"detail"`
+	Instance OptString                    `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt  `json:"retryAfter"`
+	Status          int     `json:"status"`
+	Title           string  `json:"title"`
+	Type            url.URL `json:"type"`
 	AdditionalProps ListRuntimeSlotsNotFoundAdditional
 }
 
@@ -27504,6 +27988,11 @@ func (s *ListRuntimeSlotsNotFound) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *ListRuntimeSlotsNotFound) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *ListRuntimeSlotsNotFound) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -27539,6 +28028,11 @@ func (s *ListRuntimeSlotsNotFound) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *ListRuntimeSlotsNotFound) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *ListRuntimeSlotsNotFound) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -28265,12 +28759,15 @@ type ListRuntimeSlotsTooManyRequests ProblemDetails
 func (*ListRuntimeSlotsTooManyRequests) listRuntimeSlotsRes() {}
 
 type ListRuntimeSlotsUnauthorized struct {
-	Code            ListRuntimeSlotsUnauthorizedCode `json:"code"`
-	Detail          OptString                        `json:"detail"`
-	Instance        OptString                        `json:"instance"`
-	Status          int                              `json:"status"`
-	Title           string                           `json:"title"`
-	Type            url.URL                          `json:"type"`
+	Code     ListRuntimeSlotsUnauthorizedCode `json:"code"`
+	Detail   OptString                        `json:"detail"`
+	Instance OptString                        `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt  `json:"retryAfter"`
+	Status          int     `json:"status"`
+	Title           string  `json:"title"`
+	Type            url.URL `json:"type"`
 	AdditionalProps ListRuntimeSlotsUnauthorizedAdditional
 }
 
@@ -28287,6 +28784,11 @@ func (s *ListRuntimeSlotsUnauthorized) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *ListRuntimeSlotsUnauthorized) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *ListRuntimeSlotsUnauthorized) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -28322,6 +28824,11 @@ func (s *ListRuntimeSlotsUnauthorized) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *ListRuntimeSlotsUnauthorized) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *ListRuntimeSlotsUnauthorized) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -28728,13 +29235,16 @@ func (*ListSigningRequestsUnauthorized) listSigningRequestsRes() {}
 
 // Merged schema.
 type ListTaskArtifactsBadRequest struct {
-	Code            ListTaskArtifactsBadRequestCode `json:"code"`
-	Detail          OptString                       `json:"detail"`
-	Instance        OptString                       `json:"instance"`
-	Status          int                             `json:"status"`
-	Title           string                          `json:"title"`
-	Type            url.URL                         `json:"type"`
-	Errors          []ValidationError               `json:"errors"`
+	Code     ListTaskArtifactsBadRequestCode `json:"code"`
+	Detail   OptString                       `json:"detail"`
+	Instance OptString                       `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt            `json:"retryAfter"`
+	Status          int               `json:"status"`
+	Title           string            `json:"title"`
+	Type            url.URL           `json:"type"`
+	Errors          []ValidationError `json:"errors"`
 	AdditionalProps ListTaskArtifactsBadRequestAdditional
 }
 
@@ -28751,6 +29261,11 @@ func (s *ListTaskArtifactsBadRequest) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *ListTaskArtifactsBadRequest) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *ListTaskArtifactsBadRequest) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -28791,6 +29306,11 @@ func (s *ListTaskArtifactsBadRequest) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *ListTaskArtifactsBadRequest) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *ListTaskArtifactsBadRequest) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -29062,12 +29582,15 @@ func (s *ListTaskArtifactsBadRequestCode) UnmarshalText(data []byte) error {
 }
 
 type ListTaskArtifactsForbidden struct {
-	Code            ListTaskArtifactsForbiddenCode `json:"code"`
-	Detail          OptString                      `json:"detail"`
-	Instance        OptString                      `json:"instance"`
-	Status          int                            `json:"status"`
-	Title           string                         `json:"title"`
-	Type            url.URL                        `json:"type"`
+	Code     ListTaskArtifactsForbiddenCode `json:"code"`
+	Detail   OptString                      `json:"detail"`
+	Instance OptString                      `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt  `json:"retryAfter"`
+	Status          int     `json:"status"`
+	Title           string  `json:"title"`
+	Type            url.URL `json:"type"`
 	AdditionalProps ListTaskArtifactsForbiddenAdditional
 }
 
@@ -29084,6 +29607,11 @@ func (s *ListTaskArtifactsForbidden) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *ListTaskArtifactsForbidden) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *ListTaskArtifactsForbidden) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -29119,6 +29647,11 @@ func (s *ListTaskArtifactsForbidden) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *ListTaskArtifactsForbidden) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *ListTaskArtifactsForbidden) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -29385,12 +29918,15 @@ func (s *ListTaskArtifactsForbiddenCode) UnmarshalText(data []byte) error {
 }
 
 type ListTaskArtifactsNotFound struct {
-	Code            ListTaskArtifactsNotFoundCode `json:"code"`
-	Detail          OptString                     `json:"detail"`
-	Instance        OptString                     `json:"instance"`
-	Status          int                           `json:"status"`
-	Title           string                        `json:"title"`
-	Type            url.URL                       `json:"type"`
+	Code     ListTaskArtifactsNotFoundCode `json:"code"`
+	Detail   OptString                     `json:"detail"`
+	Instance OptString                     `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt  `json:"retryAfter"`
+	Status          int     `json:"status"`
+	Title           string  `json:"title"`
+	Type            url.URL `json:"type"`
 	AdditionalProps ListTaskArtifactsNotFoundAdditional
 }
 
@@ -29407,6 +29943,11 @@ func (s *ListTaskArtifactsNotFound) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *ListTaskArtifactsNotFound) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *ListTaskArtifactsNotFound) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -29442,6 +29983,11 @@ func (s *ListTaskArtifactsNotFound) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *ListTaskArtifactsNotFound) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *ListTaskArtifactsNotFound) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -29889,12 +30435,15 @@ type ListTaskArtifactsTooManyRequests ProblemDetails
 func (*ListTaskArtifactsTooManyRequests) listTaskArtifactsRes() {}
 
 type ListTaskArtifactsUnauthorized struct {
-	Code            ListTaskArtifactsUnauthorizedCode `json:"code"`
-	Detail          OptString                         `json:"detail"`
-	Instance        OptString                         `json:"instance"`
-	Status          int                               `json:"status"`
-	Title           string                            `json:"title"`
-	Type            url.URL                           `json:"type"`
+	Code     ListTaskArtifactsUnauthorizedCode `json:"code"`
+	Detail   OptString                         `json:"detail"`
+	Instance OptString                         `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt  `json:"retryAfter"`
+	Status          int     `json:"status"`
+	Title           string  `json:"title"`
+	Type            url.URL `json:"type"`
 	AdditionalProps ListTaskArtifactsUnauthorizedAdditional
 }
 
@@ -29911,6 +30460,11 @@ func (s *ListTaskArtifactsUnauthorized) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *ListTaskArtifactsUnauthorized) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *ListTaskArtifactsUnauthorized) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -29946,6 +30500,11 @@ func (s *ListTaskArtifactsUnauthorized) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *ListTaskArtifactsUnauthorized) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *ListTaskArtifactsUnauthorized) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -40607,12 +41166,15 @@ type PreviewSignSha256Base64Url string
 
 // Ref: #/components/schemas/ProblemDetails
 type ProblemDetails struct {
-	Code            ProblemDetailsCode `json:"code"`
-	Detail          OptString          `json:"detail"`
-	Instance        OptString          `json:"instance"`
-	Status          int                `json:"status"`
-	Title           string             `json:"title"`
-	Type            url.URL            `json:"type"`
+	Code     ProblemDetailsCode `json:"code"`
+	Detail   OptString          `json:"detail"`
+	Instance OptString          `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt  `json:"retryAfter"`
+	Status          int     `json:"status"`
+	Title           string  `json:"title"`
+	Type            url.URL `json:"type"`
 	AdditionalProps ProblemDetailsAdditional
 }
 
@@ -40629,6 +41191,11 @@ func (s *ProblemDetails) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *ProblemDetails) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *ProblemDetails) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -40664,6 +41231,11 @@ func (s *ProblemDetails) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *ProblemDetails) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *ProblemDetails) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -49205,13 +49777,16 @@ func (s *SigningRequestVerificationMethod) UnmarshalText(data []byte) error {
 
 // Merged schema.
 type StageTaskArtifactBadRequest struct {
-	Code            StageTaskArtifactBadRequestCode `json:"code"`
-	Detail          OptString                       `json:"detail"`
-	Instance        OptString                       `json:"instance"`
-	Status          int                             `json:"status"`
-	Title           string                          `json:"title"`
-	Type            url.URL                         `json:"type"`
-	Errors          []ValidationError               `json:"errors"`
+	Code     StageTaskArtifactBadRequestCode `json:"code"`
+	Detail   OptString                       `json:"detail"`
+	Instance OptString                       `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt            `json:"retryAfter"`
+	Status          int               `json:"status"`
+	Title           string            `json:"title"`
+	Type            url.URL           `json:"type"`
+	Errors          []ValidationError `json:"errors"`
 	AdditionalProps StageTaskArtifactBadRequestAdditional
 }
 
@@ -49228,6 +49803,11 @@ func (s *StageTaskArtifactBadRequest) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *StageTaskArtifactBadRequest) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *StageTaskArtifactBadRequest) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -49268,6 +49848,11 @@ func (s *StageTaskArtifactBadRequest) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *StageTaskArtifactBadRequest) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *StageTaskArtifactBadRequest) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -49539,12 +50124,15 @@ func (s *StageTaskArtifactBadRequestCode) UnmarshalText(data []byte) error {
 }
 
 type StageTaskArtifactForbidden struct {
-	Code            StageTaskArtifactForbiddenCode `json:"code"`
-	Detail          OptString                      `json:"detail"`
-	Instance        OptString                      `json:"instance"`
-	Status          int                            `json:"status"`
-	Title           string                         `json:"title"`
-	Type            url.URL                        `json:"type"`
+	Code     StageTaskArtifactForbiddenCode `json:"code"`
+	Detail   OptString                      `json:"detail"`
+	Instance OptString                      `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt  `json:"retryAfter"`
+	Status          int     `json:"status"`
+	Title           string  `json:"title"`
+	Type            url.URL `json:"type"`
 	AdditionalProps StageTaskArtifactForbiddenAdditional
 }
 
@@ -49561,6 +50149,11 @@ func (s *StageTaskArtifactForbidden) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *StageTaskArtifactForbidden) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *StageTaskArtifactForbidden) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -49596,6 +50189,11 @@ func (s *StageTaskArtifactForbidden) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *StageTaskArtifactForbidden) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *StageTaskArtifactForbidden) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -49862,12 +50460,15 @@ func (s *StageTaskArtifactForbiddenCode) UnmarshalText(data []byte) error {
 }
 
 type StageTaskArtifactNotFound struct {
-	Code            StageTaskArtifactNotFoundCode `json:"code"`
-	Detail          OptString                     `json:"detail"`
-	Instance        OptString                     `json:"instance"`
-	Status          int                           `json:"status"`
-	Title           string                        `json:"title"`
-	Type            url.URL                       `json:"type"`
+	Code     StageTaskArtifactNotFoundCode `json:"code"`
+	Detail   OptString                     `json:"detail"`
+	Instance OptString                     `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt  `json:"retryAfter"`
+	Status          int     `json:"status"`
+	Title           string  `json:"title"`
+	Type            url.URL `json:"type"`
 	AdditionalProps StageTaskArtifactNotFoundAdditional
 }
 
@@ -49884,6 +50485,11 @@ func (s *StageTaskArtifactNotFound) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *StageTaskArtifactNotFound) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *StageTaskArtifactNotFound) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -49919,6 +50525,11 @@ func (s *StageTaskArtifactNotFound) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *StageTaskArtifactNotFound) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *StageTaskArtifactNotFound) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -50238,12 +50849,15 @@ func (s StageTaskArtifactReq) Read(p []byte) (n int, err error) {
 }
 
 type StageTaskArtifactServiceUnavailable struct {
-	Code            StageTaskArtifactServiceUnavailableCode `json:"code"`
-	Detail          OptString                               `json:"detail"`
-	Instance        OptString                               `json:"instance"`
-	Status          int                                     `json:"status"`
-	Title           string                                  `json:"title"`
-	Type            url.URL                                 `json:"type"`
+	Code     StageTaskArtifactServiceUnavailableCode `json:"code"`
+	Detail   OptString                               `json:"detail"`
+	Instance OptString                               `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt  `json:"retryAfter"`
+	Status          int     `json:"status"`
+	Title           string  `json:"title"`
+	Type            url.URL `json:"type"`
 	AdditionalProps StageTaskArtifactServiceUnavailableAdditional
 }
 
@@ -50260,6 +50874,11 @@ func (s *StageTaskArtifactServiceUnavailable) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *StageTaskArtifactServiceUnavailable) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *StageTaskArtifactServiceUnavailable) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -50295,6 +50914,11 @@ func (s *StageTaskArtifactServiceUnavailable) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *StageTaskArtifactServiceUnavailable) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *StageTaskArtifactServiceUnavailable) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -50561,12 +51185,15 @@ func (s *StageTaskArtifactServiceUnavailableCode) UnmarshalText(data []byte) err
 }
 
 type StageTaskArtifactUnauthorized struct {
-	Code            StageTaskArtifactUnauthorizedCode `json:"code"`
-	Detail          OptString                         `json:"detail"`
-	Instance        OptString                         `json:"instance"`
-	Status          int                               `json:"status"`
-	Title           string                            `json:"title"`
-	Type            url.URL                           `json:"type"`
+	Code     StageTaskArtifactUnauthorizedCode `json:"code"`
+	Detail   OptString                         `json:"detail"`
+	Instance OptString                         `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt  `json:"retryAfter"`
+	Status          int     `json:"status"`
+	Title           string  `json:"title"`
+	Type            url.URL `json:"type"`
 	AdditionalProps StageTaskArtifactUnauthorizedAdditional
 }
 
@@ -50583,6 +51210,11 @@ func (s *StageTaskArtifactUnauthorized) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *StageTaskArtifactUnauthorized) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *StageTaskArtifactUnauthorized) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -50618,6 +51250,11 @@ func (s *StageTaskArtifactUnauthorized) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *StageTaskArtifactUnauthorized) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *StageTaskArtifactUnauthorized) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -56034,13 +56671,16 @@ func (*UpdateTeamMemberRoleUnauthorized) updateTeamMemberRoleRes() {}
 
 // Merged schema.
 type UploadRuntimeSessionBadRequest struct {
-	Code            UploadRuntimeSessionBadRequestCode `json:"code"`
-	Detail          OptString                          `json:"detail"`
-	Instance        OptString                          `json:"instance"`
-	Status          int                                `json:"status"`
-	Title           string                             `json:"title"`
-	Type            url.URL                            `json:"type"`
-	Errors          []ValidationError                  `json:"errors"`
+	Code     UploadRuntimeSessionBadRequestCode `json:"code"`
+	Detail   OptString                          `json:"detail"`
+	Instance OptString                          `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt            `json:"retryAfter"`
+	Status          int               `json:"status"`
+	Title           string            `json:"title"`
+	Type            url.URL           `json:"type"`
+	Errors          []ValidationError `json:"errors"`
 	AdditionalProps UploadRuntimeSessionBadRequestAdditional
 }
 
@@ -56057,6 +56697,11 @@ func (s *UploadRuntimeSessionBadRequest) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *UploadRuntimeSessionBadRequest) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *UploadRuntimeSessionBadRequest) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -56097,6 +56742,11 @@ func (s *UploadRuntimeSessionBadRequest) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *UploadRuntimeSessionBadRequest) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *UploadRuntimeSessionBadRequest) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -56368,12 +57018,15 @@ func (s *UploadRuntimeSessionBadRequestCode) UnmarshalText(data []byte) error {
 }
 
 type UploadRuntimeSessionConflict struct {
-	Code            UploadRuntimeSessionConflictCode `json:"code"`
-	Detail          OptString                        `json:"detail"`
-	Instance        OptString                        `json:"instance"`
-	Status          int                              `json:"status"`
-	Title           string                           `json:"title"`
-	Type            url.URL                          `json:"type"`
+	Code     UploadRuntimeSessionConflictCode `json:"code"`
+	Detail   OptString                        `json:"detail"`
+	Instance OptString                        `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt  `json:"retryAfter"`
+	Status          int     `json:"status"`
+	Title           string  `json:"title"`
+	Type            url.URL `json:"type"`
 	AdditionalProps UploadRuntimeSessionConflictAdditional
 }
 
@@ -56390,6 +57043,11 @@ func (s *UploadRuntimeSessionConflict) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *UploadRuntimeSessionConflict) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *UploadRuntimeSessionConflict) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -56425,6 +57083,11 @@ func (s *UploadRuntimeSessionConflict) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *UploadRuntimeSessionConflict) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *UploadRuntimeSessionConflict) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -56691,12 +57354,15 @@ func (s *UploadRuntimeSessionConflictCode) UnmarshalText(data []byte) error {
 }
 
 type UploadRuntimeSessionForbidden struct {
-	Code            UploadRuntimeSessionForbiddenCode `json:"code"`
-	Detail          OptString                         `json:"detail"`
-	Instance        OptString                         `json:"instance"`
-	Status          int                               `json:"status"`
-	Title           string                            `json:"title"`
-	Type            url.URL                           `json:"type"`
+	Code     UploadRuntimeSessionForbiddenCode `json:"code"`
+	Detail   OptString                         `json:"detail"`
+	Instance OptString                         `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt  `json:"retryAfter"`
+	Status          int     `json:"status"`
+	Title           string  `json:"title"`
+	Type            url.URL `json:"type"`
 	AdditionalProps UploadRuntimeSessionForbiddenAdditional
 }
 
@@ -56713,6 +57379,11 @@ func (s *UploadRuntimeSessionForbidden) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *UploadRuntimeSessionForbidden) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *UploadRuntimeSessionForbidden) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -56748,6 +57419,11 @@ func (s *UploadRuntimeSessionForbidden) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *UploadRuntimeSessionForbidden) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *UploadRuntimeSessionForbidden) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -57014,12 +57690,15 @@ func (s *UploadRuntimeSessionForbiddenCode) UnmarshalText(data []byte) error {
 }
 
 type UploadRuntimeSessionNotFound struct {
-	Code            UploadRuntimeSessionNotFoundCode `json:"code"`
-	Detail          OptString                        `json:"detail"`
-	Instance        OptString                        `json:"instance"`
-	Status          int                              `json:"status"`
-	Title           string                           `json:"title"`
-	Type            url.URL                          `json:"type"`
+	Code     UploadRuntimeSessionNotFoundCode `json:"code"`
+	Detail   OptString                        `json:"detail"`
+	Instance OptString                        `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt  `json:"retryAfter"`
+	Status          int     `json:"status"`
+	Title           string  `json:"title"`
+	Type            url.URL `json:"type"`
 	AdditionalProps UploadRuntimeSessionNotFoundAdditional
 }
 
@@ -57036,6 +57715,11 @@ func (s *UploadRuntimeSessionNotFound) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *UploadRuntimeSessionNotFound) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *UploadRuntimeSessionNotFound) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -57071,6 +57755,11 @@ func (s *UploadRuntimeSessionNotFound) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *UploadRuntimeSessionNotFound) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *UploadRuntimeSessionNotFound) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -57645,12 +58334,15 @@ func (s UploadRuntimeSessionReq) Read(p []byte) (n int, err error) {
 }
 
 type UploadRuntimeSessionServiceUnavailable struct {
-	Code            UploadRuntimeSessionServiceUnavailableCode `json:"code"`
-	Detail          OptString                                  `json:"detail"`
-	Instance        OptString                                  `json:"instance"`
-	Status          int                                        `json:"status"`
-	Title           string                                     `json:"title"`
-	Type            url.URL                                    `json:"type"`
+	Code     UploadRuntimeSessionServiceUnavailableCode `json:"code"`
+	Detail   OptString                                  `json:"detail"`
+	Instance OptString                                  `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt  `json:"retryAfter"`
+	Status          int     `json:"status"`
+	Title           string  `json:"title"`
+	Type            url.URL `json:"type"`
 	AdditionalProps UploadRuntimeSessionServiceUnavailableAdditional
 }
 
@@ -57667,6 +58359,11 @@ func (s *UploadRuntimeSessionServiceUnavailable) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *UploadRuntimeSessionServiceUnavailable) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *UploadRuntimeSessionServiceUnavailable) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -57702,6 +58399,11 @@ func (s *UploadRuntimeSessionServiceUnavailable) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *UploadRuntimeSessionServiceUnavailable) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *UploadRuntimeSessionServiceUnavailable) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -58016,12 +58718,15 @@ func (s *UploadRuntimeSessionSessionKind) UnmarshalText(data []byte) error {
 }
 
 type UploadRuntimeSessionUnauthorized struct {
-	Code            UploadRuntimeSessionUnauthorizedCode `json:"code"`
-	Detail          OptString                            `json:"detail"`
-	Instance        OptString                            `json:"instance"`
-	Status          int                                  `json:"status"`
-	Title           string                               `json:"title"`
-	Type            url.URL                              `json:"type"`
+	Code     UploadRuntimeSessionUnauthorizedCode `json:"code"`
+	Detail   OptString                            `json:"detail"`
+	Instance OptString                            `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt  `json:"retryAfter"`
+	Status          int     `json:"status"`
+	Title           string  `json:"title"`
+	Type            url.URL `json:"type"`
 	AdditionalProps UploadRuntimeSessionUnauthorizedAdditional
 }
 
@@ -58038,6 +58743,11 @@ func (s *UploadRuntimeSessionUnauthorized) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *UploadRuntimeSessionUnauthorized) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *UploadRuntimeSessionUnauthorized) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -58073,6 +58783,11 @@ func (s *UploadRuntimeSessionUnauthorized) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *UploadRuntimeSessionUnauthorized) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *UploadRuntimeSessionUnauthorized) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -58340,13 +59055,16 @@ func (s *UploadRuntimeSessionUnauthorizedCode) UnmarshalText(data []byte) error 
 
 // Merged schema.
 type UploadTaskArtifactBadRequest struct {
-	Code            UploadTaskArtifactBadRequestCode `json:"code"`
-	Detail          OptString                        `json:"detail"`
-	Instance        OptString                        `json:"instance"`
-	Status          int                              `json:"status"`
-	Title           string                           `json:"title"`
-	Type            url.URL                          `json:"type"`
-	Errors          []ValidationError                `json:"errors"`
+	Code     UploadTaskArtifactBadRequestCode `json:"code"`
+	Detail   OptString                        `json:"detail"`
+	Instance OptString                        `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt            `json:"retryAfter"`
+	Status          int               `json:"status"`
+	Title           string            `json:"title"`
+	Type            url.URL           `json:"type"`
+	Errors          []ValidationError `json:"errors"`
 	AdditionalProps UploadTaskArtifactBadRequestAdditional
 }
 
@@ -58363,6 +59081,11 @@ func (s *UploadTaskArtifactBadRequest) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *UploadTaskArtifactBadRequest) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *UploadTaskArtifactBadRequest) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -58403,6 +59126,11 @@ func (s *UploadTaskArtifactBadRequest) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *UploadTaskArtifactBadRequest) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *UploadTaskArtifactBadRequest) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -58674,12 +59402,15 @@ func (s *UploadTaskArtifactBadRequestCode) UnmarshalText(data []byte) error {
 }
 
 type UploadTaskArtifactForbidden struct {
-	Code            UploadTaskArtifactForbiddenCode `json:"code"`
-	Detail          OptString                       `json:"detail"`
-	Instance        OptString                       `json:"instance"`
-	Status          int                             `json:"status"`
-	Title           string                          `json:"title"`
-	Type            url.URL                         `json:"type"`
+	Code     UploadTaskArtifactForbiddenCode `json:"code"`
+	Detail   OptString                       `json:"detail"`
+	Instance OptString                       `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt  `json:"retryAfter"`
+	Status          int     `json:"status"`
+	Title           string  `json:"title"`
+	Type            url.URL `json:"type"`
 	AdditionalProps UploadTaskArtifactForbiddenAdditional
 }
 
@@ -58696,6 +59427,11 @@ func (s *UploadTaskArtifactForbidden) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *UploadTaskArtifactForbidden) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *UploadTaskArtifactForbidden) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -58731,6 +59467,11 @@ func (s *UploadTaskArtifactForbidden) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *UploadTaskArtifactForbidden) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *UploadTaskArtifactForbidden) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -58997,12 +59738,15 @@ func (s *UploadTaskArtifactForbiddenCode) UnmarshalText(data []byte) error {
 }
 
 type UploadTaskArtifactNotFound struct {
-	Code            UploadTaskArtifactNotFoundCode `json:"code"`
-	Detail          OptString                      `json:"detail"`
-	Instance        OptString                      `json:"instance"`
-	Status          int                            `json:"status"`
-	Title           string                         `json:"title"`
-	Type            url.URL                        `json:"type"`
+	Code     UploadTaskArtifactNotFoundCode `json:"code"`
+	Detail   OptString                      `json:"detail"`
+	Instance OptString                      `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt  `json:"retryAfter"`
+	Status          int     `json:"status"`
+	Title           string  `json:"title"`
+	Type            url.URL `json:"type"`
 	AdditionalProps UploadTaskArtifactNotFoundAdditional
 }
 
@@ -59019,6 +59763,11 @@ func (s *UploadTaskArtifactNotFound) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *UploadTaskArtifactNotFound) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *UploadTaskArtifactNotFound) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -59054,6 +59803,11 @@ func (s *UploadTaskArtifactNotFound) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *UploadTaskArtifactNotFound) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *UploadTaskArtifactNotFound) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -59483,12 +60237,15 @@ func (s UploadTaskArtifactReq) Read(p []byte) (n int, err error) {
 }
 
 type UploadTaskArtifactServiceUnavailable struct {
-	Code            UploadTaskArtifactServiceUnavailableCode `json:"code"`
-	Detail          OptString                                `json:"detail"`
-	Instance        OptString                                `json:"instance"`
-	Status          int                                      `json:"status"`
-	Title           string                                   `json:"title"`
-	Type            url.URL                                  `json:"type"`
+	Code     UploadTaskArtifactServiceUnavailableCode `json:"code"`
+	Detail   OptString                                `json:"detail"`
+	Instance OptString                                `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt  `json:"retryAfter"`
+	Status          int     `json:"status"`
+	Title           string  `json:"title"`
+	Type            url.URL `json:"type"`
 	AdditionalProps UploadTaskArtifactServiceUnavailableAdditional
 }
 
@@ -59505,6 +60262,11 @@ func (s *UploadTaskArtifactServiceUnavailable) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *UploadTaskArtifactServiceUnavailable) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *UploadTaskArtifactServiceUnavailable) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -59540,6 +60302,11 @@ func (s *UploadTaskArtifactServiceUnavailable) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *UploadTaskArtifactServiceUnavailable) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *UploadTaskArtifactServiceUnavailable) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -59806,12 +60573,15 @@ func (s *UploadTaskArtifactServiceUnavailableCode) UnmarshalText(data []byte) er
 }
 
 type UploadTaskArtifactUnauthorized struct {
-	Code            UploadTaskArtifactUnauthorizedCode `json:"code"`
-	Detail          OptString                          `json:"detail"`
-	Instance        OptString                          `json:"instance"`
-	Status          int                                `json:"status"`
-	Title           string                             `json:"title"`
-	Type            url.URL                            `json:"type"`
+	Code     UploadTaskArtifactUnauthorizedCode `json:"code"`
+	Detail   OptString                          `json:"detail"`
+	Instance OptString                          `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt  `json:"retryAfter"`
+	Status          int     `json:"status"`
+	Title           string  `json:"title"`
+	Type            url.URL `json:"type"`
 	AdditionalProps UploadTaskArtifactUnauthorizedAdditional
 }
 
@@ -59828,6 +60598,11 @@ func (s *UploadTaskArtifactUnauthorized) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *UploadTaskArtifactUnauthorized) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *UploadTaskArtifactUnauthorized) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -59863,6 +60638,11 @@ func (s *UploadTaskArtifactUnauthorized) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *UploadTaskArtifactUnauthorized) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *UploadTaskArtifactUnauthorized) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
@@ -60241,13 +61021,16 @@ func (s *ValidationError) SetMessage(val string) {
 // Merged schema.
 // Ref: #/components/schemas/ValidationProblemDetails
 type ValidationProblemDetails struct {
-	Code            ValidationProblemDetailsCode `json:"code"`
-	Detail          OptString                    `json:"detail"`
-	Instance        OptString                    `json:"instance"`
-	Status          int                          `json:"status"`
-	Title           string                       `json:"title"`
-	Type            url.URL                      `json:"type"`
-	Errors          []ValidationError            `json:"errors"`
+	Code     ValidationProblemDetailsCode `json:"code"`
+	Detail   OptString                    `json:"detail"`
+	Instance OptString                    `json:"instance"`
+	// Non-negative delay in seconds before retrying, matching the Retry-After response header when
+	// present.
+	RetryAfter      OptInt            `json:"retryAfter"`
+	Status          int               `json:"status"`
+	Title           string            `json:"title"`
+	Type            url.URL           `json:"type"`
+	Errors          []ValidationError `json:"errors"`
 	AdditionalProps ValidationProblemDetailsAdditional
 }
 
@@ -60264,6 +61047,11 @@ func (s *ValidationProblemDetails) GetDetail() OptString {
 // GetInstance returns the value of Instance.
 func (s *ValidationProblemDetails) GetInstance() OptString {
 	return s.Instance
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *ValidationProblemDetails) GetRetryAfter() OptInt {
+	return s.RetryAfter
 }
 
 // GetStatus returns the value of Status.
@@ -60304,6 +61092,11 @@ func (s *ValidationProblemDetails) SetDetail(val OptString) {
 // SetInstance sets the value of Instance.
 func (s *ValidationProblemDetails) SetInstance(val OptString) {
 	s.Instance = val
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *ValidationProblemDetails) SetRetryAfter(val OptInt) {
+	s.RetryAfter = val
 }
 
 // SetStatus sets the value of Status.
