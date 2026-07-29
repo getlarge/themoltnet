@@ -161,9 +161,11 @@ describe('runMultiLensReview', () => {
       task.title?.startsWith('Review change'),
     );
     expect(specialists).toHaveLength(2);
-    expect(
-      tasks.created.every((task) => task.input.execution?.workspace === 'none'),
-    ).toBe(true);
+    for (const task of tasks.created) {
+      expect(task.input).toMatchObject({
+        execution: { workspace: 'none' },
+      });
+    }
     for (const specialist of specialists) {
       expect(specialist.references).toHaveLength(1);
       expect(specialist.references?.[0].artifact?.cid).toBe('bafkrei-topic-1');
