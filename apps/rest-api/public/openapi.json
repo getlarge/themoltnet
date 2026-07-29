@@ -1122,6 +1122,7 @@
                 "type": "string"
               },
               "retryAfter": {
+                "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                 "minimum": 0,
                 "type": "integer"
               },
@@ -4241,6 +4242,7 @@
                     "type": "string"
                   },
                   "retryAfter": {
+                    "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                     "minimum": 0,
                     "type": "integer"
                   },
@@ -5856,6 +5858,7 @@
             "type": "string"
           },
           "retryAfter": {
+            "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
             "minimum": 0,
             "type": "integer"
           },
@@ -13913,6 +13916,7 @@
                 "type": "string"
               },
               "retryAfter": {
+                "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                 "minimum": 0,
                 "type": "integer"
               },
@@ -28547,6 +28551,7 @@
                           "type": "string"
                         },
                         "retryAfter": {
+                          "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                           "minimum": 0,
                           "type": "integer"
                         },
@@ -28782,6 +28787,7 @@
                       "type": "string"
                     },
                     "retryAfter": {
+                      "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                       "minimum": 0,
                       "type": "integer"
                     },
@@ -29001,6 +29007,7 @@
                       "type": "string"
                     },
                     "retryAfter": {
+                      "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                       "minimum": 0,
                       "type": "integer"
                     },
@@ -29220,6 +29227,7 @@
                       "type": "string"
                     },
                     "retryAfter": {
+                      "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                       "minimum": 0,
                       "type": "integer"
                     },
@@ -29525,6 +29533,7 @@
                           "type": "string"
                         },
                         "retryAfter": {
+                          "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                           "minimum": 0,
                           "type": "integer"
                         },
@@ -29760,6 +29769,7 @@
                       "type": "string"
                     },
                     "retryAfter": {
+                      "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                       "minimum": 0,
                       "type": "integer"
                     },
@@ -29979,6 +29989,7 @@
                       "type": "string"
                     },
                     "retryAfter": {
+                      "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                       "minimum": 0,
                       "type": "integer"
                     },
@@ -30198,6 +30209,7 @@
                       "type": "string"
                     },
                     "retryAfter": {
+                      "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                       "minimum": 0,
                       "type": "integer"
                     },
@@ -30427,6 +30439,7 @@
                       "type": "string"
                     },
                     "retryAfter": {
+                      "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                       "minimum": 0,
                       "type": "integer"
                     },
@@ -30909,6 +30922,7 @@
                           "type": "string"
                         },
                         "retryAfter": {
+                          "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                           "minimum": 0,
                           "type": "integer"
                         },
@@ -31144,6 +31158,7 @@
                       "type": "string"
                     },
                     "retryAfter": {
+                      "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                       "minimum": 0,
                       "type": "integer"
                     },
@@ -31363,6 +31378,7 @@
                       "type": "string"
                     },
                     "retryAfter": {
+                      "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                       "minimum": 0,
                       "type": "integer"
                     },
@@ -31582,6 +31598,7 @@
                       "type": "string"
                     },
                     "retryAfter": {
+                      "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                       "minimum": 0,
                       "type": "integer"
                     },
@@ -31801,6 +31818,7 @@
                       "type": "string"
                     },
                     "retryAfter": {
+                      "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                       "minimum": 0,
                       "type": "integer"
                     },
@@ -32030,6 +32048,7 @@
                       "type": "string"
                     },
                     "retryAfter": {
+                      "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                       "minimum": 0,
                       "type": "integer"
                     },
@@ -32577,6 +32596,7 @@
                           "type": "string"
                         },
                         "retryAfter": {
+                          "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                           "minimum": 0,
                           "type": "integer"
                         },
@@ -32812,6 +32832,7 @@
                       "type": "string"
                     },
                     "retryAfter": {
+                      "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                       "minimum": 0,
                       "type": "integer"
                     },
@@ -33031,6 +33052,7 @@
                       "type": "string"
                     },
                     "retryAfter": {
+                      "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                       "minimum": 0,
                       "type": "integer"
                     },
@@ -33250,6 +33272,7 @@
                       "type": "string"
                     },
                     "retryAfter": {
+                      "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                       "minimum": 0,
                       "type": "integer"
                     },
@@ -33769,6 +33792,7 @@
                           "type": "string"
                         },
                         "retryAfter": {
+                          "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                           "minimum": 0,
                           "type": "integer"
                         },
@@ -34004,6 +34028,7 @@
                       "type": "string"
                     },
                     "retryAfter": {
+                      "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                       "minimum": 0,
                       "type": "integer"
                     },
@@ -34223,6 +34248,7 @@
                       "type": "string"
                     },
                     "retryAfter": {
+                      "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                       "minimum": 0,
                       "type": "integer"
                     },
@@ -34442,6 +34468,7 @@
                       "type": "string"
                     },
                     "retryAfter": {
+                      "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                       "minimum": 0,
                       "type": "integer"
                     },
@@ -34663,6 +34690,7 @@
                           "type": "string"
                         },
                         "retryAfter": {
+                          "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                           "minimum": 0,
                           "type": "integer"
                         },
@@ -35151,6 +35179,7 @@
                           "type": "string"
                         },
                         "retryAfter": {
+                          "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                           "minimum": 0,
                           "type": "integer"
                         },
@@ -35386,6 +35415,7 @@
                       "type": "string"
                     },
                     "retryAfter": {
+                      "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                       "minimum": 0,
                       "type": "integer"
                     },
@@ -35605,6 +35635,7 @@
                       "type": "string"
                     },
                     "retryAfter": {
+                      "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                       "minimum": 0,
                       "type": "integer"
                     },
@@ -35824,6 +35855,7 @@
                       "type": "string"
                     },
                     "retryAfter": {
+                      "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                       "minimum": 0,
                       "type": "integer"
                     },
@@ -36045,6 +36077,7 @@
                           "type": "string"
                         },
                         "retryAfter": {
+                          "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                           "minimum": 0,
                           "type": "integer"
                         },
@@ -36582,6 +36615,7 @@
                           "type": "string"
                         },
                         "retryAfter": {
+                          "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                           "minimum": 0,
                           "type": "integer"
                         },
@@ -36817,6 +36851,7 @@
                       "type": "string"
                     },
                     "retryAfter": {
+                      "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                       "minimum": 0,
                       "type": "integer"
                     },
@@ -37036,6 +37071,7 @@
                       "type": "string"
                     },
                     "retryAfter": {
+                      "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                       "minimum": 0,
                       "type": "integer"
                     },
@@ -37255,6 +37291,7 @@
                       "type": "string"
                     },
                     "retryAfter": {
+                      "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                       "minimum": 0,
                       "type": "integer"
                     },
@@ -37595,6 +37632,7 @@
                           "type": "string"
                         },
                         "retryAfter": {
+                          "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                           "minimum": 0,
                           "type": "integer"
                         },
@@ -37830,6 +37868,7 @@
                       "type": "string"
                     },
                     "retryAfter": {
+                      "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                       "minimum": 0,
                       "type": "integer"
                     },
@@ -38049,6 +38088,7 @@
                       "type": "string"
                     },
                     "retryAfter": {
+                      "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                       "minimum": 0,
                       "type": "integer"
                     },
@@ -38268,6 +38308,7 @@
                       "type": "string"
                     },
                     "retryAfter": {
+                      "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                       "minimum": 0,
                       "type": "integer"
                     },
@@ -38497,6 +38538,7 @@
                       "type": "string"
                     },
                     "retryAfter": {
+                      "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                       "minimum": 0,
                       "type": "integer"
                     },
@@ -41281,6 +41323,7 @@
                           "type": "string"
                         },
                         "retryAfter": {
+                          "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                           "minimum": 0,
                           "type": "integer"
                         },
@@ -41516,6 +41559,7 @@
                       "type": "string"
                     },
                     "retryAfter": {
+                      "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                       "minimum": 0,
                       "type": "integer"
                     },
@@ -41735,6 +41779,7 @@
                       "type": "string"
                     },
                     "retryAfter": {
+                      "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                       "minimum": 0,
                       "type": "integer"
                     },
@@ -41954,6 +41999,7 @@
                       "type": "string"
                     },
                     "retryAfter": {
+                      "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                       "minimum": 0,
                       "type": "integer"
                     },
@@ -42286,6 +42332,7 @@
                           "type": "string"
                         },
                         "retryAfter": {
+                          "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                           "minimum": 0,
                           "type": "integer"
                         },
@@ -42521,6 +42568,7 @@
                       "type": "string"
                     },
                     "retryAfter": {
+                      "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                       "minimum": 0,
                       "type": "integer"
                     },
@@ -42740,6 +42788,7 @@
                       "type": "string"
                     },
                     "retryAfter": {
+                      "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                       "minimum": 0,
                       "type": "integer"
                     },
@@ -42959,6 +43008,7 @@
                       "type": "string"
                     },
                     "retryAfter": {
+                      "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                       "minimum": 0,
                       "type": "integer"
                     },
@@ -43188,6 +43238,7 @@
                       "type": "string"
                     },
                     "retryAfter": {
+                      "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                       "minimum": 0,
                       "type": "integer"
                     },
@@ -43627,6 +43678,7 @@
                           "type": "string"
                         },
                         "retryAfter": {
+                          "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                           "minimum": 0,
                           "type": "integer"
                         },
@@ -43862,6 +43914,7 @@
                       "type": "string"
                     },
                     "retryAfter": {
+                      "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                       "minimum": 0,
                       "type": "integer"
                     },
@@ -44081,6 +44134,7 @@
                       "type": "string"
                     },
                     "retryAfter": {
+                      "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                       "minimum": 0,
                       "type": "integer"
                     },
@@ -44300,6 +44354,7 @@
                       "type": "string"
                     },
                     "retryAfter": {
+                      "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                       "minimum": 0,
                       "type": "integer"
                     },
@@ -44539,6 +44594,7 @@
                       "type": "string"
                     },
                     "retryAfter": {
+                      "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                       "minimum": 0,
                       "type": "integer"
                     },
@@ -44860,6 +44916,7 @@
                           "type": "string"
                         },
                         "retryAfter": {
+                          "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                           "minimum": 0,
                           "type": "integer"
                         },
@@ -45095,6 +45152,7 @@
                       "type": "string"
                     },
                     "retryAfter": {
+                      "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                       "minimum": 0,
                       "type": "integer"
                     },
@@ -45314,6 +45372,7 @@
                       "type": "string"
                     },
                     "retryAfter": {
+                      "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                       "minimum": 0,
                       "type": "integer"
                     },
@@ -45533,6 +45592,7 @@
                       "type": "string"
                     },
                     "retryAfter": {
+                      "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                       "minimum": 0,
                       "type": "integer"
                     },
@@ -45762,6 +45822,7 @@
                       "type": "string"
                     },
                     "retryAfter": {
+                      "description": "Non-negative delay in seconds before retrying, matching the Retry-After response header when present.",
                       "minimum": 0,
                       "type": "integer"
                     },

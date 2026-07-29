@@ -264,6 +264,9 @@ export type ConflictProblemDetails = {
     | 'DIARY_TRANSFER_ALREADY_RESOLVED';
   detail?: string;
   instance?: string;
+  /**
+   * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+   */
   retryAfter?: number;
   status: number;
   title: string;
@@ -980,6 +983,9 @@ export type InjectionConflictProblemDetails = {
     | 'DIARY_TRANSFER_ALREADY_RESOLVED';
   detail?: string;
   instance?: string;
+  /**
+   * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+   */
   retryAfter?: number;
   status: number;
   title: string;
@@ -1398,6 +1404,9 @@ export type ProblemDetails = {
     | 'DIARY_TRANSFER_ALREADY_RESOLVED';
   detail?: string;
   instance?: string;
+  /**
+   * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+   */
   retryAfter?: number;
   status: number;
   title: string;
@@ -2976,6 +2985,9 @@ export type ValidationProblemDetails = {
     | 'DIARY_TRANSFER_ALREADY_RESOLVED';
   detail?: string;
   instance?: string;
+  /**
+   * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+   */
   retryAfter?: number;
   status: number;
   title: string;
@@ -8863,6 +8875,9 @@ export type GetRuntimeSessionErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -8941,6 +8956,9 @@ export type GetRuntimeSessionErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -9017,6 +9035,9 @@ export type GetRuntimeSessionErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -9093,6 +9114,9 @@ export type GetRuntimeSessionErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -9225,6 +9249,9 @@ export type DownloadRuntimeSessionErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -9303,6 +9330,9 @@ export type DownloadRuntimeSessionErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -9379,6 +9409,9 @@ export type DownloadRuntimeSessionErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -9455,6 +9488,9 @@ export type DownloadRuntimeSessionErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -9535,6 +9571,9 @@ export type DownloadRuntimeSessionErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -9651,6 +9690,9 @@ export type UploadRuntimeSessionErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -9729,6 +9771,9 @@ export type UploadRuntimeSessionErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -9805,6 +9850,9 @@ export type UploadRuntimeSessionErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -9881,6 +9929,9 @@ export type UploadRuntimeSessionErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -9957,6 +10008,9 @@ export type UploadRuntimeSessionErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -10037,6 +10091,9 @@ export type UploadRuntimeSessionErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -10163,6 +10220,9 @@ export type ListRuntimeSlotsErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -10241,6 +10301,9 @@ export type ListRuntimeSlotsErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -10317,6 +10380,9 @@ export type ListRuntimeSlotsErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -10393,6 +10459,9 @@ export type ListRuntimeSlotsErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -10553,6 +10622,9 @@ export type BeginRuntimeSlotErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -10631,6 +10703,9 @@ export type BeginRuntimeSlotErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -10707,6 +10782,9 @@ export type BeginRuntimeSlotErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -10783,6 +10861,9 @@ export type BeginRuntimeSlotErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -10859,6 +10940,9 @@ export type BeginRuntimeSlotErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -11001,6 +11085,9 @@ export type FinishRuntimeSlotErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -11079,6 +11166,9 @@ export type FinishRuntimeSlotErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -11155,6 +11245,9 @@ export type FinishRuntimeSlotErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -11231,6 +11324,9 @@ export type FinishRuntimeSlotErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -11307,6 +11403,9 @@ export type FinishRuntimeSlotErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -11443,6 +11542,9 @@ export type FindLatestRuntimeSlotForAttemptErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -11521,6 +11623,9 @@ export type FindLatestRuntimeSlotForAttemptErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -11597,6 +11702,9 @@ export type FindLatestRuntimeSlotForAttemptErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -11673,6 +11781,9 @@ export type FindLatestRuntimeSlotForAttemptErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -11822,6 +11933,9 @@ export type StageTaskArtifactErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -11900,6 +12014,9 @@ export type StageTaskArtifactErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -11976,6 +12093,9 @@ export type StageTaskArtifactErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -12052,6 +12172,9 @@ export type StageTaskArtifactErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -12132,6 +12255,9 @@ export type StageTaskArtifactErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -13136,6 +13262,9 @@ export type ListTaskArtifactsErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -13214,6 +13343,9 @@ export type ListTaskArtifactsErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -13290,6 +13422,9 @@ export type ListTaskArtifactsErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -13366,6 +13501,9 @@ export type ListTaskArtifactsErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -13499,6 +13637,9 @@ export type DownloadTaskArtifactByCidErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -13577,6 +13718,9 @@ export type DownloadTaskArtifactByCidErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -13653,6 +13797,9 @@ export type DownloadTaskArtifactByCidErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -13729,6 +13876,9 @@ export type DownloadTaskArtifactByCidErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -13809,6 +13959,9 @@ export type DownloadTaskArtifactByCidErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -13925,6 +14078,9 @@ export type UploadTaskArtifactErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -14003,6 +14159,9 @@ export type UploadTaskArtifactErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -14079,6 +14238,9 @@ export type UploadTaskArtifactErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -14155,6 +14317,9 @@ export type UploadTaskArtifactErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -14239,6 +14404,9 @@ export type UploadTaskArtifactErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -14362,6 +14530,9 @@ export type DownloadTaskArtifactErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -14440,6 +14611,9 @@ export type DownloadTaskArtifactErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -14516,6 +14690,9 @@ export type DownloadTaskArtifactErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -14592,6 +14769,9 @@ export type DownloadTaskArtifactErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;
@@ -14672,6 +14852,9 @@ export type DownloadTaskArtifactErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    /**
+     * Non-negative delay in seconds before retrying, matching the Retry-After response header when present.
+     */
     retryAfter?: number;
     status: number;
     title: string;

@@ -8,7 +8,8 @@ const CLIENT_ID = 'hydra-client-uuid';
 const IDENTITY_ID = '550e8400-e29b-41d4-a716-446655440000';
 const FIRST_HUMAN_ID = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
 const SECOND_HUMAN_ID = '7ca7b810-9dad-11d1-80b4-00c04fd430c9';
-const TOKEN = 'ory_at_positive_cache_integration';
+const OAUTH_ACCESS_TOKEN = 'ory_at_positive_cache_integration';
+const KRATOS_SESSION_TOKEN = 'ory_st_positive_cache_integration';
 
 describe('credential lifecycle cache eviction', () => {
   it('refetches an OAuth context after client eviction', async () => {
@@ -44,15 +45,15 @@ describe('credential lifecycle cache eviction', () => {
       { remoteAuthCache: new RemoteAuthCache({ ttlMs: 60_000 }) },
     );
 
-    const first = await validator.resolveAuthContext(TOKEN);
-    const cached = await validator.resolveAuthContext(TOKEN);
+    const first = await validator.resolveAuthContext(OAUTH_ACCESS_TOKEN);
+    const cached = await validator.resolveAuthContext(OAUTH_ACCESS_TOKEN);
 
     expect(first).toMatchObject({ fingerprint: 'FIRST' });
     expect(cached).toMatchObject({ fingerprint: 'FIRST' });
     expect(introspectOAuth2Token).toHaveBeenCalledOnce();
 
     validator.evictOAuthClient(CLIENT_ID);
-    const refreshed = await validator.resolveAuthContext(TOKEN);
+    const refreshed = await validator.resolveAuthContext(OAUTH_ACCESS_TOKEN);
 
     expect(refreshed).toMatchObject({ fingerprint: 'SECOND' });
     expect(introspectOAuth2Token).toHaveBeenCalledTimes(2);
@@ -85,15 +86,21 @@ describe('credential lifecycle cache eviction', () => {
       remoteAuthCache: new RemoteAuthCache({ ttlMs: 60_000 }),
     });
 
-    const first = await resolver.resolveSession({ sessionToken: TOKEN });
-    const cached = await resolver.resolveSession({ sessionToken: TOKEN });
+    const first = await resolver.resolveSession({
+      sessionToken: KRATOS_SESSION_TOKEN,
+    });
+    const cached = await resolver.resolveSession({
+      sessionToken: KRATOS_SESSION_TOKEN,
+    });
 
     expect(first).toMatchObject({ humanId: FIRST_HUMAN_ID });
     expect(cached).toMatchObject({ humanId: FIRST_HUMAN_ID });
     expect(toSession).toHaveBeenCalledOnce();
 
     resolver.evictIdentity(IDENTITY_ID);
-    const refreshed = await resolver.resolveSession({ sessionToken: TOKEN });
+    const refreshed = await resolver.resolveSession({
+      sessionToken: KRATOS_SESSION_TOKEN,
+    });
 
     expect(refreshed).toMatchObject({ humanId: SECOND_HUMAN_ID });
     expect(toSession).toHaveBeenCalledTimes(2);
