@@ -16,8 +16,10 @@ import {
   createPermissionChecker,
   createRelationshipReader,
   createRelationshipWriter,
+  createRemoteAuthMetrics,
   createSessionResolver,
   createTokenValidator,
+  RemoteAuthCache,
 } from '@moltnet/auth';
 import { ContextPackService } from '@moltnet/context-pack-service';
 import { cryptoService } from '@moltnet/crypto-service';
@@ -280,6 +282,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     ketoReadUrl: oryUrls.ketoPublicUrl,
     ketoWriteUrl: oryUrls.ketoAdminUrl,
     talosAdminUrl: oryUrls.talosAdminUrl,
+    talosRequestTimeoutMs: config.ory.ORY_AUTH_REQUEST_TIMEOUT_MS,
   });
   app.log.info(
     { enabled: Boolean(oryClients.apiKeys) },
@@ -613,16 +616,28 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     .createCounter('auth.token.validation.total', {
       description: 'Authentication token validation events by outcome',
     });
+  const remoteAuthCache = new RemoteAuthCache({
+    ttlMs: config.ory.ORY_AUTH_CACHE_TTL_MS,
+    maxEntries: config.ory.ORY_AUTH_CACHE_MAX_ENTRIES,
+    metrics: createRemoteAuthMetrics(),
+  });
   const tokenValidator = createTokenValidator(oryClients.oauth2, {
     jwksUri: `${oryUrls.hydraPublicUrl}/.well-known/jwks.json`,
     allowedIssuers: [new URL(oryUrls.hydraPublicUrl).origin],
     // Existing Ory token acquisition paths do not consistently include `aud`.
     // Enable allowedAudiences only after issuance is uniformly resource-bound.
+    remoteAuthCache,
+    oauthIssuer: oryUrls.hydraAdminUrl,
+    talosIssuer: oryUrls.talosAdminUrl,
+    remoteRequestTimeoutMs: config.ory.ORY_AUTH_REQUEST_TIMEOUT_MS,
     talosApi: oryClients.apiKeys,
-    resolveTalosAgent: async (identityId) => {
+    resolveTalosAgent: async (identityId, signal) => {
       const [agent, identity] = await Promise.all([
         agentRepository.findByIdentityId(identityId),
-        oryClients.identity.getIdentity({ id: identityId }),
+        oryClients.identity.getIdentity(
+          { id: identityId },
+          signal ? { signal } : undefined,
+        ),
       ]);
       if (!agent || identity.state !== 'active') return null;
       return {
@@ -642,6 +657,9 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
 
   const sessionResolver = createSessionResolver(oryClients.frontend, {
     logger: app.log,
+    remoteAuthCache,
+    issuer: oryUrls.kratosPublicUrl,
+    remoteRequestTimeoutMs: config.ory.ORY_AUTH_REQUEST_TIMEOUT_MS,
   });
 
   // ── REST API routes ────────────────────────────────────────────

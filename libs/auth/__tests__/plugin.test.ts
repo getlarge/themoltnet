@@ -43,6 +43,7 @@ function createMockSessionResolver() {
 function createMockTokenValidator() {
   return {
     introspect: vi.fn(),
+    evictTalosKey: vi.fn(),
     resolveAuthContext: vi.fn(),
   };
 }
@@ -143,6 +144,27 @@ describe('authPlugin', () => {
 
     expect(response.json()).toEqual({ hasWriter: true });
   });
+
+  it('keeps public routes reachable when remote authentication is unavailable', async () => {
+    mockTokenValidator.resolveAuthContext.mockRejectedValue(
+      Object.assign(new Error('Authentication provider unavailable'), {
+        statusCode: 503,
+        code: 'SERVICE_UNAVAILABLE',
+        detail: 'Authentication provider unavailable',
+      }),
+    );
+    app.get('/public', async () => ({ ok: true }));
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/public',
+      headers: { authorization: `Bearer ${VALID_TOKEN}` },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ ok: true });
+    expect(mockTokenValidator.resolveAuthContext).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('requireAuth preHandler', () => {
@@ -183,6 +205,29 @@ describe('requireAuth preHandler', () => {
     expect(mockTokenValidator.resolveAuthContext).toHaveBeenCalledWith(
       VALID_TOKEN,
     );
+    expect(mockTokenValidator.resolveAuthContext).toHaveBeenCalledTimes(1);
+  });
+
+  it('reuses the onRequest failure and surfaces provider unavailability', async () => {
+    mockTokenValidator.resolveAuthContext.mockRejectedValue(
+      Object.assign(new Error('Authentication provider unavailable'), {
+        statusCode: 503,
+        code: 'SERVICE_UNAVAILABLE',
+        detail: 'Authentication provider unavailable',
+      }),
+    );
+    app.get('/protected', { preHandler: [requireAuth] }, async () => ({
+      ok: true,
+    }));
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/protected',
+      headers: { authorization: `Bearer ${VALID_TOKEN}` },
+    });
+
+    expect(response.statusCode).toBe(503);
+    expect(mockTokenValidator.resolveAuthContext).toHaveBeenCalledTimes(1);
   });
 
   it('keeps inaccessible team headers forbidden by default', async () => {

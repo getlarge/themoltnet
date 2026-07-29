@@ -147,6 +147,21 @@ describe('loadOryConfig', () => {
     const config = loadOryConfig({});
     expect(config.ORY_PROJECT_URL).toBeUndefined();
     expect(config.ORY_API_KEY).toBeUndefined();
+    expect(config.ORY_AUTH_CACHE_TTL_MS).toBe(60_000);
+    expect(config.ORY_AUTH_CACHE_MAX_ENTRIES).toBe(10_000);
+    expect(config.ORY_AUTH_REQUEST_TIMEOUT_MS).toBe(5_000);
+  });
+
+  it('accepts cache disable and bounded auth overrides', () => {
+    const config = loadOryConfig({
+      ORY_AUTH_CACHE_TTL_MS: '0',
+      ORY_AUTH_CACHE_MAX_ENTRIES: '25',
+      ORY_AUTH_REQUEST_TIMEOUT_MS: '2500',
+    });
+
+    expect(config.ORY_AUTH_CACHE_TTL_MS).toBe(0);
+    expect(config.ORY_AUTH_CACHE_MAX_ENTRIES).toBe(25);
+    expect(config.ORY_AUTH_REQUEST_TIMEOUT_MS).toBe(2_500);
   });
 
   it('rejects a malformed Talos admin URL', () => {

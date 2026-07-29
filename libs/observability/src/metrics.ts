@@ -11,6 +11,12 @@ import {
 
 import type { RequestMetrics } from './types.js';
 
+export type MetricAttributes = Record<string, boolean | number | string>;
+
+export interface MetricCounter {
+  add(value: number, attributes?: MetricAttributes): void;
+}
+
 export interface CreateMeterProviderOptions {
   /** Service name for resource identification */
   serviceName: string;
@@ -89,4 +95,12 @@ export function createRequestMetrics(serviceName: string): RequestMetrics {
   });
 
   return { duration, total, active };
+}
+
+export function createMetricCounter(
+  serviceName: string,
+  name: string,
+  description: string,
+): MetricCounter {
+  return metricsApi.getMeter(serviceName).createCounter(name, { description });
 }

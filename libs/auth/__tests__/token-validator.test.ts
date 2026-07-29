@@ -89,9 +89,10 @@ describe('TokenValidator', () => {
           expiresAt: expect.any(Number),
           ext: MOLTNET_EXT_CLAIMS,
         });
-        expect(mockOAuth2Api.introspectOAuth2Token).toHaveBeenCalledWith({
-          token: OPAQUE_TOKEN,
-        });
+        expect(mockOAuth2Api.introspectOAuth2Token).toHaveBeenCalledWith(
+          { token: OPAQUE_TOKEN },
+          { signal: expect.any(AbortSignal) },
+        );
       });
 
       it('returns inactive result for revoked/expired token', async () => {
@@ -104,7 +105,7 @@ describe('TokenValidator', () => {
         expect(result).toEqual({ active: false });
       });
 
-      it('returns inactive and logs safely when introspection fails', async () => {
+      it('surfaces provider unavailability and logs safely when introspection fails', async () => {
         const logger = createMockLogger();
         const onValidationEvent = vi.fn();
         validator = createTokenValidator(mockOAuth2Api as any, {
@@ -119,9 +120,10 @@ describe('TokenValidator', () => {
           }),
         );
 
-        const result = await validator.introspect(OPAQUE_TOKEN);
-
-        expect(result).toEqual({ active: false });
+        await expect(validator.introspect(OPAQUE_TOKEN)).rejects.toMatchObject({
+          statusCode: 503,
+          code: 'SERVICE_UNAVAILABLE',
+        });
         expect(logger.warn).toHaveBeenCalledWith(
           {
             causeCode: 'ECONNRESET',
@@ -139,6 +141,23 @@ describe('TokenValidator', () => {
         const serializedLogs = JSON.stringify(logger.warn.mock.calls);
         expect(serializedLogs).not.toContain(OPAQUE_TOKEN);
         expect(serializedLogs).not.toContain('never-log-this-upstream-error');
+      });
+
+      it('preserves provider throttling and Retry-After', async () => {
+        mockOAuth2Api.introspectOAuth2Token.mockRejectedValue(
+          Object.assign(new Error('Too many requests'), {
+            response: {
+              status: 429,
+              headers: new Headers({ 'retry-after': '3' }),
+            },
+          }),
+        );
+
+        await expect(validator.introspect(OPAQUE_TOKEN)).rejects.toMatchObject({
+          statusCode: 429,
+          code: 'RATE_LIMIT_EXCEEDED',
+          retryAfter: 3,
+        });
       });
 
       it('handles token with empty scope string', async () => {
@@ -200,8 +219,11 @@ describe('TokenValidator', () => {
         });
 
         const result = await validator.resolveAuthContext(OPAQUE_TOKEN);
+        const cached = await validator.resolveAuthContext(OPAQUE_TOKEN);
 
         expect(result).toEqual(EXPECTED_AUTH_CONTEXT);
+        expect(cached).toEqual(EXPECTED_AUTH_CONTEXT);
+        expect(mockOAuth2Api.introspectOAuth2Token).toHaveBeenCalledTimes(1);
       });
 
       it('uses introspection for opaque tokens even when no JWKS configured', async () => {
@@ -215,9 +237,10 @@ describe('TokenValidator', () => {
 
         await validator.resolveAuthContext(OPAQUE_TOKEN);
 
-        expect(mockOAuth2Api.introspectOAuth2Token).toHaveBeenCalledWith({
-          token: OPAQUE_TOKEN,
-        });
+        expect(mockOAuth2Api.introspectOAuth2Token).toHaveBeenCalledWith(
+          { token: OPAQUE_TOKEN },
+          { signal: expect.any(AbortSignal) },
+        );
       });
 
       it('uses introspection for JWT-shaped tokens when no JWKS configured', async () => {
@@ -258,9 +281,10 @@ describe('TokenValidator', () => {
         const result = await validator.resolveAuthContext(OPAQUE_TOKEN);
 
         expect(result).toEqual(EXPECTED_AUTH_CONTEXT);
-        expect(mockOAuth2Api.getOAuth2Client).toHaveBeenCalledWith({
-          id: VALID_CLIENT_ID,
-        });
+        expect(mockOAuth2Api.getOAuth2Client).toHaveBeenCalledWith(
+          { id: VALID_CLIENT_ID },
+          { signal: expect.any(AbortSignal) },
+        );
       });
 
       it('returns null for inactive token', async () => {
@@ -291,7 +315,7 @@ describe('TokenValidator', () => {
         expect(result).toBeNull();
       });
 
-      it('returns null when getOAuth2Client fails', async () => {
+      it('surfaces provider unavailability and logs safely when client metadata fails', async () => {
         const logger = createMockLogger();
         validator = createTokenValidator(mockOAuth2Api as any, { logger });
         mockOAuth2Api.introspectOAuth2Token.mockResolvedValue({
@@ -309,9 +333,12 @@ describe('TokenValidator', () => {
           }),
         );
 
-        const result = await validator.resolveAuthContext(OPAQUE_TOKEN);
-
-        expect(result).toBeNull();
+        await expect(
+          validator.resolveAuthContext(OPAQUE_TOKEN),
+        ).rejects.toMatchObject({
+          statusCode: 503,
+          code: 'SERVICE_UNAVAILABLE',
+        });
         expect(logger.warn).toHaveBeenCalledWith(
           {
             causeCode: 'ECONNRESET',
@@ -360,9 +387,10 @@ describe('TokenValidator', () => {
 
       await validator.resolveAuthContext('ory_at_some_opaque_value');
 
-      expect(mockOAuth2Api.introspectOAuth2Token).toHaveBeenCalledWith({
-        token: 'ory_at_some_opaque_value',
-      });
+      expect(mockOAuth2Api.introspectOAuth2Token).toHaveBeenCalledWith(
+        { token: 'ory_at_some_opaque_value' },
+        { signal: expect.any(AbortSignal) },
+      );
     });
 
     it('routes ory_ht_ prefixed tokens to introspection', async () => {
@@ -376,9 +404,10 @@ describe('TokenValidator', () => {
 
       await validator.resolveAuthContext('ory_ht_some_opaque_value');
 
-      expect(mockOAuth2Api.introspectOAuth2Token).toHaveBeenCalledWith({
-        token: 'ory_ht_some_opaque_value',
-      });
+      expect(mockOAuth2Api.introspectOAuth2Token).toHaveBeenCalledWith(
+        { token: 'ory_ht_some_opaque_value' },
+        { signal: expect.any(AbortSignal) },
+      );
     });
 
     it('routes unknown-format tokens to introspection', async () => {
@@ -435,7 +464,10 @@ describe('TokenValidator', () => {
         cacheControl: 'no-store',
         pragma: 'no-cache',
       });
-      expect(resolveTalosAgent).toHaveBeenCalledWith(VALID_IDENTITY_ID);
+      expect(resolveTalosAgent).toHaveBeenCalledWith(
+        VALID_IDENTITY_ID,
+        expect.any(AbortSignal),
+      );
       expect(mockOAuth2Api.introspectOAuth2Token).not.toHaveBeenCalled();
       expect(logger.debug).toHaveBeenCalledWith(
         {
@@ -451,6 +483,31 @@ describe('TokenValidator', () => {
       expect(JSON.stringify(logger.debug.mock.calls)).not.toContain(
         'ory_ak_secret',
       );
+    });
+
+    it('caches the complete Talos verification and agent-resolution chain', async () => {
+      const talosApi = createMockTalosApi();
+      const resolveTalosAgent = createMockTalosAgentResolver();
+      const validator = createTokenValidator(mockOAuth2Api as any, {
+        talosApi,
+        resolveTalosAgent,
+      });
+      talosApi.adminVerifyApiKey.mockResolvedValue({
+        is_valid: true,
+        actor_id: VALID_IDENTITY_ID,
+        key_id: 'talos-key-123',
+        scopes: ['diary:read'],
+        metadata: { subject_type: 'agent' },
+      });
+
+      await Promise.all([
+        validator.resolveAuthContext('ory_ak_secret'),
+        validator.resolveAuthContext('ory_ak_secret'),
+      ]);
+      await validator.resolveAuthContext('ory_ak_secret');
+
+      expect(talosApi.adminVerifyApiKey).toHaveBeenCalledTimes(1);
+      expect(resolveTalosAgent).toHaveBeenCalledTimes(1);
     });
 
     it('rejects a credential Talos reports as invalid', async () => {
@@ -499,9 +556,12 @@ describe('TokenValidator', () => {
         }),
       );
 
-      const result = await validator.resolveAuthContext('ory_ak_secret');
-
-      expect(result).toBeNull();
+      await expect(
+        validator.resolveAuthContext('ory_ak_secret'),
+      ).rejects.toMatchObject({
+        statusCode: 503,
+        code: 'SERVICE_UNAVAILABLE',
+      });
       expect(mockOAuth2Api.introspectOAuth2Token).not.toHaveBeenCalled();
       expect(logger.warn).toHaveBeenCalledWith(
         {
@@ -558,9 +618,10 @@ describe('TokenValidator', () => {
       const result = await validator.resolveAuthContext('ory_ak_secret');
 
       expect(result).toBeNull();
-      expect(mockOAuth2Api.introspectOAuth2Token).toHaveBeenCalledWith({
-        token: 'ory_ak_secret',
-      });
+      expect(mockOAuth2Api.introspectOAuth2Token).toHaveBeenCalledWith(
+        { token: 'ory_ak_secret' },
+        { signal: expect.any(AbortSignal) },
+      );
       expect(logger.warn).not.toHaveBeenCalled();
     });
 

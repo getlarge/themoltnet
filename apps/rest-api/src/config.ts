@@ -72,6 +72,15 @@ export const OryConfigSchema = Type.Object({
   ORY_TALOS_ADMIN_URL: Type.Optional(
     Type.String({ minLength: 1, format: 'uri' }),
   ),
+  ORY_AUTH_CACHE_TTL_MS: Type.Integer({ minimum: 0, default: 60_000 }),
+  ORY_AUTH_CACHE_MAX_ENTRIES: Type.Integer({
+    minimum: 1,
+    default: 10_000,
+  }),
+  ORY_AUTH_REQUEST_TIMEOUT_MS: Type.Integer({
+    minimum: 1,
+    default: 5_000,
+  }),
 });
 
 export const ObservabilityConfigSchema = Type.Object({

@@ -598,9 +598,10 @@ describe('TokenValidator jose JWT verification', () => {
       });
       const token = await createTestJwt(rs256A, server.issuer);
 
-      const result = await validator.resolveAuthContext(token);
-
-      expect(result).toBeNull();
+      await expect(validator.resolveAuthContext(token)).rejects.toMatchObject({
+        statusCode: 503,
+        code: 'SERVICE_UNAVAILABLE',
+      });
       expect(logger.warn).toHaveBeenCalledWith(
         {
           causeCode: 'ECONNRESET',
@@ -640,9 +641,10 @@ describe('TokenValidator jose JWT verification', () => {
 
       expect(result).toEqual(EXPECTED_AUTH_CONTEXT);
       expect(server.requestCount()).toBe(0);
-      expect(oauth2Api.introspectOAuth2Token).toHaveBeenCalledWith({
-        token: OPAQUE_TOKEN,
-      });
+      expect(oauth2Api.introspectOAuth2Token).toHaveBeenCalledWith(
+        { token: OPAQUE_TOKEN },
+        { signal: expect.any(AbortSignal) },
+      );
       expect(onValidationEvent).toHaveBeenCalledWith({
         credentialType: 'ory-opaque',
         reason: 'credential_accepted',

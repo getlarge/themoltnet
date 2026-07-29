@@ -27,6 +27,11 @@ import type { SessionResolver } from './session-resolver.js';
 import type { TokenValidator } from './token-validator.js';
 import type { AuthContext } from './types.js';
 
+type AuthResolutionOutcome =
+  | { status: 'authenticated'; context: AuthContext }
+  | { status: 'invalid' | 'missing' }
+  | { status: 'upstream-error'; error: unknown };
+
 export interface TeamResolver {
   /** Find the personal team ID for a subject. Returns null if none exists yet. */
   findPersonalTeamId(subjectId: string): Promise<string | null>;
@@ -70,6 +75,7 @@ declare module 'fastify' {
   }
   interface FastifyRequest {
     authContext: AuthContext | null;
+    authResolution: Promise<AuthResolutionOutcome> | null;
   }
 }
 
@@ -131,6 +137,7 @@ export const authPlugin = fp(
     };
 
     fastify.decorateRequest('authContext', null);
+    fastify.decorateRequest('authResolution', null);
     decorateSafe('tokenValidator', opts.tokenValidator);
     decorateSafe('permissionChecker', opts.permissionChecker);
     decorateSafe('relationshipWriter', opts.relationshipWriter);
@@ -300,8 +307,12 @@ async function resolveTeamContext(
  * normal request never pays the resolution cost (JWKS verify / Hydra introspect
  * / Kratos session call) twice.
  */
-async function resolveIdentityInto(request: FastifyRequest): Promise<boolean> {
-  if (request.authContext) return true;
+async function resolveIdentity(
+  request: FastifyRequest,
+): Promise<AuthResolutionOutcome> {
+  if (request.authContext) {
+    return { status: 'authenticated', context: request.authContext };
+  }
 
   // Try Kratos session first (native X-Moltnet-Session-Token header OR browser
   // Cookie header). Native token takes precedence when both are present — see
@@ -312,27 +323,53 @@ async function resolveIdentityInto(request: FastifyRequest): Promise<boolean> {
   const rawCookie = extractCookieHeader(request);
   const cookie =
     rawCookie && cookieLooksLikeKratosSession(rawCookie) ? rawCookie : null;
+  let upstreamError: unknown;
   if ((sessionToken || cookie) && request.server.sessionResolver) {
-    const sessionContext = await request.server.sessionResolver.resolveSession({
-      sessionToken,
-      cookie,
-    });
-    if (sessionContext) {
-      applyAuthContext(request, sessionContext);
-      return true;
+    try {
+      const sessionContext =
+        await request.server.sessionResolver.resolveSession({
+          sessionToken,
+          cookie,
+        });
+      if (sessionContext) {
+        applyAuthContext(request, sessionContext);
+        return { status: 'authenticated', context: sessionContext };
+      }
+    } catch (error) {
+      upstreamError = error;
     }
-    // Invalid session — fall through to Bearer token.
   }
 
   const token = extractBearerToken(request);
-  if (!token) return false;
+  if (!token) {
+    if (upstreamError)
+      return { status: 'upstream-error', error: upstreamError };
+    return {
+      status: sessionToken || cookie ? 'invalid' : 'missing',
+    };
+  }
 
-  const authContext =
-    await request.server.tokenValidator.resolveAuthContext(token);
-  if (!authContext) return false;
+  try {
+    const authContext =
+      await request.server.tokenValidator.resolveAuthContext(token);
+    if (!authContext) {
+      if (upstreamError)
+        return { status: 'upstream-error', error: upstreamError };
+      return { status: 'invalid' };
+    }
 
-  applyAuthContext(request, authContext);
-  return true;
+    applyAuthContext(request, authContext);
+    return { status: 'authenticated', context: authContext };
+  } catch (error) {
+    return { status: 'upstream-error', error };
+  }
+}
+
+function resolveIdentityOnce(
+  request: FastifyRequest,
+): Promise<AuthResolutionOutcome> {
+  request.authResolution ??= resolveIdentity(request);
+  return request.authResolution;
 }
 
 /**
@@ -352,11 +389,10 @@ export const populateAuthContext: onRequestAsyncHookHandler =
     // Identity resolution is non-fatal here; never let it abort the request.
     // An invalid/garbage credential simply leaves authContext null (the request
     // is then IP-keyed and, on protected routes, 401'd by requireAuth).
-    try {
-      await resolveIdentityInto(request);
-    } catch (err) {
+    const outcome = await resolveIdentityOnce(request);
+    if (outcome.status === 'upstream-error') {
       request.log.debug(
-        { err, path: request.url },
+        { path: request.url, reason: 'upstream_error' },
         'auth: onRequest identity resolution failed; continuing unauthenticated',
       );
     }
@@ -364,35 +400,12 @@ export const populateAuthContext: onRequestAsyncHookHandler =
 
 export const requireAuth: preHandlerAsyncHookHandler =
   async function requireAuth(request: FastifyRequest, _reply: FastifyReply) {
-    // Identity is normally resolved by the populateAuthContext onRequest hook;
-    // resolveIdentityInto short-circuits if so. If not (e.g. a unit test calling
-    // requireAuth directly), resolve it now with granular diagnostics. Team
-    // context is ALWAYS resolved here — it is enforcement, not identity, so it
-    // runs even when identity was pre-resolved at onRequest.
-    if (request.authContext) {
-      await resolveTeamContext(request, request.authContext);
+    const outcome = await resolveIdentityOnce(request);
+    if (outcome.status === 'authenticated') {
+      await resolveTeamContext(request, outcome.context);
       return;
     }
-
-    // Try Kratos session first (native X-Moltnet-Session-Token header OR
-    // browser Cookie header). See resolveIdentityInto for cookie gating.
-    const sessionToken = extractSessionToken(request);
-    const rawCookie = extractCookieHeader(request);
-    const cookie =
-      rawCookie && cookieLooksLikeKratosSession(rawCookie) ? rawCookie : null;
-    if ((sessionToken || cookie) && request.server.sessionResolver) {
-      const sessionContext =
-        await request.server.sessionResolver.resolveSession({
-          sessionToken,
-          cookie,
-        });
-      if (sessionContext) {
-        await resolveTeamContext(request, sessionContext);
-        applyAuthContext(request, sessionContext);
-        return;
-      }
-      // Invalid session — fall through to Bearer token
-    }
+    if (outcome.status === 'upstream-error') throw outcome.error;
 
     // Bearer token path (OAuth2)
     const authHeader = request.headers.authorization;
@@ -421,18 +434,11 @@ export const requireAuth: preHandlerAsyncHookHandler =
       throw createAuthError('Missing authorization header');
     }
 
-    const authContext =
-      await request.server.tokenValidator.resolveAuthContext(token);
-    if (!authContext) {
-      request.log.warn(
-        { ip: request.ip, path: request.url },
-        'auth: invalid or expired token',
-      );
-      throw createAuthError('Invalid or expired token');
-    }
-
-    await resolveTeamContext(request, authContext);
-    applyAuthContext(request, authContext);
+    request.log.warn(
+      { ip: request.ip, path: request.url },
+      'auth: invalid or expired token',
+    );
+    throw createAuthError('Invalid or expired token');
   };
 
 export const optionalAuth: preHandlerAsyncHookHandler =
@@ -440,9 +446,10 @@ export const optionalAuth: preHandlerAsyncHookHandler =
     // Identity is usually pre-resolved by the onRequest hook (short-circuits).
     // When a context is present, still resolve team context so an explicit
     // x-moltnet-team-id is honored/enforced for the optionally-authed handler.
-    const resolved = await resolveIdentityInto(request);
-    if (resolved && request.authContext) {
-      await resolveTeamContext(request, request.authContext);
+    const outcome = await resolveIdentityOnce(request);
+    if (outcome.status === 'upstream-error') throw outcome.error;
+    if (outcome.status === 'authenticated') {
+      await resolveTeamContext(request, outcome.context);
     }
   };
 

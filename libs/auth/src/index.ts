@@ -62,6 +62,20 @@ export {
   type RelationshipWriter,
 } from './relationship-writer.js';
 export {
+  createRemoteAuthMetrics,
+  RemoteAuthCache,
+  type RemoteAuthCacheOptions,
+  type RemoteAuthMetrics,
+  type RemoteAuthOperation,
+  type RemoteAuthOutcome,
+  type RemoteAuthTransport,
+} from './remote-auth-cache.js';
+export {
+  asRemoteAuthenticationError,
+  RemoteAuthenticationError,
+  remoteErrorStatus,
+} from './remote-auth-error.js';
+export {
   AGENT_CREDENTIAL_SCOPES,
   COMMON_CREDENTIAL_SCOPES,
   HUMAN_SESSION_SCOPES,
