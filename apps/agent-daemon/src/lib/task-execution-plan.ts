@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 import type { RuntimeProfileWorkspaceMode } from '@moltnet/tasks';
 import type { ClaimedTask } from '@themoltnet/agent-runtime';
 
@@ -73,7 +75,7 @@ export function buildDaemonTaskExecutionPlan(
     slotKey !== null ? descriptor.policy.workspaceScope : 'attempt';
   const slotId = slotKey ? buildDaemonSlotId(identity, slotKey) : null;
   const sessionDir = slotId
-    ? `${stateDirs.piSessionsDir}/${encodeURIComponent(slotId)}`
+    ? `${stateDirs.piSessionsDir}/${boundedKeyDirComponent(slotId)}`
     : null;
   const worktreeBranch = resolveTaskWorktreeBranch(task, workspaceMode);
   const workspaceId =
@@ -259,6 +261,29 @@ function toDaemonWorkspaceMode(
   return mode === 'none' ? 'scratch_mount' : mode;
 }
 
+/**
+ * URL-encode a slot/session key for use as a single filesystem directory
+ * component, bounded to stay under the 255-byte per-component filename limit.
+ * A long key (e.g. `run_eval`'s custom key, which embeds the variant label +
+ * agent name + worker id) otherwise crashes `mkdir` with `ENAMETOOLONG`.
+ *
+ * Additive by design: keys short enough today keep their exact encoded form (so
+ * existing warm dirs are byte-identical), and only over-long keys get a readable
+ * prefix + a collision-resistant sha256 suffix. The component is never decoded
+ * back to the key anywhere, so hashing the tail is safe. Used for BOTH the
+ * pi-sessions dir and the session workspace dir so the two names derive
+ * consistently from the same slot id.
+ */
+function boundedKeyDirComponent(key: string): string {
+  const encoded = encodeURIComponent(key);
+  // A parent may add a short prefix (`session-` = 8); 200 leaves margin < 255.
+  if (encoded.length <= 200) {
+    return encoded;
+  }
+  const hash = createHash('sha256').update(key).digest('hex').slice(0, 16);
+  return `${encoded.slice(0, 180)}-${hash}`;
+}
+
 function resolveTaskWorkspaceId(
   task: Pick<ClaimedTask['task'], 'id'>,
   executionPlan: {
@@ -272,7 +297,7 @@ function resolveTaskWorkspaceId(
     executionPlan.workspaceScope === 'session' &&
     executionPlan.sessionKey !== null
   ) {
-    return `session-${encodeURIComponent(executionPlan.sessionKey)}`;
+    return `session-${boundedKeyDirComponent(executionPlan.sessionKey)}`;
   }
   return executionPlan.attemptN
     ? `daemon-task-${task.id}-attempt-${executionPlan.attemptN}`
