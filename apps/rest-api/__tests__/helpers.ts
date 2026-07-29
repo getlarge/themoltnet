@@ -678,6 +678,7 @@ export function createMockServices(): MockServices {
       listGroupIdsBySubject: vi.fn().mockResolvedValue([]),
       listRuntimeProfilePolicies: vi.fn().mockResolvedValue([]),
       listRuntimePolicyTools: vi.fn().mockResolvedValue([]),
+      listRuntimePolicyShellCommands: vi.fn().mockResolvedValue([]),
     },
     taskRepository: {
       create: vi.fn(),

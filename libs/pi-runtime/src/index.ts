@@ -7,6 +7,7 @@ export {
 } from './moltnet/tools.js';
 export { createPiOtelExtension, type PiOtelOptions } from './otel/index.js';
 export { buildAgentSession } from './runtime/agent-session-factory.js';
+export { assertGondolinPiToolDefinitions } from './runtime/capability-manifest.js';
 export {
   createGondolinToolDefinitions,
   createPiTaskExecutor,

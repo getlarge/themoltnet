@@ -1,5 +1,5 @@
 import { type TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
-import { requireAuth } from '@moltnet/auth';
+import { requireAuth, type ShellCommandRule } from '@moltnet/auth';
 import { UniqueViolationError } from '@moltnet/database';
 import {
   ConflictProblemDetailsSchema,
@@ -95,6 +95,7 @@ export async function runtimePolicyRoutes(fastify: FastifyInstance) {
           name: body.name,
           description: body.description,
           tools: body.tools ?? [],
+          shellCommands: (body.shellCommands ?? []) as ShellCommandRule[],
           subject: runtimePolicySubject(request),
         });
         return await reply.status(201).send(policy);
@@ -197,10 +198,22 @@ export async function runtimePolicyRoutes(fastify: FastifyInstance) {
       const teamId = requireCurrentTeamId(request, 'runtime policies');
       const body = request.body as Static<typeof UpdateRuntimePolicyBodySchema>;
       try {
-        return await policies.update(request.params.policyId, body, {
-          teamId,
-          subject: runtimePolicySubject(request),
-        });
+        return await policies.update(
+          request.params.policyId,
+          {
+            ...body,
+            addShellCommands: body.addShellCommands as
+              | ShellCommandRule[]
+              | undefined,
+            removeShellCommands: body.removeShellCommands as
+              | ShellCommandRule[]
+              | undefined,
+          },
+          {
+            teamId,
+            subject: runtimePolicySubject(request),
+          },
+        );
       } catch (err) {
         if (err instanceof UniqueViolationError) {
           throw createConflictProblem(

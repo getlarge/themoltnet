@@ -97,6 +97,8 @@ export function ProfileToolAccess({
     [policiesQuery.data],
   );
   const allowedTools = allowedToolsQuery.data?.allowedTools ?? [];
+  const allowedShellCommands =
+    allowedToolsQuery.data?.allowedShellCommands ?? [];
 
   useEffect(() => {
     setMode(profile.toolEnforcement ?? 'off');
@@ -341,9 +343,9 @@ export function ProfileToolAccess({
           )}
         </Stack>
 
-        <Stack gap={2}>
+        <Stack gap={3}>
           <Stack direction="row" align="center" gap={2} wrap>
-            <Text weight="medium">Resolved allowed tools</Text>
+            <Text weight="medium">Resolved access</Text>
             <Badge
               variant={
                 allowedToolsQuery.data?.enforcement === 'enforce'
@@ -362,20 +364,61 @@ export function ProfileToolAccess({
                 Failed to resolve the effective tool set.
               </Text>
             </div>
-          ) : allowedTools.length === 0 ? (
-            <Text variant="caption" color="muted">
-              The resolved allow-list is empty. Enforce mode will block every
-              tool; this is valid when intentional.
-            </Text>
           ) : (
-            <Stack direction="row" gap={2} wrap>
-              {allowedTools.map((tool) => (
-                <Badge key={tool} variant="primary">
-                  <code style={{ fontFamily: theme.font.family.mono }}>
-                    {tool}
-                  </code>
-                </Badge>
-              ))}
+            <Stack gap={3}>
+              <Stack gap={2}>
+                <Text variant="caption" weight="medium">
+                  Exact tools
+                </Text>
+                {allowedTools.length === 0 ? (
+                  <Text variant="caption" color="muted">
+                    No broad tool grants resolve from the bound policies.
+                  </Text>
+                ) : (
+                  <Stack direction="row" gap={2} wrap>
+                    {allowedTools.map((tool) => (
+                      <Badge key={tool} variant="primary">
+                        <code style={{ fontFamily: theme.font.family.mono }}>
+                          {tool}
+                        </code>
+                      </Badge>
+                    ))}
+                  </Stack>
+                )}
+              </Stack>
+              <Stack gap={2}>
+                <Text variant="caption" weight="medium">
+                  Allowed shell commands
+                </Text>
+                {allowedShellCommands.length === 0 ? (
+                  <Text variant="caption" color="muted">
+                    No scoped shell commands resolve from the bound policies.
+                  </Text>
+                ) : (
+                  <Stack gap={1}>
+                    {allowedShellCommands.map((rule) => (
+                      <code
+                        key={JSON.stringify(rule.argvPrefix)}
+                        style={{
+                          display: 'block',
+                          fontFamily: theme.font.family.mono,
+                          fontSize: theme.font.size.sm,
+                          overflowWrap: 'anywhere',
+                        }}
+                      >
+                        {rule.argvPrefix.join(' › ')} › …
+                      </code>
+                    ))}
+                  </Stack>
+                )}
+              </Stack>
+              {allowedTools.length === 0 &&
+              allowedShellCommands.length === 0 ? (
+                <Text variant="caption" color="muted">
+                  The resolved access set is empty. Enforce mode will block
+                  every tool call; this is valid when intentional.
+                </Text>
+              ) : null}
             </Stack>
           )}
         </Stack>

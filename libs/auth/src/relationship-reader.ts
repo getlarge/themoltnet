@@ -67,6 +67,8 @@ export interface RelationshipReader {
   listRuntimeProfilePolicies(profileId: string): Promise<string[]>;
   /** Returns the tool names granted by a runtime policy. */
   listRuntimePolicyTools(policyId: string): Promise<string[]>;
+  /** Returns exact encoded ShellCommand object IDs granted by a policy. */
+  listRuntimePolicyShellCommands(policyId: string): Promise<string[]>;
 }
 
 /**
@@ -328,6 +330,14 @@ export function createRelationshipReader(
         namespace: KetoNamespace.RuntimePolicy,
         object: policyId,
         relation: RuntimePolicyRelation.Tool,
+      });
+    },
+
+    async listRuntimePolicyShellCommands(policyId: string): Promise<string[]> {
+      return listSubjectSetObjects(relationshipApi, {
+        namespace: KetoNamespace.RuntimePolicy,
+        object: policyId,
+        relation: RuntimePolicyRelation.Command,
       });
     },
   };

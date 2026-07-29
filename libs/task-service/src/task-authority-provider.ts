@@ -134,11 +134,32 @@ export function createMoltNetTaskAuthorityProvider(
       ) {
         return deny(request, 'authority_binding_invalid');
       }
-      const canonical = canonicalEffectivePolicySnapshot({
-        runtimeKind: snapshot.runtimeKind,
-        enforcement: snapshot.enforcement,
-        allowedTools: snapshot.allowedTools,
-      });
+      let canonical;
+      try {
+        const allowedShellCommands = snapshot.allowedShellCommands.map(
+          (rule) => ({
+            argvPrefix: rule.argvPrefix as [string, string, ...string[]],
+          }),
+        );
+        if (
+          findUnavailableRuntimeCapabilities(snapshot.runtimeKind, [
+            ...snapshot.allowedTools,
+            ...allowedShellCommands.map(
+              ({ argvPrefix: [executable] }) => executable,
+            ),
+          ]).length > 0
+        ) {
+          return deny(request, 'authority_binding_invalid');
+        }
+        canonical = canonicalEffectivePolicySnapshot({
+          runtimeKind: snapshot.runtimeKind,
+          enforcement: snapshot.enforcement,
+          allowedTools: snapshot.allowedTools,
+          allowedShellCommands,
+        });
+      } catch {
+        return deny(request, 'authority_binding_invalid');
+      }
       if (
         canonical.capabilityManifestVersion !==
         snapshot.capabilityManifestVersion

@@ -11,7 +11,11 @@ import { decideToolCall, type GateInput } from './gate.js';
  * `{ tools }` entry lets a test set a per-executable risk tier; a `{ reason }`
  * entry models an unresolvable command.
  */
-type ToolStub = { name: string; risk?: RiskTier };
+type ToolStub = {
+  name: string;
+  argv?: readonly (string | null)[];
+  risk?: RiskTier;
+};
 function analyzerOf(
   map: Record<string, string[] | { tools: ToolStub[] } | { reason: string }>,
 ): (command: string) => CommandAnalysis {
@@ -37,7 +41,7 @@ function analyzerOf(
       ast: '',
       tools: stubs.map((stub) => ({
         name: stub.name,
-        argv: [stub.name],
+        argv: stub.argv ?? [stub.name],
         risk: stub.risk ?? 'unknown',
         capabilities: [],
         raw: stub.name,
@@ -51,6 +55,7 @@ const base = (over: Partial<GateInput>): GateInput => ({
   toolName: 'read',
   enforcement: 'enforce',
   allowedTools: set([]),
+  allowedShellCommands: [],
   analyze: analyzerOf({}),
   ...over,
 });
@@ -110,6 +115,151 @@ describe('decideToolCall', () => {
         }),
       ),
     ).toMatchObject({ allow: false });
+  });
+
+  it.each(['status', 'diff', 'log', 'show', 'blame'])(
+    'bash: allows scoped git %s rule',
+    (subcommand) => {
+      const command = `git ${subcommand}`;
+      expect(
+        decideToolCall(
+          base({
+            toolName: 'bash',
+            command,
+            allowedShellCommands: [{ argvPrefix: ['git', subcommand] }],
+            analyze: analyzerOf({
+              [command]: {
+                tools: [{ name: 'git', argv: ['git', subcommand, '--stat'] }],
+              },
+            }),
+          }),
+        ),
+      ).toMatchObject({
+        allow: true,
+        matchedShellCommands: [
+          { executable: 'git', argvPrefix: ['git', subcommand] },
+        ],
+      });
+    },
+  );
+
+  it.each(['commit', 'push', 'reset', 'checkout'])(
+    'bash: rejects git %s outside scoped rules',
+    (subcommand) => {
+      const command = `git ${subcommand}`;
+      expect(
+        decideToolCall(
+          base({
+            toolName: 'bash',
+            command,
+            allowedShellCommands: [{ argvPrefix: ['git', 'diff'] }],
+            analyze: analyzerOf({
+              [command]: {
+                tools: [{ name: 'git', argv: ['git', subcommand] }],
+              },
+            }),
+          }),
+        ),
+      ).toMatchObject({ allow: false, missing: ['git'] });
+    },
+  );
+
+  it('bash: requires every invocation in a compound command to match', () => {
+    expect(
+      decideToolCall(
+        base({
+          toolName: 'bash',
+          command: 'git diff && git push',
+          allowedShellCommands: [{ argvPrefix: ['git', 'diff'] }],
+          analyze: analyzerOf({
+            'git diff && git push': {
+              tools: [
+                { name: 'git', argv: ['git', 'diff'] },
+                { name: 'git', argv: ['git', 'push'] },
+              ],
+            },
+          }),
+        }),
+      ),
+    ).toMatchObject({
+      allow: false,
+      missing: ['git'],
+      matchedShellCommands: [
+        { executable: 'git', argvPrefix: ['git', 'diff'] },
+      ],
+    });
+  });
+
+  it('bash: distinguishes nested gh command paths', () => {
+    expect(
+      decideToolCall(
+        base({
+          toolName: 'bash',
+          command: 'gh pr merge 1725',
+          allowedShellCommands: [{ argvPrefix: ['gh', 'pr', 'view'] }],
+          analyze: analyzerOf({
+            'gh pr merge 1725': {
+              tools: [{ name: 'gh', argv: ['gh', 'pr', 'merge', '1725'] }],
+            },
+          }),
+        }),
+      ),
+    ).toMatchObject({ allow: false });
+  });
+
+  it('bash: dynamic tokens cannot satisfy a scoped rule', () => {
+    expect(
+      decideToolCall(
+        base({
+          toolName: 'bash',
+          command: 'git "$ACTION"',
+          allowedShellCommands: [{ argvPrefix: ['git', 'diff'] }],
+          analyze: analyzerOf({
+            'git "$ACTION"': {
+              tools: [{ name: 'git', argv: ['git', null] }],
+            },
+          }),
+        }),
+      ),
+    ).toMatchObject({ allow: false });
+  });
+
+  it('bash: a broad tool grant supersedes scoped rules', () => {
+    expect(
+      decideToolCall(
+        base({
+          toolName: 'bash',
+          command: 'git push',
+          allowedTools: set(['git']),
+          allowedShellCommands: [{ argvPrefix: ['git', 'diff'] }],
+          analyze: analyzerOf({
+            'git push': {
+              tools: [{ name: 'git', argv: ['git', 'push'] }],
+            },
+          }),
+        }),
+      ),
+    ).toEqual({ allow: true });
+  });
+
+  it('bash: wrapper and nested command must each be authorized', () => {
+    expect(
+      decideToolCall(
+        base({
+          toolName: 'bash',
+          command: 'sudo git diff',
+          allowedShellCommands: [{ argvPrefix: ['git', 'diff'] }],
+          analyze: analyzerOf({
+            'sudo git diff': {
+              tools: [
+                { name: 'sudo', argv: ['sudo', 'git', 'diff'] },
+                { name: 'git', argv: ['git', 'diff'] },
+              ],
+            },
+          }),
+        }),
+      ),
+    ).toMatchObject({ allow: false, missing: ['sudo'] });
   });
 
   it('bash: unresolvable → block in enforce', () => {

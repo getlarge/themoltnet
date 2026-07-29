@@ -70,6 +70,7 @@ function makePolicy(
     teamId: 'team-1',
     description: null,
     tools: [],
+    shellCommands: [],
     createdAt: '2026-01-01T00:00:00Z',
     updatedAt: '2026-01-01T00:00:00Z',
     ...overrides,
@@ -146,7 +147,52 @@ describe('RuntimePoliciesPage', () => {
             name: 'field-inspector',
             description: 'Read-only inspection',
             tools: ['read', 'grep'],
+            shellCommands: [],
           },
+        }),
+      ),
+    );
+  });
+
+  it('builds an ordered shell command rule and explains broad-tool overlap', async () => {
+    apiMocks.createRuntimePolicy.mockResolvedValue({
+      data: makePolicy({ id: 'policy-2', name: 'reviewer' }),
+      error: null,
+    });
+
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'New policy' }));
+    fireEvent.change(screen.getByLabelText('Name'), {
+      target: { value: 'reviewer' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Add shell command' }));
+    fireEvent.change(screen.getByLabelText('Executable'), {
+      target: { value: 'gh' },
+    });
+    fireEvent.change(screen.getByLabelText('Subcommand'), {
+      target: { value: 'pr' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Add token' }));
+    fireEvent.change(screen.getByLabelText('Token 3'), {
+      target: { value: 'view' },
+    });
+    expect(screen.getByText('gh › pr › view › …')).toBeVisible();
+
+    const toolInput = screen.getByLabelText('Exact tool name');
+    fireEvent.change(toolInput, { target: { value: 'gh' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add tool' }));
+    expect(screen.getByRole('status')).toHaveTextContent(/gh.*redundant/i);
+
+    const editor = screen.getByRole('region', { name: 'New tool policy' });
+    fireEvent.click(
+      within(editor).getByRole('button', { name: 'Create policy' }),
+    );
+    await waitFor(() =>
+      expect(apiMocks.createRuntimePolicy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.objectContaining({
+            shellCommands: [{ argvPrefix: ['gh', 'pr', 'view'] }],
+          }),
         }),
       ),
     );
@@ -201,6 +247,8 @@ describe('RuntimePoliciesPage', () => {
             description: 'Updated',
             addTools: ['shell'],
             removeTools: ['read'],
+            addShellCommands: [],
+            removeShellCommands: [],
           },
         }),
       ),

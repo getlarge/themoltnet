@@ -89,6 +89,7 @@ export type AgentProfile = {
 };
 
 export type AllowedToolsResponse = {
+  allowedShellCommands: Array<ShellCommandRule>;
   allowedTools: Array<string>;
   capabilityManifestVersion: string;
   enforcement: ToolEnforcement;
@@ -507,6 +508,7 @@ export type CreateRuntimeModelBody = {
 export type CreateRuntimePolicyBody = {
   description?: string;
   name: string;
+  shellCommands?: Array<ShellCommandRule>;
   tools?: Array<string>;
 };
 
@@ -1963,6 +1965,7 @@ export type RuntimePolicyWithTools = {
    */
   id: string;
   name: string;
+  shellCommands: Array<ShellCommandRule>;
   /**
    * UUID v4 identifier
    */
@@ -2240,6 +2243,13 @@ export type RuntimeWorkspace = {
 
 export type SetProfilePoliciesBody = {
   policyIds: Array<string>;
+};
+
+export type ShellCommandRule = {
+  /**
+   * Literal argv tokens matched from the executable onward. Additional argv tokens remain permitted.
+   */
+  argvPrefix: Array<string>;
 };
 
 export type SigningCredential = {
@@ -2844,9 +2854,11 @@ export type UpdateRuntimeModelBody = {
 };
 
 export type UpdateRuntimePolicyBody = {
+  addShellCommands?: Array<ShellCommandRule>;
   addTools?: Array<string>;
   description?: string | null;
   name?: string;
+  removeShellCommands?: Array<ShellCommandRule>;
   removeTools?: Array<string>;
 };
 

@@ -89,12 +89,13 @@ describe('Runtime Tool Policies API', () => {
     tools: string[],
     agent: TestAgent = owner,
     teamId: string = owner.personalTeamId,
+    shellCommands: Array<{ argvPrefix: string[] }> = [],
   ) {
     return createRuntimePolicy({
       client,
       auth: () => agent.accessToken,
       headers: { 'x-moltnet-team-id': teamId },
-      body: { name, tools },
+      body: { name, tools, shellCommands },
     });
   }
 
@@ -119,12 +120,19 @@ describe('Runtime Tool Policies API', () => {
       data: created,
       error: createError,
       response: createResponse,
-    } = await createPolicy(name, ['git', 'gh']);
+    } = await createPolicy(name, ['git'], owner, owner.personalTeamId, [
+      { argvPrefix: ['gh', 'pr', 'view'] },
+      { argvPrefix: ['npm', 'run', 'test:unit'] },
+    ]);
 
     expect(createError).toBeUndefined();
     expect(createResponse.status).toBe(201);
     expect(created).toMatchObject({ name, teamId: owner.personalTeamId });
-    expect([...created!.tools].sort()).toEqual(['gh', 'git']);
+    expect(created!.tools).toEqual(['git']);
+    expect(created!.shellCommands).toEqual([
+      { argvPrefix: ['gh', 'pr', 'view'] },
+      { argvPrefix: ['npm', 'run', 'test:unit'] },
+    ]);
 
     const { data: listed, error: listError } = await listRuntimePolicies({
       client,
@@ -141,18 +149,28 @@ describe('Runtime Tool Policies API', () => {
       path: { policyId: created!.id },
     });
     expect(getError).toBeUndefined();
-    expect([...fetched!.tools].sort()).toEqual(['gh', 'git']);
+    expect(fetched!.tools).toEqual(['git']);
+    expect(fetched!.shellCommands).toEqual(created!.shellCommands);
 
     const { data: updated, error: updateError } = await updateRuntimePolicy({
       client,
       auth: () => owner.accessToken,
       headers: { 'x-moltnet-team-id': owner.personalTeamId },
       path: { policyId: created!.id },
-      body: { name: `${name}-renamed`, addTools: ['ls'], removeTools: ['gh'] },
+      body: {
+        name: `${name}-renamed`,
+        addTools: ['ls'],
+        addShellCommands: [{ argvPrefix: ['pnpm', 'exec', 'vitest'] }],
+        removeShellCommands: [{ argvPrefix: ['npm', 'run', 'test:unit'] }],
+      },
     });
     expect(updateError).toBeUndefined();
     expect(updated!.name).toBe(`${name}-renamed`);
     expect([...updated!.tools].sort()).toEqual(['git', 'ls']);
+    expect(updated!.shellCommands).toEqual([
+      { argvPrefix: ['gh', 'pr', 'view'] },
+      { argvPrefix: ['pnpm', 'exec', 'vitest'] },
+    ]);
 
     const { response: deleteResponse, error: deleteError } =
       await deleteRuntimePolicy({
@@ -180,7 +198,13 @@ describe('Runtime Tool Policies API', () => {
     expect(profile).toBeDefined();
     expect(profile!.toolEnforcement).toBe('enforce');
 
-    const { data: p1 } = await createPolicy(`p1-${Date.now()}`, ['git', 'gh']);
+    const { data: p1 } = await createPolicy(
+      `p1-${Date.now()}`,
+      ['git', 'gh'],
+      owner,
+      owner.personalTeamId,
+      [{ argvPrefix: ['gh', 'pr', 'view'] }],
+    );
     const { data: p2 } = await createPolicy(`p2-${Date.now()}`, ['gh', 'ls']);
     expect(p1).toBeDefined();
     expect(p2).toBeDefined();
@@ -206,6 +230,9 @@ describe('Runtime Tool Policies API', () => {
     expect(allowedError).toBeUndefined();
     expect(allowed!.enforcement).toBe('enforce');
     expect([...allowed!.allowedTools].sort()).toEqual(['gh', 'git', 'ls']);
+    expect(allowed!.allowedShellCommands).toEqual([
+      { argvPrefix: ['gh', 'pr', 'view'] },
+    ]);
     expect(allowed).toMatchObject({
       runtimeKind: 'gondolin_pi',
       capabilityManifestVersion: 'gondolin_pi:v1',
@@ -228,6 +255,9 @@ describe('Runtime Tool Policies API', () => {
       path: { profileId: profile!.id },
     });
     expect([...narrowed!.allowedTools].sort()).toEqual(['gh', 'git']);
+    expect(narrowed!.allowedShellCommands).toEqual([
+      { argvPrefix: ['gh', 'pr', 'view'] },
+    ]);
   });
 
   it('defaults enforcement to off for a profile with no policies', async () => {

@@ -2200,6 +2200,14 @@ func (s *AllowedToolsResponse) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *AllowedToolsResponse) encodeFields(e *jx.Encoder) {
 	{
+		e.FieldStart("allowedShellCommands")
+		e.ArrStart()
+		for _, elem := range s.AllowedShellCommands {
+			elem.Encode(e)
+		}
+		e.ArrEnd()
+	}
+	{
 		e.FieldStart("allowedTools")
 		e.ArrStart()
 		for _, elem := range s.AllowedTools {
@@ -2229,13 +2237,14 @@ func (s *AllowedToolsResponse) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfAllowedToolsResponse = [6]string{
-	0: "allowedTools",
-	1: "capabilityManifestVersion",
-	2: "enforcement",
-	3: "policySnapshotHash",
-	4: "runtimeKind",
-	5: "runtimeProfileRevision",
+var jsonFieldsNameOfAllowedToolsResponse = [7]string{
+	0: "allowedShellCommands",
+	1: "allowedTools",
+	2: "capabilityManifestVersion",
+	3: "enforcement",
+	4: "policySnapshotHash",
+	5: "runtimeKind",
+	6: "runtimeProfileRevision",
 }
 
 // Decode decodes AllowedToolsResponse from json.
@@ -2247,8 +2256,26 @@ func (s *AllowedToolsResponse) Decode(d *jx.Decoder) error {
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		switch string(k) {
-		case "allowedTools":
+		case "allowedShellCommands":
 			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				s.AllowedShellCommands = make([]ShellCommandRule, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem ShellCommandRule
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.AllowedShellCommands = append(s.AllowedShellCommands, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"allowedShellCommands\"")
+			}
+		case "allowedTools":
+			requiredBitSet[0] |= 1 << 1
 			if err := func() error {
 				s.AllowedTools = make([]string, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -2268,7 +2295,7 @@ func (s *AllowedToolsResponse) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"allowedTools\"")
 			}
 		case "capabilityManifestVersion":
-			requiredBitSet[0] |= 1 << 1
+			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				v, err := d.Str()
 				s.CapabilityManifestVersion = string(v)
@@ -2280,7 +2307,7 @@ func (s *AllowedToolsResponse) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"capabilityManifestVersion\"")
 			}
 		case "enforcement":
-			requiredBitSet[0] |= 1 << 2
+			requiredBitSet[0] |= 1 << 3
 			if err := func() error {
 				if err := s.Enforcement.Decode(d); err != nil {
 					return err
@@ -2290,7 +2317,7 @@ func (s *AllowedToolsResponse) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"enforcement\"")
 			}
 		case "policySnapshotHash":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Str()
 				s.PolicySnapshotHash = string(v)
@@ -2302,7 +2329,7 @@ func (s *AllowedToolsResponse) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"policySnapshotHash\"")
 			}
 		case "runtimeKind":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				if err := s.RuntimeKind.Decode(d); err != nil {
 					return err
@@ -2312,7 +2339,7 @@ func (s *AllowedToolsResponse) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"runtimeKind\"")
 			}
 		case "runtimeProfileRevision":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := d.Int()
 				s.RuntimeProfileRevision = int(v)
@@ -2333,7 +2360,7 @@ func (s *AllowedToolsResponse) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111111,
+		0b01111111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -14666,6 +14693,16 @@ func (s *CreateRuntimePolicyBody) encodeFields(e *jx.Encoder) {
 		e.Str(s.Name)
 	}
 	{
+		if s.ShellCommands != nil {
+			e.FieldStart("shellCommands")
+			e.ArrStart()
+			for _, elem := range s.ShellCommands {
+				elem.Encode(e)
+			}
+			e.ArrEnd()
+		}
+	}
+	{
 		if s.Tools != nil {
 			e.FieldStart("tools")
 			e.ArrStart()
@@ -14677,10 +14714,11 @@ func (s *CreateRuntimePolicyBody) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfCreateRuntimePolicyBody = [3]string{
+var jsonFieldsNameOfCreateRuntimePolicyBody = [4]string{
 	0: "description",
 	1: "name",
-	2: "tools",
+	2: "shellCommands",
+	3: "tools",
 }
 
 // Decode decodes CreateRuntimePolicyBody from json.
@@ -14713,6 +14751,23 @@ func (s *CreateRuntimePolicyBody) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"name\"")
+			}
+		case "shellCommands":
+			if err := func() error {
+				s.ShellCommands = make([]ShellCommandRule, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem ShellCommandRule
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.ShellCommands = append(s.ShellCommands, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"shellCommands\"")
 			}
 		case "tools":
 			if err := func() error {
@@ -83976,6 +84031,14 @@ func (s *RuntimePolicyWithTools) encodeFields(e *jx.Encoder) {
 		e.Str(s.Name)
 	}
 	{
+		e.FieldStart("shellCommands")
+		e.ArrStart()
+		for _, elem := range s.ShellCommands {
+			elem.Encode(e)
+		}
+		e.ArrEnd()
+	}
+	{
 		e.FieldStart("teamId")
 		json.EncodeUUID(e, s.TeamId)
 	}
@@ -83993,14 +84056,15 @@ func (s *RuntimePolicyWithTools) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfRuntimePolicyWithTools = [7]string{
+var jsonFieldsNameOfRuntimePolicyWithTools = [8]string{
 	0: "createdAt",
 	1: "description",
 	2: "id",
 	3: "name",
-	4: "teamId",
-	5: "tools",
-	6: "updatedAt",
+	4: "shellCommands",
+	5: "teamId",
+	6: "tools",
+	7: "updatedAt",
 }
 
 // Decode decodes RuntimePolicyWithTools from json.
@@ -84058,8 +84122,26 @@ func (s *RuntimePolicyWithTools) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"name\"")
 			}
-		case "teamId":
+		case "shellCommands":
 			requiredBitSet[0] |= 1 << 4
+			if err := func() error {
+				s.ShellCommands = make([]ShellCommandRule, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem ShellCommandRule
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.ShellCommands = append(s.ShellCommands, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"shellCommands\"")
+			}
+		case "teamId":
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.TeamId = v
@@ -84071,7 +84153,7 @@ func (s *RuntimePolicyWithTools) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"teamId\"")
 			}
 		case "tools":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				s.Tools = make([]string, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -84091,7 +84173,7 @@ func (s *RuntimePolicyWithTools) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"tools\"")
 			}
 		case "updatedAt":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				v, err := json.DecodeDateTime(d)
 				s.UpdatedAt = v
@@ -84112,7 +84194,7 @@ func (s *RuntimePolicyWithTools) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b01111111,
+		0b11111111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -88690,6 +88772,114 @@ func (s *SetRuntimeProfilePoliciesUnauthorized) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *SetRuntimeProfilePoliciesUnauthorized) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode implements json.Marshaler.
+func (s *ShellCommandRule) Encode(e *jx.Encoder) {
+	e.ObjStart()
+	s.encodeFields(e)
+	e.ObjEnd()
+}
+
+// encodeFields encodes fields.
+func (s *ShellCommandRule) encodeFields(e *jx.Encoder) {
+	{
+		e.FieldStart("argvPrefix")
+		e.ArrStart()
+		for _, elem := range s.ArgvPrefix {
+			e.Str(elem)
+		}
+		e.ArrEnd()
+	}
+}
+
+var jsonFieldsNameOfShellCommandRule = [1]string{
+	0: "argvPrefix",
+}
+
+// Decode decodes ShellCommandRule from json.
+func (s *ShellCommandRule) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode ShellCommandRule to nil")
+	}
+	var requiredBitSet [1]uint8
+
+	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
+		switch string(k) {
+		case "argvPrefix":
+			requiredBitSet[0] |= 1 << 0
+			if err := func() error {
+				s.ArgvPrefix = make([]string, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem string
+					v, err := d.Str()
+					elem = string(v)
+					if err != nil {
+						return err
+					}
+					s.ArgvPrefix = append(s.ArgvPrefix, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"argvPrefix\"")
+			}
+		default:
+			return errors.Errorf("unexpected field %q", k)
+		}
+		return nil
+	}); err != nil {
+		return errors.Wrap(err, "decode ShellCommandRule")
+	}
+	// Validate required fields.
+	var failures []validate.FieldError
+	for i, mask := range [1]uint8{
+		0b00000001,
+	} {
+		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
+			// Mask only required fields and check equality to mask using XOR.
+			//
+			// If XOR result is not zero, result is not equal to expected, so some fields are missed.
+			// Bits of fields which would be set are actually bits of missed fields.
+			missed := bits.OnesCount8(result)
+			for bitN := 0; bitN < missed; bitN++ {
+				bitIdx := bits.TrailingZeros8(result)
+				fieldIdx := i*8 + bitIdx
+				var name string
+				if fieldIdx < len(jsonFieldsNameOfShellCommandRule) {
+					name = jsonFieldsNameOfShellCommandRule[fieldIdx]
+				} else {
+					name = strconv.Itoa(fieldIdx)
+				}
+				failures = append(failures, validate.FieldError{
+					Name:  name,
+					Error: validate.ErrFieldRequired,
+				})
+				// Reset bit.
+				result &^= 1 << bitIdx
+			}
+		}
+	}
+	if len(failures) > 0 {
+		return &validate.Error{Fields: failures}
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s *ShellCommandRule) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *ShellCommandRule) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -101979,6 +102169,16 @@ func (s *UpdateRuntimePolicyBody) Encode(e *jx.Encoder) {
 // encodeFields encodes fields.
 func (s *UpdateRuntimePolicyBody) encodeFields(e *jx.Encoder) {
 	{
+		if s.AddShellCommands != nil {
+			e.FieldStart("addShellCommands")
+			e.ArrStart()
+			for _, elem := range s.AddShellCommands {
+				elem.Encode(e)
+			}
+			e.ArrEnd()
+		}
+	}
+	{
 		if s.AddTools != nil {
 			e.FieldStart("addTools")
 			e.ArrStart()
@@ -102001,6 +102201,16 @@ func (s *UpdateRuntimePolicyBody) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RemoveShellCommands != nil {
+			e.FieldStart("removeShellCommands")
+			e.ArrStart()
+			for _, elem := range s.RemoveShellCommands {
+				elem.Encode(e)
+			}
+			e.ArrEnd()
+		}
+	}
+	{
 		if s.RemoveTools != nil {
 			e.FieldStart("removeTools")
 			e.ArrStart()
@@ -102012,11 +102222,13 @@ func (s *UpdateRuntimePolicyBody) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfUpdateRuntimePolicyBody = [4]string{
-	0: "addTools",
-	1: "description",
-	2: "name",
-	3: "removeTools",
+var jsonFieldsNameOfUpdateRuntimePolicyBody = [6]string{
+	0: "addShellCommands",
+	1: "addTools",
+	2: "description",
+	3: "name",
+	4: "removeShellCommands",
+	5: "removeTools",
 }
 
 // Decode decodes UpdateRuntimePolicyBody from json.
@@ -102029,6 +102241,23 @@ func (s *UpdateRuntimePolicyBody) Decode(d *jx.Decoder) error {
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
 		propertiesCount++
 		switch string(k) {
+		case "addShellCommands":
+			if err := func() error {
+				s.AddShellCommands = make([]ShellCommandRule, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem ShellCommandRule
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.AddShellCommands = append(s.AddShellCommands, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"addShellCommands\"")
+			}
 		case "addTools":
 			if err := func() error {
 				s.AddTools = make([]string, 0)
@@ -102067,6 +102296,23 @@ func (s *UpdateRuntimePolicyBody) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"name\"")
+			}
+		case "removeShellCommands":
+			if err := func() error {
+				s.RemoveShellCommands = make([]ShellCommandRule, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem ShellCommandRule
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.RemoveShellCommands = append(s.RemoveShellCommands, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"removeShellCommands\"")
 			}
 		case "removeTools":
 			if err := func() error {

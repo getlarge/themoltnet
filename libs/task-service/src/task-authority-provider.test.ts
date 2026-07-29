@@ -64,6 +64,7 @@ function snapshot(
     capabilityManifestVersion: canonicalSnapshot.capabilityManifestVersion,
     enforcement: canonicalSnapshot.enforcement,
     allowedTools: canonicalSnapshot.allowedTools,
+    allowedShellCommands: canonicalSnapshot.allowedShellCommands,
     createdAt: NOW,
     ...overrides,
   };
@@ -170,6 +171,33 @@ describe('MoltNet TaskAuthorityProvider', () => {
     expect(denialCounter.add).not.toHaveBeenCalled();
   });
 
+  it('authorizes v1 snapshots containing scoped shell commands', async () => {
+    const scoped = canonicalEffectivePolicySnapshot({
+      runtimeKind: 'gondolin_pi',
+      enforcement: 'enforce',
+      allowedTools: ['read'],
+      allowedShellCommands: [{ argvPrefix: ['gh', 'pr', 'view'] }],
+    });
+    const hash = hashEffectivePolicySnapshot(scoped);
+    const { provider } = setup({
+      attempt: attempt({ policySnapshotHash: hash }),
+      snapshot: snapshot({
+        hash,
+        schemaVersion: scoped.version,
+        runtimeKind: scoped.runtimeKind,
+        capabilityManifestVersion: scoped.capabilityManifestVersion,
+        enforcement: scoped.enforcement,
+        allowedTools: scoped.allowedTools,
+        allowedShellCommands: scoped.allowedShellCommands,
+      }),
+    });
+
+    await expect(provider.authorizeTask(request)).resolves.toMatchObject({
+      allowed: true,
+      claims: { policySnapshotHash: hash },
+    });
+  });
+
   it('denies missing tasks and attempts', async () => {
     await expectDenied(
       setup({ task: null }),
@@ -256,6 +284,12 @@ describe('MoltNet TaskAuthorityProvider', () => {
     { runtimeKind: 'unknown_runtime' },
     { enforcement: 'unknown_enforcement' },
     { allowedTools: ['customer_dynamic_tool'] },
+    {
+      allowedShellCommands: [
+        { argvPrefix: ['customer_dynamic_tool', 'inspect'] },
+      ],
+    },
+    { allowedShellCommands: [{ argvPrefix: ['git'] }] },
   ])('denies invalid snapshot authority: %o', async (invalidBinding) => {
     await expectDenied(
       setup({ snapshot: snapshot(invalidBinding) }),

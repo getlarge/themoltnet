@@ -266,6 +266,13 @@
       "when": 1785316183995,
       "tag": "0037_early_sage",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1785317326005,
+      "tag": "0038_jittery_dazzler",
+      "breakpoints": true
     }
   ],
   "version": "7"

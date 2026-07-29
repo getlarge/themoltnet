@@ -917,6 +917,7 @@ export type {
   SetRuntimeProfilePoliciesErrors,
   SetRuntimeProfilePoliciesResponse,
   SetRuntimeProfilePoliciesResponses,
+  ShellCommandRule,
   SigningCredential,
   SigningCredentialList,
   SigningCredentialRegistration,

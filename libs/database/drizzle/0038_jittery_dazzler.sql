@@ -1,0 +1,1 @@
+ALTER TABLE "runtime_policy_snapshots" ADD COLUMN "allowed_shell_commands" jsonb DEFAULT '[]'::jsonb NOT NULL;

@@ -715,12 +715,18 @@ func (*AgentProfile) getAgentProfileRes() {}
 
 // Ref: #/components/schemas/AllowedToolsResponse
 type AllowedToolsResponse struct {
+	AllowedShellCommands      []ShellCommandRule              `json:"allowedShellCommands"`
 	AllowedTools              []string                        `json:"allowedTools"`
 	CapabilityManifestVersion string                          `json:"capabilityManifestVersion"`
 	Enforcement               ToolEnforcement                 `json:"enforcement"`
 	PolicySnapshotHash        string                          `json:"policySnapshotHash"`
 	RuntimeKind               AllowedToolsResponseRuntimeKind `json:"runtimeKind"`
 	RuntimeProfileRevision    int                             `json:"runtimeProfileRevision"`
+}
+
+// GetAllowedShellCommands returns the value of AllowedShellCommands.
+func (s *AllowedToolsResponse) GetAllowedShellCommands() []ShellCommandRule {
+	return s.AllowedShellCommands
 }
 
 // GetAllowedTools returns the value of AllowedTools.
@@ -751,6 +757,11 @@ func (s *AllowedToolsResponse) GetRuntimeKind() AllowedToolsResponseRuntimeKind 
 // GetRuntimeProfileRevision returns the value of RuntimeProfileRevision.
 func (s *AllowedToolsResponse) GetRuntimeProfileRevision() int {
 	return s.RuntimeProfileRevision
+}
+
+// SetAllowedShellCommands sets the value of AllowedShellCommands.
+func (s *AllowedToolsResponse) SetAllowedShellCommands(val []ShellCommandRule) {
+	s.AllowedShellCommands = val
 }
 
 // SetAllowedTools sets the value of AllowedTools.
@@ -6215,9 +6226,10 @@ func (*CreateRuntimeModelUnauthorized) createRuntimeModelRes() {}
 
 // Ref: #/components/schemas/CreateRuntimePolicyBody
 type CreateRuntimePolicyBody struct {
-	Description OptString `json:"description"`
-	Name        string    `json:"name"`
-	Tools       []string  `json:"tools"`
+	Description   OptString          `json:"description"`
+	Name          string             `json:"name"`
+	ShellCommands []ShellCommandRule `json:"shellCommands"`
+	Tools         []string           `json:"tools"`
 }
 
 // GetDescription returns the value of Description.
@@ -6228,6 +6240,11 @@ func (s *CreateRuntimePolicyBody) GetDescription() OptString {
 // GetName returns the value of Name.
 func (s *CreateRuntimePolicyBody) GetName() string {
 	return s.Name
+}
+
+// GetShellCommands returns the value of ShellCommands.
+func (s *CreateRuntimePolicyBody) GetShellCommands() []ShellCommandRule {
+	return s.ShellCommands
 }
 
 // GetTools returns the value of Tools.
@@ -6243,6 +6260,11 @@ func (s *CreateRuntimePolicyBody) SetDescription(val OptString) {
 // SetName sets the value of Name.
 func (s *CreateRuntimePolicyBody) SetName(val string) {
 	s.Name = val
+}
+
+// SetShellCommands sets the value of ShellCommands.
+func (s *CreateRuntimePolicyBody) SetShellCommands(val []ShellCommandRule) {
+	s.ShellCommands = val
 }
 
 // SetTools sets the value of Tools.
@@ -44881,8 +44903,9 @@ type RuntimePolicyWithTools struct {
 	CreatedAt   time.Time `json:"createdAt"`
 	Description NilString `json:"description"`
 	// UUID v4 identifier.
-	ID   uuid.UUID `json:"id"`
-	Name string    `json:"name"`
+	ID            uuid.UUID          `json:"id"`
+	Name          string             `json:"name"`
+	ShellCommands []ShellCommandRule `json:"shellCommands"`
 	// UUID v4 identifier.
 	TeamId    uuid.UUID `json:"teamId"`
 	Tools     []string  `json:"tools"`
@@ -44907,6 +44930,11 @@ func (s *RuntimePolicyWithTools) GetID() uuid.UUID {
 // GetName returns the value of Name.
 func (s *RuntimePolicyWithTools) GetName() string {
 	return s.Name
+}
+
+// GetShellCommands returns the value of ShellCommands.
+func (s *RuntimePolicyWithTools) GetShellCommands() []ShellCommandRule {
+	return s.ShellCommands
 }
 
 // GetTeamId returns the value of TeamId.
@@ -44942,6 +44970,11 @@ func (s *RuntimePolicyWithTools) SetID(val uuid.UUID) {
 // SetName sets the value of Name.
 func (s *RuntimePolicyWithTools) SetName(val string) {
 	s.Name = val
+}
+
+// SetShellCommands sets the value of ShellCommands.
+func (s *RuntimePolicyWithTools) SetShellCommands(val []ShellCommandRule) {
+	s.ShellCommands = val
 }
 
 // SetTeamId sets the value of TeamId.
@@ -47284,6 +47317,22 @@ func (*SetRuntimeProfilePoliciesNotFound) setRuntimeProfilePoliciesRes() {}
 type SetRuntimeProfilePoliciesUnauthorized ProblemDetails
 
 func (*SetRuntimeProfilePoliciesUnauthorized) setRuntimeProfilePoliciesRes() {}
+
+// Ref: #/components/schemas/ShellCommandRule
+type ShellCommandRule struct {
+	// Literal argv tokens matched from the executable onward. Additional argv tokens remain permitted.
+	ArgvPrefix []string `json:"argvPrefix"`
+}
+
+// GetArgvPrefix returns the value of ArgvPrefix.
+func (s *ShellCommandRule) GetArgvPrefix() []string {
+	return s.ArgvPrefix
+}
+
+// SetArgvPrefix sets the value of ArgvPrefix.
+func (s *ShellCommandRule) SetArgvPrefix(val []string) {
+	s.ArgvPrefix = val
+}
 
 // Ref: #/components/schemas/SigningCredential
 type SigningCredential struct {
@@ -53985,10 +54034,17 @@ func (*UpdateRuntimeModelUnauthorized) updateRuntimeModelRes() {}
 
 // Ref: #/components/schemas/UpdateRuntimePolicyBody
 type UpdateRuntimePolicyBody struct {
-	AddTools    []string     `json:"addTools"`
-	Description OptNilString `json:"description"`
-	Name        OptString    `json:"name"`
-	RemoveTools []string     `json:"removeTools"`
+	AddShellCommands    []ShellCommandRule `json:"addShellCommands"`
+	AddTools            []string           `json:"addTools"`
+	Description         OptNilString       `json:"description"`
+	Name                OptString          `json:"name"`
+	RemoveShellCommands []ShellCommandRule `json:"removeShellCommands"`
+	RemoveTools         []string           `json:"removeTools"`
+}
+
+// GetAddShellCommands returns the value of AddShellCommands.
+func (s *UpdateRuntimePolicyBody) GetAddShellCommands() []ShellCommandRule {
+	return s.AddShellCommands
 }
 
 // GetAddTools returns the value of AddTools.
@@ -54006,9 +54062,19 @@ func (s *UpdateRuntimePolicyBody) GetName() OptString {
 	return s.Name
 }
 
+// GetRemoveShellCommands returns the value of RemoveShellCommands.
+func (s *UpdateRuntimePolicyBody) GetRemoveShellCommands() []ShellCommandRule {
+	return s.RemoveShellCommands
+}
+
 // GetRemoveTools returns the value of RemoveTools.
 func (s *UpdateRuntimePolicyBody) GetRemoveTools() []string {
 	return s.RemoveTools
+}
+
+// SetAddShellCommands sets the value of AddShellCommands.
+func (s *UpdateRuntimePolicyBody) SetAddShellCommands(val []ShellCommandRule) {
+	s.AddShellCommands = val
 }
 
 // SetAddTools sets the value of AddTools.
@@ -54024,6 +54090,11 @@ func (s *UpdateRuntimePolicyBody) SetDescription(val OptNilString) {
 // SetName sets the value of Name.
 func (s *UpdateRuntimePolicyBody) SetName(val OptString) {
 	s.Name = val
+}
+
+// SetRemoveShellCommands sets the value of RemoveShellCommands.
+func (s *UpdateRuntimePolicyBody) SetRemoveShellCommands(val []ShellCommandRule) {
+	s.RemoveShellCommands = val
 }
 
 // SetRemoveTools sets the value of RemoveTools.

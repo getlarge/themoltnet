@@ -116,6 +116,14 @@ test.describe.serial('Runtime security console', () => {
     await toolInput.press('Enter');
     await toolInput.fill('grep');
     await toolInput.press('Enter');
+    await policyEditor
+      .getByRole('button', { name: 'Add shell command' })
+      .click();
+    await policyEditor.getByLabel('Executable').fill('gh');
+    await policyEditor.getByLabel('Subcommand').fill('pr');
+    await policyEditor.getByRole('button', { name: 'Add token' }).click();
+    await policyEditor.getByLabel('Token 3').fill('view');
+    await expect(policyEditor.getByText('gh › pr › view › …')).toBeVisible();
     await policyEditor.getByRole('button', { name: 'Create policy' }).click();
     const savedPolicyEditor = page.getByRole('region', {
       name: 'Tool policy editor',
@@ -146,6 +154,9 @@ test.describe.serial('Runtime security console', () => {
     ).toBeVisible();
     await expect(
       toolAccess.locator('code').filter({ hasText: 'grep' }),
+    ).toBeVisible();
+    await expect(
+      toolAccess.locator('code').filter({ hasText: 'gh › pr › view › …' }),
     ).toBeVisible();
 
     await toolAccess.getByRole('radio', { name: /enforce/i }).check();
@@ -264,7 +275,7 @@ test.describe.serial('Runtime security console', () => {
     await page.getByRole('button', { name: 'Profiles' }).click();
     await expect(async () => {
       await page.reload();
-      await expect(page.getByText(/resolved allow-list is empty/i)).toBeVisible(
+      await expect(page.getByText(/resolved access set is empty/i)).toBeVisible(
         { timeout: 2_000 },
       );
     }).toPass({ timeout: 20_000 });

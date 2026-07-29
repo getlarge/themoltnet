@@ -32,6 +32,46 @@ describe('RelationshipWriter', () => {
     writer = createRelationshipWriter(mockRelationshipApi as any);
   });
 
+  it('writes exact ShellCommand relationships for runtime policies', async () => {
+    mockRelationshipApi.patchRelationships.mockResolvedValue(undefined);
+
+    await writer.writeRuntimePolicyEdges('policy-1', {
+      addShellCommands: ['v1/gh/pr/view'],
+      removeShellCommands: ['v1/npm/run/test%3Aunit'],
+    });
+
+    expect(mockRelationshipApi.patchRelationships).toHaveBeenCalledWith({
+      relationshipPatch: [
+        {
+          action: 'insert',
+          relation_tuple: {
+            namespace: 'RuntimePolicy',
+            object: 'policy-1',
+            relation: 'command',
+            subject_set: {
+              namespace: 'ShellCommand',
+              object: 'v1/gh/pr/view',
+              relation: '',
+            },
+          },
+        },
+        {
+          action: 'delete',
+          relation_tuple: {
+            namespace: 'RuntimePolicy',
+            object: 'policy-1',
+            relation: 'command',
+            subject_set: {
+              namespace: 'ShellCommand',
+              object: 'v1/npm/run/test%3Aunit',
+              relation: '',
+            },
+          },
+        },
+      ],
+    });
+  });
+
   describe('diary relationships', () => {
     it('grants diary team relation', async () => {
       mockRelationshipApi.createRelationship.mockResolvedValue({});

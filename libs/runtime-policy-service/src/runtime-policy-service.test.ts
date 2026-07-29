@@ -65,6 +65,7 @@ function makeService() {
   const reader = {
     listRuntimeProfilePolicies: vi.fn(),
     listRuntimePolicyTools: vi.fn().mockResolvedValue([]),
+    listRuntimePolicyShellCommands: vi.fn().mockResolvedValue([]),
   };
   const writer = {
     writeRuntimePolicyEdges: vi.fn(),
@@ -162,6 +163,59 @@ describe('createRuntimePolicyService', () => {
       );
     });
 
+    it('unions decoded shell commands and persists them in v1 snapshots', async () => {
+      ctx.repo.getProfilePolicyContext.mockResolvedValue({
+        runtimeKind: 'gondolin_pi',
+        revision: 3,
+        enforcement: 'enforce',
+      });
+      ctx.reader.listRuntimeProfilePolicies.mockResolvedValue(['P1', 'P2']);
+      ctx.reader.listRuntimePolicyShellCommands.mockImplementation(
+        (id: string) =>
+          Promise.resolve(
+            id === 'P1'
+              ? ['v1/git/log', 'v1/git/diff']
+              : ['v1/gh/pr/view', 'v1/git/diff'],
+          ),
+      );
+
+      const result = await ctx.service.resolvePinnedAllowedTools({
+        profileId: 'R',
+        teamId: TEAM_ID,
+      });
+
+      expect(result.allowedShellCommands).toEqual([
+        { argvPrefix: ['gh', 'pr', 'view'] },
+        { argvPrefix: ['git', 'diff'] },
+        { argvPrefix: ['git', 'log'] },
+      ]);
+      expect(ctx.snapshotRepo.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          schemaVersion: 'effective-policy:v1',
+          allowedShellCommands: result.allowedShellCommands,
+        }),
+      );
+    });
+
+    it('fails closed when a Keto shell command relationship is malformed', async () => {
+      ctx.repo.getProfilePolicyContext.mockResolvedValue({
+        runtimeKind: 'gondolin_pi',
+        revision: 1,
+        enforcement: 'enforce',
+      });
+      ctx.reader.listRuntimeProfilePolicies.mockResolvedValue(['P1']);
+      ctx.reader.listRuntimePolicyShellCommands.mockResolvedValue([
+        'v1/git/%2f',
+      ]);
+
+      await expect(
+        ctx.service.resolveAllowedTools({
+          profileId: 'R',
+          teamId: TEAM_ID,
+        }),
+      ).rejects.toThrow(/canonically percent-encoded/);
+    });
+
     it('returns enforcement + empty tools when no policies are bound', async () => {
       ctx.repo.getProfilePolicyContext.mockResolvedValue({
         runtimeKind: 'gondolin_pi',
@@ -209,6 +263,45 @@ describe('createRuntimePolicyService', () => {
   });
 
   describe('create', () => {
+    it('stores normalized shell command rules as exact Keto objects', async () => {
+      ctx.repo.create.mockResolvedValue(policyRow());
+
+      const result = await ctx.service.create({
+        teamId: TEAM_ID,
+        name: 'review',
+        tools: [],
+        shellCommands: [
+          { argvPrefix: ['git', 'diff'] },
+          { argvPrefix: ['gh', 'pr', 'view'] },
+          { argvPrefix: ['git', 'diff'] },
+        ],
+        subject: AGENT_SUBJECT,
+      });
+
+      expect(ctx.writer.writeRuntimePolicyEdges).toHaveBeenCalledWith('pol-1', {
+        teamId: TEAM_ID,
+        addTools: [],
+        addShellCommands: ['v1/gh/pr/view', 'v1/git/diff'],
+      });
+      expect(result.shellCommands).toEqual([
+        { argvPrefix: ['gh', 'pr', 'view'] },
+        { argvPrefix: ['git', 'diff'] },
+      ]);
+    });
+
+    it('rejects shell commands whose executable is absent from the manifest', async () => {
+      await expect(
+        ctx.service.create({
+          teamId: TEAM_ID,
+          name: 'unsafe',
+          tools: [],
+          shellCommands: [{ argvPrefix: ['customer-dynamic-cli', 'deploy'] }],
+          subject: AGENT_SUBJECT,
+        }),
+      ).rejects.toMatchObject({ statusCode: 400 });
+      expect(ctx.repo.create).not.toHaveBeenCalled();
+    });
+
     it('writes the row then team + tool edges, manager-authorized', async () => {
       // Arrange
       ctx.repo.create.mockResolvedValue(policyRow());
@@ -536,7 +629,7 @@ describe('effective policy snapshot hashing', () => {
       hashEffectivePolicySnapshot(second),
     );
     expect(hashEffectivePolicySnapshot(first)).toBe(
-      'sha256:af0925235fa11f26096706b98ea55d9e641483f8bdf0107f45e4157ed26549ab',
+      'sha256:5f555bf8eab60ac695ab71b46cfb3ab835ddbb895d45a8de230eab0ecf97bb40',
     );
   });
 });

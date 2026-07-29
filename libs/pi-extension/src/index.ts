@@ -27,6 +27,7 @@ import {
 } from '@earendil-works/pi-coding-agent';
 import {
   activateAgentEnv,
+  assertGondolinPiToolDefinitions,
   buildWorkspaceMountInstructions,
   createGondolinBashOps,
   createGondolinEditOps,

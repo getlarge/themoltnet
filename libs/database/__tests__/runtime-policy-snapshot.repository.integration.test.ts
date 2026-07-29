@@ -48,10 +48,35 @@ describe('RuntimePolicySnapshotRepository (integration)', () => {
     const created = await repo.upsert(snapshot);
     const reused = await repo.upsert(snapshot);
 
+    expect(created.allowedShellCommands).toEqual([]);
     expect(reused).toEqual(created);
     await expect(
       repo.upsert({ ...snapshot, allowedTools: ['write'] }),
     ).rejects.toThrow(/hash collision/);
     await expect(repo.findByHash(snapshot.hash)).resolves.toEqual(created);
+  });
+
+  it('persists shell command rules and includes them in collision checks', async () => {
+    const scopedSnapshot = {
+      ...snapshot,
+      hash: `sha256:${'b'.repeat(64)}`,
+      schemaVersion: 'effective-policy:v1',
+      allowedShellCommands: [
+        { argvPrefix: ['gh', 'pr', 'view'] },
+        { argvPrefix: ['git', 'diff'] },
+      ],
+    };
+
+    const created = await repo.upsert(scopedSnapshot);
+
+    expect(created.allowedShellCommands).toEqual(
+      scopedSnapshot.allowedShellCommands,
+    );
+    await expect(
+      repo.upsert({
+        ...scopedSnapshot,
+        allowedShellCommands: [{ argvPrefix: ['git', 'push'] }],
+      }),
+    ).rejects.toThrow(/hash collision/);
   });
 });

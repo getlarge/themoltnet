@@ -5,6 +5,13 @@ import type {
   PermissionChecker,
   RelationshipReader,
   RelationshipWriter,
+  ShellCommandRule,
+} from '@moltnet/auth';
+import {
+  decodeShellCommandIdentifier,
+  encodeShellCommandRule,
+  normalizeShellCommandRules,
+  ShellCommandIdentifierError,
 } from '@moltnet/auth';
 import { canonicalJson } from '@moltnet/crypto-service';
 import type {
@@ -49,11 +56,13 @@ export interface RuntimePolicy {
 
 export interface RuntimePolicyWithTools extends RuntimePolicy {
   tools: string[];
+  shellCommands: ShellCommandRule[];
 }
 
 export interface AllowedTools {
   enforcement: ToolEnforcement;
   allowedTools: string[];
+  allowedShellCommands: ShellCommandRule[];
   runtimeKind: RuntimeKind;
   capabilityManifestVersion: string;
   runtimeProfileRevision: number;
@@ -74,6 +83,7 @@ export interface CreateRuntimePolicyInput {
   name: string;
   description?: string;
   tools: string[];
+  shellCommands?: ShellCommandRule[];
   subject: RuntimePolicySubject;
 }
 
@@ -87,6 +97,8 @@ export interface UpdateRuntimePolicyPatch {
   description?: string | null;
   addTools?: string[];
   removeTools?: string[];
+  addShellCommands?: ShellCommandRule[];
+  removeShellCommands?: ShellCommandRule[];
 }
 
 export interface ResolveAllowedToolsInput {
@@ -146,6 +158,56 @@ function validateRuntimeCapabilities(
   }
 }
 
+function validateShellCommandCapabilities(
+  runtimeKind: RuntimeKind,
+  rules: readonly ShellCommandRule[],
+  field: string,
+): void {
+  const executables = rules.map(({ argvPrefix: [executable] }) => executable);
+  const unavailable = findUnavailableRuntimeCapabilities(
+    runtimeKind,
+    executables,
+  );
+  if (unavailable.length > 0) {
+    throw createValidationProblem(
+      [
+        {
+          field,
+          message:
+            `Executable unavailable for runtime ${runtimeKind}: ` +
+            unavailable.join(', '),
+        },
+      ],
+      'Unsupported runtime capabilities',
+    );
+  }
+}
+
+function normalizeShellCommands(
+  rules: readonly ShellCommandRule[],
+  field: string,
+): ShellCommandRule[] {
+  try {
+    return normalizeShellCommandRules(rules);
+  } catch (error) {
+    if (!(error instanceof ShellCommandIdentifierError)) throw error;
+    throw createValidationProblem(
+      [{ field, message: error.message }],
+      'Invalid shell commands',
+    );
+  }
+}
+
+function decodeStoredShellCommands(
+  identifiers: readonly string[],
+): ShellCommandRule[] {
+  // Deliberately do not convert malformed Keto objects into an empty set:
+  // callers must fail closed rather than silently dropping corrupt grants.
+  return normalizeShellCommandRules(
+    identifiers.map(decodeShellCommandIdentifier),
+  );
+}
+
 function requireSupportedRuntimeKind(runtimeKind: string): RuntimeKind {
   if (!(RUNTIME_KINDS as readonly string[]).includes(runtimeKind)) {
     throw createValidationProblem(
@@ -164,19 +226,21 @@ function requireSupportedRuntimeKind(runtimeKind: string): RuntimeKind {
 export const EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION =
   'effective-policy:v1' as const;
 
-export interface EffectivePolicySnapshotV1 {
+export interface EffectivePolicySnapshot {
   version: typeof EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION;
   runtimeKind: RuntimeKind;
   capabilityManifestVersion: string;
   enforcement: ToolEnforcement;
   allowedTools: string[];
+  allowedShellCommands: ShellCommandRule[];
 }
 
 export function canonicalEffectivePolicySnapshot(input: {
   runtimeKind: RuntimeKind;
   enforcement: ToolEnforcement;
   allowedTools: readonly string[];
-}): EffectivePolicySnapshotV1 {
+  allowedShellCommands?: readonly ShellCommandRule[];
+}): EffectivePolicySnapshot {
   return {
     version: EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION,
     runtimeKind: input.runtimeKind,
@@ -184,11 +248,14 @@ export function canonicalEffectivePolicySnapshot(input: {
       .version,
     enforcement: input.enforcement,
     allowedTools: [...new Set(input.allowedTools)].sort(),
+    allowedShellCommands: normalizeShellCommandRules(
+      input.allowedShellCommands ?? [],
+    ),
   };
 }
 
 export function hashEffectivePolicySnapshot(
-  snapshot: EffectivePolicySnapshotV1,
+  snapshot: EffectivePolicySnapshot,
 ): string {
   return `sha256:${createHash('sha256')
     .update(canonicalJson(snapshot))
@@ -252,17 +319,32 @@ export function createRuntimePolicyService(deps: RuntimePolicyServiceDeps) {
     const policyIds = await deps.relationshipReader.listRuntimeProfilePolicies(
       input.profileId,
     );
-    const toolLists = await Promise.all(
-      policyIds.map((policyId) =>
-        deps.relationshipReader.listRuntimePolicyTools(policyId),
-      ),
+    const policies = await Promise.all(
+      policyIds.map(async (policyId) => ({
+        tools: await deps.relationshipReader.listRuntimePolicyTools(policyId),
+        commands:
+          await deps.relationshipReader.listRuntimePolicyShellCommands(
+            policyId,
+          ),
+      })),
     );
-    const allowedTools = [...new Set(toolLists.flat())].sort();
+    const allowedTools = [
+      ...new Set(policies.flatMap((policy) => policy.tools)),
+    ].sort();
+    const allowedShellCommands = decodeStoredShellCommands(
+      policies.flatMap((policy) => policy.commands),
+    );
     validateRuntimeCapabilities(runtimeKind, allowedTools, 'allowedTools');
+    validateShellCommandCapabilities(
+      runtimeKind,
+      allowedShellCommands,
+      'allowedShellCommands',
+    );
     const snapshot = canonicalEffectivePolicySnapshot({
       runtimeKind,
       enforcement: profileContext.enforcement,
       allowedTools,
+      allowedShellCommands,
     });
     const policySnapshotHash = hashEffectivePolicySnapshot(snapshot);
     if (persistSnapshot) {
@@ -273,11 +355,13 @@ export function createRuntimePolicyService(deps: RuntimePolicyServiceDeps) {
         capabilityManifestVersion: snapshot.capabilityManifestVersion,
         enforcement: snapshot.enforcement,
         allowedTools: snapshot.allowedTools,
+        allowedShellCommands: snapshot.allowedShellCommands,
       });
     }
     return {
       enforcement: profileContext.enforcement,
       allowedTools,
+      allowedShellCommands,
       runtimeKind,
       capabilityManifestVersion: snapshot.capabilityManifestVersion,
       runtimeProfileRevision: profileContext.revision,
@@ -302,7 +386,16 @@ export function createRuntimePolicyService(deps: RuntimePolicyServiceDeps) {
       const name = requireName(input.name);
       const description = normalizeDescription(input.description);
       const tools = normalizeToolNames(input.tools, 'tools');
+      const shellCommands = normalizeShellCommands(
+        input.shellCommands ?? [],
+        'shellCommands',
+      );
       validateRuntimeCapabilities(GONDOLIN_PI_RUNTIME_KIND, tools, 'tools');
+      validateShellCommandCapabilities(
+        GONDOLIN_PI_RUNTIME_KIND,
+        shellCommands,
+        'shellCommands',
+      );
 
       const creator =
         input.subject.subjectType === 'agent'
@@ -319,9 +412,14 @@ export function createRuntimePolicyService(deps: RuntimePolicyServiceDeps) {
       await deps.relationshipWriter.writeRuntimePolicyEdges(row.id, {
         teamId: input.teamId,
         addTools: tools,
+        ...(shellCommands.length > 0
+          ? {
+              addShellCommands: shellCommands.map(encodeShellCommandRule),
+            }
+          : {}),
       });
 
-      return { ...toRuntimePolicy(row), tools };
+      return { ...toRuntimePolicy(row), tools, shellCommands };
     },
 
     async list(input: TeamScopedInput): Promise<RuntimePolicy[]> {
@@ -336,10 +434,15 @@ export function createRuntimePolicyService(deps: RuntimePolicyServiceDeps) {
     ): Promise<RuntimePolicyWithTools> {
       await assertCanManageRuntime(input.subject, input.teamId);
       const row = await requirePolicyForTeam(id, input.teamId);
-      const tools = await deps.relationshipReader.listRuntimePolicyTools(
-        row.id,
-      );
-      return { ...toRuntimePolicy(row), tools };
+      const [tools, commandIds] = await Promise.all([
+        deps.relationshipReader.listRuntimePolicyTools(row.id),
+        deps.relationshipReader.listRuntimePolicyShellCommands(row.id),
+      ]);
+      return {
+        ...toRuntimePolicy(row),
+        tools,
+        shellCommands: decodeStoredShellCommands(commandIds),
+      };
     },
 
     async update(
@@ -360,8 +463,19 @@ export function createRuntimePolicyService(deps: RuntimePolicyServiceDeps) {
         'removeTools',
       );
       const addTools = normalizeToolNames(patch.addTools ?? [], 'addTools');
-      const currentTools =
-        await deps.relationshipReader.listRuntimePolicyTools(id);
+      const removeShellCommands = normalizeShellCommands(
+        patch.removeShellCommands ?? [],
+        'removeShellCommands',
+      );
+      const addShellCommands = normalizeShellCommands(
+        patch.addShellCommands ?? [],
+        'addShellCommands',
+      );
+      const [currentTools, currentCommandIds] = await Promise.all([
+        deps.relationshipReader.listRuntimePolicyTools(id),
+        deps.relationshipReader.listRuntimePolicyShellCommands(id),
+      ]);
+      const currentShellCommands = decodeStoredShellCommands(currentCommandIds);
       const finalTools = [
         ...new Set([
           ...currentTools.filter((tool) => !removeTools.includes(tool)),
@@ -372,6 +486,20 @@ export function createRuntimePolicyService(deps: RuntimePolicyServiceDeps) {
         GONDOLIN_PI_RUNTIME_KIND,
         finalTools,
         'addTools',
+      );
+      const removedCommandIds = new Set(
+        removeShellCommands.map(encodeShellCommandRule),
+      );
+      const finalShellCommands = normalizeShellCommandRules([
+        ...currentShellCommands.filter(
+          (rule) => !removedCommandIds.has(encodeShellCommandRule(rule)),
+        ),
+        ...addShellCommands,
+      ]);
+      validateShellCommandCapabilities(
+        GONDOLIN_PI_RUNTIME_KIND,
+        finalShellCommands,
+        'addShellCommands',
       );
 
       // Validate the final capability set before mutating either SQL metadata
@@ -389,9 +517,25 @@ export function createRuntimePolicyService(deps: RuntimePolicyServiceDeps) {
       await deps.relationshipWriter.writeRuntimePolicyEdges(id, {
         addTools,
         removeTools,
+        ...(addShellCommands.length > 0
+          ? {
+              addShellCommands: addShellCommands.map(encodeShellCommandRule),
+            }
+          : {}),
+        ...(removeShellCommands.length > 0
+          ? {
+              removeShellCommands: removeShellCommands.map(
+                encodeShellCommandRule,
+              ),
+            }
+          : {}),
       });
 
-      return { ...toRuntimePolicy(row), tools: finalTools };
+      return {
+        ...toRuntimePolicy(row),
+        tools: finalTools,
+        shellCommands: finalShellCommands,
+      };
     },
 
     async delete(id: string, input: TeamScopedInput): Promise<void> {
@@ -462,6 +606,16 @@ export function createRuntimePolicyService(deps: RuntimePolicyServiceDeps) {
           validateRuntimeCapabilities(
             requireSupportedRuntimeKind(profileContext.runtimeKind),
             desiredToolLists.flat(),
+            'policyIds',
+          );
+          const desiredShellCommandIds = await Promise.all(
+            desired.map((policyId) =>
+              deps.relationshipReader.listRuntimePolicyShellCommands(policyId),
+            ),
+          );
+          validateShellCommandCapabilities(
+            requireSupportedRuntimeKind(profileContext.runtimeKind),
+            decodeStoredShellCommands(desiredShellCommandIds.flat()),
             'policyIds',
           );
 
