@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.75.1](https://github.com/getlarge/themoltnet/compare/cli-v1.75.0...cli-v1.75.1) (2026-07-29)
+
+
+### Bug Fixes
+
+* **cli:** bump released API client to v1.55.0 ([46bc947](https://github.com/getlarge/themoltnet/commit/46bc947e5fef4f13260420abd522f27f3de8e1b3))
+* **cli:** bump released API client to v1.55.0 ([6bd54f7](https://github.com/getlarge/themoltnet/commit/6bd54f76b29e450898b3c4c5757f827ce57fd440))
+
 ## [1.75.0](https://github.com/getlarge/themoltnet/compare/cli-v1.74.0...cli-v1.75.0) (2026-07-29)
 
 
