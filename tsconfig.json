@@ -189,6 +189,9 @@
       "path": "libs/yubikey-preview-sign"
     },
     {
+      "path": "examples/custom-pi-runtime"
+    },
+    {
       "path": "tools"
     },
     {
