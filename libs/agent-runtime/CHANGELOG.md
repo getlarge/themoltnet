@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.39.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.38.0...agent-runtime-v0.39.0) (2026-07-29)
+
+
+### Features
+
+* **credentials:** pin task attempt authority ([1a3d11d](https://github.com/getlarge/themoltnet/commit/1a3d11d9bb312e2892613da096095c5e6030769f))
+
+
+### Bug Fixes
+
+* **credentials:** finish task authority review ([07817f0](https://github.com/getlarge/themoltnet/commit/07817f0bdbf258f54c1cd93ffc1bc174a5a57a8a))
+
 ## [0.38.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.37.0...agent-runtime-v0.38.0) (2026-07-29)
 
 

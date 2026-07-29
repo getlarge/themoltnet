@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.55.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.54.0...moltnet-api-client-v1.55.0) (2026-07-29)
+
+
+### Features
+
+* **credentials:** pin task attempt authority ([1a3d11d](https://github.com/getlarge/themoltnet/commit/1a3d11d9bb312e2892613da096095c5e6030769f))
+* **credentials:** pin task attempt authority ([bd95c83](https://github.com/getlarge/themoltnet/commit/bd95c837b7e1c1bfd791456636329433d2bf2cd7))
+
+
+### Bug Fixes
+
+* **auth:** complete remote auth cache guardrails ([faab8f0](https://github.com/getlarge/themoltnet/commit/faab8f0103f192555facd77c47ca912865a8c3e7))
+* **credentials:** bind authority to executor manifests ([aa5f297](https://github.com/getlarge/themoltnet/commit/aa5f297f8a61f78aa85d0ab570654766287c09af))
+* **credentials:** pin scoped shell authority ([a06c705](https://github.com/getlarge/themoltnet/commit/a06c705a1edea62cb966ae97f0c0741ff0cda25c))
+
+
+### Codegen
+
+* **openapi:** refresh task authority validators ([0a45361](https://github.com/getlarge/themoltnet/commit/0a45361fef8d5a5c1618045a04f094795efe09a6))
+
 ## [1.54.0](https://github.com/getlarge/themoltnet/compare/moltnet-api-client-v1.53.1...moltnet-api-client-v1.54.0) (2026-07-29)
 
 
