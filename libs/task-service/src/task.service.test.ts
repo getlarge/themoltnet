@@ -33,6 +33,7 @@ const RUN_TASK = '11111111-1111-1111-1111-111111111111';
 const JUDGE_TASK = '22222222-2222-2222-2222-222222222222';
 const CORRELATION = '99999999-9999-9999-9999-999999999999';
 const PROFILE_ID = '33333333-3333-4333-8333-333333333333';
+const PROFILE_DEFINITION_CID = 'bafkreiprofile';
 const OTHER_TEAM_ID = '00000000-0000-0000-0000-000000000002';
 
 function rubric() {
@@ -286,6 +287,10 @@ interface Mocks {
         id: string;
         teamId: string;
         runtimeKind: string;
+        revision: number;
+        definitionCid: string;
+        requiredTools: string[];
+        requiredExecutables: string[];
       } | null>
     >;
   };
@@ -295,7 +300,6 @@ interface Mocks {
         enforcement: 'enforce';
         allowedTools: string[];
         runtimeKind: 'gondolin_pi';
-        capabilityManifestVersion: string;
         runtimeProfileRevision: number;
         policySnapshotHash: string;
       }>
@@ -573,12 +577,20 @@ function makeMocks(
             id: string;
             teamId: string;
             runtimeKind: string;
+            revision: number;
+            definitionCid: string;
+            requiredTools: string[];
+            requiredExecutables: string[];
           } | null>
         >()
         .mockResolvedValue({
           id: PROFILE_ID,
           teamId: TEAM_ID,
           runtimeKind: 'gondolin_pi',
+          revision: 7,
+          definitionCid: PROFILE_DEFINITION_CID,
+          requiredTools: [],
+          requiredExecutables: [],
         }),
     },
     runtimePolicyService: {
@@ -586,7 +598,6 @@ function makeMocks(
         enforcement: 'enforce',
         allowedTools: ['read'],
         runtimeKind: 'gondolin_pi',
-        capabilityManifestVersion: 'gondolin_pi:v1',
         runtimeProfileRevision: 7,
         policySnapshotHash: `sha256:${'a'.repeat(64)}`,
       }),
@@ -826,6 +837,10 @@ describe('createTaskService.claim — runtime profile attestation', () => {
       id: PROFILE_ID,
       teamId: OTHER_TEAM_ID,
       runtimeKind: 'gondolin_pi',
+      revision: 7,
+      definitionCid: PROFILE_DEFINITION_CID,
+      requiredTools: [],
+      requiredExecutables: [],
     });
 
     await expect(
@@ -900,7 +915,10 @@ describe('createTaskService.claim — runtime profile attestation', () => {
     );
     const executorManifest = {
       schemaVersion: 'moltnet:executor-manifest:v1',
-      profile: { id: PROFILE_ID },
+      profile: {
+        id: PROFILE_ID,
+        definitionCid: PROFILE_DEFINITION_CID,
+      },
       runtime: { kind: 'other_runtime' },
     };
     const executorFingerprint = computeExecutorManifestCid(executorManifest);
@@ -999,8 +1017,23 @@ describe('createTaskService.claim — runtime profile attestation', () => {
       enqueueWorkflowInCurrentTransaction,
     });
 
+    const executorManifest = {
+      schemaVersion: 'moltnet:executor-manifest:v1',
+      profile: {
+        id: PROFILE_ID,
+        definitionCid: PROFILE_DEFINITION_CID,
+      },
+      runtime: { kind: 'gondolin_pi' },
+      tools: [],
+      extensions: [],
+      executables: [],
+    };
+    const executorFingerprint = computeExecutorManifestCid(executorManifest);
+
     await service.claim(JUDGE_TASK, AGENT_ID, KetoNamespace.Agent, 30, {
       profileId: PROFILE_ID,
+      executorManifest,
+      executorFingerprint,
     });
 
     expect(
@@ -1017,7 +1050,7 @@ describe('createTaskService.claim — runtime profile attestation', () => {
           AGENT_ID,
           `task:${JUDGE_TASK}:attempt:1`,
           30,
-          null,
+          executorFingerprint,
           null,
           null,
           expect.stringMatching(

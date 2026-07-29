@@ -1664,6 +1664,7 @@ export const taskAttempts = pgTable(
         AND runtime_profile_revision IS NOT NULL
         AND runtime_profile_revision > 0
         AND policy_snapshot_hash IS NOT NULL
+        AND claimed_executor_fingerprint IS NOT NULL
       )`,
     ),
   ],

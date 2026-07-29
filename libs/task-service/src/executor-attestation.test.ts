@@ -18,6 +18,9 @@ describe('assertExecutorCompatibleWithRuntimeProfile', () => {
   const profile = {
     id: '11111111-1111-4111-8111-111111111111',
     runtimeKind: 'custom_pi',
+    definitionCid: 'bafkreiprofile',
+    requiredTools: ['review', 'extension_tool'],
+    requiredExecutables: ['git'],
   };
 
   it('accepts an executor prepared for the selected profile and runtime kind', () => {
@@ -26,8 +29,14 @@ describe('assertExecutorCompatibleWithRuntimeProfile', () => {
         executor: {
           fingerprint: 'bafkrei-compatible',
           manifest: {
-            profile: { id: profile.id },
+            profile: {
+              id: profile.id,
+              definitionCid: profile.definitionCid,
+            },
             runtime: { kind: profile.runtimeKind },
+            tools: [{ name: 'review' }],
+            extensions: [{ declaredTools: ['extension_tool'] }],
+            executables: ['git'],
           },
         },
         profile,
@@ -50,7 +59,10 @@ describe('assertExecutorCompatibleWithRuntimeProfile', () => {
         executor: {
           fingerprint: 'bafkrei-other-profile',
           manifest: {
-            profile: { id: '22222222-2222-4222-8222-222222222222' },
+            profile: {
+              id: '22222222-2222-4222-8222-222222222222',
+              definitionCid: profile.definitionCid,
+            },
             runtime: { kind: profile.runtimeKind },
           },
         },
@@ -65,13 +77,52 @@ describe('assertExecutorCompatibleWithRuntimeProfile', () => {
         executor: {
           fingerprint: 'bafkrei-other-runtime',
           manifest: {
-            profile: { id: profile.id },
+            profile: {
+              id: profile.id,
+              definitionCid: profile.definitionCid,
+            },
             runtime: { kind: 'other_runtime' },
           },
         },
         profile,
       }),
     ).toThrow(/runtime kind does not match/);
+  });
+
+  it('rejects an executor prepared for another profile revision', () => {
+    expect(() =>
+      assertExecutorCompatibleWithRuntimeProfile({
+        executor: {
+          fingerprint: 'bafkrei-other-revision',
+          manifest: {
+            profile: { id: profile.id, definitionCid: 'bafkreiold' },
+            runtime: { kind: profile.runtimeKind },
+          },
+        },
+        profile,
+      }),
+    ).toThrow(/profile revision/);
+  });
+
+  it('rejects an executor missing required tools or executables', () => {
+    expect(() =>
+      assertExecutorCompatibleWithRuntimeProfile({
+        executor: {
+          fingerprint: 'bafkrei-missing-requirements',
+          manifest: {
+            profile: {
+              id: profile.id,
+              definitionCid: profile.definitionCid,
+            },
+            runtime: { kind: profile.runtimeKind },
+            tools: [{ name: 'review' }],
+            extensions: [],
+            executables: [],
+          },
+        },
+        profile,
+      }),
+    ).toThrow(/does not satisfy/);
   });
 });
 

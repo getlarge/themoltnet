@@ -32,7 +32,6 @@ export function createRuntimePolicySnapshotRepository(db: Database) {
     const sameContent =
       existing.schemaVersion === input.schemaVersion &&
       existing.runtimeKind === input.runtimeKind &&
-      existing.capabilityManifestVersion === input.capabilityManifestVersion &&
       existing.enforcement === input.enforcement &&
       JSON.stringify(existing.allowedTools) ===
         JSON.stringify(input.allowedTools);

@@ -1,5 +1,4 @@
 import type { ToolEnforcement } from '@moltnet/models';
-import type { RuntimeKind } from '@moltnet/models';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 
 import { acquireTransactionAdvisoryLock } from '../advisory-lock.js';
@@ -16,7 +15,7 @@ import { translateUniqueViolation } from '../unique-violation.js';
 export type { ToolEnforcement } from '@moltnet/models';
 
 export interface RuntimeProfilePolicyContext {
-  runtimeKind: RuntimeKind;
+  runtimeKind: string;
   revision: number;
   enforcement: ToolEnforcement;
 }

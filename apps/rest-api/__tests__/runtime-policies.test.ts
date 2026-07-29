@@ -158,7 +158,11 @@ describe('runtime tool-policy routes', () => {
       expect(mocks.runtimePolicyRepository.create).not.toHaveBeenCalled();
     });
 
-    it('rejects capabilities absent from the runtime manifest', async () => {
+    it('accepts operator-owned custom runtime tool names', async () => {
+      mocks.runtimePolicyRepository.create.mockResolvedValue(
+        policyRow({ name: 'dynamic' }),
+      );
+
       const response = await app.inject({
         method: 'POST',
         url: '/runtime-policies',
@@ -166,8 +170,10 @@ describe('runtime tool-policy routes', () => {
         payload: { name: 'dynamic', tools: ['customer_dynamic_tool'] },
       });
 
-      expect(response.statusCode).toBe(400);
-      expect(mocks.runtimePolicyRepository.create).not.toHaveBeenCalled();
+      expect(response.statusCode).toBe(201);
+      expect(response.json()).toMatchObject({
+        tools: ['customer_dynamic_tool'],
+      });
     });
 
     it('maps a duplicate policy name to 409', async () => {
@@ -430,7 +436,6 @@ describe('runtime tool-policy routes', () => {
           { argvPrefix: ['npm', 'run', 'test:unit'] },
         ],
         runtimeKind: 'gondolin_pi',
-        capabilityManifestVersion: 'gondolin_pi:v1',
         runtimeProfileRevision: 4,
         policySnapshotHash: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
       });

@@ -20,13 +20,7 @@ import type {
   RuntimePolicySnapshotRepository,
   TransactionRunner,
 } from '@moltnet/database';
-import {
-  findUnavailableRuntimeCapabilities,
-  getRuntimeCapabilityManifest,
-  GONDOLIN_PI_RUNTIME_KIND,
-  type RuntimeKind,
-  type ToolEnforcement,
-} from '@moltnet/models';
+import type { ToolEnforcement } from '@moltnet/models';
 
 import { createProblem, createValidationProblem } from './problems.js';
 
@@ -62,8 +56,7 @@ export interface AllowedTools {
   enforcement: ToolEnforcement;
   allowedTools: string[];
   allowedShellCommands: ShellCommandRule[];
-  runtimeKind: RuntimeKind;
-  capabilityManifestVersion: string;
+  runtimeKind: string;
   runtimeProfileRevision: number;
   policySnapshotHash: string;
 }
@@ -152,26 +145,6 @@ function normalizeShellCommands(
   }
 }
 
-function validateRuntimeCapabilities(
-  runtimeKind: RuntimeKind,
-  tools: readonly string[],
-  field: string,
-): void {
-  const unavailable = findUnavailableRuntimeCapabilities(runtimeKind, tools);
-  if (unavailable.length > 0) {
-    throw createValidationProblem(
-      [
-        {
-          field,
-          message:
-            `Unavailable for runtime ${runtimeKind}: ` + unavailable.join(', '),
-        },
-      ],
-      'Unsupported runtime capabilities',
-    );
-  }
-}
-
 function decodeStoredShellCommands(
   identifiers: readonly string[],
 ): ShellCommandRule[] {
@@ -188,15 +161,14 @@ export const EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION =
 
 export interface EffectivePolicySnapshotV1 {
   version: typeof EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION;
-  runtimeKind: RuntimeKind;
-  capabilityManifestVersion: string;
+  runtimeKind: string;
   enforcement: ToolEnforcement;
   allowedTools: string[];
   allowedShellCommands: ShellCommandRule[];
 }
 
 export function canonicalEffectivePolicySnapshot(input: {
-  runtimeKind: RuntimeKind;
+  runtimeKind: string;
   enforcement: ToolEnforcement;
   allowedTools: readonly string[];
   allowedShellCommands: readonly ShellCommandRule[];
@@ -204,8 +176,6 @@ export function canonicalEffectivePolicySnapshot(input: {
   return {
     version: EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION,
     runtimeKind: input.runtimeKind,
-    capabilityManifestVersion: getRuntimeCapabilityManifest(input.runtimeKind)
-      .version,
     enforcement: input.enforcement,
     allowedTools: [...new Set(input.allowedTools)].sort(),
     allowedShellCommands: normalizeShellCommandRules(
@@ -305,15 +275,14 @@ export function createRuntimePolicyService(deps: RuntimePolicyServiceDeps) {
     const allowedShellCommands = decodeStoredShellCommands(
       grants.shellCommands,
     );
-    validateRuntimeCapabilities(
-      profileContext.runtimeKind,
+    const normalizedAllowedTools = normalizeToolNames(
       allowedTools,
       'allowedTools',
     );
     const snapshot = canonicalEffectivePolicySnapshot({
       runtimeKind: profileContext.runtimeKind,
       enforcement: profileContext.enforcement,
-      allowedTools,
+      allowedTools: normalizedAllowedTools,
       allowedShellCommands,
     });
     const policySnapshotHash = hashEffectivePolicySnapshot(snapshot);
@@ -322,7 +291,6 @@ export function createRuntimePolicyService(deps: RuntimePolicyServiceDeps) {
         hash: policySnapshotHash,
         schemaVersion: snapshot.version,
         runtimeKind: snapshot.runtimeKind,
-        capabilityManifestVersion: snapshot.capabilityManifestVersion,
         enforcement: snapshot.enforcement,
         allowedTools: snapshot.allowedTools,
         allowedShellCommands: snapshot.allowedShellCommands,
@@ -330,10 +298,9 @@ export function createRuntimePolicyService(deps: RuntimePolicyServiceDeps) {
     }
     return {
       enforcement: profileContext.enforcement,
-      allowedTools,
+      allowedTools: normalizedAllowedTools,
       allowedShellCommands,
       runtimeKind: profileContext.runtimeKind,
-      capabilityManifestVersion: snapshot.capabilityManifestVersion,
       runtimeProfileRevision: profileContext.revision,
       policySnapshotHash,
     };
@@ -360,7 +327,6 @@ export function createRuntimePolicyService(deps: RuntimePolicyServiceDeps) {
         input.shellCommands ?? [],
         'shellCommands',
       );
-      validateRuntimeCapabilities(GONDOLIN_PI_RUNTIME_KIND, tools, 'tools');
 
       const creator =
         input.subject.subjectType === 'agent'
@@ -452,11 +418,6 @@ export function createRuntimePolicyService(deps: RuntimePolicyServiceDeps) {
               ...addTools,
             ]),
           ].sort();
-          validateRuntimeCapabilities(
-            GONDOLIN_PI_RUNTIME_KIND,
-            finalTools,
-            'addTools',
-          );
           const finalShellCommands = normalizeShellCommandRules([
             ...decodeStoredShellCommands(currentCommandIds).filter(
               (rule) => !removedCommandIds.has(encodeShellCommandRule(rule)),
@@ -539,13 +500,6 @@ export function createRuntimePolicyService(deps: RuntimePolicyServiceDeps) {
             );
           if (!profileExists) throw createProblem('not-found');
 
-          const profileContext =
-            await deps.runtimePolicyRepository.getProfilePolicyContext(
-              profileId,
-              input.teamId,
-            );
-          if (!profileContext) throw createProblem('not-found');
-
           // Validate every desired policy belongs to the team in ONE query.
           const existingIds =
             await deps.runtimePolicyRepository.findExistingIdsForTeam(
@@ -564,17 +518,6 @@ export function createRuntimePolicyService(deps: RuntimePolicyServiceDeps) {
               'Unknown runtime policy',
             );
           }
-
-          const desiredToolLists = await Promise.all(
-            desired.map((policyId) =>
-              deps.relationshipReader.listRuntimePolicyTools(policyId),
-            ),
-          );
-          validateRuntimeCapabilities(
-            profileContext.runtimeKind,
-            desiredToolLists.flat(),
-            'policyIds',
-          );
 
           const current =
             await deps.relationshipReader.listRuntimeProfilePolicies(profileId);

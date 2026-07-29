@@ -91,10 +91,9 @@ export type AgentProfile = {
 export type AllowedToolsResponse = {
   allowedShellCommands: Array<ShellCommandRule>;
   allowedTools: Array<string>;
-  capabilityManifestVersion: string;
   enforcement: ToolEnforcement;
   policySnapshotHash: string;
-  runtimeKind: 'gondolin_pi';
+  runtimeKind: string;
   runtimeProfileRevision: number;
 };
 

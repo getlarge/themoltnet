@@ -139,7 +139,6 @@ describe('createRuntimePolicyService', () => {
           { argvPrefix: ['git', 'diff'] },
         ],
         runtimeKind: 'gondolin_pi',
-        capabilityManifestVersion: 'gondolin_pi:v1',
         runtimeProfileRevision: 3,
       });
       expect(result.policySnapshotHash).toMatch(/^sha256:[0-9a-f]{64}$/);
@@ -354,7 +353,9 @@ describe('createRuntimePolicyService', () => {
       expect(ctx.repo.create).not.toHaveBeenCalled();
     });
 
-    it('rejects syntactically valid tools absent from the runtime manifest', async () => {
+    it('accepts custom runtime tool names without a server-owned catalogue', async () => {
+      ctx.repo.create.mockResolvedValue(policyRow());
+
       await expect(
         ctx.service.create({
           teamId: TEAM_ID,
@@ -362,8 +363,11 @@ describe('createRuntimePolicyService', () => {
           tools: ['customer_dynamic_tool'],
           subject: AGENT_SUBJECT,
         }),
-      ).rejects.toMatchObject({ statusCode: 400 });
-      expect(ctx.repo.create).not.toHaveBeenCalled();
+      ).resolves.toMatchObject({ tools: ['customer_dynamic_tool'] });
+      expect(ctx.writer.writeRuntimePolicyEdges).toHaveBeenCalledWith('pol-1', {
+        teamId: TEAM_ID,
+        addTools: ['customer_dynamic_tool'],
+      });
     });
 
     it('rejects an empty name', async () => {
@@ -431,19 +435,21 @@ describe('createRuntimePolicyService', () => {
       ).rejects.toMatchObject({ statusCode: 404 });
     });
 
-    it('rejects an unavailable capability before mutating metadata or edges', async () => {
+    it('allows updates for operator-owned custom runtime tools', async () => {
       ctx.repo.findByIdForTeam.mockResolvedValue(policyRow());
+      ctx.repo.update.mockResolvedValue(policyRow({ name: 'custom' }));
       ctx.reader.listRuntimePolicyTools.mockResolvedValue(['git']);
 
       await expect(
         ctx.service.update(
           'pol-1',
-          { name: 'unsafe', addTools: ['customer_dynamic_tool'] },
+          { name: 'custom', addTools: ['customer_dynamic_tool'] },
           { teamId: TEAM_ID, subject: AGENT_SUBJECT },
         ),
-      ).rejects.toMatchObject({ statusCode: 400 });
-      expect(ctx.repo.update).not.toHaveBeenCalled();
-      expect(ctx.writer.writeRuntimePolicyEdges).not.toHaveBeenCalled();
+      ).resolves.toMatchObject({
+        tools: ['customer_dynamic_tool', 'git'],
+      });
+      expect(ctx.writer.writeRuntimePolicyEdges).toHaveBeenCalled();
     });
   });
 
@@ -527,7 +533,7 @@ describe('createRuntimePolicyService', () => {
       expect(ctx.writer.writeRuntimeProfilePolicyEdges).not.toHaveBeenCalled();
     });
 
-    it('rejects a binding whose policy contains an unavailable tool', async () => {
+    it('binds policies containing operator-owned custom runtime tools', async () => {
       ctx.repo.profileExistsForTeam.mockResolvedValue(true);
       ctx.repo.getProfilePolicyContext.mockResolvedValue({
         runtimeKind: 'gondolin_pi',
@@ -538,14 +544,18 @@ describe('createRuntimePolicyService', () => {
       ctx.reader.listRuntimePolicyTools.mockResolvedValue([
         'customer_dynamic_tool',
       ]);
+      ctx.reader.listRuntimeProfilePolicies.mockResolvedValue([]);
 
       await expect(
         ctx.service.setProfilePolicies('prof-1', ['P2'], {
           teamId: TEAM_ID,
           subject: AGENT_SUBJECT,
         }),
-      ).rejects.toMatchObject({ statusCode: 400 });
-      expect(ctx.writer.writeRuntimeProfilePolicyEdges).not.toHaveBeenCalled();
+      ).resolves.toBeUndefined();
+      expect(ctx.writer.writeRuntimeProfilePolicyEdges).toHaveBeenCalledWith(
+        'prof-1',
+        { addPolicyIds: ['P2'], removePolicyIds: [] },
+      );
     });
 
     it('throws not-found when the profile is not in the team', async () => {
@@ -629,7 +639,7 @@ describe('effective policy snapshot hashing', () => {
       hashEffectivePolicySnapshot(second),
     );
     expect(hashEffectivePolicySnapshot(first)).toBe(
-      'sha256:af0925235fa11f26096706b98ea55d9e641483f8bdf0107f45e4157ed26549ab',
+      'sha256:3a15f51c2eaf106dcd4268e66e44ff271403f5e7d80d99f4dc1a0c6462cb8c33',
     );
   });
 });

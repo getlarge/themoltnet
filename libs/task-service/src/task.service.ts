@@ -241,24 +241,8 @@ export function createTaskService(deps: TaskServiceDeps) {
       let pinnedAuthority: Awaited<
         ReturnType<typeof runtimePolicyService.resolvePinnedAllowedTools>
       > | null = null;
-      if (selectedProfileId) {
-        try {
-          pinnedAuthority =
-            await runtimePolicyService.resolvePinnedAllowedTools({
-              profileId: selectedProfileId,
-              teamId: row.teamId,
-            });
-        } catch {
-          throw new TaskServiceError(
-            'conflict',
-            'Runtime profile authority could not be resolved',
-          );
-        }
-      }
-
       const attemptN = attemptCount + 1;
       const workflowId = taskWorkflowId(taskId, attemptN);
-      const leaseId = pinnedAuthority ? randomUUID() : null;
       const claimedExecutor = await verifyExecutorForPhase({
         phase: 'claim',
         task: row,
@@ -274,7 +258,29 @@ export function createTaskService(deps: TaskServiceDeps) {
           executor: claimedExecutor,
           profile: selectedProfile,
         });
+        try {
+          pinnedAuthority =
+            await runtimePolicyService.resolvePinnedAllowedTools({
+              profileId: selectedProfile.id,
+              teamId: row.teamId,
+            });
+        } catch {
+          throw new TaskServiceError(
+            'conflict',
+            'Runtime profile authority could not be resolved',
+          );
+        }
+        if (
+          pinnedAuthority.runtimeProfileRevision !== selectedProfile.revision ||
+          pinnedAuthority.runtimeKind !== selectedProfile.runtimeKind
+        ) {
+          throw new TaskServiceError(
+            'conflict',
+            'Runtime profile changed while claim authority was being pinned',
+          );
+        }
       }
+      const leaseId = pinnedAuthority ? randomUUID() : null;
 
       // CAS update: atomically move status from 'queued' → 'dispatched' (Issue 1).
       // For freeform continuations (#1287), serialise concurrent claim

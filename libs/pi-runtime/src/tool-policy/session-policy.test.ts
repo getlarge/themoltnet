@@ -29,7 +29,6 @@ function agentReturning(
         allowedTools,
         allowedShellCommands,
         runtimeKind: 'gondolin_pi',
-        capabilityManifestVersion: 'gondolin_pi:v1',
       }),
     },
   };
@@ -55,7 +54,12 @@ function agentHanging(): AllowedToolsClient {
 beforeEach(() => vi.clearAllMocks());
 
 describe('resolveSessionToolPolicy', () => {
-  const params = { profileId: 'R', teamId: 'T', logger };
+  const params = {
+    profileId: 'R',
+    teamId: 'T',
+    runtimeKind: 'gondolin_pi',
+    logger,
+  };
 
   it('short-circuits off without a network call', async () => {
     const agent = agentReturning('enforce', ['git']);
@@ -106,13 +110,12 @@ describe('resolveSessionToolPolicy', () => {
     expect(logger.warn).toHaveBeenCalled();
   });
 
-  it('fails closed when the daemon manifest differs from the resolved policy', async () => {
+  it('fails closed when the daemon runtime kind differs from the resolved policy', async () => {
     const agent = agentReturning('enforce', ['git']);
     vi.mocked(agent.runtimeProfiles.allowedTools).mockResolvedValue({
       enforcement: 'enforce',
       allowedTools: ['git'],
-      runtimeKind: 'gondolin_pi',
-      capabilityManifestVersion: 'gondolin_pi:v2',
+      runtimeKind: 'custom_pi',
     });
 
     const policy = await resolveSessionToolPolicy({
@@ -129,7 +132,7 @@ describe('resolveSessionToolPolicy', () => {
     expect(logger.warn).toHaveBeenCalledWith(
       expect.objectContaining({
         err: expect.objectContaining({
-          name: 'RuntimeCapabilityManifestMismatchError',
+          name: 'RuntimeKindMismatchError',
         }),
         failClosed: true,
       }),

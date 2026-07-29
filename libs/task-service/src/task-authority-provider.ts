@@ -2,18 +2,13 @@ import type {
   RuntimePolicySnapshotRepository,
   TaskRepository,
 } from '@moltnet/database';
-import {
-  findUnavailableRuntimeCapabilities,
-  RUNTIME_KINDS,
-  type RuntimeKind,
-  TOOL_ENFORCEMENT_VALUES,
-  type ToolEnforcement,
-} from '@moltnet/models';
+import { TOOL_ENFORCEMENT_VALUES, type ToolEnforcement } from '@moltnet/models';
 import {
   canonicalEffectivePolicySnapshot,
   EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION,
   hashEffectivePolicySnapshot,
 } from '@moltnet/runtime-policy-service';
+import { RUNTIME_PROFILE_RUNTIME_KIND_REGEXP } from '@moltnet/tasks';
 import type {
   TaskAuthorityDecision,
   TaskAuthorityProvider,
@@ -23,7 +18,10 @@ import type {
 import type { Logger } from './task-service.types.js';
 
 export interface MoltNetTaskAuthorityProviderDeps {
-  taskRepository: Pick<TaskRepository, 'findById' | 'findAttempt'>;
+  taskRepository: Pick<
+    TaskRepository,
+    'findById' | 'findAttempt' | 'findExecutorManifest'
+  >;
   runtimePolicySnapshotRepository: RuntimePolicySnapshotRepository;
   logger: Pick<Logger, 'info' | 'warn'>;
   denialCounter: {
@@ -32,8 +30,10 @@ export interface MoltNetTaskAuthorityProviderDeps {
   now?: () => Date;
 }
 
-function isRuntimeKind(value: string): value is RuntimeKind {
-  return (RUNTIME_KINDS as readonly string[]).includes(value);
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
 }
 
 function isToolEnforcement(value: string): value is ToolEnforcement {
@@ -108,29 +108,28 @@ export function createMoltNetTaskAuthorityProvider(
         !attempt.leaseId ||
         !attempt.runtimeProfileId ||
         !attempt.runtimeProfileRevision ||
-        !attempt.policySnapshotHash
+        !attempt.policySnapshotHash ||
+        !attempt.claimedExecutorFingerprint
       ) {
         return deny(request, 'authority_binding_missing');
       }
 
-      const snapshot = await deps.runtimePolicySnapshotRepository.findByHash(
-        attempt.policySnapshotHash,
-      );
+      const [snapshot, executor] = await Promise.all([
+        deps.runtimePolicySnapshotRepository.findByHash(
+          attempt.policySnapshotHash,
+        ),
+        deps.taskRepository.findExecutorManifest(
+          attempt.claimedExecutorFingerprint,
+        ),
+      ]);
       if (!snapshot) return deny(request, 'policy_snapshot_missing');
+      if (!executor) return deny(request, 'executor_manifest_missing');
       if (snapshot.schemaVersion !== EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION) {
         return deny(request, 'schema_version_mismatch');
       }
       if (
-        !isRuntimeKind(snapshot.runtimeKind) ||
+        !RUNTIME_PROFILE_RUNTIME_KIND_REGEXP.test(snapshot.runtimeKind) ||
         !isToolEnforcement(snapshot.enforcement)
-      ) {
-        return deny(request, 'authority_binding_invalid');
-      }
-      if (
-        findUnavailableRuntimeCapabilities(
-          snapshot.runtimeKind,
-          snapshot.allowedTools,
-        ).length > 0
       ) {
         return deny(request, 'authority_binding_invalid');
       }
@@ -140,16 +139,22 @@ export function createMoltNetTaskAuthorityProvider(
         allowedTools: snapshot.allowedTools,
       });
       if (
-        canonical.capabilityManifestVersion !==
-        snapshot.capabilityManifestVersion
-      ) {
-        return deny(request, 'manifest_version_superseded');
-      }
-      if (
         hashEffectivePolicySnapshot(canonical) !== snapshot.hash ||
         snapshot.hash !== attempt.policySnapshotHash
       ) {
         return deny(request, 'snapshot_hash_mismatch');
+      }
+      const executorManifest = asRecord(executor.manifest);
+      if (!executorManifest) {
+        return deny(request, 'executor_binding_mismatch');
+      }
+      const manifestProfile = asRecord(executorManifest.profile);
+      const manifestRuntime = asRecord(executorManifest.runtime);
+      if (
+        manifestProfile?.id !== attempt.runtimeProfileId ||
+        manifestRuntime?.kind !== snapshot.runtimeKind
+      ) {
+        return deny(request, 'executor_binding_mismatch');
       }
 
       return {
@@ -163,7 +168,7 @@ export function createMoltNetTaskAuthorityProvider(
           attemptN: request.attemptN,
           leaseId: attempt.leaseId,
           runtimeKind: snapshot.runtimeKind,
-          capabilityManifestVersion: snapshot.capabilityManifestVersion,
+          executorManifestFingerprint: attempt.claimedExecutorFingerprint,
           runtimeProfileId: attempt.runtimeProfileId,
           runtimeProfileRevision: attempt.runtimeProfileRevision,
           policySnapshotHash: attempt.policySnapshotHash,

@@ -569,29 +569,6 @@ func (s *AllowedToolsResponse) Validate() error {
 		})
 	}
 	if err := func() error {
-		if err := (validate.String{
-			MinLength:     1,
-			MinLengthSet:  true,
-			MaxLength:     128,
-			MaxLengthSet:  true,
-			Email:         false,
-			Hostname:      false,
-			Regex:         nil,
-			MinNumeric:    0,
-			MinNumericSet: false,
-			MaxNumeric:    0,
-			MaxNumericSet: false,
-		}).Validate(string(s.CapabilityManifestVersion)); err != nil {
-			return errors.Wrap(err, "string")
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "capabilityManifestVersion",
-			Error: err,
-		})
-	}
-	if err := func() error {
 		if err := s.Enforcement.Validate(); err != nil {
 			return err
 		}
@@ -626,8 +603,20 @@ func (s *AllowedToolsResponse) Validate() error {
 		})
 	}
 	if err := func() error {
-		if err := s.RuntimeKind.Validate(); err != nil {
-			return err
+		if err := (validate.String{
+			MinLength:     1,
+			MinLengthSet:  true,
+			MaxLength:     100,
+			MaxLengthSet:  true,
+			Email:         false,
+			Hostname:      false,
+			Regex:         regexMap["^[a-z][a-z0-9._-]{0,99}$"],
+			MinNumeric:    0,
+			MinNumericSet: false,
+			MaxNumeric:    0,
+			MaxNumericSet: false,
+		}).Validate(string(s.RuntimeKind)); err != nil {
+			return errors.Wrap(err, "string")
 		}
 		return nil
 	}(); err != nil {
@@ -661,15 +650,6 @@ func (s *AllowedToolsResponse) Validate() error {
 		return &validate.Error{Fields: failures}
 	}
 	return nil
-}
-
-func (s AllowedToolsResponseRuntimeKind) Validate() error {
-	switch s {
-	case "gondolin_pi":
-		return nil
-	default:
-		return errors.Errorf("invalid value: %v", s)
-	}
 }
 
 func (s *AppendMessagesResponse) Validate() error {

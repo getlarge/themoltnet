@@ -35,9 +35,21 @@ function asRecord(value: unknown): Record<string, unknown> | null {
     : null;
 }
 
+function asStringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string')
+    : [];
+}
+
 export function assertExecutorCompatibleWithRuntimeProfile(input: {
   executor: VerifiedExecutorAttestation | null;
-  profile: { id: string; runtimeKind: string };
+  profile: {
+    id: string;
+    runtimeKind: string;
+    definitionCid: string;
+    requiredTools: readonly string[];
+    requiredExecutables: readonly string[];
+  };
 }): void {
   if (!input.executor) {
     throw new TaskServiceError(
@@ -60,12 +72,61 @@ export function assertExecutorCompatibleWithRuntimeProfile(input: {
       'Executor manifest is not bound to the selected runtime profile',
     );
   }
+  if (manifestProfile.definitionCid !== input.profile.definitionCid) {
+    throw new TaskServiceError(
+      'forbidden',
+      'Executor manifest is not bound to the selected runtime profile revision',
+    );
+  }
 
   const manifestRuntime = asRecord(input.executor.manifest.runtime);
   if (manifestRuntime?.kind !== input.profile.runtimeKind) {
     throw new TaskServiceError(
       'forbidden',
       'Executor runtime kind does not match the selected runtime profile',
+    );
+  }
+
+  const availableTools = new Set<string>();
+  const manifestTools = input.executor.manifest.tools;
+  if (Array.isArray(manifestTools)) {
+    for (const value of manifestTools) {
+      const tool = asRecord(value);
+      if (typeof tool?.name === 'string') availableTools.add(tool.name);
+    }
+  }
+  const manifestExtensions = input.executor.manifest.extensions;
+  if (Array.isArray(manifestExtensions)) {
+    for (const value of manifestExtensions) {
+      const extension = asRecord(value);
+      for (const name of asStringArray(extension?.declaredTools)) {
+        availableTools.add(name);
+      }
+    }
+  }
+  const missingTools = input.profile.requiredTools.filter(
+    (name) => !availableTools.has(name),
+  );
+  const availableExecutables = new Set(
+    asStringArray(input.executor.manifest.executables),
+  );
+  const missingExecutables = input.profile.requiredExecutables.filter(
+    (name) => !availableExecutables.has(name),
+  );
+  if (missingTools.length > 0 || missingExecutables.length > 0) {
+    throw new TaskServiceError(
+      'forbidden',
+      'Executor manifest does not satisfy the selected runtime profile requirements',
+      [
+        ...missingTools.map((name) => ({
+          field: 'executorManifest.tools',
+          message: `Missing required tool: ${name}`,
+        })),
+        ...missingExecutables.map((name) => ({
+          field: 'executorManifest.executables',
+          message: `Missing required executable: ${name}`,
+        })),
+      ],
     );
   }
 }

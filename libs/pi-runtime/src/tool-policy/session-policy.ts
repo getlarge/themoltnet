@@ -3,7 +3,6 @@ import type {
   ToolCallEvent,
   ToolCallEventResult,
 } from '@earendil-works/pi-coding-agent';
-import { getRuntimeCapabilityManifest } from '@moltnet/models';
 import type { ShellCommandAnalyzer } from '@themoltnet/shell-command-analyzer';
 
 import {
@@ -56,7 +55,6 @@ export interface AllowedToolsClient {
       allowedTools: string[];
       allowedShellCommands: Array<{ argvPrefix: string[] }>;
       runtimeKind: string;
-      capabilityManifestVersion: string;
     }>;
   };
 }
@@ -65,6 +63,8 @@ export interface ResolveSessionToolPolicyInput {
   agent: AllowedToolsClient;
   profileId: string;
   teamId: string;
+  /** Runtime kind supplied by the trusted daemon adapter for this session. */
+  runtimeKind: string;
   /**
    * The profile's enforcement mode, already known to the daemon from the
    * resolved runtime profile. Used to decide fail-open vs fail-closed when the
@@ -116,16 +116,10 @@ export async function resolveSessionToolPolicy(
       timeoutMs,
     );
     const shellCommands = resolved.allowedShellCommands ?? [];
-    const manifest = getRuntimeCapabilityManifest('gondolin_pi');
-    if (
-      resolved.runtimeKind !== manifest.runtimeKind ||
-      resolved.capabilityManifestVersion !== manifest.version
-    ) {
-      throw new RuntimeCapabilityManifestMismatchError({
-        expectedRuntimeKind: manifest.runtimeKind,
-        expectedVersion: manifest.version,
+    if (resolved.runtimeKind !== input.runtimeKind) {
+      throw new RuntimeKindMismatchError({
+        expectedRuntimeKind: input.runtimeKind,
         receivedRuntimeKind: resolved.runtimeKind,
-        receivedVersion: resolved.capabilityManifestVersion,
       });
     }
     return {
@@ -178,19 +172,16 @@ export class ToolPolicyResolveTimeoutError extends Error {
   }
 }
 
-export class RuntimeCapabilityManifestMismatchError extends Error {
+export class RuntimeKindMismatchError extends Error {
   constructor(input: {
     expectedRuntimeKind: string;
-    expectedVersion: string;
     receivedRuntimeKind: string;
-    receivedVersion: string;
   }) {
     super(
-      `runtime capability manifest mismatch: expected ` +
-        `${input.expectedRuntimeKind}/${input.expectedVersion}, received ` +
-        `${input.receivedRuntimeKind}/${input.receivedVersion}`,
+      `runtime kind mismatch: expected ${input.expectedRuntimeKind}, ` +
+        `received ${input.receivedRuntimeKind}`,
     );
-    this.name = 'RuntimeCapabilityManifestMismatchError';
+    this.name = 'RuntimeKindMismatchError';
   }
 }
 

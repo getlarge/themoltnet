@@ -6,8 +6,8 @@ import { check, pgTable, text, timestamp, varchar } from 'drizzle-orm/pg-core';
  * Immutable, content-addressed effective runtime-policy snapshots.
  *
  * The hash is computed from the canonical v1 payload:
- * `{ version, runtimeKind, capabilityManifestVersion, enforcement,
- * allowedTools }`. Reusable policies remain mutable in Keto; task attempts
+ * `{ version, runtimeKind, enforcement, allowedTools }`. Reusable policies
+ * remain mutable in Keto; task attempts
  * reference one of these immutable rows instead of resolving the live graph.
  */
 export const runtimePolicySnapshots = pgTable(
@@ -17,10 +17,7 @@ export const runtimePolicySnapshots = pgTable(
       length: SHA256_HASH_STRING_LENGTH,
     }).primaryKey(),
     schemaVersion: varchar('schema_version', { length: 32 }).notNull(),
-    runtimeKind: varchar('runtime_kind', { length: 64 }).notNull(),
-    capabilityManifestVersion: varchar('capability_manifest_version', {
-      length: 128,
-    }).notNull(),
+    runtimeKind: varchar('runtime_kind', { length: 100 }).notNull(),
     enforcement: varchar('enforcement', { length: 16 }).notNull(),
     allowedTools: text('allowed_tools').array().notNull(),
     createdAt: timestamp('created_at', { withTimezone: true })

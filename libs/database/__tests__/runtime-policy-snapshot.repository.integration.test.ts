@@ -17,7 +17,6 @@ describe('RuntimePolicySnapshotRepository (integration)', () => {
     hash: `sha256:${'a'.repeat(64)}`,
     schemaVersion: 'effective-policy:v1',
     runtimeKind: 'gondolin_pi',
-    capabilityManifestVersion: 'gondolin_pi:v1',
     enforcement: 'enforce',
     allowedTools: ['git', 'read'],
   };
@@ -53,5 +52,16 @@ describe('RuntimePolicySnapshotRepository (integration)', () => {
       repo.upsert({ ...snapshot, allowedTools: ['write'] }),
     ).rejects.toThrow(/hash collision/);
     await expect(repo.findByHash(snapshot.hash)).resolves.toEqual(created);
+  });
+
+  it('persists the full custom runtime-kind boundary', async () => {
+    const runtimeKind = `r${'a'.repeat(99)}`;
+    const created = await repo.upsert({
+      ...snapshot,
+      hash: `sha256:${'b'.repeat(64)}`,
+      runtimeKind,
+    });
+
+    expect(created.runtimeKind).toBe(runtimeKind);
   });
 });

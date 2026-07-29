@@ -28,7 +28,7 @@ export const TaskCredentialClaims = Type.Object(
     attemptN: Type.Integer({ minimum: 1 }),
     leaseId: Uuid,
     runtimeKind: Identifier,
-    capabilityManifestVersion: Identifier,
+    executorManifestFingerprint: Identifier,
     runtimeProfileId: Uuid,
     runtimeProfileRevision: Type.Integer({ minimum: 1 }),
     policySnapshotHash: Type.String({ pattern: '^sha256:[0-9a-f]{64}$' }),

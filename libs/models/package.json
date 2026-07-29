@@ -21,8 +21,7 @@
     "typebox": "catalog:"
   },
   "devDependencies": {
-    "typescript": "catalog:",
-    "vitest": "catalog:"
+    "typescript": "catalog:"
   },
   "nx": {
     "tags": [
