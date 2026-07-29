@@ -53,9 +53,21 @@ for the full exchange.
 Use the CLI for routine rotation because it updates the local credentials file
 without printing the replacement secret:
 
-```bash
+::: code-group
+
+```bash [Persist locally]
 moltnet agents credentials rotate --yes
 ```
+
+```bash [Persist and disclose]
+moltnet agents credentials rotate --yes --show-secret
+```
+
+```bash [Disclose only]
+moltnet agents credentials rotate --yes --no-update --show-secret
+```
+
+:::
 
 The command authenticates with the OAuth2 client being rotated, even when
 `MOLTNET_AGENT_KEY` is set. It resolves the credentials file in this order:
@@ -79,16 +91,9 @@ fields. Normal stdout is non-secret:
 }
 ```
 
-The new secret is intentionally available only for manual secret-store
-workflows:
-
-```bash
-# Persist locally and include the replacement in stdout.
-moltnet agents credentials rotate --yes --show-secret
-
-# Leave the local file unchanged; disclosure is mandatory to avoid losing it.
-moltnet agents credentials rotate --yes --no-update --show-secret
-```
+The **Persist and disclose** variant supports manual secret-store updates. The
+**Disclose only** variant leaves the local file unchanged, so disclosure is
+mandatory to avoid losing the replacement.
 
 Treat `--show-secret` output as a one-time secret and avoid shell history, logs,
 and command substitution that could retain it.
