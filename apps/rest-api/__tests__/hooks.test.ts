@@ -1,6 +1,13 @@
 import type { FastifyInstance } from 'fastify';
-import type { vi } from 'vitest';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 
 import {
   createMockAgent,
@@ -23,6 +30,10 @@ describe('Hook routes', () => {
     mocks = createMockServices();
     // Hooks don't require auth (they're called by Ory services)
     app = await createTestApp(mocks, null);
+    app.sessionResolver = {
+      evictIdentity: vi.fn(),
+      resolveSession: vi.fn(),
+    };
   });
 
   afterAll(async () => {
@@ -31,6 +42,7 @@ describe('Hook routes', () => {
 
   beforeEach(() => {
     resetMockServices(mocks);
+    vi.mocked(app.sessionResolver!.evictIdentity).mockClear();
   });
 
   describe('POST /hooks/kratos/after-registration', () => {
@@ -115,6 +127,52 @@ describe('Hook routes', () => {
 
       expect(response.statusCode).toBe(200);
       expect(response.json().success).toBe(true);
+      expect(app.sessionResolver?.evictIdentity).toHaveBeenCalledWith(OWNER_ID);
+      expect(
+        vi.mocked(app.sessionResolver!.evictIdentity).mock
+          .invocationCallOrder[0],
+      ).toBeLessThan(mocks.agentRepository.upsert.mock.invocationCallOrder[0]);
+    });
+
+    it('evicts human sessions after password settings without an agent key', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/hooks/kratos/after-settings',
+        headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
+        payload: {
+          identity: {
+            id: HUMAN_IDENTITY_ID,
+            traits: { email: 'human@test.local', username: 'human' },
+          },
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(mocks.agentRepository.upsert).not.toHaveBeenCalled();
+      expect(app.sessionResolver?.evictIdentity).toHaveBeenCalledWith(
+        HUMAN_IDENTITY_ID,
+      );
+    });
+
+    it('still evicts after Kratos commits settings when key projection fails', async () => {
+      mocks.cryptoService.parsePublicKey.mockImplementation(() => {
+        throw new Error('invalid key');
+      });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/hooks/kratos/after-settings',
+        headers: { 'x-ory-api-key': TEST_WEBHOOK_API_KEY },
+        payload: {
+          identity: {
+            id: OWNER_ID,
+            traits: { public_key: 'invalid' },
+          },
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(app.sessionResolver?.evictIdentity).toHaveBeenCalledWith(OWNER_ID);
     });
   });
 

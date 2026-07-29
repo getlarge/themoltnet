@@ -21,6 +21,8 @@
     "pino": "catalog:"
   },
   "devDependencies": {
+    "@opentelemetry/api": "catalog:",
+    "@opentelemetry/sdk-metrics": "catalog:",
     "@testcontainers/postgresql": "catalog:",
     "fastify": "catalog:",
     "testcontainers": "catalog:",

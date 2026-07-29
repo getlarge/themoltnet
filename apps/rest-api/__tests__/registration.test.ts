@@ -24,6 +24,7 @@ import {
   createMockServices,
   createTestApp,
   type MockServices,
+  VALID_AUTH_CONTEXT,
 } from './helpers.js';
 
 // ── DBOS + Workflow Mocks ──────────────────────────────────────
@@ -138,6 +139,54 @@ describe('Registration routes', () => {
         FINGERPRINT,
         VALID_VOUCHER_CODE,
       );
+    });
+  });
+
+  describe('POST /auth/rotate-secret', () => {
+    let rotateApp: FastifyInstance;
+
+    beforeAll(async () => {
+      rotateApp = await createTestApp(mocks, VALID_AUTH_CONTEXT);
+    });
+
+    afterAll(async () => {
+      await rotateApp.close();
+    });
+
+    it('evicts cached OAuth contexts after Hydra rotates the secret', async () => {
+      const response = await rotateApp.inject({
+        method: 'POST',
+        url: '/auth/rotate-secret',
+        headers: { authorization: 'Bearer test-token' },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(rotateApp.oauth2Client.setOAuth2Client).toHaveBeenCalledOnce();
+      expect(rotateApp.tokenValidator.evictOAuthClient).toHaveBeenCalledWith(
+        VALID_AUTH_CONTEXT.clientId,
+      );
+      expect(
+        vi.mocked(rotateApp.oauth2Client.setOAuth2Client).mock
+          .invocationCallOrder[0],
+      ).toBeLessThan(
+        vi.mocked(rotateApp.tokenValidator.evictOAuthClient).mock
+          .invocationCallOrder[0],
+      );
+    });
+
+    it('does not evict when Hydra rejects the secret rotation', async () => {
+      vi.mocked(rotateApp.oauth2Client.setOAuth2Client).mockRejectedValueOnce(
+        new Error('Hydra unavailable'),
+      );
+
+      const response = await rotateApp.inject({
+        method: 'POST',
+        url: '/auth/rotate-secret',
+        headers: { authorization: 'Bearer test-token' },
+      });
+
+      expect(response.statusCode).toBe(502);
+      expect(rotateApp.tokenValidator.evictOAuthClient).not.toHaveBeenCalled();
     });
   });
 

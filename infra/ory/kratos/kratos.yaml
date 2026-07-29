@@ -169,6 +169,26 @@ selfservice:
       ui_url: http://localhost:4455/settings
       lifespan: 1h
       privileged_session_max_age: 15m
+      after:
+        password:
+          hooks: &after_settings_hooks
+            - hook: web_hook
+              config:
+                url: http://host.docker.internal:8000/hooks/kratos/after-settings
+                method: POST
+                auth:
+                  type: api_key
+                  config:
+                    name: X-Ory-Api-Key
+                    value: local-dev-webhook-key
+                    in: header
+                body: 'base64://ZnVuY3Rpb24oY3R4KSB7IGlkZW50aXR5OiBjdHguaWRlbnRpdHkgfQ=='
+                response:
+                  ignore: false
+                  parse: false
+                can_interrupt: false
+        profile:
+          hooks: *after_settings_hooks
 
     error:
       ui_url: http://localhost:4455/error

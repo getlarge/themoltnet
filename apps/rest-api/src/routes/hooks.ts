@@ -256,7 +256,7 @@ export async function hookRoutes(fastify: FastifyInstance) {
                 id: Type.String(),
                 traits: Type.Object(
                   {
-                    public_key: Type.String(),
+                    public_key: Type.Optional(Type.String()),
                   },
                   { additionalProperties: true },
                 ),
@@ -272,44 +272,53 @@ export async function hookRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       const { identity } = request.body;
 
+      // This is an after-settings hook: Kratos has already committed the
+      // authoritative identity change. Invalidate first even if the optional
+      // agent profile projection below fails.
+      fastify.sessionResolver?.evictIdentity(identity.id);
+
       const { public_key } = identity.traits;
 
-      // ── Validate public_key format and Ed25519 key bytes ──────────
-      let settingsKeyBytes: Uint8Array;
-      try {
-        settingsKeyBytes = cryptoService.parsePublicKey(public_key);
-      } catch {
-        return reply
-          .status(400)
-          .send(
-            oryValidationError(
-              '#/traits/public_key',
-              4000001,
-              'public_key must use format "ed25519:<base64>"',
-            ),
-          );
+      if (public_key !== undefined) {
+        // Agent profile changes also rotate the canonical public key. Human
+        // profile/password settings have no public_key and need only the
+        // Kratos-session invalidation above.
+        let settingsKeyBytes: Uint8Array;
+        try {
+          settingsKeyBytes = cryptoService.parsePublicKey(public_key);
+        } catch {
+          return reply
+            .status(400)
+            .send(
+              oryValidationError(
+                '#/traits/public_key',
+                4000001,
+                'public_key must use format "ed25519:<base64>"',
+              ),
+            );
+        }
+
+        if (settingsKeyBytes.length !== 32) {
+          return reply
+            .status(400)
+            .send(
+              oryValidationError(
+                '#/traits/public_key',
+                4000001,
+                `public_key must be exactly 32 bytes (got ${settingsKeyBytes.length}).`,
+              ),
+            );
+        }
+
+        const settingsFingerprint =
+          cryptoService.generateFingerprint(settingsKeyBytes);
+
+        await fastify.agentRepository.upsert({
+          identityId: identity.id,
+          publicKey: public_key,
+          fingerprint: settingsFingerprint,
+        });
       }
-
-      if (settingsKeyBytes.length !== 32) {
-        return reply
-          .status(400)
-          .send(
-            oryValidationError(
-              '#/traits/public_key',
-              4000001,
-              `public_key must be exactly 32 bytes (got ${settingsKeyBytes.length}).`,
-            ),
-          );
-      }
-
-      const settingsFingerprint =
-        cryptoService.generateFingerprint(settingsKeyBytes);
-
-      await fastify.agentRepository.upsert({
-        identityId: identity.id,
-        publicKey: public_key,
-        fingerprint: settingsFingerprint,
-      });
 
       return reply.status(200).send({ success: true });
     },

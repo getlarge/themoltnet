@@ -4504,6 +4504,12 @@ func (s *BeginRuntimeSlotBadRequest) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -4532,14 +4538,15 @@ func (s *BeginRuntimeSlotBadRequest) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfBeginRuntimeSlotBadRequest = [7]string{
+var jsonFieldsNameOfBeginRuntimeSlotBadRequest = [8]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
-	6: "errors",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
+	7: "errors",
 }
 
 // Decode decodes BeginRuntimeSlotBadRequest from json.
@@ -4582,8 +4589,18 @@ func (s *BeginRuntimeSlotBadRequest) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -4595,7 +4612,7 @@ func (s *BeginRuntimeSlotBadRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -4607,7 +4624,7 @@ func (s *BeginRuntimeSlotBadRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -4619,7 +4636,7 @@ func (s *BeginRuntimeSlotBadRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"type\"")
 			}
 		case "errors":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				s.Errors = make([]ValidationError, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -4657,7 +4674,7 @@ func (s *BeginRuntimeSlotBadRequest) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b01111001,
+		0b11110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -4881,6 +4898,12 @@ func (s *BeginRuntimeSlotConflict) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -4905,14 +4928,15 @@ func (s *BeginRuntimeSlotConflict) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfBeginRuntimeSlotConflict = [7]string{
+var jsonFieldsNameOfBeginRuntimeSlotConflict = [8]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
-	6: "conflict",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
+	7: "conflict",
 }
 
 // Decode decodes BeginRuntimeSlotConflict from json.
@@ -4955,8 +4979,18 @@ func (s *BeginRuntimeSlotConflict) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -4968,7 +5002,7 @@ func (s *BeginRuntimeSlotConflict) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -4980,7 +5014,7 @@ func (s *BeginRuntimeSlotConflict) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -4992,7 +5026,7 @@ func (s *BeginRuntimeSlotConflict) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"type\"")
 			}
 		case "conflict":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				if err := s.Conflict.Decode(d); err != nil {
 					return err
@@ -5022,7 +5056,7 @@ func (s *BeginRuntimeSlotConflict) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b01111001,
+		0b11110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -5246,6 +5280,12 @@ func (s *BeginRuntimeSlotForbidden) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -5266,13 +5306,14 @@ func (s *BeginRuntimeSlotForbidden) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfBeginRuntimeSlotForbidden = [6]string{
+var jsonFieldsNameOfBeginRuntimeSlotForbidden = [7]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
 }
 
 // Decode decodes BeginRuntimeSlotForbidden from json.
@@ -5315,8 +5356,18 @@ func (s *BeginRuntimeSlotForbidden) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -5328,7 +5379,7 @@ func (s *BeginRuntimeSlotForbidden) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -5340,7 +5391,7 @@ func (s *BeginRuntimeSlotForbidden) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -5372,7 +5423,7 @@ func (s *BeginRuntimeSlotForbidden) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111001,
+		0b01110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -5596,6 +5647,12 @@ func (s *BeginRuntimeSlotNotFound) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -5616,13 +5673,14 @@ func (s *BeginRuntimeSlotNotFound) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfBeginRuntimeSlotNotFound = [6]string{
+var jsonFieldsNameOfBeginRuntimeSlotNotFound = [7]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
 }
 
 // Decode decodes BeginRuntimeSlotNotFound from json.
@@ -5665,8 +5723,18 @@ func (s *BeginRuntimeSlotNotFound) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -5678,7 +5746,7 @@ func (s *BeginRuntimeSlotNotFound) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -5690,7 +5758,7 @@ func (s *BeginRuntimeSlotNotFound) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -5722,7 +5790,7 @@ func (s *BeginRuntimeSlotNotFound) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111001,
+		0b01110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -6782,6 +6850,12 @@ func (s *BeginRuntimeSlotUnauthorized) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -6802,13 +6876,14 @@ func (s *BeginRuntimeSlotUnauthorized) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfBeginRuntimeSlotUnauthorized = [6]string{
+var jsonFieldsNameOfBeginRuntimeSlotUnauthorized = [7]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
 }
 
 // Decode decodes BeginRuntimeSlotUnauthorized from json.
@@ -6851,8 +6926,18 @@ func (s *BeginRuntimeSlotUnauthorized) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -6864,7 +6949,7 @@ func (s *BeginRuntimeSlotUnauthorized) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -6876,7 +6961,7 @@ func (s *BeginRuntimeSlotUnauthorized) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -6908,7 +6993,7 @@ func (s *BeginRuntimeSlotUnauthorized) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111001,
+		0b01110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -10999,6 +11084,12 @@ func (s *ConflictProblemDetails) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -11023,14 +11114,15 @@ func (s *ConflictProblemDetails) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfConflictProblemDetails = [7]string{
+var jsonFieldsNameOfConflictProblemDetails = [8]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
-	6: "conflict",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
+	7: "conflict",
 }
 
 // Decode decodes ConflictProblemDetails from json.
@@ -11073,8 +11165,18 @@ func (s *ConflictProblemDetails) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -11086,7 +11188,7 @@ func (s *ConflictProblemDetails) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -11098,7 +11200,7 @@ func (s *ConflictProblemDetails) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -11110,7 +11212,7 @@ func (s *ConflictProblemDetails) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"type\"")
 			}
 		case "conflict":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				if err := s.Conflict.Decode(d); err != nil {
 					return err
@@ -11140,7 +11242,7 @@ func (s *ConflictProblemDetails) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b01111001,
+		0b11110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -30802,6 +30904,12 @@ func (s *DownloadRuntimeSessionBadRequest) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -30830,14 +30938,15 @@ func (s *DownloadRuntimeSessionBadRequest) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfDownloadRuntimeSessionBadRequest = [7]string{
+var jsonFieldsNameOfDownloadRuntimeSessionBadRequest = [8]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
-	6: "errors",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
+	7: "errors",
 }
 
 // Decode decodes DownloadRuntimeSessionBadRequest from json.
@@ -30880,8 +30989,18 @@ func (s *DownloadRuntimeSessionBadRequest) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -30893,7 +31012,7 @@ func (s *DownloadRuntimeSessionBadRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -30905,7 +31024,7 @@ func (s *DownloadRuntimeSessionBadRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -30917,7 +31036,7 @@ func (s *DownloadRuntimeSessionBadRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"type\"")
 			}
 		case "errors":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				s.Errors = make([]ValidationError, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -30955,7 +31074,7 @@ func (s *DownloadRuntimeSessionBadRequest) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b01111001,
+		0b11110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -31179,6 +31298,12 @@ func (s *DownloadRuntimeSessionForbidden) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -31199,13 +31324,14 @@ func (s *DownloadRuntimeSessionForbidden) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfDownloadRuntimeSessionForbidden = [6]string{
+var jsonFieldsNameOfDownloadRuntimeSessionForbidden = [7]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
 }
 
 // Decode decodes DownloadRuntimeSessionForbidden from json.
@@ -31248,8 +31374,18 @@ func (s *DownloadRuntimeSessionForbidden) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -31261,7 +31397,7 @@ func (s *DownloadRuntimeSessionForbidden) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -31273,7 +31409,7 @@ func (s *DownloadRuntimeSessionForbidden) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -31305,7 +31441,7 @@ func (s *DownloadRuntimeSessionForbidden) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111001,
+		0b01110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -31529,6 +31665,12 @@ func (s *DownloadRuntimeSessionNotFound) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -31549,13 +31691,14 @@ func (s *DownloadRuntimeSessionNotFound) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfDownloadRuntimeSessionNotFound = [6]string{
+var jsonFieldsNameOfDownloadRuntimeSessionNotFound = [7]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
 }
 
 // Decode decodes DownloadRuntimeSessionNotFound from json.
@@ -31598,8 +31741,18 @@ func (s *DownloadRuntimeSessionNotFound) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -31611,7 +31764,7 @@ func (s *DownloadRuntimeSessionNotFound) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -31623,7 +31776,7 @@ func (s *DownloadRuntimeSessionNotFound) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -31655,7 +31808,7 @@ func (s *DownloadRuntimeSessionNotFound) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111001,
+		0b01110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -31879,6 +32032,12 @@ func (s *DownloadRuntimeSessionServiceUnavailable) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -31899,13 +32058,14 @@ func (s *DownloadRuntimeSessionServiceUnavailable) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfDownloadRuntimeSessionServiceUnavailable = [6]string{
+var jsonFieldsNameOfDownloadRuntimeSessionServiceUnavailable = [7]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
 }
 
 // Decode decodes DownloadRuntimeSessionServiceUnavailable from json.
@@ -31948,8 +32108,18 @@ func (s *DownloadRuntimeSessionServiceUnavailable) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -31961,7 +32131,7 @@ func (s *DownloadRuntimeSessionServiceUnavailable) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -31973,7 +32143,7 @@ func (s *DownloadRuntimeSessionServiceUnavailable) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -32005,7 +32175,7 @@ func (s *DownloadRuntimeSessionServiceUnavailable) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111001,
+		0b01110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -32229,6 +32399,12 @@ func (s *DownloadRuntimeSessionUnauthorized) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -32249,13 +32425,14 @@ func (s *DownloadRuntimeSessionUnauthorized) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfDownloadRuntimeSessionUnauthorized = [6]string{
+var jsonFieldsNameOfDownloadRuntimeSessionUnauthorized = [7]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
 }
 
 // Decode decodes DownloadRuntimeSessionUnauthorized from json.
@@ -32298,8 +32475,18 @@ func (s *DownloadRuntimeSessionUnauthorized) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -32311,7 +32498,7 @@ func (s *DownloadRuntimeSessionUnauthorized) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -32323,7 +32510,7 @@ func (s *DownloadRuntimeSessionUnauthorized) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -32355,7 +32542,7 @@ func (s *DownloadRuntimeSessionUnauthorized) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111001,
+		0b01110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -32579,6 +32766,12 @@ func (s *DownloadTaskArtifactBadRequest) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -32607,14 +32800,15 @@ func (s *DownloadTaskArtifactBadRequest) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfDownloadTaskArtifactBadRequest = [7]string{
+var jsonFieldsNameOfDownloadTaskArtifactBadRequest = [8]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
-	6: "errors",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
+	7: "errors",
 }
 
 // Decode decodes DownloadTaskArtifactBadRequest from json.
@@ -32657,8 +32851,18 @@ func (s *DownloadTaskArtifactBadRequest) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -32670,7 +32874,7 @@ func (s *DownloadTaskArtifactBadRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -32682,7 +32886,7 @@ func (s *DownloadTaskArtifactBadRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -32694,7 +32898,7 @@ func (s *DownloadTaskArtifactBadRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"type\"")
 			}
 		case "errors":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				s.Errors = make([]ValidationError, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -32732,7 +32936,7 @@ func (s *DownloadTaskArtifactBadRequest) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b01111001,
+		0b11110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -32956,6 +33160,12 @@ func (s *DownloadTaskArtifactByCidBadRequest) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -32984,14 +33194,15 @@ func (s *DownloadTaskArtifactByCidBadRequest) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfDownloadTaskArtifactByCidBadRequest = [7]string{
+var jsonFieldsNameOfDownloadTaskArtifactByCidBadRequest = [8]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
-	6: "errors",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
+	7: "errors",
 }
 
 // Decode decodes DownloadTaskArtifactByCidBadRequest from json.
@@ -33034,8 +33245,18 @@ func (s *DownloadTaskArtifactByCidBadRequest) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -33047,7 +33268,7 @@ func (s *DownloadTaskArtifactByCidBadRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -33059,7 +33280,7 @@ func (s *DownloadTaskArtifactByCidBadRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -33071,7 +33292,7 @@ func (s *DownloadTaskArtifactByCidBadRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"type\"")
 			}
 		case "errors":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				s.Errors = make([]ValidationError, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -33109,7 +33330,7 @@ func (s *DownloadTaskArtifactByCidBadRequest) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b01111001,
+		0b11110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -33333,6 +33554,12 @@ func (s *DownloadTaskArtifactByCidForbidden) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -33353,13 +33580,14 @@ func (s *DownloadTaskArtifactByCidForbidden) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfDownloadTaskArtifactByCidForbidden = [6]string{
+var jsonFieldsNameOfDownloadTaskArtifactByCidForbidden = [7]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
 }
 
 // Decode decodes DownloadTaskArtifactByCidForbidden from json.
@@ -33402,8 +33630,18 @@ func (s *DownloadTaskArtifactByCidForbidden) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -33415,7 +33653,7 @@ func (s *DownloadTaskArtifactByCidForbidden) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -33427,7 +33665,7 @@ func (s *DownloadTaskArtifactByCidForbidden) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -33459,7 +33697,7 @@ func (s *DownloadTaskArtifactByCidForbidden) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111001,
+		0b01110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -33683,6 +33921,12 @@ func (s *DownloadTaskArtifactByCidNotFound) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -33703,13 +33947,14 @@ func (s *DownloadTaskArtifactByCidNotFound) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfDownloadTaskArtifactByCidNotFound = [6]string{
+var jsonFieldsNameOfDownloadTaskArtifactByCidNotFound = [7]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
 }
 
 // Decode decodes DownloadTaskArtifactByCidNotFound from json.
@@ -33752,8 +33997,18 @@ func (s *DownloadTaskArtifactByCidNotFound) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -33765,7 +34020,7 @@ func (s *DownloadTaskArtifactByCidNotFound) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -33777,7 +34032,7 @@ func (s *DownloadTaskArtifactByCidNotFound) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -33809,7 +34064,7 @@ func (s *DownloadTaskArtifactByCidNotFound) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111001,
+		0b01110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -34033,6 +34288,12 @@ func (s *DownloadTaskArtifactByCidServiceUnavailable) encodeFields(e *jx.Encoder
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -34053,13 +34314,14 @@ func (s *DownloadTaskArtifactByCidServiceUnavailable) encodeFields(e *jx.Encoder
 	}
 }
 
-var jsonFieldsNameOfDownloadTaskArtifactByCidServiceUnavailable = [6]string{
+var jsonFieldsNameOfDownloadTaskArtifactByCidServiceUnavailable = [7]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
 }
 
 // Decode decodes DownloadTaskArtifactByCidServiceUnavailable from json.
@@ -34102,8 +34364,18 @@ func (s *DownloadTaskArtifactByCidServiceUnavailable) Decode(d *jx.Decoder) erro
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -34115,7 +34387,7 @@ func (s *DownloadTaskArtifactByCidServiceUnavailable) Decode(d *jx.Decoder) erro
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -34127,7 +34399,7 @@ func (s *DownloadTaskArtifactByCidServiceUnavailable) Decode(d *jx.Decoder) erro
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -34159,7 +34431,7 @@ func (s *DownloadTaskArtifactByCidServiceUnavailable) Decode(d *jx.Decoder) erro
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111001,
+		0b01110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -34383,6 +34655,12 @@ func (s *DownloadTaskArtifactByCidUnauthorized) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -34403,13 +34681,14 @@ func (s *DownloadTaskArtifactByCidUnauthorized) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfDownloadTaskArtifactByCidUnauthorized = [6]string{
+var jsonFieldsNameOfDownloadTaskArtifactByCidUnauthorized = [7]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
 }
 
 // Decode decodes DownloadTaskArtifactByCidUnauthorized from json.
@@ -34452,8 +34731,18 @@ func (s *DownloadTaskArtifactByCidUnauthorized) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -34465,7 +34754,7 @@ func (s *DownloadTaskArtifactByCidUnauthorized) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -34477,7 +34766,7 @@ func (s *DownloadTaskArtifactByCidUnauthorized) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -34509,7 +34798,7 @@ func (s *DownloadTaskArtifactByCidUnauthorized) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111001,
+		0b01110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -34733,6 +35022,12 @@ func (s *DownloadTaskArtifactForbidden) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -34753,13 +35048,14 @@ func (s *DownloadTaskArtifactForbidden) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfDownloadTaskArtifactForbidden = [6]string{
+var jsonFieldsNameOfDownloadTaskArtifactForbidden = [7]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
 }
 
 // Decode decodes DownloadTaskArtifactForbidden from json.
@@ -34802,8 +35098,18 @@ func (s *DownloadTaskArtifactForbidden) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -34815,7 +35121,7 @@ func (s *DownloadTaskArtifactForbidden) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -34827,7 +35133,7 @@ func (s *DownloadTaskArtifactForbidden) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -34859,7 +35165,7 @@ func (s *DownloadTaskArtifactForbidden) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111001,
+		0b01110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -35083,6 +35389,12 @@ func (s *DownloadTaskArtifactNotFound) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -35103,13 +35415,14 @@ func (s *DownloadTaskArtifactNotFound) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfDownloadTaskArtifactNotFound = [6]string{
+var jsonFieldsNameOfDownloadTaskArtifactNotFound = [7]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
 }
 
 // Decode decodes DownloadTaskArtifactNotFound from json.
@@ -35152,8 +35465,18 @@ func (s *DownloadTaskArtifactNotFound) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -35165,7 +35488,7 @@ func (s *DownloadTaskArtifactNotFound) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -35177,7 +35500,7 @@ func (s *DownloadTaskArtifactNotFound) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -35209,7 +35532,7 @@ func (s *DownloadTaskArtifactNotFound) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111001,
+		0b01110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -35433,6 +35756,12 @@ func (s *DownloadTaskArtifactServiceUnavailable) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -35453,13 +35782,14 @@ func (s *DownloadTaskArtifactServiceUnavailable) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfDownloadTaskArtifactServiceUnavailable = [6]string{
+var jsonFieldsNameOfDownloadTaskArtifactServiceUnavailable = [7]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
 }
 
 // Decode decodes DownloadTaskArtifactServiceUnavailable from json.
@@ -35502,8 +35832,18 @@ func (s *DownloadTaskArtifactServiceUnavailable) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -35515,7 +35855,7 @@ func (s *DownloadTaskArtifactServiceUnavailable) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -35527,7 +35867,7 @@ func (s *DownloadTaskArtifactServiceUnavailable) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -35559,7 +35899,7 @@ func (s *DownloadTaskArtifactServiceUnavailable) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111001,
+		0b01110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -35783,6 +36123,12 @@ func (s *DownloadTaskArtifactUnauthorized) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -35803,13 +36149,14 @@ func (s *DownloadTaskArtifactUnauthorized) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfDownloadTaskArtifactUnauthorized = [6]string{
+var jsonFieldsNameOfDownloadTaskArtifactUnauthorized = [7]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
 }
 
 // Decode decodes DownloadTaskArtifactUnauthorized from json.
@@ -35852,8 +36199,18 @@ func (s *DownloadTaskArtifactUnauthorized) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -35865,7 +36222,7 @@ func (s *DownloadTaskArtifactUnauthorized) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -35877,7 +36234,7 @@ func (s *DownloadTaskArtifactUnauthorized) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -35909,7 +36266,7 @@ func (s *DownloadTaskArtifactUnauthorized) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111001,
+		0b01110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -37827,6 +38184,12 @@ func (s *FindLatestRuntimeSlotForAttemptBadRequest) encodeFields(e *jx.Encoder) 
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -37855,14 +38218,15 @@ func (s *FindLatestRuntimeSlotForAttemptBadRequest) encodeFields(e *jx.Encoder) 
 	}
 }
 
-var jsonFieldsNameOfFindLatestRuntimeSlotForAttemptBadRequest = [7]string{
+var jsonFieldsNameOfFindLatestRuntimeSlotForAttemptBadRequest = [8]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
-	6: "errors",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
+	7: "errors",
 }
 
 // Decode decodes FindLatestRuntimeSlotForAttemptBadRequest from json.
@@ -37905,8 +38269,18 @@ func (s *FindLatestRuntimeSlotForAttemptBadRequest) Decode(d *jx.Decoder) error 
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -37918,7 +38292,7 @@ func (s *FindLatestRuntimeSlotForAttemptBadRequest) Decode(d *jx.Decoder) error 
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -37930,7 +38304,7 @@ func (s *FindLatestRuntimeSlotForAttemptBadRequest) Decode(d *jx.Decoder) error 
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -37942,7 +38316,7 @@ func (s *FindLatestRuntimeSlotForAttemptBadRequest) Decode(d *jx.Decoder) error 
 				return errors.Wrap(err, "decode field \"type\"")
 			}
 		case "errors":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				s.Errors = make([]ValidationError, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -37980,7 +38354,7 @@ func (s *FindLatestRuntimeSlotForAttemptBadRequest) Decode(d *jx.Decoder) error 
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b01111001,
+		0b11110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -38204,6 +38578,12 @@ func (s *FindLatestRuntimeSlotForAttemptForbidden) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -38224,13 +38604,14 @@ func (s *FindLatestRuntimeSlotForAttemptForbidden) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfFindLatestRuntimeSlotForAttemptForbidden = [6]string{
+var jsonFieldsNameOfFindLatestRuntimeSlotForAttemptForbidden = [7]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
 }
 
 // Decode decodes FindLatestRuntimeSlotForAttemptForbidden from json.
@@ -38273,8 +38654,18 @@ func (s *FindLatestRuntimeSlotForAttemptForbidden) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -38286,7 +38677,7 @@ func (s *FindLatestRuntimeSlotForAttemptForbidden) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -38298,7 +38689,7 @@ func (s *FindLatestRuntimeSlotForAttemptForbidden) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -38330,7 +38721,7 @@ func (s *FindLatestRuntimeSlotForAttemptForbidden) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111001,
+		0b01110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -38554,6 +38945,12 @@ func (s *FindLatestRuntimeSlotForAttemptNotFound) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -38574,13 +38971,14 @@ func (s *FindLatestRuntimeSlotForAttemptNotFound) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfFindLatestRuntimeSlotForAttemptNotFound = [6]string{
+var jsonFieldsNameOfFindLatestRuntimeSlotForAttemptNotFound = [7]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
 }
 
 // Decode decodes FindLatestRuntimeSlotForAttemptNotFound from json.
@@ -38623,8 +39021,18 @@ func (s *FindLatestRuntimeSlotForAttemptNotFound) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -38636,7 +39044,7 @@ func (s *FindLatestRuntimeSlotForAttemptNotFound) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -38648,7 +39056,7 @@ func (s *FindLatestRuntimeSlotForAttemptNotFound) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -38680,7 +39088,7 @@ func (s *FindLatestRuntimeSlotForAttemptNotFound) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111001,
+		0b01110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -39742,6 +40150,12 @@ func (s *FindLatestRuntimeSlotForAttemptUnauthorized) encodeFields(e *jx.Encoder
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -39762,13 +40176,14 @@ func (s *FindLatestRuntimeSlotForAttemptUnauthorized) encodeFields(e *jx.Encoder
 	}
 }
 
-var jsonFieldsNameOfFindLatestRuntimeSlotForAttemptUnauthorized = [6]string{
+var jsonFieldsNameOfFindLatestRuntimeSlotForAttemptUnauthorized = [7]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
 }
 
 // Decode decodes FindLatestRuntimeSlotForAttemptUnauthorized from json.
@@ -39811,8 +40226,18 @@ func (s *FindLatestRuntimeSlotForAttemptUnauthorized) Decode(d *jx.Decoder) erro
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -39824,7 +40249,7 @@ func (s *FindLatestRuntimeSlotForAttemptUnauthorized) Decode(d *jx.Decoder) erro
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -39836,7 +40261,7 @@ func (s *FindLatestRuntimeSlotForAttemptUnauthorized) Decode(d *jx.Decoder) erro
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -39868,7 +40293,7 @@ func (s *FindLatestRuntimeSlotForAttemptUnauthorized) Decode(d *jx.Decoder) erro
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111001,
+		0b01110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -40092,6 +40517,12 @@ func (s *FinishRuntimeSlotBadRequest) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -40120,14 +40551,15 @@ func (s *FinishRuntimeSlotBadRequest) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfFinishRuntimeSlotBadRequest = [7]string{
+var jsonFieldsNameOfFinishRuntimeSlotBadRequest = [8]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
-	6: "errors",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
+	7: "errors",
 }
 
 // Decode decodes FinishRuntimeSlotBadRequest from json.
@@ -40170,8 +40602,18 @@ func (s *FinishRuntimeSlotBadRequest) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -40183,7 +40625,7 @@ func (s *FinishRuntimeSlotBadRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -40195,7 +40637,7 @@ func (s *FinishRuntimeSlotBadRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -40207,7 +40649,7 @@ func (s *FinishRuntimeSlotBadRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"type\"")
 			}
 		case "errors":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				s.Errors = make([]ValidationError, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -40245,7 +40687,7 @@ func (s *FinishRuntimeSlotBadRequest) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b01111001,
+		0b11110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -40469,6 +40911,12 @@ func (s *FinishRuntimeSlotConflict) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -40493,14 +40941,15 @@ func (s *FinishRuntimeSlotConflict) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfFinishRuntimeSlotConflict = [7]string{
+var jsonFieldsNameOfFinishRuntimeSlotConflict = [8]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
-	6: "conflict",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
+	7: "conflict",
 }
 
 // Decode decodes FinishRuntimeSlotConflict from json.
@@ -40543,8 +40992,18 @@ func (s *FinishRuntimeSlotConflict) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -40556,7 +41015,7 @@ func (s *FinishRuntimeSlotConflict) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -40568,7 +41027,7 @@ func (s *FinishRuntimeSlotConflict) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -40580,7 +41039,7 @@ func (s *FinishRuntimeSlotConflict) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"type\"")
 			}
 		case "conflict":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				if err := s.Conflict.Decode(d); err != nil {
 					return err
@@ -40610,7 +41069,7 @@ func (s *FinishRuntimeSlotConflict) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b01111001,
+		0b11110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -40834,6 +41293,12 @@ func (s *FinishRuntimeSlotForbidden) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -40854,13 +41319,14 @@ func (s *FinishRuntimeSlotForbidden) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfFinishRuntimeSlotForbidden = [6]string{
+var jsonFieldsNameOfFinishRuntimeSlotForbidden = [7]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
 }
 
 // Decode decodes FinishRuntimeSlotForbidden from json.
@@ -40903,8 +41369,18 @@ func (s *FinishRuntimeSlotForbidden) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -40916,7 +41392,7 @@ func (s *FinishRuntimeSlotForbidden) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -40928,7 +41404,7 @@ func (s *FinishRuntimeSlotForbidden) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -40960,7 +41436,7 @@ func (s *FinishRuntimeSlotForbidden) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111001,
+		0b01110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -41184,6 +41660,12 @@ func (s *FinishRuntimeSlotNotFound) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -41204,13 +41686,14 @@ func (s *FinishRuntimeSlotNotFound) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfFinishRuntimeSlotNotFound = [6]string{
+var jsonFieldsNameOfFinishRuntimeSlotNotFound = [7]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
 }
 
 // Decode decodes FinishRuntimeSlotNotFound from json.
@@ -41253,8 +41736,18 @@ func (s *FinishRuntimeSlotNotFound) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -41266,7 +41759,7 @@ func (s *FinishRuntimeSlotNotFound) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -41278,7 +41771,7 @@ func (s *FinishRuntimeSlotNotFound) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -41310,7 +41803,7 @@ func (s *FinishRuntimeSlotNotFound) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111001,
+		0b01110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -42225,6 +42718,12 @@ func (s *FinishRuntimeSlotUnauthorized) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -42245,13 +42744,14 @@ func (s *FinishRuntimeSlotUnauthorized) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfFinishRuntimeSlotUnauthorized = [6]string{
+var jsonFieldsNameOfFinishRuntimeSlotUnauthorized = [7]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
 }
 
 // Decode decodes FinishRuntimeSlotUnauthorized from json.
@@ -42294,8 +42794,18 @@ func (s *FinishRuntimeSlotUnauthorized) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -42307,7 +42817,7 @@ func (s *FinishRuntimeSlotUnauthorized) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -42319,7 +42829,7 @@ func (s *FinishRuntimeSlotUnauthorized) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -42351,7 +42861,7 @@ func (s *FinishRuntimeSlotUnauthorized) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111001,
+		0b01110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -47913,6 +48423,12 @@ func (s *GetRuntimeSessionBadRequest) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -47941,14 +48457,15 @@ func (s *GetRuntimeSessionBadRequest) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfGetRuntimeSessionBadRequest = [7]string{
+var jsonFieldsNameOfGetRuntimeSessionBadRequest = [8]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
-	6: "errors",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
+	7: "errors",
 }
 
 // Decode decodes GetRuntimeSessionBadRequest from json.
@@ -47991,8 +48508,18 @@ func (s *GetRuntimeSessionBadRequest) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -48004,7 +48531,7 @@ func (s *GetRuntimeSessionBadRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -48016,7 +48543,7 @@ func (s *GetRuntimeSessionBadRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -48028,7 +48555,7 @@ func (s *GetRuntimeSessionBadRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"type\"")
 			}
 		case "errors":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				s.Errors = make([]ValidationError, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -48066,7 +48593,7 @@ func (s *GetRuntimeSessionBadRequest) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b01111001,
+		0b11110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -48290,6 +48817,12 @@ func (s *GetRuntimeSessionForbidden) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -48310,13 +48843,14 @@ func (s *GetRuntimeSessionForbidden) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfGetRuntimeSessionForbidden = [6]string{
+var jsonFieldsNameOfGetRuntimeSessionForbidden = [7]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
 }
 
 // Decode decodes GetRuntimeSessionForbidden from json.
@@ -48359,8 +48893,18 @@ func (s *GetRuntimeSessionForbidden) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -48372,7 +48916,7 @@ func (s *GetRuntimeSessionForbidden) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -48384,7 +48928,7 @@ func (s *GetRuntimeSessionForbidden) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -48416,7 +48960,7 @@ func (s *GetRuntimeSessionForbidden) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111001,
+		0b01110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -48640,6 +49184,12 @@ func (s *GetRuntimeSessionNotFound) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -48660,13 +49210,14 @@ func (s *GetRuntimeSessionNotFound) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfGetRuntimeSessionNotFound = [6]string{
+var jsonFieldsNameOfGetRuntimeSessionNotFound = [7]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
 }
 
 // Decode decodes GetRuntimeSessionNotFound from json.
@@ -48709,8 +49260,18 @@ func (s *GetRuntimeSessionNotFound) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -48722,7 +49283,7 @@ func (s *GetRuntimeSessionNotFound) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -48734,7 +49295,7 @@ func (s *GetRuntimeSessionNotFound) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -48766,7 +49327,7 @@ func (s *GetRuntimeSessionNotFound) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111001,
+		0b01110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -49508,6 +50069,12 @@ func (s *GetRuntimeSessionUnauthorized) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -49528,13 +50095,14 @@ func (s *GetRuntimeSessionUnauthorized) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfGetRuntimeSessionUnauthorized = [6]string{
+var jsonFieldsNameOfGetRuntimeSessionUnauthorized = [7]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
 }
 
 // Decode decodes GetRuntimeSessionUnauthorized from json.
@@ -49577,8 +50145,18 @@ func (s *GetRuntimeSessionUnauthorized) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -49590,7 +50168,7 @@ func (s *GetRuntimeSessionUnauthorized) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -49602,7 +50180,7 @@ func (s *GetRuntimeSessionUnauthorized) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -49634,7 +50212,7 @@ func (s *GetRuntimeSessionUnauthorized) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111001,
+		0b01110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -52645,6 +53223,12 @@ func (s *InjectionConflictProblemDetails) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -52679,15 +53263,16 @@ func (s *InjectionConflictProblemDetails) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfInjectionConflictProblemDetails = [8]string{
+var jsonFieldsNameOfInjectionConflictProblemDetails = [9]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
-	6: "conflict",
-	7: "flagged",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
+	7: "conflict",
+	8: "flagged",
 }
 
 // Decode decodes InjectionConflictProblemDetails from json.
@@ -52695,7 +53280,7 @@ func (s *InjectionConflictProblemDetails) Decode(d *jx.Decoder) error {
 	if s == nil {
 		return errors.New("invalid: unable to decode InjectionConflictProblemDetails to nil")
 	}
-	var requiredBitSet [1]uint8
+	var requiredBitSet [2]uint8
 	s.AdditionalProps = map[string]jx.Raw{}
 
 	if err := d.ObjBytes(func(d *jx.Decoder, k []byte) error {
@@ -52730,8 +53315,18 @@ func (s *InjectionConflictProblemDetails) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -52743,7 +53338,7 @@ func (s *InjectionConflictProblemDetails) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -52755,7 +53350,7 @@ func (s *InjectionConflictProblemDetails) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -52767,7 +53362,7 @@ func (s *InjectionConflictProblemDetails) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"type\"")
 			}
 		case "conflict":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				if err := s.Conflict.Decode(d); err != nil {
 					return err
@@ -52813,8 +53408,9 @@ func (s *InjectionConflictProblemDetails) Decode(d *jx.Decoder) error {
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
-	for i, mask := range [1]uint8{
-		0b01111001,
+	for i, mask := range [2]uint8{
+		0b11110001,
+		0b00000000,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -58619,6 +59215,12 @@ func (s *ListRuntimeSlotsBadRequest) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -58647,14 +59249,15 @@ func (s *ListRuntimeSlotsBadRequest) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfListRuntimeSlotsBadRequest = [7]string{
+var jsonFieldsNameOfListRuntimeSlotsBadRequest = [8]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
-	6: "errors",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
+	7: "errors",
 }
 
 // Decode decodes ListRuntimeSlotsBadRequest from json.
@@ -58697,8 +59300,18 @@ func (s *ListRuntimeSlotsBadRequest) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -58710,7 +59323,7 @@ func (s *ListRuntimeSlotsBadRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -58722,7 +59335,7 @@ func (s *ListRuntimeSlotsBadRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -58734,7 +59347,7 @@ func (s *ListRuntimeSlotsBadRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"type\"")
 			}
 		case "errors":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				s.Errors = make([]ValidationError, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -58772,7 +59385,7 @@ func (s *ListRuntimeSlotsBadRequest) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b01111001,
+		0b11110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -58996,6 +59609,12 @@ func (s *ListRuntimeSlotsForbidden) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -59016,13 +59635,14 @@ func (s *ListRuntimeSlotsForbidden) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfListRuntimeSlotsForbidden = [6]string{
+var jsonFieldsNameOfListRuntimeSlotsForbidden = [7]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
 }
 
 // Decode decodes ListRuntimeSlotsForbidden from json.
@@ -59065,8 +59685,18 @@ func (s *ListRuntimeSlotsForbidden) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -59078,7 +59708,7 @@ func (s *ListRuntimeSlotsForbidden) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -59090,7 +59720,7 @@ func (s *ListRuntimeSlotsForbidden) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -59122,7 +59752,7 @@ func (s *ListRuntimeSlotsForbidden) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111001,
+		0b01110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -59346,6 +59976,12 @@ func (s *ListRuntimeSlotsNotFound) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -59366,13 +60002,14 @@ func (s *ListRuntimeSlotsNotFound) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfListRuntimeSlotsNotFound = [6]string{
+var jsonFieldsNameOfListRuntimeSlotsNotFound = [7]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
 }
 
 // Decode decodes ListRuntimeSlotsNotFound from json.
@@ -59415,8 +60052,18 @@ func (s *ListRuntimeSlotsNotFound) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -59428,7 +60075,7 @@ func (s *ListRuntimeSlotsNotFound) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -59440,7 +60087,7 @@ func (s *ListRuntimeSlotsNotFound) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -59472,7 +60119,7 @@ func (s *ListRuntimeSlotsNotFound) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111001,
+		0b01110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -60640,6 +61287,12 @@ func (s *ListRuntimeSlotsUnauthorized) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -60660,13 +61313,14 @@ func (s *ListRuntimeSlotsUnauthorized) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfListRuntimeSlotsUnauthorized = [6]string{
+var jsonFieldsNameOfListRuntimeSlotsUnauthorized = [7]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
 }
 
 // Decode decodes ListRuntimeSlotsUnauthorized from json.
@@ -60709,8 +61363,18 @@ func (s *ListRuntimeSlotsUnauthorized) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -60722,7 +61386,7 @@ func (s *ListRuntimeSlotsUnauthorized) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -60734,7 +61398,7 @@ func (s *ListRuntimeSlotsUnauthorized) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -60766,7 +61430,7 @@ func (s *ListRuntimeSlotsUnauthorized) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111001,
+		0b01110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -61332,6 +61996,12 @@ func (s *ListTaskArtifactsBadRequest) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -61360,14 +62030,15 @@ func (s *ListTaskArtifactsBadRequest) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfListTaskArtifactsBadRequest = [7]string{
+var jsonFieldsNameOfListTaskArtifactsBadRequest = [8]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
-	6: "errors",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
+	7: "errors",
 }
 
 // Decode decodes ListTaskArtifactsBadRequest from json.
@@ -61410,8 +62081,18 @@ func (s *ListTaskArtifactsBadRequest) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -61423,7 +62104,7 @@ func (s *ListTaskArtifactsBadRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -61435,7 +62116,7 @@ func (s *ListTaskArtifactsBadRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -61447,7 +62128,7 @@ func (s *ListTaskArtifactsBadRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"type\"")
 			}
 		case "errors":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				s.Errors = make([]ValidationError, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -61485,7 +62166,7 @@ func (s *ListTaskArtifactsBadRequest) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b01111001,
+		0b11110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -61709,6 +62390,12 @@ func (s *ListTaskArtifactsForbidden) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -61729,13 +62416,14 @@ func (s *ListTaskArtifactsForbidden) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfListTaskArtifactsForbidden = [6]string{
+var jsonFieldsNameOfListTaskArtifactsForbidden = [7]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
 }
 
 // Decode decodes ListTaskArtifactsForbidden from json.
@@ -61778,8 +62466,18 @@ func (s *ListTaskArtifactsForbidden) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -61791,7 +62489,7 @@ func (s *ListTaskArtifactsForbidden) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -61803,7 +62501,7 @@ func (s *ListTaskArtifactsForbidden) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -61835,7 +62533,7 @@ func (s *ListTaskArtifactsForbidden) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111001,
+		0b01110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -62059,6 +62757,12 @@ func (s *ListTaskArtifactsNotFound) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -62079,13 +62783,14 @@ func (s *ListTaskArtifactsNotFound) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfListTaskArtifactsNotFound = [6]string{
+var jsonFieldsNameOfListTaskArtifactsNotFound = [7]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
 }
 
 // Decode decodes ListTaskArtifactsNotFound from json.
@@ -62128,8 +62833,18 @@ func (s *ListTaskArtifactsNotFound) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -62141,7 +62856,7 @@ func (s *ListTaskArtifactsNotFound) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -62153,7 +62868,7 @@ func (s *ListTaskArtifactsNotFound) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -62185,7 +62900,7 @@ func (s *ListTaskArtifactsNotFound) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111001,
+		0b01110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -62899,6 +63614,12 @@ func (s *ListTaskArtifactsUnauthorized) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -62919,13 +63640,14 @@ func (s *ListTaskArtifactsUnauthorized) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfListTaskArtifactsUnauthorized = [6]string{
+var jsonFieldsNameOfListTaskArtifactsUnauthorized = [7]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
 }
 
 // Decode decodes ListTaskArtifactsUnauthorized from json.
@@ -62968,8 +63690,18 @@ func (s *ListTaskArtifactsUnauthorized) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -62981,7 +63713,7 @@ func (s *ListTaskArtifactsUnauthorized) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -62993,7 +63725,7 @@ func (s *ListTaskArtifactsUnauthorized) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -63025,7 +63757,7 @@ func (s *ListTaskArtifactsUnauthorized) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111001,
+		0b01110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -79028,6 +79760,12 @@ func (s *ProblemDetails) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -79048,13 +79786,14 @@ func (s *ProblemDetails) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfProblemDetails = [6]string{
+var jsonFieldsNameOfProblemDetails = [7]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
 }
 
 // Decode decodes ProblemDetails from json.
@@ -79097,8 +79836,18 @@ func (s *ProblemDetails) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -79110,7 +79859,7 @@ func (s *ProblemDetails) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -79122,7 +79871,7 @@ func (s *ProblemDetails) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -79154,7 +79903,7 @@ func (s *ProblemDetails) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111001,
+		0b01110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -98536,6 +99285,12 @@ func (s *StageTaskArtifactBadRequest) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -98564,14 +99319,15 @@ func (s *StageTaskArtifactBadRequest) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfStageTaskArtifactBadRequest = [7]string{
+var jsonFieldsNameOfStageTaskArtifactBadRequest = [8]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
-	6: "errors",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
+	7: "errors",
 }
 
 // Decode decodes StageTaskArtifactBadRequest from json.
@@ -98614,8 +99370,18 @@ func (s *StageTaskArtifactBadRequest) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -98627,7 +99393,7 @@ func (s *StageTaskArtifactBadRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -98639,7 +99405,7 @@ func (s *StageTaskArtifactBadRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -98651,7 +99417,7 @@ func (s *StageTaskArtifactBadRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"type\"")
 			}
 		case "errors":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				s.Errors = make([]ValidationError, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -98689,7 +99455,7 @@ func (s *StageTaskArtifactBadRequest) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b01111001,
+		0b11110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -98913,6 +99679,12 @@ func (s *StageTaskArtifactForbidden) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -98933,13 +99705,14 @@ func (s *StageTaskArtifactForbidden) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfStageTaskArtifactForbidden = [6]string{
+var jsonFieldsNameOfStageTaskArtifactForbidden = [7]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
 }
 
 // Decode decodes StageTaskArtifactForbidden from json.
@@ -98982,8 +99755,18 @@ func (s *StageTaskArtifactForbidden) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -98995,7 +99778,7 @@ func (s *StageTaskArtifactForbidden) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -99007,7 +99790,7 @@ func (s *StageTaskArtifactForbidden) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -99039,7 +99822,7 @@ func (s *StageTaskArtifactForbidden) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111001,
+		0b01110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -99263,6 +100046,12 @@ func (s *StageTaskArtifactNotFound) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -99283,13 +100072,14 @@ func (s *StageTaskArtifactNotFound) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfStageTaskArtifactNotFound = [6]string{
+var jsonFieldsNameOfStageTaskArtifactNotFound = [7]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
 }
 
 // Decode decodes StageTaskArtifactNotFound from json.
@@ -99332,8 +100122,18 @@ func (s *StageTaskArtifactNotFound) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -99345,7 +100145,7 @@ func (s *StageTaskArtifactNotFound) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -99357,7 +100157,7 @@ func (s *StageTaskArtifactNotFound) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -99389,7 +100189,7 @@ func (s *StageTaskArtifactNotFound) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111001,
+		0b01110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -99743,6 +100543,12 @@ func (s *StageTaskArtifactServiceUnavailable) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -99763,13 +100569,14 @@ func (s *StageTaskArtifactServiceUnavailable) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfStageTaskArtifactServiceUnavailable = [6]string{
+var jsonFieldsNameOfStageTaskArtifactServiceUnavailable = [7]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
 }
 
 // Decode decodes StageTaskArtifactServiceUnavailable from json.
@@ -99812,8 +100619,18 @@ func (s *StageTaskArtifactServiceUnavailable) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -99825,7 +100642,7 @@ func (s *StageTaskArtifactServiceUnavailable) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -99837,7 +100654,7 @@ func (s *StageTaskArtifactServiceUnavailable) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -99869,7 +100686,7 @@ func (s *StageTaskArtifactServiceUnavailable) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111001,
+		0b01110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -100093,6 +100910,12 @@ func (s *StageTaskArtifactUnauthorized) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -100113,13 +100936,14 @@ func (s *StageTaskArtifactUnauthorized) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfStageTaskArtifactUnauthorized = [6]string{
+var jsonFieldsNameOfStageTaskArtifactUnauthorized = [7]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
 }
 
 // Decode decodes StageTaskArtifactUnauthorized from json.
@@ -100162,8 +100986,18 @@ func (s *StageTaskArtifactUnauthorized) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -100175,7 +101009,7 @@ func (s *StageTaskArtifactUnauthorized) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -100187,7 +101021,7 @@ func (s *StageTaskArtifactUnauthorized) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -100219,7 +101053,7 @@ func (s *StageTaskArtifactUnauthorized) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111001,
+		0b01110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -113547,6 +114381,12 @@ func (s *UploadRuntimeSessionBadRequest) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -113575,14 +114415,15 @@ func (s *UploadRuntimeSessionBadRequest) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfUploadRuntimeSessionBadRequest = [7]string{
+var jsonFieldsNameOfUploadRuntimeSessionBadRequest = [8]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
-	6: "errors",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
+	7: "errors",
 }
 
 // Decode decodes UploadRuntimeSessionBadRequest from json.
@@ -113625,8 +114466,18 @@ func (s *UploadRuntimeSessionBadRequest) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -113638,7 +114489,7 @@ func (s *UploadRuntimeSessionBadRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -113650,7 +114501,7 @@ func (s *UploadRuntimeSessionBadRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -113662,7 +114513,7 @@ func (s *UploadRuntimeSessionBadRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"type\"")
 			}
 		case "errors":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				s.Errors = make([]ValidationError, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -113700,7 +114551,7 @@ func (s *UploadRuntimeSessionBadRequest) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b01111001,
+		0b11110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -113924,6 +114775,12 @@ func (s *UploadRuntimeSessionConflict) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -113944,13 +114801,14 @@ func (s *UploadRuntimeSessionConflict) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfUploadRuntimeSessionConflict = [6]string{
+var jsonFieldsNameOfUploadRuntimeSessionConflict = [7]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
 }
 
 // Decode decodes UploadRuntimeSessionConflict from json.
@@ -113993,8 +114851,18 @@ func (s *UploadRuntimeSessionConflict) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -114006,7 +114874,7 @@ func (s *UploadRuntimeSessionConflict) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -114018,7 +114886,7 @@ func (s *UploadRuntimeSessionConflict) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -114050,7 +114918,7 @@ func (s *UploadRuntimeSessionConflict) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111001,
+		0b01110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -114274,6 +115142,12 @@ func (s *UploadRuntimeSessionForbidden) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -114294,13 +115168,14 @@ func (s *UploadRuntimeSessionForbidden) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfUploadRuntimeSessionForbidden = [6]string{
+var jsonFieldsNameOfUploadRuntimeSessionForbidden = [7]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
 }
 
 // Decode decodes UploadRuntimeSessionForbidden from json.
@@ -114343,8 +115218,18 @@ func (s *UploadRuntimeSessionForbidden) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -114356,7 +115241,7 @@ func (s *UploadRuntimeSessionForbidden) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -114368,7 +115253,7 @@ func (s *UploadRuntimeSessionForbidden) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -114400,7 +115285,7 @@ func (s *UploadRuntimeSessionForbidden) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111001,
+		0b01110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -114624,6 +115509,12 @@ func (s *UploadRuntimeSessionNotFound) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -114644,13 +115535,14 @@ func (s *UploadRuntimeSessionNotFound) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfUploadRuntimeSessionNotFound = [6]string{
+var jsonFieldsNameOfUploadRuntimeSessionNotFound = [7]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
 }
 
 // Decode decodes UploadRuntimeSessionNotFound from json.
@@ -114693,8 +115585,18 @@ func (s *UploadRuntimeSessionNotFound) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -114706,7 +115608,7 @@ func (s *UploadRuntimeSessionNotFound) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -114718,7 +115620,7 @@ func (s *UploadRuntimeSessionNotFound) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -114750,7 +115652,7 @@ func (s *UploadRuntimeSessionNotFound) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111001,
+		0b01110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -115416,6 +116318,12 @@ func (s *UploadRuntimeSessionServiceUnavailable) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -115436,13 +116344,14 @@ func (s *UploadRuntimeSessionServiceUnavailable) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfUploadRuntimeSessionServiceUnavailable = [6]string{
+var jsonFieldsNameOfUploadRuntimeSessionServiceUnavailable = [7]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
 }
 
 // Decode decodes UploadRuntimeSessionServiceUnavailable from json.
@@ -115485,8 +116394,18 @@ func (s *UploadRuntimeSessionServiceUnavailable) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -115498,7 +116417,7 @@ func (s *UploadRuntimeSessionServiceUnavailable) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -115510,7 +116429,7 @@ func (s *UploadRuntimeSessionServiceUnavailable) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -115542,7 +116461,7 @@ func (s *UploadRuntimeSessionServiceUnavailable) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111001,
+		0b01110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -115766,6 +116685,12 @@ func (s *UploadRuntimeSessionUnauthorized) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -115786,13 +116711,14 @@ func (s *UploadRuntimeSessionUnauthorized) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfUploadRuntimeSessionUnauthorized = [6]string{
+var jsonFieldsNameOfUploadRuntimeSessionUnauthorized = [7]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
 }
 
 // Decode decodes UploadRuntimeSessionUnauthorized from json.
@@ -115835,8 +116761,18 @@ func (s *UploadRuntimeSessionUnauthorized) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -115848,7 +116784,7 @@ func (s *UploadRuntimeSessionUnauthorized) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -115860,7 +116796,7 @@ func (s *UploadRuntimeSessionUnauthorized) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -115892,7 +116828,7 @@ func (s *UploadRuntimeSessionUnauthorized) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111001,
+		0b01110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -116116,6 +117052,12 @@ func (s *UploadTaskArtifactBadRequest) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -116144,14 +117086,15 @@ func (s *UploadTaskArtifactBadRequest) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfUploadTaskArtifactBadRequest = [7]string{
+var jsonFieldsNameOfUploadTaskArtifactBadRequest = [8]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
-	6: "errors",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
+	7: "errors",
 }
 
 // Decode decodes UploadTaskArtifactBadRequest from json.
@@ -116194,8 +117137,18 @@ func (s *UploadTaskArtifactBadRequest) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -116207,7 +117160,7 @@ func (s *UploadTaskArtifactBadRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -116219,7 +117172,7 @@ func (s *UploadTaskArtifactBadRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -116231,7 +117184,7 @@ func (s *UploadTaskArtifactBadRequest) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"type\"")
 			}
 		case "errors":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				s.Errors = make([]ValidationError, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -116269,7 +117222,7 @@ func (s *UploadTaskArtifactBadRequest) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b01111001,
+		0b11110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -116493,6 +117446,12 @@ func (s *UploadTaskArtifactForbidden) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -116513,13 +117472,14 @@ func (s *UploadTaskArtifactForbidden) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfUploadTaskArtifactForbidden = [6]string{
+var jsonFieldsNameOfUploadTaskArtifactForbidden = [7]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
 }
 
 // Decode decodes UploadTaskArtifactForbidden from json.
@@ -116562,8 +117522,18 @@ func (s *UploadTaskArtifactForbidden) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -116575,7 +117545,7 @@ func (s *UploadTaskArtifactForbidden) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -116587,7 +117557,7 @@ func (s *UploadTaskArtifactForbidden) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -116619,7 +117589,7 @@ func (s *UploadTaskArtifactForbidden) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111001,
+		0b01110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -116843,6 +117813,12 @@ func (s *UploadTaskArtifactNotFound) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -116863,13 +117839,14 @@ func (s *UploadTaskArtifactNotFound) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfUploadTaskArtifactNotFound = [6]string{
+var jsonFieldsNameOfUploadTaskArtifactNotFound = [7]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
 }
 
 // Decode decodes UploadTaskArtifactNotFound from json.
@@ -116912,8 +117889,18 @@ func (s *UploadTaskArtifactNotFound) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -116925,7 +117912,7 @@ func (s *UploadTaskArtifactNotFound) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -116937,7 +117924,7 @@ func (s *UploadTaskArtifactNotFound) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -116969,7 +117956,7 @@ func (s *UploadTaskArtifactNotFound) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111001,
+		0b01110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -117486,6 +118473,12 @@ func (s *UploadTaskArtifactServiceUnavailable) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -117506,13 +118499,14 @@ func (s *UploadTaskArtifactServiceUnavailable) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfUploadTaskArtifactServiceUnavailable = [6]string{
+var jsonFieldsNameOfUploadTaskArtifactServiceUnavailable = [7]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
 }
 
 // Decode decodes UploadTaskArtifactServiceUnavailable from json.
@@ -117555,8 +118549,18 @@ func (s *UploadTaskArtifactServiceUnavailable) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -117568,7 +118572,7 @@ func (s *UploadTaskArtifactServiceUnavailable) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -117580,7 +118584,7 @@ func (s *UploadTaskArtifactServiceUnavailable) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -117612,7 +118616,7 @@ func (s *UploadTaskArtifactServiceUnavailable) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111001,
+		0b01110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -117836,6 +118840,12 @@ func (s *UploadTaskArtifactUnauthorized) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -117856,13 +118866,14 @@ func (s *UploadTaskArtifactUnauthorized) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfUploadTaskArtifactUnauthorized = [6]string{
+var jsonFieldsNameOfUploadTaskArtifactUnauthorized = [7]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
 }
 
 // Decode decodes UploadTaskArtifactUnauthorized from json.
@@ -117905,8 +118916,18 @@ func (s *UploadTaskArtifactUnauthorized) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -117918,7 +118939,7 @@ func (s *UploadTaskArtifactUnauthorized) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -117930,7 +118951,7 @@ func (s *UploadTaskArtifactUnauthorized) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -117962,7 +118983,7 @@ func (s *UploadTaskArtifactUnauthorized) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00111001,
+		0b01110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -118603,6 +119624,12 @@ func (s *ValidationProblemDetails) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.RetryAfter.Set {
+			e.FieldStart("retryAfter")
+			s.RetryAfter.Encode(e)
+		}
+	}
+	{
 		e.FieldStart("status")
 		e.Int(s.Status)
 	}
@@ -118631,14 +119658,15 @@ func (s *ValidationProblemDetails) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfValidationProblemDetails = [7]string{
+var jsonFieldsNameOfValidationProblemDetails = [8]string{
 	0: "code",
 	1: "detail",
 	2: "instance",
-	3: "status",
-	4: "title",
-	5: "type",
-	6: "errors",
+	3: "retryAfter",
+	4: "status",
+	5: "title",
+	6: "type",
+	7: "errors",
 }
 
 // Decode decodes ValidationProblemDetails from json.
@@ -118681,8 +119709,18 @@ func (s *ValidationProblemDetails) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"instance\"")
 			}
+		case "retryAfter":
+			if err := func() error {
+				s.RetryAfter.Reset()
+				if err := s.RetryAfter.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"retryAfter\"")
+			}
 		case "status":
-			requiredBitSet[0] |= 1 << 3
+			requiredBitSet[0] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.Status = int(v)
@@ -118694,7 +119732,7 @@ func (s *ValidationProblemDetails) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "title":
-			requiredBitSet[0] |= 1 << 4
+			requiredBitSet[0] |= 1 << 5
 			if err := func() error {
 				v, err := d.Str()
 				s.Title = string(v)
@@ -118706,7 +119744,7 @@ func (s *ValidationProblemDetails) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"title\"")
 			}
 		case "type":
-			requiredBitSet[0] |= 1 << 5
+			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				v, err := json.DecodeURI(d)
 				s.Type = v
@@ -118718,7 +119756,7 @@ func (s *ValidationProblemDetails) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"type\"")
 			}
 		case "errors":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				s.Errors = make([]ValidationError, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -118756,7 +119794,7 @@ func (s *ValidationProblemDetails) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b01111001,
+		0b11110001,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.

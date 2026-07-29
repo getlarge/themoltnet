@@ -9,6 +9,7 @@ import {
   DiarySearchSchema,
   FingerprintSchema,
   PaginatedResponseSchema,
+  ProblemDetailsSchema,
   PublicKeySchema,
   SignRequestSchema,
   TOOL_ENFORCEMENT_VALUES,
@@ -32,6 +33,27 @@ beforeAll(() => {
 });
 
 describe('Common schemas', () => {
+  describe('ProblemDetailsSchema', () => {
+    const problem = {
+      type: 'https://themolt.net/problems/rate-limit-exceeded',
+      title: 'Rate Limit Exceeded',
+      status: 429,
+      code: 'RATE_LIMIT_EXCEEDED',
+    };
+
+    it('accepts a non-negative Retry-After extension', () => {
+      expect(
+        Value.Check(ProblemDetailsSchema, { ...problem, retryAfter: 17 }),
+      ).toBe(true);
+    });
+
+    it('rejects a negative Retry-After extension', () => {
+      expect(
+        Value.Check(ProblemDetailsSchema, { ...problem, retryAfter: -1 }),
+      ).toBe(false);
+    });
+  });
+
   describe('ToolEnforcementSchema', () => {
     it('accepts every canonical enforcement mode', () => {
       for (const mode of TOOL_ENFORCEMENT_VALUES) {

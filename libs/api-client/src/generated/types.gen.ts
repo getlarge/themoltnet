@@ -264,6 +264,7 @@ export type ConflictProblemDetails = {
     | 'DIARY_TRANSFER_ALREADY_RESOLVED';
   detail?: string;
   instance?: string;
+  retryAfter?: number;
   status: number;
   title: string;
   type: string;
@@ -299,6 +300,7 @@ export type ConflictProblemDetails = {
     | 'DIARY_TRANSFER_NOT_FOUND'
     | 'DIARY_TRANSFER_ALREADY_RESOLVED'
     | string
+    | number
     | number
     | undefined;
 } & {
@@ -978,6 +980,7 @@ export type InjectionConflictProblemDetails = {
     | 'DIARY_TRANSFER_ALREADY_RESOLVED';
   detail?: string;
   instance?: string;
+  retryAfter?: number;
   status: number;
   title: string;
   type: string;
@@ -1013,6 +1016,7 @@ export type InjectionConflictProblemDetails = {
     | 'DIARY_TRANSFER_NOT_FOUND'
     | 'DIARY_TRANSFER_ALREADY_RESOLVED'
     | string
+    | number
     | number
     | undefined;
 } & {
@@ -1394,6 +1398,7 @@ export type ProblemDetails = {
     | 'DIARY_TRANSFER_ALREADY_RESOLVED';
   detail?: string;
   instance?: string;
+  retryAfter?: number;
   status: number;
   title: string;
   type: string;
@@ -1429,6 +1434,7 @@ export type ProblemDetails = {
     | 'DIARY_TRANSFER_NOT_FOUND'
     | 'DIARY_TRANSFER_ALREADY_RESOLVED'
     | string
+    | number
     | number
     | undefined;
 };
@@ -2970,6 +2976,7 @@ export type ValidationProblemDetails = {
     | 'DIARY_TRANSFER_ALREADY_RESOLVED';
   detail?: string;
   instance?: string;
+  retryAfter?: number;
   status: number;
   title: string;
   type: string;
@@ -3005,6 +3012,7 @@ export type ValidationProblemDetails = {
     | 'DIARY_TRANSFER_NOT_FOUND'
     | 'DIARY_TRANSFER_ALREADY_RESOLVED'
     | string
+    | number
     | number
     | undefined;
 } & {
@@ -8855,6 +8863,7 @@ export type GetRuntimeSessionErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -8890,6 +8899,7 @@ export type GetRuntimeSessionErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   } & {
@@ -8931,6 +8941,7 @@ export type GetRuntimeSessionErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -8966,6 +8977,7 @@ export type GetRuntimeSessionErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   };
@@ -9005,6 +9017,7 @@ export type GetRuntimeSessionErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -9040,6 +9053,7 @@ export type GetRuntimeSessionErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   };
@@ -9079,6 +9093,7 @@ export type GetRuntimeSessionErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -9114,6 +9129,7 @@ export type GetRuntimeSessionErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   };
@@ -9209,6 +9225,7 @@ export type DownloadRuntimeSessionErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -9244,6 +9261,7 @@ export type DownloadRuntimeSessionErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   } & {
@@ -9285,6 +9303,7 @@ export type DownloadRuntimeSessionErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -9320,6 +9339,7 @@ export type DownloadRuntimeSessionErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   };
@@ -9359,6 +9379,7 @@ export type DownloadRuntimeSessionErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -9394,6 +9415,7 @@ export type DownloadRuntimeSessionErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   };
@@ -9433,6 +9455,7 @@ export type DownloadRuntimeSessionErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -9468,6 +9491,7 @@ export type DownloadRuntimeSessionErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   };
@@ -9511,6 +9535,7 @@ export type DownloadRuntimeSessionErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -9546,6 +9571,7 @@ export type DownloadRuntimeSessionErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   };
@@ -9625,6 +9651,7 @@ export type UploadRuntimeSessionErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -9660,6 +9687,7 @@ export type UploadRuntimeSessionErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   } & {
@@ -9701,6 +9729,7 @@ export type UploadRuntimeSessionErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -9736,6 +9765,7 @@ export type UploadRuntimeSessionErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   };
@@ -9775,6 +9805,7 @@ export type UploadRuntimeSessionErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -9810,6 +9841,7 @@ export type UploadRuntimeSessionErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   };
@@ -9849,6 +9881,7 @@ export type UploadRuntimeSessionErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -9884,6 +9917,7 @@ export type UploadRuntimeSessionErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   };
@@ -9923,6 +9957,7 @@ export type UploadRuntimeSessionErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -9958,6 +9993,7 @@ export type UploadRuntimeSessionErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   };
@@ -10001,6 +10037,7 @@ export type UploadRuntimeSessionErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -10036,6 +10073,7 @@ export type UploadRuntimeSessionErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   };
@@ -10125,6 +10163,7 @@ export type ListRuntimeSlotsErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -10160,6 +10199,7 @@ export type ListRuntimeSlotsErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   } & {
@@ -10201,6 +10241,7 @@ export type ListRuntimeSlotsErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -10236,6 +10277,7 @@ export type ListRuntimeSlotsErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   };
@@ -10275,6 +10317,7 @@ export type ListRuntimeSlotsErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -10310,6 +10353,7 @@ export type ListRuntimeSlotsErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   };
@@ -10349,6 +10393,7 @@ export type ListRuntimeSlotsErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -10384,6 +10429,7 @@ export type ListRuntimeSlotsErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   };
@@ -10507,6 +10553,7 @@ export type BeginRuntimeSlotErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -10542,6 +10589,7 @@ export type BeginRuntimeSlotErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   } & {
@@ -10583,6 +10631,7 @@ export type BeginRuntimeSlotErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -10618,6 +10667,7 @@ export type BeginRuntimeSlotErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   };
@@ -10657,6 +10707,7 @@ export type BeginRuntimeSlotErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -10692,6 +10743,7 @@ export type BeginRuntimeSlotErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   };
@@ -10731,6 +10783,7 @@ export type BeginRuntimeSlotErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -10766,6 +10819,7 @@ export type BeginRuntimeSlotErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   };
@@ -10805,6 +10859,7 @@ export type BeginRuntimeSlotErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -10840,6 +10895,7 @@ export type BeginRuntimeSlotErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   } & {
@@ -10945,6 +11001,7 @@ export type FinishRuntimeSlotErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -10980,6 +11037,7 @@ export type FinishRuntimeSlotErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   } & {
@@ -11021,6 +11079,7 @@ export type FinishRuntimeSlotErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -11056,6 +11115,7 @@ export type FinishRuntimeSlotErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   };
@@ -11095,6 +11155,7 @@ export type FinishRuntimeSlotErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -11130,6 +11191,7 @@ export type FinishRuntimeSlotErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   };
@@ -11169,6 +11231,7 @@ export type FinishRuntimeSlotErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -11204,6 +11267,7 @@ export type FinishRuntimeSlotErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   };
@@ -11243,6 +11307,7 @@ export type FinishRuntimeSlotErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -11278,6 +11343,7 @@ export type FinishRuntimeSlotErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   } & {
@@ -11377,6 +11443,7 @@ export type FindLatestRuntimeSlotForAttemptErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -11412,6 +11479,7 @@ export type FindLatestRuntimeSlotForAttemptErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   } & {
@@ -11453,6 +11521,7 @@ export type FindLatestRuntimeSlotForAttemptErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -11488,6 +11557,7 @@ export type FindLatestRuntimeSlotForAttemptErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   };
@@ -11527,6 +11597,7 @@ export type FindLatestRuntimeSlotForAttemptErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -11562,6 +11633,7 @@ export type FindLatestRuntimeSlotForAttemptErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   };
@@ -11601,6 +11673,7 @@ export type FindLatestRuntimeSlotForAttemptErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -11636,6 +11709,7 @@ export type FindLatestRuntimeSlotForAttemptErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   };
@@ -11748,6 +11822,7 @@ export type StageTaskArtifactErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -11783,6 +11858,7 @@ export type StageTaskArtifactErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   } & {
@@ -11824,6 +11900,7 @@ export type StageTaskArtifactErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -11859,6 +11936,7 @@ export type StageTaskArtifactErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   };
@@ -11898,6 +11976,7 @@ export type StageTaskArtifactErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -11933,6 +12012,7 @@ export type StageTaskArtifactErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   };
@@ -11972,6 +12052,7 @@ export type StageTaskArtifactErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -12007,6 +12088,7 @@ export type StageTaskArtifactErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   };
@@ -12050,6 +12132,7 @@ export type StageTaskArtifactErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -12085,6 +12168,7 @@ export type StageTaskArtifactErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   };
@@ -13052,6 +13136,7 @@ export type ListTaskArtifactsErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -13087,6 +13172,7 @@ export type ListTaskArtifactsErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   } & {
@@ -13128,6 +13214,7 @@ export type ListTaskArtifactsErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -13163,6 +13250,7 @@ export type ListTaskArtifactsErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   };
@@ -13202,6 +13290,7 @@ export type ListTaskArtifactsErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -13237,6 +13326,7 @@ export type ListTaskArtifactsErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   };
@@ -13276,6 +13366,7 @@ export type ListTaskArtifactsErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -13311,6 +13402,7 @@ export type ListTaskArtifactsErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   };
@@ -13407,6 +13499,7 @@ export type DownloadTaskArtifactByCidErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -13442,6 +13535,7 @@ export type DownloadTaskArtifactByCidErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   } & {
@@ -13483,6 +13577,7 @@ export type DownloadTaskArtifactByCidErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -13518,6 +13613,7 @@ export type DownloadTaskArtifactByCidErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   };
@@ -13557,6 +13653,7 @@ export type DownloadTaskArtifactByCidErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -13592,6 +13689,7 @@ export type DownloadTaskArtifactByCidErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   };
@@ -13631,6 +13729,7 @@ export type DownloadTaskArtifactByCidErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -13666,6 +13765,7 @@ export type DownloadTaskArtifactByCidErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   };
@@ -13709,6 +13809,7 @@ export type DownloadTaskArtifactByCidErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -13744,6 +13845,7 @@ export type DownloadTaskArtifactByCidErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   };
@@ -13823,6 +13925,7 @@ export type UploadTaskArtifactErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -13858,6 +13961,7 @@ export type UploadTaskArtifactErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   } & {
@@ -13899,6 +14003,7 @@ export type UploadTaskArtifactErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -13934,6 +14039,7 @@ export type UploadTaskArtifactErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   };
@@ -13973,6 +14079,7 @@ export type UploadTaskArtifactErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -14008,6 +14115,7 @@ export type UploadTaskArtifactErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   };
@@ -14047,6 +14155,7 @@ export type UploadTaskArtifactErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -14082,6 +14191,7 @@ export type UploadTaskArtifactErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   };
@@ -14129,6 +14239,7 @@ export type UploadTaskArtifactErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -14164,6 +14275,7 @@ export type UploadTaskArtifactErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   };
@@ -14250,6 +14362,7 @@ export type DownloadTaskArtifactErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -14285,6 +14398,7 @@ export type DownloadTaskArtifactErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   } & {
@@ -14326,6 +14440,7 @@ export type DownloadTaskArtifactErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -14361,6 +14476,7 @@ export type DownloadTaskArtifactErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   };
@@ -14400,6 +14516,7 @@ export type DownloadTaskArtifactErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -14435,6 +14552,7 @@ export type DownloadTaskArtifactErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   };
@@ -14474,6 +14592,7 @@ export type DownloadTaskArtifactErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -14509,6 +14628,7 @@ export type DownloadTaskArtifactErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   };
@@ -14552,6 +14672,7 @@ export type DownloadTaskArtifactErrors = {
       | 'DIARY_TRANSFER_ALREADY_RESOLVED';
     detail?: string;
     instance?: string;
+    retryAfter?: number;
     status: number;
     title: string;
     type: string;
@@ -14587,6 +14708,7 @@ export type DownloadTaskArtifactErrors = {
       | 'DIARY_TRANSFER_NOT_FOUND'
       | 'DIARY_TRANSFER_ALREADY_RESOLVED'
       | string
+      | number
       | number
       | undefined;
   };
