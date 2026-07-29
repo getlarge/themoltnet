@@ -118,6 +118,19 @@ export function createRuntimePolicyRepository(db: Database) {
       );
     },
 
+    /**
+     * Serialize read/diff/write updates to one policy across SQL metadata and
+     * its external Keto edges. MUST be called inside a transaction.
+     */
+    async lockRuntimePolicy(policyId: string): Promise<void> {
+      await acquireTransactionAdvisoryLock(
+        db,
+        'runtime-policy:update',
+        policyId,
+        'lockRuntimePolicy',
+      );
+    },
+
     async update(
       id: string,
       teamId: string,

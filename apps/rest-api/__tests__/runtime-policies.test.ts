@@ -54,14 +54,19 @@ describe('runtime tool-policy routes', () => {
   });
 
   describe('POST /runtime-policies', () => {
-    it('creates a policy and writes the team + tool edges', async () => {
+    it('creates a policy and writes exact tool and shell-command edges', async () => {
       mocks.runtimePolicyRepository.create.mockResolvedValue(policyRow());
 
       const response = await app.inject({
         method: 'POST',
         url: '/runtime-policies',
         headers: TEAM_HEADERS,
-        payload: { name: 'ci', description: 'CI tools', tools: ['git', 'gh'] },
+        payload: {
+          name: 'ci',
+          description: 'CI tools',
+          tools: ['git', 'gh'],
+          shellCommands: [{ argvPrefix: ['gh', 'pr', 'view'] }],
+        },
       });
 
       expect(response.statusCode).toBe(201);
@@ -69,7 +74,8 @@ describe('runtime tool-policy routes', () => {
         id: POLICY_ID,
         teamId: TEAM_ID,
         name: 'ci',
-        tools: ['git', 'gh'],
+        tools: ['gh', 'git'],
+        shellCommands: [{ argvPrefix: ['gh', 'pr', 'view'] }],
       });
       expect(mocks.runtimePolicyRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -82,7 +88,8 @@ describe('runtime tool-policy routes', () => {
         mocks.relationshipWriter.writeRuntimePolicyEdges,
       ).toHaveBeenCalledWith(POLICY_ID, {
         teamId: TEAM_ID,
-        addTools: ['git', 'gh'],
+        addTools: ['gh', 'git'],
+        addShellCommands: ['v1/gh/pr/view'],
       });
     });
 
@@ -118,6 +125,21 @@ describe('runtime tool-policy routes', () => {
         url: '/runtime-policies',
         headers: TEAM_HEADERS,
         payload: { name: 'ci', tools: ['git push'] },
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(mocks.runtimePolicyRepository.create).not.toHaveBeenCalled();
+    });
+
+    it('rejects shell command rules with fewer than two tokens', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/runtime-policies',
+        headers: TEAM_HEADERS,
+        payload: {
+          name: 'ci',
+          shellCommands: [{ argvPrefix: ['git'] }],
+        },
       });
 
       expect(response.statusCode).toBe(400);
@@ -204,13 +226,16 @@ describe('runtime tool-policy routes', () => {
   });
 
   describe('GET /runtime-policies/:policyId', () => {
-    it('returns the policy with its tools', async () => {
+    it('returns the policy with its tools and shell commands', async () => {
       mocks.runtimePolicyRepository.findByIdForTeam.mockResolvedValue(
         policyRow(),
       );
       mocks.relationshipReader.listRuntimePolicyTools.mockResolvedValue([
         'git',
       ]);
+      mocks.relationshipReader.listRuntimePolicyShellCommands.mockResolvedValue(
+        ['v1/gh/pr/view'],
+      );
 
       const response = await app.inject({
         method: 'GET',
@@ -219,7 +244,11 @@ describe('runtime tool-policy routes', () => {
       });
 
       expect(response.statusCode).toBe(200);
-      expect(response.json()).toMatchObject({ id: POLICY_ID, tools: ['git'] });
+      expect(response.json()).toMatchObject({
+        id: POLICY_ID,
+        tools: ['git'],
+        shellCommands: [{ argvPrefix: ['gh', 'pr', 'view'] }],
+      });
     });
 
     it('returns 404 for a policy outside the team', async () => {
@@ -342,6 +371,10 @@ describe('runtime tool-policy routes', () => {
       mocks.relationshipReader.listRuntimePolicyTools.mockImplementation(
         async (id: string) => (id === 'P1' ? ['git', 'gh'] : ['gh', 'ls']),
       );
+      mocks.relationshipReader.listRuntimePolicyShellCommands.mockImplementation(
+        async (id: string) =>
+          id === 'P1' ? ['v1/gh/pr/view'] : ['v1/npm/run/test%3Aunit'],
+      );
 
       const response = await app.inject({
         method: 'GET',
@@ -353,6 +386,10 @@ describe('runtime tool-policy routes', () => {
       expect(response.json()).toEqual({
         enforcement: 'enforce',
         allowedTools: ['gh', 'git', 'ls'],
+        allowedShellCommands: [
+          { argvPrefix: ['gh', 'pr', 'view'] },
+          { argvPrefix: ['npm', 'run', 'test:unit'] },
+        ],
       });
     });
 

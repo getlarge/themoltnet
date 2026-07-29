@@ -655,6 +655,7 @@ export function createMockServices(): MockServices {
       findByIdForTeam: vi.fn(),
       listByTeam: vi.fn().mockResolvedValue([]),
       findExistingIdsForTeam: vi.fn().mockResolvedValue(new Set()),
+      lockRuntimePolicy: vi.fn(),
       lockProfileBindings: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
@@ -670,6 +671,7 @@ export function createMockServices(): MockServices {
       listGroupIdsBySubject: vi.fn().mockResolvedValue([]),
       listRuntimeProfilePolicies: vi.fn().mockResolvedValue([]),
       listRuntimePolicyTools: vi.fn().mockResolvedValue([]),
+      listRuntimePolicyShellCommands: vi.fn().mockResolvedValue([]),
     },
     taskRepository: {
       create: vi.fn(),

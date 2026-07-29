@@ -67,6 +67,15 @@ export interface RelationshipReader {
   listRuntimeProfilePolicies(profileId: string): Promise<string[]>;
   /** Returns the tool names granted by a runtime policy. */
   listRuntimePolicyTools(policyId: string): Promise<string[]>;
+  /** Returns exact encoded ShellCommand object IDs granted by a policy. */
+  listRuntimePolicyShellCommands(policyId: string): Promise<string[]>;
+  /**
+   * Returns the union of tool and ShellCommand grants for many policies using
+   * one paginated Keto read per relation instead of two reads per policy.
+   */
+  listRuntimePolicyGrants?(
+    policyIds: readonly string[],
+  ): Promise<{ tools: string[]; shellCommands: string[] }>;
 }
 
 /**
@@ -100,6 +109,38 @@ async function listSubjectSetObjects(
     pageToken = result.next_page_token || undefined;
   } while (pageToken);
 
+  return [...new Set(objects)];
+}
+
+async function listSubjectSetObjectsForObjects(
+  relationshipApi: RelationshipApi,
+  params: {
+    namespace: KetoNamespace;
+    objects: readonly string[];
+    relation: string;
+  },
+): Promise<string[]> {
+  if (params.objects.length === 0) return [];
+  const selected = new Set(params.objects);
+  const objects: string[] = [];
+  let pageToken: string | undefined;
+  do {
+    const result = await relationshipApi.getRelationships({
+      namespace: params.namespace,
+      relation: params.relation,
+      pageToken,
+    });
+    for (const tuple of result.relation_tuples ?? []) {
+      if (
+        tuple.object &&
+        selected.has(tuple.object) &&
+        tuple.subject_set?.object
+      ) {
+        objects.push(tuple.subject_set.object);
+      }
+    }
+    pageToken = result.next_page_token || undefined;
+  } while (pageToken);
   return [...new Set(objects)];
 }
 
@@ -329,6 +370,32 @@ export function createRelationshipReader(
         object: policyId,
         relation: RuntimePolicyRelation.Tool,
       });
+    },
+
+    async listRuntimePolicyShellCommands(policyId: string): Promise<string[]> {
+      return listSubjectSetObjects(relationshipApi, {
+        namespace: KetoNamespace.RuntimePolicy,
+        object: policyId,
+        relation: RuntimePolicyRelation.Command,
+      });
+    },
+
+    async listRuntimePolicyGrants(
+      policyIds: readonly string[],
+    ): Promise<{ tools: string[]; shellCommands: string[] }> {
+      const [tools, shellCommands] = await Promise.all([
+        listSubjectSetObjectsForObjects(relationshipApi, {
+          namespace: KetoNamespace.RuntimePolicy,
+          objects: policyIds,
+          relation: RuntimePolicyRelation.Tool,
+        }),
+        listSubjectSetObjectsForObjects(relationshipApi, {
+          namespace: KetoNamespace.RuntimePolicy,
+          objects: policyIds,
+          relation: RuntimePolicyRelation.Command,
+        }),
+      ]);
+      return { tools, shellCommands };
     },
   };
 }
