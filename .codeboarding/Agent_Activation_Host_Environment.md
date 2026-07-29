@@ -7,7 +7,6 @@ graph LR
     Governance_Console_UI_UX_Layer_ -- "administrative control & configuration" --> Agent_CLI_Command_Orchestrator
     Agent_CLI_Command_Orchestrator -- "identity verification & authorization" --> Activation_Cache_Identity_Validator
     Agent_CLI_Command_Orchestrator -- "runtime bootstrapping & path mapping" --> MCP_Host_Runtime_Path_Resolver
-    MCP_Host_Runtime_Path_Resolver -- "runtime authorization check" --> Activation_Cache_Identity_Validator
 ```
 
 [![CodeBoarding](https://img.shields.io/badge/Generated%20by-CodeBoarding-9cf?style=flat-square)](https://github.com/CodeBoarding/CodeBoarding)[![Demo](https://img.shields.io/badge/Try%20our-Demo-blue?style=flat-square)](https://www.codeboarding.org/diagrams)[![Contact](https://img.shields.io/badge/Contact%20us%20-%20contact@codeboarding.org-lightgrey?style=flat-square)](mailto:contact@codeboarding.org)
@@ -23,7 +22,7 @@ Provides the administrative interface for managing agent identities, team scopin
 **Related Classes/Methods**:
 
 - `apps.console.src.App.App`:27-41
-- `apps.console.src.auth.AuthGuard.AuthGuard`:14-23
+- `apps.console.src.auth.AuthGuard.AuthGuard`:30-39
 - `apps.console.src.api.getApiClient`:27-39
 
 
@@ -41,17 +40,18 @@ Provides the administrative interface for managing agent identities, team scopin
   - `apps.console.src.api.getApiClient` ([L27-L39](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/api.ts#L27-L39)) - Function
   - `apps.console.src.api.getApiClient.fetch` ([L32-L32](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/api.ts#L32-L32)) - Method
 - [`apps/console/src/auth/AuthGuard.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthGuard.tsx)
-  - `apps.console.src.auth.AuthGuard.AuthGuard` ([L14-L23](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthGuard.tsx#L14-L23)) - Function
+  - `apps.console.src.auth.AuthGuard.buildReturnTo` ([L25-L28](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthGuard.tsx#L25-L28)) - Function
+  - `apps.console.src.auth.AuthGuard.AuthGuard` ([L30-L39](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthGuard.tsx#L30-L39)) - Function
 - [`apps/console/src/auth/AuthProvider.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx)
-  - `apps.console.src.auth.AuthProvider.AuthContextValue` ([L19-L28](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L19-L28)) - Interface
-  - `apps.console.src.auth.AuthProvider.AuthProvider` ([L32-L80](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L32-L80)) - Function
-  - `apps.console.src.auth.AuthProvider.AuthProvider.checkSession` ([L37-L49](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L37-L49)) - Class
-  - `apps.console.src.auth.AuthProvider.AuthProvider.checkSession.useCallback() callback` ([L37-L49](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L37-L49)) - Function
-  - `apps.console.src.auth.AuthProvider.AuthProvider.useEffect() callback` ([L51-L56](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L51-L56)) - Function
-  - `apps.console.src.auth.AuthProvider.AuthProvider.useEffect() callback.interval` ([L54-L54](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L54-L54)) - Class
-  - `apps.console.src.auth.AuthProvider.AuthProvider.useEffect() callback.interval.setInterval() callback` ([L54-L54](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L54-L54)) - Function
-  - `apps.console.src.auth.AuthProvider.AuthProvider.logout` ([L58-L67](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L58-L67)) - Class
-  - `apps.console.src.auth.AuthProvider.AuthProvider.logout.useCallback() callback` ([L58-L67](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L58-L67)) - Function
+  - `apps.console.src.auth.AuthProvider.AuthContextValue` ([L21-L30](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L21-L30)) - Interface
+  - `apps.console.src.auth.AuthProvider.isAuthenticationFailure` ([L44-L49](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L44-L49)) - Function
+  - `apps.console.src.auth.AuthProvider.AuthProvider` ([L51-L130](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L51-L130)) - Function
+  - `apps.console.src.auth.AuthProvider.AuthProvider.checkSession` ([L58-L86](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L58-L86)) - Class
+  - `apps.console.src.auth.AuthProvider.AuthProvider.checkSession.useCallback() callback` ([L58-L86](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L58-L86)) - Function
+  - `apps.console.src.auth.AuthProvider.useEffect() callback` ([L88-L90](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L88-L90)) - Function
+  - `apps.console.src.auth.AuthProvider.AuthProvider.useEffect() callback` ([L96-L106](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L96-L106)) - Function
+  - `apps.console.src.auth.AuthProvider.AuthProvider.logout` ([L108-L117](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L108-L117)) - Class
+  - `apps.console.src.auth.AuthProvider.AuthProvider.logout.useCallback() callback` ([L108-L117](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L108-L117)) - Function
 - [`apps/console/src/auth/useAuth.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/useAuth.ts)
   - `apps.console.src.auth.useAuth.UseAuthResult` ([L11-L14](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/useAuth.ts#L11-L14)) - Interface
   - `apps.console.src.auth.useAuth.useAuth` ([L16-L31](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/useAuth.ts#L16-L31)) - Function
@@ -748,6 +748,15 @@ Provides the administrative interface for managing agent identities, team scopin
   - `apps.console.src.vite-env.d.Window` ([L11-L13](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/vite-env.d.ts#L11-L13)) - Interface
   - `apps.console.src.vite-env.d.ImportMetaEnv` ([L15-L21](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/vite-env.d.ts#L15-L21)) - Interface
   - `apps.console.src.vite-env.d.ImportMeta` ([L23-L25](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/vite-env.d.ts#L23-L25)) - Interface
+- [`apps/moltnet-cli/agents_credentials.go`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agents_credentials.go)
+  - `apps.moltnet-cli.agents_credentials.resolveCredentialsPath` ([L237-L267](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agents_credentials.go#L237-L267)) - Function
+  - `apps.moltnet-cli.agents_credentials.absolutePath` ([L269-L275](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agents_credentials.go#L269-L275)) - Function
+  - `apps.moltnet-cli.agents_credentials.writeCredentialsAtomic` ([L358-L367](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agents_credentials.go#L358-L367)) - Function
+  - `apps.moltnet-cli.agents_credentials.writeCredentialsRecoveryFileToDir` ([L380-L424](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agents_credentials.go#L380-L424)) - Function
+- [`apps/moltnet-cli/api_url_resolution.go`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/api_url_resolution.go)
+  - `apps.moltnet-cli.api_url_resolution.resolveAPIURLFromCredentials` ([L54-L71](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/api_url_resolution.go#L54-L71)) - Function
+- [`apps/moltnet-cli/atomic_file.go`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/atomic_file.go)
+  - `apps.moltnet-cli.atomic_file.writeFileAtomic` ([L11-L45](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/atomic_file.go#L11-L45)) - Function
 
 
 ### Agent CLI & Command Orchestrator
@@ -1135,10 +1144,16 @@ Handles the local command-line interface for agent interactions, including sessi
   - `apps.moltnet-cli.agents.runAgentsLookupCmd` ([L31-L47](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agents.go#L31-L47)) - Function
   - `apps.moltnet-cli.agents.printJSON` ([L50-L52](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agents.go#L50-L52)) - Function
   - `apps.moltnet-cli.agents.printJSONTo` ([L56-L60](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agents.go#L56-L60)) - Function
+- [`apps/moltnet-cli/agents_credentials.go`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agents_credentials.go)
+  - `apps.moltnet-cli.agents_credentials.emitCredentialsRecovery` ([L192-L208](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agents_credentials.go#L192-L208)) - Function
+  - `apps.moltnet-cli.agents_credentials.emitCredentialsRecoveryFile` ([L210-L235](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agents_credentials.go#L210-L235)) - Function
+  - `apps.moltnet-cli.agents_credentials.updateCredentialsDocument` ([L318-L356](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agents_credentials.go#L318-L356)) - Function
 - [`apps/moltnet-cli/api.go`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/api.go)
   - `apps.moltnet-cli.api.(*bearerSecuritySource).BearerAuth` ([L36-L45](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/api.go#L36-L45)) - Method
   - `apps.moltnet-cli.api.(*bearerSecuritySource).CookieAuth` ([L50-L52](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/api.go#L50-L52)) - Method
   - `apps.moltnet-cli.api.(*bearerSecuritySource).SessionAuth` ([L57-L59](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/api.go#L57-L59)) - Method
+- [`apps/moltnet-cli/atomic_file.go`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/atomic_file.go)
+  - `apps.moltnet-cli.atomic_file.syncDirectoryBestEffort` ([L59-L66](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/atomic_file.go#L59-L66)) - Function
 - [`apps/moltnet-cli/cobra_encrypt.go`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/cobra_encrypt.go)
   - `apps.moltnet-cli.cobra_encrypt.newEncryptCmd` ([L5-L24](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/cobra_encrypt.go#L5-L24)) - Function
   - `apps.moltnet-cli.cobra_encrypt.newDecryptCmd` ([L26-L41](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/cobra_encrypt.go#L26-L41)) - Function
@@ -1492,6 +1507,10 @@ Manages the lifecycle of agent activation. It hashes activation inputs, validate
   - `apps.moltnet-cli.agent_paths.(agentPathResolver).resolveConfiguredPath` ([L50-L55](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agent_paths.go#L50-L55)) - Method
   - `apps.moltnet-cli.agent_paths.(agentPathResolver).resolveDefaultPath` ([L57-L62](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agent_paths.go#L57-L62)) - Method
   - `apps.moltnet-cli.agent_paths.(agentPathResolver).rebaseMoltnetPath` ([L64-L76](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agent_paths.go#L64-L76)) - Method
+- [`apps/moltnet-cli/agents_credentials.go`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agents_credentials.go)
+  - `apps.moltnet-cli.agents_credentials.readCredentialsDocument` ([L277-L293](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agents_credentials.go#L277-L293)) - Function
+- [`apps/moltnet-cli/cobra_agents_credentials.go`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/cobra_agents_credentials.go)
+  - `apps.moltnet-cli.cobra_agents_credentials.newAgentsCredentialsCmd` ([L5-L49](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/cobra_agents_credentials.go#L5-L49)) - Function
 - [`apps/moltnet-cli/cobra_agents_keys.go`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/cobra_agents_keys.go)
   - `apps.moltnet-cli.cobra_agents_keys.newAgentsKeysCmd` ([L8-L26](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/cobra_agents_keys.go#L8-L26)) - Function
   - `apps.moltnet-cli.cobra_agents_keys.newAgentsKeysListCmd` ([L28-L69](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/cobra_agents_keys.go#L28-L69)) - Function
@@ -1851,6 +1870,14 @@ Implements the Model Context Protocol (MCP) host server. It manages the runtime 
   - `apps.moltnet-cli.agent_paths.regularFileExists` ([L78-L81](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agent_paths.go#L78-L81)) - Function
   - `apps.moltnet-cli.agent_paths.uniqueCleanPaths` ([L83-L98](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agent_paths.go#L83-L98)) - Function
   - `apps.moltnet-cli.agent_paths.portableAgentEnvPath` ([L100-L109](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agent_paths.go#L100-L109)) - Function
+- [`apps/moltnet-cli/agents_credentials.go`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agents_credentials.go)
+  - `apps.moltnet-cli.agents_credentials.agentsCredentialsRotateOpts` ([L19-L32](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agents_credentials.go#L19-L32)) - Struct
+  - `apps.moltnet-cli.agents_credentials.rotateCredentialsOutput` ([L34-L39](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agents_credentials.go#L34-L39)) - Struct
+  - `apps.moltnet-cli.agents_credentials.runAgentsCredentialsRotateCmd` ([L41-L104](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agents_credentials.go#L41-L104)) - Function
+  - `apps.moltnet-cli.agents_credentials.validateAgentsCredentialsRotateOpts` ([L106-L116](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agents_credentials.go#L106-L116)) - Function
+  - `apps.moltnet-cli.agents_credentials.runAgentsCredentialsRotateWithClient` ([L118-L190](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agents_credentials.go#L118-L190)) - Function
+  - `apps.moltnet-cli.agents_credentials.preflightCredentialsWrite` ([L295-L316](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agents_credentials.go#L295-L316)) - Function
+  - `apps.moltnet-cli.agents_credentials.writeCredentialsRecoveryFile` ([L369-L378](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agents_credentials.go#L369-L378)) - Function
 - [`apps/moltnet-cli/api.go`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/api.go)
   - `apps.moltnet-cli.api.bearerTokenFunc` ([L16-L16](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/api.go#L16-L16)) - Function
   - `apps.moltnet-cli.api.bearerSecuritySource` ([L31-L33](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/api.go#L31-L33)) - Struct
@@ -1864,6 +1891,8 @@ Implements the Model Context Protocol (MCP) host server. It manages the runtime 
   - `apps.moltnet-cli.api_error.parseProblemDetailsBody` ([L127-L136](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/api_error.go#L127-L136)) - Function
   - `apps.moltnet-cli.api_error.restApiErrorBody` ([L146-L149](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/api_error.go#L146-L149)) - Struct
   - `apps.moltnet-cli.api_error.parseRestApiErrorBody` ([L151-L163](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/api_error.go#L151-L163)) - Function
+- [`apps/moltnet-cli/atomic_file.go`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/atomic_file.go)
+  - `apps.moltnet-cli.atomic_file.writeJSONAtomic` ([L47-L57](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/atomic_file.go#L47-L57)) - Function
 - [`apps/moltnet-cli/cobra_diary.go`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/cobra_diary.go)
   - `apps.moltnet-cli.cobra_diary.newDiaryCmd` ([L7-L21](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/cobra_diary.go#L7-L21)) - Function
   - `apps.moltnet-cli.cobra_diary.newDiaryTransferCmd` ([L23-L37](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/cobra_diary.go#L23-L37)) - Function
