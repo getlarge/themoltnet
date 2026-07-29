@@ -12,6 +12,7 @@ import {
   h,
   nextTick,
   onMounted,
+  onUnmounted,
   watch,
 } from 'vue';
 
@@ -78,6 +79,55 @@ export default {
       const initMermaid = () =>
         createMermaidRenderer(mermaidConfig(isDark.value));
 
+      let anchorScrollFrame: number | undefined;
+
+      // Async examples and Mermaid diagrams can change the document height
+      // after the browser performs its initial hash scroll. Keep the requested
+      // heading aligned while that bounded hydration window settles.
+      const restoreAnchorDuringHydration = () => {
+        if (anchorScrollFrame !== undefined) {
+          window.cancelAnimationFrame(anchorScrollFrame);
+        }
+
+        const requestedHash = window.location.hash;
+        if (!requestedHash) return;
+
+        let targetId: string;
+        try {
+          targetId = decodeURIComponent(requestedHash.slice(1));
+        } catch {
+          targetId = requestedHash.slice(1);
+        }
+
+        let previousTop: number | undefined;
+        let framesRemaining = 240;
+
+        const alignAnchor = () => {
+          if (window.location.hash !== requestedHash || framesRemaining <= 0) {
+            anchorScrollFrame = undefined;
+            return;
+          }
+
+          const target = document.getElementById(targetId);
+          if (target) {
+            const targetTop =
+              target.getBoundingClientRect().top + window.scrollY;
+            if (
+              previousTop === undefined ||
+              Math.abs(targetTop - previousTop) >= 1
+            ) {
+              target.scrollIntoView({ block: 'start' });
+              previousTop = targetTop;
+            }
+          }
+
+          framesRemaining -= 1;
+          anchorScrollFrame = window.requestAnimationFrame(alignAnchor);
+        };
+
+        anchorScrollFrame = window.requestAnimationFrame(alignAnchor);
+      };
+
       const syncPageSemantics = () => {
         const home = document.querySelector('.VPHome');
         if (home) home.setAttribute('role', 'main');
@@ -118,12 +168,26 @@ export default {
         nextTick(() => {
           initMermaid();
           syncPageSemantics();
+          restoreAnchorDuringHydration();
         }),
       );
+      onMounted(() =>
+        window.addEventListener('hashchange', restoreAnchorDuringHydration),
+      );
+      onUnmounted(() => {
+        window.removeEventListener('hashchange', restoreAnchorDuringHydration);
+        if (anchorScrollFrame !== undefined) {
+          window.cancelAnimationFrame(anchorScrollFrame);
+        }
+      });
       watch(isDark, () => nextTick(initMermaid));
       watch(
         () => route.path,
-        () => nextTick(syncPageSemantics),
+        () =>
+          nextTick(() => {
+            syncPageSemantics();
+            restoreAnchorDuringHydration();
+          }),
       );
 
       return () =>
