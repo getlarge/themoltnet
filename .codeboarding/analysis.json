@@ -1,16 +1,16 @@
 {
   "metadata": {
-    "generated_at": "2026-07-29T08:04:15.075998+00:00",
-    "source_tree_hash": "7d0f548078e3a3987b2bf3ea435a605f0a96b682acffd69862f383bf00b88963",
+    "generated_at": "2026-07-29T09:32:33.860290+00:00",
+    "source_tree_hash": "56d3b8204e728a6b7ba481480f967dfbf698cabaeeb561997b77c6f90e850fdf",
     "repo_name": "themoltnet",
     "depth_level": 2,
     "depth_cap": 2,
     "file_coverage_summary": {
-      "total_files": 2518,
+      "total_files": 2519,
       "analyzed": 1063,
-      "not_analyzed": 1455,
+      "not_analyzed": 1456,
       "not_analyzed_by_reason": {
-        "other": 585,
+        "other": 586,
         "codeboardingignore": 870
       }
     }
