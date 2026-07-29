@@ -1,5 +1,7 @@
+import type { TaskStatus } from '@moltnet/api-client';
 import { listTasksInfiniteOptions } from '@moltnet/api-client/query';
 import {
+  statusToLane,
   TASK_LANES,
   type TaskLaneData,
   type TaskLaneId,
@@ -13,6 +15,7 @@ const LANE_PAGE_SIZE = 20;
 interface LaneFilters {
   teamId: string | undefined;
   query?: string;
+  status?: TaskStatus;
   taskTypes?: string[];
   correlationId?: string;
   enabled: boolean;
@@ -32,6 +35,7 @@ export function useLaneQueries(filters: LaneFilters): {
   const {
     teamId,
     query: taskQuery,
+    status,
     taskTypes,
     correlationId,
     enabled,
@@ -41,6 +45,7 @@ export function useLaneQueries(filters: LaneFilters): {
   // TASK_LANES is a stable constant, so this fixed-length map calls the same
   // hooks in the same order every render — the rules of hooks are satisfied.
   const laneResults = TASK_LANES.map((lane) => {
+    const matchesSelectedStatus = !status || statusToLane(status) === lane.id;
     const isActiveLane = lane.id === 'pending' || lane.id === 'active';
     const query = useInfiniteQuery({
       ...listTasksInfiniteOptions({
@@ -48,41 +53,49 @@ export function useLaneQueries(filters: LaneFilters): {
         headers: { 'x-moltnet-team-id': teamId ?? '' },
         query: {
           query: taskQuery?.trim() || undefined,
-          statuses: lane.statuses,
+          statuses: status ? [status] : lane.statuses,
           taskTypes: taskTypes && taskTypes.length ? taskTypes : undefined,
           correlationId: correlationId?.trim() || undefined,
           limit: LANE_PAGE_SIZE,
         },
       }),
-      enabled: enabled && Boolean(teamId),
+      enabled: enabled && Boolean(teamId) && matchesSelectedStatus,
       initialPageParam: {
         headers: { 'x-moltnet-team-id': teamId ?? '' },
         query: {},
       },
       getNextPageParam: (lastPage) => lastPage.nextCursor,
-      refetchInterval: isActiveLane ? 5_000 : false,
+      refetchInterval: isActiveLane && matchesSelectedStatus ? 5_000 : false,
     });
-    return { lane, query };
+    return { lane, matchesSelectedStatus, query };
   });
 
   const lanes = {} as Record<TaskLaneId, TaskLaneData>;
   const counts = {} as Record<TaskLaneId, number>;
-  for (const { lane, query } of laneResults) {
-    const tasks = query.data?.pages.flatMap((page) => page.items) ?? [];
+  for (const { lane, matchesSelectedStatus, query } of laneResults) {
+    const tasks = matchesSelectedStatus
+      ? (query.data?.pages.flatMap((page) => page.items) ?? [])
+      : [];
     // `total` is the real server count (same on every page); take the first.
-    const total = query.data?.pages[0]?.total ?? tasks.length;
+    const total = matchesSelectedStatus
+      ? (query.data?.pages[0]?.total ?? tasks.length)
+      : 0;
     lanes[lane.id] = {
       tasks,
       total,
-      hasMore: query.hasNextPage,
-      isLoading: query.isFetchingNextPage,
-      onLoadMore: () => void query.fetchNextPage(),
+      hasMore: matchesSelectedStatus && query.hasNextPage,
+      isLoading: matchesSelectedStatus && query.isFetchingNextPage,
+      onLoadMore: matchesSelectedStatus
+        ? () => void query.fetchNextPage()
+        : undefined,
     };
     counts[lane.id] = total;
   }
 
   const refetchAll = () => {
-    for (const { query } of laneResults) void query.refetch();
+    for (const { matchesSelectedStatus, query } of laneResults) {
+      if (matchesSelectedStatus) void query.refetch();
+    }
   };
 
   return { lanes, counts, refetchAll };

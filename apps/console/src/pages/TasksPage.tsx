@@ -66,10 +66,19 @@ export function TasksPage() {
   const search = useSearch();
   const params = useMemo(() => new URLSearchParams(search), [search]);
   const { error: teamError, refreshTeams, selectedTeam } = useTeam();
-  const [taskTypes, setTaskTypes] = useState<string[]>(() => {
+  const taskTypes = useMemo(() => {
     const raw = params.get('task_type');
-    return raw ? raw.split(',') : [];
-  });
+    return raw
+      ? [
+          ...new Set(
+            raw
+              .split(',')
+              .map((value) => value.trim())
+              .filter(Boolean),
+          ),
+        ]
+      : [];
+  }, [params]);
   const [taskQuery, setTaskQuery] = useState(params.get('query') ?? '');
   const [correlationId, setCorrelationId] = useState(
     params.get('correlation_id') ?? '',
@@ -167,6 +176,7 @@ export function TasksPage() {
   } = useLaneQueries({
     teamId,
     query: debouncedTaskQuery,
+    status,
     taskTypes,
     correlationId: debouncedCorrelationId,
     enabled: enabled && view === 'board',
@@ -244,20 +254,24 @@ export function TasksPage() {
   );
 
   function updateTaskTypes(next: string[]) {
-    setTaskTypes(next);
     const nextParams = new URLSearchParams(params);
     if (next.length) nextParams.set('task_type', next.join(','));
     else nextParams.delete('task_type');
-    navigate(`/tasks?${nextParams.toString()}`);
+    navigateToTaskParams(nextParams);
   }
 
   const selectedTaskId = params.get('selected') ?? undefined;
+
+  function navigateToTaskParams(nextParams: URLSearchParams) {
+    const nextSearch = nextParams.toString();
+    navigate(nextSearch ? `/tasks?${nextSearch}` : '/tasks');
+  }
 
   function selectTask(id: string | undefined) {
     const next = new URLSearchParams(params);
     if (id) next.set('selected', id);
     else next.delete('selected');
-    navigate(`/tasks?${next.toString()}`);
+    navigateToTaskParams(next);
   }
 
   function toggleTaskSelection(id: string, selected: boolean) {
@@ -363,7 +377,7 @@ export function TasksPage() {
     const nextParams = new URLSearchParams(params);
     if (next) nextParams.set('status', next);
     else nextParams.delete('status');
-    navigate(`/tasks?${nextParams.toString()}`);
+    navigateToTaskParams(nextParams);
   }
 
   return (

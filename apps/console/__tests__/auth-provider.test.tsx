@@ -1,7 +1,13 @@
 import { FetchError, ResponseError } from '@ory/client-fetch';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { useEffect } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AuthProvider } from '../src/auth/AuthProvider.js';
 import { useAuth } from '../src/auth/useAuth.js';
@@ -48,6 +54,21 @@ function TestConsumer() {
   );
 }
 
+function RefreshConsumer() {
+  const { refreshSession } = useAuth();
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        void refreshSession();
+        void refreshSession();
+      }}
+    >
+      Refresh twice
+    </button>
+  );
+}
+
 /** Renders, waits for the initial session check to settle. */
 async function renderSettled(children = <TestConsumer />) {
   const result = render(<AuthProvider>{children}</AuthProvider>);
@@ -71,6 +92,11 @@ async function revalidateOnFocus() {
 describe('AuthProvider', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
   });
 
   it('shows loading state initially', () => {
@@ -188,6 +214,114 @@ describe('AuthProvider', () => {
 
     await waitFor(() => {
       expect(mockToSession.mock.calls.length).toBeGreaterThan(callsAfterMount);
+    });
+  });
+
+  it('coalesces foreground signals and throttles repeated attempts', async () => {
+    let now = 100_000;
+    vi.spyOn(Date, 'now').mockImplementation(() => now);
+    mockToSession.mockResolvedValue(ACTIVE_SESSION);
+    await renderSettled();
+    const callsAfterMount = mockToSession.mock.calls.length;
+
+    await act(async () => {
+      window.dispatchEvent(new Event('focus'));
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+
+    await waitFor(() => {
+      expect(mockToSession).toHaveBeenCalledTimes(callsAfterMount + 1);
+    });
+
+    await act(async () => {
+      window.dispatchEvent(new Event('focus'));
+    });
+    expect(mockToSession).toHaveBeenCalledTimes(callsAfterMount + 1);
+
+    now += 30_000;
+    await act(async () => {
+      window.dispatchEvent(new Event('focus'));
+    });
+
+    await waitFor(() => {
+      expect(mockToSession).toHaveBeenCalledTimes(callsAfterMount + 2);
+    });
+  });
+
+  it('throttles foreground attempts after a transient failure', async () => {
+    let now = 100_000;
+    vi.spyOn(Date, 'now').mockImplementation(() => now);
+    mockToSession.mockResolvedValueOnce(ACTIVE_SESSION);
+    await renderSettled();
+    const callsAfterMount = mockToSession.mock.calls.length;
+
+    mockToSession
+      .mockRejectedValueOnce(responseError(503))
+      .mockResolvedValue(ACTIVE_SESSION);
+    await revalidateOnFocus();
+    await waitFor(() => {
+      expect(screen.getByTestId('error').textContent).not.toBe('null');
+    });
+
+    await act(async () => {
+      window.dispatchEvent(new Event('focus'));
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    expect(mockToSession).toHaveBeenCalledTimes(callsAfterMount + 1);
+
+    now += 30_000;
+    await act(async () => {
+      window.dispatchEvent(new Event('focus'));
+    });
+    expect(mockToSession).toHaveBeenCalledTimes(callsAfterMount + 2);
+  });
+
+  it('releases a hung session check after the timeout', async () => {
+    mockToSession.mockResolvedValueOnce(ACTIVE_SESSION);
+    await renderSettled(
+      <>
+        <TestConsumer />
+        <RefreshConsumer />
+      </>,
+    );
+    const callsAfterMount = mockToSession.mock.calls.length;
+    vi.useFakeTimers();
+
+    mockToSession
+      .mockReturnValueOnce(new Promise(() => {}))
+      .mockResolvedValue(ACTIVE_SESSION);
+    window.dispatchEvent(new Event('focus'));
+    expect(mockToSession).toHaveBeenCalledTimes(callsAfterMount + 1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
+    expect(screen.getByTestId('error').textContent).toBe(
+      'Session check timed out',
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh twice' }));
+    expect(mockToSession).toHaveBeenCalledTimes(callsAfterMount + 2);
+  });
+
+  it('lets explicit refresh bypass the throttle and joins duplicate calls', async () => {
+    mockToSession.mockResolvedValue(ACTIVE_SESSION);
+    await renderSettled(
+      <>
+        <TestConsumer />
+        <RefreshConsumer />
+      </>,
+    );
+
+    await revalidateOnFocus();
+    const callsAfterForegroundCheck = mockToSession.mock.calls.length;
+
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh twice' }));
+
+    await waitFor(() => {
+      expect(mockToSession).toHaveBeenCalledTimes(
+        callsAfterForegroundCheck + 1,
+      );
     });
   });
 });

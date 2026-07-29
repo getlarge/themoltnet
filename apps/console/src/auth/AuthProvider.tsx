@@ -18,6 +18,29 @@ import {
 
 import { getKratosClient } from '../kratos.js';
 
+const FOREGROUND_REVALIDATION_INTERVAL_MS = 30_000;
+const SESSION_CHECK_TIMEOUT_MS = 10_000;
+
+async function toSessionWithTimeout(): Promise<Session> {
+  const controller = new AbortController();
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error('Session check timed out'));
+      controller.abort();
+    }, SESSION_CHECK_TIMEOUT_MS);
+  });
+
+  try {
+    return await Promise.race([
+      getKratosClient().toSession({}, { signal: controller.signal }),
+      timeout,
+    ]);
+  } finally {
+    if (timeoutId !== undefined) clearTimeout(timeoutId);
+  }
+}
+
 export interface AuthContextValue {
   session: Session | null;
   identity: Identity | null;
@@ -52,38 +75,61 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  // Guards against a slow in-flight response overwriting a newer one.
-  const requestIdRef = useRef(0);
+  const inFlightCheckRef = useRef<Promise<void> | null>(null);
+  const lastForegroundAttemptAtRef = useRef(Number.NEGATIVE_INFINITY);
 
-  const checkSession = useCallback(async () => {
-    const requestId = ++requestIdRef.current;
-    try {
-      const kratosClient = getKratosClient();
-      const sess = await kratosClient.toSession();
-      if (requestId !== requestIdRef.current) return;
-      setSession(sess);
-      setError(null);
-    } catch (err) {
-      if (requestId !== requestIdRef.current) return;
-      if (isAuthenticationFailure(err)) {
-        // Genuine sign-out: clear so AuthGuard redirects to login.
-        setSession(null);
-        setError(null);
-      } else {
-        // Transient: keep the session we already have. A background blip must
-        // never unmount the app or bounce the user to login.
-        setError(
-          err instanceof Error ? err : new Error('Session check failed'),
-        );
+  const checkSession = useCallback(
+    (options: { throttleForeground?: boolean } = {}): Promise<void> => {
+      if (options.throttleForeground) {
+        const now = Date.now();
+        if (
+          now - lastForegroundAttemptAtRef.current <
+          FOREGROUND_REVALIDATION_INTERVAL_MS
+        ) {
+          return Promise.resolve();
+        }
+        // Throttle attempts, not only successes, so a transient Ory failure
+        // cannot turn repeated focus events into a request storm.
+        lastForegroundAttemptAtRef.current = now;
       }
-    } finally {
-      if (requestId === requestIdRef.current) {
-        // isLoading means "have we resolved at least once". It never returns to
-        // true, so background revalidation leaves the router subtree mounted.
-        setIsLoading(false);
-      }
-    }
-  }, []);
+
+      if (inFlightCheckRef.current) return inFlightCheckRef.current;
+
+      const request = (async () => {
+        try {
+          const sess = await toSessionWithTimeout();
+          setSession(sess);
+          setError(null);
+        } catch (err) {
+          if (isAuthenticationFailure(err)) {
+            // Genuine sign-out: clear so AuthGuard redirects to login.
+            setSession(null);
+            setError(null);
+          } else {
+            // Transient: keep the session we already have. A background blip
+            // must never unmount the app or bounce the user to login.
+            setError(
+              err instanceof Error ? err : new Error('Session check failed'),
+            );
+          }
+        } finally {
+          // isLoading means "have we resolved at least once". It never
+          // returns to true, so background revalidation leaves the router
+          // subtree mounted.
+          setIsLoading(false);
+        }
+      })();
+
+      inFlightCheckRef.current = request;
+      void request.finally(() => {
+        if (inFlightCheckRef.current === request) {
+          inFlightCheckRef.current = null;
+        }
+      });
+      return request;
+    },
+    [],
+  );
 
   useEffect(() => {
     void checkSession();
@@ -95,7 +141,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // chance to trip a transient failure).
   useEffect(() => {
     const revalidate = () => {
-      if (document.visibilityState === 'visible') void checkSession();
+      if (document.visibilityState === 'visible') {
+        void checkSession({ throttleForeground: true });
+      }
     };
     document.addEventListener('visibilitychange', revalidate);
     window.addEventListener('focus', revalidate);
