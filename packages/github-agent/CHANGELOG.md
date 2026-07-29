@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.24.21](https://github.com/getlarge/themoltnet/compare/github-agent-v0.24.20...github-agent-v0.24.21) (2026-07-29)
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.128.0
+
 ## [0.24.20](https://github.com/getlarge/themoltnet/compare/github-agent-v0.24.19...github-agent-v0.24.20) (2026-07-27)
 
 

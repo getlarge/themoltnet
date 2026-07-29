@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.34.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.33.0...agent-daemon-v0.34.0) (2026-07-29)
+
+
+### Features
+
+* **daemon:** load operator-owned runtime modules ([9c94c1a](https://github.com/getlarge/themoltnet/commit/9c94c1a82d27f2f4388591cab82c2026f93c3116))
+* **runtime:** make Pi capabilities operator-owned ([4b0dd11](https://github.com/getlarge/themoltnet/commit/4b0dd11c18ab7ff287bbbfc5abf42ebc84bff3e4))
+* **runtime:** make Pi capabilities operator-owned ([87f47fc](https://github.com/getlarge/themoltnet/commit/87f47fc0dc2e07f0c83d53d312d2a09b18ecd582))
+
+
+### Bug Fixes
+
+* **runtime:** fail closed across profile v2 rollout ([6498319](https://github.com/getlarge/themoltnet/commit/649831998590fc61be0fcd1a81a5ac899fa22183))
+* **runtime:** reuse registered executor manifests ([e4e204e](https://github.com/getlarge/themoltnet/commit/e4e204ea7e20ba2c4589f97989fa2d51cb8fc68b))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.38.0
+    * @themoltnet/pi-runtime bumped to 0.2.0
+    * @themoltnet/sdk bumped to 0.128.0
+
 ## [0.33.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.32.2...agent-daemon-v0.33.0) (2026-07-28)
 
 
