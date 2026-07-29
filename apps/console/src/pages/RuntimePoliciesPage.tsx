@@ -2,6 +2,7 @@ import {
   createRuntimePolicy,
   deleteRuntimePolicy,
   type RuntimePolicyWithTools,
+  type ShellCommandRule,
   updateRuntimePolicy,
 } from '@moltnet/api-client';
 import {
@@ -30,12 +31,14 @@ interface PolicyForm {
   name: string;
   description: string;
   tools: string[];
+  shellCommands: ShellCommandRule[];
 }
 
 const EMPTY_POLICY: PolicyForm = {
   name: '',
   description: '',
   tools: [],
+  shellCommands: [],
 };
 
 const ALLOWED_TOOLS_QUERY_ROOT = [
@@ -74,6 +77,12 @@ export function RuntimePoliciesPage() {
     [policiesQuery.data],
   );
   const isCreating = selection.kind === 'create';
+  const hasInvalidShellCommands = form.shellCommands.some(
+    (rule) =>
+      rule.argvPrefix.length < 2 ||
+      rule.argvPrefix.length > 8 ||
+      rule.argvPrefix.some((token) => shellTokenError(token) !== undefined),
+  );
   const selectedSummary = policies.find(
     (policy) => selection.kind === 'existing' && policy.id === selection.id,
   );
@@ -129,6 +138,7 @@ export function RuntimePoliciesPage() {
               name: form.name.trim(),
               description: form.description.trim() || undefined,
               tools: form.tools,
+              shellCommands: normalizeFormShellCommands(form.shellCommands),
             },
           })
         : await updateRuntimePolicy({
@@ -380,10 +390,18 @@ export function RuntimePoliciesPage() {
                     setForm((current) => ({ ...current, tools }))
                   }
                 />
-                {form.tools.length === 0 ? (
+                <ShellCommandEditor
+                  shellCommands={form.shellCommands}
+                  broadTools={form.tools}
+                  disabled={!canManage}
+                  onChange={(shellCommands) =>
+                    setForm((current) => ({ ...current, shellCommands }))
+                  }
+                />
+                {form.tools.length === 0 && form.shellCommands.length === 0 ? (
                   <Text variant="caption" color="muted">
-                    This policy grants no tools. Profiles may intentionally use
-                    an empty allow-list, but enforce mode will block every tool.
+                    This policy grants no exact tools or shell commands. In
+                    enforce mode, every tool call will be blocked.
                   </Text>
                 ) : null}
                 {formError ? (
@@ -412,7 +430,12 @@ export function RuntimePoliciesPage() {
                   <Button
                     size="sm"
                     onClick={() => void savePolicy()}
-                    disabled={isSaving || !canManage || !form.name.trim()}
+                    disabled={
+                      isSaving ||
+                      !canManage ||
+                      !form.name.trim() ||
+                      hasInvalidShellCommands
+                    }
                   >
                     {isSaving
                       ? 'Saving…'
@@ -478,6 +501,13 @@ function ToolNameEditor({
 
   return (
     <Stack gap={2}>
+      <Stack gap={1}>
+        <Text variant="h4">Exact tools</Text>
+        <Text variant="caption" color="muted">
+          Exact tool grants also authorize every shell invocation of an
+          executable with the same name.
+        </Text>
+      </Stack>
       <Stack direction="row" align="end" gap={2} wrap>
         <div style={{ flex: '1 1 16rem' }}>
           <Input
@@ -529,7 +559,221 @@ function ToolNameEditor({
             </Badge>
           ))}
         </Stack>
-      ) : null}
+      ) : (
+        <Text variant="caption" color="muted">
+          No broad tool grants. Add a tool only when every operation it exposes
+          should be available.
+        </Text>
+      )}
+    </Stack>
+  );
+}
+
+function ShellCommandEditor({
+  shellCommands,
+  broadTools,
+  disabled,
+  onChange,
+}: {
+  shellCommands: ShellCommandRule[];
+  broadTools: string[];
+  disabled: boolean;
+  onChange: (rules: ShellCommandRule[]) => void;
+}) {
+  const theme = useTheme();
+
+  function updateToken(ruleIndex: number, tokenIndex: number, value: string) {
+    onChange(
+      shellCommands.map((rule, index) => {
+        if (index !== ruleIndex) return rule;
+        const argvPrefix = [...rule.argvPrefix];
+        argvPrefix[tokenIndex] = value;
+        return { argvPrefix };
+      }),
+    );
+  }
+
+  function addToken(ruleIndex: number) {
+    onChange(
+      shellCommands.map((rule, index) =>
+        index === ruleIndex ? { argvPrefix: [...rule.argvPrefix, ''] } : rule,
+      ),
+    );
+  }
+
+  function removeToken(ruleIndex: number, tokenIndex: number) {
+    onChange(
+      shellCommands.map((rule, index) =>
+        index === ruleIndex
+          ? {
+              argvPrefix: rule.argvPrefix.filter(
+                (_token, indexToKeep) => indexToKeep !== tokenIndex,
+              ),
+            }
+          : rule,
+      ),
+    );
+  }
+
+  return (
+    <Stack gap={3}>
+      <Stack
+        direction="row"
+        align="center"
+        justify="space-between"
+        gap={3}
+        wrap
+      >
+        <Stack gap={1}>
+          <Text variant="h4">Allowed shell commands</Text>
+          <Text variant="caption" color="muted">
+            Match literal argv tokens from the executable onward. Extra
+            arguments after the configured tokens remain allowed.
+          </Text>
+        </Stack>
+        <Button
+          variant="secondary"
+          size="sm"
+          disabled={disabled}
+          onClick={() => onChange([...shellCommands, { argvPrefix: ['', ''] }])}
+        >
+          Add shell command
+        </Button>
+      </Stack>
+
+      {shellCommands.length === 0 ? (
+        <Text variant="caption" color="muted">
+          No scoped shell access. Add a command to grant a specific CLI path
+          without granting the whole executable.
+        </Text>
+      ) : (
+        <Stack gap={3}>
+          {shellCommands.map((rule, ruleIndex) => {
+            const redundant = broadTools.includes(rule.argvPrefix[0] ?? '');
+            return (
+              <fieldset
+                key={ruleIndex}
+                style={{
+                  margin: 0,
+                  padding: theme.spacing[3],
+                  border: `1px solid ${theme.color.border.DEFAULT}`,
+                  borderRadius: theme.radius.md,
+                  minWidth: 0,
+                }}
+              >
+                <legend
+                  style={{
+                    padding: `0 ${theme.spacing[1]}`,
+                    color: theme.color.text.muted,
+                    fontSize: theme.font.size.xs,
+                  }}
+                >
+                  Shell command {ruleIndex + 1}
+                </legend>
+                <Stack gap={3}>
+                  <Stack direction="row" align="start" gap={2} wrap>
+                    {rule.argvPrefix.map((token, tokenIndex) => (
+                      <div
+                        key={tokenIndex}
+                        style={{
+                          flex: tokenIndex < 2 ? '1 1 11rem' : '1 1 9rem',
+                          minWidth: 0,
+                        }}
+                      >
+                        <Input
+                          size="sm"
+                          label={
+                            tokenIndex === 0
+                              ? 'Executable'
+                              : tokenIndex === 1
+                                ? 'Subcommand'
+                                : `Token ${tokenIndex + 1}`
+                          }
+                          value={token}
+                          disabled={disabled}
+                          placeholder={
+                            tokenIndex === 0
+                              ? 'gh'
+                              : tokenIndex === 1
+                                ? 'pr'
+                                : 'view'
+                          }
+                          error={shellTokenError(token)}
+                          onChange={(event) =>
+                            updateToken(
+                              ruleIndex,
+                              tokenIndex,
+                              event.target.value,
+                            )
+                          }
+                        />
+                        {tokenIndex >= 2 ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={disabled}
+                            onClick={() => removeToken(ruleIndex, tokenIndex)}
+                          >
+                            Remove token
+                          </Button>
+                        ) : null}
+                      </div>
+                    ))}
+                  </Stack>
+                  <Stack direction="row" align="center" gap={2} wrap>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={disabled || rule.argvPrefix.length >= 8}
+                      onClick={() => addToken(ruleIndex)}
+                    >
+                      Add token
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={disabled}
+                      onClick={() =>
+                        onChange(
+                          shellCommands.filter(
+                            (_candidate, index) => index !== ruleIndex,
+                          ),
+                        )
+                      }
+                    >
+                      Remove shell command
+                    </Button>
+                  </Stack>
+                  <Text
+                    variant="caption"
+                    style={{ fontFamily: theme.font.family.mono }}
+                  >
+                    {rule.argvPrefix.map((token) => token || '…').join(' › ')}
+                    {' › …'}
+                  </Text>
+                  {redundant ? (
+                    <div
+                      role="status"
+                      style={{
+                        padding: theme.spacing[2],
+                        borderRadius: theme.radius.md,
+                        background: theme.color.warning.muted,
+                        color: theme.color.warning.DEFAULT,
+                      }}
+                    >
+                      <Text variant="caption">
+                        The exact tool grant for “{rule.argvPrefix[0]}” already
+                        permits every invocation, so this scoped rule is
+                        redundant.
+                      </Text>
+                    </div>
+                  ) : null}
+                </Stack>
+              </fieldset>
+            );
+          })}
+        </Stack>
+      )}
     </Stack>
   );
 }
@@ -539,6 +783,9 @@ function policyToForm(policy: RuntimePolicyWithTools): PolicyForm {
     name: policy.name,
     description: policy.description ?? '',
     tools: [...policy.tools],
+    shellCommands: policy.shellCommands.map((rule) => ({
+      argvPrefix: [...rule.argvPrefix],
+    })),
   };
 }
 
@@ -548,12 +795,55 @@ function policyUpdateBody(
 ) {
   const previousTools = new Set(policy?.tools ?? []);
   const nextTools = new Set(form.tools);
+  const previousShellCommands = new Map(
+    (policy?.shellCommands ?? []).map((rule) => [shellCommandKey(rule), rule]),
+  );
+  const nextShellCommands = new Map(
+    normalizeFormShellCommands(form.shellCommands).map((rule) => [
+      shellCommandKey(rule),
+      rule,
+    ]),
+  );
   return {
     name: form.name.trim(),
     description: form.description.trim() || null,
     addTools: form.tools.filter((tool) => !previousTools.has(tool)),
     removeTools: [...previousTools].filter((tool) => !nextTools.has(tool)),
+    addShellCommands: [...nextShellCommands]
+      .filter(([key]) => !previousShellCommands.has(key))
+      .map(([, rule]) => rule),
+    removeShellCommands: [...previousShellCommands]
+      .filter(([key]) => !nextShellCommands.has(key))
+      .map(([, rule]) => rule),
   };
+}
+
+function normalizeFormShellCommands(
+  rules: ShellCommandRule[],
+): ShellCommandRule[] {
+  const unique = new Map<string, ShellCommandRule>();
+  for (const rule of rules) {
+    const normalized = {
+      // Tokens are exact argv values. Preserve whitespace because it is
+      // significant inside a quoted token and is encoded losslessly in Keto.
+      argvPrefix: [...rule.argvPrefix],
+    };
+    unique.set(shellCommandKey(normalized), normalized);
+  }
+  return [...unique.values()].sort((left, right) =>
+    shellCommandKey(left).localeCompare(shellCommandKey(right)),
+  );
+}
+
+function shellCommandKey(rule: ShellCommandRule): string {
+  return JSON.stringify(rule.argvPrefix);
+}
+
+function shellTokenError(token: string): string | undefined {
+  if (!token) return 'Enter a literal token.';
+  if ([...token].length > 128) return 'Use 128 characters or fewer.';
+  if (/\p{Cc}/u.test(token)) return 'Control characters are not allowed.';
+  return undefined;
 }
 
 function textareaStyle(
