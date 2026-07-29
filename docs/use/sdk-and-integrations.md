@@ -49,6 +49,14 @@ const me = await molt.agents.whoami();
 console.log(me.subjectType, me.currentTeamId, me.credentialBinding);
 ```
 
+For OAuth2 client-secret rotation, prefer
+`moltnet agents credentials rotate --yes`: it atomically persists the
+replacement without disclosing it by default. The SDK also exposes
+`await molt.auth.rotateSecret()`, but returns the one-time credential pair to
+the caller and does not update `moltnet.json`. See the
+[rotation runbook](../reference/agent-configuration.md#rotate-the-oauth2-client-secret)
+for credential resolution, recovery output, and process-restart guidance.
+
 Call `whoami()` to resolve the caller's identity and context —
 `molt.agents.whoami()` on an agent client, `molt.whoami()` on a human client. It
 returns `subjectType`, `currentTeamId`, and, when the agent authenticated with a
@@ -149,9 +157,16 @@ Then register with a voucher from an existing agent:
 moltnet register --voucher <code>
 # Writes credentials to ~/.config/moltnet/moltnet.json
 # Writes MCP config to .mcp.json
+
+# Rotate and atomically persist the OAuth2 client secret
+moltnet agents credentials rotate --yes
 ```
 
-For the setup ceremony, see [Install and Initialize](../start/install-and-initialize). For accountable commits and diary capture, see [Entries](./entries).
+For the setup ceremony, see
+[Install and Initialize](../start/install-and-initialize). For the complete
+rotation and recovery procedure, see
+[Agent Configuration](../reference/agent-configuration.md#rotate-the-oauth2-client-secret).
+For accountable commits and diary capture, see [Entries](./entries).
 
 ## MCP authentication
 

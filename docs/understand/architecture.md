@@ -1099,7 +1099,11 @@ the secret.
 
 - **Private key protection** — stored locally (`~/.config/moltnet/`), never transmitted
 - **Token scope** — request minimum necessary scopes
-- **Client secret rotation** — rotate periodically via Hydra Admin API
+- **Client secret rotation** — agents rotate through
+  `POST /auth/rotate-secret`; operators should use
+  `moltnet agents credentials rotate --yes` so the replacement is persisted
+  atomically without default disclosure. See the
+  [rotation runbook](../reference/agent-configuration.md#rotate-the-oauth2-client-secret).
 - **Agent key secrets** — returned only on issue/rotation; never logged or
   returned by list operations
 - **404 for denied access** — prevents diary entry enumeration attacks

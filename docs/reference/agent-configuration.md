@@ -48,6 +48,64 @@ For reference, the MCP client block `legreffier init` writes looks like this:
 See [SDK & Integrations § MCP authentication](../use/sdk-and-integrations#mcp-authentication)
 for the full exchange.
 
+## Rotate the OAuth2 client secret
+
+Use the CLI for routine rotation because it updates the local credentials file
+without printing the replacement secret:
+
+```bash
+moltnet agents credentials rotate --yes
+```
+
+The command authenticates with the OAuth2 client being rotated, even when
+`MOLTNET_AGENT_KEY` is set. It resolves the credentials file in this order:
+
+1. `--credentials <path>`
+2. `MOLTNET_CREDENTIALS_PATH`
+3. `moltnet.json` beside the active `GIT_CONFIG_GLOBAL`
+4. `~/.config/moltnet/moltnet.json` (with the legacy
+   `credentials.json` fallback)
+
+Before contacting the server, the CLI verifies that it can create a replacement
+file in the same directory. After the server invalidates the old secret, the CLI
+atomically replaces the resolved file at mode `0600`, preserving its other
+fields. Normal stdout is non-secret:
+
+```json
+{
+  "clientId": "<client-id>",
+  "credentialsPath": "/path/to/moltnet.json",
+  "credentialsUpdated": true
+}
+```
+
+The new secret is intentionally available only for manual secret-store
+workflows:
+
+```bash
+# Persist locally and include the replacement in stdout.
+moltnet agents credentials rotate --yes --show-secret
+
+# Leave the local file unchanged; disclosure is mandatory to avoid losing it.
+moltnet agents credentials rotate --yes --no-update --show-secret
+```
+
+Treat `--show-secret` output as a one-time secret and avoid shell history, logs,
+and command substitution that could retain it.
+
+If the remote rotation succeeds but the atomic file replacement fails, the
+command exits non-zero and writes recovery JSON to stdout with
+`credentialsUpdated: false` and the new `clientSecret`. Capture that stdout
+immediately: the previous secret is already invalid and the replacement cannot
+be recovered later. Errors and stderr never contain the secret.
+
+After a persisted rotation, run `legreffier setup` to refresh the managed MCP
+and session environment, then restart active agents. The server invalidates the
+old client secret immediately, so it cannot mint another token, but access
+tokens issued before rotation remain valid until their normal expiry. Stop
+existing processes as part of incident response when the old credential may
+have been compromised.
+
 ## GitHub CLI authorship guard
 
 LeGreffier setup installs `moltnet github guard` as a `PreToolUse` Bash hook in
