@@ -229,14 +229,23 @@ class Human implements Namespace {
 class Tool implements Namespace {}
 
 /**
+ * ShellCommand namespace
+ * Exact, versioned, percent-encoded argv prefixes. Keto stores independent
+ * objects; prefix interpretation happens in the runtime after policy expansion.
+ */
+class ShellCommand implements Namespace {}
+
+/**
  * RuntimePolicy namespace
  * A team-scoped, named allow-list of tools. The SQL `runtime_policies` row holds
  * display metadata (name, description); the authorization edges live here:
  *   RuntimePolicy:{policyId}#team@Team:{teamId}
  *   RuntimePolicy:{policyId}#tool@Tool:{toolName}
+ *   RuntimePolicy:{policyId}#command@ShellCommand:{encodedPrefix}
  */
 class RuntimePolicy implements Namespace {
   related: {
+    command: ShellCommand[];
     team: Team[];
     tool: Tool[];
   };

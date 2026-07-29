@@ -13,6 +13,24 @@ const ToolNameSchema = Type.String({
   description: 'A tool identifier, e.g. an executable name like "git".',
 });
 
+const ShellCommandTokenSchema = Type.String({
+  minLength: 1,
+  maxLength: 128,
+  description: 'One literal argv token.',
+});
+
+export const ShellCommandRuleSchema = Type.Object(
+  {
+    argvPrefix: Type.Array(ShellCommandTokenSchema, {
+      minItems: 2,
+      maxItems: 8,
+      description:
+        'Literal argv tokens matched from the executable onward. Additional argv tokens remain permitted.',
+    }),
+  },
+  { $id: 'ShellCommandRule', additionalProperties: false },
+);
+
 export const ToolEnforcementSchema = {
   ...CanonicalToolEnforcementSchema,
   $id: 'ToolEnforcement',
@@ -39,6 +57,7 @@ export const RuntimePolicyWithToolsSchema = Type.Object(
     createdAt: Type.String({ format: 'date-time' }),
     updatedAt: Type.String({ format: 'date-time' }),
     tools: Type.Array(ToolNameSchema),
+    shellCommands: Type.Array(Type.Ref(ShellCommandRuleSchema.$id)),
   },
   { $id: 'RuntimePolicyWithTools' },
 );
@@ -53,6 +72,9 @@ export const CreateRuntimePolicyBodySchema = Type.Object(
     name: Type.String({ minLength: 1, maxLength: 100, pattern: '\\S' }),
     description: Type.Optional(Type.String({ maxLength: 4096 })),
     tools: Type.Optional(Type.Array(ToolNameSchema, { maxItems: 500 })),
+    shellCommands: Type.Optional(
+      Type.Array(Type.Ref(ShellCommandRuleSchema.$id), { maxItems: 500 }),
+    ),
   },
   { $id: 'CreateRuntimePolicyBody', additionalProperties: false },
 );
@@ -68,6 +90,12 @@ export const UpdateRuntimePolicyBodySchema = Type.Object(
     ),
     addTools: Type.Optional(Type.Array(ToolNameSchema, { maxItems: 500 })),
     removeTools: Type.Optional(Type.Array(ToolNameSchema, { maxItems: 500 })),
+    addShellCommands: Type.Optional(
+      Type.Array(Type.Ref(ShellCommandRuleSchema.$id), { maxItems: 500 }),
+    ),
+    removeShellCommands: Type.Optional(
+      Type.Array(Type.Ref(ShellCommandRuleSchema.$id), { maxItems: 500 }),
+    ),
   },
   {
     $id: 'UpdateRuntimePolicyBody',
@@ -90,12 +118,14 @@ export const AllowedToolsResponseSchema = Type.Object(
   {
     enforcement: Type.Ref(ToolEnforcementSchema.$id),
     allowedTools: Type.Array(ToolNameSchema),
+    allowedShellCommands: Type.Array(Type.Ref(ShellCommandRuleSchema.$id)),
   },
   { $id: 'AllowedToolsResponse' },
 );
 
 export const runtimePolicySchemas = [
   ToolEnforcementSchema,
+  ShellCommandRuleSchema,
   RuntimePolicySchema,
   RuntimePolicyWithToolsSchema,
   RuntimePolicyListSchema,

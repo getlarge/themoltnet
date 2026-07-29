@@ -332,6 +332,12 @@
       },
       "AllowedToolsResponse": {
         "properties": {
+          "allowedShellCommands": {
+            "items": {
+              "$ref": "#/components/schemas/ShellCommandRule"
+            },
+            "type": "array"
+          },
           "allowedTools": {
             "items": {
               "description": "A tool identifier, e.g. an executable name like \"git\".",
@@ -348,7 +354,8 @@
         },
         "required": [
           "enforcement",
-          "allowedTools"
+          "allowedTools",
+          "allowedShellCommands"
         ],
         "type": "object"
       },
@@ -1860,6 +1867,13 @@
             "minLength": 1,
             "pattern": "\\S",
             "type": "string"
+          },
+          "shellCommands": {
+            "items": {
+              "$ref": "#/components/schemas/ShellCommandRule"
+            },
+            "maxItems": 500,
+            "type": "array"
           },
           "tools": {
             "items": {
@@ -8068,6 +8082,12 @@
           "name": {
             "type": "string"
           },
+          "shellCommands": {
+            "items": {
+              "$ref": "#/components/schemas/ShellCommandRule"
+            },
+            "type": "array"
+          },
           "teamId": {
             "description": "UUID v4 identifier",
             "format": "uuid",
@@ -8095,7 +8115,8 @@
           "description",
           "createdAt",
           "updatedAt",
-          "tools"
+          "tools",
+          "shellCommands"
         ],
         "type": "object"
       },
@@ -9955,6 +9976,27 @@
         },
         "required": [
           "policyIds"
+        ],
+        "type": "object"
+      },
+      "ShellCommandRule": {
+        "additionalProperties": false,
+        "properties": {
+          "argvPrefix": {
+            "description": "Literal argv tokens matched from the executable onward. Additional argv tokens remain permitted.",
+            "items": {
+              "description": "One literal argv token.",
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 8,
+            "minItems": 2,
+            "type": "array"
+          }
+        },
+        "required": [
+          "argvPrefix"
         ],
         "type": "object"
       },
@@ -13085,6 +13127,13 @@
         "additionalProperties": false,
         "minProperties": 1,
         "properties": {
+          "addShellCommands": {
+            "items": {
+              "$ref": "#/components/schemas/ShellCommandRule"
+            },
+            "maxItems": 500,
+            "type": "array"
+          },
           "addTools": {
             "items": {
               "description": "A tool identifier, e.g. an executable name like \"git\".",
@@ -13112,6 +13161,13 @@
             "minLength": 1,
             "pattern": "\\S",
             "type": "string"
+          },
+          "removeShellCommands": {
+            "items": {
+              "$ref": "#/components/schemas/ShellCommandRule"
+            },
+            "maxItems": 500,
+            "type": "array"
           },
           "removeTools": {
             "items": {

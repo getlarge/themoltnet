@@ -125,9 +125,11 @@ export interface RelationshipWriter {
       teamId?: string;
       addTools?: readonly string[];
       removeTools?: readonly string[];
+      addShellCommands?: readonly string[];
+      removeShellCommands?: readonly string[];
     },
   ): Promise<void>;
-  /** Removes every tuple owned by a policy object (team + tool edges). */
+  /** Removes every tuple owned by a policy object (team, tool, and command edges). */
   removeRuntimePolicyRelations(policyId: string): Promise<void>;
   /**
    * Insert/delete a profile's `policies` bindings in a single Keto patch.
@@ -628,6 +630,8 @@ export function createRelationshipWriter(
         teamId?: string;
         addTools?: readonly string[];
         removeTools?: readonly string[];
+        addShellCommands?: readonly string[];
+        removeShellCommands?: readonly string[];
       },
     ): Promise<void> {
       const relationshipPatch = [];
@@ -656,6 +660,18 @@ export function createRelationshipWriter(
         relationshipPatch.push({
           action: 'delete' as const,
           relation_tuple: toolTuple(policyId, toolName),
+        });
+      }
+      for (const commandId of edges.addShellCommands ?? []) {
+        relationshipPatch.push({
+          action: 'insert' as const,
+          relation_tuple: commandTuple(policyId, commandId),
+        });
+      }
+      for (const commandId of edges.removeShellCommands ?? []) {
+        relationshipPatch.push({
+          action: 'delete' as const,
+          relation_tuple: commandTuple(policyId, commandId),
         });
       }
       if (relationshipPatch.length === 0) return;
@@ -700,6 +716,19 @@ function toolTuple(policyId: string, toolName: string) {
     subject_set: {
       namespace: KetoNamespace.Tool,
       object: toolName,
+      relation: '',
+    },
+  };
+}
+
+function commandTuple(policyId: string, commandId: string) {
+  return {
+    namespace: KetoNamespace.RuntimePolicy,
+    object: policyId,
+    relation: RuntimePolicyRelation.Command,
+    subject_set: {
+      namespace: KetoNamespace.ShellCommand,
+      object: commandId,
       relation: '',
     },
   };

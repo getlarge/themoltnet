@@ -23,6 +23,19 @@ async function toolNames(command: string): Promise<string[]> {
   return result.tools.map((t) => t.name);
 }
 
+/** Assert the command resolves and return every invocation's argv vector. */
+async function invocationArgv(
+  command: string,
+): Promise<readonly (readonly (string | null)[])[]> {
+  const result = await analyzeCommand(command);
+  if (!result.ok) {
+    throw new Error(
+      `expected ok for ${JSON.stringify(command)}, got: ${result.reason}`,
+    );
+  }
+  return result.tools.map((tool) => tool.argv);
+}
+
 /** Assert the command is refused; return the analysis for further checks. */
 async function expectDeny(command: string): Promise<CommandAnalysis> {
   const result = await analyzeCommand(command);
@@ -60,9 +73,18 @@ describe('analyzeCommand — simple commands', () => {
     expect(await toolNames('cat file-*.log')).toEqual(['cat']);
   });
 
-  it('ignores redirections', async () => {
-    expect(await toolNames('echo hi > out.txt')).toEqual(['echo']);
-    expect(await toolNames('cat < in.txt')).toEqual(['cat']);
+  it('surfaces output redirections separately from argv', async () => {
+    const output = await analyzeCommand('git diff > /tmp/pwn');
+    const input = await analyzeCommand('cat < in.txt');
+
+    expect(output).toMatchObject({
+      ok: true,
+      hasOutputRedirection: true,
+    });
+    expect(input).toMatchObject({
+      ok: true,
+      hasOutputRedirection: false,
+    });
   });
 
   it('strips the directory from an absolute or relative path', async () => {
@@ -70,6 +92,25 @@ describe('analyzeCommand — simple commands', () => {
     expect(await toolNames('/usr/bin/python3 x.py')).toEqual(['python3']);
     expect(await toolNames('./node_modules/.bin/tsc --noEmit')).toEqual([
       'tsc',
+    ]);
+  });
+
+  it('surfaces normalized argv and preserves dynamic argument positions', async () => {
+    expect(await invocationArgv('/usr/bin/git diff --stat')).toEqual([
+      ['git', 'diff', '--stat'],
+    ]);
+    expect(await invocationArgv('git "$ACTION"')).toEqual([['git', null]]);
+  });
+
+  it('surfaces arbitrarily nested CLI command paths', async () => {
+    expect(await invocationArgv('gh pr view 1725')).toEqual([
+      ['gh', 'pr', 'view', '1725'],
+    ]);
+    expect(await invocationArgv('docker compose ps')).toEqual([
+      ['docker', 'compose', 'ps'],
+    ]);
+    expect(await invocationArgv('npm run test:unit')).toEqual([
+      ['npm', 'run', 'test:unit'],
     ]);
   });
 });
@@ -120,6 +161,24 @@ describe('analyzeCommand — risk classification of resolved tools', () => {
 });
 
 describe('analyzeCommand — wrappers', () => {
+  it('re-analyzes env split-string commands', async () => {
+    expect(await invocationArgv("env -S 'git push --force'")).toEqual([
+      ['env', '-S', 'git push --force'],
+      ['git', 'push', '--force'],
+    ]);
+    expect(
+      await invocationArgv("env --split-string='gh pr merge 1725'"),
+    ).toEqual([
+      ['env', null],
+      ['gh', 'pr', 'merge', '1725'],
+    ]);
+  });
+
+  it('rejects quoted wrapper targets containing whitespace', async () => {
+    await expectDeny("sudo 'git push'");
+    await expectDeny("env 'git diff'");
+  });
+
   it('sees through a single wrapper', async () => {
     expect(await toolNames('sudo git push')).toEqual(['sudo', 'git']);
     expect(await toolNames('nohup node server.js')).toEqual(['nohup', 'node']);
@@ -129,6 +188,17 @@ describe('analyzeCommand — wrappers', () => {
   it('skips wrapper value-flags without swallowing the command', async () => {
     expect(await toolNames('sudo -u deploy git push')).toEqual(['sudo', 'git']);
     expect(await toolNames('nice -n 10 node app.js')).toEqual(['nice', 'node']);
+  });
+
+  it('keeps distinct argv vectors for wrappers and nested commands', async () => {
+    expect(await invocationArgv('sudo -u deploy git diff')).toEqual([
+      ['sudo', '-u', 'deploy', 'git', 'diff'],
+      ['git', 'diff'],
+    ]);
+    expect(await invocationArgv('xargs -n 1 git show')).toEqual([
+      ['xargs', '-n', '1', 'git', 'show'],
+      ['git', 'show'],
+    ]);
   });
 
   it('skips the positional argument of timeout / chroot', async () => {
@@ -233,6 +303,13 @@ describe('analyzeCommand — multiple commands', () => {
   it('extracts commands joined by && and ;', async () => {
     expect(await toolNames('npm ci && npm test')).toEqual(['npm', 'npm']);
     expect(await toolNames('mkdir build; cd build')).toEqual(['mkdir', 'cd']);
+  });
+
+  it('preserves a separate argv vector for every compound invocation', async () => {
+    expect(await invocationArgv('git diff && git push')).toEqual([
+      ['git', 'diff'],
+      ['git', 'push'],
+    ]);
   });
 
   it('extracts commands inside a subshell', async () => {

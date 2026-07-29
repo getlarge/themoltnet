@@ -25,6 +25,9 @@ import { GTFOBINS } from './gtfobins.generated.js';
 
 export type RiskTier = 'arbitrary-code' | 'escapable' | 'unknown';
 
+/** A documented executable capability surfaced by the analyzer. */
+export type Capability = string;
+
 /**
  * Interpreters and shells whose *primary purpose* is to execute arbitrary code
  * supplied as an argument (`-c`), a script path, or on stdin. Statically we
@@ -91,7 +94,7 @@ const VERSIONED_INTERPRETER_RE =
  * dataset. This is the precise signal a policy layer or LLM judge should reason
  * about — *why* a tool is escapable, not just that it is.
  */
-export function gtfobinsFunctions(name: string): readonly string[] {
+export function gtfobinsFunctions(name: string): readonly Capability[] {
   // `Object.hasOwn` (not `in`/index) so prototype names like `constructor` or
   // `toString` do not resolve to inherited members. Returns a defensive copy so
   // callers cannot mutate the shared dataset.
@@ -354,6 +357,13 @@ export interface EscapeFlagSpec {
 }
 
 export const ESCAPE_FLAG_SPECS: ReadonlyMap<string, EscapeFlagSpec> = new Map([
+  [
+    'env',
+    {
+      separate: ['-S', '--split-string'],
+      inline: [{ flag: '--split-string' }],
+    },
+  ],
   [
     'tar',
     {

@@ -89,15 +89,15 @@ team/agent/profile relation, and keeps the SQL row small.
 - `runtime_policies` (SQL) — the policy's team, name, description, and audit
   columns. Metadata only.
 - Keto relations — the actual grants, shaped as
-  `RuntimeProfile#policies → RuntimePolicy#tool → Tool:<name>`. A profile is
-  bound to policies; a policy grants tools.
+  `RuntimeProfile#policies → RuntimePolicy#tool → Tool:<name>` for broad tool
+  access and `RuntimePolicy#command → ShellCommand:<identifier>` for scoped
+  shell access.
 - `runtime_profiles.tool_enforcement` (SQL) — the `off`/`watch`/`enforce` mode
   for the profile.
 
 A runtime profile references its bound **policies**, each policy references its
-granted **tools**, and resolving a profile's allowed-tool set walks profile →
-policies → tools and unions the tool names — in the example below, the profile
-allows `{find, git, grep, read}`:
+granted **tools and shell commands**, and resolving a profile walks profile →
+policies and unions both sets:
 
 ```mermaid
 graph LR
@@ -106,36 +106,50 @@ graph LR
     POL2["RuntimePolicy<br/>git-ops"]
     T1(["read"])
     T2(["grep"])
-    T3(["find"])
-    T4(["git"])
+    C1(["ShellCommand:v1/git/diff"])
+    C2(["ShellCommand:v1/gh/pr/view"])
     RP -->|policies| POL1
     RP -->|policies| POL2
     POL1 -->|tool| T1
     POL1 -->|tool| T2
-    POL1 -->|tool| T3
-    POL2 -->|tool| T4
+    POL1 -->|command| C1
+    POL2 -->|command| C2
     style RP fill:#e3f2fd,stroke:#1565c0
     style POL1 fill:#f3e5f5,stroke:#6a1b9a
     style POL2 fill:#f3e5f5,stroke:#6a1b9a
 ```
 
 The `mode` lives on the profile row (`runtime_profiles.tool_enforcement`, SQL);
-the `policies` and `tool` edges are Keto relations. Grants are durable relations,
-**not** per-session tuples — a task's short-lived authority is computed from them
-at session start, never written back into Keto.
+the `policies`, `tool`, and `command` edges are Keto relations. Every
+`ShellCommand` object is exact; Keto does not model wildcard or parent-child
+relationships. Prefix interpretation happens locally after resolution. Grants
+are durable relations, **not** per-session tuples — a task's short-lived
+authority is computed from them at session start, never written back into Keto.
+
+Shell command identifiers use versioned, per-token URI encoding. Each UTF-8
+token is encoded independently with RFC 3986 unreserved characters
+(`A-Z a-z 0-9 - . _ ~`) left literal and uppercase `%HH` escapes for everything
+else. Spaces are `%20`, never `+`; a slash inside one token is `%2F`. For
+example, `npm run test:unit` is
+`ShellCommand:v1/npm/run/test%3Aunit`. Identifiers are accepted only when
+decoding and canonical re-encoding produces the same bytes. Unknown versions,
+malformed UTF-8 or escapes, control characters, and non-canonical encodings fail
+policy resolution closed.
 
 ### How tools are extracted from a command
 
 A structured tool call (`read`, `write`, a custom tool) authorizes against its
-own name directly. A `bash` call is the hard case: the policy allows tool
-**names**, but a shell command can invoke many executables, wrap them
+own name directly. A `bash` call is the hard case: a shell command can invoke
+many executables, wrap them
 (`sudo`, `env`, `timeout`), or hide them behind interpreters.
 
 MoltNet resolves this statically with
 [`@themoltnet/shell-command-analyzer`](https://www.npmjs.com/package/@themoltnet/shell-command-analyzer),
 which parses the command (tree-sitter for bash), sees through wrappers, follows
 documented escape flags (`find -exec`, `tar --to-command`), and returns every
-executable the command runs along with a coarse **risk tier**:
+invocation with its normalized argv tokens and a coarse **risk tier**. A
+statically unknown token is represented as `null`, so `git "$ACTION"` cannot
+satisfy a scoped rule.
 
 | Risk tier        | Meaning                                                                                                        | Example binaries         |
 | ---------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------ |
@@ -151,9 +165,24 @@ The gate turns that analysis into a decision:
 - **`arbitrary-code` tier** — blocked in `enforce` **even when the interpreter
   name is on the allow-list**. Listing `bash` does not authorize
   `bash -c "curl … | sh"`, because the payload cannot be statically bounded.
-- **Every resolved executable listed** — allowed.
-- **Any resolved executable not listed** — blocked in `enforce`, audited in
-  `watch`.
+- **Every invocation authorized** — each invocation's executable either has a
+  broad `Tool:<name>` grant or its leading, non-null argv tokens exactly match a
+  rule's `argvPrefix`.
+- **Output redirection** — a scoped shell-command rule cannot authorize shell
+  output redirection such as `git diff > report.txt`, because the write occurs
+  outside argv. It requires a broad grant for every executable involved.
+- **Any invocation unauthorized** — the entire expression is blocked in
+  `enforce`, audited in `watch`. Thus `git diff && git push` requires permission
+  for both invocations. Wrappers and nested commands are separate invocations,
+  so `sudo -u deploy git diff` requires permission for both `sudo …` and
+  `git diff`.
+
+A broad `Tool:git` grant authorizes every Git invocation and supersedes narrower
+Git rules. A scoped rule such as `{ argvPrefix: ['git', 'diff'] }` authorizes
+`git diff` and `git diff --stat`, but not `git push`. Rules can be arbitrarily
+nested, such as `['gh', 'pr', 'view']`. MoltNet does not apply CLI-specific
+normalization: `git -C repo diff` does not match `['git', 'diff']`; grant its
+actual leading tokens explicitly.
 
 Every fail-closed path funnels into one "would-block" decision that the mode then
 resolves — blocked in `enforce`, audited-but-allowed in `watch`:
@@ -168,7 +197,7 @@ flowchart TD
     RES -->|no| FENCE["would-block"]
     RES -->|yes| ARB{"arbitrary-code<br/>interpreter?"}
     ARB -->|"yes — even if listed"| FENCE
-    ARB -->|no| ALLEXEC{"every executable<br/>in allow-set?"}
+    ARB -->|no| ALLEXEC{"every invocation<br/>broadly or narrowly allowed?"}
     ALLEXEC -->|yes| ALLOW
     ALLEXEC -->|no| FENCE
     LISTED -->|yes| ALLOW
@@ -196,7 +225,7 @@ The daemon enforces tool policy through a Pi extension that gates every
 `tool_call`.
 
 1. **Session start.** The daemon resolves the profile's enforcement mode and
-   allowed-tool set once, through the SDK
+   allowed-tool and shell-command sets once, through the SDK
    (`runtimeProfiles.allowedTools(profileId, { teamId })`). The fetch is bounded
    by a **5-second deadline**. `off` short-circuits with no network call.
 2. **Snapshot.** The resolved policy is cached for the session's lifetime. A
@@ -245,8 +274,9 @@ const teamId = '<team-uuid>';
 const policy = await agent.runtimePolicies.create(
   {
     name: 'field-inspector',
-    description: 'Read-only inspection tools.',
-    tools: ['read', 'grep', 'find'],
+    description: 'Inspection access.',
+    tools: ['read'],
+    shellCommands: [{ argvPrefix: ['git', 'diff'] }],
   },
   { teamId },
 );
@@ -261,7 +291,8 @@ await agent.runtimeProfiles.update(profileId, { toolEnforcement: 'enforce' });
 const resolved = await agent.runtimeProfiles.allowedTools(profileId, {
   teamId,
 });
-// → { enforcement: 'enforce', allowedTools: ['find', 'grep', 'read'] }
+// → { enforcement: 'enforce', allowedTools: ['read'],
+//     allowedShellCommands: [{ argvPrefix: ['git', 'diff'] }] }
 ```
 
 ```bash [REST]
@@ -269,8 +300,9 @@ const resolved = await agent.runtimeProfiles.allowedTools(profileId, {
 
 # 1. Create a policy.
 POST /runtime-policies
-{ "name": "field-inspector", "description": "Read-only inspection tools.",
-  "tools": ["read", "grep", "find"] }
+{ "name": "field-inspector", "description": "Inspection access.",
+  "tools": ["read"],
+  "shellCommands": [{ "argvPrefix": ["git", "diff"] }] }
 
 # 2. Bind policies to a profile (replaces the bound set).
 PUT /runtime-profiles/{profileId}/policies
@@ -287,10 +319,22 @@ GET /runtime-profiles/{profileId}/allowed-tools
 :::
 
 Other operations: `GET /runtime-policies` (list), `GET /runtime-policies/{id}`
-(one policy with its tools), `PATCH /runtime-policies/{id}` (rename / add / remove
-tools), `DELETE /runtime-policies/{id}`, and
+(one policy with its grants), `PATCH /runtime-policies/{id}` (rename / add /
+remove tools and shell commands), `DELETE /runtime-policies/{id}`, and
 `GET /runtime-profiles/{id}/policies` (the bound policy IDs). Tool names are
-exact in v1 — `git` matches the `git` executable, not a pattern.
+exact: `git` matches the `git` executable, not a pattern. Shell command rules
+express prefix semantics explicitly through `argvPrefix`; there are no
+wildcards, denies, or prompt rules.
+
+Shell-command authorization is not proof that a permitted command is read-only.
+A command's behavior can depend on its arguments, configuration, environment,
+filesystem, network, and the executable itself. Sandboxing, least-privilege
+credentials, and credential isolation remain defense in depth. Authorization
+logs omit literal invocation arguments and configured prefix tokens. They record
+executable names and literal-free metadata: token counts, dynamic-token counts,
+and truncated SHA-256 fingerprints for correlation. Those fingerprints are
+operational identifiers, not a confidentiality boundary, so authorization logs
+must still be treated as security-sensitive.
 
 Deleting a policy revokes its Keto grants **before** removing the SQL row, so a
 failure never leaves live grants behind a deleted-looking policy.

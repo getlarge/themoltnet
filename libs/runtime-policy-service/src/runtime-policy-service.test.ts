@@ -42,6 +42,7 @@ function makeService() {
     findByIdForTeam: vi.fn(),
     listByTeam: vi.fn(),
     findExistingIdsForTeam: vi.fn(),
+    lockRuntimePolicy: vi.fn(),
     lockProfileBindings: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
@@ -51,6 +52,7 @@ function makeService() {
   const reader = {
     listRuntimeProfilePolicies: vi.fn(),
     listRuntimePolicyTools: vi.fn(),
+    listRuntimePolicyShellCommands: vi.fn(),
   };
   const writer = {
     writeRuntimePolicyEdges: vi.fn(),
@@ -96,6 +98,10 @@ describe('createRuntimePolicyService', () => {
       ctx.reader.listRuntimePolicyTools.mockImplementation(
         async (id: string) => (id === 'P1' ? ['git', 'gh'] : ['gh', 'ls']),
       );
+      ctx.reader.listRuntimePolicyShellCommands.mockImplementation(
+        async (id: string) =>
+          id === 'P1' ? ['v1/git/diff', 'v1/gh/pr/view'] : ['v1/git/diff'],
+      );
 
       // Act
       const result = await ctx.service.resolveAllowedTools({
@@ -107,6 +113,10 @@ describe('createRuntimePolicyService', () => {
       expect(result).toEqual({
         enforcement: 'enforce',
         allowedTools: ['gh', 'git', 'ls'],
+        allowedShellCommands: [
+          { argvPrefix: ['gh', 'pr', 'view'] },
+          { argvPrefix: ['git', 'diff'] },
+        ],
       });
       expect(ctx.repo.getProfileEnforcement).toHaveBeenCalledWith('R', TEAM_ID);
     });
@@ -120,8 +130,29 @@ describe('createRuntimePolicyService', () => {
         teamId: TEAM_ID,
       });
 
-      expect(result).toEqual({ enforcement: 'off', allowedTools: [] });
+      expect(result).toEqual({
+        enforcement: 'off',
+        allowedTools: [],
+        allowedShellCommands: [],
+      });
       expect(ctx.reader.listRuntimePolicyTools).not.toHaveBeenCalled();
+      expect(ctx.reader.listRuntimePolicyShellCommands).not.toHaveBeenCalled();
+    });
+
+    it('fails closed when a stored shell command identifier is malformed', async () => {
+      ctx.repo.getProfileEnforcement.mockResolvedValue('enforce');
+      ctx.reader.listRuntimeProfilePolicies.mockResolvedValue(['P1']);
+      ctx.reader.listRuntimePolicyTools.mockResolvedValue([]);
+      ctx.reader.listRuntimePolicyShellCommands.mockResolvedValue([
+        'v1/git/%2f',
+      ]);
+
+      await expect(
+        ctx.service.resolveAllowedTools({
+          profileId: 'R',
+          teamId: TEAM_ID,
+        }),
+      ).rejects.toThrow('canonically percent-encoded');
     });
 
     it('throws not-found when the profile is not in the team', async () => {
@@ -137,7 +168,7 @@ describe('createRuntimePolicyService', () => {
   });
 
   describe('create', () => {
-    it('writes the row then team + tool edges, manager-authorized', async () => {
+    it('writes the row then exact tool and shell-command edges', async () => {
       // Arrange
       ctx.repo.create.mockResolvedValue(policyRow());
 
@@ -147,6 +178,11 @@ describe('createRuntimePolicyService', () => {
         name: '  ci  ',
         description: 'CI tools',
         tools: ['git', 'gh', 'git'], // duplicate de-duped
+        shellCommands: [
+          { argvPrefix: ['git', 'diff'] },
+          { argvPrefix: ['npm', 'run', 'test:unit'] },
+          { argvPrefix: ['git', 'diff'] },
+        ],
         subject: AGENT_SUBJECT,
       });
 
@@ -166,10 +202,15 @@ describe('createRuntimePolicyService', () => {
       // Keto: team edge + de-duped tool edges in a single batch patch.
       expect(ctx.writer.writeRuntimePolicyEdges).toHaveBeenCalledWith('pol-1', {
         teamId: TEAM_ID,
-        addTools: ['git', 'gh'],
+        addTools: ['gh', 'git'],
+        addShellCommands: ['v1/git/diff', 'v1/npm/run/test%3Aunit'],
       });
       expect(ctx.writer.writeRuntimePolicyEdges).toHaveBeenCalledTimes(1);
-      expect(result.tools).toEqual(['git', 'gh']);
+      expect(result.tools).toEqual(['gh', 'git']);
+      expect(result.shellCommands).toEqual([
+        { argvPrefix: ['git', 'diff'] },
+        { argvPrefix: ['npm', 'run', 'test:unit'] },
+      ]);
     });
 
     it('sets the human creator column for a human subject', async () => {
@@ -215,6 +256,23 @@ describe('createRuntimePolicyService', () => {
       expect(ctx.repo.create).not.toHaveBeenCalled();
     });
 
+    it('rejects invalid shell command rules before writing anything', async () => {
+      await expect(
+        ctx.service.create({
+          teamId: TEAM_ID,
+          name: 'ci',
+          tools: [],
+          shellCommands: [
+            {
+              argvPrefix: ['git', 'diff\npush'],
+            },
+          ],
+          subject: AGENT_SUBJECT,
+        }),
+      ).rejects.toMatchObject({ statusCode: 400 });
+      expect(ctx.repo.create).not.toHaveBeenCalled();
+    });
+
     it('rejects an empty name', async () => {
       await expect(
         ctx.service.create({
@@ -228,26 +286,45 @@ describe('createRuntimePolicyService', () => {
   });
 
   describe('update', () => {
-    it('patches name and diffs tool edges', async () => {
+    it('locks and atomically patches tool and shell-command edges', async () => {
       ctx.repo.findByIdForTeam.mockResolvedValue(policyRow());
       ctx.repo.update.mockResolvedValue(policyRow({ name: 'ci-2' }));
       ctx.reader.listRuntimePolicyTools.mockResolvedValue(['gh']);
+      ctx.reader.listRuntimePolicyShellCommands.mockResolvedValue([
+        'v1/git/diff',
+      ]);
 
       const result = await ctx.service.update(
         'pol-1',
-        { name: 'ci-2', addTools: ['gh'], removeTools: ['git'] },
+        {
+          name: 'ci-2',
+          addTools: ['gh'],
+          removeTools: ['git'],
+          addShellCommands: [{ argvPrefix: ['gh', 'pr', 'view'] }],
+          removeShellCommands: [{ argvPrefix: ['git', 'diff'] }],
+        },
         { teamId: TEAM_ID, subject: AGENT_SUBJECT },
       );
 
+      expect(ctx.transactionRunner.runInTransaction).toHaveBeenCalledTimes(1);
+      expect(ctx.repo.lockRuntimePolicy).toHaveBeenCalledWith('pol-1');
       expect(ctx.repo.update).toHaveBeenCalledWith('pol-1', TEAM_ID, {
         name: 'ci-2',
       });
       expect(ctx.writer.writeRuntimePolicyEdges).toHaveBeenCalledWith('pol-1', {
         addTools: ['gh'],
         removeTools: ['git'],
+        addShellCommands: ['v1/gh/pr/view'],
+        removeShellCommands: ['v1/git/diff'],
       });
+      expect(ctx.repo.update.mock.invocationCallOrder[0]).toBeLessThan(
+        ctx.writer.writeRuntimePolicyEdges.mock.invocationCallOrder[0],
+      );
       expect(result.name).toBe('ci-2');
       expect(result.tools).toEqual(['gh']);
+      expect(result.shellCommands).toEqual([
+        { argvPrefix: ['gh', 'pr', 'view'] },
+      ]);
     });
 
     it('throws not-found for a policy outside the team', async () => {
@@ -366,14 +443,21 @@ describe('createRuntimePolicyService', () => {
   });
 
   describe('get / list', () => {
-    it('get returns the policy with its tools', async () => {
+    it('get returns the policy with its tools and decoded shell commands', async () => {
       ctx.repo.findByIdForTeam.mockResolvedValue(policyRow());
       ctx.reader.listRuntimePolicyTools.mockResolvedValue(['git']);
+      ctx.reader.listRuntimePolicyShellCommands.mockResolvedValue([
+        'v1/gh/pr/view',
+      ]);
       const result = await ctx.service.get('pol-1', {
         teamId: TEAM_ID,
         subject: AGENT_SUBJECT,
       });
-      expect(result).toMatchObject({ id: 'pol-1', tools: ['git'] });
+      expect(result).toMatchObject({
+        id: 'pol-1',
+        tools: ['git'],
+        shellCommands: [{ argvPrefix: ['gh', 'pr', 'view'] }],
+      });
     });
 
     it('list maps rows without expanding tools', async () => {

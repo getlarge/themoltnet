@@ -135,4 +135,48 @@ describe('RelationshipReader', () => {
       ).resolves.toBe(false);
     });
   });
+
+  describe('listRuntimePolicyGrants', () => {
+    it('batches many policy grants into one read per relation', async () => {
+      mockRelationshipApi.getRelationships
+        .mockResolvedValueOnce({
+          relation_tuples: [
+            {
+              object: 'policy-1',
+              subject_set: { object: 'git' },
+            },
+            {
+              object: 'other-policy',
+              subject_set: { object: 'curl' },
+            },
+          ],
+        })
+        .mockResolvedValueOnce({
+          relation_tuples: [
+            {
+              object: 'policy-2',
+              subject_set: { object: 'v1/gh/pr/view' },
+            },
+          ],
+        });
+
+      await expect(
+        reader.listRuntimePolicyGrants?.(['policy-1', 'policy-2']),
+      ).resolves.toEqual({
+        tools: ['git'],
+        shellCommands: ['v1/gh/pr/view'],
+      });
+      expect(mockRelationshipApi.getRelationships).toHaveBeenCalledTimes(2);
+      expect(mockRelationshipApi.getRelationships).toHaveBeenCalledWith({
+        namespace: KetoNamespace.RuntimePolicy,
+        relation: 'tool',
+        pageToken: undefined,
+      });
+      expect(mockRelationshipApi.getRelationships).toHaveBeenCalledWith({
+        namespace: KetoNamespace.RuntimePolicy,
+        relation: 'command',
+        pageToken: undefined,
+      });
+    });
+  });
 });

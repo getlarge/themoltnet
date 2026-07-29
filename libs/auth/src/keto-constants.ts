@@ -15,6 +15,7 @@ export enum KetoNamespace {
   Human = 'Human',
   RuntimePolicy = 'RuntimePolicy',
   RuntimeProfile = 'RuntimeProfile',
+  ShellCommand = 'ShellCommand',
   Task = 'Task',
   Team = 'Team',
   Tool = 'Tool',
@@ -139,8 +140,10 @@ export enum RuntimeProfileRelation {
  * A policy is owned by a team and grants a set of tools:
  *   RuntimePolicy:{policyId}#team@Team:{teamId}
  *   RuntimePolicy:{policyId}#tool@Tool:{toolName}
+ *   RuntimePolicy:{policyId}#command@ShellCommand:{encodedPrefix}
  */
 export enum RuntimePolicyRelation {
+  Command = 'command',
   Team = 'team',
   Tool = 'tool',
 }

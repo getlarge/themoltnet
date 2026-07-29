@@ -26,6 +26,9 @@ export {
   HumanPermission,
   HumanRelation,
   KetoNamespace,
+  RuntimePolicyPermission,
+  RuntimePolicyRelation,
+  RuntimeProfileRelation,
   TaskPermission,
   TaskRelation,
   TeamPermission,
@@ -85,6 +88,19 @@ export {
   type SessionResolver,
   type SessionResolverConfig,
 } from './session-resolver.js';
+export {
+  compareShellCommandRules,
+  decodeShellCommandIdentifier,
+  encodeShellCommandRule,
+  MAX_SHELL_COMMAND_IDENTIFIER_BYTES,
+  MAX_SHELL_COMMAND_TOKEN_CHARACTERS,
+  MAX_SHELL_COMMAND_TOKENS,
+  MIN_SHELL_COMMAND_TOKENS,
+  normalizeShellCommandRules,
+  SHELL_COMMAND_ENCODING_VERSION,
+  ShellCommandIdentifierError,
+  type ShellCommandRule,
+} from './shell-command.js';
 export type { TeamInviteRole, TeamRole } from './team-role.js';
 export {
   highestTeamRole,

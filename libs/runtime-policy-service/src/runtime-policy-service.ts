@@ -3,6 +3,13 @@ import type {
   PermissionChecker,
   RelationshipReader,
   RelationshipWriter,
+  ShellCommandRule,
+} from '@moltnet/auth';
+import {
+  decodeShellCommandIdentifier,
+  encodeShellCommandRule,
+  normalizeShellCommandRules,
+  ShellCommandIdentifierError,
 } from '@moltnet/auth';
 import type {
   RuntimePolicy as RuntimePolicyRow,
@@ -38,11 +45,13 @@ export interface RuntimePolicy {
 
 export interface RuntimePolicyWithTools extends RuntimePolicy {
   tools: string[];
+  shellCommands: ShellCommandRule[];
 }
 
 export interface AllowedTools {
   enforcement: ToolEnforcement;
   allowedTools: string[];
+  allowedShellCommands: ShellCommandRule[];
 }
 
 export interface RuntimePolicyServiceDeps {
@@ -58,6 +67,7 @@ export interface CreateRuntimePolicyInput {
   name: string;
   description?: string;
   tools: string[];
+  shellCommands?: ShellCommandRule[];
   subject: RuntimePolicySubject;
 }
 
@@ -71,6 +81,8 @@ export interface UpdateRuntimePolicyPatch {
   description?: string | null;
   addTools?: string[];
   removeTools?: string[];
+  addShellCommands?: ShellCommandRule[];
+  removeShellCommands?: ShellCommandRule[];
 }
 
 export interface ResolveAllowedToolsInput {
@@ -91,17 +103,49 @@ function toRuntimePolicy(row: RuntimePolicyRow): RuntimePolicy {
 
 /** Trim + de-dupe tool names and reject any that fail the name charset. */
 function normalizeToolNames(tools: readonly string[], field: string): string[] {
+  const containsNewline = tools.filter((tool) => /[\r\n]/.test(tool));
   const cleaned = [...new Set(tools.map((tool) => tool.trim()))].filter(
     Boolean,
   );
-  const invalid = cleaned.filter((tool) => !TOOL_NAME_RE.test(tool));
+  const invalid = [
+    ...new Set([
+      ...containsNewline,
+      ...cleaned.filter((tool) => !TOOL_NAME_RE.test(tool)),
+    ]),
+  ];
   if (invalid.length > 0) {
     throw createValidationProblem(
       [{ field, message: `Invalid tool name(s): ${invalid.join(', ')}` }],
       'Invalid tool names',
     );
   }
-  return cleaned;
+  return cleaned.sort();
+}
+
+function normalizeShellCommands(
+  rules: readonly ShellCommandRule[],
+  field: string,
+): ShellCommandRule[] {
+  try {
+    return normalizeShellCommandRules(rules);
+  } catch (error) {
+    if (!(error instanceof ShellCommandIdentifierError)) throw error;
+    throw createValidationProblem(
+      [{ field, message: error.message }],
+      'Invalid shell commands',
+    );
+  }
+}
+
+function decodeStoredShellCommands(
+  identifiers: readonly string[],
+): ShellCommandRule[] {
+  // Malformed Keto objects are authorization data corruption. Propagate the
+  // decoder error so resolution fails closed rather than silently dropping a
+  // grant.
+  return normalizeShellCommandRules(
+    identifiers.map(decodeShellCommandIdentifier),
+  );
 }
 
 function requireName(name: string): string {
@@ -134,6 +178,28 @@ function normalizeDescription(
 }
 
 export function createRuntimePolicyService(deps: RuntimePolicyServiceDeps) {
+  async function readPolicyGrants(policyIds: readonly string[]): Promise<{
+    tools: string[];
+    shellCommands: string[];
+  }> {
+    if (deps.relationshipReader.listRuntimePolicyGrants) {
+      return deps.relationshipReader.listRuntimePolicyGrants(policyIds);
+    }
+    const grants = await Promise.all(
+      policyIds.map(async (policyId) => {
+        const [tools, shellCommands] = await Promise.all([
+          deps.relationshipReader.listRuntimePolicyTools(policyId),
+          deps.relationshipReader.listRuntimePolicyShellCommands(policyId),
+        ]);
+        return { tools, shellCommands };
+      }),
+    );
+    return {
+      tools: grants.flatMap((grant) => grant.tools),
+      shellCommands: grants.flatMap((grant) => grant.shellCommands),
+    };
+  }
+
   async function assertCanManageRuntime(
     subject: RuntimePolicySubject,
     teamId: string,
@@ -163,6 +229,10 @@ export function createRuntimePolicyService(deps: RuntimePolicyServiceDeps) {
       const name = requireName(input.name);
       const description = normalizeDescription(input.description);
       const tools = normalizeToolNames(input.tools, 'tools');
+      const shellCommands = normalizeShellCommands(
+        input.shellCommands ?? [],
+        'shellCommands',
+      );
 
       const creator =
         input.subject.subjectType === 'agent'
@@ -179,9 +249,14 @@ export function createRuntimePolicyService(deps: RuntimePolicyServiceDeps) {
       await deps.relationshipWriter.writeRuntimePolicyEdges(row.id, {
         teamId: input.teamId,
         addTools: tools,
+        ...(shellCommands.length > 0
+          ? {
+              addShellCommands: shellCommands.map(encodeShellCommandRule),
+            }
+          : {}),
       });
 
-      return { ...toRuntimePolicy(row), tools };
+      return { ...toRuntimePolicy(row), tools, shellCommands };
     },
 
     async list(input: TeamScopedInput): Promise<RuntimePolicy[]> {
@@ -196,10 +271,15 @@ export function createRuntimePolicyService(deps: RuntimePolicyServiceDeps) {
     ): Promise<RuntimePolicyWithTools> {
       await assertCanManageRuntime(input.subject, input.teamId);
       const row = await requirePolicyForTeam(id, input.teamId);
-      const tools = await deps.relationshipReader.listRuntimePolicyTools(
-        row.id,
-      );
-      return { ...toRuntimePolicy(row), tools };
+      const [tools, commandIds] = await Promise.all([
+        deps.relationshipReader.listRuntimePolicyTools(row.id),
+        deps.relationshipReader.listRuntimePolicyShellCommands(row.id),
+      ]);
+      return {
+        ...toRuntimePolicy(row),
+        tools,
+        shellCommands: decodeStoredShellCommands(commandIds),
+      };
     },
 
     async update(
@@ -208,35 +288,88 @@ export function createRuntimePolicyService(deps: RuntimePolicyServiceDeps) {
       input: TeamScopedInput,
     ): Promise<RuntimePolicyWithTools> {
       await assertCanManageRuntime(input.subject, input.teamId);
-      let row = await requirePolicyForTeam(id, input.teamId);
-
       const sqlPatch: { name?: string; description?: string | null } = {};
       if (patch.name !== undefined) sqlPatch.name = requireName(patch.name);
       if (patch.description !== undefined) {
         sqlPatch.description = normalizeDescription(patch.description);
       }
-      if (Object.keys(sqlPatch).length > 0) {
-        const updated = await deps.runtimePolicyRepository.update(
-          id,
-          input.teamId,
-          sqlPatch,
-        );
-        if (!updated) throw createProblem('not-found');
-        row = updated;
-      }
-
       const removeTools = normalizeToolNames(
         patch.removeTools ?? [],
         'removeTools',
       );
       const addTools = normalizeToolNames(patch.addTools ?? [], 'addTools');
-      await deps.relationshipWriter.writeRuntimePolicyEdges(id, {
-        addTools,
-        removeTools,
-      });
+      const removeShellCommands = normalizeShellCommands(
+        patch.removeShellCommands ?? [],
+        'removeShellCommands',
+      );
+      const addShellCommands = normalizeShellCommands(
+        patch.addShellCommands ?? [],
+        'addShellCommands',
+      );
 
-      const tools = await deps.relationshipReader.listRuntimePolicyTools(id);
-      return { ...toRuntimePolicy(row), tools };
+      return deps.transactionRunner.runInTransaction(
+        async () => {
+          await deps.runtimePolicyRepository.lockRuntimePolicy(id);
+          let row = await requirePolicyForTeam(id, input.teamId);
+          const [currentTools, currentCommandIds] = await Promise.all([
+            deps.relationshipReader.listRuntimePolicyTools(id),
+            deps.relationshipReader.listRuntimePolicyShellCommands(id),
+          ]);
+          const removedCommandIds = new Set(
+            removeShellCommands.map(encodeShellCommandRule),
+          );
+          const finalTools = [
+            ...new Set([
+              ...currentTools.filter((tool) => !removeTools.includes(tool)),
+              ...addTools,
+            ]),
+          ].sort();
+          const finalShellCommands = normalizeShellCommandRules([
+            ...decodeStoredShellCommands(currentCommandIds).filter(
+              (rule) => !removedCommandIds.has(encodeShellCommandRule(rule)),
+            ),
+            ...addShellCommands,
+          ]);
+
+          if (Object.keys(sqlPatch).length > 0) {
+            const updated = await deps.runtimePolicyRepository.update(
+              id,
+              input.teamId,
+              sqlPatch,
+            );
+            if (!updated) throw createProblem('not-found');
+            row = updated;
+          }
+
+          // Keep metadata uncommitted until Keto accepts the grant delta. A
+          // Keto failure rejects the transaction so the SQL update rolls back.
+          await deps.relationshipWriter.writeRuntimePolicyEdges(id, {
+            addTools,
+            removeTools,
+            ...(addShellCommands.length > 0
+              ? {
+                  addShellCommands: addShellCommands.map(
+                    encodeShellCommandRule,
+                  ),
+                }
+              : {}),
+            ...(removeShellCommands.length > 0
+              ? {
+                  removeShellCommands: removeShellCommands.map(
+                    encodeShellCommandRule,
+                  ),
+                }
+              : {}),
+          });
+
+          return {
+            ...toRuntimePolicy(row),
+            tools: finalTools,
+            shellCommands: finalShellCommands,
+          };
+        },
+        { name: 'updateRuntimePolicy' },
+      );
     },
 
     async delete(id: string, input: TeamScopedInput): Promise<void> {
@@ -348,13 +481,12 @@ export function createRuntimePolicyService(deps: RuntimePolicyServiceDeps) {
         await deps.relationshipReader.listRuntimeProfilePolicies(
           input.profileId,
         );
-      const toolLists = await Promise.all(
-        policyIds.map((policyId) =>
-          deps.relationshipReader.listRuntimePolicyTools(policyId),
-        ),
+      const grants = await readPolicyGrants(policyIds);
+      const allowedTools = [...new Set(grants.tools)].sort();
+      const allowedShellCommands = decodeStoredShellCommands(
+        grants.shellCommands,
       );
-      const allowedTools = [...new Set(toolLists.flat())].sort();
-      return { enforcement, allowedTools };
+      return { enforcement, allowedTools, allowedShellCommands };
     },
   };
 }
