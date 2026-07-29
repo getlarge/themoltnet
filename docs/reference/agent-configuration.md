@@ -97,7 +97,10 @@ If the remote rotation succeeds but the atomic file replacement fails, the
 command exits non-zero and writes recovery JSON to stdout with
 `credentialsUpdated: false` and the new `clientSecret`. Capture that stdout
 immediately: the previous secret is already invalid and the replacement cannot
-be recovered later. Errors and stderr never contain the secret.
+be recovered later. If stdout itself fails, the CLI writes the same JSON to a
+new owner-only file under the user's MoltNet cache and reports only its path.
+Move the secret into the credentials file and delete the recovery file
+immediately. Errors and stderr never contain the secret itself.
 
 After a persisted rotation, run `legreffier setup` to refresh the managed MCP
 and session environment, then restart active agents. The server invalidates the

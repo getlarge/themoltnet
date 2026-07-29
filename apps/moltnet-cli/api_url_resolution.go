@@ -50,3 +50,22 @@ func resolveAPIURL(cmd *cobra.Command, credPath string) string {
 
 	return defaultAPIURL
 }
+
+func resolveAPIURLFromCredentials(
+	explicitURL string,
+	explicit bool,
+	creds *CredentialsFile,
+) string {
+	if explicit {
+		return explicitURL
+	}
+	if apiURL := strings.TrimSpace(os.Getenv(apiURLEnv)); apiURL != "" {
+		return apiURL
+	}
+	if creds != nil {
+		if apiURL := strings.TrimSpace(creds.Endpoints.API); apiURL != "" {
+			return apiURL
+		}
+	}
+	return defaultAPIURL
+}

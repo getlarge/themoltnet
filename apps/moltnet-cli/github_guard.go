@@ -114,19 +114,10 @@ func currentGitHubGuardContext() (githubGuardContext, bool) {
 		return githubGuardContext{}, false
 	}
 
-	gitConfigPath := configured
-	if !filepath.IsAbs(gitConfigPath) {
-		ctx, cancel := context.WithTimeout(context.Background(), githubGuardGitTimeout)
-		defer cancel()
-		cmd := exec.CommandContext(ctx, "git", "rev-parse", "--show-toplevel")
-		cmd.Stderr = io.Discard
-		root, err := cmd.Output()
-		if err != nil {
-			return githubGuardContext{}, false
-		}
-		gitConfigPath = filepath.Join(strings.TrimSpace(string(root)), gitConfigPath)
+	gitConfigPath, err := resolveGitConfigGlobalPath(configured)
+	if err != nil {
+		return githubGuardContext{}, false
 	}
-	gitConfigPath = filepath.Clean(gitConfigPath)
 	if !isMoltnetGitConfig(gitConfigPath) {
 		return githubGuardContext{}, false
 	}
@@ -146,6 +137,27 @@ func currentGitHubGuardContext() (githubGuardContext, bool) {
 		AuthorshipMode:  authorshipMode,
 		Strict:          envEnabled("MOLTNET_GITHUB_GUARD_STRICT"),
 	}, true
+}
+
+func resolveGitConfigGlobalPath(configured string) (string, error) {
+	if filepath.IsAbs(configured) {
+		return filepath.Clean(configured), nil
+	}
+
+	ctx, cancel := context.WithTimeout(
+		context.Background(),
+		githubGuardGitTimeout,
+	)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "git", "rev-parse", "--show-toplevel")
+	cmd.Stderr = io.Discard
+	root, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Clean(
+		filepath.Join(strings.TrimSpace(string(root)), configured),
+	), nil
 }
 
 func envEnabled(name string) bool {

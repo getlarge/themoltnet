@@ -14,6 +14,8 @@ import (
 
 const credentialsRotationRecoveryNotice = "The server rotated the secret, but the credentials file was not updated. Capture stdout now; it contains the only recovery copy."
 
+const credentialsRecoveryFileNotice = "Recovery JSON was written to %s because stdout failed. Move the secret into the credentials file, then delete the recovery file immediately."
+
 type agentsCredentialsRotateOpts struct {
 	apiURL         string
 	apiURLExplicit bool
@@ -24,7 +26,9 @@ type agentsCredentialsRotateOpts struct {
 	out            io.Writer
 	errOut         io.Writer
 
-	writeCredentials func(string, []byte) error
+	preflightCredentials func(string) error
+	writeCredentials     func(string, []byte) error
+	writeRecoveryFile    func(rotateCredentialsOutput) (string, error)
 }
 
 type rotateCredentialsOutput struct {
@@ -52,14 +56,18 @@ func runAgentsCredentialsRotateCmd(opts agentsCredentialsRotateOpts) error {
 			"credentials missing client_id or client_secret — run 'moltnet register'",
 		)
 	}
-	if !opts.apiURLExplicit &&
-		strings.TrimSpace(os.Getenv(apiURLEnv)) == "" &&
-		strings.TrimSpace(creds.Endpoints.API) != "" {
-		opts.apiURL = creds.Endpoints.API
-	}
+	opts.apiURL = resolveAPIURLFromCredentials(
+		opts.apiURL,
+		opts.apiURLExplicit,
+		creds,
+	)
 
 	if !opts.noUpdate {
-		if err := preflightCredentialsWrite(credentialsPath); err != nil {
+		preflightCredentials := opts.preflightCredentials
+		if preflightCredentials == nil {
+			preflightCredentials = preflightCredentialsWrite
+		}
+		if err := preflightCredentials(credentialsPath); err != nil {
 			return fmt.Errorf(
 				"credentials file is not safely writable; rotation was not attempted: %w",
 				err,
@@ -133,9 +141,8 @@ func runAgentsCredentialsRotateWithClient(
 	}
 
 	output := rotateCredentialsOutput{
-		ClientID:           rotated.ClientId,
-		CredentialsPath:    credentialsPath,
-		CredentialsUpdated: false,
+		ClientID:        rotated.ClientId,
+		CredentialsPath: credentialsPath,
 	}
 	if rotated.ClientId == "" || rotated.ClientId != expectedClientID {
 		return emitCredentialsRecovery(opts, output, rotated.ClientSecret)
@@ -143,7 +150,10 @@ func runAgentsCredentialsRotateWithClient(
 
 	if opts.noUpdate {
 		output.ClientSecret = rotated.ClientSecret
-		return printJSONTo(opts.out, output)
+		if err := printJSONTo(opts.out, output); err != nil {
+			return emitCredentialsRecoveryFile(opts, output)
+		}
+		return nil
 	}
 
 	updatedDocument, err := updateCredentialsDocument(
@@ -186,9 +196,7 @@ func emitCredentialsRecovery(
 ) error {
 	output.ClientSecret = clientSecret
 	if err := printJSONTo(opts.out, output); err != nil {
-		return fmt.Errorf(
-			"agents credentials rotate: local persistence and recovery output failed",
-		)
+		return emitCredentialsRecoveryFile(opts, output)
 	}
 	if opts.errOut != nil {
 		fmt.Fprintln(opts.errOut, credentialsRotationRecoveryNotice)
@@ -196,6 +204,33 @@ func emitCredentialsRecovery(
 	return fmt.Errorf(
 		"agents credentials rotate: server rotation succeeded but local credentials were not updated for %s; recover the new secret from stdout",
 		output.CredentialsPath,
+	)
+}
+
+func emitCredentialsRecoveryFile(
+	opts agentsCredentialsRotateOpts,
+	output rotateCredentialsOutput,
+) error {
+	writeRecoveryFile := opts.writeRecoveryFile
+	if writeRecoveryFile == nil {
+		writeRecoveryFile = writeCredentialsRecoveryFile
+	}
+	recoveryPath, err := writeRecoveryFile(output)
+	if err != nil {
+		return fmt.Errorf(
+			"agents credentials rotate: local persistence, recovery output, and protected recovery file all failed",
+		)
+	}
+	if opts.errOut != nil {
+		fmt.Fprintf(
+			opts.errOut,
+			credentialsRecoveryFileNotice+"\n",
+			recoveryPath,
+		)
+	}
+	return fmt.Errorf(
+		"agents credentials rotate: server rotation succeeded but recovery output failed; recover the new secret from %s",
+		recoveryPath,
 	)
 }
 
@@ -207,7 +242,7 @@ func resolveCredentialsPath(explicit string) (string, error) {
 		return absolutePath(value)
 	}
 	if gitConfig := strings.TrimSpace(os.Getenv("GIT_CONFIG_GLOBAL")); gitConfig != "" {
-		configPath, err := absolutePath(gitConfig)
+		configPath, err := resolveGitConfigGlobalPath(gitConfig)
 		if err != nil {
 			return "", fmt.Errorf("resolve GIT_CONFIG_GLOBAL: %w", err)
 		}
@@ -285,8 +320,13 @@ func updateCredentialsDocument(
 	clientID string,
 	clientSecret string,
 ) ([]byte, error) {
+	updated := make(map[string]json.RawMessage, len(document))
+	for key, value := range document {
+		updated[key] = value
+	}
+
 	var oauth2 map[string]json.RawMessage
-	if raw, ok := document["oauth2"]; ok {
+	if raw, ok := updated["oauth2"]; ok {
 		if err := json.Unmarshal(raw, &oauth2); err != nil {
 			return nil, fmt.Errorf("parse oauth2 credentials: %w", err)
 		}
@@ -304,11 +344,11 @@ func updateCredentialsDocument(
 	}
 	oauth2["client_id"] = clientIDJSON
 	oauth2["client_secret"] = clientSecretJSON
-	document["oauth2"], err = json.Marshal(oauth2)
+	updated["oauth2"], err = json.Marshal(oauth2)
 	if err != nil {
 		return nil, fmt.Errorf("marshal oauth2 credentials: %w", err)
 	}
-	data, err := json.MarshalIndent(document, "", "  ")
+	data, err := json.MarshalIndent(updated, "", "  ")
 	if err != nil {
 		return nil, fmt.Errorf("marshal credentials: %w", err)
 	}
@@ -316,30 +356,69 @@ func updateCredentialsDocument(
 }
 
 func writeCredentialsAtomic(path string, data []byte) error {
-	file, err := os.CreateTemp(filepath.Dir(path), ".moltnet-credentials-*")
-	if err != nil {
-		return fmt.Errorf("create replacement file: %w", err)
-	}
-	tempPath := file.Name()
-	defer os.Remove(tempPath)
-
-	if err := file.Chmod(0o600); err != nil {
-		_ = file.Close()
-		return fmt.Errorf("secure replacement file: %w", err)
-	}
-	if _, err := file.Write(data); err != nil {
-		_ = file.Close()
-		return fmt.Errorf("write replacement file: %w", err)
-	}
-	if err := file.Sync(); err != nil {
-		_ = file.Close()
-		return fmt.Errorf("sync replacement file: %w", err)
-	}
-	if err := file.Close(); err != nil {
-		return fmt.Errorf("close replacement file: %w", err)
-	}
-	if err := os.Rename(tempPath, path); err != nil {
+	if err := writeFileAtomic(
+		path,
+		data,
+		".moltnet-credentials-*",
+	); err != nil {
 		return fmt.Errorf("replace credentials file: %w", err)
 	}
 	return nil
+}
+
+func writeCredentialsRecoveryFile(
+	output rotateCredentialsOutput,
+) (string, error) {
+	cacheDir, err := os.UserCacheDir()
+	if err != nil {
+		return "", err
+	}
+	recoveryDir := filepath.Join(cacheDir, "moltnet", "recovery")
+	return writeCredentialsRecoveryFileToDir(recoveryDir, output)
+}
+
+func writeCredentialsRecoveryFileToDir(
+	recoveryDir string,
+	output rotateCredentialsOutput,
+) (path string, err error) {
+	if err := os.MkdirAll(recoveryDir, 0o700); err != nil {
+		return "", err
+	}
+	if err := os.Chmod(recoveryDir, 0o700); err != nil {
+		return "", err
+	}
+
+	file, err := os.CreateTemp(
+		recoveryDir,
+		"client-secret-recovery-*.json",
+	)
+	if err != nil {
+		return "", err
+	}
+	recoveryPath := file.Name()
+	keep := false
+	defer func() {
+		if !keep {
+			_ = os.Remove(recoveryPath)
+		}
+	}()
+
+	if err := file.Chmod(privateFileMode); err != nil {
+		_ = file.Close()
+		return "", err
+	}
+	if err := json.NewEncoder(file).Encode(output); err != nil {
+		_ = file.Close()
+		return "", err
+	}
+	if err := file.Sync(); err != nil {
+		_ = file.Close()
+		return "", err
+	}
+	if err := file.Close(); err != nil {
+		return "", err
+	}
+	syncDirectoryBestEffort(recoveryDir)
+	keep = true
+	return recoveryPath, nil
 }

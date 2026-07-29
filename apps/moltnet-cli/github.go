@@ -342,33 +342,6 @@ func getCachedInstallationTokenDetailsWithFailureTTL(
 	return details, nil
 }
 
-func writeJSONAtomic(path string, value any) error {
-	dir := filepath.Dir(path)
-	file, err := os.CreateTemp(dir, ".gh-token-cache-*")
-	if err != nil {
-		return err
-	}
-	tempPath := file.Name()
-	defer os.Remove(tempPath)
-
-	if err := file.Chmod(0o600); err != nil {
-		file.Close()
-		return err
-	}
-	if err := json.NewEncoder(file).Encode(value); err != nil {
-		file.Close()
-		return err
-	}
-	if err := file.Sync(); err != nil {
-		file.Close()
-		return err
-	}
-	if err := file.Close(); err != nil {
-		return err
-	}
-	return os.Rename(tempPath, path)
-}
-
 // getInstallationToken exchanges a GitHub App JWT for an installation token.
 // Returns the token string, its expiry (RFC3339), and any error.
 func getInstallationToken(appID, privateKeyPath, installationID string) (string, string, error) {
