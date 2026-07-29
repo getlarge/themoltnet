@@ -33,7 +33,7 @@ import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 const LIVE_LLM_FLAG = 'MOLTNET_AGENT_DAEMON_LIVE_LLM_E2E';
 const LIVE_PROVIDER = 'ollama-cloud';
 const LIVE_MODEL =
-  process.env.MOLTNET_AGENT_DAEMON_LIVE_MODEL ?? 'qwen3-coder:480b-cloud';
+  process.env.MOLTNET_AGENT_DAEMON_LIVE_MODEL ?? 'gpt-oss:120b-cloud';
 
 const describeLive = describe.skipIf(process.env[LIVE_LLM_FLAG] !== '1');
 const CORPUS_ROOT = join(import.meta.dirname, '../../..', 'evals-v2');
