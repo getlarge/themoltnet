@@ -2782,6 +2782,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "allowed_shell_commands": {
+          "name": "allowed_shell_commands",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -5677,22 +5683,6 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "task_attempts_lease_idx": {
-          "name": "task_attempts_lease_idx",
-          "columns": [
-            {
-              "expression": "lease_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "lease_id IS NOT NULL",
           "concurrently": false,
           "method": "btree",
           "with": {}

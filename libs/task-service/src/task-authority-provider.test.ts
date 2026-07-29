@@ -28,6 +28,7 @@ const canonicalSnapshot = canonicalEffectivePolicySnapshot({
   runtimeKind: 'gondolin_pi',
   enforcement: 'enforce',
   allowedTools: ['git', 'read'],
+  allowedShellCommands: [{ argvPrefix: ['git', 'diff'] }],
 });
 const SNAPSHOT_HASH = hashEffectivePolicySnapshot(canonicalSnapshot);
 
@@ -66,6 +67,7 @@ function snapshot(
     runtimeKind: canonicalSnapshot.runtimeKind,
     enforcement: canonicalSnapshot.enforcement,
     allowedTools: canonicalSnapshot.allowedTools,
+    allowedShellCommands: canonicalSnapshot.allowedShellCommands,
     createdAt: NOW,
     ...overrides,
   };
@@ -283,6 +285,19 @@ describe('MoltNet TaskAuthorityProvider', () => {
     );
   });
 
+  it('denies structurally invalid pinned shell-command authority', async () => {
+    await expectDenied(
+      setup({
+        snapshot: snapshot({
+          allowedShellCommands: [
+            { argvPrefix: ['git'] },
+          ] as unknown as RuntimePolicySnapshot['allowedShellCommands'],
+        }),
+      }),
+      'authority_binding_invalid',
+    );
+  });
+
   it('denies a snapshot that does not match the pinned executor runtime', async () => {
     await expectDenied(
       setup({
@@ -333,6 +348,14 @@ describe('MoltNet TaskAuthorityProvider', () => {
       setup({ snapshot: snapshot({ allowedTools: ['write'] }) }),
       'snapshot_hash_mismatch',
     );
+    await expectDenied(
+      setup({
+        snapshot: snapshot({
+          allowedShellCommands: [{ argvPrefix: ['git', 'status'] }],
+        }),
+      }),
+      'snapshot_hash_mismatch',
+    );
   });
 
   it('denies a self-consistent snapshot that differs from the attempt pin', async () => {
@@ -340,6 +363,7 @@ describe('MoltNet TaskAuthorityProvider', () => {
       runtimeKind: 'gondolin_pi',
       enforcement: 'watch',
       allowedTools: ['read'],
+      allowedShellCommands: [],
     });
     const otherHash = hashEffectivePolicySnapshot(otherCanonical);
 
@@ -351,6 +375,7 @@ describe('MoltNet TaskAuthorityProvider', () => {
           runtimeKind: otherCanonical.runtimeKind,
           enforcement: otherCanonical.enforcement,
           allowedTools: otherCanonical.allowedTools,
+          allowedShellCommands: otherCanonical.allowedShellCommands,
         }),
       }),
       'snapshot_hash_mismatch',

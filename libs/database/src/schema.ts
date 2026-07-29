@@ -1648,9 +1648,6 @@ export const taskAttempts = pgTable(
       .on(table.completedExecutorFingerprint)
       .where(sql`completed_executor_fingerprint IS NOT NULL`),
     uniqueIndex('task_attempts_workflow_idx').on(table.workflowId),
-    uniqueIndex('task_attempts_lease_idx')
-      .on(table.leaseId)
-      .where(sql`lease_id IS NOT NULL`),
     check(
       'task_attempts_authority_binding_all_or_none',
       sql`(

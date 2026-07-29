@@ -221,6 +221,7 @@ describe('Tool-policy enforcement (daemon)', () => {
     expect(resolved).toEqual({
       enforcement: 'enforce',
       allowedTools: new Set(),
+      allowedShellCommands: [],
       degraded: true,
     });
   });

@@ -34,7 +34,9 @@ export function createRuntimePolicySnapshotRepository(db: Database) {
       existing.runtimeKind === input.runtimeKind &&
       existing.enforcement === input.enforcement &&
       JSON.stringify(existing.allowedTools) ===
-        JSON.stringify(input.allowedTools);
+        JSON.stringify(input.allowedTools) &&
+      JSON.stringify(existing.allowedShellCommands) ===
+        JSON.stringify(input.allowedShellCommands);
     if (!sameContent) {
       throw new Error(
         `Runtime policy snapshot hash collision for ${input.hash}`,

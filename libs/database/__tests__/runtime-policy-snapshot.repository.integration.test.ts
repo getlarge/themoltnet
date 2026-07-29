@@ -41,6 +41,7 @@ describe('RuntimePolicySnapshotRepository (integration)', () => {
     runtimeKind: 'gondolin_pi',
     enforcement: 'enforce',
     allowedTools: ['git', 'read'],
+    allowedShellCommands: [{ argvPrefix: ['git', 'diff'] }],
   };
 
   beforeAll(async () => {
@@ -111,6 +112,12 @@ describe('RuntimePolicySnapshotRepository (integration)', () => {
     expect(reused).toEqual(created);
     await expect(
       repo.upsert({ ...snapshot, allowedTools: ['write'] }),
+    ).rejects.toThrow(/hash collision/);
+    await expect(
+      repo.upsert({
+        ...snapshot,
+        allowedShellCommands: [{ argvPrefix: ['git', 'status'] }],
+      }),
     ).rejects.toThrow(/hash collision/);
     await expect(repo.findByHash(snapshot.hash)).resolves.toEqual(created);
   });

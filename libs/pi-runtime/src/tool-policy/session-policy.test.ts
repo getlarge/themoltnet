@@ -115,6 +115,7 @@ describe('resolveSessionToolPolicy', () => {
     vi.mocked(agent.runtimeProfiles.allowedTools).mockResolvedValue({
       enforcement: 'enforce',
       allowedTools: ['git'],
+      allowedShellCommands: [],
       runtimeKind: 'custom_pi',
     });
 
@@ -127,6 +128,7 @@ describe('resolveSessionToolPolicy', () => {
     expect(policy).toEqual({
       enforcement: 'enforce',
       allowedTools: new Set(),
+      allowedShellCommands: [],
       degraded: true,
     });
     expect(logger.warn).toHaveBeenCalledWith(

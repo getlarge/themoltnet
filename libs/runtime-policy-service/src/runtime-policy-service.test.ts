@@ -149,6 +149,32 @@ describe('createRuntimePolicyService', () => {
       expect(ctx.snapshotRepo.upsert).not.toHaveBeenCalled();
     });
 
+    it('rejects a claim-time snapshot when shell command scopes change between reads', async () => {
+      ctx.repo.getProfilePolicyContext.mockResolvedValue({
+        runtimeKind: 'gondolin_pi',
+        revision: 3,
+        enforcement: 'enforce',
+      });
+      ctx.reader.listRuntimeProfilePolicies.mockResolvedValue(['P1']);
+      ctx.reader.listRuntimePolicyTools.mockResolvedValue(['bash']);
+      ctx.reader.listRuntimePolicyShellCommands
+        .mockResolvedValueOnce(['v1/git/diff'])
+        .mockResolvedValueOnce(['v1/git/status']);
+
+      await expect(
+        ctx.service.resolvePinnedAllowedTools({
+          profileId: 'R',
+          teamId: TEAM_ID,
+        }),
+      ).rejects.toMatchObject({
+        statusCode: 409,
+        detail:
+          'Runtime policy changed while claim authority was being resolved',
+      });
+
+      expect(ctx.snapshotRepo.upsert).not.toHaveBeenCalled();
+    });
+
     it('persists the immutable snapshot only for claim-time resolution', async () => {
       ctx.repo.getProfilePolicyContext.mockResolvedValue({
         runtimeKind: 'gondolin_pi',
@@ -170,6 +196,56 @@ describe('createRuntimePolicyService', () => {
           allowedShellCommands: [],
         }),
       );
+      expect(ctx.repo.getProfilePolicyContext).toHaveBeenCalledTimes(2);
+    });
+
+    it('rejects a claim-time snapshot when policy tools change between reads', async () => {
+      ctx.repo.getProfilePolicyContext.mockResolvedValue({
+        runtimeKind: 'gondolin_pi',
+        revision: 3,
+        enforcement: 'enforce',
+      });
+      ctx.reader.listRuntimeProfilePolicies.mockResolvedValue(['P1']);
+      ctx.reader.listRuntimePolicyTools
+        .mockResolvedValueOnce(['git', 'write'])
+        .mockResolvedValueOnce(['git']);
+
+      await expect(
+        ctx.service.resolvePinnedAllowedTools({
+          profileId: 'R',
+          teamId: TEAM_ID,
+        }),
+      ).rejects.toMatchObject({
+        statusCode: 409,
+        detail:
+          'Runtime policy changed while claim authority was being resolved',
+      });
+
+      expect(ctx.snapshotRepo.upsert).not.toHaveBeenCalled();
+    });
+
+    it('rejects a claim-time snapshot when profile context changes between reads', async () => {
+      ctx.repo.getProfilePolicyContext
+        .mockResolvedValueOnce({
+          runtimeKind: 'gondolin_pi',
+          revision: 3,
+          enforcement: 'enforce',
+        })
+        .mockResolvedValueOnce({
+          runtimeKind: 'custom_pi',
+          revision: 4,
+          enforcement: 'watch',
+        });
+      ctx.reader.listRuntimeProfilePolicies.mockResolvedValue([]);
+
+      await expect(
+        ctx.service.resolvePinnedAllowedTools({
+          profileId: 'R',
+          teamId: TEAM_ID,
+        }),
+      ).rejects.toMatchObject({ statusCode: 409 });
+
+      expect(ctx.snapshotRepo.upsert).not.toHaveBeenCalled();
     });
 
     it('returns enforcement + empty tools when no policies are bound', async () => {
@@ -190,7 +266,6 @@ describe('createRuntimePolicyService', () => {
         allowedTools: [],
         allowedShellCommands: [],
         runtimeKind: 'gondolin_pi',
-        capabilityManifestVersion: 'gondolin_pi:v1',
         runtimeProfileRevision: 1,
       });
       expect(result.policySnapshotHash).toMatch(/^sha256:[0-9a-f]{64}$/);
@@ -627,11 +702,16 @@ describe('effective policy snapshot hashing', () => {
       runtimeKind: 'gondolin_pi',
       enforcement: 'enforce',
       allowedTools: ['git', 'read', 'git'],
+      allowedShellCommands: [
+        { argvPrefix: ['git', 'diff'] },
+        { argvPrefix: ['git', 'diff'] },
+      ],
     });
     const second = canonicalEffectivePolicySnapshot({
       runtimeKind: 'gondolin_pi',
       enforcement: 'enforce',
       allowedTools: ['read', 'git'],
+      allowedShellCommands: [{ argvPrefix: ['git', 'diff'] }],
     });
 
     expect(first.allowedTools).toEqual(['git', 'read']);
@@ -639,7 +719,7 @@ describe('effective policy snapshot hashing', () => {
       hashEffectivePolicySnapshot(second),
     );
     expect(hashEffectivePolicySnapshot(first)).toBe(
-      'sha256:3a15f51c2eaf106dcd4268e66e44ff271403f5e7d80d99f4dc1a0c6462cb8c33',
+      'sha256:b7edae997658459ed86632f4d5197676391b39516aca28294241fe179a685a74',
     );
   });
 });

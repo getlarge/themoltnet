@@ -128,11 +128,17 @@ export function createMoltNetTaskAuthorityProvider(
       ) {
         return deny(request, 'authority_binding_invalid');
       }
-      const canonical = canonicalEffectivePolicySnapshot({
-        runtimeKind: snapshot.runtimeKind,
-        enforcement: snapshot.enforcement,
-        allowedTools: snapshot.allowedTools,
-      });
+      let canonical;
+      try {
+        canonical = canonicalEffectivePolicySnapshot({
+          runtimeKind: snapshot.runtimeKind,
+          enforcement: snapshot.enforcement,
+          allowedTools: snapshot.allowedTools,
+          allowedShellCommands: snapshot.allowedShellCommands,
+        });
+      } catch {
+        return deny(request, 'authority_binding_invalid');
+      }
       if (
         hashEffectivePolicySnapshot(canonical) !== snapshot.hash ||
         snapshot.hash !== attempt.policySnapshotHash

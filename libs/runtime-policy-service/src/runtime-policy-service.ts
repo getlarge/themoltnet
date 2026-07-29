@@ -260,31 +260,55 @@ export function createRuntimePolicyService(deps: RuntimePolicyServiceDeps) {
     input: ResolveAllowedToolsInput,
     persistSnapshot: boolean,
   ): Promise<AllowedTools> {
-    const profileContext =
-      await deps.runtimePolicyRepository.getProfilePolicyContext(
-        input.profileId,
-        input.teamId,
-      );
-    if (profileContext === null) throw createProblem('not-found');
+    async function readEffectivePolicy() {
+      const profileContext =
+        await deps.runtimePolicyRepository.getProfilePolicyContext(
+          input.profileId,
+          input.teamId,
+        );
+      if (profileContext === null) throw createProblem('not-found');
 
-    const policyIds = await deps.relationshipReader.listRuntimeProfilePolicies(
-      input.profileId,
-    );
-    const grants = await readPolicyGrants(policyIds);
-    const allowedTools = [...new Set(grants.tools)].sort();
-    const allowedShellCommands = decodeStoredShellCommands(
-      grants.shellCommands,
-    );
-    const normalizedAllowedTools = normalizeToolNames(
-      allowedTools,
-      'allowedTools',
-    );
-    const snapshot = canonicalEffectivePolicySnapshot({
-      runtimeKind: profileContext.runtimeKind,
-      enforcement: profileContext.enforcement,
-      allowedTools: normalizedAllowedTools,
-      allowedShellCommands,
-    });
+      const policyIds = [
+        ...new Set(
+          await deps.relationshipReader.listRuntimeProfilePolicies(
+            input.profileId,
+          ),
+        ),
+      ].sort();
+      const grants = await readPolicyGrants(policyIds);
+      const allowedTools = normalizeToolNames(grants.tools, 'allowedTools');
+      const allowedShellCommands = decodeStoredShellCommands(
+        grants.shellCommands,
+      );
+      return {
+        profileContext,
+        snapshot: canonicalEffectivePolicySnapshot({
+          runtimeKind: profileContext.runtimeKind,
+          enforcement: profileContext.enforcement,
+          allowedTools,
+          allowedShellCommands,
+        }),
+      };
+    }
+
+    let resolved = await readEffectivePolicy();
+    if (persistSnapshot) {
+      const confirmation = await readEffectivePolicy();
+      if (
+        resolved.profileContext.revision !==
+          confirmation.profileContext.revision ||
+        canonicalJson(resolved.snapshot) !==
+          canonicalJson(confirmation.snapshot)
+      ) {
+        throw createProblem(
+          'conflict',
+          'Runtime policy changed while claim authority was being resolved',
+        );
+      }
+      resolved = confirmation;
+    }
+
+    const { profileContext, snapshot } = resolved;
     const policySnapshotHash = hashEffectivePolicySnapshot(snapshot);
     if (persistSnapshot) {
       await deps.runtimePolicySnapshotRepository.upsert({
@@ -298,8 +322,8 @@ export function createRuntimePolicyService(deps: RuntimePolicyServiceDeps) {
     }
     return {
       enforcement: profileContext.enforcement,
-      allowedTools: normalizedAllowedTools,
-      allowedShellCommands,
+      allowedTools: snapshot.allowedTools,
+      allowedShellCommands: snapshot.allowedShellCommands,
       runtimeKind: profileContext.runtimeKind,
       runtimeProfileRevision: profileContext.revision,
       policySnapshotHash,
