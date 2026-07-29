@@ -113,6 +113,13 @@ policy require deliberate curation. See
 [Planner curation](./PLANNER-CURATION.md) for the workload contract, profile
 criteria, policy surface, and acceptance learnings.
 
+The planner profile must expose Pi's `read`, `grep`, `write`,
+`moltnet_download_task_artifact`, and `moltnet_upload_task_artifact` tools.
+`write` is limited by the brief to `review-topic-plan.v1.json`; shell and
+checkout access are unnecessary. The planner uploads that file and includes
+the returned task-artifact CID in `submit_freeform_output.artifacts[]`.
+Attempt `outputCid` metadata is not a substitute for this explicit artifact.
+
 ## GitHub Actions
 
 [`multi-lens-review.yml`](../../.github/workflows/multi-lens-review.yml)

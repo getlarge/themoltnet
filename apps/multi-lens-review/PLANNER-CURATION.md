@@ -1,8 +1,10 @@
 # Planner curation
 
-The topic planner is a specialized, read-only classification workload. Its
+The topic planner is a specialized, artifact-only classification workload. Its
 runtime profile, context, and tool policy are part of the review design and
-must be curated deliberately.
+must be curated deliberately. Artifact-only does not mean that every operation
+is read-only: the planner writes one result file in scratch and uploads it as a
+task artifact.
 
 ## Workload
 
@@ -14,7 +16,9 @@ The planner must:
   producer/consumer evidence;
 - group every remaining file into one bounded primary topic;
 - choose only necessary review lanes; and
-- submit exactly one strict `TopicPlan` JSON task artifact.
+- write exactly one strict `TopicPlan` JSON result in scratch, upload it with
+  `moltnet_upload_task_artifact`, and reference the returned CID in
+  `submit_freeform_output.artifacts[]`.
 
 It must not review implementation details, modify a checkout, create commits,
 search a diary, or inspect files from the daemon's mounted repository. The
@@ -46,12 +50,13 @@ ordinary, editable profile context rather than a hidden preset. The runtime
 kernel separately reports the effective tool and shell-command policy, so the
 planner sees both its behavioral contract and its actual capabilities.
 
-The planner runtime policy should be read-only and artifact-focused:
+The planner runtime policy should be artifact-focused:
 
 - allow task facts, exact referenced-artifact download, read/search access to
-  the downloaded files inside the scratch workspace, and one structured output
-  submission;
-- deny shell, checkout reads, writes, diary mutations, GitHub mutations,
+  the downloaded files inside the scratch workspace, `write` for the single
+  `review-topic-plan.v1.json` result, task-artifact upload, and one structured
+  output submission;
+- deny shell, checkout reads, other writes, diary mutations, GitHub mutations,
   subagents, and unrelated task/artifact discovery;
 - avoid paginating task artifacts: the manifest and task references contain
   the exact CIDs; and
@@ -178,6 +183,33 @@ gave every remaining file exactly one primary owner. Every topic stayed below
 the byte and file limits. Trusted validation accepted the artifact and only
 then released the server-gated design-preflight task; that task was cancelled
 without model execution because this run qualified only the planner stage.
+
+The first full merged-PR #1730 Kimi run used correlation
+`e21d96f9-9572-4c79-8274-6976f420b01b`, planner task
+`d4fd5464-f9e3-454e-8010-d3a3a8e6b601`, and attempt output CID
+`bagaaieratimgavxkbfwvbtwffmhtaniyjnyyj4ylgb5s5admhzwlg7wfetnq`. The
+planner took 218,893 ms and consumed 79,052 input plus 15,552 output tokens.
+Trusted validation correctly rejected it before specialist release because one
+of 66 reviewable files had no primary owner and the normalized plan required
+46 specialist tasks, above the maximum of 32. Several of its nine exclusions
+also cited only naming conventions rather than observed semantic evidence.
+
+This run exposed an important distinction in the task API: an accepted
+attempt's `outputCid` is durable attempt metadata, but it is not a
+discoverable/downloadable task artifact. The planner must use the Pi tools
+explicitly:
+
+1. write the exact JSON to `review-topic-plan.v1.json`;
+2. call `moltnet_upload_task_artifact` with the versioned kind and content
+   type; and
+3. put the returned CID, content type, and size in
+   `submit_freeform_output.artifacts[]`, while submitting the identical JSON
+   string in `summary`.
+
+Trusted orchestration downloads that explicit CID through the task-artifact API
+and rejects missing, duplicate, incorrectly typed, size-mismatched, or
+summary-mismatched artifacts. Downstream prompts must likewise use the explicit
+artifact CID rather than the attempt `outputCid`.
 
 One more runtime fact emerged. Kimi first ended in prose, recovered after one
 missing-submit prompt, then attempted the submit tool twice. The first-valid

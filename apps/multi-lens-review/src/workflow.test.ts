@@ -19,6 +19,23 @@ function summary(value: unknown) {
   return { summary: JSON.stringify(value) };
 }
 
+function plannerSummary(value: unknown) {
+  const body = JSON.stringify(value);
+  return {
+    summary: body,
+    artifacts: [
+      {
+        kind: 'review-topic-plan',
+        title: 'review-topic-plan.v1.json',
+        cid: 'bafkrei-planner-output',
+        contentType:
+          'application/vnd.themoltnet.review-topic-plan+json;version=1',
+        sizeBytes: Buffer.byteLength(body),
+      },
+    ],
+  };
+}
+
 function preflight(
   verdict: 'PROCEED' | 'PIVOT' | 'ASK' = 'PROCEED',
   excludedFiles: Array<{
@@ -81,13 +98,22 @@ function deterministicTopic(): ReviewTopic {
   };
 }
 
-function artifactStore(fileBytes = 64): ReviewArtifactStore & {
+function artifactStore(
+  fileBytes = 64,
+  plannerOutput?: unknown,
+): ReviewArtifactStore & {
   staged: Uint8Array[];
 } {
   const staged: Uint8Array[] = [];
   return {
     staged,
-    download: vi.fn(() => Promise.resolve(new Uint8Array(fileBytes))),
+    download: vi.fn((_taskId, cid) =>
+      Promise.resolve(
+        cid === 'bafkrei-planner-output'
+          ? new TextEncoder().encode(JSON.stringify(plannerOutput))
+          : new Uint8Array(fileBytes),
+      ),
+    ),
     stage: vi.fn((bytes: Uint8Array) => {
       staged.push(bytes);
       return Promise.resolve({
@@ -216,25 +242,23 @@ describe('runMultiLensReview', () => {
   });
 
   it('runs the LLM planner only above trusted thresholds and rejects an invalid plan once', async () => {
-    const tasks = new FakeTasks([
-      summary({
-        version: 1,
-        excludedFiles: [],
-        topics: [
-          {
-            id: 'bad',
-            title: 'Bad',
-            primaryFiles: [],
-            lanes: [],
-          },
-        ],
-      }),
-      preflight(),
-    ]);
+    const invalidPlan = {
+      version: 1 as const,
+      excludedFiles: [],
+      topics: [
+        {
+          id: 'bad',
+          title: 'Bad',
+          primaryFiles: [],
+          lanes: [],
+        },
+      ],
+    };
+    const tasks = new FakeTasks([plannerSummary(invalidPlan), preflight()]);
     await expect(
       runMultiLensReview(input({ requiresPlanning: true }), {
         tasks,
-        artifacts: artifactStore(),
+        artifacts: artifactStore(64, invalidPlan),
       }),
     ).rejects.toThrow(/invalid topic plan/);
     expect(tasks.created.map((task) => task.title)).toEqual([
@@ -253,6 +277,71 @@ describe('runMultiLensReview', () => {
     expect(tasks.created[0].input.brief).toContain(
       'Use an empty `lanes` array',
     );
+    expect(tasks.created[0].input.brief).toContain(
+      'download its exact per-file artifact',
+    );
+    expect(tasks.created[0].input.brief).toContain(
+      'union of excludedFiles and every topic',
+    );
+    expect(tasks.created[0].input.brief).toContain(
+      'generally need four or fewer semantic topics',
+    );
+    expect(tasks.created[0].input.brief).toContain(
+      'moltnet_upload_task_artifact',
+    );
+    expect(tasks.created[0].input.expectedOutput).toContain(
+      'artifacts entry references the uploaded',
+    );
+    expect(tasks.created[1].input.brief).toContain(
+      'only the explicit task-artifact CID is downloadable',
+    );
+  });
+
+  it('rejects a planner output that does not reference its uploaded plan artifact', async () => {
+    const plan = {
+      version: 1 as const,
+      excludedFiles: [],
+      topics: [deterministicTopic()],
+    };
+    const tasks = new FakeTasks([summary(plan), preflight()]);
+
+    await expect(
+      runMultiLensReview(input({ requiresPlanning: true }), {
+        tasks,
+        artifacts: artifactStore(64, plan),
+      }),
+    ).rejects.toThrow(
+      /must reference exactly one uploaded review-topic-plan\.v1\.json artifact/,
+    );
+  });
+
+  it('rejects planner artifact bytes that differ from the submitted summary', async () => {
+    const submittedPlan = {
+      version: 1 as const,
+      excludedFiles: [],
+      topics: [deterministicTopic()],
+    };
+    const uploadedPlan = {
+      ...submittedPlan,
+      topics: [
+        {
+          ...deterministicTopic(),
+          title: 'Different uploaded plan',
+        },
+      ],
+    };
+    const output = plannerSummary(submittedPlan);
+    output.artifacts[0].sizeBytes = Buffer.byteLength(
+      JSON.stringify(uploadedPlan),
+    );
+    const tasks = new FakeTasks([output, preflight()]);
+
+    await expect(
+      runMultiLensReview(input({ requiresPlanning: true }), {
+        tasks,
+        artifacts: artifactStore(64, uploadedPlan),
+      }),
+    ).rejects.toThrow(/planner artifact JSON does not match submitted summary/);
   });
 
   it('cannot approve failed required lanes or incomplete lane coverage', async () => {
@@ -504,18 +593,20 @@ describe('stateful graph gates', () => {
       primaryFiles: ['src/change.ts'],
       lanes: ['correctness', 'dry-codebase-fit'],
     };
+    const plannerPlan = {
+      version: 1 as const,
+      excludedFiles: [],
+      topics: [topic],
+    };
     const run = runMultiLensReview(
       input({ requiresPlanning: true }),
-      { tasks, artifacts: artifactStore() },
+      { tasks, artifacts: artifactStore(64, plannerPlan) },
       ctx,
     );
 
     await vi.waitFor(() => expect(tasks.created).toHaveLength(2));
     expect((await tasks.getTask(fakeId(2))).status).toBe('waiting');
-    tasks.complete(
-      fakeId(1),
-      summary({ version: 1, excludedFiles: [], topics: [topic] }),
-    );
+    tasks.complete(fakeId(1), plannerSummary(plannerPlan));
     release();
     await vi.waitFor(async () => {
       expect((await tasks.getTask(fakeId(2))).status).toBe('queued');
