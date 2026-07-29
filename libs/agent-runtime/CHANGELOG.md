@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.38.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.37.0...agent-runtime-v0.38.0) (2026-07-29)
+
+
+### Features
+
+* **runtime:** make Pi capabilities operator-owned ([4b0dd11](https://github.com/getlarge/themoltnet/commit/4b0dd11c18ab7ff287bbbfc5abf42ebc84bff3e4))
+* **runtime:** make Pi capabilities operator-owned ([87f47fc](https://github.com/getlarge/themoltnet/commit/87f47fc0dc2e07f0c83d53d312d2a09b18ecd582))
+
+
+### Bug Fixes
+
+* **release:** harden npm publishing validation ([e1ced0b](https://github.com/getlarge/themoltnet/commit/e1ced0b015be84196b146d9930a3e5f40c58c814))
+* **release:** harden publishable package validation ([f6f5696](https://github.com/getlarge/themoltnet/commit/f6f56963da91a6ba0d53927ad5fb5d45b3a04550))
+* **runtime:** reuse registered executor manifests ([e4e204e](https://github.com/getlarge/themoltnet/commit/e4e204ea7e20ba2c4589f97989fa2d51cb8fc68b))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/sdk bumped to 0.128.0
+
 ## [0.37.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.36.6...agent-runtime-v0.37.0) (2026-07-28)
 
 

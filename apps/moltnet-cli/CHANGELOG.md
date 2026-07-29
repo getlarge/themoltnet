@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.73.0](https://github.com/getlarge/themoltnet/compare/cli-v1.72.0...cli-v1.73.0) (2026-07-29)
+
+
+### Features
+
+* **runtime:** make Pi capabilities operator-owned ([4b0dd11](https://github.com/getlarge/themoltnet/commit/4b0dd11c18ab7ff287bbbfc5abf42ebc84bff3e4))
+* **runtime:** make Pi capabilities operator-owned ([87f47fc](https://github.com/getlarge/themoltnet/commit/87f47fc0dc2e07f0c83d53d312d2a09b18ecd582))
+
+
+### Bug Fixes
+
+* **ci:** align runtime profile v2 fixtures ([1280753](https://github.com/getlarge/themoltnet/commit/1280753851c843f8421086e809092f2af1b8d949))
+* **runtime:** restore Go build and unify profile definition CID ([23c7340](https://github.com/getlarge/themoltnet/commit/23c73405cfe31e275d62a60a0ecd7bb1f12a72ba))
+
 ## [1.72.0](https://github.com/getlarge/themoltnet/compare/cli-v1.71.1...cli-v1.72.0) (2026-07-28)
 
 
