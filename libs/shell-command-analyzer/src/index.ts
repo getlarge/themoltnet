@@ -12,6 +12,7 @@ export {
 // ARBITRARY_CODE_BINARIES, …) stay internal so consumers cannot mutate the
 // classification every analyzer instance shares.
 export {
+  type Capability,
   classifyRisk,
   gtfobinsFunctions,
   type RiskTier,

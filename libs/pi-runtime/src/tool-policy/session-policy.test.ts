@@ -135,6 +135,7 @@ function analyzerStub(
         ast: '',
         tools: entry.map((name) => ({
           name,
+          argv: [name],
           risk: 'unknown',
           capabilities: [],
           raw: name,

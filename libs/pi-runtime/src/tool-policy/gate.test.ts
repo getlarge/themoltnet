@@ -37,6 +37,7 @@ function analyzerOf(
       ast: '',
       tools: stubs.map((stub) => ({
         name: stub.name,
+        argv: [stub.name],
         risk: stub.risk ?? 'unknown',
         capabilities: [],
         raw: stub.name,

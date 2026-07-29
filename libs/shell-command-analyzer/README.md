@@ -95,8 +95,9 @@ type CommandAnalysis =
 
 interface ToolInvocation {
   name: string; // base executable (wrappers unwrapped, version stripped)
+  argv: readonly (string | null)[]; // base executable + static/dynamic args
   risk: RiskTier; // 'arbitrary-code' | 'escapable' | 'unknown'
-  capabilities: readonly string[]; // GTFOBins abuse functions, or []
+  capabilities: readonly Capability[]; // GTFOBins abuse functions, or []
   raw: string; // verbatim source of the invoking command node
 }
 

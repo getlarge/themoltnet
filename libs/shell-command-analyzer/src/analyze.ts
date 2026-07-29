@@ -17,6 +17,7 @@
 import { Language, type Node, Parser, type Tree } from 'web-tree-sitter';
 
 import {
+  type Capability,
   classifyRisk,
   ESCAPE_FLAG_SPECS,
   FIND_EXEC_FLAGS,
@@ -31,13 +32,19 @@ import { resolveDefaultBashWasm } from './default-wasm-loader.js';
 export interface ToolInvocation {
   /** Base executable name (directory and, for interpreters, version stripped). */
   name: string;
+  /**
+   * Normalized argv for this executable. The executable is the base name in
+   * position zero; statically-known argument tokens are decoded literals and
+   * dynamic tokens are `null`.
+   */
+  argv: readonly (string | null)[];
   /** Coarse risk tier for this executable. */
   risk: RiskTier;
   /**
    * GTFOBins abuse functions this executable documents (e.g. `['file-read',
    * 'file-write', 'shell']`), or `[]` if it is not a known GTFOBins binary.
    */
-  capabilities: readonly string[];
+  capabilities: readonly Capability[];
   /** Verbatim source text of the `command` node that invokes it. */
   raw: string;
 }
@@ -96,8 +103,13 @@ const MAX_ESCAPE_DEPTH = 3;
  * that must be re-analyzed. Fails closed with `ok: false` for anything not
  * statically resolvable.
  */
+interface ResolvedInvocation {
+  name: string;
+  argv: readonly (string | null)[];
+}
+
 type Resolution =
-  | { ok: true; executables: string[]; escapes: string[] }
+  | { ok: true; invocations: ResolvedInvocation[]; escapes: string[] }
   | { ok: false; reason: string };
 
 /** Bounds recursive wrapper unwrapping (e.g. `sudo sudo … git`). */
@@ -120,11 +132,23 @@ function baseName(raw: string): string {
   return slash === -1 ? raw : raw.slice(slash + 1);
 }
 
+/** Build the public argv vector for one resolved invocation. */
+function invocationFor(words: Word[]): ResolvedInvocation | null {
+  const head = words[0]?.name;
+  if (head === null || head === undefined) return null;
+  const name = baseName(head);
+  return {
+    name,
+    argv: [name, ...words.slice(1).map((word) => word.name)],
+  };
+}
+
 /** Classify one AST node into a {@link Word}. */
 function classifyToken(node: Node): Word {
   const raw = node.text;
   switch (node.type) {
     case 'word':
+    case 'number':
       // A backslash escapes characters (`s\h` → `sh`), changing the effective
       // name; treat such words as non-literal (fail closed) rather than decode.
       return { raw, name: raw.includes('\\') ? null : raw };
@@ -258,7 +282,11 @@ function advancePastWrapper(
  * span (up to the `;`/`+` terminator).
  */
 function resolveFind(words: Word[], wrapperDepth: number): Resolution {
-  const executables = ['find'];
+  const find = invocationFor(words);
+  if (!find) {
+    return { ok: false, reason: 'non-literal find invocation' };
+  }
+  const invocations = [find];
   const escapes: string[] = [];
   for (let i = 1; i < words.length; i++) {
     if (!FIND_EXEC_FLAGS.has(words[i].raw)) {
@@ -290,11 +318,11 @@ function resolveFind(words: Word[], wrapperDepth: number): Resolution {
     if (!inner.ok) {
       return inner;
     }
-    executables.push(...inner.executables);
+    invocations.push(...inner.invocations);
     escapes.push(...inner.escapes);
     i = k - 1;
   }
-  return { ok: true, executables, escapes };
+  return { ok: true, invocations, escapes };
 }
 
 /**
@@ -305,7 +333,7 @@ function resolveFind(words: Word[], wrapperDepth: number): Resolution {
 function resolveWords(words: Word[], wrapperDepth = 0): Resolution {
   const head = words[0];
   if (!head) {
-    return { ok: true, executables: [], escapes: [] };
+    return { ok: true, invocations: [], escapes: [] };
   }
   if (head.name === null) {
     return { ok: false, reason: `non-literal command name: ${head.raw}` };
@@ -315,6 +343,10 @@ function resolveWords(words: Word[], wrapperDepth = 0): Resolution {
     return { ok: false, reason: `command name contains a glob: ${name}` };
   }
   const exe = baseName(name);
+  const invocation = invocationFor(words);
+  if (!invocation) {
+    return { ok: false, reason: `non-literal command name: ${head.raw}` };
+  }
   if (exe === 'eval') {
     return { ok: false, reason: 'eval executes a dynamically built command' };
   }
@@ -331,7 +363,7 @@ function resolveWords(words: Word[], wrapperDepth = 0): Resolution {
       return { ok: false, reason: advance.reason };
     }
     if (advance.kind === 'none') {
-      return { ok: true, executables: [exe], escapes: [] };
+      return { ok: true, invocations: [invocation], escapes: [] };
     }
     const inner = resolveWords(words.slice(advance.index), wrapperDepth + 1);
     if (!inner.ok) {
@@ -339,13 +371,13 @@ function resolveWords(words: Word[], wrapperDepth = 0): Resolution {
     }
     return {
       ok: true,
-      executables: [exe, ...inner.executables],
+      invocations: [invocation, ...inner.invocations],
       escapes: inner.escapes,
     };
   }
   return {
     ok: true,
-    executables: [exe],
+    invocations: [invocation],
     escapes: escapeFlagCommands(exe, words),
   };
 }
@@ -595,9 +627,11 @@ export class ShellCommandAnalyzer {
           return { ok: false, command, reason: resolution.reason, ast };
         }
         const raw = node.text;
-        for (const name of resolution.executables) {
+        for (const invocation of resolution.invocations) {
+          const { name } = invocation;
           tools.push({
             name,
+            argv: invocation.argv,
             risk: classifyRisk(name),
             capabilities: gtfobinsFunctions(name),
             raw,
