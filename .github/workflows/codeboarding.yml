@@ -34,5 +34,15 @@ jobs:
                 github.event.comment.author_association))
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    env:
+      OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
     steps:
       - uses: CodeBoarding/CodeBoarding-action@v1
+        with:
+          # CodeBoarding maps llm_api_key to OLLAMA_BASE_URL for this provider;
+          # its engine reads the cloud credential separately from the job env.
+          # Fall back to the free OIDC tier when GitHub withholds the secret.
+          llm_provider: ${{ secrets.OLLAMA_API_KEY != '' && 'ollama' || 'openrouter' }}
+          llm_api_key: ${{ secrets.OLLAMA_API_KEY != '' && 'https://ollama.com' || '' }}
+          agent_model: ${{ secrets.OLLAMA_API_KEY != '' && 'gemma4:31b-cloud' || '' }}
+          parsing_model: ${{ secrets.OLLAMA_API_KEY != '' && 'gpt-oss:20b-cloud' || '' }}
