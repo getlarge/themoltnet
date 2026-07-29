@@ -161,6 +161,9 @@ describe('runMultiLensReview', () => {
       task.title?.startsWith('Review change'),
     );
     expect(specialists).toHaveLength(2);
+    expect(
+      tasks.created.every((task) => task.input.execution?.workspace === 'none'),
+    ).toBe(true);
     for (const specialist of specialists) {
       expect(specialist.references).toHaveLength(1);
       expect(specialist.references?.[0].artifact?.cid).toBe('bafkrei-topic-1');
@@ -289,6 +292,8 @@ describe('runMultiLensReview', () => {
     expect(tasks.created[0].input.brief).toContain(
       'moltnet_upload_task_artifact',
     );
+    expect(tasks.created[0].input.execution).toEqual({ workspace: 'none' });
+    expect(tasks.created[1].input.execution).toEqual({ workspace: 'none' });
     expect(tasks.created[0].input.expectedOutput).toContain(
       'artifacts entry references the uploaded',
     );

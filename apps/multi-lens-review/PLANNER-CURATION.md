@@ -22,7 +22,10 @@ The planner must:
 
 It must not review implementation details, modify a checkout, create commits,
 search a diary, or inspect files from the daemon's mounted repository. The
-staged artifacts are the complete and immutable source of truth.
+staged artifacts are the complete and immutable source of truth. Every review
+task explicitly requests `execution.workspace: none`: the daemon supplies a
+writable scratch workspace for artifact download and result creation, without
+mounting or checking out the repository.
 
 ## Profile selection
 
@@ -121,15 +124,17 @@ read/search, with no shell and no discovery tools; the runtime-owned submit tool
 is added separately. Verify the model-visible session tools include that submit
 tool before spending model tokens.
 
-The next independent qualification used `kimi-k2.7-code:cloud` with low
+The next independent qualification requested `kimi-k2.7-code:cloud` with low
 thinking, a 12,000-token output cap, the same minimal context and enforced
-download/read/grep policy. The user-approved representative input was 26 files,
-122,447 reviewable bytes and 2,575 changed LOC. Correlation
+download/read/grep policy. A later durable-session audit proved that the
+executor silently fell back to `gemma4:31b-cloud`; none of the runs in this
+section qualify Kimi itself. The user-approved representative input was 26
+files, 122,447 reviewable bytes and 2,575 changed LOC. Correlation
 `9ee836eb-a26a-4c02-87f9-5d11255906c2` produced planner task
 `d85d6f8f-a911-4b23-b4df-240d073e92ff` and durable output CID
 `bagaaierajcnotpmcqr5winmgb5fszv6lp5flbv3unsvmziy2mgticryb6fua`.
 
-This profile materially improved isolation and responsiveness:
+This run materially improved isolation and responsiveness:
 
 - the first actionable tool turn arrived in roughly 40 seconds;
 - the model downloaded exactly four bound artifacts, read only those files,
@@ -160,13 +165,13 @@ repository paths, framework names or generated-file conventions. Requalify the
 same payload and profile after focused non-model validation; a model or payload
 change is a new experiment requiring its own authorization and measurements.
 
-The exact Kimi qualification was repeated after those corrections and after
-rebasing onto `origin/main`. The first attempt reached the local API before it
-could spend model tokens, then failed closed because the source expected the
+The same Kimi-labelled qualification was repeated after those corrections and
+after rebasing onto `origin/main`. The first attempt reached the local API before
+it could spend model tokens, then failed closed because the source expected the
 new `runtimeKind` authority contract while the isolated e2e API image and
-database schema were still from the older main revision. Rebuilding the
-database and REST API images, applying migrations, and recreating only those
-services fixed the environment. This is an acceptance-harness lesson: after a
+database schema were still from the older main revision. Rebuilding the database
+and REST API images, applying migrations, and recreating only those services
+fixed the environment. This is an acceptance-harness lesson: after a
 runtime-contract rebase, refresh the matching local API and schema before
 qualifying a profile.
 
@@ -184,7 +189,7 @@ the byte and file limits. Trusted validation accepted the artifact and only
 then released the server-gated design-preflight task; that task was cancelled
 without model execution because this run qualified only the planner stage.
 
-The first full merged-PR #1730 Kimi run used correlation
+The first full merged-PR #1730 Kimi-labelled run used correlation
 `e21d96f9-9572-4c79-8274-6976f420b01b`, planner task
 `d4fd5464-f9e3-454e-8010-d3a3a8e6b601`, and attempt output CID
 `bagaaieratimgavxkbfwvbtwffmhtaniyjnyyj4ylgb5s5admhzwlg7wfetnq`. The
@@ -217,7 +222,7 @@ accepted attempt number. These are task capabilities and belong in the brief
 and runtime profile; the workflow should not invent a second persistence or
 artifact-discovery path.
 
-One more runtime fact emerged. Kimi first ended in prose, recovered after one
+One more runtime fact emerged. Gemma first ended in prose, recovered after one
 missing-submit prompt, then attempted the submit tool twice. The first-valid
 payload was preserved and the duplicate ignored, but an experimental
 `terminate` field on the tool result did not stop Pi because tool-result
@@ -226,3 +231,23 @@ executor-owned completion callback after the first valid capture; the executor
 aborts the live Pi session while normal captured-output finalization continues.
 Invalid submissions remain recoverable and never trigger that completion
 boundary.
+
+A durable-session audit after the later write failure found the actual harness
+defect. Every Kimi-labelled session above records
+`ollama-cloud/gemma4:31b-cloud` in its `model_change` entry. `executePiTask`
+used pi-ai's built-in-only `getModel()` against the custom `ollama-cloud`
+provider; the lookup returned `undefined`, and pi-coding-agent silently selected
+the default from `.pi/settings.json`. The workspace also mixed pi-ai 0.74.0
+with pi-coding-agent/pi-ai 0.79.4. Task
+`1980c484-d44a-455f-80c8-be2e42b3f8c5` did run in the intended writable
+scratch task workspace, but its Gemma response consumed exactly the
+20,000-token output cap and persisted a `write` call whose `content` ended
+mid-JSON before a `path` argument arrived.
+
+Do not compensate for that failure with more prompt call-shape prose. Resolve
+the exact profile model through Pi's custom `ModelRegistry`, pass the same
+registry into the session, align the Pi package versions, and fail session setup
+when the requested model is missing. Model qualification telemetry must record
+and compare the runtime-profile selection with the durable Pi session model.
+Only a fresh run after that invariant passes can qualify Kimi. Incident:
+`41e5f237-f25a-46d9-9d28-2b97ca3f00fb`.

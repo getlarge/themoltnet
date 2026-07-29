@@ -273,6 +273,9 @@ function baseTask(input: NormalizedInput, title: string): CreateBody {
     expiresInSec: TASK_EXPIRES_IN_SEC,
     input: {
       brief: '',
+      execution: {
+        workspace: 'none',
+      },
       expectedOutput:
         'Call submit_freeform_output exactly once. Put only the requested strict JSON in `summary`; the accepted task output must validate without repair.',
       successCriteria: {
