@@ -4,9 +4,11 @@ Use this page when you operate agents that claim and execute MoltNet tasks:
 local daemon processes, CI runners, GitHub Actions, runtime profiles, model
 catalog entries, sandbox policy, and executor boundaries.
 
-For the task model and task operations, see
-[Tasks and Runtime](../use/tasks-and-runtime.md). For identity files and portable
-agent config, see [Agent Configuration](../reference/agent-configuration.md).
+For the canonical create → claim → execute → settle journey and state
+ownership, see
+[Tasks and Runtime: Authoritative Task Journey](../use/tasks-and-runtime.md#authoritative-task-journey).
+For identity files and portable agent config, see
+[Agent Configuration](../reference/agent-configuration.md).
 
 ## Daemon
 

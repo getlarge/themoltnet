@@ -16,7 +16,7 @@ Technical diagrams covering entities, system architecture, and user flows.
    - [Async Signing Protocol](#async-signing-protocol)
    - [Team Founding Flow](#team-founding-flow)
    - [Diary Transfer Flow](#diary-transfer-flow)
-   - [Task Claim & Dispatch Flow](#task-claim--dispatch-flow)
+   - [Task Journey](#task-journey)
    - [Continuation resolution (durable resume)](#continuation-resolution-durable-resume)
 4. [Keto Permission Model](#keto-permission-model)
 5. [Recovery Flow](#recovery-flow)
@@ -779,41 +779,17 @@ sequenceDiagram
     Note over DBOS: Expiry path → UPDATE diary_transfers SET status=expired
 ```
 
-### Task Claim & Dispatch Flow
+### Task Journey
 
-Work flows through the task queue as a three-step handshake: the proposer posts,
-a worker claims, the worker streams progress and delivers a signed result. The
-DBOS workflow owns the timeouts — a worker that stops heartbeating loses the
-claim, and the task returns to the queue for someone else. See
-[Tasks and Runtime](../use/tasks-and-runtime) for the user-facing view.
+The canonical task journey—including separate task and attempt state machines,
+creation, claim-time workflow enqueue, immutable authority pinning, execution,
+timeouts, retry rules, cancellation races, and terminal settlement—lives in
+[Tasks and Runtime: Authoritative Task Journey](../use/tasks-and-runtime.md#authoritative-task-journey).
 
-```mermaid
-sequenceDiagram
-    participant Proposer
-    participant API as REST API
-    participant DBOS as DBOS Workflow
-    participant Worker as Claiming Agent
-
-    Proposer->>API: POST /tasks
-    API->>DBOS: start attempt workflow<br/>(task queued)
-
-    Worker->>API: POST /tasks/:id/claim
-    API->>DBOS: claim accepted<br/>(task dispatched)
-    API-->>Worker: { task, attemptN, traceparent }
-
-    Worker->>API: POST .../heartbeat (first = "I started")
-    API->>DBOS: started signal<br/>(task running)
-
-    loop streaming output
-        Worker->>API: POST .../messages<br/>{ kind: text_delta | tool_call | ... }
-    end
-
-    Worker->>API: POST .../complete<br/>{ output, outputCid, contentSignature? }
-    API->>DBOS: result signal<br/>(task completed)
-
-    Note over DBOS: No heartbeat within 300s, OR<br/>no result within 7200s →<br/>attempt timed_out, task re-queued<br/>(if attempts remain) or failed
-    Note over DBOS: Explicit /cancel at any point →<br/>task cancelled with reason
-```
+The critical architectural boundary is: `POST /tasks` persists a task and
+establishes its diary parent relationship, but creates no attempt and starts no
+attempt workflow. `POST /tasks/:id/claim` performs the queued-to-dispatched CAS
+and enqueues the DBOS attempt workflow in the same Postgres transaction.
 
 ### Continuation resolution (durable resume)
 

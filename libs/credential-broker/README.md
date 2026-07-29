@@ -3,6 +3,10 @@
 Provider-neutral orchestration for issuing MoltNet task and connector
 credentials.
 
+The authoritative journey from task creation through claim-time authority
+pinning, live provider checks, and the future task-JWT boundary is documented in
+[Tasks and Runtime](../../docs/use/tasks-and-runtime.md#authoritative-task-journey).
+
 The broker owns canonical claim construction, fixed scopes, TTL ceilings,
 lineage, evidence, and fail-closed errors. Product code supplies narrow
 authority providers:
