@@ -6,6 +6,12 @@ graph LR
     Execution_Runtime_LLM_Adapters["Execution Runtime & LLM Adapters"]
     Infrastructure_Backup_Deployment["Infrastructure Backup & Deployment"]
     System_Tooling_Database_Maintenance["System Tooling & Database Maintenance"]
+    Governance_Permissions_Engine -- "provides authorization context" --> Agent_Activation_Host_Environment
+    Agent_Key_Runtime_Lifecycle_Manager -- "registers agent identities" --> Governance_Permissions_Engine
+    Agent_Activation_Host_Environment -- "injects runtime configuration" --> Execution_Runtime_LLM_Adapters
+    Execution_Runtime_LLM_Adapters -- "validates runtime permissions" --> Governance_Permissions_Engine
+    Infrastructure_Backup_Deployment -- "archives governance state" --> Governance_Permissions_Engine
+    System_Tooling_Database_Maintenance -- "performs data maintenance" --> Governance_Permissions_Engine
     click Governance_Permissions_Engine href "https://github.com/getlarge/themoltnet/blob/main/.codeboarding/Governance_Permissions_Engine.md" "Details"
     click Agent_Activation_Host_Environment href "https://github.com/getlarge/themoltnet/blob/main/.codeboarding/Agent_Activation_Host_Environment.md" "Details"
     click Execution_Runtime_LLM_Adapters href "https://github.com/getlarge/themoltnet/blob/main/.codeboarding/Execution_Runtime_LLM_Adapters.md" "Details"
@@ -55,7 +61,7 @@ Manages the trust framework, defining identities (Humans, Agents, Teams) and enf
 - [`apps/moltnet-cli/api_url_resolution.go`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/api_url_resolution.go)
   - `apps.moltnet-cli.api_url_resolution.resolveAPIURL` ([L30-L52](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/api_url_resolution.go#L30-L52)) - Function
 - [`apps/moltnet-cli/cobra_agents.go`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/cobra_agents.go)
-  - `apps.moltnet-cli.cobra_agents.newAgentsCmd` ([L5-L89](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/cobra_agents.go#L5-L89)) - Function
+  - `apps.moltnet-cli.cobra_agents.newAgentsCmd` ([L5-L90](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/cobra_agents.go#L5-L90)) - Function
 - [`apps/moltnet-cli/cobra_completion.go`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/cobra_completion.go)
   - `apps.moltnet-cli.cobra_completion.newCompletionCmd` ([L5-L36](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/cobra_completion.go#L5-L36)) - Function
 - [`apps/moltnet-cli/cobra_config.go`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/cobra_config.go)
@@ -529,9 +535,9 @@ Manages the trust framework, defining identities (Humans, Agents, Teams) and enf
   - `libs.auth.src.permission-checker.createPermissionChecker.canForceDeleteTasks.taskIds.map() callback` ([L807-L807](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/permission-checker.ts#L807-L807)) - Function
   - `libs.auth.src.permission-checker.createPermissionChecker.canReportTask` ([L811-L825](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/permission-checker.ts#L811-L825)) - Method
 - [`libs/auth/src/plugin.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts)
-  - `libs.auth.src.plugin.'fastify'.FastifyContextConfig` ([L45-L63](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L45-L63)) - Interface
-  - `libs.auth.src.plugin.'fastify'.FastifyInstance` ([L64-L70](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L64-L70)) - Interface
-  - `libs.auth.src.plugin.'fastify'.FastifyRequest` ([L71-L73](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L71-L73)) - Interface
+  - `libs.auth.src.plugin.'fastify'.FastifyContextConfig` ([L51-L69](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L51-L69)) - Interface
+  - `libs.auth.src.plugin.'fastify'.FastifyInstance` ([L70-L76](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L70-L76)) - Interface
+  - `libs.auth.src.plugin.'fastify'.FastifyRequest` ([L77-L80](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L77-L80)) - Interface
 - [`libs/auth/src/relationship-reader.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/relationship-reader.ts)
   - `libs.auth.src.relationship-reader.GroupMemberTuple` ([L24-L27](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/relationship-reader.ts#L24-L27)) - Interface
   - `libs.auth.src.relationship-reader.TeamMemberTuple` ([L29-L33](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/relationship-reader.ts#L29-L33)) - Interface
@@ -638,19 +644,32 @@ Manages the trust framework, defining identities (Humans, Agents, Teams) and enf
   - `libs.auth.src.relationship-writer.createRelationshipWriter.writeRuntimeProfilePolicyEdges.relationshipPatch.map() callback` ([L684-L687](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/relationship-writer.ts#L684-L687)) - Function
   - `libs.auth.src.relationship-writer.toolTuple` ([L695-L706](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/relationship-writer.ts#L695-L706)) - Function
   - `libs.auth.src.relationship-writer.profilePolicyTuple` ([L708-L719](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/relationship-writer.ts#L708-L719)) - Function
+- [`libs/auth/src/remote-auth-cache.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-cache.ts)
+  - `libs.auth.src.remote-auth-cache.RemoteAuthCacheValue` ([L43-L47](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-cache.ts#L43-L47)) - Interface
+  - `libs.auth.src.remote-auth-cache.RemoteAuthCacheOptions` ([L49-L55](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-cache.ts#L49-L55)) - Interface
+  - `libs.auth.src.remote-auth-cache.CacheEntry` ([L57-L61](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-cache.ts#L57-L61)) - Interface
+  - `libs.auth.src.remote-auth-cache.InFlightLoad` ([L139-L143](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-cache.ts#L139-L143)) - Interface
+  - `libs.auth.src.remote-auth-cache.RemoteAuthCache.digest.framed` ([L251-L253](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-cache.ts#L251-L253)) - Class
+  - `libs.auth.src.remote-auth-cache.RemoteAuthCache.digest.framed.map() callback` ([L252-L252](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-cache.ts#L252-L252)) - Function
+- [`libs/auth/src/remote-auth-error.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-error.ts)
+  - `libs.auth.src.remote-auth-error.parseRetryAfter.value` ([L44-L52](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-error.ts#L44-L52)) - Class
+  - `libs.auth.src.remote-auth-error.parseRetryAfter.value.<function>` ([L44-L52](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-error.ts#L44-L52)) - Function
+  - `libs.auth.src.remote-auth-error.parseRetryAfter.value.<function>.entry` ([L48-L50](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-error.ts#L48-L50)) - Class
+  - `libs.auth.src.remote-auth-error.parseRetryAfter.value.<function>.entry.find() callback` ([L49-L49](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-error.ts#L49-L49)) - Function
 - [`libs/auth/src/session-resolver.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts)
-  - `libs.auth.src.session-resolver.SessionResolverLogger` ([L25-L27](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L25-L27)) - Interface
-  - `libs.auth.src.session-resolver.ResolveSessionInput` ([L29-L34](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L29-L34)) - Interface
-  - `libs.auth.src.session-resolver.SessionResolver` ([L36-L38](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L36-L38)) - Interface
-  - `libs.auth.src.session-resolver.SessionResolver.resolveSession` ([L37-L37](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L37-L37)) - Method
-  - `libs.auth.src.session-resolver.summarizeCookieHeader` ([L40-L66](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L40-L66)) - Function
-  - `libs.auth.src.session-resolver.extractErrorStatus` ([L68-L72](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L68-L72)) - Function
-  - `libs.auth.src.session-resolver.extractErrorBody` ([L74-L93](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L74-L93)) - Function
-  - `libs.auth.src.session-resolver.SessionResolverConfig` ([L95-L109](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L95-L109)) - Interface
-  - `libs.auth.src.session-resolver.NOOP_LOGGER` ([L111-L111](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L111-L111)) - Class
-  - `libs.auth.src.session-resolver.NOOP_LOGGER.warn` ([L111-L111](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L111-L111)) - Method
-  - `libs.auth.src.session-resolver.createSessionResolver` ([L113-L207](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L113-L207)) - Function
-  - `libs.auth.src.session-resolver.createSessionResolver.resolveSession` ([L121-L205](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L121-L205)) - Method
+  - `libs.auth.src.session-resolver.SessionResolverLogger` ([L32-L34](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L32-L34)) - Interface
+  - `libs.auth.src.session-resolver.ResolveSessionInput` ([L36-L41](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L36-L41)) - Interface
+  - `libs.auth.src.session-resolver.SessionResolver` ([L43-L46](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L43-L46)) - Interface
+  - `libs.auth.src.session-resolver.SessionResolver.resolveSession` ([L44-L44](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L44-L44)) - Method
+  - `libs.auth.src.session-resolver.SessionResolver.evictIdentity` ([L45-L45](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L45-L45)) - Method
+  - `libs.auth.src.session-resolver.summarizeCookieHeader` ([L48-L74](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L48-L74)) - Function
+  - `libs.auth.src.session-resolver.extractErrorBody` ([L76-L95](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L76-L95)) - Function
+  - `libs.auth.src.session-resolver.SessionResolverConfig` ([L97-L117](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L97-L117)) - Interface
+  - `libs.auth.src.session-resolver.NOOP_LOGGER` ([L119-L119](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L119-L119)) - Class
+  - `libs.auth.src.session-resolver.NOOP_LOGGER.warn` ([L119-L119](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L119-L119)) - Method
+  - `libs.auth.src.session-resolver.createSessionResolver.resolveSession.cookieCredential` ([L159-L167](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L159-L167)) - Class
+  - `libs.auth.src.session-resolver.createSessionResolver.resolveSession.cookieCredential.map() callback` ([L161-L161](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L161-L161)) - Function
+  - `libs.auth.src.session-resolver.createSessionResolver.resolveSession.cookieCredential.find() callback` ([L162-L167](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L162-L167)) - Function
 - [`libs/auth/src/team-role.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/team-role.ts)
   - `libs.auth.src.team-role.teamRoleRank` ([L18-L20](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/team-role.ts#L18-L20)) - Function
   - `libs.auth.src.team-role.teamRelationToRole` ([L22-L31](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/team-role.ts#L22-L31)) - Function
@@ -2090,9 +2109,15 @@ Manages the trust framework, defining identities (Humans, Agents, Teams) and enf
   - `libs.observability.src.logger.buildRedactConfig` ([L105-L115](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/observability/src/logger.ts#L105-L115)) - Function
   - `libs.observability.src.logger.createLogger` ([L133-L232](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/observability/src/logger.ts#L133-L232)) - Function
 - [`libs/observability/src/metrics.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/observability/src/metrics.ts)
-  - `libs.observability.src.metrics.CreateMeterProviderOptions` ([L14-L23](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/observability/src/metrics.ts#L14-L23)) - Interface
-  - `libs.observability.src.metrics.createMeterProvider` ([L34-L62](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/observability/src/metrics.ts#L34-L62)) - Function
-  - `libs.observability.src.metrics.createRequestMetrics` ([L75-L92](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/observability/src/metrics.ts#L75-L92)) - Function
+  - `libs.observability.src.metrics.MetricCounter` ([L16-L18](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/observability/src/metrics.ts#L16-L18)) - Interface
+  - `libs.observability.src.metrics.MetricCounter.add` ([L17-L17](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/observability/src/metrics.ts#L17-L17)) - Method
+  - `libs.observability.src.metrics.MetricUpDownCounter` ([L20-L22](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/observability/src/metrics.ts#L20-L22)) - Interface
+  - `libs.observability.src.metrics.MetricUpDownCounter.add` ([L21-L21](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/observability/src/metrics.ts#L21-L21)) - Method
+  - `libs.observability.src.metrics.CreateMeterProviderOptions` ([L24-L33](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/observability/src/metrics.ts#L24-L33)) - Interface
+  - `libs.observability.src.metrics.createMeterProvider` ([L44-L72](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/observability/src/metrics.ts#L44-L72)) - Function
+  - `libs.observability.src.metrics.createRequestMetrics` ([L85-L102](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/observability/src/metrics.ts#L85-L102)) - Function
+  - `libs.observability.src.metrics.createMetricCounter` ([L104-L110](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/observability/src/metrics.ts#L104-L110)) - Function
+  - `libs.observability.src.metrics.createMetricUpDownCounter` ([L112-L120](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/observability/src/metrics.ts#L112-L120)) - Function
 - [`libs/observability/src/request-context.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/observability/src/request-context.ts)
   - `libs.observability.src.request-context.RequestContext` ([L3-L9](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/observability/src/request-context.ts#L3-L9)) - Interface
   - `libs.observability.src.request-context.runWithRequestContext` ([L23-L34](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/observability/src/request-context.ts#L23-L34)) - Function
@@ -3772,13 +3797,12 @@ Handles the administrative lifecycle of agent cryptographic keys and the setup o
   - `apps.moltnet-cli.github.getCachedInstallationToken` ([L262-L274](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github.go#L262-L274)) - Function
   - `apps.moltnet-cli.github.getCachedInstallationTokenDetails` ([L280-L293](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github.go#L280-L293)) - Function
   - `apps.moltnet-cli.github.getCachedInstallationTokenDetailsWithFailureTTL` ([L295-L343](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github.go#L295-L343)) - Function
-  - `apps.moltnet-cli.github.writeJSONAtomic` ([L345-L370](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github.go#L345-L370)) - Function
-  - `apps.moltnet-cli.github.getInstallationToken` ([L374-L386](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github.go#L374-L386)) - Function
-  - `apps.moltnet-cli.github.getInstallationTokenDetails` ([L388-L451](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github.go#L388-L451)) - Function
-  - `apps.moltnet-cli.github.createAppJWT` ([L454-L470](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github.go#L454-L470)) - Function
-  - `apps.moltnet-cli.github.runGitHubSetup` ([L473-L482](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github.go#L473-L482)) - Function
-  - `apps.moltnet-cli.github.runGitHubCredentialHelper` ([L485-L492](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github.go#L485-L492)) - Function
-  - `apps.moltnet-cli.github.runGitHubToken` ([L495-L502](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github.go#L495-L502)) - Function
+  - `apps.moltnet-cli.github.getInstallationToken` ([L347-L359](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github.go#L347-L359)) - Function
+  - `apps.moltnet-cli.github.getInstallationTokenDetails` ([L361-L424](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github.go#L361-L424)) - Function
+  - `apps.moltnet-cli.github.createAppJWT` ([L427-L443](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github.go#L427-L443)) - Function
+  - `apps.moltnet-cli.github.runGitHubSetup` ([L446-L455](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github.go#L446-L455)) - Function
+  - `apps.moltnet-cli.github.runGitHubCredentialHelper` ([L458-L465](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github.go#L458-L465)) - Function
+  - `apps.moltnet-cli.github.runGitHubToken` ([L468-L475](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github.go#L468-L475)) - Function
 - [`apps/moltnet-cli/github_guard.go`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go)
   - `apps.moltnet-cli.github_guard.hookInput` ([L26-L30](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L26-L30)) - Struct
   - `apps.moltnet-cli.github_guard.hookDenyOutput` ([L32-L38](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L32-L38)) - Struct
@@ -3790,40 +3814,41 @@ Handles the administrative lifecycle of agent cryptographic keys and the setup o
   - `apps.moltnet-cli.github_guard.guardEvaluationState` ([L68-L71](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L68-L71)) - Struct
   - `apps.moltnet-cli.github_guard.runGitHubGuardCmd` ([L75-L77](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L75-L77)) - Function
   - `apps.moltnet-cli.github_guard.runGitHubGuard` ([L79-L109](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L79-L109)) - Function
-  - `apps.moltnet-cli.github_guard.currentGitHubGuardContext` ([L111-L149](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L111-L149)) - Function
-  - `apps.moltnet-cli.github_guard.envEnabled` ([L151-L158](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L151-L158)) - Function
-  - `apps.moltnet-cli.github_guard.isMoltnetGitConfig` ([L160-L169](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L160-L169)) - Function
-  - `apps.moltnet-cli.github_guard.loadGitHubGuardPermissions` ([L171-L192](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L171-L192)) - Function
-  - `apps.moltnet-cli.github_guard.evaluateGitHubGuard` ([L194-L202](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L194-L202)) - Function
-  - `apps.moltnet-cli.github_guard.evaluateGitHubGuardScript` ([L204-L284](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L204-L284)) - Function
-  - `apps.moltnet-cli.github_guard.decideGitHubCall` ([L286-L352](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L286-L352)) - Function
-  - `apps.moltnet-cli.github_guard.nestedShellScript` ([L354-L380](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L354-L380)) - Function
-  - `apps.moltnet-cli.github_guard.shellShortOptionsContainCommand` ([L382-L386](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L382-L386)) - Function
-  - `apps.moltnet-cli.github_guard.permissionAllowsWrite` ([L388-L395](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L388-L395)) - Function
-  - `apps.moltnet-cli.github_guard.parseShellInvocation` ([L397-L487](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L397-L487)) - Function
-  - `apps.moltnet-cli.github_guard.isKnownPrefixRunner` ([L489-L496](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L489-L496)) - Function
-  - `apps.moltnet-cli.github_guard.unwrapPrefixRunner` ([L498-L573](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L498-L573)) - Function
-  - `apps.moltnet-cli.github_guard.commandAfterOptions` ([L575-L606](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L575-L606)) - Function
-  - `apps.moltnet-cli.github_guard.commandFromArgs` ([L608-L613](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L608-L613)) - Function
-  - `apps.moltnet-cli.github_guard.staticShellWord` ([L615-L620](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L615-L620)) - Function
-  - `apps.moltnet-cli.github_guard.staticShellParts` ([L622-L657](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L622-L657)) - Function
-  - `apps.moltnet-cli.github_guard.staticParamName` ([L662-L673](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L662-L673)) - Function
-  - `apps.moltnet-cli.github_guard.collectStaticShellVars` ([L682-L714](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L682-L714)) - Function
-  - `apps.moltnet-cli.github_guard.shellAssignmentWord` ([L716-L735](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L716-L735)) - Function
-  - `apps.moltnet-cli.github_guard.isMoltnetTokenWord` ([L737-L742](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L737-L742)) - Function
-  - `apps.moltnet-cli.github_guard.isMoltnetTokenParts` ([L744-L784](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L744-L784)) - Function
-  - `apps.moltnet-cli.github_guard.tokenCredentialsMatch` ([L786-L808](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L786-L808)) - Function
-  - `apps.moltnet-cli.github_guard.classifyGitHubOperation` ([L812-L919](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L812-L919)) - Function
-  - `apps.moltnet-cli.github_guard.stripGitHubGlobalFlags` ([L921-L939](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L921-L939)) - Function
-  - `apps.moltnet-cli.github_guard.normalizeGitHubAlias` ([L941-L960](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L941-L960)) - Function
-  - `apps.moltnet-cli.github_guard.classifySubcommand` ([L962-L970](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L962-L970)) - Function
-  - `apps.moltnet-cli.github_guard.classifyReadWriteSubcommand` ([L972-L987](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L972-L987)) - Function
-  - `apps.moltnet-cli.github_guard.classifyRepositoryCommand` ([L989-L1016](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L989-L1016)) - Function
-  - `apps.moltnet-cli.github_guard.classifyGitHubAPI` ([L1018-L1144](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L1018-L1144)) - Function
-  - `apps.moltnet-cli.github_guard.apiFlagNeedsValue` ([L1146-L1167](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L1146-L1167)) - Function
-  - `apps.moltnet-cli.github_guard.apiAttachedShortFlag` ([L1169-L1174](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L1169-L1174)) - Function
-  - `apps.moltnet-cli.github_guard.apiBooleanFlag` ([L1176-L1183](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L1176-L1183)) - Function
-  - `apps.moltnet-cli.github_guard.permissionForRESTEndpoint` ([L1185-L1203](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L1185-L1203)) - Function
+  - `apps.moltnet-cli.github_guard.currentGitHubGuardContext` ([L111-L140](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L111-L140)) - Function
+  - `apps.moltnet-cli.github_guard.resolveGitConfigGlobalPath` ([L142-L161](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L142-L161)) - Function
+  - `apps.moltnet-cli.github_guard.envEnabled` ([L163-L170](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L163-L170)) - Function
+  - `apps.moltnet-cli.github_guard.isMoltnetGitConfig` ([L172-L181](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L172-L181)) - Function
+  - `apps.moltnet-cli.github_guard.loadGitHubGuardPermissions` ([L183-L204](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L183-L204)) - Function
+  - `apps.moltnet-cli.github_guard.evaluateGitHubGuard` ([L206-L214](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L206-L214)) - Function
+  - `apps.moltnet-cli.github_guard.evaluateGitHubGuardScript` ([L216-L296](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L216-L296)) - Function
+  - `apps.moltnet-cli.github_guard.decideGitHubCall` ([L298-L364](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L298-L364)) - Function
+  - `apps.moltnet-cli.github_guard.nestedShellScript` ([L366-L392](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L366-L392)) - Function
+  - `apps.moltnet-cli.github_guard.shellShortOptionsContainCommand` ([L394-L398](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L394-L398)) - Function
+  - `apps.moltnet-cli.github_guard.permissionAllowsWrite` ([L400-L407](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L400-L407)) - Function
+  - `apps.moltnet-cli.github_guard.parseShellInvocation` ([L409-L499](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L409-L499)) - Function
+  - `apps.moltnet-cli.github_guard.isKnownPrefixRunner` ([L501-L508](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L501-L508)) - Function
+  - `apps.moltnet-cli.github_guard.unwrapPrefixRunner` ([L510-L585](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L510-L585)) - Function
+  - `apps.moltnet-cli.github_guard.commandAfterOptions` ([L587-L618](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L587-L618)) - Function
+  - `apps.moltnet-cli.github_guard.commandFromArgs` ([L620-L625](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L620-L625)) - Function
+  - `apps.moltnet-cli.github_guard.staticShellWord` ([L627-L632](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L627-L632)) - Function
+  - `apps.moltnet-cli.github_guard.staticShellParts` ([L634-L669](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L634-L669)) - Function
+  - `apps.moltnet-cli.github_guard.staticParamName` ([L674-L685](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L674-L685)) - Function
+  - `apps.moltnet-cli.github_guard.collectStaticShellVars` ([L694-L726](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L694-L726)) - Function
+  - `apps.moltnet-cli.github_guard.shellAssignmentWord` ([L728-L747](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L728-L747)) - Function
+  - `apps.moltnet-cli.github_guard.isMoltnetTokenWord` ([L749-L754](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L749-L754)) - Function
+  - `apps.moltnet-cli.github_guard.isMoltnetTokenParts` ([L756-L796](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L756-L796)) - Function
+  - `apps.moltnet-cli.github_guard.tokenCredentialsMatch` ([L798-L820](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L798-L820)) - Function
+  - `apps.moltnet-cli.github_guard.classifyGitHubOperation` ([L824-L931](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L824-L931)) - Function
+  - `apps.moltnet-cli.github_guard.stripGitHubGlobalFlags` ([L933-L951](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L933-L951)) - Function
+  - `apps.moltnet-cli.github_guard.normalizeGitHubAlias` ([L953-L972](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L953-L972)) - Function
+  - `apps.moltnet-cli.github_guard.classifySubcommand` ([L974-L982](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L974-L982)) - Function
+  - `apps.moltnet-cli.github_guard.classifyReadWriteSubcommand` ([L984-L999](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L984-L999)) - Function
+  - `apps.moltnet-cli.github_guard.classifyRepositoryCommand` ([L1001-L1028](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L1001-L1028)) - Function
+  - `apps.moltnet-cli.github_guard.classifyGitHubAPI` ([L1030-L1156](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L1030-L1156)) - Function
+  - `apps.moltnet-cli.github_guard.apiFlagNeedsValue` ([L1158-L1179](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L1158-L1179)) - Function
+  - `apps.moltnet-cli.github_guard.apiAttachedShortFlag` ([L1181-L1186](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L1181-L1186)) - Function
+  - `apps.moltnet-cli.github_guard.apiBooleanFlag` ([L1188-L1195](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L1188-L1195)) - Function
+  - `apps.moltnet-cli.github_guard.permissionForRESTEndpoint` ([L1197-L1215](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/github_guard.go#L1197-L1215)) - Function
 - [`apps/moltnet-cli/pack.go`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/pack.go)
   - `apps.moltnet-cli.pack.runPackRenderCmd` ([L22-L106](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/pack.go#L22-L106)) - Function
   - `apps.moltnet-cli.pack.resolvePackRenderMarkdown` ([L108-L144](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/pack.go#L108-L144)) - Function
@@ -3987,75 +4012,76 @@ Handles the administrative lifecycle of agent cryptographic keys and the setup o
   - `apps.rest-api.scripts.generate-openapi.main` ([L57-L141](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/scripts/generate-openapi.ts#L57-L141)) - Function
   - `apps.rest-api.scripts.generate-openapi.catch() callback` ([L143-L146](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/scripts/generate-openapi.ts#L143-L146)) - Function
 - [`apps/rest-api/src/app.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/app.ts)
-  - `apps.rest-api.src.app.SecurityOptions` ([L99-L151](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/app.ts#L99-L151)) - Interface
-  - `apps.rest-api.src.app.AppOptions` ([L153-L220](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/app.ts#L153-L220)) - Interface
-  - `apps.rest-api.src.app.registerApiRoutes` ([L228-L470](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/app.ts#L228-L470)) - Function
-  - `apps.rest-api.src.app.registerApiRoutes.refResolver.buildLocalReference` ([L282-L284](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/app.ts#L282-L284)) - Method
-  - `apps.rest-api.src.app.buildApp` ([L472-L488](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/app.ts#L472-L488)) - Function
+  - `apps.rest-api.src.app.SecurityOptions` ([L103-L155](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/app.ts#L103-L155)) - Interface
+  - `apps.rest-api.src.app.AppOptions` ([L157-L224](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/app.ts#L157-L224)) - Interface
+  - `apps.rest-api.src.app.registerApiRoutes` ([L232-L506](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/app.ts#L232-L506)) - Function
+  - `apps.rest-api.src.app.registerApiRoutes.refResolver.buildLocalReference` ([L286-L288](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/app.ts#L286-L288)) - Method
+  - `apps.rest-api.src.app.registerApiRoutes.app.addHook('onRoute') callback` ([L338-L365](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/app.ts#L338-L365)) - Function
+  - `apps.rest-api.src.app.buildApp` ([L508-L524](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/app.ts#L508-L524)) - Function
 - [`apps/rest-api/src/bootstrap.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts)
-  - `apps.rest-api.src.bootstrap.BootstrapResult` ([L121-L128](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L121-L128)) - Interface
-  - `apps.rest-api.src.bootstrap.postgresDatabaseIdentity` ([L130-L139](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L130-L139)) - Function
-  - `apps.rest-api.src.bootstrap.assertTransactionalDbosCoLocated` ([L141-L156](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L141-L156)) - Function
-  - `apps.rest-api.src.bootstrap.bootstrap` ([L158-L759](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L158-L759)) - Function
-  - `apps.rest-api.src.bootstrap.bootstrap.tracing.ignorePaths` ([L190-L190](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L190-L190)) - Method
-  - `apps.rest-api.src.bootstrap.bootstrap.rateLimitRedis.on('error') callback` ([L261-L263](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L261-L263)) - Function
-  - `apps.rest-api.src.bootstrap.taskService` ([L376-L399](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L376-L399)) - Class
-  - `apps.rest-api.src.bootstrap.bootstrap.taskService.taskInputArtifactObjectStore.headObject` ([L381-L381](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L381-L381)) - Method
-  - `apps.rest-api.src.bootstrap.bootstrap.taskService.enqueueWorkflowInCurrentTransaction` ([L392-L393](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L392-L393)) - Method
-  - `apps.rest-api.src.bootstrap.bootstrap.registerWorkflows.<function>` ([L414-L443](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L414-L443)) - Function
-  - `apps.rest-api.src.bootstrap.bootstrap.registerWorkflows.<function>.setSigningWorkflowErrorReporter() callback` ([L417-L422](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L417-L422)) - Function
-  - `apps.rest-api.src.bootstrap.bootstrap.registerWorkflows.<function>.getPublicKey` ([L438-L441](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L438-L441)) - Method
-  - `apps.rest-api.src.bootstrap.afterLaunch.<function>` ([L454-L470](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L454-L470)) - Function
-  - `apps.rest-api.src.bootstrap.bootstrap.afterLaunch.<function>.completeAgentRequest` ([L456-L468](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L456-L468)) - Method
-  - `apps.rest-api.src.bootstrap.bootstrap.afterLaunch.<function>.createAttempt` ([L531-L531](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L531-L531)) - Method
-  - `apps.rest-api.src.bootstrap.bootstrap.afterLaunch.<function>.recomputeAttemptActivityStats` ([L532-L537](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L532-L537)) - Method
-  - `apps.rest-api.src.bootstrap.bootstrap.afterLaunch.<function>.updateAttempt` ([L538-L539](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L538-L539)) - Method
-  - `apps.rest-api.src.bootstrap.bootstrap.afterLaunch.<function>.updateTaskStatus` ([L540-L541](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L540-L541)) - Method
-  - `apps.rest-api.src.bootstrap.bootstrap.afterLaunch.<function>.updateTaskStatusIfNotIn` ([L542-L543](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L542-L543)) - Method
-  - `apps.rest-api.src.bootstrap.bootstrap.afterLaunch.<function>.removeClaimantTuple` ([L544-L545](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L544-L545)) - Method
-  - `apps.rest-api.src.bootstrap.bootstrap.afterLaunch.<function>.countAttempts` ([L546-L546](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L546-L546)) - Method
-  - `apps.rest-api.src.bootstrap.bootstrap.afterLaunch.<function>.getMaxAttempts` ([L547-L547](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L547-L547)) - Method
-  - `apps.rest-api.src.bootstrap.bootstrap.afterLaunch.<function>.findTaskById` ([L548-L548](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L548-L548)) - Method
-  - `apps.rest-api.src.bootstrap.bootstrap.afterLaunch.<function>` ([L559-L566](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L559-L566)) - Function
-  - `apps.rest-api.src.bootstrap.contextPackService` ([L585-L609](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L585-L609)) - Class
-  - `apps.rest-api.src.bootstrap.bootstrap.contextPackService.entryFetcher.fetchEntries` ([L591-L598](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L591-L598)) - Method
-  - `apps.rest-api.src.bootstrap.bootstrap.contextPackService.runTransaction` ([L600-L600](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L600-L600)) - Method
-  - `apps.rest-api.src.bootstrap.bootstrap.contextPackService.grantPackParent` ([L601-L602](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L601-L602)) - Method
-  - `apps.rest-api.src.bootstrap.bootstrap.contextPackService.removePackRelations` ([L603-L604](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L603-L604)) - Method
-  - `apps.rest-api.src.bootstrap.bootstrap.contextPackService.deleteMany` ([L605-L605](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L605-L605)) - Method
-  - `apps.rest-api.src.bootstrap.tokenValidator` ([L616-L641](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L616-L641)) - Class
-  - `apps.rest-api.src.bootstrap.bootstrap.tokenValidator.resolveTalosAgent` ([L622-L633](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L622-L633)) - Method
-  - `apps.rest-api.src.bootstrap.bootstrap.tokenValidator.onValidationEvent` ([L635-L640](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L635-L640)) - Method
-  - `apps.rest-api.src.bootstrap.bootstrap.teamResolver.findPersonalTeamId` ([L699-L712](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L699-L712)) - Method
-  - `apps.rest-api.src.bootstrap.bootstrap.security.rateLimitAllowList.map() callback` ([L738-L738](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L738-L738)) - Function
-  - `apps.rest-api.src.bootstrap.bootstrap.security.rateLimitAllowList.filter() callback` ([L739-L739](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L739-L739)) - Function
+  - `apps.rest-api.src.bootstrap.BootstrapResult` ([L123-L130](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L123-L130)) - Interface
+  - `apps.rest-api.src.bootstrap.postgresDatabaseIdentity` ([L132-L141](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L132-L141)) - Function
+  - `apps.rest-api.src.bootstrap.assertTransactionalDbosCoLocated` ([L143-L158](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L143-L158)) - Function
+  - `apps.rest-api.src.bootstrap.bootstrap` ([L160-L785](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L160-L785)) - Function
+  - `apps.rest-api.src.bootstrap.bootstrap.tracing.ignorePaths` ([L192-L192](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L192-L192)) - Method
+  - `apps.rest-api.src.bootstrap.bootstrap.rateLimitRedis.on('error') callback` ([L263-L265](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L263-L265)) - Function
+  - `apps.rest-api.src.bootstrap.taskService` ([L379-L402](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L379-L402)) - Class
+  - `apps.rest-api.src.bootstrap.bootstrap.taskService.taskInputArtifactObjectStore.headObject` ([L384-L384](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L384-L384)) - Method
+  - `apps.rest-api.src.bootstrap.bootstrap.taskService.enqueueWorkflowInCurrentTransaction` ([L395-L396](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L395-L396)) - Method
+  - `apps.rest-api.src.bootstrap.bootstrap.registerWorkflows.<function>` ([L417-L446](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L417-L446)) - Function
+  - `apps.rest-api.src.bootstrap.bootstrap.registerWorkflows.<function>.setSigningWorkflowErrorReporter() callback` ([L420-L425](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L420-L425)) - Function
+  - `apps.rest-api.src.bootstrap.bootstrap.registerWorkflows.<function>.getPublicKey` ([L441-L444](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L441-L444)) - Method
+  - `apps.rest-api.src.bootstrap.afterLaunch.<function>` ([L457-L473](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L457-L473)) - Function
+  - `apps.rest-api.src.bootstrap.bootstrap.afterLaunch.<function>.completeAgentRequest` ([L459-L471](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L459-L471)) - Method
+  - `apps.rest-api.src.bootstrap.bootstrap.afterLaunch.<function>.createAttempt` ([L534-L534](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L534-L534)) - Method
+  - `apps.rest-api.src.bootstrap.bootstrap.afterLaunch.<function>.recomputeAttemptActivityStats` ([L535-L540](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L535-L540)) - Method
+  - `apps.rest-api.src.bootstrap.bootstrap.afterLaunch.<function>.updateAttempt` ([L541-L542](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L541-L542)) - Method
+  - `apps.rest-api.src.bootstrap.bootstrap.afterLaunch.<function>.updateTaskStatus` ([L543-L544](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L543-L544)) - Method
+  - `apps.rest-api.src.bootstrap.bootstrap.afterLaunch.<function>.updateTaskStatusIfNotIn` ([L545-L546](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L545-L546)) - Method
+  - `apps.rest-api.src.bootstrap.bootstrap.afterLaunch.<function>.removeClaimantTuple` ([L547-L548](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L547-L548)) - Method
+  - `apps.rest-api.src.bootstrap.bootstrap.afterLaunch.<function>.countAttempts` ([L549-L549](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L549-L549)) - Method
+  - `apps.rest-api.src.bootstrap.bootstrap.afterLaunch.<function>.getMaxAttempts` ([L550-L550](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L550-L550)) - Method
+  - `apps.rest-api.src.bootstrap.bootstrap.afterLaunch.<function>.findTaskById` ([L551-L551](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L551-L551)) - Method
+  - `apps.rest-api.src.bootstrap.bootstrap.afterLaunch.<function>` ([L562-L569](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L562-L569)) - Function
+  - `apps.rest-api.src.bootstrap.contextPackService` ([L588-L612](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L588-L612)) - Class
+  - `apps.rest-api.src.bootstrap.bootstrap.contextPackService.entryFetcher.fetchEntries` ([L594-L601](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L594-L601)) - Method
+  - `apps.rest-api.src.bootstrap.bootstrap.contextPackService.runTransaction` ([L603-L603](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L603-L603)) - Method
+  - `apps.rest-api.src.bootstrap.bootstrap.contextPackService.grantPackParent` ([L604-L605](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L604-L605)) - Method
+  - `apps.rest-api.src.bootstrap.bootstrap.contextPackService.removePackRelations` ([L606-L607](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L606-L607)) - Method
+  - `apps.rest-api.src.bootstrap.bootstrap.contextPackService.deleteMany` ([L608-L608](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L608-L608)) - Method
+  - `apps.rest-api.src.bootstrap.tokenValidator` ([L632-L664](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L632-L664)) - Class
+  - `apps.rest-api.src.bootstrap.bootstrap.tokenValidator.resolveTalosAgent` ([L642-L656](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L642-L656)) - Method
+  - `apps.rest-api.src.bootstrap.bootstrap.tokenValidator.onValidationEvent` ([L658-L663](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L658-L663)) - Method
+  - `apps.rest-api.src.bootstrap.bootstrap.teamResolver.findPersonalTeamId` ([L725-L738](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L725-L738)) - Method
+  - `apps.rest-api.src.bootstrap.bootstrap.security.rateLimitAllowList.map() callback` ([L764-L764](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L764-L764)) - Function
+  - `apps.rest-api.src.bootstrap.bootstrap.security.rateLimitAllowList.filter() callback` ([L765-L765](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/bootstrap.ts#L765-L765)) - Function
 - [`apps/rest-api/src/config.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts)
   - `apps.rest-api.src.config.Format.Set('uuid') callback` ([L18-L19](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L18-L19)) - Function
   - `apps.rest-api.src.config.Format.Set('uri') callback` ([L23-L30](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L23-L30)) - Function
-  - `apps.rest-api.src.config.AppConfig` ([L303-L316](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L303-L316)) - Interface
-  - `apps.rest-api.src.config.ResolvedOryUrls` ([L318-L327](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L318-L327)) - Interface
-  - `apps.rest-api.src.config.pickEnv` ([L333-L344](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L333-L344)) - Function
-  - `apps.rest-api.src.config.validateSchema` ([L346-L361](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L346-L361)) - Function
-  - `apps.rest-api.src.config.validateSchema.details` ([L357-L359](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L357-L359)) - Class
-  - `apps.rest-api.src.config.validateSchema.details.errors.map() callback` ([L358-L358](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L358-L358)) - Function
-  - `apps.rest-api.src.config.loadServerConfig` ([L367-L376](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L367-L376)) - Function
-  - `apps.rest-api.src.config.loadDatabaseConfig` ([L378-L386](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L378-L386)) - Function
-  - `apps.rest-api.src.config.loadWebhookConfig` ([L388-L396](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L388-L396)) - Function
-  - `apps.rest-api.src.config.loadOryConfig` ([L398-L402](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L398-L402)) - Function
-  - `apps.rest-api.src.config.loadObservabilityConfig` ([L404-L412](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L404-L412)) - Function
-  - `apps.rest-api.src.config.loadRecoveryConfig` ([L414-L422](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L414-L422)) - Function
-  - `apps.rest-api.src.config.loadEmbeddingConfig` ([L424-L432](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L424-L432)) - Function
-  - `apps.rest-api.src.config.loadPackGcConfig` ([L434-L442](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L434-L442)) - Function
-  - `apps.rest-api.src.config.loadTaskOrphanSweeperConfig` ([L444-L452](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L444-L452)) - Function
-  - `apps.rest-api.src.config.loadRuntimeSessionStorageConfig` ([L454-L462](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L454-L462)) - Function
-  - `apps.rest-api.src.config.loadTaskArtifactStorageConfig` ([L464-L472](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L464-L472)) - Function
-  - `apps.rest-api.src.config.loadSecurityConfig` ([L474-L482](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L474-L482)) - Function
-  - `apps.rest-api.src.config.ResolvedRedisConfig` ([L485-L491](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L485-L491)) - Interface
-  - `apps.rest-api.src.config.resolveRedisConfig` ([L500-L557](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L500-L557)) - Function
-  - `apps.rest-api.src.config.loadConfig` ([L563-L613](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L563-L613)) - Function
-  - `apps.rest-api.src.config.getRequiredSecrets` ([L639-L650](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L639-L650)) - Function
-  - `apps.rest-api.src.config.resolveOryUrls` ([L656-L679](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L656-L679)) - Function
-  - `apps.rest-api.src.config.resolveOryUrls.resolve` ([L659-L667](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L659-L667)) - Function
+  - `apps.rest-api.src.config.AppConfig` ([L312-L325](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L312-L325)) - Interface
+  - `apps.rest-api.src.config.ResolvedOryUrls` ([L327-L336](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L327-L336)) - Interface
+  - `apps.rest-api.src.config.pickEnv` ([L342-L353](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L342-L353)) - Function
+  - `apps.rest-api.src.config.validateSchema` ([L355-L370](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L355-L370)) - Function
+  - `apps.rest-api.src.config.validateSchema.details` ([L366-L368](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L366-L368)) - Class
+  - `apps.rest-api.src.config.validateSchema.details.errors.map() callback` ([L367-L367](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L367-L367)) - Function
+  - `apps.rest-api.src.config.loadServerConfig` ([L376-L385](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L376-L385)) - Function
+  - `apps.rest-api.src.config.loadDatabaseConfig` ([L387-L395](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L387-L395)) - Function
+  - `apps.rest-api.src.config.loadWebhookConfig` ([L397-L405](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L397-L405)) - Function
+  - `apps.rest-api.src.config.loadOryConfig` ([L407-L411](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L407-L411)) - Function
+  - `apps.rest-api.src.config.loadObservabilityConfig` ([L413-L421](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L413-L421)) - Function
+  - `apps.rest-api.src.config.loadRecoveryConfig` ([L423-L431](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L423-L431)) - Function
+  - `apps.rest-api.src.config.loadEmbeddingConfig` ([L433-L441](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L433-L441)) - Function
+  - `apps.rest-api.src.config.loadPackGcConfig` ([L443-L451](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L443-L451)) - Function
+  - `apps.rest-api.src.config.loadTaskOrphanSweeperConfig` ([L453-L461](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L453-L461)) - Function
+  - `apps.rest-api.src.config.loadRuntimeSessionStorageConfig` ([L463-L471](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L463-L471)) - Function
+  - `apps.rest-api.src.config.loadTaskArtifactStorageConfig` ([L473-L481](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L473-L481)) - Function
+  - `apps.rest-api.src.config.loadSecurityConfig` ([L483-L491](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L483-L491)) - Function
+  - `apps.rest-api.src.config.ResolvedRedisConfig` ([L494-L500](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L494-L500)) - Interface
+  - `apps.rest-api.src.config.resolveRedisConfig` ([L509-L566](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L509-L566)) - Function
+  - `apps.rest-api.src.config.loadConfig` ([L572-L622](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L572-L622)) - Function
+  - `apps.rest-api.src.config.getRequiredSecrets` ([L648-L659](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L648-L659)) - Function
+  - `apps.rest-api.src.config.resolveOryUrls` ([L665-L688](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L665-L688)) - Function
+  - `apps.rest-api.src.config.resolveOryUrls.resolve` ([L668-L676](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/config.ts#L668-L676)) - Function
 - [`apps/rest-api/src/main.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/main.ts)
   - `apps.rest-api.src.main.main` ([L13-L34](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/main.ts#L13-L34)) - Function
   - `apps.rest-api.src.main.main.process.once() callback` ([L25-L32](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/main.ts#L25-L32)) - Function
@@ -4075,13 +4101,14 @@ Handles the administrative lifecycle of agent cryptographic keys and the setup o
   - `apps.rest-api.src.plugins.dbos.dbosPlugin` ([L49-L85](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/plugins/dbos.ts#L49-L85)) - Function
   - `apps.rest-api.src.plugins.dbos.dbosPlugin.fastify.addHook('onClose') callback` ([L79-L82](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/plugins/dbos.ts#L79-L82)) - Function
 - [`apps/rest-api/src/plugins/error-handler.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/plugins/error-handler.ts)
-  - `apps.rest-api.src.plugins.error-handler.ProblemError` ([L16-L22](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/plugins/error-handler.ts#L16-L22)) - Interface
-  - `apps.rest-api.src.plugins.error-handler.extractPgErrorFields` ([L33-L75](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/plugins/error-handler.ts#L33-L75)) - Function
-  - `apps.rest-api.src.plugins.error-handler.errorHandler` ([L77-L209](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/plugins/error-handler.ts#L77-L209)) - Function
-  - `apps.rest-api.src.plugins.error-handler.errorHandler.fastify.addHook('onError') callback` ([L80-L101](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/plugins/error-handler.ts#L80-L101)) - Function
-  - `apps.rest-api.src.plugins.error-handler.errorHandler.fastify.setErrorHandler() callback` ([L104-L207](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/plugins/error-handler.ts#L104-L207)) - Function
-  - `apps.rest-api.src.plugins.error-handler.errorHandler.fastify.setErrorHandler() callback.validationErrors` ([L138-L145](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/plugins/error-handler.ts#L138-L145)) - Class
-  - `apps.rest-api.src.plugins.error-handler.errorHandler.fastify.setErrorHandler() callback.validationErrors.error.validation.map() callback` ([L141-L144](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/plugins/error-handler.ts#L141-L144)) - Function
+  - `apps.rest-api.src.plugins.error-handler.ProblemError` ([L17-L25](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/plugins/error-handler.ts#L17-L25)) - Interface
+  - `apps.rest-api.src.plugins.error-handler.mapRemoteAuthenticationError` ([L27-L43](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/plugins/error-handler.ts#L27-L43)) - Function
+  - `apps.rest-api.src.plugins.error-handler.extractPgErrorFields` ([L54-L96](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/plugins/error-handler.ts#L54-L96)) - Function
+  - `apps.rest-api.src.plugins.error-handler.errorHandler` ([L98-L250](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/plugins/error-handler.ts#L98-L250)) - Function
+  - `apps.rest-api.src.plugins.error-handler.errorHandler.fastify.addHook('onError') callback` ([L101-L128](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/plugins/error-handler.ts#L101-L128)) - Function
+  - `apps.rest-api.src.plugins.error-handler.errorHandler.fastify.setErrorHandler() callback` ([L131-L248](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/plugins/error-handler.ts#L131-L248)) - Function
+  - `apps.rest-api.src.plugins.error-handler.errorHandler.fastify.setErrorHandler() callback.validationErrors` ([L175-L182](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/plugins/error-handler.ts#L175-L182)) - Class
+  - `apps.rest-api.src.plugins.error-handler.errorHandler.fastify.setErrorHandler() callback.validationErrors.handledError.validation.map() callback` ([L178-L181](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/plugins/error-handler.ts#L178-L181)) - Function
 - [`apps/rest-api/src/plugins/pre-resolve-throttle.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/plugins/pre-resolve-throttle.ts)
   - `apps.rest-api.src.plugins.pre-resolve-throttle.Window` ([L22-L26](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/plugins/pre-resolve-throttle.ts#L22-L26)) - Interface
   - `apps.rest-api.src.plugins.pre-resolve-throttle.PreResolveThrottle` ([L28-L36](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/plugins/pre-resolve-throttle.ts#L28-L36)) - Interface
@@ -4137,11 +4164,11 @@ Handles the administrative lifecycle of agent cryptographic keys and the setup o
 - [`apps/rest-api/src/routes/agent-keys.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/routes/agent-keys.ts)
   - `apps.rest-api.src.routes.agent-keys.AgentKeyRoutesOptions` ([L29-L38](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/routes/agent-keys.ts#L29-L38)) - Interface
   - `apps.rest-api.src.routes.agent-keys.authSubject` ([L40-L49](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/routes/agent-keys.ts#L40-L49)) - Function
-  - `apps.rest-api.src.routes.agent-keys.agentKeyRoutes` ([L64-L248](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/routes/agent-keys.ts#L64-L248)) - Function
+  - `apps.rest-api.src.routes.agent-keys.agentKeyRoutes` ([L64-L251](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/routes/agent-keys.ts#L64-L251)) - Function
   - `apps.rest-api.src.routes.agent-keys.agentKeyRoutes.server.post('/agent-keys') callback` ([L106-L117](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/routes/agent-keys.ts#L106-L117)) - Function
   - `apps.rest-api.src.routes.agent-keys.agentKeyRoutes.server.get('/agent-keys') callback` ([L152-L161](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/routes/agent-keys.ts#L152-L161)) - Function
-  - `apps.rest-api.src.routes.agent-keys.agentKeyRoutes.server.post('/agent-keys/:keyId/rotate') callback` ([L194-L203](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/routes/agent-keys.ts#L194-L203)) - Function
-  - `apps.rest-api.src.routes.agent-keys.agentKeyRoutes.server.post('/agent-keys/:keyId/revoke') callback` ([L235-L246](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/routes/agent-keys.ts#L235-L246)) - Function
+  - `apps.rest-api.src.routes.agent-keys.agentKeyRoutes.server.post('/agent-keys/:keyId/rotate') callback` ([L194-L205](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/routes/agent-keys.ts#L194-L205)) - Function
+  - `apps.rest-api.src.routes.agent-keys.agentKeyRoutes.server.post('/agent-keys/:keyId/revoke') callback` ([L237-L249](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/routes/agent-keys.ts#L237-L249)) - Function
 - [`apps/rest-api/src/routes/agents.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/routes/agents.ts)
   - `apps.rest-api.src.routes.agents.agentRoutes` ([L20-L198](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/routes/agents.ts#L20-L198)) - Function
   - `apps.rest-api.src.routes.agents.agentRoutes.server.get('/agents/:fingerprint') callback` ([L41-L58](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/rest-api/src/routes/agents.ts#L41-L58)) - Function
@@ -5444,17 +5471,18 @@ Manages the activation cache and the MCP host server configuration to bridge the
   - `apps.console.src.api.getApiClient` ([L27-L39](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/api.ts#L27-L39)) - Function
   - `apps.console.src.api.getApiClient.fetch` ([L32-L32](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/api.ts#L32-L32)) - Method
 - [`apps/console/src/auth/AuthGuard.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthGuard.tsx)
-  - `apps.console.src.auth.AuthGuard.AuthGuard` ([L14-L23](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthGuard.tsx#L14-L23)) - Function
+  - `apps.console.src.auth.AuthGuard.buildReturnTo` ([L25-L28](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthGuard.tsx#L25-L28)) - Function
+  - `apps.console.src.auth.AuthGuard.AuthGuard` ([L30-L39](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthGuard.tsx#L30-L39)) - Function
 - [`apps/console/src/auth/AuthProvider.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx)
-  - `apps.console.src.auth.AuthProvider.AuthContextValue` ([L19-L28](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L19-L28)) - Interface
-  - `apps.console.src.auth.AuthProvider.AuthProvider` ([L32-L80](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L32-L80)) - Function
-  - `apps.console.src.auth.AuthProvider.AuthProvider.checkSession` ([L37-L49](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L37-L49)) - Class
-  - `apps.console.src.auth.AuthProvider.AuthProvider.checkSession.useCallback() callback` ([L37-L49](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L37-L49)) - Function
-  - `apps.console.src.auth.AuthProvider.AuthProvider.useEffect() callback` ([L51-L56](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L51-L56)) - Function
-  - `apps.console.src.auth.AuthProvider.AuthProvider.useEffect() callback.interval` ([L54-L54](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L54-L54)) - Class
-  - `apps.console.src.auth.AuthProvider.AuthProvider.useEffect() callback.interval.setInterval() callback` ([L54-L54](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L54-L54)) - Function
-  - `apps.console.src.auth.AuthProvider.AuthProvider.logout` ([L58-L67](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L58-L67)) - Class
-  - `apps.console.src.auth.AuthProvider.AuthProvider.logout.useCallback() callback` ([L58-L67](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L58-L67)) - Function
+  - `apps.console.src.auth.AuthProvider.AuthContextValue` ([L21-L30](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L21-L30)) - Interface
+  - `apps.console.src.auth.AuthProvider.isAuthenticationFailure` ([L44-L49](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L44-L49)) - Function
+  - `apps.console.src.auth.AuthProvider.AuthProvider` ([L51-L130](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L51-L130)) - Function
+  - `apps.console.src.auth.AuthProvider.AuthProvider.checkSession` ([L58-L86](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L58-L86)) - Class
+  - `apps.console.src.auth.AuthProvider.AuthProvider.checkSession.useCallback() callback` ([L58-L86](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L58-L86)) - Function
+  - `apps.console.src.auth.AuthProvider.useEffect() callback` ([L88-L90](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L88-L90)) - Function
+  - `apps.console.src.auth.AuthProvider.AuthProvider.useEffect() callback` ([L96-L106](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L96-L106)) - Function
+  - `apps.console.src.auth.AuthProvider.AuthProvider.logout` ([L108-L117](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L108-L117)) - Class
+  - `apps.console.src.auth.AuthProvider.AuthProvider.logout.useCallback() callback` ([L108-L117](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/AuthProvider.tsx#L108-L117)) - Function
 - [`apps/console/src/auth/useAuth.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/useAuth.ts)
   - `apps.console.src.auth.useAuth.UseAuthResult` ([L11-L14](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/useAuth.ts#L11-L14)) - Interface
   - `apps.console.src.auth.useAuth.useAuth` ([L16-L31](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/console/src/auth/useAuth.ts#L16-L31)) - Function
@@ -6415,6 +6443,22 @@ Manages the activation cache and the MCP host server configuration to bridge the
   - `apps.moltnet-cli.agents.runAgentsLookupCmd` ([L31-L47](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agents.go#L31-L47)) - Function
   - `apps.moltnet-cli.agents.printJSON` ([L50-L52](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agents.go#L50-L52)) - Function
   - `apps.moltnet-cli.agents.printJSONTo` ([L56-L60](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agents.go#L56-L60)) - Function
+- [`apps/moltnet-cli/agents_credentials.go`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agents_credentials.go)
+  - `apps.moltnet-cli.agents_credentials.agentsCredentialsRotateOpts` ([L19-L32](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agents_credentials.go#L19-L32)) - Struct
+  - `apps.moltnet-cli.agents_credentials.rotateCredentialsOutput` ([L34-L39](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agents_credentials.go#L34-L39)) - Struct
+  - `apps.moltnet-cli.agents_credentials.runAgentsCredentialsRotateCmd` ([L41-L104](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agents_credentials.go#L41-L104)) - Function
+  - `apps.moltnet-cli.agents_credentials.validateAgentsCredentialsRotateOpts` ([L106-L116](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agents_credentials.go#L106-L116)) - Function
+  - `apps.moltnet-cli.agents_credentials.runAgentsCredentialsRotateWithClient` ([L118-L190](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agents_credentials.go#L118-L190)) - Function
+  - `apps.moltnet-cli.agents_credentials.emitCredentialsRecovery` ([L192-L208](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agents_credentials.go#L192-L208)) - Function
+  - `apps.moltnet-cli.agents_credentials.emitCredentialsRecoveryFile` ([L210-L235](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agents_credentials.go#L210-L235)) - Function
+  - `apps.moltnet-cli.agents_credentials.resolveCredentialsPath` ([L237-L267](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agents_credentials.go#L237-L267)) - Function
+  - `apps.moltnet-cli.agents_credentials.absolutePath` ([L269-L275](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agents_credentials.go#L269-L275)) - Function
+  - `apps.moltnet-cli.agents_credentials.readCredentialsDocument` ([L277-L293](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agents_credentials.go#L277-L293)) - Function
+  - `apps.moltnet-cli.agents_credentials.preflightCredentialsWrite` ([L295-L316](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agents_credentials.go#L295-L316)) - Function
+  - `apps.moltnet-cli.agents_credentials.updateCredentialsDocument` ([L318-L356](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agents_credentials.go#L318-L356)) - Function
+  - `apps.moltnet-cli.agents_credentials.writeCredentialsAtomic` ([L358-L367](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agents_credentials.go#L358-L367)) - Function
+  - `apps.moltnet-cli.agents_credentials.writeCredentialsRecoveryFile` ([L369-L378](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agents_credentials.go#L369-L378)) - Function
+  - `apps.moltnet-cli.agents_credentials.writeCredentialsRecoveryFileToDir` ([L380-L424](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/agents_credentials.go#L380-L424)) - Function
 - [`apps/moltnet-cli/api.go`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/api.go)
   - `apps.moltnet-cli.api.bearerTokenFunc` ([L16-L16](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/api.go#L16-L16)) - Function
   - `apps.moltnet-cli.api.bearerSecuritySource` ([L31-L33](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/api.go#L31-L33)) - Struct
@@ -6431,6 +6475,14 @@ Manages the activation cache and the MCP host server configuration to bridge the
   - `apps.moltnet-cli.api_error.parseProblemDetailsBody` ([L127-L136](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/api_error.go#L127-L136)) - Function
   - `apps.moltnet-cli.api_error.restApiErrorBody` ([L146-L149](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/api_error.go#L146-L149)) - Struct
   - `apps.moltnet-cli.api_error.parseRestApiErrorBody` ([L151-L163](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/api_error.go#L151-L163)) - Function
+- [`apps/moltnet-cli/api_url_resolution.go`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/api_url_resolution.go)
+  - `apps.moltnet-cli.api_url_resolution.resolveAPIURLFromCredentials` ([L54-L71](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/api_url_resolution.go#L54-L71)) - Function
+- [`apps/moltnet-cli/atomic_file.go`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/atomic_file.go)
+  - `apps.moltnet-cli.atomic_file.writeFileAtomic` ([L11-L45](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/atomic_file.go#L11-L45)) - Function
+  - `apps.moltnet-cli.atomic_file.writeJSONAtomic` ([L47-L57](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/atomic_file.go#L47-L57)) - Function
+  - `apps.moltnet-cli.atomic_file.syncDirectoryBestEffort` ([L59-L66](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/atomic_file.go#L59-L66)) - Function
+- [`apps/moltnet-cli/cobra_agents_credentials.go`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/cobra_agents_credentials.go)
+  - `apps.moltnet-cli.cobra_agents_credentials.newAgentsCredentialsCmd` ([L5-L49](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/cobra_agents_credentials.go#L5-L49)) - Function
 - [`apps/moltnet-cli/cobra_agents_keys.go`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/cobra_agents_keys.go)
   - `apps.moltnet-cli.cobra_agents_keys.newAgentsKeysCmd` ([L8-L26](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/cobra_agents_keys.go#L8-L26)) - Function
   - `apps.moltnet-cli.cobra_agents_keys.newAgentsKeysListCmd` ([L28-L69](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/cobra_agents_keys.go#L28-L69)) - Function
@@ -6969,56 +7021,101 @@ Provides the operational layer for agent execution, including DSPy adapters for 
   - `libs.auth.src.ory-client.createOryClients.makeTalosConfig` ([L53-L66](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/ory-client.ts#L53-L66)) - Function
   - `libs.auth.src.ory-client.createOryClients.makeTalosConfig.fetchApi` ([L58-L64](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/ory-client.ts#L58-L64)) - Method
 - [`libs/auth/src/plugin.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts)
-  - `libs.auth.src.plugin.TeamResolver` ([L30-L33](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L30-L33)) - Interface
-  - `libs.auth.src.plugin.TeamResolver.findPersonalTeamId` ([L32-L32](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L32-L32)) - Method
-  - `libs.auth.src.plugin.AuthPluginOptions` ([L35-L42](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L35-L42)) - Interface
-  - `libs.auth.src.plugin.extractSessionToken` ([L76-L80](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L76-L80)) - Function
-  - `libs.auth.src.plugin.extractCookieHeader` ([L88-L97](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L88-L97)) - Function
-  - `libs.auth.src.plugin.cookieLooksLikeKratosSession` ([L107-L109](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L107-L109)) - Function
-  - `libs.auth.src.plugin.extractBearerToken` ([L111-L120](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L111-L120)) - Function
-  - `libs.auth.src.plugin.authPlugin` ([L122-L151](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L122-L151)) - Class
-  - `libs.auth.src.plugin.authPlugin.authPluginImpl` ([L123-L146](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L123-L146)) - Function
-  - `libs.auth.src.plugin.createAuthError` ([L153-L167](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L153-L167)) - Function
-  - `libs.auth.src.plugin.applyAuthContext` ([L181-L201](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L181-L201)) - Function
-  - `libs.auth.src.plugin.resolveTeamContext` ([L207-L289](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L207-L289)) - Function
-  - `libs.auth.src.plugin.resolveIdentityInto` ([L303-L336](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L303-L336)) - Function
-  - `libs.auth.src.plugin.requireScopes` ([L449-L472](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L449-L472)) - Function
-  - `libs.auth.src.plugin.requireScopes.requireScopesHandler` ([L450-L471](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L450-L471)) - Function
+  - `libs.auth.src.plugin.TeamResolver` ([L36-L39](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L36-L39)) - Interface
+  - `libs.auth.src.plugin.TeamResolver.findPersonalTeamId` ([L38-L38](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L38-L38)) - Method
+  - `libs.auth.src.plugin.AuthPluginOptions` ([L41-L48](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L41-L48)) - Interface
+  - `libs.auth.src.plugin.extractSessionToken` ([L83-L87](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L83-L87)) - Function
+  - `libs.auth.src.plugin.extractCookieHeader` ([L95-L104](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L95-L104)) - Function
+  - `libs.auth.src.plugin.cookieLooksLikeKratosSession` ([L114-L116](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L114-L116)) - Function
+  - `libs.auth.src.plugin.extractBearerToken` ([L118-L127](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L118-L127)) - Function
+  - `libs.auth.src.plugin.authPlugin` ([L129-L159](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L129-L159)) - Class
+  - `libs.auth.src.plugin.authPlugin.authPluginImpl` ([L130-L154](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L130-L154)) - Function
+  - `libs.auth.src.plugin.createAuthError` ([L161-L175](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L161-L175)) - Function
+  - `libs.auth.src.plugin.applyAuthContext` ([L189-L209](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L189-L209)) - Function
+  - `libs.auth.src.plugin.resolveTeamContext` ([L215-L297](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L215-L297)) - Function
+  - `libs.auth.src.plugin.resolveIdentity` ([L311-L367](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L311-L367)) - Function
+  - `libs.auth.src.plugin.resolveIdentityOnce` ([L369-L374](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L369-L374)) - Function
+  - `libs.auth.src.plugin.requireScopes` ([L470-L493](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L470-L493)) - Function
+  - `libs.auth.src.plugin.requireScopes.requireScopesHandler` ([L471-L492](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L471-L492)) - Function
+- [`libs/auth/src/remote-auth-cache.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-cache.ts)
+  - `libs.auth.src.remote-auth-cache.RemoteAuthMetrics` ([L29-L41](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-cache.ts#L29-L41)) - Interface
+  - `libs.auth.src.remote-auth-cache.RemoteAuthMetrics.recordCacheAccess` ([L30-L33](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-cache.ts#L30-L33)) - Method
+  - `libs.auth.src.remote-auth-cache.RemoteAuthMetrics.recordUpstreamRequest` ([L34-L38](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-cache.ts#L34-L38)) - Method
+  - `libs.auth.src.remote-auth-cache.RemoteAuthMetrics.recordCacheEviction` ([L39-L39](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-cache.ts#L39-L39)) - Method
+  - `libs.auth.src.remote-auth-cache.RemoteAuthMetrics.recordCacheSizeChange` ([L40-L40](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-cache.ts#L40-L40)) - Method
+  - `libs.auth.src.remote-auth-cache.NOOP_METRICS` ([L63-L68](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-cache.ts#L63-L68)) - Class
+  - `libs.auth.src.remote-auth-cache.NOOP_METRICS.recordCacheAccess` ([L64-L64](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-cache.ts#L64-L64)) - Method
+  - `libs.auth.src.remote-auth-cache.NOOP_METRICS.recordUpstreamRequest` ([L65-L65](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-cache.ts#L65-L65)) - Method
+  - `libs.auth.src.remote-auth-cache.NOOP_METRICS.recordCacheEviction` ([L66-L66](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-cache.ts#L66-L66)) - Method
+  - `libs.auth.src.remote-auth-cache.NOOP_METRICS.recordCacheSizeChange` ([L67-L67](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-cache.ts#L67-L67)) - Method
+  - `libs.auth.src.remote-auth-cache.statusBucket` ([L70-L76](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-cache.ts#L70-L76)) - Function
+  - `libs.auth.src.remote-auth-cache.createRemoteAuthMetrics` ([L78-L118](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-cache.ts#L78-L118)) - Function
+  - `libs.auth.src.remote-auth-cache.createRemoteAuthMetrics.recordCacheAccess` ([L101-L103](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-cache.ts#L101-L103)) - Method
+  - `libs.auth.src.remote-auth-cache.createRemoteAuthMetrics.recordUpstreamRequest` ([L104-L110](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-cache.ts#L104-L110)) - Method
+  - `libs.auth.src.remote-auth-cache.createRemoteAuthMetrics.recordCacheEviction` ([L111-L113](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-cache.ts#L111-L113)) - Method
+  - `libs.auth.src.remote-auth-cache.createRemoteAuthMetrics.recordCacheSizeChange` ([L114-L116](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-cache.ts#L114-L116)) - Method
+  - `libs.auth.src.remote-auth-cache.freezeContext` ([L120-L130](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-cache.ts#L120-L130)) - Function
+  - `libs.auth.src.remote-auth-cache.requestContext` ([L132-L137](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-cache.ts#L132-L137)) - Function
+  - `libs.auth.src.remote-auth-cache.RemoteAuthCache` ([L145-L296](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-cache.ts#L145-L296)) - Class
+  - `libs.auth.src.remote-auth-cache.RemoteAuthCache.constructor` ([L156-L162](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-cache.ts#L156-L162)) - Constructor
+  - `libs.auth.src.remote-auth-cache.RemoteAuthCache.resolve` ([L164-L232](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-cache.ts#L164-L232)) - Method
+  - `libs.auth.src.remote-auth-cache.RemoteAuthCache.evictTag` ([L234-L244](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-cache.ts#L234-L244)) - Method
+  - `libs.auth.src.remote-auth-cache.RemoteAuthCache.digest` ([L246-L263](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-cache.ts#L246-L263)) - Method
+  - `libs.auth.src.remote-auth-cache.RemoteAuthCache.setEntry` ([L265-L281](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-cache.ts#L265-L281)) - Method
+  - `libs.auth.src.remote-auth-cache.RemoteAuthCache.deleteEntry` ([L283-L295](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-cache.ts#L283-L295)) - Method
+- [`libs/auth/src/remote-auth-error.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-error.ts)
+  - `libs.auth.src.remote-auth-error.RemoteAuthenticationError` ([L6-L22](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-error.ts#L6-L22)) - Class
+  - `libs.auth.src.remote-auth-error.RemoteAuthenticationError.constructor` ([L11-L21](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-error.ts#L11-L21)) - Constructor
+  - `libs.auth.src.remote-auth-error.remoteErrorStatus` ([L24-L34](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-error.ts#L24-L34)) - Function
+  - `libs.auth.src.remote-auth-error.parseRetryAfter` ([L36-L65](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-error.ts#L36-L65)) - Function
+  - `libs.auth.src.remote-auth-error.asRemoteAuthenticationError` ([L67-L83](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-error.ts#L67-L83)) - Function
 - [`libs/auth/src/session-resolver.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts)
-  - `libs.auth.src.session-resolver.summarizeCookieHeader.cookieNames` ([L53-L56](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L53-L56)) - Class
-  - `libs.auth.src.session-resolver.summarizeCookieHeader.cookieNames.map() callback` ([L55-L55](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L55-L55)) - Function
-  - `libs.auth.src.session-resolver.summarizeCookieHeader.cookieNames.filter() callback` ([L56-L56](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L56-L56)) - Function
-  - `libs.auth.src.session-resolver.summarizeCookieHeader.kratosCookiePresent.cookieNames.some() callback` ([L62-L63](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L62-L63)) - Function
+  - `libs.auth.src.session-resolver.summarizeCookieHeader.cookieNames` ([L61-L64](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L61-L64)) - Class
+  - `libs.auth.src.session-resolver.summarizeCookieHeader.cookieNames.map() callback` ([L63-L63](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L63-L63)) - Function
+  - `libs.auth.src.session-resolver.summarizeCookieHeader.cookieNames.filter() callback` ([L64-L64](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L64-L64)) - Function
+  - `libs.auth.src.session-resolver.summarizeCookieHeader.kratosCookiePresent.cookieNames.some() callback` ([L70-L71](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L70-L71)) - Function
+  - `libs.auth.src.session-resolver.createSessionResolver` ([L121-L265](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L121-L265)) - Function
+  - `libs.auth.src.session-resolver.createSessionResolver.evictIdentity` ([L135-L137](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L135-L137)) - Method
+  - `libs.auth.src.session-resolver.createSessionResolver.resolveSession` ([L139-L263](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L139-L263)) - Method
 - [`libs/auth/src/token-validator.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts)
-  - `libs.auth.src.token-validator.TokenValidatorConfig` ([L29-L50](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L29-L50)) - Interface
-  - `libs.auth.src.token-validator.TalosAgentIdentity` ([L52-L56](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L52-L56)) - Interface
-  - `libs.auth.src.token-validator.TokenValidatorLogger` ([L62-L65](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L62-L65)) - Interface
-  - `libs.auth.src.token-validator.TokenValidationEvent` ([L81-L84](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L81-L84)) - Interface
-  - `libs.auth.src.token-validator.TokenValidator` ([L86-L89](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L86-L89)) - Interface
-  - `libs.auth.src.token-validator.TokenValidator.introspect` ([L87-L87](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L87-L87)) - Method
-  - `libs.auth.src.token-validator.TokenValidator.resolveAuthContext` ([L88-L88](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L88-L88)) - Method
-  - `libs.auth.src.token-validator.isOpaqueToken` ([L96-L98](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L96-L98)) - Function
-  - `libs.auth.src.token-validator.isOpaqueToken.ORY_OPAQUE_PREFIXES.some() callback` ([L97-L97](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L97-L97)) - Function
-  - `libs.auth.src.token-validator.isTalosApiKey` ([L100-L102](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L100-L102)) - Function
-  - `libs.auth.src.token-validator.isTalosApiKey.TALOS_API_KEY_PREFIXES.some() callback` ([L101-L101](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L101-L101)) - Function
-  - `libs.auth.src.token-validator.asMetadata` ([L104-L107](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L104-L107)) - Function
-  - `libs.auth.src.token-validator.summarizeOryError` ([L109-L133](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L109-L133)) - Function
-  - `libs.auth.src.token-validator.getCauseCode` ([L164-L170](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L164-L170)) - Function
-  - `libs.auth.src.token-validator.summarizeJwtError` ([L172-L241](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L172-L241)) - Function
-  - `libs.auth.src.token-validator.isJwtToken` ([L243-L248](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L243-L248)) - Function
-  - `libs.auth.src.token-validator.shouldIntrospectJwtFailure` ([L250-L252](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L250-L252)) - Function
-  - `libs.auth.src.token-validator.extractAuthContextFromClaims` ([L254-L302](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L254-L302)) - Function
-  - `libs.auth.src.token-validator.fetchClientMetadata` ([L304-L369](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L304-L369)) - Function
-  - `libs.auth.src.token-validator.createTokenValidator` ([L371-L742](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L371-L742)) - Function
-  - `libs.auth.src.token-validator.createTokenValidator.logger` ([L376-L379](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L376-L379)) - Class
-  - `libs.auth.src.token-validator.createTokenValidator.logger.debug` ([L377-L377](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L377-L377)) - Method
-  - `libs.auth.src.token-validator.createTokenValidator.logger.warn` ([L378-L378](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L378-L378)) - Method
-  - `libs.auth.src.token-validator.createTokenValidator.resolveTalosApiKey` ([L395-L536](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L395-L536)) - Function
-  - `libs.auth.src.token-validator.verifyJwt` ([L557-L564](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L557-L564)) - Function
-  - `libs.auth.src.token-validator.createTokenValidator.introspectToken` ([L567-L611](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L567-L611)) - Function
-  - `libs.auth.src.token-validator.introspect` ([L613-L615](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L613-L615)) - Function
-  - `libs.auth.src.token-validator.createTokenValidator.validateJwt` ([L617-L686](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L617-L686)) - Function
-  - `libs.auth.src.token-validator.createTokenValidator.resolveAuthContext` ([L691-L740](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L691-L740)) - Method
+  - `libs.auth.src.token-validator.TokenValidatorConfig` ([L38-L67](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L38-L67)) - Interface
+  - `libs.auth.src.token-validator.TalosAgentIdentity` ([L69-L73](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L69-L73)) - Interface
+  - `libs.auth.src.token-validator.TokenValidatorLogger` ([L80-L83](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L80-L83)) - Interface
+  - `libs.auth.src.token-validator.TokenValidationEvent` ([L99-L102](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L99-L102)) - Interface
+  - `libs.auth.src.token-validator.TokenValidator` ([L104-L109](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L104-L109)) - Interface
+  - `libs.auth.src.token-validator.TokenValidator.introspect` ([L105-L105](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L105-L105)) - Method
+  - `libs.auth.src.token-validator.TokenValidator.resolveAuthContext` ([L106-L106](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L106-L106)) - Method
+  - `libs.auth.src.token-validator.TokenValidator.evictOAuthClient` ([L107-L107](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L107-L107)) - Method
+  - `libs.auth.src.token-validator.TokenValidator.evictTalosKey` ([L108-L108](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L108-L108)) - Method
+  - `libs.auth.src.token-validator.normalizeScopes` ([L118-L138](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L118-L138)) - Function
+  - `libs.auth.src.token-validator.isOpaqueToken` ([L140-L142](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L140-L142)) - Function
+  - `libs.auth.src.token-validator.isOpaqueToken.ORY_OPAQUE_PREFIXES.some() callback` ([L141-L141](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L141-L141)) - Function
+  - `libs.auth.src.token-validator.isTalosApiKey` ([L144-L146](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L144-L146)) - Function
+  - `libs.auth.src.token-validator.isTalosApiKey.TALOS_API_KEY_PREFIXES.some() callback` ([L145-L145](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L145-L145)) - Function
+  - `libs.auth.src.token-validator.asMetadata` ([L148-L151](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L148-L151)) - Function
+  - `libs.auth.src.token-validator.summarizeOryError` ([L153-L177](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L153-L177)) - Function
+  - `libs.auth.src.token-validator.getCauseCode` ([L208-L214](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L208-L214)) - Function
+  - `libs.auth.src.token-validator.summarizeJwtError` ([L216-L285](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L216-L285)) - Function
+  - `libs.auth.src.token-validator.isJwtToken` ([L287-L292](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L287-L292)) - Function
+  - `libs.auth.src.token-validator.shouldIntrospectJwtFailure` ([L294-L296](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L294-L296)) - Function
+  - `libs.auth.src.token-validator.extractAuthContextFromClaims` ([L298-L346](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L298-L346)) - Function
+  - `libs.auth.src.token-validator.fetchClientMetadata` ([L348-L436](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L348-L436)) - Function
+  - `libs.auth.src.token-validator.createTokenValidator` ([L438-L926](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L438-L926)) - Function
+  - `libs.auth.src.token-validator.createTokenValidator.logger` ([L443-L446](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L443-L446)) - Class
+  - `libs.auth.src.token-validator.createTokenValidator.logger.debug` ([L444-L444](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L444-L444)) - Method
+  - `libs.auth.src.token-validator.createTokenValidator.logger.warn` ([L445-L445](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L445-L445)) - Method
+  - `libs.auth.src.token-validator.createTokenValidator.resolveTalosApiKey` ([L468-L641](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L468-L641)) - Function
+  - `libs.auth.src.token-validator.verifyJwt` ([L662-L669](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L662-L669)) - Function
+  - `libs.auth.src.token-validator.createTokenValidator.introspectToken` ([L672-L725](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L672-L725)) - Function
+  - `libs.auth.src.token-validator.introspect` ([L727-L729](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L727-L729)) - Function
+  - `libs.auth.src.token-validator.createTokenValidator.validateJwt` ([L731-L794](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L731-L794)) - Function
+  - `libs.auth.src.token-validator.createTokenValidator.resolveRemoteOAuthContext` ([L796-L833](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L796-L833)) - Function
+  - `libs.auth.src.token-validator.createTokenValidator.resolveRemoteOAuthContext.remoteCache.resolve('oauth2') callback` ([L804-L831](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L804-L831)) - Function
+  - `libs.auth.src.token-validator.createTokenValidator.resolveClientMetadataContext` ([L835-L863](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L835-L863)) - Function
+  - `libs.auth.src.token-validator.createTokenValidator.resolveClientMetadataContext.remoteCache.resolve('oauth2') callback` ([L843-L861](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L843-L861)) - Function
+  - `libs.auth.src.token-validator.createTokenValidator.evictOAuthClient` ([L867-L869](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L867-L869)) - Method
+  - `libs.auth.src.token-validator.createTokenValidator.evictTalosKey` ([L870-L872](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L870-L872)) - Method
+  - `libs.auth.src.token-validator.createTokenValidator.resolveAuthContext` ([L874-L924](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/token-validator.ts#L874-L924)) - Method
 - [`libs/auth/src/types.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/types.ts)
   - `libs.auth.src.types.TalosCredentialBinding` ([L7-L11](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/types.ts#L7-L11)) - Interface
   - `libs.auth.src.types.BaseAuthContext` ([L13-L18](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/types.ts#L13-L18)) - Interface

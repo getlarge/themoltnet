@@ -3,6 +3,8 @@ graph LR
     Trust_Provenance_Controller["Trust & Provenance Controller"]
     Agent_Output_Contract_Validator["Agent Output & Contract Validator"]
     Agent_Key_Identity_Service["Agent Key & Identity Service"]
+    Trust_Provenance_Controller -- "communicates with" --> Agent_Key_Identity_Service
+    Agent_Output_Contract_Validator -- "communicates with" --> Trust_Provenance_Controller
 ```
 
 [![CodeBoarding](https://img.shields.io/badge/Generated%20by-CodeBoarding-9cf?style=flat-square)](https://github.com/CodeBoarding/CodeBoarding)[![Demo](https://img.shields.io/badge/Try%20our-Demo-blue?style=flat-square)](https://www.codeboarding.org/diagrams)[![Contact](https://img.shields.io/badge/Contact%20us%20-%20contact@codeboarding.org-lightgrey?style=flat-square)](mailto:contact@codeboarding.org)
@@ -50,7 +52,7 @@ The core engine responsible for identity definition, policy enforcement, and the
 - [`apps/moltnet-cli/api_url_resolution.go`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/api_url_resolution.go)
   - `apps.moltnet-cli.api_url_resolution.resolveAPIURL` ([L30-L52](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/api_url_resolution.go#L30-L52)) - Function
 - [`apps/moltnet-cli/cobra_agents.go`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/cobra_agents.go)
-  - `apps.moltnet-cli.cobra_agents.newAgentsCmd` ([L5-L89](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/cobra_agents.go#L5-L89)) - Function
+  - `apps.moltnet-cli.cobra_agents.newAgentsCmd` ([L5-L90](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/cobra_agents.go#L5-L90)) - Function
 - [`apps/moltnet-cli/cobra_completion.go`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/cobra_completion.go)
   - `apps.moltnet-cli.cobra_completion.newCompletionCmd` ([L5-L36](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/cobra_completion.go#L5-L36)) - Function
 - [`apps/moltnet-cli/cobra_config.go`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/moltnet-cli/cobra_config.go)
@@ -2137,9 +2139,9 @@ Provides the cryptographic foundation for agent identities. It manages the issua
   - `libs.auth.src.keto-constants.AgentPermission` ([L179-L181](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/keto-constants.ts#L179-L181)) - Enum
   - `libs.auth.src.keto-constants.HumanPermission` ([L186-L188](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/keto-constants.ts#L186-L188)) - Enum
 - [`libs/auth/src/plugin.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts)
-  - `libs.auth.src.plugin.'fastify'.FastifyContextConfig` ([L45-L63](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L45-L63)) - Interface
-  - `libs.auth.src.plugin.'fastify'.FastifyInstance` ([L64-L70](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L64-L70)) - Interface
-  - `libs.auth.src.plugin.'fastify'.FastifyRequest` ([L71-L73](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L71-L73)) - Interface
+  - `libs.auth.src.plugin.'fastify'.FastifyContextConfig` ([L51-L69](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L51-L69)) - Interface
+  - `libs.auth.src.plugin.'fastify'.FastifyInstance` ([L70-L76](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L70-L76)) - Interface
+  - `libs.auth.src.plugin.'fastify'.FastifyRequest` ([L77-L80](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L77-L80)) - Interface
 - [`libs/auth/src/relationship-writer.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/relationship-writer.ts)
   - `libs.auth.src.relationship-writer.RelationshipWriter` ([L24-L143](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/relationship-writer.ts#L24-L143)) - Interface
   - `libs.auth.src.relationship-writer.RelationshipWriter.grantDiaryTeam` ([L26-L26](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/relationship-writer.ts#L26-L26)) - Method
@@ -2210,19 +2212,32 @@ Provides the cryptographic foundation for agent identities. It manages the issua
   - `libs.auth.src.relationship-writer.createRelationshipWriter.writeRuntimeProfilePolicyEdges.relationshipPatch.map() callback` ([L684-L687](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/relationship-writer.ts#L684-L687)) - Function
   - `libs.auth.src.relationship-writer.toolTuple` ([L695-L706](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/relationship-writer.ts#L695-L706)) - Function
   - `libs.auth.src.relationship-writer.profilePolicyTuple` ([L708-L719](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/relationship-writer.ts#L708-L719)) - Function
+- [`libs/auth/src/remote-auth-cache.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-cache.ts)
+  - `libs.auth.src.remote-auth-cache.RemoteAuthCacheValue` ([L43-L47](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-cache.ts#L43-L47)) - Interface
+  - `libs.auth.src.remote-auth-cache.RemoteAuthCacheOptions` ([L49-L55](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-cache.ts#L49-L55)) - Interface
+  - `libs.auth.src.remote-auth-cache.CacheEntry` ([L57-L61](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-cache.ts#L57-L61)) - Interface
+  - `libs.auth.src.remote-auth-cache.InFlightLoad` ([L139-L143](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-cache.ts#L139-L143)) - Interface
+  - `libs.auth.src.remote-auth-cache.RemoteAuthCache.digest.framed` ([L251-L253](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-cache.ts#L251-L253)) - Class
+  - `libs.auth.src.remote-auth-cache.RemoteAuthCache.digest.framed.map() callback` ([L252-L252](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-cache.ts#L252-L252)) - Function
+- [`libs/auth/src/remote-auth-error.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-error.ts)
+  - `libs.auth.src.remote-auth-error.parseRetryAfter.value` ([L44-L52](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-error.ts#L44-L52)) - Class
+  - `libs.auth.src.remote-auth-error.parseRetryAfter.value.<function>` ([L44-L52](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-error.ts#L44-L52)) - Function
+  - `libs.auth.src.remote-auth-error.parseRetryAfter.value.<function>.entry` ([L48-L50](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-error.ts#L48-L50)) - Class
+  - `libs.auth.src.remote-auth-error.parseRetryAfter.value.<function>.entry.find() callback` ([L49-L49](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/remote-auth-error.ts#L49-L49)) - Function
 - [`libs/auth/src/session-resolver.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts)
-  - `libs.auth.src.session-resolver.SessionResolverLogger` ([L25-L27](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L25-L27)) - Interface
-  - `libs.auth.src.session-resolver.ResolveSessionInput` ([L29-L34](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L29-L34)) - Interface
-  - `libs.auth.src.session-resolver.SessionResolver` ([L36-L38](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L36-L38)) - Interface
-  - `libs.auth.src.session-resolver.SessionResolver.resolveSession` ([L37-L37](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L37-L37)) - Method
-  - `libs.auth.src.session-resolver.summarizeCookieHeader` ([L40-L66](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L40-L66)) - Function
-  - `libs.auth.src.session-resolver.extractErrorStatus` ([L68-L72](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L68-L72)) - Function
-  - `libs.auth.src.session-resolver.extractErrorBody` ([L74-L93](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L74-L93)) - Function
-  - `libs.auth.src.session-resolver.SessionResolverConfig` ([L95-L109](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L95-L109)) - Interface
-  - `libs.auth.src.session-resolver.NOOP_LOGGER` ([L111-L111](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L111-L111)) - Class
-  - `libs.auth.src.session-resolver.NOOP_LOGGER.warn` ([L111-L111](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L111-L111)) - Method
-  - `libs.auth.src.session-resolver.createSessionResolver` ([L113-L207](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L113-L207)) - Function
-  - `libs.auth.src.session-resolver.createSessionResolver.resolveSession` ([L121-L205](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L121-L205)) - Method
+  - `libs.auth.src.session-resolver.SessionResolverLogger` ([L32-L34](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L32-L34)) - Interface
+  - `libs.auth.src.session-resolver.ResolveSessionInput` ([L36-L41](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L36-L41)) - Interface
+  - `libs.auth.src.session-resolver.SessionResolver` ([L43-L46](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L43-L46)) - Interface
+  - `libs.auth.src.session-resolver.SessionResolver.resolveSession` ([L44-L44](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L44-L44)) - Method
+  - `libs.auth.src.session-resolver.SessionResolver.evictIdentity` ([L45-L45](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L45-L45)) - Method
+  - `libs.auth.src.session-resolver.summarizeCookieHeader` ([L48-L74](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L48-L74)) - Function
+  - `libs.auth.src.session-resolver.extractErrorBody` ([L76-L95](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L76-L95)) - Function
+  - `libs.auth.src.session-resolver.SessionResolverConfig` ([L97-L117](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L97-L117)) - Interface
+  - `libs.auth.src.session-resolver.NOOP_LOGGER` ([L119-L119](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L119-L119)) - Class
+  - `libs.auth.src.session-resolver.NOOP_LOGGER.warn` ([L119-L119](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L119-L119)) - Method
+  - `libs.auth.src.session-resolver.createSessionResolver.resolveSession.cookieCredential` ([L159-L167](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L159-L167)) - Class
+  - `libs.auth.src.session-resolver.createSessionResolver.resolveSession.cookieCredential.map() callback` ([L161-L161](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L161-L161)) - Function
+  - `libs.auth.src.session-resolver.createSessionResolver.resolveSession.cookieCredential.find() callback` ([L162-L167](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/session-resolver.ts#L162-L167)) - Function
 - [`libs/context-pack-service/src/context-pack.service.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/context-pack-service/src/context-pack.service.ts)
   - `libs.context-pack-service.src.context-pack.service.ContextPackService.createCustomPack.packEntryRefs` ([L448-L452](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/context-pack-service/src/context-pack.service.ts#L448-L452)) - Class
   - `libs.context-pack-service.src.context-pack.service.ContextPackService.createCustomPack.packEntryRefs.fitResult.entries.map() callback` ([L448-L452](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/context-pack-service/src/context-pack.service.ts#L448-L452)) - Function
@@ -2375,9 +2390,15 @@ Provides the cryptographic foundation for agent identities. It manages the issua
   - `libs.observability.src.logger.buildRedactConfig` ([L105-L115](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/observability/src/logger.ts#L105-L115)) - Function
   - `libs.observability.src.logger.createLogger` ([L133-L232](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/observability/src/logger.ts#L133-L232)) - Function
 - [`libs/observability/src/metrics.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/observability/src/metrics.ts)
-  - `libs.observability.src.metrics.CreateMeterProviderOptions` ([L14-L23](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/observability/src/metrics.ts#L14-L23)) - Interface
-  - `libs.observability.src.metrics.createMeterProvider` ([L34-L62](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/observability/src/metrics.ts#L34-L62)) - Function
-  - `libs.observability.src.metrics.createRequestMetrics` ([L75-L92](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/observability/src/metrics.ts#L75-L92)) - Function
+  - `libs.observability.src.metrics.MetricCounter` ([L16-L18](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/observability/src/metrics.ts#L16-L18)) - Interface
+  - `libs.observability.src.metrics.MetricCounter.add` ([L17-L17](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/observability/src/metrics.ts#L17-L17)) - Method
+  - `libs.observability.src.metrics.MetricUpDownCounter` ([L20-L22](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/observability/src/metrics.ts#L20-L22)) - Interface
+  - `libs.observability.src.metrics.MetricUpDownCounter.add` ([L21-L21](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/observability/src/metrics.ts#L21-L21)) - Method
+  - `libs.observability.src.metrics.CreateMeterProviderOptions` ([L24-L33](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/observability/src/metrics.ts#L24-L33)) - Interface
+  - `libs.observability.src.metrics.createMeterProvider` ([L44-L72](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/observability/src/metrics.ts#L44-L72)) - Function
+  - `libs.observability.src.metrics.createRequestMetrics` ([L85-L102](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/observability/src/metrics.ts#L85-L102)) - Function
+  - `libs.observability.src.metrics.createMetricCounter` ([L104-L110](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/observability/src/metrics.ts#L104-L110)) - Function
+  - `libs.observability.src.metrics.createMetricUpDownCounter` ([L112-L120](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/observability/src/metrics.ts#L112-L120)) - Function
 - [`libs/observability/src/request-context.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/observability/src/request-context.ts)
   - `libs.observability.src.request-context.RequestContext` ([L3-L9](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/observability/src/request-context.ts#L3-L9)) - Interface
   - `libs.observability.src.request-context.runWithRequestContext` ([L23-L34](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/observability/src/request-context.ts#L23-L34)) - Function

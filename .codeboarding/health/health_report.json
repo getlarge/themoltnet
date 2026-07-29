@@ -1,17 +1,17 @@
 {
   "repository_name": "themoltnet",
-  "timestamp": "2026-07-29T09:32:18.200573+00:00",
-  "overall_score": 0.9816837217301574,
+  "timestamp": "2026-07-29T11:52:55.384422+00:00",
+  "overall_score": 0.9816361312313592,
   "check_summaries": [
     {
       "check_name": "function_size",
       "description": "Checks that functions/methods do not exceed line count thresholds",
       "language": "go",
       "check_type": "standard",
-      "total_entities_checked": 718,
+      "total_entities_checked": 736,
       "findings_count": 2,
       "warning_count": 2,
-      "score": 0.9972144846796658,
+      "score": 0.9972826086956522,
       "finding_groups": [
         {
           "severity": "warning",
@@ -41,7 +41,7 @@
       "description": "Checks efferent coupling: how many other functions each function calls",
       "language": "go",
       "check_type": "standard",
-      "total_entities_checked": 732,
+      "total_entities_checked": 750,
       "findings_count": 0,
       "warning_count": 0,
       "score": 1.0,
@@ -52,7 +52,7 @@
       "description": "Checks afferent coupling: how many other functions call each function",
       "language": "go",
       "check_type": "standard",
-      "total_entities_checked": 732,
+      "total_entities_checked": 750,
       "findings_count": 0,
       "warning_count": 0,
       "score": 1.0,
@@ -74,7 +74,7 @@
       "description": "Checks that class inheritance hierarchies do not exceed depth thresholds",
       "language": "go",
       "check_type": "standard",
-      "total_entities_checked": 132,
+      "total_entities_checked": 134,
       "findings_count": 0,
       "warning_count": 0,
       "score": 1.0,
@@ -192,10 +192,10 @@
       "description": "Checks that functions/methods do not exceed line count thresholds",
       "language": "typescript",
       "check_type": "standard",
-      "total_entities_checked": 5200,
-      "findings_count": 116,
-      "warning_count": 116,
-      "score": 0.9776923076923076,
+      "total_entities_checked": 5237,
+      "findings_count": 118,
+      "warning_count": 118,
+      "score": 0.9774680160397174,
       "finding_groups": [
         {
           "severity": "warning",
@@ -310,9 +310,9 @@
             {
               "entity_name": "apps.rest-api.src.bootstrap.bootstrap",
               "file_path": "apps/rest-api/src/bootstrap.ts",
-              "line_start": 158,
-              "line_end": 759,
-              "metric_value": 601
+              "line_start": 160,
+              "line_end": 785,
+              "metric_value": 625
             },
             {
               "entity_name": "apps.rest-api.src.routes.public.publicRoutes",
@@ -362,6 +362,13 @@
               "line_start": 68,
               "line_end": 572,
               "metric_value": 504
+            },
+            {
+              "entity_name": "libs.auth.src.token-validator.createTokenValidator",
+              "file_path": "libs/auth/src/token-validator.ts",
+              "line_start": 438,
+              "line_end": 926,
+              "metric_value": 488
             },
             {
               "entity_name": "apps.rest-api.src.routes.rendered-packs.renderedPackRoutes",
@@ -432,13 +439,6 @@
               "line_start": 55,
               "line_end": 428,
               "metric_value": 373
-            },
-            {
-              "entity_name": "libs.auth.src.token-validator.createTokenValidator",
-              "file_path": "libs/auth/src/token-validator.ts",
-              "line_start": 371,
-              "line_end": 742,
-              "metric_value": 371
             },
             {
               "entity_name": "libs.pi-runtime.src.vm-manager.resumeVm",
@@ -581,6 +581,13 @@
               "metric_value": 274
             },
             {
+              "entity_name": "apps.rest-api.src.app.registerApiRoutes",
+              "file_path": "apps/rest-api/src/app.ts",
+              "line_start": 232,
+              "line_end": 506,
+              "metric_value": 274
+            },
+            {
               "entity_name": "libs.sdk.src.namespaces.tasks.createTasksNamespace",
               "file_path": "libs/sdk/src/namespaces/tasks.ts",
               "line_start": 58,
@@ -635,13 +642,6 @@
               "line_start": 218,
               "line_end": 463,
               "metric_value": 245
-            },
-            {
-              "entity_name": "apps.rest-api.src.app.registerApiRoutes",
-              "file_path": "apps/rest-api/src/app.ts",
-              "line_start": 228,
-              "line_end": 470,
-              "metric_value": 242
             },
             {
               "entity_name": "libs.credential-broker.src.lib.broker.createCredentialBroker.issueConnectorCredential",
@@ -784,18 +784,18 @@
               "metric_value": 192
             },
             {
+              "entity_name": "apps.rest-api.src.routes.agent-keys.agentKeyRoutes",
+              "file_path": "apps/rest-api/src/routes/agent-keys.ts",
+              "line_start": 64,
+              "line_end": 251,
+              "metric_value": 187
+            },
+            {
               "entity_name": "libs.database.src.repositories.diary-entry.repository.createDiaryEntryRepository.search",
               "file_path": "libs/database/src/repositories/diary-entry.repository.ts",
               "line_start": 397,
               "line_end": 582,
               "metric_value": 185
-            },
-            {
-              "entity_name": "apps.rest-api.src.routes.agent-keys.agentKeyRoutes",
-              "file_path": "apps/rest-api/src/routes/agent-keys.ts",
-              "line_start": 64,
-              "line_end": 248,
-              "metric_value": 184
             },
             {
               "entity_name": "apps.rest-api.src.routes.rendered-packs.renderedPackRoutes.server.patch('/rendered-packs/:id') callback",
@@ -858,6 +858,13 @@
               "file_path": "libs/pi-runtime/src/tool-operations.ts",
               "line_start": 411,
               "line_end": 584,
+              "metric_value": 173
+            },
+            {
+              "entity_name": "libs.auth.src.token-validator.createTokenValidator.resolveTalosApiKey",
+              "file_path": "libs/auth/src/token-validator.ts",
+              "line_start": 468,
+              "line_end": 641,
               "metric_value": 173
             },
             {
@@ -1001,6 +1008,13 @@
               "metric_value": 153
             },
             {
+              "entity_name": "apps.rest-api.src.plugins.error-handler.errorHandler",
+              "file_path": "apps/rest-api/src/plugins/error-handler.ts",
+              "line_start": 98,
+              "line_end": 250,
+              "metric_value": 152
+            },
+            {
               "entity_name": "apps.console.src.components.ProfileToolAccess.ProfileToolAccess",
               "file_path": "apps/console/src/components/ProfileToolAccess.tsx",
               "line_start": 51,
@@ -1023,10 +1037,10 @@
       "description": "Checks efferent coupling: how many other functions each function calls",
       "language": "typescript",
       "check_type": "standard",
-      "total_entities_checked": 6546,
-      "findings_count": 42,
-      "warning_count": 42,
-      "score": 0.9935838680109991,
+      "total_entities_checked": 6596,
+      "findings_count": 44,
+      "warning_count": 44,
+      "score": 0.9933292904790783,
       "finding_groups": [
         {
           "severity": "warning",
@@ -1050,8 +1064,8 @@
             {
               "entity_name": "apps.rest-api.src.app.registerApiRoutes",
               "file_path": "apps/rest-api/src/app.ts",
-              "line_start": 228,
-              "line_end": 470,
+              "line_start": 232,
+              "line_end": 506,
               "metric_value": 29
             },
             {
@@ -1108,6 +1122,13 @@
               "file_path": "packages/legreffier-cli/src/phases/agentSetup.ts",
               "line_start": 14,
               "line_end": 132,
+              "metric_value": 17
+            },
+            {
+              "entity_name": "apps.rest-api.src.bootstrap.bootstrap",
+              "file_path": "apps/rest-api/src/bootstrap.ts",
+              "line_start": 160,
+              "line_end": 785,
               "metric_value": 17
             },
             {
@@ -1181,13 +1202,6 @@
               "metric_value": 12
             },
             {
-              "entity_name": "apps.rest-api.src.config.loadConfig",
-              "file_path": "apps/rest-api/src/config.ts",
-              "line_start": 563,
-              "line_end": 613,
-              "metric_value": 12
-            },
-            {
               "entity_name": "libs.task-service.src.task-conditions.createTaskConditionHelpers",
               "file_path": "libs/task-service/src/task-conditions.ts",
               "line_start": 30,
@@ -1202,6 +1216,20 @@
               "metric_value": 12
             },
             {
+              "entity_name": "apps.rest-api.src.config.loadConfig",
+              "file_path": "apps/rest-api/src/config.ts",
+              "line_start": 572,
+              "line_end": 622,
+              "metric_value": 12
+            },
+            {
+              "entity_name": "libs.auth.src.token-validator.createTokenValidator.resolveTalosApiKey",
+              "file_path": "libs/auth/src/token-validator.ts",
+              "line_start": 468,
+              "line_end": 641,
+              "metric_value": 12
+            },
+            {
               "entity_name": "apps.agent-daemon.src.cli.once.runOnce.onTaskFinished",
               "file_path": "apps/agent-daemon/src/cli/once.ts",
               "line_start": 494,
@@ -1213,13 +1241,6 @@
               "file_path": "apps/agent-daemon/src/cli/sync-sessions.ts",
               "line_start": 19,
               "line_end": 84,
-              "metric_value": 11
-            },
-            {
-              "entity_name": "apps.rest-api.src.bootstrap.bootstrap",
-              "file_path": "apps/rest-api/src/bootstrap.ts",
-              "line_start": 158,
-              "line_end": 759,
               "metric_value": 11
             },
             {
@@ -1265,6 +1286,13 @@
               "metric_value": 11
             },
             {
+              "entity_name": "libs.auth.src.token-validator.createTokenValidator.resolveAuthContext",
+              "file_path": "libs/auth/src/token-validator.ts",
+              "line_start": 874,
+              "line_end": 924,
+              "metric_value": 11
+            },
+            {
               "entity_name": "apps.agent-daemon.src.lib.execution-plan-cache.maybeAttachWarmSlotContext",
               "file_path": "apps/agent-daemon/src/lib/execution-plan-cache.ts",
               "line_start": 299,
@@ -1290,13 +1318,6 @@
               "file_path": "libs/agent-runtime/src/prompts/index.ts",
               "line_start": 104,
               "line_end": 250,
-              "metric_value": 10
-            },
-            {
-              "entity_name": "libs.auth.src.token-validator.createTokenValidator.resolveAuthContext",
-              "file_path": "libs/auth/src/token-validator.ts",
-              "line_start": 691,
-              "line_end": 740,
               "metric_value": 10
             },
             {
@@ -1326,6 +1347,13 @@
               "line_start": 212,
               "line_end": 361,
               "metric_value": 10
+            },
+            {
+              "entity_name": "libs.auth.src.session-resolver.createSessionResolver.resolveSession",
+              "file_path": "libs/auth/src/session-resolver.ts",
+              "line_start": 139,
+              "line_end": 263,
+              "metric_value": 10
             }
           ]
         }
@@ -1336,10 +1364,10 @@
       "description": "Checks afferent coupling: how many other functions call each function",
       "language": "typescript",
       "check_type": "standard",
-      "total_entities_checked": 6546,
+      "total_entities_checked": 6596,
       "findings_count": 48,
       "warning_count": 48,
-      "score": 0.9926672777268561,
+      "score": 0.9927228623408126,
       "finding_groups": [
         {
           "severity": "warning",
@@ -1365,7 +1393,7 @@
               "file_path": "apps/rest-api/src/problems/helpers.ts",
               "line_start": 34,
               "line_end": 55,
-              "metric_value": 99
+              "metric_value": 100
             },
             {
               "entity_name": "apps.rest-api.src.utils.require-keto-subject.requireKetoSubject",
@@ -1599,20 +1627,6 @@
               "metric_value": 12
             },
             {
-              "entity_name": "apps.rest-api.src.config.pickEnv",
-              "file_path": "apps/rest-api/src/config.ts",
-              "line_start": 333,
-              "line_end": 344,
-              "metric_value": 12
-            },
-            {
-              "entity_name": "apps.rest-api.src.config.validateSchema",
-              "file_path": "apps/rest-api/src/config.ts",
-              "line_start": 346,
-              "line_end": 361,
-              "metric_value": 12
-            },
-            {
               "entity_name": "apps.rest-api.src.utils.auth-principal.authContextToCreator",
               "file_path": "apps/rest-api/src/utils/auth-principal.ts",
               "line_start": 71,
@@ -1624,6 +1638,20 @@
               "file_path": "tools/src/talos-capability-probe.ts",
               "line_start": 138,
               "line_end": 157,
+              "metric_value": 12
+            },
+            {
+              "entity_name": "apps.rest-api.src.config.pickEnv",
+              "file_path": "apps/rest-api/src/config.ts",
+              "line_start": 342,
+              "line_end": 353,
+              "metric_value": 12
+            },
+            {
+              "entity_name": "apps.rest-api.src.config.validateSchema",
+              "file_path": "apps/rest-api/src/config.ts",
+              "line_start": 355,
+              "line_end": 370,
               "metric_value": 12
             },
             {
@@ -1691,10 +1719,10 @@
       "description": "Detects classes with too many methods, too much code, or too many outgoing dependencies",
       "language": "typescript",
       "check_type": "standard",
-      "total_entities_checked": 149,
+      "total_entities_checked": 154,
       "findings_count": 6,
       "warning_count": 6,
-      "score": 0.959731543624161,
+      "score": 0.961038961038961,
       "finding_groups": [
         {
           "severity": "warning",
@@ -1734,7 +1762,7 @@
       "description": "Checks that class inheritance hierarchies do not exceed depth thresholds",
       "language": "typescript",
       "check_type": "standard",
-      "total_entities_checked": 1964,
+      "total_entities_checked": 1977,
       "findings_count": 0,
       "warning_count": 0,
       "score": 1.0,
@@ -1745,8 +1773,8 @@
       "description": "Detects unused imports, variables, functions, and dead code via LSP diagnostics",
       "language": "typescript",
       "check_type": "standard",
-      "total_entities_checked": 210,
-      "findings_count": 210,
+      "total_entities_checked": 211,
+      "findings_count": 211,
       "warning_count": 0,
       "score": 0.0,
       "finding_groups": [
@@ -2825,6 +2853,13 @@
               "line_start": 421,
               "line_end": 421,
               "metric_value": 0.0
+            },
+            {
+              "entity_name": "[unreachable_code] Unreachable code detected.",
+              "file_path": "apps/console/src/auth/AuthProvider.tsx",
+              "line_start": 129,
+              "line_end": 129,
+              "metric_value": 0.0
             }
           ]
         },
@@ -3270,6 +3305,12 @@
       "composite_risk_score": 60.0
     },
     {
+      "file_path": "libs/auth/src/token-validator.ts",
+      "total_findings": 4,
+      "warning_findings": 4,
+      "composite_risk_score": 60.0
+    },
+    {
       "file_path": "libs/credential-broker/src/lib/broker.ts",
       "total_findings": 4,
       "warning_findings": 4,
@@ -3355,12 +3396,6 @@
     },
     {
       "file_path": "tools/src/talos-capability-probe.ts",
-      "total_findings": 3,
-      "warning_findings": 3,
-      "composite_risk_score": 45.0
-    },
-    {
-      "file_path": "libs/task-artifact-service/src/task-artifacts.ts",
       "total_findings": 3,
       "warning_findings": 3,
       "composite_risk_score": 45.0
