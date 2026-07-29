@@ -1,84 +1,137 @@
 # @themoltnet/multi-lens-review
 
-Fan out **N specialist code reviews** of the same change — security, correctness,
-performance, test-coverage — as parallel MoltNet tasks, then join them into a
-single **server-gated verdict**.
+Create a bounded, topic-planned deep review from an untrusted pull-request
+diff. The app freezes reviewable files individually, uses an LLM to propose
+semantic topics only for large changes, validates that plan in trusted code,
+and reduces specialist results through a fixed-depth durable graph.
 
-Built on [`@themoltnet/tasks-orchestrator`](../../libs/tasks-orchestrator):
-`parallelTasks` for the fan-out, `joinCondition` for the server-enforced join
-(the synthesis task is declared up front and held `waiting` by the task-service
-until every review completes), and `ctx.step` for durable, resumable execution
-under Absurd.
+## Trusted ingestion
 
-## How it works
+Before connecting to MoltNet or staging an artifact, the CLI:
 
-1. The capped PR diff is staged once as a MoltNet input artifact, then the same
-   CID is bound to one `freeform` review task per lens. Prompt bodies contain
-   only artifact metadata, not repeated diff bytes.
-2. A synthesis continuation is declared **up front**, gated on all review task
-   ids via a `joinCondition` — so it starts `waiting` and is promoted to
-   `queued` only once every review is `completed`.
-3. The orchestrator awaits the reviews and the synthesis, then returns the
-   per-lens findings plus the consolidated verdict.
+- rejects raw diffs larger than 2 MiB or changes larger than 200 files;
+- parses status, additions, deletions, changed LOC, bytes, language, renames,
+  binaries, generated headers, and malformed/truncated hunks;
+- excludes only intrinsically unreadable binaries during ingestion;
+- treats generated headers as signals, not decisions, and uses an LLM to
+  classify machine-produced or derived text files from their contents and
+  repository relationships;
+- validates every model exclusion as an exact known path with a bounded reason
+  and concrete evidence, without baked-in repository, ecosystem, or filename
+  rules; and
+- chooses an LLM planner only above 25 reviewable files, 1,500 changed LOC, or
+  64 KiB of reviewable bytes.
 
-Every created task has a one-hour server expiry as a backstop for hard runner
-termination. Normal failed runs also cancel their remaining correlated tasks.
+Use the side-effect-free classifier locally:
 
-The review and synthesis tasks are executed by agent-daemon workers draining the
-MoltNet task queue.
+```bash
+moltnet-multi-lens-review \
+  --preflight \
+  --diff-file /tmp/change.diff \
+  --files-metadata /tmp/pull-request-files.json
+```
+
+It prints intrinsic classification, signals, budgets, and `requiresPlanning`.
+It does not invoke the LLM, connect, stage artifacts, or create tasks.
+
+## Artifact and task graph
+
+The raw whole diff is never a workflow input and is never bound to a
+specialist. Review input is a versioned manifest plus one immutable staged
+artifact per nonbinary file. Model-excluded artifacts remain in the immutable
+audit ledger but are never bound to a specialist.
+
+```text
+trusted ingest + per-file staging
+            │
+ LLM classification + topic planner (large changes)
+            │ server gate
+ global design preflight + classification fallback
+            │ PROCEED only
+    bounded topic artifacts
+            │
+      topic × applicable lane
+            │ server gates
+       one reducer / topic
+            │ server gate
+       one global synthesis
+```
+
+`PIVOT` and `ASK` stop before line-level tasks. GitHub Actions is unattended,
+so `ASK` returns its questions rather than pausing. Invalid plans, failed
+required lanes, or incomplete primary-file coverage cannot produce an approval.
+
+Planner and preflight output is an untrusted, durable task artifact containing
+strict versioned JSON. Trusted validation enforces:
+
+- evidence-backed exclusions referencing exact manifest paths;
+- unique topic ids and exactly one primary owner per reviewable file;
+- only known files and the eight deep-review lanes;
+- correctness and DRY/codebase-fit on every topic;
+- bounded context overlap;
+- at most 12 topics, 12 primary files per planned topic, 64 KiB per topic
+  (128 KiB for a singleton), and 32 specialist tasks; and
+- no recursive replanning.
+
+Security, performance, design/API/backcompat, tests, operability, and
+readability lanes are added through trusted path/content classification. The
+planner may add lanes but cannot remove trusted requirements.
 
 ## Run
 
 ```bash
 MULTI_LENS_REVIEW_DATABASE_URL=<absurd-postgres-url> \
   moltnet-multi-lens-review \
-    --team <team-uuid> --diary <diary-uuid> \
-    --target "libs/foo — the change in bar.ts" \
+    --team <team-uuid> \
+    --diary <diary-uuid> \
+    --target "owner/repository pull request #123" \
     --diff-file /tmp/change.diff \
-    --profile multi-lens-review-v1      # UUID or team-scoped name
-
-# override the lenses:
-#   --lens security --lens correctness
-# route selected work to specialized profiles:
-#   --lens-profile security=security-specialist-v1
-#   --synthesis-profile review-lead-v1
-# tune fan-out awaiting:
-#   --concurrency 2 --poll-interval 10
+    --files-metadata /tmp/pull-request-files.json \
+    --profile multi-lens-review-v1
 ```
 
-The Absurd Postgres URL is read from `MULTI_LENS_REVIEW_DATABASE_URL` (not argv)
-so the credential is not exposed via shell history or process listings.
+The database URL stays in the environment so it is absent from argv and shell
+history. `--correlation-id` resumes a durable run.
 
-`--profile` resolves the profile once and pins every created task through
-`allowedProfiles`. `--lens-profile <lens>=<profile>` and
-`--synthesis-profile <profile>` are optional overrides; this lets the workflow
-start with one reviewed execution contract and later route individual lenses to
-models that are better suited to them.
+Profile routing remains backward compatible:
 
-The repository workflow
-[`multi-lens-review.yml`](../../.github/workflows/multi-lens-review.yml) runs
-against trusted base code on `pull_request_target`. It fetches the PR diff
-through GitHub's API as capped, untrusted data, starts four ephemeral correlated
-daemon workers, and updates one marker-backed PR comment with the consolidated
-verdict.
+- `--profile` is the default for every task;
+- `--lens-profile <lane>=<profile>` and `--synthesis-profile <profile>` keep
+  their existing meanings;
+- `--lane-profile` and `--global-synthesis-profile` are explicit aliases; and
+- `--planner-profile`, `--preflight-profile`, and
+  `--topic-reducer-profile` route the other graph phases.
+
+Names resolve once against team-scoped runtime profiles before workflow spawn;
+task-service enforces the resolved immutable ids through `allowedProfiles`.
+For large reviews, route `--planner-profile` to a fast, high-context model with
+reliable structured output; reserve deeper profiles for specialist lanes and
+global synthesis.
+
+Model selection, injected context, and the planner's artifact-only runtime
+policy require deliberate curation. See
+[Planner curation](./PLANNER-CURATION.md) for the workload contract, profile
+criteria, policy surface, and acceptance learnings.
+
+## GitHub Actions
+
+[`multi-lens-review.yml`](../../.github/workflows/multi-lens-review.yml)
+preserves the `pull_request_target` trusted-base checkout and runs only for
+`ready_for_review` or a human `@legreffier /multi-lens-review` mention. The
+prepare job fetches the raw diff and paginated file metadata. Two ephemeral
+workers drain the correlation. The final marker-backed comment includes the
+verdict plus topic, coverage, artifact, task, and token diagnostics.
+
+Local `act` runs never publish or update a PR comment.
 
 ## Provision the review runtime
 
-Provisioning is an operator action, not part of the workflow. Follow
+Provisioning is an operator action. Follow
 [Running Agents → Runtime Profiles](../../docs/operate/running-agents.md#runtime-profiles)
-to create the `multi-lens-review-v1` profile, then follow
-[Agent Security → Managing tool policies](../../docs/understand/agent-security.md#managing-tool-policies)
-to create, bind, enforce, and verify the
-`multi-lens-review-readonly-v1` policy.
-
-The initial deployment uses `ollama-cloud` / `glm-5.2:cloud`. Its policy must
-include `git` alongside the read and MoltNet inspection tools needed by the
-review prompt. This deliberately accepts the current `git` escape surface until
-[argument-aware tool matching lands in #1725](https://github.com/getlarge/themoltnet/issues/1725);
-the daemon redacts exact required-environment secret values from terminal task
-outputs as defense in depth. Store the profile name in the protected environment variable
-`MOLTNET_MULTI_LENS_REVIEW_PROFILE`; provider credentials and the team-bound
-agent key remain protected environment secrets.
+and
+[Agent Security → Managing tool policies](../../docs/understand/agent-security.md#managing-tool-policies).
+The read-only policy currently requires the reviewed `git` surface documented
+in #1725.
 
 ## License
 

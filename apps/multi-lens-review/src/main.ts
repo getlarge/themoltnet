@@ -10,9 +10,38 @@ import {
   MULTI_LENS_REVIEW_TASK,
 } from './absurd.js';
 import { currentProcessEnv, HELP, parseCliConfig } from './config.js';
-import { stageReviewDiff } from './diff-artifact.js';
 import { resolveRuntimeProfileRouting } from './profile-routing.js';
+import {
+  inspectReviewDiff,
+  printablePreflight,
+  stageReviewManifest,
+} from './review-input.js';
 import { cancelCorrelatedTasks } from './run-cleanup.js';
+import { MAX_SINGLETON_TOPIC_BYTES } from './topic-plan.js';
+import type { ReviewArtifactStore } from './types.js';
+
+async function collectStream(
+  stream: AsyncIterable<Uint8Array>,
+): Promise<Uint8Array> {
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  for await (const value of stream) {
+    size += value.byteLength;
+    if (size > MAX_SINGLETON_TOPIC_BYTES) {
+      throw new Error(
+        `downloaded review file exceeds ${MAX_SINGLETON_TOPIC_BYTES} bytes`,
+      );
+    }
+    chunks.push(value);
+  }
+  const output = new Uint8Array(size);
+  let offset = 0;
+  for (const chunk of chunks) {
+    output.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return output;
+}
 
 async function main(): Promise<number> {
   const parsed = parseCliConfig(process.argv.slice(2), {
@@ -25,9 +54,19 @@ async function main(): Promise<number> {
     console.log(HELP);
     return 0;
   }
+  const inspected = inspectReviewDiff(
+    parsed.config.diff,
+    parsed.config.githubFiles,
+  );
+  if (parsed.kind === 'preflight') {
+    // This branch deliberately executes before connect(): it is a read-only,
+    // local classifier with no artifact or task side effects.
+    // eslint-disable-next-line no-console
+    console.log(JSON.stringify(printablePreflight(inspected), null, 2));
+    return 0;
+  }
+
   const cfg = parsed.config;
-  // Keep stdout machine-readable: operational logs belong on stderr and the
-  // terminal Absurd result is the sole stdout payload.
   const logger = pino({ name: 'multi-lens-review' }, pino.destination(2));
   const agent = await connect(
     cfg.agentDir ? { configDir: cfg.agentDir } : undefined,
@@ -40,52 +79,50 @@ async function main(): Promise<number> {
       cfg.profileRoutingRefs,
     );
   }
-  if (cfg.input.diff) {
-    cfg.input.diffArtifact = await stageReviewDiff(
-      agent,
-      teamId,
-      cfg.input.diff,
-    );
-    cfg.input.diff = undefined;
-  }
+  const reviewManifest = await stageReviewManifest(agent, teamId, inspected);
+  const input = { ...cfg.input, reviewManifest };
+  const artifacts: ReviewArtifactStore = {
+    stage: (bytes, metadata, context) =>
+      agent.tasks.artifacts.stage(bytes, metadata, context),
+    download: async (taskId, cid, context) => {
+      const downloaded = await agent.tasks.artifacts.download(
+        { taskId, cid },
+        context,
+      );
+      return collectStream(downloaded.stream);
+    },
+  };
   const queueName = cfg.queueName ?? 'multi-lens-review';
   const app = createMultiLensReviewAbsurdApp({
     databaseUrl: cfg.databaseUrl,
     queueName,
-    deps: { tasks: createSdkTaskClient(agent), logger },
+    deps: { tasks: createSdkTaskClient(agent), artifacts, logger },
   });
   let worker: Awaited<ReturnType<typeof app.startWorker>> | null = null;
   try {
     await app.createQueue(queueName);
-    // Emit the correlation id BEFORE spawning so an operator can capture it and
-    // resume with `--correlation-id` if the spawn/await is interrupted.
     logger.info(
-      { correlationId: cfg.input.correlationId },
+      { correlationId: input.correlationId },
       'multi_lens_review.correlation',
     );
-    const spawned = await app.spawn(MULTI_LENS_REVIEW_TASK, cfg.input, {
+    const spawned = await app.spawn(MULTI_LENS_REVIEW_TASK, input, {
       queue: queueName,
-      idempotencyKey: `multi-lens-review:${cfg.input.correlationId}`,
+      idempotencyKey: `multi-lens-review:${input.correlationId}`,
     });
     logger.info(
-      { taskID: spawned.taskID, correlationId: cfg.input.correlationId },
+      { taskID: spawned.taskID, correlationId: input.correlationId },
       'multi_lens_review.spawned',
     );
     worker = await app.startWorker({ concurrency: 1 });
     const result = await app.awaitTaskResult(spawned.taskID);
     if (result.state !== 'completed') {
-      // Terminal failure (after all orchestration attempts): best-effort cancel
-      // the run's orphaned tasks — the up-front server-gated synthesis (left
-      // `waiting` forever) plus any in-flight reviews. Done here, at the terminal
-      // outcome, NOT inside the workflow: a per-attempt cancel would cancel tasks
-      // that an Absurd retry then replays via `ctx.step`.
       const cancelled = await cancelCorrelatedTasks(
         agent,
         teamId,
-        cfg.input.correlationId,
+        input.correlationId,
       ).catch(() => 0);
       logger.warn(
-        { correlationId: cfg.input.correlationId, cancelled },
+        { correlationId: input.correlationId, cancelled },
         'multi_lens_review.run.cancelled',
       );
     }
@@ -104,6 +141,9 @@ main()
   })
   .catch((err) => {
     // eslint-disable-next-line no-console
-    console.error('[fatal]', err instanceof Error ? err.message : String(err));
+    console.error(
+      '[fatal]',
+      err instanceof Error ? (err.stack ?? err.message) : String(err),
+    );
     process.exit(1);
   });

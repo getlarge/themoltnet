@@ -8,7 +8,7 @@
     "directory": "apps/multi-lens-review"
   },
   "type": "module",
-  "description": "Fan out N specialist code reviews (security, correctness, performance, test-coverage) in parallel and join them into one server-gated verdict.",
+  "description": "Plan bounded review topics, fan out trusted specialist lanes, and reduce them through a durable artifact graph.",
   "main": "./dist/main.js",
   "types": "./dist/main.d.ts",
   "exports": {
@@ -33,7 +33,7 @@
     "typecheck": "tsc -b --emitDeclarationOnly",
     "lint": "eslint .",
     "check:pack": "tsx ../../tools/src/check-pack.ts --package . && pnpm run smoke:pack",
-    "smoke:pack": "tsx ../../tools/src/smoke-pack.ts --package . --bin moltnet-multi-lens-review --args --help --expect \"fan out N specialist code reviews\""
+    "smoke:pack": "tsx ../../tools/src/smoke-pack.ts --package . --bin moltnet-multi-lens-review --args --help --expect \"preflight is read-only\""
   },
   "dependencies": {
     "@themoltnet/sdk": "workspace:*",

@@ -11,9 +11,15 @@ export async function resolveRuntimeProfileRouting(
   refs: RuntimeProfileRoutingRefs,
 ): Promise<RuntimeProfileRouting> {
   const { items } = await agent.runtimeProfiles.list({ teamId });
+  const cache = new Map<string, string>();
   const resolve = (ref: string): string => {
+    const cached = cache.get(ref);
+    if (cached) return cached;
     const byId = items.find((profile) => profile.id === ref);
-    if (byId) return byId.id;
+    if (byId) {
+      cache.set(ref, byId.id);
+      return byId.id;
+    }
     const byName = items.filter((profile) => profile.name === ref);
     if (byName.length === 0) {
       throw new Error(
@@ -25,23 +31,34 @@ export async function resolveRuntimeProfileRouting(
         `runtime profile name "${ref}" is ambiguous in team ${teamId}`,
       );
     }
+    cache.set(ref, byName[0].id);
     return byName[0].id;
   };
-
   return {
     defaultProfileId: resolve(refs.defaultProfile),
-    ...(refs.lensProfiles
+    ...(refs.plannerProfile
+      ? { plannerProfileId: resolve(refs.plannerProfile) }
+      : {}),
+    ...(refs.preflightProfile
+      ? { preflightProfileId: resolve(refs.preflightProfile) }
+      : {}),
+    ...(refs.laneProfiles
       ? {
-          lensProfileIds: Object.fromEntries(
-            Object.entries(refs.lensProfiles).map(([lens, ref]) => [
-              lens,
+          laneProfileIds: Object.fromEntries(
+            Object.entries(refs.laneProfiles).map(([lane, ref]) => [
+              lane,
               resolve(ref),
             ]),
           ),
         }
       : {}),
-    ...(refs.synthesisProfile
-      ? { synthesisProfileId: resolve(refs.synthesisProfile) }
+    ...(refs.topicReducerProfile
+      ? { topicReducerProfileId: resolve(refs.topicReducerProfile) }
+      : {}),
+    ...(refs.globalSynthesisProfile
+      ? {
+          globalSynthesisProfileId: resolve(refs.globalSynthesisProfile),
+        }
       : {}),
   };
 }

@@ -7,25 +7,358 @@ import type {
 import { FakeTasks } from '@themoltnet/tasks-orchestrator/testing';
 import { describe, expect, it, vi } from 'vitest';
 
-import { MAX_REVIEW_DIFF_BYTES } from './diff-artifact.js';
+import { reviewManifest } from './test-fixtures.js';
+import type { ReviewArtifactStore, ReviewLane, ReviewTopic } from './types.js';
 import { runMultiLensReview } from './workflow.js';
 
-/** Ids FakeTasks assigns, in creation order. */
 function fakeId(n: number): string {
   return `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 }
 
-class StatefulJoinTasks implements TaskClient {
+function summary(value: unknown) {
+  return { summary: JSON.stringify(value) };
+}
+
+function preflight(
+  verdict: 'PROCEED' | 'PIVOT' | 'ASK' = 'PROCEED',
+  excludedFiles: Array<{
+    path: string;
+    reason: string;
+    evidence: string;
+  }> = [],
+) {
+  return summary({
+    verdict,
+    summary: `${verdict} summary`,
+    ...(verdict === 'ASK' ? { questions: ['What is the contract?'] } : {}),
+    excludedFiles,
+  });
+}
+
+function lane(
+  topicId: string,
+  reviewLane: ReviewLane,
+  files = ['src/change.ts'],
+) {
+  return summary({
+    version: 1,
+    topicId,
+    lane: reviewLane,
+    findings: [],
+    reviewedFiles: files,
+    summary: 'Clean.',
+  });
+}
+
+function topicVerdict(topic: ReviewTopic) {
+  return summary({
+    version: 1,
+    topicId: topic.id,
+    recommendation: 'approve',
+    findings: [],
+    coveredFiles: topic.primaryFiles,
+    coveredLanes: topic.lanes,
+    summary: 'Topic clean.',
+  });
+}
+
+function globalVerdict(coverageComplete = true) {
+  return summary({
+    version: 1,
+    recommendation: 'approve',
+    findings: [],
+    summary: 'All topics clean.',
+    coverageComplete,
+  });
+}
+
+function deterministicTopic(): ReviewTopic {
+  return {
+    id: 'change',
+    title: 'Change under review',
+    primaryFiles: ['src/change.ts'],
+    lanes: ['correctness', 'dry-codebase-fit'],
+  };
+}
+
+function artifactStore(fileBytes = 64): ReviewArtifactStore & {
+  staged: Uint8Array[];
+} {
+  const staged: Uint8Array[] = [];
+  return {
+    staged,
+    download: vi.fn(() => Promise.resolve(new Uint8Array(fileBytes))),
+    stage: vi.fn((bytes: Uint8Array) => {
+      staged.push(bytes);
+      return Promise.resolve({
+        cid: `bafkrei-topic-${staged.length}`,
+        contentType: 'application/vnd.themoltnet.review-topic+diff;version=1',
+        sizeBytes: bytes.byteLength,
+      });
+    }),
+  };
+}
+
+function input(
+  options: { requiresPlanning?: boolean } = {},
+  paths = ['src/change.ts'],
+) {
+  return {
+    teamId: 'team',
+    diaryId: 'diary',
+    correlationId: 'correlation',
+    target: 'pull request',
+    reviewManifest: reviewManifest(paths, options),
+    pollIntervalSec: 1,
+  };
+}
+
+describe('runMultiLensReview', () => {
+  it('uses one deterministic topic and binds specialists only to its bounded CID', async () => {
+    const topic = deterministicTopic();
+    const tasks = new FakeTasks([
+      preflight(),
+      lane(topic.id, 'correctness'),
+      lane(topic.id, 'dry-codebase-fit'),
+      topicVerdict(topic),
+      globalVerdict(),
+    ]);
+    const artifacts = artifactStore();
+    const output = await runMultiLensReview(input(), { tasks, artifacts });
+
+    expect(output).toMatchObject({
+      outcome: 'completed',
+      plan: { topics: [{ id: 'change' }] },
+      verdict: { recommendation: 'approve', coverageComplete: true },
+    });
+    const specialists = tasks.created.filter((task) =>
+      task.title?.startsWith('Review change'),
+    );
+    expect(specialists).toHaveLength(2);
+    for (const specialist of specialists) {
+      expect(specialist.references).toHaveLength(1);
+      expect(specialist.references?.[0].artifact?.cid).toBe('bafkrei-topic-1');
+      expect(specialist.references?.[0].artifact?.cid).not.toBe(
+        'bafkrei-manifest',
+      );
+      expect(specialist.references?.[0].artifact?.cid).not.toBe(
+        'bafkrei-file-0',
+      );
+    }
+    expect(artifacts.staged).toHaveLength(1);
+  });
+
+  it('lets the LLM exclude derived text without binding it to specialists', async () => {
+    const topic = deterministicTopic();
+    const exclusion = {
+      path: 'derived.data',
+      reason: 'machine-produced derived data',
+      evidence: 'The file content declares its source and generator version.',
+    };
+    const tasks = new FakeTasks([
+      preflight('PROCEED', [exclusion]),
+      lane(topic.id, 'correctness'),
+      lane(topic.id, 'dry-codebase-fit'),
+      topicVerdict(topic),
+      globalVerdict(),
+    ]);
+    const artifacts = artifactStore();
+    const output = await runMultiLensReview(
+      input({}, ['src/change.ts', 'derived.data']),
+      { tasks, artifacts },
+    );
+
+    expect(output.diagnostics.coverage.excludedFiles).toEqual([
+      { ...exclusion, source: 'model' },
+    ]);
+    expect(output.plan.topics[0].primaryFiles).toEqual(['src/change.ts']);
+    expect(artifacts.staged[0]).toHaveLength(64);
+  });
+
+  it('declares one server-gated reducer per topic and a global gated synthesis', async () => {
+    const topic = deterministicTopic();
+    const tasks = new FakeTasks([
+      preflight(),
+      lane(topic.id, 'correctness'),
+      lane(topic.id, 'dry-codebase-fit'),
+      topicVerdict(topic),
+      globalVerdict(),
+    ]);
+    await runMultiLensReview(input(), { tasks, artifacts: artifactStore() });
+    expect(tasks.created[3].claimCondition).toEqual({
+      op: 'all',
+      conditions: [fakeId(2), fakeId(3)].map((taskId) => ({
+        op: 'task_status',
+        taskId,
+        statuses: ['completed'],
+      })),
+    });
+    expect(tasks.created[4].claimCondition).toEqual({
+      op: 'task_status',
+      taskId: fakeId(4),
+      statuses: ['completed'],
+    });
+  });
+
+  it('ends PIVOT and ASK before line-level specialist tasks', async () => {
+    for (const verdict of ['PIVOT', 'ASK'] as const) {
+      const tasks = new FakeTasks([preflight(verdict)]);
+      const output = await runMultiLensReview(input(), {
+        tasks,
+        artifacts: artifactStore(),
+      });
+      expect(output.outcome).toBe(verdict === 'PIVOT' ? 'pivot' : 'questions');
+      expect(tasks.created).toHaveLength(1);
+      expect(
+        tasks.created.some((task) => task.title?.startsWith('Review ')),
+      ).toBe(false);
+    }
+  });
+
+  it('runs the LLM planner only above trusted thresholds and rejects an invalid plan once', async () => {
+    const tasks = new FakeTasks([
+      summary({
+        version: 1,
+        excludedFiles: [],
+        topics: [
+          {
+            id: 'bad',
+            title: 'Bad',
+            primaryFiles: [],
+            lanes: [],
+          },
+        ],
+      }),
+      preflight(),
+    ]);
+    await expect(
+      runMultiLensReview(input({ requiresPlanning: true }), {
+        tasks,
+        artifacts: artifactStore(),
+      }),
+    ).rejects.toThrow(/invalid topic plan/);
+    expect(tasks.created.map((task) => task.title)).toEqual([
+      'Plan bounded review topics',
+      'Global design preflight',
+    ]);
+    expect(tasks.created[0].input.brief).toContain(
+      'complete bounded review manifest is embedded below',
+    );
+    expect(tasks.created[0].input.brief).toContain(
+      'or read the daemon checkout',
+    );
+    expect(tasks.created[0].input.brief).toContain('src/change.ts');
+    expect(tasks.created[0].input.brief).toContain('bafkrei-file-0');
+  });
+
+  it('cannot approve failed required lanes or incomplete lane coverage', async () => {
+    const topic = deterministicTopic();
+    const failed = new FakeTasks([
+      preflight(),
+      { __taskStatus: 'failed', error: { message: 'review failed' } },
+      lane(topic.id, 'dry-codebase-fit'),
+      topicVerdict(topic),
+      globalVerdict(),
+    ]);
+    await expect(
+      runMultiLensReview(input(), {
+        tasks: failed,
+        artifacts: artifactStore(),
+      }),
+    ).rejects.toThrow();
+
+    const incomplete = new FakeTasks([
+      preflight(),
+      lane(topic.id, 'correctness', []),
+      lane(topic.id, 'dry-codebase-fit'),
+      topicVerdict(topic),
+      globalVerdict(),
+    ]);
+    await expect(
+      runMultiLensReview(input(), {
+        tasks: incomplete,
+        artifacts: artifactStore(),
+      }),
+    ).rejects.toThrow(/did not cover/);
+  });
+
+  it('cannot approve incomplete topic or global coverage', async () => {
+    const topic = deterministicTopic();
+    const incompleteTopic = new FakeTasks([
+      preflight(),
+      lane(topic.id, 'correctness'),
+      lane(topic.id, 'dry-codebase-fit'),
+      summary({
+        version: 1,
+        topicId: topic.id,
+        recommendation: 'approve',
+        findings: [],
+        coveredFiles: [],
+        coveredLanes: topic.lanes,
+        summary: 'Incomplete.',
+      }),
+      globalVerdict(),
+    ]);
+    await expect(
+      runMultiLensReview(input(), {
+        tasks: incompleteTopic,
+        artifacts: artifactStore(),
+      }),
+    ).rejects.toThrow(/invalid coverage/);
+
+    const incompleteGlobal = new FakeTasks([
+      preflight(),
+      lane(topic.id, 'correctness'),
+      lane(topic.id, 'dry-codebase-fit'),
+      topicVerdict(topic),
+      globalVerdict(false),
+    ]);
+    await expect(
+      runMultiLensReview(input(), {
+        tasks: incompleteGlobal,
+        artifacts: artifactStore(),
+      }),
+    ).rejects.toThrow(/cannot approve incomplete coverage/);
+  });
+
+  it('routes planner, preflight, lanes, reducers, and synthesis independently', async () => {
+    const topic = deterministicTopic();
+    const tasks = new FakeTasks([
+      preflight(),
+      lane(topic.id, 'correctness'),
+      lane(topic.id, 'dry-codebase-fit'),
+      topicVerdict(topic),
+      globalVerdict(),
+    ]);
+    await runMultiLensReview(
+      {
+        ...input(),
+        profileRouting: {
+          defaultProfileId: 'default',
+          preflightProfileId: 'preflight',
+          laneProfileIds: { correctness: 'correctness' },
+          topicReducerProfileId: 'reducer',
+          globalSynthesisProfileId: 'synthesis',
+        },
+      },
+      { tasks, artifacts: artifactStore() },
+    );
+    expect(
+      tasks.created.map((task) => task.allowedProfiles?.[0]?.profileId),
+    ).toEqual(['preflight', 'correctness', 'default', 'reducer', 'synthesis']);
+  });
+});
+
+class StatefulGraphTasks implements TaskClient {
   readonly created: Array<Parameters<TaskClient['createTask']>[0]> = [];
   private readonly tasks = new Map<string, SdkTask>();
   private readonly attempts = new Map<string, SdkTaskAttempt[]>();
   private next = 1;
 
-  async createTask(
-    body: Parameters<TaskClient['createTask']>[0],
-  ): Promise<SdkTask> {
+  createTask(body: Parameters<TaskClient['createTask']>[0]): Promise<SdkTask> {
     const id = fakeId(this.next++);
     const now = new Date().toISOString();
+    const waiting = body.claimCondition !== undefined;
     const task = {
       id,
       taskType: body.taskType,
@@ -45,8 +378,8 @@ class StatefulJoinTasks implements TaskClient {
       claimCondition: body.claimCondition ?? null,
       requiredExecutorTrustLevel: 'selfDeclared',
       allowedProfiles: body.allowedProfiles ?? [],
-      status: body.claimCondition ? 'waiting' : 'queued',
-      queuedAt: body.claimCondition ? null : now,
+      status: waiting ? 'waiting' : 'queued',
+      queuedAt: waiting ? null : now,
       completedAt: null,
       expiresAt: null,
       cancelledByAgentId: null,
@@ -59,20 +392,20 @@ class StatefulJoinTasks implements TaskClient {
     this.created.push(body);
     this.tasks.set(id, task);
     this.attempts.set(id, []);
-    return task;
+    return Promise.resolve(task);
   }
 
-  async getTask(id: string): Promise<SdkTask> {
+  getTask(id: string): Promise<SdkTask> {
     const task = this.tasks.get(id);
     if (!task) throw new Error(`missing task ${id}`);
-    return task;
+    return Promise.resolve(task);
   }
 
-  async listAttempts(id: string): Promise<SdkTaskAttempt[]> {
-    return this.attempts.get(id) ?? [];
+  listAttempts(id: string): Promise<SdkTaskAttempt[]> {
+    return Promise.resolve(this.attempts.get(id) ?? []);
   }
 
-  complete(id: string, summary: string): void {
+  complete(id: string, output: Record<string, unknown>): void {
     const task = this.tasks.get(id);
     if (!task) throw new Error(`missing task ${id}`);
     const now = new Date().toISOString();
@@ -95,7 +428,7 @@ class StatefulJoinTasks implements TaskClient {
         startedAt: now,
         completedAt: now,
         status: 'completed',
-        output: { summary },
+        output,
         outputCid: `cid-${id}`,
         claimedExecutorFingerprint: null,
         claimedExecutorManifest: null,
@@ -108,24 +441,25 @@ class StatefulJoinTasks implements TaskClient {
         daemonState: null,
       } as SdkTaskAttempt,
     ]);
-    this.promoteSatisfiedJoins();
+    this.promote();
   }
 
-  private promoteSatisfiedJoins(): void {
+  private promote(): void {
     for (const task of this.tasks.values()) {
       if (task.status !== 'waiting') continue;
-      const dependencies =
+      const conditions =
         task.claimCondition?.op === 'all'
           ? task.claimCondition.conditions
           : task.claimCondition
             ? [task.claimCondition]
             : [];
-      const satisfied = dependencies.every(
-        (condition) =>
-          condition.op === 'task_status' &&
-          this.tasks.get(condition.taskId)?.status === 'completed',
-      );
-      if (satisfied) {
+      if (
+        conditions.every(
+          (condition) =>
+            condition.op === 'task_status' &&
+            this.tasks.get(condition.taskId)?.status === 'completed',
+        )
+      ) {
         Object.assign(task, {
           status: 'queued',
           queuedAt: new Date().toISOString(),
@@ -135,9 +469,9 @@ class StatefulJoinTasks implements TaskClient {
   }
 }
 
-function controlledPollingContext(): {
+function controlledContext(): {
   ctx: WorkflowContext;
-  releasePolls: () => void;
+  release: () => void;
 } {
   let waiters: Array<() => void> = [];
   return {
@@ -148,393 +482,65 @@ function controlledPollingContext(): {
           waiters.push(resolve);
         }),
     },
-    releasePolls: () => {
+    release: () => {
       const current = waiters;
       waiters = [];
-      for (const resolve of current) resolve();
+      current.forEach((resolve) => resolve());
     },
   };
 }
 
-describe('runMultiLensReview', () => {
-  it('fans out one review per lens and joins them with a server-gated synthesis declared up front', async () => {
-    const tasks = new FakeTasks([
-      { summary: 'sec findings' },
-      { summary: 'correctness findings' },
-      { summary: 'verdict' },
-    ]);
-
-    const out = await runMultiLensReview(
-      {
-        teamId: 't',
-        diaryId: 'd',
-        correlationId: 'corr-1',
-        target: 'libs/foo/src/bar.ts',
-        lenses: ['security', 'correctness'],
-      },
-      { tasks },
-    );
-
-    expect(out.reviews.map((r) => [r.lens, r.findings])).toEqual([
-      ['security', 'sec findings'],
-      ['correctness', 'correctness findings'],
-    ]);
-    expect(out.verdict).toBe('verdict');
-
-    // Three tasks: two reviews, then the synthesis (declared in onCreated,
-    // after all review ids exist but before the reviews are awaited).
-    expect(tasks.created).toHaveLength(3);
-    const reviewIds = [fakeId(1), fakeId(2)];
-    const synthesisBody = tasks.created[2];
-    expect(synthesisBody.title).toBe('Consolidated review verdict');
-
-    // The synthesis is gated on ALL review task ids via a server-side join.
-    expect(synthesisBody.claimCondition).toEqual({
-      op: 'all',
-      conditions: reviewIds.map((taskId) => ({
-        op: 'task_status',
-        taskId,
-        statuses: ['completed'],
-      })),
-    });
-    // No task-output references: at creation time the reviews have no accepted
-    // output/outputCid yet (the join alone expresses the dependency).
-    expect(synthesisBody.references ?? []).toEqual([]);
-  });
-
-  it('holds synthesis waiting until every review completes, then promotes it to queued', async () => {
-    const tasks = new StatefulJoinTasks();
-    const { ctx, releasePolls } = controlledPollingContext();
+describe('stateful graph gates', () => {
+  it('promotes planner → preflight → lanes → reducer → global synthesis', async () => {
+    const tasks = new StatefulGraphTasks();
+    const { ctx, release } = controlledContext();
+    const topic: ReviewTopic = {
+      id: 'topic',
+      title: 'Topic',
+      primaryFiles: ['src/change.ts'],
+      lanes: ['correctness', 'dry-codebase-fit'],
+    };
     const run = runMultiLensReview(
-      {
-        teamId: 't',
-        diaryId: 'd',
-        correlationId: 'stateful-join',
-        target: 'libs/foo/src/bar.ts',
-        lenses: ['security', 'correctness'],
-        pollIntervalSec: 1,
-      },
-      { tasks },
+      input({ requiresPlanning: true }),
+      { tasks, artifacts: artifactStore() },
       ctx,
     );
 
-    await vi.waitFor(() => expect(tasks.created).toHaveLength(3));
-    const synthesisId = fakeId(3);
-    expect((await tasks.getTask(synthesisId)).status).toBe('waiting');
-
-    tasks.complete(fakeId(1), 'security findings');
-    expect((await tasks.getTask(synthesisId)).status).toBe('waiting');
-    releasePolls();
-
-    tasks.complete(fakeId(2), 'correctness findings');
-    expect((await tasks.getTask(synthesisId)).status).toBe('queued');
-    releasePolls();
-
+    await vi.waitFor(() => expect(tasks.created).toHaveLength(2));
+    expect((await tasks.getTask(fakeId(2))).status).toBe('waiting');
+    tasks.complete(
+      fakeId(1),
+      summary({ version: 1, excludedFiles: [], topics: [topic] }),
+    );
+    release();
     await vi.waitFor(async () => {
-      expect((await tasks.getTask(synthesisId)).status).toBe('queued');
+      expect((await tasks.getTask(fakeId(2))).status).toBe('queued');
     });
-    tasks.complete(synthesisId, 'consolidated verdict');
-    releasePolls();
+    tasks.complete(fakeId(2), preflight());
+    release();
+
+    await vi.waitFor(() => expect(tasks.created).toHaveLength(6));
+    expect((await tasks.getTask(fakeId(5))).status).toBe('waiting');
+    expect((await tasks.getTask(fakeId(6))).status).toBe('waiting');
+    tasks.complete(fakeId(3), lane('topic', 'correctness'));
+    release();
+    expect((await tasks.getTask(fakeId(5))).status).toBe('waiting');
+    tasks.complete(fakeId(4), lane('topic', 'dry-codebase-fit'));
+    release();
+    await vi.waitFor(async () => {
+      expect((await tasks.getTask(fakeId(5))).status).toBe('queued');
+    });
+    tasks.complete(fakeId(5), topicVerdict(topic));
+    release();
+    await vi.waitFor(async () => {
+      expect((await tasks.getTask(fakeId(6))).status).toBe('queued');
+    });
+    tasks.complete(fakeId(6), globalVerdict());
+    release();
 
     await expect(run).resolves.toMatchObject({
-      verdict: 'consolidated verdict',
+      outcome: 'completed',
+      verdict: { recommendation: 'approve' },
     });
-  });
-
-  it('defaults to the four standard lenses when none are supplied', async () => {
-    const tasks = new FakeTasks([
-      { summary: 'a' },
-      { summary: 'b' },
-      { summary: 'c' },
-      { summary: 'd' },
-      { summary: 'verdict' },
-    ]);
-
-    const out = await runMultiLensReview(
-      { teamId: 't', diaryId: 'd', correlationId: 'c', target: 'x' },
-      { tasks },
-    );
-
-    expect(out.reviews.map((r) => r.lens)).toEqual([
-      'security',
-      'correctness',
-      'performance',
-      'test-coverage',
-    ]);
-    // Four reviews + one synthesis.
-    expect(tasks.created).toHaveLength(5);
-  });
-
-  it('embeds a supplied diff into each review prompt', async () => {
-    const tasks = new FakeTasks([{ summary: 'r' }, { summary: 'v' }]);
-    await runMultiLensReview(
-      {
-        teamId: 't',
-        diaryId: 'd',
-        correlationId: 'c',
-        target: 'x',
-        lenses: ['security'],
-        diff: 'DIFF-MARKER',
-      },
-      { tasks },
-    );
-    const reviewInput = tasks.created[0].input as { brief: string };
-    expect(reviewInput.brief).toContain('DIFF-MARKER');
-  });
-
-  it('binds one staged diff CID to every review without copying bytes into prompts', async () => {
-    const tasks = new FakeTasks([
-      { summary: 'r1' },
-      { summary: 'r2' },
-      { summary: 'v' },
-    ]);
-    await runMultiLensReview(
-      {
-        teamId: 't',
-        diaryId: 'd',
-        correlationId: 'artifact-review',
-        target: 'x',
-        lenses: ['security', 'correctness'],
-        diffArtifact: {
-          cid: 'bafkreidiff',
-          title: 'pull-request.diff',
-          contentType: 'text/x-diff',
-        },
-      },
-      { tasks },
-    );
-
-    for (const review of tasks.created.slice(0, 2)) {
-      expect(review.references).toEqual([
-        {
-          taskId: null,
-          role: 'context',
-          artifact: {
-            cid: 'bafkreidiff',
-            kind: 'input',
-            title: 'pull-request.diff',
-            contentType: 'text/x-diff',
-          },
-        },
-      ]);
-      expect((review.input as { brief: string }).brief).toContain(
-        'moltnet_download_task_artifact',
-      );
-    }
-    expect(tasks.created[2].references).toBeUndefined();
-  });
-
-  it('sets a one-hour expiry backstop on review and synthesis tasks', async () => {
-    const tasks = new FakeTasks([{ summary: 'r' }, { summary: 'v' }]);
-    await runMultiLensReview(
-      {
-        teamId: 't',
-        diaryId: 'd',
-        correlationId: 'expiring-review',
-        target: 'x',
-        lenses: ['security'],
-      },
-      { tasks },
-    );
-
-    expect(tasks.created.map((task) => task.expiresInSec)).toEqual([
-      3_600, 3_600,
-    ]);
-  });
-
-  it('rejects an oversized inline diff before creating tasks', async () => {
-    const tasks = new FakeTasks([]);
-    await expect(
-      runMultiLensReview(
-        {
-          teamId: 't',
-          diaryId: 'd',
-          correlationId: 'oversized-review',
-          target: 'x',
-          diff: 'x'.repeat(MAX_REVIEW_DIFF_BYTES + 1),
-        },
-        { tasks },
-      ),
-    ).rejects.toThrow(/exceeds the .*byte limit/);
-    expect(tasks.created).toHaveLength(0);
-  });
-
-  it('rejects simultaneous inline and staged diffs', async () => {
-    const tasks = new FakeTasks([]);
-    await expect(
-      runMultiLensReview(
-        {
-          teamId: 't',
-          diaryId: 'd',
-          correlationId: 'ambiguous-review',
-          target: 'x',
-          diff: 'inline',
-          diffArtifact: {
-            cid: 'bafkreidiff',
-            title: 'pull-request.diff',
-            contentType: 'text/x-diff',
-          },
-        },
-        { tasks },
-      ),
-    ).rejects.toThrow(/either diff or diffArtifact/);
-    expect(tasks.created).toHaveLength(0);
-  });
-
-  it('pins review and synthesis tasks to the routed runtime profiles', async () => {
-    const tasks = new FakeTasks([
-      { summary: 'security' },
-      { summary: 'correctness' },
-      { summary: 'verdict' },
-    ]);
-    await runMultiLensReview(
-      {
-        teamId: 't',
-        diaryId: 'd',
-        correlationId: 'c',
-        target: 'x',
-        lenses: ['security', 'correctness'],
-        profileRouting: {
-          defaultProfileId: '11111111-1111-4111-8111-111111111111',
-          lensProfileIds: {
-            security: '22222222-2222-4222-8222-222222222222',
-          },
-          synthesisProfileId: '33333333-3333-4333-8333-333333333333',
-        },
-      },
-      { tasks },
-    );
-
-    expect(tasks.created[0].allowedProfiles).toEqual([
-      { profileId: '22222222-2222-4222-8222-222222222222' },
-    ]);
-    expect(tasks.created[1].allowedProfiles).toEqual([
-      { profileId: '11111111-1111-4111-8111-111111111111' },
-    ]);
-    expect(tasks.created[2].allowedProfiles).toEqual([
-      { profileId: '33333333-3333-4333-8333-333333333333' },
-    ]);
-  });
-
-  it('keeps tasks unrestricted when no profile routing is supplied', async () => {
-    const tasks = new FakeTasks([
-      { summary: 'review' },
-      { summary: 'verdict' },
-    ]);
-    await runMultiLensReview(
-      {
-        teamId: 't',
-        diaryId: 'd',
-        correlationId: 'c',
-        target: 'x',
-        lenses: ['security'],
-      },
-      { tasks },
-    );
-
-    expect(tasks.created.every((task) => !task.allowedProfiles)).toBe(true);
-  });
-
-  it('rejects routing for a lens that is not part of the run', async () => {
-    const tasks = new FakeTasks([]);
-    await expect(
-      runMultiLensReview(
-        {
-          teamId: 't',
-          diaryId: 'd',
-          correlationId: 'c',
-          target: 'x',
-          lenses: ['security'],
-          profileRouting: {
-            defaultProfileId: '11111111-1111-4111-8111-111111111111',
-            lensProfileIds: {
-              performance: '22222222-2222-4222-8222-222222222222',
-            },
-          },
-        },
-        { tasks },
-      ),
-    ).rejects.toThrow(/unknown lens "performance"/);
-    expect(tasks.created).toHaveLength(0);
-  });
-
-  it('rejects an empty target', async () => {
-    const tasks = new FakeTasks([]);
-    await expect(
-      runMultiLensReview(
-        { teamId: 't', diaryId: 'd', correlationId: 'c', target: '   ' },
-        { tasks },
-      ),
-    ).rejects.toThrow(/non-empty target/);
-    expect(tasks.created).toHaveLength(0);
-  });
-
-  it('rejects more than the practical lens cap before creating any tasks', async () => {
-    const tasks = new FakeTasks([]);
-    const lenses = Array.from({ length: 9 }, (_v, i) => `lens-${i}`);
-    await expect(
-      runMultiLensReview(
-        { teamId: 't', diaryId: 'd', correlationId: 'c', target: 'x', lenses },
-        { tasks },
-      ),
-    ).rejects.toThrow(/at most 8/);
-    expect(tasks.created).toHaveLength(0);
-  });
-
-  it('deduplicates repeated lenses so a run cannot be amplified', async () => {
-    const tasks = new FakeTasks([{ summary: 's' }, { summary: 'v' }]);
-    const out = await runMultiLensReview(
-      {
-        teamId: 't',
-        diaryId: 'd',
-        correlationId: 'c',
-        target: 'x',
-        lenses: ['security', 'security', 'security'],
-      },
-      { tasks },
-    );
-    expect(out.reviews.map((r) => r.lens)).toEqual(['security']);
-    // one review + one synthesis
-    expect(tasks.created).toHaveLength(2);
-  });
-
-  it('propagates the failure when a review output is malformed', async () => {
-    // Second review output lacks `summary` → parse throws → the fan-out rejects.
-    // (Cleanup of the orphaned synthesis is handled at the terminal outcome in
-    // main.ts, not in the workflow — a per-attempt cancel would fight replay.)
-    const tasks = new FakeTasks([
-      { summary: 'ok' },
-      {},
-      { summary: 'never reached' },
-    ]);
-    await expect(
-      runMultiLensReview(
-        {
-          teamId: 't',
-          diaryId: 'd',
-          correlationId: 'corr-fail',
-          target: 'x',
-          lenses: ['security', 'correctness'],
-        },
-        { tasks },
-      ),
-    ).rejects.toThrow(/missing string `summary`/);
-  });
-
-  it('requires a correlationId', async () => {
-    const tasks = new FakeTasks([]);
-    await expect(
-      runMultiLensReview(
-        {
-          teamId: 't',
-          diaryId: 'd',
-          correlationId: '',
-          target: 'x',
-          lenses: ['security'],
-        },
-        { tasks },
-      ),
-    ).rejects.toThrow(/correlationId/);
-    expect(tasks.created).toHaveLength(0);
   });
 });

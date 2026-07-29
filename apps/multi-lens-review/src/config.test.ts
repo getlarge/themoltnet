@@ -9,12 +9,14 @@ const BASE_ARGS = [
   'diary-id',
   '--target',
   'change',
+  '--diff',
+  'diff',
 ];
 
 function deps(overrides: Partial<CliParseDeps> = {}): CliParseDeps {
   return {
     env: { MULTI_LENS_REVIEW_DATABASE_URL: 'postgres://review' },
-    readFile: vi.fn(() => 'file diff'),
+    readFile: vi.fn((path) => (path === 'files.json' ? '[]' : 'file diff')),
     randomUUID: vi.fn(() => 'generated-correlation'),
     ...overrides,
   };
@@ -27,11 +29,28 @@ describe('parseCliConfig', () => {
     });
   });
 
-  it('parses a diff file and repeated lenses without process side effects', () => {
-    const parseDeps = deps();
+  it('parses read-only preflight without database or identity inputs', () => {
+    expect(
+      parseCliConfig(
+        [
+          '--preflight',
+          '--diff-file',
+          'review.diff',
+          '--files-metadata',
+          'files.json',
+        ],
+        deps({ env: {} }),
+      ),
+    ).toEqual({
+      kind: 'preflight',
+      config: { diff: 'file diff', githubFiles: [] },
+    });
+  });
+
+  it('parses a diff file and repeated requested lanes', () => {
     const result = parseCliConfig(
       [
-        ...BASE_ARGS,
+        ...BASE_ARGS.slice(0, -2),
         '--diff-file',
         'review.diff',
         '--lens',
@@ -39,67 +58,70 @@ describe('parseCliConfig', () => {
         '--lens',
         'correctness',
       ],
-      parseDeps,
+      deps(),
     );
-
     expect(result).toMatchObject({
       kind: 'run',
       config: {
         databaseUrl: 'postgres://review',
+        diff: 'file diff',
         input: {
           correlationId: 'generated-correlation',
-          diff: 'file diff',
           lenses: ['security', 'correctness'],
         },
       },
     });
   });
 
-  it('preserves an explicit correlation id instead of generating one', () => {
-    const parseDeps = deps();
-    const result = parseCliConfig(
-      [...BASE_ARGS, '--correlation-id', 'stable-run-id'],
-      parseDeps,
-    );
-
-    expect(result).toMatchObject({
+  it('preserves an explicit correlation id', () => {
+    expect(
+      parseCliConfig(
+        [...BASE_ARGS, '--correlation-id', 'stable-run-id'],
+        deps(),
+      ),
+    ).toMatchObject({
       kind: 'run',
       config: { input: { correlationId: 'stable-run-id' } },
     });
   });
 
-  it('requires the database URL environment variable', () => {
+  it('requires the database URL for a run', () => {
     expect(() => parseCliConfig(BASE_ARGS, deps({ env: {} }))).toThrow(
       /MULTI_LENS_REVIEW_DATABASE_URL/,
     );
   });
 
-  it('parses default, per-lens, and synthesis profile references', () => {
+  it('preserves legacy flags and adds every explicit phase override', () => {
     const result = parseCliConfig(
       [
         ...BASE_ARGS,
         '--profile',
-        'multi-lens-review-v1',
+        'default',
+        '--planner-profile',
+        'planner',
+        '--preflight-profile',
+        'architect',
         '--lens-profile',
-        'security=security-profile',
-        '--lens-profile',
-        'performance=performance-profile',
+        'security=security',
+        '--lane-profile',
+        'tests=tests',
+        '--topic-reducer-profile',
+        'reducer',
         '--synthesis-profile',
-        'synthesis-profile',
+        'lead',
       ],
       deps(),
     );
-
     expect(result).toMatchObject({
       kind: 'run',
       config: {
         profileRoutingRefs: {
-          defaultProfile: 'multi-lens-review-v1',
-          lensProfiles: {
-            security: 'security-profile',
-            performance: 'performance-profile',
-          },
-          synthesisProfile: 'synthesis-profile',
+          defaultProfile: 'default',
+          plannerProfile: 'planner',
+          preflightProfile: 'architect',
+          laneProfiles: { security: 'security', tests: 'tests' },
+          topicReducerProfile: 'reducer',
+          globalSynthesisProfile: 'lead',
         },
       },
     });
@@ -114,7 +136,7 @@ describe('parseCliConfig', () => {
     ).toThrow(/--profile is required/);
   });
 
-  it('rejects duplicate lens profile overrides', () => {
+  it('rejects duplicate profile overrides', () => {
     expect(() =>
       parseCliConfig(
         [
@@ -123,12 +145,12 @@ describe('parseCliConfig', () => {
           'default',
           '--lens-profile',
           'security=one',
-          '--lens-profile',
+          '--lane-profile',
           'security=two',
         ],
         deps(),
       ),
-    ).toThrow(/repeated for lens "security"/);
+    ).toThrow(/repeated for lane "security"/);
   });
 
   it.each([
@@ -142,10 +164,7 @@ describe('parseCliConfig', () => {
 
   it('rejects simultaneous inline and file diffs', () => {
     expect(() =>
-      parseCliConfig(
-        [...BASE_ARGS, '--diff', 'inline', '--diff-file', 'review.diff'],
-        deps(),
-      ),
+      parseCliConfig([...BASE_ARGS, '--diff-file', 'review.diff'], deps()),
     ).toThrow(/at most one/);
   });
 });
