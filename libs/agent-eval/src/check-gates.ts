@@ -87,6 +87,15 @@ interface ExecuteStartPayload {
   workspaceMode: string;
 }
 
+/**
+ * Mirror the daemon's `toDaemonWorkspaceMode`: the task-type/eval workspace mode
+ * `none` is remapped to `scratch_mount` before the runtime emits it in
+ * `execute_start`. Keep this in sync with apps/agent-daemon.
+ */
+function toDaemonWorkspaceMode(mode: string): string {
+  return mode === 'none' ? 'scratch_mount' : mode;
+}
+
 function infoEvent(
   messages: GateTaskMessage[],
   event: string,
@@ -178,7 +187,14 @@ export async function checkGates(
         detail: `execute_start.model=${start.model}, expected ${expected.model}`,
       });
     }
-    const wantWorkspace = gates.expectWorkspaceMode ?? expected.workspace;
+    // The daemon remaps the task-type workspace mode `none` to `scratch_mount`
+    // before it reaches `execute_start` (see `toDaemonWorkspaceMode` in
+    // apps/agent-daemon). Apply the same mapping to the expectation so a
+    // `workspace: none` scenario compares against what the runtime actually
+    // reports.
+    const wantWorkspace = toDaemonWorkspaceMode(
+      gates.expectWorkspaceMode ?? expected.workspace,
+    );
     if (start.workspaceMode !== wantWorkspace) {
       failures.push({
         gate: 'workspace_mode',
@@ -263,10 +279,15 @@ export async function checkGates(
         detail: `captured output is not a valid RunEvalOutput: ${errors}`,
       });
     } else {
-      // Cross-field: verification presence must match successCriteria. The
-      // eval producer runs with no successCriteria, so verification must be
-      // absent. validateRunEvalOutput(output, undefined) enforces exactly that.
-      const crossField = validateRunEvalOutput(attempt.output, undefined);
+      // Cross-field: verification presence must match successCriteria. Task
+      // create-time normalization ALWAYS injects a `submit-output` gate into a
+      // producer task's successCriteria (see `normalizeTaskInputForCreate`), so
+      // a run_eval attempt runs WITH successCriteria and its output MUST carry a
+      // `verification` record. Model that by passing a criteria-present input,
+      // which makes `validateRunEvalOutput` require verification to be present.
+      const crossField = validateRunEvalOutput(attempt.output, {
+        successCriteria: { version: 1 },
+      });
       if (crossField !== null) {
         failures.push({ gate: 'verification_contract', detail: crossField });
       }

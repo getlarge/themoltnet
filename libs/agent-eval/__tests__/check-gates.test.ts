@@ -10,12 +10,28 @@ import type { GateExpectations } from '../src/scenario.js';
 
 const EXPECTED = { model: 'qwen3-coder:480b-cloud', workspace: 'none' };
 
-/** A valid RunEvalOutput payload (no successCriteria => no verification). */
+/**
+ * A valid RunEvalOutput payload. run_eval always carries an auto-injected
+ * `submit-output` gate (create-time normalization), so the accepted output MUST
+ * include a `verification` record — this mirrors what the live daemon emits.
+ */
 const VALID_OUTPUT = {
   response: 'Completed the task and submitted output.',
   totalTokens: 1234,
   durationMs: 4567,
   traceparent: '00-abc-def-01',
+  verification: {
+    inputCid: 'bagaaieratestinputcid',
+    passed: true,
+    results: [
+      {
+        id: 'submit-output',
+        kind: 'gate',
+        status: 'pass',
+        detail: 'submit tool called exactly once',
+      },
+    ],
+  },
 };
 
 function messages(
@@ -44,7 +60,9 @@ function messages(
         event: 'execute_start',
         model: overrides.executeStart?.model ?? EXPECTED.model,
         provider: overrides.executeStart?.provider ?? 'ollama-cloud',
-        workspaceMode: overrides.executeStart?.workspaceMode ?? 'none',
+        // The daemon remaps `none` → `scratch_mount` before emitting
+        // execute_start, so the realistic default here is `scratch_mount`.
+        workspaceMode: overrides.executeStart?.workspaceMode ?? 'scratch_mount',
       },
     });
   }
@@ -350,6 +368,38 @@ describe('checkGates', () => {
 
     // No submit-related failures; only the (satisfied) message-stream gates ran.
     expect(result.failures.map((f) => f.gate)).not.toContain('submit');
+    expect(result.passed).toBe(true);
+  });
+
+  it('fails the verification contract when a clean output omits verification', async () => {
+    // run_eval's auto-injected submit-output gate makes verification REQUIRED;
+    // a schema-valid output that omits it must fail the verification contract.
+    const { verification: _drop, ...withoutVerification } = VALID_OUTPUT;
+    const agent = fakeAgent(messages(), {
+      attemptN: 1,
+      status: 'completed',
+      output: withoutVerification,
+    });
+
+    const result = await checkGates(agent, 't1', 1, {}, EXPECTED);
+
+    expect(result.passed).toBe(false);
+    expect(result.failures.map((f) => f.gate)).toContain(
+      'verification_contract',
+    );
+  });
+
+  it('passes the workspace gate when the eval declares none and the runtime reports scratch_mount', async () => {
+    // The daemon remaps `none` → `scratch_mount`; the gate must apply the same
+    // mapping so a `workspace: none` scenario does not spuriously fail.
+    const agent = fakeAgent(
+      messages({ executeStart: { workspaceMode: 'scratch_mount' } }),
+      completedAttempt,
+    );
+
+    const result = await checkGates(agent, 't1', 1, {}, EXPECTED);
+
+    expect(result.failures.map((f) => f.gate)).not.toContain('workspace_mode');
     expect(result.passed).toBe(true);
   });
 });
