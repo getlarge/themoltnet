@@ -1,3 +1,6 @@
+# Disabled on 2026-07-29: automatic multi-lens reviews were too noisy and
+# expensive while the workflow is still experimental. Restore this file under
+# .github/workflows only after the large-PR flow passes local validation.
 name: Multi-lens deep review
 
 on:

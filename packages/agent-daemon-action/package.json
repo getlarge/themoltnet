@@ -38,6 +38,9 @@
     "node": ">=22"
   },
   "nx": {
+    "implicitDependencies": [
+      "@themoltnet/agent-daemon"
+    ],
     "targets": {
       "nx-release-publish": {
         "executor": "nx:run-commands",

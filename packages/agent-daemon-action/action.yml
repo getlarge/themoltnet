@@ -77,8 +77,8 @@ inputs:
     default: ''
   daemon-version:
     description: >
-      npm semver range for @themoltnet/agent-daemon, or "workspace" to build
-      and run the daemon from the checked-out repository.
+      npm semver range for @themoltnet/agent-daemon, or "workspace" to run
+      the daemon source from the checked-out repository with the tsx loader.
     required: false
     default: 'latest'
   running-timeout-sec:
@@ -616,8 +616,12 @@ runs:
         fi
 
         if [ "$DAEMON_VERSION" = "workspace" ]; then
-          pnpm exec nx run @themoltnet/agent-daemon:build
-          node "$GITHUB_WORKSPACE/apps/agent-daemon/dist/main.js" \
+          # Workspace package exports intentionally resolve to TypeScript
+          # source. Running the Vite output directly would leave public
+          # workspace dependencies external, then plain Node would follow
+          # those source exports without a TypeScript-aware resolver.
+          node --import tsx \
+            "$GITHUB_WORKSPACE/apps/agent-daemon/src/main.ts" \
             "${daemon_args[@]}"
         else
           npx -y "@themoltnet/agent-daemon@$DAEMON_VERSION" \
