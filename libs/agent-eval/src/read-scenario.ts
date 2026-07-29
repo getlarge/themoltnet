@@ -16,12 +16,7 @@ import type { TSchema } from 'typebox';
 import { Value } from 'typebox/value';
 
 import { GateExpectations, type Scenario } from './scenario.js';
-
-/** Shape of a typebox v1 validation error we read fields off of. */
-interface TypeBoxError {
-  instancePath: string;
-  message: string;
-}
+import { formatTypeBoxErrors } from './typebox-errors.js';
 
 /** Thrown when a scenario directory does not conform to the format. */
 export class ScenarioError extends Error {
@@ -67,12 +62,7 @@ function assertSchema(
   if (Value.Check(schema, value)) {
     return;
   }
-  const errors = [...Value.Errors(schema, value)]
-    .map((raw) => {
-      const e = raw as unknown as TypeBoxError;
-      return `${e.instancePath || '/'}: ${e.message}`;
-    })
-    .join('; ');
+  const errors = formatTypeBoxErrors(schema, value);
   throw new ScenarioError(slug, `${file} failed schema validation: ${errors}`);
 }
 

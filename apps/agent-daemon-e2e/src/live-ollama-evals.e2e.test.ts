@@ -134,17 +134,15 @@ describeLive('Agent daemon evals-v2 gate smoke (live Ollama, e2e)', () => {
       });
       writePiConfig({ piDir, provider: LIVE_PROVIDER, model: LIVE_MODEL });
 
-      const runEvalInput = buildRunEvalInput(scenario, { variant: 'baseline' });
       const task = await agent.tasks.create(
-        {
-          taskType: 'run_eval',
-          title: `evals-v2 ${scenario.slug}`,
-          diaryId,
-          correlationId: randomUUID(),
-          maxAttempts: 1,
-          input: runEvalInput,
-        },
-        { teamId },
+        agent.tasks
+          .buildRunEval(buildRunEvalInput(scenario, { variant: 'baseline' }))
+          .title(`evals-v2 ${scenario.slug}`)
+          .diary(diaryId)
+          .correlationId(randomUUID())
+          .maxAttempts(1)
+          .team(teamId)
+          .build(),
       );
 
       // Act — run the task through the daemon once against the pinned model.

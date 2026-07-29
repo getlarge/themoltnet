@@ -15,6 +15,7 @@ import { RunEvalOutput, validateRunEvalOutput } from '@moltnet/tasks';
 import { Value } from 'typebox/value';
 
 import type { GateExpectations } from './scenario.js';
+import { formatTypeBoxErrors } from './typebox-errors.js';
 
 /** Minimal shape of a task message (a structural subset of the SDK's
  * `TaskMessage`). */
@@ -256,12 +257,7 @@ export async function checkGates(
           'accepted attempt has no captured output (submit tool never succeeded)',
       });
     } else if (!Value.Check(RunEvalOutput, attempt.output)) {
-      const errors = [...Value.Errors(RunEvalOutput, attempt.output)]
-        .map((raw) => {
-          const e = raw as unknown as { instancePath: string; message: string };
-          return `${e.instancePath || '/'}: ${e.message}`;
-        })
-        .join('; ');
+      const errors = formatTypeBoxErrors(RunEvalOutput, attempt.output);
       failures.push({
         gate: 'output_schema',
         detail: `captured output is not a valid RunEvalOutput: ${errors}`,

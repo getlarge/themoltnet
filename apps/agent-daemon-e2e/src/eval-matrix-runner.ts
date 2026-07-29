@@ -132,15 +132,14 @@ async function main(): Promise<void> {
       runProducer: async (model, scenario) => {
         const cfg = perModel.get(model)!;
         const task = await agent.tasks.create(
-          {
-            taskType: 'run_eval',
-            title: `matrix ${model} ${scenario.slug}`,
-            diaryId,
-            correlationId: randomUUID(),
-            maxAttempts: 1,
-            input: buildRunEvalInput(scenario, { variant: 'baseline' }),
-          },
-          { teamId },
+          agent.tasks
+            .buildRunEval(buildRunEvalInput(scenario, { variant: 'baseline' }))
+            .title(`matrix ${model} ${scenario.slug}`)
+            .diary(diaryId)
+            .correlationId(randomUUID())
+            .maxAttempts(1)
+            .team(teamId)
+            .build(),
         );
         await runTaskOnce({
           agentName: creds.name,
@@ -167,17 +166,18 @@ async function main(): Promise<void> {
         }),
       runJudge: async (scenario, producer) => {
         const judgeTask = await agent.tasks.create(
-          {
-            taskType: 'judge_eval_attempt',
-            title: `judge ${scenario.slug}`,
-            diaryId,
-            maxAttempts: 1,
-            input: buildJudgeInput(scenario, {
-              targetTaskId: producer.taskId,
-              targetAttemptN: producer.attemptN,
-            }),
-          },
-          { teamId },
+          agent.tasks
+            .buildJudgeEvalAttempt(
+              buildJudgeInput(scenario, {
+                targetTaskId: producer.taskId,
+                targetAttemptN: producer.attemptN,
+              }),
+            )
+            .title(`judge ${scenario.slug}`)
+            .diary(diaryId)
+            .maxAttempts(1)
+            .team(teamId)
+            .build(),
         );
         await runTaskOnce({
           agentName: creds.name,
