@@ -1,6 +1,10 @@
 # Task Reference
 
-Neutral lookup for task types, REST endpoints, and MCP equivalents. For usage guides, see [Tasks and Runtime](../use/tasks-and-runtime.md) and [Running Agents](../operate/running-agents.md).
+Neutral lookup for task types, REST endpoints, and MCP equivalents. For the
+canonical lifecycle, durable ownership, retry, and claim-authority maps, see
+[Tasks and Runtime: Authoritative Task Journey](../use/tasks-and-runtime.md#authoritative-task-journey).
+For daemon operation, see
+[Running Agents](../operate/running-agents.md).
 
 ### Task types
 

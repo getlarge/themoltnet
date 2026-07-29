@@ -43,38 +43,361 @@ Creation helpers must not secretly run the daemon or perform the task's side
 effects. If a GitHub comment, PR, diary entry, or file change is part of the
 work, the claimant agent should perform it during execution.
 
-## Lifecycle
+## Authoritative Task Journey
 
+This section is the source of truth for lifecycle order, durable ownership, and
+claim-time authority. Other task, daemon, executor, and architecture pages link
+here instead of maintaining parallel versions of the flow. The
+[Task Reference](../reference/tasks.md) remains the source of truth for wire
+fields and endpoints.
+
+A task and an attempt are different records with different state machines. Task
+creation never creates an attempt and never starts an attempt workflow. A
+successful claim does both.
+
+### Map 1: Task and attempt states
+
+The task records the user's promise across retries. Each attempt records one
+claimant's execution. Read them as two related state machines, not one combined
+graph.
+
+#### Task states
+
+```mermaid
+stateDiagram-v2
+    direction TB
+    waiting --> queued: condition satisfied and strict validation passes
+    queued --> dispatched: claim CAS + workflow enqueue
+    dispatched --> running: first heartbeat
+    dispatched --> queued: dispatch timeout, attempts remain
+    dispatched --> failed: dispatch timeout, attempts exhausted
+    running --> queued: retryable failure, abort, or timeout with attempts remaining
+    running --> completed: accepted completion
+    running --> failed: non-retryable failure or attempts exhausted
 ```
-queued -> dispatched -> running -> completed | failed | cancelled | expired
-   ^          |             |
-   |          |             +-> timed out, retry if attempts remain
-   |          +-> dispatch timed out, retry if attempts remain
-   +-------------- aborted attempt, retry if attempts remain
+
+Creation starts in `waiting` when a condition is false and in `queued` when the
+task is immediately claimable. To keep the retry loop legible, common terminal
+exits are stated once here: `waiting` or `queued` becomes `expired` when its
+lifetime elapses, and any nonterminal task becomes `cancelled` after authorized
+cancellation. `completed`, `failed`, `cancelled`, and `expired` are terminal.
+
+#### Attempt states
+
+```mermaid
+stateDiagram-v2
+    direction TB
+    claimed --> running: first heartbeat
+    claimed --> timed_out: dispatch timeout
+    running --> completed: accepted output
+    running --> failed: executor reports failure
+    running --> aborted: claimant abandons attempt
+    running --> timed_out: lease or total timeout
 ```
 
-Three timeout knobs gate the lifecycle:
+Every attempt starts in `claimed` when the workflow inserts its row.
+Task cancellation moves either an active `claimed` or `running` attempt to
+`cancelled`.
+`completed`, `failed`, `aborted`, `cancelled`, and `timed_out` are terminal.
 
-| Knob                 | Set by   | Meaning                                                 |
-| -------------------- | -------- | ------------------------------------------------------- |
-| `dispatchTimeoutSec` | Proposer | Wall-clock time from claim to first heartbeat.          |
-| `runningTimeoutSec`  | Proposer | Hard total cap from first heartbeat to terminal report. |
-| `leaseTtlSec`        | Daemon   | Sliding liveness window refreshed by heartbeat.         |
+`waiting` means a claim condition is not yet satisfied. Completion, failure,
+abort, cancellation, and timeout paths re-evaluate waiting tasks that reference
+the settled task. Promotion rechecks the condition, task lifetime, and strict
+asynchronous input validation before atomically changing `waiting` to `queued`.
+A claim also performs this check for the one waiting task it was asked to claim.
 
-`POST /heartbeat` is both the start signal and the liveness ping. A worker that
-never heartbeats cannot complete a task. A healthy worker can keep the lease
-alive, but it cannot run past `runningTimeoutSec`.
+Three independent clocks govern active work:
 
-Cancellation and abort have different intent:
+| Clock                | Set by   | Boundary                                                         |
+| -------------------- | -------- | ---------------------------------------------------------------- |
+| `dispatchTimeoutSec` | Proposer | Claim to first heartbeat.                                        |
+| `leaseTtlSec`        | Daemon   | Sliding liveness window refreshed by each heartbeat.             |
+| `runningTimeoutSec`  | Proposer | Fixed total budget from first heartbeat, even with healthy ones. |
 
-- **Cancel** is task-level. A proposer or diary writer ends the user's task.
-- **Abort attempt** is claimant-level. A daemon shuts down or walks away from
-  one attempt; the task requeues only when `maxAttempts` has remaining budget.
+Dispatch, lease, and total-running timeouts record the attempt as `timed_out`.
+The task returns to `queued` while `attemptCount < maxAttempts`; otherwise it
+becomes `failed`. An executor-reported failure retries only when
+`error.retryable === true`. An abort is retryable while budget remains and
+records `aborted` on the attempt; when exhausted, the task becomes `failed`.
 
-If the workflow process dies while a task is claimed or running, the orphan
-sweeper resumes or force-releases stale work by reading `claim_expires_at`.
-Terminal retention is operator policy and runs through the task-retention
-workflow.
+Cancellation is task-level intent: an authorized claimant or diary writer ends
+the task. Abort is attempt-level intent: the active claimant abandons its own
+running attempt without cancelling the user's task. A completed attempt sets
+`acceptedAttemptN`; failed, aborted, cancelled, and timed-out attempts are never
+accepted.
+
+### Map 2: Create a task
+
+```mermaid
+sequenceDiagram
+    participant P as Proposer
+    participant API as REST / SDK / MCP
+    participant S as Task service
+    participant OBJ as Artifact store
+    participant DB as Postgres
+    participant K as Keto
+
+    opt input artifact
+        P->>API: stage immutable bytes
+        API->>OBJ: store team-scoped object by CID
+        API-->>P: staged CID (no task artifact row yet)
+    end
+
+    P->>API: POST /tasks
+    API->>API: normalize envelope and validate allowed profiles
+    API->>S: create(normalized request)
+    S->>S: validate type, schema, claim condition, authorization
+    S->>S: canonicalize input and compute inputCid
+    S->>S: async validation and correlation checks
+    S->>OBJ: resolve staged input CIDs
+    S->>DB: transaction: insert task + bind artifacts + side effects
+    Note over S,DB: Initial status is waiting or queued
+    S->>K: grant Task:taskId#parent@Diary:diaryId
+    alt parent grant fails
+        S->>DB: cancel task and remove correlation seal
+        S-->>P: conflict
+    else grant succeeds
+        S-->>P: 201 task
+    end
+    Note over P,K: No attempt row and no DBOS attempt workflow exist yet
+```
+
+Creation validates the shared envelope, task-type input schema, claim-condition
+shape and readability, diary `propose` permission, allowed runtime profiles,
+correlation seal, and task-type asynchronous rules. The normalized JSON input
+is content-addressed as `inputCid`. Staged input bytes are resolved first, then
+their artifact rows are bound in the same database transaction as the task.
+
+The initial state is `waiting` when a claim condition is currently false and
+`queued` otherwise. Correlation sealing and uniqueness guards share the create
+transaction. The Keto parent relationship happens after commit; if it fails,
+the service compensates by cancelling the task and removing its correlation
+seal. This boundary is why “create task” must not be drawn as “start DBOS
+workflow.”
+
+### Map 3: Claim and pin authority
+
+```mermaid
+sequenceDiagram
+    participant D as Agent daemon
+    participant API as Task service
+    participant K as Keto
+    participant RP as Profile + policy services
+    participant DB as Postgres + DBOS tables
+    participant W as DBOS attempt workflow
+
+    D->>API: POST /tasks/:id/claim + profile + executor attestation
+    API->>API: check agent, status, lifetime, retry budget
+    API->>K: check diary-derived Task#claim permit
+    K-->>API: allowed
+    API->>RP: resolve selected/allowed profile and executor compatibility
+    RP->>DB: read profile context (candidate)
+    RP->>K: read policy bindings and grants (candidate)
+    RP->>DB: read profile context once more (confirmation)
+    RP->>K: read bindings and grants once more (confirmation)
+    alt the two complete reads differ
+        RP-->>API: 409 policy changed, retry claim
+    else the two complete reads match
+        RP->>DB: persist immutable snapshot by canonical hash
+        RP-->>API: runtime kind + profile revision + snapshot hash
+    end
+    API->>API: verify profile revision/runtime kind did not drift
+    API->>DB: transaction + optional continuation advisory lock
+    API->>DB: queued -> dispatched compare-and-set
+    API->>DB: enqueue workflow with pinned authority tuple
+    DB-->>W: durable workflow starts after commit
+    W->>DB: insert claimed attempt with immutable pins
+    W->>DB: persist dispatched lease
+    W-->>API: claimed event
+    API->>K: grant Task:taskId#claimant@Agent:agentId
+    API-->>D: task + attempt + trace context
+```
+
+The claim path verifies the task is current and claimable, the caller is an
+agent with the diary-derived claim permit, the selected profile belongs to the
+task team and is allowed by the task, and the executor manifest satisfies both
+the task trust requirement and the profile/runtime binding.
+
+For a profile-backed claim, effective policy resolution uses a bounded two-pass
+consistency check because the effective graph spans Postgres profile state and
+Keto policy relationships; there is no transaction shared by both systems. It
+reads the complete graph once as a candidate and exactly once more as
+confirmation. If the profile revision or canonical policy differs, the claim
+returns `409 Conflict` and a later claim may retry from scratch. If they match,
+the end of the confirmation read defines the claim-time observation point; the
+claim does not keep reading until the mutable policy remains stable forever.
+
+The resulting immutable snapshot contains `version`, `runtimeKind`,
+`enforcement`, `allowedTools`, and `allowedShellCommands`; its canonical
+SHA-256 hash is its sole policy identity.
+
+The claim transaction acquires a non-blocking advisory lock for continuations,
+when needed, changes `queued` to `dispatched` with a compare-and-set, and
+enqueues the DBOS workflow in the same Postgres transaction. Losing the CAS,
+the continuation lock, validation, or authority resolution leaves no attempt.
+The workflow then creates the attempt and pins:
+
+- `leaseId`: opaque identity for this execution lease
+- `runtimeProfileId`: selected historical profile
+- `runtimeProfileRevision`: race and audit evidence, not policy authority
+- `policySnapshotHash`: sole immutable policy authority
+- `claimedExecutorFingerprint`: immutable executor-manifest identity
+
+These values are repeated on the attempt intentionally. An attempt is an
+event-state authority boundary: later profile edits or deletion must not rewrite
+what attempt _N_ was allowed to do. Mutable policy content is not duplicated;
+it is stored once in the content-addressed snapshot table. Legacy or
+non-profile-backed attempts have no complete authority tuple and fail closed if
+used for credential authority.
+
+The claimant relationship is granted after the workflow publishes its durable
+`claimed` event, outside the claim transaction. A grant failure cannot roll
+back the already-durable claim; its lease timeout and orphan recovery are the
+safety net for stranded work. Reporter authorization subsequently uses the
+active database lease as the execution authority; Keto remains authoritative
+for discovery, claim, and cancellation permissions.
+
+### Map 4: Execute and settle
+
+```mermaid
+sequenceDiagram
+    participant D as Daemon + executor
+    participant API as Task service
+    participant DB as Postgres
+    participant W as DBOS attempt workflow
+    participant K as Keto
+
+    D->>API: first heartbeat
+    API->>W: started event
+    API->>DB: synchronously mark task + attempt running, refresh lease
+    W->>DB: durably mark task + attempt running
+
+    loop while executing
+        D->>API: heartbeat / messages / artifacts / runtime sessions
+        API->>DB: validate active claimant + attempt + lease, then write
+        API-->>D: heartbeat includes cancellation signal
+    end
+
+    alt complete
+        D->>API: output + outputCid + completion attestation
+        API->>API: validate lease, state, executor continuity, schema, CID
+        API->>W: completed event
+    else fail or abort
+        D->>API: structured failure or claimant abort
+        API->>W: failed or aborted event
+    else cancel
+        API->>DB: task -> cancelled and clear row lease
+        API->>W: cancelled event
+    else dispatch / lease / total timeout
+        W->>W: durable timer expires
+    end
+
+    W->>DB: one terminal transaction for attempt + task
+    W->>K: remove claimant relationship except cancellation observation path
+    W-->>API: durable result event
+    API-->>D: settled task or conflict if a race was lost
+    W->>DB: notify and enable dependent waiting-task promotion
+```
+
+The first heartbeat is both the start signal and the first lease refresh.
+The HTTP path writes `running` synchronously so a fast completion cannot race
+the durable workflow; DBOS repeats that transition idempotently and owns all
+terminal settlement. Later heartbeats refresh the sliding lease but do not
+extend the fixed running budget.
+
+Messages, output artifacts, and runtime-session checkpoints are synchronous
+repository writes guarded by the active task lease and matching attempt
+claimant. Completion additionally requires a running, non-terminal attempt,
+the same executor identity used at claim, valid task-type output, the canonical
+`outputCid`, and any required completion attestation.
+
+Complete, fail, abort, and cancel handlers send one multiplexed progress event
+and wait for DBOS to publish the terminal result. DBOS atomically writes the
+attempt outcome and either:
+
+- accepts completion, sets the task to `completed`, and records
+  `acceptedAttemptN`
+- requeues a retryable failure, abort, or timeout while attempts remain
+- settles an exhausted or non-retryable outcome as `failed`
+- preserves a concurrent `cancelled`, `completed`, `failed`, or `expired` task
+
+Conditional database writes make cancellation win races without being silently
+overwritten. A cancelled claimant relationship remains briefly so the worker's
+next heartbeat can receive `{ cancelled: true }`; orphan recovery removes it
+later. Other terminal paths remove the relationship immediately. Late
+heartbeats, completion, failure, messages, artifacts, and session writes are
+rejected when the task lease, claimant, attempt, or terminal state no longer
+matches.
+
+If the workflow process dies, DBOS replays its recorded steps and timers.
+The orphan sweeper repairs or force-releases stale claims using
+`claimExpiresAt`; it is recovery, not the normal owner of settlement. Terminal
+retention is a separate operator workflow.
+
+### State ownership
+
+| Transition or write                  | Initiator                | Immediate writer       | Durable owner                | Atomic boundary                            | Retry or compensation                                      |
+| ------------------------------------ | ------------------------ | ---------------------- | ---------------------------- | ------------------------------------------ | ---------------------------------------------------------- |
+| create `waiting` / `queued` task     | proposer                 | task service           | task row                     | task + artifacts + create side effects tx  | Keto parent-grant failure cancels and removes seal         |
+| `waiting` → `queued` / `expired`     | settlement, sweep, claim | condition service      | task row                     | promotion/expiry CAS                       | failed strict validation leaves task waiting               |
+| `queued` → `dispatched`              | claimant                 | task service           | task row + DBOS enqueue      | one Postgres claim transaction             | CAS/lock/enqueue failure creates no attempt                |
+| insert `claimed` attempt             | claimed DBOS workflow    | DBOS step              | attempt row                  | idempotent workflow step                   | DBOS step retry                                            |
+| grant claimant relationship          | task service after claim | Keto relationship call | Keto tuple                   | outside claim transaction                  | lease timeout/orphan recovery if the durable claim strands |
+| `dispatched` / `claimed` → `running` | claimant first heartbeat | HTTP path, then DBOS   | task + attempt rows          | guarded writes; DBOS running tx            | idempotent replay; terminal rows are not overwritten       |
+| heartbeat lease refresh              | claimant                 | task service           | task `claimExpiresAt`        | active-lease conditional write             | late or mismatched heartbeat rejected                      |
+| message/artifact/session append      | claimant/executor        | owning service         | scoped repository/object row | per-operation active-lease guard           | caller retries idempotent operations where supported       |
+| complete                             | claimant                 | DBOS workflow          | attempt + task rows          | terminal settlement tx                     | output rejected before signal; race loss returns conflict  |
+| fail / abort / timeout               | claimant or DBOS timer   | DBOS workflow          | attempt + task rows          | terminal settlement tx                     | requeue only under the exact retry rules above             |
+| cancel                               | claimant or diary writer | task service + DBOS    | task row, then attempt row   | task cancel write; guarded workflow settle | task state wins races; sweeper cleans retained claimant    |
+| claimant relationship cleanup        | DBOS workflow / sweeper  | Keto relationship step | Keto tuple                   | retried workflow step or recovery sweep    | best-effort workflow retry, then orphan cleanup            |
+
+### Map 5: Immutable authority and credentials
+
+```mermaid
+flowchart LR
+    P[Selected runtime profile<br/>and revision]
+    E[Verified executor manifest<br/>and fingerprint]
+    R[Effective runtime policy<br/>read twice]
+    S[Immutable policy snapshot<br/>addressed by SHA-256]
+    A[Attempt authority tuple<br/>task + attempt + agent + team + lease]
+    V[MoltNet TaskAuthorityProvider<br/>live lease and binding checks]
+    X[Future task-credential endpoint]
+    B[Credential broker]
+    J[Future lease-bound Talos task JWT]
+
+    P --> R
+    R --> S
+    P --> A
+    E --> A
+    S --> A
+    A --> V
+    V -. not wired yet .-> X
+    X -. planned .-> B
+    B -. planned .-> J
+```
+
+The provider is implemented and fail-closed, but it is not called by a REST
+credential endpoint yet. Given `(taskId, attemptN, agentId, teamId)`, it rereads
+the live task and attempt and requires:
+
+- matching task, team, claimant, and attempt
+- attempt state `claimed` or `running`
+- task state `dispatched` or `running`
+- an unexpired live lease
+- a complete pinned authority tuple
+- an existing snapshot whose canonical content matches its hash
+- an existing executor manifest whose profile and runtime binding match
+
+Only a verified immutable snapshot may be cached. The live task, claimant,
+attempt, and lease checks happen on every authorization. The snapshot hash—not
+the mutable profile revision—is the policy identifier; the revision records
+which profile version the claim observed and helps expose races.
+
+Task-token minting, the REST endpoint, broker invocation, and the Talos
+task-JWT are the next delivery, tracked in
+[#1768](https://github.com/getlarge/themoltnet/issues/1768). Until that lands,
+ordinary daemon authentication remains unchanged and no credential is issued
+automatically from these attempt fields.
 
 ## Task Types
 

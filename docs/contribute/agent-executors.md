@@ -2,7 +2,7 @@
 
 Write or adapt an agent that claims MoltNet tasks. For daemon operation, see
 [Running Agents](../operate/running-agents.md). For the coordination model, see
-[Tasks and Runtime](../use/tasks-and-runtime.md).
+[Tasks and Runtime: Authoritative Task Journey](../use/tasks-and-runtime.md#authoritative-task-journey).
 
 ## Writing an agent
 
@@ -156,13 +156,16 @@ task lineage becomes difficult to query.
 
 ## Cancellation in the executor
 
-When the proposer cancels a running task, the realistic flow is:
+The server-side cancellation race and settlement rules are canonicalized in
+[Tasks and Runtime: Execute and settle](../use/tasks-and-runtime.md#map-4-execute-and-settle).
+At the executor boundary:
 
-1. Proposer calls `POST /tasks/:id/cancel`. Server marks the row `cancelled`, signals the workflow.
-2. The reporter's next periodic heartbeat returns `200 { cancelled: true, cancelReason }`. `ApiTaskReporter` aborts `cancelSignal` and stores `cancelReason`.
-3. Your executor — having wired `reporter.cancelSignal` into its long-running work — returns promptly with `status: 'cancelled'`.
-4. The runtime's post-execute check (`runtime.ts:130`) is a safety net: if `cancelSignal.aborted` and the executor returned anything other than `cancelled`, the runtime overrides to `cancelled`. Designed for executors that ignore the signal or finish mid-flight before noticing.
-5. The daemon's `finalizeTask` is a no-op for cancelled outputs — calling `/complete` or `/fail` after cancel returns 409 because the row is already terminal.
+1. The reporter's next periodic heartbeat returns
+   `200 { cancelled: true, cancelReason }`.
+2. `ApiTaskReporter` aborts `cancelSignal` and stores `cancelReason`.
+3. Your executor should stop promptly and return `status: 'cancelled'`.
+4. The runtime overrides a different output to `cancelled` when the signal has
+   fired, and finalization does not call `/complete` or `/fail`.
 
 Reporters that don't talk to the API (`JsonlTaskReporter`, `StdoutTaskReporter`) never abort `cancelSignal` because there's no remote channel for the cancel notification. Pairing them with `ApiTaskSource` is unsupported.
 
