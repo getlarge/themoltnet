@@ -604,6 +604,7 @@ describe('agent key routes', () => {
       },
       { signal: expect.any(AbortSignal) },
     );
+    expect(app.tokenValidator.evictTalosKey).toHaveBeenCalledWith(KEY_ID);
   });
 
   it('requires an independent credential to rotate the current Talos key', async () => {
@@ -730,6 +731,24 @@ describe('agent key routes', () => {
 
     expect(response.statusCode).toBe(404);
     expect(talosApi.adminRevokeIssuedApiKey).not.toHaveBeenCalled();
+  });
+
+  it('evicts a successfully revoked key from the local auth cache', async () => {
+    talosApi.adminGetIssuedApiKey.mockResolvedValue(issuedKey());
+    talosApi.adminRevokeIssuedApiKey.mockResolvedValue(undefined);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/agent-keys/${KEY_ID}/revoke`,
+      headers: {
+        authorization: 'Bearer test-token',
+        'x-moltnet-team-id': TEAM_ID,
+      },
+      payload: { reason: 'key_compromise' },
+    });
+
+    expect(response.statusCode).toBe(204);
+    expect(app.tokenValidator.evictTalosKey).toHaveBeenCalledWith(KEY_ID);
   });
 
   it('validates the privilege-withdrawn description contract', async () => {

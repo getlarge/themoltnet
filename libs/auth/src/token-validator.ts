@@ -18,6 +18,15 @@ import {
 import { createRemoteJWKSet, errors, type JWTPayload, jwtVerify } from 'jose';
 
 import { ORY_OPAQUE_PREFIXES, TALOS_API_KEY_PREFIXES } from './constants.js';
+import {
+  createRemoteAuthMetrics,
+  RemoteAuthCache,
+  type RemoteAuthMetrics,
+} from './remote-auth-cache.js';
+import {
+  asRemoteAuthenticationError,
+  remoteErrorStatus,
+} from './remote-auth-error.js';
 import type {
   AgentAuthContext,
   AuthContext,
@@ -47,6 +56,14 @@ export interface TokenValidatorConfig {
   logger?: TokenValidatorLogger;
   /** Low-cardinality validation event sink (for example, an OTel counter). */
   onValidationEvent?: (event: TokenValidationEvent) => void;
+  /** Shared process-local cache for authentication that requires Ory calls. */
+  remoteAuthCache?: RemoteAuthCache;
+  /** Stable issuer used to partition OAuth cache keys. */
+  oauthIssuer?: string;
+  /** Stable issuer used to partition Talos cache keys. */
+  talosIssuer?: string;
+  /** Timeout for individual remote authentication calls. */
+  remoteRequestTimeoutMs?: number;
 }
 
 export interface TalosAgentIdentity {
@@ -57,6 +74,7 @@ export interface TalosAgentIdentity {
 
 export type TalosAgentResolver = (
   identityId: string,
+  signal?: AbortSignal,
 ) => Promise<TalosAgentIdentity | null>;
 
 export interface TokenValidatorLogger {
@@ -86,12 +104,38 @@ export interface TokenValidationEvent {
 export interface TokenValidator {
   introspect(token: string): Promise<IntrospectionResult>;
   resolveAuthContext(token: string): Promise<AuthContext | null>;
+  evictOAuthClient(clientId: string): void;
+  evictTalosKey(keyId: string): void;
 }
 
 const ORY_JWT_ALGORITHM = 'RS256' as const;
 const DEFAULT_JWKS_CACHE_TTL_MS = 600_000;
 const DEFAULT_JWKS_COOLDOWN_MS = 30_000;
 const DEFAULT_JWKS_TIMEOUT_MS = 5_000;
+const MAX_AUTH_SCOPES = 128;
+const MAX_AUTH_SCOPE_LENGTH = 256;
+
+function normalizeScopes(value: unknown): string[] {
+  const candidates =
+    typeof value === 'string'
+      ? value.split(' ')
+      : Array.isArray(value)
+        ? value
+        : [];
+  const scopes: string[] = [];
+  const seen = new Set<string>();
+  for (const candidate of candidates) {
+    if (typeof candidate !== 'string') continue;
+    const scope = candidate.trim();
+    if (!scope || scope.length > MAX_AUTH_SCOPE_LENGTH || seen.has(scope)) {
+      continue;
+    }
+    scopes.push(scope);
+    seen.add(scope);
+    if (scopes.length === MAX_AUTH_SCOPES) break;
+  }
+  return scopes;
+}
 
 function isOpaqueToken(token: string): boolean {
   return ORY_OPAQUE_PREFIXES.some((prefix) => token.startsWith(prefix));
@@ -306,19 +350,22 @@ async function fetchClientMetadata(
   clientId: string,
   scopes: string[],
   logger: TokenValidatorLogger,
+  metrics: RemoteAuthMetrics | undefined,
+  signal: AbortSignal | undefined,
 ): Promise<AuthContext | null> {
   try {
-    const client = await oauth2Api.getOAuth2Client({
-      id: clientId,
-    });
-
+    const client = signal
+      ? await oauth2Api.getOAuth2Client({ id: clientId }, { signal })
+      : await oauth2Api.getOAuth2Client({ id: clientId });
     const metadata = client.metadata as Record<string, string> | undefined;
     if (!metadata) {
+      metrics?.recordUpstreamRequest('oauth2.client_metadata', 'invalid');
       return null;
     }
 
     const metaIdentityId = metadata.identity_id;
     if (!metaIdentityId) {
+      metrics?.recordUpstreamRequest('oauth2.client_metadata', 'invalid');
       return null;
     }
 
@@ -327,8 +374,10 @@ async function fetchClientMetadata(
     if (metaType === 'moltnet_human') {
       const metaHumanId = metadata.human_id;
       if (!metaHumanId) {
+        metrics?.recordUpstreamRequest('oauth2.client_metadata', 'invalid');
         return null;
       }
+      metrics?.recordUpstreamRequest('oauth2.client_metadata', 'success');
       return {
         subjectType: 'human',
         identityId: metaIdentityId,
@@ -343,9 +392,11 @@ async function fetchClientMetadata(
     const metaFingerprint = metadata.fingerprint;
 
     if (!metaPublicKey || !metaFingerprint) {
+      metrics?.recordUpstreamRequest('oauth2.client_metadata', 'invalid');
       return null;
     }
 
+    metrics?.recordUpstreamRequest('oauth2.client_metadata', 'success');
     return {
       subjectType: 'agent',
       identityId: metaIdentityId,
@@ -356,6 +407,15 @@ async function fetchClientMetadata(
       currentTeamId: null,
     } satisfies AgentAuthContext;
   } catch (error) {
+    const status = remoteErrorStatus(error);
+    if (status === 404) {
+      metrics?.recordUpstreamRequest(
+        'oauth2.client_metadata',
+        'invalid',
+        status,
+      );
+      return null;
+    }
     logger.warn(
       {
         credentialType: 'ory-client-metadata',
@@ -364,7 +424,14 @@ async function fetchClientMetadata(
       },
       'Ory client metadata unavailable',
     );
-    return null;
+    if (metrics) {
+      throw asRemoteAuthenticationError(
+        error,
+        'oauth2.client_metadata',
+        metrics,
+      );
+    }
+    throw error;
   }
 }
 
@@ -391,148 +458,186 @@ export function createTokenValidator(
       );
     }
   };
+  const remoteCache =
+    config?.remoteAuthCache ??
+    new RemoteAuthCache({ metrics: createRemoteAuthMetrics() });
+  const remoteMetrics = remoteCache.metrics;
+  const requestTimeoutMs = config?.remoteRequestTimeoutMs ?? 5_000;
+  const signal = () => AbortSignal.timeout(requestTimeoutMs);
 
   async function resolveTalosApiKey(
     token: string,
   ): Promise<AgentAuthContext | null> {
     if (!config?.talosApi || !config.resolveTalosAgent) return null;
+    const talosApi = config.talosApi;
+    const resolveTalosAgent = config.resolveTalosAgent;
 
-    let result: Awaited<
-      ReturnType<Pick<ApiKeysApi, 'adminVerifyApiKey'>['adminVerifyApiKey']>
-    >;
-    try {
-      result = await config.talosApi.adminVerifyApiKey({
-        verifyApiKeyRequest: { credential: token },
-        cacheControl: 'no-store',
-        pragma: 'no-cache',
-      });
-    } catch (error) {
-      logger.warn(
-        {
-          credentialType: 'talos-api-key',
-          reason: 'verifier_request_failed',
-          ...summarizeOryError(error),
-        },
-        'Talos API key validation unavailable',
-      );
-      return null;
-    }
+    const load = async () => {
+      let result: Awaited<
+        ReturnType<Pick<ApiKeysApi, 'adminVerifyApiKey'>['adminVerifyApiKey']>
+      >;
+      try {
+        result = await talosApi.adminVerifyApiKey({
+          verifyApiKeyRequest: { credential: token },
+          cacheControl: 'no-store',
+          pragma: 'no-cache',
+        });
+      } catch (error) {
+        logger.warn(
+          {
+            credentialType: 'talos-api-key',
+            reason: 'verifier_request_failed',
+            ...summarizeOryError(error),
+          },
+          'Talos API key validation unavailable',
+        );
+        throw asRemoteAuthenticationError(error, 'talos.verify', remoteMetrics);
+      }
 
-    const expired = result.expire_time
-      ? result.expire_time.getTime() <= Date.now()
-      : false;
-    const invalidStatus =
-      result.status !== undefined &&
-      result.status !== KeyStatus.KeyStatusActive &&
-      result.status !== KeyStatus.KeyStatusUnspecified;
-    const publicVisibility =
-      result.visibility === KeyVisibility.KeyVisibilityPublic;
-    if (!result.is_valid || expired || invalidStatus || publicVisibility) {
+      const expired = result.expire_time
+        ? result.expire_time.getTime() <= Date.now()
+        : false;
+      const invalidStatus =
+        result.status !== undefined &&
+        result.status !== KeyStatus.KeyStatusActive &&
+        result.status !== KeyStatus.KeyStatusUnspecified;
+      const publicVisibility =
+        result.visibility === KeyVisibility.KeyVisibilityPublic;
+      if (!result.is_valid || expired || invalidStatus || publicVisibility) {
+        remoteMetrics?.recordUpstreamRequest('talos.verify', 'invalid');
+        logger.debug(
+          {
+            credentialType: 'talos-api-key',
+            reason: publicVisibility
+              ? 'public_key_rejected'
+              : 'credential_rejected',
+            errorCode: result.error_code,
+            status: result.status,
+          },
+          'Talos API key rejected',
+        );
+        return null;
+      }
+      if (!result.actor_id || !result.key_id) {
+        logger.warn(
+          {
+            credentialType: 'talos-api-key',
+            reason: 'incomplete_verification_response',
+          },
+          'Talos API key validation failed',
+        );
+        throw asRemoteAuthenticationError(
+          new Error('incomplete Talos response'),
+          'talos.verify',
+          remoteMetrics,
+        );
+      }
+      const metadata = asMetadata(result.metadata);
+      if (metadata.subject_type !== 'agent') {
+        remoteMetrics.recordUpstreamRequest('talos.verify', 'invalid');
+        logger.warn(
+          {
+            credentialType: 'talos-api-key',
+            reason: 'invalid_subject_type',
+            keyId: result.key_id,
+            actorId: result.actor_id,
+          },
+          'Talos API key metadata rejected',
+        );
+        return null;
+      }
+
+      const teamId = metadata.team_id;
+      if (teamId !== undefined && typeof teamId !== 'string') {
+        remoteMetrics.recordUpstreamRequest('talos.verify', 'invalid');
+        logger.warn(
+          {
+            credentialType: 'talos-api-key',
+            reason: 'invalid_team_binding',
+            keyId: result.key_id,
+            actorId: result.actor_id,
+          },
+          'Talos API key metadata rejected',
+        );
+        return null;
+      }
+      remoteMetrics.recordUpstreamRequest('talos.verify', 'success');
+
+      let agent: TalosAgentIdentity | null;
+      try {
+        agent = await resolveTalosAgent(result.actor_id, signal());
+      } catch (error) {
+        logger.warn(
+          {
+            credentialType: 'talos-api-key',
+            reason: 'agent_resolution_failed',
+            actorId: result.actor_id,
+            ...summarizeOryError(error),
+          },
+          'Talos agent resolution unavailable',
+        );
+        throw asRemoteAuthenticationError(
+          error,
+          'talos.agent_resolution',
+          remoteMetrics,
+        );
+      }
+      if (!agent || agent.identityId !== result.actor_id) {
+        remoteMetrics.recordUpstreamRequest(
+          'talos.agent_resolution',
+          'invalid',
+        );
+        logger.warn(
+          {
+            credentialType: 'talos-api-key',
+            reason: 'agent_not_found_or_inactive',
+            keyId: result.key_id,
+            actorId: result.actor_id,
+          },
+          'Talos API key actor rejected',
+        );
+        return null;
+      }
+      remoteMetrics.recordUpstreamRequest('talos.agent_resolution', 'success');
+
       logger.debug(
         {
           credentialType: 'talos-api-key',
-          reason: publicVisibility
-            ? 'public_key_rejected'
-            : 'credential_rejected',
-          errorCode: result.error_code,
-          status: result.status,
-        },
-        'Talos API key rejected',
-      );
-      return null;
-    }
-    if (!result.actor_id || !result.key_id) {
-      logger.warn(
-        {
-          credentialType: 'talos-api-key',
-          reason: 'incomplete_verification_response',
-        },
-        'Talos API key validation failed',
-      );
-      return null;
-    }
-
-    const metadata = asMetadata(result.metadata);
-    if (metadata.subject_type !== 'agent') {
-      logger.warn(
-        {
-          credentialType: 'talos-api-key',
-          reason: 'invalid_subject_type',
+          reason: 'credential_accepted',
           keyId: result.key_id,
           actorId: result.actor_id,
+          scopeCount: result.scopes?.length ?? 0,
+          teamBound: Boolean(teamId),
         },
-        'Talos API key metadata rejected',
+        'Talos API key accepted',
       );
-      return null;
-    }
 
-    const teamId = metadata.team_id;
-    if (teamId !== undefined && typeof teamId !== 'string') {
-      logger.warn(
-        {
-          credentialType: 'talos-api-key',
-          reason: 'invalid_team_binding',
-          keyId: result.key_id,
-          actorId: result.actor_id,
-        },
-        'Talos API key metadata rejected',
-      );
-      return null;
-    }
+      return {
+        context: {
+          subjectType: 'agent',
+          identityId: agent.identityId,
+          publicKey: agent.publicKey,
+          fingerprint: agent.fingerprint,
+          clientId: result.key_id,
+          scopes: normalizeScopes(result.scopes),
+          currentTeamId: null,
+          credentialBinding: {
+            keyId: result.key_id,
+            ...(teamId ? { boundTeamId: teamId } : {}),
+          },
+        } satisfies AgentAuthContext,
+        expiresAtMs: result.expire_time?.getTime(),
+        invalidationTag: `talos-key:${result.key_id}`,
+      };
+    };
 
-    let agent: TalosAgentIdentity | null;
-    try {
-      agent = await config.resolveTalosAgent(result.actor_id);
-    } catch (error) {
-      logger.warn(
-        {
-          credentialType: 'talos-api-key',
-          reason: 'agent_resolution_failed',
-          actorId: result.actor_id,
-          ...summarizeOryError(error),
-        },
-        'Talos agent resolution unavailable',
-      );
-      return null;
-    }
-    if (!agent || agent.identityId !== result.actor_id) {
-      logger.warn(
-        {
-          credentialType: 'talos-api-key',
-          reason: 'agent_not_found_or_inactive',
-          keyId: result.key_id,
-          actorId: result.actor_id,
-        },
-        'Talos API key actor rejected',
-      );
-      return null;
-    }
-
-    logger.debug(
-      {
-        credentialType: 'talos-api-key',
-        reason: 'credential_accepted',
-        keyId: result.key_id,
-        actorId: result.actor_id,
-        scopeCount: result.scopes?.length ?? 0,
-        teamBound: Boolean(teamId),
-      },
-      'Talos API key accepted',
+    const context = await remoteCache.resolve(
+      'talos',
+      config.talosIssuer ?? 'talos',
+      token,
+      load,
     );
-
-    return {
-      subjectType: 'agent',
-      identityId: agent.identityId,
-      publicKey: agent.publicKey,
-      fingerprint: agent.fingerprint,
-      clientId: result.key_id,
-      scopes: result.scopes ?? [],
-      currentTeamId: null,
-      credentialBinding: {
-        keyId: result.key_id,
-        ...(teamId ? { boundTeamId: teamId } : {}),
-      },
-    } satisfies AgentAuthContext;
+    return context?.subjectType === 'agent' ? context : null;
   }
 
   let verifyJwt: ((token: string) => Promise<JWTPayload>) | null = null;
@@ -569,17 +674,22 @@ export function createTokenValidator(
     credentialType: TokenValidationEvent['credentialType'],
   ): Promise<IntrospectionResult> {
     try {
-      const data = await oauth2Api.introspectOAuth2Token({ token });
+      const data = await oauth2Api.introspectOAuth2Token(
+        { token },
+        { signal: signal() },
+      );
 
       if (!data.active) {
         recordValidationEvent({
           credentialType,
           reason: 'credential_inactive',
         });
+        remoteMetrics?.recordUpstreamRequest('oauth2.introspect', 'invalid');
         return { active: false };
       }
+      remoteMetrics?.recordUpstreamRequest('oauth2.introspect', 'success');
 
-      const scopes = data.scope ? data.scope.split(' ').filter(Boolean) : [];
+      const scopes = normalizeScopes(data.scope);
       recordValidationEvent({
         credentialType,
         reason: 'credential_accepted',
@@ -606,7 +716,11 @@ export function createTokenValidator(
         },
         'Ory token introspection unavailable',
       );
-      return { active: false };
+      throw asRemoteAuthenticationError(
+        error,
+        'oauth2.introspect',
+        remoteMetrics,
+      );
     }
   }
 
@@ -624,13 +738,7 @@ export function createTokenValidator(
 
       const clientId =
         (payload.client_id as string) ?? (payload.sub as string) ?? '';
-      const scope = (payload.scope ?? payload.scp ?? '') as string;
-      const scopes =
-        typeof scope === 'string'
-          ? scope.split(' ').filter(Boolean)
-          : Array.isArray(scope)
-            ? scope
-            : [];
+      const scopes = normalizeScopes(payload.scope ?? payload.scp);
 
       // Hydra preserves the token-exchange hook's `session.access_token` keys
       // under a nested `ext` object inside the JWT payload (mirrors the shape
@@ -685,8 +793,83 @@ export function createTokenValidator(
     }
   }
 
+  async function resolveRemoteOAuthContext(
+    token: string,
+    credentialType: TokenValidationEvent['credentialType'],
+  ): Promise<AuthContext | null> {
+    return remoteCache.resolve(
+      'oauth2',
+      config?.oauthIssuer ?? 'oauth2',
+      token,
+      async () => {
+        const result = await introspectToken(token, credentialType);
+        if (!result.active || !result.clientId) return null;
+        const fromClaims = extractAuthContextFromClaims(
+          result.ext,
+          result.clientId,
+          result.scopes,
+        );
+        const context =
+          fromClaims ??
+          (await fetchClientMetadata(
+            oauth2Api,
+            result.clientId,
+            result.scopes,
+            logger,
+            remoteMetrics,
+            signal(),
+          ));
+        return context
+          ? {
+              context,
+              expiresAtMs: result.expiresAt
+                ? result.expiresAt * 1_000
+                : undefined,
+              invalidationTag: `oauth-client:${result.clientId}`,
+            }
+          : null;
+      },
+    );
+  }
+
+  async function resolveClientMetadataContext(
+    token: string,
+    result: IntrospectionResult & { active: true },
+  ): Promise<AuthContext | null> {
+    return remoteCache.resolve(
+      'oauth2',
+      config?.oauthIssuer ?? 'oauth2',
+      token,
+      async () => {
+        const context = await fetchClientMetadata(
+          oauth2Api,
+          result.clientId,
+          result.scopes,
+          logger,
+          remoteMetrics,
+          signal(),
+        );
+        return context
+          ? {
+              context,
+              expiresAtMs: result.expiresAt
+                ? result.expiresAt * 1_000
+                : undefined,
+              invalidationTag: `oauth-client:${result.clientId}`,
+            }
+          : null;
+      },
+    );
+  }
+
   return {
     introspect,
+    evictOAuthClient(clientId: string): void {
+      remoteCache.evictTag(`oauth-client:${clientId}`);
+    },
+    evictTalosKey(keyId: string): void {
+      remoteCache.evictTag(`talos-key:${keyId}`);
+    },
 
     async resolveAuthContext(token: string): Promise<AuthContext | null> {
       if (
@@ -700,7 +883,7 @@ export function createTokenValidator(
       let result: IntrospectionResult;
 
       if (isOpaqueToken(token)) {
-        result = await introspectToken(token, 'ory-opaque');
+        return resolveRemoteOAuthContext(token, 'ory-opaque');
       } else if (verifyJwt && isJwtToken(token)) {
         const jwtValidation = await validateJwt(token);
         result = jwtValidation.result;
@@ -713,10 +896,11 @@ export function createTokenValidator(
             credentialType: 'ory-jwt',
             reason: 'introspection_fallback',
           });
-          result = await introspectToken(token, 'ory-jwt');
+          return resolveRemoteOAuthContext(token, 'ory-jwt');
         }
+        if (!result.active) return null;
       } else {
-        result = await introspectToken(token, 'ory-token');
+        return resolveRemoteOAuthContext(token, 'ory-token');
       }
 
       if (!result.active) {
@@ -736,7 +920,7 @@ export function createTokenValidator(
       }
 
       // Fallback: fetch client metadata from Hydra
-      return fetchClientMetadata(oauth2Api, clientId, scopes, logger);
+      return resolveClientMetadataContext(token, result);
     },
   };
 }

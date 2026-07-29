@@ -1,7 +1,12 @@
 import { metrics as metricsApi } from '@opentelemetry/api';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { createMeterProvider, createRequestMetrics } from '../src/metrics.js';
+import {
+  createMeterProvider,
+  createMetricCounter,
+  createMetricUpDownCounter,
+  createRequestMetrics,
+} from '../src/metrics.js';
 import { TestMetricReader } from './test-metric-reader.js';
 
 describe('createMeterProvider', () => {
@@ -141,6 +146,78 @@ describe('createRequestMetrics', () => {
     // The sum should be 2 (3 added - 1 removed)
     const dataPoint = activeMetric.dataPoints[0];
     expect(dataPoint.value).toBe(2);
+
+    await provider.shutdown();
+  });
+});
+
+describe('createMetricCounter', () => {
+  afterEach(() => {
+    metricsApi.disable();
+  });
+
+  it('should record a named counter with bounded attributes', async () => {
+    const reader = new TestMetricReader();
+    const provider = createMeterProvider({
+      serviceName: 'test',
+      reader,
+    });
+
+    metricsApi.setGlobalMeterProvider(provider);
+
+    const counter = createMetricCounter(
+      'auth',
+      'auth.remote.cache.accesses',
+      'Remote authentication cache accesses',
+    );
+    counter.add(1, {
+      transport: 'talos',
+      result: 'hit',
+    });
+
+    const { resourceMetrics } = await reader.collect();
+    const metric = resourceMetrics.scopeMetrics[0]?.metrics.find(
+      (candidate) => candidate.descriptor.name === 'auth.remote.cache.accesses',
+    );
+
+    expect(metric).toBeDefined();
+    expect(metric?.dataPoints[0]?.value).toBe(1);
+    expect(metric?.dataPoints[0]?.attributes).toEqual({
+      transport: 'talos',
+      result: 'hit',
+    });
+
+    await provider.shutdown();
+  });
+});
+
+describe('createMetricUpDownCounter', () => {
+  afterEach(() => {
+    metricsApi.disable();
+  });
+
+  it('records a current-size metric', async () => {
+    const reader = new TestMetricReader();
+    const provider = createMeterProvider({
+      serviceName: 'test',
+      reader,
+    });
+    metricsApi.setGlobalMeterProvider(provider);
+
+    const size = createMetricUpDownCounter(
+      'auth',
+      'auth.remote.cache.entries',
+      'Current remote authentication cache entries',
+    );
+    size.add(1);
+    size.add(1);
+    size.add(-1);
+
+    const { resourceMetrics } = await reader.collect();
+    const metric = resourceMetrics.scopeMetrics[0]?.metrics.find(
+      (candidate) => candidate.descriptor.name === 'auth.remote.cache.entries',
+    );
+    expect(metric?.dataPoints[0]?.value).toBe(1);
 
     await provider.shutdown();
   });

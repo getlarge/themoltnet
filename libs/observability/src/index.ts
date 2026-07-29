@@ -7,8 +7,18 @@ export type {
   LogRecordProcessorOptions,
 } from './logger.js';
 export { createLogger, DEFAULT_REDACT_PATHS } from './logger.js';
-export type { CreateMeterProviderOptions } from './metrics.js';
-export { createMeterProvider, createRequestMetrics } from './metrics.js';
+export type {
+  CreateMeterProviderOptions,
+  MetricAttributes,
+  MetricCounter,
+  MetricUpDownCounter,
+} from './metrics.js';
+export {
+  createMeterProvider,
+  createMetricCounter,
+  createMetricUpDownCounter,
+  createRequestMetrics,
+} from './metrics.js';
 export type { RequestContext } from './request-context.js';
 export {
   enterRequestContext,

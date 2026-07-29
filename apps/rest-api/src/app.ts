@@ -8,14 +8,17 @@
 import swagger from '@fastify/swagger';
 import {
   authPlugin,
+  optionalAuth,
   type OryClients,
   type PermissionChecker,
   type RelationshipReader,
   type RelationshipWriter,
+  requireAuth,
   type SessionResolver,
   type TeamResolver,
   type TokenValidator,
 } from '@moltnet/auth';
+import { ProblemDetailsSchema } from '@moltnet/models';
 import type { RuntimeSessionStorage } from '@moltnet/runtime-session-service';
 import { createSigningService } from '@moltnet/signing-service';
 import type { TaskAnalyticsService } from '@moltnet/task-analytics-service';
@@ -26,6 +29,7 @@ import Fastify, {
   type FastifyServerOptions,
 } from 'fastify';
 import type { Redis } from 'ioredis';
+import { Type } from 'typebox';
 
 import pkg from '../package.json' with { type: 'json' };
 import type { PackGcConfig } from './config.js';
@@ -326,6 +330,38 @@ export async function registerApiRoutes(
     relationshipWriter: options.relationshipWriter,
     teamResolver: options.teamResolver,
     sessionResolver: options.sessionResolver,
+  });
+
+  // Auth-aware routes share the same provider-failure contract. Add it once
+  // at registration time so OpenAPI and generated clients model 429/503 for
+  // every requireAuth/optionalAuth route without duplicating schema entries.
+  app.addHook('onRoute', (routeOptions) => {
+    const handlers = Array.isArray(routeOptions.preHandler)
+      ? routeOptions.preHandler
+      : routeOptions.preHandler
+        ? [routeOptions.preHandler]
+        : [];
+    const declaresAuthentication =
+      Array.isArray(routeOptions.schema?.security) &&
+      routeOptions.schema.security.length > 0;
+    if (
+      !declaresAuthentication &&
+      !handlers.includes(requireAuth) &&
+      !handlers.includes(optionalAuth)
+    ) {
+      return;
+    }
+    routeOptions.schema ??= {};
+    const existingResponses =
+      typeof routeOptions.schema.response === 'object' &&
+      routeOptions.schema.response !== null
+        ? routeOptions.schema.response
+        : {};
+    routeOptions.schema.response = {
+      429: Type.Ref(ProblemDetailsSchema.$id),
+      503: Type.Ref(ProblemDetailsSchema.$id),
+      ...existingResponses,
+    };
   });
 
   // Register request context plugin. Its hooks read authContext, which the auth

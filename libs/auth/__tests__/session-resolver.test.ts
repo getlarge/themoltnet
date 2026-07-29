@@ -62,9 +62,10 @@ describe('createSessionResolver', () => {
       currentTeamId: null,
     } satisfies HumanAuthContext);
 
-    expect(mockFrontendApi.toSession).toHaveBeenCalledWith({
-      xSessionToken: VALID_SESSION_TOKEN,
-    });
+    expect(mockFrontendApi.toSession).toHaveBeenCalledWith(
+      { xSessionToken: VALID_SESSION_TOKEN },
+      { signal: expect.any(AbortSignal) },
+    );
   });
 
   it('returns HumanAuthContext for a valid browser cookie', async () => {
@@ -80,9 +81,15 @@ describe('createSessionResolver', () => {
     });
     // Raw cookie header is forwarded unchanged — Kratos extracts the session
     // cookie itself. We must NOT touch xSessionToken on this path.
-    expect(mockFrontendApi.toSession).toHaveBeenCalledWith({
-      cookie: VALID_COOKIE_HEADER,
+    expect(mockFrontendApi.toSession).toHaveBeenCalledWith(
+      { cookie: VALID_COOKIE_HEADER },
+      { signal: expect.any(AbortSignal) },
+    );
+
+    await resolver.resolveSession({
+      cookie: VALID_COOKIE_HEADER.replace('theme=dark', 'theme=light'),
     });
+    expect(mockFrontendApi.toSession).toHaveBeenCalledTimes(1);
   });
 
   it('prefers session token over cookie when both are provided', async () => {
@@ -93,9 +100,10 @@ describe('createSessionResolver', () => {
       cookie: VALID_COOKIE_HEADER,
     });
 
-    expect(mockFrontendApi.toSession).toHaveBeenCalledWith({
-      xSessionToken: VALID_SESSION_TOKEN,
-    });
+    expect(mockFrontendApi.toSession).toHaveBeenCalledWith(
+      { xSessionToken: VALID_SESSION_TOKEN },
+      { signal: expect.any(AbortSignal) },
+    );
     expect(mockFrontendApi.toSession).not.toHaveBeenCalledWith(
       expect.objectContaining({ cookie: expect.any(String) }),
     );
@@ -132,6 +140,15 @@ describe('createSessionResolver', () => {
     expect(mockFrontendApi.toSession).not.toHaveBeenCalled();
   });
 
+  it('ignores cookie-only requests without a recognized Kratos cookie', async () => {
+    const result = await resolver.resolveSession({
+      cookie: 'theme=dark; csrf_token=abc',
+    });
+
+    expect(result).toBeNull();
+    expect(mockFrontendApi.toSession).not.toHaveBeenCalled();
+  });
+
   it('falls back to cookie when sessionToken is empty string', async () => {
     mockFrontendApi.toSession.mockResolvedValue(createValidSessionResponse());
 
@@ -141,22 +158,25 @@ describe('createSessionResolver', () => {
     });
 
     expect(result).toMatchObject({ subjectType: 'human' });
-    expect(mockFrontendApi.toSession).toHaveBeenCalledWith({
-      cookie: VALID_COOKIE_HEADER,
-    });
+    expect(mockFrontendApi.toSession).toHaveBeenCalledWith(
+      { cookie: VALID_COOKIE_HEADER },
+      { signal: expect.any(AbortSignal) },
+    );
   });
 
-  it('calls the API on every invocation (no caching)', async () => {
+  it('caches successful session resolution', async () => {
     mockFrontendApi.toSession.mockResolvedValue(createValidSessionResponse());
 
     await resolver.resolveSession({ sessionToken: VALID_SESSION_TOKEN });
     await resolver.resolveSession({ sessionToken: VALID_SESSION_TOKEN });
 
-    expect(mockFrontendApi.toSession).toHaveBeenCalledTimes(2);
+    expect(mockFrontendApi.toSession).toHaveBeenCalledTimes(1);
   });
 
   it('returns null for an invalid session token', async () => {
-    mockFrontendApi.toSession.mockRejectedValue(new Error('Session not found'));
+    mockFrontendApi.toSession.mockRejectedValue(
+      Object.assign(new Error('Session not found'), { status: 401 }),
+    );
 
     const result = await resolver.resolveSession({
       sessionToken: 'invalid-token',
@@ -166,7 +186,9 @@ describe('createSessionResolver', () => {
   });
 
   it('returns null for an invalid cookie', async () => {
-    mockFrontendApi.toSession.mockRejectedValue(new Error('Session not found'));
+    mockFrontendApi.toSession.mockRejectedValue(
+      Object.assign(new Error('Session not found'), { status: 401 }),
+    );
 
     const result = await resolver.resolveSession({
       cookie: 'ory_kratos_session=garbage',
@@ -249,7 +271,6 @@ describe('createSessionResolver', () => {
       const result = await loggingResolver.resolveSession({
         sessionToken: VALID_SESSION_TOKEN,
       });
-
       expect(result).toBeNull();
       expect(warn).not.toHaveBeenCalled();
     });
@@ -264,11 +285,14 @@ describe('createSessionResolver', () => {
       });
       mockFrontendApi.toSession.mockRejectedValue(err);
 
-      const result = await loggingResolver.resolveSession({
-        sessionToken: VALID_SESSION_TOKEN,
+      await expect(
+        loggingResolver.resolveSession({
+          sessionToken: VALID_SESSION_TOKEN,
+        }),
+      ).rejects.toMatchObject({
+        kind: 'unavailable',
+        operation: 'kratos.session',
       });
-
-      expect(result).toBeNull();
       expect(warn).toHaveBeenCalledTimes(1);
       expect(warn).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -292,11 +316,14 @@ describe('createSessionResolver', () => {
       });
       mockFrontendApi.toSession.mockRejectedValue(new Error('ECONNREFUSED'));
 
-      const result = await loggingResolver.resolveSession({
-        sessionToken: VALID_SESSION_TOKEN,
+      await expect(
+        loggingResolver.resolveSession({
+          sessionToken: VALID_SESSION_TOKEN,
+        }),
+      ).rejects.toMatchObject({
+        kind: 'unavailable',
+        operation: 'kratos.session',
       });
-
-      expect(result).toBeNull();
       expect(warn).toHaveBeenCalledTimes(1);
     });
 
@@ -312,15 +339,18 @@ describe('createSessionResolver', () => {
         }),
       );
 
-      const result = await loggingResolver.resolveSession({
-        cookie: 'ory_session_test=abc; csrf_token=def',
+      await expect(
+        loggingResolver.resolveSession({
+          cookie: 'ory_session_test=abc; csrf_token=def',
+        }),
+      ).rejects.toMatchObject({
+        kind: 'unavailable',
+        operation: 'kratos.session',
       });
-
-      expect(result).toBeNull();
       expect(warn).toHaveBeenCalledWith(
         expect.objectContaining({
           status: 503,
-          responseBody: { reason: 'kratos_unavailable' },
+          responseBodyPresent: true,
           authTransport: 'cookie',
           sessionTokenPresent: false,
           cookie: {
@@ -338,12 +368,14 @@ describe('createSessionResolver', () => {
         Object.assign(new Error('boom'), { status: 500 }),
       );
 
-      // Default resolver has no logger — this must not throw.
-      const result = await resolver.resolveSession({
-        sessionToken: VALID_SESSION_TOKEN,
+      await expect(
+        resolver.resolveSession({
+          sessionToken: VALID_SESSION_TOKEN,
+        }),
+      ).rejects.toMatchObject({
+        kind: 'unavailable',
+        operation: 'kratos.session',
       });
-
-      expect(result).toBeNull();
     });
   });
 });

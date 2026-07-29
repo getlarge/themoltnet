@@ -100,6 +100,14 @@ describe('API metadata', () => {
 
     expect(app.swagger().info.version).toBe(pkg.version);
   });
+
+  it('declares shared auth-provider failures on protected routes', async () => {
+    await app.ready();
+    const operation = app.swagger().paths['/diaries']?.get;
+
+    expect(operation?.responses).toHaveProperty('429');
+    expect(operation?.responses).toHaveProperty('503');
+  });
 });
 
 describe('Health readiness probes', () => {

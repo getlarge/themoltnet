@@ -116,6 +116,8 @@ function createApp(
   authContext: AuthContext | null = VALID_AUTH_CONTEXT,
 ) {
   const mockTokenValidator: TokenValidator = {
+    evictOAuthClient: vi.fn(),
+    evictTalosKey: vi.fn(),
     introspect: vi.fn().mockResolvedValue({ active: false }),
     resolveAuthContext: vi.fn().mockResolvedValue(authContext),
   };

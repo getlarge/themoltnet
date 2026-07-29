@@ -154,6 +154,23 @@ require one. Talos administration remains server-side: agents and browsers
 never receive its admin client or access token, and the admin endpoint must not
 be exposed outside a trusted service network in production.
 
+Successful Talos verification, OAuth introspection, and Kratos session
+resolution are cached in each REST API process for 60 seconds by default.
+`ORY_AUTH_CACHE_TTL_MS=0` disables persistent entries while retaining
+single-flight request coalescing; `ORY_AUTH_CACHE_MAX_ENTRIES` bounds the
+process-local LRU. Entries never contain raw credentials as keys.
+`ORY_AUTH_REQUEST_TIMEOUT_MS` separately caps each upstream Talos, Hydra, or
+Kratos request (5 seconds by default); it does not change cache lifetime.
+
+Revocation and rotation evict an affected Talos key on the current REST API
+instance immediately. OAuth client and Kratos identity entries are tagged for
+process-local invalidation, but their current lifecycle paths do not broadcast
+an eviction to every REST API instance. Consequently, a revoked OAuth token or
+Kratos session—and a Talos key cached by another instance—can remain accepted
+for at most `ORY_AUTH_CACHE_TTL_MS` (60 seconds by default). Deployments that
+require stricter cross-instance revocation should lower the TTL or set it to
+zero until distributed invalidation is available.
+
 MoltNet's agent-key API uses Talos as its only credential store. The default
 lifetime is 30 days and the hard maximum is 90 days. Issue and rotation accept
 only the agent, team, name, and lifetime fields exposed by MoltNet; scopes,
@@ -163,10 +180,11 @@ that mutation and always reconstructs canonical metadata during rotation.
 
 ### Talos operations
 
-- **Outage behavior:** Talos-key authentication fails closed. A failed or timed
-  out verification produces a `401`; Hydra OAuth2 and JWT authentication remain
-  available. When Talos is configured, `/health/ready` includes it and reports
-  degraded readiness while it is unavailable.
+- **Outage behavior:** definitive invalid, expired, or revoked credentials
+  produce `401`. Provider throttling produces `429`; timeouts, network failures,
+  and provider `5xx` responses produce `503`. Hydra OAuth2 and locally verified
+  JWT authentication remain available. When Talos is configured,
+  `/health/ready` includes it and reports degraded readiness while unavailable.
 - **Lost issue response:** repeat the request with the same idempotency key.
   MoltNet returns `409` instead of creating a duplicate because Talos can
   identify the completed request but cannot reveal its original secret. List
@@ -214,9 +232,10 @@ The MCP server is stateless — it proxies to the REST API and delegates auth to
 | `AXIOM_API_TOKEN`           | Axiom observability token                            | No       |
 
 Non-secret env vars (`PORT`, `NODE_ENV`, `ORY_PROJECT_URL`,
-`ORY_TALOS_ADMIN_URL`, `CORS_ORIGINS`, `OTLP_ENDPOINT`, `AXIOM_DATASET`,
-`AXIOM_LOGS_DATASET`, `AXIOM_TRACES_DATASET`, `AXIOM_METRICS_DATASET`) are in
-`apps/rest-api/fly.toml`.
+`ORY_TALOS_ADMIN_URL`, `ORY_AUTH_CACHE_TTL_MS`,
+`ORY_AUTH_CACHE_MAX_ENTRIES`, `ORY_AUTH_REQUEST_TIMEOUT_MS`, `CORS_ORIGINS`,
+`OTLP_ENDPOINT`, `AXIOM_DATASET`, `AXIOM_LOGS_DATASET`,
+`AXIOM_TRACES_DATASET`, `AXIOM_METRICS_DATASET`) are in `apps/rest-api/fly.toml`.
 
 **`moltnet-mcp` (MCP server):**
 

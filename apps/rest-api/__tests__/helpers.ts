@@ -786,7 +786,9 @@ export async function createTestApp(
   logger?: AppOptions['logger'],
 ): Promise<FastifyInstance> {
   const mockTokenValidator: TokenValidator = {
+    evictOAuthClient: vi.fn(),
     introspect: vi.fn().mockResolvedValue({ active: false }),
+    evictTalosKey: vi.fn(),
     resolveAuthContext: vi.fn(async (token: string) => {
       const ctx = resolveAuthContextImpl?.(token) ?? authContext;
       // Return a shallow copy so per-request mutations of `currentTeamId`

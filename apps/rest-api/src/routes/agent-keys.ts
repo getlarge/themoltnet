@@ -193,13 +193,15 @@ export async function agentKeyRoutes(
     },
     async (request, reply) => {
       const teamId = requireCurrentTeamId(request, 'agent keys');
-      return agentKeys.rotate({
+      const rotated = await agentKeys.rotate({
         keyId: request.params.keyId,
         logger: request.log,
         signal: requestAbortSignal(request, reply),
         subject: authSubject(request),
         teamId,
       });
+      fastify.tokenValidator.evictTalosKey(request.params.keyId);
+      return rotated;
     },
   );
 
@@ -242,6 +244,7 @@ export async function agentKeyRoutes(
         signal: requestAbortSignal(request, reply),
         teamId,
       });
+      fastify.tokenValidator.evictTalosKey(request.params.keyId);
       return reply.status(204).send(null);
     },
   );

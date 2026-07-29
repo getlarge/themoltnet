@@ -4,10 +4,9 @@
  * Resolves Kratos sessions into HumanAuthContext. Supports two transports:
  *   - Native clients: `X-Moltnet-Session-Token` header → forwarded as
  *     `xSessionToken` to Kratos FrontendApi.toSession().
- *   - Browser clients: raw `Cookie` header → forwarded as `cookie` to
- *     Kratos FrontendApi.toSession(), which extracts `ory_kratos_session`
- *     itself. We deliberately do NOT parse the cookie name on our side to
- *     avoid coupling to Kratos cookie naming conventions.
+ *   - Browser clients: a recognized `ory_kratos_session` or `ory_session_*`
+ *     cookie gates resolution; the raw `Cookie` header is then forwarded to
+ *     Kratos FrontendApi.toSession().
  *
  * Used by the console/dashboard app for direct session-based authentication,
  * bypassing the OAuth2 client_credentials flow.
@@ -15,6 +14,14 @@
 
 import type { FrontendApi } from '@ory/client-fetch';
 
+import {
+  createRemoteAuthMetrics,
+  RemoteAuthCache,
+} from './remote-auth-cache.js';
+import {
+  asRemoteAuthenticationError,
+  remoteErrorStatus,
+} from './remote-auth-error.js';
 import { HUMAN_SESSION_SCOPES } from './scopes.js';
 import type { HumanAuthContext } from './types.js';
 
@@ -35,6 +42,7 @@ export interface ResolveSessionInput {
 
 export interface SessionResolver {
   resolveSession(input: ResolveSessionInput): Promise<HumanAuthContext | null>;
+  evictIdentity(identityId: string): void;
 }
 
 function summarizeCookieHeader(cookie: string | undefined): {
@@ -63,12 +71,6 @@ function summarizeCookieHeader(cookie: string | undefined): {
         name === 'ory_kratos_session' || name.startsWith('ory_session_'),
     ),
   };
-}
-
-function extractErrorStatus(err: unknown): number | undefined {
-  return typeof err === 'object' && err !== null && 'status' in err
-    ? ((err as { status?: unknown }).status as number | undefined)
-    : undefined;
 }
 
 function extractErrorBody(err: unknown): unknown {
@@ -106,6 +108,12 @@ export interface SessionResolverConfig {
    * wire anything up. The Fastify plugin passes `app.log` at construction.
    */
   logger?: SessionResolverLogger;
+  /** Shared process-local cache for successful Kratos sessions. */
+  remoteAuthCache?: RemoteAuthCache;
+  /** Stable issuer used to partition session cache keys. */
+  issuer?: string;
+  /** Timeout for the Kratos session request. */
+  remoteRequestTimeoutMs?: number;
 }
 
 const NOOP_LOGGER: SessionResolverLogger = { warn: () => {} };
@@ -116,8 +124,18 @@ export function createSessionResolver(
 ): SessionResolver {
   const scopes = config?.scopes ?? [...HUMAN_SESSION_SCOPES];
   const logger = config?.logger ?? NOOP_LOGGER;
+  const remoteCache =
+    config?.remoteAuthCache ??
+    new RemoteAuthCache({ metrics: createRemoteAuthMetrics() });
+  const metrics = remoteCache.metrics;
+  const issuer = config?.issuer ?? 'kratos';
+  const requestTimeoutMs = config?.remoteRequestTimeoutMs ?? 5_000;
 
   return {
+    evictIdentity(identityId: string): void {
+      remoteCache.evictTag(`kratos-identity:${identityId}`);
+    },
+
     async resolveSession(
       input: ResolveSessionInput,
     ): Promise<HumanAuthContext | null> {
@@ -138,70 +156,110 @@ export function createSessionResolver(
         ? { xSessionToken: sessionToken }
         : { cookie };
 
-      try {
-        const session = await frontendApi.toSession(toSessionRequest);
-
-        const identity = session.identity;
-        if (!identity?.id) {
-          return null;
-        }
-
-        // Read humans.id directly from Kratos metadata_public.human_id —
-        // populated by the after-registration webhook BEFORE any session
-        // can exist. Reading it here (instead of doing a DB lookup keyed
-        // by identityId) eliminates the race with the human-onboarding
-        // DBOS workflow's setIdentityIdStep: that workflow updates
-        // humans.identity_id, but humans.id is stable from the moment
-        // the webhook returns, so we can pin to it without any window
-        // where a route handler sees a half-onboarded principal.
-        const metaPublic = identity.metadata_public as
-          | { human_id?: unknown }
-          | null
-          | undefined;
-        const humanId =
-          typeof metaPublic?.human_id === 'string'
-            ? metaPublic.human_id
-            : undefined;
-        if (!humanId) {
-          logger.warn(
-            { identityId: identity.id },
-            'session-resolver: human identity missing metadata_public.human_id — webhook not yet processed?',
+      const cookieCredential = cookie
+        ?.split(';')
+        .map((part) => part.trim())
+        .find((part) => {
+          const name = part.split('=', 1)[0];
+          return (
+            name === 'ory_kratos_session' || name?.startsWith('ory_session_')
           );
-          return null;
-        }
+        });
+      if (!sessionToken && !cookieCredential) return null;
+      const transport = sessionToken ? 'session-token' : 'session-cookie';
+      const credential = sessionToken ?? cookieCredential;
+      if (!credential) return null;
 
-        return {
-          subjectType: 'human',
-          identityId: identity.id,
-          humanId,
-          clientId: null,
-          scopes,
-          currentTeamId: null,
-        };
-      } catch (err) {
-        // 4xx (invalid/expired session) is the common case — stay quiet.
-        // 5xx, network timeouts, and unknown errors indicate Kratos is
-        // degraded and MUST be observable, otherwise cookie-auth silently
-        // degrades to 401 with no signal.
-        const status = extractErrorStatus(err);
-        const isClientError =
-          typeof status === 'number' && status >= 400 && status < 500;
-        if (!isClientError) {
-          const cookieSummary = summarizeCookieHeader(cookie);
-          logger.warn(
-            {
-              err,
-              status,
-              responseBody: extractErrorBody(err),
-              authTransport: sessionToken ? 'x-session-token' : 'cookie',
-              sessionTokenPresent: Boolean(sessionToken),
-              cookie: cookieSummary,
-            },
-            'session-resolver: Kratos toSession error',
-          );
+      const load = async () => {
+        try {
+          const session = await frontendApi.toSession(toSessionRequest, {
+            signal: AbortSignal.timeout(requestTimeoutMs),
+          });
+          const identity = session.identity;
+          if (!identity?.id) {
+            metrics.recordUpstreamRequest('kratos.session', 'invalid');
+            return null;
+          }
+
+          // Read humans.id directly from Kratos metadata_public.human_id —
+          // populated by the after-registration webhook BEFORE any session
+          // can exist. Reading it here (instead of doing a DB lookup keyed
+          // by identityId) eliminates the race with the human-onboarding
+          // DBOS workflow's setIdentityIdStep: that workflow updates
+          // humans.identity_id, but humans.id is stable from the moment
+          // the webhook returns, so we can pin to it without any window
+          // where a route handler sees a half-onboarded principal.
+          const metaPublic = identity.metadata_public as
+            | { human_id?: unknown }
+            | null
+            | undefined;
+          const humanId =
+            typeof metaPublic?.human_id === 'string'
+              ? metaPublic.human_id
+              : undefined;
+          if (!humanId) {
+            metrics.recordUpstreamRequest('kratos.session', 'invalid');
+            logger.warn(
+              { identityId: identity.id },
+              'session-resolver: human identity missing metadata_public.human_id — webhook not yet processed?',
+            );
+            return null;
+          }
+
+          metrics.recordUpstreamRequest('kratos.session', 'success');
+          return {
+            context: {
+              subjectType: 'human',
+              identityId: identity.id,
+              humanId,
+              clientId: null,
+              scopes,
+              currentTeamId: null,
+            } satisfies HumanAuthContext,
+            expiresAtMs: session.expires_at
+              ? new Date(session.expires_at).getTime()
+              : undefined,
+            invalidationTag: `kratos-identity:${identity.id}`,
+          };
+        } catch (err) {
+          // 4xx (invalid/expired session) is the common case — stay quiet.
+          // 5xx, network timeouts, and unknown errors indicate Kratos is
+          // degraded and MUST be observable, otherwise cookie-auth silently
+          // degrades to 401 with no signal.
+          const status = remoteErrorStatus(err);
+          const isClientError =
+            typeof status === 'number' &&
+            status >= 400 &&
+            status < 500 &&
+            status !== 429;
+          if (isClientError) {
+            metrics?.recordUpstreamRequest('kratos.session', 'invalid', status);
+            return null;
+          }
+          {
+            const cookieSummary = summarizeCookieHeader(cookie);
+            logger.warn(
+              {
+                status,
+                authTransport: sessionToken ? 'x-session-token' : 'cookie',
+                sessionTokenPresent: Boolean(sessionToken),
+                cookie: cookieSummary,
+                responseBodyPresent: Boolean(extractErrorBody(err)),
+              },
+              'session-resolver: Kratos toSession error',
+            );
+          }
+          throw asRemoteAuthenticationError(err, 'kratos.session', metrics);
         }
-        return null;
-      }
+      };
+
+      const context = await remoteCache.resolve(
+        transport,
+        issuer,
+        credential,
+        load,
+      );
+      return context?.subjectType === 'human' ? context : null;
     },
   };
 }
