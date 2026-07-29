@@ -31,7 +31,13 @@ answering in prose and never submitting, or submitting a hollow "looks fine".
   verdict, or is it a well-written but hollow/wrong sign-off. Mechanical facts
   (submitted? verification present?) are gate-owned and kept out of the rubric.
 
-**Verification status:** judge leg validated live against `gpt-oss:120b-cloud`
-(see `scratchpad/judge-proto.mjs` lineage). The gate leg + a measured producer
-baseline need a real `freeform` run through the daemon — deferred until the e2e
-stack is free and `buildFreeformInput` exists.
+**Verification status:** producer + gate proven **live** against
+`gpt-oss:120b-cloud` — `apps/agent-daemon-e2e/src/live-ollama-freeform.e2e.test.ts`
+drives this scenario as a real `freeform` task through the daemon
+(`agent.tasks.buildFreeform`) and asserts the gate (completed attempt,
+schema-valid `FreeformOutput`, verification present). In the proving run the
+model returned a faithful summary that correctly identified the `.some`/`.every`
+defect. The hidden-rubric judge leg was validated separately on the same model.
+Still open: a measured producer baseline across a trap-blind runner + models,
+and folding this into the unified `evals-v2/` corpus once `checkGates` is
+task-type-aware.

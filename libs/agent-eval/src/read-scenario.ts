@@ -15,7 +15,12 @@ import {
 import type { TSchema } from 'typebox';
 import { Value } from 'typebox/value';
 
-import { GateExpectations, type Scenario } from './scenario.js';
+import {
+  GateExpectations,
+  type Scenario,
+  SCENARIO_TASK_TYPES,
+  type ScenarioTaskType,
+} from './scenario.js';
 import { formatTypeBoxErrors } from './typebox-errors.js';
 
 /** Thrown when a scenario directory does not conform to the format. */
@@ -81,7 +86,28 @@ export function readScenario(dir: string): Scenario {
     throw new ScenarioError(slug, 'prompt.md is empty');
   }
 
-  const execution = readJson(dir, slug, 'eval.json');
+  // `eval.json` is `{ mode, workspace }` plus an optional `taskType` (default
+  // `run_eval`). Split `taskType` out before validating the rest against
+  // `RunEvalExecution`, which is `additionalProperties: false`.
+  const evalJson = readJson(dir, slug, 'eval.json');
+  if (
+    typeof evalJson !== 'object' ||
+    evalJson === null ||
+    Array.isArray(evalJson)
+  ) {
+    throw new ScenarioError(slug, 'eval.json must be a JSON object');
+  }
+  const { taskType: rawTaskType, ...execution } = evalJson as Record<
+    string,
+    unknown
+  >;
+  const taskType = rawTaskType ?? 'run_eval';
+  if (!SCENARIO_TASK_TYPES.includes(taskType as ScenarioTaskType)) {
+    throw new ScenarioError(
+      slug,
+      `eval.json taskType "${String(rawTaskType)}" is not supported (expected one of: ${SCENARIO_TASK_TYPES.join(', ')})`,
+    );
+  }
   assertSchema(slug, 'eval.json', RunEvalExecution, execution);
 
   const rubric = readJson(dir, slug, 'rubric.json');
@@ -96,6 +122,7 @@ export function readScenario(dir: string): Scenario {
 
   return {
     slug,
+    taskType: taskType as Scenario['taskType'],
     prompt,
     execution: execution as Scenario['execution'],
     rubric: rubric as Scenario['rubric'],

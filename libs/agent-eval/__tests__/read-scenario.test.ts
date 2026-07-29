@@ -76,10 +76,42 @@ describe('readScenario', () => {
 
     // Assert
     expect(scenario.slug).toBe('submit-output-compliance');
+    expect(scenario.taskType).toBe('run_eval'); // default when eval.json omits it
     expect(scenario.prompt).toContain('Call the submit tool exactly once.');
     expect(scenario.execution).toEqual({ mode: 'vitro', workspace: 'none' });
     expect(scenario.rubric.criteria).toHaveLength(2);
     expect(scenario.gates.requireCleanSubmit).toBe(true);
+  });
+
+  it('parses an explicit freeform taskType and keeps execution intact', () => {
+    // Arrange
+    const dir = writeScenario({
+      prompt: '# Review\nIs this safe to merge?\n',
+      evalJson: { ...VALID_EVAL, taskType: 'freeform' },
+      rubric: VALID_RUBRIC,
+      gates: VALID_GATES,
+    });
+
+    // Act
+    const scenario = readScenario(dir);
+
+    // Assert — taskType is split out; the rest is still a valid execution.
+    expect(scenario.taskType).toBe('freeform');
+    expect(scenario.execution).toEqual({ mode: 'vitro', workspace: 'none' });
+  });
+
+  it('throws when eval.json declares an unsupported taskType', () => {
+    // Arrange
+    const dir = writeScenario({
+      prompt: '# x\n',
+      evalJson: { ...VALID_EVAL, taskType: 'judge_eval_attempt' },
+      rubric: VALID_RUBRIC,
+      gates: VALID_GATES,
+    });
+
+    // Act + Assert
+    expect(() => readScenario(dir)).toThrow(ScenarioError);
+    expect(() => readScenario(dir)).toThrow(/taskType "judge_eval_attempt"/);
   });
 
   it('throws when prompt.md is missing', () => {

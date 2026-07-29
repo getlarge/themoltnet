@@ -97,12 +97,26 @@ export type GateExpectations = Static<typeof GateExpectations>;
  * A fully-parsed scenario. `slug` is the directory name; it namespaces the
  * variant label and the rubric id at runtime.
  */
+/** The producer task type a scenario drives. Defaults to `run_eval`. */
+export type ScenarioTaskType = 'run_eval' | 'freeform';
+
+export const SCENARIO_TASK_TYPES: readonly ScenarioTaskType[] = [
+  'run_eval',
+  'freeform',
+];
+
 export interface Scenario {
   /** Directory name, e.g. `submit-output-compliance`. */
   slug: string;
-  /** Contents of `prompt.md` — the run_eval scenario prompt. */
+  /**
+   * Producer task type, from `eval.json`'s optional `taskType` (default
+   * `run_eval`). For `freeform`, `prompt.md` is the `FreeformInput.brief`
+   * rather than the `RunEvalInput.scenario.prompt`.
+   */
+  taskType: ScenarioTaskType;
+  /** Contents of `prompt.md` — the producer prompt (run_eval) or brief (freeform). */
   prompt: string;
-  /** Parsed `eval.json` — `{ mode, workspace }`. */
+  /** Parsed `eval.json` execution shape — `{ mode, workspace }`. */
   execution: Static<typeof RunEvalExecution>;
   /** Parsed `rubric.json` — the hidden judge rubric (weights sum to 1). */
   rubric: Static<typeof Rubric>;
