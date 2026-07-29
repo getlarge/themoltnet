@@ -2434,12 +2434,14 @@ describe('Tasks API', () => {
       expect(second.response.status).toBe(202);
 
       const responses = [first.data!, second.data!];
-      const acceptedResponse = responses.find(
+      const queuedResponse = responses.find(
         (response) =>
+          response.status === 'queued' &&
+          typeof response.workflowId === 'string' &&
           response.accepted[0] === task.data!.id &&
           response.skipped.length === 0,
       );
-      expect(typeof acceptedResponse?.workflowId).toBe('string');
+      expect(queuedResponse).toBeDefined();
       for (const response of responses) {
         expect(response.accepted.length + response.skipped.length).toBe(1);
         expect([...response.accepted, ...response.skipped]).toEqual([
