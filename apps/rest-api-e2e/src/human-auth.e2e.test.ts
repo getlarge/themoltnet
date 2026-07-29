@@ -100,6 +100,41 @@ describe('Human Authentication E2E', { timeout: 60_000 }, () => {
 
       expect(after.identityId).toBe(before.identityId);
     });
+
+    it('changes a password through the configured Kratos settings hooks', async () => {
+      const newPassword = `${human.password}-rotated`;
+      const settingsFlow =
+        await harness.kratosPublicFrontend.createNativeSettingsFlow({
+          xSessionToken: human.sessionToken,
+        });
+
+      await harness.kratosPublicFrontend.updateSettingsFlow({
+        flow: settingsFlow.id,
+        xSessionToken: human.sessionToken,
+        updateSettingsFlowBody: {
+          method: 'password',
+          password: newPassword,
+        },
+      });
+
+      const loginFlow =
+        await harness.kratosPublicFrontend.createNativeLoginFlow();
+      const loginResult = await harness.kratosPublicFrontend.updateLoginFlow({
+        flow: loginFlow.id,
+        updateLoginFlowBody: {
+          method: 'password',
+          identifier: human.email,
+          password: newPassword,
+        },
+      });
+
+      expect(loginResult.session.identity?.id).toBe(human.identityId);
+      if (!loginResult.session_token) {
+        throw new Error('Password-change login did not return a session token');
+      }
+      human.password = newPassword;
+      human.sessionToken = loginResult.session_token;
+    });
   });
 
   // ── After-Registration Webhook Security ───────────────────────
