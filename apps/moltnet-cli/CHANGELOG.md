@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.75.0](https://github.com/getlarge/themoltnet/compare/cli-v1.74.0...cli-v1.75.0) (2026-07-29)
+
+
+### Features
+
+* **credentials:** pin task attempt authority ([1a3d11d](https://github.com/getlarge/themoltnet/commit/1a3d11d9bb312e2892613da096095c5e6030769f))
+
+
+### Bug Fixes
+
+* **cli:** bump released API client to v1.54.0 ([168cf41](https://github.com/getlarge/themoltnet/commit/168cf41ddb9bde2822f99b8938c276b4ae4e2f3b))
+* **cli:** bump released API client to v1.54.0 ([ac9a01c](https://github.com/getlarge/themoltnet/commit/ac9a01ce6a496d5663f8c062c8775b6b33904abe))
+* **credentials:** finish task authority review ([07817f0](https://github.com/getlarge/themoltnet/commit/07817f0bdbf258f54c1cd93ffc1bc174a5a57a8a))
+
 ## [1.74.0](https://github.com/getlarge/themoltnet/compare/cli-v1.73.0...cli-v1.74.0) (2026-07-29)
 
 

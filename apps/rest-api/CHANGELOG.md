@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.39.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.38.0...rest-api-v0.39.0) (2026-07-29)
+
+
+### Features
+
+* **credentials:** pin task attempt authority ([1a3d11d](https://github.com/getlarge/themoltnet/commit/1a3d11d9bb312e2892613da096095c5e6030769f))
+* **credentials:** pin task attempt authority ([bd95c83](https://github.com/getlarge/themoltnet/commit/bd95c837b7e1c1bfd791456636329433d2bf2cd7))
+
+
+### Bug Fixes
+
+* **auth:** complete remote auth cache guardrails ([faab8f0](https://github.com/getlarge/themoltnet/commit/faab8f0103f192555facd77c47ca912865a8c3e7))
+* **credentials:** bind authority to executor manifests ([aa5f297](https://github.com/getlarge/themoltnet/commit/aa5f297f8a61f78aa85d0ab570654766287c09af))
+* **credentials:** harden pinned task authority ([d09458f](https://github.com/getlarge/themoltnet/commit/d09458fdee943bcd32acf9606c811da3ef832653))
+* **credentials:** pin scoped shell authority ([a06c705](https://github.com/getlarge/themoltnet/commit/a06c705a1edea62cb966ae97f0c0741ff0cda25c))
+
 ## [0.38.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.37.1...rest-api-v0.38.0) (2026-07-29)
 
 

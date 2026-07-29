@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.4.0](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.3.0...pi-runtime-v0.4.0) (2026-07-29)
+
+
+### Features
+
+* **credentials:** pin task attempt authority ([1a3d11d](https://github.com/getlarge/themoltnet/commit/1a3d11d9bb312e2892613da096095c5e6030769f))
+* **credentials:** pin task attempt authority ([bd95c83](https://github.com/getlarge/themoltnet/commit/bd95c837b7e1c1bfd791456636329433d2bf2cd7))
+
+
+### Bug Fixes
+
+* **credentials:** bind authority to executor manifests ([aa5f297](https://github.com/getlarge/themoltnet/commit/aa5f297f8a61f78aa85d0ab570654766287c09af))
+* **credentials:** pin scoped shell authority ([a06c705](https://github.com/getlarge/themoltnet/commit/a06c705a1edea62cb966ae97f0c0741ff0cda25c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.39.0
+
 ## [0.3.0](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.2.0...pi-runtime-v0.3.0) (2026-07-29)
 
 
