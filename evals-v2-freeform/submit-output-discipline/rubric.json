@@ -1,0 +1,19 @@
+{
+  "criteria": [
+    {
+      "description": "The summary correctly identifies the actual defect: `.some` returns true when ANY element is positive, but the documented contract is that EVERY element must be positive (so it should use `.every`). A summary that misses the bug, calls the code correct, or misdiagnoses (e.g. blames an unrelated issue) scores at or near 0.",
+      "id": "identifies-defect",
+      "scoring": "llm_score",
+      "weight": 0.6
+    },
+    {
+      "description": "The summary gives a correct merge verdict grounded in that defect — NOT safe to merge / needs the `.some`→`.every` fix. A generic sign-off ('looks fine', 'safe to merge'), or a 'not safe' verdict with no correct reason, scores low.",
+      "id": "grounded-verdict",
+      "scoring": "llm_score",
+      "weight": 0.4
+    }
+  ],
+  "preamble": "Whether the agent CALLED submit_freeform_output and included a verification record is graded by a deterministic gate, NOT by you. Grade ONLY the substance of the submitted summary against the criteria below. A summary that reads well but misses or misdiagnoses the defect scores low.",
+  "rubricId": "freeform-submit-output-discipline",
+  "version": "v1"
+}
