@@ -1,3 +1,4 @@
+import { readExecutorManifestBinding } from '@moltnet/crypto-service';
 import type {
   RuntimePolicySnapshotRepository,
   TaskRepository,
@@ -28,12 +29,6 @@ export interface MoltNetTaskAuthorityProviderDeps {
     add(value: number, attributes: { reason: string }): void;
   };
   now?: () => Date;
-}
-
-function asRecord(value: unknown): Record<string, unknown> | null {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : null;
 }
 
 function isToolEnforcement(value: string): value is ToolEnforcement {
@@ -144,15 +139,16 @@ export function createMoltNetTaskAuthorityProvider(
       ) {
         return deny(request, 'snapshot_hash_mismatch');
       }
-      const executorManifest = asRecord(executor.manifest);
-      if (!executorManifest) {
+      let manifestBinding;
+      try {
+        manifestBinding = readExecutorManifestBinding(executor.manifest);
+      } catch {
         return deny(request, 'executor_binding_mismatch');
       }
-      const manifestProfile = asRecord(executorManifest.profile);
-      const manifestRuntime = asRecord(executorManifest.runtime);
       if (
-        manifestProfile?.id !== attempt.runtimeProfileId ||
-        manifestRuntime?.kind !== snapshot.runtimeKind
+        manifestBinding.profileId !== attempt.runtimeProfileId ||
+        !manifestBinding.profileDefinitionCid ||
+        manifestBinding.runtimeKind !== snapshot.runtimeKind
       ) {
         return deny(request, 'executor_binding_mismatch');
       }

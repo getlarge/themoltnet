@@ -26,6 +26,12 @@ export type ExecutorTrustLevel =
   | 'releaseVerifiedTool'
   | 'sandboxAttested';
 
+export interface ExecutorManifestBinding {
+  profileId: string | null;
+  profileDefinitionCid: string | null;
+  runtimeKind: string | null;
+}
+
 export interface ExecutorClaimAttestationPayload {
   v: typeof EXECUTOR_ATTESTATION_PAYLOAD_VERSION;
   phase: 'claim';
@@ -167,4 +173,35 @@ export function assertExecutorManifestObject(
   ) {
     throw new Error('executorManifest must be a non-null JSON object');
   }
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function stringField(
+  record: Record<string, unknown> | null,
+  field: string,
+): string | null {
+  const value = record?.[field];
+  return typeof value === 'string' ? value : null;
+}
+
+/**
+ * Canonical structural interpretation of the immutable profile/runtime
+ * authority carried by an executor manifest.
+ */
+export function readExecutorManifestBinding(
+  manifest: unknown,
+): ExecutorManifestBinding {
+  assertExecutorManifestObject(manifest);
+  const profile = asRecord(manifest.profile);
+  const runtime = asRecord(manifest.runtime);
+  return {
+    profileId: stringField(profile, 'id'),
+    profileDefinitionCid: stringField(profile, 'definitionCid'),
+    runtimeKind: stringField(runtime, 'kind'),
+  };
 }

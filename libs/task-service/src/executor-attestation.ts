@@ -6,6 +6,7 @@ import {
   computeExecutorManifestCid,
   EXECUTOR_MANIFEST_SCHEMA_VERSION,
   type ExecutorTrustLevel,
+  readExecutorManifestBinding,
   verifyExecutorAttestation,
 } from '@moltnet/crypto-service';
 import type {
@@ -65,22 +66,21 @@ export function assertExecutorCompatibleWithRuntimeProfile(input: {
     );
   }
 
-  const manifestProfile = asRecord(input.executor.manifest.profile);
-  if (manifestProfile?.id !== input.profile.id) {
+  const manifestBinding = readExecutorManifestBinding(input.executor.manifest);
+  if (manifestBinding.profileId !== input.profile.id) {
     throw new TaskServiceError(
       'forbidden',
       'Executor manifest is not bound to the selected runtime profile',
     );
   }
-  if (manifestProfile.definitionCid !== input.profile.definitionCid) {
+  if (manifestBinding.profileDefinitionCid !== input.profile.definitionCid) {
     throw new TaskServiceError(
       'forbidden',
       'Executor manifest is not bound to the selected runtime profile revision',
     );
   }
 
-  const manifestRuntime = asRecord(input.executor.manifest.runtime);
-  if (manifestRuntime?.kind !== input.profile.runtimeKind) {
+  if (manifestBinding.runtimeKind !== input.profile.runtimeKind) {
     throw new TaskServiceError(
       'forbidden',
       'Executor runtime kind does not match the selected runtime profile',

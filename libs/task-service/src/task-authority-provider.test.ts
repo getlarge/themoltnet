@@ -19,6 +19,7 @@ const TEAM_ID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 const OTHER_TEAM_ID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbc';
 const TASK_ID = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 const PROFILE_ID = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+const PROFILE_DEFINITION_CID = 'bafkreiprofiledefinition';
 const LEASE_ID = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
 const EXECUTOR_FINGERPRINT = 'bafkreiexecutor';
 const NOW = new Date('2026-07-28T12:00:00Z');
@@ -74,7 +75,7 @@ function setup(input?: {
   task?: Task | null;
   attempt?: TaskAttempt | null;
   snapshot?: RuntimePolicySnapshot | null;
-  executor?: { fingerprint: string; manifest: Record<string, unknown> } | null;
+  executor?: { fingerprint: string; manifest: unknown } | null;
 }) {
   const taskRepository = {
     findById: vi
@@ -91,7 +92,10 @@ function setup(input?: {
         : {
             fingerprint: EXECUTOR_FINGERPRINT,
             manifest: {
-              profile: { id: PROFILE_ID },
+              profile: {
+                id: PROFILE_ID,
+                definitionCid: PROFILE_DEFINITION_CID,
+              },
               runtime: { kind: 'gondolin_pi' },
             },
           },
@@ -285,9 +289,39 @@ describe('MoltNet TaskAuthorityProvider', () => {
         executor: {
           fingerprint: EXECUTOR_FINGERPRINT,
           manifest: {
-            profile: { id: PROFILE_ID },
+            profile: {
+              id: PROFILE_ID,
+              definitionCid: PROFILE_DEFINITION_CID,
+            },
             runtime: { kind: 'custom_pi' },
           },
+        },
+      }),
+      'executor_binding_mismatch',
+    );
+  });
+
+  it('denies an executor manifest without an immutable profile definition binding', async () => {
+    await expectDenied(
+      setup({
+        executor: {
+          fingerprint: EXECUTOR_FINGERPRINT,
+          manifest: {
+            profile: { id: PROFILE_ID },
+            runtime: { kind: 'gondolin_pi' },
+          },
+        },
+      }),
+      'executor_binding_mismatch',
+    );
+  });
+
+  it('denies a structurally invalid executor manifest', async () => {
+    await expectDenied(
+      setup({
+        executor: {
+          fingerprint: EXECUTOR_FINGERPRINT,
+          manifest: [],
         },
       }),
       'executor_binding_mismatch',

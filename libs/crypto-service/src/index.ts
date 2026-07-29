@@ -32,8 +32,10 @@ export {
   type ExecutorAttestationPayload,
   type ExecutorClaimAttestationPayload,
   type ExecutorCompleteAttestationPayload,
+  type ExecutorManifestBinding,
   type ExecutorRegistrationAttestationPayload,
   type ExecutorTrustLevel,
+  readExecutorManifestBinding,
   signExecutorAttestation,
   verifyExecutorAttestation,
 } from './executor-attestation.js';

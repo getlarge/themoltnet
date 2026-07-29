@@ -9,6 +9,7 @@ import {
   canonicalJson,
   computeExecutorManifestCid,
   type ExecutorAttestationPayload,
+  readExecutorManifestBinding,
 } from '../src/index.js';
 
 interface VectorFile {
@@ -68,5 +69,34 @@ describe('executor attestation canonicalization', () => {
       schemaVersion: 'moltnet:executor-manifest:v1',
     };
     expect(computeExecutorManifestCid(a)).toBe(computeExecutorManifestCid(b));
+  });
+
+  it('reads the canonical profile and runtime binding from a manifest', () => {
+    expect(
+      readExecutorManifestBinding({
+        profile: {
+          id: 'profile-1',
+          definitionCid: 'bafkreidefinition',
+        },
+        runtime: { kind: 'custom_pi' },
+      }),
+    ).toEqual({
+      profileId: 'profile-1',
+      profileDefinitionCid: 'bafkreidefinition',
+      runtimeKind: 'custom_pi',
+    });
+  });
+
+  it('returns null fields for malformed nested manifest bindings', () => {
+    expect(
+      readExecutorManifestBinding({
+        profile: { id: 42 },
+        runtime: [],
+      }),
+    ).toEqual({
+      profileId: null,
+      profileDefinitionCid: null,
+      runtimeKind: null,
+    });
   });
 });
