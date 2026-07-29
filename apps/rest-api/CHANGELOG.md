@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.37.1](https://github.com/getlarge/themoltnet/compare/rest-api-v0.37.0...rest-api-v0.37.1) (2026-07-29)
+
+
+### Bug Fixes
+
+* **auth:** address remote cache review findings ([e8a204f](https://github.com/getlarge/themoltnet/commit/e8a204fc677d5f763e4ddcac8a608725f475e1e7))
+* **auth:** cache Ory authentication and preserve upstream failure semantics ([c9fd971](https://github.com/getlarge/themoltnet/commit/c9fd9719519c161a976956251b6e1e3d26e46895))
+
 ## [0.37.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.36.0...rest-api-v0.37.0) (2026-07-29)
 
 
