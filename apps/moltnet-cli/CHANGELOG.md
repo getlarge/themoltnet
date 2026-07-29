@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.74.0](https://github.com/getlarge/themoltnet/compare/cli-v1.73.0...cli-v1.74.0) (2026-07-29)
+
+
+### Features
+
+* **cli:** rotate agent OAuth2 secrets ([0fbfa8b](https://github.com/getlarge/themoltnet/commit/0fbfa8b72544e4f837ec9fa5db437a3f5f3d1869))
+* **cli:** rotate agent OAuth2 secrets ([19ad085](https://github.com/getlarge/themoltnet/commit/19ad0853d38ad6d79503317cb3b0181a04e492bc))
+
+
+### Bug Fixes
+
+* **cli:** address secret rotation review findings ([4430fc4](https://github.com/getlarge/themoltnet/commit/4430fc4a124f232f959fdf1d1e6aa33c518a0952))
+
 ## [1.73.0](https://github.com/getlarge/themoltnet/compare/cli-v1.72.0...cli-v1.73.0) (2026-07-29)
 
 
