@@ -8,6 +8,7 @@ on:
     paths-ignore:
       - '.codeboarding/*.md'
       - '.codeboarding/analysis.json'
+      - '.codeboarding/fingerprint.json'
       - '.codeboarding/static_analysis.pkl'
       - '.codeboarding/static_analysis.sha'
       - '.codeboarding/codeboarding_version.json'

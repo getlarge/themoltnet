@@ -17,3 +17,9 @@
 # Vendored third-party skill (impeccable, Apache-2.0). ~2.8MB of generated
 # .mjs per provider tree — keep out of language stats and collapse diff noise.
 **/skills/impeccable/** linguist-vendored=true
+
+# CodeBoarding owns this versioned architecture baseline. Collapse it in
+# GitHub diffs and exclude it from language statistics while keeping the
+# hand-maintained ignore configuration reviewable.
+.codeboarding/** linguist-generated=true
+.codeboarding/.codeboardingignore -linguist-generated
