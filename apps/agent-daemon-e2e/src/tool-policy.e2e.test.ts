@@ -96,6 +96,7 @@ describe('Tool-policy enforcement (daemon)', () => {
       agent,
       profileId: profile.id,
       teamId,
+      runtimeKind: profile.runtimeKind,
       enforcement: 'enforce',
       logger: noopLogger,
     });
@@ -177,6 +178,7 @@ describe('Tool-policy enforcement (daemon)', () => {
       agent,
       profileId: profile.id,
       teamId,
+      runtimeKind: profile.runtimeKind,
       enforcement: 'watch',
       logger: noopLogger,
     });
@@ -195,6 +197,34 @@ describe('Tool-policy enforcement (daemon)', () => {
     }
   });
 
+  it('enforce: fails closed when the daemon runtime kind does not match', async () => {
+    const profile = await createProfile(
+      `runtime-mismatch-${Date.now()}`,
+      'enforce',
+    );
+    const policy = await createPolicy(`runtime-mismatch-p-${Date.now()}`, [
+      'read',
+    ]);
+    await agent.runtimeProfiles.setPolicies(profile.id, [policy.id], {
+      teamId,
+    });
+
+    const resolved = await resolveSessionToolPolicy({
+      agent,
+      profileId: profile.id,
+      teamId,
+      runtimeKind: 'custom_pi',
+      enforcement: 'enforce',
+      logger: noopLogger,
+    });
+
+    expect(resolved).toEqual({
+      enforcement: 'enforce',
+      allowedTools: new Set(),
+      degraded: true,
+    });
+  });
+
   it('off: short-circuits (no fetch) and allows everything', async () => {
     const profile = await createProfile(`off-${Date.now()}`, 'off');
 
@@ -202,6 +232,7 @@ describe('Tool-policy enforcement (daemon)', () => {
       agent,
       profileId: profile.id,
       teamId,
+      runtimeKind: profile.runtimeKind,
       enforcement: 'off',
       logger: noopLogger,
     });
@@ -230,6 +261,7 @@ describe('Tool-policy enforcement (daemon)', () => {
       agent,
       profileId: '00000000-0000-0000-0000-000000000000',
       teamId,
+      runtimeKind: 'gondolin_pi',
       enforcement: 'enforce',
       logger: noopLogger,
     });

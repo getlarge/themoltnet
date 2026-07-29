@@ -9,18 +9,22 @@ import {
   claimTask,
   type Client,
   createClient,
+  createRuntimePolicy,
   createRuntimeProfile,
   createTask,
   createTeam,
   createTeamInvite,
   deleteRuntimeProfile,
   getRuntimeProfile,
+  getRuntimeProfileAllowedTools,
   getTask,
   joinTeam,
   listRuntimeProfiles,
   listTaskAttempts,
   listTasks,
   registerExecutorManifest,
+  setRuntimeProfilePolicies,
+  updateRuntimePolicy,
   updateRuntimeProfile,
 } from '@moltnet/api-client';
 import {
@@ -119,6 +123,7 @@ describe('Runtime Profiles API', () => {
       maxBashTimeouts: 2,
       requiredEnv: ['LINEAR_API_KEY', 'GITHUB_TOKEN'],
       requiredTools: ['linear.issue.get', 'github.pr.create'],
+      requiredExecutables: ['git'],
       context: [
         {
           slug: `${name}-workflow`,
@@ -179,9 +184,9 @@ describe('Runtime Profiles API', () => {
         templateFingerprint: 'bafyreie2e-template',
         guestAssetBuildId: 'runtime-profile-e2e',
       },
-      tools: [],
-      extensions: [],
-      executables: [],
+      tools: [{ name: 'linear.issue.get' }],
+      extensions: [{ declaredTools: ['github.pr.create'] }],
+      executables: ['git'],
     };
   }
 
@@ -203,6 +208,23 @@ describe('Runtime Profiles API', () => {
     expect(registration.error).toBeUndefined();
     expect(registration.response.status).toBe(200);
     return executorFingerprint;
+  }
+
+  async function expectTaskUnclaimed(taskId: string) {
+    const [{ data: queued }, { data: attempts }] = await Promise.all([
+      getTask({
+        client,
+        auth: () => owner.accessToken,
+        path: { id: taskId },
+      }),
+      listTaskAttempts({
+        client,
+        auth: () => owner.accessToken,
+        path: { id: taskId },
+      }),
+    ]);
+    expect(queued!.status).toBe('queued');
+    expect(attempts).toEqual([]);
   }
 
   it('creates, lists, gets, updates, and deletes a runtime profile', async () => {
@@ -472,6 +494,31 @@ describe('Runtime Profiles API', () => {
     expect(allowedProfile).toBeDefined();
     expect(otherProfile).toBeDefined();
 
+    const { data: claimPolicy } = await createRuntimePolicy({
+      client,
+      auth: () => owner.accessToken,
+      headers: { 'x-moltnet-team-id': owner.personalTeamId },
+      body: {
+        name: `claim-policy-${Date.now()}`,
+        tools: ['linear.issue.get'],
+      },
+    });
+    expect(claimPolicy).toBeDefined();
+    const binding = await setRuntimeProfilePolicies({
+      client,
+      auth: () => owner.accessToken,
+      headers: { 'x-moltnet-team-id': owner.personalTeamId },
+      path: { profileId: allowedProfile!.id },
+      body: { policyIds: [claimPolicy!.id] },
+    });
+    expect(binding.error).toBeUndefined();
+    const { data: authorityBeforeClaim } = await getRuntimeProfileAllowedTools({
+      client,
+      auth: () => owner.accessToken,
+      headers: { 'x-moltnet-team-id': owner.personalTeamId },
+      path: { profileId: allowedProfile!.id },
+    });
+
     const { data: task } = await createFulfillBriefTask(
       `profile claim enforcement ${Date.now()}`,
       [{ profileId: allowedProfile!.id }],
@@ -516,12 +563,48 @@ describe('Runtime Profiles API', () => {
       },
     });
     expect(incompatibleRuntimeClaim.response.status).toBe(403);
-    const { data: stillQueued } = await getTask({
+
+    const staleRevisionManifest = executorManifest(
+      allowedProfile!,
+      allowedProfile!.runtimeKind,
+    );
+    staleRevisionManifest.profile.definitionCid = 'bafyreistale-profile';
+    const staleRevisionFingerprint = await registerManifest(
+      staleRevisionManifest,
+    );
+    const staleRevisionClaim = await claimTask({
       client,
       auth: () => owner.accessToken,
       path: { id: task!.id },
+      body: {
+        leaseTtlSec: 30,
+        profileId: allowedProfile!.id,
+        executorFingerprint: staleRevisionFingerprint,
+      },
     });
-    expect(stillQueued!.status).toBe('queued');
+    expect(staleRevisionClaim.response.status).toBe(403);
+
+    const missingCapabilitiesManifest = {
+      ...executorManifest(allowedProfile!, allowedProfile!.runtimeKind),
+      tools: [],
+      extensions: [],
+      executables: [],
+    };
+    const missingCapabilitiesFingerprint = await registerManifest(
+      missingCapabilitiesManifest,
+    );
+    const missingCapabilitiesClaim = await claimTask({
+      client,
+      auth: () => owner.accessToken,
+      path: { id: task!.id },
+      body: {
+        leaseTtlSec: 30,
+        profileId: allowedProfile!.id,
+        executorFingerprint: missingCapabilitiesFingerprint,
+      },
+    });
+    expect(missingCapabilitiesClaim.response.status).toBe(403);
+    await expectTaskUnclaimed(task!.id);
 
     const compatibleFingerprint = await registerManifest(
       executorManifest(allowedProfile!, allowedProfile!.runtimeKind),
@@ -543,11 +626,15 @@ describe('Runtime Profiles API', () => {
     expect(pinnedAttempt).toMatchObject({
       runtimeProfileId: allowedProfile!.id,
       runtimeProfileRevision: 1,
+      claimedExecutorFingerprint: compatibleFingerprint,
     });
     expect(pinnedAttempt.leaseId).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
     );
     expect(pinnedAttempt.policySnapshotHash).toMatch(/^sha256:[0-9a-f]{64}$/);
+    expect(pinnedAttempt.policySnapshotHash).toBe(
+      authorityBeforeClaim!.policySnapshotHash,
+    );
 
     const { data: updatedProfile, error: updateError } =
       await updateRuntimeProfile({
@@ -558,6 +645,25 @@ describe('Runtime Profiles API', () => {
       });
     expect(updateError).toBeUndefined();
     expect(updatedProfile!.revision).toBe(2);
+    const { error: policyUpdateError } = await updateRuntimePolicy({
+      client,
+      auth: () => owner.accessToken,
+      headers: { 'x-moltnet-team-id': owner.personalTeamId },
+      path: { policyId: claimPolicy!.id },
+      body: { addTools: ['github.pr.create'] },
+    });
+    expect(policyUpdateError).toBeUndefined();
+    const { data: authorityAfterMutation } =
+      await getRuntimeProfileAllowedTools({
+        client,
+        auth: () => owner.accessToken,
+        headers: { 'x-moltnet-team-id': owner.personalTeamId },
+        path: { profileId: allowedProfile!.id },
+      });
+    expect(authorityAfterMutation!.runtimeProfileRevision).toBe(2);
+    expect(authorityAfterMutation!.policySnapshotHash).not.toBe(
+      pinnedAttempt.policySnapshotHash,
+    );
 
     const { data: attempts, error: attemptsError } = await listTaskAttempts({
       client,
@@ -570,6 +676,7 @@ describe('Runtime Profiles API', () => {
       runtimeProfileRevision: 1,
       leaseId: pinnedAttempt.leaseId,
       policySnapshotHash: pinnedAttempt.policySnapshotHash,
+      claimedExecutorFingerprint: compatibleFingerprint,
     });
   });
 

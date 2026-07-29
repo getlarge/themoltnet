@@ -299,7 +299,7 @@ interface Mocks {
       (input: { profileId: string; teamId: string }) => Promise<{
         enforcement: 'enforce';
         allowedTools: string[];
-        runtimeKind: 'gondolin_pi';
+        runtimeKind: string;
         runtimeProfileRevision: number;
         policySnapshotHash: string;
       }>
@@ -937,6 +937,57 @@ describe('createTaskService.claim — runtime profile attestation', () => {
 
     expect(mocks.taskRepository.claimIfQueued).not.toHaveBeenCalled();
   });
+
+  it.each([
+    {
+      runtimeProfileRevision: 8,
+      runtimeKind: 'gondolin_pi',
+      changedField: 'revision',
+    },
+    {
+      runtimeProfileRevision: 7,
+      runtimeKind: 'custom_pi',
+      changedField: 'runtime kind',
+    },
+  ])(
+    'rejects a claim when the profile $changedField changes while authority is pinned',
+    async ({ runtimeProfileRevision, runtimeKind }) => {
+      mocks.runtimePolicyService.resolvePinnedAllowedTools.mockResolvedValue({
+        enforcement: 'enforce',
+        allowedTools: ['read'],
+        runtimeKind,
+        runtimeProfileRevision,
+        policySnapshotHash: `sha256:${'b'.repeat(64)}`,
+      });
+      const executorManifest = {
+        schemaVersion: 'moltnet:executor-manifest:v1',
+        profile: {
+          id: PROFILE_ID,
+          definitionCid: PROFILE_DEFINITION_CID,
+        },
+        runtime: { kind: 'gondolin_pi' },
+        tools: [],
+        extensions: [],
+        executables: [],
+      };
+      const executorFingerprint = computeExecutorManifestCid(executorManifest);
+
+      await expect(
+        service.claim(JUDGE_TASK, AGENT_ID, KetoNamespace.Agent, 30, {
+          profileId: PROFILE_ID,
+          executorManifest,
+          executorFingerprint,
+        }),
+      ).rejects.toMatchObject({
+        code: 'conflict',
+        message:
+          'Runtime profile changed while claim authority was being pinned',
+      });
+
+      expect(mocks.taskRepository.claimIfQueued).not.toHaveBeenCalled();
+      expect(mocks.enqueueWorkflowInCurrentTransaction).not.toHaveBeenCalled();
+    },
+  );
 
   it('expires an elapsed queued task before claiming it', async () => {
     const expiredQueued = {
