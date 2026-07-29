@@ -1,6 +1,7 @@
 import type { TaskStatus } from '@moltnet/api-client';
 import { listTasksInfiniteOptions } from '@moltnet/api-client/query';
 import {
+  statusToLane,
   TASK_LANES,
   type TaskLaneData,
   type TaskLaneId,
@@ -44,7 +45,7 @@ export function useLaneQueries(filters: LaneFilters): {
   // TASK_LANES is a stable constant, so this fixed-length map calls the same
   // hooks in the same order every render — the rules of hooks are satisfied.
   const laneResults = TASK_LANES.map((lane) => {
-    const matchesSelectedStatus = !status || lane.statuses.includes(status);
+    const matchesSelectedStatus = !status || statusToLane(status) === lane.id;
     const isActiveLane = lane.id === 'pending' || lane.id === 'active';
     const query = useInfiniteQuery({
       ...listTasksInfiniteOptions({

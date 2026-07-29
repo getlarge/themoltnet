@@ -19,6 +19,27 @@ import {
 import { getKratosClient } from '../kratos.js';
 
 const FOREGROUND_REVALIDATION_INTERVAL_MS = 30_000;
+const SESSION_CHECK_TIMEOUT_MS = 10_000;
+
+async function toSessionWithTimeout(): Promise<Session> {
+  const controller = new AbortController();
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error('Session check timed out'));
+      controller.abort();
+    }, SESSION_CHECK_TIMEOUT_MS);
+  });
+
+  try {
+    return await Promise.race([
+      getKratosClient().toSession({}, { signal: controller.signal }),
+      timeout,
+    ]);
+  } finally {
+    if (timeoutId !== undefined) clearTimeout(timeoutId);
+  }
+}
 
 export interface AuthContextValue {
   session: Session | null;
@@ -54,8 +75,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  // Guards against a slow in-flight response overwriting a newer one.
-  const requestIdRef = useRef(0);
   const inFlightCheckRef = useRef<Promise<void> | null>(null);
   const lastForegroundAttemptAtRef = useRef(Number.NEGATIVE_INFINITY);
 
@@ -76,16 +95,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (inFlightCheckRef.current) return inFlightCheckRef.current;
 
-      const requestId = ++requestIdRef.current;
       const request = (async () => {
         try {
-          const kratosClient = getKratosClient();
-          const sess = await kratosClient.toSession();
-          if (requestId !== requestIdRef.current) return;
+          const sess = await toSessionWithTimeout();
           setSession(sess);
           setError(null);
         } catch (err) {
-          if (requestId !== requestIdRef.current) return;
           if (isAuthenticationFailure(err)) {
             // Genuine sign-out: clear so AuthGuard redirects to login.
             setSession(null);
@@ -98,12 +113,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             );
           }
         } finally {
-          if (requestId === requestIdRef.current) {
-            // isLoading means "have we resolved at least once". It never
-            // returns to true, so background revalidation leaves the router
-            // subtree mounted.
-            setIsLoading(false);
-          }
+          // isLoading means "have we resolved at least once". It never
+          // returns to true, so background revalidation leaves the router
+          // subtree mounted.
+          setIsLoading(false);
         }
       })();
 

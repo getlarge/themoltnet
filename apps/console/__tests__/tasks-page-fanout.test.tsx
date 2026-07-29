@@ -33,19 +33,20 @@ interface ListTasksArgs {
 
 const listTasksRequests: Array<ListTasksArgs['query']> = [];
 const listTasksInfiniteRequests: Array<ListTasksArgs['query']> = [];
+const listTasksInfiniteTotals = new Map<string, number>();
 
 function recordingOptions(
   sink: Array<ListTasksArgs['query']>,
   id: string,
   args: ListTasksArgs,
+  totals = new Map<string, number>(),
 ) {
   const q = args.query ?? {};
   return {
     queryKey: [id, q],
     queryFn: async () => {
       sink.push(q);
-      const total =
-        q.statuses?.length === 1 && q.statuses[0] === 'queued' ? 7 : 0;
+      const total = totals.get(q.statuses?.join(',') ?? '') ?? 0;
       return { items: [], total, nextCursor: undefined };
     },
   };
@@ -53,7 +54,12 @@ function recordingOptions(
 
 vi.mock('@moltnet/api-client/query', () => ({
   listTasksInfiniteOptions: (args: ListTasksArgs) =>
-    recordingOptions(listTasksInfiniteRequests, 'listTasksInfinite', args),
+    recordingOptions(
+      listTasksInfiniteRequests,
+      'listTasksInfinite',
+      args,
+      listTasksInfiniteTotals,
+    ),
   listTasksOptions: (args: ListTasksArgs) =>
     recordingOptions(listTasksRequests, 'listTasks', args),
   listTaskSchemasOptions: () => ({
@@ -120,41 +126,46 @@ vi.mock('wouter', () => ({
 // Keep task-ui out of the picture: we only care about query fanout, not the
 // board/table rendering. Render minimal stand-ins that surface the search input
 // from the real page (the page owns the input, not task-ui).
-vi.mock('@moltnet/task-ui', () => ({
-  CreateTaskDialog: ({ open }: { open: boolean }) =>
-    open ? <div data-testid="create-dialog" /> : null,
-  isTaskNonTerminal: () => false,
-  TaskFunnelStrip: ({ counts }: { counts: Record<string, number> }) => (
-    <div data-testid="lane-counts">{JSON.stringify(counts)}</div>
-  ),
-  TaskLaneBoard: () => <div data-testid="lane-board" />,
-  TaskLivePane: () => null,
-  TaskQueueTable: () => <div data-testid="queue-table" />,
-  TaskTypeFacet: ({
-    selected,
-    onChange,
-  }: {
-    selected: string[];
-    onChange: (next: string[]) => void;
-  }) => (
-    <div>
-      <span data-testid="selected-task-types">{selected.join(',')}</span>
-      <button type="button" onClick={() => onChange(['freeform'])}>
-        Select freeform
-      </button>
-      <button type="button" onClick={() => onChange([])}>
-        Clear task types
-      </button>
-    </div>
-  ),
-  TASK_LANES: [
+vi.mock('@moltnet/task-ui', () => {
+  const taskLanes = [
     { id: 'pending', statuses: ['waiting', 'queued'] },
     { id: 'active', statuses: ['dispatched', 'running'] },
     { id: 'done', statuses: ['completed'] },
     { id: 'failed', statuses: ['failed'] },
     { id: 'closed', statuses: ['cancelled', 'expired'] },
-  ],
-}));
+  ];
+  return {
+    CreateTaskDialog: ({ open }: { open: boolean }) =>
+      open ? <div data-testid="create-dialog" /> : null,
+    isTaskNonTerminal: () => false,
+    statusToLane: (status: string) =>
+      taskLanes.find((lane) => lane.statuses.includes(status))?.id,
+    TaskFunnelStrip: ({ counts }: { counts: Record<string, number> }) => (
+      <div data-testid="lane-counts">{JSON.stringify(counts)}</div>
+    ),
+    TaskLaneBoard: () => <div data-testid="lane-board" />,
+    TaskLivePane: () => null,
+    TaskQueueTable: () => <div data-testid="queue-table" />,
+    TaskTypeFacet: ({
+      selected,
+      onChange,
+    }: {
+      selected: string[];
+      onChange: (next: string[]) => void;
+    }) => (
+      <div>
+        <span data-testid="selected-task-types">{selected.join(',')}</span>
+        <button type="button" onClick={() => onChange(['freeform'])}>
+          Select freeform
+        </button>
+        <button type="button" onClick={() => onChange([])}>
+          Clear task types
+        </button>
+      </div>
+    ),
+    TASK_LANES: taskLanes,
+  };
+});
 
 function Wrapper({ children }: { children: ReactNode }) {
   const client = new QueryClient({
@@ -174,6 +185,7 @@ describe('TasksPage query fanout (#1320)', () => {
     currentSearch = '';
     listTasksRequests.length = 0;
     listTasksInfiniteRequests.length = 0;
+    listTasksInfiniteTotals.clear();
     navigate.mockClear();
     vi.useFakeTimers();
   });
@@ -214,6 +226,7 @@ describe('TasksPage query fanout (#1320)', () => {
   });
 
   it('applies a selected status to its board lane without fetching other lanes', async () => {
+    listTasksInfiniteTotals.set('queued', 7);
     const { rerender } = render(<TasksPage />, { wrapper: Wrapper });
     await flush();
     listTasksInfiniteRequests.length = 0;
@@ -240,6 +253,13 @@ describe('TasksPage query fanout (#1320)', () => {
       failed: 0,
       closed: 0,
     });
+
+    listTasksInfiniteRequests.length = 0;
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
+    await flush();
+
+    expect(listTasksInfiniteRequests).toHaveLength(1);
+    expect(listTasksInfiniteRequests[0]?.statuses).toEqual(['queued']);
   });
 
   it('derives task types from the URL and preserves the status filter', async () => {
@@ -277,6 +297,30 @@ describe('TasksPage query fanout (#1320)', () => {
 
     remounted.rerender(<TasksPage />);
     expect(screen.getByTestId('selected-task-types').textContent).toBe('');
+  });
+
+  it('tracks external URL filters while preserving mounted text input state', async () => {
+    currentSearch =
+      'status=queued&task_type=freeform&query=initial&correlation_id=corr-1';
+    const { rerender } = render(<TasksPage />, { wrapper: Wrapper });
+    await flush();
+
+    expect(screen.getByTestId('selected-task-types').textContent).toBe(
+      'freeform',
+    );
+    expect(screen.getByLabelText('Search tasks')).toHaveValue('initial');
+    expect(screen.getByLabelText('Correlation ID')).toHaveValue('corr-1');
+
+    currentSearch =
+      'status=queued&task_type=structured&query=external&correlation_id=corr-2';
+    rerender(<TasksPage />);
+    await flush();
+
+    expect(screen.getByTestId('selected-task-types').textContent).toBe(
+      'structured',
+    );
+    expect(screen.getByLabelText('Search tasks')).toHaveValue('initial');
+    expect(screen.getByLabelText('Correlation ID')).toHaveValue('corr-1');
   });
 
   it('debounces typing into one settled lane fanout instead of one per keystroke', async () => {
