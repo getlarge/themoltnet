@@ -8,10 +8,72 @@ import type { AgentRepository, Task, TaskRepository } from '@moltnet/database';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  assertExecutorCompatibleWithRuntimeProfile,
   assertExecutorContinuity,
   registerExecutorManifest,
   verifyExecutorForPhase,
 } from './executor-attestation.js';
+
+describe('assertExecutorCompatibleWithRuntimeProfile', () => {
+  const profile = {
+    id: '11111111-1111-4111-8111-111111111111',
+    runtimeKind: 'custom_pi',
+  };
+
+  it('accepts an executor prepared for the selected profile and runtime kind', () => {
+    expect(() =>
+      assertExecutorCompatibleWithRuntimeProfile({
+        executor: {
+          fingerprint: 'bafkrei-compatible',
+          manifest: {
+            profile: { id: profile.id },
+            runtime: { kind: profile.runtimeKind },
+          },
+        },
+        profile,
+      }),
+    ).not.toThrow();
+  });
+
+  it('requires executor evidence for profile-aware claims', () => {
+    expect(() =>
+      assertExecutorCompatibleWithRuntimeProfile({
+        executor: null,
+        profile,
+      }),
+    ).toThrow(/Executor manifest is required/);
+  });
+
+  it('rejects an executor prepared for another profile', () => {
+    expect(() =>
+      assertExecutorCompatibleWithRuntimeProfile({
+        executor: {
+          fingerprint: 'bafkrei-other-profile',
+          manifest: {
+            profile: { id: '22222222-2222-4222-8222-222222222222' },
+            runtime: { kind: profile.runtimeKind },
+          },
+        },
+        profile,
+      }),
+    ).toThrow(/not bound to the selected runtime profile/);
+  });
+
+  it('rejects a runtime kind that does not satisfy the selected profile', () => {
+    expect(() =>
+      assertExecutorCompatibleWithRuntimeProfile({
+        executor: {
+          fingerprint: 'bafkrei-other-runtime',
+          manifest: {
+            profile: { id: profile.id },
+            runtime: { kind: 'other_runtime' },
+          },
+        },
+        profile,
+      }),
+    ).toThrow(/runtime kind does not match/);
+  });
+});
 
 describe('assertExecutorContinuity', () => {
   it('accepts the executor claimed by the attempt', () => {
@@ -135,6 +197,7 @@ describe('registered executor manifests', () => {
 
     expect(verified).toEqual({
       fingerprint: executorFingerprint,
+      manifest: executorManifest,
       verification: {
         trustLevel: 'agent_signed',
         evidence: { phase: 'register', signerAgentId: callerId },

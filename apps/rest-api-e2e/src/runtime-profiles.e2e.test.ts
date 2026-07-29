@@ -15,11 +15,18 @@ import {
   createTeamInvite,
   deleteRuntimeProfile,
   getRuntimeProfile,
+  getTask,
   joinTeam,
   listRuntimeProfiles,
   listTasks,
+  registerExecutorManifest,
   updateRuntimeProfile,
 } from '@moltnet/api-client';
+import {
+  buildExecutorRegistrationAttestationPayload,
+  computeExecutorManifestCid,
+  signExecutorAttestation,
+} from '@moltnet/crypto-service';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createAgent, type TestAgent } from './helpers.js';
@@ -146,6 +153,55 @@ describe('Runtime Profiles API', () => {
         input: { brief: title },
       },
     });
+  }
+
+  function executorManifest(
+    profile: { id: string; definitionCid: string },
+    runtimeKind: string,
+  ) {
+    return {
+      schemaVersion: 'moltnet:executor-manifest:v1',
+      runtime: {
+        kind: runtimeKind,
+        engine: 'pi',
+        sandbox: 'gondolin',
+        id: 'runtime-profile-e2e',
+        version: '1',
+      },
+      profile: {
+        id: profile.id,
+        definitionCid: profile.definitionCid,
+      },
+      vm: {
+        templateId: 'runtime-profile-e2e',
+        templateVersion: '1',
+        templateFingerprint: 'bafyreie2e-template',
+        guestAssetBuildId: 'runtime-profile-e2e',
+      },
+      tools: [],
+      extensions: [],
+      executables: [],
+    };
+  }
+
+  async function registerManifest(manifest: Record<string, unknown>) {
+    const executorFingerprint = computeExecutorManifestCid(manifest);
+    const executorSignature = await signExecutorAttestation(
+      buildExecutorRegistrationAttestationPayload({ executorFingerprint }),
+      owner.keyPair.privateKey,
+    );
+    const registration = await registerExecutorManifest({
+      client,
+      auth: () => owner.accessToken,
+      body: {
+        executorManifest: manifest,
+        executorFingerprint,
+        executorSignature,
+      },
+    });
+    expect(registration.error).toBeUndefined();
+    expect(registration.response.status).toBe(200);
+    return executorFingerprint;
   }
 
   it('creates, lists, gets, updates, and deletes a runtime profile', async () => {
@@ -437,11 +493,47 @@ describe('Runtime Profiles API', () => {
     });
     expect(wrongProfileClaim.response.status).toBe(403);
 
-    const allowedProfileClaim = await claimTask({
+    const missingExecutorClaim = await claimTask({
       client,
       auth: () => owner.accessToken,
       path: { id: task!.id },
       body: { leaseTtlSec: 30, profileId: allowedProfile!.id },
+    });
+    expect(missingExecutorClaim.response.status).toBe(400);
+
+    const incompatibleFingerprint = await registerManifest(
+      executorManifest(allowedProfile!, 'other_runtime'),
+    );
+    const incompatibleRuntimeClaim = await claimTask({
+      client,
+      auth: () => owner.accessToken,
+      path: { id: task!.id },
+      body: {
+        leaseTtlSec: 30,
+        profileId: allowedProfile!.id,
+        executorFingerprint: incompatibleFingerprint,
+      },
+    });
+    expect(incompatibleRuntimeClaim.response.status).toBe(403);
+    const { data: stillQueued } = await getTask({
+      client,
+      auth: () => owner.accessToken,
+      path: { id: task!.id },
+    });
+    expect(stillQueued!.status).toBe('queued');
+
+    const compatibleFingerprint = await registerManifest(
+      executorManifest(allowedProfile!, allowedProfile!.runtimeKind),
+    );
+    const allowedProfileClaim = await claimTask({
+      client,
+      auth: () => owner.accessToken,
+      path: { id: task!.id },
+      body: {
+        leaseTtlSec: 30,
+        profileId: allowedProfile!.id,
+        executorFingerprint: compatibleFingerprint,
+      },
     });
     expect(allowedProfileClaim.error).toBeUndefined();
     expect(allowedProfileClaim.response.status).toBe(200);

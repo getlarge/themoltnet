@@ -19,6 +19,7 @@ import {
 } from '@moltnet/tasks';
 
 import {
+  assertExecutorCompatibleWithRuntimeProfile,
   assertExecutorContinuity,
   persistExecutorVerification,
   registerExecutorManifest as registerExecutorManifestAttestation,
@@ -209,8 +210,11 @@ export function createTaskService(deps: TaskServiceDeps) {
         profileId: string;
       }[];
       const selectedProfileId = executorAttestation.profileId;
+      let selectedProfile: Awaited<
+        ReturnType<typeof runtimeProfileRepository.findById>
+      > = null;
       if (selectedProfileId) {
-        const selectedProfile =
+        selectedProfile =
           await runtimeProfileRepository.findById(selectedProfileId);
         if (!selectedProfile || selectedProfile.teamId !== row.teamId) {
           throw new TaskServiceError(
@@ -243,6 +247,12 @@ export function createTaskService(deps: TaskServiceDeps) {
         taskRepository,
         agentRepository,
       });
+      if (selectedProfile) {
+        assertExecutorCompatibleWithRuntimeProfile({
+          executor: claimedExecutor,
+          profile: selectedProfile,
+        });
+      }
 
       // CAS update: atomically move status from 'queued' → 'dispatched' (Issue 1).
       // For freeform continuations (#1287), serialise concurrent claim

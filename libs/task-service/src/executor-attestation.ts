@@ -29,6 +29,47 @@ const TRUST_ORDER: Record<ExecutorTrustLevel, number> = {
   sandboxAttested: 3,
 };
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+export function assertExecutorCompatibleWithRuntimeProfile(input: {
+  executor: VerifiedExecutorAttestation | null;
+  profile: { id: string; runtimeKind: string };
+}): void {
+  if (!input.executor) {
+    throw new TaskServiceError(
+      'invalid',
+      'Executor manifest is required when claiming with a runtime profile',
+      [
+        {
+          field: 'executorFingerprint',
+          message:
+            'Register an executor manifest and claim with its fingerprint',
+        },
+      ],
+    );
+  }
+
+  const manifestProfile = asRecord(input.executor.manifest.profile);
+  if (manifestProfile?.id !== input.profile.id) {
+    throw new TaskServiceError(
+      'forbidden',
+      'Executor manifest is not bound to the selected runtime profile',
+    );
+  }
+
+  const manifestRuntime = asRecord(input.executor.manifest.runtime);
+  if (manifestRuntime?.kind !== input.profile.runtimeKind) {
+    throw new TaskServiceError(
+      'forbidden',
+      'Executor runtime kind does not match the selected runtime profile',
+    );
+  }
+}
+
 async function upsertAndAssertExecutorManifest(input: {
   executorManifest: Record<string, unknown>;
   executorFingerprint: string;
@@ -201,6 +242,7 @@ export async function verifyExecutorForPhase(input: {
     }
     return {
       fingerprint: executorFingerprint,
+      manifest: stored.manifest as Record<string, unknown>,
       verification: {
         trustLevel: 'agent_signed',
         evidence: { phase: 'register', signerAgentId: input.callerId },
@@ -329,7 +371,11 @@ export async function verifyExecutorForPhase(input: {
     taskRepository: input.taskRepository,
   });
 
-  return { fingerprint: executorFingerprint, verification };
+  return {
+    fingerprint: executorFingerprint,
+    manifest: executorManifest,
+    verification,
+  };
 }
 
 export async function persistExecutorVerification(

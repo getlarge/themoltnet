@@ -26,9 +26,15 @@ import {
   getTaskActivityAnalytics,
   joinTeam,
   listTaskAttempts,
+  registerExecutorManifest,
   taskHeartbeat,
 } from '@moltnet/api-client';
-import { computeJsonCid } from '@moltnet/crypto-service';
+import {
+  buildExecutorRegistrationAttestationPayload,
+  computeExecutorManifestCid,
+  computeJsonCid,
+  signExecutorAttestation,
+} from '@moltnet/crypto-service';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createAgent, pollUntil, type TestAgent } from './helpers.js';
@@ -75,6 +81,52 @@ describe('Task Analytics API', () => {
       ],
       passed: true,
     };
+  }
+
+  async function registerProfileExecutor(profile: {
+    id: string;
+    definitionCid: string;
+    runtimeKind: string;
+  }) {
+    const executorManifest = {
+      schemaVersion: 'moltnet:executor-manifest:v1',
+      runtime: {
+        kind: profile.runtimeKind,
+        engine: 'pi',
+        sandbox: 'gondolin',
+        id: 'task-analytics-e2e',
+        version: '1',
+      },
+      profile: {
+        id: profile.id,
+        definitionCid: profile.definitionCid,
+      },
+      vm: {
+        templateId: 'task-analytics-e2e',
+        templateVersion: '1',
+        templateFingerprint: 'bafyreitask-analytics-e2e',
+        guestAssetBuildId: 'task-analytics-e2e',
+      },
+      tools: [],
+      extensions: [],
+      executables: [],
+    };
+    const executorFingerprint = computeExecutorManifestCid(executorManifest);
+    const executorSignature = await signExecutorAttestation(
+      buildExecutorRegistrationAttestationPayload({ executorFingerprint }),
+      claimer.keyPair.privateKey,
+    );
+    const registration = await registerExecutorManifest({
+      client,
+      auth: () => claimer.accessToken,
+      body: {
+        executorManifest,
+        executorFingerprint,
+        executorSignature,
+      },
+    });
+    expect(registration.error).toBeUndefined();
+    return { executorFingerprint, executorManifest };
   }
 
   async function createAnalyticsTeamContext(name: string) {
@@ -279,6 +331,7 @@ describe('Task Analytics API', () => {
         },
       );
       expect(profileError).toBeUndefined();
+      const executor = await registerProfileExecutor(profile!);
 
       const { data: otherDiary, error: otherDiaryError } = await createDiary({
         client,
@@ -309,7 +362,11 @@ describe('Task Analytics API', () => {
         client,
         auth: () => claimer.accessToken,
         path: { id: task!.id },
-        body: { leaseTtlSec: 60, profileId: profile!.id },
+        body: {
+          leaseTtlSec: 60,
+          profileId: profile!.id,
+          executorFingerprint: executor.executorFingerprint,
+        },
       });
       expect(claimError).toBeUndefined();
       const attemptN = claimed!.attempt.attemptN;
@@ -389,6 +446,8 @@ describe('Task Analytics API', () => {
         auth: () => claimer.accessToken,
         path: { id: task!.id, n: attemptN },
         body: {
+          executorFingerprint: executor.executorFingerprint,
+          executorManifest: executor.executorManifest,
           output,
           outputCid,
           usage: {
@@ -548,6 +607,10 @@ describe('Task Analytics API', () => {
         },
       });
       expect(acceptedProfile.error).toBeUndefined();
+      const failedExecutor = await registerProfileExecutor(failedProfile.data!);
+      const acceptedExecutor = await registerProfileExecutor(
+        acceptedProfile.data!,
+      );
 
       const { data: task, error: createError } = await createTask({
         client,
@@ -574,7 +637,11 @@ describe('Task Analytics API', () => {
         client,
         auth: () => claimer.accessToken,
         path: { id: task!.id },
-        body: { leaseTtlSec: 60, profileId: failedProfile.data!.id },
+        body: {
+          leaseTtlSec: 60,
+          profileId: failedProfile.data!.id,
+          executorFingerprint: failedExecutor.executorFingerprint,
+        },
       });
       expect(firstClaim.error).toBeUndefined();
       const firstAttemptN = firstClaim.data!.attempt.attemptN;
@@ -663,7 +730,11 @@ describe('Task Analytics API', () => {
         client,
         auth: () => claimer.accessToken,
         path: { id: task!.id },
-        body: { leaseTtlSec: 60, profileId: acceptedProfile.data!.id },
+        body: {
+          leaseTtlSec: 60,
+          profileId: acceptedProfile.data!.id,
+          executorFingerprint: acceptedExecutor.executorFingerprint,
+        },
       });
       expect(secondClaim.error).toBeUndefined();
       const secondAttemptN = secondClaim.data!.attempt.attemptN;
@@ -735,6 +806,8 @@ describe('Task Analytics API', () => {
         auth: () => claimer.accessToken,
         path: { id: task!.id, n: secondAttemptN },
         body: {
+          executorFingerprint: acceptedExecutor.executorFingerprint,
+          executorManifest: acceptedExecutor.executorManifest,
           output,
           outputCid,
           usage: {

@@ -59,6 +59,7 @@ export interface ExecutorRegistrationInput {
 
 export interface VerifiedExecutorAttestation {
   fingerprint: string;
+  manifest: Record<string, unknown>;
   verification?: {
     trustLevel: 'agent_signed';
     evidence: Record<string, unknown>;
