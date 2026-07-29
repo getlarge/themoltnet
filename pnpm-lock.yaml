@@ -246,9 +246,6 @@ catalogs:
     eslint-plugin-simple-import-sort:
       specifier: ^12.1.1
       version: 12.1.1
-    fast-jwt:
-      specifier: ^6.2.4
-      version: 6.2.4
     fastify:
       specifier: ^5.8.5
       version: 5.8.5
@@ -261,9 +258,6 @@ catalogs:
     figlet:
       specifier: ^1.10.0
       version: 1.10.0
-    get-jwks:
-      specifier: ^11.0.3
-      version: 11.0.3
     husky:
       specifier: ^9.1.0
       version: 9.1.7
@@ -1536,15 +1530,12 @@ importers:
       '@ory/client-fetch':
         specifier: 'catalog:'
         version: 1.22.63
-      fast-jwt:
-        specifier: 'catalog:'
-        version: 6.2.4
       fastify-plugin:
         specifier: 'catalog:'
         version: 5.1.0
-      get-jwks:
+      jose:
         specifier: 'catalog:'
-        version: 11.0.3
+        version: 6.1.3
       pino:
         specifier: 'catalog:'
         version: 10.3.1
@@ -1558,6 +1549,9 @@ importers:
       testcontainers:
         specifier: 'catalog:'
         version: 11.12.0
+      tsx:
+        specifier: 'catalog:'
+        version: 4.21.0
       typescript:
         specifier: 'catalog:'
         version: 5.9.3

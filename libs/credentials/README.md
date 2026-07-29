@@ -29,10 +29,10 @@ algorithm, expiry, required standard claims, credential kind, namespaced claim
 schema, subject-to-agent binding, and every supplied binding expectation.
 Remote JWKS lookups have bounded timeouts and caches.
 
-`jose` is intentional here rather than reuse of MoltNet's internal
-`fast-jwt`/`get-jwks` Ory verifier. Talos publishes Ed25519/OKP keys, while this
-public package needs portable remote-JWKS selection and rotation without
-product-internal dependencies.
+`jose` is shared with MoltNet's Ory verifier, but this public package keeps a
+separate resolver and policy boundary. Talos publishes Ed25519/OKP keys and
+requires EdDSA plus credential-specific binding checks; Ory access tokens use
+RS256 and OAuth-specific claims.
 
 The v1 Talos integration does not rely on a caller-selected `aud` claim.
 Connector gateways must validate the exact issuer and `connectorId`. This is

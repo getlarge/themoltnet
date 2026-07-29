@@ -10,21 +10,23 @@
       "types": "./src/index.ts"
     }
   },
-  "scripts": {},
+  "scripts": {
+    "bench:jwt": "tsx __benchmarks__/token-validator.bench.ts"
+  },
   "dependencies": {
     "@moltnet/observability": "workspace:*",
     "@ory/client-fetch": "catalog:",
-    "fast-jwt": "catalog:",
-    "get-jwks": "catalog:",
     "fastify-plugin": "catalog:",
+    "jose": "catalog:",
     "pino": "catalog:"
   },
   "devDependencies": {
     "@testcontainers/postgresql": "catalog:",
+    "fastify": "catalog:",
     "testcontainers": "catalog:",
+    "tsx": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:",
-    "fastify": "catalog:"
+    "vitest": "catalog:"
   },
   "nx": {
     "tags": [

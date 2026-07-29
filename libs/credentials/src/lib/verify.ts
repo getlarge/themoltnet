@@ -105,9 +105,8 @@ function getResolver(options: CredentialVerificationOptions): JWTVerifyGetKey {
   const cached = remoteResolvers.get(cacheKey);
   if (cached) return cached;
 
-  // jose is intentionally separate from the Ory RS256 fast-jwt stack:
-  // Talos publishes Ed25519/OKP keys and this public package needs portable,
-  // dependency-free remote-JWKS selection and rotation support.
+  // Keep a resolver per credential trust domain even though Ory authentication
+  // also uses jose. Talos keys are Ed25519/OKP and remain hard-pinned to EdDSA.
   const resolver = failClosedResolver(
     createRemoteJWKSet(url, {
       timeoutDuration: JWKS_TIMEOUT_MS,

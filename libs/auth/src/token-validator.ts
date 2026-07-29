@@ -14,9 +14,7 @@ import {
   KeyVisibility,
   type OAuth2Api,
 } from '@ory/client-fetch';
-import type { DecodedJwt, VerifierOptions } from 'fast-jwt';
-import { createVerifier } from 'fast-jwt';
-import buildGetJwks from 'get-jwks';
+import { createRemoteJWKSet, errors, type JWTPayload, jwtVerify } from 'jose';
 
 import { ORY_OPAQUE_PREFIXES, TALOS_API_KEY_PREFIXES } from './constants.js';
 import type {
@@ -34,12 +32,12 @@ export interface TokenValidatorConfig {
   allowedIssuers?: string[];
   /** Allowed audience(s) for JWT validation */
   allowedAudiences?: string[];
-  /** Algorithms accepted for JWT verification (default: RS256) */
-  algorithms?: VerifierOptions['algorithms'];
-  /** JWKS cache max entries (default: 50) */
-  cacheMax?: number;
   /** JWKS cache TTL in ms (default: 600_000 = 10 minutes) */
   cacheTtl?: number;
+  /** Minimum delay between JWKS refreshes in ms (default: 30_000) */
+  jwksCooldownMs?: number;
+  /** JWKS request timeout in ms (default: 5_000) */
+  jwksTimeoutMs?: number;
   /** Optional trusted Talos admin client used only for issued API keys. */
   talosApi?: Pick<ApiKeysApi, 'adminVerifyApiKey'>;
   /** Resolve the verified Talos actor to MoltNet's canonical active agent. */
@@ -67,6 +65,11 @@ export interface TokenValidator {
   introspect(token: string): Promise<IntrospectionResult>;
   resolveAuthContext(token: string): Promise<AuthContext | null>;
 }
+
+const ORY_JWT_ALGORITHM = 'RS256' as const;
+const DEFAULT_JWKS_CACHE_TTL_MS = 600_000;
+const DEFAULT_JWKS_COOLDOWN_MS = 30_000;
+const DEFAULT_JWKS_TIMEOUT_MS = 5_000;
 
 function isOpaqueToken(token: string): boolean {
   return ORY_OPAQUE_PREFIXES.some((prefix) => token.startsWith(prefix));
@@ -104,6 +107,78 @@ function summarizeOryError(error: unknown): {
     ...(typeof candidate.cause?.code === 'string'
       ? { causeCode: candidate.cause.code }
       : {}),
+  };
+}
+
+type JwtFailureSummary = {
+  errorType: string;
+  reason:
+    | 'algorithm_rejected'
+    | 'claim_validation_failed'
+    | 'credential_expired'
+    | 'jwks_key_not_found'
+    | 'jwks_unavailable'
+    | 'signature_invalid'
+    | 'token_invalid';
+  claim?: string;
+};
+
+function summarizeJwtError(error: unknown): JwtFailureSummary {
+  if (error instanceof errors.JWTExpired) {
+    return {
+      errorType: 'JWTExpired',
+      reason: 'credential_expired',
+    };
+  }
+  if (error instanceof errors.JWTClaimValidationFailed) {
+    return {
+      errorType: 'JWTClaimValidationFailed',
+      reason: 'claim_validation_failed',
+      ...(typeof error.claim === 'string' ? { claim: error.claim } : {}),
+    };
+  }
+  if (error instanceof errors.JOSEAlgNotAllowed) {
+    return {
+      errorType: 'JOSEAlgNotAllowed',
+      reason: 'algorithm_rejected',
+    };
+  }
+  if (error instanceof errors.JWSSignatureVerificationFailed) {
+    return {
+      errorType: 'JWSSignatureVerificationFailed',
+      reason: 'signature_invalid',
+    };
+  }
+  if (error instanceof errors.JWKSNoMatchingKey) {
+    return {
+      errorType: 'JWKSNoMatchingKey',
+      reason: 'jwks_key_not_found',
+    };
+  }
+  if (
+    error instanceof errors.JWKSTimeout ||
+    (error instanceof errors.JOSEError && error.code === 'ERR_JOSE_GENERIC')
+  ) {
+    return {
+      errorType:
+        error instanceof errors.JWKSTimeout ? 'JWKSTimeout' : 'JOSEError',
+      reason: 'jwks_unavailable',
+    };
+  }
+  if (error instanceof errors.JOSEError) {
+    return {
+      errorType: error.constructor.name,
+      reason: 'token_invalid',
+    };
+  }
+  return {
+    errorType:
+      typeof error === 'object' &&
+      error !== null &&
+      typeof error.constructor?.name === 'string'
+        ? error.constructor.name
+        : 'UnknownError',
+    reason: 'jwks_unavailable',
   };
 }
 
@@ -373,31 +448,33 @@ export function createTokenValidator(
     } satisfies AgentAuthContext;
   }
 
-  let verifyJwt: ((token: string) => Promise<Record<string, unknown>>) | null =
-    null;
+  let verifyJwt: ((token: string) => Promise<JWTPayload>) | null = null;
 
   if (jwksUri) {
     const url = new URL(jwksUri);
     const domain = `${url.protocol}//${url.host}`;
-
-    const getJwks = buildGetJwks({
-      max: config?.cacheMax ?? 50,
-      ttl: config?.cacheTtl ?? 600_000,
-      issuersWhitelist: config?.allowedIssuers ?? [domain],
-      providerDiscovery: false,
-      jwksPath: url.pathname,
+    const keyResolver = createRemoteJWKSet(url, {
+      cacheMaxAge: config?.cacheTtl ?? DEFAULT_JWKS_CACHE_TTL_MS,
+      cooldownDuration: config?.jwksCooldownMs ?? DEFAULT_JWKS_COOLDOWN_MS,
+      timeoutDuration: config?.jwksTimeoutMs ?? DEFAULT_JWKS_TIMEOUT_MS,
     });
+    const allowedIssuers =
+      config?.allowedIssuers && config.allowedIssuers.length > 0
+        ? config.allowedIssuers
+        : [domain];
+    const allowedAudiences =
+      config?.allowedAudiences && config.allowedAudiences.length > 0
+        ? config.allowedAudiences
+        : undefined;
 
-    verifyJwt = createVerifier({
-      algorithms: config?.algorithms ?? ['RS256'],
-      allowedIss: config?.allowedIssuers ?? [domain],
-      allowedAud: config?.allowedAudiences,
-      key: async (decoded: DecodedJwt) => {
-        const kid = decoded.header.kid as string | undefined;
-        const alg = decoded.header.alg as string;
-        return getJwks.getPublicKey({ domain, kid, alg });
-      },
-    }) as (token: string) => Promise<Record<string, unknown>>;
+    verifyJwt = async (token: string) => {
+      const { payload } = await jwtVerify(token, keyResolver, {
+        algorithms: [ORY_JWT_ALGORITHM],
+        issuer: allowedIssuers,
+        ...(allowedAudiences ? { audience: allowedAudiences } : {}),
+      });
+      return payload;
+    };
   }
 
   async function introspect(token: string): Promise<IntrospectionResult> {
@@ -459,10 +536,20 @@ export function createTokenValidator(
         active: true,
         clientId,
         scopes,
-        expiresAt: payload.exp as number | undefined,
+        expiresAt: payload.exp,
         ext: flatExt,
       };
-    } catch {
+    } catch (error) {
+      const failure = summarizeJwtError(error);
+      const logContext = {
+        credentialType: 'ory-jwt',
+        ...failure,
+      };
+      if (failure.reason === 'jwks_unavailable') {
+        logger.warn(logContext, 'Ory JWT verification unavailable');
+      } else {
+        logger.debug(logContext, 'Ory JWT rejected');
+      }
       return { active: false };
     }
   }
