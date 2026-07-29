@@ -11,11 +11,33 @@
  * lib carries no runtime SDK dependency. The real `Agent` structurally
  * satisfies `GateAgent`.
  */
-import { RunEvalOutput, validateRunEvalOutput } from '@moltnet/tasks';
+import { FreeformOutput, RunEvalOutput } from '@moltnet/tasks';
+import type { TSchema } from 'typebox';
 import { Value } from 'typebox/value';
 
-import type { GateExpectations } from './scenario.js';
+import type { GateExpectations, ScenarioTaskType } from './scenario.js';
 import { formatTypeBoxErrors } from './typebox-errors.js';
+
+/**
+ * Per-producer-task-type facts the gate check needs: which output schema the
+ * captured submit must satisfy, and which output field carries the graded
+ * response string (`run_eval` submits `response`, `freeform` submits `summary`).
+ */
+const TASK_TYPE_OUTPUT: Record<
+  ScenarioTaskType,
+  { schema: TSchema; schemaName: string; responseField: string }
+> = {
+  run_eval: {
+    schema: RunEvalOutput,
+    schemaName: 'RunEvalOutput',
+    responseField: 'response',
+  },
+  freeform: {
+    schema: FreeformOutput,
+    schemaName: 'FreeformOutput',
+    responseField: 'summary',
+  },
+};
 
 /** Minimal shape of a task message (a structural subset of the SDK's
  * `TaskMessage`). */
@@ -151,9 +173,19 @@ export async function checkGates(
   taskId: string,
   attemptN: number,
   gates: GateExpectations,
-  expected: { model: string; workspace: string; teamId?: string },
+  expected: {
+    model: string;
+    workspace: string;
+    teamId?: string;
+    taskType?: ScenarioTaskType;
+  },
 ): Promise<GateResult> {
   const failures: GateFailure[] = [];
+  const {
+    schema: outputSchema,
+    schemaName,
+    responseField,
+  } = TASK_TYPE_OUTPUT[expected.taskType ?? 'run_eval'];
   const messages = await agent.tasks.listMessages(taskId, attemptN);
 
   // Gate: a prompt_build_failure short-circuits everything else.
@@ -251,8 +283,9 @@ export async function checkGates(
   }
 
   // Gate: a clean submit — the accepted attempt exists and its output is a
-  // schema-valid RunEvalOutput. A missing output or a schema failure means the
-  // submit tool never captured a valid payload (parse_result != captured_via_tool).
+  // schema-valid producer output for this task type. A missing output or a
+  // schema failure means the submit tool never captured a valid payload
+  // (parse_result != captured_via_tool).
   if (gates.requireCleanSubmit ?? true) {
     const attempts = await agent.tasks.listAttempts(taskId);
     const attempt = attempts.find((a) => a.attemptN === attemptN);
@@ -272,40 +305,44 @@ export async function checkGates(
         detail:
           'accepted attempt has no captured output (submit tool never succeeded)',
       });
-    } else if (!Value.Check(RunEvalOutput, attempt.output)) {
-      const errors = formatTypeBoxErrors(RunEvalOutput, attempt.output);
+    } else if (!Value.Check(outputSchema, attempt.output)) {
+      const errors = formatTypeBoxErrors(outputSchema, attempt.output);
       failures.push({
         gate: 'output_schema',
-        detail: `captured output is not a valid RunEvalOutput: ${errors}`,
+        detail: `captured output is not a valid ${schemaName}: ${errors}`,
       });
-    } else {
-      // Cross-field: verification presence must match successCriteria. Task
-      // create-time normalization ALWAYS injects a `submit-output` gate into a
+    } else if (
+      (attempt.output as { verification?: unknown }).verification === undefined
+    ) {
+      // Create-time normalization ALWAYS injects a `submit-output` gate into a
       // producer task's successCriteria (see `normalizeTaskInputForCreate`), so
-      // a run_eval attempt runs WITH successCriteria and its output MUST carry a
-      // `verification` record. Model that by passing a criteria-present input,
-      // which makes `validateRunEvalOutput` require verification to be present.
-      const crossField = validateRunEvalOutput(attempt.output, {
-        successCriteria: { version: 1 },
+      // the producer runs WITH successCriteria and its output MUST carry a
+      // `verification` record (both run_eval and freeform). Absent => contract
+      // violation.
+      failures.push({
+        gate: 'verification_contract',
+        detail:
+          'output.verification is required (the auto-injected submit-output ' +
+          'gate makes successCriteria present) but was absent',
       });
-      if (crossField !== null) {
-        failures.push({ gate: 'verification_contract', detail: crossField });
-      }
     }
   }
 
-  // Gate: deterministic assertions on the submitted `response` string. This is
-  // where format/content checks belong — never the LLM judge (which can't count
+  // Gate: deterministic assertions on the submitted response string (the
+  // task type's graded field — `response` for run_eval, `summary` for freeform).
+  // Format/content checks belong here — never the LLM judge (which can't count
   // reliably). Each pattern is a RegExp source applied with no flags.
   if (gates.responseMustMatch?.length || gates.responseMustNotMatch?.length) {
     const attempts = await agent.tasks.listAttempts(taskId);
     const output = attempts.find((a) => a.attemptN === attemptN)?.output;
-    const response =
-      typeof output?.response === 'string' ? output.response : null;
+    const raw = (output as Record<string, unknown> | undefined)?.[
+      responseField
+    ];
+    const response = typeof raw === 'string' ? raw : null;
     if (response === null) {
       failures.push({
         gate: 'response_content',
-        detail: 'accepted attempt has no string response to assert against',
+        detail: `accepted attempt has no string ${responseField} to assert against`,
       });
     } else {
       for (const src of gates.responseMustMatch ?? []) {

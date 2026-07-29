@@ -402,4 +402,44 @@ describe('checkGates', () => {
     expect(result.failures.map((f) => f.gate)).not.toContain('workspace_mode');
     expect(result.passed).toBe(true);
   });
+
+  it('validates the output against FreeformOutput for a freeform scenario', async () => {
+    // A freeform submit is a FreeformOutput ({ summary, verification, ... }); a
+    // run_eval-shaped output (response, no summary) must fail the schema gate.
+    const freeformOutput = {
+      summary: 'Reviewed the helper and reported the defect.',
+      verification: VALID_OUTPUT.verification,
+    };
+    const okAgent = fakeAgent(messages(), {
+      attemptN: 1,
+      status: 'completed',
+      output: freeformOutput,
+    });
+    const okResult = await checkGates(
+      okAgent,
+      't1',
+      1,
+      {},
+      {
+        ...EXPECTED,
+        taskType: 'freeform',
+      },
+    );
+    expect(okResult.passed).toBe(true);
+
+    // The run_eval-shaped VALID_OUTPUT lacks `summary`, so under freeform it
+    // fails the output schema gate.
+    const badAgent = fakeAgent(messages(), completedAttempt);
+    const badResult = await checkGates(
+      badAgent,
+      't1',
+      1,
+      {},
+      {
+        ...EXPECTED,
+        taskType: 'freeform',
+      },
+    );
+    expect(badResult.failures.map((f) => f.gate)).toContain('output_schema');
+  });
 });
