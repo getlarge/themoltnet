@@ -54,6 +54,8 @@ describe('REGISTERED_TASK_TYPES + knownTaskTypesList', () => {
 
 describe('help strings', () => {
   it('ROOT_USAGE lists every subcommand', () => {
+    expect(ROOT_USAGE).toContain('--runtime <module>');
+    expect(ROOT_USAGE).toContain('DaemonRuntimeAdapter');
     expect(ROOT_USAGE).toContain('poll');
     expect(ROOT_USAGE).toContain('once');
     expect(ROOT_USAGE).toContain('drain');

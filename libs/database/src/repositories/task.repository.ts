@@ -21,10 +21,13 @@ import type { Database } from '../db.js';
 import {
   correlationSeals,
   type ExecutorManifest,
+  type ExecutorManifestRegistration,
+  executorManifestRegistrations,
   executorManifests,
   type ExecutorManifestVerification,
   executorManifestVerifications,
   type NewExecutorManifest,
+  type NewExecutorManifestRegistration,
   type NewExecutorManifestVerification,
   type NewTask,
   type NewTaskAttempt,
@@ -754,6 +757,43 @@ export function createTaskRepository(db: Database) {
         .select()
         .from(executorManifests)
         .where(eq(executorManifests.fingerprint, fingerprint))
+        .limit(1);
+      return row ?? null;
+    },
+
+    async upsertExecutorManifestRegistration(
+      input: NewExecutorManifestRegistration,
+    ): Promise<ExecutorManifestRegistration> {
+      const [row] = await getExecutor(db)
+        .insert(executorManifestRegistrations)
+        .values(input)
+        .onConflictDoUpdate({
+          target: [
+            executorManifestRegistrations.fingerprint,
+            executorManifestRegistrations.agentIdentityId,
+          ],
+          set: {
+            signature: input.signature,
+            registeredAt: input.registeredAt ?? new Date(),
+          },
+        })
+        .returning();
+      return row;
+    },
+
+    async findExecutorManifestRegistration(
+      fingerprint: string,
+      agentIdentityId: string,
+    ): Promise<ExecutorManifestRegistration | null> {
+      const [row] = await getExecutor(db)
+        .select()
+        .from(executorManifestRegistrations)
+        .where(
+          and(
+            eq(executorManifestRegistrations.fingerprint, fingerprint),
+            eq(executorManifestRegistrations.agentIdentityId, agentIdentityId),
+          ),
+        )
         .limit(1);
       return row ?? null;
     },

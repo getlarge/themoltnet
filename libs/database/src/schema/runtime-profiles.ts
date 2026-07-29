@@ -20,7 +20,6 @@ interface RuntimeProfileSchemaDeps {
   agents: { identityId: AnyPgColumn };
   humans: { id: AnyPgColumn };
   teams: { id: AnyPgColumn };
-  runtimeKindEnum: PgEnum<['gondolin_pi']>;
   storageModeEnum: PgEnum<['local']>;
 }
 
@@ -32,7 +31,6 @@ export function defineRuntimeProfilesTable({
   agents,
   humans,
   teams,
-  runtimeKindEnum,
   storageModeEnum,
 }: RuntimeProfileSchemaDeps) {
   return pgTable(
@@ -51,7 +49,7 @@ export function defineRuntimeProfilesTable({
       topP: doublePrecision('top_p'),
       topK: integer('top_k'),
       maxOutputTokens: integer('max_output_tokens'),
-      runtimeKind: runtimeKindEnum('runtime_kind')
+      runtimeKind: varchar('runtime_kind', { length: 100 })
         .notNull()
         .default('gondolin_pi'),
       sandbox: jsonb('sandbox').notNull(),
@@ -84,6 +82,10 @@ export function defineRuntimeProfilesTable({
         .notNull()
         .default(sql`'{}'::text[]`),
       requiredTools: text('required_tools')
+        .array()
+        .notNull()
+        .default(sql`'{}'::text[]`),
+      requiredExecutables: text('required_executables')
         .array()
         .notNull()
         .default(sql`'{}'::text[]`),
@@ -178,6 +180,10 @@ export function defineRuntimeProfilesTable({
       check(
         'runtime_profiles_tool_enforcement_valid',
         sql`tool_enforcement = ANY(${toolEnforcementSqlArray})`,
+      ),
+      check(
+        'runtime_profiles_runtime_kind_valid',
+        sql`runtime_kind ~ '^[a-z][a-z0-9._-]{0,99}$'`,
       ),
     ],
   );

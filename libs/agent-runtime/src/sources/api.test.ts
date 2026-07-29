@@ -114,4 +114,36 @@ describe('ApiTaskSource', () => {
     });
     await expect(src.claim()).resolves.toBeNull();
   });
+
+  it('attaches a freshly signed executor manifest to the claim', async () => {
+    const task = makeFulfillBriefTask({ status: 'dispatched' });
+    const claimMock = vi.fn<TasksNamespace['claim']>().mockResolvedValue({
+      task,
+      attempt: { taskId: task.id, attemptN: 1 } as never,
+      traceHeaders: {},
+    });
+    const attestation = {
+      executorManifest: { schemaVersion: 'moltnet:executor-manifest:v1' },
+      executorFingerprint: 'bafkreiexecutor',
+      executorSignature: 'signature',
+    };
+    const createClaimAttestation = vi.fn().mockResolvedValue(attestation);
+    const src = new ApiTaskSource({
+      agent: makeAgent(claimMock),
+      taskId: task.id,
+      profileId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      createClaimAttestation,
+    });
+
+    await src.claim();
+
+    expect(createClaimAttestation).toHaveBeenCalledWith({
+      taskId: task.id,
+      profileId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+    });
+    expect(claimMock).toHaveBeenCalledWith(task.id, {
+      profileId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      ...attestation,
+    });
+  });
 });

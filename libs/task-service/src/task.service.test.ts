@@ -1,6 +1,7 @@
 import { KetoNamespace } from '@moltnet/auth';
 import {
   computeBytesCid,
+  computeExecutorManifestCid,
   computeJsonCid,
   decodeBytesCidToSha256,
 } from '@moltnet/crypto-service';
@@ -174,6 +175,19 @@ type TaskRepositoryMocks = {
   upsertExecutorManifestVerification: Mock<
     (input: Record<string, unknown>) => Promise<void>
   >;
+  upsertExecutorManifest: Mock<
+    (input: {
+      fingerprint: string;
+      manifest: Record<string, unknown>;
+      schemaVersion: string;
+    }) => Promise<unknown>
+  >;
+  findExecutorManifest: Mock<
+    (fingerprint: string) => Promise<{
+      fingerprint: string;
+      manifest: Record<string, unknown>;
+    } | null>
+  >;
 };
 
 type CorrelationSealRepositoryMocks = {
@@ -268,7 +282,11 @@ interface Mocks {
   };
   runtimeProfileRepository: {
     findById: Mock<
-      (id: string) => Promise<{ id: string; teamId: string } | null>
+      (id: string) => Promise<{
+        id: string;
+        teamId: string;
+        runtimeKind: string;
+      } | null>
     >;
   };
   contextPackRepository: {
@@ -305,6 +323,7 @@ function makeMocks(
   } = {},
 ): Mocks {
   const insertedTasks: DbTask[] = [];
+  const executorManifests = new Map<string, Record<string, unknown>>();
 
   const taskRepository: TaskRepositoryMocks = {
     findById: vi
@@ -475,6 +494,29 @@ function makeMocks(
     upsertExecutorManifestVerification: vi
       .fn<(input: Record<string, unknown>) => Promise<void>>()
       .mockResolvedValue(undefined),
+    upsertExecutorManifest: vi
+      .fn<
+        (input: {
+          fingerprint: string;
+          manifest: Record<string, unknown>;
+          schemaVersion: string;
+        }) => Promise<unknown>
+      >()
+      .mockImplementation((input) => {
+        executorManifests.set(input.fingerprint, input.manifest);
+        return Promise.resolve(input);
+      }),
+    findExecutorManifest: vi
+      .fn<
+        (fingerprint: string) => Promise<{
+          fingerprint: string;
+          manifest: Record<string, unknown>;
+        } | null>
+      >()
+      .mockImplementation((fingerprint) => {
+        const manifest = executorManifests.get(fingerprint);
+        return Promise.resolve(manifest ? { fingerprint, manifest } : null);
+      }),
   };
 
   const transactionRunner: TransactionRunner = {
@@ -514,8 +556,18 @@ function makeMocks(
     },
     runtimeProfileRepository: {
       findById: vi
-        .fn<(id: string) => Promise<{ id: string; teamId: string } | null>>()
-        .mockResolvedValue({ id: PROFILE_ID, teamId: TEAM_ID }),
+        .fn<
+          (id: string) => Promise<{
+            id: string;
+            teamId: string;
+            runtimeKind: string;
+          } | null>
+        >()
+        .mockResolvedValue({
+          id: PROFILE_ID,
+          teamId: TEAM_ID,
+          runtimeKind: 'gondolin_pi',
+        }),
     },
     contextPackRepository: {
       findById: vi.fn<(id: string) => Promise<null>>().mockResolvedValue(null),
@@ -751,6 +803,7 @@ describe('createTaskService.claim — runtime profile attestation', () => {
     mocks.runtimeProfileRepository.findById.mockResolvedValue({
       id: PROFILE_ID,
       teamId: OTHER_TEAM_ID,
+      runtimeKind: 'gondolin_pi',
     });
 
     await expect(
@@ -778,6 +831,68 @@ describe('createTaskService.claim — runtime profile attestation', () => {
     ).rejects.toMatchObject({
       code: 'forbidden',
       message: 'Runtime profile does not resolve in the task team',
+    });
+
+    expect(mocks.taskRepository.claimIfQueued).not.toHaveBeenCalled();
+  });
+
+  it('requires executor evidence before claiming with a runtime profile', async () => {
+    const pinnedTask = {
+      ...makeJudgeTask(JUDGE_TASK, 'queued'),
+      allowedProfiles: [{ profileId: PROFILE_ID }],
+    } as DbTask;
+    mocks = makeMocks({
+      visibleTasks: {
+        [JUDGE_TASK]: pinnedTask,
+      },
+    });
+    service = createTaskService(
+      mocks as unknown as Parameters<typeof createTaskService>[0],
+    );
+
+    await expect(
+      service.claim(JUDGE_TASK, AGENT_ID, KetoNamespace.Agent, 30, {
+        profileId: PROFILE_ID,
+      }),
+    ).rejects.toMatchObject({
+      code: 'invalid',
+      message:
+        'Executor manifest is required when claiming with a runtime profile',
+    });
+
+    expect(mocks.taskRepository.claimIfQueued).not.toHaveBeenCalled();
+  });
+
+  it('rejects an executor runtime kind incompatible with the selected profile', async () => {
+    const pinnedTask = {
+      ...makeJudgeTask(JUDGE_TASK, 'queued'),
+      allowedProfiles: [{ profileId: PROFILE_ID }],
+    } as DbTask;
+    mocks = makeMocks({
+      visibleTasks: {
+        [JUDGE_TASK]: pinnedTask,
+      },
+    });
+    service = createTaskService(
+      mocks as unknown as Parameters<typeof createTaskService>[0],
+    );
+    const executorManifest = {
+      schemaVersion: 'moltnet:executor-manifest:v1',
+      profile: { id: PROFILE_ID },
+      runtime: { kind: 'other_runtime' },
+    };
+    const executorFingerprint = computeExecutorManifestCid(executorManifest);
+
+    await expect(
+      service.claim(JUDGE_TASK, AGENT_ID, KetoNamespace.Agent, 30, {
+        profileId: PROFILE_ID,
+        executorManifest,
+        executorFingerprint,
+      }),
+    ).rejects.toMatchObject({
+      code: 'forbidden',
+      message:
+        'Executor runtime kind does not match the selected runtime profile',
     });
 
     expect(mocks.taskRepository.claimIfQueued).not.toHaveBeenCalled();

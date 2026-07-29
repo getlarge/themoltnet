@@ -699,6 +699,12 @@ type Handler interface {
 	//
 	// POST /auth/register
 	RegisterAgent(ctx context.Context, req *RegisterAgentReq) (RegisterAgentRes, error)
+	// RegisterExecutorManifest implements registerExecutorManifest operation.
+	//
+	// Register an agent-signed executor manifest for fingerprint-only task claims.
+	//
+	// POST /executor-manifests/register
+	RegisterExecutorManifest(ctx context.Context, req *RegisterExecutorManifestReq) (RegisterExecutorManifestRes, error)
 	// RejectSigningRequest implements rejectSigningRequest operation.
 	//
 	// POST /crypto/signing-requests/{id}/reject

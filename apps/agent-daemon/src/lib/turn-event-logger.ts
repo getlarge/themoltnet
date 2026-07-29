@@ -5,7 +5,7 @@
 import type {
   TurnEventHandler,
   TurnEventHandlerFactory,
-} from '@themoltnet/pi-extension';
+} from '@themoltnet/pi-runtime';
 import type { Logger } from 'pino';
 
 export function makeTurnEventHandler(

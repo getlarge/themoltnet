@@ -1,0 +1,20 @@
+{
+  "name": "moltnet-custom-pi-runtime-example",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "npx @themoltnet/agent-daemon --runtime ./dist/runtime.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@earendil-works/pi-coding-agent": "0.79.4",
+    "@themoltnet/agent-daemon": "^0.33.0",
+    "@themoltnet/pi-runtime": "^0.1.0",
+    "typebox": "^1.2.8"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0"
+  }
+}

@@ -23,19 +23,10 @@
   "include": ["src"],
   "references": [
     {
-      "path": "../shell-command-analyzer/tsconfig.lib.json"
+      "path": "../pi-runtime/tsconfig.lib.json"
     },
     {
       "path": "../sdk/tsconfig.lib.json"
-    },
-    {
-      "path": "../agent-runtime/tsconfig.lib.json"
-    },
-    {
-      "path": "../models/tsconfig.lib.json"
-    },
-    {
-      "path": "../crypto-service/tsconfig.lib.json"
     }
   ]
 }

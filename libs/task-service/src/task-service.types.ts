@@ -51,8 +51,15 @@ export interface ExecutorAttestationInput {
   profileId?: string;
 }
 
+export interface ExecutorRegistrationInput {
+  executorManifest: Record<string, unknown>;
+  executorFingerprint: string;
+  executorSignature: string;
+}
+
 export interface VerifiedExecutorAttestation {
   fingerprint: string;
+  manifest: Record<string, unknown>;
   verification?: {
     trustLevel: 'agent_signed';
     evidence: Record<string, unknown>;

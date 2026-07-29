@@ -55,7 +55,10 @@ export interface ResumeCommand {
 }
 
 export interface SandboxConfig {
-  /** Snapshot build settings. */
+  /**
+   * Operator-owned snapshot build settings. Runtime profiles must never
+   * populate this field.
+   */
   snapshot?: {
     /** Shell commands to run after the base setup. */
     setupCommands?: string[];
@@ -72,7 +75,7 @@ export interface SandboxConfig {
     /** Host patterns explicitly allowed to resolve to internal/private IPs. */
     allowedInternalHosts?: string[];
   };
-  /** Shell commands to run every VM resume, after platform setup
+  /** Operator-owned shell commands to run every VM resume, after platform setup
    *  (TLS, DNS, git safe.directory, tmpfs node_modules) and before
    *  the agent session starts. Use for per-session bootstrap that
    *  doesn't belong baked into the snapshot.

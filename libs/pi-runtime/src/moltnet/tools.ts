@@ -17,10 +17,39 @@ import type { ToolDefinition } from '@earendil-works/pi-coding-agent';
 import { defineTool } from '@earendil-works/pi-coding-agent';
 import type { connect } from '@themoltnet/sdk';
 
-import type { TrackedError } from '../commands/types.js';
 import { type ExpandedPack, renderPhase6Markdown } from './render-phase6.js';
 
 type MoltNetAgent = Awaited<ReturnType<typeof connect>>;
+
+export const MOLTNET_TOOL_NAMES = [
+  'moltnet_pack_get',
+  'moltnet_pack_create',
+  'moltnet_pack_provenance',
+  'moltnet_pack_render',
+  'moltnet_rendered_pack_list',
+  'moltnet_rendered_pack_get',
+  'moltnet_diary_tags',
+  'moltnet_list_entries',
+  'moltnet_get_entry',
+  'moltnet_search_entries',
+  'moltnet_create_entry',
+  'moltnet_get_task',
+  'moltnet_list_task_attempts',
+  'moltnet_list_task_messages',
+  'moltnet_upload_task_artifact',
+  'moltnet_list_task_artifacts',
+  'moltnet_download_task_artifact',
+  'moltnet_review_session_errors',
+  'moltnet_host_exec',
+] as const;
+
+export interface TrackedError {
+  toolName: string;
+  toolCallId: string;
+  input: Record<string, unknown>;
+  error: string;
+  timestamp: number;
+}
 
 /**
  * Active-task context. When present, `moltnet_create_entry` is forced to

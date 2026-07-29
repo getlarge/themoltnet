@@ -124,6 +124,7 @@ import {
   previewDiaryCustomPack,
   previewRenderedPack,
   registerAgent,
+  registerExecutorManifest,
   rejectSigningRequest,
   rejectTransfer,
   removeGroupMember,
@@ -495,6 +496,9 @@ import type {
   RegisterAgentData,
   RegisterAgentError,
   RegisterAgentResponse,
+  RegisterExecutorManifestData,
+  RegisterExecutorManifestError,
+  RegisterExecutorManifestResponse,
   RejectSigningRequestData,
   RejectSigningRequestError,
   RejectSigningRequestResponse,
@@ -2366,6 +2370,33 @@ export const verifyDiaryEntryByIdOptions = (
     },
     queryKey: verifyDiaryEntryByIdQueryKey(options),
   });
+
+/**
+ * Register an agent-signed executor manifest for fingerprint-only task claims.
+ */
+export const registerExecutorManifestMutation = (
+  options?: Partial<Options<RegisterExecutorManifestData>>,
+): UseMutationOptions<
+  RegisterExecutorManifestResponse,
+  RegisterExecutorManifestError,
+  Options<RegisterExecutorManifestData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    RegisterExecutorManifestResponse,
+    RegisterExecutorManifestError,
+    Options<RegisterExecutorManifestData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await registerExecutorManifest({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
 
 /**
  * Delete a group. Requires manage_members permission.

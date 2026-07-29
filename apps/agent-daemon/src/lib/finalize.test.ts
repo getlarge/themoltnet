@@ -13,6 +13,9 @@ interface CompleteBody {
   output: Record<string, unknown>;
   outputCid: string;
   contentSignature?: string;
+  executorManifest?: Record<string, unknown>;
+  executorFingerprint?: string;
+  executorSignature?: string;
 }
 
 interface FailBody {
@@ -124,6 +127,36 @@ describe('finalizeTask', () => {
 
     expect(stub.complete).toHaveBeenCalledTimes(1);
     expect(stub.complete.mock.calls[0][2].contentSignature).toBe('sig-abc');
+  });
+
+  it('binds the executor manifest signature to the completed output CID', async () => {
+    const output = makeOutput('completed', { branch: 'feat/x' });
+    const complete = vi.fn().mockResolvedValue({
+      executorManifest: { schemaVersion: 'moltnet:executor-manifest:v1' },
+      executorFingerprint: 'bafkreiexecutor',
+      executorSignature: 'signature',
+    });
+
+    await finalizeTask(stub.agent, output, {
+      executorAttestor: {
+        manifest: {},
+        fingerprint: 'bafkreiexecutor',
+        registration: vi.fn(),
+        reference: vi.fn(),
+        claim: vi.fn(),
+        complete,
+      },
+    });
+
+    expect(complete).toHaveBeenCalledWith({
+      taskId: 't1',
+      attemptN: 1,
+      outputCid: 'bafy-out',
+    });
+    expect(stub.complete.mock.calls[0][2]).toMatchObject({
+      executorFingerprint: 'bafkreiexecutor',
+      executorSignature: 'signature',
+    });
   });
 
   it('calls /failAttempt with the executor-provided error', async () => {

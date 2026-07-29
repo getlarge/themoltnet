@@ -33,6 +33,12 @@ export interface ExecutorClaimAttestationPayload {
   executorFingerprint: string;
 }
 
+export interface ExecutorRegistrationAttestationPayload {
+  v: typeof EXECUTOR_ATTESTATION_PAYLOAD_VERSION;
+  phase: 'register';
+  executorFingerprint: string;
+}
+
 export interface ExecutorCompleteAttestationPayload {
   v: typeof EXECUTOR_ATTESTATION_PAYLOAD_VERSION;
   phase: 'complete';
@@ -43,8 +49,19 @@ export interface ExecutorCompleteAttestationPayload {
 }
 
 export type ExecutorAttestationPayload =
+  | ExecutorRegistrationAttestationPayload
   | ExecutorClaimAttestationPayload
   | ExecutorCompleteAttestationPayload;
+
+export function buildExecutorRegistrationAttestationPayload(input: {
+  executorFingerprint: string;
+}): ExecutorRegistrationAttestationPayload {
+  return {
+    v: EXECUTOR_ATTESTATION_PAYLOAD_VERSION,
+    phase: 'register',
+    executorFingerprint: input.executorFingerprint,
+  };
+}
 
 export function buildExecutorClaimAttestationPayload(input: {
   taskId: string;

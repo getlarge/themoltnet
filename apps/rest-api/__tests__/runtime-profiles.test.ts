@@ -41,6 +41,7 @@ function mockProfile(overrides: Partial<RuntimeProfile> = {}): RuntimeProfile {
     maxBashTimeouts: 3,
     requiredEnv: ['LINEAR_API_KEY', 'GITHUB_TOKEN'],
     requiredTools: ['linear.issue.get', 'github.pr.create'],
+    requiredExecutables: [],
     context: [
       {
         slug: 'linear-github-workflow',

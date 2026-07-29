@@ -7,10 +7,7 @@ import {
   ApiTaskSource,
   type TaskExecutor,
 } from '@themoltnet/agent-runtime';
-import {
-  createPiTaskExecutor,
-  findMainWorktree,
-} from '@themoltnet/pi-extension';
+import { findMainWorktree } from '@themoltnet/pi-runtime';
 
 import { activatePiCodingAgentDir, loadConfig } from '../config.js';
 import { abortActiveAttemptOnSignal } from '../lib/abort-active-attempt.js';
@@ -62,8 +59,16 @@ import { installShutdownSignalHandlers } from '../lib/shutdown-signal.js';
 import { createApiSourceAttemptResolver } from '../lib/source-attempts.js';
 import { ensureDaemonStateDirs } from '../lib/state-dir.js';
 import { makeTurnEventHandler } from '../lib/turn-event-logger.js';
+import { defaultPiDaemonAdapter } from '../pi.js';
+import {
+  assertRuntimeAdapterSupportsProfile,
+  type DaemonRuntimeAdapter,
+} from '../runtime.js';
 
-export async function runOnce(argv: string[]): Promise<number> {
+export async function runOnce(
+  argv: string[],
+  runtimeAdapter: DaemonRuntimeAdapter = defaultPiDaemonAdapter,
+): Promise<number> {
   if (isHelpFlag(argv)) {
     console.log(ONCE_HELP);
     return 0;
@@ -131,10 +136,17 @@ export async function runOnce(argv: string[]): Promise<number> {
     teamId: values.team,
     cwd: ctx.agentRootDir,
   });
-  validateRuntimeProfilePrerequisites(
+  assertRuntimeAdapterSupportsProfile(runtimeAdapter, profile);
+  const preparedRuntime = await runtimeAdapter.prepare({
     profile,
-    cfg.profilePrerequisiteEnv,
-    cfg.profilePrerequisitePath,
+    configDir: ctx.agentDir,
+  });
+  validateRuntimeProfilePrerequisites(profile, cfg.profilePrerequisiteEnv, {
+    tools: preparedRuntime.tools,
+    executables: preparedRuntime.executables,
+  });
+  await ctx.agent.tasks.registerExecutorManifest(
+    await preparedRuntime.attestor.registration(),
   );
   opts = parseCommonOptions(values, {
     runtimeDefaults: {
@@ -333,7 +345,7 @@ export async function runOnce(argv: string[]): Promise<number> {
   });
 
   try {
-    const rawExecuteTask = createPiTaskExecutor({
+    const rawExecuteTask = preparedRuntime.createTaskExecutor({
       agentName: opts.agent,
       agentRootDir: ctx.agentRootDir,
       mountPath: sandbox.rootDir,
@@ -466,6 +478,7 @@ export async function runOnce(argv: string[]): Promise<number> {
         taskId,
         leaseTtlSec: opts.leaseTtlSec,
         profileId: profile.id,
+        executorFingerprint: preparedRuntime.attestor.fingerprint,
       }),
       makeReporter: () =>
         new ApiTaskReporter({
@@ -533,6 +546,7 @@ export async function runOnce(argv: string[]): Promise<number> {
             piAgentDir: piAgentDir.path,
             cwd: ctx.agentRootDir,
           }),
+          executorAttestor: preparedRuntime.attestor,
           writeCorrelationAnchors,
           log: (msg, fields) => rootLogger.warn(fields ?? {}, msg),
         });

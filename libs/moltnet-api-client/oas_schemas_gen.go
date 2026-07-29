@@ -4336,6 +4336,7 @@ func (*ConflictProblemDetails) failTaskAttemptRes()                       {}
 func (*ConflictProblemDetails) initiateTransferRes()                      {}
 func (*ConflictProblemDetails) joinTeamRes()                              {}
 func (*ConflictProblemDetails) previewDiaryCustomPackRes()                {}
+func (*ConflictProblemDetails) registerExecutorManifestRes()              {}
 func (*ConflictProblemDetails) rejectSigningRequestRes()                  {}
 func (*ConflictProblemDetails) rejectTransferRes()                        {}
 func (*ConflictProblemDetails) renderContextPackRes()                     {}
@@ -6199,8 +6200,9 @@ type CreateRuntimeProfileBody struct {
 	Name                  string                                              `json:"name"`
 	Provider              string                                              `json:"provider"`
 	RequiredEnv           []string                                            `json:"requiredEnv"`
+	RequiredExecutables   []string                                            `json:"requiredExecutables"`
 	RequiredTools         []string                                            `json:"requiredTools"`
-	RuntimeKind           OptCreateRuntimeProfileBodyRuntimeKind              `json:"runtimeKind"`
+	RuntimeKind           OptString                                           `json:"runtimeKind"`
 	Sandbox               CreateRuntimeProfileBodySandbox                     `json:"sandbox"`
 	SessionStorageMode    OptCreateRuntimeProfileBodySessionStorageMode       `json:"sessionStorageMode"`
 	SessionTtlSec         OptInt                                              `json:"sessionTtlSec"`
@@ -6285,13 +6287,18 @@ func (s *CreateRuntimeProfileBody) GetRequiredEnv() []string {
 	return s.RequiredEnv
 }
 
+// GetRequiredExecutables returns the value of RequiredExecutables.
+func (s *CreateRuntimeProfileBody) GetRequiredExecutables() []string {
+	return s.RequiredExecutables
+}
+
 // GetRequiredTools returns the value of RequiredTools.
 func (s *CreateRuntimeProfileBody) GetRequiredTools() []string {
 	return s.RequiredTools
 }
 
 // GetRuntimeKind returns the value of RuntimeKind.
-func (s *CreateRuntimeProfileBody) GetRuntimeKind() OptCreateRuntimeProfileBodyRuntimeKind {
+func (s *CreateRuntimeProfileBody) GetRuntimeKind() OptString {
 	return s.RuntimeKind
 }
 
@@ -6415,13 +6422,18 @@ func (s *CreateRuntimeProfileBody) SetRequiredEnv(val []string) {
 	s.RequiredEnv = val
 }
 
+// SetRequiredExecutables sets the value of RequiredExecutables.
+func (s *CreateRuntimeProfileBody) SetRequiredExecutables(val []string) {
+	s.RequiredExecutables = val
+}
+
 // SetRequiredTools sets the value of RequiredTools.
 func (s *CreateRuntimeProfileBody) SetRequiredTools(val []string) {
 	s.RequiredTools = val
 }
 
 // SetRuntimeKind sets the value of RuntimeKind.
-func (s *CreateRuntimeProfileBody) SetRuntimeKind(val OptCreateRuntimeProfileBodyRuntimeKind) {
+func (s *CreateRuntimeProfileBody) SetRuntimeKind(val OptString) {
 	s.RuntimeKind = val
 }
 
@@ -6662,48 +6674,12 @@ func (s *CreateRuntimeProfileBodyDefaultWorkspaceMode) UnmarshalText(data []byte
 	}
 }
 
-type CreateRuntimeProfileBodyRuntimeKind string
-
-const (
-	CreateRuntimeProfileBodyRuntimeKindGondolinPi CreateRuntimeProfileBodyRuntimeKind = "gondolin_pi"
-)
-
-// AllValues returns all CreateRuntimeProfileBodyRuntimeKind values.
-func (CreateRuntimeProfileBodyRuntimeKind) AllValues() []CreateRuntimeProfileBodyRuntimeKind {
-	return []CreateRuntimeProfileBodyRuntimeKind{
-		CreateRuntimeProfileBodyRuntimeKindGondolinPi,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s CreateRuntimeProfileBodyRuntimeKind) MarshalText() ([]byte, error) {
-	switch s {
-	case CreateRuntimeProfileBodyRuntimeKindGondolinPi:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *CreateRuntimeProfileBodyRuntimeKind) UnmarshalText(data []byte) error {
-	switch CreateRuntimeProfileBodyRuntimeKind(data) {
-	case CreateRuntimeProfileBodyRuntimeKindGondolinPi:
-		*s = CreateRuntimeProfileBodyRuntimeKindGondolinPi
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
 type CreateRuntimeProfileBodySandbox struct {
-	Env            OptCreateRuntimeProfileBodySandboxEnv               `json:"env"`
-	HostExec       OptCreateRuntimeProfileBodySandboxHostExec          `json:"hostExec"`
-	Network        OptCreateRuntimeProfileBodySandboxNetwork           `json:"network"`
-	Resources      OptCreateRuntimeProfileBodySandboxResources         `json:"resources"`
-	ResumeCommands []CreateRuntimeProfileBodySandboxResumeCommandsItem `json:"resumeCommands"`
-	Snapshot       OptCreateRuntimeProfileBodySandboxSnapshot          `json:"snapshot"`
-	Vfs            OptCreateRuntimeProfileBodySandboxVfs               `json:"vfs"`
+	Env       OptCreateRuntimeProfileBodySandboxEnv       `json:"env"`
+	HostExec  OptCreateRuntimeProfileBodySandboxHostExec  `json:"hostExec"`
+	Network   OptCreateRuntimeProfileBodySandboxNetwork   `json:"network"`
+	Resources OptCreateRuntimeProfileBodySandboxResources `json:"resources"`
+	Vfs       OptCreateRuntimeProfileBodySandboxVfs       `json:"vfs"`
 }
 
 // GetEnv returns the value of Env.
@@ -6724,16 +6700,6 @@ func (s *CreateRuntimeProfileBodySandbox) GetNetwork() OptCreateRuntimeProfileBo
 // GetResources returns the value of Resources.
 func (s *CreateRuntimeProfileBodySandbox) GetResources() OptCreateRuntimeProfileBodySandboxResources {
 	return s.Resources
-}
-
-// GetResumeCommands returns the value of ResumeCommands.
-func (s *CreateRuntimeProfileBodySandbox) GetResumeCommands() []CreateRuntimeProfileBodySandboxResumeCommandsItem {
-	return s.ResumeCommands
-}
-
-// GetSnapshot returns the value of Snapshot.
-func (s *CreateRuntimeProfileBodySandbox) GetSnapshot() OptCreateRuntimeProfileBodySandboxSnapshot {
-	return s.Snapshot
 }
 
 // GetVfs returns the value of Vfs.
@@ -6759,16 +6725,6 @@ func (s *CreateRuntimeProfileBodySandbox) SetNetwork(val OptCreateRuntimeProfile
 // SetResources sets the value of Resources.
 func (s *CreateRuntimeProfileBodySandbox) SetResources(val OptCreateRuntimeProfileBodySandboxResources) {
 	s.Resources = val
-}
-
-// SetResumeCommands sets the value of ResumeCommands.
-func (s *CreateRuntimeProfileBodySandbox) SetResumeCommands(val []CreateRuntimeProfileBodySandboxResumeCommandsItem) {
-	s.ResumeCommands = val
-}
-
-// SetSnapshot sets the value of Snapshot.
-func (s *CreateRuntimeProfileBodySandbox) SetSnapshot(val OptCreateRuntimeProfileBodySandboxSnapshot) {
-	s.Snapshot = val
 }
 
 // SetVfs sets the value of Vfs.
@@ -6862,220 +6818,6 @@ func (s *CreateRuntimeProfileBodySandboxResources) SetCpus(val OptInt) {
 // SetMemory sets the value of Memory.
 func (s *CreateRuntimeProfileBodySandboxResources) SetMemory(val OptString) {
 	s.Memory = val
-}
-
-// CreateRuntimeProfileBodySandboxResumeCommandsItem represents sum type.
-type CreateRuntimeProfileBodySandboxResumeCommandsItem struct {
-	// Type selects the active sum variant, switch on this field.
-	Type                                               CreateRuntimeProfileBodySandboxResumeCommandsItemType
-	String                                             string
-	CreateRuntimeProfileBodySandboxResumeCommandsItem1 CreateRuntimeProfileBodySandboxResumeCommandsItem1
-}
-
-// CreateRuntimeProfileBodySandboxResumeCommandsItemType is oneOf type of CreateRuntimeProfileBodySandboxResumeCommandsItem.
-type CreateRuntimeProfileBodySandboxResumeCommandsItemType string
-
-// Possible values for CreateRuntimeProfileBodySandboxResumeCommandsItemType.
-const (
-	StringCreateRuntimeProfileBodySandboxResumeCommandsItem                                             CreateRuntimeProfileBodySandboxResumeCommandsItemType = "string"
-	CreateRuntimeProfileBodySandboxResumeCommandsItem1CreateRuntimeProfileBodySandboxResumeCommandsItem CreateRuntimeProfileBodySandboxResumeCommandsItemType = "CreateRuntimeProfileBodySandboxResumeCommandsItem1"
-)
-
-// IsString reports whether CreateRuntimeProfileBodySandboxResumeCommandsItem is string.
-func (s CreateRuntimeProfileBodySandboxResumeCommandsItem) IsString() bool {
-	return s.Type == StringCreateRuntimeProfileBodySandboxResumeCommandsItem
-}
-
-// IsCreateRuntimeProfileBodySandboxResumeCommandsItem1 reports whether CreateRuntimeProfileBodySandboxResumeCommandsItem is CreateRuntimeProfileBodySandboxResumeCommandsItem1.
-func (s CreateRuntimeProfileBodySandboxResumeCommandsItem) IsCreateRuntimeProfileBodySandboxResumeCommandsItem1() bool {
-	return s.Type == CreateRuntimeProfileBodySandboxResumeCommandsItem1CreateRuntimeProfileBodySandboxResumeCommandsItem
-}
-
-// SetString sets CreateRuntimeProfileBodySandboxResumeCommandsItem to string.
-func (s *CreateRuntimeProfileBodySandboxResumeCommandsItem) SetString(v string) {
-	s.Type = StringCreateRuntimeProfileBodySandboxResumeCommandsItem
-	s.String = v
-}
-
-// GetString returns string and true boolean if CreateRuntimeProfileBodySandboxResumeCommandsItem is string.
-func (s CreateRuntimeProfileBodySandboxResumeCommandsItem) GetString() (v string, ok bool) {
-	if !s.IsString() {
-		return v, false
-	}
-	return s.String, true
-}
-
-// NewStringCreateRuntimeProfileBodySandboxResumeCommandsItem returns new CreateRuntimeProfileBodySandboxResumeCommandsItem from string.
-func NewStringCreateRuntimeProfileBodySandboxResumeCommandsItem(v string) CreateRuntimeProfileBodySandboxResumeCommandsItem {
-	var s CreateRuntimeProfileBodySandboxResumeCommandsItem
-	s.SetString(v)
-	return s
-}
-
-// SetCreateRuntimeProfileBodySandboxResumeCommandsItem1 sets CreateRuntimeProfileBodySandboxResumeCommandsItem to CreateRuntimeProfileBodySandboxResumeCommandsItem1.
-func (s *CreateRuntimeProfileBodySandboxResumeCommandsItem) SetCreateRuntimeProfileBodySandboxResumeCommandsItem1(v CreateRuntimeProfileBodySandboxResumeCommandsItem1) {
-	s.Type = CreateRuntimeProfileBodySandboxResumeCommandsItem1CreateRuntimeProfileBodySandboxResumeCommandsItem
-	s.CreateRuntimeProfileBodySandboxResumeCommandsItem1 = v
-}
-
-// GetCreateRuntimeProfileBodySandboxResumeCommandsItem1 returns CreateRuntimeProfileBodySandboxResumeCommandsItem1 and true boolean if CreateRuntimeProfileBodySandboxResumeCommandsItem is CreateRuntimeProfileBodySandboxResumeCommandsItem1.
-func (s CreateRuntimeProfileBodySandboxResumeCommandsItem) GetCreateRuntimeProfileBodySandboxResumeCommandsItem1() (v CreateRuntimeProfileBodySandboxResumeCommandsItem1, ok bool) {
-	if !s.IsCreateRuntimeProfileBodySandboxResumeCommandsItem1() {
-		return v, false
-	}
-	return s.CreateRuntimeProfileBodySandboxResumeCommandsItem1, true
-}
-
-// NewCreateRuntimeProfileBodySandboxResumeCommandsItem1CreateRuntimeProfileBodySandboxResumeCommandsItem returns new CreateRuntimeProfileBodySandboxResumeCommandsItem from CreateRuntimeProfileBodySandboxResumeCommandsItem1.
-func NewCreateRuntimeProfileBodySandboxResumeCommandsItem1CreateRuntimeProfileBodySandboxResumeCommandsItem(v CreateRuntimeProfileBodySandboxResumeCommandsItem1) CreateRuntimeProfileBodySandboxResumeCommandsItem {
-	var s CreateRuntimeProfileBodySandboxResumeCommandsItem
-	s.SetCreateRuntimeProfileBodySandboxResumeCommandsItem1(v)
-	return s
-}
-
-type CreateRuntimeProfileBodySandboxResumeCommandsItem1 struct {
-	Retries        OptInt                                                    `json:"retries"`
-	RetryBackoffMs OptInt                                                    `json:"retryBackoffMs"`
-	Run            string                                                    `json:"run"`
-	When           OptCreateRuntimeProfileBodySandboxResumeCommandsItem1When `json:"when"`
-}
-
-// GetRetries returns the value of Retries.
-func (s *CreateRuntimeProfileBodySandboxResumeCommandsItem1) GetRetries() OptInt {
-	return s.Retries
-}
-
-// GetRetryBackoffMs returns the value of RetryBackoffMs.
-func (s *CreateRuntimeProfileBodySandboxResumeCommandsItem1) GetRetryBackoffMs() OptInt {
-	return s.RetryBackoffMs
-}
-
-// GetRun returns the value of Run.
-func (s *CreateRuntimeProfileBodySandboxResumeCommandsItem1) GetRun() string {
-	return s.Run
-}
-
-// GetWhen returns the value of When.
-func (s *CreateRuntimeProfileBodySandboxResumeCommandsItem1) GetWhen() OptCreateRuntimeProfileBodySandboxResumeCommandsItem1When {
-	return s.When
-}
-
-// SetRetries sets the value of Retries.
-func (s *CreateRuntimeProfileBodySandboxResumeCommandsItem1) SetRetries(val OptInt) {
-	s.Retries = val
-}
-
-// SetRetryBackoffMs sets the value of RetryBackoffMs.
-func (s *CreateRuntimeProfileBodySandboxResumeCommandsItem1) SetRetryBackoffMs(val OptInt) {
-	s.RetryBackoffMs = val
-}
-
-// SetRun sets the value of Run.
-func (s *CreateRuntimeProfileBodySandboxResumeCommandsItem1) SetRun(val string) {
-	s.Run = val
-}
-
-// SetWhen sets the value of When.
-func (s *CreateRuntimeProfileBodySandboxResumeCommandsItem1) SetWhen(val OptCreateRuntimeProfileBodySandboxResumeCommandsItem1When) {
-	s.When = val
-}
-
-type CreateRuntimeProfileBodySandboxResumeCommandsItem1When struct {
-	WorkspaceMode []CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem `json:"workspaceMode"`
-}
-
-// GetWorkspaceMode returns the value of WorkspaceMode.
-func (s *CreateRuntimeProfileBodySandboxResumeCommandsItem1When) GetWorkspaceMode() []CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem {
-	return s.WorkspaceMode
-}
-
-// SetWorkspaceMode sets the value of WorkspaceMode.
-func (s *CreateRuntimeProfileBodySandboxResumeCommandsItem1When) SetWorkspaceMode(val []CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem) {
-	s.WorkspaceMode = val
-}
-
-type CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem string
-
-const (
-	CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount       CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem = "shared_mount"
-	CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem = "dedicated_worktree"
-	CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount      CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem = "scratch_mount"
-)
-
-// AllValues returns all CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem values.
-func (CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem) AllValues() []CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem {
-	return []CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem{
-		CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount,
-		CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree,
-		CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem) MarshalText() ([]byte, error) {
-	switch s {
-	case CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount:
-		return []byte(s), nil
-	case CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree:
-		return []byte(s), nil
-	case CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem) UnmarshalText(data []byte) error {
-	switch CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem(data) {
-	case CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount:
-		*s = CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount
-		return nil
-	case CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree:
-		*s = CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree
-		return nil
-	case CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount:
-		*s = CreateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type CreateRuntimeProfileBodySandboxSnapshot struct {
-	AllowedHosts  []string  `json:"allowedHosts"`
-	OverlaySize   OptString `json:"overlaySize"`
-	SetupCommands []string  `json:"setupCommands"`
-}
-
-// GetAllowedHosts returns the value of AllowedHosts.
-func (s *CreateRuntimeProfileBodySandboxSnapshot) GetAllowedHosts() []string {
-	return s.AllowedHosts
-}
-
-// GetOverlaySize returns the value of OverlaySize.
-func (s *CreateRuntimeProfileBodySandboxSnapshot) GetOverlaySize() OptString {
-	return s.OverlaySize
-}
-
-// GetSetupCommands returns the value of SetupCommands.
-func (s *CreateRuntimeProfileBodySandboxSnapshot) GetSetupCommands() []string {
-	return s.SetupCommands
-}
-
-// SetAllowedHosts sets the value of AllowedHosts.
-func (s *CreateRuntimeProfileBodySandboxSnapshot) SetAllowedHosts(val []string) {
-	s.AllowedHosts = val
-}
-
-// SetOverlaySize sets the value of OverlaySize.
-func (s *CreateRuntimeProfileBodySandboxSnapshot) SetOverlaySize(val OptString) {
-	s.OverlaySize = val
-}
-
-// SetSetupCommands sets the value of SetupCommands.
-func (s *CreateRuntimeProfileBodySandboxSnapshot) SetSetupCommands(val []string) {
-	s.SetupCommands = val
 }
 
 type CreateRuntimeProfileBodySandboxVfs struct {
@@ -33331,52 +33073,6 @@ func (o OptCreateRuntimeProfileBody) Or(d CreateRuntimeProfileBody) CreateRuntim
 	return d
 }
 
-// NewOptCreateRuntimeProfileBodyRuntimeKind returns new OptCreateRuntimeProfileBodyRuntimeKind with value set to v.
-func NewOptCreateRuntimeProfileBodyRuntimeKind(v CreateRuntimeProfileBodyRuntimeKind) OptCreateRuntimeProfileBodyRuntimeKind {
-	return OptCreateRuntimeProfileBodyRuntimeKind{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptCreateRuntimeProfileBodyRuntimeKind is optional CreateRuntimeProfileBodyRuntimeKind.
-type OptCreateRuntimeProfileBodyRuntimeKind struct {
-	Value CreateRuntimeProfileBodyRuntimeKind
-	Set   bool
-}
-
-// IsSet returns true if OptCreateRuntimeProfileBodyRuntimeKind was set.
-func (o OptCreateRuntimeProfileBodyRuntimeKind) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptCreateRuntimeProfileBodyRuntimeKind) Reset() {
-	var v CreateRuntimeProfileBodyRuntimeKind
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptCreateRuntimeProfileBodyRuntimeKind) SetTo(v CreateRuntimeProfileBodyRuntimeKind) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptCreateRuntimeProfileBodyRuntimeKind) Get() (v CreateRuntimeProfileBodyRuntimeKind, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptCreateRuntimeProfileBodyRuntimeKind) Or(d CreateRuntimeProfileBodyRuntimeKind) CreateRuntimeProfileBodyRuntimeKind {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
 // NewOptCreateRuntimeProfileBodySandboxEnv returns new OptCreateRuntimeProfileBodySandboxEnv with value set to v.
 func NewOptCreateRuntimeProfileBodySandboxEnv(v CreateRuntimeProfileBodySandboxEnv) OptCreateRuntimeProfileBodySandboxEnv {
 	return OptCreateRuntimeProfileBodySandboxEnv{
@@ -33601,98 +33297,6 @@ func (o OptCreateRuntimeProfileBodySandboxResources) Get() (v CreateRuntimeProfi
 
 // Or returns value if set, or given parameter if does not.
 func (o OptCreateRuntimeProfileBodySandboxResources) Or(d CreateRuntimeProfileBodySandboxResources) CreateRuntimeProfileBodySandboxResources {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptCreateRuntimeProfileBodySandboxResumeCommandsItem1When returns new OptCreateRuntimeProfileBodySandboxResumeCommandsItem1When with value set to v.
-func NewOptCreateRuntimeProfileBodySandboxResumeCommandsItem1When(v CreateRuntimeProfileBodySandboxResumeCommandsItem1When) OptCreateRuntimeProfileBodySandboxResumeCommandsItem1When {
-	return OptCreateRuntimeProfileBodySandboxResumeCommandsItem1When{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptCreateRuntimeProfileBodySandboxResumeCommandsItem1When is optional CreateRuntimeProfileBodySandboxResumeCommandsItem1When.
-type OptCreateRuntimeProfileBodySandboxResumeCommandsItem1When struct {
-	Value CreateRuntimeProfileBodySandboxResumeCommandsItem1When
-	Set   bool
-}
-
-// IsSet returns true if OptCreateRuntimeProfileBodySandboxResumeCommandsItem1When was set.
-func (o OptCreateRuntimeProfileBodySandboxResumeCommandsItem1When) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptCreateRuntimeProfileBodySandboxResumeCommandsItem1When) Reset() {
-	var v CreateRuntimeProfileBodySandboxResumeCommandsItem1When
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptCreateRuntimeProfileBodySandboxResumeCommandsItem1When) SetTo(v CreateRuntimeProfileBodySandboxResumeCommandsItem1When) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptCreateRuntimeProfileBodySandboxResumeCommandsItem1When) Get() (v CreateRuntimeProfileBodySandboxResumeCommandsItem1When, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptCreateRuntimeProfileBodySandboxResumeCommandsItem1When) Or(d CreateRuntimeProfileBodySandboxResumeCommandsItem1When) CreateRuntimeProfileBodySandboxResumeCommandsItem1When {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptCreateRuntimeProfileBodySandboxSnapshot returns new OptCreateRuntimeProfileBodySandboxSnapshot with value set to v.
-func NewOptCreateRuntimeProfileBodySandboxSnapshot(v CreateRuntimeProfileBodySandboxSnapshot) OptCreateRuntimeProfileBodySandboxSnapshot {
-	return OptCreateRuntimeProfileBodySandboxSnapshot{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptCreateRuntimeProfileBodySandboxSnapshot is optional CreateRuntimeProfileBodySandboxSnapshot.
-type OptCreateRuntimeProfileBodySandboxSnapshot struct {
-	Value CreateRuntimeProfileBodySandboxSnapshot
-	Set   bool
-}
-
-// IsSet returns true if OptCreateRuntimeProfileBodySandboxSnapshot was set.
-func (o OptCreateRuntimeProfileBodySandboxSnapshot) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptCreateRuntimeProfileBodySandboxSnapshot) Reset() {
-	var v CreateRuntimeProfileBodySandboxSnapshot
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptCreateRuntimeProfileBodySandboxSnapshot) SetTo(v CreateRuntimeProfileBodySandboxSnapshot) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptCreateRuntimeProfileBodySandboxSnapshot) Get() (v CreateRuntimeProfileBodySandboxSnapshot, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptCreateRuntimeProfileBodySandboxSnapshot) Or(d CreateRuntimeProfileBodySandboxSnapshot) CreateRuntimeProfileBodySandboxSnapshot {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -36445,100 +36049,6 @@ func (o OptRuntimeProfileListResponseItemsItemSandboxResources) Or(d RuntimeProf
 	return d
 }
 
-// NewOptRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When returns new OptRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When with value set to v.
-func NewOptRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When(v RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When) OptRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When {
-	return OptRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When is optional RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When.
-type OptRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When struct {
-	Value RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When
-	Set   bool
-}
-
-// IsSet returns true if OptRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When was set.
-func (o OptRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When) IsSet() bool {
-	return o.Set
-}
-
-// Reset unsets value.
-func (o *OptRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When) Reset() {
-	var v RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When) SetTo(v RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When) Get() (v RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When) Or(d RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When) RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptRuntimeProfileListResponseItemsItemSandboxSnapshot returns new OptRuntimeProfileListResponseItemsItemSandboxSnapshot with value set to v.
-func NewOptRuntimeProfileListResponseItemsItemSandboxSnapshot(v RuntimeProfileListResponseItemsItemSandboxSnapshot) OptRuntimeProfileListResponseItemsItemSandboxSnapshot {
-	return OptRuntimeProfileListResponseItemsItemSandboxSnapshot{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptRuntimeProfileListResponseItemsItemSandboxSnapshot is optional RuntimeProfileListResponseItemsItemSandboxSnapshot.
-type OptRuntimeProfileListResponseItemsItemSandboxSnapshot struct {
-	Value RuntimeProfileListResponseItemsItemSandboxSnapshot
-	Set   bool
-}
-
-// IsSet returns true if OptRuntimeProfileListResponseItemsItemSandboxSnapshot was set.
-func (o OptRuntimeProfileListResponseItemsItemSandboxSnapshot) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptRuntimeProfileListResponseItemsItemSandboxSnapshot) Reset() {
-	var v RuntimeProfileListResponseItemsItemSandboxSnapshot
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptRuntimeProfileListResponseItemsItemSandboxSnapshot) SetTo(v RuntimeProfileListResponseItemsItemSandboxSnapshot) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptRuntimeProfileListResponseItemsItemSandboxSnapshot) Get() (v RuntimeProfileListResponseItemsItemSandboxSnapshot, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptRuntimeProfileListResponseItemsItemSandboxSnapshot) Or(d RuntimeProfileListResponseItemsItemSandboxSnapshot) RuntimeProfileListResponseItemsItemSandboxSnapshot {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
 // NewOptRuntimeProfileListResponseItemsItemSandboxVfs returns new OptRuntimeProfileListResponseItemsItemSandboxVfs with value set to v.
 func NewOptRuntimeProfileListResponseItemsItemSandboxVfs(v RuntimeProfileListResponseItemsItemSandboxVfs) OptRuntimeProfileListResponseItemsItemSandboxVfs {
 	return OptRuntimeProfileListResponseItemsItemSandboxVfs{
@@ -36855,98 +36365,6 @@ func (o OptRuntimeProfileSandboxResources) Get() (v RuntimeProfileSandboxResourc
 
 // Or returns value if set, or given parameter if does not.
 func (o OptRuntimeProfileSandboxResources) Or(d RuntimeProfileSandboxResources) RuntimeProfileSandboxResources {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptRuntimeProfileSandboxResumeCommandsItem1When returns new OptRuntimeProfileSandboxResumeCommandsItem1When with value set to v.
-func NewOptRuntimeProfileSandboxResumeCommandsItem1When(v RuntimeProfileSandboxResumeCommandsItem1When) OptRuntimeProfileSandboxResumeCommandsItem1When {
-	return OptRuntimeProfileSandboxResumeCommandsItem1When{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptRuntimeProfileSandboxResumeCommandsItem1When is optional RuntimeProfileSandboxResumeCommandsItem1When.
-type OptRuntimeProfileSandboxResumeCommandsItem1When struct {
-	Value RuntimeProfileSandboxResumeCommandsItem1When
-	Set   bool
-}
-
-// IsSet returns true if OptRuntimeProfileSandboxResumeCommandsItem1When was set.
-func (o OptRuntimeProfileSandboxResumeCommandsItem1When) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptRuntimeProfileSandboxResumeCommandsItem1When) Reset() {
-	var v RuntimeProfileSandboxResumeCommandsItem1When
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptRuntimeProfileSandboxResumeCommandsItem1When) SetTo(v RuntimeProfileSandboxResumeCommandsItem1When) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptRuntimeProfileSandboxResumeCommandsItem1When) Get() (v RuntimeProfileSandboxResumeCommandsItem1When, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptRuntimeProfileSandboxResumeCommandsItem1When) Or(d RuntimeProfileSandboxResumeCommandsItem1When) RuntimeProfileSandboxResumeCommandsItem1When {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptRuntimeProfileSandboxSnapshot returns new OptRuntimeProfileSandboxSnapshot with value set to v.
-func NewOptRuntimeProfileSandboxSnapshot(v RuntimeProfileSandboxSnapshot) OptRuntimeProfileSandboxSnapshot {
-	return OptRuntimeProfileSandboxSnapshot{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptRuntimeProfileSandboxSnapshot is optional RuntimeProfileSandboxSnapshot.
-type OptRuntimeProfileSandboxSnapshot struct {
-	Value RuntimeProfileSandboxSnapshot
-	Set   bool
-}
-
-// IsSet returns true if OptRuntimeProfileSandboxSnapshot was set.
-func (o OptRuntimeProfileSandboxSnapshot) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptRuntimeProfileSandboxSnapshot) Reset() {
-	var v RuntimeProfileSandboxSnapshot
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptRuntimeProfileSandboxSnapshot) SetTo(v RuntimeProfileSandboxSnapshot) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptRuntimeProfileSandboxSnapshot) Get() (v RuntimeProfileSandboxSnapshot, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptRuntimeProfileSandboxSnapshot) Or(d RuntimeProfileSandboxSnapshot) RuntimeProfileSandboxSnapshot {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -38333,52 +37751,6 @@ func (o OptUpdateRuntimeProfileBody) Or(d UpdateRuntimeProfileBody) UpdateRuntim
 	return d
 }
 
-// NewOptUpdateRuntimeProfileBodyRuntimeKind returns new OptUpdateRuntimeProfileBodyRuntimeKind with value set to v.
-func NewOptUpdateRuntimeProfileBodyRuntimeKind(v UpdateRuntimeProfileBodyRuntimeKind) OptUpdateRuntimeProfileBodyRuntimeKind {
-	return OptUpdateRuntimeProfileBodyRuntimeKind{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptUpdateRuntimeProfileBodyRuntimeKind is optional UpdateRuntimeProfileBodyRuntimeKind.
-type OptUpdateRuntimeProfileBodyRuntimeKind struct {
-	Value UpdateRuntimeProfileBodyRuntimeKind
-	Set   bool
-}
-
-// IsSet returns true if OptUpdateRuntimeProfileBodyRuntimeKind was set.
-func (o OptUpdateRuntimeProfileBodyRuntimeKind) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptUpdateRuntimeProfileBodyRuntimeKind) Reset() {
-	var v UpdateRuntimeProfileBodyRuntimeKind
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptUpdateRuntimeProfileBodyRuntimeKind) SetTo(v UpdateRuntimeProfileBodyRuntimeKind) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptUpdateRuntimeProfileBodyRuntimeKind) Get() (v UpdateRuntimeProfileBodyRuntimeKind, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptUpdateRuntimeProfileBodyRuntimeKind) Or(d UpdateRuntimeProfileBodyRuntimeKind) UpdateRuntimeProfileBodyRuntimeKind {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
 // NewOptUpdateRuntimeProfileBodySandbox returns new OptUpdateRuntimeProfileBodySandbox with value set to v.
 func NewOptUpdateRuntimeProfileBodySandbox(v UpdateRuntimeProfileBodySandbox) OptUpdateRuntimeProfileBodySandbox {
 	return OptUpdateRuntimeProfileBodySandbox{
@@ -38649,98 +38021,6 @@ func (o OptUpdateRuntimeProfileBodySandboxResources) Get() (v UpdateRuntimeProfi
 
 // Or returns value if set, or given parameter if does not.
 func (o OptUpdateRuntimeProfileBodySandboxResources) Or(d UpdateRuntimeProfileBodySandboxResources) UpdateRuntimeProfileBodySandboxResources {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptUpdateRuntimeProfileBodySandboxResumeCommandsItem1When returns new OptUpdateRuntimeProfileBodySandboxResumeCommandsItem1When with value set to v.
-func NewOptUpdateRuntimeProfileBodySandboxResumeCommandsItem1When(v UpdateRuntimeProfileBodySandboxResumeCommandsItem1When) OptUpdateRuntimeProfileBodySandboxResumeCommandsItem1When {
-	return OptUpdateRuntimeProfileBodySandboxResumeCommandsItem1When{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptUpdateRuntimeProfileBodySandboxResumeCommandsItem1When is optional UpdateRuntimeProfileBodySandboxResumeCommandsItem1When.
-type OptUpdateRuntimeProfileBodySandboxResumeCommandsItem1When struct {
-	Value UpdateRuntimeProfileBodySandboxResumeCommandsItem1When
-	Set   bool
-}
-
-// IsSet returns true if OptUpdateRuntimeProfileBodySandboxResumeCommandsItem1When was set.
-func (o OptUpdateRuntimeProfileBodySandboxResumeCommandsItem1When) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptUpdateRuntimeProfileBodySandboxResumeCommandsItem1When) Reset() {
-	var v UpdateRuntimeProfileBodySandboxResumeCommandsItem1When
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptUpdateRuntimeProfileBodySandboxResumeCommandsItem1When) SetTo(v UpdateRuntimeProfileBodySandboxResumeCommandsItem1When) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptUpdateRuntimeProfileBodySandboxResumeCommandsItem1When) Get() (v UpdateRuntimeProfileBodySandboxResumeCommandsItem1When, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptUpdateRuntimeProfileBodySandboxResumeCommandsItem1When) Or(d UpdateRuntimeProfileBodySandboxResumeCommandsItem1When) UpdateRuntimeProfileBodySandboxResumeCommandsItem1When {
-	if v, ok := o.Get(); ok {
-		return v
-	}
-	return d
-}
-
-// NewOptUpdateRuntimeProfileBodySandboxSnapshot returns new OptUpdateRuntimeProfileBodySandboxSnapshot with value set to v.
-func NewOptUpdateRuntimeProfileBodySandboxSnapshot(v UpdateRuntimeProfileBodySandboxSnapshot) OptUpdateRuntimeProfileBodySandboxSnapshot {
-	return OptUpdateRuntimeProfileBodySandboxSnapshot{
-		Value: v,
-		Set:   true,
-	}
-}
-
-// OptUpdateRuntimeProfileBodySandboxSnapshot is optional UpdateRuntimeProfileBodySandboxSnapshot.
-type OptUpdateRuntimeProfileBodySandboxSnapshot struct {
-	Value UpdateRuntimeProfileBodySandboxSnapshot
-	Set   bool
-}
-
-// IsSet returns true if OptUpdateRuntimeProfileBodySandboxSnapshot was set.
-func (o OptUpdateRuntimeProfileBodySandboxSnapshot) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptUpdateRuntimeProfileBodySandboxSnapshot) Reset() {
-	var v UpdateRuntimeProfileBodySandboxSnapshot
-	o.Value = v
-	o.Set = false
-}
-
-// SetTo sets value to v.
-func (o *OptUpdateRuntimeProfileBodySandboxSnapshot) SetTo(v UpdateRuntimeProfileBodySandboxSnapshot) {
-	o.Set = true
-	o.Value = v
-}
-
-// Get returns value and boolean that denotes whether value was set.
-func (o OptUpdateRuntimeProfileBodySandboxSnapshot) Get() (v UpdateRuntimeProfileBodySandboxSnapshot, ok bool) {
-	if !o.Set {
-		return v, false
-	}
-	return o.Value, true
-}
-
-// Or returns value if set, or given parameter if does not.
-func (o OptUpdateRuntimeProfileBodySandboxSnapshot) Or(d UpdateRuntimeProfileBodySandboxSnapshot) UpdateRuntimeProfileBodySandboxSnapshot {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -43235,6 +42515,77 @@ func (s *RegisterAgentReq) SetVoucherCode(val string) {
 	s.VoucherCode = val
 }
 
+type RegisterExecutorManifestNotFound ProblemDetails
+
+func (*RegisterExecutorManifestNotFound) registerExecutorManifestRes() {}
+
+type RegisterExecutorManifestOK struct {
+	ExecutorFingerprint string `json:"executorFingerprint"`
+}
+
+// GetExecutorFingerprint returns the value of ExecutorFingerprint.
+func (s *RegisterExecutorManifestOK) GetExecutorFingerprint() string {
+	return s.ExecutorFingerprint
+}
+
+// SetExecutorFingerprint sets the value of ExecutorFingerprint.
+func (s *RegisterExecutorManifestOK) SetExecutorFingerprint(val string) {
+	s.ExecutorFingerprint = val
+}
+
+func (*RegisterExecutorManifestOK) registerExecutorManifestRes() {}
+
+type RegisterExecutorManifestReq struct {
+	ExecutorFingerprint string                                      `json:"executorFingerprint"`
+	ExecutorManifest    RegisterExecutorManifestReqExecutorManifest `json:"executorManifest"`
+	ExecutorSignature   string                                      `json:"executorSignature"`
+}
+
+// GetExecutorFingerprint returns the value of ExecutorFingerprint.
+func (s *RegisterExecutorManifestReq) GetExecutorFingerprint() string {
+	return s.ExecutorFingerprint
+}
+
+// GetExecutorManifest returns the value of ExecutorManifest.
+func (s *RegisterExecutorManifestReq) GetExecutorManifest() RegisterExecutorManifestReqExecutorManifest {
+	return s.ExecutorManifest
+}
+
+// GetExecutorSignature returns the value of ExecutorSignature.
+func (s *RegisterExecutorManifestReq) GetExecutorSignature() string {
+	return s.ExecutorSignature
+}
+
+// SetExecutorFingerprint sets the value of ExecutorFingerprint.
+func (s *RegisterExecutorManifestReq) SetExecutorFingerprint(val string) {
+	s.ExecutorFingerprint = val
+}
+
+// SetExecutorManifest sets the value of ExecutorManifest.
+func (s *RegisterExecutorManifestReq) SetExecutorManifest(val RegisterExecutorManifestReqExecutorManifest) {
+	s.ExecutorManifest = val
+}
+
+// SetExecutorSignature sets the value of ExecutorSignature.
+func (s *RegisterExecutorManifestReq) SetExecutorSignature(val string) {
+	s.ExecutorSignature = val
+}
+
+type RegisterExecutorManifestReqExecutorManifest map[string]jx.Raw
+
+func (s *RegisterExecutorManifestReqExecutorManifest) init() RegisterExecutorManifestReqExecutorManifest {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
+}
+
+type RegisterExecutorManifestUnauthorized ProblemDetails
+
+func (*RegisterExecutorManifestUnauthorized) registerExecutorManifestRes() {}
+
 // Ref: #/components/schemas/RegisterResponse
 type RegisterResponse struct {
 	ClientId     string    `json:"clientId"`
@@ -45555,9 +44906,10 @@ type RuntimeProfile struct {
 	Name                  string                                    `json:"name"`
 	Provider              string                                    `json:"provider"`
 	RequiredEnv           []string                                  `json:"requiredEnv"`
+	RequiredExecutables   []string                                  `json:"requiredExecutables"`
 	RequiredTools         []string                                  `json:"requiredTools"`
 	Revision              int                                       `json:"revision"`
-	RuntimeKind           RuntimeProfileRuntimeKind                 `json:"runtimeKind"`
+	RuntimeKind           string                                    `json:"runtimeKind"`
 	Sandbox               RuntimeProfileSandbox                     `json:"sandbox"`
 	SessionStorageMode    RuntimeProfileSessionStorageMode          `json:"sessionStorageMode"`
 	SessionTtlSec         int                                       `json:"sessionTtlSec"`
@@ -45669,6 +45021,11 @@ func (s *RuntimeProfile) GetRequiredEnv() []string {
 	return s.RequiredEnv
 }
 
+// GetRequiredExecutables returns the value of RequiredExecutables.
+func (s *RuntimeProfile) GetRequiredExecutables() []string {
+	return s.RequiredExecutables
+}
+
 // GetRequiredTools returns the value of RequiredTools.
 func (s *RuntimeProfile) GetRequiredTools() []string {
 	return s.RequiredTools
@@ -45680,7 +45037,7 @@ func (s *RuntimeProfile) GetRevision() int {
 }
 
 // GetRuntimeKind returns the value of RuntimeKind.
-func (s *RuntimeProfile) GetRuntimeKind() RuntimeProfileRuntimeKind {
+func (s *RuntimeProfile) GetRuntimeKind() string {
 	return s.RuntimeKind
 }
 
@@ -45839,6 +45196,11 @@ func (s *RuntimeProfile) SetRequiredEnv(val []string) {
 	s.RequiredEnv = val
 }
 
+// SetRequiredExecutables sets the value of RequiredExecutables.
+func (s *RuntimeProfile) SetRequiredExecutables(val []string) {
+	s.RequiredExecutables = val
+}
+
 // SetRequiredTools sets the value of RequiredTools.
 func (s *RuntimeProfile) SetRequiredTools(val []string) {
 	s.RequiredTools = val
@@ -45850,7 +45212,7 @@ func (s *RuntimeProfile) SetRevision(val int) {
 }
 
 // SetRuntimeKind sets the value of RuntimeKind.
-func (s *RuntimeProfile) SetRuntimeKind(val RuntimeProfileRuntimeKind) {
+func (s *RuntimeProfile) SetRuntimeKind(val string) {
 	s.RuntimeKind = val
 }
 
@@ -46142,9 +45504,10 @@ type RuntimeProfileListResponseItemsItem struct {
 	Name                  string                                                         `json:"name"`
 	Provider              string                                                         `json:"provider"`
 	RequiredEnv           []string                                                       `json:"requiredEnv"`
+	RequiredExecutables   []string                                                       `json:"requiredExecutables"`
 	RequiredTools         []string                                                       `json:"requiredTools"`
 	Revision              int                                                            `json:"revision"`
-	RuntimeKind           RuntimeProfileListResponseItemsItemRuntimeKind                 `json:"runtimeKind"`
+	RuntimeKind           string                                                         `json:"runtimeKind"`
 	Sandbox               RuntimeProfileListResponseItemsItemSandbox                     `json:"sandbox"`
 	SessionStorageMode    RuntimeProfileListResponseItemsItemSessionStorageMode          `json:"sessionStorageMode"`
 	SessionTtlSec         int                                                            `json:"sessionTtlSec"`
@@ -46256,6 +45619,11 @@ func (s *RuntimeProfileListResponseItemsItem) GetRequiredEnv() []string {
 	return s.RequiredEnv
 }
 
+// GetRequiredExecutables returns the value of RequiredExecutables.
+func (s *RuntimeProfileListResponseItemsItem) GetRequiredExecutables() []string {
+	return s.RequiredExecutables
+}
+
 // GetRequiredTools returns the value of RequiredTools.
 func (s *RuntimeProfileListResponseItemsItem) GetRequiredTools() []string {
 	return s.RequiredTools
@@ -46267,7 +45635,7 @@ func (s *RuntimeProfileListResponseItemsItem) GetRevision() int {
 }
 
 // GetRuntimeKind returns the value of RuntimeKind.
-func (s *RuntimeProfileListResponseItemsItem) GetRuntimeKind() RuntimeProfileListResponseItemsItemRuntimeKind {
+func (s *RuntimeProfileListResponseItemsItem) GetRuntimeKind() string {
 	return s.RuntimeKind
 }
 
@@ -46426,6 +45794,11 @@ func (s *RuntimeProfileListResponseItemsItem) SetRequiredEnv(val []string) {
 	s.RequiredEnv = val
 }
 
+// SetRequiredExecutables sets the value of RequiredExecutables.
+func (s *RuntimeProfileListResponseItemsItem) SetRequiredExecutables(val []string) {
+	s.RequiredExecutables = val
+}
+
 // SetRequiredTools sets the value of RequiredTools.
 func (s *RuntimeProfileListResponseItemsItem) SetRequiredTools(val []string) {
 	s.RequiredTools = val
@@ -46437,7 +45810,7 @@ func (s *RuntimeProfileListResponseItemsItem) SetRevision(val int) {
 }
 
 // SetRuntimeKind sets the value of RuntimeKind.
-func (s *RuntimeProfileListResponseItemsItem) SetRuntimeKind(val RuntimeProfileListResponseItemsItemRuntimeKind) {
+func (s *RuntimeProfileListResponseItemsItem) SetRuntimeKind(val string) {
 	s.RuntimeKind = val
 }
 
@@ -46688,48 +46061,12 @@ func (s *RuntimeProfileListResponseItemsItemDefaultWorkspaceMode) UnmarshalText(
 	}
 }
 
-type RuntimeProfileListResponseItemsItemRuntimeKind string
-
-const (
-	RuntimeProfileListResponseItemsItemRuntimeKindGondolinPi RuntimeProfileListResponseItemsItemRuntimeKind = "gondolin_pi"
-)
-
-// AllValues returns all RuntimeProfileListResponseItemsItemRuntimeKind values.
-func (RuntimeProfileListResponseItemsItemRuntimeKind) AllValues() []RuntimeProfileListResponseItemsItemRuntimeKind {
-	return []RuntimeProfileListResponseItemsItemRuntimeKind{
-		RuntimeProfileListResponseItemsItemRuntimeKindGondolinPi,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s RuntimeProfileListResponseItemsItemRuntimeKind) MarshalText() ([]byte, error) {
-	switch s {
-	case RuntimeProfileListResponseItemsItemRuntimeKindGondolinPi:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *RuntimeProfileListResponseItemsItemRuntimeKind) UnmarshalText(data []byte) error {
-	switch RuntimeProfileListResponseItemsItemRuntimeKind(data) {
-	case RuntimeProfileListResponseItemsItemRuntimeKindGondolinPi:
-		*s = RuntimeProfileListResponseItemsItemRuntimeKindGondolinPi
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
 type RuntimeProfileListResponseItemsItemSandbox struct {
-	Env            OptRuntimeProfileListResponseItemsItemSandboxEnv               `json:"env"`
-	HostExec       OptRuntimeProfileListResponseItemsItemSandboxHostExec          `json:"hostExec"`
-	Network        OptRuntimeProfileListResponseItemsItemSandboxNetwork           `json:"network"`
-	Resources      OptRuntimeProfileListResponseItemsItemSandboxResources         `json:"resources"`
-	ResumeCommands []RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem `json:"resumeCommands"`
-	Snapshot       OptRuntimeProfileListResponseItemsItemSandboxSnapshot          `json:"snapshot"`
-	Vfs            OptRuntimeProfileListResponseItemsItemSandboxVfs               `json:"vfs"`
+	Env       OptRuntimeProfileListResponseItemsItemSandboxEnv       `json:"env"`
+	HostExec  OptRuntimeProfileListResponseItemsItemSandboxHostExec  `json:"hostExec"`
+	Network   OptRuntimeProfileListResponseItemsItemSandboxNetwork   `json:"network"`
+	Resources OptRuntimeProfileListResponseItemsItemSandboxResources `json:"resources"`
+	Vfs       OptRuntimeProfileListResponseItemsItemSandboxVfs       `json:"vfs"`
 }
 
 // GetEnv returns the value of Env.
@@ -46750,16 +46087,6 @@ func (s *RuntimeProfileListResponseItemsItemSandbox) GetNetwork() OptRuntimeProf
 // GetResources returns the value of Resources.
 func (s *RuntimeProfileListResponseItemsItemSandbox) GetResources() OptRuntimeProfileListResponseItemsItemSandboxResources {
 	return s.Resources
-}
-
-// GetResumeCommands returns the value of ResumeCommands.
-func (s *RuntimeProfileListResponseItemsItemSandbox) GetResumeCommands() []RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem {
-	return s.ResumeCommands
-}
-
-// GetSnapshot returns the value of Snapshot.
-func (s *RuntimeProfileListResponseItemsItemSandbox) GetSnapshot() OptRuntimeProfileListResponseItemsItemSandboxSnapshot {
-	return s.Snapshot
 }
 
 // GetVfs returns the value of Vfs.
@@ -46785,16 +46112,6 @@ func (s *RuntimeProfileListResponseItemsItemSandbox) SetNetwork(val OptRuntimePr
 // SetResources sets the value of Resources.
 func (s *RuntimeProfileListResponseItemsItemSandbox) SetResources(val OptRuntimeProfileListResponseItemsItemSandboxResources) {
 	s.Resources = val
-}
-
-// SetResumeCommands sets the value of ResumeCommands.
-func (s *RuntimeProfileListResponseItemsItemSandbox) SetResumeCommands(val []RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem) {
-	s.ResumeCommands = val
-}
-
-// SetSnapshot sets the value of Snapshot.
-func (s *RuntimeProfileListResponseItemsItemSandbox) SetSnapshot(val OptRuntimeProfileListResponseItemsItemSandboxSnapshot) {
-	s.Snapshot = val
 }
 
 // SetVfs sets the value of Vfs.
@@ -46888,220 +46205,6 @@ func (s *RuntimeProfileListResponseItemsItemSandboxResources) SetCpus(val OptInt
 // SetMemory sets the value of Memory.
 func (s *RuntimeProfileListResponseItemsItemSandboxResources) SetMemory(val OptString) {
 	s.Memory = val
-}
-
-// RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem represents sum type.
-type RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem struct {
-	// Type selects the active sum variant, switch on this field.
-	Type                                                          RuntimeProfileListResponseItemsItemSandboxResumeCommandsItemType
-	String                                                        string
-	RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1 RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1
-}
-
-// RuntimeProfileListResponseItemsItemSandboxResumeCommandsItemType is oneOf type of RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem.
-type RuntimeProfileListResponseItemsItemSandboxResumeCommandsItemType string
-
-// Possible values for RuntimeProfileListResponseItemsItemSandboxResumeCommandsItemType.
-const (
-	StringRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem                                                        RuntimeProfileListResponseItemsItemSandboxResumeCommandsItemType = "string"
-	RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem RuntimeProfileListResponseItemsItemSandboxResumeCommandsItemType = "RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1"
-)
-
-// IsString reports whether RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem is string.
-func (s RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem) IsString() bool {
-	return s.Type == StringRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem
-}
-
-// IsRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1 reports whether RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem is RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1.
-func (s RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem) IsRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1() bool {
-	return s.Type == RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem
-}
-
-// SetString sets RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem to string.
-func (s *RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem) SetString(v string) {
-	s.Type = StringRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem
-	s.String = v
-}
-
-// GetString returns string and true boolean if RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem is string.
-func (s RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem) GetString() (v string, ok bool) {
-	if !s.IsString() {
-		return v, false
-	}
-	return s.String, true
-}
-
-// NewStringRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem returns new RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem from string.
-func NewStringRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem(v string) RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem {
-	var s RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem
-	s.SetString(v)
-	return s
-}
-
-// SetRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1 sets RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem to RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1.
-func (s *RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem) SetRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1(v RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1) {
-	s.Type = RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem
-	s.RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1 = v
-}
-
-// GetRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1 returns RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1 and true boolean if RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem is RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1.
-func (s RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem) GetRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1() (v RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1, ok bool) {
-	if !s.IsRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1() {
-		return v, false
-	}
-	return s.RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1, true
-}
-
-// NewRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem returns new RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem from RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1.
-func NewRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem(v RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1) RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem {
-	var s RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem
-	s.SetRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1(v)
-	return s
-}
-
-type RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1 struct {
-	Retries        OptInt                                                               `json:"retries"`
-	RetryBackoffMs OptInt                                                               `json:"retryBackoffMs"`
-	Run            string                                                               `json:"run"`
-	When           OptRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When `json:"when"`
-}
-
-// GetRetries returns the value of Retries.
-func (s *RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1) GetRetries() OptInt {
-	return s.Retries
-}
-
-// GetRetryBackoffMs returns the value of RetryBackoffMs.
-func (s *RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1) GetRetryBackoffMs() OptInt {
-	return s.RetryBackoffMs
-}
-
-// GetRun returns the value of Run.
-func (s *RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1) GetRun() string {
-	return s.Run
-}
-
-// GetWhen returns the value of When.
-func (s *RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1) GetWhen() OptRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When {
-	return s.When
-}
-
-// SetRetries sets the value of Retries.
-func (s *RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1) SetRetries(val OptInt) {
-	s.Retries = val
-}
-
-// SetRetryBackoffMs sets the value of RetryBackoffMs.
-func (s *RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1) SetRetryBackoffMs(val OptInt) {
-	s.RetryBackoffMs = val
-}
-
-// SetRun sets the value of Run.
-func (s *RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1) SetRun(val string) {
-	s.Run = val
-}
-
-// SetWhen sets the value of When.
-func (s *RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1) SetWhen(val OptRuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When) {
-	s.When = val
-}
-
-type RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When struct {
-	WorkspaceMode []RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem `json:"workspaceMode"`
-}
-
-// GetWorkspaceMode returns the value of WorkspaceMode.
-func (s *RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When) GetWorkspaceMode() []RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem {
-	return s.WorkspaceMode
-}
-
-// SetWorkspaceMode sets the value of WorkspaceMode.
-func (s *RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1When) SetWorkspaceMode(val []RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem) {
-	s.WorkspaceMode = val
-}
-
-type RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem string
-
-const (
-	RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount       RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem = "shared_mount"
-	RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem = "dedicated_worktree"
-	RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount      RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem = "scratch_mount"
-)
-
-// AllValues returns all RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem values.
-func (RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem) AllValues() []RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem {
-	return []RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem{
-		RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount,
-		RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree,
-		RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem) MarshalText() ([]byte, error) {
-	switch s {
-	case RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount:
-		return []byte(s), nil
-	case RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree:
-		return []byte(s), nil
-	case RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem) UnmarshalText(data []byte) error {
-	switch RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItem(data) {
-	case RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount:
-		*s = RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount
-		return nil
-	case RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree:
-		*s = RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree
-		return nil
-	case RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount:
-		*s = RuntimeProfileListResponseItemsItemSandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type RuntimeProfileListResponseItemsItemSandboxSnapshot struct {
-	AllowedHosts  []string  `json:"allowedHosts"`
-	OverlaySize   OptString `json:"overlaySize"`
-	SetupCommands []string  `json:"setupCommands"`
-}
-
-// GetAllowedHosts returns the value of AllowedHosts.
-func (s *RuntimeProfileListResponseItemsItemSandboxSnapshot) GetAllowedHosts() []string {
-	return s.AllowedHosts
-}
-
-// GetOverlaySize returns the value of OverlaySize.
-func (s *RuntimeProfileListResponseItemsItemSandboxSnapshot) GetOverlaySize() OptString {
-	return s.OverlaySize
-}
-
-// GetSetupCommands returns the value of SetupCommands.
-func (s *RuntimeProfileListResponseItemsItemSandboxSnapshot) GetSetupCommands() []string {
-	return s.SetupCommands
-}
-
-// SetAllowedHosts sets the value of AllowedHosts.
-func (s *RuntimeProfileListResponseItemsItemSandboxSnapshot) SetAllowedHosts(val []string) {
-	s.AllowedHosts = val
-}
-
-// SetOverlaySize sets the value of OverlaySize.
-func (s *RuntimeProfileListResponseItemsItemSandboxSnapshot) SetOverlaySize(val OptString) {
-	s.OverlaySize = val
-}
-
-// SetSetupCommands sets the value of SetupCommands.
-func (s *RuntimeProfileListResponseItemsItemSandboxSnapshot) SetSetupCommands(val []string) {
-	s.SetupCommands = val
 }
 
 type RuntimeProfileListResponseItemsItemSandboxVfs struct {
@@ -47389,49 +46492,13 @@ func (s *RuntimeProfileRef) SetProfileId(val uuid.UUID) {
 	s.ProfileId = val
 }
 
-type RuntimeProfileRuntimeKind string
-
-const (
-	RuntimeProfileRuntimeKindGondolinPi RuntimeProfileRuntimeKind = "gondolin_pi"
-)
-
-// AllValues returns all RuntimeProfileRuntimeKind values.
-func (RuntimeProfileRuntimeKind) AllValues() []RuntimeProfileRuntimeKind {
-	return []RuntimeProfileRuntimeKind{
-		RuntimeProfileRuntimeKindGondolinPi,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s RuntimeProfileRuntimeKind) MarshalText() ([]byte, error) {
-	switch s {
-	case RuntimeProfileRuntimeKindGondolinPi:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *RuntimeProfileRuntimeKind) UnmarshalText(data []byte) error {
-	switch RuntimeProfileRuntimeKind(data) {
-	case RuntimeProfileRuntimeKindGondolinPi:
-		*s = RuntimeProfileRuntimeKindGondolinPi
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
 // Ref: #/components/schemas/RuntimeProfileSandbox
 type RuntimeProfileSandbox struct {
-	Env            OptRuntimeProfileSandboxEnv               `json:"env"`
-	HostExec       OptRuntimeProfileSandboxHostExec          `json:"hostExec"`
-	Network        OptRuntimeProfileSandboxNetwork           `json:"network"`
-	Resources      OptRuntimeProfileSandboxResources         `json:"resources"`
-	ResumeCommands []RuntimeProfileSandboxResumeCommandsItem `json:"resumeCommands"`
-	Snapshot       OptRuntimeProfileSandboxSnapshot          `json:"snapshot"`
-	Vfs            OptRuntimeProfileSandboxVfs               `json:"vfs"`
+	Env       OptRuntimeProfileSandboxEnv       `json:"env"`
+	HostExec  OptRuntimeProfileSandboxHostExec  `json:"hostExec"`
+	Network   OptRuntimeProfileSandboxNetwork   `json:"network"`
+	Resources OptRuntimeProfileSandboxResources `json:"resources"`
+	Vfs       OptRuntimeProfileSandboxVfs       `json:"vfs"`
 }
 
 // GetEnv returns the value of Env.
@@ -47452,16 +46519,6 @@ func (s *RuntimeProfileSandbox) GetNetwork() OptRuntimeProfileSandboxNetwork {
 // GetResources returns the value of Resources.
 func (s *RuntimeProfileSandbox) GetResources() OptRuntimeProfileSandboxResources {
 	return s.Resources
-}
-
-// GetResumeCommands returns the value of ResumeCommands.
-func (s *RuntimeProfileSandbox) GetResumeCommands() []RuntimeProfileSandboxResumeCommandsItem {
-	return s.ResumeCommands
-}
-
-// GetSnapshot returns the value of Snapshot.
-func (s *RuntimeProfileSandbox) GetSnapshot() OptRuntimeProfileSandboxSnapshot {
-	return s.Snapshot
 }
 
 // GetVfs returns the value of Vfs.
@@ -47487,16 +46544,6 @@ func (s *RuntimeProfileSandbox) SetNetwork(val OptRuntimeProfileSandboxNetwork) 
 // SetResources sets the value of Resources.
 func (s *RuntimeProfileSandbox) SetResources(val OptRuntimeProfileSandboxResources) {
 	s.Resources = val
-}
-
-// SetResumeCommands sets the value of ResumeCommands.
-func (s *RuntimeProfileSandbox) SetResumeCommands(val []RuntimeProfileSandboxResumeCommandsItem) {
-	s.ResumeCommands = val
-}
-
-// SetSnapshot sets the value of Snapshot.
-func (s *RuntimeProfileSandbox) SetSnapshot(val OptRuntimeProfileSandboxSnapshot) {
-	s.Snapshot = val
 }
 
 // SetVfs sets the value of Vfs.
@@ -47590,220 +46637,6 @@ func (s *RuntimeProfileSandboxResources) SetCpus(val OptInt) {
 // SetMemory sets the value of Memory.
 func (s *RuntimeProfileSandboxResources) SetMemory(val OptString) {
 	s.Memory = val
-}
-
-// RuntimeProfileSandboxResumeCommandsItem represents sum type.
-type RuntimeProfileSandboxResumeCommandsItem struct {
-	// Type selects the active sum variant, switch on this field.
-	Type                                     RuntimeProfileSandboxResumeCommandsItemType
-	String                                   string
-	RuntimeProfileSandboxResumeCommandsItem1 RuntimeProfileSandboxResumeCommandsItem1
-}
-
-// RuntimeProfileSandboxResumeCommandsItemType is oneOf type of RuntimeProfileSandboxResumeCommandsItem.
-type RuntimeProfileSandboxResumeCommandsItemType string
-
-// Possible values for RuntimeProfileSandboxResumeCommandsItemType.
-const (
-	StringRuntimeProfileSandboxResumeCommandsItem                                   RuntimeProfileSandboxResumeCommandsItemType = "string"
-	RuntimeProfileSandboxResumeCommandsItem1RuntimeProfileSandboxResumeCommandsItem RuntimeProfileSandboxResumeCommandsItemType = "RuntimeProfileSandboxResumeCommandsItem1"
-)
-
-// IsString reports whether RuntimeProfileSandboxResumeCommandsItem is string.
-func (s RuntimeProfileSandboxResumeCommandsItem) IsString() bool {
-	return s.Type == StringRuntimeProfileSandboxResumeCommandsItem
-}
-
-// IsRuntimeProfileSandboxResumeCommandsItem1 reports whether RuntimeProfileSandboxResumeCommandsItem is RuntimeProfileSandboxResumeCommandsItem1.
-func (s RuntimeProfileSandboxResumeCommandsItem) IsRuntimeProfileSandboxResumeCommandsItem1() bool {
-	return s.Type == RuntimeProfileSandboxResumeCommandsItem1RuntimeProfileSandboxResumeCommandsItem
-}
-
-// SetString sets RuntimeProfileSandboxResumeCommandsItem to string.
-func (s *RuntimeProfileSandboxResumeCommandsItem) SetString(v string) {
-	s.Type = StringRuntimeProfileSandboxResumeCommandsItem
-	s.String = v
-}
-
-// GetString returns string and true boolean if RuntimeProfileSandboxResumeCommandsItem is string.
-func (s RuntimeProfileSandboxResumeCommandsItem) GetString() (v string, ok bool) {
-	if !s.IsString() {
-		return v, false
-	}
-	return s.String, true
-}
-
-// NewStringRuntimeProfileSandboxResumeCommandsItem returns new RuntimeProfileSandboxResumeCommandsItem from string.
-func NewStringRuntimeProfileSandboxResumeCommandsItem(v string) RuntimeProfileSandboxResumeCommandsItem {
-	var s RuntimeProfileSandboxResumeCommandsItem
-	s.SetString(v)
-	return s
-}
-
-// SetRuntimeProfileSandboxResumeCommandsItem1 sets RuntimeProfileSandboxResumeCommandsItem to RuntimeProfileSandboxResumeCommandsItem1.
-func (s *RuntimeProfileSandboxResumeCommandsItem) SetRuntimeProfileSandboxResumeCommandsItem1(v RuntimeProfileSandboxResumeCommandsItem1) {
-	s.Type = RuntimeProfileSandboxResumeCommandsItem1RuntimeProfileSandboxResumeCommandsItem
-	s.RuntimeProfileSandboxResumeCommandsItem1 = v
-}
-
-// GetRuntimeProfileSandboxResumeCommandsItem1 returns RuntimeProfileSandboxResumeCommandsItem1 and true boolean if RuntimeProfileSandboxResumeCommandsItem is RuntimeProfileSandboxResumeCommandsItem1.
-func (s RuntimeProfileSandboxResumeCommandsItem) GetRuntimeProfileSandboxResumeCommandsItem1() (v RuntimeProfileSandboxResumeCommandsItem1, ok bool) {
-	if !s.IsRuntimeProfileSandboxResumeCommandsItem1() {
-		return v, false
-	}
-	return s.RuntimeProfileSandboxResumeCommandsItem1, true
-}
-
-// NewRuntimeProfileSandboxResumeCommandsItem1RuntimeProfileSandboxResumeCommandsItem returns new RuntimeProfileSandboxResumeCommandsItem from RuntimeProfileSandboxResumeCommandsItem1.
-func NewRuntimeProfileSandboxResumeCommandsItem1RuntimeProfileSandboxResumeCommandsItem(v RuntimeProfileSandboxResumeCommandsItem1) RuntimeProfileSandboxResumeCommandsItem {
-	var s RuntimeProfileSandboxResumeCommandsItem
-	s.SetRuntimeProfileSandboxResumeCommandsItem1(v)
-	return s
-}
-
-type RuntimeProfileSandboxResumeCommandsItem1 struct {
-	Retries        OptInt                                          `json:"retries"`
-	RetryBackoffMs OptInt                                          `json:"retryBackoffMs"`
-	Run            string                                          `json:"run"`
-	When           OptRuntimeProfileSandboxResumeCommandsItem1When `json:"when"`
-}
-
-// GetRetries returns the value of Retries.
-func (s *RuntimeProfileSandboxResumeCommandsItem1) GetRetries() OptInt {
-	return s.Retries
-}
-
-// GetRetryBackoffMs returns the value of RetryBackoffMs.
-func (s *RuntimeProfileSandboxResumeCommandsItem1) GetRetryBackoffMs() OptInt {
-	return s.RetryBackoffMs
-}
-
-// GetRun returns the value of Run.
-func (s *RuntimeProfileSandboxResumeCommandsItem1) GetRun() string {
-	return s.Run
-}
-
-// GetWhen returns the value of When.
-func (s *RuntimeProfileSandboxResumeCommandsItem1) GetWhen() OptRuntimeProfileSandboxResumeCommandsItem1When {
-	return s.When
-}
-
-// SetRetries sets the value of Retries.
-func (s *RuntimeProfileSandboxResumeCommandsItem1) SetRetries(val OptInt) {
-	s.Retries = val
-}
-
-// SetRetryBackoffMs sets the value of RetryBackoffMs.
-func (s *RuntimeProfileSandboxResumeCommandsItem1) SetRetryBackoffMs(val OptInt) {
-	s.RetryBackoffMs = val
-}
-
-// SetRun sets the value of Run.
-func (s *RuntimeProfileSandboxResumeCommandsItem1) SetRun(val string) {
-	s.Run = val
-}
-
-// SetWhen sets the value of When.
-func (s *RuntimeProfileSandboxResumeCommandsItem1) SetWhen(val OptRuntimeProfileSandboxResumeCommandsItem1When) {
-	s.When = val
-}
-
-type RuntimeProfileSandboxResumeCommandsItem1When struct {
-	WorkspaceMode []RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem `json:"workspaceMode"`
-}
-
-// GetWorkspaceMode returns the value of WorkspaceMode.
-func (s *RuntimeProfileSandboxResumeCommandsItem1When) GetWorkspaceMode() []RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem {
-	return s.WorkspaceMode
-}
-
-// SetWorkspaceMode sets the value of WorkspaceMode.
-func (s *RuntimeProfileSandboxResumeCommandsItem1When) SetWorkspaceMode(val []RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem) {
-	s.WorkspaceMode = val
-}
-
-type RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem string
-
-const (
-	RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount       RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem = "shared_mount"
-	RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem = "dedicated_worktree"
-	RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount      RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem = "scratch_mount"
-)
-
-// AllValues returns all RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem values.
-func (RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem) AllValues() []RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem {
-	return []RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem{
-		RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount,
-		RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree,
-		RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem) MarshalText() ([]byte, error) {
-	switch s {
-	case RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount:
-		return []byte(s), nil
-	case RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree:
-		return []byte(s), nil
-	case RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem) UnmarshalText(data []byte) error {
-	switch RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItem(data) {
-	case RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount:
-		*s = RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount
-		return nil
-	case RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree:
-		*s = RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree
-		return nil
-	case RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount:
-		*s = RuntimeProfileSandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type RuntimeProfileSandboxSnapshot struct {
-	AllowedHosts  []string  `json:"allowedHosts"`
-	OverlaySize   OptString `json:"overlaySize"`
-	SetupCommands []string  `json:"setupCommands"`
-}
-
-// GetAllowedHosts returns the value of AllowedHosts.
-func (s *RuntimeProfileSandboxSnapshot) GetAllowedHosts() []string {
-	return s.AllowedHosts
-}
-
-// GetOverlaySize returns the value of OverlaySize.
-func (s *RuntimeProfileSandboxSnapshot) GetOverlaySize() OptString {
-	return s.OverlaySize
-}
-
-// GetSetupCommands returns the value of SetupCommands.
-func (s *RuntimeProfileSandboxSnapshot) GetSetupCommands() []string {
-	return s.SetupCommands
-}
-
-// SetAllowedHosts sets the value of AllowedHosts.
-func (s *RuntimeProfileSandboxSnapshot) SetAllowedHosts(val []string) {
-	s.AllowedHosts = val
-}
-
-// SetOverlaySize sets the value of OverlaySize.
-func (s *RuntimeProfileSandboxSnapshot) SetOverlaySize(val OptString) {
-	s.OverlaySize = val
-}
-
-// SetSetupCommands sets the value of SetupCommands.
-func (s *RuntimeProfileSandboxSnapshot) SetSetupCommands(val []string) {
-	s.SetupCommands = val
 }
 
 type RuntimeProfileSandboxVfs struct {
@@ -55108,8 +53941,9 @@ type UpdateRuntimeProfileBody struct {
 	Name                  OptString                                           `json:"name"`
 	Provider              OptString                                           `json:"provider"`
 	RequiredEnv           []string                                            `json:"requiredEnv"`
+	RequiredExecutables   []string                                            `json:"requiredExecutables"`
 	RequiredTools         []string                                            `json:"requiredTools"`
-	RuntimeKind           OptUpdateRuntimeProfileBodyRuntimeKind              `json:"runtimeKind"`
+	RuntimeKind           OptString                                           `json:"runtimeKind"`
 	Sandbox               OptUpdateRuntimeProfileBodySandbox                  `json:"sandbox"`
 	SessionStorageMode    OptUpdateRuntimeProfileBodySessionStorageMode       `json:"sessionStorageMode"`
 	SessionTtlSec         OptInt                                              `json:"sessionTtlSec"`
@@ -55194,13 +54028,18 @@ func (s *UpdateRuntimeProfileBody) GetRequiredEnv() []string {
 	return s.RequiredEnv
 }
 
+// GetRequiredExecutables returns the value of RequiredExecutables.
+func (s *UpdateRuntimeProfileBody) GetRequiredExecutables() []string {
+	return s.RequiredExecutables
+}
+
 // GetRequiredTools returns the value of RequiredTools.
 func (s *UpdateRuntimeProfileBody) GetRequiredTools() []string {
 	return s.RequiredTools
 }
 
 // GetRuntimeKind returns the value of RuntimeKind.
-func (s *UpdateRuntimeProfileBody) GetRuntimeKind() OptUpdateRuntimeProfileBodyRuntimeKind {
+func (s *UpdateRuntimeProfileBody) GetRuntimeKind() OptString {
 	return s.RuntimeKind
 }
 
@@ -55324,13 +54163,18 @@ func (s *UpdateRuntimeProfileBody) SetRequiredEnv(val []string) {
 	s.RequiredEnv = val
 }
 
+// SetRequiredExecutables sets the value of RequiredExecutables.
+func (s *UpdateRuntimeProfileBody) SetRequiredExecutables(val []string) {
+	s.RequiredExecutables = val
+}
+
 // SetRequiredTools sets the value of RequiredTools.
 func (s *UpdateRuntimeProfileBody) SetRequiredTools(val []string) {
 	s.RequiredTools = val
 }
 
 // SetRuntimeKind sets the value of RuntimeKind.
-func (s *UpdateRuntimeProfileBody) SetRuntimeKind(val OptUpdateRuntimeProfileBodyRuntimeKind) {
+func (s *UpdateRuntimeProfileBody) SetRuntimeKind(val OptString) {
 	s.RuntimeKind = val
 }
 
@@ -55571,48 +54415,12 @@ func (s *UpdateRuntimeProfileBodyDefaultWorkspaceMode) UnmarshalText(data []byte
 	}
 }
 
-type UpdateRuntimeProfileBodyRuntimeKind string
-
-const (
-	UpdateRuntimeProfileBodyRuntimeKindGondolinPi UpdateRuntimeProfileBodyRuntimeKind = "gondolin_pi"
-)
-
-// AllValues returns all UpdateRuntimeProfileBodyRuntimeKind values.
-func (UpdateRuntimeProfileBodyRuntimeKind) AllValues() []UpdateRuntimeProfileBodyRuntimeKind {
-	return []UpdateRuntimeProfileBodyRuntimeKind{
-		UpdateRuntimeProfileBodyRuntimeKindGondolinPi,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s UpdateRuntimeProfileBodyRuntimeKind) MarshalText() ([]byte, error) {
-	switch s {
-	case UpdateRuntimeProfileBodyRuntimeKindGondolinPi:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *UpdateRuntimeProfileBodyRuntimeKind) UnmarshalText(data []byte) error {
-	switch UpdateRuntimeProfileBodyRuntimeKind(data) {
-	case UpdateRuntimeProfileBodyRuntimeKindGondolinPi:
-		*s = UpdateRuntimeProfileBodyRuntimeKindGondolinPi
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
 type UpdateRuntimeProfileBodySandbox struct {
-	Env            OptUpdateRuntimeProfileBodySandboxEnv               `json:"env"`
-	HostExec       OptUpdateRuntimeProfileBodySandboxHostExec          `json:"hostExec"`
-	Network        OptUpdateRuntimeProfileBodySandboxNetwork           `json:"network"`
-	Resources      OptUpdateRuntimeProfileBodySandboxResources         `json:"resources"`
-	ResumeCommands []UpdateRuntimeProfileBodySandboxResumeCommandsItem `json:"resumeCommands"`
-	Snapshot       OptUpdateRuntimeProfileBodySandboxSnapshot          `json:"snapshot"`
-	Vfs            OptUpdateRuntimeProfileBodySandboxVfs               `json:"vfs"`
+	Env       OptUpdateRuntimeProfileBodySandboxEnv       `json:"env"`
+	HostExec  OptUpdateRuntimeProfileBodySandboxHostExec  `json:"hostExec"`
+	Network   OptUpdateRuntimeProfileBodySandboxNetwork   `json:"network"`
+	Resources OptUpdateRuntimeProfileBodySandboxResources `json:"resources"`
+	Vfs       OptUpdateRuntimeProfileBodySandboxVfs       `json:"vfs"`
 }
 
 // GetEnv returns the value of Env.
@@ -55633,16 +54441,6 @@ func (s *UpdateRuntimeProfileBodySandbox) GetNetwork() OptUpdateRuntimeProfileBo
 // GetResources returns the value of Resources.
 func (s *UpdateRuntimeProfileBodySandbox) GetResources() OptUpdateRuntimeProfileBodySandboxResources {
 	return s.Resources
-}
-
-// GetResumeCommands returns the value of ResumeCommands.
-func (s *UpdateRuntimeProfileBodySandbox) GetResumeCommands() []UpdateRuntimeProfileBodySandboxResumeCommandsItem {
-	return s.ResumeCommands
-}
-
-// GetSnapshot returns the value of Snapshot.
-func (s *UpdateRuntimeProfileBodySandbox) GetSnapshot() OptUpdateRuntimeProfileBodySandboxSnapshot {
-	return s.Snapshot
 }
 
 // GetVfs returns the value of Vfs.
@@ -55668,16 +54466,6 @@ func (s *UpdateRuntimeProfileBodySandbox) SetNetwork(val OptUpdateRuntimeProfile
 // SetResources sets the value of Resources.
 func (s *UpdateRuntimeProfileBodySandbox) SetResources(val OptUpdateRuntimeProfileBodySandboxResources) {
 	s.Resources = val
-}
-
-// SetResumeCommands sets the value of ResumeCommands.
-func (s *UpdateRuntimeProfileBodySandbox) SetResumeCommands(val []UpdateRuntimeProfileBodySandboxResumeCommandsItem) {
-	s.ResumeCommands = val
-}
-
-// SetSnapshot sets the value of Snapshot.
-func (s *UpdateRuntimeProfileBodySandbox) SetSnapshot(val OptUpdateRuntimeProfileBodySandboxSnapshot) {
-	s.Snapshot = val
 }
 
 // SetVfs sets the value of Vfs.
@@ -55771,220 +54559,6 @@ func (s *UpdateRuntimeProfileBodySandboxResources) SetCpus(val OptInt) {
 // SetMemory sets the value of Memory.
 func (s *UpdateRuntimeProfileBodySandboxResources) SetMemory(val OptString) {
 	s.Memory = val
-}
-
-// UpdateRuntimeProfileBodySandboxResumeCommandsItem represents sum type.
-type UpdateRuntimeProfileBodySandboxResumeCommandsItem struct {
-	// Type selects the active sum variant, switch on this field.
-	Type                                               UpdateRuntimeProfileBodySandboxResumeCommandsItemType
-	String                                             string
-	UpdateRuntimeProfileBodySandboxResumeCommandsItem1 UpdateRuntimeProfileBodySandboxResumeCommandsItem1
-}
-
-// UpdateRuntimeProfileBodySandboxResumeCommandsItemType is oneOf type of UpdateRuntimeProfileBodySandboxResumeCommandsItem.
-type UpdateRuntimeProfileBodySandboxResumeCommandsItemType string
-
-// Possible values for UpdateRuntimeProfileBodySandboxResumeCommandsItemType.
-const (
-	StringUpdateRuntimeProfileBodySandboxResumeCommandsItem                                             UpdateRuntimeProfileBodySandboxResumeCommandsItemType = "string"
-	UpdateRuntimeProfileBodySandboxResumeCommandsItem1UpdateRuntimeProfileBodySandboxResumeCommandsItem UpdateRuntimeProfileBodySandboxResumeCommandsItemType = "UpdateRuntimeProfileBodySandboxResumeCommandsItem1"
-)
-
-// IsString reports whether UpdateRuntimeProfileBodySandboxResumeCommandsItem is string.
-func (s UpdateRuntimeProfileBodySandboxResumeCommandsItem) IsString() bool {
-	return s.Type == StringUpdateRuntimeProfileBodySandboxResumeCommandsItem
-}
-
-// IsUpdateRuntimeProfileBodySandboxResumeCommandsItem1 reports whether UpdateRuntimeProfileBodySandboxResumeCommandsItem is UpdateRuntimeProfileBodySandboxResumeCommandsItem1.
-func (s UpdateRuntimeProfileBodySandboxResumeCommandsItem) IsUpdateRuntimeProfileBodySandboxResumeCommandsItem1() bool {
-	return s.Type == UpdateRuntimeProfileBodySandboxResumeCommandsItem1UpdateRuntimeProfileBodySandboxResumeCommandsItem
-}
-
-// SetString sets UpdateRuntimeProfileBodySandboxResumeCommandsItem to string.
-func (s *UpdateRuntimeProfileBodySandboxResumeCommandsItem) SetString(v string) {
-	s.Type = StringUpdateRuntimeProfileBodySandboxResumeCommandsItem
-	s.String = v
-}
-
-// GetString returns string and true boolean if UpdateRuntimeProfileBodySandboxResumeCommandsItem is string.
-func (s UpdateRuntimeProfileBodySandboxResumeCommandsItem) GetString() (v string, ok bool) {
-	if !s.IsString() {
-		return v, false
-	}
-	return s.String, true
-}
-
-// NewStringUpdateRuntimeProfileBodySandboxResumeCommandsItem returns new UpdateRuntimeProfileBodySandboxResumeCommandsItem from string.
-func NewStringUpdateRuntimeProfileBodySandboxResumeCommandsItem(v string) UpdateRuntimeProfileBodySandboxResumeCommandsItem {
-	var s UpdateRuntimeProfileBodySandboxResumeCommandsItem
-	s.SetString(v)
-	return s
-}
-
-// SetUpdateRuntimeProfileBodySandboxResumeCommandsItem1 sets UpdateRuntimeProfileBodySandboxResumeCommandsItem to UpdateRuntimeProfileBodySandboxResumeCommandsItem1.
-func (s *UpdateRuntimeProfileBodySandboxResumeCommandsItem) SetUpdateRuntimeProfileBodySandboxResumeCommandsItem1(v UpdateRuntimeProfileBodySandboxResumeCommandsItem1) {
-	s.Type = UpdateRuntimeProfileBodySandboxResumeCommandsItem1UpdateRuntimeProfileBodySandboxResumeCommandsItem
-	s.UpdateRuntimeProfileBodySandboxResumeCommandsItem1 = v
-}
-
-// GetUpdateRuntimeProfileBodySandboxResumeCommandsItem1 returns UpdateRuntimeProfileBodySandboxResumeCommandsItem1 and true boolean if UpdateRuntimeProfileBodySandboxResumeCommandsItem is UpdateRuntimeProfileBodySandboxResumeCommandsItem1.
-func (s UpdateRuntimeProfileBodySandboxResumeCommandsItem) GetUpdateRuntimeProfileBodySandboxResumeCommandsItem1() (v UpdateRuntimeProfileBodySandboxResumeCommandsItem1, ok bool) {
-	if !s.IsUpdateRuntimeProfileBodySandboxResumeCommandsItem1() {
-		return v, false
-	}
-	return s.UpdateRuntimeProfileBodySandboxResumeCommandsItem1, true
-}
-
-// NewUpdateRuntimeProfileBodySandboxResumeCommandsItem1UpdateRuntimeProfileBodySandboxResumeCommandsItem returns new UpdateRuntimeProfileBodySandboxResumeCommandsItem from UpdateRuntimeProfileBodySandboxResumeCommandsItem1.
-func NewUpdateRuntimeProfileBodySandboxResumeCommandsItem1UpdateRuntimeProfileBodySandboxResumeCommandsItem(v UpdateRuntimeProfileBodySandboxResumeCommandsItem1) UpdateRuntimeProfileBodySandboxResumeCommandsItem {
-	var s UpdateRuntimeProfileBodySandboxResumeCommandsItem
-	s.SetUpdateRuntimeProfileBodySandboxResumeCommandsItem1(v)
-	return s
-}
-
-type UpdateRuntimeProfileBodySandboxResumeCommandsItem1 struct {
-	Retries        OptInt                                                    `json:"retries"`
-	RetryBackoffMs OptInt                                                    `json:"retryBackoffMs"`
-	Run            string                                                    `json:"run"`
-	When           OptUpdateRuntimeProfileBodySandboxResumeCommandsItem1When `json:"when"`
-}
-
-// GetRetries returns the value of Retries.
-func (s *UpdateRuntimeProfileBodySandboxResumeCommandsItem1) GetRetries() OptInt {
-	return s.Retries
-}
-
-// GetRetryBackoffMs returns the value of RetryBackoffMs.
-func (s *UpdateRuntimeProfileBodySandboxResumeCommandsItem1) GetRetryBackoffMs() OptInt {
-	return s.RetryBackoffMs
-}
-
-// GetRun returns the value of Run.
-func (s *UpdateRuntimeProfileBodySandboxResumeCommandsItem1) GetRun() string {
-	return s.Run
-}
-
-// GetWhen returns the value of When.
-func (s *UpdateRuntimeProfileBodySandboxResumeCommandsItem1) GetWhen() OptUpdateRuntimeProfileBodySandboxResumeCommandsItem1When {
-	return s.When
-}
-
-// SetRetries sets the value of Retries.
-func (s *UpdateRuntimeProfileBodySandboxResumeCommandsItem1) SetRetries(val OptInt) {
-	s.Retries = val
-}
-
-// SetRetryBackoffMs sets the value of RetryBackoffMs.
-func (s *UpdateRuntimeProfileBodySandboxResumeCommandsItem1) SetRetryBackoffMs(val OptInt) {
-	s.RetryBackoffMs = val
-}
-
-// SetRun sets the value of Run.
-func (s *UpdateRuntimeProfileBodySandboxResumeCommandsItem1) SetRun(val string) {
-	s.Run = val
-}
-
-// SetWhen sets the value of When.
-func (s *UpdateRuntimeProfileBodySandboxResumeCommandsItem1) SetWhen(val OptUpdateRuntimeProfileBodySandboxResumeCommandsItem1When) {
-	s.When = val
-}
-
-type UpdateRuntimeProfileBodySandboxResumeCommandsItem1When struct {
-	WorkspaceMode []UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem `json:"workspaceMode"`
-}
-
-// GetWorkspaceMode returns the value of WorkspaceMode.
-func (s *UpdateRuntimeProfileBodySandboxResumeCommandsItem1When) GetWorkspaceMode() []UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem {
-	return s.WorkspaceMode
-}
-
-// SetWorkspaceMode sets the value of WorkspaceMode.
-func (s *UpdateRuntimeProfileBodySandboxResumeCommandsItem1When) SetWorkspaceMode(val []UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem) {
-	s.WorkspaceMode = val
-}
-
-type UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem string
-
-const (
-	UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount       UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem = "shared_mount"
-	UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem = "dedicated_worktree"
-	UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount      UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem = "scratch_mount"
-)
-
-// AllValues returns all UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem values.
-func (UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem) AllValues() []UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem {
-	return []UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem{
-		UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount,
-		UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree,
-		UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem) MarshalText() ([]byte, error) {
-	switch s {
-	case UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount:
-		return []byte(s), nil
-	case UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree:
-		return []byte(s), nil
-	case UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem) UnmarshalText(data []byte) error {
-	switch UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItem(data) {
-	case UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount:
-		*s = UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemSharedMount
-		return nil
-	case UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree:
-		*s = UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemDedicatedWorktree
-		return nil
-	case UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount:
-		*s = UpdateRuntimeProfileBodySandboxResumeCommandsItem1WhenWorkspaceModeItemScratchMount
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
-type UpdateRuntimeProfileBodySandboxSnapshot struct {
-	AllowedHosts  []string  `json:"allowedHosts"`
-	OverlaySize   OptString `json:"overlaySize"`
-	SetupCommands []string  `json:"setupCommands"`
-}
-
-// GetAllowedHosts returns the value of AllowedHosts.
-func (s *UpdateRuntimeProfileBodySandboxSnapshot) GetAllowedHosts() []string {
-	return s.AllowedHosts
-}
-
-// GetOverlaySize returns the value of OverlaySize.
-func (s *UpdateRuntimeProfileBodySandboxSnapshot) GetOverlaySize() OptString {
-	return s.OverlaySize
-}
-
-// GetSetupCommands returns the value of SetupCommands.
-func (s *UpdateRuntimeProfileBodySandboxSnapshot) GetSetupCommands() []string {
-	return s.SetupCommands
-}
-
-// SetAllowedHosts sets the value of AllowedHosts.
-func (s *UpdateRuntimeProfileBodySandboxSnapshot) SetAllowedHosts(val []string) {
-	s.AllowedHosts = val
-}
-
-// SetOverlaySize sets the value of OverlaySize.
-func (s *UpdateRuntimeProfileBodySandboxSnapshot) SetOverlaySize(val OptString) {
-	s.OverlaySize = val
-}
-
-// SetSetupCommands sets the value of SetupCommands.
-func (s *UpdateRuntimeProfileBodySandboxSnapshot) SetSetupCommands(val []string) {
-	s.SetupCommands = val
 }
 
 type UpdateRuntimeProfileBodySandboxVfs struct {
@@ -60735,6 +59309,7 @@ func (*ValidationProblemDetails) createTaskRes()                {}
 func (*ValidationProblemDetails) getTaskActivityAnalyticsRes()  {}
 func (*ValidationProblemDetails) listAgentKeysRes()             {}
 func (*ValidationProblemDetails) listTasksRes()                 {}
+func (*ValidationProblemDetails) registerExecutorManifestRes()  {}
 func (*ValidationProblemDetails) revokeAgentKeyRes()            {}
 func (*ValidationProblemDetails) rotateAgentKeyRes()            {}
 func (*ValidationProblemDetails) setRuntimeProfilePoliciesRes() {}

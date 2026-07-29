@@ -90,6 +90,7 @@ describe('PollingApiTaskSource', () => {
         attempt: { taskId: b.id, attemptN: 1 } as never,
         traceHeaders: {},
       });
+    const createClaimAttestation = vi.fn();
 
     const src = new PollingApiTaskSource({
       agent: makeAgent(list, claim),
@@ -97,11 +98,22 @@ describe('PollingApiTaskSource', () => {
       leaseTtlSec: 60,
       stopWhenEmpty: true,
       logger: silentLogger,
+      executorFingerprint: 'bafkrei-registered',
+      createClaimAttestation,
     });
 
     const result = await src.claim();
     expect(result?.task.id).toBe(b.id);
     expect(claim).toHaveBeenCalledTimes(2);
+    expect(createClaimAttestation).not.toHaveBeenCalled();
+    expect(claim).toHaveBeenNthCalledWith(1, a.id, {
+      leaseTtlSec: 60,
+      executorFingerprint: 'bafkrei-registered',
+    });
+    expect(claim).toHaveBeenNthCalledWith(2, b.id, {
+      leaseTtlSec: 60,
+      executorFingerprint: 'bafkrei-registered',
+    });
   });
 
   it('returns null on empty queue when stopWhenEmpty is true', async () => {

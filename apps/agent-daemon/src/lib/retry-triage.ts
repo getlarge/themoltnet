@@ -5,7 +5,7 @@ import {
   redactRetryTriageSecrets,
   type RetryTriageConfidence,
   type RetryTriageDecision,
-} from '@themoltnet/pi-extension';
+} from '@themoltnet/pi-runtime';
 
 export type RetryTriageResult = PiRetryTriageResult;
 

@@ -1046,6 +1046,15 @@ func (UnimplementedHandler) RegisterAgent(ctx context.Context, req *RegisterAgen
 	return r, ht.ErrNotImplemented
 }
 
+// RegisterExecutorManifest implements registerExecutorManifest operation.
+//
+// Register an agent-signed executor manifest for fingerprint-only task claims.
+//
+// POST /executor-manifests/register
+func (UnimplementedHandler) RegisterExecutorManifest(ctx context.Context, req *RegisterExecutorManifestReq) (r RegisterExecutorManifestRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // RejectSigningRequest implements rejectSigningRequest operation.
 //
 // POST /crypto/signing-requests/{id}/reject

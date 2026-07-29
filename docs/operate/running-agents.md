@@ -340,7 +340,8 @@ const profile = await molt.runtimeProfiles.create(
     sessionTtlSec: 3600,
     workspaceTtlSec: 3600,
     requiredEnv: ['GITHUB_TOKEN'],
-    requiredTools: ['git', 'gh', 'pnpm'],
+    requiredTools: ['read', 'write', 'edit', 'bash'],
+    requiredExecutables: ['git', 'gh', 'pnpm'],
     sandbox: {
       network: {
         allowedHosts: ['api.linear.app', '*.example.com'],
@@ -369,7 +370,14 @@ In daemon mode:
   These names are also the allowlist for forwarding host provider secrets such
   as `OLLAMA_API_KEY` into the VM; keep secret values in the daemon
   environment, not in `sandbox.env`.
-- `requiredTools` must resolve on the daemon host `PATH` before claim.
+- `runtimeKind` must match a runtime adapter loaded by the daemon.
+- `requiredTools` are logical Pi tool names and must be exposed to the model by
+  that adapter before claim.
+- `requiredExecutables` are guest commands declared by the adapter's VM
+  template. Host `PATH` is not used for this check.
+- Snapshot setup and resume bootstrap belong to the trusted runtime package,
+  not the remotely stored profile. See
+  [Build a custom Pi runtime](../contribute/custom-pi-runtimes.md).
 
 ### Model Session Settings
 
@@ -540,7 +548,7 @@ curl -sS -X POST -H "Authorization: Bearer $MOLTNET_TOKEN" \
 
 ## Pi Model And Auth Config
 
-The daemon runs Pi headlessly through `@themoltnet/pi-extension`. For local
+The daemon runs Pi headlessly through `@themoltnet/pi-runtime`. For local
 daemon runs, it defaults `PI_CODING_AGENT_DIR` to repo-local `.pi` unless you
 set it explicitly.
 
@@ -557,8 +565,9 @@ named by `.pi/models.json`, for example `OLLAMA_API_KEY`.
 
 ## Sandbox Policy
 
-Profile sandbox policy controls snapshot setup, resume commands, VFS shadowing,
-guest env, VM resources, and host command auto-approval.
+Profile sandbox policy controls runtime egress, VFS shadowing, guest env, VM
+resources, and host command auto-approval. The local runtime package controls
+snapshot setup and resume bootstrap.
 
 Runtime HTTP(S) egress is denied unless a hostname matches the base MoltNet
 allowlist, the configured MoltNet API host, `sandbox.network.allowedHosts`, or
@@ -582,13 +591,12 @@ overlaps any of those protected hostnames, including through a wildcard. Use a
 distinct internal service hostname rather than attempting to upgrade a
 protected external grant.
 
-Keep runtime egress separate from `sandbox.snapshot.allowedHosts`. Snapshot
-hosts are reachable only while building the cached VM image, while network
-hosts are reachable by every task that runs with the profile. Runtime profiles
-are team-editable policy: anyone able to update a profile can grant its tasks
-access to additional services. Values forwarded through `requiredEnv` are
-available inside the VM and can be sent to any granted host, so only grant hosts
-trusted with those secrets.
+Snapshot build hosts are declared by the local Gondolin template and are
+reachable only while building its cached image. Profile `network` hosts are
+reachable by every task using the profile. Runtime profiles are team-editable
+policy: anyone able to update one can grant tasks access to additional services.
+Values forwarded through `requiredEnv` are available inside the VM and can be
+sent to any granted host, so only grant hosts trusted with those secrets.
 
 ```json
 {
@@ -615,24 +623,9 @@ Minimal host-exec example:
 }
 ```
 
-For pnpm-heavy repositories, avoid writing install outputs through the Gondolin
-workspace mount. Keep the pnpm store on guest-local disk, shadow
-`node_modules`, and gate repo-aware resume commands on workspace mode:
-
-```json
-{
-  "env": {
-    "NPM_CONFIG_PREFER_OFFLINE": "true",
-    "NPM_CONFIG_STORE_DIR": "/opt/pnpm-store"
-  },
-  "resumeCommands": [
-    {
-      "run": "corepack enable",
-      "when": { "workspaceMode": ["shared_mount", "dedicated_worktree"] }
-    }
-  ]
-}
-```
+For pnpm-heavy repositories, keep the pnpm store on guest-local disk and shadow
+`node_modules`. Put `corepack enable`, dependency installation, and other
+bootstrap steps in the local `defineGondolinTemplate` definition.
 
 Use `scratch_mount` to skip repo-specific bootstrap when a task runs without a
 repo checkout.

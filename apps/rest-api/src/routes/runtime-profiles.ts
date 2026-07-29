@@ -11,6 +11,7 @@ import {
 import type { RuntimeProfileWorkspaceMode } from '@moltnet/tasks';
 import {
   RuntimeProfile as RuntimeProfileSchema,
+  runtimeProfileDefinitionPayload,
   type RuntimeProfileThinkingLevel,
   type RuntimeProfileToolEnforcement,
 } from '@moltnet/tasks';
@@ -164,7 +165,7 @@ function serializeProfile(
     topP: row.topP ?? null,
     topK: row.topK ?? null,
     maxOutputTokens: row.maxOutputTokens ?? null,
-    runtimeKind: 'gondolin_pi',
+    runtimeKind: row.runtimeKind ?? 'gondolin_pi',
     sandbox: row.sandbox as Record<string, unknown>,
     sessionStorageMode: 'local',
     workspaceStorageMode: 'local',
@@ -183,6 +184,7 @@ function serializeProfile(
       (row.toolEnforcement as RuntimeProfileToolEnforcement | null) ?? 'off',
     requiredEnv: row.requiredEnv,
     requiredTools: row.requiredTools,
+    requiredExecutables: row.requiredExecutables ?? [],
     context: row.context as Static<typeof RuntimeProfileSchema>['context'],
     revision: row.revision,
     definitionCid: row.definitionCid,
@@ -203,7 +205,7 @@ type ProfileDefinitionInput = {
   topP?: number | null;
   topK?: number | null;
   maxOutputTokens?: number | null;
-  runtimeKind?: 'gondolin_pi';
+  runtimeKind?: string;
   sandbox: unknown;
   sessionStorageMode?: 'local';
   workspaceStorageMode?: 'local';
@@ -218,40 +220,14 @@ type ProfileDefinitionInput = {
   maxBashTimeouts?: number;
   requiredEnv?: string[];
   requiredTools?: string[];
+  requiredExecutables?: string[];
   context?: unknown[];
 };
 
 async function computeProfileDefinitionCid(
   input: ProfileDefinitionInput,
 ): Promise<string> {
-  return computeJsonCid({
-    v: 'moltnet:runtime-profile:v1',
-    name: input.name,
-    description: input.description ?? null,
-    provider: input.provider.toLowerCase(),
-    model: input.model.toLowerCase(),
-    thinkingLevel: input.thinkingLevel ?? null,
-    temperature: input.temperature ?? null,
-    topP: input.topP ?? null,
-    topK: input.topK ?? null,
-    maxOutputTokens: input.maxOutputTokens ?? null,
-    runtimeKind: input.runtimeKind ?? 'gondolin_pi',
-    sandbox: input.sandbox,
-    sessionStorageMode: input.sessionStorageMode ?? 'local',
-    workspaceStorageMode: input.workspaceStorageMode ?? 'local',
-    defaultWorkspaceMode: input.defaultWorkspaceMode ?? null,
-    allowedWorkspaceModes: normalizeWorkspaceModes(input.allowedWorkspaceModes),
-    sessionTtlSec: input.sessionTtlSec ?? 1800,
-    workspaceTtlSec: input.workspaceTtlSec ?? 1800,
-    leaseTtlSec: input.leaseTtlSec ?? 300,
-    heartbeatIntervalMs: input.heartbeatIntervalMs ?? 60_000,
-    maxBatchSize: input.maxBatchSize ?? 50,
-    maxTurns: input.maxTurns ?? 0,
-    maxBashTimeouts: input.maxBashTimeouts ?? 3,
-    requiredEnv: normalizeList(input.requiredEnv).sort(),
-    requiredTools: normalizeList(input.requiredTools).sort(),
-    context: input.context ?? [],
-  });
+  return computeJsonCid(runtimeProfileDefinitionPayload(input));
 }
 
 export async function runtimeProfileRoutes(fastify: FastifyInstance) {
@@ -366,6 +342,7 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
           toolEnforcement: body.toolEnforcement ?? 'off',
           requiredEnv: normalizeList(body.requiredEnv),
           requiredTools: normalizeList(body.requiredTools),
+          requiredExecutables: normalizeList(body.requiredExecutables),
           context: body.context ?? [],
           definitionCid,
           createdByAgentId: creator.kind === 'agent' ? creator.id : null,
@@ -479,7 +456,7 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
           'maxOutputTokens' in body
             ? (body.maxOutputTokens ?? null)
             : (existing.maxOutputTokens ?? null),
-        runtimeKind: body.runtimeKind ?? 'gondolin_pi',
+        runtimeKind: body.runtimeKind ?? existing.runtimeKind,
         sandbox: body.sandbox ?? existing.sandbox,
         sessionStorageMode: body.sessionStorageMode ?? 'local',
         workspaceStorageMode: body.workspaceStorageMode ?? 'local',
@@ -503,6 +480,9 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
         requiredEnv: normalizeList(body.requiredEnv ?? existing.requiredEnv),
         requiredTools: normalizeList(
           body.requiredTools ?? existing.requiredTools,
+        ),
+        requiredExecutables: normalizeList(
+          body.requiredExecutables ?? existing.requiredExecutables,
         ),
         context: body.context ?? (existing.context as unknown[]),
       };

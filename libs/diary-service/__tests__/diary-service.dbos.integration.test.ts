@@ -271,8 +271,16 @@ describe('DiaryService (DBOS integration)', () => {
     await pool?.end();
     // HACK (LeGreffier, 2026-03-15): Same DBOS pool leak workaround as
     // diary-service.integration.test.ts — see comment there for full context.
+    // Under CI load pg-pool can turn the leaked connection's 57P01 into its
+    // own double-release error, so tolerate that exact teardown symptom too.
     const ignoreTeardownError = (err: Error & { code?: string }) => {
-      if (err.code !== '57P01') throw err;
+      if (
+        err.code !== '57P01' &&
+        err.message !==
+          'Release called on client which has already been released to the pool.'
+      ) {
+        throw err;
+      }
     };
     process.on('uncaughtException', ignoreTeardownError);
     await stopContainer?.();

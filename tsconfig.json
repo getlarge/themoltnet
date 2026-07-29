@@ -147,6 +147,9 @@
       "path": "libs/pi-extension"
     },
     {
+      "path": "libs/pi-runtime"
+    },
+    {
       "path": "libs/runtime-session-service"
     },
     {
@@ -184,6 +187,9 @@
     },
     {
       "path": "libs/yubikey-preview-sign"
+    },
+    {
+      "path": "examples/custom-pi-runtime"
     },
     {
       "path": "tools"

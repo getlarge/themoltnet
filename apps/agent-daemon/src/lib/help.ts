@@ -43,7 +43,12 @@ export function knownTaskTypesList(): string {
 export const ROOT_USAGE = `\
 agent-daemon — long-running task worker for MoltNet.
 
-Usage: agent-daemon <command> [...flags]
+Usage: agent-daemon [--runtime <module>] <command> [...flags]
+
+Runtime:
+  --runtime <module>          Trusted local file or installed package whose
+                              default export is a DaemonRuntimeAdapter.
+                              Omit to use the built-in gondolin_pi runtime.
 
 Commands:
   poll      Long-running worker. Polls the task queue and claims tasks

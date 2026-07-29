@@ -37,6 +37,7 @@ export type UpdateRuntimeProfileInput = Partial<
     | 'toolEnforcement'
     | 'requiredEnv'
     | 'requiredTools'
+    | 'requiredExecutables'
     | 'context'
     | 'definitionCid'
   >

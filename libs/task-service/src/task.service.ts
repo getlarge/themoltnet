@@ -19,7 +19,10 @@ import {
 } from '@moltnet/tasks';
 
 import {
+  assertExecutorCompatibleWithRuntimeProfile,
+  assertExecutorContinuity,
   persistExecutorVerification,
+  registerExecutorManifest as registerExecutorManifestAttestation,
   verifyExecutorForPhase,
 } from './executor-attestation.js';
 import { createTaskConditionHelpers } from './task-conditions.js';
@@ -37,6 +40,7 @@ import {
 } from './task-service.shared.js';
 import type {
   ExecutorAttestationInput,
+  ExecutorRegistrationInput,
   TaskServiceDeps,
 } from './task-service.types.js';
 import { createAsyncValidationContextFactory } from './task-validation-context.js';
@@ -115,6 +119,29 @@ export function createTaskService(deps: TaskServiceDeps) {
 
     ...createTaskQueryService(deps),
 
+    async registerExecutorManifest(
+      callerId: string,
+      callerNs: KetoNamespace,
+      registration: ExecutorRegistrationInput,
+    ): Promise<{ executorFingerprint: string }> {
+      if (callerNs !== KetoNamespace.Agent) {
+        throw new TaskServiceError(
+          'invalid',
+          'Only agents may register executor manifests',
+        );
+      }
+      return transactionRunner.runInTransaction(
+        () =>
+          registerExecutorManifestAttestation({
+            callerId,
+            registration,
+            taskRepository,
+            agentRepository,
+          }),
+        { name: 'executor.manifest.register' },
+      );
+    },
+
     async claim(
       taskId: string,
       callerId: string,
@@ -183,8 +210,11 @@ export function createTaskService(deps: TaskServiceDeps) {
         profileId: string;
       }[];
       const selectedProfileId = executorAttestation.profileId;
+      let selectedProfile: Awaited<
+        ReturnType<typeof runtimeProfileRepository.findById>
+      > = null;
       if (selectedProfileId) {
-        const selectedProfile =
+        selectedProfile =
           await runtimeProfileRepository.findById(selectedProfileId);
         if (!selectedProfile || selectedProfile.teamId !== row.teamId) {
           throw new TaskServiceError(
@@ -217,6 +247,12 @@ export function createTaskService(deps: TaskServiceDeps) {
         taskRepository,
         agentRepository,
       });
+      if (selectedProfile) {
+        assertExecutorCompatibleWithRuntimeProfile({
+          executor: claimedExecutor,
+          profile: selectedProfile,
+        });
+      }
 
       // CAS update: atomically move status from 'queued' → 'dispatched' (Issue 1).
       // For freeform continuations (#1287), serialise concurrent claim
@@ -490,6 +526,10 @@ export function createTaskService(deps: TaskServiceDeps) {
           `Attempt ${attemptN} is already in terminal state: ${attempt.status}`,
         );
       }
+      assertExecutorContinuity({
+        claimedFingerprint: attempt.claimedExecutorFingerprint,
+        completedFingerprint: body.executorFingerprint ?? null,
+      });
 
       // Pass `task.input` so per-type validators can run cross-field
       // rules (e.g. "verification is required when input.successCriteria

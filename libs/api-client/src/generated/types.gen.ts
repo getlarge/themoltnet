@@ -525,8 +525,9 @@ export type CreateRuntimeProfileBody = {
   name: string;
   provider: string;
   requiredEnv?: Array<string>;
+  requiredExecutables?: Array<string>;
   requiredTools?: Array<string>;
-  runtimeKind?: 'gondolin_pi';
+  runtimeKind?: string;
   sandbox: {
     env?: {
       [key: string]: string;
@@ -541,24 +542,6 @@ export type CreateRuntimeProfileBody = {
     resources?: {
       cpus?: number;
       memory?: string;
-    };
-    resumeCommands?: Array<
-      | string
-      | {
-          retries?: number;
-          retryBackoffMs?: number;
-          run: string;
-          when?: {
-            workspaceMode?: Array<
-              'shared_mount' | 'dedicated_worktree' | 'scratch_mount'
-            >;
-          };
-        }
-    >;
-    snapshot?: {
-      allowedHosts?: Array<string>;
-      overlaySize?: string;
-      setupCommands?: Array<string>;
     };
     vfs?: {
       shadow?: Array<string>;
@@ -2008,9 +1991,10 @@ export type RuntimeProfile = {
   name: string;
   provider: string;
   requiredEnv: Array<string>;
+  requiredExecutables: Array<string>;
   requiredTools: Array<string>;
   revision: number;
-  runtimeKind: 'gondolin_pi';
+  runtimeKind: string;
   sandbox: {
     env?: {
       [key: string]: string;
@@ -2025,24 +2009,6 @@ export type RuntimeProfile = {
     resources?: {
       cpus?: number;
       memory?: string;
-    };
-    resumeCommands?: Array<
-      | string
-      | {
-          retries?: number;
-          retryBackoffMs?: number;
-          run: string;
-          when?: {
-            workspaceMode?: Array<
-              'shared_mount' | 'dedicated_worktree' | 'scratch_mount'
-            >;
-          };
-        }
-    >;
-    snapshot?: {
-      allowedHosts?: Array<string>;
-      overlaySize?: string;
-      setupCommands?: Array<string>;
     };
     vfs?: {
       shadow?: Array<string>;
@@ -2098,9 +2064,10 @@ export type RuntimeProfileListResponse = {
     name: string;
     provider: string;
     requiredEnv: Array<string>;
+    requiredExecutables: Array<string>;
     requiredTools: Array<string>;
     revision: number;
-    runtimeKind: 'gondolin_pi';
+    runtimeKind: string;
     sandbox: {
       env?: {
         [key: string]: string;
@@ -2115,24 +2082,6 @@ export type RuntimeProfileListResponse = {
       resources?: {
         cpus?: number;
         memory?: string;
-      };
-      resumeCommands?: Array<
-        | string
-        | {
-            retries?: number;
-            retryBackoffMs?: number;
-            run: string;
-            when?: {
-              workspaceMode?: Array<
-                'shared_mount' | 'dedicated_worktree' | 'scratch_mount'
-              >;
-            };
-          }
-      >;
-      snapshot?: {
-        allowedHosts?: Array<string>;
-        overlaySize?: string;
-        setupCommands?: Array<string>;
       };
       vfs?: {
         shadow?: Array<string>;
@@ -2185,24 +2134,6 @@ export type RuntimeProfileSandbox = {
   resources?: {
     cpus?: number;
     memory?: string;
-  };
-  resumeCommands?: Array<
-    | string
-    | {
-        retries?: number;
-        retryBackoffMs?: number;
-        run: string;
-        when?: {
-          workspaceMode?: Array<
-            'shared_mount' | 'dedicated_worktree' | 'scratch_mount'
-          >;
-        };
-      }
-  >;
-  snapshot?: {
-    allowedHosts?: Array<string>;
-    overlaySize?: string;
-    setupCommands?: Array<string>;
   };
   vfs?: {
     shadow?: Array<string>;
@@ -2930,8 +2861,9 @@ export type UpdateRuntimeProfileBody = {
   name?: string;
   provider?: string;
   requiredEnv?: Array<string>;
+  requiredExecutables?: Array<string>;
   requiredTools?: Array<string>;
-  runtimeKind?: 'gondolin_pi';
+  runtimeKind?: string;
   sandbox?: {
     env?: {
       [key: string]: string;
@@ -2946,24 +2878,6 @@ export type UpdateRuntimeProfileBody = {
     resources?: {
       cpus?: number;
       memory?: string;
-    };
-    resumeCommands?: Array<
-      | string
-      | {
-          retries?: number;
-          retryBackoffMs?: number;
-          run: string;
-          when?: {
-            workspaceMode?: Array<
-              'shared_mount' | 'dedicated_worktree' | 'scratch_mount'
-            >;
-          };
-        }
-    >;
-    snapshot?: {
-      allowedHosts?: Array<string>;
-      overlaySize?: string;
-      setupCommands?: Array<string>;
     };
     vfs?: {
       shadow?: Array<string>;
@@ -5693,6 +5607,53 @@ export type VerifyDiaryEntryByIdResponses = {
 
 export type VerifyDiaryEntryByIdResponse =
   VerifyDiaryEntryByIdResponses[keyof VerifyDiaryEntryByIdResponses];
+
+export type RegisterExecutorManifestData = {
+  body: {
+    executorFingerprint: string;
+    executorManifest: {
+      [key: string]: unknown;
+    };
+    executorSignature: string;
+  };
+  path?: never;
+  query?: never;
+  url: '/executor-manifests/register';
+};
+
+export type RegisterExecutorManifestErrors = {
+  /**
+   * Default Response
+   */
+  400: ValidationProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ConflictProblemDetails;
+};
+
+export type RegisterExecutorManifestError =
+  RegisterExecutorManifestErrors[keyof RegisterExecutorManifestErrors];
+
+export type RegisterExecutorManifestResponses = {
+  /**
+   * Default Response
+   */
+  200: {
+    executorFingerprint: string;
+  };
+};
+
+export type RegisterExecutorManifestResponse =
+  RegisterExecutorManifestResponses[keyof RegisterExecutorManifestResponses];
 
 export type DeleteGroupData = {
   body?: never;

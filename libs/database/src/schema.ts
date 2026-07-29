@@ -163,11 +163,6 @@ export const taskMessageKindEnum = pgEnum('task_message_kind', [
 
 export const outputKindEnum = pgEnum('output_kind', ['artifact', 'judgment']);
 
-export const runtimeProfileRuntimeKindEnum = pgEnum(
-  'runtime_profile_runtime_kind',
-  ['gondolin_pi'],
-);
-
 export const runtimeProfileStorageModeEnum = pgEnum(
   'runtime_profile_storage_mode',
   ['local'],
@@ -1468,7 +1463,6 @@ export const runtimeProfiles = defineRuntimeProfilesTable({
   agents,
   humans,
   teams,
-  runtimeKindEnum: runtimeProfileRuntimeKindEnum,
   storageModeEnum: runtimeProfileStorageModeEnum,
 });
 
@@ -1547,6 +1541,36 @@ export type ExecutorManifestVerification =
   typeof executorManifestVerifications.$inferSelect;
 export type NewExecutorManifestVerification =
   typeof executorManifestVerifications.$inferInsert;
+
+export const executorManifestRegistrations = pgTable(
+  'executor_manifest_registrations',
+  {
+    fingerprint: varchar('fingerprint', { length: 100 })
+      .notNull()
+      .references(() => executorManifests.fingerprint, {
+        onDelete: 'cascade',
+      }),
+    agentIdentityId: uuid('agent_identity_id')
+      .notNull()
+      .references(() => agents.identityId, { onDelete: 'cascade' }),
+    signature: text('signature').notNull(),
+    registeredAt: timestamp('registered_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.fingerprint, table.agentIdentityId] }),
+    index('executor_manifest_registrations_agent_idx').on(
+      table.agentIdentityId,
+      table.registeredAt,
+    ),
+  ],
+);
+
+export type ExecutorManifestRegistration =
+  typeof executorManifestRegistrations.$inferSelect;
+export type NewExecutorManifestRegistration =
+  typeof executorManifestRegistrations.$inferInsert;
 
 // ── Task Attempts ──────────────────────────────────────────
 

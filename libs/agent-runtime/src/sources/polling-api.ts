@@ -7,7 +7,11 @@ import { MoltNetError } from '@themoltnet/sdk';
 import { pino } from 'pino';
 
 import type { AgentRuntimeLogger } from '../runtime.js';
-import type { ClaimedTask, TaskSource } from './types.js';
+import type {
+  ClaimedTask,
+  CreateClaimAttestation,
+  TaskSource,
+} from './types.js';
 
 /**
  * Structural shape of the runtime slot store needed by the affinity filter.
@@ -207,6 +211,16 @@ export interface PollingApiTaskSourceOptions {
    * profile.
    */
   profileId?: string;
+  /**
+   * Fingerprint of an executor manifest registered once for this agent.
+   * Preferred for polling because losing claim races then perform no signing
+   * and upload no repeated manifest bytes.
+   */
+  executorFingerprint?: string;
+  /** Registered fingerprints keyed by runtime profile id. */
+  executorFingerprints?: Readonly<Record<string, string>>;
+  /** Legacy inline attestation hook for callers without registration support. */
+  createClaimAttestation?: CreateClaimAttestation;
   /**
    * Ordered runtime profiles this source can claim with. The first profile
    * that sees a task wins, so unrestricted tasks use the first profile and
@@ -537,9 +551,19 @@ export class PollingApiTaskSource implements TaskSource {
       if (this.aborted()) return null;
       const { task, profile } = candidate;
       try {
+        const registeredFingerprint = profile.profileId
+          ? this.opts.executorFingerprints?.[profile.profileId]
+          : this.opts.executorFingerprint;
+        const attestation = registeredFingerprint
+          ? { executorFingerprint: registeredFingerprint }
+          : await this.opts.createClaimAttestation?.({
+              taskId: task.id,
+              ...(profile.profileId ? { profileId: profile.profileId } : {}),
+            });
         const result = await this.opts.agent.tasks.claim(task.id, {
           leaseTtlSec: profile.leaseTtlSec ?? this.opts.leaseTtlSec,
           ...(profile.profileId ? { profileId: profile.profileId } : {}),
+          ...attestation,
         });
         if (this.opts.debug) {
           this.logger.debug(

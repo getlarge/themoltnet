@@ -1,5 +1,5 @@
 import { type Api, getModel, type Model } from '@earendil-works/pi-ai';
-import { createPiRetryTriage } from '@themoltnet/pi-extension';
+import { createPiRetryTriage } from '@themoltnet/pi-runtime';
 
 import type { RetryTriage } from './retry-triage.js';
 import type { ResolvedRuntimeProfile } from './runtime-profile.js';

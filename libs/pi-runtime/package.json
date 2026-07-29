@@ -1,0 +1,81 @@
+{
+  "name": "@themoltnet/pi-runtime",
+  "version": "0.1.0",
+  "license": "MIT",
+  "type": "module",
+  "description": "Composable MoltNet runtime kernel for Pi agents in Gondolin VMs",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/getlarge/themoltnet.git",
+    "directory": "libs/pi-runtime"
+  },
+  "homepage": "https://themolt.net",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "!dist/.dts"
+  ],
+  "scripts": {
+    "check:pack": "tsx ../../tools/src/check-pack.ts --package ."
+  },
+  "dependencies": {
+    "@earendil-works/gondolin": "catalog:",
+    "@opentelemetry/api": "catalog:",
+    "@themoltnet/agent-runtime": "workspace:*",
+    "@themoltnet/sdk": "workspace:*",
+    "@themoltnet/shell-command-analyzer": "workspace:*",
+    "typebox": "catalog:"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-ai": "0.74.0",
+    "@earendil-works/pi-coding-agent": "0.79.4"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-ai": "catalog:",
+    "@earendil-works/pi-coding-agent": "catalog:",
+    "@moltnet/crypto-service": "workspace:*",
+    "@moltnet/models": "workspace:*",
+    "@moltnet/tasks": "workspace:*",
+    "@opentelemetry/sdk-metrics": "catalog:",
+    "@opentelemetry/sdk-trace-base": "catalog:",
+    "@types/node": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vite-plugin-dts": "catalog:",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "nx": {
+    "tags": [
+      "type:runtime",
+      "scope:agent",
+      "platform:extension"
+    ],
+    "targets": {
+      "test-ci": {
+        "executor": "nx:noop",
+        "dependsOn": [
+          "test"
+        ]
+      }
+    }
+  }
+}

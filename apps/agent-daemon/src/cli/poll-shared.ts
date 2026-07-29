@@ -9,10 +9,7 @@ import {
   type ClaimedTask,
   PollingApiTaskSource,
 } from '@themoltnet/agent-runtime';
-import {
-  createPiTaskExecutor,
-  findMainWorktree,
-} from '@themoltnet/pi-extension';
+import { findMainWorktree } from '@themoltnet/pi-runtime';
 
 import { activatePiCodingAgentDir, loadConfig } from '../config.js';
 import { abortActiveAttemptOnSignal } from '../lib/abort-active-attempt.js';
@@ -66,6 +63,12 @@ import { installShutdownSignalHandlers } from '../lib/shutdown-signal.js';
 import { createApiSourceAttemptResolver } from '../lib/source-attempts.js';
 import { ensureDaemonStateDirs } from '../lib/state-dir.js';
 import { makeTurnEventHandlerFactory } from '../lib/turn-event-logger.js';
+import { defaultPiDaemonAdapter } from '../pi.js';
+import {
+  assertRuntimeAdapterSupportsProfile,
+  type DaemonRuntimeAdapter,
+  type PreparedDaemonRuntime,
+} from '../runtime.js';
 
 export interface PollSharedArgs {
   argv: string[];
@@ -73,6 +76,7 @@ export interface PollSharedArgs {
   stopWhenEmpty: boolean;
   modeLabel: string;
   helpText: string;
+  runtimeAdapter?: DaemonRuntimeAdapter;
 }
 
 interface ProfileRuntime {
@@ -87,6 +91,7 @@ interface ProfileRuntime {
   piAgentDir: ReturnType<typeof ensurePiAgentDir>;
   slotIdentity: DaemonSlotIdentity;
   executionPlans: ReturnType<typeof createExecutionPlanCache>;
+  preparedRuntime: PreparedDaemonRuntime;
 }
 
 export async function runPolling(opts: PollSharedArgs): Promise<number> {
@@ -215,12 +220,22 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
     teamId,
     cwd: ctx.agentRootDir,
   });
+  const runtimeAdapter = opts.runtimeAdapter ?? defaultPiDaemonAdapter;
+  const preparedRuntimes = new Map<string, PreparedDaemonRuntime>();
   for (const profile of profiles) {
-    validateRuntimeProfilePrerequisites(
+    assertRuntimeAdapterSupportsProfile(runtimeAdapter, profile);
+    const prepared = await runtimeAdapter.prepare({
       profile,
-      cfg.profilePrerequisiteEnv,
-      cfg.profilePrerequisitePath,
+      configDir: ctx.agentDir,
+    });
+    validateRuntimeProfilePrerequisites(profile, cfg.profilePrerequisiteEnv, {
+      tools: prepared.tools,
+      executables: prepared.executables,
+    });
+    await ctx.agent.tasks.registerExecutorManifest(
+      await prepared.attestor.registration(),
     );
+    preparedRuntimes.set(profile.id, prepared);
   }
   const slotRegistry = createApiRuntimeSlotStore({ agent: ctx.agent });
   const runtimeSessionStore = createApiRuntimeSessionStore({
@@ -274,6 +289,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
       piAgentDir,
       slotIdentity,
       executionPlans,
+      preparedRuntime: preparedRuntimes.get(profile.id)!,
     });
   }
   const firstRuntime = runtimes.get(profiles[0].id);
@@ -462,6 +478,13 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
         waitAfterTaskMs: waitAfterTaskSec * 1_000,
         debug: baseCommon.debug,
         logger: rootLogger,
+        executorFingerprints: Object.fromEntries(
+          profiles.map((profile) => [
+            profile.id,
+            requireRuntime(runtimes, profile.id).preparedRuntime.attestor
+              .fingerprint,
+          ]),
+        ),
         // Warm-resume affinity: skip continuations whose source warm
         // session is neither remotely durable nor locally available.
         slotRegistry,
@@ -540,6 +563,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
             piAgentDir: selected.piAgentDir.path,
             cwd: ctx.agentRootDir,
           }),
+          executorAttestor: selected.preparedRuntime.attestor,
           writeCorrelationAnchors: makePrBodyAnchorWriter({
             gh: createGhCliClient(),
             logger: rootLogger.child({
@@ -695,7 +719,7 @@ export async function runPolling(opts: PollSharedArgs): Promise<number> {
             lastAttemptN: claimedTask.attemptN,
           });
         }
-        const rawExecuteTask = createPiTaskExecutor({
+        const rawExecuteTask = selected.preparedRuntime.createTaskExecutor({
           agentName: common.agent,
           agentRootDir: ctx.agentRootDir,
           mountPath: sandbox.rootDir,

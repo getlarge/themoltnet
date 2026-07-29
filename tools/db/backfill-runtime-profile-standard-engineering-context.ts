@@ -21,7 +21,10 @@
 import { config } from '@dotenvx/dotenvx';
 import { computeJsonCid } from '@moltnet/crypto-service';
 import { createDatabase, runtimeProfiles } from '@moltnet/database';
-import { resolveRuntimeProfileContextRecipe } from '@moltnet/tasks';
+import {
+  resolveRuntimeProfileContextRecipe,
+  runtimeProfileDefinitionPayload,
+} from '@moltnet/tasks';
 import { sql } from 'drizzle-orm';
 
 const args = process.argv.slice(2);
@@ -85,42 +88,17 @@ function loadStandardEngineeringContext(): ContextEntry {
   };
 }
 
-function normalizeList(values: readonly string[]): string[] {
-  return [...new Set(values.map((value) => value.trim()).filter(Boolean))];
-}
-
+// The canonical payload lives in @moltnet/tasks so this script, the REST API
+// write path, and executor manifest attestation all hash the same shape. Do
+// not inline a local copy here — a divergent formula silently writes CIDs the
+// API can never reproduce.
 function computeProfileDefinitionCid(
   profile: typeof runtimeProfiles.$inferSelect,
   context: ContextEntry[],
 ): Promise<string> {
-  return computeJsonCid({
-    v: 'moltnet:runtime-profile:v1',
-    name: profile.name,
-    description: profile.description ?? null,
-    provider: profile.provider.toLowerCase(),
-    model: profile.model.toLowerCase(),
-    thinkingLevel: profile.thinkingLevel ?? null,
-    temperature: profile.temperature ?? null,
-    topP: profile.topP ?? null,
-    topK: profile.topK ?? null,
-    maxOutputTokens: profile.maxOutputTokens ?? null,
-    runtimeKind: profile.runtimeKind,
-    sandbox: profile.sandbox,
-    sessionStorageMode: profile.sessionStorageMode,
-    workspaceStorageMode: profile.workspaceStorageMode,
-    defaultWorkspaceMode: profile.defaultWorkspaceMode ?? null,
-    allowedWorkspaceModes: [...profile.allowedWorkspaceModes].sort(),
-    sessionTtlSec: profile.sessionTtlSec,
-    workspaceTtlSec: profile.workspaceTtlSec,
-    leaseTtlSec: profile.leaseTtlSec,
-    heartbeatIntervalMs: profile.heartbeatIntervalMs,
-    maxBatchSize: profile.maxBatchSize,
-    maxTurns: profile.maxTurns,
-    maxBashTimeouts: profile.maxBashTimeouts,
-    requiredEnv: normalizeList(profile.requiredEnv).sort(),
-    requiredTools: normalizeList(profile.requiredTools).sort(),
-    context,
-  });
+  return computeJsonCid(
+    runtimeProfileDefinitionPayload({ ...profile, context }),
+  );
 }
 
 function isContextEntry(value: unknown): value is ContextEntry {

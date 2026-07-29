@@ -25,6 +25,24 @@ import {
   createReadTool,
   createWriteTool,
 } from '@earendil-works/pi-coding-agent';
+import {
+  activateAgentEnv,
+  buildWorkspaceMountInstructions,
+  createGondolinBashOps,
+  createGondolinEditOps,
+  createGondolinFindOps,
+  createGondolinLsOps,
+  createGondolinReadOps,
+  createGondolinWriteOps,
+  createMoltNetTools,
+  ensureSnapshot,
+  executeGondolinGrep,
+  findMainWorktree,
+  HOST_EXEC_DEFAULT_BASE_ENV,
+  type ProviderErrorRetryUi,
+  resumeVm,
+  type SandboxConfig,
+} from '@themoltnet/pi-runtime';
 import { connect } from '@themoltnet/sdk';
 
 import type { ExtensionState, TrackedError } from './commands/index.js';
@@ -33,25 +51,10 @@ import {
   registerResolveIssueCommand,
   registerSandboxCommand,
 } from './commands/index.js';
-import {
-  createMoltNetTools,
-  HOST_EXEC_DEFAULT_BASE_ENV,
-} from './moltnet/tools.js';
-import type { ProviderErrorRetryUi } from './runtime/execute-pi-task.js';
-import { buildWorkspaceMountInstructions } from './runtime/runtime-instructor.js';
-import { ensureSnapshot, type SandboxConfig } from './snapshot.js';
-import {
-  createGondolinBashOps,
-  createGondolinEditOps,
-  createGondolinFindOps,
-  createGondolinLsOps,
-  createGondolinReadOps,
-  createGondolinWriteOps,
-  executeGondolinGrep,
-} from './tool-operations.js';
-import { activateAgentEnv, findMainWorktree, resumeVm } from './vm-manager.js';
-
-export { createPiOtelExtension, type PiOtelOptions } from './otel/index.js';
+export {
+  createPiOtelExtension,
+  type PiOtelOptions,
+} from '@themoltnet/pi-runtime';
 
 export function createPiProviderErrorRetryUi(
   ctx: ExtensionContext,
@@ -500,91 +503,3 @@ export default function moltnetExtension(pi: ExtensionAPI) {
   registerResolveIssueCommand(pi, state);
   registerMoltnetReflectCommand(pi, state);
 }
-
-// Re-export modules for programmatic use
-export {
-  createMoltNetTools,
-  HOST_EXEC_DEFAULT_BASE_ENV,
-} from './moltnet/tools.js';
-export type {
-  EnsureSnapshotOptions,
-  ResumeCommand,
-  SandboxConfig,
-  SnapshotConfig,
-} from './snapshot.js';
-export { ensureSnapshot } from './snapshot.js';
-export {
-  createGondolinBashOps,
-  createGondolinEditOps,
-  createGondolinReadOps,
-  createGondolinWriteOps,
-  toGuestPath,
-} from './tool-operations.js';
-export type { ManagedVm, VmConfig, VmCredentials } from './vm-manager.js';
-export {
-  activateAgentEnv,
-  findMainWorktree,
-  loadCredentials,
-  resumeVm,
-} from './vm-manager.js';
-
-// Headless pi task executor. Previously exported under the `./runtime`
-// subpath; collapsed to the root so the package has a single published
-// entry and `check:pack` can bundle types cleanly via vite + rollupTypes.
-export { buildAgentSession } from './runtime/agent-session-factory.js';
-export {
-  createPiTaskExecutor,
-  executePiTask,
-  type ExecutePiTaskOptions,
-  type PiSessionPersistencePlan,
-  type PiTaskExecutionPlan,
-  type PiTaskExecutionPlanFactory,
-  type ProviderErrorRetryEvent,
-  type ProviderErrorRetryLevel,
-  type ProviderErrorRetryUi,
-  resolveTaskWorktreePath,
-  type TurnEventHandlerFactory,
-} from './runtime/execute-pi-task.js';
-export {
-  type InjectedTaskContext,
-  injectTaskContext,
-  type InjectTaskContextArgs,
-  type VmFsForContext,
-} from './runtime/inject-task-context.js';
-export {
-  createPiRetryTriage,
-  normalizeRetryTriageResult,
-  type PiRetryTriage,
-  type PiRetryTriageConfidence,
-  type PiRetryTriageDecision,
-  type PiRetryTriageInput,
-  type PiRetryTriageResult,
-  type PiRetryTriageThinkingLevel,
-  redactRetryTriageSecrets,
-  type RetryTriageConfidence,
-  type RetryTriageDecision,
-} from './runtime/retry-triage.js';
-export {
-  createSubagentTool,
-  type CreateSubagentToolArgs,
-  type SubagentToolHandle,
-  type SubagentToolParameters,
-} from './runtime/subagent-tool.js';
-export type {
-  TurnEventHandler,
-  TurnEventKind,
-} from './runtime/task-event-emitter.js';
-export {
-  decideToolCall,
-  type GateDecision,
-  type GateInput,
-  type ToolEnforcement,
-} from './tool-policy/gate.js';
-export {
-  type AllowedToolsClient,
-  createToolPolicyExtension,
-  decideForEvent,
-  resolveSessionToolPolicy,
-  type SessionToolPolicy,
-  type ToolPolicyExtensionDeps,
-} from './tool-policy/session-policy.js';

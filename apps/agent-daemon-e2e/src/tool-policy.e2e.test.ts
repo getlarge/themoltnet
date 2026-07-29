@@ -11,7 +11,7 @@
 import {
   decideToolCall,
   resolveSessionToolPolicy,
-} from '@themoltnet/pi-extension';
+} from '@themoltnet/pi-runtime';
 import { connect } from '@themoltnet/sdk';
 import { ShellCommandAnalyzer } from '@themoltnet/shell-command-analyzer';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
