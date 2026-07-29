@@ -44,7 +44,9 @@ function recordingOptions(
     queryKey: [id, q],
     queryFn: async () => {
       sink.push(q);
-      return { items: [], total: 0, nextCursor: undefined };
+      const total =
+        q.statuses?.length === 1 && q.statuses[0] === 'queued' ? 7 : 0;
+      return { items: [], total, nextCursor: undefined };
     },
   };
 }
@@ -104,10 +106,15 @@ vi.mock('../src/team/useTeam.js', () => ({
   }),
 }));
 
-const navigate = vi.fn();
+let currentSearch = '';
+const navigate = vi.fn((target: string) => {
+  currentSearch = new URL(target, 'https://console.example.com').search.slice(
+    1,
+  );
+});
 vi.mock('wouter', () => ({
   useLocation: () => ['/tasks', navigate],
-  useSearch: () => '',
+  useSearch: () => currentSearch,
 }));
 
 // Keep task-ui out of the picture: we only care about query fanout, not the
@@ -117,11 +124,29 @@ vi.mock('@moltnet/task-ui', () => ({
   CreateTaskDialog: ({ open }: { open: boolean }) =>
     open ? <div data-testid="create-dialog" /> : null,
   isTaskNonTerminal: () => false,
-  TaskFunnelStrip: () => null,
+  TaskFunnelStrip: ({ counts }: { counts: Record<string, number> }) => (
+    <div data-testid="lane-counts">{JSON.stringify(counts)}</div>
+  ),
   TaskLaneBoard: () => <div data-testid="lane-board" />,
   TaskLivePane: () => null,
   TaskQueueTable: () => <div data-testid="queue-table" />,
-  TaskTypeFacet: () => null,
+  TaskTypeFacet: ({
+    selected,
+    onChange,
+  }: {
+    selected: string[];
+    onChange: (next: string[]) => void;
+  }) => (
+    <div>
+      <span data-testid="selected-task-types">{selected.join(',')}</span>
+      <button type="button" onClick={() => onChange(['freeform'])}>
+        Select freeform
+      </button>
+      <button type="button" onClick={() => onChange([])}>
+        Clear task types
+      </button>
+    </div>
+  ),
   TASK_LANES: [
     { id: 'pending', statuses: ['waiting', 'queued'] },
     { id: 'active', statuses: ['dispatched', 'running'] },
@@ -146,6 +171,7 @@ function Wrapper({ children }: { children: ReactNode }) {
 
 describe('TasksPage query fanout (#1320)', () => {
   beforeEach(() => {
+    currentSearch = '';
     listTasksRequests.length = 0;
     listTasksInfiniteRequests.length = 0;
     navigate.mockClear();
@@ -185,6 +211,72 @@ describe('TasksPage query fanout (#1320)', () => {
     // The candidate query is the only consumer of listTasksOptions on mount.
     // It is gated on showCreate, so nothing should have fired yet.
     expect(listTasksRequests.length).toBe(0);
+  });
+
+  it('applies a selected status to its board lane without fetching other lanes', async () => {
+    const { rerender } = render(<TasksPage />, { wrapper: Wrapper });
+    await flush();
+    listTasksInfiniteRequests.length = 0;
+
+    fireEvent.click(screen.getByRole('button', { name: 'queued' }));
+
+    expect(navigate).toHaveBeenLastCalledWith('/tasks?status=queued');
+
+    rerender(<TasksPage />);
+    await flush();
+    act(() => {
+      vi.advanceTimersByTime(0);
+    });
+    await flush();
+
+    expect(listTasksInfiniteRequests).toHaveLength(1);
+    expect(listTasksInfiniteRequests[0]?.statuses).toEqual(['queued']);
+    expect(
+      JSON.parse(screen.getByTestId('lane-counts').textContent ?? ''),
+    ).toEqual({
+      pending: 7,
+      active: 0,
+      done: 0,
+      failed: 0,
+      closed: 0,
+    });
+  });
+
+  it('derives task types from the URL and preserves the status filter', async () => {
+    currentSearch = 'status=queued';
+    const { rerender, unmount } = render(<TasksPage />, { wrapper: Wrapper });
+    await flush();
+    listTasksInfiniteRequests.length = 0;
+
+    fireEvent.click(screen.getByRole('button', { name: 'Select freeform' }));
+
+    expect(navigate).toHaveBeenLastCalledWith(
+      '/tasks?status=queued&task_type=freeform',
+    );
+
+    rerender(<TasksPage />);
+    await flush();
+
+    expect(screen.getByTestId('selected-task-types').textContent).toBe(
+      'freeform',
+    );
+    expect(listTasksInfiniteRequests).toHaveLength(1);
+    expect(listTasksInfiniteRequests[0]?.statuses).toEqual(['queued']);
+    expect(listTasksInfiniteRequests[0]?.taskTypes).toEqual(['freeform']);
+
+    unmount();
+    const remounted = render(<TasksPage />, { wrapper: Wrapper });
+    await flush();
+
+    expect(screen.getByTestId('selected-task-types').textContent).toBe(
+      'freeform',
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear task types' }));
+    expect(navigate).toHaveBeenLastCalledWith('/tasks?status=queued');
+
+    remounted.rerender(<TasksPage />);
+    expect(screen.getByTestId('selected-task-types').textContent).toBe('');
   });
 
   it('debounces typing into one settled lane fanout instead of one per keystroke', async () => {
