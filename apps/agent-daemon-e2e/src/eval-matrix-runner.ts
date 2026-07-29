@@ -105,6 +105,9 @@ async function main(): Promise<void> {
       apiUrl: harness.restApiUrl,
       clientId: creds.clientId,
       clientSecret: creds.clientSecret,
+      publicKey: creds.keyPair.publicKey,
+      privateKey: creds.keyPair.privateKey,
+      fingerprint: creds.keyPair.fingerprint,
     });
 
     // One judge profile + one Pi config for the judge, pinned and reused across

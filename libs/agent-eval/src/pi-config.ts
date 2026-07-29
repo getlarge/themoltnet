@@ -17,14 +17,24 @@ export interface WriteAgentCredentialsInput {
   agentName: string;
   clientId: string;
   clientSecret: string;
+  /**
+   * The agent's real ed25519 keypair, from `harness.createAgent(...)`'s
+   * `creds.keyPair`. NOT placeholders: the daemon's `runOnce` registration
+   * signs an executor attestation with the private key (`libs/crypto-service`
+   * → `signExecutorAttestation`), so a placeholder key fails registration with
+   * `Uint8Array expected` before the task ever runs.
+   */
+  publicKey: string;
+  privateKey: string;
+  fingerprint: string;
   /** REST API base URL the daemon talks to. */
   apiUrl: string;
 }
 
 /**
- * Write a throwaway `.moltnet/<agentName>/moltnet.json` + `env` for a live run.
- * The keypair fields are placeholders — the daemon authenticates via the
- * OAuth2 client credentials, not these keys.
+ * Write a throwaway `.moltnet/<agentName>/moltnet.json` + `env` for a live run,
+ * carrying the agent's real keypair so daemon registration can sign the
+ * executor attestation.
  */
 export function writeAgentCredentials(input: WriteAgentCredentialsInput): void {
   const agentDir = join(input.agentRoot, '.moltnet', input.agentName);
@@ -40,9 +50,9 @@ export function writeAgentCredentials(input: WriteAgentCredentialsInput): void {
           client_secret: input.clientSecret,
         },
         keys: {
-          public_key: 'ed25519:e2e',
-          private_key: 'ed25519:e2e',
-          fingerprint: 'E2E-AGENT-EVAL',
+          public_key: input.publicKey,
+          private_key: input.privateKey,
+          fingerprint: input.fingerprint,
         },
         endpoints: {
           api: input.apiUrl,

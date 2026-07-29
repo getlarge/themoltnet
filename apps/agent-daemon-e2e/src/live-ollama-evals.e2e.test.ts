@@ -52,6 +52,9 @@ describeLive('Agent daemon evals-v2 gate smoke (live Ollama, e2e)', () => {
   let agentName: string;
   let clientId: string;
   let clientSecret: string;
+  let publicKey: string;
+  let privateKey: string;
+  let fingerprint: string;
   let profileId: string | null = null;
   const tempRoots: string[] = [];
   const scenarios = loadScenarios();
@@ -68,6 +71,9 @@ describeLive('Agent daemon evals-v2 gate smoke (live Ollama, e2e)', () => {
     agentName = creds.name;
     clientId = creds.clientId;
     clientSecret = creds.clientSecret;
+    publicKey = creds.keyPair.publicKey;
+    privateKey = creds.keyPair.privateKey;
+    fingerprint = creds.keyPair.fingerprint;
     teamId = creds.personalTeamId;
     diaryId = creds.privateDiaryId;
     agent = await connect({
@@ -131,6 +137,9 @@ describeLive('Agent daemon evals-v2 gate smoke (live Ollama, e2e)', () => {
         apiUrl: harness.restApiUrl,
         clientId,
         clientSecret,
+        publicKey,
+        privateKey,
+        fingerprint,
       });
       writePiConfig({ piDir, provider: LIVE_PROVIDER, model: LIVE_MODEL });
 
