@@ -31,7 +31,7 @@ on:
       republish:
         description: >
           Comma-separated packages to re-publish from existing draft releases.
-          Valid values: sdk, tasks-orchestrator, ctap, yubikey-preview-sign, github-agent, legreffier, cli, api-client, dspy-adapters, skill, design-system, pi-extension, pi-runtime, shell-command-analyzer, agent-runtime, node-red-theme, agent-daemon
+          Valid values: sdk, tasks-orchestrator, credentials, credential-broker, ctap, yubikey-preview-sign, github-agent, legreffier, cli, api-client, dspy-adapters, skill, design-system, pi-extension, pi-runtime, shell-command-analyzer, agent-runtime, node-red-theme, agent-daemon
         required: false
         type: string
 
@@ -67,6 +67,10 @@ jobs:
       sdk-tag-name: ${{ steps.release.outputs['libs/sdk--tag_name'] }}
       tasks-orchestrator-release-created: ${{ steps.release.outputs['libs/tasks-orchestrator--release_created'] }}
       tasks-orchestrator-tag-name: ${{ steps.release.outputs['libs/tasks-orchestrator--tag_name'] }}
+      credentials-release-created: ${{ steps.release.outputs['libs/credentials--release_created'] }}
+      credentials-tag-name: ${{ steps.release.outputs['libs/credentials--tag_name'] }}
+      credential-broker-release-created: ${{ steps.release.outputs['libs/credential-broker--release_created'] }}
+      credential-broker-tag-name: ${{ steps.release.outputs['libs/credential-broker--tag_name'] }}
       ctap-release-created: ${{ steps.release.outputs['libs/ctap--release_created'] }}
       ctap-tag-name: ${{ steps.release.outputs['libs/ctap--tag_name'] }}
       yubikey-preview-sign-release-created: ${{ steps.release.outputs['libs/yubikey-preview-sign--release_created'] }}
@@ -124,6 +128,10 @@ jobs:
       sdk-tag: ${{ steps.resolve.outputs.sdk-tag }}
       tasks-orchestrator: ${{ steps.resolve.outputs.tasks-orchestrator }}
       tasks-orchestrator-tag: ${{ steps.resolve.outputs.tasks-orchestrator-tag }}
+      credentials: ${{ steps.resolve.outputs.credentials }}
+      credentials-tag: ${{ steps.resolve.outputs.credentials-tag }}
+      credential-broker: ${{ steps.resolve.outputs.credential-broker }}
+      credential-broker-tag: ${{ steps.resolve.outputs.credential-broker-tag }}
       ctap: ${{ steps.resolve.outputs.ctap }}
       ctap-tag: ${{ steps.resolve.outputs.ctap-tag }}
       yubikey-preview-sign: ${{ steps.resolve.outputs.yubikey-preview-sign }}
@@ -170,6 +178,10 @@ jobs:
           RP_SDK_TAG: ${{ needs.release-please.outputs.sdk-tag-name }}
           RP_TASKS_ORCHESTRATOR_CREATED: ${{ needs.release-please.outputs.tasks-orchestrator-release-created }}
           RP_TASKS_ORCHESTRATOR_TAG: ${{ needs.release-please.outputs.tasks-orchestrator-tag-name }}
+          RP_CREDENTIALS_CREATED: ${{ needs.release-please.outputs.credentials-release-created }}
+          RP_CREDENTIALS_TAG: ${{ needs.release-please.outputs.credentials-tag-name }}
+          RP_CREDENTIAL_BROKER_CREATED: ${{ needs.release-please.outputs.credential-broker-release-created }}
+          RP_CREDENTIAL_BROKER_TAG: ${{ needs.release-please.outputs.credential-broker-tag-name }}
           RP_CTAP_CREATED: ${{ needs.release-please.outputs.ctap-release-created }}
           RP_CTAP_TAG: ${{ needs.release-please.outputs.ctap-tag-name }}
           RP_PREVIEW_SIGN_CREATED: ${{ needs.release-please.outputs.yubikey-preview-sign-release-created }}
@@ -251,6 +263,8 @@ jobs:
           echo "Resolving publish targets..."
           resolve "sdk"          "$RP_SDK_CREATED"       "$RP_SDK_TAG"       "sdk"
           resolve "tasks-orchestrator" "$RP_TASKS_ORCHESTRATOR_CREATED" "$RP_TASKS_ORCHESTRATOR_TAG" "tasks-orchestrator"
+          resolve "credentials" "$RP_CREDENTIALS_CREATED" "$RP_CREDENTIALS_TAG" "credentials"
+          resolve "credential-broker" "$RP_CREDENTIAL_BROKER_CREATED" "$RP_CREDENTIAL_BROKER_TAG" "credential-broker"
           resolve "ctap"         "$RP_CTAP_CREATED"      "$RP_CTAP_TAG"      "ctap"
           resolve "yubikey-preview-sign" "$RP_PREVIEW_SIGN_CREATED" "$RP_PREVIEW_SIGN_TAG" "yubikey-preview-sign"
           resolve "github-agent" "$RP_AGENT_CREATED"     "$RP_AGENT_TAG"     "github-agent"
@@ -462,6 +476,87 @@ jobs:
 
       - name: Publish tasks-orchestrator release
         run: gh release edit "${{ needs.resolve-publish.outputs.tasks-orchestrator-tag }}" --draft=false
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-credentials:
+    name: Publish credentials to npm
+    needs: resolve-publish
+    if: ${{ always() && needs.resolve-publish.outputs.credentials == 'true' && !failure() && !cancelled() }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm exec nx run @themoltnet/credentials:build
+
+      - run: pnpm exec nx run @themoltnet/credentials:test
+
+      - run: pnpm exec nx run @themoltnet/credentials:check:pack
+
+      - name: Publish @themoltnet/credentials
+        uses: nick-fields/retry@v4.0.0
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: pnpm --filter @themoltnet/credentials publish --no-git-checks --access public --provenance
+
+      - name: Publish credentials release
+        run: gh release edit "${{ needs.resolve-publish.outputs.credentials-tag }}" --draft=false
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-credential-broker:
+    name: Publish credential broker to npm
+    needs: [resolve-publish, publish-credentials]
+    if: ${{ always() && needs.resolve-publish.outputs.credential-broker == 'true' && !failure() && !cancelled() }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm exec nx run @themoltnet/credential-broker:build
+
+      - run: pnpm exec nx run @themoltnet/credential-broker:test
+
+      # This registry smoke runs after @themoltnet/credentials is published.
+      - run: pnpm exec nx run @themoltnet/credential-broker:check:pack
+
+      - name: Publish @themoltnet/credential-broker
+        uses: nick-fields/retry@v4.0.0
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: pnpm --filter @themoltnet/credential-broker publish --no-git-checks --access public --provenance
+
+      - name: Publish credential broker release
+        run: gh release edit "${{ needs.resolve-publish.outputs.credential-broker-tag }}" --draft=false
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
