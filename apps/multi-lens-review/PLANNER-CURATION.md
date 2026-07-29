@@ -48,8 +48,9 @@ planner sees both its behavioral contract and its actual capabilities.
 
 The planner runtime policy should be read-only and artifact-focused:
 
-- allow task facts, exact referenced-artifact download, and one structured
-  output submission;
+- allow task facts, exact referenced-artifact download, read/search access to
+  the downloaded files inside the scratch workspace, and one structured output
+  submission;
 - deny shell, checkout reads, writes, diary mutations, GitHub mutations,
   subagents, and unrelated task/artifact discovery;
 - avoid paginating task artifacts: the manifest and task references contain
@@ -79,3 +80,38 @@ These are curation failures, not reasons to add filename heuristics. Before
 another acceptance attempt, verify the selected model, minimal injected
 context, artifact-only runtime policy, output limit, prompt, and task-artifact
 submission contract together.
+
+The first post-refactor qualification used `deepseek-v4-flash:cloud` with low
+thinking, a 16,384-token output cap, the sole `artifact-planner@v1` context
+entry, and enforced artifact-only policy against the then-current PR #1730
+fixture (389,258 raw diff bytes, 70 files, 10,332 changed LOC). Immutable
+per-file staging completed successfully but took roughly 72 seconds because
+uploads were sequential. The planner then:
+
+- took about 424 seconds to emit its first token;
+- emitted fenced JSON prose instead of calling the submit tool initially;
+- justified exclusions with filename and directory conventions despite the
+  explicit semantic-evidence rule;
+- exhausted the 16,384-token response limit; and
+- called `submit_freeform_output` only after the runtime's missing-submit
+  recovery prompt.
+
+That final call revealed a separate runtime-policy defect:
+`submit_freeform_output` was not in the enforced allowlist, so policy rejected
+the mandatory output tool. The qualification was cancelled and must not be
+treated as a valid planner result. The runtime now always permits its reserved
+task-specific `submit_*` protocol tools because they only validate and capture
+the active task output; they grant no external capability and cannot be
+registered by runtime extensions.
+
+The cancelled attempt ran for 660,129 ms and consumed 81,109 input tokens plus
+28,070 output tokens without producing an accepted artifact. Those counts
+include the length-stopped first response and missing-submit recovery turns.
+
+Artifact-only also does not mean download-only:
+`moltnet_download_task_artifact` materializes a file in the scratch workspace,
+so the planner needs bounded `read`/`grep` access to inspect it. The qualified
+operator policy is therefore exact artifact download plus scratch-file
+read/search, with no shell and no discovery tools; the runtime-owned submit tool
+is added separately. Verify the model-visible session tools include that submit
+tool before spending model tokens.
