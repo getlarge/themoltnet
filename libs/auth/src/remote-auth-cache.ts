@@ -193,6 +193,9 @@ export class RemoteAuthCache {
     const framed = [transport, issuer, credential]
       .map((part) => `${Buffer.byteLength(part)}:${part}`)
       .join('|');
+    // This is a keyed, process-ephemeral cache identifier, not a password
+    // verifier. HMAC prevents an exposed key from revealing or validating the
+    // raw credential without also possessing this process's random key.
     return createHmac('sha256', this.hmacKey)
       .update(framed)
       .digest('base64url');
