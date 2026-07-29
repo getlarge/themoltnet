@@ -241,6 +241,37 @@ describe('TokenValidator jose JWT verification', () => {
     }
   });
 
+  it('caches JWT client-metadata fallback by OAuth client tag', async () => {
+    const server = await startJwksServer([rs256A.publicJwk]);
+    try {
+      const oauth2Api = createMockOAuth2Api();
+      oauth2Api.getOAuth2Client.mockResolvedValue({
+        client_id: CLIENT_ID,
+        metadata: {
+          identity_id: IDENTITY_ID,
+          public_key: MOLTNET_CLAIMS['moltnet:public_key'],
+          fingerprint: MOLTNET_CLAIMS['moltnet:fingerprint'],
+        },
+      });
+      const validator = createValidator(oauth2Api, server);
+      const token = await createTestJwt(rs256A, server.issuer, {
+        extraClaims: {
+          'moltnet:fingerprint': undefined,
+          'moltnet:identity_id': undefined,
+          'moltnet:public_key': undefined,
+        },
+      });
+
+      await validator.resolveAuthContext(token);
+      await validator.resolveAuthContext(token);
+
+      expect(oauth2Api.getOAuth2Client).toHaveBeenCalledOnce();
+      expect(oauth2Api.introspectOAuth2Token).not.toHaveBeenCalled();
+    } finally {
+      await server.close();
+    }
+  });
+
   it('enforces an exact configured audience', async () => {
     const server = await startJwksServer([rs256A.publicJwk]);
     try {
@@ -599,8 +630,8 @@ describe('TokenValidator jose JWT verification', () => {
       const token = await createTestJwt(rs256A, server.issuer);
 
       await expect(validator.resolveAuthContext(token)).rejects.toMatchObject({
-        statusCode: 503,
-        code: 'SERVICE_UNAVAILABLE',
+        kind: 'unavailable',
+        operation: 'oauth2.introspect',
       });
       expect(logger.warn).toHaveBeenCalledWith(
         {

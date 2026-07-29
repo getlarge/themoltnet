@@ -140,6 +140,15 @@ describe('createSessionResolver', () => {
     expect(mockFrontendApi.toSession).not.toHaveBeenCalled();
   });
 
+  it('ignores cookie-only requests without a recognized Kratos cookie', async () => {
+    const result = await resolver.resolveSession({
+      cookie: 'theme=dark; csrf_token=abc',
+    });
+
+    expect(result).toBeNull();
+    expect(mockFrontendApi.toSession).not.toHaveBeenCalled();
+  });
+
   it('falls back to cookie when sessionToken is empty string', async () => {
     mockFrontendApi.toSession.mockResolvedValue(createValidSessionResponse());
 
@@ -281,8 +290,8 @@ describe('createSessionResolver', () => {
           sessionToken: VALID_SESSION_TOKEN,
         }),
       ).rejects.toMatchObject({
-        statusCode: 503,
-        code: 'SERVICE_UNAVAILABLE',
+        kind: 'unavailable',
+        operation: 'kratos.session',
       });
       expect(warn).toHaveBeenCalledTimes(1);
       expect(warn).toHaveBeenCalledWith(
@@ -312,8 +321,8 @@ describe('createSessionResolver', () => {
           sessionToken: VALID_SESSION_TOKEN,
         }),
       ).rejects.toMatchObject({
-        statusCode: 503,
-        code: 'SERVICE_UNAVAILABLE',
+        kind: 'unavailable',
+        operation: 'kratos.session',
       });
       expect(warn).toHaveBeenCalledTimes(1);
     });
@@ -335,8 +344,8 @@ describe('createSessionResolver', () => {
           cookie: 'ory_session_test=abc; csrf_token=def',
         }),
       ).rejects.toMatchObject({
-        statusCode: 503,
-        code: 'SERVICE_UNAVAILABLE',
+        kind: 'unavailable',
+        operation: 'kratos.session',
       });
       expect(warn).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -364,8 +373,8 @@ describe('createSessionResolver', () => {
           sessionToken: VALID_SESSION_TOKEN,
         }),
       ).rejects.toMatchObject({
-        statusCode: 503,
-        code: 'SERVICE_UNAVAILABLE',
+        kind: 'unavailable',
+        operation: 'kratos.session',
       });
     });
   });

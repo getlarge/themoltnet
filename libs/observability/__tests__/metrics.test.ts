@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   createMeterProvider,
   createMetricCounter,
+  createMetricUpDownCounter,
   createRequestMetrics,
 } from '../src/metrics.js';
 import { TestMetricReader } from './test-metric-reader.js';
@@ -185,6 +186,38 @@ describe('createMetricCounter', () => {
       transport: 'talos',
       result: 'hit',
     });
+
+    await provider.shutdown();
+  });
+});
+
+describe('createMetricUpDownCounter', () => {
+  afterEach(() => {
+    metricsApi.disable();
+  });
+
+  it('records a current-size metric', async () => {
+    const reader = new TestMetricReader();
+    const provider = createMeterProvider({
+      serviceName: 'test',
+      reader,
+    });
+    metricsApi.setGlobalMeterProvider(provider);
+
+    const size = createMetricUpDownCounter(
+      'auth',
+      'auth.remote.cache.entries',
+      'Current remote authentication cache entries',
+    );
+    size.add(1);
+    size.add(1);
+    size.add(-1);
+
+    const { resourceMetrics } = await reader.collect();
+    const metric = resourceMetrics.scopeMetrics[0]?.metrics.find(
+      (candidate) => candidate.descriptor.name === 'auth.remote.cache.entries',
+    );
+    expect(metric?.dataPoints[0]?.value).toBe(1);
 
     await provider.shutdown();
   });

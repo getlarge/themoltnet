@@ -104,6 +104,7 @@ export interface TokenValidationEvent {
 export interface TokenValidator {
   introspect(token: string): Promise<IntrospectionResult>;
   resolveAuthContext(token: string): Promise<AuthContext | null>;
+  evictOAuthClient(clientId: string): void;
   evictTalosKey(keyId: string): void;
 }
 
@@ -111,6 +112,30 @@ const ORY_JWT_ALGORITHM = 'RS256' as const;
 const DEFAULT_JWKS_CACHE_TTL_MS = 600_000;
 const DEFAULT_JWKS_COOLDOWN_MS = 30_000;
 const DEFAULT_JWKS_TIMEOUT_MS = 5_000;
+const MAX_AUTH_SCOPES = 128;
+const MAX_AUTH_SCOPE_LENGTH = 256;
+
+function normalizeScopes(value: unknown): string[] {
+  const candidates =
+    typeof value === 'string'
+      ? value.split(' ')
+      : Array.isArray(value)
+        ? value
+        : [];
+  const scopes: string[] = [];
+  const seen = new Set<string>();
+  for (const candidate of candidates) {
+    if (typeof candidate !== 'string') continue;
+    const scope = candidate.trim();
+    if (!scope || scope.length > MAX_AUTH_SCOPE_LENGTH || seen.has(scope)) {
+      continue;
+    }
+    scopes.push(scope);
+    seen.add(scope);
+    if (scopes.length === MAX_AUTH_SCOPES) break;
+  }
+  return scopes;
+}
 
 function isOpaqueToken(token: string): boolean {
   return ORY_OPAQUE_PREFIXES.some((prefix) => token.startsWith(prefix));
@@ -594,7 +619,7 @@ export function createTokenValidator(
           publicKey: agent.publicKey,
           fingerprint: agent.fingerprint,
           clientId: result.key_id,
-          scopes: result.scopes ?? [],
+          scopes: normalizeScopes(result.scopes),
           currentTeamId: null,
           credentialBinding: {
             keyId: result.key_id,
@@ -664,7 +689,7 @@ export function createTokenValidator(
       }
       remoteMetrics?.recordUpstreamRequest('oauth2.introspect', 'success');
 
-      const scopes = data.scope ? data.scope.split(' ').filter(Boolean) : [];
+      const scopes = normalizeScopes(data.scope);
       recordValidationEvent({
         credentialType,
         reason: 'credential_accepted',
@@ -713,13 +738,7 @@ export function createTokenValidator(
 
       const clientId =
         (payload.client_id as string) ?? (payload.sub as string) ?? '';
-      const scope = (payload.scope ?? payload.scp ?? '') as string;
-      const scopes =
-        typeof scope === 'string'
-          ? scope.split(' ').filter(Boolean)
-          : Array.isArray(scope)
-            ? scope
-            : [];
+      const scopes = normalizeScopes(payload.scope ?? payload.scp);
 
       // Hydra preserves the token-exchange hook's `session.access_token` keys
       // under a nested `ext` object inside the JWT payload (mirrors the shape
@@ -806,6 +825,37 @@ export function createTokenValidator(
               expiresAtMs: result.expiresAt
                 ? result.expiresAt * 1_000
                 : undefined,
+              invalidationTag: `oauth-client:${result.clientId}`,
+            }
+          : null;
+      },
+    );
+  }
+
+  async function resolveClientMetadataContext(
+    token: string,
+    result: IntrospectionResult & { active: true },
+  ): Promise<AuthContext | null> {
+    return remoteCache.resolve(
+      'oauth2',
+      config?.oauthIssuer ?? 'oauth2',
+      token,
+      async () => {
+        const context = await fetchClientMetadata(
+          oauth2Api,
+          result.clientId,
+          result.scopes,
+          logger,
+          remoteMetrics,
+          signal(),
+        );
+        return context
+          ? {
+              context,
+              expiresAtMs: result.expiresAt
+                ? result.expiresAt * 1_000
+                : undefined,
+              invalidationTag: `oauth-client:${result.clientId}`,
             }
           : null;
       },
@@ -814,6 +864,9 @@ export function createTokenValidator(
 
   return {
     introspect,
+    evictOAuthClient(clientId: string): void {
+      remoteCache.evictTag(`oauth-client:${clientId}`);
+    },
     evictTalosKey(keyId: string): void {
       remoteCache.evictTag(`talos-key:${keyId}`);
     },
@@ -867,30 +920,7 @@ export function createTokenValidator(
       }
 
       // Fallback: fetch client metadata from Hydra
-      return remoteCache.resolve(
-        'oauth2',
-        config?.oauthIssuer ?? 'oauth2',
-        token,
-        async () => {
-          const context = await fetchClientMetadata(
-            oauth2Api,
-            clientId,
-            scopes,
-            logger,
-            remoteMetrics,
-            signal(),
-          );
-          return context
-            ? {
-                context,
-                expiresAtMs:
-                  result.active && result.expiresAt
-                    ? result.expiresAt * 1_000
-                    : undefined,
-              }
-            : null;
-        },
-      );
+      return resolveClientMetadataContext(token, result);
     },
   };
 }

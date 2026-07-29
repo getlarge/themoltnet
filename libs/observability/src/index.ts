@@ -11,10 +11,12 @@ export type {
   CreateMeterProviderOptions,
   MetricAttributes,
   MetricCounter,
+  MetricUpDownCounter,
 } from './metrics.js';
 export {
   createMeterProvider,
   createMetricCounter,
+  createMetricUpDownCounter,
   createRequestMetrics,
 } from './metrics.js';
 export type { RequestContext } from './request-context.js';

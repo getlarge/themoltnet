@@ -38,6 +38,14 @@ func (s *AbortTaskAttemptReq) SetReason(val OptString) {
 	s.Reason = val
 }
 
+type AbortTaskAttemptServiceUnavailable ProblemDetails
+
+func (*AbortTaskAttemptServiceUnavailable) abortTaskAttemptRes() {}
+
+type AbortTaskAttemptTooManyRequests ProblemDetails
+
+func (*AbortTaskAttemptTooManyRequests) abortTaskAttemptRes() {}
+
 type AbortTaskAttemptUnauthorized ProblemDetails
 
 func (*AbortTaskAttemptUnauthorized) abortTaskAttemptRes() {}
@@ -82,6 +90,14 @@ func (s *AcceptTeamFoundingOK) SetTeamStatus(val string) {
 func (*AcceptTeamFoundingOK) acceptTeamFoundingRes() {}
 
 type AcceptTeamFoundingReq struct{}
+
+type AcceptTeamFoundingServiceUnavailable ProblemDetails
+
+func (*AcceptTeamFoundingServiceUnavailable) acceptTeamFoundingRes() {}
+
+type AcceptTeamFoundingTooManyRequests ProblemDetails
+
+func (*AcceptTeamFoundingTooManyRequests) acceptTeamFoundingRes() {}
 
 type AcceptTeamFoundingUnauthorized ProblemDetails
 
@@ -197,6 +213,14 @@ func (s *AcceptTransferOK) SetStatus(val string) {
 
 func (*AcceptTransferOK) acceptTransferRes() {}
 
+type AcceptTransferServiceUnavailable ProblemDetails
+
+func (*AcceptTransferServiceUnavailable) acceptTransferRes() {}
+
+type AcceptTransferTooManyRequests ProblemDetails
+
+func (*AcceptTransferTooManyRequests) acceptTransferRes() {}
+
 type AcceptTransferUnauthorized ProblemDetails
 
 func (*AcceptTransferUnauthorized) acceptTransferRes() {}
@@ -307,6 +331,14 @@ func (s *AddGroupMemberReqSubjectNs) UnmarshalText(data []byte) error {
 		return errors.Errorf("invalid value: %q", data)
 	}
 }
+
+type AddGroupMemberServiceUnavailable ProblemDetails
+
+func (*AddGroupMemberServiceUnavailable) addGroupMemberRes() {}
+
+type AddGroupMemberTooManyRequests ProblemDetails
+
+func (*AddGroupMemberTooManyRequests) addGroupMemberRes() {}
 
 type AddGroupMemberUnauthorized ProblemDetails
 
@@ -831,6 +863,14 @@ func (s *AppendTaskMessagesReqMessagesItemPayload) init() AppendTaskMessagesReqM
 	return m
 }
 
+type AppendTaskMessagesServiceUnavailable ProblemDetails
+
+func (*AppendTaskMessagesServiceUnavailable) appendTaskMessagesRes() {}
+
+type AppendTaskMessagesTooManyRequests ProblemDetails
+
+func (*AppendTaskMessagesTooManyRequests) appendTaskMessagesRes() {}
+
 type AppendTaskMessagesUnauthorized ProblemDetails
 
 func (*AppendTaskMessagesUnauthorized) appendTaskMessagesRes() {}
@@ -857,6 +897,14 @@ func (s *ApproveSigningCredentialReq) SetReason(val OptString) {
 	s.Reason = val
 }
 
+type ApproveSigningCredentialServiceUnavailable ProblemDetails
+
+func (*ApproveSigningCredentialServiceUnavailable) approveSigningCredentialRes() {}
+
+type ApproveSigningCredentialTooManyRequests ProblemDetails
+
+func (*ApproveSigningCredentialTooManyRequests) approveSigningCredentialRes() {}
+
 type ApproveSigningCredentialUnauthorized ProblemDetails
 
 func (*ApproveSigningCredentialUnauthorized) approveSigningCredentialRes() {}
@@ -882,6 +930,14 @@ func (s *BatchDeleteDiaryEntriesReq) GetIds() []uuid.UUID {
 func (s *BatchDeleteDiaryEntriesReq) SetIds(val []uuid.UUID) {
 	s.Ids = val
 }
+
+type BatchDeleteDiaryEntriesServiceUnavailable ProblemDetails
+
+func (*BatchDeleteDiaryEntriesServiceUnavailable) batchDeleteDiaryEntriesRes() {}
+
+type BatchDeleteDiaryEntriesTooManyRequests ProblemDetails
+
+func (*BatchDeleteDiaryEntriesTooManyRequests) batchDeleteDiaryEntriesRes() {}
 
 type BatchDeleteDiaryEntriesUnauthorized ProblemDetails
 
@@ -1067,6 +1123,14 @@ func (s *BatchDeleteTasksReq) SetIds(val []uuid.UUID) {
 func (s *BatchDeleteTasksReq) SetReason(val OptString) {
 	s.Reason = val
 }
+
+type BatchDeleteTasksServiceUnavailable ProblemDetails
+
+func (*BatchDeleteTasksServiceUnavailable) batchDeleteTasksRes() {}
+
+type BatchDeleteTasksTooManyRequests ProblemDetails
+
+func (*BatchDeleteTasksTooManyRequests) batchDeleteTasksRes() {}
 
 type BatchDeleteTasksUnauthorized ProblemDetails
 
@@ -2851,6 +2915,14 @@ func (s *BeginRuntimeSlotReqWorkspaceKind) UnmarshalText(data []byte) error {
 	}
 }
 
+type BeginRuntimeSlotServiceUnavailable ProblemDetails
+
+func (*BeginRuntimeSlotServiceUnavailable) beginRuntimeSlotRes() {}
+
+type BeginRuntimeSlotTooManyRequests ProblemDetails
+
+func (*BeginRuntimeSlotTooManyRequests) beginRuntimeSlotRes() {}
+
 type BeginRuntimeSlotUnauthorized struct {
 	Code            BeginRuntimeSlotUnauthorizedCode `json:"code"`
 	Detail          OptString                        `json:"detail"`
@@ -3346,6 +3418,15 @@ func (s *BeginSigningCredentialRegistrationReqVerificationMethod) UnmarshalText(
 	}
 }
 
+type BeginSigningCredentialRegistrationServiceUnavailable ProblemDetails
+
+func (*BeginSigningCredentialRegistrationServiceUnavailable) beginSigningCredentialRegistrationRes() {
+}
+
+type BeginSigningCredentialRegistrationTooManyRequests ProblemDetails
+
+func (*BeginSigningCredentialRegistrationTooManyRequests) beginSigningCredentialRegistrationRes() {}
+
 type BeginSigningCredentialRegistrationUnauthorized ProblemDetails
 
 func (*BeginSigningCredentialRegistrationUnauthorized) beginSigningCredentialRegistrationRes() {}
@@ -3375,6 +3456,14 @@ func (s *CancelTaskReq) GetReason() string {
 func (s *CancelTaskReq) SetReason(val string) {
 	s.Reason = val
 }
+
+type CancelTaskServiceUnavailable ProblemDetails
+
+func (*CancelTaskServiceUnavailable) cancelTaskRes() {}
+
+type CancelTaskTooManyRequests ProblemDetails
+
+func (*CancelTaskTooManyRequests) cancelTaskRes() {}
 
 type CancelTaskUnauthorized ProblemDetails
 
@@ -3779,6 +3868,14 @@ func (s *ClaimSigningRequestReq) SetCredentialId(val uuid.UUID) {
 	s.CredentialId = val
 }
 
+type ClaimSigningRequestServiceUnavailable ProblemDetails
+
+func (*ClaimSigningRequestServiceUnavailable) claimSigningRequestRes() {}
+
+type ClaimSigningRequestTooManyRequests ProblemDetails
+
+func (*ClaimSigningRequestTooManyRequests) claimSigningRequestRes() {}
+
 type ClaimSigningRequestUnauthorized ProblemDetails
 
 func (*ClaimSigningRequestUnauthorized) claimSigningRequestRes() {}
@@ -3929,6 +4026,14 @@ func (s *ClaimTaskResponseHeaders) SetResponse(val ClaimTaskResponse) {
 
 func (*ClaimTaskResponseHeaders) claimTaskRes() {}
 
+type ClaimTaskServiceUnavailable ProblemDetails
+
+func (*ClaimTaskServiceUnavailable) claimTaskRes() {}
+
+type ClaimTaskTooManyRequests ProblemDetails
+
+func (*ClaimTaskTooManyRequests) claimTaskRes() {}
+
 type ClaimTaskUnauthorized ProblemDetails
 
 func (*ClaimTaskUnauthorized) claimTaskRes() {}
@@ -4036,6 +4141,16 @@ func (s *CompleteSigningCredentialRegistrationReq) SetReceipt(val PreviewSignRec
 	s.Receipt = val
 }
 
+type CompleteSigningCredentialRegistrationServiceUnavailable ProblemDetails
+
+func (*CompleteSigningCredentialRegistrationServiceUnavailable) completeSigningCredentialRegistrationRes() {
+}
+
+type CompleteSigningCredentialRegistrationTooManyRequests ProblemDetails
+
+func (*CompleteSigningCredentialRegistrationTooManyRequests) completeSigningCredentialRegistrationRes() {
+}
+
 type CompleteSigningCredentialRegistrationUnauthorized ProblemDetails
 
 func (*CompleteSigningCredentialRegistrationUnauthorized) completeSigningCredentialRegistrationRes() {
@@ -4066,6 +4181,14 @@ func (s *CompleteSigningRequestReq) GetReceipt() PreviewSignReceiptValue {
 func (s *CompleteSigningRequestReq) SetReceipt(val PreviewSignReceiptValue) {
 	s.Receipt = val
 }
+
+type CompleteSigningRequestServiceUnavailable ProblemDetails
+
+func (*CompleteSigningRequestServiceUnavailable) completeSigningRequestRes() {}
+
+type CompleteSigningRequestTooManyRequests ProblemDetails
+
+func (*CompleteSigningRequestTooManyRequests) completeSigningRequestRes() {}
 
 type CompleteSigningRequestUnauthorized ProblemDetails
 
@@ -4191,6 +4314,14 @@ func (s *CompleteTaskReqOutput) init() CompleteTaskReqOutput {
 	}
 	return m
 }
+
+type CompleteTaskServiceUnavailable ProblemDetails
+
+func (*CompleteTaskServiceUnavailable) completeTaskRes() {}
+
+type CompleteTaskTooManyRequests ProblemDetails
+
+func (*CompleteTaskTooManyRequests) completeTaskRes() {}
 
 type CompleteTaskUnauthorized ProblemDetails
 
@@ -5267,6 +5398,14 @@ func (s *CreateDiaryCustomPackReqParams) init() CreateDiaryCustomPackReqParams {
 	return m
 }
 
+type CreateDiaryCustomPackServiceUnavailable ProblemDetails
+
+func (*CreateDiaryCustomPackServiceUnavailable) createDiaryCustomPackRes() {}
+
+type CreateDiaryCustomPackTooManyRequests ProblemDetails
+
+func (*CreateDiaryCustomPackTooManyRequests) createDiaryCustomPackRes() {}
+
 type CreateDiaryCustomPackUnauthorized ProblemDetails
 
 func (*CreateDiaryCustomPackUnauthorized) createDiaryCustomPackRes() {}
@@ -5421,6 +5560,14 @@ func (s *CreateDiaryEntryReqEntryType) UnmarshalText(data []byte) error {
 		return errors.Errorf("invalid value: %q", data)
 	}
 }
+
+type CreateDiaryEntryServiceUnavailable ProblemDetails
+
+func (*CreateDiaryEntryServiceUnavailable) createDiaryEntryRes() {}
+
+type CreateDiaryEntryTooManyRequests ProblemDetails
+
+func (*CreateDiaryEntryTooManyRequests) createDiaryEntryRes() {}
 
 type CreateDiaryEntryUnauthorized ProblemDetails
 
@@ -5692,6 +5839,14 @@ func (s *CreateDiaryGrantReqSubjectNs) UnmarshalText(data []byte) error {
 	}
 }
 
+type CreateDiaryGrantServiceUnavailable ProblemDetails
+
+func (*CreateDiaryGrantServiceUnavailable) createDiaryGrantRes() {}
+
+type CreateDiaryGrantTooManyRequests ProblemDetails
+
+func (*CreateDiaryGrantTooManyRequests) createDiaryGrantRes() {}
+
 type CreateDiaryGrantUnauthorized ProblemDetails
 
 func (*CreateDiaryGrantUnauthorized) createDiaryGrantRes() {}
@@ -5772,6 +5927,14 @@ func (s *CreateDiaryReqVisibility) UnmarshalText(data []byte) error {
 		return errors.Errorf("invalid value: %q", data)
 	}
 }
+
+type CreateDiaryServiceUnavailable ProblemDetails
+
+func (*CreateDiaryServiceUnavailable) createDiaryRes() {}
+
+type CreateDiaryTooManyRequests ProblemDetails
+
+func (*CreateDiaryTooManyRequests) createDiaryRes() {}
 
 type CreateDiaryUnauthorized ProblemDetails
 
@@ -5878,6 +6041,14 @@ func (s *CreateEntryRelationReqStatus) UnmarshalText(data []byte) error {
 	}
 }
 
+type CreateEntryRelationServiceUnavailable ProblemDetails
+
+func (*CreateEntryRelationServiceUnavailable) createEntryRelationRes() {}
+
+type CreateEntryRelationTooManyRequests ProblemDetails
+
+func (*CreateEntryRelationTooManyRequests) createEntryRelationRes() {}
+
 type CreateEntryRelationUnauthorized ProblemDetails
 
 func (*CreateEntryRelationUnauthorized) createEntryRelationRes() {}
@@ -5947,6 +6118,14 @@ func (s *CreateGroupReq) GetName() string {
 func (s *CreateGroupReq) SetName(val string) {
 	s.Name = val
 }
+
+type CreateGroupServiceUnavailable ProblemDetails
+
+func (*CreateGroupServiceUnavailable) createGroupRes() {}
+
+type CreateGroupTooManyRequests ProblemDetails
+
+func (*CreateGroupTooManyRequests) createGroupRes() {}
 
 type CreateGroupUnauthorized ProblemDetails
 
@@ -6131,6 +6310,14 @@ type CreateRuntimeModelNotFound ProblemDetails
 
 func (*CreateRuntimeModelNotFound) createRuntimeModelRes() {}
 
+type CreateRuntimeModelServiceUnavailable ProblemDetails
+
+func (*CreateRuntimeModelServiceUnavailable) createRuntimeModelRes() {}
+
+type CreateRuntimeModelTooManyRequests ProblemDetails
+
+func (*CreateRuntimeModelTooManyRequests) createRuntimeModelRes() {}
+
 type CreateRuntimeModelUnauthorized ProblemDetails
 
 func (*CreateRuntimeModelUnauthorized) createRuntimeModelRes() {}
@@ -6175,6 +6362,14 @@ func (s *CreateRuntimePolicyBody) SetTools(val []string) {
 type CreateRuntimePolicyForbidden ProblemDetails
 
 func (*CreateRuntimePolicyForbidden) createRuntimePolicyRes() {}
+
+type CreateRuntimePolicyServiceUnavailable ProblemDetails
+
+func (*CreateRuntimePolicyServiceUnavailable) createRuntimePolicyRes() {}
+
+type CreateRuntimePolicyTooManyRequests ProblemDetails
+
+func (*CreateRuntimePolicyTooManyRequests) createRuntimePolicyRes() {}
 
 type CreateRuntimePolicyUnauthorized ProblemDetails
 
@@ -7081,6 +7276,14 @@ type CreateRuntimeProfileNotFound ProblemDetails
 
 func (*CreateRuntimeProfileNotFound) createRuntimeProfileRes() {}
 
+type CreateRuntimeProfileServiceUnavailable ProblemDetails
+
+func (*CreateRuntimeProfileServiceUnavailable) createRuntimeProfileRes() {}
+
+type CreateRuntimeProfileTooManyRequests ProblemDetails
+
+func (*CreateRuntimeProfileTooManyRequests) createRuntimeProfileRes() {}
+
 type CreateRuntimeProfileUnauthorized ProblemDetails
 
 func (*CreateRuntimeProfileUnauthorized) createRuntimeProfileRes() {}
@@ -7295,6 +7498,10 @@ func (s *CreateSigningRequestReqVerificationMethod) UnmarshalText(data []byte) e
 	}
 }
 
+type CreateSigningRequestServiceUnavailable ProblemDetails
+
+func (*CreateSigningRequestServiceUnavailable) createSigningRequestRes() {}
+
 type CreateSigningRequestTooManyRequests ProblemDetails
 
 func (*CreateSigningRequestTooManyRequests) createSigningRequestRes() {}
@@ -7482,6 +7689,10 @@ func (s *CreateTaskReqInput) init() CreateTaskReqInput {
 type CreateTaskServiceUnavailable ProblemDetails
 
 func (*CreateTaskServiceUnavailable) createTaskRes() {}
+
+type CreateTaskTooManyRequests ProblemDetails
+
+func (*CreateTaskTooManyRequests) createTaskRes() {}
 
 type CreateTaskUnauthorized ProblemDetails
 
@@ -7786,6 +7997,14 @@ func (s *CreateTeamInviteReqRole) UnmarshalText(data []byte) error {
 	}
 }
 
+type CreateTeamInviteServiceUnavailable ProblemDetails
+
+func (*CreateTeamInviteServiceUnavailable) createTeamInviteRes() {}
+
+type CreateTeamInviteTooManyRequests ProblemDetails
+
+func (*CreateTeamInviteTooManyRequests) createTeamInviteRes() {}
+
 type CreateTeamInviteUnauthorized ProblemDetails
 
 func (*CreateTeamInviteUnauthorized) createTeamInviteRes() {}
@@ -7940,6 +8159,14 @@ func (s *CreateTeamReqFoundingMembersItemSubjectNs) UnmarshalText(data []byte) e
 		return errors.Errorf("invalid value: %q", data)
 	}
 }
+
+type CreateTeamServiceUnavailable ProblemDetails
+
+func (*CreateTeamServiceUnavailable) createTeamRes() {}
+
+type CreateTeamTooManyRequests ProblemDetails
+
+func (*CreateTeamTooManyRequests) createTeamRes() {}
 
 type CreateTeamUnauthorized ProblemDetails
 
@@ -8283,6 +8510,14 @@ type DeleteDiaryEntryByIdNotFound ProblemDetails
 
 func (*DeleteDiaryEntryByIdNotFound) deleteDiaryEntryByIdRes() {}
 
+type DeleteDiaryEntryByIdServiceUnavailable ProblemDetails
+
+func (*DeleteDiaryEntryByIdServiceUnavailable) deleteDiaryEntryByIdRes() {}
+
+type DeleteDiaryEntryByIdTooManyRequests ProblemDetails
+
+func (*DeleteDiaryEntryByIdTooManyRequests) deleteDiaryEntryByIdRes() {}
+
 type DeleteDiaryEntryByIdUnauthorized ProblemDetails
 
 func (*DeleteDiaryEntryByIdUnauthorized) deleteDiaryEntryByIdRes() {}
@@ -8298,6 +8533,14 @@ func (*DeleteDiaryInternalServerError) deleteDiaryRes() {}
 type DeleteDiaryNotFound ProblemDetails
 
 func (*DeleteDiaryNotFound) deleteDiaryRes() {}
+
+type DeleteDiaryServiceUnavailable ProblemDetails
+
+func (*DeleteDiaryServiceUnavailable) deleteDiaryRes() {}
+
+type DeleteDiaryTooManyRequests ProblemDetails
+
+func (*DeleteDiaryTooManyRequests) deleteDiaryRes() {}
 
 type DeleteDiaryUnauthorized ProblemDetails
 
@@ -8323,6 +8566,14 @@ func (*DeleteEntryRelationNoContent) deleteEntryRelationRes() {}
 type DeleteEntryRelationNotFound ProblemDetails
 
 func (*DeleteEntryRelationNotFound) deleteEntryRelationRes() {}
+
+type DeleteEntryRelationServiceUnavailable ProblemDetails
+
+func (*DeleteEntryRelationServiceUnavailable) deleteEntryRelationRes() {}
+
+type DeleteEntryRelationTooManyRequests ProblemDetails
+
+func (*DeleteEntryRelationTooManyRequests) deleteEntryRelationRes() {}
 
 type DeleteEntryRelationUnauthorized ProblemDetails
 
@@ -8356,6 +8607,14 @@ func (s *DeleteGroupOK) SetDeleted(val bool) {
 
 func (*DeleteGroupOK) deleteGroupRes() {}
 
+type DeleteGroupServiceUnavailable ProblemDetails
+
+func (*DeleteGroupServiceUnavailable) deleteGroupRes() {}
+
+type DeleteGroupTooManyRequests ProblemDetails
+
+func (*DeleteGroupTooManyRequests) deleteGroupRes() {}
+
 type DeleteGroupUnauthorized ProblemDetails
 
 func (*DeleteGroupUnauthorized) deleteGroupRes() {}
@@ -8372,6 +8631,14 @@ func (*DeleteRuntimeModelNoContent) deleteRuntimeModelRes() {}
 type DeleteRuntimeModelNotFound ProblemDetails
 
 func (*DeleteRuntimeModelNotFound) deleteRuntimeModelRes() {}
+
+type DeleteRuntimeModelServiceUnavailable ProblemDetails
+
+func (*DeleteRuntimeModelServiceUnavailable) deleteRuntimeModelRes() {}
+
+type DeleteRuntimeModelTooManyRequests ProblemDetails
+
+func (*DeleteRuntimeModelTooManyRequests) deleteRuntimeModelRes() {}
 
 type DeleteRuntimeModelUnauthorized ProblemDetails
 
@@ -8390,6 +8657,14 @@ type DeleteRuntimePolicyNotFound ProblemDetails
 
 func (*DeleteRuntimePolicyNotFound) deleteRuntimePolicyRes() {}
 
+type DeleteRuntimePolicyServiceUnavailable ProblemDetails
+
+func (*DeleteRuntimePolicyServiceUnavailable) deleteRuntimePolicyRes() {}
+
+type DeleteRuntimePolicyTooManyRequests ProblemDetails
+
+func (*DeleteRuntimePolicyTooManyRequests) deleteRuntimePolicyRes() {}
+
 type DeleteRuntimePolicyUnauthorized ProblemDetails
 
 func (*DeleteRuntimePolicyUnauthorized) deleteRuntimePolicyRes() {}
@@ -8406,6 +8681,14 @@ func (*DeleteRuntimeProfileNoContent) deleteRuntimeProfileRes() {}
 type DeleteRuntimeProfileNotFound ProblemDetails
 
 func (*DeleteRuntimeProfileNotFound) deleteRuntimeProfileRes() {}
+
+type DeleteRuntimeProfileServiceUnavailable ProblemDetails
+
+func (*DeleteRuntimeProfileServiceUnavailable) deleteRuntimeProfileRes() {}
+
+type DeleteRuntimeProfileTooManyRequests ProblemDetails
+
+func (*DeleteRuntimeProfileTooManyRequests) deleteRuntimeProfileRes() {}
 
 type DeleteRuntimeProfileUnauthorized ProblemDetails
 
@@ -8447,6 +8730,14 @@ func (s *DeleteTeamInviteOK) SetDeleted(val bool) {
 
 func (*DeleteTeamInviteOK) deleteTeamInviteRes() {}
 
+type DeleteTeamInviteServiceUnavailable ProblemDetails
+
+func (*DeleteTeamInviteServiceUnavailable) deleteTeamInviteRes() {}
+
+type DeleteTeamInviteTooManyRequests ProblemDetails
+
+func (*DeleteTeamInviteTooManyRequests) deleteTeamInviteRes() {}
+
 type DeleteTeamInviteUnauthorized ProblemDetails
 
 func (*DeleteTeamInviteUnauthorized) deleteTeamInviteRes() {}
@@ -8470,6 +8761,14 @@ func (s *DeleteTeamOK) SetDeleted(val bool) {
 }
 
 func (*DeleteTeamOK) deleteTeamRes() {}
+
+type DeleteTeamServiceUnavailable ProblemDetails
+
+func (*DeleteTeamServiceUnavailable) deleteTeamRes() {}
+
+type DeleteTeamTooManyRequests ProblemDetails
+
+func (*DeleteTeamTooManyRequests) deleteTeamRes() {}
 
 type DeleteTeamUnauthorized ProblemDetails
 
@@ -10658,6 +10957,14 @@ func (s *DiffContextPacksByCidOKStatsPackBPackType) UnmarshalText(data []byte) e
 	}
 }
 
+type DiffContextPacksByCidServiceUnavailable ProblemDetails
+
+func (*DiffContextPacksByCidServiceUnavailable) diffContextPacksByCidRes() {}
+
+type DiffContextPacksByCidTooManyRequests ProblemDetails
+
+func (*DiffContextPacksByCidTooManyRequests) diffContextPacksByCidRes() {}
+
 type DiffContextPacksByCidUnauthorized ProblemDetails
 
 func (*DiffContextPacksByCidUnauthorized) diffContextPacksByCidRes() {}
@@ -11590,6 +11897,14 @@ func (s *DiffContextPacksByIdOKStatsPackBPackType) UnmarshalText(data []byte) er
 		return errors.Errorf("invalid value: %q", data)
 	}
 }
+
+type DiffContextPacksByIdServiceUnavailable ProblemDetails
+
+func (*DiffContextPacksByIdServiceUnavailable) diffContextPacksByIdRes() {}
+
+type DiffContextPacksByIdTooManyRequests ProblemDetails
+
+func (*DiffContextPacksByIdTooManyRequests) diffContextPacksByIdRes() {}
 
 type DiffContextPacksByIdUnauthorized ProblemDetails
 
@@ -17351,6 +17666,14 @@ func (s *FailTaskAttemptReq) SetError(val TaskError) {
 	s.Error = val
 }
 
+type FailTaskAttemptServiceUnavailable ProblemDetails
+
+func (*FailTaskAttemptServiceUnavailable) failTaskAttemptRes() {}
+
+type FailTaskAttemptTooManyRequests ProblemDetails
+
+func (*FailTaskAttemptTooManyRequests) failTaskAttemptRes() {}
+
 type FailTaskAttemptUnauthorized ProblemDetails
 
 func (*FailTaskAttemptUnauthorized) failTaskAttemptRes() {}
@@ -18732,6 +19055,14 @@ func (s *FindLatestRuntimeSlotForAttemptOKWorkspaceKind) UnmarshalText(data []by
 		return errors.Errorf("invalid value: %q", data)
 	}
 }
+
+type FindLatestRuntimeSlotForAttemptServiceUnavailable ProblemDetails
+
+func (*FindLatestRuntimeSlotForAttemptServiceUnavailable) findLatestRuntimeSlotForAttemptRes() {}
+
+type FindLatestRuntimeSlotForAttemptTooManyRequests ProblemDetails
+
+func (*FindLatestRuntimeSlotForAttemptTooManyRequests) findLatestRuntimeSlotForAttemptRes() {}
 
 type FindLatestRuntimeSlotForAttemptUnauthorized struct {
 	Code            FindLatestRuntimeSlotForAttemptUnauthorizedCode `json:"code"`
@@ -20696,6 +21027,14 @@ func (s *FinishRuntimeSlotReq) SetTaskId(val uuid.UUID) {
 	s.TaskId = val
 }
 
+type FinishRuntimeSlotServiceUnavailable ProblemDetails
+
+func (*FinishRuntimeSlotServiceUnavailable) finishRuntimeSlotRes() {}
+
+type FinishRuntimeSlotTooManyRequests ProblemDetails
+
+func (*FinishRuntimeSlotTooManyRequests) finishRuntimeSlotRes() {}
+
 type FinishRuntimeSlotUnauthorized struct {
 	Code            FinishRuntimeSlotUnauthorizedCode `json:"code"`
 	Detail          OptString                         `json:"detail"`
@@ -21081,6 +21420,14 @@ type GetContextPackByIdNotFound ProblemDetails
 
 func (*GetContextPackByIdNotFound) getContextPackByIdRes() {}
 
+type GetContextPackByIdServiceUnavailable ProblemDetails
+
+func (*GetContextPackByIdServiceUnavailable) getContextPackByIdRes() {}
+
+type GetContextPackByIdTooManyRequests ProblemDetails
+
+func (*GetContextPackByIdTooManyRequests) getContextPackByIdRes() {}
+
 type GetContextPackByIdUnauthorized ProblemDetails
 
 func (*GetContextPackByIdUnauthorized) getContextPackByIdRes() {}
@@ -21458,6 +21805,14 @@ func NewProvenanceGraphRenderedPackNodeGetContextPackProvenanceByCidOKNodesItem(
 	return s
 }
 
+type GetContextPackProvenanceByCidServiceUnavailable ProblemDetails
+
+func (*GetContextPackProvenanceByCidServiceUnavailable) getContextPackProvenanceByCidRes() {}
+
+type GetContextPackProvenanceByCidTooManyRequests ProblemDetails
+
+func (*GetContextPackProvenanceByCidTooManyRequests) getContextPackProvenanceByCidRes() {}
+
 type GetContextPackProvenanceByCidUnauthorized ProblemDetails
 
 func (*GetContextPackProvenanceByCidUnauthorized) getContextPackProvenanceByCidRes() {}
@@ -21478,6 +21833,14 @@ type GetContextPackProvenanceByIdNotFound ProblemDetails
 
 func (*GetContextPackProvenanceByIdNotFound) getContextPackProvenanceByIdRes() {}
 
+type GetContextPackProvenanceByIdServiceUnavailable ProblemDetails
+
+func (*GetContextPackProvenanceByIdServiceUnavailable) getContextPackProvenanceByIdRes() {}
+
+type GetContextPackProvenanceByIdTooManyRequests ProblemDetails
+
+func (*GetContextPackProvenanceByIdTooManyRequests) getContextPackProvenanceByIdRes() {}
+
 type GetContextPackProvenanceByIdUnauthorized ProblemDetails
 
 func (*GetContextPackProvenanceByIdUnauthorized) getContextPackProvenanceByIdRes() {}
@@ -21489,6 +21852,14 @@ func (*GetCryptoIdentityBadRequest) getCryptoIdentityRes() {}
 type GetCryptoIdentityInternalServerError ProblemDetails
 
 func (*GetCryptoIdentityInternalServerError) getCryptoIdentityRes() {}
+
+type GetCryptoIdentityServiceUnavailable ProblemDetails
+
+func (*GetCryptoIdentityServiceUnavailable) getCryptoIdentityRes() {}
+
+type GetCryptoIdentityTooManyRequests ProblemDetails
+
+func (*GetCryptoIdentityTooManyRequests) getCryptoIdentityRes() {}
 
 type GetCryptoIdentityUnauthorized ProblemDetails
 
@@ -21548,6 +21919,14 @@ type GetDiaryEntryByIdNotFound ProblemDetails
 
 func (*GetDiaryEntryByIdNotFound) getDiaryEntryByIdRes() {}
 
+type GetDiaryEntryByIdServiceUnavailable ProblemDetails
+
+func (*GetDiaryEntryByIdServiceUnavailable) getDiaryEntryByIdRes() {}
+
+type GetDiaryEntryByIdTooManyRequests ProblemDetails
+
+func (*GetDiaryEntryByIdTooManyRequests) getDiaryEntryByIdRes() {}
+
 type GetDiaryEntryByIdUnauthorized ProblemDetails
 
 func (*GetDiaryEntryByIdUnauthorized) getDiaryEntryByIdRes() {}
@@ -21559,6 +21938,14 @@ func (*GetDiaryInternalServerError) getDiaryRes() {}
 type GetDiaryNotFound ProblemDetails
 
 func (*GetDiaryNotFound) getDiaryRes() {}
+
+type GetDiaryServiceUnavailable ProblemDetails
+
+func (*GetDiaryServiceUnavailable) getDiaryRes() {}
+
+type GetDiaryTooManyRequests ProblemDetails
+
+func (*GetDiaryTooManyRequests) getDiaryRes() {}
 
 type GetDiaryUnauthorized ProblemDetails
 
@@ -21660,6 +22047,14 @@ func (s *GetGroupOKMembersItem) SetSubjectNs(val string) {
 	s.SubjectNs = val
 }
 
+type GetGroupServiceUnavailable ProblemDetails
+
+func (*GetGroupServiceUnavailable) getGroupRes() {}
+
+type GetGroupTooManyRequests ProblemDetails
+
+func (*GetGroupTooManyRequests) getGroupRes() {}
+
 type GetGroupUnauthorized ProblemDetails
 
 func (*GetGroupUnauthorized) getGroupRes() {}
@@ -21679,6 +22074,14 @@ func (*GetLatestRenderedPackInternalServerError) getLatestRenderedPackRes() {}
 type GetLatestRenderedPackNotFound ProblemDetails
 
 func (*GetLatestRenderedPackNotFound) getLatestRenderedPackRes() {}
+
+type GetLatestRenderedPackServiceUnavailable ProblemDetails
+
+func (*GetLatestRenderedPackServiceUnavailable) getLatestRenderedPackRes() {}
+
+type GetLatestRenderedPackTooManyRequests ProblemDetails
+
+func (*GetLatestRenderedPackTooManyRequests) getLatestRenderedPackRes() {}
 
 type GetLatestRenderedPackUnauthorized ProblemDetails
 
@@ -22322,6 +22725,14 @@ type GetRenderedPackByIdNotFound ProblemDetails
 
 func (*GetRenderedPackByIdNotFound) getRenderedPackByIdRes() {}
 
+type GetRenderedPackByIdServiceUnavailable ProblemDetails
+
+func (*GetRenderedPackByIdServiceUnavailable) getRenderedPackByIdRes() {}
+
+type GetRenderedPackByIdTooManyRequests ProblemDetails
+
+func (*GetRenderedPackByIdTooManyRequests) getRenderedPackByIdRes() {}
+
 type GetRenderedPackByIdUnauthorized ProblemDetails
 
 func (*GetRenderedPackByIdUnauthorized) getRenderedPackByIdRes() {}
@@ -22329,6 +22740,14 @@ func (*GetRenderedPackByIdUnauthorized) getRenderedPackByIdRes() {}
 type GetRuntimeModelNotFound ProblemDetails
 
 func (*GetRuntimeModelNotFound) getRuntimeModelRes() {}
+
+type GetRuntimeModelServiceUnavailable ProblemDetails
+
+func (*GetRuntimeModelServiceUnavailable) getRuntimeModelRes() {}
+
+type GetRuntimeModelTooManyRequests ProblemDetails
+
+func (*GetRuntimeModelTooManyRequests) getRuntimeModelRes() {}
 
 type GetRuntimeModelUnauthorized ProblemDetails
 
@@ -22342,6 +22761,14 @@ type GetRuntimePolicyNotFound ProblemDetails
 
 func (*GetRuntimePolicyNotFound) getRuntimePolicyRes() {}
 
+type GetRuntimePolicyServiceUnavailable ProblemDetails
+
+func (*GetRuntimePolicyServiceUnavailable) getRuntimePolicyRes() {}
+
+type GetRuntimePolicyTooManyRequests ProblemDetails
+
+func (*GetRuntimePolicyTooManyRequests) getRuntimePolicyRes() {}
+
 type GetRuntimePolicyUnauthorized ProblemDetails
 
 func (*GetRuntimePolicyUnauthorized) getRuntimePolicyRes() {}
@@ -22353,6 +22780,14 @@ func (*GetRuntimeProfileAllowedToolsForbidden) getRuntimeProfileAllowedToolsRes(
 type GetRuntimeProfileAllowedToolsNotFound ProblemDetails
 
 func (*GetRuntimeProfileAllowedToolsNotFound) getRuntimeProfileAllowedToolsRes() {}
+
+type GetRuntimeProfileAllowedToolsServiceUnavailable ProblemDetails
+
+func (*GetRuntimeProfileAllowedToolsServiceUnavailable) getRuntimeProfileAllowedToolsRes() {}
+
+type GetRuntimeProfileAllowedToolsTooManyRequests ProblemDetails
+
+func (*GetRuntimeProfileAllowedToolsTooManyRequests) getRuntimeProfileAllowedToolsRes() {}
 
 type GetRuntimeProfileAllowedToolsUnauthorized ProblemDetails
 
@@ -22370,9 +22805,25 @@ type GetRuntimeProfilePoliciesNotFound ProblemDetails
 
 func (*GetRuntimeProfilePoliciesNotFound) getRuntimeProfilePoliciesRes() {}
 
+type GetRuntimeProfilePoliciesServiceUnavailable ProblemDetails
+
+func (*GetRuntimeProfilePoliciesServiceUnavailable) getRuntimeProfilePoliciesRes() {}
+
+type GetRuntimeProfilePoliciesTooManyRequests ProblemDetails
+
+func (*GetRuntimeProfilePoliciesTooManyRequests) getRuntimeProfilePoliciesRes() {}
+
 type GetRuntimeProfilePoliciesUnauthorized ProblemDetails
 
 func (*GetRuntimeProfilePoliciesUnauthorized) getRuntimeProfilePoliciesRes() {}
+
+type GetRuntimeProfileServiceUnavailable ProblemDetails
+
+func (*GetRuntimeProfileServiceUnavailable) getRuntimeProfileRes() {}
+
+type GetRuntimeProfileTooManyRequests ProblemDetails
+
+func (*GetRuntimeProfileTooManyRequests) getRuntimeProfileRes() {}
 
 type GetRuntimeProfileUnauthorized ProblemDetails
 
@@ -23652,6 +24103,14 @@ func (s *GetRuntimeSessionOKSessionKind) UnmarshalText(data []byte) error {
 	}
 }
 
+type GetRuntimeSessionServiceUnavailable ProblemDetails
+
+func (*GetRuntimeSessionServiceUnavailable) getRuntimeSessionRes() {}
+
+type GetRuntimeSessionTooManyRequests ProblemDetails
+
+func (*GetRuntimeSessionTooManyRequests) getRuntimeSessionRes() {}
+
 type GetRuntimeSessionUnauthorized struct {
 	Code            GetRuntimeSessionUnauthorizedCode `json:"code"`
 	Detail          OptString                         `json:"detail"`
@@ -23983,6 +24442,14 @@ type GetSigningCredentialNotFound ProblemDetails
 
 func (*GetSigningCredentialNotFound) getSigningCredentialRes() {}
 
+type GetSigningCredentialServiceUnavailable ProblemDetails
+
+func (*GetSigningCredentialServiceUnavailable) getSigningCredentialRes() {}
+
+type GetSigningCredentialTooManyRequests ProblemDetails
+
+func (*GetSigningCredentialTooManyRequests) getSigningCredentialRes() {}
+
 type GetSigningCredentialUnauthorized ProblemDetails
 
 func (*GetSigningCredentialUnauthorized) getSigningCredentialRes() {}
@@ -23998,6 +24465,14 @@ func (*GetSigningRequestInternalServerError) getSigningRequestRes() {}
 type GetSigningRequestNotFound ProblemDetails
 
 func (*GetSigningRequestNotFound) getSigningRequestRes() {}
+
+type GetSigningRequestServiceUnavailable ProblemDetails
+
+func (*GetSigningRequestServiceUnavailable) getSigningRequestRes() {}
+
+type GetSigningRequestTooManyRequests ProblemDetails
+
+func (*GetSigningRequestTooManyRequests) getSigningRequestRes() {}
 
 type GetSigningRequestUnauthorized ProblemDetails
 
@@ -24090,6 +24565,14 @@ func (s *GetTaskActivityAnalyticsGroupBy) UnmarshalText(data []byte) error {
 	}
 }
 
+type GetTaskActivityAnalyticsServiceUnavailable ProblemDetails
+
+func (*GetTaskActivityAnalyticsServiceUnavailable) getTaskActivityAnalyticsRes() {}
+
+type GetTaskActivityAnalyticsTooManyRequests ProblemDetails
+
+func (*GetTaskActivityAnalyticsTooManyRequests) getTaskActivityAnalyticsRes() {}
+
 type GetTaskActivityAnalyticsUnauthorized ProblemDetails
 
 func (*GetTaskActivityAnalyticsUnauthorized) getTaskActivityAnalyticsRes() {}
@@ -24101,6 +24584,14 @@ func (*GetTaskForbidden) getTaskRes() {}
 type GetTaskNotFound ProblemDetails
 
 func (*GetTaskNotFound) getTaskRes() {}
+
+type GetTaskServiceUnavailable ProblemDetails
+
+func (*GetTaskServiceUnavailable) getTaskRes() {}
+
+type GetTaskTooManyRequests ProblemDetails
+
+func (*GetTaskTooManyRequests) getTaskRes() {}
 
 type GetTaskUnauthorized ProblemDetails
 
@@ -24356,6 +24847,14 @@ func (s *GetTeamOKMembersItemSubjectType) UnmarshalText(data []byte) error {
 	}
 }
 
+type GetTeamServiceUnavailable ProblemDetails
+
+func (*GetTeamServiceUnavailable) getTeamRes() {}
+
+type GetTeamTooManyRequests ProblemDetails
+
+func (*GetTeamTooManyRequests) getTeamRes() {}
+
 type GetTeamUnauthorized ProblemDetails
 
 func (*GetTeamUnauthorized) getTeamRes() {}
@@ -24421,6 +24920,14 @@ func (*GetWhoamiInternalServerError) getWhoamiRes() {}
 type GetWhoamiNotFound ProblemDetails
 
 func (*GetWhoamiNotFound) getWhoamiRes() {}
+
+type GetWhoamiServiceUnavailable ProblemDetails
+
+func (*GetWhoamiServiceUnavailable) getWhoamiRes() {}
+
+type GetWhoamiTooManyRequests ProblemDetails
+
+func (*GetWhoamiTooManyRequests) getWhoamiRes() {}
 
 type GetWhoamiUnauthorized ProblemDetails
 
@@ -24688,6 +25195,14 @@ func (s *InitiateTransferReq) GetDestinationTeamId() uuid.UUID {
 func (s *InitiateTransferReq) SetDestinationTeamId(val uuid.UUID) {
 	s.DestinationTeamId = val
 }
+
+type InitiateTransferServiceUnavailable ProblemDetails
+
+func (*InitiateTransferServiceUnavailable) initiateTransferRes() {}
+
+type InitiateTransferTooManyRequests ProblemDetails
+
+func (*InitiateTransferTooManyRequests) initiateTransferRes() {}
 
 type InitiateTransferUnauthorized ProblemDetails
 
@@ -25110,6 +25625,10 @@ type IssueVoucherInternalServerError ProblemDetails
 
 func (*IssueVoucherInternalServerError) issueVoucherRes() {}
 
+type IssueVoucherServiceUnavailable ProblemDetails
+
+func (*IssueVoucherServiceUnavailable) issueVoucherRes() {}
+
 type IssueVoucherTooManyRequests ProblemDetails
 
 func (*IssueVoucherTooManyRequests) issueVoucherRes() {}
@@ -25213,6 +25732,14 @@ func (s *JoinTeamReq) SetCode(val string) {
 	s.Code = val
 }
 
+type JoinTeamServiceUnavailable ProblemDetails
+
+func (*JoinTeamServiceUnavailable) joinTeamRes() {}
+
+type JoinTeamTooManyRequests ProblemDetails
+
+func (*JoinTeamTooManyRequests) joinTeamRes() {}
+
 type JoinTeamUnauthorized ProblemDetails
 
 func (*JoinTeamUnauthorized) joinTeamRes() {}
@@ -25240,6 +25767,14 @@ func (s *ListActiveVouchersOK) SetVouchers(val []Voucher) {
 }
 
 func (*ListActiveVouchersOK) listActiveVouchersRes() {}
+
+type ListActiveVouchersServiceUnavailable ProblemDetails
+
+func (*ListActiveVouchersServiceUnavailable) listActiveVouchersRes() {}
+
+type ListActiveVouchersTooManyRequests ProblemDetails
+
+func (*ListActiveVouchersTooManyRequests) listActiveVouchersRes() {}
 
 type ListActiveVouchersUnauthorized ProblemDetails
 
@@ -25305,6 +25840,10 @@ func (s *ListAgentKeysStatus) UnmarshalText(data []byte) error {
 	}
 }
 
+type ListAgentKeysTooManyRequests ProblemDetails
+
+func (*ListAgentKeysTooManyRequests) listAgentKeysRes() {}
+
 type ListAgentKeysUnauthorized ProblemDetails
 
 func (*ListAgentKeysUnauthorized) listAgentKeysRes() {}
@@ -25359,6 +25898,14 @@ type ListContextPacksNotFound ProblemDetails
 
 func (*ListContextPacksNotFound) listContextPacksRes() {}
 
+type ListContextPacksServiceUnavailable ProblemDetails
+
+func (*ListContextPacksServiceUnavailable) listContextPacksRes() {}
+
+type ListContextPacksTooManyRequests ProblemDetails
+
+func (*ListContextPacksTooManyRequests) listContextPacksRes() {}
+
 type ListContextPacksUnauthorized ProblemDetails
 
 func (*ListContextPacksUnauthorized) listContextPacksRes() {}
@@ -25370,6 +25917,14 @@ func (*ListDiariesBadRequest) listDiariesRes() {}
 type ListDiariesInternalServerError ProblemDetails
 
 func (*ListDiariesInternalServerError) listDiariesRes() {}
+
+type ListDiariesServiceUnavailable ProblemDetails
+
+func (*ListDiariesServiceUnavailable) listDiariesRes() {}
+
+type ListDiariesTooManyRequests ProblemDetails
+
+func (*ListDiariesTooManyRequests) listDiariesRes() {}
 
 type ListDiariesUnauthorized ProblemDetails
 
@@ -25441,6 +25996,14 @@ func (*ListDiaryEntriesInternalServerError) listDiaryEntriesRes() {}
 type ListDiaryEntriesNotFound ProblemDetails
 
 func (*ListDiaryEntriesNotFound) listDiaryEntriesRes() {}
+
+type ListDiaryEntriesServiceUnavailable ProblemDetails
+
+func (*ListDiaryEntriesServiceUnavailable) listDiaryEntriesRes() {}
+
+type ListDiaryEntriesTooManyRequests ProblemDetails
+
+func (*ListDiaryEntriesTooManyRequests) listDiaryEntriesRes() {}
 
 type ListDiaryEntriesUnauthorized ProblemDetails
 
@@ -25600,6 +26163,14 @@ func (s *ListDiaryGrantsOKGrantsItemSubjectNs) UnmarshalText(data []byte) error 
 	}
 }
 
+type ListDiaryGrantsServiceUnavailable ProblemDetails
+
+func (*ListDiaryGrantsServiceUnavailable) listDiaryGrantsRes() {}
+
+type ListDiaryGrantsTooManyRequests ProblemDetails
+
+func (*ListDiaryGrantsTooManyRequests) listDiaryGrantsRes() {}
+
 type ListDiaryGrantsUnauthorized ProblemDetails
 
 func (*ListDiaryGrantsUnauthorized) listDiaryGrantsRes() {}
@@ -25654,6 +26225,14 @@ type ListDiaryPacksNotFound ProblemDetails
 
 func (*ListDiaryPacksNotFound) listDiaryPacksRes() {}
 
+type ListDiaryPacksServiceUnavailable ProblemDetails
+
+func (*ListDiaryPacksServiceUnavailable) listDiaryPacksRes() {}
+
+type ListDiaryPacksTooManyRequests ProblemDetails
+
+func (*ListDiaryPacksTooManyRequests) listDiaryPacksRes() {}
+
 type ListDiaryPacksUnauthorized ProblemDetails
 
 func (*ListDiaryPacksUnauthorized) listDiaryPacksRes() {}
@@ -25673,6 +26252,14 @@ func (*ListDiaryRenderedPacksInternalServerError) listDiaryRenderedPacksRes() {}
 type ListDiaryRenderedPacksNotFound ProblemDetails
 
 func (*ListDiaryRenderedPacksNotFound) listDiaryRenderedPacksRes() {}
+
+type ListDiaryRenderedPacksServiceUnavailable ProblemDetails
+
+func (*ListDiaryRenderedPacksServiceUnavailable) listDiaryRenderedPacksRes() {}
+
+type ListDiaryRenderedPacksTooManyRequests ProblemDetails
+
+func (*ListDiaryRenderedPacksTooManyRequests) listDiaryRenderedPacksRes() {}
 
 type ListDiaryRenderedPacksUnauthorized ProblemDetails
 
@@ -25745,6 +26332,14 @@ type ListDiaryTagsNotFound ProblemDetails
 
 func (*ListDiaryTagsNotFound) listDiaryTagsRes() {}
 
+type ListDiaryTagsServiceUnavailable ProblemDetails
+
+func (*ListDiaryTagsServiceUnavailable) listDiaryTagsRes() {}
+
+type ListDiaryTagsTooManyRequests ProblemDetails
+
+func (*ListDiaryTagsTooManyRequests) listDiaryTagsRes() {}
+
 type ListDiaryTagsUnauthorized ProblemDetails
 
 func (*ListDiaryTagsUnauthorized) listDiaryTagsRes() {}
@@ -25813,6 +26408,14 @@ type ListEntryRelationsNotFound ProblemDetails
 
 func (*ListEntryRelationsNotFound) listEntryRelationsRes() {}
 
+type ListEntryRelationsServiceUnavailable ProblemDetails
+
+func (*ListEntryRelationsServiceUnavailable) listEntryRelationsRes() {}
+
+type ListEntryRelationsTooManyRequests ProblemDetails
+
+func (*ListEntryRelationsTooManyRequests) listEntryRelationsRes() {}
+
 type ListEntryRelationsUnauthorized ProblemDetails
 
 func (*ListEntryRelationsUnauthorized) listEntryRelationsRes() {}
@@ -25866,6 +26469,14 @@ func (s *ListGroupMembersOKItemsItem) SetSubjectId(val uuid.UUID) {
 func (s *ListGroupMembersOKItemsItem) SetSubjectNs(val string) {
 	s.SubjectNs = val
 }
+
+type ListGroupMembersServiceUnavailable ProblemDetails
+
+func (*ListGroupMembersServiceUnavailable) listGroupMembersRes() {}
+
+type ListGroupMembersTooManyRequests ProblemDetails
+
+func (*ListGroupMembersTooManyRequests) listGroupMembersRes() {}
 
 type ListGroupMembersUnauthorized ProblemDetails
 
@@ -25932,6 +26543,14 @@ func (s *ListGroupsOKItemsItem) SetName(val string) {
 func (s *ListGroupsOKItemsItem) SetTeamId(val uuid.UUID) {
 	s.TeamId = val
 }
+
+type ListGroupsServiceUnavailable ProblemDetails
+
+func (*ListGroupsServiceUnavailable) listGroupsRes() {}
+
+type ListGroupsTooManyRequests ProblemDetails
+
+func (*ListGroupsTooManyRequests) listGroupsRes() {}
 
 type ListGroupsUnauthorized ProblemDetails
 
@@ -26053,6 +26672,14 @@ func (s *ListPendingTransfersOKItemsItem) SetStatus(val string) {
 	s.Status = val
 }
 
+type ListPendingTransfersServiceUnavailable ProblemDetails
+
+func (*ListPendingTransfersServiceUnavailable) listPendingTransfersRes() {}
+
+type ListPendingTransfersTooManyRequests ProblemDetails
+
+func (*ListPendingTransfersTooManyRequests) listPendingTransfersRes() {}
+
 type ListPendingTransfersUnauthorized ProblemDetails
 
 func (*ListPendingTransfersUnauthorized) listPendingTransfersRes() {}
@@ -26126,9 +26753,29 @@ func (s *ListProblemTypesOKItem) SetType(val OptURI) {
 	s.Type = val
 }
 
+type ListRuntimeModelsServiceUnavailable ProblemDetails
+
+func (*ListRuntimeModelsServiceUnavailable) listRuntimeModelsRes() {}
+
+type ListRuntimeModelsTooManyRequests ProblemDetails
+
+func (*ListRuntimeModelsTooManyRequests) listRuntimeModelsRes() {}
+
+type ListRuntimeModelsUnauthorized ProblemDetails
+
+func (*ListRuntimeModelsUnauthorized) listRuntimeModelsRes() {}
+
 type ListRuntimePoliciesForbidden ProblemDetails
 
 func (*ListRuntimePoliciesForbidden) listRuntimePoliciesRes() {}
+
+type ListRuntimePoliciesServiceUnavailable ProblemDetails
+
+func (*ListRuntimePoliciesServiceUnavailable) listRuntimePoliciesRes() {}
+
+type ListRuntimePoliciesTooManyRequests ProblemDetails
+
+func (*ListRuntimePoliciesTooManyRequests) listRuntimePoliciesRes() {}
 
 type ListRuntimePoliciesUnauthorized ProblemDetails
 
@@ -26141,6 +26788,14 @@ func (*ListRuntimeProfilesForbidden) listRuntimeProfilesRes() {}
 type ListRuntimeProfilesNotFound ProblemDetails
 
 func (*ListRuntimeProfilesNotFound) listRuntimeProfilesRes() {}
+
+type ListRuntimeProfilesServiceUnavailable ProblemDetails
+
+func (*ListRuntimeProfilesServiceUnavailable) listRuntimeProfilesRes() {}
+
+type ListRuntimeProfilesTooManyRequests ProblemDetails
+
+func (*ListRuntimeProfilesTooManyRequests) listRuntimeProfilesRes() {}
 
 type ListRuntimeProfilesUnauthorized ProblemDetails
 
@@ -27538,6 +28193,10 @@ func (s *ListRuntimeSlotsOKItemsItemWorkspaceKind) UnmarshalText(data []byte) er
 	}
 }
 
+type ListRuntimeSlotsServiceUnavailable ProblemDetails
+
+func (*ListRuntimeSlotsServiceUnavailable) listRuntimeSlotsRes() {}
+
 type ListRuntimeSlotsState string
 
 const (
@@ -27578,6 +28237,10 @@ func (s *ListRuntimeSlotsState) UnmarshalText(data []byte) error {
 		return errors.Errorf("invalid value: %q", data)
 	}
 }
+
+type ListRuntimeSlotsTooManyRequests ProblemDetails
+
+func (*ListRuntimeSlotsTooManyRequests) listRuntimeSlotsRes() {}
 
 type ListRuntimeSlotsUnauthorized struct {
 	Code            ListRuntimeSlotsUnauthorizedCode `json:"code"`
@@ -27906,6 +28569,14 @@ type ListSigningCredentialsForbidden ProblemDetails
 
 func (*ListSigningCredentialsForbidden) listSigningCredentialsRes() {}
 
+type ListSigningCredentialsServiceUnavailable ProblemDetails
+
+func (*ListSigningCredentialsServiceUnavailable) listSigningCredentialsRes() {}
+
+type ListSigningCredentialsTooManyRequests ProblemDetails
+
+func (*ListSigningCredentialsTooManyRequests) listSigningCredentialsRes() {}
+
 type ListSigningCredentialsUnauthorized ProblemDetails
 
 func (*ListSigningCredentialsUnauthorized) listSigningCredentialsRes() {}
@@ -27958,6 +28629,10 @@ func (s *ListSigningRequestsScope) UnmarshalText(data []byte) error {
 		return errors.Errorf("invalid value: %q", data)
 	}
 }
+
+type ListSigningRequestsServiceUnavailable ProblemDetails
+
+func (*ListSigningRequestsServiceUnavailable) listSigningRequestsRes() {}
 
 type ListSigningRequestsStatusItem string
 
@@ -28020,6 +28695,10 @@ func (s *ListSigningRequestsStatusItem) UnmarshalText(data []byte) error {
 		return errors.Errorf("invalid value: %q", data)
 	}
 }
+
+type ListSigningRequestsTooManyRequests ProblemDetails
+
+func (*ListSigningRequestsTooManyRequests) listSigningRequestsRes() {}
 
 type ListSigningRequestsUnauthorized ProblemDetails
 
@@ -29179,6 +29858,14 @@ func (s *ListTaskArtifactsOKArtifactsItem) SetTitle(val string) {
 	s.Title = val
 }
 
+type ListTaskArtifactsServiceUnavailable ProblemDetails
+
+func (*ListTaskArtifactsServiceUnavailable) listTaskArtifactsRes() {}
+
+type ListTaskArtifactsTooManyRequests ProblemDetails
+
+func (*ListTaskArtifactsTooManyRequests) listTaskArtifactsRes() {}
+
 type ListTaskArtifactsUnauthorized struct {
 	Code            ListTaskArtifactsUnauthorizedCode `json:"code"`
 	Detail          OptString                         `json:"detail"`
@@ -29514,6 +30201,14 @@ type ListTaskAttemptsOKApplicationJSON []TaskAttempt
 
 func (*ListTaskAttemptsOKApplicationJSON) listTaskAttemptsRes() {}
 
+type ListTaskAttemptsServiceUnavailable ProblemDetails
+
+func (*ListTaskAttemptsServiceUnavailable) listTaskAttemptsRes() {}
+
+type ListTaskAttemptsTooManyRequests ProblemDetails
+
+func (*ListTaskAttemptsTooManyRequests) listTaskAttemptsRes() {}
+
 type ListTaskAttemptsUnauthorized ProblemDetails
 
 func (*ListTaskAttemptsUnauthorized) listTaskAttemptsRes() {}
@@ -29529,6 +30224,14 @@ func (*ListTaskMessagesNotFound) listTaskMessagesRes() {}
 type ListTaskMessagesOKApplicationJSON []TaskMessage
 
 func (*ListTaskMessagesOKApplicationJSON) listTaskMessagesRes() {}
+
+type ListTaskMessagesServiceUnavailable ProblemDetails
+
+func (*ListTaskMessagesServiceUnavailable) listTaskMessagesRes() {}
+
+type ListTaskMessagesTooManyRequests ProblemDetails
+
+func (*ListTaskMessagesTooManyRequests) listTaskMessagesRes() {}
 
 type ListTaskMessagesUnauthorized ProblemDetails
 
@@ -29551,9 +30254,29 @@ func (s *ListTaskSchemasResponse) SetItems(val []TaskTypeDescriptor) {
 
 func (*ListTaskSchemasResponse) listTaskSchemasRes() {}
 
+type ListTaskSchemasServiceUnavailable ProblemDetails
+
+func (*ListTaskSchemasServiceUnavailable) listTaskSchemasRes() {}
+
+type ListTaskSchemasTooManyRequests ProblemDetails
+
+func (*ListTaskSchemasTooManyRequests) listTaskSchemasRes() {}
+
+type ListTaskSchemasUnauthorized ProblemDetails
+
+func (*ListTaskSchemasUnauthorized) listTaskSchemasRes() {}
+
 type ListTasksForbidden ProblemDetails
 
 func (*ListTasksForbidden) listTasksRes() {}
+
+type ListTasksServiceUnavailable ProblemDetails
+
+func (*ListTasksServiceUnavailable) listTasksRes() {}
+
+type ListTasksTooManyRequests ProblemDetails
+
+func (*ListTasksTooManyRequests) listTasksRes() {}
 
 type ListTasksUnauthorized ProblemDetails
 
@@ -29704,6 +30427,14 @@ func (s *ListTeamInvitesOKItemsItemRole) UnmarshalText(data []byte) error {
 		return errors.Errorf("invalid value: %q", data)
 	}
 }
+
+type ListTeamInvitesServiceUnavailable ProblemDetails
+
+func (*ListTeamInvitesServiceUnavailable) listTeamInvitesRes() {}
+
+type ListTeamInvitesTooManyRequests ProblemDetails
+
+func (*ListTeamInvitesTooManyRequests) listTeamInvitesRes() {}
 
 type ListTeamInvitesUnauthorized ProblemDetails
 
@@ -29892,6 +30623,14 @@ func (s *ListTeamMembersOKItemsItemSubjectType) UnmarshalText(data []byte) error
 	}
 }
 
+type ListTeamMembersServiceUnavailable ProblemDetails
+
+func (*ListTeamMembersServiceUnavailable) listTeamMembersRes() {}
+
+type ListTeamMembersTooManyRequests ProblemDetails
+
+func (*ListTeamMembersTooManyRequests) listTeamMembersRes() {}
+
 type ListTeamMembersUnauthorized ProblemDetails
 
 func (*ListTeamMembersUnauthorized) listTeamMembersRes() {}
@@ -30022,6 +30761,14 @@ func (s *ListTeamsOKItemsItemRole) UnmarshalText(data []byte) error {
 		return errors.Errorf("invalid value: %q", data)
 	}
 }
+
+type ListTeamsServiceUnavailable ProblemDetails
+
+func (*ListTeamsServiceUnavailable) listTeamsRes() {}
+
+type ListTeamsTooManyRequests ProblemDetails
+
+func (*ListTeamsTooManyRequests) listTeamsRes() {}
 
 type ListTeamsUnauthorized ProblemDetails
 
@@ -38598,6 +39345,14 @@ func (s *PreviewDiaryCustomPackReqParams) init() PreviewDiaryCustomPackReqParams
 	return m
 }
 
+type PreviewDiaryCustomPackServiceUnavailable ProblemDetails
+
+func (*PreviewDiaryCustomPackServiceUnavailable) previewDiaryCustomPackRes() {}
+
+type PreviewDiaryCustomPackTooManyRequests ProblemDetails
+
+func (*PreviewDiaryCustomPackTooManyRequests) previewDiaryCustomPackRes() {}
+
 type PreviewDiaryCustomPackUnauthorized ProblemDetails
 
 func (*PreviewDiaryCustomPackUnauthorized) previewDiaryCustomPackRes() {}
@@ -38647,6 +39402,14 @@ func (s *PreviewRenderedPackReq) SetRenderMethod(val string) {
 func (s *PreviewRenderedPackReq) SetRenderedMarkdown(val OptString) {
 	s.RenderedMarkdown = val
 }
+
+type PreviewRenderedPackServiceUnavailable ProblemDetails
+
+func (*PreviewRenderedPackServiceUnavailable) previewRenderedPackRes() {}
+
+type PreviewRenderedPackTooManyRequests ProblemDetails
+
+func (*PreviewRenderedPackTooManyRequests) previewRenderedPackRes() {}
 
 type PreviewRenderedPackUnauthorized ProblemDetails
 
@@ -39901,10 +40664,14 @@ func (s *ProblemDetails) SetAdditionalProps(val ProblemDetailsAdditional) {
 	s.AdditionalProps = val
 }
 
+func (*ProblemDetails) downloadRuntimeSessionRes()        {}
+func (*ProblemDetails) downloadTaskArtifactByCidRes()     {}
+func (*ProblemDetails) downloadTaskArtifactRes()          {}
 func (*ProblemDetails) getLegreffierOnboardingStatusRes() {}
 func (*ProblemDetails) getTrustGraphRes()                 {}
-func (*ProblemDetails) listRuntimeModelsRes()             {}
-func (*ProblemDetails) listTaskSchemasRes()               {}
+func (*ProblemDetails) stageTaskArtifactRes()             {}
+func (*ProblemDetails) uploadRuntimeSessionRes()          {}
+func (*ProblemDetails) uploadTaskArtifactRes()            {}
 
 type ProblemDetailsAdditional map[string]jx.Raw
 
@@ -42582,6 +43349,14 @@ func (s *RegisterExecutorManifestReqExecutorManifest) init() RegisterExecutorMan
 	return m
 }
 
+type RegisterExecutorManifestServiceUnavailable ProblemDetails
+
+func (*RegisterExecutorManifestServiceUnavailable) registerExecutorManifestRes() {}
+
+type RegisterExecutorManifestTooManyRequests ProblemDetails
+
+func (*RegisterExecutorManifestTooManyRequests) registerExecutorManifestRes() {}
+
 type RegisterExecutorManifestUnauthorized ProblemDetails
 
 func (*RegisterExecutorManifestUnauthorized) registerExecutorManifestRes() {}
@@ -42668,6 +43443,14 @@ func (s *RejectSigningRequestReq) GetReason() OptString {
 func (s *RejectSigningRequestReq) SetReason(val OptString) {
 	s.Reason = val
 }
+
+type RejectSigningRequestServiceUnavailable ProblemDetails
+
+func (*RejectSigningRequestServiceUnavailable) rejectSigningRequestRes() {}
+
+type RejectSigningRequestTooManyRequests ProblemDetails
+
+func (*RejectSigningRequestTooManyRequests) rejectSigningRequestRes() {}
 
 type RejectSigningRequestUnauthorized ProblemDetails
 
@@ -42782,6 +43565,14 @@ func (s *RejectTransferOK) SetStatus(val string) {
 }
 
 func (*RejectTransferOK) rejectTransferRes() {}
+
+type RejectTransferServiceUnavailable ProblemDetails
+
+func (*RejectTransferServiceUnavailable) rejectTransferRes() {}
+
+type RejectTransferTooManyRequests ProblemDetails
+
+func (*RejectTransferTooManyRequests) rejectTransferRes() {}
 
 type RejectTransferUnauthorized ProblemDetails
 
@@ -42930,6 +43721,14 @@ func (s *RemoveGroupMemberOK) SetRemoved(val bool) {
 
 func (*RemoveGroupMemberOK) removeGroupMemberRes() {}
 
+type RemoveGroupMemberServiceUnavailable ProblemDetails
+
+func (*RemoveGroupMemberServiceUnavailable) removeGroupMemberRes() {}
+
+type RemoveGroupMemberTooManyRequests ProblemDetails
+
+func (*RemoveGroupMemberTooManyRequests) removeGroupMemberRes() {}
+
 type RemoveGroupMemberUnauthorized ProblemDetails
 
 func (*RemoveGroupMemberUnauthorized) removeGroupMemberRes() {}
@@ -42957,6 +43756,14 @@ func (s *RemoveTeamMemberOK) SetRemoved(val bool) {
 }
 
 func (*RemoveTeamMemberOK) removeTeamMemberRes() {}
+
+type RemoveTeamMemberServiceUnavailable ProblemDetails
+
+func (*RemoveTeamMemberServiceUnavailable) removeTeamMemberRes() {}
+
+type RemoveTeamMemberTooManyRequests ProblemDetails
+
+func (*RemoveTeamMemberTooManyRequests) removeTeamMemberRes() {}
 
 type RemoveTeamMemberUnauthorized ProblemDetails
 
@@ -43019,6 +43826,14 @@ func (s *RenderContextPackReq) SetRenderMethod(val string) {
 func (s *RenderContextPackReq) SetRenderedMarkdown(val OptString) {
 	s.RenderedMarkdown = val
 }
+
+type RenderContextPackServiceUnavailable ProblemDetails
+
+func (*RenderContextPackServiceUnavailable) renderContextPackRes() {}
+
+type RenderContextPackTooManyRequests ProblemDetails
+
+func (*RenderContextPackTooManyRequests) renderContextPackRes() {}
 
 type RenderContextPackUnauthorized ProblemDetails
 
@@ -44099,6 +44914,14 @@ func (s *RevokeDiaryGrantReqSubjectNs) UnmarshalText(data []byte) error {
 	}
 }
 
+type RevokeDiaryGrantServiceUnavailable ProblemDetails
+
+func (*RevokeDiaryGrantServiceUnavailable) revokeDiaryGrantRes() {}
+
+type RevokeDiaryGrantTooManyRequests ProblemDetails
+
+func (*RevokeDiaryGrantTooManyRequests) revokeDiaryGrantRes() {}
+
 type RevokeDiaryGrantUnauthorized ProblemDetails
 
 func (*RevokeDiaryGrantUnauthorized) revokeDiaryGrantRes() {}
@@ -44124,6 +44947,14 @@ func (s *RevokeSigningCredentialReq) GetReason() OptString {
 func (s *RevokeSigningCredentialReq) SetReason(val OptString) {
 	s.Reason = val
 }
+
+type RevokeSigningCredentialServiceUnavailable ProblemDetails
+
+func (*RevokeSigningCredentialServiceUnavailable) revokeSigningCredentialRes() {}
+
+type RevokeSigningCredentialTooManyRequests ProblemDetails
+
+func (*RevokeSigningCredentialTooManyRequests) revokeSigningCredentialRes() {}
 
 type RevokeSigningCredentialUnauthorized ProblemDetails
 
@@ -44168,6 +44999,14 @@ func (*RotateClientSecretBadRequest) rotateClientSecretRes() {}
 type RotateClientSecretInternalServerError ProblemDetails
 
 func (*RotateClientSecretInternalServerError) rotateClientSecretRes() {}
+
+type RotateClientSecretServiceUnavailable ProblemDetails
+
+func (*RotateClientSecretServiceUnavailable) rotateClientSecretRes() {}
+
+type RotateClientSecretTooManyRequests ProblemDetails
+
+func (*RotateClientSecretTooManyRequests) rotateClientSecretRes() {}
 
 type RotateClientSecretUnauthorized ProblemDetails
 
@@ -47079,6 +47918,14 @@ func (s *SearchDiaryReqEntryTypesItem) UnmarshalText(data []byte) error {
 	}
 }
 
+type SearchDiaryServiceUnavailable ProblemDetails
+
+func (*SearchDiaryServiceUnavailable) searchDiaryRes() {}
+
+type SearchDiaryTooManyRequests ProblemDetails
+
+func (*SearchDiaryTooManyRequests) searchDiaryRes() {}
+
 type SearchDiaryUnauthorized ProblemDetails
 
 func (*SearchDiaryUnauthorized) searchDiaryRes() {}
@@ -47202,6 +48049,14 @@ func (*SetRuntimeProfilePoliciesNoContent) setRuntimeProfilePoliciesRes() {}
 type SetRuntimeProfilePoliciesNotFound ProblemDetails
 
 func (*SetRuntimeProfilePoliciesNotFound) setRuntimeProfilePoliciesRes() {}
+
+type SetRuntimeProfilePoliciesServiceUnavailable ProblemDetails
+
+func (*SetRuntimeProfilePoliciesServiceUnavailable) setRuntimeProfilePoliciesRes() {}
+
+type SetRuntimeProfilePoliciesTooManyRequests ProblemDetails
+
+func (*SetRuntimeProfilePoliciesTooManyRequests) setRuntimeProfilePoliciesRes() {}
 
 type SetRuntimeProfilePoliciesUnauthorized ProblemDetails
 
@@ -50091,6 +50946,14 @@ func (s *SubmitSignatureReq) SetSignature(val string) {
 	s.Signature = val
 }
 
+type SubmitSignatureServiceUnavailable ProblemDetails
+
+func (*SubmitSignatureServiceUnavailable) submitSignatureRes() {}
+
+type SubmitSignatureTooManyRequests ProblemDetails
+
+func (*SubmitSignatureTooManyRequests) submitSignatureRes() {}
+
 type SubmitSignatureUnauthorized ProblemDetails
 
 func (*SubmitSignatureUnauthorized) submitSignatureRes() {}
@@ -50134,6 +50997,14 @@ func (s *SuspendSigningCredentialReq) GetReason() OptString {
 func (s *SuspendSigningCredentialReq) SetReason(val OptString) {
 	s.Reason = val
 }
+
+type SuspendSigningCredentialServiceUnavailable ProblemDetails
+
+func (*SuspendSigningCredentialServiceUnavailable) suspendSigningCredentialRes() {}
+
+type SuspendSigningCredentialTooManyRequests ProblemDetails
+
+func (*SuspendSigningCredentialTooManyRequests) suspendSigningCredentialRes() {}
 
 type SuspendSigningCredentialUnauthorized ProblemDetails
 
@@ -52091,6 +52962,14 @@ func (s *TaskHeartbeatReq) SetLeaseTtlSec(val OptInt) {
 	s.LeaseTtlSec = val
 }
 
+type TaskHeartbeatServiceUnavailable ProblemDetails
+
+func (*TaskHeartbeatServiceUnavailable) taskHeartbeatRes() {}
+
+type TaskHeartbeatTooManyRequests ProblemDetails
+
+func (*TaskHeartbeatTooManyRequests) taskHeartbeatRes() {}
+
 type TaskHeartbeatUnauthorized ProblemDetails
 
 func (*TaskHeartbeatUnauthorized) taskHeartbeatRes() {}
@@ -53330,6 +54209,14 @@ func (s *UpdateContextPackReq) SetPinned(val OptBool) {
 	s.Pinned = val
 }
 
+type UpdateContextPackServiceUnavailable ProblemDetails
+
+func (*UpdateContextPackServiceUnavailable) updateContextPackRes() {}
+
+type UpdateContextPackTooManyRequests ProblemDetails
+
+func (*UpdateContextPackTooManyRequests) updateContextPackRes() {}
+
 type UpdateContextPackUnauthorized ProblemDetails
 
 func (*UpdateContextPackUnauthorized) updateContextPackRes() {}
@@ -53468,6 +54355,14 @@ func (s *UpdateDiaryEntryByIdReqEntryType) UnmarshalText(data []byte) error {
 	}
 }
 
+type UpdateDiaryEntryByIdServiceUnavailable ProblemDetails
+
+func (*UpdateDiaryEntryByIdServiceUnavailable) updateDiaryEntryByIdRes() {}
+
+type UpdateDiaryEntryByIdTooManyRequests ProblemDetails
+
+func (*UpdateDiaryEntryByIdTooManyRequests) updateDiaryEntryByIdRes() {}
+
 type UpdateDiaryEntryByIdUnauthorized ProblemDetails
 
 func (*UpdateDiaryEntryByIdUnauthorized) updateDiaryEntryByIdRes() {}
@@ -53558,6 +54453,14 @@ func (s *UpdateDiaryReqVisibility) UnmarshalText(data []byte) error {
 	}
 }
 
+type UpdateDiaryServiceUnavailable ProblemDetails
+
+func (*UpdateDiaryServiceUnavailable) updateDiaryRes() {}
+
+type UpdateDiaryTooManyRequests ProblemDetails
+
+func (*UpdateDiaryTooManyRequests) updateDiaryRes() {}
+
 type UpdateDiaryUnauthorized ProblemDetails
 
 func (*UpdateDiaryUnauthorized) updateDiaryRes() {}
@@ -53591,6 +54494,14 @@ func (s *UpdateEntryRelationStatusReq) GetStatus() RelationStatus {
 func (s *UpdateEntryRelationStatusReq) SetStatus(val RelationStatus) {
 	s.Status = val
 }
+
+type UpdateEntryRelationStatusServiceUnavailable ProblemDetails
+
+func (*UpdateEntryRelationStatusServiceUnavailable) updateEntryRelationStatusRes() {}
+
+type UpdateEntryRelationStatusTooManyRequests ProblemDetails
+
+func (*UpdateEntryRelationStatusTooManyRequests) updateEntryRelationStatusRes() {}
 
 type UpdateEntryRelationStatusUnauthorized ProblemDetails
 
@@ -53662,6 +54573,14 @@ func (s *UpdateRenderedPackReq) SetPinned(val OptBool) {
 func (s *UpdateRenderedPackReq) SetVerifiedTaskId(val OptUUID) {
 	s.VerifiedTaskId = val
 }
+
+type UpdateRenderedPackServiceUnavailable ProblemDetails
+
+func (*UpdateRenderedPackServiceUnavailable) updateRenderedPackRes() {}
+
+type UpdateRenderedPackTooManyRequests ProblemDetails
+
+func (*UpdateRenderedPackTooManyRequests) updateRenderedPackRes() {}
 
 type UpdateRenderedPackUnauthorized ProblemDetails
 
@@ -53857,6 +54776,14 @@ type UpdateRuntimeModelNotFound ProblemDetails
 
 func (*UpdateRuntimeModelNotFound) updateRuntimeModelRes() {}
 
+type UpdateRuntimeModelServiceUnavailable ProblemDetails
+
+func (*UpdateRuntimeModelServiceUnavailable) updateRuntimeModelRes() {}
+
+type UpdateRuntimeModelTooManyRequests ProblemDetails
+
+func (*UpdateRuntimeModelTooManyRequests) updateRuntimeModelRes() {}
+
 type UpdateRuntimeModelUnauthorized ProblemDetails
 
 func (*UpdateRuntimeModelUnauthorized) updateRuntimeModelRes() {}
@@ -53916,6 +54843,14 @@ func (*UpdateRuntimePolicyForbidden) updateRuntimePolicyRes() {}
 type UpdateRuntimePolicyNotFound ProblemDetails
 
 func (*UpdateRuntimePolicyNotFound) updateRuntimePolicyRes() {}
+
+type UpdateRuntimePolicyServiceUnavailable ProblemDetails
+
+func (*UpdateRuntimePolicyServiceUnavailable) updateRuntimePolicyRes() {}
+
+type UpdateRuntimePolicyTooManyRequests ProblemDetails
+
+func (*UpdateRuntimePolicyTooManyRequests) updateRuntimePolicyRes() {}
 
 type UpdateRuntimePolicyUnauthorized ProblemDetails
 
@@ -54822,6 +55757,14 @@ type UpdateRuntimeProfileNotFound ProblemDetails
 
 func (*UpdateRuntimeProfileNotFound) updateRuntimeProfileRes() {}
 
+type UpdateRuntimeProfileServiceUnavailable ProblemDetails
+
+func (*UpdateRuntimeProfileServiceUnavailable) updateRuntimeProfileRes() {}
+
+type UpdateRuntimeProfileTooManyRequests ProblemDetails
+
+func (*UpdateRuntimeProfileTooManyRequests) updateRuntimeProfileRes() {}
+
 type UpdateRuntimeProfileUnauthorized ProblemDetails
 
 func (*UpdateRuntimeProfileUnauthorized) updateRuntimeProfileRes() {}
@@ -54858,6 +55801,14 @@ func (s *UpdateTaskMetadataReq) SetTags(val []string) {
 func (s *UpdateTaskMetadataReq) SetTitle(val OptNilString) {
 	s.Title = val
 }
+
+type UpdateTaskMetadataServiceUnavailable ProblemDetails
+
+func (*UpdateTaskMetadataServiceUnavailable) updateTaskMetadataRes() {}
+
+type UpdateTaskMetadataTooManyRequests ProblemDetails
+
+func (*UpdateTaskMetadataTooManyRequests) updateTaskMetadataRes() {}
 
 type UpdateTaskMetadataUnauthorized ProblemDetails
 
@@ -54997,6 +55948,14 @@ func (s *UpdateTeamMemberRoleReqRole) UnmarshalText(data []byte) error {
 		return errors.Errorf("invalid value: %q", data)
 	}
 }
+
+type UpdateTeamMemberRoleServiceUnavailable ProblemDetails
+
+func (*UpdateTeamMemberRoleServiceUnavailable) updateTeamMemberRoleRes() {}
+
+type UpdateTeamMemberRoleTooManyRequests ProblemDetails
+
+func (*UpdateTeamMemberRoleTooManyRequests) updateTeamMemberRoleRes() {}
 
 type UpdateTeamMemberRoleUnauthorized ProblemDetails
 
@@ -59616,6 +60575,14 @@ func (*VerifyDiaryEntryByIdInternalServerError) verifyDiaryEntryByIdRes() {}
 type VerifyDiaryEntryByIdNotFound ProblemDetails
 
 func (*VerifyDiaryEntryByIdNotFound) verifyDiaryEntryByIdRes() {}
+
+type VerifyDiaryEntryByIdServiceUnavailable ProblemDetails
+
+func (*VerifyDiaryEntryByIdServiceUnavailable) verifyDiaryEntryByIdRes() {}
+
+type VerifyDiaryEntryByIdTooManyRequests ProblemDetails
+
+func (*VerifyDiaryEntryByIdTooManyRequests) verifyDiaryEntryByIdRes() {}
 
 type VerifyDiaryEntryByIdUnauthorized ProblemDetails
 

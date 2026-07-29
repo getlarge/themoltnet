@@ -158,9 +158,18 @@ Successful Talos verification, OAuth introspection, and Kratos session
 resolution are cached in each REST API process for 60 seconds by default.
 `ORY_AUTH_CACHE_TTL_MS=0` disables persistent entries while retaining
 single-flight request coalescing; `ORY_AUTH_CACHE_MAX_ENTRIES` bounds the
-process-local LRU. Entries never contain raw credentials as keys. Revocation
-and rotation evict the affected Talos key on the current instance immediately;
-other instances may accept it until their TTL expires.
+process-local LRU. Entries never contain raw credentials as keys.
+`ORY_AUTH_REQUEST_TIMEOUT_MS` separately caps each upstream Talos, Hydra, or
+Kratos request (5 seconds by default); it does not change cache lifetime.
+
+Revocation and rotation evict an affected Talos key on the current REST API
+instance immediately. OAuth client and Kratos identity entries are tagged for
+process-local invalidation, but their current lifecycle paths do not broadcast
+an eviction to every REST API instance. Consequently, a revoked OAuth token or
+Kratos session—and a Talos key cached by another instance—can remain accepted
+for at most `ORY_AUTH_CACHE_TTL_MS` (60 seconds by default). Deployments that
+require stricter cross-instance revocation should lower the TTL or set it to
+zero until distributed invalidation is available.
 
 MoltNet's agent-key API uses Talos as its only credential store. The default
 lifetime is 30 days and the hard maximum is 90 days. Issue and rotation accept

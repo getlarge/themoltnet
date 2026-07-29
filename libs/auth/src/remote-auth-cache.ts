@@ -1,6 +1,9 @@
 import { createHmac, randomBytes } from 'node:crypto';
 
-import { createMetricCounter } from '@moltnet/observability';
+import {
+  createMetricCounter,
+  createMetricUpDownCounter,
+} from '@moltnet/observability';
 
 import type { AuthContext } from './types.js';
 
@@ -33,6 +36,8 @@ export interface RemoteAuthMetrics {
     outcome: RemoteAuthOutcome,
     status?: number,
   ): void;
+  recordCacheEviction(reason: 'capacity' | 'expired' | 'tag'): void;
+  recordCacheSizeChange(delta: 1 | -1): void;
 }
 
 export interface RemoteAuthCacheValue {
@@ -58,7 +63,17 @@ interface CacheEntry {
 const NOOP_METRICS: RemoteAuthMetrics = {
   recordCacheAccess: () => undefined,
   recordUpstreamRequest: () => undefined,
+  recordCacheEviction: () => undefined,
+  recordCacheSizeChange: () => undefined,
 };
+
+function statusBucket(status: number | undefined): string {
+  if (status === undefined) return 'network';
+  if (status === 429) return '429';
+  if (status >= 400 && status < 500) return '4xx';
+  if (status >= 500 && status < 600) return '5xx';
+  return 'other';
+}
 
 export function createRemoteAuthMetrics(): RemoteAuthMetrics {
   const cacheAccesses = createMetricCounter(
@@ -71,6 +86,16 @@ export function createRemoteAuthMetrics(): RemoteAuthMetrics {
     'auth.remote.upstream.requests',
     'Remote authentication provider requests',
   );
+  const cacheEvictions = createMetricCounter(
+    '@moltnet/auth',
+    'auth.remote.cache.evictions',
+    'Remote authentication cache evictions',
+  );
+  const cacheSize = createMetricUpDownCounter(
+    '@moltnet/auth',
+    'auth.remote.cache.entries',
+    'Current remote authentication cache entries',
+  );
 
   return {
     recordCacheAccess(transport, result) {
@@ -80,21 +105,41 @@ export function createRemoteAuthMetrics(): RemoteAuthMetrics {
       upstreamRequests.add(1, {
         operation,
         outcome,
-        ...(status === undefined ? {} : { status }),
+        status: statusBucket(status),
       });
+    },
+    recordCacheEviction(reason) {
+      cacheEvictions.add(1, { reason });
+    },
+    recordCacheSizeChange(delta) {
+      cacheSize.add(delta);
     },
   };
 }
 
-function cloneContext(context: AuthContext): AuthContext {
-  return {
+function freezeContext(context: AuthContext): AuthContext {
+  const canonical = {
     ...context,
-    scopes: [...context.scopes],
+    scopes: Object.freeze([...context.scopes]),
     currentTeamId: null,
     ...(context.subjectType === 'agent' && context.credentialBinding
-      ? { credentialBinding: { ...context.credentialBinding } }
+      ? { credentialBinding: Object.freeze({ ...context.credentialBinding }) }
       : {}),
   };
+  return Object.freeze(canonical) as AuthContext;
+}
+
+function requestContext(context: AuthContext): AuthContext {
+  return {
+    ...context,
+    currentTeamId: null,
+  };
+}
+
+interface InFlightLoad {
+  promise: Promise<RemoteAuthCacheValue | null>;
+  invalidatedTags: Set<string>;
+  waiters: number;
 }
 
 export class RemoteAuthCache {
@@ -105,12 +150,8 @@ export class RemoteAuthCache {
   private readonly now: () => number;
   private readonly hmacKey: Uint8Array;
   private readonly entries = new Map<string, CacheEntry>();
-  private readonly inFlight = new Map<
-    string,
-    Promise<RemoteAuthCacheValue | null>
-  >();
+  private readonly inFlight = new Map<string, InFlightLoad>();
   private readonly tagKeys = new Map<string, Set<string>>();
-  private evictionEpoch = 0;
 
   constructor(options: RemoteAuthCacheOptions = {}) {
     this.ttlMs = options.ttlMs ?? 60_000;
@@ -127,61 +168,78 @@ export class RemoteAuthCache {
     loader: () => Promise<RemoteAuthCacheValue | null>,
   ): Promise<AuthContext | null> {
     const key = this.digest(transport, issuer, credential);
-    const cached = this.entries.get(key);
-    if (cached) {
-      if (cached.expiresAtMs > this.now()) {
-        this.entries.delete(key);
-        this.entries.set(key, cached);
-        this.metrics.recordCacheAccess(transport, 'hit');
-        return cloneContext(cached.context);
+
+    for (;;) {
+      const cached = this.entries.get(key);
+      if (cached) {
+        if (cached.expiresAtMs > this.now()) {
+          this.entries.delete(key);
+          this.entries.set(key, cached);
+          this.metrics.recordCacheAccess(transport, 'hit');
+          return requestContext(cached.context);
+        }
+        this.deleteEntry(key, cached, 'expired');
       }
-      this.deleteEntry(key, cached);
-    }
 
-    const existing = this.inFlight.get(key);
-    if (existing) {
-      this.metrics.recordCacheAccess(transport, 'single_flight');
-      const value = await existing;
-      return value ? cloneContext(value.context) : null;
-    }
-
-    this.metrics.recordCacheAccess(transport, 'miss');
-    const loadEpoch = this.evictionEpoch;
-    const promise = loader();
-    this.inFlight.set(key, promise);
-    try {
-      const value = await promise;
-      if (!value) return null;
-
-      const expiresAtMs = Math.min(
-        this.now() + this.ttlMs,
-        value.expiresAtMs ?? Number.POSITIVE_INFINITY,
-      );
-      const normalized = {
-        ...value,
-        context: cloneContext(value.context),
-        expiresAtMs,
-      };
-      if (
-        this.ttlMs > 0 &&
-        expiresAtMs > this.now() &&
-        loadEpoch === this.evictionEpoch
-      ) {
-        this.setEntry(key, normalized);
+      let inFlight = this.inFlight.get(key);
+      if (inFlight) {
+        this.metrics.recordCacheAccess(transport, 'single_flight');
+      } else {
+        this.metrics.recordCacheAccess(transport, 'miss');
+        inFlight = {
+          promise: loader(),
+          invalidatedTags: new Set<string>(),
+          waiters: 0,
+        };
+        this.inFlight.set(key, inFlight);
       }
-      return cloneContext(normalized.context);
-    } finally {
-      this.inFlight.delete(key);
+
+      inFlight.waiters += 1;
+      try {
+        const value = await inFlight.promise;
+        if (!value) return null;
+
+        if (
+          value.invalidationTag &&
+          inFlight.invalidatedTags.has(value.invalidationTag)
+        ) {
+          if (this.inFlight.get(key) === inFlight) {
+            this.inFlight.delete(key);
+          }
+          continue;
+        }
+
+        const expiresAtMs = Math.min(
+          this.now() + this.ttlMs,
+          value.expiresAtMs ?? Number.POSITIVE_INFINITY,
+        );
+        const normalized = {
+          ...value,
+          context: freezeContext(value.context),
+          expiresAtMs,
+        };
+        if (this.ttlMs > 0 && expiresAtMs > this.now()) {
+          this.setEntry(key, normalized);
+        }
+        return requestContext(normalized.context);
+      } finally {
+        inFlight.waiters -= 1;
+        if (inFlight.waiters === 0 && this.inFlight.get(key) === inFlight) {
+          this.inFlight.delete(key);
+        }
+      }
     }
   }
 
   evictTag(tag: string): void {
-    this.evictionEpoch += 1;
+    for (const inFlight of this.inFlight.values()) {
+      inFlight.invalidatedTags.add(tag);
+    }
     const keys = this.tagKeys.get(tag);
     if (!keys) return;
     for (const key of [...keys]) {
       const entry = this.entries.get(key);
-      if (entry) this.deleteEntry(key, entry);
+      if (entry) this.deleteEntry(key, entry, 'tag');
     }
   }
 
@@ -193,9 +251,12 @@ export class RemoteAuthCache {
     const framed = [transport, issuer, credential]
       .map((part) => `${Buffer.byteLength(part)}:${part}`)
       .join('|');
-    // This is a keyed, process-ephemeral cache identifier, not a password
-    // verifier. HMAC prevents an exposed key from revealing or validating the
-    // raw credential without also possessing this process's random key.
+    // Security note: this is a keyed, process-ephemeral cache identifier over
+    // high-entropy bearer credentials, not a stored password verifier. A slow
+    // password KDF here would let attacker-controlled credentials consume
+    // excessive CPU on the authentication hot path. HMAC prevents a leaked
+    // cache key from revealing or validating the credential without this
+    // process's random key.
     return createHmac('sha256', this.hmacKey)
       .update(framed)
       .digest('base64url');
@@ -205,6 +266,7 @@ export class RemoteAuthCache {
     const previous = this.entries.get(key);
     if (previous) this.deleteEntry(key, previous);
     this.entries.set(key, entry);
+    this.metrics.recordCacheSizeChange(1);
     if (entry.invalidationTag) {
       const keys = this.tagKeys.get(entry.invalidationTag) ?? new Set<string>();
       keys.add(key);
@@ -214,12 +276,18 @@ export class RemoteAuthCache {
       const oldestKey = this.entries.keys().next().value;
       if (!oldestKey) break;
       const oldest = this.entries.get(oldestKey);
-      if (oldest) this.deleteEntry(oldestKey, oldest);
+      if (oldest) this.deleteEntry(oldestKey, oldest, 'capacity');
     }
   }
 
-  private deleteEntry(key: string, entry: CacheEntry): void {
+  private deleteEntry(
+    key: string,
+    entry: CacheEntry,
+    reason?: 'capacity' | 'expired' | 'tag',
+  ): void {
     this.entries.delete(key);
+    this.metrics.recordCacheSizeChange(-1);
+    if (reason) this.metrics.recordCacheEviction(reason);
     if (!entry.invalidationTag) return;
     const keys = this.tagKeys.get(entry.invalidationTag);
     keys?.delete(key);

@@ -121,8 +121,8 @@ describe('TokenValidator', () => {
         );
 
         await expect(validator.introspect(OPAQUE_TOKEN)).rejects.toMatchObject({
-          statusCode: 503,
-          code: 'SERVICE_UNAVAILABLE',
+          kind: 'unavailable',
+          operation: 'oauth2.introspect',
         });
         expect(logger.warn).toHaveBeenCalledWith(
           {
@@ -154,8 +154,8 @@ describe('TokenValidator', () => {
         );
 
         await expect(validator.introspect(OPAQUE_TOKEN)).rejects.toMatchObject({
-          statusCode: 429,
-          code: 'RATE_LIMIT_EXCEEDED',
+          kind: 'rate_limited',
+          operation: 'oauth2.introspect',
           retryAfter: 3,
         });
       });
@@ -205,6 +205,26 @@ describe('TokenValidator', () => {
         if (result.active) {
           expect(result.ext).toEqual({});
         }
+      });
+
+      it('bounds and normalizes provider-controlled scopes', async () => {
+        const scopes = [
+          ...Array.from({ length: 140 }, (_, index) => `scope:${index}`),
+          'x'.repeat(257),
+          'scope:0',
+        ];
+        mockOAuth2Api.introspectOAuth2Token.mockResolvedValue({
+          active: true,
+          client_id: VALID_CLIENT_ID,
+          scope: scopes.join(' '),
+          sub: VALID_CLIENT_ID,
+        });
+
+        const result = await validator.introspect(OPAQUE_TOKEN);
+
+        expect(result.active && result.scopes).toHaveLength(128);
+        expect(result.active && result.scopes[0]).toBe('scope:0');
+        expect(result.active && result.scopes.at(-1)).toBe('scope:127');
       });
     });
 
@@ -279,8 +299,12 @@ describe('TokenValidator', () => {
         });
 
         const result = await validator.resolveAuthContext(OPAQUE_TOKEN);
+        const cached = await validator.resolveAuthContext(OPAQUE_TOKEN);
 
         expect(result).toEqual(EXPECTED_AUTH_CONTEXT);
+        expect(cached).toEqual(EXPECTED_AUTH_CONTEXT);
+        expect(mockOAuth2Api.getOAuth2Client).toHaveBeenCalledTimes(1);
+        expect(mockOAuth2Api.introspectOAuth2Token).toHaveBeenCalledTimes(1);
         expect(mockOAuth2Api.getOAuth2Client).toHaveBeenCalledWith(
           { id: VALID_CLIENT_ID },
           { signal: expect.any(AbortSignal) },
@@ -336,8 +360,8 @@ describe('TokenValidator', () => {
         await expect(
           validator.resolveAuthContext(OPAQUE_TOKEN),
         ).rejects.toMatchObject({
-          statusCode: 503,
-          code: 'SERVICE_UNAVAILABLE',
+          kind: 'unavailable',
+          operation: 'oauth2.client_metadata',
         });
         expect(logger.warn).toHaveBeenCalledWith(
           {
@@ -559,8 +583,8 @@ describe('TokenValidator', () => {
       await expect(
         validator.resolveAuthContext('ory_ak_secret'),
       ).rejects.toMatchObject({
-        statusCode: 503,
-        code: 'SERVICE_UNAVAILABLE',
+        kind: 'unavailable',
+        operation: 'talos.verify',
       });
       expect(mockOAuth2Api.introspectOAuth2Token).not.toHaveBeenCalled();
       expect(logger.warn).toHaveBeenCalledWith(

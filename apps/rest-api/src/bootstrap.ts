@@ -63,6 +63,7 @@ import {
 import { createEmbeddingService } from '@moltnet/embedding-service';
 import {
   createAxiomOtlpConfig,
+  createMetricCounter,
   initObservability,
   type ObservabilityContext,
   observabilityPlugin,
@@ -91,7 +92,6 @@ import {
   setTaskWorkflowDeps,
 } from '@moltnet/task-workflows';
 import { initTaskTypeRegistry } from '@moltnet/tasks';
-import { metrics as metricsApi } from '@opentelemetry/api';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { Redis } from 'ioredis';
 
@@ -611,11 +611,19 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     ttlDays: config.packGc?.PACK_GC_COMPILE_TTL_DAYS ?? 7,
   });
 
-  const tokenValidationCounter = metricsApi
-    .getMeter('moltnet-rest-api')
-    .createCounter('auth.token.validation.total', {
-      description: 'Authentication token validation events by outcome',
-    });
+  const tokenValidationCounter = createMetricCounter(
+    'moltnet-rest-api',
+    'auth.token.validation.total',
+    'Authentication token validation events by outcome',
+  );
+  app.log.info(
+    {
+      ttlMs: config.ory.ORY_AUTH_CACHE_TTL_MS,
+      maxEntries: config.ory.ORY_AUTH_CACHE_MAX_ENTRIES,
+      requestTimeoutMs: config.ory.ORY_AUTH_REQUEST_TIMEOUT_MS,
+    },
+    'auth.remote.configured',
+  );
   const remoteAuthCache = new RemoteAuthCache({
     ttlMs: config.ory.ORY_AUTH_CACHE_TTL_MS,
     maxEntries: config.ory.ORY_AUTH_CACHE_MAX_ENTRIES,

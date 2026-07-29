@@ -1,3 +1,4 @@
+import { RemoteAuthenticationError } from '@moltnet/auth';
 import Fastify from 'fastify';
 import { describe, expect, it } from 'vitest';
 
@@ -24,6 +25,14 @@ async function buildTestApp() {
 
   app.get('/test-crash', async () => {
     throw new Error('Something broke');
+  });
+
+  app.get('/test-auth-unavailable', async () => {
+    throw new RemoteAuthenticationError('unavailable', 'oauth2.introspect');
+  });
+
+  app.get('/test-auth-rate-limit', async () => {
+    throw new RemoteAuthenticationError('rate_limited', 'kratos.session', 17);
   });
 
   app.post(
@@ -103,6 +112,41 @@ describe('Error handler plugin', () => {
     );
     // Should NOT leak the original error message
     expect(body.detail).not.toBe('Something broke');
+  });
+
+  it('maps remote auth unavailability through the problem registry', async () => {
+    const app = await buildTestApp();
+    const response = await app.inject({
+      method: 'GET',
+      url: '/test-auth-unavailable',
+    });
+
+    expect(response.statusCode).toBe(503);
+    expect(response.json()).toEqual({
+      type: 'https://themolt.net/problems/service-unavailable',
+      title: 'Service Unavailable',
+      status: 503,
+      code: 'SERVICE_UNAVAILABLE',
+      detail: 'Authentication provider unavailable',
+      instance: '/test-auth-unavailable',
+    });
+    expect(response.body).not.toContain('oauth2.introspect');
+  });
+
+  it('preserves remote auth throttling and Retry-After', async () => {
+    const app = await buildTestApp();
+    const response = await app.inject({
+      method: 'GET',
+      url: '/test-auth-rate-limit',
+    });
+
+    expect(response.statusCode).toBe(429);
+    expect(response.headers['retry-after']).toBe('17');
+    expect(response.json()).toMatchObject({
+      code: 'RATE_LIMIT_EXCEEDED',
+      detail: 'Authentication provider rate limit exceeded',
+      retryAfter: 17,
+    });
   });
 
   it('tags unexpected errors (no statusCode) as unhandled in the response', async () => {

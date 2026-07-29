@@ -4,10 +4,9 @@
  * Resolves Kratos sessions into HumanAuthContext. Supports two transports:
  *   - Native clients: `X-Moltnet-Session-Token` header → forwarded as
  *     `xSessionToken` to Kratos FrontendApi.toSession().
- *   - Browser clients: raw `Cookie` header → forwarded as `cookie` to
- *     Kratos FrontendApi.toSession(), which extracts `ory_kratos_session`
- *     itself. We deliberately do NOT parse the cookie name on our side to
- *     avoid coupling to Kratos cookie naming conventions.
+ *   - Browser clients: a recognized `ory_kratos_session` or `ory_session_*`
+ *     cookie gates resolution; the raw `Cookie` header is then forwarded to
+ *     Kratos FrontendApi.toSession().
  *
  * Used by the console/dashboard app for direct session-based authentication,
  * bypassing the OAuth2 client_credentials flow.
@@ -43,6 +42,7 @@ export interface ResolveSessionInput {
 
 export interface SessionResolver {
   resolveSession(input: ResolveSessionInput): Promise<HumanAuthContext | null>;
+  evictIdentity(identityId: string): void;
 }
 
 function summarizeCookieHeader(cookie: string | undefined): {
@@ -71,12 +71,6 @@ function summarizeCookieHeader(cookie: string | undefined): {
         name === 'ory_kratos_session' || name.startsWith('ory_session_'),
     ),
   };
-}
-
-function extractErrorStatus(err: unknown): number | undefined {
-  return typeof err === 'object' && err !== null && 'status' in err
-    ? ((err as { status?: unknown }).status as number | undefined)
-    : undefined;
 }
 
 function extractErrorBody(err: unknown): unknown {
@@ -138,6 +132,10 @@ export function createSessionResolver(
   const requestTimeoutMs = config?.remoteRequestTimeoutMs ?? 5_000;
 
   return {
+    evictIdentity(identityId: string): void {
+      remoteCache.evictTag(`kratos-identity:${identityId}`);
+    },
+
     async resolveSession(
       input: ResolveSessionInput,
     ): Promise<HumanAuthContext | null> {
@@ -167,8 +165,9 @@ export function createSessionResolver(
             name === 'ory_kratos_session' || name?.startsWith('ory_session_')
           );
         });
+      if (!sessionToken && !cookieCredential) return null;
       const transport = sessionToken ? 'session-token' : 'session-cookie';
-      const credential = sessionToken ?? cookieCredential ?? cookie;
+      const credential = sessionToken ?? cookieCredential;
       if (!credential) return null;
 
       const load = async () => {
@@ -220,13 +219,14 @@ export function createSessionResolver(
             expiresAtMs: session.expires_at
               ? new Date(session.expires_at).getTime()
               : undefined,
+            invalidationTag: `kratos-identity:${identity.id}`,
           };
         } catch (err) {
           // 4xx (invalid/expired session) is the common case — stay quiet.
           // 5xx, network timeouts, and unknown errors indicate Kratos is
           // degraded and MUST be observable, otherwise cookie-auth silently
           // degrades to 401 with no signal.
-          const status = remoteErrorStatus(err) ?? extractErrorStatus(err);
+          const status = remoteErrorStatus(err);
           const isClientError =
             typeof status === 'number' &&
             status >= 400 &&

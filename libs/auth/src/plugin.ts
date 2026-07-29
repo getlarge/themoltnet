@@ -23,6 +23,7 @@ import {
 import { KetoNamespace } from './keto-constants.js';
 import type { PermissionChecker } from './permission-checker.js';
 import type { RelationshipWriter } from './relationship-writer.js';
+import { RemoteAuthenticationError } from './remote-auth-error.js';
 import type { SessionResolver } from './session-resolver.js';
 import type { TokenValidator } from './token-validator.js';
 import type { AuthContext } from './types.js';
@@ -391,8 +392,18 @@ export const populateAuthContext: onRequestAsyncHookHandler =
     // is then IP-keyed and, on protected routes, 401'd by requireAuth).
     const outcome = await resolveIdentityOnce(request);
     if (outcome.status === 'upstream-error') {
-      request.log.debug(
-        { path: request.url, reason: 'upstream_error' },
+      const remoteError =
+        outcome.error instanceof RemoteAuthenticationError
+          ? outcome.error
+          : null;
+      request.log.warn(
+        {
+          path: request.url,
+          reason: 'upstream_error',
+          operation: remoteError?.operation ?? 'unknown',
+          kind: remoteError?.kind ?? 'unknown',
+          retryAfter: remoteError?.retryAfter,
+        },
         'auth: onRequest identity resolution failed; continuing unauthenticated',
       );
     }
@@ -446,6 +457,9 @@ export const optionalAuth: preHandlerAsyncHookHandler =
     // Identity is usually pre-resolved by the onRequest hook (short-circuits).
     // When a context is present, still resolve team context so an explicit
     // x-moltnet-team-id is honored/enforced for the optionally-authed handler.
+    // Unlike a route with no auth preHandler, optionalAuth explicitly requests
+    // identity-aware behavior. Provider failures therefore propagate as
+    // 429/503 instead of silently changing the route to anonymous semantics.
     const outcome = await resolveIdentityOnce(request);
     if (outcome.status === 'upstream-error') throw outcome.error;
     if (outcome.status === 'authenticated') {

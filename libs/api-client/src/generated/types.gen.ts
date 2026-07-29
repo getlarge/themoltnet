@@ -3090,6 +3090,10 @@ export type ListAgentKeysErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   502: ProblemDetails;
   /**
    * Default Response
@@ -3331,7 +3335,15 @@ export type GetWhoamiErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type GetWhoamiError = GetWhoamiErrors[keyof GetWhoamiErrors];
@@ -3487,11 +3499,19 @@ export type RotateClientSecretErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
   /**
    * Default Response
    */
   502: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type RotateClientSecretError =
@@ -3526,7 +3546,15 @@ export type GetCryptoIdentityErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type GetCryptoIdentityError =
@@ -3602,6 +3630,14 @@ export type ListSigningCredentialsErrors = {
    * Default Response
    */
   403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type ListSigningCredentialsError =
@@ -3653,6 +3689,14 @@ export type BeginSigningCredentialRegistrationErrors = {
    * Default Response
    */
   409: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type BeginSigningCredentialRegistrationError =
@@ -3703,6 +3747,14 @@ export type CompleteSigningCredentialRegistrationErrors = {
    * Default Response
    */
   409: ConflictProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type CompleteSigningCredentialRegistrationError =
@@ -3746,6 +3798,14 @@ export type GetSigningCredentialErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type GetSigningCredentialError =
@@ -3795,6 +3855,14 @@ export type ApproveSigningCredentialErrors = {
    * Default Response
    */
   409: ConflictProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type ApproveSigningCredentialError =
@@ -3844,6 +3912,14 @@ export type RevokeSigningCredentialErrors = {
    * Default Response
    */
   409: ConflictProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type RevokeSigningCredentialError =
@@ -3893,6 +3969,14 @@ export type SuspendSigningCredentialErrors = {
    * Default Response
    */
   409: ConflictProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type SuspendSigningCredentialError =
@@ -3937,7 +4021,15 @@ export type ListSigningRequestsErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type ListSigningRequestsError =
@@ -4002,6 +4094,10 @@ export type CreateSigningRequestErrors = {
    * Default Response
    */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type CreateSigningRequestError =
@@ -4042,7 +4138,15 @@ export type GetSigningRequestErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type GetSigningRequestError =
@@ -4096,6 +4200,14 @@ export type ClaimSigningRequestErrors = {
    * Default Response
    */
   409: ConflictProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type ClaimSigningRequestError =
@@ -4149,6 +4261,14 @@ export type CompleteSigningRequestErrors = {
    * Default Response
    */
   409: ConflictProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type CompleteSigningRequestError =
@@ -4198,6 +4318,14 @@ export type RejectSigningRequestErrors = {
    * Default Response
    */
   409: ConflictProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type RejectSigningRequestError =
@@ -4244,7 +4372,15 @@ export type SubmitSignatureErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type SubmitSignatureError =
@@ -4318,7 +4454,15 @@ export type ListDiariesErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type ListDiariesError = ListDiariesErrors[keyof ListDiariesErrors];
@@ -4361,7 +4505,15 @@ export type CreateDiaryErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type CreateDiaryError = CreateDiaryErrors[keyof CreateDiaryErrors];
@@ -4407,7 +4559,15 @@ export type SearchDiaryErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type SearchDiaryError = SearchDiaryErrors[keyof SearchDiaryErrors];
@@ -4469,7 +4629,15 @@ export type ListDiaryEntriesErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type ListDiaryEntriesError =
@@ -4531,7 +4699,15 @@ export type CreateDiaryEntryErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type CreateDiaryEntryError =
@@ -4588,7 +4764,15 @@ export type ListDiaryTagsErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type ListDiaryTagsError = ListDiaryTagsErrors[keyof ListDiaryTagsErrors];
@@ -4641,7 +4825,15 @@ export type DeleteDiaryErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type DeleteDiaryError = DeleteDiaryErrors[keyof DeleteDiaryErrors];
@@ -4690,7 +4882,15 @@ export type GetDiaryErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type GetDiaryError = GetDiaryErrors[keyof GetDiaryErrors];
@@ -4748,7 +4948,15 @@ export type UpdateDiaryErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type UpdateDiaryError = UpdateDiaryErrors[keyof UpdateDiaryErrors];
@@ -4798,7 +5006,15 @@ export type RevokeDiaryGrantErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type RevokeDiaryGrantError =
@@ -4844,7 +5060,15 @@ export type ListDiaryGrantsErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type ListDiaryGrantsError =
@@ -4908,7 +5132,15 @@ export type CreateDiaryGrantErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type CreateDiaryGrantError =
@@ -4967,7 +5199,15 @@ export type ListDiaryPacksErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type ListDiaryPacksError =
@@ -5034,7 +5274,15 @@ export type CreateDiaryCustomPackErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type CreateDiaryCustomPackError =
@@ -5101,7 +5349,15 @@ export type PreviewDiaryCustomPackErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type PreviewDiaryCustomPackError =
@@ -5160,7 +5416,15 @@ export type ListDiaryRenderedPacksErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type ListDiaryRenderedPacksError =
@@ -5214,6 +5478,14 @@ export type InitiateTransferErrors = {
    * Default Response
    */
   409: ConflictProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type InitiateTransferError =
@@ -5274,7 +5546,15 @@ export type BatchDeleteDiaryEntriesErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type BatchDeleteDiaryEntriesError =
@@ -5322,7 +5602,15 @@ export type DeleteDiaryEntryByIdErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type DeleteDiaryEntryByIdError =
@@ -5373,7 +5661,15 @@ export type GetDiaryEntryByIdErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type GetDiaryEntryByIdError =
@@ -5434,7 +5730,15 @@ export type UpdateDiaryEntryByIdErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type UpdateDiaryEntryByIdError =
@@ -5492,7 +5796,15 @@ export type ListEntryRelationsErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type ListEntryRelationsError =
@@ -5544,7 +5856,15 @@ export type CreateEntryRelationErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type CreateEntryRelationError =
@@ -5592,7 +5912,15 @@ export type VerifyDiaryEntryByIdErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type VerifyDiaryEntryByIdError =
@@ -5638,6 +5966,14 @@ export type RegisterExecutorManifestErrors = {
    * Default Response
    */
   409: ConflictProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type RegisterExecutorManifestError =
@@ -5684,6 +6020,14 @@ export type DeleteGroupErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type DeleteGroupError = DeleteGroupErrors[keyof DeleteGroupErrors];
@@ -5725,6 +6069,14 @@ export type GetGroupErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type GetGroupError = GetGroupErrors[keyof GetGroupErrors];
@@ -5781,6 +6133,14 @@ export type ListGroupMembersErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type ListGroupMembersError =
@@ -5839,6 +6199,14 @@ export type AddGroupMemberErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type AddGroupMemberError =
@@ -5889,6 +6257,14 @@ export type RemoveGroupMemberErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type RemoveGroupMemberError =
@@ -6049,7 +6425,15 @@ export type ListContextPacksErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type ListContextPacksError =
@@ -6101,7 +6485,15 @@ export type DiffContextPacksByCidErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type DiffContextPacksByCidError =
@@ -6219,7 +6611,15 @@ export type GetContextPackProvenanceByCidErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type GetContextPackProvenanceByCidError =
@@ -6452,7 +6852,15 @@ export type GetContextPackByIdErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type GetContextPackByIdError =
@@ -6507,7 +6915,15 @@ export type UpdateContextPackErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type UpdateContextPackError =
@@ -6559,7 +6975,15 @@ export type DiffContextPacksByIdErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type DiffContextPacksByIdError =
@@ -6677,7 +7101,15 @@ export type GetContextPackProvenanceByIdErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type GetContextPackProvenanceByIdError =
@@ -6739,7 +7171,15 @@ export type RenderContextPackErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type RenderContextPackError =
@@ -6796,7 +7236,15 @@ export type PreviewRenderedPackErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type PreviewRenderedPackError =
@@ -6841,7 +7289,15 @@ export type GetLatestRenderedPackErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type GetLatestRenderedPackError =
@@ -7246,7 +7702,15 @@ export type DeleteEntryRelationErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type DeleteEntryRelationError =
@@ -7293,7 +7757,15 @@ export type UpdateEntryRelationStatusErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type UpdateEntryRelationStatusError =
@@ -7338,7 +7810,15 @@ export type GetRenderedPackByIdErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type GetRenderedPackByIdError =
@@ -7398,7 +7878,15 @@ export type UpdateRenderedPackErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type UpdateRenderedPackError =
@@ -7434,6 +7922,14 @@ export type ListRuntimeModelsErrors = {
    * Default Response
    */
   401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type ListRuntimeModelsError =
@@ -7483,6 +7979,14 @@ export type CreateRuntimeModelErrors = {
    * Default Response
    */
   409: ConflictProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type CreateRuntimeModelError =
@@ -7520,6 +8024,14 @@ export type DeleteRuntimeModelErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type DeleteRuntimeModelError =
@@ -7553,6 +8065,14 @@ export type GetRuntimeModelErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type GetRuntimeModelError =
@@ -7598,6 +8118,14 @@ export type UpdateRuntimeModelErrors = {
    * Default Response
    */
   409: ConflictProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type UpdateRuntimeModelError =
@@ -7635,6 +8163,14 @@ export type ListRuntimePoliciesErrors = {
    * Default Response
    */
   403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type ListRuntimePoliciesError =
@@ -7680,6 +8216,14 @@ export type CreateRuntimePolicyErrors = {
    * Default Response
    */
   409: ConflictProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type CreateRuntimePolicyError =
@@ -7723,6 +8267,14 @@ export type DeleteRuntimePolicyErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type DeleteRuntimePolicyError =
@@ -7766,6 +8318,14 @@ export type GetRuntimePolicyErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type GetRuntimePolicyError =
@@ -7817,6 +8377,14 @@ export type UpdateRuntimePolicyErrors = {
    * Default Response
    */
   409: ConflictProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type UpdateRuntimePolicyError =
@@ -7858,6 +8426,14 @@ export type ListRuntimeProfilesErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type ListRuntimeProfilesError =
@@ -7907,6 +8483,14 @@ export type CreateRuntimeProfileErrors = {
    * Default Response
    */
   409: ConflictProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type CreateRuntimeProfileError =
@@ -7944,6 +8528,14 @@ export type DeleteRuntimeProfileErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type DeleteRuntimeProfileError =
@@ -7977,6 +8569,14 @@ export type GetRuntimeProfileErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type GetRuntimeProfileError =
@@ -8022,6 +8622,14 @@ export type UpdateRuntimeProfileErrors = {
    * Default Response
    */
   409: ConflictProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type UpdateRuntimeProfileError =
@@ -8065,6 +8673,14 @@ export type GetRuntimeProfileAllowedToolsErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type GetRuntimeProfileAllowedToolsError =
@@ -8108,6 +8724,14 @@ export type GetRuntimeProfilePoliciesErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type GetRuntimeProfilePoliciesError =
@@ -8155,6 +8779,14 @@ export type SetRuntimeProfilePoliciesErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type SetRuntimeProfilePoliciesError =
@@ -8485,6 +9117,14 @@ export type GetRuntimeSessionErrors = {
       | number
       | undefined;
   };
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type GetRuntimeSessionError =
@@ -8831,6 +9471,10 @@ export type DownloadRuntimeSessionErrors = {
       | number
       | undefined;
   };
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
   /**
    * Default Response
    */
@@ -9320,6 +9964,10 @@ export type UploadRuntimeSessionErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   503: {
     code:
       | 'UNAUTHORIZED'
@@ -9739,6 +10387,14 @@ export type ListRuntimeSlotsErrors = {
       | number
       | undefined;
   };
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type ListRuntimeSlotsError =
@@ -10189,6 +10845,14 @@ export type BeginRuntimeSlotErrors = {
   } & {
     conflict: ConflictError;
   };
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type BeginRuntimeSlotError =
@@ -10619,6 +11283,14 @@ export type FinishRuntimeSlotErrors = {
   } & {
     conflict: ConflictError;
   };
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type FinishRuntimeSlotError =
@@ -10967,6 +11639,14 @@ export type FindLatestRuntimeSlotForAttemptErrors = {
       | number
       | undefined;
   };
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type FindLatestRuntimeSlotForAttemptError =
@@ -11333,6 +12013,10 @@ export type StageTaskArtifactErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   503: {
     code:
       | 'UNAUTHORIZED'
@@ -11450,7 +12134,15 @@ export type BatchDeleteTasksErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type BatchDeleteTasksError =
@@ -11521,6 +12213,14 @@ export type ListTasksErrors = {
    * Default Response
    */
   403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type ListTasksError = ListTasksErrors[keyof ListTasksErrors];
@@ -11588,6 +12288,10 @@ export type CreateTaskErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   503: ProblemDetails;
 };
 
@@ -11648,6 +12352,14 @@ export type GetTaskActivityAnalyticsErrors = {
    * Default Response
    */
   403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type GetTaskActivityAnalyticsError =
@@ -11675,6 +12387,14 @@ export type ListTaskSchemasErrors = {
    * Default Response
    */
   401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type ListTaskSchemasError =
@@ -11712,6 +12432,14 @@ export type GetTaskErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type GetTaskError = GetTaskErrors[keyof GetTaskErrors];
@@ -11754,6 +12482,14 @@ export type UpdateTaskMetadataErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type UpdateTaskMetadataError =
@@ -11791,6 +12527,14 @@ export type ListTaskAttemptsErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type ListTaskAttemptsError =
@@ -11839,6 +12583,14 @@ export type AbortTaskAttemptErrors = {
    * Default Response
    */
   409: ConflictProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type AbortTaskAttemptError =
@@ -11898,6 +12650,14 @@ export type CompleteTaskErrors = {
    * Default Response
    */
   409: ConflictProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type CompleteTaskError = CompleteTaskErrors[keyof CompleteTaskErrors];
@@ -11945,6 +12705,14 @@ export type FailTaskAttemptErrors = {
    * Default Response
    */
   409: ConflictProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type FailTaskAttemptError =
@@ -11985,6 +12753,14 @@ export type TaskHeartbeatErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type TaskHeartbeatError = TaskHeartbeatErrors[keyof TaskHeartbeatErrors];
@@ -12028,6 +12804,14 @@ export type ListTaskMessagesErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type ListTaskMessagesError =
@@ -12078,6 +12862,14 @@ export type AppendTaskMessagesErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type AppendTaskMessagesError =
@@ -12125,6 +12917,14 @@ export type CancelTaskErrors = {
    * Default Response
    */
   409: ConflictProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type CancelTaskError = CancelTaskErrors[keyof CancelTaskErrors];
@@ -12176,6 +12976,14 @@ export type ClaimTaskErrors = {
    * Default Response
    */
   409: ConflictProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type ClaimTaskError = ClaimTaskErrors[keyof ClaimTaskErrors];
@@ -12506,6 +13314,14 @@ export type ListTaskArtifactsErrors = {
       | number
       | undefined;
   };
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type ListTaskArtifactsError =
@@ -12853,6 +13669,10 @@ export type DownloadTaskArtifactByCidErrors = {
       | number
       | undefined;
   };
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
   /**
    * Default Response
    */
@@ -13269,6 +14089,10 @@ export type UploadTaskArtifactErrors = {
    * Default Response
    */
   409: ConflictProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
   /**
    * Default Response
    */
@@ -13691,6 +14515,10 @@ export type DownloadTaskArtifactErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   503: {
     code:
       | 'UNAUTHORIZED'
@@ -13799,6 +14627,14 @@ export type ListTeamsErrors = {
    * Default Response
    */
   401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type ListTeamsError = ListTeamsErrors[keyof ListTeamsErrors];
@@ -13852,7 +14688,15 @@ export type CreateTeamErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type CreateTeamError = CreateTeamErrors[keyof CreateTeamErrors];
@@ -13914,6 +14758,14 @@ export type JoinTeamErrors = {
    * Default Response
    */
   410: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type JoinTeamError = JoinTeamErrors[keyof JoinTeamErrors];
@@ -13962,6 +14814,14 @@ export type DeleteTeamErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type DeleteTeamError = DeleteTeamErrors[keyof DeleteTeamErrors];
@@ -14002,6 +14862,14 @@ export type GetTeamErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type GetTeamError = GetTeamErrors[keyof GetTeamErrors];
@@ -14071,6 +14939,14 @@ export type AcceptTeamFoundingErrors = {
    * Default Response
    */
   409: ConflictProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type AcceptTeamFoundingError =
@@ -14114,6 +14990,14 @@ export type ListGroupsErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type ListGroupsError = ListGroupsErrors[keyof ListGroupsErrors];
@@ -14174,6 +15058,14 @@ export type CreateGroupErrors = {
    * Default Response
    */
   409: ConflictProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type CreateGroupError = CreateGroupErrors[keyof CreateGroupErrors];
@@ -14223,6 +15115,14 @@ export type ListTeamInvitesErrors = {
    * Default Response
    */
   403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type ListTeamInvitesError =
@@ -14284,6 +15184,14 @@ export type CreateTeamInviteErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type CreateTeamInviteError =
@@ -14343,6 +15251,14 @@ export type DeleteTeamInviteErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type DeleteTeamInviteError =
@@ -14385,6 +15301,14 @@ export type ListTeamMembersErrors = {
    * Default Response
    */
   404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type ListTeamMembersError =
@@ -14441,6 +15365,14 @@ export type RemoveTeamMemberErrors = {
    * Default Response
    */
   403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type RemoveTeamMemberError =
@@ -14497,6 +15429,14 @@ export type UpdateTeamMemberRoleErrors = {
    * Default Response
    */
   409: ConflictProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type UpdateTeamMemberRoleError =
@@ -14531,6 +15471,14 @@ export type ListPendingTransfersErrors = {
    * Default Response
    */
   401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type ListPendingTransfersError =
@@ -14605,6 +15553,14 @@ export type AcceptTransferErrors = {
    * Default Response
    */
   409: ConflictProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type AcceptTransferError =
@@ -14677,6 +15633,14 @@ export type RejectTransferErrors = {
    * Default Response
    */
   409: ConflictProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type RejectTransferError =
@@ -14740,6 +15704,10 @@ export type IssueVoucherErrors = {
    * Default Response
    */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type IssueVoucherError = IssueVoucherErrors[keyof IssueVoucherErrors];
@@ -14773,7 +15741,15 @@ export type ListActiveVouchersErrors = {
   /**
    * Default Response
    */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
   500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
 };
 
 export type ListActiveVouchersError =

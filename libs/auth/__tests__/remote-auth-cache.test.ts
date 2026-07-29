@@ -137,20 +137,24 @@ describe('RemoteAuthCache', () => {
     expect(load).toHaveBeenCalledTimes(2);
   });
 
-  it('evicts tagged Talos entries and returns isolated team-neutral clones', async () => {
+  it('evicts tagged entries and returns immutable team-neutral contexts', async () => {
     const cache = new RemoteAuthCache();
     const load = loader({ invalidationTag: 'talos-key:key-1' });
 
     const first = await cache.resolve('talos', 'issuer', 'secret', load);
     expect(first).not.toBe(context);
     first!.currentTeamId = 'request-team';
-    first!.scopes.push('entries:write');
-    if (first?.subjectType === 'agent' && first.credentialBinding) {
-      first.credentialBinding.boundTeamId = 'mutated';
-    }
+    expect(() => first!.scopes.push('entries:write')).toThrow();
+    expect(Object.isFrozen(first!.scopes)).toBe(true);
+    expect(
+      Object.isFrozen(
+        first?.subjectType === 'agent' ? first.credentialBinding : undefined,
+      ),
+    ).toBe(true);
 
     const second = await cache.resolve('talos', 'issuer', 'secret', load);
     expect(second).toEqual(context);
+    expect(second!.scopes).toBe(first!.scopes);
 
     cache.evictTag('talos-key:key-1');
     await cache.resolve('talos', 'issuer', 'secret', load);
@@ -180,10 +184,110 @@ describe('RemoteAuthCache', () => {
     expect(load).toHaveBeenCalledTimes(2);
   });
 
+  it('forces every single-flight waiter to reload after tag eviction', async () => {
+    const cache = new RemoteAuthCache();
+    let settle!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      settle = resolve;
+    });
+    const load = vi
+      .fn()
+      .mockImplementationOnce(async () => {
+        await gate;
+        return {
+          context,
+          invalidationTag: 'talos-key:key-1',
+        };
+      })
+      .mockResolvedValueOnce(null);
+
+    const first = cache.resolve('talos', 'issuer', 'secret', load);
+    const waiter = cache.resolve('talos', 'issuer', 'secret', load);
+    cache.evictTag('talos-key:key-1');
+    settle();
+
+    await expect(first).resolves.toBeNull();
+    await expect(waiter).resolves.toBeNull();
+    expect(load).toHaveBeenCalledTimes(2);
+  });
+
+  it('honors eviction after the loader settles but before waiters resume', async () => {
+    const cache = new RemoteAuthCache();
+    let settle!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      settle = resolve;
+    });
+    const load = vi
+      .fn()
+      .mockImplementationOnce(async () => {
+        await gate;
+        return {
+          context,
+          invalidationTag: 'talos-key:key-1',
+        };
+      })
+      .mockResolvedValueOnce(null);
+
+    const first = cache.resolve('talos', 'issuer', 'secret', load);
+    const waiter = cache.resolve('talos', 'issuer', 'secret', load);
+    void gate.then(() => cache.evictTag('talos-key:key-1'));
+    settle();
+
+    await expect(first).resolves.toBeNull();
+    await expect(waiter).resolves.toBeNull();
+    expect(load).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not invalidate unrelated in-flight tags', async () => {
+    const cache = new RemoteAuthCache();
+    const load = loader({ invalidationTag: 'oauth-client:client-1' });
+
+    cache.evictTag('talos-key:key-1');
+    await cache.resolve('oauth2', 'issuer', 'secret', load);
+    await cache.resolve('oauth2', 'issuer', 'secret', load);
+
+    expect(load).toHaveBeenCalledOnce();
+  });
+
+  it('partitions identical credentials by transport and issuer', async () => {
+    const cache = new RemoteAuthCache();
+    const oauth = loader();
+    const talos = loader();
+    const otherIssuer = loader();
+
+    await cache.resolve('oauth2', 'issuer-a', 'same-secret', oauth);
+    await cache.resolve('talos', 'issuer-a', 'same-secret', talos);
+    await cache.resolve('oauth2', 'issuer-b', 'same-secret', otherIssuer);
+    await cache.resolve('oauth2', 'issuer-a', 'same-secret', oauth);
+
+    expect(oauth).toHaveBeenCalledOnce();
+    expect(talos).toHaveBeenCalledOnce();
+    expect(otherIssuer).toHaveBeenCalledOnce();
+  });
+
+  it('records current size and capacity eviction separately', async () => {
+    const metrics: RemoteAuthMetrics = {
+      recordCacheAccess: vi.fn(),
+      recordUpstreamRequest: vi.fn(),
+      recordCacheEviction: vi.fn(),
+      recordCacheSizeChange: vi.fn(),
+    };
+    const cache = new RemoteAuthCache({ maxEntries: 1, metrics });
+
+    await cache.resolve('talos', 'issuer', 'first', loader());
+    await cache.resolve('talos', 'issuer', 'second', loader());
+
+    expect(metrics.recordCacheSizeChange).toHaveBeenCalledWith(1);
+    expect(metrics.recordCacheSizeChange).toHaveBeenCalledWith(-1);
+    expect(metrics.recordCacheEviction).toHaveBeenCalledWith('capacity');
+  });
+
   it('emits only low-cardinality cache dimensions', async () => {
     const metrics: RemoteAuthMetrics = {
       recordCacheAccess: vi.fn(),
       recordUpstreamRequest: vi.fn(),
+      recordCacheEviction: vi.fn(),
+      recordCacheSizeChange: vi.fn(),
     };
     const cache = new RemoteAuthCache({
       metrics,

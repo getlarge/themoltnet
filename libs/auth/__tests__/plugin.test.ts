@@ -13,6 +13,7 @@ import {
   requireAuth,
   requireScopes,
 } from '../src/plugin.js';
+import { RemoteAuthenticationError } from '../src/remote-auth-error.js';
 import type { AuthContext, HumanAuthContext } from '../src/types.js';
 
 const VALID_TOKEN = 'ory_at_valid_token_123';
@@ -36,12 +37,14 @@ const VALID_SESSION_CONTEXT: HumanAuthContext = {
 
 function createMockSessionResolver() {
   return {
+    evictIdentity: vi.fn(),
     resolveSession: vi.fn(),
   };
 }
 
 function createMockTokenValidator() {
   return {
+    evictOAuthClient: vi.fn(),
     introspect: vi.fn(),
     evictTalosKey: vi.fn(),
     resolveAuthContext: vi.fn(),
@@ -164,6 +167,52 @@ describe('authPlugin', () => {
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({ ok: true });
     expect(mockTokenValidator.resolveAuthContext).toHaveBeenCalledTimes(1);
+  });
+
+  it('warns with a structured remote failure while public routes continue', async () => {
+    await app.close();
+    const records: Record<string, unknown>[] = [];
+    app = Fastify({
+      loggerInstance: pino(
+        { level: 'warn' },
+        {
+          write(chunk: string) {
+            for (const line of chunk.split('\n')) {
+              if (line) {
+                records.push(JSON.parse(line) as Record<string, unknown>);
+              }
+            }
+          },
+        },
+      ),
+    });
+    await app.register(authPlugin, {
+      tokenValidator: mockTokenValidator,
+      permissionChecker: mockPermissionChecker,
+      relationshipWriter: mockRelationshipWriter,
+      teamResolver: { findPersonalTeamId: vi.fn().mockResolvedValue(null) },
+    } as never);
+    mockTokenValidator.resolveAuthContext.mockRejectedValue(
+      new RemoteAuthenticationError('rate_limited', 'oauth2.introspect', 12),
+    );
+    app.get('/public', async () => ({ ok: true }));
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/public',
+      headers: { authorization: `Bearer ${VALID_TOKEN}` },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(records).toContainEqual(
+      expect.objectContaining({
+        level: 40,
+        reason: 'upstream_error',
+        operation: 'oauth2.introspect',
+        kind: 'rate_limited',
+        retryAfter: 12,
+      }),
+    );
   });
 });
 
@@ -743,6 +792,26 @@ describe('optionalAuth preHandler', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json().authContext).toBeNull();
+  });
+
+  it('propagates provider failures instead of changing to anonymous semantics', async () => {
+    mockTokenValidator.resolveAuthContext.mockRejectedValue(
+      Object.assign(new Error('provider unavailable'), {
+        statusCode: 503,
+      }),
+    );
+    app.get('/optional', { preHandler: [optionalAuth] }, async () => ({
+      anonymous: true,
+    }));
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/optional',
+      headers: { authorization: `Bearer ${VALID_TOKEN}` },
+    });
+
+    expect(response.statusCode).toBe(503);
+    expect(mockTokenValidator.resolveAuthContext).toHaveBeenCalledOnce();
   });
 });
 

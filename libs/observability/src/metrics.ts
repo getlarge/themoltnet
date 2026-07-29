@@ -17,6 +17,10 @@ export interface MetricCounter {
   add(value: number, attributes?: MetricAttributes): void;
 }
 
+export interface MetricUpDownCounter {
+  add(value: number, attributes?: MetricAttributes): void;
+}
+
 export interface CreateMeterProviderOptions {
   /** Service name for resource identification */
   serviceName: string;
@@ -103,4 +107,14 @@ export function createMetricCounter(
   description: string,
 ): MetricCounter {
   return metricsApi.getMeter(serviceName).createCounter(name, { description });
+}
+
+export function createMetricUpDownCounter(
+  serviceName: string,
+  name: string,
+  description: string,
+): MetricUpDownCounter {
+  return metricsApi
+    .getMeter(serviceName)
+    .createUpDownCounter(name, { description });
 }

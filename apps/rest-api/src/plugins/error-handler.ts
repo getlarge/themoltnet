@@ -1,3 +1,4 @@
+import { RemoteAuthenticationError } from '@moltnet/auth';
 import type {
   FastifyError,
   FastifyInstance,
@@ -6,7 +7,7 @@ import type {
 } from 'fastify';
 import fp from 'fastify-plugin';
 
-import { acceptsProblemJson } from '../problems/helpers.js';
+import { acceptsProblemJson, createProblem } from '../problems/helpers.js';
 import {
   findProblemTypeByCode,
   findProblemTypeByStatus,
@@ -19,6 +20,26 @@ interface ProblemError extends FastifyError {
   retryAfter?: number;
   /** RFC 9457 extension members merged into the problem+json body. */
   extensions?: Record<string, unknown>;
+  /** Marks a deliberately generic 5xx detail as safe for the wire. */
+  exposeServerDetail?: boolean;
+}
+
+function mapRemoteAuthenticationError(
+  error: RemoteAuthenticationError,
+): ProblemError {
+  const rateLimited = error.kind === 'rate_limited';
+  const mapped = createProblem(
+    rateLimited ? 'rate-limit-exceeded' : 'service-unavailable',
+    rateLimited
+      ? 'Authentication provider rate limit exceeded'
+      : 'Authentication provider unavailable',
+    error.retryAfter === undefined
+      ? undefined
+      : { retryAfter: error.retryAfter },
+  ) as ProblemError;
+  mapped.exposeServerDetail = true;
+  mapped.cause = error;
+  return mapped;
 }
 
 /**
@@ -78,6 +99,12 @@ async function errorHandler(fastify: FastifyInstance) {
   // Tag errors without a statusCode as unexpected — these become 500s and
   // should be visible in observability dashboards as "unintentional".
   fastify.addHook('onError', (request, _reply, error, done) => {
+    // The main handler maps and logs these with semantic operation/kind
+    // fields. Avoid a second generic server-error line here.
+    if (error instanceof RemoteAuthenticationError) {
+      done();
+      return;
+    }
     const status = (error as { statusCode?: number }).statusCode;
     if (!status || status >= 500) {
       // setErrorHandler below logs the richer line (includes pg fields,
@@ -102,16 +129,23 @@ async function errorHandler(fastify: FastifyInstance) {
 
   fastify.setErrorHandler(
     (error: ProblemError, request: FastifyRequest, reply: FastifyReply) => {
-      const status = error.statusCode ?? 500;
+      const remoteError =
+        error instanceof RemoteAuthenticationError ? error : null;
+      const handledError = remoteError
+        ? mapRemoteAuthenticationError(remoteError)
+        : error;
+      const status = handledError.statusCode ?? 500;
       const isServerError = status >= 500;
       const validationContext = (
-        error as ProblemError & { validationContext?: string }
+        handledError as ProblemError & { validationContext?: string }
       ).validationContext;
 
       // 1. Log full error before sanitizing. For 5xx, also surface pg
       // error fields (SQLSTATE, constraint, table) so failures are
       // filterable in Axiom — the wire response still masks the detail.
-      const pgFields = isServerError ? extractPgErrorFields(error) : null;
+      const pgFields = isServerError
+        ? extractPgErrorFields(handledError)
+        : null;
       const logContext = {
         err: error,
         requestId: request.id,
@@ -121,24 +155,27 @@ async function errorHandler(fastify: FastifyInstance) {
         userId:
           (request as unknown as { authContext?: { identityId?: string } })
             .authContext?.identityId ?? null,
+        authOperation: remoteError?.operation ?? null,
+        authFailureKind: remoteError?.kind ?? null,
         ...(pgFields ?? {}),
       };
 
       if (isServerError) {
-        request.log.error(logContext, error.message);
+        request.log.error(logContext, handledError.message);
       } else {
-        request.log.warn(logContext, error.message);
+        request.log.warn(logContext, handledError.message);
       }
 
       // 2. Map to problem type
       const problemType =
-        findProblemTypeByCode(error.code) ?? findProblemTypeByStatus(status);
+        findProblemTypeByCode(handledError.code) ??
+        findProblemTypeByStatus(status);
 
       // 3. Handle Fastify schema validation errors
       const validationErrors =
-        error.validationErrors ??
-        (error.validation
-          ? error.validation.map((v) => ({
+        handledError.validationErrors ??
+        (handledError.validation
+          ? handledError.validation.map((v) => ({
               field: v.instancePath || v.params?.missingProperty || 'unknown',
               message: v.message ?? 'Validation failed',
             }))
@@ -155,9 +192,10 @@ async function errorHandler(fastify: FastifyInstance) {
         : problemType;
 
       // 4. Build response
-      const detail = isServerError
-        ? 'An unexpected error occurred'
-        : (error.detail ?? error.message);
+      const detail =
+        isServerError && !handledError.exposeServerDetail
+          ? 'An unexpected error occurred'
+          : (handledError.detail ?? handledError.message);
 
       const body: Record<string, unknown> = {
         type: getTypeUri(
@@ -174,21 +212,24 @@ async function errorHandler(fastify: FastifyInstance) {
         body.errors = validationErrors;
       }
 
-      if (error.retryAfter !== undefined) {
-        body.retryAfter = error.retryAfter;
-        reply.header('retry-after', String(error.retryAfter));
+      if (handledError.retryAfter !== undefined) {
+        body.retryAfter = handledError.retryAfter;
+        reply.header('retry-after', String(handledError.retryAfter));
       }
 
       if (
         !isValidationError &&
         status === 409 &&
-        error.extensions?.conflict === undefined
+        handledError.extensions?.conflict === undefined
       ) {
         body.conflict = {};
       }
 
-      if (error.extensions && !isServerError) {
-        for (const [key, value] of Object.entries(error.extensions)) {
+      if (
+        handledError.extensions &&
+        (!isServerError || handledError.exposeServerDetail)
+      ) {
+        for (const [key, value] of Object.entries(handledError.extensions)) {
           if (!(key in body)) body[key] = value;
         }
       }
