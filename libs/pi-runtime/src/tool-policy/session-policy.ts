@@ -8,6 +8,7 @@ import type { ShellCommandAnalyzer } from '@themoltnet/shell-command-analyzer';
 import {
   decideToolCall,
   type GateDecision,
+  type ShellCommandRule,
   type ToolEnforcement,
 } from './gate.js';
 
@@ -15,6 +16,7 @@ import {
 export interface SessionToolPolicy {
   enforcement: ToolEnforcement;
   allowedTools: ReadonlySet<string>;
+  allowedShellCommands: readonly ShellCommandRule[];
   /**
    * `true` when the allow-set is a **degraded fallback** — the allowed-tools
    * fetch failed or timed out and this policy is the fail-closed/fail-open
@@ -48,7 +50,11 @@ export interface AllowedToolsClient {
     allowedTools: (
       profileId: string,
       options: { teamId: string },
-    ) => Promise<{ enforcement: ToolEnforcement; allowedTools: string[] }>;
+    ) => Promise<{
+      enforcement: ToolEnforcement;
+      allowedTools: string[];
+      allowedShellCommands: Array<{ argvPrefix: string[] }>;
+    }>;
   };
 }
 
@@ -90,7 +96,12 @@ export async function resolveSessionToolPolicy(
   input: ResolveSessionToolPolicyInput,
 ): Promise<SessionToolPolicy> {
   if (input.enforcement === 'off') {
-    return { enforcement: 'off', allowedTools: new Set(), degraded: false };
+    return {
+      enforcement: 'off',
+      allowedTools: new Set(),
+      allowedShellCommands: [],
+      degraded: false,
+    };
   }
 
   const timeoutMs = input.timeoutMs ?? DEFAULT_RESOLVE_TIMEOUT_MS;
@@ -101,9 +112,22 @@ export async function resolveSessionToolPolicy(
       }),
       timeoutMs,
     );
+    const shellCommands = resolved.allowedShellCommands ?? [];
     return {
       enforcement: resolved.enforcement,
       allowedTools: new Set(resolved.allowedTools),
+      allowedShellCommands: shellCommands.map((rule) => {
+        if (
+          rule.argvPrefix.length < 2 ||
+          rule.argvPrefix.length > 8 ||
+          rule.argvPrefix.some((token) => !token)
+        ) {
+          throw new Error('runtime returned an invalid shell command rule');
+        }
+        return {
+          argvPrefix: rule.argvPrefix as [string, string, ...string[]],
+        };
+      }),
       degraded: false,
     };
   } catch (err) {
@@ -125,6 +149,7 @@ export async function resolveSessionToolPolicy(
     return {
       enforcement: input.enforcement,
       allowedTools: new Set(),
+      allowedShellCommands: [],
       degraded: true,
     };
   }
@@ -182,6 +207,7 @@ export function decideForEvent(
     command,
     enforcement: policy.enforcement,
     allowedTools: policy.allowedTools,
+    allowedShellCommands: policy.allowedShellCommands,
     analyze,
   });
 }
@@ -206,7 +232,19 @@ export function createToolPolicyExtension(deps: ToolPolicyExtensionDeps) {
         deps.analyzer.analyze(command),
       );
 
-      if ('allow' in decision && decision.allow) return;
+      if ('allow' in decision && decision.allow) {
+        if (decision.matchedShellCommands?.length) {
+          deps.logger.debug(
+            {
+              toolName: event.toolName,
+              toolCallId: event.toolCallId,
+              matchedShellCommands: decision.matchedShellCommands,
+            },
+            'tool_policy.shell_command_allowed',
+          );
+        }
+        return;
+      }
 
       if ('audit' in decision) {
         deps.logger.info(
@@ -229,6 +267,8 @@ export function createToolPolicyExtension(deps: ToolPolicyExtensionDeps) {
           // the operator's policy disallows this tool. Critical for triage.
           degraded: deps.policy.degraded,
           reason: decision.reason,
+          missingExecutables: decision.missing,
+          missingShellCommands: decision.missingShellCommands,
         },
         'tool_policy.blocked',
       );

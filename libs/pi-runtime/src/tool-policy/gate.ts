@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 import type { ToolEnforcement } from '@moltnet/models';
 import type {
   CommandAnalysis,
@@ -5,6 +7,10 @@ import type {
 } from '@themoltnet/shell-command-analyzer';
 
 export type { ToolEnforcement } from '@moltnet/models';
+
+export interface ShellCommandRule {
+  argvPrefix: readonly [string, string, ...string[]];
+}
 
 export interface GateInput {
   /** Pi tool name (e.g. 'bash', 'read', 'write', or a custom tool id). */
@@ -14,6 +20,8 @@ export interface GateInput {
   enforcement: ToolEnforcement;
   /** Names the policy allows (structured tool names + shell executable names). */
   allowedTools: ReadonlySet<string>;
+  /** Shell argv rules. Each rule matches the first N statically known tokens. */
+  allowedShellCommands: readonly ShellCommandRule[];
   /**
    * Synchronous shell analyzer (`ShellCommandAnalyzer.analyze`). Injected so the
    * decision stays pure and testable; the analyzer's async WASM init happens
@@ -29,9 +37,35 @@ export interface GateInput {
  * - `{ audit, ... }` — would-block, but proceed and record it (watch mode).
  */
 export type GateDecision =
-  | { allow: true }
-  | { allow: false; reason: string }
-  | { audit: string; missing?: string[] };
+  | { allow: true; matchedShellCommands?: MatchedShellCommand[] }
+  | {
+      allow: false;
+      reason: string;
+      missing?: string[];
+      missingShellCommands?: MissingShellCommand[];
+    }
+  | {
+      audit: string;
+      missing?: string[];
+      missingShellCommands?: MissingShellCommand[];
+    };
+
+export interface MatchedShellCommand {
+  executable: string;
+  argvPrefix: readonly string[];
+}
+
+/**
+ * Secret-safe metadata for a shell invocation that did not match policy.
+ * argv values are deliberately never logged; the fingerprint distinguishes
+ * invocations without disclosing literal arguments.
+ */
+export interface MissingShellCommand {
+  executable: string;
+  argvFingerprint: string;
+  argvLength: number;
+  dynamicTokenCount: number;
+}
 
 /**
  * Decide whether a tool call is permitted by the resolved policy.
@@ -65,8 +99,8 @@ export function decideToolCall(input: GateInput): GateDecision {
   if (resolved.kind === 'unresolvable') {
     return fenced(
       input.enforcement,
-      `shell command could not be statically authorized: ${resolved.reason}`,
-      `unresolvable shell command (watch): ${resolved.reason}`,
+      'shell command could not be statically authorized',
+      'unresolvable shell command (watch)',
     );
   }
 
@@ -89,16 +123,99 @@ export function decideToolCall(input: GateInput): GateDecision {
     );
   }
 
-  const missing = [...new Set(resolved.tools.map((tool) => tool.name))].filter(
-    (name) => !input.allowedTools.has(name),
-  );
-  if (missing.length === 0) return { allow: true };
+  if (input.toolName !== 'bash') {
+    const missing = resolved.tools
+      .map((tool) => tool.name)
+      .filter((name) => !input.allowedTools.has(name));
+    if (missing.length === 0) return { allow: true };
+    return fenced(
+      input.enforcement,
+      `not permitted by tool policy: ${missing.join(', ')}`,
+      `would block (watch): ${missing.join(', ')}`,
+      missing,
+    );
+  }
 
+  const matchedShellCommands: MatchedShellCommand[] = [];
+  const missingShellCommands = resolved.tools
+    .filter((tool) => {
+      if (input.allowedTools.has(tool.name)) return false;
+      const matched = input.allowedShellCommands.find((rule) =>
+        matchesArgvPrefix(tool.argv, rule.argvPrefix),
+      );
+      if (!matched) return true;
+      matchedShellCommands.push({
+        executable: tool.name,
+        argvPrefix: matched.argvPrefix,
+      });
+      return false;
+    })
+    .map(toMissingShellCommand);
+
+  if (
+    missingShellCommands.length === 0 &&
+    resolved.hasOutputRedirection &&
+    matchedShellCommands.length > 0
+  ) {
+    return fenced(
+      input.enforcement,
+      'shell output redirection requires broad executable permission',
+      'would block shell output redirection under scoped command policy',
+      [...new Set(matchedShellCommands.map(({ executable }) => executable))],
+      matchedShellCommands.map(({ executable, argvPrefix }) =>
+        toMissingShellCommand({
+          name: executable,
+          argv: argvPrefix,
+          risk: 'unknown',
+        }),
+      ),
+    );
+  }
+
+  if (missingShellCommands.length === 0) {
+    return matchedShellCommands.length > 0
+      ? { allow: true, matchedShellCommands }
+      : { allow: true };
+  }
+
+  const missing = [
+    ...new Set(missingShellCommands.map(({ executable }) => executable)),
+  ];
   return fenced(
     input.enforcement,
     `not permitted by tool policy: ${missing.join(', ')}`,
     `would block (watch): ${missing.join(', ')}`,
     missing,
+    missingShellCommands,
+  );
+}
+
+function toMissingShellCommand(tool: ResolvedTool): MissingShellCommand {
+  const fingerprint = createHash('sha256')
+    .update(
+      JSON.stringify(
+        tool.argv.map((token) => (token === null ? { dynamic: true } : token)),
+      ),
+    )
+    .digest('hex')
+    .slice(0, 16);
+  return {
+    executable: tool.name,
+    argvFingerprint: `sha256:${fingerprint}`,
+    argvLength: tool.argv.length,
+    dynamicTokenCount: tool.argv.filter((token) => token === null).length,
+  };
+}
+
+function matchesArgvPrefix(
+  argv: readonly (string | null)[],
+  prefix: readonly string[],
+): boolean {
+  return (
+    argv.length >= prefix.length &&
+    prefix.every(
+      (token, index) => argv[index] !== null && argv[index] === token,
+    )
   );
 }
 
@@ -111,14 +228,27 @@ function fenced(
   blockReason: string,
   auditReason: string,
   missing?: string[],
+  missingShellCommands?: MissingShellCommand[],
 ): GateDecision {
-  if (enforcement === 'enforce') return { allow: false, reason: blockReason };
-  return missing ? { audit: auditReason, missing } : { audit: auditReason };
+  if (enforcement === 'enforce') {
+    return {
+      allow: false,
+      reason: blockReason,
+      ...(missing ? { missing } : {}),
+      ...(missingShellCommands?.length ? { missingShellCommands } : {}),
+    };
+  }
+  return {
+    audit: auditReason,
+    ...(missing ? { missing } : {}),
+    ...(missingShellCommands?.length ? { missingShellCommands } : {}),
+  };
 }
 
 /** A resolved executable the gate must authorize (name + analyzer risk tier). */
 interface ResolvedTool {
   name: string;
+  argv: readonly (string | null)[];
   risk: RiskTier;
 }
 
@@ -128,15 +258,19 @@ interface ResolvedTool {
  * every executable the command runs (wrappers and escaped sub-commands already
  * resolved by the analyzer), each carrying its risk tier.
  */
-function resolveNames(
-  input: GateInput,
-):
-  | { kind: 'names'; tools: ResolvedTool[] }
+function resolveNames(input: GateInput):
+  | {
+      kind: 'names';
+      tools: ResolvedTool[];
+      hasOutputRedirection?: boolean;
+    }
   | { kind: 'unresolvable'; reason: string } {
   if (input.toolName !== 'bash') {
     return {
       kind: 'names',
-      tools: [{ name: input.toolName, risk: 'unknown' }],
+      tools: [
+        { name: input.toolName, argv: [input.toolName], risk: 'unknown' },
+      ],
     };
   }
   const command = input.command ?? '';
@@ -149,8 +283,10 @@ function resolveNames(
         kind: 'names',
         tools: analysis.tools.map((tool) => ({
           name: tool.name,
+          argv: tool.argv,
           risk: tool.risk,
         })),
+        hasOutputRedirection: analysis.hasOutputRedirection === true,
       }
     : { kind: 'unresolvable', reason: analysis.reason };
 }

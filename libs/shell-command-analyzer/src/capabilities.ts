@@ -358,6 +358,13 @@ export interface EscapeFlagSpec {
 
 export const ESCAPE_FLAG_SPECS: ReadonlyMap<string, EscapeFlagSpec> = new Map([
   [
+    'env',
+    {
+      separate: ['-S', '--split-string'],
+      inline: [{ flag: '--split-string' }],
+    },
+  ],
+  [
     'tar',
     {
       inline: [

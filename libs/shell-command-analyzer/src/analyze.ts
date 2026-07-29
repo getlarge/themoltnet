@@ -58,7 +58,18 @@ export interface ToolInvocation {
  * parse was produced (`null` only when parsing itself failed).
  */
 export type CommandAnalysis =
-  | { ok: true; command: string; tools: ToolInvocation[]; ast: string }
+  | {
+      ok: true;
+      command: string;
+      tools: ToolInvocation[];
+      ast: string;
+      /**
+       * Whether the shell performs an output file redirection outside argv.
+       * Authorization remains a caller concern; this prevents scoped argv
+       * rules from silently overlooking shell-level file writes.
+       */
+      hasOutputRedirection?: boolean;
+    }
   | { ok: false; command: string; reason: string; ast: string | null };
 
 /** Options for {@link initAnalyzer} / {@link analyzeCommand}. */
@@ -89,6 +100,7 @@ export const DEFAULT_MAX_COMMAND_LENGTH = 100_000;
 
 const ASSIGNMENT_RE = /^[A-Za-z_][A-Za-z0-9_]*=/;
 const GLOB_RE = /[*?[\]]/;
+const WHITESPACE_RE = /\s/u;
 const SUBSTITUTION_TYPES = [
   'command_substitution',
   'process_substitution',
@@ -339,8 +351,14 @@ function resolveWords(words: Word[], wrapperDepth = 0): Resolution {
     return { ok: false, reason: `non-literal command name: ${head.raw}` };
   }
   const name = head.name;
+  if (WHITESPACE_RE.test(name)) {
+    return {
+      ok: false,
+      reason: 'literal command name contains whitespace',
+    };
+  }
   if (GLOB_RE.test(name)) {
-    return { ok: false, reason: `command name contains a glob: ${name}` };
+    return { ok: false, reason: 'command name contains a glob' };
   }
   const exe = baseName(name);
   const invocation = invocationFor(words);
@@ -359,11 +377,16 @@ function resolveWords(words: Word[], wrapperDepth = 0): Resolution {
       return { ok: false, reason: 'wrapper nesting too deep' };
     }
     const advance = advancePastWrapper(words, 1, spec);
+    const wrapperEscapes = escapeFlagCommands(exe, words);
     if (advance.kind === 'deny') {
       return { ok: false, reason: advance.reason };
     }
     if (advance.kind === 'none') {
-      return { ok: true, invocations: [invocation], escapes: [] };
+      return {
+        ok: true,
+        invocations: [invocation],
+        escapes: wrapperEscapes,
+      };
     }
     const inner = resolveWords(words.slice(advance.index), wrapperDepth + 1);
     if (!inner.ok) {
@@ -372,7 +395,7 @@ function resolveWords(words: Word[], wrapperDepth = 0): Resolution {
     return {
       ok: true,
       invocations: [invocation, ...inner.invocations],
-      escapes: inner.escapes,
+      escapes: [...wrapperEscapes, ...inner.escapes],
     };
   }
   return {
@@ -587,6 +610,12 @@ export class ShellCommandAnalyzer {
     try {
       const root = tree.rootNode;
       const ast = root.toString();
+      const hasOutputRedirection = root
+        .descendantsOfType('file_redirect')
+        .some((redirect) => {
+          const text = redirect?.text.trimStart() ?? '';
+          return /^(?:\d+)?(?:>|>>|>\||&>|&>>|<>)/u.test(text);
+        });
 
       if (root.hasError) {
         return {
@@ -655,7 +684,7 @@ export class ShellCommandAnalyzer {
             return {
               ok: false,
               command,
-              reason: `in escape flag (${sub}): ${nested.reason}`,
+              reason: `unresolvable command in escape flag: ${nested.reason}`,
               ast,
             };
           }
@@ -672,7 +701,7 @@ export class ShellCommandAnalyzer {
         };
       }
 
-      return { ok: true, command, tools, ast };
+      return { ok: true, command, tools, ast, hasOutputRedirection };
     } finally {
       tree.delete();
     }

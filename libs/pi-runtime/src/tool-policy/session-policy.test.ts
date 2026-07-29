@@ -20,10 +20,15 @@ const logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn() };
 function agentReturning(
   enforcement: 'off' | 'watch' | 'enforce',
   allowedTools: string[],
+  allowedShellCommands: Array<{ argvPrefix: string[] }> = [],
 ): AllowedToolsClient {
   return {
     runtimeProfiles: {
-      allowedTools: vi.fn().mockResolvedValue({ enforcement, allowedTools }),
+      allowedTools: vi.fn().mockResolvedValue({
+        enforcement,
+        allowedTools,
+        allowedShellCommands,
+      }),
     },
   };
 }
@@ -60,6 +65,7 @@ describe('resolveSessionToolPolicy', () => {
     expect(policy).toEqual({
       enforcement: 'off',
       allowedTools: new Set(),
+      allowedShellCommands: [],
       degraded: false,
     });
     expect(agent.runtimeProfiles.allowedTools).not.toHaveBeenCalled();
@@ -68,12 +74,19 @@ describe('resolveSessionToolPolicy', () => {
   it('resolves the allow-set from the API for enforce (not degraded)', async () => {
     const policy = await resolveSessionToolPolicy({
       ...params,
-      agent: agentReturning('enforce', ['git', 'gh']),
+      agent: agentReturning(
+        'enforce',
+        ['git', 'gh'],
+        [{ argvPrefix: ['git', 'diff'] }],
+      ),
       enforcement: 'enforce',
     });
     expect(policy.enforcement).toBe('enforce');
     expect(policy.degraded).toBe(false);
     expect([...policy.allowedTools].sort()).toEqual(['gh', 'git']);
+    expect(policy.allowedShellCommands).toEqual([
+      { argvPrefix: ['git', 'diff'] },
+    ]);
   });
 
   it('fails closed and marks degraded when the fetch fails in enforce', async () => {
@@ -85,6 +98,7 @@ describe('resolveSessionToolPolicy', () => {
     expect(policy).toEqual({
       enforcement: 'enforce',
       allowedTools: new Set(),
+      allowedShellCommands: [],
       degraded: true,
     });
     expect(logger.warn).toHaveBeenCalled();
@@ -99,6 +113,7 @@ describe('resolveSessionToolPolicy', () => {
     expect(policy).toEqual({
       enforcement: 'watch',
       allowedTools: new Set(),
+      allowedShellCommands: [],
       degraded: true,
     });
   });
@@ -113,6 +128,7 @@ describe('resolveSessionToolPolicy', () => {
     expect(policy).toEqual({
       enforcement: 'enforce',
       allowedTools: new Set(),
+      allowedShellCommands: [],
       degraded: true,
     });
     expect(logger.warn).toHaveBeenCalledWith(
@@ -181,7 +197,12 @@ describe('createToolPolicyExtension', () => {
 
   it('registers no handler in off mode', () => {
     const on = registerHandler({
-      policy: { enforcement: 'off', allowedTools: new Set(), degraded: false },
+      policy: {
+        enforcement: 'off',
+        allowedTools: new Set(),
+        allowedShellCommands: [],
+        degraded: false,
+      },
       analyzer,
       logger,
     });
@@ -192,6 +213,7 @@ describe('createToolPolicyExtension', () => {
     const policy: SessionToolPolicy = {
       enforcement: 'enforce',
       allowedTools: new Set(['git']),
+      allowedShellCommands: [],
       degraded: false,
     };
     const on = registerHandler({ policy, analyzer, logger });
@@ -214,6 +236,7 @@ describe('createToolPolicyExtension', () => {
       policy: {
         enforcement: 'watch',
         allowedTools: new Set(['git']),
+        allowedShellCommands: [],
         degraded: false,
       },
       analyzer,
@@ -234,6 +257,7 @@ describe('createToolPolicyExtension', () => {
       policy: {
         enforcement: 'enforce',
         allowedTools: new Set(['git']),
+        allowedShellCommands: [],
         degraded: false,
       },
       analyzer,
@@ -250,6 +274,7 @@ describe('createToolPolicyExtension', () => {
       policy: {
         enforcement: 'enforce',
         allowedTools: new Set(),
+        allowedShellCommands: [],
         degraded: true,
       },
       analyzer,

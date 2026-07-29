@@ -73,9 +73,18 @@ describe('analyzeCommand — simple commands', () => {
     expect(await toolNames('cat file-*.log')).toEqual(['cat']);
   });
 
-  it('ignores redirections', async () => {
-    expect(await toolNames('echo hi > out.txt')).toEqual(['echo']);
-    expect(await toolNames('cat < in.txt')).toEqual(['cat']);
+  it('surfaces output redirections separately from argv', async () => {
+    const output = await analyzeCommand('git diff > /tmp/pwn');
+    const input = await analyzeCommand('cat < in.txt');
+
+    expect(output).toMatchObject({
+      ok: true,
+      hasOutputRedirection: true,
+    });
+    expect(input).toMatchObject({
+      ok: true,
+      hasOutputRedirection: false,
+    });
   });
 
   it('strips the directory from an absolute or relative path', async () => {
@@ -152,6 +161,24 @@ describe('analyzeCommand — risk classification of resolved tools', () => {
 });
 
 describe('analyzeCommand — wrappers', () => {
+  it('re-analyzes env split-string commands', async () => {
+    expect(await invocationArgv("env -S 'git push --force'")).toEqual([
+      ['env', '-S', 'git push --force'],
+      ['git', 'push', '--force'],
+    ]);
+    expect(
+      await invocationArgv("env --split-string='gh pr merge 1725'"),
+    ).toEqual([
+      ['env', null],
+      ['gh', 'pr', 'merge', '1725'],
+    ]);
+  });
+
+  it('rejects quoted wrapper targets containing whitespace', async () => {
+    await expectDeny("sudo 'git push'");
+    await expectDeny("env 'git diff'");
+  });
+
   it('sees through a single wrapper', async () => {
     expect(await toolNames('sudo git push')).toEqual(['sudo', 'git']);
     expect(await toolNames('nohup node server.js')).toEqual(['nohup', 'node']);
