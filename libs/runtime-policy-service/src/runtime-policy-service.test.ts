@@ -722,4 +722,49 @@ describe('effective policy snapshot hashing', () => {
       'sha256:b7edae997658459ed86632f4d5197676391b39516aca28294241fe179a685a74',
     );
   });
+
+  it('canonicalizes distinct shell-command rules independent of order', () => {
+    const first = canonicalEffectivePolicySnapshot({
+      runtimeKind: 'gondolin_pi',
+      enforcement: 'enforce',
+      allowedTools: ['git'],
+      allowedShellCommands: [
+        { argvPrefix: ['git', 'diff'] },
+        { argvPrefix: ['gh', 'pr', 'view'] },
+      ],
+    });
+    const second = canonicalEffectivePolicySnapshot({
+      runtimeKind: 'gondolin_pi',
+      enforcement: 'enforce',
+      allowedTools: ['git'],
+      allowedShellCommands: [
+        { argvPrefix: ['gh', 'pr', 'view'] },
+        { argvPrefix: ['git', 'diff'] },
+      ],
+    });
+
+    expect(first.allowedShellCommands).toEqual(second.allowedShellCommands);
+    expect(hashEffectivePolicySnapshot(first)).toBe(
+      hashEffectivePolicySnapshot(second),
+    );
+  });
+
+  it('changes the hash when shell-command authority changes', () => {
+    const original = canonicalEffectivePolicySnapshot({
+      runtimeKind: 'gondolin_pi',
+      enforcement: 'enforce',
+      allowedTools: ['git'],
+      allowedShellCommands: [{ argvPrefix: ['gh', 'pr', 'view'] }],
+    });
+    const changed = canonicalEffectivePolicySnapshot({
+      runtimeKind: 'gondolin_pi',
+      enforcement: 'enforce',
+      allowedTools: ['git'],
+      allowedShellCommands: [{ argvPrefix: ['gh', 'pr', 'list'] }],
+    });
+
+    expect(hashEffectivePolicySnapshot(original)).not.toBe(
+      hashEffectivePolicySnapshot(changed),
+    );
+  });
 });

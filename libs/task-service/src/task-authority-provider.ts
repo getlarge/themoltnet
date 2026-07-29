@@ -1,5 +1,6 @@
 import { readExecutorManifestBinding } from '@moltnet/crypto-service';
 import type {
+  RuntimePolicySnapshot,
   RuntimePolicySnapshotRepository,
   TaskRepository,
 } from '@moltnet/database';
@@ -28,8 +29,19 @@ export interface MoltNetTaskAuthorityProviderDeps {
   denialCounter: {
     add(value: number, attributes: { reason: string }): void;
   };
+  grantedCounter: {
+    add(value: number, attributes: { runtimeKind: string }): void;
+  };
+  snapshotCacheMaxEntries?: number;
   now?: () => Date;
 }
+
+interface VerifiedSnapshotAuthority {
+  runtimeKind: string;
+  enforcement: ToolEnforcement;
+}
+
+const DEFAULT_SNAPSHOT_CACHE_MAX_ENTRIES = 256;
 
 function isToolEnforcement(value: string): value is ToolEnforcement {
   return (TOOL_ENFORCEMENT_VALUES as readonly string[]).includes(value);
@@ -39,6 +51,68 @@ export function createMoltNetTaskAuthorityProvider(
   deps: MoltNetTaskAuthorityProviderDeps,
 ): TaskAuthorityProvider {
   const now = deps.now ?? (() => new Date());
+  const snapshotCacheMaxEntries =
+    Number.isInteger(deps.snapshotCacheMaxEntries) &&
+    (deps.snapshotCacheMaxEntries ?? 0) > 0
+      ? (deps.snapshotCacheMaxEntries as number)
+      : DEFAULT_SNAPSHOT_CACHE_MAX_ENTRIES;
+  const verifiedSnapshotCache = new Map<string, VerifiedSnapshotAuthority>();
+  const readVerifiedSnapshot = (
+    hash: string,
+  ): VerifiedSnapshotAuthority | undefined => {
+    const cached = verifiedSnapshotCache.get(hash);
+    if (!cached) return undefined;
+    verifiedSnapshotCache.delete(hash);
+    verifiedSnapshotCache.set(hash, cached);
+    return cached;
+  };
+  const cacheVerifiedSnapshot = (
+    hash: string,
+    authority: VerifiedSnapshotAuthority,
+  ): void => {
+    verifiedSnapshotCache.delete(hash);
+    verifiedSnapshotCache.set(hash, authority);
+    if (verifiedSnapshotCache.size <= snapshotCacheMaxEntries) return;
+    const oldestHash = verifiedSnapshotCache.keys().next().value;
+    if (oldestHash !== undefined) verifiedSnapshotCache.delete(oldestHash);
+  };
+  const verifySnapshot = (
+    snapshot: RuntimePolicySnapshot,
+    expectedHash: string,
+  ): { authority: VerifiedSnapshotAuthority } | { reason: string } => {
+    if (snapshot.schemaVersion !== EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION) {
+      return { reason: 'schema_version_mismatch' };
+    }
+    if (
+      !RUNTIME_PROFILE_RUNTIME_KIND_REGEXP.test(snapshot.runtimeKind) ||
+      !isToolEnforcement(snapshot.enforcement)
+    ) {
+      return { reason: 'authority_binding_invalid' };
+    }
+    let canonical;
+    try {
+      canonical = canonicalEffectivePolicySnapshot({
+        runtimeKind: snapshot.runtimeKind,
+        enforcement: snapshot.enforcement,
+        allowedTools: snapshot.allowedTools,
+        allowedShellCommands: snapshot.allowedShellCommands,
+      });
+    } catch {
+      return { reason: 'authority_binding_invalid' };
+    }
+    if (
+      hashEffectivePolicySnapshot(canonical) !== snapshot.hash ||
+      snapshot.hash !== expectedHash
+    ) {
+      return { reason: 'snapshot_hash_mismatch' };
+    }
+    return {
+      authority: {
+        runtimeKind: snapshot.runtimeKind,
+        enforcement: snapshot.enforcement,
+      },
+    };
+  };
   const deny = (
     request: TaskAuthorityRequest,
     reason: string,
@@ -109,41 +183,29 @@ export function createMoltNetTaskAuthorityProvider(
         return deny(request, 'authority_binding_missing');
       }
 
+      let snapshotAuthority = readVerifiedSnapshot(attempt.policySnapshotHash);
       const [snapshot, executor] = await Promise.all([
-        deps.runtimePolicySnapshotRepository.findByHash(
-          attempt.policySnapshotHash,
-        ),
+        snapshotAuthority
+          ? Promise.resolve(null)
+          : deps.runtimePolicySnapshotRepository.findByHash(
+              attempt.policySnapshotHash,
+            ),
         deps.taskRepository.findExecutorManifest(
           attempt.claimedExecutorFingerprint,
         ),
       ]);
-      if (!snapshot) return deny(request, 'policy_snapshot_missing');
       if (!executor) return deny(request, 'executor_manifest_missing');
-      if (snapshot.schemaVersion !== EFFECTIVE_POLICY_SNAPSHOT_SCHEMA_VERSION) {
-        return deny(request, 'schema_version_mismatch');
-      }
-      if (
-        !RUNTIME_PROFILE_RUNTIME_KIND_REGEXP.test(snapshot.runtimeKind) ||
-        !isToolEnforcement(snapshot.enforcement)
-      ) {
-        return deny(request, 'authority_binding_invalid');
-      }
-      let canonical;
-      try {
-        canonical = canonicalEffectivePolicySnapshot({
-          runtimeKind: snapshot.runtimeKind,
-          enforcement: snapshot.enforcement,
-          allowedTools: snapshot.allowedTools,
-          allowedShellCommands: snapshot.allowedShellCommands,
-        });
-      } catch {
-        return deny(request, 'authority_binding_invalid');
-      }
-      if (
-        hashEffectivePolicySnapshot(canonical) !== snapshot.hash ||
-        snapshot.hash !== attempt.policySnapshotHash
-      ) {
-        return deny(request, 'snapshot_hash_mismatch');
+      if (!snapshotAuthority) {
+        if (!snapshot) return deny(request, 'policy_snapshot_missing');
+        const verification = verifySnapshot(
+          snapshot,
+          attempt.policySnapshotHash,
+        );
+        if ('reason' in verification) {
+          return deny(request, verification.reason);
+        }
+        snapshotAuthority = verification.authority;
+        cacheVerifiedSnapshot(attempt.policySnapshotHash, snapshotAuthority);
       }
       let manifestBinding;
       try {
@@ -154,12 +216,12 @@ export function createMoltNetTaskAuthorityProvider(
       if (
         manifestBinding.profileId !== attempt.runtimeProfileId ||
         !manifestBinding.profileDefinitionCid ||
-        manifestBinding.runtimeKind !== snapshot.runtimeKind
+        manifestBinding.runtimeKind !== snapshotAuthority.runtimeKind
       ) {
         return deny(request, 'executor_binding_mismatch');
       }
 
-      return {
+      const decision: TaskAuthorityDecision = {
         allowed: true,
         reason: 'active_pinned_authority',
         leaseExpiresAt: task.claimExpiresAt,
@@ -169,13 +231,39 @@ export function createMoltNetTaskAuthorityProvider(
           taskId: request.taskId,
           attemptN: request.attemptN,
           leaseId: attempt.leaseId,
-          runtimeKind: snapshot.runtimeKind,
+          runtimeKind: snapshotAuthority.runtimeKind,
           executorManifestFingerprint: attempt.claimedExecutorFingerprint,
           runtimeProfileId: attempt.runtimeProfileId,
           runtimeProfileRevision: attempt.runtimeProfileRevision,
           policySnapshotHash: attempt.policySnapshotHash,
         },
       };
+      try {
+        deps.logger.info(
+          {
+            reason: decision.reason,
+            taskId: request.taskId,
+            attemptN: request.attemptN,
+            agentId: request.agentId,
+            teamId: request.teamId,
+            leaseId: attempt.leaseId,
+            policySnapshotHash: attempt.policySnapshotHash,
+            runtimeKind: snapshotAuthority.runtimeKind,
+            executorManifestFingerprint: attempt.claimedExecutorFingerprint,
+          },
+          'Task authority granted',
+        );
+      } catch {
+        // Authorization must remain available if telemetry is unavailable.
+      }
+      try {
+        deps.grantedCounter.add(1, {
+          runtimeKind: snapshotAuthority.runtimeKind,
+        });
+      } catch {
+        // Authorization must remain available if telemetry is unavailable.
+      }
+      return decision;
     },
   };
 }

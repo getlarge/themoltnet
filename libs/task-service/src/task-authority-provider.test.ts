@@ -78,6 +78,7 @@ function setup(input?: {
   attempt?: TaskAttempt | null;
   snapshot?: RuntimePolicySnapshot | null;
   executor?: { fingerprint: string; manifest: unknown } | null;
+  snapshotCacheMaxEntries?: number;
 }) {
   const taskRepository = {
     findById: vi
@@ -112,6 +113,7 @@ function setup(input?: {
   };
   const logger = { info: vi.fn(), warn: vi.fn() };
   const denialCounter = { add: vi.fn() };
+  const grantedCounter = { add: vi.fn() };
   const provider = createMoltNetTaskAuthorityProvider({
     taskRepository: taskRepository as unknown as Pick<
       TaskRepository,
@@ -121,6 +123,8 @@ function setup(input?: {
       snapshotRepository as unknown as RuntimePolicySnapshotRepository,
     logger,
     denialCounter,
+    grantedCounter,
+    snapshotCacheMaxEntries: input?.snapshotCacheMaxEntries,
     now: () => NOW,
   });
   return {
@@ -129,6 +133,7 @@ function setup(input?: {
     snapshotRepository,
     logger,
     denialCounter,
+    grantedCounter,
   };
 }
 
@@ -164,11 +169,12 @@ async function expectDenied(
   const otherLogLevel = logLevel === 'info' ? 'warn' : 'info';
   expect(context.logger[otherLogLevel]).not.toHaveBeenCalled();
   expect(context.denialCounter.add).toHaveBeenCalledWith(1, { reason });
+  expect(context.grantedCounter.add).not.toHaveBeenCalled();
 }
 
 describe('MoltNet TaskAuthorityProvider', () => {
   it('returns only canonical claims from the immutable attempt binding', async () => {
-    const { provider, logger, denialCounter } = setup();
+    const { provider, logger, denialCounter, grantedCounter } = setup();
 
     await expect(provider.authorizeTask(request)).resolves.toEqual({
       allowed: true,
@@ -184,9 +190,101 @@ describe('MoltNet TaskAuthorityProvider', () => {
         policySnapshotHash: SNAPSHOT_HASH,
       },
     });
-    expect(logger.info).not.toHaveBeenCalled();
+    expect(logger.info).toHaveBeenCalledWith(
+      {
+        reason: 'active_pinned_authority',
+        taskId: TASK_ID,
+        attemptN: 1,
+        agentId: AGENT_ID,
+        teamId: TEAM_ID,
+        leaseId: LEASE_ID,
+        policySnapshotHash: SNAPSHOT_HASH,
+        runtimeKind: 'gondolin_pi',
+        executorManifestFingerprint: EXECUTOR_FINGERPRINT,
+      },
+      'Task authority granted',
+    );
     expect(logger.warn).not.toHaveBeenCalled();
     expect(denialCounter.add).not.toHaveBeenCalled();
+    expect(grantedCounter.add).toHaveBeenCalledWith(1, {
+      runtimeKind: 'gondolin_pi',
+    });
+  });
+
+  it('caches verified snapshots while rechecking mutable liveness and executor binding', async () => {
+    const { provider, taskRepository, snapshotRepository } = setup();
+
+    await expect(provider.authorizeTask(request)).resolves.toMatchObject({
+      allowed: true,
+    });
+    await expect(provider.authorizeTask(request)).resolves.toMatchObject({
+      allowed: true,
+    });
+
+    expect(snapshotRepository.findByHash).toHaveBeenCalledOnce();
+    expect(taskRepository.findById).toHaveBeenCalledTimes(2);
+    expect(taskRepository.findAttempt).toHaveBeenCalledTimes(2);
+    expect(taskRepository.findExecutorManifest).toHaveBeenCalledTimes(2);
+  });
+
+  it('evicts the least-recently-used verified snapshot when the cache is full', async () => {
+    const otherCanonical = canonicalEffectivePolicySnapshot({
+      runtimeKind: 'gondolin_pi',
+      enforcement: 'watch',
+      allowedTools: ['read'],
+      allowedShellCommands: [],
+    });
+    const otherHash = hashEffectivePolicySnapshot(otherCanonical);
+    const context = setup({ snapshotCacheMaxEntries: 1 });
+    context.taskRepository.findAttempt
+      .mockResolvedValueOnce(attempt())
+      .mockResolvedValueOnce(attempt({ policySnapshotHash: otherHash }))
+      .mockResolvedValueOnce(attempt());
+    context.snapshotRepository.findByHash.mockImplementation((hash: string) =>
+      Promise.resolve(
+        hash === otherHash
+          ? snapshot({
+              hash: otherHash,
+              schemaVersion: otherCanonical.version,
+              runtimeKind: otherCanonical.runtimeKind,
+              enforcement: otherCanonical.enforcement,
+              allowedTools: otherCanonical.allowedTools,
+              allowedShellCommands: otherCanonical.allowedShellCommands,
+            })
+          : snapshot(),
+      ),
+    );
+
+    await expect(
+      context.provider.authorizeTask(request),
+    ).resolves.toMatchObject({ allowed: true });
+    await expect(
+      context.provider.authorizeTask(request),
+    ).resolves.toMatchObject({ allowed: true });
+    await expect(
+      context.provider.authorizeTask(request),
+    ).resolves.toMatchObject({ allowed: true });
+
+    expect(context.snapshotRepository.findByHash).toHaveBeenCalledTimes(3);
+  });
+
+  it('keeps granted authority available when success telemetry fails', async () => {
+    const context = setup();
+    context.logger.info.mockImplementation(() => {
+      throw new Error('logger unavailable');
+    });
+    context.grantedCounter.add.mockImplementation(() => {
+      throw new Error('metrics unavailable');
+    });
+
+    await expect(
+      context.provider.authorizeTask(request),
+    ).resolves.toMatchObject({
+      allowed: true,
+      reason: 'active_pinned_authority',
+    });
+    expect(context.logger.warn).not.toHaveBeenCalled();
+    expect(context.denialCounter.add).not.toHaveBeenCalled();
   });
 
   it('denies missing tasks and attempts', async () => {
