@@ -292,9 +292,17 @@ describe('runMultiLensReview', () => {
     expect(tasks.created[0].input.expectedOutput).toContain(
       'artifacts entry references the uploaded',
     );
+    expect(tasks.created[1].input.brief).toContain('moltnet_get_task');
     expect(tasks.created[1].input.brief).toContain(
-      'only the explicit task-artifact CID is downloadable',
+      'moltnet_list_task_attempts',
     );
+    expect(tasks.created[1].input.brief).toContain(
+      'moltnet_download_task_artifact',
+    );
+    expect(tasks.created[1].input.brief).toContain(
+      'accepted-review-topic-plan.v1.json',
+    );
+    expect(tasks.created[1].input.brief).toContain('explicit artifacts[] CID');
   });
 
   it('rejects a planner output that does not reference its uploaded plan artifact', async () => {

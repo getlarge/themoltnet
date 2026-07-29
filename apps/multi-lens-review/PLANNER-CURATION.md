@@ -209,7 +209,13 @@ explicitly:
 Trusted orchestration downloads that explicit CID through the task-artifact API
 and rejects missing, duplicate, incorrectly typed, size-mismatched, or
 summary-mismatched artifacts. Downstream prompts must likewise use the explicit
-artifact CID rather than the attempt `outputCid`.
+artifact CID rather than the attempt `outputCid`. A downstream Pi task should
+use `moltnet_get_task` to resolve the producer's `acceptedAttemptN`,
+`moltnet_list_task_attempts` to read only that accepted structured output, and
+`moltnet_download_task_artifact` with the explicit `artifacts[]` CID and
+accepted attempt number. These are task capabilities and belong in the brief
+and runtime profile; the workflow should not invent a second persistence or
+artifact-discovery path.
 
 One more runtime fact emerged. Kimi first ended in prose, recovered after one
 missing-submit prompt, then attempted the submit tool twice. The first-valid

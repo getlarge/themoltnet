@@ -119,6 +119,11 @@ The planner profile must expose Pi's `read`, `grep`, `write`,
 checkout access are unnecessary. The planner uploads that file and includes
 the returned task-artifact CID in `submit_freeform_output.artifacts[]`.
 Attempt `outputCid` metadata is not a substitute for this explicit artifact.
+The preflight profile must expose `moltnet_get_task`,
+`moltnet_list_task_attempts`, and `moltnet_download_task_artifact`. It resolves
+the planner task's `acceptedAttemptN`, reads the accepted structured output, and
+downloads the explicit artifact CID from `artifacts[]`; an attempt `outputCid`
+is not a task-artifact CID.
 
 ## GitHub Actions
 
