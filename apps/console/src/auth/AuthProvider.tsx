@@ -6,11 +6,13 @@
  */
 
 import type { Identity, Session } from '@ory/client-fetch';
+import { ResponseError } from '@ory/client-fetch';
 import {
   createContext,
   type ReactNode,
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from 'react';
 
@@ -29,30 +31,78 @@ export interface AuthContextValue {
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
 
+/**
+ * Distinguishes a genuine "you are logged out" answer from a transient failure
+ * (network blip, 5xx, CORS, aborted fetch).
+ *
+ * @ory/client-fetch throws ResponseError (carrying `.response`) for any non-2xx
+ * response, and FetchError when fetch() itself rejected. Only 401 (no/invalid
+ * session) and 403 (session_aal2_required) mean the user must re-authenticate.
+ * Treating anything else as logged-out lets a momentary blip bounce the user to
+ * login — see issue #1747.
+ */
+function isAuthenticationFailure(error: unknown): boolean {
+  return (
+    error instanceof ResponseError &&
+    (error.response.status === 401 || error.response.status === 403)
+  );
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  // Guards against a slow in-flight response overwriting a newer one.
+  const requestIdRef = useRef(0);
 
   const checkSession = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
+    const requestId = ++requestIdRef.current;
     try {
       const kratosClient = getKratosClient();
       const sess = await kratosClient.toSession();
+      if (requestId !== requestIdRef.current) return;
       setSession(sess);
-    } catch {
-      setSession(null);
+      setError(null);
+    } catch (err) {
+      if (requestId !== requestIdRef.current) return;
+      if (isAuthenticationFailure(err)) {
+        // Genuine sign-out: clear so AuthGuard redirects to login.
+        setSession(null);
+        setError(null);
+      } else {
+        // Transient: keep the session we already have. A background blip must
+        // never unmount the app or bounce the user to login.
+        setError(
+          err instanceof Error ? err : new Error('Session check failed'),
+        );
+      }
     } finally {
-      setIsLoading(false);
+      if (requestId === requestIdRef.current) {
+        // isLoading means "have we resolved at least once". It never returns to
+        // true, so background revalidation leaves the router subtree mounted.
+        setIsLoading(false);
+      }
     }
   }, []);
 
   useEffect(() => {
     void checkSession();
-    // Re-check every 5 minutes so an expired session triggers a redirect promptly
-    const interval = setInterval(() => void checkSession(), 5 * 60 * 1000);
-    return () => clearInterval(interval);
+  }, [checkSession]);
+
+  // Revalidate when the user returns to the tab rather than on a blind timer.
+  // This still catches an expired session at the moment the user interacts,
+  // without polling a backgrounded tab (~96 requests overnight, each an extra
+  // chance to trip a transient failure).
+  useEffect(() => {
+    const revalidate = () => {
+      if (document.visibilityState === 'visible') void checkSession();
+    };
+    document.addEventListener('visibilitychange', revalidate);
+    window.addEventListener('focus', revalidate);
+    return () => {
+      document.removeEventListener('visibilitychange', revalidate);
+      window.removeEventListener('focus', revalidate);
+    };
   }, [checkSession]);
 
   const logout = useCallback(async () => {
