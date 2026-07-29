@@ -264,10 +264,31 @@ export function createTaskService(deps: TaskServiceDeps) {
               profileId: selectedProfile.id,
               teamId: row.teamId,
             });
-        } catch {
+        } catch (error) {
+          logger.error(
+            {
+              taskId,
+              attemptN,
+              profileId: selectedProfile.id,
+              teamId: row.teamId,
+              err: error,
+            },
+            'task.claim.authority_resolution_failed',
+          );
+          const statusCode =
+            typeof error === 'object' &&
+            error !== null &&
+            'statusCode' in error &&
+            typeof error.statusCode === 'number'
+              ? error.statusCode
+              : null;
           throw new TaskServiceError(
-            'conflict',
+            statusCode === 404 || statusCode === 409
+              ? 'conflict'
+              : 'unavailable',
             'Runtime profile authority could not be resolved',
+            undefined,
+            { cause: error },
           );
         }
         if (

@@ -43,8 +43,9 @@ export class TaskServiceError extends Error {
       | 'unknown_task_type',
     message: string,
     public readonly validationErrors?: TaskValidationError[],
+    options?: ErrorOptions,
   ) {
-    super(message);
+    super(message, options);
     this.name = 'TaskServiceError';
   }
 }

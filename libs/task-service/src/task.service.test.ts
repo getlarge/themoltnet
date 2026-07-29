@@ -989,6 +989,62 @@ describe('createTaskService.claim — runtime profile attestation', () => {
     },
   );
 
+  it.each([
+    {
+      upstreamError: Object.assign(new Error('profile deleted'), {
+        statusCode: 404,
+      }),
+      expectedCode: 'conflict',
+    },
+    {
+      upstreamError: new Error('keto unavailable'),
+      expectedCode: 'unavailable',
+    },
+  ])(
+    'classifies authority resolution failures as $expectedCode and preserves the cause',
+    async ({ upstreamError, expectedCode }) => {
+      mocks.runtimePolicyService.resolvePinnedAllowedTools.mockRejectedValue(
+        upstreamError,
+      );
+      const executorManifest = {
+        schemaVersion: 'moltnet:executor-manifest:v1',
+        profile: {
+          id: PROFILE_ID,
+          definitionCid: PROFILE_DEFINITION_CID,
+        },
+        runtime: { kind: 'gondolin_pi' },
+        tools: [],
+        extensions: [],
+        executables: [],
+      };
+      const executorFingerprint = computeExecutorManifestCid(executorManifest);
+
+      await expect(
+        service.claim(JUDGE_TASK, AGENT_ID, KetoNamespace.Agent, 30, {
+          profileId: PROFILE_ID,
+          executorManifest,
+          executorFingerprint,
+        }),
+      ).rejects.toMatchObject({
+        code: expectedCode,
+        message: 'Runtime profile authority could not be resolved',
+        cause: upstreamError,
+      });
+
+      expect(mocks.logger.error).toHaveBeenCalledWith(
+        {
+          taskId: JUDGE_TASK,
+          attemptN: 1,
+          profileId: PROFILE_ID,
+          teamId: TEAM_ID,
+          err: upstreamError,
+        },
+        'task.claim.authority_resolution_failed',
+      );
+      expect(mocks.taskRepository.claimIfQueued).not.toHaveBeenCalled();
+    },
+  );
+
   it('expires an elapsed queued task before claiming it', async () => {
     const expiredQueued = {
       ...makeJudgeTask(JUDGE_TASK, 'queued'),
