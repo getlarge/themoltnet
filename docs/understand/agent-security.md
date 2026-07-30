@@ -232,10 +232,19 @@ The daemon enforces tool policy through a Pi extension that gates every
    policy edit made while a task is running takes effect on the **next** session,
    not mid-run — a deliberate trade for stable, predictable enforcement during a
    run.
-3. **Gate.** For each `tool_call`, the extension runs the decision above and
+3. **Model-visible capability projection.** The same snapshot filters the
+   session's visible tools. Their tool definitions are the authoritative
+   structured-tool surface; the immutable runtime kernel adds the enforcement
+   mode and a bounded summary of shell restrictions. In `enforce`, `bash` is
+   hidden when no shell prefix is authorized. With enforcement `off`, every
+   registered tool and shell command is policy-permitted; the kernel says so
+   without asserting a static inventory of installed executables. This keeps
+   model guidance aligned with the gate without making the prompt an
+   authorization mechanism.
+4. **Gate.** For each `tool_call`, the extension runs the decision above and
    returns block/allow/audit. Blocks and audits are logged with the task and
    attempt context.
-4. **Subagents.** When a task delegates to a subagent, the **same** gate is
+5. **Subagents.** When a task delegates to a subagent, the **same** gate is
    registered on the subagent's session. Delegation cannot escape enforcement.
 
 ### Fail-closed and degraded resolution
@@ -325,6 +334,18 @@ remove tools and shell commands), `DELETE /runtime-policies/{id}`, and
 exact: `git` matches the `git` executable, not a pattern. Shell command rules
 express prefix semantics explicitly through `argvPrefix`; there are no
 wildcards, denies, or prompt rules.
+
+The task-specific `submit_*` and `subagent` tools are reserved and owned by the
+immutable executor protocol. They are always permitted and do not need to appear
+in a runtime policy:
+
+- `submit_*` can only validate and capture the active task's typed output.
+- `subagent` is registered only for task types that opt into delegation. The
+  delegated session inherits the parent's effective policy gate, model-visible
+  allowlist, runtime model, and sandbox, and cannot delegate recursively.
+
+Neither tool independently grants filesystem, network, shell, diary, or
+task-discovery capability.
 
 Shell-command authorization is not proof that a permitted command is read-only.
 A command's behavior can depend on its arguments, configuration, environment,

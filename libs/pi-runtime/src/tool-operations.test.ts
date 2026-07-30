@@ -240,7 +240,7 @@ describe('Gondolin read-only tool operations', () => {
     expect(stats).toEqual(['/workspace']);
     expect(execs[0]).toEqual([
       [
-        '/bin/rg',
+        'rg',
         '--json',
         '--line-number',
         '--color=never',

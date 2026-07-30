@@ -6,7 +6,7 @@ import {
   MetricReader,
 } from '@opentelemetry/sdk-metrics';
 import { BUILT_IN_TASK_TYPES } from '@themoltnet/agent-runtime';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   createSubmitOutputTool,
@@ -131,20 +131,18 @@ describe('createSubmitOutputTool', () => {
     expect(tool.promptGuidelines?.join('\n')).not.toContain('task prompt');
   });
 
-  it('captures a valid payload without terminating the session', async () => {
-    const handle = createSubmitOutputTool('fulfill_brief');
+  it('captures a valid payload and invokes the completion boundary', async () => {
+    const onValidCapture = vi.fn();
+    const handle = createSubmitOutputTool('fulfill_brief', { onValidCapture });
     expect(handle.getCaptured()).toBeNull();
     expect(handle.getCallCount()).toBe(0);
 
     const result = await callExecute(handle)(validFulfillBriefOutput);
 
     expect(result.isError).toBeFalsy();
-    // Submit-output capture is runtime state, not Pi session-control
-    // flow. The executor reads getCaptured() after session.prompt()
-    // resolves.
-    expect(result.terminate).not.toBe(true);
     expect(handle.getCaptured()).toEqual(validFulfillBriefOutput);
     expect(handle.getCallCount()).toBe(1);
+    expect(onValidCapture).toHaveBeenCalledTimes(1);
     expect(result.content[0].text).toContain('captured');
   });
 
@@ -182,7 +180,6 @@ describe('createSubmitOutputTool', () => {
 
     const good = await exec(validFulfillBriefOutput);
     expect(good.isError).toBeFalsy();
-    expect(good.terminate).not.toBe(true);
     expect(handle.getCaptured()).toEqual(validFulfillBriefOutput);
     expect(handle.getCallCount()).toBe(1);
   });
@@ -221,7 +218,6 @@ describe('createSubmitOutputTool', () => {
     });
 
     expect(result.isError).toBeFalsy();
-    expect(result.terminate).not.toBe(true);
     expect(handle.getCaptured()).toEqual({
       summary: 'done',
       artifacts: [{ kind: 'note', title: 'Result', body: 'done' }],
@@ -371,26 +367,28 @@ describe('createSubmitOutputTool', () => {
     });
 
     expect(result.isError).toBeFalsy();
-    expect(result.terminate).not.toBe(true);
     expect(handle.getCaptured()).toEqual({
       response: 'done',
       verification,
     });
   });
 
-  it('keeps the latest valid capture when called more than once', async () => {
-    const handle = createSubmitOutputTool('fulfill_brief');
+  it('keeps the first valid capture and completes only once', async () => {
+    const onValidCapture = vi.fn();
+    const handle = createSubmitOutputTool('fulfill_brief', { onValidCapture });
     const exec = callExecute(handle);
 
     await exec(validFulfillBriefOutput);
     const second = {
       ...validFulfillBriefOutput,
-      summary: 'second submission supersedes the first',
+      summary: 'duplicate submission must not supersede the first',
     };
-    await exec(second);
+    const duplicate = await exec(second);
 
-    expect(handle.getCaptured()).toEqual(second);
-    expect(handle.getCallCount()).toBe(2);
+    expect(duplicate.content[0].text).toContain('duplicate');
+    expect(handle.getCaptured()).toEqual(validFulfillBriefOutput);
+    expect(handle.getCallCount()).toBe(1);
+    expect(onValidCapture).toHaveBeenCalledTimes(1);
   });
 
   it('works for every built-in task type', async () => {

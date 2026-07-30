@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  buildCredentialInstructions,
   buildRuntimeKernel,
+  buildToolPolicyInstructions,
   buildWorkspaceMountInstructions,
   composeRuntimeSystemPrompt,
 } from './runtime-instructor.js';
@@ -31,6 +33,20 @@ describe('runtime kernel', () => {
     expect(out).toMatch(/GIT_CONFIG_GLOBAL/);
   });
 
+  it('omits unavailable CLI guidance from an enforced artifact-only session', () => {
+    const out = buildCredentialInstructions({
+      enforcement: 'enforce',
+      allowedTools: ['moltnet_download_task_artifact'],
+      allowedShellCommands: [],
+      degraded: false,
+    });
+
+    expect(out).toContain('/home/agent/.moltnet/<agent>/moltnet.json');
+    expect(out).not.toContain('GH_TOKEN=');
+    expect(out).not.toContain('`git push`');
+    expect(out).not.toContain('`moltnet` binary');
+  });
+
   it('frames skill packs as advisory and bounded', () => {
     const out = buildRuntimeKernel(ctx);
     expect(out).toMatch(/\/home\/agent\/\.skill\//);
@@ -50,6 +66,174 @@ describe('runtime kernel', () => {
     expect(out).not.toContain('Proactive memory use');
     expect(out).not.toContain('MoltNet-Diary: <id>');
     expect(out).not.toContain('task:correlation:');
+  });
+
+  it('makes an enforced empty policy explicit to the model', () => {
+    const out = buildRuntimeKernel({
+      ...ctx,
+      toolPolicy: {
+        enforcement: 'enforce',
+        allowedTools: ['moltnet_download_task_artifact'],
+        allowedShellCommands: [],
+        degraded: false,
+      },
+    });
+
+    expect(out).toContain('Effective runtime tool policy');
+    expect(out).toContain('authorized surface');
+    expect(out).toContain('No shell commands are authorized');
+    expect(out).toContain('`bash` is not available');
+  });
+
+  it('makes the unrestricted no-policy capability model explicit', () => {
+    const out = buildRuntimeKernel({
+      ...ctx,
+      sandbox: {
+        workspaceMode: 'shared_mount',
+        vfsShadowMode: 'none',
+        vfsShadowPatterns: [],
+        verifiedExecutables: [],
+        allowedHosts: [],
+        allowedInternalHosts: [],
+      },
+      toolPolicy: {
+        enforcement: 'off',
+        allowedTools: ['bash', 'read', 'write'],
+        allowedShellCommands: [],
+        degraded: false,
+      },
+    });
+
+    expect(out).toContain('runtime policy does not restrict visible tools');
+    expect(out).not.toContain('`bash`, `read`, `write`');
+    expect(out).toContain('discovered through the visible shell');
+    expect(out).toContain('GH_TOKEN=');
+  });
+
+  it.each(['freeform', 'fulfill_brief', 'pr_review', 'run_eval'])(
+    'projects the effective policy for %s sessions',
+    (taskType) => {
+      const out = buildRuntimeKernel({
+        ...ctx,
+        taskType,
+        toolPolicy: {
+          enforcement: 'enforce',
+          allowedTools: ['read'],
+          allowedShellCommands: [],
+          degraded: false,
+        },
+      });
+
+      expect(out).toContain(`- Task type: \`${taskType}\``);
+      expect(out).toContain('- Enforcement mode: `enforce`.');
+      expect(out).toContain('authorized surface');
+    },
+  );
+
+  it('reports effective sandbox boundaries and unavailable policy grants', () => {
+    const out = buildRuntimeKernel({
+      ...ctx,
+      sandbox: {
+        workspaceMode: 'scratch_mount',
+        vfsShadowMode: 'deny',
+        vfsShadowPatterns: ['.env*'],
+        nodeModulesWriteMode: 'tmpfs',
+        verifiedExecutables: ['git'],
+        allowedHosts: ['api.example.test'],
+        allowedInternalHosts: [],
+      },
+      toolPolicy: {
+        enforcement: 'enforce',
+        allowedTools: ['read'],
+        allowedShellCommands: [{ argvPrefix: ['git', 'diff'] }],
+        unavailableTools: ['write'],
+        unavailableShellCommands: [{ argvPrefix: ['gh', 'pr', 'view'] }],
+        degraded: false,
+      },
+    });
+
+    expect(out).toContain('Effective sandbox capabilities');
+    expect(out).toContain('Workspace mode: `scratch_mount`');
+    expect(out).toContain('VFS shadow mode: `deny` for `.env*`');
+    expect(out).toContain('Session-verified policy executables: `git`');
+    expect(out).toContain(
+      'Additional external egress hosts: `api.example.test`',
+    );
+    expect(out).toContain('session-local tmpfs');
+    expect(out).not.toContain('Policy-granted but unavailable');
+    expect(out).not.toContain('`gh pr view`');
+  });
+
+  it('lists the exact authorized shell argv prefixes', () => {
+    const out = buildToolPolicyInstructions({
+      enforcement: 'enforce',
+      allowedTools: [],
+      allowedShellCommands: [
+        { argvPrefix: ['git', 'diff'] },
+        { argvPrefix: ['gh', 'pr', 'view'] },
+      ],
+      degraded: false,
+    });
+
+    expect(out).toContain('`git diff`');
+    expect(out).toContain('`gh pr view`');
+    expect(out).toContain('does not grant broader shell authority');
+  });
+
+  it('bounds the rendered shell-prefix list', () => {
+    const out = buildToolPolicyInstructions({
+      enforcement: 'enforce',
+      allowedTools: [],
+      allowedShellCommands: Array.from({ length: 15 }, (_, index) => ({
+        argvPrefix: ['git', `command-${index}`],
+      })),
+      degraded: false,
+    });
+
+    expect(out).toContain('`git command-11`');
+    expect(out).not.toContain('`git command-12`');
+    expect(out).toContain('…and 3 more authorized prefixes');
+  });
+
+  it('describes degraded enforcement as fail-closed', () => {
+    const out = buildToolPolicyInstructions({
+      enforcement: 'enforce',
+      allowedTools: [],
+      allowedShellCommands: [],
+      degraded: true,
+    });
+
+    expect(out).toContain('Policy resolution degraded');
+    expect(out).toContain('fail-closed');
+  });
+
+  it('describes watch policy as observational and trusts runtime inventory', () => {
+    const out = buildRuntimeKernel({
+      ...ctx,
+      sandbox: {
+        workspaceMode: 'shared_mount',
+        vfsShadowMode: 'none',
+        vfsShadowPatterns: [],
+        verifiedExecutables: ['git'],
+        allowedHosts: [],
+        allowedInternalHosts: [],
+      },
+      toolPolicy: {
+        enforcement: 'watch',
+        allowedTools: ['bash', 'read'],
+        allowedShellCommands: [{ argvPrefix: ['gh', 'pr', 'view'] }],
+        degraded: false,
+      },
+    });
+
+    expect(out).toContain(
+      'Watch mode records policy decisions but does not block tool calls',
+    );
+    expect(out).toContain(
+      'Watch-mode probes are diagnostic, not an executable',
+    );
+    expect(out).not.toContain('GH_TOKEN=');
+    expect(out).toContain('authorized `git push`');
   });
 
   it('places profile prompt context before the kernel', () => {

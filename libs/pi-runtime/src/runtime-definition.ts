@@ -363,7 +363,7 @@ export async function materializePiTools(input: {
   runtime: PiRuntimeDefinition;
   context: PiToolContext;
   target: 'parent' | 'subagent';
-  policy?: { enforcement: ToolEnforcement; allowedTools: ReadonlySet<string> };
+  policy?: ModelVisibleToolPolicy;
 }): Promise<ToolDefinition[]> {
   const contributions = input.runtime.tools.filter(
     (tool) =>
@@ -387,7 +387,7 @@ export async function materializePiExtensions(input: {
   runtime: PiRuntimeDefinition;
   context: PiToolContext;
   target: 'parent' | 'subagent';
-  policy?: { enforcement: ToolEnforcement; allowedTools: ReadonlySet<string> };
+  policy?: ModelVisibleToolPolicy;
 }): Promise<PiExtensionFactory[]> {
   const contributions = input.runtime.extensions.filter(
     (extension) =>
@@ -403,7 +403,7 @@ export async function materializePiExtensions(input: {
 
 export function filterModelVisibleTools(
   tools: readonly ToolDefinition[],
-  policy?: { enforcement: ToolEnforcement; allowedTools: ReadonlySet<string> },
+  policy?: ModelVisibleToolPolicy,
 ): ToolDefinition[] {
   return tools.filter(
     (tool) => isKernelTool(tool.name) || isToolVisible(tool.name, policy),
@@ -413,9 +413,18 @@ export function filterModelVisibleTools(
 export function enabledPiToolNames(input: {
   tools: readonly ToolDefinition[];
   extensions?: readonly PiExtensionContribution[];
-  policy?: { enforcement: ToolEnforcement; allowedTools: ReadonlySet<string> };
+  policy?: ModelVisibleToolPolicy;
 }): string[] | undefined {
   if (!input.policy || input.policy.enforcement !== 'enforce') return undefined;
+  return modelVisiblePiToolNames(input);
+}
+
+/** Exact tool names the selected runtime and effective policy expose. */
+export function modelVisiblePiToolNames(input: {
+  tools: readonly ToolDefinition[];
+  extensions?: readonly PiExtensionContribution[];
+  policy?: ModelVisibleToolPolicy;
+}): string[] {
   return [
     ...new Set([
       ...input.tools.map((tool) => tool.name),
@@ -430,26 +439,35 @@ export function enabledPiToolNames(input: {
 
 export function isToolVisible(
   name: string,
-  policy?: { enforcement: ToolEnforcement; allowedTools: ReadonlySet<string> },
+  policy?: ModelVisibleToolPolicy,
 ): boolean {
   if (!policy || policy.enforcement !== 'enforce') return true;
-  // Bash remains model-visible so ShellCommandAnalyzer can enforce the
-  // executable-level policy at the command boundary. Hiding it here would
-  // bypass that finer-grained gate rather than strengthening enforcement.
-  if (name === 'bash') return true;
+  // Bash is useful only when at least one command prefix is authorized. The
+  // analyzer still gates every visible bash call, but an empty shell policy
+  // should not tempt the model with a tool that can never succeed.
+  if (name === 'bash') {
+    return (
+      policy.allowedShellCommands === undefined ||
+      policy.allowedShellCommands.length > 0
+    );
+  }
   return policy.allowedTools.has(name);
 }
 
+export interface ModelVisibleToolPolicy {
+  enforcement: ToolEnforcement;
+  allowedTools: ReadonlySet<string>;
+  allowedShellCommands?: readonly { argvPrefix: readonly string[] }[];
+}
+
 export function isKernelTool(name: string): boolean {
-  return name.startsWith('submit_');
+  return name.startsWith('submit_') || name === 'subagent';
 }
 
 function wrapExtensionFactory(
   factory: PiExtensionFactory,
   contribution: PiExtensionContribution,
-  policy:
-    | { enforcement: ToolEnforcement; allowedTools: ReadonlySet<string> }
-    | undefined,
+  policy: ModelVisibleToolPolicy | undefined,
 ): PiExtensionFactory {
   return (pi) => {
     const registered = new Set<string>();
@@ -488,7 +506,7 @@ function claimToolName(
   name: string,
   owner: string,
 ): void {
-  if (isKernelTool(name) || name === 'subagent') {
+  if (isKernelTool(name)) {
     throw new Error(`Pi tool name "${name}" is reserved by the runtime kernel`);
   }
   const previous = names.get(name);

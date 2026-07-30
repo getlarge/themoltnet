@@ -342,7 +342,6 @@ describe('moltnet_download_task_artifact', () => {
     const cwd = await mkdtemp(path.join(tmpdir(), 'moltnet-pi-artifact-'));
     const capturedDownloads: CapturedDownloadPath[] = [];
     try {
-      await mkdir(path.join(cwd, 'inputs'));
       const tool = findTool(
         makeConfig({ cwd, capturedDownloads }),
         'moltnet_download_task_artifact',
@@ -351,11 +350,11 @@ describe('moltnet_download_task_artifact', () => {
       const result = await callTool(tool, {
         attemptN: 2,
         cid: 'bafkreia',
-        outputPath: 'inputs/result.txt',
+        outputPath: 'scratch/inputs/result.txt',
       });
 
       await expect(
-        readFile(path.join(cwd, 'inputs/result.txt'), 'utf8'),
+        readFile(path.join(cwd, 'scratch/inputs/result.txt'), 'utf8'),
       ).resolves.toBe('artifact bytes');
       expect(JSON.stringify(result)).toContain('result.txt');
       expect(JSON.stringify(result)).toContain('artifact-1');
@@ -542,6 +541,32 @@ describe('moltnet_download_task_artifact', () => {
           outputPath: path.join(outside, 'result.txt'),
         }),
       ).rejects.toThrow(/escapes workspace/i);
+    } finally {
+      await rm(cwd, { force: true, recursive: true });
+      await rm(outside, { force: true, recursive: true });
+    }
+  });
+
+  it('rejects a missing child beneath a symlink that escapes the workspace', async () => {
+    const cwd = await mkdtemp(path.join(tmpdir(), 'moltnet-pi-artifact-'));
+    const outside = await mkdtemp(path.join(tmpdir(), 'moltnet-pi-outside-'));
+    try {
+      await symlink(outside, path.join(cwd, 'outside-link'));
+      const tool = findTool(
+        makeConfig({ cwd }),
+        'moltnet_download_task_artifact',
+      );
+
+      await expect(
+        callTool(tool, {
+          attemptN: 2,
+          cid: 'bafkreia',
+          outputPath: 'outside-link/nested/result.txt',
+        }),
+      ).rejects.toThrow(/escapes workspace/i);
+      await expect(access(path.join(outside, 'nested'))).rejects.toMatchObject({
+        code: 'ENOENT',
+      });
     } finally {
       await rm(cwd, { force: true, recursive: true });
       await rm(outside, { force: true, recursive: true });

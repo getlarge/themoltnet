@@ -151,23 +151,45 @@ describe('Pi runtime definitions', () => {
       { name: 'write' },
       { name: 'bash' },
       { name: 'submit_freeform' },
+      { name: 'subagent' },
     ] as never[];
 
     expect(
       filterModelVisibleTools(tools, {
         enforcement: 'enforce',
         allowedTools: new Set(['read']),
+        allowedShellCommands: [{ argvPrefix: ['git', 'diff'] }],
       }).map(({ name }) => name),
-    ).toEqual(['read', 'bash', 'submit_freeform']);
+    ).toEqual(['read', 'bash', 'submit_freeform', 'subagent']);
   });
 
-  it('keeps bash visible because command policy is enforced inside its gate', () => {
+  it('hides bash when no shell command prefix is authorized', () => {
     expect(
       filterModelVisibleTools([{ name: 'bash' }] as never[], {
         enforcement: 'enforce',
         allowedTools: new Set(),
+        allowedShellCommands: [],
+      }).map(({ name }) => name),
+    ).toEqual([]);
+  });
+
+  it('keeps bash visible when the analyzer has an authorized command', () => {
+    expect(
+      filterModelVisibleTools([{ name: 'bash' }] as never[], {
+        enforcement: 'enforce',
+        allowedTools: new Set(),
+        allowedShellCommands: [{ argvPrefix: ['git', 'diff'] }],
       }).map(({ name }) => name),
     ).toEqual(['bash']);
+  });
+
+  it('preserves the legacy policy shape where shell commands were omitted', () => {
+    expect(
+      filterModelVisibleTools([{ name: 'bash' }, { name: 'read' }] as never[], {
+        enforcement: 'enforce',
+        allowedTools: new Set(['read']),
+      }).map(({ name }) => name),
+    ).toEqual(['bash', 'read']);
   });
 
   it('rejects extension registrations that differ from declarations', async () => {

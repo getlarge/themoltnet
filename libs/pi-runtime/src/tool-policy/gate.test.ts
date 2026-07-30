@@ -73,6 +73,23 @@ describe('decideToolCall', () => {
     ).toEqual({ allow: true });
   });
 
+  it('always allows the runtime-owned typed submit protocol', () => {
+    expect(
+      decideToolCall(
+        base({
+          toolName: 'submit_freeform_output',
+          allowedTools: set([]),
+        }),
+      ),
+    ).toEqual({ allow: true });
+  });
+
+  it('always allows task-type-gated delegation without widening child policy', () => {
+    expect(
+      decideToolCall(base({ toolName: 'subagent', allowedTools: set([]) })),
+    ).toEqual({ allow: true });
+  });
+
   it('enforce blocks an unlisted structured tool', () => {
     expect(
       decideToolCall(base({ toolName: 'write', allowedTools: set(['read']) })),

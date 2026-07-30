@@ -7,7 +7,7 @@
  */
 import { execFileSync } from 'node:child_process';
 import { createReadStream, createWriteStream } from 'node:fs';
-import { realpath, stat } from 'node:fs/promises';
+import { mkdir, realpath, stat } from 'node:fs/promises';
 import path from 'node:path';
 import type { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
@@ -17,6 +17,7 @@ import type { ToolDefinition } from '@earendil-works/pi-coding-agent';
 import { defineTool } from '@earendil-works/pi-coding-agent';
 import type { connect } from '@themoltnet/sdk';
 
+import { isResolvedPathInsideRoot } from '../path-containment.js';
 import { type ExpandedPack, renderPhase6Markdown } from './render-phase6.js';
 
 type MoltNetAgent = Awaited<ReturnType<typeof connect>>;
@@ -277,15 +278,60 @@ async function resolveWorkspaceOutputPath(
   const resolved = path.isAbsolute(filePath)
     ? path.resolve(filePath)
     : path.resolve(cwd, filePath);
-  const [realCwd, realParent] = await Promise.all([
-    realpath(cwd),
-    realpath(path.dirname(resolved)),
-  ]);
-  const rel = path.relative(realCwd, realParent);
-  if (rel.startsWith('..') || path.isAbsolute(rel)) {
+  const workspaceRoot = path.resolve(cwd);
+  const lexicalRel = path.relative(workspaceRoot, resolved);
+  if (
+    lexicalRel === '' ||
+    lexicalRel.startsWith('..') ||
+    path.isAbsolute(lexicalRel)
+  ) {
     throw new Error(`task artifact output path escapes workspace: ${filePath}`);
   }
+  const realCwd = await realpath(cwd);
+  const parent = path.dirname(resolved);
+  const existingAncestor = await findExistingAncestor(parent);
+  assertPathInsideWorkspace(realCwd, existingAncestor, filePath);
+  await mkdir(parent, { recursive: true });
+  const realParent = await realpath(parent);
+  assertPathInsideWorkspace(realCwd, realParent, filePath);
   return resolved;
+}
+
+async function findExistingAncestor(candidate: string): Promise<string> {
+  let current = candidate;
+  for (;;) {
+    try {
+      return await realpath(current);
+    } catch (err) {
+      if (
+        !err ||
+        typeof err !== 'object' ||
+        !('code' in err) ||
+        err.code !== 'ENOENT'
+      ) {
+        throw err;
+      }
+    }
+    const parent = path.dirname(current);
+    if (parent === current) {
+      throw new Error(
+        `task artifact output has no existing ancestor: ${candidate}`,
+      );
+    }
+    current = parent;
+  }
+}
+
+function assertPathInsideWorkspace(
+  realCwd: string,
+  realPath: string,
+  displayPath: string,
+): void {
+  if (!isResolvedPathInsideRoot(realPath, realCwd)) {
+    throw new Error(
+      `task artifact output path escapes workspace: ${displayPath}`,
+    );
+  }
 }
 
 interface TaskFilterShorthand {

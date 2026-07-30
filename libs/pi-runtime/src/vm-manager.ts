@@ -15,6 +15,7 @@ import {
 } from '@earendil-works/gondolin';
 
 import { abortableResource, delay, throwIfAborted } from './abort-utils.js';
+import { resolvePiCodingAgentDir } from './config.js';
 import type { ResumeCommand, SandboxConfig } from './snapshot.js';
 
 /**
@@ -101,6 +102,21 @@ export interface ManagedVm {
   mountPath: string;
   guestWorkspace: string;
   agentDir: string;
+}
+
+export function resolveVfsShadowConfig(
+  config: SandboxConfig | undefined,
+):
+  | { mode: 'none'; patterns: [] }
+  | { mode: 'deny' | 'tmpfs'; patterns: string[] } {
+  const patterns = config?.vfs?.shadow ?? [];
+  if (patterns.length === 0) {
+    return { mode: 'none', patterns: [] };
+  }
+  return {
+    mode: config?.vfs?.shadowMode ?? 'tmpfs',
+    patterns,
+  };
 }
 
 export function shouldRunResumeCommand(
@@ -225,9 +241,7 @@ export function loadCredentials(agentDir: string): VmCredentials {
   // Pi auth resolution: use the agent dir Pi already expects. CI writes
   // `auth.json` under `PI_CODING_AGENT_DIR`; local runs fall back to the
   // canonical `~/.pi/agent` dir when the override is unset.
-  const piAgentDir =
-    process.env.PI_CODING_AGENT_DIR ??
-    path.join(process.env.HOME ?? '', '.pi', 'agent');
+  const piAgentDir = resolvePiCodingAgentDir();
   const piAuthPath = path.join(piAgentDir, 'auth.json');
   const piAuthJson = existsSync(piAuthPath)
     ? readFileSync(piAuthPath, 'utf8')
@@ -497,7 +511,7 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
   // bridge. Keep this layer closest to RealFSProvider so stricter caller
   // shadows, such as read-only `shadowMode: 'deny'` workspace attachments,
   // still wrap it and remain authoritative.
-  const vfsConfig = config.sandboxConfig?.vfs;
+  const vfsConfig = resolveVfsShadowConfig(config.sandboxConfig);
   let workspaceProvider: RealFSProvider | ShadowProvider = new RealFSProvider(
     config.mountPath,
   );
@@ -508,11 +522,11 @@ export async function resumeVm(config: VmConfig): Promise<ManagedVm> {
     tmpfs: new AutoParentMemoryProvider(),
     writeMode: 'tmpfs',
   });
-  if (vfsConfig?.shadow?.length) {
-    const predicate = createShadowPathPredicate(vfsConfig.shadow);
+  if (vfsConfig.mode !== 'none') {
+    const predicate = createShadowPathPredicate(vfsConfig.patterns);
     workspaceProvider = new ShadowProvider(workspaceProvider, {
       shouldShadow: predicate,
-      writeMode: vfsConfig.shadowMode ?? 'tmpfs',
+      writeMode: vfsConfig.mode,
     });
   }
 

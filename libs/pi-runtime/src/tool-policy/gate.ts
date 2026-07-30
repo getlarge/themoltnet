@@ -95,6 +95,15 @@ export interface MissingShellCommand {
  */
 export function decideToolCall(input: GateInput): GateDecision {
   if (input.enforcement === 'off') return { allow: true };
+  // Task-specific submit and delegation tools are part of the immutable
+  // executor protocol, not operator-granted external capabilities. Runtime
+  // definitions reserve these names, and `subagent` is only registered for
+  // task types that opt into delegation. The child session inherits this same
+  // gate, so delegation cannot widen filesystem, shell, network, or MoltNet
+  // authority.
+  if (input.toolName.startsWith('submit_') || input.toolName === 'subagent') {
+    return { allow: true };
+  }
 
   const resolved = resolveNames(input);
   if (resolved.kind === 'unresolvable') {

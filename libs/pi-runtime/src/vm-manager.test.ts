@@ -24,12 +24,34 @@ import {
   AutoParentMemoryProvider,
   findMainWorktree,
   loadCredentials,
+  resolveVfsShadowConfig,
   resolveVmAgentDir,
   rewriteGitconfigPaths,
   rewriteMoltnetJsonPaths,
   shouldRunResumeCommand,
   shouldShadowNodeModulesPath,
 } from './vm-manager.js';
+
+describe('resolveVfsShadowConfig', () => {
+  it('matches VM defaults for configured and absent shadows', () => {
+    expect(resolveVfsShadowConfig(undefined)).toEqual({
+      mode: 'none',
+      patterns: [],
+    });
+    expect(resolveVfsShadowConfig({ vfs: { shadow: ['.env*'] } })).toEqual({
+      mode: 'tmpfs',
+      patterns: ['.env*'],
+    });
+    expect(
+      resolveVfsShadowConfig({
+        vfs: { shadow: ['.env*'], shadowMode: 'deny' },
+      }),
+    ).toEqual({
+      mode: 'deny',
+      patterns: ['.env*'],
+    });
+  });
+});
 
 // ---------------------------------------------------------------------------
 // rewriteMoltnetJsonPaths

@@ -36,6 +36,7 @@ import type { Api, Model } from '@earendil-works/pi-ai';
 import type {
   AgentSession,
   ExtensionAPI,
+  ModelRegistry,
   ToolDefinition,
 } from '@earendil-works/pi-coding-agent';
 import { defineTool } from '@earendil-works/pi-coding-agent';
@@ -95,6 +96,8 @@ export interface CreateSubagentToolArgs {
   piAuthDir: string;
   /** Resolved pi model handle — subagents share it. */
   modelHandle: Model<Api>;
+  /** Registry that resolved modelHandle — subagents share it. */
+  modelRegistry?: ModelRegistry;
   /** Runtime-profile thinking/reasoning level — subagents inherit it. */
   thinkingLevel?: PiThinkingLevel | null;
   /** Runtime-profile sampling temperature — subagents inherit it. */
@@ -336,6 +339,7 @@ export function createSubagentTool(
         cwdPath: args.cwdPath ?? args.mountPath,
         piAuthDir: args.piAuthDir,
         modelHandle: args.modelHandle,
+        modelRegistry: args.modelRegistry,
         thinkingLevel: args.thinkingLevel,
         temperature: args.temperature,
         topP: args.topP,

@@ -62,11 +62,13 @@ describe('buildAgentSession', () => {
   });
 
   it('continues the persistent session by default', async () => {
+    const modelRegistry = {};
     await buildAgentSession({
       mountPath: '/guest/workspace',
       cwdPath: '/guest/workspace',
       piAuthDir: '/agent',
       modelHandle: {} as never,
+      modelRegistry: modelRegistry as never,
       thinkingLevel: 'high',
       customTools: [],
       appendSystemPrompt: ['runtime'],
@@ -82,7 +84,10 @@ describe('buildAgentSession', () => {
     );
     expect(forkFrom).not.toHaveBeenCalled();
     expect(createAgentSession).toHaveBeenCalledWith(
-      expect.objectContaining({ thinkingLevel: 'high' }),
+      expect.objectContaining({
+        thinkingLevel: 'high',
+        modelRegistry,
+      }),
     );
   });
 
@@ -92,6 +97,7 @@ describe('buildAgentSession', () => {
       cwdPath: '/guest/workspace',
       piAuthDir: '/agent',
       modelHandle: {} as never,
+      modelRegistry: {} as never,
       customTools: [],
       appendSystemPrompt: ['runtime'],
       otelSpanAttrs: {},
@@ -103,6 +109,7 @@ describe('buildAgentSession', () => {
       cwdPath: '/guest/workspace',
       piAuthDir: '/agent',
       modelHandle: {} as never,
+      modelRegistry: {} as never,
       temperature: 0.2,
       topP: 0.9,
       topK: 40,
@@ -117,12 +124,30 @@ describe('buildAgentSession', () => {
     expect(resourceLoaderArgs[1]?.extensionFactories).toHaveLength(2);
   });
 
+  it('keeps modelRegistry optional for existing callers', async () => {
+    await buildAgentSession({
+      mountPath: '/guest/workspace',
+      cwdPath: '/guest/workspace',
+      piAuthDir: '/agent',
+      modelHandle: {} as never,
+      customTools: [],
+      appendSystemPrompt: ['runtime'],
+      otelSpanAttrs: {},
+      agentName: 'legacy-caller',
+    });
+
+    expect(createAgentSession).toHaveBeenCalledWith(
+      expect.not.objectContaining({ modelRegistry: expect.anything() }),
+    );
+  });
+
   it('forks from the producer session when requested', async () => {
     await buildAgentSession({
       mountPath: '/guest/workspace',
       cwdPath: '/guest/workspace',
       piAuthDir: '/agent',
       modelHandle: {} as never,
+      modelRegistry: {} as never,
       customTools: [],
       appendSystemPrompt: ['runtime'],
       otelSpanAttrs: {},

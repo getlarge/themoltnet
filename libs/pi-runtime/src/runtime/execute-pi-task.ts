@@ -14,11 +14,9 @@
  * Anthropic-SDK one) plug in via the `executeTask` function injected into
  * `AgentRuntime`.
  */
-import { homedir } from 'node:os';
-import { isAbsolute, join, resolve } from 'node:path';
+import { isAbsolute, resolve } from 'node:path';
 
 import type { VM } from '@earendil-works/gondolin';
-import { type Api, getModel, type Model } from '@earendil-works/pi-ai';
 import type {
   AgentSession,
   ToolDefinition,
@@ -50,6 +48,7 @@ import {
 import { connect } from '@themoltnet/sdk';
 import { ShellCommandAnalyzer } from '@themoltnet/shell-command-analyzer';
 
+import { resolvePiCodingAgentDir } from '../config.js';
 import {
   createMoltNetTools,
   HOST_EXEC_DEFAULT_BASE_ENV,
@@ -70,6 +69,7 @@ import {
   filterModelVisibleTools,
   materializePiExtensions,
   materializePiTools,
+  modelVisiblePiToolNames,
   type PiRuntimeDefinition,
   type ResolvedGondolinTemplate,
 } from '../runtime-definition.js';
@@ -90,15 +90,28 @@ import {
   resolveSessionToolPolicy,
   type ToolPolicyLogger,
 } from '../tool-policy/session-policy.js';
-import { activateAgentEnv, resumeVm } from '../vm-manager.js';
+import {
+  activateAgentEnv,
+  resolveVfsShadowConfig,
+  resumeVm,
+} from '../vm-manager.js';
 import { buildAgentSession } from './agent-session-factory.js';
+import {
+  discoverGuestExecutables,
+  GuestExecutableProbeError,
+} from './capability-discovery.js';
 import type { PiTaskExecutionPlanFactory } from './execution-plan.js';
+import {
+  resolveRuntimeProfileModel,
+  RuntimeProfileModelResolutionError,
+} from './model-selection.js';
 import type { PiThinkingLevel } from './pi-thinking-level.js';
 import {
   type ContinueFromPointer,
   resolvePriorContext,
 } from './resolve-prior-context.js';
 import { redactRetryTriageSecrets } from './retry-triage.js';
+import { projectRuntimeCapabilities } from './runtime-capability-projection.js';
 import {
   type InjectedRuntimeContext,
   injectRuntimeContext,
@@ -112,6 +125,7 @@ import {
   createSubagentTool,
   type SubagentToolHandle,
 } from './subagent-tool.js';
+import { createSubmitCompletionCoordinator } from './submit-completion-coordinator.js';
 import {
   resolveSubmitTools,
   type SubmitOutputToolHandle,
@@ -557,6 +571,7 @@ export async function executePiTask(
     code: string,
     message: string,
     usage: TaskUsage = finalUsage,
+    retryable = false,
   ): TaskOutput => ({
     taskId: task.id,
     attemptN: attemptN,
@@ -565,7 +580,7 @@ export async function executePiTask(
     outputCid: null,
     usage,
     durationMs: Date.now() - startTime,
-    error: { code, message, retryable: false },
+    error: { code, message, retryable },
   });
   const makeCancelledOutput = (message: string): TaskOutput => ({
     taskId: task.id,
@@ -630,6 +645,7 @@ export async function executePiTask(
     // failures can surface as task messages instead of only daemon logs.
     let checkpointPath: string;
     let resolvedVmTemplate = opts.resolvedVmTemplate;
+    let effectiveSandboxConfig: SandboxConfig | undefined;
     try {
       if (!resolvedVmTemplate && opts.runtimeDefinition) {
         resolvedVmTemplate = opts.resolveVmTemplate
@@ -670,7 +686,7 @@ export async function executePiTask(
     }
 
     try {
-      const sandboxConfig = applyExecutionPlanSandboxOverrides(
+      effectiveSandboxConfig = applyExecutionPlanSandboxOverrides(
         resolvedVmTemplate
           ? {
               ...opts.sandboxConfig,
@@ -687,7 +703,7 @@ export async function executePiTask(
         mountPath,
         workspaceMode: workspace.mode,
         extraAllowedHosts: opts.extraAllowedHosts,
-        sandboxConfig,
+        sandboxConfig: effectiveSandboxConfig,
         forwardEnv: opts.forwardEnv,
         signal: reporter.cancelSignal,
       });
@@ -867,12 +883,24 @@ export async function executePiTask(
     // submit call is required to complete the attempt; the legacy
     // parser fallback is only consulted when the task type has no
     // registered output schema (resolveSubmitTools returns null).
+    const submitCompletion = createSubmitCompletionCoordinator({
+      onDrained: () => session?.abort(),
+      onError: async (err) => {
+        const message = err instanceof Error ? err.message : String(err);
+        await emitError('submit_output_abort', message, {
+          event: 'submit_output_abort_failed',
+        });
+      },
+    });
     const { handle: submitToolHandle, tools: submitToolDefs } =
       resolveSubmitTools(task.taskType, {
         model: opts.model,
         input: task.input,
         inputCid: task.inputCid,
         maxSubmitValidationRetries: opts.maxSubmitValidationRetries,
+        onValidCapture: () => {
+          submitCompletion.requestCompletion();
+        },
       });
     const submitTools: ToolDefinition[] =
       submitToolDefs as unknown as ToolDefinition[];
@@ -929,13 +957,13 @@ export async function executePiTask(
       // call. Honor PI_CODING_AGENT_DIR when set; otherwise fall back
       // to the canonical home-rooted path so local `pi /login` flows
       // continue to work unchanged.
-      const piAuthDir =
-        process.env.PI_CODING_AGENT_DIR ?? join(homedir(), '.pi', 'agent');
-      const getModelLoose = getModel as unknown as (
-        provider: string,
-        modelId: string,
-      ) => Model<Api>;
-      const modelHandle = getModelLoose(opts.provider, opts.model);
+      const piAuthDir = resolvePiCodingAgentDir();
+      const { modelHandle, modelRegistry } = resolveRuntimeProfileModel(
+        piAuthDir,
+        opts.provider,
+        opts.model,
+        opts.runtimeProfileId,
+      );
 
       // Daemon-controlled runtime isolation (issue #979 + #943 slice 1.5):
       //  - Runtime-profile prompt context is operator-selected guidance.
@@ -947,19 +975,6 @@ export async function executePiTask(
       //    (`cwd/.pi/skills`, `~/.pi/agent/skills`, …) are discarded so
       //    untrusted local prose never appears as a `<location>` pointer
       //    in the system prompt's `<available_skills>` block.
-      const runtimeKernel = buildRuntimeKernel({
-        taskId: task.id,
-        taskType: task.taskType,
-        attemptN,
-        diaryId,
-        agentName: opts.agentName,
-        guestWorkspace: managed.guestWorkspace,
-        correlationId: task.correlationId ?? null,
-      });
-      const appendSystemPrompt = composeRuntimeSystemPrompt({
-        profilePromptPrefix: injectedContext.systemPromptPrefix,
-        kernel: runtimeKernel,
-      });
       const injectedSkills = injectedContext.skills;
 
       // Resolve the runtime profile's tool-policy allow-set and build the
@@ -973,20 +988,22 @@ export async function executePiTask(
       let resolvedToolPolicy:
         | Awaited<ReturnType<typeof resolveSessionToolPolicy>>
         | undefined;
+      let unavailableRuntimeShellCommands: Array<{
+        argvPrefix: readonly [string, string, ...string[]];
+      }> = [];
+      let verifiedGuestExecutables: string[] = [];
+      const toolPolicyLogger: ToolPolicyLogger = opts.toolPolicyLogger ?? {
+        debug: () => {},
+        info: (obj: Record<string, unknown>, msg: string) =>
+          console.error(JSON.stringify({ level: 'info', msg, ...obj })),
+        warn: (obj: Record<string, unknown>, msg: string) =>
+          console.error(JSON.stringify({ level: 'warn', msg, ...obj })),
+      };
       if (
         opts.runtimeProfileId &&
         opts.toolEnforcement &&
         opts.toolEnforcement !== 'off'
       ) {
-        // Prefer the daemon's task-bound structured logger; fall back to raw
-        // NDJSON on stderr for single-process / test callers.
-        const toolPolicyLogger: ToolPolicyLogger = opts.toolPolicyLogger ?? {
-          debug: () => {},
-          info: (obj: Record<string, unknown>, msg: string) =>
-            console.error(JSON.stringify({ level: 'info', msg, ...obj })),
-          warn: (obj: Record<string, unknown>, msg: string) =>
-            console.error(JSON.stringify({ level: 'warn', msg, ...obj })),
-        };
         const [analyzer, policy] = await Promise.all([
           ShellCommandAnalyzer.create(),
           resolveSessionToolPolicy({
@@ -998,10 +1015,30 @@ export async function executePiTask(
             logger: toolPolicyLogger,
           }),
         ]);
-        resolvedToolPolicy = policy;
+        const executableCapabilities = await discoverGuestExecutables(
+          managed.vm,
+          [
+            ...policy.allowedShellCommands.map(
+              ({ argvPrefix }) => argvPrefix[0],
+            ),
+            ...(policy.enforcement === 'watch'
+              ? (resolvedVmTemplate?.executables ?? [])
+              : []),
+          ],
+          { signal: reporter.cancelSignal },
+        );
+        verifiedGuestExecutables = executableCapabilities.available;
+        const availableExecutables = new Set(verifiedGuestExecutables);
+        const allowedShellCommands = policy.allowedShellCommands.filter(
+          ({ argvPrefix }) => availableExecutables.has(argvPrefix[0]),
+        );
+        unavailableRuntimeShellCommands = policy.allowedShellCommands.filter(
+          ({ argvPrefix }) => !availableExecutables.has(argvPrefix[0]),
+        );
+        resolvedToolPolicy = { ...policy, allowedShellCommands };
         toolPolicyExtensions.push(
           createToolPolicyExtension({
-            policy,
+            policy: resolvedToolPolicy,
             analyzer,
             logger: toolPolicyLogger,
           }),
@@ -1052,6 +1089,71 @@ export async function executePiTask(
         [...gondolinCustomTools, ...moltnetTools],
         resolvedToolPolicy,
       );
+      const taskHasSubagents = taskTypeUsesSubagents(task.taskType);
+      const plannedParentTools = [
+        ...visibleBaseTools,
+        ...runtimeParentTools,
+        ...submitTools,
+        ...(taskHasSubagents ? [{ name: 'subagent' } as ToolDefinition] : []),
+      ];
+      const visibleParentToolNames = modelVisiblePiToolNames({
+        tools: plannedParentTools,
+        extensions: opts.runtimeDefinition?.extensions,
+        policy: resolvedToolPolicy,
+      });
+      const capabilityProjection = projectRuntimeCapabilities({
+        policy: resolvedToolPolicy,
+        visibleToolNames: visibleParentToolNames,
+        unavailableShellCommands: unavailableRuntimeShellCommands,
+      });
+      if (
+        capabilityProjection.unavailableTools.length > 0 ||
+        capabilityProjection.unavailableExecutables.length > 0
+      ) {
+        const diagnostics = {
+          runtimeProfileId: opts.runtimeProfileId,
+          unavailableTools: capabilityProjection.unavailableTools,
+          unavailableExecutables: capabilityProjection.unavailableExecutables,
+          droppedShellCommandCount:
+            capabilityProjection.droppedShellCommandCount,
+        };
+        toolPolicyLogger.warn(
+          diagnostics,
+          'Runtime policy grants unavailable capabilities',
+        );
+        await emit('info', {
+          event: 'runtime_capabilities_unavailable',
+          ...diagnostics,
+        });
+      }
+      const vfsShadow = resolveVfsShadowConfig(effectiveSandboxConfig);
+      const runtimeKernel = buildRuntimeKernel({
+        taskId: task.id,
+        taskType: task.taskType,
+        attemptN,
+        diaryId,
+        agentName: opts.agentName,
+        guestWorkspace: managed.guestWorkspace,
+        correlationId: task.correlationId ?? null,
+        sandbox: {
+          workspaceMode: activeWorkspace.mode,
+          vfsShadowMode: vfsShadow.mode,
+          vfsShadowPatterns: vfsShadow.patterns,
+          nodeModulesWriteMode: 'tmpfs',
+          verifiedExecutables: verifiedGuestExecutables,
+          allowedHosts: [
+            ...(effectiveSandboxConfig?.network?.allowedHosts ?? []),
+            ...(opts.extraAllowedHosts ?? []),
+          ],
+          allowedInternalHosts:
+            effectiveSandboxConfig?.network?.allowedInternalHosts ?? [],
+        },
+        toolPolicy: capabilityProjection.instructorPolicy,
+      });
+      const appendSystemPrompt = composeRuntimeSystemPrompt({
+        profilePromptPrefix: injectedContext.systemPromptPrefix,
+        kernel: runtimeKernel,
+      });
 
       // Subagent custom tool — registered only when the task type opts
       // in via TaskTypeEntry.usesSubagents (#1087). The subagent
@@ -1059,12 +1161,13 @@ export async function executePiTask(
       // submit-output tool (different schema) nor the subagent tool
       // itself (no nested delegation in v1).
       const parentSubagentTools: ToolDefinition[] = [];
-      if (taskTypeUsesSubagents(task.taskType)) {
+      if (taskHasSubagents) {
         subagentHandle = createSubagentTool({
           mountPath,
           cwdPath,
           piAuthDir,
           modelHandle,
+          modelRegistry,
           thinkingLevel: opts.thinkingLevel,
           temperature: opts.temperature,
           topP: opts.topP,
@@ -1112,6 +1215,7 @@ export async function executePiTask(
         cwdPath,
         piAuthDir,
         modelHandle,
+        modelRegistry,
         thinkingLevel: opts.thinkingLevel,
         temperature: opts.temperature,
         topP: opts.topP,
@@ -1137,11 +1241,23 @@ export async function executePiTask(
         extraExtensionFactories: [
           ...runtimeParentExtensions,
           ...toolPolicyExtensions,
+          submitCompletion.extension,
         ],
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       await emit('error', { message, phase: 'session_setup' });
+      if (reporter.cancelSignal.aborted) {
+        return makeCancelledOutput(
+          reporter.cancelReason ?? 'Task cancelled during session setup.',
+        );
+      }
+      if (err instanceof RuntimeProfileModelResolutionError) {
+        return makeFailedOutput('invalid_model', message);
+      }
+      if (err instanceof GuestExecutableProbeError) {
+        return makeFailedOutput(err.code, message, finalUsage, true);
+      }
       return makeFailedOutput('session_setup_failed', message);
     }
 

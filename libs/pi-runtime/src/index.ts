@@ -6,6 +6,7 @@ export {
   type TrackedError,
 } from './moltnet/tools.js';
 export { createPiOtelExtension, type PiOtelOptions } from './otel/index.js';
+export { isResolvedPathInsideRoot } from './path-containment.js';
 export { buildAgentSession } from './runtime/agent-session-factory.js';
 export {
   createGondolinToolDefinitions,
@@ -71,6 +72,7 @@ export {
   isToolVisible,
   materializePiExtensions,
   materializePiTools,
+  type ModelVisibleToolPolicy,
   PI_EXECUTOR_MANIFEST_VERSION,
   PI_RUNTIME_DEFINITION_VERSION,
   type PiExecutorManifest,
