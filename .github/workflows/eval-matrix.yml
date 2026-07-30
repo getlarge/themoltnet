@@ -37,6 +37,11 @@ concurrency:
   group: eval-matrix
   cancel-in-progress: false
 
+# Minimal default GITHUB_TOKEN permissions for every job (CodeQL: limit the
+# token). The eval-matrix job overrides this to add packages:read for GHCR pulls.
+permissions:
+  contents: read
+
 jobs:
   # Compute the producer-model list as a JSON array so the sweep can fan out one
   # runner per model (a GH matrix). Each model then runs in parallel on its own
@@ -50,8 +55,11 @@ jobs:
       matrix: ${{ steps.set.outputs.matrix }}
     steps:
       - id: set
+        # Pass the untrusted workflow input via env, not string-interpolated into
+        # the script, so a malicious `models` value cannot inject shell commands.
+        env:
+          RAW: ${{ github.event.inputs.models || 'qwen3.5:397b-cloud,glm-5.2:cloud,gpt-oss:120b-cloud' }}
         run: |
-          RAW="${{ github.event.inputs.models || 'qwen3.5:397b-cloud,glm-5.2:cloud,gpt-oss:120b-cloud' }}"
           JSON=$(printf '%s' "$RAW" | jq -Rc 'split(",") | map(gsub("^\\s+|\\s+$";"")) | map(select(length>0))')
           echo "matrix=$JSON" >> "$GITHUB_OUTPUT"
 
