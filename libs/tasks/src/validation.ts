@@ -242,6 +242,43 @@ function checkVerificationInputCid(
   return [];
 }
 
+function checkVerificationPassedConsistency(
+  value: unknown,
+): TaskValidationError[] {
+  const verification =
+    value !== null && typeof value === 'object'
+      ? (
+          value as {
+            verification?: {
+              results?: Array<{ status?: unknown }>;
+              passed?: unknown;
+            };
+          }
+        ).verification
+      : undefined;
+  if (
+    verification === undefined ||
+    !Array.isArray(verification.results) ||
+    typeof verification.passed !== 'boolean'
+  ) {
+    return [];
+  }
+
+  const expectedPassed = verification.results.every(
+    (result) => result.status !== 'fail',
+  );
+  if (verification.passed !== expectedPassed) {
+    return [
+      {
+        field: 'output/verification/passed',
+        message:
+          'must be true iff no verification result has status "fail"',
+      },
+    ];
+  }
+  return [];
+}
+
 function validateTaskResult(
   taskType: string,
   value: unknown,
@@ -272,7 +309,10 @@ function validateTaskResult(
     }
   }
 
-  return checkVerificationInputCid(value, runtime);
+  return [
+    ...checkVerificationInputCid(value, runtime),
+    ...checkVerificationPassedConsistency(value),
+  ];
 }
 
 export function validateTaskOutput(

@@ -56,6 +56,14 @@ describe('getSubmitOutputContract', () => {
     expect(c!.parametersSchemaJson).not.toContain('"traceparent"');
   });
 
+  it('makes the verification passed invariant visible in the submit schema', () => {
+    const c = getSubmitOutputContract('run_eval');
+
+    expect(c!.parametersSchemaJson).toContain(
+      'True iff every verification result has status \\"pass\\" or \\"skip\\"; false when any result has status \\"fail\\".',
+    );
+  });
+
   it('keeps tool name in sync with submitOutputToolName', () => {
     // Regression guard: nothing in the runtime should be allowed to
     // build a divergent tool name string. If the contract's `toolName`
