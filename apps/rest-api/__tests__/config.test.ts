@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  getRequiredSecrets,
   loadConfig,
   loadDatabaseConfig,
   loadObservabilityConfig,
@@ -8,9 +9,11 @@ import {
   loadRecoveryConfig,
   loadSecurityConfig,
   loadServerConfig,
+  loadTaskCredentialConfig,
   loadWebhookConfig,
   resolveOryUrls,
   resolveRedisConfig,
+  resolveTaskCredentialConfig,
 } from '../src/config.js';
 
 const validEnv = {
@@ -547,5 +550,104 @@ describe('resolveRedisConfig', () => {
     expect(() =>
       resolveRedisConfig({ REDIS_URL: 'http://nope.example.com' }),
     ).toThrow(/redis:\/\/ or rediss:\/\//);
+  });
+});
+
+// ============================================================================
+// Task credentials
+// ============================================================================
+
+describe('resolveTaskCredentialConfig', () => {
+  const base = () => loadTaskCredentialConfig({});
+
+  it('derives issuer, audience, and JWKS URI from the API base URL', () => {
+    expect(
+      resolveTaskCredentialConfig(base(), {
+        apiBaseUrl: 'https://api.themolt.net',
+        nodeEnv: 'development',
+      }),
+    ).toMatchObject({
+      issuer: 'https://api.themolt.net',
+      audience: ['https://api.themolt.net'],
+      jwksUri: 'https://api.themolt.net/credentials/jwks.json',
+      ttlCeilingSeconds: 300,
+    });
+  });
+
+  it('refuses to start production without an explicit signing key', () => {
+    expect(() =>
+      resolveTaskCredentialConfig(base(), {
+        apiBaseUrl: 'https://api.themolt.net',
+        nodeEnv: 'production',
+      }),
+    ).toThrow(/TASK_CREDENTIAL_SIGNING_KEY must be set in production/);
+  });
+
+  it('generates an ephemeral key outside production', () => {
+    expect(
+      resolveTaskCredentialConfig(base(), {
+        apiBaseUrl: 'http://localhost:8000',
+        nodeEnv: 'test',
+      }),
+    ).toMatchObject({ ephemeralSigningKey: true, signingKeys: [] });
+  });
+
+  it('publishes the previous key alongside the active one during rotation', () => {
+    const config = loadTaskCredentialConfig({
+      TASK_CREDENTIAL_SIGNING_KEY: '{"kid":"new"}',
+      TASK_CREDENTIAL_SIGNING_KEY_PREVIOUS: '{"kid":"old"}',
+    });
+
+    // Active key first: it is the one that signs.
+    expect(
+      resolveTaskCredentialConfig(config, {
+        apiBaseUrl: 'https://api.themolt.net',
+        nodeEnv: 'production',
+      }),
+    ).toMatchObject({
+      signingKeys: ['{"kid":"new"}', '{"kid":"old"}'],
+      ephemeralSigningKey: false,
+    });
+  });
+
+  it('rejects a previous key with no active key', () => {
+    expect(() =>
+      resolveTaskCredentialConfig(
+        loadTaskCredentialConfig({
+          TASK_CREDENTIAL_SIGNING_KEY_PREVIOUS: '{"kid":"old"}',
+        }),
+        { apiBaseUrl: 'https://api.themolt.net', nodeEnv: 'development' },
+      ),
+    ).toThrow(/Set only alongside TASK_CREDENTIAL_SIGNING_KEY/);
+  });
+
+  it('splits a multi-audience list', () => {
+    expect(
+      resolveTaskCredentialConfig(
+        loadTaskCredentialConfig({
+          TASK_CREDENTIAL_AUDIENCE: 'https://a.example, https://b.example',
+        }),
+        { apiBaseUrl: 'https://api.themolt.net', nodeEnv: 'development' },
+      ).audience,
+    ).toEqual(['https://a.example', 'https://b.example']);
+  });
+});
+
+describe('getRequiredSecrets', () => {
+  // The deploy preflight only ever checks a production target. A secret that is
+  // Optional in the schema but fail-closed at production boot must still appear
+  // here, or the preflight goes green and the container dies on boot.
+  it('includes secrets that are only required in production', () => {
+    expect(getRequiredSecrets()).toContain('TASK_CREDENTIAL_SIGNING_KEY');
+  });
+
+  it('still includes the unconditionally required secrets', () => {
+    expect(getRequiredSecrets()).toEqual(
+      expect.arrayContaining([
+        'DBOS_SYSTEM_DATABASE_URL',
+        'ORY_ACTION_API_KEY',
+        'RECOVERY_CHALLENGE_SECRET',
+      ]),
+    );
   });
 });

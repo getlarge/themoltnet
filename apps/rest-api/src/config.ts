@@ -719,9 +719,21 @@ const allSchemas: TObject[] = [
 ];
 
 /**
- * Returns env var names that are required at runtime — i.e. listed in
- * `required` by TypeBox (not Optional) AND have no `default` value.
- * Used by the deploy preflight check to verify Fly.io secrets.
+ * Secrets the schema marks Optional — because local and e2e runs deliberately
+ * do without them — but that a production boot refuses to start without.
+ *
+ * The deploy preflight only ever checks a production target, so these belong in
+ * its required set. A fail-closed startup gate is worse than useless if the
+ * deploy that trips it reports green: the preflight passes, the release rolls,
+ * and the container dies on boot.
+ */
+const PRODUCTION_REQUIRED_SECRETS = ['TASK_CREDENTIAL_SIGNING_KEY'] as const;
+
+/**
+ * Returns env var names that must be present for a production deploy: those
+ * listed in `required` by TypeBox (not Optional) with no `default` value, plus
+ * {@link PRODUCTION_REQUIRED_SECRETS}. Used by the deploy preflight check to
+ * verify Fly.io secrets.
  */
 export function getRequiredSecrets(): string[] {
   const result: string[] = [];
@@ -733,6 +745,7 @@ export function getRequiredSecrets(): string[] {
       }
     }
   }
+  result.push(...PRODUCTION_REQUIRED_SECRETS);
   return result;
 }
 
