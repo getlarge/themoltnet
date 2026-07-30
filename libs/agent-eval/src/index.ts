@@ -3,6 +3,14 @@
 // judge_eval_attempt inputs, and evaluates stage-1 deterministic gates before
 // any LLM judge runs.
 export {
+  type BaselineDeps,
+  type BaselineReport,
+  type BaselineRun,
+  type BaselineScenarioResult,
+  runBaseline,
+  summarizeBaseline,
+} from './baseline.js';
+export {
   buildJudgeInput,
   type BuildJudgeOptions,
   buildRunEvalInput,
@@ -23,7 +31,12 @@ export {
   type WritePiConfigInput,
 } from './pi-config.js';
 export { readScenario, ScenarioError } from './read-scenario.js';
-export { GateExpectations, type Scenario } from './scenario.js';
+export {
+  GateExpectations,
+  type Scenario,
+  SCENARIO_TASK_TYPES,
+  type ScenarioTaskType,
+} from './scenario.js';
 export {
   type MatrixDeps,
   runMatrix,
