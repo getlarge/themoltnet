@@ -5,7 +5,7 @@
   "requirePromptSections": [
     "run_eval.header",
     "run_eval.scenario",
-    "run_eval.final_output"
+    "run_eval.success_criteria"
   ],
   "requireToolCalls": ["moltnet_upload_task_artifact"]
 }
