@@ -101,6 +101,7 @@ const EXPIRED_TASK_ID = 'dddddddd-dddd-dddd-dddd-dddddddddddd';
 const TEAM_ID = '99999999-9999-9999-9999-999999999999';
 const ARTIFACT_ORPHAN_GRACE_SEC = 3600;
 const ARTIFACT_ORPHAN_MAX_DELETES = 1000;
+const EVIDENCE_RETENTION_DAYS = 365;
 
 function makeOrphan(claimExpiresAt: Date): {
   task: Task;
@@ -205,8 +206,12 @@ function makeDeps(orphans: Array<{ task: Task; attempt: TaskAttempt }>): {
   const signingRequestRepository = {
     expireDelegated: vi.fn().mockResolvedValue(0),
   };
+  const credentialEvidenceRepository = {
+    pruneOlderThan: vi.fn().mockResolvedValue(0),
+  };
   const deps = {
     nonceRepository: {} as unknown,
+    credentialEvidenceRepository,
     contextPackRepository: {} as unknown,
     renderedPackRepository: {} as unknown,
     taskRepository,
@@ -334,6 +339,11 @@ describe('taskOrphanSweeperWorkflow — backstop (#1077)', () => {
         TASK_ARTIFACT_ORPHAN_GRACE_SEC: ARTIFACT_ORPHAN_GRACE_SEC,
         TASK_ARTIFACT_ORPHAN_SWEEPER_MAX_DELETES: ARTIFACT_ORPHAN_MAX_DELETES,
       },
+      {
+        TASK_CREDENTIAL_TTL_CEILING_SEC: 300,
+        CREDENTIAL_EVIDENCE_RETENTION_DAYS: EVIDENCE_RETENTION_DAYS,
+        CREDENTIAL_EVIDENCE_PRUNE_CRON: '15 4 * * *',
+      },
     );
     return DBOS;
   }
@@ -359,6 +369,42 @@ describe('taskOrphanSweeperWorkflow — backstop (#1077)', () => {
     ).toHaveBeenCalledWith(actualTime, 500);
     expect(
       registeredScheduled['maintenance.signingExpiryCleanup'],
+    ).toBeDefined();
+  });
+
+  it('prunes credential evidence past its own retention window', async () => {
+    await init();
+    const { deps, logger } = makeDeps([]);
+    const { setMaintenanceDeps: setDeps } =
+      await import('../src/workflows/maintenance.js');
+    setDeps(deps);
+    (
+      deps.credentialEvidenceRepository.pruneOlderThan as ReturnType<
+        typeof vi.fn
+      >
+    ).mockResolvedValue(7);
+    const actualTime = new Date('2026-07-25T12:00:00.000Z');
+    const workflow =
+      registeredWorkflows['maintenance.credentialEvidenceRetention'];
+    if (!workflow)
+      throw new Error('evidence retention workflow not registered');
+
+    await workflow(actualTime, actualTime);
+
+    // Evidence ages out on its own clock, well beyond task retention.
+    expect(
+      deps.credentialEvidenceRepository.pruneOlderThan,
+    ).toHaveBeenCalledWith(
+      new Date(
+        actualTime.getTime() - EVIDENCE_RETENTION_DAYS * 24 * 60 * 60 * 1_000,
+      ),
+    );
+    expect(logger.info).toHaveBeenCalledWith(
+      expect.objectContaining({ pruned: 7 }),
+      'maintenance: credential evidence retention complete',
+    );
+    expect(
+      registeredScheduled['maintenance.credentialEvidenceRetention'],
     ).toBeDefined();
   });
 

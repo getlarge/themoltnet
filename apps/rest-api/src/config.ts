@@ -207,6 +207,70 @@ export const TaskArtifactStorageConfigSchema = Type.Object({
   TASK_ARTIFACT_MAX_BYTES: Type.Number({ default: 25 * 1024 * 1024 }),
 });
 
+/**
+ * Task-credential signing and audit configuration (credential ladder rung 2).
+ *
+ * MoltNet mints the task JWT itself with a MoltNet-held Ed25519 key and serves
+ * the public half from `TASK_CREDENTIAL_JWKS_PATH`, so relying parties verify
+ * offline against MoltNet.
+ */
+export const TaskCredentialConfigSchema = Type.Object({
+  /**
+   * Active signing key as an Ed25519 private JWK, JSON-encoded, including
+   * `kid` — e.g. `{"kty":"OKP","crv":"Ed25519","x":"…","d":"…","kid":"…"}`.
+   * Same secret tier as the Ory admin key. REQUIRED in production; outside
+   * production an ephemeral key is generated at startup so local and e2e
+   * stacks need no key management (tokens then die with the process).
+   */
+  TASK_CREDENTIAL_SIGNING_KEY: Type.Optional(Type.String({ minLength: 1 })),
+  /**
+   * Previous signing key, same encoding. Published in the JWKS so credentials
+   * it signed stay verifiable through a rotation, but never used to sign.
+   * Retire it once no credential it signed can still be inside its TTL.
+   */
+  TASK_CREDENTIAL_SIGNING_KEY_PREVIOUS: Type.Optional(
+    Type.String({ minLength: 1 }),
+  ),
+  /** `iss` minted into task credentials, and the JWKS base. Defaults to API_BASE_URL. */
+  TASK_CREDENTIAL_ISSUER: Type.Optional(
+    Type.String({ minLength: 1, format: 'uri' }),
+  ),
+  /**
+   * Comma-separated `aud` values — one per relying-party surface that consumes
+   * task credentials. Defaults to the issuer (MoltNet itself).
+   */
+  TASK_CREDENTIAL_AUDIENCE: Type.Optional(Type.String({ minLength: 1 })),
+  /**
+   * Upper bound on task-credential lifetime, in seconds. The effective TTL is
+   * `min(this, remaining lease)`.
+   *
+   * Revocation SLO: a credential cannot be revoked, so lease cancellation is
+   * the kill switch and effective revocation latency is
+   * `min(remaining TTL, remaining lease)`. Signing is local and free, so this
+   * ceiling is a pure safety dial — keep it as low as the heartbeat cadence
+   * tolerates. The 900s maximum is the broker's own ceiling.
+   */
+  TASK_CREDENTIAL_TTL_CEILING_SEC: Type.Integer({
+    minimum: 30,
+    maximum: 900,
+    default: 300,
+  }),
+  /**
+   * How long credential evidence is retained. Evidence answers "what was this
+   * agent authorized to do, when" long after the task itself is pruned, so it
+   * ages out on its own clock — well beyond task retention.
+   */
+  CREDENTIAL_EVIDENCE_RETENTION_DAYS: Type.Integer({
+    minimum: 1,
+    default: 365,
+  }),
+  /** How often the evidence retention prune runs. */
+  CREDENTIAL_EVIDENCE_PRUNE_CRON: Type.String({
+    default: '15 4 * * *',
+    pattern: '^\\S+\\s+\\S+\\s+\\S+\\s+\\S+\\s+\\S+$',
+  }),
+});
+
 export const EmbeddingConfigSchema = Type.Object({
   /** Directory where model files are cached/loaded from (default: ./models) */
   EMBEDDING_CACHE_DIR: Type.Optional(Type.String({ minLength: 1 })),
@@ -308,6 +372,7 @@ export type TaskArtifactStorageConfig = Static<
 >;
 export type EmbeddingConfig = Static<typeof EmbeddingConfigSchema>;
 export type SecurityConfig = Static<typeof SecurityConfigSchema>;
+export type TaskCredentialConfig = Static<typeof TaskCredentialConfigSchema>;
 
 export interface AppConfig {
   server: ServerConfig;
@@ -322,6 +387,7 @@ export interface AppConfig {
   taskOrphanSweeper: TaskOrphanSweeperConfig;
   runtimeSessionStorage: RuntimeSessionStorageConfig;
   taskArtifactStorage: TaskArtifactStorageConfig;
+  taskCredential: TaskCredentialConfig;
 }
 
 export interface ResolvedOryUrls {
@@ -480,6 +546,16 @@ export function loadTaskArtifactStorageConfig(
   );
 }
 
+export function loadTaskCredentialConfig(
+  env: Record<string, string | undefined> = process.env,
+): TaskCredentialConfig {
+  return validateSchema(
+    'TaskCredential',
+    TaskCredentialConfigSchema,
+    pickEnv(TaskCredentialConfigSchema, env),
+  );
+}
+
 export function loadSecurityConfig(
   env: Record<string, string | undefined> = process.env,
 ): SecurityConfig {
@@ -618,6 +694,7 @@ export function loadConfig(
     taskOrphanSweeper: loadTaskOrphanSweeperConfig(env),
     runtimeSessionStorage: loadRuntimeSessionStorageConfig(env),
     taskArtifactStorage: loadTaskArtifactStorageConfig(env),
+    taskCredential: loadTaskCredentialConfig(env),
   };
 }
 
@@ -638,6 +715,7 @@ const allSchemas: TObject[] = [
   TaskOrphanSweeperConfigSchema,
   RuntimeSessionStorageConfigSchema,
   TaskArtifactStorageConfigSchema,
+  TaskCredentialConfigSchema,
 ];
 
 /**
@@ -656,6 +734,81 @@ export function getRequiredSecrets(): string[] {
     }
   }
   return result;
+}
+
+// ============================================================================
+// Task credential resolution
+// ============================================================================
+
+/** Path the MoltNet credential JWKS document is served from. */
+export const TASK_CREDENTIAL_JWKS_PATH = '/credentials/jwks.json';
+
+export interface ResolvedTaskCredentialConfig {
+  issuer: string;
+  audience: string[];
+  jwksUri: string;
+  ttlCeilingSeconds: number;
+  /** Raw JWK strings, active key first. Imported (and validated) at bootstrap. */
+  signingKeys: string[];
+  /** True when no key was configured and an ephemeral one must be generated. */
+  ephemeralSigningKey: boolean;
+  evidenceRetentionDays: number;
+  evidencePruneCron: string;
+}
+
+/**
+ * Resolve the task-credential surface. `apiBaseUrl` is the fallback issuer so a
+ * deployment that already declares its own base URL needs no extra config.
+ */
+export function resolveTaskCredentialConfig(
+  config: TaskCredentialConfig,
+  options: { apiBaseUrl: string; nodeEnv: ServerConfig['NODE_ENV'] },
+): ResolvedTaskCredentialConfig {
+  const issuer = (config.TASK_CREDENTIAL_ISSUER ?? options.apiBaseUrl).replace(
+    /\/$/,
+    '',
+  );
+  if (issuer.length === 0) {
+    throw new Error(
+      'Cannot resolve the task credential issuer: set TASK_CREDENTIAL_ISSUER or API_BASE_URL',
+    );
+  }
+  const audience = (config.TASK_CREDENTIAL_AUDIENCE ?? issuer)
+    .split(',')
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0);
+  if (audience.length === 0) {
+    throw new Error(
+      'Invalid TaskCredential config:\n  - /TASK_CREDENTIAL_AUDIENCE: Expected at least one audience',
+    );
+  }
+  const signingKeys = [
+    config.TASK_CREDENTIAL_SIGNING_KEY,
+    config.TASK_CREDENTIAL_SIGNING_KEY_PREVIOUS,
+  ].filter((value): value is string => typeof value === 'string');
+  if (signingKeys.length === 0 && options.nodeEnv === 'production') {
+    throw new Error(
+      'TASK_CREDENTIAL_SIGNING_KEY must be set in production. Refusing to sign task credentials with an ephemeral key: it would be unverifiable across instances and restarts.',
+    );
+  }
+  if (
+    config.TASK_CREDENTIAL_SIGNING_KEY === undefined &&
+    config.TASK_CREDENTIAL_SIGNING_KEY_PREVIOUS !== undefined
+  ) {
+    throw new Error(
+      'Invalid TaskCredential config:\n  - /TASK_CREDENTIAL_SIGNING_KEY_PREVIOUS: Set only alongside TASK_CREDENTIAL_SIGNING_KEY',
+    );
+  }
+  return {
+    issuer,
+    audience,
+    jwksUri: `${issuer}${TASK_CREDENTIAL_JWKS_PATH}`,
+    ttlCeilingSeconds: config.TASK_CREDENTIAL_TTL_CEILING_SEC,
+    signingKeys,
+    ephemeralSigningKey: signingKeys.length === 0,
+    evidenceRetentionDays: config.CREDENTIAL_EVIDENCE_RETENTION_DAYS,
+    evidencePruneCron: config.CREDENTIAL_EVIDENCE_PRUNE_CRON,
+  };
 }
 
 // ============================================================================

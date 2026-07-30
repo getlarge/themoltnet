@@ -22,10 +22,15 @@ import {
   TaskAttempt,
   TaskMessage,
 } from '@moltnet/tasks';
+import { CredentialError } from '@themoltnet/credentials';
 import type { FastifyInstance } from 'fastify';
 import { type Static, Type } from 'typebox';
 
-import { createProblem, createValidationProblem } from '../problems/index.js';
+import {
+  createConflictProblem,
+  createProblem,
+  createValidationProblem,
+} from '../problems/index.js';
 import {
   AbortTaskBodySchema,
   AppendMessagesBodySchema,
@@ -48,6 +53,7 @@ import {
   TaskActivityAnalyticsQuerySchema,
   TaskActivityAnalyticsResponseSchema,
   TaskAttemptParamsSchema,
+  TaskCredentialResponseSchema,
   TaskListResponseSchema,
   TaskParamsSchema,
   UpdateTaskMetadataBodySchema,
@@ -89,6 +95,52 @@ function toTaskProblem(error: TaskServiceError) {
       return createProblem('conflict', error.message);
     case 'unavailable':
       return createProblem('service-unavailable', error.message);
+  }
+}
+
+/** Extract the raw bearer credential, or null when the caller used another scheme. */
+function bearerCredential(authorization: string | undefined): string | null {
+  if (!authorization) return null;
+  const [scheme, ...rest] = authorization.split(' ');
+  if (scheme?.toLowerCase() !== 'bearer') return null;
+  const credential = rest.join(' ').trim();
+  return credential.length > 0 ? credential : null;
+}
+
+/**
+ * Map a broker failure onto a problem response.
+ *
+ * The broker's codes are the stable contract. The split that matters here: an
+ * authorization denial (`authority_denied`) must never be reported the same way
+ * as a signing or evidence outage, so a dependency failure alerts separately
+ * from an agent asking for something it cannot have.
+ */
+function toCredentialProblem(error: unknown) {
+  if (!(error instanceof CredentialError)) return error;
+  switch (error.code) {
+    case 'authority_denied':
+    case 'derivation_rejected':
+      return createProblem(
+        'forbidden',
+        'Task credential authority was denied for this attempt',
+      );
+    case 'ttl_exhausted':
+      return createConflictProblem(
+        'The attempt lease has too little time remaining to issue a task credential',
+      );
+    case 'authority_unavailable':
+    case 'derivation_unavailable':
+    case 'evidence_unavailable':
+    case 'credential_verification_unavailable':
+      return createProblem(
+        'service-unavailable',
+        'Task credential issuance is temporarily unavailable',
+      );
+    default:
+      return createProblem(
+        'internal-server-error',
+        'Task credential issuance failed',
+      );
   }
 }
 
@@ -278,6 +330,44 @@ export function taskRoutes(fastify: FastifyInstance) {
       throw createProblem(
         'forbidden',
         'Agent key is bound to a different team than the addressed task',
+      );
+    }
+  });
+
+  // #1776 phase 0 — measure before enforcing.
+  //
+  // Attenuation only buys anything once broad agent-key authority is *refused*
+  // on task-scoped routes. Until then, count the calls that a task credential
+  // could have carried instead: an agent-key request on an attempt-scoped route
+  // for a profile-backed attempt. The label is the route template only, so
+  // cardinality stays flat. Telemetry never fails a request.
+  server.addHook('preHandler', async (request) => {
+    try {
+      const authContext = request.authContext;
+      if (authContext?.subjectType !== 'agent') return;
+      if (!authContext.credentialBinding) return;
+      const route = request.routeOptions.url;
+      if (
+        !route?.startsWith('/tasks/:id/attempts/:n/') ||
+        // Minting is itself an agent-key call by design — it is the exchange.
+        route.endsWith('/credentials')
+      ) {
+        return;
+      }
+      const params = request.params as { id?: string; n?: number } | undefined;
+      if (!params?.id || typeof params.n !== 'number') return;
+      const attempt = await fastify.taskRepository.findAttempt(
+        params.id,
+        params.n,
+      );
+      // Legacy/all-null attempts can never obtain a credential, so they are not
+      // part of the population the cut-over applies to.
+      if (!attempt?.leaseId || !attempt.runtimeProfileId) return;
+      fastify.taskCredentials.agentKeyFallbackCounter.add(1, { route });
+    } catch (err) {
+      request.log.debug(
+        { err },
+        'credential.task_route_agent_key_telemetry_failed',
       );
     }
   });
@@ -827,6 +917,111 @@ export function taskRoutes(fastify: FastifyInstance) {
       } catch (error) {
         if (error instanceof TaskServiceError) throw toTaskProblem(error);
         throw error;
+      }
+    },
+  );
+
+  // POST /tasks/:id/attempts/:n/credentials
+  server.post(
+    '/tasks/:id/attempts/:n/credentials',
+    {
+      config: { auth: { credentialBindingScope: 'team' } },
+      schema: {
+        operationId: 'issueTaskCredential',
+        tags: ['tasks'],
+        description:
+          "Exchange the claimant's team-bound agent key for a short-lived, " +
+          'lease-bound task credential. The request carries no authority ' +
+          'inputs: MoltNet rebuilds the claim-time authority tuple, mints the ' +
+          'canonical claims itself, and bounds the lifetime to ' +
+          '`min(configured ceiling, remaining lease)`. The credential is ' +
+          'memory-only — never log it, persist it, or expose it to a model.',
+        security: [{ bearerAuth: [] }],
+        headers: TeamHeaderRequiredSchema,
+        params: TaskAttemptParamsSchema,
+        // No `body` schema: the endpoint takes no input at all, so the contract
+        // (and every generated client) says so, and a caller may send no body.
+        // The preValidation guard below rejects one that carries fields.
+        response: {
+          200: Type.Ref(TaskCredentialResponseSchema.$id),
+          400: Type.Ref(ValidationProblemDetailsSchema.$id),
+          401: Type.Ref(ProblemDetailsSchema.$id),
+          403: Type.Ref(ProblemDetailsSchema.$id),
+          404: Type.Ref(ProblemDetailsSchema.$id),
+          409: Type.Ref(ConflictProblemDetailsSchema.$id),
+          500: Type.Ref(ProblemDetailsSchema.$id),
+          503: Type.Ref(ProblemDetailsSchema.$id),
+        },
+      },
+      // Reject rather than ignore a smuggled field: the app-wide ajv
+      // `removeAdditional` would strip it silently, leaving a caller believing
+      // its `ttl` or `scopes` was honored. preValidation runs after body parsing
+      // and before schema validation, so this sees exactly what was sent.
+      preValidation: async (request) => {
+        const body = request.body;
+        if (body === undefined || body === null) return;
+        if (
+          typeof body !== 'object' ||
+          Array.isArray(body) ||
+          Object.keys(body).length > 0
+        ) {
+          throw createValidationProblem(
+            [
+              {
+                field: 'body',
+                message:
+                  'Task credential issuance accepts no request fields. Scopes, claims, TTL, audience, algorithm, and endpoints are server-owned.',
+              },
+            ],
+            'Task credential requests must have an empty body',
+          );
+        }
+      },
+    },
+    async (request) => {
+      const authContext = request.authContext;
+      if (authContext?.subjectType !== 'agent') {
+        throw createProblem(
+          'forbidden',
+          'Task credentials are issued to the claimant agent only',
+        );
+      }
+      const agentCredential = bearerCredential(request.headers.authorization);
+      if (!agentCredential) {
+        throw createProblem(
+          'forbidden',
+          'Task credential issuance requires the claimant agent credential as a bearer token',
+        );
+      }
+      // The caller's asserted team is the ceiling being checked, so it must come
+      // from the auth context — never from the addressed task, which would make
+      // the team check vacuous.
+      const teamId = requireCurrentTeamId(request, 'task credentials');
+      try {
+        const issued = await fastify.taskCredentials.broker.issueTaskCredential(
+          {
+            agentId: authContext.identityId,
+            teamId,
+            taskId: request.params.id,
+            attemptN: request.params.n,
+            agentCredential,
+          },
+        );
+        // The body carries a bearer credential, so it must never be cached.
+        // The security-headers plugin already sends
+        // `Cache-Control: no-store, no-cache, must-revalidate` on every
+        // authenticated response; task-credentials.test.ts asserts it holds here.
+        return {
+          token: issued.token,
+          tokenType: 'Bearer' as const,
+          expiresAt: issued.expiresAt.toISOString(),
+          issuer: fastify.taskCredentials.issuer,
+          audience: fastify.taskCredentials.audience,
+          jwksUri: fastify.taskCredentials.jwksUri,
+          claims: issued.claims,
+        };
+      } catch (error) {
+        throw toCredentialProblem(error);
       }
     },
   );

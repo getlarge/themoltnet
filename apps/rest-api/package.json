@@ -70,6 +70,8 @@
     "@opentelemetry/semantic-conventions": "catalog:",
     "@ory/client-fetch": "catalog:",
     "@scalar/fastify-api-reference": "catalog:",
+    "@themoltnet/credential-broker": "workspace:*",
+    "@themoltnet/credentials": "workspace:*",
     "drizzle-orm": "catalog:",
     "fastify": "catalog:",
     "fastify-plugin": "catalog:",

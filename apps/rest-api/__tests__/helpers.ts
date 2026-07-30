@@ -15,10 +15,15 @@ import type { Agent, AgentVoucher, DiaryEntry } from '@moltnet/database';
 import type { RuntimeSessionStorage } from '@moltnet/runtime-session-service';
 import type { TaskAnalyticsService } from '@moltnet/task-analytics-service';
 import type { TaskArtifactStorage } from '@moltnet/task-artifact-service';
+import type {
+  CredentialBroker,
+  CredentialSigningJwks,
+} from '@themoltnet/credential-broker';
 import type { FastifyInstance } from 'fastify';
 import { vi } from 'vitest';
 
 import { type AppOptions, buildApp } from '../src/app.js';
+import { TASK_CREDENTIAL_JWKS_PATH } from '../src/config.js';
 import { createAssertDiaryReadable } from '../src/services/diary-readable.js';
 import type {
   AgentRepository,
@@ -46,6 +51,21 @@ import type {
   TransactionRunner,
   VoucherRepository,
 } from '../src/types.js';
+
+export const TEST_CREDENTIAL_ISSUER = 'https://api.test.themolt.net';
+/** Public-only fixture: a JWKS document never carries private members. */
+export const TEST_CREDENTIAL_JWKS: CredentialSigningJwks = {
+  keys: [
+    {
+      kty: 'OKP',
+      crv: 'Ed25519',
+      x: 'F83OJ3D2xF1Bg8vub9tLe1gHMzV76e8Tus9uPTvvvPc',
+      kid: 'test-signing-key',
+      alg: 'EdDSA',
+      use: 'sig',
+    },
+  ],
+};
 
 export const TEST_WEBHOOK_API_KEY = 'test-webhook-api-key-for-testing';
 export const TEST_RECOVERY_SECRET = 'test-recovery-secret-at-least-16-chars';
@@ -306,6 +326,11 @@ export interface MockServices {
     [K in keyof TaskAnalyticsService]: ReturnType<typeof vi.fn>;
   };
   taskService: { [K in keyof TaskService]: ReturnType<typeof vi.fn> };
+  credentialBroker: {
+    [K in keyof CredentialBroker]: ReturnType<typeof vi.fn>;
+  };
+  /** #1776 phase-0 cut-over counter. */
+  agentKeyFallbackCounter: { add: ReturnType<typeof vi.fn> };
 }
 
 export function createMockServices(): MockServices {
@@ -720,6 +745,11 @@ export function createMockServices(): MockServices {
       planDeleteMany: vi.fn(),
       deleteMany: vi.fn(),
     },
+    credentialBroker: {
+      issueTaskCredential: vi.fn(),
+      issueConnectorCredential: vi.fn(),
+    },
+    agentKeyFallbackCounter: { add: vi.fn() },
   };
 }
 
@@ -956,6 +986,14 @@ export async function createTestApp(
       PACK_GC_COMPILE_TTL_DAYS: 7,
       PACK_GC_CRON: '0 * * * *',
       PACK_GC_BATCH_SIZE: 100,
+    },
+    taskCredentials: {
+      broker: mocks.credentialBroker as unknown as CredentialBroker,
+      jwks: TEST_CREDENTIAL_JWKS,
+      issuer: TEST_CREDENTIAL_ISSUER,
+      audience: [TEST_CREDENTIAL_ISSUER],
+      jwksUri: `${TEST_CREDENTIAL_ISSUER}${TASK_CREDENTIAL_JWKS_PATH}`,
+      agentKeyFallbackCounter: mocks.agentKeyFallbackCounter,
     },
     pool: healthOptions?.pool,
     oryProjectUrl: healthOptions?.oryProjectUrl,

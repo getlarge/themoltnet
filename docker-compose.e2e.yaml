@@ -193,6 +193,12 @@ services:
       ORY_AUTH_CACHE_TTL_MS: '0'
       ORY_ACTION_API_KEY: local-dev-webhook-key
       RECOVERY_CHALLENGE_SECRET: e2e-recovery-secret-for-hmac-signing
+      # Task credentials (credential ladder rung 2). NODE_ENV=test, so the API
+      # generates an ephemeral Ed25519 signing key at startup and publishes it at
+      # /credentials/jwks.json; production requires TASK_CREDENTIAL_SIGNING_KEY.
+      # API_BASE_URL is the issuer + JWKS base, so it must be the URL the test
+      # process (and the daemon) can actually reach.
+      API_BASE_URL: http://localhost:8080
       CORS_ORIGINS: 'http://localhost:5174,http://localhost:4433'
       RATE_LIMIT_GLOBAL_AUTH: '10000'
       RATE_LIMIT_GLOBAL_ANON: '10000'

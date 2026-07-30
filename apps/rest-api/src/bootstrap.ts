@@ -27,6 +27,7 @@ import {
   createAgentRepository,
   createContextPackRepository,
   createCorrelationSealRepository,
+  createCredentialEvidenceRepository,
   createDatabase,
   createDBOSTransactionRunner,
   createDiaryEntryRepository,
@@ -90,17 +91,32 @@ import {
   createTaskArtifactStorage,
 } from '@moltnet/task-artifact-service';
 import {
+  createCredentialEvidenceSink,
+  createMoltNetTaskAuthorityProvider,
+} from '@moltnet/task-service';
+import {
   initTaskWorkflows,
   setTaskWorkflowDeps,
 } from '@moltnet/task-workflows';
 import { initTaskTypeRegistry } from '@moltnet/tasks';
+import {
+  createCredentialBroker,
+  createLocalTokenDeriver,
+  credentialSigningJwks,
+  generateLocalSigningKeyJwk,
+  importLocalSigningKey,
+} from '@themoltnet/credential-broker';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { Redis } from 'ioredis';
 
 import pkg from '../package.json' with { type: 'json' };
 import { registerApiRoutes } from './app.js';
 import type { AppConfig } from './config.js';
-import { resolveOryUrls, resolveRedisConfig } from './config.js';
+import {
+  resolveOryUrls,
+  resolveRedisConfig,
+  resolveTaskCredentialConfig,
+} from './config.js';
 import dbosPlugin from './plugins/dbos.js';
 import { createAssertDiaryReadable } from './services/diary-readable.js';
 import {
@@ -234,6 +250,16 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     config.database.DBOS_SYSTEM_DATABASE_URL,
   );
 
+  // Resolve the credential-ladder surface before any expensive startup work so
+  // a missing or malformed signing key fails the boot immediately.
+  const taskCredentialConfig = resolveTaskCredentialConfig(
+    config.taskCredential,
+    {
+      apiBaseUrl: config.security.API_BASE_URL.replace(/\/$/, ''),
+      nodeEnv: config.server.NODE_ENV,
+    },
+  );
+
   const dbConnection = createDatabase(config.database.DATABASE_URL);
   // Seed the getDatabase() singleton so route-level code (e.g. advisory
   // locks) can obtain the shared Drizzle instance without a URL.
@@ -329,6 +355,9 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     dbConnection.db,
   );
   const taskRepository = createTaskRepository(dbConnection.db);
+  const credentialEvidenceRepository = createCredentialEvidenceRepository(
+    dbConnection.db,
+  );
   const entryRelationRepository = createEntryRelationRepository(
     dbConnection.db,
   );
@@ -463,7 +492,12 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       () => initHumanOnboardingWorkflow(),
       () => initLegreffierOnboardingWorkflow(),
       () => initDiaryWorkflows(),
-      () => initMaintenanceWorkflows(config.packGc, config.taskOrphanSweeper),
+      () =>
+        initMaintenanceWorkflows(
+          config.packGc,
+          config.taskOrphanSweeper,
+          config.taskCredential,
+        ),
       () => initTeamFoundingWorkflow(),
       () => initDiaryTransferWorkflow(),
     ],
@@ -526,6 +560,7 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       () => {
         setMaintenanceDeps({
           nonceRepository,
+          credentialEvidenceRepository,
           contextPackRepository,
           renderedPackRepository,
           taskRepository,
@@ -684,6 +719,67 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
     remoteRequestTimeoutMs: config.ory.ORY_AUTH_REQUEST_TIMEOUT_MS,
   });
 
+  // ── Credential ladder (rung 2: task credentials) ───────────────
+  // MoltNet signs task credentials itself and publishes the verification keys,
+  // so the claim path carries no third-party availability dependency and
+  // MoltNet owns every reserved claim. See docs/understand/credential-ladder.md.
+  const signingKeySources = taskCredentialConfig.ephemeralSigningKey
+    ? [generateLocalSigningKeyJwk()]
+    : taskCredentialConfig.signingKeys;
+  const signingKeys = await Promise.all(
+    signingKeySources.map((source) => importLocalSigningKey(source)),
+  );
+  const activeSigningKey = signingKeys[0];
+  if (!activeSigningKey) {
+    throw new Error('No task credential signing key could be imported');
+  }
+  if (taskCredentialConfig.ephemeralSigningKey) {
+    // Non-production only (resolveTaskCredentialConfig refuses this in prod):
+    // credentials minted here die with the process and are unverifiable from
+    // any other instance.
+    app.log.warn(
+      { kid: activeSigningKey.kid },
+      'credential.signing_key_ephemeral',
+    );
+  }
+  app.log.info(
+    {
+      issuer: taskCredentialConfig.issuer,
+      audience: taskCredentialConfig.audience,
+      jwksUri: taskCredentialConfig.jwksUri,
+      ttlCeilingSeconds: taskCredentialConfig.ttlCeilingSeconds,
+      publishedKids: signingKeys.map((key) => key.kid),
+    },
+    'credential.task_credentials_configured',
+  );
+  const credentialBroker = createCredentialBroker({
+    taskAuthority: createMoltNetTaskAuthorityProvider({
+      taskRepository,
+      runtimePolicySnapshotRepository,
+      logger: app.log,
+      denialCounter: createMetricCounter(
+        'moltnet-rest-api',
+        'credential.task_authority.denied.total',
+        'Task credential authority denials by low-cardinality reason',
+      ),
+      grantedCounter: createMetricCounter(
+        'moltnet-rest-api',
+        'credential.task_authority.granted.total',
+        'Task credential authority grants by runtime kind',
+      ),
+    }),
+    tokenDeriver: createLocalTokenDeriver({
+      issuer: taskCredentialConfig.issuer,
+      audience: taskCredentialConfig.audience,
+      signingKey: activeSigningKey,
+    }),
+    evidence: createCredentialEvidenceSink({
+      repository: credentialEvidenceRepository,
+      logger: app.log,
+    }),
+    taskTtlCeilingSeconds: taskCredentialConfig.ttlCeilingSeconds,
+  });
+
   // ── REST API routes ────────────────────────────────────────────
   app.log.info(
     {
@@ -781,6 +877,18 @@ export async function bootstrap(config: AppConfig): Promise<BootstrapResult> {
       trustProxy: config.security.TRUST_PROXY,
       apiBaseUrl: config.security.API_BASE_URL.replace(/\/$/, ''),
       sponsorAgentId: config.security.SPONSOR_AGENT_ID,
+    },
+    taskCredentials: {
+      broker: credentialBroker,
+      jwks: credentialSigningJwks(signingKeys),
+      issuer: taskCredentialConfig.issuer,
+      audience: taskCredentialConfig.audience,
+      jwksUri: taskCredentialConfig.jwksUri,
+      agentKeyFallbackCounter: createMetricCounter(
+        'moltnet-rest-api',
+        'credential.task_route.agent_key.total',
+        'Agent-key authentication on task-scoped attempt routes where a task credential could have been used (#1776 cut-over telemetry)',
+      ),
     },
     packGcConfig: config.packGc,
     pool: dbConnection.pool,

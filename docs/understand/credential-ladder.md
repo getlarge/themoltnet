@@ -31,33 +31,40 @@ Authority narrows at every step — team → one task → one operation on one
 resource — and so does lifetime. Only MoltNet's credential broker may move down a
 rung; an agent never asks for scopes, claims, TTL, or an audience directly.
 
-| Rung                | Says                                      | Minted by                                      | Verified by                       | Lifetime       | If it leaks                                |
-| ------------------- | ----------------------------------------- | ---------------------------------------------- | --------------------------------- | -------------- | ------------------------------------------ |
-| **Agent key**       | who + which team                          | MoltNet (on key creation)                      | MoltNet auth chokepoint           | weeks          | the whole team, until rotation             |
-| **Task token**      | who + which **task / attempt / lease**    | MoltNet broker, after re-checking the claim    | MoltNet (offline, Talos JWKS)     | the task lease | one task, until the lease ends             |
-| **Connector token** | which **operation** on which **resource** | MoltNet broker, after checking a durable grant | MoltNet (on the adapter's behalf) | 1–5 minutes    | one operation on one resource, for minutes |
+| Rung                | Says                                      | Minted by                                      | Verified by                               | Lifetime       | If it leaks                                |
+| ------------------- | ----------------------------------------- | ---------------------------------------------- | ----------------------------------------- | -------------- | ------------------------------------------ |
+| **Agent key**       | who + which team                          | MoltNet (on key creation)                      | MoltNet auth chokepoint                   | weeks          | the whole team, until rotation             |
+| **Task token**      | who + which **task / attempt / lease**    | MoltNet broker, after re-checking the claim    | any relying party (offline, MoltNet JWKS) | the task lease | one task, until the lease ends             |
+| **Connector token** | which **operation** on which **resource** | MoltNet broker, after checking a durable grant | MoltNet (on the adapter's behalf)         | 1–5 minutes    | one operation on one resource, for minutes |
 
-The task token is a Talos-signed JWT whose claims pin the full attempt binding
-(agent, team, task, attempt, lease, runtime profile revision, executor manifest
-fingerprint, immutable policy snapshot hash). The claim contracts live in
-`@themoltnet/credentials`; the broker that mints them lives in
-`@themoltnet/credential-broker`.
+The task token is an **EdDSA (Ed25519) JWT signed by MoltNet** whose claims pin
+the full attempt binding (agent, team, task, attempt, lease, runtime profile
+revision, executor manifest fingerprint, immutable policy snapshot hash).
+MoltNet holds the signing key and publishes the public half at
+`/credentials/jwks.json`, so it owns every reserved claim — including a standard
+`iss` and `aud` — and the task-claim path carries no third-party availability
+dependency. The claim contracts live in `@themoltnet/credentials`; the broker that
+mints them lives in `@themoltnet/credential-broker`, behind a `TokenDeriver`
+interface so the signer is a swappable decision, not a structural one.
+
+The two-issuer split: **Ory issues identity, MoltNet issues capability.**
 
 ## Relying parties: two shapes
 
 A **relying party** is any service that acts on a MoltNet credential. There are
 two shapes, and the difference is only _who verifies the token_.
 
-### Talos-aware service
+### Ladder-aware service
 
 A cooperating service — a partner, one you built yourself, or a test fixture —
-integrates Talos verification directly. It fetches the Talos JWKS, checks the
-signature, issuer, expiry, and the namespaced MoltNet claim, and serves the
-resource. This is the standard offline relying-party model: verification makes no
-call back to MoltNet.
+verifies the credential itself. It fetches MoltNet's JWKS, checks the signature
+(pinned to EdDSA), the issuer, the audience, the expiry, and the namespaced
+MoltNet claim, then serves the resource. This is the standard offline
+relying-party model: verification makes no call back to MoltNet.
+`verifyTaskCredential` in `@themoltnet/credentials` is that verifier, ready to
+drop into a Node service.
 
-Use this when you control the receiving service and are willing to teach it about
-Talos.
+Use this when you control the receiving service.
 
 ### Operator adapter (third-party services)
 
@@ -107,9 +114,10 @@ Three rules make this safe and keep MoltNet product-neutral:
    daemon) are clients of MoltNet; MoltNet is only ever a resource server. This
    keeps MoltNet out of the data path and free of any per-product egress
    configuration or server-side request-forgery surface.
-2. **MoltNet is the sole Talos verifier.** The adapter forwards the credential to
-   MoltNet's authorize endpoint and receives an allow/deny. It never verifies a
-   Talos token itself, so it never needs to know Talos exists.
+2. **MoltNet is the sole verifier for the adapter.** The adapter forwards the
+   credential to MoltNet's authorize endpoint and receives an allow/deny. It never
+   verifies a ladder credential itself, so it never needs to know how MoltNet
+   signs one.
 3. **The adapter only ever holds the narrow connector token.** The task token
    stays inside the daemon↔MoltNet boundary; the daemon exchanges it for a
    connector token bound to a single operation and resource _before_ calling the
@@ -121,7 +129,7 @@ Three rules make this safe and keep MoltNet product-neutral:
 
 | Knows…                                               |       MoltNet core       |  Operator adapter   | External service |
 | ---------------------------------------------------- | :----------------------: | :-----------------: | :--------------: |
-| Talos (JWKS, admin key, derivation)                  |       ✅ only here       |         ❌          |        ❌        |
+| credential signing key (and how tokens are minted)   |       ✅ only here       |         ❌          |        ❌        |
 | task / lease / grant authorization                   |            ✅            |         ❌          |        ❌        |
 | connector vocabulary (operations, resource patterns) |   ✅ _declared to it_    | ✅ _implements it_  |        ❌        |
 | upstream URL / API shape / auth                      |            ❌            |         ✅          |    ✅ (is it)    |
@@ -220,26 +228,34 @@ structured IDs only — no URLs, headers, shell fragments, or credentials.
   claim/grant/lease issues and honors the credential, _and_ that each failure —
   wrong claimant, team, task, attempt, connector, operation, resource, inactive or
   lost lease, revoked parent, unbound adapter client, missing or mismatched policy
-  snapshot, or Talos outage — is denied fail-closed with a stable, low-cardinality
-  reason and no secret in logs or evidence.
+  snapshot, or signing/evidence outage — is denied fail-closed with a stable,
+  low-cardinality reason and no secret in logs or evidence.
 
 ## What exists today
 
 - **Rungs 1 → 2 are being delivered** in
   [#1768](https://github.com/getlarge/themoltnet/issues/1768): the task-credential
-  endpoint, broker wiring, canonical task claims, the daemon exchange, and two
-  relying-party consumers — MoltNet verifying its own task token on task-scoped
-  routes, and a Talos-aware external-service fixture.
+  endpoint, the MoltNet signer and its JWKS route, broker wiring, canonical task
+  claims, durable issuance/denial evidence, the daemon exchange, and a
+  ladder-aware external-service fixture as the reference relying party.
+- **Refusing agent keys on task-scoped routes** is tracked separately in
+  [#1776](https://github.com/getlarge/themoltnet/issues/1776). Until that lands,
+  a task token is an _additional_ narrow credential rather than a replacement for
+  broad agent-key authority — which is where the ladder's blast-radius reduction
+  actually comes from. #1768 ships phase 0 of that cut-over: telemetry counting
+  agent-key calls on attempt routes that a task credential could have carried.
 - **Rung 3 — the connector token, durable connector grants, and the operator
   adapter contract** — is tracked in
   [#1775](https://github.com/getlarge/themoltnet/issues/1775) so the north star
   stays visible while #1768 lands the task-token foundation.
 
 ::: info Boundaries
-Talos issues and verifies; Keto owns durable relationships; MoltNet owns claim
-construction, grant checks, and the audit trail; the runtime profile and Gondolin
-own filesystem, process, and network confinement; the operator adapter owns the
-upstream call. Authorization and issuance fail closed. A derived token stays valid
-until its deliberately short expiry even after the parent key is revoked — new
-derivations stop immediately, which is why every rung is short-lived.
+Ory issues identity; MoltNet issues capability, owns claim construction, grant
+checks, and the audit trail; Keto owns durable relationships; the runtime profile
+and Gondolin own filesystem, process, and network confinement; the operator
+adapter owns the upstream call. Authorization and issuance fail closed. A minted
+credential cannot be revoked — it stays valid until its deliberately short expiry
+even after the parent key is revoked, while new issuance stops immediately. That
+is why every rung is short-lived, and why lease cancellation (not revocation) is
+the kill switch: effective latency is `min(remaining TTL, remaining lease)`.
 :::

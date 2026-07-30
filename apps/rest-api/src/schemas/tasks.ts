@@ -22,6 +22,10 @@ import {
   TaskUsage,
   type TaskUsage as TaskUsageType,
 } from '@moltnet/tasks';
+import {
+  TaskCredentialClaims,
+  type TaskCredentialClaims as TaskCredentialClaimsType,
+} from '@themoltnet/credentials';
 import { Type } from 'typebox';
 
 // ── Params ───────────────────────────────────────────────────────────────────
@@ -370,6 +374,36 @@ export const AppendMessagesResponseSchema = Type.Object(
   { $id: 'AppendMessagesResponse' },
 );
 
+/**
+ * Task-credential issuance response.
+ *
+ * The request has no body at all: the endpoint derives every input from the
+ * authenticated caller and the route params, so a caller cannot select scopes,
+ * claims, TTL, issuer, audience, signing algorithm, or any upstream URL. A
+ * `preValidation` guard on the route rejects a body that carries fields.
+ */
+export const TaskCredentialResponseSchema = Type.Object(
+  {
+    /**
+     * The task credential. Memory-only: never log it, persist it, put it in a
+     * prompt, tool argument, artifact, span attribute, or runtime state.
+     */
+    token: Type.String({ minLength: 1 }),
+    tokenType: Type.Literal('Bearer'),
+    /** Bounded by `min(configured ceiling, remaining lease)`. */
+    expiresAt: Type.String({ format: 'date-time' }),
+    /** Verification metadata a relying party needs; all non-secret. */
+    issuer: Type.String({ minLength: 1 }),
+    audience: Type.Array(Type.String({ minLength: 1 }), { minItems: 1 }),
+    jwksUri: Type.String({ minLength: 1 }),
+    /** The canonical claims carried by the credential, echoed for convenience. */
+    claims: Type.Unsafe<TaskCredentialClaimsType>(
+      Type.Ref(TaskCredentialClaims.$id as string),
+    ),
+  },
+  { $id: 'TaskCredentialResponse' },
+);
+
 const Rate = Type.Number({ minimum: 0, maximum: 1 });
 const NullableNumber = Type.Union([Type.Number(), Type.Null()]);
 
@@ -569,6 +603,7 @@ export const taskSchemas = [
   TaskListResponseSchema,
   ClaimTaskResponseSchema,
   HeartbeatResponseSchema,
+  TaskCredentialResponseSchema,
   AppendMessagesResponseSchema,
   TaskActivityProductMetricsSchema,
   TaskActivityAnalyticsResponseSchema,

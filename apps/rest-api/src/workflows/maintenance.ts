@@ -12,6 +12,7 @@
 import type { RelationshipWriter } from '@moltnet/auth';
 import {
   type ContextPackRepository,
+  type CredentialEvidenceRepository,
   type DataSource,
   DBOS,
   DBOSErrors,
@@ -42,7 +43,11 @@ import {
 } from '@moltnet/task-workflows';
 import type { FastifyBaseLogger } from 'fastify';
 
-import type { PackGcConfig, TaskOrphanSweeperConfig } from '../config.js';
+import type {
+  PackGcConfig,
+  TaskCredentialConfig,
+  TaskOrphanSweeperConfig,
+} from '../config.js';
 export {
   startTaskDeletionWorkflow,
   type TaskDeletionWorkflowInput,
@@ -53,6 +58,7 @@ export {
 
 export interface MaintenanceDeps {
   nonceRepository: NonceRepository;
+  credentialEvidenceRepository: CredentialEvidenceRepository;
   contextPackRepository: ContextPackRepository;
   renderedPackRepository: RenderedPackRepository;
   taskRepository: TaskRepository;
@@ -94,9 +100,44 @@ let _initialized = false;
 export function initMaintenanceWorkflows(
   packGcConfig: PackGcConfig,
   orphanSweeperConfig: TaskOrphanSweeperConfig,
+  taskCredentialConfig: TaskCredentialConfig,
 ): void {
   if (_initialized) return;
   _initialized = true;
+
+  // ── Credential Evidence Retention ────────────────────────────
+  // Evidence answers "what was this agent authorized to do, when" long after
+  // the task itself is gone, so it ages out on its own clock rather than with
+  // task retention. The table is append-only; this prune is its only DELETE.
+  const credentialEvidenceRetentionWorkflow = DBOS.registerWorkflow(
+    async (_scheduledTime: Date, actualTime: Date): Promise<void> => {
+      const { credentialEvidenceRepository, logger } = getDeps();
+      const cutoff = new Date(
+        actualTime.getTime() -
+          taskCredentialConfig.CREDENTIAL_EVIDENCE_RETENTION_DAYS *
+            24 *
+            60 *
+            60 *
+            1_000,
+      );
+      const pruned = await credentialEvidenceRepository.pruneOlderThan(cutoff);
+      logger.info(
+        {
+          pruned,
+          cutoff: cutoff.toISOString(),
+          retentionDays:
+            taskCredentialConfig.CREDENTIAL_EVIDENCE_RETENTION_DAYS,
+        },
+        'maintenance: credential evidence retention complete',
+      );
+    },
+    { name: 'maintenance.credentialEvidenceRetention' },
+  );
+
+  DBOS.registerScheduled(credentialEvidenceRetentionWorkflow, {
+    name: 'maintenance.credentialEvidenceRetention',
+    crontab: taskCredentialConfig.CREDENTIAL_EVIDENCE_PRUNE_CRON,
+  });
 
   // ── Nonce Cleanup ────────────────────────────────────────────
   const nonceCleanupWorkflow = DBOS.registerWorkflow(

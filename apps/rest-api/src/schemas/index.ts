@@ -9,6 +9,7 @@
 export * from './agent-keys.js';
 export * from './agents.js';
 export * from './atoms.js';
+export * from './credentials.js';
 export * from './crypto.js';
 export * from './diary.js';
 export * from './network.js';
@@ -36,6 +37,7 @@ import {
   runtimeSlotSchemas,
   taskArtifactSchemas,
 } from '@moltnet/tasks';
+import { TaskCredentialClaims } from '@themoltnet/credentials';
 
 import { agentKeySchemas } from './agent-keys.js';
 import {
@@ -47,6 +49,7 @@ import {
   WhoamiSchema,
 } from './agents.js';
 import { EntryTypeSchema, SuccessSchema, VisibilitySchema } from './atoms.js';
+import { credentialSchemas } from './credentials.js';
 import {
   BeginPreviewSignCredentialRegistrationSchema,
   CompletePreviewSignCredentialRegistrationSchema,
@@ -239,5 +242,9 @@ export const sharedSchemas = [
   EntryRelationWithDepthSchema,
   ExpandedRelationsSchema,
   DiaryEntryWithRelationsSchema,
+  ...credentialSchemas,
+  // The credential contract is the wire contract: TaskCredentialResponseSchema
+  // $refs it, so register it before taskSchemas.
+  TaskCredentialClaims,
   ...taskSchemas,
 ];

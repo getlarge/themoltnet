@@ -88,13 +88,15 @@ import type { SigningService } from '@moltnet/signing-service';
 import type { TaskAnalyticsService } from '@moltnet/task-analytics-service';
 import type { TaskArtifactStorage } from '@moltnet/task-artifact-service';
 
-import type { SecurityOptions } from './app.js';
+import type { SecurityOptions, TaskCredentialRuntime } from './app.js';
 import type { PackGcConfig } from './config.js';
 import type { TaskService } from './services/task.service.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
     security: SecurityOptions;
+    /** Credential-ladder runtime: broker, signing metadata, published JWKS. */
+    taskCredentials: TaskCredentialRuntime;
     diaryService: DiaryService;
     /** Raw entry repository — used only by public feed routes (listPublic, searchPublic, findPublicById) */
     diaryEntryRepository: DiaryEntryRepository;

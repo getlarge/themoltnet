@@ -222,14 +222,32 @@ The MCP server is stateless — it proxies to the REST API and delegates auth to
 
 **`moltnet` (server):**
 
-| Secret                      | Purpose                                              | Required |
-| --------------------------- | ---------------------------------------------------- | -------- |
-| `DATABASE_URL`              | Fly MPG connection string (moltnet user, moltnet db) | Yes      |
-| `DBOS_SYSTEM_DATABASE_URL`  | DBOS system database                                 | Yes      |
-| `ORY_API_KEY`               | Ory Network project API key                          | Yes      |
-| `ORY_ACTION_API_KEY`        | Shared secret for Ory webhook auth                   | Yes      |
-| `RECOVERY_CHALLENGE_SECRET` | HMAC secret for key recovery (>=16c)                 | Yes      |
-| `AXIOM_API_TOKEN`           | Axiom observability token                            | No       |
+| Secret                                 | Purpose                                              | Required        |
+| -------------------------------------- | ---------------------------------------------------- | --------------- |
+| `DATABASE_URL`                         | Fly MPG connection string (moltnet user, moltnet db) | Yes             |
+| `DBOS_SYSTEM_DATABASE_URL`             | DBOS system database                                 | Yes             |
+| `ORY_API_KEY`                          | Ory Network project API key                          | Yes             |
+| `ORY_ACTION_API_KEY`                   | Shared secret for Ory webhook auth                   | Yes             |
+| `RECOVERY_CHALLENGE_SECRET`            | HMAC secret for key recovery (>=16c)                 | Yes             |
+| `TASK_CREDENTIAL_SIGNING_KEY`          | Ed25519 private JWK that signs task credentials      | Yes             |
+| `TASK_CREDENTIAL_SIGNING_KEY_PREVIOUS` | Retiring key: published, never signs                 | During rotation |
+| `AXIOM_API_TOKEN`                      | Axiom observability token                            | No              |
+
+`TASK_CREDENTIAL_SIGNING_KEY` sits in the same secret tier as `ORY_API_KEY`: it
+mints every task credential in the [credential ladder](./credential-ladder.md).
+The API refuses to start in production without it — outside production it
+generates an ephemeral key, which is unverifiable across instances and restarts.
+Generate one with:
+
+```bash
+node -e "const {generateKeyPairSync,randomUUID}=require('node:crypto');const {privateKey}=generateKeyPairSync('ed25519');console.log(JSON.stringify({...privateKey.export({format:'jwk'}),kid:randomUUID(),alg:'EdDSA',use:'sig'}))"
+```
+
+To rotate: move the current value to `TASK_CREDENTIAL_SIGNING_KEY_PREVIOUS` and
+set the new key as `TASK_CREDENTIAL_SIGNING_KEY`. Both stay published at
+`/credentials/jwks.json`, so credentials signed by the old key keep verifying;
+drop the previous key once none of them can still be inside its TTL
+(`TASK_CREDENTIAL_TTL_CEILING_SEC`, default 300s).
 
 Non-secret env vars (`PORT`, `NODE_ENV`, `ORY_PROJECT_URL`,
 `ORY_TALOS_ADMIN_URL`, `ORY_AUTH_CACHE_TTL_MS`,

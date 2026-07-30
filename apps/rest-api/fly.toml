@@ -28,6 +28,11 @@ kill_timeout = 30        # seconds to wait for graceful shutdown before SIGKILL
   # One proxy hop (Fly edge) so request.ip is the real client for the
   # anonymous rate-limit fallback, not the Fly edge IP. See issue #1336.
   TRUST_PROXY = "1"
+  # Task credentials: the issuer and JWKS base derive from API_BASE_URL
+  # (defaults to https://api.themolt.net). The signing key is a secret —
+  # TASK_CREDENTIAL_SIGNING_KEY — and startup fails closed without it here.
+  # See docs/understand/infrastructure.md#flyio-secrets.
+  TASK_CREDENTIAL_TTL_CEILING_SEC = "300"
 
 [deploy]
   release_command = "node dist/migrate.js"

@@ -24,6 +24,10 @@ import { createSigningService } from '@moltnet/signing-service';
 import type { TaskAnalyticsService } from '@moltnet/task-analytics-service';
 import type { TaskArtifactStorage } from '@moltnet/task-artifact-service';
 import scalarApiReference from '@scalar/fastify-api-reference';
+import type {
+  CredentialBroker,
+  CredentialSigningJwks,
+} from '@themoltnet/credential-broker';
 import Fastify, {
   type FastifyInstance,
   type FastifyServerOptions,
@@ -43,6 +47,7 @@ import { requestContextPlugin } from './plugins/request-context.js';
 import { securityHeadersPlugin } from './plugins/security-headers.js';
 import { agentKeyRoutes } from './routes/agent-keys.js';
 import { agentRoutes } from './routes/agents.js';
+import { credentialRoutes } from './routes/credentials.js';
 import { cryptoRoutes } from './routes/crypto.js';
 import { diaryRoutes } from './routes/diary.js';
 import { diaryEntryRoutes } from './routes/diary-entries.js';
@@ -155,6 +160,33 @@ export interface SecurityOptions {
   sponsorAgentId?: string;
 }
 
+/**
+ * Everything the credential-ladder surface needs, resolved at bootstrap.
+ *
+ * Required rather than optional: a deployment that cannot mint task credentials
+ * should fail to start, not serve an endpoint that quietly degrades.
+ */
+export interface TaskCredentialRuntime {
+  broker: CredentialBroker;
+  /** Published verification keys, exactly as served by the JWKS route. */
+  jwks: CredentialSigningJwks;
+  /** `iss` minted into task credentials. */
+  issuer: string;
+  /** `aud` values minted into task credentials. */
+  audience: string[];
+  /** Absolute URL of the JWKS document, handed to relying parties. */
+  jwksUri: string;
+  /**
+   * #1776 phase 0. Counts agent-key authentication on a task-scoped attempt
+   * route for a profile-backed attempt — a call that could have carried a task
+   * credential instead. Labeled by route template only, so cardinality stays
+   * flat, and the enforcement cut-over can be gated on real traffic.
+   */
+  agentKeyFallbackCounter: {
+    add(value: number, attributes: { route: string }): void;
+  };
+}
+
 export interface AppOptions {
   diaryService: DiaryService;
   /** Raw entry repository — used only by public feed routes (listPublic, searchPublic, findPublicById) */
@@ -202,6 +234,7 @@ export interface AppOptions {
   recoverySecret: string;
   oryClients: OryClients;
   security: SecurityOptions;
+  taskCredentials: TaskCredentialRuntime;
   packGcConfig: PackGcConfig;
   runtimeSessionMaxBytes: number;
   taskArtifactMaxBytes: number;
@@ -462,6 +495,7 @@ export async function registerApiRoutes(
 
   // Expose full security config to routes
   decorateSafe('security', options.security);
+  decorateSafe('taskCredentials', options.taskCredentials);
 
   // Decorate with webhook config for hook routes
   app.decorate('webhookApiKey', options.webhookApiKey);
@@ -487,6 +521,7 @@ export async function registerApiRoutes(
   await app.register(agentKeyRoutes, {
     talosApi: options.oryClients.apiKeys,
   });
+  await app.register(credentialRoutes);
   await app.register(cryptoRoutes);
   await app.register(previewSignChallengeRoutes);
   await app.register(signingRequestRoutes);

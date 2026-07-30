@@ -119,6 +119,14 @@ async function main() {
       apiBaseUrl: 'http://localhost:8000',
     },
     hydraPublicUrl: 'http://hydra-mock:4444',
+    taskCredentials: {
+      broker: createStubService() as never,
+      jwks: { keys: [] },
+      issuer: 'http://localhost:8000',
+      audience: ['http://localhost:8000'],
+      jwksUri: 'http://localhost:8000/credentials/jwks.json',
+      agentKeyFallbackCounter: { add: () => undefined },
+    },
     packGcConfig: {
       PACK_GC_COMPILE_TTL_DAYS: 7,
       PACK_GC_CRON: '0 * * * *',
