@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@moltnet/agent-eval": "workspace:*",
     "@moltnet/bootstrap": "workspace:*",
     "@moltnet/crypto-service": "workspace:*",
     "@moltnet/observability": "workspace:*",
@@ -39,6 +40,24 @@
           "{projectRoot}/src/**/*",
           {
             "env": "MOLTNET_AGENT_DAEMON_LIVE_LLM_E2E"
+          },
+          {
+            "env": "MOLTNET_AGENT_DAEMON_LIVE_MODEL"
+          },
+          {
+            "env": "MOLTNET_BASELINE"
+          },
+          {
+            "env": "BASELINE_REPEATS"
+          },
+          {
+            "env": "MOLTNET_EVAL_MATRIX"
+          },
+          {
+            "env": "MODELS"
+          },
+          {
+            "env": "MOLTNET_EVAL_JUDGE_MODEL"
           },
           {
             "externalDependencies": [

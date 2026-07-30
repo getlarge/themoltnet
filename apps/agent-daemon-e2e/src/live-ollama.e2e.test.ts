@@ -1,9 +1,10 @@
 import { Buffer } from 'node:buffer';
 import { randomUUID } from 'node:crypto';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { writeAgentCredentials, writePiConfig } from '@moltnet/agent-eval';
 import { computeJsonCid } from '@moltnet/crypto-service';
 // eslint-disable-next-line @nx/enforce-module-boundaries -- This e2e suite intentionally exercises the daemon app entry point.
 import { runOnce } from '@themoltnet/agent-daemon/cli/once.js';
@@ -105,7 +106,7 @@ describeLive('Agent daemon live Ollama Cloud execution (e2e)', () => {
       privateKey,
       fingerprint,
     });
-    writePiConfig(piDir);
+    writePiConfig({ piDir, provider: LIVE_PROVIDER, model: LIVE_MODEL });
 
     const oldPiDir = process.env.PI_CODING_AGENT_DIR;
     process.env.PI_CODING_AGENT_DIR = piDir;
@@ -535,86 +536,4 @@ async function collectStreamText(
     chunks.push(Buffer.from(chunk));
   }
   return Buffer.concat(chunks).toString('utf8');
-}
-
-function writeAgentCredentials(input: {
-  agentRoot: string;
-  agentName: string;
-  clientId: string;
-  clientSecret: string;
-  publicKey: string;
-  privateKey: string;
-  fingerprint: string;
-  apiUrl: string;
-}): void {
-  const agentDir = join(input.agentRoot, '.moltnet', input.agentName);
-  mkdirSync(agentDir, { recursive: true });
-  writeFileSync(
-    join(agentDir, 'moltnet.json'),
-    JSON.stringify(
-      {
-        identity_id: randomUUID(),
-        registered_at: new Date().toISOString(),
-        oauth2: {
-          client_id: input.clientId,
-          client_secret: input.clientSecret,
-        },
-        keys: {
-          public_key: input.publicKey,
-          private_key: input.privateKey,
-          fingerprint: input.fingerprint,
-        },
-        endpoints: {
-          api: input.apiUrl,
-          mcp: `${input.apiUrl}/mcp`,
-        },
-      },
-      null,
-      2,
-    ) + '\n',
-    'utf8',
-  );
-  writeFileSync(
-    join(agentDir, 'env'),
-    `MOLTNET_AGENT_NAME=${input.agentName}\n`,
-    'utf8',
-  );
-}
-
-function writePiConfig(piDir: string): void {
-  writeFileSync(
-    join(piDir, 'models.json'),
-    JSON.stringify(
-      {
-        providers: {
-          [LIVE_PROVIDER]: {
-            api: 'openai-completions',
-            apiKey: '$OLLAMA_API_KEY',
-            baseUrl: 'https://ollama.com/v1',
-            models: [{ id: LIVE_MODEL }],
-          },
-        },
-      },
-      null,
-      2,
-    ) + '\n',
-    'utf8',
-  );
-  writeFileSync(
-    join(piDir, 'settings.json'),
-    JSON.stringify(
-      {
-        defaultModel: LIVE_MODEL,
-        defaultProvider: LIVE_PROVIDER,
-        enableInstallTelemetry: false,
-        enabledModels: [`${LIVE_PROVIDER}/${LIVE_MODEL}`],
-        packages: ['npm:@themoltnet/pi-extension'],
-        transport: 'sse',
-        treeFilterMode: 'default',
-      },
-      null,
-      2,
-    ) + '\n',
-    'utf8',
-  );
 }

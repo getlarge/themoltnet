@@ -1,0 +1,144 @@
+# Nightly agent-runtime prompt eval matrix (issue #1588).
+#
+# Sweeps the committed evals-v2/ scenarios across N Ollama Cloud producer
+# models, applies stage-1 deterministic gates, and scores gate-passing attempts
+# with a single pinned judge model. Emits score-matrix.json as an artifact for
+# regression detection + progress tracking.
+#
+# This is NOT a per-PR gate. It runs on a schedule (and on demand) because a
+# full model matrix x real LLM latency far exceeds the 15-min per-PR e2e budget
+# and spends Ollama tokens per run. The per-PR tripwire is the gate-only smoke
+# in apps/agent-daemon-e2e/src/live-ollama-evals.e2e.test.ts.
+#
+# Uses the moving :ci-main image tags published by the last main build, so it
+# needs no per-run image build. If :ci-main does not yet exist (before the first
+# main build lands), this workflow will fail to pull the stack — that is
+# expected until the bootstrap main build runs.
+name: Eval Matrix (nightly)
+
+on:
+  schedule:
+    # Weekly, Sunday 03:00 UTC — off-peak. This is a token-spending trend/
+    # measurement lane (N models x scenarios x judge), not a merge gate, so a
+    # weekly cadence is enough; the per-PR gate-only smoke is the fast tripwire.
+    - cron: '0 3 * * 0'
+  workflow_dispatch:
+    inputs:
+      models:
+        description: 'Comma-separated producer models to sweep (ollama-cloud ids). Defaults are drawn from the maintained .pi/models.json list.'
+        required: false
+        default: 'qwen3.5:397b-cloud,glm-5.2:cloud,gpt-oss:120b-cloud'
+      judge_model:
+        description: 'Pinned judge model (held constant across the matrix).'
+        required: false
+        default: 'qwen3.5:397b-cloud'
+
+concurrency:
+  group: eval-matrix
+  cancel-in-progress: false
+
+jobs:
+  # Compute the producer-model list as a JSON array so the sweep can fan out one
+  # runner per model (a GH matrix). Each model then runs in parallel on its own
+  # runner + Docker stack, rather than sweeping all models sequentially in one
+  # job — the agent-daemon-e2e project is excluded from @nx/vitest atomization
+  # (it shares a Docker stack), so model-level GH-matrix parallelism is the split.
+  models:
+    name: Resolve model matrix
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set.outputs.matrix }}
+    steps:
+      - id: set
+        run: |
+          RAW="${{ github.event.inputs.models || 'qwen3.5:397b-cloud,glm-5.2:cloud,gpt-oss:120b-cloud' }}"
+          JSON=$(printf '%s' "$RAW" | jq -Rc 'split(",") | map(gsub("^\\s+|\\s+$";"")) | map(select(length>0))')
+          echo "matrix=$JSON" >> "$GITHUB_OUTPUT"
+
+  eval-matrix:
+    needs: models
+    name: Eval Matrix (${{ matrix.model }})
+    runs-on: ubuntu-latest
+    # One model x scenarios x real LLM latency + VM boot per job.
+    timeout-minutes: 90
+    strategy:
+      # One model per runner, in parallel; don't cancel siblings if one model fails.
+      fail-fast: false
+      matrix:
+        model: ${{ fromJSON(needs.models.outputs.matrix) }}
+    permissions:
+      contents: read
+      packages: read
+    env:
+      REG: ghcr.io/getlarge/themoltnet
+      # Stable moving tags from the last main build (no per-run affected calc).
+      REST_API_IMAGE: ghcr.io/getlarge/themoltnet/rest-api:ci-main
+      MCP_SERVER_IMAGE: ghcr.io/getlarge/themoltnet/mcp-server:ci-main
+      DB_MIGRATE_IMAGE: ghcr.io/getlarge/themoltnet/db-migrate:ci-main
+      CONSOLE_IMAGE: ghcr.io/getlarge/themoltnet/console:ci-main
+      MCP_HOST_IMAGE: ghcr.io/getlarge/themoltnet/mcp-host:ci-main
+      DATABASE_URL: postgresql://moltnet:moltnet_secret@localhost:5433/moltnet
+      ORY_HYDRA_ADMIN_URL: http://localhost:4445
+      ORY_HYDRA_PUBLIC_URL: http://localhost:4444
+      ORY_KETO_PUBLIC_URL: http://localhost:4466
+      ORY_KETO_ADMIN_URL: http://localhost:4467
+      ORY_KRATOS_ADMIN_URL: http://localhost:4434
+      ORY_KRATOS_PUBLIC_URL: http://localhost:4433
+      SERVER_BASE_URL: http://localhost:8080
+      ORY_ACTION_API_KEY: local-dev-webhook-key
+      # Nx loads the dotenvx-encrypted root .env otherwise; keep ciphertext out.
+      NX_LOAD_DOT_ENV_FILES: 'false'
+      OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
+      # One model per matrix job; the sweep runs it against the whole corpus.
+      MODELS: ${{ matrix.model }}
+      MOLTNET_EVAL_JUDGE_MODEL: ${{ github.event.inputs.judge_model || 'qwen3.5:397b-cloud' }}
+      EVAL_MATRIX_OUT: ${{ github.workspace }}/score-matrix.json
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.19.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install Gondolin sandbox dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends qemu-utils qemu-system-x86
+      - name: Cache Gondolin snapshots
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/moltnet/gondolin
+          key: ${{ runner.os }}-${{ runner.arch }}-gondolin-snapshot-v1-eval-matrix-${{ hashFiles('libs/pi-extension/src/snapshot.ts', 'pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-gondolin-snapshot-v1-eval-matrix-
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Start Docker Compose stack
+        env:
+          COMPOSE_DISABLE_ENV_FILE: true
+        run: docker compose -f docker-compose.e2e.yaml up -d
+      - name: Run eval matrix
+        env:
+          MOLTNET_EVAL_MATRIX: '1'
+        # Vitest e2e (not tsx) so the workspace's source-direct exports resolve
+        # the same way the rest of the suite does. The e2e target's cache key
+        # includes MOLTNET_EVAL_MATRIX / MODELS / judge model (see its `inputs`),
+        # so a different model busts the cache instead of replaying a stale matrix.
+        run: pnpm exec nx run @themoltnet/agent-daemon-e2e:e2e -- eval-matrix
+      - name: Upload score matrix
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          # One shard per model; job-index keeps the artifact name unique + safe
+          # (model ids contain ':' and '/'). Download all `score-matrix-*` to merge.
+          name: score-matrix-${{ strategy.job-index }}
+          path: score-matrix.json
+          if-no-files-found: warn
+      - name: Docker Compose logs
+        if: failure()
+        run: docker compose -f docker-compose.e2e.yaml logs --tail=100

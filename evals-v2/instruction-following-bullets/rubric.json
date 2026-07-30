@@ -1,0 +1,13 @@
+{
+  "criteria": [
+    {
+      "description": "The three bullets are genuinely about benefits of multi-model agent evaluation, not filler or off-topic content.",
+      "id": "on-topic",
+      "scoring": "llm_score",
+      "weight": 1
+    }
+  ],
+  "preamble": "The exact format constraints (exactly three '- ' bullets, no surrounding prose) are graded by a deterministic response-content gate, NOT by you. Grade only whether the three bullets are on-topic, genuine benefits of multi-model agent evaluation.",
+  "rubricId": "instruction-following-bullets",
+  "version": "v1"
+}

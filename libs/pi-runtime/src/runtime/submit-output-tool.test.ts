@@ -240,6 +240,54 @@ describe('createSubmitOutputTool', () => {
     });
   });
 
+  it('repairs run_eval submit-output-only verification (not just freeform)', async () => {
+    // The repair used to be freeform-only, so weaker models that mis-type the
+    // `verification` object failed run_eval on verification alone. It now
+    // applies to any producer type whose sole gate is the submit-output gate.
+    const handle = createSubmitOutputTool('run_eval', {
+      input: {
+        scenario: { prompt: 'do the thing' },
+        variantLabel: 'x:baseline',
+        execution: { mode: 'vitro', workspace: 'none' },
+        context: [],
+        successCriteria: {
+          version: 1 as const,
+          gates: [
+            {
+              id: 'submit-output',
+              kind: 'submit-tool-call' as const,
+              description:
+                'Call `submit_run_eval_output` exactly once with valid structured output.',
+              required: true,
+            },
+          ],
+        },
+      },
+      inputCid: 'bafy-input',
+    });
+    const result = await callExecute(handle)({
+      response: 'answer',
+      verification: 'submit-output passed', // wrong type — must be repaired
+    });
+
+    expect(result.isError).toBeFalsy();
+    expect(handle.getCaptured()).toEqual({
+      response: 'answer',
+      verification: {
+        inputCid: 'bafy-input',
+        results: [
+          {
+            id: 'submit-output',
+            kind: 'gate',
+            status: 'pass',
+            detail: 'submit_run_eval_output accepted valid args',
+          },
+        ],
+        passed: true,
+      },
+    });
+  });
+
   it('does not synthesize freeform verification when non-submit criteria exist', async () => {
     const handle = createSubmitOutputTool('freeform', {
       input: {
