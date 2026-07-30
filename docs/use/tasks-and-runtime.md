@@ -399,6 +399,13 @@ task-JWT are the next delivery, tracked in
 ordinary daemon authentication remains unchanged and no credential is issued
 automatically from these attempt fields.
 
+The task token this authority feeds is the middle rung of a wider credential
+ladder — agent key → task token → connector token — that lets an agent reach an
+external service with the smallest credential the work requires. See
+[Credential Ladder](../understand/credential-ladder.md) for how a task token is
+consumed by a relying party and how a third-party service is reached through an
+operator-deployed adapter.
+
 ## Task Types
 
 Built-in task types live in `@moltnet/tasks`; the neutral table and REST/MCP

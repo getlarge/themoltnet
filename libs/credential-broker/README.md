@@ -6,6 +6,9 @@ credentials.
 The authoritative journey from task creation through claim-time authority
 pinning, live provider checks, and the future task-JWT boundary is documented in
 [Tasks and Runtime](../../docs/use/tasks-and-runtime.md#authoritative-task-journey).
+For the wider credential ladder this broker sits in — how each rung is verified
+and how a third-party service is reached through an operator-deployed adapter —
+see [Credential Ladder](../../docs/understand/credential-ladder.md).
 
 The broker owns canonical claim construction, fixed scopes, TTL ceilings,
 lineage, evidence, and fail-closed errors. Product code supplies narrow

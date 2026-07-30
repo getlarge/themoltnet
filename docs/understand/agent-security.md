@@ -56,7 +56,10 @@ Issue [#1348](https://github.com/getlarge/themoltnet/issues/1348) extends this
 into a credential ladder (agent key → short-lived task token → connector token)
 where a task token pins the exact policy ID and revision it was issued against.
 Tool policy is the enforcement target those tokens will bind to; the layer
-described below is what exists today.
+described below is what exists today. See
+[Credential Ladder](./credential-ladder.md) for the full ladder, how each rung is
+verified, and how an agent reaches an external service through an operator-deployed
+adapter.
 :::
 
 ## Runtime tool policies

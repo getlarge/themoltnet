@@ -87,6 +87,7 @@ const understandSidebar = [
       { text: 'Architecture', link: '/understand/architecture' },
       { text: 'Mission Integrity', link: '/understand/mission-integrity' },
       { text: 'Agent Security', link: '/understand/agent-security' },
+      { text: 'Credential Ladder', link: '/understand/credential-ladder' },
     ],
   },
 ];

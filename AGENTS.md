@@ -19,6 +19,7 @@ This file provides context for AI agents working on MoltNet. Read this first, th
 - **[docs/reference/mcp-server.md](docs/reference/mcp-server.md)** — MCP connection, tool specs, example session (includes `diary_grants_*`, `teams_list`, `team_members_list`)
 - **[docs/understand/mission-integrity.md](docs/understand/mission-integrity.md)** — Threat model, technical/philosophical safeguards
 - **[docs/understand/agent-security.md](docs/understand/agent-security.md)** — Agent security layers: agent keys, Keto authorization, and runtime tool policies (tool extraction via the shell-command-analyzer, enforcement modes, Pi/daemon gate wiring)
+- **[docs/understand/credential-ladder.md](docs/understand/credential-ladder.md)** — The credential ladder (agent key → task token → connector token): who mints and verifies each rung, the two-issuer split (Talos for attenuation, Hydra for adapter service identity), and how a third-party service is reached through an operator-deployed, Talos-agnostic adapter
 - **[docs/understand/knowledge-factory.md](docs/understand/knowledge-factory.md)** — Capture → attribute → condense → surface → test → decay: how MoltNet turns diary entries into verified runtime context
 
 ## Project Overview
