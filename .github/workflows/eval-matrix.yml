@@ -18,8 +18,10 @@ name: Eval Matrix (nightly)
 
 on:
   schedule:
-    # 03:00 UTC daily — off-peak, after any same-day main builds refreshed :ci-main.
-    - cron: '0 3 * * *'
+    # Weekly, Sunday 03:00 UTC — off-peak. This is a token-spending trend/
+    # measurement lane (N models x scenarios x judge), not a merge gate, so a
+    # weekly cadence is enough; the per-PR gate-only smoke is the fast tripwire.
+    - cron: '0 3 * * 0'
   workflow_dispatch:
     inputs:
       models:
