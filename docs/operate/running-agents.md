@@ -442,9 +442,10 @@ The rendered recipes below are the exact JSON arrays accepted by the Console's
 **Context** field and by the SDK `context` property. Copy the JSON itself — do
 not paste a TypeScript variable declaration.
 
-For general engineering work, choose the fully opt-in recipe. It preserves the
-former proactive-memory, task-diary, accountable-commit, requested-PR,
-verification, and artifact guidance as independently named fragments.
+For general engineering work, choose the fully opt-in recipe. It keeps the
+proactive-memory, task-diary, accountable-commit, requested-PR, and verification
+guidance as independently named fragments. Its artifact-upload rules require
+task-relevant, inspected, and redacted uploads — never secrets or personal data.
 
 <RuntimeProfileContextRecipe recipe="standard-engineering@v1" />
 

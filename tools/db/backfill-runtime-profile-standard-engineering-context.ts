@@ -1,12 +1,15 @@
 /* eslint-disable no-console */
 /**
- * One-time backfill: seed the standard engineering guidance into existing
- * runtime profiles as one ordinary prompt_prefix context entry.
+ * Sync the standard engineering guidance into existing runtime profiles as one
+ * ordinary prompt_prefix context entry, keeping deployed profiles current with
+ * the catalogue.
  *
- * This preserves the pre-profile-context workflow for deployed profiles while
- * keeping the resulting guidance profile-owned and revision/CID-addressed.
- * Existing profile context is preserved: the standard entry is appended only
- * when it is not already present.
+ * Idempotent and content-aware: the standard entry is appended to profiles that
+ * lack it (seed), and refreshed on profiles whose entry content has drifted from
+ * the current catalogue (update) — this is how in-place edits to the
+ * standard-engineering recipe reach already-seeded profiles. Profiles already
+ * carrying the current content, and all other context entries, are left
+ * untouched; the resulting guidance stays profile-owned and revision/CID-addressed.
  *
  * Run from the repo root:
  *   pnpm exec tsx tools/db/backfill-runtime-profile-standard-engineering-context.ts --dry-run
@@ -116,7 +119,10 @@ async function backfill(): Promise<void> {
   try {
     const profiles = await db.select().from(runtimeProfiles);
     const standardContext = loadStandardEngineeringContext();
-    const candidates: Array<typeof runtimeProfiles.$inferSelect> = [];
+    const candidates: Array<{
+      profile: typeof runtimeProfiles.$inferSelect;
+      action: 'seed' | 'update';
+    }> = [];
 
     for (const profile of profiles) {
       if (
@@ -125,26 +131,36 @@ async function backfill(): Promise<void> {
       ) {
         throw new Error(`Profile ${profile.id} has invalid context data`);
       }
-      if (
-        profile.context.some(
-          (entry) => entry.slug === STANDARD_ENGINEERING_SLUG,
-        )
-      ) {
-        continue;
+      const existing = profile.context.find(
+        (entry) => entry.slug === STANDARD_ENGINEERING_SLUG,
+      );
+      if (!existing) {
+        candidates.push({ profile, action: 'seed' });
+      } else if (existing.content !== standardContext.content) {
+        // Present but stale — re-sync to the current catalogue content (this is
+        // how in-place edits to standard-engineering reach deployed profiles).
+        candidates.push({ profile, action: 'update' });
       }
-      candidates.push(profile);
+      // else: already present and current — skip.
     }
 
     console.log(
-      `Found ${candidates.length} runtime profiles to backfill${dryRun ? ' (dry run)' : ''}`,
+      `Found ${candidates.length} runtime profiles to sync${dryRun ? ' (dry run)' : ''}`,
     );
 
-    for (const profile of candidates) {
-      const context = [...profile.context, standardContext];
+    for (const { profile, action } of candidates) {
+      const context =
+        action === 'seed'
+          ? [...profile.context, standardContext]
+          : profile.context.map((entry) =>
+              entry.slug === STANDARD_ENGINEERING_SLUG
+                ? standardContext
+                : entry,
+            );
       const definitionCid = await computeProfileDefinitionCid(profile, context);
       if (dryRun) {
         console.log(
-          `  [dry-run] ${profile.id} (${profile.name}) → ${definitionCid}`,
+          `  [dry-run] ${action} ${profile.id} (${profile.name}) → ${definitionCid}`,
         );
         continue;
       }
@@ -157,13 +173,15 @@ async function backfill(): Promise<void> {
           updatedAt: sql`now()`,
         })
         .where(sql`${runtimeProfiles.id} = ${profile.id}`);
-      console.log(`  Updated ${profile.id} (${profile.name})`);
+      console.log(
+        `  ${action === 'seed' ? 'Seeded' : 'Updated'} ${profile.id} (${profile.name})`,
+      );
     }
 
     console.log(
       dryRun
-        ? `Dry run complete. ${candidates.length} profiles would be updated.`
-        : `Backfill complete. Updated ${candidates.length} profiles.`,
+        ? `Dry run complete. ${candidates.length} profiles would be synced.`
+        : `Sync complete. ${candidates.length} profiles updated.`,
     );
   } finally {
     await pool.end();

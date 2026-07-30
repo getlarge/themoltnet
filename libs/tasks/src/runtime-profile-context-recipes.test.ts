@@ -50,6 +50,19 @@ describe('runtime-profile context recipe catalogue', () => {
     expect(planner.content).not.toContain('lockfile');
   });
 
+  it('carries hardened artifact-upload guidance in standard-engineering', () => {
+    const entries = resolveRuntimeProfileContextRecipe(
+      'standard-engineering@v1',
+    );
+    const verification = entries.find(
+      (e) => e.slug === 'verification-and-artifacts-v1',
+    );
+    // The verification fragment prohibits uploading secrets/PII (hardened in
+    // place; the resync tool propagates this to already-seeded profiles).
+    expect(verification?.content).toContain('Never upload secrets');
+    expect(verification?.content).not.toContain('Upload large files');
+  });
+
   it('resolves every recipe to a valid, applyable context array', () => {
     for (const recipeId of runtimeProfileContextRecipeIds) {
       const entries = resolveRuntimeProfileContextRecipe(recipeId);
