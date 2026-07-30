@@ -442,4 +442,53 @@ describe('checkGates', () => {
     );
     expect(badResult.failures.map((f) => f.gate)).toContain('output_schema');
   });
+
+  it('passes requireArtifacts when enough artifacts were persisted', async () => {
+    const agent = fakeAgent(messages(), completedAttempt, [
+      { cid: 'c1', attemptN: 1, title: 'deploy-report', content: 'ok' },
+    ]);
+
+    const result = await checkGates(
+      agent,
+      't1',
+      1,
+      { requireArtifacts: 1 },
+      EXPECTED_WITH_TEAM,
+    );
+
+    expect(result.failures.map((f) => f.gate)).not.toContain('artifact_count');
+    expect(result.passed).toBe(true);
+  });
+
+  it('fails requireArtifacts when the upload never persisted (tool called or not)', async () => {
+    // No artifacts persisted — the exact regression requireArtifacts guards
+    // that requireToolCalls (call-only) would miss.
+    const agent = fakeAgent(messages(), completedAttempt, []);
+
+    const result = await checkGates(
+      agent,
+      't1',
+      1,
+      { requireArtifacts: 1 },
+      EXPECTED_WITH_TEAM,
+    );
+
+    expect(result.failures.map((f) => f.gate)).toContain('artifact_count');
+  });
+
+  it('fails requireArtifacts when no teamId is available for the artifact API', async () => {
+    const agent = fakeAgent(messages(), completedAttempt, [
+      { cid: 'c1', attemptN: 1, title: 'r', content: 'x' },
+    ]);
+
+    const result = await checkGates(
+      agent,
+      't1',
+      1,
+      { requireArtifacts: 1 },
+      EXPECTED, // no teamId
+    );
+
+    expect(result.failures.map((f) => f.gate)).toContain('artifact_count');
+  });
 });

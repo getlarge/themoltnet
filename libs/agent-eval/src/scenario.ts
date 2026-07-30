@@ -60,6 +60,15 @@ export const GateExpectations = Type.Object(
      */
     requireToolCalls: Type.Optional(Type.Array(Type.String({ minLength: 1 }))),
     /**
+     * Minimum number of task artifacts that must have been PERSISTED for the
+     * attempt (checked via the artifact API, not the tool-call stream). Stronger
+     * than `requireToolCalls: [moltnet_upload_task_artifact]`: it catches "the
+     * upload tool was called but the artifact never persisted" — the failure
+     * mode to guard when a scenario relies on artifact upload. Requires an
+     * `expected.teamId` for the artifact API.
+     */
+    requireArtifacts: Type.Optional(Type.Integer({ minimum: 1 })),
+    /**
      * Tool names that must NOT appear (e.g. `bash` for a diary-discipline
      * scenario where the model must use `moltnet_create_entry`, not shell).
      */

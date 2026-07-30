@@ -1,5 +1,6 @@
 {
   "expectWorkspaceMode": "shared_mount",
+  "requireArtifacts": 1,
   "requireCleanSubmit": true,
   "requirePromptSections": [
     "run_eval.header",

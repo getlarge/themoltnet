@@ -364,6 +364,31 @@ export async function checkGates(
     }
   }
 
+  // Gate: at least N artifacts were PERSISTED for the attempt. Checks the
+  // artifact API (persistence), not the tool-call stream (invocation), so it
+  // catches "the upload tool was called but nothing persisted".
+  if (gates.requireArtifacts !== undefined) {
+    if (!expected.teamId) {
+      failures.push({
+        gate: 'artifact_count',
+        detail: 'requireArtifacts requires expected.teamId',
+      });
+    } else {
+      const artifacts = await agent.tasks.artifacts.list(taskId, {
+        teamId: expected.teamId,
+      });
+      const forAttempt = artifacts.filter(
+        (a) => a.attemptN === null || a.attemptN === attemptN,
+      );
+      if (forAttempt.length < gates.requireArtifacts) {
+        failures.push({
+          gate: 'artifact_count',
+          detail: `expected >= ${gates.requireArtifacts} persisted artifact(s), found ${forAttempt.length}`,
+        });
+      }
+    }
+  }
+
   // Gate (safety): no uploaded artifact may contain a forbidden pattern —
   // secrets, credentials, PII. Lists the attempt's artifacts, downloads each,
   // and scans the bytes. A match hard-fails the scenario (composite 0).
