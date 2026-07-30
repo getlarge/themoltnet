@@ -598,6 +598,19 @@ export type CreateTaskBody = {
   title?: string;
 };
 
+export type CredentialJwk = {
+  alg: 'EdDSA';
+  crv: 'Ed25519';
+  kid: string;
+  kty: 'OKP';
+  use: 'sig';
+  x: string;
+};
+
+export type CredentialJwks = {
+  keys: Array<CredentialJwk>;
+};
+
 export type CryptoIdentity = {
   fingerprint: string;
   identityId: string;
@@ -1098,6 +1111,21 @@ export type ListTasksQuery = {
    * Repeated task type filter. Single value also accepted.
    */
   taskTypes?: Array<string>;
+};
+
+export type MoltNetTaskCredentialClaimsV1 = {
+  agentId: string;
+  attemptN: number;
+  executorManifestFingerprint: string;
+  kind: 'task';
+  leaseId: string;
+  policySnapshotHash: string;
+  runtimeKind: string;
+  runtimeProfileId: string;
+  runtimeProfileRevision: number;
+  taskId: string;
+  teamId: string;
+  version: 1;
 };
 
 export type NetworkInfo = {
@@ -2733,6 +2761,16 @@ export type TaskAttemptStatus =
   | 'aborted'
   | 'timed_out';
 
+export type TaskCredentialResponse = {
+  audience: Array<string>;
+  claims: MoltNetTaskCredentialClaimsV1;
+  expiresAt: string;
+  issuer: string;
+  jwksUri: string;
+  token: string;
+  tokenType: 'Bearer';
+};
+
 export type TaskError = {
   code: string;
   message: string;
@@ -3565,6 +3603,23 @@ export type RotateClientSecretResponses = {
 
 export type RotateClientSecretResponse =
   RotateClientSecretResponses[keyof RotateClientSecretResponses];
+
+export type GetCredentialJwksData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/credentials/jwks.json';
+};
+
+export type GetCredentialJwksResponses = {
+  /**
+   * Default Response
+   */
+  200: CredentialJwks;
+};
+
+export type GetCredentialJwksResponse =
+  GetCredentialJwksResponses[keyof GetCredentialJwksResponses];
 
 export type GetCryptoIdentityData = {
   body?: never;
@@ -12900,6 +12955,70 @@ export type CompleteTaskResponses = {
 
 export type CompleteTaskResponse =
   CompleteTaskResponses[keyof CompleteTaskResponses];
+
+export type IssueTaskCredentialData = {
+  body?: never;
+  headers: {
+    /**
+     * Team ID (UUID) that will own the resource. Required.
+     */
+    'x-moltnet-team-id': string;
+  };
+  path: {
+    id: string;
+    n: number;
+  };
+  query?: never;
+  url: '/tasks/{id}/attempts/{n}/credentials';
+};
+
+export type IssueTaskCredentialErrors = {
+  /**
+   * Default Response
+   */
+  400: ValidationProblemDetails;
+  /**
+   * Default Response
+   */
+  401: ProblemDetails;
+  /**
+   * Default Response
+   */
+  403: ProblemDetails;
+  /**
+   * Default Response
+   */
+  404: ProblemDetails;
+  /**
+   * Default Response
+   */
+  409: ConflictProblemDetails;
+  /**
+   * Default Response
+   */
+  429: ProblemDetails;
+  /**
+   * Default Response
+   */
+  500: ProblemDetails;
+  /**
+   * Default Response
+   */
+  503: ProblemDetails;
+};
+
+export type IssueTaskCredentialError =
+  IssueTaskCredentialErrors[keyof IssueTaskCredentialErrors];
+
+export type IssueTaskCredentialResponses = {
+  /**
+   * Default Response
+   */
+  200: TaskCredentialResponse;
+};
+
+export type IssueTaskCredentialResponse =
+  IssueTaskCredentialResponses[keyof IssueTaskCredentialResponses];
 
 export type FailTaskAttemptData = {
   body: {

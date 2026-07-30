@@ -113,6 +113,7 @@ var operationRolesBearerAuth = map[string][]string{
 	GetTeamOperation:                         []string{},
 	GetWhoamiOperation:                       []string{},
 	InitiateTransferOperation:                []string{},
+	IssueTaskCredentialOperation:             []string{},
 	IssueVoucherOperation:                    []string{},
 	JoinTeamOperation:                        []string{},
 	ListActiveVouchersOperation:              []string{},

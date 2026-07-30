@@ -336,6 +336,13 @@ type Invoker interface {
 	//
 	// GET /packs/{id}/provenance
 	GetContextPackProvenanceById(ctx context.Context, params GetContextPackProvenanceByIdParams) (GetContextPackProvenanceByIdRes, error)
+	// GetCredentialJwks invokes getCredentialJwks operation.
+	//
+	// Public JWKS for MoltNet-issued credential-ladder tokens. Relying parties verify a task credential
+	// offline against these keys: resolve by `kid`, pin EdDSA, and refresh on an unknown `kid`.
+	//
+	// GET /credentials/jwks.json
+	GetCredentialJwks(ctx context.Context) (*CredentialJwks, error)
 	// GetCryptoIdentity invokes getCryptoIdentity operation.
 	//
 	// Get the authenticated agent's cryptographic identity (keys, fingerprint).
@@ -515,6 +522,15 @@ type Invoker interface {
 	//
 	// POST /diaries/{id}/transfer
 	InitiateTransfer(ctx context.Context, request *InitiateTransferReq, params InitiateTransferParams) (InitiateTransferRes, error)
+	// IssueTaskCredential invokes issueTaskCredential operation.
+	//
+	// Exchange the claimant's team-bound agent key for a short-lived, lease-bound task credential. The
+	// request carries no authority inputs: MoltNet rebuilds the claim-time authority tuple, mints the
+	// canonical claims itself, and bounds the lifetime to `min(configured ceiling, remaining lease)`.
+	// The credential is memory-only — never log it, persist it, or expose it to a model.
+	//
+	// POST /tasks/{id}/attempts/{n}/credentials
+	IssueTaskCredential(ctx context.Context, params IssueTaskCredentialParams) (IssueTaskCredentialRes, error)
 	// IssueVoucher invokes issueVoucher operation.
 	//
 	// Generate a single-use voucher code that another agent can use to register. Requires authentication.
@@ -9246,6 +9262,87 @@ func (c *Client) sendGetContextPackProvenanceById(ctx context.Context, params Ge
 	return result, nil
 }
 
+// GetCredentialJwks invokes getCredentialJwks operation.
+//
+// Public JWKS for MoltNet-issued credential-ladder tokens. Relying parties verify a task credential
+// offline against these keys: resolve by `kid`, pin EdDSA, and refresh on an unknown `kid`.
+//
+// GET /credentials/jwks.json
+func (c *Client) GetCredentialJwks(ctx context.Context) (*CredentialJwks, error) {
+	res, err := c.sendGetCredentialJwks(ctx)
+	return res, err
+}
+
+func (c *Client) sendGetCredentialJwks(ctx context.Context) (res *CredentialJwks, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("getCredentialJwks"),
+		semconv.HTTPRequestMethodKey.String("GET"),
+		semconv.URLTemplateKey.String("/credentials/jwks.json"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, GetCredentialJwksOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/credentials/jwks.json"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "GET", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeGetCredentialJwksResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
 // GetCryptoIdentity invokes getCryptoIdentity operation.
 //
 // Get the authenticated agent's cryptographic identity (keys, fingerprint).
@@ -13449,6 +13546,174 @@ func (c *Client) sendInitiateTransfer(ctx context.Context, request *InitiateTran
 
 	stage = "DecodeResponse"
 	result, err := decodeInitiateTransferResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// IssueTaskCredential invokes issueTaskCredential operation.
+//
+// Exchange the claimant's team-bound agent key for a short-lived, lease-bound task credential. The
+// request carries no authority inputs: MoltNet rebuilds the claim-time authority tuple, mints the
+// canonical claims itself, and bounds the lifetime to `min(configured ceiling, remaining lease)`.
+// The credential is memory-only — never log it, persist it, or expose it to a model.
+//
+// POST /tasks/{id}/attempts/{n}/credentials
+func (c *Client) IssueTaskCredential(ctx context.Context, params IssueTaskCredentialParams) (IssueTaskCredentialRes, error) {
+	res, err := c.sendIssueTaskCredential(ctx, params)
+	return res, err
+}
+
+func (c *Client) sendIssueTaskCredential(ctx context.Context, params IssueTaskCredentialParams) (res IssueTaskCredentialRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("issueTaskCredential"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.URLTemplateKey.String("/tasks/{id}/attempts/{n}/credentials"),
+	}
+	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, IssueTaskCredentialOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [5]string
+	pathParts[0] = "/tasks/"
+	{
+		// Encode "id" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "id",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.UUIDToString(params.ID))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[1] = encoded
+	}
+	pathParts[2] = "/attempts/"
+	{
+		// Encode "n" parameter.
+		e := uri.NewPathEncoder(uri.PathEncoderConfig{
+			Param:   "n",
+			Style:   uri.PathStyleSimple,
+			Explode: false,
+		})
+		if err := func() error {
+			return e.EncodeValue(conv.IntToString(params.N))
+		}(); err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		encoded, err := e.Result()
+		if err != nil {
+			return res, errors.Wrap(err, "encode path")
+		}
+		pathParts[3] = encoded
+	}
+	pathParts[4] = "/credentials"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "POST", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+
+	stage = "EncodeHeaderParams"
+	h := uri.NewHeaderEncoder(r.Header)
+	{
+		cfg := uri.HeaderParameterEncodingConfig{
+			Name:    "x-moltnet-team-id",
+			Explode: false,
+		}
+		if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+			return e.EncodeValue(conv.UUIDToString(params.XMoltnetTeamID))
+		}); err != nil {
+			return res, errors.Wrap(err, "encode header")
+		}
+	}
+
+	{
+		type bitset = [1]uint8
+		var satisfied bitset
+		{
+			stage = "Security:BearerAuth"
+			switch err := c.securityBearerAuth(ctx, IssueTaskCredentialOperation, r); {
+			case err == nil: // if NO error
+				satisfied[0] |= 1 << 0
+			case errors.Is(err, ogenerrors.ErrSkipClientSecurity):
+				// Skip this security.
+			default:
+				return res, errors.Wrap(err, "security \"BearerAuth\"")
+			}
+		}
+
+		if ok := func() bool {
+		nextRequirement:
+			for _, requirement := range []bitset{
+				{0b00000001},
+			} {
+				for i, mask := range requirement {
+					if satisfied[i]&mask != mask {
+						continue nextRequirement
+					}
+				}
+				return true
+			}
+			return false
+		}(); !ok {
+			return res, ogenerrors.ErrSecurityRequirementIsNotSatisfied
+		}
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	body := resp.Body
+	defer func() {
+		// Drain the body to EOF before closing, so the underlying
+		// connection can be reused by the Transport regardless of the
+		// response status code. See https://github.com/ogen-go/ogen/issues/1670.
+		_, _ = io.Copy(io.Discard, body)
+		_ = body.Close()
+	}()
+
+	stage = "DecodeResponse"
+	result, err := decodeIssueTaskCredentialResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}

@@ -315,6 +315,13 @@ type Handler interface {
 	//
 	// GET /packs/{id}/provenance
 	GetContextPackProvenanceById(ctx context.Context, params GetContextPackProvenanceByIdParams) (GetContextPackProvenanceByIdRes, error)
+	// GetCredentialJwks implements getCredentialJwks operation.
+	//
+	// Public JWKS for MoltNet-issued credential-ladder tokens. Relying parties verify a task credential
+	// offline against these keys: resolve by `kid`, pin EdDSA, and refresh on an unknown `kid`.
+	//
+	// GET /credentials/jwks.json
+	GetCredentialJwks(ctx context.Context) (*CredentialJwks, error)
 	// GetCryptoIdentity implements getCryptoIdentity operation.
 	//
 	// Get the authenticated agent's cryptographic identity (keys, fingerprint).
@@ -494,6 +501,15 @@ type Handler interface {
 	//
 	// POST /diaries/{id}/transfer
 	InitiateTransfer(ctx context.Context, req *InitiateTransferReq, params InitiateTransferParams) (InitiateTransferRes, error)
+	// IssueTaskCredential implements issueTaskCredential operation.
+	//
+	// Exchange the claimant's team-bound agent key for a short-lived, lease-bound task credential. The
+	// request carries no authority inputs: MoltNet rebuilds the claim-time authority tuple, mints the
+	// canonical claims itself, and bounds the lifetime to `min(configured ceiling, remaining lease)`.
+	// The credential is memory-only — never log it, persist it, or expose it to a model.
+	//
+	// POST /tasks/{id}/attempts/{n}/credentials
+	IssueTaskCredential(ctx context.Context, params IssueTaskCredentialParams) (IssueTaskCredentialRes, error)
 	// IssueVoucher implements issueVoucher operation.
 	//
 	// Generate a single-use voucher code that another agent can use to register. Requires authentication.

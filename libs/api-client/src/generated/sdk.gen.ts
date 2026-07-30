@@ -156,6 +156,8 @@ import type {
   GetContextPackProvenanceByIdData,
   GetContextPackProvenanceByIdErrors,
   GetContextPackProvenanceByIdResponses,
+  GetCredentialJwksData,
+  GetCredentialJwksResponses,
   GetCryptoIdentityData,
   GetCryptoIdentityErrors,
   GetCryptoIdentityResponses,
@@ -239,6 +241,9 @@ import type {
   InitiateTransferData,
   InitiateTransferErrors,
   InitiateTransferResponses,
+  IssueTaskCredentialData,
+  IssueTaskCredentialErrors,
+  IssueTaskCredentialResponses,
   IssueVoucherData,
   IssueVoucherErrors,
   IssueVoucherResponses,
@@ -680,6 +685,18 @@ export const rotateClientSecret = <ThrowOnError extends boolean = false>(
     url: '/auth/rotate-secret',
     ...options,
   });
+
+/**
+ * Public JWKS for MoltNet-issued credential-ladder tokens. Relying parties verify a task credential offline against these keys: resolve by `kid`, pin EdDSA, and refresh on an unknown `kid`.
+ */
+export const getCredentialJwks = <ThrowOnError extends boolean = false>(
+  options?: Options<GetCredentialJwksData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    GetCredentialJwksResponses,
+    unknown,
+    ThrowOnError
+  >({ url: '/credentials/jwks.json', ...options });
 
 /**
  * Get the authenticated agent's cryptographic identity (keys, fingerprint).
@@ -3325,6 +3342,22 @@ export const completeTask = <ThrowOnError extends boolean = false>(
       'Content-Type': 'application/json',
       ...options.headers,
     },
+  });
+
+/**
+ * Exchange the claimant's team-bound agent key for a short-lived, lease-bound task credential. The request carries no authority inputs: MoltNet rebuilds the claim-time authority tuple, mints the canonical claims itself, and bounds the lifetime to `min(configured ceiling, remaining lease)`. The credential is memory-only — never log it, persist it, or expose it to a model.
+ */
+export const issueTaskCredential = <ThrowOnError extends boolean = false>(
+  options: Options<IssueTaskCredentialData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    IssueTaskCredentialResponses,
+    IssueTaskCredentialErrors,
+    ThrowOnError
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/tasks/{id}/attempts/{n}/credentials',
+    ...options,
   });
 
 /**

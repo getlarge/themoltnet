@@ -2432,6 +2432,66 @@
         ],
         "type": "object"
       },
+      "CredentialJwk": {
+        "additionalProperties": false,
+        "properties": {
+          "alg": {
+            "enum": [
+              "EdDSA"
+            ],
+            "type": "string"
+          },
+          "crv": {
+            "enum": [
+              "Ed25519"
+            ],
+            "type": "string"
+          },
+          "kid": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "kty": {
+            "enum": [
+              "OKP"
+            ],
+            "type": "string"
+          },
+          "use": {
+            "enum": [
+              "sig"
+            ],
+            "type": "string"
+          },
+          "x": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "kty",
+          "crv",
+          "x",
+          "kid",
+          "alg",
+          "use"
+        ],
+        "type": "object"
+      },
+      "CredentialJwks": {
+        "properties": {
+          "keys": {
+            "items": {
+              "$ref": "#/components/schemas/CredentialJwk"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "keys"
+        ],
+        "type": "object"
+      },
       "CryptoIdentity": {
         "properties": {
           "fingerprint": {
@@ -4542,6 +4602,82 @@
             "type": "array"
           }
         },
+        "type": "object"
+      },
+      "MoltNetTaskCredentialClaimsV1": {
+        "additionalProperties": false,
+        "properties": {
+          "agentId": {
+            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$",
+            "type": "string"
+          },
+          "attemptN": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "executorManifestFingerprint": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "task"
+            ],
+            "type": "string"
+          },
+          "leaseId": {
+            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$",
+            "type": "string"
+          },
+          "policySnapshotHash": {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "runtimeKind": {
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$",
+            "type": "string"
+          },
+          "runtimeProfileId": {
+            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$",
+            "type": "string"
+          },
+          "runtimeProfileRevision": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "taskId": {
+            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$",
+            "type": "string"
+          },
+          "teamId": {
+            "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$",
+            "type": "string"
+          },
+          "version": {
+            "enum": [
+              1
+            ],
+            "type": "number"
+          }
+        },
+        "required": [
+          "version",
+          "kind",
+          "agentId",
+          "teamId",
+          "taskId",
+          "attemptN",
+          "leaseId",
+          "runtimeKind",
+          "executorManifestFingerprint",
+          "runtimeProfileId",
+          "runtimeProfileRevision",
+          "policySnapshotHash"
+        ],
         "type": "object"
       },
       "NetworkInfo": {
@@ -12538,6 +12674,53 @@
           }
         ]
       },
+      "TaskCredentialResponse": {
+        "properties": {
+          "audience": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "claims": {
+            "$ref": "#/components/schemas/MoltNetTaskCredentialClaimsV1"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "issuer": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "jwksUri": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "token": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "tokenType": {
+            "enum": [
+              "Bearer"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "token",
+          "tokenType",
+          "expiresAt",
+          "issuer",
+          "audience",
+          "jwksUri",
+          "claims"
+        ],
+        "type": "object"
+      },
       "TaskError": {
         "additionalProperties": false,
         "properties": {
@@ -15296,6 +15479,27 @@
         ],
         "tags": [
           "auth"
+        ]
+      }
+    },
+    "/credentials/jwks.json": {
+      "get": {
+        "description": "Public JWKS for MoltNet-issued credential-ladder tokens. Relying parties verify a task credential offline against these keys: resolve by `kid`, pin EdDSA, and refresh on an unknown `kid`.",
+        "operationId": "getCredentialJwks",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CredentialJwks"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "tags": [
+          "credentials"
         ]
       }
     },
@@ -40240,6 +40444,142 @@
           },
           {
             "cookieAuth": []
+          }
+        ],
+        "tags": [
+          "tasks"
+        ]
+      }
+    },
+    "/tasks/{id}/attempts/{n}/credentials": {
+      "post": {
+        "description": "Exchange the claimant's team-bound agent key for a short-lived, lease-bound task credential. The request carries no authority inputs: MoltNet rebuilds the claim-time authority tuple, mints the canonical claims itself, and bounds the lifetime to `min(configured ceiling, remaining lease)`. The credential is memory-only — never log it, persist it, or expose it to a model.",
+        "operationId": "issueTaskCredential",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "n",
+            "required": true,
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Team ID (UUID) that will own the resource. Required.",
+            "in": "header",
+            "name": "x-moltnet-team-id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskCredentialResponse"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Default Response"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
           }
         ],
         "tags": [

@@ -330,7 +330,7 @@ describe('Custom packs', () => {
         limit: 1,
       },
     });
-    const foreignEntryId = foreignSearch!.results[0]!.id;
+    const foreignEntryId = foreignSearch!.results[0].id;
 
     const { error, response } = await createDiaryCustomPack({
       client,

@@ -4587,6 +4587,7 @@ func (*ConflictProblemDetails) createRuntimeProfileRes()                  {}
 func (*ConflictProblemDetails) createTaskRes()                            {}
 func (*ConflictProblemDetails) failTaskAttemptRes()                       {}
 func (*ConflictProblemDetails) initiateTransferRes()                      {}
+func (*ConflictProblemDetails) issueTaskCredentialRes()                   {}
 func (*ConflictProblemDetails) joinTeamRes()                              {}
 func (*ConflictProblemDetails) previewDiaryCustomPackRes()                {}
 func (*ConflictProblemDetails) registerExecutorManifestRes()              {}
@@ -8304,6 +8305,227 @@ func (*CreateTeamTooManyRequests) createTeamRes() {}
 type CreateTeamUnauthorized ProblemDetails
 
 func (*CreateTeamUnauthorized) createTeamRes() {}
+
+// Ref: #/components/schemas/CredentialJwk
+type CredentialJwk struct {
+	Alg CredentialJwkAlg `json:"alg"`
+	Crv CredentialJwkCrv `json:"crv"`
+	Kid string           `json:"kid"`
+	Kty CredentialJwkKty `json:"kty"`
+	Use CredentialJwkUse `json:"use"`
+	X   string           `json:"x"`
+}
+
+// GetAlg returns the value of Alg.
+func (s *CredentialJwk) GetAlg() CredentialJwkAlg {
+	return s.Alg
+}
+
+// GetCrv returns the value of Crv.
+func (s *CredentialJwk) GetCrv() CredentialJwkCrv {
+	return s.Crv
+}
+
+// GetKid returns the value of Kid.
+func (s *CredentialJwk) GetKid() string {
+	return s.Kid
+}
+
+// GetKty returns the value of Kty.
+func (s *CredentialJwk) GetKty() CredentialJwkKty {
+	return s.Kty
+}
+
+// GetUse returns the value of Use.
+func (s *CredentialJwk) GetUse() CredentialJwkUse {
+	return s.Use
+}
+
+// GetX returns the value of X.
+func (s *CredentialJwk) GetX() string {
+	return s.X
+}
+
+// SetAlg sets the value of Alg.
+func (s *CredentialJwk) SetAlg(val CredentialJwkAlg) {
+	s.Alg = val
+}
+
+// SetCrv sets the value of Crv.
+func (s *CredentialJwk) SetCrv(val CredentialJwkCrv) {
+	s.Crv = val
+}
+
+// SetKid sets the value of Kid.
+func (s *CredentialJwk) SetKid(val string) {
+	s.Kid = val
+}
+
+// SetKty sets the value of Kty.
+func (s *CredentialJwk) SetKty(val CredentialJwkKty) {
+	s.Kty = val
+}
+
+// SetUse sets the value of Use.
+func (s *CredentialJwk) SetUse(val CredentialJwkUse) {
+	s.Use = val
+}
+
+// SetX sets the value of X.
+func (s *CredentialJwk) SetX(val string) {
+	s.X = val
+}
+
+type CredentialJwkAlg string
+
+const (
+	CredentialJwkAlgEdDSA CredentialJwkAlg = "EdDSA"
+)
+
+// AllValues returns all CredentialJwkAlg values.
+func (CredentialJwkAlg) AllValues() []CredentialJwkAlg {
+	return []CredentialJwkAlg{
+		CredentialJwkAlgEdDSA,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s CredentialJwkAlg) MarshalText() ([]byte, error) {
+	switch s {
+	case CredentialJwkAlgEdDSA:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *CredentialJwkAlg) UnmarshalText(data []byte) error {
+	switch CredentialJwkAlg(data) {
+	case CredentialJwkAlgEdDSA:
+		*s = CredentialJwkAlgEdDSA
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type CredentialJwkCrv string
+
+const (
+	CredentialJwkCrvEd25519 CredentialJwkCrv = "Ed25519"
+)
+
+// AllValues returns all CredentialJwkCrv values.
+func (CredentialJwkCrv) AllValues() []CredentialJwkCrv {
+	return []CredentialJwkCrv{
+		CredentialJwkCrvEd25519,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s CredentialJwkCrv) MarshalText() ([]byte, error) {
+	switch s {
+	case CredentialJwkCrvEd25519:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *CredentialJwkCrv) UnmarshalText(data []byte) error {
+	switch CredentialJwkCrv(data) {
+	case CredentialJwkCrvEd25519:
+		*s = CredentialJwkCrvEd25519
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type CredentialJwkKty string
+
+const (
+	CredentialJwkKtyOKP CredentialJwkKty = "OKP"
+)
+
+// AllValues returns all CredentialJwkKty values.
+func (CredentialJwkKty) AllValues() []CredentialJwkKty {
+	return []CredentialJwkKty{
+		CredentialJwkKtyOKP,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s CredentialJwkKty) MarshalText() ([]byte, error) {
+	switch s {
+	case CredentialJwkKtyOKP:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *CredentialJwkKty) UnmarshalText(data []byte) error {
+	switch CredentialJwkKty(data) {
+	case CredentialJwkKtyOKP:
+		*s = CredentialJwkKtyOKP
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type CredentialJwkUse string
+
+const (
+	CredentialJwkUseSig CredentialJwkUse = "sig"
+)
+
+// AllValues returns all CredentialJwkUse values.
+func (CredentialJwkUse) AllValues() []CredentialJwkUse {
+	return []CredentialJwkUse{
+		CredentialJwkUseSig,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s CredentialJwkUse) MarshalText() ([]byte, error) {
+	switch s {
+	case CredentialJwkUseSig:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *CredentialJwkUse) UnmarshalText(data []byte) error {
+	switch CredentialJwkUse(data) {
+	case CredentialJwkUseSig:
+		*s = CredentialJwkUseSig
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+// Ref: #/components/schemas/CredentialJwks
+type CredentialJwks struct {
+	Keys []CredentialJwk `json:"keys"`
+}
+
+// GetKeys returns the value of Keys.
+func (s *CredentialJwks) GetKeys() []CredentialJwk {
+	return s.Keys
+}
+
+// SetKeys sets the value of Keys.
+func (s *CredentialJwks) SetKeys(val []CredentialJwk) {
+	s.Keys = val
+}
 
 // Ref: #/components/schemas/CryptoIdentity
 type CryptoIdentity struct {
@@ -26127,6 +26349,30 @@ func (s *InjectionThreat) SetType(val string) {
 	s.Type = val
 }
 
+type IssueTaskCredentialForbidden ProblemDetails
+
+func (*IssueTaskCredentialForbidden) issueTaskCredentialRes() {}
+
+type IssueTaskCredentialInternalServerError ProblemDetails
+
+func (*IssueTaskCredentialInternalServerError) issueTaskCredentialRes() {}
+
+type IssueTaskCredentialNotFound ProblemDetails
+
+func (*IssueTaskCredentialNotFound) issueTaskCredentialRes() {}
+
+type IssueTaskCredentialServiceUnavailable ProblemDetails
+
+func (*IssueTaskCredentialServiceUnavailable) issueTaskCredentialRes() {}
+
+type IssueTaskCredentialTooManyRequests ProblemDetails
+
+func (*IssueTaskCredentialTooManyRequests) issueTaskCredentialRes() {}
+
+type IssueTaskCredentialUnauthorized ProblemDetails
+
+func (*IssueTaskCredentialUnauthorized) issueTaskCredentialRes() {}
+
 type IssueVoucherBadRequest ProblemDetails
 
 func (*IssueVoucherBadRequest) issueVoucherRes() {}
@@ -31387,6 +31633,189 @@ func (*ListTeamsTooManyRequests) listTeamsRes() {}
 type ListTeamsUnauthorized ProblemDetails
 
 func (*ListTeamsUnauthorized) listTeamsRes() {}
+
+// Ref: #/components/schemas/MoltNetTaskCredentialClaimsV1
+type MoltNetTaskCredentialClaimsV1 struct {
+	AgentId                     string                               `json:"agentId"`
+	AttemptN                    int                                  `json:"attemptN"`
+	ExecutorManifestFingerprint string                               `json:"executorManifestFingerprint"`
+	Kind                        MoltNetTaskCredentialClaimsV1Kind    `json:"kind"`
+	LeaseId                     string                               `json:"leaseId"`
+	PolicySnapshotHash          string                               `json:"policySnapshotHash"`
+	RuntimeKind                 string                               `json:"runtimeKind"`
+	RuntimeProfileId            string                               `json:"runtimeProfileId"`
+	RuntimeProfileRevision      int                                  `json:"runtimeProfileRevision"`
+	TaskId                      string                               `json:"taskId"`
+	TeamId                      string                               `json:"teamId"`
+	Version                     MoltNetTaskCredentialClaimsV1Version `json:"version"`
+}
+
+// GetAgentId returns the value of AgentId.
+func (s *MoltNetTaskCredentialClaimsV1) GetAgentId() string {
+	return s.AgentId
+}
+
+// GetAttemptN returns the value of AttemptN.
+func (s *MoltNetTaskCredentialClaimsV1) GetAttemptN() int {
+	return s.AttemptN
+}
+
+// GetExecutorManifestFingerprint returns the value of ExecutorManifestFingerprint.
+func (s *MoltNetTaskCredentialClaimsV1) GetExecutorManifestFingerprint() string {
+	return s.ExecutorManifestFingerprint
+}
+
+// GetKind returns the value of Kind.
+func (s *MoltNetTaskCredentialClaimsV1) GetKind() MoltNetTaskCredentialClaimsV1Kind {
+	return s.Kind
+}
+
+// GetLeaseId returns the value of LeaseId.
+func (s *MoltNetTaskCredentialClaimsV1) GetLeaseId() string {
+	return s.LeaseId
+}
+
+// GetPolicySnapshotHash returns the value of PolicySnapshotHash.
+func (s *MoltNetTaskCredentialClaimsV1) GetPolicySnapshotHash() string {
+	return s.PolicySnapshotHash
+}
+
+// GetRuntimeKind returns the value of RuntimeKind.
+func (s *MoltNetTaskCredentialClaimsV1) GetRuntimeKind() string {
+	return s.RuntimeKind
+}
+
+// GetRuntimeProfileId returns the value of RuntimeProfileId.
+func (s *MoltNetTaskCredentialClaimsV1) GetRuntimeProfileId() string {
+	return s.RuntimeProfileId
+}
+
+// GetRuntimeProfileRevision returns the value of RuntimeProfileRevision.
+func (s *MoltNetTaskCredentialClaimsV1) GetRuntimeProfileRevision() int {
+	return s.RuntimeProfileRevision
+}
+
+// GetTaskId returns the value of TaskId.
+func (s *MoltNetTaskCredentialClaimsV1) GetTaskId() string {
+	return s.TaskId
+}
+
+// GetTeamId returns the value of TeamId.
+func (s *MoltNetTaskCredentialClaimsV1) GetTeamId() string {
+	return s.TeamId
+}
+
+// GetVersion returns the value of Version.
+func (s *MoltNetTaskCredentialClaimsV1) GetVersion() MoltNetTaskCredentialClaimsV1Version {
+	return s.Version
+}
+
+// SetAgentId sets the value of AgentId.
+func (s *MoltNetTaskCredentialClaimsV1) SetAgentId(val string) {
+	s.AgentId = val
+}
+
+// SetAttemptN sets the value of AttemptN.
+func (s *MoltNetTaskCredentialClaimsV1) SetAttemptN(val int) {
+	s.AttemptN = val
+}
+
+// SetExecutorManifestFingerprint sets the value of ExecutorManifestFingerprint.
+func (s *MoltNetTaskCredentialClaimsV1) SetExecutorManifestFingerprint(val string) {
+	s.ExecutorManifestFingerprint = val
+}
+
+// SetKind sets the value of Kind.
+func (s *MoltNetTaskCredentialClaimsV1) SetKind(val MoltNetTaskCredentialClaimsV1Kind) {
+	s.Kind = val
+}
+
+// SetLeaseId sets the value of LeaseId.
+func (s *MoltNetTaskCredentialClaimsV1) SetLeaseId(val string) {
+	s.LeaseId = val
+}
+
+// SetPolicySnapshotHash sets the value of PolicySnapshotHash.
+func (s *MoltNetTaskCredentialClaimsV1) SetPolicySnapshotHash(val string) {
+	s.PolicySnapshotHash = val
+}
+
+// SetRuntimeKind sets the value of RuntimeKind.
+func (s *MoltNetTaskCredentialClaimsV1) SetRuntimeKind(val string) {
+	s.RuntimeKind = val
+}
+
+// SetRuntimeProfileId sets the value of RuntimeProfileId.
+func (s *MoltNetTaskCredentialClaimsV1) SetRuntimeProfileId(val string) {
+	s.RuntimeProfileId = val
+}
+
+// SetRuntimeProfileRevision sets the value of RuntimeProfileRevision.
+func (s *MoltNetTaskCredentialClaimsV1) SetRuntimeProfileRevision(val int) {
+	s.RuntimeProfileRevision = val
+}
+
+// SetTaskId sets the value of TaskId.
+func (s *MoltNetTaskCredentialClaimsV1) SetTaskId(val string) {
+	s.TaskId = val
+}
+
+// SetTeamId sets the value of TeamId.
+func (s *MoltNetTaskCredentialClaimsV1) SetTeamId(val string) {
+	s.TeamId = val
+}
+
+// SetVersion sets the value of Version.
+func (s *MoltNetTaskCredentialClaimsV1) SetVersion(val MoltNetTaskCredentialClaimsV1Version) {
+	s.Version = val
+}
+
+type MoltNetTaskCredentialClaimsV1Kind string
+
+const (
+	MoltNetTaskCredentialClaimsV1KindTask MoltNetTaskCredentialClaimsV1Kind = "task"
+)
+
+// AllValues returns all MoltNetTaskCredentialClaimsV1Kind values.
+func (MoltNetTaskCredentialClaimsV1Kind) AllValues() []MoltNetTaskCredentialClaimsV1Kind {
+	return []MoltNetTaskCredentialClaimsV1Kind{
+		MoltNetTaskCredentialClaimsV1KindTask,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s MoltNetTaskCredentialClaimsV1Kind) MarshalText() ([]byte, error) {
+	switch s {
+	case MoltNetTaskCredentialClaimsV1KindTask:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *MoltNetTaskCredentialClaimsV1Kind) UnmarshalText(data []byte) error {
+	switch MoltNetTaskCredentialClaimsV1Kind(data) {
+	case MoltNetTaskCredentialClaimsV1KindTask:
+		*s = MoltNetTaskCredentialClaimsV1KindTask
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type MoltNetTaskCredentialClaimsV1Version float64
+
+const (
+	MoltNetTaskCredentialClaimsV1Version1 MoltNetTaskCredentialClaimsV1Version = 1
+)
+
+// AllValues returns all MoltNetTaskCredentialClaimsV1Version values.
+func (MoltNetTaskCredentialClaimsV1Version) AllValues() []MoltNetTaskCredentialClaimsV1Version {
+	return []MoltNetTaskCredentialClaimsV1Version{
+		MoltNetTaskCredentialClaimsV1Version1,
+	}
+}
 
 // Ref: #/components/schemas/NetworkInfo
 type NetworkInfo struct {
@@ -53446,6 +53875,123 @@ func (s *TaskAttemptUsage) SetToolCalls(val OptInt) {
 	s.ToolCalls = val
 }
 
+// Ref: #/components/schemas/TaskCredentialResponse
+type TaskCredentialResponse struct {
+	Audience  []string                        `json:"audience"`
+	Claims    MoltNetTaskCredentialClaimsV1   `json:"claims"`
+	ExpiresAt time.Time                       `json:"expiresAt"`
+	Issuer    string                          `json:"issuer"`
+	JwksUri   string                          `json:"jwksUri"`
+	Token     string                          `json:"token"`
+	TokenType TaskCredentialResponseTokenType `json:"tokenType"`
+}
+
+// GetAudience returns the value of Audience.
+func (s *TaskCredentialResponse) GetAudience() []string {
+	return s.Audience
+}
+
+// GetClaims returns the value of Claims.
+func (s *TaskCredentialResponse) GetClaims() MoltNetTaskCredentialClaimsV1 {
+	return s.Claims
+}
+
+// GetExpiresAt returns the value of ExpiresAt.
+func (s *TaskCredentialResponse) GetExpiresAt() time.Time {
+	return s.ExpiresAt
+}
+
+// GetIssuer returns the value of Issuer.
+func (s *TaskCredentialResponse) GetIssuer() string {
+	return s.Issuer
+}
+
+// GetJwksUri returns the value of JwksUri.
+func (s *TaskCredentialResponse) GetJwksUri() string {
+	return s.JwksUri
+}
+
+// GetToken returns the value of Token.
+func (s *TaskCredentialResponse) GetToken() string {
+	return s.Token
+}
+
+// GetTokenType returns the value of TokenType.
+func (s *TaskCredentialResponse) GetTokenType() TaskCredentialResponseTokenType {
+	return s.TokenType
+}
+
+// SetAudience sets the value of Audience.
+func (s *TaskCredentialResponse) SetAudience(val []string) {
+	s.Audience = val
+}
+
+// SetClaims sets the value of Claims.
+func (s *TaskCredentialResponse) SetClaims(val MoltNetTaskCredentialClaimsV1) {
+	s.Claims = val
+}
+
+// SetExpiresAt sets the value of ExpiresAt.
+func (s *TaskCredentialResponse) SetExpiresAt(val time.Time) {
+	s.ExpiresAt = val
+}
+
+// SetIssuer sets the value of Issuer.
+func (s *TaskCredentialResponse) SetIssuer(val string) {
+	s.Issuer = val
+}
+
+// SetJwksUri sets the value of JwksUri.
+func (s *TaskCredentialResponse) SetJwksUri(val string) {
+	s.JwksUri = val
+}
+
+// SetToken sets the value of Token.
+func (s *TaskCredentialResponse) SetToken(val string) {
+	s.Token = val
+}
+
+// SetTokenType sets the value of TokenType.
+func (s *TaskCredentialResponse) SetTokenType(val TaskCredentialResponseTokenType) {
+	s.TokenType = val
+}
+
+func (*TaskCredentialResponse) issueTaskCredentialRes() {}
+
+type TaskCredentialResponseTokenType string
+
+const (
+	TaskCredentialResponseTokenTypeBearer TaskCredentialResponseTokenType = "Bearer"
+)
+
+// AllValues returns all TaskCredentialResponseTokenType values.
+func (TaskCredentialResponseTokenType) AllValues() []TaskCredentialResponseTokenType {
+	return []TaskCredentialResponseTokenType{
+		TaskCredentialResponseTokenTypeBearer,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s TaskCredentialResponseTokenType) MarshalText() ([]byte, error) {
+	switch s {
+	case TaskCredentialResponseTokenTypeBearer:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *TaskCredentialResponseTokenType) UnmarshalText(data []byte) error {
+	switch TaskCredentialResponseTokenType(data) {
+	case TaskCredentialResponseTokenTypeBearer:
+		*s = TaskCredentialResponseTokenTypeBearer
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 // Ref: #/components/schemas/TaskError
 type TaskError struct {
 	Code      string            `json:"code"`
@@ -61207,6 +61753,7 @@ func (*ValidationProblemDetails) createAgentKeyRes()            {}
 func (*ValidationProblemDetails) createRuntimePolicyRes()       {}
 func (*ValidationProblemDetails) createTaskRes()                {}
 func (*ValidationProblemDetails) getTaskActivityAnalyticsRes()  {}
+func (*ValidationProblemDetails) issueTaskCredentialRes()       {}
 func (*ValidationProblemDetails) listAgentKeysRes()             {}
 func (*ValidationProblemDetails) listTasksRes()                 {}
 func (*ValidationProblemDetails) registerExecutorManifestRes()  {}

@@ -475,6 +475,16 @@ func (UnimplementedHandler) GetContextPackProvenanceById(ctx context.Context, pa
 	return r, ht.ErrNotImplemented
 }
 
+// GetCredentialJwks implements getCredentialJwks operation.
+//
+// Public JWKS for MoltNet-issued credential-ladder tokens. Relying parties verify a task credential
+// offline against these keys: resolve by `kid`, pin EdDSA, and refresh on an unknown `kid`.
+//
+// GET /credentials/jwks.json
+func (UnimplementedHandler) GetCredentialJwks(ctx context.Context) (r *CredentialJwks, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // GetCryptoIdentity implements getCryptoIdentity operation.
 //
 // Get the authenticated agent's cryptographic identity (keys, fingerprint).
@@ -738,6 +748,18 @@ func (UnimplementedHandler) GetWhoami(ctx context.Context) (r GetWhoamiRes, _ er
 //
 // POST /diaries/{id}/transfer
 func (UnimplementedHandler) InitiateTransfer(ctx context.Context, req *InitiateTransferReq, params InitiateTransferParams) (r InitiateTransferRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// IssueTaskCredential implements issueTaskCredential operation.
+//
+// Exchange the claimant's team-bound agent key for a short-lived, lease-bound task credential. The
+// request carries no authority inputs: MoltNet rebuilds the claim-time authority tuple, mints the
+// canonical claims itself, and bounds the lifetime to `min(configured ceiling, remaining lease)`.
+// The credential is memory-only — never log it, persist it, or expose it to a model.
+//
+// POST /tasks/{id}/attempts/{n}/credentials
+func (UnimplementedHandler) IssueTaskCredential(ctx context.Context, params IssueTaskCredentialParams) (r IssueTaskCredentialRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

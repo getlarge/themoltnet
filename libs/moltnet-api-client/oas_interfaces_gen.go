@@ -305,6 +305,10 @@ type InitiateTransferRes interface {
 	initiateTransferRes()
 }
 
+type IssueTaskCredentialRes interface {
+	issueTaskCredentialRes()
+}
+
 type IssueVoucherRes interface {
 	issueVoucherRes()
 }

@@ -421,8 +421,8 @@ describe('Signing credential and delegated request lifecycle', () => {
       signPreviewSignChallenge(concurrentChallenge, new Uint8Array(32).fill(1)),
       signPreviewSignChallenge(concurrentChallenge, new Uint8Array(32).fill(2)),
     ];
-    expect(concurrentReceipts[0]!.value.signature).not.toBe(
-      concurrentReceipts[1]!.value.signature,
+    expect(concurrentReceipts[0].value.signature).not.toBe(
+      concurrentReceipts[1].value.signature,
     );
     const concurrentCompletions = await Promise.all(
       concurrentReceipts.map((concurrentReceipt) =>

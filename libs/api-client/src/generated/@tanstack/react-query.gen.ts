@@ -61,6 +61,7 @@ import {
   getContextPackById,
   getContextPackProvenanceByCid,
   getContextPackProvenanceById,
+  getCredentialJwks,
   getCryptoIdentity,
   getDiary,
   getDiaryEntryById,
@@ -90,6 +91,7 @@ import {
   getTrustGraph,
   getWhoami,
   initiateTransfer,
+  issueTaskCredential,
   issueVoucher,
   joinTeam,
   listActiveVouchers,
@@ -316,6 +318,8 @@ import type {
   GetContextPackProvenanceByIdData,
   GetContextPackProvenanceByIdError,
   GetContextPackProvenanceByIdResponse,
+  GetCredentialJwksData,
+  GetCredentialJwksResponse,
   GetCryptoIdentityData,
   GetCryptoIdentityError,
   GetCryptoIdentityResponse,
@@ -398,6 +402,9 @@ import type {
   InitiateTransferData,
   InitiateTransferError,
   InitiateTransferResponse,
+  IssueTaskCredentialData,
+  IssueTaskCredentialError,
+  IssueTaskCredentialResponse,
   IssueVoucherData,
   IssueVoucherError,
   IssueVoucherResponse,
@@ -995,6 +1002,34 @@ export const rotateClientSecretMutation = (
   };
   return mutationOptions;
 };
+
+export const getCredentialJwksQueryKey = (
+  options?: Options<GetCredentialJwksData>,
+) => createQueryKey('getCredentialJwks', options);
+
+/**
+ * Public JWKS for MoltNet-issued credential-ladder tokens. Relying parties verify a task credential offline against these keys: resolve by `kid`, pin EdDSA, and refresh on an unknown `kid`.
+ */
+export const getCredentialJwksOptions = (
+  options?: Options<GetCredentialJwksData>,
+) =>
+  queryOptions<
+    GetCredentialJwksResponse,
+    DefaultError,
+    GetCredentialJwksResponse,
+    ReturnType<typeof getCredentialJwksQueryKey>
+  >({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await getCredentialJwks({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      });
+      return data;
+    },
+    queryKey: getCredentialJwksQueryKey(options),
+  });
 
 export const getCryptoIdentityQueryKey = (
   options?: Options<GetCryptoIdentityData>,
@@ -4379,6 +4414,33 @@ export const completeTaskMutation = (
   > = {
     mutationFn: async (fnOptions) => {
       const { data } = await completeTask({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      });
+      return data;
+    },
+  };
+  return mutationOptions;
+};
+
+/**
+ * Exchange the claimant's team-bound agent key for a short-lived, lease-bound task credential. The request carries no authority inputs: MoltNet rebuilds the claim-time authority tuple, mints the canonical claims itself, and bounds the lifetime to `min(configured ceiling, remaining lease)`. The credential is memory-only — never log it, persist it, or expose it to a model.
+ */
+export const issueTaskCredentialMutation = (
+  options?: Partial<Options<IssueTaskCredentialData>>,
+): UseMutationOptions<
+  IssueTaskCredentialResponse,
+  IssueTaskCredentialError,
+  Options<IssueTaskCredentialData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    IssueTaskCredentialResponse,
+    IssueTaskCredentialError,
+    Options<IssueTaskCredentialData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await issueTaskCredential({
         ...options,
         ...fnOptions,
         throwOnError: true,
