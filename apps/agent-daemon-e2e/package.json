@@ -42,6 +42,24 @@
             "env": "MOLTNET_AGENT_DAEMON_LIVE_LLM_E2E"
           },
           {
+            "env": "MOLTNET_AGENT_DAEMON_LIVE_MODEL"
+          },
+          {
+            "env": "MOLTNET_BASELINE"
+          },
+          {
+            "env": "BASELINE_REPEATS"
+          },
+          {
+            "env": "MOLTNET_EVAL_MATRIX"
+          },
+          {
+            "env": "MODELS"
+          },
+          {
+            "env": "MOLTNET_EVAL_JUDGE_MODEL"
+          },
+          {
             "externalDependencies": [
               "vitest"
             ]
