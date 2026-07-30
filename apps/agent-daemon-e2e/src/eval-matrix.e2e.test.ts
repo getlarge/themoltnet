@@ -69,7 +69,8 @@ async function createProfile(
 ): Promise<{ id: string }> {
   return agent.runtimeProfiles.create(
     {
-      name: `matrix-${model}-${randomUUID()}`,
+      // Model ids contain ':' / '.' which the profile-name pattern rejects.
+      name: `matrix-${model.replace(/[^a-zA-Z0-9_-]/g, '-')}-${randomUUID()}`,
       runtimeKind: 'gondolin_pi',
       provider: PROVIDER,
       model,
