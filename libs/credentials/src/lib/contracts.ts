@@ -138,3 +138,9 @@ export function isConnectorCredentialClaims(
 ): value is ConnectorCredentialClaims {
   return Value.Check(ConnectorCredentialClaims, value);
 }
+
+export function isCredentialEvidenceEvent(
+  value: unknown,
+): value is CredentialEvidenceEvent {
+  return Value.Check(CredentialEvidenceEvent, value);
+}

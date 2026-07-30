@@ -54,6 +54,7 @@ async function fixture(options?: {
   claims?: object;
   subject?: string;
   issuer?: string;
+  audience?: string | string[];
   expiresInSeconds?: number;
   includeKid?: boolean;
   algorithm?: 'EdDSA' | 'ES256';
@@ -64,7 +65,7 @@ async function fixture(options?: {
   );
   const publicJwk = await exportJWK(publicKey);
   const now = Math.floor(Date.now() / 1_000);
-  const token = await new SignJWT({
+  const signer = new SignJWT({
     [CREDENTIAL_CLAIM_NAMESPACE]: options?.claims ?? taskClaims(),
   })
     .setProtectedHeader({
@@ -75,8 +76,9 @@ async function fixture(options?: {
     .setSubject(options?.subject ?? ids.agentId)
     .setIssuedAt(now)
     .setExpirationTime(now + (options?.expiresInSeconds ?? 60))
-    .setJti('task-jti')
-    .sign(privateKey);
+    .setJti('task-jti');
+  if (options?.audience !== undefined) signer.setAudience(options.audience);
+  const token = await signer.sign(privateKey);
   return {
     token,
     keyResolver: createLocalJWKSet({
@@ -128,6 +130,37 @@ describe('task credential verification', () => {
       code: 'credential_binding_mismatch',
     });
   });
+
+  it('verifies a standard audience when the relying party expects one', async () => {
+    const { token, keyResolver } = await fixture({
+      audience: ['https://api.themolt.net', 'https://fixture.example'],
+    });
+    const verified = await verifyTaskCredential(token, {
+      issuer: 'https://issuer.example',
+      audience: 'https://fixture.example',
+      keyResolver,
+      expected: { agentId: ids.agentId },
+    });
+    expect(verified.claims.kind).toBe('task');
+  });
+
+  it.each([
+    { name: 'a different audience', audience: 'https://other.example' },
+    { name: 'no audience at all', audience: undefined },
+  ])(
+    'rejects a credential minted for $name when one is expected',
+    async ({ audience }) => {
+      const { token, keyResolver } = await fixture({ audience });
+      await expect(
+        verifyTaskCredential(token, {
+          issuer: 'https://issuer.example',
+          audience: 'https://fixture.example',
+          keyResolver,
+          expected: {},
+        }),
+      ).rejects.toMatchObject({ code: 'credential_invalid' });
+    },
+  );
 
   it('rejects a standard subject that differs from the namespaced agent', async () => {
     const { token, keyResolver } = await fixture({

@@ -46,7 +46,8 @@
     ]
   },
   "dependencies": {
-    "@themoltnet/credentials": "workspace:*"
+    "@themoltnet/credentials": "workspace:*",
+    "jose": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",

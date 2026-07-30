@@ -30,17 +30,38 @@ TTLs. The task authority provider never receives the parent agent credential;
 the connector authority provider never receives the raw task JWT or an
 unverified caller-supplied claims object.
 
-`createTalosTokenDeriver` is the Talos JWT adapter. It fixes the algorithm to
-JWT, accepts only broker-built claims and scopes, and converts upstream failures
-to stable diagnostic categories without retaining upstream messages, causes, or
-credentials. It requires an explicit runtime capability result proving both
-managed Talos parity and derived-JWT chaining before it can be constructed.
+## Signers
 
-Connector issuance currently uses chained derivation. Deployment code supplies
-the capability result; the adapter rejects exchange mode, missing managed
-parity, or unsupported chaining. If chaining is unavailable, an exchange-mode
-deriver can implement `TokenDeriver` with a broker-owned, cell-scoped service
-key; downstream providers still receive no parent credential.
+`createLocalTokenDeriver` is the shipped signer. It mints an EdDSA (Ed25519) JWT
+with a MoltNet-held key, so MoltNet owns every reserved claim (`iss`, `aud`,
+`sub`, `iat`, `nbf`, `exp`, `jti`) alongside the namespaced credential claim, and
+relying parties verify it offline against the MoltNet JWKS document. It refuses
+to sign anything that is not a canonical broker claim set, and it never reads the
+parent credential: route authentication already verified — and therefore
+revalidated the revocation state of — the caller's agent key before the broker
+runs, so re-presenting it to a signer would add no authority check, only a place
+for it to leak.
+
+Key material is an Ed25519 private JWK. `generateLocalSigningKeyJwk` emits one,
+`importLocalSigningKey` validates and imports it at startup so bad key material
+fails the boot rather than the first issuance, and `credentialSigningJwks` builds
+the public JWKS document. To rotate: publish the active key plus any key still
+inside the maximum credential lifetime, sign with the newer one, and drop the
+elder once no credential it signed can still be valid. The signing key belongs to
+the same secret tier as an Ory admin key.
+
+`createTalosTokenDeriver` is the Talos JWT adapter, kept for the connector rung.
+It fixes the algorithm to JWT, accepts only broker-built claims and scopes, and
+converts upstream failures to stable diagnostic categories without retaining
+upstream messages, causes, or credentials. It requires an explicit runtime
+capability result proving both managed Talos parity and derived-JWT chaining
+before it can be constructed.
+
+Connector issuance would use chained derivation. Deployment code supplies the
+capability result; the adapter rejects exchange mode, missing managed parity, or
+unsupported chaining. If chaining is unavailable, an exchange-mode deriver can
+implement `TokenDeriver` with a broker-owned, cell-scoped service key; downstream
+providers still receive no parent credential.
 
 ## Development
 

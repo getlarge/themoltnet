@@ -50,6 +50,12 @@ export interface ConnectorCredentialBindingExpectation extends CommonTaskBinding
 
 interface CredentialVerificationBase {
   issuer: string;
+  /**
+   * Expected `aud`. Credentials are minted with a standard audience per
+   * relying-party surface; a relying party that verifies it rejects a
+   * credential minted for a different surface. Omit to accept any audience.
+   */
+  audience?: string | string[];
   clockToleranceSeconds?: number;
 }
 
@@ -264,10 +270,18 @@ async function verify<TClaims>(
   try {
     const jwtOptions: JWTVerifyOptions = {
       issuer: options.issuer,
+      ...(options.audience !== undefined ? { audience: options.audience } : {}),
       algorithms: [CREDENTIAL_JWT_ALGORITHM],
       clockTolerance:
         options.clockToleranceSeconds ?? DEFAULT_CLOCK_TOLERANCE_SECONDS,
-      requiredClaims: ['iss', 'sub', 'exp', 'iat', 'jti'],
+      requiredClaims: [
+        'iss',
+        'sub',
+        'exp',
+        'iat',
+        'jti',
+        ...(options.audience !== undefined ? (['aud'] as const) : []),
+      ],
     };
     const result = await jwtVerify(token, getResolver(options), jwtOptions);
     const standard = requireStandardClaims(result.payload);
