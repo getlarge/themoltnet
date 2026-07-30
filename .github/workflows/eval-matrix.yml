@@ -36,12 +36,34 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  eval-matrix:
-    name: Eval Matrix
+  # Compute the producer-model list as a JSON array so the sweep can fan out one
+  # runner per model (a GH matrix). Each model then runs in parallel on its own
+  # runner + Docker stack, rather than sweeping all models sequentially in one
+  # job — the agent-daemon-e2e project is excluded from @nx/vitest atomization
+  # (it shares a Docker stack), so model-level GH-matrix parallelism is the split.
+  models:
+    name: Resolve model matrix
     runs-on: ubuntu-latest
-    # Generous: N models x scenarios x real LLM latency + VM boot. Adjust as the
-    # corpus/model list grows.
-    timeout-minutes: 120
+    outputs:
+      matrix: ${{ steps.set.outputs.matrix }}
+    steps:
+      - id: set
+        run: |
+          RAW="${{ github.event.inputs.models || 'qwen3.5:397b-cloud,glm-5.2:cloud,gpt-oss:120b-cloud' }}"
+          JSON=$(printf '%s' "$RAW" | jq -Rc 'split(",") | map(gsub("^\\s+|\\s+$";"")) | map(select(length>0))')
+          echo "matrix=$JSON" >> "$GITHUB_OUTPUT"
+
+  eval-matrix:
+    needs: models
+    name: Eval Matrix (${{ matrix.model }})
+    runs-on: ubuntu-latest
+    # One model x scenarios x real LLM latency + VM boot per job.
+    timeout-minutes: 90
+    strategy:
+      # One model per runner, in parallel; don't cancel siblings if one model fails.
+      fail-fast: false
+      matrix:
+        model: ${{ fromJSON(needs.models.outputs.matrix) }}
     permissions:
       contents: read
       packages: read
@@ -65,7 +87,8 @@ jobs:
       # Nx loads the dotenvx-encrypted root .env otherwise; keep ciphertext out.
       NX_LOAD_DOT_ENV_FILES: 'false'
       OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
-      MODELS: ${{ github.event.inputs.models || 'qwen3.5:397b-cloud,glm-5.2:cloud,gpt-oss:120b-cloud' }}
+      # One model per matrix job; the sweep runs it against the whole corpus.
+      MODELS: ${{ matrix.model }}
       MOLTNET_EVAL_JUDGE_MODEL: ${{ github.event.inputs.judge_model || 'qwen3.5:397b-cloud' }}
       EVAL_MATRIX_OUT: ${{ github.workspace }}/score-matrix.json
     steps:
@@ -98,12 +121,18 @@ jobs:
           COMPOSE_DISABLE_ENV_FILE: true
         run: docker compose -f docker-compose.e2e.yaml up -d
       - name: Run eval matrix
-        run: pnpm exec tsx apps/agent-daemon-e2e/src/eval-matrix-runner.ts
+        env:
+          MOLTNET_EVAL_MATRIX: '1'
+        # Vitest e2e (not tsx) so the workspace's source-direct exports resolve
+        # the same way the rest of the suite does.
+        run: pnpm exec nx run @themoltnet/agent-daemon-e2e:e2e -- eval-matrix
       - name: Upload score matrix
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: score-matrix
+          # One shard per model; job-index keeps the artifact name unique + safe
+          # (model ids contain ':' and '/'). Download all `score-matrix-*` to merge.
+          name: score-matrix-${{ strategy.job-index }}
           path: score-matrix.json
           if-no-files-found: warn
       - name: Docker Compose logs
