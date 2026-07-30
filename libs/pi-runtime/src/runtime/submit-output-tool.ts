@@ -161,13 +161,16 @@ function submitOutputRepairHint(
     );
   }
 
-  if (
-    taskType === 'freeform' &&
-    (fields.has('output/artifacts') || fields.has('output/verification'))
-  ) {
-    hints.push(
-      'Minimal valid freeform retry: { "summary": "completed", "artifacts": [], "verification": { "inputCid": "<task inputCid>", "results": [{ "id": "submit-output", "kind": "gate", "status": "pass", "detail": "submit_freeform_output accepted valid args" }], "passed": true } }.',
-    );
+  if (fields.has('output/artifacts') || fields.has('output/verification')) {
+    if (taskType === 'freeform') {
+      hints.push(
+        'Minimal valid freeform retry: { "summary": "completed", "artifacts": [], "verification": { "inputCid": "<task inputCid>", "results": [{ "id": "submit-output", "kind": "gate", "status": "pass", "detail": "submit_freeform_output accepted valid args" }], "passed": true } }.',
+      );
+    } else {
+      hints.push(
+        `\`verification\` is a stamp when the only gate is submit-output: { "inputCid": "<task inputCid>", "results": [{ "id": "submit-output", "kind": "gate", "status": "pass", "detail": "submit_${taskType}_output accepted valid args" }], "passed": true }.`,
+      );
+    }
   }
 
   if (hints.length === 1) {
@@ -198,7 +201,19 @@ function onlySubmitOutputGate(input: unknown): boolean {
   );
 }
 
-function repairFreeformSubmitOutput(
+/**
+ * Repair a producer submit-output payload when the task's ONLY success gate is
+ * the auto-injected submit-output gate — i.e. there is nothing substantive to
+ * self-assess, so the `verification` record is a mechanical stamp. Applies to
+ * any producer task type (freeform, run_eval, …), not just freeform: weaker
+ * models mis-type or omit the nested `verification` object identically across
+ * types, and previously only freeform was repaired, so run_eval attempts failed
+ * `output_validation_failed` on verification alone. The freeform-only field
+ * coercions below are guarded by field presence, so they no-op for other types,
+ * and the caller re-validates the repaired payload against the type's schema.
+ */
+function repairProducerSubmitOutput(
+  taskType: string,
   params: unknown,
   opts: CreateSubmitOutputToolOptions,
 ): Record<string, unknown> | null {
@@ -241,7 +256,7 @@ function repairFreeformSubmitOutput(
         id: SUBMIT_OUTPUT_GATE_ID,
         kind: 'gate',
         status: 'pass',
-        detail: 'submit_freeform_output accepted valid args',
+        detail: `submit_${taskType}_output accepted valid args`,
       },
     ],
     passed: true,
@@ -255,8 +270,7 @@ function maybeRepairSubmitOutput(
   params: unknown,
   opts: CreateSubmitOutputToolOptions,
 ): Record<string, unknown> | null {
-  if (taskType !== 'freeform') return null;
-  const repaired = repairFreeformSubmitOutput(params, opts);
+  const repaired = repairProducerSubmitOutput(taskType, params, opts);
   if (!repaired) return null;
   return validateTaskSubmission(taskType, repaired, opts.input, {
     inputCid: opts.inputCid,
