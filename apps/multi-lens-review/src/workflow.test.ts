@@ -22,7 +22,7 @@ function summary(value: unknown) {
 function plannerSummary(value: unknown) {
   const body = JSON.stringify(value);
   return {
-    summary: body,
+    summary: 'Uploaded review-topic-plan.v1.json for trusted validation.',
     artifacts: [
       {
         kind: 'review-topic-plan',
@@ -285,6 +285,16 @@ describe('runMultiLensReview', () => {
     expect(tasks.created[0].input.brief).toContain(
       'download its exact per-file artifact',
     );
+    expect(tasks.created[0].input.brief).toContain('bafkrei-manifest');
+    expect(tasks.created[0].input.brief).toContain(
+      'available local calculator',
+    );
+    expect(tasks.created[0].input.brief).toContain(
+      'never shell or CLI wrappers, for artifact access',
+    );
+    expect(tasks.created[0].input.constraints).not.toContain(
+      'Do not run shell commands.',
+    );
     expect(tasks.created[0].input.brief).toContain(
       'union of excludedFiles and every topic',
     );
@@ -328,35 +338,6 @@ describe('runMultiLensReview', () => {
     ).rejects.toThrow(
       /must reference exactly one uploaded review-topic-plan\.v1\.json artifact/,
     );
-  });
-
-  it('rejects planner artifact bytes that differ from the submitted summary', async () => {
-    const submittedPlan = {
-      version: 1 as const,
-      excludedFiles: [],
-      topics: [deterministicTopic()],
-    };
-    const uploadedPlan = {
-      ...submittedPlan,
-      topics: [
-        {
-          ...deterministicTopic(),
-          title: 'Different uploaded plan',
-        },
-      ],
-    };
-    const output = plannerSummary(submittedPlan);
-    output.artifacts[0].sizeBytes = Buffer.byteLength(
-      JSON.stringify(uploadedPlan),
-    );
-    const tasks = new FakeTasks([output, preflight()]);
-
-    await expect(
-      runMultiLensReview(input({ requiresPlanning: true }), {
-        tasks,
-        artifacts: artifactStore(64, uploadedPlan),
-      }),
-    ).rejects.toThrow(/planner artifact JSON does not match submitted summary/);
   });
 
   it('cannot approve failed required lanes or incomplete lane coverage', async () => {

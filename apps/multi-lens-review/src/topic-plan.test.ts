@@ -29,6 +29,12 @@ describe('topic plan validation', () => {
     expect(guidance).toContain(
       '2 reviewable file(s) currently require at least 5 lane task(s)',
     );
+    expect(guidance).toContain(
+      '2 currently reviewable files require at least 1 topic',
+    );
+    expect(guidance).toContain(
+      'average normalized topic cost must be <= 32.00',
+    );
     expect(guidance).toContain('at most 6 such topics can fit');
     expect(guidance).toContain('Use an empty `lanes` array');
     expect(guidance).not.toContain('src/');

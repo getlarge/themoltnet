@@ -37,9 +37,81 @@ describe('inspectReviewDiff', () => {
       language: 'typescript',
       reviewable: true,
     });
+    expect(inspected.files[0].requiredLanes).toEqual([
+      'correctness',
+      'dry-codebase-fit',
+      'design-api-backcompat',
+    ]);
+  });
+
+  it('adds specialist lanes only for high-confidence path or content signals', () => {
+    const paths = [
+      'src/auth/credential-service.ts',
+      'src/queue/worker.ts',
+      'src/api/policy.test.ts',
+    ];
+    const diff = paths
+      .map(
+        (path, index) => `diff --git a/${path} b/${path}
+--- a/${path}
++++ b/${path}
+@@ -1 +1 @@
+-const value = 1;
++${index === 0 ? 'export const policyToken = 2;' : index === 1 ? 'const queue = workerPool;' : 'expect(policy).toBeAllowed();'}
+`,
+      )
+      .join('');
+
+    const inspected = inspectReviewDiff(diff);
+
     expect(inspected.files[0].requiredLanes).toEqual(
-      expect.arrayContaining(['correctness', 'dry-codebase-fit', 'tests']),
+      expect.arrayContaining([
+        'correctness',
+        'dry-codebase-fit',
+        'security',
+        'design-api-backcompat',
+      ]),
     );
+    expect(inspected.files[1].requiredLanes).toEqual(
+      expect.arrayContaining([
+        'correctness',
+        'dry-codebase-fit',
+        'performance',
+        'operability',
+      ]),
+    );
+    expect(inspected.files[2].requiredLanes).toEqual([
+      'correctness',
+      'dry-codebase-fit',
+      'tests',
+    ]);
+  });
+
+  it('adds tests and readability for large authored code patches', () => {
+    const removed = Array.from(
+      { length: 60 },
+      (_, index) => `-const oldValue${index} = ${index};`,
+    ).join('\n');
+    const added = Array.from(
+      { length: 60 },
+      (_, index) => `+const newValue${index} = ${index};`,
+    ).join('\n');
+    const diff = `diff --git a/src/large.ts b/src/large.ts
+--- a/src/large.ts
++++ b/src/large.ts
+@@ -1,60 +1,60 @@
+${removed}
+${added}
+`;
+
+    const inspected = inspectReviewDiff(diff);
+
+    expect(inspected.files[0].requiredLanes).toEqual([
+      'correctness',
+      'dry-codebase-fit',
+      'tests',
+      'readability',
+    ]);
   });
 
   it('parses deletions, renames, quoted paths, and binaries', () => {
@@ -180,6 +252,18 @@ Binary files /dev/null and b/image.png differ
   it('prints preflight without patch bodies', () => {
     const printable = printablePreflight(inspectReviewDiff(MODIFIED));
     expect(printable.files[0]).not.toHaveProperty('patch');
+    expect(printable.limits).toMatchObject({
+      rawDiffBytes: MAX_RAW_DIFF_BYTES,
+      files: 200,
+      topics: 12,
+      primaryFilesPerTopic: 12,
+      specialistTasks: 32,
+    });
+    expect(printable.planningThresholds).toEqual({
+      files: 25,
+      changedLoc: 1_500,
+      reviewableBytes: 64 * 1024,
+    });
   });
 });
 

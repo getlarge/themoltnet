@@ -1,5 +1,14 @@
 import type { Agent } from '@themoltnet/sdk';
 
+import {
+  MAX_CONTEXT_FILES_PER_TOPIC,
+  MAX_CONTEXT_OWNERS_PER_FILE,
+  MAX_PRIMARY_FILES_PER_TOPIC,
+  MAX_SINGLETON_TOPIC_BYTES,
+  MAX_SPECIALIST_TASKS,
+  MAX_TOPIC_BYTES,
+  MAX_TOPICS,
+} from './topic-plan.js';
 import type {
   CoverageLedger,
   ModelFileExclusion,
@@ -38,6 +47,25 @@ export interface ParsedReviewFile extends ReviewFileRecord {
 
 export interface ParsedReviewInput extends Omit<ReviewPreflight, 'files'> {
   files: ParsedReviewFile[];
+}
+
+export interface PrintableReviewPreflight extends ReviewPreflight {
+  limits: {
+    rawDiffBytes: number;
+    files: number;
+    topics: number;
+    primaryFilesPerTopic: number;
+    contextFilesPerTopic: number;
+    contextOwnersPerFile: number;
+    topicBytes: number;
+    singletonTopicBytes: number;
+    specialistTasks: number;
+  };
+  planningThresholds: {
+    files: number;
+    changedLoc: number;
+    reviewableBytes: number;
+  };
 }
 
 function decodeGitPath(value: string): string {
@@ -169,44 +197,65 @@ function classifyLanes(
   patch: string,
   language: string,
 ): ReviewLane[] {
-  const haystack = `${path}\n${patch}`.toLowerCase();
+  const normalizedPath = path.toLowerCase();
+  const normalizedPatch = patch.toLowerCase();
+  const haystack = `${normalizedPath}\n${normalizedPatch}`;
   const lanes = new Set<ReviewLane>(['correctness', 'dry-codebase-fit']);
   const code = !['markdown', 'text', 'json', 'yaml'].includes(language);
+  const changedLines = patch
+    .split('\n')
+    .filter(
+      (line) =>
+        (line.startsWith('+') && !line.startsWith('+++')) ||
+        (line.startsWith('-') && !line.startsWith('---')),
+    ).length;
+  const testLike =
+    /(?:^|\/)__tests__(?:\/|$)|(?:^|[./_-])(?:test|tests|spec|e2e)(?:[./_-]|$)/.test(
+      normalizedPath,
+    ) || /\b(?:describe|it|test)\s*\(|\bexpect\s*\(/.test(normalizedPatch);
+
+  if (testLike) {
+    lanes.add('tests');
+    return [...lanes];
+  }
+
   if (
-    /(?:auth|crypto|secret|token|session|permission|policy|oauth|password|key)/.test(
+    /\b(?:auth(?:entication|orization)?|credential|cryptograph(?:y|ic)|crypto|secret|token|session|permission|policy|oauth|password|signature|attestation|sandbox|capabilit(?:y|ies))\b/.test(
       haystack,
     )
   ) {
     lanes.add('security');
   }
   if (
-    /(?:database|query|select |insert |update |delete |cache|batch|queue|stream|loop|performance|latency)/.test(
+    /\b(?:performance|latency|throughput|cache|batch|stream|queue|worker|pool)\b/.test(
       haystack,
-    )
+    ) ||
+    (language === 'sql' &&
+      /\b(?:select|insert|update|delete|join|index|constraint)\b/.test(
+        normalizedPatch,
+      ))
   ) {
     lanes.add('performance');
   }
   if (
-    /(?:schema|migration|package\.json|exports|public|api|route|config|workflow|dockerfile|\.ya?ml$)/.test(
+    /\b(?:schema|migration|exports?|public|api|route|contract|config|workflow)\b/.test(
       haystack,
-    )
+    ) ||
+    /(?:^|\/)(?:package\.json|dockerfile)$|\.ya?ml$/.test(normalizedPath)
   ) {
     lanes.add('design-api-backcompat');
   }
   if (
-    code ||
-    /(?:test|spec|e2e|vitest|playwright|assert|expect\()/.test(haystack)
-  ) {
-    lanes.add('tests');
-  }
-  if (
-    /(?:workflow|docker|infra|deploy|logger|logging|metric|trace|otel|retry|timeout|queue|daemon)/.test(
+    /\b(?:workflow|docker|infra|deploy|logger|logging|metric|trace|otel|retry|timeout|queue|daemon)\b/.test(
       haystack,
     )
   ) {
     lanes.add('operability');
   }
-  if (code) lanes.add('readability');
+  if (code && changedLines >= 120) {
+    lanes.add('tests');
+    lanes.add('readability');
+  }
   return [...lanes];
 }
 
@@ -510,10 +559,26 @@ export async function stageReviewManifest(
 
 export function printablePreflight(
   inspected: ParsedReviewInput,
-): ReviewPreflight {
+): PrintableReviewPreflight {
   return {
     ...inspected,
     files: inspected.files.map(({ patch: _patch, ...file }) => file),
+    limits: {
+      rawDiffBytes: MAX_RAW_DIFF_BYTES,
+      files: MAX_REVIEW_FILES,
+      topics: MAX_TOPICS,
+      primaryFilesPerTopic: MAX_PRIMARY_FILES_PER_TOPIC,
+      contextFilesPerTopic: MAX_CONTEXT_FILES_PER_TOPIC,
+      contextOwnersPerFile: MAX_CONTEXT_OWNERS_PER_FILE,
+      topicBytes: MAX_TOPIC_BYTES,
+      singletonTopicBytes: MAX_SINGLETON_TOPIC_BYTES,
+      specialistTasks: MAX_SPECIALIST_TASKS,
+    },
+    planningThresholds: {
+      files: PLANNER_FILE_THRESHOLD,
+      changedLoc: PLANNER_LOC_THRESHOLD,
+      reviewableBytes: PLANNER_BYTE_THRESHOLD,
+    },
   };
 }
 

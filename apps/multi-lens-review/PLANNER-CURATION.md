@@ -208,12 +208,15 @@ explicitly:
 2. call `moltnet_upload_task_artifact` with the versioned kind and content
    type; and
 3. put the returned CID, content type, and size in
-   `submit_freeform_output.artifacts[]`, while submitting the identical JSON
-   string in `summary`.
+   `submit_freeform_output.artifacts[]`, with only a short confirmation in
+   `summary`.
 
 Trusted orchestration downloads that explicit CID through the task-artifact API
 and rejects missing, duplicate, incorrectly typed, size-mismatched, or
-summary-mismatched artifacts. Downstream prompts must likewise use the explicit
+oversized artifacts before parsing and validating the artifact as the sole
+`TopicPlan` payload. Repeating the full plan in `summary` doubled the
+model-visible serialization work and made response truncation more likely
+without adding durability. Downstream prompts must likewise use the explicit
 artifact CID rather than the attempt `outputCid`. A downstream Pi task should
 use `moltnet_get_task` to resolve the producer's `acceptedAttemptN`,
 `moltnet_list_task_attempts` to read only that accepted structured output, and
@@ -251,3 +254,142 @@ when the requested model is missing. Model qualification telemetry must record
 and compare the runtime-profile selection with the durable Pi session model.
 Only a fresh run after that invariant passes can qualify Kimi. Incident:
 `41e5f237-f25a-46d9-9d28-2b97ca3f00fb`.
+
+The first fallback-free Kimi run against the full merged PR #1730 fixture used
+correlation `93391e3b-c185-4eb9-a968-c022531d8793`. The runtime profile and
+durable session both selected `ollama-cloud/kimi-k2.7-code:cloud`, the workspace
+was an empty scratch mount, and only the enforced artifact-planner tools were
+visible. The attempt nevertheless hit the profile's artificial 16,000-token
+per-response cap twice before submission. It was cancelled after 480,069 ms,
+351,100 input tokens, and 37,353 output tokens.
+
+That experiment shows that `maxOutputTokens` is an operator/model response
+guard, not a topic-plan budget. The trusted parser and plan validator already
+enforce the durable output's schema, bytes, files, topics, overlap, lanes, and
+task count. For this planner, leave `maxOutputTokens` unset unless a model has
+been qualified with a lower cap; do not treat truncation as plan validation.
+The immutable task artifact is now the sole plan payload, and the structured
+submission carries only its returned metadata plus a short summary.
+
+A clean uncapped retry used correlation
+`6349abb2-26fc-4bc1-8414-e831f4bbcf4f`. It confirmed
+`maxOutputTokens: null` at execution, but did not qualify planner output: Kimi
+attempted to stage files under `tmp/` in the empty scratch mount before that
+directory existed, and the local Docker control plane then became unreachable.
+Reporter flushes, artifact downloads, lease heartbeats, CLI reads, and Docker
+inspection all failed. These are harness/infrastructure failures, not evidence
+about Kimi's plan quality. A future acceptance run must start from a healthy
+control plane with a fresh correlation.
+
+A later run showed that pre-provisioning one conventional directory was the
+wrong abstraction. Kimi selected `scratch/` instead, while the host-side
+`moltnet_download_task_artifact` tool required the output parent to exist. The
+tool now creates arbitrary nested parents only after resolving the nearest
+existing ancestor inside the host task workspace, then re-resolves the created
+parent to reject symlink escapes. No directory-name allowlist or pre-created
+path is needed.
+
+Correlation `fed5da66-24d9-4bf5-bcbc-e8c09ffcff55` verified that separation:
+eight nested host artifact downloads succeeded, and VM `read` and `write`
+succeeded against the mounted files. Two VM `grep` calls alone returned
+`exec failed`. Durable-session inspection showed that the tool invoked the
+hard-coded `/bin/rg`, despite the sandbox installing ripgrep through its package
+manager and exposing executables through `PATH`; the VM tool now invokes `rg`
+without inventing a static absolute path.
+
+The same session also explained one misleading manifest download. The generic
+task-contract prompt exposed the immutable task-input provenance CID as merely
+“Task input CID”. Kimi mistook it for the attached task-artifact CID and tried
+to download it. All task types now label that value as a verification
+provenance identifier that is not a task artifact and cannot be downloaded.
+The bounded manifest remains embedded in the planner brief and independently
+bound as an immutable task reference.
+
+Correlation `8c2704dd-915c-4e3c-99bb-e12712c06afe` then completed the first
+fallback-free, uncapped artifact submission. Planner task
+`f4dca06a-bcb7-4b65-8b51-d6ba5a5ba9c3` wrote and uploaded a 5,825-byte
+`review-topic-plan.v1.json` artifact with CID
+`bafkreiep3fr2tqzgay622iox3ygylysmewimqwomehhk7z6oqqz6yzbr74`, then submitted
+only its short confirmation and artifact metadata. There was no length stop.
+The final submission turn used 111,456 input tokens and 440 output tokens; the
+complete planner task took 594,571 ms, 492,211 cumulative input tokens, and
+72,859 cumulative output tokens.
+
+Trusted validation correctly rejected that plan before specialist fan-out
+because its normalized topic lane unions required 43 specialist tasks. The
+preflight task was cancelled and the run could not approve. Replaying the
+accepted plan against the then-current trusted classifications showed that this
+was not just missed arithmetic: after the seven model exclusions, an exhaustive
+enumeration of every six-topic lane-mask combination under the 32-task cap found
+no feasible assignment for the remaining 63 files, even before topic byte or
+semantic-cohesion constraints. The planner had been asked to solve an
+internally infeasible packing problem.
+
+The trusted classifier was over-applying specialist lanes: every code file
+received tests and readability, generic words such as `update` triggered
+performance, and test fixtures inherited production security/design lanes from
+the feature vocabulary they asserted. Classification is now selective and
+repository-agnostic: test/spec/e2e evidence selects tests; production security,
+performance, public-contract, and operability lanes require specific path or
+content signals; large production patches select tests and readability.
+Correctness and DRY/codebase-fit remain mandatory everywhere. The planner guide
+also reports the minimum topic count implied by the file cap and the resulting
+maximum average topic cost. Against the same frozen fixture and the same seven
+semantic exclusions, a byte-constrained six-topic packing now exists at 27
+specialist tasks. Do not launch another model acceptance until the revised
+classifier, preflight budget output, and focused Nx validation pass.
+
+The planner prompt now also makes the host/guest artifact boundary explicit:
+references do not materialize guest files, selected CIDs must be downloaded
+before VM reads, and independent downloads should be batched. Planning is not
+line-level review. The bounded manifest is sufficient for most grouping; the
+model must inspect every proposed exclusion and its producer evidence, but may
+download at most eight additional representative authored patches. This keeps
+semantic discovery with the model while preventing exploratory reads from
+turning every planner turn into a replay of a growing review transcript.
+
+Correlation `9db47417-137e-480d-a4e8-53d1b3445c6f` was the first run after
+that curation and the selective-lane change. Planner task
+`b8f34478-4d5e-4012-9d8f-7a6029a1d15a` ran the exact requested
+`ollama-cloud/kimi-k2.7-code:cloud` model with `maxOutputTokens: null` in the
+empty scratch workspace. It completed in 297,389 ms with 366,610 cumulative
+input and 40,337 cumulative output tokens. The model uploaded a discoverable
+6,866-byte `review-topic-plan.v1.json` task artifact with CID
+`bafkreigpjr4ypg56gsjr2kdtuo7274tzsglanfvzteau7awxheytfovom4`; the accepted
+attempt metadata separately recorded output CID
+`bagaaierahojjhvoip7a62sh57krlf7qx2guqibpi3ypwmv3cdov2yxhajk3a`.
+
+The plan showed that semantic generated-file discovery now works without a
+repository or ecosystem allowlist. It excluded ten derived artifacts with
+content or producer evidence: the OpenAPI document, the TypeScript and Go
+clients derived from it, two Drizzle metadata outputs, the pnpm lockfile, and
+the release-please version manifest. It retained the authored migration SQL,
+release configuration, and generator script. Every one of the remaining 60
+files had exactly one primary owner across seven bounded topics.
+
+Trusted validation still rejected the plan before specialist release because
+the normalized topic lane unions cost 35 tasks, three above the hard maximum.
+The individual topic costs were 6, 6, 6, 6, 5, 3, and 3. The model left every
+optional `lanes` array empty, so the overage came entirely from the trusted
+per-file lane unions and topic grouping. The preflight task was cancelled and
+no lane, reducer, or synthesis task was released.
+
+This is not a response-cap failure. The uncapped response completed and the
+small authoritative artifact was uploaded successfully. It is also not a
+missing-context failure: the prompt included every required lane and explicitly
+required a <=32 cost audit. The remaining harness defect was a contradictory
+execution contract: it asked the planner to write a scratch cost ledger while
+also forbidding shell commands and allowing `write` only for the final plan.
+The planner contract now names the immutable manifest CID explicitly and lets
+the model use whatever local calculator or shell the effective runtime actually
+exposes for scratch-only coverage, arithmetic, and JSON validation. MoltNet
+artifact access remains restricted to the host-provided task-artifact tools;
+the planner must not invoke CLI wrappers or inspect the daemon checkout.
+
+The next qualification run should use a planner profile whose policy and
+sandbox expose a local calculator, and the runtime capability prompt should
+confirm that availability. If no policy is attached, the normal allow-all
+semantics apply; the recipe must not reintroduce a contradictory static tool
+ban. Do not retry the model merely by raising an output cap: validate that it
+actually computed the topic ledger, and keep trusted rejection as the terminal
+behavior for any submitted over-budget plan.

@@ -15,6 +15,7 @@ export {
   PLANNER_FILE_THRESHOLD,
   PLANNER_LOC_THRESHOLD,
   printablePreflight,
+  type PrintableReviewPreflight,
   stageReviewManifest,
 } from './review-input.js';
 export {

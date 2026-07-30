@@ -173,6 +173,13 @@ export function plannerLaneBudgetGuidance(
   const peakFileCount = orderedGroups
     .filter((group) => group.lanes.length === peakLaneCount)
     .reduce((total, group) => total + group.count, 0);
+  const reviewableFiles = manifest.files.filter(
+    (candidate) => candidate.reviewable,
+  ).length;
+  const minimumTopics = Math.ceil(
+    reviewableFiles / MAX_PRIMARY_FILES_PER_TOPIC,
+  );
+  const minimumTopicLabel = minimumTopics === 1 ? 'topic' : 'topics';
   const maximumPeakTopics =
     peakLaneCount === 0
       ? MAX_TOPICS
@@ -181,13 +188,14 @@ export function plannerLaneBudgetGuidance(
   return [
     'Trusted lane-budget guide (recalculate after semantic exclusions):',
     `- A topic costs the size of the union of its primary files' required lanes, the mandatory lanes, globally requested lanes, and planner-added lanes. The final sum across topics must be <= ${MAX_SPECIALIST_TASKS}.`,
+    `- ${reviewableFiles} currently reviewable files require at least ${minimumTopics} ${minimumTopicLabel} at ${MAX_PRIMARY_FILES_PER_TOPIC} primary files per topic, before verified semantic exclusions. At that minimum topic count, the average normalized topic cost must be <= ${(MAX_SPECIALIST_TASKS / Math.max(1, minimumTopics)).toFixed(2)}.`,
     `- Mandatory/global base lanes: ${REVIEW_LANES.filter((lane) => baseLanes.has(lane)).join(', ')}.`,
     ...orderedGroups.map(
       (group) =>
         `- ${group.count} reviewable file(s) currently require at least ${group.lanes.length} lane task(s): ${group.lanes.join(', ')}.`,
     ),
     `- ${peakFileCount} file(s) have the peak ${peakLaneCount}-lane cost. Any topic containing one costs at least ${peakLaneCount} tasks, so at most ${maximumPeakTopics} such topics can fit before accounting for other topics.`,
-    '- Before submitting, write a topic-cost ledger in scratch, sum every normalized topic cost, and merge semantically related files until the sum fits. Use an empty `lanes` array unless adding a truly optional lane; trusted required lanes are added automatically.',
+    '- Before submitting, calculate a topic-cost ledger in scratch, sum every normalized topic cost, and merge semantically related files until the sum fits. If your effective runtime capabilities include shell commands or a local calculator, use them for this arithmetic and JSON validation. Use an empty `lanes` array unless adding a truly optional lane; trusted required lanes are added automatically.',
   ].join('\n');
 }
 
