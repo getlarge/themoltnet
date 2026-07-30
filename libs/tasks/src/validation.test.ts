@@ -1078,22 +1078,15 @@ describe('agent submission and runtime materialization', () => {
     ];
 
     expect(
-      validateTaskSubmission(
-        'run_eval',
-        invalidSubmission,
-        runEvalInput,
-        { inputCid: 'bafy-input' },
-      ),
+      validateTaskSubmission('run_eval', invalidSubmission, runEvalInput, {
+        inputCid: 'bafy-input',
+      }),
     ).toEqual(expectedError);
 
-    const invalidOutput = materializeTaskOutput(
-      'run_eval',
-      invalidSubmission,
-      {
-        usage: { inputTokens: 12, outputTokens: 30 },
-        durationMs: 456,
-      },
-    );
+    const invalidOutput = materializeTaskOutput('run_eval', invalidSubmission, {
+      usage: { inputTokens: 12, outputTokens: 30 },
+      durationMs: 456,
+    });
     expect(
       validateTaskOutput('run_eval', invalidOutput, runEvalInput, {
         inputCid: 'bafy-input',

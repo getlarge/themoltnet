@@ -271,8 +271,7 @@ function checkVerificationPassedConsistency(
     return [
       {
         field: 'output/verification/passed',
-        message:
-          'must be true iff no verification result has status "fail"',
+        message: 'must be true iff no verification result has status "fail"',
       },
     ];
   }
