@@ -97,7 +97,7 @@ export interface CreateSubagentToolArgs {
   /** Resolved pi model handle — subagents share it. */
   modelHandle: Model<Api>;
   /** Registry that resolved modelHandle — subagents share it. */
-  modelRegistry: ModelRegistry;
+  modelRegistry?: ModelRegistry;
   /** Runtime-profile thinking/reasoning level — subagents inherit it. */
   thinkingLevel?: PiThinkingLevel | null;
   /** Runtime-profile sampling temperature — subagents inherit it. */

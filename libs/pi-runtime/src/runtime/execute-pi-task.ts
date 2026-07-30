@@ -90,17 +90,28 @@ import {
   resolveSessionToolPolicy,
   type ToolPolicyLogger,
 } from '../tool-policy/session-policy.js';
-import { activateAgentEnv, resumeVm } from '../vm-manager.js';
+import {
+  activateAgentEnv,
+  resolveVfsShadowConfig,
+  resumeVm,
+} from '../vm-manager.js';
 import { buildAgentSession } from './agent-session-factory.js';
-import { discoverGuestExecutables } from './capability-discovery.js';
+import {
+  discoverGuestExecutables,
+  GuestExecutableProbeError,
+} from './capability-discovery.js';
 import type { PiTaskExecutionPlanFactory } from './execution-plan.js';
-import { resolveRuntimeProfileModel } from './model-selection.js';
+import {
+  resolveRuntimeProfileModel,
+  RuntimeProfileModelResolutionError,
+} from './model-selection.js';
 import type { PiThinkingLevel } from './pi-thinking-level.js';
 import {
   type ContinueFromPointer,
   resolvePriorContext,
 } from './resolve-prior-context.js';
 import { redactRetryTriageSecrets } from './retry-triage.js';
+import { projectRuntimeCapabilities } from './runtime-capability-projection.js';
 import {
   type InjectedRuntimeContext,
   injectRuntimeContext,
@@ -114,6 +125,7 @@ import {
   createSubagentTool,
   type SubagentToolHandle,
 } from './subagent-tool.js';
+import { createSubmitCompletionCoordinator } from './submit-completion-coordinator.js';
 import {
   resolveSubmitTools,
   type SubmitOutputToolHandle,
@@ -559,6 +571,7 @@ export async function executePiTask(
     code: string,
     message: string,
     usage: TaskUsage = finalUsage,
+    retryable = false,
   ): TaskOutput => ({
     taskId: task.id,
     attemptN: attemptN,
@@ -567,7 +580,7 @@ export async function executePiTask(
     outputCid: null,
     usage,
     durationMs: Date.now() - startTime,
-    error: { code, message, retryable: false },
+    error: { code, message, retryable },
   });
   const makeCancelledOutput = (message: string): TaskOutput => ({
     taskId: task.id,
@@ -870,6 +883,15 @@ export async function executePiTask(
     // submit call is required to complete the attempt; the legacy
     // parser fallback is only consulted when the task type has no
     // registered output schema (resolveSubmitTools returns null).
+    const submitCompletion = createSubmitCompletionCoordinator({
+      onDrained: () => session?.abort(),
+      onError: async (err) => {
+        const message = err instanceof Error ? err.message : String(err);
+        await emitError('submit_output_abort', message, {
+          event: 'submit_output_abort_failed',
+        });
+      },
+    });
     const { handle: submitToolHandle, tools: submitToolDefs } =
       resolveSubmitTools(task.taskType, {
         model: opts.model,
@@ -877,17 +899,7 @@ export async function executePiTask(
         inputCid: task.inputCid,
         maxSubmitValidationRetries: opts.maxSubmitValidationRetries,
         onValidCapture: () => {
-          // Pi does not interpret arbitrary tool-result fields as a completion
-          // signal. End the live session explicitly once the runtime owns a
-          // validated immutable payload. `session.abort()` maps to an aborted
-          // turn without marking this attempt cancelled, so normal captured
-          // output finalization still runs.
-          void session?.abort().catch((err: unknown) => {
-            const message = err instanceof Error ? err.message : String(err);
-            process.stderr.write(
-              `[submit-output] session.abort() failed: ${message}\n`,
-            );
-          });
+          submitCompletion.requestCompletion();
         },
       });
     const submitTools: ToolDefinition[] =
@@ -950,6 +962,7 @@ export async function executePiTask(
         piAuthDir,
         opts.provider,
         opts.model,
+        opts.runtimeProfileId,
       );
 
       // Daemon-controlled runtime isolation (issue #979 + #943 slice 1.5):
@@ -979,20 +992,18 @@ export async function executePiTask(
         argvPrefix: readonly [string, string, ...string[]];
       }> = [];
       let verifiedGuestExecutables: string[] = [];
+      const toolPolicyLogger: ToolPolicyLogger = opts.toolPolicyLogger ?? {
+        debug: () => {},
+        info: (obj: Record<string, unknown>, msg: string) =>
+          console.error(JSON.stringify({ level: 'info', msg, ...obj })),
+        warn: (obj: Record<string, unknown>, msg: string) =>
+          console.error(JSON.stringify({ level: 'warn', msg, ...obj })),
+      };
       if (
         opts.runtimeProfileId &&
         opts.toolEnforcement &&
         opts.toolEnforcement !== 'off'
       ) {
-        // Prefer the daemon's task-bound structured logger; fall back to raw
-        // NDJSON on stderr for single-process / test callers.
-        const toolPolicyLogger: ToolPolicyLogger = opts.toolPolicyLogger ?? {
-          debug: () => {},
-          info: (obj: Record<string, unknown>, msg: string) =>
-            console.error(JSON.stringify({ level: 'info', msg, ...obj })),
-          warn: (obj: Record<string, unknown>, msg: string) =>
-            console.error(JSON.stringify({ level: 'warn', msg, ...obj })),
-        };
         const [analyzer, policy] = await Promise.all([
           ShellCommandAnalyzer.create(),
           resolveSessionToolPolicy({
@@ -1006,7 +1017,15 @@ export async function executePiTask(
         ]);
         const executableCapabilities = await discoverGuestExecutables(
           managed.vm,
-          policy.allowedShellCommands.map(({ argvPrefix }) => argvPrefix[0]),
+          [
+            ...policy.allowedShellCommands.map(
+              ({ argvPrefix }) => argvPrefix[0],
+            ),
+            ...(policy.enforcement === 'watch'
+              ? (resolvedVmTemplate?.executables ?? [])
+              : []),
+          ],
+          { signal: reporter.cancelSignal },
         );
         verifiedGuestExecutables = executableCapabilities.available;
         const availableExecutables = new Set(verifiedGuestExecutables);
@@ -1082,12 +1101,32 @@ export async function executePiTask(
         extensions: opts.runtimeDefinition?.extensions,
         policy: resolvedToolPolicy,
       });
-      const visibleParentToolSet = new Set(visibleParentToolNames);
-      const unavailableTools = resolvedToolPolicy
-        ? [...resolvedToolPolicy.allowedTools].filter(
-            (name) => !visibleParentToolSet.has(name),
-          )
-        : [];
+      const capabilityProjection = projectRuntimeCapabilities({
+        policy: resolvedToolPolicy,
+        visibleToolNames: visibleParentToolNames,
+        unavailableShellCommands: unavailableRuntimeShellCommands,
+      });
+      if (
+        capabilityProjection.unavailableTools.length > 0 ||
+        capabilityProjection.unavailableExecutables.length > 0
+      ) {
+        const diagnostics = {
+          runtimeProfileId: opts.runtimeProfileId,
+          unavailableTools: capabilityProjection.unavailableTools,
+          unavailableExecutables: capabilityProjection.unavailableExecutables,
+          droppedShellCommandCount:
+            capabilityProjection.droppedShellCommandCount,
+        };
+        toolPolicyLogger.warn(
+          diagnostics,
+          'Runtime policy grants unavailable capabilities',
+        );
+        await emit('info', {
+          event: 'runtime_capabilities_unavailable',
+          ...diagnostics,
+        });
+      }
+      const vfsShadow = resolveVfsShadowConfig(effectiveSandboxConfig);
       const runtimeKernel = buildRuntimeKernel({
         taskId: task.id,
         taskType: task.taskType,
@@ -1098,8 +1137,9 @@ export async function executePiTask(
         correlationId: task.correlationId ?? null,
         sandbox: {
           workspaceMode: activeWorkspace.mode,
-          vfsShadowMode: effectiveSandboxConfig?.vfs?.shadowMode ?? 'none',
-          vfsShadowPatterns: effectiveSandboxConfig?.vfs?.shadow ?? [],
+          vfsShadowMode: vfsShadow.mode,
+          vfsShadowPatterns: vfsShadow.patterns,
+          nodeModulesWriteMode: 'tmpfs',
           verifiedExecutables: verifiedGuestExecutables,
           allowedHosts: [
             ...(effectiveSandboxConfig?.network?.allowedHosts ?? []),
@@ -1108,25 +1148,7 @@ export async function executePiTask(
           allowedInternalHosts:
             effectiveSandboxConfig?.network?.allowedInternalHosts ?? [],
         },
-        toolPolicy: resolvedToolPolicy
-          ? {
-              enforcement: resolvedToolPolicy.enforcement,
-              allowedTools: visibleParentToolNames.filter(
-                (name) => !name.startsWith('submit_'),
-              ),
-              allowedShellCommands: resolvedToolPolicy.allowedShellCommands,
-              unavailableTools,
-              unavailableShellCommands: unavailableRuntimeShellCommands,
-              degraded: resolvedToolPolicy.degraded,
-            }
-          : {
-              enforcement: 'off',
-              allowedTools: visibleParentToolNames.filter(
-                (name) => !name.startsWith('submit_'),
-              ),
-              allowedShellCommands: [],
-              degraded: false,
-            },
+        toolPolicy: capabilityProjection.instructorPolicy,
       });
       const appendSystemPrompt = composeRuntimeSystemPrompt({
         profilePromptPrefix: injectedContext.systemPromptPrefix,
@@ -1219,11 +1241,23 @@ export async function executePiTask(
         extraExtensionFactories: [
           ...runtimeParentExtensions,
           ...toolPolicyExtensions,
+          submitCompletion.extension,
         ],
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       await emit('error', { message, phase: 'session_setup' });
+      if (reporter.cancelSignal.aborted) {
+        return makeCancelledOutput(
+          reporter.cancelReason ?? 'Task cancelled during session setup.',
+        );
+      }
+      if (err instanceof RuntimeProfileModelResolutionError) {
+        return makeFailedOutput('invalid_model', message);
+      }
+      if (err instanceof GuestExecutableProbeError) {
+        return makeFailedOutput(err.code, message, finalUsage, true);
+      }
       return makeFailedOutput('session_setup_failed', message);
     }
 

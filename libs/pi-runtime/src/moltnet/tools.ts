@@ -17,6 +17,7 @@ import type { ToolDefinition } from '@earendil-works/pi-coding-agent';
 import { defineTool } from '@earendil-works/pi-coding-agent';
 import type { connect } from '@themoltnet/sdk';
 
+import { isResolvedPathInsideRoot } from '../path-containment.js';
 import { type ExpandedPack, renderPhase6Markdown } from './render-phase6.js';
 
 type MoltNetAgent = Awaited<ReturnType<typeof connect>>;
@@ -326,8 +327,7 @@ function assertPathInsideWorkspace(
   realPath: string,
   displayPath: string,
 ): void {
-  const rel = path.relative(realCwd, realPath);
-  if (rel.startsWith('..') || path.isAbsolute(rel)) {
+  if (!isResolvedPathInsideRoot(realPath, realCwd)) {
     throw new Error(
       `task artifact output path escapes workspace: ${displayPath}`,
     );

@@ -23,8 +23,8 @@ describe('discoverGuestExecutables', () => {
     });
     expect(exec).toHaveBeenCalledOnce();
     expect(exec.mock.calls[0][0]).toEqual([
-      'sh',
-      '-c',
+      '/bin/sh',
+      '-lc',
       expect.stringContaining('command -v "$executable"'),
       'moltnet-capability-probe',
       'git',
@@ -51,6 +51,44 @@ describe('discoverGuestExecutables', () => {
 
     await expect(
       discoverGuestExecutables({ exec } as never, ['git']),
-    ).rejects.toThrow('capability probe failed');
+    ).rejects.toThrow('capability probe failed (exit 127): probe failed');
+  });
+
+  it('bounds a hung guest probe', async () => {
+    const exec = vi.fn(
+      (_command: unknown, options: { signal: AbortSignal }) =>
+        new Promise((_resolve, reject) => {
+          options.signal.addEventListener('abort', () =>
+            reject(new Error('aborted')),
+          );
+        }),
+    );
+
+    await expect(
+      discoverGuestExecutables({ exec } as never, ['git'], { timeoutMs: 1 }),
+    ).rejects.toMatchObject({ code: 'capability_probe_timeout' });
+  });
+
+  it('propagates caller cancellation to the guest probe', async () => {
+    const controller = new AbortController();
+    const exec = vi.fn(
+      (_command: unknown, options: { signal: AbortSignal }) =>
+        new Promise((_resolve, reject) => {
+          if (options.signal.aborted) {
+            reject(new Error('cancelled'));
+            return;
+          }
+          options.signal.addEventListener('abort', () =>
+            reject(new Error('cancelled')),
+          );
+        }),
+    );
+    controller.abort();
+
+    await expect(
+      discoverGuestExecutables({ exec } as never, ['git'], {
+        signal: controller.signal,
+      }),
+    ).rejects.toThrow('cancelled');
   });
 });

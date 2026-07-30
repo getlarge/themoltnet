@@ -6,9 +6,10 @@ import {
   realpathSync,
   rmSync,
 } from 'node:fs';
-import { isAbsolute, relative, resolve } from 'node:path';
+import { resolve } from 'node:path';
 
 import type { TaskAttempt } from '@moltnet/tasks';
+import { isResolvedPathInsideRoot } from '@themoltnet/pi-runtime';
 
 import type {
   ListedRuntimeSlotContext,
@@ -447,11 +448,6 @@ function isRealPathInsideRoot(path: string, root: string): boolean {
   } catch {
     return false;
   }
-}
-
-function isResolvedPathInsideRoot(path: string, root: string): boolean {
-  const rel = relative(root, path);
-  return rel === '' || (!rel.startsWith('..') && !isAbsolute(rel));
 }
 
 function canonicalPath(path: string): string {

@@ -29,6 +29,7 @@ export interface RuntimeInstructorSandbox {
   workspaceMode: 'shared_mount' | 'dedicated_worktree' | 'scratch_mount';
   vfsShadowMode: 'none' | 'deny' | 'tmpfs';
   vfsShadowPatterns: readonly string[];
+  nodeModulesWriteMode?: 'tmpfs';
   verifiedExecutables: readonly string[];
   allowedHosts: readonly string[];
   allowedInternalHosts: readonly string[];
@@ -62,23 +63,9 @@ export function buildToolPolicyInstructions(
     '- The registered submit-output tool is always the completion protocol.',
   ];
   if (!policy || policy.enforcement === 'off') {
-    const tools = [...(policy?.allowedTools ?? [])].sort();
     lines.push(
-      '- Runtime policy enforcement is off. No runtime policy restricts the',
-      '  registered structured tools or shell commands visible in this session.',
-      ...(tools.length > 0
-        ? [
-            `- Available registered structured tools: ${tools
-              .map((name) => `\`${name}\``)
-              .join(', ')}.`,
-          ]
-        : []),
-      '- The visible tool definitions are the authoritative structured-tool',
-      '  surface; every registered tool is allowed, but do not invent tools.',
-      '- If `bash` is visible, shell command authorization is unrestricted by',
-      '  runtime policy. Actual executable availability still depends on the',
-      '  live sandbox image and should be discovered at runtime, not inferred',
-      '  from a static executable list.',
+      '- Enforcement is off: runtime policy does not restrict visible tools or',
+      '  shell commands. The live sandbox still determines what is installed.',
     );
     return lines.join('\n');
   }
@@ -91,36 +78,17 @@ export function buildToolPolicyInstructions(
     );
   }
 
-  const tools = [...policy.allowedTools].sort();
   lines.push(
-    tools.length > 0
-      ? `- Available structured tools: ${tools.map((name) => `\`${name}\``).join(', ')}.`
+    policy.allowedTools.length > 0
+      ? '- The visible structured-tool definitions are the authorized surface.'
       : policy.enforcement === 'enforce'
         ? '- No optional structured tools are authorized.'
         : '- No optional structured tools are registered.',
   );
-  if (policy.unavailableTools?.length) {
-    lines.push(
-      `- Policy-granted but unavailable in this runtime: ${[
-        ...policy.unavailableTools,
-      ]
-        .sort()
-        .map((name) => `\`${name}\``)
-        .join(', ')}.`,
-    );
-  }
 
   if (policy.enforcement === 'watch') {
     lines.push(
       '- Watch mode records policy decisions but does not block tool calls.',
-      policy.allowedShellCommands.length > 0
-        ? '- Shell argv prefixes currently recognized by policy:'
-        : '- Policy recognizes no shell argv prefixes.',
-      ...policy.allowedShellCommands.map(
-        ({ argvPrefix }) => `  - \`${argvPrefix.join(' ')}\``,
-      ),
-      '- Actual shell availability is bounded by the session-verified guest',
-      '  executables in the sandbox section.',
     );
   } else if (policy.allowedShellCommands.length === 0) {
     lines.push(
@@ -130,19 +98,9 @@ export function buildToolPolicyInstructions(
   } else {
     lines.push(
       '- Shell commands are restricted to these authorized argv prefixes:',
-      ...policy.allowedShellCommands.map(
-        ({ argvPrefix }) => `  - \`${argvPrefix.join(' ')}\``,
-      ),
+      ...renderShellCommandPrefixes(policy.allowedShellCommands),
       '- A visible `bash` tool does not grant broader shell authority. Do not',
       '  attempt commands outside those prefixes.',
-    );
-  }
-  if (policy.unavailableShellCommands?.length) {
-    lines.push(
-      '- Policy-granted shell prefixes unavailable in this runtime:',
-      ...policy.unavailableShellCommands.map(
-        ({ argvPrefix }) => `  - \`${argvPrefix.join(' ')}\``,
-      ),
     );
   }
   lines.push(
@@ -152,6 +110,19 @@ export function buildToolPolicyInstructions(
   return lines.join('\n');
 }
 
+function renderShellCommandPrefixes(
+  commands: RuntimeInstructorToolPolicy['allowedShellCommands'],
+): string[] {
+  const visible = commands
+    .slice(0, 12)
+    .map(({ argvPrefix }) => `  - \`${argvPrefix.join(' ')}\``);
+  const omitted = commands.length - visible.length;
+  if (omitted > 0) {
+    visible.push(`  - …and ${omitted} more authorized prefixes.`);
+  }
+  return visible;
+}
+
 export function buildSandboxCapabilityInstructions(
   sandbox: RuntimeInstructorSandbox | undefined,
   policy?: RuntimeInstructorToolPolicy,
@@ -159,11 +130,7 @@ export function buildSandboxCapabilityInstructions(
   if (!sandbox) return '';
   const executableLines =
     !policy || policy.enforcement === 'off'
-      ? [
-          '- Executables were not policy-probed because runtime policy',
-          '  enforcement is off. This is not an empty executable allowlist;',
-          '  use the visible shell to discover installed commands when needed.',
-        ]
+      ? ['- Executables are discovered through the visible shell when needed.']
       : [
           sandbox.verifiedExecutables.length > 0
             ? `- Session-verified policy executables: ${sandbox.verifiedExecutables
@@ -186,17 +153,27 @@ export function buildSandboxCapabilityInstructions(
         ? ` for ${sandbox.vfsShadowPatterns.map((pattern) => `\`${pattern}\``).join(', ')}`
         : ''
     }.`,
+    ...(sandbox.nodeModulesWriteMode
+      ? [
+          '- `node_modules` writes use session-local tmpfs and do not persist',
+          '  to the mounted workspace.',
+        ]
+      : []),
     ...executableLines,
   ];
   const externalHosts = [...sandbox.allowedHosts].sort();
   const internalHosts = [...sandbox.allowedInternalHosts].sort();
   lines.push(
-    externalHosts.length > 0
-      ? `- Additional external egress hosts: ${externalHosts.map((host) => `\`${host}\``).join(', ')}.`
-      : '- No additional external egress hosts are configured.',
-    internalHosts.length > 0
-      ? `- Additional internal egress hosts: ${internalHosts.map((host) => `\`${host}\``).join(', ')}.`
-      : '- No additional internal egress hosts are configured.',
+    ...(externalHosts.length > 0
+      ? [
+          `- Additional external egress hosts: ${externalHosts.map((host) => `\`${host}\``).join(', ')}.`,
+        ]
+      : []),
+    ...(internalHosts.length > 0
+      ? [
+          `- Additional internal egress hosts: ${internalHosts.map((host) => `\`${host}\``).join(', ')}.`,
+        ]
+      : []),
     '- Runtime service endpoints required for task execution may be available',
     '  in addition to the operator-configured hosts above.',
   );

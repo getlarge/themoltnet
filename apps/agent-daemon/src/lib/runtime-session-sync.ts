@@ -1,12 +1,13 @@
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { realpath, stat } from 'node:fs/promises';
-import { isAbsolute, relative, resolve } from 'node:path';
+import { resolve } from 'node:path';
 import { Writable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { createGzip } from 'node:zlib';
 
 import type { Task } from '@moltnet/tasks';
+import { isResolvedPathInsideRoot } from '@themoltnet/pi-runtime';
 
 import type { RuntimeSlotStore } from './execution-plan-cache.js';
 import {
@@ -160,11 +161,6 @@ async function isPathInsideRoot(path: string, root: string): Promise<boolean> {
     return true;
   }
   return isResolvedPathInsideRoot(realResolvedPath, realResolvedRoot);
-}
-
-function isResolvedPathInsideRoot(path: string, root: string): boolean {
-  const rel = relative(root, path);
-  return rel === '' || (!rel.startsWith('..') && !isAbsolute(rel));
 }
 
 async function computeCompressedSessionFingerprint(

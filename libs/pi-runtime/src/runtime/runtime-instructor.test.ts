@@ -80,7 +80,7 @@ describe('runtime kernel', () => {
     });
 
     expect(out).toContain('Effective runtime tool policy');
-    expect(out).toContain('`moltnet_download_task_artifact`');
+    expect(out).toContain('authorized surface');
     expect(out).toContain('No shell commands are authorized');
     expect(out).toContain('`bash` is not available');
   });
@@ -104,14 +104,9 @@ describe('runtime kernel', () => {
       },
     });
 
-    expect(out).toContain('No runtime policy restricts');
-    expect(out).toContain(
-      'Available registered structured tools: `bash`, `read`, `write`',
-    );
-    expect(out).toContain('every registered tool is allowed');
-    expect(out).toContain('shell command authorization is unrestricted');
-    expect(out).toContain('not an empty executable allowlist');
-    expect(out).toContain('discover installed commands');
+    expect(out).toContain('runtime policy does not restrict visible tools');
+    expect(out).not.toContain('`bash`, `read`, `write`');
+    expect(out).toContain('discovered through the visible shell');
     expect(out).toContain('GH_TOKEN=');
   });
 
@@ -131,7 +126,7 @@ describe('runtime kernel', () => {
 
       expect(out).toContain(`- Task type: \`${taskType}\``);
       expect(out).toContain('- Enforcement mode: `enforce`.');
-      expect(out).toContain('Available structured tools: `read`.');
+      expect(out).toContain('authorized surface');
     },
   );
 
@@ -142,6 +137,7 @@ describe('runtime kernel', () => {
         workspaceMode: 'scratch_mount',
         vfsShadowMode: 'deny',
         vfsShadowPatterns: ['.env*'],
+        nodeModulesWriteMode: 'tmpfs',
         verifiedExecutables: ['git'],
         allowedHosts: ['api.example.test'],
         allowedInternalHosts: [],
@@ -163,13 +159,9 @@ describe('runtime kernel', () => {
     expect(out).toContain(
       'Additional external egress hosts: `api.example.test`',
     );
-    expect(out).toContain(
-      'Policy-granted but unavailable in this runtime: `write`',
-    );
-    expect(out).toContain(
-      'Policy-granted shell prefixes unavailable in this runtime:',
-    );
-    expect(out).toContain('`gh pr view`');
+    expect(out).toContain('session-local tmpfs');
+    expect(out).not.toContain('Policy-granted but unavailable');
+    expect(out).not.toContain('`gh pr view`');
   });
 
   it('lists the exact authorized shell argv prefixes', () => {
@@ -186,6 +178,21 @@ describe('runtime kernel', () => {
     expect(out).toContain('`git diff`');
     expect(out).toContain('`gh pr view`');
     expect(out).toContain('does not grant broader shell authority');
+  });
+
+  it('bounds the rendered shell-prefix list', () => {
+    const out = buildToolPolicyInstructions({
+      enforcement: 'enforce',
+      allowedTools: [],
+      allowedShellCommands: Array.from({ length: 15 }, (_, index) => ({
+        argvPrefix: ['git', `command-${index}`],
+      })),
+      degraded: false,
+    });
+
+    expect(out).toContain('`git command-11`');
+    expect(out).not.toContain('`git command-12`');
+    expect(out).toContain('…and 3 more authorized prefixes');
   });
 
   it('describes degraded enforcement as fail-closed', () => {

@@ -8,6 +8,13 @@ export interface RuntimeModelSelection {
   modelRegistry: ModelRegistry;
 }
 
+export class RuntimeProfileModelResolutionError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'RuntimeProfileModelResolutionError';
+  }
+}
+
 /**
  * Resolve the exact runtime-profile model through Pi's custom-model registry.
  *
@@ -20,6 +27,7 @@ export function resolveRuntimeProfileModel(
   piAuthDir: string,
   provider: string,
   modelId: string,
+  runtimeProfileId?: string,
 ): RuntimeModelSelection {
   const authStorage = AuthStorage.create(join(piAuthDir, 'auth.json'));
   const modelsPath = join(piAuthDir, 'models.json');
@@ -29,9 +37,20 @@ export function resolveRuntimeProfileModel(
   if (!modelHandle) {
     const registryError = modelRegistry.getError();
     const detail = registryError ? ` Registry error: ${registryError}` : '';
-    throw new Error(
-      `Runtime profile model "${provider}/${modelId}" is unavailable in ` +
-        `${modelsPath}; refusing Pi default-model fallback.${detail}`,
+    const alternatives = modelRegistry
+      .getAvailable()
+      .slice(0, 8)
+      .map((model) => `${model.provider}/${model.id}`);
+    const profile = runtimeProfileId
+      ? `Runtime profile "${runtimeProfileId}"`
+      : 'Runtime profile';
+    throw new RuntimeProfileModelResolutionError(
+      `${profile} model "${provider}/${modelId}" was not found in ` +
+        `${modelsPath}; refusing Pi default-model fallback.` +
+        (alternatives.length > 0
+          ? ` Available models include: ${alternatives.join(', ')}.`
+          : '') +
+        detail,
     );
   }
 

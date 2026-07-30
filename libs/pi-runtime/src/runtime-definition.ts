@@ -445,18 +445,23 @@ export function isToolVisible(
   // Bash is useful only when at least one command prefix is authorized. The
   // analyzer still gates every visible bash call, but an empty shell policy
   // should not tempt the model with a tool that can never succeed.
-  if (name === 'bash') return policy.allowedShellCommands.length > 0;
+  if (name === 'bash') {
+    return (
+      policy.allowedShellCommands === undefined ||
+      policy.allowedShellCommands.length > 0
+    );
+  }
   return policy.allowedTools.has(name);
 }
 
-interface ModelVisibleToolPolicy {
+export interface ModelVisibleToolPolicy {
   enforcement: ToolEnforcement;
   allowedTools: ReadonlySet<string>;
-  allowedShellCommands: readonly { argvPrefix: readonly string[] }[];
+  allowedShellCommands?: readonly { argvPrefix: readonly string[] }[];
 }
 
 export function isKernelTool(name: string): boolean {
-  return name.startsWith('submit_');
+  return name.startsWith('submit_') || name === 'subagent';
 }
 
 function wrapExtensionFactory(
@@ -501,7 +506,7 @@ function claimToolName(
   name: string,
   owner: string,
 ): void {
-  if (isKernelTool(name) || name === 'subagent') {
+  if (isKernelTool(name)) {
     throw new Error(`Pi tool name "${name}" is reserved by the runtime kernel`);
   }
   const previous = names.get(name);

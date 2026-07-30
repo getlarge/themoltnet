@@ -124,6 +124,23 @@ describe('buildAgentSession', () => {
     expect(resourceLoaderArgs[1]?.extensionFactories).toHaveLength(2);
   });
 
+  it('keeps modelRegistry optional for existing callers', async () => {
+    await buildAgentSession({
+      mountPath: '/guest/workspace',
+      cwdPath: '/guest/workspace',
+      piAuthDir: '/agent',
+      modelHandle: {} as never,
+      customTools: [],
+      appendSystemPrompt: ['runtime'],
+      otelSpanAttrs: {},
+      agentName: 'legacy-caller',
+    });
+
+    expect(createAgentSession).toHaveBeenCalledWith(
+      expect.not.objectContaining({ modelRegistry: expect.anything() }),
+    );
+  });
+
   it('forks from the producer session when requested', async () => {
     await buildAgentSession({
       mountPath: '/guest/workspace',

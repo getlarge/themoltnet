@@ -4,7 +4,10 @@ import { join } from 'node:path';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { resolveRuntimeProfileModel } from './model-selection.js';
+import {
+  resolveRuntimeProfileModel,
+  RuntimeProfileModelResolutionError,
+} from './model-selection.js';
 
 const temporaryDirectories: string[] = [];
 
@@ -87,7 +90,18 @@ describe('resolveRuntimeProfileModel', () => {
         piDir,
         'custom-cloud',
         'missing-profile-model',
+        'planner-profile',
       ),
-    ).toThrow('refusing Pi default-model fallback');
+    ).toThrow(RuntimeProfileModelResolutionError);
+    expect(() =>
+      resolveRuntimeProfileModel(
+        piDir,
+        'custom-cloud',
+        'missing-profile-model',
+        'planner-profile',
+      ),
+    ).toThrow(
+      'Runtime profile "planner-profile" model "custom-cloud/missing-profile-model" was not found',
+    );
   });
 });

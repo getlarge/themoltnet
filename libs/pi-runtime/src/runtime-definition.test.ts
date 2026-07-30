@@ -151,6 +151,7 @@ describe('Pi runtime definitions', () => {
       { name: 'write' },
       { name: 'bash' },
       { name: 'submit_freeform' },
+      { name: 'subagent' },
     ] as never[];
 
     expect(
@@ -159,7 +160,7 @@ describe('Pi runtime definitions', () => {
         allowedTools: new Set(['read']),
         allowedShellCommands: [{ argvPrefix: ['git', 'diff'] }],
       }).map(({ name }) => name),
-    ).toEqual(['read', 'bash', 'submit_freeform']);
+    ).toEqual(['read', 'bash', 'submit_freeform', 'subagent']);
   });
 
   it('hides bash when no shell command prefix is authorized', () => {
@@ -180,6 +181,15 @@ describe('Pi runtime definitions', () => {
         allowedShellCommands: [{ argvPrefix: ['git', 'diff'] }],
       }).map(({ name }) => name),
     ).toEqual(['bash']);
+  });
+
+  it('preserves the legacy policy shape where shell commands were omitted', () => {
+    expect(
+      filterModelVisibleTools([{ name: 'bash' }, { name: 'read' }] as never[], {
+        enforcement: 'enforce',
+        allowedTools: new Set(['read']),
+      }).map(({ name }) => name),
+    ).toEqual(['bash', 'read']);
   });
 
   it('rejects extension registrations that differ from declarations', async () => {

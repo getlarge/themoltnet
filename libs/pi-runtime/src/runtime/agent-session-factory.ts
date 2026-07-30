@@ -58,7 +58,7 @@ export interface BuildAgentSessionArgs {
   /** Resolved pi model handle (provider + model id). */
   modelHandle: Model<Api>;
   /** Registry that resolved modelHandle, including custom providers/auth. */
-  modelRegistry: ModelRegistry;
+  modelRegistry?: ModelRegistry;
   /** Optional runtime-profile thinking/reasoning level applied at session start. */
   thinkingLevel?: PiThinkingLevel | null;
   /** Optional runtime-profile sampling temperature applied to provider requests. */
@@ -156,7 +156,7 @@ export async function buildAgentSession(
     agentDir: args.piAuthDir,
     cwd: args.cwdPath,
     model: args.modelHandle,
-    modelRegistry: args.modelRegistry,
+    ...(args.modelRegistry ? { modelRegistry: args.modelRegistry } : {}),
     thinkingLevel: args.thinkingLevel ?? undefined,
     tools: args.tools,
     customTools: args.customTools,
