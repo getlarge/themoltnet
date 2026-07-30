@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.35.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.34.2...agent-daemon-v0.35.0) (2026-07-30)
+
+
+### Features
+
+* **runtime:** project effective task capabilities ([207558e](https://github.com/getlarge/themoltnet/commit/207558e91fad1d1a75032572cc867966bd677a1e))
+
+
+### Bug Fixes
+
+* **runtime:** address capability review findings ([4620e3e](https://github.com/getlarge/themoltnet/commit/4620e3e0424690ad30d94a3993a5c3a1f9262338))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.39.1
+    * @themoltnet/pi-runtime bumped to 0.5.0
+
 ## [0.34.2](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.34.1...agent-daemon-v0.34.2) (2026-07-29)
 
 

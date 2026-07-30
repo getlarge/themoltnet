@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.38.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.37.2...pi-extension-v0.38.0) (2026-07-30)
+
+
+### Features
+
+* **runtime:** project effective task capabilities ([207558e](https://github.com/getlarge/themoltnet/commit/207558e91fad1d1a75032572cc867966bd677a1e))
+* **runtime:** project effective task capabilities ([a7d1773](https://github.com/getlarge/themoltnet/commit/a7d1773e1212c0b7491e048d9643fe972d771f11))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/pi-runtime bumped to 0.5.0
+
 ## [0.37.2](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.37.1...pi-extension-v0.37.2) (2026-07-29)
 
 

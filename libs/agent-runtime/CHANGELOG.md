@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.39.1](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.39.0...agent-runtime-v0.39.1) (2026-07-30)
+
+
+### Bug Fixes
+
+* **tasks:** enforce verification passed consistency ([69bbeb8](https://github.com/getlarge/themoltnet/commit/69bbeb877c4b793e953e22f8ac66feba703266db))
+
 ## [0.39.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.38.0...agent-runtime-v0.39.0) (2026-07-29)
 
 
