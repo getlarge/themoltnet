@@ -457,7 +457,7 @@ export async function executeGondolinGrep(
   signal?.addEventListener('abort', onAbort, { once: true });
 
   try {
-    const proc = vm.exec(['/bin/rg', ...args], {
+    const proc = vm.exec(['rg', ...args], {
       signal: ac.signal,
       stdout: 'pipe',
       stderr: 'pipe',
