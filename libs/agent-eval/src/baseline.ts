@@ -31,6 +31,12 @@ export interface BaselineRun {
   /** Gates were evaluated AND all passed (only meaningful when completed). */
   gatesPassed: boolean;
   gateFailures: GateResult['failures'];
+  /**
+   * When the task did not complete, the daemon's terminal error code (e.g.
+   * `output_validation_failed`, `snapshot_failed`) — far more diagnostic than a
+   * flat "not completed". Absent when the run completed or threw.
+   */
+  failureCode?: string;
   /** Set when the run threw before producing a gradable attempt. */
   error?: string;
 }
@@ -70,7 +76,12 @@ export interface BaselineDeps {
   runProducer(
     scenario: Scenario,
     run: number,
-  ): Promise<{ taskId: string | null; attemptN: number | null }>;
+  ): Promise<{
+    taskId: string | null;
+    attemptN: number | null;
+    /** The task's terminal error code when it did not complete (optional). */
+    failureCode?: string;
+  }>;
   /** Evaluate stage-1 gates for a completed attempt. */
   runGates(
     scenario: Scenario,
@@ -117,8 +128,14 @@ export async function runBaseline(
         cell.producerAttemptN = producer.attemptN;
 
         if (producer.taskId === null || producer.attemptN === null) {
-          bump(failureModes, NOT_COMPLETED);
-          log(`[${scenario.slug}] run ${run}/${repeats}: not completed`);
+          // Bucket by the specific terminal error code when known, so the
+          // histogram distinguishes e.g. output_validation_failed (submit
+          // format) from an artifact/write tool failure or a snapshot error.
+          cell.failureCode = producer.failureCode;
+          bump(failureModes, producer.failureCode ?? NOT_COMPLETED);
+          log(
+            `[${scenario.slug}] run ${run}/${repeats}: not completed (${producer.failureCode ?? 'unknown'})`,
+          );
         } else {
           cell.completed = true;
           const gates = await deps.runGates(scenario, {

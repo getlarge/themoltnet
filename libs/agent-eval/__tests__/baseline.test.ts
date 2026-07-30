@@ -78,6 +78,30 @@ describe('runBaseline', () => {
     expect(s.failureModes).toEqual({ submit: 1, not_completed: 1 });
   });
 
+  it('buckets non-completions by their specific failure code when known', async () => {
+    const deps: BaselineDeps = {
+      runProducer: (_s, run) =>
+        Promise.resolve(
+          run === 1
+            ? { taskId: 't', attemptN: 1 }
+            : {
+                taskId: 't',
+                attemptN: null,
+                failureCode: 'output_validation_failed',
+              },
+        ),
+      runGates: () => Promise.resolve(PASS),
+    };
+
+    const report = await runBaseline([scenario('s', 'run_eval')], 'm', 3, deps);
+
+    const s = report.scenarios[0];
+    expect(s.passes).toBe(1);
+    // Two non-completions bucketed under the real code, not a flat 'not_completed'.
+    expect(s.failureModes).toEqual({ output_validation_failed: 2 });
+    expect(s.cells[1].failureCode).toBe('output_validation_failed');
+  });
+
   it('records producer throws as an error failure mode without aborting the sweep', async () => {
     const deps = scriptedDeps({
       s1: ['throw', PASS],

@@ -206,12 +206,18 @@ describeBaseline('Producer baseline (live Ollama, e2e)', () => {
           }
 
           const final = await agent.tasks.get(task.id);
+          if (final.status === 'completed' && final.acceptedAttemptN) {
+            return { taskId: task.id, attemptN: final.acceptedAttemptN };
+          }
+          // Not completed: surface the failed attempt's terminal error code so
+          // the baseline histogram distinguishes submit-format failures
+          // (output_validation_failed) from tool/snapshot/cap failures.
+          const attempts = await agent.tasks.listAttempts(task.id);
+          const failed = [...attempts].reverse().find((a) => a.error);
           return {
             taskId: task.id,
-            attemptN:
-              final.status === 'completed' && final.acceptedAttemptN
-                ? final.acceptedAttemptN
-                : null,
+            attemptN: null,
+            failureCode: failed?.error?.code,
           };
         },
         runGates: (scenario, producer) =>
