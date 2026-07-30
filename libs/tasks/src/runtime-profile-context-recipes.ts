@@ -40,6 +40,12 @@ export const RUNTIME_PROFILE_CONTEXT_CATALOGUE: RuntimeProfileContextCatalogue =
   {
     version: 1,
     fragments: {
+      'artifact-planner-v1': {
+        binding: 'prompt_prefix',
+        content:
+          '# Bounded artifact planner\n\n- The typed task facts, embedded bounded manifest, exact bound artifact references, registered tools, and runtime capability section are the complete contract. Do not search diaries, inspect a mounted repository, enumerate unrelated tasks or artifacts, use shell commands, modify files, commit, branch, push, or contact GitHub.\n- Read only the exact artifact CIDs named by the task, and only when the embedded manifest does not provide enough evidence. Never paginate or discover artifacts speculatively.\n- Perform semantic classification and planning from supplied content and producer/consumer evidence. Do not substitute filename, directory, language, ecosystem, or repository-specific exclusion rules for evidence.\n- Return exactly the requested versioned structured plan through the registered submit-output tool. Do not emit a second prose or JSON representation.',
+        slug: 'artifact-planner-v1',
+      },
       'accountable-delivery-v1': {
         binding: 'prompt_prefix',
         content:
@@ -78,6 +84,11 @@ export const RUNTIME_PROFILE_CONTEXT_CATALOGUE: RuntimeProfileContextCatalogue =
       },
     },
     recipes: {
+      'artifact-planner@v1': {
+        description:
+          'Minimal artifact-only context for bounded semantic classification and planning.',
+        fragments: ['artifact-planner-v1'],
+      },
       'run-eval-direct@v1': {
         description:
           'Minimal direct context for a short, isolated evaluation run.',

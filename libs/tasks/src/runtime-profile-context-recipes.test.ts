@@ -36,6 +36,18 @@ describe('runtime-profile context recipe catalogue', () => {
   it('ships the documented starter recipes', () => {
     expect(runtimeProfileContextRecipeIds).toContain('standard-engineering@v1');
     expect(runtimeProfileContextRecipeIds).toContain('run-eval-direct@v1');
+    expect(runtimeProfileContextRecipeIds).toContain('artifact-planner@v1');
+  });
+
+  it('keeps the artifact planner repository-agnostic and bounded', () => {
+    const [planner] = resolveRuntimeProfileContextRecipe('artifact-planner@v1');
+
+    expect(planner.content).toContain('exact artifact CIDs');
+    expect(planner.content).toContain('Do not search diaries');
+    expect(planner.content).toContain('Do not substitute filename');
+    expect(planner.content).not.toContain('drizzle');
+    expect(planner.content).not.toContain('generated/');
+    expect(planner.content).not.toContain('lockfile');
   });
 
   it('resolves every recipe to a valid, applyable context array', () => {

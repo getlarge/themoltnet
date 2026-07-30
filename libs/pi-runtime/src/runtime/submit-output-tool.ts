@@ -13,12 +13,13 @@
  *
  *   2. On a valid call, the validated args are stored in the captured
  *      reference exposed via `getCaptured()`. The executor reads that
- *      captured state after `session.prompt()` resolves instead of using
- *      Pi's `terminate` flag as task-completion control flow.
+ *      captured state after `session.prompt()` resolves. An optional
+ *      executor-owned callback ends the live session; tool-result properties
+ *      are not session control flow in Pi.
  *
- *   3. If the model somehow calls the tool more than once, the latest
- *      valid call wins. This matches "submit exactly once" semantics
- *      from the prompt while staying defensive against retries.
+ *   3. If the model somehow calls the tool more than once, the first valid
+ *      call remains immutable. This defends against retries while preserving
+ *      "submit exactly once" semantics.
  *
  * The model still has to *decide* to call the tool — pi-coding-agent's
  * `AgentLoopConfig` does not expose `toolChoice`, so we cannot force the
@@ -73,6 +74,11 @@ export interface CreateSubmitOutputToolOptions {
    * output_validation_failed after the session ends.
    */
   maxSubmitValidationRetries?: number;
+  /**
+   * Executor-owned completion boundary invoked after the first valid capture.
+   * The Gondolin/Pi executor uses this to abort the live session cleanly.
+   */
+  onValidCapture?: () => void | Promise<void>;
 }
 
 export interface SubmitOutputToolHandle {
@@ -294,9 +300,31 @@ export function createSubmitOutputTool(
       `Call \`${contract.toolName}\` with the exact ${taskType} agent submission shape shown above.`,
       'The transport accepts malformed objects only so validation errors can be recovered in-session; the schema shown above is authoritative.',
       'If the submit tool returns a validation error, fix every listed field and call the same tool again.',
+      'The first valid submission is final and immediately ends the session.',
     ],
     parameters: RecoverableSubmitToolParameters,
     async execute(_id, params) {
+      if (captured) {
+        const details: SubmitOutputDetails = {
+          captured: true,
+          callCount,
+          invalidCallCount,
+          maxSubmitValidationRetries,
+          error: null,
+        };
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text:
+                'Output was already captured. The first valid payload remains ' +
+                'final; this duplicate submission was ignored.',
+            },
+          ],
+          details,
+        };
+      }
+
       if (exhaustedValidationFailure) {
         const details: SubmitOutputDetails = {
           captured: false,
@@ -380,6 +408,7 @@ export function createSubmitOutputTool(
 
       captured = candidateParams as Record<string, unknown>;
       callCount += 1;
+      await opts.onValidCapture?.();
       const details: SubmitOutputDetails = {
         captured: true,
         callCount,

@@ -10,8 +10,8 @@
  *
  *   - Parent sessions may opt into daemon-owned file persistence;
  *     subagents remain conversation-isolated in-memory sessions.
- *   - `cwd: cwdPath` — sessions start in the dedicated worktree (or
- *     shared mount) while tools still resolve through the VM mount.
+ *   - `cwd: cwdPath` — sessions start in the resolved dedicated, shared, or
+ *     scratch workspace while tools still resolve through the VM mount.
  *   - `agentDir: piAuthDir` — pi auth directory the caller resolved.
  *   - `extensionFactories: [piOtelExtension]` — telemetry is always
  *     wired; the caller picks the span attributes.
@@ -36,6 +36,7 @@ import {
   DefaultResourceLoader,
   type ExtensionAPI,
   type LoadSkillsResult,
+  type ModelRegistry,
   SessionManager,
   type ToolDefinition,
 } from '@earendil-works/pi-coding-agent';
@@ -56,6 +57,8 @@ export interface BuildAgentSessionArgs {
   piAuthDir: string;
   /** Resolved pi model handle (provider + model id). */
   modelHandle: Model<Api>;
+  /** Registry that resolved modelHandle, including custom providers/auth. */
+  modelRegistry: ModelRegistry;
   /** Optional runtime-profile thinking/reasoning level applied at session start. */
   thinkingLevel?: PiThinkingLevel | null;
   /** Optional runtime-profile sampling temperature applied to provider requests. */
@@ -153,6 +156,7 @@ export async function buildAgentSession(
     agentDir: args.piAuthDir,
     cwd: args.cwdPath,
     model: args.modelHandle,
+    modelRegistry: args.modelRegistry,
     thinkingLevel: args.thinkingLevel ?? undefined,
     tools: args.tools,
     customTools: args.customTools,

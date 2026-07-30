@@ -7,6 +7,31 @@ export interface RuntimeInstructorContext {
   guestWorkspace: string;
   /** Optional correlation id grouping this task with others. */
   correlationId: string | null;
+  /** Effective, session-start policy projected into model-visible guidance. */
+  toolPolicy?: RuntimeInstructorToolPolicy;
+  sandbox?: RuntimeInstructorSandbox;
+}
+
+export interface RuntimeInstructorToolPolicy {
+  enforcement: 'off' | 'watch' | 'enforce';
+  allowedTools: readonly string[];
+  allowedShellCommands: readonly {
+    argvPrefix: readonly string[];
+  }[];
+  unavailableTools?: readonly string[];
+  unavailableShellCommands?: readonly {
+    argvPrefix: readonly string[];
+  }[];
+  degraded: boolean;
+}
+
+export interface RuntimeInstructorSandbox {
+  workspaceMode: 'shared_mount' | 'dedicated_worktree' | 'scratch_mount';
+  vfsShadowMode: 'none' | 'deny' | 'tmpfs';
+  vfsShadowPatterns: readonly string[];
+  verifiedExecutables: readonly string[];
+  allowedHosts: readonly string[];
+  allowedInternalHosts: readonly string[];
 }
 
 export function buildWorkspaceMountInstructions(
@@ -26,6 +51,229 @@ export function buildWorkspaceMountInstructions(
     '  inaccessible in the VM, and can leave host git metadata pointing at a',
     '  non-existent checkout.',
   ].join('\n');
+}
+
+export function buildToolPolicyInstructions(
+  policy: RuntimeInstructorToolPolicy | undefined,
+): string {
+  const lines = [
+    '## Effective runtime tool policy',
+    '',
+    '- The registered submit-output tool is always the completion protocol.',
+  ];
+  if (!policy || policy.enforcement === 'off') {
+    const tools = [...(policy?.allowedTools ?? [])].sort();
+    lines.push(
+      '- Runtime policy enforcement is off. No runtime policy restricts the',
+      '  registered structured tools or shell commands visible in this session.',
+      ...(tools.length > 0
+        ? [
+            `- Available registered structured tools: ${tools
+              .map((name) => `\`${name}\``)
+              .join(', ')}.`,
+          ]
+        : []),
+      '- The visible tool definitions are the authoritative structured-tool',
+      '  surface; every registered tool is allowed, but do not invent tools.',
+      '- If `bash` is visible, shell command authorization is unrestricted by',
+      '  runtime policy. Actual executable availability still depends on the',
+      '  live sandbox image and should be discovered at runtime, not inferred',
+      '  from a static executable list.',
+    );
+    return lines.join('\n');
+  }
+
+  lines.push(`- Enforcement mode: \`${policy.enforcement}\`.`);
+  if (policy.degraded) {
+    lines.push(
+      '- Policy resolution degraded. Enforce mode is fail-closed; only the',
+      '  kernel submit-output tool is available.',
+    );
+  }
+
+  const tools = [...policy.allowedTools].sort();
+  lines.push(
+    tools.length > 0
+      ? `- Available structured tools: ${tools.map((name) => `\`${name}\``).join(', ')}.`
+      : policy.enforcement === 'enforce'
+        ? '- No optional structured tools are authorized.'
+        : '- No optional structured tools are registered.',
+  );
+  if (policy.unavailableTools?.length) {
+    lines.push(
+      `- Policy-granted but unavailable in this runtime: ${[
+        ...policy.unavailableTools,
+      ]
+        .sort()
+        .map((name) => `\`${name}\``)
+        .join(', ')}.`,
+    );
+  }
+
+  if (policy.enforcement === 'watch') {
+    lines.push(
+      '- Watch mode records policy decisions but does not block tool calls.',
+      policy.allowedShellCommands.length > 0
+        ? '- Shell argv prefixes currently recognized by policy:'
+        : '- Policy recognizes no shell argv prefixes.',
+      ...policy.allowedShellCommands.map(
+        ({ argvPrefix }) => `  - \`${argvPrefix.join(' ')}\``,
+      ),
+      '- Actual shell availability is bounded by the session-verified guest',
+      '  executables in the sandbox section.',
+    );
+  } else if (policy.allowedShellCommands.length === 0) {
+    lines.push(
+      '- No shell commands are authorized. `bash` is not available; do not',
+      '  attempt shell, filesystem, git, GitHub CLI, or MoltNet CLI commands.',
+    );
+  } else {
+    lines.push(
+      '- Shell commands are restricted to these authorized argv prefixes:',
+      ...policy.allowedShellCommands.map(
+        ({ argvPrefix }) => `  - \`${argvPrefix.join(' ')}\``,
+      ),
+      '- A visible `bash` tool does not grant broader shell authority. Do not',
+      '  attempt commands outside those prefixes.',
+    );
+  }
+  if (policy.unavailableShellCommands?.length) {
+    lines.push(
+      '- Policy-granted shell prefixes unavailable in this runtime:',
+      ...policy.unavailableShellCommands.map(
+        ({ argvPrefix }) => `  - \`${argvPrefix.join(' ')}\``,
+      ),
+    );
+  }
+  lines.push(
+    '- Tools and commands absent from this effective policy are unavailable,',
+    '  even if advisory context mentions them.',
+  );
+  return lines.join('\n');
+}
+
+export function buildSandboxCapabilityInstructions(
+  sandbox: RuntimeInstructorSandbox | undefined,
+  policy?: RuntimeInstructorToolPolicy,
+): string {
+  if (!sandbox) return '';
+  const executableLines =
+    !policy || policy.enforcement === 'off'
+      ? [
+          '- Executables were not policy-probed because runtime policy',
+          '  enforcement is off. This is not an empty executable allowlist;',
+          '  use the visible shell to discover installed commands when needed.',
+        ]
+      : [
+          sandbox.verifiedExecutables.length > 0
+            ? `- Session-verified policy executables: ${sandbox.verifiedExecutables
+                .map((name) => `\`${name}\``)
+                .join(', ')}.`
+            : '- No policy-relevant guest executables were verified for this session.',
+          ...(policy.enforcement === 'watch'
+            ? [
+                '- Watch-mode probes are diagnostic, not an executable',
+                '  allowlist; other installed commands remain policy-permitted.',
+              ]
+            : []),
+        ];
+  const lines = [
+    '## Effective sandbox capabilities',
+    '',
+    `- Workspace mode: \`${sandbox.workspaceMode}\`.`,
+    `- VFS shadow mode: \`${sandbox.vfsShadowMode}\`${
+      sandbox.vfsShadowPatterns.length > 0
+        ? ` for ${sandbox.vfsShadowPatterns.map((pattern) => `\`${pattern}\``).join(', ')}`
+        : ''
+    }.`,
+    ...executableLines,
+  ];
+  const externalHosts = [...sandbox.allowedHosts].sort();
+  const internalHosts = [...sandbox.allowedInternalHosts].sort();
+  lines.push(
+    externalHosts.length > 0
+      ? `- Additional external egress hosts: ${externalHosts.map((host) => `\`${host}\``).join(', ')}.`
+      : '- No additional external egress hosts are configured.',
+    internalHosts.length > 0
+      ? `- Additional internal egress hosts: ${internalHosts.map((host) => `\`${host}\``).join(', ')}.`
+      : '- No additional internal egress hosts are configured.',
+    '- Runtime service endpoints required for task execution may be available',
+    '  in addition to the operator-configured hosts above.',
+  );
+  return lines.join('\n');
+}
+
+function shellExecutableIsAvailable(
+  policy: RuntimeInstructorToolPolicy | undefined,
+  sandbox: RuntimeInstructorSandbox | undefined,
+  executable: string,
+): boolean {
+  // With enforcement off, policy does not constrain executable use and no
+  // policy-scoped live probe runs. The instruction remains conditional on the
+  // command being installed in the sandbox rather than treating an empty probe
+  // result as an executable deny-list.
+  if (!policy || policy.enforcement === 'off') return true;
+  if (sandbox && !sandbox.verifiedExecutables.includes(executable)) {
+    return false;
+  }
+  if (policy.enforcement !== 'enforce') return true;
+  return policy.allowedShellCommands.some(
+    ({ argvPrefix }) => argvPrefix[0] === executable,
+  );
+}
+
+export function buildCredentialInstructions(
+  policy: RuntimeInstructorToolPolicy | undefined,
+  sandbox?: RuntimeInstructorSandbox,
+): string {
+  const lines = [
+    '## Identity & credentials',
+    '',
+    '- Your credentials live at `/home/agent/.moltnet/<agent>/moltnet.json`',
+    '  with the gitconfig and SSH key alongside. Do not move, copy, or expose',
+    '  these files outside the VM.',
+  ];
+  const moltnetAvailable = shellExecutableIsAvailable(
+    policy,
+    sandbox,
+    'moltnet',
+  );
+  const ghAvailable = shellExecutableIsAvailable(policy, sandbox, 'gh');
+  const gitAvailable = shellExecutableIsAvailable(policy, sandbox, 'git');
+
+  if (moltnetAvailable) {
+    lines.push(
+      '- When authorized by the effective shell policy, use the installed',
+      '  `moltnet` binary on `PATH`; never invoke a cached or `npx` copy.',
+    );
+  }
+  if (ghAvailable) {
+    lines.push(
+      '- This headless VM has no human GitHub token fallback. Every authorized',
+      '  `gh` write must use an inline App token.',
+    );
+    if (moltnetAvailable) {
+      lines.push(
+        '',
+        '  ```bash',
+        '  CREDS="$(cd "$(dirname "$GIT_CONFIG_GLOBAL")" && pwd)/moltnet.json"',
+        '  GH_TOKEN=$(moltnet github token --credentials "$CREDS") gh <command>',
+        '  ```',
+      );
+    } else {
+      lines.push(
+        '- The effective policy does not authorize the `moltnet` token-minting',
+        '  command, so do not attempt a GitHub write.',
+      );
+    }
+  }
+  if (gitAvailable) {
+    lines.push(
+      '- An authorized `git push` uses the injected credential helper and does',
+      '  not need `GH_TOKEN`.',
+    );
+  }
+  return lines.join('\n');
 }
 
 /**
@@ -50,31 +298,7 @@ export function buildRuntimeKernel(ctx: RuntimeInstructorContext): string {
     `- Diary id (for this task): \`${ctx.diaryId}\``,
     `- Agent name: \`${ctx.agentName}\``,
     '',
-    '## Identity & credentials',
-    '',
-    '- Your credentials live at `/home/agent/.moltnet/<agent>/moltnet.json`',
-    '  with the gitconfig and SSH key alongside. Do not move, copy, or expose',
-    '  these files outside the VM.',
-    '- The `moltnet` CLI is installed in the VM and is the only supported way',
-    '  to mint short-lived tokens. Do not invoke `npx @themoltnet/cli` or any',
-    '  cached path — use the `moltnet` binary on `PATH`.',
-    '- Interactive sessions use the canonical `moltnet github guard` policy,',
-    '  documented in `docs/reference/agent-configuration.md`. This headless VM',
-    '  has no editor hook and no human GitHub token to fall back to: read-only',
-    '  `gh` commands may run bare, but every write must use the App token:',
-    '',
-    '  ```bash',
-    '  CREDS="$(cd "$(dirname "$GIT_CONFIG_GLOBAL")" && pwd)/moltnet.json"',
-    '  GH_TOKEN=$(moltnet github token --credentials "$CREDS") gh <command>',
-    '  ```',
-    '',
-    '- `git push` uses the gitconfig-configured credential helper and is not',
-    '  a `gh` call — it does not need `GH_TOKEN`.',
-    '- Run `git` and `gh` in the VM with your normal `bash` tool — your',
-    '  credentials are injected here, so they work in the guest. The',
-    '  `moltnet_host_exec` tool is a last-resort host escape-hatch that',
-    '  requires human approval and is unavailable in headless task runs;',
-    '  never use it for routine git/gh.',
+    buildCredentialInstructions(ctx.toolPolicy, ctx.sandbox),
     '',
     '## Skill packs',
     '',
@@ -86,6 +310,10 @@ export function buildRuntimeKernel(ctx: RuntimeInstructorContext): string {
     '  of those, ignore it and proceed.',
     '',
     buildWorkspaceMountInstructions(ctx.guestWorkspace),
+    '',
+    buildSandboxCapabilityInstructions(ctx.sandbox, ctx.toolPolicy),
+    ...(ctx.sandbox ? [''] : []),
+    buildToolPolicyInstructions(ctx.toolPolicy),
     '',
     '## Structured completion',
     '- The registered submit-output tool is the only completion wire protocol. Submit its typed payload when work is complete; prose is not a substitute.',

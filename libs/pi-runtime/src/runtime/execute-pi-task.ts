@@ -14,11 +14,9 @@
  * Anthropic-SDK one) plug in via the `executeTask` function injected into
  * `AgentRuntime`.
  */
-import { homedir } from 'node:os';
-import { isAbsolute, join, resolve } from 'node:path';
+import { isAbsolute, resolve } from 'node:path';
 
 import type { VM } from '@earendil-works/gondolin';
-import { type Api, getModel, type Model } from '@earendil-works/pi-ai';
 import type {
   AgentSession,
   ToolDefinition,
@@ -50,6 +48,7 @@ import {
 import { connect } from '@themoltnet/sdk';
 import { ShellCommandAnalyzer } from '@themoltnet/shell-command-analyzer';
 
+import { resolvePiCodingAgentDir } from '../config.js';
 import {
   createMoltNetTools,
   HOST_EXEC_DEFAULT_BASE_ENV,
@@ -70,6 +69,7 @@ import {
   filterModelVisibleTools,
   materializePiExtensions,
   materializePiTools,
+  modelVisiblePiToolNames,
   type PiRuntimeDefinition,
   type ResolvedGondolinTemplate,
 } from '../runtime-definition.js';
@@ -92,7 +92,9 @@ import {
 } from '../tool-policy/session-policy.js';
 import { activateAgentEnv, resumeVm } from '../vm-manager.js';
 import { buildAgentSession } from './agent-session-factory.js';
+import { discoverGuestExecutables } from './capability-discovery.js';
 import type { PiTaskExecutionPlanFactory } from './execution-plan.js';
+import { resolveRuntimeProfileModel } from './model-selection.js';
 import type { PiThinkingLevel } from './pi-thinking-level.js';
 import {
   type ContinueFromPointer,
@@ -630,6 +632,7 @@ export async function executePiTask(
     // failures can surface as task messages instead of only daemon logs.
     let checkpointPath: string;
     let resolvedVmTemplate = opts.resolvedVmTemplate;
+    let effectiveSandboxConfig: SandboxConfig | undefined;
     try {
       if (!resolvedVmTemplate && opts.runtimeDefinition) {
         resolvedVmTemplate = opts.resolveVmTemplate
@@ -670,7 +673,7 @@ export async function executePiTask(
     }
 
     try {
-      const sandboxConfig = applyExecutionPlanSandboxOverrides(
+      effectiveSandboxConfig = applyExecutionPlanSandboxOverrides(
         resolvedVmTemplate
           ? {
               ...opts.sandboxConfig,
@@ -687,7 +690,7 @@ export async function executePiTask(
         mountPath,
         workspaceMode: workspace.mode,
         extraAllowedHosts: opts.extraAllowedHosts,
-        sandboxConfig,
+        sandboxConfig: effectiveSandboxConfig,
         forwardEnv: opts.forwardEnv,
         signal: reporter.cancelSignal,
       });
@@ -873,6 +876,19 @@ export async function executePiTask(
         input: task.input,
         inputCid: task.inputCid,
         maxSubmitValidationRetries: opts.maxSubmitValidationRetries,
+        onValidCapture: () => {
+          // Pi does not interpret arbitrary tool-result fields as a completion
+          // signal. End the live session explicitly once the runtime owns a
+          // validated immutable payload. `session.abort()` maps to an aborted
+          // turn without marking this attempt cancelled, so normal captured
+          // output finalization still runs.
+          void session?.abort().catch((err: unknown) => {
+            const message = err instanceof Error ? err.message : String(err);
+            process.stderr.write(
+              `[submit-output] session.abort() failed: ${message}\n`,
+            );
+          });
+        },
       });
     const submitTools: ToolDefinition[] =
       submitToolDefs as unknown as ToolDefinition[];
@@ -929,13 +945,12 @@ export async function executePiTask(
       // call. Honor PI_CODING_AGENT_DIR when set; otherwise fall back
       // to the canonical home-rooted path so local `pi /login` flows
       // continue to work unchanged.
-      const piAuthDir =
-        process.env.PI_CODING_AGENT_DIR ?? join(homedir(), '.pi', 'agent');
-      const getModelLoose = getModel as unknown as (
-        provider: string,
-        modelId: string,
-      ) => Model<Api>;
-      const modelHandle = getModelLoose(opts.provider, opts.model);
+      const piAuthDir = resolvePiCodingAgentDir();
+      const { modelHandle, modelRegistry } = resolveRuntimeProfileModel(
+        piAuthDir,
+        opts.provider,
+        opts.model,
+      );
 
       // Daemon-controlled runtime isolation (issue #979 + #943 slice 1.5):
       //  - Runtime-profile prompt context is operator-selected guidance.
@@ -947,19 +962,6 @@ export async function executePiTask(
       //    (`cwd/.pi/skills`, `~/.pi/agent/skills`, …) are discarded so
       //    untrusted local prose never appears as a `<location>` pointer
       //    in the system prompt's `<available_skills>` block.
-      const runtimeKernel = buildRuntimeKernel({
-        taskId: task.id,
-        taskType: task.taskType,
-        attemptN,
-        diaryId,
-        agentName: opts.agentName,
-        guestWorkspace: managed.guestWorkspace,
-        correlationId: task.correlationId ?? null,
-      });
-      const appendSystemPrompt = composeRuntimeSystemPrompt({
-        profilePromptPrefix: injectedContext.systemPromptPrefix,
-        kernel: runtimeKernel,
-      });
       const injectedSkills = injectedContext.skills;
 
       // Resolve the runtime profile's tool-policy allow-set and build the
@@ -973,6 +975,10 @@ export async function executePiTask(
       let resolvedToolPolicy:
         | Awaited<ReturnType<typeof resolveSessionToolPolicy>>
         | undefined;
+      let unavailableRuntimeShellCommands: Array<{
+        argvPrefix: readonly [string, string, ...string[]];
+      }> = [];
+      let verifiedGuestExecutables: string[] = [];
       if (
         opts.runtimeProfileId &&
         opts.toolEnforcement &&
@@ -998,10 +1004,22 @@ export async function executePiTask(
             logger: toolPolicyLogger,
           }),
         ]);
-        resolvedToolPolicy = policy;
+        const executableCapabilities = await discoverGuestExecutables(
+          managed.vm,
+          policy.allowedShellCommands.map(({ argvPrefix }) => argvPrefix[0]),
+        );
+        verifiedGuestExecutables = executableCapabilities.available;
+        const availableExecutables = new Set(verifiedGuestExecutables);
+        const allowedShellCommands = policy.allowedShellCommands.filter(
+          ({ argvPrefix }) => availableExecutables.has(argvPrefix[0]),
+        );
+        unavailableRuntimeShellCommands = policy.allowedShellCommands.filter(
+          ({ argvPrefix }) => !availableExecutables.has(argvPrefix[0]),
+        );
+        resolvedToolPolicy = { ...policy, allowedShellCommands };
         toolPolicyExtensions.push(
           createToolPolicyExtension({
-            policy,
+            policy: resolvedToolPolicy,
             analyzer,
             logger: toolPolicyLogger,
           }),
@@ -1052,6 +1070,68 @@ export async function executePiTask(
         [...gondolinCustomTools, ...moltnetTools],
         resolvedToolPolicy,
       );
+      const taskHasSubagents = taskTypeUsesSubagents(task.taskType);
+      const plannedParentTools = [
+        ...visibleBaseTools,
+        ...runtimeParentTools,
+        ...submitTools,
+        ...(taskHasSubagents ? [{ name: 'subagent' } as ToolDefinition] : []),
+      ];
+      const visibleParentToolNames = modelVisiblePiToolNames({
+        tools: plannedParentTools,
+        extensions: opts.runtimeDefinition?.extensions,
+        policy: resolvedToolPolicy,
+      });
+      const visibleParentToolSet = new Set(visibleParentToolNames);
+      const unavailableTools = resolvedToolPolicy
+        ? [...resolvedToolPolicy.allowedTools].filter(
+            (name) => !visibleParentToolSet.has(name),
+          )
+        : [];
+      const runtimeKernel = buildRuntimeKernel({
+        taskId: task.id,
+        taskType: task.taskType,
+        attemptN,
+        diaryId,
+        agentName: opts.agentName,
+        guestWorkspace: managed.guestWorkspace,
+        correlationId: task.correlationId ?? null,
+        sandbox: {
+          workspaceMode: activeWorkspace.mode,
+          vfsShadowMode: effectiveSandboxConfig?.vfs?.shadowMode ?? 'none',
+          vfsShadowPatterns: effectiveSandboxConfig?.vfs?.shadow ?? [],
+          verifiedExecutables: verifiedGuestExecutables,
+          allowedHosts: [
+            ...(effectiveSandboxConfig?.network?.allowedHosts ?? []),
+            ...(opts.extraAllowedHosts ?? []),
+          ],
+          allowedInternalHosts:
+            effectiveSandboxConfig?.network?.allowedInternalHosts ?? [],
+        },
+        toolPolicy: resolvedToolPolicy
+          ? {
+              enforcement: resolvedToolPolicy.enforcement,
+              allowedTools: visibleParentToolNames.filter(
+                (name) => !name.startsWith('submit_'),
+              ),
+              allowedShellCommands: resolvedToolPolicy.allowedShellCommands,
+              unavailableTools,
+              unavailableShellCommands: unavailableRuntimeShellCommands,
+              degraded: resolvedToolPolicy.degraded,
+            }
+          : {
+              enforcement: 'off',
+              allowedTools: visibleParentToolNames.filter(
+                (name) => !name.startsWith('submit_'),
+              ),
+              allowedShellCommands: [],
+              degraded: false,
+            },
+      });
+      const appendSystemPrompt = composeRuntimeSystemPrompt({
+        profilePromptPrefix: injectedContext.systemPromptPrefix,
+        kernel: runtimeKernel,
+      });
 
       // Subagent custom tool — registered only when the task type opts
       // in via TaskTypeEntry.usesSubagents (#1087). The subagent
@@ -1059,12 +1139,13 @@ export async function executePiTask(
       // submit-output tool (different schema) nor the subagent tool
       // itself (no nested delegation in v1).
       const parentSubagentTools: ToolDefinition[] = [];
-      if (taskTypeUsesSubagents(task.taskType)) {
+      if (taskHasSubagents) {
         subagentHandle = createSubagentTool({
           mountPath,
           cwdPath,
           piAuthDir,
           modelHandle,
+          modelRegistry,
           thinkingLevel: opts.thinkingLevel,
           temperature: opts.temperature,
           topP: opts.topP,
@@ -1112,6 +1193,7 @@ export async function executePiTask(
         cwdPath,
         piAuthDir,
         modelHandle,
+        modelRegistry,
         thinkingLevel: opts.thinkingLevel,
         temperature: opts.temperature,
         topP: opts.topP,

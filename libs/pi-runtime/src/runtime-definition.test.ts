@@ -157,15 +157,27 @@ describe('Pi runtime definitions', () => {
       filterModelVisibleTools(tools, {
         enforcement: 'enforce',
         allowedTools: new Set(['read']),
+        allowedShellCommands: [{ argvPrefix: ['git', 'diff'] }],
       }).map(({ name }) => name),
     ).toEqual(['read', 'bash', 'submit_freeform']);
   });
 
-  it('keeps bash visible because command policy is enforced inside its gate', () => {
+  it('hides bash when no shell command prefix is authorized', () => {
     expect(
       filterModelVisibleTools([{ name: 'bash' }] as never[], {
         enforcement: 'enforce',
         allowedTools: new Set(),
+        allowedShellCommands: [],
+      }).map(({ name }) => name),
+    ).toEqual([]);
+  });
+
+  it('keeps bash visible when the analyzer has an authorized command', () => {
+    expect(
+      filterModelVisibleTools([{ name: 'bash' }] as never[], {
+        enforcement: 'enforce',
+        allowedTools: new Set(),
+        allowedShellCommands: [{ argvPrefix: ['git', 'diff'] }],
       }).map(({ name }) => name),
     ).toEqual(['bash']);
   });

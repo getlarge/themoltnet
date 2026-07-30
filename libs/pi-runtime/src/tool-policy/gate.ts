@@ -95,6 +95,12 @@ export interface MissingShellCommand {
  */
 export function decideToolCall(input: GateInput): GateDecision {
   if (input.enforcement === 'off') return { allow: true };
+  // Task-specific submit tools are part of the immutable executor protocol,
+  // not an operator-granted external capability. Runtime definitions reserve
+  // the `submit_*` namespace, so an extension cannot use this bypass for an
+  // arbitrary tool. Blocking the submit tool makes an otherwise compliant
+  // task impossible to complete under `enforce`.
+  if (input.toolName.startsWith('submit_')) return { allow: true };
 
   const resolved = resolveNames(input);
   if (resolved.kind === 'unresolvable') {
