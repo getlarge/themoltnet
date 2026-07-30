@@ -37,6 +37,11 @@ import {
 // Drizzle doesn't have native vector support, so we use customType
 import { customType } from 'drizzle-orm/pg-core';
 
+import {
+  type CredentialEvidenceEventRecord,
+  credentialEvidenceEvents,
+  type NewCredentialEvidenceEventRecord,
+} from './schema/credential-evidence-events.js';
 import { defineRuntimeModelsTable } from './schema/runtime-models.js';
 import { defineRuntimePoliciesTable } from './schema/runtime-policies.js';
 import {
@@ -47,6 +52,9 @@ import {
 import { defineRuntimeProfilesTable } from './schema/runtime-profiles.js';
 
 export {
+  type CredentialEvidenceEventRecord,
+  credentialEvidenceEvents,
+  type NewCredentialEvidenceEventRecord,
   type NewRuntimePolicySnapshot,
   type RuntimePolicySnapshot,
   runtimePolicySnapshots,

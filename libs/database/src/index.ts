@@ -65,6 +65,11 @@ export {
   createCorrelationSealRepository,
 } from './repositories/correlation-seal.repository.js';
 export {
+  type AppendCredentialEvidenceInput,
+  createCredentialEvidenceRepository,
+  type CredentialEvidenceRepository,
+} from './repositories/credential-evidence.repository.js';
+export {
   createDiaryRepository,
   type DiaryRepository,
 } from './repositories/diary.repository.js';

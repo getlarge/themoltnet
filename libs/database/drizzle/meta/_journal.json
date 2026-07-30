@@ -266,6 +266,20 @@
       "when": 1785328963812,
       "tag": "0037_tiresome_obadiah_stane",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1785409000086,
+      "tag": "0038_daily_ego",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1785409014420,
+      "tag": "0039_credential_evidence_immutability",
+      "breakpoints": true
     }
   ],
   "version": "7"

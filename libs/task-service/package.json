@@ -18,7 +18,8 @@
     "@moltnet/runtime-policy-service": "workspace:*",
     "@moltnet/task-workflows": "workspace:*",
     "@moltnet/tasks": "workspace:*",
-    "@themoltnet/credential-broker": "workspace:*"
+    "@themoltnet/credential-broker": "workspace:*",
+    "@themoltnet/credentials": "workspace:*"
   },
   "devDependencies": {
     "typebox": "catalog:",
