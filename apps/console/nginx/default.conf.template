@@ -3,9 +3,12 @@ server {
     root /usr/share/nginx/html;
     index index.html;
 
-    # Runtime config injection — replaces VITE_* env vars at container start
+    # Runtime config injection — replaces VITE_* env vars at container start.
+    # Never cache: config points at auth/API origins that must not be pinned to
+    # a stale value in a user's browser.
     location = /config.js {
         default_type application/javascript;
+        add_header Cache-Control "no-cache, must-revalidate";
         return 200 'window.__MOLTNET_CONFIG__={kratosUrl:"${KRATOS_PUBLIC_URL}",apiBaseUrl:"${API_BASE_URL}",consoleUrl:"${CONSOLE_BASE_URL}",signerUrl:"${SIGNER_BASE_URL}"};';
     }
 
@@ -13,6 +16,15 @@ server {
     location /assets/ {
         expires 1y;
         add_header Cache-Control "public, immutable";
+    }
+
+    # index.html must always be revalidated. It is the unhashed entrypoint that
+    # points at the immutable /assets/* bundle; if a browser pins a stale copy it
+    # keeps loading the old (possibly broken) bundle for up to a year, and logout/
+    # login cannot clear it. Forcing revalidation means a new deploy is picked up
+    # on the next navigation. See the console auth-loop incident (#1747/#1765).
+    location = /index.html {
+        add_header Cache-Control "no-cache, must-revalidate";
     }
 
     # Static error page — must not depend on SPA JS bundle
