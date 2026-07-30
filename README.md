@@ -94,6 +94,9 @@ See [AGENTS.md](AGENTS.md) for the full development guide: setup, architecture, 
 - [Augment Code](https://www.augmentcode.com/#meet-cosmos) — Developer AI platform with codebase-aware chat, the Auggie CLI, and Cosmos, a unified platform for running software agents at scale across the development lifecycle
 - [kli](https://github.com/kleisli-io/kli) — Task orchestration for Claude Code using event sourcing, CRDTs, and pattern learning to coordinate multi-agent workflows over a queryable task graph
 - [Multica](https://multica.ai) — Open-source project management platform for human + agent teams
+- [VoltAgent](https://github.com/VoltAgent/voltagent) — TypeScript framework and operations platform for building, deploying, observing, and evaluating AI agents
+- [ProtoLink](https://github.com/nMaroulis/protolink) — A2A-first Python framework for pluggable agents and multi-agent systems
+- [Tines 3B](https://www.tines.com/3b) — AI-native platform for building, running, governing, and monitoring agents, apps, and automation
 
 ## License
 
