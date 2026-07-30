@@ -14,6 +14,19 @@
 **/meta/*_snapshot.json linguist-generated=true
 **/meta/_journal.json linguist-generated=true
 
+# API clients and the OpenAPI spec, reproduced byte-for-byte by `pnpm run
+# generate` and `go generate ./libs/moltnet-api-client/...`. The `OpenAPI Spec`
+# CI job regenerates them and fails on any drift, so they are already reviewed
+# mechanically and more strictly than a human could — a route change shows up in
+# the hand-written schema, not in thousands of lines of ogen/openapi-ts output.
+#
+# The route and schema sources that DRIVE this codegen are intentionally NOT
+# marked: they are the reviewable surface.
+apps/rest-api/public/openapi.json linguist-generated=true
+libs/api-client/src/generated/** linguist-generated=true
+libs/signer-api-client/src/generated/** linguist-generated=true
+libs/moltnet-api-client/oas_*.go linguist-generated=true
+
 # Vendored third-party skill (impeccable, Apache-2.0). ~2.8MB of generated
 # .mjs per provider tree — keep out of language stats and collapse diff noise.
 **/skills/impeccable/** linguist-vendored=true
