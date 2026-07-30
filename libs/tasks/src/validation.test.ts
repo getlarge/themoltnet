@@ -1036,6 +1036,106 @@ describe('agent submission and runtime materialization', () => {
     ]);
   });
 
+  it.each([
+    {
+      label: 'a failed result marked as passed',
+      results: [
+        {
+          id: 'quality',
+          kind: 'rubric',
+          status: 'fail',
+          detail: 'The answer is unsupported.',
+        },
+      ],
+      passed: true,
+    },
+    {
+      label: 'non-failing results marked as not passed',
+      results: [
+        {
+          id: 'quality',
+          kind: 'rubric',
+          status: 'skip',
+          detail: 'No evidence was available.',
+        },
+      ],
+      passed: false,
+    },
+  ])('rejects $label', ({ results, passed }) => {
+    const invalidSubmission = {
+      ...submission,
+      verification: {
+        inputCid: 'bafy-input',
+        results,
+        passed,
+      },
+    };
+    const expectedError = [
+      {
+        field: 'output/verification/passed',
+        message: 'must be true iff no verification result has status "fail"',
+      },
+    ];
+
+    expect(
+      validateTaskSubmission('run_eval', invalidSubmission, runEvalInput, {
+        inputCid: 'bafy-input',
+      }),
+    ).toEqual(expectedError);
+
+    const invalidOutput = materializeTaskOutput('run_eval', invalidSubmission, {
+      usage: { inputTokens: 12, outputTokens: 30 },
+      durationMs: 456,
+    });
+    expect(
+      validateTaskOutput('run_eval', invalidOutput, runEvalInput, {
+        inputCid: 'bafy-input',
+      }),
+    ).toEqual(expectedError);
+  });
+
+  it('accepts passed exactly when no verification result failed', () => {
+    const result = {
+      id: 'quality',
+      kind: 'rubric' as const,
+      detail: 'Checked against the supplied evidence.',
+    };
+
+    expect(
+      validateTaskSubmission(
+        'run_eval',
+        {
+          ...submission,
+          verification: {
+            inputCid: 'bafy-input',
+            results: [{ ...result, status: 'fail' }],
+            passed: false,
+          },
+        },
+        runEvalInput,
+        { inputCid: 'bafy-input' },
+      ),
+    ).toEqual([]);
+    expect(
+      validateTaskSubmission(
+        'run_eval',
+        {
+          ...submission,
+          verification: {
+            inputCid: 'bafy-input',
+            results: [
+              { ...result, status: 'pass' },
+              { ...result, id: 'optional', status: 'skip' },
+            ],
+            passed: true,
+          },
+        },
+        runEvalInput,
+        { inputCid: 'bafy-input' },
+      ),
+    ).toEqual([]);
+  });
+
   it('rejects a durable output whose verification cites another task input CID', () => {
     const output = materializeTaskOutput('run_eval', submission, {
       usage: { inputTokens: 12, outputTokens: 30 },

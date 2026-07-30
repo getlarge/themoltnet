@@ -114,7 +114,7 @@ describe('judge_pack prompt', () => {
     expect(prompt).toContain('grounding');
     expect(prompt).toContain('deterministic_coverage_check');
     expect(prompt).toContain('llm_score');
-    expect(prompt).toContain('rubric:pack-fidelity');
+    expect(prompt).not.toContain('rubric:pack-fidelity');
     expect(prompt).toContain(
       'Evaluate faithfulness of the rendering to the source entries.',
     );

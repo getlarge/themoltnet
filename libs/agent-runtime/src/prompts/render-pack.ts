@@ -5,8 +5,6 @@ import {
   assembleTaskPrompt,
   type PromptSection,
 } from './assemble.js';
-import { buildFinalOutputBlock } from './final-output.js';
-import { buildSelfVerificationBlock } from './self-verification.js';
 
 interface Ctx {
   diaryId: string;
@@ -105,30 +103,6 @@ export function buildRenderPackUserPrompt(
       source: 'static',
       header: 'Fidelity Discipline',
       body: fidelity,
-    },
-    {
-      id: 'render_pack.verification',
-      source: 'verification',
-      body: buildSelfVerificationBlock(ctx.taskId),
-    },
-    {
-      id: 'render_pack.final_output',
-      source: 'final_output',
-      body: buildFinalOutputBlock({
-        taskType: 'render_pack',
-        outputSchemaName: 'RenderPackOutput',
-        shapeSketch: [
-          '{',
-          '  "renderedPackId": "<uuid-or-null>",',
-          '  "renderedCid": "<cid>",',
-          '  "renderMethod": "<label>",',
-          '  "byteSize": <int>,',
-          '  "entriesRendered": <int>,',
-          '  "summary": "<1-3 sentence recap>",',
-          '  "verification": <required iff input.successCriteria; see Self-verification>',
-          '}',
-        ].join('\n'),
-      }),
     },
   ];
 

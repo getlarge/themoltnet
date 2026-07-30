@@ -262,7 +262,10 @@ export const VerificationRecord = Type.Object(
      * Advisory only — does NOT gate /complete or affect
      * `acceptedAttemptN`. Binding evaluation is the judge's role.
      */
-    passed: Type.Boolean(),
+    passed: Type.Boolean({
+      description:
+        'True iff every verification result has status "pass" or "skip"; false when any result has status "fail".',
+    }),
   },
   { $id: 'VerificationRecord', additionalProperties: false },
 );
