@@ -20,6 +20,8 @@ import {
   checkGates,
   readScenario,
   type Scenario,
+  seedScenarioWorkspace,
+  stageScenarioInputArtifacts,
   writeAgentCredentials,
   writePiConfig,
 } from '@moltnet/agent-eval';
@@ -137,10 +139,9 @@ describeLive('Agent daemon evals-v2 gate smoke (live Ollama, e2e)', () => {
     'passes deterministic gates for %s',
     async (_slug, scenario) => {
       // Arrange once — throwaway agent creds + Pi config pinned to the model.
-      const sandboxRoot = mkdtempSync(join(tmpdir(), 'evals-v2-sandbox-'));
       const agentRoot = mkdtempSync(join(tmpdir(), 'evals-v2-agent-'));
       const piDir = mkdtempSync(join(tmpdir(), 'evals-v2-pi-'));
-      tempRoots.push(sandboxRoot, agentRoot, piDir);
+      tempRoots.push(agentRoot, piDir);
       writeAgentCredentials({
         agentRoot,
         agentName,
@@ -156,10 +157,19 @@ describeLive('Agent daemon evals-v2 gate smoke (live Ollama, e2e)', () => {
       let result: Awaited<ReturnType<typeof checkGates>> | null = null;
       let lastDetail = '';
       for (let run = 1; run <= MAX_SCENARIO_RUNS; run++) {
+        const sandboxRoot = mkdtempSync(join(tmpdir(), 'evals-v2-sandbox-'));
+        tempRoots.push(sandboxRoot);
+        seedScenarioWorkspace(scenario, sandboxRoot);
+        const inputArtifacts = await stageScenarioInputArtifacts(
+          agent.tasks.artifacts,
+          scenario,
+          teamId,
+        );
+
         // Build the producer for THIS task type: freeform submits a
         // FreeformOutput from a brief; run_eval submits a RunEvalOutput from a
         // scenario prompt. Both flow through the SDK TaskBuilder.
-        const built =
+        const builder =
           scenario.taskType === 'freeform'
             ? agent.tasks
                 .buildFreeform({
@@ -171,7 +181,6 @@ describeLive('Agent daemon evals-v2 gate smoke (live Ollama, e2e)', () => {
                 .correlationId(randomUUID())
                 .maxAttempts(1)
                 .team(teamId)
-                .build()
             : agent.tasks
                 .buildRunEval(
                   buildRunEvalInput(scenario, { variant: 'baseline' }),
@@ -180,8 +189,11 @@ describeLive('Agent daemon evals-v2 gate smoke (live Ollama, e2e)', () => {
                 .diary(diaryId)
                 .correlationId(randomUUID())
                 .maxAttempts(1)
-                .team(teamId)
-                .build();
+                .team(teamId);
+        for (const inputArtifact of inputArtifacts) {
+          builder.artifactReference(inputArtifact.artifact, inputArtifact.role);
+        }
+        const built = builder.build();
         const task = await agent.tasks.create(built);
 
         // Act — run the task through the daemon once against the pinned model.

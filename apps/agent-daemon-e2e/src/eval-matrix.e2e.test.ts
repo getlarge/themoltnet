@@ -31,6 +31,8 @@ import {
   runMatrix,
   type Scenario,
   type ScoreMatrix,
+  seedScenarioWorkspace,
+  stageScenarioInputArtifacts,
   summarizeMatrix,
   writeAgentCredentials,
   writePiConfig,
@@ -147,9 +149,9 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
   let agentName: string;
   let judgePiDir: string;
   let judgeProfileId: string;
-  let sandboxRoot: string;
   let agentRoot: string;
   const perModel = new Map<string, { profileId: string; piDir: string }>();
+  const producerSandboxRoots = new Map<string, string>();
   const tempRoots: string[] = [];
   const models = parseModels();
   const judgeModel =
@@ -172,8 +174,7 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
     });
 
     agentRoot = mkdtempSync(join(tmpdir(), 'eval-matrix-agent-'));
-    sandboxRoot = mkdtempSync(join(tmpdir(), 'eval-matrix-sbx-'));
-    tempRoots.push(agentRoot, sandboxRoot);
+    tempRoots.push(agentRoot);
     writeAgentCredentials({
       agentRoot,
       agentName,
@@ -212,7 +213,15 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
       log: (m) => console.log(`[eval-matrix] ${m}`),
       runProducer: async (model, scenario) => {
         const cfg = perModel.get(model)!;
-        const built =
+        const sandboxRoot = mkdtempSync(join(tmpdir(), 'eval-matrix-sbx-'));
+        tempRoots.push(sandboxRoot);
+        seedScenarioWorkspace(scenario, sandboxRoot);
+        const inputArtifacts = await stageScenarioInputArtifacts(
+          agent.tasks.artifacts,
+          scenario,
+          teamId,
+        );
+        const builder =
           scenario.taskType === 'freeform'
             ? agent.tasks
                 .buildFreeform({
@@ -224,7 +233,6 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
                 .correlationId(randomUUID())
                 .maxAttempts(1)
                 .team(teamId)
-                .build()
             : agent.tasks
                 .buildRunEval(
                   buildRunEvalInput(scenario, { variant: 'baseline' }),
@@ -233,9 +241,13 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
                 .diary(diaryId)
                 .correlationId(randomUUID())
                 .maxAttempts(1)
-                .team(teamId)
-                .build();
+                .team(teamId);
+        for (const inputArtifact of inputArtifacts) {
+          builder.artifactReference(inputArtifact.artifact, inputArtifact.role);
+        }
+        const built = builder.build();
         const task = await agent.tasks.create(built);
+        producerSandboxRoots.set(task.id, sandboxRoot);
         await runTaskOnce({
           agentName,
           agentRoot,
@@ -284,7 +296,13 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
           agentName,
           agentRoot,
           piDir: judgePiDir,
-          sandboxRoot,
+          sandboxRoot:
+            producerSandboxRoots.get(producer.taskId) ??
+            (() => {
+              throw new Error(
+                `missing sandbox root for producer ${producer.taskId}`,
+              );
+            })(),
           teamId,
           profileId: judgeProfileId,
           taskId: judgeTask.id,

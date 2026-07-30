@@ -28,6 +28,8 @@ import {
   readScenario,
   runBaseline,
   type Scenario,
+  seedScenarioWorkspace,
+  stageScenarioInputArtifacts,
   summarizeBaseline,
   writeAgentCredentials,
   writePiConfig,
@@ -63,7 +65,6 @@ describeBaseline('Producer baseline (live Ollama, e2e)', () => {
   let profileId: string;
   let agentRoot: string;
   let piDir: string;
-  let sandboxRoot: string;
   const tempRoots: string[] = [];
   const scenarios = loadScenarios();
 
@@ -84,8 +85,7 @@ describeBaseline('Producer baseline (live Ollama, e2e)', () => {
 
     agentRoot = mkdtempSync(join(tmpdir(), 'baseline-agent-'));
     piDir = mkdtempSync(join(tmpdir(), 'baseline-pi-'));
-    sandboxRoot = mkdtempSync(join(tmpdir(), 'baseline-sbx-'));
-    tempRoots.push(agentRoot, piDir, sandboxRoot);
+    tempRoots.push(agentRoot, piDir);
     writeAgentCredentials({
       agentRoot,
       agentName,
@@ -143,9 +143,18 @@ describeBaseline('Producer baseline (live Ollama, e2e)', () => {
       {
         log: (m) => console.log(`[baseline] ${m}`),
         runProducer: async (scenario) => {
+          const sandboxRoot = mkdtempSync(join(tmpdir(), 'baseline-sbx-'));
+          tempRoots.push(sandboxRoot);
+          seedScenarioWorkspace(scenario, sandboxRoot);
+          const inputArtifacts = await stageScenarioInputArtifacts(
+            agent.tasks.artifacts,
+            scenario,
+            teamId,
+          );
+
           // Fresh task (fresh correlationId => fresh session key) per run so the
           // sampling is independent. Build the producer for this task type.
-          const built =
+          const builder =
             scenario.taskType === 'freeform'
               ? agent.tasks
                   .buildFreeform({
@@ -157,7 +166,6 @@ describeBaseline('Producer baseline (live Ollama, e2e)', () => {
                   .correlationId(randomUUID())
                   .maxAttempts(1)
                   .team(teamId)
-                  .build()
               : agent.tasks
                   .buildRunEval(
                     buildRunEvalInput(scenario, { variant: 'baseline' }),
@@ -166,8 +174,14 @@ describeBaseline('Producer baseline (live Ollama, e2e)', () => {
                   .diary(diaryId)
                   .correlationId(randomUUID())
                   .maxAttempts(1)
-                  .team(teamId)
-                  .build();
+                  .team(teamId);
+          for (const inputArtifact of inputArtifacts) {
+            builder.artifactReference(
+              inputArtifact.artifact,
+              inputArtifact.role,
+            );
+          }
+          const built = builder.build();
           const task = await agent.tasks.create(built);
 
           const oldPiDir = process.env.PI_CODING_AGENT_DIR;
