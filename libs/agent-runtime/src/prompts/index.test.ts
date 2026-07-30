@@ -45,11 +45,9 @@ describe('buildTaskUserPrompt', () => {
     expect(prompt).toContain('Figure out if this recurring request');
     expect(prompt).toContain('taxonomy_probe');
     expect(prompt).toContain('proposedTaskType');
-    expect(prompt).toContain('submit_freeform_output');
-    // Artifact shape sketch must mention the new inline body field and flag
-    // path as worktree-ephemeral so agents stop dropping content on the floor.
-    expect(prompt).toContain('"body"');
-    expect(prompt).toMatch(/ephemeral|not persisted/i);
+    expect(prompt).toContain('continuation can recover that git context');
+    expect(prompt).not.toContain('submit_freeform_output');
+    expect(prompt).not.toContain('moltnet_upload_task_artifact');
   });
 
   it('forwards effective runtime context to run_eval prompt builders', () => {
@@ -251,12 +249,12 @@ describe('buildTaskUserPrompt', () => {
     const prompt = buildTaskUserPrompt(task, ctx).text;
     expect(prompt).toContain('Generated change review');
     expect(prompt).toContain('https://example.test/review/123');
-    expect(prompt).toContain('submit_pr_review_output');
     expect(prompt).toContain('task-specific instructions');
     expect(prompt).toContain(
       'Use the consumer-supplied review flow and publish the review before final output.',
     );
     expect(prompt).not.toContain('gh pr diff');
+    expect(prompt).not.toContain('submit_pr_review_output');
   });
 
   it('embeds correlation branch + trailer instructions when correlationId is set', () => {
@@ -289,7 +287,8 @@ describe('buildTaskUserPrompt', () => {
     expect(prompt).toContain('## Workspace');
     expect(prompt).toContain('dedicated git worktree');
     expect(prompt).toContain(`moltnet/${correlationId}/thing`);
-    expect(prompt).toContain('already-provisioned dedicated worktree branch');
+    expect(prompt).toContain('worktree created');
+    expect(prompt).toContain('for this task');
   });
 
   it('omits the correlation section when correlationId is null', () => {

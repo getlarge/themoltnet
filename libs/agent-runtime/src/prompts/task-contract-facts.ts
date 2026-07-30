@@ -26,8 +26,10 @@ function submissionAcceptsVerification(taskType: string): boolean {
 /**
  * Add only the dynamic contract facts that a producer cannot infer from its
  * task-specific prompt: the declared success criteria and the immutable input
- * CID its verification must cite. This is deliberately not a workflow block;
- * the submit tool owns the output shape and profiles own optional behavior.
+ * provenance CID its verification must cite. The CID is not a task artifact,
+ * so the prompt states that it cannot be downloaded. This is deliberately not
+ * a workflow block; the submit tool owns the output shape and profiles own
+ * optional behavior.
  */
 export function appendTaskContractFacts(
   prompt: AssembledPrompt,
@@ -42,7 +44,8 @@ export function appendTaskContractFacts(
 
   const criteriaJson = JSON.stringify(task.input.successCriteria, null, 2);
   const body = [
-    `Task input CID: \`${task.inputCid}\``,
+    'Task input verification CID (provenance only; this is not a task',
+    `artifact and cannot be downloaded): \`${task.inputCid}\``,
     '',
     'These typed criteria are task facts. Assess the completed work against',
     'them before calling the submit-output tool. Its `verification` payload',
