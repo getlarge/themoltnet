@@ -126,8 +126,11 @@ jobs:
         env:
           MOLTNET_EVAL_MATRIX: '1'
         # Vitest e2e (not tsx) so the workspace's source-direct exports resolve
-        # the same way the rest of the suite does.
-        run: pnpm exec nx run @themoltnet/agent-daemon-e2e:e2e -- eval-matrix
+        # the same way the rest of the suite does. --skip-nx-cache: this is a
+        # non-deterministic live-LLM MEASUREMENT — the e2e target's cache key
+        # does not include the model/flags, so a cache hit would replay a stale
+        # matrix (esp. via Nx Cloud remote cache across runs).
+        run: pnpm exec nx run @themoltnet/agent-daemon-e2e:e2e --skip-nx-cache -- eval-matrix
       - name: Upload score matrix
         if: always()
         uses: actions/upload-artifact@v4
