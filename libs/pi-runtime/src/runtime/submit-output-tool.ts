@@ -33,7 +33,7 @@ import {
   SUBMIT_OUTPUT_GATE_ID,
   validateTaskSubmission,
 } from '@themoltnet/agent-runtime';
-import { Type } from 'typebox';
+import type { TObject, TSchema } from 'typebox';
 
 import { recordTaskOutputParseResult } from './task-output.js';
 
@@ -42,7 +42,6 @@ interface SubmitOutputDetails {
   callCount: number;
   error: string | null;
   invalidCallCount?: number;
-  maxSubmitValidationRetries?: number;
 }
 
 export interface CreateSubmitOutputToolOptions {
@@ -67,13 +66,6 @@ export interface CreateSubmitOutputToolOptions {
    * submit-output gate once it accepts valid args.
    */
   inputCid?: string;
-  /**
-   * Number of correction turns allowed after the first invalid submit call.
-   * A value of 2 permits three invalid submissions total, then records an
-   * exhausted validation failure so the attempt can fail with
-   * output_validation_failed after the session ends.
-   */
-  maxSubmitValidationRetries?: number;
   /**
    * Executor-owned completion boundary invoked after the first valid capture.
    * The Gondolin/Pi executor uses this to abort the live session cleanly.
@@ -102,11 +94,6 @@ export interface SubmitOutputToolHandle {
   getInvalidCallCount: () => number;
   /** Last validation failure, if the model submitted invalid args. */
   getLastValidationFailure: () => { code: string; message: string } | null;
-  /** Validation failure that exhausted the correction budget. */
-  getExhaustedValidationFailure: () => {
-    code: string;
-    message: string;
-  } | null;
 }
 
 /**
@@ -124,15 +111,31 @@ export class UnknownTaskTypeForSubmitToolError extends Error {
   }
 }
 
-const DEFAULT_MAX_SUBMIT_VALIDATION_RETRIES = 2;
+/**
+ * Pi validates tool arguments before execute() runs. Preserve the task's real
+ * property schemas so providers can see the contract, but relax top-level
+ * required/additional-property checks so malformed calls reach our strict
+ * registry-aware validator and become recoverable tool errors in-session.
+ */
+function requireObjectSchema(schema: TSchema): TObject {
+  if (
+    !('type' in schema) ||
+    schema.type !== 'object' ||
+    !('properties' in schema)
+  ) {
+    throw new Error('Submit-output schemas must be top-level objects');
+  }
+  return schema as unknown as TObject;
+}
 
-// Pi validates tool arguments before execute() runs. Register a permissive
-// top-level object so malformed submit payloads reach our strict validator and
-// can be returned as recoverable tool errors inside the same session.
-const RecoverableSubmitToolParameters = Type.Object(
-  {},
-  { additionalProperties: Type.Unknown() },
-);
+function recoverableSubmitToolParameters(schema: TSchema): TObject {
+  const objectSchema = requireObjectSchema(schema);
+  const { required: _required, ...rest } = objectSchema;
+  return {
+    ...rest,
+    additionalProperties: true,
+  } as unknown as TObject;
+}
 
 function formatValidationErrors(
   errors: ReturnType<typeof validateTaskSubmission>,
@@ -143,11 +146,21 @@ function formatValidationErrors(
 function submitOutputRepairHint(
   taskType: string,
   errors: ReturnType<typeof validateTaskSubmission>,
+  schema: TSchema,
 ): string {
   const fields = new Set(errors.map((err) => err.field));
   const hints: string[] = [
     'Tool args must be the output object directly, not wrapped in { output: ... }.',
   ];
+  const objectSchema = requireObjectSchema(schema);
+  const required = Array.isArray(objectSchema.required)
+    ? objectSchema.required.filter(
+        (field): field is string => typeof field === 'string',
+      )
+    : [];
+  if (required.length > 0) {
+    hints.push(`Required top-level fields: ${required.join(', ')}.`);
+  }
 
   if (fields.has('output/artifacts')) {
     hints.push(
@@ -182,6 +195,22 @@ function submitOutputRepairHint(
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Some providers synthesize a conventional `{ output: ... }` envelope even
+ * when the tool contract says its arguments are the payload. Accept only that
+ * exact, unambiguous wrapper, and only when `output` is not itself a legitimate
+ * task field. The unwrapped value still goes through strict validation.
+ */
+function unwrapSoleOutputEnvelope(params: unknown, schema: TSchema): unknown {
+  if (!isRecord(params) || Object.keys(params).length !== 1) return params;
+  const objectSchema = requireObjectSchema(schema);
+  const properties = isRecord(objectSchema.properties)
+    ? objectSchema.properties
+    : Object.create(null);
+  if ('output' in properties || !('output' in params)) return params;
+  return params.output;
 }
 
 function onlySubmitOutputGate(input: unknown): boolean {
@@ -291,15 +320,11 @@ export function createSubmitOutputTool(
   if (!contract) {
     throw new UnknownTaskTypeForSubmitToolError(taskType);
   }
-  const maxSubmitValidationRetries =
-    opts.maxSubmitValidationRetries ?? DEFAULT_MAX_SUBMIT_VALIDATION_RETRIES;
 
   let captured: Record<string, unknown> | null = null;
   let callCount = 0;
   let invalidCallCount = 0;
   let lastValidationFailure: { code: string; message: string } | null = null;
-  let exhaustedValidationFailure: { code: string; message: string } | null =
-    null;
 
   const tool = defineTool({
     name: contract.toolName,
@@ -316,14 +341,13 @@ export function createSubmitOutputTool(
       'If the submit tool returns a validation error, fix every listed field and call the same tool again.',
       'The first valid submission is final and immediately ends the session.',
     ],
-    parameters: RecoverableSubmitToolParameters,
+    parameters: recoverableSubmitToolParameters(contract.parametersSchema),
     async execute(_id, params) {
       if (captured) {
         const details: SubmitOutputDetails = {
           captured: true,
           callCount,
           invalidCallCount,
-          maxSubmitValidationRetries,
           error: null,
         };
         return {
@@ -339,28 +363,6 @@ export function createSubmitOutputTool(
         };
       }
 
-      if (exhaustedValidationFailure) {
-        const details: SubmitOutputDetails = {
-          captured: false,
-          callCount,
-          invalidCallCount,
-          maxSubmitValidationRetries,
-          error: 'output_validation_failed',
-        };
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text:
-                'Submit-output validation retry budget is already exhausted; ' +
-                'the attempt will fail.',
-            },
-          ],
-          details,
-          isError: true,
-        };
-      }
-
       // Use the registry-aware validator: runs the TypeBox schema check
       // AND any task-type-specific cross-field rule (e.g. judge_pack's
       // `llm_checklist` score↔assertions consistency from #999). Without
@@ -369,8 +371,16 @@ export function createSubmitOutputTool(
       // pollutes attestations. Returning isError:true lets the agent
       // re-call with a corrected payload mid-session — same recovery
       // affordance as a plain schema miss.
-      const repairedParams = maybeRepairSubmitOutput(taskType, params, opts);
-      const candidateParams = repairedParams ?? params;
+      const unwrappedParams = unwrapSoleOutputEnvelope(
+        params,
+        contract.parametersSchema,
+      );
+      const repairedParams = maybeRepairSubmitOutput(
+        taskType,
+        unwrappedParams,
+        opts,
+      );
+      const candidateParams = repairedParams ?? unwrappedParams;
       const errors = validateTaskSubmission(
         taskType,
         candidateParams,
@@ -380,27 +390,19 @@ export function createSubmitOutputTool(
       if (errors.length > 0) {
         invalidCallCount += 1;
         const detailMsg = formatValidationErrors(errors);
-        const maxInvalidCalls = maxSubmitValidationRetries + 1;
-        const exhausted = invalidCallCount >= maxInvalidCalls;
         const message =
-          `Output failed validation (${invalidCallCount}/${maxInvalidCalls}): ` +
+          `Output failed validation (invalid call ${invalidCallCount}): ` +
           `${detailMsg}. ` +
-          `${submitOutputRepairHint(taskType, errors)} ` +
-          (exhausted
-            ? 'Submit-output validation retry budget exhausted; the attempt will fail.'
-            : 'Re-call this tool with a corrected output.');
+          `${submitOutputRepairHint(taskType, errors, contract.parametersSchema)} ` +
+          'Re-call this tool with a corrected output in the current session.';
         lastValidationFailure = {
           code: 'output_validation_failed',
           message,
         };
-        if (exhausted) {
-          exhaustedValidationFailure = lastValidationFailure;
-        }
         const details: SubmitOutputDetails = {
           captured: false,
           callCount,
           invalidCallCount,
-          maxSubmitValidationRetries,
           error: 'output_validation_failed',
         };
         recordTaskOutputParseResult({
@@ -449,7 +451,6 @@ export function createSubmitOutputTool(
     getCallCount: () => callCount,
     getInvalidCallCount: () => invalidCallCount,
     getLastValidationFailure: () => lastValidationFailure,
-    getExhaustedValidationFailure: () => exhaustedValidationFailure,
   };
 }
 

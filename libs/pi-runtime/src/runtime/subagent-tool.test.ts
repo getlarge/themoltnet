@@ -364,12 +364,13 @@ describe('createSubagentTool', () => {
       task: 'work',
       output_schema: 'sample',
     });
-    // Inner tool returned isError:true; capture stayed null; outer
-    // surfaces "never submitted" because no successful capture happened.
+    // Inner tool returned isError:true; capture stayed null; outer surfaces
+    // the latest validation failure because no successful capture happened.
     expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain('verdict');
   });
 
-  it('keeps exhausted inner submit validation from being overwritten by a later valid submit', async () => {
+  it('accepts a later valid inner submit after repeated validation errors', async () => {
     const badPayload = { score: 0.5 } as Record<string, unknown>;
     const validPayload = { verdict: 'late success', score: 1 };
     const factory = makeFakeSessionFactory([
@@ -388,14 +389,35 @@ describe('createSubagentTool', () => {
       output_schema: 'sample',
     });
 
-    expect(result.isError).toBe(true);
-    expect(result.content[0].text).toContain('Validation retry budget');
-    expect(result.details).toMatchObject({
-      captured: false,
-      error: 'output_validation_failed',
-      invalidCallCount: 3,
-    });
+    expect(result.isError).toBeFalsy();
+    expect(JSON.parse(result.content[0].text)).toEqual(validPayload);
     expect(factory.innerSubmitInvocations).toBe(4);
+  });
+
+  it('shows subagents the real output fields without pre-validating required keys', async () => {
+    const factory = makeFakeSessionFactory({ verdict: 'ok', score: 1 });
+    const handle = createSubagentTool({
+      ...stubArgs(),
+      buildAgentSession: factory.build,
+    });
+
+    await callOuter(handle.tool, { task: 'work', output_schema: 'sample' });
+
+    const submitTool = factory.capturedBuildArgs?.customTools.find(
+      (tool) => tool.name === 'submit_subagent_output',
+    ) as unknown as {
+      parameters: {
+        properties?: Record<string, unknown>;
+        required?: string[];
+        additionalProperties?: unknown;
+      };
+    };
+    expect(Object.keys(submitTool.parameters.properties ?? {})).toEqual([
+      'verdict',
+      'score',
+    ]);
+    expect(submitTool.parameters.required).toBeUndefined();
+    expect(submitTool.parameters.additionalProperties).toBeTruthy();
   });
 
   describe('contractRegistry injection — tests that a custom registry works', () => {

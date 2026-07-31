@@ -27,6 +27,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   buildAttemptResult,
   buildSubmitMissingPrompt,
+  buildSubmitValidationPrompt,
   captureAttemptOutput,
   cleanupAttempt,
   computeProviderErrorRetryDelay,
@@ -682,11 +683,11 @@ describe('buildAttemptResult (result-construction characterization)', () => {
 describe('captureAttemptOutput (output-capture characterization)', () => {
   function fakeHandle(opts: {
     captured?: Record<string, unknown> | null;
-    exhausted?: { code: string; message: string } | null;
+    validationFailure?: { code: string; message: string } | null;
   }) {
     return {
       getCaptured: () => opts.captured ?? null,
-      getExhaustedValidationFailure: () => opts.exhausted ?? null,
+      getLastValidationFailure: () => opts.validationFailure ?? null,
     };
   }
   function makeEmit() {
@@ -749,7 +750,7 @@ describe('captureAttemptOutput (output-capture characterization)', () => {
       model: 'm',
       input: {},
       assistantText: 'just prose, no tool call',
-      submitToolHandle: fakeHandle({ captured: null, exhausted: null }),
+      submitToolHandle: fakeHandle({ captured: null, validationFailure: null }),
       emit: emit as never,
     });
     expect(result.output).toBeNull();
@@ -757,21 +758,21 @@ describe('captureAttemptOutput (output-capture characterization)', () => {
     expect(emitted[0].payload.phase).toBe('output_validation');
   });
 
-  it('surfaces the exhausted-validation failure verbatim (no submit_output_missing)', async () => {
+  it('surfaces the latest validation failure verbatim (no submit_output_missing)', async () => {
     const { emit } = makeEmit();
-    const exhausted = {
+    const validationFailure = {
       code: 'output_validation_failed',
-      message: 'budget spent',
+      message: 'scores is required',
     };
     const result = await captureAttemptOutput({
       taskType: 'freeform',
       model: 'm',
       input: {},
       assistantText: '',
-      submitToolHandle: fakeHandle({ captured: null, exhausted }),
+      submitToolHandle: fakeHandle({ captured: null, validationFailure }),
       emit: emit as never,
     });
-    expect(result.error).toEqual(exhausted);
+    expect(result.error).toEqual(validationFailure);
   });
 
   it('falls back to parsing assistant text when no submit tool is registered', async () => {
@@ -1140,13 +1141,13 @@ describe('submitRepromptStopped', () => {
 describe('resolveSubmitMissingConfig', () => {
   function fakeHandle(opts: {
     captured?: Record<string, unknown> | null;
-    exhausted?: { code: string; message: string } | null;
+    validationFailure?: { code: string; message: string } | null;
     toolName?: string;
   }) {
     return {
       toolName: opts.toolName ?? 'submit_freeform_output',
       getCaptured: () => opts.captured ?? null,
-      getExhaustedValidationFailure: () => opts.exhausted ?? null,
+      getLastValidationFailure: () => opts.validationFailure ?? null,
     };
   }
 
@@ -1175,13 +1176,16 @@ describe('resolveSubmitMissingConfig', () => {
     expect(config.submitMissingPrompt).toBe('custom nudge');
   });
 
-  it('maps captured/exhausted gate state off the handle', () => {
+  it('maps captured/validation-failure state off the handle', () => {
     const missing = resolveSubmitMissingConfig({
-      submitToolHandle: fakeHandle({ captured: null, exhausted: null }),
+      submitToolHandle: fakeHandle({
+        captured: null,
+        validationFailure: null,
+      }),
     });
     expect(missing.getSubmitState()).toEqual({
       captured: false,
-      exhausted: false,
+      lastValidationFailure: null,
     });
 
     const captured = resolveSubmitMissingConfig({
@@ -1189,17 +1193,23 @@ describe('resolveSubmitMissingConfig', () => {
     });
     expect(captured.getSubmitState()).toEqual({
       captured: true,
-      exhausted: false,
+      lastValidationFailure: null,
     });
 
-    const exhausted = resolveSubmitMissingConfig({
+    const invalid = resolveSubmitMissingConfig({
       submitToolHandle: fakeHandle({
-        exhausted: { code: 'output_validation_failed', message: 'spent' },
+        validationFailure: {
+          code: 'output_validation_failed',
+          message: 'scores is required',
+        },
       }),
     });
-    expect(exhausted.getSubmitState()).toEqual({
+    expect(invalid.getSubmitState()).toEqual({
       captured: false,
-      exhausted: true,
+      lastValidationFailure: {
+        code: 'output_validation_failed',
+        message: 'scores is required',
+      },
     });
   });
 });
@@ -1211,6 +1221,17 @@ describe('buildSubmitMissingPrompt', () => {
     expect(prompt.toLowerCase()).toContain('did not call');
     expect(prompt.toLowerCase()).toContain('do not');
   });
+
+  it('builds a validation-specific correction without repeating task work', () => {
+    const prompt = buildSubmitValidationPrompt(
+      'submit_pr_review_output',
+      'scores is required',
+    );
+    expect(prompt).toContain('submit_pr_review_output');
+    expect(prompt).toContain('scores is required');
+    expect(prompt).toContain('current');
+    expect(prompt).toContain('Do not');
+  });
 });
 
 describe('promptUntilSubmitted (submit-missing same-session recovery)', () => {
@@ -1220,7 +1241,10 @@ describe('promptUntilSubmitted (submit-missing same-session recovery)', () => {
       // Reflect state AFTER each runPrompt: the gate is read once per loop
       // iteration following a prompt pass.
       calls += 1;
-      return { captured: calls > passes, exhausted: false };
+      return {
+        captured: calls > passes,
+        lastValidationFailure: null,
+      };
     };
   }
 
@@ -1262,7 +1286,10 @@ describe('promptUntilSubmitted (submit-missing same-session recovery)', () => {
       initialPrompt: 'do the task',
       submitMissingPrompt: 'call submit now',
       maxSubmitMissingReprompts: 3,
-      getSubmitState: () => ({ captured: true, exhausted: false }),
+      getSubmitState: () => ({
+        captured: true,
+        lastValidationFailure: null,
+      }),
       isStopped: () => false,
     });
 
@@ -1270,22 +1297,43 @@ describe('promptUntilSubmitted (submit-missing same-session recovery)', () => {
     expect(prompts).toEqual(['do the task']);
   });
 
-  it('does not re-prompt once the invalid-args correction budget is exhausted', async () => {
+  it('re-prompts with validation feedback and captures in the same session', async () => {
     const prompts: string[] = [];
+    const reasons: string[] = [];
+    let stateReads = 0;
     const result = await promptUntilSubmitted({
       runPrompt: async (text) => {
         prompts.push(text);
         return { runError: null };
       },
       initialPrompt: 'do the task',
+      submitToolName: 'submit_pr_review_output',
       submitMissingPrompt: 'call submit now',
       maxSubmitMissingReprompts: 3,
-      getSubmitState: () => ({ captured: false, exhausted: true }),
+      getSubmitState: () => {
+        stateReads += 1;
+        return stateReads === 1
+          ? {
+              captured: false,
+              lastValidationFailure: {
+                code: 'output_validation_failed',
+                message: 'scores, composite, and verdict are required',
+              },
+            }
+          : { captured: true, lastValidationFailure: null };
+      },
       isStopped: () => false,
+      onSubmitReprompt: (event) => {
+        reasons.push(event.reason);
+      },
     });
 
-    expect(result).toEqual({ runError: null, submitReprompts: 0 });
-    expect(prompts).toEqual(['do the task']);
+    expect(result).toEqual({ runError: null, submitReprompts: 1 });
+    expect(prompts).toHaveLength(2);
+    expect(prompts[1]).toContain('submit_pr_review_output');
+    expect(prompts[1]).toContain('scores, composite, and verdict');
+    expect(prompts[1]).toContain('Do not reply with prose');
+    expect(reasons).toEqual(['validation_failed']);
   });
 
   it('stops after the re-prompt budget and lets the caller fail submit-missing', async () => {
@@ -1298,7 +1346,10 @@ describe('promptUntilSubmitted (submit-missing same-session recovery)', () => {
       initialPrompt: 'do the task',
       submitMissingPrompt: 'call submit now',
       maxSubmitMissingReprompts: 2,
-      getSubmitState: () => ({ captured: false, exhausted: false }),
+      getSubmitState: () => ({
+        captured: false,
+        lastValidationFailure: null,
+      }),
       isStopped: () => false,
     });
 
@@ -1322,7 +1373,10 @@ describe('promptUntilSubmitted (submit-missing same-session recovery)', () => {
       initialPrompt: 'do the task',
       submitMissingPrompt: 'call submit now',
       maxSubmitMissingReprompts: 3,
-      getSubmitState: () => ({ captured: false, exhausted: false }),
+      getSubmitState: () => ({
+        captured: false,
+        lastValidationFailure: null,
+      }),
       isStopped: () => false,
     });
 
@@ -1345,7 +1399,10 @@ describe('promptUntilSubmitted (submit-missing same-session recovery)', () => {
       initialPrompt: 'do the task',
       submitMissingPrompt: 'call submit now',
       maxSubmitMissingReprompts: 3,
-      getSubmitState: () => ({ captured: false, exhausted: false }),
+      getSubmitState: () => ({
+        captured: false,
+        lastValidationFailure: null,
+      }),
       isStopped: () => false,
     });
 
@@ -1366,7 +1423,10 @@ describe('promptUntilSubmitted (submit-missing same-session recovery)', () => {
       initialPrompt: 'do the task',
       submitMissingPrompt: 'call submit now',
       maxSubmitMissingReprompts: 3,
-      getSubmitState: () => ({ captured: false, exhausted: false }),
+      getSubmitState: () => ({
+        captured: false,
+        lastValidationFailure: null,
+      }),
       isStopped: () => true,
     });
 
