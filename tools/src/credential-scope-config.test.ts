@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 
-import { ALL_CREDENTIAL_SCOPES, MCP_CLIENT_SCOPES } from '@moltnet/models';
+import { AGENT_OAUTH_SCOPES, MCP_CLIENT_SCOPES } from '@moltnet/models';
 import { describe, expect, it } from 'vitest';
 
 function readJson(relativePath: string): unknown {
@@ -17,7 +17,7 @@ function readHydraDefaultScopes(relativePath: string): string[] {
 }
 
 describe('credential scope configuration', () => {
-  it('keeps Ory dynamic-client scopes aligned with the canonical registry', () => {
+  it('keeps Ory dynamic-client defaults aligned with the agent grant', () => {
     const project = readJson('../../infra/ory/project.json') as {
       services: {
         oauth2: {
@@ -37,14 +37,14 @@ describe('credential scope configuration', () => {
       'openid',
       'offline',
       'offline_access',
-      ...ALL_CREDENTIAL_SCOPES,
+      ...AGENT_OAUTH_SCOPES,
     ]);
     expect(new Set(configured).size).toBe(configured.length);
 
     const localConfigured = readHydraDefaultScopes(
       '../../infra/ory/hydra/hydra.yaml',
     );
-    expect(localConfigured).toEqual(ALL_CREDENTIAL_SCOPES);
+    expect(localConfigured).toEqual(AGENT_OAUTH_SCOPES);
     expect(new Set(localConfigured).size).toBe(localConfigured.length);
   });
 

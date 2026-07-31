@@ -5,6 +5,7 @@ export const CREDENTIAL_SCOPES = {
   DiaryManage: 'diary:manage',
   DiaryRead: 'diary:read',
   DiaryWrite: 'diary:write',
+  HumanProfile: 'human:profile',
   KeyManage: 'key:manage',
   PackRead: 'pack:read',
   PackWrite: 'pack:write',
@@ -59,8 +60,14 @@ export const AGENT_CREDENTIAL_SCOPES = [
   CREDENTIAL_SCOPES.TaskExecute,
 ] as const satisfies readonly CredentialScope[];
 
-/** Full grant ceiling for first-party OAuth2 agents and human sessions. */
-export const AGENT_OAUTH_SCOPES = ALL_CREDENTIAL_SCOPES;
+/** Full grant ceiling for first-party agent OAuth2 clients. */
+export const AGENT_OAUTH_SCOPES = Object.freeze(
+  ALL_CREDENTIAL_SCOPES.filter(
+    (scope) => scope !== CREDENTIAL_SCOPES.HumanProfile,
+  ),
+);
+
+/** Human sessions may also access human-profile capabilities. */
 export const HUMAN_SESSION_SCOPES = ALL_CREDENTIAL_SCOPES;
 
 /**
@@ -76,6 +83,7 @@ export const MCP_CLIENT_SCOPES = [
   CREDENTIAL_SCOPES.DiaryManage,
   CREDENTIAL_SCOPES.DiaryRead,
   CREDENTIAL_SCOPES.DiaryWrite,
+  CREDENTIAL_SCOPES.HumanProfile,
   CREDENTIAL_SCOPES.PackRead,
   CREDENTIAL_SCOPES.PackWrite,
   CREDENTIAL_SCOPES.TaskExecute,

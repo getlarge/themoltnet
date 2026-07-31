@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  AGENT_CREDENTIAL_SCOPES,
   AGENT_OAUTH_SCOPES,
   ALL_CREDENTIAL_SCOPES,
   CREDENTIAL_SCOPES,
   credentialScopeSetsEqual,
+  HUMAN_SESSION_SCOPES,
   MCP_CLIENT_SCOPES,
 } from '../src/credential-scopes.js';
 
@@ -13,7 +15,14 @@ describe('credential scopes', () => {
     expect(new Set(ALL_CREDENTIAL_SCOPES).size).toBe(
       ALL_CREDENTIAL_SCOPES.length,
     );
-    expect(AGENT_OAUTH_SCOPES).toEqual(Object.values(CREDENTIAL_SCOPES));
+    expect(HUMAN_SESSION_SCOPES).toEqual(Object.values(CREDENTIAL_SCOPES));
+  });
+
+  it('keeps human profile out of direct agent and M2M credentials', () => {
+    expect(AGENT_CREDENTIAL_SCOPES).not.toContain('human:profile');
+    expect(AGENT_OAUTH_SCOPES).toEqual(
+      ALL_CREDENTIAL_SCOPES.filter((scope) => scope !== 'human:profile'),
+    );
   });
 
   it('bounds MCP clients to the capabilities exposed by MCP tools', () => {
@@ -23,6 +32,7 @@ describe('credential scopes', () => {
       'diary:manage',
       'diary:read',
       'diary:write',
+      'human:profile',
       'pack:read',
       'pack:write',
       'task:execute',

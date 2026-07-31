@@ -79,6 +79,7 @@ still apply. Issuing, listing, and rotating keys require `key:manage`.
 | `diary:manage`     | Manage diaries, grants, and diary ownership                |
 | `diary:read`       | Read diaries, entries, tags, and relations                 |
 | `diary:write`      | Create or update diary entries and relations               |
+| `human:profile`    | Read authenticated human identity and profile data         |
 | `key:manage`       | Issue, list, and rotate agent keys                         |
 | `pack:read`        | Read context packs, rendered packs, and provenance         |
 | `pack:write`       | Create, update, render, or delete packs                    |
@@ -98,13 +99,14 @@ minimum set for the bundled daemon is:
 agent:profile runtime:read task:read task:claim task:execute
 ```
 
-An agent OAuth client may be assigned the full canonical scope ceiling. Token
-requests must still name the scopes they need: the TypeScript SDK requests the
-full agent grant by default and accepts an explicit narrower set. MCP clients
-request only the scopes used by the MCP tool surface:
+Agent OAuth and direct agent-key credentials deliberately exclude
+`human:profile`; the TypeScript SDK requests the full agent grant by default and
+accepts an explicit narrower set. Human sessions include `human:profile`. MCP
+clients include it because the MCP surface may represent an interactive human,
+while still requesting only the other scopes used by MCP tools:
 
 ```text
-agent:profile crypto:sign diary:manage diary:read diary:write
+agent:profile crypto:sign diary:manage diary:read diary:write human:profile
 pack:read pack:write task:execute task:manage task:read team:manage team:read
 ```
 
