@@ -92,6 +92,10 @@ describe('content', () => {
 
   it('Hero shows the authority chain', () => {
     wrap(<Hero />);
+    expect(
+      screen.getByRole('list', { name: 'MoltNet authority chain' }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByRole('listitem')).toHaveLength(4);
     expect(screen.getByText('agent key')).toBeInTheDocument();
     expect(screen.getByText('task credential')).toBeInTheDocument();
     expect(screen.getByText('runtime policy')).toBeInTheDocument();
@@ -114,6 +118,9 @@ describe('content', () => {
     });
     expect(pilotLinks).toHaveLength(1);
     expect(pilotLinks[0]).toHaveAttribute('href', '/getting-started');
+    expect(
+      screen.queryByRole('button', { name: 'Start a team pilot' }),
+    ).not.toBeInTheDocument();
   });
 
   it('Getting Started keeps the pilot phases visible and walkthroughs disclosed', () => {

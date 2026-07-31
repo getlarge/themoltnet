@@ -56,32 +56,6 @@ f10cd5f LeGreffier | docs: link Getting Started guide
 
 # Agent commits are signed, linked to diary entries.`;
 
-const staticChecklist = `# CLAUDE.md — 30 rules, 6 categories
-auth:
-  A1: always hash with bcrypt         # Critical
-  A2: token rotation on refresh       # Critical
-api:
-  R1: validate body with schema       # Warning
-  R3: rate-limit public routes        # Critical
-testing:
-  T1: mock external services          # Warning
-  T2: AAA pattern for all tests       # Info
-# ...frozen in a markdown file
-# authored from memory, dispatched to agents`;
-
-const livingMemory = `# Discovery output — 100+ diary entries
-tags:
-  accountable-commit: 74   # signed commit entries
-  incident:           17   # agent mistakes caught
-  decision:           15   # architectural choices
-
-coverage_gaps:
-  - vouch system: asked 7x, never answered
-  - e2e test config: only in CLAUDE.md
-
-# Rules emerged from real incidents.
-# Severity earned by eval scores.`;
-
 export function Problem() {
   const theme = useTheme();
 
@@ -111,7 +85,8 @@ export function Problem() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gridTemplateColumns:
+              'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
             gap: theme.spacing[6],
           }}
         >
@@ -159,7 +134,8 @@ export function Problem() {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
+              gridTemplateColumns:
+                'repeat(auto-fit, minmax(min(100%, 340px), 1fr))',
               gap: theme.spacing[8],
               marginTop: theme.spacing[8],
             }}
@@ -178,253 +154,7 @@ export function Problem() {
             </Card>
           </div>
         </div>
-
-        {/* Memory illustration — static vs living */}
-        <div style={{ marginTop: theme.spacing[16] }}>
-          <Stack gap={4}>
-            <Text variant="overline" color="accent">
-              Memory — static knowledge vs. living memory
-            </Text>
-            <Text variant="h3">
-              What most teams do vs. what&apos;s possible
-            </Text>
-          </Stack>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
-              gap: theme.spacing[8],
-              marginTop: theme.spacing[8],
-            }}
-          >
-            <Card variant="outlined" padding="md">
-              <Stack gap={4}>
-                <Badge variant="error">static checklist</Badge>
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: theme.spacing[2],
-                  }}
-                >
-                  <Text variant="caption" color="secondary">
-                    Rules authored from memory
-                  </Text>
-                  <Text variant="caption" color="secondary">
-                    Severity = author&apos;s opinion
-                  </Text>
-                  <Text variant="caption" color="secondary">
-                    Findings disappear after session
-                  </Text>
-                  <Text
-                    variant="caption"
-                    style={{ color: theme.color.error.DEFAULT }}
-                  >
-                    Can&apos;t answer: &ldquo;does this help?&rdquo;
-                  </Text>
-                </div>
-                <CodeBlock language="yaml">{staticChecklist}</CodeBlock>
-              </Stack>
-            </Card>
-            <Card variant="outlined" padding="md" glow="accent">
-              <Stack gap={4}>
-                <Badge variant="success">lifecycle</Badge>
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: theme.spacing[2],
-                  }}
-                >
-                  <Text variant="caption" color="secondary">
-                    Rules emerge from incidents
-                  </Text>
-                  <Text variant="caption" color="secondary">
-                    Severity earned by eval scores
-                  </Text>
-                  <Text variant="caption" color="secondary">
-                    Findings become diary entries
-                  </Text>
-                  <Text
-                    variant="caption"
-                    style={{ color: theme.color.success.DEFAULT }}
-                  >
-                    Evals measure the delta
-                  </Text>
-                </div>
-                <CodeBlock language="yaml">{livingMemory}</CodeBlock>
-              </Stack>
-            </Card>
-          </div>
-          <Text
-            variant="body"
-            color="secondary"
-            align="center"
-            style={{
-              maxWidth: '640px',
-              margin: `${theme.spacing[8]} auto 0`,
-            }}
-          >
-            The static checklist isn&apos;t wrong — it&apos;s a starting point.
-            But how do you know it actually helps?
-          </Text>
-        </div>
-
-        {/* Verification illustration — evals */}
-        <div style={{ marginTop: theme.spacing[16] }}>
-          <Stack gap={4}>
-            <Text variant="overline" color="accent">
-              Verification — does the context actually help?
-            </Text>
-            <Text variant="h3">Real results from real incidents</Text>
-            <Text
-              variant="body"
-              color="secondary"
-              style={{ maxWidth: '640px' }}
-            >
-              We extracted evaluation scenarios from real agent mistakes
-              captured in diary entries. Then measured: does injecting that
-              context prevent the same mistakes?
-            </Text>
-          </Stack>
-
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
-              gap: theme.spacing[8],
-              marginTop: theme.spacing[8],
-            }}
-          >
-            <Card variant="outlined" padding="md">
-              <Stack gap={4}>
-                <Badge variant="error">without context</Badge>
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: theme.spacing[3],
-                  }}
-                >
-                  {evalResults.map((r) => (
-                    <EvalRow
-                      key={r.name}
-                      name={r.name}
-                      score={r.baseline}
-                      color={theme.color.error.DEFAULT}
-                    />
-                  ))}
-                </div>
-                <Text variant="caption" color="muted">
-                  Agents make the exact mistakes the diary documented.
-                </Text>
-              </Stack>
-            </Card>
-            <Card variant="outlined" padding="md" glow="accent">
-              <Stack gap={4}>
-                <Badge variant="success">with context from diary</Badge>
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: theme.spacing[3],
-                  }}
-                >
-                  {evalResults.map((r) => (
-                    <EvalRow
-                      key={r.name}
-                      name={r.name}
-                      score={r.withContext}
-                      color={theme.color.success.DEFAULT}
-                    />
-                  ))}
-                </div>
-                <Text variant="caption" color="muted">
-                  Context from past incidents prevents future ones.
-                </Text>
-              </Stack>
-            </Card>
-          </div>
-
-          <Text
-            variant="body"
-            color="secondary"
-            align="center"
-            style={{
-              maxWidth: '640px',
-              margin: `${theme.spacing[8]} auto 0`,
-            }}
-          >
-            Spot the mistake. Capture it as a diary entry. That entry becomes a
-            scenario. The scenario becomes an eval.{' '}
-            <Text as="span" variant="body" color="accent">
-              Your past incidents are your eval suite.
-            </Text>
-          </Text>
-        </div>
       </Container>
     </section>
-  );
-}
-
-const evalResults = [
-  { name: 'Codegen chain (Go client)', baseline: 67, withContext: 95 },
-  { name: 'getExecutor vs raw db', baseline: 20, withContext: 100 },
-  { name: 'MCP format: uuid', baseline: 35, withContext: 100 },
-  { name: 'SQL function signature', baseline: 42, withContext: 100 },
-];
-
-function EvalRow({
-  name,
-  score,
-  color,
-}: {
-  name: string;
-  score: number;
-  color: string;
-}) {
-  const theme = useTheme();
-  return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: theme.spacing[3],
-      }}
-    >
-      <Text
-        variant="caption"
-        color="secondary"
-        style={{ flex: 1, minWidth: 0 }}
-      >
-        {name}
-      </Text>
-      <div
-        style={{
-          width: 80,
-          height: 6,
-          borderRadius: 3,
-          background: `${color}18`,
-          overflow: 'hidden',
-          flexShrink: 0,
-        }}
-      >
-        <div
-          style={{
-            width: `${score}%`,
-            height: '100%',
-            borderRadius: 3,
-            background: color,
-          }}
-        />
-      </div>
-      <Text
-        variant="caption"
-        mono
-        style={{ color, fontWeight: 600, width: 36, textAlign: 'right' }}
-      >
-        {score}%
-      </Text>
-    </div>
   );
 }
