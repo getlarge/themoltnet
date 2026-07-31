@@ -94,6 +94,10 @@ export interface SourceAttemptResolver {
     taskId: string;
     attemptN: number;
   }): Promise<string | null>;
+  findInputRevision(input: {
+    taskId: string;
+    attemptN: number;
+  }): Promise<string | null>;
 }
 
 type CachedTask = Pick<ClaimedTask, 'task' | 'attemptN'>;
@@ -164,6 +168,9 @@ function createNullSourceAttemptResolver(): SourceAttemptResolver {
     findOutputBranch() {
       return Promise.resolve(null);
     },
+    findInputRevision() {
+      return Promise.resolve(null);
+    },
   };
 }
 
@@ -206,7 +213,11 @@ function planToRuntimeProfileWorkspaceMode(
   plan: DaemonTaskExecutionPlan,
 ): 'none' | 'shared_mount' | 'dedicated_worktree' {
   if (plan.workspaceMode === 'scratch_mount') return 'none';
-  if (plan.workspaceMode === 'dedicated_worktree' && !plan.worktreeBranch) {
+  if (
+    plan.workspaceMode === 'dedicated_worktree' &&
+    !plan.worktreeBranch &&
+    !plan.workspaceRevision
+  ) {
     return 'shared_mount';
   }
   return plan.workspaceMode;
@@ -351,11 +362,17 @@ async function maybeAttachWarmSlotContext(
         attemptN: continueFrom.attemptN,
         taskId: continueFrom.taskId,
       });
+      const recoveredRevision = recoveredBranch
+        ? null
+        : await sourceAttemptResolver.findInputRevision({
+            attemptN: continueFrom.attemptN,
+            taskId: continueFrom.taskId,
+          });
       if (continueFrom.mode === 'fork') {
-        if (recoveredBranch) {
+        if (recoveredBranch || recoveredRevision) {
           const forkWorkspaceId = `fork-${claimedTask.task.id}-attempt-${claimedTask.attemptN}`;
           const forkBranch = buildForkBranch(
-            recoveredBranch,
+            recoveredBranch ?? `detached-${continueFrom.taskId.slice(0, 8)}`,
             claimedTask.task.id,
             claimedTask.attemptN,
           );
@@ -364,7 +381,7 @@ async function maybeAttachWarmSlotContext(
             workspaceMode: 'dedicated_worktree',
             workspaceId: forkWorkspaceId,
             worktreeBranch: forkBranch,
-            worktreeBaseRef: recoveredBranch,
+            worktreeBaseRef: recoveredBranch ?? recoveredRevision,
             workspaceKind: 'fork',
             sessionPersistence: {
               sessionDir,
@@ -379,10 +396,12 @@ async function maybeAttachWarmSlotContext(
       return {
         ...basePlan,
         workspaceMode: 'dedicated_worktree',
-        workspaceId: recoveredBranch
-          ? buildAttemptWorkspaceId(claimedTask)
-          : null,
+        workspaceId:
+          recoveredBranch || recoveredRevision
+            ? buildAttemptWorkspaceId(claimedTask)
+            : null,
         worktreeBranch: recoveredBranch,
+        workspaceRevision: recoveredRevision,
         sessionPersistence: {
           sessionDir,
           forkFromSessionPath: resolution.sessionPath,
@@ -392,14 +411,20 @@ async function maybeAttachWarmSlotContext(
 
     const parentBranch =
       resolution.producerSlot.workspace?.worktreeBranch ?? null;
+    const parentRevision = parentBranch
+      ? null
+      : await sourceAttemptResolver.findInputRevision({
+          attemptN: continueFrom.attemptN,
+          taskId: continueFrom.taskId,
+        });
 
     if (continueFrom.mode === 'fork') {
       // Fork: diverge onto a NEW branch cut from the parent's tip, in a fresh
       // (unique) workspace. The session is still copied (forkFromSessionPath),
       // but git state forks cleanly so the new chain is a separate PR.
-      if (!parentBranch) {
+      if (!parentBranch && !parentRevision) {
         throw new ProducerContextResolutionError(
-          `Cannot fork continuation of ${continueFrom.taskId}/${continueFrom.attemptN}: producer slot has no worktree branch to fork from`,
+          `Cannot fork continuation of ${continueFrom.taskId}/${continueFrom.attemptN}: producer slot has no worktree branch or immutable revision to fork from`,
         );
       }
       // Both the workspace id and the branch name must be unique per fork
@@ -409,7 +434,7 @@ async function maybeAttachWarmSlotContext(
       // branch). Include the child task id (mirrors forkWorkspaceId).
       const forkWorkspaceId = `fork-${claimedTask.task.id}-attempt-${claimedTask.attemptN}`;
       const forkBranch = buildForkBranch(
-        parentBranch,
+        parentBranch ?? `detached-${continueFrom.taskId.slice(0, 8)}`,
         claimedTask.task.id,
         claimedTask.attemptN,
       );
@@ -418,7 +443,7 @@ async function maybeAttachWarmSlotContext(
         workspaceMode: 'dedicated_worktree',
         workspaceId: forkWorkspaceId,
         worktreeBranch: forkBranch,
-        worktreeBaseRef: parentBranch,
+        worktreeBaseRef: parentBranch ?? parentRevision,
         workspaceKind: 'fork',
         sessionPersistence: {
           sessionDir,
@@ -441,8 +466,12 @@ async function maybeAttachWarmSlotContext(
     return {
       ...basePlan,
       workspaceMode: 'dedicated_worktree',
-      workspaceId: parentBranch ? buildAttemptWorkspaceId(claimedTask) : null,
+      workspaceId:
+        parentBranch || parentRevision
+          ? buildAttemptWorkspaceId(claimedTask)
+          : null,
       worktreeBranch: parentBranch,
+      workspaceRevision: parentRevision,
       sessionPersistence: {
         sessionDir,
         forkFromSessionPath: resolution.sessionPath,

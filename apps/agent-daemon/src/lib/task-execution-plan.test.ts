@@ -281,6 +281,37 @@ describe('buildDaemonTaskExecutionPlan', () => {
     );
   });
 
+  it('carries an immutable review revision into the workspace plan', () => {
+    const revision = 'abcdef0123456789abcdef0123456789abcdef01';
+    const out = buildDaemonTaskExecutionPlan(
+      {
+        id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        taskType: 'freeform',
+        title: null,
+        correlationId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        input: {
+          brief: 'review an exact commit',
+          execution: {
+            workspace: 'dedicated_worktree',
+            revision: revision.toUpperCase(),
+          },
+        },
+      },
+      {
+        rootDir: '/repo/.moltnet/d',
+        piSessionsDir: '/repo/.moltnet/d/pi-sessions',
+      },
+      identity,
+      1800,
+      {},
+      1,
+    );
+
+    expect(out.workspaceMode).toBe('dedicated_worktree');
+    expect(out.workspaceRevision).toBe(revision);
+    expect(out.worktreeBranch).toBeNull();
+  });
+
   it('honors freeform input.execution.workspace=none as scratch_mount', () => {
     const out = buildDaemonTaskExecutionPlan(
       {

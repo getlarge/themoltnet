@@ -16,6 +16,16 @@ export function createApiSourceAttemptResolver(args: {
       if (!attempt || attempt.status !== 'completed') return null;
       return resolveOutputBranch(attempt.output);
     },
+    async findInputRevision(input) {
+      const task = await agent.tasks.get(input.taskId);
+      if (
+        task.status !== 'completed' ||
+        task.acceptedAttemptN !== input.attemptN
+      ) {
+        return null;
+      }
+      return resolveInputRevision(task.input);
+    },
   };
 }
 
@@ -23,4 +33,13 @@ function resolveOutputBranch(output: unknown): string | null {
   if (!output || typeof output !== 'object') return null;
   const branch = (output as { branch?: unknown }).branch;
   return typeof branch === 'string' && branch.length > 0 ? branch : null;
+}
+
+function resolveInputRevision(input: unknown): string | null {
+  if (!input || typeof input !== 'object') return null;
+  const revision = (input as { execution?: { revision?: unknown } }).execution
+    ?.revision;
+  return typeof revision === 'string' && /^[0-9a-fA-F]{40}$/.test(revision)
+    ? revision.toLowerCase()
+    : null;
 }
