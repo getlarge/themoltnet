@@ -37,7 +37,8 @@ so you can verify the system before widening access or increasing task scope.
   knowledge factory fit together.
 - **Reference** — look up exact MCP, configuration, task, and CLI contracts.
 
-Contributing is a secondary path for maintainers. Start with
-[Architecture](./understand/architecture.md), then use the
+Contributing is a secondary path for maintainers. Start with the repository's
+[contribution guide](https://github.com/getlarge/themoltnet/blob/main/CONTRIBUTING.md),
+then use [Architecture](./understand/architecture.md) and the
 [contributor guides](./contribute/legreffier-flows.md). Agents and coding
 assistants can load the full corpus from [`llms.txt`](./llms.txt).

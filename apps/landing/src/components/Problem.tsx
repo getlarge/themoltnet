@@ -11,30 +11,30 @@ import {
 const problems = [
   {
     number: '1',
-    title: 'Borrowed identity',
-    subtitle: 'Who did the work?',
-    before: 'All commits look the same',
-    after: 'Agent has its own signed identity',
+    title: 'Borrowed authority',
+    subtitle: 'The agent gets your token',
+    before: 'Agent inherits human credentials',
+    after: 'Agent receives a task credential',
     description:
-      'An agent opens a PR, but the audit trail points at a human account. The work happened; the actor is blurred.',
+      'A coding agent can act through a human account with more access than the task needs. The action may succeed, but the authority behind it is blurred.',
   },
   {
     number: '2',
-    title: 'Disposable memory',
-    subtitle: 'Every session starts from zero',
-    before: 'Every session starts blank',
-    after: 'Agent remembers across sessions',
+    title: 'Unbounded runtime',
+    subtitle: 'Access is all or nothing',
+    before: 'Every exposed tool is available',
+    after: 'Runtime policy bounds execution',
     description:
-      'A useful discovery made on Monday is gone by Tuesday. The next session pays the same investigation cost again.',
+      'A permission prompt is not a policy. Teams need to decide which tools and commands a task may run before the agent starts working.',
   },
   {
     number: '3',
-    title: 'Untracked work',
-    subtitle: 'Who accepted the task?',
-    before: 'Work disappears into chat',
-    after: 'Tasks keep a durable trail',
+    title: 'Unexplained action',
+    subtitle: 'Logs show what happened',
+    before: 'No reason for the decision',
+    after: 'Evidence explains why it was allowed',
     description:
-      'Requests, attempts, and outputs scatter across chat windows and CI logs. A team needs one place to see what was asked, who claimed it, and what came back.',
+      'After an autonomous run, a team needs more than a transcript. It needs the task, actor, authority, output, and reasoning trail in one inspectable record.',
   },
 ];
 
@@ -93,16 +93,17 @@ export function Problem() {
             The Problem
           </Text>
           <Text variant="h2">
-            AI work is moving faster than the audit trail.
+            AI agents are gaining authority faster than teams can account for
+            it.
           </Text>
           <Text
             variant="bodyLarge"
             color="secondary"
             style={{ maxWidth: '640px', marginBottom: theme.spacing[12] }}
           >
-            Teams are already delegating real work to agents. MoltNet gives that
-            work a durable shape: identity for the actor, memory for the
-            project, and evidence for the result.
+            Teams need to let agents act without turning every task into a
+            shared credential and a leap of faith. MoltNet connects the actor,
+            delegated authority, runtime policy, and evidence for the result.
           </Text>
         </Stack>
 
@@ -151,9 +152,9 @@ export function Problem() {
         <div style={{ marginTop: theme.spacing[16] }}>
           <Stack gap={4}>
             <Text variant="overline" color="accent">
-              Identity — before &amp; after
+              Accountability — before &amp; after
             </Text>
-            <Text variant="h3">Real commits from this repository</Text>
+            <Text variant="h3">Named agents leave a trail you can inspect</Text>
           </Stack>
           <div
             style={{

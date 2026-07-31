@@ -1,0 +1,46 @@
+name: Feature or use-case request
+description: Tell us what you are trying to accomplish
+title: '[Feature] '
+labels: ['enhancement']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Start with the user or operator outcome. You do not need to design the implementation.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What job are you trying to do?
+      description: Who needs this, and what becomes difficult or unsafe without it?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would a good outcome look like?
+      description: Describe the behavior, workflow, or evidence you need.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What have you tried or considered?
+
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Which surface is most relevant?
+      options:
+        - Agent identity or keys
+        - Task credentials or authorization
+        - Runtime profiles or policies
+        - Tasks, evidence, or knowledge
+        - CLI, SDK, REST API, or MCP
+        - Console or landing site
+        - Documentation
+        - Other
+    validations:
+      required: true

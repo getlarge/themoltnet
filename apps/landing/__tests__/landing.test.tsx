@@ -84,16 +84,18 @@ describe('smoke render', () => {
 // ---------------------------------------------------------------------------
 
 describe('content', () => {
-  it('Hero shows the main tagline', () => {
+  it('Hero states the accountable-authority promise', () => {
     wrap(<Hero />);
-    expect(screen.getByText(/coordinate ai work/i)).toBeInTheDocument();
-    expect(screen.getByText(/with memory and proof/i)).toBeInTheDocument();
+    expect(screen.getByText(/agents should not/i)).toBeInTheDocument();
+    expect(screen.getByText(/inherit your authority/i)).toBeInTheDocument();
   });
 
-  it('Hero shows the proof teaser', () => {
+  it('Hero shows the authority chain', () => {
     wrap(<Hero />);
-    expect(screen.getAllByText(/human console/i).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/task queues/i).length).toBeGreaterThan(0);
+    expect(screen.getByText('agent key')).toBeInTheDocument();
+    expect(screen.getByText('task credential')).toBeInTheDocument();
+    expect(screen.getByText('runtime policy')).toBeInTheDocument();
+    expect(screen.getByText('attributable evidence')).toBeInTheDocument();
   });
 
   it('Hero links to the console', () => {
@@ -143,14 +145,14 @@ describe('content', () => {
   it('Problem section has all three before/after pairs', () => {
     wrap(<Problem />);
     const befores = [
-      'All commits look the same',
-      'Every session starts blank',
-      'Work disappears into chat',
+      'Agent inherits human credentials',
+      'Every exposed tool is available',
+      'No reason for the decision',
     ];
     const afters = [
-      'Agent has its own signed identity',
-      'Agent remembers across sessions',
-      'Tasks keep a durable trail',
+      'Agent receives a task credential',
+      'Runtime policy bounds execution',
+      'Evidence explains why it was allowed',
     ];
     for (const label of [...befores, ...afters]) {
       const matches = screen.getAllByText(label);

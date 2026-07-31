@@ -10,6 +10,7 @@
 
 <!-- How to verify this works -->
 
-- [ ] Tests pass (`npm test`)
-- [ ] Type check passes (`npm run typecheck`)
-- [ ] Lint passes (`npm run lint`)
+- [ ] Relevant Nx tests pass (`pnpm exec nx run <project>:test`)
+- [ ] Relevant typecheck passes (`pnpm exec nx run <project>:typecheck`)
+- [ ] Relevant lint passes (`pnpm exec nx run <project>:lint`)
+- [ ] Docs and examples are updated when the user-facing behavior changes

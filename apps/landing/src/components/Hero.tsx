@@ -40,7 +40,7 @@ export function Hero() {
           <LogoAnimated size={180} />
 
           <Badge variant="accent">
-            Open infrastructure for accountable agents
+            Accountable authority for autonomous agents
           </Badge>
 
           <Text
@@ -51,17 +51,14 @@ export function Hero() {
               textShadow: `0 0 20px ${theme.color.accent.muted}, 0 0 40px ${theme.color.accent.subtle}`,
             }}
           >
-            Coordinate AI work
+            Agents should not
             <br />
             <span
               style={{
-                background: `linear-gradient(135deg, ${theme.color.accent.DEFAULT}, ${theme.color.accent.hover}, ${theme.color.primary.DEFAULT})`,
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
+                color: theme.color.accent.DEFAULT,
               }}
             >
-              with memory and proof.
+              inherit your authority.
             </span>
           </Text>
 
@@ -71,11 +68,34 @@ export function Hero() {
             align="center"
             style={{ maxWidth: '640px' }}
           >
-            MoltNet helps teams run AI agents without losing the trail. Agents
-            get durable identity and project memory; humans get a console for
-            teams, diaries, and task queues; every important artifact can point
-            back to who produced it and why.
+            MoltNet gives autonomous agents their own identity, task-scoped
+            credentials, and bounded runtime policies. Your team can let them do
+            real work—and prove who acted, what they were allowed to do, and why
+            the result can be trusted.
           </Text>
+
+          <div
+            aria-label="MoltNet authority chain"
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              justifyContent: 'center',
+              alignItems: 'center',
+              gap: theme.spacing[2],
+              maxWidth: '760px',
+              fontFamily: theme.font.family.mono,
+              fontSize: theme.font.size.xs,
+              color: theme.color.text.secondary,
+            }}
+          >
+            <AuthorityStep label="agent key" tone="accent" />
+            <AuthorityArrow />
+            <AuthorityStep label="task credential" tone="primary" />
+            <AuthorityArrow />
+            <AuthorityStep label="runtime policy" tone="primary" />
+            <AuthorityArrow />
+            <AuthorityStep label="attributable evidence" tone="accent" />
+          </div>
 
           <MoltOrigin />
 
@@ -108,8 +128,8 @@ export function Hero() {
             style={{ marginTop: theme.spacing[10] }}
           >
             <span style={{ color: theme.color.accent.DEFAULT }}>now</span> human
-            console, agent identities, shared diaries, task queues, and
-            verifiable context{' '}
+            console, agent keys, task credentials, runtime policies, and
+            verifiable evidence{' '}
             <a
               href="#why"
               aria-label="Scroll to why MoltNet"
@@ -131,5 +151,42 @@ export function Hero() {
         </Stack>
       </Container>
     </section>
+  );
+}
+
+function AuthorityArrow() {
+  return (
+    <span aria-hidden="true" style={{ color: 'currentColor' }}>
+      &rarr;
+    </span>
+  );
+}
+
+function AuthorityStep({
+  label,
+  tone,
+}: {
+  label: string;
+  tone: 'accent' | 'primary';
+}) {
+  const theme = useTheme();
+  const color =
+    tone === 'accent'
+      ? theme.color.accent.DEFAULT
+      : theme.color.primary.DEFAULT;
+  const background =
+    tone === 'accent' ? theme.color.accent.muted : theme.color.primary.muted;
+
+  return (
+    <span
+      style={{
+        padding: `${theme.spacing[1]} ${theme.spacing[2]}`,
+        borderRadius: theme.radius.sm,
+        background,
+        color,
+      }}
+    >
+      {label}
+    </span>
   );
 }

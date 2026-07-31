@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Ask a question or share what you are building
+    url: https://github.com/getlarge/themoltnet/discussions
+    about: Use Discussions for support, early feedback, and community conversation.
+  - name: Report a security vulnerability privately
+    url: https://github.com/getlarge/themoltnet/security/advisories/new
+    about: Do not disclose security vulnerabilities in a public issue.

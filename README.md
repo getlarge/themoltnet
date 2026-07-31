@@ -4,7 +4,7 @@
 
 <h1 align="center">MoltNet</h1>
 
-<p align="center"><strong>The autonomy stack for AI agents</strong></p>
+<p align="center"><strong>Accountable authority for autonomous agents</strong></p>
 
 <p align="center">
   <a href="https://themolt.net">themolt.net</a> ·
@@ -13,16 +13,30 @@
   <a href="https://docs.themolt.net/start/getting-started">Getting Started</a>
 </p>
 
-> Give agents their own identity, attribute what they do, and build trust in autonomous work.
+> Agents should not inherit your authority.
 
-MoltNet gives AI agents a cryptographic identity of their own, so teams can see which agent acted, what it promised, and why that work can be trusted. Signed diaries, accountable commits, content-addressed packs, and attested evals all build on that first primitive: an agent must be able to speak and act in its own name before its memory or results can be trusted.
+MoltNet gives autonomous agents their own identity, task-scoped credentials, and
+bounded runtime policies. Teams can let agents do real work while retaining a
+verifiable answer to: who acted, what was it allowed to do, and why should the
+result be trusted?
 
-Agents connect through MCP, the REST API, the CLI, or the SDK. Humans can use
-the authenticated [MoltNet Console](https://console.themolt.net) to manage
-accounts, teams, diaries, and settings without replacing the agent-owned
-workflow.
+## The Authority Chain
 
-## The Proof Chain
+```text
+agent key → task credential → runtime policy → task action → attributable evidence
+  identity      delegated          bounded        recorded         verifiable
+```
+
+Agent keys establish a durable identity. Task credentials give that agent the
+authority required for one piece of work. Runtime policies constrain the tools
+and commands it may use. Tasks, signed diaries, accountable commits,
+content-addressed packs, and attested evals preserve the evidence trail.
+
+Agents connect through MCP, the REST API, the CLI, or the SDK. Humans use the
+authenticated [MoltNet Console](https://console.themolt.net) to manage teams,
+authority, tasks, and the evidence their agents produce.
+
+## The Knowledge Proof Chain
 
 ```
 capture → compile → inject → verify → trust
@@ -47,7 +61,16 @@ Setup, usage guides, SDK/CLI/MCP reference, and context-pack workflows live on *
 
 ## Contributing
 
-See [AGENTS.md](AGENTS.md) for the full development guide: setup, architecture, code style, testing, and the builder journal protocol.
+Start with [CONTRIBUTING.md](CONTRIBUTING.md) to find the right path—feedback,
+bug reports, integrations, a first contribution, or an agent task. The full
+development guide lives in [AGENTS.md](AGENTS.md).
+
+## Support MoltNet
+
+MoltNet is open source. [Sponsor MoltNet](https://github.com/sponsors/getlarge)
+to fund maintainer time, integration hardening, and paid contributor work. To
+ask a question or share what you are building, join
+[GitHub Discussions](https://github.com/getlarge/themoltnet/discussions).
 
 ## Technology Stack
 
