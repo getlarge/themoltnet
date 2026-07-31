@@ -74,8 +74,8 @@ func TestE2E_CLI_AgentKeyLifecycle(t *testing.T) {
 		t.Fatal("newly created key secret should authenticate the CLI")
 	}
 
-	// The same key can perform an authorized team-scoped read when the matching
-	// team header is supplied by the command.
+	// The minimum direct-agent grant deliberately excludes key:manage, so the
+	// fresh key authenticates but cannot enumerate or mutate agent keys.
 	keyListOut, keyListErr, err := runE2ECLIWithAgentKey(
 		h.bin,
 		created.Secret,
@@ -89,13 +89,11 @@ func TestE2E_CLI_AgentKeyLifecycle(t *testing.T) {
 		"--limit",
 		"1",
 	)
-	if err != nil {
-		t.Fatalf(
-			"agent-key team-scoped list failed: %v\nstdout:\n%s\nstderr:\n%s",
-			err,
-			keyListOut,
-			keyListErr,
-		)
+	if err == nil {
+		t.Fatalf("agent key without key:manage should not list keys; stdout:\n%s", keyListOut)
+	}
+	if !strings.Contains(keyListErr, "403") || !strings.Contains(keyListErr, "key:manage") {
+		t.Fatalf("scope denial should surface HTTP 403 and key:manage; stderr:\n%s", keyListErr)
 	}
 
 	// 3. Replaying the same idempotency key cannot mint a second key: the API
