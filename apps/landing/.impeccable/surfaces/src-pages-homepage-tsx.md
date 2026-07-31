@@ -1,22 +1,22 @@
 ---
 version: 1
-slug: 'apps-landing-src-pages-homepage-tsx'
-primary_target: 'apps/landing/src/pages/HomePage.tsx'
+slug: 'src-pages-homepage-tsx'
+primary_target: 'src/pages/HomePage.tsx'
 related_targets:
   [
-    'apps/landing/src/components/Hero.tsx',
-    'apps/landing/src/components/ExecutionTrace.tsx',
-    'apps/landing/src/components/Systems.tsx',
-    'apps/landing/src/components/AuthorityPlane.tsx',
-    'apps/landing/src/components/Collaboration.tsx',
-    'apps/landing/src/components/OpenSource.tsx',
-    'apps/landing/src/components/GetStarted.tsx',
+    'src/components/Hero.tsx',
+    'src/components/ExecutionTrace.tsx',
+    'src/components/Systems.tsx',
+    'src/components/AuthorityPlane.tsx',
+    'src/components/Collaboration.tsx',
+    'src/components/OpenSource.tsx',
+    'src/components/GetStarted.tsx',
   ]
 ---
 
 # MoltNet home surface brief
 
-- Scope: `apps/landing/src/pages/HomePage.tsx`
+- Scope: `src/pages/HomePage.tsx`
 - Mode: Persuade
 - Audience: engineering and platform teams evaluating agent infrastructure
 - Job: understand MoltNet as an agent operations control plane and decide to run a bounded team pilot
