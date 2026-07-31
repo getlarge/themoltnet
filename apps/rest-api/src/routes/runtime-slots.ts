@@ -40,7 +40,12 @@ export async function runtimeSlotRoutes(fastify: FastifyInstance) {
   server.post(
     '/runtime-slots/begin',
     {
-      config: { auth: { credentialBindingScope: 'team' } },
+      config: {
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['task:execute'],
+        },
+      },
       schema: {
         operationId: 'beginRuntimeSlot',
         tags: ['runtime-slots'],
@@ -83,7 +88,12 @@ export async function runtimeSlotRoutes(fastify: FastifyInstance) {
   server.post(
     '/runtime-slots/finish',
     {
-      config: { auth: { credentialBindingScope: 'team' } },
+      config: {
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['task:execute'],
+        },
+      },
       schema: {
         operationId: 'finishRuntimeSlot',
         tags: ['runtime-slots'],
@@ -127,7 +137,10 @@ export async function runtimeSlotRoutes(fastify: FastifyInstance) {
     '/runtime-slots',
     {
       config: {
-        auth: { credentialBindingScope: 'team' },
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['task:execute'],
+        },
         rateLimit: fastify.rateLimitConfig.read,
       },
       schema: {
@@ -163,7 +176,10 @@ export async function runtimeSlotRoutes(fastify: FastifyInstance) {
     '/runtime-slots/latest',
     {
       config: {
-        auth: { credentialBindingScope: 'team' },
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['task:execute'],
+        },
         rateLimit: fastify.rateLimitConfig.read,
       },
       schema: {

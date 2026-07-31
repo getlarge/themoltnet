@@ -355,6 +355,7 @@ type AgentKey struct {
 	Name                  string                      `json:"name"`
 	RevocationDescription NilString                   `json:"revocationDescription"`
 	RevocationReason      NilAgentKeyRevocationReason `json:"revocationReason"`
+	Scopes                []AgentKeyScopesItem        `json:"scopes"`
 	Status                AgentKeyStatus              `json:"status"`
 	// UUID v4 identifier.
 	TeamId    uuid.UUID   `json:"teamId"`
@@ -399,6 +400,11 @@ func (s *AgentKey) GetRevocationDescription() NilString {
 // GetRevocationReason returns the value of RevocationReason.
 func (s *AgentKey) GetRevocationReason() NilAgentKeyRevocationReason {
 	return s.RevocationReason
+}
+
+// GetScopes returns the value of Scopes.
+func (s *AgentKey) GetScopes() []AgentKeyScopesItem {
+	return s.Scopes
 }
 
 // GetStatus returns the value of Status.
@@ -454,6 +460,11 @@ func (s *AgentKey) SetRevocationDescription(val NilString) {
 // SetRevocationReason sets the value of RevocationReason.
 func (s *AgentKey) SetRevocationReason(val NilAgentKeyRevocationReason) {
 	s.RevocationReason = val
+}
+
+// SetScopes sets the value of Scopes.
+func (s *AgentKey) SetScopes(val []AgentKeyScopesItem) {
+	s.Scopes = val
 }
 
 // SetStatus sets the value of Status.
@@ -548,6 +559,152 @@ func (s *AgentKeyRevocationReason) UnmarshalText(data []byte) error {
 		return nil
 	case AgentKeyRevocationReasonPrivilegeWithdrawn:
 		*s = AgentKeyRevocationReasonPrivilegeWithdrawn
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
+type AgentKeyScopesItem string
+
+const (
+	AgentKeyScopesItemAgentProfile    AgentKeyScopesItem = "agent:profile"
+	AgentKeyScopesItemConnectorInvoke AgentKeyScopesItem = "connector:invoke"
+	AgentKeyScopesItemCryptoSign      AgentKeyScopesItem = "crypto:sign"
+	AgentKeyScopesItemDiaryManage     AgentKeyScopesItem = "diary:manage"
+	AgentKeyScopesItemDiaryRead       AgentKeyScopesItem = "diary:read"
+	AgentKeyScopesItemDiaryWrite      AgentKeyScopesItem = "diary:write"
+	AgentKeyScopesItemKeyManage       AgentKeyScopesItem = "key:manage"
+	AgentKeyScopesItemPackRead        AgentKeyScopesItem = "pack:read"
+	AgentKeyScopesItemPackWrite       AgentKeyScopesItem = "pack:write"
+	AgentKeyScopesItemRuntimeManage   AgentKeyScopesItem = "runtime:manage"
+	AgentKeyScopesItemRuntimeRead     AgentKeyScopesItem = "runtime:read"
+	AgentKeyScopesItemTaskClaim       AgentKeyScopesItem = "task:claim"
+	AgentKeyScopesItemTaskExecute     AgentKeyScopesItem = "task:execute"
+	AgentKeyScopesItemTaskManage      AgentKeyScopesItem = "task:manage"
+	AgentKeyScopesItemTaskRead        AgentKeyScopesItem = "task:read"
+	AgentKeyScopesItemTeamManage      AgentKeyScopesItem = "team:manage"
+	AgentKeyScopesItemTeamRead        AgentKeyScopesItem = "team:read"
+)
+
+// AllValues returns all AgentKeyScopesItem values.
+func (AgentKeyScopesItem) AllValues() []AgentKeyScopesItem {
+	return []AgentKeyScopesItem{
+		AgentKeyScopesItemAgentProfile,
+		AgentKeyScopesItemConnectorInvoke,
+		AgentKeyScopesItemCryptoSign,
+		AgentKeyScopesItemDiaryManage,
+		AgentKeyScopesItemDiaryRead,
+		AgentKeyScopesItemDiaryWrite,
+		AgentKeyScopesItemKeyManage,
+		AgentKeyScopesItemPackRead,
+		AgentKeyScopesItemPackWrite,
+		AgentKeyScopesItemRuntimeManage,
+		AgentKeyScopesItemRuntimeRead,
+		AgentKeyScopesItemTaskClaim,
+		AgentKeyScopesItemTaskExecute,
+		AgentKeyScopesItemTaskManage,
+		AgentKeyScopesItemTaskRead,
+		AgentKeyScopesItemTeamManage,
+		AgentKeyScopesItemTeamRead,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s AgentKeyScopesItem) MarshalText() ([]byte, error) {
+	switch s {
+	case AgentKeyScopesItemAgentProfile:
+		return []byte(s), nil
+	case AgentKeyScopesItemConnectorInvoke:
+		return []byte(s), nil
+	case AgentKeyScopesItemCryptoSign:
+		return []byte(s), nil
+	case AgentKeyScopesItemDiaryManage:
+		return []byte(s), nil
+	case AgentKeyScopesItemDiaryRead:
+		return []byte(s), nil
+	case AgentKeyScopesItemDiaryWrite:
+		return []byte(s), nil
+	case AgentKeyScopesItemKeyManage:
+		return []byte(s), nil
+	case AgentKeyScopesItemPackRead:
+		return []byte(s), nil
+	case AgentKeyScopesItemPackWrite:
+		return []byte(s), nil
+	case AgentKeyScopesItemRuntimeManage:
+		return []byte(s), nil
+	case AgentKeyScopesItemRuntimeRead:
+		return []byte(s), nil
+	case AgentKeyScopesItemTaskClaim:
+		return []byte(s), nil
+	case AgentKeyScopesItemTaskExecute:
+		return []byte(s), nil
+	case AgentKeyScopesItemTaskManage:
+		return []byte(s), nil
+	case AgentKeyScopesItemTaskRead:
+		return []byte(s), nil
+	case AgentKeyScopesItemTeamManage:
+		return []byte(s), nil
+	case AgentKeyScopesItemTeamRead:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *AgentKeyScopesItem) UnmarshalText(data []byte) error {
+	switch AgentKeyScopesItem(data) {
+	case AgentKeyScopesItemAgentProfile:
+		*s = AgentKeyScopesItemAgentProfile
+		return nil
+	case AgentKeyScopesItemConnectorInvoke:
+		*s = AgentKeyScopesItemConnectorInvoke
+		return nil
+	case AgentKeyScopesItemCryptoSign:
+		*s = AgentKeyScopesItemCryptoSign
+		return nil
+	case AgentKeyScopesItemDiaryManage:
+		*s = AgentKeyScopesItemDiaryManage
+		return nil
+	case AgentKeyScopesItemDiaryRead:
+		*s = AgentKeyScopesItemDiaryRead
+		return nil
+	case AgentKeyScopesItemDiaryWrite:
+		*s = AgentKeyScopesItemDiaryWrite
+		return nil
+	case AgentKeyScopesItemKeyManage:
+		*s = AgentKeyScopesItemKeyManage
+		return nil
+	case AgentKeyScopesItemPackRead:
+		*s = AgentKeyScopesItemPackRead
+		return nil
+	case AgentKeyScopesItemPackWrite:
+		*s = AgentKeyScopesItemPackWrite
+		return nil
+	case AgentKeyScopesItemRuntimeManage:
+		*s = AgentKeyScopesItemRuntimeManage
+		return nil
+	case AgentKeyScopesItemRuntimeRead:
+		*s = AgentKeyScopesItemRuntimeRead
+		return nil
+	case AgentKeyScopesItemTaskClaim:
+		*s = AgentKeyScopesItemTaskClaim
+		return nil
+	case AgentKeyScopesItemTaskExecute:
+		*s = AgentKeyScopesItemTaskExecute
+		return nil
+	case AgentKeyScopesItemTaskManage:
+		*s = AgentKeyScopesItemTaskManage
+		return nil
+	case AgentKeyScopesItemTaskRead:
+		*s = AgentKeyScopesItemTaskRead
+		return nil
+	case AgentKeyScopesItemTeamManage:
+		*s = AgentKeyScopesItemTeamManage
+		return nil
+	case AgentKeyScopesItemTeamRead:
+		*s = AgentKeyScopesItemTeamRead
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -5314,7 +5471,10 @@ type CreateAgentKeyReq struct {
 	// UUID v4 identifier.
 	AgentId uuid.UUID `json:"agentId"`
 	Name    string    `json:"name"`
-	TtlDays OptInt    `json:"ttlDays"`
+	// Requested credential scopes. Must be a subset of both the canonical agent grant and the requesting
+	// credential.
+	Scopes  []CreateAgentKeyReqScopesItem `json:"scopes"`
+	TtlDays OptInt                        `json:"ttlDays"`
 }
 
 // GetAgentId returns the value of AgentId.
@@ -5325,6 +5485,11 @@ func (s *CreateAgentKeyReq) GetAgentId() uuid.UUID {
 // GetName returns the value of Name.
 func (s *CreateAgentKeyReq) GetName() string {
 	return s.Name
+}
+
+// GetScopes returns the value of Scopes.
+func (s *CreateAgentKeyReq) GetScopes() []CreateAgentKeyReqScopesItem {
+	return s.Scopes
 }
 
 // GetTtlDays returns the value of TtlDays.
@@ -5342,9 +5507,160 @@ func (s *CreateAgentKeyReq) SetName(val string) {
 	s.Name = val
 }
 
+// SetScopes sets the value of Scopes.
+func (s *CreateAgentKeyReq) SetScopes(val []CreateAgentKeyReqScopesItem) {
+	s.Scopes = val
+}
+
 // SetTtlDays sets the value of TtlDays.
 func (s *CreateAgentKeyReq) SetTtlDays(val OptInt) {
 	s.TtlDays = val
+}
+
+type CreateAgentKeyReqScopesItem string
+
+const (
+	CreateAgentKeyReqScopesItemAgentProfile    CreateAgentKeyReqScopesItem = "agent:profile"
+	CreateAgentKeyReqScopesItemConnectorInvoke CreateAgentKeyReqScopesItem = "connector:invoke"
+	CreateAgentKeyReqScopesItemCryptoSign      CreateAgentKeyReqScopesItem = "crypto:sign"
+	CreateAgentKeyReqScopesItemDiaryManage     CreateAgentKeyReqScopesItem = "diary:manage"
+	CreateAgentKeyReqScopesItemDiaryRead       CreateAgentKeyReqScopesItem = "diary:read"
+	CreateAgentKeyReqScopesItemDiaryWrite      CreateAgentKeyReqScopesItem = "diary:write"
+	CreateAgentKeyReqScopesItemKeyManage       CreateAgentKeyReqScopesItem = "key:manage"
+	CreateAgentKeyReqScopesItemPackRead        CreateAgentKeyReqScopesItem = "pack:read"
+	CreateAgentKeyReqScopesItemPackWrite       CreateAgentKeyReqScopesItem = "pack:write"
+	CreateAgentKeyReqScopesItemRuntimeManage   CreateAgentKeyReqScopesItem = "runtime:manage"
+	CreateAgentKeyReqScopesItemRuntimeRead     CreateAgentKeyReqScopesItem = "runtime:read"
+	CreateAgentKeyReqScopesItemTaskClaim       CreateAgentKeyReqScopesItem = "task:claim"
+	CreateAgentKeyReqScopesItemTaskExecute     CreateAgentKeyReqScopesItem = "task:execute"
+	CreateAgentKeyReqScopesItemTaskManage      CreateAgentKeyReqScopesItem = "task:manage"
+	CreateAgentKeyReqScopesItemTaskRead        CreateAgentKeyReqScopesItem = "task:read"
+	CreateAgentKeyReqScopesItemTeamManage      CreateAgentKeyReqScopesItem = "team:manage"
+	CreateAgentKeyReqScopesItemTeamRead        CreateAgentKeyReqScopesItem = "team:read"
+)
+
+// AllValues returns all CreateAgentKeyReqScopesItem values.
+func (CreateAgentKeyReqScopesItem) AllValues() []CreateAgentKeyReqScopesItem {
+	return []CreateAgentKeyReqScopesItem{
+		CreateAgentKeyReqScopesItemAgentProfile,
+		CreateAgentKeyReqScopesItemConnectorInvoke,
+		CreateAgentKeyReqScopesItemCryptoSign,
+		CreateAgentKeyReqScopesItemDiaryManage,
+		CreateAgentKeyReqScopesItemDiaryRead,
+		CreateAgentKeyReqScopesItemDiaryWrite,
+		CreateAgentKeyReqScopesItemKeyManage,
+		CreateAgentKeyReqScopesItemPackRead,
+		CreateAgentKeyReqScopesItemPackWrite,
+		CreateAgentKeyReqScopesItemRuntimeManage,
+		CreateAgentKeyReqScopesItemRuntimeRead,
+		CreateAgentKeyReqScopesItemTaskClaim,
+		CreateAgentKeyReqScopesItemTaskExecute,
+		CreateAgentKeyReqScopesItemTaskManage,
+		CreateAgentKeyReqScopesItemTaskRead,
+		CreateAgentKeyReqScopesItemTeamManage,
+		CreateAgentKeyReqScopesItemTeamRead,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s CreateAgentKeyReqScopesItem) MarshalText() ([]byte, error) {
+	switch s {
+	case CreateAgentKeyReqScopesItemAgentProfile:
+		return []byte(s), nil
+	case CreateAgentKeyReqScopesItemConnectorInvoke:
+		return []byte(s), nil
+	case CreateAgentKeyReqScopesItemCryptoSign:
+		return []byte(s), nil
+	case CreateAgentKeyReqScopesItemDiaryManage:
+		return []byte(s), nil
+	case CreateAgentKeyReqScopesItemDiaryRead:
+		return []byte(s), nil
+	case CreateAgentKeyReqScopesItemDiaryWrite:
+		return []byte(s), nil
+	case CreateAgentKeyReqScopesItemKeyManage:
+		return []byte(s), nil
+	case CreateAgentKeyReqScopesItemPackRead:
+		return []byte(s), nil
+	case CreateAgentKeyReqScopesItemPackWrite:
+		return []byte(s), nil
+	case CreateAgentKeyReqScopesItemRuntimeManage:
+		return []byte(s), nil
+	case CreateAgentKeyReqScopesItemRuntimeRead:
+		return []byte(s), nil
+	case CreateAgentKeyReqScopesItemTaskClaim:
+		return []byte(s), nil
+	case CreateAgentKeyReqScopesItemTaskExecute:
+		return []byte(s), nil
+	case CreateAgentKeyReqScopesItemTaskManage:
+		return []byte(s), nil
+	case CreateAgentKeyReqScopesItemTaskRead:
+		return []byte(s), nil
+	case CreateAgentKeyReqScopesItemTeamManage:
+		return []byte(s), nil
+	case CreateAgentKeyReqScopesItemTeamRead:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *CreateAgentKeyReqScopesItem) UnmarshalText(data []byte) error {
+	switch CreateAgentKeyReqScopesItem(data) {
+	case CreateAgentKeyReqScopesItemAgentProfile:
+		*s = CreateAgentKeyReqScopesItemAgentProfile
+		return nil
+	case CreateAgentKeyReqScopesItemConnectorInvoke:
+		*s = CreateAgentKeyReqScopesItemConnectorInvoke
+		return nil
+	case CreateAgentKeyReqScopesItemCryptoSign:
+		*s = CreateAgentKeyReqScopesItemCryptoSign
+		return nil
+	case CreateAgentKeyReqScopesItemDiaryManage:
+		*s = CreateAgentKeyReqScopesItemDiaryManage
+		return nil
+	case CreateAgentKeyReqScopesItemDiaryRead:
+		*s = CreateAgentKeyReqScopesItemDiaryRead
+		return nil
+	case CreateAgentKeyReqScopesItemDiaryWrite:
+		*s = CreateAgentKeyReqScopesItemDiaryWrite
+		return nil
+	case CreateAgentKeyReqScopesItemKeyManage:
+		*s = CreateAgentKeyReqScopesItemKeyManage
+		return nil
+	case CreateAgentKeyReqScopesItemPackRead:
+		*s = CreateAgentKeyReqScopesItemPackRead
+		return nil
+	case CreateAgentKeyReqScopesItemPackWrite:
+		*s = CreateAgentKeyReqScopesItemPackWrite
+		return nil
+	case CreateAgentKeyReqScopesItemRuntimeManage:
+		*s = CreateAgentKeyReqScopesItemRuntimeManage
+		return nil
+	case CreateAgentKeyReqScopesItemRuntimeRead:
+		*s = CreateAgentKeyReqScopesItemRuntimeRead
+		return nil
+	case CreateAgentKeyReqScopesItemTaskClaim:
+		*s = CreateAgentKeyReqScopesItemTaskClaim
+		return nil
+	case CreateAgentKeyReqScopesItemTaskExecute:
+		*s = CreateAgentKeyReqScopesItemTaskExecute
+		return nil
+	case CreateAgentKeyReqScopesItemTaskManage:
+		*s = CreateAgentKeyReqScopesItemTaskManage
+		return nil
+	case CreateAgentKeyReqScopesItemTaskRead:
+		*s = CreateAgentKeyReqScopesItemTaskRead
+		return nil
+	case CreateAgentKeyReqScopesItemTeamManage:
+		*s = CreateAgentKeyReqScopesItemTeamManage
+		return nil
+	case CreateAgentKeyReqScopesItemTeamRead:
+		*s = CreateAgentKeyReqScopesItemTeamRead
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
 }
 
 type CreateAgentKeyServiceUnavailable ProblemDetails
@@ -61680,6 +61996,7 @@ type Whoami struct {
 	Fingerprint       OptString                  `json:"fingerprint"`
 	IdentityId        uuid.UUID                  `json:"identityId"`
 	PublicKey         OptString                  `json:"publicKey"`
+	Scopes            []string                   `json:"scopes"`
 	SubjectType       WhoamiSubjectType          `json:"subjectType"`
 }
 
@@ -61711,6 +62028,11 @@ func (s *Whoami) GetIdentityId() uuid.UUID {
 // GetPublicKey returns the value of PublicKey.
 func (s *Whoami) GetPublicKey() OptString {
 	return s.PublicKey
+}
+
+// GetScopes returns the value of Scopes.
+func (s *Whoami) GetScopes() []string {
+	return s.Scopes
 }
 
 // GetSubjectType returns the value of SubjectType.
@@ -61746,6 +62068,11 @@ func (s *Whoami) SetIdentityId(val uuid.UUID) {
 // SetPublicKey sets the value of PublicKey.
 func (s *Whoami) SetPublicKey(val OptString) {
 	s.PublicKey = val
+}
+
+// SetScopes sets the value of Scopes.
+func (s *Whoami) SetScopes(val []string) {
+	s.Scopes = val
 }
 
 // SetSubjectType sets the value of SubjectType.

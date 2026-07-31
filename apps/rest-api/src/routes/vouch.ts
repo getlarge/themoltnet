@@ -23,6 +23,11 @@ export async function vouchRoutes(fastify: FastifyInstance) {
       // Apply stricter rate limit for voucher issuance (trust graph protection)
       config: {
         rateLimit: fastify.rateLimitConfig?.vouch,
+
+        auth: {
+          credentialBindingScope: 'identity',
+          requiredScopes: ['agent:profile'],
+        },
       },
       schema: {
         operationId: 'issueVoucher',
@@ -79,7 +84,13 @@ export async function vouchRoutes(fastify: FastifyInstance) {
   fastify.get(
     '/vouch/active',
     {
-      config: { rateLimit: fastify.rateLimitConfig.read },
+      config: {
+        rateLimit: fastify.rateLimitConfig.read,
+        auth: {
+          credentialBindingScope: 'identity',
+          requiredScopes: ['agent:profile'],
+        },
+      },
       schema: {
         operationId: 'listActiveVouchers',
         tags: ['vouch'],

@@ -11,7 +11,11 @@
  * Requires: `docker compose -f docker-compose.e2e.yaml up -d --build`
  */
 
-import { createOryClients, type OryClients } from '@moltnet/auth';
+import {
+  AGENT_OAUTH_SCOPES,
+  createOryClients,
+  type OryClients,
+} from '@moltnet/auth';
 // eslint-disable-next-line @nx/enforce-module-boundaries -- Rest API e2e setup provisions the live server through the CLI-tagged bootstrap harness.
 import {
   type BootstrapConfig,
@@ -139,7 +143,7 @@ export async function createTestHarness(): Promise<TestHarness> {
     config: bootstrapConfig,
     db,
     names: ['E2E-Bootstrap'],
-    scopes: 'diary:read diary:write crypto:sign agent:profile',
+    scopes: AGENT_OAUTH_SCOPES.join(' '),
     log: (msg) => console.log(`[E2E] ${msg}`),
   });
 

@@ -2,6 +2,8 @@ import { createHash } from 'node:crypto';
 
 import {
   AGENT_CREDENTIAL_SCOPES,
+  AGENT_OAUTH_SCOPES,
+  credentialScopeSetsEqual,
   KetoNamespace,
   type PermissionChecker,
   type RelationshipReader,
@@ -19,6 +21,7 @@ import { decodeOpaqueCursor, encodeOpaqueCursor } from './opaque-cursor.js';
 import { createProblem, createValidationProblem } from './problems.js';
 
 const DEFAULT_TTL_DAYS = 30;
+const INVALID_KEY_CLEANUP_TIMEOUT_MS = 2_000;
 const MAX_TALOS_LIST_PAGES_PER_REQUEST = 5;
 
 export type AgentKeyStatus = 'active' | 'revoked' | 'expired';
@@ -33,6 +36,7 @@ export interface AgentKey {
   agentId: string;
   teamId: string;
   name: string;
+  scopes: string[];
   status: AgentKeyStatus;
   createdAt: string | null;
   expiresAt: string | null;
@@ -51,6 +55,7 @@ export interface AgentKeySubject {
   /** Bound API key used for this request, when available. */
   credentialKeyId?: string;
   identityId: string;
+  scopes: string[];
   subjectNs: KetoNamespace;
   subjectType: 'agent' | 'human';
 }
@@ -87,6 +92,7 @@ export interface IssueAgentKeyInput {
   idempotencyKey: string;
   logger: Logger;
   name: string;
+  scopes?: string[];
   signal?: AbortSignal;
   subject: AgentKeySubject;
   teamId: string;
@@ -222,6 +228,7 @@ function toAgentKey(key: IssuedApiKey): AgentKey {
     agentId: binding.agentId,
     teamId: binding.teamId,
     name: key.name ?? key.key_id,
+    scopes: key.scopes ?? [],
     status: effectiveStatus(key),
     createdAt: key.create_time?.toISOString() ?? null,
     expiresAt: key.expire_time?.toISOString() ?? null,
@@ -305,6 +312,34 @@ function talosRequestId(input: IssueAgentKeyInput): string {
   return `${hex.slice(0, 8).join('')}-${hex.slice(8, 12).join('')}-${hex.slice(12, 16).join('')}-${hex.slice(16, 20).join('')}-${hex.slice(20).join('')}`;
 }
 
+function assertDelegableScopes(
+  requested: readonly string[],
+  subject: AgentKeySubject,
+): void {
+  const maximum = new Set<string>(AGENT_OAUTH_SCOPES);
+  const invalid = requested.find((scope) => !maximum.has(scope));
+  if (invalid) {
+    throw createValidationProblem(
+      [
+        {
+          field: 'scopes',
+          message: `Unknown or non-grantable scope: ${invalid}`,
+        },
+      ],
+      'Invalid agent key scopes',
+    );
+  }
+
+  const held = new Set(subject.scopes);
+  const escalation = requested.find((scope) => !held.has(scope));
+  if (escalation) {
+    throw createProblem(
+      'forbidden',
+      `Requesting credential cannot delegate scope: ${escalation}`,
+    );
+  }
+}
+
 function isNotFoundError(error: unknown): boolean {
   return (
     typeof error === 'object' &&
@@ -319,6 +354,57 @@ function isNotFoundError(error: unknown): boolean {
 
 function talosInit(signal: AbortSignal | undefined): RequestInit | undefined {
   return signal ? { signal } : undefined;
+}
+
+async function revokeInvalidIssuedKey(
+  api: TalosApi,
+  key: IssuedApiKey,
+  expectedBinding: AgentKeyBinding,
+  logger: Logger,
+  action: 'issue' | 'rotate',
+): Promise<void> {
+  if (!key.key_id) return;
+  const binding = readBinding(key);
+  if (
+    binding?.agentId !== expectedBinding.agentId ||
+    binding.teamId !== expectedBinding.teamId
+  ) {
+    logger.warn(
+      {
+        action: `${action}:cleanup`,
+        keyId: key.key_id,
+        expectedAgentId: expectedBinding.agentId,
+        expectedTeamId: expectedBinding.teamId,
+      },
+      'agent_key.cleanup_skipped_untrusted_binding',
+    );
+    return;
+  }
+
+  const cleanupSignal = AbortSignal.timeout(INVALID_KEY_CLEANUP_TIMEOUT_MS);
+  try {
+    await api.adminRevokeIssuedApiKey(
+      {
+        keyId: key.key_id,
+        adminRevokeIssuedApiKeyBody: {
+          reason: RevocationReason.RevocationReasonPrivilegeWithdrawn,
+          description: `MoltNet rejected invalid Talos ${action} response`,
+        },
+      },
+      talosInit(cleanupSignal),
+    );
+  } catch (error) {
+    logger.warn(
+      {
+        err: error,
+        action: `${action}:cleanup`,
+        failureKind: talosFailureKind(error, cleanupSignal),
+        keyId: key.key_id,
+        timeoutMs: INVALID_KEY_CLEANUP_TIMEOUT_MS,
+      },
+      'agent_key.cleanup_failed',
+    );
+  }
 }
 
 function talosFailureKind(
@@ -598,6 +684,8 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
     async issue(input: IssueAgentKeyInput): Promise<AgentKeyWithSecret> {
       const api = getTalosApi(deps);
       const ttlDays = input.ttlDays ?? DEFAULT_TTL_DAYS;
+      const scopes = input.scopes ?? [...AGENT_CREDENTIAL_SCOPES];
+      assertDelegableScopes(scopes, input.subject);
       await assertCanManageAgentKey(
         deps,
         input.subject,
@@ -628,7 +716,7 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
               request_id: talosRequestId(input),
               ttl: `${ttlDays * 86_400}s`,
               visibility: KeyVisibility.KeyVisibilitySecret,
-              scopes: [...AGENT_CREDENTIAL_SCOPES],
+              scopes,
               metadata: {
                 schema_version: 1,
                 subject_type: 'agent',
@@ -676,6 +764,13 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
       let key: AgentKey;
       try {
         key = toAgentKey(result.issued_api_key);
+        if (
+          key.agentId !== input.agentId ||
+          key.teamId !== input.teamId ||
+          !credentialScopeSetsEqual(key.scopes, scopes)
+        ) {
+          throw new Error('Issued key binding or scopes changed');
+        }
       } catch (error) {
         input.logger.warn(
           {
@@ -686,6 +781,13 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
             teamId: input.teamId,
           },
           'agent_key.malformed_upstream_row',
+        );
+        await revokeInvalidIssuedKey(
+          api,
+          result.issued_api_key,
+          { agentId: input.agentId, teamId: input.teamId },
+          input.logger,
+          'issue',
         );
         throw createProblem(
           'upstream-error',
@@ -740,6 +842,8 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
         );
       }
       await assertCurrentAgentMember(deps, input.teamId, binding.agentId);
+      const scopes = key.scopes ?? [];
+      assertDelegableScopes(scopes, input.subject);
 
       let result: Awaited<ReturnType<typeof api.adminRotateIssuedApiKey>>;
       try {
@@ -752,7 +856,7 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
                 subject_type: 'agent',
                 team_id: input.teamId,
               },
-              scopes: [...AGENT_CREDENTIAL_SCOPES],
+              scopes,
               visibility: KeyVisibility.KeyVisibilitySecret,
             },
           },
@@ -784,9 +888,10 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
         rotatedKey = toAgentKey(result.issued_api_key);
         if (
           rotatedKey.agentId !== binding.agentId ||
-          rotatedKey.teamId !== input.teamId
+          rotatedKey.teamId !== input.teamId ||
+          !credentialScopeSetsEqual(rotatedKey.scopes, scopes)
         ) {
-          throw new Error('Rotated key binding changed');
+          throw new Error('Rotated key binding or scopes changed');
         }
       } catch (error) {
         input.logger.warn(
@@ -798,6 +903,13 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
             teamId: input.teamId,
           },
           'agent_key.malformed_upstream_row',
+        );
+        await revokeInvalidIssuedKey(
+          api,
+          result.issued_api_key,
+          { agentId: binding.agentId, teamId: input.teamId },
+          input.logger,
+          'rotate',
         );
         throw createProblem(
           'upstream-error',

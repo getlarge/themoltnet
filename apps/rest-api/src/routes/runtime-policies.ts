@@ -68,7 +68,12 @@ export async function runtimePolicyRoutes(fastify: FastifyInstance) {
   server.post(
     '/runtime-policies',
     {
-      config: { auth: { credentialBindingScope: 'team' } },
+      config: {
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['runtime:manage'],
+        },
+      },
       schema: {
         operationId: 'createRuntimePolicy',
         tags: ['runtime-policies'],
@@ -115,7 +120,10 @@ export async function runtimePolicyRoutes(fastify: FastifyInstance) {
     '/runtime-policies',
     {
       config: {
-        auth: { credentialBindingScope: 'team' },
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['runtime:read'],
+        },
         rateLimit: fastify.rateLimitConfig.read,
       },
       schema: {
@@ -145,7 +153,10 @@ export async function runtimePolicyRoutes(fastify: FastifyInstance) {
     '/runtime-policies/:policyId',
     {
       config: {
-        auth: { credentialBindingScope: 'team' },
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['runtime:read'],
+        },
         rateLimit: fastify.rateLimitConfig.read,
       },
       schema: {
@@ -175,7 +186,12 @@ export async function runtimePolicyRoutes(fastify: FastifyInstance) {
   server.patch(
     '/runtime-policies/:policyId',
     {
-      config: { auth: { credentialBindingScope: 'team' } },
+      config: {
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['runtime:manage'],
+        },
+      },
       schema: {
         operationId: 'updateRuntimePolicy',
         tags: ['runtime-policies'],
@@ -229,7 +245,12 @@ export async function runtimePolicyRoutes(fastify: FastifyInstance) {
   server.delete(
     '/runtime-policies/:policyId',
     {
-      config: { auth: { credentialBindingScope: 'team' } },
+      config: {
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['runtime:manage'],
+        },
+      },
       schema: {
         operationId: 'deleteRuntimePolicy',
         tags: ['runtime-policies'],
@@ -259,7 +280,10 @@ export async function runtimePolicyRoutes(fastify: FastifyInstance) {
     '/runtime-profiles/:profileId/policies',
     {
       config: {
-        auth: { credentialBindingScope: 'team' },
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['runtime:read'],
+        },
         rateLimit: fastify.rateLimitConfig.read,
       },
       schema: {
@@ -289,7 +313,12 @@ export async function runtimePolicyRoutes(fastify: FastifyInstance) {
   server.put(
     '/runtime-profiles/:profileId/policies',
     {
-      config: { auth: { credentialBindingScope: 'team' } },
+      config: {
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['runtime:manage'],
+        },
+      },
       schema: {
         operationId: 'setRuntimeProfilePolicies',
         tags: ['runtime-policies'],
@@ -324,7 +353,10 @@ export async function runtimePolicyRoutes(fastify: FastifyInstance) {
     '/runtime-profiles/:profileId/allowed-tools',
     {
       config: {
-        auth: { credentialBindingScope: 'team' },
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['runtime:read'],
+        },
         rateLimit: fastify.rateLimitConfig.read,
       },
       schema: {

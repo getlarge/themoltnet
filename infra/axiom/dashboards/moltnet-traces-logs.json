@@ -3,7 +3,7 @@
     {
       "id": "overview",
       "name": "How to use this dashboard",
-      "text": "Start with server errors and slow routes. Drill into service, route, status, trace_id, taskId, teamId, and diaryId. Metrics live in the separate MoltNet Metrics dashboard.",
+      "text": "Start with scope rollout state, credential-scope denials, server errors, and slow routes. Drill into service, route, status, trace_id, taskId, teamId, and diaryId. Metrics live in the separate MoltNet Metrics dashboard.",
       "type": "Note"
     },
     {
@@ -65,10 +65,26 @@
         "apl": "['moltnet']\n| extend service = tostring(['service.name'])\n| extend route = tostring(['attributes.route'])\n| extend status = toint(['attributes.http.response.status_code'])\n| where status in (401, 403, 404)\n| summarize count = count() by service, route, status\n| top 20 by count"
       },
       "type": "Table"
+    },
+    {
+      "id": "scope-enforcement-mode",
+      "name": "Active credential-scope mode",
+      "query": {
+        "apl": "['moltnet']\n| where body == \"auth.scope.enforcement_mode\"\n| extend environment = tostring(['attributes.deployment.environment']), mode = tostring(['attributes.mode'])\n| summarize last_seen = max(_time) by environment, mode\n| order by last_seen desc"
+      },
+      "type": "Table"
+    },
+    {
+      "id": "scope-denials",
+      "name": "Credential-scope denials",
+      "query": {
+        "mpl": "`moltnet-metrics`:`auth.scope.denial.total`\n| align to 5m using sum\n| group by `deployment.environment`, `auth.scope.mode`, `auth.scope.operation`, `auth.scope.required` using sum"
+      },
+      "type": "Table"
     }
   ],
-  "datasets": ["moltnet"],
-  "description": "Operational drilldown over the moltnet traces/logs dataset.",
+  "datasets": ["moltnet", "moltnet-metrics"],
+  "description": "Operational drilldown over MoltNet traces, logs, and credential-scope rollout metrics.",
   "layout": [
     {
       "h": 2,
@@ -157,6 +173,28 @@
       "w": 6,
       "x": 6,
       "y": 12
+    },
+    {
+      "h": 4,
+      "i": "scope-enforcement-mode",
+      "minH": 1,
+      "minW": 1,
+      "moved": false,
+      "static": false,
+      "w": 6,
+      "x": 0,
+      "y": 16
+    },
+    {
+      "h": 5,
+      "i": "scope-denials",
+      "minH": 1,
+      "minW": 1,
+      "moved": false,
+      "static": false,
+      "w": 6,
+      "x": 6,
+      "y": 17
     }
   ],
   "name": "MoltNet Traces and Logs",

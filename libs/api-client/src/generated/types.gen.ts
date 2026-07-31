@@ -37,6 +37,25 @@ export type AgentKey = {
     | 'superseded'
     | 'privilege_withdrawn'
     | null;
+  scopes?: Array<
+    | 'agent:profile'
+    | 'connector:invoke'
+    | 'crypto:sign'
+    | 'diary:manage'
+    | 'diary:read'
+    | 'diary:write'
+    | 'key:manage'
+    | 'pack:read'
+    | 'pack:write'
+    | 'runtime:manage'
+    | 'runtime:read'
+    | 'task:claim'
+    | 'task:execute'
+    | 'task:manage'
+    | 'task:read'
+    | 'team:manage'
+    | 'team:read'
+  >;
   status: 'active' | 'revoked' | 'expired';
   /**
    * UUID v4 identifier
@@ -496,6 +515,28 @@ export type CreateAgentKeyBody = {
    */
   agentId: string;
   name: string;
+  /**
+   * Requested credential scopes. Must be a subset of both the canonical agent grant and the requesting credential.
+   */
+  scopes?: Array<
+    | 'agent:profile'
+    | 'connector:invoke'
+    | 'crypto:sign'
+    | 'diary:manage'
+    | 'diary:read'
+    | 'diary:write'
+    | 'key:manage'
+    | 'pack:read'
+    | 'pack:write'
+    | 'runtime:manage'
+    | 'runtime:read'
+    | 'task:claim'
+    | 'task:execute'
+    | 'task:manage'
+    | 'task:read'
+    | 'team:manage'
+    | 'team:read'
+  >;
   ttlDays?: number;
 };
 
@@ -597,6 +638,25 @@ export type CreateTaskBody = {
   taskType: string;
   title?: string;
 };
+
+export type CredentialScope =
+  | 'agent:profile'
+  | 'connector:invoke'
+  | 'crypto:sign'
+  | 'diary:manage'
+  | 'diary:read'
+  | 'diary:write'
+  | 'key:manage'
+  | 'pack:read'
+  | 'pack:write'
+  | 'runtime:manage'
+  | 'runtime:read'
+  | 'task:claim'
+  | 'task:execute'
+  | 'task:manage'
+  | 'task:read'
+  | 'team:manage'
+  | 'team:read';
 
 export type CryptoIdentity = {
   fingerprint: string;
@@ -3075,6 +3135,7 @@ export type Whoami = {
   fingerprint?: string;
   identityId: string;
   publicKey?: string;
+  scopes?: Array<string>;
   subjectType: 'agent' | 'human';
 };
 
@@ -3159,6 +3220,28 @@ export type CreateAgentKeyData = {
      */
     agentId: string;
     name: string;
+    /**
+     * Requested credential scopes. Must be a subset of both the canonical agent grant and the requesting credential.
+     */
+    scopes?: Array<
+      | 'agent:profile'
+      | 'connector:invoke'
+      | 'crypto:sign'
+      | 'diary:manage'
+      | 'diary:read'
+      | 'diary:write'
+      | 'key:manage'
+      | 'pack:read'
+      | 'pack:write'
+      | 'runtime:manage'
+      | 'runtime:read'
+      | 'task:claim'
+      | 'task:execute'
+      | 'task:manage'
+      | 'task:read'
+      | 'team:manage'
+      | 'team:read'
+    >;
     ttlDays?: number;
   };
   headers: {

@@ -75,7 +75,13 @@ export async function cryptoRoutes(fastify: FastifyInstance) {
   server.get(
     '/crypto/identity',
     {
-      config: { rateLimit: fastify.rateLimitConfig.read },
+      config: {
+        rateLimit: fastify.rateLimitConfig.read,
+        auth: {
+          credentialBindingScope: 'identity',
+          requiredScopes: ['agent:profile'],
+        },
+      },
       schema: {
         operationId: 'getCryptoIdentity',
         tags: ['crypto'],

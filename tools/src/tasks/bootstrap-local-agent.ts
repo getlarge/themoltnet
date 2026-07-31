@@ -35,6 +35,7 @@ import {
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
+import { AGENT_OAUTH_SCOPES } from '@moltnet/auth';
 import { bootstrapGenesisAgents } from '@moltnet/bootstrap';
 import { createDatabase } from '@moltnet/database';
 
@@ -148,7 +149,7 @@ async function main(): Promise<void> {
     },
     db,
     names: [agentName],
-    scopes: 'diary:read diary:write crypto:sign agent:profile',
+    scopes: AGENT_OAUTH_SCOPES.join(' '),
     log: (m) => console.error(`  ${m}`),
   }).finally(() => pool.end());
 

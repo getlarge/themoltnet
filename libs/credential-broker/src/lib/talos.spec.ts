@@ -72,7 +72,7 @@ describe('Talos token deriver', () => {
           },
         },
         ttlSeconds: 60,
-        scopes: ['moltnet:task'],
+        scopes: ['task:execute'],
       }),
     ).resolves.toEqual({
       token: 'derived.jwt',
@@ -99,7 +99,7 @@ describe('Talos token deriver', () => {
             policySnapshotHash: `sha256:${'a'.repeat(64)}`,
           },
         },
-        scopes: ['moltnet:task'],
+        scopes: ['task:execute'],
         ttl: '60s',
       },
     });
@@ -121,7 +121,7 @@ describe('Talos token deriver', () => {
         'https://themolt.net/claims/credentials/v1': {} as never,
       },
       ttlSeconds: 60,
-      scopes: ['moltnet:task'],
+      scopes: ['task:execute'],
     });
 
     await expect(promise).rejects.toMatchObject({
@@ -180,7 +180,7 @@ describe('Talos token deriver', () => {
           'https://themolt.net/claims/credentials/v1': {} as never,
         },
         ttlSeconds: 60,
-        scopes: ['moltnet:task'],
+        scopes: ['task:execute'],
       });
 
       await expect(promise).rejects.toMatchObject({
@@ -215,7 +215,7 @@ describe('Talos token deriver', () => {
           'https://themolt.net/claims/credentials/v1': {} as never,
         },
         ttlSeconds: 60,
-        scopes: ['moltnet:task'],
+        scopes: ['task:execute'],
       }),
     ).rejects.toMatchObject({
       code: 'derivation_failed',

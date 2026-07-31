@@ -8,9 +8,11 @@ import {
   createTeam,
   getWhoami,
   listAgentKeys,
+  listDiaries,
   revokeAgentKey,
   rotateAgentKey,
 } from '@moltnet/api-client';
+import { AGENT_OAUTH_SCOPES } from '@moltnet/auth';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createAgent, type TestAgent } from './helpers.js';
@@ -23,6 +25,8 @@ describe('agent keys', () => {
   let keyId: string;
   let secret: string;
   let activeKeyId: string | null = null;
+  let diaryReadKeyId: string | null = null;
+  let diaryReadSecret: string;
   const paginationKeyIds: string[] = [];
 
   beforeAll(async () => {
@@ -44,6 +48,7 @@ describe('agent keys', () => {
       body: {
         agentId: agent.identityId,
         name: 'rest-api-e2e',
+        scopes: [...AGENT_OAUTH_SCOPES],
         ttlDays: 1,
       },
     });
@@ -53,6 +58,29 @@ describe('agent keys', () => {
     keyId = issued.key.id;
     secret = issued.secret;
     activeKeyId = keyId;
+
+    const { data: diaryReadKey, error: diaryReadKeyError } =
+      await createAgentKey({
+        client,
+        auth: () => agent.accessToken,
+        headers: {
+          'idempotency-key': 'rest-api-e2e-agent-key-diary-read',
+          'x-moltnet-team-id': agent.personalTeamId,
+        },
+        body: {
+          agentId: agent.identityId,
+          name: 'rest-api-e2e-diary-read',
+          scopes: ['diary:read'],
+          ttlDays: 1,
+        },
+      });
+    if (diaryReadKeyError || !diaryReadKey) {
+      throw new Error(
+        `MoltNet did not issue a scoped agent key: ${JSON.stringify(diaryReadKeyError)}`,
+      );
+    }
+    diaryReadKeyId = diaryReadKey.key.id;
+    diaryReadSecret = diaryReadKey.secret;
   });
 
   it('prevents duplicate issue after a lost response', async () => {
@@ -67,6 +95,7 @@ describe('agent keys', () => {
       body: {
         agentId: agent.identityId,
         name: 'rest-api-e2e',
+        scopes: [...AGENT_OAUTH_SCOPES],
         ttlDays: 1,
       },
     });
@@ -99,6 +128,7 @@ describe('agent keys', () => {
         body: {
           agentId: agent.identityId,
           name: `rest-api-e2e-pagination-${suffix}`,
+          scopes: [...AGENT_OAUTH_SCOPES],
           ttlDays: 1,
         },
       });
@@ -147,6 +177,14 @@ describe('agent keys', () => {
         },
       });
     }
+    if (diaryReadKeyId) {
+      await harness.oryClients.apiKeys?.adminRevokeIssuedApiKey({
+        keyId: diaryReadKeyId,
+        adminRevokeIssuedApiKeyBody: {
+          reason: 'REVOCATION_REASON_KEY_COMPROMISE',
+        },
+      });
+    }
     await harness?.teardown();
   });
 
@@ -167,7 +205,35 @@ describe('agent keys', () => {
     });
   });
 
-  it('enforces the explicit team ceiling and fail-closed route policy', async () => {
+  it('enforces route scopes for a minimally scoped agent key', async () => {
+    const client = createClient({ baseUrl: harness.baseUrl });
+
+    const allowed = await listDiaries({
+      client,
+      auth: () => diaryReadSecret,
+      headers: { 'x-moltnet-team-id': agent.personalTeamId },
+    });
+    expect(allowed.response.status).toBe(200);
+    expect(allowed.error).toBeUndefined();
+    expect(allowed.data?.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: agent.privateDiaryId }),
+      ]),
+    );
+
+    const denied = await getWhoami({
+      client,
+      auth: () => diaryReadSecret,
+    });
+    expect(denied.response.status).toBe(403);
+    expect(denied.data).toBeUndefined();
+    expect(denied.error).toMatchObject({
+      code: 'FORBIDDEN',
+      detail: 'Missing required scope: agent:profile',
+    });
+  });
+
+  it('enforces the explicit team ceiling and management scope', async () => {
     const client = createClient({ baseUrl: harness.baseUrl });
 
     const matching = await listAgentKeys({
@@ -200,10 +266,14 @@ describe('agent keys', () => {
 
     const createTeamResult = await createTeam({
       client,
-      auth: () => secret,
+      auth: () => diaryReadSecret,
       body: { name: 'must-not-be-created' },
     });
     expect(createTeamResult.response.status).toBe(403);
+    expect(createTeamResult.error).toMatchObject({
+      code: 'FORBIDDEN',
+      detail: 'Missing required scope: team:manage',
+    });
   });
 
   it('rotates and revokes without exposing the Talos admin API', async () => {

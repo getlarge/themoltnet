@@ -14,6 +14,13 @@
 **/meta/*_snapshot.json linguist-generated=true
 **/meta/_journal.json linguist-generated=true
 
+# OpenAPI-generated clients. Keep the checked-in TypeScript and Go clients
+# available to consumers while collapsing regeneration noise in GitHub diffs
+# and excluding it from repository language statistics.
+libs/api-client/src/generated/** linguist-generated=true
+libs/signer-api-client/src/generated/** linguist-generated=true
+libs/moltnet-api-client/*_gen.go linguist-generated=true
+
 # Vendored third-party skill (impeccable, Apache-2.0). ~2.8MB of generated
 # .mjs per provider tree — keep out of language stats and collapse diff noise.
 **/skills/impeccable/** linguist-vendored=true

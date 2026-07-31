@@ -21,6 +21,9 @@
   "include": ["src/**/*.ts"],
   "references": [
     {
+      "path": "../models/tsconfig.lib.json"
+    },
+    {
       "path": "../observability/tsconfig.lib.json"
     }
   ]

@@ -1,3 +1,4 @@
+import { credentialScopeSetsEqual } from '@moltnet/models';
 import {
   ApiKeysApi,
   Configuration,
@@ -63,16 +64,6 @@ function safeFailure(error: unknown): string {
 
 function expectValue(condition: unknown, message: string): asserts condition {
   if (!condition) throw new ProbeAssertionError(message);
-}
-
-function hasScopes(
-  actual: readonly string[] | undefined,
-  expected: readonly string[],
-): boolean {
-  return (
-    actual?.length === expected.length &&
-    expected.every((scope) => actual.includes(scope))
-  );
 }
 
 async function expectRejected(run: () => Promise<unknown>): Promise<string> {
@@ -194,7 +185,7 @@ export async function runTalosCapabilityProbe(
       const result = await verifyOnline(parentSecret!);
       expectValue(result.is_valid, 'agent key was not valid');
       expectValue(
-        hasScopes(result.scopes, [READ_SCOPE, WRITE_SCOPE]),
+        credentialScopeSetsEqual(result.scopes, [READ_SCOPE, WRITE_SCOPE]),
         'agent scopes differed',
       );
       return 'valid_with_exact_scopes';
@@ -214,7 +205,10 @@ export async function runTalosCapabilityProbe(
         },
       });
       jwt = result.token;
-      expectValue(hasScopes(result.scopes, [READ_SCOPE]), 'JWT was not narrow');
+      expectValue(
+        credentialScopeSetsEqual(result.scopes, [READ_SCOPE]),
+        'JWT was not narrow',
+      );
       return 'jwt_issued';
     });
 
@@ -267,7 +261,7 @@ export async function runTalosCapabilityProbe(
         ttl: '60s',
       });
       expectValue(
-        hasScopes(result.scopes, [READ_SCOPE, WRITE_SCOPE]),
+        credentialScopeSetsEqual(result.scopes, [READ_SCOPE, WRITE_SCOPE]),
         'parent scopes were not inherited',
       );
       return 'exact_parent_scopes';
@@ -341,7 +335,7 @@ export async function runTalosCapabilityProbe(
         'metadata was not inherited',
       );
       expectValue(
-        hasScopes(result.scopes, [READ_SCOPE]),
+        credentialScopeSetsEqual(result.scopes, [READ_SCOPE]),
         'narrowed scope was not preserved',
       );
       return 'valid_with_actor_metadata_and_scope';

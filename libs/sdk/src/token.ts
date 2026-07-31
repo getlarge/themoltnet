@@ -1,9 +1,13 @@
+import { AGENT_OAUTH_SCOPES, type CredentialScope } from '@moltnet/models';
+
 import { AuthenticationError, NetworkError } from './errors.js';
 
 export interface TokenManagerOptions {
   clientId: string;
   clientSecret: string;
   apiUrl: string;
+  /** OAuth2 scopes requested for each token. Defaults to the full agent grant. */
+  scopes?: readonly CredentialScope[];
   /** Buffer in ms subtracted from expires_in to refresh early. Default: 30000 */
   expiryBufferMs?: number;
 }
@@ -17,6 +21,7 @@ export class TokenManager {
   private readonly clientId: string;
   private readonly clientSecret: string;
   private readonly tokenUrl: string;
+  private readonly scopes: readonly CredentialScope[];
   private readonly expiryBufferMs: number;
   private cached: CachedToken | null = null;
 
@@ -25,6 +30,7 @@ export class TokenManager {
     this.clientId = options.clientId;
     this.clientSecret = options.clientSecret;
     this.tokenUrl = `${apiUrl}/oauth2/token`;
+    this.scopes = options.scopes ?? AGENT_OAUTH_SCOPES;
     this.expiryBufferMs = options.expiryBufferMs ?? 30_000;
   }
 
@@ -42,6 +48,7 @@ export class TokenManager {
       grant_type: 'client_credentials',
       client_id: this.clientId,
       client_secret: this.clientSecret,
+      scope: this.scopes.join(' '),
     });
 
     let response: Response;

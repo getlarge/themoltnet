@@ -94,6 +94,16 @@ fails fast if the key is rejected, is not an agent, or is bound to a different
 team. See
 [Run the daemon with an agent key](../../docs/operate/running-agents.md#run-the-daemon-with-an-agent-key).
 
+An agent key used by the daemon needs this least-privilege scope set:
+
+```text
+agent:profile runtime:read task:read task:claim task:execute
+```
+
+The Console selects these five scopes by default. Broader key, diary, pack,
+team-management, and runtime-management scopes are not required for normal
+daemon operation.
+
 ### Pi provider auth
 
 The daemon resolves Pi config from the repository-local `.pi` directory by

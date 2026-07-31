@@ -107,6 +107,12 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
           },
           url,
         }),
+
+        auth: {
+          ...deferInaccessibleTeamAuthorization.auth,
+          credentialBindingScope: 'team',
+          requiredScopes: ['task:execute'],
+        },
       },
       schema: {
         operationId: 'uploadTaskArtifact',
@@ -177,6 +183,12 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
           },
           url,
         }),
+
+        auth: {
+          ...deferInaccessibleTeamAuthorization.auth,
+          credentialBindingScope: 'team',
+          requiredScopes: ['task:manage'],
+        },
       },
       schema: {
         operationId: 'stageTaskArtifact',
@@ -232,6 +244,12 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
       config: {
         ...deferInaccessibleTeamAuthorization,
         rateLimit: fastify.rateLimitConfig.read,
+
+        auth: {
+          ...deferInaccessibleTeamAuthorization.auth,
+          credentialBindingScope: 'team',
+          requiredScopes: ['task:read'],
+        },
       },
       schema: {
         operationId: 'listTaskArtifacts',
@@ -280,6 +298,12 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
       config: {
         ...deferInaccessibleTeamAuthorization,
         rateLimit: fastify.rateLimitConfig.read,
+
+        auth: {
+          ...deferInaccessibleTeamAuthorization.auth,
+          credentialBindingScope: 'team',
+          requiredScopes: ['task:read'],
+        },
       },
       schema: {
         operationId: 'downloadTaskArtifactByCid',
@@ -362,6 +386,12 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
       config: {
         ...deferInaccessibleTeamAuthorization,
         rateLimit: fastify.rateLimitConfig.read,
+
+        auth: {
+          ...deferInaccessibleTeamAuthorization.auth,
+          credentialBindingScope: 'team',
+          requiredScopes: ['task:read'],
+        },
       },
       schema: {
         operationId: 'downloadTaskArtifact',

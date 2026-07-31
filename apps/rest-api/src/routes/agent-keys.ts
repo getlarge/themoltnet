@@ -42,6 +42,7 @@ function authSubject(request: FastifyRequest): AgentKeySubject {
   if (!auth) throw createProblem('unauthorized');
   return {
     ...requireKetoSubject(request),
+    scopes: auth.scopes,
     ...(auth.subjectType === 'agent' && auth.credentialBinding
       ? { credentialKeyId: auth.credentialBinding.keyId }
       : {}),
@@ -79,7 +80,10 @@ export async function agentKeyRoutes(
     {
       onRequest: fastify.rateLimitHooks.agentKey,
       config: {
-        auth: { credentialBindingScope: 'team' },
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['key:manage'],
+        },
         rateLimit: false,
         rateLimitBucket: 'agent-key',
       },
@@ -121,7 +125,10 @@ export async function agentKeyRoutes(
     '/agent-keys',
     {
       config: {
-        auth: { credentialBindingScope: 'team' },
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['key:manage'],
+        },
         rateLimit: fastify.rateLimitConfig.read,
       },
       schema: {
@@ -166,7 +173,10 @@ export async function agentKeyRoutes(
     {
       onRequest: fastify.rateLimitHooks.agentKey,
       config: {
-        auth: { credentialBindingScope: 'team' },
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['key:manage'],
+        },
         rateLimit: false,
         rateLimitBucket: 'agent-key',
       },
@@ -210,7 +220,7 @@ export async function agentKeyRoutes(
     {
       onRequest: fastify.rateLimitHooks.agentKey,
       config: {
-        auth: { credentialBindingScope: 'team' },
+        auth: { credentialBindingScope: 'team', requiredScopes: [] },
         rateLimit: false,
         rateLimitBucket: 'agent-key',
       },

@@ -23,6 +23,7 @@
 
 import { parseArgs } from 'node:util';
 
+import { AGENT_OAUTH_SCOPES } from '@moltnet/auth';
 import {
   type BootstrapConfig,
   bootstrapGenesisAgents,
@@ -41,7 +42,7 @@ const { values: args } = parseArgs({
     scopes: {
       type: 'string',
       short: 's',
-      default: 'diary:read diary:write crypto:sign agent:profile',
+      default: AGENT_OAUTH_SCOPES.join(' '),
     },
   },
   strict: true,
@@ -55,7 +56,7 @@ Usage: pnpm bootstrap [options]
 Options:
   -c, --count <n>       Number of genesis agents to create (default: 1)
   -n, --names <list>    Comma-separated agent names (default: Genesis-1, Genesis-2, ...)
-  -s, --scopes <list>   OAuth2 scopes (default: diary:read diary:write crypto:sign agent:profile)
+  -s, --scopes <list>   OAuth2 scopes (default: full canonical agent grant)
       --dry-run         Generate keypairs only, don't call any APIs
   -h, --help            Show this help message
 

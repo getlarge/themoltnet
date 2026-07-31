@@ -51,6 +51,14 @@ const silentLogger: AgentRuntimeLogger = {
   child: () => silentLogger,
 };
 
+const DAEMON_CREDENTIAL_SCOPES = [
+  'agent:profile',
+  'runtime:read',
+  'task:read',
+  'task:claim',
+  'task:execute',
+] as const;
+
 describe('Agent daemon agent-key auth (e2e)', () => {
   let harness: DaemonTestHarness;
   // The agent's OAuth2 facade — used only to provision (issue the key, propose
@@ -82,9 +90,15 @@ describe('Agent daemon agent-key auth (e2e)', () => {
     });
 
     const issued = await oauthAgent.agentKeys.create(
-      { agentId: identityId, name: 'daemon-e2e-key', ttlDays: 1 },
+      {
+        agentId: identityId,
+        name: 'daemon-e2e-key',
+        scopes: [...DAEMON_CREDENTIAL_SCOPES],
+        ttlDays: 1,
+      },
       { teamId, idempotencyKey: randomUUID() },
     );
+    expect(issued.key.scopes).toEqual(DAEMON_CREDENTIAL_SCOPES);
     keySecret = issued.secret;
 
     // Env-only secret in production; here it flows straight into connect().
@@ -105,6 +119,7 @@ describe('Agent daemon agent-key auth (e2e)', () => {
     // the connection really used the key rather than falling back to OAuth2.
     expect(whoami.subjectType).toBe('agent');
     expect(whoami.identityId).toBe(identityId);
+    expect(whoami.scopes).toEqual(DAEMON_CREDENTIAL_SCOPES);
     expect(whoami.credentialBinding?.boundTeamId).toBe(teamId);
   });
 

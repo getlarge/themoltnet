@@ -159,6 +159,69 @@ describe('task artifact routes', () => {
     );
   });
 
+  it('defers inaccessible-team authorization so task resources stay hidden', async () => {
+    mocks.permissionChecker.canAccessTeam.mockResolvedValue(false);
+    mocks.taskRepository.findById.mockResolvedValue(null);
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/tasks/${TASK_ID}/artifacts`,
+      headers: TEAM_HEADERS,
+    });
+
+    expect(response.statusCode).toBe(404);
+  });
+
+  it.each([
+    {
+      expectedScope: 'task:execute',
+      method: 'PUT',
+      providedScope: 'task:read',
+      url:
+        `/tasks/${TASK_ID}/attempts/1/artifacts` +
+        '?kind=json&title=result&contentType=application%2Fjson',
+    },
+    {
+      expectedScope: 'task:manage',
+      method: 'PUT',
+      providedScope: 'task:execute',
+      url: '/task-artifacts/staged?contentType=application%2Fjson',
+    },
+    {
+      expectedScope: 'task:read',
+      method: 'GET',
+      providedScope: 'task:execute',
+      url: `/tasks/${TASK_ID}/artifacts`,
+    },
+  ] as const)(
+    'enforces $expectedScope for the task artifact operation',
+    async ({ expectedScope, method, providedScope, url }) => {
+      const scopedApp = await createTestApp(
+        createMockServices(),
+        { ...VALID_AUTH_CONTEXT, scopes: [providedScope] },
+        { scopeEnforcementMode: 'enforce' },
+      );
+      try {
+        const response = await scopedApp.inject({
+          method,
+          url,
+          headers: {
+            ...TEAM_HEADERS,
+            'content-type': 'application/octet-stream',
+          },
+          ...(method === 'PUT' ? { payload: Buffer.from('{}') } : {}),
+        });
+
+        expect(response.statusCode).toBe(403);
+        expect(response.json()).toMatchObject({
+          detail: `Missing required scope: ${expectedScope}`,
+        });
+      } finally {
+        await scopedApp.close();
+      }
+    },
+  );
+
   it('returns 409 when uploading a duplicate CID with conflicting metadata', async () => {
     const body = Buffer.from('{"ok":true}');
     const cid = await computeBytesCid(body);

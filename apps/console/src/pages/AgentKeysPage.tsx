@@ -11,6 +11,7 @@ import {
   listAgentKeysInfiniteOptions,
   listTeamMembersOptions,
 } from '@moltnet/api-client/query';
+import { AGENT_CREDENTIAL_SCOPES, AGENT_OAUTH_SCOPES } from '@moltnet/models';
 import {
   useInfiniteQuery,
   useQuery,
@@ -37,12 +38,41 @@ import { useTeam } from '../team/useTeam.js';
 interface CreateKeyForm {
   agentId: string;
   name: string;
+  scopes: AgentCredentialScope[];
   ttlDays: string;
 }
+
+type AgentCredentialScope = (typeof AGENT_OAUTH_SCOPES)[number];
+
+const SCOPE_DESCRIPTIONS: Record<AgentCredentialScope, string> = {
+  'agent:profile': 'Read the authenticated agent profile',
+  'connector:invoke': 'Invoke configured connectors',
+  'crypto:sign': 'Create cryptographic signatures',
+  'diary:manage': 'Manage diaries and access grants',
+  'diary:read': 'Read diary entries and metadata',
+  'diary:write': 'Create diary entries',
+  'key:manage': 'Issue, list, and rotate agent keys',
+  'pack:read': 'Read context and rendered packs',
+  'pack:write': 'Create and update packs',
+  'runtime:manage': 'Manage runtime configuration',
+  'runtime:read': 'Read runtime configuration',
+  'task:claim': 'Claim queued tasks',
+  'task:execute': 'Execute and report task attempts',
+  'task:manage': 'Create and cancel tasks',
+  'task:read': 'Read tasks and attempts',
+  'team:manage': 'Manage teams and membership',
+  'team:read': 'Read teams and membership',
+};
+
+const CREDENTIAL_SCOPE_OPTIONS = AGENT_OAUTH_SCOPES.map((scope) => ({
+  description: SCOPE_DESCRIPTIONS[scope],
+  scope,
+}));
 
 const EMPTY_CREATE_FORM: CreateKeyForm = {
   agentId: '',
   name: '',
+  scopes: [...AGENT_CREDENTIAL_SCOPES],
   ttlDays: '',
 };
 
@@ -185,6 +215,7 @@ export function AgentKeysPage() {
     setCreateForm({
       ...EMPTY_CREATE_FORM,
       agentId: agentFilter || agents[0]?.subjectId || '',
+      scopes: [...AGENT_CREDENTIAL_SCOPES],
     });
     setActionError(null);
     setCreateIdempotencyKey(crypto.randomUUID());
@@ -214,6 +245,7 @@ export function AgentKeysPage() {
         body: {
           agentId: createForm.agentId,
           name: createForm.name.trim(),
+          scopes: createForm.scopes,
           ttlDays,
         },
       });
@@ -516,7 +548,12 @@ function CreateKeyDialog({
   onSubmit: () => void;
 }) {
   return (
-    <Dialog open={open} onClose={onClose} title="Create agent key">
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title="Create agent key"
+      width="720px"
+    >
       <Stack gap={4}>
         <SelectField
           label="Agent"
@@ -545,6 +582,10 @@ function CreateKeyDialog({
             onFormChange({ ...form, ttlDays: event.target.value })
           }
         />
+        <CredentialScopeSelector
+          value={form.scopes}
+          onChange={(scopes) => onFormChange({ ...form, scopes })}
+        />
         <Stack direction="row" gap={2} justify="flex-end">
           <Button
             variant="ghost"
@@ -565,6 +606,129 @@ function CreateKeyDialog({
         </Stack>
       </Stack>
     </Dialog>
+  );
+}
+
+function CredentialScopeSelector({
+  value,
+  onChange,
+}: {
+  value: AgentCredentialScope[];
+  onChange: (value: AgentCredentialScope[]) => void;
+}) {
+  const theme = useTheme();
+  return (
+    <details
+      style={{
+        border: `1px solid ${theme.color.border.DEFAULT}`,
+        borderRadius: theme.radius.md,
+        padding: theme.spacing[3],
+        background: theme.color.bg.surface,
+      }}
+    >
+      <summary
+        style={{
+          cursor: 'pointer',
+          color: theme.color.text.DEFAULT,
+          fontWeight: theme.font.weight.medium,
+        }}
+      >
+        Credential scopes ({value.length} selected)
+      </summary>
+      <Stack gap={3} style={{ marginTop: theme.spacing[3] }}>
+        <Text variant="caption" color="muted">
+          The daemon minimum is selected by default. A key can receive only
+          scopes held by the credential creating it.
+        </Text>
+        <Stack direction="row" gap={2} wrap>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => onChange([...AGENT_CREDENTIAL_SCOPES])}
+          >
+            Use daemon minimum
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() =>
+              onChange(CREDENTIAL_SCOPE_OPTIONS.map(({ scope }) => scope))
+            }
+          >
+            Select all
+          </Button>
+        </Stack>
+        <fieldset
+          style={{
+            border: 0,
+            margin: 0,
+            padding: 0,
+          }}
+        >
+          <legend
+            style={{
+              marginBottom: theme.spacing[2],
+              fontSize: theme.font.size.sm,
+              fontWeight: theme.font.weight.medium,
+            }}
+          >
+            Granted capabilities
+          </legend>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+              gap: theme.spacing[2],
+            }}
+          >
+            {CREDENTIAL_SCOPE_OPTIONS.map(({ scope, description }) => {
+              const checked = value.includes(scope);
+              return (
+                <label
+                  key={scope}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'auto minmax(0, 1fr)',
+                    alignItems: 'start',
+                    gap: theme.spacing[2],
+                    padding: theme.spacing[2],
+                    borderRadius: theme.radius.md,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={(event) => {
+                      const selected = event.target.checked
+                        ? [...value, scope]
+                        : value.filter((candidate) => candidate !== scope);
+                      onChange(
+                        CREDENTIAL_SCOPE_OPTIONS.map(
+                          (option) => option.scope,
+                        ).filter((candidate) => selected.includes(candidate)),
+                      );
+                    }}
+                  />
+                  <Stack gap={0.5}>
+                    <Text
+                      variant="caption"
+                      weight="semibold"
+                      style={{ fontFamily: theme.font.family.mono }}
+                    >
+                      {scope}
+                    </Text>
+                    <Text variant="caption" color="muted">
+                      {description}
+                    </Text>
+                  </Stack>
+                </label>
+              );
+            })}
+          </div>
+        </fieldset>
+      </Stack>
+    </details>
   );
 }
 

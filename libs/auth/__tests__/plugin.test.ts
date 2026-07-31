@@ -31,7 +31,7 @@ const VALID_SESSION_CONTEXT: HumanAuthContext = {
   subjectType: 'human',
   identityId: '660e8400-e29b-41d4-a716-446655440001',
   clientId: null,
-  scopes: ['diary:read', 'diary:write', 'human:profile', 'team:read'],
+  scopes: ['diary:read', 'diary:write', 'agent:profile', 'team:read'],
   currentTeamId: null,
 };
 
@@ -926,6 +926,288 @@ describe('requireScopes preHandler', () => {
       message: 'Authentication required',
       statusCode: 401,
     });
+  });
+});
+
+describe('declarative route scope enforcement', () => {
+  it('rejects a missing route scope before resolving team authorization', async () => {
+    const mockTokenValidator = createMockTokenValidator();
+    const mockPermissionChecker = createMockPermissionChecker();
+    mockTokenValidator.resolveAuthContext.mockResolvedValue(VALID_AUTH_CONTEXT);
+    const app = Fastify();
+    await app.register(authPlugin, {
+      tokenValidator: mockTokenValidator,
+      permissionChecker: mockPermissionChecker,
+      relationshipWriter: createMockRelationshipWriter(),
+      teamResolver: { findPersonalTeamId: vi.fn().mockResolvedValue(null) },
+      scopeEnforcementMode: 'enforce',
+    } as never);
+    app.get(
+      '/scoped',
+      {
+        config: {
+          auth: {
+            credentialBindingScope: 'team',
+            requiredScopes: ['task:execute'],
+          },
+        },
+        preHandler: [requireAuth],
+      },
+      async () => ({ ok: true }),
+    );
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/scoped',
+      headers: {
+        authorization: `Bearer ${VALID_TOKEN}`,
+        'x-moltnet-team-id': 'team-123',
+      },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json()).toMatchObject({
+      code: 'FORBIDDEN',
+      message: 'Missing required scope: task:execute',
+    });
+    expect(mockPermissionChecker.canAccessTeam).not.toHaveBeenCalled();
+  });
+
+  it('measures a would-be denial without blocking the request', async () => {
+    const mockTokenValidator = createMockTokenValidator();
+    const mockPermissionChecker = createMockPermissionChecker();
+    const onScopeDenial = vi.fn();
+    mockTokenValidator.resolveAuthContext.mockResolvedValue(VALID_AUTH_CONTEXT);
+    const app = Fastify();
+    await app.register(authPlugin, {
+      tokenValidator: mockTokenValidator,
+      permissionChecker: mockPermissionChecker,
+      relationshipWriter: createMockRelationshipWriter(),
+      teamResolver: { findPersonalTeamId: vi.fn().mockResolvedValue(null) },
+      scopeEnforcementMode: 'measure',
+      onScopeDenial,
+    } as never);
+    app.get(
+      '/scoped',
+      {
+        config: {
+          auth: {
+            credentialBindingScope: 'team',
+            requiredScopes: ['task:execute'],
+          },
+        },
+        schema: { operationId: 'executeTask' },
+        preHandler: [requireAuth],
+      },
+      async () => ({ ok: true }),
+    );
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/scoped',
+      headers: {
+        authorization: `Bearer ${VALID_TOKEN}`,
+        'x-moltnet-team-id': 'team-123',
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(onScopeDenial).toHaveBeenCalledWith({
+      mode: 'measure',
+      operationId: 'executeTask',
+      requiredScope: 'task:execute',
+      subjectType: 'agent',
+    });
+    expect(mockPermissionChecker.canAccessTeam).toHaveBeenCalledOnce();
+  });
+
+  it('warns on a would-be denial without blocking the request', async () => {
+    const records: Record<string, unknown>[] = [];
+    const mockTokenValidator = createMockTokenValidator();
+    const mockPermissionChecker = createMockPermissionChecker();
+    const onScopeDenial = vi.fn();
+    mockTokenValidator.resolveAuthContext.mockResolvedValue(VALID_AUTH_CONTEXT);
+    const app = Fastify({
+      loggerInstance: pino(
+        { level: 'warn' },
+        {
+          write(chunk: string) {
+            for (const line of chunk.split('\n')) {
+              if (line) {
+                records.push(JSON.parse(line) as Record<string, unknown>);
+              }
+            }
+          },
+        },
+      ),
+    });
+    await app.register(authPlugin, {
+      tokenValidator: mockTokenValidator,
+      permissionChecker: mockPermissionChecker,
+      relationshipWriter: createMockRelationshipWriter(),
+      teamResolver: { findPersonalTeamId: vi.fn().mockResolvedValue(null) },
+      scopeEnforcementMode: 'warn',
+      onScopeDenial,
+    } as never);
+    app.get(
+      '/scoped',
+      {
+        config: {
+          auth: {
+            credentialBindingScope: 'team',
+            requiredScopes: ['task:execute'],
+          },
+        },
+        schema: { operationId: 'executeTask' },
+        preHandler: [requireAuth],
+      },
+      async () => ({ ok: true }),
+    );
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/scoped',
+      headers: {
+        authorization: `Bearer ${VALID_TOKEN}`,
+        'x-moltnet-team-id': 'team-123',
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(onScopeDenial).toHaveBeenCalledWith({
+      mode: 'warn',
+      operationId: 'executeTask',
+      requiredScope: 'task:execute',
+      subjectType: 'agent',
+    });
+    expect(records).toContainEqual(
+      expect.objectContaining({
+        msg: 'auth.scope.denied',
+        mode: 'warn',
+        operationId: 'executeTask',
+        requiredScope: 'task:execute',
+        subjectType: 'agent',
+      }),
+    );
+    expect(mockPermissionChecker.canAccessTeam).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    ['measure', 200],
+    ['warn', 200],
+    ['enforce', 403],
+  ] as const)(
+    'isolates a throwing denial telemetry sink in %s mode',
+    async (mode, expectedStatus) => {
+      const mockTokenValidator = createMockTokenValidator();
+      mockTokenValidator.resolveAuthContext.mockResolvedValue(
+        VALID_AUTH_CONTEXT,
+      );
+      const app = Fastify();
+      await app.register(authPlugin, {
+        tokenValidator: mockTokenValidator,
+        permissionChecker: createMockPermissionChecker(),
+        relationshipWriter: createMockRelationshipWriter(),
+        teamResolver: { findPersonalTeamId: vi.fn().mockResolvedValue(null) },
+        scopeEnforcementMode: mode,
+        onScopeDenial: () =>
+          Promise.reject(new Error('metrics backend unavailable')),
+      } as never);
+      app.get(
+        '/scoped',
+        {
+          config: {
+            auth: {
+              credentialBindingScope: 'identity',
+              requiredScopes: ['task:execute'],
+            },
+          },
+          schema: { operationId: 'executeTask' },
+          preHandler: [requireAuth],
+        },
+        async () => ({ ok: true }),
+      );
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/scoped',
+        headers: { authorization: `Bearer ${VALID_TOKEN}` },
+      });
+
+      expect(response.statusCode).toBe(expectedStatus);
+    },
+  );
+
+  it('fails route registration when principal auth declarations are incomplete', async () => {
+    const app = Fastify();
+    await app.register(authPlugin, {
+      tokenValidator: createMockTokenValidator(),
+      permissionChecker: createMockPermissionChecker(),
+      relationshipWriter: createMockRelationshipWriter(),
+      teamResolver: { findPersonalTeamId: vi.fn().mockResolvedValue(null) },
+      enforceRouteScopeDeclarations: true,
+    } as never);
+
+    expect(() =>
+      app.get('/incomplete', { preHandler: [requireAuth] }, async () => ({
+        ok: true,
+      })),
+    ).toThrow(
+      'Authenticated route GET /incomplete must declare credentialBindingScope',
+    );
+  });
+
+  it('fails route registration when requiredScopes is omitted', async () => {
+    const app = Fastify();
+    await app.register(authPlugin, {
+      tokenValidator: createMockTokenValidator(),
+      permissionChecker: createMockPermissionChecker(),
+      relationshipWriter: createMockRelationshipWriter(),
+      teamResolver: { findPersonalTeamId: vi.fn().mockResolvedValue(null) },
+      enforceRouteScopeDeclarations: true,
+    } as never);
+
+    expect(() =>
+      app.get(
+        '/incomplete',
+        {
+          config: {
+            auth: { credentialBindingScope: 'identity' },
+          },
+          preHandler: [requireAuth],
+        },
+        async () => ({ ok: true }),
+      ),
+    ).toThrow(
+      'Authenticated route GET /incomplete must declare requiredScopes',
+    );
+  });
+
+  it('accepts an explicitly scope-exempt authenticated route', async () => {
+    const app = Fastify();
+    await app.register(authPlugin, {
+      tokenValidator: createMockTokenValidator(),
+      permissionChecker: createMockPermissionChecker(),
+      relationshipWriter: createMockRelationshipWriter(),
+      teamResolver: { findPersonalTeamId: vi.fn().mockResolvedValue(null) },
+      enforceRouteScopeDeclarations: true,
+    } as never);
+
+    expect(() =>
+      app.get(
+        '/complete',
+        {
+          config: {
+            auth: {
+              credentialBindingScope: 'identity',
+              requiredScopes: [],
+            },
+          },
+          preHandler: [requireAuth],
+        },
+        async () => ({ ok: true }),
+      ),
+    ).not.toThrow();
   });
 });
 

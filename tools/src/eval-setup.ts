@@ -3,6 +3,7 @@ import { writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
+import { AGENT_OAUTH_SCOPES } from '@moltnet/auth';
 import {
   type BootstrapConfig,
   bootstrapGenesisAgents,
@@ -37,7 +38,7 @@ const KETO_READ = 'http://localhost:4466';
 const KETO_WRITE = 'http://localhost:4467';
 
 const AGENT_NAME = 'eval-agent';
-const SCOPES = 'diary:read diary:write crypto:sign agent:profile';
+const SCOPES = AGENT_OAUTH_SCOPES.join(' ');
 
 async function waitForHealth(url: string, maxWaitMs = 60_000): Promise<void> {
   const start = Date.now();

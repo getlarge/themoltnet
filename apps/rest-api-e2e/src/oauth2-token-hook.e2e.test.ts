@@ -16,6 +16,7 @@
 
 import { createHash, randomBytes } from 'node:crypto';
 
+import { HUMAN_SESSION_SCOPES } from '@moltnet/auth';
 import type { OAuth2Api } from '@ory/client-fetch';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -25,6 +26,9 @@ import {
   HYDRA_PUBLIC_URL,
   type TestHarness,
 } from './setup.js';
+
+const HUMAN_ACCESS_SCOPES = ['openid', ...HUMAN_SESSION_SCOPES];
+const HUMAN_DCR_SCOPES = ['offline_access', ...HUMAN_ACCESS_SCOPES];
 
 // PKCE helpers — RFC 7636. We use S256.
 function generatePkce(): { verifier: string; challenge: string } {
@@ -166,7 +170,7 @@ describe('Hydra Token Hook E2E', { timeout: 120_000 }, () => {
         grant_types: ['authorization_code', 'refresh_token'],
         response_types: ['code'],
         token_endpoint_auth_method: 'none',
-        scope: 'openid offline_access human:profile diary:read diary:write',
+        scope: HUMAN_DCR_SCOPES.join(' '),
       }),
     });
     expect(dcrRes.status).toBe(201);
@@ -188,10 +192,7 @@ describe('Hydra Token Hook E2E', { timeout: 120_000 }, () => {
     authUrl.searchParams.set('client_id', dcrClient.client_id);
     authUrl.searchParams.set('response_type', 'code');
     authUrl.searchParams.set('redirect_uri', 'http://localhost:9999/callback');
-    authUrl.searchParams.set(
-      'scope',
-      'openid human:profile diary:read diary:write',
-    );
+    authUrl.searchParams.set('scope', HUMAN_ACCESS_SCOPES.join(' '));
     authUrl.searchParams.set('state', state);
     authUrl.searchParams.set('code_challenge', challenge);
     authUrl.searchParams.set('code_challenge_method', 'S256');
@@ -267,7 +268,7 @@ describe('Hydra Token Hook E2E', { timeout: 120_000 }, () => {
       await harness.hydraAdminOAuth2.acceptOAuth2ConsentRequest({
         consentChallenge: consentChallenge as string,
         acceptOAuth2ConsentRequest: {
-          grant_scope: ['openid', 'human:profile', 'diary:read', 'diary:write'],
+          grant_scope: HUMAN_ACCESS_SCOPES,
           remember: false,
         },
       });

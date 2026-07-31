@@ -120,6 +120,13 @@ function makeKey(
   return {
     agentId: 'agent-1',
     teamId: 'team-1',
+    scopes: [
+      'agent:profile',
+      'runtime:read',
+      'task:read',
+      'task:claim',
+      'task:execute',
+    ],
     status: 'active',
     createdAt: '2026-01-01T00:00:00Z',
     updatedAt: '2026-01-01T00:00:00Z',
@@ -210,10 +217,61 @@ describe('AgentKeysPage', () => {
     ).not.toBeInTheDocument();
 
     acknowledgeSecret(secretDialog);
+    expect(apiMocks.createAgentKey).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: expect.objectContaining({
+          scopes: [
+            'agent:profile',
+            'runtime:read',
+            'task:read',
+            'task:claim',
+            'task:execute',
+          ],
+        }),
+      }),
+    );
     await waitFor(() =>
       expect(
         screen.queryByRole('dialog', { name: 'Store this secret now' }),
       ).not.toBeInTheDocument(),
+    );
+  });
+
+  it('lets an operator customize the issued credential scopes', async () => {
+    const key = makeKey({
+      id: 'key-custom',
+      name: 'custom-runtime',
+      scopes: ['task:read'],
+    });
+    apiMocks.createAgentKey.mockResolvedValue({
+      data: makeSecret(key),
+      error: null,
+    });
+
+    renderPage();
+    const dialog = await openCreateDialog('custom-runtime');
+    fireEvent.click(
+      within(dialog).getByText(/Credential scopes \(5 selected\)/),
+    );
+    fireEvent.click(
+      within(dialog).getByRole('checkbox', { name: /task:claim/i }),
+    );
+    fireEvent.click(
+      within(dialog).getByRole('checkbox', { name: /task:execute/i }),
+    );
+    fireEvent.click(
+      within(dialog).getByRole('checkbox', { name: /agent:profile/i }),
+    );
+    fireEvent.click(
+      within(dialog).getByRole('checkbox', { name: /runtime:read/i }),
+    );
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Create key' }));
+
+    await screen.findByRole('dialog', { name: 'Store this secret now' });
+    expect(apiMocks.createAgentKey).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: expect.objectContaining({ scopes: ['task:read'] }),
+      }),
     );
   });
 

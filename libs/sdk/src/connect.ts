@@ -1,5 +1,6 @@
 import type { Client } from '@moltnet/api-client';
 import { createClient } from '@moltnet/api-client';
+import type { CredentialScope } from '@moltnet/models';
 
 import type { Agent } from './agent.js';
 import { createAgent } from './agent.js';
@@ -22,6 +23,8 @@ export interface ConnectOptions {
    * read from the `MOLTNET_AGENT_KEY` environment variable.
    */
   agentKey?: string;
+  /** OAuth2 scopes requested for access tokens. Defaults to the full agent grant. */
+  scopes?: readonly CredentialScope[];
   /** Set false to disable automatic token management. Default: true */
   autoToken?: boolean;
   /** Retry options for 401/429. Set false to disable retries. Default: enabled */
@@ -143,6 +146,7 @@ export async function connect(options: ConnectOptions = {}): Promise<Agent> {
     clientId: creds.clientId,
     clientSecret: creds.clientSecret,
     apiUrl: creds.apiUrl,
+    scopes: options.scopes,
   });
 
   const retryFetch =

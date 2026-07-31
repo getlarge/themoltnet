@@ -1,4 +1,8 @@
-import { AGENT_CREDENTIAL_SCOPES, KetoNamespace } from '@moltnet/auth';
+import {
+  AGENT_CREDENTIAL_SCOPES,
+  AGENT_OAUTH_SCOPES,
+  KetoNamespace,
+} from '@moltnet/auth';
 import {
   type IssuedApiKey,
   KeyStatus,
@@ -30,6 +34,7 @@ const logger = {
 
 const subject: AgentKeySubject = {
   identityId: AGENT_ID,
+  scopes: [...AGENT_OAUTH_SCOPES],
   subjectNs: KetoNamespace.Agent,
   subjectType: 'agent',
 };
@@ -39,6 +44,7 @@ function issuedKey(overrides: Partial<IssuedApiKey> = {}): IssuedApiKey {
     key_id: KEY_ID,
     actor_id: AGENT_ID,
     name: 'daemon',
+    scopes: [...AGENT_CREDENTIAL_SCOPES],
     status: KeyStatus.KeyStatusActive,
     visibility: KeyVisibility.KeyVisibilitySecret,
     metadata: {
@@ -125,6 +131,138 @@ describe('agent key service', () => {
       talosApi.adminIssueApiKey.mock.calls[1]?.[0].issueApiKeyRequest
         .request_id,
     );
+  });
+
+  it('issues a credential diluted to the requested scopes', async () => {
+    const requestedScopes = ['task:read', 'task:claim'] as const;
+    talosApi.adminIssueApiKey.mockResolvedValue({
+      issued_api_key: issuedKey({ scopes: [...requestedScopes] }),
+      secret: 'ory_ak_diluted',
+    });
+
+    const result = await service.issue({
+      agentId: AGENT_ID,
+      idempotencyKey: 'diluted-key',
+      logger,
+      name: 'task claimer',
+      scopes: [...requestedScopes],
+      subject,
+      teamId: TEAM_ID,
+    });
+
+    expect(result.key.scopes).toEqual(requestedScopes);
+    expect(
+      talosApi.adminIssueApiKey.mock.calls[0]?.[0].issueApiKeyRequest.scopes,
+    ).toEqual(requestedScopes);
+  });
+
+  it.each([
+    ['binding', { actor_id: OTHER_AGENT_ID }, false],
+    ['scopes', { scopes: ['task:read'] as string[] }, true],
+  ] as const)(
+    'rejects an issued key with mismatched %s without unsafe cleanup',
+    async (_kind, overrides, shouldRevoke) => {
+      const requestSignal = new AbortController().signal;
+      talosApi.adminIssueApiKey.mockResolvedValue({
+        issued_api_key: issuedKey(overrides),
+        secret: 'ory_ak_invalid',
+      });
+      talosApi.adminRevokeIssuedApiKey.mockResolvedValue(undefined);
+
+      await expect(
+        service.issue({
+          agentId: AGENT_ID,
+          idempotencyKey: 'invalid-upstream-key',
+          logger,
+          name: 'invalid upstream key',
+          signal: requestSignal,
+          subject,
+          teamId: TEAM_ID,
+        }),
+      ).rejects.toMatchObject({ code: 'UPSTREAM_ERROR', statusCode: 502 });
+
+      if (shouldRevoke) {
+        expect(talosApi.adminRevokeIssuedApiKey).toHaveBeenCalledOnce();
+        expect(
+          talosApi.adminRevokeIssuedApiKey.mock.calls[0]?.[0],
+        ).toMatchObject({ keyId: KEY_ID });
+        expect(
+          (talosApi.adminRevokeIssuedApiKey.mock.calls[0]?.[1] as RequestInit)
+            .signal,
+        ).not.toBe(requestSignal);
+      } else {
+        expect(talosApi.adminRevokeIssuedApiKey).not.toHaveBeenCalled();
+        expect(logger.warn).toHaveBeenCalledWith(
+          expect.objectContaining({ action: 'issue:cleanup' }),
+          'agent_key.cleanup_skipped_untrusted_binding',
+        );
+      }
+    },
+  );
+
+  it('isolates invalid-key cleanup failures from issuance', async () => {
+    talosApi.adminIssueApiKey.mockResolvedValue({
+      issued_api_key: issuedKey({ scopes: ['task:read'] }),
+      secret: 'ory_ak_invalid',
+    });
+    talosApi.adminRevokeIssuedApiKey.mockRejectedValue(
+      Object.assign(new Error('cleanup timed out'), { name: 'TimeoutError' }),
+    );
+
+    await expect(
+      service.issue({
+        agentId: AGENT_ID,
+        idempotencyKey: 'cleanup-timeout',
+        logger,
+        name: 'invalid upstream key',
+        subject,
+        teamId: TEAM_ID,
+      }),
+    ).rejects.toMatchObject({ code: 'UPSTREAM_ERROR', statusCode: 502 });
+
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'issue:cleanup',
+        failureKind: 'timeout',
+        timeoutMs: 2_000,
+      }),
+      'agent_key.cleanup_failed',
+    );
+  });
+
+  it('rejects scopes not held by the requesting credential', async () => {
+    await expect(
+      service.issue({
+        agentId: AGENT_ID,
+        idempotencyKey: 'scope-escalation',
+        logger,
+        name: 'escalated key',
+        scopes: ['task:read', 'task:execute'],
+        subject: { ...subject, scopes: ['key:manage', 'task:read'] },
+        teamId: TEAM_ID,
+      }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN', statusCode: 403 });
+
+    expect(talosApi.adminIssueApiKey).not.toHaveBeenCalled();
+  });
+
+  it('rejects scopes outside the canonical agent grant', async () => {
+    await expect(
+      service.issue({
+        agentId: AGENT_ID,
+        idempotencyKey: 'unknown-scope',
+        logger,
+        name: 'invalid key',
+        scopes: ['human:profile'],
+        subject: { ...subject, scopes: [...subject.scopes, 'human:profile'] },
+        teamId: TEAM_ID,
+      }),
+    ).rejects.toMatchObject({
+      code: 'VALIDATION_FAILED',
+      statusCode: 400,
+    });
+
+    expect(talosApi.adminIssueApiKey).not.toHaveBeenCalled();
   });
 
   it('bounds sparse team-manager listings and returns continuation', async () => {
@@ -229,9 +367,15 @@ describe('agent key service', () => {
   });
 
   it('rotates while restoring the immutable binding and secret visibility', async () => {
-    talosApi.adminGetIssuedApiKey.mockResolvedValue(issuedKey());
+    const preservedScopes = ['diary:read', 'task:execute'] as const;
+    talosApi.adminGetIssuedApiKey.mockResolvedValue(
+      issuedKey({ scopes: [...preservedScopes] }),
+    );
     talosApi.adminRotateIssuedApiKey.mockResolvedValue({
-      issued_api_key: issuedKey({ key_id: ROTATED_KEY_ID }),
+      issued_api_key: issuedKey({
+        key_id: ROTATED_KEY_ID,
+        scopes: [...preservedScopes],
+      }),
       secret: 'ory_ak_rotated',
     });
 
@@ -252,8 +396,64 @@ describe('agent key service', () => {
           subject_type: 'agent',
           team_id: TEAM_ID,
         },
+        scopes: [...preservedScopes],
       },
     });
+    expect(result.key.scopes).toEqual(preservedScopes);
+  });
+
+  it.each([
+    ['binding', { actor_id: OTHER_AGENT_ID }, false],
+    ['scopes', { scopes: ['task:read'] as string[] }, true],
+  ] as const)(
+    'rejects a rotated key with mismatched %s without unsafe cleanup',
+    async (_kind, overrides, shouldRevoke) => {
+      talosApi.adminGetIssuedApiKey.mockResolvedValue(issuedKey());
+      talosApi.adminRotateIssuedApiKey.mockResolvedValue({
+        issued_api_key: issuedKey({ key_id: ROTATED_KEY_ID, ...overrides }),
+        secret: 'ory_ak_invalid',
+      });
+      talosApi.adminRevokeIssuedApiKey.mockResolvedValue(undefined);
+
+      await expect(
+        service.rotate({
+          keyId: KEY_ID,
+          logger,
+          subject,
+          teamId: TEAM_ID,
+        }),
+      ).rejects.toMatchObject({ code: 'UPSTREAM_ERROR', statusCode: 502 });
+
+      if (shouldRevoke) {
+        expect(talosApi.adminRevokeIssuedApiKey).toHaveBeenCalledOnce();
+        expect(
+          talosApi.adminRevokeIssuedApiKey.mock.calls[0]?.[0],
+        ).toMatchObject({ keyId: ROTATED_KEY_ID });
+      } else {
+        expect(talosApi.adminRevokeIssuedApiKey).not.toHaveBeenCalled();
+        expect(logger.warn).toHaveBeenCalledWith(
+          expect.objectContaining({ action: 'rotate:cleanup' }),
+          'agent_key.cleanup_skipped_untrusted_binding',
+        );
+      }
+    },
+  );
+
+  it('does not let rotation preserve scopes the requester cannot delegate', async () => {
+    talosApi.adminGetIssuedApiKey.mockResolvedValue(
+      issuedKey({ scopes: ['task:read', 'task:execute'] }),
+    );
+
+    await expect(
+      service.rotate({
+        keyId: KEY_ID,
+        logger,
+        subject: { ...subject, scopes: ['key:manage', 'task:read'] },
+        teamId: TEAM_ID,
+      }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN', statusCode: 403 });
+
+    expect(talosApi.adminRotateIssuedApiKey).not.toHaveBeenCalled();
   });
 
   it('hides an existing key from an unauthorized agent', async () => {

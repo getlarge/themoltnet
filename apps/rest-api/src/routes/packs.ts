@@ -499,7 +499,10 @@ export async function packRoutes(fastify: FastifyInstance) {
   server.get(
     '/packs/:id/provenance',
     {
-      config: { rateLimit: fastify.rateLimitConfig.read },
+      config: {
+        rateLimit: fastify.rateLimitConfig.read,
+        auth: { credentialBindingScope: 'team', requiredScopes: ['pack:read'] },
+      },
       schema: {
         operationId: 'getContextPackProvenanceById',
         tags: ['diary'],
@@ -557,7 +560,10 @@ export async function packRoutes(fastify: FastifyInstance) {
   server.get(
     '/packs/by-cid/:cid/provenance',
     {
-      config: { rateLimit: fastify.rateLimitConfig.read },
+      config: {
+        rateLimit: fastify.rateLimitConfig.read,
+        auth: { credentialBindingScope: 'team', requiredScopes: ['pack:read'] },
+      },
       schema: {
         operationId: 'getContextPackProvenanceByCid',
         tags: ['diary'],
@@ -615,7 +621,10 @@ export async function packRoutes(fastify: FastifyInstance) {
   server.get(
     '/packs/:id/diff/:otherId',
     {
-      config: { rateLimit: fastify.rateLimitConfig.read },
+      config: {
+        rateLimit: fastify.rateLimitConfig.read,
+        auth: { credentialBindingScope: 'team', requiredScopes: ['pack:read'] },
+      },
       schema: {
         operationId: 'diffContextPacksById',
         tags: ['diary'],
@@ -653,7 +662,10 @@ export async function packRoutes(fastify: FastifyInstance) {
   server.get(
     '/packs/by-cid/:cid/diff/by-cid/:otherCid',
     {
-      config: { rateLimit: fastify.rateLimitConfig.read },
+      config: {
+        rateLimit: fastify.rateLimitConfig.read,
+        auth: { credentialBindingScope: 'team', requiredScopes: ['pack:read'] },
+      },
       schema: {
         operationId: 'diffContextPacksByCid',
         tags: ['diary'],
@@ -691,7 +703,10 @@ export async function packRoutes(fastify: FastifyInstance) {
   server.get(
     '/packs',
     {
-      config: { rateLimit: fastify.rateLimitConfig.read },
+      config: {
+        rateLimit: fastify.rateLimitConfig.read,
+        auth: { credentialBindingScope: 'team', requiredScopes: ['pack:read'] },
+      },
       schema: {
         operationId: 'listContextPacks',
         tags: ['diary'],
@@ -793,7 +808,10 @@ export async function packRoutes(fastify: FastifyInstance) {
   server.get(
     '/packs/:id',
     {
-      config: { rateLimit: fastify.rateLimitConfig.read },
+      config: {
+        rateLimit: fastify.rateLimitConfig.read,
+        auth: { credentialBindingScope: 'team', requiredScopes: ['pack:read'] },
+      },
       schema: {
         operationId: 'getContextPackById',
         tags: ['diary'],
@@ -832,6 +850,12 @@ export async function packRoutes(fastify: FastifyInstance) {
   server.post(
     '/diaries/:id/packs/preview',
     {
+      config: {
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['pack:write'],
+        },
+      },
       schema: {
         operationId: 'previewDiaryCustomPack',
         tags: ['diary'],
@@ -865,6 +889,12 @@ export async function packRoutes(fastify: FastifyInstance) {
   server.post(
     '/diaries/:id/packs',
     {
+      config: {
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['pack:write'],
+        },
+      },
       schema: {
         operationId: 'createDiaryCustomPack',
         tags: ['diary'],
@@ -903,7 +933,10 @@ export async function packRoutes(fastify: FastifyInstance) {
   server.get(
     '/diaries/:id/packs',
     {
-      config: { rateLimit: fastify.rateLimitConfig.read },
+      config: {
+        rateLimit: fastify.rateLimitConfig.read,
+        auth: { credentialBindingScope: 'team', requiredScopes: ['pack:read'] },
+      },
       schema: {
         operationId: 'listDiaryPacks',
         tags: ['diary'],
@@ -946,6 +979,12 @@ export async function packRoutes(fastify: FastifyInstance) {
   server.patch(
     '/packs/:id',
     {
+      config: {
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['pack:write'],
+        },
+      },
       schema: {
         operationId: 'updateContextPack',
         tags: ['diary'],

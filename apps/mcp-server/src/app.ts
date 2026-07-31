@@ -6,6 +6,7 @@ import type {
 } from '@getlarge/fastify-mcp';
 import mcpPlugin from '@getlarge/fastify-mcp';
 import { mcpAuthProxyPlugin } from '@moltnet/mcp-auth-proxy';
+import { MCP_CLIENT_SCOPES, MCP_M2M_SCOPES } from '@moltnet/models';
 import type { ObservabilityContext } from '@moltnet/observability';
 import { observabilityPlugin } from '@moltnet/observability';
 import { trace } from '@opentelemetry/api';
@@ -65,7 +66,7 @@ function cleanDcrResponse(response: DCRResponse): DCRResponse {
   return cleaned;
 }
 
-function buildAuthConfig(config: McpServerConfig): AuthorizationConfig {
+export function buildAuthConfig(config: McpServerConfig): AuthorizationConfig {
   const authEnabled = config.AUTH_ENABLED === true;
   const hydra = resolveHydraUrls(config);
 
@@ -93,7 +94,7 @@ function buildAuthConfig(config: McpServerConfig): AuthorizationConfig {
     oauth2Client: {
       authorizationServer: hydra.publicUrl,
       resourceUri,
-      scopes: ['openid'],
+      scopes: ['openid', ...MCP_CLIENT_SCOPES],
       dynamicRegistration: true,
     },
     dcrHooks: {
@@ -260,7 +261,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   if (proxyEnabled) {
     await app.register(mcpAuthProxyPlugin, {
       oidcDiscoveryUrl: `${config.ORY_PROJECT_URL}/.well-known/openid-configuration`,
-      scopes: [],
+      scopes: [...MCP_M2M_SCOPES],
     });
     app.log.info('Client credentials proxy enabled');
   }

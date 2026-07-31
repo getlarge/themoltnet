@@ -8,17 +8,18 @@
 import swagger from '@fastify/swagger';
 import {
   authPlugin,
-  optionalAuth,
   type OryClients,
   type PermissionChecker,
   type RelationshipReader,
   type RelationshipWriter,
-  requireAuth,
+  routeUsesPrincipalAuth,
+  type ScopeEnforcementMode,
   type SessionResolver,
   type TeamResolver,
   type TokenValidator,
 } from '@moltnet/auth';
 import { ProblemDetailsSchema } from '@moltnet/models';
+import { createMetricCounter } from '@moltnet/observability';
 import type { RuntimeSessionStorage } from '@moltnet/runtime-session-service';
 import { createSigningService } from '@moltnet/signing-service';
 import type { TaskAnalyticsService } from '@moltnet/task-analytics-service';
@@ -104,6 +105,8 @@ import type {
 export interface SecurityOptions {
   /** Comma-separated list of allowed CORS origins */
   corsOrigins: string;
+  /** Phased credential-scope rollout. Defaults to `measure`. */
+  scopeEnforcementMode?: ScopeEnforcementMode;
   /** Max requests per minute for authenticated users */
   rateLimitGlobalAuth: number;
   /** Max requests per minute for anonymous users */
@@ -326,33 +329,40 @@ export async function registerApiRoutes(
   });
 
   // Register auth plugin (decorates tokenValidator, permissionChecker, request.authContext)
+  const scopeDenialCounter = createMetricCounter(
+    'moltnet-rest-api',
+    'auth.scope.denial.total',
+    'Credential scope would-be and enforced denials',
+  );
+  const scopeEnforcementMode =
+    options.security.scopeEnforcementMode ?? 'measure';
   await app.register(authPlugin, {
     tokenValidator: options.tokenValidator,
     permissionChecker: options.permissionChecker,
     relationshipWriter: options.relationshipWriter,
     teamResolver: options.teamResolver,
     sessionResolver: options.sessionResolver,
+    scopeEnforcementMode,
+    enforceRouteScopeDeclarations: true,
+    onScopeDenial: ({ mode, operationId, requiredScope, subjectType }) => {
+      scopeDenialCounter.add(1, {
+        'auth.scope.mode': mode,
+        'auth.scope.operation': operationId,
+        'auth.scope.required': requiredScope,
+        'auth.subject_type': subjectType,
+      });
+    },
   });
+  app.log.info({ mode: scopeEnforcementMode }, 'auth.scope.enforcement_mode');
 
   // Auth-aware routes share the same provider-failure contract. Add it once
   // at registration time so OpenAPI and generated clients model 429/503 for
   // every requireAuth/optionalAuth route without duplicating schema entries.
+  // This hook only mutates route metadata; the global request rate limiter is
+  // registered below before any routes are registered.
   app.addHook('onRoute', (routeOptions) => {
-    const handlers = Array.isArray(routeOptions.preHandler)
-      ? routeOptions.preHandler
-      : routeOptions.preHandler
-        ? [routeOptions.preHandler]
-        : [];
-    const declaresAuthentication =
-      Array.isArray(routeOptions.schema?.security) &&
-      routeOptions.schema.security.length > 0;
-    if (
-      !declaresAuthentication &&
-      !handlers.includes(requireAuth) &&
-      !handlers.includes(optionalAuth)
-    ) {
-      return;
-    }
+    // codeql[js/missing-rate-limiting]
+    if (!routeUsesPrincipalAuth(routeOptions)) return;
     routeOptions.schema ??= {};
     const existingResponses =
       typeof routeOptions.schema.response === 'object' &&

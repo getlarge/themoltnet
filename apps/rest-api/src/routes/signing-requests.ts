@@ -81,7 +81,10 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
     {
       // Each workflow consumes DBOS resources — apply a stricter per-agent limit
       config: {
-        auth: { credentialBindingScope: 'identity' },
+        auth: {
+          credentialBindingScope: 'identity',
+          requiredScopes: ['crypto:sign'],
+        },
         rateLimit: fastify.rateLimitConfig?.signing,
       },
       schema: {
@@ -145,7 +148,10 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
     '/crypto/signing-requests',
     {
       config: {
-        auth: { credentialBindingScope: 'identity' },
+        auth: {
+          credentialBindingScope: 'identity',
+          requiredScopes: ['crypto:sign'],
+        },
         rateLimit: fastify.rateLimitConfig.read,
       },
       schema: {
@@ -214,7 +220,10 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
     '/crypto/signing-requests/:id',
     {
       config: {
-        auth: { credentialBindingScope: 'identity' },
+        auth: {
+          credentialBindingScope: 'identity',
+          requiredScopes: ['crypto:sign'],
+        },
         rateLimit: fastify.rateLimitConfig.read,
       },
       schema: {
@@ -251,7 +260,10 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
     '/crypto/signing-requests/:id/claim',
     {
       config: {
-        auth: { credentialBindingScope: 'team' },
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['crypto:sign'],
+        },
         rateLimit: fastify.rateLimitConfig?.signing,
       },
       schema: {
@@ -307,7 +319,10 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
     '/crypto/signing-requests/:id/complete',
     {
       config: {
-        auth: { credentialBindingScope: 'team' },
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['crypto:sign'],
+        },
         rateLimit: fastify.rateLimitConfig?.signing,
         bodyLimit: SIGNING_JSON_BODY_LIMIT,
       },
@@ -362,7 +377,10 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
     '/crypto/signing-requests/:id/reject',
     {
       config: {
-        auth: { credentialBindingScope: 'team' },
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['crypto:sign'],
+        },
         rateLimit: fastify.rateLimitConfig?.signing,
       },
       schema: {
@@ -415,7 +433,12 @@ export async function signingRequestRoutes(fastify: FastifyInstance) {
   server.post(
     '/crypto/signing-requests/:id/sign',
     {
-      config: { auth: { credentialBindingScope: 'identity' } },
+      config: {
+        auth: {
+          credentialBindingScope: 'identity',
+          requiredScopes: ['crypto:sign'],
+        },
+      },
       schema: {
         operationId: 'submitSignature',
         tags: ['crypto'],

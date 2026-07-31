@@ -1,9 +1,10 @@
 import { createHash } from 'node:crypto';
 
+import { MCP_CLIENT_SCOPES, MCP_M2M_SCOPES } from '@moltnet/models';
 import { describe, expect, it, type Mock, vi } from 'vitest';
 
 import pkg from '../package.json' with { type: 'json' };
-import { buildApp } from '../src/app.js';
+import { buildApp, buildAuthConfig } from '../src/app.js';
 import { createMockDeps } from './helpers.js';
 
 function canonicalJson(value: unknown): unknown {
@@ -86,6 +87,25 @@ vi.mock('@moltnet/api-client', () => ({
 }));
 
 describe('buildApp', () => {
+  it('registers interactive OAuth clients with the bounded MCP scope set', () => {
+    const authorization = buildAuthConfig({
+      PORT: 8001,
+      NODE_ENV: 'test',
+      REST_API_URL: 'http://localhost:3000',
+      AUTH_ENABLED: true,
+      ORY_PROJECT_URL: 'https://hydra.example.com',
+    });
+
+    expect(authorization.enabled).toBe(true);
+    if (!authorization.enabled) {
+      throw new Error('Expected OAuth authorization to be enabled');
+    }
+    expect(authorization.oauth2Client?.scopes).toEqual([
+      'openid',
+      ...MCP_CLIENT_SCOPES,
+    ]);
+  });
+
   it('creates a Fastify instance with healthz endpoint', async () => {
     const deps = createMockDeps();
     const app = await buildApp({
@@ -251,6 +271,62 @@ describe('buildApp', () => {
     });
 
     expect(response.statusCode).toBe(200);
+    await app.close();
+    vi.restoreAllMocks();
+  });
+
+  it('requests the bounded MCP scope set during client credential exchange', async () => {
+    const fetchSpy: Mock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () =>
+          Promise.resolve({
+            token_endpoint: 'https://hydra.example.com/oauth2/token',
+            issuer: 'https://hydra.example.com/',
+          }),
+      })
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            access_token: 'mcp-token',
+            token_type: 'bearer',
+            expires_in: 3600,
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        ),
+      );
+    vi.stubGlobal('fetch', fetchSpy);
+
+    const app = await buildApp({
+      config: {
+        PORT: 8001,
+        NODE_ENV: 'test',
+        REST_API_URL: 'http://localhost:3000',
+        CLIENT_CREDENTIALS_PROXY: true,
+        ORY_PROJECT_URL: 'https://hydra.example.com',
+      },
+      deps: createMockDeps(),
+      logger: false,
+    });
+
+    await app.inject({
+      method: 'GET',
+      url: '/healthz',
+      headers: {
+        'x-client-id': 'agent-client',
+        'x-client-secret': 'agent-secret',
+      },
+    });
+
+    const [, tokenRequest] = fetchSpy.mock.calls[1] as [string, RequestInit];
+    const body = new URLSearchParams(tokenRequest.body as string);
+    expect(body.get('scope')).toBe(MCP_M2M_SCOPES.join(' '));
+
     await app.close();
     vi.restoreAllMocks();
   });

@@ -11,6 +11,7 @@
  */
 
 import { createClient, getWhoami } from '@moltnet/api-client';
+import { AGENT_OAUTH_SCOPES } from '@moltnet/auth';
 import { cryptoService } from '@moltnet/crypto-service';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -66,7 +67,7 @@ describe('POST /oauth2/token (proxy)', () => {
         grant_type: 'client_credentials',
         client_id: creds.clientId,
         client_secret: creds.clientSecret,
-        scope: 'diary:read diary:write crypto:sign agent:profile',
+        scope: AGENT_OAUTH_SCOPES.join(' '),
       }),
     });
 
@@ -115,7 +116,7 @@ describe('POST /oauth2/token (proxy)', () => {
         grant_type: 'client_credentials',
         client_id: creds.clientId,
         client_secret: creds.clientSecret,
-        scope: 'diary:read diary:write crypto:sign agent:profile',
+        scope: AGENT_OAUTH_SCOPES.join(' '),
       }),
     });
     const { access_token } = (await tokenRes.json()) as {

@@ -99,6 +99,12 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
   server.post(
     '/entries/:entryId/relations',
     {
+      config: {
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['diary:write'],
+        },
+      },
       schema: {
         operationId: 'createEntryRelation',
         tags: ['diary'],
@@ -184,7 +190,13 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
   server.get(
     '/entries/:entryId/relations',
     {
-      config: { rateLimit: fastify.rateLimitConfig.read },
+      config: {
+        rateLimit: fastify.rateLimitConfig.read,
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['diary:read'],
+        },
+      },
       schema: {
         operationId: 'listEntryRelations',
         tags: ['diary'],
@@ -267,6 +279,12 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
   server.patch(
     '/relations/:id',
     {
+      config: {
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['diary:write'],
+        },
+      },
       schema: {
         operationId: 'updateEntryRelationStatus',
         tags: ['diary'],
@@ -322,6 +340,12 @@ export async function entryRelationRoutes(fastify: FastifyInstance) {
   server.delete(
     '/relations/:id',
     {
+      config: {
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['diary:write'],
+        },
+      },
       schema: {
         operationId: 'deleteEntryRelation',
         tags: ['diary'],

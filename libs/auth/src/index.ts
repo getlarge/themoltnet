@@ -50,6 +50,9 @@ export {
   populateAuthContext,
   requireAuth,
   requireScopes,
+  routeUsesPrincipalAuth,
+  type ScopeDenialEvent,
+  type ScopeEnforcementMode,
   type TeamResolver,
 } from './plugin.js';
 export {
@@ -80,8 +83,13 @@ export {
 } from './remote-auth-error.js';
 export {
   AGENT_CREDENTIAL_SCOPES,
-  COMMON_CREDENTIAL_SCOPES,
+  AGENT_OAUTH_SCOPES,
+  ALL_CREDENTIAL_SCOPES,
+  CREDENTIAL_SCOPES,
+  type CredentialScope,
+  credentialScopeSetsEqual,
   HUMAN_SESSION_SCOPES,
+  MCP_CLIENT_SCOPES,
 } from './scopes.js';
 export {
   createSessionResolver,

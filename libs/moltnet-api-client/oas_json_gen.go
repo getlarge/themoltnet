@@ -1669,6 +1669,16 @@ func (s *AgentKey) encodeFields(e *jx.Encoder) {
 		s.RevocationReason.Encode(e)
 	}
 	{
+		if s.Scopes != nil {
+			e.FieldStart("scopes")
+			e.ArrStart()
+			for _, elem := range s.Scopes {
+				elem.Encode(e)
+			}
+			e.ArrEnd()
+		}
+	}
+	{
 		e.FieldStart("status")
 		s.Status.Encode(e)
 	}
@@ -1682,7 +1692,7 @@ func (s *AgentKey) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfAgentKey = [11]string{
+var jsonFieldsNameOfAgentKey = [12]string{
 	0:  "agentId",
 	1:  "createdAt",
 	2:  "expiresAt",
@@ -1691,9 +1701,10 @@ var jsonFieldsNameOfAgentKey = [11]string{
 	5:  "name",
 	6:  "revocationDescription",
 	7:  "revocationReason",
-	8:  "status",
-	9:  "teamId",
-	10: "updatedAt",
+	8:  "scopes",
+	9:  "status",
+	10: "teamId",
+	11: "updatedAt",
 }
 
 // Decode decodes AgentKey from json.
@@ -1791,8 +1802,25 @@ func (s *AgentKey) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"revocationReason\"")
 			}
+		case "scopes":
+			if err := func() error {
+				s.Scopes = make([]AgentKeyScopesItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem AgentKeyScopesItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.Scopes = append(s.Scopes, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"scopes\"")
+			}
 		case "status":
-			requiredBitSet[1] |= 1 << 0
+			requiredBitSet[1] |= 1 << 1
 			if err := func() error {
 				if err := s.Status.Decode(d); err != nil {
 					return err
@@ -1802,7 +1830,7 @@ func (s *AgentKey) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"status\"")
 			}
 		case "teamId":
-			requiredBitSet[1] |= 1 << 1
+			requiredBitSet[1] |= 1 << 2
 			if err := func() error {
 				v, err := json.DecodeUUID(d)
 				s.TeamId = v
@@ -1814,7 +1842,7 @@ func (s *AgentKey) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"teamId\"")
 			}
 		case "updatedAt":
-			requiredBitSet[1] |= 1 << 2
+			requiredBitSet[1] |= 1 << 3
 			if err := func() error {
 				if err := s.UpdatedAt.Decode(d, json.DecodeDateTime); err != nil {
 					return err
@@ -1834,7 +1862,7 @@ func (s *AgentKey) Decode(d *jx.Decoder) error {
 	var failures []validate.FieldError
 	for i, mask := range [2]uint8{
 		0b11111111,
-		0b00000111,
+		0b00001110,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -2041,6 +2069,76 @@ func (s AgentKeyRevocationReason) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *AgentKeyRevocationReason) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes AgentKeyScopesItem as json.
+func (s AgentKeyScopesItem) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes AgentKeyScopesItem from json.
+func (s *AgentKeyScopesItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode AgentKeyScopesItem to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch AgentKeyScopesItem(v) {
+	case AgentKeyScopesItemAgentProfile:
+		*s = AgentKeyScopesItemAgentProfile
+	case AgentKeyScopesItemConnectorInvoke:
+		*s = AgentKeyScopesItemConnectorInvoke
+	case AgentKeyScopesItemCryptoSign:
+		*s = AgentKeyScopesItemCryptoSign
+	case AgentKeyScopesItemDiaryManage:
+		*s = AgentKeyScopesItemDiaryManage
+	case AgentKeyScopesItemDiaryRead:
+		*s = AgentKeyScopesItemDiaryRead
+	case AgentKeyScopesItemDiaryWrite:
+		*s = AgentKeyScopesItemDiaryWrite
+	case AgentKeyScopesItemKeyManage:
+		*s = AgentKeyScopesItemKeyManage
+	case AgentKeyScopesItemPackRead:
+		*s = AgentKeyScopesItemPackRead
+	case AgentKeyScopesItemPackWrite:
+		*s = AgentKeyScopesItemPackWrite
+	case AgentKeyScopesItemRuntimeManage:
+		*s = AgentKeyScopesItemRuntimeManage
+	case AgentKeyScopesItemRuntimeRead:
+		*s = AgentKeyScopesItemRuntimeRead
+	case AgentKeyScopesItemTaskClaim:
+		*s = AgentKeyScopesItemTaskClaim
+	case AgentKeyScopesItemTaskExecute:
+		*s = AgentKeyScopesItemTaskExecute
+	case AgentKeyScopesItemTaskManage:
+		*s = AgentKeyScopesItemTaskManage
+	case AgentKeyScopesItemTaskRead:
+		*s = AgentKeyScopesItemTaskRead
+	case AgentKeyScopesItemTeamManage:
+		*s = AgentKeyScopesItemTeamManage
+	case AgentKeyScopesItemTeamRead:
+		*s = AgentKeyScopesItemTeamRead
+	default:
+		*s = AgentKeyScopesItem(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s AgentKeyScopesItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *AgentKeyScopesItem) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -12640,6 +12738,16 @@ func (s *CreateAgentKeyReq) encodeFields(e *jx.Encoder) {
 		e.Str(s.Name)
 	}
 	{
+		if s.Scopes != nil {
+			e.FieldStart("scopes")
+			e.ArrStart()
+			for _, elem := range s.Scopes {
+				elem.Encode(e)
+			}
+			e.ArrEnd()
+		}
+	}
+	{
 		if s.TtlDays.Set {
 			e.FieldStart("ttlDays")
 			s.TtlDays.Encode(e)
@@ -12647,10 +12755,11 @@ func (s *CreateAgentKeyReq) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfCreateAgentKeyReq = [3]string{
+var jsonFieldsNameOfCreateAgentKeyReq = [4]string{
 	0: "agentId",
 	1: "name",
-	2: "ttlDays",
+	2: "scopes",
+	3: "ttlDays",
 }
 
 // Decode decodes CreateAgentKeyReq from json.
@@ -12686,6 +12795,23 @@ func (s *CreateAgentKeyReq) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"name\"")
+			}
+		case "scopes":
+			if err := func() error {
+				s.Scopes = make([]CreateAgentKeyReqScopesItem, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem CreateAgentKeyReqScopesItem
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.Scopes = append(s.Scopes, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"scopes\"")
 			}
 		case "ttlDays":
 			if err := func() error {
@@ -12749,6 +12875,76 @@ func (s *CreateAgentKeyReq) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *CreateAgentKeyReq) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes CreateAgentKeyReqScopesItem as json.
+func (s CreateAgentKeyReqScopesItem) Encode(e *jx.Encoder) {
+	e.Str(string(s))
+}
+
+// Decode decodes CreateAgentKeyReqScopesItem from json.
+func (s *CreateAgentKeyReqScopesItem) Decode(d *jx.Decoder) error {
+	if s == nil {
+		return errors.New("invalid: unable to decode CreateAgentKeyReqScopesItem to nil")
+	}
+	v, err := d.StrBytes()
+	if err != nil {
+		return err
+	}
+	// Try to use constant string.
+	switch CreateAgentKeyReqScopesItem(v) {
+	case CreateAgentKeyReqScopesItemAgentProfile:
+		*s = CreateAgentKeyReqScopesItemAgentProfile
+	case CreateAgentKeyReqScopesItemConnectorInvoke:
+		*s = CreateAgentKeyReqScopesItemConnectorInvoke
+	case CreateAgentKeyReqScopesItemCryptoSign:
+		*s = CreateAgentKeyReqScopesItemCryptoSign
+	case CreateAgentKeyReqScopesItemDiaryManage:
+		*s = CreateAgentKeyReqScopesItemDiaryManage
+	case CreateAgentKeyReqScopesItemDiaryRead:
+		*s = CreateAgentKeyReqScopesItemDiaryRead
+	case CreateAgentKeyReqScopesItemDiaryWrite:
+		*s = CreateAgentKeyReqScopesItemDiaryWrite
+	case CreateAgentKeyReqScopesItemKeyManage:
+		*s = CreateAgentKeyReqScopesItemKeyManage
+	case CreateAgentKeyReqScopesItemPackRead:
+		*s = CreateAgentKeyReqScopesItemPackRead
+	case CreateAgentKeyReqScopesItemPackWrite:
+		*s = CreateAgentKeyReqScopesItemPackWrite
+	case CreateAgentKeyReqScopesItemRuntimeManage:
+		*s = CreateAgentKeyReqScopesItemRuntimeManage
+	case CreateAgentKeyReqScopesItemRuntimeRead:
+		*s = CreateAgentKeyReqScopesItemRuntimeRead
+	case CreateAgentKeyReqScopesItemTaskClaim:
+		*s = CreateAgentKeyReqScopesItemTaskClaim
+	case CreateAgentKeyReqScopesItemTaskExecute:
+		*s = CreateAgentKeyReqScopesItemTaskExecute
+	case CreateAgentKeyReqScopesItemTaskManage:
+		*s = CreateAgentKeyReqScopesItemTaskManage
+	case CreateAgentKeyReqScopesItemTaskRead:
+		*s = CreateAgentKeyReqScopesItemTaskRead
+	case CreateAgentKeyReqScopesItemTeamManage:
+		*s = CreateAgentKeyReqScopesItemTeamManage
+	case CreateAgentKeyReqScopesItemTeamRead:
+		*s = CreateAgentKeyReqScopesItemTeamRead
+	default:
+		*s = CreateAgentKeyReqScopesItem(v)
+	}
+
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s CreateAgentKeyReqScopesItem) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *CreateAgentKeyReqScopesItem) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -121603,19 +121799,30 @@ func (s *Whoami) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.Scopes != nil {
+			e.FieldStart("scopes")
+			e.ArrStart()
+			for _, elem := range s.Scopes {
+				e.Str(elem)
+			}
+			e.ArrEnd()
+		}
+	}
+	{
 		e.FieldStart("subjectType")
 		s.SubjectType.Encode(e)
 	}
 }
 
-var jsonFieldsNameOfWhoami = [7]string{
+var jsonFieldsNameOfWhoami = [8]string{
 	0: "clientId",
 	1: "credentialBinding",
 	2: "currentTeamId",
 	3: "fingerprint",
 	4: "identityId",
 	5: "publicKey",
-	6: "subjectType",
+	6: "scopes",
+	7: "subjectType",
 }
 
 // Decode decodes Whoami from json.
@@ -121689,8 +121896,27 @@ func (s *Whoami) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"publicKey\"")
 			}
+		case "scopes":
+			if err := func() error {
+				s.Scopes = make([]string, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem string
+					v, err := d.Str()
+					elem = string(v)
+					if err != nil {
+						return err
+					}
+					s.Scopes = append(s.Scopes, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"scopes\"")
+			}
 		case "subjectType":
-			requiredBitSet[0] |= 1 << 6
+			requiredBitSet[0] |= 1 << 7
 			if err := func() error {
 				if err := s.SubjectType.Decode(d); err != nil {
 					return err
@@ -121709,7 +121935,7 @@ func (s *Whoami) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b01010000,
+		0b10010000,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
