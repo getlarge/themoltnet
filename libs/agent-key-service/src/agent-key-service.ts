@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import {
   AGENT_CREDENTIAL_SCOPES,
   AGENT_OAUTH_SCOPES,
+  credentialScopeSetsEqual,
   KetoNamespace,
   type PermissionChecker,
   type RelationshipReader,
@@ -20,6 +21,7 @@ import { decodeOpaqueCursor, encodeOpaqueCursor } from './opaque-cursor.js';
 import { createProblem, createValidationProblem } from './problems.js';
 
 const DEFAULT_TTL_DAYS = 30;
+const INVALID_KEY_CLEANUP_TIMEOUT_MS = 2_000;
 const MAX_TALOS_LIST_PAGES_PER_REQUEST = 5;
 
 export type AgentKeyStatus = 'active' | 'revoked' | 'expired';
@@ -354,21 +356,32 @@ function talosInit(signal: AbortSignal | undefined): RequestInit | undefined {
   return signal ? { signal } : undefined;
 }
 
-function scopesMatch(actual: readonly string[], expected: readonly string[]) {
-  return (
-    actual.length === expected.length &&
-    new Set(actual).size === actual.length &&
-    expected.every((scope) => actual.includes(scope))
-  );
-}
-
 async function revokeInvalidIssuedKey(
   api: TalosApi,
   key: IssuedApiKey,
+  expectedBinding: AgentKeyBinding,
   logger: Logger,
   action: 'issue' | 'rotate',
 ): Promise<void> {
   if (!key.key_id) return;
+  const binding = readBinding(key);
+  if (
+    binding?.agentId !== expectedBinding.agentId ||
+    binding.teamId !== expectedBinding.teamId
+  ) {
+    logger.warn(
+      {
+        action: `${action}:cleanup`,
+        keyId: key.key_id,
+        expectedAgentId: expectedBinding.agentId,
+        expectedTeamId: expectedBinding.teamId,
+      },
+      'agent_key.cleanup_skipped_untrusted_binding',
+    );
+    return;
+  }
+
+  const cleanupSignal = AbortSignal.timeout(INVALID_KEY_CLEANUP_TIMEOUT_MS);
   try {
     await api.adminRevokeIssuedApiKey(
       {
@@ -378,12 +391,18 @@ async function revokeInvalidIssuedKey(
           description: `MoltNet rejected invalid Talos ${action} response`,
         },
       },
-      undefined,
+      talosInit(cleanupSignal),
     );
   } catch (error) {
     logger.warn(
-      { err: error, action: `${action}:cleanup`, keyId: key.key_id },
-      'agent_key.upstream_error',
+      {
+        err: error,
+        action: `${action}:cleanup`,
+        failureKind: talosFailureKind(error, cleanupSignal),
+        keyId: key.key_id,
+        timeoutMs: INVALID_KEY_CLEANUP_TIMEOUT_MS,
+      },
+      'agent_key.cleanup_failed',
     );
   }
 }
@@ -748,7 +767,7 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
         if (
           key.agentId !== input.agentId ||
           key.teamId !== input.teamId ||
-          !scopesMatch(key.scopes, scopes)
+          !credentialScopeSetsEqual(key.scopes, scopes)
         ) {
           throw new Error('Issued key binding or scopes changed');
         }
@@ -766,6 +785,7 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
         await revokeInvalidIssuedKey(
           api,
           result.issued_api_key,
+          { agentId: input.agentId, teamId: input.teamId },
           input.logger,
           'issue',
         );
@@ -869,7 +889,7 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
         if (
           rotatedKey.agentId !== binding.agentId ||
           rotatedKey.teamId !== input.teamId ||
-          !scopesMatch(rotatedKey.scopes, scopes)
+          !credentialScopeSetsEqual(rotatedKey.scopes, scopes)
         ) {
           throw new Error('Rotated key binding or scopes changed');
         }
@@ -887,6 +907,7 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
         await revokeInvalidIssuedKey(
           api,
           result.issued_api_key,
+          { agentId: binding.agentId, teamId: input.teamId },
           input.logger,
           'rotate',
         );

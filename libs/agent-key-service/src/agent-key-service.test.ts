@@ -157,11 +157,12 @@ describe('agent key service', () => {
   });
 
   it.each([
-    ['binding', { actor_id: OTHER_AGENT_ID }],
-    ['scopes', { scopes: ['task:read'] as string[] }],
+    ['binding', { actor_id: OTHER_AGENT_ID }, false],
+    ['scopes', { scopes: ['task:read'] as string[] }, true],
   ] as const)(
-    'rejects and revokes an issued key with mismatched %s',
-    async (_kind, overrides) => {
+    'rejects an issued key with mismatched %s without unsafe cleanup',
+    async (_kind, overrides, shouldRevoke) => {
+      const requestSignal = new AbortController().signal;
       talosApi.adminIssueApiKey.mockResolvedValue({
         issued_api_key: issuedKey(overrides),
         secret: 'ory_ak_invalid',
@@ -174,17 +175,60 @@ describe('agent key service', () => {
           idempotencyKey: 'invalid-upstream-key',
           logger,
           name: 'invalid upstream key',
+          signal: requestSignal,
           subject,
           teamId: TEAM_ID,
         }),
       ).rejects.toMatchObject({ code: 'UPSTREAM_ERROR', statusCode: 502 });
 
-      expect(talosApi.adminRevokeIssuedApiKey).toHaveBeenCalledWith(
-        expect.objectContaining({ keyId: KEY_ID }),
-        undefined,
-      );
+      if (shouldRevoke) {
+        expect(talosApi.adminRevokeIssuedApiKey).toHaveBeenCalledOnce();
+        expect(
+          talosApi.adminRevokeIssuedApiKey.mock.calls[0]?.[0],
+        ).toMatchObject({ keyId: KEY_ID });
+        expect(
+          (talosApi.adminRevokeIssuedApiKey.mock.calls[0]?.[1] as RequestInit)
+            .signal,
+        ).not.toBe(requestSignal);
+      } else {
+        expect(talosApi.adminRevokeIssuedApiKey).not.toHaveBeenCalled();
+        expect(logger.warn).toHaveBeenCalledWith(
+          expect.objectContaining({ action: 'issue:cleanup' }),
+          'agent_key.cleanup_skipped_untrusted_binding',
+        );
+      }
     },
   );
+
+  it('isolates invalid-key cleanup failures from issuance', async () => {
+    talosApi.adminIssueApiKey.mockResolvedValue({
+      issued_api_key: issuedKey({ scopes: ['task:read'] }),
+      secret: 'ory_ak_invalid',
+    });
+    talosApi.adminRevokeIssuedApiKey.mockRejectedValue(
+      Object.assign(new Error('cleanup timed out'), { name: 'TimeoutError' }),
+    );
+
+    await expect(
+      service.issue({
+        agentId: AGENT_ID,
+        idempotencyKey: 'cleanup-timeout',
+        logger,
+        name: 'invalid upstream key',
+        subject,
+        teamId: TEAM_ID,
+      }),
+    ).rejects.toMatchObject({ code: 'UPSTREAM_ERROR', statusCode: 502 });
+
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'issue:cleanup',
+        failureKind: 'timeout',
+        timeoutMs: 2_000,
+      }),
+      'agent_key.cleanup_failed',
+    );
+  });
 
   it('rejects scopes not held by the requesting credential', async () => {
     await expect(
@@ -359,11 +403,11 @@ describe('agent key service', () => {
   });
 
   it.each([
-    ['binding', { actor_id: OTHER_AGENT_ID }],
-    ['scopes', { scopes: ['task:read'] as string[] }],
+    ['binding', { actor_id: OTHER_AGENT_ID }, false],
+    ['scopes', { scopes: ['task:read'] as string[] }, true],
   ] as const)(
-    'rejects and revokes a rotated key with mismatched %s',
-    async (_kind, overrides) => {
+    'rejects a rotated key with mismatched %s without unsafe cleanup',
+    async (_kind, overrides, shouldRevoke) => {
       talosApi.adminGetIssuedApiKey.mockResolvedValue(issuedKey());
       talosApi.adminRotateIssuedApiKey.mockResolvedValue({
         issued_api_key: issuedKey({ key_id: ROTATED_KEY_ID, ...overrides }),
@@ -380,10 +424,18 @@ describe('agent key service', () => {
         }),
       ).rejects.toMatchObject({ code: 'UPSTREAM_ERROR', statusCode: 502 });
 
-      expect(talosApi.adminRevokeIssuedApiKey).toHaveBeenCalledWith(
-        expect.objectContaining({ keyId: ROTATED_KEY_ID }),
-        undefined,
-      );
+      if (shouldRevoke) {
+        expect(talosApi.adminRevokeIssuedApiKey).toHaveBeenCalledOnce();
+        expect(
+          talosApi.adminRevokeIssuedApiKey.mock.calls[0]?.[0],
+        ).toMatchObject({ keyId: ROTATED_KEY_ID });
+      } else {
+        expect(talosApi.adminRevokeIssuedApiKey).not.toHaveBeenCalled();
+        expect(logger.warn).toHaveBeenCalledWith(
+          expect.objectContaining({ action: 'rotate:cleanup' }),
+          'agent_key.cleanup_skipped_untrusted_binding',
+        );
+      }
     },
   );
 
