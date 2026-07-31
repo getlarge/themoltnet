@@ -1,3 +1,4 @@
+import type { ListPendingTransfersResponse } from '@moltnet/api-client';
 import {
   acceptTransferMutation,
   listPendingTransfersOptions,
@@ -45,14 +46,30 @@ export function PendingTransfersPanel({ teamId }: PendingTransfersPanelProps) {
     queryClient.invalidateQueries({
       queryKey: listPendingTransfersQueryKey({ client: getApiClient() }),
     });
+  const removeResolvedTransfer = (transferId: string) => {
+    queryClient.setQueryData<ListPendingTransfersResponse>(
+      listPendingTransfersQueryKey({ client: getApiClient() }),
+      (current) =>
+        current
+          ? {
+              ...current,
+              items: current.items.filter((item) => item.id !== transferId),
+            }
+          : current,
+    );
+  };
 
   const acceptMutation = useMutation({
     ...acceptTransferMutation({ client: getApiClient() }),
-    onSettled: () => void invalidate(),
+    onSuccess: (_data, variables) =>
+      removeResolvedTransfer(variables.path.transferId),
+    onError: () => void invalidate(),
   });
   const rejectMutation = useMutation({
     ...rejectTransferMutation({ client: getApiClient() }),
-    onSettled: () => void invalidate(),
+    onSuccess: (_data, variables) =>
+      removeResolvedTransfer(variables.path.transferId),
+    onError: () => void invalidate(),
   });
 
   if (query.isLoading) {

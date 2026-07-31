@@ -176,7 +176,8 @@ export function Sidebar({ collapsed = false, id }: SidebarProps) {
         display: 'flex',
         flexDirection: 'column',
         flexShrink: 0,
-        minHeight: '100vh',
+        height: '100%',
+        minHeight: 0,
         overflow: 'hidden',
         padding: collapsed
           ? `${theme.spacing[4]} ${theme.spacing[2]}`

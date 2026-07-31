@@ -97,7 +97,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
   }, [isMobile, mobileOpen]);
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <div style={{ display: 'flex', height: '100dvh', overflow: 'hidden' }}>
       <a
         href={`#${MAIN_CONTENT_ID}`}
         onFocus={() => setSkipFocused(true)}
@@ -147,7 +147,7 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
               left: 0,
               top: 0,
               zIndex: 50,
-              height: '100vh',
+              height: '100dvh',
             }}
           >
             <Sidebar collapsed={false} id={SIDEBAR_ID} />
@@ -164,7 +164,10 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
+          height: '100%',
+          minHeight: 0,
           minWidth: 0,
+          overflow: 'hidden',
         }}
       >
         <Header
@@ -182,7 +185,9 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
           style={{
             flex: 1,
             padding: isMobile ? theme.spacing[4] : theme.spacing[6],
-            overflow: 'auto',
+            minHeight: 0,
+            overflowX: 'auto',
+            overflowY: 'auto',
             maxWidth: theme.layout.contentMax,
             margin: '0 auto',
             width: '100%',

@@ -197,6 +197,30 @@ describe('console layout accessibility', () => {
     await waitFor(() => expect(document.activeElement).toBe(main));
   });
 
+  it('keeps scrolling inside the viewport-bound application shell', () => {
+    render(
+      <DashboardLayout>
+        <div style={{ height: '200vh' }}>Long page</div>
+      </DashboardLayout>,
+      { wrapper: Wrapper },
+    );
+
+    const main = screen.getByRole('main');
+    const shell = main.parentElement?.parentElement;
+    const sidebar = screen.getByRole('complementary', {
+      name: 'Console navigation',
+    });
+
+    expect(shell).not.toBeNull();
+    expect(shell).toHaveStyle({ height: '100dvh', overflow: 'hidden' });
+    expect(main).toHaveStyle({
+      minHeight: '0',
+      overflowX: 'auto',
+      overflowY: 'auto',
+    });
+    expect(sidebar).toHaveStyle({ height: '100%', minHeight: '0' });
+  });
+
   it('allows tablet operators to expand the compact sidebar', () => {
     testState.isTablet = true;
 
