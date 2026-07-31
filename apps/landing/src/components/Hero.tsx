@@ -1,175 +1,194 @@
 import {
+  ActionLink,
   Badge,
   Container,
+  ControlSurface,
   Logo,
   Stack,
   Text,
-  useTheme,
 } from '@themoltnet/design-system';
 
-import { CONSOLE_BASE_URL, GITHUB_REPO_URL } from '../constants';
+import { getConfig } from '../config';
+import { GITHUB_REPO_URL } from '../constants';
+
+const systems = [
+  {
+    name: 'Task Engine',
+    href: '#task-engine',
+    state: 'task_7c21',
+    details: ['typed contract', 'lease active', 'attempt 1 / 3'],
+  },
+  {
+    name: 'Agent Runtime',
+    href: '#agent-runtime',
+    state: 'runtime_14',
+    details: ['profile pinned', 'policy enforced', 'session resumable'],
+  },
+  {
+    name: 'Knowledge Factory',
+    href: '#knowledge-factory',
+    state: 'pack_b31e',
+    details: ['entries attributed', 'provenance linked', 'context reusable'],
+  },
+] as const;
+
+const authorityItems = [
+  'agent keys',
+  'team permissions',
+  'task credentials',
+  'runtime policies',
+  'signed evidence',
+] as const;
 
 export function Hero() {
-  const theme = useTheme();
+  const { docsUrl } = getConfig();
 
   return (
-    <section
-      style={{
-        position: 'relative',
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingTop: theme.spacing[20],
-        background: `radial-gradient(ellipse 600px 400px at 50% 0%, ${theme.color.primary.muted}, transparent)`,
-      }}
-    >
-      <Container maxWidth="lg" style={{ position: 'relative', zIndex: 1 }}>
-        <Stack gap={6} align="center">
-          <Logo size={150} />
+    <section className="ops-hero" aria-labelledby="ops-hero-title">
+      <Container maxWidth="xl">
+        <div className="ops-hero-layout">
+          <div className="ops-hero-copy">
+            <div className="ops-hero-brand">
+              <Logo variant="mark" size={32} glow={false} />
+              <span>MoltNet / open-source agent infrastructure</span>
+            </div>
 
-          <Badge variant="accent">
-            Accountable authority for autonomous agents
-          </Badge>
-
-          <Text
-            variant="h1"
-            align="center"
-            style={{
-              fontSize: 'clamp(2.5rem, 6vw, 4.5rem)',
-              textShadow: `0 0 20px ${theme.color.accent.muted}, 0 0 40px ${theme.color.accent.subtle}`,
-            }}
-          >
-            Agents should not
-            <br />
-            <span
-              style={{
-                color: theme.color.accent.DEFAULT,
-              }}
+            <Text
+              id="ops-hero-title"
+              variant="h1"
+              className="ops-display"
+              style={{ maxWidth: '11ch' }}
             >
-              inherit your authority.
-            </span>
-          </Text>
+              Run autonomous agents with authority you can account for.
+            </Text>
 
-          <Text
-            variant="bodyLarge"
-            color="secondary"
-            align="center"
-            style={{ maxWidth: '640px' }}
-          >
-            MoltNet gives autonomous agents their own identity, task-scoped
-            credentials, and runtime policies that bound the tools and commands
-            each task may run. Let them do real work—and inspect who acted and
-            what they were allowed to do.
-          </Text>
-
-          <ol
-            aria-label="MoltNet authority chain"
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              justifyContent: 'center',
-              alignItems: 'center',
-              gap: theme.spacing[2],
-              margin: 0,
-              maxWidth: '760px',
-              padding: 0,
-              fontFamily: theme.font.family.mono,
-              fontSize: theme.font.size.xs,
-              color: theme.color.text.secondary,
-              listStyle: 'none',
-            }}
-          >
-            <AuthorityStep label="agent key" tone="accent" showArrow />
-            <AuthorityStep label="task credential" tone="primary" showArrow />
-            <AuthorityStep label="runtime policy" tone="primary" showArrow />
-            <AuthorityStep label="attributable evidence" tone="accent" />
-          </ol>
-
-          <a
-            href="/getting-started"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              minHeight: '48px',
-              padding: `${theme.spacing[3]} ${theme.spacing[5]}`,
-              borderRadius: theme.radius.md,
-              background: theme.color.accent.DEFAULT,
-              color: theme.color.text.inverse,
-              fontWeight: theme.font.weight.semibold,
-              textDecoration: 'none',
-            }}
-          >
-            Start a team pilot
-          </a>
-
-          <Text variant="caption" color="secondary" align="center">
-            Already set up?{' '}
-            <a
-              href={CONSOLE_BASE_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: theme.color.primary.DEFAULT }}
+            <Text
+              variant="bodyLarge"
+              color="secondary"
+              style={{ maxWidth: '58ch' }}
             >
-              Open Console
-            </a>{' '}
-            or{' '}
-            <a
-              href={GITHUB_REPO_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: theme.color.primary.DEFAULT }}
+              MoltNet connects a durable Task Engine, a policy-aware Agent
+              Runtime, and a Knowledge Factory—under one identity and authority
+              model built for real agent work.
+            </Text>
+
+            <Stack direction="row" gap={3} wrap>
+              <ActionLink href="/getting-started" size="lg">
+                Start a team pilot
+                <span aria-hidden="true">→</span>
+              </ActionLink>
+              <ActionLink
+                href={`${docsUrl}/understand/architecture`}
+                target="_blank"
+                rel="noopener noreferrer"
+                variant="secondary"
+                size="lg"
+              >
+                View architecture
+              </ActionLink>
+            </Stack>
+
+            <div className="ops-hero-proof" aria-label="Project properties">
+              <a
+                href={GITHUB_REPO_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <strong>Open source</strong>
+                <span>inspect the system</span>
+              </a>
+              <div>
+                <strong>Policy-aware</strong>
+                <span>per task and runtime</span>
+              </div>
+              <div>
+                <strong>Attributable</strong>
+                <span>from claim to evidence</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="ops-system-map" aria-label="MoltNet system map">
+            <div className="ops-map-header">
+              <span className="ops-kicker">Agent operations control plane</span>
+              <Badge variant="success">system model</Badge>
+            </div>
+
+            <div className="ops-system-row">
+              {systems.map((system, index) => (
+                <div className="ops-system-stage" key={system.name}>
+                  <ControlSurface
+                    as="article"
+                    active={index === 1}
+                    tone={index === 1 ? 'network' : 'neutral'}
+                    padding="md"
+                    className="ops-system-node"
+                  >
+                    <div className="ops-node-heading">
+                      <span>{system.name}</span>
+                      <span aria-hidden="true">0{index + 1}</span>
+                    </div>
+                    <Text variant="caption" mono color="primary">
+                      {system.state}
+                    </Text>
+                    <ul>
+                      {system.details.map((detail) => (
+                        <li key={detail}>
+                          <span aria-hidden="true">✓</span>
+                          {detail}
+                        </li>
+                      ))}
+                    </ul>
+                    <a href={system.href}>
+                      Inspect system <span aria-hidden="true">↗</span>
+                    </a>
+                  </ControlSurface>
+                  {index < systems.length - 1 && (
+                    <span className="ops-map-arrow" aria-hidden="true">
+                      →
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <ControlSurface
+              tone="identity"
+              active
+              padding="none"
+              className="ops-authority-band"
             >
-              view the source
-            </a>
-          </Text>
-        </Stack>
+              <div className="ops-authority-title">
+                <span aria-hidden="true">◇</span>
+                <div>
+                  <strong>Identity &amp; Authority</strong>
+                  <span>strengthens every system</span>
+                </div>
+              </div>
+              <div className="ops-authority-items">
+                {authorityItems.map((item) => (
+                  <span key={item}>{item}</span>
+                ))}
+              </div>
+            </ControlSurface>
+
+            <div className="ops-live-line">
+              <span className="ops-live-dot" aria-hidden="true" />
+              <span>illustrative execution</span>
+              <code>task claimed</code>
+              <span aria-hidden="true">·</span>
+              <code>policy snapshot pinned</code>
+              <span aria-hidden="true">·</span>
+              <code>evidence signed</code>
+            </div>
+          </div>
+        </div>
+
+        <a className="ops-scroll-cue" href="#execution-trace">
+          Follow one task through the system
+          <span aria-hidden="true">↓</span>
+        </a>
       </Container>
     </section>
-  );
-}
-
-function AuthorityStep({
-  label,
-  tone,
-  showArrow = false,
-}: {
-  label: string;
-  tone: 'accent' | 'primary';
-  showArrow?: boolean;
-}) {
-  const theme = useTheme();
-  const color =
-    tone === 'accent'
-      ? theme.color.accent.DEFAULT
-      : theme.color.primary.DEFAULT;
-  const background =
-    tone === 'accent' ? theme.color.accent.muted : theme.color.primary.muted;
-
-  return (
-    <li
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: theme.spacing[2],
-      }}
-    >
-      <span
-        style={{
-          padding: `${theme.spacing[1]} ${theme.spacing[2]}`,
-          borderRadius: theme.radius.sm,
-          background,
-          color,
-        }}
-      >
-        {label}
-      </span>
-      {showArrow && (
-        <span aria-hidden="true" style={{ color: 'currentColor' }}>
-          &rarr;
-        </span>
-      )}
-    </li>
   );
 }

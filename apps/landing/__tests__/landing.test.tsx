@@ -10,16 +10,17 @@ import { memoryLocation } from 'wouter/memory-location';
 
 import { App } from '../src/App';
 import { AgentBeacon } from '../src/components/AgentBeacon';
-import { Architecture } from '../src/components/Architecture';
+import { AuthorityPlane } from '../src/components/AuthorityPlane';
 import { Collaboration } from '../src/components/Collaboration';
+import { ExecutionTrace } from '../src/components/ExecutionTrace';
 import { FeedSearch } from '../src/components/feed/FeedSearch';
 import { TagChip } from '../src/components/feed/TagChip';
 import { Footer } from '../src/components/Footer';
 import { GetStarted } from '../src/components/GetStarted';
 import { Hero } from '../src/components/Hero';
 import { Nav } from '../src/components/Nav';
-import { Problem } from '../src/components/Problem';
-import { MoltStack } from '../src/components/Stack';
+import { OpenSource } from '../src/components/OpenSource';
+import { Systems } from '../src/components/Systems';
 import { GettingStartedPage } from '../src/pages/GettingStartedPage';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -54,20 +55,24 @@ describe('smoke render', () => {
     wrap(<Hero />);
   });
 
-  it('renders Problem', () => {
-    wrap(<Problem />);
+  it('renders ExecutionTrace', () => {
+    wrap(<ExecutionTrace />);
   });
 
   it('renders Collaboration', () => {
     wrap(<Collaboration />);
   });
 
-  it('renders MoltStack', () => {
-    wrap(<MoltStack />);
+  it('renders Systems', () => {
+    wrap(<Systems />);
   });
 
-  it('renders Architecture', () => {
-    wrap(<Architecture />);
+  it('renders AuthorityPlane', () => {
+    wrap(<AuthorityPlane />);
+  });
+
+  it('renders OpenSource', () => {
+    wrap(<OpenSource />);
   });
 
   it('renders GetStarted', () => {
@@ -84,30 +89,22 @@ describe('smoke render', () => {
 // ---------------------------------------------------------------------------
 
 describe('content', () => {
-  it('Hero states the accountable-authority promise', () => {
-    wrap(<Hero />);
-    expect(screen.getByText(/agents should not/i)).toBeInTheDocument();
-    expect(screen.getByText(/inherit your authority/i)).toBeInTheDocument();
-  });
-
-  it('Hero shows the authority chain', () => {
+  it('Hero states the agent operations promise', () => {
     wrap(<Hero />);
     expect(
-      screen.getByRole('list', { name: 'MoltNet authority chain' }),
+      screen.getByRole('heading', {
+        name: /run autonomous agents with authority you can account for/i,
+      }),
     ).toBeInTheDocument();
-    expect(screen.getAllByRole('listitem')).toHaveLength(4);
-    expect(screen.getByText('agent key')).toBeInTheDocument();
-    expect(screen.getByText('task credential')).toBeInTheDocument();
-    expect(screen.getByText('runtime policy')).toBeInTheDocument();
-    expect(screen.getByText('attributable evidence')).toBeInTheDocument();
   });
 
-  it('Hero links to the console', () => {
+  it('Hero shows the three systems and their authority foundation', () => {
     wrap(<Hero />);
-    const link = screen.getByRole('link', { name: /open console/i });
-    expect(link).toHaveAttribute('href', 'https://console.themolt.net');
-    expect(link).toHaveAttribute('target', '_blank');
-    expect(link.getAttribute('rel')).toContain('noopener');
+    expect(screen.getByLabelText('MoltNet system map')).toBeInTheDocument();
+    expect(screen.getAllByText('Task Engine').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Agent Runtime').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Knowledge Factory').length).toBeGreaterThan(0);
+    expect(screen.getByText('Identity & Authority')).toBeInTheDocument();
   });
 
   it('Hero foregrounds one team-pilot CTA', () => {
@@ -149,45 +146,49 @@ describe('content', () => {
     expect(integrations).not.toHaveAttribute('open');
   });
 
-  it('Problem section has all three before/after pairs', () => {
-    wrap(<Problem />);
-    const befores = [
-      'Agent inherits human credentials',
-      'Every exposed tool is available',
-      'No reason for the decision',
-    ];
-    const afters = [
-      'Agent receives a task credential',
-      'Runtime policy bounds execution',
-      'Evidence explains why it was allowed',
-    ];
-    for (const label of [...befores, ...afters]) {
-      const matches = screen.getAllByText(label);
-      expect(matches.length).toBeGreaterThanOrEqual(1);
-    }
+  it('ExecutionTrace preserves the causal task trail', () => {
+    wrap(<ExecutionTrace />);
+    const trace = screen.getByRole('list', {
+      name: 'MoltNet task execution trace',
+    });
+    expect(trace).toBeInTheDocument();
+    expect(trace.querySelectorAll(':scope > li')).toHaveLength(5);
+    expect(screen.getByText('Propose')).toBeInTheDocument();
+    expect(screen.getByText('Authorize')).toBeInTheDocument();
+    expect(screen.getByText('Execute')).toBeInTheDocument();
+    expect(screen.getByText('Accept')).toBeInTheDocument();
+    expect(screen.getByText('Reuse')).toBeInTheDocument();
   });
 
-  it('Collaboration section shows team trust capabilities', () => {
-    wrap(<Collaboration />);
+  it('Systems explains all three operating systems', () => {
+    wrap(<Systems />);
     expect(
-      screen.getByText(/a console for the people behind the agents/i),
+      screen.getByText(/work enters as a typed promise/i),
     ).toBeInTheDocument();
-    expect(screen.getByText('Human console')).toBeInTheDocument();
-    expect(screen.getByText('Scoped access')).toBeInTheDocument();
-    expect(screen.getByText('Hosted connectors')).toBeInTheDocument();
-  });
-
-  it('Collaboration names the board-and-live-pane loop', () => {
-    wrap(<Collaboration />);
     expect(
-      screen.getByText(/visual board with a live task stream/i),
+      screen.getByText(/choose how much freedom the task actually needs/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/turn attributed experience into context/i),
     ).toBeInTheDocument();
   });
 
-  it('Collaboration shows the three product screenshots with alt text', () => {
+  it('AuthorityPlane states the non-inheritance principle', () => {
+    wrap(<AuthorityPlane />);
+    expect(
+      screen.getByRole('heading', {
+        name: 'Agents should not inherit your authority.',
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Ory Kratos · Hydra · Keto/)).toBeInTheDocument();
+    expect(screen.getByText('Enforcement')).toBeInTheDocument();
+    expect(screen.getByText('Evidence')).toBeInTheDocument();
+  });
+
+  it('Collaboration uses real Console screens as product proof', () => {
     wrap(<Collaboration />);
     expect(screen.getByAltText(/task board/i)).toBeInTheDocument();
-    expect(screen.getByAltText(/live task stream/i)).toBeInTheDocument();
+    expect(screen.getByAltText(/live task pane waiting/i)).toBeInTheDocument();
     expect(screen.getByAltText(/create task dialog/i)).toBeInTheDocument();
   });
 
@@ -197,25 +198,17 @@ describe('content', () => {
     expect(beacon?.getAttribute('data-agent-message')).toMatch(/board/i);
   });
 
-  it('Stack section names all four conceptual layers', () => {
-    wrap(<MoltStack />);
-    expect(screen.getByText('Identity')).toBeInTheDocument();
-    expect(screen.getByText('Memory')).toBeInTheDocument();
-    expect(screen.getByText('Coordination')).toBeInTheDocument();
-    expect(screen.getByText('Proof')).toBeInTheDocument();
-  });
-
-  it('Architecture lists product surfaces instead of tool dumps', () => {
-    wrap(<Architecture />);
+  it('OpenSource names the interfaces and infrastructure foundation', () => {
+    wrap(<OpenSource />);
     const surfaces = [
       'Console',
-      'LeGreffier',
-      'MCP',
       'REST API',
-      'CLI',
-      'SDK',
+      'MCP',
+      'CLI + SDK',
       'Agent daemon',
-      'Public feed',
+      'Ory',
+      'Postgres + pgvector',
+      'OpenTelemetry',
     ];
     for (const surface of surfaces) {
       expect(screen.getAllByText(surface).length).toBeGreaterThan(0);
@@ -230,18 +223,18 @@ describe('content', () => {
   it('Footer shows tagline', () => {
     wrapWithRouter(<Footer />);
     expect(
-      screen.getByText(/Built for accountable agent work/),
+      screen.getByText(/open-source infrastructure for durable/i),
     ).toBeInTheDocument();
   });
 
-  it('GetStarted includes audience-specific paths', () => {
+  it('GetStarted closes on one bounded pilot', () => {
     wrap(<GetStarted />);
     expect(
-      screen.getByText('Choose the path that matches the actor'),
+      screen.getByText('One team. One agent. One supervised task.'),
     ).toBeInTheDocument();
-    expect(screen.getByText('Humans')).toBeInTheDocument();
-    expect(screen.getByText('Operators')).toBeInTheDocument();
-    expect(screen.getByText('console.themolt.net')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /start a team pilot/i }),
+    ).toHaveAttribute('href', '/getting-started');
   });
 
   it('Nav links to the console', () => {
@@ -252,11 +245,20 @@ describe('content', () => {
     expect(link.getAttribute('rel')).toContain('noopener');
   });
 
-  it('Nav marks the current route', () => {
-    wrapWithRouter(<Nav />, '/feed');
-
-    const feed = screen.getByRole('link', { name: 'Feed' });
-    expect(feed).toHaveAttribute('aria-current', 'page');
+  it('Nav exposes direct anchors to the three systems', () => {
+    wrapWithRouter(<Nav />);
+    expect(screen.getByRole('link', { name: 'Task Engine' })).toHaveAttribute(
+      'href',
+      '/#task-engine',
+    );
+    expect(screen.getByRole('link', { name: 'Agent Runtime' })).toHaveAttribute(
+      'href',
+      '/#agent-runtime',
+    );
+    expect(screen.getByRole('link', { name: 'Knowledge' })).toHaveAttribute(
+      'href',
+      '/#knowledge-factory',
+    );
   });
 
   it('App exposes a skip link and main landmark', () => {
@@ -352,7 +354,7 @@ describe('links', () => {
 
   it('nav route links point to valid paths', () => {
     wrapWithRouter(<App />);
-    const routes = ['/getting-started', '/architecture', '/feed'];
+    const routes = ['/getting-started', '/architecture'];
     for (const route of routes) {
       const link = screen
         .getAllByRole('link')

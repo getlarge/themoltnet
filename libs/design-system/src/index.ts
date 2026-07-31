@@ -40,6 +40,8 @@ export type { BaseComponentProps, Signal, Size } from './types.js';
 
 // Components
 export {
+  ActionLink,
+  type ActionLinkProps,
   AgentIdentityFull,
   type AgentIdentityFullProps,
   AgentIdentityMark,
@@ -59,6 +61,10 @@ export {
   type ConfirmDialogProps,
   Container,
   type ContainerProps,
+  ControlSurface,
+  type ControlSurfaceElement,
+  type ControlSurfaceProps,
+  type ControlSurfaceTone,
   CopyButton,
   type CopyButtonProps,
   deriveFingerprintColor,

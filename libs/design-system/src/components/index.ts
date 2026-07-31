@@ -1,3 +1,4 @@
+export { ActionLink, type ActionLinkProps } from './action-link.js';
 export {
   AgentIdentityFull,
   type AgentIdentityFullProps,
@@ -21,6 +22,12 @@ export { Card, type CardProps, type CardVariant } from './card.js';
 export { CodeBlock, type CodeBlockProps } from './code-block.js';
 export { ConfirmDialog, type ConfirmDialogProps } from './confirm-dialog.js';
 export { Container, type ContainerProps } from './container.js';
+export {
+  ControlSurface,
+  type ControlSurfaceElement,
+  type ControlSurfaceProps,
+  type ControlSurfaceTone,
+} from './control-surface.js';
 export { CopyButton, type CopyButtonProps } from './copy-button.js';
 export { Dialog, type DialogProps } from './dialog.js';
 export { Divider, type DividerProps } from './divider.js';
