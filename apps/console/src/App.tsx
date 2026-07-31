@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import { Route, Switch, useLocation } from 'wouter';
 
 import { AuthGuard } from './auth/AuthGuard.js';
-import { getConfig } from './config.js';
 import { DashboardLayout } from './layout/DashboardLayout.js';
 import { AgentKeysPage } from './pages/AgentKeysPage.js';
 import { DiariesPage } from './pages/DiariesPage.js';
@@ -25,7 +24,6 @@ import { TeamsPage } from './pages/TeamsPage.js';
 import { legacyProfilesDestination } from './runtime-routes.js';
 
 export function App() {
-  const signingEnabled = Boolean(getConfig().signerUrl);
   return (
     <AuthGuard>
       <DashboardLayout>
@@ -76,7 +74,7 @@ export function App() {
               <AgentKeysPage />
             </RuntimePage>
           </Route>
-          {signingEnabled && <Route path="/signing" component={SigningPage} />}
+          <Route path="/signing" component={SigningPage} />
           <Route path="/teams" component={TeamsPage} />
           <Route path="/teams/:id">
             {(params: { id: string }) => <TeamDetailPage id={params.id} />}

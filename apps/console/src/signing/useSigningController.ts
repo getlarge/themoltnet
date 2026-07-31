@@ -73,7 +73,7 @@ export function useSigningController(): SigningController {
   const companion = useMemo(
     () =>
       createSignerCompanionClient({
-        baseUrl: requiredSignerUrl(),
+        baseUrl: getConfig().signerUrl,
       }),
     [],
   );
@@ -97,27 +97,29 @@ export function useSigningController(): SigningController {
     enabled: Boolean(teamId),
   });
 
-  useEffect(() => {
-    let active = true;
+  const connectCompanion = useCallback(async () => {
     setCompanionStatus('connecting');
-    companion
-      .connect()
-      .then(() => {
-        if (active) setCompanionStatus('connected');
-      })
-      .catch(() => {
-        if (active) setCompanionStatus('unavailable');
-      });
-    return () => {
-      active = false;
-    };
+    try {
+      await companion.connect();
+      setCompanionStatus('connected');
+    } catch {
+      setCompanionStatus('unavailable');
+    }
   }, [companion]);
+
+  useEffect(() => {
+    void connectCompanion();
+  }, [connectCompanion]);
 
   const refetchCredentials = credentialsQuery.refetch;
   const refetchRequests = requestsQuery.refetch;
   const refresh = useCallback(async () => {
-    await Promise.all([refetchCredentials(), refetchRequests()]);
-  }, [refetchCredentials, refetchRequests]);
+    await Promise.all([
+      connectCompanion(),
+      refetchCredentials(),
+      refetchRequests(),
+    ]);
+  }, [connectCompanion, refetchCredentials, refetchRequests]);
 
   const run = useCallback(
     async (action: Exclude<SigningAction, null>, task: () => Promise<void>) => {
@@ -341,12 +343,6 @@ export function useSigningController(): SigningController {
     revoke: (credential) => lifecycle('revoke', credential),
     refresh,
   };
-}
-
-function requiredSignerUrl(): string {
-  const signerUrl = getConfig().signerUrl;
-  if (!signerUrl) throw new Error('Local signer is not enabled');
-  return signerUrl;
 }
 
 async function completedResult(
