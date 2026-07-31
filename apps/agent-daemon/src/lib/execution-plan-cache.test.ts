@@ -510,6 +510,81 @@ describe('createExecutionPlanCache', () => {
     await slotStore.close();
   });
 
+  it('preserves shared mount workspace context for freeform continuations', async () => {
+    const mountRoot = mkdtempSync(
+      join(tmpdir(), 'daemon-exec-plan-cont-shared-'),
+    );
+    tempRoots.push(mountRoot);
+    const stateDirs = {
+      rootDir: join(mountRoot, '.moltnet', 'd'),
+      piSessionsDir: join(mountRoot, '.moltnet', 'd', 'pi-sessions'),
+    };
+    mkdirSync(stateDirs.piSessionsDir, { recursive: true });
+
+    const producerSessionDir = join(stateDirs.piSessionsDir, 'producer-slot');
+    mkdirSync(producerSessionDir, { recursive: true });
+    const producerSessionPath = join(producerSessionDir, 'session-1.jsonl');
+    writeFileSync(producerSessionPath, '{"role":"system"}\n', 'utf8');
+
+    const slotStore = new InMemoryRuntimeSlotStore();
+    await slotStore.beginSlot({
+      teamId: TEAM_ID,
+      agentName: 'a',
+      runtimeProfileId: PROFILE_ID,
+      provider: 'p',
+      model: 'm',
+      slotKey: 'freeform:correlation:abc',
+      taskType: 'freeform',
+      sessionDir: producerSessionDir,
+      sessionPath: producerSessionPath,
+      workspaceId: null,
+      worktreePath: null,
+      worktreeBranch: null,
+      lastTaskId: '11111111-1111-4111-8111-111111111111',
+      lastAttemptN: 1,
+    });
+    await finishProducerSlot(slotStore, {
+      taskId: '11111111-1111-4111-8111-111111111111',
+      identity: { agentName: 'a', runtimeProfileId: PROFILE_ID },
+      slotKey: 'freeform:correlation:abc',
+      sessionPath: producerSessionPath,
+    });
+
+    const cache = createExecutionPlanCache({
+      stateDirs,
+      slotIdentity: { agentName: 'a', runtimeProfileId: PROFILE_ID },
+      warmSessionTtlSec: 300,
+      slotRegistry: slotStore,
+    });
+
+    const plan = await cache.getOrCreate({
+      attemptN: 1,
+      task: {
+        id: '22222222-2222-4222-8222-222222222222',
+        teamId: TEAM_ID,
+        taskType: 'freeform',
+        correlationId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        input: {
+          brief: 'continue in shared mount',
+          continueFrom: {
+            taskId: '11111111-1111-4111-8111-111111111111',
+            attemptN: 1,
+          },
+        },
+      } as unknown as Task,
+    });
+
+    expect(plan.workspaceMode).toBe('shared_mount');
+    expect(plan.workspaceId).toBeNull();
+    expect(plan.worktreeBranch).toBeNull();
+    expect(plan.workspaceRevision).toBeNull();
+    expect(plan.sessionPersistence?.forkFromSessionPath).toBe(
+      producerSessionPath,
+    );
+
+    await slotStore.close();
+  });
+
   it('preserves an immutable detached revision for freeform continuations', async () => {
     const mountRoot = mkdtempSync(
       join(tmpdir(), 'daemon-exec-plan-cont-revision-'),
@@ -670,8 +745,10 @@ describe('createExecutionPlanCache', () => {
     expect(plan.sessionPersistence?.sessionDir).toBe(
       `${stateDirs.piSessionsDir}/continue-22222222-2222-4222-8222-222222222222-attempt-1`,
     );
+    expect(plan.workspaceMode).toBe('shared_mount');
     expect(plan.workspaceId).toBeNull();
     expect(plan.worktreeBranch).toBeNull();
+    expect(plan.workspaceRevision).toBeNull();
 
     await slotStore.close();
   });
@@ -740,9 +817,10 @@ describe('createExecutionPlanCache', () => {
     expect(plan.sessionPersistence?.sessionDir).toBe(
       `${stateDirs.piSessionsDir}/continue-22222222-2222-4222-8222-222222222222-attempt-1`,
     );
-    expect(plan.workspaceMode).toBe('dedicated_worktree');
+    expect(plan.workspaceMode).toBe('shared_mount');
     expect(plan.workspaceId).toBeNull();
     expect(plan.worktreeBranch).toBeNull();
+    expect(plan.workspaceRevision).toBeNull();
     expect(plan.workspaceSeed).toBeUndefined();
 
     await slotStore.close();

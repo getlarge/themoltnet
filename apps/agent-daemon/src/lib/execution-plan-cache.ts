@@ -393,13 +393,17 @@ async function maybeAttachWarmSlotContext(
           `Cannot fork continuation of ${continueFrom.taskId}/${continueFrom.attemptN}: durable runtime session is available but the source attempt output did not report a branch`,
         );
       }
+      const hasDedicatedWorkspace = Boolean(
+        recoveredBranch || recoveredRevision,
+      );
       return {
         ...basePlan,
-        workspaceMode: 'dedicated_worktree',
-        workspaceId:
-          recoveredBranch || recoveredRevision
-            ? buildAttemptWorkspaceId(claimedTask)
-            : null,
+        workspaceMode: hasDedicatedWorkspace
+          ? 'dedicated_worktree'
+          : 'shared_mount',
+        workspaceId: hasDedicatedWorkspace
+          ? buildAttemptWorkspaceId(claimedTask)
+          : null,
         worktreeBranch: recoveredBranch,
         workspaceRevision: recoveredRevision,
         sessionPersistence: {
@@ -463,13 +467,15 @@ async function maybeAttachWarmSlotContext(
     // is no branch to share and the continuation correctly runs on the shared
     // mount too. Dedicated worktree producers must still resolve to a recorded
     // workspace path before this point.
+    const hasDedicatedWorkspace = Boolean(parentBranch || parentRevision);
     return {
       ...basePlan,
-      workspaceMode: 'dedicated_worktree',
-      workspaceId:
-        parentBranch || parentRevision
-          ? buildAttemptWorkspaceId(claimedTask)
-          : null,
+      workspaceMode: hasDedicatedWorkspace
+        ? 'dedicated_worktree'
+        : 'shared_mount',
+      workspaceId: hasDedicatedWorkspace
+        ? buildAttemptWorkspaceId(claimedTask)
+        : null,
       worktreeBranch: parentBranch,
       workspaceRevision: parentRevision,
       sessionPersistence: {
