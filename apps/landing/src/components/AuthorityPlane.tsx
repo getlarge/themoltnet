@@ -107,7 +107,7 @@ export function AuthorityPlane() {
           <div className="ops-ory-foundation">
             <div>
               <span className="ops-kicker">Foundation</span>
-              <strong>Ory Kratos · Hydra · Keto</strong>
+              <strong>Ory Kratos · Hydra · Keto · Talos</strong>
             </div>
             <p>
               MoltNet uses proven identity infrastructure, then makes it useful

@@ -186,7 +186,9 @@ describe('content', () => {
         name: 'Agents should not inherit your authority.',
       }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Ory Kratos · Hydra · Keto/)).toBeInTheDocument();
+    expect(
+      screen.getByText('Ory Kratos · Hydra · Keto · Talos'),
+    ).toBeInTheDocument();
     expect(screen.getByText('Enforcement')).toBeInTheDocument();
     expect(screen.getByText('Evidence')).toBeInTheDocument();
   });
@@ -212,7 +214,7 @@ describe('content', () => {
       'MCP',
       'CLI + SDK',
       'Agent daemon',
-      'Ory',
+      'Ory identity + credentials',
       'Postgres + pgvector',
       'OpenTelemetry',
     ];

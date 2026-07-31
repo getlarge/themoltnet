@@ -15,7 +15,11 @@ const interfaces = [
   ['Agent daemon', 'durable workers'],
 ] as const;
 
-const foundations = ['Ory', 'Postgres + pgvector', 'OpenTelemetry'] as const;
+const foundations = [
+  'Ory identity + credentials',
+  'Postgres + pgvector',
+  'OpenTelemetry',
+] as const;
 
 export function OpenSource() {
   return (
