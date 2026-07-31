@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.40.0](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.39.1...agent-runtime-v0.40.0) (2026-07-31)
+
+
+### Features
+
+* **review:** refactor multi-lens review into bounded topic graph ([9c124da](https://github.com/getlarge/themoltnet/commit/9c124da20835ae31169636bfec8c2f8773adfdfd))
+
+
+### Bug Fixes
+
+* **packaging:** derive published externals ([b623477](https://github.com/getlarge/themoltnet/commit/b623477cdce586cc1e098a3dc017efde0228efa0)), closes [#1794](https://github.com/getlarge/themoltnet/issues/1794) [#1795](https://github.com/getlarge/themoltnet/issues/1795)
+* **packaging:** externalize published dependencies ([cc49eec](https://github.com/getlarge/themoltnet/commit/cc49eecac53a7681467487ee11b372c0c277fddf))
+* **packaging:** preserve published dependency boundaries ([19db165](https://github.com/getlarge/themoltnet/commit/19db1657362a4743282196f504336ea853b9342c))
+* **runtime:** expose effective capabilities to tasks ([6545191](https://github.com/getlarge/themoltnet/commit/654519171a6ee07512d65eb3b37f227517aa8fba))
+
 ## [0.39.1](https://github.com/getlarge/themoltnet/compare/agent-runtime-v0.39.0...agent-runtime-v0.39.1) (2026-07-30)
 
 

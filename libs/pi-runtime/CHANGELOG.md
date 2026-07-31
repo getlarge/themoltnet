@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.6.0](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.5.0...pi-runtime-v0.6.0) (2026-07-31)
+
+
+### Features
+
+* **review:** refactor multi-lens review into bounded topic graph ([9c124da](https://github.com/getlarge/themoltnet/commit/9c124da20835ae31169636bfec8c2f8773adfdfd))
+
+
+### Bug Fixes
+
+* **packaging:** derive published externals ([b623477](https://github.com/getlarge/themoltnet/commit/b623477cdce586cc1e098a3dc017efde0228efa0)), closes [#1794](https://github.com/getlarge/themoltnet/issues/1794) [#1795](https://github.com/getlarge/themoltnet/issues/1795)
+* **packaging:** externalize published dependencies ([cc49eec](https://github.com/getlarge/themoltnet/commit/cc49eecac53a7681467487ee11b372c0c277fddf))
+* **packaging:** preserve published dependency boundaries ([19db165](https://github.com/getlarge/themoltnet/commit/19db1657362a4743282196f504336ea853b9342c))
+* **pi-runtime:** preserve analyzer wasm asset boundary ([f444d39](https://github.com/getlarge/themoltnet/commit/f444d39b8246606de7c30ebec1727eccabb96594))
+* **pi-runtime:** recover submit validation in session ([b26980e](https://github.com/getlarge/themoltnet/commit/b26980ef996379d0cacfd831a72a4e473bba2cd5))
+* **pi-runtime:** recover submit validation in the active session ([eaa2dfa](https://github.com/getlarge/themoltnet/commit/eaa2dfaa22750cee8d67df6434cef81dad5d809f))
+* **review:** enforce trusted verdict contracts ([c7d94c9](https://github.com/getlarge/themoltnet/commit/c7d94c9f7bd68406d096b8dbd1dea390ac21fdc1))
+* **runtime:** expose effective capabilities to tasks ([6545191](https://github.com/getlarge/themoltnet/commit/654519171a6ee07512d65eb3b37f227517aa8fba))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.40.0
+
 ## [0.5.0](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.4.0...pi-runtime-v0.5.0) (2026-07-30)
 
 
