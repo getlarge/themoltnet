@@ -1,22 +1,69 @@
 export {
   createMultiLensReviewAbsurdApp,
+  durableMultiLensReviewOutput,
   MULTI_LENS_REVIEW_TASK,
 } from './absurd.js';
-export {
-  assertReviewDiffWithinLimit,
-  MAX_REVIEW_DIFF_BYTES,
-  stageReviewDiff,
-} from './diff-artifact.js';
+export { generatedPathsFromBaseAttributes } from './git-attributes.js';
 export { resolveRuntimeProfileRouting } from './profile-routing.js';
 export {
+  type GitHubFileMetadata,
+  inspectReviewDiff,
+  MAX_RAW_DIFF_BYTES,
+  MAX_REVIEW_FILES,
+  type ParsedReviewFile,
+  type ParsedReviewInput,
+  PLANNER_BYTE_THRESHOLD,
+  PLANNER_FILE_THRESHOLD,
+  PLANNER_LOC_THRESHOLD,
+  printablePreflight,
+  type PrintableReviewPreflight,
+  stageReviewManifest,
+} from './review-input.js';
+export { hydrateMultiLensReviewOutput } from './review-output.js';
+export {
+  coverageLedgerForPlan,
+  deterministicTopicPlan,
+  MAX_CONTEXT_FILES_PER_TOPIC,
+  MAX_CONTEXT_OWNERS_PER_FILE,
+  MAX_PRIMARY_FILES_PER_TOPIC,
+  MAX_SINGLETON_TOPIC_BYTES,
+  MAX_TOPIC_BYTES,
+  MAX_TOPIC_REVIEW_TASKS,
+  MAX_TOPICS,
+  parseTopicPlanJson,
+  topicByteSize,
+  validateTopicPlan,
+} from './topic-plan.js';
+export {
+  type AcceptedReviewOutputReference,
+  type CoverageLedger,
   DEFAULT_LENSES,
+  type DesignPreflight,
+  type GeneratedFileCandidate,
+  type GlobalVerdict,
+  type LaneFinding,
+  type LaneResult,
+  MANDATORY_REVIEW_LANES,
   type MultiLensReviewDeps,
+  type MultiLensReviewDurableOutput,
   type MultiLensReviewInput,
   type MultiLensReviewOutput,
-  type ReviewDiffArtifact,
-  type ReviewResult,
-  type ReviewState,
+  type MultiLensReviewPublishedOutput,
+  REVIEW_LANES,
+  type ReviewArtifactRecord,
+  type ReviewDiagnostics,
+  type ReviewFileArtifactRecord,
+  type ReviewFileManifestRecord,
+  type ReviewFileRecord,
+  type ReviewLane,
+  type ReviewManifest,
+  type ReviewPatchSource,
+  type ReviewPhaseOutputReferences,
+  type ReviewTopic,
   type RuntimeProfileRouting,
+  type TopicPlan,
+  type TopicReviewResult,
+  type TopicVerdict,
 } from './types.js';
 export {
   normalizeMultiLensReviewInput,

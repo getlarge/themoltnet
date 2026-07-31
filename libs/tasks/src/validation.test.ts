@@ -198,6 +198,33 @@ describe('validateTaskCreateRequest', () => {
     expect(errors.length).toBeGreaterThan(0);
   });
 
+  it('accepts an immutable freeform workspace revision', () => {
+    const errors = validateTaskCreateRequest({
+      taskType: 'freeform',
+      input: {
+        brief: 'review the exact target tree',
+        execution: {
+          workspace: 'shared_mount',
+          revision: 'a'.repeat(40),
+        },
+      },
+    });
+    expect(errors).toEqual([]);
+  });
+
+  it('rejects a symbolic or abbreviated freeform workspace revision', () => {
+    for (const revision of ['main', 'abc1234']) {
+      const errors = validateTaskCreateRequest({
+        taskType: 'freeform',
+        input: {
+          brief: 'review the exact target tree',
+          execution: { workspace: 'shared_mount', revision },
+        },
+      });
+      expect(errors.length).toBeGreaterThan(0);
+    }
+  });
+
   it('accepts freeform artifacts with inline body up to 64 KiB', () => {
     const body = 'x'.repeat(65_536);
     const errors = validateTaskOutput('freeform', {
@@ -1541,6 +1568,46 @@ describe('freeform validateInputAsync — continuation', () => {
       }),
     );
     expect(errors[0]?.code).toBe('freeform.executionWorkspaceNotInheritable');
+  });
+
+  it('rejects execution.revision when continueFrom is set', async () => {
+    const errors = await validator(
+      {
+        brief: 'x',
+        execution: { revision: 'a'.repeat(40) },
+        continueFrom: { taskId: SOURCE_TASK_ID, attemptN: 1 },
+      },
+      makeCtx({
+        resolveTask: vi.fn().mockResolvedValue({ taskType: 'freeform' }),
+        listAttempts: vi.fn().mockResolvedValue([
+          {
+            attemptN: 1,
+            status: 'completed',
+            daemonState: {
+              reportedAt: new Date().toISOString(),
+              slotResumableUntil: new Date(Date.now() + 60_000).toISOString(),
+            },
+          },
+        ]),
+      }),
+    );
+    expect(errors[0]?.code).toBe('freeform.executionRevisionNotInheritable');
+  });
+
+  it('rejects execution.revision with a scratch workspace', async () => {
+    const errors = await validator(
+      {
+        brief: 'x',
+        execution: {
+          workspace: 'none',
+          revision: 'a'.repeat(40),
+        },
+      },
+      makeCtx({}),
+    );
+    expect(errors[0]?.code).toBe(
+      'freeform.executionRevisionRequiresRepository',
+    );
   });
 
   it('still rejects execution.workspace when deferReadinessChecks is true', async () => {

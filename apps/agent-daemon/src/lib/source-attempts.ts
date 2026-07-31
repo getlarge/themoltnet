@@ -1,6 +1,7 @@
 import type { Agent } from '@themoltnet/sdk';
 
 import type { SourceAttemptResolver } from './execution-plan-cache.js';
+import { resolveTaskWorkspaceRevision } from './task-execution-plan.js';
 
 export function createApiSourceAttemptResolver(args: {
   agent: Agent;
@@ -15,6 +16,16 @@ export function createApiSourceAttemptResolver(args: {
       );
       if (!attempt || attempt.status !== 'completed') return null;
       return resolveOutputBranch(attempt.output);
+    },
+    async findInputRevision(input) {
+      const task = await agent.tasks.get(input.taskId);
+      if (
+        task.status !== 'completed' ||
+        task.acceptedAttemptN !== input.attemptN
+      ) {
+        return null;
+      }
+      return resolveTaskWorkspaceRevision(task.input);
     },
   };
 }

@@ -23,6 +23,14 @@ export const FreeformExecutionOptions = Type.Object(
         Type.Literal('dedicated_worktree'),
       ]),
     ),
+    /**
+     * Immutable commit expected in the selected repository workspace.
+     *
+     * The daemon verifies a shared mount against this revision, or creates a
+     * detached dedicated worktree at it, before the model starts. Requiring a
+     * full object id avoids branch drift between task creation and execution.
+     */
+    revision: Type.Optional(Type.String({ pattern: '^[0-9a-fA-F]{40}$' })),
   },
   { $id: 'FreeformExecutionOptions', additionalProperties: false },
 );
@@ -167,6 +175,17 @@ export async function validateFreeformInputAsync(
   input: unknown,
   ctx: AsyncTaskValidationContext,
 ): Promise<TaskValidationError[]> {
+  const execution = (input as Partial<FreeformInput>).execution;
+  if (execution?.revision && execution.workspace === 'none') {
+    return [
+      {
+        field: 'input/execution/revision',
+        message:
+          'execution.revision requires a repository workspace; use shared_mount or dedicated_worktree',
+        code: 'freeform.executionRevisionRequiresRepository',
+      },
+    ];
+  }
   const cf = (input as { continueFrom?: FreeformContinueFrom }).continueFrom;
   if (!cf) return [];
 
@@ -195,7 +214,6 @@ export async function validateFreeformInputAsync(
   // daemon from parent runtime context. A caller-supplied execution.workspace
   // would be silently overridden at the daemon plan stage, so reject it at
   // create time rather than let it look honored.
-  const execution = (input as Partial<FreeformInput>).execution;
   if (execution?.workspace) {
     return [
       {
@@ -203,6 +221,16 @@ export async function validateFreeformInputAsync(
         message:
           'execution.workspace is derived from parent runtime context when continueFrom is set; omit it',
         code: 'freeform.executionWorkspaceNotInheritable',
+      },
+    ];
+  }
+  if (execution?.revision) {
+    return [
+      {
+        field: 'input/execution/revision',
+        message:
+          'execution.revision is derived from parent runtime context when continueFrom is set; omit it',
+        code: 'freeform.executionRevisionNotInheritable',
       },
     ];
   }

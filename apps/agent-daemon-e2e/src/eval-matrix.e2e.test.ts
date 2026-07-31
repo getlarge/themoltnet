@@ -25,7 +25,6 @@ import { join, resolve } from 'node:path';
 
 import {
   buildJudgeInput,
-  buildRunEvalInput,
   checkGates,
   readScenario,
   runMatrix,
@@ -40,6 +39,7 @@ import { runOnce } from '@themoltnet/agent-daemon/cli/once.js';
 import { type Agent, connect } from '@themoltnet/sdk';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { createScenarioProducerTask } from './fixtures.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
 const MATRIX_FLAG = 'MOLTNET_EVAL_MATRIX';
@@ -147,9 +147,9 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
   let agentName: string;
   let judgePiDir: string;
   let judgeProfileId: string;
-  let sandboxRoot: string;
   let agentRoot: string;
   const perModel = new Map<string, { profileId: string; piDir: string }>();
+  const producerSandboxRoots = new Map<string, string>();
   const tempRoots: string[] = [];
   const models = parseModels();
   const judgeModel =
@@ -172,8 +172,7 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
     });
 
     agentRoot = mkdtempSync(join(tmpdir(), 'eval-matrix-agent-'));
-    sandboxRoot = mkdtempSync(join(tmpdir(), 'eval-matrix-sbx-'));
-    tempRoots.push(agentRoot, sandboxRoot);
+    tempRoots.push(agentRoot);
     writeAgentCredentials({
       agentRoot,
       agentName,
@@ -212,30 +211,17 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
       log: (m) => console.log(`[eval-matrix] ${m}`),
       runProducer: async (model, scenario) => {
         const cfg = perModel.get(model)!;
-        const built =
-          scenario.taskType === 'freeform'
-            ? agent.tasks
-                .buildFreeform({
-                  brief: scenario.prompt,
-                  execution: { workspace: scenario.execution.workspace },
-                })
-                .title(`matrix ${model} ${scenario.slug}`)
-                .diary(diaryId)
-                .correlationId(randomUUID())
-                .maxAttempts(1)
-                .team(teamId)
-                .build()
-            : agent.tasks
-                .buildRunEval(
-                  buildRunEvalInput(scenario, { variant: 'baseline' }),
-                )
-                .title(`matrix ${model} ${scenario.slug}`)
-                .diary(diaryId)
-                .correlationId(randomUUID())
-                .maxAttempts(1)
-                .team(teamId)
-                .build();
-        const task = await agent.tasks.create(built);
+        const sandboxRoot = mkdtempSync(join(tmpdir(), 'eval-matrix-sbx-'));
+        tempRoots.push(sandboxRoot);
+        const task = await createScenarioProducerTask({
+          agent,
+          scenario,
+          sandboxRoot,
+          teamId,
+          diaryId,
+          title: `matrix ${model} ${scenario.slug}`,
+        });
+        producerSandboxRoots.set(task.id, sandboxRoot);
         await runTaskOnce({
           agentName,
           agentRoot,
@@ -293,7 +279,13 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
           agentName,
           agentRoot,
           piDir: judgePiDir,
-          sandboxRoot,
+          sandboxRoot:
+            producerSandboxRoots.get(producer.taskId) ??
+            (() => {
+              throw new Error(
+                `missing sandbox root for producer ${producer.taskId}`,
+              );
+            })(),
           teamId,
           profileId: judgeProfileId,
           taskId: judgeTask.id,

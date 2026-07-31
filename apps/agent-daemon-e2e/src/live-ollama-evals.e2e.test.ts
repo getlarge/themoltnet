@@ -16,7 +16,6 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import {
-  buildRunEvalInput,
   checkGates,
   readScenario,
   type Scenario,
@@ -28,6 +27,7 @@ import { runOnce } from '@themoltnet/agent-daemon/cli/once.js';
 import { type Agent, connect } from '@themoltnet/sdk';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { createScenarioProducerTask } from './fixtures.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
 const LIVE_LLM_FLAG = 'MOLTNET_AGENT_DAEMON_LIVE_LLM_E2E';
@@ -137,10 +137,9 @@ describeLive('Agent daemon evals-v2 gate smoke (live Ollama, e2e)', () => {
     'passes deterministic gates for %s',
     async (_slug, scenario) => {
       // Arrange once — throwaway agent creds + Pi config pinned to the model.
-      const sandboxRoot = mkdtempSync(join(tmpdir(), 'evals-v2-sandbox-'));
       const agentRoot = mkdtempSync(join(tmpdir(), 'evals-v2-agent-'));
       const piDir = mkdtempSync(join(tmpdir(), 'evals-v2-pi-'));
-      tempRoots.push(sandboxRoot, agentRoot, piDir);
+      tempRoots.push(agentRoot, piDir);
       writeAgentCredentials({
         agentRoot,
         agentName,
@@ -156,33 +155,19 @@ describeLive('Agent daemon evals-v2 gate smoke (live Ollama, e2e)', () => {
       let result: Awaited<ReturnType<typeof checkGates>> | null = null;
       let lastDetail = '';
       for (let run = 1; run <= MAX_SCENARIO_RUNS; run++) {
+        const sandboxRoot = mkdtempSync(join(tmpdir(), 'evals-v2-sandbox-'));
+        tempRoots.push(sandboxRoot);
         // Build the producer for THIS task type: freeform submits a
         // FreeformOutput from a brief; run_eval submits a RunEvalOutput from a
         // scenario prompt. Both flow through the SDK TaskBuilder.
-        const built =
-          scenario.taskType === 'freeform'
-            ? agent.tasks
-                .buildFreeform({
-                  brief: scenario.prompt,
-                  execution: { workspace: scenario.execution.workspace },
-                })
-                .title(`evals-v2 ${scenario.slug}`)
-                .diary(diaryId)
-                .correlationId(randomUUID())
-                .maxAttempts(1)
-                .team(teamId)
-                .build()
-            : agent.tasks
-                .buildRunEval(
-                  buildRunEvalInput(scenario, { variant: 'baseline' }),
-                )
-                .title(`evals-v2 ${scenario.slug}`)
-                .diary(diaryId)
-                .correlationId(randomUUID())
-                .maxAttempts(1)
-                .team(teamId)
-                .build();
-        const task = await agent.tasks.create(built);
+        const task = await createScenarioProducerTask({
+          agent,
+          scenario,
+          sandboxRoot,
+          teamId,
+          diaryId,
+          title: `evals-v2 ${scenario.slug}`,
+        });
 
         // Act — run the task through the daemon once against the pinned model.
         const oldPiDir = process.env.PI_CODING_AGENT_DIR;

@@ -25,7 +25,13 @@
  */
 
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
@@ -170,6 +176,15 @@ async function main(): Promise<void> {
   // exactly what git expects.
   const sshPriv = join(agentDir, 'ssh', 'id_ed25519');
   const sshPub = `${sshPriv}.pub`;
+  if (force) {
+    for (const path of [
+      sshPriv,
+      sshPub,
+      join(agentDir, 'ssh', 'allowed_signers'),
+    ]) {
+      rmSync(path, { force: true });
+    }
+  }
   execFileSync(
     'ssh-keygen',
     ['-t', 'ed25519', '-N', '', '-C', `${agentName}@local`, '-f', sshPriv],

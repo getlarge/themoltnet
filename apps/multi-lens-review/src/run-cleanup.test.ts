@@ -4,12 +4,14 @@ import { describe, expect, it, vi } from 'vitest';
 import { cancelCorrelatedTasks } from './run-cleanup.js';
 
 describe('cancelCorrelatedTasks', () => {
-  it('cancels live tasks, skips terminal tasks, and contains sibling failures', async () => {
+  it('cancels unclaimed tasks, preserves running work, and contains sibling failures', async () => {
     const list = vi.fn().mockResolvedValue({
       items: [
         { id: 'waiting', status: 'waiting' },
+        { id: 'queued', status: 'queued' },
         { id: 'done', status: 'completed' },
         { id: 'running', status: 'running' },
+        { id: 'dispatched', status: 'dispatched' },
       ],
     });
     const cancel = vi
@@ -33,7 +35,7 @@ describe('cancelCorrelatedTasks', () => {
     expect(cancel).toHaveBeenNthCalledWith(1, 'waiting', {
       reason: 'multi-lens-review run aborted',
     });
-    expect(cancel).toHaveBeenNthCalledWith(2, 'running', {
+    expect(cancel).toHaveBeenNthCalledWith(2, 'queued', {
       reason: 'multi-lens-review run aborted',
     });
   });

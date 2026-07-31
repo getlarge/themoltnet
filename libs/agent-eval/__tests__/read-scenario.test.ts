@@ -1,4 +1,10 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -79,6 +85,7 @@ describe('readScenario', () => {
     expect(scenario.taskType).toBe('run_eval'); // default when eval.json omits it
     expect(scenario.prompt).toContain('Call the submit tool exactly once.');
     expect(scenario.execution).toEqual({ mode: 'vitro', workspace: 'none' });
+    expect(scenario.fixtures).toEqual({ inputArtifacts: [] });
     expect(scenario.rubric.criteria).toHaveLength(2);
     expect(scenario.gates.requireCleanSubmit).toBe(true);
   });
@@ -112,6 +119,113 @@ describe('readScenario', () => {
     // Act + Assert
     expect(() => readScenario(dir)).toThrow(ScenarioError);
     expect(() => readScenario(dir)).toThrow(/taskType "judge_eval_attempt"/);
+  });
+
+  it('resolves scenario-local workspace and input-artifact fixtures', () => {
+    // Arrange
+    const dir = writeScenario({
+      prompt: '# Review\nInspect the referenced manifest and workspace.\n',
+      evalJson: {
+        mode: 'vitro',
+        workspace: 'shared_mount',
+        taskType: 'freeform',
+        fixtures: {
+          workspaceSeed: 'workspace',
+          inputArtifacts: [
+            {
+              path: 'inputs/manifest.json',
+              role: 'reviewed_diff',
+              kind: 'review-manifest',
+              title: 'manifest.json',
+            },
+            { path: 'inputs/notes.md' },
+          ],
+        },
+      },
+      rubric: VALID_RUBRIC,
+      gates: VALID_GATES,
+    });
+    mkdirSync(join(dir, 'workspace', 'src'), { recursive: true });
+    writeFileSync(join(dir, 'workspace', 'src', 'index.ts'), 'export {};\n');
+    mkdirSync(join(dir, 'inputs'), { recursive: true });
+    writeFileSync(join(dir, 'inputs', 'manifest.json'), '{}\n');
+    writeFileSync(join(dir, 'inputs', 'notes.md'), '# Notes\n');
+
+    // Act
+    const scenario = readScenario(dir);
+
+    // Assert
+    expect(scenario.fixtures?.workspaceSeedPath).toBe(join(dir, 'workspace'));
+    expect(scenario.fixtures?.inputArtifacts).toEqual([
+      expect.objectContaining({
+        sourcePath: join(dir, 'inputs', 'manifest.json'),
+        role: 'reviewed_diff',
+        kind: 'review-manifest',
+        title: 'manifest.json',
+        contentType: 'application/json',
+      }),
+      expect.objectContaining({
+        sourcePath: join(dir, 'inputs', 'notes.md'),
+        role: 'context',
+        kind: 'eval-input',
+        title: 'notes.md',
+        contentType: 'text/markdown',
+      }),
+    ]);
+  });
+
+  it('rejects fixture paths that escape the scenario directory', () => {
+    const dir = writeScenario({
+      prompt: 'x',
+      evalJson: {
+        ...VALID_EVAL,
+        fixtures: {
+          inputArtifacts: [{ path: '../secret.txt' }],
+        },
+      },
+      rubric: VALID_RUBRIC,
+      gates: VALID_GATES,
+    });
+    writeFileSync(join(root, 'secret.txt'), 'not scenario input');
+
+    expect(() => readScenario(dir)).toThrow(/escapes the scenario directory/);
+  });
+
+  it('rejects symbolic links in workspace seeds', () => {
+    const dir = writeScenario({
+      prompt: 'x',
+      evalJson: {
+        mode: 'vitro',
+        workspace: 'shared_mount',
+        fixtures: { workspaceSeed: 'workspace' },
+      },
+      rubric: VALID_RUBRIC,
+      gates: VALID_GATES,
+    });
+    mkdirSync(join(dir, 'workspace'), { recursive: true });
+    writeFileSync(join(dir, 'outside.txt'), 'outside seed');
+    symlinkSync('../outside.txt', join(dir, 'workspace', 'linked.txt'));
+
+    expect(() => readScenario(dir)).toThrow(
+      /workspace seed contains symbolic link/,
+    );
+  });
+
+  it('rejects workspace seeds for non-shared workspaces', () => {
+    const dir = writeScenario({
+      prompt: 'x',
+      evalJson: {
+        ...VALID_EVAL,
+        fixtures: { workspaceSeed: 'workspace' },
+      },
+      rubric: VALID_RUBRIC,
+      gates: VALID_GATES,
+    });
+    mkdirSync(join(dir, 'workspace'), { recursive: true });
+
+    expect(() => readScenario(dir)).toThrow(
+      /workspaceSeed requires workspace "shared_mount"/,
+    );
   });
 
   it('throws when prompt.md is missing', () => {

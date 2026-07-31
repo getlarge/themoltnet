@@ -23,7 +23,6 @@ import { join, resolve } from 'node:path';
 
 import {
   type BaselineReport,
-  buildRunEvalInput,
   checkGates,
   readScenario,
   runBaseline,
@@ -37,6 +36,7 @@ import { runOnce } from '@themoltnet/agent-daemon/cli/once.js';
 import { type Agent, connect } from '@themoltnet/sdk';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { createScenarioProducerTask } from './fixtures.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
 const BASELINE_FLAG = 'MOLTNET_BASELINE';
@@ -63,7 +63,6 @@ describeBaseline('Producer baseline (live Ollama, e2e)', () => {
   let profileId: string;
   let agentRoot: string;
   let piDir: string;
-  let sandboxRoot: string;
   const tempRoots: string[] = [];
   const scenarios = loadScenarios();
 
@@ -84,8 +83,7 @@ describeBaseline('Producer baseline (live Ollama, e2e)', () => {
 
     agentRoot = mkdtempSync(join(tmpdir(), 'baseline-agent-'));
     piDir = mkdtempSync(join(tmpdir(), 'baseline-pi-'));
-    sandboxRoot = mkdtempSync(join(tmpdir(), 'baseline-sbx-'));
-    tempRoots.push(agentRoot, piDir, sandboxRoot);
+    tempRoots.push(agentRoot, piDir);
     writeAgentCredentials({
       agentRoot,
       agentName,
@@ -143,32 +141,18 @@ describeBaseline('Producer baseline (live Ollama, e2e)', () => {
       {
         log: (m) => console.log(`[baseline] ${m}`),
         runProducer: async (scenario) => {
+          const sandboxRoot = mkdtempSync(join(tmpdir(), 'baseline-sbx-'));
+          tempRoots.push(sandboxRoot);
           // Fresh task (fresh correlationId => fresh session key) per run so the
           // sampling is independent. Build the producer for this task type.
-          const built =
-            scenario.taskType === 'freeform'
-              ? agent.tasks
-                  .buildFreeform({
-                    brief: scenario.prompt,
-                    execution: { workspace: scenario.execution.workspace },
-                  })
-                  .title(`baseline ${scenario.slug}`)
-                  .diary(diaryId)
-                  .correlationId(randomUUID())
-                  .maxAttempts(1)
-                  .team(teamId)
-                  .build()
-              : agent.tasks
-                  .buildRunEval(
-                    buildRunEvalInput(scenario, { variant: 'baseline' }),
-                  )
-                  .title(`baseline ${scenario.slug}`)
-                  .diary(diaryId)
-                  .correlationId(randomUUID())
-                  .maxAttempts(1)
-                  .team(teamId)
-                  .build();
-          const task = await agent.tasks.create(built);
+          const task = await createScenarioProducerTask({
+            agent,
+            scenario,
+            sandboxRoot,
+            teamId,
+            diaryId,
+            title: `baseline ${scenario.slug}`,
+          });
 
           const oldPiDir = process.env.PI_CODING_AGENT_DIR;
           const oldCwd = process.cwd();

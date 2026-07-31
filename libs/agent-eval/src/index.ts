@@ -33,10 +33,22 @@ export {
 export { readScenario, ScenarioError } from './read-scenario.js';
 export {
   GateExpectations,
+  type ResolvedScenarioFixtures,
+  type ResolvedScenarioInputArtifact,
   type Scenario,
+  SCENARIO_REFERENCE_ROLES,
   SCENARIO_TASK_TYPES,
+  ScenarioFixtureConfig,
+  ScenarioInputArtifactFixture,
+  type ScenarioReferenceRole,
   type ScenarioTaskType,
 } from './scenario.js';
+export {
+  type ScenarioArtifactStager,
+  seedScenarioWorkspace,
+  type StagedScenarioInputArtifact,
+  stageScenarioInputArtifacts,
+} from './scenario-fixtures.js';
 export {
   type MatrixDeps,
   runMatrix,

@@ -5,7 +5,9 @@
  *
  * - `prompt.md`   — the scenario prompt (free-form Markdown). Becomes
  *                   `RunEvalInput.scenario.prompt`.
- * - `eval.json`   — `{ mode, workspace }`, the `RunEvalExecution` shape.
+ * - `eval.json`   — `{ mode, workspace, fixtures? }`. Fixtures may seed a
+ *                   shared workspace and/or bind scenario-local files as
+ *                   staged task input artifacts.
  * - `rubric.json` — a `Rubric` (see `@moltnet/tasks`): the HIDDEN judge key.
  *                   Never handed to the producer; only the `judge_eval_attempt`
  *                   task sees it. Weights must sum to 1.
@@ -13,8 +15,10 @@
  *                   `GateExpectations`). Checked in code before any LLM judge
  *                   runs; a gate failure short-circuits scoring to composite 0.
  *
- * The split is deliberate: `prompt.md` + `eval.json` are producer-visible;
- * `rubric.json` is judge-only; `gates.json` is harness-only. This mirrors the
+ * The split is deliberate: `prompt.md` becomes producer input, `eval.json`
+ * configures the harness, `rubric.json` is judge-only, and `gates.json` is
+ * harness-only. Declared input artifacts become producer-visible task
+ * references, but their scenario-local host paths never do. This mirrors the
  * `run_eval` / `judge_eval_attempt` producer/judge separation in
  * `libs/tasks/src/task-types/`.
  */
@@ -114,6 +118,67 @@ export const SCENARIO_TASK_TYPES: readonly ScenarioTaskType[] = [
   'freeform',
 ];
 
+export const SCENARIO_REFERENCE_ROLES = [
+  'judged_work',
+  'reviewed_diff',
+  'target_source',
+  'context',
+] as const;
+export type ScenarioReferenceRole = (typeof SCENARIO_REFERENCE_ROLES)[number];
+
+export const ScenarioInputArtifactFixture = Type.Object(
+  {
+    path: Type.String({ minLength: 1 }),
+    role: Type.Optional(
+      Type.Union([
+        Type.Literal('judged_work'),
+        Type.Literal('reviewed_diff'),
+        Type.Literal('target_source'),
+        Type.Literal('context'),
+      ]),
+    ),
+    kind: Type.Optional(Type.String({ minLength: 1, maxLength: 128 })),
+    title: Type.Optional(Type.String({ minLength: 1, maxLength: 512 })),
+    contentType: Type.Optional(Type.String({ minLength: 1, maxLength: 255 })),
+  },
+  { additionalProperties: false },
+);
+export type ScenarioInputArtifactFixture = Static<
+  typeof ScenarioInputArtifactFixture
+>;
+
+export const ScenarioFixtureConfig = Type.Object(
+  {
+    workspaceSeed: Type.Optional(Type.String({ minLength: 1 })),
+    inputArtifacts: Type.Optional(
+      Type.Array(ScenarioInputArtifactFixture, {
+        minItems: 1,
+        maxItems: 32,
+      }),
+    ),
+  },
+  { additionalProperties: false },
+);
+export type ScenarioFixtureConfig = Static<typeof ScenarioFixtureConfig>;
+
+export type ResolvedScenarioInputArtifact = Omit<
+  ScenarioInputArtifactFixture,
+  'role' | 'kind' | 'title' | 'contentType'
+> & {
+  /** Validated absolute path to a regular scenario-local file. */
+  sourcePath: string;
+  role: ScenarioReferenceRole;
+  kind: string;
+  title: string;
+  contentType: string;
+};
+
+export interface ResolvedScenarioFixtures {
+  /** Validated absolute path to a scenario-local directory. */
+  workspaceSeedPath?: string;
+  inputArtifacts: ResolvedScenarioInputArtifact[];
+}
+
 export interface Scenario {
   /** Directory name, e.g. `submit-output-compliance`. */
   slug: string;
@@ -127,6 +192,11 @@ export interface Scenario {
   prompt: string;
   /** Parsed `eval.json` execution shape — `{ mode, workspace }`. */
   execution: Static<typeof RunEvalExecution>;
+  /**
+   * Validated scenario-local fixtures. Paths are resolved by `readScenario`;
+   * callers must not construct them from untrusted task input.
+   */
+  fixtures?: ResolvedScenarioFixtures;
   /** Parsed `rubric.json` — the hidden judge rubric (weights sum to 1). */
   rubric: Static<typeof Rubric>;
   /** Parsed `gates.json` — deterministic stage-1 expectations. */

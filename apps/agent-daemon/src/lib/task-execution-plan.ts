@@ -18,6 +18,7 @@ export interface DaemonTaskExecutionPlan {
   slotId: string | null;
   workspaceId: string | null;
   worktreeBranch: string | null;
+  workspaceRevision?: string | null;
   /**
    * Base ref a NEW `worktreeBranch` is cut from (fork continuations branch from
    * the parent tip). Ignored when the branch already exists.
@@ -78,6 +79,7 @@ export function buildDaemonTaskExecutionPlan(
     ? `${stateDirs.piSessionsDir}/${boundedKeyDirComponent(slotId)}`
     : null;
   const worktreeBranch = resolveTaskWorktreeBranch(task, workspaceMode);
+  const workspaceRevision = resolveTaskWorkspaceRevision(task.input);
   const workspaceId =
     workspaceMode !== 'shared_mount'
       ? resolveTaskWorkspaceId(task, {
@@ -98,7 +100,16 @@ export function buildDaemonTaskExecutionPlan(
     sessionPersistence: sessionDir ? { sessionDir } : null,
     workspaceId,
     worktreeBranch,
+    workspaceRevision,
   };
+}
+
+export function resolveTaskWorkspaceRevision(input: unknown): string | null {
+  const value = (input as { execution?: { revision?: unknown } } | null)
+    ?.execution?.revision;
+  return typeof value === 'string' && /^[0-9a-fA-F]{40}$/.test(value)
+    ? value.toLowerCase()
+    : null;
 }
 
 export function buildDaemonSlotId(
@@ -145,6 +156,11 @@ function resolveTaskWorktreeBranch(
   workspaceMode: 'shared_mount' | 'dedicated_worktree' | 'scratch_mount',
 ): string | null {
   if (workspaceMode !== 'dedicated_worktree') {
+    return null;
+  }
+  const revision = (task.input as { execution?: { revision?: unknown } })
+    .execution?.revision;
+  if (typeof revision === 'string') {
     return null;
   }
 

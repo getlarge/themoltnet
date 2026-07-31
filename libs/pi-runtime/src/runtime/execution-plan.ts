@@ -34,10 +34,16 @@ export interface PiTaskExecutionPlan {
    */
   workspaceId: string | null;
   /**
-   * Branch to create or reopen for the workspace. `null` means no dedicated
-   * worktree is required.
+   * Branch to create or reopen for the workspace. `null` may instead mean a
+   * detached dedicated worktree when `workspaceRevision` is present.
    */
   worktreeBranch: string | null;
+  /**
+   * Immutable commit that must back the selected workspace. Shared mounts are
+   * verified against it; dedicated review worktrees are created detached at
+   * it. `null` preserves the existing branch-oriented behavior.
+   */
+  workspaceRevision?: string | null;
   /**
    * Base ref a NEW `worktreeBranch` is cut from. Used by `fork` continuations
    * to branch from the parent's tip instead of the default (main/HEAD). Ignored

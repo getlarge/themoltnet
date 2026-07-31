@@ -18,7 +18,10 @@ jobs:
       (github.event_name == 'issue_comment' &&
         github.event.issue.pull_request != null &&
         contains(github.event.comment.body, '@legreffier /multi-lens-review') &&
-        !endsWith(github.event.comment.user.login, '[bot]')) ||
+        !endsWith(github.event.comment.user.login, '[bot]') &&
+        (github.event.comment.author_association == 'OWNER' ||
+          github.event.comment.author_association == 'MEMBER' ||
+          github.event.comment.author_association == 'COLLABORATOR')) ||
       (github.event_name == 'pull_request_target')
     runs-on: ubuntu-latest
     environment: legreffier
@@ -32,7 +35,7 @@ jobs:
       pr-number: ${{ steps.prepare.outputs.pr-number }}
       profile: ${{ steps.prepare.outputs.profile }}
     steps:
-      - name: Fetch and validate the untrusted PR diff
+      - name: Fetch and validate untrusted PR review input
         id: prepare
         uses: actions/github-script@v8
         env:
@@ -65,13 +68,42 @@ jobs:
               mediaType: { format: 'diff' },
             });
             const diff = String(response.data);
-            // Keep this aligned with MAX_REVIEW_DIFF_BYTES in the orchestrator.
-            const maxBytes = 128 * 1024;
+            const files = await github.paginate(
+              github.rest.pulls.listFiles,
+              {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pullNumber,
+                per_page: 100,
+              },
+            );
+            // Absolute trusted-ingestion bounds. Topic budgets are enforced by
+            // the checked-out base implementation before artifact staging.
+            const maxBytes = 2 * 1024 * 1024;
+            const maxFiles = 200;
             if (Buffer.byteLength(diff, 'utf8') > maxBytes) {
-              core.setFailed(`PR diff exceeds the ${maxBytes}-byte review limit`);
+              core.setFailed(`PR diff exceeds the ${maxBytes}-byte ingestion limit`);
+              return;
+            }
+            if (files.length > maxFiles) {
+              core.setFailed(`PR has ${files.length} files; ingestion limit is ${maxFiles}`);
               return;
             }
             fs.writeFileSync('pull-request.diff', diff, { mode: 0o600 });
+            fs.writeFileSync(
+              'pull-request-files.json',
+              JSON.stringify(
+                files.map(file => ({
+                  filename: file.filename,
+                  previous_filename: file.previous_filename,
+                  status: file.status,
+                  additions: file.additions,
+                  deletions: file.deletions,
+                  changes: file.changes,
+                })),
+              ),
+              { mode: 0o600 },
+            );
 
             const seed = `${context.repo.owner}/${context.repo.repo}:${pr.number}:${pr.head.sha}`;
             const bytes = crypto.createHash('sha256').update(seed).digest().subarray(0, 16);
@@ -94,8 +126,10 @@ jobs:
 
       - uses: actions/upload-artifact@v6
         with:
-          name: multi-lens-review-diff
-          path: pull-request.diff
+          name: multi-lens-review-input
+          path: |
+            pull-request.diff
+            pull-request-files.json
           if-no-files-found: error
           retention-days: 1
 
@@ -121,7 +155,7 @@ jobs:
           persist-credentials: false
       - uses: actions/download-artifact@v7
         with:
-          name: multi-lens-review-diff
+          name: multi-lens-review-input
           path: ${{ runner.temp }}/multi-lens-review
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v6
@@ -137,6 +171,7 @@ jobs:
           CORRELATION_ID: ${{ needs.prepare.outputs.correlation-id }}
           PROFILE: ${{ needs.prepare.outputs.profile }}
           PR_NUMBER: ${{ needs.prepare.outputs.pr-number }}
+          BASE_SHA: ${{ needs.prepare.outputs.base-sha }}
           HEAD_SHA: ${{ needs.prepare.outputs.head-sha }}
         run: |
           set -euo pipefail
@@ -145,14 +180,20 @@ jobs:
             --team "$MOLTNET_TEAM_ID" \
             --diary "$MOLTNET_DIARY_ID" \
             --target "$GITHUB_REPOSITORY pull request #$PR_NUMBER at $HEAD_SHA" \
+            --review-base-revision "$BASE_SHA" \
+            --review-revision "$HEAD_SHA" \
             --diff-file "$RUNNER_TEMP/multi-lens-review/pull-request.diff" \
+            --files-metadata "$RUNNER_TEMP/multi-lens-review/pull-request-files.json" \
             --profile "$PROFILE" \
             --correlation-id "$CORRELATION_ID" \
+            --unattended \
             > "$result"
           echo "result=$result" >> "$GITHUB_OUTPUT"
 
       - name: Upsert consolidated review comment
-        if: always()
+        # `act` sets ACT=true. Local trusted-runtime acceptance must never
+        # mutate the PR fixture.
+        if: always() && env.ACT != 'true'
         uses: actions/github-script@v8
         env:
           RESULT_PATH: ${{ steps.review.outputs.result }}
@@ -163,7 +204,12 @@ jobs:
         with:
           script: |
             const fs = require('node:fs');
-            const marker = '<!-- moltnet:multi-lens-review -->';
+            const { pathToFileURL } = require('node:url');
+            const { renderMultiLensReviewComment, MULTI_LENS_REVIEW_COMMENT_MARKER } =
+              await import(pathToFileURL(
+                `${process.env.GITHUB_WORKSPACE}/apps/multi-lens-review/dist/github-comment.js`,
+              ));
+            const marker = MULTI_LENS_REVIEW_COMMENT_MARKER;
             const runDetails =
               `Head: \`${process.env.HEAD_SHA}\` · ` +
               `[workflow run](${process.env.RUN_URL}) · ` +
@@ -172,13 +218,8 @@ jobs:
             if (process.env.REVIEW_OUTCOME === 'success' && process.env.RESULT_PATH) {
               const payload = JSON.parse(fs.readFileSync(process.env.RESULT_PATH, 'utf8'));
               const output = payload.result ?? payload.output ?? payload;
-              const verdict = output.verdict ?? output.value?.verdict;
-              body = verdict
-                ? `${marker}\n## MoltNet multi-lens review\n\n${verdict}\n\n` +
-                  `_${runDetails}_`
-                : `${marker}\n## MoltNet multi-lens review\n\n` +
-                  `The review completed, but its verdict payload was not recognized. ` +
-                  `${runDetails}.`;
+              const result = output.value ?? output;
+              body = renderMultiLensReviewComment(result, runDetails);
             } else {
               body = `${marker}\n## MoltNet multi-lens review\n\n` +
                 `The review run failed. ${runDetails}.`;
@@ -212,12 +253,16 @@ jobs:
 
   review-workers:
     needs: prepare
+    # Orchestration is authoritative: worker failures surface as missing task
+    # completion there, while a post-drain timeout must not mask a completed
+    # review.
+    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:
-        worker: [1, 2, 3, 4]
+        worker: [1, 2]
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 50
     environment: legreffier
     permissions:
       contents: read
@@ -230,12 +275,17 @@ jobs:
       # Absurd may need time to create the first task; dependency gaps after a
       # completed lens are shorter and use a separate idle grace.
       REVIEW_WORKER_STARTUP_GRACE_SEC: '900'
-      REVIEW_WORKER_IDLE_GRACE_SEC: '300'
+      # Keep both workers alive across planner -> preflight -> canary gates.
+      REVIEW_WORKER_IDLE_GRACE_SEC: '900'
     steps:
       - uses: actions/checkout@v6
         with:
           ref: ${{ needs.prepare.outputs.base-sha }}
           persist-credentials: false
+      - name: Fetch the untrusted review commit as inert git data
+        env:
+          HEAD_SHA: ${{ needs.prepare.outputs.head-sha }}
+        run: git fetch --no-tags --depth=1 origin "$HEAD_SHA"
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v6
         with:

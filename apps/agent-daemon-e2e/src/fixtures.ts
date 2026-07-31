@@ -1,3 +1,13 @@
+import { randomUUID } from 'node:crypto';
+
+import {
+  buildRunEvalInput,
+  type Scenario,
+  seedScenarioWorkspace,
+  stageScenarioInputArtifacts,
+} from '@moltnet/agent-eval';
+import type { Agent } from '@themoltnet/sdk';
+
 /**
  * Shared fixtures for the agent-daemon e2e suites.
  *
@@ -25,4 +35,45 @@ export function buildProducerVerification(
     ],
     passed: true,
   };
+}
+
+/** Build one fixture-backed producer task without duplicating task contracts. */
+export async function createScenarioProducerTask(args: {
+  agent: Agent;
+  scenario: Scenario;
+  sandboxRoot: string;
+  teamId: string;
+  diaryId: string;
+  title: string;
+}) {
+  const { agent, scenario, sandboxRoot, teamId, diaryId, title } = args;
+  seedScenarioWorkspace(scenario, sandboxRoot);
+  const inputArtifacts = await stageScenarioInputArtifacts(
+    agent.tasks.artifacts,
+    scenario,
+    teamId,
+  );
+  const builder =
+    scenario.taskType === 'freeform'
+      ? agent.tasks
+          .buildFreeform({
+            brief: scenario.prompt,
+            execution: { workspace: scenario.execution.workspace },
+          })
+          .title(title)
+          .diary(diaryId)
+          .correlationId(randomUUID())
+          .maxAttempts(1)
+          .team(teamId)
+      : agent.tasks
+          .buildRunEval(buildRunEvalInput(scenario, { variant: 'baseline' }))
+          .title(title)
+          .diary(diaryId)
+          .correlationId(randomUUID())
+          .maxAttempts(1)
+          .team(teamId);
+  for (const inputArtifact of inputArtifacts) {
+    builder.artifactReference(inputArtifact.artifact, inputArtifact.role);
+  }
+  return agent.tasks.create(builder.build());
 }

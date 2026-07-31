@@ -12,7 +12,24 @@ judge sees `rubric.json`; the harness owns `gates.json`.
 - **`prompt.md`** — the task, free-form Markdown, non-empty. Becomes
   `RunEvalInput.scenario.prompt`.
 - **`eval.json`** — `{ "mode": "vitro" | "vivo", "workspace": "none" |
-"shared_mount" | "dedicated_worktree" }`. `additionalProperties: false`.
+"shared_mount" | "dedicated_worktree", "taskType"?: "run_eval" | "freeform",
+"fixtures"?: { ... } }`. Unknown fields fail validation.
+  - `fixtures.workspaceSeed?: string` names a scenario-relative directory whose
+    contents are copied into a fresh `shared_mount` sandbox for every producer
+    run. Seeds are rejected for other workspace modes. Absolute paths, path
+    escapes, symlinks, and non-regular entries are rejected.
+  - `fixtures.inputArtifacts?: Array<{ path, role?, kind?, title?,
+contentType? }>` names scenario-relative regular files. Every producer run
+    stages their bytes through the task-artifact API and binds the resulting
+    CIDs to the task. `role` defaults to `context`, `kind` to `eval-input`,
+    `title` to the basename, and common text/JSON content types are inferred.
+    Use explicit metadata when the artifact contract matters to the scenario.
+    The task prompt should tell the producer what it must inspect or create; do
+    not leak the host fixture path as an alternate access route.
+  - Both fixture forms are repository-agnostic and may be used together. Prefer
+    input artifacts when the behavior under test is artifact discovery or
+    provenance; prefer a workspace seed when the behavior requires ordinary
+    file editing or workspace tools.
 - **`rubric.json`** (hidden judge key) —
   `{ "rubricId", "version", "preamble", "criteria": [ { "id", "description",
 "scoring": "llm_score" | "llm_checklist", "weight" } ] }`. **Weights sum to 1.**
