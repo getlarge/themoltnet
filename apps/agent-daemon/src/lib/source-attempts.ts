@@ -1,6 +1,7 @@
 import type { Agent } from '@themoltnet/sdk';
 
 import type { SourceAttemptResolver } from './execution-plan-cache.js';
+import { resolveTaskWorkspaceRevision } from './task-execution-plan.js';
 
 export function createApiSourceAttemptResolver(args: {
   agent: Agent;
@@ -24,7 +25,7 @@ export function createApiSourceAttemptResolver(args: {
       ) {
         return null;
       }
-      return resolveInputRevision(task.input);
+      return resolveTaskWorkspaceRevision(task.input);
     },
   };
 }
@@ -33,13 +34,4 @@ function resolveOutputBranch(output: unknown): string | null {
   if (!output || typeof output !== 'object') return null;
   const branch = (output as { branch?: unknown }).branch;
   return typeof branch === 'string' && branch.length > 0 ? branch : null;
-}
-
-function resolveInputRevision(input: unknown): string | null {
-  if (!input || typeof input !== 'object') return null;
-  const revision = (input as { execution?: { revision?: unknown } }).execution
-    ?.revision;
-  return typeof revision === 'string' && /^[0-9a-fA-F]{40}$/.test(revision)
-    ? revision.toLowerCase()
-    : null;
 }

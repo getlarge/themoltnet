@@ -25,14 +25,11 @@ import { join, resolve } from 'node:path';
 
 import {
   buildJudgeInput,
-  buildRunEvalInput,
   checkGates,
   readScenario,
   runMatrix,
   type Scenario,
   type ScoreMatrix,
-  seedScenarioWorkspace,
-  stageScenarioInputArtifacts,
   summarizeMatrix,
   writeAgentCredentials,
   writePiConfig,
@@ -42,6 +39,7 @@ import { runOnce } from '@themoltnet/agent-daemon/cli/once.js';
 import { type Agent, connect } from '@themoltnet/sdk';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { createScenarioProducerTask } from './fixtures.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
 const MATRIX_FLAG = 'MOLTNET_EVAL_MATRIX';
@@ -215,38 +213,14 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
         const cfg = perModel.get(model)!;
         const sandboxRoot = mkdtempSync(join(tmpdir(), 'eval-matrix-sbx-'));
         tempRoots.push(sandboxRoot);
-        seedScenarioWorkspace(scenario, sandboxRoot);
-        const inputArtifacts = await stageScenarioInputArtifacts(
-          agent.tasks.artifacts,
+        const task = await createScenarioProducerTask({
+          agent,
           scenario,
+          sandboxRoot,
           teamId,
-        );
-        const builder =
-          scenario.taskType === 'freeform'
-            ? agent.tasks
-                .buildFreeform({
-                  brief: scenario.prompt,
-                  execution: { workspace: scenario.execution.workspace },
-                })
-                .title(`matrix ${model} ${scenario.slug}`)
-                .diary(diaryId)
-                .correlationId(randomUUID())
-                .maxAttempts(1)
-                .team(teamId)
-            : agent.tasks
-                .buildRunEval(
-                  buildRunEvalInput(scenario, { variant: 'baseline' }),
-                )
-                .title(`matrix ${model} ${scenario.slug}`)
-                .diary(diaryId)
-                .correlationId(randomUUID())
-                .maxAttempts(1)
-                .team(teamId);
-        for (const inputArtifact of inputArtifacts) {
-          builder.artifactReference(inputArtifact.artifact, inputArtifact.role);
-        }
-        const built = builder.build();
-        const task = await agent.tasks.create(built);
+          diaryId,
+          title: `matrix ${model} ${scenario.slug}`,
+        });
         producerSandboxRoots.set(task.id, sandboxRoot);
         await runTaskOnce({
           agentName,

@@ -49,6 +49,9 @@ describe('runtime-profile context recipe catalogue', () => {
     expect(planner.content).toContain(
       'runtime capability section and policy are authoritative',
     );
+    // These absences are part of the preset's public contract: it must not
+    // smuggle repository- or ecosystem-specific classification rules into a
+    // reusable planner profile.
     expect(planner.content).not.toContain('use shell commands');
     expect(planner.content).not.toContain('drizzle');
     expect(planner.content).not.toContain('generated/');

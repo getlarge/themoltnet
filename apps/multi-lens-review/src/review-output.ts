@@ -1,6 +1,13 @@
 import type { TaskClient } from '@themoltnet/tasks-orchestrator';
 
 import {
+  assertExactKeys,
+  nonEmptyStringArray,
+  parseStrictJsonObject,
+  requiredNonEmptyString,
+  strictRecord,
+} from './strict-json.js';
+import {
   type AcceptedReviewOutputReference,
   type DesignPreflight,
   type GlobalVerdict,
@@ -93,60 +100,11 @@ export async function hydrateMultiLensReviewOutput(
   };
 }
 
-function jsonObject(summary: string, label: string): Record<string, unknown> {
-  let value: unknown;
-  try {
-    value = JSON.parse(summary);
-  } catch {
-    throw new Error(`${label} output must be strict JSON`);
-  }
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    throw new Error(`${label} output must be a JSON object`);
-  }
-  return value as Record<string, unknown>;
-}
-
-function exactKeys(
-  value: Record<string, unknown>,
-  allowed: readonly string[],
-  label: string,
-): void {
-  const extras = Object.keys(value).filter((key) => !allowed.includes(key));
-  if (extras.length > 0) {
-    throw new Error(`${label} contains unknown fields: ${extras.join(', ')}`);
-  }
-}
-
-function requiredString(
-  value: Record<string, unknown>,
-  key: string,
-  label: string,
-): string {
-  const field = value[key];
-  if (typeof field !== 'string' || !field.trim()) {
-    throw new Error(`${label}.${key} must be a non-empty string`);
-  }
-  return field;
-}
-
-function strings(value: unknown, label: string): string[] {
-  if (
-    !Array.isArray(value) ||
-    value.some((item) => typeof item !== 'string' || !item.trim())
-  ) {
-    throw new Error(`${label} must be an array of non-empty strings`);
-  }
-  return value as string[];
-}
-
 function findings(value: unknown, label: string): LaneFinding[] {
   if (!Array.isArray(value)) throw new Error(`${label} must be an array`);
   return value.map((item, index) => {
-    if (!item || typeof item !== 'object' || Array.isArray(item)) {
-      throw new Error(`${label}[${index}] must be an object`);
-    }
-    const finding = item as Record<string, unknown>;
-    exactKeys(
+    const finding = strictRecord(item, `${label}[${index}]`);
+    assertExactKeys(
       finding,
       ['severity', 'path', 'location', 'description', 'impact', 'fix'],
       `${label}[${index}]`,
@@ -158,15 +116,23 @@ function findings(value: unknown, label: string): LaneFinding[] {
     }
     return {
       severity: finding.severity as LaneFinding['severity'],
-      path: requiredString(finding, 'path', `${label}[${index}]`),
+      path: requiredNonEmptyString(finding, 'path', `${label}[${index}]`),
       ...(finding.location === undefined
         ? {}
         : {
-            location: requiredString(finding, 'location', `${label}[${index}]`),
+            location: requiredNonEmptyString(
+              finding,
+              'location',
+              `${label}[${index}]`,
+            ),
           }),
-      description: requiredString(finding, 'description', `${label}[${index}]`),
-      impact: requiredString(finding, 'impact', `${label}[${index}]`),
-      fix: requiredString(finding, 'fix', `${label}[${index}]`),
+      description: requiredNonEmptyString(
+        finding,
+        'description',
+        `${label}[${index}]`,
+      ),
+      impact: requiredNonEmptyString(finding, 'impact', `${label}[${index}]`),
+      fix: requiredNonEmptyString(finding, 'fix', `${label}[${index}]`),
     };
   });
 }
@@ -186,8 +152,12 @@ function recommendation(
 }
 
 export function parseDesignPreflight(summary: string): DesignPreflight {
-  const value = jsonObject(summary, 'design preflight');
-  exactKeys(value, ['verdict', 'summary', 'questions'], 'design preflight');
+  const value = parseStrictJsonObject(summary, 'design preflight output');
+  assertExactKeys(
+    value,
+    ['verdict', 'summary', 'questions'],
+    'design preflight',
+  );
   if (
     value.verdict !== 'PROCEED' &&
     value.verdict !== 'PIVOT' &&
@@ -198,7 +168,7 @@ export function parseDesignPreflight(summary: string): DesignPreflight {
   const questions =
     value.questions === undefined
       ? undefined
-      : strings(value.questions, 'design preflight.questions');
+      : nonEmptyStringArray(value.questions, 'design preflight.questions');
   if (value.verdict === 'ASK' && (!questions || questions.length === 0)) {
     throw new Error('ASK preflight requires questions');
   }
@@ -207,7 +177,7 @@ export function parseDesignPreflight(summary: string): DesignPreflight {
   }
   return {
     verdict: value.verdict,
-    summary: requiredString(value, 'summary', 'design preflight'),
+    summary: requiredNonEmptyString(value, 'summary', 'design preflight'),
     ...(questions ? { questions } : {}),
   };
 }
@@ -217,8 +187,8 @@ export function parseLaneResult(
   expectedTopic: string,
   expectedLane: ReviewLane,
 ): LaneResult {
-  const value = jsonObject(summary, 'lane result');
-  exactKeys(
+  const value = parseStrictJsonObject(summary, 'lane result output');
+  assertExactKeys(
     value,
     ['version', 'topicId', 'lane', 'findings', 'reviewedFiles', 'summary'],
     'lane result',
@@ -235,8 +205,11 @@ export function parseLaneResult(
     topicId: expectedTopic,
     lane: expectedLane,
     findings: findings(value.findings, 'lane result.findings'),
-    reviewedFiles: strings(value.reviewedFiles, 'lane result.reviewedFiles'),
-    summary: requiredString(value, 'summary', 'lane result'),
+    reviewedFiles: nonEmptyStringArray(
+      value.reviewedFiles,
+      'lane result.reviewedFiles',
+    ),
+    summary: requiredNonEmptyString(value, 'summary', 'lane result'),
   };
 }
 
@@ -245,8 +218,8 @@ export function parseTopicReviewResult(
   expectedTopic: string,
   expectedLanes: readonly ReviewLane[],
 ): TopicReviewResult {
-  const value = jsonObject(summary, 'topic review result');
-  exactKeys(
+  const value = parseStrictJsonObject(summary, 'topic review result output');
+  assertExactKeys(
     value,
     ['version', 'topicId', 'laneResults'],
     'topic review result',
@@ -295,8 +268,8 @@ export function parseTopicVerdict(
   summary: string,
   expectedTopic: string,
 ): TopicVerdict {
-  const value = jsonObject(summary, 'topic verdict');
-  exactKeys(
+  const value = parseStrictJsonObject(summary, 'topic verdict output');
+  assertExactKeys(
     value,
     [
       'version',
@@ -313,7 +286,7 @@ export function parseTopicVerdict(
   if (value.topicId !== expectedTopic) {
     throw new Error(`topic verdict topicId must be ${expectedTopic}`);
   }
-  const coveredLanes = strings(
+  const coveredLanes = nonEmptyStringArray(
     value.coveredLanes,
     'topic verdict.coveredLanes',
   );
@@ -325,15 +298,18 @@ export function parseTopicVerdict(
     topicId: expectedTopic,
     recommendation: recommendation(value.recommendation, 'topic verdict'),
     findings: findings(value.findings, 'topic verdict.findings'),
-    coveredFiles: strings(value.coveredFiles, 'topic verdict.coveredFiles'),
+    coveredFiles: nonEmptyStringArray(
+      value.coveredFiles,
+      'topic verdict.coveredFiles',
+    ),
     coveredLanes: coveredLanes as ReviewLane[],
-    summary: requiredString(value, 'summary', 'topic verdict'),
+    summary: requiredNonEmptyString(value, 'summary', 'topic verdict'),
   };
 }
 
 export function parseGlobalVerdict(summary: string): GlobalVerdict {
-  const value = jsonObject(summary, 'global verdict');
-  exactKeys(
+  const value = parseStrictJsonObject(summary, 'global verdict output');
+  assertExactKeys(
     value,
     ['version', 'recommendation', 'findings', 'summary', 'coverageComplete'],
     'global verdict',
@@ -346,7 +322,7 @@ export function parseGlobalVerdict(summary: string): GlobalVerdict {
     version: 1,
     recommendation: recommendation(value.recommendation, 'global verdict'),
     findings: findings(value.findings, 'global verdict.findings'),
-    summary: requiredString(value, 'summary', 'global verdict'),
+    summary: requiredNonEmptyString(value, 'summary', 'global verdict'),
     coverageComplete: value.coverageComplete,
   };
 }

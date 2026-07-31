@@ -79,7 +79,7 @@ export function buildDaemonTaskExecutionPlan(
     ? `${stateDirs.piSessionsDir}/${boundedKeyDirComponent(slotId)}`
     : null;
   const worktreeBranch = resolveTaskWorktreeBranch(task, workspaceMode);
-  const workspaceRevision = resolveTaskWorkspaceRevision(task);
+  const workspaceRevision = resolveTaskWorkspaceRevision(task.input);
   const workspaceId =
     workspaceMode !== 'shared_mount'
       ? resolveTaskWorkspaceId(task, {
@@ -104,11 +104,9 @@ export function buildDaemonTaskExecutionPlan(
   };
 }
 
-function resolveTaskWorkspaceRevision(
-  task: Pick<ClaimedTask['task'], 'input'>,
-): string | null {
-  const value = (task.input as { execution?: { revision?: unknown } }).execution
-    ?.revision;
+export function resolveTaskWorkspaceRevision(input: unknown): string | null {
+  const value = (input as { execution?: { revision?: unknown } } | null)
+    ?.execution?.revision;
   return typeof value === 'string' && /^[0-9a-fA-F]{40}$/.test(value)
     ? value.toLowerCase()
     : null;

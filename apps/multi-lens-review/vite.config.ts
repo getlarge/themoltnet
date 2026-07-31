@@ -2,9 +2,13 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   build: {
-    ssr: 'src/main.ts',
+    ssr: true,
     outDir: 'dist',
     rollupOptions: {
+      input: {
+        main: 'src/main.ts',
+        'github-comment': 'src/github-comment.ts',
+      },
       output: {
         banner: '#!/usr/bin/env node',
       },

@@ -172,6 +172,30 @@ function assertWorkspaceRevision(
       `Shared workspace is at ${actual}, but task requires ${revision}`,
     );
   }
+  let trackedChanges: string;
+  try {
+    trackedChanges = execFileSync(
+      'git',
+      [
+        '-C',
+        workspacePath,
+        'status',
+        '--porcelain=v1',
+        '--untracked-files=all',
+      ],
+      { encoding: 'utf8', stdio: 'pipe' },
+    ).trim();
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(
+      `Cannot verify tracked files for workspace revision ${revision}: ${message}`,
+    );
+  }
+  if (trackedChanges) {
+    throw new Error(
+      `Workspace at revision ${revision} has modified, staged, or untracked files`,
+    );
+  }
 }
 
 export function resolveTaskWorktreePath(

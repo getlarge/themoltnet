@@ -69,6 +69,32 @@ describe('exact-revision task workspaces', () => {
     );
   });
 
+  it('fails an exact-revision workspace when tracked bytes are dirty', () => {
+    const repo = repository();
+    writeFileSync(join(repo.root, 'file.txt'), 'locally modified\n');
+
+    expect(() =>
+      prepareTaskWorkspace(
+        task(),
+        repo.root,
+        plan('shared_mount', repo.second),
+      ),
+    ).toThrow(/modified, staged, or untracked files/);
+  });
+
+  it('fails an exact-revision workspace when untracked files are present', () => {
+    const repo = repository();
+    writeFileSync(join(repo.root, 'untracked.txt'), 'not in the revision\n');
+
+    expect(() =>
+      prepareTaskWorkspace(
+        task(),
+        repo.root,
+        plan('shared_mount', repo.second),
+      ),
+    ).toThrow(/modified, staged, or untracked files/);
+  });
+
   it('creates and cleans a detached dedicated worktree at the required commit', () => {
     const repo = repository();
     const workspace = prepareTaskWorkspace(

@@ -18,7 +18,10 @@ jobs:
       (github.event_name == 'issue_comment' &&
         github.event.issue.pull_request != null &&
         contains(github.event.comment.body, '@legreffier /multi-lens-review') &&
-        !endsWith(github.event.comment.user.login, '[bot]')) ||
+        !endsWith(github.event.comment.user.login, '[bot]') &&
+        (github.event.comment.author_association == 'OWNER' ||
+          github.event.comment.author_association == 'MEMBER' ||
+          github.event.comment.author_association == 'COLLABORATOR')) ||
       (github.event_name == 'pull_request_target')
     runs-on: ubuntu-latest
     environment: legreffier
@@ -201,7 +204,12 @@ jobs:
         with:
           script: |
             const fs = require('node:fs');
-            const marker = '<!-- moltnet:multi-lens-review -->';
+            const { pathToFileURL } = require('node:url');
+            const { renderMultiLensReviewComment, MULTI_LENS_REVIEW_COMMENT_MARKER } =
+              await import(pathToFileURL(
+                `${process.env.GITHUB_WORKSPACE}/apps/multi-lens-review/dist/github-comment.js`,
+              ));
+            const marker = MULTI_LENS_REVIEW_COMMENT_MARKER;
             const runDetails =
               `Head: \`${process.env.HEAD_SHA}\` · ` +
               `[workflow run](${process.env.RUN_URL}) · ` +
@@ -211,40 +219,7 @@ jobs:
               const payload = JSON.parse(fs.readFileSync(process.env.RESULT_PATH, 'utf8'));
               const output = payload.result ?? payload.output ?? payload;
               const result = output.value ?? output;
-              const verdict = result.verdict;
-              const diagnostics = result.diagnostics;
-              const recommendation = verdict?.recommendation;
-              const topicRows = (diagnostics?.topics ?? [])
-                .map(topic =>
-                  `| \`${topic.id}\` | ${topic.primaryFiles} | ${topic.contextFiles} | ` +
-                  `${topic.bytes} | ${topic.lanes.join(', ')} |`,
-                )
-                .join('\n');
-              const exclusions = (diagnostics?.coverage?.excludedFiles ?? [])
-                .map(file =>
-                  `- \`${file.path}\` — ${file.reason} (${file.source})` +
-                  (file.evidence ? ` — ${file.evidence}` : ''),
-                )
-                .join('\n') || '- None';
-              const cost = diagnostics?.cost;
-              const diagnosticBody = diagnostics
-                ? `\n\n### Topic and coverage diagnostics\n\n` +
-                  `| Topic | Primary | Context | Bytes | Lanes |\n` +
-                  `| --- | ---: | ---: | ---: | --- |\n${topicRows || '| — | 0 | 0 | 0 | — |'}\n\n` +
-                  `Primary coverage: **${diagnostics.coverage?.complete ? 'complete' : 'incomplete'}**\n\n` +
-                  `<details><summary>Evidence-backed and intrinsic exclusions</summary>\n\n${exclusions}\n\n</details>\n\n` +
-                  `Tasks: **${cost?.tasks ?? 0}** · Artifacts: **${cost?.artifacts ?? 0}** ` +
-                  `(${cost?.artifactBytes ?? 0} bytes) · Tokens: **${cost?.inputTokens ?? 0} in / ` +
-                  `${cost?.outputTokens ?? 0} out**`
-                : '';
-              body = verdict
-                ? `${marker}\n## MoltNet multi-lens review\n\n` +
-                  `Recommendation: **${recommendation}**\n\n${verdict.summary}` +
-                  diagnosticBody + `\n\n` +
-                  `_${runDetails}_`
-                : `${marker}\n## MoltNet multi-lens review\n\n` +
-                  `The review completed, but its verdict payload was not recognized. ` +
-                  `${runDetails}.`;
+              body = renderMultiLensReviewComment(result, runDetails);
             } else {
               body = `${marker}\n## MoltNet multi-lens review\n\n` +
                 `The review run failed. ${runDetails}.`;
@@ -278,12 +253,16 @@ jobs:
 
   review-workers:
     needs: prepare
+    # Orchestration is authoritative: worker failures surface as missing task
+    # completion there, while a post-drain timeout must not mask a completed
+    # review.
+    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:
         worker: [1, 2]
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 50
     environment: legreffier
     permissions:
       contents: read
@@ -296,7 +275,8 @@ jobs:
       # Absurd may need time to create the first task; dependency gaps after a
       # completed lens are shorter and use a separate idle grace.
       REVIEW_WORKER_STARTUP_GRACE_SEC: '900'
-      REVIEW_WORKER_IDLE_GRACE_SEC: '300'
+      # Keep both workers alive across planner -> preflight -> canary gates.
+      REVIEW_WORKER_IDLE_GRACE_SEC: '900'
     steps:
       - uses: actions/checkout@v6
         with:

@@ -24,7 +24,8 @@ whether agent planning is required. It does not connect, stage artifacts, or
 create tasks.
 
 Existing --profile, --lens-profile, and --synthesis-profile routing remains
-supported. Phase-specific flags override the default for planner, design
+supported, including the legacy test-coverage lane alias for tests.
+Phase-specific flags override the default for planner, design
 preflight, combined topic review (legacy --topic-reducer-profile), and global
 synthesis.
 

@@ -16,12 +16,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import {
-  buildRunEvalInput,
   checkGates,
   readScenario,
   type Scenario,
-  seedScenarioWorkspace,
-  stageScenarioInputArtifacts,
   writeAgentCredentials,
   writePiConfig,
 } from '@moltnet/agent-eval';
@@ -30,6 +27,7 @@ import { runOnce } from '@themoltnet/agent-daemon/cli/once.js';
 import { type Agent, connect } from '@themoltnet/sdk';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { createScenarioProducerTask } from './fixtures.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
 const LIVE_LLM_FLAG = 'MOLTNET_AGENT_DAEMON_LIVE_LLM_E2E';
@@ -159,42 +157,17 @@ describeLive('Agent daemon evals-v2 gate smoke (live Ollama, e2e)', () => {
       for (let run = 1; run <= MAX_SCENARIO_RUNS; run++) {
         const sandboxRoot = mkdtempSync(join(tmpdir(), 'evals-v2-sandbox-'));
         tempRoots.push(sandboxRoot);
-        seedScenarioWorkspace(scenario, sandboxRoot);
-        const inputArtifacts = await stageScenarioInputArtifacts(
-          agent.tasks.artifacts,
-          scenario,
-          teamId,
-        );
-
         // Build the producer for THIS task type: freeform submits a
         // FreeformOutput from a brief; run_eval submits a RunEvalOutput from a
         // scenario prompt. Both flow through the SDK TaskBuilder.
-        const builder =
-          scenario.taskType === 'freeform'
-            ? agent.tasks
-                .buildFreeform({
-                  brief: scenario.prompt,
-                  execution: { workspace: scenario.execution.workspace },
-                })
-                .title(`evals-v2 ${scenario.slug}`)
-                .diary(diaryId)
-                .correlationId(randomUUID())
-                .maxAttempts(1)
-                .team(teamId)
-            : agent.tasks
-                .buildRunEval(
-                  buildRunEvalInput(scenario, { variant: 'baseline' }),
-                )
-                .title(`evals-v2 ${scenario.slug}`)
-                .diary(diaryId)
-                .correlationId(randomUUID())
-                .maxAttempts(1)
-                .team(teamId);
-        for (const inputArtifact of inputArtifacts) {
-          builder.artifactReference(inputArtifact.artifact, inputArtifact.role);
-        }
-        const built = builder.build();
-        const task = await agent.tasks.create(built);
+        const task = await createScenarioProducerTask({
+          agent,
+          scenario,
+          sandboxRoot,
+          teamId,
+          diaryId,
+          title: `evals-v2 ${scenario.slug}`,
+        });
 
         // Act — run the task through the daemon once against the pinned model.
         const oldPiDir = process.env.PI_CODING_AGENT_DIR;

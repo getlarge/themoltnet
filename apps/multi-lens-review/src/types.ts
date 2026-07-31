@@ -19,8 +19,13 @@ export const MANDATORY_REVIEW_LANES = [
   'dry-codebase-fit',
 ] as const satisfies readonly ReviewLane[];
 
-/** Backward-compatible alias for callers that imported the old constant. */
-export const DEFAULT_LENSES = REVIEW_LANES;
+/** Legacy default retained byte-for-byte for existing library callers. */
+export const DEFAULT_LENSES = [
+  'security',
+  'correctness',
+  'performance',
+  'test-coverage',
+] as const;
 
 export type ReviewFileStatus =
   | 'added'

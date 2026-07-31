@@ -117,6 +117,13 @@ function normalizedProfileId(profileId: string, label: string): string {
   return value;
 }
 
+function normalizeLaneName(lane: string): ReviewLane | null {
+  const current = lane === 'test-coverage' ? 'tests' : lane;
+  return REVIEW_LANES.includes(current as ReviewLane)
+    ? (current as ReviewLane)
+    : null;
+}
+
 function normalizeProfileRouting(
   routing: RuntimeProfileRouting | undefined,
 ): RuntimeProfileRouting | undefined {
@@ -126,7 +133,7 @@ function normalizeProfileRouting(
     ...(routing.laneProfileIds ?? {}),
   };
   for (const lane of Object.keys(laneProfileIds)) {
-    if (!REVIEW_LANES.includes(lane as ReviewLane)) {
+    if (!normalizeLaneName(lane)) {
       throw new Error(
         `multi-lens-review profile routing references unknown lane "${lane}"`,
       );
@@ -152,7 +159,7 @@ function normalizeProfileRouting(
       ? {
           laneProfileIds: Object.fromEntries(
             Object.entries(laneProfileIds).map(([lane, profileId]) => [
-              lane,
+              normalizeLaneName(lane) as ReviewLane,
               normalizedProfileId(profileId, `profile id for lane "${lane}"`),
             ]),
           ) as Partial<Record<ReviewLane, string>>,
@@ -248,15 +255,21 @@ export function normalizeMultiLensReviewInput(
       'multi-lens-review received duplicate topic review task ids',
     );
   }
+  if (topicReviewTaskIds.length > MAX_TOPIC_REVIEW_TASKS) {
+    throw new Error(
+      `multi-lens-review received ${topicReviewTaskIds.length} reusable topic review task ids; maximum is ${MAX_TOPIC_REVIEW_TASKS}`,
+    );
+  }
   const requested = [
     ...new Set((input.lenses ?? []).map((lane) => lane.trim())),
   ]
     .filter(Boolean)
     .map((lane) => {
-      if (!REVIEW_LANES.includes(lane as ReviewLane)) {
+      const normalizedLane = normalizeLaneName(lane);
+      if (!normalizedLane) {
         throw new Error(`multi-lens-review received unknown lane "${lane}"`);
       }
-      return lane as ReviewLane;
+      return normalizedLane;
     });
   return {
     ...input,
@@ -912,11 +925,29 @@ async function reusableTopicReviewTasks(
   works: TopicReviewWork[],
 ): Promise<Map<string, SdkTask>> {
   const reusable = new Map<string, SdkTask>();
-  for (const taskId of input.topicReviewTaskIds ?? []) {
-    const task = await deps.tasks.getTask(taskId);
-    const pointer = continuationPointer(task);
+  const tasks = await Promise.all(
+    (input.topicReviewTaskIds ?? []).map((taskId) =>
+      deps.tasks.getTask(taskId),
+    ),
+  );
+  const pointers = tasks.map((task) => continuationPointer(task));
+  const parentIds = [
+    ...new Set(
+      pointers.flatMap((pointer) => (pointer ? [pointer.taskId] : [])),
+    ),
+  ];
+  const parentTasks = new Map(
+    await Promise.all(
+      parentIds.map(
+        async (taskId) => [taskId, await deps.tasks.getTask(taskId)] as const,
+      ),
+    ),
+  );
+
+  for (const [index, task] of tasks.entries()) {
+    const pointer = pointers[index];
     const identityTask = pointer
-      ? await deps.tasks.getTask(pointer.taskId)
+      ? (parentTasks.get(pointer.taskId) as SdkTask)
       : task;
     if (pointer) {
       assertReusableContinuationTask(task, identityTask, pointer, input);
@@ -961,7 +992,7 @@ function buildGlobalSynthesisTask(
       ? [`Additional caller guidance: ${input.synthesisBrief}`]
       : []),
     'Return ONLY strict JSON: {"version":1,"recommendation":"approve|approve-with-nits|request-changes","findings":[...same structured finding shape...],"summary":"...","coverageComplete":true}.',
-    'Approval is forbidden if a required topic, lane, or primary file is missing. Dedupe and rank findings globally. Return at most 20 findings: preserve every blocker and major finding first, then the highest-impact distinct minor or nit findings that fit. The complete per-topic finding set remains available in the bound verdict artifact.',
+    'Approval is forbidden if a required topic, lane, or primary file is missing. Dedupe and rank findings globally. Normally return at most 20 findings: preserve every blocker and major finding verbatim first, even when their count alone exceeds 20, then the highest-impact distinct minor or nit findings that fit. The complete per-topic finding set remains available in the bound verdict artifact. Your recommendation must be at least as strict as the strictest topic recommendation.',
   ].join('\n\n');
   const task = baseTask(input, 'Global review synthesis');
   return withProfile(
@@ -975,7 +1006,7 @@ function buildGlobalSynthesisTask(
         constraints: [
           'Finish in exactly four tool-use turns: artifact list, artifact download, one read, submit.',
           'Do not use bash, write, edit, repository, memory, or task-list tools.',
-          'Return at most 20 globally deduplicated findings, preserving blockers and majors first.',
+          'Normally return at most 20 globally deduplicated findings; preserve all blockers and majors verbatim even if their count exceeds 20.',
         ],
         successCriteria: {
           version: 1,
@@ -1260,13 +1291,7 @@ function topicVerdictsFromLaneResults(
     const uniqueFindings = new Map<string, LaneFinding>();
     for (const result of topicResults) {
       for (const finding of result.findings) {
-        const key = [
-          finding.severity,
-          finding.path,
-          finding.location ?? '',
-          finding.description,
-        ].join('\0');
-        uniqueFindings.set(key, finding);
+        uniqueFindings.set(findingKey(finding), finding);
       }
     }
     const findings = [...uniqueFindings.values()];
@@ -1290,6 +1315,62 @@ function topicVerdictsFromLaneResults(
           : `${topic.title}: ${findings.length} unique finding(s) across ${topic.lanes.length} required lane(s).`,
     };
   });
+}
+
+function findingKey(finding: LaneFinding): string {
+  return [
+    finding.severity,
+    finding.path,
+    finding.location ?? '',
+    finding.description,
+    finding.impact,
+    finding.fix,
+  ].join('\0');
+}
+
+function recommendationRank(
+  recommendation: GlobalVerdict['recommendation'],
+): number {
+  return ['approve', 'approve-with-nits', 'request-changes'].indexOf(
+    recommendation,
+  );
+}
+
+function assertGlobalVerdictPreservesTopicVerdicts(
+  verdict: GlobalVerdict,
+  topicVerdicts: TopicVerdict[],
+): void {
+  const minimumRecommendation = topicVerdicts.reduce<
+    GlobalVerdict['recommendation']
+  >(
+    (minimum, topic) =>
+      recommendationRank(topic.recommendation) > recommendationRank(minimum)
+        ? topic.recommendation
+        : minimum,
+    'approve',
+  );
+  if (
+    recommendationRank(verdict.recommendation) <
+    recommendationRank(minimumRecommendation)
+  ) {
+    throw new Error(
+      `global synthesis recommendation ${verdict.recommendation} is weaker than trusted topic recommendation ${minimumRecommendation}`,
+    );
+  }
+
+  const globalFindings = new Set(verdict.findings.map(findingKey));
+  const missingBlocking = topicVerdicts
+    .flatMap((topic) => topic.findings)
+    .filter(
+      (finding) =>
+        (finding.severity === 'blocker' || finding.severity === 'major') &&
+        !globalFindings.has(findingKey(finding)),
+    );
+  if (missingBlocking.length > 0) {
+    throw new Error(
+      `global synthesis omitted ${missingBlocking.length} trusted blocker or major finding(s)`,
+    );
+  }
 }
 
 async function stageTopicVerdictsArtifact(
@@ -1667,6 +1748,7 @@ export async function runMultiLensReview(
   addUsage(cost, synthesis);
   phaseOutputs.globalSynthesis = acceptedOutputReference(synthesis);
   const verdict = parseGlobalVerdict(synthesis.state.summary);
+  assertGlobalVerdictPreservesTopicVerdicts(verdict, topicVerdicts);
   const coverage = coverageLedgerForPlan(input.reviewManifest, plan);
   if (!coverage.complete || !verdict.coverageComplete) {
     throw new Error('global synthesis cannot approve incomplete coverage');

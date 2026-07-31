@@ -17,7 +17,12 @@ import type {
   ReviewPatchSource,
   ReviewTopic,
 } from './types.js';
-import { assertReusablePlannerTask, runMultiLensReview } from './workflow.js';
+import { DEFAULT_LENSES } from './types.js';
+import {
+  assertReusablePlannerTask,
+  normalizeMultiLensReviewInput,
+  runMultiLensReview,
+} from './workflow.js';
 
 function fakeId(n: number): string {
   return `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
@@ -52,12 +57,23 @@ function preflight(verdict: 'PROCEED' | 'PIVOT' | 'ASK' = 'PROCEED') {
   });
 }
 
-function laneResult(topicId: string, lane: ReviewLane, files: string[]) {
+function laneResult(
+  topicId: string,
+  lane: ReviewLane,
+  files: string[],
+  findings: Array<{
+    severity: 'blocker' | 'major' | 'minor' | 'nit';
+    path: string;
+    description: string;
+    impact: string;
+    fix: string;
+  }> = [],
+) {
   return {
     version: 1,
     topicId,
     lane,
-    findings: [],
+    findings,
     reviewedFiles: files,
     summary: 'Clean.',
   };
@@ -67,11 +83,14 @@ function topicReview(
   topic: ReviewTopic,
   lanes: ReviewLane[] = topic.lanes,
   files: string[] = topic.primaryFiles,
+  findings: Parameters<typeof laneResult>[3] = [],
 ) {
   return summary({
     version: 1,
     topicId: topic.id,
-    laneResults: lanes.map((lane) => laneResult(topic.id, lane, files)),
+    laneResults: lanes.map((lane) =>
+      laneResult(topic.id, lane, files, findings),
+    ),
   });
 }
 
@@ -171,6 +190,30 @@ function reusablePlannerTask(references: SdkTask['references']): SdkTask {
 }
 
 describe('runMultiLensReview', () => {
+  it('preserves the legacy default lenses and normalizes test-coverage', () => {
+    expect(DEFAULT_LENSES).toEqual([
+      'security',
+      'correctness',
+      'performance',
+      'test-coverage',
+    ]);
+    expect(
+      normalizeMultiLensReviewInput({
+        ...input(),
+        lenses: ['test-coverage'],
+        profileRouting: {
+          defaultProfileId: 'default',
+          lensProfileIds: { 'test-coverage': 'tests-profile' },
+        },
+      }),
+    ).toMatchObject({
+      requestedLanes: ['tests'],
+      profileRouting: {
+        laneProfileIds: { tests: 'tests-profile' },
+      },
+    });
+  });
+
   it('allows one explicit recovery candidate on an accepted reusable planner task', () => {
     const normalized = {
       ...input({ requiresPlanning: true }),
@@ -276,6 +319,90 @@ describe('runMultiLensReview', () => {
     expect(tasks.created[3].title).toBe('Global review synthesis');
   });
 
+  it('rejects each reusable preflight and topic trust-binding mutation before downstream creation', async () => {
+    const mutations: Array<{
+      name: string;
+      mutate(task: SdkTask): void;
+      error: RegExp;
+    }> = [
+      {
+        name: 'team ownership',
+        mutate: (task) => {
+          (task as { teamId: string }).teamId = 'other-team';
+        },
+        error: /requested team and diary/,
+      },
+      {
+        name: 'diary ownership',
+        mutate: (task) => {
+          (task as { diaryId: string | null }).diaryId = 'other-diary';
+        },
+        error: /requested team and diary/,
+      },
+      {
+        name: 'exact revision',
+        mutate: (task) => {
+          (
+            task.input as { execution: { revision: string } }
+          ).execution.revision = 'c'.repeat(40);
+        },
+        error: /not bound to review revision/,
+      },
+      {
+        name: 'artifact references',
+        mutate: (task) => {
+          task.references.push({
+            taskId: null,
+            role: 'context',
+            artifact: { cid: 'unexpected' },
+          });
+        },
+        error: /not bound to the expected immutable artifacts/,
+      },
+      {
+        name: 'accepted status',
+        mutate: (task) => {
+          (task as { status: string }).status = 'running';
+        },
+        error: /not the expected completed accepted task/,
+      },
+    ];
+
+    for (const phase of ['preflight', 'topic'] as const) {
+      for (const mutation of mutations) {
+        const topic = deterministicTopic();
+        const tasks = new FakeTasks([
+          preflight(),
+          topicReview(topic),
+          globalVerdict(),
+        ]);
+        const first = await runMultiLensReview(input(), deps(tasks));
+        const taskId =
+          phase === 'preflight'
+            ? (first.phaseOutputs.preflight?.taskId as string)
+            : first.phaseOutputs.topicReviews[0].taskId;
+        mutation.mutate(await tasks.getTask(taskId));
+
+        await expect(
+          runMultiLensReview(
+            {
+              ...input(),
+              correlationId: `mutated-${phase}-${mutation.name}`,
+              ...(phase === 'preflight'
+                ? { preflightTaskId: taskId }
+                : {
+                    preflightTaskId: first.phaseOutputs.preflight?.taskId,
+                    topicReviewTaskIds: [taskId],
+                  }),
+            },
+            deps(tasks),
+          ),
+        ).rejects.toThrow(mutation.error);
+        expect(tasks.created, `${phase}: ${mutation.name}`).toHaveLength(3);
+      }
+    }
+  });
+
   it('reuses a strict-output continuation through its accepted topic parent lineage', async () => {
     const topic = deterministicTopic();
     const tasks = new FakeTasks([
@@ -320,6 +447,46 @@ describe('runMultiLensReview', () => {
     expect(recovered.phaseOutputs.topicReviews[0].taskId).toBe(continuation.id);
     expect(tasks.created).toHaveLength(5);
     expect(tasks.created[4].title).toBe('Global review synthesis');
+  });
+
+  it('rejects a continuation whose parent attempt lineage was changed', async () => {
+    const topic = deterministicTopic();
+    const tasks = new FakeTasks([
+      preflight(),
+      topicReview(topic),
+      globalVerdict(),
+      topicReview(topic),
+    ]);
+    const first = await runMultiLensReview(input(), deps(tasks));
+    const parentTaskId = first.phaseOutputs.topicReviews[0].taskId;
+    const continuation = await tasks.createTask({
+      teamId: 'team',
+      diaryId: 'diary',
+      taskType: 'freeform',
+      input: {
+        brief: 'Correct only the submitted JSON.',
+        continueFrom: { taskId: parentTaskId, attemptN: 2 },
+      },
+      claimCondition: {
+        op: 'task_status',
+        taskId: parentTaskId,
+        statuses: ['completed'],
+      },
+      maxAttempts: 1,
+    });
+
+    await expect(
+      runMultiLensReview(
+        {
+          ...input(),
+          correlationId: 'bad-continuation-lineage',
+          preflightTaskId: first.phaseOutputs.preflight?.taskId,
+          topicReviewTaskIds: [continuation.id],
+        },
+        deps(tasks),
+      ),
+    ).rejects.toThrow(/does not continue the accepted parent attempt/);
+    expect(tasks.created).toHaveLength(4);
   });
 
   it('checkpoints only task ids and artifact references', async () => {
@@ -367,7 +534,7 @@ describe('runMultiLensReview', () => {
     );
     expect(synthesis).toBeDefined();
     expect((synthesis?.input as { brief: string }).brief).toContain(
-      'Return at most 20 findings',
+      'Normally return at most 20 findings',
     );
     expect(
       (synthesis?.input as { constraints: string[] }).constraints,
@@ -381,6 +548,40 @@ describe('runMultiLensReview', () => {
         }
       ).successCriteria.gates,
     ).toContainEqual(expect.objectContaining({ id: 'submit-global-verdict' }));
+  });
+
+  it('rejects synthesis that weakens or drops trusted blocking findings', async () => {
+    const topic = deterministicTopic();
+    const finding = {
+      severity: 'blocker' as const,
+      path: 'src/change.ts',
+      description: 'A trusted blocker.',
+      impact: 'The change is unsafe.',
+      fix: 'Correct the unsafe behavior.',
+    };
+    const weakRecommendation = new FakeTasks([
+      preflight(),
+      topicReview(topic, topic.lanes, topic.primaryFiles, [finding]),
+      globalVerdict(),
+    ]);
+    await expect(
+      runMultiLensReview(input(), deps(weakRecommendation)),
+    ).rejects.toThrow(/recommendation approve is weaker/);
+
+    const missingFinding = new FakeTasks([
+      preflight(),
+      topicReview(topic, topic.lanes, topic.primaryFiles, [finding]),
+      summary({
+        version: 1,
+        recommendation: 'request-changes',
+        findings: [],
+        summary: 'Request changes.',
+        coverageComplete: true,
+      }),
+    ]);
+    await expect(
+      runMultiLensReview(input(), deps(missingFinding)),
+    ).rejects.toThrow(/omitted 1 trusted blocker or major finding/);
   });
 
   it('persists only remote output references in the Absurd result', async () => {
@@ -406,11 +607,11 @@ describe('runMultiLensReview', () => {
       attemptN: 1,
       outputCid: `cid-${fakeId(3)}`,
     });
-    await expect(
-      hydrateMultiLensReviewOutput(durable, tasks),
-    ).resolves.toMatchObject({
+    const hydrated = await hydrateMultiLensReviewOutput(durable, tasks);
+    expect(hydrated).toMatchObject({
       verdict: { recommendation: 'approve', coverageComplete: true },
     });
+    expect(hydrated.preflight).toEqual(output.preflight);
   });
 
   it('uses one bounded multi-lens task per topic at the exact review revision', async () => {

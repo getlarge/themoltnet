@@ -23,13 +23,10 @@ import { join, resolve } from 'node:path';
 
 import {
   type BaselineReport,
-  buildRunEvalInput,
   checkGates,
   readScenario,
   runBaseline,
   type Scenario,
-  seedScenarioWorkspace,
-  stageScenarioInputArtifacts,
   summarizeBaseline,
   writeAgentCredentials,
   writePiConfig,
@@ -39,6 +36,7 @@ import { runOnce } from '@themoltnet/agent-daemon/cli/once.js';
 import { type Agent, connect } from '@themoltnet/sdk';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { createScenarioProducerTask } from './fixtures.js';
 import { createDaemonTestHarness, type DaemonTestHarness } from './setup.js';
 
 const BASELINE_FLAG = 'MOLTNET_BASELINE';
@@ -145,44 +143,16 @@ describeBaseline('Producer baseline (live Ollama, e2e)', () => {
         runProducer: async (scenario) => {
           const sandboxRoot = mkdtempSync(join(tmpdir(), 'baseline-sbx-'));
           tempRoots.push(sandboxRoot);
-          seedScenarioWorkspace(scenario, sandboxRoot);
-          const inputArtifacts = await stageScenarioInputArtifacts(
-            agent.tasks.artifacts,
-            scenario,
-            teamId,
-          );
-
           // Fresh task (fresh correlationId => fresh session key) per run so the
           // sampling is independent. Build the producer for this task type.
-          const builder =
-            scenario.taskType === 'freeform'
-              ? agent.tasks
-                  .buildFreeform({
-                    brief: scenario.prompt,
-                    execution: { workspace: scenario.execution.workspace },
-                  })
-                  .title(`baseline ${scenario.slug}`)
-                  .diary(diaryId)
-                  .correlationId(randomUUID())
-                  .maxAttempts(1)
-                  .team(teamId)
-              : agent.tasks
-                  .buildRunEval(
-                    buildRunEvalInput(scenario, { variant: 'baseline' }),
-                  )
-                  .title(`baseline ${scenario.slug}`)
-                  .diary(diaryId)
-                  .correlationId(randomUUID())
-                  .maxAttempts(1)
-                  .team(teamId);
-          for (const inputArtifact of inputArtifacts) {
-            builder.artifactReference(
-              inputArtifact.artifact,
-              inputArtifact.role,
-            );
-          }
-          const built = builder.build();
-          const task = await agent.tasks.create(built);
+          const task = await createScenarioProducerTask({
+            agent,
+            scenario,
+            sandboxRoot,
+            teamId,
+            diaryId,
+            title: `baseline ${scenario.slug}`,
+          });
 
           const oldPiDir = process.env.PI_CODING_AGENT_DIR;
           const oldCwd = process.cwd();

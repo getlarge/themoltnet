@@ -1,4 +1,11 @@
 import {
+  assertExactKeys,
+  nonEmptyStringArray,
+  parseStrictJsonObject,
+  requiredNonEmptyString,
+  strictRecord,
+} from './strict-json.js';
+import {
   type CoverageLedger,
   type GeneratedFileCandidate,
   MANDATORY_REVIEW_LANES,
@@ -20,44 +27,14 @@ export const MAX_TOPIC_REVIEW_TASKS = MAX_TOPICS;
 const KNOWN_LANES = new Set<string>(REVIEW_LANES);
 const TOPIC_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
-function asRecord(value: unknown, label: string): Record<string, unknown> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    throw new Error(`${label} must be an object`);
-  }
-  return value as Record<string, unknown>;
-}
-
-function exactKeys(
-  record: Record<string, unknown>,
-  allowed: readonly string[],
-  label: string,
-): void {
-  const unknown = Object.keys(record).filter((key) => !allowed.includes(key));
-  if (unknown.length > 0) {
-    throw new Error(`${label} contains unknown fields: ${unknown.join(', ')}`);
-  }
-}
-
-function stringArray(value: unknown, label: string): string[] {
-  if (
-    !Array.isArray(value) ||
-    value.some((item) => typeof item !== 'string' || !item.trim())
-  ) {
-    throw new Error(`${label} must be an array of non-empty strings`);
-  }
-  return value.map((item) => (item as string).trim());
-}
-
 /** Parse the planner's summary as strict JSON before trusted validation. */
 export function parseTopicPlanJson(summary: string): TopicPlan {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(summary);
-  } catch {
-    throw new Error('planner output must be strict JSON');
-  }
-  const root = asRecord(parsed, 'topic plan');
-  exactKeys(root, ['version', 'generatedCandidates', 'topics'], 'topic plan');
+  const root = parseStrictJsonObject(summary, 'planner output');
+  assertExactKeys(
+    root,
+    ['version', 'generatedCandidates', 'topics'],
+    'topic plan',
+  );
   if (
     root.version !== 1 ||
     !Array.isArray(root.generatedCandidates) ||
@@ -69,48 +46,55 @@ export function parseTopicPlanJson(summary: string): TopicPlan {
   }
   const generatedCandidates = root.generatedCandidates.map(
     (value, index): GeneratedFileCandidate => {
-      const candidate = asRecord(value, `generatedCandidates[${index}]`);
-      exactKeys(
+      const candidate = strictRecord(value, `generatedCandidates[${index}]`);
+      assertExactKeys(
         candidate,
         ['path', 'reason', 'evidence'],
         `generatedCandidates[${index}]`,
       );
-      for (const key of ['path', 'reason', 'evidence'] as const) {
-        if (typeof candidate[key] !== 'string' || !candidate[key].trim()) {
-          throw new Error(
-            `generatedCandidates[${index}].${key} must be a non-empty string`,
-          );
-        }
-      }
       return {
-        path: (candidate.path as string).trim(),
-        reason: (candidate.reason as string).trim(),
-        evidence: (candidate.evidence as string).trim(),
+        path: requiredNonEmptyString(
+          candidate,
+          'path',
+          `generatedCandidates[${index}]`,
+        ),
+        reason: requiredNonEmptyString(
+          candidate,
+          'reason',
+          `generatedCandidates[${index}]`,
+        ),
+        evidence: requiredNonEmptyString(
+          candidate,
+          'evidence',
+          `generatedCandidates[${index}]`,
+        ),
       };
     },
   );
   const topics = root.topics.map((value, index): ReviewTopic => {
-    const topic = asRecord(value, `topics[${index}]`);
-    exactKeys(
+    const topic = strictRecord(value, `topics[${index}]`);
+    assertExactKeys(
       topic,
       ['id', 'title', 'primaryFiles', 'contextFiles', 'lanes'],
       `topics[${index}]`,
     );
-    if (typeof topic.id !== 'string' || typeof topic.title !== 'string') {
-      throw new Error(`topics[${index}] requires string id and title`);
-    }
-    const primaryFiles = stringArray(
+    const id = requiredNonEmptyString(topic, 'id', `topics[${index}]`);
+    const title = requiredNonEmptyString(topic, 'title', `topics[${index}]`);
+    const primaryFiles = nonEmptyStringArray(
       topic.primaryFiles,
       `topics[${index}].primaryFiles`,
     );
     const contextFiles =
       topic.contextFiles === undefined
         ? undefined
-        : stringArray(topic.contextFiles, `topics[${index}].contextFiles`);
-    const lanes = stringArray(topic.lanes, `topics[${index}].lanes`);
+        : nonEmptyStringArray(
+            topic.contextFiles,
+            `topics[${index}].contextFiles`,
+          );
+    const lanes = nonEmptyStringArray(topic.lanes, `topics[${index}].lanes`);
     return {
-      id: topic.id,
-      title: topic.title,
+      id,
+      title,
       primaryFiles,
       ...(contextFiles ? { contextFiles } : {}),
       lanes: lanes as ReviewLane[],

@@ -103,6 +103,8 @@ changed lines; the worktree supplies the surrounding repository context and
 repo-wide search required by deep review. GitHub Actions executes trusted
 runtime code from the base checkout, fetches the head object only as inert Git
 data, and never runs code from the reviewed revision.
+The runtime verifies both `HEAD` and a clean working-tree status before an
+exact-revision task starts.
 
 ## Run
 
@@ -153,6 +155,8 @@ Profile routing remains backward compatible:
 - `--profile` is the default for every task;
 - `--lens-profile <lane>=<profile>` and `--synthesis-profile <profile>` keep
   their existing meanings;
+- the legacy `test-coverage` lane is normalized to `tests`, while
+  `DEFAULT_LENSES` retains its original four-value public contract;
 - `--lane-profile` and `--global-synthesis-profile` are explicit aliases; and
 - `--planner-profile` and `--preflight-profile` route the planning phases; and
 - the legacy `--topic-reducer-profile` now supplies the default combined
@@ -206,10 +210,13 @@ context; it is not an invitation to inventory or execute the repository.
 
 [`multi-lens-review.yml`](../../.github/workflows/multi-lens-review.yml)
 preserves the `pull_request_target` trusted-base checkout and runs only for
-`ready_for_review` or a human `@legreffier /multi-lens-review` mention. The
-prepare job fetches the raw diff and paginated file metadata. Two ephemeral
-workers drain the correlation. The final marker-backed comment includes the
-verdict plus topic, coverage, artifact, task, and token diagnostics.
+`ready_for_review` or an `@legreffier /multi-lens-review` mention from an owner,
+member, or collaborator. The prepare job fetches the raw diff and paginated
+file metadata. Two ephemeral workers remain available through the staged
+planner/preflight/canary gates and drain the correlation. Trusted synthesis
+cannot weaken a topic recommendation or omit any blocker or major finding.
+The final marker-backed comment renders completed findings, pivot rationale,
+or questions, plus topic, coverage, artifact, task, and token diagnostics.
 
 Local `act` runs never publish or update a PR comment.
 
