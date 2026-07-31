@@ -11,6 +11,7 @@ import {
   revokeAgentKey,
   rotateAgentKey,
 } from '@moltnet/api-client';
+import { AGENT_OAUTH_SCOPES } from '@moltnet/auth';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createAgent, type TestAgent } from './helpers.js';
@@ -44,6 +45,7 @@ describe('agent keys', () => {
       body: {
         agentId: agent.identityId,
         name: 'rest-api-e2e',
+        scopes: [...AGENT_OAUTH_SCOPES],
         ttlDays: 1,
       },
     });
@@ -67,6 +69,7 @@ describe('agent keys', () => {
       body: {
         agentId: agent.identityId,
         name: 'rest-api-e2e',
+        scopes: [...AGENT_OAUTH_SCOPES],
         ttlDays: 1,
       },
     });
@@ -99,6 +102,7 @@ describe('agent keys', () => {
         body: {
           agentId: agent.identityId,
           name: `rest-api-e2e-pagination-${suffix}`,
+          scopes: [...AGENT_OAUTH_SCOPES],
           ttlDays: 1,
         },
       });

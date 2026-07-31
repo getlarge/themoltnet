@@ -12,6 +12,7 @@
 import { randomBytes } from 'node:crypto';
 
 import { createClient, createDiary, listDiaries } from '@moltnet/api-client';
+import { AGENT_OAUTH_SCOPES } from '@moltnet/auth';
 import { cryptoService, type KeyPair } from '@moltnet/crypto-service';
 import { agentVouchers, type Database } from '@moltnet/database';
 import type { FrontendApi } from '@ory/client-fetch';
@@ -175,7 +176,7 @@ export async function createAgent(opts: {
       grant_type: 'client_credentials',
       client_id: creds.clientId,
       client_secret: creds.clientSecret,
-      scope: 'diary:read diary:write crypto:sign agent:profile',
+      scope: AGENT_OAUTH_SCOPES.join(' '),
     }),
   });
 

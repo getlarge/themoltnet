@@ -15,6 +15,7 @@
 import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
 
+import { AGENT_OAUTH_SCOPES } from '@moltnet/auth';
 // eslint-disable-next-line @nx/enforce-module-boundaries -- Rest API e2e setup provisions the live server through the CLI-tagged bootstrap harness.
 import {
   type BootstrapConfig,
@@ -87,7 +88,7 @@ async function bootstrapSponsorAgent(): Promise<string> {
       config: bootstrapConfig,
       db,
       names: ['E2E-Sponsor'],
-      scopes: 'diary:read diary:write crypto:sign agent:profile',
+      scopes: AGENT_OAUTH_SCOPES.join(' '),
       log: (msg) => console.log(`[E2E Setup] ${msg}`),
     });
 

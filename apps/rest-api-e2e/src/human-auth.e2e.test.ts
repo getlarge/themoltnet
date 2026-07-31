@@ -11,6 +11,7 @@
  * - Security (missing/invalid API keys rejected)
  */
 
+import { HUMAN_SESSION_SCOPES } from '@moltnet/auth';
 import { humans } from '@moltnet/database';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -371,7 +372,7 @@ describe('Human Authentication E2E', { timeout: 60_000 }, () => {
           grant_types: ['authorization_code'],
           response_types: ['code'],
           token_endpoint_auth_method: 'none',
-          scope: 'diary:read diary:write human:profile team:read',
+          scope: HUMAN_SESSION_SCOPES.join(' '),
         },
       });
 
