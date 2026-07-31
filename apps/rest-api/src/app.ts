@@ -360,8 +360,8 @@ export async function registerApiRoutes(
   // every requireAuth/optionalAuth route without duplicating schema entries.
   // This hook only mutates route metadata; the global request rate limiter is
   // registered below before any routes are registered.
-  // codeql[js/missing-rate-limiting]
   app.addHook('onRoute', (routeOptions) => {
+    // codeql[js/missing-rate-limiting]
     if (!routeUsesPrincipalAuth(routeOptions)) return;
     routeOptions.schema ??= {};
     const existingResponses =

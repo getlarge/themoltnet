@@ -177,8 +177,10 @@ export const authPlugin = fp(
     if (opts.enforceRouteScopeDeclarations) {
       // This registration-time assertion does not handle requests. Consuming
       // applications remain responsible for their request rate limiter.
-      // codeql[js/missing-rate-limiting]
-      fastify.addHook('onRoute', assertRouteScopeDeclarations);
+      fastify.addHook(
+        'onRoute',
+        assertRouteScopeDeclarations, // codeql[js/missing-rate-limiting]
+      );
     }
 
     // Resolve authContext early (non-fatally) so onRequest-phase consumers —
