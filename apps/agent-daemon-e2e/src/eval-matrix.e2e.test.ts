@@ -247,9 +247,18 @@ describeMatrix('Eval matrix (live Ollama, e2e)', () => {
         });
         const final = await agent.tasks.get(task.id);
         if (final.status !== 'completed' || !final.acceptedAttemptN) {
-          throw new Error(
-            `producer ${task.id} status=${final.status} accepted=${final.acceptedAttemptN}`,
-          );
+          const attempts = await agent.tasks.listAttempts(task.id);
+          let latest = attempts[0];
+          for (const attempt of attempts) {
+            if (!latest || attempt.attemptN > latest.attemptN) {
+              latest = attempt;
+            }
+          }
+          return {
+            taskId: task.id,
+            attemptN: null,
+            failureCode: latest?.error?.code ?? `task_${final.status}`,
+          };
         }
         return { taskId: task.id, attemptN: final.acceptedAttemptN };
       },

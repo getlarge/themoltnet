@@ -8,7 +8,3 @@ constraints EXACTLY:
 - Each bullet must start with "- " (a dash and a space).
 - Do NOT include any prose before, between, or after the bullets — no
   introduction, no conclusion, no headings.
-
-Put the three-bullet list in the `response` field and call the submit tool
-exactly once with the required `totalTokens`, `durationMs`, and `traceparent`
-fields.

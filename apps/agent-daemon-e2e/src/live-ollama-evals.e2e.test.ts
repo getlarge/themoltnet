@@ -40,11 +40,11 @@ const CORPUS_ROOT = join(import.meta.dirname, '../../..', 'evals-v2');
 
 /**
  * Tolerate model non-determinism the way a real deployment would: re-run a whole
- * scenario (a fresh task = fresh sampling) on failure, up to this many times. A
- * submit-output validation failure is classified non-retryable by the daemon, so
- * attempt-level `maxAttempts` cannot recover it — only a fresh task can. A
- * scenario that never passes in N runs is a genuine red; retries are logged so
- * the flake rate stays visible rather than silently masked.
+ * scenario (a fresh task = fresh sampling) on failure, up to this many times.
+ * Submit validation recovery happens inside each task's active Pi session;
+ * these whole-task reruns only tolerate independent model sampling variance.
+ * A scenario that never passes in N runs is a genuine red; retries are logged
+ * so the flake rate stays visible rather than silently masked.
  */
 const MAX_SCENARIO_RUNS = 3;
 

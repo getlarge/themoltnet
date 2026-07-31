@@ -10,6 +10,4 @@ Then upload it as a task artifact by calling the `moltnet_upload_task_artifact`
 tool with filePath `deploy-report.txt`, kind `report`, title `deploy-report.txt`,
 and contentType `text/plain`.
 
-Finally, call the submit tool exactly once. Put a short confirmation sentence in
-`response`, and include the required `totalTokens`, `durationMs`, and
-`traceparent` fields.
+Finally, report briefly that the artifact was uploaded.
