@@ -185,9 +185,7 @@ test.describe.serial('Runtime security console', () => {
     const createDialog = page.getByRole('dialog', {
       name: 'Create agent key',
     });
-    await expect(
-      createDialog.getByLabel('Agent', { exact: true }),
-    ).not.toHaveValue('');
+    await expect(createDialog.getByRole('combobox')).not.toHaveValue('');
     await createDialog.getByLabel('Key name').fill(keyName);
     await createDialog.getByLabel('Lifetime in days').fill('7');
     const createKeyButton = createDialog.getByRole('button', {
