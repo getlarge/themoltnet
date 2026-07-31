@@ -16,6 +16,9 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
     rolldownOptions: {
+      // The analyzer owns runtime WASM assets whose import.meta.url paths are
+      // detached when its source-direct workspace export is bundled here.
+      external: ['@themoltnet/shell-command-analyzer'],
       input: 'src/index.ts',
     },
   },

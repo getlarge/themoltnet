@@ -31,7 +31,8 @@
     "!dist/.dts"
   ],
   "scripts": {
-    "check:pack": "tsx ../../tools/src/check-pack.ts --package ."
+    "check:pack": "tsx ../../tools/src/check-pack.ts --package . && pnpm run smoke:pack",
+    "smoke:pack": "node scripts/smoke-packed-analyzer.mjs"
   },
   "dependencies": {
     "@earendil-works/gondolin": "catalog:",
