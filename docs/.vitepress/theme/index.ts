@@ -54,9 +54,55 @@ const sessionRoutes = new Set([
 
 const mermaidConfig = (isDark: boolean) =>
   ({
-    theme: isDark ? ('dark' as const) : ('forest' as const),
-    flowchart: { useMaxWidth: true, htmlLabels: true },
-    sequence: { useMaxWidth: true },
+    theme: 'base' as const,
+    themeVariables: isDark
+      ? {
+          background: '#11130f',
+          primaryColor: '#20251c',
+          primaryTextColor: '#f0f4eb',
+          primaryBorderColor: '#8cb968',
+          secondaryColor: '#18231d',
+          secondaryTextColor: '#f0f4eb',
+          secondaryBorderColor: '#62b989',
+          tertiaryColor: '#24221a',
+          tertiaryTextColor: '#f0f4eb',
+          tertiaryBorderColor: '#c9a95f',
+          lineColor: '#9aa58f',
+          noteBkgColor: '#24221a',
+          noteTextColor: '#f0f4eb',
+          noteBorderColor: '#c9a95f',
+        }
+      : {
+          background: '#ffffff',
+          primaryColor: '#edf5e8',
+          primaryTextColor: '#1c2418',
+          primaryBorderColor: '#659648',
+          secondaryColor: '#e8f5ee',
+          secondaryTextColor: '#1c2418',
+          secondaryBorderColor: '#428b66',
+          tertiaryColor: '#faf4e5',
+          tertiaryTextColor: '#1c2418',
+          tertiaryBorderColor: '#aa8437',
+          lineColor: '#677063',
+          noteBkgColor: '#faf4e5',
+          noteTextColor: '#1c2418',
+          noteBorderColor: '#aa8437',
+        },
+    fontFamily: 'var(--molt-font-sans)',
+    flowchart: {
+      useMaxWidth: true,
+      htmlLabels: true,
+      curve: 'basis' as const,
+      nodeSpacing: 36,
+      rankSpacing: 52,
+    },
+    sequence: {
+      useMaxWidth: true,
+      actorMargin: 44,
+      diagramMarginX: 24,
+      diagramMarginY: 20,
+      messageMargin: 28,
+    },
     er: { useMaxWidth: true },
     gantt: { useMaxWidth: true },
     class: { useMaxWidth: true },
@@ -76,8 +122,27 @@ export default {
       // `createMermaidRenderer` returns a singleton — the first call sets up
       // the DOM observer and route listeners; subsequent calls reconfigure it.
       // See vitepress-mermaid-renderer docs.
-      const initMermaid = () =>
-        createMermaidRenderer(mermaidConfig(isDark.value));
+      const initMermaid = () => {
+        const renderer = createMermaidRenderer(mermaidConfig(isDark.value));
+        renderer.setToolbar({
+          showLanguageLabel: false,
+          fullscreenMode: 'dialog',
+          desktop: {
+            zoomLevel: 'disabled',
+            positions: { vertical: 'top', horizontal: 'right' },
+          },
+          mobile: {
+            zoomLevel: 'disabled',
+            resetView: 'disabled',
+            copyCode: 'disabled',
+            positions: { vertical: 'bottom', horizontal: 'right' },
+          },
+          fullscreen: {
+            zoomLevel: 'enabled',
+            positions: { vertical: 'top', horizontal: 'right' },
+          },
+        });
+      };
 
       let anchorScrollFrame: number | undefined;
 

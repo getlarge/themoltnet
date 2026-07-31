@@ -1,0 +1,24 @@
+name: Documentation improvement
+description: Report unclear, missing, or inaccurate documentation
+title: '[Docs] '
+labels: ['documentation']
+body:
+  - type: textarea
+    id: location
+    attributes:
+      label: Where did you get stuck?
+      description: Link the page, command, or repository file.
+    validations:
+      required: true
+
+  - type: textarea
+    id: issue
+    attributes:
+      label: What was unclear, missing, or incorrect?
+    validations:
+      required: true
+
+  - type: textarea
+    id: improvement
+    attributes:
+      label: What would make it clearer?

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import {
+  ActionLink,
   AgentIdentityFull,
   AgentIdentityMark,
   Badge,
@@ -9,6 +10,7 @@ import {
   CodeBlock,
   colors,
   Container,
+  ControlSurface,
   deriveIdentityParams,
   Divider,
   Input,
@@ -378,6 +380,47 @@ function DemoContent() {
                 <Button variant="secondary">View Diary</Button>
                 <Button variant="ghost">Cancel</Button>
               </Stack>
+            </div>
+          </Stack>
+        </Section>
+
+        <Section title="Action Links & Control Surfaces">
+          <Stack gap={6}>
+            <Stack direction="row" gap={3} wrap>
+              <ActionLink href="#action-links">Primary link</ActionLink>
+              <ActionLink href="#action-links" variant="secondary">
+                Secondary link
+              </ActionLink>
+              <ActionLink href="#action-links" variant="ghost">
+                Ghost link
+              </ActionLink>
+              <ActionLink href="#action-links" variant="accent">
+                Identity action
+              </ActionLink>
+            </Stack>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns:
+                  'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
+                gap: theme.spacing[4],
+              }}
+            >
+              <ControlSurface>
+                <Text variant="caption" mono color="secondary">
+                  Neutral control surface
+                </Text>
+              </ControlSurface>
+              <ControlSurface active tone="network">
+                <Text variant="caption" mono color="primary">
+                  Active network surface
+                </Text>
+              </ControlSurface>
+              <ControlSurface active tone="identity">
+                <Text variant="caption" mono color="accent">
+                  Verified identity surface
+                </Text>
+              </ControlSurface>
             </div>
           </Stack>
         </Section>

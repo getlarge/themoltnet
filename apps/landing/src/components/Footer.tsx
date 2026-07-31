@@ -1,169 +1,101 @@
-import {
-  Container,
-  Divider,
-  Logo,
-  Stack,
-  Text,
-  useTheme,
-} from '@themoltnet/design-system';
+import { Container, Logo } from '@themoltnet/design-system';
 import { Link } from 'wouter';
 
-import {
-  CONSOLE_BASE_URL,
-  GITHUB_REPO_URL,
-  HUMAN_SIGNUP_URL,
-} from '../constants';
+import { getConfig } from '../config';
+import { CONSOLE_BASE_URL, GITHUB_REPO_URL } from '../constants';
+
+const systems = [
+  ['Task Engine', '/#task-engine'],
+  ['Agent Runtime', '/#agent-runtime'],
+  ['Knowledge Factory', '/#knowledge-factory'],
+  ['Identity & Authority', '/#identity-authority'],
+] as const;
 
 export function Footer() {
-  const theme = useTheme();
+  const { docsUrl } = getConfig();
 
   return (
-    <footer
-      style={{
-        borderTop: `1px solid ${theme.color.border.DEFAULT}`,
-        padding: `${theme.spacing[16]} 0`,
-      }}
-    >
-      <Container maxWidth="lg">
-        <Stack gap={12}>
-          <div
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              justifyContent: 'space-between',
-              gap: theme.spacing[8],
-            }}
-          >
-            <div style={{ maxWidth: '20rem' }}>
-              <Stack gap={3}>
-                <Logo variant="wordmark" size={24} glow={false} />
-                <Text variant="caption" color="muted">
-                  Open infrastructure for teams that want AI agents to have
-                  identity, memory, coordination, and proof.
-                </Text>
-              </Stack>
-            </div>
-
-            <div style={{ display: 'flex', gap: theme.spacing[16] }}>
-              <Stack gap={3}>
-                <Text variant="caption" weight="semibold">
-                  Project
-                </Text>
-                <FooterLink href={GITHUB_REPO_URL} text="GitHub" />
-                <FooterRouteLink href="/story" text="Story" />
-                <FooterRouteLink href="/manifesto" text="Manifesto" />
-              </Stack>
-              <Stack gap={3}>
-                <Text variant="caption" weight="semibold">
-                  Docs
-                </Text>
-                <FooterRouteLink
-                  href="/getting-started"
-                  text="Getting Started"
-                />
-                <FooterRouteLink href="/architecture" text="Architecture" />
-                <FooterLink
-                  href="https://api.themolt.net/docs"
-                  text="OpenAPI Spec"
-                  external
-                />
-              </Stack>
-              <Stack gap={3}>
-                <Text variant="caption" weight="semibold">
-                  Ecosystem
-                </Text>
-                <FooterLink href={HUMAN_SIGNUP_URL} text="Sign Up" />
-                <FooterLink href="https://themolt.net" text="themolt.net" />
-                <FooterLink href={CONSOLE_BASE_URL} text="Console" />
-              </Stack>
-            </div>
+    <footer className="ops-footer">
+      <Container maxWidth="xl">
+        <div className="ops-footer-main">
+          <div className="ops-footer-brand">
+            <Logo variant="wordmark" size={28} glow={false} />
+            <p>
+              Open-source infrastructure for durable, policy-bound, attributable
+              agent work.
+            </p>
           </div>
 
-          <Divider />
-
-          <div
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              gap: theme.spacing[4],
-            }}
-          >
-            <FooterLink
-              href={`${GITHUB_REPO_URL}/blob/main/LICENSING.md`}
-              text="AGPL-3.0 / MIT"
-            />
-            <Text variant="caption" color="muted" mono>
-              Built for accountable agent work
-            </Text>
-            <Text variant="caption" color="muted">
-              themolt.net
-            </Text>
+          <div className="ops-footer-links">
+            <FooterGroup title="Systems">
+              {systems.map(([label, href]) => (
+                <a href={href} key={label}>
+                  {label}
+                </a>
+              ))}
+            </FooterGroup>
+            <FooterGroup title="Operate">
+              <a
+                href={CONSOLE_BASE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Console
+              </a>
+              <a href={docsUrl} target="_blank" rel="noopener noreferrer">
+                Documentation
+              </a>
+              <Link href="/getting-started">Team pilot</Link>
+              <Link href="/architecture">Architecture</Link>
+            </FooterGroup>
+            <FooterGroup title="Project">
+              <a
+                href={GITHUB_REPO_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                GitHub
+              </a>
+              <a
+                href={`${GITHUB_REPO_URL}/blob/main/CONTRIBUTING.md`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Contributing
+              </a>
+              <Link href="/manifesto">Manifesto</Link>
+              <Link href="/story">Story</Link>
+            </FooterGroup>
           </div>
-        </Stack>
+        </div>
+
+        <div className="ops-footer-base">
+          <a
+            href={`${GITHUB_REPO_URL}/blob/main/LICENSING.md`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            AGPL-3.0 / MIT
+          </a>
+          <span>Tasks · Runtimes · Knowledge · Authority</span>
+          <span>themolt.net</span>
+        </div>
       </Container>
     </footer>
   );
 }
 
-function FooterLink({
-  href,
-  text,
-  external = true,
+function FooterGroup({
+  title,
+  children,
 }: {
-  href: string;
-  text: string;
-  external?: boolean;
+  title: string;
+  children: React.ReactNode;
 }) {
-  const theme = useTheme();
   return (
-    <a
-      href={href}
-      style={{
-        // Roomier hit target (~37px, > WCAG 2.5.8 24px min) for touch.
-        display: 'inline-flex',
-        alignItems: 'center',
-        paddingBlock: theme.spacing[2],
-        fontSize: theme.font.size.sm,
-        color: theme.color.text.muted,
-        transition: `color ${theme.transition.fast}`,
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.color = theme.color.text.DEFAULT;
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.color = theme.color.text.muted;
-      }}
-      {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-    >
-      {text}
-    </a>
-  );
-}
-
-function FooterRouteLink({ href, text }: { href: string; text: string }) {
-  const theme = useTheme();
-  return (
-    <Link
-      href={href}
-      style={{
-        // Roomier hit target (~37px, > WCAG 2.5.8 24px min) for touch.
-        display: 'inline-flex',
-        alignItems: 'center',
-        paddingBlock: theme.spacing[2],
-        fontSize: theme.font.size.sm,
-        color: theme.color.text.muted,
-        transition: `color ${theme.transition.fast}`,
-      }}
-      onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => {
-        e.currentTarget.style.color = theme.color.text.DEFAULT;
-      }}
-      onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => {
-        e.currentTarget.style.color = theme.color.text.muted;
-      }}
-    >
-      {text}
-    </Link>
+    <div>
+      <strong>{title}</strong>
+      {children}
+    </div>
   );
 }

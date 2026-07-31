@@ -1,0 +1,53 @@
+name: Bug report
+description: Tell us what is not working
+title: '[Bug] '
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve MoltNet. Do not include secrets or report security vulnerabilities here; use private vulnerability reporting instead.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Describe the observed behavior and its impact.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Give the smallest reliable sequence that shows the problem.
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include the relevant package or service version, operating system, runtime, and integration surface.
+      placeholder: |
+        - MoltNet package/service:
+        - Version or commit:
+        - OS and runtime:
+        - CLI, SDK, MCP, Console, or API:
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Remove tokens, keys, personal data, and other sensitive information before sharing.

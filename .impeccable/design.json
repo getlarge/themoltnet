@@ -1,0 +1,167 @@
+{
+  "components": [
+    {
+      "css": ".ds-action-primary { display:inline-flex; align-items:center; gap:8px; min-height:48px; padding:10px 24px; border-radius:8px; background:#00d4c8; color:#08080d; font:600 18px/1.4 Inter,sans-serif; text-decoration:none; transition:background 120ms ease,box-shadow 120ms ease; } .ds-action-primary:hover { background:#00f0e2; } .ds-action-primary:focus-visible { outline:none; box-shadow:0 0 0 2px #08080d,0 0 0 4px #00d4c8; }",
+      "description": "The one filled action in a decision region.",
+      "html": "<a class=\"ds-action-primary\" href=\"#\">Start a team pilot <span>→</span></a>",
+      "kind": "button",
+      "name": "Primary Action",
+      "refersTo": "action-primary"
+    },
+    {
+      "css": ".ds-action-secondary { display:inline-flex; align-items:center; min-height:48px; padding:10px 24px; border:1px solid #252535; border-radius:8px; background:transparent; color:#00d4c8; font:600 18px/1.4 Inter,sans-serif; text-decoration:none; transition:background 120ms ease,box-shadow 120ms ease; } .ds-action-secondary:hover { background:rgba(0,212,200,.12); } .ds-action-secondary:focus-visible { outline:none; box-shadow:0 0 0 2px #08080d,0 0 0 4px #00d4c8; }",
+      "description": "A bounded alternative that keeps primary hierarchy intact.",
+      "html": "<a class=\"ds-action-secondary\" href=\"#\">View architecture</a>",
+      "kind": "button",
+      "name": "Secondary Action",
+      "refersTo": "action-secondary"
+    },
+    {
+      "css": ".ds-control-surface { display:grid; gap:12px; width:320px; padding:24px; border:1px solid #00d4c8; border-radius:12px; background:#0f0f17; color:#e8e8f0; box-shadow:0 12px 32px rgba(0,0,0,.2); font-family:Inter,sans-serif; } .ds-control-surface span,.ds-control-surface code { color:#8888a0; font:500 12px/1.5 'JetBrains Mono',monospace; } .ds-control-surface:focus-within { border-color:#00f0e2; }",
+      "description": "A structural evidence plane for task, runtime, policy, and provenance data.",
+      "html": "<section class=\"ds-control-surface\"><span>runtime_14</span><strong>Policy enforced</strong><code>snapshot sha256:8f21…</code></section>",
+      "kind": "custom",
+      "name": "Control Surface",
+      "refersTo": "control-surface"
+    },
+    {
+      "css": ".ds-identity-rail { display:flex; align-items:center; gap:16px; padding:14px 18px; border:1px solid #e6a817; border-radius:8px; background:rgba(230,168,23,.1); color:#8888a0; font:500 11px/1.5 'JetBrains Mono',monospace; } .ds-identity-rail strong { color:#e6a817; font-family:Inter,sans-serif; font-size:13px; }",
+      "description": "The persistent amber authority layer beneath work and runtime systems.",
+      "html": "<div class=\"ds-identity-rail\"><strong>Identity &amp; Authority</strong><span>agent key</span><span>task permit</span><span>policy hash</span></div>",
+      "kind": "custom",
+      "name": "Identity Rail"
+    },
+    {
+      "css": ".ds-status-badge { display:inline-flex; align-items:center; min-height:24px; padding:2px 8px; border:1px solid rgba(0,212,200,.35); border-radius:999px; background:rgba(0,212,200,.1); color:#00d4c8; font:600 11px/1.4 'JetBrains Mono',monospace; letter-spacing:.03em; }",
+      "description": "A compact factual state label, never a decorative pill.",
+      "html": "<span class=\"ds-status-badge\">running</span>",
+      "kind": "chip",
+      "name": "Status Badge"
+    }
+  ],
+  "extensions": {
+    "breakpoints": [
+      {
+        "name": "compact-nav",
+        "value": "1180px"
+      },
+      {
+        "name": "single-column",
+        "value": "820px"
+      },
+      {
+        "name": "mobile",
+        "value": "560px"
+      }
+    ],
+    "colorMeta": {
+      "identity": {
+        "displayName": "Identity Amber",
+        "role": "tertiary",
+        "tonalRamp": [
+          "oklch(15% 0.06 80)",
+          "oklch(25% 0.09 80)",
+          "oklch(35% 0.12 80)",
+          "oklch(48% 0.14 80)",
+          "oklch(60% 0.15 80)",
+          "oklch(72% 0.13 80)",
+          "oklch(84% 0.09 80)",
+          "oklch(95% 0.035 80)"
+        ]
+      },
+      "network": {
+        "displayName": "Network Teal",
+        "role": "primary",
+        "tonalRamp": [
+          "oklch(15% 0.08 185)",
+          "oklch(25% 0.11 185)",
+          "oklch(35% 0.14 185)",
+          "oklch(48% 0.16 185)",
+          "oklch(60% 0.17 185)",
+          "oklch(72% 0.15 185)",
+          "oklch(84% 0.1 185)",
+          "oklch(95% 0.04 185)"
+        ]
+      },
+      "void": {
+        "displayName": "Operational Void",
+        "role": "neutral",
+        "tonalRamp": [
+          "oklch(15% 0.012 285)",
+          "oklch(25% 0.012 285)",
+          "oklch(35% 0.012 285)",
+          "oklch(45% 0.012 285)",
+          "oklch(60% 0.012 285)",
+          "oklch(72% 0.012 285)",
+          "oklch(84% 0.012 285)",
+          "oklch(95% 0.012 285)"
+        ]
+      }
+    },
+    "motion": [
+      {
+        "name": "state-fast",
+        "purpose": "Link and action state feedback.",
+        "value": "120ms ease"
+      },
+      {
+        "name": "live-pulse",
+        "purpose": "The single authored motion marking live execution.",
+        "value": "2.4s ease-out infinite"
+      }
+    ],
+    "shadows": [
+      {
+        "name": "control-active",
+        "purpose": "Selective depth for the currently active system surface.",
+        "value": "0 12px 32px rgba(0, 0, 0, 0.2)"
+      }
+    ],
+    "typographyMeta": {
+      "body": {
+        "displayName": "Operational body",
+        "purpose": "Plain-language product explanation."
+      },
+      "data": {
+        "displayName": "Evidence data",
+        "purpose": "Task IDs, policies, hashes, commands, and state."
+      },
+      "display": {
+        "displayName": "Control-plane display",
+        "purpose": "Decisive first-view and section claims."
+      }
+    }
+  },
+  "generatedAt": "2026-07-31T08:45:00.000Z",
+  "narrative": {
+    "donts": [
+      "Don't present Task Engine, Agent Runtime, or Knowledge Factory as three interchangeable feature cards.",
+      "Don't claim customers, benchmarks, scale, or outcomes without evidence.",
+      "Don't use amber as a generic accent or teal as ambient neon.",
+      "Don't hide the product behind mascots, abstract agent imagery, or generic dashboard mockups."
+    ],
+    "dos": [
+      "Do make every major claim inspectable through a diagram, payload, product screenshot, documentation link, or source link.",
+      "Do show how authentication and authorization strengthen all three systems.",
+      "Do vary section density while preserving one continuous execution story.",
+      "Do expose open-source installation and architecture early."
+    ],
+    "keyCharacteristics": [
+      "One large operational model before supporting feature detail.",
+      "Matte, structured surfaces separated by rules and tonal depth.",
+      "Teal carries coordination and action; amber carries identity and signatures.",
+      "Real product evidence, data, and source links replace marketing ornament."
+    ],
+    "northStar": "The Agent Operations Control Plane",
+    "overview": "MoltNet should feel like infrastructure a platform team can inspect and operate, not a speculative AI landing page. Its signature composition is a connected system trace: typed work enters, bounded execution occurs, and attributable knowledge survives.",
+    "rules": [
+      {
+        "body": "Teal explains where work moves. Amber explains who or what authorizes and attests it.",
+        "name": "The Two-Layer Rule",
+        "section": "colors"
+      }
+    ]
+  },
+  "schemaVersion": 2,
+  "title": "Design System: MoltNet"
+}

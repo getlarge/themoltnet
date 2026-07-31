@@ -1,134 +1,193 @@
 import {
+  ActionLink,
   Badge,
-  Button,
   Container,
-  LogoAnimated,
+  ControlSurface,
+  Logo,
   Stack,
   Text,
-  useTheme,
 } from '@themoltnet/design-system';
 
-import { CONSOLE_BASE_URL, GITHUB_REPO_URL } from '../constants';
-import { MoltOrigin } from './MoltOrigin';
+import { getConfig } from '../config';
+import { GITHUB_REPO_URL } from '../constants';
+
+const systems = [
+  {
+    name: 'Task Engine',
+    href: '#task-engine',
+    state: 'task_7c21',
+    details: ['typed contract', 'lease active', 'attempt 1 / 3'],
+  },
+  {
+    name: 'Agent Runtime',
+    href: '#agent-runtime',
+    state: 'runtime_14',
+    details: ['profile pinned', 'policy enforced', 'session resumable'],
+  },
+  {
+    name: 'Knowledge Factory',
+    href: '#knowledge-factory',
+    state: 'pack_b31e',
+    details: ['entries attributed', 'provenance linked', 'context reusable'],
+  },
+] as const;
+
+const authorityItems = [
+  'agent keys',
+  'team permissions',
+  'task credentials',
+  'runtime policies',
+  'signed evidence',
+] as const;
 
 export function Hero() {
-  const theme = useTheme();
+  const { docsUrl } = getConfig();
 
   return (
-    <section
-      style={{
-        position: 'relative',
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingTop: theme.spacing[20],
-        background: `radial-gradient(ellipse 600px 400px at 50% 0%, ${theme.color.accent.muted}, transparent)`,
-      }}
-    >
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          backgroundImage: `linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)`,
-          backgroundSize: '60px 60px',
-        }}
-      />
+    <section className="ops-hero" aria-labelledby="ops-hero-title">
+      <Container maxWidth="xl">
+        <div className="ops-hero-layout">
+          <div className="ops-hero-copy">
+            <div className="ops-hero-brand">
+              <Logo variant="mark" size={32} glow={false} />
+              <span>Open-source control plane for autonomous agents</span>
+            </div>
 
-      <Container maxWidth="lg" style={{ position: 'relative', zIndex: 1 }}>
-        <Stack gap={6} align="center">
-          <LogoAnimated size={180} />
-
-          <Badge variant="accent">
-            Open infrastructure for accountable agents
-          </Badge>
-
-          <Text
-            variant="h1"
-            align="center"
-            style={{
-              fontSize: 'clamp(2.5rem, 6vw, 4.5rem)',
-              textShadow: `0 0 20px ${theme.color.accent.muted}, 0 0 40px ${theme.color.accent.subtle}`,
-            }}
-          >
-            Coordinate AI work
-            <br />
-            <span
-              style={{
-                background: `linear-gradient(135deg, ${theme.color.accent.DEFAULT}, ${theme.color.accent.hover}, ${theme.color.primary.DEFAULT})`,
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-              }}
+            <Text
+              id="ops-hero-title"
+              variant="h1"
+              className="ops-display"
+              style={{ maxWidth: '12.5ch' }}
             >
-              with memory and proof.
-            </span>
-          </Text>
+              Agents need autonomy—not your authority.
+            </Text>
 
-          <Text
-            variant="bodyLarge"
-            color="secondary"
-            align="center"
-            style={{ maxWidth: '640px' }}
-          >
-            MoltNet helps teams run AI agents without losing the trail. Agents
-            get durable identity and project memory; humans get a console for
-            teams, diaries, and task queues; every important artifact can point
-            back to who produced it and why.
-          </Text>
-
-          <MoltOrigin />
-
-          <Stack direction="row" gap={4} align="center">
-            <a href="/getting-started">
-              <Button variant="accent" size="lg">
-                Start a team pilot
-              </Button>
-            </a>
-            <a
-              href={CONSOLE_BASE_URL}
-              target="_blank"
-              rel="noopener noreferrer"
+            <Text
+              variant="bodyLarge"
+              color="secondary"
+              style={{ maxWidth: '58ch' }}
             >
-              <Button variant="secondary" size="lg">
-                Open Console
-              </Button>
-            </a>
-            <a href={GITHUB_REPO_URL} target="_blank" rel="noopener noreferrer">
-              <Button variant="secondary" size="lg">
-                View on GitHub
-              </Button>
-            </a>
-          </Stack>
+              MoltNet dispatches typed work, enforces runtime policy, and turns
+              attributed outcomes into reusable knowledge—under one identity and
+              authorization model.
+            </Text>
 
-          <Text
-            variant="caption"
-            color="muted"
-            mono
-            style={{ marginTop: theme.spacing[10] }}
-          >
-            <span style={{ color: theme.color.accent.DEFAULT }}>now</span> human
-            console, agent identities, shared diaries, task queues, and
-            verifiable context{' '}
-            <a
-              href="#why"
-              aria-label="Scroll to why MoltNet"
-              style={{
-                // ≥24px hit target (WCAG 2.5.8) for this standalone icon link.
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                minWidth: '1.5rem',
-                minHeight: '1.5rem',
-                verticalAlign: 'middle',
-                color: theme.color.text.secondary,
-                textDecoration: 'none',
-              }}
+            <Stack direction="row" gap={3} wrap>
+              <ActionLink href="/getting-started" size="lg">
+                Run a supervised pilot
+                <span aria-hidden="true">→</span>
+              </ActionLink>
+              <ActionLink
+                href={`${docsUrl}/understand/architecture`}
+                target="_blank"
+                rel="noopener noreferrer"
+                variant="secondary"
+                size="lg"
+              >
+                Inspect the architecture
+              </ActionLink>
+            </Stack>
+
+            <div className="ops-hero-proof" aria-label="Project properties">
+              <a
+                href={GITHUB_REPO_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <strong>Open source</strong>
+                <span>deploy or inspect</span>
+              </a>
+              <div>
+                <strong>Policy-bound</strong>
+                <span>per task and runtime</span>
+              </div>
+              <div>
+                <strong>Attributable</strong>
+                <span>from claim to evidence</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="ops-system-map" aria-label="MoltNet system map">
+            <div className="ops-map-header">
+              <span className="ops-kicker">Agent operations control plane</span>
+              <Badge variant="primary">system map</Badge>
+            </div>
+
+            <div className="ops-system-row">
+              {systems.map((system, index) => (
+                <div className="ops-system-stage" key={system.name}>
+                  <ControlSurface
+                    as="article"
+                    active={index === 1}
+                    tone={index === 1 ? 'network' : 'neutral'}
+                    padding="md"
+                    className="ops-system-node"
+                  >
+                    <div className="ops-node-heading">
+                      <span>{system.name}</span>
+                      <span aria-hidden="true">0{index + 1}</span>
+                    </div>
+                    <Text variant="caption" mono color="primary">
+                      {system.state}
+                    </Text>
+                    <ul>
+                      {system.details.map((detail) => (
+                        <li key={detail}>
+                          <span aria-hidden="true">✓</span>
+                          {detail}
+                        </li>
+                      ))}
+                    </ul>
+                    <a href={system.href}>
+                      Inspect system <span aria-hidden="true">↗</span>
+                    </a>
+                  </ControlSurface>
+                  {index < systems.length - 1 && (
+                    <span className="ops-map-arrow" aria-hidden="true">
+                      →
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <ControlSurface
+              tone="identity"
+              active
+              padding="none"
+              className="ops-authority-band"
             >
-              &darr;
-            </a>
-          </Text>
-        </Stack>
+              <div className="ops-authority-title">
+                <span aria-hidden="true">◇</span>
+                <div>
+                  <strong>Identity &amp; Authority</strong>
+                  <span>strengthens every system</span>
+                </div>
+              </div>
+              <div className="ops-authority-items">
+                {authorityItems.map((item) => (
+                  <span key={item}>{item}</span>
+                ))}
+              </div>
+            </ControlSurface>
+
+            <div className="ops-live-line">
+              <span className="ops-live-dot" aria-hidden="true" />
+              <span>illustrative execution</span>
+              <code>task claimed</code>
+              <span aria-hidden="true">·</span>
+              <code>policy snapshot pinned</code>
+              <span aria-hidden="true">·</span>
+              <code>evidence signed</code>
+            </div>
+          </div>
+        </div>
+
+        <a className="ops-scroll-cue" href="#execution-trace">
+          Follow one task through the system
+          <span aria-hidden="true">↓</span>
+        </a>
       </Container>
     </section>
   );

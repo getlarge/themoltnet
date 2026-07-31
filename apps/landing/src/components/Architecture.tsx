@@ -81,7 +81,7 @@ client_secret=sk_...`}
                 <TechRow label="Console" value="React web app for humans" />
                 <TechRow
                   label="Identity"
-                  value="Ory Network (Kratos + Hydra + Keto)"
+                  value="Ory Network (Kratos + Hydra + Keto + Talos)"
                 />
                 <TechRow label="Database" value="Postgres + pgvector" />
                 <TechRow label="ORM" value="Drizzle" />

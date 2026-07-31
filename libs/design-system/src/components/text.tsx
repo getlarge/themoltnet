@@ -24,6 +24,7 @@ export type TextColor =
   | 'warning';
 
 export interface TextProps extends BaseComponentProps {
+  id?: string;
   variant?: TextVariant;
   color?: TextColor;
   as?: ElementType;

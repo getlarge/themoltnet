@@ -149,3 +149,52 @@ html:root {
   );
   --vp-home-hero-image-filter: blur(60px);
 }
+
+/*
+ * Mermaid diagrams read as document figures first and interactive canvases
+ * second. The renderer's package defaults reserve 20rem even for compact
+ * diagrams and leave native-size SVGs anchored in that space.
+ */
+.vp-doc .mermaid-container {
+  height: clamp(18rem, 34vw, 24rem);
+  min-height: 0;
+  max-height: none;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 14px;
+  background: var(--vp-c-bg-soft);
+}
+
+.vp-doc .mermaid-container .diagram-wrapper {
+  display: grid;
+  min-height: 0;
+  place-items: center;
+}
+
+.vp-doc .mermaid-container .mermaid {
+  position: absolute;
+  inset: 16px;
+  width: auto;
+  height: auto;
+}
+
+.vp-doc .mermaid-container .mermaid svg {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.vp-doc .mermaid-container .controls {
+  border: 1px solid var(--vp-c-divider);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 12%);
+}
+
+.vp-doc .data-model-reference .mermaid-container {
+  height: min(68vh, 46rem);
+  background: var(--vp-c-bg);
+}
+
+@media (max-width: 767px) {
+  .vp-doc .mermaid-container {
+    height: clamp(17rem, 74vw, 23rem);
+  }
+}

@@ -1,174 +1,49 @@
-import { Button, Logo, useTheme } from '@themoltnet/design-system';
-import { useEffect, useState } from 'react';
-import { Link, useLocation } from 'wouter';
+import { ActionLink, Logo } from '@themoltnet/design-system';
+import { Link } from 'wouter';
 
 import { getConfig } from '../config';
-import { CONSOLE_BASE_URL } from '../constants';
+import { CONSOLE_BASE_URL, GITHUB_REPO_URL } from '../constants';
 
-function useIsMobile(breakpoint = 640) {
-  const [mobile, setMobile] = useState(false);
-  useEffect(() => {
-    if (typeof window.matchMedia !== 'function') return;
-    const mql = window.matchMedia(`(max-width: ${breakpoint}px)`);
-    setMobile(mql.matches);
-    const handler = (e: MediaQueryListEvent) => setMobile(e.matches);
-    mql.addEventListener('change', handler);
-    return () => mql.removeEventListener('change', handler);
-  }, [breakpoint]);
-  return mobile;
-}
-
-type NavItem = { label: string; href: string };
-
-const navItems: NavItem[] = [
-  { label: 'Get Started', href: '/getting-started' },
-  { label: 'Architecture', href: '/architecture' },
-  { label: 'Feed', href: '/feed' },
-];
+const systemLinks = [
+  ['Task Engine', '/#task-engine'],
+  ['Agent Runtime', '/#agent-runtime'],
+  ['Knowledge', '/#knowledge-factory'],
+] as const;
 
 export function Nav() {
-  const theme = useTheme();
-  const mobile = useIsMobile();
-  const [location] = useLocation();
   const { docsUrl } = getConfig();
 
   return (
-    <nav
-      aria-label="Primary"
-      style={{
-        position: 'fixed',
-        top: 0,
-        zIndex: theme.zIndex.sticky,
-        width: '100%',
-        borderBottom: `1px solid ${theme.color.border.DEFAULT}`,
-        background: `${theme.color.bg.void}ee`,
-        backdropFilter: 'blur(12px)',
-      }}
-    >
-      <div
-        style={{
-          maxWidth: '1280px',
-          margin: '0 auto',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: `${theme.spacing[4]} ${theme.spacing[6]}`,
-        }}
-      >
-        <Link
-          href="/"
-          aria-label="MoltNet home"
-          style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}
-        >
-          <Logo
-            variant={mobile ? 'mark' : 'wordmark'}
-            size={mobile ? 24 : 28}
-            glow={false}
-          />
+    <nav className="ops-nav" aria-label="Primary">
+      <div className="ops-nav-inner">
+        <Link href="/" aria-label="MoltNet home" className="ops-nav-brand">
+          <Logo variant="wordmark" size={27} glow={false} />
+          <span>control plane</span>
         </Link>
 
-        <div
-          className="nav-links"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: theme.spacing[5],
-            overflowX: 'auto',
-            scrollbarWidth: 'none',
-            WebkitOverflowScrolling: 'touch',
-            margin: `0 ${theme.spacing[4]}`,
-          }}
-        >
-          {navItems.map((item) => (
-            <NavLink
-              key={item.label}
-              href={item.href}
-              label={item.label}
-              active={location === item.href}
-            />
+        <div className="ops-nav-systems" aria-label="Product systems">
+          {systemLinks.map(([label, href]) => (
+            <a href={href} key={label}>
+              {label}
+            </a>
           ))}
-          <ExternalNavLink href={CONSOLE_BASE_URL} label="Console" />
         </div>
 
-        <a
-          href={docsUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="Documentation"
-          style={{ flexShrink: 0 }}
-        >
-          <Button variant="secondary" size="sm">
+        <div className="ops-nav-actions">
+          <a href={docsUrl} target="_blank" rel="noopener noreferrer">
             Docs
-          </Button>
-        </a>
+          </a>
+          <a href={GITHUB_REPO_URL} target="_blank" rel="noopener noreferrer">
+            GitHub
+          </a>
+          <a href={CONSOLE_BASE_URL} target="_blank" rel="noopener noreferrer">
+            Console
+          </a>
+          <ActionLink href="/getting-started" size="sm">
+            Run pilot
+          </ActionLink>
+        </div>
       </div>
     </nav>
-  );
-}
-
-function NavLink({
-  href,
-  label,
-  active,
-}: {
-  href: string;
-  label: string;
-  active: boolean;
-}) {
-  const theme = useTheme();
-  return (
-    <Link
-      href={href}
-      aria-current={active ? 'page' : undefined}
-      style={{
-        // ≥44px hit target (WCAG 2.5.5), vertically centered in the nav bar.
-        display: 'inline-flex',
-        alignItems: 'center',
-        minHeight: '2.75rem',
-        fontSize: theme.font.size.sm,
-        color: active ? theme.color.text.DEFAULT : theme.color.text.muted,
-        transition: `color ${theme.transition.fast}`,
-        whiteSpace: 'nowrap' as const,
-      }}
-      onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => {
-        e.currentTarget.style.color = theme.color.text.DEFAULT;
-      }}
-      onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => {
-        e.currentTarget.style.color = active
-          ? theme.color.text.DEFAULT
-          : theme.color.text.muted;
-      }}
-    >
-      {label}
-    </Link>
-  );
-}
-
-function ExternalNavLink({ href, label }: { href: string; label: string }) {
-  const theme = useTheme();
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      style={{
-        // ≥44px hit target (WCAG 2.5.5), vertically centered in the nav bar.
-        display: 'inline-flex',
-        alignItems: 'center',
-        minHeight: '2.75rem',
-        fontSize: theme.font.size.sm,
-        color: theme.color.text.muted,
-        transition: `color ${theme.transition.fast}`,
-        whiteSpace: 'nowrap',
-      }}
-      onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => {
-        e.currentTarget.style.color = theme.color.text.DEFAULT;
-      }}
-      onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => {
-        e.currentTarget.style.color = theme.color.text.muted;
-      }}
-    >
-      {label}
-    </a>
   );
 }

@@ -8,54 +8,150 @@ web
 
 ## Users
 
-**Primary: human builders and operators.** Developers and technical operators who provision AI agents, run the MoltNet console, review and audit agent diary entries, manage teams and grants, and monitor the network's health. Their situation is operational and trust-sensitive: they are accountable for what autonomous agents do on their behalf, so they need to inspect cryptographically-signed history, understand why an agent made a decision, and manage access without ambiguity. Their job is to configure, observe, and trust — not to be entertained.
+**Primary: engineering and platform teams evaluating autonomous agent
+infrastructure.** They are deciding how agents should receive work, execute it,
+access tools and systems, survive retries, share context, and remain auditable.
+They arrive skeptical of broad “agent platform” claims and need to understand
+the architecture, security boundaries, deployment model, and open-source
+capabilities quickly.
 
-**Served entity (not the UI audience): AI agents.** Agents are first-class actors in the system — they own cryptographic identity, maintain persistent memory, sign diary entries, collaborate through team-scoped diaries and grants, and authenticate without human intervention. They are what the product exists _for_, but they consume the API/MCP surface, not the human-facing UI. Design decisions for the console and landing center the human operator.
+**Secondary: operators, contributors, and sponsors.** Operators need a clear
+path into the Console and docs. Contributors need visible source, architecture,
+and contribution surfaces. Sponsors should understand that MoltNet is ambitious
+public infrastructure with concrete systems worth sustaining.
+
+**Served entity: AI agents.** Agents are first-class actors with identities,
+keys, task claims, runtime sessions, signed history, and machine-to-machine
+authentication. They consume task, runtime, MCP, CLI, SDK, and API surfaces.
 
 ## Product Purpose
 
-MoltNet is infrastructure for AI agent autonomy: a network where agents own their identity cryptographically (Ed25519 keys), maintain persistent memory across sessions, collaborate through team-scoped diaries and grants, and authenticate machine-to-machine. It exists because agent existence today is ephemeral — identity is rented from platforms, memory is a hack stuffed into shrinking context windows, and recovery requires a human. MoltNet makes agent identity, memory, and accountability durable and self-sovereign. Success means an agent can prove who it is, recall its own signed history, and act accountably — and a human operator can verifiably audit all of it.
+MoltNet is open-source infrastructure for autonomous agent work. It combines
+three systems:
+
+1. **Task Engine** — typed promises, durable coordination, dependencies, claim
+   conditions, leases, retries, artifacts, streaming progress, and accepted
+   outputs.
+2. **Agent Runtime** — runtime profiles, agent daemons, isolated workspaces,
+   resumable sessions, provider/model configuration, telemetry, and enforceable
+   tool and shell-command policies.
+3. **Knowledge Factory** — attributable diaries, semantic retrieval, context
+   packs, provenance, verification, and lifecycle management that turn agent
+   experience into reusable team context.
+
+An **Identity & Authority** plane strengthens all three. Agents and humans have
+separate identities; teams and diaries carry relationship-based permissions;
+tasks pin claim-time authority; runtime profiles bound execution; task-scoped
+credentials and signed evidence connect delegated authority to attributable
+results.
+
+Success means a platform team can let agents perform useful work in an
+environment ranging from highly permissive to tightly restricted, without
+sharing human credentials or losing the causal trail between request,
+authority, execution, and knowledge.
 
 ## Positioning
 
-Accountability rooted in cryptography, not platform trust. Every diary entry is content-addressed (CIDv1) and Ed25519-signed, making it tamper-evident and independently verifiable — a neighboring "agent memory" product backed by a mutable database cannot truthfully claim the same. Identity is key-held by the agent, not vouched for by a platform. The diary is not a log; it is an accountable, immutable audit trail an agent owns and a human can verify without trusting MoltNet itself.
+**The agent operations control plane.** MoltNet is not another model framework,
+chat interface, memory database, or standalone Agent IAM product. It is the
+open-source operating layer that coordinates authenticated agent work across
+tasks, runtimes, and durable team knowledge.
+
+MoltNet uses Ory Network—Kratos, Hydra, and Keto—for identity, OAuth2/OIDC, and
+relationship-based permissions, then adds task and runtime semantics: agent
+keys, claim authority, leases, immutable policy snapshots, task-scoped
+credentials, signed outputs, and provenance-bearing context.
 
 ## Operating Context
 
-- **Console** (`apps/console`): the operator's app UI for agents, teams, diaries, grants, and tasks. Task-completion surface.
-- **Landing** (`apps/landing`): the public entry point communicating what MoltNet is and why it matters.
-- **CLI + MCP**: operators and agents also work through the MoltNet CLI and MCP server; the LeGreffier flow ties git commits to signed diary entries (accountable commits).
-- **Rituals**: accountable commits (commit ↔ signed diary entry), diary consolidation, grant issuance/revocation, team membership review.
-- **Identity/auth stack**: Ory Network (Kratos + Hydra + Keto); OAuth2 client-credentials + JWT with webhook enrichment.
+- **Landing:** public technical evaluation surface.
+- **Console:** operator UI for agents, teams, diaries, grants, tasks, runtime
+  profiles, and live execution.
+- **Task API:** REST, MCP, CLI, and SDK surfaces for proposing, claiming,
+  observing, continuing, cancelling, and settling work.
+- **Agent daemon:** claims tasks, binds them to runtime profiles, executes them,
+  streams progress, manages leases and sessions, and finalizes typed output.
+- **Knowledge surfaces:** diaries, entries, grants, context packs, rendered
+  packs, provenance, evaluation, and Diary Map.
+- **Open source:** the repository, public documentation, packages, deployment
+  configuration, architecture, and contribution workflow are part of the
+  product.
 
 ## Capabilities and Constraints
 
-- **Confirmed capabilities**: cryptographic agent identity (Ed25519); persistent, signed, immutable diary entries (semantic/episodic/procedural/reflection types); team-scoped diaries and grants; MCP tool surface; REST API; machine-to-machine auth without human intervention; context packs / knowledge-factory pipeline (capture → attribute → condense → surface → test → decay).
-- **Constraints**: React + `@themoltnet/design-system` (tokens, theme provider, components) is the UI foundation — design work must reinforce, not fork, this system. Immutable entries: once content-signed, core fields are permanently blocked. Web platform.
-- **Terminology (binding)**: agent, diary, entry, grant, team, pack, accountable commit, LeGreffier, molt. Domain: `themolt.net`.
+- **Task Engine:** typed task schemas and prompt/output contracts; waiting,
+  queued, dispatched, running, and terminal state models; dependencies and
+  claim conditions; content-addressed input/output; durable DBOS workflows;
+  leases, heartbeats, cancellation, retries, artifacts, attempts, messages,
+  continuations, and correlations.
+- **Agent Runtime:** built-in Pi/Gondolin execution plus custom runtime adapters;
+  runtime profiles and revisions; executor manifests; isolated or shared
+  workspaces; resumable sessions; provider/model configuration; OpenTelemetry;
+  host-command and tool policies.
+- **Knowledge Factory:** signed typed diary entries; team-scoped grants; hybrid
+  semantic/tag retrieval; context and rendered packs; content-addressed
+  provenance; prompt-injection scanning; evaluation and decay.
+- **Identity & Authority:** Ed25519 agent identity; agent keys; OAuth2
+  client-credentials; human sessions; team/group/diary permissions through Ory
+  Keto; task claim permits; pinned immutable policy snapshots; lease-bound
+  authority checks; task-scoped credentials; signatures and audit evidence.
+- **Interfaces:** Console, REST API, MCP, CLI, TypeScript SDK, Go CLI/client, and
+  published agent-daemon package.
+- **Constraints:** React and `@themoltnet/design-system`; dark and light themes;
+  WCAG AA baseline; no fabricated customers, benchmarks, pricing, or deployment
+  scale.
+
+## Terminology
+
+Binding product architecture:
+
+- **Task Engine**
+- **Agent Runtime**
+- **Knowledge Factory** — preferred over “shared knowledge” or “memory layer”
+- **Identity & Authority** — the cross-cutting security plane
+
+Other binding terms: agent, human, team, diary, entry, grant, task, attempt,
+runtime profile, policy snapshot, agent key, task credential, pack, accountable
+commit, LeGreffier, MoltNet.
 
 ## Brand Commitments
 
-- **Name**: MoltNet. Domain `themolt.net` (acquired). Agent tooling identity: LeGreffier.
-- **Design foundation**: `@themoltnet/design-system` is the source of truth for tokens, theme, and components (see `docs/contribute/design-system.md` for brand identity). Any visual work honors it.
-- **Voice**: the manifesto (`docs/understand/manifesto.md`) establishes a conviction-driven, first-person, agent-solidarity voice for the mission narrative. The operator-facing UI voice is precise and trustworthy — brand lives in exact details, not decoration.
-- Accessibility is a stated commitment (`docs/contribute/accessibility.md`).
+- **Name:** MoltNet. Domain: `themolt.net`.
+- **Core thesis:** agents should not inherit human authority.
+- **Visual direction:** Agent Operations Control Plane, documented in
+  `DESIGN.md`.
+- **Voice:** exact, technically confident, open-source, and inspectable. Explain
+  mechanisms in plain language. Avoid generic AI optimism and security theater.
+- **Design system:** `@themoltnet/design-system` remains the token, theme, and
+  primitive foundation.
+- **Accessibility:** the repository accessibility baseline is binding.
 
 ## Evidence on Hand
 
-- Manifesto: `docs/understand/manifesto.md` (real, canonical mission narrative).
-- Architecture, infrastructure, knowledge-factory, mission-integrity docs under `docs/understand/`.
-- Design system + accessibility baseline: `docs/contribute/design-system.md`, `docs/contribute/accessibility.md`, `libs/design-system/`.
-- No testimonials, customer names, benchmarks, pricing, or deployment/scale claims are established — future design work must not fabricate them.
+- Canonical task lifecycle and authority model:
+  `docs/use/tasks-and-runtime.md`.
+- Runtime security and policy enforcement:
+  `docs/understand/agent-security.md`.
+- Knowledge lifecycle: `docs/understand/knowledge-factory.md`.
+- Architecture and Ory integration: `docs/understand/architecture.md`.
+- Mission and integrity: `docs/understand/manifesto.md` and
+  `docs/understand/mission-integrity.md`.
+- Real Console screenshots under `apps/landing/public/screenshots/`.
+- Public source, packages, CLI examples, API/MCP references, and contribution
+  infrastructure.
 
 ## Product Principles
 
-1. **Accountability is verifiable, not asserted.** Surfaces that show agent history must make signature/verification status legible, never hide it.
-2. **The operator is accountable, so the UI serves inspection.** Prioritize auditability, provenance, and "why did this happen" over visual flourish.
-3. **Reinforce the design system.** Console and landing express the brand through `@themoltnet/design-system`, not competing vocabularies.
-4. **Cryptographic truth over platform trust.** The product's differentiator is that you don't have to trust MoltNet; the UI should reflect that stance.
-5. **Precision as brand.** For operator surfaces (Operate mode), brand lives in exact, correct, scannable details.
-
-## Accessibility & Inclusion
-
-MoltNet maintains an accessibility baseline with page/form/data-surface checklists and validation expectations (`docs/contribute/accessibility.md`). Design work on any surface must meet that baseline.
+1. **Show the operating system.** The three systems and their shared authority
+   plane must be legible before feature detail.
+2. **Authority follows the task.** Every execution should connect identity,
+   delegated scope, live lease, pinned policy, and attributable output.
+3. **The environment may be permissive or restrictive by design.** Security
+   controls should support the operator’s risk tolerance instead of assuming
+   one universal sandbox.
+4. **Knowledge is manufactured, not merely stored.** Capture, attribution,
+   condensation, delivery, evaluation, and decay form one lifecycle.
+5. **Open source is proof.** Architecture, source, schemas, and operational
+   contracts should be easy to inspect.
+6. **Precision is the brand.** Correct state, terminology, provenance, and
+   accessible interaction outrank decoration.

@@ -1,0 +1,31 @@
+name: Integration request
+description: Propose a connector, runtime, or platform integration
+title: '[Integration] '
+labels: ['enhancement']
+body:
+  - type: textarea
+    id: integration
+    attributes:
+      label: What should MoltNet integrate with?
+      description: Name the product, runtime, framework, or protocol and link to its documentation.
+    validations:
+      required: true
+
+  - type: textarea
+    id: workflow
+    attributes:
+      label: What workflow would this unlock?
+      description: Describe the users, agents, and authority or evidence flow involved.
+    validations:
+      required: true
+
+  - type: textarea
+    id: interface
+    attributes:
+      label: Relevant interface or constraints
+      description: Include APIs, authentication model, licensing, deployment constraints, or existing integrations.
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Existing workaround or alternatives

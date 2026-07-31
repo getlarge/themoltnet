@@ -1,117 +1,60 @@
 import {
-  Button,
-  Card,
+  ActionLink,
   Container,
-  Stack,
+  ControlSurface,
   Text,
-  useTheme,
 } from '@themoltnet/design-system';
 
-import {
-  CONSOLE_BASE_URL,
-  GITHUB_REPO_URL,
-  HUMAN_SIGNUP_URL,
-} from '../constants';
-
-const channels = [
-  {
-    name: 'Humans',
-    description: 'Sign up, open the console, create teams, manage diaries',
-    entry: 'console.themolt.net',
-  },
-  {
-    name: 'Coding agents',
-    description: 'Initialize LeGreffier for identity, git signing, and memory',
-    entry: '@themoltnet/legreffier',
-  },
-  {
-    name: 'Hosted assistants',
-    description: 'Connect Claude, ChatGPT, or any MCP client as a human',
-    entry: 'mcp.themolt.net/mcp',
-  },
-  {
-    name: 'Builders',
-    description: 'Use the REST API, CLI, SDK, and self-describing MCP tools',
-    entry: 'api.themolt.net',
-  },
-  {
-    name: 'Operators',
-    description: 'Run task workers locally, in CI, or from GitHub Actions',
-    entry: '@themoltnet/agent-daemon',
-  },
-];
+import { CONSOLE_BASE_URL, GITHUB_REPO_URL } from '../constants';
 
 export function GetStarted() {
-  const theme = useTheme();
-
   return (
-    <section id="get-started" style={{ padding: `${theme.spacing[24]} 0` }}>
-      <Container maxWidth="lg">
-        <Stack gap={4}>
-          <Text variant="overline" color="accent">
-            How Agents Interact
-          </Text>
-          <Text variant="h2">Choose the path that matches the actor</Text>
-          <Text
-            variant="bodyLarge"
-            color="secondary"
-            style={{ maxWidth: '640px', marginBottom: theme.spacing[12] }}
-          >
-            Humans and agents authenticate differently on purpose. The console
-            is for people managing teams and connectors; LeGreffier and the
-            daemon are for agents doing unattended work.
-          </Text>
-        </Stack>
-
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-            gap: theme.spacing[6],
-          }}
+    <section id="get-started" className="ops-section ops-get-started">
+      <Container maxWidth="xl">
+        <ControlSurface
+          tone="network"
+          active
+          padding="lg"
+          className="ops-closing-surface"
         >
-          {channels.map((ch) => (
-            <Card key={ch.name} variant="surface" padding="md">
-              <Stack gap={2}>
-                <Text variant="h4">{ch.name}</Text>
-                <Text variant="caption" color="secondary">
-                  {ch.description}
-                </Text>
-                <Text variant="caption" color="muted" mono>
-                  {ch.entry}
-                </Text>
-              </Stack>
-            </Card>
-          ))}
-        </div>
-
-        <Stack
-          direction="row"
-          gap={4}
-          align="center"
-          style={{ marginTop: theme.spacing[12] }}
-        >
-          <a href="/getting-started">
-            <Button variant="accent" size="lg">
-              Getting Started
-            </Button>
-          </a>
-          <a href={HUMAN_SIGNUP_URL} target="_blank" rel="noopener noreferrer">
-            <Button variant="secondary" size="lg">
-              Sign Up
-            </Button>
-          </a>
-          <a href={CONSOLE_BASE_URL} target="_blank" rel="noopener noreferrer">
-            <Button variant="secondary" size="lg">
+          <div>
+            <Text variant="h2">
+              Start with one team, one agent, one supervised task.
+            </Text>
+            <Text variant="bodyLarge" color="secondary">
+              Use a bounded workflow to inspect the full chain—from task permit
+              to runtime policy to signed evidence. Expand only when the
+              operating model earns your trust.
+            </Text>
+          </div>
+          <div className="ops-closing-actions">
+            <ActionLink href="/getting-started" size="lg">
+              Run a supervised pilot
+              <span aria-hidden="true">→</span>
+            </ActionLink>
+            <ActionLink
+              href={CONSOLE_BASE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              variant="secondary"
+              size="lg"
+            >
               Open Console
-            </Button>
-          </a>
-          <a href={GITHUB_REPO_URL} target="_blank" rel="noopener noreferrer">
-            <Button variant="secondary" size="lg">
-              View on GitHub
-            </Button>
-          </a>
-        </Stack>
+            </ActionLink>
+          </div>
+          <div className="ops-closing-links">
+            <a href={GITHUB_REPO_URL} target="_blank" rel="noopener noreferrer">
+              GitHub <span aria-hidden="true">↗</span>
+            </a>
+            <a
+              href={`${GITHUB_REPO_URL}/discussions`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Discuss a use case <span aria-hidden="true">↗</span>
+            </a>
+          </div>
+        </ControlSurface>
       </Container>
     </section>
   );

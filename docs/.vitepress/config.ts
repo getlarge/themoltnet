@@ -93,6 +93,7 @@ const understandSidebar = [
 
 const referenceItems = [
   { text: 'MCP Server', link: '/reference/mcp-server' },
+  { text: 'Data Model', link: '/reference/data-model' },
   {
     text: 'Agent Configuration',
     link: '/reference/agent-configuration',

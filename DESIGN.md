@@ -1,152 +1,192 @@
 ---
-# Machine-readable design tokens for @themoltnet/design-system.
-# Normative source: libs/design-system/src/tokens.ts + theme.ts.
-# Dark is the default theme; light values are overrides (see lightColors).
+name: MoltNet
+description: Agent operations control plane
 colors:
-  # Background scale — "the void from which identity emerges" (dark default)
-  bg-void: '#08080d'
-  bg-surface: '#0f0f17'
-  bg-elevated: '#171721'
-  bg-overlay: '#1f1f2e'
-  # Primary — teal/cyan: the network, connections, digital life
-  primary: '#00d4c8'
-  primary-hover: '#00f0e2'
-  # Accent — amber/gold: the tattoo, permanent identity, Ed25519 keys
-  accent: '#e6a817'
-  accent-hover: '#f0b829'
-  # Text
+  void: '#08080d'
+  surface: '#0f0f17'
+  elevated: '#171721'
+  overlay: '#1f1f2e'
+  network: '#00d4c8'
+  network-hover: '#00f0e2'
+  identity: '#e6a817'
+  identity-hover: '#f0b829'
   text: '#e8e8f0'
   text-secondary: '#8888a0'
-  text-muted: '#555568'
+  text-muted: '#7d7d96'
   text-inverse: '#08080d'
-  # Borders
   border: '#252535'
   border-hover: '#353548'
-  border-focus: '#00d4c8'
-  # Signals
   error: '#f04060'
-  warning: '#f0a030'
   success: '#40c060'
-  info: '#4090f0'
 typography:
-  sans: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
-  mono: "'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, Consolas, monospace"
-fontSize:
-  xs: '0.75rem'
-  sm: '0.875rem'
-  md: '1rem'
-  lg: '1.125rem'
-  xl: '1.25rem'
-  2xl: '1.5rem'
-  3xl: '2rem'
-  4xl: '2.5rem'
-  5xl: '3rem'
-fontWeight:
-  normal: '400'
-  medium: '500'
-  semibold: '600'
-  bold: '700'
-spacing:
-  0.5: '0.125rem'
-  1: '0.25rem'
-  1.5: '0.375rem'
-  2: '0.5rem'
-  3: '0.75rem'
-  4: '1rem'
-  5: '1.25rem'
-  6: '1.5rem'
-  8: '2rem'
-  10: '2.5rem'
-  12: '3rem'
-  16: '4rem'
-  20: '5rem'
-  24: '6rem'
+  display:
+    fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'
+    fontSize: 'clamp(3rem, 7vw, 5.75rem)'
+    fontWeight: 600
+    lineHeight: 0.96
+    letterSpacing: '-0.035em'
+  body:
+    fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'
+    fontSize: '1rem'
+    fontWeight: 400
+    lineHeight: 1.6
+  data:
+    fontFamily: 'JetBrains Mono, Fira Code, SF Mono, Menlo, Consolas, monospace'
+    fontSize: '0.75rem'
+    fontWeight: 500
+    lineHeight: 1.5
 rounded:
-  none: '0'
-  sm: '0.25rem'
-  md: '0.5rem'
-  lg: '0.75rem'
-  xl: '1rem'
-  full: '9999px'
-shadow:
-  sm: '0 1px 2px rgba(0, 0, 0, 0.3)'
-  md: '0 4px 8px rgba(0, 0, 0, 0.3)'
-  lg: '0 8px 24px rgba(0, 0, 0, 0.4)'
-  glow-primary: '0 0 20px rgba(0, 212, 200, 0.2)'
-  glow-accent: '0 0 20px rgba(230, 168, 23, 0.2)'
+  sm: '4px'
+  md: '8px'
+  lg: '12px'
+spacing:
+  xs: '4px'
+  sm: '8px'
+  md: '16px'
+  lg: '24px'
+  xl: '48px'
 components:
-  button-primary:
-    backgroundColor: '{colors.primary}'
+  action-primary:
+    backgroundColor: '{colors.network}'
     textColor: '{colors.text-inverse}'
     rounded: '{rounded.md}'
-    typography: '{fontWeight.medium}'
-    padding: '0.5rem 1rem'
-  button-primary-hover:
-    backgroundColor: '{colors.primary-hover}'
-    textColor: '{colors.text-inverse}'
-  button-secondary:
-    backgroundColor: '{colors.transparent}'
-    textColor: '{colors.primary}'
-    rounded: '{rounded.md}'
-  button-ghost:
-    backgroundColor: '{colors.transparent}'
+    padding: '12px 20px'
+  action-secondary:
+    backgroundColor: '{colors.surface}'
     textColor: '{colors.text}'
     rounded: '{rounded.md}'
-  button-accent:
-    backgroundColor: '{colors.accent}'
-    textColor: '{colors.text-inverse}'
-    rounded: '{rounded.md}'
+    padding: '12px 20px'
+  control-surface:
+    backgroundColor: '{colors.surface}'
+    textColor: '{colors.text}'
+    rounded: '{rounded.lg}'
+    padding: '24px'
 ---
 
 # Design System: MoltNet
 
-The visual language of the Molt Autonomy Stack, published as `@themoltnet/design-system` and consumed by every MoltNet surface (`apps/console`, `apps/landing`, and UI libs). It is the single source of truth for tokens, theme, and components — design work on any surface reinforces this system rather than forking it.
+## Overview
 
-**Normative source:** `libs/design-system/src/tokens.ts`, `theme.ts`, `theme-provider.tsx`. The YAML frontmatter above is the machine-readable layer extracted from those files; the prose below is application context.
+**Creative North Star: “The Agent Operations Control Plane.”**
 
-## Foundations
+MoltNet should feel like infrastructure a platform team can inspect and operate,
+not a speculative AI landing page. Its signature composition is a connected
+system trace: typed work enters, bounded execution occurs, and attributable
+knowledge survives. The interface borrows the density and precision of control
+planes, policy consoles, and build systems while keeping the hierarchy calm.
 
-**Color philosophy** (from `tokens.ts`):
+The system refuses generic feature-card walls, neon “AI” scenery, invented
+social proof, and decorative diagrams. Every visible node, status, command, and
+connection must explain a real MoltNet capability.
 
-- **Dark is the default.** Agents live in the digital realm; the UI emerges from a near-black void (`bg-void #08080d`) through a four-step elevation scale (`surface → elevated → overlay`). A light theme exists as a full override (`lightColors`) with the same semantic roles.
-- **Primary teal (`#00d4c8`) = the network** — connections, digital life, interactive affordances, focus rings.
-- **Accent amber (`#e6a817`) = the tattoo** — permanent identity, Ed25519 keys. Reserve accent for identity/cryptographic meaning; do not use it as a generic secondary.
-- **Signals** are distinct hues: error `#f04060`, warning `#f0a030`, success `#40c060`, info `#4090f0`, each with a `-muted` translucent variant for backgrounds.
+**Key characteristics:**
 
-Muted/subtle variants are alpha-blended forms of primary and accent (e.g. `primary.muted = rgba(0,212,200,0.12)`) — use these for tinted backgrounds, never new opaque colors.
+- One large operational model before supporting feature detail.
+- Matte, structured surfaces separated by rules and tonal depth.
+- Teal carries coordination and action; amber carries identity and signatures.
+- Real product evidence, data, and source links replace marketing ornament.
+
+## Colors
+
+The palette is dark-first because operators inspect agent work in developer and
+operations environments where code, logs, policies, and traces share the screen.
+
+- **Void** (`#08080d`): page field and deepest backdrop.
+- **Control Surface** (`#0f0f17`): diagrams, evidence panes, and operator UI.
+- **Elevated Surface** (`#171721`): selected or active regions.
+- **Network Teal** (`#00d4c8`): links, active flow, coordination, and primary
+  actions.
+- **Identity Amber** (`#e6a817`): agent keys, task credentials, signatures, and
+  immutable evidence only.
+- **Signal colors** communicate actual states. They are never decorative.
+
+**The Two-Layer Rule.** Teal explains where work moves. Amber explains who or
+what authorizes and attests it.
 
 ## Typography
 
-- **Sans:** Inter (system fallbacks). **Mono:** JetBrains Mono — used deliberately for cryptographic material (fingerprints, keys, code, CIDs). Precision matters when you sign everything.
-- **Scale:** `xs 0.75rem` → `5xl 3rem` (see `fontSize`). Weights: normal/medium/semibold/bold. Line heights: tight `1.2`, normal `1.5`, relaxed `1.7`. Letter-spacing tightens on large display text (`tight -0.02em`) and widens for overline/label use (`wide/wider`).
+Inter remains the workhorse face because the Console and landing must share an
+operational vocabulary. Display typography earns distinction through scale,
+tight composition, and decisive line breaks rather than a separate novelty
+face. JetBrains Mono is reserved for task types, policy fields, fingerprints,
+hashes, commands, and state.
+
+- **Display:** semibold, tightly tracked, at most two clauses.
+- **Section headline:** strong sentence case with a restrained measure.
+- **Body:** 65–75 characters per line, plain language, no inflated claims.
+- **Data:** compact mono labels and values; never use mono as a generic tech
+  costume.
 
 ## Layout
 
-- **Spacing** is a rem scale keyed `0.5`–`24` (0.125rem–6rem); compose padding/margins from these steps only.
-- **Breakpoints:** `sm 640` · `md 768` · `lg 1024` · `xl 1280`.
-- **Z-index** is tokenized by role: `dropdown 100 · sticky 200 · modal 300 · toast 400 · tooltip 500` — use the named layer, not raw numbers.
+The primary layout is a twelve-column control-plane grid. Marketing copy uses
+four or five columns; the system demonstration owns the remaining space.
+Sections alternate between dense operational evidence and quiet explanation.
+Wide rules and aligned baselines connect sections into one system rather than a
+stack of unrelated cards.
 
-## Shapes
-
-Radius scale `sm 0.25rem` → `xl 1rem`, plus `full` (pills/avatars). Default component radius is `md (0.5rem)` — buttons, cards, inputs. The form language is soft-but-precise, not pill-heavy.
+On narrow screens, topology becomes a vertical execution trace in the same
+causal order. No core capability disappears. Touch targets remain at least
+44px, diagrams retain readable labels, and dense evidence gains horizontal
+overflow only when its tabular structure requires it.
 
 ## Elevation & Depth
 
-- Shadows: `sm/md/lg` are dark, low-spread drops tuned for dark surfaces.
-- Two **glow** shadows carry brand meaning: `glow-primary` (teal) and `glow-accent` (amber) — reserved emphasis for network/identity moments, not default elevation.
-- Depth is primarily conveyed by the background elevation scale (`surface → elevated → overlay`), with shadow as reinforcement.
+Depth comes from tonal layering, inset rules, and selective offset shadows.
+Control surfaces are flat at rest. Teal and amber glows are rare semantic
+signals around an active route or verified identity—not ambient decoration.
 
-## Motion
+## Shapes
 
-Tokenized transitions: `fast 150ms · normal 250ms · slow 350ms`, all `ease`. Interactive components (see Button) transition `background`, `color`, `box-shadow`, and `opacity` on `fast`. Motion is functional and restrained — feedback, not spectacle.
+Corners are restrained: 8–12px for control surfaces, 8px for actions, and 4px
+for data labels. Pills are limited to compact status values. Nodes and evidence
+panes align to a shared grid and use one-pixel borders; organic blobs and loose
+floating cards do not belong to this system.
 
 ## Components
 
-Component styling derives from the theme via `theme-provider.tsx` (`useTheme()`), so light/dark switch automatically. Observed patterns from the library:
+### Navigation
 
-- **Button** — variants `primary` (teal fill, inverse text), `secondary` (transparent, teal text, inset border), `ghost` (transparent, subtle teal hover), `accent` (amber fill). Radius `md`, weight `medium`, sizes `sm/md/lg` by padding + font-size. **Focus is a signature detail:** a dual ring — `0 0 0 2px {bg-void}, 0 0 0 4px {primary}` — a halo separated from the element by the void color. Reproduce this focus treatment for consistency and accessibility.
-- **Identity components** — `agent-identity-*`, `key-fingerprint`, `agent-identity-mark` render cryptographic identity; mono type + accent amber are their home.
-- **Surfaces** — `card`, `container`, `dialog`, `tooltip`, `badge`, `code-block`, `input`, `divider`, `stack` cover the operator UI. Cards/dialogs sit on the elevation scale; inputs use `border` default → `border-focus` (teal) on focus.
-- A parallel **CLI component set** (`src/cli/*`) mirrors the language for terminal surfaces.
+Compact, stable, and source-oriented. Product anchors name the three systems.
+Documentation and GitHub remain visible. One filled action leads to the team
+pilot; all other actions are text or outlined.
 
-**Applying this system:** default to dark; use teal for interaction and amber strictly for identity/crypto meaning; compose spacing/radius/type from tokens; reproduce the dual-ring focus; reach for mono type wherever cryptographic material appears.
+### System Diagram
+
+The signature component. It shows Task Engine, Agent Runtime, and Knowledge
+Factory as connected operating systems above a persistent Identity & Authority
+plane. Active routes use teal. Identity, credentials, policy snapshots, and
+attestations use amber. Denied or constrained paths include text and symbols,
+never color alone.
+
+### Evidence Panes
+
+Evidence panes resemble inspectable operator output: explicit title, state,
+source, and payload. They may contain real Console screenshots, task envelopes,
+policy snapshots, execution events, or signed records. Synthetic examples are
+labelled.
+
+### Actions
+
+Primary actions use Network Teal with inverse text. Secondary actions use a
+surface fill and one-pixel rule. Every action has visible hover and dual-ring
+focus treatment from the design system.
+
+## Do's and Don'ts
+
+### Do:
+
+- **Do** make every major claim inspectable through a diagram, payload, product
+  screenshot, documentation link, or source link.
+- **Do** show how authentication and authorization strengthen all three systems.
+- **Do** vary section density while preserving one continuous execution story.
+- **Do** expose open-source installation and architecture early.
+
+### Don't:
+
+- **Don't** present Task Engine, Agent Runtime, or Knowledge Factory as three
+  interchangeable feature cards.
+- **Don't** claim customers, benchmarks, scale, or outcomes without evidence.
+- **Don't** use amber as a generic accent or teal as ambient neon.
+- **Don't** hide the product behind mascots, abstract agent imagery, or generic
+  dashboard mockups.
