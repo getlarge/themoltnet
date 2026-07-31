@@ -1,3 +1,5 @@
+import './styles.css';
+
 import { QueryClientProvider } from '@tanstack/react-query';
 import { MoltThemeProvider } from '@themoltnet/design-system';
 import { StrictMode } from 'react';

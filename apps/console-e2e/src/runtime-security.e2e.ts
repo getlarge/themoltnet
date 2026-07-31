@@ -82,7 +82,7 @@ test.describe.serial('Runtime security console', () => {
     await loginViaBrowser(page, user);
     const teamSelect = page.locator('select[aria-label="Select team"]');
     await teamSelect.selectOption({ label: teamName });
-    await page.getByRole('button', { name: 'Runtime' }).click();
+    await page.getByRole('link', { name: 'Profiles' }).click();
     await expect(page).toHaveURL(/\/runtime\/profiles$/);
   }
 
@@ -101,7 +101,7 @@ test.describe.serial('Runtime security console', () => {
       page.getByRole('button', { name: new RegExp(profileName) }),
     ).toBeVisible();
 
-    await page.getByRole('button', { name: 'Policies' }).click();
+    await page.getByRole('link', { name: 'Tool policies' }).click();
     await expect(page).toHaveURL(/\/runtime\/policies$/);
     await page.getByRole('button', { name: 'New policy' }).click();
     const policyEditor = page.getByRole('region', {
@@ -135,7 +135,7 @@ test.describe.serial('Runtime security console', () => {
       savedPolicyEditor.getByLabel('Name', { exact: true }),
     ).toHaveValue(policyName);
 
-    await page.getByRole('button', { name: 'Profiles' }).click();
+    await page.getByRole('link', { name: 'Profiles' }).click();
     await expect(page).toHaveURL(/\/runtime\/profiles$/);
     const toolAccess = page.getByRole('region', { name: 'Tool access' });
     await expect(
@@ -178,7 +178,7 @@ test.describe.serial('Runtime security console', () => {
     page,
   }) => {
     await openRuntime(page);
-    await page.getByRole('button', { name: 'Agent keys' }).click();
+    await page.getByRole('link', { name: 'Agent keys' }).click();
     await expect(page).toHaveURL(/\/runtime\/agent-keys$/);
 
     await page.getByRole('button', { name: 'Create key' }).first().click();
@@ -245,14 +245,14 @@ test.describe.serial('Runtime security console', () => {
     page,
   }) => {
     await openRuntime(page);
-    await page.getByRole('button', { name: 'Policies' }).click();
+    await page.getByRole('link', { name: 'Tool policies' }).click();
     await page.getByRole('button', { name: new RegExp(policyName) }).click();
     await page.getByRole('button', { name: 'Remove read' }).click();
     await page.getByLabel('Exact tool name').fill('bash');
     await page.getByRole('button', { name: 'Add tool' }).click();
     await page.getByRole('button', { name: 'Save policy' }).click();
 
-    await page.getByRole('button', { name: 'Profiles' }).click();
+    await page.getByRole('link', { name: 'Profiles' }).click();
     const toolAccess = page.getByRole('region', { name: 'Tool access' });
     await expect(
       toolAccess.locator('code').filter({ hasText: 'bash' }),
@@ -264,7 +264,7 @@ test.describe.serial('Runtime security console', () => {
       toolAccess.locator('code').filter({ hasText: 'read' }),
     ).toHaveCount(0);
 
-    await page.getByRole('button', { name: 'Policies' }).click();
+    await page.getByRole('link', { name: 'Tool policies' }).click();
     await page.getByRole('button', { name: 'Delete policy' }).click();
     await page
       .getByRole('dialog', { name: 'Delete tool policy?' })
@@ -272,7 +272,7 @@ test.describe.serial('Runtime security console', () => {
       .click();
     await expect(page.getByText('No tool policies yet')).toBeVisible();
 
-    await page.getByRole('button', { name: 'Profiles' }).click();
+    await page.getByRole('link', { name: 'Profiles' }).click();
     await expect(async () => {
       await page.reload();
       await expect(page.getByText(/resolved access set is empty/i)).toBeVisible(

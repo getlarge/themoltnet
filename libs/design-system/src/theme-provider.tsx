@@ -91,6 +91,11 @@ function themeToCssVars(theme: MoltTheme): string {
     // Typography
     `--molt-font-sans: ${f.family.sans}`,
     `--molt-font-mono: ${f.family.mono}`,
+    // Application shell
+    `--molt-sidebar-expanded: ${theme.layout.sidebarExpanded}`,
+    `--molt-sidebar-collapsed: ${theme.layout.sidebarCollapsed}`,
+    `--molt-topbar-height: ${theme.layout.topbarHeight}`,
+    `--molt-content-max: ${theme.layout.contentMax}`,
   ].join('; ');
 }
 

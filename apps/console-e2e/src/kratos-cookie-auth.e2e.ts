@@ -67,7 +67,7 @@ test.describe.serial('Kratos browser cookie auth', () => {
     const cookieHeader = await getSessionCookie(page);
 
     await page
-      .getByRole('button', { name: 'Logout' })
+      .getByRole('button', { name: 'Log out' })
       .click({ noWaitAfter: true });
     await expect(async () => {
       const cookies = await page.context().cookies();

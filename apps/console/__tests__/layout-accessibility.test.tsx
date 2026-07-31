@@ -111,7 +111,7 @@ describe('console layout accessibility', () => {
       { wrapper: Wrapper },
     );
 
-    const toggle = screen.getByRole('button', { name: 'Toggle sidebar' });
+    const toggle = screen.getByRole('button', { name: 'Expand sidebar' });
 
     expect(toggle.getAttribute('aria-controls')).toBe('console-sidebar');
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
@@ -128,10 +128,10 @@ describe('console layout accessibility', () => {
     ).toBeDefined();
     expect(screen.getByRole('navigation', { name: 'Primary' })).toBeDefined();
 
-    const tasks = screen.getByRole('button', { name: 'Tasks' });
+    const tasks = screen.getByRole('link', { name: 'Task board' });
     expect(tasks.getAttribute('aria-current')).toBe('page');
     expect(
-      screen.queryByRole('button', { name: 'Signing' }),
+      screen.queryByRole('link', { name: 'Signing' }),
     ).not.toBeInTheDocument();
   });
 
@@ -141,33 +141,39 @@ describe('console layout accessibility', () => {
 
     render(<Sidebar id="console-sidebar" />, { wrapper: Wrapper });
 
-    const signing = screen.getByRole('button', { name: 'Signing' });
+    const signing = screen.getByRole('link', { name: 'Signing' });
     expect(signing).toHaveAttribute('aria-current', 'page');
   });
 
-  it('groups runtime profiles, policies, and keys under one navigation item', () => {
+  it('groups runtime profiles, policies, and keys under Agent Runtime', () => {
     testState.location = '/runtime/agent-keys';
 
     render(<Sidebar id="console-sidebar" />, { wrapper: Wrapper });
 
-    expect(screen.getByRole('button', { name: 'Runtime' })).toHaveAttribute(
+    expect(
+      screen.getByRole('region', { name: 'Agent Runtime' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Agent keys' })).toHaveAttribute(
       'aria-current',
       'page',
     );
+    expect(screen.getByRole('link', { name: 'Profiles' })).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: 'Profiles' }),
-    ).not.toBeInTheDocument();
+      screen.getByRole('link', { name: 'Tool policies' }),
+    ).toBeInTheDocument();
   });
 
-  it('keeps collapsed navigation buttons named beyond their initials', () => {
+  it('keeps collapsed navigation links and actions named', () => {
     render(<Sidebar collapsed id="console-sidebar" />, { wrapper: Wrapper });
 
-    expect(screen.getByRole('button', { name: 'Tasks' }).textContent).toBe('T');
+    expect(
+      screen.getByRole('link', { name: 'Task board' }),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Documentation' }).textContent,
-    ).toBe('D');
+    ).toBe('');
     expect(screen.getByRole('button', { name: 'Settings' }).textContent).toBe(
-      'S',
+      '',
     );
   });
 
@@ -191,6 +197,48 @@ describe('console layout accessibility', () => {
     await waitFor(() => expect(document.activeElement).toBe(main));
   });
 
+  it('keeps scrolling inside the viewport-bound application shell', () => {
+    render(
+      <DashboardLayout>
+        <div style={{ height: '200vh' }}>Long page</div>
+      </DashboardLayout>,
+      { wrapper: Wrapper },
+    );
+
+    const main = screen.getByRole('main');
+    const shell = main.parentElement?.parentElement;
+    const sidebar = screen.getByRole('complementary', {
+      name: 'Console navigation',
+    });
+
+    expect(shell).not.toBeNull();
+    expect(shell).toHaveStyle({ height: '100dvh', overflow: 'hidden' });
+    expect(main).toHaveStyle({
+      minHeight: '0',
+      overflowX: 'auto',
+      overflowY: 'auto',
+    });
+    expect(sidebar).toHaveStyle({ height: '100%', minHeight: '0' });
+  });
+
+  it('allows tablet operators to expand the compact sidebar', () => {
+    testState.isTablet = true;
+
+    render(
+      <DashboardLayout>
+        <h1>Tasks</h1>
+      </DashboardLayout>,
+      { wrapper: Wrapper },
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Expand sidebar' }));
+
+    expect(
+      screen.getByRole('button', { name: 'Collapse sidebar' }),
+    ).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByTestId('team-selector')).toBeInTheDocument();
+  });
+
   it('focuses main content and closes mobile navigation after route changes', async () => {
     testState.isMobile = true;
 
@@ -201,7 +249,7 @@ describe('console layout accessibility', () => {
       { wrapper: Wrapper },
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Toggle sidebar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Expand sidebar' }));
     expect(
       screen.getByRole('dialog', { name: 'Navigation menu' }),
     ).toBeDefined();
@@ -235,7 +283,7 @@ describe('console layout accessibility', () => {
       { wrapper: Wrapper },
     );
 
-    const toggle = screen.getByRole('button', { name: 'Toggle sidebar' });
+    const toggle = screen.getByRole('button', { name: 'Expand sidebar' });
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
 
     fireEvent.click(toggle);
@@ -247,6 +295,37 @@ describe('console layout accessibility', () => {
     );
     expect(toggle.getAttribute('aria-controls')).toBe('console-sidebar');
     expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    expect(
+      document.getElementById('main-content')?.parentElement,
+    ).toHaveAttribute('inert');
+    expect(document.body.style.overflow).toBe('hidden');
+  });
+
+  it('closes the mobile drawer with Escape and restores the menu trigger', async () => {
+    testState.isMobile = true;
+
+    render(
+      <DashboardLayout>
+        <h1>Tasks</h1>
+      </DashboardLayout>,
+      { wrapper: Wrapper },
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Expand sidebar' }));
+    expect(
+      screen.getByRole('dialog', { name: 'Navigation menu' }),
+    ).toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('dialog', { name: 'Navigation menu' }),
+      ).not.toBeInTheDocument(),
+    );
+    expect(
+      screen.getByRole('button', { name: 'Expand sidebar' }),
+    ).toHaveFocus();
   });
 
   it('links team tabs to their panels', async () => {

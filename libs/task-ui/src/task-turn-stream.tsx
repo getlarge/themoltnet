@@ -7,7 +7,7 @@ import {
   humanizeToken,
   joinTextDeltas,
 } from './format.js';
-import type { TaskMessage } from './types.js';
+import type { TaskAttemptStatus, TaskMessage } from './types.js';
 
 type Theme = ReturnType<typeof useTheme>;
 
@@ -21,6 +21,8 @@ export interface TaskTurnStreamProps {
    * where a user wonders why a queued task isn't being executed.
    */
   learnMoreHref?: string;
+  /** Distinguishes an unclaimed task from a claimed or terminal empty stream. */
+  attemptStatus?: TaskAttemptStatus;
 }
 
 function lineColor(theme: Theme, kind: TaskMessage['kind']): string {
@@ -41,6 +43,7 @@ export function TaskTurnStream({
   messages,
   live,
   learnMoreHref,
+  attemptStatus,
 }: TaskTurnStreamProps) {
   const theme = useTheme();
   const endRef = useRef<HTMLDivElement>(null);
@@ -53,6 +56,12 @@ export function TaskTurnStream({
   }, [live, rendered.length]);
 
   if (rendered.length === 0) {
+    const claimed = attemptStatus === 'claimed' || attemptStatus === 'running';
+    const emptyMessage = claimed
+      ? 'Attempt claimed — waiting for the first turn.'
+      : attemptStatus
+        ? 'No turn messages were recorded for this attempt.'
+        : 'No turns yet — waiting for an agent to claim this task.';
     return (
       <div
         style={{
@@ -63,8 +72,8 @@ export function TaskTurnStream({
           lineHeight: theme.font.lineHeight.relaxed,
         }}
       >
-        No turns yet — waiting for an agent to claim this task.
-        {learnMoreHref ? (
+        {emptyMessage}
+        {!attemptStatus && learnMoreHref ? (
           <>
             {' '}
             <a

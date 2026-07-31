@@ -79,4 +79,20 @@ test.describe.serial('Signing surface', () => {
       /access.?token|refresh.?token|session.?token|authorization|cookie/iu,
     );
   });
+
+  test('connects to the real host-side signing companion', async ({ page }) => {
+    test.skip(
+      process.env['MOLTNET_SIGNER_E2E'] !== '1',
+      'Set MOLTNET_SIGNER_E2E=1 and start @moltnet/signer on port 17373.',
+    );
+
+    await loginViaBrowser(page, user);
+    await page.goto(`${CONSOLE_URL}/signing`);
+
+    await expect(
+      page.getByRole('heading', { name: 'Signing', exact: true }),
+    ).toBeVisible();
+    await expect(page.getByText('Companion connected')).toBeVisible();
+    await expect(page.getByText('Companion unavailable')).toBeHidden();
+  });
 });

@@ -4,6 +4,7 @@ import {
   fontFamily,
   fontSize,
   fontWeight,
+  layout,
   letterSpacing,
   lightColors,
   lineHeight,
@@ -82,6 +83,7 @@ export interface MoltTheme {
   shadow: typeof shadow;
   transition: typeof transition;
   breakpoint: typeof breakpoint;
+  layout: typeof layout;
   zIndex: typeof zIndex;
 }
 
@@ -102,6 +104,7 @@ const sharedTokens = {
   shadow,
   transition,
   breakpoint,
+  layout,
   zIndex,
 } as const;
 

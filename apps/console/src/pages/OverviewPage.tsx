@@ -1,448 +1,514 @@
-import { getTeamOptions, listTasksOptions } from '@moltnet/api-client/query';
+import {
+  getTeamOptions,
+  listAgentKeysOptions,
+  listRuntimeProfilesOptions,
+  listTasksOptions,
+} from '@moltnet/api-client/query';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Card, Stack, Text, useTheme } from '@themoltnet/design-system';
-import { useMemo } from 'react';
+import {
+  Badge,
+  Button,
+  ControlSurface,
+  DescriptionList,
+  EmptyState,
+  InlineNotice,
+  PageHeader,
+  Stack,
+  Text,
+  useTheme,
+} from '@themoltnet/design-system';
+import {
+  ArrowRight,
+  Bot,
+  LibraryBig,
+  ListTodo,
+  ShieldCheck,
+} from 'lucide-react';
+import type { ReactNode } from 'react';
 import { useLocation } from 'wouter';
 
 import { getApiClient } from '../api.js';
-import { useAuth } from '../auth/useAuth.js';
-import { getConfig } from '../config.js';
 import { useDiarySummaries } from '../diaries/hooks.js';
-import {
-  buildTeamPilotBriefing,
-  type PilotPhase,
-} from '../overview/team-pilot.js';
 import { useTeam } from '../team/useTeam.js';
 
-/**
- * Phase status → glyph + tone. The glyph carries state so it never reads by
- * color alone (WCAG 1.4.1).
- */
-const PHASE_META: Record<
-  PilotPhase['status'],
-  { glyph: string; tone: 'success' | 'primary' | 'error' | 'warning' | 'muted' }
-> = {
-  complete: { glyph: '✓', tone: 'success' },
-  ready: { glyph: '→', tone: 'primary' },
-  in_progress: { glyph: '◐', tone: 'primary' },
-  needs_attention: { glyph: '!', tone: 'error' },
-  unavailable: { glyph: '?', tone: 'warning' },
-  not_started: { glyph: '○', tone: 'muted' },
-};
+const TEAM_HEADER = 'x-moltnet-team-id';
 
 export function OverviewPage() {
   const theme = useTheme();
-  const { username } = useAuth();
-  const { error: teamError, isLoading: teamsLoading, selectedTeam } = useTeam();
   const [, navigate] = useLocation();
+  const { error: teamError, isLoading: teamsLoading, selectedTeam } = useTeam();
   const teamId = selectedTeam?.id ?? '';
   const hasProjectTeam = Boolean(selectedTeam && !selectedTeam.personal);
-  const { docsUrl } = getConfig();
 
-  const diariesQuery = useDiarySummaries(hasProjectTeam ? teamId : null);
-  const teamQuery = useQuery({
-    ...getTeamOptions({ client: getApiClient(), path: { id: teamId } }),
-    enabled: hasProjectTeam,
-    staleTime: 30_000,
-  });
   const tasksQuery = useQuery({
     ...listTasksOptions({
       client: getApiClient(),
-      headers: { 'x-moltnet-team-id': teamId },
+      headers: { [TEAM_HEADER]: teamId },
       query: { limit: 50 },
     }),
     enabled: hasProjectTeam,
     staleTime: 10_000,
     refetchInterval: 15_000,
   });
+  const profilesQuery = useQuery({
+    ...listRuntimeProfilesOptions({
+      client: getApiClient(),
+      headers: { [TEAM_HEADER]: teamId },
+    }),
+    enabled: hasProjectTeam,
+    staleTime: 30_000,
+  });
+  const keysQuery = useQuery({
+    ...listAgentKeysOptions({
+      client: getApiClient(),
+      headers: { [TEAM_HEADER]: teamId },
+      query: { limit: 50 },
+    }),
+    enabled: hasProjectTeam,
+    staleTime: 30_000,
+  });
+  const teamQuery = useQuery({
+    ...getTeamOptions({ client: getApiClient(), path: { id: teamId } }),
+    enabled: hasProjectTeam,
+    staleTime: 30_000,
+  });
+  const diariesQuery = useDiarySummaries(hasProjectTeam ? teamId : null);
 
-  const isLoading =
-    teamsLoading ||
-    (hasProjectTeam &&
-      (diariesQuery.isLoading || teamQuery.isLoading || tasksQuery.isLoading));
-
-  const briefing = useMemo(
-    () =>
-      buildTeamPilotBriefing({
-        team: selectedTeam,
-        diaries: diariesQuery.error ? null : (diariesQuery.data ?? []),
-        docsUrl,
-        members: teamQuery.error ? null : (teamQuery.data?.members ?? []),
-        tasks: tasksQuery.error ? null : (tasksQuery.data?.items ?? []),
-      }),
-    [
-      diariesQuery.data,
-      diariesQuery.error,
-      docsUrl,
-      selectedTeam,
-      tasksQuery.data,
-      tasksQuery.error,
-      teamQuery.data,
-      teamQuery.error,
-    ],
-  );
-
-  if (isLoading) {
-    return (
-      <Stack gap={2}>
-        <Text variant="h1">Team pilot</Text>
-        <Text color="muted">Loading the current pilot briefing…</Text>
-      </Stack>
-    );
-  }
-
-  if (teamError) {
-    return (
-      <Stack gap={4}>
-        <Text variant="h1">Team pilot</Text>
-        <Card variant="outlined" padding="md">
-          <Stack gap={3}>
-            <Text variant="h3">Pilot status is unavailable</Text>
-            <Text color="muted">
-              The console could not load the selected team. Check connectivity,
-              then try the relevant workspace directly.
-            </Text>
-            <Stack direction="row" gap={3} wrap>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => navigate('/teams')}
-              >
-                Open teams
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => navigate('/tasks')}
-              >
-                Open tasks
-              </Button>
-            </Stack>
-          </Stack>
-        </Card>
-      </Stack>
-    );
-  }
-
-  const partialError =
-    hasProjectTeam &&
-    (diariesQuery.isError || teamQuery.isError || tasksQuery.isError);
-  const allPhasesComplete = briefing.phases.every(
-    (p) => p.status === 'complete',
-  );
-
-  // Operational truthfulness: keep "couldn't load" distinct from "zero", and
-  // "loaded page" distinct from "team total".
-  const tasksUnavailable = hasProjectTeam && tasksQuery.isError;
-  const membershipUnavailable = hasProjectTeam && teamQuery.isError;
-  const loadedTaskCount = tasksQuery.data?.items?.length ?? 0;
+  const tasks = tasksQuery.data?.items ?? [];
+  const loadedTaskCount = tasks.length;
   const taskTotal = tasksQuery.data?.total ?? loadedTaskCount;
-  // The lane counts are derived from the loaded page (limit 50); flag when the
-  // team has more so the tiles aren't read as exact team-wide totals.
-  const countsArePartial = !tasksUnavailable && taskTotal > loadedTaskCount;
+  const countsArePartial = taskTotal > loadedTaskCount;
+  const activeTasks = tasks.filter((task) =>
+    ['dispatched', 'running'].includes(task.status),
+  );
+  const waitingTasks = tasks.filter((task) => task.status === 'waiting');
+  const failedTasks = tasks.filter((task) => task.status === 'failed');
+  const attentionTasks = [...failedTasks, ...waitingTasks].slice(0, 6);
+
+  const profiles = profilesQuery.data?.items ?? [];
+  const enforcedProfiles = profiles.filter(
+    (profile) => profile.toolEnforcement === 'enforce',
+  ).length;
+  const keys = keysQuery.data?.items ?? [];
+  const activeKeys = keys.filter((key) => key.status === 'active').length;
+  const keyCountIsPartial = Boolean(keysQuery.data?.nextCursor);
+
+  const diaries = diariesQuery.data ?? [];
+  const retainedEntries = diaries.reduce(
+    (total, diary) => total + diary.entryCount,
+    0,
+  );
+  const agentMembers = (teamQuery.data?.members ?? []).filter(
+    (member) => member.subjectType.toLowerCase() === 'agent',
+  ).length;
 
   return (
-    <Stack gap={6}>
-      <Stack gap={1}>
-        <Text variant="h1">Team pilot{username ? `, ${username}` : ''}</Text>
-        <Text color="muted">{briefing.summary}</Text>
-      </Stack>
+    <Stack gap={8}>
+      <PageHeader
+        eyebrow="Control plane"
+        title="Operations"
+        description={
+          selectedTeam
+            ? `Monitor work, runtime authority, and retained knowledge for ${selectedTeam.name}.`
+            : 'Monitor work, runtime authority, and retained knowledge from one place.'
+        }
+        actions={
+          <Stack direction="row" gap={2} wrap>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => navigate('/tasks')}
+            >
+              Task board
+            </Button>
+            <Button
+              size="sm"
+              disabled={!hasProjectTeam || diaries.length === 0}
+              onClick={() => navigate('/tasks?create=1')}
+            >
+              New task
+            </Button>
+          </Stack>
+        }
+      />
 
-      {partialError && (
-        <Text style={{ color: theme.color.warning.DEFAULT }}>
-          Some pilot data couldn&apos;t be loaded, so the state below may be
-          incomplete.
-        </Text>
-      )}
-
-      {/* Operational state — leads the page (was hidden in a disclosure). */}
-      <Stack gap={3}>
-        <Stack direction="row" justify="space-between" align="center" wrap>
-          <SectionHeading>Task activity</SectionHeading>
-          <button
-            type="button"
-            onClick={() => navigate('/tasks')}
-            style={{
-              background: 'none',
-              border: 0,
-              padding: 0,
-              cursor: 'pointer',
-              fontSize: theme.font.size.sm,
-              color: theme.color.primary.DEFAULT,
-            }}
-          >
-            Task board →
-          </button>
-        </Stack>
-        {!hasProjectTeam ? (
-          <Card variant="surface" padding="md">
-            <Text color="muted">
-              Task activity appears once a non-personal project team is running
-              a pilot. Choose or create one below.
-            </Text>
-          </Card>
-        ) : tasksUnavailable ? (
-          <Card variant="surface" padding="md">
-            <Stack direction="row" gap={3} align="center" wrap>
-              <Text style={{ color: theme.color.warning.DEFAULT }}>
-                Task activity couldn&apos;t be loaded — counts are unavailable,
-                not zero.
-              </Text>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => void tasksQuery.refetch()}
+      {teamsLoading ? (
+        <ControlSurface as="section" padding="md">
+          <Text color="muted">Loading team scope…</Text>
+        </ControlSurface>
+      ) : teamError ? (
+        <InlineNotice tone="error" title="Team scope unavailable">
+          The console could not load the selected team. Open Teams to restore
+          the operator scope before making changes.
+        </InlineNotice>
+      ) : !hasProjectTeam && !teamsLoading ? (
+        <EmptyState
+          icon={<Bot size={22} strokeWidth={1.7} />}
+          title="Select a project team"
+          description="Operational data is team-scoped. Personal workspaces do not expose the shared task, runtime, and knowledge control plane."
+          action={
+            <Button size="sm" onClick={() => navigate('/teams')}>
+              Open teams
+            </Button>
+          }
+        />
+      ) : hasProjectTeam ? (
+        <>
+          <section aria-labelledby="systems-heading">
+            <Stack gap={4}>
+              <Stack gap={1}>
+                <Text id="systems-heading" variant="h2">
+                  Three systems. One operating model.
+                </Text>
+                <Text color="secondary">
+                  Work moves through the task engine, executes inside explicit
+                  runtime authority, and can leave attributable knowledge
+                  behind.
+                </Text>
+              </Stack>
+              <div
+                style={{
+                  display: 'grid',
+                  gap: theme.spacing[4],
+                  gridTemplateColumns:
+                    'repeat(auto-fit, minmax(min(100%, 19rem), 1fr))',
+                }}
               >
-                Retry
-              </Button>
+                <SystemPanel
+                  icon={<ListTodo size={21} strokeWidth={1.8} />}
+                  eyebrow="Task Engine"
+                  title="Coordinate durable work"
+                  description="Contracts, claim conditions, attempts, outputs, and review remain inspectable as one lifecycle."
+                  status={queryStatus(tasksQuery)}
+                  metrics={[
+                    {
+                      label: 'Team total',
+                      value: valueOrDash(taskTotal, tasksQuery),
+                    },
+                    {
+                      label: countsArePartial
+                        ? 'Active · loaded page'
+                        : 'Active',
+                      value: valueOrDash(activeTasks.length, tasksQuery),
+                    },
+                    {
+                      label: countsArePartial
+                        ? 'Waiting · loaded page'
+                        : 'Waiting',
+                      value: valueOrDash(waitingTasks.length, tasksQuery),
+                    },
+                  ]}
+                  actionLabel="Open task board"
+                  onAction={() => navigate('/tasks')}
+                />
+                <SystemPanel
+                  icon={<ShieldCheck size={21} strokeWidth={1.8} />}
+                  eyebrow="Agent Runtime"
+                  title="Bound execution authority"
+                  description="Profiles, tool policies, and agent keys define what may run and what each agent can reach."
+                  status={mergeQueryStatus(profilesQuery, keysQuery)}
+                  metrics={[
+                    {
+                      label: 'Runtime profiles',
+                      value: valueOrDash(profiles.length, profilesQuery),
+                    },
+                    {
+                      label: 'Enforced policies',
+                      value: valueOrDash(enforcedProfiles, profilesQuery),
+                    },
+                    {
+                      label: keyCountIsPartial
+                        ? 'Active keys · first 50'
+                        : 'Active keys',
+                      value: valueOrDash(activeKeys, keysQuery),
+                    },
+                  ]}
+                  actionLabel="Inspect runtime"
+                  onAction={() => navigate('/runtime/profiles')}
+                />
+                <SystemPanel
+                  icon={<LibraryBig size={21} strokeWidth={1.8} />}
+                  eyebrow="Knowledge Factory"
+                  title="Retain accountable context"
+                  description="Signed diary entries become attributable, searchable material for future agents and evaluations."
+                  status={queryStatus(diariesQuery)}
+                  metrics={[
+                    {
+                      label: 'Diaries',
+                      value: valueOrDash(diaries.length, diariesQuery),
+                    },
+                    {
+                      label: 'Retained entries',
+                      value: valueOrDash(retainedEntries, diariesQuery),
+                    },
+                    {
+                      label: 'Task-linked',
+                      value: tasksQuery.isError ? '—' : 'Per execution record',
+                    },
+                  ]}
+                  actionLabel="Open diaries"
+                  onAction={() => navigate('/diaries')}
+                />
+              </div>
             </Stack>
-          </Card>
-        ) : (
+          </section>
+
           <div
             style={{
+              alignItems: 'start',
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-              gap: theme.spacing[3],
+              gap: theme.spacing[5],
+              gridTemplateColumns:
+                'repeat(auto-fit, minmax(min(100%, 24rem), 1fr))',
             }}
           >
-            <TaskStatTile
-              count={briefing.queuedTaskCount}
-              label="Queued"
-              color={theme.color.info.DEFAULT}
-            />
-            <TaskStatTile
-              count={briefing.activeTaskCount}
-              label="Active"
-              color={theme.color.primary.DEFAULT}
-            />
-            <TaskStatTile
-              count={briefing.waitingTaskCount}
-              label="Waiting"
-              color={theme.color.warning.DEFAULT}
-            />
-            <TaskStatTile
-              count={briefing.completedTaskCount}
-              label="Completed"
-              color={theme.color.success.DEFAULT}
-            />
-            <TaskStatTile
-              count={briefing.failedTaskCount}
-              label="Unsuccessful"
-              color={theme.color.error.DEFAULT}
-            />
+            <ControlSurface as="section" padding="md">
+              <Stack gap={4}>
+                <Stack direction="row" justify="space-between" align="center">
+                  <Stack gap={1}>
+                    <Text variant="overline" color="primary">
+                      Task Engine
+                    </Text>
+                    <Text variant="h3">Requires attention</Text>
+                  </Stack>
+                  <Badge
+                    variant={attentionTasks.length ? 'warning' : 'success'}
+                  >
+                    {tasksQuery.isError
+                      ? 'Unavailable'
+                      : tasksQuery.isLoading
+                        ? 'Loading'
+                        : `${attentionTasks.length} loaded`}
+                  </Badge>
+                </Stack>
+                {tasksQuery.isError ? (
+                  <InlineNotice
+                    tone="warning"
+                    title="Task activity unavailable"
+                  >
+                    Counts are unavailable, not zero. Retry before treating this
+                    team as idle.
+                  </InlineNotice>
+                ) : tasksQuery.isLoading ? (
+                  <Text color="muted">Loading task activity…</Text>
+                ) : attentionTasks.length ? (
+                  <Stack gap={2}>
+                    {attentionTasks.map((task) => (
+                      <button
+                        key={task.id}
+                        type="button"
+                        onClick={() => navigate(`/tasks/${task.id}`)}
+                        style={{
+                          alignItems: 'center',
+                          background: theme.color.bg.surface,
+                          border: `1px solid ${theme.color.border.DEFAULT}`,
+                          borderRadius: theme.radius.md,
+                          color: theme.color.text.DEFAULT,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          font: 'inherit',
+                          gap: theme.spacing[3],
+                          justifyContent: 'space-between',
+                          minHeight: '3.5rem',
+                          padding: `${theme.spacing[2]} ${theme.spacing[3]}`,
+                          textAlign: 'left',
+                          width: '100%',
+                        }}
+                      >
+                        <Stack gap={0} style={{ minWidth: 0 }}>
+                          <Text weight="medium">
+                            {task.title ?? task.taskType}
+                          </Text>
+                          <Text variant="caption" color="muted" mono>
+                            {task.id}
+                          </Text>
+                        </Stack>
+                        <Stack direction="row" gap={2} align="center">
+                          <Badge
+                            variant={
+                              task.status === 'failed' ? 'error' : 'warning'
+                            }
+                          >
+                            {task.status}
+                          </Badge>
+                          <ArrowRight aria-hidden="true" size={17} />
+                        </Stack>
+                      </button>
+                    ))}
+                    {countsArePartial ? (
+                      <Text variant="caption" color="muted">
+                        Attention items are drawn from the {loadedTaskCount}{' '}
+                        most recently loaded of {taskTotal} tasks.
+                      </Text>
+                    ) : null}
+                  </Stack>
+                ) : (
+                  <EmptyState
+                    compact
+                    title="No loaded tasks need attention"
+                    description="No failed or waiting tasks appear in the current result set."
+                  />
+                )}
+              </Stack>
+            </ControlSurface>
+
+            <ControlSurface as="section" padding="md">
+              <Stack gap={4}>
+                <Stack gap={1}>
+                  <Text variant="overline" color="accent">
+                    Authority boundary
+                  </Text>
+                  <Text variant="h3">
+                    Agents should not inherit your authority
+                  </Text>
+                </Stack>
+                <Text color="secondary">
+                  A task claim selects work. Agent keys establish machine
+                  identity; runtime profiles and tool policies constrain
+                  execution. Keep those decisions explicit before broadening
+                  access.
+                </Text>
+                <DescriptionList
+                  columns={2}
+                  items={[
+                    {
+                      label: 'Agent members',
+                      value: valueOrDash(agentMembers, teamQuery),
+                    },
+                    {
+                      label: 'Active agent keys',
+                      value: valueOrDash(activeKeys, keysQuery),
+                    },
+                    {
+                      label: 'Enforced profiles',
+                      value: valueOrDash(enforcedProfiles, profilesQuery),
+                    },
+                    {
+                      label: 'Open policy surface',
+                      value: 'Tool policies',
+                    },
+                  ]}
+                />
+                <Stack direction="row" gap={2} wrap>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => navigate('/runtime/policies')}
+                  >
+                    Review policies
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => navigate('/runtime/agent-keys')}
+                  >
+                    Review agent keys
+                  </Button>
+                </Stack>
+              </Stack>
+            </ControlSurface>
           </div>
-        )}
-        {countsArePartial && (
-          <Text variant="caption" color="muted">
-            Counts reflect the {loadedTaskCount} most recently loaded of{' '}
-            {taskTotal} tasks — open the task board for the full queue.
-          </Text>
-        )}
-        {hasProjectTeam && (
-          <Text variant="caption" color="muted">
-            {membershipUnavailable
-              ? "Team membership couldn't be loaded, so agent presence is unknown."
-              : briefing.agentMember
-                ? `Agent: ${briefing.agentMember.displayName} · ${briefing.agentMember.role}. Membership doesn't prove agent-daemon is running; a diary-writer grant can also authorize claims.`
-                : 'No agent is a member of this team. An agent can claim work through team membership or a diary-writer grant.'}
-          </Text>
-        )}
-      </Stack>
 
-      {/* Setup — prominent while incomplete, collapses to a summary once done. */}
-      {allPhasesComplete ? (
-        <Card variant="surface" padding="sm">
-          <Stack direction="row" gap={2} align="center">
-            <Text style={{ color: theme.color.success.DEFAULT }}>✓</Text>
-            <Text variant="caption" color="secondary">
-              Pilot setup complete — workspace, agent, and first task are all in
-              place.
-            </Text>
-          </Stack>
-        </Card>
-      ) : (
-        <Stack gap={3}>
-          <SectionHeading>Pilot setup</SectionHeading>
-          <Stack gap={2}>
-            {briefing.phases.map((phase) => (
-              <PhaseRow key={phase.id} phase={phase} onNavigate={navigate} />
-            ))}
-          </Stack>
-        </Stack>
-      )}
-
-      {/* Standing caveat — honest, but a calm note rather than a glowing banner. */}
-      <Card variant="outlined" padding="sm">
-        <Stack direction="row" gap={2} align="flex-start">
-          <Text
-            aria-hidden="true"
-            style={{ color: theme.color.warning.DEFAULT }}
-          >
-            ⚠
-          </Text>
-          <Text variant="caption" color="secondary">
-            <strong>Cost is not estimated or capped here.</strong> MoltNet
-            doesn&apos;t show a cost estimate or enforce a spend cap for runtime
-            tasks — keep the first brief narrow and inspect the executor profile
-            before an agent claims it.
-          </Text>
-        </Stack>
-      </Card>
+          <InlineNotice tone="info" title="Task-level evidence">
+            Open any task to inspect the live contract → claim → runtime →
+            result → knowledge record. Missing evidence is shown as missing,
+            never inferred from a successful status.
+          </InlineNotice>
+        </>
+      ) : null}
     </Stack>
   );
 }
 
-/** A small uppercase section label that is also a real `<h2>`, so the page has
- *  an h1 → h2 structure and the tile counts don't have to be headings. */
-function SectionHeading({ children }: { children: React.ReactNode }) {
-  const theme = useTheme();
-  return (
-    <h2
-      style={{
-        margin: 0,
-        fontSize: theme.font.size.xs,
-        fontWeight: theme.font.weight.medium,
-        letterSpacing: '0.08em',
-        textTransform: 'uppercase',
-        color: theme.color.text.secondary,
-      }}
-    >
-      {children}
-    </h2>
-  );
+type QueryLike = {
+  isError: boolean;
+  isLoading: boolean;
+};
+
+function queryStatus(query: QueryLike) {
+  if (query.isError) return 'unavailable' as const;
+  if (query.isLoading) return 'loading' as const;
+  return 'connected' as const;
 }
 
-function TaskStatTile({
-  count,
-  label,
-  color,
-}: {
-  count: number;
-  label: string;
-  color: string;
-}) {
-  const theme = useTheme();
-  return (
-    <Card
-      variant="surface"
-      padding="md"
-      data-testid={`task-tile-${label.toLowerCase()}`}
-    >
-      <Stack gap={1}>
-        {/* The count is data, not a heading — otherwise screen-reader heading
-            navigation is a list of contextless numbers. The colored dot beside
-            the label carries lane identity, so state never reads by color
-            alone. */}
-        <span
-          style={{
-            fontSize: theme.font.size['3xl'],
-            fontWeight: theme.font.weight.semibold,
-            lineHeight: theme.font.lineHeight.tight,
-            color: theme.color.text.DEFAULT,
-          }}
-        >
-          {count}
-        </span>
-        <Stack direction="row" gap={1.5} align="center">
-          <span
-            aria-hidden="true"
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: theme.radius.full,
-              background: color,
-              flexShrink: 0,
-            }}
-          />
-          <Text variant="caption" color="secondary">
-            {label}
-          </Text>
-        </Stack>
-      </Stack>
-    </Card>
-  );
+function mergeQueryStatus(...queries: QueryLike[]) {
+  if (queries.some((query) => query.isError)) return 'unavailable' as const;
+  if (queries.some((query) => query.isLoading)) return 'loading' as const;
+  return 'connected' as const;
 }
 
-function PhaseRow({
-  phase,
-  onNavigate,
+function valueOrDash(value: ReactNode, query: QueryLike): ReactNode {
+  return query.isError || query.isLoading ? '—' : value;
+}
+
+function SystemPanel({
+  icon,
+  eyebrow,
+  title,
+  description,
+  status,
+  metrics,
+  actionLabel,
+  onAction,
 }: {
-  phase: PilotPhase;
-  onNavigate: (href: string) => void;
+  icon: ReactNode;
+  eyebrow: string;
+  title: string;
+  description: string;
+  status: 'connected' | 'loading' | 'unavailable';
+  metrics: Array<{ label: ReactNode; value: ReactNode }>;
+  actionLabel: string;
+  onAction: () => void;
 }) {
   const theme = useTheme();
-  const meta = PHASE_META[phase.status];
-  const toneColor = {
-    success: theme.color.success.DEFAULT,
-    primary: theme.color.primary.DEFAULT,
-    error: theme.color.error.DEFAULT,
-    warning: theme.color.warning.DEFAULT,
-    muted: theme.color.text.muted,
-  }[meta.tone];
-  const external = phase.action.href.startsWith('http');
+  const statusMeta = {
+    connected: { label: 'Connected', variant: 'success' as const },
+    loading: { label: 'Loading', variant: 'default' as const },
+    unavailable: { label: 'Unavailable', variant: 'warning' as const },
+  }[status];
 
   return (
-    <Card variant="surface" padding="sm">
-      <Stack direction="row" gap={3} align="center">
-        <span
-          aria-hidden="true"
-          style={{
-            width: 24,
-            height: 24,
-            flexShrink: 0,
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: theme.radius.full,
-            color: toneColor,
-            fontWeight: theme.font.weight.bold,
-          }}
-        >
-          {meta.glyph}
-        </span>
-        <Stack gap={0} style={{ flex: 1, minWidth: 0 }}>
-          <Text variant="body" weight="medium">
-            {phase.title}
-          </Text>
-          <Text variant="caption" color="muted">
-            {phase.detail}
-          </Text>
+    <ControlSurface as="article" padding="md" style={{ height: '100%' }}>
+      <Stack gap={5} style={{ height: '100%' }}>
+        <Stack gap={3}>
+          <Stack direction="row" justify="space-between" align="flex-start">
+            <span
+              aria-hidden="true"
+              style={{
+                alignItems: 'center',
+                background: theme.color.primary.subtle,
+                border: `1px solid ${theme.color.border.DEFAULT}`,
+                borderRadius: theme.radius.md,
+                color: theme.color.primary.DEFAULT,
+                display: 'inline-flex',
+                height: '2.5rem',
+                justifyContent: 'center',
+                width: '2.5rem',
+              }}
+            >
+              {icon}
+            </span>
+            <Badge variant={statusMeta.variant}>{statusMeta.label}</Badge>
+          </Stack>
+          <Stack gap={1}>
+            <Text variant="overline" color="primary">
+              {eyebrow}
+            </Text>
+            <Text variant="h3">{title}</Text>
+            <Text color="secondary">{description}</Text>
+          </Stack>
         </Stack>
-        {external ? (
-          // A single link-capable element (Button has no href), styled to
-          // match the secondary button — no Button-inside-anchor nesting.
-          <a
-            href={phase.action.href}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              flexShrink: 0,
-              display: 'inline-flex',
-              alignItems: 'center',
-              minHeight: '2.75rem',
-              padding: `0 ${theme.spacing[4]}`,
-              borderRadius: theme.radius.md,
-              border: `1px solid ${theme.color.border.DEFAULT}`,
-              color: theme.color.primary.DEFAULT,
-              fontSize: theme.font.size.sm,
-              fontWeight: theme.font.weight.medium,
-              textDecoration: 'none',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {phase.action.label}
-          </a>
-        ) : (
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => onNavigate(phase.action.href)}
-            style={{ flexShrink: 0 }}
-          >
-            {phase.action.label}
-          </Button>
-        )}
+        <DescriptionList items={metrics} columns={3} compact />
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onAction}
+          style={{ alignSelf: 'flex-start', marginTop: 'auto' }}
+        >
+          {actionLabel}
+          <ArrowRight aria-hidden="true" size={16} />
+        </Button>
       </Stack>
-    </Card>
+    </ControlSurface>
   );
 }

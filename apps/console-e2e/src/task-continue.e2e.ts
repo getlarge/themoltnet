@@ -113,20 +113,29 @@ test.describe.serial('Continue task from console', () => {
     }
     sharedTeamId = created.data.id;
 
-    const profile = await createRuntimeProfile({
-      client: humanClient,
-      headers: { 'x-moltnet-team-id': sharedTeamId },
-      body: {
-        name: `task-continue-profile-${nonce}`,
-        runtimeKind: 'gondolin_pi',
-        provider: 'anthropic',
-        model: 'claude-sonnet-4-5',
-        sandbox: {},
-      },
-    });
+    let profile: Awaited<ReturnType<typeof createRuntimeProfile>> | undefined;
+    // Team creation and its authorization tuples converge independently.
+    // A loaded full suite can observe the team before Keto sees membership.
+    await expect(async () => {
+      profile = await createRuntimeProfile({
+        client: humanClient,
+        headers: { 'x-moltnet-team-id': sharedTeamId },
+        body: {
+          name: `task-continue-profile-${nonce}`,
+          runtimeKind: 'gondolin_pi',
+          provider: 'anthropic',
+          model: 'claude-sonnet-4-5',
+          sandbox: {},
+        },
+      });
+      expect(profile.response.status).toBe(201);
+    }).toPass({ timeout: 20_000 });
+    if (!profile) {
+      throw new Error('createRuntimeProfile did not return a response');
+    }
     if (!profile.data?.id) {
       throw new Error(
-        `createRuntimeProfile failed: ${JSON.stringify(profile.error)}`,
+        `createRuntimeProfile failed with status ${profile.response.status}`,
       );
     }
     allowedProfileId = profile.data.id;
@@ -232,16 +241,17 @@ test.describe.serial('Continue task from console', () => {
     await openSourceAttempt(page);
 
     await page.getByRole('button', { name: /^continue$/i }).click();
-    await expect(page.getByLabel(/title/i)).toHaveValue(sourceTitle);
+    const dialog = page.getByRole('dialog', { name: 'Continue task' });
+    await expect(dialog.getByLabel(/title/i)).toHaveValue(sourceTitle);
     await expect(
-      page.getByRole('button', { name: /continue task/i }),
+      dialog.getByRole('button', { name: /continue task/i }),
     ).toBeVisible();
     // Workspace + depends-on hidden in continuation mode.
-    await expect(page.getByLabel(/workspace/i)).toHaveCount(0);
+    await expect(dialog.getByLabel('Workspace mode')).toHaveCount(0);
 
     const briefText = `Continuation brief ${nonce}`;
-    await page.getByLabel(/brief/i).fill(briefText);
-    await page.getByRole('button', { name: /continue task/i }).click();
+    await dialog.getByLabel(/brief/i).fill(briefText);
+    await dialog.getByRole('button', { name: /continue task/i }).click();
 
     const humanClient = createTokenSessionApiClient(sessionToken);
     let newTaskId: string | undefined;

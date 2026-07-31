@@ -74,6 +74,11 @@ export {
   type TaskDetailHeaderProps,
 } from './task-detail-header.js';
 export {
+  TaskExecutionRecord,
+  type TaskExecutionRecordProps,
+  type TaskKnowledgeState,
+} from './task-execution-record.js';
+export {
   TaskFunnelStrip,
   type TaskFunnelStripProps,
 } from './task-funnel-strip.js';

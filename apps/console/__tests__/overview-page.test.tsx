@@ -8,6 +8,8 @@ import { OverviewPage } from '../src/pages/OverviewPage.js';
 
 const mocks = vi.hoisted(() => ({
   getTeam: vi.fn(),
+  listAgentKeys: vi.fn(),
+  listRuntimeProfiles: vi.fn(),
   listTasks: vi.fn(),
   navigate: vi.fn(),
   useDiarySummaries: vi.fn(),
@@ -19,6 +21,14 @@ vi.mock('@moltnet/api-client/query', () => ({
     queryKey: ['getTeam'],
     queryFn: () => mocks.getTeam(),
   }),
+  listAgentKeysOptions: () => ({
+    queryKey: ['listAgentKeys'],
+    queryFn: () => mocks.listAgentKeys(),
+  }),
+  listRuntimeProfilesOptions: () => ({
+    queryKey: ['listRuntimeProfiles'],
+    queryFn: () => mocks.listRuntimeProfiles(),
+  }),
   listTasksOptions: () => ({
     queryKey: ['listTasks'],
     queryFn: () => mocks.listTasks(),
@@ -27,19 +37,6 @@ vi.mock('@moltnet/api-client/query', () => ({
 
 vi.mock('../src/api.js', () => ({
   getApiClient: () => ({}),
-}));
-
-vi.mock('../src/auth/useAuth.js', () => ({
-  useAuth: () => ({ username: 'Edouard' }),
-}));
-
-vi.mock('../src/config.js', () => ({
-  getConfig: () => ({
-    apiBaseUrl: 'https://api.example.test',
-    consoleUrl: 'https://console.example.test',
-    docsUrl: 'https://docs.example.test',
-    kratosUrl: 'https://auth.example.test',
-  }),
 }));
 
 vi.mock('../src/diaries/hooks.js', () => ({
@@ -70,10 +67,18 @@ function Wrapper({ children }: { children: ReactNode }) {
 
 describe('OverviewPage', () => {
   beforeEach(() => {
-    mocks.navigate.mockReset();
+    Object.values(mocks).forEach((mock) => mock.mockReset());
     mocks.useDiarySummaries.mockReturnValue({
-      data: [{ id: 'diary-1', name: 'Project memory' }],
+      data: [
+        {
+          entryCount: 12,
+          id: 'diary-1',
+          name: 'Project memory',
+          tagCount: 4,
+        },
+      ],
       error: null,
+      isError: false,
       isLoading: false,
     });
     mocks.useTeam.mockReturnValue({
@@ -83,161 +88,115 @@ describe('OverviewPage', () => {
         id: 'team-1',
         name: 'Team One',
         personal: false,
-        role: 'owner',
-        status: 'active',
       },
     });
     mocks.getTeam.mockResolvedValue({
-      members: [
-        {
-          displayName: 'Molt',
-          role: 'manager',
-          subjectId: 'agent-1',
-          subjectType: 'agent',
-        },
+      members: [{ subjectId: 'agent-1', subjectType: 'agent' }],
+    });
+    mocks.listAgentKeys.mockResolvedValue({
+      items: [{ id: 'key-1', status: 'active' }],
+      nextCursor: null,
+    });
+    mocks.listRuntimeProfiles.mockResolvedValue({
+      items: [
+        { id: 'profile-1', toolEnforcement: 'enforce' },
+        { id: 'profile-2', toolEnforcement: 'watch' },
       ],
     });
-    mocks.listTasks.mockResolvedValue({
-      items: [{ id: 'task-1', status: 'queued' }],
-      total: 1,
-    });
-  });
-
-  it('shows the correct count on every lane tile and links to the board', async () => {
-    // A mixed-status set with a distinct count per lane so each tile is
-    // unambiguous: queued 2, active 3, waiting 1, completed 4, unsuccessful 5.
     mocks.listTasks.mockResolvedValue({
       items: [
-        ...Array(2).fill({ status: 'queued' }),
-        ...Array(3).fill({ status: 'running' }),
-        ...Array(1).fill({ status: 'waiting' }),
-        ...Array(4).fill({ status: 'completed' }),
-        ...Array(5).fill({ status: 'failed' }),
+        { id: 'task-running', status: 'running', taskType: 'freeform' },
+        {
+          id: 'task-failed',
+          status: 'failed',
+          taskType: 'fulfill_brief',
+          title: 'Repair release',
+        },
       ],
-      total: 15,
+      total: 2,
     });
-
-    render(<OverviewPage />, { wrapper: Wrapper });
-
-    const expected: Array<[string, string]> = [
-      ['queued', '2'],
-      ['active', '3'],
-      ['waiting', '1'],
-      ['completed', '4'],
-      ['unsuccessful', '5'],
-    ];
-    for (const [lane, count] of expected) {
-      const tile = await screen.findByTestId(`task-tile-${lane}`);
-      expect(within(tile).getByText(count)).toBeInTheDocument();
-      expect(
-        within(tile).getByText(new RegExp(`^${lane}$`, 'i')),
-      ).toBeInTheDocument();
-    }
-
-    // The single board control navigates (tiles themselves are data, not links).
-    fireEvent.click(screen.getByRole('button', { name: 'Task board →' }));
-    expect(mocks.navigate).toHaveBeenCalledWith('/tasks');
-
-    // Cost caveat is present and no longer inside a <details>.
-    expect(
-      screen.getByText(/Cost is not estimated or capped here/),
-    ).toBeInTheDocument();
   });
 
-  it('renders task activity as unavailable (not zero) when the task query fails', async () => {
+  it('presents the three operating systems and live attention work', async () => {
+    render(<OverviewPage />, { wrapper: Wrapper });
+
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Operations' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', {
+        name: 'Three systems. One operating model.',
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Coordinate durable work')).toBeVisible();
+    expect(screen.getByText('Bound execution authority')).toBeVisible();
+    expect(screen.getByText('Retain accountable context')).toBeVisible();
+    expect(await screen.findByText('Repair release')).toBeVisible();
+    expect(
+      screen.getByRole('heading', {
+        name: 'Agents should not inherit your authority',
+      }),
+    ).toBeVisible();
+
+    fireEvent.click(screen.getByRole('button', { name: /Repair release/ }));
+    expect(mocks.navigate).toHaveBeenCalledWith('/tasks/task-failed');
+  });
+
+  it('keeps task query failure distinct from a zero-task state', async () => {
     mocks.listTasks.mockRejectedValue(new Error('tasks unavailable'));
 
     render(<OverviewPage />, { wrapper: Wrapper });
 
     expect(
-      await screen.findByText(/counts are unavailable, not zero/i),
-    ).toBeInTheDocument();
-    // No zero-tiles are shown during the outage.
-    expect(screen.queryByTestId('task-tile-queued')).not.toBeInTheDocument();
-    // The setup checklist still reflects the workspace/agent phases.
-    expect(screen.getByText('Project workspace ready')).toBeInTheDocument();
-    expect(screen.getByText('Team agent ready')).toBeInTheDocument();
+      await screen.findByText(/Counts are unavailable, not zero/i),
+    ).toBeVisible();
+    const taskPanel = screen
+      .getByText('Coordinate durable work')
+      .closest('article');
+    expect(taskPanel).not.toBeNull();
+    expect(within(taskPanel!).getByText('Unavailable')).toBeVisible();
   });
 
-  it('qualifies lane counts as loaded-page when the team has more tasks than the page', async () => {
+  it('does not present a pending task query as an empty success state', () => {
+    mocks.listTasks.mockReturnValue(new Promise(() => {}));
+
+    render(<OverviewPage />, { wrapper: Wrapper });
+
+    expect(screen.getByText('Loading task activity…')).toBeVisible();
+    expect(
+      screen.queryByText('No loaded tasks need attention'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('qualifies attention and lane metrics when only the first page is loaded', async () => {
     mocks.listTasks.mockResolvedValue({
-      items: [{ status: 'queued' }, { status: 'queued' }],
+      items: [{ id: 'task-waiting', status: 'waiting', taskType: 'freeform' }],
       total: 120,
     });
 
     render(<OverviewPage />, { wrapper: Wrapper });
 
     expect(
-      await screen.findByText(
-        /Counts reflect the 2 most recently loaded of 120 tasks/i,
-      ),
-    ).toBeInTheDocument();
+      await screen.findByText(/drawn from the 1 most recently loaded of 120/i),
+    ).toBeVisible();
+    expect(screen.getByText('Active · loaded page')).toBeVisible();
+    expect(screen.getByText('Waiting · loaded page')).toBeVisible();
   });
 
-  it('collapses the setup checklist to a summary once every phase is complete', async () => {
-    // Diary + agent present (from beforeEach) and a completed task ⇒ all three
-    // phases complete.
-    mocks.listTasks.mockResolvedValue({
-      items: [{ status: 'completed' }],
-      total: 1,
-    });
+  it('surfaces runtime query failure without inventing authority counts', async () => {
+    mocks.listAgentKeys.mockRejectedValue(new Error('keys unavailable'));
 
     render(<OverviewPage />, { wrapper: Wrapper });
 
-    expect(
-      await screen.findByText(/Pilot setup complete/i),
-    ).toBeInTheDocument();
-    // Individual phase rows are not shown once collapsed.
-    expect(screen.queryByText('Ready a team agent')).not.toBeInTheDocument();
+    const runtimePanel = (
+      await screen.findByText('Bound execution authority')
+    ).closest('article');
+    expect(runtimePanel).not.toBeNull();
+    expect(await within(runtimePanel!).findByText('Unavailable')).toBeVisible();
+    expect(within(runtimePanel!).getAllByText('—')).not.toHaveLength(0);
   });
 
-  it('distinguishes unavailable membership from a confirmed absent agent', async () => {
-    mocks.getTeam.mockRejectedValue(new Error('members unavailable'));
-
-    render(<OverviewPage />, { wrapper: Wrapper });
-
-    expect(
-      await screen.findByText(
-        /Team membership couldn't be loaded, so agent presence is unknown/i,
-      ),
-    ).toBeInTheDocument();
-    // It must not claim there is "no agent" when membership simply failed.
-    expect(
-      screen.queryByText(/No agent is a member of this team/i),
-    ).not.toBeInTheDocument();
-  });
-
-  it('marks only the diary phase unavailable when diaries fail', async () => {
-    mocks.useDiarySummaries.mockReturnValue({
-      data: undefined,
-      error: new Error('diaries unavailable'),
-      isLoading: false,
-    });
-
-    render(<OverviewPage />, { wrapper: Wrapper });
-
-    expect(
-      await screen.findByText('Diary status unavailable'),
-    ).toBeInTheDocument();
-    expect(screen.getByText('Team agent ready')).toBeInTheDocument();
-    expect(screen.getByText('Task waiting for an agent')).toBeInTheDocument();
-  });
-
-  it('renders the loading state from an overridable team hook', () => {
-    mocks.useTeam.mockReturnValue({
-      error: null,
-      isLoading: true,
-      selectedTeam: null,
-    });
-
-    render(<OverviewPage />, { wrapper: Wrapper });
-
-    expect(
-      screen.getByText('Loading the current pilot briefing…'),
-    ).toBeInTheDocument();
-  });
-
-  it('renders and wires the team-level error recovery actions', () => {
+  it('offers team recovery when team scope fails', () => {
     mocks.useTeam.mockReturnValue({
       error: new Error('team unavailable'),
       isLoading: false,
@@ -246,14 +205,27 @@ describe('OverviewPage', () => {
 
     render(<OverviewPage />, { wrapper: Wrapper });
 
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Team scope unavailable',
+    );
+  });
+
+  it('asks for a project team instead of querying personal workspace data', () => {
+    mocks.useTeam.mockReturnValue({
+      error: null,
+      isLoading: false,
+      selectedTeam: { id: 'personal', name: 'Personal', personal: true },
+    });
+
+    render(<OverviewPage />, { wrapper: Wrapper });
+
+    expect(screen.getByText('Select a project team')).toBeVisible();
+    expect(mocks.listTasks).not.toHaveBeenCalled();
     expect(
-      screen.getByRole('heading', { name: 'Pilot status is unavailable' }),
-    ).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Open teams' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Open tasks' }));
-
-    expect(mocks.navigate).toHaveBeenNthCalledWith(1, '/teams');
-    expect(mocks.navigate).toHaveBeenNthCalledWith(2, '/tasks');
+      screen.queryByRole('heading', {
+        name: 'Three systems. One operating model.',
+      }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Connected')).not.toBeInTheDocument();
   });
 });

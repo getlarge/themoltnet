@@ -141,6 +141,10 @@ export interface TaskAttemptSummary {
   attemptN: number;
   claimedByAgentId: string;
   runtimeId: string | null;
+  runtimeProfileId?: string | null;
+  runtimeProfileRevision?: number | null;
+  policySnapshotHash?: string | null;
+  leaseId?: string | null;
   claimedAt: string;
   startedAt: string | null;
   completedAt: string | null;

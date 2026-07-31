@@ -31,6 +31,7 @@ import {
   Button,
   Card,
   Dialog,
+  PageHeader,
   Stack,
   Text,
   useTheme,
@@ -85,7 +86,9 @@ export function TasksPage() {
   );
   const status = getTaskStatusQuery(params.get('status'));
   const [view, setView] = useState<'board' | 'table'>('board');
-  const [showCreate, setShowCreate] = useState(false);
+  const [showCreate, setShowCreate] = useState(
+    () => params.get('create') === '1',
+  );
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(
     () => new Set(),
   );
@@ -382,83 +385,75 @@ export function TasksPage() {
 
   return (
     <Stack gap={6}>
-      <Stack
-        direction="row"
-        align="center"
-        justify="space-between"
-        gap={4}
-        wrap
-      >
-        <Stack gap={1}>
-          <Text variant="h2">Tasks</Text>
-          <Text color="muted">
-            Track waiting, queued, running, failed, and completed work in the
-            active team.
-          </Text>
-        </Stack>
-        <div
-          aria-label="Task actions"
-          style={{
-            display: 'flex',
-            gap: theme.spacing[2],
-            flexWrap: 'wrap',
-          }}
-        >
-          <Button
-            size="sm"
-            onClick={() => setShowCreate(true)}
-            disabled={!enabled || diaryOptions.length === 0}
-            title={
-              diaryOptions.length === 0
-                ? 'Create a diary in this team first'
-                : undefined
-            }
+      <PageHeader
+        eyebrow="Task Engine"
+        title="Task board"
+        description="Track waiting, queued, running, failed, and completed work in the active team."
+        actions={
+          <div
+            aria-label="Task actions"
+            style={{
+              display: 'flex',
+              gap: theme.spacing[2],
+              flexWrap: 'wrap',
+            }}
           >
-            New task
-          </Button>
-          {view === 'table' ? (
+            <Button
+              size="sm"
+              onClick={() => setShowCreate(true)}
+              disabled={!enabled || diaryOptions.length === 0}
+              title={
+                diaryOptions.length === 0
+                  ? 'Create a diary in this team first'
+                  : undefined
+              }
+            >
+              New task
+            </Button>
+            {view === 'table' ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={selectedTaskIds.size === 0}
+                onClick={() => {
+                  setDeleteResult(null);
+                  setDeleteError(null);
+                  setConfirmDeleteOpen(true);
+                }}
+              >
+                Delete selected
+              </Button>
+            ) : null}
+            <Button
+              variant={view === 'board' ? 'primary' : 'secondary'}
+              size="sm"
+              aria-pressed={view === 'board'}
+              onClick={() => setView('board')}
+            >
+              Board
+            </Button>
+            <Button
+              variant={view === 'table' ? 'primary' : 'secondary'}
+              size="sm"
+              aria-pressed={view === 'table'}
+              onClick={() => setView('table')}
+            >
+              Table
+            </Button>
             <Button
               variant="secondary"
               size="sm"
-              disabled={selectedTaskIds.size === 0}
               onClick={() => {
-                setDeleteResult(null);
-                setDeleteError(null);
-                setConfirmDeleteOpen(true);
+                if (view === 'board') refetchLanes();
+                else void query.refetch();
               }}
+              disabled={!enabled}
             >
-              Delete selected
+              Refresh
             </Button>
-          ) : null}
-          <Button
-            variant={view === 'board' ? 'primary' : 'secondary'}
-            size="sm"
-            aria-pressed={view === 'board'}
-            onClick={() => setView('board')}
-          >
-            Board
-          </Button>
-          <Button
-            variant={view === 'table' ? 'primary' : 'secondary'}
-            size="sm"
-            aria-pressed={view === 'table'}
-            onClick={() => setView('table')}
-          >
-            Table
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => {
-              if (view === 'board') refetchLanes();
-              else void query.refetch();
-            }}
-            disabled={!enabled}
-          >
-            Refresh
-          </Button>
-        </div>
-      </Stack>
+          </div>
+        }
+      />
 
       {deleteResult ? <Text color="muted">{deleteResult}</Text> : null}
 
@@ -578,15 +573,55 @@ export function TasksPage() {
                   selectedTaskId={selectedTaskId}
                   onSelectTask={(task) => selectTask(task.id)}
                 />
-                {selectedTaskId && selectedTask ? (
-                  <TaskLivePane
-                    task={selectedTask}
-                    attempt={latestAttempt}
-                    messages={selectedMessagesQuery.data ?? []}
-                    learnMoreHref={AGENT_DAEMON_DOCS_HREF}
-                    defaultCollapsed={isMobile}
-                    onClose={() => selectTask(undefined)}
-                  />
+                {selectedTaskId ? (
+                  selectedTaskQuery.isLoading ? (
+                    <TaskPaneState
+                      title="Loading selected task…"
+                      onClose={() => selectTask(undefined)}
+                    />
+                  ) : selectedTaskQuery.isError ? (
+                    <TaskPaneState
+                      title="Selected task unavailable"
+                      description="The live pane could not load this task. Its state has not been inferred from the board."
+                      onRetry={() => void selectedTaskQuery.refetch()}
+                      onClose={() => selectTask(undefined)}
+                    />
+                  ) : selectedAttemptsQuery.isLoading ? (
+                    <TaskPaneState
+                      title="Loading attempt evidence…"
+                      description="Claim and runtime state will appear after the attempt history is available."
+                      onClose={() => selectTask(undefined)}
+                    />
+                  ) : selectedAttemptsQuery.isError ? (
+                    <TaskPaneState
+                      title="Attempt evidence unavailable"
+                      description="The console cannot determine whether this task has been claimed or executed."
+                      onRetry={() => void selectedAttemptsQuery.refetch()}
+                      onClose={() => selectTask(undefined)}
+                    />
+                  ) : latestAttempt && selectedMessagesQuery.isLoading ? (
+                    <TaskPaneState
+                      title="Loading execution stream…"
+                      description="The attempt is known; its turns are still loading."
+                      onClose={() => selectTask(undefined)}
+                    />
+                  ) : latestAttempt && selectedMessagesQuery.isError ? (
+                    <TaskPaneState
+                      title="Execution stream unavailable"
+                      description="The attempt is known, but its turns cannot be verified right now."
+                      onRetry={() => void selectedMessagesQuery.refetch()}
+                      onClose={() => selectTask(undefined)}
+                    />
+                  ) : selectedTask ? (
+                    <TaskLivePane
+                      task={selectedTask}
+                      attempt={latestAttempt}
+                      messages={selectedMessagesQuery.data ?? []}
+                      learnMoreHref={AGENT_DAEMON_DOCS_HREF}
+                      defaultCollapsed={isMobile}
+                      onClose={() => selectTask(undefined)}
+                    />
+                  ) : null
                 ) : null}
               </div>
             </>
@@ -712,6 +747,37 @@ export function TasksPage() {
         </Stack>
       </Dialog>
     </Stack>
+  );
+}
+
+function TaskPaneState({
+  title,
+  description,
+  onRetry,
+  onClose,
+}: {
+  title: string;
+  description?: string;
+  onRetry?: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <Card padding="md">
+      <Stack gap={3}>
+        <Text variant="h4">{title}</Text>
+        {description ? <Text color="muted">{description}</Text> : null}
+        <Stack direction="row" gap={2} wrap>
+          {onRetry ? (
+            <Button variant="secondary" size="sm" onClick={onRetry}>
+              Retry
+            </Button>
+          ) : null}
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            Close
+          </Button>
+        </Stack>
+      </Stack>
+    </Card>
   );
 }
 
