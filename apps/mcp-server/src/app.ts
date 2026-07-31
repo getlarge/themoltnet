@@ -6,7 +6,7 @@ import type {
 } from '@getlarge/fastify-mcp';
 import mcpPlugin from '@getlarge/fastify-mcp';
 import { mcpAuthProxyPlugin } from '@moltnet/mcp-auth-proxy';
-import { MCP_CLIENT_SCOPES } from '@moltnet/models';
+import { MCP_CLIENT_SCOPES, MCP_M2M_SCOPES } from '@moltnet/models';
 import type { ObservabilityContext } from '@moltnet/observability';
 import { observabilityPlugin } from '@moltnet/observability';
 import { trace } from '@opentelemetry/api';
@@ -261,7 +261,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   if (proxyEnabled) {
     await app.register(mcpAuthProxyPlugin, {
       oidcDiscoveryUrl: `${config.ORY_PROJECT_URL}/.well-known/openid-configuration`,
-      scopes: [...MCP_CLIENT_SCOPES],
+      scopes: [...MCP_M2M_SCOPES],
     });
     app.log.info('Client credentials proxy enabled');
   }

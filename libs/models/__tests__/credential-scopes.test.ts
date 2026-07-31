@@ -8,6 +8,7 @@ import {
   credentialScopeSetsEqual,
   HUMAN_SESSION_SCOPES,
   MCP_CLIENT_SCOPES,
+  MCP_M2M_SCOPES,
 } from '../src/credential-scopes.js';
 
 describe('credential scopes', () => {
@@ -44,6 +45,9 @@ describe('credential scopes', () => {
     expect(MCP_CLIENT_SCOPES).not.toContain('key:manage');
     expect(MCP_CLIENT_SCOPES).not.toContain('runtime:manage');
     expect(MCP_CLIENT_SCOPES).not.toContain('task:claim');
+    expect(MCP_M2M_SCOPES).toEqual(
+      MCP_CLIENT_SCOPES.filter((scope) => scope !== 'human:profile'),
+    );
   });
 
   it('compares scopes as exact duplicate-free sets', () => {

@@ -92,3 +92,8 @@ export const MCP_CLIENT_SCOPES = [
   CREDENTIAL_SCOPES.TeamManage,
   CREDENTIAL_SCOPES.TeamRead,
 ] as const satisfies readonly CredentialScope[];
+
+/** MCP tool scopes that agent and other M2M credentials may request. */
+export const MCP_M2M_SCOPES = MCP_CLIENT_SCOPES.filter(
+  (scope) => scope !== CREDENTIAL_SCOPES.HumanProfile,
+);

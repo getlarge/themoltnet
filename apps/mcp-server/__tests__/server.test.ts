@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 
-import { MCP_CLIENT_SCOPES } from '@moltnet/models';
+import { MCP_CLIENT_SCOPES, MCP_M2M_SCOPES } from '@moltnet/models';
 import { describe, expect, it, type Mock, vi } from 'vitest';
 
 import pkg from '../package.json' with { type: 'json' };
@@ -325,7 +325,7 @@ describe('buildApp', () => {
 
     const [, tokenRequest] = fetchSpy.mock.calls[1] as [string, RequestInit];
     const body = new URLSearchParams(tokenRequest.body as string);
-    expect(body.get('scope')).toBe(MCP_CLIENT_SCOPES.join(' '));
+    expect(body.get('scope')).toBe(MCP_M2M_SCOPES.join(' '));
 
     await app.close();
     vi.restoreAllMocks();
