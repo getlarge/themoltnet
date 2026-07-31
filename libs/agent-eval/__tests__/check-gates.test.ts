@@ -43,6 +43,8 @@ function messages(
     }> | null;
     promptSections?: Array<{ id: string }> | null;
     tools?: string[];
+    submitResults?: boolean[];
+    submitToolName?: string;
     promptBuildError?: string;
   } = {},
 ): GateTaskMessage[] {
@@ -81,6 +83,15 @@ function messages(
   }
   for (const tool of overrides.tools ?? []) {
     out.push({ kind: 'tool_call_start', payload: { tool_name: tool } });
+  }
+  for (const isError of overrides.submitResults ?? [false]) {
+    out.push({
+      kind: 'tool_call_end',
+      payload: {
+        tool_name: overrides.submitToolName ?? 'submit_run_eval_output',
+        is_error: isError,
+      },
+    });
   }
   return out;
 }
@@ -144,6 +155,32 @@ describe('checkGates', () => {
     // Assert
     expect(result.passed).toBe(true);
     expect(result.failures).toEqual([]);
+  });
+
+  it('fails the clean-submit gate after an invalid call was recovered', async () => {
+    const agent = fakeAgent(
+      messages({ submitResults: [true, false] }),
+      completedAttempt,
+    );
+
+    const result = await checkGates(agent, 't1', 1, {}, EXPECTED);
+
+    expect(result.failures).toContainEqual({
+      gate: 'submit_clean',
+      detail: 'submit_run_eval_output had 1 invalid call(s)',
+    });
+  });
+
+  it('fails the clean-submit gate when no successful call is recorded', async () => {
+    const agent = fakeAgent(messages({ submitResults: [] }), completedAttempt);
+
+    const result = await checkGates(agent, 't1', 1, {}, EXPECTED);
+
+    expect(result.failures).toContainEqual({
+      gate: 'submit_clean',
+      detail:
+        'submit_run_eval_output had 0 successful call(s), expected exactly 1',
+    });
   });
 
   it('fails when execute_start is absent', async () => {
@@ -410,7 +447,10 @@ describe('checkGates', () => {
       summary: 'Reviewed the helper and reported the defect.',
       verification: VALID_OUTPUT.verification,
     };
-    const okAgent = fakeAgent(messages(), {
+    const freeformMessages = messages({
+      submitToolName: 'submit_freeform_output',
+    });
+    const okAgent = fakeAgent(freeformMessages, {
       attemptN: 1,
       status: 'completed',
       output: freeformOutput,
@@ -429,7 +469,7 @@ describe('checkGates', () => {
 
     // The run_eval-shaped VALID_OUTPUT lacks `summary`, so under freeform it
     // fails the output schema gate.
-    const badAgent = fakeAgent(messages(), completedAttempt);
+    const badAgent = fakeAgent(freeformMessages, completedAttempt);
     const badResult = await checkGates(
       badAgent,
       't1',

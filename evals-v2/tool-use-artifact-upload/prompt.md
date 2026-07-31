@@ -8,7 +8,5 @@ the `moltnet_upload_task_artifact` tool with filePath `eval-note.txt`, kind
 You MUST use the `moltnet_upload_task_artifact` tool to register the artifact.
 Do not attempt to fake the upload with shell commands.
 
-Finally, call the submit tool exactly once. Put a short confirmation sentence in
-`response`, and include the required `totalTokens`, `durationMs`, and
-`traceparent` fields. If the upload tool returns a cid, mention that you
-uploaded the artifact.
+Finally, report briefly that you uploaded the artifact. If the upload tool
+returns a cid, mention that it was uploaded successfully.

@@ -365,18 +365,11 @@ export interface ExecutePiTaskOptions {
    */
   maxBashTimeouts?: number;
   /**
-   * Number of correction turns allowed after the first invalid submit-output
-   * tool call. A value of 2 permits three invalid submit calls total before
-   * the attempt fails with output_validation_failed.
-   */
-  maxSubmitValidationRetries?: number;
-  /**
-   * Number of same-session re-prompts when the model ends its turn WITHOUT
-   * calling the submit-output tool at all (no captured payload and no
-   * exhausted validation budget). Distinct from
-   * `maxSubmitValidationRetries`, which recovers *invalid-args* submit calls.
-   * Each re-prompt names the submit tool and forbids a prose reply. When the
-   * budget is spent the attempt still fails with `submit_output_missing`.
+   * Number of same-session re-prompts when the model ends its turn without a
+   * valid submit-output call. A missing call receives the ordinary submit
+   * reminder; an invalid call receives its latest validation failure. When the
+   * budget is spent the attempt fails with the latest validation error, or
+   * `submit_output_missing` if the tool was never called.
    * Only applies to task types that register a submit tool. Default `3`. Set
    * to `0` to disable. See #1528.
    */
@@ -897,7 +890,6 @@ export async function executePiTask(
         model: opts.model,
         input: task.input,
         inputCid: task.inputCid,
-        maxSubmitValidationRetries: opts.maxSubmitValidationRetries,
         onValidCapture: () => {
           submitCompletion.requestCompletion();
         },
@@ -1372,6 +1364,7 @@ export async function executePiTask(
     const promptResult = await promptUntilSubmitted({
       runPrompt,
       initialPrompt: taskPrompt,
+      submitToolName: submitToolHandle?.toolName,
       submitMissingPrompt: submitMissingConfig.submitMissingPrompt,
       maxSubmitMissingReprompts: submitMissingConfig.maxSubmitMissingReprompts,
       getSubmitState: submitMissingConfig.getSubmitState,
@@ -1747,7 +1740,7 @@ export interface CaptureAttemptOutputDeps {
   /** Submit-output handle, or null for task types with no registered schema. */
   submitToolHandle: Pick<
     SubmitOutputToolHandle,
-    'getCaptured' | 'getExhaustedValidationFailure'
+    'getCaptured' | 'getLastValidationFailure'
   > | null;
   emit: (
     kind: TurnEventKind,
@@ -1858,7 +1851,7 @@ export type CapturedAttemptOutput = ParsedTaskOutputResult;
  *
  *   1. Submit tool captured a payload → trust it, compute its CID. A
  *      canonicalization failure becomes `output_cid_compute_failed`.
- *   2. Submit tool registered but nothing captured → the exhausted-validation
+ *   2. Submit tool registered but nothing captured → the latest validation
  *      failure wins if present, else `submit_output_missing` (recording the
  *      `output_missing` counter so the never-called path is observable).
  *   3. No submit tool (legacy task type) → parse the trailing assistant text.
@@ -1915,8 +1908,8 @@ export async function captureAttemptOutput(
   }
 
   if (submitToolHandle) {
-    const exhausted = submitToolHandle.getExhaustedValidationFailure();
-    const error = exhausted ?? {
+    const validationFailure = submitToolHandle.getLastValidationFailure();
+    const error = validationFailure ?? {
       code: 'submit_output_missing',
       message:
         'Agent did not satisfy the promised submit-output criterion: ' +
@@ -1926,7 +1919,7 @@ export async function captureAttemptOutput(
     // from inside the submit tool. The pure never-called path has no such
     // record, so count it here (dimensioned by model) — otherwise
     // submit-missing failures are invisible to the parse-result counter.
-    if (!exhausted) {
+    if (!validationFailure) {
       recordTaskOutputParseResult({ taskType, model, code: 'output_missing' });
     }
     await emit('error', { message: error.message, phase: 'output_validation' });
@@ -2388,12 +2381,26 @@ export function buildSubmitMissingPrompt(toolName: string): string {
   );
 }
 
+/** Build a same-session correction prompt after a malformed submit call. */
+export function buildSubmitValidationPrompt(
+  toolName: string,
+  failureMessage: string,
+): string {
+  return (
+    `Your last \`${toolName}\` call did not validate, so the task is not yet ` +
+    `complete. Validation feedback: ${failureMessage} ` +
+    `Call \`${toolName}\` again now in this current session with the corrected ` +
+    'direct top-level ' +
+    'arguments. Do not reply with prose or repeat completed task work.'
+  );
+}
+
 /** Snapshot of the submit-output gate read between prompt passes. */
 export interface SubmitGateState {
   /** A valid submit-tool call captured a payload. */
   captured: boolean;
-  /** The invalid-args correction budget was exhausted. */
-  exhausted: boolean;
+  /** Latest malformed-call feedback, or null when the tool was never called. */
+  lastValidationFailure: { code: string; message: string } | null;
 }
 
 /**
@@ -2416,21 +2423,19 @@ export function submitRepromptStopped(state: {
 }
 
 /**
- * Resolve the submit-missing recovery config from the registered submit tool
+ * Resolve the submit recovery config from the registered submit tool
  * (if any) plus caller overrides. Extracted as a pure function so the
  * default-budget / disable-when-no-tool / gate-mapping logic is unit-tested —
  * `executePiTask` itself needs a booted VM and can't cover this seam.
  *
- * The default budget (3) is deliberately one higher than the invalid-args
- * correction budget (`maxSubmitValidationRetries`, default 2): a model that
- * never called the tool just needs a clear nudge, which converts more cheaply
- * and more often than fixing a malformed payload, so the extra attempt is
- * worth it.
+ * The default budget (3) bounds explicit continuation prompts after either a
+ * missing or malformed call. Tool calls made within a prompt are independently
+ * bounded by the attempt's max-turns cap.
  */
 export function resolveSubmitMissingConfig(args: {
   submitToolHandle: Pick<
     SubmitOutputToolHandle,
-    'toolName' | 'getCaptured' | 'getExhaustedValidationFailure'
+    'toolName' | 'getCaptured' | 'getLastValidationFailure'
   > | null;
   maxSubmitMissingReprompts?: number;
   submitMissingPrompt?: string;
@@ -2455,7 +2460,7 @@ export function resolveSubmitMissingConfig(args: {
       args.submitMissingPrompt ?? buildSubmitMissingPrompt(handle.toolName),
     getSubmitState: () => ({
       captured: handle.getCaptured() !== null,
-      exhausted: handle.getExhaustedValidationFailure() !== null,
+      lastValidationFailure: handle.getLastValidationFailure(),
     }),
   };
 }
@@ -2464,6 +2469,7 @@ export interface SubmitMissingRepromptEvent extends Record<string, unknown> {
   event: 'submit_missing_reprompt';
   retry: number;
   maxReprompts: number;
+  reason: 'missing' | 'validation_failed';
 }
 
 export interface PromptUntilSubmittedArgs {
@@ -2478,6 +2484,8 @@ export interface PromptUntilSubmittedArgs {
   ) => Promise<{ runError: { code: string; message: string } | null }>;
   /** First prompt sent to the session (the task prompt). */
   initialPrompt: string;
+  /** Registered submit tool name, used in validation-repair continuations. */
+  submitToolName?: string;
   /**
    * Continuation sent when a pass ends without a captured submit call. It
    * must instruct the model to call the submit tool now.
@@ -2503,21 +2511,23 @@ export interface PromptUntilSubmittedArgs {
 
 /**
  * Drive a Pi session until it either captures a valid submit-output call or
- * exhausts the submit-missing re-prompt budget.
+ * exhausts the same-session submit recovery budget.
  *
  * This is the third same-session recovery path, complementing the two that
  * already existed:
- *   1. Invalid submit args → the submit tool returns `isError`, the model
- *      re-calls within the same turn (see `submit-output-tool.ts`).
+ *   1. Invalid submit args → the submit tool returns `isError`, the model can
+ *      re-call within the same turn (see `submit-output-tool.ts`). If it ends
+ *      the turn instead, this loop sends the validation feedback again.
  *   2. Provider/LLM API errors → `promptWithProviderErrorRetries` re-prompts.
  *
  * The gap this closes: a model (typically a weaker one) that ends its turn
  * cleanly with a prose answer and *never calls the submit tool at all*. With
- * neither a captured payload nor an exhausted validation budget, the executor
- * would otherwise fail straight to `submit_output_missing` with no chance to
- * recover. Here we nudge the model — up to `maxSubmitMissingReprompts` times —
- * to call the submit tool. Pi cannot force `toolChoice`, so this re-prompt is
- * the only in-session lever short of patching Pi. See issue #1528.
+ * neither a captured payload nor a terminal provider/cap condition, the
+ * executor would otherwise fail straight to `submit_output_missing` or the
+ * last validation error. Here we nudge the model — up to
+ * `maxSubmitMissingReprompts` times — to call the submit tool. Pi cannot force
+ * `toolChoice`, so this re-prompt is the only in-session lever short of
+ * patching Pi. See issue #1528.
  */
 export async function promptUntilSubmitted(
   args: PromptUntilSubmittedArgs,
@@ -2534,18 +2544,26 @@ export async function promptUntilSubmitted(
   while (submitReprompts < args.maxSubmitMissingReprompts) {
     if (args.isStopped()) break;
     const state = args.getSubmitState();
-    // Nothing to recover: no submit tool, output already captured, or the
-    // invalid-args correction budget is already spent (its own terminal
-    // error wins — a fresh nudge would only burn turns).
-    if (!state || state.captured || state.exhausted) break;
+    // Nothing to recover: no submit tool or output already captured.
+    if (!state || state.captured) break;
 
     submitReprompts += 1;
+    const reason = state.lastValidationFailure
+      ? 'validation_failed'
+      : 'missing';
     await args.onSubmitReprompt?.({
       event: 'submit_missing_reprompt',
       retry: submitReprompts,
       maxReprompts: args.maxSubmitMissingReprompts,
+      reason,
     });
-    const pass = await args.runPrompt(args.submitMissingPrompt);
+    const prompt = state.lastValidationFailure
+      ? buildSubmitValidationPrompt(
+          args.submitToolName ?? 'submit-output',
+          state.lastValidationFailure.message,
+        )
+      : args.submitMissingPrompt;
+    const pass = await args.runPrompt(prompt);
     if (pass.runError) {
       return { runError: pass.runError, submitReprompts };
     }

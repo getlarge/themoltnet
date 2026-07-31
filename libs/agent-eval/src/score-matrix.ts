@@ -29,6 +29,8 @@ export interface ScoreCell {
   judged: boolean;
   /** Populated when the run threw before producing a gradable attempt. */
   error?: string;
+  /** Terminal producer error code when the task ended without acceptance. */
+  failureCode?: string;
 }
 
 export interface ScoreMatrix {
@@ -47,13 +49,17 @@ export interface ScoreMatrix {
 export interface MatrixDeps {
   /**
    * Run one scenario's producer against `model`. Returns the accepted task id +
-   * attempt number, or throws on failure. Implemented by the e2e runner via
-   * runtime-profile create + runOnce.
+   * attempt number, or a terminal failure code when no attempt was accepted.
+   * Implemented by the e2e runner via runtime-profile create + runOnce.
    */
   runProducer(
     model: string,
     scenario: Scenario,
-  ): Promise<{ taskId: string; attemptN: number }>;
+  ): Promise<{
+    taskId: string;
+    attemptN: number | null;
+    failureCode?: string;
+  }>;
   /**
    * Evaluate stage-1 deterministic gates for a producer attempt.
    */
@@ -110,7 +116,21 @@ export async function runMatrix(
         base.producerTaskId = producer.taskId;
         base.producerAttemptN = producer.attemptN;
 
-        const gates = await deps.runGates(model, scenario, producer);
+        if (producer.attemptN === null) {
+          base.failureCode = producer.failureCode ?? 'unknown';
+          log(
+            `[${model}] ${scenario.slug}: PRODUCER FAILED (${base.failureCode})`,
+          );
+          cells.push(base);
+          continue;
+        }
+
+        const acceptedProducer = {
+          taskId: producer.taskId,
+          attemptN: producer.attemptN,
+        };
+
+        const gates = await deps.runGates(model, scenario, acceptedProducer);
         base.gatesPassed = gates.passed;
         base.gateFailures = gates.failures;
 
@@ -125,7 +145,7 @@ export async function runMatrix(
           continue;
         }
 
-        const judgment = await deps.runJudge(scenario, producer);
+        const judgment = await deps.runJudge(scenario, acceptedProducer);
         base.composite = judgment.composite;
         base.judged = true;
         log(
@@ -167,9 +187,11 @@ export function summarizeMatrix(matrix: ScoreMatrix): string {
     for (const cell of modelCells) {
       const status = cell.error
         ? `ERROR ${cell.error}`
-        : cell.gatesPassed
-          ? `composite ${cell.composite.toFixed(3)}`
-          : `GATE FAIL [${cell.gateFailures.map((f) => f.gate).join(',')}]`;
+        : cell.failureCode
+          ? `PRODUCER FAIL [${cell.failureCode}]`
+          : cell.gatesPassed
+            ? `composite ${cell.composite.toFixed(3)}`
+            : `GATE FAIL [${cell.gateFailures.map((f) => f.gate).join(',')}]`;
       lines.push(`  ${cell.scenario.padEnd(32)} ${status}`);
     }
   }

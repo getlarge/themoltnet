@@ -27,7 +27,7 @@ on:
       models:
         description: 'Comma-separated producer models to sweep (ollama-cloud ids). Defaults are drawn from the maintained .pi/models.json list.'
         required: false
-        default: 'qwen3.5:397b-cloud,glm-5.2:cloud,gpt-oss:120b-cloud'
+        default: 'qwen3.5:397b-cloud,glm-5.2:cloud,gpt-oss:120b-cloud,minimax-m3:cloud'
       judge_model:
         description: 'Pinned judge model (held constant across the matrix).'
         required: false
@@ -58,7 +58,7 @@ jobs:
         # Pass the untrusted workflow input via env, not string-interpolated into
         # the script, so a malicious `models` value cannot inject shell commands.
         env:
-          RAW: ${{ github.event.inputs.models || 'qwen3.5:397b-cloud,glm-5.2:cloud,gpt-oss:120b-cloud' }}
+          RAW: ${{ github.event.inputs.models || 'qwen3.5:397b-cloud,glm-5.2:cloud,gpt-oss:120b-cloud,minimax-m3:cloud' }}
         run: |
           JSON=$(printf '%s' "$RAW" | jq -Rc 'split(",") | map(gsub("^\\s+|\\s+$";"")) | map(select(length>0))')
           echo "matrix=$JSON" >> "$GITHUB_OUTPUT"

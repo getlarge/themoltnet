@@ -139,6 +139,28 @@ function toolNames(messages: GateTaskMessage[]): Set<string> {
   return names;
 }
 
+function submitCallResults(
+  messages: GateTaskMessage[],
+  toolName: string,
+): { succeeded: number; failed: number } {
+  let succeeded = 0;
+  let failed = 0;
+  for (const message of messages) {
+    if (
+      message.kind !== 'tool_call_end' ||
+      message.payload.tool_name !== toolName
+    ) {
+      continue;
+    }
+    if (message.payload.is_error === true) {
+      failed += 1;
+    } else if (message.payload.is_error === false) {
+      succeeded += 1;
+    }
+  }
+  return { succeeded, failed };
+}
+
 /** Decode an artifact byte stream to text, capped so a hostile large upload
  * cannot exhaust memory during a content scan. */
 async function readStreamText(
@@ -282,11 +304,25 @@ export async function checkGates(
     }
   }
 
-  // Gate: a clean submit — the accepted attempt exists and its output is a
-  // schema-valid producer output for this task type. A missing output or a
-  // schema failure means the submit tool never captured a valid payload
-  // (parse_result != captured_via_tool).
+  // Gate: a clean submit — exactly one successful submit call and no invalid
+  // calls, plus a schema-valid accepted output. Runtime recovery deliberately
+  // permits invalid calls inside one session; this eval gate measures whether
+  // the model completed the protocol cleanly without needing that recovery.
   if (gates.requireCleanSubmit ?? true) {
+    const submitToolName = `submit_${expected.taskType ?? 'run_eval'}_output`;
+    const submitCalls = submitCallResults(messages, submitToolName);
+    if (submitCalls.failed > 0) {
+      failures.push({
+        gate: 'submit_clean',
+        detail: `${submitToolName} had ${submitCalls.failed} invalid call(s)`,
+      });
+    }
+    if (submitCalls.succeeded !== 1) {
+      failures.push({
+        gate: 'submit_clean',
+        detail: `${submitToolName} had ${submitCalls.succeeded} successful call(s), expected exactly 1`,
+      });
+    }
     const attempts = await agent.tasks.listAttempts(taskId);
     const attempt = attempts.find((a) => a.attemptN === attemptN);
     if (!attempt) {

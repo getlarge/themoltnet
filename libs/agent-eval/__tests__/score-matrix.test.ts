@@ -109,6 +109,36 @@ describe('runMatrix', () => {
     expect(matrix.cells[0].composite).toBe(0);
     expect(matrix.cells[1].judged).toBe(true);
   });
+
+  it('records a terminal producer failure code without invoking gates', async () => {
+    let gateCalls = 0;
+    const d = deps({
+      runProducer: () =>
+        Promise.resolve({
+          taskId: 'task-failed',
+          attemptN: null,
+          failureCode: 'output_validation_failed',
+        }),
+      runGates: () => {
+        gateCalls += 1;
+        return Promise.resolve(PASS);
+      },
+    });
+
+    const matrix = await runMatrix(['m'], [scenario('s1')], 'judge-x', d);
+
+    expect(gateCalls).toBe(0);
+    expect(matrix.cells[0]).toMatchObject({
+      producerTaskId: 'task-failed',
+      producerAttemptN: null,
+      failureCode: 'output_validation_failed',
+      composite: 0,
+      judged: false,
+    });
+    expect(summarizeMatrix(matrix)).toContain(
+      'PRODUCER FAIL [output_validation_failed]',
+    );
+  });
 });
 
 describe('summarizeMatrix', () => {

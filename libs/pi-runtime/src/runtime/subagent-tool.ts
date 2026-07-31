@@ -41,7 +41,7 @@ import type {
 } from '@earendil-works/pi-coding-agent';
 import { defineTool } from '@earendil-works/pi-coding-agent';
 import type { SubagentContractRegistry } from '@themoltnet/agent-runtime';
-import { type Static, type TObject, Type } from 'typebox';
+import { type Static, type TObject, type TSchema, Type } from 'typebox';
 import { Value } from 'typebox/value';
 
 import {
@@ -51,11 +51,19 @@ import {
 import type { PiThinkingLevel } from './pi-thinking-level.js';
 
 const SUBAGENT_SUBMIT_TOOL_NAME = 'submit_subagent_output';
-const DEFAULT_SUBAGENT_SUBMIT_VALIDATION_RETRIES = 2;
-const RecoverableSubagentSubmitParameters = Type.Object(
-  {},
-  { additionalProperties: Type.Unknown() },
-);
+
+function recoverableSubagentSubmitParameters(schema: TSchema): TObject {
+  if (
+    !('type' in schema) ||
+    schema.type !== 'object' ||
+    !('properties' in schema)
+  ) {
+    throw new Error('Subagent output schemas must be top-level objects');
+  }
+  const objectSchema = schema as unknown as TObject;
+  const { required: _required, ...rest } = objectSchema;
+  return { ...rest, additionalProperties: true } as unknown as TObject;
+}
 
 /**
  * Parameters shape the parent LLM sees when calling the subagent tool.
@@ -252,7 +260,6 @@ export function createSubagentTool(
       let captured: Record<string, unknown> | null = null;
       let innerInvalidSubmitCount = 0;
       let innerValidationFailure: string | null = null;
-      let innerValidationExhausted = false;
       const submitTool = defineTool({
         name: SUBAGENT_SUBMIT_TOOL_NAME,
         label: `Submit ${output_schema}`,
@@ -268,26 +275,12 @@ export function createSubagentTool(
           `Call \`${SUBAGENT_SUBMIT_TOOL_NAME}\` with the exact \`${output_schema}\` contract shape.`,
           'If the submit tool returns a validation error, fix every listed field and call the same tool again.',
         ],
-        parameters: RecoverableSubagentSubmitParameters as TObject,
+        parameters: recoverableSubagentSubmitParameters(
+          contract.parametersSchema,
+        ),
         async execute(_innerId, innerParams) {
-          if (innerValidationExhausted) {
-            return toolError(
-              'submit_subagent_output validation retry budget is already exhausted.',
-              {
-                captured: false,
-                error: 'output_validation_failed',
-                invalidCallCount: innerInvalidSubmitCount,
-                maxSubmitValidationRetries:
-                  DEFAULT_SUBAGENT_SUBMIT_VALIDATION_RETRIES,
-              },
-            );
-          }
-
           if (!Value.Check(contract.parametersSchema, innerParams)) {
             innerInvalidSubmitCount += 1;
-            const maxInvalidCalls =
-              DEFAULT_SUBAGENT_SUBMIT_VALIDATION_RETRIES + 1;
-            const exhausted = innerInvalidSubmitCount >= maxInvalidCalls;
             const errs = [
               ...Value.Errors(contract.parametersSchema, innerParams),
             ]
@@ -295,19 +288,12 @@ export function createSubagentTool(
               .join('; ');
             innerValidationFailure =
               `submit_subagent_output validation failed ` +
-              `(${innerInvalidSubmitCount}/${maxInvalidCalls}): ${errs}. ` +
-              (exhausted
-                ? 'Validation retry budget exhausted.'
-                : 'Re-call with a corrected payload.');
-            if (exhausted) {
-              innerValidationExhausted = true;
-            }
+              `(invalid call ${innerInvalidSubmitCount}): ${errs}. ` +
+              'Re-call with a corrected payload in the current session.';
             return toolError(innerValidationFailure, {
               captured: false,
               error: 'output_validation_failed',
               invalidCallCount: innerInvalidSubmitCount,
-              maxSubmitValidationRetries:
-                DEFAULT_SUBAGENT_SUBMIT_VALIDATION_RETRIES,
             });
           }
           captured = innerParams as Record<string, unknown>;
@@ -434,14 +420,12 @@ export function createSubagentTool(
       }
 
       if (captured === null) {
-        const exhaustedFailure = innerValidationFailure as string | null;
-        if (innerValidationExhausted && exhaustedFailure) {
-          return toolError(`subagent: ${exhaustedFailure}`, {
+        const validationFailure = innerValidationFailure as string | null;
+        if (validationFailure) {
+          return toolError(`subagent: ${validationFailure}`, {
             captured: false,
             error: 'output_validation_failed',
             invalidCallCount: innerInvalidSubmitCount,
-            maxSubmitValidationRetries:
-              DEFAULT_SUBAGENT_SUBMIT_VALIDATION_RETRIES,
           });
         }
         return toolError(
