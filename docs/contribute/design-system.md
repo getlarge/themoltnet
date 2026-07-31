@@ -73,18 +73,41 @@ function MyPage() {
 
 ## Available components
 
-| Component        | Purpose                                                                                  |
-| ---------------- | ---------------------------------------------------------------------------------------- |
-| `Button`         | `primary`, `secondary`, `ghost`, `accent` variants; `sm`/`md`/`lg` sizes                 |
-| `Text`           | `h1`–`h4`, `body`, `bodyLarge`, `caption`, `overline`; color and weight props            |
-| `Card`           | `surface`, `elevated`, `outlined`, `ghost`; optional `glow="primary"` or `glow="accent"` |
-| `Badge`          | Status pills: `default`, `primary`, `accent`, `success`, `warning`, `error`, `info`      |
-| `Input`          | Text input with `label`, `hint`, `error` props                                           |
-| `Stack`          | Flex layout — `direction`, `gap`, `align`, `justify`, `wrap`                             |
-| `Container`      | Max-width centered wrapper (`sm`/`md`/`lg`/`xl`/`full`)                                  |
-| `Divider`        | Horizontal or vertical separator                                                         |
-| `CodeBlock`      | Block or `inline` code display in monospace                                              |
-| `KeyFingerprint` | Amber-styled Ed25519 fingerprint with optional clipboard copy                            |
+| Component         | Purpose                                                                                  |
+| ----------------- | ---------------------------------------------------------------------------------------- |
+| `Button`          | `primary`, `secondary`, `ghost`, `accent` variants; `sm`/`md`/`lg` sizes                 |
+| `Text`            | `h1`–`h4`, `body`, `bodyLarge`, `caption`, `overline`; color and weight props            |
+| `Card`            | `surface`, `elevated`, `outlined`, `ghost`; optional `glow="primary"` or `glow="accent"` |
+| `Badge`           | Status pills: `default`, `primary`, `accent`, `success`, `warning`, `error`, `info`      |
+| `Input`           | Text input with `label`, `hint`, `error` props                                           |
+| `Select`          | Native select with tokenized sizes, labels, hints, and error relationships               |
+| `Stack`           | Flex layout — `direction`, `gap`, `align`, `justify`, `wrap`                             |
+| `Container`       | Max-width centered wrapper (`sm`/`md`/`lg`/`xl`/`full`)                                  |
+| `Divider`         | Horizontal or vertical separator                                                         |
+| `CodeBlock`       | Block or `inline` code display in monospace                                              |
+| `KeyFingerprint`  | Amber-styled Ed25519 fingerprint with optional clipboard copy                            |
+| `SideNavigation`  | Grouped, collapsible product navigation with current-route semantics                     |
+| `PageHeader`      | Consistent page title, context, metadata, and action layout                              |
+| `DescriptionList` | Responsive semantic metadata for operational records                                     |
+| `RecordTrace`     | Ordered evidence trail for task contracts, claims, runtime, results, and knowledge       |
+| `InlineNotice`    | In-flow information, warning, success, and error feedback                                |
+| `EmptyState`      | Explicit empty result with optional action and icon                                      |
+
+## Operator-console foundations
+
+The console is organized around three operational systems: **Task Engine**,
+**Agent Runtime**, and **Knowledge Factory**. These labels are product
+architecture, not decorative categories. Use `SideNavigation` to keep them
+visible as stable groups and preserve route-level deep links within each group.
+
+Use `RecordTrace` when several control-plane decisions belong to one durable
+record. A task execution trace should unfold in this order when the evidence is
+available: contract, claim, runtime, result, knowledge. Each step must expose a
+textual state and the exact identifiers an operator needs to audit it.
+
+The shared `layout` tokens define the expanded and collapsed sidebar widths,
+top-bar height, and maximum operator content width. Consumers may compose page
+layouts around these dimensions, but should not redefine them locally.
 
 ## Accessibility
 

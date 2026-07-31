@@ -29,12 +29,32 @@ export {
   type ControlSurfaceTone,
 } from './control-surface.js';
 export { CopyButton, type CopyButtonProps } from './copy-button.js';
+export {
+  DescriptionList,
+  type DescriptionListItem,
+  type DescriptionListProps,
+} from './description-list.js';
 export { Dialog, type DialogProps } from './dialog.js';
 export { Divider, type DividerProps } from './divider.js';
+export { EmptyState, type EmptyStateProps } from './empty-state.js';
+export { InlineNotice, type InlineNoticeProps } from './inline-notice.js';
 export { Input, type InputProps } from './input.js';
 export { KeyFingerprint, type KeyFingerprintProps } from './key-fingerprint.js';
 export { Logo, type LogoProps, type LogoVariant } from './logo.js';
 export { LogoAnimated, type LogoAnimatedProps } from './logo-animated.js';
+export { PageHeader, type PageHeaderProps } from './page-header.js';
+export {
+  RecordTrace,
+  type RecordTraceProps,
+  type RecordTraceStep,
+} from './record-trace.js';
+export { Select, type SelectProps } from './select.js';
+export {
+  SideNavigation,
+  type SideNavigationGroup,
+  type SideNavigationItem,
+  type SideNavigationProps,
+} from './side-navigation.js';
 export {
   type SignatureState,
   SignatureStatus,

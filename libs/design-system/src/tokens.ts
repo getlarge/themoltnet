@@ -252,6 +252,17 @@ export const breakpoint = {
 } as const;
 
 // ---------------------------------------------------------------------------
+// Application shell
+// ---------------------------------------------------------------------------
+
+export const layout = {
+  sidebarExpanded: '16.5rem',
+  sidebarCollapsed: '4rem',
+  topbarHeight: '3.5rem',
+  contentMax: '90rem',
+} as const;
+
+// ---------------------------------------------------------------------------
 // Z-index
 // ---------------------------------------------------------------------------
 
@@ -281,5 +292,6 @@ export const tokens = {
   shadow,
   transition,
   breakpoint,
+  layout,
   zIndex,
 } as const;

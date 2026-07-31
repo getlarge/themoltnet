@@ -12,12 +12,19 @@ import {
   Container,
   ControlSurface,
   deriveIdentityParams,
+  DescriptionList,
   Divider,
+  EmptyState,
+  InlineNotice,
   Input,
   KeyFingerprint,
   Logo,
   LogoAnimated,
   MoltThemeProvider,
+  PageHeader,
+  RecordTrace,
+  Select,
+  SideNavigation,
   Stack,
   Text,
   useTheme,
@@ -420,6 +427,160 @@ function DemoContent() {
                 <Text variant="caption" mono color="accent">
                   Verified identity surface
                 </Text>
+              </ControlSurface>
+            </div>
+          </Stack>
+        </Section>
+
+        <Section title="Operator Console Primitives">
+          <Stack gap={8}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'minmax(220px, 264px) minmax(0, 1fr)',
+                gap: theme.spacing[5],
+                alignItems: 'stretch',
+              }}
+            >
+              <ControlSurface padding="sm">
+                <SideNavigation
+                  groups={[
+                    {
+                      id: 'overview',
+                      items: [
+                        {
+                          id: 'operations',
+                          label: 'Operations',
+                          href: '#operator-primitives',
+                          current: true,
+                          icon: '◇',
+                        },
+                      ],
+                    },
+                    {
+                      id: 'tasks',
+                      label: 'Task Engine',
+                      items: [
+                        {
+                          id: 'task-board',
+                          label: 'Task board',
+                          href: '#operator-primitives',
+                          icon: 'T',
+                        },
+                        {
+                          id: 'analytics',
+                          label: 'Analytics',
+                          href: '#operator-primitives',
+                          icon: 'A',
+                        },
+                      ],
+                    },
+                    {
+                      id: 'runtime',
+                      label: 'Agent Runtime',
+                      items: [
+                        {
+                          id: 'profiles',
+                          label: 'Profiles',
+                          href: '#operator-primitives',
+                          icon: 'R',
+                        },
+                      ],
+                    },
+                    {
+                      id: 'knowledge',
+                      label: 'Knowledge Factory',
+                      items: [
+                        {
+                          id: 'diaries',
+                          label: 'Diaries',
+                          href: '#operator-primitives',
+                          icon: 'K',
+                        },
+                      ],
+                    },
+                  ]}
+                />
+              </ControlSurface>
+              <ControlSurface padding="lg" id="operator-primitives">
+                <Stack gap={6}>
+                  <PageHeader
+                    eyebrow="Task Engine"
+                    title="Execution record"
+                    description="The contract, claimant, runtime policy, result, and captured knowledge stay attached to one task."
+                    actions={<Button size="sm">Open task</Button>}
+                  />
+                  <RecordTrace
+                    ariaLabel="Illustrative operator trace"
+                    steps={[
+                      {
+                        id: 'contract',
+                        label: 'Contract',
+                        context: 'Task Engine',
+                        status: 'Queued',
+                        statusTone: 'network',
+                        details: [
+                          {
+                            label: 'Input CID',
+                            value: 'baguq…a91c',
+                            mono: true,
+                          },
+                        ],
+                      },
+                      {
+                        id: 'claim',
+                        label: 'Claim',
+                        context: 'Identity & Authority',
+                        status: 'Accepted',
+                        statusTone: 'identity',
+                        details: [{ label: 'Agent', value: 'legreffier' }],
+                      },
+                      {
+                        id: 'runtime',
+                        label: 'Runtime',
+                        context: 'Agent Runtime',
+                        status: 'Running',
+                        statusTone: 'network',
+                        active: true,
+                        details: [
+                          {
+                            label: 'Profile',
+                            value: 'gondolin_pi@7',
+                            mono: true,
+                          },
+                        ],
+                      },
+                    ]}
+                  />
+                  <DescriptionList
+                    ariaLabel="Authority evidence"
+                    columns={3}
+                    compact
+                    items={[
+                      {
+                        label: 'Policy snapshot',
+                        value: 'sha256:8f21…',
+                        mono: true,
+                      },
+                      { label: 'Executor', value: 'bafkrei…', mono: true },
+                      { label: 'Signature', value: 'Pending' },
+                    ]}
+                  />
+                  <div style={{ maxWidth: 280 }}>
+                    <Select label="Attempt" defaultValue="2">
+                      <option value="1">Attempt 1 · unsuccessful</option>
+                      <option value="2">Attempt 2 · running</option>
+                    </Select>
+                  </div>
+                  <InlineNotice tone="warning" title="Evidence incomplete">
+                    No signed output has been recorded for the active attempt.
+                  </InlineNotice>
+                  <EmptyState
+                    compact
+                    title="No task-linked knowledge"
+                    description="Attach a diary entry to preserve what this run taught the team."
+                  />
+                </Stack>
               </ControlSurface>
             </div>
           </Stack>
