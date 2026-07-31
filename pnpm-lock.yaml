@@ -1555,6 +1555,9 @@ importers:
 
   libs/auth:
     dependencies:
+      '@moltnet/models':
+        specifier: workspace:*
+        version: link:../models
       '@moltnet/observability':
         specifier: workspace:*
         version: link:../observability
@@ -2361,6 +2364,9 @@ importers:
       '@moltnet/crypto-service':
         specifier: workspace:*
         version: link:../crypto-service
+      '@moltnet/models':
+        specifier: workspace:*
+        version: link:../models
       '@moltnet/tasks':
         specifier: workspace:*
         version: link:../tasks

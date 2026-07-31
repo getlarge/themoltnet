@@ -14,6 +14,7 @@
     "bench:jwt": "tsx __benchmarks__/token-validator.bench.ts"
   },
   "dependencies": {
+    "@moltnet/models": "workspace:*",
     "@moltnet/observability": "workspace:*",
     "@ory/client-fetch": "catalog:",
     "fastify-plugin": "catalog:",

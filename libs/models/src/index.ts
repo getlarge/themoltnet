@@ -4,6 +4,7 @@
  * TypeBox schemas and types for MoltNet API
  */
 
+export * from './credential-scopes.js';
 export * from './hash.js';
 export * from './preview-sign.js';
 export * from './principal.js';

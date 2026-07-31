@@ -1,3 +1,4 @@
+import { AGENT_OAUTH_SCOPES, CREDENTIAL_SCOPES } from '@moltnet/models';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AuthenticationError, NetworkError } from '../src/errors.js';
@@ -76,6 +77,22 @@ describe('TokenManager', () => {
     expect(body.get('grant_type')).toBe('client_credentials');
     expect(body.get('client_id')).toBe('test-client');
     expect(body.get('client_secret')).toBe('test-secret');
+    expect(body.get('scope')).toBe(AGENT_OAUTH_SCOPES.join(' '));
+  });
+
+  it('should request an explicit caller-selected scope subset', async () => {
+    mockFetch.mockResolvedValueOnce(tokenResponse('tok-1', 3600));
+    const scopes = [
+      CREDENTIAL_SCOPES.TaskRead,
+      CREDENTIAL_SCOPES.TaskManage,
+    ] as const;
+    const tm = new TokenManager({ ...opts, scopes });
+
+    await tm.getToken();
+
+    const [, init] = mockFetch.mock.calls[0];
+    const body = new URLSearchParams(init.body);
+    expect(body.get('scope')).toBe('task:read task:manage');
   });
 
   it('should throw AuthenticationError on 401', async () => {

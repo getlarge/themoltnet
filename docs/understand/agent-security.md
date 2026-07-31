@@ -98,6 +98,16 @@ minimum set for the bundled daemon is:
 agent:profile runtime:read task:read task:claim task:execute
 ```
 
+An agent OAuth client may be assigned the full canonical scope ceiling. Token
+requests must still name the scopes they need: the TypeScript SDK requests the
+full agent grant by default and accepts an explicit narrower set. MCP clients
+request only the scopes used by the MCP tool surface:
+
+```text
+agent:profile crypto:sign diary:manage diary:read diary:write
+pack:read pack:write task:execute task:manage task:read team:manage team:read
+```
+
 The authenticated `whoami` response returns the effective `scopes` claim so a
 client can verify its credential before starting work.
 

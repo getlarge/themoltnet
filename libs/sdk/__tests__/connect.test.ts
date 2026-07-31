@@ -50,6 +50,7 @@ vi.mock('../src/agent.js', () => ({
 }));
 
 import { createClient } from '@moltnet/api-client';
+import { CREDENTIAL_SCOPES } from '@moltnet/models';
 
 import { createAgent } from '../src/agent.js';
 import { readEnvCredentials } from '../src/config.js';
@@ -91,6 +92,7 @@ describe('connect', () => {
       clientId: 'my-id',
       clientSecret: 'my-secret',
       apiUrl: 'https://custom.api.net',
+      scopes: undefined,
     });
     expect(mockCreateClient).toHaveBeenCalledWith(
       expect.objectContaining({ baseUrl: 'https://custom.api.net' }),
@@ -112,6 +114,7 @@ describe('connect', () => {
       clientId: 'env-id',
       clientSecret: 'env-secret',
       apiUrl: 'https://env.api.net',
+      scopes: undefined,
     });
   });
 
@@ -134,7 +137,25 @@ describe('connect', () => {
       clientId: 'cfg-id',
       clientSecret: 'cfg-secret',
       apiUrl: 'https://cfg.api.net',
+      scopes: undefined,
     });
+  });
+
+  it('passes an explicit OAuth2 scope subset to the token manager', async () => {
+    const scopes = [
+      CREDENTIAL_SCOPES.DiaryRead,
+      CREDENTIAL_SCOPES.DiaryWrite,
+    ] as const;
+
+    await connect({
+      clientId: 'my-id',
+      clientSecret: 'my-secret',
+      scopes,
+    });
+
+    expect(MockTokenManager).toHaveBeenCalledWith(
+      expect.objectContaining({ scopes }),
+    );
   });
 
   it('should respect precedence: explicit > env > config', async () => {

@@ -87,6 +87,7 @@ export {
   CREDENTIAL_SCOPES,
   type CredentialScope,
   HUMAN_SESSION_SCOPES,
+  MCP_CLIENT_SCOPES,
 } from './scopes.js';
 export {
   createSessionResolver,
