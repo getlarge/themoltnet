@@ -100,7 +100,7 @@ describe('credential scope policy matrix', () => {
       });
 
       expect(response.json()).not.toMatchObject({
-        message: `Missing required scope: ${scope}`,
+        detail: `Missing required scope: ${scope}`,
       });
     },
   );

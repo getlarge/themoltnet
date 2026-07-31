@@ -148,7 +148,8 @@ After verification succeeds, deploy the explicit-scope SDK and MCP clients,
 then progress REST enforcement from `measure` to `warn` and finally `enforce`.
 The script is idempotent, selects only clients whose metadata type is
 `moltnet_agent`, follows Ory's pagination links, and never mutates in its
-default or `--verify` modes.
+default or `--verify` modes. Each Ory request is bounded by
+`ORY_AUTH_REQUEST_TIMEOUT_MS` (10 seconds by default).
 
 ::: tip Credential ladder
 Issue [#1788](https://github.com/getlarge/themoltnet/issues/1788) tracks the

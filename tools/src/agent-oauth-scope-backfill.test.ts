@@ -92,14 +92,52 @@ describe('agent OAuth scope backfill', () => {
       compliant: 1,
       failed: 0,
     });
-    expect(api.patchOAuth2Client).toHaveBeenCalledWith({
-      id: 'agent-client',
-      jsonPatch: [{ op: 'add', path: '/scope', value: EXPECTED_SCOPE }],
+    expect(api.patchOAuth2Client).toHaveBeenCalledWith(
+      {
+        id: 'agent-client',
+        jsonPatch: [{ op: 'add', path: '/scope', value: EXPECTED_SCOPE }],
+      },
+      expect.objectContaining({ signal: expect.anything() }),
+    );
+    expect(api.listOAuth2ClientsRaw).toHaveBeenLastCalledWith(
+      { pageSize: 100, pageToken: 'next' },
+      expect.objectContaining({ signal: expect.anything() }),
+    );
+    expect(api.getOAuth2Client).toHaveBeenCalledWith(
+      { id: 'agent-client' },
+      expect.objectContaining({ signal: expect.anything() }),
+    );
+  });
+
+  it('processes each page before requesting the next page', async () => {
+    const patchOAuth2Client = vi.fn().mockResolvedValue(undefined);
+    const listOAuth2ClientsRaw = vi
+      .fn()
+      .mockResolvedValueOnce(
+        page(
+          [client()],
+          '<https://example.oryapis.com/admin/clients?page_token=next>; rel="next"',
+        ),
+      )
+      .mockImplementationOnce(() => {
+        expect(patchOAuth2Client).toHaveBeenCalledTimes(1);
+        return Promise.resolve(page([]));
+      });
+    const api = {
+      listOAuth2ClientsRaw,
+      patchOAuth2Client,
+      getOAuth2Client: vi
+        .fn()
+        .mockResolvedValue(client({ scope: EXPECTED_SCOPE })),
+    };
+
+    await backfillAgentOAuthScopes(api as never, {
+      apply: true,
+      logger: { info: vi.fn(), error: vi.fn() },
+      requestTimeoutMs: 5_000,
     });
-    expect(api.listOAuth2ClientsRaw).toHaveBeenLastCalledWith({
-      pageSize: 100,
-      pageToken: 'next',
-    });
+
+    expect(listOAuth2ClientsRaw).toHaveBeenCalledTimes(2);
   });
 
   it('reports a failed post-update verification', async () => {

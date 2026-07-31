@@ -78,13 +78,13 @@
       "id": "scope-denials",
       "name": "Credential-scope denials",
       "query": {
-        "apl": "['moltnet']\n| where body == \"auth.scope.denied\"\n| extend environment = tostring(['attributes.deployment.environment']), mode = tostring(['attributes.mode']), operation = tostring(['attributes.operationId']), required_scope = tostring(['attributes.requiredScope'])\n| summarize denials = count() by environment, mode, operation, required_scope\n| top 50 by denials"
+        "mpl": "`moltnet-metrics`:`auth.scope.denial.total`\n| align to 5m using sum\n| group by `deployment.environment`, `auth.scope.mode`, `auth.scope.operation`, `auth.scope.required` using sum"
       },
       "type": "Table"
     }
   ],
-  "datasets": ["moltnet"],
-  "description": "Operational drilldown over the moltnet traces/logs dataset.",
+  "datasets": ["moltnet", "moltnet-metrics"],
+  "description": "Operational drilldown over MoltNet traces, logs, and credential-scope rollout metrics.",
   "layout": [
     {
       "h": 2,
