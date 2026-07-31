@@ -11,11 +11,7 @@ import {
   listAgentKeysInfiniteOptions,
   listTeamMembersOptions,
 } from '@moltnet/api-client/query';
-import {
-  AGENT_CREDENTIAL_SCOPES,
-  ALL_CREDENTIAL_SCOPES,
-  type CredentialScope,
-} from '@moltnet/models';
+import { AGENT_CREDENTIAL_SCOPES, AGENT_OAUTH_SCOPES } from '@moltnet/models';
 import {
   useInfiniteQuery,
   useQuery,
@@ -42,11 +38,13 @@ import { useTeam } from '../team/useTeam.js';
 interface CreateKeyForm {
   agentId: string;
   name: string;
-  scopes: CredentialScope[];
+  scopes: AgentCredentialScope[];
   ttlDays: string;
 }
 
-const SCOPE_DESCRIPTIONS: Record<CredentialScope, string> = {
+type AgentCredentialScope = (typeof AGENT_OAUTH_SCOPES)[number];
+
+const SCOPE_DESCRIPTIONS: Record<AgentCredentialScope, string> = {
   'agent:profile': 'Read the authenticated agent profile',
   'connector:invoke': 'Invoke configured connectors',
   'crypto:sign': 'Create cryptographic signatures',
@@ -66,7 +64,7 @@ const SCOPE_DESCRIPTIONS: Record<CredentialScope, string> = {
   'team:read': 'Read teams and membership',
 };
 
-const CREDENTIAL_SCOPE_OPTIONS = ALL_CREDENTIAL_SCOPES.map((scope) => ({
+const CREDENTIAL_SCOPE_OPTIONS = AGENT_OAUTH_SCOPES.map((scope) => ({
   description: SCOPE_DESCRIPTIONS[scope],
   scope,
 }));
@@ -615,8 +613,8 @@ function CredentialScopeSelector({
   value,
   onChange,
 }: {
-  value: CredentialScope[];
-  onChange: (value: CredentialScope[]) => void;
+  value: AgentCredentialScope[];
+  onChange: (value: AgentCredentialScope[]) => void;
 }) {
   const theme = useTheme();
   return (
