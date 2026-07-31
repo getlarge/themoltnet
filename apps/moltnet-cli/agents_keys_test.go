@@ -13,10 +13,15 @@ import (
 )
 
 // validAgentKey builds an AgentKey the generated client will accept when
-// decoding a response: status is a valid enum and the nullable revocationReason
-// is explicitly null rather than an empty string.
+// decoding a response: status is a valid enum, scopes is a required array, and
+// the nullable revocationReason is explicitly null rather than an empty string.
 func validAgentKey(id string) moltnetapi.AgentKey {
-	k := moltnetapi.AgentKey{ID: id, Name: id, Status: moltnetapi.AgentKeyStatusActive}
+	k := moltnetapi.AgentKey{
+		ID:     id,
+		Name:   id,
+		Scopes: []moltnetapi.AgentKeyScopesItem{},
+		Status: moltnetapi.AgentKeyStatusActive,
+	}
 	k.RevocationReason.SetToNull()
 	return k
 }
