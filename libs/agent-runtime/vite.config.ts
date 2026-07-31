@@ -1,6 +1,8 @@
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
 
+const publishedRuntimeExternals = ['@themoltnet/sdk'];
+
 export default defineConfig({
   plugins: [
     dts({
@@ -25,6 +27,7 @@ export default defineConfig({
     // build.lib || builder.buildApp || rollupOptions.input ||
     // rolldownOptions.input — but NOT build.ssr).
     rolldownOptions: {
+      external: publishedRuntimeExternals,
       input: 'src/index.ts',
     },
   },

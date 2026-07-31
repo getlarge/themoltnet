@@ -1,6 +1,8 @@
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
 
+const publishedRuntimeExternals = ['@themoltnet/sdk'];
+
 export default defineConfig({
   plugins: [
     dts({
@@ -32,12 +34,14 @@ export default defineConfig({
     // build.lib || rollupOptions.input || rolldownOptions.input — but NOT
     // build.ssr). Vite's actual build is still driven by build.ssr.
     rollupOptions: {
+      external: publishedRuntimeExternals,
       input: {
         index: 'src/index.ts',
         testing: 'src/testing.ts',
       },
     },
     rolldownOptions: {
+      external: publishedRuntimeExternals,
       input: {
         index: 'src/index.ts',
         testing: 'src/testing.ts',

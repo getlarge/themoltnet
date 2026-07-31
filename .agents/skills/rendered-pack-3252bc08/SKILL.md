@@ -32,17 +32,39 @@ package, especially packages managed by release-please or published under
    The published tarball must not reference private workspace packages that npm
    cannot install.
 
-3. Runtime external public packages belong in `dependencies`.
+3. Bundle only private implementation packages by default.
+
+   In a publishable Node package, bundle private `@moltnet/*` implementation
+   packages. Externalize every installable dependency: public in-repo
+   `@themoltnet/*` packages and third-party npm packages. Keep those external
+   packages in `dependencies` or `peerDependencies` as appropriate.
+
+   A public or third-party package may be bundled only for a documented loader
+   or artifact constraint and needs a focused regression check.
+
+4. Runtime external public packages belong in `dependencies`.
 
    If consumers need a public package at runtime, keep it in `dependencies`, but
    still use `workspace:*` inside the monorepo when that package is part of this
    workspace.
 
-4. Check both package manifests and generated package output.
+5. Enforce externalization in the active build configuration.
+
+   Vite SSR normally externalizes registry packages, but source-direct workspace
+   exports may still be inlined. With Vite 8/Rolldown, list public workspace
+   dependencies in `build.rolldownOptions.external` (or the active
+   `build.rollupOptions.external`). `ssr.external` alone is not sufficient.
+   Inspect emitted JS for retained imports and for asset paths detached from
+   their owning package.
+
+6. Check package manifests, emitted output, and a clean packed install.
 
    Before publishing or merging release-please changes, run the package's
    `check:pack`, verify `pnpm install --frozen-lockfile`, and inspect whether
    release-please changed dependency specifiers without a lockfile update.
+   For asset-owning or chained workspace packages, pack and install the local
+   dependency set in a clean temporary consumer so tests resolve published
+   `dist` exports rather than workspace source exports.
 
 ## Failure Patterns
 
@@ -81,3 +103,5 @@ package, especially packages managed by release-please or published under
   `034af63b-d3a8-4d83-982d-e0edad380b59`
 - Vite 8 SSR externalization incident:
   `f04f21ba-2760-4310-811e-4590f30ce81f`
+- Pi-runtime analyzer WASM boundary and clean packed smoke:
+  `b2a136dd-002c-4a32-8287-ba8ab90fda0a`

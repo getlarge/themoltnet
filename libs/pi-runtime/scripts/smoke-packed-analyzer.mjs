@@ -25,10 +25,15 @@ if (!existsSync(distPath)) {
 }
 
 const bundle = readFileSync(distPath, 'utf8');
-const externalAnalyzerImport =
-  /from\s*['"]@themoltnet\/shell-command-analyzer['"]/;
-if (!externalAnalyzerImport.test(bundle)) {
-  fail('pi-runtime must import the published shell-command-analyzer package');
+const publishedRuntimeDependencies = [
+  '@themoltnet/agent-runtime',
+  '@themoltnet/sdk',
+  '@themoltnet/shell-command-analyzer',
+];
+for (const dependency of publishedRuntimeDependencies) {
+  if (!bundle.includes(`from "${dependency}"`)) {
+    fail(`pi-runtime must import the published ${dependency} package`);
+  }
 }
 if (/web-tree-sitter\.wasm|tree-sitter-bash\.wasm/.test(bundle)) {
   fail(
