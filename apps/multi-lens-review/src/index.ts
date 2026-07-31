@@ -1,5 +1,6 @@
 export {
   createMultiLensReviewAbsurdApp,
+  durableMultiLensReviewOutput,
   MULTI_LENS_REVIEW_TASK,
 } from './absurd.js';
 export { resolveRuntimeProfileRouting } from './profile-routing.js';
@@ -18,6 +19,7 @@ export {
   type PrintableReviewPreflight,
   stageReviewManifest,
 } from './review-input.js';
+export { hydrateMultiLensReviewOutput } from './review-output.js';
 export {
   coverageLedgerForPlan,
   deterministicTopicPlan,
@@ -25,8 +27,8 @@ export {
   MAX_CONTEXT_OWNERS_PER_FILE,
   MAX_PRIMARY_FILES_PER_TOPIC,
   MAX_SINGLETON_TOPIC_BYTES,
-  MAX_SPECIALIST_TASKS,
   MAX_TOPIC_BYTES,
+  MAX_TOPIC_REVIEW_TASKS,
   MAX_TOPICS,
   parseTopicPlanJson,
   removeExcludedFilesFromPlan,
@@ -34,6 +36,7 @@ export {
   validateTopicPlan,
 } from './topic-plan.js';
 export {
+  type AcceptedReviewOutputReference,
   type CoverageLedger,
   DEFAULT_LENSES,
   type DesignPreflight,
@@ -43,18 +46,24 @@ export {
   MANDATORY_REVIEW_LANES,
   type ModelFileExclusion,
   type MultiLensReviewDeps,
+  type MultiLensReviewDurableOutput,
   type MultiLensReviewInput,
   type MultiLensReviewOutput,
+  type MultiLensReviewPublishedOutput,
   REVIEW_LANES,
   type ReviewArtifactRecord,
   type ReviewDiagnostics,
   type ReviewFileArtifactRecord,
+  type ReviewFileManifestRecord,
   type ReviewFileRecord,
   type ReviewLane,
   type ReviewManifest,
+  type ReviewPatchSource,
+  type ReviewPhaseOutputReferences,
   type ReviewTopic,
   type RuntimeProfileRouting,
   type TopicPlan,
+  type TopicReviewResult,
   type TopicVerdict,
 } from './types.js';
 export {

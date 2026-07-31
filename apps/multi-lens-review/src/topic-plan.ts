@@ -15,7 +15,7 @@ export const MAX_CONTEXT_FILES_PER_TOPIC = 6;
 export const MAX_CONTEXT_OWNERS_PER_FILE = 2;
 export const MAX_TOPIC_BYTES = 64 * 1024;
 export const MAX_SINGLETON_TOPIC_BYTES = 128 * 1024;
-export const MAX_SPECIALIST_TASKS = 32;
+export const MAX_TOPIC_REVIEW_TASKS = MAX_TOPICS;
 
 const KNOWN_LANES = new Set<string>(REVIEW_LANES);
 const TOPIC_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -169,10 +169,6 @@ export function plannerLaneBudgetGuidance(
     (left, right) =>
       right.lanes.length - left.lanes.length || right.count - left.count,
   );
-  const peakLaneCount = orderedGroups[0]?.lanes.length ?? baseLanes.size;
-  const peakFileCount = orderedGroups
-    .filter((group) => group.lanes.length === peakLaneCount)
-    .reduce((total, group) => total + group.count, 0);
   const reviewableFiles = manifest.files.filter(
     (candidate) => candidate.reviewable,
   ).length;
@@ -180,22 +176,17 @@ export function plannerLaneBudgetGuidance(
     reviewableFiles / MAX_PRIMARY_FILES_PER_TOPIC,
   );
   const minimumTopicLabel = minimumTopics === 1 ? 'topic' : 'topics';
-  const maximumPeakTopics =
-    peakLaneCount === 0
-      ? MAX_TOPICS
-      : Math.floor(MAX_SPECIALIST_TASKS / peakLaneCount);
 
   return [
-    'Trusted lane-budget guide (recalculate after semantic exclusions):',
-    `- A topic costs the size of the union of its primary files' required lanes, the mandatory lanes, globally requested lanes, and planner-added lanes. The final sum across topics must be <= ${MAX_SPECIALIST_TASKS}.`,
-    `- ${reviewableFiles} currently reviewable files require at least ${minimumTopics} ${minimumTopicLabel} at ${MAX_PRIMARY_FILES_PER_TOPIC} primary files per topic, before verified semantic exclusions. At that minimum topic count, the average normalized topic cost must be <= ${(MAX_SPECIALIST_TASKS / Math.max(1, minimumTopics)).toFixed(2)}.`,
+    'Trusted topic/lane guide (recalculate after semantic exclusions):',
+    `- ${reviewableFiles} currently reviewable files require at least ${minimumTopics} ${minimumTopicLabel} at ${MAX_PRIMARY_FILES_PER_TOPIC} primary files per topic, before verified semantic exclusions.`,
+    `- One bounded multi-lens reviewer normally handles every normalized lane for one topic, so the default fan-out is the topic count, never the topic×lane Cartesian product. At most ${MAX_TOPIC_REVIEW_TASKS} topic review tasks are allowed.`,
     `- Mandatory/global base lanes: ${REVIEW_LANES.filter((lane) => baseLanes.has(lane)).join(', ')}.`,
     ...orderedGroups.map(
       (group) =>
-        `- ${group.count} reviewable file(s) currently require at least ${group.lanes.length} lane task(s): ${group.lanes.join(', ')}.`,
+        `- ${group.count} reviewable file(s) currently require these ${group.lanes.length} lane(s): ${group.lanes.join(', ')}.`,
     ),
-    `- ${peakFileCount} file(s) have the peak ${peakLaneCount}-lane cost. Any topic containing one costs at least ${peakLaneCount} tasks, so at most ${maximumPeakTopics} such topics can fit before accounting for other topics.`,
-    '- Before submitting, calculate a topic-cost ledger in scratch, sum every normalized topic cost, and merge semantically related files until the sum fits. If your effective runtime capabilities include shell commands or a local calculator, use them for this arithmetic and JSON validation. Use an empty `lanes` array unless adding a truly optional lane; trusted required lanes are added automatically.',
+    '- Keep semantically related files together within the file and byte bounds. Use an empty `lanes` array unless adding a truly optional lane; trusted required lanes are added automatically.',
   ].join('\n');
 }
 
@@ -304,15 +295,6 @@ export function validateTopicPlan(
         `context file ${path} overlaps ${topicIds.length} topics; maximum is ${MAX_CONTEXT_OWNERS_PER_FILE}`,
       );
     }
-  }
-  const specialistTasks = normalizedTopics.reduce(
-    (total, topic) => total + topic.lanes.length,
-    0,
-  );
-  if (specialistTasks > MAX_SPECIALIST_TASKS) {
-    diagnostics.push(
-      `plan requires ${specialistTasks} specialist tasks; maximum is ${MAX_SPECIALIST_TASKS}`,
-    );
   }
   if (diagnostics.length > 0) {
     throw new Error(`invalid topic plan:\n- ${diagnostics.join('\n- ')}`);

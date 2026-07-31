@@ -1,17 +1,19 @@
 # Planner curation
 
-The topic planner is a specialized, artifact-only classification workload. Its
-runtime profile, context, and tool policy are part of the review design and
-must be curated deliberately. Artifact-only does not mean that every operation
-is read-only: the planner writes one result file in scratch and uploads it as a
-task artifact.
+The topic planner is a specialized, bounded-worktree classification workload.
+Its runtime profile, context, and tool policy are part of the review design and
+must be curated deliberately. It receives one compact manifest artifact,
+reads narrowly selected evidence from an exact detached revision, writes one
+result file, and uploads that file as a task artifact.
 
 ## Workload
 
 The planner must:
 
-- read one bounded, versioned manifest and selected immutable per-file
-  artifacts;
+- read one bounded, versioned manifest containing complete file accounting and
+  exact per-file patch sizes/digests;
+- inspect only selected changed files and specific producer relationships in
+  the exact-revision worktree;
 - semantically identify machine-produced or derived files using content or
   producer/consumer evidence;
 - group every remaining file into one bounded primary topic;
@@ -20,12 +22,12 @@ The planner must:
   `moltnet_upload_task_artifact`, and reference the returned CID in
   `submit_freeform_output.artifacts[]`.
 
-It must not review implementation details, modify a checkout, create commits,
-search a diary, or inspect files from the daemon's mounted repository. The
-staged artifacts are the complete and immutable source of truth. Every review
-task explicitly requests `execution.workspace: none`: the daemon supplies a
-writable scratch workspace for artifact download and result creation, without
-mounting or checking out the repository.
+It must not review implementation details, modify the checkout, create commits,
+fetch or switch revisions, execute project code, search a diary, or inventory
+the repository. The compact manifest is the complete accounting source of
+truth. The daemon supplies a detached worktree at the exact head revision plus
+a writable scratch area for the result artifact; the task brief also names the
+exact comparison base for bounded Git inspection.
 
 ## Profile selection
 
@@ -53,18 +55,20 @@ ordinary, editable profile context rather than a hidden preset. The runtime
 kernel separately reports the effective tool and shell-command policy, so the
 planner sees both its behavioral contract and its actual capabilities.
 
-The planner runtime policy should be artifact-focused:
+The planner runtime policy should be evidence-focused:
 
-- allow task facts, exact referenced-artifact download, read/search access to
-  the downloaded files inside the scratch workspace, `write` for the single
+- allow task facts, read/search access to exact changed files, bounded
+  read-only Git inspection, `write` for the single
   `review-topic-plan.v1.json` result, task-artifact upload, and one structured
   output submission;
-- deny shell, checkout reads, other writes, diary mutations, GitHub mutations,
-  subagents, and unrelated task/artifact discovery;
-- avoid paginating task artifacts: the manifest and task references contain
-  the exact CIDs; and
-- make network and executable requirements empty unless the chosen runtime
-  itself requires them.
+- if a local calculator or shell is exposed, allow scratch-only coverage
+  accounting, budget arithmetic, and JSON validation while keeping artifact
+  access on the registered task-artifact tools;
+- deny broad checkout inventories, unrelated writes, diary mutations, GitHub
+  mutations, subagents, network fetches, and unrelated task/artifact discovery;
+- do not invent a static executable list. The runtime capability section and
+  effective policy are authoritative; no attached policy means the normal
+  allow-all semantics apply.
 
 ## Acceptance learnings
 
@@ -218,12 +222,13 @@ oversized artifacts before parsing and validating the artifact as the sole
 model-visible serialization work and made response truncation more likely
 without adding durability. Downstream prompts must likewise use the explicit
 artifact CID rather than the attempt `outputCid`. A downstream Pi task should
-use `moltnet_get_task` to resolve the producer's `acceptedAttemptN`,
-`moltnet_list_task_attempts` to read only that accepted structured output, and
-`moltnet_download_task_artifact` with the explicit `artifacts[]` CID and
-accepted attempt number. These are task capabilities and belong in the brief
-and runtime profile; the workflow should not invent a second persistence or
-artifact-discovery path.
+use `moltnet_list_task_artifacts` on the exact producer task, select the unique
+versioned artifact by kind and title, and pass its CID to
+`moltnet_download_task_artifact`. Reconstructing the accepted attempt through
+`moltnet_get_task` plus `moltnet_list_task_attempts` is unnecessary when the
+payload was deliberately uploaded to the task-artifact API. These are task
+capabilities and belong in the brief and runtime profile; the workflow should
+not invent a second persistence or artifact-discovery path.
 
 One more runtime fact emerged. Gemma first ended in prose, recovered after one
 missing-submit prompt, then attempted the submit tool twice. The first-valid
@@ -393,3 +398,331 @@ semantics apply; the recipe must not reintroduce a contradictory static tool
 ban. Do not retry the model merely by raising an output cap: validate that it
 actually computed the topic ledger, and keep trusted rejection as the terminal
 behavior for any submitted over-budget plan.
+
+Correlation `58409824-51af-4ae9-bdad-749c0fcd1c2b` then produced the first
+accepted full-fixture plan under the corrected contract. Planner task
+`34508e9e-9adb-42f2-83d6-49148a7f1c3c` ran the verified
+`ollama-cloud/kimi-k2.7-code:cloud` model with no output cap. It consumed
+603,011 input and 42,928 output tokens, used the empty scratch workspace plus
+local shell for its ledger, and accessed review content only through exact
+task-artifact CIDs. It uploaded a discoverable 7,185-byte
+`review-topic-plan.v1.json` artifact with CID
+`bafkreih7r4r7eftryj7xamwhigfr72xni4ircytrhvc3lgyo2buyxxu75y`;
+attempt output metadata separately recorded CID
+`bagaaiera4urhbdnc7zgmo2lcf2f5lqmxo7p23hied5kyflabxotfxeosz2fa`.
+Trusted validation accepted seven bounded topics, eight evidence-backed
+derived-file exclusions, complete primary ownership of the remaining 62 files,
+and a normalized specialist cost of exactly 32.
+
+The following design-preflight task
+`de172bcf-b059-488c-be17-1636cbe514b9` failed output validation because its
+profile lacked the `verification-and-artifacts-v1` context after prompt
+ownership moved out of the runtime kernel. The model repeatedly returned the
+obsolete `{output: ...}` wrapper. This was a profile-contract failure, not a
+planner failure, and the fixed graph correctly released no specialist tasks.
+
+An `absurdctl dump-task` audit clarified the recovery boundary. The workflow
+had committed `planner.create` and `preflight.create`; orchestration attempts
+two and three replayed those same MoltNet task records and did not rerun the
+planner. Absurd already provides the required durable checkpoint semantics.
+The defect was that a terminal preflight task remained terminal, so blindly
+retrying the parent only observed the same failure. Substantive task outputs
+and patches remain in MoltNet artifact storage; Absurd should checkpoint only
+small control-plane references. The workflow now stores task IDs rather than
+entire returned task records and supports explicit reuse of an accepted planner
+task after exact team, diary, task-kind, manifest-reference, accepted-attempt,
+and runtime-profile validation. This lets a new durable run replace the failed
+preflight without paying for or trusting a second plan.
+
+Failed agent attempts are a separate platform limitation: task workflow state
+currently stamps resumable daemon state only on completed attempts, and retry
+triage deliberately treats exhausted `output_validation_failed` as
+non-retryable. Therefore a failed model session is not generally resumable
+today. Durable artifacts, messages, and accepted task attempts remain
+available; `continueFrom` can resume a completed freeform attempt. Any future
+"recover any failed agent turn" feature must explicitly define safe
+checkpointing and continuation semantics for failed attempts rather than
+smuggling session bodies into Absurd.
+
+Qualification task `22a6cbab-247b-4603-a43f-3bdf4396dfaa` then ran the
+corrected reviewer profile with `verification-and-artifacts-v1` visibly
+injected. The Qwen reviewer successfully resolved the accepted planner task and
+downloaded its explicit task artifact, proving that the artifact-tool contract
+was fixed. It still failed after 294,603 ms, 873,160 cumulative input tokens,
+and 19,430 cumulative output tokens because all three submit corrections sent
+an invalid `verification` shape.
+
+This exposed a second harness defect. `baseTask` gave every review phase a
+`submit-versioned-json-artifact` success gate even though only the planner
+uploads such an artifact. Task creation also adds the canonical
+`submit-output` gate. The redundant two-gate contract was false for preflight,
+lanes, reducers, and synthesis, and it disabled the submit tool's deterministic
+single-gate repair path. Only the planner now declares the uploaded-plan gate;
+the other phases rely on the server-owned submit-output gate. Model behavior
+still matters, but an irrelevant criterion must not prevent safe wire-shape
+repair.
+
+The same audit caught a storage-boundary leak in the orchestration return
+value. Patch and topic bytes were already remote-only and durable steps had
+been reduced to task IDs or CID records, but the final Absurd result still
+copied the parsed plan, preflight, topic verdicts, and global verdict. Absurd
+persists task results in Postgres, so this was not acceptable. The durable
+result is now a compact reference envelope containing task IDs, accepted
+attempt numbers, output CIDs, the planner task-artifact CID, and bounded trusted
+coverage/cost accounting. The CLI hydrates the presentation verdict from the
+referenced MoltNet accepted output after Absurd completes. Tests explicitly
+assert that agent-produced bodies are absent from the durable result.
+
+## Topic-review fan-out incident and harness correction
+
+Correlation `4bead2fa-4175-4fbd-bc6f-6924a4bfeaa5` advanced through the
+accepted seven-topic planner output and design preflight, then exposed a
+review-harness failure. The old graph expanded the seven topics into 32
+topic-by-lane tasks and released all of them at once. This number was not a
+retry budget: it was the Cartesian sum of the normalized lane sets. Two daemon
+workers processed 16 and 17 tasks before the run was stopped.
+
+Those lane tasks ran in empty scratch workspaces. Although each had a bounded
+topic artifact, the reviewer also needed surrounding repository context for
+call-site checks, established abstractions, and the mandatory repo-wide
+DRY/codebase-fit search. One task tried to read a host checkout path that did
+not exist in the guest. Another consumed 349,812 cumulative input tokens and
+2,675 output tokens in 71,209 ms without completing useful review. This was a
+harness mismatch, not evidence that the selected model was incapable: the
+artifact-only scratch contract contradicted the actual deep-review contract.
+
+The corrected graph uses the exact reviewed 40-hex commit in a daemon-created
+detached worktree for design preflight and topic review. GitHub Actions keeps
+trusted runtime code on the base checkout and fetches the untrusted head only
+as an inert Git object. The bounded topic artifact remains the authoritative
+changed-line scope; the worktree exists only for surrounding code and
+repository search. Review tasks may not switch branches, modify files, install
+dependencies, or execute project code.
+
+The default fan-out is now one multi-lens reviewer per topic, not one task per
+topic-lane pair. Explicit lane profile overrides split a topic only when lanes
+resolve to genuinely different runtime profiles. Trusted code validates the
+nested lane results, derives each topic verdict deterministically, and stages a
+single immutable topic-verdict artifact for global synthesis; the redundant
+model reducer layer is gone. The first, highest-value topic is a canary: its
+artifact download, exact-revision workspace, output schema, and complete lane
+coverage must all pass before any remaining topic review is created. Every
+child task has `maxAttempts: 1`; turn and output limits are curated in the
+runtime profile rather than multiplied by orchestration retries.
+
+For the accepted seven-topic fixture, the expected default review fan-out is
+seven topic tasks instead of 32 lane tasks. This is a design expectation, not
+an acceptance result. Do not launch the full fixture again until focused
+typecheck, unit tests, lint, and build pass, then qualify the runtime with the
+single canary before allowing the remaining six topics.
+
+## Exact-revision preflight canary
+
+Correlation `a9a5b5f3-de1f-4969-a945-f1f61099ee01` qualified the revised
+workspace and artifact harness against a two-line file from PR #1730 before any
+full-fixture rerun. Preflight task
+`695f1fdc-a6ee-46dc-a967-b568aee8ca17` was claimed exactly once with
+`workspaceMode: dedicated_worktree`, `workspaceBranch: null`, and exact
+`workspaceRevision: 9a25d041e153e4ef549005cb5c35714f88e0e530`. The prompt
+injected only `verification-and-artifacts-v1`; proactive memory was absent.
+The model correctly used `moltnet_list_task_artifacts`, downloaded both bound
+artifacts in parallel, and read them successfully.
+
+The task still failed after 94,597 ms because the preflight contract invited
+open-ended repository exploration. Kimi used all ten allowed tool turns and
+the runtime stopped it with `max_turns_exceeded` before submission. Even for
+this two-line input, cumulative usage reached 257,367 input tokens and 3,084
+output tokens. Raising task attempts would repeat the same deterministic
+harness failure; the task correctly had `maxAttempts: 1`.
+
+The correction is phase-specific rather than a larger retry or response
+budget. Planned preflight now binds only the immutable manifest and discovers
+the accepted planner's explicit uploaded plan through
+`moltnet_list_task_artifacts`; it does not bind every per-file patch or repeat
+the planner's generated-file classification. Deterministic small-change
+preflight still binds its bounded patches, but follows a five-turn protocol:
+inventory, parallel download, parallel read, at most one named-symbol
+repository query, then submit. The prompt explicitly forbids package
+inventory, broad generated-file searches, dependency installation, project
+execution, and exploratory documentation reads. This retains the
+exact-revision worktree for design evidence without treating it as an
+unbounded research assignment.
+
+Correlation `8d22ca7c-15af-45b6-be60-7e8ecf243428` confirmed that correction.
+The revised preflight completed on its only attempt in 47,869 ms with 143,986
+input tokens and 2,159 output tokens. It followed the intended sequence:
+task-artifact inventory, parallel downloads, parallel artifact and changed-file
+reads, one targeted search batch, then `submit_freeform_output`. Its accepted
+output CID was
+`bagaaierawb5yifxnnjtakqywtzpbvbgltgff4y6wajt23zp5u5pjpkmwqhdq`.
+
+The same correlation then qualified the grouped topic-review canary and found
+one remaining phase-specific harness problem. Task
+`dcaa2506-d35c-4f38-8772-9f783b61375e` correctly used the sole topic artifact
+and exact detached review revision, but its prompt still requested a
+"repository-wide" DRY search without bounding the search protocol. It used all
+ten turns on repeated reads, shell commands, and searches, then failed before
+submission with 261,471 input tokens and 1,514 output tokens in 54,131 ms.
+Again, there was one task attempt rather than a retry storm.
+
+Topic review now has the same explicit harness discipline as preflight:
+inventory, download, patch read, parallel reads of declared topic files, at
+most one parallel batch of exact changed-symbol or signature searches,
+optionally at most two directly matching files, then submit within seven
+tool-use turns. Shell, directory/package/doc inventories, generic searches,
+and iterative exploration are out of contract. The mandatory
+`dry-codebase-fit` lane still receives repository evidence, but a bounded
+symbol/signature search is sufficient; "repository-wide" no longer means an
+open-ended research assignment.
+
+Correlation `2aaaec20-6945-4621-9030-1003f82c3be9` showed that the bounded
+topic protocol is viable but also exposed a schema-language ambiguity. The
+preflight completed on its only attempt in 43,576 ms with 169,907 input tokens
+and 1,262 output tokens. Topic task
+`042b04ac-6b7f-4af3-a4e3-0ee16e19c746` remained artifact-scoped, ran at the
+exact detached revision, did not use shell, and submitted on its only attempt
+after eight turns. Its usage was 199,396 input tokens and 6,137 output tokens
+in 128,348 ms; most latency came from the bounded exact-symbol search batch.
+
+Trusted reduction rejected that otherwise valid task result because the
+`dry-codebase-fit` lane listed an evidence-only repository match,
+`libs/tasks/src/wire.ts`, in `reviewedFiles`. That field is the primary-change
+coverage claim, not an inventory of every context file consulted. The
+rejection was correct: silently accepting extra paths would blur topic
+ownership and could corrupt the coverage ledger. The prompt and success gate
+now say that each lane's `reviewedFiles` must equal exactly the topic's
+`primaryFiles`. Declared context and repository-search matches may inform
+findings but never appear in the ownership claim.
+
+Correlation `357fe12f-d7e4-4461-93d3-b3a9253535bf` completed the one-file
+exact-revision acceptance canary end to end after that clarification. All
+three model tasks completed and were accepted on their first and only attempt:
+
+- design preflight `42149ab9-09e1-4e98-9f0f-bc3ec495013d`;
+- grouped topic review `4edb44f2-8a61-4646-82b8-51686026cef5`; and
+- global synthesis `2d37bda9-e979-46ea-9be9-d804bc44e4b5`.
+
+Trusted accounting reported one primary owner for
+`libs/models/src/hash.ts`, complete correctness, dry-codebase-fit, and
+design/API/backcompat lane coverage, no excluded files, and an approval
+verdict. The durable result contained only task/output references, the
+topic-verdict artifact reference, and bounded diagnostics; the CLI hydrated
+the preflight and verdict bodies from the accepted output CIDs. Total cost was
+3 tasks, 4 artifacts, 350,485 input tokens, 10,417 output tokens, and 1,783
+artifact bytes. The topic review submitted in seven turns without shell use,
+and synthesis used only task-artifact inventory, download, read, and submit.
+
+This qualifies the task/workspace/artifact harness on a small exact-revision
+fixture. It does not replace the required full PR #1730 acceptance, which must
+still demonstrate semantic exclusions, multiple bounded topics, complete
+primary coverage, two-worker fan-out, and terminal synthesis at fixture scale.
+
+## Full-fixture staging correction
+
+Correlation `e5bbb3a2-2eaf-450c-a8c3-1b948b7f2606` began the first current
+PR #1730 full-fixture run (389,258 raw diff bytes, 70 files, 9,755 changed
+LOC). Before the planner was useful, ingestion remotely staged 70 complete
+per-file patch sections plus the manifest. This included a roughly 203 KiB
+derived snapshot that semantic classification was expected to exclude. The
+planner downloaded only selected artifacts, so the model context remained
+selective, but the storage and staging fan-out had already happened. Staging
+took roughly two minutes and created 71 input artifacts.
+
+The run was stopped and the ingestion boundary changed. A review manifest now
+commits to every exact per-file patch with its byte count and SHA-256 but
+contains no patch payload or per-file artifact CID. Only that compact manifest
+is uploaded before planning. The planner runs in the exact detached review
+worktree and receives the exact comparison-base revision for bounded Git
+inspection. After trusted validation removes derived output and fixes topic
+ownership, orchestration reads patch bytes from its replayable trusted input
+source, verifies every byte count and digest, and uploads one complete artifact
+per accepted topic. Absurd still stores only bounded manifest/task/artifact
+references; neither the whole diff nor patch bodies enter workflow state.
+
+This preserves immutable accounting and crash replay while eliminating
+preemptive payload fan-out. A rerun must verify the expected artifact shape:
+one input manifest, one planner output, one artifact per accepted topic, one
+topic-verdict bundle, and no complete artifact for a model-excluded file.
+
+## Full PR #1730 acceptance and recovery experiment
+
+The accepted planner task
+`61aa5f40-d1e8-477c-9237-c93d08fca42d` produced its plan as the required
+`review-topic-plan.v1.json` task artifact. Its compact manifest was 36,943
+bytes and its plan artifact was 7,507 bytes. The plan classified eight
+machine-produced or dependency-resolution files as exclusions using content
+evidence rather than repository-specific path rules, then assigned all 62
+remaining reviewable files to exactly one of nine topics.
+
+The first full review run used an eight-turn runtime limit. Preflight and four
+topic reviews completed, while the other topic tasks reached the cap or were
+cancelled during cleanup. A recovery run raised the cap to 16 and reused every
+accepted output. It created only the five missing topic tasks; it did not
+repeat planning, preflight, or accepted reviews. This also exposed two output
+quality failures: one result contained invalid JSON escaping and another
+appended prose after otherwise valid JSON. Trusted parsing rejected both.
+A further correction was rejected because it claimed findings in a file
+owned by another topic. The final accepted correction kept findings and
+`reviewedFiles` within the topic's primary ownership.
+
+Warm continuation initially failed before model execution because the source
+resolver remembered only a branch name. Exact review tasks are deliberately
+detached, so the continuation degraded to a shared workspace and violated its
+runtime policy. Continuation resolution now inherits the accepted parent
+attempt's exact `input.execution.revision`, recreates a dedicated detached
+worktree, and preserves the accepted task's team, diary, artifact, topic,
+lanes, and profile contracts. Continuations are extend-only, claim-gated, and
+non-recursive. Cleanup now cancels only waiting or queued work; it does not
+discard running or dispatched attempts that may still produce reusable
+accepted output.
+
+The first global synthesis task revealed a separate harness problem. Although
+its only input was the topic-verdict artifact, the prompt did not bound the
+tool protocol, so the model spent 16 turns using shell and workspace tools and
+never submitted. Synthesis now explicitly permits only artifact inventory,
+download, one read, and terminal submission. It forbids repository, memory,
+shell, write, and task-list exploration, preserves the highest-impact
+findings, and caps the combined verdict at 20 findings.
+
+Correlation `e039be29-752e-4d5d-8ddf-3f419fde344c` completed the full
+acceptance graph. Global synthesis task
+`ce452601-b030-4218-8bb5-1eef97d30977` accepted output
+`bagaaiera2afg2c6ghk2xg5xoz2uzbh2ljy3ej5kdt6ldqc7g4t6wphjpwt3q` from topic
+verdict artifact
+`bafkreiaewon2k23vc6xlh4sydx23pi6rsqcj6a7gkiydrsjcisloipsxpi`.
+Trusted accounting reported complete primary-file and mandatory-lane coverage
+and a request-changes verdict with 20 findings. Synthesis reached the model's
+output boundary once, then used the same warm session to submit on the next
+turn; the accepted attempt used 95,135 input and 18,182 output tokens over
+145,641 ms.
+
+The logical accepted graph comprised 12 tasks: planner, design preflight, nine
+topic reviews, and global synthesis. Across those selected accepted attempts
+it used 2,382,196 input tokens, 101,629 output tokens, and 1,638,788 ms of
+aggregate model runtime. The immutable remote inputs and outputs comprised 12
+unique artifacts totaling 248,348 bytes:
+
+- one 36,943-byte compact manifest;
+- one 7,507-byte planner artifact;
+- nine topic patch artifacts totaling 158,185 bytes; and
+- one 45,713-byte topic-verdict artifact.
+
+The original diff was 389,258 bytes. No whole-diff artifact and no patch
+artifact for any excluded generated file was uploaded. The nine topic patch
+artifacts ranged from 2,464 to 53,694 bytes, remaining within the configured
+topic bounds.
+
+Two released-CLI compatibility findings should be handled separately:
+`moltnet task continue --title` currently puts `title` inside the freeform
+input and fails schema validation, while `moltnet task attempts` against the
+newer local API rejects the additive `leaseId` response field. Neither was
+worked around in workflow contracts.
+
+The experiment supports a few model-curation conclusions. Fast planning is
+viable when the model receives a compact ownership manifest plus an exact
+worktree, not pre-uploaded file bodies or unrelated diary context. Per-phase
+runtime profiles need realistic turn and output limits, but retries should
+remain exceptional: accepted phase outputs are durable and recovery should
+create only missing or explicitly corrected work. The output cap remains a
+meaningful synthesis constraint; a higher-output synthesis profile or a
+smaller finding cap can reduce the need for a warm terminal-submit turn.

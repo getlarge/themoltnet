@@ -37,6 +37,8 @@ export interface ReviewFileRecord {
   deletions: number;
   changedLoc: number;
   byteSize: number;
+  /** SHA-256 of the exact immutable per-file patch bytes. */
+  patchSha256: string;
   language: string;
   binary: boolean;
   generated: boolean;
@@ -53,13 +55,10 @@ export interface ReviewArtifactRecord {
   sizeBytes: number;
 }
 
-export interface ReviewFileArtifactRecord extends ReviewFileRecord {
-  /**
-   * Intrinsically excluded binaries have no artifact. A model-excluded text
-   * file retains its immutable classification artifact for the audit ledger.
-   */
-  artifact?: ReviewArtifactRecord;
-}
+export type ReviewFileManifestRecord = ReviewFileRecord;
+
+/** @deprecated Use ReviewFileManifestRecord. */
+export type ReviewFileArtifactRecord = ReviewFileManifestRecord;
 
 export interface CoverageLedger {
   reviewableFiles: string[];
@@ -87,12 +86,12 @@ export interface ReviewPreflight {
 }
 
 /**
- * Immutable workflow input. The raw whole diff is deliberately absent: only a
- * bounded manifest and individually staged reviewable file patches cross the
- * trusted ingestion boundary.
+ * Immutable workflow input. The raw whole diff and patch bodies are
+ * deliberately absent: only a bounded manifest with per-file byte/hash
+ * identity crosses the durable-workflow boundary.
  */
 export interface ReviewManifest extends Omit<ReviewPreflight, 'files'> {
-  files: ReviewFileArtifactRecord[];
+  files: ReviewFileManifestRecord[];
   manifestArtifact: ReviewArtifactRecord;
 }
 
@@ -141,6 +140,12 @@ export interface LaneResult {
   summary: string;
 }
 
+export interface TopicReviewResult {
+  version: 1;
+  topicId: string;
+  laneResults: LaneResult[];
+}
+
 export interface TopicVerdict {
   version: 1;
   topicId: string;
@@ -180,6 +185,32 @@ export interface ReviewDiagnostics {
 }
 
 /**
+ * Immutable pointer to an accepted MoltNet task output. The output body stays
+ * in remote content-addressed storage; durable orchestration persists only
+ * this identity tuple.
+ */
+export interface AcceptedReviewOutputReference {
+  taskId: string;
+  attemptN: number;
+  outputCid: string;
+}
+
+export interface ReviewPhaseOutputReferences {
+  planner?: AcceptedReviewOutputReference & {
+    planArtifact: ReviewArtifactRecord;
+  };
+  preflight?: AcceptedReviewOutputReference;
+  topicReviews: Array<
+    AcceptedReviewOutputReference & {
+      topicId: string;
+      lanes: ReviewLane[];
+    }
+  >;
+  topicVerdictsArtifact?: ReviewArtifactRecord;
+  globalSynthesis?: AcceptedReviewOutputReference;
+}
+
+/**
  * Runtime-profile affinity for every fixed graph phase. Existing lens and
  * synthesis fields remain aliases so older callers keep their routing.
  */
@@ -190,6 +221,10 @@ export interface RuntimeProfileRouting {
   laneProfileIds?: Partial<Record<ReviewLane, string>>;
   /** @deprecated Use laneProfileIds. */
   lensProfileIds?: Record<string, string>;
+  /**
+   * Legacy name retained for CLI compatibility. It is now the default
+   * combined topic-review profile; lane-specific profiles may split a topic.
+   */
   topicReducerProfileId?: string;
   globalSynthesisProfileId?: string;
   /** @deprecated Use globalSynthesisProfileId. */
@@ -201,7 +236,35 @@ export interface MultiLensReviewInput {
   diaryId: string;
   correlationId: string;
   target: string;
+  /**
+   * Exact reviewed commit. Repository-aware phases run in daemon-created
+   * detached worktrees at this object id; planner and synthesis stay in
+   * scratch workspaces.
+   */
+  reviewRevision: string;
+  /**
+   * Exact left endpoint used to create the supplied review diff. Repository
+   * phases may use it for bounded Git inspection without switching revisions.
+   */
+  reviewBaseRevision: string;
   reviewManifest: ReviewManifest;
+  /**
+   * Reuse an already accepted planner task after trusted identity, manifest
+   * references, and runtime-profile validation. The plan payload remains in
+   * task-artifact storage; Absurd only carries this control-plane task ID.
+   */
+  plannerTaskId?: string;
+  /**
+   * Reuse an already accepted design-preflight task after trusted identity,
+   * manifest, revision, output, and runtime-profile validation.
+   */
+  preflightTaskId?: string;
+  /**
+   * Reuse accepted topic-review tasks from an earlier interrupted run.
+   * Trusted orchestration derives each task's topic/lane identity and rejects
+   * stale revisions, artifacts, profiles, duplicate work, or invalid output.
+   */
+  topicReviewTaskIds?: string[];
   /**
    * Legacy caller-requested lanes. Trusted classification remains additive:
    * these may add known lanes to every topic but can never remove required
@@ -229,19 +292,48 @@ export interface ReviewArtifactStore {
   ): Promise<Uint8Array>;
 }
 
+/**
+ * Trusted, replayable source for exact per-file patch bytes. Implementations
+ * keep payloads outside Absurd and must return the bytes identified by the
+ * manifest's size and SHA-256.
+ */
+export interface ReviewPatchSource {
+  read(path: string): Promise<Uint8Array>;
+}
+
 export interface MultiLensReviewDeps {
   tasks: TaskClient;
   artifacts: ReviewArtifactStore;
+  patches: ReviewPatchSource;
   logger?: Logger;
 }
 
 export interface MultiLensReviewOutput {
   correlationId: string;
   outcome: 'completed' | 'pivot' | 'questions';
+  phaseOutputs: ReviewPhaseOutputReferences;
   plan: TopicPlan;
   preflight: DesignPreflight;
   topicVerdicts: TopicVerdict[];
   verdictTaskId?: string;
   verdict?: GlobalVerdict;
   diagnostics: ReviewDiagnostics;
+}
+
+/**
+ * The only multi-lens result persisted by Absurd. Agent-produced bodies are
+ * intentionally absent and can be hydrated from their immutable MoltNet
+ * output references when a caller needs to render them.
+ */
+export interface MultiLensReviewDurableOutput {
+  correlationId: string;
+  outcome: MultiLensReviewOutput['outcome'];
+  phaseOutputs: ReviewPhaseOutputReferences;
+  diagnostics: ReviewDiagnostics;
+}
+
+/** Render-time view hydrated from remote accepted task outputs. */
+export interface MultiLensReviewPublishedOutput extends MultiLensReviewDurableOutput {
+  preflight?: DesignPreflight;
+  verdict?: GlobalVerdict;
 }

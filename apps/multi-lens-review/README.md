@@ -1,9 +1,9 @@
 # @themoltnet/multi-lens-review
 
 Create a bounded, topic-planned deep review from an untrusted pull-request
-diff. The app freezes reviewable files individually, uses an LLM to propose
-semantic topics only for large changes, validates that plan in trusted code,
-and reduces specialist results through a fixed-depth durable graph.
+diff. The app freezes per-file patch identity, uses an LLM to propose semantic
+topics only for large changes, validates that plan in trusted code, then stages
+only the accepted bounded topic patches consumed by reviewers.
 
 ## Trusted ingestion
 
@@ -36,23 +36,31 @@ It does not invoke the LLM, connect, stage artifacts, or create tasks.
 
 ## Artifact and task graph
 
-The raw whole diff is never a workflow input and is never bound to a
-specialist. Review input is a versioned manifest plus one immutable staged
-artifact per nonbinary file. Model-excluded artifacts remain in the immutable
-audit ledger but are never bound to a specialist.
+The raw whole diff and full Git working-tree files are never uploaded as
+workflow inputs, artifacts, or specialist references. Before planning, remote
+storage receives only one compact versioned
+manifest containing complete file accounting plus the byte count and SHA-256
+of every exact per-file patch. The LLM planner uses that manifest and an
+exact-revision read-only worktree for bounded semantic inspection. Only after
+trusted plan and exclusion validation does orchestration read patch bytes from
+the trusted replayable input source, verify every byte count and digest, and
+stage one immutable artifact per accepted topic. Model-excluded files remain
+in the coverage ledger without uploading their complete patch payload.
 
 ```text
-trusted ingest + per-file staging
+trusted ingest + compact manifest
             │
  LLM classification + topic planner (large changes)
             │ server gate
  global design preflight + classification fallback
             │ PROCEED only
-    bounded topic artifacts
+ verified bounded topic staging
             │
-      topic × applicable lane
-            │ server gates
-       one reducer / topic
+ one canary multi-lens topic review
+            │ trusted validation
+ remaining multi-lens topic reviews
+            │ trusted reduction
+  one topic-verdict artifact
             │ server gate
        one global synthesis
 ```
@@ -60,9 +68,15 @@ trusted ingest + per-file staging
 `PIVOT` and `ASK` stop before line-level tasks. GitHub Actions is unattended,
 so `ASK` returns its questions rather than pausing. Invalid plans, failed
 required lanes, or incomplete primary-file coverage cannot produce an approval.
+The canary must return valid, complete lane coverage before any remaining topic
+review is created, so a bad workspace, artifact, profile, or output contract
+fails after one review attempt rather than after full fan-out.
 
-Planner and preflight output is an untrusted, durable task artifact containing
-strict versioned JSON. Trusted validation enforces:
+The planner's TopicPlan is an explicit task artifact. Preflight, topic-review,
+and synthesis bodies are content-addressed accepted task outputs. Trusted code
+derives topic verdicts from validated lane results and stages one immutable
+topic-verdict artifact for synthesis. All contain strict versioned JSON, and
+trusted validation enforces:
 
 - evidence-backed exclusions referencing exact manifest paths;
 - unique topic ids and exactly one primary owner per reviewable file;
@@ -70,12 +84,19 @@ strict versioned JSON. Trusted validation enforces:
 - correctness and DRY/codebase-fit on every topic;
 - bounded context overlap;
 - at most 12 topics, 12 primary files per planned topic, 64 KiB per topic
-  (128 KiB for a singleton), and 32 specialist tasks; and
+  (128 KiB for a singleton), and normally one topic-review task per topic; and
 - no recursive replanning.
 
 Security, performance, design/API/backcompat, tests, operability, and
 readability lanes are added through trusted path/content classification. The
 planner may add lanes but cannot remove trusted requirements.
+
+Repository-aware phases run in daemon-created detached worktrees at the exact
+40-hex review revision. The bounded topic artifact remains authoritative for
+changed lines; the worktree supplies the surrounding repository context and
+repo-wide search required by deep review. GitHub Actions executes trusted
+runtime code from the base checkout, fetches the head object only as inert Git
+data, and never runs code from the reviewed revision.
 
 ## Run
 
@@ -85,13 +106,41 @@ MULTI_LENS_REVIEW_DATABASE_URL=<absurd-postgres-url> \
     --team <team-uuid> \
     --diary <diary-uuid> \
     --target "owner/repository pull request #123" \
+    --review-base-revision <full-40-hex-comparison-base-sha> \
+    --review-revision <full-40-hex-head-sha> \
     --diff-file /tmp/change.diff \
     --files-metadata /tmp/pull-request-files.json \
     --profile multi-lens-review-v1
 ```
 
 The database URL stays in the environment so it is absent from argv and shell
-history. `--correlation-id` resumes a durable run.
+history. Reusing a `--correlation-id` reconnects to the same Absurd task.
+Completed `ctx.step` calls replay from Postgres after a crash or orchestration
+retry; their values are small task IDs or artifact references, never patch or
+topic bodies. The final Absurd result follows the same rule: it stores accepted
+task IDs, attempt numbers, output CIDs, the planner artifact CID, and bounded
+trusted accounting—not copies of the accepted output bodies. The CLI hydrates
+the verdict directly from MoltNet only after the durable task completes.
+
+If a prior run reached a terminal child-task failure, start a new durable run
+with a new correlation and supply any accepted work through
+`--planner-task-id`, `--preflight-task-id`, and repeatable
+`--topic-task-id`. Trusted code requires each referenced task to be completed
+and accepted in the same team and diary. It revalidates the exact manifest,
+review revision, topic artifact CID, lane set, structured output, and—when
+configured—runtime profile before accepting the result. Missing, failed, and
+cancelled phases are created normally. This preserves expensive agent work
+without copying output bodies into Absurd or trusting local state.
+
+On a terminal orchestration failure, CLI cleanup cancels tasks that are still
+unclaimed but lets already-dispatched or running agents finish. Their accepted
+outputs can therefore be named in the recovery run instead of being destroyed
+by a cancellation race.
+
+Retrying a terminal Absurd task alone replays the same checkpointed child task
+IDs. That is correct for crashes and transient orchestration failures, but it
+cannot repair a MoltNet child task that is itself terminal; use an explicit
+accepted-phase reference so the replacement remains visible and auditable.
 
 Profile routing remains backward compatible:
 
@@ -99,31 +148,53 @@ Profile routing remains backward compatible:
 - `--lens-profile <lane>=<profile>` and `--synthesis-profile <profile>` keep
   their existing meanings;
 - `--lane-profile` and `--global-synthesis-profile` are explicit aliases; and
-- `--planner-profile`, `--preflight-profile`, and
-  `--topic-reducer-profile` route the other graph phases.
+- `--planner-profile` and `--preflight-profile` route the planning phases; and
+- the legacy `--topic-reducer-profile` now supplies the default combined
+  topic-review profile when no lane-specific override is present.
+
+By default, every applicable lane for a topic runs in one bounded review task.
+Lane overrides group lanes by resolved profile, so a topic is split only when
+its lanes genuinely require different runtimes. Trusted code rejects profile
+routing that would exceed 12 total topic-review tasks. Child tasks have one
+attempt; model-turn and output budgets belong in the curated runtime profiles
+rather than being multiplied by orchestration retries.
 
 Names resolve once against team-scoped runtime profiles before workflow spawn;
 task-service enforces the resolved immutable ids through `allowedProfiles`.
 For large reviews, route `--planner-profile` to a fast, high-context model with
-reliable structured output; reserve deeper profiles for specialist lanes and
+reliable structured output; reserve deeper profiles for topic review and
 global synthesis.
 
-Model selection, injected context, and the planner's artifact-only runtime
+Model selection, injected context, and the planner's bounded-worktree runtime
 policy require deliberate curation. See
 [Planner curation](./PLANNER-CURATION.md) for the workload contract, profile
 criteria, policy surface, and acceptance learnings.
 
 The planner profile must expose Pi's `read`, `grep`, `write`,
-`moltnet_download_task_artifact`, and `moltnet_upload_task_artifact` tools.
-`write` is limited by the brief to `review-topic-plan.v1.json`; shell and
-checkout access are unnecessary. The planner uploads that file and includes
-the returned task-artifact CID in `submit_freeform_output.artifacts[]`.
+`moltnet_upload_task_artifact`, and bounded read-only Git inspection through
+the effective shell policy. It runs in a detached worktree at the exact review
+revision, with the exact comparison base in its brief. Git is limited to exact
+changed-file evidence; scratch tools are limited to coverage accounting, budget
+arithmetic, and JSON validation. The planner uploads
+`review-topic-plan.v1.json` and includes the returned task-artifact CID in
+`submit_freeform_output.artifacts[]`.
 Attempt `outputCid` metadata is not a substitute for this explicit artifact.
-The preflight profile must expose `moltnet_get_task`,
-`moltnet_list_task_attempts`, and `moltnet_download_task_artifact`. It resolves
-the planner task's `acceptedAttemptN`, reads the accepted structured output, and
-downloads the explicit artifact CID from `artifacts[]`; an attempt `outputCid`
-is not a task-artifact CID.
+The preflight profile must expose `moltnet_list_task_artifacts` and
+`moltnet_download_task_artifact`. It lists the accepted planner task's uploaded
+artifacts, selects the unique versioned topic-plan artifact, and downloads that
+explicit CID through the task-artifact API. It does not need to reconstruct the
+accepted attempt through `moltnet_get_task` plus
+`moltnet_list_task_attempts`, and an attempt `outputCid` is not a task-artifact
+CID.
+
+Preflight is deliberately bounded. For planned changes it receives only the
+manifest reference plus the accepted planner artifact, because the planner has
+already performed semantic generated-file classification. For deterministic
+small changes it receives only the compact manifest and inspects the listed
+files in the exact-revision worktree. No complete patch payload is uploaded
+before classification. The worktree supplies bounded changed-file and
+surrounding context; it is not an invitation to inventory or execute the
+repository.
 
 ## GitHub Actions
 

@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 import type { Agent } from '@themoltnet/sdk';
 
 import {
@@ -5,8 +7,8 @@ import {
   MAX_CONTEXT_OWNERS_PER_FILE,
   MAX_PRIMARY_FILES_PER_TOPIC,
   MAX_SINGLETON_TOPIC_BYTES,
-  MAX_SPECIALIST_TASKS,
   MAX_TOPIC_BYTES,
+  MAX_TOPIC_REVIEW_TASKS,
   MAX_TOPICS,
 } from './topic-plan.js';
 import type {
@@ -28,8 +30,6 @@ export const PLANNER_BYTE_THRESHOLD = 64 * 1024;
 export const REVIEW_MANIFEST_TITLE = 'review-manifest.v1.json';
 export const REVIEW_MANIFEST_CONTENT_TYPE =
   'application/vnd.themoltnet.review-manifest+json;version=1';
-export const REVIEW_FILE_CONTENT_TYPE = 'text/x-diff';
-const LARGE_REVIEW_STAGE_INTERVAL_MS = 1_000;
 
 export interface GitHubFileMetadata {
   filename: string;
@@ -59,7 +59,7 @@ export interface PrintableReviewPreflight extends ReviewPreflight {
     contextOwnersPerFile: number;
     topicBytes: number;
     singletonTopicBytes: number;
-    specialistTasks: number;
+    topicReviewTasks: number;
   };
   planningThresholds: {
     files: number;
@@ -418,6 +418,7 @@ export function inspectReviewDiff(
       deletions,
       changedLoc: metadata?.changes ?? additions + deletions,
       byteSize: Buffer.byteLength(patch, 'utf8'),
+      patchSha256: createHash('sha256').update(patch, 'utf8').digest('hex'),
       language,
       binary,
       generated: false,
@@ -488,55 +489,19 @@ function artifactRecord(
   };
 }
 
-/** Run inspection first, then stage only immutable per-file review input. */
+/**
+ * Stage only the compact immutable manifest. Complete patch bytes remain in
+ * the trusted local source until an accepted plan has removed derived output
+ * and bounded the topic artifacts that specialists will actually consume.
+ */
 export async function stageReviewManifest(
   agent: Agent,
   teamId: string,
   inspected: ParsedReviewInput,
 ): Promise<ReviewManifest> {
-  const stagedFiles: ReviewManifest['files'] = [];
-  const pending = [...inspected.files];
-  let stagedReviewableCount = 0;
-  const stageNext = async (): Promise<void> => {
-    while (pending.length > 0) {
-      const file = pending.shift();
-      if (!file) return;
-      const { patch, ...record } = file;
-      if (!record.reviewable) {
-        stagedFiles.push(record);
-        continue;
-      }
-      if (inspected.requiresPlanning && stagedReviewableCount > 0) {
-        await new Promise<void>((resolve) => {
-          setTimeout(resolve, LARGE_REVIEW_STAGE_INTERVAL_MS);
-        });
-      }
-      const title = `review-file:${record.path}`;
-      const staged = await agent.tasks.artifacts.stage(
-        Buffer.from(patch, 'utf8'),
-        { contentType: REVIEW_FILE_CONTENT_TYPE },
-        { teamId },
-      );
-      stagedFiles.push({
-        ...record,
-        artifact: artifactRecord(
-          staged,
-          title.slice(0, 255),
-          REVIEW_FILE_CONTENT_TYPE,
-        ),
-      });
-      stagedReviewableCount += 1;
-    }
-  };
-  await stageNext();
-  const order = new Map(
-    inspected.files.map((file, index) => [file.path, index]),
-  );
-  stagedFiles.sort(
-    (left, right) =>
-      (order.get(left.path) ?? Number.MAX_SAFE_INTEGER) -
-      (order.get(right.path) ?? Number.MAX_SAFE_INTEGER),
-  );
+  const stagedFiles = inspected.files.map(({ patch: _patch, ...record }) => ({
+    ...record,
+  }));
   const manifestBody = {
     ...inspected,
     files: stagedFiles,
@@ -572,7 +537,7 @@ export function printablePreflight(
       contextOwnersPerFile: MAX_CONTEXT_OWNERS_PER_FILE,
       topicBytes: MAX_TOPIC_BYTES,
       singletonTopicBytes: MAX_SINGLETON_TOPIC_BYTES,
-      specialistTasks: MAX_SPECIALIST_TASKS,
+      topicReviewTasks: MAX_TOPIC_REVIEW_TASKS,
     },
     planningThresholds: {
       files: PLANNER_FILE_THRESHOLD,

@@ -1,13 +1,98 @@
+import type { TaskClient } from '@themoltnet/tasks-orchestrator';
+
 import {
+  type AcceptedReviewOutputReference,
   type DesignPreflight,
   type GlobalVerdict,
   type LaneFinding,
   type LaneResult,
   type ModelFileExclusion,
+  type MultiLensReviewDurableOutput,
+  type MultiLensReviewPublishedOutput,
   REVIEW_LANES,
   type ReviewLane,
+  type TopicReviewResult,
   type TopicVerdict,
 } from './types.js';
+
+async function acceptedOutput(
+  tasks: TaskClient,
+  reference: AcceptedReviewOutputReference,
+): Promise<unknown> {
+  const task = await tasks.getTask(reference.taskId);
+  if (
+    task.status !== 'completed' ||
+    task.acceptedAttemptN !== reference.attemptN
+  ) {
+    throw new Error(
+      `referenced task ${reference.taskId} no longer has accepted attempt ${reference.attemptN}`,
+    );
+  }
+  const attempts = await tasks.listAttempts(reference.taskId);
+  const attempt = attempts.find(
+    (candidate) => candidate.attemptN === reference.attemptN,
+  );
+  if (
+    !attempt ||
+    attempt.status !== 'completed' ||
+    attempt.outputCid !== reference.outputCid
+  ) {
+    throw new Error(
+      `referenced task ${reference.taskId} output CID does not match accepted attempt ${reference.attemptN}`,
+    );
+  }
+  return attempt.output;
+}
+
+function outputSummary(output: unknown, label: string): string {
+  const summary = (output as { summary?: unknown } | null)?.summary;
+  if (typeof summary !== 'string' || summary.length === 0) {
+    throw new Error(`${label} accepted output is missing a summary`);
+  }
+  return summary;
+}
+
+/**
+ * Hydrate only the phase bodies needed for presentation after Absurd has
+ * returned its compact reference envelope.
+ */
+export async function hydrateMultiLensReviewOutput(
+  output: MultiLensReviewDurableOutput,
+  tasks: TaskClient,
+): Promise<MultiLensReviewPublishedOutput> {
+  const preflightReference = output.phaseOutputs.preflight;
+  const synthesisReference = output.phaseOutputs.globalSynthesis;
+  const preflight = preflightReference
+    ? parseDesignPreflight(
+        outputSummary(
+          await acceptedOutput(tasks, preflightReference),
+          'design preflight',
+        ),
+      )
+    : undefined;
+  const verdict = synthesisReference
+    ? parseGlobalVerdict(
+        outputSummary(
+          await acceptedOutput(tasks, synthesisReference),
+          'global synthesis',
+        ),
+      )
+    : output.outcome === 'completed' &&
+        output.diagnostics.coverage.reviewableFiles.length === 0
+      ? {
+          version: 1 as const,
+          recommendation: 'approve-with-nits' as const,
+          findings: [],
+          summary: 'No agent-reviewable files remain.',
+          coverageComplete: true,
+        }
+      : undefined;
+  return {
+    ...output,
+    ...(preflight ? { preflight } : {}),
+    ...(verdict ? { verdict } : {}),
+  };
+}
 
 function jsonObject(summary: string, label: string): Record<string, unknown> {
   let value: unknown;
@@ -196,6 +281,57 @@ export function parseLaneResult(
     findings: findings(value.findings, 'lane result.findings'),
     reviewedFiles: strings(value.reviewedFiles, 'lane result.reviewedFiles'),
     summary: requiredString(value, 'summary', 'lane result'),
+  };
+}
+
+export function parseTopicReviewResult(
+  summary: string,
+  expectedTopic: string,
+  expectedLanes: readonly ReviewLane[],
+): TopicReviewResult {
+  const value = jsonObject(summary, 'topic review result');
+  exactKeys(
+    value,
+    ['version', 'topicId', 'laneResults'],
+    'topic review result',
+  );
+  if (value.version !== 1) {
+    throw new Error('topic review result version must be 1');
+  }
+  if (value.topicId !== expectedTopic) {
+    throw new Error(`topic review result topicId must be ${expectedTopic}`);
+  }
+  if (!Array.isArray(value.laneResults)) {
+    throw new Error('topic review result.laneResults must be an array');
+  }
+  const actualLanes = value.laneResults.map((item, index) => {
+    const candidate =
+      item && typeof item === 'object' && !Array.isArray(item)
+        ? (item as Record<string, unknown>)
+        : null;
+    if (!candidate || typeof candidate.lane !== 'string') {
+      throw new Error(
+        `topic review result.laneResults[${index}].lane must be a known lane`,
+      );
+    }
+    return candidate.lane as ReviewLane;
+  });
+  if (
+    actualLanes.length !== expectedLanes.length ||
+    new Set(actualLanes).size !== actualLanes.length ||
+    expectedLanes.some((lane) => !actualLanes.includes(lane))
+  ) {
+    throw new Error(
+      `topic review result must contain exactly these lanes: ${expectedLanes.join(', ')}`,
+    );
+  }
+  return {
+    version: 1,
+    topicId: expectedTopic,
+    laneResults: value.laneResults.map((item) => {
+      const lane = (item as { lane: ReviewLane }).lane;
+      return parseLaneResult(JSON.stringify(item), expectedTopic, lane);
+    }),
   };
 }
 

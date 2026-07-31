@@ -9,6 +9,10 @@ const BASE_ARGS = [
   'diary-id',
   '--target',
   'change',
+  '--review-base-revision',
+  'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+  '--review-revision',
+  'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
   '--diff',
   'diff',
 ];
@@ -83,6 +87,98 @@ describe('parseCliConfig', () => {
       kind: 'run',
       config: { input: { correlationId: 'stable-run-id' } },
     });
+  });
+
+  it('accepts an explicit accepted planner task for recovery', () => {
+    expect(
+      parseCliConfig(
+        [...BASE_ARGS, '--planner-task-id', 'accepted-planner-task'],
+        deps(),
+      ),
+    ).toMatchObject({
+      kind: 'run',
+      config: {
+        input: { plannerTaskId: 'accepted-planner-task' },
+      },
+    });
+  });
+
+  it('accepts accepted preflight and topic tasks for partial-run recovery', () => {
+    expect(
+      parseCliConfig(
+        [
+          ...BASE_ARGS,
+          '--preflight-task-id',
+          'accepted-preflight-task',
+          '--topic-task-id',
+          'accepted-topic-one',
+          '--topic-task-id',
+          'accepted-topic-two',
+        ],
+        deps(),
+      ),
+    ).toMatchObject({
+      kind: 'run',
+      config: {
+        input: {
+          preflightTaskId: 'accepted-preflight-task',
+          topicReviewTaskIds: ['accepted-topic-one', 'accepted-topic-two'],
+        },
+      },
+    });
+  });
+
+  it('accepts an exact review revision for repository-aware phases', () => {
+    const revision = 'a'.repeat(40);
+    expect(
+      parseCliConfig([...BASE_ARGS, '--review-revision', revision], deps()),
+    ).toMatchObject({
+      kind: 'run',
+      config: {
+        input: { reviewRevision: revision },
+      },
+    });
+  });
+
+  it('accepts an exact comparison base for bounded Git inspection', () => {
+    const revision = 'b'.repeat(40);
+    expect(
+      parseCliConfig(
+        [...BASE_ARGS, '--review-base-revision', revision],
+        deps(),
+      ),
+    ).toMatchObject({
+      kind: 'run',
+      config: {
+        input: { reviewBaseRevision: revision },
+      },
+    });
+  });
+
+  it('requires an exact review revision for a run', () => {
+    expect(() =>
+      parseCliConfig(
+        BASE_ARGS.filter(
+          (value, index, values) =>
+            value !== '--review-revision' &&
+            values[index - 1] !== '--review-revision',
+        ),
+        deps(),
+      ),
+    ).toThrow(/--review-revision is required/);
+  });
+
+  it('requires an exact review base revision for a run', () => {
+    expect(() =>
+      parseCliConfig(
+        BASE_ARGS.filter(
+          (value, index, values) =>
+            value !== '--review-base-revision' &&
+            values[index - 1] !== '--review-base-revision',
+        ),
+        deps(),
+      ),
+    ).toThrow(/--review-base-revision is required/);
   });
 
   it('requires the database URL for a run', () => {

@@ -168,6 +168,7 @@ jobs:
           CORRELATION_ID: ${{ needs.prepare.outputs.correlation-id }}
           PROFILE: ${{ needs.prepare.outputs.profile }}
           PR_NUMBER: ${{ needs.prepare.outputs.pr-number }}
+          BASE_SHA: ${{ needs.prepare.outputs.base-sha }}
           HEAD_SHA: ${{ needs.prepare.outputs.head-sha }}
         run: |
           set -euo pipefail
@@ -176,6 +177,8 @@ jobs:
             --team "$MOLTNET_TEAM_ID" \
             --diary "$MOLTNET_DIARY_ID" \
             --target "$GITHUB_REPOSITORY pull request #$PR_NUMBER at $HEAD_SHA" \
+            --review-base-revision "$BASE_SHA" \
+            --review-revision "$HEAD_SHA" \
             --diff-file "$RUNNER_TEMP/multi-lens-review/pull-request.diff" \
             --files-metadata "$RUNNER_TEMP/multi-lens-review/pull-request-files.json" \
             --profile "$PROFILE" \
@@ -299,6 +302,10 @@ jobs:
         with:
           ref: ${{ needs.prepare.outputs.base-sha }}
           persist-credentials: false
+      - name: Fetch the untrusted review commit as inert git data
+        env:
+          HEAD_SHA: ${{ needs.prepare.outputs.head-sha }}
+        run: git fetch --no-tags --depth=1 origin "$HEAD_SHA"
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v6
         with:

@@ -7,9 +7,17 @@ import type {
 import { FakeTasks } from '@themoltnet/tasks-orchestrator/testing';
 import { describe, expect, it, vi } from 'vitest';
 
+import { durableMultiLensReviewOutput } from './absurd.js';
+import { hydrateMultiLensReviewOutput } from './review-output.js';
 import { reviewManifest } from './test-fixtures.js';
-import type { ReviewArtifactStore, ReviewLane, ReviewTopic } from './types.js';
-import { runMultiLensReview } from './workflow.js';
+import type {
+  MultiLensReviewDeps,
+  ReviewArtifactStore,
+  ReviewLane,
+  ReviewPatchSource,
+  ReviewTopic,
+} from './types.js';
+import { assertReusablePlannerTask, runMultiLensReview } from './workflow.js';
 
 function fakeId(n: number): string {
   return `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
@@ -52,30 +60,26 @@ function preflight(
   });
 }
 
-function lane(
-  topicId: string,
-  reviewLane: ReviewLane,
-  files = ['src/change.ts'],
-) {
-  return summary({
+function laneResult(topicId: string, lane: ReviewLane, files: string[]) {
+  return {
     version: 1,
     topicId,
-    lane: reviewLane,
+    lane,
     findings: [],
     reviewedFiles: files,
     summary: 'Clean.',
-  });
+  };
 }
 
-function topicVerdict(topic: ReviewTopic) {
+function topicReview(
+  topic: ReviewTopic,
+  lanes: ReviewLane[] = topic.lanes,
+  files: string[] = topic.primaryFiles,
+) {
   return summary({
     version: 1,
     topicId: topic.id,
-    recommendation: 'approve',
-    findings: [],
-    coveredFiles: topic.primaryFiles,
-    coveredLanes: topic.lanes,
-    summary: 'Topic clean.',
+    laneResults: lanes.map((lane) => laneResult(topic.id, lane, files)),
   });
 }
 
@@ -102,11 +106,15 @@ function artifactStore(
   fileBytes = 64,
   plannerOutput?: unknown,
 ): ReviewArtifactStore & {
-  staged: Uint8Array[];
+  staged: Array<{ bytes: Uint8Array; contentType: string }>;
+  patches: ReviewPatchSource;
 } {
-  const staged: Uint8Array[] = [];
+  const staged: Array<{ bytes: Uint8Array; contentType: string }> = [];
   return {
     staged,
+    patches: {
+      read: vi.fn(() => Promise.resolve(new Uint8Array(fileBytes))),
+    },
     download: vi.fn((_taskId, cid) =>
       Promise.resolve(
         cid === 'bafkrei-planner-output'
@@ -114,15 +122,31 @@ function artifactStore(
           : new Uint8Array(fileBytes),
       ),
     ),
-    stage: vi.fn((bytes: Uint8Array) => {
-      staged.push(bytes);
-      return Promise.resolve({
-        cid: `bafkrei-topic-${staged.length}`,
-        contentType: 'application/vnd.themoltnet.review-topic+diff;version=1',
-        sizeBytes: bytes.byteLength,
-      });
-    }),
+    stage: vi.fn(
+      (
+        bytes: Uint8Array,
+        metadata: { contentType: string },
+      ): Promise<{
+        cid: string;
+        contentType: string;
+        sizeBytes: number;
+      }> => {
+        staged.push({ bytes, contentType: metadata.contentType });
+        return Promise.resolve({
+          cid: `bafkrei-staged-${staged.length}`,
+          contentType: metadata.contentType,
+          sizeBytes: bytes.byteLength,
+        });
+      },
+    ),
   };
+}
+
+function deps(
+  tasks: TaskClient,
+  artifacts = artifactStore(),
+): MultiLensReviewDeps {
+  return { tasks, artifacts, patches: artifacts.patches };
 }
 
 function input(
@@ -134,52 +158,368 @@ function input(
     diaryId: 'diary',
     correlationId: 'correlation',
     target: 'pull request',
+    reviewBaseRevision: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+    reviewRevision: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
     reviewManifest: reviewManifest(paths, options),
     pollIntervalSec: 1,
   };
 }
 
+function reusablePlannerTask(references: SdkTask['references']): SdkTask {
+  return {
+    id: 'accepted-planner-task',
+    taskType: 'freeform',
+    title: 'Plan bounded review topics',
+    teamId: 'team',
+    diaryId: 'diary',
+    status: 'completed',
+    acceptedAttemptN: 1,
+    references,
+  } as SdkTask;
+}
+
 describe('runMultiLensReview', () => {
-  it('uses one deterministic topic and binds specialists only to its bounded CID', async () => {
+  it('allows one explicit recovery candidate on an accepted reusable planner task', () => {
+    const normalized = {
+      ...input({ requiresPlanning: true }),
+      requestedLanes: [],
+    } as Parameters<typeof assertReusablePlannerTask>[1];
+    const manifest = normalized.reviewManifest.manifestArtifact;
+    const task = reusablePlannerTask([
+      {
+        taskId: null,
+        role: 'context',
+        artifact: {
+          cid: manifest.cid,
+          kind: 'input',
+          title: manifest.title,
+          contentType: manifest.contentType,
+        },
+      },
+      {
+        taskId: null,
+        role: 'context',
+        artifact: {
+          cid: 'bafkrei-recovered-candidate',
+          kind: 'review-topic-plan-candidate',
+          title: 'review-topic-plan.candidate.json',
+          contentType:
+            'application/vnd.themoltnet.review-topic-plan-candidate+json',
+        },
+      },
+    ]);
+
+    expect(() => assertReusablePlannerTask(task, normalized)).not.toThrow();
+  });
+
+  it('rejects arbitrary extra artifacts on an accepted reusable planner task', () => {
+    const normalized = {
+      ...input({ requiresPlanning: true }),
+      requestedLanes: [],
+    } as Parameters<typeof assertReusablePlannerTask>[1];
+    const manifest = normalized.reviewManifest.manifestArtifact;
+    const task = reusablePlannerTask([
+      {
+        taskId: null,
+        role: 'context',
+        artifact: {
+          cid: manifest.cid,
+          kind: 'input',
+          title: manifest.title,
+          contentType: manifest.contentType,
+        },
+      },
+      {
+        taskId: null,
+        role: 'context',
+        artifact: {
+          cid: 'bafkrei-untrusted-extra',
+          kind: 'input',
+          title: 'unrelated.txt',
+          contentType: 'text/plain',
+        },
+      },
+    ]);
+
+    expect(() => assertReusablePlannerTask(task, normalized)).toThrow(
+      /artifact references other than/,
+    );
+  });
+
+  it('reuses accepted preflight and topic tasks while creating only missing downstream work', async () => {
     const topic = deterministicTopic();
     const tasks = new FakeTasks([
       preflight(),
-      lane(topic.id, 'correctness'),
-      lane(topic.id, 'dry-codebase-fit'),
-      topicVerdict(topic),
+      topicReview(topic),
+      globalVerdict(),
+      globalVerdict(),
+    ]);
+    const firstArtifacts = artifactStore();
+    const first = await runMultiLensReview(
+      input(),
+      deps(tasks, firstArtifacts),
+    );
+
+    const secondArtifacts = artifactStore();
+    const second = await runMultiLensReview(
+      {
+        ...input(),
+        correlationId: 'recovery-correlation',
+        preflightTaskId: first.phaseOutputs.preflight?.taskId,
+        topicReviewTaskIds: first.phaseOutputs.topicReviews.map(
+          (review) => review.taskId,
+        ),
+      },
+      deps(tasks, secondArtifacts),
+    );
+
+    expect(second.outcome).toBe('completed');
+    expect(second.phaseOutputs.preflight?.taskId).toBe(
+      first.phaseOutputs.preflight?.taskId,
+    );
+    expect(second.phaseOutputs.topicReviews).toEqual(
+      first.phaseOutputs.topicReviews,
+    );
+    expect(tasks.created).toHaveLength(4);
+    expect(tasks.created[3].title).toBe('Global review synthesis');
+  });
+
+  it('reuses a strict-output continuation through its accepted topic parent lineage', async () => {
+    const topic = deterministicTopic();
+    const tasks = new FakeTasks([
+      preflight(),
+      topicReview(topic),
+      globalVerdict(),
+      topicReview(topic),
+      globalVerdict(),
+    ]);
+    const first = await runMultiLensReview(input(), deps(tasks));
+    const parentTaskId = first.phaseOutputs.topicReviews[0].taskId;
+    const continuation = await tasks.createTask({
+      teamId: 'team',
+      diaryId: 'diary',
+      taskType: 'freeform',
+      input: {
+        brief: 'Correct only the previously submitted JSON serialization.',
+        continueFrom: {
+          taskId: parentTaskId,
+          attemptN: 1,
+        },
+      },
+      claimCondition: {
+        op: 'task_status',
+        taskId: parentTaskId,
+        statuses: ['completed'],
+      },
+      maxAttempts: 1,
+    });
+
+    const recovered = await runMultiLensReview(
+      {
+        ...input(),
+        correlationId: 'continuation-recovery',
+        preflightTaskId: first.phaseOutputs.preflight?.taskId,
+        topicReviewTaskIds: [continuation.id],
+      },
+      deps(tasks),
+    );
+
+    expect(recovered.outcome).toBe('completed');
+    expect(recovered.phaseOutputs.topicReviews[0].taskId).toBe(continuation.id);
+    expect(tasks.created).toHaveLength(5);
+    expect(tasks.created[4].title).toBe('Global review synthesis');
+  });
+
+  it('checkpoints only task ids and artifact references', async () => {
+    const topic = deterministicTopic();
+    const tasks = new FakeTasks([
+      preflight(),
+      topicReview(topic),
+      globalVerdict(),
+    ]);
+    const checkpointed = new Map<string, unknown>();
+    const ctx: WorkflowContext = {
+      step: async (name, fn) => {
+        const value = await fn();
+        checkpointed.set(name, value);
+        return value;
+      },
+      sleepFor: () => Promise.resolve(),
+    };
+
+    await runMultiLensReview(input(), deps(tasks), ctx);
+
+    for (const [name, value] of checkpointed) {
+      if (name.endsWith('.create')) {
+        expect(value, name).toEqual(expect.any(String));
+      }
+      if (name.endsWith('.artifact.stage')) {
+        expect(value, name).toHaveProperty('cid');
+        expect(typeof (value as { cid: unknown }).cid, name).toBe('string');
+      }
+    }
+  });
+
+  it('bounds global synthesis to one artifact read and at most 20 findings', async () => {
+    const topic = deterministicTopic();
+    const tasks = new FakeTasks([
+      preflight(),
+      topicReview(topic),
+      globalVerdict(),
+    ]);
+
+    await runMultiLensReview(input(), deps(tasks));
+
+    const synthesis = tasks.created.find(
+      (task) => task.title === 'Global review synthesis',
+    );
+    expect(synthesis).toBeDefined();
+    expect((synthesis?.input as { brief: string }).brief).toContain(
+      'Return at most 20 findings',
+    );
+    expect(
+      (synthesis?.input as { constraints: string[] }).constraints,
+    ).toContain(
+      'Do not use bash, write, edit, repository, memory, or task-list tools.',
+    );
+    expect(
+      (
+        synthesis?.input as {
+          successCriteria: { gates: Array<{ id: string }> };
+        }
+      ).successCriteria.gates,
+    ).toContainEqual(expect.objectContaining({ id: 'submit-global-verdict' }));
+  });
+
+  it('persists only remote output references in the Absurd result', async () => {
+    const topic = deterministicTopic();
+    const tasks = new FakeTasks([
+      preflight(),
+      topicReview(topic),
+      globalVerdict(),
+    ]);
+    const output = await runMultiLensReview(input(), deps(tasks));
+
+    const durable = durableMultiLensReviewOutput(output);
+
+    expect(durable).not.toHaveProperty('plan');
+    expect(durable).not.toHaveProperty('preflight');
+    expect(durable).not.toHaveProperty('topicVerdicts');
+    expect(durable).not.toHaveProperty('verdict');
+    expect(durable.phaseOutputs.topicVerdictsArtifact).toMatchObject({
+      cid: 'bafkrei-staged-2',
+    });
+    expect(durable.phaseOutputs.globalSynthesis).toMatchObject({
+      taskId: fakeId(3),
+      attemptN: 1,
+      outputCid: `cid-${fakeId(3)}`,
+    });
+    await expect(
+      hydrateMultiLensReviewOutput(durable, tasks),
+    ).resolves.toMatchObject({
+      verdict: { recommendation: 'approve', coverageComplete: true },
+    });
+  });
+
+  it('uses one bounded multi-lens task per topic at the exact review revision', async () => {
+    const topic = deterministicTopic();
+    const tasks = new FakeTasks([
+      preflight(),
+      topicReview(topic),
       globalVerdict(),
     ]);
     const artifacts = artifactStore();
-    const output = await runMultiLensReview(input(), { tasks, artifacts });
+    const revision = 'a'.repeat(40);
+    const output = await runMultiLensReview(
+      { ...input(), reviewRevision: revision },
+      deps(tasks, artifacts),
+    );
 
     expect(output).toMatchObject({
       outcome: 'completed',
       plan: { topics: [{ id: 'change' }] },
       verdict: { recommendation: 'approve', coverageComplete: true },
     });
-    const specialists = tasks.created.filter((task) =>
-      task.title?.startsWith('Review change'),
+    const reviewers = tasks.created.filter((task) =>
+      task.title?.startsWith('Review topic change'),
     );
-    expect(specialists).toHaveLength(2);
-    for (const task of tasks.created) {
-      expect(task.input).toMatchObject({
-        execution: { workspace: 'none' },
-      });
-    }
-    for (const specialist of specialists) {
-      expect(specialist.references).toHaveLength(1);
-      expect(specialist.references?.[0].artifact?.cid).toBe('bafkrei-topic-1');
-      expect(specialist.references?.[0].artifact?.cid).not.toBe(
-        'bafkrei-manifest',
-      );
-      expect(specialist.references?.[0].artifact?.cid).not.toBe(
-        'bafkrei-file-0',
-      );
-    }
-    expect(artifacts.staged).toHaveLength(1);
+    expect(reviewers).toHaveLength(1);
+    expect(reviewers[0].input.execution).toEqual({
+      workspace: 'dedicated_worktree',
+      revision,
+    });
+    expect(reviewers[0].references).toHaveLength(1);
+    expect(reviewers[0].references?.[0].artifact?.cid).toBe('bafkrei-staged-1');
+    expect(reviewers[0].input.brief).toContain('bafkrei-staged-1');
+    expect(reviewers[0].input.brief).toContain(
+      'moltnet_download_task_artifact',
+    );
+    expect(reviewers[0].input.brief).toContain('not a guest file');
+    expect(reviewers[0].input.brief).toContain(
+      'at most one parallel repository-search batch',
+    );
+    expect(reviewers[0].input.brief).toContain('Do not use bash');
+    expect(reviewers[0].input.brief).toContain(
+      "reviewedFiles must equal exactly this topic's primaryFiles",
+    );
+    expect(reviewers[0].input.brief).toContain(
+      'repository-search matches may inform a lane but must never appear in reviewedFiles',
+    );
+    expect(reviewers[0].input.constraints).toContain(
+      'Finish within seven tool-use turns and submit as soon as the bounded evidence is sufficient.',
+    );
+    expect(reviewers[0].input.successCriteria).toMatchObject({
+      version: 1,
+      gates: [{ id: 'submit-topic-review' }],
+    });
+    expect(tasks.created[0].input.execution).toEqual({
+      workspace: 'dedicated_worktree',
+      revision,
+    });
+    expect(tasks.created[0].references).toHaveLength(1);
+    expect(tasks.created[0].references?.[0].artifact?.cid).toBe(
+      'bafkrei-manifest',
+    );
+    expect(tasks.created[0].input.brief).toContain(
+      'no per-file patch payload was uploaded before classification',
+    );
+    expect(tasks.created[0].input.brief).toContain('Tool-turn budget');
+    expect(tasks.created[0].input.successCriteria).toMatchObject({
+      version: 1,
+      gates: [{ id: 'submit-design-preflight' }],
+    });
+    expect(tasks.created[2].input.execution).toEqual({ workspace: 'none' });
+    expect(artifacts.staged).toHaveLength(2);
   });
 
-  it('lets the LLM exclude derived text without binding it to specialists', async () => {
+  it('counts the accepted planner output in artifact diagnostics', async () => {
+    const topic = deterministicTopic();
+    const plan = { version: 1 as const, excludedFiles: [], topics: [topic] };
+    const tasks = new FakeTasks([
+      plannerSummary(plan),
+      preflight(),
+      topicReview(topic),
+      globalVerdict(),
+    ]);
+    const artifacts = artifactStore(64, plan);
+
+    const output = await runMultiLensReview(
+      input({ requiresPlanning: true }),
+      deps(tasks, artifacts),
+    );
+
+    expect(output.diagnostics.cost.artifacts).toBe(4);
+    expect(output.diagnostics.cost.artifactBytes).toBe(
+      100 +
+        Buffer.byteLength(JSON.stringify(plan)) +
+        artifacts.staged.reduce(
+          (total, artifact) => total + artifact.bytes.byteLength,
+          0,
+        ),
+    );
+  });
+
+  it('lets the LLM exclude derived text without binding it to topic review', async () => {
     const topic = deterministicTopic();
     const exclusion = {
       path: 'derived.data',
@@ -188,65 +528,49 @@ describe('runMultiLensReview', () => {
     };
     const tasks = new FakeTasks([
       preflight('PROCEED', [exclusion]),
-      lane(topic.id, 'correctness'),
-      lane(topic.id, 'dry-codebase-fit'),
-      topicVerdict(topic),
+      topicReview(topic),
       globalVerdict(),
     ]);
-    const artifacts = artifactStore();
     const output = await runMultiLensReview(
       input({}, ['src/change.ts', 'derived.data']),
-      { tasks, artifacts },
+      deps(tasks),
     );
 
     expect(output.diagnostics.coverage.excludedFiles).toEqual([
       { ...exclusion, source: 'model' },
     ]);
     expect(output.plan.topics[0].primaryFiles).toEqual(['src/change.ts']);
-    expect(artifacts.staged[0]).toHaveLength(64);
   });
 
-  it('declares one server-gated reducer per topic and a global gated synthesis', async () => {
-    const topic = deterministicTopic();
-    const tasks = new FakeTasks([
-      preflight(),
-      lane(topic.id, 'correctness'),
-      lane(topic.id, 'dry-codebase-fit'),
-      topicVerdict(topic),
-      globalVerdict(),
-    ]);
-    await runMultiLensReview(input(), { tasks, artifacts: artifactStore() });
-    expect(tasks.created[3].claimCondition).toEqual({
-      op: 'all',
-      conditions: [fakeId(2), fakeId(3)].map((taskId) => ({
-        op: 'task_status',
-        taskId,
-        statuses: ['completed'],
-      })),
-    });
-    expect(tasks.created[4].claimCondition).toEqual({
-      op: 'task_status',
-      taskId: fakeId(4),
-      statuses: ['completed'],
-    });
+  it('verifies trusted patch bytes before staging an accepted topic', async () => {
+    const tasks = new FakeTasks([preflight()]);
+    const artifacts = artifactStore();
+    artifacts.patches.read = vi.fn(() => Promise.resolve(new Uint8Array(63)));
+
+    await expect(
+      runMultiLensReview(input(), deps(tasks, artifacts)),
+    ).rejects.toThrow(
+      /review patch src\/change\.ts size changed \(expected 64, got 63\)/,
+    );
+    expect(artifacts.staged).toHaveLength(0);
+    expect(
+      tasks.created.some((task) => task.title?.startsWith('Review topic')),
+    ).toBe(false);
   });
 
-  it('ends PIVOT and ASK before line-level specialist tasks', async () => {
+  it('ends PIVOT and ASK before topic review tasks', async () => {
     for (const verdict of ['PIVOT', 'ASK'] as const) {
       const tasks = new FakeTasks([preflight(verdict)]);
-      const output = await runMultiLensReview(input(), {
-        tasks,
-        artifacts: artifactStore(),
-      });
+      const output = await runMultiLensReview(input(), deps(tasks));
       expect(output.outcome).toBe(verdict === 'PIVOT' ? 'pivot' : 'questions');
       expect(tasks.created).toHaveLength(1);
       expect(
-        tasks.created.some((task) => task.title?.startsWith('Review ')),
+        tasks.created.some((task) => task.title?.startsWith('Review topic')),
       ).toBe(false);
     }
   });
 
-  it('runs the LLM planner only above trusted thresholds and rejects an invalid plan once', async () => {
+  it('rejects an invalid planner artifact once without releasing review work', async () => {
     const invalidPlan = {
       version: 1 as const,
       excludedFiles: [],
@@ -262,8 +586,7 @@ describe('runMultiLensReview', () => {
     const tasks = new FakeTasks([plannerSummary(invalidPlan), preflight()]);
     await expect(
       runMultiLensReview(input({ requiresPlanning: true }), {
-        tasks,
-        artifacts: artifactStore(64, invalidPlan),
+        ...deps(tasks, artifactStore(64, invalidPlan)),
       }),
     ).rejects.toThrow(/invalid topic plan/);
     expect(tasks.created.map((task) => task.title)).toEqual([
@@ -271,58 +594,40 @@ describe('runMultiLensReview', () => {
       'Global design preflight',
     ]);
     expect(tasks.created[0].input.brief).toContain(
-      'complete bounded review manifest is embedded below',
+      'One bounded multi-lens reviewer',
+    );
+    expect(tasks.created[0].input.brief).not.toContain(
+      '32 total topic×lane tasks',
+    );
+    expect(tasks.created[0].input.execution).toEqual({
+      workspace: 'dedicated_worktree',
+      revision: input().reviewRevision,
+    });
+    expect(tasks.created[0].references).toHaveLength(1);
+    expect(tasks.created[0].references?.[0].artifact?.cid).toBe(
+      'bafkrei-manifest',
     );
     expect(tasks.created[0].input.brief).toContain(
-      'or read the daemon checkout',
+      `exact comparison base is ${input().reviewBaseRevision}`,
     );
-    expect(tasks.created[0].input.brief).toContain('src/change.ts');
-    expect(tasks.created[0].input.brief).toContain('bafkrei-file-0');
-    expect(tasks.created[0].input.brief).toContain('Trusted lane-budget guide');
-    expect(tasks.created[0].input.brief).toContain(
-      'Use an empty `lanes` array',
+    expect(tasks.created[0].input.successCriteria).toMatchObject({
+      version: 1,
+      gates: [{ id: 'submit-versioned-json-artifact' }],
+    });
+    expect(tasks.created[1].references).toHaveLength(1);
+    expect(tasks.created[1].references?.[0].artifact?.cid).toBe(
+      'bafkrei-manifest',
     );
-    expect(tasks.created[0].input.brief).toContain(
-      'download its exact per-file artifact',
-    );
-    expect(tasks.created[0].input.brief).toContain('bafkrei-manifest');
-    expect(tasks.created[0].input.brief).toContain(
-      'available local calculator',
-    );
-    expect(tasks.created[0].input.brief).toContain(
-      'never shell or CLI wrappers, for artifact access',
-    );
-    expect(tasks.created[0].input.constraints).not.toContain(
-      'Do not run shell commands.',
-    );
-    expect(tasks.created[0].input.brief).toContain(
-      'union of excludedFiles and every topic',
-    );
-    expect(tasks.created[0].input.brief).toContain(
-      'generally need four or fewer semantic topics',
-    );
-    expect(tasks.created[0].input.brief).toContain(
-      'moltnet_upload_task_artifact',
-    );
-    expect(tasks.created[0].input.execution).toEqual({ workspace: 'none' });
-    expect(tasks.created[1].input.execution).toEqual({ workspace: 'none' });
-    expect(tasks.created[0].input.expectedOutput).toContain(
-      'artifacts entry references the uploaded',
-    );
-    expect(tasks.created[1].input.brief).toContain('moltnet_get_task');
     expect(tasks.created[1].input.brief).toContain(
+      'moltnet_list_task_artifacts',
+    );
+    expect(tasks.created[1].input.brief).not.toContain('moltnet_get_task');
+    expect(tasks.created[1].input.brief).not.toContain(
       'moltnet_list_task_attempts',
     );
-    expect(tasks.created[1].input.brief).toContain(
-      'moltnet_download_task_artifact',
-    );
-    expect(tasks.created[1].input.brief).toContain(
-      'accepted-review-topic-plan.v1.json',
-    );
-    expect(tasks.created[1].input.brief).toContain('explicit artifacts[] CID');
   });
 
-  it('rejects a planner output that does not reference its uploaded plan artifact', async () => {
+  it('rejects planner output without its uploaded artifact', async () => {
     const plan = {
       version: 1 as const,
       excludedFiles: [],
@@ -332,91 +637,75 @@ describe('runMultiLensReview', () => {
 
     await expect(
       runMultiLensReview(input({ requiresPlanning: true }), {
-        tasks,
-        artifacts: artifactStore(64, plan),
+        ...deps(tasks, artifactStore(64, plan)),
       }),
     ).rejects.toThrow(
       /must reference exactly one uploaded review-topic-plan\.v1\.json artifact/,
     );
   });
 
-  it('cannot approve failed required lanes or incomplete lane coverage', async () => {
-    const topic = deterministicTopic();
-    const failed = new FakeTasks([
+  it('uses a canary and does not release remaining topics after its failure', async () => {
+    const topics: ReviewTopic[] = [
+      {
+        id: 'one',
+        title: 'One',
+        primaryFiles: ['one.ts'],
+        lanes: ['correctness', 'dry-codebase-fit'],
+      },
+      {
+        id: 'two',
+        title: 'Two',
+        primaryFiles: ['two.ts'],
+        lanes: ['correctness', 'dry-codebase-fit'],
+      },
+    ];
+    const plan = { version: 1 as const, excludedFiles: [], topics };
+    const tasks = new FakeTasks([
+      plannerSummary(plan),
       preflight(),
-      { __taskStatus: 'failed', error: { message: 'review failed' } },
-      lane(topic.id, 'dry-codebase-fit'),
-      topicVerdict(topic),
-      globalVerdict(),
+      { __taskStatus: 'failed', error: { message: 'canary failed' } },
     ]);
-    await expect(
-      runMultiLensReview(input(), {
-        tasks: failed,
-        artifacts: artifactStore(),
-      }),
-    ).rejects.toThrow();
 
-    const incomplete = new FakeTasks([
-      preflight(),
-      lane(topic.id, 'correctness', []),
-      lane(topic.id, 'dry-codebase-fit'),
-      topicVerdict(topic),
-      globalVerdict(),
-    ]);
     await expect(
-      runMultiLensReview(input(), {
-        tasks: incomplete,
-        artifacts: artifactStore(),
-      }),
-    ).rejects.toThrow(/did not cover/);
+      runMultiLensReview(
+        input({ requiresPlanning: true }, ['one.ts', 'two.ts']),
+        deps(tasks, artifactStore(64, plan)),
+      ),
+    ).rejects.toThrow();
+    expect(
+      tasks.created.filter((task) => task.title?.startsWith('Review topic')),
+    ).toHaveLength(1);
+    expect(
+      tasks.created.some((task) => task.title === 'Global review synthesis'),
+    ).toBe(false);
   });
 
-  it('cannot approve incomplete topic or global coverage', async () => {
+  it('cannot approve incomplete lane or global coverage', async () => {
     const topic = deterministicTopic();
-    const incompleteTopic = new FakeTasks([
+    const incomplete = new FakeTasks([
       preflight(),
-      lane(topic.id, 'correctness'),
-      lane(topic.id, 'dry-codebase-fit'),
-      summary({
-        version: 1,
-        topicId: topic.id,
-        recommendation: 'approve',
-        findings: [],
-        coveredFiles: [],
-        coveredLanes: topic.lanes,
-        summary: 'Incomplete.',
-      }),
-      globalVerdict(),
+      topicReview(topic, topic.lanes, []),
     ]);
-    await expect(
-      runMultiLensReview(input(), {
-        tasks: incompleteTopic,
-        artifacts: artifactStore(),
-      }),
-    ).rejects.toThrow(/invalid coverage/);
+    await expect(runMultiLensReview(input(), deps(incomplete))).rejects.toThrow(
+      /did not cover/,
+    );
 
     const incompleteGlobal = new FakeTasks([
       preflight(),
-      lane(topic.id, 'correctness'),
-      lane(topic.id, 'dry-codebase-fit'),
-      topicVerdict(topic),
+      topicReview(topic),
       globalVerdict(false),
     ]);
     await expect(
-      runMultiLensReview(input(), {
-        tasks: incompleteGlobal,
-        artifacts: artifactStore(),
-      }),
+      runMultiLensReview(input(), deps(incompleteGlobal)),
     ).rejects.toThrow(/cannot approve incomplete coverage/);
   });
 
-  it('routes planner, preflight, lanes, reducers, and synthesis independently', async () => {
+  it('groups topic lanes by runtime profile without breaking lane overrides', async () => {
     const topic = deterministicTopic();
     const tasks = new FakeTasks([
       preflight(),
-      lane(topic.id, 'correctness'),
-      lane(topic.id, 'dry-codebase-fit'),
-      topicVerdict(topic),
+      topicReview(topic, ['correctness']),
+      topicReview(topic, ['dry-codebase-fit']),
       globalVerdict(),
     ]);
     await runMultiLensReview(
@@ -426,15 +715,55 @@ describe('runMultiLensReview', () => {
           defaultProfileId: 'default',
           preflightProfileId: 'preflight',
           laneProfileIds: { correctness: 'correctness' },
-          topicReducerProfileId: 'reducer',
+          topicReducerProfileId: 'topic-review',
           globalSynthesisProfileId: 'synthesis',
         },
       },
-      { tasks, artifacts: artifactStore() },
+      deps(tasks),
     );
+
     expect(
       tasks.created.map((task) => task.allowedProfiles?.[0]?.profileId),
-    ).toEqual(['preflight', 'correctness', 'default', 'reducer', 'synthesis']);
+    ).toEqual(['preflight', 'correctness', 'topic-review', 'synthesis']);
+    expect(
+      tasks.created.filter((task) => task.title?.startsWith('Review topic')),
+    ).toHaveLength(2);
+  });
+
+  it('rejects profile routing that expands beyond the bounded topic task budget', async () => {
+    const paths = Array.from({ length: 7 }, (_, index) => `src/${index}.ts`);
+    const plan = {
+      version: 1 as const,
+      excludedFiles: [],
+      topics: paths.map((path, index) => ({
+        id: `topic-${index}`,
+        title: `Topic ${index}`,
+        primaryFiles: [path],
+        lanes: [] as ReviewLane[],
+      })),
+    };
+    const tasks = new FakeTasks([plannerSummary(plan), preflight()]);
+    const artifacts = artifactStore(64, plan);
+
+    await expect(
+      runMultiLensReview(
+        {
+          ...input({ requiresPlanning: true }, paths),
+          profileRouting: {
+            defaultProfileId: 'default',
+            laneProfileIds: { correctness: 'correctness' },
+          },
+        },
+        deps(tasks, artifacts),
+      ),
+    ).rejects.toThrow(
+      /expands 7 topics into 14 topic review tasks; maximum is 12/,
+    );
+    expect(artifacts.staged).toHaveLength(0);
+    expect(tasks.created.map((task) => task.title)).toEqual([
+      'Plan bounded review topics',
+      'Global design preflight',
+    ]);
   });
 });
 
@@ -447,7 +776,6 @@ class StatefulGraphTasks implements TaskClient {
   createTask(body: Parameters<TaskClient['createTask']>[0]): Promise<SdkTask> {
     const id = fakeId(this.next++);
     const now = new Date().toISOString();
-    const waiting = body.claimCondition !== undefined;
     const task = {
       id,
       taskType: body.taskType,
@@ -467,8 +795,8 @@ class StatefulGraphTasks implements TaskClient {
       claimCondition: body.claimCondition ?? null,
       requiredExecutorTrustLevel: 'selfDeclared',
       allowedProfiles: body.allowedProfiles ?? [],
-      status: waiting ? 'waiting' : 'queued',
-      queuedAt: waiting ? null : now,
+      status: body.claimCondition ? 'waiting' : 'queued',
+      queuedAt: body.claimCondition ? null : now,
       completedAt: null,
       expiresAt: null,
       cancelledByAgentId: null,
@@ -481,6 +809,7 @@ class StatefulGraphTasks implements TaskClient {
     this.created.push(body);
     this.tasks.set(id, task);
     this.attempts.set(id, []);
+    this.promote();
     return Promise.resolve(task);
   }
 
@@ -580,23 +909,31 @@ function controlledContext(): {
 }
 
 describe('stateful graph gates', () => {
-  it('promotes planner → preflight → lanes → reducer → global synthesis', async () => {
+  it('promotes planner → preflight → canary → remaining topics → synthesis', async () => {
     const tasks = new StatefulGraphTasks();
     const { ctx, release } = controlledContext();
-    const topic: ReviewTopic = {
-      id: 'topic',
-      title: 'Topic',
-      primaryFiles: ['src/change.ts'],
-      lanes: ['correctness', 'dry-codebase-fit'],
-    };
+    const topics: ReviewTopic[] = [
+      {
+        id: 'one',
+        title: 'One',
+        primaryFiles: ['one.ts'],
+        lanes: ['correctness', 'dry-codebase-fit'],
+      },
+      {
+        id: 'two',
+        title: 'Two',
+        primaryFiles: ['two.ts'],
+        lanes: ['correctness', 'dry-codebase-fit'],
+      },
+    ];
     const plannerPlan = {
       version: 1 as const,
       excludedFiles: [],
-      topics: [topic],
+      topics,
     };
     const run = runMultiLensReview(
-      input({ requiresPlanning: true }),
-      { tasks, artifacts: artifactStore(64, plannerPlan) },
+      input({ requiresPlanning: true }, ['one.ts', 'two.ts']),
+      deps(tasks, artifactStore(64, plannerPlan)),
       ctx,
     );
 
@@ -610,23 +947,22 @@ describe('stateful graph gates', () => {
     tasks.complete(fakeId(2), preflight());
     release();
 
-    await vi.waitFor(() => expect(tasks.created).toHaveLength(6));
-    expect((await tasks.getTask(fakeId(5))).status).toBe('waiting');
-    expect((await tasks.getTask(fakeId(6))).status).toBe('waiting');
-    tasks.complete(fakeId(3), lane('topic', 'correctness'));
+    await vi.waitFor(() => expect(tasks.created).toHaveLength(3));
+    expect(tasks.created[2].title).toContain('Review topic one');
+    tasks.complete(fakeId(3), topicReview(topics[0]));
     release();
-    expect((await tasks.getTask(fakeId(5))).status).toBe('waiting');
-    tasks.complete(fakeId(4), lane('topic', 'dry-codebase-fit'));
+
+    await vi.waitFor(() => expect(tasks.created).toHaveLength(4));
+    expect(tasks.created[3].title).toContain('Review topic two');
+    expect(
+      tasks.created.some((task) => task.title === 'Global review synthesis'),
+    ).toBe(false);
+    tasks.complete(fakeId(4), topicReview(topics[1]));
     release();
-    await vi.waitFor(async () => {
-      expect((await tasks.getTask(fakeId(5))).status).toBe('queued');
-    });
-    tasks.complete(fakeId(5), topicVerdict(topic));
-    release();
-    await vi.waitFor(async () => {
-      expect((await tasks.getTask(fakeId(6))).status).toBe('queued');
-    });
-    tasks.complete(fakeId(6), globalVerdict());
+
+    await vi.waitFor(() => expect(tasks.created).toHaveLength(5));
+    expect((await tasks.getTask(fakeId(5))).status).toBe('queued');
+    tasks.complete(fakeId(5), globalVerdict());
     release();
 
     await expect(run).resolves.toMatchObject({

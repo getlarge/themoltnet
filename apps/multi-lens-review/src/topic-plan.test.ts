@@ -4,7 +4,6 @@ import { reviewManifest } from './test-fixtures.js';
 import {
   deterministicTopicPlan,
   MAX_PRIMARY_FILES_PER_TOPIC,
-  MAX_SPECIALIST_TASKS,
   MAX_TOPICS,
   parseTopicPlanJson,
   plannerLaneBudgetGuidance,
@@ -27,15 +26,15 @@ describe('topic plan validation', () => {
     );
 
     expect(guidance).toContain(
-      '2 reviewable file(s) currently require at least 5 lane task(s)',
+      '2 reviewable file(s) currently require these 5 lane(s)',
     );
     expect(guidance).toContain(
       '2 currently reviewable files require at least 1 topic',
     );
     expect(guidance).toContain(
-      'average normalized topic cost must be <= 32.00',
+      'default fan-out is the topic count, never the topic×lane Cartesian product',
     );
-    expect(guidance).toContain('at most 6 such topics can fit');
+    expect(guidance).toContain('At most 12 topic review tasks are allowed');
     expect(guidance).toContain('Use an empty `lanes` array');
     expect(guidance).not.toContain('src/');
   });
@@ -137,7 +136,7 @@ describe('topic plan validation', () => {
     ).toThrow(/context file shared\.ts overlaps/);
   });
 
-  it('rejects oversized topics, too many topics, and too many tasks', () => {
+  it('rejects oversized topics and too many topics without multiplying lanes into tasks', () => {
     const tooManyFiles = Array.from(
       { length: MAX_PRIMARY_FILES_PER_TOPIC + 1 },
       (_, index) => `${index}.ts`,
@@ -174,29 +173,25 @@ describe('topic plan validation', () => {
       ),
     ).toThrow(/topics; maximum/);
 
-    const taskPaths = Array.from({ length: 5 }, (_, index) => `${index}.ts`);
-    expect(() =>
-      validateTopicPlan(
-        plan(
-          taskPaths.map((path, index) => ({
-            id: `topic-${index}`,
-            title: path,
-            primaryFiles: [path],
-            lanes: [
-              'security',
-              'performance',
-              'design-api-backcompat',
-              'tests',
-              'operability',
-              'readability',
-            ],
-          })),
-        ),
-        reviewManifest(taskPaths, { requiresPlanning: true }),
-      ),
-    ).toThrow(
-      new RegExp(`${MAX_SPECIALIST_TASKS} specialist tasks|maximum is 32`),
+    const multiLane = validateTopicPlan(
+      plan([
+        {
+          id: 'multi-lane',
+          title: 'Multi-lane topic',
+          primaryFiles: ['multi.ts'],
+          lanes: [
+            'security',
+            'performance',
+            'design-api-backcompat',
+            'tests',
+            'operability',
+            'readability',
+          ],
+        },
+      ]),
+      reviewManifest(['multi.ts'], { requiresPlanning: true }),
     );
+    expect(multiLane.topics[0].lanes).toHaveLength(8);
   });
 
   it('rejects topic byte budgets and malformed planner JSON', () => {

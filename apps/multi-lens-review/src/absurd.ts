@@ -1,10 +1,31 @@
 import { createOrchestrationAbsurdApp } from '@themoltnet/tasks-orchestrator';
 import type { Absurd } from 'absurd-sdk';
 
-import type { MultiLensReviewDeps, MultiLensReviewInput } from './types.js';
+import type {
+  MultiLensReviewDeps,
+  MultiLensReviewDurableOutput,
+  MultiLensReviewInput,
+  MultiLensReviewOutput,
+} from './types.js';
 import { runMultiLensReview } from './workflow.js';
 
 export const MULTI_LENS_REVIEW_TASK = 'multi_lens_review';
+
+/**
+ * Strip remotely stored agent payloads before Absurd persists the workflow
+ * result. The accepted task/output/artifact references are sufficient to
+ * hydrate them later.
+ */
+export function durableMultiLensReviewOutput(
+  output: MultiLensReviewOutput,
+): MultiLensReviewDurableOutput {
+  return {
+    correlationId: output.correlationId,
+    outcome: output.outcome,
+    phaseOutputs: output.phaseOutputs,
+    diagnostics: output.diagnostics,
+  };
+}
 
 export function createMultiLensReviewAbsurdApp(args: {
   databaseUrl: string;
@@ -16,6 +37,9 @@ export function createMultiLensReviewAbsurdApp(args: {
     queueName: args.queueName ?? 'multi-lens-review',
     taskName: MULTI_LENS_REVIEW_TASK,
     defaultMaxAttempts: 3,
-    run: (params, ctx) => runMultiLensReview(params, args.deps, ctx),
+    run: async (params, ctx) =>
+      durableMultiLensReviewOutput(
+        await runMultiLensReview(params, args.deps, ctx),
+      ),
   });
 }

@@ -16,9 +16,13 @@ import {
   printablePreflight,
   stageReviewManifest,
 } from './review-input.js';
+import { hydrateMultiLensReviewOutput } from './review-output.js';
 import { cancelCorrelatedTasks } from './run-cleanup.js';
 import { MAX_SINGLETON_TOPIC_BYTES } from './topic-plan.js';
-import type { ReviewArtifactStore } from './types.js';
+import type {
+  MultiLensReviewDurableOutput,
+  ReviewArtifactStore,
+} from './types.js';
 
 async function collectStream(
   stream: AsyncIterable<Uint8Array>,
@@ -81,6 +85,12 @@ async function main(): Promise<number> {
   }
   const reviewManifest = await stageReviewManifest(agent, teamId, inspected);
   const input = { ...cfg.input, reviewManifest };
+  const patches = new Map(
+    inspected.files.map((file) => [
+      file.path,
+      new Uint8Array(Buffer.from(file.patch, 'utf8')),
+    ]),
+  );
   const artifacts: ReviewArtifactStore = {
     stage: (bytes, metadata, context) =>
       agent.tasks.artifacts.stage(bytes, metadata, context),
@@ -92,11 +102,23 @@ async function main(): Promise<number> {
       return collectStream(downloaded.stream);
     },
   };
+  const tasks = createSdkTaskClient(agent);
   const queueName = cfg.queueName ?? 'multi-lens-review';
   const app = createMultiLensReviewAbsurdApp({
     databaseUrl: cfg.databaseUrl,
     queueName,
-    deps: { tasks: createSdkTaskClient(agent), artifacts, logger },
+    deps: {
+      tasks,
+      artifacts,
+      patches: {
+        read: (path) => {
+          const bytes = patches.get(path);
+          if (!bytes) throw new Error(`review patch source has no ${path}`);
+          return Promise.resolve(bytes);
+        },
+      },
+      logger,
+    },
   });
   let worker: Awaited<ReturnType<typeof app.startWorker>> | null = null;
   try {
@@ -126,8 +148,18 @@ async function main(): Promise<number> {
         'multi_lens_review.run.cancelled',
       );
     }
+    const printableResult =
+      result.state === 'completed'
+        ? {
+            ...result,
+            result: await hydrateMultiLensReviewOutput(
+              result.result as unknown as MultiLensReviewDurableOutput,
+              tasks,
+            ),
+          }
+        : result;
     // eslint-disable-next-line no-console
-    console.log(JSON.stringify(result, null, 2));
+    console.log(JSON.stringify(printableResult, null, 2));
     return result.state === 'completed' ? 0 : 1;
   } finally {
     await worker?.close();

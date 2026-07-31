@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 import type { CoverageLedger, ReviewLane, ReviewManifest } from './types.js';
 
 export function reviewManifest(
@@ -12,25 +14,24 @@ export function reviewManifest(
     'correctness',
     'dry-codebase-fit',
   ];
-  const files = paths.map((path, index) => ({
+  const byteSize = options.byteSize ?? 64;
+  const patchSha256 = createHash('sha256')
+    .update(new Uint8Array(byteSize))
+    .digest('hex');
+  const files = paths.map((path) => ({
     path,
     status: 'modified' as const,
     additions: 1,
     deletions: 1,
     changedLoc: 2,
-    byteSize: options.byteSize ?? 64,
+    byteSize,
+    patchSha256,
     language: 'typescript',
     binary: false,
     generated: false,
     generatedSignals: [],
     reviewable: true,
     requiredLanes,
-    artifact: {
-      cid: `bafkrei-file-${index}`,
-      title: `review-file:${path}`,
-      contentType: 'text/x-diff',
-      sizeBytes: options.byteSize ?? 64,
-    },
   }));
   const coverage: CoverageLedger = {
     reviewableFiles: paths,

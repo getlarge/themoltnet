@@ -257,7 +257,7 @@ Binary files /dev/null and b/image.png differ
       files: 200,
       topics: 12,
       primaryFilesPerTopic: 12,
-      specialistTasks: 32,
+      topicReviewTasks: 12,
     });
     expect(printable.planningThresholds).toEqual({
       files: 25,
@@ -268,7 +268,7 @@ Binary files /dev/null and b/image.png differ
 });
 
 describe('stageReviewManifest', () => {
-  it('stages every nonbinary file individually before model classification', async () => {
+  it('stages one compact manifest before model classification', async () => {
     const diff = `${MODIFIED}diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
 --- a/pnpm-lock.yaml
 +++ b/pnpm-lock.yaml
@@ -276,23 +276,11 @@ describe('stageReviewManifest', () => {
 -old
 +new
 `;
-    const stage = vi
-      .fn()
-      .mockResolvedValueOnce({
-        cid: 'file-cid',
-        contentType: 'text/x-diff',
-        sizeBytes: Buffer.byteLength(MODIFIED),
-      })
-      .mockResolvedValueOnce({
-        cid: 'lock-cid',
-        contentType: 'text/x-diff',
-        sizeBytes: 42,
-      })
-      .mockResolvedValueOnce({
-        cid: 'manifest-cid',
-        contentType: 'application/json',
-        sizeBytes: 500,
-      });
+    const stage = vi.fn().mockResolvedValueOnce({
+      cid: 'manifest-cid',
+      contentType: 'application/json',
+      sizeBytes: 500,
+    });
     const agent = {
       tasks: { artifacts: { stage } },
     } as unknown as Agent;
@@ -301,9 +289,10 @@ describe('stageReviewManifest', () => {
       'team',
       inspectReviewDiff(diff),
     );
-    expect(stage).toHaveBeenCalledTimes(3);
-    expect(manifest.files[0].artifact?.cid).toBe('file-cid');
-    expect(manifest.files[1].artifact?.cid).toBe('lock-cid');
+    expect(stage).toHaveBeenCalledTimes(1);
+    expect(manifest.files[0]).not.toHaveProperty('artifact');
+    expect(manifest.files[1]).not.toHaveProperty('artifact');
+    expect(manifest.files[0].patchSha256).toMatch(/^[0-9a-f]{64}$/);
     expect(manifest.coverage.excludedFiles).toEqual([]);
 
     const classified = applyModelExclusions(manifest, [
@@ -316,7 +305,6 @@ describe('stageReviewManifest', () => {
     expect(classified.files[1]).toMatchObject({
       reviewable: false,
       generated: true,
-      artifact: { cid: 'lock-cid' },
     });
     expect(classified.coverage.excludedFiles).toEqual([
       {
@@ -334,12 +322,6 @@ describe('stageReviewManifest', () => {
       files: [
         {
           ...printablePreflight(inspectReviewDiff(MODIFIED)).files[0],
-          artifact: {
-            cid: 'file',
-            title: 'review-file:src/a.ts',
-            contentType: 'text/x-diff',
-            sizeBytes: 1,
-          },
         },
       ],
       manifestArtifact: {

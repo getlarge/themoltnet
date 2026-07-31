@@ -6,11 +6,15 @@ import type { MultiLensReviewInput, ReviewLane } from './types.js';
 export const HELP = `Usage:
   moltnet-multi-lens-review --preflight --diff-file <path> [--files-metadata <json>]
   moltnet-multi-lens-review --team <uuid> --diary <uuid> --target <description>
-    --diff-file <path> [--files-metadata <json>] [--lens <name> ...]
+    --diff-file <path> --review-base-revision <40-hex-object-id>
+    --review-revision <40-hex-object-id>
+    [--files-metadata <json>] [--lens <name> ...]
     [--profile <uuid|name>] [--lens-profile <lane>=<uuid|name> ...]
     [--planner-profile <uuid|name>] [--preflight-profile <uuid|name>]
     [--topic-reducer-profile <uuid|name>]
     [--synthesis-profile <uuid|name>] [--global-synthesis-profile <uuid|name>]
+    [--planner-task-id <uuid>]
+    [--preflight-task-id <uuid>] [--topic-task-id <uuid> ...]
     [--correlation-id <uuid>] [--queue <name>] [--agent-dir <path>]
     [--poll-interval <sec>] [--concurrency <n>] [--unattended]
 
@@ -20,7 +24,16 @@ create tasks.
 
 Existing --profile, --lens-profile, and --synthesis-profile routing remains
 supported. Phase-specific flags override the default for planner, design
-preflight, topic reducers, and global synthesis.`;
+preflight, combined topic review (legacy --topic-reducer-profile), and global
+synthesis.
+
+--planner-task-id reuses one already accepted planner task after trusted
+identity, manifest-reference, and runtime-profile validation. It does not copy
+the plan payload into the durable-workflow database.
+
+--preflight-task-id and repeatable --topic-task-id reuse accepted phase tasks
+from an interrupted run. Trusted orchestration validates their exact revision,
+artifact binding, lane set, output, and runtime profile before accepting them.`;
 
 export interface RuntimeProfileRoutingRefs {
   defaultProfile: string;
@@ -139,6 +152,11 @@ export function parseCliConfig(
       'topic-reducer-profile': { type: 'string' },
       'synthesis-profile': { type: 'string' },
       'global-synthesis-profile': { type: 'string' },
+      'planner-task-id': { type: 'string' },
+      'preflight-task-id': { type: 'string' },
+      'topic-task-id': { type: 'string', multiple: true },
+      'review-base-revision': { type: 'string' },
+      'review-revision': { type: 'string' },
       'correlation-id': { type: 'string' },
       queue: { type: 'string' },
       'agent-dir': { type: 'string' },
@@ -171,6 +189,12 @@ export function parseCliConfig(
   if (!values.team) throw new Error('--team is required');
   if (!values.diary) throw new Error('--diary is required');
   if (!values.target) throw new Error('--target is required');
+  if (!values['review-revision']) {
+    throw new Error('--review-revision is required for a review run');
+  }
+  if (!values['review-base-revision']) {
+    throw new Error('--review-base-revision is required for a review run');
+  }
   if (!databaseUrl) {
     throw new Error(
       'MULTI_LENS_REVIEW_DATABASE_URL environment variable is required',
@@ -266,6 +290,25 @@ export function parseCliConfig(
         teamId: values.team,
         diaryId: values.diary,
         target: values.target,
+        reviewBaseRevision: nonEmpty(
+          values['review-base-revision'],
+          '--review-base-revision',
+        ),
+        reviewRevision: nonEmpty(
+          values['review-revision'],
+          '--review-revision',
+        ),
+        plannerTaskId:
+          values['planner-task-id'] === undefined
+            ? undefined
+            : nonEmpty(values['planner-task-id'], '--planner-task-id'),
+        preflightTaskId:
+          values['preflight-task-id'] === undefined
+            ? undefined
+            : nonEmpty(values['preflight-task-id'], '--preflight-task-id'),
+        topicReviewTaskIds: values['topic-task-id']?.map((value) =>
+          nonEmpty(value, '--topic-task-id'),
+        ),
         lenses: values.lens,
         synthesisBrief: values.synthesis,
         correlationId: values['correlation-id'] ?? deps.randomUUID(),
