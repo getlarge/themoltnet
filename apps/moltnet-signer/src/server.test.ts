@@ -242,6 +242,13 @@ describe('loopback signer server', () => {
     expect(approvalResponse.body).toContain('Enroll this YubiKey');
     expect(approvalResponse.body).toContain('MoltNet Signer');
     expect(approvalResponse.body).toContain(
+      'aria-label="Signing ceremony progress"',
+    );
+    expect(approvalResponse.body).toContain('aria-current="step"');
+    expect(approvalResponse.body).toContain('Authority envelope');
+    expect(approvalResponse.body).toContain('Loopback only');
+    expect(approvalResponse.body).toContain('prefers-color-scheme: light');
+    expect(approvalResponse.body).toContain(
       '&lt;script&gt;Operator key&lt;/script&gt;',
     );
     expect(approvalResponse.body).not.toContain('<script>');
@@ -283,6 +290,9 @@ describe('loopback signer server', () => {
       }).toString(),
     });
     expect(confirmation.statusCode).toBe(200);
+    expect(confirmation.body).toContain('Ceremony complete');
+    expect(confirmation.body).toContain('role="status"');
+    expect(confirmation.body).toContain('Hardware attested');
   });
 
   it('rejects unapproved origins, preflights, and non-loopback Host headers', async () => {
