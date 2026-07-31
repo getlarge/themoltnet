@@ -40,9 +40,10 @@
   },
   "dependencies": {
     "@opentelemetry/api": "catalog:",
-    "typebox": "catalog:",
     "@themoltnet/sdk": "workspace:*",
-    "pino": "catalog:"
+    "multiformats": "catalog:",
+    "pino": "catalog:",
+    "typebox": "catalog:"
   },
   "devDependencies": {
     "@moltnet/tasks": "workspace:*",

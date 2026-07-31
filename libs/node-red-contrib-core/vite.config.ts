@@ -4,8 +4,12 @@ import { fileURLToPath } from 'node:url';
 
 import { defineConfig } from 'vite';
 
+import { externalizeInstallableDependencies } from '../../vite.shared';
+
 const here = dirname(fileURLToPath(import.meta.url));
-const publishedRuntimeExternals = ['@themoltnet/sdk'];
+const external = externalizeInstallableDependencies(
+  new URL('./package.json', import.meta.url),
+);
 
 // Node-RED node sets: each runtime .js is paired with a sibling .html editor
 // file. We bundle the .js (externalizing @themoltnet/sdk, which npm installs
@@ -38,7 +42,7 @@ export default defineConfig({
     emptyOutDir: true,
     target: 'node20',
     rollupOptions: {
-      external: publishedRuntimeExternals,
+      external,
       input: Object.fromEntries(
         nodes.map((n) => [`nodes/${n}`, resolve(here, `src/nodes/${n}.ts`)]),
       ),

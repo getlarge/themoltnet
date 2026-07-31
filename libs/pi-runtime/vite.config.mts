@@ -1,11 +1,11 @@
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
 
-const publishedRuntimeExternals = [
-  '@themoltnet/agent-runtime',
-  '@themoltnet/sdk',
-  '@themoltnet/shell-command-analyzer',
-];
+import { externalizeInstallableDependencies } from '../../vite.shared';
+
+const external = externalizeInstallableDependencies(
+  new URL('./package.json', import.meta.url),
+);
 
 export default defineConfig({
   plugins: [
@@ -25,7 +25,7 @@ export default defineConfig({
       // Published workspace dependencies are installed by package consumers.
       // In particular, the analyzer owns runtime WASM assets whose
       // import.meta.url paths are detached when its source export is bundled.
-      external: publishedRuntimeExternals,
+      external,
       input: 'src/index.ts',
     },
   },

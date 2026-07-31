@@ -94,9 +94,15 @@ For publishable Node packages, use this default:
 
 Vite SSR normally externalizes registry dependencies, but source-direct
 workspace exports can still be bundled. For Vite 8/Rolldown, put public
-workspace package names in the active build-level `external` option
-(`build.rolldownOptions.external`, or `build.rollupOptions.external` for configs
-driven by Rollup). Do not rely on comments or `ssr.external`: inspect emitted JS.
+workspace dependencies in the active build-level `external` option. In this
+repository, use `externalizeInstallableDependencies` from `vite.shared.ts` in
+`build.rolldownOptions.external` (or `build.rollupOptions.external` for configs
+driven by Rollup). It derives externals from the package's `dependencies`,
+`optionalDependencies`, and `peerDependencies`, excluding private `@moltnet/*`.
+Do not duplicate dependency-name arrays. The predicate fails the build when a
+bundled private package reaches an undeclared third-party import; promote that
+package to the public manifest. Do not rely on comments and `ssr.external`:
+inspect emitted JS.
 
 ### 4. Build produces a valid bundle
 

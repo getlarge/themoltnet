@@ -42,7 +42,9 @@
   },
   "dependencies": {
     "@themoltnet/sdk": "workspace:*",
-    "absurd-sdk": "catalog:"
+    "absurd-sdk": "catalog:",
+    "multiformats": "catalog:",
+    "typebox": "catalog:"
   },
   "devDependencies": {
     "@moltnet/tasks": "workspace:*",

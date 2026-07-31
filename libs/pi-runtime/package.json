@@ -36,10 +36,15 @@
   },
   "dependencies": {
     "@earendil-works/gondolin": "catalog:",
+    "@ipld/dag-cbor": "catalog:",
+    "@noble/curves": "catalog:",
+    "@noble/ed25519": "catalog:",
+    "@noble/hashes": "catalog:",
     "@opentelemetry/api": "catalog:",
     "@themoltnet/agent-runtime": "workspace:*",
     "@themoltnet/sdk": "workspace:*",
     "@themoltnet/shell-command-analyzer": "workspace:*",
+    "multiformats": "catalog:",
     "typebox": "catalog:"
   },
   "peerDependencies": {

@@ -51,9 +51,14 @@ package, especially packages managed by release-please or published under
 5. Enforce externalization in the active build configuration.
 
    Vite SSR normally externalizes registry packages, but source-direct workspace
-   exports may still be inlined. With Vite 8/Rolldown, list public workspace
-   dependencies in `build.rolldownOptions.external` (or the active
-   `build.rollupOptions.external`). `ssr.external` alone is not sufficient.
+   exports may still be inlined. With Vite 8/Rolldown, use the repository
+   `externalizeInstallableDependencies` predicate in
+   `build.rolldownOptions.external` (or the active
+   `build.rollupOptions.external`). It derives externals from the package's
+   installable dependency and peer fields, excluding private `@moltnet/*`,
+   without duplicating manifest names. If bundled private code reaches an
+   undeclared third-party import, the predicate fails the build: promote that
+   dependency to the published manifest. `ssr.external` alone is not sufficient.
    Inspect emitted JS for retained imports and for asset paths detached from
    their owning package.
 

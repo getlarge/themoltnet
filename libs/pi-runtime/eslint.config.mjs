@@ -10,6 +10,12 @@ export default [
       '@moltnet/crypto-service',
       // Private workspace package bundled into the published Vite output.
       '@moltnet/tasks',
+      // Runtime imports promoted from bundled private workspace packages.
+      '@ipld/dag-cbor',
+      '@noble/curves',
+      '@noble/ed25519',
+      '@noble/hashes',
+      'multiformats',
     ],
   }),
   {

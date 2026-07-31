@@ -1,7 +1,11 @@
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
 
-const publishedRuntimeExternals = ['@themoltnet/sdk'];
+import { externalizeInstallableDependencies } from '../../vite.shared';
+
+const external = externalizeInstallableDependencies(
+  new URL('./package.json', import.meta.url),
+);
 
 export default defineConfig({
   plugins: [
@@ -34,14 +38,14 @@ export default defineConfig({
     // build.lib || rollupOptions.input || rolldownOptions.input — but NOT
     // build.ssr). Vite's actual build is still driven by build.ssr.
     rollupOptions: {
-      external: publishedRuntimeExternals,
+      external,
       input: {
         index: 'src/index.ts',
         testing: 'src/testing.ts',
       },
     },
     rolldownOptions: {
-      external: publishedRuntimeExternals,
+      external,
       input: {
         index: 'src/index.ts',
         testing: 'src/testing.ts',
