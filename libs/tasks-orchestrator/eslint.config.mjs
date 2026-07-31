@@ -5,6 +5,11 @@ import baseConfig, {
 export default [
   ...baseConfig,
   createNxDependencyChecksConfig({
-    ignoredDependencies: ['@moltnet/tasks'],
+    ignoredDependencies: [
+      '@moltnet/tasks',
+      // Runtime imports promoted from the bundled @moltnet/tasks closure.
+      'multiformats',
+      'typebox',
+    ],
   }),
 ];

@@ -1,13 +1,22 @@
 import { spawnSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import { basename, join, resolve } from 'node:path';
 import process from 'node:process';
 
 const required = process.env.MOLTNET_PI_LOADER_SMOKE === 'required';
-const distPath = join(import.meta.dirname, '..', 'dist', 'index.js');
+const packageDir = resolve(import.meta.dirname, '..');
+const repoRoot = resolve(packageDir, '../..');
+const localDistPath = join(packageDir, 'dist', 'index.js');
 const piBin = process.env.MOLTNET_PI_BIN || 'pi';
 
-if (!existsSync(distPath)) {
+if (!existsSync(localDistPath)) {
   process.stderr.write(
     'FAIL: pi-extension dist/index.js is missing; run the build before smoke:pi-loader\n',
   );
@@ -38,6 +47,90 @@ if (piVersion.status !== 0) {
 }
 
 const version = `${piVersion.stdout}${piVersion.stderr}`.trim() || 'unknown';
+const tempRoot = mkdtempSync(join(tmpdir(), 'pi-extension-loader-smoke-'));
+const packDir = join(tempRoot, 'packs');
+const installDir = join(tempRoot, 'consumer');
+const npmCache = join(tempRoot, 'npm-cache');
+
+function fail(message, output = '') {
+  rmSync(tempRoot, { recursive: true, force: true });
+  process.stderr.write(`FAIL: ${message}\n${output ? `\n${output}\n` : ''}`);
+  process.exit(1);
+}
+
+function pack(relativePackageDir) {
+  const result = spawnSync(
+    'pnpm',
+    ['pack', '--pack-destination', packDir, '--json'],
+    {
+      cwd: resolve(repoRoot, relativePackageDir),
+      encoding: 'utf8',
+      env: process.env,
+    },
+  );
+  if (result.status !== 0) {
+    fail(
+      `pnpm pack failed for ${relativePackageDir}`,
+      `${result.stdout}${result.stderr}`,
+    );
+  }
+
+  let filename;
+  try {
+    filename = JSON.parse(result.stdout.trim()).filename;
+  } catch {
+    fail(`could not parse pnpm pack output for ${relativePackageDir}`);
+  }
+
+  const tarball = existsSync(filename) ? filename : join(packDir, filename);
+  if (!existsSync(tarball)) {
+    fail(`could not locate packed tarball ${basename(filename)}`);
+  }
+  return tarball;
+}
+
+mkdirSync(packDir);
+mkdirSync(installDir);
+writeFileSync(
+  join(installDir, 'package.json'),
+  JSON.stringify({
+    name: 'pi-extension-smoke',
+    version: '1.0.0',
+    private: true,
+  }),
+);
+
+const tarballs = [
+  pack('libs/sdk'),
+  pack('libs/agent-runtime'),
+  pack('libs/shell-command-analyzer'),
+  pack('libs/pi-runtime'),
+  pack('libs/pi-extension'),
+];
+const install = spawnSync(
+  'npm',
+  ['install', ...tarballs, '--no-audit', '--no-fund', '--loglevel=error'],
+  {
+    cwd: installDir,
+    encoding: 'utf8',
+    env: { ...process.env, npm_config_cache: npmCache },
+  },
+);
+if (install.status !== 0) {
+  fail(
+    'npm install of the packed pi-extension dependency set failed',
+    `${install.stdout}${install.stderr}`,
+  );
+}
+
+const distPath = join(
+  installDir,
+  'node_modules',
+  '@themoltnet',
+  'pi-extension',
+  'dist',
+  'index.js',
+);
 
 const result = spawnSync(
   piBin,
@@ -57,22 +150,17 @@ const result = spawnSync(
 );
 
 if (result.error) {
-  process.stderr.write(
-    `FAIL: pi loader smoke failed: ${result.error.message}\n`,
-  );
-  process.exit(1);
+  fail(`pi loader smoke failed: ${result.error.message}`);
 }
 
 const output = `${result.stdout}${result.stderr}`;
 const expected = 'Missing --agent flag';
 
 if (output.includes('Failed to load extension') || !output.includes(expected)) {
-  process.stderr.write(
-    `FAIL: pi loader smoke did not reach pi-extension validation\n\n${output}`,
-  );
-  process.exit(1);
+  fail('pi loader smoke did not reach pi-extension validation', output);
 }
 
+rmSync(tempRoot, { recursive: true, force: true });
 process.stdout.write(
-  `OK: pi ${version} loaded pi-extension and reached --agent validation\n`,
+  `OK: pi ${version} loaded packed pi-extension and reached --agent validation\n`,
 );

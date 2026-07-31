@@ -1,6 +1,12 @@
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
 
+import { externalizeInstallableDependencies } from '../../vite.shared';
+
+const external = externalizeInstallableDependencies(
+  new URL('./package.json', import.meta.url),
+);
+
 export default defineConfig({
   plugins: [
     dts({
@@ -20,15 +26,13 @@ export default defineConfig({
     // build.lib || builder.buildApp || rollupOptions.input ||
     // rolldownOptions.input — but NOT build.ssr).
     rolldownOptions: {
+      external,
       input: 'src/index.ts',
     },
   },
   ssr: {
-    // Bundle private workspace packages (@moltnet/crypto-service) into the
-    // JS output. Bundle TypeBox too: Pi's extension loader rewrites a narrow
-    // set of TypeBox specifiers and currently does not handle typebox/format.
-    // @themoltnet/pi-runtime and @themoltnet/sdk are published packages and
-    // stay external.
-    noExternal: [/^@moltnet\//, /^typebox(?:\/.*)?$/],
+    // Bundle private workspace packages (@moltnet/crypto-service) into the JS
+    // output. Published workspace and third-party packages stay external.
+    noExternal: [/^@moltnet\//],
   },
 });

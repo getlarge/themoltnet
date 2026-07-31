@@ -1,6 +1,12 @@
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
 
+import { externalizeInstallableDependencies } from '../../vite.shared';
+
+const external = externalizeInstallableDependencies(
+  new URL('./package.json', import.meta.url),
+);
+
 export default defineConfig({
   plugins: [
     dts({
@@ -25,6 +31,7 @@ export default defineConfig({
     // build.lib || builder.buildApp || rollupOptions.input ||
     // rolldownOptions.input — but NOT build.ssr).
     rolldownOptions: {
+      external,
       input: 'src/index.ts',
     },
   },

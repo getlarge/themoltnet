@@ -81,7 +81,30 @@ under `dependencies`.
 in `dependencies` — pnpm rewrites `workspace:*` to concrete versions on
 publish.
 
-### 3. Build produces a valid bundle
+### 3. Preserve the runtime dependency boundary
+
+For publishable Node packages, use this default:
+
+- Bundle private `@moltnet/*` packages and keep them in `devDependencies`.
+- Externalize every installable runtime dependency. Public workspace
+  `@themoltnet/*` packages stay in `dependencies` with `workspace:*`; third-party
+  packages stay in `dependencies` or `peerDependencies`.
+- Permit a bundled public/third-party dependency only for a documented loader or
+  artifact constraint, and protect the exception with a focused bundle test.
+
+Vite SSR normally externalizes registry dependencies, but source-direct
+workspace exports can still be bundled. For Vite 8/Rolldown, put public
+workspace dependencies in the active build-level `external` option. In this
+repository, use `externalizeInstallableDependencies` from `vite.shared.ts` in
+`build.rolldownOptions.external` (or `build.rollupOptions.external` for configs
+driven by Rollup). It derives externals from the package's `dependencies`,
+`optionalDependencies`, and `peerDependencies`, excluding private `@moltnet/*`.
+Do not duplicate dependency-name arrays. The predicate fails the build when a
+bundled private package reaches an undeclared third-party import; promote that
+package to the public manifest. Do not rely on comments and `ssr.external`:
+inspect emitted JS.
+
+### 4. Build produces a valid bundle
 
 For bundled packages (Vite SSR), verify the bundle doesn't contain runtime
 imports to private workspace packages:
@@ -96,7 +119,11 @@ grep '@moltnet/' <package>/dist/index.js
 
 Expected: zero matches. All `@moltnet/*` code should be inlined.
 
-### 4. Run check:pack
+Also verify that runtime imports for public workspace dependencies remain in the
+emitted JS and that asset filenames such as `.wasm`, migrations, and native
+bindings were not detached from the package that owns them.
+
+### 5. Run check:pack
 
 ```bash
 pnpm --filter <package> run check:pack
@@ -111,7 +138,7 @@ This validates:
 - No `@moltnet/` packages in `dependencies`
 - Canonical npm provenance repository URL and monorepo directory
 
-### 5. Verify the tarball contents
+### 6. Verify the tarball contents
 
 ```bash
 npm pack --dry-run --json 2>/dev/null | jq '.[0].files[].path'
@@ -122,7 +149,7 @@ Check that:
 - Only expected files are included (typically `dist/` and `package.json`)
 - No source files, test files, or config files leaked
 
-### 6. Test install (optional but recommended for major releases)
+### 7. Test install
 
 ```bash
 npm pack
@@ -131,6 +158,11 @@ npm init -y
 npm install <tarball-path>
 node -e "import('<package-name>')"
 ```
+
+Use a clean temporary consumer for packages with assets, native bindings, source
+exports, or chained public workspace dependencies. Pack and install the whole
+local dependency set so the smoke tests published `dist` exports rather than
+workspace source shortcuts.
 
 ## Common mistakes and how they happen
 
@@ -211,7 +243,7 @@ dependency packages publish and remain the last line of defense.
 
 - Moving a dependency from `dependencies` to `devDependencies` requires
   updating the lockfile (`pnpm install`)
-- Vite SSR mode bundles workspace-symlinked packages by default (no explicit
-  `noExternal` needed), but explicit is better than implicit
+- Treat source-direct public workspace packages as explicit build externals;
+  Vite may otherwise inline them even though registry dependencies stay external
 - The `files` field in `package.json` controls what goes in the tarball —
   keep it minimal
