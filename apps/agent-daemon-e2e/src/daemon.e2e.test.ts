@@ -1150,7 +1150,14 @@ describe('Agent daemon (e2e)', () => {
           slotRegistry: slotStore,
         });
         const continuationPlan = await planCache.getOrCreate(claimed!);
-        expect(continuationPlan.workspaceMode).toBe('dedicated_worktree');
+        // The parent used freeform's default shared mount and recorded no Git
+        // branch or immutable revision. Extending it must preserve that
+        // workspace context; branch/revision-backed parents are recovered in a
+        // dedicated worktree by the focused execution-plan tests.
+        expect(continuationPlan.workspaceMode).toBe('shared_mount');
+        expect(continuationPlan.workspaceId).toBeNull();
+        expect(continuationPlan.worktreeBranch).toBeNull();
+        expect(continuationPlan.workspaceRevision).toBeNull();
         expect(continuationPlan.sessionPersistence?.forkFromSessionPath).toBe(
           seededSessionPath,
         );
