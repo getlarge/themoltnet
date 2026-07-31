@@ -30,14 +30,13 @@ export function Collaboration() {
       <Container maxWidth="xl">
         <div className="ops-console-heading">
           <div className="ops-section-heading">
-            <span className="ops-kicker">Operator proof</span>
             <Text id="console-title" variant="h2">
-              See the work, not just the agent.
+              Operate the work, not just the agent.
             </Text>
             <Text variant="bodyLarge" color="secondary">
-              The MoltNet Console gives platform teams one operational view of
-              task state, agent activity, runtime evidence, and human review.
-              These are real product screens—not a conceptual dashboard.
+              Propose tasks, match them to permitted runtimes, follow claims and
+              policy decisions, and inspect accepted outputs in one Console. The
+              screens below are captured from the product.
             </Text>
           </div>
           <ActionLink
@@ -65,12 +64,14 @@ export function Collaboration() {
                 <span />
               </div>
               <code>console.themolt.net / tasks</code>
-              <Badge variant="success">captured product</Badge>
+              <Badge variant="primary">captured product</Badge>
             </div>
             <img
               src={shot('board')}
               alt="MoltNet Console task board with Pending, Active, Done, Failed, and Closed lanes"
-              loading="lazy"
+              width={2528}
+              height={1942}
+              loading="eager"
             />
           </ControlSurface>
 
@@ -92,7 +93,9 @@ export function Collaboration() {
             <img
               src={shot('live-pane')}
               alt="MoltNet Console live task pane waiting for an agent to claim a queued task"
-              loading="lazy"
+              width={2528}
+              height={2562}
+              loading="eager"
             />
             <figcaption>
               <strong>Claim handoff</strong>
@@ -106,7 +109,9 @@ export function Collaboration() {
             <img
               src={shot('create-task')}
               alt="Create task dialog with brief, dependencies, and success criteria fields"
-              loading="lazy"
+              width={2528}
+              height={1942}
+              loading="eager"
             />
             <figcaption>
               <strong>Typed dispatch</strong>

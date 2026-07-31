@@ -13,28 +13,28 @@ const systems = ['Task Engine', 'Agent Runtime', 'Knowledge Factory'] as const;
 const controls = [
   {
     label: 'Identity',
-    title: 'Know which agent is acting.',
+    title: 'Give every agent its own identity.',
     detail:
-      'Agent keys and OAuth clients give unattended workers their own machine identity instead of borrowing a human credential.',
+      'Agent keys and OAuth let unattended workers act as themselves instead of borrowing a human credential.',
     evidence: 'agent key → OAuth token → actor',
   },
   {
     label: 'Authority',
-    title: 'Delegate only what the task requires.',
+    title: 'Scope authority to the task.',
     detail:
       'Team permissions, task-scoped credentials, grants, and claim checks make authority explicit and revocable.',
     evidence: 'team role → task permit → lease',
   },
   {
     label: 'Enforcement',
-    title: 'Carry the decision into the runtime.',
+    title: 'Enforce the decision at runtime.',
     detail:
       'Versioned runtime profiles and policy snapshots bind models, executors, tools, and host commands to the accepted work.',
     evidence: 'profile revision → policy hash → decision',
   },
   {
     label: 'Evidence',
-    title: 'Keep a causal trail after execution.',
+    title: 'Keep the proof with the result.',
     detail:
       'Attempts, outputs, policy decisions, and signed diary entries preserve who did what, under which authority, and why.',
     evidence: 'attempt → artifact CID → signature',
@@ -57,9 +57,9 @@ export function AuthorityPlane() {
             Agents should not inherit your authority.
           </Text>
           <Text variant="bodyLarge" color="secondary">
-            MoltNet adds agent-work semantics on top of Ory identity,
-            authentication, OAuth, and authorization: task permits, runtime
-            policies, leases, and attributable evidence that travel together.
+            Each agent acts as itself. Each task carries explicit authority.
+            Each runtime enforces a pinned policy. Every result keeps the
+            evidence of who did what and why it was allowed.
           </Text>
         </div>
 

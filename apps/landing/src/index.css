@@ -43,6 +43,22 @@ button {
   text-transform: uppercase;
 }
 
+.ops-record-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--ops-text-muted);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.ops-record-label::before {
+  width: 1.75rem;
+  height: 1px;
+  background: var(--ops-network);
+  content: '';
+}
+
 .ops-section {
   padding: clamp(5rem, 9vw, 9rem) 0;
   border-top: 1px solid var(--ops-border);
@@ -170,7 +186,7 @@ button {
 
 .ops-display {
   font-size: clamp(3.1rem, 5.1vw, 5.8rem) !important;
-  letter-spacing: -0.065em !important;
+  letter-spacing: -0.04em !important;
   line-height: 0.95 !important;
 }
 
@@ -509,7 +525,7 @@ button {
   display: grid;
   grid-template-columns: minmax(18rem, 0.75fr) minmax(0, 1.25fr);
   align-items: center;
-  min-height: 43rem;
+  min-height: 38rem;
   border-bottom: 1px solid var(--ops-border);
   gap: clamp(3rem, 8vw, 8rem);
 }
@@ -1306,7 +1322,7 @@ button {
   .ops-system-chapter {
     grid-template-columns: 1fr;
     min-height: auto;
-    padding: 5rem 0;
+    padding: 4.5rem 0;
     gap: 2.5rem;
   }
 
@@ -1361,7 +1377,6 @@ button {
     padding-top: 7rem;
   }
 
-  .ops-hero-proof,
   .ops-data-grid,
   .ops-authority-controls,
   .ops-console-proof,
@@ -1369,10 +1384,21 @@ button {
     grid-template-columns: 1fr;
   }
 
+  .ops-hero-proof {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .ops-hero-proof > * {
-    padding-left: 0;
-    border-right: 0;
-    border-bottom: 1px solid var(--ops-border);
+    min-height: 4.25rem;
+    padding: 0.65rem 0.5rem;
+  }
+
+  .ops-hero-proof strong {
+    font-size: 0.7rem;
+  }
+
+  .ops-hero-proof span {
+    font-size: 0.62rem;
   }
 
   .ops-map-header {
@@ -1386,7 +1412,21 @@ button {
   }
 
   .ops-trace {
-    grid-template-columns: 1fr;
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: 1rem;
+    scroll-padding-inline: 0.25rem;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+
+  .ops-trace::-webkit-scrollbar {
+    display: none;
+  }
+
+  .ops-trace > li {
+    flex: 0 0 82%;
+    scroll-snap-align: start;
   }
 
   .ops-identity-rail {

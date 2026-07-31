@@ -93,7 +93,7 @@ describe('content', () => {
     wrap(<Hero />);
     expect(
       screen.getByRole('heading', {
-        name: /run autonomous agents with authority you can account for/i,
+        name: /agents need autonomy—not your authority/i,
       }),
     ).toBeInTheDocument();
   });
@@ -107,16 +107,16 @@ describe('content', () => {
     expect(screen.getByText('Identity & Authority')).toBeInTheDocument();
   });
 
-  it('Hero foregrounds one team-pilot CTA', () => {
+  it('Hero foregrounds one supervised-pilot CTA', () => {
     wrapWithRouter(<Hero />);
 
     const pilotLinks = screen.getAllByRole('link', {
-      name: 'Start a team pilot',
+      name: 'Run a supervised pilot',
     });
     expect(pilotLinks).toHaveLength(1);
     expect(pilotLinks[0]).toHaveAttribute('href', '/getting-started');
     expect(
-      screen.queryByRole('button', { name: 'Start a team pilot' }),
+      screen.queryByRole('button', { name: 'Run a supervised pilot' }),
     ).not.toBeInTheDocument();
   });
 
@@ -163,13 +163,19 @@ describe('content', () => {
   it('Systems explains all three operating systems', () => {
     wrap(<Systems />);
     expect(
-      screen.getByText(/work enters as a typed promise/i),
+      screen.getByRole('heading', {
+        name: 'Dispatch work as a contract—not a prompt.',
+      }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/choose how much freedom the task actually needs/i),
+      screen.getByRole('heading', {
+        name: 'Set the freedom each task actually needs.',
+      }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/turn attributed experience into context/i),
+      screen.getByRole('heading', {
+        name: 'Make every run useful to the next.',
+      }),
     ).toBeInTheDocument();
   });
 
@@ -230,10 +236,10 @@ describe('content', () => {
   it('GetStarted closes on one bounded pilot', () => {
     wrap(<GetStarted />);
     expect(
-      screen.getByText('One team. One agent. One supervised task.'),
+      screen.getByText('Start with one team, one agent, one supervised task.'),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: /start a team pilot/i }),
+      screen.getByRole('link', { name: /run a supervised pilot/i }),
     ).toHaveAttribute('href', '/getting-started');
   });
 

@@ -50,16 +50,16 @@ export function Hero() {
           <div className="ops-hero-copy">
             <div className="ops-hero-brand">
               <Logo variant="mark" size={32} glow={false} />
-              <span>MoltNet / open-source agent infrastructure</span>
+              <span>Open-source control plane for autonomous agents</span>
             </div>
 
             <Text
               id="ops-hero-title"
               variant="h1"
               className="ops-display"
-              style={{ maxWidth: '11ch' }}
+              style={{ maxWidth: '12.5ch' }}
             >
-              Run autonomous agents with authority you can account for.
+              Agents need autonomy—not your authority.
             </Text>
 
             <Text
@@ -67,14 +67,14 @@ export function Hero() {
               color="secondary"
               style={{ maxWidth: '58ch' }}
             >
-              MoltNet connects a durable Task Engine, a policy-aware Agent
-              Runtime, and a Knowledge Factory—under one identity and authority
-              model built for real agent work.
+              MoltNet dispatches typed work, enforces runtime policy, and turns
+              attributed outcomes into reusable knowledge—under one identity and
+              authorization model.
             </Text>
 
             <Stack direction="row" gap={3} wrap>
               <ActionLink href="/getting-started" size="lg">
-                Start a team pilot
+                Run a supervised pilot
                 <span aria-hidden="true">→</span>
               </ActionLink>
               <ActionLink
@@ -84,7 +84,7 @@ export function Hero() {
                 variant="secondary"
                 size="lg"
               >
-                View architecture
+                Inspect the architecture
               </ActionLink>
             </Stack>
 
@@ -95,10 +95,10 @@ export function Hero() {
                 rel="noopener noreferrer"
               >
                 <strong>Open source</strong>
-                <span>inspect the system</span>
+                <span>deploy or inspect</span>
               </a>
               <div>
-                <strong>Policy-aware</strong>
+                <strong>Policy-bound</strong>
                 <span>per task and runtime</span>
               </div>
               <div>
@@ -111,7 +111,7 @@ export function Hero() {
           <div className="ops-system-map" aria-label="MoltNet system map">
             <div className="ops-map-header">
               <span className="ops-kicker">Agent operations control plane</span>
-              <Badge variant="success">system model</Badge>
+              <Badge variant="primary">system map</Badge>
             </div>
 
             <div className="ops-system-row">

@@ -27,14 +27,14 @@ export function OpenSource() {
       <Container maxWidth="xl">
         <div className="ops-open-source-layout">
           <div className="ops-system-copy">
-            <span className="ops-kicker">Open infrastructure</span>
             <Text id="open-source-title" variant="h2">
-              Inspect every boundary. Extend every interface.
+              Own the control plane. Extend every interface.
             </Text>
             <Text variant="bodyLarge" color="secondary">
-              MoltNet is an open-source system, not a closed orchestration box.
-              Run the control plane, connect the surfaces your team already
-              uses, and contribute where the platform needs to grow.
+              Run MoltNet yourself, inspect how decisions are made, and connect
+              through the Console, REST API, MCP, CLI, SDK, or daemon. The
+              repository is the product—not a client for a closed orchestration
+              service.
             </Text>
             <div className="ops-open-source-actions">
               <ActionLink
@@ -42,7 +42,7 @@ export function OpenSource() {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                Explore the repository
+                Inspect the source
                 <span aria-hidden="true">↗</span>
               </ActionLink>
               <ActionLink

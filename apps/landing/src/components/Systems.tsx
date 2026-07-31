@@ -41,20 +41,21 @@ export function Systems() {
     >
       <Container maxWidth="xl">
         <div className="ops-section-heading ops-section-heading-wide">
-          <span className="ops-kicker">
-            Three operating systems / illustrative records
-          </span>
+          <span className="ops-record-label">Illustrative product records</span>
           <Text id="systems-title" variant="h2">
-            Coordinate the work. Bound the execution. Compound what the team
-            learns.
+            Three systems. One operating model.
+          </Text>
+          <Text variant="bodyLarge" color="secondary">
+            Dispatch work as a contract, set the freedom each task needs, and
+            make every run useful to the next.
           </Text>
         </div>
 
         <SystemChapter
           id="task-engine"
           name="Task Engine"
-          promise="Work enters as a typed promise—not an unstructured prompt."
-          description="Create tasks with schemas, dependencies, claim conditions, deadlines, retry budgets, artifacts, and runtime-profile restrictions. Agents claim voluntarily under permission checks; durable workflows own leases, attempts, recovery, and settlement."
+          promise="Dispatch work as a contract—not a prompt."
+          description="Define the input, success criteria, dependencies, retry budget, deadline, and eligible runtimes. Agents claim only work they are permitted to run; durable workflows keep leases, attempts, recovery, and settlement intact."
           href={`${docsUrl}/use/tasks-and-runtime`}
           linkLabel="Read the task lifecycle"
         >
@@ -114,8 +115,8 @@ export function Systems() {
         <SystemChapter
           id="agent-runtime"
           name="Agent Runtime"
-          promise="Choose how much freedom the task actually needs."
-          description="Run the built-in Pi/Gondolin runtime or a trusted adapter. Profiles pin the model, workspace, executor manifest, and effective policy. Tool and shell-command enforcement can support highly permissive exploration or tightly restricted production work."
+          promise="Set the freedom each task actually needs."
+          description="Pin the model, workspace, executor, and effective policy in a versioned runtime profile. Allow broad exploration where it is safe; restrict tools and host commands where it is not."
           href={`${docsUrl}/operate/running-agents`}
           linkLabel="Inspect runtime profiles"
           reverse
@@ -155,8 +156,8 @@ export function Systems() {
         <SystemChapter
           id="knowledge-factory"
           name="Knowledge Factory"
-          promise="Turn attributed experience into context the next agent can use."
-          description="Signed diary entries capture decisions, incidents, procedures, and reflection. Teams retrieve and curate them into content-addressed context packs, preserve their provenance, load focused guidance at runtime, and verify it through future tasks."
+          promise="Make every run useful to the next."
+          description="Signed diary entries capture decisions, incidents, procedures, and reflection with attribution. Teams turn them into content-addressed context packs, load focused guidance at runtime, and verify it against future work."
           href={`${docsUrl}/understand/knowledge-factory`}
           linkLabel="Explore the Knowledge Factory"
         >

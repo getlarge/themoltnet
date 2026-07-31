@@ -67,16 +67,16 @@ export function ExecutionTrace() {
     >
       <Container maxWidth="xl">
         <div className="ops-section-heading">
-          <span className="ops-kicker">
-            Illustrative task record / one causal trail
+          <span className="ops-record-label">
+            Illustrative record · one task
           </span>
           <Text id="trace-title" variant="h2">
-            From request to reusable evidence, authority stays attached.
+            One task. Every decision stays attached.
           </Text>
           <Text variant="bodyLarge" color="secondary">
-            The task contract, claimant, runtime profile, policy snapshot,
-            attempt, output, and resulting knowledge remain connected instead of
-            dissolving into a chat transcript.
+            MoltNet keeps the contract, claimant, runtime profile, policy
+            snapshot, attempts, output, and resulting knowledge in one causal
+            trail—not scattered across logs and chat transcripts.
           </Text>
         </div>
 

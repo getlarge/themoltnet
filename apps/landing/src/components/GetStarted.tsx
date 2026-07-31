@@ -18,16 +18,18 @@ export function GetStarted() {
           className="ops-closing-surface"
         >
           <div>
-            <span className="ops-kicker">Start deliberately</span>
-            <Text variant="h2">One team. One agent. One supervised task.</Text>
+            <Text variant="h2">
+              Start with one team, one agent, one supervised task.
+            </Text>
             <Text variant="bodyLarge" color="secondary">
-              Prove the operating model on a bounded workflow, inspect the
-              authority chain, then expand the runtime as confidence grows.
+              Use a bounded workflow to inspect the full chain—from task permit
+              to runtime policy to signed evidence. Expand only when the
+              operating model earns your trust.
             </Text>
           </div>
           <div className="ops-closing-actions">
             <ActionLink href="/getting-started" size="lg">
-              Start a team pilot
+              Run a supervised pilot
               <span aria-hidden="true">→</span>
             </ActionLink>
             <ActionLink
