@@ -175,6 +175,9 @@ export const authPlugin = fp(
     decorateSafe('onScopeDenial', opts.onScopeDenial ?? null);
 
     if (opts.enforceRouteScopeDeclarations) {
+      // This registration-time assertion does not handle requests. Consuming
+      // applications remain responsible for their request rate limiter.
+      // codeql[js/missing-rate-limiting]
       fastify.addHook('onRoute', assertRouteScopeDeclarations);
     }
 

@@ -358,6 +358,9 @@ export async function registerApiRoutes(
   // Auth-aware routes share the same provider-failure contract. Add it once
   // at registration time so OpenAPI and generated clients model 429/503 for
   // every requireAuth/optionalAuth route without duplicating schema entries.
+  // This hook only mutates route metadata; the global request rate limiter is
+  // registered below before any routes are registered.
+  // codeql[js/missing-rate-limiting]
   app.addHook('onRoute', (routeOptions) => {
     if (!routeUsesPrincipalAuth(routeOptions)) return;
     routeOptions.schema ??= {};
