@@ -199,6 +199,7 @@ export function TaskLivePane({
                 messages={messages}
                 live={live}
                 learnMoreHref={learnMoreHref}
+                attemptStatus={attempt?.status}
               />
             ) : null}
             {tab === 'usage' ? (

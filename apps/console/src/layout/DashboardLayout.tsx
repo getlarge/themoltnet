@@ -23,24 +23,78 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
     () => localStorage.getItem(COLLAPSED_KEY) === 'true',
   );
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [tabletExpanded, setTabletExpanded] = useState(false);
   const [skipFocused, setSkipFocused] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
+  const mobileDialogRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
   const isTablet = useIsTablet();
 
-  const effectiveCollapsed = isTablet ? !collapsed : collapsed;
+  const effectiveCollapsed = isTablet ? !tabletExpanded : collapsed;
 
   const toggleCollapse = useCallback(() => {
+    if (isTablet) {
+      setTabletExpanded((expanded) => !expanded);
+      return;
+    }
     setCollapsed((prev) => {
       localStorage.setItem(COLLAPSED_KEY, String(!prev));
       return !prev;
     });
-  }, []);
+  }, [isTablet]);
 
   useEffect(() => {
     setMobileOpen(false);
     mainRef.current?.focus();
   }, [location]);
+
+  useEffect(() => {
+    if (!isMobile || !mobileOpen) return;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const dialog = mobileDialogRef.current;
+    const focusable = () =>
+      Array.from(
+        dialog?.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ) ?? [],
+      );
+    focusable()[0]?.focus();
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setMobileOpen(false);
+        window.setTimeout(() => {
+          document
+            .querySelector<HTMLElement>(`[aria-controls="${SIDEBAR_ID}"]`)
+            ?.focus();
+        });
+        return;
+      }
+      if (event.key !== 'Tab') return;
+
+      const items = focusable();
+      const first = items[0];
+      const last = items.at(-1);
+      if (!first || !last) return;
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = previousBodyOverflow;
+    };
+  }, [isMobile, mobileOpen]);
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
@@ -64,7 +118,6 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
         Skip to main content
       </a>
 
-      {/* Mobile drawer overlay */}
       {isMobile && mobileOpen && (
         <button
           type="button"
@@ -73,18 +126,19 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(0,0,0,0.5)',
+            background: theme.color.black,
             border: 0,
+            opacity: 0.64,
             padding: 0,
             zIndex: 40,
           }}
         />
       )}
 
-      {/* Sidebar */}
       {isMobile ? (
         mobileOpen && (
           <div
+            ref={mobileDialogRef}
             role="dialog"
             aria-label="Navigation menu"
             aria-modal="true"
@@ -104,6 +158,8 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
       )}
 
       <div
+        aria-hidden={isMobile && mobileOpen ? true : undefined}
+        inert={isMobile && mobileOpen ? true : undefined}
         style={{
           flex: 1,
           display: 'flex',
@@ -125,9 +181,9 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
           tabIndex={-1}
           style={{
             flex: 1,
-            padding: theme.spacing[6],
+            padding: isMobile ? theme.spacing[4] : theme.spacing[6],
             overflow: 'auto',
-            maxWidth: 1280,
+            maxWidth: theme.layout.contentMax,
             margin: '0 auto',
             width: '100%',
             outline: 'none',

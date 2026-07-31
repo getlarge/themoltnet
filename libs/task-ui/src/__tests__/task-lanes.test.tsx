@@ -209,6 +209,19 @@ describe('TaskTurnStream', () => {
     ).toBeInTheDocument();
   });
 
+  it('shows a claimed hint when an active attempt has no messages', () => {
+    renderWithTheme(<TaskTurnStream messages={[]} attemptStatus="running" />);
+    expect(screen.getByText(/waiting for the first turn/i)).toBeInTheDocument();
+    expect(
+      screen.queryByText(/waiting for an agent to claim/i),
+    ).not.toBeInTheDocument();
+  });
+
+  it('reports an empty recorded stream for a terminal attempt', () => {
+    renderWithTheme(<TaskTurnStream messages={[]} attemptStatus="completed" />);
+    expect(screen.getByText(/no turn messages were recorded/i)).toBeVisible();
+  });
+
   it('links to the running-agents docs when learnMoreHref is provided', () => {
     renderWithTheme(
       <TaskTurnStream
@@ -221,6 +234,17 @@ describe('TaskTurnStream', () => {
       'href',
       'https://docs.example/operate/running-agents',
     );
+  });
+
+  it('does not show agent setup guidance after an attempt exists', () => {
+    renderWithTheme(
+      <TaskTurnStream
+        messages={[]}
+        attemptStatus="claimed"
+        learnMoreHref="https://docs.example/operate/running-agents"
+      />,
+    );
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
 
   it('omits the docs link when learnMoreHref is absent', () => {

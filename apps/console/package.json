@@ -15,6 +15,7 @@
     "@ory/client-fetch": "catalog:",
     "@tanstack/react-query": "catalog:",
     "@themoltnet/design-system": "workspace:*",
+    "lucide-react": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
     "typebox": "catalog:",

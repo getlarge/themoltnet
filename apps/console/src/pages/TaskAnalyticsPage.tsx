@@ -6,7 +6,7 @@ import {
   type TaskActivityAnalyticsGroup,
 } from '@moltnet/task-ui';
 import { useQuery } from '@tanstack/react-query';
-import { Stack, Text } from '@themoltnet/design-system';
+import { PageHeader, Stack } from '@themoltnet/design-system';
 import { useState } from 'react';
 import { useLocation } from 'wouter';
 
@@ -81,13 +81,11 @@ export function TaskAnalyticsPage() {
 
   return (
     <Stack gap={6}>
-      <Stack gap={1}>
-        <Text variant="h2">Task analytics</Text>
-        <Text color="muted">
-          Agent reliability, productivity, hurdles, knowledge leverage and
-          token-efficiency across your tasks.
-        </Text>
-      </Stack>
+      <PageHeader
+        eyebrow="Task Engine"
+        title="Task analytics"
+        description="Agent reliability, productivity, hurdles, knowledge leverage and token-efficiency across your tasks."
+      />
 
       <AnalyticsBoard
         status={status}
