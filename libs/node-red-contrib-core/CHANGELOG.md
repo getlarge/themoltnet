@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.12.9](https://github.com/getlarge/themoltnet/compare/node-red-contrib-core-v0.12.8...node-red-contrib-core-v0.12.9) (2026-07-31)
+
+
+### Bug Fixes
+
+* **packaging:** derive published externals ([b623477](https://github.com/getlarge/themoltnet/commit/b623477cdce586cc1e098a3dc017efde0228efa0)), closes [#1794](https://github.com/getlarge/themoltnet/issues/1794) [#1795](https://github.com/getlarge/themoltnet/issues/1795)
+* **packaging:** externalize published dependencies ([cc49eec](https://github.com/getlarge/themoltnet/commit/cc49eecac53a7681467487ee11b372c0c277fddf))
+* **packaging:** preserve published dependency boundaries ([19db165](https://github.com/getlarge/themoltnet/commit/19db1657362a4743282196f504336ea853b9342c))
+
 ## [0.12.8](https://github.com/getlarge/themoltnet/compare/node-red-contrib-core-v0.12.7...node-red-contrib-core-v0.12.8) (2026-07-29)
 
 

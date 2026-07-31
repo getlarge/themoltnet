@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.36.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.35.0...agent-daemon-v0.36.0) (2026-07-31)
+
+
+### Features
+
+* **review:** refactor multi-lens review into bounded topic graph ([9c124da](https://github.com/getlarge/themoltnet/commit/9c124da20835ae31169636bfec8c2f8773adfdfd))
+
+
+### Bug Fixes
+
+* **daemon:** preserve revision across continuations ([9ab860e](https://github.com/getlarge/themoltnet/commit/9ab860e64018804f5eea852cb29c74e7beaa955a))
+* **daemon:** preserve shared workspace continuations ([1ae6ab1](https://github.com/getlarge/themoltnet/commit/1ae6ab1643ae539a4c2c4cf43355483238a02102))
+* **review:** enforce trusted verdict contracts ([c7d94c9](https://github.com/getlarge/themoltnet/commit/c7d94c9f7bd68406d096b8dbd1dea390ac21fdc1))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.40.0
+    * @themoltnet/pi-runtime bumped to 0.6.0
+
 ## [0.35.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.34.2...agent-daemon-v0.35.0) (2026-07-30)
 
 

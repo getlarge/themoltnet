@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.12.0](https://github.com/getlarge/themoltnet/compare/design-system-v0.11.0...design-system-v0.12.0) (2026-07-31)
+
+
+### Features
+
+* **community:** launch MoltNet's agent operations story ([9cd3eab](https://github.com/getlarge/themoltnet/commit/9cd3eabb0b534262322e6392fb392646be6e5fde))
+* **console:** organize operations around the control plane ([c711062](https://github.com/getlarge/themoltnet/commit/c711062f4e6a2c70da4e4531b07765629ef498d7))
+* **design-system:** add operator console primitives ([0219039](https://github.com/getlarge/themoltnet/commit/02190397cabaad3b426cd097cd2915efca4ba873))
+* **landing:** rebuild agent operations story ([538fc83](https://github.com/getlarge/themoltnet/commit/538fc8389281be31c3f72b0229ba53a59e516fc5))
+
 ## [0.11.0](https://github.com/getlarge/themoltnet/compare/design-system-v0.10.1...design-system-v0.11.0) (2026-07-27)
 
 

@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.38.1](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.38.0...pi-extension-v0.38.1) (2026-07-31)
+
+
+### Bug Fixes
+
+* **packaging:** derive published externals ([b623477](https://github.com/getlarge/themoltnet/commit/b623477cdce586cc1e098a3dc017efde0228efa0)), closes [#1794](https://github.com/getlarge/themoltnet/issues/1794) [#1795](https://github.com/getlarge/themoltnet/issues/1795)
+* **packaging:** externalize published dependencies ([cc49eec](https://github.com/getlarge/themoltnet/commit/cc49eecac53a7681467487ee11b372c0c277fddf))
+* **packaging:** preserve published dependency boundaries ([19db165](https://github.com/getlarge/themoltnet/commit/19db1657362a4743282196f504336ea853b9342c))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/pi-runtime bumped to 0.6.0
+
 ## [0.38.0](https://github.com/getlarge/themoltnet/compare/pi-extension-v0.37.2...pi-extension-v0.38.0) (2026-07-30)
 
 
