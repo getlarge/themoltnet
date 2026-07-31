@@ -14,9 +14,10 @@ The planner must:
   exact per-file patch sizes/digests;
 - inspect only selected changed files and specific producer relationships in
   the exact-revision worktree;
-- semantically identify machine-produced or derived files using content or
-  producer/consumer evidence;
-- group every remaining file into one bounded primary topic;
+- nominate possible machine-produced or derived files using content or
+  producer/consumer evidence, without excluding them from review;
+- group every reviewable manifest file, including every generated candidate,
+  into one bounded primary topic;
 - choose only necessary review lanes; and
 - write exactly one strict `TopicPlan` JSON result in scratch, upload it with
   `moltnet_upload_task_artifact`, and reference the returned CID in
@@ -36,7 +37,7 @@ planner profile against representative large manifests for:
 
 - reliable strict JSON and submit-tool use;
 - enough context for the bounded manifest and selectively downloaded files;
-- accurate semantic generated-file classification;
+- accurate, evidence-backed generated-candidate hints;
 - instruction following around topic, byte, file, and task-count budgets;
 - latency, input tokens, and output tokens; and
 - recovery behavior after an unavailable artifact or tool error.
@@ -726,3 +727,39 @@ remain exceptional: accepted phase outputs are durable and recovery should
 create only missing or explicitly corrected work. The output cap remains a
 meaningful synthesis constraint; a higher-output synthesis profile or a
 smaller finding cap can reduce the need for a warm terminal-submit turn.
+
+## Trust-boundary correction after acceptance
+
+The acceptance runs above validated durability, artifact flow, topic bounds,
+and model curation, but they also exposed a separate security flaw in the
+original classification contract: untrusted planner or preflight output could
+remove an ordinary text file from all specialist coverage. Evidence-shaped
+model prose is not independent verification when the model is reading
+attacker-controlled change content.
+
+Generated-file exclusion is therefore now a trusted ingestion decision. The
+classifier evaluates `linguist-generated` with `git check-attr` against the
+exact 40-hex comparison-base revision. Attributes introduced or modified by
+the reviewed head cannot authorize an exclusion. Binaries remain intrinsically
+excluded. Generated headers and model observations remain useful signals, but
+the planner emits them only as `generatedCandidates`; each candidate must still
+have exactly one primary topic owner and receives specialist review. The design
+preflight has no exclusion field.
+
+This stays repository-agnostic: a repository opts generated outputs out through
+its own trusted-base attributes rather than a baked-in path, suffix, language,
+or ecosystem list. Repositories without those attributes fail safely by
+reviewing derived text. A large uncertain output may consequently need a
+bounded singleton topic or make a plan invalid; that cost is preferable to
+letting untrusted classification hide authored code. The earlier counts and
+accepted verdict remain historical evidence for the old contract and must not
+be treated as acceptance of this corrected trust boundary. A fresh large-
+fixture acceptance is required before merge.
+
+A read-only preflight of PR #1730 under the corrected classifier processed a
+389,398-byte, 70-file diff. The trusted base attributes excluded exactly the
+202,628-byte Drizzle snapshot and its 564-byte journal patch. The other 68
+files remained reviewable (186,206 patch bytes, 3,375 changed LOC), including
+generated-client and lockfile candidates, and correctly required agent
+planning. This verifies the ingestion boundary only; it is not a replacement
+for the fresh end-to-end acceptance graph.

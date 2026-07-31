@@ -6,7 +6,6 @@ import {
   type GlobalVerdict,
   type LaneFinding,
   type LaneResult,
-  type ModelFileExclusion,
   type MultiLensReviewDurableOutput,
   type MultiLensReviewPublishedOutput,
   REVIEW_LANES,
@@ -188,11 +187,7 @@ function recommendation(
 
 export function parseDesignPreflight(summary: string): DesignPreflight {
   const value = jsonObject(summary, 'design preflight');
-  exactKeys(
-    value,
-    ['verdict', 'summary', 'questions', 'excludedFiles'],
-    'design preflight',
-  );
+  exactKeys(value, ['verdict', 'summary', 'questions'], 'design preflight');
   if (
     value.verdict !== 'PROCEED' &&
     value.verdict !== 'PIVOT' &&
@@ -210,49 +205,10 @@ export function parseDesignPreflight(summary: string): DesignPreflight {
   if ((questions?.length ?? 0) > 3) {
     throw new Error('design preflight supports at most 3 questions');
   }
-  if (!Array.isArray(value.excludedFiles)) {
-    throw new Error('design preflight.excludedFiles must be an array');
-  }
-  const excludedFiles = value.excludedFiles.map(
-    (item, index): ModelFileExclusion => {
-      const exclusion =
-        item && typeof item === 'object' && !Array.isArray(item)
-          ? (item as Record<string, unknown>)
-          : null;
-      if (!exclusion) {
-        throw new Error(
-          `design preflight.excludedFiles[${index}] must be an object`,
-        );
-      }
-      exactKeys(
-        exclusion,
-        ['path', 'reason', 'evidence'],
-        `design preflight.excludedFiles[${index}]`,
-      );
-      return {
-        path: requiredString(
-          exclusion,
-          'path',
-          `design preflight.excludedFiles[${index}]`,
-        ),
-        reason: requiredString(
-          exclusion,
-          'reason',
-          `design preflight.excludedFiles[${index}]`,
-        ),
-        evidence: requiredString(
-          exclusion,
-          'evidence',
-          `design preflight.excludedFiles[${index}]`,
-        ),
-      };
-    },
-  );
   return {
     verdict: value.verdict,
     summary: requiredString(value, 'summary', 'design preflight'),
     ...(questions ? { questions } : {}),
-    excludedFiles,
   };
 }
 

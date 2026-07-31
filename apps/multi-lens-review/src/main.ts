@@ -10,6 +10,7 @@ import {
   MULTI_LENS_REVIEW_TASK,
 } from './absurd.js';
 import { currentProcessEnv, HELP, parseCliConfig } from './config.js';
+import { generatedPathsFromBaseAttributes } from './git-attributes.js';
 import { resolveRuntimeProfileRouting } from './profile-routing.js';
 import {
   inspectReviewDiff,
@@ -58,10 +59,24 @@ async function main(): Promise<number> {
     console.log(HELP);
     return 0;
   }
-  const inspected = inspectReviewDiff(
+  const initiallyInspected = inspectReviewDiff(
     parsed.config.diff,
     parsed.config.githubFiles,
   );
+  const baseRevision =
+    parsed.kind === 'run'
+      ? parsed.config.input.reviewBaseRevision
+      : parsed.config.reviewBaseRevision;
+  const inspected = baseRevision
+    ? inspectReviewDiff(
+        parsed.config.diff,
+        parsed.config.githubFiles,
+        generatedPathsFromBaseAttributes(
+          initiallyInspected.files.map((file) => file.path),
+          baseRevision,
+        ),
+      )
+    : initiallyInspected;
   if (parsed.kind === 'preflight') {
     // This branch deliberately executes before connect(): it is a read-only,
     // local classifier with no artifact or task side effects.

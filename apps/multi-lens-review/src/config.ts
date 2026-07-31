@@ -5,6 +5,7 @@ import type { MultiLensReviewInput, ReviewLane } from './types.js';
 
 export const HELP = `Usage:
   moltnet-multi-lens-review --preflight --diff-file <path> [--files-metadata <json>]
+    [--review-base-revision <40-hex-object-id>]
   moltnet-multi-lens-review --team <uuid> --diary <uuid> --target <description>
     --diff-file <path> --review-base-revision <40-hex-object-id>
     --review-revision <40-hex-object-id>
@@ -59,6 +60,7 @@ export interface CliRunConfig {
 export interface CliPreflightConfig {
   diff: string;
   githubFiles?: GitHubFileMetadata[];
+  reviewBaseRevision?: string;
 }
 
 export type CliParseResult =
@@ -181,7 +183,18 @@ export function parseCliConfig(
   if (values.preflight) {
     return {
       kind: 'preflight',
-      config: { diff, ...(githubFiles ? { githubFiles } : {}) },
+      config: {
+        diff,
+        ...(githubFiles ? { githubFiles } : {}),
+        ...(values['review-base-revision']
+          ? {
+              reviewBaseRevision: nonEmpty(
+                values['review-base-revision'],
+                '--review-base-revision',
+              ),
+            }
+          : {}),
+      },
     };
   }
 

@@ -2,7 +2,6 @@ import type { Agent } from '@themoltnet/sdk';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
-  applyModelExclusions,
   inspectReviewDiff,
   MAX_RAW_DIFF_BYTES,
   printablePreflight,
@@ -268,7 +267,7 @@ Binary files /dev/null and b/image.png differ
 });
 
 describe('stageReviewManifest', () => {
-  it('stages one compact manifest before model classification', async () => {
+  it('stages one compact manifest with trusted-base exclusions', async () => {
     const diff = `${MODIFIED}diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
 --- a/pnpm-lock.yaml
 +++ b/pnpm-lock.yaml
@@ -287,62 +286,25 @@ describe('stageReviewManifest', () => {
     const manifest = await stageReviewManifest(
       agent,
       'team',
-      inspectReviewDiff(diff),
+      inspectReviewDiff(diff, undefined, new Set(['pnpm-lock.yaml'])),
     );
     expect(stage).toHaveBeenCalledTimes(1);
     expect(manifest.files[0]).not.toHaveProperty('artifact');
     expect(manifest.files[1]).not.toHaveProperty('artifact');
     expect(manifest.files[0].patchSha256).toMatch(/^[0-9a-f]{64}$/);
-    expect(manifest.coverage.excludedFiles).toEqual([]);
-
-    const classified = applyModelExclusions(manifest, [
-      {
-        path: 'pnpm-lock.yaml',
-        reason: 'machine-derived dependency resolution',
-        evidence: 'The patch contains resolved dependency graph data.',
-      },
-    ]);
-    expect(classified.files[1]).toMatchObject({
+    expect(manifest.files[1]).toMatchObject({
       reviewable: false,
       generated: true,
+      generatedSignals: ['base-gitattributes:linguist-generated'],
     });
-    expect(classified.coverage.excludedFiles).toEqual([
+    expect(manifest.coverage.excludedFiles).toEqual([
       {
         path: 'pnpm-lock.yaml',
-        reason: 'machine-derived dependency resolution',
-        evidence: 'The patch contains resolved dependency graph data.',
-        source: 'model',
+        reason: 'base-gitattributes:linguist-generated',
+        evidence:
+          'linguist-generated is set by .gitattributes at the trusted base revision',
+        source: 'base-gitattributes',
       },
     ]);
-  });
-
-  it('rejects unknown and duplicate model exclusion paths', () => {
-    const manifest = {
-      ...printablePreflight(inspectReviewDiff(MODIFIED)),
-      files: [
-        {
-          ...printablePreflight(inspectReviewDiff(MODIFIED)).files[0],
-        },
-      ],
-      manifestArtifact: {
-        cid: 'manifest',
-        title: 'review-manifest.v1.json',
-        contentType: 'application/json',
-        sizeBytes: 1,
-      },
-    };
-    const decision = {
-      reason: 'derived',
-      evidence: 'content proves it',
-    };
-    expect(() =>
-      applyModelExclusions(manifest, [{ path: 'missing.ts', ...decision }]),
-    ).toThrow(/unknown file/);
-    expect(() =>
-      applyModelExclusions(manifest, [
-        { path: 'src/a.ts', ...decision },
-        { path: 'src/a.ts', ...decision },
-      ]),
-    ).toThrow(/duplicate paths/);
   });
 });

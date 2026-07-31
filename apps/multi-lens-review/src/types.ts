@@ -65,7 +65,7 @@ export interface CoverageLedger {
   excludedFiles: Array<{
     path: string;
     reason: string;
-    source: 'intrinsic' | 'model';
+    source: 'intrinsic' | 'base-gitattributes';
     evidence?: string;
   }>;
   primaryOwners: Record<string, string | null>;
@@ -105,7 +105,7 @@ export interface ReviewTopic {
 
 export interface TopicPlan {
   version: 1;
-  excludedFiles: ModelFileExclusion[];
+  generatedCandidates: GeneratedFileCandidate[];
   topics: ReviewTopic[];
 }
 
@@ -113,10 +113,10 @@ export interface DesignPreflight {
   verdict: 'PROCEED' | 'PIVOT' | 'ASK';
   summary: string;
   questions?: string[];
-  excludedFiles: ModelFileExclusion[];
 }
 
-export interface ModelFileExclusion {
+/** Non-authoritative model classification; candidates remain reviewable. */
+export interface GeneratedFileCandidate {
   path: string;
   reason: string;
   evidence: string;

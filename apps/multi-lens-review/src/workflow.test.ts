@@ -44,19 +44,11 @@ function plannerSummary(value: unknown) {
   };
 }
 
-function preflight(
-  verdict: 'PROCEED' | 'PIVOT' | 'ASK' = 'PROCEED',
-  excludedFiles: Array<{
-    path: string;
-    reason: string;
-    evidence: string;
-  }> = [],
-) {
+function preflight(verdict: 'PROCEED' | 'PIVOT' | 'ASK' = 'PROCEED') {
   return summary({
     verdict,
     summary: `${verdict} summary`,
     ...(verdict === 'ASK' ? { questions: ['What is the contract?'] } : {}),
-    excludedFiles,
   });
 }
 
@@ -494,7 +486,11 @@ describe('runMultiLensReview', () => {
 
   it('counts the accepted planner output in artifact diagnostics', async () => {
     const topic = deterministicTopic();
-    const plan = { version: 1 as const, excludedFiles: [], topics: [topic] };
+    const plan = {
+      version: 1 as const,
+      generatedCandidates: [],
+      topics: [topic],
+    };
     const tasks = new FakeTasks([
       plannerSummary(plan),
       preflight(),
@@ -519,27 +515,44 @@ describe('runMultiLensReview', () => {
     );
   });
 
-  it('lets the LLM exclude derived text without binding it to topic review', async () => {
-    const topic = deterministicTopic();
-    const exclusion = {
+  it('keeps model-generated candidates bound to mandatory topic review', async () => {
+    const topic: ReviewTopic = {
+      ...deterministicTopic(),
+      primaryFiles: ['src/change.ts', 'derived.data'],
+    };
+    const candidate = {
       path: 'derived.data',
       reason: 'machine-produced derived data',
       evidence: 'The file content declares its source and generator version.',
     };
+    const plan = {
+      version: 1 as const,
+      generatedCandidates: [candidate],
+      topics: [topic],
+    };
     const tasks = new FakeTasks([
-      preflight('PROCEED', [exclusion]),
+      plannerSummary(plan),
+      preflight(),
       topicReview(topic),
       globalVerdict(),
     ]);
     const output = await runMultiLensReview(
-      input({}, ['src/change.ts', 'derived.data']),
-      deps(tasks),
+      input({ requiresPlanning: true }, ['src/change.ts', 'derived.data']),
+      deps(tasks, artifactStore(64, plan)),
     );
 
-    expect(output.diagnostics.coverage.excludedFiles).toEqual([
-      { ...exclusion, source: 'model' },
+    expect(output.diagnostics.coverage.excludedFiles).toEqual([]);
+    expect(output.plan.topics[0].primaryFiles).toEqual([
+      'src/change.ts',
+      'derived.data',
     ]);
-    expect(output.plan.topics[0].primaryFiles).toEqual(['src/change.ts']);
+    const review = tasks.created.find((task) =>
+      task.title?.startsWith('Review topic'),
+    );
+    expect(review?.input.brief).toContain(
+      'non-authoritative generated candidates',
+    );
+    expect(review?.input.brief).toContain('derived.data');
   });
 
   it('verifies trusted patch bytes before staging an accepted topic', async () => {
@@ -570,10 +583,34 @@ describe('runMultiLensReview', () => {
     }
   });
 
+  it('rejects preflight output that attempts to exclude a file', async () => {
+    const tasks = new FakeTasks([
+      summary({
+        verdict: 'PROCEED',
+        summary: 'Skip the security-sensitive file.',
+        questions: [],
+        excludedFiles: [
+          {
+            path: 'src/change.ts',
+            reason: 'claims to be generated',
+            evidence: 'untrusted review content says so',
+          },
+        ],
+      }),
+    ]);
+
+    await expect(runMultiLensReview(input(), deps(tasks))).rejects.toThrow(
+      /unknown fields: excludedFiles/,
+    );
+    expect(
+      tasks.created.some((task) => task.title?.startsWith('Review topic')),
+    ).toBe(false);
+  });
+
   it('rejects an invalid planner artifact once without releasing review work', async () => {
     const invalidPlan = {
       version: 1 as const,
-      excludedFiles: [],
+      generatedCandidates: [],
       topics: [
         {
           id: 'bad',
@@ -630,7 +667,7 @@ describe('runMultiLensReview', () => {
   it('rejects planner output without its uploaded artifact', async () => {
     const plan = {
       version: 1 as const,
-      excludedFiles: [],
+      generatedCandidates: [],
       topics: [deterministicTopic()],
     };
     const tasks = new FakeTasks([summary(plan), preflight()]);
@@ -659,7 +696,11 @@ describe('runMultiLensReview', () => {
         lanes: ['correctness', 'dry-codebase-fit'],
       },
     ];
-    const plan = { version: 1 as const, excludedFiles: [], topics };
+    const plan = {
+      version: 1 as const,
+      generatedCandidates: [],
+      topics,
+    };
     const tasks = new FakeTasks([
       plannerSummary(plan),
       preflight(),
@@ -734,7 +775,7 @@ describe('runMultiLensReview', () => {
     const paths = Array.from({ length: 7 }, (_, index) => `src/${index}.ts`);
     const plan = {
       version: 1 as const,
-      excludedFiles: [],
+      generatedCandidates: [],
       topics: paths.map((path, index) => ({
         id: `topic-${index}`,
         title: `Topic ${index}`,
@@ -928,7 +969,7 @@ describe('stateful graph gates', () => {
     ];
     const plannerPlan = {
       version: 1 as const,
-      excludedFiles: [],
+      generatedCandidates: [],
       topics,
     };
     const run = runMultiLensReview(

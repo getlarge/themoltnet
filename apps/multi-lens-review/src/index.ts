@@ -3,9 +3,9 @@ export {
   durableMultiLensReviewOutput,
   MULTI_LENS_REVIEW_TASK,
 } from './absurd.js';
+export { generatedPathsFromBaseAttributes } from './git-attributes.js';
 export { resolveRuntimeProfileRouting } from './profile-routing.js';
 export {
-  applyModelExclusions,
   type GitHubFileMetadata,
   inspectReviewDiff,
   MAX_RAW_DIFF_BYTES,
@@ -31,7 +31,6 @@ export {
   MAX_TOPIC_REVIEW_TASKS,
   MAX_TOPICS,
   parseTopicPlanJson,
-  removeExcludedFilesFromPlan,
   topicByteSize,
   validateTopicPlan,
 } from './topic-plan.js';
@@ -40,11 +39,11 @@ export {
   type CoverageLedger,
   DEFAULT_LENSES,
   type DesignPreflight,
+  type GeneratedFileCandidate,
   type GlobalVerdict,
   type LaneFinding,
   type LaneResult,
   MANDATORY_REVIEW_LANES,
-  type ModelFileExclusion,
   type MultiLensReviewDeps,
   type MultiLensReviewDurableOutput,
   type MultiLensReviewInput,

@@ -12,7 +12,7 @@ import {
 import type { ReviewTopic, TopicPlan } from './types.js';
 
 function plan(topics: ReviewTopic[]): TopicPlan {
-  return { version: 1, excludedFiles: [], topics };
+  return { version: 1, generatedCandidates: [], topics };
 }
 
 describe('topic plan validation', () => {
@@ -216,12 +216,17 @@ describe('topic plan validation', () => {
       parseTopicPlanJson(
         JSON.stringify({
           version: 1,
-          excludedFiles: [],
+          generatedCandidates: [],
           topics: [],
           surprise: true,
         }),
       ),
     ).toThrow(/unknown fields/);
+    expect(() =>
+      parseTopicPlanJson(
+        JSON.stringify({ version: 1, excludedFiles: [], topics: [] }),
+      ),
+    ).toThrow(/unknown fields: excludedFiles/);
   });
 
   it('uses one trusted deterministic topic below planning thresholds', () => {
@@ -232,5 +237,40 @@ describe('topic plan validation', () => {
       primaryFiles: ['a.ts', 'b.ts'],
       lanes: ['correctness', 'dry-codebase-fit'],
     });
+  });
+
+  it('keeps model-generated candidates in mandatory primary coverage', () => {
+    const manifest = reviewManifest(['src/auth.ts'], {
+      requiresPlanning: true,
+    });
+    const candidate = {
+      path: 'src/auth.ts',
+      reason: 'claims to be generated',
+      evidence: 'contains a generated-looking comment',
+    };
+
+    expect(() =>
+      validateTopicPlan(
+        { version: 1, generatedCandidates: [candidate], topics: [] },
+        manifest,
+      ),
+    ).toThrow(/src\/auth\.ts has no primary owner/);
+    expect(
+      validateTopicPlan(
+        {
+          version: 1,
+          generatedCandidates: [candidate],
+          topics: [
+            {
+              id: 'generated-audit',
+              title: 'Generated output audit',
+              primaryFiles: ['src/auth.ts'],
+              lanes: [],
+            },
+          ],
+        },
+        manifest,
+      ).topics[0].primaryFiles,
+    ).toEqual(['src/auth.ts']);
   });
 });

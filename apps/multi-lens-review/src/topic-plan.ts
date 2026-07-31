@@ -1,7 +1,7 @@
 import {
   type CoverageLedger,
+  type GeneratedFileCandidate,
   MANDATORY_REVIEW_LANES,
-  type ModelFileExclusion,
   REVIEW_LANES,
   type ReviewLane,
   type ReviewManifest,
@@ -57,35 +57,35 @@ export function parseTopicPlanJson(summary: string): TopicPlan {
     throw new Error('planner output must be strict JSON');
   }
   const root = asRecord(parsed, 'topic plan');
-  exactKeys(root, ['version', 'excludedFiles', 'topics'], 'topic plan');
+  exactKeys(root, ['version', 'generatedCandidates', 'topics'], 'topic plan');
   if (
     root.version !== 1 ||
-    !Array.isArray(root.excludedFiles) ||
+    !Array.isArray(root.generatedCandidates) ||
     !Array.isArray(root.topics)
   ) {
     throw new Error(
-      'topic plan requires version 1, excludedFiles, and topics arrays',
+      'topic plan requires version 1, generatedCandidates, and topics arrays',
     );
   }
-  const excludedFiles = root.excludedFiles.map(
-    (value, index): ModelFileExclusion => {
-      const exclusion = asRecord(value, `excludedFiles[${index}]`);
+  const generatedCandidates = root.generatedCandidates.map(
+    (value, index): GeneratedFileCandidate => {
+      const candidate = asRecord(value, `generatedCandidates[${index}]`);
       exactKeys(
-        exclusion,
+        candidate,
         ['path', 'reason', 'evidence'],
-        `excludedFiles[${index}]`,
+        `generatedCandidates[${index}]`,
       );
       for (const key of ['path', 'reason', 'evidence'] as const) {
-        if (typeof exclusion[key] !== 'string' || !exclusion[key].trim()) {
+        if (typeof candidate[key] !== 'string' || !candidate[key].trim()) {
           throw new Error(
-            `excludedFiles[${index}].${key} must be a non-empty string`,
+            `generatedCandidates[${index}].${key} must be a non-empty string`,
           );
         }
       }
       return {
-        path: (exclusion.path as string).trim(),
-        reason: (exclusion.reason as string).trim(),
-        evidence: (exclusion.evidence as string).trim(),
+        path: (candidate.path as string).trim(),
+        reason: (candidate.reason as string).trim(),
+        evidence: (candidate.evidence as string).trim(),
       };
     },
   );
@@ -116,7 +116,7 @@ export function parseTopicPlanJson(summary: string): TopicPlan {
       lanes: lanes as ReviewLane[],
     };
   });
-  return { version: 1, excludedFiles, topics };
+  return { version: 1, generatedCandidates, topics };
 }
 
 function unique(values: readonly string[]): boolean {
@@ -142,8 +142,8 @@ function laneUnion(
 
 /**
  * Turn trusted file classification into an actionable planner budget without
- * encoding repository or ecosystem conventions. Exclusions remain the
- * planner's semantic decision; this only explains the cost of files that stay.
+ * encoding repository or ecosystem conventions. Trusted-base exclusions have
+ * already been applied; model candidates remain in the review budget.
  */
 export function plannerLaneBudgetGuidance(
   manifest: ReviewManifest,
@@ -202,6 +202,29 @@ export function validateTopicPlan(
       .map((file) => [file.path, file]),
   );
   if (plan.version !== 1) diagnostics.push('plan version must be 1');
+  const candidatePaths = plan.generatedCandidates.map(
+    (candidate) => candidate.path,
+  );
+  if (!unique(candidatePaths)) {
+    diagnostics.push('generated candidate paths must be unique');
+  }
+  for (const [index, candidate] of plan.generatedCandidates.entries()) {
+    if (!reviewable.has(candidate.path)) {
+      diagnostics.push(
+        `generatedCandidates[${index}] references unknown reviewable file ${candidate.path}`,
+      );
+    }
+    if (!candidate.reason.trim() || !candidate.evidence.trim()) {
+      diagnostics.push(
+        `generatedCandidates[${index}] requires a non-empty reason and evidence`,
+      );
+    }
+    if (candidate.reason.length > 500 || candidate.evidence.length > 2_000) {
+      diagnostics.push(
+        `generatedCandidates[${index}] exceeds diagnostic bounds`,
+      );
+    }
+  }
   if (plan.topics.length === 0) diagnostics.push('plan must contain a topic');
   if (plan.topics.length > MAX_TOPICS) {
     diagnostics.push(
@@ -301,7 +324,7 @@ export function validateTopicPlan(
   }
   return {
     version: 1,
-    excludedFiles: plan.excludedFiles,
+    generatedCandidates: plan.generatedCandidates,
     topics: normalizedTopics,
   };
 }
@@ -325,31 +348,10 @@ export function deterministicTopicPlan(
     lanes: [],
   };
   const lanes = laneUnion(topic, manifest, requestedLanes);
-  return { version: 1, excludedFiles: [], topics: [{ ...topic, lanes }] };
-}
-
-export function removeExcludedFilesFromPlan(
-  plan: TopicPlan,
-  manifest: ReviewManifest,
-): TopicPlan {
-  const reviewable = new Set(
-    manifest.files.filter((file) => file.reviewable).map((file) => file.path),
-  );
   return {
-    ...plan,
-    topics: plan.topics
-      .map((topic) => ({
-        ...topic,
-        primaryFiles: topic.primaryFiles.filter((path) => reviewable.has(path)),
-        ...(topic.contextFiles
-          ? {
-              contextFiles: topic.contextFiles.filter((path) =>
-                reviewable.has(path),
-              ),
-            }
-          : {}),
-      }))
-      .filter((topic) => topic.primaryFiles.length > 0),
+    version: 1,
+    generatedCandidates: [],
+    topics: [{ ...topic, lanes }],
   };
 }
 

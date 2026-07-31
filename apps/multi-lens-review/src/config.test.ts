@@ -51,6 +51,27 @@ describe('parseCliConfig', () => {
     });
   });
 
+  it('accepts a trusted base revision for attribute-aware preflight', () => {
+    expect(
+      parseCliConfig(
+        [
+          '--preflight',
+          '--diff',
+          'diff',
+          '--review-base-revision',
+          'b'.repeat(40),
+        ],
+        deps({ env: {} }),
+      ),
+    ).toEqual({
+      kind: 'preflight',
+      config: {
+        diff: 'diff',
+        reviewBaseRevision: 'b'.repeat(40),
+      },
+    });
+  });
+
   it('parses a diff file and repeated requested lanes', () => {
     const result = parseCliConfig(
       [

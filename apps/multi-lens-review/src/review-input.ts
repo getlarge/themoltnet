@@ -13,7 +13,6 @@ import {
 } from './topic-plan.js';
 import type {
   CoverageLedger,
-  ModelFileExclusion,
   ReviewArtifactRecord,
   ReviewFileRecord,
   ReviewFileStatus,
@@ -338,7 +337,15 @@ function emptyCoverage(files: ReviewFileRecord[]): CoverageLedger {
       .map((file) => ({
         path: file.path,
         reason: file.exclusionReason ?? 'not-reviewable',
-        source: 'intrinsic' as const,
+        source: file.binary
+          ? ('intrinsic' as const)
+          : ('base-gitattributes' as const),
+        ...(file.binary
+          ? {}
+          : {
+              evidence:
+                'linguist-generated is set by .gitattributes at the trusted base revision',
+            }),
       })),
     primaryOwners: Object.fromEntries(
       reviewableFiles.map((path) => [path, null]),
@@ -351,6 +358,7 @@ function emptyCoverage(files: ReviewFileRecord[]): CoverageLedger {
 export function inspectReviewDiff(
   diff: string,
   githubFiles?: GitHubFileMetadata[],
+  trustedGeneratedPaths: ReadonlySet<string> = new Set(),
 ): ParsedReviewInput {
   const rawDiffBytes = Buffer.byteLength(diff, 'utf8');
   if (rawDiffBytes > MAX_RAW_DIFF_BYTES) {
@@ -403,10 +411,16 @@ export function inspectReviewDiff(
     const joinedPatch = section.lines.join('\n');
     const patch = joinedPatch.endsWith('\n') ? joinedPatch : `${joinedPatch}\n`;
     const language = languageFor(path);
-    const generatedSignals = hasGeneratedHeader(patch)
-      ? ['generated-header']
-      : [];
-    const exclusionReason = binary ? 'binary' : undefined;
+    const trustedGenerated = trustedGeneratedPaths.has(path);
+    const generatedSignals = [
+      ...(hasGeneratedHeader(patch) ? ['generated-header'] : []),
+      ...(trustedGenerated ? ['base-gitattributes:linguist-generated'] : []),
+    ];
+    const exclusionReason = binary
+      ? 'binary'
+      : trustedGenerated
+        ? 'base-gitattributes:linguist-generated'
+        : undefined;
     const previousPath =
       metadata?.previous_filename ??
       (path !== section.oldPath ? section.oldPath : undefined);
@@ -421,7 +435,7 @@ export function inspectReviewDiff(
       patchSha256: createHash('sha256').update(patch, 'utf8').digest('hex'),
       language,
       binary,
-      generated: false,
+      generated: trustedGenerated,
       generatedSignals,
       reviewable: exclusionReason === undefined,
       ...(exclusionReason ? { exclusionReason } : {}),
@@ -543,89 +557,6 @@ export function printablePreflight(
       files: PLANNER_FILE_THRESHOLD,
       changedLoc: PLANNER_LOC_THRESHOLD,
       reviewableBytes: PLANNER_BYTE_THRESHOLD,
-    },
-  };
-}
-
-/**
- * Apply untrusted model classification only after validating exact paths and
- * evidence. Artifacts remain staged for auditability but are never bound to a
- * specialist once their file is excluded.
- */
-export function applyModelExclusions(
-  manifest: ReviewManifest,
-  exclusions: ModelFileExclusion[],
-): ReviewManifest {
-  const known = new Map(manifest.files.map((file) => [file.path, file]));
-  const paths = exclusions.map((exclusion) => exclusion.path);
-  if (new Set(paths).size !== paths.length) {
-    throw new Error('model exclusions contain duplicate paths');
-  }
-  for (const [index, exclusion] of exclusions.entries()) {
-    const file = known.get(exclusion.path);
-    if (!file) {
-      throw new Error(
-        `model exclusion ${index} references unknown file ${exclusion.path}`,
-      );
-    }
-    if (!file.reviewable) {
-      throw new Error(
-        `model exclusion ${index} references intrinsically excluded file ${exclusion.path}`,
-      );
-    }
-    if (!exclusion.reason.trim() || !exclusion.evidence.trim()) {
-      throw new Error(
-        `model exclusion ${index} requires a non-empty reason and evidence`,
-      );
-    }
-    if (exclusion.reason.length > 500 || exclusion.evidence.length > 2_000) {
-      throw new Error(`model exclusion ${index} exceeds diagnostic bounds`);
-    }
-  }
-  const excluded = new Map(
-    exclusions.map((exclusion) => [exclusion.path, exclusion]),
-  );
-  const files = manifest.files.map((file) => {
-    const decision = excluded.get(file.path);
-    return decision
-      ? {
-          ...file,
-          generated: true,
-          reviewable: false,
-          exclusionReason: decision.reason,
-          requiredLanes: [],
-        }
-      : file;
-  });
-  const reviewable = files.filter((file) => file.reviewable);
-  const reviewablePaths = reviewable.map((file) => file.path);
-  return {
-    ...manifest,
-    files,
-    reviewableFiles: reviewable.length,
-    reviewableBytes: reviewable.reduce(
-      (total, file) => total + file.byteSize,
-      0,
-    ),
-    changedLoc: reviewable.reduce((total, file) => total + file.changedLoc, 0),
-    coverage: {
-      reviewableFiles: reviewablePaths,
-      excludedFiles: [
-        ...manifest.coverage.excludedFiles.filter(
-          (file) => file.source === 'intrinsic',
-        ),
-        ...exclusions.map((exclusion) => ({
-          ...exclusion,
-          source: 'model' as const,
-        })),
-      ],
-      primaryOwners: Object.fromEntries(
-        reviewablePaths.map((path) => [path, null]),
-      ),
-      laneCoverage: Object.fromEntries(
-        reviewablePaths.map((path) => [path, []]),
-      ),
-      complete: reviewable.length === 0,
     },
   };
 }
