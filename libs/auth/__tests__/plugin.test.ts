@@ -1092,6 +1092,52 @@ describe('declarative route scope enforcement', () => {
     expect(mockPermissionChecker.canAccessTeam).toHaveBeenCalledOnce();
   });
 
+  it.each([
+    ['measure', 200],
+    ['warn', 200],
+    ['enforce', 403],
+  ] as const)(
+    'isolates a throwing denial telemetry sink in %s mode',
+    async (mode, expectedStatus) => {
+      const mockTokenValidator = createMockTokenValidator();
+      mockTokenValidator.resolveAuthContext.mockResolvedValue(
+        VALID_AUTH_CONTEXT,
+      );
+      const app = Fastify();
+      await app.register(authPlugin, {
+        tokenValidator: mockTokenValidator,
+        permissionChecker: createMockPermissionChecker(),
+        relationshipWriter: createMockRelationshipWriter(),
+        teamResolver: { findPersonalTeamId: vi.fn().mockResolvedValue(null) },
+        scopeEnforcementMode: mode,
+        onScopeDenial: () =>
+          Promise.reject(new Error('metrics backend unavailable')),
+      } as never);
+      app.get(
+        '/scoped',
+        {
+          config: {
+            auth: {
+              credentialBindingScope: 'identity',
+              requiredScopes: ['task:execute'],
+            },
+          },
+          schema: { operationId: 'executeTask' },
+          preHandler: [requireAuth],
+        },
+        async () => ({ ok: true }),
+      );
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/scoped',
+        headers: { authorization: `Bearer ${VALID_TOKEN}` },
+      });
+
+      expect(response.statusCode).toBe(expectedStatus);
+    },
+  );
+
   it('fails route registration when principal auth declarations are incomplete', async () => {
     const app = Fastify();
     await app.register(authPlugin, {

@@ -279,7 +279,6 @@
           "agentId",
           "teamId",
           "name",
-          "scopes",
           "status",
           "createdAt",
           "expiresAt",
@@ -14536,8 +14535,7 @@
         },
         "required": [
           "identityId",
-          "subjectType",
-          "scopes"
+          "subjectType"
         ],
         "type": "object"
       }

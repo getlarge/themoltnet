@@ -354,6 +354,40 @@ function talosInit(signal: AbortSignal | undefined): RequestInit | undefined {
   return signal ? { signal } : undefined;
 }
 
+function scopesMatch(actual: readonly string[], expected: readonly string[]) {
+  return (
+    actual.length === expected.length &&
+    new Set(actual).size === actual.length &&
+    expected.every((scope) => actual.includes(scope))
+  );
+}
+
+async function revokeInvalidIssuedKey(
+  api: TalosApi,
+  key: IssuedApiKey,
+  logger: Logger,
+  action: 'issue' | 'rotate',
+): Promise<void> {
+  if (!key.key_id) return;
+  try {
+    await api.adminRevokeIssuedApiKey(
+      {
+        keyId: key.key_id,
+        adminRevokeIssuedApiKeyBody: {
+          reason: RevocationReason.RevocationReasonPrivilegeWithdrawn,
+          description: `MoltNet rejected invalid Talos ${action} response`,
+        },
+      },
+      undefined,
+    );
+  } catch (error) {
+    logger.warn(
+      { err: error, action: `${action}:cleanup`, keyId: key.key_id },
+      'agent_key.upstream_error',
+    );
+  }
+}
+
 function talosFailureKind(
   error: unknown,
   signal: AbortSignal | undefined,
@@ -711,6 +745,13 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
       let key: AgentKey;
       try {
         key = toAgentKey(result.issued_api_key);
+        if (
+          key.agentId !== input.agentId ||
+          key.teamId !== input.teamId ||
+          !scopesMatch(key.scopes, scopes)
+        ) {
+          throw new Error('Issued key binding or scopes changed');
+        }
       } catch (error) {
         input.logger.warn(
           {
@@ -721,6 +762,12 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
             teamId: input.teamId,
           },
           'agent_key.malformed_upstream_row',
+        );
+        await revokeInvalidIssuedKey(
+          api,
+          result.issued_api_key,
+          input.logger,
+          'issue',
         );
         throw createProblem(
           'upstream-error',
@@ -821,9 +868,10 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
         rotatedKey = toAgentKey(result.issued_api_key);
         if (
           rotatedKey.agentId !== binding.agentId ||
-          rotatedKey.teamId !== input.teamId
+          rotatedKey.teamId !== input.teamId ||
+          !scopesMatch(rotatedKey.scopes, scopes)
         ) {
-          throw new Error('Rotated key binding changed');
+          throw new Error('Rotated key binding or scopes changed');
         }
       } catch (error) {
         input.logger.warn(
@@ -835,6 +883,12 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
             teamId: input.teamId,
           },
           'agent_key.malformed_upstream_row',
+        );
+        await revokeInvalidIssuedKey(
+          api,
+          result.issued_api_key,
+          input.logger,
+          'rotate',
         );
         throw createProblem(
           'upstream-error',

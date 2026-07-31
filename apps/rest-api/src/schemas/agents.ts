@@ -16,7 +16,7 @@ export const WhoamiSchema = Type.Object(
   {
     identityId: Type.String({ format: 'uuid' }),
     subjectType: Type.Union([Type.Literal('agent'), Type.Literal('human')]),
-    scopes: Type.Array(Type.String()),
+    scopes: Type.Optional(Type.Array(Type.String())),
     currentTeamId: Type.Optional(
       Type.Union([Type.String({ format: 'uuid' }), Type.Null()]),
     ),

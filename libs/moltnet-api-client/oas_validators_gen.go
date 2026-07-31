@@ -309,9 +309,6 @@ func (s *AgentKey) Validate() error {
 		})
 	}
 	if err := func() error {
-		if s.Scopes == nil {
-			return errors.New("nil is invalid value")
-		}
 		var failures []validate.FieldError
 		for i, elem := range s.Scopes {
 			if err := func() error {
@@ -39211,17 +39208,6 @@ func (s *Whoami) Validate() error {
 	}
 
 	var failures []validate.FieldError
-	if err := func() error {
-		if s.Scopes == nil {
-			return errors.New("nil is invalid value")
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "scopes",
-			Error: err,
-		})
-	}
 	if err := func() error {
 		if err := s.SubjectType.Validate(); err != nil {
 			return err

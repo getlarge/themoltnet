@@ -1669,12 +1669,14 @@ func (s *AgentKey) encodeFields(e *jx.Encoder) {
 		s.RevocationReason.Encode(e)
 	}
 	{
-		e.FieldStart("scopes")
-		e.ArrStart()
-		for _, elem := range s.Scopes {
-			elem.Encode(e)
+		if s.Scopes != nil {
+			e.FieldStart("scopes")
+			e.ArrStart()
+			for _, elem := range s.Scopes {
+				elem.Encode(e)
+			}
+			e.ArrEnd()
 		}
-		e.ArrEnd()
 	}
 	{
 		e.FieldStart("status")
@@ -1801,7 +1803,6 @@ func (s *AgentKey) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"revocationReason\"")
 			}
 		case "scopes":
-			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
 				s.Scopes = make([]AgentKeyScopesItem, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -1861,7 +1862,7 @@ func (s *AgentKey) Decode(d *jx.Decoder) error {
 	var failures []validate.FieldError
 	for i, mask := range [2]uint8{
 		0b11111111,
-		0b00001111,
+		0b00001110,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
@@ -121798,12 +121799,14 @@ func (s *Whoami) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
-		e.FieldStart("scopes")
-		e.ArrStart()
-		for _, elem := range s.Scopes {
-			e.Str(elem)
+		if s.Scopes != nil {
+			e.FieldStart("scopes")
+			e.ArrStart()
+			for _, elem := range s.Scopes {
+				e.Str(elem)
+			}
+			e.ArrEnd()
 		}
-		e.ArrEnd()
 	}
 	{
 		e.FieldStart("subjectType")
@@ -121894,7 +121897,6 @@ func (s *Whoami) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"publicKey\"")
 			}
 		case "scopes":
-			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
 				s.Scopes = make([]string, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -121933,7 +121935,7 @@ func (s *Whoami) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b11010000,
+		0b10010000,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.

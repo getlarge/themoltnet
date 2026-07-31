@@ -128,6 +128,28 @@ then switch to `enforce`. Route registration itself is always fail-fast:
 startup rejects an authenticated route that omits either its binding or its
 scope declaration.
 
+Existing Hydra clients must be repaired before deploying clients that request
+explicit scopes. Otherwise Hydra rejects the token exchange with
+`invalid_scope`, before the REST API's `measure` mode can observe the request.
+Use this rollout order:
+
+```bash
+# Read-only inventory (the default)
+pnpm exec tsx tools/db/backfill-agent-oauth-scopes.ts
+
+# Update MoltNet agent clients and verify each write
+pnpm exec tsx tools/db/backfill-agent-oauth-scopes.ts --apply
+
+# Deployment gate: exits non-zero if any agent client still needs repair
+pnpm exec tsx tools/db/backfill-agent-oauth-scopes.ts --verify
+```
+
+After verification succeeds, deploy the explicit-scope SDK and MCP clients,
+then progress REST enforcement from `measure` to `warn` and finally `enforce`.
+The script is idempotent, selects only clients whose metadata type is
+`moltnet_agent`, follows Ory's pagination links, and never mutates in its
+default or `--verify` modes.
+
 ::: tip Credential ladder
 Issue [#1788](https://github.com/getlarge/themoltnet/issues/1788) tracks the
 credential ladder (agent key → short-lived task credential → connector

@@ -50,6 +50,7 @@ export {
   populateAuthContext,
   requireAuth,
   requireScopes,
+  routeUsesPrincipalAuth,
   type ScopeDenialEvent,
   type ScopeEnforcementMode,
   type TeamResolver,

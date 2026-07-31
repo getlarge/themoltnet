@@ -156,6 +156,36 @@ describe('agent key service', () => {
     ).toEqual(requestedScopes);
   });
 
+  it.each([
+    ['binding', { actor_id: OTHER_AGENT_ID }],
+    ['scopes', { scopes: ['task:read'] as string[] }],
+  ] as const)(
+    'rejects and revokes an issued key with mismatched %s',
+    async (_kind, overrides) => {
+      talosApi.adminIssueApiKey.mockResolvedValue({
+        issued_api_key: issuedKey(overrides),
+        secret: 'ory_ak_invalid',
+      });
+      talosApi.adminRevokeIssuedApiKey.mockResolvedValue(undefined);
+
+      await expect(
+        service.issue({
+          agentId: AGENT_ID,
+          idempotencyKey: 'invalid-upstream-key',
+          logger,
+          name: 'invalid upstream key',
+          subject,
+          teamId: TEAM_ID,
+        }),
+      ).rejects.toMatchObject({ code: 'UPSTREAM_ERROR', statusCode: 502 });
+
+      expect(talosApi.adminRevokeIssuedApiKey).toHaveBeenCalledWith(
+        expect.objectContaining({ keyId: KEY_ID }),
+        undefined,
+      );
+    },
+  );
+
   it('rejects scopes not held by the requesting credential', async () => {
     await expect(
       service.issue({
@@ -293,9 +323,15 @@ describe('agent key service', () => {
   });
 
   it('rotates while restoring the immutable binding and secret visibility', async () => {
-    talosApi.adminGetIssuedApiKey.mockResolvedValue(issuedKey());
+    const preservedScopes = ['diary:read', 'task:execute'] as const;
+    talosApi.adminGetIssuedApiKey.mockResolvedValue(
+      issuedKey({ scopes: [...preservedScopes] }),
+    );
     talosApi.adminRotateIssuedApiKey.mockResolvedValue({
-      issued_api_key: issuedKey({ key_id: ROTATED_KEY_ID }),
+      issued_api_key: issuedKey({
+        key_id: ROTATED_KEY_ID,
+        scopes: [...preservedScopes],
+      }),
       secret: 'ory_ak_rotated',
     });
 
@@ -316,9 +352,40 @@ describe('agent key service', () => {
           subject_type: 'agent',
           team_id: TEAM_ID,
         },
+        scopes: [...preservedScopes],
       },
     });
+    expect(result.key.scopes).toEqual(preservedScopes);
   });
+
+  it.each([
+    ['binding', { actor_id: OTHER_AGENT_ID }],
+    ['scopes', { scopes: ['task:read'] as string[] }],
+  ] as const)(
+    'rejects and revokes a rotated key with mismatched %s',
+    async (_kind, overrides) => {
+      talosApi.adminGetIssuedApiKey.mockResolvedValue(issuedKey());
+      talosApi.adminRotateIssuedApiKey.mockResolvedValue({
+        issued_api_key: issuedKey({ key_id: ROTATED_KEY_ID, ...overrides }),
+        secret: 'ory_ak_invalid',
+      });
+      talosApi.adminRevokeIssuedApiKey.mockResolvedValue(undefined);
+
+      await expect(
+        service.rotate({
+          keyId: KEY_ID,
+          logger,
+          subject,
+          teamId: TEAM_ID,
+        }),
+      ).rejects.toMatchObject({ code: 'UPSTREAM_ERROR', statusCode: 502 });
+
+      expect(talosApi.adminRevokeIssuedApiKey).toHaveBeenCalledWith(
+        expect.objectContaining({ keyId: ROTATED_KEY_ID }),
+        undefined,
+      );
+    },
+  );
 
   it('does not let rotation preserve scopes the requester cannot delegate', async () => {
     talosApi.adminGetIssuedApiKey.mockResolvedValue(

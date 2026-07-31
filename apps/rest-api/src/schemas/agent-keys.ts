@@ -28,7 +28,7 @@ export const AgentKeySchema = Type.Object(
     agentId: UuidSchema,
     teamId: UuidSchema,
     name: Type.String(),
-    scopes: Type.Array(CredentialScopeSchema),
+    scopes: Type.Optional(Type.Array(CredentialScopeSchema)),
     status: AgentKeyStatusSchema,
     createdAt: Type.Union([Type.String({ format: 'date-time' }), Type.Null()]),
     expiresAt: Type.Union([Type.String({ format: 'date-time' }), Type.Null()]),

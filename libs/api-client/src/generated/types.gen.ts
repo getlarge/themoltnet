@@ -37,7 +37,7 @@ export type AgentKey = {
     | 'superseded'
     | 'privilege_withdrawn'
     | null;
-  scopes: Array<
+  scopes?: Array<
     | 'agent:profile'
     | 'connector:invoke'
     | 'crypto:sign'
@@ -3135,7 +3135,7 @@ export type Whoami = {
   fingerprint?: string;
   identityId: string;
   publicKey?: string;
-  scopes: Array<string>;
+  scopes?: Array<string>;
   subjectType: 'agent' | 'human';
 };
 

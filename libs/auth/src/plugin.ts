@@ -50,7 +50,7 @@ export interface AuthPluginOptions {
   /** Phased scope rollout. Defaults to `enforce` for library consumers. */
   scopeEnforcementMode?: ScopeEnforcementMode;
   /** Low-cardinality sink for would-be and enforced scope denials. */
-  onScopeDenial?: (event: ScopeDenialEvent) => void;
+  onScopeDenial?: (event: ScopeDenialEvent) => void | Promise<void>;
   /** Fail route registration when principal-auth policy is incomplete. */
   enforceRouteScopeDeclarations?: boolean;
 }
@@ -96,7 +96,7 @@ declare module 'fastify' {
     teamResolver: TeamResolver;
     sessionResolver: SessionResolver | null;
     scopeEnforcementMode: ScopeEnforcementMode;
-    onScopeDenial: ((event: ScopeDenialEvent) => void) | null;
+    onScopeDenial: ((event: ScopeDenialEvent) => void | Promise<void>) | null;
   }
   interface FastifyRequest {
     authContext: AuthContext | null;
@@ -207,7 +207,7 @@ function createAuthError(message: string): Error & {
   return error;
 }
 
-function routeUsesPrincipalAuth(routeOptions: {
+export function routeUsesPrincipalAuth(routeOptions: {
   preHandler?: unknown;
   schema?: unknown;
 }): boolean {
@@ -576,12 +576,25 @@ async function enforceRouteScopes(
     typeof schema?.operationId === 'string'
       ? schema.operationId
       : 'unknown-operation';
-  request.server.onScopeDenial?.({
-    mode,
-    operationId,
-    requiredScope: missingScope,
-    subjectType: authContext.subjectType,
-  });
+  try {
+    await request.server.onScopeDenial?.({
+      mode,
+      operationId,
+      requiredScope: missingScope,
+      subjectType: authContext.subjectType,
+    });
+  } catch (error) {
+    request.log.error(
+      {
+        err: error,
+        mode,
+        operationId,
+        requiredScope: missingScope,
+        subjectType: authContext.subjectType,
+      },
+      'auth.scope.denial_telemetry_failed',
+    );
+  }
 
   if (mode !== 'measure') {
     request.log.warn(

@@ -8,12 +8,11 @@
 import swagger from '@fastify/swagger';
 import {
   authPlugin,
-  optionalAuth,
   type OryClients,
   type PermissionChecker,
   type RelationshipReader,
   type RelationshipWriter,
-  requireAuth,
+  routeUsesPrincipalAuth,
   type ScopeEnforcementMode,
   type SessionResolver,
   type TeamResolver,
@@ -335,13 +334,15 @@ export async function registerApiRoutes(
     'auth.scope.denial.total',
     'Credential scope would-be and enforced denials',
   );
+  const scopeEnforcementMode =
+    options.security.scopeEnforcementMode ?? 'measure';
   await app.register(authPlugin, {
     tokenValidator: options.tokenValidator,
     permissionChecker: options.permissionChecker,
     relationshipWriter: options.relationshipWriter,
     teamResolver: options.teamResolver,
     sessionResolver: options.sessionResolver,
-    scopeEnforcementMode: options.security.scopeEnforcementMode ?? 'measure',
+    scopeEnforcementMode,
     enforceRouteScopeDeclarations: true,
     onScopeDenial: ({ mode, operationId, requiredScope, subjectType }) => {
       scopeDenialCounter.add(1, {
@@ -352,26 +353,13 @@ export async function registerApiRoutes(
       });
     },
   });
+  app.log.info({ mode: scopeEnforcementMode }, 'auth.scope.enforcement_mode');
 
   // Auth-aware routes share the same provider-failure contract. Add it once
   // at registration time so OpenAPI and generated clients model 429/503 for
   // every requireAuth/optionalAuth route without duplicating schema entries.
   app.addHook('onRoute', (routeOptions) => {
-    const handlers = Array.isArray(routeOptions.preHandler)
-      ? routeOptions.preHandler
-      : routeOptions.preHandler
-        ? [routeOptions.preHandler]
-        : [];
-    const declaresAuthentication =
-      Array.isArray(routeOptions.schema?.security) &&
-      routeOptions.schema.security.length > 0;
-    if (
-      !declaresAuthentication &&
-      !handlers.includes(requireAuth) &&
-      !handlers.includes(optionalAuth)
-    ) {
-      return;
-    }
+    if (!routeUsesPrincipalAuth(routeOptions)) return;
     routeOptions.schema ??= {};
     const existingResponses =
       typeof routeOptions.schema.response === 'object' &&

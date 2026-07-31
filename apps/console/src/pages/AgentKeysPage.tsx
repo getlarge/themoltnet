@@ -4,7 +4,6 @@ import {
   type AgentKeyStatus,
   type AgentKeyWithSecret,
   createAgentKey,
-  type CredentialScope,
   revokeAgentKey,
   rotateAgentKey,
 } from '@moltnet/api-client';
@@ -12,6 +11,11 @@ import {
   listAgentKeysInfiniteOptions,
   listTeamMembersOptions,
 } from '@moltnet/api-client/query';
+import {
+  AGENT_CREDENTIAL_SCOPES,
+  ALL_CREDENTIAL_SCOPES,
+  type CredentialScope,
+} from '@moltnet/models';
 import {
   useInfiniteQuery,
   useQuery,
@@ -42,44 +46,35 @@ interface CreateKeyForm {
   ttlDays: string;
 }
 
-const DEFAULT_AGENT_KEY_SCOPES = [
-  'agent:profile',
-  'runtime:read',
-  'task:read',
-  'task:claim',
-  'task:execute',
-] as const satisfies readonly CredentialScope[];
+const SCOPE_DESCRIPTIONS: Record<CredentialScope, string> = {
+  'agent:profile': 'Read the authenticated agent profile',
+  'connector:invoke': 'Invoke configured connectors',
+  'crypto:sign': 'Create cryptographic signatures',
+  'diary:manage': 'Manage diaries and access grants',
+  'diary:read': 'Read diary entries and metadata',
+  'diary:write': 'Create diary entries',
+  'key:manage': 'Issue, list, and rotate agent keys',
+  'pack:read': 'Read context and rendered packs',
+  'pack:write': 'Create and update packs',
+  'runtime:manage': 'Manage runtime configuration',
+  'runtime:read': 'Read runtime configuration',
+  'task:claim': 'Claim queued tasks',
+  'task:execute': 'Execute and report task attempts',
+  'task:manage': 'Create and cancel tasks',
+  'task:read': 'Read tasks and attempts',
+  'team:manage': 'Manage teams and membership',
+  'team:read': 'Read teams and membership',
+};
 
-const CREDENTIAL_SCOPE_OPTIONS: ReadonlyArray<{
-  scope: CredentialScope;
-  description: string;
-}> = [
-  {
-    scope: 'agent:profile',
-    description: 'Read the authenticated agent profile',
-  },
-  { scope: 'connector:invoke', description: 'Invoke configured connectors' },
-  { scope: 'crypto:sign', description: 'Create cryptographic signatures' },
-  { scope: 'diary:manage', description: 'Manage diaries and access grants' },
-  { scope: 'diary:read', description: 'Read diary entries and metadata' },
-  { scope: 'diary:write', description: 'Create diary entries' },
-  { scope: 'key:manage', description: 'Issue, list, and rotate agent keys' },
-  { scope: 'pack:read', description: 'Read context and rendered packs' },
-  { scope: 'pack:write', description: 'Create and update packs' },
-  { scope: 'runtime:manage', description: 'Manage runtime configuration' },
-  { scope: 'runtime:read', description: 'Read runtime configuration' },
-  { scope: 'task:claim', description: 'Claim queued tasks' },
-  { scope: 'task:execute', description: 'Execute and report task attempts' },
-  { scope: 'task:manage', description: 'Create and cancel tasks' },
-  { scope: 'task:read', description: 'Read tasks and attempts' },
-  { scope: 'team:manage', description: 'Manage teams and membership' },
-  { scope: 'team:read', description: 'Read teams and membership' },
-];
+const CREDENTIAL_SCOPE_OPTIONS = ALL_CREDENTIAL_SCOPES.map((scope) => ({
+  description: SCOPE_DESCRIPTIONS[scope],
+  scope,
+}));
 
 const EMPTY_CREATE_FORM: CreateKeyForm = {
   agentId: '',
   name: '',
-  scopes: [...DEFAULT_AGENT_KEY_SCOPES],
+  scopes: [...AGENT_CREDENTIAL_SCOPES],
   ttlDays: '',
 };
 
@@ -222,7 +217,7 @@ export function AgentKeysPage() {
     setCreateForm({
       ...EMPTY_CREATE_FORM,
       agentId: agentFilter || agents[0]?.subjectId || '',
-      scopes: [...DEFAULT_AGENT_KEY_SCOPES],
+      scopes: [...AGENT_CREDENTIAL_SCOPES],
     });
     setActionError(null);
     setCreateIdempotencyKey(crypto.randomUUID());
@@ -651,7 +646,7 @@ function CredentialScopeSelector({
           <Button
             variant="secondary"
             size="sm"
-            onClick={() => onChange([...DEFAULT_AGENT_KEY_SCOPES])}
+            onClick={() => onChange([...AGENT_CREDENTIAL_SCOPES])}
           >
             Use daemon minimum
           </Button>

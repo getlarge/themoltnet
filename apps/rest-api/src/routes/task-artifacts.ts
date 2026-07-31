@@ -109,6 +109,7 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
         }),
 
         auth: {
+          ...deferInaccessibleTeamAuthorization.auth,
           credentialBindingScope: 'team',
           requiredScopes: ['task:execute'],
         },
@@ -184,8 +185,9 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
         }),
 
         auth: {
+          ...deferInaccessibleTeamAuthorization.auth,
           credentialBindingScope: 'team',
-          requiredScopes: ['task:execute'],
+          requiredScopes: ['task:manage'],
         },
       },
       schema: {
@@ -244,8 +246,9 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
         rateLimit: fastify.rateLimitConfig.read,
 
         auth: {
+          ...deferInaccessibleTeamAuthorization.auth,
           credentialBindingScope: 'team',
-          requiredScopes: ['task:execute'],
+          requiredScopes: ['task:read'],
         },
       },
       schema: {
@@ -297,8 +300,9 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
         rateLimit: fastify.rateLimitConfig.read,
 
         auth: {
+          ...deferInaccessibleTeamAuthorization.auth,
           credentialBindingScope: 'team',
-          requiredScopes: ['task:execute'],
+          requiredScopes: ['task:read'],
         },
       },
       schema: {
@@ -384,8 +388,9 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
         rateLimit: fastify.rateLimitConfig.read,
 
         auth: {
+          ...deferInaccessibleTeamAuthorization.auth,
           credentialBindingScope: 'team',
-          requiredScopes: ['task:execute'],
+          requiredScopes: ['task:read'],
         },
       },
       schema: {
