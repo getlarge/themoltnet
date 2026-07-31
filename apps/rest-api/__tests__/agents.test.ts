@@ -184,6 +184,7 @@ describe('Agent routes', () => {
       expect(body.identityId).toBe(OWNER_ID);
       expect(body.fingerprint).toBe('C212-DAFA-27C5-6C57');
       expect(body.subjectType).toBe('agent');
+      expect(body.scopes).toEqual(VALID_AUTH_CONTEXT.scopes);
       expect(body).toHaveProperty('currentTeamId');
       expect(body).not.toHaveProperty('credentialBinding');
     });
@@ -221,6 +222,7 @@ describe('Agent routes', () => {
       const body = response.json();
       expect(body.identityId).toBe(OWNER_ID);
       expect(body.subjectType).toBe('human');
+      expect(body.scopes).toEqual(HUMAN_AUTH_CONTEXT.scopes);
       expect(body).not.toHaveProperty('publicKey');
       await humanApp.close();
     });

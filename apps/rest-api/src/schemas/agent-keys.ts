@@ -1,5 +1,11 @@
+import { ALL_CREDENTIAL_SCOPES } from '@moltnet/auth';
 import { UuidSchema } from '@moltnet/models';
 import { Type } from 'typebox';
+
+export const CredentialScopeSchema = Type.Union(
+  ALL_CREDENTIAL_SCOPES.map((scope) => Type.Literal(scope)),
+  { $id: 'CredentialScope' },
+);
 
 export const AgentKeyStatusSchema = Type.Union(
   [Type.Literal('active'), Type.Literal('revoked'), Type.Literal('expired')],
@@ -22,6 +28,7 @@ export const AgentKeySchema = Type.Object(
     agentId: UuidSchema,
     teamId: UuidSchema,
     name: Type.String(),
+    scopes: Type.Array(CredentialScopeSchema),
     status: AgentKeyStatusSchema,
     createdAt: Type.Union([Type.String({ format: 'date-time' }), Type.Null()]),
     expiresAt: Type.Union([Type.String({ format: 'date-time' }), Type.Null()]),
@@ -56,6 +63,13 @@ export const CreateAgentKeyBodySchema = Type.Object(
     ttlDays: Type.Optional(
       Type.Integer({ minimum: 1, maximum: 90, default: 30 }),
     ),
+    scopes: Type.Optional(
+      Type.Array(CredentialScopeSchema, {
+        uniqueItems: true,
+        description:
+          'Requested credential scopes. Must be a subset of both the canonical agent grant and the requesting credential.',
+      }),
+    ),
   },
   { $id: 'CreateAgentKeyBody' },
 );
@@ -85,6 +99,7 @@ export const AgentKeyParamsSchema = Type.Object(
 );
 
 export const agentKeySchemas = [
+  CredentialScopeSchema,
   AgentKeyStatusSchema,
   AgentKeyRevocationReasonSchema,
   AgentKeySchema,

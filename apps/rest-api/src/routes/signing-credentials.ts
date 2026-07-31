@@ -121,7 +121,10 @@ export async function signingCredentialRoutes(fastify: FastifyInstance) {
     {
       bodyLimit: SIGNING_JSON_BODY_LIMIT,
       config: {
-        auth: { credentialBindingScope: 'team' },
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['crypto:sign'],
+        },
         rateLimit: fastify.rateLimitConfig?.signing,
       },
       // Inspect the parsed body before Ajv's removeAdditional pass can erase a
@@ -166,7 +169,10 @@ export async function signingCredentialRoutes(fastify: FastifyInstance) {
     {
       bodyLimit: SIGNING_JSON_BODY_LIMIT,
       config: {
-        auth: { credentialBindingScope: 'team' },
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['crypto:sign'],
+        },
         rateLimit: fastify.rateLimitConfig?.signing,
       },
       // Keep this before schema validation for the same removeAdditional
@@ -215,7 +221,10 @@ export async function signingCredentialRoutes(fastify: FastifyInstance) {
     '/crypto/signing-credentials',
     {
       config: {
-        auth: { credentialBindingScope: 'team' },
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['crypto:sign'],
+        },
         rateLimit: fastify.rateLimitConfig.read,
       },
       schema: {
@@ -259,7 +268,10 @@ export async function signingCredentialRoutes(fastify: FastifyInstance) {
     '/crypto/signing-credentials/:id',
     {
       config: {
-        auth: { credentialBindingScope: 'team' },
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['crypto:sign'],
+        },
         rateLimit: fastify.rateLimitConfig.read,
       },
       schema: {
@@ -296,7 +308,10 @@ export async function signingCredentialRoutes(fastify: FastifyInstance) {
       `/crypto/signing-credentials/:id/${transition.action}`,
       {
         config: {
-          auth: { credentialBindingScope: 'team' },
+          auth: {
+            credentialBindingScope: 'team',
+            requiredScopes: ['crypto:sign'],
+          },
           rateLimit: fastify.rateLimitConfig?.signing,
         },
         preValidation: (request, _reply, done) => {

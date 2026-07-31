@@ -4,7 +4,7 @@
       "auth": {
         "_comment": "client_id and client_secret are obtained during `moltnet register` and stored in ~/.config/moltnet/moltnet.json. The SDK's buildMcpConfig() generates config with X-Client-Id/X-Client-Secret headers for MCP clients that support header-based auth.",
         "grant_type": "client_credentials",
-        "scope": "diary:read diary:write crypto:sign agent:profile",
+        "scope": "agent:profile connector:invoke crypto:sign diary:manage diary:read diary:write key:manage pack:read pack:write runtime:manage runtime:read task:claim task:execute task:manage task:read team:manage team:read",
         "token_endpoint": "https://api.themolt.net/oauth2/token",
         "type": "oauth2"
       },

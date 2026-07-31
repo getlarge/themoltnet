@@ -36,6 +36,7 @@ function issuedKey(
     key_id: KEY_ID,
     actor_id: OWNER_ID,
     name: 'daemon',
+    scopes: [...AGENT_CREDENTIAL_SCOPES],
     status: KeyStatus.KeyStatusActive,
     visibility: KeyVisibility.KeyVisibilitySecret,
     metadata: {
@@ -66,20 +67,32 @@ describe('agent key routes', () => {
     app = await createTestApp(
       mocks,
       VALID_AUTH_CONTEXT,
-      undefined,
+      { scopeEnforcementMode: 'enforce' },
       {
         talosApi: talosApi as unknown as OryClients['apiKeys'],
       },
-      (token) =>
-        token === 'talos-current-key'
-          ? {
-              ...VALID_AUTH_CONTEXT,
-              credentialBinding: {
-                keyId: KEY_ID,
-                boundTeamId: TEAM_ID,
-              },
-            }
-          : VALID_AUTH_CONTEXT,
+      (token) => {
+        if (token === 'talos-current-key') {
+          return {
+            ...VALID_AUTH_CONTEXT,
+            credentialBinding: {
+              keyId: KEY_ID,
+              boundTeamId: TEAM_ID,
+            },
+          };
+        }
+        if (token === 'task-only-key') {
+          return {
+            ...VALID_AUTH_CONTEXT,
+            scopes: ['task:execute'],
+            credentialBinding: {
+              keyId: '01JKEY00000000000000000099',
+              boundTeamId: TEAM_ID,
+            },
+          };
+        }
+        return VALID_AUTH_CONTEXT;
+      },
     );
   });
 
@@ -144,6 +157,35 @@ describe('agent key routes', () => {
       { signal: expect.any(AbortSignal) },
     );
     expect(response.headers['cache-control']).toContain('no-store');
+  });
+
+  it('issues a key with an explicitly diluted scope set', async () => {
+    const scopes = ['task:read', 'task:claim'];
+    talosApi.adminIssueApiKey.mockResolvedValue({
+      issued_api_key: issuedKey({ scopes }),
+      secret: 'ory_ak_diluted',
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/agent-keys',
+      headers: {
+        authorization: 'Bearer test-token',
+        'idempotency-key': 'diluted-key-request',
+        'x-moltnet-team-id': TEAM_ID,
+      },
+      payload: {
+        agentId: OWNER_ID,
+        name: 'task claimer',
+        scopes,
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(response.json().key.scopes).toEqual(scopes);
+    expect(
+      talosApi.adminIssueApiKey.mock.calls[0]?.[0].issueApiKeyRequest.scopes,
+    ).toEqual(scopes);
   });
 
   it('lets a credential manager issue a key for another agent', async () => {
@@ -749,6 +791,44 @@ describe('agent key routes', () => {
 
     expect(response.statusCode).toBe(204);
     expect(app.tokenValidator.evictTalosKey).toHaveBeenCalledWith(KEY_ID);
+  });
+
+  it('allows an agent to revoke its own key without a management scope', async () => {
+    talosApi.adminGetIssuedApiKey.mockResolvedValue(issuedKey());
+    talosApi.adminRevokeIssuedApiKey.mockResolvedValue(undefined);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/agent-keys/${KEY_ID}/revoke`,
+      headers: {
+        authorization: 'Bearer task-only-key',
+        'x-moltnet-team-id': TEAM_ID,
+      },
+      payload: { reason: 'key_compromise' },
+    });
+
+    expect(response.statusCode).toBe(204);
+    expect(talosApi.adminRevokeIssuedApiKey).toHaveBeenCalledOnce();
+  });
+
+  it('rejects key issuance before Keto when key:manage is missing', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/agent-keys',
+      headers: {
+        authorization: 'Bearer task-only-key',
+        'idempotency-key': 'scope-denied-request',
+        'x-moltnet-team-id': TEAM_ID,
+      },
+      payload: { agentId: OWNER_ID, name: 'not-authorized' },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json()).toMatchObject({
+      detail: expect.stringContaining('key:manage'),
+    });
+    expect(mocks.permissionChecker.canAccessTeam).not.toHaveBeenCalled();
+    expect(talosApi.adminIssueApiKey).not.toHaveBeenCalled();
   });
 
   it('validates the privilege-withdrawn description contract', async () => {

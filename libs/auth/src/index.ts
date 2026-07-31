@@ -50,6 +50,8 @@ export {
   populateAuthContext,
   requireAuth,
   requireScopes,
+  type ScopeDenialEvent,
+  type ScopeEnforcementMode,
   type TeamResolver,
 } from './plugin.js';
 export {
@@ -80,7 +82,10 @@ export {
 } from './remote-auth-error.js';
 export {
   AGENT_CREDENTIAL_SCOPES,
-  COMMON_CREDENTIAL_SCOPES,
+  AGENT_OAUTH_SCOPES,
+  ALL_CREDENTIAL_SCOPES,
+  CREDENTIAL_SCOPES,
+  type CredentialScope,
   HUMAN_SESSION_SCOPES,
 } from './scopes.js';
 export {

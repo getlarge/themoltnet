@@ -93,7 +93,7 @@ const HUMAN_AUTH_CONTEXT: AuthContext = {
   identityId: OWNER_ID,
   humanId: OWNER_ID,
   clientId: null,
-  scopes: ['diary:read', 'diary:write', 'human:profile', 'team:read'],
+  scopes: ['diary:read', 'diary:write', 'agent:profile', 'team:read'],
   currentTeamId: null,
 };
 const TEAM_BOUND_AUTH_CONTEXT: AuthContext = {

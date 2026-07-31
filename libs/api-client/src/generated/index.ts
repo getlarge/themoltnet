@@ -346,6 +346,7 @@ export type {
   CreateTeamInviteResponses,
   CreateTeamResponse,
   CreateTeamResponses,
+  CredentialScope,
   CryptoIdentity,
   CryptoVerifyResult,
   CustomPackEntryResult,

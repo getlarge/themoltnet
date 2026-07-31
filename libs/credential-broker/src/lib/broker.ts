@@ -145,8 +145,8 @@ export interface CredentialBroker {
 
 export const DEFAULT_TASK_TTL_CEILING_SECONDS = 900;
 export const DEFAULT_CONNECTOR_TTL_CEILING_SECONDS = 300;
-export const TASK_CREDENTIAL_SCOPE = 'moltnet:task' as const;
-export const CONNECTOR_CREDENTIAL_SCOPE = 'moltnet:connector' as const;
+export const TASK_CREDENTIAL_SCOPE = 'task:execute' as const;
+export const CONNECTOR_CREDENTIAL_SCOPE = 'connector:invoke' as const;
 export const DERIVED_LIFETIME_SKEW_MS = 1_000;
 export const MINIMUM_USABLE_DERIVED_LIFETIME_MS = 1_000;
 

@@ -46,7 +46,10 @@ export async function runtimeSessionRoutes(fastify: FastifyInstance) {
     '/runtime-sessions/:taskId/:attemptN/content',
     {
       config: {
-        auth: { credentialBindingScope: 'team' },
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['task:execute'],
+        },
         swaggerTransform: ({ schema, url }) => ({
           schema: {
             ...schema,
@@ -103,7 +106,10 @@ export async function runtimeSessionRoutes(fastify: FastifyInstance) {
     '/runtime-sessions/:taskId/:attemptN',
     {
       config: {
-        auth: { credentialBindingScope: 'team' },
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['task:execute'],
+        },
         rateLimit: fastify.rateLimitConfig.read,
       },
       schema: {
@@ -140,7 +146,10 @@ export async function runtimeSessionRoutes(fastify: FastifyInstance) {
     '/runtime-sessions/:taskId/:attemptN/content',
     {
       config: {
-        auth: { credentialBindingScope: 'team' },
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['task:execute'],
+        },
         rateLimit: fastify.rateLimitConfig.read,
       },
       schema: {

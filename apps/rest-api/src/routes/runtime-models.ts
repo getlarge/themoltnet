@@ -60,7 +60,10 @@ export async function runtimeModelRoutes(fastify: FastifyInstance) {
     '/runtime-models',
     {
       config: {
-        auth: { credentialBindingScope: 'team' },
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['runtime:read'],
+        },
         rateLimit: fastify.rateLimitConfig.read,
       },
       schema: {
@@ -97,7 +100,12 @@ export async function runtimeModelRoutes(fastify: FastifyInstance) {
   server.post(
     '/runtime-models',
     {
-      config: { auth: { credentialBindingScope: 'team' } },
+      config: {
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['runtime:manage'],
+        },
+      },
       schema: {
         operationId: 'createRuntimeModel',
         tags: ['runtime-models'],
@@ -166,7 +174,13 @@ export async function runtimeModelRoutes(fastify: FastifyInstance) {
   server.get(
     '/runtime-models/:modelId',
     {
-      config: { rateLimit: fastify.rateLimitConfig.read },
+      config: {
+        rateLimit: fastify.rateLimitConfig.read,
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['runtime:read'],
+        },
+      },
       schema: {
         operationId: 'getRuntimeModel',
         tags: ['runtime-models'],
@@ -203,6 +217,12 @@ export async function runtimeModelRoutes(fastify: FastifyInstance) {
   server.patch(
     '/runtime-models/:modelId',
     {
+      config: {
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['runtime:manage'],
+        },
+      },
       schema: {
         operationId: 'updateRuntimeModel',
         tags: ['runtime-models'],
@@ -283,6 +303,12 @@ export async function runtimeModelRoutes(fastify: FastifyInstance) {
   server.delete(
     '/runtime-models/:modelId',
     {
+      config: {
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['runtime:manage'],
+        },
+      },
       schema: {
         operationId: 'deleteRuntimeModel',
         tags: ['runtime-models'],

@@ -238,7 +238,10 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
     '/runtime-profiles',
     {
       config: {
-        auth: { credentialBindingScope: 'team' },
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['runtime:read'],
+        },
         rateLimit: fastify.rateLimitConfig.read,
       },
       schema: {
@@ -272,7 +275,12 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
   server.post(
     '/runtime-profiles',
     {
-      config: { auth: { credentialBindingScope: 'team' } },
+      config: {
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['runtime:manage'],
+        },
+      },
       preValidation: validateRuntimeProfileModelOptions,
       schema: {
         operationId: 'createRuntimeProfile',
@@ -367,7 +375,13 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
   server.get(
     '/runtime-profiles/:profileId',
     {
-      config: { rateLimit: fastify.rateLimitConfig.read },
+      config: {
+        rateLimit: fastify.rateLimitConfig.read,
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['runtime:read'],
+        },
+      },
       schema: {
         operationId: 'getRuntimeProfile',
         tags: ['runtime-profiles'],
@@ -400,6 +414,12 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
   server.patch(
     '/runtime-profiles/:profileId',
     {
+      config: {
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['runtime:manage'],
+        },
+      },
       preValidation: validateRuntimeProfileModelOptions,
       schema: {
         operationId: 'updateRuntimeProfile',
@@ -522,6 +542,12 @@ export async function runtimeProfileRoutes(fastify: FastifyInstance) {
   server.delete(
     '/runtime-profiles/:profileId',
     {
+      config: {
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['runtime:manage'],
+        },
+      },
       schema: {
         operationId: 'deleteRuntimeProfile',
         tags: ['runtime-profiles'],

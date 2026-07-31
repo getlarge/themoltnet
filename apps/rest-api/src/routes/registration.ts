@@ -118,6 +118,12 @@ export async function registrationRoutes(fastify: FastifyInstance) {
   server.post(
     '/auth/rotate-secret',
     {
+      config: {
+        auth: {
+          credentialBindingScope: 'identity',
+          requiredScopes: ['key:manage'],
+        },
+      },
       schema: {
         operationId: 'rotateClientSecret',
         tags: ['auth'],

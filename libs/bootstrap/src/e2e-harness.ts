@@ -13,6 +13,7 @@
  * here rather than overloading this one.
  */
 
+import { AGENT_OAUTH_SCOPES } from '@moltnet/auth';
 import { createDatabase } from '@moltnet/database';
 
 import { bootstrapGenesisAgents, type GenesisAgent } from './bootstrap.js';
@@ -31,8 +32,7 @@ export const DEFAULT_E2E_HYDRA_ADMIN_URL = 'http://localhost:4445';
 export const DEFAULT_E2E_KETO_READ_URL = 'http://localhost:4466';
 export const DEFAULT_E2E_KETO_WRITE_URL = 'http://localhost:4467';
 export const DEFAULT_E2E_KRATOS_ADMIN_URL = 'http://localhost:4434';
-export const DEFAULT_E2E_AGENT_SCOPES =
-  'diary:read diary:write crypto:sign agent:profile';
+export const DEFAULT_E2E_AGENT_SCOPES = AGENT_OAUTH_SCOPES.join(' ');
 
 export interface E2EHarnessOptions {
   /** OAuth scopes granted to the bootstrapped agent. */

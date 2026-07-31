@@ -47,6 +47,12 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
   server.post(
     '/packs/:id/render/preview',
     {
+      config: {
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['pack:write'],
+        },
+      },
       schema: {
         operationId: 'previewRenderedPack',
         tags: ['diary'],
@@ -114,6 +120,12 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
   server.post(
     '/packs/:id/render',
     {
+      config: {
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['pack:write'],
+        },
+      },
       schema: {
         operationId: 'renderContextPack',
         tags: ['diary'],
@@ -191,7 +203,10 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
   server.get(
     '/packs/:id/rendered',
     {
-      config: { rateLimit: fastify.rateLimitConfig.read },
+      config: {
+        rateLimit: fastify.rateLimitConfig.read,
+        auth: { credentialBindingScope: 'team', requiredScopes: ['pack:read'] },
+      },
       schema: {
         operationId: 'getLatestRenderedPack',
         tags: ['diary'],
@@ -239,7 +254,10 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
   server.get(
     '/diaries/:id/rendered-packs',
     {
-      config: { rateLimit: fastify.rateLimitConfig.read },
+      config: {
+        rateLimit: fastify.rateLimitConfig.read,
+        auth: { credentialBindingScope: 'team', requiredScopes: ['pack:read'] },
+      },
       schema: {
         operationId: 'listDiaryRenderedPacks',
         tags: ['diary'],
@@ -282,7 +300,10 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
   server.get(
     '/rendered-packs/:id',
     {
-      config: { rateLimit: fastify.rateLimitConfig.read },
+      config: {
+        rateLimit: fastify.rateLimitConfig.read,
+        auth: { credentialBindingScope: 'team', requiredScopes: ['pack:read'] },
+      },
       schema: {
         operationId: 'getRenderedPackById',
         tags: ['diary'],
@@ -320,6 +341,12 @@ export async function renderedPackRoutes(fastify: FastifyInstance) {
   server.patch(
     '/rendered-packs/:id',
     {
+      config: {
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['pack:write'],
+        },
+      },
       schema: {
         operationId: 'updateRenderedPack',
         tags: ['diary'],

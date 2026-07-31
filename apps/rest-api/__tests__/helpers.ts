@@ -2,13 +2,15 @@
  * Test helpers — mocks and fixtures for REST API tests
  */
 
-import type {
-  AuthContext,
-  OryClients,
-  PermissionChecker,
-  RelationshipReader,
-  RelationshipWriter,
-  TokenValidator,
+import {
+  AGENT_OAUTH_SCOPES,
+  type AuthContext,
+  HUMAN_SESSION_SCOPES,
+  type OryClients,
+  type PermissionChecker,
+  type RelationshipReader,
+  type RelationshipWriter,
+  type TokenValidator,
 } from '@moltnet/auth';
 import { ContextPackService } from '@moltnet/context-pack-service';
 import type { Agent, AgentVoucher, DiaryEntry } from '@moltnet/database';
@@ -71,6 +73,7 @@ export const TEST_SECURITY_OPTIONS = {
   rateLimitAllowList: ['/health', '/problems'],
   trustProxy: 0,
   apiBaseUrl: 'http://localhost:8000',
+  scopeEnforcementMode: 'measure' as 'measure' | 'warn' | 'enforce',
 };
 export const OWNER_ID = '550e8400-e29b-41d4-a716-446655440000';
 export const OTHER_AGENT_ID = '660e8400-e29b-41d4-a716-446655440001';
@@ -83,7 +86,7 @@ export const VALID_AUTH_CONTEXT: AuthContext = {
   publicKey: 'ed25519:bW9sdG5ldC10ZXN0LWtleS0xLWZvci11bml0LXRlc3Q=',
   fingerprint: 'C212-DAFA-27C5-6C57',
   clientId: 'hydra-client-uuid',
-  scopes: ['diary:read', 'diary:write', 'agent:profile'],
+  scopes: [...AGENT_OAUTH_SCOPES],
   currentTeamId: null,
 };
 
@@ -99,7 +102,7 @@ export const HUMAN_AUTH_CONTEXT: AuthContext = {
   identityId: OWNER_ID,
   clientId: null,
   humanId: OWNER_ID,
-  scopes: [],
+  scopes: [...HUMAN_SESSION_SCOPES],
   currentTeamId: null,
 };
 

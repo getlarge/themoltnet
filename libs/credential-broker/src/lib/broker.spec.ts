@@ -79,7 +79,7 @@ describe('credential broker', () => {
       expect.objectContaining({
         parentCredential: 'parent-secret',
         ttlSeconds: 90,
-        scopes: ['moltnet:task'],
+        scopes: ['task:execute'],
       }),
     );
     expect(authorizeTask).toHaveBeenCalledWith({
@@ -194,7 +194,7 @@ describe('credential broker', () => {
         'https://themolt.net/claims/credentials/v1': issued.claims,
       },
       ttlSeconds: 60,
-      scopes: ['moltnet:connector'],
+      scopes: ['connector:invoke'],
     });
   });
 

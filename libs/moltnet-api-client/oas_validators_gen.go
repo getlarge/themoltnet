@@ -309,6 +309,34 @@ func (s *AgentKey) Validate() error {
 		})
 	}
 	if err := func() error {
+		if s.Scopes == nil {
+			return errors.New("nil is invalid value")
+		}
+		var failures []validate.FieldError
+		for i, elem := range s.Scopes {
+			if err := func() error {
+				if err := elem.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				failures = append(failures, validate.FieldError{
+					Name:  fmt.Sprintf("[%d]", i),
+					Error: err,
+				})
+			}
+		}
+		if len(failures) > 0 {
+			return &validate.Error{Fields: failures}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "scopes",
+			Error: err,
+		})
+	}
+	if err := func() error {
 		if err := s.Status.Validate(); err != nil {
 			return err
 		}
@@ -374,6 +402,47 @@ func (s AgentKeyRevocationReason) Validate() error {
 	case "superseded":
 		return nil
 	case "privilege_withdrawn":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
+}
+
+func (s AgentKeyScopesItem) Validate() error {
+	switch s {
+	case "agent:profile":
+		return nil
+	case "connector:invoke":
+		return nil
+	case "crypto:sign":
+		return nil
+	case "diary:manage":
+		return nil
+	case "diary:read":
+		return nil
+	case "diary:write":
+		return nil
+	case "key:manage":
+		return nil
+	case "pack:read":
+		return nil
+	case "pack:write":
+		return nil
+	case "runtime:manage":
+		return nil
+	case "runtime:read":
+		return nil
+	case "task:claim":
+		return nil
+	case "task:execute":
+		return nil
+	case "task:manage":
+		return nil
+	case "task:read":
+		return nil
+	case "team:manage":
+		return nil
+	case "team:read":
 		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
@@ -4061,6 +4130,45 @@ func (s *CreateAgentKeyReq) Validate() error {
 		})
 	}
 	if err := func() error {
+		if s.Scopes == nil {
+			return nil // optional
+		}
+		if err := (validate.Array{
+			MinLength:    0,
+			MinLengthSet: false,
+			MaxLength:    0,
+			MaxLengthSet: false,
+		}).ValidateLength(len(s.Scopes)); err != nil {
+			return errors.Wrap(err, "array")
+		}
+		if err := validate.UniqueItems(s.Scopes); err != nil {
+			return errors.Wrap(err, "array")
+		}
+		var failures []validate.FieldError
+		for i, elem := range s.Scopes {
+			if err := func() error {
+				if err := elem.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				failures = append(failures, validate.FieldError{
+					Name:  fmt.Sprintf("[%d]", i),
+					Error: err,
+				})
+			}
+		}
+		if len(failures) > 0 {
+			return &validate.Error{Fields: failures}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "scopes",
+			Error: err,
+		})
+	}
+	if err := func() error {
 		if value, ok := s.TtlDays.Get(); ok {
 			if err := func() error {
 				if err := (validate.Int{
@@ -4092,6 +4200,47 @@ func (s *CreateAgentKeyReq) Validate() error {
 		return &validate.Error{Fields: failures}
 	}
 	return nil
+}
+
+func (s CreateAgentKeyReqScopesItem) Validate() error {
+	switch s {
+	case "agent:profile":
+		return nil
+	case "connector:invoke":
+		return nil
+	case "crypto:sign":
+		return nil
+	case "diary:manage":
+		return nil
+	case "diary:read":
+		return nil
+	case "diary:write":
+		return nil
+	case "key:manage":
+		return nil
+	case "pack:read":
+		return nil
+	case "pack:write":
+		return nil
+	case "runtime:manage":
+		return nil
+	case "runtime:read":
+		return nil
+	case "task:claim":
+		return nil
+	case "task:execute":
+		return nil
+	case "task:manage":
+		return nil
+	case "task:read":
+		return nil
+	case "team:manage":
+		return nil
+	case "team:read":
+		return nil
+	default:
+		return errors.Errorf("invalid value: %v", s)
+	}
 }
 
 func (s *CreateAgentKeyServiceUnavailable) Validate() error {
@@ -39062,6 +39211,17 @@ func (s *Whoami) Validate() error {
 	}
 
 	var failures []validate.FieldError
+	if err := func() error {
+		if s.Scopes == nil {
+			return errors.New("nil is invalid value")
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "scopes",
+			Error: err,
+		})
+	}
 	if err := func() error {
 		if err := s.SubjectType.Validate(); err != nil {
 			return err

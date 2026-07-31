@@ -14,11 +14,13 @@ import {
   type RelationshipReader,
   type RelationshipWriter,
   requireAuth,
+  type ScopeEnforcementMode,
   type SessionResolver,
   type TeamResolver,
   type TokenValidator,
 } from '@moltnet/auth';
 import { ProblemDetailsSchema } from '@moltnet/models';
+import { createMetricCounter } from '@moltnet/observability';
 import type { RuntimeSessionStorage } from '@moltnet/runtime-session-service';
 import { createSigningService } from '@moltnet/signing-service';
 import type { TaskAnalyticsService } from '@moltnet/task-analytics-service';
@@ -104,6 +106,8 @@ import type {
 export interface SecurityOptions {
   /** Comma-separated list of allowed CORS origins */
   corsOrigins: string;
+  /** Phased credential-scope rollout. Defaults to `measure`. */
+  scopeEnforcementMode?: ScopeEnforcementMode;
   /** Max requests per minute for authenticated users */
   rateLimitGlobalAuth: number;
   /** Max requests per minute for anonymous users */
@@ -326,12 +330,27 @@ export async function registerApiRoutes(
   });
 
   // Register auth plugin (decorates tokenValidator, permissionChecker, request.authContext)
+  const scopeDenialCounter = createMetricCounter(
+    'moltnet-rest-api',
+    'auth.scope.denial.total',
+    'Credential scope would-be and enforced denials',
+  );
   await app.register(authPlugin, {
     tokenValidator: options.tokenValidator,
     permissionChecker: options.permissionChecker,
     relationshipWriter: options.relationshipWriter,
     teamResolver: options.teamResolver,
     sessionResolver: options.sessionResolver,
+    scopeEnforcementMode: options.security.scopeEnforcementMode ?? 'measure',
+    enforceRouteScopeDeclarations: true,
+    onScopeDenial: ({ mode, operationId, requiredScope, subjectType }) => {
+      scopeDenialCounter.add(1, {
+        'auth.scope.mode': mode,
+        'auth.scope.operation': operationId,
+        'auth.scope.required': requiredScope,
+        'auth.subject_type': subjectType,
+      });
+    },
   });
 
   // Auth-aware routes share the same provider-failure contract. Add it once

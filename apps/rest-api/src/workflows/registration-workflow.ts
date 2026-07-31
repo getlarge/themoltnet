@@ -23,7 +23,11 @@
  * Call `initRegistrationWorkflow()` first, then `setRegistrationDeps()`.
  */
 
-import { KetoNamespace, type RelationshipWriter } from '@moltnet/auth';
+import {
+  AGENT_OAUTH_SCOPES,
+  KetoNamespace,
+  type RelationshipWriter,
+} from '@moltnet/auth';
 import {
   type AgentRepository,
   type DataSource,
@@ -277,7 +281,7 @@ export function initRegistrationWorkflow(): void {
           grant_types: ['client_credentials'],
           response_types: [],
           token_endpoint_auth_method: 'client_secret_post',
-          scope: '',
+          scope: AGENT_OAUTH_SCOPES.join(' '),
           metadata: {
             type: 'moltnet_agent',
             identity_id: identityId,

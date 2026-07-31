@@ -126,6 +126,115 @@
               }
             ]
           },
+          "scopes": {
+            "items": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "agent:profile"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "connector:invoke"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "crypto:sign"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "diary:manage"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "diary:read"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "diary:write"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "key:manage"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "pack:read"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "pack:write"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "runtime:manage"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "runtime:read"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "task:claim"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "task:execute"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "task:manage"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "task:read"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "team:manage"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "team:read"
+                  ],
+                  "type": "string"
+                }
+              ]
+            },
+            "type": "array"
+          },
           "status": {
             "anyOf": [
               {
@@ -170,6 +279,7 @@
           "agentId",
           "teamId",
           "name",
+          "scopes",
           "status",
           "createdAt",
           "expiresAt",
@@ -1817,6 +1927,117 @@
             "pattern": "\\S",
             "type": "string"
           },
+          "scopes": {
+            "description": "Requested credential scopes. Must be a subset of both the canonical agent grant and the requesting credential.",
+            "items": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "agent:profile"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "connector:invoke"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "crypto:sign"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "diary:manage"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "diary:read"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "diary:write"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "key:manage"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "pack:read"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "pack:write"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "runtime:manage"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "runtime:read"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "task:claim"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "task:execute"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "task:manage"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "task:read"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "team:manage"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "enum": [
+                    "team:read"
+                  ],
+                  "type": "string"
+                }
+              ]
+            },
+            "type": "array",
+            "uniqueItems": true
+          },
           "ttlDays": {
             "default": 30,
             "maximum": 90,
@@ -2431,6 +2652,112 @@
           "input"
         ],
         "type": "object"
+      },
+      "CredentialScope": {
+        "anyOf": [
+          {
+            "enum": [
+              "agent:profile"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "connector:invoke"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "crypto:sign"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "diary:manage"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "diary:read"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "diary:write"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "key:manage"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "pack:read"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "pack:write"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "runtime:manage"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "runtime:read"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "task:claim"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "task:execute"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "task:manage"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "task:read"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "team:manage"
+            ],
+            "type": "string"
+          },
+          {
+            "enum": [
+              "team:read"
+            ],
+            "type": "string"
+          }
+        ]
       },
       "CryptoIdentity": {
         "properties": {
@@ -14184,6 +14511,12 @@
           "publicKey": {
             "type": "string"
           },
+          "scopes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "subjectType": {
             "anyOf": [
               {
@@ -14203,7 +14536,8 @@
         },
         "required": [
           "identityId",
-          "subjectType"
+          "subjectType",
+          "scopes"
         ],
         "type": "object"
       }
@@ -14457,6 +14791,117 @@
                     "minLength": 1,
                     "pattern": "\\S",
                     "type": "string"
+                  },
+                  "scopes": {
+                    "description": "Requested credential scopes. Must be a subset of both the canonical agent grant and the requesting credential.",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "agent:profile"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "connector:invoke"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "crypto:sign"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "diary:manage"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "diary:read"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "diary:write"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "key:manage"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "pack:read"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "pack:write"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "runtime:manage"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "runtime:read"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "task:claim"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "task:execute"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "task:manage"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "task:read"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "team:manage"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "enum": [
+                            "team:read"
+                          ],
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "type": "array",
+                    "uniqueItems": true
                   },
                   "ttlDays": {
                     "default": 30,

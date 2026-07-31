@@ -40,6 +40,12 @@ export async function groupRoutes(fastify: FastifyInstance) {
   server.post(
     '/teams/:id/groups',
     {
+      config: {
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['team:manage'],
+        },
+      },
       schema: {
         operationId: 'createGroup',
         tags: ['groups'],
@@ -132,7 +138,10 @@ export async function groupRoutes(fastify: FastifyInstance) {
   server.get(
     '/teams/:id/groups',
     {
-      config: { rateLimit: fastify.rateLimitConfig.read },
+      config: {
+        rateLimit: fastify.rateLimitConfig.read,
+        auth: { credentialBindingScope: 'team', requiredScopes: ['team:read'] },
+      },
       schema: {
         operationId: 'listGroups',
         tags: ['groups'],
@@ -174,7 +183,10 @@ export async function groupRoutes(fastify: FastifyInstance) {
   server.get(
     '/groups/:groupId',
     {
-      config: { rateLimit: fastify.rateLimitConfig.read },
+      config: {
+        rateLimit: fastify.rateLimitConfig.read,
+        auth: { credentialBindingScope: 'team', requiredScopes: ['team:read'] },
+      },
       schema: {
         operationId: 'getGroup',
         tags: ['groups'],
@@ -223,6 +235,12 @@ export async function groupRoutes(fastify: FastifyInstance) {
   server.delete(
     '/groups/:groupId',
     {
+      config: {
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['team:manage'],
+        },
+      },
       schema: {
         operationId: 'deleteGroup',
         tags: ['groups'],
@@ -271,6 +289,12 @@ export async function groupRoutes(fastify: FastifyInstance) {
   server.post(
     '/groups/:groupId/members',
     {
+      config: {
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['team:manage'],
+        },
+      },
       schema: {
         operationId: 'addGroupMember',
         tags: ['groups'],
@@ -336,7 +360,10 @@ export async function groupRoutes(fastify: FastifyInstance) {
   server.get(
     '/groups/:groupId/members',
     {
-      config: { rateLimit: fastify.rateLimitConfig.read },
+      config: {
+        rateLimit: fastify.rateLimitConfig.read,
+        auth: { credentialBindingScope: 'team', requiredScopes: ['team:read'] },
+      },
       schema: {
         operationId: 'listGroupMembers',
         tags: ['groups'],
@@ -381,6 +408,12 @@ export async function groupRoutes(fastify: FastifyInstance) {
   server.delete(
     '/groups/:groupId/members/:subjectId',
     {
+      config: {
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['team:manage'],
+        },
+      },
       schema: {
         operationId: 'removeGroupMember',
         tags: ['groups'],

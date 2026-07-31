@@ -219,6 +219,11 @@ export const SecurityConfigSchema = Type.Object({
   CORS_ORIGINS: Type.String({
     default: 'https://themolt.net,https://api.themolt.net',
   }),
+  // Credential-scope rollout: measure would-be denials, then warn, then enforce.
+  AUTH_SCOPE_ENFORCEMENT: Type.Union(
+    [Type.Literal('measure'), Type.Literal('warn'), Type.Literal('enforce')],
+    { default: 'measure' },
+  ),
   // Durable per-identity signing-request quota (not a per-minute throttle).
   SIGNING_MAX_PENDING_REQUESTS: Type.Number({
     minimum: 1,

@@ -254,6 +254,12 @@ export function teamRoutes(fastify: FastifyInstance) {
   server.post(
     '/teams',
     {
+      config: {
+        auth: {
+          credentialBindingScope: 'identity',
+          requiredScopes: ['team:manage'],
+        },
+      },
       schema: {
         operationId: 'createTeam',
         tags: ['teams'],
@@ -370,7 +376,7 @@ export function teamRoutes(fastify: FastifyInstance) {
     '/teams',
     {
       config: {
-        auth: { credentialBindingScope: 'team' },
+        auth: { credentialBindingScope: 'team', requiredScopes: ['team:read'] },
         rateLimit: fastify.rateLimitConfig.read,
       },
       schema: {
@@ -435,7 +441,10 @@ export function teamRoutes(fastify: FastifyInstance) {
   server.get(
     '/teams/:id',
     {
-      config: { rateLimit: fastify.rateLimitConfig.read },
+      config: {
+        rateLimit: fastify.rateLimitConfig.read,
+        auth: { credentialBindingScope: 'team', requiredScopes: ['team:read'] },
+      },
       schema: {
         operationId: 'getTeam',
         tags: ['teams'],
@@ -487,6 +496,12 @@ export function teamRoutes(fastify: FastifyInstance) {
   server.delete(
     '/teams/:id',
     {
+      config: {
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['team:manage'],
+        },
+      },
       schema: {
         operationId: 'deleteTeam',
         tags: ['teams'],
@@ -552,7 +567,10 @@ export function teamRoutes(fastify: FastifyInstance) {
   server.get(
     '/teams/:id/members',
     {
-      config: { rateLimit: fastify.rateLimitConfig.read },
+      config: {
+        rateLimit: fastify.rateLimitConfig.read,
+        auth: { credentialBindingScope: 'team', requiredScopes: ['team:read'] },
+      },
       schema: {
         operationId: 'listTeamMembers',
         tags: ['teams'],
@@ -593,6 +611,12 @@ export function teamRoutes(fastify: FastifyInstance) {
   server.delete(
     '/teams/:id/members/:subjectId',
     {
+      config: {
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['team:manage'],
+        },
+      },
       schema: {
         operationId: 'removeTeamMember',
         tags: ['teams'],
@@ -670,6 +694,12 @@ export function teamRoutes(fastify: FastifyInstance) {
   server.patch(
     '/teams/:id/members/:subjectId',
     {
+      config: {
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['team:manage'],
+        },
+      },
       schema: {
         operationId: 'updateTeamMemberRole',
         tags: ['teams'],
@@ -731,6 +761,12 @@ export function teamRoutes(fastify: FastifyInstance) {
   server.post(
     '/teams/:id/invites',
     {
+      config: {
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['team:manage'],
+        },
+      },
       schema: {
         operationId: 'createTeamInvite',
         tags: ['teams'],
@@ -793,7 +829,10 @@ export function teamRoutes(fastify: FastifyInstance) {
   server.get(
     '/teams/:id/invites',
     {
-      config: { rateLimit: fastify.rateLimitConfig.read },
+      config: {
+        rateLimit: fastify.rateLimitConfig.read,
+        auth: { credentialBindingScope: 'team', requiredScopes: ['team:read'] },
+      },
       schema: {
         operationId: 'listTeamInvites',
         tags: ['teams'],
@@ -839,6 +878,12 @@ export function teamRoutes(fastify: FastifyInstance) {
   server.delete(
     '/teams/:id/invites/:inviteId',
     {
+      config: {
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['team:manage'],
+        },
+      },
       schema: {
         operationId: 'deleteTeamInvite',
         tags: ['teams'],
@@ -880,6 +925,12 @@ export function teamRoutes(fastify: FastifyInstance) {
   server.post(
     '/teams/join',
     {
+      config: {
+        auth: {
+          credentialBindingScope: 'identity',
+          requiredScopes: ['team:manage'],
+        },
+      },
       schema: {
         operationId: 'joinTeam',
         tags: ['teams'],
@@ -983,6 +1034,12 @@ export function teamRoutes(fastify: FastifyInstance) {
   server.post(
     '/teams/:id/accept',
     {
+      config: {
+        auth: {
+          credentialBindingScope: 'identity',
+          requiredScopes: ['team:manage'],
+        },
+      },
       schema: {
         operationId: 'acceptTeamFounding',
         tags: ['teams'],

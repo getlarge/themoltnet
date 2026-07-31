@@ -100,6 +100,12 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
   server.post(
     '/diaries/:diaryId/entries',
     {
+      config: {
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['diary:write'],
+        },
+      },
       schema: {
         operationId: 'createDiaryEntry',
         tags: ['diary'],
@@ -264,7 +270,13 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
   server.get(
     '/diaries/:diaryId/entries',
     {
-      config: { rateLimit: fastify.rateLimitConfig.read },
+      config: {
+        rateLimit: fastify.rateLimitConfig.read,
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['diary:read'],
+        },
+      },
       schema: {
         operationId: 'listDiaryEntries',
         tags: ['diary'],
@@ -353,7 +365,13 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
   server.get(
     '/diaries/:diaryId/tags',
     {
-      config: { rateLimit: fastify.rateLimitConfig.read },
+      config: {
+        rateLimit: fastify.rateLimitConfig.read,
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['diary:read'],
+        },
+      },
       schema: {
         operationId: 'listDiaryTags',
         tags: ['diary'],
@@ -574,7 +592,13 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
   server.get(
     '/entries/:entryId',
     {
-      config: { rateLimit: fastify.rateLimitConfig.read },
+      config: {
+        rateLimit: fastify.rateLimitConfig.read,
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['diary:read'],
+        },
+      },
       schema: {
         operationId: 'getDiaryEntryById',
         tags: ['diary'],
@@ -635,7 +659,13 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
   server.get(
     '/entries/:entryId/verify',
     {
-      config: { rateLimit: fastify.rateLimitConfig.read },
+      config: {
+        rateLimit: fastify.rateLimitConfig.read,
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['diary:read'],
+        },
+      },
       schema: {
         operationId: 'verifyDiaryEntryById',
         tags: ['diary'],
@@ -662,6 +692,12 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
   server.patch(
     '/entries/:entryId',
     {
+      config: {
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['diary:write'],
+        },
+      },
       schema: {
         operationId: 'updateDiaryEntryById',
         tags: ['diary'],
@@ -713,6 +749,12 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
   server.delete(
     '/entries',
     {
+      config: {
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['diary:manage'],
+        },
+      },
       schema: {
         operationId: 'batchDeleteDiaryEntries',
         tags: ['diary'],
@@ -742,6 +784,12 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
   server.delete(
     '/entries/:entryId',
     {
+      config: {
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['diary:manage'],
+        },
+      },
       schema: {
         operationId: 'deleteDiaryEntryById',
         tags: ['diary'],
@@ -768,7 +816,13 @@ export async function diaryEntryRoutes(fastify: FastifyInstance) {
   server.post(
     '/diaries/search',
     {
-      config: { rateLimit: fastify.rateLimitConfig?.embedding },
+      config: {
+        rateLimit: fastify.rateLimitConfig?.embedding,
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['diary:read'],
+        },
+      },
       schema: {
         operationId: 'searchDiary',
         tags: ['diary'],

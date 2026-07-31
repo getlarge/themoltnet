@@ -1,4 +1,8 @@
-import { AGENT_CREDENTIAL_SCOPES, KetoNamespace } from '@moltnet/auth';
+import {
+  AGENT_CREDENTIAL_SCOPES,
+  AGENT_OAUTH_SCOPES,
+  KetoNamespace,
+} from '@moltnet/auth';
 import {
   type IssuedApiKey,
   KeyStatus,
@@ -30,6 +34,7 @@ const logger = {
 
 const subject: AgentKeySubject = {
   identityId: AGENT_ID,
+  scopes: [...AGENT_OAUTH_SCOPES],
   subjectNs: KetoNamespace.Agent,
   subjectType: 'agent',
 };
@@ -39,6 +44,7 @@ function issuedKey(overrides: Partial<IssuedApiKey> = {}): IssuedApiKey {
     key_id: KEY_ID,
     actor_id: AGENT_ID,
     name: 'daemon',
+    scopes: [...AGENT_CREDENTIAL_SCOPES],
     status: KeyStatus.KeyStatusActive,
     visibility: KeyVisibility.KeyVisibilitySecret,
     metadata: {
@@ -125,6 +131,64 @@ describe('agent key service', () => {
       talosApi.adminIssueApiKey.mock.calls[1]?.[0].issueApiKeyRequest
         .request_id,
     );
+  });
+
+  it('issues a credential diluted to the requested scopes', async () => {
+    const requestedScopes = ['task:read', 'task:claim'] as const;
+    talosApi.adminIssueApiKey.mockResolvedValue({
+      issued_api_key: issuedKey({ scopes: [...requestedScopes] }),
+      secret: 'ory_ak_diluted',
+    });
+
+    const result = await service.issue({
+      agentId: AGENT_ID,
+      idempotencyKey: 'diluted-key',
+      logger,
+      name: 'task claimer',
+      scopes: [...requestedScopes],
+      subject,
+      teamId: TEAM_ID,
+    });
+
+    expect(result.key.scopes).toEqual(requestedScopes);
+    expect(
+      talosApi.adminIssueApiKey.mock.calls[0]?.[0].issueApiKeyRequest.scopes,
+    ).toEqual(requestedScopes);
+  });
+
+  it('rejects scopes not held by the requesting credential', async () => {
+    await expect(
+      service.issue({
+        agentId: AGENT_ID,
+        idempotencyKey: 'scope-escalation',
+        logger,
+        name: 'escalated key',
+        scopes: ['task:read', 'task:execute'],
+        subject: { ...subject, scopes: ['key:manage', 'task:read'] },
+        teamId: TEAM_ID,
+      }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN', statusCode: 403 });
+
+    expect(talosApi.adminIssueApiKey).not.toHaveBeenCalled();
+  });
+
+  it('rejects scopes outside the canonical agent grant', async () => {
+    await expect(
+      service.issue({
+        agentId: AGENT_ID,
+        idempotencyKey: 'unknown-scope',
+        logger,
+        name: 'invalid key',
+        scopes: ['human:profile'],
+        subject: { ...subject, scopes: [...subject.scopes, 'human:profile'] },
+        teamId: TEAM_ID,
+      }),
+    ).rejects.toMatchObject({
+      code: 'VALIDATION_FAILED',
+      statusCode: 400,
+    });
+
+    expect(talosApi.adminIssueApiKey).not.toHaveBeenCalled();
   });
 
   it('bounds sparse team-manager listings and returns continuation', async () => {
@@ -254,6 +318,23 @@ describe('agent key service', () => {
         },
       },
     });
+  });
+
+  it('does not let rotation preserve scopes the requester cannot delegate', async () => {
+    talosApi.adminGetIssuedApiKey.mockResolvedValue(
+      issuedKey({ scopes: ['task:read', 'task:execute'] }),
+    );
+
+    await expect(
+      service.rotate({
+        keyId: KEY_ID,
+        logger,
+        subject: { ...subject, scopes: ['key:manage', 'task:read'] },
+        teamId: TEAM_ID,
+      }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN', statusCode: 403 });
+
+    expect(talosApi.adminRotateIssuedApiKey).not.toHaveBeenCalled();
   });
 
   it('hides an existing key from an unauthorized agent', async () => {

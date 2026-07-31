@@ -1,3 +1,4 @@
+import { AGENT_OAUTH_SCOPES } from '@moltnet/auth';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ── DBOS Mock (vi.hoisted for proper hoisting) ────────────────
@@ -203,6 +204,7 @@ describe('registration workflow', () => {
         oAuth2Client: expect.objectContaining({
           client_name: `Agent: ${FINGERPRINT}`,
           grant_types: ['client_credentials'],
+          scope: AGENT_OAUTH_SCOPES.join(' '),
           metadata: expect.objectContaining({
             identity_id: IDENTITY_ID,
             public_key: PUBLIC_KEY,

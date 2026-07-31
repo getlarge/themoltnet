@@ -126,7 +126,10 @@ export async function agentRoutes(fastify: FastifyInstance) {
     '/agents/whoami',
     {
       config: {
-        auth: { credentialBindingScope: 'identity' },
+        auth: {
+          credentialBindingScope: 'identity',
+          requiredScopes: ['agent:profile'],
+        },
         rateLimit: fastify.rateLimitConfig.read,
       },
       schema: {
@@ -155,6 +158,7 @@ export async function agentRoutes(fastify: FastifyInstance) {
           identityId: authContext.identityId,
           subjectType: 'human' as const,
           currentTeamId: authContext.currentTeamId,
+          scopes: authContext.scopes,
         };
       }
 
@@ -181,6 +185,7 @@ export async function agentRoutes(fastify: FastifyInstance) {
         identityId: agent.identityId,
         subjectType: 'agent' as const,
         currentTeamId: authContext.currentTeamId,
+        scopes: authContext.scopes,
         publicKey: agent.publicKey,
         fingerprint: agent.fingerprint,
         clientId: authContext.clientId,

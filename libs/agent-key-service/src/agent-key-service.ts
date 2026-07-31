@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 
 import {
   AGENT_CREDENTIAL_SCOPES,
+  AGENT_OAUTH_SCOPES,
   KetoNamespace,
   type PermissionChecker,
   type RelationshipReader,
@@ -33,6 +34,7 @@ export interface AgentKey {
   agentId: string;
   teamId: string;
   name: string;
+  scopes: string[];
   status: AgentKeyStatus;
   createdAt: string | null;
   expiresAt: string | null;
@@ -51,6 +53,7 @@ export interface AgentKeySubject {
   /** Bound API key used for this request, when available. */
   credentialKeyId?: string;
   identityId: string;
+  scopes: string[];
   subjectNs: KetoNamespace;
   subjectType: 'agent' | 'human';
 }
@@ -87,6 +90,7 @@ export interface IssueAgentKeyInput {
   idempotencyKey: string;
   logger: Logger;
   name: string;
+  scopes?: string[];
   signal?: AbortSignal;
   subject: AgentKeySubject;
   teamId: string;
@@ -222,6 +226,7 @@ function toAgentKey(key: IssuedApiKey): AgentKey {
     agentId: binding.agentId,
     teamId: binding.teamId,
     name: key.name ?? key.key_id,
+    scopes: key.scopes ?? [],
     status: effectiveStatus(key),
     createdAt: key.create_time?.toISOString() ?? null,
     expiresAt: key.expire_time?.toISOString() ?? null,
@@ -303,6 +308,34 @@ function talosRequestId(input: IssueAgentKeyInput): string {
   hex[12] = '5';
   hex[16] = ((Number.parseInt(hex[16] ?? '0', 16) & 0x3) | 0x8).toString(16);
   return `${hex.slice(0, 8).join('')}-${hex.slice(8, 12).join('')}-${hex.slice(12, 16).join('')}-${hex.slice(16, 20).join('')}-${hex.slice(20).join('')}`;
+}
+
+function assertDelegableScopes(
+  requested: readonly string[],
+  subject: AgentKeySubject,
+): void {
+  const maximum = new Set<string>(AGENT_OAUTH_SCOPES);
+  const invalid = requested.find((scope) => !maximum.has(scope));
+  if (invalid) {
+    throw createValidationProblem(
+      [
+        {
+          field: 'scopes',
+          message: `Unknown or non-grantable scope: ${invalid}`,
+        },
+      ],
+      'Invalid agent key scopes',
+    );
+  }
+
+  const held = new Set(subject.scopes);
+  const escalation = requested.find((scope) => !held.has(scope));
+  if (escalation) {
+    throw createProblem(
+      'forbidden',
+      `Requesting credential cannot delegate scope: ${escalation}`,
+    );
+  }
 }
 
 function isNotFoundError(error: unknown): boolean {
@@ -598,6 +631,8 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
     async issue(input: IssueAgentKeyInput): Promise<AgentKeyWithSecret> {
       const api = getTalosApi(deps);
       const ttlDays = input.ttlDays ?? DEFAULT_TTL_DAYS;
+      const scopes = input.scopes ?? [...AGENT_CREDENTIAL_SCOPES];
+      assertDelegableScopes(scopes, input.subject);
       await assertCanManageAgentKey(
         deps,
         input.subject,
@@ -628,7 +663,7 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
               request_id: talosRequestId(input),
               ttl: `${ttlDays * 86_400}s`,
               visibility: KeyVisibility.KeyVisibilitySecret,
-              scopes: [...AGENT_CREDENTIAL_SCOPES],
+              scopes,
               metadata: {
                 schema_version: 1,
                 subject_type: 'agent',
@@ -740,6 +775,8 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
         );
       }
       await assertCurrentAgentMember(deps, input.teamId, binding.agentId);
+      const scopes = key.scopes ?? [];
+      assertDelegableScopes(scopes, input.subject);
 
       let result: Awaited<ReturnType<typeof api.adminRotateIssuedApiKey>>;
       try {
@@ -752,7 +789,7 @@ export function createAgentKeyService(deps: AgentKeyServiceDeps) {
                 subject_type: 'agent',
                 team_id: input.teamId,
               },
-              scopes: [...AGENT_CREDENTIAL_SCOPES],
+              scopes,
               visibility: KeyVisibility.KeyVisibilitySecret,
             },
           },

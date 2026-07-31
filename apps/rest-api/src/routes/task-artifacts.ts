@@ -107,6 +107,11 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
           },
           url,
         }),
+
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['task:execute'],
+        },
       },
       schema: {
         operationId: 'uploadTaskArtifact',
@@ -177,6 +182,11 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
           },
           url,
         }),
+
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['task:execute'],
+        },
       },
       schema: {
         operationId: 'stageTaskArtifact',
@@ -232,6 +242,11 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
       config: {
         ...deferInaccessibleTeamAuthorization,
         rateLimit: fastify.rateLimitConfig.read,
+
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['task:execute'],
+        },
       },
       schema: {
         operationId: 'listTaskArtifacts',
@@ -280,6 +295,11 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
       config: {
         ...deferInaccessibleTeamAuthorization,
         rateLimit: fastify.rateLimitConfig.read,
+
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['task:execute'],
+        },
       },
       schema: {
         operationId: 'downloadTaskArtifactByCid',
@@ -362,6 +382,11 @@ export async function taskArtifactRoutes(fastify: FastifyInstance) {
       config: {
         ...deferInaccessibleTeamAuthorization,
         rateLimit: fastify.rateLimitConfig.read,
+
+        auth: {
+          credentialBindingScope: 'team',
+          requiredScopes: ['task:execute'],
+        },
       },
       schema: {
         operationId: 'downloadTaskArtifact',

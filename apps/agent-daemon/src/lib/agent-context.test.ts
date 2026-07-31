@@ -133,6 +133,7 @@ describe('assessStartupBinding', () => {
   function agentWhoami(overrides: Partial<Whoami> = {}): Whoami {
     return {
       identityId: 'id-1',
+      scopes: ['agent:profile'],
       subjectType: 'agent',
       ...overrides,
     };
@@ -189,6 +190,7 @@ describe('validateStartupBinding', () => {
   it('returns the whoami when the bound key matches the team', async () => {
     const whoami: Whoami = {
       identityId: 'id-1',
+      scopes: ['agent:profile'],
       subjectType: 'agent',
       credentialBinding: { keyId: 'key-1', boundTeamId: TEAM_A },
     };
@@ -213,6 +215,7 @@ describe('validateStartupBinding', () => {
   it('throws a fatal when the key is bound to another team', async () => {
     const whoami: Whoami = {
       identityId: 'id-1',
+      scopes: ['agent:profile'],
       subjectType: 'agent',
       credentialBinding: { keyId: 'key-1', boundTeamId: TEAM_B },
     };

@@ -11,6 +11,7 @@ import type {
   FastifyReply,
   FastifyRequest,
   onRequestAsyncHookHandler,
+  onRouteHookHandler,
   preHandlerAsyncHookHandler,
 } from 'fastify';
 import fp from 'fastify-plugin';
@@ -24,6 +25,7 @@ import { KetoNamespace } from './keto-constants.js';
 import type { PermissionChecker } from './permission-checker.js';
 import type { RelationshipWriter } from './relationship-writer.js';
 import { RemoteAuthenticationError } from './remote-auth-error.js';
+import type { CredentialScope } from './scopes.js';
 import type { SessionResolver } from './session-resolver.js';
 import type { TokenValidator } from './token-validator.js';
 import type { AuthContext } from './types.js';
@@ -45,6 +47,21 @@ export interface AuthPluginOptions {
   teamResolver: TeamResolver;
   /** Optional Kratos session resolver for direct session-based auth (dashboard). */
   sessionResolver?: SessionResolver;
+  /** Phased scope rollout. Defaults to `enforce` for library consumers. */
+  scopeEnforcementMode?: ScopeEnforcementMode;
+  /** Low-cardinality sink for would-be and enforced scope denials. */
+  onScopeDenial?: (event: ScopeDenialEvent) => void;
+  /** Fail route registration when principal-auth policy is incomplete. */
+  enforceRouteScopeDeclarations?: boolean;
+}
+
+export type ScopeEnforcementMode = 'measure' | 'warn' | 'enforce';
+
+export interface ScopeDenialEvent {
+  mode: ScopeEnforcementMode;
+  operationId: string;
+  requiredScope: string;
+  subjectType: AuthContext['subjectType'];
 }
 
 declare module 'fastify' {
@@ -65,6 +82,11 @@ declare module 'fastify' {
        * could reach a resource outside the bound team.
        */
       credentialBindingScope?: 'identity' | 'team';
+      /**
+       * Credential scopes required by this route. An explicitly empty array
+       * declares that authentication is required but no credential scope is.
+       */
+      requiredScopes?: readonly CredentialScope[];
     };
   }
   interface FastifyInstance {
@@ -73,6 +95,8 @@ declare module 'fastify' {
     relationshipWriter: RelationshipWriter;
     teamResolver: TeamResolver;
     sessionResolver: SessionResolver | null;
+    scopeEnforcementMode: ScopeEnforcementMode;
+    onScopeDenial: ((event: ScopeDenialEvent) => void) | null;
   }
   interface FastifyRequest {
     authContext: AuthContext | null;
@@ -144,6 +168,15 @@ export const authPlugin = fp(
     decorateSafe('relationshipWriter', opts.relationshipWriter);
     decorateSafe('teamResolver', opts.teamResolver);
     decorateSafe('sessionResolver', opts.sessionResolver ?? null);
+    decorateSafe(
+      'scopeEnforcementMode',
+      opts.scopeEnforcementMode ?? 'enforce',
+    );
+    decorateSafe('onScopeDenial', opts.onScopeDenial ?? null);
+
+    if (opts.enforceRouteScopeDeclarations) {
+      fastify.addHook('onRoute', assertRouteScopeDeclarations);
+    }
 
     // Resolve authContext early (non-fatally) so onRequest-phase consumers —
     // notably @fastify/rate-limit, which keys on identityId — see the verified
@@ -173,6 +206,59 @@ function createAuthError(message: string): Error & {
   error.detail = message;
   return error;
 }
+
+function routeUsesPrincipalAuth(routeOptions: {
+  preHandler?: unknown;
+  schema?: unknown;
+}): boolean {
+  const handlers = Array.isArray(routeOptions.preHandler)
+    ? routeOptions.preHandler
+    : routeOptions.preHandler
+      ? [routeOptions.preHandler]
+      : [];
+  if (handlers.includes(requireAuth) || handlers.includes(optionalAuth)) {
+    return true;
+  }
+
+  const schema =
+    typeof routeOptions.schema === 'object' && routeOptions.schema !== null
+      ? (routeOptions.schema as Record<string, unknown>)
+      : null;
+  if (!Array.isArray(schema?.security)) return false;
+  return schema.security.some((requirement) => {
+    if (typeof requirement !== 'object' || requirement === null) return false;
+    return (
+      'bearerAuth' in requirement ||
+      'sessionAuth' in requirement ||
+      'cookieAuth' in requirement
+    );
+  });
+}
+
+const assertRouteScopeDeclarations: onRouteHookHandler = function (
+  routeOptions,
+): void {
+  if (!routeUsesPrincipalAuth(routeOptions)) return;
+
+  const schema =
+    typeof routeOptions.schema === 'object' && routeOptions.schema !== null
+      ? (routeOptions.schema as Record<string, unknown>)
+      : null;
+  const operation =
+    (typeof schema?.operationId === 'string' ? schema.operationId : null) ??
+    `${String(routeOptions.method)} ${routeOptions.url ?? '<unknown>'}`;
+  const auth = routeOptions.config?.auth;
+  if (!auth?.credentialBindingScope) {
+    throw new Error(
+      `Authenticated route ${operation} must declare credentialBindingScope`,
+    );
+  }
+  if (!Object.hasOwn(auth, 'requiredScopes')) {
+    throw new Error(
+      `Authenticated route ${operation} must declare requiredScopes`,
+    );
+  }
+};
 
 /**
  * Assign authContext to the request and propagate identity fields into
@@ -410,9 +496,10 @@ export const populateAuthContext: onRequestAsyncHookHandler =
   };
 
 export const requireAuth: preHandlerAsyncHookHandler =
-  async function requireAuth(request: FastifyRequest, _reply: FastifyReply) {
+  async function requireAuth(request: FastifyRequest, reply: FastifyReply) {
     const outcome = await resolveIdentityOnce(request);
     if (outcome.status === 'authenticated') {
+      await enforceRouteScopes(request, reply, outcome.context);
       await resolveTeamContext(request, outcome.context);
       return;
     }
@@ -453,7 +540,7 @@ export const requireAuth: preHandlerAsyncHookHandler =
   };
 
 export const optionalAuth: preHandlerAsyncHookHandler =
-  async function optionalAuth(request: FastifyRequest) {
+  async function optionalAuth(request: FastifyRequest, reply: FastifyReply) {
     // Identity is usually pre-resolved by the onRequest hook (short-circuits).
     // When a context is present, still resolve team context so an explicit
     // x-moltnet-team-id is honored/enforced for the optionally-authed handler.
@@ -463,9 +550,58 @@ export const optionalAuth: preHandlerAsyncHookHandler =
     const outcome = await resolveIdentityOnce(request);
     if (outcome.status === 'upstream-error') throw outcome.error;
     if (outcome.status === 'authenticated') {
+      await enforceRouteScopes(request, reply, outcome.context);
       await resolveTeamContext(request, outcome.context);
     }
   };
+
+async function enforceRouteScopes(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  authContext: AuthContext,
+): Promise<void> {
+  const requiredScopes = request.routeOptions.config.auth?.requiredScopes ?? [];
+  const missingScope = requiredScopes.find(
+    (scope) => !authContext.scopes.includes(scope),
+  );
+  if (!missingScope) return;
+
+  const mode = request.server.scopeEnforcementMode;
+  const schema =
+    typeof request.routeOptions.schema === 'object' &&
+    request.routeOptions.schema !== null
+      ? (request.routeOptions.schema as Record<string, unknown>)
+      : null;
+  const operationId =
+    typeof schema?.operationId === 'string'
+      ? schema.operationId
+      : 'unknown-operation';
+  request.server.onScopeDenial?.({
+    mode,
+    operationId,
+    requiredScope: missingScope,
+    subjectType: authContext.subjectType,
+  });
+
+  if (mode !== 'measure') {
+    request.log.warn(
+      {
+        mode,
+        operationId,
+        requiredScope: missingScope,
+        subjectType: authContext.subjectType,
+      },
+      'auth.scope.denied',
+    );
+  }
+  if (mode === 'enforce') {
+    await requireScopes([...requiredScopes]).call(
+      request.server,
+      request,
+      reply,
+    );
+  }
+}
 
 export function requireScopes(scopes: string[]): preHandlerAsyncHookHandler {
   return async function requireScopesHandler(
