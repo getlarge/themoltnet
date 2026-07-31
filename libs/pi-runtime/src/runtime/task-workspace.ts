@@ -19,6 +19,7 @@ export interface PreparedTaskWorkspace {
   cwdPath: string;
   mode: 'shared_mount' | 'dedicated_worktree' | 'scratch_mount';
   branch: string | null;
+  revision: string | null;
   cleanup: () => void;
 }
 
@@ -28,6 +29,7 @@ export function prepareTaskWorkspace(
   executionPlan: PiTaskExecutionPlan | null,
 ): PreparedTaskWorkspace {
   const branch = executionPlan?.worktreeBranch ?? null;
+  const revision = executionPlan?.workspaceRevision ?? null;
   const workspaceMode = executionPlan?.workspaceMode ?? 'shared_mount';
   const attachedWorkspace = executionPlan?.workspaceAttachment ?? null;
 
@@ -37,6 +39,7 @@ export function prepareTaskWorkspace(
       cwdPath: attachedWorkspace.cwdPath,
       mode: workspaceMode,
       branch,
+      revision,
       cleanup: () => {},
     };
   }
@@ -64,6 +67,7 @@ export function prepareTaskWorkspace(
       cwdPath: scratchDir,
       mode: 'scratch_mount',
       branch: null,
+      revision: null,
       cleanup: keepWorkspace
         ? () => {}
         : () => {
@@ -72,14 +76,23 @@ export function prepareTaskWorkspace(
     };
   }
 
-  if (!branch) {
+  if (workspaceMode === 'shared_mount') {
+    if (revision) {
+      assertWorkspaceRevision(requestedMountPath, revision);
+    }
     return {
       mountPath: requestedMountPath,
       cwdPath: requestedMountPath,
       mode: 'shared_mount',
       branch: null,
+      revision,
       cleanup: () => {},
     };
+  }
+  if (!branch && !revision) {
+    throw new Error(
+      'Dedicated worktree tasks require either a branch or an immutable revision',
+    );
   }
 
   const mainRepo = findMainWorktreeForDedicatedTask(requestedMountPath);
@@ -96,11 +109,28 @@ export function prepareTaskWorkspace(
     executionPlan.sessionKey !== null;
 
   const baseRefOverride = executionPlan?.worktreeBaseRef ?? null;
-  if (keepWorkspace) {
-    ensureReusableTaskWorktree(mainRepo, worktreeDir, branch, baseRefOverride);
+  if (revision) {
+    if (keepWorkspace) {
+      ensureReusableRevisionWorktree(mainRepo, worktreeDir, revision);
+    } else {
+      removeExistingTaskWorktree(mainRepo, worktreeDir);
+      addDetachedTaskWorktree(mainRepo, worktreeDir, revision);
+    }
   } else {
-    removeExistingTaskWorktree(mainRepo, worktreeDir);
-    addTaskWorktree(mainRepo, worktreeDir, branch, baseRefOverride);
+    if (!branch) {
+      throw new Error('Branch worktree preparation requires a branch');
+    }
+    if (keepWorkspace) {
+      ensureReusableTaskWorktree(
+        mainRepo,
+        worktreeDir,
+        branch,
+        baseRefOverride,
+      );
+    } else {
+      removeExistingTaskWorktree(mainRepo, worktreeDir);
+      addTaskWorktree(mainRepo, worktreeDir, branch, baseRefOverride);
+    }
   }
 
   return {
@@ -108,6 +138,7 @@ export function prepareTaskWorkspace(
     cwdPath,
     mode: 'dedicated_worktree',
     branch,
+    revision,
     cleanup: keepWorkspace
       ? () => {}
       : () => {
@@ -118,6 +149,29 @@ export function prepareTaskWorkspace(
           );
         },
   };
+}
+
+function assertWorkspaceRevision(
+  workspacePath: string,
+  revision: string,
+): void {
+  let actual: string;
+  try {
+    actual = execFileSync('git', ['-C', workspacePath, 'rev-parse', 'HEAD'], {
+      encoding: 'utf8',
+      stdio: 'pipe',
+    }).trim();
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(
+      `Cannot verify shared workspace revision ${revision}: ${message}`,
+    );
+  }
+  if (actual.toLowerCase() !== revision.toLowerCase()) {
+    throw new Error(
+      `Shared workspace is at ${actual}, but task requires ${revision}`,
+    );
+  }
 }
 
 export function resolveTaskWorktreePath(
@@ -153,6 +207,23 @@ function ensureReusableTaskWorktree(
   addTaskWorktree(mainRepo, worktreeDir, branch, baseRefOverride);
 }
 
+function ensureReusableRevisionWorktree(
+  mainRepo: string,
+  worktreeDir: string,
+  revision: string,
+): void {
+  if (isRegisteredWorktree(mainRepo, worktreeDir)) {
+    assertWorkspaceRevision(worktreeDir, revision);
+    return;
+  }
+  if (existsSync(worktreeDir)) {
+    throw new Error(
+      `Expected reusable worktree ${worktreeDir} to be git-managed, but it exists outside git worktree metadata.`,
+    );
+  }
+  addDetachedTaskWorktree(mainRepo, worktreeDir, revision);
+}
+
 function addTaskWorktree(
   mainRepo: string,
   worktreeDir: string,
@@ -167,6 +238,18 @@ function addTaskWorktree(
     ? ['-C', mainRepo, 'worktree', 'add', worktreeDir, branch]
     : ['-C', mainRepo, 'worktree', 'add', '-b', branch, worktreeDir, baseRef];
   execFileSync('git', addArgs, { stdio: 'pipe' });
+}
+
+function addDetachedTaskWorktree(
+  mainRepo: string,
+  worktreeDir: string,
+  revision: string,
+): void {
+  execFileSync(
+    'git',
+    ['-C', mainRepo, 'worktree', 'add', '--detach', worktreeDir, revision],
+    { stdio: 'pipe' },
+  );
 }
 
 function removeExistingTaskWorktree(

@@ -45,6 +45,11 @@ describe('runtime-profile context recipe catalogue', () => {
     expect(planner.content).toContain('exact artifact CIDs');
     expect(planner.content).toContain('Do not search diaries');
     expect(planner.content).toContain('Do not substitute filename');
+    expect(planner.content).toContain('local calculator or shell');
+    expect(planner.content).toContain(
+      'runtime capability section and policy are authoritative',
+    );
+    expect(planner.content).not.toContain('use shell commands');
     expect(planner.content).not.toContain('drizzle');
     expect(planner.content).not.toContain('generated/');
     expect(planner.content).not.toContain('lockfile');

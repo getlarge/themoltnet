@@ -27,6 +27,7 @@ export interface RuntimeInstructorToolPolicy {
 
 export interface RuntimeInstructorSandbox {
   workspaceMode: 'shared_mount' | 'dedicated_worktree' | 'scratch_mount';
+  workspaceRevision?: string | null;
   vfsShadowMode: 'none' | 'deny' | 'tmpfs';
   vfsShadowPatterns: readonly string[];
   nodeModulesWriteMode?: 'tmpfs';
@@ -148,6 +149,9 @@ export function buildSandboxCapabilityInstructions(
     '## Effective sandbox capabilities',
     '',
     `- Workspace mode: \`${sandbox.workspaceMode}\`.`,
+    ...(sandbox.workspaceRevision
+      ? [`- Verified workspace revision: \`${sandbox.workspaceRevision}\`.`]
+      : []),
     `- VFS shadow mode: \`${sandbox.vfsShadowMode}\`${
       sandbox.vfsShadowPatterns.length > 0
         ? ` for ${sandbox.vfsShadowPatterns.map((pattern) => `\`${pattern}\``).join(', ')}`

@@ -885,6 +885,7 @@ describe('makeSessionEventHandler (subscribe-handler characterization)', () => {
   function makeDeps(overrides?: {
     maxTurns?: number;
     maxBashTimeouts?: number;
+    isSubmitCaptured?: () => boolean;
   }) {
     const emitted: Array<{ kind: string; payload: Record<string, unknown> }> =
       [];
@@ -917,6 +918,7 @@ describe('makeSessionEventHandler (subscribe-handler characterization)', () => {
       triggerCapAbort: (code: string, message: string) => {
         caps.push({ code, message });
       },
+      isSubmitCaptured: overrides?.isSubmitCaptured,
     } as Parameters<typeof makeSessionEventHandler>[0];
     return { deps, emitted, caps, state, usage };
   }
@@ -1065,6 +1067,22 @@ describe('makeSessionEventHandler (subscribe-handler characterization)', () => {
         message: 'Aborted after 2 tool-use turns (cap 2).',
       },
     ]);
+  });
+
+  it('allows a valid terminal submit-output call on the cap turn', () => {
+    let captured = false;
+    const { deps, caps, state } = makeDeps({
+      maxTurns: 2,
+      isSubmitCaptured: () => captured,
+    });
+    const handler = makeSessionEventHandler(deps);
+
+    handler(turnEnd('tool_use'));
+    captured = true;
+    handler(turnEnd('tool_use'));
+
+    expect(state.toolUseTurnCount).toBe(2);
+    expect(caps).toHaveLength(0);
   });
 
   it('triggers the bash-timeout cap on repeated bash timeouts', () => {

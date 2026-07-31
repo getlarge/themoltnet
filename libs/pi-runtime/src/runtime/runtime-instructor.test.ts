@@ -110,6 +110,24 @@ describe('runtime kernel', () => {
     expect(out).toContain('GH_TOKEN=');
   });
 
+  it('projects the daemon-verified workspace revision', () => {
+    const revision = 'a'.repeat(40);
+    const out = buildRuntimeKernel({
+      ...ctx,
+      sandbox: {
+        workspaceMode: 'dedicated_worktree',
+        workspaceRevision: revision,
+        vfsShadowMode: 'none',
+        vfsShadowPatterns: [],
+        verifiedExecutables: [],
+        allowedHosts: [],
+        allowedInternalHosts: [],
+      },
+    });
+
+    expect(out).toContain(`Verified workspace revision: \`${revision}\``);
+  });
+
   it.each(['freeform', 'fulfill_brief', 'pr_review', 'run_eval'])(
     'projects the effective policy for %s sessions',
     (taskType) => {

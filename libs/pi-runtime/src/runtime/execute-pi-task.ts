@@ -737,6 +737,7 @@ export async function executePiTask(
       model: opts.model,
       workspaceMode: activeWorkspace.mode,
       workspaceBranch: activeWorkspace.branch,
+      workspaceRevision: activeWorkspace.revision,
     });
 
     // Resolve `freeform.continueFrom` source-attempt material before we
@@ -808,6 +809,7 @@ export async function executePiTask(
         workspace: {
           mode: activeWorkspace.mode,
           branch: activeWorkspace.branch,
+          revision: activeWorkspace.revision,
           attached:
             executionPlan?.workspaceAttachment !== undefined ||
             executionPlan?.workspaceSeed?.source === 'producer',
@@ -1137,6 +1139,7 @@ export async function executePiTask(
         correlationId: task.correlationId ?? null,
         sandbox: {
           workspaceMode: activeWorkspace.mode,
+          workspaceRevision: activeWorkspace.revision,
           vfsShadowMode: vfsShadow.mode,
           vfsShadowPatterns: vfsShadow.patterns,
           nodeModulesWriteMode: 'tmpfs',
@@ -1335,6 +1338,7 @@ export async function executePiTask(
         emitError,
         track,
         triggerCapAbort,
+        isSubmitCaptured: () => submitToolHandle?.getCaptured() !== null,
       }),
     );
 
@@ -1592,6 +1596,11 @@ export interface SessionEventHandlerDeps {
   track: (p: Promise<void>) => void;
   /** Idempotent cap-abort trigger (aborts the live session). */
   triggerCapAbort: (code: string, message: string) => void;
+  /**
+   * True after a registered submit-output tool captured valid output.
+   * A terminal submit on the cap turn must be allowed to complete.
+   */
+  isSubmitCaptured?: () => boolean;
 }
 
 /**
@@ -1619,6 +1628,7 @@ export function makeSessionEventHandler(
     emitError,
     track,
     triggerCapAbort,
+    isSubmitCaptured = () => false,
   } = deps;
   return (event) => {
     if (event.type === 'message_update') {
@@ -1707,7 +1717,7 @@ export function makeSessionEventHandler(
         stopReason !== 'error'
       ) {
         state.toolUseTurnCount += 1;
-        if (state.toolUseTurnCount >= maxTurns) {
+        if (state.toolUseTurnCount >= maxTurns && !isSubmitCaptured()) {
           triggerCapAbort(
             'max_turns_exceeded',
             `Aborted after ${state.toolUseTurnCount} tool-use turns (cap ${maxTurns}).`,
