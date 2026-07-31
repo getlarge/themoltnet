@@ -87,6 +87,7 @@ export {
   ALL_CREDENTIAL_SCOPES,
   CREDENTIAL_SCOPES,
   type CredentialScope,
+  credentialScopeSetsEqual,
   HUMAN_SESSION_SCOPES,
   MCP_CLIENT_SCOPES,
 } from './scopes.js';

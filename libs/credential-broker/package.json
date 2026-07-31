@@ -49,6 +49,7 @@
     "@themoltnet/credentials": "workspace:*"
   },
   "devDependencies": {
+    "@moltnet/models": "workspace:*",
     "@types/node": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",

@@ -21,6 +21,28 @@ export const CREDENTIAL_SCOPES = {
 export type CredentialScope =
   (typeof CREDENTIAL_SCOPES)[keyof typeof CREDENTIAL_SCOPES];
 
+/** Compare two scope collections as exact, duplicate-free sets. */
+export function credentialScopeSetsEqual(
+  actual: readonly string[] | null | undefined,
+  expected: readonly string[] | null | undefined,
+): boolean {
+  if (!actual || !expected || actual.length !== expected.length) return false;
+  if (
+    actual.some((scope) => !scope || scope.trim() !== scope) ||
+    expected.some((scope) => !scope || scope.trim() !== scope)
+  ) {
+    return false;
+  }
+
+  const actualSet = new Set(actual);
+  const expectedSet = new Set(expected);
+  return (
+    actualSet.size === actual.length &&
+    expectedSet.size === expected.length &&
+    expected.every((scope) => actualSet.has(scope))
+  );
+}
+
 export const ALL_CREDENTIAL_SCOPES = Object.freeze(
   Object.values(CREDENTIAL_SCOPES),
 );

@@ -1713,6 +1713,9 @@ importers:
         specifier: workspace:*
         version: link:../credentials
     devDependencies:
+      '@moltnet/models':
+        specifier: workspace:*
+        version: link:../models
       '@types/node':
         specifier: 'catalog:'
         version: 22.19.19

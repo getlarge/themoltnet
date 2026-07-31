@@ -4,6 +4,7 @@ import {
   AGENT_OAUTH_SCOPES,
   ALL_CREDENTIAL_SCOPES,
   CREDENTIAL_SCOPES,
+  credentialScopeSetsEqual,
   MCP_CLIENT_SCOPES,
 } from '../src/credential-scopes.js';
 
@@ -33,5 +34,22 @@ describe('credential scopes', () => {
     expect(MCP_CLIENT_SCOPES).not.toContain('key:manage');
     expect(MCP_CLIENT_SCOPES).not.toContain('runtime:manage');
     expect(MCP_CLIENT_SCOPES).not.toContain('task:claim');
+  });
+
+  it('compares scopes as exact duplicate-free sets', () => {
+    expect(
+      credentialScopeSetsEqual(
+        ['task:read', 'diary:read'],
+        ['diary:read', 'task:read'],
+      ),
+    ).toBe(true);
+    expect(
+      credentialScopeSetsEqual(
+        ['task:read', 'task:read'],
+        ['task:read', 'diary:read'],
+      ),
+    ).toBe(false);
+    expect(credentialScopeSetsEqual([' task:read'], ['task:read'])).toBe(false);
+    expect(credentialScopeSetsEqual(undefined, ['task:read'])).toBe(false);
   });
 });

@@ -26,6 +26,9 @@
   "references": [
     {
       "path": "../credentials/tsconfig.lib.json"
+    },
+    {
+      "path": "../models/tsconfig.lib.json"
     }
   ]
 }
