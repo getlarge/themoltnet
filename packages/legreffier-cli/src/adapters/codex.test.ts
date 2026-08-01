@@ -4,7 +4,10 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { GITHUB_GUARD_HOOK_COMMAND } from '../setup.js';
+import {
+  GITHUB_GUARD_HOOK_COMMAND,
+  SECRET_GUARD_HOOK_COMMAND,
+} from '../setup.js';
 import { CodexAdapter } from './codex.js';
 import type { AgentAdapterOptions } from './types.js';
 
@@ -109,12 +112,18 @@ describe('CodexAdapter.writeSettings', () => {
       await readFile(join(tmpRepo, '.codex', 'hooks.json'), 'utf-8'),
     );
     expect(parsed.PreToolUse).toBeUndefined();
-    expect(parsed.hooks.PreToolUse).toEqual([
-      {
-        matcher: 'Bash',
-        hooks: [{ type: 'command', command: GITHUB_GUARD_HOOK_COMMAND }],
-      },
-    ]);
+    expect(parsed.hooks.PreToolUse[0]).toEqual({
+      matcher: 'Bash',
+      hooks: [
+        { type: 'command', command: SECRET_GUARD_HOOK_COMMAND },
+        { type: 'command', command: GITHUB_GUARD_HOOK_COMMAND },
+      ],
+    });
+    expect(
+      parsed.hooks.PreToolUse.map(
+        (entry: { matcher: string }) => entry.matcher,
+      ),
+    ).toEqual(['Bash', 'Read', 'Grep', 'Write', 'Edit', 'Glob']);
   });
 
   it('preserves existing hooks and does not duplicate the guard', async () => {
@@ -147,6 +156,7 @@ describe('CodexAdapter.writeSettings', () => {
     expect(parsed.description).toBe('existing hooks');
     expect(parsed.hooks.SessionStart).toHaveLength(1);
     expect(parsed.hooks.PreToolUse[0].hooks).toEqual([
+      { type: 'command', command: SECRET_GUARD_HOOK_COMMAND },
       { type: 'command', command: GITHUB_GUARD_HOOK_COMMAND },
     ]);
   });

@@ -7,6 +7,7 @@ import {
   buildCodexRules,
   installCanonicalSkills,
   mergeGitHubGuardHook,
+  mergeSecretGuardHook,
 } from '../setup.js';
 import type { AgentAdapter, AgentAdapterOptions } from './types.js';
 
@@ -73,7 +74,7 @@ export class CodexAdapter implements AgentAdapter {
       JSON.stringify(
         {
           ...existing,
-          hooks: mergeGitHubGuardHook(existing.hooks),
+          hooks: mergeGitHubGuardHook(mergeSecretGuardHook(existing.hooks)),
         },
         null,
         2,
