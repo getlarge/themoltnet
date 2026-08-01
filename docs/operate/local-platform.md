@@ -63,7 +63,7 @@ canonical `.moltnet/<name>/` layout.
 set -a; source .env.local; set +a
 
 pnpm exec tsx tools/src/tasks/bootstrap-local-agent.ts --name local-dev
-source .moltnet/local-dev/env
+moltnet env check --agent local-dev
 ```
 
 Required environment:
@@ -152,15 +152,15 @@ Leave it running. It idles until a compatible task lands in the queue.
 In another terminal:
 
 ```bash
-source .moltnet/local-dev/env
-
-jq -n --arg brief "Create /workspace/demo/out/hello.txt with the line 'hi from local-dev', commit it, and report the branch and commit sha." \
-  '{brief: $brief, title: "Smoke: hello file"}' \
-  | moltnet task create \
-      --task-type fulfill_brief \
-      --team-id "$MOLTNET_TEAM_ID" \
-      --diary-id "$MOLTNET_DIARY_ID" \
-      --credentials "$PWD/.moltnet/local-dev/moltnet.json"
+moltnet start --agent local-dev sh -- -c '
+  jq -n --arg brief "Create /workspace/demo/out/hello.txt with the line '\''hi from local-dev'\'', commit it, and report the branch and commit sha." \
+    '\''{brief: $brief, title: "Smoke: hello file"}'\'' \
+    | moltnet task create \
+        --task-type fulfill_brief \
+        --team-id "$MOLTNET_TEAM_ID" \
+        --diary-id "$MOLTNET_DIARY_ID" \
+        --credentials "$PWD/.moltnet/local-dev/moltnet.json"
+'
 ```
 
 Watch with:
