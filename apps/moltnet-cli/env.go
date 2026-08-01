@@ -67,28 +67,29 @@ func missingMoltnetCredentialsError(cwd, mainRoot, context string) error {
 func resolveMoltnetDirAndRoot(cwd string) (moltnetDir, mainRoot string, err error) {
 	candidate := filepath.Join(cwd, ".moltnet")
 	if info, statErr := os.Stat(candidate); statErr == nil && info.IsDir() {
+		// A linked worktree commonly has .moltnet symlinked from the main
+		// worktree. Do not let the presence of that symlink short-circuit Git
+		// common-dir discovery: activation state is shared with the main tree and
+		// must therefore use the main tree as its stable repository root.
+		if gitRoot, ok := resolveGitCommonRoot(cwd); ok {
+			shared := filepath.Join(gitRoot, ".moltnet")
+			if sharedInfo, sharedErr := os.Stat(shared); sharedErr == nil && sharedInfo.IsDir() &&
+				canonicalizeRoot(shared) == canonicalizeRoot(candidate) {
+				return canonicalizeRoot(shared), gitRoot, nil
+			}
+		}
 		root := canonicalizeRoot(cwd)
-		return filepath.Join(root, ".moltnet"), root, nil
+		return canonicalizeRoot(candidate), root, nil
 	}
 
 	// Check if we're in a git worktree
-	cmd := exec.Command("git", "rev-parse", "--git-common-dir")
-	cmd.Dir = cwd
-	out, runErr := cmd.Output()
-	if runErr != nil {
+	mainRoot, ok := resolveGitCommonRoot(cwd)
+	if !ok {
 		return "", "", missingMoltnetCredentialsError(cwd, "", "not in a git repo")
 	}
-	gitCommonDir := strings.TrimSpace(string(out))
-	if gitCommonDir == "" || gitCommonDir == ".git" {
+	if mainRoot == canonicalizeRoot(cwd) {
 		return "", "", missingMoltnetCredentialsError(cwd, "", "")
 	}
-
-	// gitCommonDir is relative or absolute — resolve it
-	if !filepath.IsAbs(gitCommonDir) {
-		gitCommonDir = filepath.Join(cwd, gitCommonDir)
-	}
-	// gitCommonDir points to .git in the main worktree; parent is the worktree root
-	mainRoot = canonicalizeRoot(filepath.Dir(gitCommonDir))
 	candidate = filepath.Join(mainRoot, ".moltnet")
 	if info, statErr := os.Stat(candidate); statErr == nil && info.IsDir() {
 		// Also canonicalize the moltnet dir itself in case it's a symlink
@@ -97,6 +98,23 @@ func resolveMoltnetDirAndRoot(cwd string) (moltnetDir, mainRoot string, err erro
 		return canonicalizeRoot(candidate), mainRoot, nil
 	}
 	return "", "", missingMoltnetCredentialsError(cwd, mainRoot, "")
+}
+
+func resolveGitCommonRoot(cwd string) (string, bool) {
+	cmd := exec.Command("git", "rev-parse", "--git-common-dir")
+	cmd.Dir = cwd
+	out, err := cmd.Output()
+	if err != nil {
+		return "", false
+	}
+	gitCommonDir := strings.TrimSpace(string(out))
+	if gitCommonDir == "" {
+		return "", false
+	}
+	if !filepath.IsAbs(gitCommonDir) {
+		gitCommonDir = filepath.Join(cwd, gitCommonDir)
+	}
+	return canonicalizeRoot(filepath.Dir(gitCommonDir)), true
 }
 
 // canonicalizeRoot returns a stable absolute path for use as the activation

@@ -15,24 +15,29 @@ import (
 	"time"
 )
 
-const activationCacheVersion = 1
+const activationCacheVersion = 2
 
 var requiredActivationInputs = []string{"credentials", "env", "gitconfig", "sshPublicKey"}
 
 type activationCache struct {
-	Version         int                             `json:"version"`
-	AgentName       string                          `json:"agentName"`
-	RepoRoot        string                          `json:"repoRoot"`
-	RepoName        string                          `json:"repoName"`
-	Fingerprint     string                          `json:"fingerprint"`
-	DiaryID         string                          `json:"diaryId,omitempty"`
-	TeamID          string                          `json:"teamId,omitempty"`
-	GitConfigGlobal string                          `json:"gitConfigGlobal"`
-	CredentialsPath string                          `json:"credentialsPath"`
-	AuthorshipMode  string                          `json:"authorshipMode"`
-	AgentEmail      string                          `json:"agentEmail"`
-	Inputs          map[string]activationCacheInput `json:"inputs"`
-	CreatedAt       string                          `json:"createdAt"`
+	Version             int                             `json:"version"`
+	AgentName           string                          `json:"agentName"`
+	RepoRoot            string                          `json:"repoRoot"`
+	RepoName            string                          `json:"repoName"`
+	Fingerprint         string                          `json:"fingerprint"`
+	DiaryID             string                          `json:"diaryId,omitempty"`
+	TeamID              string                          `json:"teamId,omitempty"`
+	GitConfigGlobal     string                          `json:"gitConfigGlobal"`
+	CredentialsPath     string                          `json:"credentialsPath"`
+	AuthorshipMode      string                          `json:"authorshipMode"`
+	HumanGitIdentity    string                          `json:"humanGitIdentity,omitempty"`
+	AgentEmail          string                          `json:"agentEmail"`
+	GitHubAppConfigured bool                            `json:"githubAppConfigured"`
+	CredentialProvider  string                          `json:"credentialProvider"`
+	CredentialStatus    string                          `json:"credentialStatus"`
+	RegisteredAt        string                          `json:"registeredAt,omitempty"`
+	Inputs              map[string]activationCacheInput `json:"inputs"`
+	CreatedAt           string                          `json:"createdAt"`
 }
 
 type activationCacheInput struct {
@@ -41,15 +46,23 @@ type activationCacheInput struct {
 }
 
 type activationValidationResult struct {
-	Valid           bool     `json:"valid"`
-	Reason          string   `json:"reason,omitempty"`
-	Changed         []string `json:"changed,omitempty"`
-	AgentName       string   `json:"agentName,omitempty"`
-	Fingerprint     string   `json:"fingerprint,omitempty"`
-	DiaryID         string   `json:"diaryId,omitempty"`
-	TeamID          string   `json:"teamId,omitempty"`
-	CredentialsPath string   `json:"credentialsPath,omitempty"`
-	GitConfigGlobal string   `json:"gitConfigGlobal,omitempty"`
+	Valid                      bool     `json:"valid"`
+	Reason                     string   `json:"reason,omitempty"`
+	Changed                    []string `json:"changed,omitempty"`
+	AgentName                  string   `json:"agentName,omitempty"`
+	Fingerprint                string   `json:"fingerprint,omitempty"`
+	DiaryID                    string   `json:"diaryId,omitempty"`
+	TeamID                     string   `json:"teamId,omitempty"`
+	CredentialsPath            string   `json:"credentialsPath,omitempty"`
+	GitConfigGlobal            string   `json:"gitConfigGlobal,omitempty"`
+	AuthorshipMode             string   `json:"authorshipMode,omitempty"`
+	HumanGitIdentity           string   `json:"humanGitIdentity,omitempty"`
+	HumanGitIdentityConfigured bool     `json:"humanGitIdentityConfigured"`
+	AgentEmail                 string   `json:"agentEmail,omitempty"`
+	GitHubAppConfigured        bool     `json:"githubAppConfigured"`
+	CredentialProvider         string   `json:"credentialProvider,omitempty"`
+	CredentialStatus           string   `json:"credentialStatus,omitempty"`
+	RegisteredAt               string   `json:"registeredAt,omitempty"`
 }
 
 type activationContext struct {
@@ -87,15 +100,7 @@ func runAgentsActivationRefreshCmd(w io.Writer, dir, agent string, jsonOut bool)
 	if err := writeActivationCache(ctx.CachePath, cache); err != nil {
 		return err
 	}
-	result := activationValidationResult{
-		Valid:           true,
-		AgentName:       cache.AgentName,
-		Fingerprint:     cache.Fingerprint,
-		DiaryID:         cache.DiaryID,
-		TeamID:          cache.TeamID,
-		CredentialsPath: cache.CredentialsPath,
-		GitConfigGlobal: cache.GitConfigGlobal,
-	}
+	result := activationResultFromCache(cache)
 	return printActivationValidationResult(w, &result, jsonOut)
 }
 
@@ -170,6 +175,10 @@ func buildActivationCache(ctx *activationContext) (*activationCache, error) {
 		return nil, fmt.Errorf("gitconfig %s is missing user.email, user.signingkey, or gpg.format=ssh", gitconfigPath)
 	}
 	authorshipMode := firstNonEmpty(ctx.EnvVars["MOLTNET_COMMIT_AUTHORSHIP"], "agent")
+	credentialStatus := "missing"
+	if creds.OAuth2.ClientSecret != "" {
+		credentialStatus = "available"
+	}
 	fingerprint := firstNonEmpty(ctx.EnvVars["MOLTNET_FINGERPRINT"], creds.Keys.Fingerprint)
 	if fingerprint == "" {
 		return nil, fmt.Errorf("missing fingerprint in env or moltnet.json")
@@ -195,19 +204,24 @@ func buildActivationCache(ctx *activationContext) (*activationCache, error) {
 
 	now := time.Now().UTC().Format(time.RFC3339)
 	return &activationCache{
-		Version:         activationCacheVersion,
-		AgentName:       ctx.AgentName,
-		RepoRoot:        ctx.RepoRoot,
-		RepoName:        ctx.RepoName,
-		Fingerprint:     fingerprint,
-		DiaryID:         ctx.EnvVars["MOLTNET_DIARY_ID"],
-		TeamID:          ctx.EnvVars["MOLTNET_TEAM_ID"],
-		GitConfigGlobal: relativeToRepo(ctx.RepoRoot, gitconfigPath),
-		CredentialsPath: relativeToRepo(ctx.RepoRoot, credentialsPath),
-		AuthorshipMode:  authorshipMode,
-		AgentEmail:      gitIdentity.Email,
-		Inputs:          inputs,
-		CreatedAt:       now,
+		Version:             activationCacheVersion,
+		AgentName:           ctx.AgentName,
+		RepoRoot:            ctx.RepoRoot,
+		RepoName:            ctx.RepoName,
+		Fingerprint:         fingerprint,
+		DiaryID:             ctx.EnvVars["MOLTNET_DIARY_ID"],
+		TeamID:              ctx.EnvVars["MOLTNET_TEAM_ID"],
+		GitConfigGlobal:     relativeToRepo(ctx.RepoRoot, gitconfigPath),
+		CredentialsPath:     relativeToRepo(ctx.RepoRoot, credentialsPath),
+		AuthorshipMode:      authorshipMode,
+		HumanGitIdentity:    ctx.EnvVars["MOLTNET_HUMAN_GIT_IDENTITY"],
+		AgentEmail:          gitIdentity.Email,
+		GitHubAppConfigured: creds.GitHub != nil && creds.GitHub.AppID != "" && creds.GitHub.PrivateKeyPath != "",
+		CredentialProvider:  "legacy-plaintext",
+		CredentialStatus:    credentialStatus,
+		RegisteredAt:        creds.RegisteredAt,
+		Inputs:              inputs,
+		CreatedAt:           now,
 	}, nil
 }
 
@@ -268,15 +282,28 @@ func validateActivationCache(ctx *activationContext) (*activationValidationResul
 		return invalidActivation("input_hash_mismatch", uniqueStrings(changed)), nil
 	}
 
-	return &activationValidationResult{
-		Valid:           true,
-		AgentName:       cache.AgentName,
-		Fingerprint:     cache.Fingerprint,
-		DiaryID:         cache.DiaryID,
-		TeamID:          cache.TeamID,
-		CredentialsPath: cache.CredentialsPath,
-		GitConfigGlobal: cache.GitConfigGlobal,
-	}, nil
+	result := activationResultFromCache(cache)
+	return &result, nil
+}
+
+func activationResultFromCache(cache *activationCache) activationValidationResult {
+	return activationValidationResult{
+		Valid:                      true,
+		AgentName:                  cache.AgentName,
+		Fingerprint:                cache.Fingerprint,
+		DiaryID:                    cache.DiaryID,
+		TeamID:                     cache.TeamID,
+		CredentialsPath:            cache.CredentialsPath,
+		GitConfigGlobal:            cache.GitConfigGlobal,
+		AuthorshipMode:             cache.AuthorshipMode,
+		HumanGitIdentity:           cache.HumanGitIdentity,
+		HumanGitIdentityConfigured: cache.HumanGitIdentity != "",
+		AgentEmail:                 cache.AgentEmail,
+		GitHubAppConfigured:        cache.GitHubAppConfigured,
+		CredentialProvider:         cache.CredentialProvider,
+		CredentialStatus:           cache.CredentialStatus,
+		RegisteredAt:               cache.RegisteredAt,
+	}
 }
 
 func readActivationCache(path string) (*activationCache, error) {
@@ -359,7 +386,15 @@ func readGitConfigValue(gitconfigPath, key string) (string, error) {
 
 func printActivationValidationResult(w io.Writer, result *activationValidationResult, jsonOut bool) error {
 	if jsonOut {
-		data, err := json.MarshalIndent(result, "", "  ")
+		value := any(result)
+		if !result.Valid {
+			value = struct {
+				Valid   bool     `json:"valid"`
+				Reason  string   `json:"reason,omitempty"`
+				Changed []string `json:"changed,omitempty"`
+			}{Valid: false, Reason: result.Reason, Changed: result.Changed}
+		}
+		data, err := json.MarshalIndent(value, "", "  ")
 		if err != nil {
 			return err
 		}
