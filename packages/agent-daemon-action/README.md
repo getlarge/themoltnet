@@ -15,6 +15,10 @@ Four invocation shapes:
    created task. This is the path used by LeGreffier PR review workflows whose
    composers must stay credential-free. The optional top-level `tags` array is
    merged with the action's `tags` input and forwarded to `moltnet task create`.
+   Set `cancel-superseded: 'true'` to terminally cancel active tasks with the
+   same task type and correlation id before replacement dispatch. Use
+   `supersession-tags` when a correlation contains multiple logical lanes of
+   the same task type.
 3. **Explicit task** — supply `task-id`. The action skips task creation
    and runs the daemon against the provided id.
 4. **Correlated drain** — set `mode: drain`, `task-types`, and
@@ -31,6 +35,8 @@ Four invocation shapes:
     task-id: ${{ inputs.task-id }} # optional
     task-spec-path: ${{ steps.compose.outputs.task-spec-path }} # optional
     tags: ci,review:pr,pr:${{ github.event.pull_request.number }} # optional
+    cancel-superseded: 'true' # optional; task-spec mode only
+    supersession-tags: review:pr,pr:${{ github.event.pull_request.number }}
     skip-validation: 'false' # only applies with task-spec-path
     max-attempts: '2' # optional task-level retry budget
     mode: once # once | drain (poll disallowed in CI)

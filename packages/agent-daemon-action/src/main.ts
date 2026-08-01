@@ -11,9 +11,17 @@ import { readFileSync } from 'node:fs';
 import * as core from '@actions/core';
 import { getOctokit } from '@actions/github';
 
+import { runCancelSupersededFromEnv } from './cancel-superseded.js';
 import { dispatch } from './dispatch.js';
 
 async function main(): Promise<void> {
+  if (process.env['MOLTNET_ACTION_COMMAND'] === 'cancel-superseded') {
+    const cancelled = await runCancelSupersededFromEnv();
+    core.info(
+      `Cancelled ${cancelled.length} superseded task(s): ${cancelled.join(', ') || 'none'}`,
+    );
+    return;
+  }
   const eventPath = process.env['GITHUB_EVENT_PATH'];
   const ghToken = process.env['GITHUB_TOKEN'];
   if (!eventPath) throw new Error('GITHUB_EVENT_PATH not set');
