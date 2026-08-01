@@ -53059,6 +53059,7 @@ type TaskAttempt struct {
 	Status                       TaskAttemptStatus                       `json:"status"`
 	TaskId                       uuid.UUID                               `json:"taskId"`
 	Usage                        NilTaskAttemptUsage                     `json:"usage"`
+	AdditionalProps              TaskAttemptAdditional
 }
 
 // GetAttemptN returns the value of AttemptN.
@@ -53176,6 +53177,11 @@ func (s *TaskAttempt) GetUsage() NilTaskAttemptUsage {
 	return s.Usage
 }
 
+// GetAdditionalProps returns the value of AdditionalProps.
+func (s *TaskAttempt) GetAdditionalProps() TaskAttemptAdditional {
+	return s.AdditionalProps
+}
+
 // SetAttemptN sets the value of AttemptN.
 func (s *TaskAttempt) SetAttemptN(val float64) {
 	s.AttemptN = val
@@ -53289,6 +53295,22 @@ func (s *TaskAttempt) SetTaskId(val uuid.UUID) {
 // SetUsage sets the value of Usage.
 func (s *TaskAttempt) SetUsage(val NilTaskAttemptUsage) {
 	s.Usage = val
+}
+
+// SetAdditionalProps sets the value of AdditionalProps.
+func (s *TaskAttempt) SetAdditionalProps(val TaskAttemptAdditional) {
+	s.AdditionalProps = val
+}
+
+type TaskAttemptAdditional map[string]jx.Raw
+
+func (s *TaskAttemptAdditional) init() TaskAttemptAdditional {
+	m := *s
+	if m == nil {
+		m = map[string]jx.Raw{}
+		*s = m
+	}
+	return m
 }
 
 type TaskAttemptClaimedExecutorManifest map[string]jx.Raw

@@ -426,6 +426,10 @@ export type Task = Static<typeof Task>;
 /**
  * A single attempt at fulfilling a task. `(taskId, attemptN)` is the
  * primary key. `tasks.accepted_attempt_n` points at the winning row.
+ *
+ * This response model deliberately accepts additive top-level fields so an
+ * older generated client can keep decoding attempts returned by a newer
+ * server. Request bodies and nested security-sensitive records remain closed.
  */
 export const TaskAttempt = Type.Object(
   {
@@ -475,7 +479,7 @@ export const TaskAttempt = Type.Object(
      */
     daemonState: Type.Union([DaemonState, Type.Null()]),
   },
-  { $id: 'TaskAttempt', additionalProperties: false },
+  { $id: 'TaskAttempt', additionalProperties: true },
 );
 export type TaskAttempt = Static<typeof TaskAttempt>;
 
