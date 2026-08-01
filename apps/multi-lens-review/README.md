@@ -209,10 +209,11 @@ context; it is not an invitation to inventory or execute the repository.
 ## GitHub Actions
 
 [`multi-lens-review.yml`](../../.github/workflows/multi-lens-review.yml)
-preserves the `pull_request_target` trusted-base checkout and runs only for
-`ready_for_review` or an `@legreffier /multi-lens-review` mention from an owner,
-member, or collaborator. The prepare job fetches the raw diff and paginated
-file metadata. Two ephemeral workers remain available through the staged
+runs only when an owner, member, or collaborator comments
+`@legreffier /multi-lens-review` on a pull request. The workflow checks out the
+trusted base revision and treats the requested head revision as untrusted
+review input. The prepare job fetches the raw diff and paginated file metadata.
+Two ephemeral workers remain available through the staged
 planner/preflight/canary gates and drain the correlation. Trusted synthesis
 cannot weaken a topic recommendation or omit any blocker or major finding.
 The final marker-backed comment renders completed findings, pivot rationale,
