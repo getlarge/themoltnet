@@ -11,6 +11,10 @@
       "import": "./src/index.ts",
       "types": "./src/index.ts"
     },
+    "./canonical-json": {
+      "import": "./src/canonical-json.ts",
+      "types": "./src/canonical-json.ts"
+    },
     "./content-cid": {
       "import": "./src/content-cid.ts",
       "types": "./src/content-cid.ts"
