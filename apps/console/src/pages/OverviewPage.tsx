@@ -6,6 +6,7 @@ import {
 } from '@moltnet/api-client/query';
 import { useQuery } from '@tanstack/react-query';
 import {
+  ActionLink,
   Badge,
   Button,
   ControlSurface,
@@ -20,6 +21,10 @@ import {
 import {
   ArrowRight,
   Bot,
+  CheckCircle2,
+  Circle,
+  CircleDot,
+  ExternalLink,
   LibraryBig,
   ListTodo,
   ShieldCheck,
@@ -28,7 +33,14 @@ import type { ReactNode } from 'react';
 import { useLocation } from 'wouter';
 
 import { getApiClient } from '../api.js';
+import { getConfig } from '../config.js';
 import { useDiarySummaries } from '../diaries/hooks.js';
+import {
+  buildTeamPilotBriefing,
+  type PilotMilestone,
+  type PilotResource,
+} from '../overview/team-pilot.js';
+import { canManageTeam } from '../team/permissions.js';
 import { useTeam } from '../team/useTeam.js';
 
 const TEAM_HEADER = 'x-moltnet-team-id';
@@ -39,12 +51,23 @@ export function OverviewPage() {
   const { error: teamError, isLoading: teamsLoading, selectedTeam } = useTeam();
   const teamId = selectedTeam?.id ?? '';
   const hasProjectTeam = Boolean(selectedTeam && !selectedTeam.personal);
+  const canManage = canManageTeam(selectedTeam?.role);
 
   const tasksQuery = useQuery({
     ...listTasksOptions({
       client: getApiClient(),
       headers: { [TEAM_HEADER]: teamId },
       query: { limit: 50 },
+    }),
+    enabled: hasProjectTeam,
+    staleTime: 10_000,
+    refetchInterval: 15_000,
+  });
+  const completedTaskQuery = useQuery({
+    ...listTasksOptions({
+      client: getApiClient(),
+      headers: { [TEAM_HEADER]: teamId },
+      query: { status: 'completed', limit: 1 },
     }),
     enabled: hasProjectTeam,
     staleTime: 10_000,
@@ -62,7 +85,7 @@ export function OverviewPage() {
     ...listAgentKeysOptions({
       client: getApiClient(),
       headers: { [TEAM_HEADER]: teamId },
-      query: { limit: 50 },
+      query: { status: 'active', limit: 50 },
     }),
     enabled: hasProjectTeam,
     staleTime: 30_000,
@@ -101,6 +124,26 @@ export function OverviewPage() {
   const agentMembers = (teamQuery.data?.members ?? []).filter(
     (member) => member.subjectType.toLowerCase() === 'agent',
   ).length;
+  const briefing = buildTeamPilotBriefing({
+    team: teamsLoading
+      ? { status: 'loading' }
+      : teamError
+        ? { status: 'unavailable' }
+        : { status: 'ready', data: selectedTeam },
+    diaries: pilotResource(diariesQuery, diaries),
+    members: pilotResource(teamQuery, teamQuery.data?.members ?? []),
+    agentKeys: pilotResource(keysQuery, {
+      items: keys,
+      isPartial: keyCountIsPartial,
+    }),
+    runtimeProfiles: pilotResource(profilesQuery, profiles),
+    completedTasks: pilotResource(
+      completedTaskQuery,
+      completedTaskQuery.data?.items ?? [],
+    ),
+    activityTasks: pilotResource(tasksQuery, tasks),
+    canManage,
+  });
 
   return (
     <Stack gap={8}>
@@ -133,39 +176,23 @@ export function OverviewPage() {
       />
 
       {teamsLoading ? (
-        <ControlSurface as="section" padding="md">
-          <Text color="muted">Loading team scope…</Text>
-        </ControlSurface>
+        <TeamPilot briefing={briefing} />
       ) : teamError ? (
         <InlineNotice tone="error" title="Team scope unavailable">
           The console could not load the selected team. Open Teams to restore
           the operator scope before making changes.
         </InlineNotice>
-      ) : !hasProjectTeam && !teamsLoading ? (
-        <EmptyState
-          icon={<Bot size={22} strokeWidth={1.7} />}
-          title="Select a project team"
-          description="Operational data is team-scoped. Personal workspaces do not expose the shared task, runtime, and knowledge control plane."
-          action={
-            <Button size="sm" onClick={() => navigate('/teams')}>
-              Open teams
-            </Button>
-          }
-        />
-      ) : hasProjectTeam ? (
+      ) : !briefing.isActivated ? (
+        <TeamPilot briefing={briefing} />
+      ) : null}
+
+      {hasProjectTeam && !teamsLoading && !teamError ? (
         <>
           <section aria-labelledby="systems-heading">
             <Stack gap={4}>
-              <Stack gap={1}>
-                <Text id="systems-heading" variant="h2">
-                  Three systems. One operating model.
-                </Text>
-                <Text color="secondary">
-                  Work moves through the task engine, executes inside explicit
-                  runtime authority, and can leave attributable knowledge
-                  behind.
-                </Text>
-              </Stack>
+              <Text id="systems-heading" variant="h2">
+                System status
+              </Text>
               <div
                 style={{
                   display: 'grid',
@@ -420,10 +447,197 @@ export function OverviewPage() {
   );
 }
 
+function TeamPilot({
+  briefing,
+}: {
+  briefing: ReturnType<typeof buildTeamPilotBriefing>;
+}) {
+  const theme = useTheme();
+  const [, navigate] = useLocation();
+  const next = briefing.nextMilestone;
+  if (!next) return null;
+
+  const completedCount = briefing.milestones.filter(
+    (milestone) => milestone.status === 'complete',
+  ).length;
+  const actionVariant =
+    next.status === 'next' ? ('primary' as const) : ('secondary' as const);
+
+  return (
+    <ControlSurface as="section" padding="lg" aria-labelledby="pilot-heading">
+      <div
+        style={{
+          display: 'grid',
+          gap: theme.spacing[6],
+          gridTemplateColumns:
+            'repeat(auto-fit, minmax(min(100%, 22rem), 1fr))',
+        }}
+      >
+        <Stack gap={5}>
+          <Stack direction="row" gap={3} align="center" wrap>
+            <span
+              aria-hidden="true"
+              style={{
+                alignItems: 'center',
+                background: theme.color.primary.subtle,
+                border: `1px solid ${theme.color.border.DEFAULT}`,
+                borderRadius: theme.radius.md,
+                color: theme.color.primary.DEFAULT,
+                display: 'inline-flex',
+                height: '2.75rem',
+                justifyContent: 'center',
+                width: '2.75rem',
+              }}
+            >
+              <Bot size={21} strokeWidth={1.8} />
+            </span>
+            <Stack gap={0}>
+              <Text variant="overline" color="primary">
+                Team pilot
+              </Text>
+              <Text variant="caption" color="muted">
+                {completedCount} of {briefing.milestones.length} milestones
+                verified
+              </Text>
+            </Stack>
+          </Stack>
+
+          <Stack gap={2}>
+            <Badge
+              variant={
+                next.status === 'unavailable'
+                  ? 'warning'
+                  : next.status === 'loading'
+                    ? 'default'
+                    : 'primary'
+              }
+              style={{ alignSelf: 'flex-start' }}
+            >
+              {next.status === 'unavailable'
+                ? 'Unavailable'
+                : next.status === 'loading'
+                  ? 'Checking'
+                  : 'Next action'}
+            </Badge>
+            <Text id="pilot-heading" variant="h2">
+              {next.title}
+            </Text>
+            <Text color="secondary" style={{ maxWidth: '68ch' }}>
+              {next.detail}
+            </Text>
+          </Stack>
+
+          <Stack direction="row" gap={2} wrap>
+            <Button
+              variant={actionVariant}
+              size="sm"
+              onClick={() => navigate(next.action.href)}
+            >
+              {next.action.label}
+              <ArrowRight aria-hidden="true" size={16} />
+            </Button>
+            <ActionLink
+              variant="ghost"
+              size="sm"
+              href={`${getConfig().docsUrl.replace(/\/$/, '')}/operate/running-agents`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Agent daemon setup
+              <ExternalLink aria-hidden="true" size={15} />
+            </ActionLink>
+          </Stack>
+        </Stack>
+
+        <ol
+          aria-label="Team pilot milestones"
+          style={{
+            display: 'grid',
+            gap: theme.spacing[1],
+            listStyle: 'none',
+            margin: 0,
+            padding: 0,
+          }}
+        >
+          {briefing.milestones.map((milestone) => (
+            <PilotMilestoneRow key={milestone.id} milestone={milestone} />
+          ))}
+        </ol>
+      </div>
+    </ControlSurface>
+  );
+}
+
+function PilotMilestoneRow({ milestone }: { milestone: PilotMilestone }) {
+  const theme = useTheme();
+  const isCurrent = ['next', 'loading', 'unavailable'].includes(
+    milestone.status,
+  );
+  const statusLabel = {
+    complete: 'Complete',
+    next: 'Next',
+    upcoming: 'Upcoming',
+    loading: 'Checking',
+    unavailable: 'Unavailable',
+  }[milestone.status];
+  const icon =
+    milestone.status === 'complete' ? (
+      <CheckCircle2 aria-hidden="true" size={18} />
+    ) : isCurrent ? (
+      <CircleDot aria-hidden="true" size={18} />
+    ) : (
+      <Circle aria-hidden="true" size={18} />
+    );
+
+  return (
+    <li
+      aria-current={isCurrent ? 'step' : undefined}
+      style={{
+        alignItems: 'center',
+        background: isCurrent ? theme.color.bg.elevated : 'transparent',
+        borderRadius: theme.radius.md,
+        color:
+          milestone.status === 'complete' || isCurrent
+            ? theme.color.text.DEFAULT
+            : theme.color.text.muted,
+        display: 'grid',
+        gap: theme.spacing[3],
+        gridTemplateColumns: 'auto minmax(0, 1fr) auto',
+        minHeight: '3rem',
+        padding: `${theme.spacing[2]} ${theme.spacing[3]}`,
+      }}
+    >
+      <span
+        style={{
+          color:
+            milestone.status === 'complete'
+              ? theme.color.success.DEFAULT
+              : isCurrent
+                ? theme.color.primary.DEFAULT
+                : theme.color.text.muted,
+          display: 'inline-flex',
+        }}
+      >
+        {icon}
+      </span>
+      <Text weight={isCurrent ? 'medium' : 'normal'}>{milestone.label}</Text>
+      <Text variant="caption" color={isCurrent ? 'secondary' : 'muted'}>
+        {statusLabel}
+      </Text>
+    </li>
+  );
+}
+
 type QueryLike = {
   isError: boolean;
   isLoading: boolean;
 };
+
+function pilotResource<T>(query: QueryLike, data: T): PilotResource<T> {
+  if (query.isError) return { status: 'unavailable' };
+  if (query.isLoading) return { status: 'loading' };
+  return { status: 'ready', data };
+}
 
 function queryStatus(query: QueryLike) {
   if (query.isError) return 'unavailable' as const;
