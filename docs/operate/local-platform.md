@@ -110,7 +110,8 @@ const profile = await agent.runtimeProfiles.create(
     sessionTtlSec: 1800,
     workspaceTtlSec: 1800,
     requiredEnv: ['OLLAMA_API_KEY'],
-    requiredTools: ['git', 'pnpm'],
+    requiredTools: ['read', 'write', 'edit', 'bash'],
+    requiredExecutables: ['git', 'gh'],
     context: [],
     sandbox: {
       hostExec: {

@@ -93,7 +93,7 @@ export type {
   SandboxConfig,
   SnapshotConfig,
 } from './snapshot.js';
-export { ensureSnapshot } from './snapshot.js';
+export { ensureSnapshot, GONDOLIN_BASE_EXECUTABLES } from './snapshot.js';
 export {
   createGondolinBashOps,
   createGondolinEditOps,

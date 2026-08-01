@@ -136,17 +136,27 @@ export type SnapshotConfig = NonNullable<SandboxConfig['snapshot']>;
 // Base constants (always installed)
 // ---------------------------------------------------------------------------
 
+/** Alpine packages whose commands are guaranteed in every snapshot. */
+const BASE_ALPINE_PACKAGE_EXECUTABLES = {
+  curl: 'curl',
+  file: 'file',
+  git: 'git',
+  jq: 'jq',
+  ripgrep: 'rg',
+  tar: 'tar',
+  xz: 'xz',
+} as const;
+
 /** Alpine packages required by every snapshot. */
 const BASE_ALPINE_PACKAGES = [
   'ca-certificates',
-  'curl',
-  'file',
-  'git',
-  'jq',
-  'ripgrep',
-  'tar',
-  'xz',
+  ...Object.keys(BASE_ALPINE_PACKAGE_EXECUTABLES),
 ];
+
+/** Commands guaranteed by the base Gondolin snapshot. */
+export const GONDOLIN_BASE_EXECUTABLES: readonly string[] = Object.freeze(
+  [...Object.values(BASE_ALPINE_PACKAGE_EXECUTABLES), 'gh', 'moltnet'].sort(),
+);
 
 /** gh CLI version installed in every snapshot. */
 const GH_VERSION = '2.74.0';
