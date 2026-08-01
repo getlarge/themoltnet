@@ -321,6 +321,20 @@ in `nx.json` `release.version.versionActionsOptions`.
 
 ## Go CLI Artifacts
 
+The CLI consumes the separately versioned Go API-client module. When both are
+released from one commit, the legacy workflow first creates the
+`libs/moltnet-api-client/vX.Y.Z` proxy tag, then temporarily pins the CLI build
+to that exact version with `GOWORK=off`. This prevents `go.work` from hiding a
+stale published-module dependency while building release binaries. If the API
+client is not part of the release, the build pins the version recorded in the
+release manifest instead.
+
+After the npm wrapper is published, a read-only smoke installs that exact
+published CLI version and runs `task list` followed by `task attempts` against
+the deployed API. The release is not healthy until this verifies the generated
+attempt decoder across the registry-to-deployment boundary. The compatibility
+policy is documented in the [Task reference](../reference/tasks.md#response-compatibility).
+
 The Go CLI release artifact step is owned by the `moltnet-cli:nx-release-publish`
 target. It calls `tools/src/release/go-artifact-publisher.cli.ts` with
 `apps/moltnet-cli/nx-release-artifacts.json`.

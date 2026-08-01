@@ -99,10 +99,20 @@ func runE2eCLIWithAuth(
 	agentKey string,
 	args ...string,
 ) (stdout string, stderr string, runErr error) {
+	return runE2eCLIWithAuthAtURL(binPath, credsPath, agentKey, e2eAPIURL, args...)
+}
+
+func runE2eCLIWithAuthAtURL(
+	binPath string,
+	credsPath string,
+	agentKey string,
+	apiURL string,
+	args ...string,
+) (stdout string, stderr string, runErr error) {
 	ctx, cancel := context.WithTimeout(context.Background(), e2eCLIInvocationTimeout)
 	defer cancel()
 
-	fullArgs := []string{"--api-url", e2eAPIURL}
+	fullArgs := []string{"--api-url", apiURL}
 	if credsPath != "" {
 		fullArgs = append(fullArgs, "--credentials", credsPath)
 	}
