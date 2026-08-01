@@ -52,23 +52,66 @@ jobs:
       OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
       PI_AUTH_JSON: ${{ secrets.PI_AUTH_JSON }}
     steps:
-      - uses: actions/checkout@v6
+      - name: Guard trusted complexity runtime changes
+        id: runtime-guard
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const pullNumber =
+              context.eventName === 'pull_request'
+                ? context.payload.pull_request.number
+                : context.payload.issue.number;
+            const files = await github.paginate(
+              github.rest.pulls.listFiles,
+              {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pullNumber,
+                per_page: 100,
+              },
+            );
+            const runtimePaths = [
+              '.github/workflows/legreffier-complexity-review.yml',
+              'tools/src/tasks/compose-pr-review.ts',
+              'tools/src/tasks/pr-complexity-review.ts',
+              'tools/src/tasks/complexity-review-comment.ts',
+              'packages/agent-daemon-action/',
+            ];
+            const matches = files
+              .map(file => file.filename)
+              .filter(path => runtimePaths.some(runtime =>
+                runtime.endsWith('/') ? path.startsWith(runtime) : path === runtime,
+              ));
+            const skip = matches.length > 0;
+            core.setOutput('skip', String(skip));
+            if (skip) {
+              core.notice(
+                `Skipping self-review because trusted complexity runtime changes: ${matches.join(', ')}`,
+              );
+            }
+
+      - if: steps.runtime-guard.outputs.skip != 'true'
+        uses: actions/checkout@v6
         with:
           # Always execute trusted workflow/runtime code. The reviewed head is
           # fetched below as inert git data and never checked out or executed.
           ref: ${{ github.event.pull_request.base.sha || github.event.repository.default_branch }}
           persist-credentials: false
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v6
+      - if: steps.runtime-guard.outputs.skip != 'true'
+        uses: pnpm/action-setup@v6
+      - if: steps.runtime-guard.outputs.skip != 'true'
+        uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: pnpm
 
       - name: Install dependencies
+        if: steps.runtime-guard.outputs.skip != 'true'
         run: pnpm install --frozen-lockfile
 
       - name: Compose pr_review (complexity) task spec
         id: compose
+        if: steps.runtime-guard.outputs.skip != 'true'
         env:
           PR_NUMBER: ${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.event.issue.number }}
           PR_HEAD_REF: ${{ github.event_name == 'pull_request' && github.head_ref || '' }}
@@ -103,12 +146,14 @@ jobs:
           echo "task-tags=ci,source:github-actions,workflow:legreffier-complexity-review,repo:$GITHUB_REPOSITORY,agent-daemon,agent:legreffier,review:pr,review:complexity,pr:$PR_NUMBER,branch:$branch_tag,revision:$head_sha" >> "$GITHUB_OUTPUT"
 
       - name: Fetch immutable review revisions as inert git data
+        if: steps.runtime-guard.outputs.skip != 'true'
         env:
           BASE_SHA: ${{ steps.compose.outputs.base-sha }}
           HEAD_SHA: ${{ steps.compose.outputs.head-sha }}
         run: git fetch --no-tags --depth=1 origin "$BASE_SHA" "$HEAD_SHA"
 
       - name: Mark complexity comment in progress
+        if: steps.runtime-guard.outputs.skip != 'true'
         env:
           PR_NUMBER: ${{ steps.compose.outputs.pr-number }}
           HEAD_SHA: ${{ steps.compose.outputs.head-sha }}
@@ -123,6 +168,7 @@ jobs:
 
       - name: Run task
         id: review
+        if: steps.runtime-guard.outputs.skip != 'true'
         continue-on-error: true
         uses: ./packages/agent-daemon-action
         with:
@@ -136,7 +182,7 @@ jobs:
 
       - name: Read accepted complexity output
         id: result
-        if: steps.review.outcome == 'success'
+        if: steps.runtime-guard.outputs.skip != 'true' && steps.review.outcome == 'success'
         env:
           TASK_ID: ${{ steps.review.outputs.task-id }}
         run: |
@@ -151,7 +197,7 @@ jobs:
           echo "path=$result" >> "$GITHUB_OUTPUT"
 
       - name: Publish revision-aware complexity comment
-        if: always() && !cancelled()
+        if: always() && !cancelled() && steps.runtime-guard.outputs.skip != 'true'
         env:
           PR_NUMBER: ${{ steps.compose.outputs.pr-number }}
           HEAD_SHA: ${{ steps.compose.outputs.head-sha }}
@@ -177,7 +223,7 @@ jobs:
           node --import tsx tools/src/tasks/complexity-review-comment.ts "${args[@]}"
 
       - name: Enforce complexity task success
-        if: always() && !cancelled() && steps.review.outcome != 'success'
+        if: always() && !cancelled() && steps.runtime-guard.outputs.skip != 'true' && steps.review.outcome != 'success'
         env:
           REVIEW_OUTCOME: ${{ steps.review.outcome }}
         run: |
