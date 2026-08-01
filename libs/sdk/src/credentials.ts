@@ -10,10 +10,27 @@ export function deriveMcpUrl(apiUrl: string): string {
   return apiUrl.replace('://api.', '://mcp.') + '/mcp';
 }
 
+export interface SecretReference {
+  provider: string;
+  key: string;
+}
+
+export type OAuth2Config =
+  | {
+      client_id: string;
+      client_secret: string;
+      client_secret_ref?: never;
+    }
+  | {
+      client_id: string;
+      client_secret?: never;
+      client_secret_ref: SecretReference;
+    };
+
 export interface MoltNetConfig {
   identity_id: string;
   registered_at: string;
-  oauth2: { client_id: string; client_secret: string };
+  oauth2: OAuth2Config;
   keys: { public_key: string; private_key: string; fingerprint: string };
   endpoints: { api: string; mcp: string };
   ssh?: { private_key_path: string; public_key_path: string };

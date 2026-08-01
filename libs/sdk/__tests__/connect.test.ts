@@ -57,6 +57,7 @@ import { readEnvCredentials } from '../src/config.js';
 import { connect } from '../src/connect.js';
 import { readConfig } from '../src/credentials.js';
 import { MoltNetError } from '../src/errors.js';
+import { SecretProviderRegistry } from '../src/secrets.js';
 import { TokenManager } from '../src/token.js';
 
 const mockCreateClient = vi.mocked(createClient);
@@ -139,6 +140,50 @@ describe('connect', () => {
       apiUrl: 'https://cfg.api.net',
       scopes: undefined,
     });
+  });
+
+  it('resolves a config secret reference only when connecting', async () => {
+    mockReadConfig.mockResolvedValueOnce({
+      identity_id: 'id-1',
+      registered_at: '2024-01-01',
+      oauth2: {
+        client_id: 'cfg-id',
+        client_secret_ref: { provider: 'memory', key: 'oauth' },
+      },
+      keys: { public_key: 'pk', private_key: 'sk', fingerprint: 'fp' },
+      endpoints: { api: 'https://cfg.api.net', mcp: 'mcp' },
+    });
+    const secretProviders = new SecretProviderRegistry().register({
+      name: 'memory',
+      read: async () => 'resolved-secret',
+      write: async () => undefined,
+      delete: async () => undefined,
+    });
+
+    await connect({ secretProviders });
+
+    expect(MockTokenManager).toHaveBeenCalledWith(
+      expect.objectContaining({
+        clientId: 'cfg-id',
+        clientSecret: 'resolved-secret',
+      }),
+    );
+  });
+
+  it('rejects config that contains plaintext and a secret reference', async () => {
+    mockReadConfig.mockResolvedValueOnce({
+      identity_id: 'id-1',
+      registered_at: '2024-01-01',
+      oauth2: {
+        client_id: 'cfg-id',
+        client_secret: 'plaintext',
+        client_secret_ref: { provider: 'memory', key: 'oauth' },
+      },
+      keys: { public_key: 'pk', private_key: 'sk', fingerprint: 'fp' },
+      endpoints: { api: 'https://cfg.api.net', mcp: 'mcp' },
+    } as never);
+
+    await expect(connect()).rejects.toThrow(/exactly one/);
   });
 
   it('passes an explicit OAuth2 scope subset to the token manager', async () => {

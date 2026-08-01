@@ -11,6 +11,11 @@ export interface EnvCredentials {
   agentKey?: string;
 }
 
+/** Read one environment value behind the SDK's config boundary. */
+export function readEnvironmentVariable(name: string): string | undefined {
+  return process.env[name];
+}
+
 /**
  * Read MoltNet credentials from environment variables.
  * Reads MOLTNET_CLIENT_ID, MOLTNET_CLIENT_SECRET, MOLTNET_API_URL, and
