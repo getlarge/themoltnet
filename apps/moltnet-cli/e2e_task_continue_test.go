@@ -36,8 +36,9 @@ func freeformInputJSON(corrID string) string {
 
 // TestE2E_CLI_TaskContinue_DryRunFromQueuedSource creates a freeform
 // task, runs `task continue --dry-run` against it, and asserts the
-// printed CreateTaskReq has the expected shape. --dry-run never POSTs
-// the continuation, so the parent's still-queued state is fine.
+// printed CreateTaskReq has the expected shape. Schema validation remains
+// enabled, and --dry-run never POSTs the continuation, so the parent's
+// still-queued state is fine.
 func TestE2E_CLI_TaskContinue_DryRunFromQueuedSource(t *testing.T) {
 	h := newTaskCreateHarness(t)
 	corr := uuid.NewString()
@@ -56,10 +57,7 @@ func TestE2E_CLI_TaskContinue_DryRunFromQueuedSource(t *testing.T) {
 		t.Fatalf("expected task create to print a UUID, got %q", srcID)
 	}
 
-	// 2. Dry-run a continuation. --skip-validation because the dry-run
-	//    path still calls the live server for schema validation by
-	//    default, and the test focus is the composition shape — not
-	//    server-side schema introspection.
+	// 2. Dry-run a continuation with live schema validation enabled.
 	dryOut, _ := h.runWithStdin(t, "",
 		"task", "continue",
 		"--from-task-id", srcID,
@@ -67,7 +65,6 @@ func TestE2E_CLI_TaskContinue_DryRunFromQueuedSource(t *testing.T) {
 		"--brief", "Next step: assert the chain",
 		"--title", "Round 2",
 		"--dry-run",
-		"--skip-validation",
 	)
 
 	// 3. Decode and assert the CreateTaskReq shape.
@@ -82,6 +79,9 @@ func TestE2E_CLI_TaskContinue_DryRunFromQueuedSource(t *testing.T) {
 	}
 	if req["correlationId"] != corr {
 		t.Errorf("correlationId = %v, want %s (inherited from source)", req["correlationId"], corr)
+	}
+	if req["title"] != "Round 2" {
+		t.Errorf("title = %v, want Round 2", req["title"])
 	}
 
 	cc, ok := req["claimCondition"].(map[string]any)
@@ -106,8 +106,8 @@ func TestE2E_CLI_TaskContinue_DryRunFromQueuedSource(t *testing.T) {
 	if input["brief"] != "Next step: assert the chain" {
 		t.Errorf("input.brief = %v", input["brief"])
 	}
-	if input["title"] != "Round 2" {
-		t.Errorf("input.title = %v", input["title"])
+	if title, present := input["title"]; present {
+		t.Errorf("input.title must be absent; got %v", title)
 	}
 	if _, present := input["execution"]; present {
 		t.Errorf("input.execution should not be set on continuations; got %v", input["execution"])
