@@ -23,6 +23,36 @@ const OPENCODE_SCHEMA = 'https://opencode.ai/config.json';
 /** Repo-relative path of the generated GitHub-token rule. */
 const RULE_REL_PATH = '.opencode/rules/legreffier-gh.md';
 
+export const OPENCODE_SECRET_GUARD_PLUGIN = `import type { Plugin } from '@opencode-ai/plugin';
+
+export const MoltNetSecretGuard: Plugin = async () => ({
+  'tool.execute.before': async (input, output) => {
+    const payload = JSON.stringify({ tool_name: input.tool, tool_input: output.args });
+    let result;
+    try {
+      result = Bun.spawnSync(['moltnet', 'secrets', 'guard'], { stdin: payload });
+    } catch {
+      throw new Error('MoltNet secret guard is unavailable; protected credential access is blocked.');
+    }
+    if (result.exitCode !== 0) {
+      throw new Error('MoltNet secret guard failed; protected credential access is blocked.');
+    }
+    const text = result.stdout.toString().trim();
+    if (!text) return;
+    let decision;
+    try {
+      decision = JSON.parse(text);
+    } catch {
+      throw new Error('MoltNet secret guard returned malformed output; protected credential access is blocked.');
+    }
+    const hook = decision.hookSpecificOutput;
+    if (hook?.permissionDecision === 'deny') {
+      throw new Error(hook.permissionDecisionReason ?? 'MoltNet blocked protected credential access.');
+    }
+  },
+});
+`;
+
 async function readOpencodeConfig(filePath: string): Promise<OpencodeConfig> {
   try {
     return JSON.parse(await readFile(filePath, 'utf-8')) as OpencodeConfig;
@@ -73,9 +103,14 @@ export class OpencodeAdapter implements AgentAdapter {
     await installCanonicalSkills(repoDir);
   }
 
-  async writeSettings(_opts: AgentAdapterOptions): Promise<void> {
-    // no-op — credentials are sourced from the shared `.moltnet/<agent>/env`
-    // file via opencode's `{env:...}` header substitution.
+  async writeSettings(opts: AgentAdapterOptions): Promise<void> {
+    const dir = join(opts.repoDir, '.opencode', 'plugins');
+    await mkdir(dir, { recursive: true });
+    await writeFile(
+      join(dir, 'moltnet-secret-guard.ts'),
+      OPENCODE_SECRET_GUARD_PLUGIN,
+      'utf-8',
+    );
   }
 
   async writeRules(opts: AgentAdapterOptions): Promise<void> {

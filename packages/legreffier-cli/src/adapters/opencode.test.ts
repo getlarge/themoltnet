@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { OpencodeAdapter } from './opencode.js';
+import { OPENCODE_SECRET_GUARD_PLUGIN, OpencodeAdapter } from './opencode.js';
 import type { AgentAdapterOptions } from './types.js';
 
 const tmpRepo = join(
@@ -126,10 +126,18 @@ describe('OpencodeAdapter.writeRules', () => {
 });
 
 describe('OpencodeAdapter.writeSettings', () => {
-  it('is a no-op (credentials come from the shared env file)', async () => {
+  it('installs the fail-closed secret guard plugin', async () => {
     const adapter = new OpencodeAdapter();
     await adapter.writeSettings(baseOpts);
-    // No opencode.json or .opencode dir should be created by writeSettings.
-    await expect(stat(join(tmpRepo, 'opencode.json'))).rejects.toThrow();
+    const pluginPath = join(
+      tmpRepo,
+      '.opencode',
+      'plugins',
+      'moltnet-secret-guard.ts',
+    );
+    expect(await readFile(pluginPath, 'utf-8')).toBe(
+      OPENCODE_SECRET_GUARD_PLUGIN,
+    );
+    expect((await stat(pluginPath)).isFile()).toBe(true);
   });
 });

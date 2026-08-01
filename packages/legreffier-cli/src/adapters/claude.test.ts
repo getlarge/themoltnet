@@ -7,6 +7,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   CLAUDE_GITHUB_GUARD_HOOK_COMMAND,
   CLAUDE_GITHUB_GUARD_HOOK_SCRIPT,
+  CLAUDE_SECRET_GUARD_HOOK_COMMAND,
+  CLAUDE_SECRET_GUARD_HOOK_SCRIPT,
 } from '../setup.js';
 import { ClaudeAdapter } from './claude.js';
 import type { AgentAdapterOptions } from './types.js';
@@ -45,17 +47,24 @@ describe('ClaudeAdapter.writeSettings', () => {
     const settings = JSON.parse(
       await readFile(join(tmpRepo, '.claude', 'settings.json'), 'utf-8'),
     );
-    expect(settings.hooks.PreToolUse).toEqual([
-      {
-        matcher: 'Bash',
-        hooks: [
-          {
-            type: 'command',
-            command: CLAUDE_GITHUB_GUARD_HOOK_COMMAND,
-          },
-        ],
-      },
-    ]);
+    expect(settings.hooks.PreToolUse[0]).toEqual({
+      matcher: 'Bash',
+      hooks: [
+        {
+          type: 'command',
+          command: CLAUDE_SECRET_GUARD_HOOK_COMMAND,
+        },
+        {
+          type: 'command',
+          command: CLAUDE_GITHUB_GUARD_HOOK_COMMAND,
+        },
+      ],
+    });
+    expect(
+      settings.hooks.PreToolUse.map(
+        (entry: { matcher: string }) => entry.matcher,
+      ),
+    ).toEqual(['Bash', 'Read', 'Grep', 'Write', 'Edit', 'Glob']);
 
     const local = JSON.parse(
       await readFile(join(tmpRepo, '.claude', 'settings.local.json'), 'utf-8'),
@@ -72,6 +81,16 @@ describe('ClaudeAdapter.writeSettings', () => {
       CLAUDE_GITHUB_GUARD_HOOK_SCRIPT,
     );
     expect((await stat(hookPath)).mode & 0o111).not.toBe(0);
+    const secretHookPath = join(
+      tmpRepo,
+      '.claude',
+      'hooks',
+      'moltnet-secret-guard.sh',
+    );
+    expect(await readFile(secretHookPath, 'utf-8')).toBe(
+      CLAUDE_SECRET_GUARD_HOOK_SCRIPT,
+    );
+    expect((await stat(secretHookPath)).mode & 0o111).not.toBe(0);
   });
 
   it('preserves existing shared hooks and remains idempotent', async () => {
@@ -104,6 +123,7 @@ describe('ClaudeAdapter.writeSettings', () => {
     );
     expect(settings.hooks.SessionStart).toHaveLength(1);
     expect(settings.hooks.PreToolUse[0].hooks).toEqual([
+      { type: 'command', command: CLAUDE_SECRET_GUARD_HOOK_COMMAND },
       { type: 'command', command: 'custom-guard' },
       { type: 'command', command: CLAUDE_GITHUB_GUARD_HOOK_COMMAND },
     ]);

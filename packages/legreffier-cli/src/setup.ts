@@ -110,6 +110,7 @@ export async function downloadSkills(
 export const CANONICAL_SKILL_DIR = '.agents/skills';
 
 const GITHUB_GUARD_CLI_COMMAND = 'moltnet github guard';
+const SECRET_GUARD_CLI_COMMAND = 'moltnet secrets guard';
 
 export const GITHUB_GUARD_HOOK_COMMAND = `command -v moltnet >/dev/null 2>&1 && ${GITHUB_GUARD_CLI_COMMAND} 2>/dev/null || true`;
 
@@ -119,6 +120,15 @@ export const CLAUDE_GITHUB_GUARD_HOOK_COMMAND =
 export const CLAUDE_GITHUB_GUARD_HOOK_SCRIPT = `#!/bin/sh
 command -v moltnet >/dev/null 2>&1 || exit 0
 ${GITHUB_GUARD_CLI_COMMAND} 2>/dev/null || true
+`;
+
+export const SECRET_GUARD_HOOK_COMMAND = SECRET_GUARD_CLI_COMMAND;
+export const CLAUDE_SECRET_GUARD_HOOK_COMMAND =
+  '"$CLAUDE_PROJECT_DIR"/.claude/hooks/moltnet-secret-guard.sh';
+export const CLAUDE_SECRET_GUARD_HOOK_SCRIPT = `#!/bin/sh
+deny='{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"MoltNet secret guard is unavailable; protected credential access is blocked."}}'
+command -v moltnet >/dev/null 2>&1 || { printf '%s\\n' "$deny"; exit 0; }
+${SECRET_GUARD_CLI_COMMAND} 2>/dev/null || printf '%s\\n' "$deny"
 `;
 
 interface CommandHook {
@@ -174,6 +184,43 @@ export function mergeGitHubGuardHook(
   return { ...existing, PreToolUse: preToolUse };
 }
 
+const SECRET_GUARD_MATCHERS = ['Bash', 'Read', 'Grep', 'Write', 'Edit', 'Glob'];
+
+export function mergeSecretGuardHook(
+  hooks: unknown,
+  command = SECRET_GUARD_HOOK_COMMAND,
+): HookSettings {
+  const existing =
+    hooks && typeof hooks === 'object' && !Array.isArray(hooks)
+      ? (hooks as HookSettings)
+      : {};
+  const preToolUse = Array.isArray(existing.PreToolUse)
+    ? existing.PreToolUse.map((entry) => ({
+        ...entry,
+        hooks: Array.isArray(entry.hooks)
+          ? entry.hooks.filter((hook) => !isSecretGuardHook(hook))
+          : [],
+      }))
+    : [];
+
+  for (const matcher of SECRET_GUARD_MATCHERS) {
+    const index = preToolUse.findIndex((entry) => entry.matcher === matcher);
+    if (index >= 0) {
+      preToolUse[index] = {
+        ...preToolUse[index],
+        hooks: [{ type: 'command', command }, ...preToolUse[index].hooks],
+      };
+    } else {
+      preToolUse.push({
+        matcher,
+        hooks: [{ type: 'command', command }],
+      });
+    }
+  }
+
+  return { ...existing, PreToolUse: preToolUse };
+}
+
 function isGitHubGuardHook(hook: unknown): boolean {
   return (
     !!hook &&
@@ -184,15 +231,28 @@ function isGitHubGuardHook(hook: unknown): boolean {
   );
 }
 
+function isSecretGuardHook(hook: unknown): boolean {
+  return (
+    !!hook &&
+    typeof hook === 'object' &&
+    'command' in hook &&
+    typeof hook.command === 'string' &&
+    /\bsecret(?:s)?(?:\s+|-)guard\b/.test(hook.command)
+  );
+}
+
 /** Register the shared Claude guard and install its executable hook script. */
 export async function writeClaudeGuardHook(repoDir: string): Promise<void> {
   const dir = join(repoDir, '.claude');
   const hooksDir = join(dir, 'hooks');
   const scriptPath = join(hooksDir, 'moltnet-github-guard.sh');
+  const secretScriptPath = join(hooksDir, 'moltnet-secret-guard.sh');
   const settingsPath = join(dir, 'settings.json');
   await mkdir(hooksDir, { recursive: true });
   await writeFile(scriptPath, CLAUDE_GITHUB_GUARD_HOOK_SCRIPT, 'utf-8');
   await chmod(scriptPath, 0o755);
+  await writeFile(secretScriptPath, CLAUDE_SECRET_GUARD_HOOK_SCRIPT, 'utf-8');
+  await chmod(secretScriptPath, 0o755);
 
   let existing: Record<string, unknown> = {};
   try {
@@ -210,7 +270,10 @@ export async function writeClaudeGuardHook(repoDir: string): Promise<void> {
       {
         ...existing,
         hooks: mergeGitHubGuardHook(
-          existing.hooks,
+          mergeSecretGuardHook(
+            existing.hooks,
+            CLAUDE_SECRET_GUARD_HOOK_COMMAND,
+          ),
           CLAUDE_GITHUB_GUARD_HOOK_COMMAND,
         ),
       },
