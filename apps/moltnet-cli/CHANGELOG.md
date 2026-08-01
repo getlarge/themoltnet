@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.76.0](https://github.com/getlarge/themoltnet/compare/cli-v1.75.1...cli-v1.76.0) (2026-08-01)
+
+
+### Features
+
+* **auth:** make credential scopes real per endpoint ([4da7e14](https://github.com/getlarge/themoltnet/commit/4da7e1420d708be7772279de111ccf4f1b68a63b))
+
 ## [1.75.1](https://github.com/getlarge/themoltnet/compare/cli-v1.75.0...cli-v1.75.1) (2026-07-29)
 
 

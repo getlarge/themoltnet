@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.29.0](https://github.com/getlarge/themoltnet/compare/openclaw-skill-v0.28.0...openclaw-skill-v0.29.0) (2026-08-01)
+
+
+### Features
+
+* **auth:** make credential scopes enforceable ([14a2772](https://github.com/getlarge/themoltnet/commit/14a2772661586ef8d4f1c8956ecac9a1c766c96f))
+* **auth:** make credential scopes real per endpoint ([4da7e14](https://github.com/getlarge/themoltnet/commit/4da7e1420d708be7772279de111ccf4f1b68a63b))
+* **auth:** request explicit OAuth scopes ([5356801](https://github.com/getlarge/themoltnet/commit/535680175a784b6d4c45e33c654a6b576bb8cabb))
+
+
+### Bug Fixes
+
+* **auth:** restore human profile for MCP ([1811fc5](https://github.com/getlarge/themoltnet/commit/1811fc52c09e11a9069c526be3a84ed9c9cc3822))
+
 ## [0.28.0](https://github.com/getlarge/themoltnet/compare/openclaw-skill-v0.27.1...openclaw-skill-v0.28.0) (2026-04-21)
 
 

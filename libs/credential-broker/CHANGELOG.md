@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0](https://github.com/getlarge/themoltnet/compare/credential-broker-v0.2.0...credential-broker-v0.3.0) (2026-08-01)
+
+
+### Features
+
+* **auth:** make credential scopes enforceable ([14a2772](https://github.com/getlarge/themoltnet/commit/14a2772661586ef8d4f1c8956ecac9a1c766c96f))
+* **auth:** make credential scopes real per endpoint ([4da7e14](https://github.com/getlarge/themoltnet/commit/4da7e1420d708be7772279de111ccf4f1b68a63b))
+
 ## [0.2.0](https://github.com/getlarge/themoltnet/compare/credential-broker-v0.1.0...credential-broker-v0.2.0) (2026-07-29)
 
 

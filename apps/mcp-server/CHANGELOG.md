@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.16.0](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.15.4...mcp-server-v0.16.0) (2026-08-01)
+
+
+### Features
+
+* **auth:** make credential scopes real per endpoint ([4da7e14](https://github.com/getlarge/themoltnet/commit/4da7e1420d708be7772279de111ccf4f1b68a63b))
+
 ## [0.15.4](https://github.com/getlarge/themoltnet/compare/mcp-server-v0.15.3...mcp-server-v0.15.4) (2026-07-31)
 
 
