@@ -247,6 +247,7 @@
           "@themoltnet/pi-extension",
           "@themoltnet/pi-runtime",
           "@themoltnet/sdk",
+          "@themoltnet/signer",
           "@themoltnet/yubikey-preview-sign"
         ],
         "projectsRelationship": "independent",
