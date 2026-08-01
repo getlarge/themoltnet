@@ -3,6 +3,7 @@ import {
   createPiTaskExecutor,
   defineGondolinTemplate,
   definePiRuntime,
+  GONDOLIN_BASE_EXECUTABLES,
   GONDOLIN_TOOL_NAMES,
   MOLTNET_TOOL_NAMES,
   type PiRuntimeDefinition,
@@ -86,13 +87,16 @@ export function createPiDaemonAdapter(
   };
 }
 
-export const defaultPiDaemonAdapter = createPiDaemonAdapter(
-  definePiRuntime({
-    id: 'moltnet-default-pi',
+export const defaultPiRuntimeDefinition = definePiRuntime({
+  id: 'moltnet-default-pi',
+  version: '1',
+  vm: defineGondolinTemplate({
+    id: 'moltnet-default-gondolin',
     version: '1',
-    vm: defineGondolinTemplate({
-      id: 'moltnet-default-gondolin',
-      version: '1',
-    }),
+    executables: GONDOLIN_BASE_EXECUTABLES,
   }),
+});
+
+export const defaultPiDaemonAdapter = createPiDaemonAdapter(
+  defaultPiRuntimeDefinition,
 );
