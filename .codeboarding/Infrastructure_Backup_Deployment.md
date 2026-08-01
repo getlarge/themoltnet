@@ -28,9 +28,8 @@ Provides the operational scaffolding required to deploy the AI Agent runtime. Th
   - `tools.db.backfill-personal-teams.proxyHost` ([L38-L39](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-personal-teams.ts#L38-L39)) - Class
   - `tools.db.backfill-personal-teams.proxyHost.args.find() callback` ([L39-L39](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-personal-teams.ts#L39-L39)) - Function
 - [`tools/db/backfill-runtime-profile-standard-engineering-context.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-runtime-profile-standard-engineering-context.ts)
-  - `tools.db.backfill-runtime-profile-standard-engineering-context.loadStandardEngineeringContext.fragments` ([L73-L82](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-runtime-profile-standard-engineering-context.ts#L73-L82)) - Class
-  - `tools.db.backfill-runtime-profile-standard-engineering-context.loadStandardEngineeringContext.fragments.map() callback` ([L75-L82](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-runtime-profile-standard-engineering-context.ts#L75-L82)) - Function
-  - `tools.db.backfill-runtime-profile-standard-engineering-context.backfill.profile.context.some() callback` ([L130-L130](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-runtime-profile-standard-engineering-context.ts#L130-L130)) - Function
+  - `tools.db.backfill-runtime-profile-standard-engineering-context.loadStandardEngineeringContext.fragments` ([L76-L85](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-runtime-profile-standard-engineering-context.ts#L76-L85)) - Class
+  - `tools.db.backfill-runtime-profile-standard-engineering-context.loadStandardEngineeringContext.fragments.map() callback` ([L78-L85](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-runtime-profile-standard-engineering-context.ts#L78-L85)) - Function
 - [`tools/generators/split-tsconfigs/index.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/generators/split-tsconfigs/index.ts)
   - `tools.generators.split-tsconfigs.index.splitTsconfigsGenerator.selected` ([L62-L64](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/generators/split-tsconfigs/index.ts#L62-L64)) - Class
   - `tools.generators.split-tsconfigs.index.splitTsconfigsGenerator.selected.filter() callback` ([L63-L63](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/generators/split-tsconfigs/index.ts#L63-L63)) - Function
@@ -54,8 +53,8 @@ Provides the operational scaffolding required to deploy the AI Agent runtime. Th
   - `tools.src.check-vite-alias-exports.packages` ([L137-L139](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/check-vite-alias-exports.ts#L137-L139)) - Class
   - `tools.src.check-vite-alias-exports.packages.filter() callback` ([L138-L138](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/check-vite-alias-exports.ts#L138-L138)) - Function
 - [`tools/src/eval-setup.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/eval-setup.ts)
-  - `tools.src.eval-setup.setup.errorMsg` ([L86-L86](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/eval-setup.ts#L86-L86)) - Class
-  - `tools.src.eval-setup.setup.errorMsg.result.errors.map() callback` ([L86-L86](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/eval-setup.ts#L86-L86)) - Function
+  - `tools.src.eval-setup.setup.errorMsg` ([L87-L87](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/eval-setup.ts#L87-L87)) - Class
+  - `tools.src.eval-setup.setup.errorMsg.result.errors.map() callback` ([L87-L87](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/eval-setup.ts#L87-L87)) - Function
 - [`tools/src/release/go-artifact-publisher.cli.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/release/go-artifact-publisher.cli.ts)
   - `tools.src.release.go-artifact-publisher.cli.resolveConfigPath` ([L11-L13](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/release/go-artifact-publisher.cli.ts#L11-L13)) - Function
   - `tools.src.release.go-artifact-publisher.cli.normalizeBooleanOptionValues` ([L15-L34](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/release/go-artifact-publisher.cli.ts#L15-L34)) - Function
@@ -123,13 +122,12 @@ Provides the operational scaffolding required to deploy the AI Agent runtime. Th
 - [`tools/src/repo.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/repo.ts)
   - `tools.src.repo.resolveRepoRoot` ([L6-L16](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/repo.ts#L6-L16)) - Function
 - [`tools/src/talos-capability-probe.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts)
-  - `tools.src.talos-capability-probe.CapabilityObservation` ([L20-L24](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L20-L24)) - Interface
-  - `tools.src.talos-capability-probe.TalosCapabilityReport` ([L26-L41](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L26-L41)) - Interface
-  - `tools.src.talos-capability-probe.TalosProbeOptions` ([L43-L48](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L43-L48)) - Interface
-  - `tools.src.talos-capability-probe.hasScopes.expected.every() callback` ([L74-L74](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L74-L74)) - Function
-  - `tools.src.talos-capability-probe.createApi.fetchApi` ([L95-L100](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L95-L100)) - Method
-  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.callerSelectedAudience` ([L499-L501](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L499-L501)) - Class
-  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.callerSelectedAudience.observations.find() callback` ([L500-L500](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L500-L500)) - Function
+  - `tools.src.talos-capability-probe.CapabilityObservation` ([L21-L25](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L21-L25)) - Interface
+  - `tools.src.talos-capability-probe.TalosCapabilityReport` ([L27-L42](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L27-L42)) - Interface
+  - `tools.src.talos-capability-probe.TalosProbeOptions` ([L44-L49](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L44-L49)) - Interface
+  - `tools.src.talos-capability-probe.createApi.fetchApi` ([L86-L91](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L86-L91)) - Method
+  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.callerSelectedAudience` ([L493-L495](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L493-L495)) - Class
+  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.callerSelectedAudience.observations.find() callback` ([L494-L494](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L494-L494)) - Function
 - [`tools/src/tasks/api.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/api.ts)
   - `tools.src.tasks.api.TasksApiContext` ([L10-L15](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/api.ts#L10-L15)) - Interface
   - `tools.src.tasks.api.resolveTasksApiContext.auth` ([L35-L35](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/api.ts#L35-L35)) - Method
@@ -153,19 +151,6 @@ Provides the operational scaffolding required to deploy the AI Agent runtime. Th
   - `tools.src.tasks.compose-pr-security-review.validateInput` ([L254-L264](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/compose-pr-security-review.ts#L254-L264)) - Function
   - `tools.src.tasks.compose-pr-security-review.validateInput.errors.map() callback` ([L260-L260](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/compose-pr-security-review.ts#L260-L260)) - Function
   - `tools.src.tasks.compose-pr-security-review.main` ([L266-L290](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/compose-pr-security-review.ts#L266-L290)) - Function
-- [`tools/src/tasks/scenario.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/scenario.ts)
-  - `tools.src.tasks.scenario.readScenario` ([L72-L140](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/scenario.ts#L72-L140)) - Function
-  - `tools.src.tasks.scenario.buildRubricFromCriteria` ([L161-L194](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/scenario.ts#L161-L194)) - Function
-  - `tools.src.tasks.scenario.buildRubricFromCriteria.rubricCriteria` ([L174-L179](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/scenario.ts#L174-L179)) - Class
-  - `tools.src.tasks.scenario.buildRubricFromCriteria.rubricCriteria.criteria.checklist.map() callback` ([L174-L179](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/scenario.ts#L174-L179)) - Function
-  - `tools.src.tasks.scenario.buildRubricFromCriteria.sumExceptLast` ([L184-L186](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/scenario.ts#L184-L186)) - Class
-  - `tools.src.tasks.scenario.buildRubricFromCriteria.sumExceptLast.reduce() callback` ([L186-L186](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/scenario.ts#L186-L186)) - Function
-  - `tools.src.tasks.scenario.resolveSkillBinding` ([L205-L238](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/scenario.ts#L205-L238)) - Function
-  - `tools.src.tasks.scenario.resolvePromptBinding` ([L245-L267](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/scenario.ts#L245-L267)) - Function
-  - `tools.src.tasks.scenario.slugify` ([L269-L275](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/scenario.ts#L269-L275)) - Function
-  - `tools.src.tasks.scenario.round6` ([L277-L279](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/scenario.ts#L277-L279)) - Function
-  - `tools.src.tasks.scenario.asMessage` ([L281-L283](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/scenario.ts#L281-L283)) - Function
-  - `tools.src.tasks.scenario.resolveEvalWorkspace` ([L285-L302](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/scenario.ts#L285-L302)) - Function
 - [`tools/src/tasks/seed-judge-fixture.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/seed-judge-fixture.ts)
   - `tools.src.tasks.seed-judge-fixture.ProdEntry` ([L52-L61](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/seed-judge-fixture.ts#L52-L61)) - Interface
   - `tools.src.tasks.seed-judge-fixture.ProdSourcePack` ([L63-L67](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/seed-judge-fixture.ts#L63-L67)) - Interface
@@ -210,7 +195,7 @@ Manages the transition and initialization of governance entities. It is responsi
 
 **Related Classes/Methods**:
 
-- `tools.src.bootstrap-genesis-agents.main`:98-235
+- `tools.src.bootstrap-genesis-agents.main`:99-236
 - `tools.db.cleanup-legacy-diary-tuples.main`:127-172
 - `tools.db.backfill-personal-teams.grantTeamOwner`:96-118
 
@@ -227,6 +212,11 @@ Manages the transition and initialization of governance entities. It is responsi
   - `tools.db.backfill-personal-teams.verifyTeamOwner` ([L120-L139](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-personal-teams.ts#L120-L139)) - Function
   - `tools.db.backfill-personal-teams.main` ([L143-L229](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-personal-teams.ts#L143-L229)) - Function
   - `tools.db.backfill-personal-teams.catch() callback` ([L231-L234](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-personal-teams.ts#L231-L234)) - Function
+- [`tools/db/backfill-runtime-profile-standard-engineering-context.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-runtime-profile-standard-engineering-context.ts)
+  - `tools.db.backfill-runtime-profile-standard-engineering-context.backfill.existing` ([L134-L136](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-runtime-profile-standard-engineering-context.ts#L134-L136)) - Class
+  - `tools.db.backfill-runtime-profile-standard-engineering-context.backfill.existing.profile.context.find() callback` ([L135-L135](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-runtime-profile-standard-engineering-context.ts#L135-L135)) - Function
+  - `tools.db.backfill-runtime-profile-standard-engineering-context.context` ([L152-L159](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-runtime-profile-standard-engineering-context.ts#L152-L159)) - Class
+  - `tools.db.backfill-runtime-profile-standard-engineering-context.backfill.context.profile.context.map() callback` ([L155-L158](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-runtime-profile-standard-engineering-context.ts#L155-L158)) - Function
 - [`tools/db/cleanup-legacy-diary-tuples.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/cleanup-legacy-diary-tuples.ts)
   - `tools.db.cleanup-legacy-diary-tuples.RelationTuple` ([L53-L63](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/cleanup-legacy-diary-tuples.ts#L53-L63)) - Interface
   - `tools.db.cleanup-legacy-diary-tuples.ListResponse` ([L65-L68](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/cleanup-legacy-diary-tuples.ts#L65-L68)) - Interface
@@ -234,26 +224,28 @@ Manages the transition and initialization of governance entities. It is responsi
   - `tools.db.cleanup-legacy-diary-tuples.deleteTuple` ([L99-L123](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/cleanup-legacy-diary-tuples.ts#L99-L123)) - Function
   - `tools.db.cleanup-legacy-diary-tuples.main` ([L127-L172](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/cleanup-legacy-diary-tuples.ts#L127-L172)) - Function
   - `tools.db.cleanup-legacy-diary-tuples.catch() callback` ([L174-L177](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/cleanup-legacy-diary-tuples.ts#L174-L177)) - Function
+- [`tools/src/agent-oauth-scope-backfill.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/agent-oauth-scope-backfill.ts)
+  - `tools.src.agent-oauth-scope-backfill.AgentOAuthScopeBackfillResult` ([L14-L19](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/agent-oauth-scope-backfill.ts#L14-L19)) - Interface
 - [`tools/src/bench-ory-connection-reuse.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts)
   - `tools.src.bench-ory-connection-reuse.cleanup.then() callback` ([L155-L155](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L155-L155)) - Function
   - `tools.src.bench-ory-connection-reuse.computeStats.sorted` ([L176-L176](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L176-L176)) - Class
   - `tools.src.bench-ory-connection-reuse.computeStats.sorted.sort() callback` ([L176-L176](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bench-ory-connection-reuse.ts#L176-L176)) - Function
 - [`tools/src/bootstrap-genesis-agents.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bootstrap-genesis-agents.ts)
-  - `tools.src.bootstrap-genesis-agents.requireEnv` ([L79-L86](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bootstrap-genesis-agents.ts#L79-L86)) - Function
-  - `tools.src.bootstrap-genesis-agents.optionalEnv` ([L88-L90](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bootstrap-genesis-agents.ts#L88-L90)) - Function
-  - `tools.src.bootstrap-genesis-agents.log` ([L92-L94](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bootstrap-genesis-agents.ts#L92-L94)) - Function
-  - `tools.src.bootstrap-genesis-agents.main` ([L98-L235](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bootstrap-genesis-agents.ts#L98-L235)) - Function
-  - `tools.src.bootstrap-genesis-agents.catch() callback` ([L237-L240](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bootstrap-genesis-agents.ts#L237-L240)) - Function
+  - `tools.src.bootstrap-genesis-agents.requireEnv` ([L80-L87](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bootstrap-genesis-agents.ts#L80-L87)) - Function
+  - `tools.src.bootstrap-genesis-agents.optionalEnv` ([L89-L91](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bootstrap-genesis-agents.ts#L89-L91)) - Function
+  - `tools.src.bootstrap-genesis-agents.log` ([L93-L95](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bootstrap-genesis-agents.ts#L93-L95)) - Function
+  - `tools.src.bootstrap-genesis-agents.main` ([L99-L236](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bootstrap-genesis-agents.ts#L99-L236)) - Function
+  - `tools.src.bootstrap-genesis-agents.catch() callback` ([L238-L241](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bootstrap-genesis-agents.ts#L238-L241)) - Function
 - [`tools/src/check-pack.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/check-pack.ts)
   - `tools.src.check-pack.checkNoPrivateWorkspaceDeps.privateWorkspaceDeps.filter() callback` ([L157-L158](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/check-pack.ts#L157-L158)) - Function
   - `tools.src.check-pack.checkNoPrivateWorkspaceDeps.privateWorkspaceDeps` ([L157-L159](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/check-pack.ts#L157-L159)) - Class
 - [`tools/src/eval-setup.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/eval-setup.ts)
-  - `tools.src.eval-setup.waitForHealth` ([L42-L56](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/eval-setup.ts#L42-L56)) - Function
-  - `tools.src.eval-setup.setup` ([L58-L168](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/eval-setup.ts#L58-L168)) - Function
-  - `tools.src.eval-setup.setup.result` ([L77-L83](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/eval-setup.ts#L77-L83)) - Class
-  - `tools.src.eval-setup.setup.result.log` ([L82-L82](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/eval-setup.ts#L82-L82)) - Method
-  - `tools.src.eval-setup.teardown` ([L170-L174](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/eval-setup.ts#L170-L174)) - Function
-  - `tools.src.eval-setup.catch() callback` ([L182-L185](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/eval-setup.ts#L182-L185)) - Function
+  - `tools.src.eval-setup.waitForHealth` ([L43-L57](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/eval-setup.ts#L43-L57)) - Function
+  - `tools.src.eval-setup.setup` ([L59-L169](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/eval-setup.ts#L59-L169)) - Function
+  - `tools.src.eval-setup.setup.result` ([L78-L84](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/eval-setup.ts#L78-L84)) - Class
+  - `tools.src.eval-setup.setup.result.log` ([L83-L83](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/eval-setup.ts#L83-L83)) - Method
+  - `tools.src.eval-setup.teardown` ([L171-L175](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/eval-setup.ts#L171-L175)) - Function
+  - `tools.src.eval-setup.catch() callback` ([L183-L186](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/eval-setup.ts#L183-L186)) - Function
 - [`tools/src/release/go-artifact-publisher.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/release/go-artifact-publisher.ts)
   - `tools.src.release.go-artifact-publisher.writeChecksums.lines` ([L497-L502](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/release/go-artifact-publisher.ts#L497-L502)) - Class
   - `tools.src.release.go-artifact-publisher.writeChecksums.lines.archivePaths.map() callback` ([L497-L502](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/release/go-artifact-publisher.ts#L497-L502)) - Function
@@ -297,50 +289,49 @@ Manages the transition and initialization of governance entities. It is responsi
   - `tools.src.release.go-version-actions.GoVersionActions.updateProjectVersion` ([L785-L789](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/release/go-version-actions.ts#L785-L789)) - Method
   - `tools.src.release.go-version-actions.GoVersionActions.updateProjectDependencies` ([L791-L824](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/release/go-version-actions.ts#L791-L824)) - Method
 - [`tools/src/talos-capability-probe.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts)
-  - `tools.src.talos-capability-probe.ProbeAssertionError` ([L50-L50](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L50-L50)) - Class
-  - `tools.src.talos-capability-probe.safeFailure` ([L55-L62](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L55-L62)) - Function
-  - `tools.src.talos-capability-probe.expectValue` ([L64-L66](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L64-L66)) - Function
-  - `tools.src.talos-capability-probe.hasScopes` ([L68-L76](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L68-L76)) - Function
-  - `tools.src.talos-capability-probe.expectRejected` ([L78-L85](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L78-L85)) - Function
-  - `tools.src.talos-capability-probe.createApi` ([L87-L103](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L87-L103)) - Function
-  - `tools.src.talos-capability-probe.runTalosCapabilityProbe` ([L105-L531](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L105-L531)) - Function
-  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe` ([L121-L136](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L121-L136)) - Function
-  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.derive` ([L138-L157](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L138-L157)) - Function
-  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.verifyOnline` ([L159-L168](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L159-L168)) - Function
-  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('online_verify_agent_key') callback` ([L193-L201](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L193-L201)) - Function
-  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('agent_key_to_jwt') callback` ([L203-L219](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L203-L219)) - Function
-  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('jwks_offline_verification') callback` ([L221-L231](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L221-L231)) - Function
-  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('custom_claim_preservation') callback` ([L233-L243](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L233-L243)) - Function
-  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('reserved_aud_behavior') callback` ([L245-L261](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L245-L261)) - Function
-  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('scope_inheritance') callback` ([L263-L274](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L263-L274)) - Function
-  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('derived_jwt_to_narrower_jwt') callback` ([L276-L285](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L276-L285)) - Function
-  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('scope_widening_rejected') callback` ([L287-L297](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L287-L297)) - Function
-  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('scope_widening_rejected') callback.expectRejected() callback` ([L289-L295](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L289-L295)) - Function
-  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('child_ttl_equal_parent_request') callback` ([L299-L308](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L299-L308)) - Function
-  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('child_ttl_greater_parent_rejected') callback` ([L310-L320](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L310-L320)) - Function
-  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('child_ttl_greater_parent_rejected') callback.expectRejected() callback` ([L312-L318](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L312-L318)) - Function
-  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('agent_key_to_macaroon') callback` ([L322-L331](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L322-L331)) - Function
-  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('online_verify_jwt') callback` ([L333-L348](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L333-L348)) - Function
-  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('online_verify_macaroon') callback` ([L350-L355](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L350-L355)) - Function
-  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('derived_macaroon_to_jwt') callback` ([L357-L366](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L357-L366)) - Function
-  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('derived_macaroon_to_macaroon') callback` ([L368-L377](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L368-L377)) - Function
-  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('jwt_claim_lineage') callback` ([L379-L387](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L379-L387)) - Function
-  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('rotation_blocks_old_parent_derivation') callback` ([L389-L418](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L389-L418)) - Function
-  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('rotation_blocks_old_parent_derivation') callback.expectRejected() callback` ([L411-L416](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L411-L416)) - Function
-  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('online_child_after_parent_rotation') callback` ([L420-L424](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L420-L424)) - Function
-  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('offline_child_after_parent_rotation') callback` ([L426-L433](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L426-L433)) - Function
-  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('revocation_blocks_new_derivation') callback` ([L443-L450](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L443-L450)) - Function
-  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('revocation_blocks_new_derivation') callback.expectRejected() callback` ([L444-L449](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L444-L449)) - Function
-  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('online_child_after_parent_revocation') callback` ([L453-L457](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L453-L457)) - Function
-  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('offline_child_after_parent_revocation') callback` ([L459-L466](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L459-L466)) - Function
-  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('verification_cache_controls') callback` ([L468-L476](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L468-L476)) - Function
-  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.jwtChaining` ([L496-L498](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L496-L498)) - Class
-  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.jwtChaining.observations.find() callback` ([L497-L497](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L497-L497)) - Function
-  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.jwtV1Ready` ([L511-L513](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L511-L513)) - Class
-  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.jwtV1Ready.required.every() callback` ([L512-L512](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L512-L512)) - Function
-  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.jwtV1Ready.required.every() callback.observations.find() callback` ([L512-L512](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L512-L512)) - Function
-  - `tools.src.talos-capability-probe.readOptions` ([L533-L549](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L533-L549)) - Function
-  - `tools.src.talos-capability-probe.main` ([L551-L568](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L551-L568)) - Function
+  - `tools.src.talos-capability-probe.ProbeAssertionError` ([L51-L51](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L51-L51)) - Class
+  - `tools.src.talos-capability-probe.safeFailure` ([L56-L63](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L56-L63)) - Function
+  - `tools.src.talos-capability-probe.expectValue` ([L65-L67](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L65-L67)) - Function
+  - `tools.src.talos-capability-probe.expectRejected` ([L69-L76](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L69-L76)) - Function
+  - `tools.src.talos-capability-probe.createApi` ([L78-L94](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L78-L94)) - Function
+  - `tools.src.talos-capability-probe.runTalosCapabilityProbe` ([L96-L525](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L96-L525)) - Function
+  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe` ([L112-L127](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L112-L127)) - Function
+  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.derive` ([L129-L148](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L129-L148)) - Function
+  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.verifyOnline` ([L150-L159](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L150-L159)) - Function
+  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('online_verify_agent_key') callback` ([L184-L192](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L184-L192)) - Function
+  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('agent_key_to_jwt') callback` ([L194-L213](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L194-L213)) - Function
+  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('jwks_offline_verification') callback` ([L215-L225](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L215-L225)) - Function
+  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('custom_claim_preservation') callback` ([L227-L237](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L227-L237)) - Function
+  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('reserved_aud_behavior') callback` ([L239-L255](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L239-L255)) - Function
+  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('scope_inheritance') callback` ([L257-L268](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L257-L268)) - Function
+  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('derived_jwt_to_narrower_jwt') callback` ([L270-L279](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L270-L279)) - Function
+  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('scope_widening_rejected') callback` ([L281-L291](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L281-L291)) - Function
+  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('scope_widening_rejected') callback.expectRejected() callback` ([L283-L289](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L283-L289)) - Function
+  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('child_ttl_equal_parent_request') callback` ([L293-L302](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L293-L302)) - Function
+  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('child_ttl_greater_parent_rejected') callback` ([L304-L314](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L304-L314)) - Function
+  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('child_ttl_greater_parent_rejected') callback.expectRejected() callback` ([L306-L312](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L306-L312)) - Function
+  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('agent_key_to_macaroon') callback` ([L316-L325](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L316-L325)) - Function
+  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('online_verify_jwt') callback` ([L327-L342](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L327-L342)) - Function
+  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('online_verify_macaroon') callback` ([L344-L349](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L344-L349)) - Function
+  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('derived_macaroon_to_jwt') callback` ([L351-L360](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L351-L360)) - Function
+  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('derived_macaroon_to_macaroon') callback` ([L362-L371](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L362-L371)) - Function
+  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('jwt_claim_lineage') callback` ([L373-L381](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L373-L381)) - Function
+  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('rotation_blocks_old_parent_derivation') callback` ([L383-L412](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L383-L412)) - Function
+  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('rotation_blocks_old_parent_derivation') callback.expectRejected() callback` ([L405-L410](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L405-L410)) - Function
+  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('online_child_after_parent_rotation') callback` ([L414-L418](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L414-L418)) - Function
+  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('offline_child_after_parent_rotation') callback` ([L420-L427](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L420-L427)) - Function
+  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('revocation_blocks_new_derivation') callback` ([L437-L444](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L437-L444)) - Function
+  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('revocation_blocks_new_derivation') callback.expectRejected() callback` ([L438-L443](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L438-L443)) - Function
+  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('online_child_after_parent_revocation') callback` ([L447-L451](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L447-L451)) - Function
+  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('offline_child_after_parent_revocation') callback` ([L453-L460](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L453-L460)) - Function
+  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.observe('verification_cache_controls') callback` ([L462-L470](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L462-L470)) - Function
+  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.jwtChaining` ([L490-L492](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L490-L492)) - Class
+  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.jwtChaining.observations.find() callback` ([L491-L491](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L491-L491)) - Function
+  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.jwtV1Ready` ([L505-L507](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L505-L507)) - Class
+  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.jwtV1Ready.required.every() callback` ([L506-L506](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L506-L506)) - Function
+  - `tools.src.talos-capability-probe.runTalosCapabilityProbe.jwtV1Ready.required.every() callback.observations.find() callback` ([L506-L506](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L506-L506)) - Function
+  - `tools.src.talos-capability-probe.readOptions` ([L527-L543](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L527-L543)) - Function
+  - `tools.src.talos-capability-probe.main` ([L545-L562](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/talos-capability-probe.ts#L545-L562)) - Function
 - [`tools/src/tasks/api.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/api.ts)
   - `tools.src.tasks.api.MoltNetConfig` ([L6-L8](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/api.ts#L6-L8)) - Interface
   - `tools.src.tasks.api.resolveTasksApiContext` ([L17-L37](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/api.ts#L17-L37)) - Function
@@ -364,12 +355,6 @@ Manages the transition and initialization of governance entities. It is responsi
   - `tools.src.tasks.compose-pr-review.validateInput.errors.map() callback` ([L198-L198](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/compose-pr-review.ts#L198-L198)) - Function
   - `tools.src.tasks.compose-pr-review.buildPrReviewInput` ([L204-L233](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/compose-pr-review.ts#L204-L233)) - Function
   - `tools.src.tasks.compose-pr-review.main` ([L235-L258](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/compose-pr-review.ts#L235-L258)) - Function
-- [`tools/src/tasks/scenario.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/scenario.ts)
-  - `tools.src.tasks.scenario.ScenarioCriterion` ([L34-L41](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/scenario.ts#L34-L41)) - Interface
-  - `tools.src.tasks.scenario.ScenarioCriteria` ([L43-L45](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/scenario.ts#L43-L45)) - Interface
-  - `tools.src.tasks.scenario.Scenario` ([L47-L60](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/scenario.ts#L47-L60)) - Interface
-  - `tools.src.tasks.scenario.buildRubricFromCriteria.totalMaxScore` ([L166-L169](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/scenario.ts#L166-L169)) - Class
-  - `tools.src.tasks.scenario.buildRubricFromCriteria.totalMaxScore.criteria.checklist.reduce() callback` ([L167-L167](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/scenario.ts#L167-L167)) - Function
 - [`tools/src/test-smtp.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/test-smtp.ts)
   - `tools.src.test-smtp.SmtpClient.auth.capabilities` ([L110-L110](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/test-smtp.ts#L110-L110)) - Class
   - `tools.src.test-smtp.SmtpClient.auth.capabilities.map() callback` ([L110-L110](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/test-smtp.ts#L110-L110)) - Function
@@ -539,6 +524,12 @@ This is the core engine for state persistence. It handles the extraction of iden
 - [`packages/legreffier-cli/src/setup.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/legreffier-cli/src/setup.ts)
   - `packages.legreffier-cli.src.setup.writeSettingsLocal.mergedAllow` ([L636-L639](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/legreffier-cli/src/setup.ts#L636-L639)) - Class
   - `packages.legreffier-cli.src.setup.writeSettingsLocal.mergedAllow.newPerms.filter() callback` ([L638-L638](https://github.com/getlarge/themoltnet/blob/main/.codeboardingpackages/legreffier-cli/src/setup.ts#L638-L638)) - Function
+- [`vite.shared.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingvite.shared.ts)
+  - `vite.shared.PackageManifest` ([L4-L8](https://github.com/getlarge/themoltnet/blob/main/.codeboardingvite.shared.ts#L4-L8)) - Interface
+  - `vite.shared.externalizeInstallableDependencies` ([L16-L50](https://github.com/getlarge/themoltnet/blob/main/.codeboardingvite.shared.ts#L16-L50)) - Function
+  - `vite.shared.externalizeInstallableDependencies.packageNames` ([L22-L26](https://github.com/getlarge/themoltnet/blob/main/.codeboardingvite.shared.ts#L22-L26)) - Class
+  - `vite.shared.externalizeInstallableDependencies.packageNames.filter() callback` ([L26-L26](https://github.com/getlarge/themoltnet/blob/main/.codeboardingvite.shared.ts#L26-L26)) - Function
+  - `vite.shared.externalizeInstallableDependencies.<function>` ([L28-L49](https://github.com/getlarge/themoltnet/blob/main/.codeboardingvite.shared.ts#L28-L49)) - Function
 
 
 
