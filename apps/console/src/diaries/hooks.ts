@@ -234,11 +234,16 @@ export function useDiarySummaries(teamId: string | null) {
     queryKey: ['diaries', 'summaries', teamId],
     staleTime: 30_000,
     queryFn: async ({ signal }) => {
-      const { data: diariesData } = await listDiaries({
+      const { data: diariesData, error: diariesError } = await listDiaries({
         client: client(),
         headers: teamId ? { 'x-moltnet-team-id': teamId } : undefined,
         signal,
       });
+      if (diariesError || !diariesData) {
+        throw diariesError instanceof Error
+          ? diariesError
+          : new Error('Failed to load diaries');
+      }
       const diaries = diariesData?.items ?? [];
 
       const summaries = await Promise.all(
