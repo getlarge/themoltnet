@@ -1,5 +1,11 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { MoltThemeProvider } from '@themoltnet/design-system';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -9,6 +15,7 @@ import { OverviewPage } from '../src/pages/OverviewPage.js';
 const mocks = vi.hoisted(() => ({
   getTeam: vi.fn(),
   listAgentKeys: vi.fn(),
+  listCompletedTasks: vi.fn(),
   listRuntimeProfiles: vi.fn(),
   listTasks: vi.fn(),
   navigate: vi.fn(),
@@ -29,10 +36,14 @@ vi.mock('@moltnet/api-client/query', () => ({
     queryKey: ['listRuntimeProfiles'],
     queryFn: () => mocks.listRuntimeProfiles(),
   }),
-  listTasksOptions: () => ({
-    queryKey: ['listTasks'],
-    queryFn: () => mocks.listTasks(),
-  }),
+  listTasksOptions: (options: { query?: { status?: string } }) => {
+    const completed = options.query?.status === 'completed';
+    return {
+      queryKey: ['listTasks', completed ? 'completed' : 'activity'],
+      queryFn: () =>
+        completed ? mocks.listCompletedTasks() : mocks.listTasks(),
+    };
+  },
 }));
 
 vi.mock('../src/api.js', () => ({
@@ -75,6 +86,7 @@ describe('OverviewPage', () => {
           id: 'diary-1',
           name: 'Project memory',
           tagCount: 4,
+          visibility: 'moltnet',
         },
       ],
       error: null,
@@ -88,13 +100,21 @@ describe('OverviewPage', () => {
         id: 'team-1',
         name: 'Team One',
         personal: false,
+        role: 'owner',
       },
     });
     mocks.getTeam.mockResolvedValue({
-      members: [{ subjectId: 'agent-1', subjectType: 'agent' }],
+      members: [
+        {
+          displayName: 'Agent One',
+          role: 'manager',
+          subjectId: 'agent-1',
+          subjectType: 'agent',
+        },
+      ],
     });
     mocks.listAgentKeys.mockResolvedValue({
-      items: [{ id: 'key-1', status: 'active' }],
+      items: [{ agentId: 'agent-1', id: 'key-1', status: 'active' }],
       nextCursor: null,
     });
     mocks.listRuntimeProfiles.mockResolvedValue({
@@ -115,9 +135,10 @@ describe('OverviewPage', () => {
       ],
       total: 2,
     });
+    mocks.listCompletedTasks.mockResolvedValue({ items: [], total: 0 });
   });
 
-  it('presents the three operating systems and live attention work', async () => {
+  it('presents system status, the next pilot action, and live attention work', async () => {
     render(<OverviewPage />, { wrapper: Wrapper });
 
     expect(
@@ -125,9 +146,15 @@ describe('OverviewPage', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole('heading', {
-        name: 'Three systems. One operating model.',
+        name: 'System status',
       }),
     ).toBeInTheDocument();
+    expect(screen.getByText('Team pilot')).toBeVisible();
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Finish the first task',
+      }),
+    ).toBeVisible();
     expect(screen.getByText('Coordinate durable work')).toBeVisible();
     expect(screen.getByText('Bound execution authority')).toBeVisible();
     expect(screen.getByText('Retain accountable context')).toBeVisible();
@@ -221,11 +248,51 @@ describe('OverviewPage', () => {
 
     expect(screen.getByText('Select a project team')).toBeVisible();
     expect(mocks.listTasks).not.toHaveBeenCalled();
+    expect(screen.getByText('Team pilot')).toBeVisible();
     expect(
-      screen.queryByRole('heading', {
-        name: 'Three systems. One operating model.',
-      }),
+      screen.queryByRole('heading', { name: 'System status' }),
     ).not.toBeInTheDocument();
     expect(screen.queryByText('Connected')).not.toBeInTheDocument();
+  });
+
+  it('removes the pilot briefing after an accepted completed task', async () => {
+    mocks.listCompletedTasks.mockResolvedValue({
+      items: [
+        {
+          acceptedAttemptN: 1,
+          id: 'task-complete',
+          status: 'completed',
+          title: 'First pilot task',
+        },
+      ],
+      total: 1,
+    });
+
+    render(<OverviewPage />, { wrapper: Wrapper });
+
+    expect(
+      await screen.findByRole('heading', { name: 'System status' }),
+    ).toBeVisible();
+    await waitFor(() => {
+      expect(screen.queryByText('Team pilot')).not.toBeInTheDocument();
+    });
+  });
+
+  it('renders unavailable evidence instead of diary setup instructions', async () => {
+    mocks.useDiarySummaries.mockReturnValue({
+      data: undefined,
+      error: new Error('diaries unavailable'),
+      isError: true,
+      isLoading: false,
+    });
+
+    render(<OverviewPage />, { wrapper: Wrapper });
+
+    expect(
+      await screen.findByRole('heading', { name: 'Diaries unavailable' }),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole('heading', { name: 'Create a shared diary' }),
+    ).not.toBeInTheDocument();
   });
 });

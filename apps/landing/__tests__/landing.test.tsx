@@ -164,6 +164,11 @@ describe('content', () => {
     wrap(<Systems />);
     expect(
       screen.getByRole('heading', {
+        name: 'Three systems. One operating model.',
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', {
         name: 'Dispatch work as a contract—not a prompt.',
       }),
     ).toBeInTheDocument();
