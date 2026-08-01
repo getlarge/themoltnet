@@ -231,16 +231,21 @@ compatible 5.8 firmware. Firmware version alone is not sufficient: the
 companion refuses authenticators that do not advertise the extension, and it
 refuses to choose when more than one compatible key is connected.
 
-Build and verify the private companion package, then run it beside Console:
+Install the companion and run it beside Console:
 
 ```bash
-pnpm exec nx run @moltnet/signer:check:pack
+npm install --global @themoltnet/signer
 
 MOLTNET_SIGNER_PORT=17373 \
 MOLTNET_API_URL=https://api.themolt.net \
 MOLTNET_SIGNER_ALLOWED_ORIGINS=https://console.themolt.net \
-node apps/moltnet-signer/dist/main.js
+moltnet-signer
 ```
+
+Contributors can build and package-check the same executable from source with
+`pnpm exec nx run @themoltnet/signer:check:pack`. See the
+[signer companion README](../../apps/moltnet-signer/README.md) for local
+Console origins and troubleshooting.
 
 The beta exit gate is one real-device
 enrollment → registration → activation → claim → signing → completion flow

@@ -1,10 +1,17 @@
 import { defineConfig } from 'vite';
 
+import { externalizeInstallableDependencies } from '../../vite.shared';
+
+const external = externalizeInstallableDependencies(
+  new URL('./package.json', import.meta.url),
+);
+
 export default defineConfig({
   build: {
     emptyOutDir: true,
     outDir: 'dist',
-    rollupOptions: {
+    rolldownOptions: {
+      external,
       input: 'src/main.ts',
       output: {
         banner: '#!/usr/bin/env node',
@@ -14,6 +21,6 @@ export default defineConfig({
     target: 'node22',
   },
   ssr: {
-    external: ['node-hid', 'typebox'],
+    noExternal: [/^@moltnet\//],
   },
 });

@@ -2,6 +2,7 @@
   "apps/agent-daemon": "0.37.0",
   "apps/mcp-server": "0.16.0",
   "apps/moltnet-cli": "1.76.0",
+  "apps/moltnet-signer": "0.1.0",
   "apps/rest-api": "0.40.0",
   "libs/agent-runtime": "0.40.1",
   "libs/credential-broker": "0.3.0",

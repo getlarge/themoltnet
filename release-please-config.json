@@ -22,6 +22,11 @@
       "component": "cli",
       "release-type": "go"
     },
+    "apps/moltnet-signer": {
+      "bump-minor-pre-major": true,
+      "component": "signer",
+      "release-type": "node"
+    },
     "apps/rest-api": {
       "bump-minor-pre-major": true,
       "component": "rest-api",

@@ -1,6 +1,6 @@
 # MoltNet signer companion
 
-`apps/moltnet-signer` is the private desktop-side adapter for MoltNet
+`@themoltnet/signer` is the desktop-side adapter for MoltNet
 `human-hardware-previewsign` ceremonies. It binds only to `127.0.0.1`, keeps
 all capabilities in memory, displays the exact server-owned action, and opens
 the security key only after an explicit confirmation.
@@ -8,22 +8,41 @@ the security key only after an explicit confirmation.
 The browser retains the authenticated MoltNet session. Never configure a proxy
 that forwards cookies or authorization headers to this app.
 
-## Build and package
+## Install
+
+Node.js 22.19 or newer is required.
+
+```bash
+npm install --global @themoltnet/signer
+```
+
+## Start with the hosted Console
+
+```bash
+MOLTNET_SIGNER_PORT=17373 \
+MOLTNET_API_URL=https://api.themolt.net \
+MOLTNET_SIGNER_ALLOWED_ORIGINS=https://console.themolt.net \
+moltnet-signer
+```
+
+The origins are exact. The companion rejects wildcards, opaque origins,
+`file:` URLs, paths, and trailing-path variants.
+
+## Build and package from source
 
 From the repository root:
 
 ```bash
-pnpm exec nx run @moltnet/signer:build
-pnpm exec nx run @moltnet/signer:check:pack
+pnpm exec nx run @themoltnet/signer:build
+pnpm exec nx run @themoltnet/signer:check:pack
 ```
 
-The package smoke test creates a private tarball, installs it in a temporary
+The package smoke test creates a tarball, installs it in a temporary
 directory, and runs `moltnet-signer --help`. This is the packaging proof used
 by the previewSign beta gate. The packaged hardware gate passed on 2026-07-27
-with a previewSign-capable YubiKey running 5.8 firmware. The app remains private
-and is not published to npm.
+with a previewSign-capable YubiKey running 5.8 firmware.
 
-## Start
+## Start from source
 
 Choose an unused local port and configure Console with the same origin. The
 listener never binds to a non-loopback interface.
@@ -32,7 +51,7 @@ listener never binds to a non-loopback interface.
 MOLTNET_SIGNER_PORT=17373 \
 MOLTNET_API_URL=https://api.themolt.net \
 MOLTNET_SIGNER_ALLOWED_ORIGINS=https://console.themolt.net \
-node apps/moltnet-signer/dist/main.js
+pnpm exec nx run @themoltnet/signer:start
 ```
 
 For local Console development, use the exact browser origin:
@@ -41,7 +60,7 @@ For local Console development, use the exact browser origin:
 MOLTNET_SIGNER_PORT=17373 \
 MOLTNET_API_URL=http://127.0.0.1:3000 \
 MOLTNET_SIGNER_ALLOWED_ORIGINS=http://localhost:5173 \
-node apps/moltnet-signer/dist/main.js
+pnpm exec nx run @themoltnet/signer:start
 ```
 
 Startup emits a structured Pino record containing the loopback URL, which is
@@ -82,12 +101,12 @@ companion with the e2e API and Console origins:
 
 ```bash
 pnpm run e2e:up
-pnpm exec nx run @moltnet/signer:check:pack
+pnpm exec nx run @themoltnet/signer:check:pack
 
 MOLTNET_SIGNER_PORT=17373 \
 MOLTNET_API_URL=http://127.0.0.1:8080 \
 MOLTNET_SIGNER_ALLOWED_ORIGINS=http://localhost:5174 \
-node apps/moltnet-signer/dist/main.js
+pnpm exec nx run @themoltnet/signer:start
 ```
 
 In another terminal, run the opt-in hardware gate:

@@ -83,7 +83,7 @@ test.describe.serial('Signing surface', () => {
   test('connects to the real host-side signing companion', async ({ page }) => {
     test.skip(
       process.env['MOLTNET_SIGNER_E2E'] !== '1',
-      'Set MOLTNET_SIGNER_E2E=1 and start @moltnet/signer on port 17373.',
+      'Set MOLTNET_SIGNER_E2E=1 and start @themoltnet/signer on port 17373.',
     );
 
     await loginViaBrowser(page, user);

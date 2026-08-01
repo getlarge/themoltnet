@@ -1,4 +1,4 @@
-import { canonicalJsonBytes } from '@moltnet/crypto-service';
+import { canonicalJsonBytes } from '@moltnet/crypto-service/canonical-json';
 import {
   type SignerCeremony,
   type SignerCeremonyRequest,

@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 
-import { canonicalJsonBytes } from '@moltnet/crypto-service';
+import { canonicalJsonBytes } from '@moltnet/crypto-service/canonical-json';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
