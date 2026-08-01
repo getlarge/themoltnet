@@ -53,6 +53,11 @@ jobs:
       PI_AUTH_JSON: ${{ secrets.PI_AUTH_JSON }}
     steps:
       - uses: actions/checkout@v6
+        with:
+          # Always execute trusted workflow/runtime code. The reviewed head is
+          # fetched below as inert git data and never checked out or executed.
+          ref: ${{ github.event.pull_request.base.sha || github.event.repository.default_branch }}
+          persist-credentials: false
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v6
         with:
@@ -85,14 +90,96 @@ jobs:
             --pr "$PR_NUMBER" \
             --repo "$GITHUB_REPOSITORY" \
             > "$task_spec_path"
+          head_sha="$(jq -r '.reviewRevision' "$task_spec_path")"
+          base_sha="$(jq -r '.reviewBaseRevision' "$task_spec_path")"
+          if ! [[ "$head_sha" =~ ^[0-9a-f]{40}$ ]] || ! [[ "$base_sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::composer did not return full reviewed revisions" >&2
+            exit 1
+          fi
           echo "task-spec-path=$task_spec_path" >> "$GITHUB_OUTPUT"
-          echo "task-tags=ci,source:github-actions,workflow:legreffier-complexity-review,repo:$GITHUB_REPOSITORY,agent-daemon,agent:legreffier,review:pr,review:complexity,pr:$PR_NUMBER,branch:$branch_tag" >> "$GITHUB_OUTPUT"
+          echo "base-sha=$base_sha" >> "$GITHUB_OUTPUT"
+          echo "head-sha=$head_sha" >> "$GITHUB_OUTPUT"
+          echo "pr-number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "task-tags=ci,source:github-actions,workflow:legreffier-complexity-review,repo:$GITHUB_REPOSITORY,agent-daemon,agent:legreffier,review:pr,review:complexity,pr:$PR_NUMBER,branch:$branch_tag,revision:$head_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch immutable review revisions as inert git data
+        env:
+          BASE_SHA: ${{ steps.compose.outputs.base-sha }}
+          HEAD_SHA: ${{ steps.compose.outputs.head-sha }}
+        run: git fetch --no-tags --depth=1 origin "$BASE_SHA" "$HEAD_SHA"
+
+      - name: Mark complexity comment in progress
+        env:
+          PR_NUMBER: ${{ steps.compose.outputs.pr-number }}
+          HEAD_SHA: ${{ steps.compose.outputs.head-sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          node --import tsx tools/src/tasks/complexity-review-comment.ts \
+            --mode start \
+            --repo "$GITHUB_REPOSITORY" \
+            --pr "$PR_NUMBER" \
+            --revision "$HEAD_SHA" \
+            --run-url "$RUN_URL"
 
       - name: Run task
+        id: review
+        continue-on-error: true
         uses: ./packages/agent-daemon-action
         with:
           task-spec-path: ${{ steps.compose.outputs.task-spec-path }}
           tags: ${{ steps.compose.outputs.task-tags }}
+          cancel-superseded: 'true'
+          supersession-tags: workflow:legreffier-complexity-review,pr:${{ steps.compose.outputs.pr-number }}
           skip-validation: 'false'
           max-attempts: '2'
           profile: ${{ vars.MOLTNET_AGENT_PROFILE }}
+
+      - name: Read accepted complexity output
+        id: result
+        if: steps.review.outcome == 'success'
+        env:
+          TASK_ID: ${{ steps.review.outputs.task-id }}
+        run: |
+          set -euo pipefail
+          result="$RUNNER_TEMP/complexity-review-result.json"
+          creds="$GITHUB_WORKSPACE/.moltnet/$MOLTNET_AGENT_NAME/moltnet.json"
+          npx -y @themoltnet/cli task attempts "$TASK_ID" \
+            --accepted-only \
+            --field output \
+            --credentials "$creds" \
+            > "$result"
+          echo "path=$result" >> "$GITHUB_OUTPUT"
+
+      - name: Publish revision-aware complexity comment
+        if: always() && !cancelled()
+        env:
+          PR_NUMBER: ${{ steps.compose.outputs.pr-number }}
+          HEAD_SHA: ${{ steps.compose.outputs.head-sha }}
+          TASK_ID: ${{ steps.review.outputs.task-id }}
+          REVIEW_OUTCOME: ${{ steps.review.outcome }}
+          RESULT_PATH: ${{ steps.result.outputs.path }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          args=(
+            --mode publish
+            --repo "$GITHUB_REPOSITORY"
+            --pr "$PR_NUMBER"
+            --revision "$HEAD_SHA"
+            --run-url "$RUN_URL"
+          )
+          if [ -n "${TASK_ID:-}" ]; then
+            args+=(--task-id "$TASK_ID")
+          fi
+          if [ "$REVIEW_OUTCOME" = "success" ]; then
+            args+=(--review-succeeded --result-path "$RESULT_PATH")
+          fi
+          node --import tsx tools/src/tasks/complexity-review-comment.ts "${args[@]}"
+
+      - name: Enforce complexity task success
+        if: always() && !cancelled() && steps.review.outcome != 'success'
+        env:
+          REVIEW_OUTCOME: ${{ steps.review.outcome }}
+        run: |
+          echo "::error::complexity review task ended with $REVIEW_OUTCOME" >&2
+          exit 1
