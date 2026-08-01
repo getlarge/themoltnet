@@ -258,16 +258,43 @@ runs:
         fi
         AGENT_DIR="$GITHUB_WORKSPACE/.moltnet/$MOLTNET_AGENT_NAME"
         if [ -n "${MOLTNET_AGENT_KEY:-}" ]; then
-          # Agent-key auth is deliberately configless: the SDK reads the key
-          # and API URL from env, and the daemon accepts a missing moltnet.json
-          # in this mode. Keep a stable agent dir for logs/state only.
-          mkdir -p "$AGENT_DIR"
-          {
-            echo "MOLTNET_AGENT_DIR=$AGENT_DIR"
-            echo "MOLTNET_AGENT_NAME=$MOLTNET_AGENT_NAME"
-          } >> "$GITHUB_ENV"
-          echo "::notice::Using configless MoltNet agent-key authentication"
-          exit 0
+          signing_vars=(
+            MOLTNET_IDENTITY_ID
+            MOLTNET_CLIENT_ID
+            MOLTNET_CLIENT_SECRET
+            MOLTNET_PUBLIC_KEY
+            MOLTNET_PRIVATE_KEY
+            MOLTNET_FINGERPRINT
+          )
+          signing_count=0
+          missing_signing_vars=()
+          for name in "${signing_vars[@]}"; do
+            if [ -n "${!name:-}" ]; then
+              signing_count=$((signing_count + 1))
+            else
+              missing_signing_vars+=("$name")
+            fi
+          done
+          if [ "$signing_count" -eq 0 ]; then
+            # Read-only/API-only agent-key workloads remain configless. Daemon
+            # runtimes that attest executor manifests must also provide the
+            # signing material so we can reconstruct moltnet.json below.
+            mkdir -p "$AGENT_DIR"
+            {
+              echo "MOLTNET_AGENT_DIR=$AGENT_DIR"
+              echo "MOLTNET_AGENT_NAME=$MOLTNET_AGENT_NAME"
+            } >> "$GITHUB_ENV"
+            echo "::notice::Using configless MoltNet agent-key authentication"
+            exit 0
+          fi
+          if [ "${#missing_signing_vars[@]}" -gt 0 ]; then
+            echo "::error::Agent-key executor signing configuration is incomplete; missing ${missing_signing_vars[*]}" >&2
+            exit 1
+          fi
+          # MOLTNET_AGENT_KEY remains authoritative for API authentication;
+          # the materialized config supplies the Ed25519 identity required to
+          # sign executor-manifest registration, claim, and completion.
+          echo "::notice::Materializing executor signing config alongside agent-key authentication"
         fi
         if [ -n "${MOLTNET_GITHUB_APP_PRIVATE_KEY:-}" ]; then
           pem_normalized="${MOLTNET_GITHUB_APP_PRIVATE_KEY#"${MOLTNET_GITHUB_APP_PRIVATE_KEY%%[![:space:]]*}"}"
