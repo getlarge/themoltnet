@@ -14,6 +14,10 @@
     "./human": {
       "import": "./src/human.ts",
       "types": "./src/human.ts"
+    },
+    "./node": {
+      "import": "./src/node.ts",
+      "types": "./src/node.ts"
     }
   },
   "publishConfig": {
@@ -25,6 +29,10 @@
       "./human": {
         "types": "./dist/human.d.ts",
         "import": "./dist/human.js"
+      },
+      "./node": {
+        "types": "./dist/node.d.ts",
+        "import": "./dist/node.js"
       }
     }
   },
@@ -37,10 +45,13 @@
     "check:types-isolation": "tsx ../../tools/src/check-sdk-types-isolation.ts"
   },
   "dependencies": {
+    "@ipld/dag-cbor": "catalog:",
+    "@napi-rs/keyring": "1.3.0",
     "@noble/ciphers": "catalog:",
     "@noble/curves": "catalog:",
     "@noble/ed25519": "catalog:",
     "@noble/hashes": "catalog:",
+    "multiformats": "catalog:",
     "typebox": "catalog:"
   },
   "devDependencies": {

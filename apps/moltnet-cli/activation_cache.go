@@ -206,9 +206,14 @@ func buildActivationCache(ctx *activationContext) (*activationCache, error) {
 	if !authorshipConfigured {
 		authorshipMode = "agent"
 	}
+	credentialProvider := "legacy-plaintext"
 	credentialStatus := "missing"
 	if creds.OAuth2.ClientSecret != "" {
 		credentialStatus = "available"
+	}
+	if creds.OAuth2.ClientSecretRef != nil {
+		credentialProvider = creds.OAuth2.ClientSecretRef.Provider
+		credentialStatus = "configured"
 	}
 	fingerprint := firstNonEmpty(ctx.EnvVars["MOLTNET_FINGERPRINT"], creds.Keys.Fingerprint)
 	if fingerprint == "" {
@@ -249,7 +254,7 @@ func buildActivationCache(ctx *activationContext) (*activationCache, error) {
 		HumanGitIdentity:     ctx.EnvVars["MOLTNET_HUMAN_GIT_IDENTITY"],
 		AgentEmail:           gitIdentity.Email,
 		GitHubAppConfigured:  creds.GitHub != nil && creds.GitHub.AppID != "" && creds.GitHub.PrivateKeyPath != "",
-		CredentialProvider:   "legacy-plaintext",
+		CredentialProvider:   credentialProvider,
 		CredentialStatus:     credentialStatus,
 		RegisteredAt:         creds.RegisteredAt,
 		Inputs:               inputs,

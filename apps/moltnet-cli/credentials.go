@@ -20,8 +20,9 @@ type CredentialsFile struct {
 }
 
 type CredentialsOAuth2 struct {
-	ClientID     string `json:"client_id"`
-	ClientSecret string `json:"client_secret"`
+	ClientID        string           `json:"client_id"`
+	ClientSecret    string           `json:"client_secret,omitempty"`
+	ClientSecretRef *SecretReference `json:"client_secret_ref,omitempty"`
 }
 
 type CredentialsKeys struct {

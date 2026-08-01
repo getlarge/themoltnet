@@ -1,6 +1,12 @@
 import { defineConfig } from 'vite';
 import dts from 'vite-plugin-dts';
 
+import { externalizeInstallableDependencies } from '../../vite.shared';
+
+const external = externalizeInstallableDependencies(
+  new URL('./package.json', import.meta.url),
+);
+
 export default defineConfig({
   plugins: [
     dts({
@@ -36,15 +42,19 @@ export default defineConfig({
     // is still driven by build.ssr; this field is a hint to the Nx
     // inference layer.
     rollupOptions: {
+      external,
       input: {
         human: 'src/human.ts',
         index: 'src/index.ts',
+        node: 'src/node.ts',
       },
     },
     rolldownOptions: {
+      external,
       input: {
         human: 'src/human.ts',
         index: 'src/index.ts',
+        node: 'src/node.ts',
       },
     },
   },
