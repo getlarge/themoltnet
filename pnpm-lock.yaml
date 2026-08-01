@@ -1090,6 +1090,9 @@ importers:
       '@themoltnet/design-system':
         specifier: workspace:*
         version: link:../../libs/design-system
+      '@themoltnet/yubikey-preview-sign':
+        specifier: workspace:*
+        version: link:../../libs/yubikey-preview-sign
       fastify:
         specifier: 'catalog:'
         version: 5.8.5
@@ -1112,9 +1115,6 @@ importers:
       '@moltnet/models':
         specifier: workspace:*
         version: link:../../libs/models
-      '@themoltnet/yubikey-preview-sign':
-        specifier: workspace:*
-        version: link:../../libs/yubikey-preview-sign
       '@types/node':
         specifier: 'catalog:'
         version: 22.19.19

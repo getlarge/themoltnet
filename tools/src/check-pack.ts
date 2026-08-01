@@ -16,7 +16,7 @@
  * `dist/index` entry check with a `node-red.nodes`-path check.
  *
  * Usage:
- *   tsx tools/src/check-pack.ts                       # scan libs/ and packages/
+ *   tsx tools/src/check-pack.ts                       # scan apps/, libs/, packages/
  *   tsx tools/src/check-pack.ts --package ./libs/sdk   # check a single package
  */
 
@@ -277,8 +277,12 @@ if (invokedDirectly) {
     process.exit(ok ? 0 : 1);
   }
 
-  // Default: scan libs/ and packages/
-  const scanDirs = [join(root, 'libs'), join(root, 'packages')];
+  // Default: scan apps/, libs/, and packages/
+  const scanDirs = [
+    join(root, 'apps'),
+    join(root, 'libs'),
+    join(root, 'packages'),
+  ];
   let failures = 0;
   let checked = 0;
 

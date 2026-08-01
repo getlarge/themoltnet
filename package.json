@@ -44,7 +44,7 @@
     "audit": "pnpm audit --prod",
     "generate:wordmark": "tsx tools/src/generate-wordmark.ts",
     "generate:openapi": "tsx apps/rest-api/scripts/generate-openapi.ts",
-    "generate:signer-openapi": "pnpm exec nx run @moltnet/signer:generate:openapi",
+    "generate:signer-openapi": "pnpm exec nx run @themoltnet/signer:generate:openapi",
     "ory:backup": "node infra/ory/backup.mjs",
     "generate:client": "pnpm exec nx run @moltnet/api-client:generate",
     "generate:signer-client": "pnpm exec nx run @moltnet/signer-api-client:generate",

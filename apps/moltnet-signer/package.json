@@ -1,16 +1,21 @@
 {
-  "name": "@moltnet/signer",
+  "name": "@themoltnet/signer",
   "version": "0.1.0",
   "license": "AGPL-3.0-only",
-  "description": "Private loopback companion for MoltNet previewSign ceremonies.",
-  "private": true,
+  "description": "Local loopback companion for hardware-backed MoltNet signing ceremonies.",
+  "keywords": [
+    "moltnet",
+    "signing-companion",
+    "yubikey",
+    "previewsign"
+  ],
   "type": "module",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/getlarge/themoltnet.git",
     "directory": "apps/moltnet-signer"
   },
-  "homepage": "https://themolt.net",
+  "homepage": "https://docs.themolt.net/understand/signing",
   "main": "./dist/main.js",
   "bin": {
     "moltnet-signer": "./dist/main.js"
@@ -19,8 +24,11 @@
     "dist",
     "README.md"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "engines": {
-    "node": ">=22"
+    "node": ">=22.19.0"
   },
   "scripts": {
     "build": "vite build",
@@ -43,6 +51,7 @@
     "@fastify/helmet": "catalog:",
     "@fastify/type-provider-typebox": "catalog:",
     "@themoltnet/design-system": "workspace:*",
+    "@themoltnet/yubikey-preview-sign": "workspace:*",
     "fastify": "catalog:",
     "node-hid": "catalog:",
     "pino": "catalog:",
@@ -52,7 +61,6 @@
     "@fastify/swagger": "catalog:",
     "@moltnet/crypto-service": "workspace:*",
     "@moltnet/models": "workspace:*",
-    "@themoltnet/yubikey-preview-sign": "workspace:*",
     "@types/node": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",
