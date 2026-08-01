@@ -197,6 +197,25 @@ describe('useSigningController', () => {
     expect(result.current.requests).toHaveLength(1);
   });
 
+  it('checks the local companion again when the operator refreshes', async () => {
+    mocks.connect
+      .mockRejectedValueOnce(new Error('companion offline'))
+      .mockResolvedValueOnce({
+        version: 1,
+        token: 'process-capability',
+        expiresAt: '2030-08-01T12:10:00.000Z',
+      });
+    const { result } = renderHook(() => useSigningController());
+
+    await waitFor(() => {
+      expect(result.current.companionStatus).toBe('unavailable');
+    });
+    await act(() => result.current.refresh());
+
+    expect(result.current.companionStatus).toBe('connected');
+    expect(mocks.connect).toHaveBeenCalledTimes(2);
+  });
+
   it('keeps authenticated registration calls in Console around two local confirmations', async () => {
     const popup = popupFixture();
     vi.spyOn(window, 'open').mockReturnValue(popup as unknown as Window);

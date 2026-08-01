@@ -81,10 +81,20 @@ export function SigningPage() {
       </div>
       {controller.companionStatus === 'unavailable' ? (
         <div id="companion-help">
-          <Text color="muted">
-            Start the local signer companion, then refresh before using a
-            security key.
-          </Text>
+          <Stack gap={2} align="flex-start">
+            <Text color="muted">
+              Start the local signer companion on this machine. Signing stays
+              unavailable until the Console can reach it at 127.0.0.1:17373.
+            </Text>
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={disabled}
+              onClick={() => void controller.refresh()}
+            >
+              Check companion again
+            </Button>
+          </Stack>
         </div>
       ) : null}
 

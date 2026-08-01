@@ -14,7 +14,6 @@ const testState = vi.hoisted(() => ({
   location: '/tasks',
   navigate: vi.fn(),
   search: '',
-  signerUrl: undefined as string | undefined,
 }));
 
 const apiMocks = vi.hoisted(() => ({
@@ -63,7 +62,6 @@ vi.mock('../src/config.js', () => ({
   getConfig: () => ({
     docsUrl: 'https://docs.example.com',
     kratosUrl: 'https://auth.example.com',
-    signerUrl: testState.signerUrl,
   }),
 }));
 
@@ -89,7 +87,6 @@ describe('console layout accessibility', () => {
     testState.isTablet = false;
     testState.location = '/tasks';
     testState.search = '';
-    testState.signerUrl = undefined;
     testState.navigate.mockReset();
     apiMocks.getTeam.mockReset();
     apiMocks.listDiaries.mockReset();
@@ -130,13 +127,10 @@ describe('console layout accessibility', () => {
 
     const tasks = screen.getByRole('link', { name: 'Task board' });
     expect(tasks.getAttribute('aria-current')).toBe('page');
-    expect(
-      screen.queryByRole('link', { name: 'Signing' }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Signing' })).toBeInTheDocument();
   });
 
-  it('shows signing navigation only when the companion feature is enabled', () => {
-    testState.signerUrl = 'http://127.0.0.1:17373';
+  it('keeps signing discoverable when the local companion is offline', () => {
     testState.location = '/signing';
 
     render(<Sidebar id="console-sidebar" />, { wrapper: Wrapper });

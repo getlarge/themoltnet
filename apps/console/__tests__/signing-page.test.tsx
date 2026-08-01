@@ -191,6 +191,10 @@ describe('SigningPage', () => {
       'Companion unavailable',
     );
     expect(screen.getByText(/Start the local signer companion/i)).toBeVisible();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Check companion again' }),
+    );
+    expect(refresh).toHaveBeenCalledOnce();
     expect(
       screen.getByRole('button', { name: 'Review and sign request' }),
     ).toHaveAttribute('aria-describedby', 'companion-help');

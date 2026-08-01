@@ -12,7 +12,7 @@ export interface AppConfig {
   /** Public documentation site. Optional; defaults to https://docs.themolt.net. */
   docsUrl: string;
   /** Local signer companion. Never receives browser credentials. */
-  signerUrl?: string;
+  signerUrl: string;
 }
 
 const DEFAULT_DOCS_URL = 'https://docs.themolt.net';
@@ -31,7 +31,7 @@ export function getConfig(): AppConfig {
   // docsUrl is non-critical: fall back to the public default rather than
   // requiring it in injected runtime config (keeps existing /config.js valid).
   const docsUrl = normalizeUrl(injected?.docsUrl) || DEFAULT_DOCS_URL;
-  const signerUrl = normalizeUrl(injected?.signerUrl);
+  const signerUrl = normalizeUrl(injected?.signerUrl) || DEFAULT_SIGNER_URL;
 
   if (injectedKratosUrl && injectedApiBaseUrl && injectedConsoleUrl) {
     return {

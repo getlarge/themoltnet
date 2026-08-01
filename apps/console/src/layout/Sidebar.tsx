@@ -139,14 +139,7 @@ export interface SidebarProps {
 export function Sidebar({ collapsed = false, id }: SidebarProps) {
   const theme = useTheme();
   const [location, navigate] = useLocation();
-  const signingEnabled = Boolean(getConfig().signerUrl);
-  const availableGroups = baseGroups.map((group) => ({
-    ...group,
-    items: group.items.filter(
-      (item) => item.path !== '/signing' || signingEnabled,
-    ),
-  }));
-  const activePath = availableGroups
+  const activePath = baseGroups
     .flatMap((group) => group.items)
     .filter((item) => isActive(location, item.path))
     .reduce<string | null>(
@@ -154,7 +147,7 @@ export function Sidebar({ collapsed = false, id }: SidebarProps) {
         best === null || item.path.length > best.length ? item.path : best,
       null,
     );
-  const groups: SideNavigationGroup[] = availableGroups.map((group) => ({
+  const groups: SideNavigationGroup[] = baseGroups.map((group) => ({
     id: group.id,
     label: group.label,
     items: group.items.map((item) => ({
