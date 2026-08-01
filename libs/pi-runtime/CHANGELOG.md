@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.2](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.6.1...pi-runtime-v0.6.2) (2026-08-01)
+
+
+### Bug Fixes
+
+* **runtime:** advertise Gondolin guest executables ([97e412a](https://github.com/getlarge/themoltnet/commit/97e412a579b590da7576b016e80226b2b97ebfff))
+* **runtime:** advertise Gondolin guest executables ([0ba16e7](https://github.com/getlarge/themoltnet/commit/0ba16e75e29e9c9859c65dcb28cd464f2691d436))
+
 ## [0.6.1](https://github.com/getlarge/themoltnet/compare/pi-runtime-v0.6.0...pi-runtime-v0.6.1) (2026-08-01)
 
 

@@ -1,8 +1,8 @@
 {
-  "apps/agent-daemon": "0.37.0",
+  "apps/agent-daemon": "0.37.1",
   "apps/mcp-server": "0.16.0",
   "apps/moltnet-cli": "1.76.0",
-  "apps/moltnet-signer": "0.1.0",
+  "apps/moltnet-signer": "0.2.0",
   "apps/rest-api": "0.40.0",
   "libs/agent-runtime": "0.40.1",
   "libs/credential-broker": "0.3.0",
@@ -13,8 +13,8 @@
   "libs/moltnet-api-client": "1.56.0",
   "libs/node-red-contrib-core": "0.12.10",
   "libs/node-red-theme": "0.3.5",
-  "libs/pi-extension": "0.38.2",
-  "libs/pi-runtime": "0.6.1",
+  "libs/pi-extension": "0.38.3",
+  "libs/pi-runtime": "0.6.2",
   "libs/sdk": "0.129.0",
   "libs/shell-command-analyzer": "0.3.0",
   "libs/tasks-orchestrator": "0.2.3",
@@ -26,7 +26,7 @@
   "packages/cli/npm/linux-x64": "1.76.0",
   "packages/cli/npm/win32-arm64": "1.76.0",
   "packages/cli/npm/win32-x64": "1.76.0",
-  "packages/github-agent": "0.24.22",
-  "packages/legreffier-cli": "0.35.11",
+  "packages/github-agent": "0.25.0",
+  "packages/legreffier-cli": "0.35.12",
   "packages/openclaw-skill": "0.29.0"
 }
