@@ -3,10 +3,7 @@ graph LR
     Trust_Provenance_Controller["Trust & Provenance Controller"]
     Agent_Output_Contract_Validator["Agent Output & Contract Validator"]
     Agent_Key_Identity_Service["Agent Key & Identity Service"]
-    Trust_Provenance_Controller -- "Define Distribution Constraints and Guardrails" --> Agent_Output_Contract_Validator
-    Trust_Provenance_Controller -- "Provision and Resolve Cryptographic Identities" --> Agent_Key_Identity_Service
-    Agent_Output_Contract_Validator -- "Submit Validation Signals for Provenance Persistence" --> Trust_Provenance_Controller
-    Agent_Key_Identity_Service -- "Provide Public Keys for Provenance Verification" --> Trust_Provenance_Controller
+    Trust_Provenance_Controller -- "calls" --> Agent_Key_Identity_Service
     Agent_Key_Identity_Service -- "Provide Identity Proof for Contract Validation" --> Agent_Output_Contract_Validator
 ```
 
@@ -35,7 +32,7 @@ The core engine responsible for identity definition, policy enforcement, and the
 **Source Files:**
 
 - [`apps/agent-daemon-e2e/src/fixtures.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon-e2e/src/fixtures.ts)
-  - `apps.agent-daemon-e2e.src.fixtures.buildProducerVerification` ([L10-L28](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon-e2e/src/fixtures.ts#L10-L28)) - Function
+  - `apps.agent-daemon-e2e.src.fixtures.buildProducerVerification` ([L20-L38](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon-e2e/src/fixtures.ts#L20-L38)) - Function
 - [`apps/agent-daemon-e2e/src/setup.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon-e2e/src/setup.ts)
   - `apps.agent-daemon-e2e.src.setup.createDaemonTestHarness` ([L20-L35](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon-e2e/src/setup.ts#L20-L35)) - Function
   - `apps.agent-daemon-e2e.src.setup.createDaemonTestHarness.log` ([L33-L33](https://github.com/getlarge/themoltnet/blob/main/.codeboardingapps/agent-daemon-e2e/src/setup.ts#L33-L33)) - Method
@@ -1047,6 +1044,76 @@ This component manages the Proof phase of the Governance loop. It validates that
 
 **Source Files:**
 
+- [`libs/agent-eval/src/baseline.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/baseline.ts)
+  - `libs.agent-eval.src.baseline.BaselineRun` ([L24-L42](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/baseline.ts#L24-L42)) - Interface
+  - `libs.agent-eval.src.baseline.BaselineScenarioResult` ([L45-L60](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/baseline.ts#L45-L60)) - Interface
+  - `libs.agent-eval.src.baseline.BaselineReport` ([L62-L66](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/baseline.ts#L62-L66)) - Interface
+  - `libs.agent-eval.src.baseline.runBaseline.gates.failures.map() callback` ([L154-L154](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/baseline.ts#L154-L154)) - Function
+  - `libs.agent-eval.src.baseline.summarizeBaseline` ([L186-L203](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/baseline.ts#L186-L203)) - Function
+  - `libs.agent-eval.src.baseline.summarizeBaseline.modes` ([L193-L196](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/baseline.ts#L193-L196)) - Class
+  - `libs.agent-eval.src.baseline.summarizeBaseline.modes.sort() callback` ([L194-L194](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/baseline.ts#L194-L194)) - Function
+  - `libs.agent-eval.src.baseline.summarizeBaseline.modes.map() callback` ([L195-L195](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/baseline.ts#L195-L195)) - Function
+- [`libs/agent-eval/src/build-inputs.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/build-inputs.ts)
+  - `libs.agent-eval.src.build-inputs.variantLabel` ([L26-L33](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/build-inputs.ts#L26-L33)) - Function
+  - `libs.agent-eval.src.build-inputs.buildRunEvalInput` ([L56-L66](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/build-inputs.ts#L56-L66)) - Function
+  - `libs.agent-eval.src.build-inputs.buildJudgeInput` ([L80-L93](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/build-inputs.ts#L80-L93)) - Function
+- [`libs/agent-eval/src/check-gates.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/check-gates.ts)
+  - `libs.agent-eval.src.check-gates.GateTaskAttempt` ([L50-L54](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/check-gates.ts#L50-L54)) - Interface
+  - `libs.agent-eval.src.check-gates.GateAgent` ([L74-L90](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/check-gates.ts#L74-L90)) - Interface
+  - `libs.agent-eval.src.check-gates.GateResult` ([L100-L103](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/check-gates.ts#L100-L103)) - Interface
+  - `libs.agent-eval.src.check-gates.toDaemonWorkspaceMode` ([L117-L119](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/check-gates.ts#L117-L119)) - Function
+  - `libs.agent-eval.src.check-gates.infoEvent` ([L121-L127](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/check-gates.ts#L121-L127)) - Function
+  - `libs.agent-eval.src.check-gates.infoEvent.messages.find() callback` ([L125-L125](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/check-gates.ts#L125-L125)) - Function
+  - `libs.agent-eval.src.check-gates.toolNames` ([L129-L140](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/check-gates.ts#L129-L140)) - Function
+  - `libs.agent-eval.src.check-gates.submitCallResults` ([L142-L162](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/check-gates.ts#L142-L162)) - Function
+  - `libs.agent-eval.src.check-gates.readStreamText` ([L166-L180](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/check-gates.ts#L166-L180)) - Function
+  - `libs.agent-eval.src.check-gates.checkGates` ([L193-L469](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/check-gates.ts#L193-L469)) - Function
+  - `libs.agent-eval.src.check-gates.checkGates.buildError` ([L214-L216](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/check-gates.ts#L214-L216)) - Class
+  - `libs.agent-eval.src.check-gates.checkGates.buildError.messages.find() callback` ([L215-L215](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/check-gates.ts#L215-L215)) - Function
+  - `libs.agent-eval.src.check-gates.checkGates.present` ([L271-L275](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/check-gates.ts#L271-L275)) - Class
+  - `libs.agent-eval.src.check-gates.checkGates.present.sections.map() callback` ([L273-L273](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/check-gates.ts#L273-L273)) - Function
+  - `libs.agent-eval.src.check-gates.checkGates.present.filter() callback` ([L274-L274](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/check-gates.ts#L274-L274)) - Function
+  - `libs.agent-eval.src.check-gates.checkGates.attempt` ([L327-L327](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/check-gates.ts#L327-L327)) - Class
+  - `libs.agent-eval.src.check-gates.checkGates.attempt.attempts.find() callback` ([L327-L327](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/check-gates.ts#L327-L327)) - Function
+  - `libs.agent-eval.src.check-gates.checkGates.output` ([L373-L373](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/check-gates.ts#L373-L373)) - Class
+  - `libs.agent-eval.src.check-gates.checkGates.output.attempts.find() callback` ([L373-L373](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/check-gates.ts#L373-L373)) - Function
+  - `libs.agent-eval.src.check-gates.checkGates.forAttempt` ([L416-L418](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/check-gates.ts#L416-L418)) - Class
+  - `libs.agent-eval.src.check-gates.checkGates.forAttempt.artifacts.filter() callback` ([L417-L417](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/check-gates.ts#L417-L417)) - Function
+- [`libs/agent-eval/src/pi-config.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/pi-config.ts)
+  - `libs.agent-eval.src.pi-config.WriteAgentCredentialsInput` ([L14-L32](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/pi-config.ts#L14-L32)) - Interface
+  - `libs.agent-eval.src.pi-config.writeAgentCredentials` ([L39-L72](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/pi-config.ts#L39-L72)) - Function
+  - `libs.agent-eval.src.pi-config.WritePiConfigInput` ([L74-L90](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/pi-config.ts#L74-L90)) - Interface
+  - `libs.agent-eval.src.pi-config.writePiConfig` ([L97-L135](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/pi-config.ts#L97-L135)) - Function
+- [`libs/agent-eval/src/read-scenario.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/read-scenario.ts)
+  - `libs.agent-eval.src.read-scenario.ScenarioError` ([L35-L43](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/read-scenario.ts#L35-L43)) - Class
+  - `libs.agent-eval.src.read-scenario.ScenarioError.constructor` ([L36-L42](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/read-scenario.ts#L36-L42)) - Constructor
+  - `libs.agent-eval.src.read-scenario.readText` ([L45-L51](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/read-scenario.ts#L45-L51)) - Function
+  - `libs.agent-eval.src.read-scenario.readJson` ([L53-L63](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/read-scenario.ts#L53-L63)) - Function
+  - `libs.agent-eval.src.read-scenario.assertSchema` ([L69-L80](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/read-scenario.ts#L69-L80)) - Function
+  - `libs.agent-eval.src.read-scenario.isWithin` ([L82-L88](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/read-scenario.ts#L82-L88)) - Function
+  - `libs.agent-eval.src.read-scenario.resolveFixturePath` ([L90-L146](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/read-scenario.ts#L90-L146)) - Function
+  - `libs.agent-eval.src.read-scenario.assertSeedTreeIsContained` ([L148-L178](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/read-scenario.ts#L148-L178)) - Function
+  - `libs.agent-eval.src.read-scenario.defaultContentType` ([L180-L195](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/read-scenario.ts#L180-L195)) - Function
+  - `libs.agent-eval.src.read-scenario.resolveFixtures` ([L197-L235](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/read-scenario.ts#L197-L235)) - Function
+  - `libs.agent-eval.src.read-scenario.resolveFixtures.inputArtifacts.map() callback` ([L221-L231](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/read-scenario.ts#L221-L231)) - Function
+  - `libs.agent-eval.src.read-scenario.readScenario` ([L244-L309](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/read-scenario.ts#L244-L309)) - Function
+- [`libs/agent-eval/src/scenario-fixtures.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/scenario-fixtures.ts)
+  - `libs.agent-eval.src.scenario-fixtures.StagedScenarioInputArtifact` ([L19-L29](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/scenario-fixtures.ts#L19-L29)) - Interface
+  - `libs.agent-eval.src.scenario-fixtures.stageScenarioInputArtifacts` ([L35-L58](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/scenario-fixtures.ts#L35-L58)) - Function
+  - `libs.agent-eval.src.scenario-fixtures.seedScenarioWorkspace` ([L64-L80](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/scenario-fixtures.ts#L64-L80)) - Function
+- [`libs/agent-eval/src/score-matrix.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/score-matrix.ts)
+  - `libs.agent-eval.src.score-matrix.ScoreCell` ([L18-L34](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/score-matrix.ts#L18-L34)) - Interface
+  - `libs.agent-eval.src.score-matrix.ScoreMatrix` ([L36-L44](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/score-matrix.ts#L36-L44)) - Interface
+  - `libs.agent-eval.src.score-matrix.runMatrix.gates.failures.map() callback` ([L141-L141](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/score-matrix.ts#L141-L141)) - Function
+  - `libs.agent-eval.src.score-matrix.runMatrix.scenarios.scenarios.map() callback` ([L165-L165](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/score-matrix.ts#L165-L165)) - Function
+  - `libs.agent-eval.src.score-matrix.summarizeMatrix` ([L176-L199](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/score-matrix.ts#L176-L199)) - Function
+  - `libs.agent-eval.src.score-matrix.summarizeMatrix.mean` ([L181-L185](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/score-matrix.ts#L181-L185)) - Class
+  - `libs.agent-eval.src.score-matrix.summarizeMatrix.mean.modelCells.reduce() callback` ([L184-L184](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/score-matrix.ts#L184-L184)) - Function
+  - `libs.agent-eval.src.score-matrix.summarizeMatrix.status` ([L188-L194](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/score-matrix.ts#L188-L194)) - Class
+  - `libs.agent-eval.src.score-matrix.summarizeMatrix.status.cell.gateFailures.map() callback` ([L194-L194](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/score-matrix.ts#L194-L194)) - Function
+- [`libs/agent-eval/src/typebox-errors.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/typebox-errors.ts)
+  - `libs.agent-eval.src.typebox-errors.formatTypeBoxErrors` ([L20-L27](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/typebox-errors.ts#L20-L27)) - Function
+  - `libs.agent-eval.src.typebox-errors.formatTypeBoxErrors.map() callback` ([L22-L25](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/typebox-errors.ts#L22-L25)) - Function
 - [`libs/agent-runtime/src/output-tools.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/output-tools.ts)
   - `libs.agent-runtime.src.output-tools.SubmitOutputContract` ([L33-L52](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/output-tools.ts#L33-L52)) - Interface
   - `libs.agent-runtime.src.output-tools.getSubmitOutputContract` ([L60-L81](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/output-tools.ts#L60-L81)) - Function
@@ -1076,8 +1143,8 @@ This component manages the Proof phase of the Governance loop. It validates that
   - `libs.agent-runtime.src.prompts.fulfill-brief.Ctx` ([L9-L26](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/prompts/fulfill-brief.ts#L9-L26)) - Interface
   - `libs.agent-runtime.src.prompts.fulfill-brief.buildFulfillBriefUserPrompt` ([L35-L113](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/prompts/fulfill-brief.ts#L35-L113)) - Function
 - [`libs/agent-runtime/src/prompts/index.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/prompts/index.ts)
-  - `libs.agent-runtime.src.prompts.index.TaskUserPromptContext` ([L56-L88](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/prompts/index.ts#L56-L88)) - Interface
-  - `libs.agent-runtime.src.prompts.index.buildTaskUserPrompt` ([L103-L249](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/prompts/index.ts#L103-L249)) - Function
+  - `libs.agent-runtime.src.prompts.index.TaskUserPromptContext` ([L56-L89](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/prompts/index.ts#L56-L89)) - Interface
+  - `libs.agent-runtime.src.prompts.index.buildTaskUserPrompt` ([L104-L250](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/prompts/index.ts#L104-L250)) - Function
 - [`libs/agent-runtime/src/prompts/judge-eval-attempt.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/prompts/judge-eval-attempt.ts)
   - `libs.agent-runtime.src.prompts.judge-eval-attempt.Ctx` ([L9-L17](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/prompts/judge-eval-attempt.ts#L9-L17)) - Interface
   - `libs.agent-runtime.src.prompts.judge-eval-attempt.buildJudgeEvalAttemptUserPrompt` ([L19-L122](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-runtime/src/prompts/judge-eval-attempt.ts#L19-L122)) - Function
@@ -1213,6 +1280,10 @@ This component manages the Proof phase of the Governance loop. It validates that
   - `libs.auth.src.permission-checker.createPermissionChecker.canForceDeleteTasks.results.taskIds.map() callback` ([L795-L804](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/permission-checker.ts#L795-L804)) - Function
   - `libs.auth.src.permission-checker.createPermissionChecker.canForceDeleteTasks.taskIds.map() callback` ([L807-L807](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/permission-checker.ts#L807-L807)) - Function
   - `libs.auth.src.permission-checker.createPermissionChecker.canReportTask` ([L811-L825](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/permission-checker.ts#L811-L825)) - Method
+- [`libs/auth/src/plugin.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts)
+  - `libs.auth.src.plugin.ScopeDenialEvent` ([L60-L65](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L60-L65)) - Interface
+  - `libs.auth.src.plugin.enforceRouteScopes.missingScope` ([L569-L571](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L569-L571)) - Class
+  - `libs.auth.src.plugin.enforceRouteScopes.missingScope.requiredScopes.find() callback` ([L570-L570](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L570-L570)) - Function
 - [`libs/auth/src/relationship-reader.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/relationship-reader.ts)
   - `libs.auth.src.relationship-reader.GroupMemberTuple` ([L24-L27](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/relationship-reader.ts#L24-L27)) - Interface
   - `libs.auth.src.relationship-reader.TeamMemberTuple` ([L29-L33](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/relationship-reader.ts#L29-L33)) - Interface
@@ -1343,48 +1414,48 @@ This component manages the Proof phase of the Governance loop. It validates that
   - `libs.context-pack-service.src.pack-renderer.RenderablePackInput` ([L14-L18](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/context-pack-service/src/pack-renderer.ts#L14-L18)) - Interface
   - `libs.context-pack-service.src.pack-renderer.renderPackToMarkdown` ([L27-L57](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/context-pack-service/src/pack-renderer.ts#L27-L57)) - Function
 - [`libs/credential-broker/src/lib/broker.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts)
-  - `libs.credential-broker.src.lib.broker.TaskAuthorityRequest` ([L13-L18](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L13-L18)) - Interface
-  - `libs.credential-broker.src.lib.broker.AuthorityDenial` ([L20-L23](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L20-L23)) - Interface
-  - `libs.credential-broker.src.lib.broker.ConnectorAuthorityRequest` ([L34-L40](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L34-L40)) - Interface
-  - `libs.credential-broker.src.lib.broker.TaskAuthorityProvider` ([L51-L53](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L51-L53)) - Interface
-  - `libs.credential-broker.src.lib.broker.TaskAuthorityProvider.authorizeTask` ([L52-L52](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L52-L52)) - Method
-  - `libs.credential-broker.src.lib.broker.ConnectorAuthorityProvider` ([L55-L59](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L55-L59)) - Interface
-  - `libs.credential-broker.src.lib.broker.ConnectorAuthorityProvider.authorizeConnector` ([L56-L58](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L56-L58)) - Method
-  - `libs.credential-broker.src.lib.broker.TaskCredentialBinding` ([L61-L66](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L61-L66)) - Interface
-  - `libs.credential-broker.src.lib.broker.TaskCredentialVerifier` ([L68-L73](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L68-L73)) - Interface
-  - `libs.credential-broker.src.lib.broker.TaskCredentialVerifier.verify` ([L69-L72](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L69-L72)) - Method
-  - `libs.credential-broker.src.lib.broker.DeriveTokenInput` ([L75-L84](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L75-L84)) - Interface
-  - `libs.credential-broker.src.lib.broker.DerivedToken` ([L86-L91](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L86-L91)) - Interface
-  - `libs.credential-broker.src.lib.broker.TokenDeriver` ([L93-L95](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L93-L95)) - Interface
-  - `libs.credential-broker.src.lib.broker.TokenDeriver.derive` ([L94-L94](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L94-L94)) - Method
-  - `libs.credential-broker.src.lib.broker.EvidenceSink` ([L97-L99](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L97-L99)) - Interface
-  - `libs.credential-broker.src.lib.broker.EvidenceSink.emit` ([L98-L98](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L98-L98)) - Method
-  - `libs.credential-broker.src.lib.broker.BrokerClock` ([L101-L103](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L101-L103)) - Interface
-  - `libs.credential-broker.src.lib.broker.BrokerClock.now` ([L102-L102](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L102-L102)) - Method
-  - `libs.credential-broker.src.lib.broker.CredentialBrokerOptions` ([L105-L114](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L105-L114)) - Interface
-  - `libs.credential-broker.src.lib.broker.IssueTaskCredentialRequest` ([L116-L118](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L116-L118)) - Interface
-  - `libs.credential-broker.src.lib.broker.IssueConnectorCredentialRequest` ([L120-L127](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L120-L127)) - Interface
-  - `libs.credential-broker.src.lib.broker.IssuedCredential` ([L129-L135](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L129-L135)) - Interface
-  - `libs.credential-broker.src.lib.broker.CredentialBroker` ([L137-L144](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L137-L144)) - Interface
-  - `libs.credential-broker.src.lib.broker.CredentialBroker.issueTaskCredential` ([L138-L140](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L138-L140)) - Method
-  - `libs.credential-broker.src.lib.broker.CredentialBroker.issueConnectorCredential` ([L141-L143](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L141-L143)) - Method
-  - `libs.credential-broker.src.lib.broker.systemClock` ([L153-L153](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L153-L153)) - Class
-  - `libs.credential-broker.src.lib.broker.systemClock.now` ([L153-L153](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L153-L153)) - Method
-  - `libs.credential-broker.src.lib.broker.safeReason` ([L156-L158](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L156-L158)) - Function
-  - `libs.credential-broker.src.lib.broker.ttlSeconds` ([L160-L172](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L160-L172)) - Function
-  - `libs.credential-broker.src.lib.broker.isValidDate` ([L174-L176](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L174-L176)) - Function
-  - `libs.credential-broker.src.lib.broker.evidenceBase` ([L178-L194](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L178-L194)) - Function
-  - `libs.credential-broker.src.lib.broker.emitEvidence` ([L196-L211](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L196-L211)) - Function
-  - `libs.credential-broker.src.lib.broker.credentialEvidenceBindings` ([L213-L218](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L213-L218)) - Function
-  - `libs.credential-broker.src.lib.broker.canonicalTaskClaims` ([L220-L244](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L220-L244)) - Function
-  - `libs.credential-broker.src.lib.broker.assertTaskAuthorityBinding` ([L246-L261](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L246-L261)) - Function
-  - `libs.credential-broker.src.lib.broker.canonicalConnectorClaims` ([L263-L296](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L263-L296)) - Function
-  - `libs.credential-broker.src.lib.broker.taskEvidenceBindings` ([L298-L305](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L298-L305)) - Function
-  - `libs.credential-broker.src.lib.broker.validateVerifiedTask` ([L307-L334](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L307-L334)) - Function
-  - `libs.credential-broker.src.lib.broker.validateDerivedLifetime` ([L336-L366](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L336-L366)) - Function
-  - `libs.credential-broker.src.lib.broker.createCredentialBroker` ([L368-L761](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L368-L761)) - Function
-  - `libs.credential-broker.src.lib.broker.createCredentialBroker.issueTaskCredential` ([L375-L518](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L375-L518)) - Method
-  - `libs.credential-broker.src.lib.broker.createCredentialBroker.issueConnectorCredential` ([L520-L759](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L520-L759)) - Method
+  - `libs.credential-broker.src.lib.broker.TaskAuthorityRequest` ([L14-L19](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L14-L19)) - Interface
+  - `libs.credential-broker.src.lib.broker.AuthorityDenial` ([L21-L24](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L21-L24)) - Interface
+  - `libs.credential-broker.src.lib.broker.ConnectorAuthorityRequest` ([L35-L41](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L35-L41)) - Interface
+  - `libs.credential-broker.src.lib.broker.TaskAuthorityProvider` ([L52-L54](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L52-L54)) - Interface
+  - `libs.credential-broker.src.lib.broker.TaskAuthorityProvider.authorizeTask` ([L53-L53](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L53-L53)) - Method
+  - `libs.credential-broker.src.lib.broker.ConnectorAuthorityProvider` ([L56-L60](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L56-L60)) - Interface
+  - `libs.credential-broker.src.lib.broker.ConnectorAuthorityProvider.authorizeConnector` ([L57-L59](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L57-L59)) - Method
+  - `libs.credential-broker.src.lib.broker.TaskCredentialBinding` ([L62-L67](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L62-L67)) - Interface
+  - `libs.credential-broker.src.lib.broker.TaskCredentialVerifier` ([L69-L74](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L69-L74)) - Interface
+  - `libs.credential-broker.src.lib.broker.TaskCredentialVerifier.verify` ([L70-L73](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L70-L73)) - Method
+  - `libs.credential-broker.src.lib.broker.DeriveTokenInput` ([L76-L85](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L76-L85)) - Interface
+  - `libs.credential-broker.src.lib.broker.DerivedToken` ([L87-L92](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L87-L92)) - Interface
+  - `libs.credential-broker.src.lib.broker.TokenDeriver` ([L94-L96](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L94-L96)) - Interface
+  - `libs.credential-broker.src.lib.broker.TokenDeriver.derive` ([L95-L95](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L95-L95)) - Method
+  - `libs.credential-broker.src.lib.broker.EvidenceSink` ([L98-L100](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L98-L100)) - Interface
+  - `libs.credential-broker.src.lib.broker.EvidenceSink.emit` ([L99-L99](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L99-L99)) - Method
+  - `libs.credential-broker.src.lib.broker.BrokerClock` ([L102-L104](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L102-L104)) - Interface
+  - `libs.credential-broker.src.lib.broker.BrokerClock.now` ([L103-L103](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L103-L103)) - Method
+  - `libs.credential-broker.src.lib.broker.CredentialBrokerOptions` ([L106-L115](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L106-L115)) - Interface
+  - `libs.credential-broker.src.lib.broker.IssueTaskCredentialRequest` ([L117-L119](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L117-L119)) - Interface
+  - `libs.credential-broker.src.lib.broker.IssueConnectorCredentialRequest` ([L121-L128](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L121-L128)) - Interface
+  - `libs.credential-broker.src.lib.broker.IssuedCredential` ([L130-L136](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L130-L136)) - Interface
+  - `libs.credential-broker.src.lib.broker.CredentialBroker` ([L138-L145](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L138-L145)) - Interface
+  - `libs.credential-broker.src.lib.broker.CredentialBroker.issueTaskCredential` ([L139-L141](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L139-L141)) - Method
+  - `libs.credential-broker.src.lib.broker.CredentialBroker.issueConnectorCredential` ([L142-L144](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L142-L144)) - Method
+  - `libs.credential-broker.src.lib.broker.systemClock` ([L154-L154](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L154-L154)) - Class
+  - `libs.credential-broker.src.lib.broker.systemClock.now` ([L154-L154](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L154-L154)) - Method
+  - `libs.credential-broker.src.lib.broker.safeReason` ([L157-L159](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L157-L159)) - Function
+  - `libs.credential-broker.src.lib.broker.ttlSeconds` ([L161-L173](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L161-L173)) - Function
+  - `libs.credential-broker.src.lib.broker.isValidDate` ([L175-L177](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L175-L177)) - Function
+  - `libs.credential-broker.src.lib.broker.evidenceBase` ([L179-L195](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L179-L195)) - Function
+  - `libs.credential-broker.src.lib.broker.emitEvidence` ([L197-L212](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L197-L212)) - Function
+  - `libs.credential-broker.src.lib.broker.credentialEvidenceBindings` ([L214-L219](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L214-L219)) - Function
+  - `libs.credential-broker.src.lib.broker.canonicalTaskClaims` ([L221-L245](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L221-L245)) - Function
+  - `libs.credential-broker.src.lib.broker.assertTaskAuthorityBinding` ([L247-L262](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L247-L262)) - Function
+  - `libs.credential-broker.src.lib.broker.canonicalConnectorClaims` ([L264-L297](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L264-L297)) - Function
+  - `libs.credential-broker.src.lib.broker.taskEvidenceBindings` ([L299-L306](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L299-L306)) - Function
+  - `libs.credential-broker.src.lib.broker.validateVerifiedTask` ([L308-L335](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L308-L335)) - Function
+  - `libs.credential-broker.src.lib.broker.validateDerivedLifetime` ([L337-L367](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L337-L367)) - Function
+  - `libs.credential-broker.src.lib.broker.createCredentialBroker` ([L369-L762](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L369-L762)) - Function
+  - `libs.credential-broker.src.lib.broker.createCredentialBroker.issueTaskCredential` ([L376-L519](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L376-L519)) - Method
+  - `libs.credential-broker.src.lib.broker.createCredentialBroker.issueConnectorCredential` ([L521-L760](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L521-L760)) - Method
 - [`libs/credential-broker/src/lib/talos.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/talos.ts)
   - `libs.credential-broker.src.lib.talos.TalosDerivationApi` ([L5-L20](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/talos.ts#L5-L20)) - Interface
   - `libs.credential-broker.src.lib.talos.TalosDerivationApi.adminDeriveToken` ([L6-L19](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/talos.ts#L6-L19)) - Method
@@ -1406,19 +1477,18 @@ This component manages the Proof phase of the Governance loop. It validates that
 - [`libs/design-system/src/theme-provider.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/design-system/src/theme-provider.tsx)
   - `libs.design-system.src.theme-provider.ThemeContextValue` ([L15-L20](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/design-system/src/theme-provider.tsx#L15-L20)) - Interface
   - `libs.design-system.src.theme-provider.useSystemTheme` ([L28-L48](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/design-system/src/theme-provider.tsx#L28-L48)) - Function
-  - `libs.design-system.src.theme-provider.themeToCssVars` ([L54-L95](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/design-system/src/theme-provider.tsx#L54-L95)) - Function
-  - `libs.design-system.src.theme-provider.generateGlobalStyles` ([L97-L124](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/design-system/src/theme-provider.tsx#L97-L124)) - Function
-  - `libs.design-system.src.theme-provider.MoltThemeProviderProps` ([L130-L134](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/design-system/src/theme-provider.tsx#L130-L134)) - Interface
-  - `libs.design-system.src.theme-provider.MoltThemeProvider` ([L136-L162](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/design-system/src/theme-provider.tsx#L136-L162)) - Function
-  - `libs.design-system.src.theme-provider.value` ([L147-L150](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/design-system/src/theme-provider.tsx#L147-L150)) - Class
-  - `libs.design-system.src.theme-provider.parseCssVars` ([L167-L179](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/design-system/src/theme-provider.tsx#L167-L179)) - Function
+  - `libs.design-system.src.theme-provider.generateGlobalStyles` ([L102-L129](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/design-system/src/theme-provider.tsx#L102-L129)) - Function
+  - `libs.design-system.src.theme-provider.MoltThemeProviderProps` ([L135-L139](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/design-system/src/theme-provider.tsx#L135-L139)) - Interface
+  - `libs.design-system.src.theme-provider.MoltThemeProvider` ([L141-L167](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/design-system/src/theme-provider.tsx#L141-L167)) - Function
+  - `libs.design-system.src.theme-provider.value` ([L152-L155](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/design-system/src/theme-provider.tsx#L152-L155)) - Class
+  - `libs.design-system.src.theme-provider.parseCssVars` ([L172-L184](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/design-system/src/theme-provider.tsx#L172-L184)) - Function
 - [`libs/design-system/src/theme.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/design-system/src/theme.ts)
-  - `libs.design-system.src.theme.ColorScale` ([L21-L26](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/design-system/src/theme.ts#L21-L26)) - Interface
-  - `libs.design-system.src.theme.PaletteScale` ([L28-L33](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/design-system/src/theme.ts#L28-L33)) - Interface
-  - `libs.design-system.src.theme.TextScale` ([L35-L40](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/design-system/src/theme.ts#L35-L40)) - Interface
-  - `libs.design-system.src.theme.BorderScale` ([L42-L46](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/design-system/src/theme.ts#L42-L46)) - Interface
-  - `libs.design-system.src.theme.SignalScale` ([L48-L51](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/design-system/src/theme.ts#L48-L51)) - Interface
-  - `libs.design-system.src.theme.MoltTheme` ([L57-L86](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/design-system/src/theme.ts#L57-L86)) - Interface
+  - `libs.design-system.src.theme.ColorScale` ([L22-L27](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/design-system/src/theme.ts#L22-L27)) - Interface
+  - `libs.design-system.src.theme.PaletteScale` ([L29-L34](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/design-system/src/theme.ts#L29-L34)) - Interface
+  - `libs.design-system.src.theme.TextScale` ([L36-L41](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/design-system/src/theme.ts#L36-L41)) - Interface
+  - `libs.design-system.src.theme.BorderScale` ([L43-L47](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/design-system/src/theme.ts#L43-L47)) - Interface
+  - `libs.design-system.src.theme.SignalScale` ([L49-L52](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/design-system/src/theme.ts#L49-L52)) - Interface
+  - `libs.design-system.src.theme.MoltTheme` ([L58-L88](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/design-system/src/theme.ts#L58-L88)) - Interface
 - [`libs/diary-ui/src/filters/use-diary-filters.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/diary-ui/src/filters/use-diary-filters.ts)
   - `libs.diary-ui.src.filters.use-diary-filters.useDiaryFilters.set.useCallback() callback` ([L21-L27](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/diary-ui/src/filters/use-diary-filters.ts#L21-L27)) - Function
   - `libs.diary-ui.src.filters.use-diary-filters.useDiaryFilters.set.useCallback() callback.setState() callback` ([L22-L25](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/diary-ui/src/filters/use-diary-filters.ts#L22-L25)) - Function
@@ -1904,8 +1974,8 @@ This component manages the Proof phase of the Governance loop. It validates that
   - `libs.tasks.src.runtime-profiles.runtimeProfileDefinitionPayload.list` ([L341-L344](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/runtime-profiles.ts#L341-L344)) - Class
   - `libs.tasks.src.runtime-profiles.runtimeProfileDefinitionPayload.list.map() callback` ([L343-L343](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/runtime-profiles.ts#L343-L343)) - Function
 - [`libs/tasks/src/task-types/freeform.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/task-types/freeform.ts)
-  - `libs.tasks.src.task-types.freeform.validateFreeformInputAsync.attempt` ([L221-L221](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/task-types/freeform.ts#L221-L221)) - Class
-  - `libs.tasks.src.task-types.freeform.validateFreeformInputAsync.attempt.attempts.find() callback` ([L221-L221](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/task-types/freeform.ts#L221-L221)) - Function
+  - `libs.tasks.src.task-types.freeform.validateFreeformInputAsync.attempt` ([L249-L249](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/task-types/freeform.ts#L249-L249)) - Class
+  - `libs.tasks.src.task-types.freeform.validateFreeformInputAsync.attempt.attempts.find() callback` ([L249-L249](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/task-types/freeform.ts#L249-L249)) - Function
 - [`libs/tasks/src/validation.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts)
   - `libs.tasks.src.validation.TaskTypeDefinition` ([L21-L42](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L21-L42)) - Interface
   - `libs.tasks.src.validation.getSubmitOutputGate` ([L54-L63](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/tasks/src/validation.ts#L54-L63)) - Function
@@ -1966,57 +2036,101 @@ Provides the cryptographic foundation for agent identities. It manages the issua
 
 **Related Classes/Methods**:
 
-- `libs.agent-key-service.src.agent-key-service.AgentKey`:31-43
-- `libs.agent-key-service.src.agent-key-service.AgentKeyBinding`:58-61
-- `libs.agent-key-service.src.agent-key-service.RotateAgentKeyInput`:107-113
-- `libs.agent-key-service.src.agent-key-service.RevokeAgentKeyInput`:115-123
+- `libs.agent-key-service.src.agent-key-service.AgentKey`:34-47
+- `libs.agent-key-service.src.agent-key-service.AgentKeyBinding`:63-66
+- `libs.agent-key-service.src.agent-key-service.RotateAgentKeyInput`:113-119
+- `libs.agent-key-service.src.agent-key-service.RevokeAgentKeyInput`:121-129
 
 
 
 **Source Files:**
 
+- [`libs/agent-eval/src/baseline.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/baseline.ts)
+  - `libs.agent-eval.src.baseline.BaselineDeps` ([L69-L91](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/baseline.ts#L69-L91)) - Interface
+  - `libs.agent-eval.src.baseline.BaselineDeps.runProducer` ([L76-L84](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/baseline.ts#L76-L84)) - Method
+  - `libs.agent-eval.src.baseline.BaselineDeps.runGates` ([L86-L89](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/baseline.ts#L86-L89)) - Method
+  - `libs.agent-eval.src.baseline.BaselineDeps.log` ([L90-L90](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/baseline.ts#L90-L90)) - Method
+  - `libs.agent-eval.src.baseline.bump` ([L93-L95](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/baseline.ts#L93-L95)) - Function
+  - `libs.agent-eval.src.baseline.runBaseline` ([L101-L180](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/baseline.ts#L101-L180)) - Function
+- [`libs/agent-eval/src/build-inputs.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/build-inputs.ts)
+  - `libs.agent-eval.src.build-inputs.BuildRunEvalOptions` ([L35-L48](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/build-inputs.ts#L35-L48)) - Interface
+  - `libs.agent-eval.src.build-inputs.BuildJudgeOptions` ([L68-L73](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/build-inputs.ts#L68-L73)) - Interface
+- [`libs/agent-eval/src/check-gates.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/check-gates.ts)
+  - `libs.agent-eval.src.check-gates.GateTaskMessage` ([L44-L47](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/check-gates.ts#L44-L47)) - Interface
+  - `libs.agent-eval.src.check-gates.GateTaskArtifact` ([L57-L61](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/check-gates.ts#L57-L61)) - Interface
+  - `libs.agent-eval.src.check-gates.GateArtifactDownload` ([L65-L67](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/check-gates.ts#L65-L67)) - Interface
+  - `libs.agent-eval.src.check-gates.GateFailure` ([L93-L98](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/check-gates.ts#L93-L98)) - Interface
+  - `libs.agent-eval.src.check-gates.ExecuteStartPayload` ([L105-L110](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/check-gates.ts#L105-L110)) - Interface
+  - `libs.agent-eval.src.check-gates.checkGates.patterns` ([L438-L441](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/check-gates.ts#L438-L441)) - Class
+  - `libs.agent-eval.src.check-gates.checkGates.patterns.gates.forbidArtifactContentMatching.map() callback` ([L438-L441](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/check-gates.ts#L438-L441)) - Function
+- [`libs/agent-eval/src/read-scenario.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/read-scenario.ts)
+  - `libs.agent-eval.src.read-scenario.inputArtifacts` ([L220-L232](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/read-scenario.ts#L220-L232)) - Class
+- [`libs/agent-eval/src/scenario-fixtures.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/scenario-fixtures.ts)
+  - `libs.agent-eval.src.scenario-fixtures.ScenarioArtifactStager` ([L6-L17](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/scenario-fixtures.ts#L6-L17)) - Interface
+  - `libs.agent-eval.src.scenario-fixtures.ScenarioArtifactStager.stage` ([L7-L16](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/scenario-fixtures.ts#L7-L16)) - Method
+  - `libs.agent-eval.src.scenario-fixtures.stageScenarioInputArtifacts.map() callback` ([L41-L56](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/scenario-fixtures.ts#L41-L56)) - Function
+- [`libs/agent-eval/src/scenario.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/scenario.ts)
+  - `libs.agent-eval.src.scenario.ResolvedScenarioFixtures` ([L176-L180](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/scenario.ts#L176-L180)) - Interface
+  - `libs.agent-eval.src.scenario.Scenario` ([L182-L204](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/scenario.ts#L182-L204)) - Interface
+- [`libs/agent-eval/src/score-matrix.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/score-matrix.ts)
+  - `libs.agent-eval.src.score-matrix.MatrixDeps` ([L49-L81](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/score-matrix.ts#L49-L81)) - Interface
+  - `libs.agent-eval.src.score-matrix.MatrixDeps.runProducer` ([L55-L62](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/score-matrix.ts#L55-L62)) - Method
+  - `libs.agent-eval.src.score-matrix.MatrixDeps.runGates` ([L66-L70](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/score-matrix.ts#L66-L70)) - Method
+  - `libs.agent-eval.src.score-matrix.MatrixDeps.runJudge` ([L75-L78](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/score-matrix.ts#L75-L78)) - Method
+  - `libs.agent-eval.src.score-matrix.MatrixDeps.log` ([L80-L80](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/score-matrix.ts#L80-L80)) - Method
+  - `libs.agent-eval.src.score-matrix.runMatrix` ([L92-L169](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/score-matrix.ts#L92-L169)) - Function
+  - `libs.agent-eval.src.score-matrix.summarizeMatrix.modelCells` ([L180-L180](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/score-matrix.ts#L180-L180)) - Class
+  - `libs.agent-eval.src.score-matrix.summarizeMatrix.modelCells.matrix.cells.filter() callback` ([L180-L180](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/score-matrix.ts#L180-L180)) - Function
+- [`libs/agent-eval/src/typebox-errors.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/typebox-errors.ts)
+  - `libs.agent-eval.src.typebox-errors.TypeBoxError` ([L11-L14](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-eval/src/typebox-errors.ts#L11-L14)) - Interface
 - [`libs/agent-key-service/src/agent-key-service.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts)
-  - `libs.agent-key-service.src.agent-key-service.AgentKey` ([L31-L43](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L31-L43)) - Interface
-  - `libs.agent-key-service.src.agent-key-service.AgentKeyWithSecret` ([L45-L48](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L45-L48)) - Interface
-  - `libs.agent-key-service.src.agent-key-service.AgentKeySubject` ([L50-L56](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L50-L56)) - Interface
-  - `libs.agent-key-service.src.agent-key-service.AgentKeyBinding` ([L58-L61](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L58-L61)) - Interface
-  - `libs.agent-key-service.src.agent-key-service.Logger` ([L63-L67](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L63-L67)) - Interface
-  - `libs.agent-key-service.src.agent-key-service.AgentKeyServiceDeps` ([L78-L83](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L78-L83)) - Interface
-  - `libs.agent-key-service.src.agent-key-service.IssueAgentKeyInput` ([L85-L94](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L85-L94)) - Interface
-  - `libs.agent-key-service.src.agent-key-service.ListAgentKeysInput` ([L96-L105](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L96-L105)) - Interface
-  - `libs.agent-key-service.src.agent-key-service.RotateAgentKeyInput` ([L107-L113](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L107-L113)) - Interface
-  - `libs.agent-key-service.src.agent-key-service.RevokeAgentKeyInput` ([L115-L123](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L115-L123)) - Interface
-  - `libs.agent-key-service.src.agent-key-service.getTalosApi` ([L125-L133](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L125-L133)) - Function
-  - `libs.agent-key-service.src.agent-key-service.asRecord` ([L135-L138](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L135-L138)) - Function
-  - `libs.agent-key-service.src.agent-key-service.readBinding` ([L140-L150](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L140-L150)) - Function
-  - `libs.agent-key-service.src.agent-key-service.toStatus` ([L152-L165](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L152-L165)) - Function
-  - `libs.agent-key-service.src.agent-key-service.effectiveStatus` ([L167-L177](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L167-L177)) - Function
-  - `libs.agent-key-service.src.agent-key-service.fromRevocationReason` ([L179-L194](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L179-L194)) - Function
-  - `libs.agent-key-service.src.agent-key-service.toRevocationReason` ([L196-L209](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L196-L209)) - Function
-  - `libs.agent-key-service.src.agent-key-service.toAgentKey` ([L211-L233](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L211-L233)) - Function
-  - `libs.agent-key-service.src.agent-key-service.AgentKeyCursor` ([L235-L241](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L235-L241)) - Interface
-  - `libs.agent-key-service.src.agent-key-service.isAgentKeyStatus` ([L243-L245](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L243-L245)) - Function
-  - `libs.agent-key-service.src.agent-key-service.isAgentKeyCursor` ([L247-L263](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L247-L263)) - Function
-  - `libs.agent-key-service.src.agent-key-service.decodeCursor` ([L265-L283](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L265-L283)) - Function
-  - `libs.agent-key-service.src.agent-key-service.encodeCursor` ([L285-L290](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L285-L290)) - Function
-  - `libs.agent-key-service.src.agent-key-service.talosRequestId` ([L292-L306](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L292-L306)) - Function
-  - `libs.agent-key-service.src.agent-key-service.isNotFoundError` ([L308-L318](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L308-L318)) - Function
-  - `libs.agent-key-service.src.agent-key-service.talosInit` ([L320-L322](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L320-L322)) - Function
-  - `libs.agent-key-service.src.agent-key-service.talosFailureKind` ([L324-L342](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L324-L342)) - Function
-  - `libs.agent-key-service.src.agent-key-service.getTeamKey` ([L344-L374](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L344-L374)) - Function
-  - `libs.agent-key-service.src.agent-key-service.canManageAllTeamKeys` ([L376-L386](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L376-L386)) - Function
-  - `libs.agent-key-service.src.agent-key-service.assertCanManageAgentKey` ([L388-L397](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L388-L397)) - Function
-  - `libs.agent-key-service.src.agent-key-service.assertCanManageExistingAgentKey` ([L399-L408](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L399-L408)) - Function
-  - `libs.agent-key-service.src.agent-key-service.assertCurrentAgentMember` ([L410-L432](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L410-L432)) - Function
-  - `libs.agent-key-service.src.agent-key-service.actorFilter` ([L434-L437](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L434-L437)) - Function
-  - `libs.agent-key-service.src.agent-key-service.ResolvedListQuery` ([L439-L444](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L439-L444)) - Interface
-  - `libs.agent-key-service.src.agent-key-service.resolveListQuery` ([L446-L478](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L446-L478)) - Function
-  - `libs.agent-key-service.src.agent-key-service.scanAgentKeyPages` ([L480-L594](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L480-L594)) - Function
-  - `libs.agent-key-service.src.agent-key-service.createAgentKeyService` ([L596-L891](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L596-L891)) - Function
-  - `libs.agent-key-service.src.agent-key-service.createAgentKeyService.issue` ([L598-L709](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L598-L709)) - Method
-  - `libs.agent-key-service.src.agent-key-service.createAgentKeyService.list` ([L711-L718](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L711-L718)) - Method
-  - `libs.agent-key-service.src.agent-key-service.createAgentKeyService.rotate` ([L720-L821](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L720-L821)) - Method
-  - `libs.agent-key-service.src.agent-key-service.createAgentKeyService.revoke` ([L823-L889](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L823-L889)) - Method
+  - `libs.agent-key-service.src.agent-key-service.AgentKey` ([L34-L47](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L34-L47)) - Interface
+  - `libs.agent-key-service.src.agent-key-service.AgentKeyWithSecret` ([L49-L52](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L49-L52)) - Interface
+  - `libs.agent-key-service.src.agent-key-service.AgentKeySubject` ([L54-L61](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L54-L61)) - Interface
+  - `libs.agent-key-service.src.agent-key-service.AgentKeyBinding` ([L63-L66](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L63-L66)) - Interface
+  - `libs.agent-key-service.src.agent-key-service.Logger` ([L68-L72](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L68-L72)) - Interface
+  - `libs.agent-key-service.src.agent-key-service.AgentKeyServiceDeps` ([L83-L88](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L83-L88)) - Interface
+  - `libs.agent-key-service.src.agent-key-service.IssueAgentKeyInput` ([L90-L100](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L90-L100)) - Interface
+  - `libs.agent-key-service.src.agent-key-service.ListAgentKeysInput` ([L102-L111](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L102-L111)) - Interface
+  - `libs.agent-key-service.src.agent-key-service.RotateAgentKeyInput` ([L113-L119](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L113-L119)) - Interface
+  - `libs.agent-key-service.src.agent-key-service.RevokeAgentKeyInput` ([L121-L129](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L121-L129)) - Interface
+  - `libs.agent-key-service.src.agent-key-service.getTalosApi` ([L131-L139](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L131-L139)) - Function
+  - `libs.agent-key-service.src.agent-key-service.asRecord` ([L141-L144](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L141-L144)) - Function
+  - `libs.agent-key-service.src.agent-key-service.readBinding` ([L146-L156](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L146-L156)) - Function
+  - `libs.agent-key-service.src.agent-key-service.toStatus` ([L158-L171](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L158-L171)) - Function
+  - `libs.agent-key-service.src.agent-key-service.effectiveStatus` ([L173-L183](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L173-L183)) - Function
+  - `libs.agent-key-service.src.agent-key-service.fromRevocationReason` ([L185-L200](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L185-L200)) - Function
+  - `libs.agent-key-service.src.agent-key-service.toRevocationReason` ([L202-L215](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L202-L215)) - Function
+  - `libs.agent-key-service.src.agent-key-service.toAgentKey` ([L217-L240](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L217-L240)) - Function
+  - `libs.agent-key-service.src.agent-key-service.AgentKeyCursor` ([L242-L248](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L242-L248)) - Interface
+  - `libs.agent-key-service.src.agent-key-service.isAgentKeyStatus` ([L250-L252](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L250-L252)) - Function
+  - `libs.agent-key-service.src.agent-key-service.isAgentKeyCursor` ([L254-L270](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L254-L270)) - Function
+  - `libs.agent-key-service.src.agent-key-service.decodeCursor` ([L272-L290](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L272-L290)) - Function
+  - `libs.agent-key-service.src.agent-key-service.encodeCursor` ([L292-L297](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L292-L297)) - Function
+  - `libs.agent-key-service.src.agent-key-service.talosRequestId` ([L299-L313](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L299-L313)) - Function
+  - `libs.agent-key-service.src.agent-key-service.assertDelegableScopes` ([L315-L341](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L315-L341)) - Function
+  - `libs.agent-key-service.src.agent-key-service.assertDelegableScopes.invalid` ([L320-L320](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L320-L320)) - Class
+  - `libs.agent-key-service.src.agent-key-service.assertDelegableScopes.invalid.requested.find() callback` ([L320-L320](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L320-L320)) - Function
+  - `libs.agent-key-service.src.agent-key-service.assertDelegableScopes.escalation` ([L334-L334](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L334-L334)) - Class
+  - `libs.agent-key-service.src.agent-key-service.assertDelegableScopes.escalation.requested.find() callback` ([L334-L334](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L334-L334)) - Function
+  - `libs.agent-key-service.src.agent-key-service.isNotFoundError` ([L343-L353](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L343-L353)) - Function
+  - `libs.agent-key-service.src.agent-key-service.talosInit` ([L355-L357](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L355-L357)) - Function
+  - `libs.agent-key-service.src.agent-key-service.revokeInvalidIssuedKey` ([L359-L408](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L359-L408)) - Function
+  - `libs.agent-key-service.src.agent-key-service.talosFailureKind` ([L410-L428](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L410-L428)) - Function
+  - `libs.agent-key-service.src.agent-key-service.getTeamKey` ([L430-L460](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L430-L460)) - Function
+  - `libs.agent-key-service.src.agent-key-service.canManageAllTeamKeys` ([L462-L472](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L462-L472)) - Function
+  - `libs.agent-key-service.src.agent-key-service.assertCanManageAgentKey` ([L474-L483](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L474-L483)) - Function
+  - `libs.agent-key-service.src.agent-key-service.assertCanManageExistingAgentKey` ([L485-L494](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L485-L494)) - Function
+  - `libs.agent-key-service.src.agent-key-service.assertCurrentAgentMember` ([L496-L518](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L496-L518)) - Function
+  - `libs.agent-key-service.src.agent-key-service.actorFilter` ([L520-L523](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L520-L523)) - Function
+  - `libs.agent-key-service.src.agent-key-service.ResolvedListQuery` ([L525-L530](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L525-L530)) - Interface
+  - `libs.agent-key-service.src.agent-key-service.resolveListQuery` ([L532-L564](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L532-L564)) - Function
+  - `libs.agent-key-service.src.agent-key-service.scanAgentKeyPages` ([L566-L680](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L566-L680)) - Function
+  - `libs.agent-key-service.src.agent-key-service.createAgentKeyService` ([L682-L1003](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L682-L1003)) - Function
+  - `libs.agent-key-service.src.agent-key-service.createAgentKeyService.issue` ([L684-L811](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L684-L811)) - Method
+  - `libs.agent-key-service.src.agent-key-service.createAgentKeyService.list` ([L813-L820](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L813-L820)) - Method
+  - `libs.agent-key-service.src.agent-key-service.createAgentKeyService.rotate` ([L822-L933](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L822-L933)) - Method
+  - `libs.agent-key-service.src.agent-key-service.createAgentKeyService.revoke` ([L935-L1001](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/agent-key-service.ts#L935-L1001)) - Method
 - [`libs/agent-key-service/src/opaque-cursor.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/opaque-cursor.ts)
   - `libs.agent-key-service.src.opaque-cursor.encodeOpaqueCursor` ([L1-L3](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/opaque-cursor.ts#L1-L3)) - Function
   - `libs.agent-key-service.src.opaque-cursor.decodeOpaqueCursor` ([L5-L17](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/agent-key-service/src/opaque-cursor.ts#L5-L17)) - Function
@@ -2175,9 +2289,11 @@ Provides the cryptographic foundation for agent identities. It manages the issua
   - `libs.auth.src.keto-constants.AgentPermission` ([L182-L184](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/keto-constants.ts#L182-L184)) - Enum
   - `libs.auth.src.keto-constants.HumanPermission` ([L189-L191](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/keto-constants.ts#L189-L191)) - Enum
 - [`libs/auth/src/plugin.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts)
-  - `libs.auth.src.plugin.'fastify'.FastifyContextConfig` ([L51-L69](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L51-L69)) - Interface
-  - `libs.auth.src.plugin.'fastify'.FastifyInstance` ([L70-L76](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L70-L76)) - Interface
-  - `libs.auth.src.plugin.'fastify'.FastifyRequest` ([L77-L80](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L77-L80)) - Interface
+  - `libs.auth.src.plugin.'fastify'.FastifyContextConfig` ([L68-L91](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L68-L91)) - Interface
+  - `libs.auth.src.plugin.'fastify'.FastifyInstance` ([L92-L100](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L92-L100)) - Interface
+  - `libs.auth.src.plugin.'fastify'.FastifyRequest` ([L101-L104](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L101-L104)) - Interface
+  - `libs.auth.src.plugin.routeUsesPrincipalAuth` ([L215-L241](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L215-L241)) - Function
+  - `libs.auth.src.plugin.routeUsesPrincipalAuth.schema.security.some() callback` ([L233-L240](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/plugin.ts#L233-L240)) - Function
 - [`libs/auth/src/relationship-writer.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/relationship-writer.ts)
   - `libs.auth.src.relationship-writer.RelationshipWriter` ([L24-L145](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/relationship-writer.ts#L24-L145)) - Interface
   - `libs.auth.src.relationship-writer.RelationshipWriter.grantDiaryTeam` ([L26-L26](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/auth/src/relationship-writer.ts#L26-L26)) - Method
@@ -2326,8 +2442,8 @@ Provides the cryptographic foundation for agent identities. It manages the issua
   - `libs.context-pack-service.src.types.PackDiffResult` ([L240-L246](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/context-pack-service/src/types.ts#L240-L246)) - Interface
   - `libs.context-pack-service.src.types.DiffPacksInput` ([L248-L254](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/context-pack-service/src/types.ts#L248-L254)) - Interface
 - [`libs/credential-broker/src/lib/broker.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts)
-  - `libs.credential-broker.src.lib.broker.ttlSeconds.remaining.expiries.map() callback` ([L161-L162](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L161-L162)) - Function
-  - `libs.credential-broker.src.lib.broker.ttlSeconds.remaining` ([L161-L163](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L161-L163)) - Class
+  - `libs.credential-broker.src.lib.broker.ttlSeconds.remaining.expiries.map() callback` ([L162-L163](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L162-L163)) - Function
+  - `libs.credential-broker.src.lib.broker.ttlSeconds.remaining` ([L162-L164](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credential-broker/src/lib/broker.ts#L162-L164)) - Class
 - [`libs/credentials/src/lib/errors.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credentials/src/lib/errors.ts)
   - `libs.credentials.src.lib.errors.CredentialError` ([L8-L24](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credentials/src/lib/errors.ts#L8-L24)) - Class
   - `libs.credentials.src.lib.errors.CredentialError.constructor` ([L11-L15](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/credentials/src/lib/errors.ts#L11-L15)) - Constructor
@@ -2362,10 +2478,11 @@ Provides the cryptographic foundation for agent identities. It manages the issua
   - `libs.crypto-service.src.rendered-pack-cid.computeContentHash.map() callback` ([L85-L85](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/crypto-service/src/rendered-pack-cid.ts#L85-L85)) - Function
 - [`libs/design-system/src/theme-provider.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/design-system/src/theme-provider.tsx)
   - `libs.design-system.src.theme-provider.useSystemTheme.useEffect() callback` ([L39-L46](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/design-system/src/theme-provider.tsx#L39-L46)) - Function
-  - `libs.design-system.src.theme-provider.MoltThemeProvider.value.useMemo() callback` ([L148-L148](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/design-system/src/theme-provider.tsx#L148-L148)) - Function
-  - `libs.design-system.src.theme-provider.MoltThemeProvider.cssVars` ([L152-L152](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/design-system/src/theme-provider.tsx#L152-L152)) - Class
-  - `libs.design-system.src.theme-provider.MoltThemeProvider.cssVars.useMemo() callback` ([L152-L152](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/design-system/src/theme-provider.tsx#L152-L152)) - Function
-  - `libs.design-system.src.theme-provider.MoltThemeProvider.parseCssVars` ([L157-L157](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/design-system/src/theme-provider.tsx#L157-L157)) - Method
+  - `libs.design-system.src.theme-provider.themeToCssVars` ([L54-L100](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/design-system/src/theme-provider.tsx#L54-L100)) - Function
+  - `libs.design-system.src.theme-provider.MoltThemeProvider.value.useMemo() callback` ([L153-L153](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/design-system/src/theme-provider.tsx#L153-L153)) - Function
+  - `libs.design-system.src.theme-provider.MoltThemeProvider.cssVars` ([L157-L157](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/design-system/src/theme-provider.tsx#L157-L157)) - Class
+  - `libs.design-system.src.theme-provider.MoltThemeProvider.cssVars.useMemo() callback` ([L157-L157](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/design-system/src/theme-provider.tsx#L157-L157)) - Function
+  - `libs.design-system.src.theme-provider.MoltThemeProvider.parseCssVars` ([L162-L162](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/design-system/src/theme-provider.tsx#L162-L162)) - Method
 - [`libs/diary-ui/src/components/EntryCard.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/diary-ui/src/components/EntryCard.tsx)
   - `libs.diary-ui.src.components.EntryCard.EntryCardEntry` ([L9-L26](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/diary-ui/src/components/EntryCard.tsx#L9-L26)) - Interface
   - `libs.diary-ui.src.components.EntryCard.EntryCardProps` ([L28-L38](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/diary-ui/src/components/EntryCard.tsx#L28-L38)) - Interface
@@ -2466,6 +2583,9 @@ Provides the cryptographic foundation for agent identities. It manages the issua
 - [`libs/observability/src/tracing.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/observability/src/tracing.ts)
   - `libs.observability.src.tracing.CreateTraceProviderOptions` ([L15-L26](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/observability/src/tracing.ts#L15-L26)) - Interface
   - `libs.observability.src.tracing.createTraceProvider` ([L38-L66](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/observability/src/tracing.ts#L38-L66)) - Function
+- [`libs/pi-extension/scripts/smoke-pi-loader.mjs`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/pi-extension/scripts/smoke-pi-loader.mjs)
+  - `libs.pi-extension.scripts.smoke-pi-loader.fail` ([L55-L59](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/pi-extension/scripts/smoke-pi-loader.mjs#L55-L59)) - Function
+  - `libs.pi-extension.scripts.smoke-pi-loader.pack` ([L61-L90](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/pi-extension/scripts/smoke-pi-loader.mjs#L61-L90)) - Function
 - [`libs/pi-extension/src/index.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/pi-extension/src/index.ts)
   - `libs.pi-extension.src.index.createPiProviderErrorRetryUi.setStatus` ([L66-L68](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/pi-extension/src/index.ts#L66-L68)) - Method
   - `libs.pi-extension.src.index.createPiProviderErrorRetryUi.notify` ([L69-L71](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/pi-extension/src/index.ts#L69-L71)) - Method
@@ -2772,6 +2892,14 @@ Provides the cryptographic foundation for agent identities. It manages the issua
   - `libs.task-ui.src.task-detail-header.TaskDetailHeaderProps` ([L14-L20](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-detail-header.tsx#L14-L20)) - Interface
   - `libs.task-ui.src.task-detail-header.TaskDetailHeader` ([L22-L55](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-detail-header.tsx#L22-L55)) - Function
   - `libs.task-ui.src.task-detail-header.<unknown>..map("caption") callback` ([L92-L93](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-detail-header.tsx#L92-L93)) - Function
+- [`libs/task-ui/src/task-execution-record.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-execution-record.tsx)
+  - `libs.task-ui.src.task-execution-record.TaskKnowledgeState` ([L7-L10](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-execution-record.tsx#L7-L10)) - Interface
+  - `libs.task-ui.src.task-execution-record.TaskExecutionRecordProps` ([L12-L19](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-execution-record.tsx#L12-L19)) - Interface
+  - `libs.task-ui.src.task-execution-record.TaskExecutionRecord` ([L21-L158](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-execution-record.tsx#L21-L158)) - Function
+  - `libs.task-ui.src.task-execution-record.runtimeStatus` ([L160-L165](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-execution-record.tsx#L160-L165)) - Function
+  - `libs.task-ui.src.task-execution-record.runtimeProfile` ([L167-L172](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-execution-record.tsx#L167-L172)) - Function
+  - `libs.task-ui.src.task-execution-record.resultState` ([L174-L188](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-execution-record.tsx#L174-L188)) - Function
+  - `libs.task-ui.src.task-execution-record.getKnowledgeStatus` ([L190-L204](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-execution-record.tsx#L190-L204)) - Function
 - [`libs/task-ui/src/task-lane-card.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-card.tsx)
   - `libs.task-ui.src.task-lane-card.TaskLaneCardProps` ([L9-L14](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-card.tsx#L9-L14)) - Interface
   - `libs.task-ui.src.task-lane-card.TaskLaneCard` ([L16-L37](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-lane-card.tsx#L16-L37)) - Function
@@ -2820,12 +2948,12 @@ Provides the cryptographic foundation for agent identities. It manages the issua
   - `libs.task-ui.src.task-summary-strip.TaskSummaryStrip` ([L14-L32](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-summary-strip.tsx#L14-L32)) - Function
   - `libs.task-ui.src.task-summary-strip.formatRelativeAge` ([L41-L41](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-summary-strip.tsx#L41-L41)) - Method
 - [`libs/task-ui/src/task-turn-stream.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-turn-stream.tsx)
-  - `libs.task-ui.src.task-turn-stream.TaskTurnStreamProps` ([L14-L24](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-turn-stream.tsx#L14-L24)) - Interface
-  - `libs.task-ui.src.task-turn-stream.lineColor` ([L26-L38](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-turn-stream.tsx#L26-L38)) - Function
-  - `libs.task-ui.src.task-turn-stream.TaskTurnStream` ([L40-L79](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-turn-stream.tsx#L40-L79)) - Function
-  - `libs.task-ui.src.task-turn-stream.TaskTurnStream.useEffect() callback` ([L49-L53](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-turn-stream.tsx#L49-L53)) - Function
-  - `libs.task-ui.src.task-turn-stream.<unknown>..map() callback` ([L94-L95](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-turn-stream.tsx#L94-L95)) - Function
-  - `libs.task-ui.src.task-turn-stream.formatDateTime` ([L97-L97](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-turn-stream.tsx#L97-L97)) - Method
+  - `libs.task-ui.src.task-turn-stream.TaskTurnStreamProps` ([L14-L26](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-turn-stream.tsx#L14-L26)) - Interface
+  - `libs.task-ui.src.task-turn-stream.lineColor` ([L28-L40](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-turn-stream.tsx#L28-L40)) - Function
+  - `libs.task-ui.src.task-turn-stream.TaskTurnStream` ([L42-L88](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-turn-stream.tsx#L42-L88)) - Function
+  - `libs.task-ui.src.task-turn-stream.TaskTurnStream.useEffect() callback` ([L52-L56](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-turn-stream.tsx#L52-L56)) - Function
+  - `libs.task-ui.src.task-turn-stream.<unknown>..map() callback` ([L103-L104](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-turn-stream.tsx#L103-L104)) - Function
+  - `libs.task-ui.src.task-turn-stream.formatDateTime` ([L106-L106](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-turn-stream.tsx#L106-L106)) - Method
 - [`libs/task-ui/src/task-type-facet.tsx`](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-type-facet.tsx)
   - `libs.task-ui.src.task-type-facet.TaskTypeFacet.options.useMemo() callback` ([L28-L32](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-type-facet.tsx#L28-L32)) - Function
   - `libs.task-ui.src.task-type-facet.TaskTypeFacet.options.useMemo() callback.availableTypes.map() callback` ([L29-L32](https://github.com/getlarge/themoltnet/blob/main/.codeboardinglibs/task-ui/src/task-type-facet.tsx#L29-L32)) - Function

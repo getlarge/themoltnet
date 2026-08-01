@@ -274,7 +274,7 @@ Provides utilities to retroactively compute and apply content-hashes and subject
 **Related Classes/Methods**:
 
 - `tools.db.backfill-content-hashes.backfill`:76-128
-- `tools.db.backfill-runtime-profile-standard-engineering-context.backfill`:114-171
+- `tools.db.backfill-runtime-profile-standard-engineering-context.backfill`:117-189
 - `test-fixtures.generate-x25519-vectors.x25519Vectors`:72-102
 
 
@@ -338,16 +338,16 @@ Provides utilities to retroactively compute and apply content-hashes and subject
   - `tools.db.backfill-keto-subject-set.main.sample` ([L303-L305](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-keto-subject-set.ts#L303-L305)) - Class
   - `tools.db.backfill-keto-subject-set.main.sample.find() callback` ([L304-L304](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-keto-subject-set.ts#L304-L304)) - Function
 - [`tools/db/backfill-runtime-profile-standard-engineering-context.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-runtime-profile-standard-engineering-context.ts)
-  - `tools.db.backfill-runtime-profile-standard-engineering-context.proxyHost` ([L32-L33](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-runtime-profile-standard-engineering-context.ts#L32-L33)) - Class
-  - `tools.db.backfill-runtime-profile-standard-engineering-context.proxyHost.args.find() callback` ([L33-L33](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-runtime-profile-standard-engineering-context.ts#L33-L33)) - Function
-  - `tools.db.backfill-runtime-profile-standard-engineering-context.proxyPort` ([L34-L35](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-runtime-profile-standard-engineering-context.ts#L34-L35)) - Class
-  - `tools.db.backfill-runtime-profile-standard-engineering-context.proxyPort.args.find() callback` ([L35-L35](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-runtime-profile-standard-engineering-context.ts#L35-L35)) - Function
-  - `tools.db.backfill-runtime-profile-standard-engineering-context.resolveUrl` ([L46-L70](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-runtime-profile-standard-engineering-context.ts#L46-L70)) - Function
-  - `tools.db.backfill-runtime-profile-standard-engineering-context.loadStandardEngineeringContext` ([L72-L89](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-runtime-profile-standard-engineering-context.ts#L72-L89)) - Function
-  - `tools.db.backfill-runtime-profile-standard-engineering-context.computeProfileDefinitionCid` ([L95-L102](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-runtime-profile-standard-engineering-context.ts#L95-L102)) - Function
-  - `tools.db.backfill-runtime-profile-standard-engineering-context.isContextEntry` ([L104-L112](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-runtime-profile-standard-engineering-context.ts#L104-L112)) - Function
-  - `tools.db.backfill-runtime-profile-standard-engineering-context.backfill` ([L114-L171](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-runtime-profile-standard-engineering-context.ts#L114-L171)) - Function
-  - `tools.db.backfill-runtime-profile-standard-engineering-context.catch() callback` ([L173-L176](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-runtime-profile-standard-engineering-context.ts#L173-L176)) - Function
+  - `tools.db.backfill-runtime-profile-standard-engineering-context.proxyHost` ([L35-L36](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-runtime-profile-standard-engineering-context.ts#L35-L36)) - Class
+  - `tools.db.backfill-runtime-profile-standard-engineering-context.proxyHost.args.find() callback` ([L36-L36](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-runtime-profile-standard-engineering-context.ts#L36-L36)) - Function
+  - `tools.db.backfill-runtime-profile-standard-engineering-context.proxyPort` ([L37-L38](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-runtime-profile-standard-engineering-context.ts#L37-L38)) - Class
+  - `tools.db.backfill-runtime-profile-standard-engineering-context.proxyPort.args.find() callback` ([L38-L38](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-runtime-profile-standard-engineering-context.ts#L38-L38)) - Function
+  - `tools.db.backfill-runtime-profile-standard-engineering-context.resolveUrl` ([L49-L73](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-runtime-profile-standard-engineering-context.ts#L49-L73)) - Function
+  - `tools.db.backfill-runtime-profile-standard-engineering-context.loadStandardEngineeringContext` ([L75-L92](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-runtime-profile-standard-engineering-context.ts#L75-L92)) - Function
+  - `tools.db.backfill-runtime-profile-standard-engineering-context.computeProfileDefinitionCid` ([L98-L105](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-runtime-profile-standard-engineering-context.ts#L98-L105)) - Function
+  - `tools.db.backfill-runtime-profile-standard-engineering-context.isContextEntry` ([L107-L115](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-runtime-profile-standard-engineering-context.ts#L107-L115)) - Function
+  - `tools.db.backfill-runtime-profile-standard-engineering-context.backfill` ([L117-L189](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-runtime-profile-standard-engineering-context.ts#L117-L189)) - Function
+  - `tools.db.backfill-runtime-profile-standard-engineering-context.catch() callback` ([L191-L194](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-runtime-profile-standard-engineering-context.ts#L191-L194)) - Function
 - [`tools/db/backfill-team-relations-plural.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-team-relations-plural.ts)
   - `tools.db.backfill-team-relations-plural.RelationTuple` ([L60-L70](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-team-relations-plural.ts#L60-L70)) - Interface
   - `tools.db.backfill-team-relations-plural.ListResponse` ([L72-L75](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/db/backfill-team-relations-plural.ts#L72-L75)) - Interface
@@ -388,11 +388,11 @@ Provides utilities to retroactively compute and apply content-hashes and subject
   - `tools.generators.split-tsconfigs.index.isJson` ([L409-L411](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/generators/split-tsconfigs/index.ts#L409-L411)) - Function
   - `tools.generators.split-tsconfigs.index.unique` ([L413-L415](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/generators/split-tsconfigs/index.ts#L413-L415)) - Function
 - [`tools/src/bootstrap-genesis-agents.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bootstrap-genesis-agents.ts)
-  - `tools.src.bootstrap-genesis-agents.main.names` ([L105-L107](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bootstrap-genesis-agents.ts#L105-L107)) - Class
-  - `tools.src.bootstrap-genesis-agents.main.names.map() callback` ([L106-L106](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bootstrap-genesis-agents.ts#L106-L106)) - Function
-  - `tools.src.bootstrap-genesis-agents.main.names.Array.from() callback` ([L107-L107](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bootstrap-genesis-agents.ts#L107-L107)) - Function
-  - `tools.src.bootstrap-genesis-agents.main.output` ([L207-L216](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bootstrap-genesis-agents.ts#L207-L216)) - Class
-  - `tools.src.bootstrap-genesis-agents.main.output.result.agents.map() callback` ([L207-L216](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bootstrap-genesis-agents.ts#L207-L216)) - Function
+  - `tools.src.bootstrap-genesis-agents.main.names` ([L106-L108](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bootstrap-genesis-agents.ts#L106-L108)) - Class
+  - `tools.src.bootstrap-genesis-agents.main.names.map() callback` ([L107-L107](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bootstrap-genesis-agents.ts#L107-L107)) - Function
+  - `tools.src.bootstrap-genesis-agents.main.names.Array.from() callback` ([L108-L108](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bootstrap-genesis-agents.ts#L108-L108)) - Function
+  - `tools.src.bootstrap-genesis-agents.main.output` ([L208-L217](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bootstrap-genesis-agents.ts#L208-L217)) - Class
+  - `tools.src.bootstrap-genesis-agents.main.output.result.agents.map() callback` ([L208-L217](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/bootstrap-genesis-agents.ts#L208-L217)) - Function
 - [`tools/src/check-pack.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/check-pack.ts)
   - `tools.src.check-pack.checkNoSrcLeak.leaked` ([L104-L104](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/check-pack.ts#L104-L104)) - Class
   - `tools.src.check-pack.checkNoSrcLeak.leaked.paths.filter() callback` ([L104-L104](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/check-pack.ts#L104-L104)) - Function
@@ -412,9 +412,9 @@ Provides utilities to retroactively compute and apply content-hashes and subject
   - `tools.src.smoke-pack.localTarballs.localDependencies.map() callback` ([L178-L198](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/smoke-pack.ts#L178-L198)) - Function
   - `tools.src.smoke-pack.cleanup` ([L208-L211](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/smoke-pack.ts#L208-L211)) - Function
 - [`tools/src/tasks/bootstrap-local-agent.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/bootstrap-local-agent.ts)
-  - `tools.src.tasks.bootstrap-local-agent.main.result` ([L131-L147](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/bootstrap-local-agent.ts#L131-L147)) - Class
-  - `tools.src.tasks.bootstrap-local-agent.main.result.log` ([L146-L146](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/bootstrap-local-agent.ts#L146-L146)) - Method
-  - `tools.src.tasks.bootstrap-local-agent.main.result.finally() callback` ([L147-L147](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/bootstrap-local-agent.ts#L147-L147)) - Function
+  - `tools.src.tasks.bootstrap-local-agent.main.result` ([L138-L154](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/bootstrap-local-agent.ts#L138-L154)) - Class
+  - `tools.src.tasks.bootstrap-local-agent.main.result.log` ([L153-L153](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/bootstrap-local-agent.ts#L153-L153)) - Method
+  - `tools.src.tasks.bootstrap-local-agent.main.result.finally() callback` ([L154-L154](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/bootstrap-local-agent.ts#L154-L154)) - Function
 - [`tools/src/test-smtp.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/test-smtp.ts)
   - `tools.src.test-smtp.SmtpClient.startTls.secureSocket.<function>.upgraded` ([L102-L102](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/test-smtp.ts#L102-L102)) - Class
   - `tools.src.test-smtp.SmtpClient.startTls.secureSocket.<function>.upgraded.tls.connect() callback` ([L102-L102](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/test-smtp.ts#L102-L102)) - Function
@@ -575,10 +575,10 @@ Provides low-level machinery for deploying the agent runtime and verifying its s
   - `tools.src.release.go-version-actions.afterAllProjectsVersioned.displayCommand` ([L677-L679](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/release/go-version-actions.ts#L677-L679)) - Class
   - `tools.src.release.go-version-actions.afterAllProjectsVersioned.displayCommand.map() callback` ([L678-L678](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/release/go-version-actions.ts#L678-L678)) - Function
 - [`tools/src/tasks/bootstrap-local-agent.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/bootstrap-local-agent.ts)
-  - `tools.src.tasks.bootstrap-local-agent.repoRoot` ([L77-L82](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/bootstrap-local-agent.ts#L77-L82)) - Function
-  - `tools.src.tasks.bootstrap-local-agent.requireEnv` ([L84-L93](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/bootstrap-local-agent.ts#L84-L93)) - Function
-  - `tools.src.tasks.bootstrap-local-agent.main` ([L95-L270](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/bootstrap-local-agent.ts#L95-L270)) - Function
-  - `tools.src.tasks.bootstrap-local-agent.catch() callback` ([L272-L278](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/bootstrap-local-agent.ts#L272-L278)) - Function
+  - `tools.src.tasks.bootstrap-local-agent.repoRoot` ([L84-L89](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/bootstrap-local-agent.ts#L84-L89)) - Function
+  - `tools.src.tasks.bootstrap-local-agent.requireEnv` ([L91-L100](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/bootstrap-local-agent.ts#L91-L100)) - Function
+  - `tools.src.tasks.bootstrap-local-agent.main` ([L102-L286](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/bootstrap-local-agent.ts#L102-L286)) - Function
+  - `tools.src.tasks.bootstrap-local-agent.catch() callback` ([L288-L294](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/tasks/bootstrap-local-agent.ts#L288-L294)) - Function
 - [`tools/src/test-smtp.ts`](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/test-smtp.ts)
   - `tools.src.test-smtp.main.startTlsAvailable` ([L364-L366](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/test-smtp.ts#L364-L366)) - Class
   - `tools.src.test-smtp.main.startTlsAvailable.ehlo.lines.some() callback` ([L364-L366](https://github.com/getlarge/themoltnet/blob/main/.codeboardingtools/src/test-smtp.ts#L364-L366)) - Function
