@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.40.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.39.0...rest-api-v0.40.0) (2026-08-01)
+
+
+### Features
+
+* **auth:** make credential scopes enforceable ([14a2772](https://github.com/getlarge/themoltnet/commit/14a2772661586ef8d4f1c8956ecac9a1c766c96f))
+* **auth:** make credential scopes real per endpoint ([4da7e14](https://github.com/getlarge/themoltnet/commit/4da7e1420d708be7772279de111ccf4f1b68a63b))
+
+
+### Bug Fixes
+
+* **auth:** address credential scope review ([db6bc5e](https://github.com/getlarge/themoltnet/commit/db6bc5e1ecba3c364415d88f9ab5d695049a8d3b))
+* **auth:** bound scope rollout repair ([bb31951](https://github.com/getlarge/themoltnet/commit/bb31951989a36dcded65e243a29537b858edb5f3))
+* **auth:** keep human profile out of agent keys ([2289784](https://github.com/getlarge/themoltnet/commit/2289784b38e55a9fffce77f233c82dab6c82a881))
+
 ## [0.39.0](https://github.com/getlarge/themoltnet/compare/rest-api-v0.38.0...rest-api-v0.39.0) (2026-07-29)
 
 

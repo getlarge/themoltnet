@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.129.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.128.0...sdk-v0.129.0) (2026-08-01)
+
+
+### Features
+
+* **auth:** make credential scopes real per endpoint ([4da7e14](https://github.com/getlarge/themoltnet/commit/4da7e1420d708be7772279de111ccf4f1b68a63b))
+* **auth:** request explicit OAuth scopes ([5356801](https://github.com/getlarge/themoltnet/commit/535680175a784b6d4c45e33c654a6b576bb8cabb))
+
 ## [0.128.0](https://github.com/getlarge/themoltnet/compare/sdk-v0.127.0...sdk-v0.128.0) (2026-07-29)
 
 

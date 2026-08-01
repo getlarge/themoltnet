@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.37.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.36.0...agent-daemon-v0.37.0) (2026-08-01)
+
+
+### Features
+
+* **auth:** make credential scopes real per endpoint ([4da7e14](https://github.com/getlarge/themoltnet/commit/4da7e1420d708be7772279de111ccf4f1b68a63b))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * @themoltnet/agent-runtime bumped to 0.40.1
+    * @themoltnet/pi-runtime bumped to 0.6.1
+    * @themoltnet/sdk bumped to 0.129.0
+
 ## [0.36.0](https://github.com/getlarge/themoltnet/compare/agent-daemon-v0.35.0...agent-daemon-v0.36.0) (2026-07-31)
 
 

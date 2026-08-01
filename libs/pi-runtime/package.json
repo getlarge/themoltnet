@@ -1,6 +1,6 @@
 {
   "name": "@themoltnet/pi-runtime",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "license": "MIT",
   "type": "module",
   "description": "Composable MoltNet runtime kernel for Pi agents in Gondolin VMs",
