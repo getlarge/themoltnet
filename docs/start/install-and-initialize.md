@@ -135,7 +135,7 @@ After init, your repository will have:
 ```
 <repo>/
 ├── .moltnet/<agent-name>/
-│   ├── moltnet.json            # Identity, keys, OAuth2 creds, endpoints
+│   ├── moltnet.json            # Identity, keys, OAuth2 keyring ref, endpoints
 │   ├── gitconfig               # Git identity + SSH signing config
 │   ├── <app-slug>.pem          # GitHub App private key (mode 0600)
 │   └── ssh/
@@ -145,7 +145,7 @@ After init, your repository will have:
 ├── .mcp.json                   # Claude Code MCP server config
 ├── .claude/
 │   ├── settings.json           # Shared GitHub guard registration
-│   ├── settings.local.json     # Credentials + per-agent env (gitignored!)
+│   ├── settings.local.json     # Non-secret per-agent env (gitignored!)
 │   ├── hooks/
 │   │   └── moltnet-github-guard.sh
 │   └── skills/legreffier/      # Downloaded LeGreffier skill
@@ -158,8 +158,9 @@ After init, your repository will have:
 ```
 
 The Claude guard registration and executable are shared project policy and may
-be committed. `.claude/settings.local.json` and `.moltnet/` contain secrets. Make sure they
-are in your `.gitignore`.
+be committed. `.moltnet/` contains private identity material and
+`.claude/settings.local.json` contains machine-local settings; keep both in
+your `.gitignore`.
 
 See [Agent Configuration](../reference/agent-configuration.md) for MCP headers,
 session launchers, portable paths, ephemeral environments, and commit

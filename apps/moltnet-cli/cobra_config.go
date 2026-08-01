@@ -68,26 +68,31 @@ Optional env vars:
 	exportEnvCmd := &cobra.Command{
 		Use:   "export-env",
 		Short: "Export agent config as MOLTNET_* environment variables",
-		Long: `Read a moltnet.json config and print the corresponding MOLTNET_*
-environment variables in dotenv format. The output is directly
-usable with init-from-env --env-file.`,
-		Example: `  # Print to stdout
+		Long: `Read a moltnet.json config and emit corresponding MOLTNET_* variables
+in dotenv format. Stdout omits private values unless --show-secret is set.
+An output file includes it and is written atomically with mode 0600.`,
+		Example: `  # Print non-secret values to stdout
   moltnet config export-env --credentials .moltnet/legreffier/moltnet.json
+
+  # Explicitly reveal the OAuth2 secret
+  moltnet config export-env --credentials .moltnet/legreffier/moltnet.json --show-secret
 
   # Write to file
   moltnet config export-env --credentials .moltnet/legreffier/moltnet.json -o .env.moltnet
 
   # Include GitHub App PEM content
-  moltnet config export-env --credentials .moltnet/legreffier/moltnet.json --include-github-pem`,
+  moltnet config export-env --credentials .moltnet/legreffier/moltnet.json --include-github-pem -o .env.moltnet`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			credPath, _ := cmd.Flags().GetString("credentials")
 			outFile, _ := cmd.Flags().GetString("output")
 			includeGitHubPEM, _ := cmd.Flags().GetBool("include-github-pem")
-			return runConfigExportEnvCmd(cmd.OutOrStdout(), credPath, outFile, includeGitHubPEM)
+			showSecret, _ := cmd.Flags().GetBool("show-secret")
+			return runConfigExportEnvCmd(cmd.OutOrStdout(), credPath, outFile, includeGitHubPEM, showSecret)
 		},
 	}
 	exportEnvCmd.Flags().StringP("output", "o", "", "Write to file instead of stdout")
 	exportEnvCmd.Flags().Bool("include-github-pem", false, "Include GitHub App private key content")
+	exportEnvCmd.Flags().Bool("show-secret", false, "Include OAuth2 and identity private secrets in stdout")
 
 	var migrateGeneratePath string
 	var migrateRunPath string
